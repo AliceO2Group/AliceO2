@@ -1,3 +1,7 @@
+<!-- doxy
+\page refdocDebugging How to run in debug mode
+/doxy -->
+
 # How do I run in debug mode?
 
 By default, O2 builds with optimizations (`-O2`) turned on, while leaving debug symbols available.

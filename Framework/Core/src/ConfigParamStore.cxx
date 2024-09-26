@@ -41,6 +41,17 @@ void ConfigParamStore::preload()
   }
 }
 
+void ConfigParamStore::load(std::vector<ConfigParamSpec>& specs)
+{
+  mNextStore->clear();
+  mNextProvenance->clear();
+  // By default we populate with code.
+  PropertyTreeHelpers::populateDefaults(specs, *mNextStore, *mNextProvenance);
+  for (auto& retriever : mRetrievers) {
+    retriever->update(specs, *mStore, *mProvenance);
+  }
+}
+
 /// Activate the next store
 void ConfigParamStore::activate()
 {

@@ -26,9 +26,8 @@ struct o2_log_handle_t {
 
 // Helper function which replaces engineering types with a printf
 // compatible format string.
-// FIXME: make this consteval when available in C++20
 template <auto N>
-constexpr auto remove_engineering_type(char const (&src)[N])
+consteval auto remove_engineering_type(char const (&src)[N])
 {
   std::array<char, N> res = {};
   // do whatever string manipulation you want in res.
@@ -235,7 +234,9 @@ inline _o2_signpost_id_t _o2_signpost_id_make_with_pointer(_o2_log_t* log, void 
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <execinfo.h>
 #include "Framework/RuntimeError.h"
+#include "Framework/BacktraceHelpers.h"
 void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, va_list args);
 
 // returns true if the push was successful, false if the stack was full
@@ -378,6 +379,12 @@ void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* n
   vsnprintf(prebuffer + s, 4096 - s, format, args);
   va_end(args);
   O2_LOG_MACRO("%s", prebuffer);
+  if (log->stacktrace > 1) {
+    void* traces[o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE];
+    // We add one extra frame, because one is for the logging
+    int maxBacktrace = backtrace(traces, (log->stacktrace + 1) < o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE ? (log->stacktrace + 1) : o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE);
+    o2::framework::BacktraceHelpers::demangled_backtrace_symbols(traces, maxBacktrace, STDERR_FILENO);
+  }
 }
 
 // This will look at the slot in the log associated to the ID.
@@ -501,7 +508,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   } else {                                                                                                          \
-    O2_LOG_MACRO_RAW(info, format, ##__VA_ARGS__);                                                                  \
+    O2_LOG_MACRO_RAW(info, remove_engineering_type(format).data(), ##__VA_ARGS__);                                  \
   }                                                                                                                 \
 })
 
@@ -512,7 +519,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }                                                                                                                 \
-  O2_LOG_MACRO_RAW(error, format, ##__VA_ARGS__);                                                                   \
+  O2_LOG_MACRO_RAW(error, remove_engineering_type(format).data(), ##__VA_ARGS__);                                   \
 })
 
 // Similar to the above, however it will also print a normal warning message regardless of the signpost being enabled or not.
@@ -522,7 +529,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }                                                                                                                 \
-  O2_LOG_MACRO_RAW(warn, format, ##__VA_ARGS__);                                                                    \
+  O2_LOG_MACRO_RAW(warn, remove_engineering_type(format).data(), ##__VA_ARGS__);                                    \
 })
 
 #define O2_SIGNPOST_START(log, id, name, format, ...)                                                                   \

@@ -285,7 +285,7 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("OMP Kernels require mergerReadFromTrackerDirectly");
     return false;
   }
-  if (param().par.continuousMaxTimeBin > (int)GPUSettings::TPC_MAX_TF_TIME_BIN) {
+  if (param().continuousMaxTimeBin > (int)GPUSettings::TPC_MAX_TF_TIME_BIN) {
     GPUError("configured max time bin exceeds 256 orbits");
     return false;
   }
@@ -314,7 +314,7 @@ bool GPUChainTracking::ValidateSettings()
       return false;
     }
     if (!(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) || !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) || param().rec.fwdTPCDigitsAsClusters) {
-      GPUError("Invalid reconstruction settings for double pipeline");
+      GPUError("Invalid reconstruction settings for double pipeline: Needs compression and cluster finding");
       return false;
     }
   }
@@ -323,7 +323,7 @@ bool GPUChainTracking::ValidateSettings()
     return false;
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
-    if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || param().rec.tpc.nWaysOuter == 0 || GetMatLUT() == nullptr)) {
+    if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || param().rec.tpc.nWaysOuter == 0 || (GetMatLUT() == nullptr && !GetProcessingSettings().willProvideO2PropagatorLate))) {
       GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled (%d), nWaysOuter is set (%d), and matBudLUT is available (0x%p)", (int)GetProcessingSettings().createO2Output, (int)param().rec.tpc.nWaysOuter, (void*)GetMatLUT());
       return false;
     }
@@ -331,8 +331,8 @@ bool GPUChainTracking::ValidateSettings()
       GPUError("TRD tracking can only run on GPU TPC tracks if the createO2Output setting does not suppress them");
       return false;
     }
-    if ((((GetRecoStepsGPU() & RecoStep::TRDTracking) && !GetProcessingSettings().trdTrackModelO2) || ((GetRecoStepsGPU() & RecoStep::Refit) && !param().rec.trackingRefitGPUModel)) && (!GetProcessingSettings().o2PropagatorUseGPUField || processors()->calibObjects.matLUT == nullptr)) {
-      GPUError("Cannot use TRD tracking or Refit on GPU without GPU polynomial field map or matlut table");
+    if ((((GetRecoStepsGPU() & RecoStep::TRDTracking) && GetProcessingSettings().trdTrackModelO2) || ((GetRecoStepsGPU() & RecoStep::Refit) && !param().rec.trackingRefitGPUModel)) && (!GetProcessingSettings().o2PropagatorUseGPUField || (GetMatLUT() == nullptr && !GetProcessingSettings().willProvideO2PropagatorLate))) {
+      GPUError("Cannot use TRD tracking or Refit on GPU without GPU polynomial field map (%d) or matlut table (%p)", (int)GetProcessingSettings().o2PropagatorUseGPUField, (void*)GetMatLUT());
       return false;
     }
   }
@@ -655,6 +655,22 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
         pDst[i] = pSrc[i];
       }
     }
+    if (mNewCalibObjects->trdGeometry && (GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking)) {
+#ifdef GPUCA_HAVE_O2HEADERS
+      if (GetProcessingSettings().trdTrackModelO2) {
+        processors()->trdTrackerO2.UpdateGeometry();
+        if (mRec->IsGPU()) {
+          TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, processors()->trdTrackerO2.MemoryPermanent(), stream);
+        }
+      } else
+#endif
+      {
+        processors()->trdTrackerGPU.UpdateGeometry();
+        if (mRec->IsGPU()) {
+          TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, processors()->trdTrackerGPU.MemoryPermanent(), stream);
+        }
+      }
+    }
     if (mRec->IsGPU()) {
       std::array<unsigned char, sizeof(GPUTrackingFlatObjects)> oldFlatPtrs, oldFlatPtrsDevice;
       memcpy(oldFlatPtrs.data(), (void*)&mFlatObjectsShadow, oldFlatPtrs.size());
@@ -680,7 +696,7 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
 
 int GPUChainTracking::RunChain()
 {
-  if ((((GetRecoSteps() & RecoStep::TRDTracking) && !GetProcessingSettings().trdTrackModelO2) || ((GetRecoSteps() & RecoStep::Refit) && !param().rec.trackingRefitGPUModel)) && processors()->calibObjects.o2Propagator == nullptr) {
+  if ((((GetRecoSteps() & RecoStep::TRDTracking) && !GetProcessingSettings().trdTrackModelO2 && !GetProcessingSettings().willProvideO2PropagatorLate) || ((GetRecoSteps() & RecoStep::Refit) && !param().rec.trackingRefitGPUModel)) && processors()->calibObjects.o2Propagator == nullptr) {
     GPUFatal("Cannot run TRD tracking or refit with o2 track model without o2 propagator"); // This check must happen during run, since o2::Propagator cannot be available during init
   }
   if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
@@ -857,7 +873,7 @@ int GPUChainTracking::RunChainFinalize()
       Sleep(10);
       if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
         iKey = kbhit() ? getch() : 0;
-        if (iKey == 'q') {
+        if (iKey == 27) {
           GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
           break;

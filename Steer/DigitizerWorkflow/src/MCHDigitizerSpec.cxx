@@ -45,7 +45,7 @@ namespace mch
 class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  MCHDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+  MCHDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM) {}
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -75,6 +75,8 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (finished) {
       return;
     }
+
+    mDigitizer->setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
 
     auto tStart = std::chrono::high_resolution_clock::now();
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");

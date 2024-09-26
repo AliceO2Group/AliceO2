@@ -21,6 +21,8 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/StreamContext.h"
 #include "Framework/Signpost.h"
+#include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/Stack.h"
 
 #include <fairmq/Device.h>
@@ -119,6 +121,7 @@ fair::mq::MessagePtr DataAllocator::headerMessageFromOutput(Output const& spec, 
   dh.runNumber = timingInfo.runNumber;
 
   DataProcessingHeader dph{timingInfo.timeslice, 1, timingInfo.creation};
+  static_cast<o2::header::BaseHeader&>(dph).flagsDerivedHeader |= timingInfo.keepAtEndOfStream ? DataProcessingHeader::KEEP_AT_EOS_FLAG : 0;
   auto& proxy = mRegistry.get<FairMQDeviceProxy>();
   auto* transport = proxy.getOutputTransport(routeIndex);
 
@@ -131,13 +134,13 @@ void DataAllocator::addPartToContext(RouteIndex routeIndex, fair::mq::MessagePtr
 {
   auto headerMessage = headerMessageFromOutput(spec, routeIndex, serializationMethod, 0);
   O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerMessage->GetData());
-  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %p", headerMessage->GetData());
-
   // FIXME: this is kind of ugly, we know that we can change the content of the
   // header message because we have just created it, but the API declares it const
   const DataHeader* cdh = o2::header::get<DataHeader*>(headerMessage->GetData());
   auto* dh = const_cast<DataHeader*>(cdh);
   dh->payloadSize = payloadMessage->GetSize();
+  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %{public}s@%p %" PRIu64,
+                    cdh ? fmt::format("{}/{}/{}", cdh->dataOrigin, cdh->dataDescription, cdh->subSpecification).c_str() : "unknown", headerMessage->GetData(), dh->payloadSize);
   auto& context = mRegistry.get<MessageContext>();
   // make_scoped creates the context object inside of a scope handler, since it goes out of
   // scope immediately, the created object is scheduled and can be directly sent if the context
@@ -153,8 +156,10 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
   // the correct payload size is set later when sending the
   // StringContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
+  const DataHeader* cdh = o2::header::get<DataHeader*>(header->GetData());
   O2_SIGNPOST_ID_FROM_POINTER(pid, parts, header->GetData());
-  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %p", header->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %{public}s@%p %" PRIu64,
+                    cdh ? fmt::format("{}/{}/{}", cdh->dataOrigin, cdh->dataDescription, cdh->subSpecification).c_str() : "unknown", header->GetData(), cdh->payloadSize);
   mRegistry.get<StringContext>().addString(std::move(header), std::move(payload), routeIndex);
   assert(payload.get() == nullptr);
 }
@@ -211,8 +216,10 @@ void DataAllocator::adopt(const Output& spec, LifetimeHolder<TableBuilder>& tb)
   auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
+  const DataHeader* cdh = o2::header::get<DataHeader*>(header->GetData());
   O2_SIGNPOST_ID_FROM_POINTER(pid, parts, header->GetData());
-  O2_SIGNPOST_START(parts, pid, "parts", "adopt %p", header->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "adopt %{public}s@%p %" PRIu64,
+                    cdh ? fmt::format("{}/{}/{}", cdh->dataOrigin, cdh->dataDescription, cdh->subSpecification).c_str() : "unknown", header->GetData(), cdh->payloadSize);
   auto& context = mRegistry.get<ArrowContext>();
 
   auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<fair::mq::Message> {

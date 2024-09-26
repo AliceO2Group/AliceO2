@@ -334,10 +334,10 @@ inline int qAddOptionType<bool>(qConfigSettings<bool>& settings, bool& ref, int&
     true);
 }
 template <>
-inline int qAddOptionType<char>(qConfigSettings<char>& settings, char& ref, int& i, const char** argv, const int argc, char /*def*/)
+inline int qAddOptionType<signed char>(qConfigSettings<signed char>& settings, signed char& ref, int& i, const char** argv, const int argc, signed char /*def*/)
 {
-  return qAddOptionGeneric<char>(
-    settings, ref, i, argv, argc, settings.set, [](const char* a) -> char {
+  return qAddOptionGeneric<signed char>(
+    settings, ref, i, argv, argc, settings.set, [](const char* a) -> signed char {
       return atoi(a);
     },
     settings.doDefault);
@@ -477,10 +477,12 @@ static inline void qConfigHelp(const char* subConfig = nullptr, int followSub = 
   if (followSub < 2) {
     printf("Usage Info:");
   }
-
 #define QCONFIG_HELP
 #include "qconfig.h"
 #undef QCONFIG_HELP
+  if (followSub < 2) {
+    printf("\n");
+  }
 }
 
 // Create parser for configuration

@@ -123,14 +123,9 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   // cuts on different V0 PID params
   bool checkV0Hypothesis = true;                                                                                               // enable Mass Hypothesis check
-  bool checkV0AP = false;                                                                                                      // enable Armenteros-Podolanski check
   float pidCutsPhoton[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.10, 20, 0.10, 0.0, 0.0, 0.0, 0.0};                        // Photon
-  float pidCutsPhotonAP_qT = 0.04;                                                                                             // Loose Armenteros-Podolanski q_T cut for photons in case mass-hypothesis was good
   float pidCutsK0[SVertexHypothesis::NPIDParams] = {0., 20, 0., 5.0, 0.0, 2.84798e-03, 9.84206e-04, 3.31951e-03, 2.39438};     // K0
-  float pidCutsK0AP_qT = 0.6;                                                                                                  // Loose Armenteros-Podolanski q_T cut for K0s in case mass-hypothesis was good
   float pidCutsLambda[SVertexHypothesis::NPIDParams] = {0., 20, 0., 5.0, 0.0, 1.09004e-03, 2.62291e-04, 8.93179e-03, 2.83121}; // Lambda
-  float pidCutsLambdaAP_qT = 0.9;                                                                                              // Loose Armenteros-Podolanski q_T cut for Lambda in case mass-hypothesis was good
-  float pidCutsLambdaAP_a = 0.9;                                                                                               // Loose Armenteros-Podolanski alpha cut for Lambda in case mass-hypothesis was good
   float pidCutsHTriton[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                       // HyperTriton
   float pidCutsHhydrog4[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                      // Hyperhydrog4 - Need to update
   //
@@ -143,7 +138,9 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   // cuts on different 3 body PID params
   bool check3bodyHypothesis = true;
   float pidCutsH3L3body[SVertex3Hypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5};  // H3L -> d p pi-
+  float pidCutsH4L3body[SVertex3Hypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5};  // H4L -> t p pi-
   float pidCutsHe4L3body[SVertex3Hypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5}; // He4L -> He3 p pi-
+  float pidCutsHe5L3body[SVertex3Hypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5}; // He5L -> He4 p pi-
 
   O2ParamDef(SVertexerParams, "svertexer");
 };

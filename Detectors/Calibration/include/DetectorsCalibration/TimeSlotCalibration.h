@@ -87,12 +87,35 @@ class TimeSlotCalibration
       setSlotLength(ntf);
       mSlotLengthInOrbits = 0;
     }
+    setStartOffsetFrac(mStartOffsetFrac); // set once more to account for eventual dependencies
+    mStartOffsetTFs = TFType(mSlotLength * mStartOffsetFrac);
+  }
+
+  void setStartOffsetFrac(float f)
+  {
+    if (mUpdateAtTheEndOfRunOnly || mFinalizeWhenReady || mSlotLength == INFINITE_TF) { // offset makes no sense for run-wide objects
+      if (f) {
+        LOGP(info, "Start offset is not supported in the INFINITE_TF slot length or UpdateAtTheEndOfRunOnly or FinalizeWhenReady modes");
+      }
+      return;
+    }
+    if (f < 0.) {
+      mStartOffsetFrac = 0.;
+    } else if (f > 0.95) {
+      mStartOffsetFrac = 0.95;
+    } else {
+      mStartOffsetFrac = f;
+    }
+    if (mStartOffsetFrac || f != mStartOffsetFrac) {
+      LOGP(info, "Imposing offset of {:4.2} x nominal slot length", mStartOffsetFrac);
+    }
   }
 
   void setFinalizeWhenReady()
   {
     mFinalizeWhenReady = true;
     setSlotLength(INFINITE_TF);
+    mStartOffsetFrac = 0;
   }
 
   void setUpdateAtTheEndOfRunOnly() { mUpdateAtTheEndOfRunOnly = kTRUE; }
@@ -219,7 +242,6 @@ class TimeSlotCalibration
   }
 
   TFType tf2SlotMin(TFType tf) const;
-
   std::deque<Slot> mSlots;
 
   o2::dataformats::TFIDInfo mCurrentTFInfo{};
@@ -229,6 +251,8 @@ class TimeSlotCalibration
   TFType mFirstTF = 0;
   TFType mMaxSeenTF = 0;                        // largest TF processed
   TFType mSlotLength = 1;                       // slot length in TFs
+  TFType mStartOffsetTFs = 0;                   // shift start of all TFs backwards by this amount (to make 1st slot effectively shorter: run_1st_tf to run_1st_tf - offset + mSlotLength), derived from mStartOffsetFrac
+  float mStartOffsetFrac = 0.;                  // shift start of all TFs backwards mSlotLength*mStartOffsetFrac TFs.
   TFType mCheckIntervalInfiniteSlot = 1;        // will be used if the TF length is INFINITE_TF_int64 to decide
                                                 // when to check if to call the finalize; otherwise it is called
                                                 // at every new TF; note that this is an approximation,
@@ -381,16 +405,20 @@ void TimeSlotCalibration<Container>::finalizeOldestSlot()
 template <typename Container>
 inline TFType TimeSlotCalibration<Container>::tf2SlotMin(TFType tf) const
 {
-
   // returns the min TF of the slot to which "tf" belongs
-
   if (tf < mFirstTF) {
     throw std::runtime_error("invalid TF");
   }
   if (mUpdateAtTheEndOfRunOnly) {
     return mFirstTF;
   }
-  uint64_t tft = int64_t(((tf - mFirstTF) / mSlotLength) * mSlotLength) + mFirstTF;
+  int64_t tft = 0;
+  tft = int64_t(((tf - mFirstTF + mStartOffsetTFs) / mSlotLength) * mSlotLength) + mFirstTF;
+  if (tft > mStartOffsetTFs) {
+    tft -= mStartOffsetTFs;
+  } else {
+    tft = 0;
+  }
   return tft < o2::calibration::INFINITE_TF ? TFType(tft) : INFINITE_TF;
 }
 
@@ -415,7 +443,7 @@ TimeSlot<Container>& TimeSlotCalibration<Container>::getSlotForTF(TFType tf)
     auto tfmn = tf2SlotMin(mSlots.front().getTFStart() - 1); // min TF of the slot corresponding to a TF smaller than the first seen
     auto tftgt = tf2SlotMin(tf);                             // min TF of the slot to which the TF "tf" would belong
     while (tfmn >= tftgt) {
-      uint64_t tft = uint64_t(tfmn) + mSlotLength - 1;
+      uint64_t tft = mSlots.front().getTFStart() - 1;
       TFType tfmx = tft < o2::calibration::INFINITE_TF ? TFType(tft) : o2::calibration::INFINITE_TF;
       LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmx;
       auto& sl = emplaceNewSlot(true, tfmn, tfmx);
@@ -438,12 +466,15 @@ TimeSlot<Container>& TimeSlotCalibration<Container>::getSlotForTF(TFType tf)
   auto tfmn = mSlots.empty() ? tf2SlotMin(tf) : tf2SlotMin(mSlots.back().getTFEnd() + 1);
   do {
     uint64_t tft = uint64_t(tfmn) + mSlotLength - 1;
+    if (mSlots.empty() && mStartOffsetTFs && tf < mStartOffsetTFs) { // if this was lowest possible TF, its length might be smaller than mSlotLength
+      tft -= mStartOffsetTFs;
+    }
     TFType tfmx = tft < o2::calibration::INFINITE_TF ? TFType(tft) : o2::calibration::INFINITE_TF;
     LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmx;
     auto& sl = emplaceNewSlot(false, tfmn, tfmx);
     sl.setRunStartOrbit(getRunStartOrbit());
     sl.setStaticStartTimeMS(sl.getStartTimeMS());
-    tfmn = tf2SlotMin(mSlots.back().getTFEnd() + 1);
+    tfmn = tft < o2::calibration::INFINITE_TF ? mSlots.back().getTFEnd() + 1 : tft;
   } while (tf > mSlots.back().getTFEnd());
 
   return mSlots.back();
@@ -454,7 +485,7 @@ template <typename Container>
 void TimeSlotCalibration<Container>::print() const
 {
   for (int i = 0; i < getNSlots(); i++) {
-    LOG(info) << "Slot #" << i << " of " << getNSlots();
+    LOG(info) << "Slot #" << i + 1 << " of " << getNSlots();
     getSlot(i).print();
   }
 }

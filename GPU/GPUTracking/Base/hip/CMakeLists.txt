@@ -52,7 +52,8 @@ if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
     list(APPEND HIP_SOURCES "${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}")
   endforeach()
 
-  add_custom_target(${MODULE}_HIPIFIED_CHK COMMAND diff -u ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip DEPENDS ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip)
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_HIPIFIED_CHK.done COMMAND diff -u ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip && touch ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_HIPIFIED_CHK.done DEPENDS ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip)
+  add_custom_target(${MODULE}_HIPIFIED_CHK DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_HIPIFIED_CHK.done)
 else()
   get_filename_component(GPUCA_HIP_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)
 endif()
@@ -80,6 +81,11 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # build flags to use for RTC
   set(GPU_RTC_FLAGS "${CMAKE_HIP_FLAGS} ${CMAKE_HIP_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -std=c++${CMAKE_HIP_STANDARD}")
+  set(GPU_RTC_FLAGS_ARCH "")
+  foreach(HIP_ARCH ${CMAKE_HIP_ARCHITECTURES})
+    set(GPU_RTC_FLAGS_ARCH "${GPU_RTC_FLAGS_ARCH} --offload-arch=${HIP_ARCH}")
+  endforeach()
+
   set(GPU_RTC_FLAGS_SEPARATED "${GPU_RTC_FLAGS}")
   separate_arguments(GPU_RTC_FLAGS_SEPARATED)
 
@@ -114,7 +120,16 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   )
   create_binary_resource(${GPU_RTC_BIN}.command ${GPU_RTC_BIN}.command.o)
 
-  set(SRCS ${SRCS} ${GPU_RTC_BIN}.src.o ${GPU_RTC_BIN}.command.o)
+  add_custom_command(
+      OUTPUT ${GPU_RTC_BIN}.command.arch
+      COMMAND echo -n "${GPU_RTC_FLAGS_ARCH}" > ${GPU_RTC_BIN}.command.arch
+      COMMAND_EXPAND_LISTS
+      VERBATIM
+      COMMENT "Preparing HIP RTC ARCH file ${GPU_RTC_BIN}.command.arch"
+  )
+  create_binary_resource(${GPU_RTC_BIN}.command.arch ${GPU_RTC_BIN}.command.arch.o)
+
+  set(SRCS ${SRCS} ${GPU_RTC_BIN}.src.o ${GPU_RTC_BIN}.command.o ${GPU_RTC_BIN}.command.arch.o)
 endif()
 # -------------------------------- End RTC -------------------------------------------------------
 
@@ -244,7 +259,7 @@ elseif(GPUCA_HIP_COMPILE_MODE STREQUAL "perkernel")
                               ${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step1unattached.hip
                               TARGET_DIRECTORY ${targetName}
                               PROPERTIES
-                              COMPILE_FLAGS "${GPUCA_HIP_NO_FAST_MATH_FLAGS}"
+                              COMPILE_FLAGS "${GPUCA_CXX_NO_FAST_MATH_FLAGS}"
                               COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
 elseif(GPUCA_HIP_COMPILE_MODE STREQUAL "rdc")
   message(FATAL_ERROR "HIP RDC compilation of GPUReconstruction ios not yet working!")
@@ -260,7 +275,7 @@ if(NOT GPUCA_HIP_COMPILE_MODE STREQUAL "rdc")
   target_link_options(${targetName} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fno-gpu-rdc>)
 endif()
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR GPUCA_CONFIG_O2_EXTENSIONS)
   add_library(GPUTrackingHIPExternalProvider OBJECT ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPExternalProvider.hip)
   add_library(O2::GPUTrackingHIPExternalProvider ALIAS GPUTrackingHIPExternalProvider)
   target_compile_options(GPUTrackingHIPExternalProvider PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)

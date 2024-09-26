@@ -8,7 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
-# add_compile_options(-O0 -g -fPIC)
+#add_compile_options(-O0 -g -fPIC -fno-omit-frame-pointer)
 
 o2_add_library(GlobalTracking
                TARGETVARNAME targetName
@@ -20,39 +20,40 @@ o2_add_library(GlobalTracking
                        src/MatchCosmicsParams.cxx
                        src/MatchGlobalFwd.cxx
                        src/MatchGlobalFwdAssessment.cxx
-                       src/MatchITSTPCQC.cxx
-                       src/ITSTPCMatchingQCParams.cxx
                        src/MatchGlobalFwdParam.cxx
                        src/MatchTOFParams.cxx
-  PUBLIC_LINK_LIBRARIES O2::Framework
-                        O2::DataFormatsTPC
-                        O2::DataFormatsITSMFT
-                        O2::DataFormatsITS
-                        O2::DataFormatsFT0
-                        O2::DataFormatsTOF
-                        O2::DataFormatsHMP
-                        O2::DataFormatsTRD
-                        O2::ITSReconstruction
-                        O2::FT0Reconstruction
-                        O2::TPCFastTransformation
-                        O2::GPUO2Interface
-                        O2::GPUTracking
-                        O2::TPCBase
-                        O2::TPCReconstruction
-                        O2::TPCCalibration
-                        O2::TOFBase
-                        O2::HMPIDReconstruction
-                        O2::TOFCalibration
-                        O2::TOFWorkflowUtils
-                        O2::SimConfig
-                        O2::DataFormatsFT0
-                        O2::DataFormatsGlobalTracking
-                        O2::ITStracking
-                        O2::MFTTracking
-                        O2::MCHTracking
-                        O2::MathUtils
-                        O2::ReconstructionDataFormats
-                        O2::Steer)
+                       src/MatchITSTPCQC.cxx
+                       src/ITSTPCMatchingQCParams.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework
+                                     O2::DataFormatsTPC
+                                     O2::DataFormatsITSMFT
+                                     O2::DataFormatsITS
+                                     O2::DataFormatsFT0
+                                     O2::DataFormatsTOF
+                                     O2::DataFormatsHMP
+                                     O2::DataFormatsTRD
+                                     O2::ITSReconstruction
+                                     O2::FT0Reconstruction
+                                     O2::TPCFastTransformation
+                                     O2::GPUO2Interface
+                                     O2::GPUTracking
+                                     O2::TPCBase
+                                     O2::TPCReconstruction
+                                     O2::TPCCalibration
+                                     O2::TOFBase
+                                     O2::HMPIDReconstruction
+                                     O2::TOFCalibration
+                                     O2::TOFWorkflowUtils
+                                     O2::SimConfig
+                                     O2::DataFormatsFT0
+                                     O2::DataFormatsGlobalTracking
+                                     O2::ITStracking
+                                     O2::MFTTracking
+                                     O2::MCHTracking
+                                     O2::MathUtils
+                                     O2::ReconstructionDataFormats
+                                     O2::Steer
+                                     $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Reconstruction>)
 
 o2_target_root_dictionary(GlobalTracking
                           HEADERS include/GlobalTracking/MatchTPCITSParams.h
@@ -63,10 +64,10 @@ o2_target_root_dictionary(GlobalTracking
                                   include/GlobalTracking/MatchHMP.h
                                   include/GlobalTracking/MatchCosmics.h
                                   include/GlobalTracking/MatchCosmicsParams.h
-                                  include/GlobalTracking/MatchITSTPCQC.h
-                                  include/GlobalTracking/ITSTPCMatchingQCParams.h
                                   include/GlobalTracking/TrackMethods.h
-                                  include/GlobalTracking/TrackCuts.h)
+                                  include/GlobalTracking/TrackCuts.h
+                                  include/GlobalTracking/MatchITSTPCQC.h
+                                  include/GlobalTracking/ITSTPCMatchingQCParams.h)
 
 
 if (OpenMP_CXX_FOUND)

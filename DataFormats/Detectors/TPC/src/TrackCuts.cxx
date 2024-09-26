@@ -49,5 +49,8 @@ bool TrackCuts::goodTrack(o2::tpc::TrackTPC const& track)
   if (dEdx < mdEdxMin) {
     return false;
   }
+  if ((std::abs(track.getOuterParam().getZ()) - std::abs(track.getZ())) < -10) {
+    return false;
+  }
   return true;
 }

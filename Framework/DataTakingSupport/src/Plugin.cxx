@@ -117,8 +117,8 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
       severity,
       level,
       InfoLogger::undefinedMessageOption.errorCode,
-      metadata.file.c_str(),
-      atoi(metadata.line.c_str())};
+      metadata.file.data(),
+      atoi(metadata.line.data())};
 
     if (logger) {
       logger->log(opt, *ctx, "%s", content.c_str());

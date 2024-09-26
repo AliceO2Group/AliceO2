@@ -14,9 +14,7 @@
 #include <iostream>
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 namespace
@@ -25,13 +23,22 @@ std::string quote(std::string const& s) { return R"(")" + s + R"(")"; }
 } // namespace
 
 /// Helper to dump a workflow as a graphviz file
-void GraphvizHelpers::dumpDataProcessorSpec2Graphviz(std::ostream& out, const std::vector<DataProcessorSpec>& specs)
+void GraphvizHelpers::dumpDataProcessorSpec2Graphviz(std::ostream& out, const std::vector<DataProcessorSpec>& specs,
+                                                     std::vector<std::pair<int, int>> const& edges)
 {
   out << "digraph structs {\n";
   out << "  node[shape=record]\n";
   for (auto& spec : specs) {
-    out << R"(  struct [label=")" << spec.name << R"("];)"
-        << "\n";
+    std::string labels = " xlabel=\"";
+    for (auto& label : spec.labels) {
+      labels += labels == " xlabel=\"" ? "" : ",";
+      labels += label.value;
+    }
+    labels += "\"";
+    out << fmt::format("  \"{}\" [label=\"{}\"{}];\n", spec.name, spec.name, labels != " xlabel=\"\"" ? labels : "");
+  }
+  for (auto& e : edges) {
+    out << fmt::format("  \"{}\" -> \"{}\"\n", specs[e.first].name, specs[e.second].name);
   }
   out << "}\n";
 }
@@ -86,5 +93,4 @@ void GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream& out, const std::vect
   out << "}\n";
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

@@ -447,14 +447,12 @@ void ConfigurableParam::updateFromString(std::string const& configString)
     std::vector<std::pair<std::string, std::string>> pairs;
 
     for (auto& token : tokens) {
-      auto keyval = o2::utils::Str::tokenize(token, '=');
-      if (keyval.size() != 2) {
+      auto s = token.find('=');
+      if (s == 0 || s == std::string::npos || s == token.size() - 1) {
         LOG(fatal) << "Illegal command-line key/value string: " << token;
         continue;
       }
-
-      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], o2::utils::Str::trim_copy(keyval[1]));
-      pairs.push_back(pair);
+      pairs.emplace_back(token.substr(0, s), token.substr(s + 1, token.size()));
     }
 
     return pairs;

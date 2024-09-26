@@ -120,9 +120,12 @@ class TopologyDictionary
   /// Returns the local position of a compact cluster
 
   /// Returns the local position of a compact cluster
-  math_utils::Point3D<float> getClusterCoordinates(const itsmft::CompClusterExt& cl) const;
+  template <typename T = float>
+  math_utils::Point3D<T> getClusterCoordinates(const itsmft::CompClusterExt& cl) const;
+
   /// Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
+  template <typename T = float>
+  static math_utils::Point3D<T> getClusterCoordinates(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
 
   static TopologyDictionary* loadFrom(const std::string& fileName = "", const std::string& objName = "ccdb_object");
 

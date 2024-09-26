@@ -51,6 +51,8 @@ BOOST_AUTO_TEST_CASE(test_empty)
   BOOST_CHECK_EQUAL_COLLECTIONS(rLut.begin(), rLut.end(), res.begin(), res.end());
 }
 
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object" // TODO: Remove once this is fixed in GCC
+
 BOOST_AUTO_TEST_CASE(test_buildRLUT)
 {
   const std::vector<int32_t> A{5, 5, 6, 6, 8, 8, 8, 8, 8, -1, -5, 2, 7, 3};

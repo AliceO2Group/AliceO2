@@ -17,7 +17,6 @@
 #include <vector>
 #include <string>
 #include <filesystem>
-#include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "Framework/Logger.h"
@@ -35,7 +34,6 @@
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
@@ -45,9 +43,7 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace zdc
+namespace o2::zdc
 {
 
 InterCalibSpec::InterCalibSpec()
@@ -234,5 +230,4 @@ framework::DataProcessorSpec getInterCalibSpec()
     Options{{"verbosity-level", o2::framework::VariantType::Int, 1, {"Verbosity level"}}}};
 }
 
-} // namespace zdc
 } // namespace o2

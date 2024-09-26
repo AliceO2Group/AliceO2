@@ -102,6 +102,8 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float nSigmaTimeCut = 4.;             ///< eliminate vertex if there is no FT0 or BC signal within this cut
   float timeBiasMS = 0;                 ///< relative bias in ms to add to TPCITS-based time stamp
   //
+  bool doBCValidation = true; ///< apply validation by interacting BC compatible with the vertex time span
+  //
   // stopping condition params
   float maxChi2Mean = 10.;          ///< max mean chi2 of vertex to accept
   int minTracksPerVtx = 2;          ///< min N tracks per vertex

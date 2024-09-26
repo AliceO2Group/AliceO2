@@ -15,8 +15,9 @@
 #include <cmath>
 #include <limits>
 
-#include "DetectorsRaw/HBFUtils.h"
 #include "MCHSimulation/DigitizerParam.h"
+#include <TGeoGlobalMagField.h>
+#include "Field/MagneticField.h"
 
 /// Convert collision time to ROF time (ROF duration = 4 BC)
 std::pair<o2::InteractionRecord, uint8_t> time2ROFtime(const o2::InteractionRecord& time)
@@ -25,9 +26,11 @@ std::pair<o2::InteractionRecord, uint8_t> time2ROFtime(const o2::InteractionReco
   return std::make_pair(o2::InteractionRecord(time.bc - bc, time.orbit), bc);
 }
 
+//_________________________________________________________________________________________________
+
 namespace o2::mch
 {
-
+//_________________________________________________________________________________________________
 DEDigitizer::DEDigitizer(int deId, math_utils::Transform3D transformation, std::mt19937& random)
   : mDeId{deId},
     mResponse{deId < 300 ? Station::Type1 : Station::Type2345},
@@ -41,6 +44,7 @@ DEDigitizer::DEDigitizer(int deId, math_utils::Transform3D transformation, std::
     mNofNoisyPadsDist{DigitizerParam::Instance().noiseOnlyProba * mSegmentation.nofPads()},
     mPadIdDist{0, mSegmentation.nofPads() - 1},
     mBCDist{0, 3},
+    mFirstTFOrbit{0},
     mSignals(mSegmentation.nofPads())
 {
 }
@@ -77,6 +81,26 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   }
   auto localX = mResponse.getAnod(lpos.X());
   auto localY = lpos.Y();
+
+  // calculate angle between track and wire assuming wire perpendicular to z-axis
+  // take global coordinates to avoid issues with rotations of detection elements
+  // neglect rotation of chambers w.r.t. beam
+  auto thetawire = atan((exitPoint.Y() - entrancePoint.Y()) / (entrancePoint.Z() - exitPoint.Z()));
+
+  // local b-field
+  double b[3] = {0., 0., 0.};
+  double x[3] = {entrancePoint.X(), entrancePoint.Y(), entrancePoint.Z()};
+  if (TGeoGlobalMagField::Instance()->GetField()) {
+    TGeoGlobalMagField::Instance()->Field(x, b);
+  } else {
+    LOG(fatal) << "no b field in MCH DEDigitizer";
+  }
+
+  // calculate track betagamma
+  // assume beta = 1 and mass of charged muon to calculate track betagamma from particle energy
+  auto betagamma = hit.eTot() / 0.1056583745;
+  auto yAngleEffect = mResponse.inclandbfield(thetawire, betagamma, b[0]);
+  localY += yAngleEffect;
 
   // borders of charge integration area
   auto dxy = mResponse.getSigmaIntegration() * mResponse.getChargeSpread();
@@ -257,7 +281,7 @@ DEDigitizer::DigitsAndLabels* DEDigitizer::addNewDigit(std::map<InteractionRecor
                                                        int padid, const Signal& signal, uint32_t nSamples) const
 {
   uint32_t adc = std::round(signal.charge);
-  auto time = signal.rofIR.differenceInBC({0, raw::HBFUtils::Instance().orbitFirst});
+  auto time = signal.rofIR.differenceInBC({0, mFirstTFOrbit});
   nSamples = std::min(nSamples, 0x3FFU); // the number of samples must fit within 10 bits
   bool saturated = false;
   // the charge sum must fit within 20 bits

@@ -82,6 +82,9 @@ class DigitizationContext
   void setMuPerBC(float m) { mMuBC = m; }
   float getMuPerBC() const { return mMuBC; }
 
+  /// returns the main (hadronic interaction rate) associated to this digitization context
+  float getCalculatedInteractionRate() const { return getMuPerBC() * getBunchFilling().getNBunches() * o2::constants::lhc::LHCRevFreq; }
+
   void printCollisionSummary(bool withQED = false, int truncateOutputTo = -1) const;
 
   // we need a method to fill the file names
@@ -150,6 +153,9 @@ class DigitizationContext
     }
   }
 
+  void setDigitizerInteractionRate(float intRate) { mDigitizerInteractionRate = intRate; }
+  float getDigitizerInteractionRate() const { return mDigitizerInteractionRate; }
+
   std::vector<o2::ctp::CTPDigit> const* getCTPDigits() const { return mCTPTrigger; }
   bool hasTriggerInput() const { return mHasTrigger; }
 
@@ -184,7 +190,13 @@ class DigitizationContext
   mutable std::vector<o2::ctp::CTPDigit> const* mCTPTrigger = nullptr; // CTP trigger info associated to this digitization context
   mutable bool mHasTrigger = false;                                    //
 
-  ClassDefNV(DigitizationContext, 5);
+  // The global ALICE interaction hadronic interaction rate as applied in digitization.
+  // It should be consistent with mMuPerBC but it might be easier to handle.
+  // The value will be filled/inserted by the digitization workflow so that digiters can access it.
+  // There is no guarantee that the value is available elsewhere.
+  float mDigitizerInteractionRate{-1};
+
+  ClassDefNV(DigitizationContext, 6);
 };
 
 /// function reading the hits from a chain (previously initialized with initSimChains

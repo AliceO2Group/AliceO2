@@ -64,4 +64,16 @@ DeploymentMode DefaultsHelpers::deploymentMode()
   return retVal;
 }
 
+bool DefaultsHelpers::onlineDeploymentMode()
+{
+  switch (DefaultsHelpers::deploymentMode()) {
+    case DeploymentMode::OnlineAUX:
+    case DeploymentMode::OnlineECS:
+    case DeploymentMode::OnlineDDS:
+      return true;
+    default:
+      return false;
+  }
+}
+
 } // namespace o2::framework

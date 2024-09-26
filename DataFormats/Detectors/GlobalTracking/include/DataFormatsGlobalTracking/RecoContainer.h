@@ -241,12 +241,16 @@ struct DataRequest {
 
   void requestCoscmicTracks(bool mc);
 
-  void requestPrimaryVertertices(bool mc);
-  void requestPrimaryVerterticesTMP(bool mc);
+  void requestPrimaryVertices(bool mc);
+  void requestPrimaryVerticesTMP(bool mc);
   void requestSecondaryVertices(bool mc);
   void requestStrangeTracks(bool mc);
 
   void requestIRFramesITS();
+
+#ifdef ENABLE_UPGRADES
+  void requestIT3Clusters(bool mc);
+#endif
 };
 
 // Helper class to requested data.
@@ -401,6 +405,10 @@ struct RecoContainer {
   void addStrangeTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addIRFramesITS(o2::framework::ProcessingContext& pc);
+
+#ifdef ENABLE_UPGRADES
+  void addIT3Clusters(o2::framework::ProcessingContext& pc, bool mc);
+#endif
 
   // custom getters
 

@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsTRDreconstruction
+\page refDetectorsTRDreconstruction TRD Reconstruction
 /doxy -->
 
 # TRD Reconstruction

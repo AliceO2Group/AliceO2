@@ -147,8 +147,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
     }
     std::string tmpmacro = mConfMacro + "+";
     TString cmd = gSystem->GetMakeSharedLib();
-    cmd.ReplaceAll("$Opt", "-O0 -g -ggdb");
-
+    cmd += " -O0 -g -ggdb";
     // protect macro compilation by semaphore (to avoid problems in the pipelined code)
     {
       boost::interprocess::named_semaphore* sem = nullptr;
@@ -244,7 +243,7 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
 
     // call this in the very end
     if (mUsrConfMethod) {
-      int dummyPar = 0, ret = 0;
+      int dummyPar = 0, ret = -1;
       Controller* tmpPtr = mController.get();
       const void* args[2] = {&tmpPtr, &dummyPar};
       mUsrConfMethod->Execute(nullptr, args, 2, &ret);
@@ -390,7 +389,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
   if (!postprocess) {
     dataRequest->requestTracks(src, useMC);
     dataRequest->requestClusters(src, false, skipDetClusters);
-    dataRequest->requestPrimaryVertertices(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
     if (GTrackID::includesDet(DetID::TRD, srcMP)) {
       dataRequest->inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
     }

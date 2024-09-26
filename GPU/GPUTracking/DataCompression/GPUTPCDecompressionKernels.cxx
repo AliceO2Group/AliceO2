@@ -22,25 +22,20 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
 template <>
-GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::step0attached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::step0attached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors, int trackStart, int trackEnd)
 {
   GPUTPCDecompression& GPUrestrict() decompressor = processors.tpcDecompressor;
   CompressedClusters& GPUrestrict() cmprClusters = decompressor.mInputGPU;
   const GPUParam& GPUrestrict() param = processors.param;
 
-  unsigned int offset = 0, lasti = 0;
-  const unsigned int maxTime = (param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
+  const unsigned int maxTime = (param.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
 
-  for (unsigned int i = get_global_id(0); i < cmprClusters.nTracks; i += get_global_size(0)) {
-    while (lasti < i) {
-      offset += cmprClusters.nTrackClusters[lasti++];
-    }
-    lasti++;
-    decompressTrack(cmprClusters, param, maxTime, i, offset, decompressor);
+  for (int i = trackStart + get_global_id(0); i < trackEnd; i += get_global_size(0)) {
+    decompressTrack(cmprClusters, param, maxTime, i, decompressor.mAttachedClustersOffsets[i], decompressor);
   }
 }
 
-GPUdii() void GPUTPCDecompressionKernels::decompressTrack(CompressedClusters& cmprClusters, const GPUParam& param, const unsigned int maxTime, const unsigned int trackIndex, unsigned int& clusterOffset, GPUTPCDecompression& decompressor)
+GPUdii() void GPUTPCDecompressionKernels::decompressTrack(CompressedClusters& cmprClusters, const GPUParam& param, const unsigned int maxTime, const unsigned int trackIndex, unsigned int clusterOffset, GPUTPCDecompression& decompressor)
 {
   float zOffset = 0;
   unsigned int slice = cmprClusters.sliceA[trackIndex];
@@ -90,7 +85,7 @@ GPUdii() void GPUTPCDecompressionKernels::decompressTrack(CompressedClusters& cm
           pad = param.tpcGeometry.NPads(row) * ClusterNative::scalePadPacked - 1;
         }
       }
-      if (param.par.continuousMaxTimeBin > 0 && time >= maxTime) {
+      if (param.continuousMaxTimeBin > 0 && time >= maxTime) {
         if (time >= 0xFFFFFF - 544768) { // Constant 544768 = (2^23 - LHCMAXBUNCHES(3564) * MAXORBITS(256) * scaleTimePacked(64) / BCPERTIMEBIN(8)) / 2)
           time = 0;
         } else {
@@ -131,34 +126,34 @@ GPUdii() ClusterNative GPUTPCDecompressionKernels::decompressTrackStore(const o2
 }
 
 template <>
-GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors, int sliceStart, int nSlices)
 {
   GPUTPCDecompression& GPUrestrict() decompressor = processors.tpcDecompressor;
   CompressedClusters& GPUrestrict() cmprClusters = decompressor.mInputGPU;
   ClusterNative* GPUrestrict() clusterBuffer = decompressor.mNativeClustersBuffer;
   const ClusterNativeAccess* outputAccess = processors.ioPtrs.clustersNative;
-
   unsigned int* offsets = decompressor.mUnattachedClustersOffsets;
-  for (unsigned int i = get_global_id(0); i < GPUCA_NSLICES * GPUCA_ROW_COUNT; i += get_global_size(0)) {
-    unsigned int slice = i / GPUCA_ROW_COUNT;
-    unsigned int row = i % GPUCA_ROW_COUNT;
-    unsigned int tmpBufferIndex = computeLinearTmpBufferIndex(slice, row, decompressor.mMaxNativeClustersPerBuffer);
-    ClusterNative* buffer = clusterBuffer + outputAccess->clusterOffset[slice][row];
-    if (decompressor.mNativeClustersIndex[i] != 0) {
-      decompressorMemcpyBasic(buffer, decompressor.mTmpNativeClusters + tmpBufferIndex, decompressor.mNativeClustersIndex[i]);
+  for (int i = get_global_id(0); i < GPUCA_ROW_COUNT * nSlices; i += get_global_size(0)) {
+    unsigned int iRow = i % GPUCA_ROW_COUNT;
+    unsigned int iSlice = sliceStart + (i / GPUCA_ROW_COUNT);
+    const unsigned int linearIndex = iSlice * GPUCA_ROW_COUNT + iRow;
+    unsigned int tmpBufferIndex = computeLinearTmpBufferIndex(iSlice, iRow, decompressor.mMaxNativeClustersPerBuffer);
+    ClusterNative* buffer = clusterBuffer + outputAccess->clusterOffset[iSlice][iRow];
+    if (decompressor.mNativeClustersIndex[linearIndex] != 0) {
+      decompressorMemcpyBasic(buffer, decompressor.mTmpNativeClusters + tmpBufferIndex, decompressor.mNativeClustersIndex[linearIndex]);
     }
-    ClusterNative* clout = buffer + decompressor.mNativeClustersIndex[i];
-    unsigned int end = offsets[i] + ((i >= decompressor.mInputGPU.nSliceRows) ? 0 : decompressor.mInputGPU.nSliceRowClusters[i]);
-    decompressHits(cmprClusters, offsets[i], end, clout);
+    ClusterNative* clout = buffer + decompressor.mNativeClustersIndex[linearIndex];
+    unsigned int end = offsets[linearIndex] + ((linearIndex >= decompressor.mInputGPU.nSliceRows) ? 0 : decompressor.mInputGPU.nSliceRowClusters[linearIndex]);
+    decompressHits(cmprClusters, offsets[linearIndex], end, clout);
     if (processors.param.rec.tpc.clustersShiftTimebins != 0.f) {
-      for (unsigned int k = 0; k < outputAccess->nClusters[slice][row]; k++) {
+      for (unsigned int k = 0; k < outputAccess->nClusters[iSlice][iRow]; k++) {
         auto& cl = buffer[k];
         float t = cl.getTime() + processors.param.rec.tpc.clustersShiftTimebins;
         if (t < 0) {
           t = 0;
         }
-        if (processors.param.par.continuousMaxTimeBin > 0 && t > processors.param.par.continuousMaxTimeBin) {
-          t = processors.param.par.continuousMaxTimeBin;
+        if (processors.param.continuousMaxTimeBin > 0 && t > processors.param.continuousMaxTimeBin) {
+          t = processors.param.continuousMaxTimeBin;
         }
         cl.setTime(t);
       }

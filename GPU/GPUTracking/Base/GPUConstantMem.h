@@ -122,14 +122,16 @@ GPUdi() auto& GPUConstantMem::getTRDTracker<1>()
 
 #ifdef GPUCA_NOCOMPAT
 union GPUConstantMemCopyable {
-  GPUConstantMemCopyable() {}  // NOLINT: We want an empty constructor, not a default one
-  ~GPUConstantMemCopyable() {} // NOLINT: We want an empty destructor, not a default one
-  GPUConstantMemCopyable(const GPUConstantMemCopyable& o)
+#if !defined(__OPENCL__) || defined(__OPENCL_HOST__)
+  GPUh() GPUConstantMemCopyable() {}  // NOLINT: We want an empty constructor, not a default one
+  GPUh() ~GPUConstantMemCopyable() {} // NOLINT: We want an empty destructor, not a default one
+  GPUh() GPUConstantMemCopyable(const GPUConstantMemCopyable& o)
   {
     for (unsigned int k = 0; k < sizeof(GPUConstantMem) / sizeof(int); k++) {
       ((int*)&v)[k] = ((int*)&o.v)[k];
     }
   }
+#endif
   GPUConstantMem v;
 };
 #endif

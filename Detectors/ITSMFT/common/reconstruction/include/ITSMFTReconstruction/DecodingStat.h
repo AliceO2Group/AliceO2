@@ -174,10 +174,26 @@ struct ChipStat {
     ft = c >= 0xf2 && c <= 0xfe;
     return APE_STRIP_START + c - 0xf2;
   }
+
+  // return APE byte that corresponds to the given APE DecErrors
+  static uint8_t getAPEByte(DecErrors c)
+  {
+    if (c < APE_STRIP_START || c > APE_OOT_DATA_MISSING) {
+      return 0xFF;
+    }
+    return 0xF2 + c - APE_STRIP_START;
+  }
   uint32_t getNErrors() const;
-  uint32_t addErrors(uint32_t mask, uint16_t chID, int verbosity);
   uint32_t addErrors(const ChipPixelData& d, int verbosity);
   void print(bool skipNoErr = true, const std::string& pref = "FEEID") const;
+
+  template <typename Func>
+  static void forEachError(Func f)
+  {
+    for (int errIdx = 0; errIdx < NErrorsDefined; ++errIdx) {
+      f(errIdx);
+    }
+  }
 
   ClassDefNV(ChipStat, 1);
 };

@@ -65,4 +65,8 @@ o2_add_test_root_macro(PlotOrbit.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                                              O2::CCDB
                        LABELS ctp)
+o2_add_test_root_macro(TestFetcher.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                             O2::CCDB
+                       LABELS ctp)
 

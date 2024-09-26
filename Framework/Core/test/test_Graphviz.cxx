@@ -89,10 +89,10 @@ TEST_CASE("TestGraphviz")
   std::ostringstream str;
   auto expectedResult = R"EXPECTED(digraph structs {
   node[shape=record]
-  struct [label="A"];
-  struct [label="B"];
-  struct [label="C"];
-  struct [label="D"];
+  "A" [label="A"];
+  "B" [label="B"];
+  "C" [label="C"];
+  "D" [label="D"];
 }
 )EXPECTED";
   GraphvizHelpers::dumpDataProcessorSpec2Graphviz(str, workflow);
@@ -130,9 +130,9 @@ TEST_CASE("TestGraphvizWithPipeline")
   std::ostringstream str;
   auto expectedResult = R"EXPECTED(digraph structs {
   node[shape=record]
-  struct [label="A"];
-  struct [label="B"];
-  struct [label="C"];
+  "A" [label="A"];
+  "B" [label="B"];
+  "C" [label="C"];
 }
 )EXPECTED";
   GraphvizHelpers::dumpDataProcessorSpec2Graphviz(str, workflow);

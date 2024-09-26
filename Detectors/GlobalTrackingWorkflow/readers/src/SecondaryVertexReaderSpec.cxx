@@ -91,7 +91,8 @@ void SecondaryVertexReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << "Pushing " << mV0s.size() << " V0s and " << mCascs.size() << " cascades at entry " << ent;
+  LOGP(info, "Pushing {} V0s ({} indices), {} cascades ({} indices) and {} 3-body ({} indices ) at entry {}",
+       mV0s.size(), mV0sIdx.size(), mCascs.size(), mCascsIdx.size(), m3Bodys.size(), m3BodysIdx.size(), ent);
 
   pc.outputs().snapshot(Output{"GLO", "V0S_IDX", 0}, mV0sIdx);
   pc.outputs().snapshot(Output{"GLO", "V0S", 0}, mV0s);

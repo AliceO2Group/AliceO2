@@ -24,6 +24,13 @@ Digitizer::Digitizer(geo::TransformationCreator transformationCreator)
   });
 }
 
+void Digitizer::setFirstTFOrbit(uint32_t firstTFOrbit)
+{
+  for (auto& d : mDEDigitizers) {
+    d.second->setFirstTFOrbit(firstTFOrbit);
+  }
+}
+
 void Digitizer::processHits(gsl::span<const Hit> hits, const InteractionRecord& collisionTime, int evID, int srcID)
 {
   for (const auto& hit : hits) {

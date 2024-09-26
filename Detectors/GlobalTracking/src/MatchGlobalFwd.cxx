@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTracking/MatchGlobalFwd.h"
+#include <queue>
 
 using namespace o2::globaltracking;
 
@@ -66,6 +67,8 @@ void MatchGlobalFwd::init()
 
   mSaveMode = matchingParam.saveMode;
   LOG(info) << "Save mode MFTMCH candidates = " << mSaveMode;
+
+  mNCandidates = matchingParam.nCandidates;
 }
 
 //_________________________________________________________
@@ -97,6 +100,9 @@ void MatchGlobalFwd::run(const o2::globaltracking::RecoContainer& inp)
             break;
           case kSaveTrainingData:
             doMatching<kSaveTrainingData>();
+            break;
+          case kSaveNCandidates:
+            doMatching<kSaveNCandidates>();
             break;
           default:
             LOG(fatal) << "Invalid MFTMCH save mode";
@@ -132,6 +138,7 @@ void MatchGlobalFwd::clear()
   mMatchLabels.clear();
   mMFTTrackROFContMapping.clear();
   mMatchingInfo.clear();
+  mCandidates.clear();
 }
 
 //_________________________________________________________
@@ -400,6 +407,25 @@ void MatchGlobalFwd::doMatching()
     if (mMCTruthON) {
       LOG(info) << "  MFT-MCH Matching: nFakes = " << nFakes << " nTrue = " << nTrue;
     }
+  } else if constexpr (saveAllMode == SaveMode::kSaveNCandidates) {
+    int nFakes = 0, nTrue = 0;
+    auto& matchAllChi2 = mMatchingFunctionMap["matchALL"];
+    for (auto MCHId = 0; MCHId < mMCHWork.size(); MCHId++) {
+      auto& thisMCHTrack = mMCHWork[MCHId];
+      for (auto& pairCandidate : mCandidates[MCHId]) {
+        thisMCHTrack.setMFTTrackID(pairCandidate.second);
+        auto& thisMFTTrack = mMFTWork[pairCandidate.second];
+        auto chi2 = matchAllChi2(thisMCHTrack, thisMFTTrack); // Matching chi2 is stored independently
+        thisMCHTrack.setMFTMCHMatchingScore(pairCandidate.first);
+        thisMCHTrack.setMFTMCHMatchingChi2(chi2);
+        mMatchedTracks.emplace_back(thisMCHTrack);
+        mMatchingInfo.emplace_back(thisMCHTrack);
+        if (mMCTruthON) {
+          mMatchLabels.push_back(computeLabel(MCHId, pairCandidate.second));
+          mMatchLabels.back().isFake() ? nFakes++ : nTrue++;
+        }
+      }
+    }
   }
 }
 
@@ -412,6 +438,10 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
   const auto& firstMCHROF = mMCHTrackROFRec[firstMCHROFId];
   const auto& lastMCHROF = mMCHTrackROFRec[lastMCHROFId];
   int nFakes = 0, nTrue = 0;
+
+  auto compare = [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+    return a.first < b.first;
+  };
 
   auto firstMFTTrackID = thisMFTROF.getFirstEntry();
   auto lastMFTTrackID = firstMFTTrackID + thisMFTROF.getNEntries() - 1;
@@ -464,12 +494,21 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           }
         }
 
+        if constexpr (saveAllMode == SaveMode::kSaveNCandidates) { // Save best N matching candidates
+          auto score = mMatchFunc(thisMCHTrack, thisMFTTrack);
+          std::pair<float, int> scoreID = {score, MFTId};
+          mCandidates[MCHId].push_back(scoreID);
+          std::sort(mCandidates[MCHId].begin(), mCandidates[MCHId].end(), compare);
+          if (mCandidates[MCHId].size() > mNCandidates) {
+            mCandidates[MCHId].pop_back();
+          }
+        }
+
         if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
           thisMCHTrack.setMFTTrackID(MFTId);
           mMatchingInfo.emplace_back(thisMCHTrack);
           mMCHMatchPlaneParams.emplace_back(thisMCHTrack);
           mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack));
-
           if (mMCTruthON) {
             mMatchLabels.push_back(matchLabel);
             mMatchLabels.back().isFake() ? nFakes++ : nTrue++;

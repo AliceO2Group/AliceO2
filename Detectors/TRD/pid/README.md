@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsTRDpid TRD Particle Identification
+/doxy -->
+
 # Particle Identification with TRD
 ## Usage
 Activate PID during tracking with the '--with-pid' flag.

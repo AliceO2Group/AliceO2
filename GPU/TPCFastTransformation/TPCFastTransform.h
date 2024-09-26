@@ -446,6 +446,7 @@ GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x,
 
 GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int scaleMode) const
 {
+  GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
   if (mApplyCorrection) {
     float dx = 0.f, du = 0.f, dv = 0.f;
     if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
@@ -776,6 +777,7 @@ GPUdi() float TPCFastTransform::getMaxDriftTime(int slice) const
 
 GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y, float z, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int scaleMode) const
 {
+  GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
   /// Transformation y,z -> x
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
@@ -816,6 +818,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
 
 GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int scaleMode) const
 {
+  GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
   /// Transformation y,z -> x
   float u = 0, v = 0, un = 0, vn = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);

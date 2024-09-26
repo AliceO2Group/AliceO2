@@ -42,6 +42,10 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/CCDBParamSpec.h"
 
+#ifdef ENABLE_UPGRADES
+#include "ITS3Reconstruction/TopologyDictionary.h"
+#endif
+
 using namespace o2::globaltracking;
 using namespace o2::framework;
 namespace o2d = o2::dataformats;
@@ -227,13 +231,28 @@ void DataRequest::requestITSClusters(bool mc)
   addInput({"clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe});
   addInput({"clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe});
   addInput({"clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe});
-  addInput({"cldictITS", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary")});
   addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
   if (mc) {
     addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
+  addInput({"cldictITS", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary")});
   requestMap["clusITS"] = mc;
 }
+
+#ifdef ENABLE_UPGRADES
+void DataRequest::requestIT3Clusters(bool mc)
+{
+  addInput({"clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe});
+  addInput({"clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe});
+  addInput({"clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe});
+  addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
+  if (mc) {
+    addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  }
+  addInput({"cldictIT3", "IT3", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/ClusterDictionary")});
+  requestMap["clusIT3"] = mc;
+}
+#endif
 
 void DataRequest::requestMFTClusters(bool mc)
 {
@@ -380,7 +399,7 @@ void DataRequest::requestCoscmicTracks(bool mc)
   requestMap["Cosmics"] = mc;
 }
 
-void DataRequest::requestPrimaryVertertices(bool mc)
+void DataRequest::requestPrimaryVertices(bool mc)
 {
   addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
   addInput({"pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe});    // global ids of associated tracks
@@ -391,7 +410,7 @@ void DataRequest::requestPrimaryVertertices(bool mc)
   requestMap["PVertex"] = mc;
 }
 
-void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices before global vertex-track matching
+void DataRequest::requestPrimaryVerticesTMP(bool mc) // primary vertices before global vertex-track matching
 {
   addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
   addInput({"pvtx_cont", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe});        // global ids of contributors
@@ -672,6 +691,13 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addITSClusters(pc, req->second);
   }
+
+#ifdef ENABLE_UPGRADES
+  req = reqMap.find("clusIT3");
+  if (req != reqMap.end()) {
+    addIT3Clusters(pc, req->second);
+  }
+#endif
 
   req = reqMap.find("clusMFT");
   if (req != reqMap.end()) {
@@ -1046,6 +1072,22 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
     mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
   }
 }
+
+#ifdef ENABLE_UPGRADES
+void RecoContainer::addIT3Clusters(ProcessingContext& pc, bool mc)
+{
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
+    pc.inputs().get<o2::its3::TopologyDictionary*>("cldictIT3");                          // just to trigger the finaliseCCDB
+  }
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF"), CLUSREFS);
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS"), CLUSTERS);
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt"), PATTERNS);
+  if (mc) {
+    mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
+  }
+}
+#endif
 
 //__________________________________________________________
 void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
@@ -1491,8 +1533,8 @@ void RecoContainer::getTrackTimeITSTPCTRDTOF(GTrackID gid, float& t, float& tErr
 {
   const auto& match = getITSTPCTRDTOFMatches()[gid];
   auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
-  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
-  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  //  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
   tErr = 0.010f;
 }
 
@@ -1501,8 +1543,8 @@ void RecoContainer::getTrackTimeTPCTRDTOF(GTrackID gid, float& t, float& tErr) c
 {
   const auto& match = getTPCTRDTOFMatches()[gid];
   auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
-  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
-  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  //  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
   tErr = 0.010f;
 }
 
@@ -1511,8 +1553,8 @@ void RecoContainer::getTrackTimeITSTPCTOF(GTrackID gid, float& t, float& tErr) c
 {
   const auto& match = getITSTPCTOFMatches()[gid];
   auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC track
-  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
-  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  //  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
   tErr = 0.010f;
 }
 

@@ -11,16 +11,24 @@
 
 #include "MCHStatus/StatusMapCreatorSpec.h"
 
+#include "CommonConstants/LHCConstants.h"
 #include "DataFormatsMCH/DsChannelId.h"
+#include "DetectorsBase/GRPGeomHelper.h"
+#include "Framework/CCDBParamSpec.h"
+#include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/InputSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/Task.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/WorkflowSpec.h"
+#include "MCHStatus/HVStatusCreator.h"
 #include "MCHStatus/StatusMap.h"
 #include "MCHStatus/StatusMapCreatorParam.h"
+#include <chrono>
 #include <fmt/format.h>
 #include <functional>
 #include <iostream>
@@ -46,24 +54,30 @@ size_t size(const StatusMap& sm)
 class StatusMapCreatorTask
 {
  public:
-  StatusMapCreatorTask() = default;
+  StatusMapCreatorTask(bool useBadChannels, bool useRejectList, bool useHV,
+                       std::shared_ptr<base::GRPGeomRequest> ggRequest)
+    : mUseBadChannels(useBadChannels),
+      mUseRejectList(useRejectList),
+      mUseHV(useHV),
+      mGGRequest(ggRequest) {}
 
-  void updateStatusMap()
+  void init(InitContext& ic)
   {
-    mStatusMap.clear();
-    mStatusMap.add(mBadChannels, StatusMap::kBadPedestal);
-    mStatusMap.add(mRejectList, StatusMap::kRejectList);
-    mStatusMapUpdated = true;
-  }
-
-  void
-    init(InitContext& ic)
-  {
-    mUseBadChannels = StatusMapCreatorParam::Instance().useBadChannels;
-    mUseRejectList = StatusMapCreatorParam::Instance().useRejectList;
+    if (mGGRequest) {
+      base::GRPGeomHelper::instance().setRequest(mGGRequest);
+    }
     mBadChannels.clear();
     mRejectList.clear();
-    mStatusMapUpdated = true;
+    mHVStatusCreator.clear();
+    mStatusMap.clear();
+    mUpdateStatusMap = false;
+
+    auto stop = [this]() {
+      auto fullTime = mFindBadHVsTime + mFindCurrentBadHVsTime + mUpdateStatusTime;
+      LOGP(info, "duration: {:g} ms (findBadHVs: {:g} ms, findCurrentBadHVs: {:g} ms, updateStatusMap: {:g} ms)",
+           fullTime.count(), mFindBadHVsTime.count(), mFindCurrentBadHVsTime.count(), mUpdateStatusTime.count());
+    };
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -71,69 +85,121 @@ class StatusMapCreatorTask
     if (matcher == ConcreteDataMatcher("MCH", "BADCHANNELS", 0)) {
       auto bad = static_cast<std::vector<o2::mch::DsChannelId>*>(obj);
       mBadChannels = *bad;
-      updateStatusMap();
-    }
-    if (matcher == ConcreteDataMatcher("MCH", "REJECTLIST", 0)) {
+      mUpdateStatusMap = true;
+    } else if (matcher == ConcreteDataMatcher("MCH", "REJECTLIST", 0)) {
       auto rl = static_cast<std::vector<o2::mch::DsChannelId>*>(obj);
       mRejectList = *rl;
-      updateStatusMap();
+      mUpdateStatusMap = true;
+    } else if (matcher == ConcreteDataMatcher("MCH", "HV", 0)) {
+      auto tStart = std::chrono::high_resolution_clock::now();
+      auto hv = static_cast<o2::mch::HVStatusCreator::DPMAP*>(obj);
+      mHVStatusCreator.findBadHVs(*hv);
+      mFindBadHVsTime += std::chrono::high_resolution_clock::now() - tStart;
+    } else if (mGGRequest) {
+      o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
     }
   }
 
   void run(ProcessingContext& pc)
   {
+    if (mGGRequest) {
+      o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    }
+
     if (mUseBadChannels) {
       // to trigger call to finaliseCCDB
       pc.inputs().get<std::vector<o2::mch::DsChannelId>*>("badchannels");
     }
+
     if (mUseRejectList) {
       // to trigger call to finaliseCCDB
       pc.inputs().get<std::vector<o2::mch::DsChannelId>*>("rejectlist");
     }
 
-    if (mStatusMapUpdated) {
-      // create the output message
+    if (mUseHV) {
+      // to trigger call to finaliseCCDB
+      pc.inputs().get<o2::mch::HVStatusCreator::DPMAP*>("hv");
+
+      // check for update of bad HV channels
+      auto tStart = std::chrono::high_resolution_clock::now();
+      auto orbitReset = base::GRPGeomHelper::instance().getOrbitResetTimeMS();
+      auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
+      auto timestamp = orbitReset + static_cast<uint64_t>(firstTForbit * constants::lhc::LHCOrbitMUS * 1.e-3);
+      if (mHVStatusCreator.findCurrentBadHVs(timestamp)) {
+        LOGP(info, "HV status updated at timestamp {}", timestamp);
+        mUpdateStatusMap = true;
+      }
+      mFindCurrentBadHVsTime += std::chrono::high_resolution_clock::now() - tStart;
+    }
+
+    // update the status map if needed
+    if (mUpdateStatusMap) {
+      updateStatusMap();
       LOGP(info, "Sending updated StatusMap of size {}", size(mStatusMap));
-      pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
-      mStatusMapUpdated = false;
     } else {
       LOGP(info, "Sending unchanged StatusMap of size {}", size(mStatusMap));
-      pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
     }
+
+    // create the output message
+    pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
   }
 
  private:
   bool mUseBadChannels{false};
   bool mUseRejectList{false};
-  std::vector<o2::mch::DsChannelId> mBadChannels;
-  std::vector<o2::mch::DsChannelId> mRejectList;
-  StatusMap mStatusMap;
-  bool mStatusMapUpdated{false};
+  bool mUseHV{false};
+  std::shared_ptr<base::GRPGeomRequest> mGGRequest{};
+  std::vector<o2::mch::DsChannelId> mBadChannels{};
+  std::vector<o2::mch::DsChannelId> mRejectList{};
+  HVStatusCreator mHVStatusCreator{};
+  StatusMap mStatusMap{};
+  bool mUpdateStatusMap{false};
+  std::chrono::duration<double, std::milli> mFindBadHVsTime{};
+  std::chrono::duration<double, std::milli> mFindCurrentBadHVsTime{};
+  std::chrono::duration<double, std::milli> mUpdateStatusTime{};
+
+  void updateStatusMap()
+  {
+    auto tStart = std::chrono::high_resolution_clock::now();
+    mStatusMap.clear();
+    mStatusMap.add(mBadChannels, StatusMap::kBadPedestal);
+    mStatusMap.add(mRejectList, StatusMap::kRejectList);
+    mHVStatusCreator.updateStatusMap(mStatusMap);
+    mUpdateStatusMap = false;
+    mUpdateStatusTime += std::chrono::high_resolution_clock::now() - tStart;
+  }
 };
 
 framework::DataProcessorSpec getStatusMapCreatorSpec(std::string_view specName)
 {
-  std::string input;
+  auto useBadChannels = StatusMapCreatorParam::Instance().useBadChannels;
+  auto useRejectList = StatusMapCreatorParam::Instance().useRejectList;
+  auto useHV = StatusMapCreatorParam::Instance().useHV;
+  std::shared_ptr<base::GRPGeomRequest> ggRequest{};
 
-  if (StatusMapCreatorParam::Instance().useBadChannels) {
-    input = "badchannels:MCH/BADCHANNELS/0?lifetime=condition&ccdb-path=MCH/Calib/BadChannel";
+  std::vector<InputSpec> inputs{};
+  if (useBadChannels) {
+    inputs.emplace_back(InputSpec{"badchannels", "MCH", "BADCHANNELS", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/BadChannel")});
   }
-  if (StatusMapCreatorParam::Instance().useRejectList) {
-    if (!input.empty()) {
-      input += ";";
-    }
-    input += "rejectlist:MCH/REJECTLIST/0?lifetime=condition&ccdb-path=MCH/Calib/RejectList";
+  if (useRejectList) {
+    inputs.emplace_back(InputSpec{"rejectlist", "MCH", "REJECTLIST", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/RejectList")});
+  }
+  if (useHV) {
+    inputs.emplace_back(InputSpec{"hv", "MCH", "HV", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/HV", {}, 1)}); // query every TF
+
+    ggRequest = std::make_shared<base::GRPGeomRequest>(true,                       // orbitResetTime
+                                                       false,                      // GRPECS=true
+                                                       false,                      // GRPLHCIF
+                                                       false,                      // GRPMagField
+                                                       false,                      // askMatLUT
+                                                       base::GRPGeomRequest::None, // geometry
+                                                       inputs);
   }
 
-  std::string output = "statusmap:MCH/STATUSMAP/0";
+  std::vector<OutputSpec> outputs{};
+  outputs.emplace_back(OutputSpec{{"statusmap"}, "MCH", "STATUSMAP", 0, Lifetime::Timeframe});
 
-  std::vector<OutputSpec> outputs;
-  auto matchers = select(output.c_str());
-  for (auto& matcher : matchers) {
-    outputs.emplace_back(DataSpecUtils::asOutputSpec(matcher));
-  }
-
-  if (input.empty()) {
+  if (inputs.empty()) {
     return DataProcessorSpec{
       specName.data(),
       {},
@@ -148,9 +214,9 @@ framework::DataProcessorSpec getStatusMapCreatorSpec(std::string_view specName)
 
   return DataProcessorSpec{
     specName.data(),
-    Inputs{select(input.c_str())},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<StatusMapCreatorTask>()},
+    AlgorithmSpec{adaptFromTask<StatusMapCreatorTask>(useBadChannels, useRejectList, useHV, ggRequest)},
     Options{}};
 }
 } // namespace o2::mch

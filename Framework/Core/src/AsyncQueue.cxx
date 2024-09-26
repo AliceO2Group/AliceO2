@@ -11,12 +11,19 @@
 
 #include "Framework/AsyncQueue.h"
 #include "Framework/Signpost.h"
+#include "x9.h"
 #include <numeric>
 
 O2_DECLARE_DYNAMIC_LOG(async_queue);
 
 namespace o2::framework
 {
+AsyncQueue::AsyncQueue()
+  : inbox(x9_create_inbox(16, "async_queue", sizeof(AsyncTask)))
+{
+  this->inbox = x9_create_inbox(16, "async_queue", sizeof(AsyncTask));
+}
+
 auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTaskId
 {
   AsyncTaskId id;
@@ -25,18 +32,41 @@ auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTa
   return id;
 }
 
-auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTaskId id, AsyncCallback task, TimesliceId timeslice, int64_t debounce) -> void
+auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTask const& task) -> void
 {
-  AsyncTask taskToPost;
-  taskToPost.task = task;
-  taskToPost.id = id;
-  taskToPost.timeslice = timeslice;
-  taskToPost.debounce = debounce;
-  queue.tasks.push_back(taskToPost);
+  // Until we do not manage to write to the inbox, keep removing
+  // items from the queue if you are the first one which fails to
+  // write.
+  while (!x9_write_to_inbox(queue.inbox, sizeof(AsyncTask), &task)) {
+    AsyncQueueHelpers::flushPending(queue);
+  }
+}
+
+auto AsyncQueueHelpers::flushPending(AsyncQueue& queue) -> void
+{
+  bool isFirst = true;
+  if (!std::atomic_compare_exchange_strong(&queue.first, &isFirst, false)) {
+    // Not the first, try again.
+    return;
+  }
+  // First thread which does not manage to write to the queue.
+  // Flush it a bit before we try again.
+  AsyncTask toFlush;
+  // This potentially stalls if the inserting tasks are faster to insert
+  // than we are to retrieve. We should probably have a cut-off
+  while (x9_read_from_inbox(queue.inbox, sizeof(AsyncTask), &toFlush)) {
+    queue.tasks.push_back(toFlush);
+  }
+  queue.first = true;
 }
 
 auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> void
 {
+  // We synchronize right before we run to get as many
+  // tasks as possible. Notice we might still miss some
+  // which will have to handled on a subsequent iteration.
+  AsyncQueueHelpers::flushPending(queue);
+
   if (queue.tasks.empty()) {
     return;
   }
@@ -85,6 +115,8 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
     }
   }
   // Keep only the tasks with the highest debounce value for a given id
+  // For this reason I need to keep the callback in the task itself, because
+  // two different callbacks with the same id will be coalesced.
   auto newEnd = std::unique(order.begin(), order.end(), [&queue](int a, int b) {
     return queue.tasks[a].runnable == queue.tasks[b].runnable && queue.tasks[a].id.value == queue.tasks[b].id.value && queue.tasks[a].debounce >= 0 && queue.tasks[b].debounce >= 0;
   });
@@ -111,7 +143,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
       O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Running task %{public}s (%d) for timeslice %zu",
                              queue.prototypes[queue.tasks[i].id.value].name.c_str(), i,
                              queue.tasks[i].timeslice.value);
-      queue.tasks[i].task(opid.value);
+      queue.tasks[i].callback(queue.tasks[i], opid.value);
       O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Done running %d", i);
     }
   }

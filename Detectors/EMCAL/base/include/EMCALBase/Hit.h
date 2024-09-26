@@ -22,6 +22,8 @@ namespace emcal
 /// \class Hit
 /// \brief EMCAL simulation hit information
 /// \ingroup EMCALbase
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \since August 31st, 2017
 class Hit : public o2::BasicXYZEHit<float>
 {
  public:
@@ -63,11 +65,6 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \return This point with the summed energy loss
   Hit& operator+=(const Hit& rhs);
 
-  /// \brief Creates a new point base on this point but adding the energy loss of the right hand side
-  /// \param rhs Hit to add to
-  /// \return New EMAL point base on this point
-  Hit operator+(const Hit& rhs) const;
-
   /// \brief Destructor
   ~Hit() = default;
 
@@ -99,6 +96,16 @@ class Hit : public o2::BasicXYZEHit<float>
   ClassDefNV(Hit, 1);
 };
 
+/// \brief Creates a new point base on this point but adding the energy loss of the right hand side
+/// \param lhs Left hand side of the sum
+/// \param rhs Right hand side of the sum
+/// \return New EMAL point base on this point
+Hit operator+(const Hit& lhs, const Hit& rhs);
+
+/// \brief Output stream operator for EMCAL hits
+/// \param stream Stream to write on
+/// \param point Hit to be printed
+/// \return Stream after printing
 std::ostream& operator<<(std::ostream& stream, const Hit& point);
 } // namespace emcal
 } // namespace o2

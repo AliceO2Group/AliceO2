@@ -277,6 +277,78 @@ void Detector::buildFT3V3b()
   }
 }
 
+void Detector::buildFT3NewVacuumVessel()
+{
+  // Build the FT3 detector according to changes proposed during
+  // https://indico.cern.ch/event/1407704/
+  // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
+  // Inner radius at C-side to 7 cm
+  // Inner radius at A-side stays at 5 cm
+
+  LOG(info) << "Building FT3 Detector: After Upgrade Days March 2024 version";
+
+  mNumberOfLayers = 12;
+  float sensorThickness = 30.e-4;
+  float layersx2X0 = 1.e-2;
+  std::vector<std::array<float, 5>> layersConfigCSide{
+    {26., .5, 2.5, 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
+    {30., .5, 2.5, 0.1f * layersx2X0},
+    {34., .5, 2.5, 0.1f * layersx2X0},
+    {77., 7.0, 35., layersx2X0},
+    {100., 7.0, 35., layersx2X0},
+    {122., 7.0, 35., layersx2X0},
+    {150., 7.0, 68.f, layersx2X0},
+    {180., 7.0, 68.f, layersx2X0},
+    {220., 7.0, 68.f, layersx2X0},
+    {260., 7.0, 68.f, layersx2X0},
+    {300., 7.0, 68.f, layersx2X0},
+    {350., 7.0, 68.f, layersx2X0}};
+
+  std::vector<std::array<float, 5>> layersConfigASide{
+    {26., .5, 2.5, 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
+    {30., .5, 2.5, 0.1f * layersx2X0},
+    {34., .5, 2.5, 0.1f * layersx2X0},
+    {77., 5.0, 35., layersx2X0},
+    {100., 5.0, 35., layersx2X0},
+    {122., 5.0, 35., layersx2X0},
+    {150., 5.0, 68.f, layersx2X0},
+    {180., 5.0, 68.f, layersx2X0},
+    {220., 5.0, 68.f, layersx2X0},
+    {260., 5.0, 68.f, layersx2X0},
+    {300., 5.0, 68.f, layersx2X0},
+    {350., 5.0, 68.f, layersx2X0}};
+
+  mLayerName.resize(2);
+  mLayerName[0].resize(mNumberOfLayers);
+  mLayerName[1].resize(mNumberOfLayers);
+  mLayerID.clear();
+  mLayers.resize(2);
+
+  for (auto direction : {0, 1}) {
+    for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
+      std::string directionName = std::to_string(direction);
+      std::string layerName = GeometryTGeo::getFT3LayerPattern() + directionName + std::string("_") + std::to_string(layerNumber);
+      mLayerName[direction][layerNumber] = layerName;
+      float z, rIn, rOut, x0;
+      if (direction == 0) { // C-Side
+        z = layersConfigCSide[layerNumber][0];
+        rIn = layersConfigCSide[layerNumber][1];
+        rOut = layersConfigCSide[layerNumber][2];
+        x0 = layersConfigCSide[layerNumber][3];
+      } else if (direction == 1) { // A-Side
+        z = layersConfigASide[layerNumber][0];
+        rIn = layersConfigASide[layerNumber][1];
+        rOut = layersConfigASide[layerNumber][2];
+        x0 = layersConfigASide[layerNumber][3];
+      }
+
+      LOG(info) << "Adding Layer " << layerName << " at z = " << z;
+      // Add layers
+      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, x0);
+    }
+  }
+}
+
 //_________________________________________________________________________________________________
 void Detector::buildFT3Scoping()
 {
@@ -342,7 +414,7 @@ Detector::Detector(bool active)
   } else {
     switch (ft3BaseParam.geoModel) {
       case Default:
-        buildFT3Scoping(); // FT3Scoping
+        buildFT3NewVacuumVessel(); // FT3 after Upgrade days March 2024
         break;
       case Telescope:
         buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)

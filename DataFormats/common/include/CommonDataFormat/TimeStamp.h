@@ -28,7 +28,7 @@ class TimeStamp
   GPUhdDefault() TimeStamp() CON_DEFAULT;
   GPUhdDefault() ~TimeStamp() CON_DEFAULT;
   GPUdi() TimeStamp(T time) { mTimeStamp = time; }
-  GPUdi() T getTimeStamp() const { return mTimeStamp; }
+  GPUhdi() T getTimeStamp() const { return mTimeStamp; }
   GPUdi() void setTimeStamp(T t) { mTimeStamp = t; }
   GPUdi() bool operator==(const TimeStamp<T>& t) const { return mTimeStamp == t.mTimeStamp; }
 

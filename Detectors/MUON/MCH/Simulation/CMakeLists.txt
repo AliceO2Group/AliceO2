@@ -21,7 +21,6 @@ o2_add_library(MCHSimulation
                 PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH
                                       O2::DetectorsBase
                                       O2::DetectorsPassive
-                                      O2::DetectorsRaw
                                       O2::MCHBase
                                       O2::MCHGeometryCreator
                                       O2::MCHMappingInterface

@@ -21,6 +21,7 @@
 #include "Framework/Task.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -37,6 +38,7 @@
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GlobalParams.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
@@ -49,6 +51,10 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+
+#ifdef ENABLE_UPGRADES
+#include "ITS3Reconstruction/TopologyDictionary.h"
+#endif
 
 using namespace o2::framework;
 using MCLabelsCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -94,6 +100,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+  int lane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  int maxLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+  mMatching.setDebugTreeFileName(maxLanes == 1 ? "dbg_TPCITSmatch.root" : fmt::format("dbg_TPCITSmatch_{}.root", lane));
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
@@ -147,7 +156,7 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
-    LOG(info) << "cluster dictionary updated";
+    LOG(info) << "its cluster dictionary updated";
     mMatching.setITSDictionary((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
@@ -158,10 +167,17 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
-    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    LOG(info) << "ITS GeometryTGeo loaded from ccdb";
     o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
+#ifdef ENABLE_UPGRADES
+  if (matcher == ConcreteDataMatcher("IT3", "CLUSDICT", 0)) {
+    LOG(info) << "it3 cluster dictionary updated";
+    mMatching.setIT3Dictionary((const o2::its3::TopologyDictionary*)obj);
+    return;
+  }
+#endif
 }
 
 void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -235,7 +251,16 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestTPCClusters(false);
-  dataRequest->requestITSClusters(useMC); // Only ITS clusters labels are needed for the afterburner
+// Only ITS clusters labels are needed for the afterburner and request possibly for ITS3
+#ifdef ENABLE_UPGRADES
+  if (o2::GlobalParams::Instance().withITS3) {
+    dataRequest->requestIT3Clusters(useMC);
+  } else {
+    dataRequest->requestITSClusters(useMC);
+  }
+#else
+  dataRequest->requestITSClusters(useMC);
+#endif
   if (useFT0) {
     dataRequest->requestFT0RecPoints(false);
   }

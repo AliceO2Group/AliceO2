@@ -28,4 +28,5 @@ o2_add_test_root_macro(macro/RunCompareMode3.C
                        LABELS tpc)
 o2_add_test_root_macro(macro/RunFindAdcError.C
                        PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                       COMPILE_ONLY
                        LABELS tpc)

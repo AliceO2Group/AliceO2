@@ -101,7 +101,7 @@ inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* cl
           pad = param.tpcGeometry.NPads(row) * ClusterNative::scalePadPacked - 1;
         }
       }
-      if (param.par.continuousMaxTimeBin > 0 && time >= maxTime) {
+      if (param.continuousMaxTimeBin > 0 && time >= maxTime) {
         if (time >= 0xFFFFFF - 544768) { // Constant 544768 = (2^23 - LHCMAXBUNCHES(3564) * MAXORBITS(256) * scaleTimePacked(64) / BCPERTIMEBIN(8)) / 2)
           time = 0;
         } else {

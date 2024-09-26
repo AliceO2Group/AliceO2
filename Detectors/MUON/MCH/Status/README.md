@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsMUONMCHStatus Status Map
+/doxy -->
+
 # MCH StatusMap
 
 The status map is an object that list all pads that are not perfect, for some reason. Each such pad gets ascribed a `uint32_t` integer mask, representing the source of information that was used to decide that pad is bad.
@@ -6,7 +10,7 @@ The status map is an object that list all pads that are not perfect, for some re
 
 The gathering of all the sources of information is performed by the [StatusMapCreatorSpec](src/StatusMapCreatorSpec.cxx), either in standalone [o2-mch-statusmap-creator-workflow](src/statusmap-creator-workflow.cxx) device, or, most probably, as part of the regular [o2-mch-reco-workflow](../Workflow/src/reco-workflow.cxx).
 
-So far only we have only implemented the bad channel list from pedestal runs and the manual reject list. Next in line will be the usage of the HV and LV values.
+So far we have implemented the bad channel list from pedestal runs, HV status and the manual reject list.
 
 ## StatusMap usage
 

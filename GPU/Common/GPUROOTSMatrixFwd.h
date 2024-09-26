@@ -44,12 +44,12 @@ namespace detail
 {
 template <typename T, unsigned int N>
 class SVectorGPU;
+template <class T, unsigned int D1, unsigned int D2, class R>
+class SMatrixGPU;
 template <class T, unsigned int D>
 class MatRepSymGPU;
 template <class T, unsigned int D1, unsigned int D2>
 class MatRepStdGPU;
-template <class T, unsigned int D1, unsigned int D2, class R>
-class SMatrixGPU;
 } // namespace detail
 
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
@@ -59,17 +59,17 @@ template <class T, unsigned int D1, unsigned int D2, class R>
 using SMatrix = ROOT::Math::SMatrix<T, D1, D2, R>;
 template <class T, unsigned int D>
 using MatRepSym = ROOT::Math::MatRepSym<T, D>;
-template <class T, unsigned int D1, unsigned int D2>
+template <class T, unsigned int D1, unsigned int D2 = D1>
 using MatRepStd = ROOT::Math::MatRepStd<T, D1, D2>;
 #else
 template <typename T, unsigned int N>
 using SVector = detail::SVectorGPU<T, N>;
+template <class T, unsigned int D1, unsigned int D2 = D1, class R = detail::MatRepStdGPU<T, D1, D2>>
+using SMatrix = detail::SMatrixGPU<T, D1, D2, R>;
 template <class T, unsigned int D>
 using MatRepSym = detail::MatRepSymGPU<T, D>;
 template <class T, unsigned int D1, unsigned int D2 = D1>
 using MatRepStd = detail::MatRepStdGPU<T, D1, D2>;
-template <class T, unsigned int D1, unsigned int D2 = D1, class R = detail::MatRepStdGPU<T, D1, D2>>
-using SMatrix = detail::SMatrixGPU<T, D1, D2, R>;
 #endif
 
 } // namespace math_utils

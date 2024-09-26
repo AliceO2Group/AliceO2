@@ -119,9 +119,8 @@ void GPUParam::SetDefaults(float solenoidBz)
   par.assumeConstantBz = false;
   par.toyMCEventsFlag = false;
   par.continuousTracking = false;
-  par.continuousMaxTimeBin = 0;
+  continuousMaxTimeBin = 0;
   par.debugLevel = 0;
-  par.resetTimers = false;
   par.earlyTpcTransform = false;
 }
 
@@ -132,19 +131,18 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
     par.assumeConstantBz = g->constBz;
     par.toyMCEventsFlag = g->homemadeEvents;
     par.continuousTracking = g->continuousMaxTimeBin != 0;
-    par.continuousMaxTimeBin = g->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->continuousMaxTimeBin;
+    continuousMaxTimeBin = g->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->continuousMaxTimeBin;
   }
   par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
   qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f; // Repeat here, since passing in g is optional
   if (p) {
     par.debugLevel = p->debugLevel;
-    par.resetTimers = p->resetTimers;
     UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);
   }
   if (w) {
-    par.dodEdx = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
+    par.dodEdx = dodEdxDownscaled = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
     if (par.dodEdx && p && p->tpcDownscaledEdx != 0) {
-      par.dodEdx = (rand() % 100) < p->tpcDownscaledEdx;
+      dodEdxDownscaled = (rand() % 100) < p->tpcDownscaledEdx;
     }
   }
 }

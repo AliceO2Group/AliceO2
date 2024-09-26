@@ -123,7 +123,7 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true, GPUReconstruction* master = nullptr);
   static GPUReconstruction* CreateInstance(int type, bool forceType, GPUReconstruction* master = nullptr) { return CreateInstance((DeviceType)type, forceType, master); }
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
-  static bool CheckInstanceAvailable(DeviceType type);
+  static bool CheckInstanceAvailable(DeviceType type, bool verbose);
 
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
@@ -210,10 +210,10 @@ class GPUReconstruction
   int NStreams() const { return mNStreams; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
-  RecoStepField GetRecoSteps() const { return mRecoSteps; }
-  RecoStepField GetRecoStepsGPU() const { return mRecoStepsGPU; }
-  InOutTypeField GetRecoStepsInputs() const { return mRecoStepsInputs; }
-  InOutTypeField GetRecoStepsOutputs() const { return mRecoStepsOutputs; }
+  RecoStepField GetRecoSteps() const { return mRecoSteps.steps; }
+  RecoStepField GetRecoStepsGPU() const { return mRecoSteps.stepsGPUMask; }
+  InOutTypeField GetRecoStepsInputs() const { return mRecoSteps.inputs; }
+  InOutTypeField GetRecoStepsOutputs() const { return mRecoSteps.outputs; }
   int getRecoStepNum(RecoStep step, bool validCheck = true);
   int getGeneralStepNum(GeneralStep step, bool validCheck = true);
 
@@ -261,6 +261,9 @@ class GPUReconstruction
   };
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
+  // Private helpers for library loading
+  static std::shared_ptr<LibraryLoader>* GetLibraryInstance(DeviceType type, bool verbose);
+
   // Private helper functions for memory management
   size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend, const char* device);
   size_t AllocateRegisteredPermanentMemory();
@@ -286,7 +289,7 @@ class GPUReconstruction
   int ReadStructFromFile(const char* file, T* obj);
 
   // Others
-  virtual RecoStepField AvailableRecoSteps() { return RecoStep::AllRecoSteps; }
+  virtual RecoStepField AvailableGPURecoSteps() { return RecoStep::AllRecoSteps; }
   virtual bool CanQueryMaxMemory() { return false; }
 
   // Pointers to tracker classes
@@ -304,10 +307,7 @@ class GPUReconstruction
   GPUOutputControl mInputControl;                       // Prefefined input memory location for reading standalone dumps
   std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers; // Scalers how much memory will be needed
 
-  RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
-  RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
-  InOutTypeField mRecoStepsInputs = 0;
-  InOutTypeField mRecoStepsOutputs = 0;
+  GPURecoStepConfiguration mRecoSteps;
 
   std::string mDeviceName = "CPU";
 

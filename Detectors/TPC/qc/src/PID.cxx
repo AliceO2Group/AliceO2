@@ -18,7 +18,6 @@
 // root includes
 #include "TStyle.h"
 #include "TFile.h"
-#include "TCanvas.h"
 #include "TMathBase.h"
 #include "TObjArray.h"
 
@@ -93,14 +92,10 @@ void PID::initializeHistograms()
     mMapHist["hdEdxMaxMIPVsSec"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxMaxMIPVsSec_{}", name).data(), (fmt::format("MIP Q_{{Max}} {}", name) + ";sector;d#it{E}/d#it{x}_{Max} (arb. unit)").data(), binsSec.bins, binsSec.min, binsSec.max, binsdEdxMIPMax.bins, binsdEdxMIPMax.min, binsdEdxMIPMax.max));
     mMapHist["hMIPNclVsTgl"].emplace_back(std::make_unique<TH2F>(fmt::format("hMIPNclVsTgl_{}", name).data(), (fmt::format("rec. clusters {}", name) + ";#tan(#lambda); rec clusters").data(), 50, -2, 2, nclMax[idEdxType] - nclCuts[idEdxType], nclCuts[idEdxType], nclMax[idEdxType]));
     mMapHist["hMIPNclVsTglSub"].emplace_back(std::make_unique<TH2F>(fmt::format("hMIPNclVsTglSub_{}", name).data(), (fmt::format("sub-thrs. clusters {}", name) + ";#tan(#lambda);sub-thrs. clusters").data(), 50, -2, 2, 20, 0, 20));
-    if (mCreateCanvas) {
-      mMapHistCanvas["hdEdxVspHypoPos"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxVspHypoPos_{}", name).data(), (fmt::format("Q_{{Tot}} Pos {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binNumber, binsdEdxTot_Log.data()));
-      mMapHistCanvas["hdEdxVspHypoNeg"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxVspHypoNeg_{}", name).data(), (fmt::format("Q_{{Tot}} Neg {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binNumber, binsdEdxTot_Log.data()));
+    if (mGetdEdxVspHypoHist) {
+      mMapHist["hdEdxVspHypoPos"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxVspHypoPos_{}", name).data(), (fmt::format("Q_{{Tot}} Pos {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binNumber, binsdEdxTot_Log.data()));
+      mMapHist["hdEdxVspHypoNeg"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxVspHypoNeg_{}", name).data(), (fmt::format("Q_{{Tot}} Neg {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binNumber, binsdEdxTot_Log.data()));
     }
-  }
-  if (mCreateCanvas) {
-    mMapCanvas["CdEdxPIDHypothesisVsp"].emplace_back(std::make_unique<TCanvas>("CdEdxPIDHypothesisVsp", "PID Hypothesis Ratio"));
-    mMapCanvas["CdEdxPIDHypothesisVsp"].at(0)->Divide(5, 2);
   }
 }
 
@@ -108,11 +103,6 @@ void PID::initializeHistograms()
 void PID::resetHistograms()
 {
   for (const auto& pair : mMapHist) {
-    for (auto& hist : pair.second) {
-      hist->Reset();
-    }
-  }
-  for (const auto& pair : mMapHistCanvas) {
     for (auto& hist : pair.second) {
       hist->Reset();
     }
@@ -130,7 +120,8 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
 {
   // ===| variables required for cutting and filling |===
   const auto& dEdx = track.getdEdx();
-  const auto pTPC = track.getP();
+  const auto absCharge = track.getAbsCharge();
+  const auto pTPC = (absCharge > 0) ? (track.getP() / absCharge) : track.getP(); // charge magnitude is divided getP() via getPtInv for pTPC/Z [fix for He3]
   const auto tgl = track.getTgl();
   const auto snp = track.getSnp();
   const auto phi = track.getPhi();
@@ -183,10 +174,10 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
     if (std::abs(tgl) < mCutAbsTgl) {
       mMapHist["hdEdxTotVsp"][idEdxType]->Fill(pTPC, dEdxTot[idEdxType]);
       mMapHist["hdEdxMaxVsp"][idEdxType]->Fill(pTPC, dEdxMax[idEdxType]);
-      if (mCreateCanvas) {
+      if (mGetdEdxVspHypoHist) {
         const auto pidHypothesis = track.getPID().getID();
         if (pidHypothesis <= o2::track::PID::NIDs) {
-          auto pidHist = mMapHistCanvas[(track.getCharge() > 0) ? "hdEdxVspHypoPos" : "hdEdxVspHypoNeg"][idEdxType].get();
+          auto pidHist = mMapHist[(track.getCharge() > 0) ? "hdEdxVspHypoPos" : "hdEdxVspHypoNeg"][idEdxType].get();
           pidHist->SetBinContent(pidHist->GetXaxis()->FindBin(pTPC), pidHist->GetYaxis()->FindBin(dEdxTot[idEdxType]), pidHypothesis + 1);
         }
       }
@@ -222,20 +213,6 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
 
         mMapHist["hdEdxTotMIPVsSnp"][idEdxType]->Fill(snp, dEdxTot[idEdxType]);
         mMapHist["hdEdxMaxMIPVsSnp"][idEdxType]->Fill(snp, dEdxMax[idEdxType]);
-      }
-    }
-  }
-  if (mCreateCanvas) {
-    for (auto const& pairC : mMapCanvas) {
-      for (auto& canv : pairC.second) {
-        int h = 1;
-        for (auto const& pairH : mMapHistCanvas) {
-          for (auto& hist : pairH.second) {
-            canv->cd(h);
-            hist->Draw();
-            h++;
-          }
-        }
       }
     }
   }

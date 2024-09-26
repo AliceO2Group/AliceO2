@@ -1,7 +1,7 @@
 #version 460 core
 layout (location = 0) in vec3 pos;
 layout (binding = 0) uniform uniformMatrix { mat4 ModelViewProj; } um;
-layout (push_constant) uniform pushSize { vec4 color; float size; } ps;
+layout (push_constant) uniform pushSize { layout(offset = 16) float size; } ps;
 
 void main()
 {

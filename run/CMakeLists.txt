@@ -37,6 +37,7 @@ target_link_libraries(allsim
                                 O2::TRDSimulation
                                 O2::FV0Simulation
                                 O2::ZDCSimulation
+                                O2::FOCALSimulation
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
@@ -147,6 +148,8 @@ o2_add_dpl_workflow(mctracks-to-aod-simple-task
                     COMPONENT_NAME Analysis)
 
 o2_data_file(COPY o2simtopology_template.json DESTINATION config)
+
+o2_data_file(COPY o2simdefaultdetectorlist.json DESTINATION config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
 #   perform

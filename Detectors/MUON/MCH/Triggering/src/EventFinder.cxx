@@ -64,6 +64,8 @@ void EventFinder::run(const gsl::span<const mch::ROFRecord>& mchROFs,
     }
   }
 
+#pragma GCC diagnostic push                          // TODO: Remove once this is fixed in GCC
+#pragma GCC diagnostic ignored "-Wstringop-overflow" // TODO: Remove once this is fixed in GCC
   // merge overlapping events (when a MCH ROF is compatible with multiple trigger) and cleanup
   for (auto itEvent = mEvents.begin(); itEvent != mEvents.end();) {
     if (itEvent->second.iMCHROFs.empty()) {
@@ -81,6 +83,7 @@ void EventFinder::run(const gsl::span<const mch::ROFRecord>& mchROFs,
       }
     }
   }
+#pragma GCC diagnostic pop // TODO: Remove once this is fixed in GCC
 
   // merge digits associated to each event and produce the output ROFs pointing to them
   // the BC range of each ROF is set to contain only the MID IR(s) associated to the event

@@ -119,7 +119,7 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   auto rdh = mDecoderRDH;
 
   if (!o2::raw::RDHUtils::checkRDH(rdh, false)) {
-    LOG(error) << "Bad RDH found in TOF compressor -> skip it";
+    LOG(warning) << "Bad RDH found in TOF compressor -> skip it";
     o2::raw::RDHUtils::checkRDH(rdh, true);
     return true;
   }
@@ -164,13 +164,13 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
     auto drmPayload = memorySize - headerSize;
 
     if (drmPayload < 0) {
-      LOG(error) << "link = " << rdh->feeId << ": memorySize  < headerSize (" << memorySize << " < " << headerSize << ")";
+      LOG(warning) << "link = " << rdh->feeId << ": memorySize  < headerSize (" << memorySize << " < " << headerSize << ")";
       return true;
     }
 
     if (mDecoderSaveBufferDataSize + drmPayload >= mDecoderSaveBufferSize) {
       // avoid to allocate memory out of the buffer
-      LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size " << mDecoderSaveBufferSize;
+      LOG(warning) << "link = " << rdh->feeId << ": beyond the buffer size " << mDecoderSaveBufferSize;
       return true;
     }
 
@@ -211,8 +211,8 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   /** copy RDH open to encoder buffer **/
 
   if (mEncoderPointer + mDecoderRDH->headerSize >= mEncoderPointerMax) {
-    LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer+mDecoderRDH->headerSize = " << mEncoderPointer + mDecoderRDH->headerSize << " >= "
-               << "mEncoderPointerMax = " << mEncoderPointerMax;
+    LOG(warning) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer+mDecoderRDH->headerSize = " << mEncoderPointer + mDecoderRDH->headerSize << " >= "
+                 << "mEncoderPointerMax = " << mEncoderPointerMax;
     encoderRewind();
     return true;
   }
@@ -251,11 +251,22 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
     mErrorCounter++;
   }
 
+  // before to move to RDH close check we are not already out of buffer (it is the last chance to call rewind and not to store RDH open)
+  if (mEncoderPointer >= mEncoderPointerMax) {
+    LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer in RDH open = " << mEncoderPointer << " >= "
+               << "mEncoderPointerMax = " << mEncoderPointerMax;
+    long byteOutOfBuffer = mEncoderPointer + rdh->headerSize - mEncoderPointerMax;
+    LOG(error) << "byte out of buffer = " << byteOutOfBuffer;
+
+    encoderRewind();
+    return true;
+  }
+
   /** copy RDH close to encoder buffer **/
   /** CAREFUL WITH THE PAGE COUNTER **/
   if (mEncoderPointer + rdh->headerSize >= mEncoderPointerMax) {
-    LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer+rdh->headerSize = " << mEncoderPointer + rdh->headerSize << " >= "
-               << "mEncoderPointerMax = " << mEncoderPointerMax;
+    LOG(warning) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer+rdh->headerSize = " << mEncoderPointer + rdh->headerSize << " >= "
+                 << "mEncoderPointerMax = " << mEncoderPointerMax;
     return true;
   }
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);

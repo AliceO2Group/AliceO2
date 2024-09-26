@@ -11,7 +11,17 @@
 #ifndef O2_FRAMEWORK_DATATYPES_H_
 #define O2_FRAMEWORK_DATATYPES_H_
 
+#include "CommonConstants/LHCConstants.h"
+
 #include <cstdint>
+#include <limits>
+
+namespace o2::aod::bc
+{
+enum BCFlags : uint8_t {
+  ITSUPCMode = 0x1
+};
+}
 
 namespace o2::aod::collision
 {
@@ -34,10 +44,11 @@ enum TrackTypeEnum : uint8_t {
   Run2Track = 254,
   Run2Tracklet = 255
 };
-enum TrackFlags {
+enum TrackFlags : uint32_t {
   TrackTimeResIsRange = 0x1, // Gaussian or range
   PVContributor = 0x2,       // This track has contributed to the collision vertex fit
   OrphanTrack = 0x4,         // Track has no association with any collision vertex
+  TrackTimeAsym = 0x8,       // track with an asymmetric time range
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 enum TrackFlagsRun2Enum {
@@ -62,6 +73,52 @@ enum TRDTrackPattern : uint8_t {
   HasNeighbor = 0x40,
   HasCrossing = 0x80,
 };
+namespace extensions
+{
+struct TPCTimeErrEncoding {
+  // TPC delta forward & backward packing
+  union TPCDeltaTime {
+    struct {
+      uint16_t timeForward;
+      uint16_t timeBackward;
+    } __attribute__((packed)) deltas;
+    float timeErr;
+  } encoding;
+  static_assert(sizeof(float) == 2 * sizeof(uint16_t));
+
+  float getTimeErr() const
+  {
+    return encoding.timeErr;
+  }
+
+  // Use all 16 bits of uint16_t to encode delta scale with max precision
+  // e.g., TPCTrack::mDeltaFwd * timeScaler
+  // max range for the time deltas is 0 - <512 (1<<9) TPC time bins
+  static constexpr float timeScaler{(1 << 16) / (1 << 9)};
+  // bogus value to max incorrect usae immedately obvious
+  static constexpr float invalidValue{std::numeric_limits<float>::min()};
+  // convert TPC time bins to ns
+  static constexpr float TPCBinNS = 8 * o2::constants::lhc::LHCBunchSpacingNS;
+
+  void setDeltaTFwd(float fwd)
+  {
+    encoding.deltas.timeForward = static_cast<uint16_t>(fwd * timeScaler);
+  }
+  void setDeltaTBwd(float bwd)
+  {
+    encoding.deltas.timeBackward = static_cast<uint16_t>(bwd * timeScaler);
+  }
+
+  float getDeltaTFwd() const
+  {
+    return static_cast<float>(encoding.deltas.timeForward) / timeScaler * TPCBinNS;
+  }
+  float getDeltaTBwd() const
+  {
+    return static_cast<float>(encoding.deltas.timeBackward) / timeScaler * TPCBinNS;
+  }
+};
+} // namespace extensions
 } // namespace o2::aod::track
 
 namespace o2::aod::fwdtrack

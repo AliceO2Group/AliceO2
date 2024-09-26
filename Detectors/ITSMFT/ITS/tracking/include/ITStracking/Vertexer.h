@@ -53,7 +53,8 @@ class Vertexer
   Vertexer& operator=(const Vertexer&) = delete;
 
   void adoptTimeFrame(TimeFrame& tf);
-  VertexingParameters& getVertParameters() const;
+  std::vector<VertexingParameters>& getVertParameters() const;
+  void setParameters(std::vector<VertexingParameters>& vertParams);
   void getGlobalConfiguration();
 
   std::vector<Vertex> exportVertices();
@@ -62,8 +63,6 @@ class Vertexer
   float clustersToVertices(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   float clustersToVerticesHybrid(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void filterMCTracklets();
-  void validateTracklets();
-  void validateTrackletsHybrid();
 
   template <typename... T>
   void findTracklets(T&&... args);
@@ -71,8 +70,14 @@ class Vertexer
   void findTrackletsHybrid(T&&... args);
 
   void findTrivialMCTracklets();
-  void findVertices();
-  void findVerticesHybrid();
+  template <typename... T>
+  void validateTracklets(T&&... args);
+  template <typename... T>
+  void validateTrackletsHybrid(T&&... args);
+  template <typename... T>
+  void findVertices(T&&... args);
+  template <typename... T>
+  void findVerticesHybrid(T&&... args);
   void findHistVertices();
 
   template <typename... T>
@@ -88,13 +93,18 @@ class Vertexer
   void dumpTraits();
   template <typename... T>
   float evaluateTask(void (Vertexer::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
-  void printEpilog(std::function<void(std::string s)> logger, const float total);
+  void printEpilog(std::function<void(std::string s)> logger,
+                   bool isHybrid,
+                   const unsigned int trackletN01, const unsigned int trackletN12, const unsigned selectedN, const unsigned int vertexN,
+                   const float initT, const float trackletT, const float selecT, const float vertexT);
 
  private:
   std::uint32_t mTimeFrameCounter = 0;
 
   VertexerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
   TimeFrame* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
+
+  std::vector<VertexingParameters> mVertParams;
 };
 
 template <typename... T>
@@ -109,9 +119,14 @@ void Vertexer::findTracklets(T&&... args)
   mTraits->computeTracklets(std::forward<T>(args)...);
 }
 
-inline VertexingParameters& Vertexer::getVertParameters() const
+inline std::vector<VertexingParameters>& Vertexer::getVertParameters() const
 {
   return mTraits->getVertexingParameters();
+}
+
+inline void Vertexer::setParameters(std::vector<VertexingParameters>& vertParams)
+{
+  mVertParams = vertParams;
 }
 
 inline void Vertexer::dumpTraits()
@@ -119,14 +134,16 @@ inline void Vertexer::dumpTraits()
   mTraits->dumpVertexerTraits();
 }
 
-inline void Vertexer::validateTracklets()
+template <typename... T>
+inline void Vertexer::validateTracklets(T&&... args)
 {
-  mTraits->computeTrackletMatching();
+  mTraits->computeTrackletMatching(std::forward<T>(args)...);
 }
 
-inline void Vertexer::findVertices()
+template <typename... T>
+inline void Vertexer::findVertices(T&&... args)
 {
-  mTraits->computeVertices();
+  mTraits->computeVertices(std::forward<T>(args)...);
 }
 
 template <typename... T>
@@ -141,14 +158,16 @@ void Vertexer::findTrackletsHybrid(T&&... args)
   mTraits->computeTrackletsHybrid(std::forward<T>(args)...);
 }
 
-inline void Vertexer::validateTrackletsHybrid()
+template <typename... T>
+inline void Vertexer::validateTrackletsHybrid(T&&... args)
 {
-  mTraits->computeTrackletMatchingHybrid();
+  mTraits->computeTrackletMatchingHybrid(std::forward<T>(args)...);
 }
 
-inline void Vertexer::findVerticesHybrid()
+template <typename... T>
+inline void Vertexer::findVerticesHybrid(T&&... args)
 {
-  mTraits->computeVerticesHybrid();
+  mTraits->computeVerticesHybrid(std::forward<T>(args)...);
 }
 
 template <typename... T>

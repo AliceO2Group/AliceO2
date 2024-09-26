@@ -96,12 +96,10 @@ INTERACTION_TAG_CONFIG_KEY=
 : ${ITSTPC_CONFIG_KEY:=}
 : ${AOD_SOURCES:=$TRACK_SOURCES}
 : ${AODPROD_OPT:=}
+: ${ALPIDE_ERR_DUMPS:=0}
 
 [[ "0$DISABLE_ROOT_OUTPUT" == "00" ]] && DISABLE_ROOT_OUTPUT=
 
-if [[ -z ${ALPIDE_ERR_DUMPS:-} ]]; then
-  [[ $EPNSYNCMODE == 1 ]] && ALPIDE_ERR_DUMPS="1" || ALPIDE_ERR_DUMPS="0"
-fi
 if [[ $CTFINPUT != 1 ]]; then
   GPU_OUTPUT+=",tpc-triggers"
 fi
@@ -215,12 +213,15 @@ if [[ $EPNSYNCMODE == 1 ]]; then
   fi
 fi
 if [[ $SYNCRAWMODE == 1 ]]; then
-  GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;GPU_proc.throttleAlarms=1;GPU_proc.conservativeMemoryEstimate=1;"
+  GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;GPU_proc.throttleAlarms=1;"
   if [[ $RUNTYPE == "PHYSICS" || $RUNTYPE == "COSMICS" || $RUNTYPE == "TECHNICAL" ]]; then
     GPU_CONFIG_KEY+="GPU_global.checkFirstTfOrbit=1;"
   fi
   # option for avoinding masking problematic channels from previous calibrations
   TOF_CONFIG+=" --for-calib"
+fi
+if [[ $SYNCRAWMODE == 1 ]] || [[ $SYNCMODE == 0 && $CTFINPUT == 1 && $GPUTYPE != "CPU" ]]; then
+  GPU_CONFIG_KEY+="GPU_proc.conservativeMemoryEstimate=1;"
 fi
 
 if [[ $SYNCMODE == 1 && "0${ED_NO_ITS_ROF_FILTER:-}" != "01" && $BEAMTYPE == "PbPb" ]] && has_detector ITS; then
@@ -319,8 +320,13 @@ if has_detector_calib PHS && workflow_has_parameter CALIB; then
   PHS_CONFIG+=" --fullclu-output"
 fi
 
-[[ ${O2_GPU_DOUBLE_PIPELINE:-$EPNSYNCMODE} == 1 ]] && GPU_CONFIG+=" --enableDoublePipeline"
-[[ ${O2_GPU_RTC:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCcacheFolder=/var/tmp/o2_gpu_rtc_cache;"
+[[ ${O2_GPU_DOUBLE_PIPELINE:-$EPNSYNCMODE} == 1 && $GPUTYPE != "CPU" ]] && GPU_CONFIG+=" --enableDoublePipeline"
+[[ ${O2_GPU_RTC:-$EPNSYNCMODE} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCprependCommand=/usr/bin/env TMPDIR=/tmp /usr/bin/taskset -c 0-191;"
+[[ ${O2_GPU_RTC:-$EPNSYNCMODE} == 1 && $EPNSYNCMODE == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCcacheFolder=/var/tmp/o2_gpu_rtc_cache;"
+if [[ ${O2_GPU_RTC:-$EPNSYNCMODE} == 1 ]] && [[ ( ${ALICE_O2_FST:-0} == 1 && ${FST_TMUX_NO_EPN:-0} == 0 ) || $EPNSYNCMODE == 1 ]]; then
+  [[ ${EPN_NODE_MI100:-0} == 0 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCoverrideArchitecture=--offload-arch=gfx906;"
+  [[ ${EPN_NODE_MI100:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCoverrideArchitecture=--offload-arch=gfx908;"
+fi
 
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
@@ -334,13 +340,14 @@ if has_processing_step MUON_SYNC_RECO; then
   [[ -z ${ARGS_EXTRA_PROCESS_o2_mid_reco_workflow:-} ]] && ARGS_EXTRA_PROCESS_o2_mid_reco_workflow="--mid-tracker-keep-best"
   [[ -z ${ARGS_EXTRA_PROCESS_o2_mch_reco_workflow:-} ]] && ARGS_EXTRA_PROCESS_o2_mch_reco_workflow="--digits"
   if [[ -z ${CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow:-} ]]; then
-    if [[ $RUNTYPE == "PHYSICS" || $RUNTYPE == "COSMICS" ]]; then
-      CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow="MCHTracking.chamberResolutionX=0.4;MCHTracking.chamberResolutionY=0.4;MCHTracking.sigmaCutForTracking=7.;MCHDigitFilter.timeOffset=126;MCHTracking.sigmaCutForImprovement=6.;MCHTracking.maxCandidates=20000;"
-    elif [[ $RUNTYPE == "SYNTHETIC" ]]; then
-      CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow="MCHTimeClusterizer.peakSearchSignalOnly=false;MCHDigitFilter.rejectBackground=false;MCHTracking.chamberResolutionX=0.4;MCHTracking.chamberResolutionY=0.4;MCHTracking.sigmaCutForTracking=7.;MCHTracking.sigmaCutForImprovement=6.;"
+    if [[ $IS_SIMULATED_DATA == 1 ]]; then
+      CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow="MCHTimeClusterizer.peakSearchSignalOnly=false;MCHDigitFilter.rejectBackground=false;"
+    elif [[ $RUNTYPE == "PHYSICS" && $BEAMTYPE == "pp" ]] || [[ $RUNTYPE == "COSMICS" ]]; then
+      CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow="MCHTracking.chamberResolutionX=0.4;MCHTracking.chamberResolutionY=0.4;MCHTracking.sigmaCutForTracking=7.;MCHTracking.sigmaCutForImprovement=6.;"
     fi
     has_detector_reco ITS && [[ $RUNTYPE != "COSMICS" ]] && CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow+="MCHTimeClusterizer.irFramesOnly=true;"
     [[ ! -z ${CUT_RANDOM_FRACTION_MCH:-} ]] && CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow+="MCHTimeClusterizer.rofRejectionFraction=$CUT_RANDOM_FRACTION_MCH;"
+    CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow+="MCHStatusMap.useHV=false;MCHDigitFilter.statusMask=3;"
   fi
   [[ $RUNTYPE == "COSMICS" ]] && [[ -z ${CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow:-} ]] && CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow="MFTTracking.FullClusterScan=true"
 fi
@@ -353,7 +360,7 @@ fi
 # Start of workflow command generation
 
 WORKFLOW= # Make sure we start with an empty workflow
-[[ "${GEN_TOPO_ONTHEFLY:-}" == "1" ]] && WORKFLOW="echo '{}' | "
+[[ "${GEN_TOPO_ONTHEFLY:-}" == "1" ]] && WORKFLOW="echo '{}' | " # When running in a pseudo terminal / with ODC, sometimes we have bogus stdin file descriptors
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Input workflow
@@ -382,8 +389,8 @@ if [[ ! -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS} ]] || [[ ! -z ${WORKFL
   add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_CLUSTERS --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS $GLOBAL_READER_OPTIONS $DISABLE_MC $HBFINI_OPTIONS"
   has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --fv0-digit-infile o2_fv0digits.root"
   has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mid-digit-infile mid-digits-decoded.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchdigits.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mch-digit-infile mchdigits.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mch-digit-infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-errors-reader-workflow "$HBFINI_OPTIONS" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "$HBFINI_OPTIONS" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "$HBFINI_OPTIONS" "" 0
@@ -633,8 +640,8 @@ workflow_has_parameter AOD && [[ ! -z "$AOD_SOURCES" ]] && add_W o2-aod-producer
 # extra workflows in case we want to extra ITS/MFT info for dead channel maps to then go to CCDB for MC
 : ${ALIEN_JDL_PROCESSITSDEADMAP:=}
 : ${ALIEN_JDL_PROCESSMFTDEADMAP:=}
-[[ $ALIEN_JDL_PROCESSITSDEADMAP == 1 ]] && has_detector ITS && add_W o2-itsmft-deadmap-builder-workflow " --local-output --output-dir . --source clusters --tf-sampling 1000"
-[[ $ALIEN_JDL_PROCESSMFTDEADMAP == 1 ]] && has_detector MFT && add_W o2-itsmft-deadmap-builder-workflow " --runmft --local-output --output-dir . --source clusters --tf-sampling 1000"
+[[ $ALIEN_JDL_PROCESSITSDEADMAP == 1 ]] && has_detector ITS && add_W o2-itsmft-deadmap-builder-workflow " --local-output --output-dir . --source clusters --tf-sampling 350"
+[[ $ALIEN_JDL_PROCESSMFTDEADMAP == 1 ]] && has_detector MFT && add_W o2-itsmft-deadmap-builder-workflow " --runmft --local-output --output-dir . --source clusters --tf-sampling 350"
 
 
 # ---------------------------------------------------------------------------------------------------------------------

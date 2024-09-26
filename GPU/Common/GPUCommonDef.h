@@ -19,7 +19,7 @@
 // The following checks are increasingly more strict hiding the code in more and more cases:
 // #ifndef __OPENCL__ : Hide from OpenCL kernel code. All system headers and usage thereof must be protected like this, or stronger.
 // #ifndef GPUCA_GPUCODE_DEVICE : Hide from kernel code on all GPU architectures. This includes the __OPENCL__ case and bodies of all GPU device functions (GPUd(), etc.)
-// #ifndef GPUCA_GPUCODE : Hide from compilation with GPU compiler. This includes the case kernel case of GPUCA_GPUCODE_DEVICE but also all host code compiled by the GPU compiler, e.g. for management.
+// #ifndef GPUCA_GPUCODE : Hide from compilation with GPU compiler. This includes the kernel case of GPUCA_GPUCODE_DEVICE but also all host code compiled by the GPU compiler, e.g. for management.
 // #ifndef GPUCA_ALIGPUCODE : Code is completely invisible to the GPUCATracking library, irrespective of GPU or CPU compilation or which compiler.
 
 #ifndef GPUCOMMONDEF_H
@@ -97,6 +97,9 @@
 #define GPUCA_DEBUG_STREAMER_CHECK(...)
 #endif
 
+#ifndef GPUCA_RTC_SPECIAL_CODE
+#define GPUCA_RTC_SPECIAL_CODE(...)
+#endif
 
 // API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"

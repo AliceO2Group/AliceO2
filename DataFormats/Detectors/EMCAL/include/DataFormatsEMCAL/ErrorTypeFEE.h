@@ -58,6 +58,7 @@ class ErrorTypeFEE
     GEOMETRY_ERROR,    ///< Decoded position outside EMCAL
     GAIN_ERROR,        ///< Error due to gain type
     LINK_ERROR,        ///< Error due to missing DDL links
+    TRU_ERROR,         ///< Errors from TRU data
     STU_ERROR,         ///< Error from STU data
     UNDEFINED          ///< Error source undefined
   };
@@ -105,7 +106,11 @@ class ErrorTypeFEE
 
   /// \brief Set the error as STU decoder error and store the error code
   /// \param gainError Error code of the STU decoder error
-  void setSTUDecoderErrorType(int gainError) { setError(ErrorSource_t::STU_ERROR, gainError); }
+  void setSTUDecoderErrorType(int stuerror) { setError(ErrorSource_t::STU_ERROR, stuerror); }
+
+  /// \brief Set the error as TRU decoder error and store the error code
+  /// \param gainError Error code of the TRU decoder error
+  void setTRUDecoderErrorType(int truerror) { setError(ErrorSource_t::TRU_ERROR, truerror); }
 
   /// \brief Set the error type of the object
   /// \param errorsource Error type of the object
@@ -175,6 +180,10 @@ class ErrorTypeFEE
   /// \return Error code (-1 in case the object is not a STU decoder error)
   int getSTUDecoderErrorType() const { return getRawErrorForType(ErrorSource_t::STU_ERROR); }
 
+  /// \brief Get the error code of the obect in case the object is a TRU decoder error
+  /// \return Error code (-1 in case the object is not a STU decoder error)
+  int getTRUDecoderErrorType() const { return getRawErrorForType(ErrorSource_t::TRU_ERROR); }
+
   /// \brief Get subspecification of the error
   /// \return Subspecification of the error
   int getSubspecification() const { return mSubspecification; }
@@ -191,7 +200,7 @@ class ErrorTypeFEE
 
   /// \brief Get the number of error types
   /// \return Number of error types (including undefined)
-  static constexpr int getNumberOfErrorTypes() { return 9; }
+  static constexpr int getNumberOfErrorTypes() { return 10; }
 
   /// \brief Get the name of the error type
   /// \param errorTypeID ID of the error type

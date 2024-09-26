@@ -51,8 +51,6 @@ struct DataOutputDescriptor {
  private:
   std::string mfilenameBase;
   std::string* mfilenameBasePtr = nullptr;
-
-  std::string remove_ws(const std::string& s);
 };
 
 struct DataOutputDirector {

@@ -20,9 +20,15 @@ namespace o2
 namespace trk
 {
 
+enum eLayout {
+  kCylinder = 0,
+  kTurboStaves,
+};
+
 struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   std::string configFile = "";
   float serviceTubeX0 = 0.02f; // X0 Al2O3
+  eLayout layout = kCylinder;  // Type of segmentation of the layers into staves
 
   O2ParamDef(TRKBaseParam, "TRKBase");
 };

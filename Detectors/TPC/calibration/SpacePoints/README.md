@@ -1,3 +1,7 @@
+<!-- doxy
+\page refTPCcalibrationAverageDistortionCorrection Average Distortion Correction
+/doxy -->
+
 # TPC average distortion correction
 
 The average correction for TPC space charge distortions is based on residuals of TPC clusters with respect to global ITS-TPC-TRD-TOF tracks.

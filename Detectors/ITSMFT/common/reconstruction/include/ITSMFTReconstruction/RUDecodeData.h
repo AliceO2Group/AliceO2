@@ -34,23 +34,25 @@ struct RUDecodeData {
   static constexpr int MaxChipsPerRU = 196; // max number of chips the RU can readout
   static constexpr int MaxLinksPerRU = 3;   // max number of GBT links per RU
 
-  std::array<PayLoadCont, MaxCablesPerRU> cableData{};     // cable data in compressed ALPIDE format
-  std::vector<o2::itsmft::ChipPixelData> chipsData{};      // fully decoded data in 1st nChipsFired chips
-  std::vector<uint16_t> seenChipIDs{};                     // IDs of all chips seen during ROF decoding, including empty ones
-  std::array<int, MaxLinksPerRU> links{};                  // link entry RSTODO: consider removing this and using pointer
-  std::array<uint8_t, MaxCablesPerRU> cableHWID{};         // HW ID of cable whose data is in the corresponding slot of cableData
-  std::array<uint8_t, MaxCablesPerRU> cableLinkID{};       // ID of the GBT link transmitting this cable data
-  std::array<GBTLink*, MaxCablesPerRU> cableLinkPtr{};     // Ptr of the GBT link transmitting this cable data
-  std::unordered_map<uint64_t, uint32_t> linkHBFToDump{};  // FEEID<<32+hbfEntry to dump in case of error
-  int ruSWID = -1;                                         // SW (stave) ID
-  int nChipsFired = 0;     // number of chips with data or with errors
-  int lastChipChecked = 0; // last chips checked among nChipsFired
-  int nNonEmptyLinks = 0;  // number of non-empty links for current ROF
-  int nLinks = 0;          // number of links seen for this TF
-  int nLinksDone = 0;      // number of links finished for this TF
-  int verbosity = 0;       // verbosity level, for -1,0 print only summary data, for 1: print once every error
-  bool ROFRampUpStage = false; // flag that the data come from the ROF rate ramp-up stage
-  GBTCalibData calibData{}; // calibration info from GBT calibration word
+  std::array<PayLoadCont, MaxCablesPerRU> cableData{};                        // cable data in compressed ALPIDE format
+  std::vector<o2::itsmft::ChipPixelData> chipsData{};                         // fully decoded data in 1st nChipsFired chips
+  std::map<int, ChipPixelData*> seenChips{};                                  // Map that records chip data by global ID
+  std::vector<uint16_t> seenChipIDsInCable{};                                 // IDs of chips seen in the current cable
+  std::vector<uint16_t> seenChipIDs{};                                        // IDs of all chips seen during ROF decoding, including empty ones
+  std::array<int, MaxLinksPerRU> links{};                                     // link entry RSTODO: consider removing this and using pointer
+  std::array<uint8_t, MaxCablesPerRU> cableHWID{};                            // HW ID of cable whose data is in the corresponding slot of cableData
+  std::array<uint8_t, MaxCablesPerRU> cableLinkID{};                          // ID of the GBT link transmitting this cable data
+  std::array<GBTLink*, MaxCablesPerRU> cableLinkPtr{};                        // Ptr of the GBT link transmitting this cable data
+  std::unordered_map<uint64_t, uint32_t> linkHBFToDump{};                     // FEEID<<32+hbfEntry to dump in case of error
+  int ruSWID = -1;                                                            // SW (stave) ID
+  int nChipsFired = 0;                                                        // number of chips with data or with errors
+  int lastChipChecked = 0;                                                    // last chips checked among nChipsFired
+  int nNonEmptyLinks = 0;                                                     // number of non-empty links for current ROF
+  int nLinks = 0;                                                             // number of links seen for this TF
+  int nLinksDone = 0;                                                         // number of links finished for this TF
+  int verbosity = 0;                                                          // verbosity level, for -1,0 print only summary data, for 1: print once every error
+  bool ROFRampUpStage = false;                                                // flag that the data come from the ROF rate ramp-up stage
+  GBTCalibData calibData{};                                                   // calibration info from GBT calibration word
   std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> chipErrorsTF{}; // vector of chip decoding errors seen in the given TF
   const RUInfo* ruInfo = nullptr;
 
@@ -59,9 +61,13 @@ struct RUDecodeData {
     memset(&links[0], -1, MaxLinksPerRU * sizeof(int));
   }
   void clear();
+  void clearSeenChipIDs()
+  {
+    seenChipIDs.clear();
+  }
   void setROFInfo(ChipPixelData* chipData, const GBTLink* lnk);
   template <class Mapping>
-  int decodeROF(const Mapping& mp, const o2::InteractionRecord ir);
+  int decodeROF(const Mapping& mp, const o2::InteractionRecord ir, bool verifyDecoder);
   void fillChipStatistics(int icab, const ChipPixelData* chipData);
   void dumpcabledata(int icab);
   bool checkLinkInSync(int icab, const o2::InteractionRecord ir);
@@ -71,7 +77,7 @@ struct RUDecodeData {
 ///_________________________________________________________________
 /// decode single readout frame, the cable's data must be filled in advance via GBTLink::collectROFCableData
 template <class Mapping>
-int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
+int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir, bool verifyDecoder)
 {
   nChipsFired = 0;
   lastChipChecked = 0;
@@ -90,15 +96,35 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
     }
     auto cabHW = cableHWID[icab];
     auto chIdGetter = [this, &mp, cabHW](int cid) {
-      //return mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
+      // return mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
       auto chip = mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
       return chip;
     };
+    auto localChipIdGetter = [this, &mp, cabHW](int gid) {
+      auto localID = mp.getLocalChipID(gid, cabHW, *this->ruInfo);
+      return localID;
+    };
+
     int ret = 0;
     // dumpcabledata(icab);
 
-    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], seenChipIDs, chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
+    std::vector<uint16_t>* seenChipIDsPtr = &seenChipIDs;
+    if (verifyDecoder) {
+      seenChipIDsInCable.clear();
+      seenChipIDsPtr = &seenChipIDsInCable;
+      seenChips.clear();
+    }
+    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], *seenChipIDsPtr, chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
+      if (verifyDecoder) {
+        auto ID = chipData->getChipID();
+        // Since the errored chips are not recorded, we need to add them
+        // separately
+        if (seenChipIDsInCable.empty() || seenChipIDsInCable.back() != ID) {
+          seenChipIDsInCable.push_back(ID);
+        }
+        seenChips[ID] = chipData;
+      }
       auto nhits = chipData->getData().size();
       if (nhits && doneChips[chipData->getChipID()]) {
         if (chipData->getChipID() == chipsData[nChipsFired - 1].getChipID()) {
@@ -127,6 +153,12 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
       if (ret < 0) {
         break; // negative code was returned by decoder: abandon cable data
       }
+    }
+    if (verifyDecoder) {
+      AlpideCoder::verifyDecodedCable(seenChips, cableData[icab],
+                                      seenChipIDsInCable, localChipIdGetter,
+                                      chIdGetter);
+      seenChipIDs.insert(seenChipIDs.end(), seenChipIDsInCable.begin(), seenChipIDsInCable.end());
     }
     cableData[icab].clear();
   }

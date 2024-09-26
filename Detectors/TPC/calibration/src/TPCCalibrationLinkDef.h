@@ -117,4 +117,6 @@
 #pragma link C++ class o2::tpc::TPCMShapeCorrection + ;
 #pragma link C++ struct o2::tpc::TPCMShape + ;
 #pragma link C++ struct o2::tpc::BoundaryPotentialIFC + ;
+#pragma link C++ class o2::tpc::DigitAdd + ;
+#pragma link C++ class std::vector < o2::tpc::DigitAdd> + ;
 #endif

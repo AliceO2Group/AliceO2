@@ -30,7 +30,7 @@ namespace o2
 {
 namespace event_visualisation
 {
-std::vector<std::string> DataSourceOnline::sourceFilextensions = {".json", ".root"};
+std::vector<std::string> DataSourceOnline::sourceFilextensions = {".json", ".root", ".eve"};
 
 std::vector<std::pair<VisualisationEvent, EVisualisationGroup>>
   DataSourceOnline::getVisualisationList(int no, float minTime, float maxTime, float range)
@@ -51,7 +51,8 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>>
     this->setRunNumber(vEvent.getRunNumber());
     this->setRunType(vEvent.getRunType());
     this->setFirstTForbit(vEvent.getFirstTForbit());
-    this->setCollisionTime(vEvent.getCollisionTime());
+    this->setCreationTime(vEvent.getCreationTime());
+
     this->setTrackMask(vEvent.getTrkMask());
     this->setClusterMask(vEvent.getClMask());
 

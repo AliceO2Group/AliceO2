@@ -141,12 +141,52 @@ class ChipMappingITS
     }
   }
 
-  ///< get chip global SW ID from chipID on module, cable SW ID and stave (RU) info
-  uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW, const RUInfo& ruInfo) const
+  ///< get chipID on module from chip global SW ID, cable SW ID and stave (RU) info
+  uint16_t getLocalChipID(uint16_t globalID, int cableHW, const RUInfo& ruInfo)
+    const
   {
-    if (chOnModuleHW < MaxHWChipIDPerModuleSB[ruInfo.ruType] && cableHW <= MaxHWCableID[ruInfo.ruType]) {
-      uint16_t chipOnRU = ruInfo.ruType == IB ? (cableHW == chOnModuleHW ? cableHW : 0xff) : (ruInfo.ruType == MB ? HWCableHWChip2ChipOnRU_MB[cableHW][chOnModuleHW] : HWCableHWChip2ChipOnRU_OB[cableHW][chOnModuleHW]);
-      // uint16_t chipOnRU = ruInfo.firstChipIDSW + mCableHWFirstChip[ruInfo.ruType][cableHW] + chipModuleIDHW2SW(ruInfo.ruType, chOnModuleHW);  // This is an old way, w/o error check
+    if (cableHW <= MaxHWCableID[ruInfo.ruType] && globalID != 0xffff) {
+      uint16_t chipOnRU = globalID - ruInfo.firstChipIDSW;
+      switch (ruInfo.ruType) {
+        case IB:
+          return chipOnRU;
+        case MB:
+          for (int ihw = 0; ihw < 15; ihw++) {
+            if (HWCableHWChip2ChipOnRU_MB[cableHW][ihw] == chipOnRU)
+              return ihw;
+          }
+          break;
+        case OB:
+          for (int ihw = 0; ihw < 15; ihw++) {
+            if (HWCableHWChip2ChipOnRU_OB[cableHW][ihw] == chipOnRU)
+              return ihw;
+          }
+          break;
+      }
+    }
+    return 0xffff;
+  }
+
+  ///< get chip global SW ID from chipID on module, cable SW ID and stave (RU)
+  /// info
+  uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW,
+                           const RUInfo& ruInfo) const
+  {
+    if (chOnModuleHW < MaxHWChipIDPerModuleSB[ruInfo.ruType] &&
+        cableHW <= MaxHWCableID[ruInfo.ruType]) {
+      uint16_t chipOnRU = 0xff;
+      switch (ruInfo.ruType) {
+        case IB:
+          if (cableHW == chOnModuleHW)
+            chipOnRU = cableHW;
+          break;
+        case MB:
+          chipOnRU = HWCableHWChip2ChipOnRU_MB[cableHW][chOnModuleHW];
+          break;
+        case OB:
+          chipOnRU = HWCableHWChip2ChipOnRU_OB[cableHW][chOnModuleHW];
+          break;
+      }
       return chipOnRU < 0xff ? ruInfo.firstChipIDSW + chipOnRU : 0xffff;
     }
     return 0xffff;
@@ -199,7 +239,7 @@ class ChipMappingITS
   uint8_t cableHW2Pos(uint8_t ruType, uint8_t hwid) const { return mCableHW2Pos[ruType][hwid]; }
 
   ///< convert HW cable ID to SW ID for given RU type (see ChipOnRUInfo.cableSW explanation)
-  uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
+  uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return hwid < mCableHW2SW[ruType].size() ? mCableHW2SW[ruType][hwid] : 0xff; }
 
   ///< convert cable iterator ID to the position on the ActiveLanes word in the GBT.header for given RU type; MFT lanes position compatible
   uint8_t cablePos(uint8_t ruType, uint8_t id) const { return mCablePos[ruType][id]; }

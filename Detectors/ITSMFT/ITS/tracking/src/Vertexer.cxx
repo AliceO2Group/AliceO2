@@ -33,35 +33,71 @@ Vertexer::Vertexer(VertexerTraits* traits)
   if (!traits) {
     LOG(fatal) << "nullptr passed to ITS vertexer construction.";
   }
+  mVertParams.resize(1);
   mTraits = traits;
 }
 
 float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
 {
-  float total{0.f};
   TrackingParameters trkPars;
-  trkPars.PhiBins = mTraits->getVertexingParameters().PhiBins;
-  trkPars.ZBins = mTraits->getVertexingParameters().ZBins;
-  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, trkPars);
-  total += evaluateTask(&Vertexer::findTracklets, "Vertexer tracklet finding", logger);
-  total += evaluateTask(&Vertexer::validateTracklets, "Vertexer adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVertices, "Vertexer vertex finding", logger);
-  printEpilog(logger, total);
-  return total;
+  TimeFrameGPUParameters tfGPUpar;
+  mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
+  float timeTracklet{0.f}, timeSelection{0.f}, timeVertexing{0.f}, timeInit{0.f};
+  for (int iteration = 0; iteration < std::min(mVertParams[0].nIterations, (int)mVertParams.size()); ++iteration) {
+    unsigned int nTracklets01, nTracklets12;
+    logger(fmt::format("ITS Seeding vertexer iteration {} summary:", iteration));
+    trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
+    trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
+    auto timeInitIteration = evaluateTask(
+      &Vertexer::initialiseVertexer, "Vertexer initialisation", [](std::string) {}, trkPars, iteration);
+    auto timeTrackletIteration = evaluateTask(
+      &Vertexer::findTracklets, "Vertexer tracklet finding", [](std::string) {}, iteration);
+    nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
+    nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
+    auto timeSelectionIteration = evaluateTask(
+      &Vertexer::validateTracklets, "Vertexer tracklets validation", [](std::string) {}, iteration);
+    auto timeVertexingIteration = evaluateTask(
+      &Vertexer::findVertices, "Vertexer vertex finding", [](std::string) {}, iteration);
+    printEpilog(logger, false, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration()[iteration], timeInitIteration, timeTrackletIteration, timeSelectionIteration, timeVertexingIteration);
+    timeInit += timeInitIteration;
+    timeTracklet += timeTrackletIteration;
+    timeSelection += timeSelectionIteration;
+    timeVertexing += timeVertexingIteration;
+  }
+
+  return timeInit + timeTracklet + timeSelection + timeVertexing;
 }
 
 float Vertexer::clustersToVerticesHybrid(std::function<void(std::string s)> logger)
 {
-  float total{0.f};
   TrackingParameters trkPars;
-  trkPars.PhiBins = mTraits->getVertexingParameters().PhiBins;
-  trkPars.ZBins = mTraits->getVertexingParameters().ZBins;
-  total += evaluateTask(&Vertexer::initialiseVertexerHybrid, "Hybrid Vertexer initialisation", logger, trkPars);
-  total += evaluateTask(&Vertexer::findTrackletsHybrid, "Hybrid Vertexer tracklet finding", logger);
-  total += evaluateTask(&Vertexer::validateTrackletsHybrid, "Hybrid Vertexer adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", logger);
-  printEpilog(logger, total);
-  return total;
+  TimeFrameGPUParameters tfGPUpar;
+  float timeTracklet, timeSelection, timeVertexing, timeInit;
+  mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
+  for (int iteration = 0; iteration < std::min(mVertParams[0].nIterations, (int)mVertParams.size()); ++iteration) {
+    unsigned int nTracklets01, nTracklets12;
+    logger(fmt::format("ITS Hybrid seeding vertexer iteration {} summary:", iteration));
+    trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
+    trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
+    auto timeInitIteration = evaluateTask(
+      &Vertexer::initialiseVertexerHybrid, "Hybrid Vertexer initialisation", [](std::string) {}, trkPars, iteration);
+    auto timeTrackletIteration = evaluateTask(
+      &Vertexer::findTrackletsHybrid, "Hybrid Vertexer tracklet finding", [](std::string) {}, iteration);
+    nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
+    nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
+    auto timeSelectionIteration = evaluateTask(
+      &Vertexer::validateTrackletsHybrid, "Hybrid Vertexer adjacent tracklets validation", [](std::string) {}, iteration);
+    auto timeVertexingIteration = evaluateTask(
+      &Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", [](std::string) {}, iteration);
+
+    printEpilog(logger, true, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration().size(), timeInit, timeTracklet, timeSelection, timeVertexing);
+    timeInit += timeInitIteration;
+    timeTracklet += timeTrackletIteration;
+    timeSelection += timeSelectionIteration;
+    timeVertexing += timeVertexingIteration;
+  }
+
+  return timeInit + timeTracklet + timeSelection + timeVertexing;
 }
 
 void Vertexer::getGlobalConfiguration()
@@ -70,30 +106,28 @@ void Vertexer::getGlobalConfiguration()
   vc.printKeyValues(true, true);
   auto& grc = o2::its::GpuRecoParamConfig::Instance();
 
-  VertexingParameters verPar;
-  verPar.allowSingleContribClusters = vc.allowSingleContribClusters;
-  verPar.zCut = vc.zCut;
-  verPar.phiCut = vc.phiCut;
-  verPar.pairCut = vc.pairCut;
-  verPar.clusterCut = vc.clusterCut;
-  verPar.histPairCut = vc.histPairCut;
-  verPar.tanLambdaCut = vc.tanLambdaCut;
-  verPar.lowMultBeamDistCut = vc.lowMultBeamDistCut;
-  verPar.vertNsigmaCut = vc.vertNsigmaCut;
-  verPar.vertRadiusSigma = vc.vertRadiusSigma;
-  verPar.trackletSigma = vc.trackletSigma;
-  verPar.maxZPositionAllowed = vc.maxZPositionAllowed;
-  verPar.clusterContributorsCut = vc.clusterContributorsCut;
-  verPar.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
-  verPar.phiSpan = vc.phiSpan;
-  verPar.nThreads = vc.nThreads;
-  verPar.ZBins = vc.ZBins;
-  verPar.PhiBins = vc.PhiBins;
-
-  TimeFrameGPUParameters tfGPUpar;
-  // tfGPUpar.nROFsPerChunk = grc.nROFsPerChunk;
-
-  mTraits->updateVertexingParameters(verPar, tfGPUpar);
+  // This is odd: we override only the parameters for the first iteration.
+  // Variations for the next iterations are set in the trackingInterfrace.
+  mVertParams[0].nIterations = vc.nIterations;
+  mVertParams[0].deltaRof = vc.deltaRof;
+  mVertParams[0].allowSingleContribClusters = vc.allowSingleContribClusters;
+  mVertParams[0].zCut = vc.zCut;
+  mVertParams[0].phiCut = vc.phiCut;
+  mVertParams[0].pairCut = vc.pairCut;
+  mVertParams[0].clusterCut = vc.clusterCut;
+  mVertParams[0].histPairCut = vc.histPairCut;
+  mVertParams[0].tanLambdaCut = vc.tanLambdaCut;
+  mVertParams[0].lowMultBeamDistCut = vc.lowMultBeamDistCut;
+  mVertParams[0].vertNsigmaCut = vc.vertNsigmaCut;
+  mVertParams[0].vertRadiusSigma = vc.vertRadiusSigma;
+  mVertParams[0].trackletSigma = vc.trackletSigma;
+  mVertParams[0].maxZPositionAllowed = vc.maxZPositionAllowed;
+  mVertParams[0].clusterContributorsCut = vc.clusterContributorsCut;
+  mVertParams[0].maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
+  mVertParams[0].phiSpan = vc.phiSpan;
+  mVertParams[0].nThreads = vc.nThreads;
+  mVertParams[0].ZBins = vc.ZBins;
+  mVertParams[0].PhiBins = vc.PhiBins;
 }
 
 void Vertexer::adoptTimeFrame(TimeFrame& tf)
@@ -102,9 +136,16 @@ void Vertexer::adoptTimeFrame(TimeFrame& tf)
   mTraits->adoptTimeFrame(&tf);
 }
 
-void Vertexer::printEpilog(std::function<void(std::string s)> logger, const float total)
+void Vertexer::printEpilog(std::function<void(std::string s)> logger,
+                           bool isHybrid,
+                           const unsigned int trackletN01, const unsigned int trackletN12, const unsigned selectedN, const unsigned int vertexN,
+                           const float initT, const float trackletT, const float selecT, const float vertexT)
 {
-  logger(fmt::format(" - Timeframe {} vertexing completed in: {} ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
+  float total = initT + trackletT + selecT + vertexT;
+  logger(fmt::format(" - {}Vertexer: found {} | {} tracklets in: {} ms", isHybrid ? "Hybrid" : "", trackletN01, trackletN12, trackletT));
+  logger(fmt::format(" - {}Vertexer: selected {} tracklets in: {} ms", isHybrid ? "Hybrid" : "", selectedN, selecT));
+  logger(fmt::format(" - {}Vertexer: found {} vertices in: {} ms", isHybrid ? "Hybrid" : "", vertexN, vertexT));
+  // logger(fmt::format(" - Timeframe {} vertexing completed in: {} ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
 }
 
 } // namespace its

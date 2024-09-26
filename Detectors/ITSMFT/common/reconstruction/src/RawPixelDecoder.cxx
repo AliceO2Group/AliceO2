@@ -109,8 +109,10 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       auto& ru = mRUDecodeVec[iru];
       if (ru.nNonEmptyLinks) {
         ru.ROFRampUpStage = mROFRampUpStage;
-        mNPixelsFiredROF += ru.decodeROF(mMAP, mInteractionRecord);
+        mNPixelsFiredROF += ru.decodeROF(mMAP, mInteractionRecord, mVerifyDecoder);
         mNChipsFiredROF += ru.nChipsFired;
+      } else {
+        ru.clearSeenChipIDs();
       }
     }
 
@@ -268,6 +270,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       lnk.wordLength = (lnk.expectPadding = (RDHUtils::getDataFormat(rdh) == 0)) ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
+      lnk.alwaysParseTrigger = mAlwaysParseTrigger;
       if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
         LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       }
@@ -309,6 +312,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       }
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
+        memset(&ru.cableLinkPtr[0], 0, RUDecodeData::MaxCablesPerRU * sizeof(GBTLink*));
       }
     }
     // sort RUs in stave increasing order
@@ -511,8 +515,9 @@ void RawPixelDecoder<Mapping>::clearStat(bool resetRaw)
 
 ///______________________________________________________________________
 template <class Mapping>
-void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo)
+size_t RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo)
 {
+  size_t outSize = 0;
   bool dumpFullTF = false;
   for (auto& ru : mRUDecodeVec) {
     if (ru.linkHBFToDump.size()) {
@@ -546,6 +551,7 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework
               break;
             }
             ostrm.write(reinterpret_cast<const char*>(piece->data), piece->size);
+            outSize += piece->size;
             entry++;
           }
           LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
@@ -565,11 +571,13 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework
       for (size_t i = 0; i < lnk.rawData.getNPieces(); i++) {
         const auto* piece = lnk.rawData.getPiece(i);
         ostrm.write(reinterpret_cast<const char*>(piece->data), piece->size);
+        outSize += piece->size;
       }
     }
     LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
     break;
   }
+  return outSize;
 }
 
 ///______________________________________________________________________

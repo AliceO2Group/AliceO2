@@ -160,6 +160,8 @@ class CTPConfiguration
   const std::vector<CTPClass>& getCTPClasses() const { return mCTPClasses; } // Read-only interface
   uint64_t getInputMask(const std::string& name) const;
   int getInputIndex(const std::string& name) const;
+  std::string getClassNameFromIndex(int index) { return mCTPClasses[index].name; };
+  std::string getClassNameFromHWIndex(int index);
   bool isMaskInInputs(const uint64_t& mask) const;
   bool isBCMaskInConfig(const std::string maskname) const;
   const BCMask* isBCMaskInConfigP(const std::string bcmask) const;

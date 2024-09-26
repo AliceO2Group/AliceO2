@@ -57,11 +57,11 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-static constexpr float kDeg2Rad = M_PI / 180.f;
-static constexpr float kSectAngle = 2 * M_PI / 18.f;
-
 GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iTrk, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, GPUTPCGMMergedTrackHitXYZ* GPUrestrict() clustersXYZ, int& GPUrestrict() N, int& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, int attempt, float maxSinPhi, gputpcgmmergertypes::GPUTPCOuterParam* GPUrestrict() outerParam)
 {
+  static constexpr float kDeg2Rad = M_PI / 180.f;
+  CADEBUG(static constexpr float kSectAngle = 2 * M_PI / 18.f);
+
   const GPUParam& GPUrestrict() param = merger->Param();
 
   GPUdEdx dEdx;
@@ -212,7 +212,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           continue;
         }
       } else if (allowModification && lastRow != 255 && CAMath::Abs(cluster.row - lastRow) > 1) {
-        bool dodEdx = merger->Param().par.dodEdx && merger->Param().rec.tpc.adddEdxSubThresholdClusters && iWay == nWays - 1 && CAMath::Abs(cluster.row - lastRow) == 2 && cluster.leg == clusters[maxN - 1].leg;
+        bool dodEdx = merger->Param().par.dodEdx && merger->Param().dodEdxDownscaled && merger->Param().rec.tpc.adddEdxSubThresholdClusters && iWay == nWays - 1 && CAMath::Abs(cluster.row - lastRow) == 2 && cluster.leg == clusters[maxN - 1].leg;
         dodEdx = AttachClustersPropagate(merger, cluster.slice, lastRow, cluster.row, iTrk, cluster.leg == clusters[maxN - 1].leg, prop, inFlyDirection, GPUCA_MAX_SIN_PHI, dodEdx);
         if (dodEdx) {
           dEdx.fillSubThreshold(lastRow - 1, param);
@@ -362,7 +362,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           CADEBUG(printf("Reinit linearization\n"));
           prop.SetTrack(this, prop.GetAlpha());
         }
-        if (merger->Param().par.dodEdx && iWay == nWays - 1 && cluster.leg == clusters[maxN - 1].leg && !(clusterState & GPUTPCGMMergedTrackHit::flagEdge)) {
+        if (merger->Param().par.dodEdx && merger->Param().dodEdxDownscaled && iWay == nWays - 1 && cluster.leg == clusters[maxN - 1].leg && !(clusterState & GPUTPCGMMergedTrackHit::flagEdge)) {
           float qtot = 0, qmax = 0, pad = 0, relTime = 0;
           const int clusterCount = (ihit - ihitMergeFirst) * wayDirection + 1;
           for (int iTmp = ihitMergeFirst; iTmp != ihit + wayDirection; iTmp += wayDirection) {
@@ -413,7 +413,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
 
   // TODO: we have looping tracks here with 0 accepted clusters in the primary leg. In that case we should refit the track using only the primary leg.
 
-  if (merger->Param().par.dodEdx) {
+  if (merger->Param().par.dodEdx && merger->Param().dodEdxDownscaled) {
     dEdx.computedEdx(merger->OutputTracksdEdx()[iTrk], param);
   }
   Alpha = prop.GetAlpha();
@@ -425,6 +425,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
 
 GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
 {
+  static constexpr float kDeg2Rad = M_PI / 180.f;
+  static constexpr float kSectAngle = 2 * M_PI / 18.f;
+
   if (param.rec.tpc.trackReferenceX <= 500) {
     GPUTPCGMTrackParam save = *this;
     float saveAlpha = Alpha;
@@ -571,7 +574,7 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
     return -1e6f;
   }
 
-  const float zOffset = Merger->Param().par.earlyTpcTransform ? ((Merger->OutputTracks()[iTrack].CSide() ^ (slice >= 18)) ? -mTZOffset : mTZOffset) : Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(slice, mTZOffset, Merger->Param().par.continuousMaxTimeBin);
+  const float zOffset = Merger->Param().par.earlyTpcTransform ? ((Merger->OutputTracks()[iTrack].CSide() ^ (slice >= 18)) ? -mTZOffset : mTZOffset) : Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(slice, mTZOffset, Merger->Param().continuousMaxTimeBin);
   const float y0 = row.Grid().YMin();
   const float stepY = row.HstepY();
   const float z0 = row.Grid().ZMin() - zOffset; // We can use our own ZOffset, since this is only used temporarily anyway
@@ -635,6 +638,7 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
 
 GPUd() bool GPUTPCGMTrackParam::AttachClustersPropagate(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, GPUTPCGMPropagator& GPUrestrict() prop, bool inFlyDirection, float maxSinPhi, bool dodEdx)
 {
+  static constexpr float kSectAngle = 2 * M_PI / 18.f;
   if (Merger->Param().rec.tpc.disableRefitAttachment & 2) {
     return dodEdx;
   }
@@ -735,6 +739,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() 
 template <int I>
 GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& GPUrestrict() prop, int slice, int iRow, int iTrack, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2)
 {
+  static constexpr float kSectAngle = 2 * M_PI / 18.f;
   if (Merger->Param().rec.tpc.disableRefitAttachment & 4) {
     return 1;
   }
@@ -838,6 +843,8 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
 template <int I>
 GPUdni() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, float toY, GPUTPCGMPropagator& GPUrestrict() prop, bool phase2)
 {
+  static constexpr float kSectAngle = 2 * M_PI / 18.f;
+
   if (Merger->Param().rec.tpc.disableRefitAttachment & 8) {
     return;
   }
@@ -1008,7 +1015,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     float deltaT = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaZtoDeltaTimeInTimeFrame(slice, deltaZ);
     mTZOffset += deltaT;
     mP[1] -= deltaZ;
-    const float maxT = CAMath::Min(tz1, tz2);
+    const float maxT = CAMath::Min(tz1, tz2) - merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getT0();
     const float minT = CAMath::Max(tz1, tz2) - merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(slice);
     // printf("T Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, minT, maxT, mTZOffset);
     deltaT = 0.f;

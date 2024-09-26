@@ -240,7 +240,7 @@ struct FlexibleBinningPolicy<std::tuple<Ls...>, Ts...> : BinningPolicyBase<sizeo
   template <typename T, typename T2>
   auto getBinningValue(T& rowIterator, arrow::Table* table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
   {
-    if constexpr (has_type_v<T2, pack<Ls...>>) {
+    if constexpr (has_type<T2>(pack<Ls...>{})) {
       if (globalIndex != -1) {
         rowIterator.setCursor(globalIndex);
       }

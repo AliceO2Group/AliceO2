@@ -74,7 +74,7 @@ void ClustererDPL::run(ProcessingContext& pc)
     reader.setDigitsMCTruth(labels.getIndexedSize() > 0 ? &labels : nullptr);
   }
   reader.init();
-  auto orig = o2::header::gDataOriginIT3;
+  auto orig = o2::header::gDataOriginITS;
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;
@@ -99,7 +99,7 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
-  LOG(info) << "ITSClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
+  LOG(info) << "ITS3Clusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 ///_______________________________________
@@ -185,15 +185,15 @@ DataProcessorSpec getClustererSpec(bool useMC)
                                                               inputs,
                                                               true);
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("IT3", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("IT3", "PATTERNS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("IT3", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "IT3", "DIGITSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("MC2ROframes", "IT3", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("IT3", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("IT3", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

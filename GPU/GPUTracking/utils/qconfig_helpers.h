@@ -42,6 +42,11 @@ inline std::string print_type<char>(char val)
   return std::to_string(val);
 };
 template <>
+inline std::string print_type<signed char>(signed char val)
+{
+  return std::to_string(val);
+};
+template <>
 inline std::string print_type<unsigned char>(unsigned char val)
 {
   return std::to_string(val);

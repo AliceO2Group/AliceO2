@@ -20,9 +20,7 @@
 #include "GPUCommonRtypes.h"
 #include "GPUCommonTypeTraits.h"
 
-namespace o2
-{
-namespace dataformats
+namespace o2::dataformats
 {
 
 template <int NBIdx, int NBSrc, int NBFlg>
@@ -32,8 +30,19 @@ class AbstractRef
   static constexpr auto MVAR()
   {
     static_assert(NBIT <= 64, "> 64 bits not supported");
-    typename std::conditional<(NBIT > 32), uint64_t, typename std::conditional<(NBIT > 16), uint32_t, typename std::conditional<(NBIT > 8), uint16_t, uint8_t>::type>::type>::type tp = 0;
-    return tp;
+    if constexpr (NBIT > 32) {
+      uint64_t tp = 0;
+      return tp;
+    } else if constexpr (NBIT > 16) {
+      uint32_t tp = 0;
+      return tp;
+    } else if constexpr (NBIT > 8) {
+      uint16_t tp = 0;
+      return tp;
+    } else {
+      uint8_t tp = 0;
+      return tp;
+    }
   }
 
  public:
@@ -87,7 +96,6 @@ class AbstractRef
   ClassDefNV(AbstractRef, 1);
 };
 
-} // namespace dataformats
-} // namespace o2
+} // namespace o2::dataformats
 
 #endif

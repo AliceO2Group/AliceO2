@@ -26,7 +26,7 @@ MCKinematicsReader::~MCKinematicsReader()
   }
   mInputChains.clear();
 
-  if (mDigitizationContext) {
+  if (mDigitizationContext && mOwningDigiContext) {
     delete mDigitizationContext;
   }
 }
@@ -132,17 +132,13 @@ void MCKinematicsReader::loadTrackRefsForSource(int source) const
   }
 }
 
-bool MCKinematicsReader::initFromDigitContext(std::string_view name)
+bool MCKinematicsReader::initFromDigitContext(o2::steer::DigitizationContext const* context)
 {
   if (mInitialized) {
     LOG(info) << "MCKinematicsReader already initialized; doing nothing";
     return false;
   }
 
-  auto context = DigitizationContext::loadFromFile(name);
-  if (!context) {
-    return false;
-  }
   mInitialized = true;
   mDigitizationContext = context;
 
@@ -158,6 +154,21 @@ bool MCKinematicsReader::initFromDigitContext(std::string_view name)
   // the first time for a particular source ...
 
   return true;
+}
+
+bool MCKinematicsReader::initFromDigitContext(std::string_view name)
+{
+  if (mInitialized) {
+    LOG(info) << "MCKinematicsReader already initialized; doing nothing";
+    return false;
+  }
+
+  auto context = DigitizationContext::loadFromFile(name);
+  if (!context) {
+    return false;
+  }
+  mOwningDigiContext = true;
+  return initFromDigitContext(context);
 }
 
 bool MCKinematicsReader::initFromKinematics(std::string_view name)

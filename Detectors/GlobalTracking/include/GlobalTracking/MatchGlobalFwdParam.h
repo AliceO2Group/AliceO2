@@ -26,7 +26,8 @@ namespace globaltracking
 
 enum SaveMode { kBestMatch = 0,
                 kSaveAll,
-                kSaveTrainingData };
+                kSaveTrainingData,
+                kSaveNCandidates };
 
 struct GlobalFwdMatchingParam : public o2::conf::ConfigurableParamHelper<GlobalFwdMatchingParam> {
 
@@ -41,6 +42,7 @@ struct GlobalFwdMatchingParam : public o2::conf::ConfigurableParamHelper<GlobalF
   Int_t saveMode = kBestMatch;                            ///< Global Forward Tracks save mode
   float MFTRadLength = 0.042;                             ///< MFT thickness in radiation length
   float alignResidual = 1.;                               ///< Alignment residual for cluster position uncertainty
+  int nCandidates = 5;                                    ///< Number of best matching candidates to save in savemode=3
 
   bool
     isMatchUpstream() const

@@ -165,7 +165,7 @@ struct GBTWord {
 
   uint8_t getHeader() const { return id; }
 
-  void printX(bool padded = true) const;
+  void printX(bool padded = true, std::string com = "") const;
   void printB(bool padded = true) const;
 
   ClassDefNV(GBTWord, 1);

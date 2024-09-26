@@ -26,9 +26,7 @@
 
 namespace fs = std::filesystem;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 using namespace rapidjson;
 
@@ -39,7 +37,7 @@ DataOutputDescriptor::DataOutputDescriptor(std::string inString)
   // the 1st part is used to create a DataDescriptorMatcher
   // the other parts are used to fill treename, colnames, and filename
   // remove all spaces
-  auto cleanString = remove_ws(inString);
+  inString.erase(std::remove_if(inString.begin(), inString.end(), isspace), inString.end());
 
   // reset
   treename = "";
@@ -49,8 +47,8 @@ DataOutputDescriptor::DataOutputDescriptor(std::string inString)
   // analyze the  parts of the input string
   static const std::regex delim1(":");
   std::sregex_token_iterator end;
-  std::sregex_token_iterator iter1(cleanString.begin(),
-                                   cleanString.end(),
+  std::sregex_token_iterator iter1(inString.begin(),
+                                   inString.end(),
                                    delim1,
                                    -1);
 
@@ -132,17 +130,6 @@ void DataOutputDescriptor::printOut()
   for (auto cn : colnames) {
     LOGP(info, "    {}", cn);
   }
-}
-
-std::string DataOutputDescriptor::remove_ws(const std::string& s)
-{
-  std::string s_wns;
-  for (auto c : s) {
-    if (!std::isspace(c)) {
-      s_wns += c;
-    }
-  }
-  return s_wns;
 }
 
 DataOutputDirector::DataOutputDirector()
@@ -501,7 +488,7 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
       auto fn = resdirname + "/" + mfilenameBases[ind] + ".root";
       delete mfilePtrs[ind];
       mParentMaps[ind]->Clear();
-      mfilePtrs[ind] = TFile::Open(fn.c_str(), mfileMode.c_str(), "", 501);
+      mfilePtrs[ind] = TFile::Open(fn.c_str(), mfileMode.c_str(), "", 505);
     }
     fileAndFolder.file = mfilePtrs[ind];
 
@@ -637,5 +624,4 @@ void DataOutputDirector::setMaximumFileSize(float maxfs)
 {
   mmaxfilesize = maxfs;
 }
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

@@ -39,7 +39,8 @@ class DataSourceOnline : public DataSource
   int mFirstTForbit;
   int mTrackMask;
   int mClusterMask;
-  std::string mCollisionTime;
+
+ protected:
   std::string mFileTime;
 
  public:
@@ -69,8 +70,6 @@ class DataSourceOnline : public DataSource
   std::string getEventAbsoluteFilePath() override { return mFileWatcher.currentFilePath(); };
   int getFirstTForbit() const override { return this->mFirstTForbit; }
   void setFirstTForbit(int firstTForbit) override { this->mFirstTForbit = firstTForbit; }
-  std::string getCollisionTime() const override { return this->mCollisionTime; }
-  void setCollisionTime(std::string collisionTime) override { this->mCollisionTime = collisionTime; }
   std::string getFileTime() const override { return this->mFileTime; }
   void setFileTime(std::string fileTime) override { this->mFileTime = fileTime; }
   int getTrackMask() const override { return this->mTrackMask; }

@@ -11,6 +11,7 @@
 
 #include "CommonDriverServices.h"
 #include "Framework/CommonServices.h"
+#include "Framework/PluginManager.h"
 
 // Make sure we can use aggregated initialisers.
 #pragma GCC diagnostic push
@@ -24,14 +25,14 @@ std::vector<ServiceSpec> o2::framework::CommonDriverServices::defaultServices()
   std::vector<ServiceSpec> specs{
     CommonServices::configurationSpec()};
   // Load plugins depending on the environment
-  std::vector<LoadableService> loadableServices = {};
+  std::vector<LoadablePlugin> loadableServices = {};
   char* loadableServicesEnv = getenv("DPL_LOAD_DRIVER_SERVICES");
   // String to define the services to load is:
   //
   // library1:name1,library2:name2,...
   if (loadableServicesEnv) {
-    loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesEnv);
-    ServiceHelpers::loadFromPlugin(loadableServices, specs);
+    loadableServices = PluginManager::parsePluginSpecString(loadableServicesEnv);
+    PluginManager::loadFromPlugin<ServiceSpec, ServicePlugin>(loadableServices, specs);
   }
   return specs;
 }

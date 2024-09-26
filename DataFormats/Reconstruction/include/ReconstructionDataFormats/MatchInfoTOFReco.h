@@ -45,6 +45,13 @@ class MatchInfoTOFReco : public MatchInfoTOF
   float pt() const { return mPt; }
   void setPt(float pt) { mPt = pt; }
 
+  void setResX(float val) { mResX = val; }
+  void setResZ(float val) { mResZ = val; }
+  void setResT(float val) { mResT = val; }
+  float getResX() const { return mResX; }
+  float getResZ() const { return mResZ; }
+  float getResT() const { return mResT; }
+
   void setTrackType(TrackType value) { mTrackType = value; }
   TrackType getTrackType() const { return mTrackType; }
 
@@ -52,7 +59,10 @@ class MatchInfoTOFReco : public MatchInfoTOF
   TrackType mTrackType; ///< track type (TPC, ITSTPC, TPCTRD, ITSTPCTRD)
   bool mFakeMC = false;
   float mPt = 0;
-  ClassDefNV(MatchInfoTOFReco, 4);
+  float mResX = 1;
+  float mResZ = 1;
+  float mResT = 1;
+  ClassDefNV(MatchInfoTOFReco, 5);
 };
 } // namespace dataformats
 } // namespace o2

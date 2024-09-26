@@ -77,6 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::move(readoutProxyOutput),
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
     dplModelAdaptor(filterSpecs, throwOnUnmatched), minSHM, false, injectMissingData, printSizes);
+  readoutProxy.labels.emplace_back(DataProcessorLabel{"input-proxy"});
 
   WorkflowSpec workflow;
   workflow.emplace_back(readoutProxy);

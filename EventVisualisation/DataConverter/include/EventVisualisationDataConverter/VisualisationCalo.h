@@ -20,98 +20,47 @@
 #include "rapidjson/document.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 
-namespace o2
+namespace o2::event_visualisation
 {
-namespace event_visualisation
-{
+
 class VisualisationCalo
 {
   friend class VisualisationEventJSONSerializer;
   friend class VisualisationEventROOTSerializer;
 
  public:
-  // Default constructor
   VisualisationCalo();
 
   /// constructor parametrisation (Value Object) for VisualisationCalo class
-  ///
-  /// Simplifies passing parameters to constructor of VisualisationCalo
-  /// by providing their names
   struct VisualisationCaloVO {
     float time = 0;
     float energy = 0.0f;
     float phi = 0;
     float eta = 0;
     int PID = 0;
-    std::string gid = "";
-    o2::dataformats::GlobalTrackID::Source source;
+    o2::dataformats::GlobalTrackID gid = 0;
   };
-
-  // Constructor with properties initialisation
   explicit VisualisationCalo(const VisualisationCaloVO& vo);
 
   VisualisationCalo(const VisualisationCalo& src);
 
-  // Energy getter
-  float getEnergy() const
-  {
-    return mEnergy;
-  }
-
-  // Time getter
-  float getTime() const
-  {
-    return mTime;
-  }
-
-  // PID (particle identification code) getter
-  int getPID() const
-  {
-    return mPID;
-  }
-
-  // GID  getter
-  std::string getGIDAsString() const
-  {
-    return mGID;
-  }
-
-  // Source Getter
-  o2::dataformats::GlobalTrackID::Source getSource() const
-  {
-    return mSource;
-  }
-
-  // Phi  getter
-  float getPhi() const
-  {
-    return mPhi;
-  }
-
-  // Theta  getter
-  float getEta() const
-  {
-    return mEta;
-  }
+  [[nodiscard]] float getEnergy() const { return mEnergy; }
+  [[nodiscard]] float getTime() const { return mTime; }
+  [[nodiscard]] int getPID() const { return mPID; }
+  [[nodiscard]] o2::dataformats::GlobalTrackID getGID() const { return mBGID; }
+  [[nodiscard]] o2::dataformats::GlobalTrackID::Source getSource() const { return static_cast<o2::dataformats::GlobalTrackID::Source>(mBGID.getSource()); }
+  [[nodiscard]] float getPhi() const { return mPhi; }
+  [[nodiscard]] float getEta() const { return mEta; }
 
  private:
-  // Set coordinates of the beginning of the track
-  void addStartCoordinates(const float xyz[3]);
-
   float mTime;   /// time
   float mEnergy; /// Energy of the particle
-
-  int mPID;         /// PDG code of the particle
-  std::string mGID; /// String representation of gid
-
-  float mEta; /// An angle from Z-axis to the radius vector pointing to the particle
-  float mPhi; /// An angle from X-axis to the radius vector pointing to the particle
-
-  //  std::vector<int> mChildrenIDs; /// Unique IDs of children particles
-  o2::dataformats::GlobalTrackID::Source mSource; /// data source of the track (debug)
+  int mPID;      /// PDG code of the particle
+  float mEta;    /// An angle from Z-axis to the radius vector pointing to the particle
+  float mPhi;    /// An angle from X-axis to the radius vector pointing to the particle
+  o2::dataformats::GlobalTrackID mBGID;
 };
 
-} // namespace event_visualisation
-} // namespace o2
+} // namespace o2::event_visualisation
 
 #endif // O2EVE_VISUALISATIONCALO_H

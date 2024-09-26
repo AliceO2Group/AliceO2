@@ -63,6 +63,7 @@ o2_target_root_dictionary(
         include/EMCALReconstruction/RecoParam.h
         include/EMCALReconstruction/StuDecoder.h
         include/EMCALReconstruction/TRUDataHandler.h
+        include/EMCALReconstruction/TRUDecodingErrors.h
 )
 
 o2_add_executable(rawreader-file
@@ -96,6 +97,18 @@ o2_add_test(RawDecodingError
 
 o2_add_test(RecoContainer
         SOURCES test/testRecoContainer.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+        COMPONENT_NAME emcal
+        LABELS emcal)
+
+o2_add_test(TRUDataHandler
+        SOURCES test/testTRUDataHandler.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+        COMPONENT_NAME emcal
+        LABELS emcal)
+
+o2_add_test(FastORTimeSeries
+        SOURCES test/testFastORTimeSeries.cxx
         PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
         COMPONENT_NAME emcal
         LABELS emcal)

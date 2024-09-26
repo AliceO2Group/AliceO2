@@ -135,3 +135,23 @@ float CalibdEdxCorrection::getMeanParam(const GEMstack stack, ChargeType charge,
 
   return mean / (SECTORSPERSIDE * SIDES);
 }
+
+float CalibdEdxCorrection::getMeanEntries(ChargeType charge) const
+{
+  float mean{};
+  for (int index = 0; index < FitSize / 2; ++index) {
+    mean += mEntries[index + charge * FitSize / 2];
+  }
+
+  return mean / (0.5f * FitSize);
+}
+
+float CalibdEdxCorrection::getMeanEntries(const GEMstack stack, ChargeType charge) const
+{
+  float mean{};
+  for (int index = 0; index < SECTORSPERSIDE * SIDES; ++index) {
+    mean += getEntries(StackID{index, stack}, charge);
+  }
+
+  return mean / (SECTORSPERSIDE * SIDES);
+}

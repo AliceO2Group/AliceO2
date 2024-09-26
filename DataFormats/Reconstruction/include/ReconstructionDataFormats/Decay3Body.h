@@ -29,7 +29,7 @@ class Decay3Body : public o2::track::TrackParCov /// TO BE DONE: extend to gener
   using PID = o2::track::PID;
 
   Decay3Body() = default;
-  Decay3Body(PID pid, const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, const Track& tr0, const Track& tr1, const Track& tr2);
+  Decay3Body(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, const Track& tr0, const Track& tr1, const Track& tr2, o2::track::PID pid = o2::track::PID::HyperTriton);
 
   const Track& getProng(int i) const { return mProngs[i]; }
   Track& getProng(int i) { return mProngs[i]; }

@@ -128,17 +128,17 @@ GPUdi() void rotateZd(double xL, double yL, double& xG, double& yG, double snAlp
   return detail::rotateZ<double>(xL, yL, xG, yG, snAlp, csAlp);
 }
 
-#ifndef GPUCA_GPUCODE_DEVICE
-inline void rotateZInv(float xG, float yG, float& xL, float& yL, float snAlp, float csAlp)
+GPUdi() void rotateZInv(float xG, float yG, float& xL, float& yL, float snAlp, float csAlp)
 {
   detail::rotateZInv<float>(xG, yG, xL, yL, snAlp, csAlp);
 }
 
-inline void rotateZInvd(double xG, double yG, double& xL, double& yL, double snAlp, double csAlp)
+GPUdi() void rotateZInvd(double xG, double yG, double& xL, double& yL, double snAlp, double csAlp)
 {
   detail::rotateZInv<double>(xG, yG, xL, yL, snAlp, csAlp);
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE
 inline std::tuple<float, float> rotateZInv(float xG, float yG, float snAlp, float csAlp)
 {
   return detail::rotateZInv<float>(xG, yG, snAlp, csAlp);

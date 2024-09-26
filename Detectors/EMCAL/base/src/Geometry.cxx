@@ -309,6 +309,9 @@ void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::
   }
 
   Float_t samplingFactorTranportModel = 1.;
+  // Note: The sampling factors are chosen so that results from the simulation
+  // engines correspond well with testbeam data
+
   if (contains(mcname, "Geant3")) {
     samplingFactorTranportModel = 1.; // 0.988 // Do nothing
   } else if (contains(mcname, "Fluka")) {
@@ -318,6 +321,9 @@ void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::
     LOG(info) << "Selected physics list: " << physicslist;
     // sampling factors for different Geant4 physics list
     // GEANT4 10.7 -> EMCAL-784
+
+    // set a default (there may be many physics list strings)
+    samplingFactorTranportModel = 0.81;
     if (physicslist == "FTFP_BERT_EMV+optical") {
       samplingFactorTranportModel = 0.821;
     } else if (physicslist == "FTFP_BERT_EMV+optical+biasing") {
@@ -1026,7 +1032,7 @@ std::tuple<int, int, int, int> Geometry::CalculateCellIndex(Int_t absId) const
 
   Int_t nModule = tmp / mNCellsInModule;
   tmp = tmp % mNCellsInModule;
-  Int_t nIphi = tmp / mNPHIdiv, nIeta = tmp % mNPHIdiv;
+  Int_t nIphi = tmp / mNPHIdiv, nIeta = tmp % mNETAdiv;
   return std::make_tuple(nSupMod, nModule, nIphi, nIeta);
 }
 

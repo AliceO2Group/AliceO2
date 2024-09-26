@@ -11,6 +11,10 @@ o2-mch-digits-filtering-workflow
 
 Filter out some digits.
 
+**StatusMap based filtering :**
+
+The [status map](/Detectors/MUON/MCH/Status/README.md) lists all the pads that are not perfect and assigns them a status word summarizing the origin of the issue(s). The filtering based on the status map is governed by the [MCHDigitFilterParam](/Detectors/MUON/MCH/DigitFiltering/include/MCHDigitFiltering/DigitFilterParam.h)`.statusMask` parameter, from which we can select the issue(s) to be filtered.
+
 **Noise filtering :**
 
 The exact behavior of the noise filtering is governed by the [MCHDigitFilterParam](/Detectors/MUON/MCH/DigitFiltering/include/MCHDigitFiltering/DigitFilterParam.h) configurable param, where you can select the minimum ADC value to consider, and whether to select signal (i.e. killing as much background as possible, possibly killing some signal as well) and/or to reject background (while not killing signal).

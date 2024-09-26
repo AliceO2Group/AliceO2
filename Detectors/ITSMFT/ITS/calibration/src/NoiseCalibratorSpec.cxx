@@ -105,13 +105,13 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     done = (++mNPartsDone == partInfo[1]);
     mStrobeCounter += partInfo[2];
     mCalibrator->setNStrobes(mStrobeCounter);
-    LOGP(info, "Received accumulated map {} of {} with {} ROFs, total number of maps = {} and strobes = {}", partInfo[0] + 1, partInfo[1], partInfo[2], mNPartsDone, mCalibrator->getNStrobes());
+    LOGP(important, "Received accumulated map {} of {} with {} ROFs, total number of maps = {} and strobes = {}", partInfo[0] + 1, partInfo[1], partInfo[2], mNPartsDone, mCalibrator->getNStrobes());
   }
   if (done || pc.transitionState() == TransitionHandlingState::Requested) {
     if (done) {
-      LOG(info) << "Minimum number of noise counts has been reached !";
+      LOG(important) << "Minimum number of noise counts has been reached !";
     } else {
-      LOG(info) << "Run stop is requested, sending output";
+      LOG(important) << "Run stop is requested, sending output";
     }
     if (mMode == ProcessingMode::Full || mMode == ProcessingMode::Normalize) {
       sendOutput(pc.outputs());
@@ -134,7 +134,7 @@ void NoiseCalibratorSpec::sendAccumulatedMap(DataAllocator& output)
   outInf.push_back(mCalibrator->getNInstances());
   outInf.push_back(mCalibrator->getNStrobes());
   output.snapshot(Output{"ITS", "NOISEMAPPARTINF", (unsigned int)mCalibrator->getInstanceID()}, outInf);
-  LOGP(info, "Sending accumulated map with {} ROFs processed", mCalibrator->getNStrobes());
+  LOGP(important, "Sending accumulated map with {} ROFs processed", mCalibrator->getNStrobes());
 }
 
 void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
@@ -271,9 +271,9 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters, int pmode)
       inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
     }
   } else {
-    useClusters = false;                                                                                         // not needed for normalization
-    inputs.emplace_back("mapspart", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPART"}, Lifetime::Sporadic);         // for normalization of multiple inputs only
-    inputs.emplace_back("mapspartInfo", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPARTINF"}, Lifetime::Sporadic);  // for normalization of multiple inputs only
+    useClusters = false;                                                                                        // not needed for normalization
+    inputs.emplace_back("mapspart", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPART"}, Lifetime::Sporadic);        // for normalization of multiple inputs only
+    inputs.emplace_back("mapspartInfo", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPARTINF"}, Lifetime::Sporadic); // for normalization of multiple inputs only
   }
   if (md == NoiseCalibratorSpec::ProcessingMode::Full || md == NoiseCalibratorSpec::ProcessingMode::Normalize) {
     inputs.emplace_back("confdbmap", "ITS", "CONFDBMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/Confdbmap"));

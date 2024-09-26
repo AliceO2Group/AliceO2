@@ -87,6 +87,11 @@ void GeneratorHepMC::setup(const GeneratorFileOrCmdParam& param0,
   mPrune = param.prune;
   setEventsToSkip(param.eventsToSkip);
 
+  // we are skipping ahead in the HepMC stream now
+  for (int i = 0; i < mEventsToSkip; ++i) {
+    generateEvent();
+  }
+
   if (param.version != 0 and mCmd.empty()) {
     LOG(warn) << "The key \"HepMC.version\" is no longer used when "
               << "reading from files. The format version of the input files "
@@ -100,8 +105,9 @@ Bool_t GeneratorHepMC::generateEvent()
   LOG(debug) << "Generating an event";
   /** generate event **/
   int tries = 0;
+  constexpr int max_tries = 3;
   do {
-    LOG(debug) << " try # " << ++tries;
+    LOG(debug) << " try # " << tries;
     if (not mReader and not makeReader()) {
       return false;
     }
@@ -114,8 +120,13 @@ Bool_t GeneratorHepMC::generateEvent()
       mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
       LOG(debug) << "Read one event " << mEvent->event_number();
       return true;
+    } else {
+      LOG(error) << "Event reading from HepMC failed ...";
     }
-  } while (true);
+    tries++;
+  } while (tries < max_tries);
+
+  LOG(fatal) << "HepMC event gen failed (Does the file/stream have enough events)?";
 
   /** failure **/
   return false;
@@ -478,9 +489,9 @@ bool GeneratorHepMC::makeReader()
     // specifies that
     LOG(info) << "Creating ASCII reader of " << filename;
     if (mVersion == 2) {
-      mReader.reset(new HepMC3::ReaderAsciiHepMC2(filename));
+      mReader = std::make_shared<HepMC3::ReaderAsciiHepMC2>(filename);
     } else {
-      mReader.reset(new HepMC3::ReaderAscii(filename));
+      mReader = std::make_shared<HepMC3::ReaderAscii>(filename);
     }
   } else {
     LOG(info) << "Deduce a reader of " << filename;

@@ -22,6 +22,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
+    ConfigParamSpec{"verify", VariantType::Bool, false, {"verify ALPIDE decoder by re-encoding the data"}},
     ConfigParamSpec{"runmft", VariantType::Bool, false, {"source detector is MFT (default ITS)"}},
     ConfigParamSpec{"no-clusters", VariantType::Bool, false, {"do not produce clusters (def: produce)"}},
     ConfigParamSpec{"no-cluster-patterns", VariantType::Bool, false, {"do not produce clusters patterns (def: produce)"}},
@@ -50,6 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   inp.doCalib = cfgc.options().get<bool>("enable-calib-data");
   inp.doSquashing = cfgc.options().get<bool>("squash-overflow-pixels");
   inp.askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
+  inp.verifyDecoder = cfgc.options().get<bool>("verify");
   inp.inputSpec = cfgc.options().get<std::string>("dataspec");
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));

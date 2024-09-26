@@ -11,7 +11,7 @@
 
 # FIXME: do we actually need a library here, or is the executable enough ?
 
-# add_compile_options(-O0 -g -fPIC)
+#add_compile_options(-O0 -g -fPIC -fno-omit-frame-pointer)
 
 o2_add_library(GlobalTrackingWorkflow
                SOURCES src/TrackWriterTPCITSSpec.cxx
@@ -48,7 +48,9 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::ITSMFTWorkflow
                                      O2::SimulationDataFormat
                                      O2::DetectorsVertexing
-                                     O2::StrangenessTracking)
+                                     O2::StrangenessTracking
+                                     $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Reconstruction>)
+
 o2_add_executable(driver-workflow
                   COMPONENT_NAME reader
                   SOURCES src/reader-driver-workflow.cxx

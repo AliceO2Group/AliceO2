@@ -169,7 +169,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
 
   dataRequest->requestTracks(srcVtx, useMC);
   dataRequest->requestClusters(srcCls, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true

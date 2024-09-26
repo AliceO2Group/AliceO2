@@ -227,17 +227,19 @@ class AODProducerWorkflowDPL : public Task
     return std::uint64_t(mStartIR.toLong()) + relativeTime_to_LocalBC(relativeTimeStampInNS);
   }
 
+  bool mThinTracks{false};
   bool mPropTracks{false};
   bool mPropMuons{false};
   float mTrackQCFraction{0.00};
   int64_t mTrackQCNTrCut{4};
   float mSqrtS{13860.};
-  std::mt19937 mGenerator; ///< random generator for trackQA sampling
+  std::mt19937 mGenerator{}; ///< random generator for trackQA sampling
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
 
   std::unordered_set<GIndex> mGIDUsedBySVtx;
+  std::unordered_set<GIndex> mGIDUsedByStr;
 
   int mNThreads = 1;
   bool mUseMC = true;
@@ -389,6 +391,7 @@ class AODProducerWorkflowDPL : public Task
     float trackTimeRes = -999.f;
     int diffBCRef = 0; // offset of time reference BC from the start of the orbit
     int bcSlice[2] = {-1, -1};
+    bool isTPConly = false; // not to be written out
   };
 
   struct TrackQA {
@@ -620,6 +623,8 @@ class AODProducerWorkflowDPL : public Task
                               int vertexId = -1);
 
   std::uint64_t fillBCSlice(int (&slice)[2], double tmin, double tmax, const std::map<uint64_t, int>& bcsMap) const;
+
+  std::vector<uint8_t> fillBCFlags(const o2::globaltracking::RecoContainer& data, std::map<uint64_t, int>& bcsMap) const;
 
   // helper for tpc clusters
   void countTPCClusters(const o2::globaltracking::RecoContainer& data);

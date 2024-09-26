@@ -199,9 +199,9 @@ class TrackParametrization
   GPUd() value_t getPt() const;
   GPUd() value_t getE2() const;
   GPUd() value_t getE() const;
-  GPUd() static inline value_t getdEdxBB(value_t betagamma) { return BetheBlochSolid(betagamma); }
-  GPUd() static inline value_t getdEdxBBOpt(value_t betagamma) { return BetheBlochSolidOpt(betagamma); }
-  GPUd() static inline value_t getBetheBlochSolidDerivativeApprox(value_T dedx, value_T bg) { return BetheBlochSolidDerivative(dedx, bg); }
+  GPUdi() static value_t getdEdxBB(value_t betagamma) { return BetheBlochSolid(betagamma); }
+  GPUdi() static value_t getdEdxBBOpt(value_t betagamma) { return BetheBlochSolidOpt(betagamma); }
+  GPUdi() static value_t getBetheBlochSolidDerivativeApprox(value_T dedx, value_T bg) { return BetheBlochSolidDerivative(dedx, bg); }
 
   GPUd() value_t getTheta() const;
   GPUd() value_t getEta() const;
@@ -216,6 +216,10 @@ class TrackParametrization
   GPUd() value_t getYAt(value_t xk, value_t b) const;
   GPUd() value_t getSnpAt(value_t xk, value_t b) const;
   GPUd() value_t getSnpAt(value_t alpha, value_t xk, value_t b) const;
+  GPUd() value_t getPhiAt(value_t xk, value_t b) const;
+  GPUd() value_t getPhiPosAt(value_t xk, value_t b) const;
+  GPUd() value_t getDCAYtoMV(value_t b, value_t xmv = 0.f, value_t ymv = 0.f, value_t zmv = 0.f) const;
+  GPUd() value_t getDCAZtoMV(value_t b, value_t xmv = 0.f, value_t ymv = 0.f, value_t zmv = 0.f) const;
   GPUd() math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation

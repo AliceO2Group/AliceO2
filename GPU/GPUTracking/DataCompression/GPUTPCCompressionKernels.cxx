@@ -33,7 +33,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   const GPUParam& GPUrestrict() param = processors.param;
 
-  char lastLeg = 0;
+  unsigned char lastLeg = 0;
   int myTrack = 0;
   for (unsigned int i = get_global_id(0); i < ioPtrs.nMergedTracks; i += get_global_size(0)) {
     GPUbarrierWarp();

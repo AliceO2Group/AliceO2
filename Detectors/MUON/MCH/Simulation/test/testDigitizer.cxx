@@ -28,7 +28,9 @@
 #include "MCHSimulation/Hit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "Field/MagneticField.h"
 #include "TGeoManager.h"
+#include "TGeoGlobalMagField.h"
 #include "boost/format.hpp"
 #include <boost/test/data/test_case.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -49,6 +51,20 @@ struct GEOMETRY {
     }
   }
 };
+
+void initField(float l3Current, float dipoleCurrent)
+{
+  /// Create the magnetic field map if not already done
+  if (TGeoGlobalMagField::Instance()->GetField()) {
+    return;
+  }
+
+  auto field =
+    o2::field::MagneticField::createFieldMap(l3Current, dipoleCurrent, o2::field::MagneticField::kConvLHC, false, 3500.,
+                                             "A-A", "$(O2_ROOT)/share/Common/maps/mfchebKGI_sym.root");
+  TGeoGlobalMagField::Instance()->SetField(field);
+  TGeoGlobalMagField::Instance()->Lock();
+}
 
 namespace
 {
@@ -100,6 +116,8 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   o2::conf::ConfigurableParam::setValue("MCHDigitizer", "seed", 123);
   o2::mch::Digitizer digitizer(transformation);
 
+  initField(-30000.0, -6000.0);
+
   int trackId1 = 0;
   int trackId2 = 1;
   int trackId3 = 2;
@@ -108,13 +126,14 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   float eloss = 1.e-6;
   float length = 0.f;
   float tof = 0.f;
+  float energ = 10.0;
 
   std::vector<o2::mch::Hit> hits1(2);
-  hits1.at(0) = o2::mch::Hit(trackId1, detElemId1, entrancePoint1, exitPoint1, eloss, length, tof);
-  hits1.at(1) = o2::mch::Hit(trackId2, detElemId2, entrancePoint2, exitPoint2, eloss, length, tof);
+  hits1.at(0) = o2::mch::Hit(trackId1, detElemId1, entrancePoint1, exitPoint1, eloss, length, tof, energ);
+  hits1.at(1) = o2::mch::Hit(trackId2, detElemId2, entrancePoint2, exitPoint2, eloss, length, tof, energ);
 
   std::vector<o2::mch::Hit> hits2(1);
-  hits2.at(0) = o2::mch::Hit(trackId3, detElemId3, entrancePoint3, exitPoint3, eloss, length, tof);
+  hits2.at(0) = o2::mch::Hit(trackId3, detElemId3, entrancePoint3, exitPoint3, eloss, length, tof, energ);
 
   digitizer.processHits(hits1, collisionTime1, 0, 0);
   digitizer.processHits(hits2, collisionTime2, 0, 0);

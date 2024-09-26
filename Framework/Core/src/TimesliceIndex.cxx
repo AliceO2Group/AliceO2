@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Signpost.h"
+#include <fairmq/Channel.h>
 
 O2_DECLARE_DYNAMIC_LOG(timeslice_index);
 
@@ -162,13 +163,16 @@ TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(Timeslice
     }
   }
   if (changed && mOldestPossibleInput.timeslice.value != result.timeslice.value) {
-    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "Success: Oldest possible input is %zu due to channel %d",
-                           result.timeslice.value, result.channel.value);
+    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "Success (channel %d): Oldest possible input is %zu due to channel %d",
+                           channel.value, result.timeslice.value, result.channel.value);
   } else if (mOldestPossibleInput.timeslice.value != result.timeslice.value) {
-    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "Oldest possible input updated from timestamp: %zu --> %zu",
-                           mOldestPossibleInput.timeslice.value, result.timeslice.value);
+    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "channel %d: Oldest possible input updated from timestamp: %zu --> %zu",
+                           channel.value, mOldestPossibleInput.timeslice.value, result.timeslice.value);
   } else {
     O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "No change in oldest possible input");
+  }
+  if (mOldestPossibleInput.timeslice.value > result.timeslice.value) {
+    LOG(error) << "DPL internal error - oldestPossibleInput of channel " << channel.value << ": " << getChannelInfo(channel).channel->GetName().c_str() << " decreased from " << mOldestPossibleOutput.timeslice.value << " to " << result.timeslice.value;
   }
   mOldestPossibleInput = result;
   return mOldestPossibleInput;
@@ -188,7 +192,7 @@ bool TimesliceIndex::validateSlot(TimesliceSlot slot, TimesliceId currentOldest)
   return true;
 }
 
-TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
+TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput(bool rewinded)
 {
   auto oldestInput = getOldestPossibleInput();
   OldestOutputInfo result{oldestInput.timeslice, oldestInput.channel};
@@ -218,6 +222,9 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
       O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "updateOldestPossibleOutput", "Oldest possible output updated from oldest Input : %zu --> %zu",
                              mOldestPossibleOutput.timeslice.value, result.timeslice.value);
     }
+  }
+  if (rewinded == false && mOldestPossibleOutput.timeslice.value > result.timeslice.value) {
+    LOG(error) << "DPL internal error - oldestPossibleOutput decreased from " << mOldestPossibleOutput.timeslice.value << " to " << result.timeslice.value;
   }
   mOldestPossibleOutput = result;
 

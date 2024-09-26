@@ -129,6 +129,7 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,
     std::vector<DeviceControl>& deviceControls,
+    std::vector<ConfigParamSpec> const& detectedOptions,
     std::string const& uniqueWorkflowId);
 
   /// Rework the environment string

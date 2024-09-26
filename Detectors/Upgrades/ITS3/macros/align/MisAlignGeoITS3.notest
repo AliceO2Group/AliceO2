@@ -1,0 +1,129 @@
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file MisAlignGeoITS3.C
+/// \brief Misalign the global geometry of ITS3
+/// \author felix.schlepper@cern.ch
+
+#include "ITS3Align/MisalignmentManager.h"
+
+#include "TGeoManager.h"
+#include "TGeoMatrix.h"
+#include "TMath.h"
+
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
+#include "Framework/Logger.h"
+#include "ITS3Base/SpecsV2.h"
+
+#include <filesystem>
+
+#include "boost/property_tree/ptree.hpp"
+
+using MM = o2::its3::align::MisalignmentManager;
+namespace fs = std::filesystem;
+namespace pt = boost::property_tree;
+namespace its3c = o2::its3::constants;
+
+#define DECLARE_SENSOR(id)       \
+  float Sensor##id##Dx = 0.f;    \
+  float Sensor##id##Dy = 0.f;    \
+  float Sensor##id##Dz = 0.f;    \
+  float Sensor##id##Phi = 0.f;   \
+  float Sensor##id##Theta = 0.f; \
+  float Sensor##id##Psi = 0.f;
+
+struct MisAlignGlobalParams : public o2::conf::ConfigurableParamHelper<MisAlignGlobalParams> {
+  DECLARE_SENSOR(0)
+  DECLARE_SENSOR(1)
+  DECLARE_SENSOR(2)
+  DECLARE_SENSOR(3)
+  DECLARE_SENSOR(4)
+  DECLARE_SENSOR(5)
+
+  O2ParamDef(MisAlignGlobalParams, "MisAlignGlobalParams");
+};
+O2ParamImpl(MisAlignGlobalParams);
+
+void MisAlignGeoITS3(const std::string& configFilePath = "", bool _export = false, bool draw = false, bool check = false, const std::string& geomFile = "o2sim_geometry-aligned.root")
+{
+  LOGP(info, "{:*^90}", " ITS3 GLOBAL MISALIGNMENT START ");
+  auto& params = MisAlignGlobalParams::Instance();
+  params.writeINI("default_parameters_global.ini", "MisAlignGlobalParams");
+  if (configFilePath.empty()) {
+    LOGP(info, "No user config provided using defaults");
+  } else {
+    LOGP(info, "User config at {}", configFilePath);
+    params.updateFromFile(configFilePath);
+  }
+  params.writeINI("used_parameters_global.ini", "MisAlignGlobalParams");
+  params.printKeyValues(true, true);
+
+  const fs::path srcFile{geomFile};
+  const fs::path destFile{MM::appendStem(geomFile, "_Orig")};
+  if (gGeoManager == nullptr) {
+    MM::createBackup(srcFile, destFile);
+    TGeoManager::Import(destFile.c_str());
+  }
+
+  LOGP(info, "Building matrices");
+  std::array<TGeoHMatrix, its3c::nSensorsIB> gRotoTranslations{};
+  for (int iSensor{0}; iSensor < (int)its3c::nSensorsIB; ++iSensor) {
+    auto& mat = gRotoTranslations[iSensor];
+    // Phi Z rotation angle (first)  defined in [-PI,PI]
+    // Theta X rotation angle (second) defined only [0,PI]
+    // Psi Z rotation angle (third)  defined in [-PI,PI]
+    MM::Euler3D euler{
+      ((iSensor % 2 == 0) ? 0. : -TMath::Pi()) +
+        TMath::DegToRad() * params.getValueAs<float>(fmt::format("MisAlignGlobalParams.Sensor{}Phi", iSensor)),
+      TMath::DegToRad() * params.getValueAs<float>(fmt::format("MisAlignGlobalParams.Sensor{}Theta", iSensor)),
+      TMath::DegToRad() * params.getValueAs<float>(fmt::format("MisAlignGlobalParams.Sensor{}Psi", iSensor)),
+    };
+    MM::Rot3D rot(euler);
+    std::array<Double_t, 9> rota;
+    rot.GetComponents(std::begin(rota));
+    mat.SetRotation(rota.data());
+    std::array<Double_t, 3> trans{
+      params.getValueAs<float>(fmt::format("MisAlignGlobalParams.Sensor{}Dx", iSensor)),
+      params.getValueAs<float>(fmt::format("MisAlignGlobalParams.Sensor{}Dy", iSensor)),
+      params.getValueAs<float>(fmt::format("MisAlignGlobalParams.Sensor{}Dz", iSensor)),
+    };
+    mat.SetTranslation(trans.data());
+  }
+
+  LOGP(info, "Appying Global RotoTranslations");
+  for (int iSensor{0}; iSensor < (int)its3c::nSensorsIB; ++iSensor) {
+    auto path = MM::composePathSensor(iSensor);
+    auto& mat = gRotoTranslations[iSensor];
+    MM::applyGlobalMatrixVolume(path, mat);
+  }
+
+  if (_export) {
+    gGeoManager->Export(srcFile.c_str());
+  }
+  if (draw) {
+    MM::navigate("cave/barrel_1/ITSV_2/ITSUWrapVol0_1");
+    gGeoManager->GetCurrentVolume()->Draw();
+    gGeoManager->SetTopVisible();
+    gGeoManager->RestoreMasterVolume();
+  }
+  if (check) {
+    gGeoManager->CdTop();
+    gGeoManager->CloseGeometry();
+    gGeoManager->CheckGeometryFull();
+    gGeoManager->CheckOverlaps(0.1, "s");
+    gGeoManager->PrintOverlaps();
+    auto overlaps = gGeoManager->GetListOfOverlaps();
+    overlaps->At(0)->Print();
+    overlaps->At(0)->Draw("ogl");
+  }
+  LOGP(info, "{:*^90}", " ITS3 GLOBAL MISALIGNMENT END ");
+}

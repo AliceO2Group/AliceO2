@@ -11,11 +11,13 @@
 
 o2_add_library(MCHStatus
         SOURCES
+          src/HVStatusCreator.cxx
           src/StatusMap.cxx
           src/StatusMapCreatorParam.cxx
           src/StatusMapCreatorSpec.cxx
         PUBLIC_LINK_LIBRARIES
           fmt::fmt
+          O2::DetectorsDCS
           O2::DataFormatsMCH
           O2::MCHGlobalMapping)
 
@@ -32,6 +34,19 @@ o2_add_executable(
     O2::CCDB
     O2::Framework
     O2::MCHMappingImpl4
+    O2::MCHStatus
+    )
+
+o2_add_executable(
+  statusmap-to-rejectlist
+  COMPONENT_NAME mch
+  SOURCES src/statusmap-to-rejectlist.cxx
+  PUBLIC_LINK_LIBRARIES
+    ROOT::TreePlayer
+    O2::CCDB
+    O2::DataFormatsMCH
+    O2::Framework
+    O2::MCHGlobalMapping
     O2::MCHStatus
     )
 

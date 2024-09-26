@@ -73,9 +73,8 @@ void loopReader(std::shared_ptr<RawReader> reader_ptr, std::vector<Result>& resu
 void RunFindAdcError(int run_min, int run_max)
 {
   std::string DATADIR = "/local/data/tpc-beam-test-2017";
-  FairLogger* logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("LOW");
-  logger->SetLogScreenLevel("INFO");
+  fair::Logger::SetVerbosity(fair::Verbosity::low);
+  fair::Logger::SetConsoleSeverity(fair::Severity::info);
 
   // ===========================================================================
   // Preparing File Infos
@@ -141,7 +140,7 @@ void RunFindAdcError(int run_min, int run_max)
   // ===========================================================================
   // Analyse outcome
   // ===========================================================================
-  logger->SetLogScreenLevel("DEBUG");
+  fair::Logger::SetConsoleSeverity(fair::Severity::debug);
   hAdcError = new TH2F("hAdcError", "occurrence of ADC errors", 36, 0, 36, 20, 0, 20);
   hAdcError->GetXaxis()->SetTitle("SampaID");
   hAdcError->GetYaxis()->SetTitle("Timebin");
