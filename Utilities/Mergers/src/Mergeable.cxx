@@ -1,4 +1,4 @@
-// Copyright 2024 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2024 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //

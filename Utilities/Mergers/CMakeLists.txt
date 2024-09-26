@@ -14,7 +14,7 @@
 o2_add_library(Mergers
                SOURCES src/FullHistoryMerger.cxx src/IntegratingMerger.cxx src/Mergeable.cxx
                        src/MergerAlgorithm.cxx src/MergerBuilder.cxx src/MergerInfrastructureBuilder.cxx
-                       src/ObjectStore.cxx 
+                       src/ObjectStore.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::InfoLogger)
 
 o2_target_root_dictionary(

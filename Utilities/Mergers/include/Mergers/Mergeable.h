@@ -1,4 +1,4 @@
-// Copyright 2024 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2024 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -40,7 +40,6 @@ constexpr bool IsDerivedFrom = (std::derived_from<T, Ts> || ...);
 
 // \brief Concept to be used to test if some parameter is mergeable
 //
-// \parameter Ignore can disable whole concept, if user is really sure that he wants to pass anything into this
 // \parameter T type to be restricted
 template <typename T>
 concept Mergeable = IsDerivedFrom<std::remove_pointer_t<T>, mergers::MergeInterface, TCollection, TH1, TTree, TGraph, TEfficiency, THnBase>;
