@@ -50,6 +50,7 @@ TEST_CASE("TestDataOutputDirector")
   std::string fmode("");
   float mfs = -1.;
   int ntf = -1;
+  uint64_t offset = 0;
 
   dh = DataHeader(DataDescription{"DUE"},
                   DataOrigin{"AOD"},
@@ -57,7 +58,7 @@ TEST_CASE("TestDataOutputDirector")
   std::string jsonString(R"({"OutputDirector": {"resfile": "defresults", "resfilemode": "RECREATE", "ntfmerge": 10, "OutputDescriptors": [{"table": "AOD/UNO/0", "columns": ["fEta1","fMom1"], "treename": "uno", "filename": "unoresults"}, {"table": "AOD/DUE/0", "columns": ["fPhi2"], "treename": "due"}]}})");
 
   dod.reset();
-  std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJsonString(jsonString);
+  std::tie(rdn, dfn, fmode, mfs, ntf, offset) = dod.readJsonString(jsonString);
   ds = dod.getDataOutputDescriptors(dh);
 
   REQUIRE(ds.size() == 1);
@@ -78,6 +79,7 @@ TEST_CASE("TestDataOutputDirector")
   jf << R"(    "resfile": "defresults",)" << std::endl;
   jf << R"(    "resfilemode": "NEW",)" << std::endl;
   jf << R"(    "ntfmerge": 10,)" << std::endl;
+  jf << R"(    "offset": 10,)" << std::endl;
   jf << R"(    "OutputDescriptors": [)" << std::endl;
   jf << R"(      {)" << std::endl;
   jf << R"(        "table": "AOD/DUE/0",)" << std::endl;
@@ -102,7 +104,7 @@ TEST_CASE("TestDataOutputDirector")
   jf.close();
 
   dod.reset();
-  std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJson(jsonFile);
+  std::tie(rdn, dfn, fmode, mfs, ntf, offset) = dod.readJson(jsonFile);
   dod.setFilenameBase("AnalysisResults");
   ds = dod.getDataOutputDescriptors(dh);
 
@@ -110,6 +112,7 @@ TEST_CASE("TestDataOutputDirector")
   REQUIRE(dfn == std::string("defresults"));
   REQUIRE(fmode == std::string("NEW"));
   REQUIRE(ntf == 10);
+  REQUIRE(offset == 10);
 
   REQUIRE(ds[0]->getFilenameBase() == std::string("unoresults"));
   REQUIRE(ds[0]->tablename == std::string("DUE"));

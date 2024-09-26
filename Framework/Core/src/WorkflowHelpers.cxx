@@ -992,12 +992,13 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
   float mfs, maxfilesize(-1.);
   std::string fmo, filemode("RECREATE");
   int ntfm, ntfmerge = 1;
+  uint64_t offset = 0;
 
   // values from json
   if (options.isSet("aod-writer-json")) {
     auto fnjson = options.get<std::string>("aod-writer-json");
     if (!fnjson.empty()) {
-      std::tie(rdn, fnb, fmo, mfs, ntfm) = dod->readJson(fnjson);
+      std::tie(rdn, fnb, fmo, mfs, ntfm, offset) = dod->readJson(fnjson);
       if (!rdn.empty()) {
         resdir = rdn;
       }
@@ -1068,11 +1069,18 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
       }
     }
   }
+  if (options.isSet("aod-writer-df-offset")) {
+    auto off = options.get<uint64_t>("aod-writer-df-offset");
+    if (off > 0) {
+      offset = off;
+    }
+  }
   dod->setResultDir(resdir);
   dod->setFilenameBase(fnbase);
   dod->setFileMode(filemode);
   dod->setMaximumFileSize(maxfilesize);
   dod->setNumberTimeFramesToMerge(ntfmerge);
+  dod->setDFOffset(offset);
 
   return dod;
 }
