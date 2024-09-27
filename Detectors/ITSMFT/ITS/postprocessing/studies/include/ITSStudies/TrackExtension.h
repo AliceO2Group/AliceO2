@@ -9,20 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0SlewingCalibrationSpec.h"
+#ifndef O2_TRACK_EXTENSION_STUDY_H
+#define O2_TRACK_EXTENSION_STUDY_H
 
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+
+namespace o2
 {
-  //probably some option will be added
-}
-
-#include "Framework/runDataProcessing.h"
-
-using namespace o2::framework;
-WorkflowSpec defineDataProcessing(ConfigContext const& config)
+namespace steer
 {
-  WorkflowSpec workflow;
-  workflow.emplace_back(o2::ft0::getFT0SlewingCalibrationSpec());
-  //add calib spec here...
-  return workflow;
+class MCKinematicsReader;
 }
+namespace its::study
+{
+using mask_t = o2::dataformats::GlobalTrackID::mask_t;
+o2::framework::DataProcessorSpec getTrackExtensionStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
+} // namespace its::study
+
+} // namespace o2
+#endif

@@ -25,6 +25,19 @@
 
 #pragma link C++ std::vector < std::pair < uint64_t, int>> + ;
 #pragma link C++ struct o2::fit::DCSDPValues + ;
+/*
+#include "DetectorsCommonDataFormats/DetID.h"
+#pragma link C++ struct o2::fit::ChannelData<o2::detectors::DetID::FDD> + ;
+#pragma link C++ struct o2::fit::Digit<o2::detectors::DetID::FDD> + ;
+
+#pragma link C++ struct o2::fit::ChannelData<o2::detectors::DetID::FT0> + ;
+#pragma link C++ struct o2::fit::Digit<o2::detectors::DetID::FT0> + ;
+
+#pragma link C++ struct o2::fit::ChannelData<o2::detectors::DetID::FV0> + ;
+#pragma link C++ struct o2::fit::Digit<o2::detectors::DetID::FV0> + ;
+*/
+// #pragma link C++ struct o2::fit::ChannelData;
+// #pragma link C++ struct o2::fit::Digit;
 
 // TODO AM: Set this here when unused class warning is solved.
 // #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::fit::DCSDPValues> + ;

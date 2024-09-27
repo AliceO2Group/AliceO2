@@ -1098,10 +1098,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
 
-    // The decltype stuff is to be able to compile with both new and old
-    // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
-    decltype(r.fDevice) device;
-    device = make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry, processingPolicies);
+    auto device = std::make_unique<DataProcessingDevice>(ref, serviceRegistry, processingPolicies);
 
     serviceRef.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);

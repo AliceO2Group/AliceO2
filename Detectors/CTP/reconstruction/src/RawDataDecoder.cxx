@@ -17,6 +17,8 @@
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "CTPReconstruction/RawDataDecoder.h"
 #include "DataFormatsCTP/Configuration.h"
+#include "DetectorsBase/GRPGeomHelper.h"
+#include <boost/range/adaptor/reversed.hpp>
 
 using namespace o2::ctp;
 
@@ -174,6 +176,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
     auto feeID = o2::raw::RDHUtils::getFEEID(rdh); // 0 = IR, 1 = TCR
     auto linkCRU = (feeID & 0xf00) >> 8;
+    // LOG(info) << "CRU link:" << linkCRU;
     if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
       payloadCTP = o2::ctp::NIntRecPayload;
     } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
@@ -317,6 +320,166 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     // LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
   }
   return ret;
+}
+//
+int RawDataDecoder::decodeRawFatal(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter)
+{
+  o2::framework::DPLRawParser parser(inputs, filter);
+  uint32_t payloadCTP = 0;
+  gbtword80_t remnant = 0;
+  uint32_t size_gbt = 0;
+  mTFOrbit = 0;
+  uint32_t orbit0 = 0;
+  std::array<int, o2::ctp::CTP_NCLASSES> rates{};
+  std::array<int, o2::ctp::CTP_NCLASSES> ratesC{};
+  for (auto it = parser.begin(); it != parser.end(); ++it) {
+    const o2::header::RDHAny* rdh = nullptr;
+    try {
+      rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+      mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
+    } catch (std::exception& e) {
+      LOG(error) << "Failed to extract RDH, abandoning TF sending dummy output, exception was: " << e.what();
+      // dummyOutput();
+      return 1;
+    }
+    // auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+    uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
+    uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
+    uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
+    uint32_t rdhOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdh);
+    uint32_t triggerType = o2::raw::RDHUtils::getTriggerType(rdh);
+    // std::cout << "diff orbits:" << triggerOrbit - rdhOrbit << std::endl;
+    bool tf = (triggerType & TF_TRIGGERTYPE_MASK) && (packetCounter == 0);
+    bool hb = (triggerType & HB_TRIGGERTYPE_MASK) && (packetCounter == 0);
+    if (tf) {
+      mTFOrbit = rdhOrbit;
+      // std::cout << "tforbit==================>" << mTFOrbit << " " << std::hex << mTFOrbit << std::endl;
+      mTFOrbits.push_back(mTFOrbit);
+    }
+    static bool prt = true;
+    if (prt) {
+      LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
+      prt = false;
+    }
+    auto feeID = o2::raw::RDHUtils::getFEEID(rdh); // 0 = IR, 1 = TCR
+    auto linkCRU = (feeID & 0xf00) >> 8;
+    // LOG(info) << "CRU link:" << linkCRU;
+    if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
+      payloadCTP = o2::ctp::NIntRecPayload;
+    } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
+      payloadCTP = o2::ctp::NClassPayload;
+    } else {
+      LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
+    }
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << " triggerType:" << triggerType;
+    // LOG(info) << "remnant :" << remnant.count();
+    gbtword80_t pldmask = 0;
+    for (uint32_t i = 0; i < payloadCTP; i++) {
+      pldmask[12 + i] = 1;
+    }
+    // std::cout << (orbit0 != rdhOrbit) << " comp " << (mTFOrbit==rdhOrbit) << std::endl;
+    // if(orbit0 != rdhOrbit) {
+    if (hb) {
+      remnant = 0;
+      size_gbt = 0;
+      orbit0 = rdhOrbit;
+      // std::cout << "orbit0============>" << std::dec << orbit0 << " " << std::hex << orbit0 << std::endl;
+    }
+    // Create 80 bit words
+    gsl::span<const uint8_t> payload(it.data(), it.size());
+    gbtword80_t gbtWord80;
+    gbtWord80.set();
+    int wordCount = 0;
+    int wordSize = 10;
+    std::vector<gbtword80_t> gbtwords80;
+    // mPadding = 0;
+    if (mPadding == 1) {
+      wordSize = 16;
+    }
+    // LOG(info) << ii << " payload size:" << payload.size();
+    gbtword80_t bcmask = std::bitset<80>("111111111111");
+    for (auto payloadWord : payload) {
+      int wc = wordCount % wordSize;
+      // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
+      if ((wc == 0) && (wordCount != 0)) {
+        if (gbtWord80.count() != 80) {
+          gbtwords80.push_back(gbtWord80);
+        }
+        gbtWord80.set();
+      }
+      if (wc < 10) {
+        for (int i = 0; i < 8; i++) {
+          gbtWord80[wc * 8 + i] = bool(int(payloadWord) & (1 << i));
+        }
+      }
+      wordCount++;
+    }
+    if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
+      gbtwords80.push_back(gbtWord80);
+    }
+    // decode 80 bits payload
+    for (auto word : gbtwords80) {
+      std::vector<gbtword80_t> diglets;
+      gbtword80_t gbtWord = word;
+      makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
+      for (auto diglet : diglets) {
+        int nbits = payloadCTP - 12;
+        for (int i = 0; i < nbits; i++) {
+          gbtword80_t mask = 1ull << i;
+          gbtword80_t pld = (diglet >> 12) & mask;
+          // LOG(info) << "diglet:" << diglet << " pld:" << pld;
+          if (pld.count() != 0) {
+            if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
+              rates[i]++;
+            } else {
+              ratesC[i]++;
+            }
+          }
+        }
+        // LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
+      }
+    }
+    if ((remnant.count() > 0) && stopBit) {
+      int nbits = payloadCTP - 12;
+      for (int i = 0; i < nbits; i++) {
+        gbtword80_t mask = 1ull << i;
+        gbtword80_t pld = (remnant >> 12) & mask;
+        // LOG(info) << "diglet:" << remnant << " pld:" << pld;
+        if (pld.count() != 0) {
+          if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
+            rates[i]++;
+          } else {
+            ratesC[i]++;
+          }
+        }
+      }
+      remnant = 0;
+    }
+  }
+  // print max rates
+  std::map<int, int> ratesmap;
+  std::map<int, int> ratesmapC;
+  for (int i = 0; i < o2::ctp::CTP_NCLASSES; i++) {
+    if (rates[i]) {
+      ratesmap[rates[i]] = i;
+    }
+    if (ratesC[i]) {
+      ratesmapC[ratesC[i]] = i;
+    }
+  }
+  auto nhb = o2::base::GRPGeomHelper::getNHBFPerTF();
+  std::string message = "Ringing inputs [MHz]:";
+  for (auto const& r : boost::adaptors::reverse(ratesmap)) {
+    // LOG(error) << r.second;
+    message += " " + o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(r.second + 1) + ":" + std::to_string(r.first / 32. / o2::constants::lhc::LHCOrbitMUS);
+  }
+  std::string messageC = "Ringing classes [MHz]:";
+  for (auto const& r : boost::adaptors::reverse(ratesmapC)) {
+    messageC += " class" + std::to_string(r.second) + ":" + std::to_string(r.first / 32. / o2::constants::lhc::LHCOrbitMUS);
+  }
+  LOG(error) << messageC;
+  LOG(fatal) << message;
+  return 0;
 }
 //
 int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)

@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <string>
 #include <vector>
 #include <cmath>
 #include <cstddef>
@@ -29,6 +30,7 @@
 #include "DataFormatsTPC/TrackCuts.h"
 #include "Framework/Logger.h"
 #include "TPCBase/ParameterGas.h"
+#include "TPCBase/Utils.h"
 
 // root includes
 #include "TFile.h"
@@ -55,6 +57,28 @@ CalibdEdx::CalibdEdx(int dEdxBins, float mindEdx, float maxdEdx, int angularBins
     IntAxis(0, CHARGETYPES, "charge"));
 }
 
+CalibdEdx::CalibdEdx(const CalibdEdx& other)
+{
+  mFitSnp = other.mFitSnp;
+  mApplyCuts = other.mApplyCuts;
+  mCuts = other.mCuts;
+  mSectorThreshold = other.mSectorThreshold;
+  m1DThreshold = other.m1DThreshold;
+  m2DThreshold = other.m2DThreshold;
+  mFitCut = other.mFitCut;
+  mFitLowCutFactor = other.mFitLowCutFactor;
+  mFitPasses = other.mFitPasses;
+  mTFID = other.mTFID;
+
+  mHist = other.mHist;
+  mCalib = other.mCalib;
+  mCalibIn = other.mCalibIn;
+
+  mMatType = other.mMatType;
+
+  // debug streamer not copied on purpose
+}
+
 void CalibdEdx::fill(const TrackTPC& track)
 {
   // applying cuts
@@ -64,8 +88,11 @@ void CalibdEdx::fill(const TrackTPC& track)
 
   const auto& dEdx = track.getdEdx();
   const auto sideOffset = track.hasASideClustersOnly() ? 0 : SECTORSPERSIDE;
-  const std::array<float, 4> dEdxMax{dEdx.dEdxMaxIROC, dEdx.dEdxMaxOROC1, dEdx.dEdxMaxOROC2, dEdx.dEdxMaxOROC3};
-  const std::array<float, 4> dEdxTot{dEdx.dEdxTotIROC, dEdx.dEdxTotOROC1, dEdx.dEdxTotOROC2, dEdx.dEdxTotOROC3};
+  const std::vector<float> dEdxMax{dEdx.dEdxMaxIROC, dEdx.dEdxMaxOROC1, dEdx.dEdxMaxOROC2, dEdx.dEdxMaxOROC3};
+  const std::vector<float> dEdxTot{dEdx.dEdxTotIROC, dEdx.dEdxTotOROC1, dEdx.dEdxTotOROC2, dEdx.dEdxTotOROC3};
+  std::vector<float> dEdxMaxCorr(4); // for deugging
+  std::vector<float> dEdxTotCorr(4); // for deugging
+
   // We need a copy of the track to perform propagations
   o2::track::TrackPar cpTrack = track;
 
@@ -96,13 +123,43 @@ void CalibdEdx::fill(const TrackTPC& track)
       }
     }
     const float snp = cpTrack.getSnp();
-    const float scaledTgl = scaleTgl(std::abs(cpTrack.getTgl()), roc);
+    const float tgl = cpTrack.getTgl();
+    const float scaledTgl = scaleTgl(std::abs(tgl), roc);
     if (track.hasCSideClusters()) {
       sector += SECTORSPERSIDE;
     }
 
-    mHist(dEdxMax[roc] * dEdxScale, scaledTgl, snp, sector, roc, ChargeType::Max);
-    mHist(dEdxTot[roc] * dEdxScale, scaledTgl, snp, sector, roc, ChargeType::Tot);
+    // undo previously done corrections, to allow for residual corrections
+    // output will still be the full correction
+    const float corrMax = mCalibIn.getCorrection(StackID{static_cast<int>(sector), roc}, ChargeType::Max, tgl, snp);
+    const float corrTot = mCalibIn.getCorrection(StackID{static_cast<int>(sector), roc}, ChargeType::Tot, tgl, snp);
+    dEdxMaxCorr[roc] = corrMax;
+    dEdxTotCorr[roc] = corrTot;
+
+    static bool reported = false;
+    if (!reported && mCalibIn.getDims() >= 0) {
+      const auto meanParamTot = mCalibIn.getMeanParams(ChargeType::Tot);
+      LOGP(info, "Undoing previously apllied corrections with mean qTot Params {}", utils::elementsToString(meanParamTot));
+      reported = true;
+    }
+
+    mHist(dEdxMax[roc] * dEdxScale * corrMax, scaledTgl, snp, sector, roc, ChargeType::Max);
+    mHist(dEdxTot[roc] * dEdxScale * corrTot, scaledTgl, snp, sector, roc, ChargeType::Tot);
+  }
+
+  if (mDebugOutputStreamer) {
+    const float tgl = track.getTgl();
+    const float p = track.getP();
+
+    (*mDebugOutputStreamer) << "dedx"
+                            << "dEdxMax=" << dEdxMax
+                            << "dEdxMaxCorr=" << dEdxMaxCorr
+                            << "dEdxTot=" << dEdxTot
+                            << "dEdxTotCorr=" << dEdxTotCorr
+                            << "tgl=" << tgl
+                            << "p=" << p
+                            << "tfid=" << mTFID
+                            << "\n";
   }
 }
 
@@ -240,7 +297,7 @@ void CalibdEdx::finalize()
   }
   LOGP(info, "Fitting {}D dE/dx correction for GEM stacks", mCalib.getDims());
 
-  // if entries bellow minimum sector threshold, integrate all sectors
+  // if entries below minimum sector threshold, integrate all sectors
   if (mCalib.getDims() == 0 || entries >= mSectorThreshold) {
     fitHist(mHist, mCalib, fitter, mFitCut, mFitLowCutFactor, mFitPasses);
   } else {
@@ -341,4 +398,23 @@ void CalibdEdx::writeTTree(std::string_view fileName) const
 
   f.Write();
   f.Close();
+}
+
+void CalibdEdx::enableDebugOutput(std::string_view fileName)
+{
+  mDebugOutputStreamer = std::make_unique<o2::utils::TreeStreamRedirector>(fileName.data(), "recreate");
+}
+
+void CalibdEdx::disableDebugOutput()
+{
+  // This will call the TreeStream destructor and write any stored data.
+  mDebugOutputStreamer.reset();
+}
+
+void CalibdEdx::finalizeDebugOutput() const
+{
+  if (mDebugOutputStreamer) {
+    LOGP(info, "Closing dump file");
+    mDebugOutputStreamer->Close();
+  }
 }

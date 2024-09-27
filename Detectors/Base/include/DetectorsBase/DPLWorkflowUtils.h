@@ -25,6 +25,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/Task.h"
 #include "Framework/DataSpecUtils.h"
 #include <vector>
 #include <unordered_map>

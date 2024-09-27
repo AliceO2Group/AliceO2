@@ -19,14 +19,15 @@
 #include <cstddef>
 #include <gsl/span>
 #include <string_view>
-#include <array>
 
 // o2 includes
+#include "CommonDataFormat/TFIDInfo.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
 #include "DetectorsBase/Propagator.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 // boost includes
 #include <boost/histogram.hpp>
@@ -54,6 +55,8 @@ class CalibdEdx
   // Float axis to store data, without under and overflow bins.
   using FloatAxis = boost::histogram::axis::regular<float, boost::histogram::use_default, boost::histogram::use_default, boost::histogram::axis::option::none_t>;
 
+  using TFIDInfo = o2::dataformats::TFIDInfo;
+
   // Histogram axes types
   using AxesType = std::tuple<
     FloatAxis, // dEdx
@@ -65,6 +68,9 @@ class CalibdEdx
     >;
 
   using Hist = boost::histogram::histogram<AxesType>;
+
+  /// copy ctor
+  CalibdEdx(const CalibdEdx& other);
 
   /// \param angularBins number of bins for Tgl and Snp
   /// \param fitSnp enable Snp correction
@@ -106,6 +112,13 @@ class CalibdEdx
   void fill(const gsl::span<const TrackTPC>);
   void fill(const std::vector<TrackTPC>& tracks) { fill(gsl::span(tracks)); }
 
+  void fill(const TFIDInfo& tfid, const gsl::span<const TrackTPC> tracks)
+  {
+    mTFID = tfid;
+    fill(tracks);
+  }
+  void fill(const TFIDInfo& tfid, const std::vector<TrackTPC>& tracks) { fill(tfid, gsl::span(tracks)); }
+
   /// Add counts from another container.
   void merge(const CalibdEdx* other);
 
@@ -119,6 +132,10 @@ class CalibdEdx
   THnF* getRootHist() const;
 
   const CalibdEdxCorrection& getCalib() const { return mCalib; }
+
+  /// calibration used during reconstruction
+  void setCalibrationInput(const CalibdEdxCorrection& calib) { mCalibIn = calib; }
+  const CalibdEdxCorrection& getCalibrationInput() const { return mCalibIn; }
 
   /// Return the number of hist entries of the gem stack with less statistics
   int minStackEntries() const;
@@ -136,12 +153,25 @@ class CalibdEdx
   /// Save the histograms to a TTree.
   void writeTTree(std::string_view fileName) const;
 
+  /// Enable debug output to file of the time slots calibrations outputs and dE/dx histograms
+  void enableDebugOutput(std::string_view fileName);
+
+  /// Disable debug output to file. Also writes and closes stored time slots.
+  void disableDebugOutput();
+
+  /// Write debug output to file
+  void finalizeDebugOutput() const;
+
+  /// \return if debug output is enabled
+  bool hasDebugOutput() const { return static_cast<bool>(mDebugOutputStreamer); }
+
   constexpr static float MipScale = 1.0 / 50.0; ///< Inverse of target dE/dx value for MIPs
 
   constexpr static float scaleTgl(float tgl, GEMstack rocType) { return tgl / conf_dedx_corr::TglScale[rocType]; }
   constexpr static float recoverTgl(float scaledTgl, GEMstack rocType) { return scaledTgl * conf_dedx_corr::TglScale[rocType]; }
 
  private:
+  // ATTENTION: Adjust copy constructor
   bool mFitSnp{};
   bool mApplyCuts{true};         ///< Wether or not to apply tracks cuts
   TrackCuts mCuts{0.3, 0.7, 60}; ///< MIP
@@ -151,13 +181,16 @@ class CalibdEdx
   float mFitCut = 0.2;           ///< dEdx cut value used to remove electron tracks
   float mFitLowCutFactor = 1.5;  ///< dEdx cut multiplier for the lower dE/dx range
   int mFitPasses = 3;            ///< number of fit passes used to remove electron tracks
+  TFIDInfo mTFID{};              ///< current TFID
 
-  Hist mHist;                   ///< dEdx multidimensional histogram
-  CalibdEdxCorrection mCalib{}; ///< Calibration output
+  Hist mHist;                     ///< dEdx multidimensional histogram
+  CalibdEdxCorrection mCalib{};   ///< Calibration output
+  CalibdEdxCorrection mCalibIn{}; ///< Calibration output
 
   o2::base::Propagator::MatCorrType mMatType{}; ///< material type for track propagation
 
-  ClassDefNV(CalibdEdx, 3);
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugOutputStreamer; ///< Debug output streamer
+  ClassDefNV(CalibdEdx, 4);
 };
 
 } // namespace o2::tpc

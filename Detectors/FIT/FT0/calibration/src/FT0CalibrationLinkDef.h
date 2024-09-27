@@ -16,14 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ft0::FT0TimeOffsetSlotContainer + ;
-#pragma link C++ class o2::ft0::GlobalOffsetsContainer + ;
-#pragma link C++ class o2::ft0::FT0CalibTimeSlewing + ;
-#pragma link C++ class o2::ft0::FT0CalibCollector + ;
-#pragma link C++ class o2::calibration::TimeSlot < o2::ft0::FT0CalibInfoSlot>;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibInfoSlot>;
 #pragma link C++ class o2::calibration::TimeSlot < o2::ft0::FT0TimeOffsetSlotContainer>;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0TimeOffsetSlotContainer>;
-#pragma link C++ class o2::calibration::TimeSlot < o2::ft0::GlobalOffsetsContainer>;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::GlobalOffsetsContainer>;
 
 #endif

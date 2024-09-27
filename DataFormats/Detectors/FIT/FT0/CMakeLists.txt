@@ -26,6 +26,7 @@ o2_add_library(DataFormatsFT0
                         O2::CommonDataFormat
                         O2::Headers
                         O2::CCDB
+                        O2::DetectorsCommonDataFormats
 )
 
 o2_target_root_dictionary(DataFormatsFT0

@@ -12,12 +12,76 @@
 #define O2_FRAMEWORK_ASYNCQUUE_H_
 
 #include "Framework/TimesliceSlot.h"
-#include <functional>
 #include <string>
 #include <vector>
+#include <atomic>
+
+typedef struct x9_inbox_internal x9_inbox;
+typedef struct x9_node_internal x9_node;
 
 namespace o2::framework
 {
+
+/// The position of the TaskSpec in the prototypes
+/// Up to 127 different kind of tasks are allowed per queue
+struct AsyncTaskId {
+  int16_t value = -1;
+};
+
+/// An actuatual task to be executed
+struct AsyncTask {
+  // The timeslice after which this callback should be executed.
+  TimesliceId timeslice = {TimesliceId::INVALID};
+  // Only the task with the highest debounce value will be executed
+  // The associated task spec. Notice that the context
+  // is stored separately so that we do not need to
+  // manage lifetimes of std::functions
+  AsyncTaskId id = {-1};
+  // Debounce value.
+  int8_t debounce = 0;
+  bool runnable = false;
+  // Some unuser integer
+  int32_t unused = 0;
+  // The callback to be executed. id can be used as unique
+  // id for the signpost in the async_queue stream.
+  // Context is provided by the userdata attached to the
+  // task the moment we post it.
+  // Notice that we do not store the task in the prototype
+  // because we do support at the moment coalescing two
+  // different callbaks with the same id.
+  void (*callback)(AsyncTask& task, size_t id);
+  // Some user data e.g. to decode what comes next
+  // This can either be used via the .data pointer
+  // or by asking a cast to the appropriate type via
+  // the user() method.
+  void* data[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+
+  // Helper to return userdata
+  template <typename T>
+  T& user()
+  {
+    static_assert(sizeof(T) <= 5 * sizeof(void*), "User object does not fit user data");
+    return *(T*)data;
+  }
+
+  // Helper to set userdata
+  // @return a reference to this task modified. This is meant to be used like:
+  //
+  // AsyncQueueHelpers::post(queue, AsyncTask{.id = myTask}.user(Context{.contextValue}));
+  //
+  // Coupled with the other one:
+  //
+  // task.user<Context>().contextValue;
+  //
+  // it can be used to mimick capturing lambdas
+  template <typename T>
+  AsyncTask& user(T&& value)
+  {
+    static_assert(sizeof(T) <= 5 * sizeof(void*), "User object does not fit user data");
+    new (&data[0])(T){value};
+    return *this;
+  }
+};
 
 struct AsyncTaskSpec {
   std::string name;
@@ -25,36 +89,24 @@ struct AsyncTaskSpec {
   int score = 0;
 };
 
-/// The position of the TaskSpec in the prototypes
-struct AsyncTaskId {
-  int value = -1;
-};
-
-/// An actuatual task to be executed
-struct AsyncTask {
-  // The task to be executed. Id can be used as unique
-  // id for the signpost in the async_queue stream.
-  std::function<void(size_t id)> task;
-  // The associated task spec
-  AsyncTaskId id = {-1};
-  TimesliceId timeslice = {TimesliceId::INVALID};
-  // Only the task with the highest debounce value will be executed
-  int debounce = 0;
-  bool runnable = false;
-};
-
 struct AsyncQueue {
   std::vector<AsyncTaskSpec> prototypes;
   std::vector<AsyncTask> tasks;
   size_t iteration = 0;
+
+  std::atomic<bool> first = true;
+
+  // Inbox for the message queue used to append
+  // tasks to this queue.
+  x9_inbox* inbox = nullptr;
+  AsyncQueue();
 };
 
 struct AsyncQueueHelpers {
-  using AsyncCallback = std::function<void(size_t)>;
   static AsyncTaskId create(AsyncQueue& queue, AsyncTaskSpec spec);
   // Schedule a task with @a taskId to be executed whenever the timeslice
   // is past timeslice. If debounce is provided, only execute the task
-  static void post(AsyncQueue& queue, AsyncTaskId taskId, AsyncCallback task, TimesliceId timeslice, int64_t debounce = 0);
+  static void post(AsyncQueue& queue, AsyncTask const& task);
   /// Run all the tasks which are older than the oldestPossible timeslice
   /// executing them by:
   /// 1. sorting the tasks by timeslice
@@ -62,6 +114,8 @@ struct AsyncQueueHelpers {
   /// 3. only execute the highest (timeslice, debounce) value
   static void run(AsyncQueue& queue, TimesliceId oldestPossibleTimeslice);
 
+  // Flush tasks which were posted but not yet committed to the queue
+  static void flushPending(AsyncQueue& queue);
   /// Reset the queue to its initial state
   static void reset(AsyncQueue& queue);
 };

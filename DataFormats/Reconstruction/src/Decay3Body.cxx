@@ -13,7 +13,7 @@
 
 using namespace o2::dataformats;
 
-Decay3Body::Decay3Body(PID pid, const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, const Track& tr0, const Track& tr1, const Track& tr2)
+Decay3Body::Decay3Body(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, const Track& tr0, const Track& tr1, const Track& tr2, o2::track::PID pid)
   : mProngs{tr0, tr1, tr2}
 {
   std::array<float, 21> cov{}, cov1{}, cov2{};
