@@ -12,4 +12,4 @@
 o2_add_library(ML
                SOURCES src/ort_interface.cxx
                TARGETVARNAME targetName
-               PUBLIC_LINK_LIBRARIES O2::Framework ONNXRuntime::ONNXRuntime)
+               PRIVATE_LINK_LIBRARIES O2::Framework ONNXRuntime::ONNXRuntime)

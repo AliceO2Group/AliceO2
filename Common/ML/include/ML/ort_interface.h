@@ -24,7 +24,6 @@
 #include <thread>
 
 // O2 includes
-#include "GPUORTFloat16.h"
 #include "Framework/Logger.h"
 
 namespace o2

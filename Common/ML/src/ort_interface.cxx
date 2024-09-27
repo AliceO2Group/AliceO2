@@ -14,6 +14,7 @@
 /// \brief    A header library for loading ONNX models and inferencing them on CPU and GPU
 
 #include "ML/ort_interface.h"
+#include "ML/3rdparty/GPUORTFloat16.h"
 
 // ONNX includes
 #include <onnxruntime_cxx_api.h>
