@@ -58,7 +58,7 @@ while test $# -gt 0 ; do
         -n|--nevents) NEV=$2 ; shift ;;
         -i|--input)   optns=$2 ; shift ;;
         -j|--jobs)    JOBS=$2 ; shift ;;
-		-e|--ecm)     eCM=$2 ; shift ;;
+        -e|--ecm)     eCM=$2 ; shift ;;
         -h|--help) usage; ${O2DPG_ROOT}/MC/bin/o2dpg_sim_workflow.py --help  ; exit 0 ;;
         -t|--tf)     TF=$2 ; shift ;;
         --)           shift ; break ;;
@@ -126,7 +126,7 @@ done
 # create workflow
 
 ${O2DPG_ROOT}/MC/bin/o2dpg_sim_workflow.py -eCM $eCM -ns $NEV -gen hepmc -tf $TF -j $JOBS \
-		-interactionRate 500000 -confKey "GeneratorFileOrCmd.cmd=$cmd -i $optns;GeneratorFileOrCmd.bMaxSwitch=none;HepMC.version=2;${more}"
+        -interactionRate 500000 -confKey "GeneratorFileOrCmd.cmd=$cmd -i $optns;GeneratorFileOrCmd.bMaxSwitch=none;HepMC.version=2;${more}"
 
 # Run workflow
 ${O2DPG_ROOT}/MC/bin/o2_dpg_workflow_runner.py -f workflow.json -tt aod --stdout-on-failure

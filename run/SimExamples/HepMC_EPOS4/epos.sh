@@ -9,9 +9,9 @@ seed=$RANDOM
 
 while test $# -gt 0 ; do
     case $1 in
-		-i|--input)   optns=$2 ; shift ;;
-		-s|--seed)    seed=$2 ; shift ;;
-		-h|--help) usage; exit 0 ;;
+        -i|--input)   optns=$2 ; shift ;;
+        -s|--seed)    seed=$2 ; shift ;;
+        -h|--help) usage; exit 0 ;;
     esac
     shift
 done
