@@ -3,8 +3,8 @@
 # A linearized and simplified chain of algorithms from MC to reco (and analysis) for ALICE Run3.
 # Please note that this script was originally provided as first and quick integration of
 # algorithms in the MC pipeline (mainly for testing purposes).
-# The script does, however, not represent a production setup and it is not maintained actively. 
-# The official MC configs and production system is maintained in O2DPG (https://github.com/AliceO2Group/O2DPG) 
+# The script does, however, not represent a production setup and it is not maintained actively.
+# The official MC configs and production system is maintained in O2DPG (https://github.com/AliceO2Group/O2DPG)
 # and it is advised to use that one. Some documentation can be found here: https://aliceo2group.github.io/simulation/docs/o2dpgworkflow/
 
 # ------------ LOAD UTILITY FUNCTIONS ----------------------------
