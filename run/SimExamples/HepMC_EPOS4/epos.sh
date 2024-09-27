@@ -1,7 +1,7 @@
 #!/bin/sh
-# Script based on CRMC example 
+# Script based on CRMC example
 # EPOS4 option files must contain ihepmc set to 2 to print HepMC
-# data on stdout. -hepmc flag is not needed anymore, but -hepstd is fundamental 
+# data on stdout. -hepmc flag is not needed anymore, but -hepstd is fundamental
 # in order not to print useless information on stdout (a z-*optns*.mtr file will be created)
 
 optns="example"
@@ -9,9 +9,9 @@ seed=$RANDOM
 
 while test $# -gt 0 ; do
     case $1 in
-        -i|--input)   optns=$2 ; shift ;;
-	    -s|--seed)    seed=$2 ; shift ;;
-        -h|--help) usage; exit 0 ;;
+		-i|--input)   optns=$2 ; shift ;;
+		-s|--seed)    seed=$2 ; shift ;;
+		-h|--help) usage; exit 0 ;;
     esac
     shift
 done

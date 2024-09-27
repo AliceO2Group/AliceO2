@@ -36,7 +36,7 @@ Options:
   -i,--input   INPUT       Options file fed to EPOS4 ($optns)
   -j,--jobs    JOBS        Number of jobs ($JOBS)
   -h,--help                Print these instructions
-  -e,--ecm     ENERGY      Center-of-Mass energy 
+  -e,--ecm     ENERGY      Center-of-Mass energy
   -t,--tf      TF          Timeframes ($TF)
   --                       Rest of command line sent to o2-sim
 
@@ -58,7 +58,7 @@ while test $# -gt 0 ; do
         -n|--nevents) NEV=$2 ; shift ;;
         -i|--input)   optns=$2 ; shift ;;
         -j|--jobs)    JOBS=$2 ; shift ;;
-	    -e|--ecm)     eCM=$2 ; shift ;;
+		-e|--ecm)     eCM=$2 ; shift ;;
         -h|--help) usage; ${O2DPG_ROOT}/MC/bin/o2dpg_sim_workflow.py --help  ; exit 0 ;;
         -t|--tf)     TF=$2 ; shift ;;
         --)           shift ; break ;;
@@ -92,7 +92,7 @@ else
     else
         echo "Error: Number of events not set in EPOS4"
         exit 5
-    fi    
+    fi
 fi
 
 # Set ECM
@@ -126,7 +126,7 @@ done
 # create workflow
 
 ${O2DPG_ROOT}/MC/bin/o2dpg_sim_workflow.py -eCM $eCM -ns $NEV -gen hepmc -tf $TF -j $JOBS \
-					   -interactionRate 500000 -confKey "GeneratorFileOrCmd.cmd=$cmd -i $optns;GeneratorFileOrCmd.bMaxSwitch=none;HepMC.version=2;${more}"
+		-interactionRate 500000 -confKey "GeneratorFileOrCmd.cmd=$cmd -i $optns;GeneratorFileOrCmd.bMaxSwitch=none;HepMC.version=2;${more}"
 
-# Run workflow 
+# Run workflow
 ${O2DPG_ROOT}/MC/bin/o2_dpg_workflow_runner.py -f workflow.json -tt aod --stdout-on-failure

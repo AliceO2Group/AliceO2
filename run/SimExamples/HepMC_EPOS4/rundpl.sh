@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 #
-# This is a simple simulation example showing how to 
-
+# This is a simple simulation example showing how to
 # start EPOS4 generation automatically using cmd with hepmc output on FIFO
 # and simultaneosly use o2-sim for transport
 
 # This script works only with O2sim version starting from the 20/09/2024
 
-# EPOS4 and O2 must be loaded 
+# EPOS4 and O2 must be loaded
 set -x
 if [ ! "${EPOS4_ROOT}" ]; then
     echo "This needs EPOS4 loaded; alienv enter ..."
@@ -34,7 +33,7 @@ Options:
   -n,--nevents EVENTS      Number of events ($nev)
   -i,--input   INPUT       Options file fed to EPOS4 ($optns)
   -j,--jobs    JOBS        Number of jobs ($JOBS)
-  -e,--ecm     ENERGY      Center-of-Mass energy 
+  -e,--ecm     ENERGY      Center-of-Mass energy
   -h,--help                Print these instructions
   --                       Rest of command line sent to o2-sim
 
@@ -89,7 +88,7 @@ else
     else
         echo "Error: Number of events not set in EPOS4"
         exit 5
-    fi    
+    fi
 fi
 
 # Set ECM
@@ -113,7 +112,7 @@ else
 fi
 
 # Starting simulation => seed is fed automatically to epos with the --seed flag. HepMC.version = 2 is mandatory
-# otherwise the simulation won't work. 
+# otherwise the simulation won't work.
 # Seed is automatically set to Random by the epos.sh script because the --seed option with o2-sim-dpl-eventgen does not feed the number to GeneratorHepMC
 
 o2-sim-dpl-eventgen -b --nEvents ${NEV} --generator hepmc --configKeyValues "GeneratorFileOrCmd.cmd=$cmd -i $optns;GeneratorFileOrCmd.bMaxSwitch=none;HepMC.version=2;${more}" |\
