@@ -107,12 +107,12 @@ bool TrackITS::isBetter(const TrackITS& best, float maxChi2) const
   return false;
 }
 
-int TrackITS::getNFakeClusters()
+int TrackITS::getNFakeClusters() const
 {
   int nFake{0};
-  int firstClus = getFirstClusterLayer();
-  int lastClus = firstClus + getNClusters();
-  for (int iCl{firstClus}; iCl < lastClus; ++iCl) {
+  auto firstClus = getFirstClusterLayer();
+  auto lastClus = firstClus + getNClusters();
+  for (auto iCl{firstClus}; iCl < lastClus; ++iCl) {
     if (hasHitOnLayer(iCl) && isFakeOnLayer(iCl)) {
       ++nFake;
     }

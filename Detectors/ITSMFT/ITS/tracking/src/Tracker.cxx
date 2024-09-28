@@ -109,7 +109,12 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     logger(fmt::format(" - Neighbours finding: {} neighbours found in {:.2f} ms", nNeighbours, timeNeighbours));
     logger(fmt::format(" - Track finding: {} tracks found in {:.2f} ms", nTracks + mTimeFrame->getNumberOfTracks(), timeRoads));
     total += timeTracklets + timeCells + timeNeighbours + timeRoads;
-    total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger, iteration);
+    if (mTrkParams[iteration].UseTrackFollower) {
+      int nExtendedTracks{-mTimeFrame->mNExtendedTracks}, nExtendedClusters{-mTimeFrame->mNExtendedUsedClusters};
+      auto timeExtending = evaluateTask(&Tracker::extendTracks, "Extending tracks", [](const std::string&) {}, iteration);
+      total += timeExtending;
+      logger(fmt::format(" - Extending Tracks: {} extended tracks using {} clusters found in {:.2f} ms", nExtendedTracks + mTimeFrame->mNExtendedTracks, nExtendedClusters + mTimeFrame->mNExtendedUsedClusters, timeExtending));
+    }
   }
 
   total += evaluateTask(&Tracker::findShortPrimaries, "Short primaries finding", logger);

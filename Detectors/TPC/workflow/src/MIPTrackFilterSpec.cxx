@@ -63,7 +63,8 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
   const double mindEdx = ic.options().get<double>("min-dedx");
   const double maxdEdx = ic.options().get<double>("max-dedx");
   const int minClusters = std::max(10, ic.options().get<int>("min-clusters"));
-  const double mSendDummy = ic.options().get<bool>("send-dummy-data");
+  const auto cutLoopers = !ic.options().get<bool>("dont-cut-loopers");
+  mSendDummy = ic.options().get<bool>("send-dummy-data");
   mMaxTracksPerTF = ic.options().get<int>("maxTracksPerTF");
   if (mMaxTracksPerTF > 0) {
     mMIPTracks.reserve(mMaxTracksPerTF);
@@ -87,6 +88,7 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
   mCuts.setNClusMin(minClusters);
   mCuts.setdEdxMin(mindEdx);
   mCuts.setdEdxMax(maxdEdx);
+  mCuts.setCutLooper(cutLoopers);
 }
 
 void MIPTrackFilterDevice::run(ProcessingContext& pc)
@@ -169,7 +171,8 @@ DataProcessorSpec getMIPTrackFilterSpec()
       {"processEveryNthTF", VariantType::Int, 1, {"Using only a fraction of the data: 1: Use every TF, 10: Process only every tenth TF."}},
       {"maxTracksPerTF", VariantType::Int, -1, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
       {"process-first-n-TFs", VariantType::Int, 1, {"Number of first TFs which are not sampled"}},
-      {"send-dummy-data", VariantType::Bool, false, {"Send empty data in case TF is skipped"}}}};
+      {"send-dummy-data", VariantType::Bool, false, {"Send empty data in case TF is skipped"}},
+      {"dont-cut-loopers", VariantType::Bool, false, {"Do not cut loopers by comparing zout-zin"}}}};
 }
 
 } // namespace o2::tpc

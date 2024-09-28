@@ -17,10 +17,10 @@
 #ifndef _ALICEO2_DCA_FITTERN_
 #define _ALICEO2_DCA_FITTERN_
 
-#include "MathUtils/Cartesian.h"
-#include "ReconstructionDataFormats/Track.h"
 #include "DCAFitter/HelixHelper.h"
 #include "DetectorsBase/Propagator.h"
+#include "MathUtils/Cartesian.h"
+#include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
@@ -1136,15 +1136,13 @@ using DCAFitter3 = DCAFitterN<3, o2::track::TrackParCov>;
 namespace device
 {
 template <typename Fitter>
-void print(const int nBlocks,
-           const int nThreads,
-           Fitter& ft);
+void print(const int nBlocks, const int nThreads, Fitter& ft);
 
 template <typename Fitter, class... Tr>
-int process(const int nBlocks,
-            const int nThreads,
-            Fitter&,
-            Tr&... args);
+int process(const int nBlocks, const int nThreads, Fitter&, Tr&... args);
+
+template <class Fitter, class... Tr>
+std::vector<int> processBulk(const int nBlocks, const int nThreads, std::vector<Fitter>& fitters, std::vector<Tr>&... args);
 } // namespace device
 
 } // namespace vertexing
