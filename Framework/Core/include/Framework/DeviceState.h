@@ -17,8 +17,6 @@
 
 #include <vector>
 #include <string>
-#include <map>
-#include <utility>
 #include <atomic>
 
 typedef struct uv_loop_s uv_loop_t;

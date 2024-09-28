@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 #include "Framework/AsyncQueue.h"
 #include "Framework/DataProcessingDevice.h"
-#include "Framework/ChannelMatching.h"
 #include "Framework/ControlService.h"
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/DataProcessingHeader.h"
@@ -28,7 +27,6 @@
 #include "ConfigurationOptionsRetriever.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/CallbackService.h"
-#include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpan.h"
 #if defined(__APPLE__) || defined(NDEBUG)
@@ -37,23 +35,20 @@
 #include "Framework/Signpost.h"
 #include "Framework/TimingHelpers.h"
 #include "Framework/SourceInfoHeader.h"
-#include "Framework/Logger.h"
 #include "Framework/DriverClient.h"
-#include "Framework/Monitoring.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataProcessingContext.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StreamContext.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/ServiceRegistryRef.h"
 
-#include "PropertyTreeHelpers.h"
-#include "DataProcessingStatus.h"
 #include "DecongestionService.h"
 #include "Framework/DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
-#include "ProcessingPoliciesHelpers.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 
@@ -66,6 +61,7 @@
 #include <fairmq/ProgOptions.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
+#include <Monitoring/Monitoring.h>
 #include <TMessage.h>
 #include <TClonesArray.h>
 
@@ -74,7 +70,6 @@
 #include <vector>
 #include <numeric>
 #include <memory>
-#include <unordered_map>
 #include <uv.h>
 #include <execinfo.h>
 #include <sstream>
