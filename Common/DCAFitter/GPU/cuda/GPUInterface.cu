@@ -23,6 +23,10 @@
   {                                     \
     gpuAssert((x), __FILE__, __LINE__); \
   }
+#define gpuCheckErrorSoft(x)                   \
+  {                                            \
+    gpuAssert((x), __FILE__, __LINE__, false); \
+  }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 {
   if (code != cudaSuccess) {
@@ -86,8 +90,14 @@ void GPUInterface::freeDevice(void* addr)
   gpuCheckError(cudaFree(addr));
 }
 
-Stream& GPUInterface::getStream(short N)
+Stream& GPUInterface::getStream(unsigned short N)
 {
   return mStreams[N % mStreams.size()];
+}
+
+Stream& GPUInterface::getNextStream()
+{
+  unsigned short next = mLastUsedStream.fetch_add(1) % mStreams.size(); // wrap-around + automatic wrap-around beyond 65535
+  return mStreams[next];
 }
 } // namespace o2::vertexing::device

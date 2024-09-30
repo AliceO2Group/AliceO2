@@ -25,7 +25,8 @@
 
 #define nBlocks 30
 #define nThreads 256
-#define NTest 100000
+#define nStreams 8
+#define NTest 100001
 
 namespace o2
 {
@@ -612,7 +613,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     }
 
     swAb.Start(false);
-    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -628,7 +630,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setWeightedFinalPCA(true);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swAWb.Start(false);
-    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAWb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -644,7 +647,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setWeightedFinalPCA(false);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swWb.Start(false);
-    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swWb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -708,7 +712,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     }
 
     swAb.Start(false);
-    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -724,7 +729,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setWeightedFinalPCA(true);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swAWb.Start(false);
-    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAWb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -740,7 +746,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setWeightedFinalPCA(false);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swWb.Start(false);
-    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swWb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -806,7 +813,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
 
     swAb.Start(false);
-    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -822,7 +830,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setWeightedFinalPCA(true);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swAWb.Start(false);
-    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAWb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -838,7 +847,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setWeightedFinalPCA(false);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swWb.Start(false);
-    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swWb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -903,7 +913,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
 
     swAb.Start(false);
-    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -919,7 +930,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setWeightedFinalPCA(true);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swAWb.Start(false);
-    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swAWb.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAWb[iev] << " Chi2: " << (ncAWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
@@ -935,7 +947,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
 
     swWb.Start(false);
-    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncWb, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
     swWb.Stop();
 
     for (int iev = 0; iev < NTest; iev++) {
@@ -1000,7 +1013,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     ft.setUseAbsDCA(true);
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
     swAb.Start(false);
-    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAb, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
     swAb.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAb[iev] << " Chi2: " << (ncAb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
@@ -1016,7 +1030,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
 
     swAWb.Start(false);
-    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncAWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncAWb, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
     swAWb.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAWb[iev] << " Chi2: " << (ncAWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
@@ -1032,7 +1047,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
     std::fill(fitters_host.begin(), fitters_host.end(), ft);
 
     swWb.Start(false);
-    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
+    std::vector<int> ncWb(NTest, 0);
+    device::processBulk(nBlocks, nThreads, nStreams, fitters_host, ncWb, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
     swWb.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncWb[iev] << " Chi2: " << (ncWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);

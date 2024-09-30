@@ -49,15 +49,16 @@ class GPUInterface
   void unregisterBuffer(void* addr);
   void allocDevice(void**, size_t);
   void freeDevice(void*);
-  Stream& getStream(short N = 0);
+  Stream& getStream(unsigned short N = 0);
+  Stream& getNextStream();
 
  protected:
   GPUInterface(size_t N = 1);
   ~GPUInterface();
 
   void resize(size_t);
-  unsigned short getNextCursor();
 
+  std::atomic<unsigned short> mLastUsedStream{0};
   static GPUInterface* sGPUInterface;
   std::vector<std::thread> mPool{};
   std::vector<Stream> mStreams{};

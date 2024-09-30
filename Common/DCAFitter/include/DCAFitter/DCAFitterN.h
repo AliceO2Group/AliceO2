@@ -1142,7 +1142,7 @@ template <typename Fitter, class... Tr>
 int process(const int nBlocks, const int nThreads, Fitter&, Tr&... args);
 
 template <class Fitter, class... Tr>
-std::vector<int> processBulk(const int nBlocks, const int nThreads, std::vector<Fitter>& fitters, std::vector<Tr>&... args);
+void processBulk(const int nBlocks, const int nThreads, const int nBatches, std::vector<Fitter>& fitters, std::vector<int>& results, std::vector<Tr>&... args);
 } // namespace device
 
 } // namespace vertexing
