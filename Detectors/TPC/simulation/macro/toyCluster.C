@@ -404,8 +404,12 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
               gRandom->Gaus(0, std::abs(posEle.X() - posEleDiff.X())) + posEle.X(),
               gRandom->Gaus(0, std::abs(posEle.Y() - posEleDiff.Y())) + posEle.Y(),
               gRandom->Gaus(0, std::abs(posEle.Z() - posEleDiff.Z())) + posEle.Z()));
-            // auto posEleTmp = posTotElectrons[j];
-            const float driftTime = (detParam.TPClength - posTotElectrons.at(isec).Z()) / gasParam.DriftV;
+          }
+
+          // loop over all electrons
+          for (unsigned int j = 0; j < posTotElectrons.size(); ++j) {
+            auto posEleTmp = posTotElectrons[j];
+            const float driftTime = (detParam.TPClength - posEleTmp.Z()) / gasParam.DriftV;
 
             if ((driftTime + hitTime) > maxEleTime) {
               LOG(warning) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
@@ -418,13 +422,13 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
             }
 
             // Remove electrons that end up outside the active volume
-            if (std::abs(posTotElectrons.at(isec).Z()) > detParam.TPClength) {
+            if (std::abs(posEleTmp.Z()) > detParam.TPClength) {
               continue;
             }
 
             // When the electron is not in the mSector we're processing, abandon
             // create dummy pos at A-Side
-            auto posEleTmpTmp = posTotElectrons.at(isec);
+            auto posEleTmpTmp = posEleTmp;
             posEleTmpTmp.SetZ(1);
             if (mapper.isOutOfSector(posEleTmpTmp, mSector)) {
               continue;
@@ -451,10 +455,10 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
             for (int i = 0; i < nShapedPoints; ++i) {
               digitContainer.addDigit(label, cru, driftTime / eleParam.ZbinWidth + i, globalPad, signalArray[i]);
             }
-          } // secondary loop
-        }   // electron loop
-      }     // hit loop
-    }       // track loop
+          }
+        } // electron loop
+      } // hit loop
+    } // track loop
 
     // dump digits for each event to a file
     dumpDigits(digitContainer, 0.l, digits, labels, commonMode, brdigits, brlabel, brmCommon);
