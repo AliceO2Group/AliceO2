@@ -20,7 +20,7 @@ o2_add_library(DCAFitterCUDA
                                      O2::DetectorsBase
                PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider)
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-add_compile_options(-lineinfo)
+# add_compile_options(-lineinfo)
 
 o2_add_test(DCAFitterNCUDA
             SOURCES test/testDCAFitterNGPU.cxx

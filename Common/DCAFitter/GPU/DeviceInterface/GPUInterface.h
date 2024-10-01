@@ -17,6 +17,7 @@
 
 #include <thread>
 #include <vector>
+#include <atomic>
 
 namespace o2
 {

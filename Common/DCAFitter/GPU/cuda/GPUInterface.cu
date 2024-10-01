@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \brief Helper interface to the GPU device, meant to be compatible with manual allocation/streams and GPUReconstruction ones.
+/// \author matteo.concas@cern.ch
+
 #ifdef __HIPCC__
 #include "hip/hip_runtime.h"
 #else
@@ -16,6 +19,7 @@
 #endif
 
 #include <iostream>
+#include <cstdlib>
 
 #include "DeviceInterface/GPUInterface.h"
 
@@ -75,7 +79,8 @@ GPUInterface* GPUInterface::sGPUInterface = nullptr;
 GPUInterface* GPUInterface::Instance()
 {
   if (sGPUInterface == nullptr) {
-    sGPUInterface = new GPUInterface(8); // FIXME: get some configurable param to do so.
+    const auto* envValue = std::getenv("GPUINTERFACE_NSTREAMS");
+    sGPUInterface = new GPUInterface(envValue == nullptr ? 8 : std::stoi(envValue));
   }
   return sGPUInterface;
 }

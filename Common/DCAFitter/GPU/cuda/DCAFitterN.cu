@@ -15,6 +15,8 @@
 #include <cuda.h>
 #endif
 
+#include <numeric>
+
 #include "GPUCommonDef.h"
 #include "DCAFitter/DCAFitterN.h"
 #include "DeviceInterface/GPUInterface.h"
@@ -133,23 +135,25 @@ int process(const int nBlocks,
 template <typename Fitter, class... Tr>
 void processBulk(const int nBlocks,
                  const int nThreads,
-                 const int nStreams,
+                 const int nBatches,
                  std::vector<Fitter>& fitters,
                  std::vector<int>& results,
                  std::vector<Tr>&... args)
 {
   auto* gpuInterface = GPUInterface::Instance();
-  kernel::warmUpGpuKernel<<<1, 1>>>();
+  kernel::warmUpGpuKernel<<<1, 1, 0, gpuInterface->getNextStream()>>>();
 
   // Benchmarking events
-  // std::vector<cudaEvent_t> start(nStreams), stop(nStreams);
-  // cudaEvent_t totalStart, totalStop;
-  // gpuCheckError(cudaEventCreate(&totalStart));
-  // gpuCheckError(cudaEventCreate(&totalStop));
-  // for (int iBatch{0}; iBatch < nStreams; ++iBatch) {
-  //   gpuCheckError(cudaEventCreate(&start[iBatch]));
-  //   gpuCheckError(cudaEventCreate(&stop[iBatch]));
-  // }
+  std::vector<float> ioUp(nBatches), ioDown(nBatches), kerElapsed(nBatches);
+  std::vector<cudaEvent_t> startIOUp(nBatches), endIOUp(nBatches), startIODown(nBatches), endIODown(nBatches), startKer(nBatches), endKer(nBatches);
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
+    gpuCheckError(cudaEventCreate(&startIOUp[iBatch]));
+    gpuCheckError(cudaEventCreate(&endIOUp[iBatch]));
+    gpuCheckError(cudaEventCreate(&startIODown[iBatch]));
+    gpuCheckError(cudaEventCreate(&endIODown[iBatch]));
+    gpuCheckError(cudaEventCreate(&startKer[iBatch]));
+    gpuCheckError(cudaEventCreate(&endKer[iBatch]));
+  }
 
   // Tracks
   std::array<o2::track::TrackParCov*, Fitter::getNProngs()> tracks_device;
@@ -171,16 +175,17 @@ void processBulk(const int nBlocks,
   int* results_device;
   gpuInterface->allocDevice(reinterpret_cast<void**>(&results_device), sizeof(int) * fitters.size());
 
-  // gpuCheckError(cudaEventRecord(totalStart));
+  // R.R. Computation
   int totalSize = fitters.size();
-  int batchSize = totalSize / nStreams;
-  int remainder = totalSize % nStreams;
+  int batchSize = totalSize / nBatches;
+  int remainder = totalSize % nBatches;
 
-  for (int iBatch{0}; iBatch < nStreams; ++iBatch) {
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
     auto& stream = gpuInterface->getNextStream();
     auto offset = iBatch * batchSize + std::min(iBatch, remainder);
     auto nFits = batchSize + (iBatch < remainder ? 1 : 0);
 
+    gpuCheckError(cudaEventRecord(startIOUp[iBatch], stream));
     gpuCheckError(cudaMemcpyAsync(fitters_device + offset, fitters.data() + offset, sizeof(Fitter) * nFits, cudaMemcpyHostToDevice, stream));
     iArg = 0;
     ([&] {
@@ -188,23 +193,27 @@ void processBulk(const int nBlocks,
       ++iArg;
     }(),
      ...);
-    // gpuCheckError(cudaEventRecord(start[iBatch]));
+    gpuCheckError(cudaEventRecord(endIOUp[iBatch], stream));
+
+    gpuCheckError(cudaEventRecord(startKer[iBatch], stream));
     std::apply([&](auto&&... args) { kernel::processBatchKernel<<<nBlocks, nThreads, 0, stream>>>(fitters_device, results_device, offset, nFits, args...); }, tracks_device);
-    // gpuCheckError(cudaEventRecord(stop[iBatch]));
+    gpuCheckError(cudaEventRecord(endKer[iBatch], stream));
 
     gpuCheckError(cudaPeekAtLastError());
-    gpuCheckError(cudaStreamSynchronize(stream));
     iArg = 0;
+    gpuCheckError(cudaEventRecord(startIODown[iBatch], stream));
     ([&] {
       gpuCheckError(cudaMemcpyAsync(args.data() + offset, tracks_device[iArg] + offset, sizeof(Tr) * nFits, cudaMemcpyDeviceToHost, stream));
       ++iArg;
     }(),
      ...);
+
     gpuCheckError(cudaMemcpyAsync(fitters.data() + offset, fitters_device + offset, sizeof(Fitter) * nFits, cudaMemcpyDeviceToHost, stream));
     gpuCheckError(cudaMemcpyAsync(results.data() + offset, results_device + offset, sizeof(int) * nFits, cudaMemcpyDeviceToHost, stream));
+    gpuCheckError(cudaEventRecord(endIODown[iBatch], stream));
   }
+
   ([&] { gpuInterface->unregisterBuffer(args.data()); }(), ...);
-  // gpuCheckError(cudaEventRecord(totalStop));
 
   for (auto* tracksD : tracks_device) {
     gpuInterface->freeDevice(tracksD);
@@ -214,11 +223,30 @@ void processBulk(const int nBlocks,
   gpuInterface->freeDevice(results_device);
   gpuInterface->unregisterBuffer(fitters.data());
   gpuInterface->unregisterBuffer(results.data());
-  // float milliseconds = 0;
-  // gpuCheckError(cudaEventElapsedTime(&milliseconds, start, stop));
 
-  // LOGP(info, "Kernel run in: {} ms using {} blocks and {} threads.", milliseconds, nBlocks, nThreads);
-  // return results;
+  // Do benchmarks
+  gpuCheckError(cudaDeviceSynchronize());
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
+    gpuCheckError(cudaEventElapsedTime(&ioUp[iBatch], startIOUp[iBatch], endIOUp[iBatch]));
+    gpuCheckError(cudaEventElapsedTime(&kerElapsed[iBatch], startKer[iBatch], endKer[iBatch]));
+    gpuCheckError(cudaEventElapsedTime(&ioDown[iBatch], startIODown[iBatch], endIODown[iBatch]));
+  }
+
+  float totalUp = std::accumulate(ioUp.begin(), ioUp.end(), 0.f);
+  float totalDown = std::accumulate(ioDown.begin(), ioDown.end(), 0.f);
+  float totalKernels = std::accumulate(kerElapsed.begin(), kerElapsed.end(), 0.f);
+  LOGP(info, "Config: {} batches, {} blocks, {} threads", nBatches, nBlocks, nThreads);
+  LOGP(info, "Total I/O time: Up {} ms Avg {} ms, Down {} ms Avg {} ms", totalUp, totalUp / float(nBatches), totalDown, totalDown / (float)nBatches);
+  LOGP(info, "Total Kernel time: {} ms Avg {} ms", totalKernels, totalKernels / (float)nBatches);
+
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
+    gpuCheckError(cudaEventDestroy(startIOUp[iBatch]));
+    gpuCheckError(cudaEventDestroy(endIOUp[iBatch]));
+    gpuCheckError(cudaEventDestroy(startIODown[iBatch]));
+    gpuCheckError(cudaEventDestroy(endIODown[iBatch]));
+    gpuCheckError(cudaEventDestroy(startKer[iBatch]));
+    gpuCheckError(cudaEventDestroy(endKer[iBatch]));
+  }
 }
 
 template void processBulk(const int,
