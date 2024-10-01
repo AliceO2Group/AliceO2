@@ -1940,27 +1940,53 @@ std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table*
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowData(T& rowIterator, uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
+typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator, uint64_t ci = std::numeric_limits<uint64_t>::max(), uint64_t ai = std::numeric_limits<uint64_t>::max())
 {
-  using decayed = std::decay_t<C>;
+  if (ci == std::numeric_limits<uint64_t>::max() || ai == std::numeric_limits<uint64_t>::max()) {
+    auto colIterator = static_cast<C>(rowIterator).getIterator();
+    ci = colIterator.mCurrentChunk;
+    ai = *(colIterator.mCurrentPos) - colIterator.mFirstIndex;
+  }
+  return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getIndexFromLabel(table, C::columnLabel())->chunk(ci))->raw_values()[ai];
+}
 
+template <typename T, typename C>
+typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
+{
   if (globalIndex != std::numeric_limits<uint64_t>::max() && globalIndex != *std::get<0>(rowIterator.getIndices())) {
     rowIterator.setCursor(globalIndex);
   }
+  return rowIterator.template getDynamicColumn<C>();
+}
 
-  if constexpr (decayed::persistent::value || o2::soa::is_dynamic_t<decayed>()) {
-    return static_cast<C>(rowIterator).get();
+template <typename T, typename C>
+typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
+{
+  if (globalIndex != std::numeric_limits<uint64_t>::max() && globalIndex != *std::get<0>(rowIterator.getIndices())) {
+    rowIterator.setCursor(globalIndex);
+  }
+  return rowIterator.template getId<C>();
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = std::numeric_limits<uint64_t>::max(), uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
+{
+  using decayed = std::decay_t<C>;
+  if constexpr (decayed::persistent::value) {
+    return getSingleRowPersistentData<T, C>(table, rowIterator, ci, ai);
+  } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
+    return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
   } else if constexpr (o2::soa::is_index_t<decayed>::value) {
-    return rowIterator.template getId<C>();
+    return getSingleRowIndexData<T, C>(rowIterator, globalIndex);
   } else {
     static_assert(!sizeof(decayed*), "Unrecognized column kind"); // A trick to delay static_assert until we actually instantiate this branch
   }
 }
 
 template <typename T, typename... Cs>
-std::tuple<typename Cs::type...> getRowData(T rowIterator, uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci = std::numeric_limits<uint64_t>::max(), uint64_t ai = std::numeric_limits<uint64_t>::max(), uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
 {
-  return std::make_tuple(getSingleRowData<T, Cs>(rowIterator, globalIndex)...);
+  return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
 }
 
 template <typename R, typename T, typename Column>
