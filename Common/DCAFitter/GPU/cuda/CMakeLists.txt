@@ -12,12 +12,15 @@
 o2_add_library(DCAFitterCUDA
                TARGETVARNAME targetName
                SOURCES DCAFitterN.cu
+                       GPUInterface.cu
                PUBLIC_INCLUDE_DIRECTORIES ../../include
+               PUBLIC_INCLUDE_DIRECTORIES ../
                PUBLIC_LINK_LIBRARIES O2::MathUtils
                                      O2::ReconstructionDataFormats
                                      O2::DetectorsBase
                PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider)
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+# add_compile_options(-lineinfo)
 
 o2_add_test(DCAFitterNCUDA
             SOURCES test/testDCAFitterNGPU.cxx

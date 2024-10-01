@@ -15,9 +15,11 @@
 #include <cuda.h>
 #endif
 
+#include <numeric>
+
 #include "GPUCommonDef.h"
 #include "DCAFitter/DCAFitterN.h"
-// #include "MathUtils/SMatrixGPU.h"
+#include "DeviceInterface/GPUInterface.h"
 
 #define gpuCheckError(x)                \
   {                                     \
@@ -61,10 +63,10 @@ GPUg() void processKernel(Fitter* fitter, int* res, Tr*... tracks)
 }
 
 template <typename Fitter, typename... Tr>
-GPUg() void processBulkKernel(Fitter* fitters, int* results, unsigned int N, Tr*... tracks)
+GPUg() void processBatchKernel(Fitter* fitters, int* results, size_t off, size_t N, Tr*... tracks)
 {
   for (auto iThread{blockIdx.x * blockDim.x + threadIdx.x}; iThread < N; iThread += blockDim.x * gridDim.x) {
-    results[iThread] = fitters[iThread].process(tracks[iThread]...);
+    results[iThread + off] = fitters[iThread + off].process(tracks[iThread + off]...);
   }
 }
 
@@ -131,64 +133,137 @@ int process(const int nBlocks,
 }
 
 template <typename Fitter, class... Tr>
-std::vector<int> processBulk(const int nBlocks,
-                             const int nThreads,
-                             std::vector<Fitter>& fitters,
-                             std::vector<Tr>&... args)
+void processBulk(const int nBlocks,
+                 const int nThreads,
+                 const int nBatches,
+                 std::vector<Fitter>& fitters,
+                 std::vector<int>& results,
+                 std::vector<Tr>&... args)
 {
-  kernel::warmUpGpuKernel<<<1, 1>>>();
+  auto* gpuInterface = GPUInterface::Instance();
+  kernel::warmUpGpuKernel<<<1, 1, 0, gpuInterface->getNextStream()>>>();
 
-  cudaEvent_t start, stop;
-  gpuCheckError(cudaEventCreate(&start));
-  gpuCheckError(cudaEventCreate(&stop));
-  const auto nFits{fitters.size()}; // for clarity: size of all the vectors needs to be equal, not enforcing it here yet.
-  std::vector<int> results(nFits);
-  int* results_device;
-  Fitter* fitters_device;
+  // Benchmarking events
+  std::vector<float> ioUp(nBatches), ioDown(nBatches), kerElapsed(nBatches);
+  std::vector<cudaEvent_t> startIOUp(nBatches), endIOUp(nBatches), startIODown(nBatches), endIODown(nBatches), startKer(nBatches), endKer(nBatches);
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
+    gpuCheckError(cudaEventCreate(&startIOUp[iBatch]));
+    gpuCheckError(cudaEventCreate(&endIOUp[iBatch]));
+    gpuCheckError(cudaEventCreate(&startIODown[iBatch]));
+    gpuCheckError(cudaEventCreate(&endIODown[iBatch]));
+    gpuCheckError(cudaEventCreate(&startKer[iBatch]));
+    gpuCheckError(cudaEventCreate(&endKer[iBatch]));
+  }
+
+  // Tracks
   std::array<o2::track::TrackParCov*, Fitter::getNProngs()> tracks_device;
-
   int iArg{0};
   ([&] {
-    gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&(tracks_device[iArg])), sizeof(Tr) * args.size()));
-    gpuCheckError(cudaMemcpy(tracks_device[iArg], args.data(), sizeof(Tr) * args.size(), cudaMemcpyHostToDevice));
+    gpuInterface->registerBuffer(reinterpret_cast<void*>(args.data()), sizeof(Tr) * args.size());
+    gpuInterface->allocDevice(reinterpret_cast<void**>(&(tracks_device[iArg])), sizeof(Tr) * args.size());
     ++iArg;
   }(),
    ...);
-  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&results_device), sizeof(int) * nFits));
-  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&fitters_device), sizeof(Fitter) * nFits));
-  gpuCheckError(cudaMemcpy(fitters_device, fitters.data(), sizeof(Fitter) * nFits, cudaMemcpyHostToDevice));
 
-  gpuCheckError(cudaEventRecord(start));
-  std::apply([&](auto&&... args) { kernel::processBulkKernel<<<nBlocks, nThreads>>>(fitters_device, results_device, nFits, args...); }, tracks_device);
-  gpuCheckError(cudaEventRecord(stop));
+  // Fitters
+  gpuInterface->registerBuffer(reinterpret_cast<void*>(fitters.data()), sizeof(Fitter) * fitters.size());
+  Fitter* fitters_device;
+  gpuInterface->allocDevice(reinterpret_cast<void**>(&fitters_device), sizeof(Fitter) * fitters.size());
 
-  gpuCheckError(cudaPeekAtLastError());
+  // Results
+  gpuInterface->registerBuffer(reinterpret_cast<void*>(results.data()), sizeof(int) * fitters.size());
+  int* results_device;
+  gpuInterface->allocDevice(reinterpret_cast<void**>(&results_device), sizeof(int) * fitters.size());
+
+  // R.R. Computation
+  int totalSize = fitters.size();
+  int batchSize = totalSize / nBatches;
+  int remainder = totalSize % nBatches;
+
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
+    auto& stream = gpuInterface->getNextStream();
+    auto offset = iBatch * batchSize + std::min(iBatch, remainder);
+    auto nFits = batchSize + (iBatch < remainder ? 1 : 0);
+
+    gpuCheckError(cudaEventRecord(startIOUp[iBatch], stream));
+    gpuCheckError(cudaMemcpyAsync(fitters_device + offset, fitters.data() + offset, sizeof(Fitter) * nFits, cudaMemcpyHostToDevice, stream));
+    iArg = 0;
+    ([&] {
+      gpuCheckError(cudaMemcpyAsync(tracks_device[iArg] + offset, args.data() + offset, sizeof(Tr) * nFits, cudaMemcpyHostToDevice, stream));
+      ++iArg;
+    }(),
+     ...);
+    gpuCheckError(cudaEventRecord(endIOUp[iBatch], stream));
+
+    gpuCheckError(cudaEventRecord(startKer[iBatch], stream));
+    std::apply([&](auto&&... args) { kernel::processBatchKernel<<<nBlocks, nThreads, 0, stream>>>(fitters_device, results_device, offset, nFits, args...); }, tracks_device);
+    gpuCheckError(cudaEventRecord(endKer[iBatch], stream));
+
+    gpuCheckError(cudaPeekAtLastError());
+    iArg = 0;
+    gpuCheckError(cudaEventRecord(startIODown[iBatch], stream));
+    ([&] {
+      gpuCheckError(cudaMemcpyAsync(args.data() + offset, tracks_device[iArg] + offset, sizeof(Tr) * nFits, cudaMemcpyDeviceToHost, stream));
+      ++iArg;
+    }(),
+     ...);
+
+    gpuCheckError(cudaMemcpyAsync(fitters.data() + offset, fitters_device + offset, sizeof(Fitter) * nFits, cudaMemcpyDeviceToHost, stream));
+    gpuCheckError(cudaMemcpyAsync(results.data() + offset, results_device + offset, sizeof(int) * nFits, cudaMemcpyDeviceToHost, stream));
+    gpuCheckError(cudaEventRecord(endIODown[iBatch], stream));
+  }
+
+  ([&] { gpuInterface->unregisterBuffer(args.data()); }(), ...);
+
+  for (auto* tracksD : tracks_device) {
+    gpuInterface->freeDevice(tracksD);
+  }
+
+  gpuInterface->freeDevice(fitters_device);
+  gpuInterface->freeDevice(results_device);
+  gpuInterface->unregisterBuffer(fitters.data());
+  gpuInterface->unregisterBuffer(results.data());
+
+  // Do benchmarks
   gpuCheckError(cudaDeviceSynchronize());
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
+    gpuCheckError(cudaEventElapsedTime(&ioUp[iBatch], startIOUp[iBatch], endIOUp[iBatch]));
+    gpuCheckError(cudaEventElapsedTime(&kerElapsed[iBatch], startKer[iBatch], endKer[iBatch]));
+    gpuCheckError(cudaEventElapsedTime(&ioDown[iBatch], startIODown[iBatch], endIODown[iBatch]));
+  }
 
-  gpuCheckError(cudaMemcpy(results.data(), results_device, sizeof(int) * results.size(), cudaMemcpyDeviceToHost));
-  gpuCheckError(cudaMemcpy(fitters.data(), fitters_device, sizeof(Fitter) * nFits, cudaMemcpyDeviceToHost));
+  float totalUp = std::accumulate(ioUp.begin(), ioUp.end(), 0.f);
+  float totalDown = std::accumulate(ioDown.begin(), ioDown.end(), 0.f);
+  float totalKernels = std::accumulate(kerElapsed.begin(), kerElapsed.end(), 0.f);
+  LOGP(info, "Config: {} batches, {} blocks, {} threads", nBatches, nBlocks, nThreads);
+  LOGP(info, "Total I/O time: Up {} ms Avg {} ms, Down {} ms Avg {} ms", totalUp, totalUp / float(nBatches), totalDown, totalDown / (float)nBatches);
+  LOGP(info, "Total Kernel time: {} ms Avg {} ms", totalKernels, totalKernels / (float)nBatches);
 
-  iArg = 0;
-  ([&] {
-    gpuCheckError(cudaMemcpy(args.data(), tracks_device[iArg], sizeof(Tr) * args.size(), cudaMemcpyDeviceToHost));
-    gpuCheckError(cudaFree(tracks_device[iArg]));
-    ++iArg;
-  }(),
-   ...);
-
-  gpuCheckError(cudaFree(fitters_device));
-  gpuCheckError(cudaFree(results_device));
-  gpuCheckError(cudaEventSynchronize(stop));
-
-  float milliseconds = 0;
-  gpuCheckError(cudaEventElapsedTime(&milliseconds, start, stop));
-
-  LOGP(info, "Kernel run in: {} ms using {} blocks and {} threads.", milliseconds, nBlocks, nThreads);
-  return results;
+  for (int iBatch{0}; iBatch < nBatches; ++iBatch) {
+    gpuCheckError(cudaEventDestroy(startIOUp[iBatch]));
+    gpuCheckError(cudaEventDestroy(endIOUp[iBatch]));
+    gpuCheckError(cudaEventDestroy(startIODown[iBatch]));
+    gpuCheckError(cudaEventDestroy(endIODown[iBatch]));
+    gpuCheckError(cudaEventDestroy(startKer[iBatch]));
+    gpuCheckError(cudaEventDestroy(endKer[iBatch]));
+  }
 }
 
-template std::vector<int> processBulk(const int, const int, std::vector<o2::vertexing::DCAFitterN<2>>&, std::vector<o2::track::TrackParCov>&, std::vector<o2::track::TrackParCov>&);
-template std::vector<int> processBulk(const int, const int, std::vector<o2::vertexing::DCAFitterN<3>>&, std::vector<o2::track::TrackParCov>&, std::vector<o2::track::TrackParCov>&, std::vector<o2::track::TrackParCov>&);
+template void processBulk(const int,
+                          const int,
+                          const int,
+                          std::vector<o2::vertexing::DCAFitterN<2>>&,
+                          std::vector<int>&,
+                          std::vector<o2::track::TrackParCov>&,
+                          std::vector<o2::track::TrackParCov>&);
+template void processBulk(const int,
+                          const int,
+                          const int,
+                          std::vector<o2::vertexing::DCAFitterN<3>>&,
+                          std::vector<int>&,
+                          std::vector<o2::track::TrackParCov>&,
+                          std::vector<o2::track::TrackParCov>&,
+                          std::vector<o2::track::TrackParCov>&);
 template int process(const int, const int, o2::vertexing::DCAFitterN<2>&, o2::track::TrackParCov&, o2::track::TrackParCov&);
 template int process(const int, const int, o2::vertexing::DCAFitterN<3>&, o2::track::TrackParCov&, o2::track::TrackParCov&, o2::track::TrackParCov&);
 template void print(const int, const int, o2::vertexing::DCAFitterN<2>&);
