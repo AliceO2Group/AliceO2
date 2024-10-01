@@ -20,6 +20,8 @@ namespace o2
 
 struct GeometryManagerParam : public o2::conf::ConfigurableParamHelper<GeometryManagerParam> {
   bool useParallelWorld = false;
+  bool usePwGeoBVH = false;
+  bool usePwCaching = false;
 
   O2ParamDef(GeometryManagerParam, "GeometryManagerParam");
 };

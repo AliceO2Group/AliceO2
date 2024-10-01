@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <cstdlib>
+
 #include <Steer/O2MCApplication.h>
 #include <fairmq/Channel.h>
 #include <fairmq/Message.h>
@@ -188,9 +190,17 @@ bool O2MCApplicationBase::MisalignGeometry()
   auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
   gGeoManager->Export(alignedgeomfile.c_str());
 
+  auto& param = o2::GeometryManagerParam::Instance();
+
   // fill parallel world geometry if activated
-  if (o2::GeometryManagerParam::Instance().useParallelWorld) {
+  if (param.useParallelWorld) {
     TGeoParallelWorld* pw = gGeoManager->CreateParallelWorld("priority_sensors");
+    if (param.usePwGeoBVH) {
+      pw->SetAccelerationMode(TGeoParallelWorld::AccelerationMode::kBVH);
+    }
+    if (param.usePwCaching) {
+      TGeoNavigator::SetPWSafetyCaching(true);
+    }
     for (auto det : listDetectors) {
       if (dynamic_cast<o2::base::Detector*>(det)) {
         ((o2::base::Detector*)det)->fillParallelWorld();
