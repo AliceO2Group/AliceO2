@@ -13,8 +13,8 @@
 /// \brief Class to describe fired and stored channels for the BC and to refer to channel data
 /// \author Alla.Maevskaya@cern.ch
 
-#ifndef _FT0_CHANNELDATA_H_
-#define _FT0_CHANNELDATA_H_
+#ifndef O2_FT0_CHANNELDATA_H_
+#define O2_FT0_CHANNELDATA_H_
 
 #include <Rtypes.h>
 #include <tuple>

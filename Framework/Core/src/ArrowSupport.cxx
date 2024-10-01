@@ -30,6 +30,7 @@
 #include "Framework/ServiceMetricsInfo.h"
 #include "WorkflowHelpers.h"
 #include "Framework/WorkflowSpecNode.h"
+#include "AnalysisSupportHelpers.h"
 
 #include "CommonMessageBackendsHelpers.h"
 #include <Monitoring/Monitoring.h>
@@ -445,7 +446,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // replace AlgorithmSpec
         //  FIXME: it should be made more generic, so it does not need replacement...
         builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs);
-        WorkflowHelpers::addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, *builder);
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, *builder);
       }
 
       if (spawner != workflow.end()) {
@@ -480,7 +481,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
         spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(spawnerInputs);
-        WorkflowHelpers::addMissingOutputsToSpawner({}, spawnerInputs, requestedAODs, *spawner);
+        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, spawnerInputs, requestedAODs, *spawner);
       }
 
       if (writer != workflow.end()) {
@@ -535,7 +536,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // add TFNumber and TFFilename as input to the writer
         outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
         outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
-        workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
+        workflow.push_back(AnalysisSupportHelpers::getGlobalAODSink(dod, outputsInputsAOD));
       }
       // Move the dummy sink at the end, if needed
       for (size_t i = 0; i < workflow.size(); ++i) {

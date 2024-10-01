@@ -83,8 +83,9 @@ class ColumnToBranch
   ColumnToBranch(ColumnToBranch const& other) = delete;
   ColumnToBranch(ColumnToBranch&& other) = delete;
   void at(const int64_t* pos);
-  int fieldSize() const { return mFieldSize; }
-  char const* branchName() const { return mBranchName.c_str(); }
+  [[nodiscard]] int fieldSize() const { return mFieldSize; }
+  [[nodiscard]] int columnEntries() const { return mColumn->length(); }
+  [[nodiscard]] char const* branchName() const { return mBranchName.c_str(); }
 
  private:
   void accessChunk();

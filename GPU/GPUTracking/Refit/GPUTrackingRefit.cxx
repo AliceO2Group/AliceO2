@@ -421,12 +421,14 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
   return nFitted;
 }
 
-template GPUd() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
-template GPUd() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
-template GPUd() int GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov);
-template GPUd() int GPUTrackingRefit::RefitTrack<TrackTPC, GPUTPCGMTrackParam>(TrackTPC& trk, bool outward, bool resetCov);
-template GPUd() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
-template GPUd() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
+template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
+template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
+template GPUdni() int GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov);
+template GPUdni() int GPUTrackingRefit::RefitTrack<TrackTPC, GPUTPCGMTrackParam>(TrackTPC& trk, bool outward, bool resetCov);
+template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
+template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
+#endif
 
 #ifndef GPUCA_GPUCODE
 void GPUTrackingRefit::SetPtrsFromGPUConstantMem(const GPUConstantMem* v, MEM_CONSTANT(GPUParam) * p)

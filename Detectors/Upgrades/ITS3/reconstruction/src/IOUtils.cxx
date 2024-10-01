@@ -119,6 +119,9 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
   for (auto& v : tf->mNTrackletsPerCluster) {
     v.resize(tf->getUnsortedClusters()[1].size());
   }
+  for (auto& v : tf->mNTrackletsPerClusterSum) {
+    v.resize(tf->getUnsortedClusters()[1].size() + 1);
+  }
 
   if (mcLabels != nullptr) {
     tf->mClusterLabels = mcLabels;

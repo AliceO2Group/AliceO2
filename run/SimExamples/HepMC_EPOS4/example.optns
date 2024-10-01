@@ -1,0 +1,32 @@
+!--------------------------------------------------------------------
+!           proton-proton collision no hydro no hadronic cascade
+!--------------------------------------------------------------------
+
+!---------------------------------------
+!            Define run
+!---------------------------------------
+
+application hadron !hadron-hadron, hadron-nucleus, or nucleus-nucleus
+set laproj 1 !projectile atomic number
+set maproj 1 !projectile mass number
+set latarg 1 !target atomic number
+set matarg 1 !target mass number
+set ecms 7000 !sqrt(s)_pp
+set istmax 25 !max status considered for storage
+
+ftime on     !string formation time non-zero
+!suppressed decays:
+nodecays
+ 110 20 2130 -2130 2230 -2230 1130 -1130 1330 -1330 2330 -2330 3331 -3331
+end
+
+set ninicon 1            !number of initial conditions used for hydro evolution
+core off                 !core/corona not activated
+hydro off                !hydro not activated
+eos off                  !eos not activated
+hacas off                !hadronic cascade not activated
+set nfreeze 1            !number of freeze out events per hydro event
+set modsho 1             !printout every modsho events
+set centrality 0         !0=min bias
+set ihepmc 2             !HepMC output enabled on stdout
+set nfull 10

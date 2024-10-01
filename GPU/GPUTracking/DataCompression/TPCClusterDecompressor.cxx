@@ -43,7 +43,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
   if (clustersCompressed->nTracks && clustersCompressed->solenoidBz != -1e6f && clustersCompressed->solenoidBz != param.bzkG) {
     throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
   }
-  if (clustersCompressed->nTracks && clustersCompressed->maxTimeBin != -1e6 && clustersCompressed->maxTimeBin != param.par.continuousMaxTimeBin) {
+  if (clustersCompressed->nTracks && clustersCompressed->maxTimeBin != -1e6 && clustersCompressed->maxTimeBin != param.continuousMaxTimeBin) {
     throw std::runtime_error("Configured max time bin does not match value used for track model encoding");
   }
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
@@ -52,7 +52,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
     (&locks[0][0])[i].clear();
   }
   unsigned int offset = 0, lasti = 0;
-  const unsigned int maxTime = param.par.continuousMaxTimeBin > 0 ? ((param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1) : TPC_MAX_TIME_BIN_TRIGGERED;
+  const unsigned int maxTime = param.continuousMaxTimeBin > 0 ? ((param.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1) : TPC_MAX_TIME_BIN_TRIGGERED;
   GPUCA_OPENMP(parallel for firstprivate(offset, lasti))
   for (unsigned int i = 0; i < clustersCompressed->nTracks; i++) {
     if (i < lasti) {
@@ -99,8 +99,8 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           if (t < 0) {
             t = 0;
           }
-          if (param.par.continuousMaxTimeBin > 0 && t > param.par.continuousMaxTimeBin) {
-            t = param.par.continuousMaxTimeBin;
+          if (param.continuousMaxTimeBin > 0 && t > param.continuousMaxTimeBin) {
+            t = param.continuousMaxTimeBin;
           }
           cl.setTime(t);
         }

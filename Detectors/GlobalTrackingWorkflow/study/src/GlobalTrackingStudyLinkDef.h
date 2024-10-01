@@ -21,5 +21,17 @@
 #pragma link C++ class std::vector < o2::dataformats::TrackInfoExt> + ;
 #pragma link C++ class std::vector < o2::dataformats::ProngInfoExt> + ;
 #pragma link C++ class std::vector < o2::dataformats::V0Ext> + ;
+#pragma link C++ class o2::trackstudy::TrackMCStudyConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trackstudy::TrackMCStudyConfig> + ;
+#pragma link C++ class o2::trackstudy::RecTrack + ;
+#pragma link C++ class std::vector < o2::trackstudy::RecTrack> + ;
+#pragma link C++ class o2::trackstudy::TrackFamily + ;
+#pragma link C++ class std::vector < o2::trackstudy::TrackFamily> + ;
+#pragma link C++ class o2::trackstudy::MCTrackInfo + ;
+#pragma link C++ class std::vector < o2::trackstudy::MCTrackInfo> + ;
+#pragma link C++ class o2::trackstudy::RecPV + ;
+#pragma link C++ class std::vector < o2::trackstudy::RecPV> + ;
+#pragma link C++ class o2::trackstudy::MCVertex + ;
+#pragma link C++ class std::vector < o2::trackstudy::MCVertex> + ;
 
 #endif

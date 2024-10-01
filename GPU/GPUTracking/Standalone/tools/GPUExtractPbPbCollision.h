@@ -14,18 +14,18 @@
 
 static void GPUExtractPbPbCollision(GPUParam& param, GPUTrackingInOutPointers& ioPtrs)
 {
-  std::vector<unsigned int> counts(param.par.continuousMaxTimeBin + 1);
-  std::vector<unsigned int> sums(param.par.continuousMaxTimeBin + 1);
-  std::vector<unsigned int> countsTracks(param.par.continuousMaxTimeBin + 1);
-  std::vector<unsigned int> sumsTracks(param.par.continuousMaxTimeBin + 1);
-  std::vector<bool> mask(param.par.continuousMaxTimeBin + 1);
+  std::vector<unsigned int> counts(param.continuousMaxTimeBin + 1);
+  std::vector<unsigned int> sums(param.continuousMaxTimeBin + 1);
+  std::vector<unsigned int> countsTracks(param.continuousMaxTimeBin + 1);
+  std::vector<unsigned int> sumsTracks(param.continuousMaxTimeBin + 1);
+  std::vector<bool> mask(param.continuousMaxTimeBin + 1);
   const int driftlength = 520;
   const bool checkAfterGlow = true;
   const int afterGlowLength = checkAfterGlow ? 8000 : 0;
   for (unsigned int i = 0; i < ioPtrs.clustersNative->nClustersTotal; i++) {
     int time = ioPtrs.clustersNative->clustersLinear[i].getTime();
-    if (time < 0 || time > param.par.continuousMaxTimeBin) {
-      fprintf(stderr, "Invalid time %d > %d\n", time, param.par.continuousMaxTimeBin);
+    if (time < 0 || time > param.continuousMaxTimeBin) {
+      fprintf(stderr, "Invalid time %d > %d\n", time, param.continuousMaxTimeBin);
       throw std::runtime_error("Invalid Time");
     }
     counts[time]++;
@@ -35,19 +35,19 @@ static void GPUExtractPbPbCollision(GPUParam& param, GPUTrackingInOutPointers& i
       continue;
     }
     int time = ioPtrs.mergedTracks[i].GetParam().GetTZOffset();
-    if (time < 0 || time > param.par.continuousMaxTimeBin) {
+    if (time < 0 || time > param.continuousMaxTimeBin) {
       continue;
     }
     countsTracks[time]++;
   }
   int first = 0, last = 0;
-  for (int i = driftlength; i < param.par.continuousMaxTimeBin; i++) {
+  for (int i = driftlength; i < param.continuousMaxTimeBin; i++) {
     if (counts[i]) {
       first = i;
       break;
     }
   }
-  for (int i = param.par.continuousMaxTimeBin + 1 - driftlength; i > 0; i--) {
+  for (int i = param.continuousMaxTimeBin + 1 - driftlength; i > 0; i--) {
     if (counts[i - 1]) {
       last = i;
       break;

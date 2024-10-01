@@ -1480,7 +1480,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Track2, track2, int, Tracks, "_2"); //! Track 2 in
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                   //! Collision index
 } // namespace decay3body
 
-DECLARE_SOA_TABLE(Decay3Bodys, "AOD", "DECAY3BODY", //! Run 2 cascade table
+DECLARE_SOA_TABLE(Decay3Bodys, "AOD", "DECAY3BODY", //! 3-body decay table
                   o2::soa::Index<>, decay3body::CollisionId, decay3body::Track0Id, decay3body::Track1Id, decay3body::Track2Id);
 
 using Decay3Bodys = Decay3Bodys; //! this defines the current default version

@@ -14,6 +14,7 @@
 
 #include "GPUO2InterfaceUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2InterfaceRefit.h"
 #include "TPCPadGainCalib.h"
 #include "CalibdEdxContainer.h"
 #include "TPCBase/Sector.h"
@@ -114,4 +115,21 @@ std::unique_ptr<GPUParam> GPUO2InterfaceUtils::getFullParam(float solenoidBz, un
 std::shared_ptr<GPUParam> GPUO2InterfaceUtils::getFullParamShared(float solenoidBz, unsigned int nHbfPerTf, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration, std::unique_ptr<GPUSettingsO2>* pO2Settings, bool* autoMaxTimeBin)
 {
   return std::move(getFullParam(solenoidBz, nHbfPerTf, pConfiguration, pO2Settings, autoMaxTimeBin));
+}
+
+void GPUO2InterfaceUtils::paramUseExternalOccupancyMap(GPUParam* param, unsigned int nHbfPerTf, const unsigned int* occupancymap, int occupancyMapSize)
+{
+  size_t expectedOccMapSize = nHbfPerTf ? GPUO2InterfaceRefit::fillOccupancyMapGetSize(nHbfPerTf, param) : 0;
+  if (occupancyMapSize != -1 && nHbfPerTf && (size_t)occupancyMapSize != expectedOccMapSize) {
+    throw std::runtime_error("Received occupancy map of wrong size, most likely --configKeyValues or HBperTF of map creator and map consumer are different");
+  }
+  if (occupancymap && occupancyMapSize > sizeof(*occupancymap) && occupancymap[1] != (param->rec.tpc.occupancyMapTimeBins * 0x10000 + param->rec.tpc.occupancyMapTimeBinsAverage)) {
+    throw std::runtime_error("Occupancy map has invalid paramters occupancyMapTimeBins and occupancyMapTimeBinsAverage");
+  }
+  if (occupancymap) {
+    param->occupancyTotal = *occupancymap;
+    if (param->rec.tpc.occupancyMapTimeBins) {
+      param->occupancyMap = occupancymap + 2;
+    }
+  }
 }

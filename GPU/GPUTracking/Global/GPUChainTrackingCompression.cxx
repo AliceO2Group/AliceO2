@@ -68,7 +68,7 @@ int GPUChainTracking::RunTPCCompression()
   O->nSliceRows = NSLICES * GPUCA_ROW_COUNT;
   O->nComppressionModes = param().rec.tpc.compressionTypeMask;
   O->solenoidBz = param().bzkG;
-  O->maxTimeBin = param().par.continuousMaxTimeBin;
+  O->maxTimeBin = param().continuousMaxTimeBin;
   size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)]);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
   char* hostFlatPtr = (char*)Compressor.mOutput->qTotU; // First array as allocated in GPUTPCCompression::SetPointersCompressedClusters
@@ -253,7 +253,7 @@ int GPUChainTracking::RunTPCDecompression()
     inputGPU.nSliceRows = NSLICES * GPUCA_ROW_COUNT;
     inputGPU.nComppressionModes = param().rec.tpc.compressionTypeMask;
     inputGPU.solenoidBz = param().bzkG;
-    inputGPU.maxTimeBin = param().par.continuousMaxTimeBin;
+    inputGPU.maxTimeBin = param().continuousMaxTimeBin;
     SetupGPUProcessor(&Decompressor, true);
     WriteToConstantMemory(myStep, (char*)&processors()->tpcDecompressor - (char*)processors(), &DecompressorShadow, sizeof(DecompressorShadow), inputStream);
 

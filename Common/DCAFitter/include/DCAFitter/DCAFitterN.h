@@ -17,10 +17,10 @@
 #ifndef _ALICEO2_DCA_FITTERN_
 #define _ALICEO2_DCA_FITTERN_
 
-#include "MathUtils/Cartesian.h"
-#include "ReconstructionDataFormats/Track.h"
 #include "DCAFitter/HelixHelper.h"
 #include "DetectorsBase/Propagator.h"
+#include "MathUtils/Cartesian.h"
+#include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
@@ -48,8 +48,10 @@ struct TrackCovI {
       syz = -cyz * detYZI;
       szz = cyy * detYZI;
     } else {
-#ifndef GPUCA_GPUCODE_DEVICE
+#ifndef GPUCA_GPUCODE
       throw std::runtime_error("invalid track covariance");
+#else
+      printf("invalid track covariance\n");
 #endif
     }
   }
@@ -107,8 +109,8 @@ class DCAFitterN
 
   //=========================================================================
   ///< return PCA candidate, by default best on is provided (no check for the index validity)
-  const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
-  const auto getPCACandidatePos(int cand = 0) const
+  GPUd() const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
+  GPUd() const auto getPCACandidatePos(int cand = 0) const
   {
     const auto& vd = mPCA[mOrder[cand]];
     return o2::gpu::gpustd::array<float, 3>{static_cast<float>(vd[0]), static_cast<float>(vd[1]), static_cast<float>(vd[2])};
@@ -122,10 +124,10 @@ class DCAFitterN
 
   ///< prepare copies of tracks at the V0 candidate (no check for the candidate validity)
   ///  must be called before getTrack(i,cand) query
-  bool propagateTracksToVertex(int cand = 0);
+  GPUd() bool propagateTracksToVertex(int cand = 0);
 
   ///< check if propagation of tracks to candidate vertex was done
-  bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
+  GPUd() bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
 
   ///< check if propagation of tracks to candidate vertex was done
   bool isPropagationFailure(int cand = 0) const { return mPropFailed[mOrder[cand]]; }
@@ -153,18 +155,18 @@ class DCAFitterN
   }
 
   ///< create parent track param with errors for decay vertex
-  o2::track::TrackParCov createParentTrackParCov(int cand = 0, bool sectorAlpha = true) const;
+  GPUd() o2::track::TrackParCov createParentTrackParCov(int cand = 0, bool sectorAlpha = true) const;
 
   ///< create parent track param w/o errors for decay vertex
-  o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
+  GPUd() o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
 
   ///< calculate on the fly track param (no cov mat) at candidate, check isValid to make sure propagation was successful
-  o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0);
+  GPUd() o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0);
 
   ///< recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
-  bool recalculatePCAWithErrors(int cand = 0);
+  GPUd() bool recalculatePCAWithErrors(int cand = 0);
 
-  MatSym3D calcPCACovMatrix(int cand = 0) const;
+  GPUd() MatSym3D calcPCACovMatrix(int cand = 0) const;
 
   o2::gpu::gpustd::array<float, 6> calcPCACovMatrixFlat(int cand = 0) const
   {
@@ -439,7 +441,7 @@ GPUd() bool DCAFitterN<N, Args...>::calcPCACoefs()
     miei[1][0] = taux.s * tcov.sxx;
     miei[1][1] = taux.c * tcov.syy;
     miei[1][2] = taux.c * tcov.syz;
-    // miei[2][0] = 0;
+    miei[2][0] = 0;
     miei[2][1] = tcov.syz;
     miei[2][2] = tcov.szz;
     mTrCFVT[mCurHyp][i] = mWeightInv * miei;
@@ -517,7 +519,7 @@ GPUd() void DCAFitterN<N, Args...>::calcResidDerivatives()
         dr2[2] += trDx.d2zdx2;
       }
     } // track over which we differentiate
-  }   // residual being differentiated
+  } // residual being differentiated
 }
 
 //__________________________________________________________________________
@@ -567,7 +569,7 @@ GPUd() void DCAFitterN<N, Args...>::calcResidDerivativesNoErr()
       dr2ji[2] = -trDxi.d2zdx2 * NInv;
 
     } // track over which we differentiate
-  }   // residual being differentiated
+  } // residual being differentiated
 }
 
 //__________________________________________________________________________
@@ -753,7 +755,7 @@ GPUd() void DCAFitterN<N, Args...>::calcTrackResiduals()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline void DCAFitterN<N, Args...>::calcTrackDerivatives()
+GPUdi() void DCAFitterN<N, Args...>::calcTrackDerivatives()
 {
   // calculate track derivatives over X param
   for (int i = N; i--;) {
@@ -763,7 +765,7 @@ GPUd() inline void DCAFitterN<N, Args...>::calcTrackDerivatives()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline double DCAFitterN<N, Args...>::calcChi2() const
+GPUdi() double DCAFitterN<N, Args...>::calcChi2() const
 {
   // calculate current chi2
   double chi2 = 0;
@@ -777,7 +779,7 @@ GPUd() inline double DCAFitterN<N, Args...>::calcChi2() const
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline double DCAFitterN<N, Args...>::calcChi2NoErr() const
+GPUdi() double DCAFitterN<N, Args...>::calcChi2NoErr() const
 {
   // calculate current chi2 of abs. distance minimization
   double chi2 = 0;
@@ -842,7 +844,7 @@ GPUd() bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int icand)
+GPUdi() o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int icand)
 {
   // propagate tracks param only to current vertex (if not already done)
   int ord = mOrder[icand];
@@ -858,7 +860,7 @@ GPUd() inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline double DCAFitterN<N, Args...>::getAbsMax(const VecND& v)
+GPUdi() double DCAFitterN<N, Args...>::getAbsMax(const VecND& v)
 {
   double mx = -1;
   for (int i = N; i--;) {
@@ -902,7 +904,11 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
+#ifndef GPUCA_GPUCODE_DEVICE
       LOG(error) << "InversionFailed";
+#else
+      printf("InversionFailed\n");
+#endif
       return false;
     }
     VecND dx = mD2Chi2Dx2 * mDChi2Dx;
@@ -955,7 +961,11 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
+#ifndef GPUCA_GPUCODE_DEVICE
       LOG(error) << "InversionFailed";
+#else
+      printf("InversionFailed\n");
+#endif
       return false;
     }
     VecND dx = mD2Chi2Dx2 * mDChi2Dx;
@@ -1011,10 +1021,21 @@ GPUd() bool DCAFitterN<N, Args...>::closerToAlternative() const
 template <int N, typename... Args>
 GPUd() void DCAFitterN<N, Args...>::print() const
 {
+#ifndef GPUCA_GPUCODE_DEVICE
   LOG(info) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
   LOG(info) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
   LOG(info) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
   LOG(info) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDZIni;
+#else
+  if (mUseAbsDCA) {
+    printf("%d-prong vertex fitter in abs. distance minimization mode\n", N);
+  } else {
+    printf("%d-prong vertex fitter in weighted distance minimization mode\n", N);
+  }
+  printf("Bz: %1.f MaxIter: %3.d  MaxChi2: %2.3f\n", mBz, mMaxIter, mMaxChi2);
+  printf("Stopping condition: Max.param change < %2.3f Rel.Chi2 change > %2.3f\n", mMinParamChange, mMinRelChi2Change);
+  printf("Discard candidates for : Rvtx > %2.3f DZ between tracks > %2.3f\n", getMaxR(), mMaxDZIni);
+#endif
 }
 
 //___________________________________________________________________
@@ -1075,11 +1096,13 @@ GPUd() o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, float x)
+GPUdi() bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, float x)
 {
   bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
+#ifndef GPUCA_GPUCODE
     res = o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+#endif
   } else {
     res = t.propagateParamTo(x, mBz);
   }
@@ -1091,11 +1114,13 @@ GPUd() inline bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, float x)
+GPUdi() bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, float x)
 {
   bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
+#ifndef GPUCA_GPUCODE
     res = o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+#endif
   } else {
     res = t.propagateTo(x, mBz);
   }
@@ -1107,6 +1132,18 @@ GPUd() inline bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& 
 
 using DCAFitter2 = DCAFitterN<2, o2::track::TrackParCov>;
 using DCAFitter3 = DCAFitterN<3, o2::track::TrackParCov>;
+
+namespace device
+{
+template <typename Fitter>
+void print(const int nBlocks, const int nThreads, Fitter& ft);
+
+template <typename Fitter, class... Tr>
+int process(const int nBlocks, const int nThreads, Fitter&, Tr&... args);
+
+template <class Fitter, class... Tr>
+std::vector<int> processBulk(const int nBlocks, const int nThreads, std::vector<Fitter>& fitters, std::vector<Tr>&... args);
+} // namespace device
 
 } // namespace vertexing
 } // namespace o2

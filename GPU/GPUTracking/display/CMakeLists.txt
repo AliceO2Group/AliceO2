@@ -51,23 +51,27 @@ endif()
 
 set(SRCS ../utils/qsem.cxx
          GPUDisplay.cxx
-         GPUDisplayMagneticField.cxx
-         GPUDisplayFrontend.cxx
-         GPUDisplayBackend.cxx
-         GPUDisplayBackendOpenGL.cxx
-         GPUDisplayFrontendGlfw.cxx)
+         helpers/GPUDisplayMagneticField.cxx
+         frontend/GPUDisplayFrontend.cxx
+         frontend/GPUDisplayFrontendGlfw.cxx
+         backend/GPUDisplayBackend.cxx
+         backend/GPUDisplayBackendOpenGL.cxx)
 
-set(SRCS_NO_H GPUDisplayLoader.cxx
-              GPUDisplayBackendOpenGLMagneticField.cxx
-              GPUDisplayQuaternion.cxx
-              GPUDisplayInterpolation.cxx
-              GPUDisplayKeys.cxx
-              GPUDisplayROOT.cxx)
+set(SRCS_NO_H helpers/GPUDisplayLoader.cxx
+              render/GPUDisplayDraw.cxx
+              render/GPUDisplayImportEvent.cxx
+              helpers/GPUDisplayHelpers.cxx
+              helpers/GPUDisplayAnimation.cxx
+              helpers/GPUDisplayBackendOpenGLMagneticField.cxx
+              helpers/GPUDisplayQuaternion.cxx
+              helpers/GPUDisplayInterpolation.cxx
+              helpers/GPUDisplayROOT.cxx
+              frontend/GPUDisplayKeys.cxx)
 
-set(HDRS_INSTALL GPUDisplayShaders.h)
+set(HDRS_INSTALL shaders/GPUDisplayShaders.h)
 
 if(GPUCA_EVENT_DISPLAY_VULKAN)
-  set(SRCS ${SRCS} GPUDisplayBackendVulkan.cxx)
+  set(SRCS ${SRCS} backend/GPUDisplayBackendVulkan.cxx)
   if(GPUCA_EVENT_DISPLAY_WAYLAND)
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
@@ -94,19 +98,19 @@ if(GPUCA_EVENT_DISPLAY_VULKAN)
       MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
       COMMENT "Preparing Wayland xdg-decoration-protocol.c")
 
-    set_property(SOURCE GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h)
-    set_property(SOURCE GPUDisplayFrontendWayland.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)
+    set_property(SOURCE frontend/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h)
+    set_property(SOURCE frontend/GPUDisplayFrontendWayland.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)
 
-    set(SRCS_NO_H ${SRCS_NO_H} GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c)
+    set(SRCS_NO_H ${SRCS_NO_H} frontend/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c)
   endif()
 endif()
 
 if(X11_FOUND)
-  set(SRCS ${SRCS} GPUDisplayFrontendX11.cxx)
+  set(SRCS ${SRCS} frontend/GPUDisplayFrontendX11.cxx)
 endif()
 
 if(GLUT_FOUND)
-  set(SRCS ${SRCS} GPUDisplayFrontendGlut.cxx)
+  set(SRCS ${SRCS} frontend/GPUDisplayFrontendGlut.cxx)
 endif()
 
 if(GPUCA_EVENT_DISPLAY_QT)
@@ -114,8 +118,8 @@ if(GPUCA_EVENT_DISPLAY_QT)
   set(CMAKE_AUTORCC ON)
   set(CMAKE_AUTOUIC ON)
 
-  set(SRCS ${SRCS} GPUDisplayGUI.cxx GPUDisplayGUIWrapper.cxx)
-  set(SRCS_NO_H ${SRCS_NO_H} GPUDisplayGUI.ui)
+  set(SRCS ${SRCS} frontend/GPUDisplayGUI.cxx frontend/GPUDisplayGUIWrapper.cxx)
+  set(SRCS_NO_H ${SRCS_NO_H} frontend/GPUDisplayGUI.ui)
 endif()
 
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
@@ -136,7 +140,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
           TARGETVARNAME exporterName
           COMPONENT_NAME gpu
           PUBLIC_LINK_LIBRARIES O2::Field O2::GPUTracking Boost::program_options
-          SOURCES tools/field-uniform-exporter.cxx GPUDisplayMagneticField.cxx)
+      SOURCES helpers/field-uniform-exporter.cxx helpers/GPUDisplayMagneticField.cxx)
 
   target_compile_definitions(${exporterName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 endif()
@@ -156,6 +160,7 @@ endif()
 
 message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND}, Qt ${GPUCA_EVENT_DISPLAY_QT})")
 target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL)
+target_include_directories(${targetName} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(X11_FOUND)
   target_link_libraries(${targetName} PRIVATE X11::X11)
@@ -172,7 +177,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
     target_link_libraries(${targetName} PRIVATE glfw)
     target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_GLFW)
   endif()
-  if(CONFIG_GL3W)
+  if(GPUCA_CONFIG_GL3W)
     target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W)
   else()
     target_link_libraries(${targetName} PRIVATE ${GLEW_LIBRARIES})

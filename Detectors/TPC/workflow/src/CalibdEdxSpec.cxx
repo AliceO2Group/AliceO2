@@ -25,9 +25,11 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "TPCCalibration/CalibdEdx.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "TPCBase/CDBInterface.h"
+#include "TPCBase/Utils.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
@@ -69,12 +71,21 @@ class CalibdEdxDevice : public Task
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
-    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TPC", "TIMEGAIN", 0)) {
+      mCalib->setCalibrationInput(*(o2::tpc::CalibdEdxCorrection*)obj);
+      const auto meanParamTot = mCalib->getCalibrationInput().getMeanParams(ChargeType::Tot);
+      LOGP(info, "Updating TimeGain with {} dimensions and mean qTot Params {}", mCalib->getCalibrationInput().getDims(), utils::elementsToString(meanParamTot));
+      return;
+    }
   }
 
   void run(ProcessingContext& pc) final
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    checkUpdates(pc);
     const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
     const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
 
@@ -115,6 +126,15 @@ class CalibdEdxDevice : public Task
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx", 0}, info);
   }
 
+  void checkUpdates(ProcessingContext& pc) const
+  {
+    if (pc.inputs().isValid("tpctimegain")) {
+      pc.inputs().get<o2::tpc::CalibdEdxCorrection*>("tpctimegain");
+    } else {
+      return;
+    }
+  }
+
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   const o2::base::Propagator::MatCorrType mMatType{};
   int mDumpToFile{};
@@ -130,6 +150,8 @@ DataProcessorSpec getCalibdEdxSpec(const o2::base::Propagator::MatCorrType matTy
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   std::vector<InputSpec> inputs{{"tracks", "TPC", "MIPS", Lifetime::Sporadic}};
+  inputs.emplace_back("tpctimegain", "TPC", "TIMEGAIN", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain), {}, 1)); // time-dependent
+
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 false,                          // GRPECS=true
                                                                 false,                          // GRPLHCIF

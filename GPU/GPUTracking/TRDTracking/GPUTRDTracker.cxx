@@ -124,11 +124,29 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
   //--------------------------------------------------------------------
   // Initialise tracker
   //--------------------------------------------------------------------
+
+#ifdef GPUCA_ALIROOT_LIB
+  for (int iCandidate = 0; iCandidate < mNCandidates * 2 * mMaxThreads; ++iCandidate) {
+    new (&mCandidates[iCandidate]) TRDTRK;
+  }
+#endif
+
+  UpdateGeometry();
+
+  mDebug->ExpandVectors();
+  mIsInitialized = true;
+}
+
+template <class TRDTRK, class PROP>
+void GPUTRDTracker_t<TRDTRK, PROP>::UpdateGeometry()
+{
+  //--------------------------------------------------------------------
+  // Update Geometry of TRDTracker
+  //--------------------------------------------------------------------
   mGeo = (TRD_GEOMETRY_CONST GPUTRDGeometry*)GetConstantMem()->calibObjects.trdGeometry;
   if (!mGeo) {
-    GPUError("TRD geometry must be provided externally");
+    GPUFatal("TRD geometry must be provided externally");
   }
-
   float Bz = Param().bzkG;
   float resRPhiIdeal2 = Param().rec.trd.trkltResRPhiIdeal * Param().rec.trd.trkltResRPhiIdeal;
   GPUInfo("Initializing with B-field: %f kG", Bz);
@@ -165,12 +183,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
     mRPhiA2 = 1.f;
   }
 
-#ifdef GPUCA_ALIROOT_LIB
-  for (int iCandidate = 0; iCandidate < mNCandidates * 2 * mMaxThreads; ++iCandidate) {
-    new (&mCandidates[iCandidate]) TRDTRK;
-  }
-#endif
-
   // obtain average radius of TRD chambers
   float x0[kNLayers] = {300.2f, 312.8f, 325.4f, 338.0f, 350.6f, 363.2f}; // used as default value in case no transformation matrix can be obtained
   auto* matrix = mGeo->GetClusterMatrix(0);
@@ -185,9 +197,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
     matrix->LocalToMaster(loc, glb);
     mR[iDet] = glb[0];
   }
-
-  mDebug->ExpandVectors();
-  mIsInitialized = true;
 }
 
 template <class TRDTRK, class PROP>
@@ -283,8 +292,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::StartDebugging()
 {
   mDebug->CreateStreamer();
 }
-
-
 
 #endif //! GPUCA_GPUCODE
 

@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
   double bz = 5.0;
   // 2 prongs vertices
   {
-    LOG(info) << "Processing 2-prong Helix - Helix case";
+    LOG(info) << "\n\nProcessing 2-prong Helix - Helix case";
     std::vector<int> forceQ{1, 1};
 
     o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
@@ -221,17 +221,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    ft.print();
+    // ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
-    meanDAW /= nfoundA ? nfoundA : 1;
+    meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices Helix : Helix";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime() * 1000 << " ms";
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -242,7 +242,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
 
   // 2 prongs vertices with collinear tracks (gamma conversion)
   {
-    LOG(info) << "Processing 2-prong Helix - Helix case gamma conversion";
+    LOG(info) << "\n\nProcessing 2-prong Helix - Helix case gamma conversion";
     std::vector<int> forceQ{1, 1};
 
     o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
@@ -299,17 +299,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    ft.print();
+    // ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
-    meanDAW /= nfoundA ? nfoundA : 1;
+    meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices Helix : Helix from gamma conversion";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime() * 1000 << " ms";
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -321,7 +321,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
   // 2 prongs vertices with one of charges set to 0: Helix : Line
   {
     std::vector<int> forceQ{1, 1};
-    LOG(info) << "Processing 2-prong Helix - Line case";
+    LOG(info) << "\n\nProcessing 2-prong Helix - Line case";
     o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
     ft.setBz(bz);
     ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -377,17 +377,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    ft.print();
+    // ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices: Helix : Line";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime() * 1000 << " ms";
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -399,7 +399,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
   // 2 prongs vertices with both of charges set to 0: Line : Line
   {
     std::vector<int> forceQ{0, 0};
-    LOG(info) << "Processing 2-prong Line - Line case";
+    LOG(info) << "\n\nProcessing 2-prong Line - Line case";
     o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
     ft.setBz(bz);
     ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -454,17 +454,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    ft.print();
+    // ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices: Line : Line";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime() * 1000 << " ms";
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -475,8 +475,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
 
   // 3 prongs vertices
   {
+    LOG(info) << "\n\nProcessing 3-prong vertices";
     std::vector<int> forceQ{1, 1, 1};
-
     o2::vertexing::DCAFitterN<3> ft; // 3 prong fitter
     ft.setBz(bz);
     ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -530,17 +530,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    ft.print();
+    // ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 3-prong vertices";
     LOG(info) << "3-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime() * 1000 << " ms";
     LOG(info) << "3-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime() * 1000 << " ms";
     LOG(info) << "3-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime() * 1000 << " ms";
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);

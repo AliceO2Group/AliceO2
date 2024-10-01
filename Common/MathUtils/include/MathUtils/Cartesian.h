@@ -264,6 +264,18 @@ inline SMatrix<T, D1, D1, MatRepSym<T, D1>> Similarity(const SMatrix<T, D1, D2, 
 {
   return ROOT::Math::Similarity(lhs, rhs);
 }
+#else
+template <class T, unsigned int D>
+GPUdi() T Dot(const SVector<T, D>& lhs, const SVector<T, D>& rhs)
+{
+  return o2::math_utils::detail::Dot(lhs, rhs);
+}
+
+template <class T, unsigned int D1, unsigned int D2, class R>
+GPUdi() SMatrix<T, D1, D1, MatRepSym<T, D1>> Similarity(const SMatrix<T, D1, D2, R>& lhs, const SMatrix<T, D2, D2, MatRepSym<T, D2>>& rhs)
+{
+  return o2::math_utils::detail::Similarity(lhs, rhs);
+}
 #endif // Disable for GPU
 
 } // namespace math_utils

@@ -333,11 +333,14 @@ class MatchGlobalFwd
   std::vector<o2::mft::TrackMFT> mMFTMatchPlaneParams;         ///< MFT track parameters at matching plane
   std::vector<o2::track::TrackParCovFwd> mMCHMatchPlaneParams; ///< MCH track parameters at matching plane
 
+  std::map<int, std::vector<std::pair<float, int>>> mCandidates; ///< map each MCH track id to vector of best match candidates
+
   const o2::itsmft::TopologyDictionary* mMFTDict{nullptr}; // cluster patterns dictionary
   o2::itsmft::ChipMappingMFT mMFTMapping;
   bool mMCTruthON = false;      ///< Flag availability of MC truth
   bool mUseMIDMCHMatch = false; ///< Flag for using MCHMID matches (TrackMCHMID)
-  int mSaveMode = 0;            ///< Output mode [0 = SaveBestMatch; 1 = SaveAllMatches; 2 = SaveTrainingData]
+  int mSaveMode = 0;            ///< Output mode [0 = SaveBestMatch; 1 = SaveAllMatches; 2 = SaveTrainingData; 3 = SaveNCandidates]
+  int mNCandidates = 5;         ///< Numbers of matching candidates to save in savemode=3
   MatchingType mMatchingType = MATCHINGUNDEFINED;
   TGeoManager* mGeoManager;
 };

@@ -61,6 +61,7 @@ class GPUTRDTracker_t : public GPUProcessor
   void SetMaxData(const GPUTrackingInOutPointers& io);
   void RegisterMemoryAllocation();
   void InitializeProcessor();
+  void UpdateGeometry();
   void* SetPointersBase(void* base);
   void* SetPointersTracklets(void* base);
   void* SetPointersTracks(void* base);
@@ -100,8 +101,6 @@ class GPUTRDTracker_t : public GPUProcessor
   };
 
   short MemoryPermanent() const { return mMemoryPermanent; }
-  short MemoryTracklets() const { return mMemoryTracklets; }
-  short MemoryTracks() const { return mMemoryTracks; }
 
   GPUhd() void OverrideGPUGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
   void Reset();
@@ -164,9 +163,9 @@ class GPUTRDTracker_t : public GPUProcessor
   bool mProcessPerTimeFrame;               // if true, tracking is done per time frame instead of on a single events basis
   short mNAngleHistogramBins;              // number of bins per chamber for the angular difference histograms
   float mAngleHistogramRange;              // range of impact angles covered by each histogram
-  short mMemoryPermanent;                  // size of permanent memory for the tracker
-  short mMemoryTracklets;                  // size of memory for TRD tracklets
-  short mMemoryTracks;                     // size of memory for tracks (used for i/o)
+  short mMemoryPermanent;                  // memory id of permanent memory for the tracker
+  short mMemoryTracklets;                  // memory id of memory for TRD tracklets
+  short mMemoryTracks;                     // memory id of memory for tracks (used for i/o)
   int mNMaxCollisions;                     // max number of collisions to process (per time frame)
   int mNMaxTracks;                         // max number of tracks the tracker can handle (per event)
   int mNMaxSpacePoints;                    // max number of space points hold by the tracker (per event)

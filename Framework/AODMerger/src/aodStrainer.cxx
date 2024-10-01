@@ -98,6 +98,10 @@ int main(int argc, char* argv[])
   auto outputFile = TFile::Open(outputFileName.c_str(), "RECREATE", "", 505);
   TDirectory* outputDir = nullptr;
   TString line(inputAO2D.c_str());
+  if (line.BeginsWith("alien://") && !gGrid && !TGrid::Connect("alien:")) {
+    printf("Error: Could not connect to AliEn.\n");
+    return -1;
+  }
   printf("Processing input file: %s\n", line.Data());
   auto inputFile = TFile::Open(line);
   if (!inputFile) {

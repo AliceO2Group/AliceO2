@@ -11,6 +11,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <numeric>
+#include <vector>
 #include <string>
 #include <string_view>
 
@@ -27,7 +28,9 @@
 using namespace o2::tpc;
 using namespace o2::tpc::cru_calib_helpers;
 
-void preparePedestalFiles(const std::string_view pedestalFile, std::string outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false, bool maskBad = true, float noisyChannelThreshold = 1.5, float sigmaNoiseNoisyChannels = 4, float badChannelThreshold = 6)
+/// \param sigmaNoiseROCType can be either one value for all ROC types, or {IROC, OROC}, or {IROC, OROC1, OROC2, OROC3}
+/// \param minADCROCType can be either one value for all ROC types, or {IROC, OROC}, or {IROC, OROC1, OROC2, OROC3}
+void preparePedestalFiles(const std::string_view pedestalFile, std::string outputDir = "./", std::vector<float> sigmaNoiseROCType = {3}, std::vector<float> minADCROCType = {2}, float pedestalOffset = 0, bool onlyFilled = false, bool maskBad = true, float noisyChannelThreshold = 1.5, float sigmaNoiseNoisyChannels = 4, float badChannelThreshold = 6)
 {
   const auto& mapper = Mapper::instance();
 
@@ -62,7 +65,7 @@ void preparePedestalFiles(const std::string_view pedestalFile, std::string outpu
   DataMapU32 pedestalValuesPhysics;
   DataMapU32 thresholdlValuesPhysics;
 
-  auto pedestalsThreshold = preparePedestalFiles(*calPedestal, *calNoise, sigmaNoise, minADC, pedestalOffset, onlyFilled, maskBad, noisyChannelThreshold, sigmaNoiseNoisyChannels, badChannelThreshold);
+  auto pedestalsThreshold = preparePedestalFiles(*calPedestal, *calNoise, sigmaNoiseROCType, minADCROCType, pedestalOffset, onlyFilled, maskBad, noisyChannelThreshold, sigmaNoiseNoisyChannels, badChannelThreshold);
 
   // ===| prepare values |===
   for (size_t iroc = 0; iroc < calPedestal->getData().size(); ++iroc) {

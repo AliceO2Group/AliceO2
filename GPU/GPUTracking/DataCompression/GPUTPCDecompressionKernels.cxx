@@ -28,7 +28,7 @@ GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::ste
   CompressedClusters& GPUrestrict() cmprClusters = decompressor.mInputGPU;
   const GPUParam& GPUrestrict() param = processors.param;
 
-  const unsigned int maxTime = (param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
+  const unsigned int maxTime = (param.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
 
   for (int i = trackStart + get_global_id(0); i < trackEnd; i += get_global_size(0)) {
     decompressTrack(cmprClusters, param, maxTime, i, decompressor.mAttachedClustersOffsets[i], decompressor);
@@ -85,7 +85,7 @@ GPUdii() void GPUTPCDecompressionKernels::decompressTrack(CompressedClusters& cm
           pad = param.tpcGeometry.NPads(row) * ClusterNative::scalePadPacked - 1;
         }
       }
-      if (param.par.continuousMaxTimeBin > 0 && time >= maxTime) {
+      if (param.continuousMaxTimeBin > 0 && time >= maxTime) {
         if (time >= 0xFFFFFF - 544768) { // Constant 544768 = (2^23 - LHCMAXBUNCHES(3564) * MAXORBITS(256) * scaleTimePacked(64) / BCPERTIMEBIN(8)) / 2)
           time = 0;
         } else {
@@ -152,8 +152,8 @@ GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::ste
         if (t < 0) {
           t = 0;
         }
-        if (processors.param.par.continuousMaxTimeBin > 0 && t > processors.param.par.continuousMaxTimeBin) {
-          t = processors.param.par.continuousMaxTimeBin;
+        if (processors.param.continuousMaxTimeBin > 0 && t > processors.param.continuousMaxTimeBin) {
+          t = processors.param.continuousMaxTimeBin;
         }
         cl.setTime(t);
       }

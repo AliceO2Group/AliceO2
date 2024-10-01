@@ -529,12 +529,72 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
       } },
     .kind = ServiceKind::Global};
 }
+struct DecongestionContext {
+  ServiceRegistryRef ref;
+  TimesliceIndex::OldestOutputInfo oldestPossibleOutput;
+};
+
+auto decongestionCallback = [](AsyncTask& task, size_t id) -> void {
+  auto& oldestPossibleOutput = task.user<DecongestionContext>().oldestPossibleOutput;
+  auto& ref = task.user<DecongestionContext>().ref;
+
+  auto& decongestion = ref.get<DecongestionService>();
+  auto& proxy = ref.get<FairMQDeviceProxy>();
+
+  O2_SIGNPOST_ID_GENERATE(cid, async_queue);
+  cid.value = id;
+  if (decongestion.lastTimeslice >= oldestPossibleOutput.timeslice.value) {
+    O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice", "Not sending already sent value: %" PRIu64 "> %" PRIu64,
+                           decongestion.lastTimeslice, (uint64_t)oldestPossibleOutput.timeslice.value);
+    return;
+  }
+  O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice", "Running oldest possible timeslice %" PRIu64 " propagation.",
+                         (uint64_t)oldestPossibleOutput.timeslice.value);
+  DataProcessingHelpers::broadcastOldestPossibleTimeslice(ref, oldestPossibleOutput.timeslice.value);
+
+  for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+    auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+    auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+    // TODO: this we could cache in the proxy at the bind moment.
+    if (info.channelType != ChannelAccountingType::DPL) {
+      O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice", "Skipping channel %{public}s", info.name.c_str());
+      continue;
+    }
+    if (DataProcessingHelpers::sendOldestPossibleTimeframe(ref, info, state, oldestPossibleOutput.timeslice.value)) {
+      O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice",
+                             "Forwarding to channel %{public}s oldest possible timeslice %" PRIu64 ", priority %d",
+                             info.name.c_str(), (uint64_t)oldestPossibleOutput.timeslice.value, 20);
+    }
+  }
+  decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
+};
+
+auto decongestionCallbackOrdered = [](AsyncTask& task, size_t id) -> void {
+  auto& oldestPossibleOutput = task.user<DecongestionContext>().oldestPossibleOutput;
+  auto& ref = task.user<DecongestionContext>().ref;
+
+  auto& decongestion = ref.get<DecongestionService>();
+  auto& state = ref.get<DeviceState>();
+  auto& timesliceIndex = ref.get<TimesliceIndex>();
+  O2_SIGNPOST_ID_GENERATE(cid, async_queue);
+  int64_t oldNextTimeslice = decongestion.nextTimeslice;
+  decongestion.nextTimeslice = std::max(decongestion.nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
+  if (oldNextTimeslice != decongestion.nextTimeslice) {
+    if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
+      O2_SIGNPOST_EVENT_EMIT_WARN(async_queue, cid, "oldest_possible_timeslice", "Stop transition requested. Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+    } else {
+      O2_SIGNPOST_EVENT_EMIT_ERROR(async_queue, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+    }
+    timesliceIndex.rescan();
+  }
+};
 
 // Decongestion service
 // If we do not have any Timeframe input, it means we must be creating timeslices
 // in order and that we should propagate the oldest possible timeslice at the end
 // of each processing step.
-o2::framework::ServiceSpec CommonServices::decongestionSpec()
+o2::framework::ServiceSpec
+  CommonServices::decongestionSpec()
 {
   return ServiceSpec{
     .name = "decongestion",
@@ -548,7 +608,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         }
       }
       auto& queue = services.get<AsyncQueue>();
-      decongestion->oldestPossibleTimesliceTask = AsyncQueueHelpers::create(queue, {"oldest-possible-timeslice", 100});
+      decongestion->oldestPossibleTimesliceTask = AsyncQueueHelpers::create(queue, {.name = "oldest-possible-timeslice", .score = 100});
       return ServiceHandle{TypeIdHelpers::uniqueId<DecongestionService>(), decongestion, ServiceKind::Serial};
     },
     .postForwarding = [](ProcessingContext& ctx, void* service) {
@@ -590,7 +650,12 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         decongestion->nextTimeslice = std::max(decongestion->nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
         O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Next timeslice %" PRIi64, decongestion->nextTimeslice);
         if (oldNextTimeslice != decongestion->nextTimeslice) {
-          O2_SIGNPOST_EVENT_EMIT_ERROR(data_processor_context, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+          auto& state = ctx.services().get<DeviceState>();
+          if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
+            O2_SIGNPOST_EVENT_EMIT_WARN(data_processor_context, cid, "oldest_possible_timeslice", "Stop transition requested. Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+          } else {
+            O2_SIGNPOST_EVENT_EMIT_ERROR(data_processor_context, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+          }
           timesliceIndex.rescan();
         }
       }
@@ -627,7 +692,6 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       auto& decongestion = services.get<DecongestionService>();
       auto& relayer = services.get<DataRelayer>();
       auto& timesliceIndex = services.get<TimesliceIndex>();
-      auto& proxy = services.get<FairMQDeviceProxy>();
       O2_SIGNPOST_ID_FROM_POINTER(cid, data_processor_context, &decongestion);
       O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Received oldest possible timeframe %" PRIu64 " from channel %d",
                              (uint64_t)oldestPossibleTimeslice, channel.value);
@@ -644,55 +708,23 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
              oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
         return;
       }
-      auto &queue = services.get<AsyncQueue>();
-      auto& spec = services.get<DeviceSpec const>();
-      auto *device = services.get<RawDeviceService>().device();
+      auto& queue = services.get<AsyncQueue>();
+      const auto& state = services.get<DeviceState>();
       /// We use the oldest possible timeslice to debounce, so that only the latest one
       /// at the end of one iteration is sent.
       O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Queueing oldest possible timeslice %" PRIu64 " propagation for execution.",
                              (uint64_t)oldestPossibleOutput.timeslice.value);
       AsyncQueueHelpers::post(
-        queue, decongestion.oldestPossibleTimesliceTask, [ref = services, oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex](size_t id) {
-          O2_SIGNPOST_ID_GENERATE(cid, async_queue);
-          cid.value = id;
-          if (decongestion.lastTimeslice >= oldestPossibleOutput.timeslice.value) {
-            O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice", "Not sending already sent value: %" PRIu64 "> %" PRIu64,
-                decongestion.lastTimeslice, (uint64_t)oldestPossibleOutput.timeslice.value);
-            return;
-          }
-          O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice", "Running oldest possible timeslice %" PRIu64 " propagation.",
-                                 (uint64_t)oldestPossibleOutput.timeslice.value);
-          DataProcessingHelpers::broadcastOldestPossibleTimeslice(ref, oldestPossibleOutput.timeslice.value);
+        queue, AsyncTask{ .timeslice = TimesliceId{oldestPossibleTimeslice}, 
+                .id = decongestion.oldestPossibleTimesliceTask, 
+                .debounce = -1, .callback = decongestionCallback}
+            .user<DecongestionContext>(DecongestionContext{.ref = services, .oldestPossibleOutput = oldestPossibleOutput}));
 
-          for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
-            auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
-            auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
-            // TODO: this we could cache in the proxy at the bind moment.
-            if (info.channelType != ChannelAccountingType::DPL) {
-              O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice", "Skipping channel %{public}s", info.name.c_str());
-              continue;
-            }
-            if (DataProcessingHelpers::sendOldestPossibleTimeframe(ref, info, state, oldestPossibleOutput.timeslice.value)) {
-              O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice",
-                                     "Forwarding to channel %{public}s oldest possible timeslice %" PRIu64 ", priority %d",
-                                     info.name.c_str(), (uint64_t)oldestPossibleOutput.timeslice.value, 20);
-            }
-          }
-          decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
-        },
-        TimesliceId{oldestPossibleTimeslice}, -1);
       if (decongestion.orderedCompletionPolicyActive) {
         AsyncQueueHelpers::post(
-          queue, decongestion.oldestPossibleTimesliceTask, [ref = services, oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex](size_t id) {
-            O2_SIGNPOST_ID_GENERATE(cid, async_queue);
-            int64_t oldNextTimeslice = decongestion.nextTimeslice;
-            decongestion.nextTimeslice = std::max(decongestion.nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
-            if (oldNextTimeslice != decongestion.nextTimeslice) {
-              O2_SIGNPOST_EVENT_EMIT_ERROR(async_queue, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
-              timesliceIndex.rescan();
-            }
-        },
-        TimesliceId{oldestPossibleOutput.timeslice.value}, -1);
+          queue, AsyncTask{.timeslice = TimesliceId{oldestPossibleOutput.timeslice.value},.id = decongestion.oldestPossibleTimesliceTask,  .debounce = -1, 
+          .callback = decongestionCallbackOrdered}
+          .user<DecongestionContext>({.ref = services, .oldestPossibleOutput = oldestPossibleOutput}));
       } },
     .kind = ServiceKind::Serial};
 }

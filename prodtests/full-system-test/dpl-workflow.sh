@@ -360,7 +360,7 @@ fi
 # Start of workflow command generation
 
 WORKFLOW= # Make sure we start with an empty workflow
-[[ "${GEN_TOPO_ONTHEFLY:-}" == "1" ]] && WORKFLOW="echo '{}' | "
+[[ "${GEN_TOPO_ONTHEFLY:-}" == "1" ]] && WORKFLOW="echo '{}' | " # When running in a pseudo terminal / with ODC, sometimes we have bogus stdin file descriptors
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Input workflow

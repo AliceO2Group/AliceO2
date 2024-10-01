@@ -139,6 +139,12 @@ class MCTrackT
     }
   }
 
+  Double_t GetTgl() const
+  {
+    auto pT = GetPt();
+    return pT > 1e-6 ? mStartVertexMomentumZ / pT : (GetStartVertexMomentumZ() > 0 ? 999. : -999.);
+  }
+
   Double_t GetTheta() const
   {
     double mz(mStartVertexMomentumZ);
