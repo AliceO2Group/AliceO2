@@ -16,6 +16,7 @@
 
 #include "TPCCalibration/CorrectdEdxDistortions.h"
 #include "TPCFastTransform.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 o2::tpc::CorrectdEdxDistortions::~CorrectdEdxDistortions() = default;
 
