@@ -560,8 +560,8 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
   const char* nBlocksEnvVarName = "DCAFITTERGPU_TEST_NBLOCKS";
   const char* nBatchesEnvVarName = "DCAFITTERGPU_TEST_NBATCHES";
   const char* nTestsEnvVarName = "DCAFITTERGPU_TEST_NTESTS";
-  int nBlocks = std::getenv(nThreadsEnvVarName) == nullptr ? 30 : std::stoi(std::getenv(nThreadsEnvVarName));
-  int nThreads = std::getenv(nBlocksEnvVarName) == nullptr ? 256 : std::stoi(std::getenv(nBlocksEnvVarName));
+  int nBlocks = std::getenv(nBlocksEnvVarName) == nullptr ? 30 : std::stoi(std::getenv(nBlocksEnvVarName));
+  int nThreads = std::getenv(nThreadsEnvVarName) == nullptr ? 256 : std::stoi(std::getenv(nThreadsEnvVarName));
   int nBatches = std::getenv(nBatchesEnvVarName) == nullptr ? 8 : std::stoi(std::getenv(nBatchesEnvVarName));
   int NTest = std::getenv(nTestsEnvVarName) == nullptr ? 100001 : std::stoi(std::getenv(nTestsEnvVarName));
 
