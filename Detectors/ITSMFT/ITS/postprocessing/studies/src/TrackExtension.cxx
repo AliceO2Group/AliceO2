@@ -60,13 +60,10 @@ class TrackExtensionStudy : public Task
  public:
   TrackExtensionStudy(std::shared_ptr<DataRequest> dr,
                       mask_t src,
-                      bool useMC,
                       std::shared_ptr<o2::steer::MCKinematicsReader> kineReader,
                       std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mTracksSrc(src), mKineReader(kineReader), mGGCCDBRequest(gr)
   {
-    if (useMC) {
-      LOGP(info, "Read MCKine reader with {} sources", mKineReader->getNSources());
-    }
+    LOGP(info, "Read MCKine reader with {} sources", mKineReader->getNSources());
   }
 
   ~TrackExtensionStudy() final = default;
@@ -455,12 +452,12 @@ void TrackExtensionStudy::endOfStream(EndOfStreamContext& ec)
   mStream->Close();
 }
 
-DataProcessorSpec getTrackExtensionStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
+DataProcessorSpec getTrackExtensionStudy(mask_t srcTracksMask, mask_t srcClustersMask, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
-  dataRequest->requestTracks(srcTracksMask, useMC);
-  dataRequest->requestClusters(srcClustersMask, useMC);
+  dataRequest->requestTracks(srcTracksMask, true);
+  dataRequest->requestClusters(srcClustersMask, true);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
@@ -475,7 +472,7 @@ DataProcessorSpec getTrackExtensionStudy(mask_t srcTracksMask, mask_t srcCluster
     "its-study-track-extension",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackExtensionStudy>(dataRequest, srcTracksMask, useMC, kineReader, ggRequest)},
+    AlgorithmSpec{adaptFromTask<TrackExtensionStudy>(dataRequest, srcTracksMask, kineReader, ggRequest)},
     Options{{"with-tree", o2::framework::VariantType::Bool, false, {"Produce in addition a tree"}}}};
 }
 
