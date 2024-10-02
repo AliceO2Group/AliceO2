@@ -24,6 +24,7 @@
 #include "CalibdEdxContainer.h"
 #include "CorrectionMapsHelper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "TPCCalibration/CorrectdEdxDistortions.h"
 
 #include <vector>
 
@@ -55,6 +56,7 @@ enum class CorrectionFlags : unsigned short {
   GainFull = 1 << 2,       ///< flag for full gain map from calibration container
   GainResidual = 1 << 3,   ///< flag for residuals gain map from calibration container
   dEdxResidual = 1 << 4,   ///< flag for residual dEdx correction
+  dEdxSC = 1 << 5,         ///< flag for space-charge dEdx correction
 };
 
 enum class ClusterFlags : unsigned short {
@@ -64,6 +66,7 @@ enum class ClusterFlags : unsigned short {
   ExcludeEdgeCl = 1 << 2,           ///< flag to exclude sector edge clusters in dEdx calculation
   ExcludeSubthresholdCl = 1 << 3,   ///< flag to exclude subthreshold clusters in dEdx calculation
   ExcludeSectorBoundaries = 1 << 4, ///< flag to exclude sector boundary clusters in subthreshold cluster treatment
+  ExcludeSharedCl = 1 << 5,         ///< flag to exclude clusters shared between tracks
 };
 
 inline CorrectionFlags operator&(CorrectionFlags a, CorrectionFlags b) { return static_cast<CorrectionFlags>(static_cast<unsigned short>(a) & static_cast<unsigned short>(b)); }
@@ -110,6 +113,9 @@ class CalculatedEdx
 
   /// set the debug streamer
   void setStreamer(const char* debugRootFile) { mStreamer = std::make_unique<o2::utils::TreeStreamRedirector>(debugRootFile, "recreate"); };
+
+  /// set the debug streamer of the space-charge dedx correction
+  void setSCStreamer(const char* debugRootFile = "debug_sc_corrections.root") { mSCdEdxCorrection.setStreamer(debugRootFile); }
 
   /// \return returns magnetic field in kG
   float getFieldNominalGPUBz() { return mFieldNominalGPUBz; }
@@ -160,7 +166,8 @@ class CalculatedEdx
 
   /// load calibration objects from CCDB
   /// \param runNumberOrTimeStamp run number or time stamp
-  void loadCalibsFromCCDB(long runNumberOrTimeStamp);
+  /// \param isMC set if dEdx space-charge corrections will be loaded for MC or real data
+  void loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC = false);
 
   /// load calibration objects from local CCDB folder
   /// \param localCCDBFolder local CCDB folder
@@ -208,6 +215,15 @@ class CalculatedEdx
   /// \param object name of the object to load
   void setPropagatorFromFile(const char* folder, const char* file, const char* object);
 
+  /// \param lumi set luminosity for space-charge correction map scaling
+  void setLumi(const float lumi) { mSCdEdxCorrection.setLumi(lumi); }
+
+  /// \return returns space-charge dedx correctin
+  auto& getSCCorrection() { return mSCdEdxCorrection; }
+
+  /// \return returns cluster occupancy for given cluster
+  unsigned int getOccupancy(const o2::tpc::ClusterNative& cl) const;
+
  private:
   std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed
   std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};    ///< input vector with TPC tracks cluster indicies
@@ -228,6 +244,8 @@ class CalculatedEdx
 
   std::array<std::vector<float>, 5> mChargeTotROC;
   std::array<std::vector<float>, 5> mChargeMaxROC;
+
+  CorrectdEdxDistortions mSCdEdxCorrection; ///< for space-charge correction of dE/dx
 };
 
 } // namespace o2::tpc
