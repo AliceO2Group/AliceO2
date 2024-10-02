@@ -101,12 +101,22 @@ class TrackExtensionStudy : public Task
   bool mWithTree{false};
 
   std::unique_ptr<TH1D> mHTrackCounts;
-  std::unique_ptr<TH1D> mHClustersCounts;
   std::unique_ptr<TH1D> mHLengthAny, mHLengthGood, mHLengthFake;
   std::unique_ptr<TH1D> mHChi2Any, mHChi2Good, mHChi2Fake;
   std::unique_ptr<TH1D> mHPtAny, mHPtGood, mHPtFake;
   std::unique_ptr<TH1D> mHExtensionAny, mHExtensionGood, mHExtensionFake;
-  std::unique_ptr<TH2D> mHExtensionPatternsAny, mHExtensionPatternsGood, mHExtensionPatternsFake;
+  std::unique_ptr<TH2D> mHExtensionPatternsAny, mHExtensionPatternsGood, mHExtensionPatternsFake, mHExtensionPatternsGoodMissed, mHExtensionPatternsGoodEmpty;
+  ;
+
+  template <class T, typename... C, typename... F>
+  std::unique_ptr<T> createHistogram(C... n, F... b)
+  {
+    auto t = std::make_unique<T>(n..., b...);
+    mHistograms.push_back(static_cast<TH1*>(t.get()));
+    return std::move(t);
+  }
+
+  std::vector<TH1*> mHistograms;
 };
 
 void TrackExtensionStudy::init(InitContext& ic)
@@ -120,7 +130,7 @@ void TrackExtensionStudy::init(InitContext& ic)
   auto xbins = helpers::makeLogBinning(effHistBins, effPtCutLow, effPtCutHigh);
 
   // Track Counting
-  mHTrackCounts = std::make_unique<TH1D>("hTrackCounts", "Track Stats", 10, 0, 10);
+  mHTrackCounts = createHistogram<TH1D>("hTrackCounts", "Track Stats", 10, 0, 10);
   mHTrackCounts->GetXaxis()->SetBinLabel(1, "Total Tracks");
   mHTrackCounts->GetXaxis()->SetBinLabel(2, "Normal ANY Tracks");
   mHTrackCounts->GetXaxis()->SetBinLabel(3, "Normal GOOD Tracks");
@@ -132,49 +142,49 @@ void TrackExtensionStudy::init(InitContext& ic)
   mHTrackCounts->GetXaxis()->SetBinLabel(9, "Extended FAKE AFTER Tracks");
   mHTrackCounts->GetXaxis()->SetBinLabel(10, "Extended FAKE BEFORE&AFTER Tracks");
 
-  // Cluster Counting
-  mHClustersCounts = std::make_unique<TH1D>("hClusterCounts", "Cluster Stats", 5, 0, 5);
-  mHClustersCounts->GetXaxis()->SetBinLabel(1, "Total Clusters");
-  mHClustersCounts->GetXaxis()->SetBinLabel(2, "Tracking");
-  mHClustersCounts->GetXaxis()->SetBinLabel(3, "Extension");
-  mHClustersCounts->GetXaxis()->SetBinLabel(4, "Good Extension");
-  mHClustersCounts->GetXaxis()->SetBinLabel(5, "Fake Extension");
-
   // Length
-  mHLengthAny = std::make_unique<TH1D>("hLengthAny", "Extended Tracks Length (ANY);NCluster;Entries", 5, 3, 8);
-  mHLengthGood = std::make_unique<TH1D>("hLengthGood", "Extended Tracks Length (GOOD);NCluster;Entries", 5, 3, 8);
-  mHLengthFake = std::make_unique<TH1D>("hLengthFake", "Extended Tracks Length (FAKE);NCluster;Entries", 5, 3, 8);
+  mHLengthAny = createHistogram<TH1D>("hLengthAny", "Extended Tracks Length (ANY);NCluster;Entries", 5, 3, 8);
+  mHLengthGood = createHistogram<TH1D>("hLengthGood", "Extended Tracks Length (GOOD);NCluster;Entries", 5, 3, 8);
+  mHLengthFake = createHistogram<TH1D>("hLengthFake", "Extended Tracks Length (FAKE);NCluster;Entries", 5, 3, 8);
 
   // Chi2
-  mHChi2Any = std::make_unique<TH1D>("hChi2Any", "Extended Tracks Length (ANY);#chi^{2};Entries", 50, 0, 100);
-  mHChi2Good = std::make_unique<TH1D>("hChi2Good", "Extended Tracks Length (GOOD);#chi^{2};Entries", 50, 0, 100);
-  mHChi2Fake = std::make_unique<TH1D>("hChi2Fake", "Extended Tracks Length (FAKE);#chi^{2};Entries", 50, 0, 100);
+  mHChi2Any = createHistogram<TH1D>("hChi2Any", "Extended Tracks Length (ANY);#chi^{2};Entries", 50, 0, 100);
+  mHChi2Good = createHistogram<TH1D>("hChi2Good", "Extended Tracks Length (GOOD);#chi^{2};Entries", 50, 0, 100);
+  mHChi2Fake = createHistogram<TH1D>("hChi2Fake", "Extended Tracks Length (FAKE);#chi^{2};Entries", 50, 0, 100);
 
   // Pt
-  mHPtAny = std::make_unique<TH1D>("hPtAny", "Extended Tracks Length (ANY);#it{p}_{T};Entries", xbins.size(), effPtCutLow, effPtCutHigh);
-  mHPtGood = std::make_unique<TH1D>("hPtGood", "Extended Tracks Length (GOOD);#it{p}_{T};Entries", xbins.size(), effPtCutLow, effPtCutHigh);
-  mHPtFake = std::make_unique<TH1D>("hPtFake", "Extended Tracks Length (FAKE);#it{p}_{T};Entries", xbins.size(), effPtCutLow, effPtCutHigh);
+  mHPtAny = createHistogram<TH1D>("hPtAny", "Extended Tracks Length (ANY);#it{p}_{T};Entries", xbins.size(), effPtCutLow, effPtCutHigh);
+  mHPtGood = createHistogram<TH1D>("hPtGood", "Extended Tracks Length (GOOD);#it{p}_{T};Entries", xbins.size(), effPtCutLow, effPtCutHigh);
+  mHPtFake = createHistogram<TH1D>("hPtFake", "Extended Tracks Length (FAKE);#it{p}_{T};Entries", xbins.size(), effPtCutLow, effPtCutHigh);
 
   // Length
-  mHExtensionAny = std::make_unique<TH1D>("hExtensionAny", "Extended Tracks Length (ANY);Extended Layer;Entries", 7, 0, 7);
-  mHExtensionGood = std::make_unique<TH1D>("hExtensionGood", "Extended Tracks Length (GOOD);Extended Layer;Entries", 7, 0, 7);
-  mHExtensionFake = std::make_unique<TH1D>("hExtensionFake", "Extended Tracks Length (FAKE);Extended Layer;Entries", 7, 0, 7);
+  mHExtensionAny = createHistogram<TH1D>("hExtensionAny", "Extended Tracks Length (ANY);Extended Layer;Entries", 7, 0, 7);
+  mHExtensionGood = createHistogram<TH1D>("hExtensionGood", "Extended Tracks Length (GOOD);Extended Layer;Entries", 7, 0, 7);
+  mHExtensionFake = createHistogram<TH1D>("hExtensionFake", "Extended Tracks Length (FAKE);Extended Layer;Entries", 7, 0, 7);
 
   // Patterns
-  auto makePatternAxisLabels = [&](TH1* h) {
+  auto makePatternAxisLabels = [&](TH1* h, bool xBefore = true) {
     for (int i{1}; i <= h->GetXaxis()->GetNbins(); ++i) {
-      h->GetXaxis()->SetBinLabel(i, fmt::format("{:07b}", mBitPatternsBefore[i - 1]).c_str());
+      if (xBefore) {
+        h->GetXaxis()->SetBinLabel(i, fmt::format("{:07b}", mBitPatternsBefore[i - 1]).c_str());
+      } else {
+        h->GetXaxis()->SetBinLabel(i, fmt::format("{:07b}", mBitPatternsAfter[i - 1]).c_str());
+      }
     }
     for (int i{1}; i <= h->GetYaxis()->GetNbins(); ++i) {
       h->GetYaxis()->SetBinLabel(i, fmt::format("{:07b}", mBitPatternsAfter[i - 1]).c_str());
     }
   };
-  mHExtensionPatternsAny = std::make_unique<TH2D>("hExtensionPatternsAny", "Extended Tracks Pattern (ANY);Before;After;Entries", mBitPatternsBefore.size(), 0, mBitPatternsBefore.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
+  mHExtensionPatternsAny = createHistogram<TH2D>("hExtensionPatternsAny", "Extended Tracks Pattern (ANY);Before;After;Entries", mBitPatternsBefore.size(), 0, mBitPatternsBefore.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
   makePatternAxisLabels(mHExtensionPatternsAny.get());
-  mHExtensionPatternsGood = std::make_unique<TH2D>("hExtensionPatternsGood", "Extended Tracks Pattern (GOOD);Before;After;Entries", mBitPatternsBefore.size(), 0, mBitPatternsBefore.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
+  mHExtensionPatternsGood = createHistogram<TH2D>("hExtensionPatternsGood", "Extended Tracks Pattern (GOOD);Before;After;Entries", mBitPatternsBefore.size(), 0, mBitPatternsBefore.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
   makePatternAxisLabels(mHExtensionPatternsGood.get());
-  mHExtensionPatternsFake = std::make_unique<TH2D>("hExtensionPatternsFake", "Extended Tracks Pattern (FAKE);Before;After;Entries", mBitPatternsBefore.size(), 0, mBitPatternsBefore.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
+  mHExtensionPatternsFake = createHistogram<TH2D>("hExtensionPatternsFake", "Extended Tracks Pattern (FAKE);Before;After;Entries", mBitPatternsBefore.size(), 0, mBitPatternsBefore.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
   makePatternAxisLabels(mHExtensionPatternsFake.get());
+  mHExtensionPatternsGoodMissed = createHistogram<TH2D>("hExtensionPatternsGoodMissed", "Extended Tracks Pattern (GOOD) Missed Clusters;After;Missed;Entries", mBitPatternsAfter.size(), 0, mBitPatternsAfter.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
+  makePatternAxisLabels(mHExtensionPatternsGoodMissed.get(), false);
+  mHExtensionPatternsGoodEmpty = createHistogram<TH2D>("hExtensionPatternsGoodEmpty", "Extended Tracks Pattern (GOOD) Empty Clusters;Before;After;Entries", mBitPatternsAfter.size(), 0, mBitPatternsAfter.size(), mBitPatternsAfter.size(), 0, mBitPatternsAfter.size());
+  makePatternAxisLabels(mHExtensionPatternsGoodEmpty.get(), false);
 
   mStream = std::make_unique<utils::TreeStreamRedirector>(mOutFileName.c_str(), "RECREATE");
 }
@@ -191,8 +201,6 @@ void TrackExtensionStudy::run(ProcessingContext& pc)
   mClusters = recoData.getITSClusters();
   mClustersMCLCont = recoData.getITSClustersMCLabels();
   mInputITSidxs = recoData.getITSTracksClusterRefs();
-
-  mHClustersCounts->SetBinContent(1, mClusters.size());
 
   LOGP(info, "** Found in {} rofs:\n\t- {} clusters with {} labels\n\t- {} tracks with {} labels",
        mTracksROFRecords.size(), mClusters.size(), mClustersMCLCont->getIndexedSize(), mTracks.size(), mTracksMCLabels.size());
@@ -302,6 +310,7 @@ void TrackExtensionStudy::process()
       continue;
     }
     const auto& trk = part.track;
+    bool isGood = part.isReco && !part.isFake;
     mHTrackCounts->Fill(0);
 
     std::bitset<7> extPattern{0};
@@ -321,25 +330,11 @@ void TrackExtensionStudy::process()
       continue;
     }
 
-    if (mWithTree) {
-      std::array<float, 3> xyz{(float)part.mcTrack.GetStartVertexCoordinatesX(), (float)part.mcTrack.GetStartVertexCoordinatesY(), (float)part.mcTrack.GetStartVertexCoordinatesZ()};
-      std::array<float, 3> pxyz{(float)part.mcTrack.GetStartVertexMomentumX(), (float)part.mcTrack.GetStartVertexMomentumY(), (float)part.mcTrack.GetStartVertexMomentumZ()};
-      auto pdg = O2DatabasePDG::Instance()->GetParticle(part.pdg);
-      if (pdg == nullptr) {
-        LOGP(fatal, "MC info not available");
-      }
-      auto mcTrk = o2::track::TrackPar(xyz, pxyz, TMath::Nint(pdg->Charge() / 3.), true);
-      (*mStream) << "tree"
-                 << "trk=" << trk
-                 << "mcTrk=" << mcTrk
-                 << "\n";
-    }
-
     mHTrackCounts->Fill(4);
     mHLengthAny->Fill(trk.getNClusters());
     mHChi2Any->Fill(trk.getChi2());
     mHPtAny->Fill(trk.getPt());
-    if (part.isReco || !part.isFake) {
+    if (isGood) {
       mHTrackCounts->Fill(5);
       mHLengthGood->Fill(trk.getNClusters());
       mHChi2Good->Fill(trk.getChi2());
@@ -356,26 +351,21 @@ void TrackExtensionStudy::process()
       if (extPattern.test(iLayer)) {
         extPattern.set(iLayer);
         mHExtensionAny->Fill(iLayer);
-        if (part.isReco || !part.isFake) {
+        if (isGood) {
           mHExtensionGood->Fill(iLayer);
         } else {
           mHExtensionFake->Fill(iLayer);
         }
-
-        if ((part.fakeClusters & (0x1 << iLayer)) == 0) {
-          mHClustersCounts->Fill(4);
-        } else {
-          mHClustersCounts->Fill(5);
-        }
       }
     }
-    std::bitset<7> oldPattern{clusPattern & ~extPattern};
+    std::bitset<7> oldPattern{clusPattern & ~extPattern}, holePattern{clusPattern};
+    holePattern.flip();
     auto clusN = clusPattern.to_ulong();
     auto clusIdx = std::distance(std::begin(mBitPatternsAfter), std::find(std::begin(mBitPatternsAfter), std::end(mBitPatternsAfter), clusN));
     auto oldN = oldPattern.to_ulong();
     auto oldIdx = std::distance(std::begin(mBitPatternsBefore), std::find(std::begin(mBitPatternsBefore), std::end(mBitPatternsBefore), oldN));
     mHExtensionPatternsAny->Fill(oldIdx, clusIdx);
-    if (part.isReco || !part.isFake) {
+    if (isGood) {
       mHExtensionPatternsGood->Fill(oldIdx, clusIdx);
     } else {
       mHExtensionPatternsFake->Fill(oldIdx, clusIdx);
@@ -392,7 +382,6 @@ void TrackExtensionStudy::process()
         }
       }
     }
-
     if (oldFake && newFake) {
       mHTrackCounts->Fill(9);
     } else if (oldFake) {
@@ -401,8 +390,47 @@ void TrackExtensionStudy::process()
       mHTrackCounts->Fill(8);
     }
 
-    mHClustersCounts->SetBinContent(2, mHClustersCounts->GetBinContent(2) + oldPattern.count());
-    mHClustersCounts->SetBinContent(3, mHClustersCounts->GetBinContent(3) + extPattern.count());
+    // Check if we missed some clusters
+    if (isGood && holePattern.any()) {
+      auto missPattern{clusPattern}, emptyPattern{clusPattern};
+      for (int iLayer{0}; iLayer < 7; ++iLayer) {
+        if (!holePattern.test(iLayer)) {
+          continue;
+        }
+
+        // Check if there was actually a cluster that we missed
+        if ((part.clusters & (1 << iLayer)) != 0) {
+          missPattern.set(iLayer);
+        } else {
+          emptyPattern.set(iLayer);
+        }
+      }
+
+      if (missPattern != clusPattern) {
+        auto missN = missPattern.to_ulong();
+        auto missIdx = std::distance(std::begin(mBitPatternsAfter), std::find(std::begin(mBitPatternsAfter), std::end(mBitPatternsAfter), missN));
+        mHExtensionPatternsGoodMissed->Fill(clusIdx, missIdx);
+      }
+      if (emptyPattern != clusPattern) {
+        auto emptyN = emptyPattern.to_ulong();
+        auto emptyIdx = std::distance(std::begin(mBitPatternsAfter), std::find(std::begin(mBitPatternsAfter), std::end(mBitPatternsAfter), emptyN));
+        mHExtensionPatternsGoodEmpty->Fill(clusIdx, emptyIdx);
+      }
+    }
+
+    if (mWithTree) {
+      std::array<float, 3> xyz{(float)part.mcTrack.GetStartVertexCoordinatesX(), (float)part.mcTrack.GetStartVertexCoordinatesY(), (float)part.mcTrack.GetStartVertexCoordinatesZ()};
+      std::array<float, 3> pxyz{(float)part.mcTrack.GetStartVertexMomentumX(), (float)part.mcTrack.GetStartVertexMomentumY(), (float)part.mcTrack.GetStartVertexMomentumZ()};
+      auto pdg = O2DatabasePDG::Instance()->GetParticle(part.pdg);
+      if (pdg == nullptr) {
+        LOGP(fatal, "MC info not available");
+      }
+      auto mcTrk = o2::track::TrackPar(xyz, pxyz, TMath::Nint(pdg->Charge() / 3.), true);
+      (*mStream) << "tree"
+                 << "trk=" << trk
+                 << "mcTrk=" << mcTrk
+                 << "\n";
+    }
   }
 }
 
@@ -421,30 +449,9 @@ void TrackExtensionStudy::endOfStream(EndOfStreamContext& ec)
 {
   LOGP(info, "Writing results to {}", mOutFileName);
   mStream->GetFile()->cd();
-
-  mHTrackCounts->Write();
-  mHClustersCounts->Write();
-
-  mHLengthAny->Write();
-  mHLengthGood->Write();
-  mHLengthFake->Write();
-
-  mHChi2Any->Write();
-  mHChi2Good->Write();
-  mHChi2Fake->Write();
-
-  mHPtAny->Write();
-  mHPtGood->Write();
-  mHPtFake->Write();
-
-  mHExtensionAny->Write();
-  mHExtensionGood->Write();
-  mHExtensionFake->Write();
-
-  mHExtensionPatternsAny->Write();
-  mHExtensionPatternsGood->Write();
-  mHExtensionPatternsFake->Write();
-
+  for (const auto h : mHistograms) {
+    h->Write();
+  }
   mStream->Close();
 }
 
