@@ -136,7 +136,8 @@ class MatchITSTPCQC
   TH1D* getHisto1OverPtPhysPrimDen(matchType m) const { return m1OverPtPhysPrimDen[m]; }
   TEfficiency* getFractionITSTPCmatchPhysPrim1OverPt(matchType m) const { return mFractionITSTPCmatchPhysPrim1OverPt[m]; }
 
-  TH3F* getHistoK0MassVsPtVsOcc() const { return mK0MassVsPtVsOcc; }
+  TH3F* getHistoK0MassVsPtVsOccpp() const { return mK0MassVsPtVsOccpp; }
+  TH3F* getHistoK0MassVsPtVsOccPbPb() const { return mK0MassVsPtVsOccPbPb; }
 
   void getHistos(TObjArray& objar);
 
@@ -234,7 +235,8 @@ class MatchITSTPCQC
     publisher->startPublishing(mDCArVsPtDen);
     publisher->startPublishing(mFractionITSTPCmatchDCArVsPt);
     if (mDoK0QC) {
-      publisher->startPublishing(mK0MassVsPtVsOcc);
+      publisher->startPublishing(mK0MassVsPtVsOccpp);
+      publisher->startPublishing(mK0MassVsPtVsOccPbPb);
     }
   }
 
@@ -247,6 +249,8 @@ class MatchITSTPCQC
   void setBz(float bz) { mBz = bz; }
   void setDoK0QC(bool v) { mDoK0QC = v; }
   bool getDoK0QC() const { return mDoK0QC; }
+  void setK0Scaling(float v) { mK0Scaling = v; }
+  float getK0Scaling() const { return mK0Scaling; }
 
   // ITS track
   void setMinPtITSCut(float v) { mPtITSCut = v; };
@@ -414,7 +418,8 @@ class MatchITSTPCQC
 
   // for V0s
   o2::vertexing::DCAFitterN<2> mFitterV0;
-  TH3F* mK0MassVsPtVsOcc = nullptr;
+  TH3F* mK0MassVsPtVsOccpp = nullptr;
+  TH3F* mK0MassVsPtVsOccPbPb = nullptr;
   bool mDoK0QC = false;     // whether to fill the K0 QC plot(s)
   float mCutK0Mass = 0.05;  // cut on the difference between the K0 mass and the PDG mass
   bool mRefit = false;      // whether to refit or not
@@ -429,6 +434,9 @@ class MatchITSTPCQC
   float mNTPCOccBinLengthInv;
   std::vector<float> mTBinClOcc;                    ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
   gsl::span<const unsigned int> mTPCRefitterOccMap; ///< externally set TPC clusters occupancy map
+  bool mIsHI = false;
+  float mK0Scaling = 1.f; // permill that we want to keep of K0S
+  uint64_t mNK0 = 0;      // number of found V0s
 
   ClassDefNV(MatchITSTPCQC, 3);
 };
