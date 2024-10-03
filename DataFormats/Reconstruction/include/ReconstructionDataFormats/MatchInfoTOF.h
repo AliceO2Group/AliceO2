@@ -41,6 +41,12 @@ class MatchInfoTOF
   void setChi2(float chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
 
+  void setHitPatternUpDown(bool v) { mHitUpDown = v; }
+  bool getHitPatternUpDown() const { return mHitUpDown; }
+
+  void setHitPatternLeftRight(bool v) { mHitLeftRight = v; }
+  bool getHitPatternLeftRight() const { return mHitLeftRight; }
+
   o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }
   const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
   void print() const;
@@ -64,8 +70,13 @@ class MatchInfoTOF
   void setChannel(int val) { mChannel = val; }
 
  private:
-  int mIdLocal;                      // track id in sector of the pair track-TOFcluster
-  float mChi2;                       // chi2 of the pair track-TOFcluster
+  int mIdLocal; // track id in sector of the pair track-TOFcluster
+  float mChi2;  // chi2 of the pair track-TOFcluster
+
+  // Hit pattern information
+  bool mHitUpDown = false;    // hit pattern in TOF up-down
+  bool mHitLeftRight = false; // hit pattern in TOF left-right
+
   o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
   int mIdxTOFCl;                     ///< Idx for TOF cluster
   GTrackID mIdxTrack;                ///< Idx for track
