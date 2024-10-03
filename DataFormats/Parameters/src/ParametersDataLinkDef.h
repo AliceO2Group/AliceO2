@@ -30,6 +30,5 @@
 #pragma link C++ class o2::parameters::GRPMagField + ;
 #pragma link C++ class std::unordered_map < unsigned int, unsigned int> + ;
 #pragma link C++ class std::pair < unsigned long, std::string> + ;
-#pragma link C++ struct o2::parameters::AggregatedRunInfo + ;
 
 #endif
