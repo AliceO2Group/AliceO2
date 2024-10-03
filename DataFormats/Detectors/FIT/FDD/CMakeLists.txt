@@ -11,6 +11,7 @@
 
 o2_add_library(DataFormatsFDD
   SOURCES src/RawEventData.cxx
+          src/RecPoint.cxx
           src/CTF.cxx
           src/LookUpTable.cxx
   PUBLIC_LINK_LIBRARIES O2::FDDBase

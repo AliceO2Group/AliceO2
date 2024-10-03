@@ -52,6 +52,16 @@ o2_add_executable(flp-dpl-workflow
                   PUBLIC_LINK_LIBRARIES O2::FDDWorkflow O2::FDDRaw O2::FITWorkflow
                   TARGETVARNAME fddflpexe)
 
+o2_add_executable(recpoints-reader-workflow
+                  SOURCES src/recpoints-reader-workflow.cxx
+                  COMPONENT_NAME fdd
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow)
+
+o2_add_executable(recpoints-writer-workflow
+                  SOURCES src/recpoints-writer-workflow.cxx
+                  COMPONENT_NAME fdd
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow)
+
 o2_add_executable(integrate-cluster-workflow
                   SOURCES src/cluster-integrator.cxx
                   COMPONENT_NAME fdd

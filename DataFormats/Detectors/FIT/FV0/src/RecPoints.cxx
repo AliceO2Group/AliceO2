@@ -14,13 +14,22 @@
 
 using namespace o2::fv0;
 
+void ChannelDataFloat::print() const
+{
+  printf("  Channel=%d | time=%f | charge=%f | adcId=%d\n", channel, time, charge, adcId);
+}
+
+void RecPoints::print() const
+{
+  printf("RecPoint data:");
+  printf("Collision times: first: %f, global mean: %f, selected mean: %f\n", getCollisionFirstTime(), getCollisionGlobalMeanTime(), getCollisionSelectedMeanTime());
+  printf("Ref first: %d, Ref entries: %d\n", mRef.getFirstEntry(), mRef.getEntries());
+  printf("Triggers: ");
+  mTriggers.print();
+}
+
 gsl::span<const ChannelDataFloat> RecPoints::getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
   return mRef.getEntries() ? gsl::span<const ChannelDataFloat>(tfdata).subspan(mRef.getFirstEntry(), mRef.getEntries()) : gsl::span<const ChannelDataFloat>();
-}
-
-void ChannelDataFloat::print() const
-{
-  printf("  Channel=%d | time=%f | charge=%f | adcId=%d\n", channel, time, charge, adcId);
 }

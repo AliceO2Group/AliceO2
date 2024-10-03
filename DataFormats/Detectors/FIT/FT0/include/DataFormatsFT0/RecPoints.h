@@ -47,6 +47,7 @@ struct ChannelDataFloat {
   }
 
   void print() const;
+  bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);
 };
@@ -74,8 +75,6 @@ class RecPoints
   }
   ~RecPoints() = default;
 
-  void print() const;
-
   short getCollisionTime(int side) const { return mCollisionTime[side]; }
   short getCollisionTimeMean() const { return getCollisionTime(TimeMean); }
   short getCollisionTimeA() const { return getCollisionTime(TimeA); }
@@ -95,6 +94,9 @@ class RecPoints
 
   gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const;
   short static constexpr sDummyCollissionTime = 32767;
+
+  void print() const;
+  bool operator==(const RecPoints&) const = default;
 
  private:
   std::array<short, 4> mCollisionTime = {sDummyCollissionTime,

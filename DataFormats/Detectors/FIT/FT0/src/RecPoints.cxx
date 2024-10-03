@@ -21,14 +21,23 @@
 
 using namespace o2::ft0;
 
+void ChannelDataFloat::print() const
+{
+
+  printf("  ChID% d | CFDtime=%f | QTCampl=%f QTC chain %d\n", ChId, CFDTime, QTCAmpl, ChainQTC);
+}
+
 gsl::span<const ChannelDataFloat> RecPoints::getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
   return ref.getEntries() ? gsl::span<const ChannelDataFloat>(tfdata).subspan(ref.getFirstEntry(), ref.getEntries()) : gsl::span<const ChannelDataFloat>();
 }
 
-void ChannelDataFloat::print() const
+void RecPoints::print() const
 {
-
-  printf("  ChID% d | CFDtime=%f | QTCampl=%f QTC chain %d\n", ChId, CFDTime, QTCAmpl, ChainQTC);
+  LOG(info) << "RecPoint data:";
+  LOG(info) << "Collision times: mean: " << getCollisionTimeMean() << ", A: " << getCollisionTimeA() << ", C: " << getCollisionTimeC();
+  LOG(info) << "Vertex: " << getVertex();
+  LOG(info) << "Ref first: " << ref.getFirstEntry() << ", Ref entries: " << ref.getEntries();
+  LOG(info) << "Triggers: " << mTriggers.print();
 }
