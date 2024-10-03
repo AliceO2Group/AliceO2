@@ -258,6 +258,10 @@ inline float SAMPAProcessing::getZfromTimeBin(float timeBin, Side s) const
 
 inline TimeBin SAMPAProcessing::getTimeBinFromTime(float time) const
 {
+  if (time < 0.f) {
+    // protection and convention for negative times (otherwise overflow)
+    return 0;
+  }
   return static_cast<TimeBin>(time / mEleParam->ZbinWidth);
 }
 
