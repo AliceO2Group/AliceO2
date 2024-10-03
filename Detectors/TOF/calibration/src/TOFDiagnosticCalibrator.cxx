@@ -44,7 +44,7 @@ void TOFDiagnosticCalibrator::finalizeSlot(Slot& slot)
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
   uint64_t startingMS = slot.getStartTimeMS() - 10000; // start 10 seconds before
-  uint64_t stoppingMS = slot.getEndTimeMS() + 10000;   // stop 10 seconds after
+  uint64_t stoppingMS = slot.getEndTimeMS() + 600000;  // stop 10 minutes after
   mccdbInfoVector.emplace_back("TOF/Calib/Diagnostic", clName, flName, md, startingMS, stoppingMS);
   mDiagnosticVector.emplace_back(*diag);
 }
