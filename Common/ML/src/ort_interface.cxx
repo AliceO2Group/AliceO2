@@ -44,7 +44,7 @@ void OrtModel::reset(std::unordered_map<std::string, std::string> optionsMap){
     LOG(fatal) << "(ORT) Model path cannot be empty!";
   }
   modelPath = optionsMap["model-path"];
-  device = (optionsMap.contains("device") ? optionsMap["device"] : "cpu");
+  device = (optionsMap.contains("device") ? optionsMap["device"] : "CPU");
   dtype = (optionsMap.contains("dtype") ? optionsMap["dtype"] : "float");
   deviceId = (optionsMap.contains("device-id") ? std::stoi(optionsMap["device-id"]) : 0);
   allocateDeviceMemory = (optionsMap.contains("allocate-device-memory") ? std::stoi(optionsMap["allocate-device-memory"]) : 0);
@@ -53,26 +53,33 @@ void OrtModel::reset(std::unordered_map<std::string, std::string> optionsMap){
   enableProfiling = (optionsMap.contains("enable-profiling") ? std::stoi(optionsMap["enable-profiling"]) : 0);
   enableOptimizations = (optionsMap.contains("enable-optimizations") ? std::stoi(optionsMap["enable-optimizations"]) : 0);
 
-  if(device == "rocm") {
+  std::string dev_mem_str = "Hip";
+#ifdef ORT_ROCM_BUILD
+  if(device == "ROCM") {
     Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_ROCM(pImplOrt->sessionOptions, deviceId));
     LOG(info) << "(ORT) ROCM execution provider set";
-  } else if(device == "migraphx") {
+  }
+#endif
+#ifdef ORT_MIGRAPHX_BUILD
+  if(device == "MIGRAPHX") {
     Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_MIGraphX(pImplOrt->sessionOptions, deviceId));
     LOG(info) << "(ORT) MIGraphX execution provider set";
   }
-  if(allocateDeviceMemory){
-    pImplOrt->memoryInfo = Ort::MemoryInfo("Hip", OrtAllocatorType::OrtDeviceAllocator, deviceId, OrtMemType::OrtMemTypeDefault);
-    LOG(info) << "(ORT) Memory info set to on-device memory (HIP)";
-  }
-#if defined(__CUDACC__)
-  Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(pImplOrt->sessionOptions, deviceId));
-  if(allocateDeviceMemory){
-    pImplOrt->memoryInfo = Ort::MemoryInfo("Cuda", OrtAllocatorType::OrtDeviceAllocator, deviceId, OrtMemType::OrtMemTypeDefault);
-    LOG(info) << "(ORT) Memory info set to on-device memory (CUDA)";
+#endif
+#ifdef ORT_CUDA_BUILD
+  if(device == "CUDA") {
+    Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(pImplOrt->sessionOptions, deviceId));
+    LOG(info) << "(ORT) CUDA execution provider set";
+    dev_mem_str = "Cuda";
   }
 #endif
 
-  if(device == "cpu") {
+  if(allocateDeviceMemory){
+    pImplOrt->memoryInfo = Ort::MemoryInfo(dev_mem_str.c_str(), OrtAllocatorType::OrtDeviceAllocator, deviceId, OrtMemType::OrtMemTypeDefault);
+    LOG(info) << "(ORT) Memory info set to on-device memory";
+  }
+
+  if(device == "CPU") {
     (pImplOrt->sessionOptions).SetIntraOpNumThreads(intraOpNumThreads);
     if(intraOpNumThreads > 1){
       (pImplOrt->sessionOptions).SetExecutionMode(ExecutionMode::ORT_PARALLEL);
@@ -158,7 +165,7 @@ std::vector<O> OrtModel::inference(std::vector<I>& input){
   auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
   O* outputValues = reinterpret_cast<O*>(outputTensors[0].template GetTensorMutableData<O>());
   outputTensors.clear();
-  return std::vector<O>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
+  return std::vector<O>{outputValues, outputValues + inputShape[0] * mOutputShapes[0][1]};
 }
 
 template<class I, class O> // class I is the input data type, e.g. float, class O is the output data type, e.g. O2::gpu::OrtDataType::Float16_t from O2/GPU/GPUTracking/ML/convert_float16.h
@@ -172,7 +179,7 @@ std::vector<O> OrtModel::inference(std::vector<std::vector<I>>& input){
   auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
   O* outputValues = reinterpret_cast<O*>(outputTensors[0].template GetTensorMutableData<O>());
   outputTensors.clear();
-  return std::vector<O>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
+  return std::vector<O>{outputValues, outputValues + inputTensor.size() / mInputShapes[0][1] * mOutputShapes[0][1]};
 }
 
 std::string OrtModel::printShape(const std::vector<int64_t>& v)
@@ -184,6 +191,28 @@ std::string OrtModel::printShape(const std::vector<int64_t>& v)
   return ss.str();
 }
 
+template <> std::vector<float> OrtModel::inference<float, float>(std::vector<float>& input) {
+  std::vector<int64_t> inputShape{input.size() / mInputShapes[0][1], mInputShapes[0][1]};
+  std::vector<Ort::Value> inputTensor;
+  inputTensor.emplace_back(Ort::Value::CreateTensor<float>(pImplOrt->memoryInfo, input.data(), input.size(), inputShape.data(), inputShape.size()));
+  // input.clear();
+  auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
+  float* outputValues = outputTensors[0].template GetTensorMutableData<float>();
+  outputTensors.clear();
+  return std::vector<float>{outputValues, outputValues + inputShape[0] * mOutputShapes[0][1]};
+}
+
+template <> std::vector<float> OrtModel::inference<OrtDataType::Float16_t, float>(std::vector<OrtDataType::Float16_t>& input) {
+  std::vector<int64_t> inputShape{input.size() / mInputShapes[0][1], mInputShapes[0][1]};
+  std::vector<Ort::Value> inputTensor;
+  inputTensor.emplace_back(Ort::Value::CreateTensor<Ort::Float16_t>(pImplOrt->memoryInfo, reinterpret_cast<Ort::Float16_t*>(input.data()), input.size(), inputShape.data(), inputShape.size()));
+  // input.clear();
+  auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
+  float* outputValues = outputTensors[0].template GetTensorMutableData<float>();
+  outputTensors.clear();
+  return std::vector<float>{outputValues, outputValues + inputShape[0] * mOutputShapes[0][1]};
+}
+
 template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<OrtDataType::Float16_t>& input) {
   std::vector<int64_t> inputShape{input.size() / mInputShapes[0][1], mInputShapes[0][1]};
   std::vector<Ort::Value> inputTensor;
@@ -192,7 +221,7 @@ template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType:
   auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
   OrtDataType::Float16_t* outputValues = reinterpret_cast<OrtDataType::Float16_t*>(outputTensors[0].template GetTensorMutableData<Ort::Float16_t>());
   outputTensors.clear();
-  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
+  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + inputShape[0] * mOutputShapes[0][1]};
 }
 
 template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<float, OrtDataType::Float16_t>(std::vector<float>& input) {
@@ -203,7 +232,7 @@ template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<float, OrtDa
   auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
   OrtDataType::Float16_t* outputValues = reinterpret_cast<OrtDataType::Float16_t*>(outputTensors[0].template GetTensorMutableData<Ort::Float16_t>());
   outputTensors.clear();
-  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
+  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + inputShape[0] * mOutputShapes[0][1]};
 }
 
 template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<std::vector<OrtDataType::Float16_t>>& input) {
@@ -216,7 +245,7 @@ template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType:
   auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
   OrtDataType::Float16_t* outputValues = reinterpret_cast<OrtDataType::Float16_t*>(outputTensors[0].template GetTensorMutableData<Ort::Float16_t>());
   outputTensors.clear();
-  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
+  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + inputTensor.size() / mInputShapes[0][1] * mOutputShapes[0][1]};
 }
 
 } // namespace ml
