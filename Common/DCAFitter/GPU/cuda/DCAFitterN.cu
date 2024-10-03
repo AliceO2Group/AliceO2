@@ -56,6 +56,14 @@ GPUg() void printKernel(Fitter* fitter)
   }
 }
 
+template <typename Fitter>
+GPUg() void initFitters(Fitter* fitters, unsigned int off, unsigned int N)
+{
+  for (auto iThread{blockIdx.x * blockDim.x + threadIdx.x + 1}; iThread < N; iThread += blockDim.x * gridDim.x) {
+    fitters[iThread + off] = fitters[off];
+  }
+}
+
 template <typename Fitter, typename... Tr>
 GPUg() void processKernel(Fitter* fitter, int* res, Tr*... tracks)
 {
@@ -63,7 +71,7 @@ GPUg() void processKernel(Fitter* fitter, int* res, Tr*... tracks)
 }
 
 template <typename Fitter, typename... Tr>
-GPUg() void processBatchKernel(Fitter* fitters, int* results, size_t off, size_t N, Tr*... tracks)
+GPUg() void processBatchKernel(Fitter* fitters, int* results, unsigned int off, unsigned int N, Tr*... tracks)
 {
   for (auto iThread{blockIdx.x * blockDim.x + threadIdx.x}; iThread < N; iThread += blockDim.x * gridDim.x) {
     results[iThread + off] = fitters[iThread + off].process(tracks[iThread + off]...);
@@ -186,7 +194,7 @@ void processBulk(const int nBlocks,
     auto nFits = batchSize + (iBatch < remainder ? 1 : 0);
 
     gpuCheckError(cudaEventRecord(startIOUp[iBatch], stream));
-    gpuCheckError(cudaMemcpyAsync(fitters_device + offset, fitters.data() + offset, sizeof(Fitter) * nFits, cudaMemcpyHostToDevice, stream));
+    gpuCheckError(cudaMemcpyAsync(fitters_device + offset, fitters.data() + offset, sizeof(Fitter) /* * nFits */, cudaMemcpyHostToDevice, stream)); // copying just the first element of the buffer
     iArg = 0;
     ([&] {
       gpuCheckError(cudaMemcpyAsync(tracks_device[iArg] + offset, args.data() + offset, sizeof(Tr) * nFits, cudaMemcpyHostToDevice, stream));
@@ -196,6 +204,7 @@ void processBulk(const int nBlocks,
     gpuCheckError(cudaEventRecord(endIOUp[iBatch], stream));
 
     gpuCheckError(cudaEventRecord(startKer[iBatch], stream));
+    kernel::initFitters<<<nBlocks, nThreads, 0, stream>>>(fitters_device, offset, nFits);
     std::apply([&](auto&&... args) { kernel::processBatchKernel<<<nBlocks, nThreads, 0, stream>>>(fitters_device, results_device, offset, nFits, args...); }, tracks_device);
     gpuCheckError(cudaEventRecord(endKer[iBatch], stream));
 
