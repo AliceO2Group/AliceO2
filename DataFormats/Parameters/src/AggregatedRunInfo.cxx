@@ -50,6 +50,5 @@ o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(o2::
   // adjust to the nearest TF edge to satisfy condition (orbitSOR % nOrbitsPerTF == 0)
   orbitSOR = orbitSOR / nOrbitsPerTF * nOrbitsPerTF;
 
-
   return AggregatedRunInfo{runnumber, sor, eor, nOrbitsPerTF, tsOrbitReset, orbitSOR, orbitEOR};
 }

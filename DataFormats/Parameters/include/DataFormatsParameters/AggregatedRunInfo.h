@@ -27,7 +27,7 @@ namespace o2::parameters
 /// Also offers the authoritative algorithms to collect these information for easy reuse
 /// across various algorithms (anchoredMC, analysis, ...)
 struct AggregatedRunInfo {
-  int runNumber;        // run number
+  int runNumber;       // run number
   int64_t sor;         // best known timestamp for the start of run
   int64_t eor;         // best known timestamp for end of run
   int64_t orbitsPerTF; // number of orbits per TF
