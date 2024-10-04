@@ -549,12 +549,25 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
   }
   // Was affected by https://github.com/root-project/root/issues/8962
   // Re-enabling this seems to cut the number of IOPS in half
-  tree->SetCacheSize(25000000);
-  tree->SetClusterPrefetch(true);
+  bool hasMultibasket = false;
+  // Unfortunately ROOT 6-32-06 is still buggy. Adding a branch to
+  // the cache only if the number of baskets allows it.
   for (auto& reader : mBranchReaders) {
-    tree->AddBranchToCache(reader->branch());
+    if (reader->branch()->GetListOfBaskets()->GetEntriesFast() != 1) {
+      LOGP(warning, "Branch {} has more than one basket. Disabling prefetching for tree {}.", reader->branch()->GetName(), tree->GetName());
+      hasMultibasket = true;
+      break;
+    }
   }
-  tree->StopCacheLearningPhase();
+  if (hasMultibasket == false) {
+    tree->SetCacheSize(25000000);
+    tree->SetClusterPrefetch(true);
+    for (auto& reader : mBranchReaders) {
+      std::cout << "Branch added to cache " << reader->branch()->GetName() << std::endl;
+      tree->AddBranchToCache(reader->branch());
+    }
+    tree->StopCacheLearningPhase();
+  }
 }
 
 void TreeToTable::setLabel(const char* label)
