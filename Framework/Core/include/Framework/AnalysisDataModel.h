@@ -267,11 +267,6 @@ DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t, //! Detector ma
                                 ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
                                 ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
 
-DECLARE_SOA_DYNAMIC_COLUMN(TOFExpTime, tofExpTime, //! Expected time for the track to reach the TOF
-                           [](float length, float tofExpMom, float massSquared) -> float {
-                             return o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                           });
-
 DECLARE_SOA_DYNAMIC_COLUMN(TOFExpTimeEl, tofExpTimeEl, //! Expected time for the track to reach the TOF under the electron hypothesis
                            [](float length, float tofExpMom) -> float {
                              constexpr float massSquared = o2::constants::physics::MassElectron * o2::constants::physics::MassElectron;
@@ -324,57 +319,6 @@ DECLARE_SOA_DYNAMIC_COLUMN(TOFExpTimeAl, tofExpTimeAl, //! Expected time for the
                            [](float length, float tofExpMom) -> float {
                              constexpr float massSquared = o2::constants::physics::MassAlpha * o2::constants::physics::MassAlpha;
                              return o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                           });
-
-DECLARE_SOA_DYNAMIC_COLUMN(TOFValue, tofValue, //! TOF signal
-                           [](float tracktime, float length, float tofExpMom, uint32_t flags) -> float {
-                             const uint32_t pidtrk = (flags >> 28);
-                             if (tofExpMom <= 0.f) {
-                               return 0.f;
-                             }
-                             float exptime = 0.f;
-                             switch (pidtrk) {
-                               case 0: {
-                                 constexpr float massSquared = o2::constants::physics::MassElectron * o2::constants::physics::MassElectron;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 1: {
-                                 constexpr float massSquared = o2::constants::physics::MassMuon * o2::constants::physics::MassMuon;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 2: {
-                                 constexpr float massSquared = o2::constants::physics::MassPionCharged * o2::constants::physics::MassPionCharged;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 3: {
-                                 constexpr float massSquared = o2::constants::physics::MassKaonCharged * o2::constants::physics::MassKaonCharged;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 4: {
-                                 constexpr float massSquared = o2::constants::physics::MassProton * o2::constants::physics::MassProton;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 5: {
-                                 constexpr float massSquared = o2::constants::physics::MassDeuteron * o2::constants::physics::MassDeuteron;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 6: {
-                                 constexpr float massSquared = o2::constants::physics::MassTriton * o2::constants::physics::MassTriton;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 7: {
-                                 constexpr float massSquared = o2::constants::physics::MassHelium3 * o2::constants::physics::MassHelium3;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               } break;
-                               case 8: {
-                                 constexpr float massSquared = o2::constants::physics::MassAlpha * o2::constants::physics::MassAlpha;
-                                 exptime = o2::framework::pid::tof::MassToExpTime(tofExpMom, length, massSquared);
-                               }
-                               default:
-                                 return 0.f;
-                                 break;
-                             }
-                             return o2::framework::pid::tof::TrackTimeToTOFSignal(tracktime, exptime);
                            });
 
 namespace v001
@@ -611,8 +555,6 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
-                       track::TOFValue<track::TrackTime, track::Length, track::TOFExpMom, track::Flags>,
-                       track::TOFExpTime<track::Length, track::TOFExpMom>,
                        track::TOFExpTimeEl<track::Length, track::TOFExpMom>,
                        track::TOFExpTimeMu<track::Length, track::TOFExpMom>,
                        track::TOFExpTimePi<track::Length, track::TOFExpMom>,
@@ -643,8 +585,6 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
                                  track::v001::IsITSAfterburner<track::v001::DetectorMap, track::ITSChi2NCl>,
-                                 track::TOFValue<track::TrackTime, track::Length, track::TOFExpMom, track::Flags>,
-                                 track::TOFExpTime<track::Length, track::TOFExpMom>,
                                  track::TOFExpTimeEl<track::Length, track::TOFExpMom>,
                                  track::TOFExpTimeMu<track::Length, track::TOFExpMom>,
                                  track::TOFExpTimePi<track::Length, track::TOFExpMom>,
