@@ -1071,15 +1071,15 @@ def extractUsings(nslevel, content):
     if len(iend) == 0:
       print(nslevel)
       sys.exit('Ending ; not found in using declaration! EXIT -->')
-    cont = words[icol:icol+iend[0]+1]
 
-    name = fullDataModelName(nslevel, words[icol+1].txt)
+    # make sure that using is not part of a text, like ".... PID using TPC ..." or similar
     definition = O2DMT.block(words[icol+3:icol+iend[0]], False)
-
-    # namespace, name, cont
-    use = using(nslevel, name, definition, O2DMT.block(cont))
-
-    usings.append(use)
+    if ('"' not in definition and "'" not in definition):
+      # namespace, name, cont
+      name = fullDataModelName(nslevel, words[icol+1].txt)
+      cont = words[icol:icol+iend[0]+1]
+      use = using(nslevel, name, definition, O2DMT.block(cont))
+      usings.append(use)
 
   return usings
 
