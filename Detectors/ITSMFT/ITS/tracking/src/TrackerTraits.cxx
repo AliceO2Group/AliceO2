@@ -830,8 +830,8 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
     }
 
     if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-      float radl = 9.36f; // Radiation length of Si [cm]
-      float rho = 2.33f;  // Density of Si [g/cm^3]
+      constexpr float radl = 9.36f; // Radiation length of Si [cm]
+      constexpr float rho = 2.33f;  // Density of Si [g/cm^3]
       if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * radl * rho, true)) {
         continue;
       }
