@@ -404,12 +404,12 @@ bool MatchITSTPCQC::init()
   for (int i = 0; i <= nbinsMassK0; i++) {
     ybinsMassK0[i] = yminMassK0 + i * dyMassK0;
   }
-  const Int_t nbinsMultK0 = 5;
+  const Int_t nbinsMultK0 = 6;
   Double_t* zbinsMultK0pp = new Double_t[nbinsMultK0 + 1];
   Double_t* zbinsMultK0PbPb = new Double_t[nbinsMultK0 + 1];
-  Double_t zminMultK0pp = 100000.;
-  Double_t zmaxMultK0pp = 1000000.;
-  Double_t zminMultK0PbPb = 1.e6;
+  Double_t zminMultK0pp = 0.f;
+  Double_t zmaxMultK0pp = 1.e6;
+  Double_t zminMultK0PbPb = 0.f;
   Double_t zmaxMultK0PbPb = 6.e6;
   Double_t dzMultK0pp = (zmaxMultK0pp - zminMultK0pp) / nbinsMultK0;
   for (int i = 0; i <= nbinsMultK0; i++) {
@@ -422,9 +422,9 @@ bool MatchITSTPCQC::init()
 
   if (mDoK0QC) {
     // V0s
-    mK0MassVsPtVsOccpp = new TH3F("mK0MassVsPtVsOccpp", "K0 invariant mass vs Pt; Pt [GeV/c]; K0s mass [GeV/c^2]", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0, zbinsMultK0pp);
+    mK0MassVsPtVsOccpp = new TH3F("mK0MassVsPtVsOccpp", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ.", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0, zbinsMultK0pp);
 
-    mK0MassVsPtVsOccPbPb = new TH3F("mK0MassVsPtVsOccPbPb", "K0 invariant mass vs Pt; Pt [GeV/c]; K0s mass [GeV/c^2]", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0, zbinsMultK0PbPb);
+    mK0MassVsPtVsOccPbPb = new TH3F("mK0MassVsPtVsOccPbPb", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0, zbinsMultK0PbPb);
   }
 
   LOG(info) << "Printing configuration cuts";
@@ -483,9 +483,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   mITSTracks = mRecoCont.getITSTracks();
   mITSTPCTracks = mRecoCont.getTPCITSTracks();
 
-  LOG(debug) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
-  LOG(debug) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
-  LOG(debug) << "****** Number of found ITS    tracks = " << mITSTracks.size();
+  LOG(info) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
+  LOG(info) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
+  LOG(info) << "****** Number of found ITS    tracks = " << mITSTracks.size();
 
   // cache selection for TPC and ITS tracks
   std::vector<bool> isTPCTrackSelectedEntry(mTPCTracks.size(), false);
@@ -953,7 +953,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   if (mDoK0QC && mRecoCont.getPrimaryVertices().size() > 0) {
     // now doing K0S
     const auto pvertices = mRecoCont.getPrimaryVertices();
-    LOG(debug) << "****** Number of PVs                 = " << pvertices.size();
+    LOG(info) << "****** Number of PVs                 = " << pvertices.size();
 
     // getting occupancy estimator
     mNHBPerTF = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
