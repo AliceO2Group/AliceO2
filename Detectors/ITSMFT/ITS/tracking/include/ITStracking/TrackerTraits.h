@@ -79,9 +79,12 @@ class TrackerTraits
 
   // Others
   GPUhd() static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
-  const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi);
-  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz);
-  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz);
+  const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi) const;
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz) const;
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz) const;
+  const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi) const noexcept;
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz) const noexcept;
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz) const noexcept;
   void SetRecoChain(o2::gpu::GPUChainITS* chain) { mChain = chain; }
   void setSmoothing(bool v) { mApplySmoothing = v; }
   bool getSmoothing() const { return mApplySmoothing; }
@@ -122,12 +125,12 @@ inline void TrackerTraits::UpdateTrackingParameters(const std::vector<TrackingPa
   mTrkParams = trkPars;
 }
 
-inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi, float z, float maxdeltaz)
+inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi, float z, float maxdeltaz) const noexcept
 {
   return getBinsRect(layerIndex, phi, maxdeltaphi, z, z, maxdeltaz);
 }
 
-inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int layerIndex, float z1, float z2, float maxdeltaz, float maxdeltaphi)
+inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int layerIndex, float z1, float z2, float maxdeltaz, float maxdeltaphi) const noexcept
 {
   return getBinsRect(layerIndex, currentCluster.phi, maxdeltaphi, z1, z2, maxdeltaz);
 }
@@ -139,7 +142,7 @@ inline void TrackerTraits::initialiseTimeFrame(const int iteration)
 }
 
 inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
-                                             float z1, float z2, float maxdeltaz)
+                                             float z1, float z2, float maxdeltaz) const noexcept
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
   const float phiRangeMin = (maxdeltaphi > constants::math::Pi) ? 0.f : phi - maxdeltaphi;
