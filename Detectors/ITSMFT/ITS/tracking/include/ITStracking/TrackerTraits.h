@@ -78,10 +78,7 @@ class TrackerTraits
   bool isMatLUT() const;
 
   // Others
-  GPUhd() static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
-  const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi) const;
-  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz) const;
-  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz) const;
+  GPUhd() static consteval int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
   const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi) const noexcept;
   const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz) const noexcept;
   const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz) const noexcept;
