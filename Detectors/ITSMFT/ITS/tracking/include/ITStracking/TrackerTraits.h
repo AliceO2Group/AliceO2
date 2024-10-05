@@ -112,6 +112,12 @@ class TrackerTraits
   bool mIsGPU = false;
 };
 
+inline void TrackerTraits::initialiseTimeFrame(const int iteration)
+{
+  mTimeFrame->initialise(iteration, mTrkParams[iteration], mTrkParams[iteration].NLayers);
+  setIsGPU(false);
+}
+
 inline float TrackerTraits::getBz() const
 {
   return mBz;
@@ -130,12 +136,6 @@ inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, fl
 inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int layerIndex, float z1, float z2, float maxdeltaz, float maxdeltaphi) const noexcept
 {
   return getBinsRect(layerIndex, currentCluster.phi, maxdeltaphi, z1, z2, maxdeltaz);
-}
-
-inline void TrackerTraits::initialiseTimeFrame(const int iteration)
-{
-  mTimeFrame->initialise(iteration, mTrkParams[iteration], mTrkParams[iteration].NLayers);
-  setIsGPU(false);
 }
 
 inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
