@@ -102,6 +102,10 @@ class CCDBManagerInstance
   template <typename T>
   T* getForTimeStamp(std::string const& path, long timestamp);
 
+  /// retrieve an object of type T from CCDB as stored under path and using the timestamp in the middle of the run
+  template <typename T>
+  T* getForRun(std::string const& path, int runNumber, bool setRunMetadata = false);
+
   /// retrieve an object of type T from CCDB as stored under path, timestamp and metaData
   template <typename T>
   T* getSpecific(std::string const& path, long timestamp = -1, MD metaData = MD())
@@ -309,6 +313,20 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
   auto end = std::chrono::system_clock::now();
   mTimerMS += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
   return ptr;
+}
+
+template <typename T>
+T* CCDBManagerInstance::getForRun(std::string const& path, int runNumber, bool setRunMetadata)
+{
+  auto [start, stop] = getRunDuration(runNumber);
+  if (start < 0 || stop < 0) {
+    if (mFatalWhenNull) {
+      reportFatal(std::string("Failed to get run duration for run ") + std::to_string(runNumber));
+    }
+    return nullptr;
+  }
+  mMetaData = setRunMetadata ? MD{{"runNumber", std::to_string(runNumber)}} : MD{};
+  return getForTimeStamp<T>(path, start / 2 + stop / 2);
 }
 
 class BasicCCDBManager : public CCDBManagerInstance

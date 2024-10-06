@@ -12,6 +12,7 @@
 #include "AnalysisSupportHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AODReaderHelpers.h"
+#include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/ConfigContext.h"
@@ -27,6 +28,7 @@
 #include "Framework/DefaultsHelpers.h"
 #include "Framework/Signpost.h"
 
+#include "Framework/Variant.h"
 #include "Headers/DataHeader.h"
 #include <algorithm>
 #include <list>
@@ -34,7 +36,6 @@
 #include <utility>
 #include <vector>
 #include <climits>
-#include <thread>
 
 O2_DECLARE_DYNAMIC_LOG(workflow_helpers);
 
@@ -213,6 +214,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                          aodLifetime}},
     .algorithm = AlgorithmSpec::dummyAlgorithm(),
     .options = {ConfigParamSpec{"aod-file-private", VariantType::String, ctx.options().get<std::string>("aod-file"), {"AOD file"}},
+                ConfigParamSpec{"aod-max-io-rate", VariantType::Float, 0.f, {"Maximum I/O rate in MB/s"}},
                 ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
                 ConfigParamSpec{"aod-parent-access-level", VariantType::String, {"Allow parent file access up to specified level. Default: no (0)"}},
                 ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {R"(Replace base path of parent files. Syntax: FROM;TO. E.g. "alien:///path/in/alien;/local/path". Enclose in "" on the command line.)"}},

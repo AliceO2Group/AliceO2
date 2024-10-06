@@ -102,6 +102,10 @@ void Digitizer::init()
   }
   mParams.print();
   mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
+
+  //
+  LOG(info) << "First IR sampled in digitization is: " << mIRFirstSampledTF;
+  LOG(info) << "First IR ns " << mIRFirstSampledTF.bc2ns();
 }
 
 auto Digitizer::getChipResponse(int chipID)
@@ -167,7 +171,19 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
     if (mCollisionTimeWrtROF < 0 && nbc > 0) {
       nbc--;
     }
-    mNewROFrame = nbc / mParams.getROFrameLengthInBC();
+
+    // we might get interactions to digitize from before
+    // the first sampled IR
+    if (nbc < 0) {
+      mNewROFrame = 0;
+      // this event is before the first RO
+      mIsBeforeFirstRO = true;
+    } else {
+      mNewROFrame = nbc / mParams.getROFrameLengthInBC();
+      mIsBeforeFirstRO = false;
+    }
+    LOG(info) << " NewROFrame " << mNewROFrame << " nbc " << nbc;
+
     // in continuous mode depends on starts of periodic readout frame
     mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC()) * o2::constants::lhc::LHCBunchSpacingNS;
   } else {
@@ -275,6 +291,11 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   if (isContinuous()) {
     timeInROF += mCollisionTimeWrtROF;
   }
+  if (mIsBeforeFirstRO && timeInROF < 0) {
+    // disregard this hit because it comes from an event before readout starts and it does not effect this RO
+    return;
+  }
+
   // calculate RO Frame for this hit
   if (timeInROF < 0) {
     timeInROF = 0.;
@@ -290,7 +311,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     maxFr = roFrameMax; // if signal extends beyond current maxFrame, increase the latter
   }
 
-  // here we start stepping in the depth of the sensor to generate charge diffision
+  // here we start stepping in the depth of the sensor to generate charge diffusion
   float nStepsInv = mParams.getNSimStepsInv();
   int nSteps = mParams.getNSimSteps();
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
