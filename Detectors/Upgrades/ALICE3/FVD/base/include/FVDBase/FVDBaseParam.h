@@ -24,7 +24,7 @@ struct FVDBaseParam : public o2::conf::ConfigurableParamHelper<FVDBaseParam> {
   int nsect = 8;
 
   std::vector<float> ringsA = {3., 14.8, 26.6, 38.4, 50.2, 62.};
-  std::vector<float> ringsC = {3.5, 14.8, 22.8, 37.3, 48.5, 59.8, 71.};
+  std::vector<float> ringsC = {3.5, 14.75, 26.0, 37.25, 48.5, 59.75, 71.};
 
   float zmodA = 1700;
   float zmodC = -1950;

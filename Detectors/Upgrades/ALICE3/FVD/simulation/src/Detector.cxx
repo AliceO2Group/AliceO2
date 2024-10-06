@@ -57,7 +57,7 @@ Detector::Detector(bool active)
   auto& baseParam = FVDBaseParam::Instance();
   mNumberOfSectors = baseParam.nsect;
 
-  mDzScint = baseParam.dzscint;
+  mDzScint = baseParam.dzscint/2;
 
   mRingRadiiA = baseParam.ringsA;
   mRingRadiiC = baseParam.ringsC;
@@ -120,7 +120,7 @@ bool Detector::ProcessHits(FairVolume* vol)
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
 
-  int cellId = vol->getVolumeId();
+  //int cellId = vol->getVolumeId();
 
   // Check track status to define when hit is started and when it is stopped
   bool startHit = false, stopHit = false;
@@ -276,10 +276,10 @@ void Detector::buildModules()
   }
 
   TGeoVolumeAssembly* vFVDA = buildModuleA();
-  vCave->AddNode(vFVDA, 1, new TGeoTranslation(0., 0., mZmodA - mDzScint/2.));
-
   TGeoVolumeAssembly* vFVDC = buildModuleC();
-  vCave->AddNode(vFVDC, 2, new TGeoTranslation(0., 0., mZmodC + mDzScint/2.));
+
+  vCave->AddNode(vFVDA, 1, new TGeoTranslation(0., 0., mZmodA/* - mDzScint/2.*/));
+  vCave->AddNode(vFVDC, 1, new TGeoTranslation(0., 0., mZmodC/* + mDzScint/2.*/));
 }
 
 TGeoVolumeAssembly* Detector::buildModuleA()
@@ -302,6 +302,7 @@ TGeoVolumeAssembly* Detector::buildModuleA()
       float phimax = dphiDeg * (ic + 1);
       auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
       auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
+      nod->SetLineColor(kRed);
       ring->AddNode(nod, cellId);
     }
     mod->AddNode(ring, 1);
@@ -330,6 +331,7 @@ TGeoVolumeAssembly* Detector::buildModuleC()
       float phimax = dphiDeg * (ic + 1);
       auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
       auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
+      nod->SetLineColor(kBlue);
       ring->AddNode(nod, cellId);
     }
     mod->AddNode(ring, 1);
