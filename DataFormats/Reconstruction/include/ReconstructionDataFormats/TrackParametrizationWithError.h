@@ -93,9 +93,9 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() bool propagateToDCA(const o2::dataformats::VertexBase& vtx, value_t b, o2::dataformats::DCA* dca = nullptr, value_t maxD = 999.f);
   GPUd() void invert();
   GPUd() value_t getPredictedChi2(const dim2_t& p, const dim3_t& cov) const;
-  GPUd() value_t getPredictedChi2Unchecked(const dim2_t& p, const dim3_t& cov) const;
+  GPUd() value_t getPredictedChi2Quiet(const dim2_t& p, const dim3_t& cov) const;
   GPUd() value_t getPredictedChi2(const value_t* p, const value_t* cov) const;
-  GPUd() value_t getPredictedChi2Unchecked(const value_t* p, const value_t* cov) const;
+  GPUd() value_t getPredictedChi2Quiet(const value_t* p, const value_t* cov) const;
 
   template <typename T>
   GPUd() value_t getPredictedChi2(const BaseCluster<T>& p) const;
@@ -103,6 +103,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   void buildCombinedCovMatrix(const TrackParametrizationWithError& rhs, MatrixDSym5& cov) const;
   value_t getPredictedChi2(const TrackParametrizationWithError& rhs, MatrixDSym5& covToSet) const;
   GPUd() value_t getPredictedChi2(const TrackParametrizationWithError& rhs) const;
+  GPUd() value_t getPredictedChi2Quiet(const TrackParametrizationWithError& rhs) const;
   bool update(const TrackParametrizationWithError& rhs, const MatrixDSym5& covInv);
   bool update(const TrackParametrizationWithError& rhs);
 
@@ -322,9 +323,9 @@ GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const dim2
 
 //______________________________________________
 template <typename value_T>
-GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2Unchecked(const dim2_t& p, const dim3_t& cov) const -> value_t
+GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2Quiet(const dim2_t& p, const dim3_t& cov) const -> value_t
 {
-  return getPredictedChi2Unchecked(p.data(), cov.data());
+  return getPredictedChi2Quiet(p.data(), cov.data());
 }
 
 //______________________________________________

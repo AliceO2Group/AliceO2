@@ -35,6 +35,7 @@ class RawDataDecoder
   static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
   int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
   int decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, o2::pmr::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1);
+  int decodeRawFatal(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter);
   int decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1);
   void setDecodeInps(bool decodeinps) { mDecodeInps = decodeinps; }
   void setDoLumi(bool lumi) { mDoLumi = lumi; }

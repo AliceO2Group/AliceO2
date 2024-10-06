@@ -43,6 +43,15 @@ name: Clean PR checks
         description: build/O2/o2-dataflow-cs8
         type: boolean
         default: true
+      'check_build/O2/o2/aarch64':
+        description: build/O2/o2/aarch64
+        type: boolean
+        default: true
+      'check_build/O2/o2_slc9':
+        description: build/O2/o2_slc9
+        type: boolean
+        default: true
+
 
 permissions: {}
 

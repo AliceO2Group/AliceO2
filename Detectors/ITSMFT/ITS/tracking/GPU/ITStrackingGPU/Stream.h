@@ -32,7 +32,7 @@ class Stream final
   Stream();
   ~Stream();
 
-  const GPUStream& get() const;
+  [[nodiscard]] const GPUStream& get() const;
 
  private:
   GPUStream mStream;

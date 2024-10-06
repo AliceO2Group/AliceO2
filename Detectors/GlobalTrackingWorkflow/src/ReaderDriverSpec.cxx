@@ -23,6 +23,7 @@
 #include "GlobalTrackingWorkflow/ReaderDriverSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "TFile.h"
 #include "TTree.h"
 
@@ -32,6 +33,7 @@ namespace o2
 {
 namespace globaltracking
 {
+using HBFINI = o2::raw::HBFUtilsInitializer;
 
 class ReadeDriverSpec : public o2::framework::Task
 {
@@ -60,16 +62,20 @@ void ReadeDriverSpec::run(ProcessingContext& pc)
   static RateLimiter limiter;
   static int count = 0;
   if (!count) {
-    if (o2::raw::HBFUtilsInitializer::NTFs < 0) {
+    if (HBFINI::NTFs < 0) {
       LOGP(fatal, "Number of TFs to process was not initizalized in the HBFUtilsInitializer");
     }
-    mNTF = (mNTF > 0 && mNTF < o2::raw::HBFUtilsInitializer::NTFs) ? mNTF : o2::raw::HBFUtilsInitializer::NTFs;
+    mNTF = (mNTF > 0 && mNTF < HBFINI::NTFs) ? mNTF : HBFINI::NTFs;
   } else { // check only for count > 0
     limiter.check(pc, mTFRateLimit, mMinSHM);
   }
-  std::vector<char> v{};
-  pc.outputs().snapshot(Output{"GLO", "READER_DRIVER", 0}, v);
-  if (++count >= mNTF) {
+  auto& v = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"GLO", "READER_DRIVER", 0});
+  if (!HBFINI::IRFrameSel.getMin().isDummy() && !HBFINI::IRFrameSel.getMax().isDummy()) {
+    v.push_back(HBFINI::IRFrameSel);
+    LOGP(debug, "OUTVEC {}/{}", v.back().getMin().asString(), v.back().getMax().asString());
+  }
+  count++;
+  if ((HBFINI::LastIRFrameIndex == -1 && count == HBFINI::NTFs) || (v.size() && v.back().isLast())) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
@@ -84,7 +90,7 @@ DataProcessorSpec getReaderDriverSpec(const std::string& metricChannel, size_t m
     options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, metricChannel, {"Out-of-band channel config for TF throttling"}});
   }
   return DataProcessorSpec{
-    o2::raw::HBFUtilsInitializer::ReaderDriverDevice,
+    HBFINI::ReaderDriverDevice,
     Inputs{},
     Outputs{{"GLO", "READER_DRIVER", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ReadeDriverSpec>(minSHM)},

@@ -20,6 +20,7 @@
 #include <gsl/span>
 #include <filesystem>
 #include <type_traits>
+#include <vector>
 namespace fs = std::filesystem;
 
 #include "Rtypes.h"
@@ -246,7 +247,9 @@ o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::str
   return calPad;
 }
 
-std::unordered_map<std::string, CalPad> preparePedestalFiles(const CalPad& pedestals, const CalPad& noise, float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false, bool maskBad = true, float noisyChannelThreshold = 1.5, float sigmaNoiseNoisyChannels = 4, float badChannelThreshold = 6, bool fixedSize = false);
+/// \param sigmaNoiseROCType can be either one value for all ROC types, or {IROC, OROC}, or {IROC, OROC1, OROC2, OROC3}
+/// \param minADCROCType can be either one value for all ROC types, or {IROC, OROC}, or {IROC, OROC1, OROC2, OROC3}
+std::unordered_map<std::string, CalPad> preparePedestalFiles(const CalPad& pedestals, const CalPad& noise, std::vector<float> sigmaNoiseROCType = {3, 3, 3, 3}, std::vector<float> minADCROCType = {2, 2, 2, 2}, float pedestalOffset = 0, bool onlyFilled = false, bool maskBad = true, float noisyChannelThreshold = 1.5, float sigmaNoiseNoisyChannels = 4, float badChannelThreshold = 6, bool fixedSize = false);
 
 } // namespace o2::tpc::cru_calib_helpers
 

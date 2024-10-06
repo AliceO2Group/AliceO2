@@ -257,7 +257,7 @@ void Digitizer::recalculateDistortions()
       mSpaceChargeDer->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
 
       LOGP(info, "Calculating scaled distortions with scaling factor {}", mLumiScaleFactor);
-      mSpaceCharge->calcGlobalDistWithGlobalCorrIterative(side, mSpaceChargeDer.get(), mLumiScaleFactor);
+      mSpaceCharge->calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, mSpaceChargeDer.get(), mLumiScaleFactor);
     }
     // set new lumi of avg map
     mSpaceCharge->setMeanLumi(CorrMapParam::Instance().lumiInst);

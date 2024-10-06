@@ -39,6 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable MC propagation"}},
+    {"enable-cosmics", o2::framework::VariantType::Bool, false, {"enable reading cosmics"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of track sources to use"}},
     {"cluster-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
@@ -58,19 +59,25 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
 
-  GID::mask_t allowedSourcesTrc = GID::getSourcesMask("TPC");
-  GID::mask_t allowedSourcesClus = GID::getSourcesMask("TPC");
-
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = configcontext.options().get<bool>("enable-mc");
   auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  const auto enableCosmics = configcontext.options().get<bool>("enable-cosmics");
+
+  GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TOF");
+  GID::mask_t allowedSourcesClus = GID::getSourcesMask("TPC,TOF");
+  if (enableCosmics) {
+    allowedSourcesTrc = allowedSourcesTrc | GID::getSourcesMask("ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  }
+
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
   if (sclOpt.requestCTPLumi) {
     srcTrc = srcTrc | GID::getSourcesMask("CTP");
     srcCls = srcCls | GID::getSourcesMask("CTP");
   }
+
   if (sclOpt.lumiType == 2) {
     const auto enableMShape = configcontext.options().get<bool>("enable-M-shape-correction");
     const auto enableIDCs = !configcontext.options().get<bool>("disable-IDC-scalers");
@@ -79,7 +86,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
-  specs.emplace_back(o2::trackstudy::getTPCRefitterSpec(srcTrc, srcCls, useMC, sclOpt));
+  if (enableCosmics) {
+    o2::globaltracking::InputHelper::addInputSpecsCosmics(configcontext, specs, useMC);
+  }
+  specs.emplace_back(o2::trackstudy::getTPCRefitterSpec(srcTrc, srcCls, useMC, sclOpt, enableCosmics));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

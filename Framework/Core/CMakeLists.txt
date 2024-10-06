@@ -163,6 +163,7 @@ o2_add_library(Framework
                                      O2::Headers
                                      O2::MemoryResources
                                      O2::PCG
+                                     O2::X9
                                      RapidJSON::RapidJSON
                                      Arrow::arrow_shared
                                      Microsoft.GSL::GSL

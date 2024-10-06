@@ -128,6 +128,8 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
 
 Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
 {
+  mNLastHit = 0;
+
   Float_t pos[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
   Float_t deltapos[3];
   Int_t detInd[5];
@@ -169,6 +171,8 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
   // check the fired PAD 1 (A)
   if (isFired(xLocal, zLocal, charge)) {
     ndigits++;
+    mXLastShift[mNLastHit] = 0;
+    mZLastShift[mNLastHit] = 0;
     addDigit(channel, istrip, time, xLocal, zLocal, charge, 0, 0, detInd[3], trackID);
   }
 
@@ -184,6 +188,8 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
   }
   if (isFired(xLocal, zLocal, charge)) {
     ndigits++;
+    mXLastShift[mNLastHit] = 0;
+    mZLastShift[mNLastHit] = iZshift;
     addDigit(channel, istrip, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
   }
 
@@ -196,6 +202,8 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
+      mXLastShift[mNLastHit] = -1;
+      mZLastShift[mNLastHit] = 0;
       addDigit(channel, istrip, time, xLocal, zLocal, charge, -1, 0, detInd[3], trackID);
     }
   }
@@ -209,6 +217,8 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
+      mXLastShift[mNLastHit] = 1;
+      mZLastShift[mNLastHit] = 0;
       addDigit(channel, istrip, time, xLocal, zLocal, charge, 1, 0, detInd[3], trackID);
     }
   }
@@ -226,6 +236,8 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
     }
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
+      mXLastShift[mNLastHit] = -1;
+      mZLastShift[mNLastHit] = iZshift;
       addDigit(channel, istrip, time, xLocal, zLocal, charge, -1, iZshift, detInd[3], trackID);
     }
   }
@@ -243,6 +255,8 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
     }
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
+      mXLastShift[mNLastHit] = 1;
+      mZLastShift[mNLastHit] = iZshift;
       addDigit(channel, istrip, time, xLocal, zLocal, charge, 1, iZshift, detInd[3], trackID);
     }
   }
@@ -297,6 +311,11 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     LOG(error) << "Wrong de-calibration correction for ch = " << channel << ", tot = " << tot << " (Skip it)";
     return;
   }
+
+  mTimeLastHit[mNLastHit] = time;
+  mTotLastHit[mNLastHit] = tot;
+  mNLastHit++;
+
   time -= tsCorr; // TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
 
   // let's move from time to bc, tdc
@@ -590,7 +609,17 @@ void Digitizer::printParameters()
     printf("Time walk ON = %f ps/cm\n", mTimeWalkeSlope);
   }
 }
-
+//______________________________________________________________________
+void Digitizer::runFullTestExample(const char* geo)
+{
+  initParameters();
+  o2::tof::CalibTOFapi* api = new o2::tof::CalibTOFapi();
+  api->setTimeStamp(0);
+  api->readLHCphase();
+  api->readTimeSlewingParam();
+  setCalibApi(api);
+  test(geo);
+}
 //______________________________________________________________________
 void Digitizer::test(const char* geo)
 {
@@ -696,7 +725,8 @@ void Digitizer::test(const char* geo)
 
     hit->SetEnergyLoss(0.0001);
 
-    Int_t ndigits = processHit(*hit, mEventTime.getTimeOffsetWrtBC());
+    processHit(*hit, mEventTime.getTimeOffsetWrtBC());
+    Int_t ndigits = mNLastHit;
 
     h3->Fill(ndigits);
     hpadAll->Fill(xlocal, zlocal);

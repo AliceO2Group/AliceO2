@@ -99,35 +99,26 @@ size_t GPUO2InterfaceRefit::fillOccupancyMapGetSize(unsigned int nHbfPerTf, cons
 GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bzNominalGPU, const TPCClRefElem* trackRef, unsigned int nHbfPerTf, const unsigned char* sharedmap, const unsigned int* occupancymap, int occupancyMapSize, const std::vector<TrackTPC>* trks, o2::base::Propagator* p)
 {
   mParam = GPUO2InterfaceUtils::getFullParam(bzNominalGPU, nHbfPerTf);
-  size_t expectedSharedMapSize = nHbfPerTf ? fillOccupancyMapGetSize(nHbfPerTf, mParam.get()) : 0;
+  size_t expectedOccMapSize = nHbfPerTf ? fillOccupancyMapGetSize(nHbfPerTf, mParam.get()) : 0;
   if (cl->nClustersTotal) {
     if (sharedmap == nullptr && trks == nullptr) {
       throw std::runtime_error("Must provide either shared cluster map or vector of tpc tracks to build the map");
     }
-    if ((sharedmap == nullptr) ^ (expectedSharedMapSize && occupancymap == nullptr)) {
+    if ((sharedmap == nullptr) ^ (expectedOccMapSize && occupancymap == nullptr)) {
       throw std::runtime_error("Must provide either both shared cluster map and occupancy map or none of them");
     }
     if (sharedmap == nullptr) {
       mSharedMap.resize(cl->nClustersTotal);
       sharedmap = mSharedMap.data();
-      mOccupancyMap.resize(expectedSharedMapSize / sizeof(*mOccupancyMap.data()));
+      mOccupancyMap.resize(expectedOccMapSize / sizeof(*mOccupancyMap.data()));
       occupancymap = mOccupancyMap.data();
+      occupancyMapSize = expectedOccMapSize;
       fillSharedClustersAndOccupancyMap(cl, *trks, trackRef, mSharedMap.data(), mOccupancyMap.data(), nHbfPerTf, mParam.get());
     }
   }
-  if (occupancymap && occupancyMapSize > sizeof(*occupancymap) && occupancymap[1] != (mParam->rec.tpc.occupancyMapTimeBins * 0x10000 + mParam->rec.tpc.occupancyMapTimeBinsAverage)) {
-    throw std::runtime_error("Occupancy map has invalid paramters occupancyMapTimeBins and occupancyMapTimeBinsAverage");
-  }
-  if (occupancyMapSize != -1 && nHbfPerTf && (size_t)occupancyMapSize != expectedSharedMapSize) {
-    throw std::runtime_error("Received occupancy map of wrong size, most likely --configKeyValues or HBperTF of map creator and map consumer are different");
-  }
+  GPUO2InterfaceUtils::paramUseExternalOccupancyMap(mParam.get(), nHbfPerTf, occupancymap, occupancyMapSize);
+
   mRefit = std::make_unique<GPUTrackingRefit>();
-  if (occupancymap) {
-    mParam->occupancyTotal = *occupancymap;
-    if (mParam->rec.tpc.occupancyMapTimeBins) {
-      mParam->occupancyMap = occupancymap + 2;
-    }
-  }
   mRefit->SetGPUParam(mParam.get());
   mRefit->SetClusterStateArray(sharedmap);
   mRefit->SetPropagator(p);
