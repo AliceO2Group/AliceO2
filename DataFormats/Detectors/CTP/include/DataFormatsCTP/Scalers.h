@@ -131,17 +131,18 @@ class CTPRunScalers
   std::pair<double, double> getRateGivenT(double timestamp, int classindex, int type) const;
 
   /// retrieves integral for class
-  std::array<uint64_t,7> getIntegralForClass(int i) const
+  std::array<uint64_t, 7> getIntegralForClass(int i) const
   {
-    return {mScalerRecordO2[0].scalers[i].classIndex, 
-            mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmBefore- mScalerRecordO2[0].scalers[i].lmBefore,
-            mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmAfter- mScalerRecordO2[0].scalers[i].lmAfter,
-            mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0Before- mScalerRecordO2[0].scalers[i].l0Before,
-            mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0After- mScalerRecordO2[0].scalers[i].l0After,
-            mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1Before- mScalerRecordO2[0].scalers[i].l1Before,
-            mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1After- mScalerRecordO2[0].scalers[i].l1After,
-          };
-  } 
+    return {
+      mScalerRecordO2[0].scalers[i].classIndex,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmBefore - mScalerRecordO2[0].scalers[i].lmBefore,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmAfter - mScalerRecordO2[0].scalers[i].lmAfter,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0Before - mScalerRecordO2[0].scalers[i].l0Before,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0After - mScalerRecordO2[0].scalers[i].l0After,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1Before - mScalerRecordO2[0].scalers[i].l1Before,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1After - mScalerRecordO2[0].scalers[i].l1After,
+    };
+  }
   /// retrieves time boundaries of this scaler object from O2 scalers
   std::pair<unsigned long, unsigned long> getTimeLimit() const
   {

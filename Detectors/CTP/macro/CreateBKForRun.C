@@ -29,7 +29,7 @@ void CreateBKForRun(int runNumber = 0)
   std::cout << "Timestamp:" << timeStamp << std::endl;
   //
   std::string srun = std::to_string(runNumber);
-  std::map<string,string> metadata;
+  std::map<string, string> metadata;
   metadata["runNumber"] = srun;
   auto ctpscalers = ccdbMgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timeStamp, metadata);
   if (ctpscalers == nullptr) {
@@ -40,7 +40,7 @@ void CreateBKForRun(int runNumber = 0)
     LOG(info) << "CTPRunConfig not in database, timestamp:" << timeStamp;
   }
   //
-  std::string filename = srun+"BK.txt";
+  std::string filename = srun + "BK.txt";
   std::ofstream outfile(filename);
   if (!outfile) {
     Error("", "Failed to open file %s", filename.c_str());
@@ -51,21 +51,21 @@ void CreateBKForRun(int runNumber = 0)
   std::vector<CTPClass>& ctpcls = ctpcfg->getCTPClasses();
   std::vector<int> clslist = ctpcfg->getTriggerClassList();
   for (size_t i = 0; i < clslist.size(); i++) {
-    //std::cout << i << " " << ctpcls[i].name ;
-    std::array<uint64_t,7> cnts = ctpscalers->getIntegralForClass(i);
-    if(clslist[i] != (int)cnts[0]) {
+    // std::cout << i << " " << ctpcls[i].name ;
+    std::array<uint64_t, 7> cnts = ctpscalers->getIntegralForClass(i);
+    if (clslist[i] != (int)cnts[0]) {
       LOG(fatal) << "cls list incompatible with counters";
     }
     std::cout << std::setw(21) << ctpcls[cnts[0]].name;
     outfile << ctpcls[i].name;
-    for(int j = 1; j < 7; j++) {
-      //std::cout << std::setw(21) << " " << cnts[j];
+    for (int j = 1; j < 7; j++) {
+      // std::cout << std::setw(21) << " " << cnts[j];
       std::cout << ", " << cnts[j];
       outfile << ", " << cnts[j];
     }
     std::cout << std::endl;
     outfile << std::endl;
   }
-  //ctpscalers->printFromZero(std::cout);
+  // ctpscalers->printFromZero(std::cout);
   outfile.close();
 }
