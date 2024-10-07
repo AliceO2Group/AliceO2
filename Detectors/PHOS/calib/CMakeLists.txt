@@ -30,21 +30,14 @@ o2_add_library(PHOSCalibWorkflow
 o2_add_header_only_library(PHOSCalib)
 
 o2_target_root_dictionary(PHOSCalibWorkflow
-                          HEADERS include/PHOSCalibWorkflow/PHOSPedestalCalibDevice.h
-                                  include/PHOSCalibWorkflow/PHOSHGLGRatioCalibDevice.h
-                                  include/PHOSCalibWorkflow/PHOSTurnonCalibrator.h
+                          HEADERS include/PHOSCalibWorkflow/PHOSTurnonCalibrator.h
                                   include/PHOSCalibWorkflow/RingBuffer.h
                                   include/PHOSCalibWorkflow/ETCalibHistos.h
                                   include/PHOSCalibWorkflow/PHOSEnergyCalibrator.h
-                                  include/PHOSCalibWorkflow/PHOSEnergyCalibDevice.h
                                   include/PHOSCalibWorkflow/TurnOnHistos.h
                                   include/PHOSCalibWorkflow/PHOSTurnonCalibrator.h
-                                  include/PHOSCalibWorkflow/PHOSTurnonCalibDevice.h
                                   include/PHOSCalibWorkflow/PHOSRunbyrunCalibrator.h
-                                  include/PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h
                                   include/PHOSCalibWorkflow/PHOSL1phaseCalibrator.h
-                                  include/PHOSCalibWorkflow/PHOSL1phaseCalibDevice.h
-                                  include/PHOSCalibWorkflow/PHOSBadMapCalibDevice.h
                           LINKDEF src/PHOSCalibWorkflowLinkDef.h)
 
 o2_add_executable(calib-workflow
