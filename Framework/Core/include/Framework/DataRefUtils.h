@@ -179,6 +179,7 @@ struct DataRefUtils {
   }
   // Decode a CCDB object using the CcdbApi.
   static void* decodeCCDB(DataRef const& ref, std::type_info const& info);
+  static std::map<std::string, std::string> extractCCDBHeaders(DataRef const& ref);
 
   static o2::header::DataHeader::PayloadSizeType getPayloadSize(const DataRef& ref)
   {
