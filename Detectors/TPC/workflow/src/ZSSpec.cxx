@@ -66,7 +66,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
   using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, NSectors>;
 
   struct ProcessAttributes {
-    std::unique_ptr<unsigned long[]> zsoutput;
+    std::unique_ptr<uint64_t[]> zsoutput;
     std::unique_ptr<IonTailCorrection> itcorr;
     std::vector<unsigned int> sizes;
     std::vector<int> tpcSectors;

@@ -35,6 +35,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <regex>
+#include <cstdint>
 
 // we need a global variable to propagate the type the message dispatching of the
 // publisher will trigger on. This is dependent on the input type
@@ -42,7 +43,7 @@ static o2::framework::Output gDispatchTrigger{"", ""};
 
 // Global variable used to transport data to the completion policy
 static o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
-static unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+static uint64_t gTpcSectorMask = 0xFFFFFFFFF;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
