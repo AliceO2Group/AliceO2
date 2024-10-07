@@ -177,7 +177,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   RecoStepTimerMeta mTimersRecoSteps[GPUDataTypes::N_RECO_STEPS];
   HighResTimer timerTotal;
   template <class T, int32_t I = 0>
-  HighResTimer& getKernelTimer(RecoStep step, int32_t num = 0, size_t addMemorySize = 0);
+  HighResTimer& getKernelTimer(RecoStep step, int32_t num = 0, size_t addMemorySize = 0, bool increment = true);
   template <class T, int32_t J = -1>
   HighResTimer& getTimer(const char* name, int32_t num = -1);
 
@@ -186,7 +186,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
  private:
   size_t TransferMemoryResourcesHelper(GPUProcessor* proc, int32_t stream, bool all, bool toGPU);
   uint32_t getNextTimerId();
-  timerMeta* getTimerById(uint32_t id);
+  timerMeta* getTimerById(uint32_t id, bool increment = true);
   timerMeta* insertTimer(uint32_t id, std::string&& name, int32_t J, int32_t num, int32_t type, RecoStep step);
 };
 
@@ -272,10 +272,10 @@ inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
 }
 
 template <class T, int32_t I>
-HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int32_t num, size_t addMemorySize)
+HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int32_t num, size_t addMemorySize, bool increment)
 {
   static int32_t id = getNextTimerId();
-  timerMeta* timer = getTimerById(id);
+  timerMeta* timer = getTimerById(id, increment);
   if (timer == nullptr) {
     timer = insertTimer(id, GetKernelName<T, I>(), -1, NSLICES, 0, step);
   }

@@ -190,9 +190,9 @@ class GPUChain
   }
 
   template <class T, int32_t I = 0>
-  HighResTimer& getKernelTimer(RecoStep step, int32_t num = 0, size_t addMemorySize = 0)
+  HighResTimer& getKernelTimer(RecoStep step, int32_t num = 0, size_t addMemorySize = 0, bool increment = true)
   {
-    return mRec->getKernelTimer<T, I>(step, num, addMemorySize);
+    return mRec->getKernelTimer<T, I>(step, num, addMemorySize, increment);
   }
   template <class T, int32_t J = -1>
   HighResTimer& getTimer(const char* name, int32_t num = -1)
