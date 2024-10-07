@@ -329,12 +329,18 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
       mDeviceMemorySize = mDeviceMemorySize * 2 / 3; // Leave 1/3 of GPU memory for event display
     }
 
+    if (mProcessingSettings.debugLevel >= 3) {
+      GPUInfo("Allocating memory on GPU");
+    }
     if (mDeviceMemorySize > deviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
       size_t free, total;
       GPUFailedMsg(cudaMemGetInfo(&free, &total));
       GPUError("CUDA Memory Allocation Error (trying %lld bytes, %lld available on GPU, %lld free)", (long long int)mDeviceMemorySize, (long long int)deviceProp.totalGlobalMem, (long long int)free);
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
+    }
+    if (mProcessingSettings.debugLevel >= 3) {
+      GPUInfo("Allocating memory on Host");
     }
     if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize))) {
       GPUError("Error allocating Page Locked Host Memory (trying %lld bytes)", (long long int)mHostMemorySize);
@@ -611,6 +617,9 @@ int GPUReconstructionCUDA::GPUDebug(const char* state, int stream, bool force)
 
 int GPUReconstructionCUDA::registerMemoryForGPU_internal(const void* ptr, size_t size)
 {
+  if (mProcessingSettings.debugLevel >= 3) {
+    GPUInfo("Registering %zu bytes of memory for GPU", size);
+  }
   return GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
 }
 
