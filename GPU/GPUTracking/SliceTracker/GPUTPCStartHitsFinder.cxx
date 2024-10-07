@@ -35,7 +35,7 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
   GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.mData.mRows[s.mIRow];
   GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.mData.mRows[s.mIRow + 2];
   for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
-    long int lHitNumberOffset = row.mHitNumberOffset;
+    long lHitNumberOffset = row.mHitNumberOffset;
     unsigned int linkUpData = tracker.mData.mLinkUpData[lHitNumberOffset + ih];
 
     if (tracker.mData.mLinkDownData[lHitNumberOffset + ih] == CALINK_INVAL && linkUpData != CALINK_INVAL && tracker.mData.mLinkUpData[rowUp.mHitNumberOffset + linkUpData] != CALINK_INVAL) {

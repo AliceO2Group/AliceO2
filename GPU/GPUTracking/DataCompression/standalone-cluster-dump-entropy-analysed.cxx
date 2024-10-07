@@ -323,15 +323,15 @@ int main(int argc, char** argv)
 
   fclose(fp);
 
-  long long int* histograms[nFields];
+  long* histograms[nFields];
   double* probabilities[nFields];
-  long long int counts[nFields];
+  long counts[nFields];
   int used[nFields];
   for (int i = SLICE; i < nFields; i++) {
     if (i == CLUSTER_ID) {
       continue;
     }
-    histograms[i] = new long long int[1 << field_bits[i]];
+    histograms[i] = new long[1 << field_bits[i]];
     probabilities[i] = new double[1 << field_bits[i]];
   }
 
@@ -352,7 +352,7 @@ int main(int argc, char** argv)
         if (i == CLUSTER_ID || i == PATCH) {
           continue;
         }
-        memset(histograms[i], 0, sizeof(long long int) * (1 << field_bits[i]));
+        memset(histograms[i], 0, sizeof(long) * (1 << field_bits[i]));
         counts[i] = 0;
         used[i] = 0;
       }
@@ -589,7 +589,7 @@ int main(int argc, char** argv)
         nClustersUsed++;
       }
 
-      printf("Clusters in block: %lld / %lld\n", nClustersUsed, nClusters);
+      printf("Clusters in block: %ld / %ld\n", nClustersUsed, nClusters);
 
       double log2 = log(2.);
       double entropies[nFields];
@@ -603,7 +603,7 @@ int main(int argc, char** argv)
 
         if (counts[i]) {
           for (int j = 0; j < (1 << field_bits[i]); j++) {
-            // printf("Field %d/%s Value %d Entries %lld\n", i, field_names[i], j, histograms[i][j]);
+            // printf("Field %d/%s Value %d Entries %ld\n", i, field_names[i], j, histograms[i][j]);
 
             probabilities[i][j] = (double)histograms[i][j] / (double)counts[i];
             if (probabilities[i][j]) {
@@ -670,7 +670,7 @@ int main(int argc, char** argv)
         if (counts[i] == 0) {
           continue;
         }
-        printf("Field %2d/%16s (count %10lld / used %1d) rawBits %2d huffman %9.6f entropy %9.6f\n", i, field_names[i], counts[i], used[i], field_bits[i], huffmanSizes[i], entropies[i]);
+        printf("Field %2d/%16s (count %10ld / used %1d) rawBits %2d huffman %9.6f entropy %9.6f\n", i, field_names[i], counts[i], used[i], field_bits[i], huffmanSizes[i], entropies[i]);
       }
       rawBits = 79; // Override incorrect calculation: Row is only 6 bit in raw format, and slice is not needed!
       printf("Raw Bits: %d - Total Size %f MB Clusters %d\n", rawBits, (double)rawBits * (double)nClustersUsed / 8. / 1.e6, nClustersUsed);

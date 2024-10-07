@@ -615,7 +615,7 @@ int LoadEvent(int iEvent, int x)
   return 0;
 }
 
-void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long long int* nClustersTotal = nullptr)
+void OutputStat(GPUChainTracking* t, long* nTracksTotal = nullptr, long* nClustersTotal = nullptr)
 {
   int nTracks = 0;
   if (t->GetProcessingSettings().createO2Output) {
@@ -633,7 +633,7 @@ void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long
   }
 }
 
-int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int runs, int iEvent, long long int* nTracksTotal, long long int* nClustersTotal, int threadId = 0, HighResTimer* timerPipeline = nullptr)
+int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int runs, int iEvent, long* nTracksTotal, long* nClustersTotal, int threadId = 0, HighResTimer* timerPipeline = nullptr)
 {
   int iRun = 0, iteration = 0;
   while ((iteration = nIteration.fetch_add(1)) < runs) {
@@ -871,8 +871,8 @@ int main(int argc, char** argv)
     if (configStandalone.runs2 > 1) {
       printf("RUN2: %d\n", iRunOuter);
     }
-    long long int nTracksTotal = 0;
-    long long int nClustersTotal = 0;
+    long nTracksTotal = 0;
+    long nClustersTotal = 0;
     int nEventsProcessed = 0;
 
     if (configStandalone.noEvents) {
@@ -966,7 +966,7 @@ int main(int argc, char** argv)
       }
     }
     if (nEventsProcessed > 1) {
-      printf("Total: %lld clusters, %lld tracks\n", nClustersTotal, nTracksTotal);
+      printf("Total: %ld clusters, %ld tracks\n", nClustersTotal, nTracksTotal);
     }
   }
 

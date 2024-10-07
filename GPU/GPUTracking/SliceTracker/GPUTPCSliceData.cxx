@@ -365,7 +365,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     }
     GPUbarrier();
 
-    constexpr float maxVal = (((long int)1 << (sizeof(cahit) < 3 ? sizeof(cahit) * 8 : 24)) - 1); // Stay within float precision in any case!
+    constexpr float maxVal = (((long)1 << (sizeof(cahit) < 3 ? sizeof(cahit) * 8 : 24)) - 1); // Stay within float precision in any case!
     constexpr float packingConstant = 1.f / (maxVal - 2.f);
     const float y0 = row.mGrid.YMin();
     const float z0 = row.mGrid.ZMin();

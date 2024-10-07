@@ -128,7 +128,7 @@ class GPUTPCTrkLbl
 } // namespace internal
 
 struct GPUTPCTrkLbl_ret {
-  long int id = -1;
+  long id = -1;
   GPUTPCTrkLbl_ret() = default;
   template <class T>
   GPUTPCTrkLbl_ret(T){};

@@ -618,7 +618,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   if (mSpecConfig.decompressTPC) {
     ptrs.tpcCompressedClusters = pCompClustersFlat;
   } else if (mSpecConfig.zsOnTheFly) {
-    const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
+    const unsigned long* buffer = reinterpret_cast<const unsigned long*>(&inputZS[0]);
     o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, tpcZSonTheFlySizes.data(), *&ptrEp, &tpcZS);
     ptrs.tpcZS = &tpcZS;
     doInputDigits = doInputDigitsMC = mSpecConfig.processMC;

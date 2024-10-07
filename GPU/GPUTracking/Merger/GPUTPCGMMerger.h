@@ -235,9 +235,9 @@ class GPUTPCGMMerger : public GPUProcessor
 #ifndef GPUCA_GPUCODE
   void PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out) const;
   template <class T, class S>
-  long int GetTrackLabelA(const S& trk) const;
+  long GetTrackLabelA(const S& trk) const;
   template <class S>
-  long int GetTrackLabel(const S& trk) const;
+  long GetTrackLabel(const S& trk) const;
 #endif
 
   GPUdi() void setBlockRange(int elems, int nBlocks, int iBlock, int& start, int& end);

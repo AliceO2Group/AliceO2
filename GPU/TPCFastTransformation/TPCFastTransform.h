@@ -158,7 +158,7 @@ class TPCFastTransform : public FlatObject
   ///
   /// It must be called once during construction,
   /// but also may be called afterwards to reset these parameters.
-  void setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ);
+  void setCalibration(long timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ);
 
   /// Set Lumi info
   void setLumi(float l) { mLumi = l; }
@@ -166,7 +166,7 @@ class TPCFastTransform : public FlatObject
   void setLumiScaleFactor(float s) { mLumiScaleFactor = s; }
 
   /// Sets the time stamp of the current calibaration
-  void setTimeStamp(long int v) { mTimeStamp = v; }
+  void setTimeStamp(long v) { mTimeStamp = v; }
 
   /// Gives a reference for external initialization of TPC corrections
   GPUd() const TPCFastSpaceChargeCorrection& getCorrection() const { return mCorrection; }
@@ -233,7 +233,7 @@ class TPCFastTransform : public FlatObject
   GPUd() const TPCFastTransformGeo& getGeometry() const { return mCorrection.getGeometry(); }
 
   /// Gives the time stamp of the current calibaration parameters
-  GPUd() long int getTimeStamp() const { return mTimeStamp; }
+  GPUd() long getTimeStamp() const { return mTimeStamp; }
 
   /// Return mVDrift in cm / time bin
   GPUd() float getVDrift() const { return mVdrift; }
@@ -299,7 +299,7 @@ class TPCFastTransform : public FlatObject
 
   /// _______________  Calibration data. See Transform() method  ________________________________
 
-  long int mTimeStamp; ///< time stamp of the current calibration
+  long mTimeStamp; ///< time stamp of the current calibration
 
   /// Correction of (x,u,v) with irregular splines.
   ///

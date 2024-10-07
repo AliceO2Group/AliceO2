@@ -35,8 +35,8 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 {
  public:
   ~GPUReconstructionCUDABackend() override;
-  static int GPUFailedMsgAI(const long long int error, const char* file, int line);
-  void GPUFailedMsgA(const long long int error, const char* file, int line);
+  static int GPUFailedMsgAI(const long error, const char* file, int line);
+  void GPUFailedMsgA(const long error, const char* file, int line);
 
  protected:
   GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg);

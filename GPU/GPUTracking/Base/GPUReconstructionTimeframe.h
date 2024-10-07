@@ -57,7 +57,7 @@ class GPUReconstructionTimeframe
   int mNEventsInDirectory;
 
   std::uniform_real_distribution<double> mDisUniReal;
-  std::uniform_int_distribution<unsigned long long int> mDisUniInt;
+  std::uniform_int_distribution<unsigned long> mDisUniInt;
   std::mt19937_64 mRndGen1;
   std::mt19937_64 mRndGen2;
 
@@ -68,7 +68,7 @@ class GPUReconstructionTimeframe
 
   int mNTotalCollisions = 0;
 
-  long long int mEventStride;
+  long mEventStride;
   int mSimBunchNoRepeatEvent;
   std::vector<char> mEventUsed;
   std::vector<std::tuple<GPUTrackingInOutPointers, GPUChainTracking::InOutMemory, o2::tpc::ClusterNativeAccess>> mShiftedEvents;

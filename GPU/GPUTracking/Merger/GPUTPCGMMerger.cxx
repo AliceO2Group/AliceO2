@@ -176,7 +176,7 @@ inline const auto* resolveMCLabels<AliHLTTPCClusterMCLabel>(const o2::dataformat
 }
 
 template <class T, class S>
-long int GPUTPCGMMerger::GetTrackLabelA(const S& trk) const
+long GPUTPCGMMerger::GetTrackLabelA(const S& trk) const
 {
   GPUTPCGMSliceTrack* sliceTrack = nullptr;
   int nClusters = 0;
@@ -206,7 +206,7 @@ long int GPUTPCGMMerger::GetTrackLabelA(const S& trk) const
 }
 
 template <class S>
-long int GPUTPCGMMerger::GetTrackLabel(const S& trk) const
+long GPUTPCGMMerger::GetTrackLabel(const S& trk) const
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
   if (GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth) {
@@ -902,8 +902,8 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
 
       GPUTPCGMBorderTrack& b2 = B2[r2.fId];
 #if defined(GPUCA_MERGER_BY_MC_LABEL) && !defined(GPUCA_GPUCODE)
-      long int label1 = GetTrackLabel(b1);
-      long int label2 = GetTrackLabel(b2);
+      long label1 = GetTrackLabel(b1);
+      long label2 = GetTrackLabel(b2);
       if (label1 != label2 && label1 != -1) // DEBUG CODE, match by MC label
 #endif
       {
@@ -2201,7 +2201,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int nBlocks, int nThreads, int iBlo
   const MergeLooperParam* params = mLooperCandidates;
 
 #if GPUCA_MERGE_LOOPER_MC && !defined(GPUCA_GPUCODE)
-  std::vector<long int> paramLabels(mMemory->nLooperMatchCandidates);
+  std::vector<long> paramLabels(mMemory->nLooperMatchCandidates);
   for (unsigned int i = 0; i < mMemory->nLooperMatchCandidates; i++) {
     paramLabels[i] = GetTrackLabel(mOutputTracks[params[i].id]);
   }
@@ -2261,8 +2261,8 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int nBlocks, int nThreads, int iBlo
       float d = CAMath::Sum2(dtgl * (1.f / 0.03f), dqpt * (1.f / 0.04f)) + d2xy * (1.f / 4.f) + dznorm * (1.f / 0.3f);
       bool EQ = d < 6.f;
 #if GPUCA_MERGE_LOOPER_MC && !defined(GPUCA_GPUCODE)
-      const long int label1 = paramLabels[i];
-      const long int label2 = paramLabels[j];
+      const long label1 = paramLabels[i];
+      const long label2 = paramLabels[j];
       bool labelEQ = label1 != -1 && label1 == label2;
       if (1 || EQ || labelEQ) {
         //printf("Matching track %d/%d %u-%u (%ld/%ld): dist %f side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, label2, d, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);

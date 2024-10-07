@@ -69,7 +69,7 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
 
   using Vec16 = unsigned short;
   using Vec32 = unsigned int;
-  using Vec64 = unsigned long int;
+  using Vec64 = unsigned long;
   using Vec128 = uint4;
 
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<unsigned int, GPUCA_GET_THREAD_COUNT(GPUCA_LB_COMPRESSION_GATHER)> {

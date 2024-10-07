@@ -64,7 +64,7 @@ int generateTPCDistortionNTupleAliRoot()
     return -1;
   }
 
-  UInt_t timeStamp = origTransform->GetCurrentTimeStamp();
+  unsigned int timeStamp = origTransform->GetCurrentTimeStamp();
 
   TPCFastTransformManager manager;
   TPCFastTransform fastTransform;
