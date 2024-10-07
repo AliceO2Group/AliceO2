@@ -166,8 +166,8 @@ int32_t GPUReconstruction::Init()
   for (uint32_t i = 0; i < mSlaves.size(); i++) {
     mSlaves[i]->mDeviceMemoryBase = mDeviceMemoryPermanent;
     mSlaves[i]->mHostMemoryBase = mHostMemoryPermanent;
-    mSlaves[i]->mDeviceMemorySize = mDeviceMemorySize - ((char*)mSlaves[i]->mDeviceMemoryBase - (char*)mDeviceMemoryBase);
-    mSlaves[i]->mHostMemorySize = mHostMemorySize - ((char*)mSlaves[i]->mHostMemoryBase - (char*)mHostMemoryBase);
+    mSlaves[i]->mDeviceMemorySize = mDeviceMemorySize - ptrDiff(mSlaves[i]->mDeviceMemoryBase, mDeviceMemoryBase);
+    mSlaves[i]->mHostMemorySize = mHostMemorySize - ptrDiff(mSlaves[i]->mHostMemoryBase, mHostMemoryBase);
     mSlaves[i]->mHostMemoryPoolEnd = mHostMemoryPoolEnd;
     mSlaves[i]->mDeviceMemoryPoolEnd = mDeviceMemoryPoolEnd;
     if (mSlaves[i]->InitDevice()) {
@@ -437,7 +437,7 @@ void GPUReconstruction::WriteConstantParams()
 {
   if (IsGPU()) {
     const auto threadContext = GetThreadContext();
-    WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(param()), -1);
+    WriteToConstantMemory(ptrDiff(&processors()->param, processors()), &param(), sizeof(param()), -1);
   }
 }
 
@@ -491,7 +491,7 @@ void GPUReconstruction::ComputeReuseMax(GPUProcessor* proc)
       resMain.mOverrideSize = 0;
       for (uint32_t i = 0; i < re.res.size(); i++) {
         GPUMemoryResource& res = mMemoryResources[re.res[i]];
-        resMain.mOverrideSize = std::max<size_t>(resMain.mOverrideSize, (char*)res.SetPointers((void*)1) - (char*)1);
+        resMain.mOverrideSize = std::max<size_t>(resMain.mOverrideSize, ptrDiff(res.SetPointers((void*)1), (char*)1));
       }
     }
   }
@@ -545,7 +545,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
       GPUError("Invalid reuse ptr (%s)", res->mName);
       throw std::bad_alloc();
     }
-    size_t retVal = (char*)((res->*setPtr)(ptr)) - (char*)(ptr);
+    size_t retVal = ptrDiff((res->*setPtr)(ptr), ptr);
     if (retVal > mMemoryResources[res->mReuse].mSize) {
       GPUError("Insufficient reuse memory %lu < %lu (%s) (%s)", mMemoryResources[res->mReuse].mSize, retVal, res->mName, device);
       throw std::bad_alloc();
@@ -561,7 +561,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   }
   size_t retVal;
   if ((res->mType & GPUMemoryResource::MEMORY_STACK) && memorypoolend) {
-    retVal = (char*)((res->*setPtr)((char*)1)) - (char*)(1);
+    retVal = ptrDiff((res->*setPtr)((char*)1), (char*)(1));
     memorypoolend = (void*)((char*)memorypoolend - GPUProcessor::getAlignmentMod<GPUCA_MEMALIGN>(memorypoolend));
     if (retVal < res->mOverrideSize) {
       retVal = res->mOverrideSize;
@@ -569,23 +569,23 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     retVal += GPUProcessor::getAlignment<GPUCA_MEMALIGN>(retVal);
     memorypoolend = (char*)memorypoolend - retVal;
     ptr = memorypoolend;
-    retVal = std::max<size_t>((char*)((res->*setPtr)(ptr)) - (char*)ptr, res->mOverrideSize);
+    retVal = std::max<size_t>(ptrDiff((res->*setPtr)(ptr), ptr), res->mOverrideSize);
   } else {
     ptr = memorypool;
     memorypool = (char*)((res->*setPtr)(ptr));
-    retVal = (char*)memorypool - (char*)ptr;
+    retVal = ptrDiff(memorypool, ptr);
     if (retVal < res->mOverrideSize) {
       retVal = res->mOverrideSize;
       memorypool = (char*)ptr + res->mOverrideSize;
     }
     memorypool = (void*)((char*)memorypool + GPUProcessor::getAlignment<GPUCA_MEMALIGN>(memorypool));
   }
-  if (memorypoolend ? (memorypool > memorypoolend) : ((size_t)((char*)memorypool - (char*)memorybase) > memorysize)) {
-    std::cerr << "Memory pool size exceeded (" << device << ") (" << res->mName << ": " << (memorypoolend ? (memorysize + ((char*)memorypool - (char*)memorypoolend)) : (char*)memorypool - (char*)memorybase) << " < " << memorysize << "\n";
+  if (memorypoolend ? (memorypool > memorypoolend) : ((size_t)ptrDiff(memorypool, memorybase) > memorysize)) {
+    std::cerr << "Memory pool size exceeded (" << device << ") (" << res->mName << ": " << (memorypoolend ? (memorysize + ptrDiff(memorypool, memorypoolend)) : ptrDiff(memorypool, memorybase)) << " < " << memorysize << "\n";
     throw std::bad_alloc();
   }
   if (mProcessingSettings.allocDebugLevel >= 2) {
-    std::cout << "Allocated (" << device << ") " << res->mName << ": " << retVal << " - available: " << (memorypoolend ? ((char*)memorypoolend - (char*)memorypool) : (memorysize - ((char*)memorypool - (char*)memorybase))) << "\n";
+    std::cout << "Allocated (" << device << ") " << res->mName << ": " << retVal << " - available: " << (memorypoolend ? ptrDiff(memorypoolend, memorypool) : (memorysize - ptrDiff(memorypool, memorybase))) << "\n";
   }
   return retVal;
 }
@@ -633,7 +633,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
         if (control->allocator) {
           res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
           res->mPtr = control->allocator(CAMath::nextMultipleOf<GPUCA_BUFFER_ALIGNMENT>(res->mSize));
-          res->mSize = std::max<size_t>((char*)res->SetPointers(res->mPtr) - (char*)res->mPtr, res->mOverrideSize);
+          res->mSize = std::max<size_t>(ptrDiff(res->SetPointers(res->mPtr), res->mPtr), res->mOverrideSize);
           if (mProcessingSettings.allocDebugLevel >= 2) {
             std::cout << "Allocated (from callback) " << res->mName << ": " << res->mSize << "\n";
           }
@@ -701,12 +701,12 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int32_t type)
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
     if (pool > poolend) {
-      GPUError("Insufficient unmanaged memory: missing %lu bytes", (size_t)((char*)pool - (char*)poolend));
+      GPUError("Insufficient unmanaged memory: missing %ld bytes", ptrDiff(pool, poolend));
       throw std::bad_alloc();
     }
     UpdateMaxMemoryUsed();
     if (mProcessingSettings.allocDebugLevel >= 2) {
-      std::cout << "Allocated (unmanaged " << (type == GPUMemoryResource::MEMORY_GPU ? "gpu" : "host") << "): " << size << " - available: " << ((char*)poolend - (char*)pool) << "\n";
+      std::cout << "Allocated (unmanaged " << (type == GPUMemoryResource::MEMORY_GPU ? "gpu" : "host") << "): " << size << " - available: " << ptrDiff(poolend, pool) << "\n";
     }
     return retVal;
   }
@@ -723,12 +723,12 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   char* retVal;
   GPUProcessor::computePointerWithAlignment(mDeviceMemoryPool, retVal, size);
   if (mDeviceMemoryPool > mDeviceMemoryPoolEnd) {
-    GPUError("Insufficient volatile device memory: missing %lu", (size_t)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryPoolEnd));
+    GPUError("Insufficient volatile device memory: missing %ld", ptrDiff(mDeviceMemoryPool, mDeviceMemoryPoolEnd));
     throw std::bad_alloc();
   }
   UpdateMaxMemoryUsed();
   if (mProcessingSettings.allocDebugLevel >= 2) {
-    std::cout << "Allocated (volatile GPU): " << size << " - available: " << ((char*)mDeviceMemoryPoolEnd - (char*)mDeviceMemoryPool) << "\n";
+    std::cout << "Allocated (volatile GPU): " << size << " - available: " << ptrDiff(mDeviceMemoryPoolEnd, mDeviceMemoryPool) << "\n";
   }
 
   return retVal;
@@ -757,7 +757,7 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(int16_t ires)
   GPUMemoryResource* res = &mMemoryResources[ires];
   if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL) && (res->mType & GPUMemoryResource::MEMORY_HOST)) {
     void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtr : res->mPtr;
-    size_t size = (char*)res->SetPointers(basePtr) - (char*)basePtr;
+    size_t size = ptrDiff(res->SetPointers(basePtr), basePtr);
     if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
       std::cerr << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - host - " << res->mName << "\n";
       throw std::bad_alloc();
@@ -765,7 +765,7 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(int16_t ires)
   }
   if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
     void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtrDevice : res->mPtrDevice;
-    size_t size = (char*)res->SetDevicePointers(basePtr) - (char*)basePtr;
+    size_t size = ptrDiff(res->SetDevicePointers(basePtr), basePtr);
     if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
       std::cerr << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - GPU - " << res->mName << "\n";
       throw std::bad_alloc();
@@ -806,7 +806,7 @@ void GPUReconstruction::ReturnVolatileDeviceMemory()
     mVolatileMemoryStart = nullptr;
   }
   if (mProcessingSettings.allocDebugLevel >= 2) {
-    std::cout << "Freed (volatile GPU) - available: " << ((char*)mDeviceMemoryPoolEnd - (char*)mDeviceMemoryPool) << "\n";
+    std::cout << "Freed (volatile GPU) - available: " << ptrDiff(mDeviceMemoryPoolEnd, mDeviceMemoryPool) << "\n";
   }
 }
 
