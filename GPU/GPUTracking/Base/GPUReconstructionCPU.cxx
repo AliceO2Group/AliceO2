@@ -357,15 +357,14 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(uint32_t id, 
   return retVal;
 }
 
-GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(uint32_t id)
+GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(uint32_t id, bool increment)
 {
   timerMeta* retVal = nullptr;
   while (timerFlag.test_and_set()) {
-    ;
   }
   if (mTimers.size() > id && mTimers[id]) {
     retVal = mTimers[id].get();
-    retVal->count++;
+    retVal->count += increment;
   }
   timerFlag.clear();
   return retVal;
