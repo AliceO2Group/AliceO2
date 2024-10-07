@@ -267,7 +267,7 @@ void GPUParam::LoadClusterErrors(bool Print)
 
 void GPUParamRTC::setFrom(const GPUParam& param)
 {
-  memcpy((char*)this, (char*)&param, sizeof(param));
+  memcpy((void*)this, (void*)&param, sizeof(param));
 }
 
 std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexpr)
