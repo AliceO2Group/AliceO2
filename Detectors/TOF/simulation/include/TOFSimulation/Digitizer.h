@@ -82,6 +82,14 @@ class Digitizer : public WindowFiller
   void setEffBoundary2(float val) { mEffBoundary2 = val; }
   void setEffBoundary3(float val) { mEffBoundary3 = val; }
 
+  // determines the readout window id, given a time in nanoseconds (relative
+  // to orbit-reset)
+  uint64_t getReadoutWindow(double timeNS) const
+  {
+    // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
+    return uint64_t((timeNS - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV);
+  }
+
  private:
   // parameters
   Int_t mMode;
