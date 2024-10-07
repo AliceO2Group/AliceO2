@@ -142,7 +142,7 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
     const float ldCorr = 0.;
     const float tofCorr = 0.;
     const float primVtxZ = 0.;
-    const long int initTimeStamp = -1;
+    const long initTimeStamp = -1;
     fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr,
                                  tofCorr, primVtxZ);
 
@@ -219,7 +219,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
 
   // set the current time stamp
 
-  mOrigTransform->SetCurrentTimeStamp(static_cast<UInt_t>(TimeStamp));
+  mOrigTransform->SetCurrentTimeStamp(static_cast<unsigned int>(TimeStamp));
   fastTransform.setTimeStamp(TimeStamp);
 
   // find last calibrated time bin

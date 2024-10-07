@@ -188,7 +188,7 @@ int initTPCcalibration(const Char_t* cdbUri, int runNumber, bool isMC)
   tpcCalib->GetTransform()->SetCurrentRecoParam(recParam);
 
   AliTPCTransform* origTransform = tpcCalib->GetTransform();
-  origTransform->SetCurrentTimeStamp(static_cast<UInt_t>(timeStamp));
+  origTransform->SetCurrentTimeStamp(static_cast<unsigned int>(timeStamp));
 
   Double_t bz = AliTracker::GetBz();
   cout << "\n\nBz field is set to " << bz << ", time stamp is set to " << timeStamp << endl

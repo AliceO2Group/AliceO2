@@ -140,7 +140,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() void setNoCorrection();
 
   /// Sets the time stamp of the current calibaration
-  GPUd() void setTimeStamp(long int v) { mTimeStamp = v; }
+  GPUd() void setTimeStamp(long v) { mTimeStamp = v; }
 
   /// Set safety marging for the interpolation around the TPC row.
   /// Outside of this area the interpolation returns the boundary values.
@@ -201,7 +201,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   }
 
   /// Gives the time stamp of the current calibaration parameters
-  long int getTimeStamp() const { return mTimeStamp; }
+  long getTimeStamp() const { return mTimeStamp; }
 
   /// Gives the interpolation safety marging  around the TPC row.
   GPUd() float getInterpolationSafetyMargin() const { return fInterpolationSafetyMargin; }
@@ -269,7 +269,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// _______________  Calibration data  _______________________________________________
 
-  long int mTimeStamp; ///< time stamp of the current calibration
+  long mTimeStamp; ///< time stamp of the current calibration
 
   char* mSplineData[3]; //! (transient!!) pointer to the spline data in the flat buffer
 

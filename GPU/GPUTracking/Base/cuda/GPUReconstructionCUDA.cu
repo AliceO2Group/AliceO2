@@ -62,17 +62,17 @@ GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
   }
 }
 
-int GPUReconstructionCUDABackend::GPUFailedMsgAI(const long long int error, const char* file, int line)
+int GPUReconstructionCUDABackend::GPUFailedMsgAI(const long error, const char* file, int line)
 {
   // Check for CUDA Error and in the case of an error display the corresponding error string
   if (error == cudaSuccess) {
     return (0);
   }
-  GPUError("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t)error), file, line);
+  GPUError("CUDA Error: %ld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t)error), file, line);
   return 1;
 }
 
-void GPUReconstructionCUDABackend::GPUFailedMsgA(const long long int error, const char* file, int line)
+void GPUReconstructionCUDABackend::GPUFailedMsgA(const long error, const char* file, int line)
 {
   if (GPUFailedMsgAI(error, file, line)) {
     static bool runningCallbacks = false;
@@ -203,7 +203,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
         continue;
       }
       devicesOK[i] = true;
-      devMemory[i] = std::min<size_t>(free, std::max<long int>(0, total - REQUIRE_MEMORY_RESERVED));
+      devMemory[i] = std::min<size_t>(free, std::max<long>(0, total - REQUIRE_MEMORY_RESERVED));
       if (deviceSpeed > bestDeviceSpeed) {
         bestDevice = i;
         bestDeviceSpeed = deviceSpeed;
@@ -216,7 +216,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
 
     bool noDevice = false;
     if (bestDevice == -1) {
-      GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation (Required mem: %lld)", count ? "appropriate " : "", (long long int)mDeviceMemorySize);
+      GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation (Required mem: %ld)", count ? "appropriate " : "", (long)mDeviceMemorySize);
 #ifndef __HIPCC__
       GPUImportant("Requiring Revision %d.%d, Mem: %lu", reqVerMaj, reqVerMin, std::max<size_t>(mDeviceMemorySize, REQUIRE_MIN_MEMORY));
 #endif
@@ -244,21 +244,21 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
 
     if (mProcessingSettings.debugLevel >= 2) {
       GPUInfo("Using CUDA Device %s with Properties:", deviceProp.name);
-      GPUInfo("\ttotalGlobalMem = %lld", (unsigned long long int)deviceProp.totalGlobalMem);
-      GPUInfo("\tsharedMemPerBlock = %lld", (unsigned long long int)deviceProp.sharedMemPerBlock);
+      GPUInfo("\ttotalGlobalMem = %ld", (unsigned long)deviceProp.totalGlobalMem);
+      GPUInfo("\tsharedMemPerBlock = %ld", (unsigned long)deviceProp.sharedMemPerBlock);
       GPUInfo("\tregsPerBlock = %d", deviceProp.regsPerBlock);
       GPUInfo("\twarpSize = %d", deviceProp.warpSize);
-      GPUInfo("\tmemPitch = %lld", (unsigned long long int)deviceProp.memPitch);
+      GPUInfo("\tmemPitch = %ld", (unsigned long)deviceProp.memPitch);
       GPUInfo("\tmaxThreadsPerBlock = %d", deviceProp.maxThreadsPerBlock);
       GPUInfo("\tmaxThreadsDim = %d %d %d", deviceProp.maxThreadsDim[0], deviceProp.maxThreadsDim[1], deviceProp.maxThreadsDim[2]);
       GPUInfo("\tmaxGridSize = %d %d %d", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
-      GPUInfo("\ttotalConstMem = %lld", (unsigned long long int)deviceProp.totalConstMem);
+      GPUInfo("\ttotalConstMem = %ld", (unsigned long)deviceProp.totalConstMem);
       GPUInfo("\tmajor = %d", deviceProp.major);
       GPUInfo("\tminor = %d", deviceProp.minor);
       GPUInfo("\tclockRate = %d", deviceProp.clockRate);
       GPUInfo("\tmemoryClockRate = %d", deviceProp.memoryClockRate);
       GPUInfo("\tmultiProcessorCount = %d", deviceProp.multiProcessorCount);
-      GPUInfo("\ttextureAlignment = %lld", (unsigned long long int)deviceProp.textureAlignment);
+      GPUInfo("\ttextureAlignment = %ld", (unsigned long)deviceProp.textureAlignment);
       GPUInfo(" ");
     }
     if (deviceProp.warpSize != GPUCA_WARP_SIZE) {
@@ -281,7 +281,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
 
 #ifdef GPUCA_USE_TEXTURES
     if (GPUCA_SLICE_DATA_MEMORY * NSLICES > (size_t)deviceProp.maxTexture1DLinear) {
-      GPUError("Invalid maximum texture size of device: %lld < %lld\n", (long long int)deviceProp.maxTexture1DLinear, (long long int)(GPUCA_SLICE_DATA_MEMORY * NSLICES));
+      GPUError("Invalid maximum texture size of device: %ld < %ld\n", (long)deviceProp.maxTexture1DLinear, (long)(GPUCA_SLICE_DATA_MEMORY * NSLICES));
       return (1);
     }
 #endif
@@ -320,7 +320,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
 #endif
 
     if (mDeviceMemorySize == 1 || mDeviceMemorySize == 2) {
-      mDeviceMemorySize = std::max<long int>(0, devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED_PER_SM * deviceProp.multiProcessorCount); // Take all GPU memory but some reserve
+      mDeviceMemorySize = std::max<long>(0, devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED_PER_SM * deviceProp.multiProcessorCount); // Take all GPU memory but some reserve
       if (mDeviceMemorySize >= RESERVE_EXTRA_MEM_THRESHOLD) {
         mDeviceMemorySize -= RESERVE_EXTRA_MEM_OFFSET;
       }
@@ -335,7 +335,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     if (mDeviceMemorySize > deviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
       size_t free, total;
       GPUFailedMsg(cudaMemGetInfo(&free, &total));
-      GPUError("CUDA Memory Allocation Error (trying %lld bytes, %lld available on GPU, %lld free)", (long long int)mDeviceMemorySize, (long long int)deviceProp.totalGlobalMem, (long long int)free);
+      GPUError("CUDA Memory Allocation Error (trying %ld bytes, %ld available on GPU, %ld free)", (long)mDeviceMemorySize, (long)deviceProp.totalGlobalMem, (long)free);
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
     }
@@ -343,12 +343,12 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
       GPUInfo("Allocating memory on Host");
     }
     if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize))) {
-      GPUError("Error allocating Page Locked Host Memory (trying %lld bytes)", (long long int)mHostMemorySize);
+      GPUError("Error allocating Page Locked Host Memory (trying %ld bytes)", (long)mHostMemorySize);
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
     }
     if (mProcessingSettings.debugLevel >= 1) {
-      GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
+      GPUInfo("Memory ptrs: GPU (%ld bytes): %p - Host (%ld bytes): %p", (long)mDeviceMemorySize, mDeviceMemoryBase, (long)mHostMemorySize, mHostMemoryBase);
       memset(mHostMemoryBase, 0xDD, mHostMemorySize);
       if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
         GPUError("Error during CUDA memset");
@@ -405,7 +405,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
-    GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, deviceProp.name, deviceProp.clockRate, deviceProp.multiProcessorCount, (long long int)mHostMemorySize, (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
+    GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %ld / %ld bytes host / global memory, Stack frame %d, Constant memory %ld)", mDeviceId, deviceProp.name, deviceProp.clockRate, deviceProp.multiProcessorCount, (long)mHostMemorySize, (long)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionCUDA* master = dynamic_cast<GPUReconstructionCUDA*>(mMaster);
     mDeviceId = master->mDeviceId;
@@ -531,7 +531,7 @@ size_t GPUReconstructionCUDA::TransferMemoryInternal(GPUMemoryResource* res, int
     return 0;
   }
   if (mProcessingSettings.debugLevel >= 3 && (strcmp(res->Name(), "ErrorCodes") || mProcessingSettings.debugLevel >= 4)) {
-    GPUInfo("Copying to %s: %s - %lld bytes", toGPU ? "GPU" : "Host", res->Name(), (long long int)res->Size());
+    GPUInfo("Copying to %s: %s - %ld bytes", toGPU ? "GPU" : "Host", res->Name(), (long)res->Size());
   }
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }

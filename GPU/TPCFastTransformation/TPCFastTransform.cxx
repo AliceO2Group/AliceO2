@@ -117,7 +117,7 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mCorrection.cloneFromObject(correction, nullptr);
 }
 
-void TPCFastTransform::setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ)
+void TPCFastTransform::setCalibration(long timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ)
 {
   /// Sets all drift calibration parameters and the time stamp
   ///

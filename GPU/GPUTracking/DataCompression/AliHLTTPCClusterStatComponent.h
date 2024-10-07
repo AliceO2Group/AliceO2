@@ -47,8 +47,8 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
     float fResidualPad;
     float fResidualTime;
     bool fFirstHit;
-    long long int fAverageQMax;
-    long long int fAverageQTot;
+    long fAverageQMax;
+    long fAverageQTot;
   };
 
   // interface methods of base class

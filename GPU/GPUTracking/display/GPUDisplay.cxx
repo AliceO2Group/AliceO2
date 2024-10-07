@@ -636,7 +636,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   if (mUpdateVertexLists && mIOPtrs) {
     size_t totalVertizes = DrawGLScene_updateVertexList();
     if (showTimer) {
-      printf("Event visualization time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));
+      printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long)totalVertizes, (long)(totalVertizes * sizeof(mVertexBuffer[0][0])));
     }
   }
 

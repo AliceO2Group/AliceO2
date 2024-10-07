@@ -414,7 +414,7 @@ inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std
     retVal = u.get();
     if (mProcessingSettings.registerStandaloneInputMemory) {
       if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
-        GPUError("Error registering memory for GPU: %p - %lld bytes\n", (void*)u.get(), (long long int)(n * sizeof(T)));
+        GPUError("Error registering memory for GPU: %p - %ld bytes\n", (void*)u.get(), (long)(n * sizeof(T)));
         throw std::bad_alloc();
       }
     }
@@ -505,7 +505,7 @@ inline unsigned int GPUReconstruction::DumpData(FILE* fp, const T* const* entrie
     }
   }
   if (mProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Dumped %lld %s", (long long int)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Dumped %ld %s", (long)numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -539,7 +539,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
   }
   (void)r;
   if (mProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %lld %s", (long long int)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Read %ld %s", (long)numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -569,7 +569,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(size, sizeof(size[0]), 2, fp);
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
-    GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size[0], (long long int)sizeof(T));
+    GPUError("ERROR reading %s, invalid size: %ld (%ld expected)", file, (long)size[0], (long)sizeof(T));
     throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> retVal(new T);
@@ -579,7 +579,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
   if (mProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
+    GPUInfo("Read %ld bytes from %s", (long)r, file);
   }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
@@ -611,14 +611,14 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0 || size != sizeof(T)) {
     fclose(fp);
-    GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size, (long long int)sizeof(T));
+    GPUError("ERROR reading %s, invalid size: %ld (%ld expected)", file, (long)size, (long)sizeof(T));
     throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> newObj(new T);
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
   if (mProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
+    GPUInfo("Read %ld bytes from %s", (long)r, file);
   }
   return newObj;
 }
@@ -639,7 +639,7 @@ inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
+    GPUInfo("Read %ld bytes from %s", (long)r, file);
   }
   return 0;
 }

@@ -55,7 +55,7 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
       return (1);
     }
     current_ptr += sizeof(_makefiles_opencl_device_info);
-    // printf("Device %d: %s %s (size %lld)\n", i, dinfo->device_vendor, dinfo->device_name, (long long int) dinfo->binary_size);
+    // printf("Device %d: %s %s (size %ld)\n", i, dinfo->device_vendor, dinfo->device_name, (long) dinfo->binary_size);
     program_sizes[i] = dinfo->binary_size;
     program_binaries[i] = current_ptr;
     current_ptr += dinfo->binary_size;

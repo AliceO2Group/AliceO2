@@ -2489,7 +2489,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
   }
 
-  unsigned long long int attachClusterCounts[N_CLS_HIST];
+  unsigned long attachClusterCounts[N_CLS_HIST];
   if (mQATasks & taskClusterAttach) {
     // Process Cluster Attachment Histograms
     if (mConfig.inputHistogramsOnly == 0) {
@@ -2779,7 +2779,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
   return (0);
 }
 
-void GPUQA::PrintClusterCount(int mode, int& num, const char* name, unsigned long long int n, unsigned long long int normalization)
+void GPUQA::PrintClusterCount(int mode, int& num, const char* name, unsigned long n, unsigned long normalization)
 {
   if (mode == 2) {
     // do nothing, just count num
@@ -2796,17 +2796,17 @@ void GPUQA::PrintClusterCount(int mode, int& num, const char* name, unsigned lon
     createHist(mHistClusterCount[num], name2, name, 1000, 0, mConfig.histMaxNClusters, 1000, 0, 100);
   } else if (mode == 0) {
     if (normalization && mConfig.enableLocalOutput) {
-      printf("\t%35s: %'12llu (%6.2f%%)\n", name, n, 100.f * n / normalization);
+      printf("\t%35s: %'12lu (%6.2f%%)\n", name, n, 100.f * n / normalization);
     }
     if (mConfig.clusterRejectionHistograms) {
-      float ratio = 100.f * n / std::max(normalization, 1llu);
+      float ratio = 100.f * n / std::max(normalization, 1lu);
       mHistClusterCount[num]->Fill(normalization, ratio, 1);
     }
   }
   num++;
 }
 
-int GPUQA::DoClusterCounts(unsigned long long int* attachClusterCounts, int mode)
+int GPUQA::DoClusterCounts(unsigned long* attachClusterCounts, int mode)
 {
   int num = 0;
   if (mcPresent() && (mQATasks & taskClusterAttach) && attachClusterCounts) {

@@ -619,7 +619,7 @@ void GPUbenchmark<chunk_t>::globalInit()
   mState.nMultiprocessors = props.multiProcessorCount;
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
-  mState.scratchSize = static_cast<long int>(mOptions.freeMemoryFractionToAllocate * free);
+  mState.scratchSize = static_cast<long>(mOptions.freeMemoryFractionToAllocate * free);
 
   if (mState.testChunks.empty()) {
     for (auto j{0}; j < mState.getMaxChunks() * mState.chunkReservedGB; j += mState.chunkReservedGB) {

@@ -186,11 +186,11 @@ typedef unsigned __int64 khronos_uint64_t;
 typedef int khronos_int32_t;
 typedef unsigned int khronos_uint32_t;
 #if defined(__arch64__) || defined(_LP64)
-typedef long int khronos_int64_t;
-typedef unsigned long int khronos_uint64_t;
+typedef long khronos_int64_t;
+typedef unsigned long khronos_uint64_t;
 #else
-typedef long long int khronos_int64_t;
-typedef unsigned long long int khronos_uint64_t;
+typedef long khronos_int64_t;
+typedef unsigned long khronos_uint64_t;
 #endif /* __arch64__ */
 #define KHRONOS_SUPPORT_INT64 1
 #define KHRONOS_SUPPORT_FLOAT 1
@@ -234,15 +234,15 @@ typedef unsigned short int khronos_uint16_t;
  * to be the only LLP64 architecture in current use.
  */
 #ifdef _WIN64
-typedef signed long long int khronos_intptr_t;
-typedef unsigned long long int khronos_uintptr_t;
-typedef signed long long int khronos_ssize_t;
-typedef unsigned long long int khronos_usize_t;
+typedef signed long khronos_intptr_t;
+typedef unsigned long khronos_uintptr_t;
+typedef signed long khronos_ssize_t;
+typedef unsigned long khronos_usize_t;
 #else
-typedef signed long int khronos_intptr_t;
-typedef unsigned long int khronos_uintptr_t;
-typedef signed long int khronos_ssize_t;
-typedef unsigned long int khronos_usize_t;
+typedef signed long khronos_intptr_t;
+typedef unsigned long khronos_uintptr_t;
+typedef signed long khronos_ssize_t;
+typedef unsigned long khronos_usize_t;
 #endif
 
 #if KHRONOS_SUPPORT_FLOAT

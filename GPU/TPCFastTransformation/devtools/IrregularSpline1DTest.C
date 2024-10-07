@@ -60,7 +60,7 @@ int IrregularSpline1DTest()
   std::cout << "Test interpolation.." << std::endl;
 
   gRandom->SetSeed(0);
-  UInt_t seed = gRandom->Integer(100000); // 605
+  unsigned int seed = gRandom->Integer(100000); // 605
 
   gRandom->SetSeed(seed);
   std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;

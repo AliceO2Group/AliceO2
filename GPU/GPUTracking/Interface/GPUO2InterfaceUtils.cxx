@@ -48,14 +48,14 @@ std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2InterfaceUtils::getCalibdEdxCo
 }
 
 template <>
-void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, int version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
+void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<unsigned long[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, int version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
 {
   GPUParam param;
   param.SetDefaults(5.00668);
   o2::gpu::GPUReconstructionConvert::RunZSEncoder(in, outBuffer, outSizes, raw, ir, param, version, verify, threshold, padding, digitsFilter);
 }
 template <>
-void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, GPUO2InterfaceConfiguration& config, int version, bool verify, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
+void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<unsigned long[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, GPUO2InterfaceConfiguration& config, int version, bool verify, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
 {
   GPUParam param;
   param.SetDefaults(&config.configGRP, &config.configReconstruction, &config.configProcessing, nullptr);

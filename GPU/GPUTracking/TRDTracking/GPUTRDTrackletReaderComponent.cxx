@@ -243,7 +243,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
 
   fEventId = hltEventData.fEventID;
 
-  HLTInfo("### START DoEvent [event id: %llu, %d blocks, size: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+  HLTInfo("### START DoEvent [event id: %lu, %d blocks, size: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
 
   // event processing function
   int iResult = 0;
@@ -252,7 +252,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
   fRawReaderMem->ClearBuffers();
 
   if (!IsDataEvent()) { // process data events only
-    HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d] (skipped: no data event)", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+    HLTInfo("### END   DoEvent [event id: %lu, %d blocks, size: %d] (skipped: no data event)", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
     return iResult;
   }
 
@@ -390,7 +390,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
     iResult = PushBack(&outputTrklsMC[0], outputTrklsMC.size() * sizeof(outputTrklsMC[0]), AliHLTTRDDefinitions::fgkTRDMCTrackletDataType, 0);
   }
 
-  HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d, output tracklets: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size());
+  HLTInfo("### END   DoEvent [event id: %lu, %d blocks, size: %d, output tracklets: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size());
 
   return iResult;
 }

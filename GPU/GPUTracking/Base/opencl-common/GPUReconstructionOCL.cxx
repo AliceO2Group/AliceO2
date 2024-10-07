@@ -53,7 +53,7 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
   }
 }
 
-int GPUReconstructionOCL::GPUFailedMsgAI(const long int error, const char* file, int line)
+int GPUReconstructionOCL::GPUFailedMsgAI(const long error, const char* file, int line)
 {
   // Check for OPENCL Error and in the case of an error display the corresponding error string
   if (error == CL_SUCCESS) {
@@ -63,7 +63,7 @@ int GPUReconstructionOCL::GPUFailedMsgAI(const long int error, const char* file,
   return 1;
 }
 
-void GPUReconstructionOCL::GPUFailedMsgA(const long int error, const char* file, int line)
+void GPUReconstructionOCL::GPUFailedMsgA(const long error, const char* file, int line)
 {
   if (GPUFailedMsgAI(error, file, line)) {
     static bool runningCallbacks = false;
@@ -182,7 +182,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
 
       double bestDeviceSpeed = -1, deviceSpeed = (double)freq * (double)shaders;
       if (mProcessingSettings.debugLevel >= 2) {
-        GPUImportant("Device %s%2d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)%s %s", deviceOK ? " " : "[", i, device_vendor, device_name, (int)freq, (int)shaders, (int)nbits, (long long int)deviceSpeed, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
+        GPUImportant("Device %s%2d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %ld)%s %s", deviceOK ? " " : "[", i, device_vendor, device_name, (int)freq, (int)shaders, (int)nbits, (long)deviceSpeed, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
       }
       if (!deviceOK) {
         continue;
@@ -231,11 +231,11 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       GPUInfo("\tVersion = %s", deviceVersion);
       GPUInfo("\tFrequency = %d", (int)freq);
       GPUInfo("\tShaders = %d", (int)shaders);
-      GPUInfo("\tGLobalMemory = %lld", (long long int)globalMem);
-      GPUInfo("\tContantMemoryBuffer = %lld", (long long int)constantBuffer);
-      GPUInfo("\tLocalMemory = %lld", (long long int)localMem);
-      GPUInfo("\tmaxThreadsPerBlock = %lld", (long long int)maxWorkGroup);
-      GPUInfo("\tmaxThreadsDim = %lld %lld %lld", (long long int)maxWorkItems[0], (long long int)maxWorkItems[1], (long long int)maxWorkItems[2]);
+      GPUInfo("\tGLobalMemory = %ld", (long)globalMem);
+      GPUInfo("\tContantMemoryBuffer = %ld", (long)constantBuffer);
+      GPUInfo("\tLocalMemory = %ld", (long)localMem);
+      GPUInfo("\tmaxThreadsPerBlock = %ld", (long)maxWorkGroup);
+      GPUInfo("\tmaxThreadsDim = %ld %ld %ld", (long)maxWorkItems[0], (long)maxWorkItems[1], (long)maxWorkItems[2]);
       GPUInfo(" ");
     }
 #ifndef GPUCA_NO_CONSTANT_MEMORY
@@ -342,12 +342,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     mDeviceConstantMem = (GPUConstantMem*)((void**)mHostMemoryBase)[1];
 
     if (mProcessingSettings.debugLevel >= 1) {
-      GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
+      GPUInfo("Memory ptrs: GPU (%ld bytes): %p - Host (%ld bytes): %p", (long)mDeviceMemorySize, mDeviceMemoryBase, (long)mHostMemorySize, mHostMemoryBase);
       memset(mHostMemoryBase, 0xDD, mHostMemorySize);
     }
 
-    GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", bestDevice, device_vendor, device_name, (int)freq, (int)shaders, (long long int)mDeviceMemorySize,
-            (long long int)mHostMemorySize, -1, (long long int)gGPUConstantMemBufferSize);
+    GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %ld / %ld bytes host / global memory, Stack frame %d, Constant memory %ld)", bestDevice, device_vendor, device_name, (int)freq, (int)shaders, (long)mDeviceMemorySize,
+            (long)mHostMemorySize, -1, (long)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionOCL* master = dynamic_cast<GPUReconstructionOCL*>(mMaster);
     mBlockCount = master->mBlockCount;
@@ -423,7 +423,7 @@ size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int 
     return 0;
   }
   if (mProcessingSettings.debugLevel >= 3 && (strcmp(res->Name(), "ErrorCodes") || mProcessingSettings.debugLevel >= 4)) {
-    GPUInfo("Copying to %s: %s - %lld bytes", toGPU ? "GPU" : "Host", res->Name(), (long long int)res->Size());
+    GPUInfo("Copying to %s: %s - %ld bytes", toGPU ? "GPU" : "Host", res->Name(), (long)res->Size());
   }
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }

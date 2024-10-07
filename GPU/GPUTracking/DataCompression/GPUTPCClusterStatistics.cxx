@@ -225,7 +225,7 @@ void GPUTPCClusterStatistics::Finish()
   GPUInfo("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)", eSigma, eSigmaCombined, eSigma > 1e-3 ? (100. * (eSigma - eSigmaCombined) / eSigma) : 0.f);
   GPUInfo("Combined Q: %6.4f --> %6.4f (%6.4f%%)", eQ, eQCombined, eQ > 1e-3 ? (100. * (eQ - eQCombined) / eQ) : 0.f);
 
-  printf("\nCombined Entropy: %7.4f   (Size %'13.0f, %'lld cluster)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy, (long long int)mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
+  printf("\nCombined Entropy: %7.4f   (Size %'13.0f, %'ld clusters)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy, (long)mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
 }
 
 float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bool count)
@@ -265,7 +265,7 @@ float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bo
       mHuffman += huffmanSize * total;
     }
   }
-  GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f (Count) %9lld", name, entropy, huffmanSize, (long long int)total);
+  GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f (Count) %9ld", name, entropy, huffmanSize, (long)total);
   return entropy;
 }
 

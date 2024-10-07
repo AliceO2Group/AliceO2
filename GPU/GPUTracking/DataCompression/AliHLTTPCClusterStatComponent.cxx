@@ -478,7 +478,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         hitIndexCache[ip]->fAverageQMax = averageQMax;
         hitIndexCache[ip]->fAverageQTot = averageCharge;
       }
-      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(UInt_t);
+      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(unsigned int);
     }
   }
 
@@ -507,7 +507,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         std::sort(sortedClusters, sortedClusters + clusters->fCount, AliHLTTPCClusterStat_sorthelper);
       }
 
-      for (UInt_t iCluster = 0; iCluster < clusters->fCount; iCluster++) {
+      for (unsigned int iCluster = 0; iCluster < clusters->fCount; iCluster++) {
         AliHLTTPCRawCluster& cluster = clusters->fClusters[iCluster];
         AliHLTTPCClusterXYZ& clusterTransformed = clustersTransformed->fClusters[iCluster];
         static AliHLTTPCTrackHelperStruct tmp;
@@ -599,7 +599,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
           PrintDumpClustersScaled(slice, patch, cluster, clusterTransformed, clusterTrack);
         }
       }
-      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(UInt_t);
+      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(unsigned int);
     }
   }
 

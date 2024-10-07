@@ -195,7 +195,7 @@ namespace // anonymous
 
 // ------------------------------------------------- TPC ZS General -------------------------------------------------
 
-typedef std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)> zsPage;
+typedef std::array<long, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long)> zsPage;
 
 struct zsEncoder {
   int curRegion = 0, outputRegion = 0;
@@ -219,7 +219,7 @@ struct zsEncoder {
   unsigned int pageCounter = 0;
   void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid);
   static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);
-  long int getHbf(long int timestamp) { return (timestamp * LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches; }
+  long getHbf(long timestamp) { return (timestamp * LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches; }
 };
 
 inline void zsEncoder::ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid)
@@ -1325,7 +1325,7 @@ size_t zsEncoderRun<T>::compare(std::vector<zsPage>* buffer, std::vector<o2::tpc
 #endif // GPUCA_TPC_GEOMETRY_O2
 
 template <class S>
-void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, int version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
+void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigned long[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, int version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
 {
   // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw to use RawFileWriter
   // ir is the interaction record for time bin 0
@@ -1394,8 +1394,8 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   }
 
   if (outBuffer) {
-    outBuffer->reset(new unsigned long long int[totalPages * TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned long long int)]);
-    unsigned long long int offset = 0;
+    outBuffer->reset(new unsigned long[totalPages * TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned long)]);
+    unsigned long offset = 0;
     for (unsigned int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         memcpy((char*)outBuffer->get() + offset, buffer[i][j].data(), buffer[i][j].size() * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -1405,7 +1405,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     }
   }
   if (nErrors) {
-    GPUError("ERROR: %lld INCORRECT SAMPLES DURING ZS ENCODING VERIFICATION!!!", (long long int)nErrors);
+    GPUError("ERROR: %ld INCORRECT SAMPLES DURING ZS ENCODING VERIFICATION!!!", (long)nErrors);
   } else if (verify) {
     GPUInfo("ENCODING VERIFICATION PASSED");
   }
@@ -1414,15 +1414,15 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
 }
 
 #ifdef GPUCA_HAVE_O2HEADERS
-template void GPUReconstructionConvert::RunZSEncoder<GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, int, bool, float, bool, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter);
+template void GPUReconstructionConvert::RunZSEncoder<GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<unsigned long[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, int, bool, float, bool, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter);
 #ifdef GPUCA_O2_LIB
-template void GPUReconstructionConvert::RunZSEncoder<DigitArray>(const DigitArray&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, int, bool, float, bool, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter);
+template void GPUReconstructionConvert::RunZSEncoder<DigitArray>(const DigitArray&, std::unique_ptr<unsigned long[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, int, bool, float, bool, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter);
 #endif
 #endif
 
-void GPUReconstructionConvert::RunZSEncoderCreateMeta(const unsigned long long int* buffer, const unsigned int* sizes, void** ptrs, GPUTrackingInOutZS* out)
+void GPUReconstructionConvert::RunZSEncoderCreateMeta(const unsigned long* buffer, const unsigned int* sizes, void** ptrs, GPUTrackingInOutZS* out)
 {
-  unsigned long long int offset = 0;
+  unsigned long offset = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
       ptrs[i * GPUTrackingInOutZS::NENDPOINTS + j] = (char*)buffer + offset;

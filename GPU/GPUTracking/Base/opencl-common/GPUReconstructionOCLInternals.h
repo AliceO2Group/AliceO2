@@ -131,15 +131,15 @@ static const char* opencl_error_string(int errorcode)
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
 #define GPUFailedMsgI(x) GPUFailedMsgAI(x, __FILE__, __LINE__)
 
-static inline long int OCLsetKernelParameters_helper(cl_kernel& k, int i)
+static inline long OCLsetKernelParameters_helper(cl_kernel& k, int i)
 {
   return 0;
 }
 
 template <typename T, typename... Args>
-static inline long int OCLsetKernelParameters_helper(cl_kernel& kernel, int i, const T& firstParameter, const Args&... restOfParameters)
+static inline long OCLsetKernelParameters_helper(cl_kernel& kernel, int i, const T& firstParameter, const Args&... restOfParameters)
 {
-  long int retVal = clSetKernelArg(kernel, i, sizeof(T), &firstParameter);
+  long retVal = clSetKernelArg(kernel, i, sizeof(T), &firstParameter);
   if (retVal) {
     return retVal;
   }
@@ -147,12 +147,12 @@ static inline long int OCLsetKernelParameters_helper(cl_kernel& kernel, int i, c
 }
 
 template <typename... Args>
-static inline long int OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
+static inline long OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
 {
   return OCLsetKernelParameters_helper(kernel, 0, args...);
 }
 
-static inline long int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
+static inline long clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
 {
   return clEnqueueNDRangeKernel(queue, krnl, 1, nullptr, &global_size, &local_size, wait == nullptr ? 0 : nWaitEvents, wait, pEvent);
 }

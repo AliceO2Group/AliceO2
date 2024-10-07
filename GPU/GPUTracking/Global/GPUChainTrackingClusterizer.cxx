@@ -532,9 +532,9 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
   }
 
   if (mIOPtrs.tpcZS) {
-    GPUInfo("Event has %u 8kb TPC ZS pages (version %d), %lld digits", mCFContext->nPagesTotal, mCFContext->zsVersion, (long long int)mRec->MemoryScalers()->nTPCdigits);
+    GPUInfo("Event has %u 8kb TPC ZS pages (version %d), %ld digits", mCFContext->nPagesTotal, mCFContext->zsVersion, (long)mRec->MemoryScalers()->nTPCdigits);
   } else {
-    GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
+    GPUInfo("Event has %ld TPC Digits", (long)mRec->MemoryScalers()->nTPCdigits);
   }
 
   if (mCFContext->tpcMaxTimeBin > maxAllowedTimebin) {

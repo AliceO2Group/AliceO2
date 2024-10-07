@@ -41,7 +41,7 @@ int createTPCFastTransform(TPCFastTransform& fastTransform)
     return -1;
   }
   AliTPCTransform* origTransform = tpcCalib->GetTransform();
-  UInt_t timeStamp = origTransform->GetCurrentTimeStamp();
+  unsigned int timeStamp = origTransform->GetCurrentTimeStamp();
 
   TPCFastTransformManager manager;
 

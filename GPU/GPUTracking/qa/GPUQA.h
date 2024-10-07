@@ -167,8 +167,8 @@ class GPUQA
   };
 
   int InitQACreateHistograms();
-  int DoClusterCounts(unsigned long long int* attachClusterCounts, int mode = 0);
-  void PrintClusterCount(int mode, int& num, const char* name, unsigned long long int n, unsigned long long int normalization);
+  int DoClusterCounts(unsigned long* attachClusterCounts, int mode = 0);
+  void PrintClusterCount(int mode, int& num, const char* name, unsigned long n, unsigned long normalization);
   void CopyO2MCtoIOPtr(GPUTrackingInOutPointers* ptr);
   template <class T>
   void SetAxisSize(T* e);
@@ -190,7 +190,7 @@ class GPUQA
     int getTrackID() const { return AbsLabelID(track); }
     int getEventID() const { return 0; }
     int getSourceID() const { return 0; }
-    long int getTrackEventSourceID() const { return getTrackID(); }
+    long getTrackEventSourceID() const { return getTrackID(); }
     bool isFake() const { return track < 0; }
     bool isValid() const { return track != MC_LABEL_INVALID; }
     void invalidate() { track = MC_LABEL_INVALID; }
@@ -290,7 +290,7 @@ class GPUQA
   TLegend* mLClust[N_CLS_TYPE];
 
   struct counts_t {
-    long long int nRejected = 0, nTube = 0, nTube200 = 0, nLoopers = 0, nLowPt = 0, n200MeV = 0, nPhysics = 0, nProt = 0, nUnattached = 0, nTotal = 0, nHighIncl = 0, nAbove400 = 0, nFakeRemove400 = 0, nFullFakeRemove400 = 0, nBelow40 = 0, nFakeProtect40 = 0, nMergedLooper = 0;
+    long nRejected = 0, nTube = 0, nTube200 = 0, nLoopers = 0, nLowPt = 0, n200MeV = 0, nPhysics = 0, nProt = 0, nUnattached = 0, nTotal = 0, nHighIncl = 0, nAbove400 = 0, nFakeRemove400 = 0, nFullFakeRemove400 = 0, nBelow40 = 0, nFakeProtect40 = 0, nMergedLooper = 0;
     double nUnaccessible = 0;
   } mClusterCounts;
 
@@ -338,7 +338,7 @@ class GPUQA
   std::vector<std::vector<bool>> mGoodTracks;
   std::vector<std::vector<bool>> mGoodHits;
 
-  std::vector<unsigned long int> mTrackingScratchBuffer;
+  std::vector<unsigned long> mTrackingScratchBuffer;
 
   static std::vector<TColor*> mColors;
   static int initColors();
