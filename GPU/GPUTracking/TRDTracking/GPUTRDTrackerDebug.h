@@ -42,12 +42,12 @@ class GPUTRDTrackerDebug
     fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate");
   }
 
-  int GetSector(float alpha)
+  int32_t GetSector(float alpha)
   {
     if (alpha < 0) {
       alpha += 2.f * M_PI;
     }
-    return (int)(alpha * 18 / (2.f * M_PI));
+    return (int32_t)(alpha * 18 / (2.f * M_PI));
   }
 
   void ExpandVectors()
@@ -134,7 +134,7 @@ class GPUTRDTrackerDebug
   }
 
   // general information
-  void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, float pt)
+  void SetGeneralInfo(int32_t iEv, int32_t nTPCtracks, int32_t iTrk, float pt)
   {
     fEv = iEv;
     fNTPCtracks = nTPCtracks;
@@ -143,7 +143,7 @@ class GPUTRDTrackerDebug
   }
 
   // track parameters
-  void SetTrackParameter(const T& trk, int ly)
+  void SetTrackParameter(const T& trk, int32_t ly)
   {
     fTrackX(ly) = trk.getX();
     fTrackY(ly) = trk.getY();
@@ -156,7 +156,7 @@ class GPUTRDTrackerDebug
     fTrackYerr(ly) = trk.getSigmaY2();
     fTrackZerr(ly) = trk.getSigmaZ2();
   }
-  void SetTrackParameterNoUp(const T& trk, int ly)
+  void SetTrackParameterNoUp(const T& trk, int32_t ly)
   {
     fTrackNoUpX(ly) = trk.getX();
     fTrackNoUpY(ly) = trk.getY();
@@ -173,7 +173,7 @@ class GPUTRDTrackerDebug
     fChi2 = trk.getChi2();
     fNlayers = trk.getNlayers();
     fNtrklts = trk.getNtracklets();
-    for (int iLy = 0; iLy < 6; iLy++) {
+    for (int32_t iLy = 0; iLy < 6; iLy++) {
       if (trk.getIsFindable(iLy)) {
         fFindable(iLy) = 1;
       }
@@ -181,34 +181,34 @@ class GPUTRDTrackerDebug
   }
 
   // tracklet parameters
-  void SetRawTrackletPosition(const float fX, const float fY, const float fZ, int ly)
+  void SetRawTrackletPosition(const float fX, const float fY, const float fZ, int32_t ly)
   {
     fTrackletX(ly) = fX;
     fTrackletY(ly) = fY;
     fTrackletZ(ly) = fZ;
   }
-  void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly)
+  void SetCorrectedTrackletPosition(const My_Float* fYZ, int32_t ly)
   {
     fTrackletYcorr(ly) = fYZ[0];
     fTrackletZcorr(ly) = fYZ[1];
   }
-  void SetTrackletCovariance(const My_Float* fCov, int ly)
+  void SetTrackletCovariance(const My_Float* fCov, int32_t ly)
   {
     fTrackletY2err(ly) = fCov[0];
     fTrackletYZerr(ly) = fCov[1];
     fTrackletZ2err(ly) = fCov[2];
   }
-  void SetTrackletProperties(const float dy, const int det, int ly)
+  void SetTrackletProperties(const float dy, const int32_t det, int32_t ly)
   {
     fTrackletDy(ly) = dy;
     fTrackletDet(ly) = det;
   }
 
   // update information
-  void SetChi2Update(float chi2, int ly) { fChi2Update(ly) = chi2; }
+  void SetChi2Update(float chi2, int32_t ly) { fChi2Update(ly) = chi2; }
 
   // other infos
-  void SetRoad(float roadY, float roadZ, int ly)
+  void SetRoad(float roadY, float roadZ, int32_t ly)
   {
     fRoadY(ly) = roadY;
     fRoadZ(ly) = roadZ;
@@ -261,11 +261,11 @@ class GPUTRDTrackerDebug
   }
 
  private:
-  int fEv;
-  int fNTPCtracks;
-  int fTrk;
+  int32_t fEv;
+  int32_t fNTPCtracks;
+  int32_t fTrk;
   float fPtTPC;
-  int fNlayers;
+  int32_t fNlayers;
   float fChi2;
   TVectorF fTrackX;
   TVectorF fTrackY;
@@ -323,25 +323,25 @@ class GPUTRDTrackerDebug
   GPUd() void Reset() {}
 
   // general information
-  GPUd() void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, float pt) {}
+  GPUd() void SetGeneralInfo(int32_t iEv, int32_t nTPCtracks, int32_t iTrk, float pt) {}
 
   // track parameters
-  GPUd() void SetTrackParameter(const T& trk, int ly) {}
-  GPUd() void SetTrackParameterNoUp(const T& trk, int ly) {}
+  GPUd() void SetTrackParameter(const T& trk, int32_t ly) {}
+  GPUd() void SetTrackParameterNoUp(const T& trk, int32_t ly) {}
   GPUd() void SetTrack(const T& trk) {}
 
   // tracklet parameters
-  GPUd() void SetRawTrackletPosition(const float fX, const float fY, const float fZ, int ly) {}
-  GPUd() void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly) {}
-  GPUd() void SetTrackletCovariance(const My_Float* fCov, int ly) {}
-  GPUd() void SetTrackletProperties(const float dy, const int det, int ly) {}
+  GPUd() void SetRawTrackletPosition(const float fX, const float fY, const float fZ, int32_t ly) {}
+  GPUd() void SetCorrectedTrackletPosition(const My_Float* fYZ, int32_t ly) {}
+  GPUd() void SetTrackletCovariance(const My_Float* fCov, int32_t ly) {}
+  GPUd() void SetTrackletProperties(const float dy, const int32_t det, int32_t ly) {}
 
   // update information
-  GPUd() void SetChi2Update(float chi2, int ly) {}
-  GPUd() void SetChi2YZPhiUpdate(float chi2, int ly) {}
+  GPUd() void SetChi2Update(float chi2, int32_t ly) {}
+  GPUd() void SetChi2YZPhiUpdate(float chi2, int32_t ly) {}
 
   // other infos
-  GPUd() void SetRoad(float roadY, float roadZ, int ly) {}
+  GPUd() void SetRoad(float roadY, float roadZ, int32_t ly) {}
   GPUd() void SetFindable(bool* findable) {}
   GPUd() void Output() {}
 };

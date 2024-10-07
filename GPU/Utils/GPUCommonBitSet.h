@@ -30,7 +30,7 @@
 
 namespace o2::gpu::gpustd
 {
-template <unsigned int N>
+template <uint32_t N>
 class bitset
 {
   static_assert(N <= 32, "> 32 bits not supported");
@@ -41,17 +41,17 @@ class bitset
 #ifdef __OPENCL__
   GPUdDefault() constexpr bitset(const __constant bitset&) = default;
 #endif // __OPENCL__
-  GPUd() constexpr bitset(unsigned int vv) : v(vv){};
-  static constexpr unsigned int full_set = ((1ul << N) - 1ul);
+  GPUd() constexpr bitset(uint32_t vv) : v(vv) {};
+  static constexpr uint32_t full_set = ((1ul << N) - 1ul);
 
   GPUd() constexpr bool all() const { return (v & full_set) == full_set; }
   GPUd() constexpr bool any() const { return v & full_set; }
   GPUd() constexpr bool none() const { return !any(); }
 
   GPUd() constexpr void set() { v = full_set; }
-  GPUd() constexpr void set(unsigned int i) { v |= (1u << i) & full_set; }
+  GPUd() constexpr void set(uint32_t i) { v |= (1u << i) & full_set; }
   GPUd() constexpr void reset() { v = 0; }
-  GPUd() constexpr void reset(unsigned int i) { v &= ~(1u << i); }
+  GPUd() constexpr void reset(uint32_t i) { v &= ~(1u << i); }
   GPUd() constexpr void flip() { v = (~v) & full_set; }
 
   GPUdDefault() constexpr bitset& operator=(const bitset&) = default;
@@ -77,11 +77,11 @@ class bitset
   GPUd() constexpr bool operator==(const bitset b) const { return v == b.v; }
   GPUd() constexpr bool operator!=(const bitset b) const { return v != b.v; }
 
-  GPUd() constexpr bool operator[](unsigned int i) const { return (v >> i) & 1u; }
+  GPUd() constexpr bool operator[](uint32_t i) const { return (v >> i) & 1u; }
 
-  GPUd() constexpr unsigned int to_ulong() const { return v; }
+  GPUd() constexpr uint32_t to_ulong() const { return v; }
 
-  GPUd() constexpr unsigned int count() const
+  GPUd() constexpr uint32_t count() const
   {
     // count number of non-0 bits in 32bit word
     return GPUCommonMath::Popcount(v);
@@ -92,22 +92,22 @@ class bitset
 #endif
 
  private:
-  unsigned int v = 0;
+  uint32_t v = 0;
 
   ClassDefNV(bitset, 1);
 };
 
 #ifndef GPUCA_GPUCODE_DEVICE
-template <unsigned int N>
+template <uint32_t N>
 inline std::string bitset<N>::to_string() const
 {
   std::string retVal;
-  for (unsigned int i = N; i--;) {
-    retVal += std::to_string((int)((*this)[i]));
+  for (uint32_t i = N; i--;) {
+    retVal += std::to_string((int32_t)((*this)[i]));
   }
   return retVal;
 }
-template <class CharT, class Traits, unsigned int N>
+template <class CharT, class Traits, uint32_t N>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const bitset<N>& x)
 {
   os << x.to_string();

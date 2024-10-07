@@ -42,11 +42,11 @@ class GPUDisplayBackend
   GPUDisplayBackend();
   virtual ~GPUDisplayBackend();
 
-  virtual int ExtInit() { return 0; };
+  virtual int32_t ExtInit() { return 0; };
   virtual bool CoreProfile() { return false; };
-  virtual unsigned int DepthBits() = 0;
+  virtual uint32_t DepthBits() = 0;
 
-  typedef std::tuple<unsigned int, unsigned int, int> vboList;
+  typedef std::tuple<uint32_t, uint32_t, int32_t> vboList;
 
   enum drawType {
     POINTS = 0,
@@ -61,30 +61,30 @@ class GPUDisplayBackend
   };
 
   struct DrawArraysIndirectCommand {
-    DrawArraysIndirectCommand(unsigned int a = 0, unsigned int b = 0, unsigned int c = 0, unsigned int d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
-    unsigned int count;
-    unsigned int instanceCount;
+    DrawArraysIndirectCommand(uint32_t a = 0, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
+    uint32_t count;
+    uint32_t instanceCount;
 
-    unsigned int first;
-    unsigned int baseInstance;
+    uint32_t first;
+    uint32_t baseInstance;
   };
 
   struct FontSymbol {
-    int size[2];
-    int offset[2];
-    int advance;
+    int32_t size[2];
+    int32_t offset[2];
+    int32_t advance;
   };
 
-  virtual unsigned int drawVertices(const vboList& v, const drawType t) = 0;
-  virtual unsigned int drawField() { return 0; }
+  virtual uint32_t drawVertices(const vboList& v, const drawType t) = 0;
+  virtual uint32_t drawField() { return 0; }
   virtual void ActivateColor(std::array<float, 4>& color) = 0;
   virtual void setQuality() {};
   virtual void SetVSync(bool enable) {};
   virtual bool backendNeedRedraw() { return true; }
   virtual void setDepthBuffer() = 0;
-  virtual int InitBackendA() = 0;
+  virtual int32_t InitBackendA() = 0;
   virtual void ExitBackendA() = 0;
-  int InitBackend();
+  int32_t InitBackend();
   void ExitBackend();
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
   virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot = false, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
@@ -96,16 +96,16 @@ class GPUDisplayBackend
   virtual void lineWidthFactor(float factor) = 0;
   backendTypes backendType() const { return mBackendType; }
   const char* backendName() const { return mBackendName; }
-  virtual void resizeScene(unsigned int width, unsigned int height) {}
+  virtual void resizeScene(uint32_t width, uint32_t height) {}
   virtual size_t needMultiVBO() { return 0; }
   virtual void OpenGLPrint(const char* s, float x, float y, float* color, float scale) = 0;
   static GPUDisplayBackend* getBackend(const char* type);
   std::vector<char> getPixels();
   virtual float getYFactor() const { return 1.0f; }
-  virtual int getMaxMSAA() const { return 16; }
+  virtual int32_t getMaxMSAA() const { return 16; }
 
  protected:
-  virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
+  virtual void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) = 0;
   virtual void initializeTextDrawing() = 0;
 
   float getDownsampleFactor(bool screenshot = false);
@@ -113,18 +113,18 @@ class GPUDisplayBackend
   bool smoothFont();
 
   GPUDisplay* mDisplay = nullptr;
-  std::vector<int> mIndirectSliceOffset;
+  std::vector<int32_t> mIndirectSliceOffset;
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
   bool mFreetypeInitialized = false;
   bool mFrontendCompatTextDraw = false;
   std::vector<char> mScreenshotPixels;
 
-  int mDownsampleFactor = 1;
+  int32_t mDownsampleFactor = 1;
 
-  unsigned int mRenderWidth = 0;
-  unsigned int mRenderHeight = 0;
-  unsigned int mScreenWidth = 0;
-  unsigned int mScreenHeight = 0;
+  uint32_t mRenderWidth = 0;
+  uint32_t mRenderHeight = 0;
+  uint32_t mScreenWidth = 0;
+  uint32_t mScreenHeight = 0;
 
   backendTypes mBackendType = TYPE_INVALID;
   const char* mBackendName = nullptr;

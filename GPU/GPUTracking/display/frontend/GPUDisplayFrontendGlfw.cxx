@@ -22,7 +22,7 @@
 #endif
 
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
-extern "C" int gl3wInit();
+extern "C" int32_t gl3wInit();
 #endif
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
@@ -56,7 +56,7 @@ GPUDisplayFrontendGlfw::GPUDisplayFrontendGlfw()
 
 static GPUDisplayFrontendGlfw* me = nullptr;
 
-int GPUDisplayFrontendGlfw::GetKey(int key)
+int32_t GPUDisplayFrontendGlfw::GetKey(int32_t key)
 {
   if (key == GLFW_KEY_KP_SUBTRACT) {
     return ('-');
@@ -154,31 +154,31 @@ int GPUDisplayFrontendGlfw::GetKey(int key)
   return (0);
 }
 
-void GPUDisplayFrontendGlfw::GetKey(int key, int scancode, int mods, int& keyOut, int& keyPressOut)
+void GPUDisplayFrontendGlfw::GetKey(int32_t key, int32_t scancode, int32_t mods, int32_t& keyOut, int32_t& keyPressOut)
 {
-  int specialKey = GetKey(key);
+  int32_t specialKey = GetKey(key);
   const char* str = glfwGetKeyName(key, scancode);
   char localeKey = str ? str[0] : 0;
   if ((mods & GLFW_MOD_SHIFT) && localeKey >= 'a' && localeKey <= 'z') {
     localeKey += 'A' - 'a';
   }
-  // GPUInfo("Key: key %d (%c) scancode %d -> %d (%c) special %d (%c)", key, (char)key, scancode, (int)localeKey, localeKey, specialKey, (char)specialKey);
+  // GPUInfo("Key: key %d (%c) scancode %d -> %d (%c) special %d (%c)", key, (char)key, scancode, (int32_t)localeKey, localeKey, specialKey, (char)specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
   } else {
-    keyOut = keyPressOut = (unsigned char)localeKey;
+    keyOut = keyPressOut = (uint8_t)localeKey;
     if (keyPressOut >= 'a' && keyPressOut <= 'z') {
       keyPressOut += 'A' - 'a';
     }
   }
 }
 
-void GPUDisplayFrontendGlfw::error_callback(int error, const char* description) { fprintf(stderr, "Error: %s\n", description); }
+void GPUDisplayFrontendGlfw::error_callback(int32_t error, const char* description) { fprintf(stderr, "Error: %s\n", description); }
 
-void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods)
 {
-  int handleKey = 0, keyPress = 0;
+  int32_t handleKey = 0, keyPress = 0;
   GetKey(key, scancode, mods, handleKey, keyPress);
   if (handleKey < 32) {
     if (action == GLFW_PRESS) {
@@ -193,27 +193,29 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int key, int scanc
     if (action == GLFW_PRESS) {
       me->mLastKeyDown = handleKey;
     } else if (action == GLFW_RELEASE) {
-      keyPress = (unsigned char)me->mKeyDownMap[handleKey];
+      keyPress = (uint8_t)me->mKeyDownMap[handleKey];
       me->mKeys[keyPress] = false;
       me->mKeysShift[keyPress] = false;
     }
   }
 }
 
-void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, unsigned int codepoint)
+void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, uint32_t codepoint)
 {
-  // GPUInfo("Key (char callback): %d %c - key: %d", codepoint, (char)codepoint, (int)me->mLastKeyDown);
-  int keyPress = codepoint;
-  if (keyPress >= 'a' && keyPress <= 'z') {
-    keyPress += 'A' - 'a';
+  // GPUInfo("Key (char callback): %d %c - key: %d", codepoint, (char)codepoint, (int32_t)me->mLastKeyDown);
+  if (codepoint < 256) {
+    uint8_t keyPress = codepoint;
+    if (keyPress >= 'a' && keyPress <= 'z') {
+      keyPress += 'A' - 'a';
+    }
+    me->mKeyDownMap[me->mLastKeyDown] = keyPress;
+    me->mKeys[keyPress] = true;
+    me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
+    me->HandleKey(codepoint);
   }
-  me->mKeyDownMap[me->mLastKeyDown] = keyPress;
-  me->mKeys[keyPress] = true;
-  me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
-  me->HandleKey(codepoint);
 }
 
-void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int button, int action, int mods)
+void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int32_t button, int32_t action, int32_t mods)
 {
   if (action == GLFW_PRESS) {
     if (button == 0) {
@@ -240,7 +242,7 @@ void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, do
   me->mMouseMvY = y;
 }
 
-void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ResizeScene(width, height); }
+void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) { me->ResizeScene(width, height); }
 
 #ifdef GPUCA_O2_LIB
 void GPUDisplayFrontendGlfw::DisplayLoop()
@@ -254,7 +256,7 @@ void GPUDisplayFrontendGlfw::DisplayLoop()
 }
 #endif
 
-int GPUDisplayFrontendGlfw::FrontendMain()
+int32_t GPUDisplayFrontendGlfw::FrontendMain()
 {
   me = this;
 
@@ -392,7 +394,7 @@ void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float 
 
 void GPUDisplayFrontendGlfw::SwitchFullscreen(bool set)
 {
-  GPUInfo("Setting Full Screen %d", (int)set);
+  GPUInfo("Setting Full Screen %d", (int32_t)set);
   if (set) {
     glfwGetWindowPos(mWindow, &mWindowX, &mWindowY);
     glfwGetWindowSize(mWindow, &mWindowWidth, &mWindowHeight);
@@ -415,7 +417,7 @@ void GPUDisplayFrontendGlfw::ToggleMaximized(bool set)
 
 void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
 
-int GPUDisplayFrontendGlfw::StartDisplay()
+int32_t GPUDisplayFrontendGlfw::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
@@ -434,12 +436,12 @@ bool GPUDisplayFrontendGlfw::EnableSendKey()
 #endif
 }
 
-void GPUDisplayFrontendGlfw::getSize(int& width, int& height)
+void GPUDisplayFrontendGlfw::getSize(int32_t& width, int32_t& height)
 {
   glfwGetFramebufferSize(mWindow, &width, &height);
 }
 
-int GPUDisplayFrontendGlfw::getVulkanSurface(void* instance, void* surface)
+int32_t GPUDisplayFrontendGlfw::getVulkanSurface(void* instance, void* surface)
 {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
   return glfwCreateWindowSurface(*(VkInstance*)instance, mWindow, nullptr, (VkSurfaceKHR*)surface) != VK_SUCCESS;
@@ -448,7 +450,7 @@ int GPUDisplayFrontendGlfw::getVulkanSurface(void* instance, void* surface)
 #endif
 }
 
-unsigned int GPUDisplayFrontendGlfw::getReqVulkanExtensions(const char**& p)
+uint32_t GPUDisplayFrontendGlfw::getReqVulkanExtensions(const char**& p)
 {
   uint32_t glfwExtensionCount = 0;
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN

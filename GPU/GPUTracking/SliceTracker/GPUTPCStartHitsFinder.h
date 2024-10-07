@@ -36,9 +36,9 @@ class GPUTPCStartHitsFinder : public GPUKernelTemplate
  public:
   MEM_CLASS_PRE()
   struct GPUSharedMemory {
-    int mIRow;                              // row index
-    int mNHits;                             // n hits in the row
-    GPUAtomic(unsigned int) mNRowStartHits; // start hits found in the row
+    int32_t mIRow;                      // row index
+    int32_t mNHits;                     // n hits in the row
+    GPUAtomic(uint32_t) mNRowStartHits; // start hits found in the row
   };
 
   typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
@@ -48,8 +48,8 @@ class GPUTPCStartHitsFinder : public GPUKernelTemplate
   {
     return processors.tpcTrackers;
   }
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

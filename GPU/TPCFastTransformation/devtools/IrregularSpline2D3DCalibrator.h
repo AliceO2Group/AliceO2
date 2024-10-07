@@ -33,8 +33,8 @@ class IrregularSpline2D3DCalibrator
 {
  public:
   struct KnotData {
-    int uv;         // is the knot on U or V coordinate axis
-    int rasterKnot; // index of the raster knot
+    int32_t uv;         // is the knot on U or V coordinate axis
+    int32_t rasterKnot; // index of the raster knot
   };
 
   struct Action {
@@ -60,10 +60,10 @@ class IrregularSpline2D3DCalibrator
   ~IrregularSpline2D3DCalibrator() CON_DEFAULT;
 
   /// set size of the raster grid
-  void setRasterSize(int nKnotsU, int nKnotsV);
+  void setRasterSize(int32_t nKnotsU, int32_t nKnotsV);
 
   /// set maximal size of the spline grid
-  void setMaxNKnots(int nKnotsU, int nKnotsV);
+  void setMaxNKnots(int32_t nKnotsU, int32_t nKnotsV);
 
   /// set maximal tolerated deviation between the spline and the input function
   void setMaximalDeviation(float maxDeviation)
@@ -112,18 +112,18 @@ class IrregularSpline2D3DCalibrator
 
   Action checkActionRemove(std::list<KnotData>::iterator& knot);
 
-  void getRegionOfInfluence(std::list<KnotData>::iterator knot, int& regionKnotFirst, int& regionKnotLast) const;
+  void getRegionOfInfluence(std::list<KnotData>::iterator knot, int32_t& regionKnotFirst, int32_t& regionKnotLast) const;
 
-  double getMaxDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int axis, int knot) const;
+  double getMaxDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int32_t axis, int32_t knot) const;
   double getMaxDeviationArea(const IrregularSpline2D3D& spline, const std::vector<float>& data,
-                             int axis, int knotFirst, int knotLast) const;
-  double getIntegralDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int axis, int knot) const;
+                             int32_t axis, int32_t knotFirst, int32_t knotLast) const;
+  double getIntegralDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int32_t axis, int32_t knot) const;
   double getIntegralDeviationArea(const IrregularSpline2D3D& spline, const std::vector<float>& data,
-                                  int axis, int knotFirst, int knotLast) const;
+                                  int32_t axis, int32_t knotFirst, int32_t knotLast) const;
 
   /// Class members
 
-  int mMaxNKnots[2] = {5, 5}; ///< max N knots, U / V axis
+  int32_t mMaxNKnots[2] = {5, 5}; ///< max N knots, U / V axis
 
   std::list<KnotData> mKnots[2]; ///< list of knots for U/V axis
 

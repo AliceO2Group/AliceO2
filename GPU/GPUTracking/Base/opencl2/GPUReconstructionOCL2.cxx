@@ -38,21 +38,21 @@ GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsDevi
 {
 }
 
-template <class T, int I, typename... Args>
-int GPUReconstructionOCL2Backend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
+template <class T, int32_t I, typename... Args>
+int32_t GPUReconstructionOCL2Backend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
 {
   cl_kernel k = args.s.y.num > 1 ? getKernelObject<cl_kernel, T, I, true>() : getKernelObject<cl_kernel, T, I, false>();
   return std::apply([this, &args, &k](auto&... vals) { return runKernelBackendInternal(args.s, k, vals...); }, args.v);
 }
 
-template <class S, class T, int I, bool MULTI>
+template <class S, class T, int32_t I, bool MULTI>
 S& GPUReconstructionOCL2Backend::getKernelObject()
 {
-  static unsigned int krnl = FindKernel<T, I>(MULTI ? 2 : 1);
+  static uint32_t krnl = FindKernel<T, I>(MULTI ? 2 : 1);
   return mInternals->kernels[krnl].first;
 }
 
-int GPUReconstructionOCL2Backend::GetOCLPrograms()
+int32_t GPUReconstructionOCL2Backend::GetOCLPrograms()
 {
   char platform_version[256] = {};
   GPUFailedMsg(clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr));
@@ -113,7 +113,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
   return 0;
 }
 
-bool GPUReconstructionOCL2Backend::CheckPlatform(unsigned int i)
+bool GPUReconstructionOCL2Backend::CheckPlatform(uint32_t i)
 {
   char platform_version[64] = {}, platform_vendor[64] = {};
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);

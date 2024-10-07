@@ -22,9 +22,9 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 struct GPUTPCClusterData {
-  int id;
-  short row;
-  short flags;
+  int32_t id;
+  int16_t row;
+  int16_t flags;
   float x;
   float y;
   float z;

@@ -6,7 +6,7 @@
 #include "TH1.h"
 #include "TCanvas.h"
 
-int fastTransformQA()
+int32_t fastTransformQA()
 {
 
   const char* fname = "fastTransformQA.root";
@@ -46,9 +46,9 @@ int fastTransformQA()
   TH1F* qaY = new TH1F("qaY", "qaY [um]", 1000, -500., 500.);
   TH1F* qaZ = new TH1F("qaZ", "qaZ [um]", 1000, -500., 500.);
 
-  for (int i = 0; i < nt->GetEntriesFast(); i++) {
+  for (int32_t i = 0; i < nt->GetEntriesFast(); i++) {
     if (i % 10000000 == 0) {
-      std::cout << "processing " << i << " out of " << nt->GetEntriesFast() << "  (" << ((long)i) * 100 / nt->GetEntriesFast() << " %)" << std::endl;
+      std::cout << "processing " << i << " out of " << nt->GetEntriesFast() << "  (" << ((int64_t)i) * 100 / nt->GetEntriesFast() << " %)" << std::endl;
       canv->cd(1);
       qaX->Draw();
       canv->cd(2);
@@ -58,7 +58,7 @@ int fastTransformQA()
       canv->cd(0);
       canv->Update();
     }
-    int ret = nt->GetEntry(i);
+    int32_t ret = nt->GetEntry(i);
     if (ret <= 0) {
       std::cout << "Wrong entry, ret == " << ret << std::endl;
       continue;

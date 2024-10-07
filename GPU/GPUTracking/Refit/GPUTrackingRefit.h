@@ -15,9 +15,6 @@
 #ifndef GPUTRACKINGREFIT_H
 #define GPUTRACKINGREFIT_H
 
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <cstdint>
-#endif
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 
@@ -60,18 +57,18 @@ struct GPUTPCGMMergedTrackHit;
 class GPUTrackingRefit
 {
  public:
-  void SetClusterStateArray(const unsigned char* v) { mPclusterState = v; }
+  void SetClusterStateArray(const uint8_t* v) { mPclusterState = v; }
   void SetPtrsFromGPUConstantMem(const GPUConstantMem* v, MEM_CONSTANT(GPUParam) * p = nullptr);
   void SetPropagator(const o2::base::Propagator* v) { mPpropagator = v; }
   void SetClusterNative(const o2::tpc::ClusterNativeAccess* v) { mPclusterNative = v; }
   void SetTrackHits(const GPUTPCGMMergedTrackHit* v) { mPtrackHits = v; }
-  void SetTrackHitReferences(const unsigned int* v) { mPtrackHitReferences = v; }
+  void SetTrackHitReferences(const uint32_t* v) { mPtrackHitReferences = v; }
   void SetFastTransformHelper(const CorrectionMapsHelper* v) { mPfastTransformHelper = v; }
   void SetGPUParam(const MEM_CONSTANT(GPUParam) * v) { mPparam = v; }
-  GPUd() int RefitTrackAsGPU(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(trk, outward, resetCov); }
-  GPUd() int RefitTrackAsTrackParCov(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, o2::track::TrackParCov>(trk, outward, resetCov); }
-  GPUd() int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, GPUTPCGMTrackParam>(trk, outward, resetCov); }
-  GPUd() int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, o2::track::TrackParCov>(trk, outward, resetCov); }
+  GPUd() int32_t RefitTrackAsGPU(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(trk, outward, resetCov); }
+  GPUd() int32_t RefitTrackAsTrackParCov(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, o2::track::TrackParCov>(trk, outward, resetCov); }
+  GPUd() int32_t RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, GPUTPCGMTrackParam>(trk, outward, resetCov); }
+  GPUd() int32_t RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, o2::track::TrackParCov>(trk, outward, resetCov); }
 
   struct TrackParCovWithArgs {
     o2::track::TrackParCov& trk;
@@ -79,30 +76,30 @@ class GPUTrackingRefit
     float time0;
     float* chi2;
   };
-  GPUd() int RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
+  GPUd() int32_t RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
   {
     TrackParCovWithArgs x{trk, clusRef, time0, chi2};
     return RefitTrack<TrackParCovWithArgs, GPUTPCGMTrackParam>(x, outward, resetCov);
   }
-  GPUd() int RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
+  GPUd() int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
   {
     TrackParCovWithArgs x{trk, clusRef, time0, chi2};
     return RefitTrack<TrackParCovWithArgs, o2::track::TrackParCov>(x, outward, resetCov);
   }
 
-  bool mIgnoreErrorsOnTrackEnds = true; // Ignore errors during propagation / update at the beginning / end of tracks for short tracks / tracks with high incl. angle
+  bool mIgnoreErrorsOnTrackEnds = true; // Ignore errors during propagation / update at the beginning / end of tracks for int16_t tracks / tracks with high incl. angle
 
  private:
-  const unsigned char* mPclusterState = nullptr;                 // Ptr to shared cluster state
+  const uint8_t* mPclusterState = nullptr;                       // Ptr to shared cluster state
   const o2::base::Propagator* mPpropagator = nullptr;            // Ptr to propagator for TrackParCov track model
   const o2::base::MatLayerCylSet* mPmatLUT = nullptr;            // Ptr to material LUT
   const o2::tpc::ClusterNativeAccess* mPclusterNative = nullptr; // Ptr to cluster native access structure
   const GPUTPCGMMergedTrackHit* mPtrackHits = nullptr;           // Ptr to hits for GPUTPCGMMergedTrack tracks
-  const unsigned int* mPtrackHitReferences = nullptr;            // Ptr to hits for TrackTPC tracks
+  const uint32_t* mPtrackHitReferences = nullptr;                // Ptr to hits for TrackTPC tracks
   const CorrectionMapsHelper* mPfastTransformHelper = nullptr;   // Ptr to TPC fast transform object helper
   const MEM_CONSTANT(GPUParam) * mPparam = nullptr;              // Ptr to GPUParam
   template <class T, class S>
-  GPUd() int RefitTrack(T& trk, bool outward, bool resetCov);
+  GPUd() int32_t RefitTrack(T& trk, bool outward, bool resetCov);
   template <class T, class S, class U>
   GPUd() void convertTrack(T& trk, const S& trkX, U& prop, float* chi2);
   template <class U>

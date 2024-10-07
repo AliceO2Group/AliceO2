@@ -20,16 +20,16 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& GPUrestrict() tracker)
 {
   //* find neighbours
 
 #ifdef GPUCA_GPUCODE
-  for (unsigned int i = iThread; i < sizeof(MEM_PLAIN(GPUTPCRow)) / sizeof(int); i += nThreads) {
-    reinterpret_cast<GPUsharedref() int*>(&s.mRow)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock])[i];
+  for (uint32_t i = iThread; i < sizeof(MEM_PLAIN(GPUTPCRow)) / sizeof(int32_t); i += nThreads) {
+    reinterpret_cast<GPUsharedref() int32_t*>(&s.mRow)[i] = reinterpret_cast<GPUglobalref() int32_t*>(&tracker.SliceDataRows()[iBlock])[i];
     if (iBlock >= 2 && iBlock < GPUCA_ROW_COUNT - 2) {
-      reinterpret_cast<GPUsharedref() int*>(&s.mRowUp)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock + 2])[i];
-      reinterpret_cast<GPUsharedref() int*>(&s.mRowDown)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock - 2])[i];
+      reinterpret_cast<GPUsharedref() int32_t*>(&s.mRowUp)[i] = reinterpret_cast<GPUglobalref() int32_t*>(&tracker.SliceDataRows()[iBlock + 2])[i];
+      reinterpret_cast<GPUsharedref() int32_t*>(&s.mRowDown)[i] = reinterpret_cast<GPUglobalref() int32_t*>(&tracker.SliceDataRows()[iBlock - 2])[i];
     }
   }
   GPUbarrier();
@@ -67,8 +67,8 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
   // local copies
 
   if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2) || (rowUp.mNHits <= 0) || (rowDn.mNHits <= 0)) {
-    const int lHitNumberOffset = row.mHitNumberOffset;
-    for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
+    const int32_t lHitNumberOffset = row.mHitNumberOffset;
+    for (int32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
       tracker.mData.mLinkUpData[lHitNumberOffset + ih] = CALINK_INVAL;
       tracker.mData.mLinkDownData[lHitNumberOffset + ih] = CALINK_INVAL;
     }
@@ -87,11 +87,11 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
   const float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
   // float chi2Cut = 3.f*3.f*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG
 
-  const int lHitNumberOffset = row.mHitNumberOffset;
-  const int lHitNumberOffsetUp = rowUp.mHitNumberOffset;
-  const int lHitNumberOffsetDn = rowDn.mHitNumberOffset;
-  const unsigned int lFirstHitInBinOffsetUp = rowUp.mFirstHitInBinOffset;
-  const unsigned int lFirstHitInBinOffsetDn = rowDn.mFirstHitInBinOffset;
+  const int32_t lHitNumberOffset = row.mHitNumberOffset;
+  const int32_t lHitNumberOffsetUp = rowUp.mHitNumberOffset;
+  const int32_t lHitNumberOffsetDn = rowDn.mHitNumberOffset;
+  const uint32_t lFirstHitInBinOffsetUp = rowUp.mFirstHitInBinOffset;
+  const uint32_t lFirstHitInBinOffsetDn = rowDn.mFirstHitInBinOffset;
   const GPUglobalref() calink* GPUrestrict() lFirstHitInBin = tracker.mData.mFirstHitInBin;
   const GPUglobalref() cahit2* GPUrestrict() pHitData = tracker.mData.mHitData;
 
@@ -122,16 +122,16 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
   float yzUp[2 * MaxGlobal];
 #endif
 
-  for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
+  for (int32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
 
     const GPUglobalref() cahit2& hitData = pHitData[lHitNumberOffset + ih];
     const float y = y0 + hitData.x * stepY;
     const float z = z0 + hitData.y * stepZ;
 
-    int nNeighUp = 0;
+    int32_t nNeighUp = 0;
     float minZ, maxZ, minY, maxY;
-    int binYmin, binYmax, binZmin, binZmax;
-    int nY;
+    int32_t binYmin, binYmax, binZmin, binZmax;
+    int32_t nY;
 
     { // area in the upper row
       const float yy = y * s.mUpTx;
@@ -145,11 +145,11 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
       nY = rowUp.Grid().Ny();
     }
 
-    for (int k1 = binZmin; k1 <= binZmax && (nNeighUp < MaxTotal); k1++) {
-      int iMin = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmin];
-      int iMax = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmax + 1];
+    for (int32_t k1 = binZmin; k1 <= binZmax && (nNeighUp < MaxTotal); k1++) {
+      int32_t iMin = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmin];
+      int32_t iMax = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmax + 1];
       GPUCA_UNROLL(U(4), U(2))
-      for (int i = iMin; i < iMax && (nNeighUp < MaxTotal); i++) {
+      for (int32_t i = iMin; i < iMax && (nNeighUp < MaxTotal); i++) {
         const GPUglobalref() cahit2& hitDataUp = pHitData[lHitNumberOffsetUp + i];
         GPUTPCHit h;
         h.mY = y0Up + (hitDataUp.x) * stepYUp;
@@ -182,7 +182,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
     }
 
 #if MaxShared > 0 // init a rest of the shared array
-    for (int iUp = nNeighUp; iUp < MaxShared; iUp++) {
+    for (int32_t iUp = nNeighUp; iUp < MaxShared; iUp++) {
       s.mA1[iUp][iThread] = -1.e10f;
       s.mA2[iUp][iThread] = -1.e10f;
       s.mB[iUp][iThread] = (calink)-1;
@@ -190,12 +190,12 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 #endif
 
 #if MaxGlobal > 0 // init a rest of the UnrollGlobal chunk of the global array
-    int Nrest = nNeighUp - MaxShared;
-    int N4 = (Nrest / UnrollGlobal) * UnrollGlobal;
+    int32_t Nrest = nNeighUp - MaxShared;
+    int32_t N4 = (Nrest / UnrollGlobal) * UnrollGlobal;
     if (N4 < Nrest) {
       N4 += UnrollGlobal;
       GPUCA_UNROLL(U(UnrollGlobal - 1), U(UnrollGlobal - 1))
-      for (int k = 0; k < UnrollGlobal - 1; k++) {
+      for (int32_t k = 0; k < UnrollGlobal - 1; k++) {
         if (Nrest + k < N4) {
           yzUp[2 * (Nrest + k)] = -1.e10f;
           yzUp[2 * (Nrest + k) + 1] = -1.e10f;
@@ -217,14 +217,14 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
     rowDn.Grid().GetBin(maxY, maxZ, &binYmax, &binZmax);
     nY = rowDn.Grid().Ny();
 
-    int linkUp = -1; // CALINK_INVAL as integer
-    int linkDn = -1; // CALINK_INVAL as integer
+    int32_t linkUp = -1; // CALINK_INVAL as integer
+    int32_t linkDn = -1; // CALINK_INVAL as integer
     float bestD = chi2Cut;
 
-    for (int k1 = binZmin; k1 <= binZmax; k1++) {
-      int iMin = lFirstHitInBin[lFirstHitInBinOffsetDn + k1 * nY + binYmin];
-      int iMax = lFirstHitInBin[lFirstHitInBinOffsetDn + k1 * nY + binYmax + 1];
-      for (int i = iMin; i < iMax; i++) {
+    for (int32_t k1 = binZmin; k1 <= binZmax; k1++) {
+      int32_t iMin = lFirstHitInBin[lFirstHitInBinOffsetDn + k1 * nY + binYmin];
+      int32_t iMax = lFirstHitInBin[lFirstHitInBinOffsetDn + k1 * nY + binYmax + 1];
+      for (int32_t i = iMin; i < iMax; i++) {
         const GPUglobalref() cahit2& hitDataDn = pHitData[lHitNumberOffsetDn + i];
         float yDn = y0Dn + (hitDataDn.x) * stepYDn;
         float zDn = z0Dn + (hitDataDn.y) * stepZDn;
@@ -238,7 +238,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 
 #if MaxShared > 0
         GPUCA_UNROLL(U(MaxShared), U(MaxShared))
-        for (int iUp = 0; iUp < MaxShared; iUp++) {
+        for (int32_t iUp = 0; iUp < MaxShared; iUp++) {
           const float dy = yDnProjUp - s.mA1[iUp][iThread];
           const float dz = zDnProjUp - s.mA2[iUp][iThread];
           const float d = dy * dy + dz * dz;
@@ -251,10 +251,10 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 #endif
 
 #if MaxGlobal > 0
-        for (int iUp = 0; iUp < N4; iUp += UnrollGlobal) {
+        for (int32_t iUp = 0; iUp < N4; iUp += UnrollGlobal) {
           GPUCA_UNROLL(U(UnrollGlobal), U(UnrollGlobal))
-          for (int k = 0; k < UnrollGlobal; k++) {
-            int jUp = iUp + k;
+          for (int32_t k = 0; k < UnrollGlobal; k++) {
+            int32_t jUp = iUp + k;
             const float dy = yDnProjUp - yzUp[2 * jUp];
             const float dz = zDnProjUp - yzUp[2 * jUp + 1];
             const float d = dy * dy + dz * dz;

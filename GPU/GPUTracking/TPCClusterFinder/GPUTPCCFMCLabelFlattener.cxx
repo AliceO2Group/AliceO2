@@ -43,7 +43,7 @@ void GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(
 #endif
 
 template <>
-GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::setRowOffsets>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory&, processorType& clusterer)
+GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::setRowOffsets>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory&, processorType& clusterer)
 {
 #if !defined(GPUCA_GPUCODE)
   Row row = get_global_id(0);
@@ -61,7 +61,7 @@ GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::setRowOff
 }
 
 template <>
-GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::flatten>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory&, processorType& clusterer, GPUTPCLinearLabels* out)
+GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::flatten>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory&, processorType& clusterer, GPUTPCLinearLabels* out)
 {
 #if !defined(GPUCA_GPUCODE)
   uint row = get_global_id(0);

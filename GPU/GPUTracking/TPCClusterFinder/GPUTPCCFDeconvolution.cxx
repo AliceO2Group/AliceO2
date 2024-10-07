@@ -22,14 +22,14 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFDeconvolution::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFDeconvolution::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
   GPUTPCCFDeconvolution::deconvolutionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions);
 }
 
-GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem,
                                                        const Array2D<uchar>& peakMap,
                                                        Array2D<PackedCharge>& chargeMap,
                                                        const ChargePos* positions,
@@ -44,7 +44,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
 
   bool iamPeak = CfUtils::isPeak(peakMap[pos]);
 
-  char peakCount = (iamPeak) ? 1 : 0;
+  int8_t peakCount = (iamPeak) ? 1 : 0;
 
   ushort ll = get_local_id(0);
   ushort partId = ll;
@@ -105,7 +105,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
   }
 
   bool has3x3 = (peakCount > 0);
-  peakCount = CAMath::Abs(int(peakCount));
+  peakCount = CAMath::Abs(int32_t(peakCount));
   bool split = (peakCount > 1);
 
   peakCount = (peakCount == 0) ? 1 : peakCount;
@@ -116,12 +116,12 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
   chargeMap[pos] = p;
 }
 
-GPUdi() char GPUTPCCFDeconvolution::countPeaksInner(
+GPUdi() uint8_t GPUTPCCFDeconvolution::countPeaksInner(
   ushort ll,
   const uchar* isPeak,
   uchar* aboveThreshold)
 {
-  char peaks = 0;
+  uint8_t peaks = 0;
   GPUCA_UNROLL(U(), U())
   for (uchar i = 0; i < 8; i++) {
     uchar p = isPeak[ll * 8 + i];
@@ -132,12 +132,12 @@ GPUdi() char GPUTPCCFDeconvolution::countPeaksInner(
   return peaks;
 }
 
-GPUdi() char GPUTPCCFDeconvolution::countPeaksOuter(
+GPUdi() uint8_t GPUTPCCFDeconvolution::countPeaksOuter(
   ushort ll,
   uchar aboveThreshold,
   const uchar* isPeak)
 {
-  char peaks = 0;
+  uint8_t peaks = 0;
   GPUCA_UNROLL(U(), U())
   for (uchar i = 0; i < 16; i++) {
     uchar p = isPeak[ll * 16 + i];

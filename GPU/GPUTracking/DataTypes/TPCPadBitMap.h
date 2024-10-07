@@ -37,27 +37,27 @@ struct TPCPadBitMap {
   void setFromMap(const o2::tpc::CalDet<bool>&);
 #endif
 
-  GPUdi() void set(int sector, tpccf::Row row, tpccf::Pad pad, bool c)
+  GPUdi() void set(int32_t sector, tpccf::Row row, tpccf::Pad pad, bool c)
   {
     mBitMap[sector].set(globalPad(row, pad), c);
   }
 
-  GPUdi() void set(int sector, unsigned short globalPad, bool c)
+  GPUdi() void set(int32_t sector, uint16_t globalPad, bool c)
   {
     mBitMap[sector].set(globalPad, c);
   }
 
-  GPUdi() bool isSet(int sector, tpccf::Row row, tpccf::Pad pad) const
+  GPUdi() bool isSet(int32_t sector, tpccf::Row row, tpccf::Pad pad) const
   {
     return mBitMap[sector].get(globalPad(row, pad));
   }
 
-  GPUdi() bool isSet(int sector, unsigned short globalPad) const
+  GPUdi() bool isSet(int32_t sector, uint16_t globalPad) const
   {
     return mBitMap[sector].get(globalPad);
   }
 
-  GPUdi() unsigned short globalPad(tpccf::Row row, tpccf::Pad pad) const
+  GPUdi() uint16_t globalPad(tpccf::Row row, tpccf::Pad pad) const
   {
     return mPadOffsetPerRow[row] + pad;
   }
@@ -67,14 +67,14 @@ struct TPCPadBitMap {
   class SectorBitMap
   {
    public:
-    using T = unsigned int;
-    static constexpr int NWORDS = (TPC_PADS_IN_SECTOR + sizeof(T) * 8 - 1) / sizeof(T);
+    using T = uint32_t;
+    static constexpr int32_t NWORDS = (TPC_PADS_IN_SECTOR + sizeof(T) * 8 - 1) / sizeof(T);
     GPUdi() SectorBitMap()
     {
       reset();
     }
 
-    GPUdi() void set(unsigned short globalPad, bool c)
+    GPUdi() void set(uint16_t globalPad, bool c)
     {
       const auto word = globalPad / (sizeof(T) * 8);
       const auto pos = globalPad % (sizeof(T) * 8);
@@ -82,7 +82,7 @@ struct TPCPadBitMap {
       mDeadChannelMap[word] = (mDeadChannelMap[word] & ~mask) | (T(c) << pos);
     }
 
-    GPUdi() bool get(unsigned short globalPad) const
+    GPUdi() bool get(uint16_t globalPad) const
     {
       const auto word = globalPad / (sizeof(T) * 8);
       const auto pos = globalPad % (sizeof(T) * 8);
@@ -92,7 +92,7 @@ struct TPCPadBitMap {
 
     GPUd() void reset()
     {
-      for (int iword = 0; iword < NWORDS; ++iword) {
+      for (int32_t iword = 0; iword < NWORDS; ++iword) {
         mDeadChannelMap[iword] = 0;
       }
     }
@@ -101,7 +101,7 @@ struct TPCPadBitMap {
     T mDeadChannelMap[NWORDS];
   };
 
-  unsigned short mPadOffsetPerRow[GPUCA_ROW_COUNT];
+  uint16_t mPadOffsetPerRow[GPUCA_ROW_COUNT];
   SectorBitMap mBitMap[GPUCA_NSLICES];
 };
 

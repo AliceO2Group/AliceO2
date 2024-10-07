@@ -96,10 +96,10 @@ struct GPUConstantMem {
 #endif
 
 #if defined(GPUCA_HAVE_O2HEADERS) && defined(GPUCA_NOCOMPAT)
-  template <int I>
+  template <int32_t I>
   GPUd() auto& getTRDTracker();
 #else  // GPUCA_HAVE_O2HEADERS
-  template <int I>
+  template <int32_t I>
   GPUdi() GPUTRDTrackerGPU& getTRDTracker()
   {
     return trdTrackerGPU;
@@ -127,8 +127,8 @@ union GPUConstantMemCopyable {
   GPUh() ~GPUConstantMemCopyable() {} // NOLINT: We want an empty destructor, not a default one
   GPUh() GPUConstantMemCopyable(const GPUConstantMemCopyable& o)
   {
-    for (unsigned int k = 0; k < sizeof(GPUConstantMem) / sizeof(int); k++) {
-      ((int*)&v)[k] = ((int*)&o.v)[k];
+    for (uint32_t k = 0; k < sizeof(GPUConstantMem) / sizeof(int32_t); k++) {
+      ((int32_t*)&v)[k] = ((int32_t*)&o.v)[k];
     }
   }
 #endif
@@ -164,7 +164,7 @@ GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() co
   return GetConstantMem()->param;
 }
 
-GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, unsigned int param2, unsigned int param3) const
+GPUdi() void GPUProcessor::raiseError(uint32_t code, uint32_t param1, uint32_t param2, uint32_t param3) const
 {
   GetConstantMem()->errorCodes.raiseError(code, param1, param2, param3);
 }

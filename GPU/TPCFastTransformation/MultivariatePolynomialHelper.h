@@ -41,13 +41,13 @@ struct MultivariatePolynomialContainer {
   /// \param degree degree of the polynomials
   /// \param nParameters number of parameters
   /// \param params parmaeters
-  MultivariatePolynomialContainer(const unsigned int dim, const unsigned int degree, const unsigned int nParameters, const float params[/* nParameters*/], const bool interactionOnly) : mDim{dim}, mDegree{degree}, mParams{params, params + nParameters}, mInteractionOnly{interactionOnly} {};
+  MultivariatePolynomialContainer(const uint32_t dim, const uint32_t degree, const uint32_t nParameters, const float params[/* nParameters*/], const bool interactionOnly) : mDim{dim}, mDegree{degree}, mParams{params, params + nParameters}, mInteractionOnly{interactionOnly} {};
 
   /// for ROOT I/O
   MultivariatePolynomialContainer() = default;
 
-  const unsigned int mDim{};          ///< number of dimensions of the polynomial
-  const unsigned int mDegree{};       ///< degree of the polynomials
+  const uint32_t mDim{};              ///< number of dimensions of the polynomial
+  const uint32_t mDegree{};           ///< degree of the polynomials
   const std::vector<float> mParams{}; ///< parameters of the polynomial
   const bool mInteractionOnly{};      ///< consider only interaction terms
 };
@@ -60,12 +60,12 @@ class MultivariatePolynomialParametersHelper
   /// \returns number of parameters for given dimension and degree of polynomials
   /// calculates the number of parameters for a multivariate polynomial for given degree: nParameters = (n+d-1 d) -> binomial coefficient
   /// see: https://mathoverflow.net/questions/225953/number-of-polynomial-terms-for-certain-degree-and-certain-number-of-variables
-  GPUd() static constexpr unsigned int getNParametersAllTerms(const unsigned int degree, const unsigned int dim) { return (degree == 0) ? binomialCoeff(dim - 1, 0) : binomialCoeff(dim - 1 + degree, degree) + getNParametersAllTerms(degree - 1, dim); }
+  GPUd() static constexpr uint32_t getNParametersAllTerms(const uint32_t degree, const uint32_t dim) { return (degree == 0) ? binomialCoeff(dim - 1, 0) : binomialCoeff(dim - 1 + degree, degree) + getNParametersAllTerms(degree - 1, dim); }
 
   /// \returns the number of parameters for interaction terms only (see: https://en.wikipedia.org/wiki/Combination)
-  GPUd() static constexpr unsigned int getNParametersInteractionOnly(const unsigned int degree, const unsigned int dim) { return (degree == 0) ? binomialCoeff(dim - 1, 0) : binomialCoeff(dim, degree) + getNParametersInteractionOnly(degree - 1, dim); }
+  GPUd() static constexpr uint32_t getNParametersInteractionOnly(const uint32_t degree, const uint32_t dim) { return (degree == 0) ? binomialCoeff(dim - 1, 0) : binomialCoeff(dim, degree) + getNParametersInteractionOnly(degree - 1, dim); }
 
-  GPUd() static constexpr unsigned int getNParameters(const unsigned int degree, const unsigned int dim, const bool interactionOnly)
+  GPUd() static constexpr uint32_t getNParameters(const uint32_t degree, const uint32_t dim, const bool interactionOnly)
   {
     if (interactionOnly) {
       return getNParametersInteractionOnly(degree, dim);
@@ -77,23 +77,23 @@ class MultivariatePolynomialParametersHelper
  private:
   /// calculate factorial of n
   /// \return returns n!
-  GPUd() static constexpr unsigned int factorial(const unsigned int n) { return (n == 0) || (n == 1) ? 1 : n * factorial(n - 1); }
+  GPUd() static constexpr uint32_t factorial(const uint32_t n) { return (n == 0) || (n == 1) ? 1 : n * factorial(n - 1); }
 
   /// calculates binomial coefficient
   /// \return returns (n k)
-  GPUd() static constexpr unsigned int binomialCoeff(const unsigned int n, const unsigned int k) { return factorial(n) / (factorial(k) * factorial(n - k)); }
+  GPUd() static constexpr uint32_t binomialCoeff(const uint32_t n, const uint32_t k) { return factorial(n) / (factorial(k) * factorial(n - k)); }
 };
 
 /// Helper struct for evaluating a multidimensional polynomial using compile time evaluated formula
 /// Compile time method to extract the formula is obtained from run time method (check combination_with_repetiton() and evalPol())
 /// by performing all loops during compile time and replacing the array to keep track of the dimensions for given term (pos[FMaxdegree + 1])
-/// to a simple unsigned int called Pos where each digit represents the dimension for a given term e.g. pos = 2234 -> x[2]*x[2]*x[3]*x[4]
+/// to a simple uint32_t called Pos where each digit represents the dimension for a given term e.g. pos = 2234 -> x[2]*x[2]*x[3]*x[4]
 ///
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelper
 {
-  static constexpr unsigned short FMaxdim = 10;   ///< maximum dimensionality of the polynomials (number of different digits: 0,1,2,3....9 )
-  static constexpr unsigned short FMaxdegree = 9; ///< maximum degree of the polynomials (maximum number of digits in unsigned integer - 1)
+  static constexpr uint16_t FMaxdim = 10;   ///< maximum dimensionality of the polynomials (number of different digits: 0,1,2,3....9 )
+  static constexpr uint16_t FMaxdegree = 9; ///< maximum degree of the polynomials (maximum number of digits in unsigned integer - 1)
 
 #if !defined(GPUCA_GPUCODE)
   static_assert(Dim <= MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::FMaxdim && Degree <= MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::FMaxdegree, "Max. number of dimensions or degrees exceeded!");
@@ -106,48 +106,48 @@ class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelp
   GPUd() static constexpr float evalPol(GPUgeneric() const float par[/*number of parameters*/], const float x[/*number of dimensions*/]) { return par[0] + loopDegrees<1>(par, x); }
 
   /// \return returns number of dimensions of the polynomials
-  GPUd() static constexpr unsigned int getDim() { return Dim; }
+  GPUd() static constexpr uint32_t getDim() { return Dim; }
 
   /// \return returns the degree of the polynomials
-  GPUd() static constexpr unsigned int getDegree() { return Degree; }
+  GPUd() static constexpr uint32_t getDegree() { return Degree; }
 
   /// \return returns whether only interaction terms are considered
   GPUd() static constexpr bool isInteractionOnly() { return InteractionOnly; }
 
  private:
   /// computes power of 10
-  GPUd() static constexpr unsigned int pow10(const unsigned int n) { return n == 0 ? 1 : 10 * pow10(n - 1); }
+  GPUd() static constexpr uint32_t pow10(const uint32_t n) { return n == 0 ? 1 : 10 * pow10(n - 1); }
 
   /// helper for modulo to extract the digit in an integer a at position b (can be obtained with pow10(digitposition)): e.g. a=1234 b=pow10(2)=100 -> returns 2
-  GPUd() static constexpr unsigned int mod10(const unsigned int a, const unsigned int b) { return (a / b) % 10; }
+  GPUd() static constexpr uint32_t mod10(const uint32_t a, const uint32_t b) { return (a / b) % 10; }
 
   /// resetting digits of pos for given position to refDigit
-  GPUd() static constexpr unsigned int resetIndices(const unsigned int degreePol, const unsigned int pos, const unsigned int leftDigit, const unsigned int iter, const unsigned int refDigit);
+  GPUd() static constexpr uint32_t resetIndices(const uint32_t degreePol, const uint32_t pos, const uint32_t leftDigit, const uint32_t iter, const uint32_t refDigit);
 
-  GPUd() static constexpr unsigned int getNewPos(const unsigned int degreePol, const unsigned int pos, const unsigned int digitPos);
+  GPUd() static constexpr uint32_t getNewPos(const uint32_t degreePol, const uint32_t pos, const uint32_t digitPos);
 
   /// calculates term e.g. x^3*y
   /// \tparam DegreePol max degree of the polynomials
   /// \pos decoded information about the current term e.g. 1233 -> x[1]*x[2]*x[3]*x[3] (otherwise an array could be used)
-  template <unsigned int DegreePol>
-  GPUd() static constexpr float prodTerm(const float x[], const unsigned int pos);
+  template <uint32_t DegreePol>
+  GPUd() static constexpr float prodTerm(const float x[], const uint32_t pos);
 
   /// helper function for checking for interaction terms
-  template <unsigned int DegreePol, unsigned int posNew>
+  template <uint32_t DegreePol, uint32_t posNew>
   static constexpr bool checkInteraction();
 
   /// calculate sum of the terms for given degree -> summation of the par[]*x^4 + par[]*x^3*y + par[]*x^3*z + par[]*x^2*y^2..... terms
   /// \tparam DegreePol max degree of the polynomials
   /// \Pos decoded information about the current term e.g. 1233 -> x[1]*x[2]*x[3]*x[3] (otherwise an array could be used)
   /// \tparam Index index for accessing the parameters
-  template <unsigned int DegreePol, unsigned int Pos, unsigned int Index>
+  template <uint32_t DegreePol, uint32_t Pos, uint32_t Index>
   GPUd() static constexpr float sumTerms(GPUgeneric() const float par[], const float x[]);
 
   /// loop over the degrees of the polynomials (for formula see https://math.stackexchange.com/questions/1234240/equation-that-defines-multi-dimensional-polynomial)
   /// \tparam degree iteration of the loop which starts from 1 to the max degree of the polynomial e.g. Iter=4 -> summation of the par[]*x^4 + par[]*x^3*y + par[]*x^3*z + par[]*x^2*y^2..... terms
   /// \param par parameters of the pokynomial
   /// \param x input coordinates
-  template <unsigned int DegreePol>
+  template <uint32_t DegreePol>
   GPUd() static constexpr float loopDegrees(GPUgeneric() const float par[], const float x[]);
 };
 
@@ -160,7 +160,7 @@ class MultivariatePolynomialHelper<0, 0, false> : public MultivariatePolynomialP
   /// constructor
   /// \param nDim dimensionality of the polynomials
   /// \param degree degree of the polynomials
-  MultivariatePolynomialHelper(const unsigned int nDim, const unsigned int degree, const bool interactionOnly) : mDim{nDim}, mDegree{degree}, mInteractionOnly{interactionOnly} { assert(mDegree <= FMaxdegree); };
+  MultivariatePolynomialHelper(const uint32_t nDim, const uint32_t degree, const bool interactionOnly) : mDim{nDim}, mDegree{degree}, mInteractionOnly{interactionOnly} { assert(mDegree <= FMaxdegree); };
 
   /// default constructor
   MultivariatePolynomialHelper() CON_DEFAULT;
@@ -206,28 +206,28 @@ class MultivariatePolynomialHelper<0, 0, false> : public MultivariatePolynomialP
   float evalPol(const float par[/*number of parameters*/], const float x[/*number of dimensions*/]) const { return evalPol(par, x, mDegree, mDim, mInteractionOnly); }
 
   /// evalutes the polynomial
-  float evalPol(const float par[], const float x[], const unsigned int degree, const unsigned int dim, const bool interactionOnly) const;
+  float evalPol(const float par[], const float x[], const uint32_t degree, const uint32_t dim, const bool interactionOnly) const;
 
   /// \return returns number of dimensions of the polynomials
-  unsigned int getDim() const { return mDim; }
+  uint32_t getDim() const { return mDim; }
 
   /// \return returns the degree of the polynomials
-  unsigned int getDegree() const { return mDegree; }
+  uint32_t getDegree() const { return mDegree; }
 
   /// \return returns whether only interaction terms are considered
   bool isInteractionOnly() const { return mInteractionOnly; }
 
  protected:
-  unsigned int mDim{};     ///< dimensionality of the polynomial
-  unsigned int mDegree{};  ///< maximum degree of the polynomial
+  uint32_t mDim{};         ///< dimensionality of the polynomial
+  uint32_t mDegree{};      ///< maximum degree of the polynomial
   bool mInteractionOnly{}; ///< flag if only interaction terms are used
 
  private:
-  static constexpr unsigned short FMaxdegree = 9; ///< maximum degree of the polynomials (can be increased if desired: size of array in combination_with_repetiton: pos[FMaxdegree + 1])
+  static constexpr uint16_t FMaxdegree = 9; ///< maximum degree of the polynomials (can be increased if desired: size of array in combination_with_repetiton: pos[FMaxdegree + 1])
 
   /// helper function to get all combinations
   template <class Type>
-  Type combination_with_repetiton(const unsigned int degree, const unsigned int dim, const float par[], int& indexPar, const float x[], const bool interactionOnly) const;
+  Type combination_with_repetiton(const uint32_t degree, const uint32_t dim, const float par[], int32_t& indexPar, const float x[], const bool interactionOnly) const;
 };
 #endif
 
@@ -235,31 +235,31 @@ class MultivariatePolynomialHelper<0, 0, false> : public MultivariatePolynomialP
 //============================ inline implementations =============================
 //=================================================================================
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-GPUd() constexpr unsigned int MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::resetIndices(const unsigned int degreePol, const unsigned int pos, const unsigned int leftDigit, const unsigned int iter, const unsigned int refDigit)
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+GPUd() constexpr uint32_t MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::resetIndices(const uint32_t degreePol, const uint32_t pos, const uint32_t leftDigit, const uint32_t iter, const uint32_t refDigit)
 {
   if (iter <= degreePol) {
-    const int powTmp = pow10(leftDigit);
-    const int rightDigit = mod10(pos, powTmp);
-    const int posTmp = pos - (rightDigit - refDigit) * powTmp;
+    const int32_t powTmp = pow10(leftDigit);
+    const int32_t rightDigit = mod10(pos, powTmp);
+    const int32_t posTmp = pos - (rightDigit - refDigit) * powTmp;
     return resetIndices(degreePol, posTmp, leftDigit - 1, iter + 1, refDigit);
   }
   return pos;
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-GPUd() constexpr unsigned int MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::getNewPos(const unsigned int degreePol, const unsigned int pos, const unsigned int digitPos)
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+GPUd() constexpr uint32_t MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::getNewPos(const uint32_t degreePol, const uint32_t pos, const uint32_t digitPos)
 {
   if (degreePol > digitPos) {
     // check if digit of current position is at is max position
     if (mod10(pos, pow10(digitPos)) == Dim) {
       // increase digit of left position
-      const unsigned int leftDigit = digitPos + 1;
-      const unsigned int posTmp = pos + pow10(leftDigit);
-      const unsigned int refDigit = mod10(posTmp, pow10(digitPos + 1));
+      const uint32_t leftDigit = digitPos + 1;
+      const uint32_t posTmp = pos + pow10(leftDigit);
+      const uint32_t refDigit = mod10(posTmp, pow10(digitPos + 1));
 
       // resetting digits to the right if digit exceeds number of dimensions
-      const unsigned int posReset = resetIndices(degreePol, posTmp, leftDigit - 1, degreePol - digitPos, refDigit);
+      const uint32_t posReset = resetIndices(degreePol, posTmp, leftDigit - 1, degreePol - digitPos, refDigit);
 
       // check next digit
       return getNewPos(degreePol, posReset, digitPos + 1);
@@ -269,20 +269,20 @@ GPUd() constexpr unsigned int MultivariatePolynomialHelper<Dim, Degree, Interact
   return pos;
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-template <unsigned int DegreePol>
-GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::prodTerm(const float x[], const unsigned int pos)
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+template <uint32_t DegreePol>
+GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::prodTerm(const float x[], const uint32_t pos)
 {
   if constexpr (DegreePol > 0) {
     // extract index of the dimension which is decoded in the digit
-    const unsigned int index = mod10(pos, pow10(DegreePol - 1));
+    const uint32_t index = mod10(pos, pow10(DegreePol - 1));
     return x[index] * prodTerm<DegreePol - 1>(x, pos);
   }
   return 1;
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-template <unsigned int DegreePol, unsigned int posNew>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+template <uint32_t DegreePol, uint32_t posNew>
 constexpr bool MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::checkInteraction()
 {
   if constexpr (DegreePol > 1) {
@@ -295,12 +295,12 @@ constexpr bool MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::check
   return false;
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-template <unsigned int DegreePol, unsigned int Pos, unsigned int Index>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+template <uint32_t DegreePol, uint32_t Pos, uint32_t Index>
 GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::sumTerms(GPUgeneric() const float par[], const float x[])
 {
   // checking if the current position is reasonable e.g. if the max dimension is x[4]: for Pos=15 -> x[1]*x[5] the position is set to 22 -> x[2]*x[2]
-  constexpr unsigned int posNew = getNewPos(DegreePol, Pos, 0);
+  constexpr uint32_t posNew = getNewPos(DegreePol, Pos, 0);
   if constexpr (mod10(posNew, pow10(DegreePol)) != 1) {
 
     // check if all digits in posNew are unequal: For interaction_only terms with x[Dim]*x[Dim]... etc. can be skipped
@@ -314,12 +314,12 @@ GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree, InteractionOnly
   return 0;
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-template <unsigned int DegreePol>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+template <uint32_t DegreePol>
 GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::loopDegrees(GPUgeneric() const float par[], const float x[])
 {
   if constexpr (DegreePol <= Degree) {
-    constexpr unsigned int index{getNParameters(DegreePol - 1, Dim, InteractionOnly)}; // offset of the index for accessing the parameters
+    constexpr uint32_t index{getNParameters(DegreePol - 1, Dim, InteractionOnly)}; // offset of the index for accessing the parameters
     return sumTerms<DegreePol, 0, index>(par, x) + loopDegrees<DegreePol + 1>(par, x);
   }
   return 0;

@@ -53,7 +53,7 @@ class GPUTPCTrackParam
   GPUd() float ZOffset() const { return mParam.ZOffset(); }
   GPUd() float SignCosPhi() const { return mSignCosPhi; }
   GPUd() float Chi2() const { return mChi2; }
-  GPUd() int NDF() const { return mNDF; }
+  GPUd() int32_t NDF() const { return mNDF; }
 
   GPUd() float Err2Y() const { return mParam.Err2Y(); }
   GPUd() float Err2Z() const { return mParam.Err2Z(); }
@@ -69,7 +69,7 @@ class GPUTPCTrackParam
   GPUd() float GetQPt() const { return mParam.GetQPt(); }
   GPUd() float GetSignCosPhi() const { return mSignCosPhi; }
   GPUd() float GetChi2() const { return mChi2; }
-  GPUd() int GetNDF() const { return mNDF; }
+  GPUd() int32_t GetNDF() const { return mNDF; }
 
   GPUd() float GetKappa(float Bz) const { return mParam.GetKappa(Bz); }
   GPUd() float GetCosPhi() const { return mSignCosPhi * CAMath::Sqrt(1 - SinPhi() * SinPhi()); }
@@ -78,11 +78,11 @@ class GPUTPCTrackParam
   GPUhd() const float* Cov() const { return mParam.Cov(); }
 
   GPUd() const float* GetPar() const { return mParam.GetPar(); }
-  GPUd() float GetPar(int i) const { return (mParam.GetPar(i)); }
-  GPUd() float GetCov(int i) const { return mParam.GetCov(i); }
+  GPUd() float GetPar(int32_t i) const { return (mParam.GetPar(i)); }
+  GPUd() float GetCov(int32_t i) const { return mParam.GetCov(i); }
 
-  GPUhd() void SetPar(int i, float v) { mParam.SetPar(i, v); }
-  GPUhd() void SetCov(int i, float v) { mParam.SetCov(i, v); }
+  GPUhd() void SetPar(int32_t i, float v) { mParam.SetPar(i, v); }
+  GPUhd() void SetCov(int32_t i, float v) { mParam.SetCov(i, v); }
 
   GPUd() void SetX(float v) { mParam.SetX(v); }
   GPUd() void SetY(float v) { mParam.SetY(v); }
@@ -93,7 +93,7 @@ class GPUTPCTrackParam
   GPUd() void SetZOffset(float v) { mParam.SetZOffset(v); }
   GPUd() void SetSignCosPhi(float v) { mSignCosPhi = v >= 0 ? 1 : -1; }
   GPUd() void SetChi2(float v) { mChi2 = v; }
-  GPUd() void SetNDF(int v) { mNDF = v; }
+  GPUd() void SetNDF(int32_t v) { mNDF = v; }
 
   GPUd() float GetDist2(const GPUTPCTrackParam& t) const;
   GPUd() float GetDistXZ2(const GPUTPCTrackParam& t) const;
@@ -128,8 +128,8 @@ class GPUTPCTrackParam
   GPUd() bool CheckNumericalQuality() const;
 
   GPUd() void ShiftZ(float z1, float z2, float x1, float x2, float bz, float defaultZOffsetOverR);
-  GPUd() void ConstrainZ(float& z, int sector, float& z0, float& lastZ);
-  GPUd() int GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const;
+  GPUd() void ConstrainZ(float& z, int32_t sector, float& z0, float& lastZ);
+  GPUd() int32_t GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const;
 
   GPUdi() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
   {
@@ -154,7 +154,7 @@ class GPUTPCTrackParam
   // Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
   float mSignCosPhi; // sign of cosPhi
   float mChi2;       // the chi^2 value
-  int mNDF;          // the Number of Degrees of Freedom
+  int32_t mNDF;      // the Number of Degrees of Freedom
 };
 
 MEM_CLASS_PRE()

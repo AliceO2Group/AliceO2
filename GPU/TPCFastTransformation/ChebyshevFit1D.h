@@ -36,14 +36,14 @@ class ChebyshevFit1D
     reset(0, -1., 1.);
   }
 
-  ChebyshevFit1D(int order, double xMin, double xMax)
+  ChebyshevFit1D(int32_t order, double xMin, double xMax)
   {
     reset(order, xMin, xMax);
   }
 
   ~ChebyshevFit1D() CON_DEFAULT;
 
-  void reset(int order, double xMin, double xMax);
+  void reset(int32_t order, double xMin, double xMax);
 
   void reset();
 
@@ -53,15 +53,15 @@ class ChebyshevFit1D
 
   double eval(double x);
 
-  int getNmeasurements() const { return mM; }
+  int32_t getNmeasurements() const { return mM; }
 
   const std::vector<double>& getCoefficients() const { return mC; }
 
   void print();
 
  private:
-  int mN = 0;             // n coefficients == polynom order + 1
-  int mM = 0;             // number of measurenents
+  int32_t mN = 0;         // n coefficients == polynom order + 1
+  int32_t mM = 0;         // number of measurenents
   double mXmin = -1.;     // min of X segment
   double mXscale = 1;     // scaling factor (x-mXmin) to [-1,1]
   std::vector<double> mA; // fit matiix
@@ -76,12 +76,12 @@ inline void ChebyshevFit1D::addMeasurement(double x, double m)
   mT[0] = 1;
   mT[1] = x;
   x *= 2.;
-  for (int i = 2; i < mN; i++) {
+  for (int32_t i = 2; i < mN; i++) {
     mT[i] = x * mT[i - 1] - mT[i - 2];
   }
   double* Ai = mA.data();
-  for (int i = 0; i < mN; i++, Ai += mN) {
-    for (int j = i; j < mN; j++) {
+  for (int32_t i = 0; i < mN; i++, Ai += mN) {
+    for (int32_t j = i; j < mN; j++) {
       Ai[j] += mT[i] * mT[j];
     }
     mB[i] += m * mT[i];
@@ -96,7 +96,7 @@ inline double ChebyshevFit1D::eval(double x)
   double f0 = 1.;
   double f1 = x;
   x *= 2;
-  for (int i = 2; i < mN; i++) {
+  for (int32_t i = 2; i < mN; i++) {
     double f = x * f1 - f0;
     y += mC[i] * f;
     f0 = f1;

@@ -30,7 +30,7 @@ GPUO2InterfaceQA::GPUO2InterfaceQA(const GPUO2InterfaceConfiguration* config)
 
 GPUO2InterfaceQA::~GPUO2InterfaceQA() = default;
 
-int GPUO2InterfaceQA::initializeForProcessing(int tasks)
+int32_t GPUO2InterfaceQA::initializeForProcessing(int32_t tasks)
 {
   return mQA->InitQA(tasks);
 }
@@ -39,12 +39,12 @@ void GPUO2InterfaceQA::runQA(const std::vector<o2::tpc::TrackTPC>* tracksExterna
 {
   mQA->RunQA(false, tracksExternal, tracksExtMC, clNative);
 }
-int GPUO2InterfaceQA::postprocess(TObjArray& out)
+int32_t GPUO2InterfaceQA::postprocess(TObjArray& out)
 {
   return mQA->DrawQAHistograms(&out);
 }
 
-int GPUO2InterfaceQA::postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, std::vector<TGraphAsymmErrors>& in4, TObjArray& out, int tasks)
+int32_t GPUO2InterfaceQA::postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, std::vector<TGraphAsymmErrors>& in4, TObjArray& out, int32_t tasks)
 {
   if (mQA->loadHistograms(in1, in2, in3, in4, tasks)) {
     return 1;

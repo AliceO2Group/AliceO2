@@ -38,14 +38,14 @@ namespace gpu
 class SymMatrixSolver
 {
  public:
-  SymMatrixSolver(int N, int M) : mN(N), mM(M), mShift(mN + mM)
+  SymMatrixSolver(int32_t N, int32_t M) : mN(N), mM(M), mShift(mN + mM)
   {
     assert(N > 0 && M > 0);
     mA.resize(mN * mShift, 0.);
   }
 
   /// access to A elements
-  double& A(int i, int j)
+  double& A(int32_t i, int32_t j)
   {
     auto ij = std::minmax(i, j);
     assert(ij.first >= 0 && ij.second < mN);
@@ -53,7 +53,7 @@ class SymMatrixSolver
   }
 
   /// access to B elements
-  double& B(int i, int j)
+  double& B(int32_t i, int32_t j)
   {
     assert(i >= 0 && i < mN && j >= 0 && j < mM);
     return mA[i * mShift + mN + j];
@@ -66,13 +66,13 @@ class SymMatrixSolver
   void print();
 
   /// Test the class functionality. Returns 1 when ok, 0 when not ok
-  static int test(bool prn = 0);
+  static int32_t test(bool prn = 0);
 
  private:
  private:
-  int mN = 0;
-  int mM = 0;
-  int mShift = 0;
+  int32_t mN = 0;
+  int32_t mM = 0;
+  int32_t mShift = 0;
   std::vector<double> mA;
 
 #ifndef GPUCA_ALIROOT_LIB

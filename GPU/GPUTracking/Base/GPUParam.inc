@@ -27,7 +27,7 @@ namespace gpu
 {
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::Slice2Global(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const
+GPUdi() void MEM_LG(GPUParam)::Slice2Global(int32_t iSlice, float x, float y, float z, float* X, float* Y, float* Z) const
 {
   // conversion of coordinates sector->global
   *X = x * SliceParam[iSlice].CosAlpha - y * SliceParam[iSlice].SinAlpha;
@@ -36,7 +36,7 @@ GPUdi() void MEM_LG(GPUParam)::Slice2Global(int iSlice, float x, float y, float 
 }
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float Z, float* x, float* y, float* z) const
+GPUdi() void MEM_LG(GPUParam)::Global2Slice(int32_t iSlice, float X, float Y, float Z, float* x, float* y, float* z) const
 {
   // conversion of coordinates global->sector
   *x = X * SliceParam[iSlice].CosAlpha + Y * SliceParam[iSlice].SinAlpha;
@@ -47,9 +47,9 @@ GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float 
 #ifdef GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int32_t iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
 {
-  const int rowType = tpcGeometry.GetROC(iRow);
+  const int32_t rowType = tpcGeometry.GetROC(iRow);
   z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
   const float s2 = CAMath::Min(sinPhi * sinPhi, 0.95f * 0.95f);
   const float sec2 = 1.f / (1.f - s2);
@@ -63,7 +63,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, f
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float zDiff, float angle2, float unscaledMult) const // Note, returns Err2 despite the name not containing 2
+GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int32_t yz, int32_t type, float zDiff, float angle2, float unscaledMult) const // Note, returns Err2 despite the name not containing 2
 {
   MakeType(const float*) c = ParamErrors[yz][type]; // Note: c[0] = p[0]^2, c[1] = p[1]^2 * padHeight, c[2] = p[2]^2 / tpcLength / padHeight, c[3] = p[3]^2 * clusterErrorOccupancyScaler^2
   float v = c[0] + c[1] * angle2 + c[2] * zDiff + c[3] * (unscaledMult * unscaledMult);
@@ -74,7 +74,7 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float z
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float zDiff, float angle2, float unscaledMult, float scaledInvAvgCharge, float scaledInvCharge) const
+GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int32_t yz, int32_t type, float zDiff, float angle2, float unscaledMult, float scaledInvAvgCharge, float scaledInvCharge) const
 {
   MakeType(const float*) c = ParamErrors[yz][type]; // Note: c[0] = p[0]^2, c[1] = p[1]^2 * padHeight, c[2] = p[2]^2 / tpcLength / padHeight, c[3] = p[3]^2 * clusterErrorOccupancyScaler^2
   float v = c[0] + c[1] * angle2 * scaledInvAvgCharge + c[2] * zDiff * scaledInvCharge + c[3] * (unscaledMult * unscaledMult) * (scaledInvAvgCharge * scaledInvAvgCharge);
@@ -134,7 +134,7 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorC122(float x, float y, 
 #else // GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float zDiff, float angle2, float scaledMult) const
+GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int32_t yz, int32_t type, float zDiff, float angle2, float scaledMult) const
 {
   MakeType(const float*) c = ParamErrorsSeeding0[yz][type];
   float v = c[0] + c[1] * zDiff + c[2] * angle2;
@@ -143,9 +143,9 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float z
 }
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int32_t iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
 {
-  int rowType = tpcGeometry.GetROC(iRow);
+  int32_t rowType = tpcGeometry.GetROC(iRow);
   z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
   const float s2 = CAMath::Min(sinPhi * sinPhi, 0.95f * 0.95f);
   float sec2 = 1.f / (1.f - s2);
@@ -159,7 +159,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, f
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float zDiff, float angle2, float unscaledMult, float avgInvCharge, float invCharge) const
+GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int32_t yz, int32_t type, float zDiff, float angle2, float unscaledMult, float avgInvCharge, float invCharge) const
 {
   MakeType(const float*) c = ParamS0Par[yz][type];
   float v = c[0] + c[1] * zDiff + c[2] * angle2 + c[3] * zDiff * zDiff + c[4] * angle2 * angle2 + c[5] * zDiff * angle2;
@@ -187,9 +187,9 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorC122(float trackX, floa
 #endif // !GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(char sector, int32_t iRow, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const
 {
-  const int rowType = tpcGeometry.GetROC(iRow);
+  const int32_t rowType = tpcGeometry.GetROC(iRow);
   z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
   const float s2 = CAMath::Min(sinPhi * sinPhi, 0.95f * 0.95f);
   const float sec2 = 1.f / (1.f - s2);
@@ -205,7 +205,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(char sector, int iRow, float z,
 }
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::UpdateClusterError2ByState(short clusterState, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::UpdateClusterError2ByState(int16_t clusterState, float& ErrY2, float& ErrZ2) const
 {
   if (clusterState & GPUTPCGMMergedTrackHit::flagEdge) {
     ErrY2 += rec.tpc.extraClusterErrorEdgeY2;
@@ -232,7 +232,7 @@ GPUdi() float MEM_LG(GPUParam)::GetUnscaledMult(float time) const
   if (!occupancyMap) {
     return 0.f;
   }
-  const unsigned int bin = CAMath::Max(0.f, time / rec.tpc.occupancyMapTimeBins);
+  const uint32_t bin = CAMath::Max(0.f, time / rec.tpc.occupancyMapTimeBins);
   return occupancyMap[bin];
 #else
   return 0.f;
@@ -240,7 +240,7 @@ GPUdi() float MEM_LG(GPUParam)::GetUnscaledMult(float time) const
 }
 
 MEM_CLASS_PRE()
-GPUdi() bool MEM_LG(GPUParam)::rejectEdgeClusterByY(float uncorrectedY, int iRow, float trackSigmaY) const
+GPUdi() bool MEM_LG(GPUParam)::rejectEdgeClusterByY(float uncorrectedY, int32_t iRow, float trackSigmaY) const
 {
   return CAMath::Abs(uncorrectedY) > (tpcGeometry.NPads(iRow) - 1) * 0.5f * tpcGeometry.PadWidth(iRow) + rec.tpc.rejectEdgeClustersMargin + trackSigmaY * rec.tpc.rejectEdgeClustersSigmaMargin;
 }

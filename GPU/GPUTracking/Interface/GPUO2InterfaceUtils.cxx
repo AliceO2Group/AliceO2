@@ -48,21 +48,21 @@ std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2InterfaceUtils::getCalibdEdxCo
 }
 
 template <>
-void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<unsigned long[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, int version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
+void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<uint64_t[]>* outBuffer, uint32_t* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, int32_t version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
 {
   GPUParam param;
   param.SetDefaults(5.00668);
   o2::gpu::GPUReconstructionConvert::RunZSEncoder(in, outBuffer, outSizes, raw, ir, param, version, verify, threshold, padding, digitsFilter);
 }
 template <>
-void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<unsigned long[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, GPUO2InterfaceConfiguration& config, int version, bool verify, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
+void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<uint64_t[]>* outBuffer, uint32_t* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, GPUO2InterfaceConfiguration& config, int32_t version, bool verify, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
 {
   GPUParam param;
   param.SetDefaults(&config.configGRP, &config.configReconstruction, &config.configProcessing, nullptr);
   o2::gpu::GPUReconstructionConvert::RunZSEncoder(in, outBuffer, outSizes, raw, ir, param, version, verify, config.configReconstruction.tpc.zsThreshold, padding, digitsFilter);
 }
 
-void GPUO2InterfaceUtils::GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, unsigned int tfFirstOrbit, const GPUParam* param, unsigned int triggerBC)
+void GPUO2InterfaceUtils::GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, uint32_t tfFirstOrbit, const GPUParam* param, uint32_t triggerBC)
 {
   const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
   if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
@@ -79,7 +79,7 @@ void GPUO2InterfaceUtils::GPUReconstructionZSDecoder::DecodePage(std::vector<o2:
   mDecoders[hdr->version](outputBuffer, page, tfFirstOrbit, triggerBC);
 }
 
-std::unique_ptr<GPUParam> GPUO2InterfaceUtils::getFullParam(float solenoidBz, unsigned int nHbfPerTf, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration, std::unique_ptr<GPUSettingsO2>* pO2Settings, bool* autoMaxTimeBin)
+std::unique_ptr<GPUParam> GPUO2InterfaceUtils::getFullParam(float solenoidBz, uint32_t nHbfPerTf, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration, std::unique_ptr<GPUSettingsO2>* pO2Settings, bool* autoMaxTimeBin)
 {
   std::unique_ptr<GPUParam> retVal = std::make_unique<GPUParam>();
   std::unique_ptr<GPUO2InterfaceConfiguration> tmpConfig;
@@ -112,12 +112,12 @@ std::unique_ptr<GPUParam> GPUO2InterfaceUtils::getFullParam(float solenoidBz, un
   return retVal;
 }
 
-std::shared_ptr<GPUParam> GPUO2InterfaceUtils::getFullParamShared(float solenoidBz, unsigned int nHbfPerTf, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration, std::unique_ptr<GPUSettingsO2>* pO2Settings, bool* autoMaxTimeBin)
+std::shared_ptr<GPUParam> GPUO2InterfaceUtils::getFullParamShared(float solenoidBz, uint32_t nHbfPerTf, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration, std::unique_ptr<GPUSettingsO2>* pO2Settings, bool* autoMaxTimeBin)
 {
   return std::move(getFullParam(solenoidBz, nHbfPerTf, pConfiguration, pO2Settings, autoMaxTimeBin));
 }
 
-void GPUO2InterfaceUtils::paramUseExternalOccupancyMap(GPUParam* param, unsigned int nHbfPerTf, const unsigned int* occupancymap, int occupancyMapSize)
+void GPUO2InterfaceUtils::paramUseExternalOccupancyMap(GPUParam* param, uint32_t nHbfPerTf, const uint32_t* occupancymap, int32_t occupancyMapSize)
 {
   size_t expectedOccMapSize = nHbfPerTf ? GPUO2InterfaceRefit::fillOccupancyMapGetSize(nHbfPerTf, param) : 0;
   if (occupancyMapSize != -1 && nHbfPerTf && (size_t)occupancyMapSize != expectedOccMapSize) {

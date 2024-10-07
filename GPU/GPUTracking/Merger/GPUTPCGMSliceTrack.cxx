@@ -23,7 +23,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice)
+GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int32_t slice)
 {
   const GPUTPCBaseTrackParam& t = sliceTr->Param();
   mOrigTrack = sliceTr;
@@ -45,7 +45,7 @@ GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTr
   mNClusters = sliceTr->NHits();
 }
 
-GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice)
+GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int32_t slice)
 {
   mOrigTrack = sliceTr;
   mParam.mX = trk.GetX();
@@ -92,7 +92,7 @@ GPUd() void GPUTPCGMSliceTrack::SetParam2(const GPUTPCGMTrackParam& trk)
   mParam2.mC14 = trk.GetCov(14);
 }
 
-GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
+GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int32_t iSlice, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
   if (merger->Param().par.earlyTpcTransform && !merger->Param().rec.tpc.mergerReadFromTrackerDirectly) {
@@ -101,7 +101,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
     //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
     float y, z;
     const GPUTPCSliceOutCluster* clo;
-    int row, index;
+    int32_t row, index;
     if (merger->Param().rec.tpc.mergerReadFromTrackerDirectly) {
       const GPUTPCTracker& trk = merger->GetConstantMem()->tpcTrackers[iSlice];
       const GPUTPCHitId& ic = trk.TrackHits()[mOrigTrack->FirstHitID() + mOrigTrack->NHits() - 1];
@@ -116,7 +116,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
     GPUTPCConvertImpl::convert(*merger->GetConstantMem(), iSlice, row, cl.getPad(), cl.getTime(), lastX, y, z);
   }
 
-  const int N = 3;
+  const int32_t N = 3;
 
   float bz = -merger->Param().bzCLight;
 
@@ -148,7 +148,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
     mParam.mC14 = 10;
   }
 
-  for (int iStep = 0; iStep < N; iStep++) {
+  for (int32_t iStep = 0; iStep < N; iStep++) {
     float err2Y, err2Z;
 
     { // transport block

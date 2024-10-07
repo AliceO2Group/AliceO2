@@ -25,9 +25,9 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-static inline unsigned int RGB(unsigned char r, unsigned char g, unsigned char b) { return (unsigned int)r | ((unsigned int)g << 8) | ((unsigned int)b << 16); }
+static inline uint32_t RGB(uint8_t r, uint8_t g, uint8_t b) { return (uint32_t)r | ((uint32_t)g << 8) | ((uint32_t)b << 16); }
 
-int GPUChainTracking::PrepareProfile()
+int32_t GPUChainTracking::PrepareProfile()
 {
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* tmpMem = (char*)mRec->AllocateUnmanagedMemory(PROFILE_MAX_SIZE, GPUMemoryResource::MEMORY_GPU);
@@ -37,7 +37,7 @@ int GPUChainTracking::PrepareProfile()
   return 0;
 }
 
-int GPUChainTracking::DoProfile()
+int32_t GPUChainTracking::DoProfile()
 {
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
   std::unique_ptr<char[]> stageAtSync{new char[PROFILE_MAX_SIZE]};
@@ -46,7 +46,7 @@ int GPUChainTracking::DoProfile()
   FILE* fp = fopen("profile.txt", "w+");
   FILE* fp2 = fopen("profile.bmp", "w+b");
 
-  const int bmpheight = 8192;
+  const int32_t bmpheight = 8192;
   BITMAPFILEHEADER bmpFH;
   BITMAPINFOHEADER bmpIH;
   memset(&bmpFH, 0, sizeof(bmpFH));
@@ -65,12 +65,12 @@ int GPUChainTracking::DoProfile()
   fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
   fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
 
-  int nEmptySync = 0;
-  for (unsigned int i = 0; i < bmpheight * ConstructorBlockCount() * ConstructorThreadCount(); i += ConstructorBlockCount() * ConstructorThreadCount()) {
-    int fEmpty = 1;
-    for (unsigned int j = 0; j < ConstructorBlockCount() * ConstructorThreadCount(); j++) {
+  int32_t nEmptySync = 0;
+  for (uint32_t i = 0; i < bmpheight * ConstructorBlockCount() * ConstructorThreadCount(); i += ConstructorBlockCount() * ConstructorThreadCount()) {
+    int32_t fEmpty = 1;
+    for (uint32_t j = 0; j < ConstructorBlockCount() * ConstructorThreadCount(); j++) {
       fprintf(fp, "%d\t", stageAtSync[i + j]);
-      int color = 0;
+      int32_t color = 0;
       if (stageAtSync[i + j] == 1) {
         color = RGB(255, 0, 0);
       }
@@ -83,7 +83,7 @@ int GPUChainTracking::DoProfile()
       if (stageAtSync[i + j] == 4) {
         color = RGB(255, 255, 0);
       }
-      fwrite(&color, 1, sizeof(int), fp2);
+      fwrite(&color, 1, sizeof(int32_t), fp2);
       if (j > 0 && j % 32 == 0) {
         color = RGB(255, 255, 255);
         fwrite(&color, 1, 4, fp2);
@@ -111,7 +111,7 @@ int GPUChainTracking::DoProfile()
 namespace
 {
 struct GPUChainTrackingMemUsage {
-  void add(unsigned long n, unsigned long bound)
+  void add(uint64_t n, uint64_t bound)
   {
     nMax = std::max(nMax, n);
     maxUse = std::max(n / std::max<double>(bound, 1.), maxUse);
@@ -119,14 +119,14 @@ struct GPUChainTrackingMemUsage {
     nBoundSum += bound;
     count++;
   }
-  unsigned long nMax;
-  unsigned long nSum = 0;
-  unsigned long nBoundSum = 0;
+  uint64_t nMax;
+  uint64_t nSum = 0;
+  uint64_t nBoundSum = 0;
   double maxUse = 0.;
-  unsigned int count = 0;
+  uint32_t count = 0;
 };
 
-void addToMap(std::string name, std::map<std::string, GPUChainTrackingMemUsage>& map, unsigned long n, unsigned long bound)
+void addToMap(std::string name, std::map<std::string, GPUChainTrackingMemUsage>& map, uint64_t n, uint64_t bound)
 {
   GPUChainTrackingMemUsage& obj = map.insert({name, {}}).first->second;
   obj.add(n, bound);
@@ -136,7 +136,7 @@ void addToMap(std::string name, std::map<std::string, GPUChainTrackingMemUsage>&
 void GPUChainTracking::PrintMemoryStatistics()
 {
   std::map<std::string, GPUChainTrackingMemUsage> usageMap;
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
 #ifdef GPUCA_TPC_GEOMETRY_O2
     addToMap("TPC Clusterer Sector Peaks", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nPeaks, processors()->tpcClusterer[i].mNMaxPeaks);
     addToMap("TPC Clusterer Sector Clusters", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nClusters, processors()->tpcClusterer[i].mNMaxClusters);
@@ -169,7 +169,7 @@ void GPUChainTracking::PrintMemoryStatistics()
 
 void GPUChainTracking::PrintMemoryRelations()
 {
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
     GPUInfo("MEMREL StartHits NCl %d NTrkl %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NStartHits());
     GPUInfo("MEMREL Tracklets NCl %d NTrkl %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTracklets());
     GPUInfo("MEMREL Tracklets NCl %d NTrkl %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NRowHits());
@@ -204,21 +204,21 @@ void GPUChainTracking::PrintDebugOutput()
 
 void GPUChainTracking::PrintOutputStat()
 {
-  int nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
-  unsigned int nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : GetTPCMerger().NMaxClusters();
+  int32_t nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
+  uint32_t nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : GetTPCMerger().NMaxClusters();
   if (ProcessingSettings().createO2Output > 1) {
     nTracks = mIOPtrs.nOutputTracksTPCO2;
     nAttachedClusters = mIOPtrs.nMergedTrackHits;
   } else {
-    for (unsigned int k = 0; k < mIOPtrs.nMergedTracks; k++) {
+    for (uint32_t k = 0; k < mIOPtrs.nMergedTracks; k++) {
       if (mIOPtrs.mergedTracks[k].OK()) {
         nTracks++;
         nAttachedClusters += mIOPtrs.mergedTracks[k].NClusters();
         nAttachedClustersFitted += mIOPtrs.mergedTracks[k].NClustersFitted();
       }
     }
-    for (unsigned int k = 0; k < nCls; k++) {
-      int attach = mIOPtrs.mergedTrackHitAttachment[k];
+    for (uint32_t k = 0; k < nCls; k++) {
+      int32_t attach = mIOPtrs.mergedTrackHitAttachment[k];
       if (attach & gputpcgmmergertypes::attachFlagMask) {
         nAdjacentClusters++;
       }
@@ -227,9 +227,9 @@ void GPUChainTracking::PrintOutputStat()
 
   char trdText[1024] = "";
   if (GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) {
-    int nTRDTracks = 0;
-    int nTRDTracklets = 0;
-    for (unsigned int k = 0; k < mIOPtrs.nTRDTracks; k++) {
+    int32_t nTRDTracks = 0;
+    int32_t nTRDTracklets = 0;
+    for (uint32_t k = 0; k < mIOPtrs.nTRDTracks; k++) {
       if (mIOPtrs.trdTracksO2) {
 #ifdef GPUCA_HAVE_O2HEADERS
         auto& trk = mIOPtrs.trdTracksO2[k];
@@ -252,7 +252,7 @@ void GPUChainTracking::SanityCheck()
 #ifdef GPUCA_HAVE_O2HEADERS
   size_t nErrors = 0;
 
-  for (unsigned int i = 0; i < mIOPtrs.nOutputTracksTPCO2; i++) {
+  for (uint32_t i = 0; i < mIOPtrs.nOutputTracksTPCO2; i++) {
     const auto& trk = mIOPtrs.outputTracksTPCO2[i];
     const auto& ref = trk.getClusterRef();
     if (ref.getFirstEntry() > mIOPtrs.nOutputClusRefsTPCO2) {
@@ -267,13 +267,13 @@ void GPUChainTracking::SanityCheck()
         continue;
       }
     }
-    for (int j = 0; j < trk.getNClusters(); j++) {
+    for (int32_t j = 0; j < trk.getNClusters(); j++) {
       uint8_t sector, row;
       uint32_t cl;
       trk.getClusterReference(mIOPtrs.outputClusRefsTPCO2, j, sector, row, cl);
       if (sector >= GPUCA_NSLICES || row >= GPUCA_ROW_COUNT) {
         if (nErrors++ < 1000) {
-          GPUError("Invalid sector / row %d / %d", (int)sector, (int)row);
+          GPUError("Invalid sector / row %d / %d", (int32_t)sector, (int32_t)row);
           continue;
         }
       }

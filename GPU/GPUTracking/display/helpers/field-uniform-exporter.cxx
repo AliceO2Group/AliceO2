@@ -24,7 +24,7 @@ namespace bpo = boost::program_options;
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <std::size_t MAX_DIM1_SEGMENTS, std::size_t MAX_DIM2_SEGMENTS, std::size_t MAX_DIM3_SEGMENTS>
-void saveSegments(std::ofstream& file, int NSegDim1, int NSegDim2, int NSegDim3, GPUDisplayMagneticField::SegmentsUniform<MAX_DIM1_SEGMENTS, MAX_DIM2_SEGMENTS, MAX_DIM3_SEGMENTS>& segments)
+void saveSegments(std::ofstream& file, int32_t NSegDim1, int32_t NSegDim2, int32_t NSegDim3, GPUDisplayMagneticField::SegmentsUniform<MAX_DIM1_SEGMENTS, MAX_DIM2_SEGMENTS, MAX_DIM3_SEGMENTS>& segments)
 {
   file.write(reinterpret_cast<char*>(&segments.MinZ), sizeof(segments.MinZ));
   file.write(reinterpret_cast<char*>(&segments.MaxZ), sizeof(segments.MaxZ));
@@ -51,7 +51,7 @@ void saveSegments(std::ofstream& file, int NSegDim1, int NSegDim2, int NSegDim3,
 }
 
 template <std::size_t DIMENSIONS, std::size_t MAX_PARAMETERIZATIONS, std::size_t MAX_ROWS, std::size_t MAX_COLUMNS, std::size_t MAX_COEFFICIENTS>
-void saveParams(std::ofstream& file, int numberOfParametrization, int Nrows, int Ncolums, int Ncoeffs, GPUDisplayMagneticField::ParametrizationUniform<MAX_PARAMETERIZATIONS, MAX_ROWS, MAX_COLUMNS, MAX_COEFFICIENTS>& param)
+void saveParams(std::ofstream& file, int32_t numberOfParametrization, int32_t Nrows, int32_t Ncolums, int32_t Ncoeffs, GPUDisplayMagneticField::ParametrizationUniform<MAX_PARAMETERIZATIONS, MAX_ROWS, MAX_COLUMNS, MAX_COEFFICIENTS>& param)
 {
   file.write(reinterpret_cast<char*>(&numberOfParametrization), sizeof(std::int32_t));
 
@@ -66,20 +66,20 @@ void saveParams(std::ofstream& file, int numberOfParametrization, int Nrows, int
 
   file.write(reinterpret_cast<char*>(&Nrows), sizeof(std::int32_t));
 
-  file.write(reinterpret_cast<char*>(param.NColsAtRow), Nrows * sizeof(int));
-  file.write(reinterpret_cast<char*>(param.CofsAtColOffset), Nrows * sizeof(int));
+  file.write(reinterpret_cast<char*>(param.NColsAtRow), Nrows * sizeof(int32_t));
+  file.write(reinterpret_cast<char*>(param.CofsAtColOffset), Nrows * sizeof(int32_t));
 
-  file.write(reinterpret_cast<char*>(&Ncolums), sizeof(int));
+  file.write(reinterpret_cast<char*>(&Ncolums), sizeof(int32_t));
 
-  file.write(reinterpret_cast<char*>(param.NCofsAtCol), Ncolums * sizeof(int));
-  file.write(reinterpret_cast<char*>(param.AtColCoefOffset), Ncolums * sizeof(int));
+  file.write(reinterpret_cast<char*>(param.NCofsAtCol), Ncolums * sizeof(int32_t));
+  file.write(reinterpret_cast<char*>(param.AtColCoefOffset), Ncolums * sizeof(int32_t));
 
-  file.write(reinterpret_cast<char*>(&Ncoeffs), sizeof(int));
+  file.write(reinterpret_cast<char*>(&Ncoeffs), sizeof(int32_t));
 
   file.write(reinterpret_cast<char*>(param.Coeffs), Ncoeffs * sizeof(float));
 }
 
-int main(int argc, char** argv)
+int32_t main(int argc, char** argv)
 {
   bpo::options_description options("Field Uniform exporter options");
 

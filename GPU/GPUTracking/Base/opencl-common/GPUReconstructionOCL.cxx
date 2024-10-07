@@ -53,7 +53,7 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
   }
 }
 
-int GPUReconstructionOCL::GPUFailedMsgAI(const long error, const char* file, int line)
+int32_t GPUReconstructionOCL::GPUFailedMsgAI(const int64_t error, const char* file, int32_t line)
 {
   // Check for OPENCL Error and in the case of an error display the corresponding error string
   if (error == CL_SUCCESS) {
@@ -63,7 +63,7 @@ int GPUReconstructionOCL::GPUFailedMsgAI(const long error, const char* file, int
   return 1;
 }
 
-void GPUReconstructionOCL::GPUFailedMsgA(const long error, const char* file, int line)
+void GPUReconstructionOCL::GPUFailedMsgA(const int64_t error, const char* file, int32_t line)
 {
   if (GPUFailedMsgAI(error, file, line)) {
     static bool runningCallbacks = false;
@@ -80,7 +80,7 @@ void GPUReconstructionOCL::UpdateAutomaticProcessingSettings()
   GPUCA_GPUReconstructionUpdateDefaults();
 }
 
-int GPUReconstructionOCL::InitDevice_Runtime()
+int32_t GPUReconstructionOCL::InitDevice_Runtime()
 {
   if (mMaster == nullptr) {
     cl_int ocl_error;
@@ -103,13 +103,13 @@ int GPUReconstructionOCL::InitDevice_Runtime()
 
     bool found = false;
     if (mProcessingSettings.platformNum >= 0) {
-      if (mProcessingSettings.platformNum >= (int)num_platforms) {
+      if (mProcessingSettings.platformNum >= (int32_t)num_platforms) {
         quit("Invalid platform specified");
       }
       mInternals->platform = mInternals->platforms[mProcessingSettings.platformNum];
       found = true;
     } else {
-      for (unsigned int i_platform = 0; i_platform < num_platforms; i_platform++) {
+      for (uint32_t i_platform = 0; i_platform < num_platforms; i_platform++) {
         char platform_profile[256] = {}, platform_version[256] = {}, platform_name[256] = {}, platform_vendor[256] = {};
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_PROFILE, sizeof(platform_profile), platform_profile, nullptr);
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
@@ -151,7 +151,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       GPUInfo("Available OPENCL devices:");
     }
     std::vector<bool> devicesOK(count, false);
-    for (unsigned int i = 0; i < count; i++) {
+    for (uint32_t i = 0; i < count; i++) {
       if (mProcessingSettings.debugLevel >= 3) {
         GPUInfo("Examining device %d", i);
       }
@@ -165,7 +165,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, nullptr);
       clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, nullptr);
       clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_ENDIAN_LITTLE, sizeof(endian), &endian, nullptr);
-      int deviceOK = true;
+      int32_t deviceOK = true;
       const char* deviceFailure = "";
       if (mProcessingSettings.gpuDeviceOnly && ((device_type & CL_DEVICE_TYPE_CPU) || !(device_type & CL_DEVICE_TYPE_GPU))) {
         deviceOK = false;
@@ -182,7 +182,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
 
       double bestDeviceSpeed = -1, deviceSpeed = (double)freq * (double)shaders;
       if (mProcessingSettings.debugLevel >= 2) {
-        GPUImportant("Device %s%2d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %ld)%s %s", deviceOK ? " " : "[", i, device_vendor, device_name, (int)freq, (int)shaders, (int)nbits, (long)deviceSpeed, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
+        GPUImportant("Device %s%2d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %ld)%s %s", deviceOK ? " " : "[", i, device_vendor, device_name, (int32_t)freq, (int32_t)shaders, (int32_t)nbits, (int64_t)deviceSpeed, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
       }
       if (!deviceOK) {
         continue;
@@ -229,18 +229,18 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     if (mProcessingSettings.debugLevel >= 2) {
       GPUInfo("Using OpenCL device %d: %s %s with properties:", bestDevice, device_vendor, device_name);
       GPUInfo("\tVersion = %s", deviceVersion);
-      GPUInfo("\tFrequency = %d", (int)freq);
-      GPUInfo("\tShaders = %d", (int)shaders);
-      GPUInfo("\tGLobalMemory = %ld", (long)globalMem);
-      GPUInfo("\tContantMemoryBuffer = %ld", (long)constantBuffer);
-      GPUInfo("\tLocalMemory = %ld", (long)localMem);
-      GPUInfo("\tmaxThreadsPerBlock = %ld", (long)maxWorkGroup);
-      GPUInfo("\tmaxThreadsDim = %ld %ld %ld", (long)maxWorkItems[0], (long)maxWorkItems[1], (long)maxWorkItems[2]);
+      GPUInfo("\tFrequency = %d", (int32_t)freq);
+      GPUInfo("\tShaders = %d", (int32_t)shaders);
+      GPUInfo("\tGLobalMemory = %ld", (int64_t)globalMem);
+      GPUInfo("\tContantMemoryBuffer = %ld", (int64_t)constantBuffer);
+      GPUInfo("\tLocalMemory = %ld", (int64_t)localMem);
+      GPUInfo("\tmaxThreadsPerBlock = %ld", (int64_t)maxWorkGroup);
+      GPUInfo("\tmaxThreadsDim = %ld %ld %ld", (int64_t)maxWorkItems[0], (int64_t)maxWorkItems[1], (int64_t)maxWorkItems[2]);
       GPUInfo(" ");
     }
 #ifndef GPUCA_NO_CONSTANT_MEMORY
     if (gGPUConstantMemBufferSize > constantBuffer) {
-      quit("Insufficient constant memory available on GPU %d < %d!", (int)constantBuffer, (int)gGPUConstantMemBufferSize);
+      quit("Insufficient constant memory available on GPU %d < %d!", (int32_t)constantBuffer, (int32_t)gGPUConstantMemBufferSize);
     }
 #endif
 
@@ -248,7 +248,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     mDeviceName += " (OpenCL)";
     mBlockCount = shaders;
     mWarpSize = 32;
-    mMaxThreads = std::max<int>(mMaxThreads, maxWorkGroup * mBlockCount);
+    mMaxThreads = std::max<int32_t>(mMaxThreads, maxWorkGroup * mBlockCount);
 
     mInternals->context = clCreateContext(nullptr, ContextForAllPlatforms() ? count : 1, ContextForAllPlatforms() ? mInternals->devices.get() : &mInternals->device, nullptr, nullptr, &ocl_error);
     if (GPUFailedMsgI(ocl_error)) {
@@ -276,7 +276,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       quit("OPENCL Constant Memory Allocation Error");
     }
 
-    for (int i = 0; i < mNStreams; i++) {
+    for (int32_t i = 0; i < mNStreams; i++) {
 #ifdef CL_VERSION_2_0
       cl_queue_properties prop = mProcessingSettings.deviceTimers ? CL_QUEUE_PROFILING_ENABLE : 0;
       mInternals->command_queue[i] = clCreateCommandQueueWithProperties(mInternals->context, mInternals->device, &prop, &ocl_error);
@@ -342,12 +342,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     mDeviceConstantMem = (GPUConstantMem*)((void**)mHostMemoryBase)[1];
 
     if (mProcessingSettings.debugLevel >= 1) {
-      GPUInfo("Memory ptrs: GPU (%ld bytes): %p - Host (%ld bytes): %p", (long)mDeviceMemorySize, mDeviceMemoryBase, (long)mHostMemorySize, mHostMemoryBase);
+      GPUInfo("Memory ptrs: GPU (%ld bytes): %p - Host (%ld bytes): %p", (int64_t)mDeviceMemorySize, mDeviceMemoryBase, (int64_t)mHostMemorySize, mHostMemoryBase);
       memset(mHostMemoryBase, 0xDD, mHostMemorySize);
     }
 
-    GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %ld / %ld bytes host / global memory, Stack frame %d, Constant memory %ld)", bestDevice, device_vendor, device_name, (int)freq, (int)shaders, (long)mDeviceMemorySize,
-            (long)mHostMemorySize, -1, (long)gGPUConstantMemBufferSize);
+    GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %ld / %ld bytes host / global memory, Stack frame %d, Constant memory %ld)", bestDevice, device_vendor, device_name, (int32_t)freq, (int32_t)shaders, (int64_t)mDeviceMemorySize,
+            (int64_t)mHostMemorySize, -1, (int64_t)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionOCL* master = dynamic_cast<GPUReconstructionOCL*>(mMaster);
     mBlockCount = master->mBlockCount;
@@ -361,7 +361,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   return (0);
 }
 
-int GPUReconstructionOCL::ExitDevice_Runtime()
+int32_t GPUReconstructionOCL::ExitDevice_Runtime()
 {
   // Uninitialize OPENCL
   SynchronizeGPU();
@@ -370,14 +370,14 @@ int GPUReconstructionOCL::ExitDevice_Runtime()
     if (mDeviceMemoryBase) {
       clReleaseMemObject(mInternals->mem_gpu);
       clReleaseMemObject(mInternals->mem_constant);
-      for (unsigned int i = 0; i < mInternals->kernels.size(); i++) {
+      for (uint32_t i = 0; i < mInternals->kernels.size(); i++) {
         clReleaseKernel(mInternals->kernels[i].first);
       }
       mInternals->kernels.clear();
     }
     if (mHostMemoryBase) {
       clEnqueueUnmapMemObject(mInternals->command_queue[0], mInternals->mem_host, mHostMemoryBase, 0, nullptr, nullptr);
-      for (int i = 0; i < mNStreams; i++) {
+      for (int32_t i = 0; i < mNStreams; i++) {
         clReleaseCommandQueue(mInternals->command_queue[i]);
       }
       clReleaseMemObject(mInternals->mem_host);
@@ -393,7 +393,7 @@ int GPUReconstructionOCL::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev, deviceEvent* evList, int32_t nEvents)
 {
   if (evList == nullptr) {
     nEvents = 0;
@@ -414,7 +414,7 @@ size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, 
   return size;
 }
 
-size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
+size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int32_t stream, deviceEvent* ev, deviceEvent* evList, int32_t nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mProcessingSettings.debugLevel >= 4) {
@@ -423,12 +423,12 @@ size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int 
     return 0;
   }
   if (mProcessingSettings.debugLevel >= 3 && (strcmp(res->Name(), "ErrorCodes") || mProcessingSettings.debugLevel >= 4)) {
-    GPUInfo("Copying to %s: %s - %ld bytes", toGPU ? "GPU" : "Host", res->Name(), (long)res->Size());
+    GPUInfo("Copying to %s: %s - %ld bytes", toGPU ? "GPU" : "Host", res->Name(), (int64_t)res->Size());
   }
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
-size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream, deviceEvent* ev)
 {
   if (stream == -1) {
     SynchronizeGPU();
@@ -439,13 +439,13 @@ size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* sr
 
 void GPUReconstructionOCL::ReleaseEvent(deviceEvent ev) { GPUFailedMsg(clReleaseEvent(ev.get<cl_event>())); }
 
-void GPUReconstructionOCL::RecordMarker(deviceEvent ev, int stream) { GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, ev.getEventList<cl_event>())); }
+void GPUReconstructionOCL::RecordMarker(deviceEvent ev, int32_t stream) { GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, ev.getEventList<cl_event>())); }
 
-int GPUReconstructionOCL::DoStuckProtection(int stream, deviceEvent event)
+int32_t GPUReconstructionOCL::DoStuckProtection(int32_t stream, deviceEvent event)
 {
   if (mProcessingSettings.stuckProtection) {
     cl_int tmp = 0;
-    for (int i = 0; i <= mProcessingSettings.stuckProtection / 50; i++) {
+    for (int32_t i = 0; i <= mProcessingSettings.stuckProtection / 50; i++) {
       usleep(50);
       clGetEventInfo(event.get<cl_event>(), CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(tmp), &tmp, nullptr);
       if (tmp == CL_COMPLETE) {
@@ -454,7 +454,7 @@ int GPUReconstructionOCL::DoStuckProtection(int stream, deviceEvent event)
     }
     if (tmp != CL_COMPLETE) {
       mGPUStuck = 1;
-      quit("GPU Stuck, future processing in this component is disabled, skipping event (GPU Event State %d)", (int)tmp);
+      quit("GPU Stuck, future processing in this component is disabled, skipping event (GPU Event State %d)", (int32_t)tmp);
     }
   } else {
     clFinish(mInternals->command_queue[stream]);
@@ -464,26 +464,26 @@ int GPUReconstructionOCL::DoStuckProtection(int stream, deviceEvent event)
 
 void GPUReconstructionOCL::SynchronizeGPU()
 {
-  for (int i = 0; i < mNStreams; i++) {
+  for (int32_t i = 0; i < mNStreams; i++) {
     GPUFailedMsg(clFinish(mInternals->command_queue[i]));
   }
 }
 
-void GPUReconstructionOCL::SynchronizeStream(int stream) { GPUFailedMsg(clFinish(mInternals->command_queue[stream])); }
+void GPUReconstructionOCL::SynchronizeStream(int32_t stream) { GPUFailedMsg(clFinish(mInternals->command_queue[stream])); }
 
-void GPUReconstructionOCL::SynchronizeEvents(deviceEvent* evList, int nEvents) { GPUFailedMsg(clWaitForEvents(nEvents, evList->getEventList<cl_event>())); }
+void GPUReconstructionOCL::SynchronizeEvents(deviceEvent* evList, int32_t nEvents) { GPUFailedMsg(clWaitForEvents(nEvents, evList->getEventList<cl_event>())); }
 
-void GPUReconstructionOCL::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
+void GPUReconstructionOCL::StreamWaitForEvents(int32_t stream, deviceEvent* evList, int32_t nEvents)
 {
   if (nEvents) {
     GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], nEvents, evList->getEventList<cl_event>(), nullptr));
   }
 }
 
-bool GPUReconstructionOCL::IsEventDone(deviceEvent* evList, int nEvents)
+bool GPUReconstructionOCL::IsEventDone(deviceEvent* evList, int32_t nEvents)
 {
   cl_int eventdone;
-  for (int i = 0; i < nEvents; i++) {
+  for (int32_t i = 0; i < nEvents; i++) {
     GPUFailedMsg(clGetEventInfo(evList[i].get<cl_event>(), CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, nullptr));
     if (eventdone != CL_COMPLETE) {
       return false;
@@ -492,13 +492,13 @@ bool GPUReconstructionOCL::IsEventDone(deviceEvent* evList, int nEvents)
   return true;
 }
 
-int GPUReconstructionOCL::GPUDebug(const char* state, int stream, bool force)
+int32_t GPUReconstructionOCL::GPUDebug(const char* state, int32_t stream, bool force)
 {
   // Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards, in case of debugmode
   if (!force && mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
-  for (int i = 0; i < mNStreams; i++) {
+  for (int32_t i = 0; i < mNStreams; i++) {
     if (GPUFailedMsgI(clFinish(mInternals->command_queue[i]))) {
       GPUError("OpenCL Error while synchronizing (%s) (Stream %d/%d)", state, stream, i);
     }

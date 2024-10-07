@@ -17,23 +17,23 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUMemClean16::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() processors, GPUglobalref() void* ptr, unsigned long size)
+GPUdii() void GPUMemClean16::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() processors, GPUglobalref() void* ptr, uint64_t size)
 {
-  const unsigned long stride = get_global_size(0);
+  const uint64_t stride = get_global_size(0);
   int4 i0;
   i0.x = i0.y = i0.z = i0.w = 0;
   int4* ptra = (int4*)ptr;
-  unsigned long len = (size + sizeof(int4) - 1) / sizeof(int4);
-  for (unsigned long i = get_global_id(0); i < len; i += stride) {
+  uint64_t len = (size + sizeof(int4) - 1) / sizeof(int4);
+  for (uint64_t i = get_global_id(0); i < len; i += stride) {
     ptra[i] = i0;
   }
 }
 
 template <>
-GPUdii() void GPUitoa::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() processors, GPUglobalref() int* ptr, unsigned long size)
+GPUdii() void GPUitoa::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() processors, GPUglobalref() int32_t* ptr, uint64_t size)
 {
-  const unsigned long stride = get_global_size(0);
-  for (unsigned long i = get_global_id(0); i < size; i += stride) {
+  const uint64_t stride = get_global_size(0);
+  for (uint64_t i = get_global_id(0); i < size; i += stride) {
     ptr[i] = i;
   }
 }

@@ -38,7 +38,7 @@ GPUd() void MEM_LG(GPUTPCGrid)::CreateEmpty()
 }
 
 MEM_CLASS_PRE()
-GPUd() void MEM_LG(GPUTPCGrid)::Create(float yMin, float yMax, float zMin, float zMax, int ny, int nz)
+GPUd() void MEM_LG(GPUTPCGrid)::Create(float yMin, float yMax, float zMin, float zMax, int32_t ny, int32_t nz)
 {
   //* Create the grid
   mYMin = yMin;
@@ -60,27 +60,27 @@ GPUd() void MEM_LG(GPUTPCGrid)::Create(float yMin, float yMax, float zMin, float
 }
 
 MEM_CLASS_PRE()
-GPUd() int MEM_LG(GPUTPCGrid)::GetBin(float Y, float Z) const
+GPUd() int32_t MEM_LG(GPUTPCGrid)::GetBin(float Y, float Z) const
 {
   //* get the bin pointer
-  const int yBin = static_cast<int>((Y - mYMin) * mStepYInv);
-  const int zBin = static_cast<int>((Z - mZMin) * mStepZInv);
-  const int bin = zBin * mNy + yBin;
+  const int32_t yBin = static_cast<int32_t>((Y - mYMin) * mStepYInv);
+  const int32_t zBin = static_cast<int32_t>((Z - mZMin) * mStepZInv);
+  const int32_t bin = zBin * mNy + yBin;
 #ifndef GPUCA_GPUCODE
   assert(bin >= 0);
-  assert(bin < static_cast<int>(mN));
+  assert(bin < static_cast<int32_t>(mN));
 #endif
   return bin;
 }
 
 MEM_CLASS_PRE()
-GPUd() int MEM_LG(GPUTPCGrid)::GetBinBounded(float Y, float Z) const
+GPUd() int32_t MEM_LG(GPUTPCGrid)::GetBinBounded(float Y, float Z) const
 {
   //* get the bin pointer
-  const int yBin = static_cast<int>((Y - mYMin) * mStepYInv);
-  const int zBin = static_cast<int>((Z - mZMin) * mStepZInv);
-  int bin = zBin * mNy + yBin;
-  if (bin >= static_cast<int>(mN)) {
+  const int32_t yBin = static_cast<int32_t>((Y - mYMin) * mStepYInv);
+  const int32_t zBin = static_cast<int32_t>((Z - mZMin) * mStepZInv);
+  int32_t bin = zBin * mNy + yBin;
+  if (bin >= static_cast<int32_t>(mN)) {
     bin = mN - 1;
   }
   if (bin < 0) {
@@ -90,55 +90,55 @@ GPUd() int MEM_LG(GPUTPCGrid)::GetBinBounded(float Y, float Z) const
 }
 
 MEM_CLASS_PRE()
-GPUd() void MEM_LG(GPUTPCGrid)::GetBin(float Y, float Z, int* const bY, int* const bZ) const
+GPUd() void MEM_LG(GPUTPCGrid)::GetBin(float Y, float Z, int32_t* const bY, int32_t* const bZ) const
 {
   //* get the bin pointer
 
-  int bbY = (int)((Y - mYMin) * mStepYInv);
-  int bbZ = (int)((Z - mZMin) * mStepZInv);
+  int32_t bbY = (int32_t)((Y - mYMin) * mStepYInv);
+  int32_t bbZ = (int32_t)((Z - mZMin) * mStepZInv);
 
-  if (bbY >= (int)mNy) {
+  if (bbY >= (int32_t)mNy) {
     bbY = mNy - 1;
   }
   if (bbY < 0) {
     bbY = 0;
   }
-  if (bbZ >= (int)mNz) {
+  if (bbZ >= (int32_t)mNz) {
     bbZ = mNz - 1;
   }
   if (bbZ < 0) {
     bbZ = 0;
   }
 
-  *bY = (unsigned int)bbY;
-  *bZ = (unsigned int)bbZ;
+  *bY = (uint32_t)bbY;
+  *bZ = (uint32_t)bbZ;
 }
 
 MEM_CLASS_PRE()
-GPUd() void MEM_LG(GPUTPCGrid)::GetBinArea(float Y, float Z, float dy, float dz, int& bin, int& ny, int& nz) const
+GPUd() void MEM_LG(GPUTPCGrid)::GetBinArea(float Y, float Z, float dy, float dz, int32_t& bin, int32_t& ny, int32_t& nz) const
 {
   Y -= mYMin;
-  int by = (int)((Y - dy) * mStepYInv);
-  ny = (int)((Y + dy) * mStepYInv) - by;
+  int32_t by = (int32_t)((Y - dy) * mStepYInv);
+  ny = (int32_t)((Y + dy) * mStepYInv) - by;
   Z -= mZMin;
-  int bz = (int)((Z - dz) * mStepZInv);
-  nz = (int)((Z + dz) * mStepZInv) - bz;
-  if (by >= (int)mNy) {
+  int32_t bz = (int32_t)((Z - dz) * mStepZInv);
+  nz = (int32_t)((Z + dz) * mStepZInv) - bz;
+  if (by >= (int32_t)mNy) {
     by = mNy - 1;
   }
   if (by < 0) {
     by = 0;
   }
-  if (bz >= (int)mNz) {
+  if (bz >= (int32_t)mNz) {
     bz = mNz - 1;
   }
   if (bz < 0) {
     bz = 0;
   }
-  if (by + ny >= (int)mNy) {
+  if (by + ny >= (int32_t)mNy) {
     ny = mNy - 1 - by;
   }
-  if (bz + nz >= (int)mNz) {
+  if (bz + nz >= (int32_t)mNz) {
     nz = mNz - 1 - bz;
   }
   bin = bz * mNy + by;

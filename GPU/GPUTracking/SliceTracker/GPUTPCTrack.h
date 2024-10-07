@@ -41,30 +41,30 @@ class GPUTPCTrack
   ~GPUTPCTrack() CON_DEFAULT;
 #endif //! GPUCA_GPUCODE
 
-  GPUhd() int NHits() const { return mNHits; }
-  GPUhd() int LocalTrackId() const { return mLocalTrackId; }
-  GPUhd() int FirstHitID() const { return mFirstHitID; }
+  GPUhd() int32_t NHits() const { return mNHits; }
+  GPUhd() int32_t LocalTrackId() const { return mLocalTrackId; }
+  GPUhd() int32_t FirstHitID() const { return mFirstHitID; }
   GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return mParam; }
 
-  GPUhd() void SetNHits(int v) { mNHits = v; }
-  GPUhd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
-  GPUhd() void SetFirstHitID(int v) { mFirstHitID = v; }
+  GPUhd() void SetNHits(int32_t v) { mNHits = v; }
+  GPUhd() void SetLocalTrackId(int32_t v) { mLocalTrackId = v; }
+  GPUhd() void SetFirstHitID(int32_t v) { mFirstHitID = v; }
 
   MEM_TEMPLATE()
   GPUhd() void SetParam(const MEM_TYPE(GPUTPCBaseTrackParam) & v) { mParam = v; }
 
   // Only if used as replacement for SliceOutTrack
-  GPUhd() static int GetSize(int nClust) { return sizeof(GPUTPCTrack) + nClust * sizeof(GPUTPCSliceOutCluster); }
+  GPUhd() static int32_t GetSize(int32_t nClust) { return sizeof(GPUTPCTrack) + nClust * sizeof(GPUTPCSliceOutCluster); }
   GPUhd() const GPUTPCTrack* GetNextTrack() const { return (const GPUTPCTrack*)(((char*)this) + GetSize(mNHits)); }
   GPUhd() GPUTPCTrack* NextTrack() { return (GPUTPCTrack*)(((char*)this) + GetSize(mNHits)); }
-  GPUhd() void SetOutTrackCluster(int i, const GPUTPCSliceOutCluster& v) { ((GPUTPCSliceOutCluster*)((char*)this + sizeof(*this)))[i] = v; }
+  GPUhd() void SetOutTrackCluster(int32_t i, const GPUTPCSliceOutCluster& v) { ((GPUTPCSliceOutCluster*)((char*)this + sizeof(*this)))[i] = v; }
   GPUhd() const GPUTPCSliceOutCluster* OutTrackClusters() const { return (const GPUTPCSliceOutCluster*)((char*)this + sizeof(*this)); }
-  GPUhd() const GPUTPCSliceOutCluster& OutTrackCluster(int i) const { return OutTrackClusters()[i]; }
+  GPUhd() const GPUTPCSliceOutCluster& OutTrackCluster(int32_t i) const { return OutTrackClusters()[i]; }
 
  private:
-  int mFirstHitID;   // index of the first track cell in the track->cell pointer array
-  int mNHits;        // number of track cells
-  int mLocalTrackId; // Id of local track this global track belongs to, index of this track itself if it is a local track
+  int32_t mFirstHitID;   // index of the first track cell in the track->cell pointer array
+  int32_t mNHits;        // number of track cells
+  int32_t mLocalTrackId; // Id of local track this global track belongs to, index of this track itself if it is a local track
   MEM_LG(GPUTPCBaseTrackParam)
   mParam; // track parameters
 

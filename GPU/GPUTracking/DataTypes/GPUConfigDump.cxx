@@ -49,11 +49,11 @@ void GPUConfigDump::dumpConfig(const GPUSettingsRec* rec, const GPUSettingsProce
   }
   if (device) {
     std::cout << "\n\tGPUSettingsDeviceBackend:\n"
-              << "\tdeviceType = " << (int)device->deviceType << "\n"
+              << "\tdeviceType = " << (int32_t)device->deviceType << "\n"
               << "\tforceDeviceType = " << (device->forceDeviceType ? "true" : "false") << "\n"
               << "\tslave = " << (device->master ? "true" : "false") << "\n";
   }
   if (workflow) {
-    printf("\n\tReconstruction steps / inputs / outputs:\n\tReco Steps = 0x%08x\n\tReco Steps GPU = 0x%08x\n\tInputs = 0x%08x\n\tOutputs = 0x%08x\n", (unsigned int)workflow->steps, (unsigned int)workflow->stepsGPUMask, (unsigned int)workflow->inputs, (unsigned int)workflow->outputs);
+    printf("\n\tReconstruction steps / inputs / outputs:\n\tReco Steps = 0x%08x\n\tReco Steps GPU = 0x%08x\n\tInputs = 0x%08x\n\tOutputs = 0x%08x\n", (uint32_t)workflow->steps, (uint32_t)workflow->stepsGPUMask, (uint32_t)workflow->inputs, (uint32_t)workflow->outputs);
   }
 }

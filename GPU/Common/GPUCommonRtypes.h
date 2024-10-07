@@ -26,8 +26,8 @@
     #define ClassImp(name)
     #define templateClassImp(name)
     #ifndef GPUCA_GPUCODE_DEVICE
-//      typedef unsigned long long ULong64_t;
-//      typedef unsigned int UInt_t;
+//      typedef uint64_t ULong64_t;
+//      typedef uint32_t UInt_t;
       #include <iostream>
     #endif
   #endif

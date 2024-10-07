@@ -29,12 +29,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
 
-  int basePad = iBlock * PadsPerCacheline;
+  int32_t basePad = iBlock * PadsPerCacheline;
   ChargePos basePos = padToChargePos(basePad, clusterer);
 
   if (not basePos.valid()) {
@@ -44,21 +44,21 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
 #ifdef GPUCA_GPUCODE
   static_assert(TPC_MAX_FRAGMENT_LEN_GPU % NumOfCachedTimebins == 0);
 
-  int totalCharges = 0;
-  int consecCharges = 0;
-  int maxConsecCharges = 0;
+  int32_t totalCharges = 0;
+  int32_t consecCharges = 0;
+  int32_t maxConsecCharges = 0;
   Charge maxCharge = 0;
 
-  short localPadId = iThread / NumOfCachedTimebins;
-  short localTimeBin = iThread % NumOfCachedTimebins;
+  int16_t localPadId = iThread / NumOfCachedTimebins;
+  int16_t localTimeBin = iThread % NumOfCachedTimebins;
   bool handlePad = localTimeBin == 0;
 
   for (tpccf::TPCFragmentTime t = fragment.firstNonOverlapTimeBin(); t < fragment.lastNonOverlapTimeBin(); t += NumOfCachedTimebins) {
-    const ChargePos pos = basePos.delta({localPadId, short(t + localTimeBin)});
+    const ChargePos pos = basePos.delta({localPadId, int16_t(t + localTimeBin)});
     smem.charges[localPadId][localTimeBin] = (pos.valid()) ? chargeMap[pos].unpack() : 0;
     GPUbarrier();
     if (handlePad) {
-      for (int i = 0; i < NumOfCachedTimebins; i++) {
+      for (int32_t i = 0; i < NumOfCachedTimebins; i++) {
         const Charge q = smem.charges[localPadId][i];
         totalCharges += (q > 0);
         consecCharges = (q > 0) ? consecCharges + 1 : 0;
@@ -80,7 +80,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
   constexpr size_t ElemsInTileRow = (size_t)TilingLayout<GridSize<2>>::WidthInTiles * TimebinsPerCacheline * PadsPerCacheline;
 
 #ifndef GPUCA_NO_VC
-  using UShort8 = Vc::fixed_size_simd<unsigned short, PadsPerCacheline>;
+  using UShort8 = Vc::fixed_size_simd<uint16_t, PadsPerCacheline>;
   using Charge8 = Vc::fixed_size_simd<float, PadsPerCacheline>;
 
   UShort8 totalCharges{Vc::Zero};
@@ -88,16 +88,16 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
   UShort8 maxConsecCharges{Vc::Zero};
   Charge8 maxCharge{Vc::Zero};
 #else
-  std::array<unsigned short, PadsPerCacheline> totalCharges{0};
-  std::array<unsigned short, PadsPerCacheline> consecCharges{0};
-  std::array<unsigned short, PadsPerCacheline> maxConsecCharges{0};
+  std::array<uint16_t, PadsPerCacheline> totalCharges{0};
+  std::array<uint16_t, PadsPerCacheline> consecCharges{0};
+  std::array<uint16_t, PadsPerCacheline> maxConsecCharges{0};
   std::array<Charge, PadsPerCacheline> maxCharge{0};
 #endif
 
   tpccf::TPCFragmentTime t = fragment.firstNonOverlapTimeBin();
 
   // Access packed charges as raw integers. We throw away the PackedCharge type here to simplify vectorization.
-  const unsigned short* packedChargeStart = reinterpret_cast<unsigned short*>(&chargeMap[basePos.delta({0, t})]);
+  const uint16_t* packedChargeStart = reinterpret_cast<uint16_t*>(&chargeMap[basePos.delta({0, t})]);
 
   for (; t < fragment.lastNonOverlapTimeBin(); t += TimebinsPerCacheline) {
     for (tpccf::TPCFragmentTime localtime = 0; localtime < TimebinsPerCacheline; localtime++) {
@@ -124,7 +124,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
       }
 #else // Vc not available
       for (tpccf::Pad localpad = 0; localpad < PadsPerCacheline; localpad++) {
-        const unsigned short packedCharge = packedChargeStart[PadsPerCacheline * localtime + localpad];
+        const uint16_t packedCharge = packedChargeStart[PadsPerCacheline * localtime + localpad];
         const bool isCharge = packedCharge != 0;
         if (isCharge) {
           totalCharges[localpad]++;
@@ -149,16 +149,16 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
 #endif
 }
 
-GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPCClusterFinder& clusterer)
+GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int32_t& pad, const GPUTPCClusterFinder& clusterer)
 {
   const GPUTPCGeometry& geo = clusterer.Param().tpcGeometry;
 
-  int padOffset = 0;
+  int32_t padOffset = 0;
   for (Row r = 0; r < GPUCA_ROW_COUNT; r++) {
-    int npads = geo.NPads(r);
-    int padInRow = pad - padOffset;
-    if (0 <= padInRow && padInRow < CAMath::nextMultipleOf<PadsPerCacheline, int>(npads)) {
-      int cachelineOffset = padInRow % PadsPerCacheline;
+    int32_t npads = geo.NPads(r);
+    int32_t padInRow = pad - padOffset;
+    if (0 <= padInRow && padInRow < CAMath::nextMultipleOf<PadsPerCacheline, int32_t>(npads)) {
+      int32_t cachelineOffset = padInRow % PadsPerCacheline;
       pad -= cachelineOffset;
       return ChargePos{r, Pad(padInRow - cachelineOffset), 0};
     }
@@ -168,12 +168,12 @@ GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPC
   return ChargePos{0, 0, INVALID_TIME_BIN};
 }
 
-GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int pad, const GPUTPCClusterFinder& clusterer, int totalCharges, int consecCharges, Charge maxCharge)
+GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int32_t pad, const GPUTPCClusterFinder& clusterer, int32_t totalCharges, int32_t consecCharges, Charge maxCharge)
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
-  const int totalChargesBaseline = clusterer.Param().rec.tpc.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;
-  const int consecChargesBaseline = clusterer.Param().rec.tpc.maxConsecTimeBinAboveThreshold;
-  const unsigned short saturationThreshold = clusterer.Param().rec.tpc.noisyPadSaturationThreshold;
+  const int32_t totalChargesBaseline = clusterer.Param().rec.tpc.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;
+  const int32_t consecChargesBaseline = clusterer.Param().rec.tpc.maxConsecTimeBinAboveThreshold;
+  const uint16_t saturationThreshold = clusterer.Param().rec.tpc.noisyPadSaturationThreshold;
   const bool isNoisy = (!saturationThreshold || maxCharge < saturationThreshold) && ((totalChargesBaseline > 0 && totalCharges >= totalChargesBaseline) || (consecChargesBaseline > 0 && consecCharges >= consecChargesBaseline));
 
   if (isNoisy) {

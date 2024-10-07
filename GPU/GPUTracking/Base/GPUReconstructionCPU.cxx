@@ -43,8 +43,8 @@
 #if defined(WITH_OPENMP) || defined(_OPENMP)
 #include <omp.h>
 #else
-static inline int omp_get_thread_num() { return 0; }
-static inline int omp_get_max_threads() { return 1; }
+static inline int32_t omp_get_thread_num() { return 0; }
+static inline int32_t omp_get_max_threads() { return 1; }
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -60,8 +60,8 @@ GPUReconstructionCPU::~GPUReconstructionCPU()
   Exit(); // Needs to be identical to GPU backend bahavior in order to avoid calling abstract methods later in the destructor
 }
 
-template <class T, int I, typename... Args>
-inline int GPUReconstructionCPUBackend::runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args)
+template <class T, int32_t I, typename... Args>
+inline int32_t GPUReconstructionCPUBackend::runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args)
 {
   auto& x = _xyz.x;
   auto& y = _xyz.y;
@@ -71,12 +71,12 @@ inline int GPUReconstructionCPUBackend::runKernelBackendInternal(const krnlSetup
   if (x.nThreads != 1) {
     throw std::runtime_error("Cannot run device kernel on host with nThreads != 1");
   }
-  unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
-  for (unsigned int k = 0; k < num; k++) {
-    int ompThreads = 0;
+  uint32_t num = y.num == 0 || y.num == -1 ? 1 : y.num;
+  for (uint32_t k = 0; k < num; k++) {
+    int32_t ompThreads = 0;
     if (mProcessingSettings.ompKernels == 2) {
       ompThreads = mProcessingSettings.ompThreads / mNestedLoopOmpFactor;
-      if ((unsigned int)getOMPThreadNum() < mProcessingSettings.ompThreads % mNestedLoopOmpFactor) {
+      if ((uint32_t)getOMPThreadNum() < mProcessingSettings.ompThreads % mNestedLoopOmpFactor) {
         ompThreads++;
       }
       ompThreads = std::max(1, ompThreads);
@@ -88,12 +88,12 @@ inline int GPUReconstructionCPUBackend::runKernelBackendInternal(const krnlSetup
         printf("Running %d ompThreads\n", ompThreads);
       }
       GPUCA_OPENMP(parallel for num_threads(ompThreads))
-      for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
+      for (uint32_t iB = 0; iB < x.nBlocks; iB++) {
         typename T::GPUSharedMemory smem;
         T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
       }
     } else {
-      for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
+      for (uint32_t iB = 0; iB < x.nBlocks; iB++) {
         typename T::GPUSharedMemory smem;
         T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
       }
@@ -103,45 +103,45 @@ inline int GPUReconstructionCPUBackend::runKernelBackendInternal(const krnlSetup
 }
 
 template <>
-inline int GPUReconstructionCPUBackend::runKernelBackendInternal<GPUMemClean16, 0>(const krnlSetupTime& _xyz, void* const& ptr, unsigned long const& size)
+inline int32_t GPUReconstructionCPUBackend::runKernelBackendInternal<GPUMemClean16, 0>(const krnlSetupTime& _xyz, void* const& ptr, uint64_t const& size)
 {
   memset(ptr, 0, size);
   return 0;
 }
 
-template <class T, int I, typename... Args>
-int GPUReconstructionCPUBackend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
+template <class T, int32_t I, typename... Args>
+int32_t GPUReconstructionCPUBackend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
 {
   return std::apply([this, &args](auto&... vals) { return runKernelBackendInternal<T, I, Args...>(args.s, vals...); }, args.v);
 }
 
-template <class T, int I>
+template <class T, int32_t I>
 krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend()
 {
   return krnlProperties{1, 1};
 }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types)                                                                                                      \
-  template int GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args); \
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types)                                                                                                          \
+  template int32_t GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args); \
   template krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
 
-size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) { return 0; }
-size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) { return 0; }
-size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int32_t stream, deviceEvent* ev, deviceEvent* evList, int32_t nEvents, bool toGPU, const void* src, void* dst) { return 0; }
+size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev, deviceEvent* evList, int32_t nEvents) { return 0; }
+size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev, deviceEvent* evList, int32_t nEvents)
 {
   memcpy(dst, src, size);
   return 0;
 }
-size_t GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) { return 0; }
-int GPUReconstructionCPU::GPUDebug(const char* state, int stream, bool force) { return 0; }
-size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
+size_t GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream, deviceEvent* ev) { return 0; }
+int32_t GPUReconstructionCPU::GPUDebug(const char* state, int32_t stream, bool force) { return 0; }
+size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int32_t stream, bool all, bool toGPU)
 {
-  int inc = toGPU ? GPUMemoryResource::MEMORY_INPUT_FLAG : GPUMemoryResource::MEMORY_OUTPUT_FLAG;
-  int exc = toGPU ? GPUMemoryResource::MEMORY_OUTPUT_FLAG : GPUMemoryResource::MEMORY_INPUT_FLAG;
+  int32_t inc = toGPU ? GPUMemoryResource::MEMORY_INPUT_FLAG : GPUMemoryResource::MEMORY_OUTPUT_FLAG;
+  int32_t exc = toGPU ? GPUMemoryResource::MEMORY_OUTPUT_FLAG : GPUMemoryResource::MEMORY_INPUT_FLAG;
   size_t n = 0;
-  for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
+  for (uint32_t i = 0; i < mMemoryResources.size(); i++) {
     GPUMemoryResource& res = mMemoryResources[i];
     if (res.mPtr == nullptr) {
       continue;
@@ -164,19 +164,19 @@ size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, i
   return n;
 }
 
-int GPUReconstructionCPU::GetThread()
+int32_t GPUReconstructionCPU::GetThread()
 {
 // Get Thread ID
 #if defined(__APPLE__)
   return (0); // syscall is deprecated on MacOS..., only needed for GPU support which we don't do on Mac anyway
 #elif defined(_WIN32)
-  return ((int)(size_t)GetCurrentThread());
+  return ((int32_t)(size_t)GetCurrentThread());
 #else
-  return ((int)syscall(SYS_gettid));
+  return ((int32_t)syscall(SYS_gettid));
 #endif
 }
 
-int GPUReconstructionCPU::InitDevice()
+int32_t GPUReconstructionCPU::InitDevice()
 {
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mMaster == nullptr) {
@@ -196,7 +196,7 @@ int GPUReconstructionCPU::InitDevice()
   return 0;
 }
 
-int GPUReconstructionCPU::ExitDevice()
+int32_t GPUReconstructionCPU::ExitDevice()
 {
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mMaster == nullptr) {
@@ -208,7 +208,7 @@ int GPUReconstructionCPU::ExitDevice()
   return 0;
 }
 
-int GPUReconstructionCPU::RunChains()
+int32_t GPUReconstructionCPU::RunChains()
 {
   mMemoryScalers->temporaryFactor = 1.;
   mStatNEvents++;
@@ -229,8 +229,8 @@ int GPUReconstructionCPU::RunChains()
     if (mSlaves.size() || mMaster) {
       WriteConstantParams(); // Reinitialize
     }
-    for (unsigned int i = 0; i < mChains.size(); i++) {
-      int retVal = mChains[i]->RunChain();
+    for (uint32_t i = 0; i < mChains.size(); i++) {
+      int32_t retVal = mChains[i]->RunChain();
       if (retVal) {
         return retVal;
       }
@@ -247,12 +247,12 @@ int GPUReconstructionCPU::RunChains()
     double kernelTotal = 0;
     std::vector<double> kernelStepTimes(GPUDataTypes::N_RECO_STEPS);
 
-    for (unsigned int i = 0; i < mTimers.size(); i++) {
+    for (uint32_t i = 0; i < mTimers.size(); i++) {
       double time = 0;
       if (mTimers[i] == nullptr) {
         continue;
       }
-      for (int j = 0; j < mTimers[i]->num; j++) {
+      for (int32_t j = 0; j < mTimers[i]->num; j++) {
         HighResTimer& timer = mTimers[i]->timer[j];
         time += timer.GetElapsedTime();
         if (mProcessingSettings.resetTimers) {
@@ -260,33 +260,32 @@ int GPUReconstructionCPU::RunChains()
         }
       }
 
-      char type = mTimers[i]->type;
+      uint32_t type = mTimers[i]->type;
       if (type == 0) {
         kernelTotal += time;
-        int stepNum = getRecoStepNum(mTimers[i]->step);
+        int32_t stepNum = getRecoStepNum(mTimers[i]->step);
         kernelStepTimes[stepNum] += time;
       }
-      type = type == 0 ? 'K' : 'C';
       char bandwidth[256] = "";
       if (mTimers[i]->memSize && mStatNEvents && time != 0.) {
-        snprintf(bandwidth, 256, " (%6.3f GB/s - %'14lu bytes)", mTimers[i]->memSize / time * 1e-9, (unsigned long)(mTimers[i]->memSize / mStatNEvents));
+        snprintf(bandwidth, 256, " (%6.3f GB/s - %'14lu bytes)", mTimers[i]->memSize / time * 1e-9, (uint64_t)(mTimers[i]->memSize / mStatNEvents));
       }
-      printf("Execution Time: Task (%c %8ux): %50s Time: %'10lu us%s\n", type, mTimers[i]->count, mTimers[i]->name.c_str(), (unsigned long)(time * 1000000 / mStatNEvents), bandwidth);
+      printf("Execution Time: Task (%c %8ux): %50s Time: %'10lu us%s\n", type == 0 ? 'K' : 'C', mTimers[i]->count, mTimers[i]->name.c_str(), (uint64_t)(time * 1000000 / mStatNEvents), bandwidth);
       if (mProcessingSettings.resetTimers) {
         mTimers[i]->count = 0;
         mTimers[i]->memSize = 0;
       }
     }
-    for (int i = 0; i < GPUDataTypes::N_RECO_STEPS; i++) {
+    for (int32_t i = 0; i < GPUDataTypes::N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0. || mTimersRecoSteps[i].timerTotal.GetElapsedTime() != 0.) {
-        printf("Execution Time: Step              : %11s %38s Time: %'10lu us ( Total Time : %'14lu us)\n", "Tasks", GPUDataTypes::RECO_STEP_NAMES[i], (unsigned long)(kernelStepTimes[i] * 1000000 / mStatNEvents), (unsigned long)(mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
+        printf("Execution Time: Step              : %11s %38s Time: %'10lu us ( Total Time : %'14lu us)\n", "Tasks", GPUDataTypes::RECO_STEP_NAMES[i], (uint64_t)(kernelStepTimes[i] * 1000000 / mStatNEvents), (uint64_t)(mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10lu us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (unsigned long)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10lu us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (uint64_t)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
                mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToGPU / mStatNEvents, mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].countToGPU);
       }
       if (mTimersRecoSteps[i].bytesToHost) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10lu us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], (unsigned long)(mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents),
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10lu us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], (uint64_t)(mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents),
                mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToHost / mStatNEvents, mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].countToHost);
       }
       if (mProcessingSettings.resetTimers) {
@@ -298,16 +297,16 @@ int GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].countToHost = 0;
       }
     }
-    for (int i = 0; i < GPUDataTypes::N_GENERAL_STEPS; i++) {
+    for (int32_t i = 0; i < GPUDataTypes::N_GENERAL_STEPS; i++) {
       if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
-        printf("Execution Time: General Step      : %50s Time: %'10lu us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], (unsigned long)(mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents));
+        printf("Execution Time: General Step      : %50s Time: %'10lu us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], (uint64_t)(mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents));
       }
     }
     mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
-    printf("Execution Time: Total   : %50s Time: %'10lu us%s\n", "Total Kernel", (unsigned long)mStatKernelTime, nEventReport.c_str());
-    printf("Execution Time: Total   : %50s Time: %'10lu us%s\n", "Total Wall", (unsigned long)mStatWallTime, nEventReport.c_str());
+    printf("Execution Time: Total   : %50s Time: %'10lu us%s\n", "Total Kernel", (uint64_t)mStatKernelTime, nEventReport.c_str());
+    printf("Execution Time: Total   : %50s Time: %'10lu us%s\n", "Total Wall", (uint64_t)mStatWallTime, nEventReport.c_str());
   } else if (GetProcessingSettings().debugLevel >= 0) {
-    GPUInfo("Total Wall Time: %lu us%s", (unsigned long)mStatWallTime, nEventReport.c_str());
+    GPUInfo("Total Wall Time: %lu us%s", (uint64_t)mStatWallTime, nEventReport.c_str());
   }
   if (mProcessingSettings.resetTimers) {
     mStatNEvents = 0;
@@ -319,26 +318,26 @@ int GPUReconstructionCPU::RunChains()
 
 void GPUReconstructionCPU::ResetDeviceProcessorTypes()
 {
-  for (unsigned int i = 0; i < mProcessors.size(); i++) {
+  for (uint32_t i = 0; i < mProcessors.size(); i++) {
     if (mProcessors[i].proc->mGPUProcessorType != GPUProcessor::PROCESSOR_TYPE_DEVICE && mProcessors[i].proc->mLinkedProcessor) {
       mProcessors[i].proc->mLinkedProcessor->InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
     }
   }
 }
 
-int GPUReconstructionCPUBackend::getOMPThreadNum()
+int32_t GPUReconstructionCPUBackend::getOMPThreadNum()
 {
   return omp_get_thread_num();
 }
 
-int GPUReconstructionCPUBackend::getOMPMaxThreads()
+int32_t GPUReconstructionCPUBackend::getOMPMaxThreads()
 {
   return omp_get_max_threads();
 }
 
 static std::atomic_flag timerFlag = ATOMIC_FLAG_INIT; // TODO: Should be a class member not global, but cannot be moved to header due to ROOT limitation
 
-GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int id, std::string&& name, int J, int num, int type, RecoStep step)
+GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(uint32_t id, std::string&& name, int32_t J, int32_t num, int32_t type, RecoStep step)
 {
   while (timerFlag.test_and_set()) {
   }
@@ -358,7 +357,7 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int 
   return retVal;
 }
 
-GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(unsigned int id)
+GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(uint32_t id)
 {
   timerMeta* retVal = nullptr;
   while (timerFlag.test_and_set()) {
@@ -372,16 +371,16 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(unsigned int
   return retVal;
 }
 
-unsigned int GPUReconstructionCPU::getNextTimerId()
+uint32_t GPUReconstructionCPU::getNextTimerId()
 {
-  static std::atomic<unsigned int> id{0};
+  static std::atomic<uint32_t> id{0};
   return id.fetch_add(1);
 }
 
-unsigned int GPUReconstructionCPU::SetAndGetNestedLoopOmpFactor(bool condition, unsigned int max)
+uint32_t GPUReconstructionCPU::SetAndGetNestedLoopOmpFactor(bool condition, uint32_t max)
 {
   if (condition && mProcessingSettings.ompKernels != 1) {
-    mNestedLoopOmpFactor = mProcessingSettings.ompKernels == 2 ? std::min<unsigned int>(max, mProcessingSettings.ompThreads) : mProcessingSettings.ompThreads;
+    mNestedLoopOmpFactor = mProcessingSettings.ompKernels == 2 ? std::min<uint32_t>(max, mProcessingSettings.ompThreads) : mProcessingSettings.ompThreads;
   } else {
     mNestedLoopOmpFactor = 1;
   }
@@ -391,7 +390,7 @@ unsigned int GPUReconstructionCPU::SetAndGetNestedLoopOmpFactor(bool condition, 
   return mNestedLoopOmpFactor;
 }
 
-void GPUReconstructionCPU::UpdateParamOccupancyMap(const unsigned int* mapHost, const unsigned int* mapGPU, unsigned int occupancyTotal, int stream)
+void GPUReconstructionCPU::UpdateParamOccupancyMap(const uint32_t* mapHost, const uint32_t* mapGPU, uint32_t occupancyTotal, int32_t stream)
 {
   param().occupancyMap = mapHost;
   param().occupancyTotal = occupancyTotal;

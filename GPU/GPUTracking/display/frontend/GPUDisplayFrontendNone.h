@@ -24,7 +24,7 @@ class GPUDisplayFrontendNone : public GPUDisplayFrontend
   GPUDisplayFrontendNone() = default;
   ~GPUDisplayFrontendNone() override = default;
 
-  int StartDisplay() override { return 1; }
+  int32_t StartDisplay() override { return 1; }
   void DisplayExit() override {}
   void SwitchFullscreen(bool set) override {}
   void ToggleMaximized(bool set) override {}

@@ -109,9 +109,9 @@ void GPUDisplay::calcXYZ(const float* matrix)
   }*/
 }
 
-void GPUDisplay::SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
+void GPUDisplay::SetCollisionFirstCluster(uint32_t collision, int32_t slice, int32_t cluster)
 {
-  mNCollissions = std::max<unsigned int>(mNCollissions, collision + 1);
+  mNCollissions = std::max<uint32_t>(mNCollissions, collision + 1);
   mOverlayTFClusters.resize(mNCollissions);
   mOverlayTFClusters[collision][slice] = cluster;
 }
@@ -128,13 +128,13 @@ void GPUDisplay::mAnimateCloseQuaternion(float* v, float lastx, float lasty, flo
   float distPos2 = (lastx - v[0]) * (lastx - v[0]) + (lasty - v[1]) * (lasty - v[1]) + (lastz - v[2]) * (lastz - v[2]) + (lastw - v[3]) * (lastw - v[3]);
   float distNeg2 = (lastx + v[0]) * (lastx + v[0]) + (lasty + v[1]) * (lasty + v[1]) + (lastz + v[2]) * (lastz + v[2]) + (lastw + v[3]) * (lastw + v[3]);
   if (distPos2 > distNeg2) {
-    for (int i = 0; i < 4; i++) {
+    for (int32_t i = 0; i < 4; i++) {
       v[i] = -v[i];
     }
   }
 }
 
-void GPUDisplay::ResizeScene(int width, int height, bool init)
+void GPUDisplay::ResizeScene(int32_t width, int32_t height, bool init)
 {
   if (height == 0) { // Prevent A Divide By Zero By
     height = 1;      // Making Height Equal One
@@ -160,9 +160,9 @@ inline void GPUDisplay::drawVertices(const vboList& v, const GPUDisplayBackend::
   mNDrawCalls += mBackend->drawVertices(v, t);
 }
 
-int GPUDisplay::InitDisplay(bool initFailure)
+int32_t GPUDisplay::InitDisplay(bool initFailure)
 {
-  int retVal = initFailure;
+  int32_t retVal = initFailure;
   try {
     if (!initFailure) {
       retVal = InitDisplay_internal();
@@ -175,7 +175,7 @@ int GPUDisplay::InitDisplay(bool initFailure)
   return (retVal);
 }
 
-int GPUDisplay::InitDisplay_internal()
+int32_t GPUDisplay::InitDisplay_internal()
 {
   mThreadBuffers.resize(getNumThreads());
   mThreadTracks.resize(getNumThreads());
@@ -184,7 +184,7 @@ int GPUDisplay::InitDisplay_internal()
   }
   mYFactor = mBackend->getYFactor();
   mDrawTextInCompatMode = !mBackend->mFreetypeInitialized && mFrontend->mCanDrawText == 1;
-  int height = 0, width = 0;
+  int32_t height = 0, width = 0;
   mFrontend->getSize(width, height);
   if (height == 0 || width == 0) {
     width = GPUDisplayFrontend::INIT_WIDTH;
@@ -199,12 +199,12 @@ void GPUDisplay::ExitDisplay()
   mBackend->ExitBackend();
 }
 
-int GPUDisplay::DrawGLScene()
+int32_t GPUDisplay::DrawGLScene()
 {
   // Make sure event gets not overwritten during display
   mSemLockDisplay.Lock();
 
-  int retVal = 0;
+  int32_t retVal = 0;
   if (mChain) {
     mIOPtrs = &mChain->mIOPtrs;
     mCalib = &mChain->calib();
@@ -227,7 +227,7 @@ int GPUDisplay::DrawGLScene()
 
 void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
-  int mMouseWheelTmp = mFrontend->mMouseWheel;
+  int32_t mMouseWheelTmp = mFrontend->mMouseWheel;
   mFrontend->mMouseWheel = 0;
   bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->KEY_ALT];
   bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->KEY_CTRL] ^ lookOrigin;
@@ -270,10 +270,10 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     mResetScene = 0;
   } else {
-    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(unsigned char)'W'] - mFrontend->mKeys[(unsigned char)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(uint8_t)'W'] - mFrontend->mKeys[(uint8_t)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
     float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2f * mFPSScale);
-    float moveX = scalefactor * ((float)(mFrontend->mKeys[(unsigned char)'A'] - mFrontend->mKeys[(unsigned char)'D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
-    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[(unsigned char)'E'] - mFrontend->mKeys[(unsigned char)'F']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float moveX = scalefactor * ((float)(mFrontend->mKeys[(uint8_t)'A'] - mFrontend->mKeys[(uint8_t)'D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[(uint8_t)'E'] - mFrontend->mKeys[(uint8_t)'F']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
     float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_RIGHT] - mFrontend->mKeys[mFrontend->KEY_LEFT]);
     float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_DOWN] - mFrontend->mKeys[mFrontend->KEY_UP]);
 
@@ -289,7 +289,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY);
     }
 
-    if (mFrontend->mKeys[(unsigned char)'<'] && !mFrontend->mKeysShift[(unsigned char)'<']) {
+    if (mFrontend->mKeys[(uint8_t)'<'] && !mFrontend->mKeysShift[(uint8_t)'<']) {
       mAnimationDelay += moveX;
       if (mAnimationDelay < 0.05f) {
         mAnimationDelay = 0.05f;
@@ -379,7 +379,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     // Graphichs Options
     float minSize = 0.4f / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
-    int deltaLine = mFrontend->mKeys[(unsigned char)'+'] * mFrontend->mKeysShift[(unsigned char)'+'] - mFrontend->mKeys[(unsigned char)'-'] * mFrontend->mKeysShift[(unsigned char)'-'];
+    int32_t deltaLine = mFrontend->mKeys[(uint8_t)'+'] * mFrontend->mKeysShift[(uint8_t)'+'] - mFrontend->mKeys[(uint8_t)'-'] * mFrontend->mKeysShift[(uint8_t)'-'];
     mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02f * mCfgL.lineWidth;
     if (mCfgL.lineWidth < minSize) {
       mCfgL.lineWidth = minSize;
@@ -389,7 +389,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       mUpdateDrawCommands = 1;
     }
     minSize *= 2;
-    int deltaPoint = mFrontend->mKeys[(unsigned char)'+'] * (!mFrontend->mKeysShift[(unsigned char)'+']) - mFrontend->mKeys[(unsigned char)'-'] * (!mFrontend->mKeysShift[(unsigned char)'-']);
+    int32_t deltaPoint = mFrontend->mKeys[(uint8_t)'+'] * (!mFrontend->mKeysShift[(uint8_t)'+']) - mFrontend->mKeys[(uint8_t)'-'] * (!mFrontend->mKeysShift[(uint8_t)'-']);
     mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02f * mCfgL.pointSize;
     if (mCfgL.pointSize < minSize) {
       mCfgL.pointSize = minSize;
@@ -414,9 +414,9 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
 void GPUDisplay::DrawGLScene_drawCommands()
 {
-#define LOOP_SLICE for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice); iSlice < NSLICES; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
-#define LOOP_SLICE2 for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice) % (NSLICES / 2); iSlice < NSLICES / 2; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
-#define LOOP_COLLISION for (int iCol = (mCfgL.showCollision == -1 ? 0 : mCfgL.showCollision); iCol < mNCollissions; iCol += (mCfgL.showCollision == -1 ? 1 : mNCollissions))
+#define LOOP_SLICE for (int32_t iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice); iSlice < NSLICES; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
+#define LOOP_SLICE2 for (int32_t iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice) % (NSLICES / 2); iSlice < NSLICES / 2; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
+#define LOOP_COLLISION for (int32_t iCol = (mCfgL.showCollision == -1 ? 0 : mCfgL.showCollision); iCol < mNCollissions; iCol += (mCfgL.showCollision == -1 ? 1 : mNCollissions))
 #define LOOP_COLLISION_COL(cmd)  \
   LOOP_COLLISION                 \
   {                              \
@@ -636,7 +636,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   if (mUpdateVertexLists && mIOPtrs) {
     size_t totalVertizes = DrawGLScene_updateVertexList();
     if (showTimer) {
-      printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long)totalVertizes, (long)(totalVertizes * sizeof(mVertexBuffer[0][0])));
+      printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int32_t)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (int64_t)totalVertizes, (int64_t)(totalVertizes * sizeof(mVertexBuffer[0][0])));
     }
   }
 
@@ -714,7 +714,7 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
 
 void GPUDisplay::WaitForNextEvent() { mSemLockDisplay.Lock(); }
 
-int GPUDisplay::StartDisplay()
+int32_t GPUDisplay::StartDisplay()
 {
   if (mFrontend->StartDisplay()) {
     return (1);

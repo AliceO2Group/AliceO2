@@ -27,10 +27,10 @@ namespace o2::gpu
 BOOST_AUTO_TEST_CASE(Spline_test1)
 {
 
-  int err1 = o2::gpu::Spline1D<float>::test(0);
+  int32_t err1 = o2::gpu::Spline1D<float>::test(0);
   BOOST_CHECK_MESSAGE(err1 == 0, "test of GPU/TPCFastTransform/Spline1D failed with the error code " << err1);
 
-  int err2 = o2::gpu::Spline2D<float>::test(0);
+  int32_t err2 = o2::gpu::Spline2D<float>::test(0);
   BOOST_CHECK_MESSAGE(err2 == 0, "test of GPU/TPCFastTransform/Spline2D failed with the error code " << err2);
 }
 } // namespace o2::gpu

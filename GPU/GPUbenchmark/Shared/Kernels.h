@@ -43,28 +43,28 @@ class GPUbenchmark final
   template <typename... T>
   float runSequential(void (*kernel)(chunk_t*, size_t, T...),
                       std::pair<float, float>& chunkRanges,
-                      int nLaunches,
-                      int dimGrid,
-                      int dimBlock,
+                      int32_t nLaunches,
+                      int32_t dimGrid,
+                      int32_t dimBlock,
                       T&... args);
 
   // Multi-streams asynchronous executions
   template <typename... T>
   std::vector<float> runConcurrent(void (*kernel)(chunk_t*, size_t, T...),
                                    std::vector<std::pair<float, float>>& chunkRanges,
-                                   int nLaunches,
-                                   int dimStreams,
-                                   int nBlocks,
-                                   int nThreads,
+                                   int32_t nLaunches,
+                                   int32_t dimStreams,
+                                   int32_t nBlocks,
+                                   int32_t nThreads,
                                    T&... args);
 
   // Single stream executions on all chunks at a time by same kernel
   template <typename... T>
   float runDistributed(void (*kernel)(chunk_t**, size_t*, T...),
                        std::vector<std::pair<float, float>>& chunkRanges,
-                       int nLaunches,
+                       int32_t nLaunches,
                        size_t nBlocks,
-                       int nThreads,
+                       int32_t nThreads,
                        T&... args);
 
   // Main interface

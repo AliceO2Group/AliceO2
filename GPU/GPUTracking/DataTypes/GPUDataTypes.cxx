@@ -23,7 +23,7 @@ constexpr const char* const GPUDataTypes::GENERAL_STEP_NAMES[];
 
 GPUDataTypes::DeviceType GPUDataTypes::GetDeviceType(const char* type)
 {
-  for (unsigned int i = 1; i < sizeof(DEVICE_TYPE_NAMES) / sizeof(DEVICE_TYPE_NAMES[0]); i++) {
+  for (uint32_t i = 1; i < sizeof(DEVICE_TYPE_NAMES) / sizeof(DEVICE_TYPE_NAMES[0]); i++) {
     if (strcmp(DEVICE_TYPE_NAMES[i], type) == 0) {
       return (DeviceType)i;
     }

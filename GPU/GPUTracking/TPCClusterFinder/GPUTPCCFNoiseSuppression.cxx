@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSuppression>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSuppression>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
@@ -30,13 +30,13 @@ GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSu
 }
 
 template <>
-GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::updatePeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::updatePeaks>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
   updatePeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpeakPositions, clusterer.mPisPeak, clusterer.mPmemory->counters.nPeaks, isPeakMap);
 }
 
-GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem,
                                                              const GPUSettingsRec& calibration,
                                                              const Array2D<PackedCharge>& chargeMap,
                                                              const Array2D<uchar>& peakMap,
@@ -74,7 +74,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nT
   isPeakPredicate[idx] = keepMe;
 }
 
-GPUd() void GPUTPCCFNoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread,
+GPUd() void GPUTPCCFNoiseSuppression::updatePeaksImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread,
                                                       const ChargePos* peakPositions,
                                                       const uchar* isPeak,
                                                       const uint peakNum,
@@ -99,7 +99,7 @@ GPUdi() void GPUTPCCFNoiseSuppression::checkForMinima(
   const float epsilon,
   const float epsilonRelative,
   PackedCharge other,
-  int pos,
+  int32_t pos,
   ulong* minimas,
   ulong* bigger)
 {
@@ -115,8 +115,8 @@ GPUdi() void GPUTPCCFNoiseSuppression::checkForMinima(
 GPUdi() void GPUTPCCFNoiseSuppression::findMinima(
   const PackedCharge* buf,
   const ushort ll,
-  const int N,
-  int pos,
+  const int32_t N,
+  int32_t pos,
   const float q,
   const float epsilon,
   const float epsilonRelative,
@@ -124,7 +124,7 @@ GPUdi() void GPUTPCCFNoiseSuppression::findMinima(
   ulong* bigger)
 {
   GPUCA_UNROLL(U(), U())
-  for (int i = 0; i < N; i++, pos++) {
+  for (int32_t i = 0; i < N; i++, pos++) {
     PackedCharge other = buf[N * ll + i];
 
     checkForMinima(q, epsilon, epsilonRelative, other, pos, minimas, bigger);
@@ -134,12 +134,12 @@ GPUdi() void GPUTPCCFNoiseSuppression::findMinima(
 GPUdi() void GPUTPCCFNoiseSuppression::findPeaks(
   const uchar* buf,
   const ushort ll,
-  const int N,
-  int pos,
+  const int32_t N,
+  int32_t pos,
   ulong* peaks)
 {
   GPUCA_UNROLL(U(), U())
-  for (int i = 0; i < N; i++, pos++) {
+  for (int32_t i = 0; i < N; i++, pos++) {
     ulong p = CfUtils::isPeak(buf[N * ll + i]);
 
     *peaks |= (p << pos);
@@ -153,7 +153,7 @@ GPUdi() bool GPUTPCCFNoiseSuppression::keepPeak(
   bool keepMe = true;
 
   GPUCA_UNROLL(U(), U())
-  for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
+  for (int32_t i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     bool otherPeak = (peaks & (ulong(1) << i));
     bool minimaBetween = (minima & cfconsts::NoiseSuppressionMinima[i]);
 

@@ -73,17 +73,17 @@ void GPUParam::SetDefaults(float solenoidBz)
   };
   // clang-format on
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 6; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 6; k++) {
         ParamS0Par[i][j][k] = kParamS0Par[i][j][k];
       }
     }
   }
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 4; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 4; k++) {
         ParamErrorsSeeding0[i][j][k] = kParamErrorsSeeding0[i][j][k];
       }
     }
@@ -98,11 +98,11 @@ void GPUParam::SetDefaults(float solenoidBz)
   constexpr float plusZmax = 249.778;
   constexpr float minusZmin = -249.645;
   constexpr float minusZmax = -0.0799937;
-  for (int i = 0; i < GPUCA_NSLICES; i++) {
+  for (int32_t i = 0; i < GPUCA_NSLICES; i++) {
     const bool zPlus = (i < GPUCA_NSLICES / 2);
     SliceParam[i].ZMin = zPlus ? plusZmin : minusZmin;
     SliceParam[i].ZMax = zPlus ? plusZmax : minusZmax;
-    int tmp = i;
+    int32_t tmp = i;
     if (tmp >= GPUCA_NSLICES / 2) {
       tmp -= GPUCA_NSLICES / 2;
     }
@@ -175,10 +175,10 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
 void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
-  for (int yz = 0; yz < 2; yz++) {
+  for (int32_t yz = 0; yz < 2; yz++) {
     const float* param = yz ? zErrorParam : yErrorParam;
-    for (int rowType = 0; rowType < 4; rowType++) {
-      constexpr int regionMap[4] = {0, 4, 6, 8};
+    for (int32_t rowType = 0; rowType < 4; rowType++) {
+      constexpr int32_t regionMap[4] = {0, 4, 6, 8};
       ParamErrors[yz][rowType][0] = param[0] * param[0];
       ParamErrors[yz][rowType][1] = param[1] * param[1] * tpcGeometry.PadHeightByRegion(regionMap[rowType]);
       ParamErrors[yz][rowType][2] = param[2] * param[2] / tpcGeometry.TPCLength() / tpcGeometry.PadHeightByRegion(regionMap[rowType]);
@@ -205,17 +205,17 @@ void GPUParam::LoadClusterErrors(bool Print)
     return;
   }
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 6; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 6; k++) {
         ParamS0Par[i][j][k] = clparam->GetParamS0Par(i, j, k);
       }
     }
   }
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 4; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 4; k++) {
         ParamErrorsSeeding0[i][j][k] = clparam->GetParamRMS0(i, j, k);
       }
     }
@@ -229,11 +229,11 @@ void GPUParam::LoadClusterErrors(bool Print)
 #endif
     std::cout << "ParamS0Par[2][3][7]=" << std::endl;
     std::cout << " { " << std::endl;
-    for (int i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < 2; i++) {
       std::cout << "   { " << std::endl;
-      for (int j = 0; j < 3; j++) {
+      for (int32_t j = 0; j < 3; j++) {
         std::cout << " { ";
-        for (int k = 0; k < 6; k++) {
+        for (int32_t k = 0; k < 6; k++) {
           std::cout << ParamS0Par[i][j][k] << ", ";
         }
         std::cout << " }, " << std::endl;
@@ -244,11 +244,11 @@ void GPUParam::LoadClusterErrors(bool Print)
 
     std::cout << "ParamErrorsSeeding0[2][3][4]=" << std::endl;
     std::cout << " { " << std::endl;
-    for (int i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < 2; i++) {
       std::cout << "   { " << std::endl;
-      for (int j = 0; j < 3; j++) {
+      for (int32_t j = 0; j < 3; j++) {
         std::cout << " { ";
-        for (int k = 0; k < 4; k++) {
+        for (int32_t k = 0; k < 4; k++) {
           std::cout << ParamErrorsSeeding0[i][j][k] << ", ";
         }
         std::cout << " }, " << std::endl;
@@ -275,6 +275,8 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
   return "#ifndef GPUCA_GPUCODE_DEVICE\n"
          "#include <string>\n"
          "#include <vector>\n"
+         "#include <cstdint>\n"
+         "#include <cstddef>\n"
          "#endif\n"
          "namespace o2::gpu { class GPUDisplayFrontendInterface; }\n" +
          qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);

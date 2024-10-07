@@ -37,12 +37,12 @@ class GPUKernelDebugOutput : public GPUProcessor
   void Print()
   {
     printf("------ Kernel Debug Output\n");
-    for (int i = 0; i < 100 * 1024; i++) {
-      int* pos = mDebugOutMemory + i * 1024;
-      int count = *(pos++);
+    for (int32_t i = 0; i < 100 * 1024; i++) {
+      int32_t* pos = mDebugOutMemory + i * 1024;
+      int32_t count = *(pos++);
       if (count) {
         printf("Thread %d: ", i);
-        for (int j = 0; j < count; j++) {
+        for (int32_t j = 0; j < count; j++) {
           printf("%d, ", pos[j]);
         }
         printf("\n");
@@ -51,19 +51,19 @@ class GPUKernelDebugOutput : public GPUProcessor
     printf("------ End of Kernel Debug Output\n");
   }
 #endif
-  GPUdi() int* memory()
+  GPUdi() int32_t* memory()
   {
     return mDebugOutMemory;
   }
   GPUdi() static size_t memorySize() { return 100 * 1024 * 1024; }
 
-  GPUd() void Add(unsigned int id, int val) const
+  GPUd() void Add(uint32_t id, int32_t val) const
   {
     printf("Filling debug: id %d, val %d, current count %d\n", id, val, *(mDebugOutMemory + id * 1024));
     if (id > 100 * 1024) {
       return;
     }
-    int* pos = mDebugOutMemory + id * 1024;
+    int32_t* pos = mDebugOutMemory + id * 1024;
     if (*pos >= 1023) {
       return;
     }
@@ -72,7 +72,7 @@ class GPUKernelDebugOutput : public GPUProcessor
   }
 
  private:
-  mutable int* mDebugOutMemory;
+  mutable int32_t* mDebugOutMemory;
 };
 
 } // namespace gpu

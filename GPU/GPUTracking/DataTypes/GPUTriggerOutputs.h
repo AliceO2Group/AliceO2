@@ -32,9 +32,9 @@ struct GPUTriggerOutputs {
   struct hasher {
     size_t operator()(const o2::tpc::TriggerInfoDLBZS& key) const
     {
-      std::array<unsigned int, sizeof(key) / sizeof(unsigned int)> tmp;
+      std::array<uint32_t, sizeof(key) / sizeof(uint32_t)> tmp;
       memcpy((void*)tmp.data(), (const void*)&key, sizeof(key));
-      std::hash<unsigned int> std_hasher;
+      std::hash<uint32_t> std_hasher;
       size_t result = 0;
       for (size_t i = 0; i < tmp.size(); ++i) {
         result ^= std_hasher(tmp[i]);
@@ -51,7 +51,7 @@ struct GPUTriggerOutputs {
   };
 
   std::unordered_set<o2::tpc::TriggerInfoDLBZS, hasher, equal> triggers;
-  static_assert(sizeof(o2::tpc::TriggerInfoDLBZS) % sizeof(unsigned int) == 0);
+  static_assert(sizeof(o2::tpc::TriggerInfoDLBZS) % sizeof(uint32_t) == 0);
 #endif
 };
 

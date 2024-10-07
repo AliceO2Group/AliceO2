@@ -30,9 +30,9 @@ namespace gpurecoworkflow_internals
 
 struct GPURecoWorkflowSpec_TPCZSBuffers {
   std::vector<const void*> Pointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  std::vector<unsigned int> Sizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  std::vector<uint32_t> Sizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   const void** Pointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  const unsigned int* Sizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  const uint32_t* Sizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
 };
 
 struct GPURecoWorkflow_QueueObject {
@@ -42,11 +42,11 @@ struct GPURecoWorkflow_QueueObject {
   GPUTrackingInOutPointers ptrs;
   o2::framework::DataProcessingHeader::StartTime timeSliceId;
 
-  unsigned long mTFId;
+  uint64_t mTFId;
 
   bool jobSubmitted = false;
   bool jobFinished = false;
-  int jobReturnValue = 0;
+  int32_t jobReturnValue = 0;
   std::mutex jobFinishedMutex;
   std::condition_variable jobFinishedNotify;
   bool jobInputFinal = false;
@@ -89,10 +89,10 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   std::mutex completionPolicyMutex;
   std::condition_variable completionPolicyNotify;
 
-  unsigned long mNTFReceived = 0;
+  uint64_t mNTFReceived = 0;
 
   volatile bool mayInject = true;
-  volatile unsigned long mayInjectTFId = 0;
+  volatile uint64_t mayInjectTFId = 0;
   std::mutex mayInjectMutex;
   std::condition_variable mayInjectCondition;
 };

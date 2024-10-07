@@ -20,7 +20,7 @@
 GPUTPCMCTrack::GPUTPCMCTrack() : fPDG(0), fP(0), fPt(0), mNHits(0), fNMCPoints(0), fFirstMCPointID(0), fNReconstructed(0), fSet(0), fNTurns(0)
 {
   //* Default constructor
-  for (int i = 0; i < 7; i++) {
+  for (int32_t i = 0; i < 7; i++) {
     fPar[i] = 0;
     fTPCPar[i] = 0;
   }
@@ -30,10 +30,10 @@ GPUTPCMCTrack::GPUTPCMCTrack(const TParticle* part) : fPDG(0), fP(0), fPt(0), mN
 {
   //* Constructor from TParticle
 
-  for (int i = 0; i < 7; i++) {
+  for (int32_t i = 0; i < 7; i++) {
     fPar[i] = 0;
   }
-  for (int i = 0; i < 7; i++) {
+  for (int32_t i = 0; i < 7; i++) {
     fTPCPar[i] = 0;
   }
   fP = 0;
@@ -68,7 +68,7 @@ void GPUTPCMCTrack::SetTPCPar(float X, float Y, float Z, float Px, float Py, flo
 {
   //* Set parameters at TPC entrance
 
-  for (int i = 0; i < 7; i++) {
+  for (int32_t i = 0; i < 7; i++) {
     fTPCPar[i] = 0;
   }
 

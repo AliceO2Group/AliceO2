@@ -37,22 +37,22 @@ class CorrectionMapsHelper
   void updateLumiScale(bool report = false);
   void clear();
 
-  GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const
+  GPUd() void Transform(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const
   {
     mCorrMap->Transform(slice, row, pad, time, x, y, z, vertexTime, mCorrMapRef, mCorrMapMShape, mLumiScale, 1, mLumiScaleMode);
   }
 
-  GPUd() void TransformXYZ(int slice, int row, float& x, float& y, float& z) const
+  GPUd() void TransformXYZ(int32_t slice, int32_t row, float& x, float& y, float& z) const
   {
     mCorrMap->TransformXYZ(slice, row, x, y, z, mCorrMapRef, mCorrMapMShape, mLumiScale, 1, mLumiScaleMode);
   }
 
-  GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
+  GPUd() void InverseTransformYZtoX(int32_t slice, int32_t row, float y, float z, float& x) const
   {
     mCorrMap->InverseTransformYZtoX(slice, row, y, z, x, mCorrMapRef, mCorrMapMShape, (mScaleInverse ? mLumiScale : 0), (mScaleInverse ? 1 : 0), mLumiScaleMode);
   }
 
-  GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
+  GPUd() void InverseTransformYZtoNominalYZ(int32_t slice, int32_t row, float y, float z, float& ny, float& nz) const
   {
     mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz, mCorrMapRef, mCorrMapMShape, (mScaleInverse ? mLumiScale : 0), (mScaleInverse ? 1 : 0), mLumiScaleMode);
   }
@@ -97,7 +97,7 @@ class CorrectionMapsHelper
     }
   }
 
-  void setLumiScaleMode(int v)
+  void setLumiScaleMode(int32_t v)
   {
     if (v != mLumiScaleMode) {
       mLumiScaleMode = v;
@@ -111,7 +111,7 @@ class CorrectionMapsHelper
   GPUd() float getMeanLumiRef() const { return mMeanLumiRef; }
 
   GPUd() float getLumiScale() const { return mLumiScale; }
-  GPUd() int getLumiScaleMode() const { return mLumiScaleMode; }
+  GPUd() int32_t getLumiScaleMode() const { return mLumiScaleMode; }
 
   bool isUpdated() const { return mUpdatedFlags != 0; }
   bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) != 0; }
@@ -132,8 +132,8 @@ class CorrectionMapsHelper
   void acknowledgeUpdate() { mUpdatedFlags = 0; }
   void setLumiCTPAvailable(bool v) { mLumiCTPAvailable = v; }
   bool getLumiCTPAvailable() const { return mLumiCTPAvailable; }
-  void setLumiScaleType(int v) { mLumiScaleType = v; }
-  int getLumiScaleType() const { return mLumiScaleType; }
+  void setLumiScaleType(int32_t v) { mLumiScaleType = v; }
+  int32_t getLumiScaleType() const { return mLumiScaleType; }
   void enableMShapeCorrection(bool v) { mEnableMShape = v; }
   bool getUseMShapeCorrection() const { return mEnableMShape; }
   bool canUseCorrections() const { return mMeanLumi >= 0.; }
@@ -145,7 +145,7 @@ class CorrectionMapsHelper
   void setInstCTPLumiOverride(float f) { mInstCTPLumiOverride = f; }
   float getInstCTPLumiOverride() const { return mInstCTPLumiOverride; }
 
-  int getUpdateFlags() const { return mUpdatedFlags; }
+  int32_t getUpdateFlags() const { return mUpdatedFlags; }
 
   bool getScaleInverse() const { return mScaleInverse; }
 
@@ -167,9 +167,9 @@ class CorrectionMapsHelper
   bool mOwner = false; // is content of pointers owned by the helper
   bool mLumiCTPAvailable = false; // is CTP Lumi available
   // these 2 are global options, must be set by the workflow global options
-  int mLumiScaleType = -1; // use CTP Lumi (1) or TPCScaler (2) for the correction scaling, 0 - no scaling
-  int mLumiScaleMode = -1; // scaling-mode of the correciton maps
-  int mUpdatedFlags = 0;
+  int32_t mLumiScaleType = -1; // use CTP Lumi (1) or TPCScaler (2) for the correction scaling, 0 - no scaling
+  int32_t mLumiScaleMode = -1; // scaling-mode of the correciton maps
+  int32_t mUpdatedFlags = 0;
   float mInstLumiCTP = 0.;                                         // instanteneous luminosity from CTP (a.u)
   float mInstLumi = 0.;                                            // instanteneous luminosity (a.u) used for TPC corrections scaling
   float mMeanLumi = 0.;                                            // mean luminosity of the map (a.u) used for TPC corrections scaling
