@@ -111,7 +111,7 @@ int32_t GPUChainTracking::DoProfile()
 namespace
 {
 struct GPUChainTrackingMemUsage {
-  void add(uint64_t n, uint64_t bound)
+  void add(size_t n, size_t bound)
   {
     nMax = std::max(nMax, n);
     maxUse = std::max(n / std::max<double>(bound, 1.), maxUse);
@@ -119,9 +119,9 @@ struct GPUChainTrackingMemUsage {
     nBoundSum += bound;
     count++;
   }
-  uint64_t nMax;
-  uint64_t nSum = 0;
-  uint64_t nBoundSum = 0;
+  size_t nMax;
+  size_t nSum = 0;
+  size_t nBoundSum = 0;
   double maxUse = 0.;
   uint32_t count = 0;
 };
@@ -163,7 +163,7 @@ void GPUChainTracking::PrintMemoryStatistics()
 #endif
 
   for (auto& elem : usageMap) {
-    printf("Mem Usage %-30s : %'14lu / %'14lu (%3.0f%% / %3.0f%% / count %3u / max %'14lu)\n", elem.first.c_str(), elem.second.nSum, elem.second.nBoundSum, 100. * elem.second.nSum / std::max(1lu, elem.second.nBoundSum), 100. * elem.second.maxUse, elem.second.count, elem.second.nMax);
+    printf("Mem Usage %-30s : %'14zu / %'14zu (%3.0f%% / %3.0f%% / count %3u / max %'14zu)\n", elem.first.c_str(), elem.second.nSum, elem.second.nBoundSum, 100. * elem.second.nSum / std::max<size_t>(1, elem.second.nBoundSum), 100. * elem.second.maxUse, elem.second.count, elem.second.nMax);
   }
 }
 

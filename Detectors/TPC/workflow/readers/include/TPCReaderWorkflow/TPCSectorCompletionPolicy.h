@@ -228,7 +228,7 @@ class TPCSectorCompletionPolicy
       mExternalInputMatchers = arg;
     } else if constexpr (std::is_same_v<Type, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>**>) {
       mOrderCheck = arg;
-    } else if constexpr (std::is_same_v<Type, unsigned long*> || std::is_same_v<Type, const unsigned long*>) {
+    } else if constexpr (std::is_same_v<Type, uint64_t*> || std::is_same_v<Type, const uint64_t*>) {
       mTpcSectorMask = arg;
     } else {
       static_assert(framework::always_static_assert_v<Type>);
@@ -245,7 +245,7 @@ class TPCSectorCompletionPolicy
   // - They are controlled externally and the external entity can modify them, e.g. after parsing command line arguments.
   // - They are all matched independently, it is not sufficient that one of them is present for all sectors
   const std::vector<framework::InputSpec>* mExternalInputMatchers = nullptr;
-  const unsigned long* mTpcSectorMask = nullptr;
+  const uint64_t* mTpcSectorMask = nullptr;
   bool mRequireAll = false;
 };
 } // namespace tpc

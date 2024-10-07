@@ -73,6 +73,7 @@
 #include "GPUQAHelper.h"
 #include <algorithm>
 #include <cstdio>
+#include <cinttypes>
 
 #include "utils/qconfig.h"
 #include "utils/timer.h"
@@ -2796,10 +2797,10 @@ void GPUQA::PrintClusterCount(int32_t mode, int32_t& num, const char* name, uint
     createHist(mHistClusterCount[num], name2, name, 1000, 0, mConfig.histMaxNClusters, 1000, 0, 100);
   } else if (mode == 0) {
     if (normalization && mConfig.enableLocalOutput) {
-      printf("\t%35s: %'12lu (%6.2f%%)\n", name, n, 100.f * n / normalization);
+      printf("\t%35s: %'12" PRIu64 " (%6.2f%%)\n", name, n, 100.f * n / normalization);
     }
     if (mConfig.clusterRejectionHistograms) {
-      float ratio = 100.f * n / std::max(normalization, 1lu);
+      float ratio = 100.f * n / std::max<uint64_t>(normalization, 1);
       mHistClusterCount[num]->Fill(normalization, ratio, 1);
     }
   }
