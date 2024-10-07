@@ -322,15 +322,9 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
 template <typename T>
 T* CCDBManagerInstance::getForRun(std::string const& path, int runNumber, bool setRunMetadata)
 {
-  auto [start, stop] = getRunDuration(runNumber);
-  if (start < 0 || stop < 0) {
-    if (mFatalWhenNull) {
-      reportFatal(std::string("Failed to get run duration for run ") + std::to_string(runNumber));
-    }
-    return nullptr;
-  }
-  mMetaData = setRunMetadata ? MD{{"runNumber", std::to_string(runNumber)}} : MD{};
-  return getForTimeStamp<T>(path, start / 2 + stop / 2);
+  auto metaData = setRunMetadata ? MD{{"runNumber", std::to_string(runNumber)}} : MD{};
+  mMetaData = metaData;
+  return getSpecificForRun<T>(path, runNumber, metaData);
 }
 
 template <typename T>
