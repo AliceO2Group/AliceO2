@@ -77,6 +77,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "forwardKine", bpo::bool_switch(), "forward kinematics on a FairMQ channel")(
     "noDiscOutput", bpo::bool_switch(), "switch off writing sim results to disc (useful in combination with forwardKine)");
   options.add_options()("fromCollContext", bpo::value<std::string>()->default_value(""), "Use a pregenerated collision context to infer number of events to simulate, how to embedd them, the vertex position etc. Takes precedence of other options such as \"--nEvents\".");
+  options.add_options()("kine-input", bpo::value<std::string>()->default_value(""), "Use a pregenerated kinematic .root file. The optional \':\' character with a number after it can be used to infer number of events to skip on the input file.");
 }
 
 void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool isUpgrade)
@@ -304,6 +305,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mTrigger = vm["trigger"].as<std::string>();
   mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
+  mConfigData.mKineInput = vm["kine-input"].as<std::string>();
   mConfigData.mEmbedIntoFileName = vm["embedIntoFile"].as<std::string>();
   mConfigData.mStartEvent = vm["startEvent"].as<unsigned int>();
   mConfigData.mBMax = vm["bMax"].as<float>();
