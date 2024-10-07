@@ -117,7 +117,7 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mCorrection.cloneFromObject(correction, nullptr);
 }
 
-void TPCFastTransform::setCalibration(long timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ)
+void TPCFastTransform::setCalibration(int64_t timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ)
 {
   /// Sets all drift calibration parameters and the time stamp
   ///
@@ -167,7 +167,7 @@ void TPCFastTransform::print() const
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 
-int TPCFastTransform::writeToFile(std::string outFName, std::string name)
+int32_t TPCFastTransform::writeToFile(std::string outFName, std::string name)
 {
   /// store to file
   assert(isConstructed());
@@ -237,7 +237,7 @@ TPCSlowSpaceChargeCorrection::~TPCSlowSpaceChargeCorrection()
   delete mCorr;
 }
 
-void TPCSlowSpaceChargeCorrection::getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
+void TPCSlowSpaceChargeCorrection::getCorrections(const float gx, const float gy, const float gz, const int32_t slice, float& gdxC, float& gdyC, float& gdzC) const
 {
   const o2::tpc::Side side = (slice < o2::tpc::SECTORSPERSIDE) ? o2::tpc::Side::A : o2::tpc::Side::C;
   mCorr->getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);

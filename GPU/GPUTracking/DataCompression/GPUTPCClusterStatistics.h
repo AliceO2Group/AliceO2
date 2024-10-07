@@ -33,56 +33,56 @@ class GPUTPCClusterStatistics
   void RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param){};
   void Finish(){};
 #else
-  static constexpr unsigned int NSLICES = GPUCA_NSLICES;
+  static constexpr uint32_t NSLICES = GPUCA_NSLICES;
   void RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param);
   void Finish();
 
  protected:
-  template <class T, int I = 0>
-  void FillStatistic(std::vector<int>& p, const T* ptr, size_t n);
-  template <class T, class S, int I = 0>
-  void FillStatisticCombined(std::vector<int>& p, const T* ptr1, const S* ptr2, size_t n, int max1);
-  float Analyze(std::vector<int>& p, const char* name, bool count = true);
+  template <class T, int32_t I = 0>
+  void FillStatistic(std::vector<int32_t>& p, const T* ptr, size_t n);
+  template <class T, class S, int32_t I = 0>
+  void FillStatisticCombined(std::vector<int32_t>& p, const T* ptr1, const S* ptr2, size_t n, int32_t max1);
+  float Analyze(std::vector<int32_t>& p, const char* name, bool count = true);
 
   TPCClusterDecompressor mDecoder;
   bool mDecodingError = false;
 
-  static constexpr unsigned int P_MAX_QMAX = GPUTPCCompression::P_MAX_QMAX;
-  static constexpr unsigned int P_MAX_QTOT = GPUTPCCompression::P_MAX_QTOT;
-  static constexpr unsigned int P_MAX_TIME = GPUTPCCompression::P_MAX_TIME;
-  static constexpr unsigned int P_MAX_PAD = GPUTPCCompression::P_MAX_PAD;
-  static constexpr unsigned int P_MAX_SIGMA = GPUTPCCompression::P_MAX_SIGMA;
-  static constexpr unsigned int P_MAX_FLAGS = GPUTPCCompression::P_MAX_FLAGS;
-  static constexpr unsigned int P_MAX_QPT = GPUTPCCompression::P_MAX_QPT;
+  static constexpr uint32_t P_MAX_QMAX = GPUTPCCompression::P_MAX_QMAX;
+  static constexpr uint32_t P_MAX_QTOT = GPUTPCCompression::P_MAX_QTOT;
+  static constexpr uint32_t P_MAX_TIME = GPUTPCCompression::P_MAX_TIME;
+  static constexpr uint32_t P_MAX_PAD = GPUTPCCompression::P_MAX_PAD;
+  static constexpr uint32_t P_MAX_SIGMA = GPUTPCCompression::P_MAX_SIGMA;
+  static constexpr uint32_t P_MAX_FLAGS = GPUTPCCompression::P_MAX_FLAGS;
+  static constexpr uint32_t P_MAX_QPT = GPUTPCCompression::P_MAX_QPT;
 
-  std::vector<int> mPqTotA = std::vector<int>(P_MAX_QTOT, 0);
-  std::vector<int> mPqMaxA = std::vector<int>(P_MAX_QMAX, 0);
-  std::vector<int> mPflagsA = std::vector<int>(P_MAX_FLAGS, 0);
-  std::vector<int> mProwDiffA = std::vector<int>(GPUCA_ROW_COUNT, 0);
-  std::vector<int> mPsliceLegDiffA = std::vector<int>(GPUCA_NSLICES * 2, 0);
-  std::vector<int> mPpadResA = std::vector<int>(P_MAX_PAD, 0);
-  std::vector<int> mPtimeResA = std::vector<int>(P_MAX_TIME, 0);
-  std::vector<int> mPsigmaPadA = std::vector<int>(P_MAX_SIGMA, 0);
-  std::vector<int> mPsigmaTimeA = std::vector<int>(P_MAX_SIGMA, 0);
-  std::vector<int> mPqPtA = std::vector<int>(P_MAX_QPT, 0);
-  std::vector<int> mProwA = std::vector<int>(GPUCA_ROW_COUNT, 0);
-  std::vector<int> mPsliceA = std::vector<int>(GPUCA_NSLICES, 0);
-  std::vector<int> mPtimeA = std::vector<int>(P_MAX_TIME, 0);
-  std::vector<int> mPpadA = std::vector<int>(P_MAX_PAD, 0);
-  std::vector<int> mPqTotU = std::vector<int>(P_MAX_QTOT, 0);
-  std::vector<int> mPqMaxU = std::vector<int>(P_MAX_QMAX, 0);
-  std::vector<int> mPflagsU = std::vector<int>(P_MAX_FLAGS, 0);
-  std::vector<int> mPpadDiffU = std::vector<int>(P_MAX_PAD, 0);
-  std::vector<int> mPtimeDiffU = std::vector<int>(P_MAX_TIME, 0);
-  std::vector<int> mPsigmaPadU = std::vector<int>(P_MAX_SIGMA, 0);
-  std::vector<int> mPsigmaTimeU = std::vector<int>(P_MAX_SIGMA, 0);
-  std::vector<int> mPnTrackClusters;
-  std::vector<int> mPnSliceRowClusters;
-  std::vector<int> mPsigmaU = std::vector<int>(P_MAX_SIGMA * P_MAX_SIGMA, 0);
-  std::vector<int> mPsigmaA = std::vector<int>(P_MAX_SIGMA * P_MAX_SIGMA, 0);
-  std::vector<int> mPQU = std::vector<int>(P_MAX_QMAX * P_MAX_QTOT, 0);
-  std::vector<int> mPQA = std::vector<int>(P_MAX_QMAX * P_MAX_QTOT, 0);
-  std::vector<int> mProwSliceA = std::vector<int>(GPUCA_ROW_COUNT * GPUCA_NSLICES * 2, 0);
+  std::vector<int32_t> mPqTotA = std::vector<int32_t>(P_MAX_QTOT, 0);
+  std::vector<int32_t> mPqMaxA = std::vector<int32_t>(P_MAX_QMAX, 0);
+  std::vector<int32_t> mPflagsA = std::vector<int32_t>(P_MAX_FLAGS, 0);
+  std::vector<int32_t> mProwDiffA = std::vector<int32_t>(GPUCA_ROW_COUNT, 0);
+  std::vector<int32_t> mPsliceLegDiffA = std::vector<int32_t>(GPUCA_NSLICES * 2, 0);
+  std::vector<int32_t> mPpadResA = std::vector<int32_t>(P_MAX_PAD, 0);
+  std::vector<int32_t> mPtimeResA = std::vector<int32_t>(P_MAX_TIME, 0);
+  std::vector<int32_t> mPsigmaPadA = std::vector<int32_t>(P_MAX_SIGMA, 0);
+  std::vector<int32_t> mPsigmaTimeA = std::vector<int32_t>(P_MAX_SIGMA, 0);
+  std::vector<int32_t> mPqPtA = std::vector<int32_t>(P_MAX_QPT, 0);
+  std::vector<int32_t> mProwA = std::vector<int32_t>(GPUCA_ROW_COUNT, 0);
+  std::vector<int32_t> mPsliceA = std::vector<int32_t>(GPUCA_NSLICES, 0);
+  std::vector<int32_t> mPtimeA = std::vector<int32_t>(P_MAX_TIME, 0);
+  std::vector<int32_t> mPpadA = std::vector<int32_t>(P_MAX_PAD, 0);
+  std::vector<int32_t> mPqTotU = std::vector<int32_t>(P_MAX_QTOT, 0);
+  std::vector<int32_t> mPqMaxU = std::vector<int32_t>(P_MAX_QMAX, 0);
+  std::vector<int32_t> mPflagsU = std::vector<int32_t>(P_MAX_FLAGS, 0);
+  std::vector<int32_t> mPpadDiffU = std::vector<int32_t>(P_MAX_PAD, 0);
+  std::vector<int32_t> mPtimeDiffU = std::vector<int32_t>(P_MAX_TIME, 0);
+  std::vector<int32_t> mPsigmaPadU = std::vector<int32_t>(P_MAX_SIGMA, 0);
+  std::vector<int32_t> mPsigmaTimeU = std::vector<int32_t>(P_MAX_SIGMA, 0);
+  std::vector<int32_t> mPnTrackClusters;
+  std::vector<int32_t> mPnSliceRowClusters;
+  std::vector<int32_t> mPsigmaU = std::vector<int32_t>(P_MAX_SIGMA * P_MAX_SIGMA, 0);
+  std::vector<int32_t> mPsigmaA = std::vector<int32_t>(P_MAX_SIGMA * P_MAX_SIGMA, 0);
+  std::vector<int32_t> mPQU = std::vector<int32_t>(P_MAX_QMAX * P_MAX_QTOT, 0);
+  std::vector<int32_t> mPQA = std::vector<int32_t>(P_MAX_QMAX * P_MAX_QTOT, 0);
+  std::vector<int32_t> mProwSliceA = std::vector<int32_t>(GPUCA_ROW_COUNT * GPUCA_NSLICES * 2, 0);
 
   double mEntropy = 0;
   double mHuffman = 0;

@@ -122,12 +122,12 @@ class GPUTPCGMPhysicalTrackModel
   GPUd() float GetP() const { return mP; }
   GPUd() float GetPt() const { return mPt; }
 
-  GPUd() int PropagateToXBzLightNoUpdate(float x, float Bz, float& dLp);
-  GPUd() int PropagateToXBzLight(float x, float Bz, float& dLp);
+  GPUd() int32_t PropagateToXBzLightNoUpdate(float x, float Bz, float& dLp);
+  GPUd() int32_t PropagateToXBzLight(float x, float Bz, float& dLp);
 
-  GPUd() int PropagateToXBxByBz(float x, float Bx, float By, float Bz, float& dLp);
+  GPUd() int32_t PropagateToXBxByBz(float x, float Bx, float By, float Bz, float& dLp);
 
-  GPUd() int PropagateToLpBz(float Lp, float Bz);
+  GPUd() int32_t PropagateToLpBz(float Lp, float Bz);
 
   GPUd() bool SetDirectionAlongX();
 

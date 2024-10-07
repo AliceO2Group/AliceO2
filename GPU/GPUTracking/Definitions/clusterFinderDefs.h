@@ -18,10 +18,10 @@
 #include "GPUDef.h"
 
 #ifndef __OPENCL__
-using uchar = unsigned char;
+using uchar = uint8_t;
 #endif
 #ifdef __APPLE__
-using ulong = unsigned long;
+using ulong = uint64_t;
 #endif
 
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
@@ -71,16 +71,16 @@ namespace GPUCA_NAMESPACE::gpu::tpccf
 {
 
 using SizeT = size_t;
-using TPCTime = int;
-using TPCFragmentTime = short;
-using Pad = unsigned char;
-using GlobalPad = short;
-using Row = unsigned char;
-using Cru = unsigned char;
+using TPCTime = int32_t;
+using TPCFragmentTime = int16_t;
+using Pad = uint8_t;
+using GlobalPad = int16_t;
+using Row = uint8_t;
+using Cru = uint8_t;
 
 using Charge = float;
 
-using Delta = short;
+using Delta = int16_t;
 using Delta2 = short2;
 
 using local_id = short2;

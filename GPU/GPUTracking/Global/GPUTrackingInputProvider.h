@@ -54,40 +54,40 @@ class GPUTrackingInputProvider : public GPUProcessor
   void* SetPointersErrorCodes(void* mem);
 #endif
 
-  unsigned short mResourceZS = -1;
-  unsigned short mResourceClusterNativeAccess = -1;
-  unsigned short mResourceClusterNativeBuffer = -1;
-  unsigned short mResourceClusterNativeOutput = -1;
-  unsigned short mResourceErrorCodes = -1;
-  unsigned short mResourceTRD = -1;
-  unsigned short mResourceOccupancyMap = -1;
+  uint16_t mResourceZS = -1;
+  uint16_t mResourceClusterNativeAccess = -1;
+  uint16_t mResourceClusterNativeBuffer = -1;
+  uint16_t mResourceClusterNativeOutput = -1;
+  uint16_t mResourceErrorCodes = -1;
+  uint16_t mResourceTRD = -1;
+  uint16_t mResourceOccupancyMap = -1;
 
   bool mHoldTPCZS = false;
   bool mHoldTPCClusterNative = false;
   bool mHoldTPCClusterNativeOutput = false;
   bool mHoldTPCOccupancyMap = false;
-  unsigned int mNClusterNative = 0;
+  uint32_t mNClusterNative = 0;
 
   GPUTrackingInOutZS* mPzsMeta = nullptr;
-  unsigned int* mPzsSizes = nullptr;
+  uint32_t* mPzsSizes = nullptr;
   void** mPzsPtrs = nullptr;
 
-  unsigned int mNTRDTracklets = 0;
+  uint32_t mNTRDTracklets = 0;
   bool mDoSpacepoints = false;
-  unsigned int mNTRDTriggerRecords = 0;
+  uint32_t mNTRDTriggerRecords = 0;
   GPUTRDTrackletWord* mTRDTracklets = nullptr;
   GPUTRDSpacePoint* mTRDSpacePoints = nullptr;
   float* mTRDTriggerTimes = nullptr;
-  int* mTRDTrackletIdxFirst = nullptr;
-  char* mTRDTrigRecMask = nullptr;
+  int32_t* mTRDTrackletIdxFirst = nullptr;
+  uint8_t* mTRDTrigRecMask = nullptr;
 
   o2::tpc::ClusterNativeAccess* mPclusterNativeAccess = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeBuffer = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeOutput = nullptr;
 
-  unsigned int* mTPCClusterOccupancyMap = nullptr;
+  uint32_t* mTPCClusterOccupancyMap = nullptr;
 
-  unsigned int* mErrorCodes = nullptr;
+  uint32_t* mErrorCodes = nullptr;
 };
 
 } // namespace gpu

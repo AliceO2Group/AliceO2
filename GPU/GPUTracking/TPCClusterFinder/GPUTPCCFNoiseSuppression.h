@@ -30,7 +30,7 @@ struct ChargePos;
 class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 {
  public:
-  enum K : int {
+  enum K : int32_t {
     noiseSuppression = 0,
     updatePeaks = 1,
   };
@@ -53,19 +53,19 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = defaultKernel, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int32_t iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUSharedMemory&, const GPUSettingsRec&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const ChargePos*, const uint, uchar*);
+  static GPUd() void noiseSuppressionImpl(int32_t, int32_t, int32_t, int32_t, GPUSharedMemory&, const GPUSettingsRec&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const ChargePos*, const uint, uchar*);
 
-  static GPUd() void updatePeaksImpl(int, int, int, int, const ChargePos*, const uchar*, const uint, Array2D<uchar>&);
+  static GPUd() void updatePeaksImpl(int32_t, int32_t, int32_t, int32_t, const ChargePos*, const uchar*, const uint, Array2D<uchar>&);
 
-  static GPUdi() void checkForMinima(const float, const float, const float, PackedCharge, int, ulong*, ulong*);
+  static GPUdi() void checkForMinima(const float, const float, const float, PackedCharge, int32_t, ulong*, ulong*);
 
-  static GPUdi() void findMinima(const PackedCharge*, const ushort, const int, int, const float, const float, const float, ulong*, ulong*);
+  static GPUdi() void findMinima(const PackedCharge*, const ushort, const int32_t, int32_t, const float, const float, const float, ulong*, ulong*);
 
-  static GPUdi() void findPeaks(const uchar*, const ushort, const int, int, ulong*);
+  static GPUdi() void findPeaks(const uchar*, const ushort, const int32_t, int32_t, ulong*);
 
   static GPUdi() bool keepPeak(ulong, ulong);
 

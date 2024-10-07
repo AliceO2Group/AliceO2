@@ -46,21 +46,21 @@ CalibdEdxTrackTopologySpline& CalibdEdxTrackTopologySpline::operator=(const Cali
   return *this;
 }
 
-void CalibdEdxTrackTopologySpline::recreate(const int nKnots[])
+void CalibdEdxTrackTopologySpline::recreate(const int32_t nKnots[])
 {
   /// Default constructor
   FlatObject::startConstruction();
 
-  int buffSize = 0;
-  int offsets1[FSplines];
-  int offsets2[FSplines];
-  for (unsigned int i = 0; i < FSplines; i++) {
+  int32_t buffSize = 0;
+  int32_t offsets1[FSplines];
+  int32_t offsets2[FSplines];
+  for (uint32_t i = 0; i < FSplines; i++) {
     mCalibSplinesqMax[i].recreate(nKnots);
     buffSize = alignSize(buffSize, mCalibSplinesqMax[i].getBufferAlignmentBytes());
     offsets1[i] = buffSize;
     buffSize += mCalibSplinesqMax[i].getFlatBufferSize();
   }
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     mCalibSplinesqTot[i].recreate(nKnots);
     buffSize = alignSize(buffSize, mCalibSplinesqTot[i].getBufferAlignmentBytes());
     offsets2[i] = buffSize;
@@ -69,10 +69,10 @@ void CalibdEdxTrackTopologySpline::recreate(const int nKnots[])
 
   FlatObject::finishConstruction(buffSize);
 
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     mCalibSplinesqMax[i].moveBufferTo(mFlatBufferPtr + offsets1[i]);
   }
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     mCalibSplinesqTot[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
   }
 }
@@ -84,19 +84,19 @@ void CalibdEdxTrackTopologySpline::cloneFromObject(const CalibdEdxTrackTopologyS
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
 
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     char* buffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCalibSplinesqMax[i].getFlatBufferPtr());
     mCalibSplinesqMax[i].cloneFromObject(obj.mCalibSplinesqMax[i], buffer);
   }
 
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     char* buffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCalibSplinesqTot[i].getFlatBufferPtr());
     mCalibSplinesqTot[i].cloneFromObject(obj.mCalibSplinesqTot[i], buffer);
   }
   mMaxTanTheta = obj.mMaxTanTheta;
   mMaxSinPhi = obj.mMaxSinPhi;
 
-  for (unsigned int i = 0; i < FSplines; ++i) {
+  for (uint32_t i = 0; i < FSplines; ++i) {
     mScalingFactorsqTot[i] = obj.mScalingFactorsqTot[i];
     mScalingFactorsqMax[i] = obj.mScalingFactorsqMax[i];
   }
@@ -115,7 +115,7 @@ void CalibdEdxTrackTopologySpline::moveBufferTo(char* newFlatBufferPtr)
 void CalibdEdxTrackTopologySpline::destroy()
 {
   /// See FlatObject for description
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     mCalibSplinesqMax[i].destroy();
     mCalibSplinesqTot[i].destroy();
   }
@@ -127,13 +127,13 @@ void CalibdEdxTrackTopologySpline::setActualBufferAddress(char* actualFlatBuffer
   /// See FlatObject for description
 
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
-  int offset = 0;
-  for (unsigned int i = 0; i < FSplines; i++) {
+  int32_t offset = 0;
+  for (uint32_t i = 0; i < FSplines; i++) {
     offset = alignSize(offset, mCalibSplinesqMax[i].getBufferAlignmentBytes());
     mCalibSplinesqMax[i].setActualBufferAddress(mFlatBufferPtr + offset);
     offset += mCalibSplinesqMax[i].getFlatBufferSize();
   }
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     offset = alignSize(offset, mCalibSplinesqTot[i].getBufferAlignmentBytes());
     mCalibSplinesqTot[i].setActualBufferAddress(mFlatBufferPtr + offset);
     offset += mCalibSplinesqTot[i].getFlatBufferSize();
@@ -144,11 +144,11 @@ void CalibdEdxTrackTopologySpline::setFutureBufferAddress(char* futureFlatBuffer
 {
   /// See FlatObject for description
 
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     char* buffer = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mCalibSplinesqMax[i].getFlatBufferPtr());
     mCalibSplinesqMax[i].setFutureBufferAddress(buffer);
   }
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     char* buffer = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mCalibSplinesqTot[i].getFlatBufferPtr());
     mCalibSplinesqTot[i].setFutureBufferAddress(buffer);
   }
@@ -173,7 +173,7 @@ void CalibdEdxTrackTopologySpline::setFromFile(TFile& inpf, const char* name)
   LOGP(info, "CalibdEdxTrackTopologySpline sucessfully loaded from file");
 }
 
-int CalibdEdxTrackTopologySpline::writeToFile(TFile& outf, const char* name)
+int32_t CalibdEdxTrackTopologySpline::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
   LOGP(info, "Warnings when writting to file can be ignored");
@@ -184,9 +184,9 @@ void CalibdEdxTrackTopologySpline::setDefaultSplines()
 {
   FlatObject::startConstruction();
 
-  int buffSize = 0;
-  int offsets1[FSplines];
-  int offsets2[FSplines];
+  int32_t buffSize = 0;
+  int32_t offsets1[FSplines];
+  int32_t offsets2[FSplines];
 
   auto defaultF = [&](const double x[], double f[]) {
     f[0] = 1.f;
@@ -194,12 +194,12 @@ void CalibdEdxTrackTopologySpline::setDefaultSplines()
   double xMin[FDimX]{};
   double xMax[FDimX]{};
 
-  for (int iDimX = 0; iDimX < FDimX; ++iDimX) {
+  for (int32_t iDimX = 0; iDimX < FDimX; ++iDimX) {
     xMin[iDimX] = 0;
     xMax[iDimX] = 1;
   }
 
-  for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
+  for (uint32_t ireg = 0; ireg < FSplines; ++ireg) {
     SplineType splineTmpqMax;
     splineTmpqMax.approximateFunction(xMin, xMax, defaultF);
     mCalibSplinesqMax[ireg] = splineTmpqMax;
@@ -208,7 +208,7 @@ void CalibdEdxTrackTopologySpline::setDefaultSplines()
     buffSize += mCalibSplinesqMax[ireg].getFlatBufferSize();
   }
 
-  for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
+  for (uint32_t ireg = 0; ireg < FSplines; ++ireg) {
     SplineType splineTmpqTot;
     splineTmpqTot.approximateFunction(xMin, xMax, defaultF);
     mCalibSplinesqTot[ireg] = splineTmpqTot;
@@ -219,10 +219,10 @@ void CalibdEdxTrackTopologySpline::setDefaultSplines()
 
   FlatObject::finishConstruction(buffSize);
 
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     mCalibSplinesqMax[i].moveBufferTo(mFlatBufferPtr + offsets1[i]);
   }
-  for (unsigned int i = 0; i < FSplines; i++) {
+  for (uint32_t i = 0; i < FSplines; i++) {
     mCalibSplinesqTot[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
   }
 }
@@ -243,7 +243,7 @@ inline void CalibdEdxTrackTopologySpline::setRangesFromFile(TFile& inpf)
   }
 }
 
-std::string CalibdEdxTrackTopologySpline::getSplineName(const int region, const ChargeType charge)
+std::string CalibdEdxTrackTopologySpline::getSplineName(const int32_t region, const ChargeType charge)
 {
   const std::string typeName[2] = {"qMax", "qTot"};
   const std::string polname = fmt::format("spline_{}_region{}", typeName[charge], region).data();

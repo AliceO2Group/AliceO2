@@ -53,10 +53,10 @@ enum PrintMode {
 
 __device__ void floatToBinaryString(float number, char* buffer)
 {
-  unsigned char* bytePointer = reinterpret_cast<unsigned char*>(&number);
-  for (int byteIndex = 3; byteIndex >= 0; --byteIndex) {
-    unsigned char byte = bytePointer[byteIndex];
-    for (int bitIndex = 7; bitIndex >= 0; --bitIndex) {
+  uint8_t* bytePointer = reinterpret_cast<uint8_t*>(&number);
+  for (int32_t byteIndex = 3; byteIndex >= 0; --byteIndex) {
+    uint8_t byte = bytePointer[byteIndex];
+    for (int32_t bitIndex = 7; bitIndex >= 0; --bitIndex) {
       buffer[(3 - byteIndex) * 8 + (7 - bitIndex)] = (byte & (1 << bitIndex)) ? '1' : '0';
     }
   }
@@ -68,23 +68,23 @@ GPUd() void printMatrix(const MatrixType& matrix, const char* name, const PrintM
 {
   if (mode == PrintMode::Binary) {
     char buffer[33];
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
+    for (int32_t i = 0; i < 3; ++i) {
+      for (int32_t j = 0; j < 3; ++j) {
         floatToBinaryString(matrix(i, j), buffer);
         printf("%s(%d,%d) = %s\n", name, i, j, buffer);
       }
     }
   }
   if (mode == PrintMode::Decimal) {
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
+    for (int32_t i = 0; i < 3; ++i) {
+      for (int32_t j = 0; j < 3; ++j) {
         printf("%s(%i,%i) = %f\n", name, i, j, matrix(i, j));
       }
     }
   }
   if (mode == PrintMode::Hexadecimal) {
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
+    for (int32_t i = 0; i < 3; ++i) {
+      for (int32_t j = 0; j < 3; ++j) {
         printf("%s(%d,%d) = %x\n", name, i, j, o2::gpu::CAMath::Float2UIntReint(matrix(i, j)));
       }
     }
@@ -110,7 +110,7 @@ GPUg() void copyMatrixKernelSingle(
 // Invert test for an array of square matrices
 template <typename T>
 GPUg() void invertMatrixKernelArray(T* matrices,
-                                    const int numMatrices)
+                                    const int32_t numMatrices)
 {
   for (auto iMatrix = blockIdx.x * blockDim.x + threadIdx.x; iMatrix < numMatrices; iMatrix += blockDim.x * gridDim.x) {
     matrices[iMatrix].Invert();
@@ -122,7 +122,7 @@ template <typename T>
 GPUg() void copyMatrixKernelArray(
   T* srcMatrices,
   T* dstMatrices,
-  const int numMatrices)
+  const int32_t numMatrices)
 {
   for (auto iMatrix = blockIdx.x * blockDim.x + threadIdx.x; iMatrix < numMatrices; iMatrix += blockDim.x * gridDim.x) {
     srcMatrices[iMatrix] = dstMatrices[iMatrix];
@@ -136,8 +136,8 @@ void compareMatricesElementWise(const MatrixType& mat1, const MatrixType& mat2, 
 {
   auto tol = boost::test_tools::tolerance(tolerance);
 
-  for (unsigned int i = 0; i < mat1.kRows; ++i) {
-    for (unsigned int j = 0; j < mat1.kCols; ++j) {
+  for (uint32_t i = 0; i < mat1.kRows; ++i) {
+    for (uint32_t j = 0; j < mat1.kCols; ++j) {
       BOOST_TEST(mat1(i, j) == mat2(i, j), tol);
     }
   }
@@ -204,14 +204,14 @@ void discardResult(const T&)
 
 void prologue()
 {
-  int deviceCount;
+  int32_t deviceCount;
   cudaError_t error = cudaGetDeviceCount(&deviceCount);
   if (error != cudaSuccess || !deviceCount) {
     std::cerr << "No " << GPUPLATFORM << " devices found" << std::endl;
     return;
   }
 
-  for (int iDevice = 0; iDevice < deviceCount; ++iDevice) {
+  for (int32_t iDevice = 0; iDevice < deviceCount; ++iDevice) {
     cudaDeviceProp deviceProp;
     discardResult(cudaGetDeviceProperties(&deviceProp, iDevice));
     printf("Testing on: %s, Device %d: %s\n", GPUPLATFORM, iDevice, deviceProp.name);
@@ -233,8 +233,8 @@ struct GPUSMatrixImplFixtureSolo {
     std::uniform_real_distribution<double> dis(1.0, 10.0);
 
     // Initialize host matrices with random values
-    for (int i = 0; i < 3; ++i) {
-      for (int j = i; j < 3; ++j) {
+    for (int32_t i = 0; i < 3; ++i) {
+      for (int32_t j = i; j < 3; ++j) {
         SMatrixSym_h(i, j) = dis(gen);
         SMatrix_h(i, j) = dis(gen);
       }
@@ -257,7 +257,7 @@ struct GPUSMatrixImplFixtureSolo {
 
 BOOST_FIXTURE_TEST_CASE(MatrixInversion, GPUSMatrixImplFixtureSolo)
 {
-  const int nBlocks{1}, nThreads{1};
+  const int32_t nBlocks{1}, nThreads{1};
   GPUBenchmark benchmark("Single symmetric matrix inversion (" + std::to_string(nBlocks) + " blocks, " + std::to_string(nThreads) + " threads)");
   benchmark.start();
   gpu::invertMatrixKernelSingle<MatSym3DGPU><<<nBlocks, nThreads>>>(static_cast<MatSym3DGPU*>(SMatrixSym_d.get()));
@@ -311,8 +311,8 @@ struct GPUSMatrixImplFixtureDuo {
     std::uniform_real_distribution<double> dis(1.0, 10.0);
 
     // Initialize host matrices with random values
-    for (int i = 0; i < 3; ++i) {
-      for (int j = i; j < 3; ++j) {
+    for (int32_t i = 0; i < 3; ++i) {
+      for (int32_t j = i; j < 3; ++j) {
         SMatrixSym_h_A(i, j) = dis(gen);
         SMatrix_h_A(i, j) = dis(gen);
 
@@ -344,7 +344,7 @@ struct GPUSMatrixImplFixtureDuo {
 
 BOOST_FIXTURE_TEST_CASE(TestMatrixCopyingAndComparison, GPUSMatrixImplFixtureDuo)
 {
-  const int nBlocks{1}, nThreads{1};
+  const int32_t nBlocks{1}, nThreads{1};
   GPUBenchmark benchmark("Single symmetric matrix copy (" + std::to_string(nBlocks) + " blocks, " + std::to_string(nThreads) + " threads)");
   benchmark.start();
   gpu::copyMatrixKernelSingle<MatSym3DGPU><<<nBlocks, nThreads>>>(static_cast<MatSym3DGPU*>(SMatrixSym_d_A.get()), static_cast<MatSym3DGPU*>(SMatrixSym_d_B.get()));
@@ -389,8 +389,8 @@ struct GPUSmatrixImplFixtureSoloArray {
 
     // Initialize host matrices with random values
     for (size_t iMatrix{0}; iMatrix < D; ++iMatrix) {
-      for (int i = 0; i < 3; ++i) {
-        for (int j = i; j < 3; ++j) {
+      for (int32_t i = 0; i < 3; ++i) {
+        for (int32_t j = i; j < 3; ++j) {
           SMatrixSymVector_h[iMatrix](i, j) = dis(gen);
           SMatrixVector_h[iMatrix](i, j) = dis(gen);
         }
@@ -415,7 +415,7 @@ struct GPUSmatrixImplFixtureSoloArray {
 
 BOOST_FIXTURE_TEST_CASE(MatrixInversionArray, GPUSmatrixImplFixtureSoloArray<1'000'000>)
 {
-  const int nBlocks{20}, nThreads{512};
+  const int32_t nBlocks{20}, nThreads{512};
   GPUBenchmark benchmark("Array of 1'000'000 symmetric matrices inversion (" + std::to_string(nBlocks) + " blocks, " + std::to_string(nThreads) + " threads)");
   benchmark.start();
   gpu::invertMatrixKernelArray<MatSym3DGPU><<<nBlocks, nThreads>>>(static_cast<MatSym3DGPU*>(SMatrixSymArray_d.get()), 1'000'000);

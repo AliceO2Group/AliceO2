@@ -51,8 +51,8 @@ namespace gpu
 ///
 ///  Example of creating a spline:
 ///
-///  const int nKnotsU=5;
-///  const int nKnotsV=6;
+///  const int32_t nKnotsU=5;
+///  const int32_t nKnotsV=6;
 ///  float knotsU[nKnotsU] = {0., 0.25, 0.5, 0.7, 1.};
 ///  float knotsV[nKnotsV] = {0., 0.2, 0.3, 0.45, 0.8, 1.};
 ///  IrregularSpline2D3D spline(nKnotsU, knotsU, 4, nKnotsV, knotsV, 10 );
@@ -122,10 +122,10 @@ class IrregularSpline2D3D : public FlatObject
   ///                           an appropriate [knot(i),knot(i+1)] interval.
   ///                           The knot positions have a "granularity" of 1./numberOfAxisBins
   ///
-  void construct(int numberOfKnotsU, const float knotsU[], int numberOfAxisBinsU, int numberOfKnotsV, const float knotsV[], int numberOfAxisBinsV);
+  void construct(int32_t numberOfKnotsU, const float knotsU[], int32_t numberOfAxisBinsU, int32_t numberOfKnotsV, const float knotsV[], int32_t numberOfAxisBinsV);
 
   /// Constructor for a regular spline
-  void constructRegular(int numberOfKnotsU, int numberOfKnotsV);
+  void constructRegular(int32_t numberOfKnotsU, int32_t numberOfKnotsV);
 
   /// _______________  Main functionality   ________________________
 
@@ -146,7 +146,7 @@ class IrregularSpline2D3D : public FlatObject
   GPUd() void getSplineVec(const float* correctedData, float u, float v, float& x, float& y, float& z) const;
 
   /// Get number total of knots: UxV
-  GPUd() int getNumberOfKnots() const { return mGridU.getNumberOfKnots() * mGridV.getNumberOfKnots(); }
+  GPUd() int32_t getNumberOfKnots() const { return mGridU.getNumberOfKnots() * mGridV.getNumberOfKnots(); }
 
   /// Get 1-D grid for U coordinate
   GPUd() const IrregularSpline1D& getGridU() const { return mGridU; }
@@ -155,10 +155,10 @@ class IrregularSpline2D3D : public FlatObject
   GPUd() const IrregularSpline1D& getGridV() const { return mGridV; }
 
   /// Get 1-D grid for U or V coordinate
-  GPUd() const IrregularSpline1D& getGrid(int uv) const { return (uv == 0) ? mGridU : mGridV; }
+  GPUd() const IrregularSpline1D& getGrid(int32_t uv) const { return (uv == 0) ? mGridU : mGridV; }
 
   /// Get u,v of i-th knot
-  GPUd() void getKnotUV(int iKnot, float& u, float& v) const;
+  GPUd() void getKnotUV(int32_t iKnot, float& u, float& v) const;
 
   /// Get size of the mFlatBuffer data
   size_t getFlatBufferSize() const { return mFlatBufferSize; }
@@ -203,14 +203,14 @@ class IrregularSpline2D3D : public FlatObject
 ///       Inline implementations of some methods
 /// ====================================================
 
-GPUdi() void IrregularSpline2D3D::getKnotUV(int iKnot, float& u, float& v) const
+GPUdi() void IrregularSpline2D3D::getKnotUV(int32_t iKnot, float& u, float& v) const
 {
   /// Get u,v of i-th knot
   const IrregularSpline1D& gridU = getGridU();
   const IrregularSpline1D& gridV = getGridV();
-  int nu = gridU.getNumberOfKnots();
-  int iv = iKnot / nu;
-  int iu = iKnot % nu;
+  int32_t nu = gridU.getNumberOfKnots();
+  int32_t iv = iKnot / nu;
+  int32_t iu = iKnot % nu;
   u = gridU.getKnot(iu).u;
   v = gridV.getKnot(iv).u;
 }
@@ -220,68 +220,68 @@ GPUd() void IrregularSpline2D3D::correctEdges(T* data) const
 {
   const IrregularSpline1D& gridU = getGridU();
   const IrregularSpline1D& gridV = getGridV();
-  int nu = gridU.getNumberOfKnots();
-  int nv = gridV.getNumberOfKnots();
+  int32_t nu = gridU.getNumberOfKnots();
+  int32_t nv = gridV.getNumberOfKnots();
 
   { // left edge of U
-    int iu = 0;
+    int32_t iu = 0;
     const IrregularSpline1D::Knot* s = gridU.getKnots() + iu;
     double c0, c1, c2, c3;
     gridU.getEdgeCorrectionCoefficients(s[0].u, s[1].u, s[2].u, s[3].u, c0, c1, c2, c3);
-    for (int iv = 0; iv < nv; iv++) {
+    for (int32_t iv = 0; iv < nv; iv++) {
       T* f0 = data + (nu * (iv) + iu) * 3;
       T* f1 = f0 + 3;
       T* f2 = f0 + 6;
       T* f3 = f0 + 9;
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f0[idim] = (T)(c0 * f0[idim] + c1 * f1[idim] + c2 * f2[idim] + c3 * f3[idim]);
       }
     }
   }
 
   { // right edge of U
-    int iu = nu - 4;
+    int32_t iu = nu - 4;
     const IrregularSpline1D::Knot* s = gridU.getKnots() + iu;
     double c0, c1, c2, c3;
     gridU.getEdgeCorrectionCoefficients(s[3].u, s[2].u, s[1].u, s[0].u, c3, c2, c1, c0);
-    for (int iv = 0; iv < nv; iv++) {
+    for (int32_t iv = 0; iv < nv; iv++) {
       T* f0 = data + (nu * (iv) + iu) * 3;
       T* f1 = f0 + 3;
       T* f2 = f0 + 6;
       T* f3 = f0 + 9;
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f3[idim] = (T)(c0 * f0[idim] + c1 * f1[idim] + c2 * f2[idim] + c3 * f3[idim]);
       }
     }
   }
 
   { // low edge of V
-    int iv = 0;
+    int32_t iv = 0;
     const IrregularSpline1D::Knot* s = gridV.getKnots() + iv;
     double c0, c1, c2, c3;
     gridV.getEdgeCorrectionCoefficients(s[0].u, s[1].u, s[2].u, s[3].u, c0, c1, c2, c3);
-    for (int iu = 0; iu < nu; iu++) {
+    for (int32_t iu = 0; iu < nu; iu++) {
       T* f0 = data + (nu * iv + iu) * 3;
       T* f1 = f0 + nu * 3;
       T* f2 = f0 + nu * 6;
       T* f3 = f0 + nu * 9;
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f0[idim] = (T)(c0 * f0[idim] + c1 * f1[idim] + c2 * f2[idim] + c3 * f3[idim]);
       }
     }
   }
 
   { // high edge of V
-    int iv = nv - 4;
+    int32_t iv = nv - 4;
     const IrregularSpline1D::Knot* s = gridV.getKnots() + iv;
     double c0, c1, c2, c3;
     gridV.getEdgeCorrectionCoefficients(s[3].u, s[2].u, s[1].u, s[0].u, c3, c2, c1, c0);
-    for (int iu = 0; iu < nu; iu++) {
+    for (int32_t iu = 0; iu < nu; iu++) {
       T* f0 = data + (nu * iv + iu) * 3;
       T* f1 = f0 + nu * 3;
       T* f2 = f0 + nu * 6;
       T* f3 = f0 + nu * 9;
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f3[idim] = (T)(c0 * f0[idim] + c1 * f1[idim] + c2 * f2[idim] + c3 * f3[idim]);
       }
     }
@@ -295,9 +295,9 @@ GPUdi() void IrregularSpline2D3D::getSpline(GPUgeneric() const T* correctedData,
 
   const IrregularSpline1D& gridU = getGridU();
   const IrregularSpline1D& gridV = getGridV();
-  int nu = gridU.getNumberOfKnots();
-  int iu = gridU.getKnotIndex(u);
-  int iv = gridV.getKnotIndex(v);
+  int32_t nu = gridU.getNumberOfKnots();
+  int32_t iu = gridU.getKnotIndex(u);
+  int32_t iv = gridV.getKnotIndex(v);
 
   const IrregularSpline1D::Knot& knotU = gridU.getKnot(iu);
   const IrregularSpline1D::Knot& knotV = gridV.getKnot(iv);
@@ -308,7 +308,7 @@ GPUdi() void IrregularSpline2D3D::getSpline(GPUgeneric() const T* correctedData,
   const T* dataV3 = dataV0 + 9 * nu;
 
   T dataV[12];
-  for (int i = 0; i < 12; i++) {
+  for (int32_t i = 0; i < 12; i++) {
     dataV[i] = gridV.getSpline(knotV, dataV0[i], dataV1[i], dataV2[i], dataV3[i], v);
   }
 
@@ -318,7 +318,7 @@ GPUdi() void IrregularSpline2D3D::getSpline(GPUgeneric() const T* correctedData,
   T* dataU3 = dataV + 9;
 
   T res[3];
-  for (int i = 0; i < 3; i++) {
+  for (int32_t i = 0; i < 3; i++) {
     res[i] = gridU.getSpline(knotU, dataU0[i], dataU1[i], dataU2[i], dataU3[i], u);
   }
   x = res[0];
@@ -334,9 +334,9 @@ GPUdi() void IrregularSpline2D3D::getSplineVec(const float* correctedData, float
 #if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(__ROOTCLING__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC) && defined(__cplusplus) && __cplusplus >= 201703L
   const IrregularSpline1D& gridU = getGridU();
   const IrregularSpline1D& gridV = getGridV();
-  int nu = gridU.getNumberOfKnots();
-  int iu = gridU.getKnotIndex(u);
-  int iv = gridV.getKnotIndex(v);
+  int32_t nu = gridU.getNumberOfKnots();
+  int32_t iu = gridU.getKnotIndex(u);
+  int32_t iv = gridV.getKnotIndex(v);
   const IrregularSpline1D::Knot& knotU = gridU.getKnot(iu);
   const IrregularSpline1D::Knot& knotV = gridV.getKnot(iv);
 
@@ -358,7 +358,7 @@ GPUdi() void IrregularSpline2D3D::getSplineVec(const float* correctedData, float
   //dataVvec.scatter(dataV, Vc::SimdArray<uint, 12>(Vc::IndexesFromZero));
   dataVvec.store(dataV, Vc::Unaligned);
 
-  for (unsigned int i = 12; i < 9 + V::size(); i++) { // fill not used part of the vector with 0
+  for (uint32_t i = 12; i < 9 + V::size(); i++) { // fill not used part of the vector with 0
     dataV[i] = 0.f;
   }
   // calculate F values at V==v and U == u

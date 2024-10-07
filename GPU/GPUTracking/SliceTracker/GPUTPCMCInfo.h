@@ -20,10 +20,10 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 struct GPUTPCMCInfo {
-  int charge;
-  char prim;
-  char primDaughters;
-  int pid;
+  int32_t charge;
+  int8_t prim;
+  int8_t primDaughters;
+  int32_t pid;
   float x;
   float y;
   float z;
@@ -36,8 +36,8 @@ struct GPUTPCMCInfo {
 #endif
 };
 struct GPUTPCMCInfoCol {
-  unsigned int first;
-  unsigned int num;
+  uint32_t first;
+  uint32_t num;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

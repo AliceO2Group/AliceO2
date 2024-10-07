@@ -36,7 +36,7 @@ void GPUTPCGMPolynomialField::Print() const
        << " == " << mNominalBz / kCLight << " [kG]" << endl;
 
   cout << " TpcBx[NTPCM] = { ";
-  for (int i = 0; i < NTPCM; i++) {
+  for (int32_t i = 0; i < NTPCM; i++) {
     cout << mTpcBx[i];
     if (i < NTPCM - 1) {
       cout << ", ";
@@ -46,7 +46,7 @@ void GPUTPCGMPolynomialField::Print() const
   }
 
   cout << " TpcBy[NTPCM] = { ";
-  for (int i = 0; i < NTPCM; i++) {
+  for (int32_t i = 0; i < NTPCM; i++) {
     cout << mTpcBy[i];
     if (i < NTPCM - 1) {
       cout << ", ";
@@ -56,7 +56,7 @@ void GPUTPCGMPolynomialField::Print() const
   }
 
   cout << " TpcBz[NTPCM] = { ";
-  for (int i = 0; i < NTPCM; i++) {
+  for (int32_t i = 0; i < NTPCM; i++) {
     cout << mTpcBz[i];
     if (i < NTPCM - 1) {
       cout << ", ";
@@ -69,7 +69,7 @@ void GPUTPCGMPolynomialField::Print() const
        << endl;
 
   cout << " TrdBx[NTRDM] = { ";
-  for (int i = 0; i < NTRDM; i++) {
+  for (int32_t i = 0; i < NTRDM; i++) {
     cout << mTrdBx[i];
     if (i < NTRDM - 1) {
       cout << ", ";
@@ -79,7 +79,7 @@ void GPUTPCGMPolynomialField::Print() const
   }
 
   cout << " TrdBy[NTRDM] = { ";
-  for (int i = 0; i < NTRDM; i++) {
+  for (int32_t i = 0; i < NTRDM; i++) {
     cout << mTrdBy[i];
     if (i < NTRDM - 1) {
       cout << ", ";
@@ -89,7 +89,7 @@ void GPUTPCGMPolynomialField::Print() const
   }
 
   cout << " TrdBz[NTRDM] = { ";
-  for (int i = 0; i < NTRDM; i++) {
+  for (int32_t i = 0; i < NTRDM; i++) {
     cout << mTrdBz[i];
     if (i < NTRDM - 1) {
       cout << ", ";
@@ -102,7 +102,7 @@ void GPUTPCGMPolynomialField::Print() const
        << endl;
 
   cout << " ItsBx[NITSM] = { ";
-  for (int i = 0; i < NITSM; i++) {
+  for (int32_t i = 0; i < NITSM; i++) {
     cout << mItsBx[i];
     if (i < NITSM - 1) {
       cout << ", ";
@@ -112,7 +112,7 @@ void GPUTPCGMPolynomialField::Print() const
   }
 
   cout << " ItsBy[NITSM] = { ";
-  for (int i = 0; i < NITSM; i++) {
+  for (int32_t i = 0; i < NITSM; i++) {
     cout << mItsBy[i];
     if (i < NITSM - 1) {
       cout << ", ";
@@ -122,7 +122,7 @@ void GPUTPCGMPolynomialField::Print() const
   }
 
   cout << " ItsBz[NITSM] = { ";
-  for (int i = 0; i < NITSM; i++) {
+  for (int32_t i = 0; i < NITSM; i++) {
     cout << mItsBz[i];
     if (i < NITSM - 1) {
       cout << ", ";

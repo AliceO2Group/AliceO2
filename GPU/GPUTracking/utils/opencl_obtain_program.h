@@ -19,7 +19,7 @@
 #include <vector>
 #include "opencl_compiler_structs.h"
 
-static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint num_devices, cl_device_id* devices, cl_program* program, char* binaries)
+static int32_t _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint num_devices, cl_device_id* devices, cl_program* program, char* binaries)
 {
   const char* magic_bytes = "QOCLPB";
   if (strncmp(magic_bytes, binaries, strlen(magic_bytes)) != 0) {
@@ -39,7 +39,7 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
   std::vector<size_t> program_sizes(pinfo->count);
   std::vector<char*> program_binaries(pinfo->count);
 
-  for (unsigned int i = 0; i < pinfo->count; i++) {
+  for (uint32_t i = 0; i < pinfo->count; i++) {
     char device_name[64], device_vendor[64];
     cl_uint nbits;
     clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 64, device_name, nullptr);
@@ -55,7 +55,7 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
       return (1);
     }
     current_ptr += sizeof(_makefiles_opencl_device_info);
-    // printf("Device %d: %s %s (size %ld)\n", i, dinfo->device_vendor, dinfo->device_name, (long) dinfo->binary_size);
+    // printf("Device %d: %s %s (size %ld)\n", i, dinfo->device_vendor, dinfo->device_name, (int64_t) dinfo->binary_size);
     program_sizes[i] = dinfo->binary_size;
     program_binaries[i] = current_ptr;
     current_ptr += dinfo->binary_size;
@@ -63,14 +63,14 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
 
   cl_int return_status[pinfo->count];
   cl_int ocl_error;
-  *program = clCreateProgramWithBinary(context, num_devices, devices, program_sizes.data(), (const unsigned char**)program_binaries.data(), return_status, &ocl_error);
+  *program = clCreateProgramWithBinary(context, num_devices, devices, program_sizes.data(), (const uint8_t**)program_binaries.data(), return_status, &ocl_error);
 
   if (ocl_error != CL_SUCCESS) {
     printf("Error loading program\n");
     return (1);
   }
 
-  for (unsigned int i = 0; i < pinfo->count; i++) {
+  for (uint32_t i = 0; i < pinfo->count; i++) {
     if (return_status[i] != CL_SUCCESS) {
       printf("Error loading program for device %d\n", i);
       clReleaseProgram(*program);

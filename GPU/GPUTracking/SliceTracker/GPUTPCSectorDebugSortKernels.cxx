@@ -25,20 +25,20 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::hitData>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::hitData>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
 {
-  const unsigned int iRow = iBlock;
+  const uint32_t iRow = iBlock;
   const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Data().Row(iRow);
   const MEM_GLOBAL(GPUTPCGrid) & GPUrestrict() grid = row.Grid();
-  for (unsigned int i = iThread; i < grid.N(); i += nThreads) {
-    unsigned int jMin = tracker.Data().FirstHitInBin(row, i);
-    unsigned int jMax = tracker.Data().FirstHitInBin(row, i + 1);
-    const unsigned int n = jMax - jMin;
+  for (uint32_t i = iThread; i < grid.N(); i += nThreads) {
+    uint32_t jMin = tracker.Data().FirstHitInBin(row, i);
+    uint32_t jMax = tracker.Data().FirstHitInBin(row, i + 1);
+    const uint32_t n = jMax - jMin;
     calink* GPUrestrict() tmp1 = tracker.Data().HitLinkUpData(row) + jMin;
     auto* GPUrestrict() tmp2 = tracker.Data().HitWeights() + row.HitNumberOffset() + jMin;
     cahit2* GPUrestrict() hitData = tracker.Data().HitData(row) + jMin;
-    int* GPUrestrict() clusterId = tracker.Data().ClusterDataIndex() + row.HitNumberOffset() + jMin;
-    for (unsigned int j = 0; j < n; j++) {
+    int32_t* GPUrestrict() clusterId = tracker.Data().ClusterDataIndex() + row.HitNumberOffset() + jMin;
+    for (uint32_t j = 0; j < n; j++) {
       tmp1[j] = j;
     }
     GPUCommonAlgorithm::sort(tmp1, tmp1 + n, [&hitData, &clusterId](const calink& a, const calink& b) {
@@ -50,29 +50,29 @@ GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels:
       }
       return clusterId[a] < clusterId[b];
     });
-    for (unsigned int j = 0; j < n; j++) {
+    for (uint32_t j = 0; j < n; j++) {
       tmp2[j] = hitData[j].x;
     }
-    for (unsigned int j = 0; j < n; j++) {
+    for (uint32_t j = 0; j < n; j++) {
       hitData[j].x = tmp2[tmp1[j]];
     }
-    for (unsigned int j = 0; j < n; j++) {
+    for (uint32_t j = 0; j < n; j++) {
       tmp2[j] = hitData[j].y;
     }
-    for (unsigned int j = 0; j < n; j++) {
+    for (uint32_t j = 0; j < n; j++) {
       hitData[j].y = tmp2[tmp1[j]];
     }
-    for (unsigned int j = 0; j < n; j++) {
+    for (uint32_t j = 0; j < n; j++) {
       tmp2[j] = clusterId[j];
     }
-    for (unsigned int j = 0; j < n; j++) {
+    for (uint32_t j = 0; j < n; j++) {
       clusterId[j] = tmp2[tmp1[j]];
     }
   }
 }
 
 template <>
-GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::startHits>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::startHits>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
 {
   if (iThread || iBlock) {
     return;
@@ -86,7 +86,7 @@ GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels:
 }
 
 template <>
-GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::sliceTracks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::sliceTracks>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
 {
   if (iThread || iBlock) {
     return;

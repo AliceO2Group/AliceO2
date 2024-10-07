@@ -28,9 +28,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 TPCFastTransformManager::TPCFastTransformManager()
   : mError(), mOrigTransform(nullptr), fLastTimeBin(0) {}
 
-int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
-                                    AliTPCTransform* transform,
-                                    Long_t TimeStamp)
+int32_t TPCFastTransformManager::create(TPCFastTransform& fastTransform,
+                                        AliTPCTransform* transform,
+                                        long TimeStamp)
 {
   /// Initializes TPCFastTransform object
 
@@ -78,7 +78,7 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
 
   fLastTimeBin = rec->GetLastBin();
 
-  const int nRows = tpcParam->GetNRowLow() + tpcParam->GetNRowUp();
+  const int32_t nRows = tpcParam->GetNRowLow() + tpcParam->GetNRowUp();
 
   TPCFastTransformGeo geo;
 
@@ -92,8 +92,8 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
     geo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
     geo.setTPCalignmentZ(-mOrigTransform->GetDeltaZCorrTime());
 
-    for (int row = 0; row < geo.getNumberOfRows(); row++) {
-      int slice = 0, sector = 0, secrow = 0;
+    for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
+      int32_t slice = 0, sector = 0, secrow = 0;
       AliHLTTPCGeometry::Slice2Sector(slice, row, sector, secrow);
       Int_t nPads = tpcParam->GetNPads(sector, secrow);
       float xRow = tpcParam->GetPadRowRadii(sector, secrow);
@@ -110,17 +110,17 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
 
   { // create the correction map
 
-    const int nDistortionScenarios = 1;
+    const int32_t nDistortionScenarios = 1;
 
     correction.startConstruction(geo, nDistortionScenarios);
 
     TPCFastSpaceChargeCorrection::SplineType spline;
     spline.recreate(8, 20);
 
-    int scenario = 0;
+    int32_t scenario = 0;
     correction.setSplineScenario(scenario, spline);
 
-    for (int row = 0; row < geo.getNumberOfRows(); row++) {
+    for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
       correction.setRowScenarioID(row, scenario);
     }
 
@@ -134,7 +134,7 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
     // tell the transformation to apply the space charge corrections
     fastTransform.setApplyCorrectionOn();
 
-    // set some initial calibration values, will be reinitialised later int
+    // set some initial calibration values, will be reinitialised later int32_t
     // updateCalibration()
     const float t0 = 0.;
     const float vDrift = 0.f;
@@ -142,7 +142,7 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
     const float ldCorr = 0.;
     const float tofCorr = 0.;
     const float primVtxZ = 0.;
-    const long initTimeStamp = -1;
+    const int64_t initTimeStamp = -1;
     fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr,
                                  tofCorr, primVtxZ);
 
@@ -152,12 +152,12 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
   return updateCalibration(fastTransform, TimeStamp);
 }
 
-int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
-                                               Long_t TimeStamp)
+int32_t TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
+                                                   long TimeStamp)
 {
   // Update the calibration with the new time stamp
 
-  Long_t lastTS = fastTransform.getTimeStamp();
+  long lastTS = fastTransform.getTimeStamp();
 
   // deinitialize
 
@@ -219,7 +219,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
 
   // set the current time stamp
 
-  mOrigTransform->SetCurrentTimeStamp(static_cast<unsigned int>(TimeStamp));
+  mOrigTransform->SetCurrentTimeStamp(static_cast<uint32_t>(TimeStamp));
   fastTransform.setTimeStamp(TimeStamp);
 
   // find last calibrated time bin
@@ -272,9 +272,9 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
 
   recoParam->SetUseTOFCorrection(kFALSE);
 
-  for (int slice = 0; slice < geo.getNumberOfSlices(); slice++) {
+  for (int32_t slice = 0; slice < geo.getNumberOfSlices(); slice++) {
 
-    for (int row = 0; row < geo.getNumberOfRows(); row++) {
+    for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
 
       const TPCFastTransformGeo::RowInfo& rowInfo = geo.getRowInfo(row);
 
@@ -304,9 +304,9 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
         // time-of-flight correction
         float ox = 0, oy = 0, oz = 0;
         {
-          int sector = 0, secrow = 0;
+          int32_t sector = 0, secrow = 0;
           AliHLTTPCGeometry::Slice2Sector(slice, row, sector, secrow);
-          int is[] = {sector};
+          int32_t is[] = {sector};
           double xx[] = {static_cast<double>(secrow), pad, time};
           mOrigTransform->Transform(xx, is, 0, 1);
           ox = xx[0];
@@ -325,7 +325,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
 
       helper.approximateFunction(data, 0., 1., 0., 1., F);
     } // row
-  }   // slice
+  } // slice
 
   // set back the time-of-flight correction;
 

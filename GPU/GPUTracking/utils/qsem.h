@@ -24,16 +24,16 @@
 class qSem
 {
  public:
-  qSem(int num = 1);
+  qSem(int32_t num = 1);
   ~qSem();
 
-  int Lock();
-  int Unlock();
-  int Trylock();
-  int Query();
+  int32_t Lock();
+  int32_t Unlock();
+  int32_t Trylock();
+  int32_t Query();
 
  private:
-  int max;
+  int32_t max;
   sem_t sem;
 };
 

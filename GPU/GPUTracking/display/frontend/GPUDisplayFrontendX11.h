@@ -29,20 +29,20 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   GPUDisplayFrontendX11();
   ~GPUDisplayFrontendX11() override = default;
 
-  int StartDisplay() override;
+  int32_t StartDisplay() override;
   void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
-  void getSize(int& width, int& height) override;
-  int getVulkanSurface(void* instance, void* surface) override;
-  unsigned int getReqVulkanExtensions(const char**& p) override;
+  void getSize(int32_t& width, int32_t& height) override;
+  int32_t getVulkanSurface(void* instance, void* surface) override;
+  uint32_t getReqVulkanExtensions(const char**& p) override;
 
  private:
-  int FrontendMain() override;
-  int GetKey(int key);
-  void GetKey(XEvent& event, int& keyOut, int& keyPressOut);
+  int32_t FrontendMain() override;
+  int32_t GetKey(int32_t key);
+  void GetKey(XEvent& event, int32_t& keyOut, int32_t& keyPressOut);
 
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
   volatile bool mDisplayRunning = false;

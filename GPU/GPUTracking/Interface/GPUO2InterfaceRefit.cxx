@@ -25,7 +25,7 @@
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap, unsigned int* ocmap, unsigned int nHbfPerTf, const GPUParam* param)
+void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, uint8_t* shmap, uint32_t* ocmap, uint32_t nHbfPerTf, const GPUParam* param)
 {
   if (!cl || (!shmap && cl->nClustersTotal > 0)) {
     throw std::runtime_error("Must provide clusters access and preallocated buffer for shared map");
@@ -39,14 +39,14 @@ void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeA
     throw std::runtime_error("Must provide nHbfPerTf for occupancy map");
   }
   memset(shmap, 0, sizeof(char) * cl->nClustersTotal);
-  for (unsigned int i = 0; i < trks.size(); i++) {
-    for (int j = 0; j < trks[i].getNClusterReferences(); j++) {
+  for (uint32_t i = 0; i < trks.size(); i++) {
+    for (int32_t j = 0; j < trks[i].getNClusterReferences(); j++) {
       size_t idx = &trks[i].getCluster(trackRef, j, *cl) - cl->clustersLinear;
       shmap[idx] = shmap[idx] ? 2 : 1;
     }
   }
-  std::vector<unsigned int> tmp;
-  unsigned int* binmap = nullptr;
+  std::vector<uint32_t> tmp;
+  uint32_t* binmap = nullptr;
   if (ocmap && nHbfPerTf) {
     tmp.resize(param->rec.tpc.occupancyMapTimeBinsAverage ? GPUTPCClusterOccupancyMapBin::getNBins(*param) : 0, 0);
     binmap = param->rec.tpc.occupancyMapTimeBinsAverage ? tmp.data() : (ocmap + 2);
@@ -56,19 +56,19 @@ void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeA
     }
   }
 
-  for (unsigned int i = 0; i < cl->nClustersTotal; i++) {
+  for (uint32_t i = 0; i < cl->nClustersTotal; i++) {
     shmap[i] = (shmap[i] > 1 ? GPUTPCGMMergedTrackHit::flagShared : 0) | cl->clustersLinear[i].getFlags();
     if (binmap) {
-      binmap[(unsigned int)(cl->clustersLinear[i].getTime() / param->rec.tpc.occupancyMapTimeBins)]++;
+      binmap[(uint32_t)(cl->clustersLinear[i].getTime() / param->rec.tpc.occupancyMapTimeBins)]++;
     }
   }
 
   if (ocmap && nHbfPerTf && param->rec.tpc.occupancyMapTimeBinsAverage) {
-    for (unsigned int bin = 0; bin < GPUTPCClusterOccupancyMapBin::getNBins(*param); bin++) {
-      int binmin = CAMath::Max<int>(0, bin - param->rec.tpc.occupancyMapTimeBinsAverage);
-      int binmax = CAMath::Min<int>(GPUTPCClusterOccupancyMapBin::getNBins(*param), bin + param->rec.tpc.occupancyMapTimeBinsAverage + 1);
-      unsigned int sum = 0;
-      for (int i = binmin; i < binmax; i++) {
+    for (uint32_t bin = 0; bin < GPUTPCClusterOccupancyMapBin::getNBins(*param); bin++) {
+      int32_t binmin = CAMath::Max<int32_t>(0, bin - param->rec.tpc.occupancyMapTimeBinsAverage);
+      int32_t binmax = CAMath::Min<int32_t>(GPUTPCClusterOccupancyMapBin::getNBins(*param), bin + param->rec.tpc.occupancyMapTimeBinsAverage + 1);
+      uint32_t sum = 0;
+      for (int32_t i = binmin; i < binmax; i++) {
         sum += binmap[i];
       }
       sum /= binmax - binmin;
@@ -77,7 +77,7 @@ void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeA
   }
 }
 
-size_t GPUO2InterfaceRefit::fillOccupancyMapGetSize(unsigned int nHbfPerTf, const GPUParam* param)
+size_t GPUO2InterfaceRefit::fillOccupancyMapGetSize(uint32_t nHbfPerTf, const GPUParam* param)
 {
   std::unique_ptr<GPUParam> tmpParam;
   if (param == nullptr) {
@@ -88,15 +88,15 @@ size_t GPUO2InterfaceRefit::fillOccupancyMapGetSize(unsigned int nHbfPerTf, cons
     throw std::runtime_error("nHbfPerTf must not be zero for creation of the occupancy map");
   }
   if (param->rec.tpc.occupancyMapTimeBins) {
-    return (GPUTPCClusterOccupancyMapBin::getNBins(*param) + 2) * sizeof(unsigned int);
+    return (GPUTPCClusterOccupancyMapBin::getNBins(*param) + 2) * sizeof(uint32_t);
   } else if (param->rec.tpc.sysClusErrorC12Norm) {
-    return sizeof(unsigned int);
+    return sizeof(uint32_t);
   } else {
     return 0;
   }
 }
 
-GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bzNominalGPU, const TPCClRefElem* trackRef, unsigned int nHbfPerTf, const unsigned char* sharedmap, const unsigned int* occupancymap, int occupancyMapSize, const std::vector<TrackTPC>* trks, o2::base::Propagator* p)
+GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bzNominalGPU, const TPCClRefElem* trackRef, uint32_t nHbfPerTf, const uint8_t* sharedmap, const uint32_t* occupancymap, int32_t occupancyMapSize, const std::vector<TrackTPC>* trks, o2::base::Propagator* p)
 {
   mParam = GPUO2InterfaceUtils::getFullParam(bzNominalGPU, nHbfPerTf);
   size_t expectedOccMapSize = nHbfPerTf ? fillOccupancyMapGetSize(nHbfPerTf, mParam.get()) : 0;
@@ -133,10 +133,10 @@ void GPUO2InterfaceRefit::updateCalib(const CorrectionMapsHelper* trans, float b
   mRefit->SetFastTransformHelper(trans);
 }
 
-int GPUO2InterfaceRefit::RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, outward, resetCov); }
-int GPUO2InterfaceRefit::RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsTrackParCov(trk, outward, resetCov); }
-int GPUO2InterfaceRefit::RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, clusRef, time0, chi2, outward, resetCov); }
-int GPUO2InterfaceRefit::RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2, bool outward, bool resetCov) { return mRefit->RefitTrackAsTrackParCov(trk, clusRef, time0, chi2, outward, resetCov); }
+int32_t GPUO2InterfaceRefit::RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, outward, resetCov); }
+int32_t GPUO2InterfaceRefit::RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsTrackParCov(trk, outward, resetCov); }
+int32_t GPUO2InterfaceRefit::RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, clusRef, time0, chi2, outward, resetCov); }
+int32_t GPUO2InterfaceRefit::RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2, bool outward, bool resetCov) { return mRefit->RefitTrackAsTrackParCov(trk, clusRef, time0, chi2, outward, resetCov); }
 void GPUO2InterfaceRefit::setIgnoreErrorsAtTrackEnds(bool v) { mRefit->mIgnoreErrorsOnTrackEnds = v; }
 void GPUO2InterfaceRefit::setTrackReferenceX(float v) { mParam->rec.tpc.trackReferenceX = v; }
 

@@ -41,18 +41,18 @@ class GPUChain
   virtual ~GPUChain() = default;
   virtual void RegisterPermanentMemoryAndProcessors() = 0;
   virtual void RegisterGPUProcessors() = 0;
-  virtual int EarlyConfigure() { return 0; };
-  virtual int Init() = 0;
-  virtual int PrepareEvent() = 0;
-  virtual int Finalize() = 0;
-  virtual int RunChain() = 0;
+  virtual int32_t EarlyConfigure() { return 0; };
+  virtual int32_t Init() = 0;
+  virtual int32_t PrepareEvent() = 0;
+  virtual int32_t Finalize() = 0;
+  virtual int32_t RunChain() = 0;
   virtual void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) = 0;
   virtual void PrintMemoryStatistics(){};
-  virtual int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<unsigned int, 4>>* fillErrors = nullptr) { return 0; }
+  virtual int32_t CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<uint32_t, 4>>* fillErrors = nullptr) { return 0; }
   virtual bool SupportsDoublePipeline() { return false; }
-  virtual int FinalizePipelinedProcessing() { return 0; }
+  virtual int32_t FinalizePipelinedProcessing() { return 0; }
 
-  constexpr static int NSLICES = GPUReconstruction::NSLICES;
+  constexpr static int32_t NSLICES = GPUReconstruction::NSLICES;
 
   virtual void DumpSettings(const char* dir = "") {}
   virtual void ReadSettings(const char* dir = "") {}
@@ -75,7 +75,7 @@ class GPUChain
   GPUReconstructionCPU* mRec;
   GPUChain(GPUReconstruction* rec) : mRec((GPUReconstructionCPU*)rec) {}
 
-  int GetThread();
+  int32_t GetThread();
 
   // Make functions from GPUReconstruction*** available
   inline GPUConstantMem* processors() { return mRec->processors(); }
@@ -84,8 +84,8 @@ class GPUChain
   inline GPUParam& param() { return mRec->param(); }
   inline const GPUConstantMem* processors() const { return mRec->processors(); }
   inline GPUSettingsProcessing& ProcessingSettings() { return mRec->mProcessingSettings; }
-  inline void SynchronizeStream(int stream) { mRec->SynchronizeStream(stream); }
-  inline void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
+  inline void SynchronizeStream(int32_t stream) { mRec->SynchronizeStream(stream); }
+  inline void SynchronizeEvents(deviceEvent* evList, int32_t nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
   inline void SynchronizeEventAndRelease(deviceEvent& ev, bool doGPU = true)
   {
     if (doGPU) {
@@ -101,8 +101,8 @@ class GPUChain
       cond = 2;
     }
   }
-  inline bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return mRec->IsEventDone(evList, nEvents); }
-  inline void RecordMarker(deviceEvent ev, int stream) { mRec->RecordMarker(ev, stream); }
+  inline bool IsEventDone(deviceEvent* evList, int32_t nEvents = 1) { return mRec->IsEventDone(evList, nEvents); }
+  inline void RecordMarker(deviceEvent ev, int32_t stream) { mRec->RecordMarker(ev, stream); }
   virtual inline std::unique_ptr<GPUReconstruction::GPUThreadContext> GetThreadContext() { return mRec->GetThreadContext(); }
   inline void SynchronizeGPU() { mRec->SynchronizeGPU(); }
   inline void ReleaseEvent(deviceEvent ev, bool doGPU = true)
@@ -111,25 +111,25 @@ class GPUChain
       mRec->ReleaseEvent(ev);
     }
   }
-  inline void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) { mRec->StreamWaitForEvents(stream, evList, nEvents); }
+  inline void StreamWaitForEvents(int32_t stream, deviceEvent* evList, int32_t nEvents = 1) { mRec->StreamWaitForEvents(stream, evList, nEvents); }
   template <class T>
-  void RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int count);
+  void RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int32_t count);
   inline void WaitForHelperThreads() { mRec->WaitForHelperThreads(); }
-  inline int HelperError(int iThread) const { return mRec->HelperError(iThread); }
-  inline int HelperDone(int iThread) const { return mRec->HelperDone(iThread); }
-  inline void ResetHelperThreads(int helpers) { mRec->ResetHelperThreads(helpers); }
-  inline int GPUDebug(const char* state = "UNKNOWN", int stream = -1) { return mRec->GPUDebug(state, stream); }
+  inline int32_t HelperError(int32_t iThread) const { return mRec->HelperError(iThread); }
+  inline int32_t HelperDone(int32_t iThread) const { return mRec->HelperDone(iThread); }
+  inline void ResetHelperThreads(int32_t helpers) { mRec->ResetHelperThreads(helpers); }
+  inline int32_t GPUDebug(const char* state = "UNKNOWN", int32_t stream = -1) { return mRec->GPUDebug(state, stream); }
   // nEvents is forced to 0 if evList ==  nullptr
-  inline void TransferMemoryResourceToGPU(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceToGPU, res, stream, ev, evList, nEvents); }
-  inline void TransferMemoryResourceToHost(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceToHost, res, stream, ev, evList, nEvents); }
-  inline void TransferMemoryResourcesToGPU(RecoStep step, GPUProcessor* proc, int stream = -1, bool all = false) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourcesToGPU, proc, stream, all); }
-  inline void TransferMemoryResourcesToHost(RecoStep step, GPUProcessor* proc, int stream = -1, bool all = false) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourcesToHost, proc, stream, all); }
-  inline void TransferMemoryResourceLinkToGPU(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
-  inline void TransferMemoryResourceLinkToHost(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourceToGPU(RecoStep step, GPUMemoryResource* res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceToGPU, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourceToHost(RecoStep step, GPUMemoryResource* res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceToHost, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourcesToGPU(RecoStep step, GPUProcessor* proc, int32_t stream = -1, bool all = false) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourcesToGPU, proc, stream, all); }
+  inline void TransferMemoryResourcesToHost(RecoStep step, GPUProcessor* proc, int32_t stream = -1, bool all = false) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourcesToHost, proc, stream, all); }
+  inline void TransferMemoryResourceLinkToGPU(RecoStep step, int16_t res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourceLinkToHost(RecoStep step, int16_t res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
   // Todo: retrieve step from proc, move kernelClass->GetStep to retrieve it from GetProcessor
-  inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
-  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
-  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1)
+  inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
+  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
+  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1)
   {
     if (toGPU == -1) {
       memcpy(dst, src, size);
@@ -139,12 +139,12 @@ class GPUChain
   }
 
   template <class T>
-  inline void AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u)
+  inline void AllocateIOMemoryHelper(uint32_t n, const T*& ptr, std::unique_ptr<T[]>& u)
   {
     mRec->AllocateIOMemoryHelper<T>(n, ptr, u);
   }
   template <class T, class S>
-  inline unsigned int DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
+  inline uint32_t DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
   {
     return mRec->DumpData<T>(fp, entries, num, type);
   }
@@ -178,44 +178,44 @@ class GPUChain
   {
     mRec->ReadStructFromFile<T>(file, obj);
   }
-  template <class S, int I = 0, typename... Args>
-  inline int runKernel(gpu_reconstruction_kernels::krnlSetup&& setup, Args&&... args)
+  template <class S, int32_t I = 0, typename... Args>
+  inline int32_t runKernel(gpu_reconstruction_kernels::krnlSetup&& setup, Args&&... args)
   {
     return mRec->runKernel<S, I, Args...>(std::forward<gpu_reconstruction_kernels::krnlSetup&&>(setup), std::forward<Args>(args)...);
   }
-  template <class S, int I = 0>
+  template <class S, int32_t I = 0>
   gpu_reconstruction_kernels::krnlProperties getKernelProperties()
   {
     return mRec->getKernelProperties<S, I>();
   }
 
-  template <class T, int I = 0>
-  HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0)
+  template <class T, int32_t I = 0>
+  HighResTimer& getKernelTimer(RecoStep step, int32_t num = 0, size_t addMemorySize = 0)
   {
     return mRec->getKernelTimer<T, I>(step, num, addMemorySize);
   }
-  template <class T, int J = -1>
-  HighResTimer& getTimer(const char* name, int num = -1)
+  template <class T, int32_t J = -1>
+  HighResTimer& getTimer(const char* name, int32_t num = -1)
   {
     return mRec->getTimer<T, J>(name, num);
   }
   // Get GRID with NBLOCKS minimal such that nThreads * NBLOCS >= totalItems
-  krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGrid(uint32_t totalItems, uint32_t nThreads, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
   // Get GRID with NBLOCKS minimal such that ideal number of threads * NBLOCKS >= totalItems
-  krnlExec GetGrid(unsigned int totalItems, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGrid(uint32_t totalItems, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
   // Get GRID with specified number of blocks, each block with ideal number of threads
-  krnlExec GetGridBlk(unsigned int nBlocks, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
-  krnlExec GetGridBlkStep(unsigned int nBlocks, int stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGridBlk(uint32_t nBlocks, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGridBlkStep(uint32_t nBlocks, int32_t stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
   // Get GRID with ideal number of threads / blocks for GPU
-  krnlExec GetGridAuto(int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
-  krnlExec GetGridAutoStep(int stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGridAuto(int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGridAutoStep(int32_t stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
 
-  inline unsigned int BlockCount() const { return mRec->mBlockCount; }
-  inline unsigned int WarpSize() const { return mRec->mWarpSize; }
-  inline unsigned int ThreadCount() const { return mRec->mThreadCount; }
+  inline uint32_t BlockCount() const { return mRec->mBlockCount; }
+  inline uint32_t WarpSize() const { return mRec->mWarpSize; }
+  inline uint32_t ThreadCount() const { return mRec->mThreadCount; }
 
   inline size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
-  inline size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr) { return mRec->AllocateRegisteredMemory(res, control); }
+  inline size_t AllocateRegisteredMemory(int16_t res, GPUOutputControl* control = nullptr) { return mRec->AllocateRegisteredMemory(res, control); }
   template <class T>
   inline void SetupGPUProcessor(T* proc, bool allocate)
   {
@@ -224,33 +224,33 @@ class GPUChain
 
   inline GPUChain* GetNextChainInQueue() { return mRec->GetNextChainInQueue(); }
 
-  virtual int PrepareTextures() { return 0; }
-  virtual int DoStuckProtection(int stream, deviceEvent event) { return 0; }
+  virtual int32_t PrepareTextures() { return 0; }
+  virtual int32_t DoStuckProtection(int32_t stream, deviceEvent event) { return 0; }
 
   template <class T, class S, typename... Args>
-  bool DoDebugAndDump(RecoStep step, int mask, T& processor, S T::*func, Args&&... args)
+  bool DoDebugAndDump(RecoStep step, int32_t mask, T& processor, S T::*func, Args&&... args)
   {
     return DoDebugAndDump(step, mask, true, processor, func, args...);
   }
   template <class T, class S, typename... Args>
-  bool DoDebugAndDump(RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args);
+  bool DoDebugAndDump(RecoStep step, int32_t mask, bool transfer, T& processor, S T::*func, Args&&... args);
 
   template <class T, class S, typename... Args>
-  int runRecoStep(RecoStep step, S T::*func, Args... args);
+  int32_t runRecoStep(RecoStep step, S T::*func, Args... args);
 
  private:
   template <bool Always = false, class T, class S, typename... Args>
-  void timeCpy(RecoStep step, int toGPU, S T::*func, Args... args);
+  void timeCpy(RecoStep step, int32_t toGPU, S T::*func, Args... args);
 };
 
 template <class T>
-inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
+inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int32_t count)
 {
-  mRec->RunHelperThreads((int(GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
+  mRec->RunHelperThreads((int32_t(GPUReconstructionHelpers::helperDelegateBase::*)(int32_t, int32_t, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
 }
 
 template <bool Always, class T, class S, typename... Args>
-inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args)
+inline void GPUChain::timeCpy(RecoStep step, int32_t toGPU, S T::*func, Args... args)
 {
   if (!Always && step != RecoStep::NoRecoStep && !(GetRecoStepsGPU() & step)) {
     return;
@@ -258,7 +258,7 @@ inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args
   HighResTimer* timer = nullptr;
   size_t* bytes = nullptr;
   if (mRec->mProcessingSettings.debugLevel >= 1 && toGPU >= 0) { // Todo: time special cases toGPU < 0
-    int id = mRec->getRecoStepNum(step, false);
+    int32_t id = mRec->getRecoStepNum(step, false);
     if (id != -1) {
       auto& tmp = mRec->mTimersRecoSteps[id];
       timer = toGPU ? &tmp.timerToGPU : &tmp.timerToHost;
@@ -276,7 +276,7 @@ inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args
 }
 
 template <class T, class S, typename... Args>
-bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args)
+bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int32_t mask, bool transfer, T& processor, S T::*func, Args&&... args)
 {
   if (GetProcessingSettings().keepAllMemory) {
     if (transfer) {
@@ -293,13 +293,13 @@ bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, bool transfer, 
 }
 
 template <class T, class S, typename... Args>
-int GPUChain::runRecoStep(RecoStep step, S T::*func, Args... args)
+int32_t GPUChain::runRecoStep(RecoStep step, S T::*func, Args... args)
 {
   if (GetRecoSteps().isSet(step)) {
     if (GetProcessingSettings().debugLevel >= 1) {
       mRec->getRecoStepTimer(step).Start();
     }
-    int retVal = (reinterpret_cast<T*>(this)->*func)(args...);
+    int32_t retVal = (reinterpret_cast<T*>(this)->*func)(args...);
     if (GetProcessingSettings().debugLevel >= 1) {
       mRec->getRecoStepTimer(step).Stop();
     }

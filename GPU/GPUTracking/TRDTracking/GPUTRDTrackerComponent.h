@@ -77,15 +77,15 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
   AliHLTComponentDataType GetOutputDataType();
 
   /** @see component interface @ref AliHLTComponent::GetOutputDataType */
-  int GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
+  int32_t GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
 
   /** interface function, see @ref AliHLTComponent for description */
-  void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  void GetOutputDataSize(uint64_t& constBase, double& inputMultiplier);
 
   /** interface function, see @ref AliHLTComponent for description */
   AliHLTComponent* Spawn();
 
-  int ReadConfigurationString(const char* arguments);
+  int32_t ReadConfigurationString(const char* arguments);
 
  protected:
   /*
@@ -99,16 +99,16 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
   // AliHLTComponent interface functions
 
   /** interface function, see @ref AliHLTComponent for description */
-  int DoInit(int argc, const char** argv);
+  int32_t DoInit(int argc, const char** argv);
 
   /** interface function, see @ref AliHLTComponent for description */
-  int DoDeinit();
+  int32_t DoDeinit();
 
   /** interface function, see @ref AliHLTComponent for description */
-  int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks);
+  int32_t DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks);
 
   /** interface function, see @ref AliHLTComponent for description */
-  int Reconfigure(const char* cdbEntry, const char* chainId);
+  int32_t Reconfigure(const char* cdbEntry, const char* chainId);
 
   ///////////////////////////////////////////////////////////////////////////////////
 

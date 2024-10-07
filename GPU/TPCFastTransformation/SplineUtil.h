@@ -30,7 +30,7 @@ class SplineUtil
  public:
   /// Calculate a Spline specialization number depending on nXdim, nYdim
   ///
-  static constexpr int getSpec(int nXdim, int nYdim)
+  static constexpr int32_t getSpec(int32_t nXdim, int32_t nYdim)
   {
     // List of the Spline class specializations:
     //
@@ -55,59 +55,59 @@ class SplineUtil
 
   /// Spline1D & Spline2D specialization number depending on nYdim
   ///
-  static constexpr int getSpec(int nYdim)
+  static constexpr int32_t getSpec(int32_t nYdim)
   {
     return getSpec(1, nYdim);
   }
 
   /// abs() as a constexpr method, to make the GPU compiler happy
-  static constexpr int abs(int v) { return (v >= 0) ? v : -v; }
+  static constexpr int32_t abs(int32_t v) { return (v >= 0) ? v : -v; }
 
-  /// class lets one to switch between constexpr int ValTrueT and int mValFalse, depending on the ConditionT
-  template <bool ConditionT, int ValTrueT>
+  /// class lets one to switch between constexpr int32_t ValTrueT and int32_t mValFalse, depending on the ConditionT
+  template <bool ConditionT, int32_t ValTrueT>
   class Switch;
 
   /// An expression
-  /// const auto tmp = getNdim<nDimT>(int Ndim);
+  /// const auto tmp = getNdim<nDimT>(int32_t Ndim);
   /// tmp.get();
   /// returns either a constexpr integer NdimT, or an integer Ndim, depending on the (NdimT>0) value
   /// (a temporary variable tmp is needed to make the GPU compiler happy)
   ///
-  template <int NdimT>
-  GPUd() static Switch<(NdimT > 0), NdimT> getNdim(int Ndim)
+  template <int32_t NdimT>
+  GPUd() static Switch<(NdimT > 0), NdimT> getNdim(int32_t Ndim)
   {
     return Switch<(NdimT > 0), NdimT>(Ndim);
   }
 
   /// An expression
-  /// const auto tmp = getMaxNdim(int Ndim);
+  /// const auto tmp = getMaxNdim(int32_t Ndim);
   /// tmp.get();
   /// returns either a constexpr integer abs(NdimT), or an integer Ndim, depending on the (NdimT!=0) value
   ///
-  template <int NdimT>
-  GPUd() static Switch<(NdimT != 0), abs(NdimT)> getMaxNdim(int Ndim)
+  template <int32_t NdimT>
+  GPUd() static Switch<(NdimT != 0), abs(NdimT)> getMaxNdim(int32_t Ndim)
   {
     return Switch<(NdimT != 0), abs(NdimT)>(Ndim);
   }
 };
 
-template <int ValTrueT>
+template <int32_t ValTrueT>
 class SplineUtil::Switch<true, ValTrueT>
 {
  public:
-  GPUd() Switch(int /*valFalse*/) {}
-  GPUd() static constexpr int get() { return ValTrueT; }
+  GPUd() Switch(int32_t /*valFalse*/) {}
+  GPUd() static constexpr int32_t get() { return ValTrueT; }
 };
 
-template <int ValTrueT>
+template <int32_t ValTrueT>
 class SplineUtil::Switch<false, ValTrueT>
 {
  public:
-  GPUd() Switch(int valFalse) : mValFalse(valFalse) {}
-  GPUd() int get() const { return mValFalse; }
+  GPUd() Switch(int32_t valFalse) : mValFalse(valFalse) {}
+  GPUd() int32_t get() const { return mValFalse; }
 
  private:
-  int mValFalse;
+  int32_t mValFalse;
 };
 
 } // namespace gpu

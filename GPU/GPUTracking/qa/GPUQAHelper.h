@@ -46,17 +46,17 @@ class GPUTPCTrkLbl
     mNCl = 0;
     mTotalWeight = 0.f;
   }
-  inline void addLabel(unsigned int elementId)
+  inline void addLabel(uint32_t elementId)
   {
     if constexpr (std::is_same<T, AliHLTTPCClusterMCWeight>::value) {
-      for (unsigned int i = 0; i < sizeof(mClusterLabels[elementId]) / sizeof(mClusterLabels[elementId].fClusterID[0]); i++) {
+      for (uint32_t i = 0; i < sizeof(mClusterLabels[elementId]) / sizeof(mClusterLabels[elementId].fClusterID[0]); i++) {
         const auto& element = mClusterLabels[elementId].fClusterID[i];
         if (element.fMCID >= 0) {
           if constexpr (WEIGHT) {
             mTotalWeight += element.fWeight;
           }
           bool found = false;
-          for (unsigned int l = 0; l < mLabels.size(); l++) {
+          for (uint32_t l = 0; l < mLabels.size(); l++) {
             if (mLabels[l].first.fMCID == element.fMCID) {
               mLabels[l].second++;
               if constexpr (WEIGHT) {
@@ -74,7 +74,7 @@ class GPUTPCTrkLbl
     } else {
       for (const auto& element : mClusterLabels->getLabels(elementId)) {
         bool found = false;
-        for (unsigned int l = 0; l < mLabels.size(); l++) {
+        for (uint32_t l = 0; l < mLabels.size(); l++) {
           if (mLabels[l].first == element) {
             mLabels[l].second++;
             found = true;
@@ -88,13 +88,13 @@ class GPUTPCTrkLbl
     }
     mNCl++;
   }
-  inline U computeLabel(float* labelWeight = nullptr, float* totalWeight = nullptr, int* maxCount = nullptr)
+  inline U computeLabel(float* labelWeight = nullptr, float* totalWeight = nullptr, int32_t* maxCount = nullptr)
   {
     if (mLabels.size() == 0) {
       return U(); //default constructor creates NotSet label
     } else {
-      unsigned int bestLabelNum = 0, bestLabelCount = 0;
-      for (unsigned int j = 0; j < mLabels.size(); j++) {
+      uint32_t bestLabelNum = 0, bestLabelCount = 0;
+      for (uint32_t j = 0; j < mLabels.size(); j++) {
         if (mLabels[j].second > bestLabelCount) {
           bestLabelNum = j;
           bestLabelCount = mLabels[j].second;
@@ -120,15 +120,15 @@ class GPUTPCTrkLbl
 
  private:
   const S* mClusterLabels;
-  std::vector<std::pair<T, unsigned int>> mLabels;
+  std::vector<std::pair<T, uint32_t>> mLabels;
   const float mTrackMCMaxFake;
-  unsigned int mNCl = 0;
+  uint32_t mNCl = 0;
   float mTotalWeight = 0.f;
 };
 } // namespace internal
 
 struct GPUTPCTrkLbl_ret {
-  long id = -1;
+  int64_t id = -1;
   GPUTPCTrkLbl_ret() = default;
   template <class T>
   GPUTPCTrkLbl_ret(T){};

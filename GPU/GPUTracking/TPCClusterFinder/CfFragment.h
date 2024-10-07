@@ -34,7 +34,7 @@ struct CfFragment {
 
   size_t digitsStart = 0; // Start digits in this fragment. Only used when zero suppression is skipped
 
-  unsigned int index = 0;
+  uint32_t index = 0;
 
   bool hasBacklog = false;
   bool hasFuture = false;
@@ -52,7 +52,7 @@ struct CfFragment {
     return CfFragment{index + 1, hasFuture, tpccf::TPCTime(start + length - (hasFuture ? 2 * OverlapTimebins : 0)), totalSliceLength, maxSubSliceLength};
   }
 
-  GPUdi() unsigned int count() const
+  GPUdi() uint32_t count() const
   {
     return (totalSliceLength + maxSubSliceLength - 4 * OverlapTimebins - 1) / (maxSubSliceLength - 2 * OverlapTimebins);
   }

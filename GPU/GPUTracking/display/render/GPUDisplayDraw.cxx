@@ -47,9 +47,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (mCfgH.separateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
 
 const GPUTRDGeometry* GPUDisplay::trdGeometry() { return (GPUTRDGeometry*)mCalib->trdGeometry; }
-const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
+const GPUTPCTracker& GPUDisplay::sliceTracker(int32_t iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
 
-inline void GPUDisplay::insertVertexList(std::pair<vecpod<int>*, vecpod<unsigned int>*>& vBuf, size_t first, size_t last)
+inline void GPUDisplay::insertVertexList(std::pair<vecpod<int32_t>*, vecpod<uint32_t>*>& vBuf, size_t first, size_t last)
 {
   if (first == last) {
     return;
@@ -57,13 +57,13 @@ inline void GPUDisplay::insertVertexList(std::pair<vecpod<int>*, vecpod<unsigned
   vBuf.first->emplace_back(first);
   vBuf.second->emplace_back(last - first);
 }
-inline void GPUDisplay::insertVertexList(int iSlice, size_t first, size_t last)
+inline void GPUDisplay::insertVertexList(int32_t iSlice, size_t first, size_t last)
 {
-  std::pair<vecpod<int>*, vecpod<unsigned int>*> vBuf(mVertexBufferStart + iSlice, mVertexBufferCount + iSlice);
+  std::pair<vecpod<int32_t>*, vecpod<uint32_t>*> vBuf(mVertexBufferStart + iSlice, mVertexBufferCount + iSlice);
   insertVertexList(vBuf, first, last);
 }
 
-inline void GPUDisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_limit)
+inline void GPUDisplay::drawPointLinestrip(int32_t iSlice, int32_t cid, int32_t id, int32_t id_limit)
 {
   mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
   if (mGlobalPos[cid].w < id_limit) {
@@ -71,14 +71,14 @@ inline void GPUDisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_l
   }
 }
 
-GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int iCol)
+GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int32_t iSlice, int32_t select, int32_t iCol)
 {
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
 
   if (iCol == 0) {
-    for (unsigned int i = 0; i < mIOPtrs->nTRDTracklets; i++) {
-      int iSec = trdGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
+    for (uint32_t i = 0; i < mIOPtrs->nTRDTracklets; i++) {
+      int32_t iSec = trdGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       bool draw = iSlice == iSec && mGlobalPosTRD[i].w == select;
       if (draw) {
         mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[i].x, mGlobalPosTRD[i].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD[i].z);
@@ -91,13 +91,13 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int i
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawSpacePointsTOF(int iSlice, int select, int iCol)
+GPUDisplay::vboList GPUDisplay::DrawSpacePointsTOF(int32_t iSlice, int32_t select, int32_t iCol)
 {
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
 
   if (iCol == 0 && iSlice == 0) {
-    for (unsigned int i = 0; i < mIOPtrs->nTOFClusters; i++) {
+    for (uint32_t i = 0; i < mIOPtrs->nTOFClusters; i++) {
       mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[i].x, mGlobalPosTOF[i].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTOF[i].z);
     }
   }
@@ -106,13 +106,13 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTOF(int iSlice, int select, int i
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int iSlice, int select, int iCol)
+GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int32_t iSlice, int32_t select, int32_t iCol)
 {
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
 
   if (iCol == 0 && iSlice == 0 && mIOPtrs->itsClusters) {
-    for (unsigned int i = 0; i < mIOPtrs->nItsClusters; i++) {
+    for (uint32_t i = 0; i < mIOPtrs->nItsClusters; i++) {
       mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[i].x, mGlobalPosITS[i].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosITS[i].z);
     }
   }
@@ -121,16 +121,16 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int iSlice, int select, int i
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned int iCol)
+GPUDisplay::vboList GPUDisplay::DrawClusters(int32_t iSlice, int32_t select, uint32_t iCol)
 {
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
   if (mOverlayTFClusters.size() > 0 || iCol == 0 || mNCollissions) {
-    const int firstCluster = (mOverlayTFClusters.size() > 1 && iCol > 0) ? mOverlayTFClusters[iCol - 1][iSlice] : 0;
-    const int lastCluster = (mOverlayTFClusters.size() > 1 && iCol + 1 < mOverlayTFClusters.size()) ? mOverlayTFClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
+    const int32_t firstCluster = (mOverlayTFClusters.size() > 1 && iCol > 0) ? mOverlayTFClusters[iCol - 1][iSlice] : 0;
+    const int32_t lastCluster = (mOverlayTFClusters.size() > 1 && iCol + 1 < mOverlayTFClusters.size()) ? mOverlayTFClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
     const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
-    for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
-      const int cid = GET_CID(iSlice, cidInSlice);
+    for (int32_t cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
+      const int32_t cid = GET_CID(iSlice, cidInSlice);
 #ifdef GPUCA_TPC_GEOMETRY_O2
       if (checkClusterCollision) {
         const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
@@ -147,7 +147,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
       bool draw = mGlobalPos[cid].w == select;
 
       if (mCfgH.markAdjacentClusters) {
-        const int attach = mIOPtrs->mergedTrackHitAttachment[cid];
+        const int32_t attach = mIOPtrs->mergedTrackHitAttachment[cid];
         if (attach) {
           if (mCfgH.markAdjacentClusters >= 32) {
             if (mQA && mQA->clusterRemovable(attach, mCfgH.markAdjacentClusters == 33)) {
@@ -168,7 +168,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
           }
         }
       } else if (mCfgH.markClusters) {
-        short flags;
+        int16_t flags;
         if (mParam->par.earlyTpcTransform) {
           flags = mIOPtrs->clusterData[iSlice][cidInSlice].flags;
         } else {
@@ -189,23 +189,23 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, bool dodown)
+GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int32_t id, bool dodown)
 {
-  int iSlice = tracker.ISlice();
+  int32_t iSlice = tracker.ISlice();
   if (mCfgH.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
-  for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
     const GPUTPCRow& row = tracker.Data().Row(i);
 
     if (i < GPUCA_ROW_COUNT - 2) {
       const GPUTPCRow& rowUp = tracker.Data().Row(i + 2);
-      for (int j = 0; j < row.NHits(); j++) {
+      for (int32_t j = 0; j < row.NHits(); j++) {
         if (tracker.Data().HitLinkUpData(row, j) != CALINK_INVAL) {
-          const int cid1 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, j));
-          const int cid2 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
+          const int32_t cid1 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, j));
+          const int32_t cid2 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
           drawPointLinestrip(iSlice, cid1, id);
           drawPointLinestrip(iSlice, cid2, id);
         }
@@ -214,10 +214,10 @@ GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, 
 
     if (dodown && i >= 2) {
       const GPUTPCRow& rowDown = tracker.Data().Row(i - 2);
-      for (int j = 0; j < row.NHits(); j++) {
+      for (int32_t j = 0; j < row.NHits(); j++) {
         if (tracker.Data().HitLinkDownData(row, j) != CALINK_INVAL) {
-          const int cid1 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, j));
-          const int cid2 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j)));
+          const int32_t cid1 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, j));
+          const int32_t cid2 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j)));
           drawPointLinestrip(iSlice, cid1, id);
           drawPointLinestrip(iSlice, cid2, id);
         }
@@ -230,19 +230,19 @@ GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, 
 
 GPUDisplay::vboList GPUDisplay::DrawSeeds(const GPUTPCTracker& tracker)
 {
-  int iSlice = tracker.ISlice();
+  int32_t iSlice = tracker.ISlice();
   if (mCfgH.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
-  for (unsigned int i = 0; i < *tracker.NStartHits(); i++) {
+  for (uint32_t i = 0; i < *tracker.NStartHits(); i++) {
     const GPUTPCHitId& hit = tracker.TrackletStartHit(i);
     size_t startCountInner = mVertexBuffer[iSlice].size();
-    int ir = hit.RowIndex();
+    int32_t ir = hit.RowIndex();
     calink ih = hit.HitIndex();
     do {
       const GPUTPCRow& row = tracker.Data().Row(ir);
-      const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, ih));
+      const int32_t cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, ih));
       drawPointLinestrip(iSlice, cid, tSEED);
       ir += 2;
       ih = tracker.Data().HitLinkUpData(row, ih);
@@ -254,20 +254,20 @@ GPUDisplay::vboList GPUDisplay::DrawSeeds(const GPUTPCTracker& tracker)
 
 GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
 {
-  int iSlice = tracker.ISlice();
+  int32_t iSlice = tracker.ISlice();
   if (mCfgH.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
-  for (unsigned int i = 0; i < *tracker.NTracklets(); i++) {
+  for (uint32_t i = 0; i < *tracker.NTracklets(); i++) {
     const GPUTPCTracklet& tracklet = tracker.Tracklet(i);
     size_t startCountInner = mVertexBuffer[iSlice].size();
     float4 oldpos;
-    for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
+    for (int32_t j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
       const calink rowHit = tracker.TrackletRowHits()[tracklet.FirstHit() + (j - tracklet.FirstRow())];
       if (rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL) {
         const GPUTPCRow& row = tracker.Data().Row(j);
-        const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, rowHit));
+        const int32_t cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, rowHit));
         oldpos = mGlobalPos[cid];
         drawPointLinestrip(iSlice, cid, tTRACKLET);
       }
@@ -277,20 +277,20 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int global)
+GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int32_t global)
 {
-  int iSlice = tracker.ISlice();
+  int32_t iSlice = tracker.ISlice();
   if (mCfgH.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
-  for (unsigned int i = (global ? tracker.CommonMemory()->nLocalTracks : 0); i < (global ? *tracker.NTracks() : tracker.CommonMemory()->nLocalTracks); i++) {
+  for (uint32_t i = (global ? tracker.CommonMemory()->nLocalTracks : 0); i < (global ? *tracker.NTracks() : tracker.CommonMemory()->nLocalTracks); i++) {
     GPUTPCTrack& track = tracker.Tracks()[i];
     size_t startCountInner = mVertexBuffer[iSlice].size();
-    for (int j = 0; j < track.NHits(); j++) {
+    for (int32_t j = 0; j < track.NHits(); j++) {
       const GPUTPCHitId& hit = tracker.TrackHits()[track.FirstHitID() + j];
       const GPUTPCRow& row = tracker.Data().Row(hit.RowIndex());
-      const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
+      const int32_t cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
       drawPointLinestrip(iSlice, cid, tSLICETRACK + global);
     }
     insertVertexList(iSlice, startCountInner, mVertexBuffer[iSlice].size());
@@ -298,12 +298,12 @@ GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int glo
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-void GPUDisplay::DrawTrackITS(int trackId, int iSlice)
+void GPUDisplay::DrawTrackITS(int32_t trackId, int32_t iSlice)
 {
 #ifdef GPUCA_HAVE_O2HEADERS
   const auto& trk = mIOPtrs->itsTracks[trackId];
-  for (int k = 0; k < trk.getNClusters(); k++) {
-    int cid = mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
+  for (int32_t k = 0; k < trk.getNClusters(); k++) {
+    int32_t cid = mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
     mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosITS[cid].z);
     mGlobalPosITS[cid].w = tITSATTACHED;
   }
@@ -312,9 +312,9 @@ void GPUDisplay::DrawTrackITS(int trackId, int iSlice)
 
 GPUDisplay::vboList GPUDisplay::DrawFinalITS()
 {
-  const int iSlice = 0;
+  const int32_t iSlice = 0;
   size_t startCount = mVertexBufferStart[iSlice].size();
-  for (unsigned int i = 0; i < mIOPtrs->nItsTracks; i++) {
+  for (uint32_t i = 0; i < mIOPtrs->nItsTracks; i++) {
     if (mITSStandaloneTracks[i]) {
       size_t startCountInner = mVertexBuffer[iSlice].size();
       DrawTrackITS(i, iSlice);
@@ -325,24 +325,24 @@ GPUDisplay::vboList GPUDisplay::DrawFinalITS()
 }
 
 template <class T>
-void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer)
+void GPUDisplay::DrawFinal(int32_t iSlice, int32_t /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int32_t>, 2>& trackList, threadVertexBuffer& threadBuffer)
 {
   auto& vBuf = threadBuffer.vBuf;
   auto& buffer = threadBuffer.buffer;
-  unsigned int nTracks = std::max(trackList[0].size(), trackList[1].size());
+  uint32_t nTracks = std::max(trackList[0].size(), trackList[1].size());
   if (mCfgH.clustersOnly) {
     nTracks = 0;
   }
-  for (unsigned int ii = 0; ii < nTracks; ii++) {
-    int i = 0;
+  for (uint32_t ii = 0; ii < nTracks; ii++) {
+    int32_t i = 0;
     const T* track = nullptr;
-    int lastCluster = -1;
+    int32_t lastCluster = -1;
     while (true) {
       if (ii >= trackList[0].size()) {
         break;
       }
       i = trackList[0][ii];
-      int nClusters;
+      int32_t nClusters;
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         track = &mIOPtrs->mergedTracks[i];
         nClusters = track->NClusters();
@@ -375,7 +375,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       // Print TOF part of track
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1 && mIOPtrs->nTOFClusters) {
-          int cid = mIOPtrs->tpcLinkTOF[i];
+          int32_t cid = mIOPtrs->tpcLinkTOF[i];
           drawing = true;
           mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[cid].x, mGlobalPosTOF[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTOF[cid].z);
           mGlobalPosTOF[cid].w = tTOFATTACHED;
@@ -384,8 +384,8 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 
       // Print TRD part of track
       auto tmpDoTRDTracklets = [&](const auto& trk) {
-        for (int k = 5; k >= 0; k--) {
-          int cid = trk.getTrackletIndex(k);
+        for (int32_t k = 5; k >= 0; k--) {
+          int32_t cid = trk.getTrackletIndex(k);
           if (cid < 0) {
             continue;
           }
@@ -396,7 +396,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         }
       };
       if (std::is_same_v<T, GPUTPCGMMergedTrack> || (!mIOPtrs->tpcLinkTRD && mIOPtrs->trdTracksO2)) {
-        if (mChain && ((int)mConfig.showTPCTracksFromO2Format == (int)mChain->GetProcessingSettings().trdTrackModelO2) && mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
+        if (mChain && ((int32_t)mConfig.showTPCTracksFromO2Format == (int32_t)mChain->GetProcessingSettings().trdTrackModelO2) && mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
           if (mIOPtrs->trdTracksO2) {
 #ifdef GPUCA_HAVE_O2HEADERS
             tmpDoTRDTracklets(mIOPtrs->trdTracksO2[mTRDTrackIds[i]]);
@@ -416,19 +416,19 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       }
 
       // Print TPC part of track
-      for (int k = 0; k < nClusters; k++) {
+      for (int32_t k = 0; k < nClusters; k++) {
         if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
           if (mCfgH.hideRejectedClusters && (mIOPtrs->mergedTrackHits[track->FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject)) {
             continue;
           }
         }
-        int cid;
+        int32_t cid;
         if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
           cid = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + k].num;
         } else {
           cid = &track->getCluster(mIOPtrs->outputClusRefsTPCO2, k, *mIOPtrs->clustersNative) - mIOPtrs->clustersNative->clustersLinear;
         }
-        int w = mGlobalPos[cid].w;
+        int32_t w = mGlobalPos[cid].w;
         if (drawing) {
           drawPointLinestrip(iSlice, cid, tFINALTRACK, SEPERATE_GLOBAL_TRACKS_LIMIT);
         }
@@ -472,7 +472,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
     }
 
     // Propagate track paramters / plot MC tracks
-    for (int iMC = 0; iMC < 2; iMC++) {
+    for (int32_t iMC = 0; iMC < 2; iMC++) {
       if (iMC) {
         if (ii >= trackList[1].size()) {
           continue;
@@ -488,7 +488,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       }
 
       size_t startCountInner = mVertexBuffer[iSlice].size();
-      for (int inFlyDirection = 0; inFlyDirection < 2; inFlyDirection++) {
+      for (int32_t inFlyDirection = 0; inFlyDirection < 2; inFlyDirection++) {
         GPUTPCGMPhysicalTrackModel trkParam;
         float ZOffset = 0;
         float x = 0;
@@ -574,7 +574,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         }
         float alpha = alphaOrg;
         vecpod<vtx>& useBuffer = iMC && inFlyDirection == 0 ? buffer : mVertexBuffer[iSlice];
-        int nPoints = 0;
+        int32_t nPoints = 0;
 
         while (nPoints++ < 5000) {
           if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + trkParam.Y() * trkParam.Y() > (iMC ? (450 * 450) : (300 * 300)))) {
@@ -618,7 +618,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 
         if (inFlyDirection == 0) {
           if (iMC) {
-            for (int k = (int)buffer.size() - 1; k >= 0; k--) {
+            for (int32_t k = (int32_t)buffer.size() - 1; k >= 0; k--) {
               mVertexBuffer[iSlice].emplace_back(buffer[k]);
             }
           } else {
@@ -634,12 +634,12 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 
 GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
 {
-  int iSlice = tracker.ISlice();
+  int32_t iSlice = tracker.ISlice();
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
-  for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
     const GPUTPCRow& row = tracker.Data().Row(i);
-    for (int j = 0; j <= (signed)row.Grid().Ny(); j++) {
+    for (int32_t j = 0; j <= (signed)row.Grid().Ny(); j++) {
       float z1 = row.Grid().ZMin();
       float z2 = row.Grid().ZMax();
       float x = row.X() + mCfgH.xAdd;
@@ -657,7 +657,7 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
       mVertexBuffer[iSlice].emplace_back(xx1 * GL_SCALE_FACTOR, yy1 * GL_SCALE_FACTOR * mYFactor, zz1 * GL_SCALE_FACTOR);
       mVertexBuffer[iSlice].emplace_back(xx2 * GL_SCALE_FACTOR, yy2 * GL_SCALE_FACTOR * mYFactor, zz2 * GL_SCALE_FACTOR);
     }
-    for (int j = 0; j <= (signed)row.Grid().Nz(); j++) {
+    for (int32_t j = 0; j <= (signed)row.Grid().Nz(); j++) {
       float y1 = row.Grid().YMin();
       float y2 = row.Grid().YMax();
       float x = row.X() + mCfgH.xAdd;
@@ -680,7 +680,7 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
+GPUDisplay::vboList GPUDisplay::DrawGridTRD(int32_t sector)
 {
   // TODO: tilted pads ignored at the moment
   size_t startCount = mVertexBufferStart[sector].size();
@@ -688,20 +688,20 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
 #ifdef GPUCA_HAVE_O2HEADERS
   auto* geo = trdGeometry();
   if (geo) {
-    int trdsector = NSLICES / 2 - 1 - sector;
+    int32_t trdsector = NSLICES / 2 - 1 - sector;
     float alpha = geo->GetAlpha() / 2.f + geo->GetAlpha() * trdsector;
     if (trdsector >= 9) {
       alpha -= 2 * CAMath::Pi();
     }
-    for (int iLy = 0; iLy < GPUTRDTracker::EGPUTRDTracker::kNLayers; ++iLy) {
-      for (int iStack = 0; iStack < GPUTRDTracker::EGPUTRDTracker::kNStacks; ++iStack) {
-        int iDet = geo->GetDetector(iLy, iStack, trdsector);
+    for (int32_t iLy = 0; iLy < GPUTRDTracker::EGPUTRDTracker::kNLayers; ++iLy) {
+      for (int32_t iStack = 0; iStack < GPUTRDTracker::EGPUTRDTracker::kNStacks; ++iStack) {
+        int32_t iDet = geo->GetDetector(iLy, iStack, trdsector);
         auto matrix = geo->GetClusterMatrix(iDet);
         if (!matrix) {
           continue;
         }
         auto pp = geo->GetPadPlane(iDet);
-        for (int i = 0; i < pp->GetNrows(); ++i) {
+        for (int32_t i = 0; i < pp->GetNrows(); ++i) {
           float xyzLoc1[3];
           float xyzLoc2[3];
           float xyzGlb1[3];
@@ -721,7 +721,7 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
           mVertexBuffer[sector].emplace_back(xyzGlb1[0] * GL_SCALE_FACTOR, xyzGlb1[1] * GL_SCALE_FACTOR * mYFactor, xyzGlb1[2] * GL_SCALE_FACTOR);
           mVertexBuffer[sector].emplace_back(xyzGlb2[0] * GL_SCALE_FACTOR, xyzGlb2[1] * GL_SCALE_FACTOR * mYFactor, xyzGlb2[2] * GL_SCALE_FACTOR);
         }
-        for (int j = 0; j < pp->GetNcols(); ++j) {
+        for (int32_t j = 0; j < pp->GetNcols(); ++j) {
           float xyzLoc1[3];
           float xyzLoc2[3];
           float xyzGlb1[3];
@@ -751,38 +751,38 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
 
 size_t GPUDisplay::DrawGLScene_updateVertexList()
 {
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
     mVertexBuffer[i].clear();
     mVertexBufferStart[i].clear();
     mVertexBufferCount[i].clear();
   }
 
-  for (int i = 0; i < mCurrentClusters; i++) {
+  for (int32_t i = 0; i < mCurrentClusters; i++) {
     mGlobalPos[i].w = tCLUSTER;
   }
-  for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
+  for (int32_t i = 0; i < mCurrentSpacePointsTRD; i++) {
     mGlobalPosTRD[i].w = tTRDCLUSTER;
   }
 
-  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    for (int i = 0; i < N_POINTS_TYPE; i++) {
+  for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int32_t i = 0; i < N_POINTS_TYPE; i++) {
       mGlDLPoints[iSlice][i].resize(mNCollissions);
     }
-    for (int i = 0; i < N_FINAL_TYPE; i++) {
+    for (int32_t i = 0; i < N_FINAL_TYPE; i++) {
       mGlDLFinal[iSlice].resize(mNCollissions);
     }
   }
   GPUCA_OPENMP(parallel num_threads(getNumThreads()))
   {
 #ifdef WITH_OPENMP
-    int numThread = omp_get_thread_num();
-    int numThreads = omp_get_num_threads();
+    int32_t numThread = omp_get_thread_num();
+    int32_t numThreads = omp_get_num_threads();
 #else
-    int numThread = 0, numThreads = 1;
+    int32_t numThread = 0, numThreads = 1;
 #endif
     if (mChain && (mChain->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking)) {
       GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
         GPUTPCTracker& tracker = (GPUTPCTracker&)sliceTracker(iSlice);
         tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
         mGlDLLines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
@@ -791,7 +791,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       GPUCA_OPENMP(barrier)
 
       GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
         const GPUTPCTracker& tracker = sliceTracker(iSlice);
 
         mGlDLLines[iSlice][tLINK] = DrawLinks(tracker, tLINK);
@@ -806,25 +806,25 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       GPUCA_OPENMP(barrier)
 
       GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
         const GPUTPCTracker& tracker = sliceTracker(iSlice);
         mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
       }
       GPUCA_OPENMP(barrier)
     }
     mThreadTracks[numThread].resize(mNCollissions);
-    for (int i = 0; i < mNCollissions; i++) {
-      for (int j = 0; j < NSLICES; j++) {
-        for (int k = 0; k < 2; k++) {
+    for (int32_t i = 0; i < mNCollissions; i++) {
+      for (int32_t j = 0; j < NSLICES; j++) {
+        for (int32_t k = 0; k < 2; k++) {
           mThreadTracks[numThread][i][j][k].clear();
         }
       }
     }
     if (mConfig.showTPCTracksFromO2Format) {
 #ifdef GPUCA_TPC_GEOMETRY_O2
-      unsigned int col = 0;
+      uint32_t col = 0;
       GPUCA_OPENMP(for)
-      for (unsigned int i = 0; i < mIOPtrs->nOutputTracksTPCO2; i++) {
+      for (uint32_t i = 0; i < mIOPtrs->nOutputTracksTPCO2; i++) {
         uint8_t sector, row;
         if (mIOPtrs->clustersNative) {
           mIOPtrs->outputTracksTPCO2[i].getCluster(mIOPtrs->outputClusRefsTPCO2, 0, *mIOPtrs->clustersNative, sector, row);
@@ -839,7 +839,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
 #endif
     } else {
       GPUCA_OPENMP(for)
-      for (unsigned int i = 0; i < mIOPtrs->nMergedTracks; i++) {
+      for (uint32_t i = 0; i < mIOPtrs->nMergedTracks; i++) {
         const GPUTPCGMMergedTrack* track = &mIOPtrs->mergedTracks[i];
         if (track->NClusters() == 0) {
           continue;
@@ -847,8 +847,8 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         if (mCfgH.hideRejectedTracks && !track->OK()) {
           continue;
         }
-        int slice = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + track->NClusters() - 1].slice;
-        unsigned int col = 0;
+        int32_t slice = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + track->NClusters() - 1].slice;
+        uint32_t col = 0;
         if (mQA) {
           const auto& label = mQA->GetMCTrackLabel(i);
 #ifdef GPUCA_TPC_GEOMETRY_O2
@@ -862,9 +862,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         mThreadTracks[numThread][col][slice][0].emplace_back(i);
       }
     }
-    for (unsigned int col = 0; col < mIOPtrs->nMCInfosTPCCol; col++) {
+    for (uint32_t col = 0; col < mIOPtrs->nMCInfosTPCCol; col++) {
       GPUCA_OPENMP(for)
-      for (unsigned int i = mIOPtrs->mcInfosTPCCol[col].first; i < mIOPtrs->mcInfosTPCCol[col].first + mIOPtrs->mcInfosTPCCol[col].num; i++) {
+      for (uint32_t i = mIOPtrs->mcInfosTPCCol[col].first; i < mIOPtrs->mcInfosTPCCol[col].first + mIOPtrs->mcInfosTPCCol[col].num; i++) {
         const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
         if (mc.charge == 0.f) {
           continue;
@@ -877,7 +877,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         if (alpha < 0) {
           alpha += 2 * CAMath::Pi();
         }
-        int slice = alpha / (2 * CAMath::Pi()) * 18;
+        int32_t slice = alpha / (2 * CAMath::Pi()) * 18;
         if (mc.z < 0) {
           slice += 18;
         }
@@ -892,10 +892,10 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     prop.SetPolynomialField(&mParam->polynomialField);
 
     GPUCA_OPENMP(for)
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+    for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
         mThreadBuffers[numThread].clear();
-        for (int iSet = 0; iSet < numThreads; iSet++) {
+        for (int32_t iSet = 0; iSet < numThreads; iSet++) {
 #ifdef GPUCA_HAVE_O2HEADERS
           if (mConfig.showTPCTracksFromO2Format) {
             DrawFinal<o2::tpc::TrackTPC>(iSlice, iCol, &prop, mThreadTracks[iSet][iCol][iSlice], mThreadBuffers[numThread]);
@@ -906,9 +906,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
           }
         }
         vboList* list = &mGlDLFinal[iSlice][iCol][0];
-        for (int i = 0; i < N_FINAL_TYPE; i++) {
+        for (int32_t i = 0; i < N_FINAL_TYPE; i++) {
           size_t startCount = mVertexBufferStart[iSlice].size();
-          for (unsigned int j = 0; j < mThreadBuffers[numThread].start[i].size(); j++) {
+          for (uint32_t j = 0; j < mThreadBuffers[numThread].start[i].size(); j++) {
             mVertexBufferStart[iSlice].emplace_back(mThreadBuffers[numThread].start[i][j]);
             mVertexBufferCount[iSlice].emplace_back(mThreadBuffers[numThread].count[i][j]);
           }
@@ -919,9 +919,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
 
     GPUCA_OPENMP(barrier)
     GPUCA_OPENMP(for)
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (int i = 0; i < N_POINTS_TYPE_TPC; i++) {
-        for (int iCol = 0; iCol < mNCollissions; iCol++) {
+    for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
+        for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
           mGlDLPoints[iSlice][i][iCol] = DrawClusters(iSlice, i, iCol);
         }
       }
@@ -931,26 +931,26 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
 
   mGlDLFinalITS = DrawFinalITS();
 
-  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    for (int i = N_POINTS_TYPE_TPC; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i++) {
-      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+  for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int32_t i = N_POINTS_TYPE_TPC; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i++) {
+      for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
         mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsTRD(iSlice, i, iCol);
       }
     }
   }
 
-  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i++) {
-      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+  for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int32_t i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i++) {
+      for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
         mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsTOF(iSlice, i, iCol);
       }
     }
     break; // TODO: Only slice 0 filled for now
   }
 
-  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
-      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+  for (int32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int32_t i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
+      for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
         mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsITS(iSlice, i, iCol);
       }
     }
@@ -959,7 +959,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
 
   mUpdateVertexLists = 0;
   size_t totalVertizes = 0;
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
     totalVertizes += mVertexBuffer[i].size();
   }
   if (totalVertizes > 0xFFFFFFFF) {
@@ -970,8 +970,8 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
   if (!mUseMultiVBO) {
     size_t totalYet = mVertexBuffer[0].size();
     mVertexBuffer[0].resize(totalVertizes);
-    for (int i = 1; i < GPUCA_NSLICES; i++) {
-      for (unsigned int j = 0; j < mVertexBufferStart[i].size(); j++) {
+    for (int32_t i = 1; i < GPUCA_NSLICES; i++) {
+      for (uint32_t j = 0; j < mVertexBufferStart[i].size(); j++) {
         mVertexBufferStart[i][j] += totalYet;
       }
       memcpy(&mVertexBuffer[0][totalYet], &mVertexBuffer[i][0], mVertexBuffer[i].size() * sizeof(mVertexBuffer[i][0]));
@@ -980,7 +980,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     }
   }
   mBackend->loadDataToGPU(totalVertizes);
-  for (int i = 0; i < (mUseMultiVBO ? GPUCA_NSLICES : 1); i++) {
+  for (int32_t i = 0; i < (mUseMultiVBO ? GPUCA_NSLICES : 1); i++) {
     mVertexBuffer[i].clear();
   }
   return totalVertizes;

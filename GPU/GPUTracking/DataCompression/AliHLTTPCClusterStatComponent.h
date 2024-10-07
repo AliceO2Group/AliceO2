@@ -38,39 +38,39 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   /** destructor */
   virtual ~AliHLTTPCClusterStatComponent();
 
-  static const unsigned int NSLICES = 36;
-  static const unsigned int NPATCHES = 6;
+  static const uint32_t NSLICES = 36;
+  static const uint32_t NPATCHES = 6;
 
   struct AliHLTTPCTrackHelperStruct {
-    int fID;
+    int32_t fID;
     const AliHLTExternalTrackParam* fTrack;
     float fResidualPad;
     float fResidualTime;
     bool fFirstHit;
-    long fAverageQMax;
-    long fAverageQTot;
+    int64_t fAverageQMax;
+    int64_t fAverageQTot;
   };
 
   // interface methods of base class
   const char* GetComponentID() { return "TPCClusterStat"; };
   void GetInputDataTypes(AliHLTComponentDataTypeList& list);
   AliHLTComponentDataType GetOutputDataType();
-  void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  void GetOutputDataSize(uint64_t& constBase, double& inputMultiplier);
   AliHLTComponent* Spawn() { return new AliHLTTPCClusterStatComponent; }
 
-  static void TransformReverse(int slice, int row, float y, float z, float padtime[]);
-  static void TransformForward(int slice, int row, float pad, float time, float xyz[]);
+  static void TransformReverse(int32_t slice, int32_t row, float y, float z, float padtime[]);
+  static void TransformForward(int32_t slice, int32_t row, float pad, float time, float xyz[]);
 
-  void PrintDumpClustersScaled(int is, int ip, AliHLTTPCRawCluster& cluster, AliHLTTPCClusterXYZ& clusterTransformed, AliHLTTPCTrackHelperStruct& clusterTrack);
+  void PrintDumpClustersScaled(int32_t is, int32_t ip, AliHLTTPCRawCluster& cluster, AliHLTTPCClusterXYZ& clusterTransformed, AliHLTTPCTrackHelperStruct& clusterTrack);
 
  protected:
   // interface methods of base class
-  int DoInit(int argc, const char** argv);
-  int DoDeinit();
-  int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, AliHLTComponentBlockDataList& outputBlocks);
+  int32_t DoInit(int argc, const char** argv);
+  int32_t DoDeinit();
+  int32_t DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, AliHLTComponentBlockDataList& outputBlocks);
 
   using AliHLTProcessor::DoEvent;
-  int ProcessOption(TString option, TString value);
+  int32_t ProcessOption(TString option, TString value);
 
  private:
   /** copy constructor prohibited */
@@ -80,15 +80,15 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
 
   GPUCA_NAMESPACE::gpu::GPUParam* mSliceParam;
 
-  int fTotal, fEdge, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
+  int32_t fTotal, fEdge, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
 
-  int fCompressionStudy;    //!
-  int fPrintClusters;       //!
-  int fPrintClustersScaled; //!
-  int fDumpClusters;        //!
-  int fAggregate;           //!
-  int fSort;                //!
-  int fEvent;
+  int32_t fCompressionStudy;    //!
+  int32_t fPrintClusters;       //!
+  int32_t fPrintClustersScaled; //!
+  int32_t fDumpClusters;        //!
+  int32_t fAggregate;           //!
+  int32_t fSort;                //!
+  int32_t fEvent;
 
   FILE* fp;
 

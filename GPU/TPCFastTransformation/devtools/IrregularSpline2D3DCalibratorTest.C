@@ -53,16 +53,16 @@ float* splineF_data = 0;
 
 void initF()
 {
-  const int nKnotsU = 6;
-  const int nKnotsV = 6;
+  const int32_t nKnotsU = 6;
+  const int32_t nKnotsV = 6;
   float knotsU[nKnotsU];
   float knotsV[nKnotsV];
-  for (int i = 0; i < nKnotsU; i++) {
+  for (int32_t i = 0; i < nKnotsU; i++) {
     knotsU[i] = i / (double)(nKnotsU - 1);
   }
   knotsU[0] = 0.;
   knotsU[nKnotsU - 1] = 1.;
-  for (int i = 0; i < nKnotsV; i++) {
+  for (int32_t i = 0; i < nKnotsV; i++) {
     knotsV[i] = i / (double)(nKnotsV - 1);
   }
   knotsV[0] = 0.;
@@ -73,13 +73,13 @@ void initF()
   std::cout << "number of knots: " << splineF.getNumberOfKnots() << std::endl;
 
   splineF_data = new float[splineF.getNumberOfKnots() * 3];
-  for (int i = 0; i < splineF.getNumberOfKnots(); i++) {
+  for (int32_t i = 0; i < splineF.getNumberOfKnots(); i++) {
     splineF_data[3 * i + 0] = gRandom->Uniform(-1., 1.);
     splineF_data[3 * i + 1] = gRandom->Uniform(-1., 1.);
     splineF_data[3 * i + 2] = gRandom->Uniform(-1., 1.);
   }
 
-  for (int i = 0; i < splineF.getNumberOfKnots(); i++) { // set Fy=Fz=Fx
+  for (int32_t i = 0; i < splineF.getNumberOfKnots(); i++) { // set Fy=Fz=Fx
     splineF_data[3 * i + 1] = splineF_data[3 * i + 0];
     splineF_data[3 * i + 2] = splineF_data[3 * i + 0];
   }
@@ -92,7 +92,7 @@ void F(float u, float v, float& fx, float& fy, float& fz)
   splineF.getSplineVec(splineF_data, u, v, fx, fy, fz);
 }
 
-bool initTPC(const char* fileName, int slice, int row)
+bool initTPC(const char* fileName, int32_t slice, int32_t row)
 {
   // open NTuple file
 
@@ -116,15 +116,15 @@ bool initTPC(const char* fileName, int slice, int row)
   nt->SetBranchAddress("du", &du);
   nt->SetBranchAddress("dv", &dv);
 
-  int nKnots = 101;
+  int32_t nKnots = 101;
   splineF.constructRegular(nKnots, nKnots);
   delete[] splineF_data;
   splineF_data = new float[3 * splineF.getNumberOfKnots()];
-  for (int i = 0; i < 3 * splineF.getNumberOfKnots(); i++)
+  for (int32_t i = 0; i < 3 * splineF.getNumberOfKnots(); i++)
     splineF_data[i] = 0.;
 
-  int nent = 0;
-  for (int i = 0; i < nt->GetEntriesFast(); i++) {
+  int32_t nent = 0;
+  for (int32_t i = 0; i < nt->GetEntriesFast(); i++) {
     nt->GetEntry(i);
     if (nearbyint(fslice) != slice || nearbyint(frow) != row)
       continue;
@@ -144,7 +144,7 @@ bool initTPC(const char* fileName, int slice, int row)
   return 1;
 }
 
-int IrregularSpline2D3DCalibratorTest()
+int32_t IrregularSpline2D3DCalibratorTest()
 {
 
   const bool kDraw = 1;
@@ -176,12 +176,12 @@ int IrregularSpline2D3DCalibratorTest()
   TH1F* qaX = new TH1F("qaX", "diff F - spline", 1000, -0.05, 0.05);
 
   char keyPressed = '\0';
-  for (int sample = 1; (keyPressed != 'q') && (sample < 2); sample++) {
+  for (int32_t sample = 1; (keyPressed != 'q') && (sample < 2); sample++) {
 
-    int seed = sample;
+    int32_t seed = sample;
     /*
       gRandom->SetSeed(0);
-      seed = gRandom->Integer(100);      
+      seed = gRandom->Integer(100);
     */
     gRandom->SetSeed(seed);
     if (kTestTPC) {
@@ -234,10 +234,10 @@ int IrregularSpline2D3DCalibratorTest()
       {
         const IrregularSpline1D& gridU = splineF.getGridU();
         const IrregularSpline1D& gridV = splineF.getGridV();
-        int nKnots = 0;
-        for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
+        int32_t nKnots = 0;
+        for (int32_t i = 0; i < gridU.getNumberOfKnots(); i++) {
           double u = gridU.getKnot(i).u;
-          for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
+          for (int32_t j = 0; j < gridV.getNumberOfKnots(); j++) {
             double v = gridV.getKnot(j).u;
             float fx, fy, fz;
             F(u, v, fx, fy, fz);
@@ -249,10 +249,10 @@ int IrregularSpline2D3DCalibratorTest()
       const IrregularSpline1D& gridU = finder.getSpline().getGridU();
       const IrregularSpline1D& gridV = finder.getSpline().getGridV();
 
-      int nKnots = 0;
-      for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
+      int32_t nKnots = 0;
+      for (int32_t i = 0; i < gridU.getNumberOfKnots(); i++) {
         double u = gridU.getKnot(i).u;
-        for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
+        for (int32_t j = 0; j < gridV.getNumberOfKnots(); j++) {
           double v = gridV.getKnot(j).u;
           float fx, fy, fz;
           F(u, v, fx, fy, fz);
@@ -265,7 +265,7 @@ int IrregularSpline2D3DCalibratorTest()
 
       float stepu = 1.e-2;
       float stepv = 1.e-2;
-      int nPoints = 0;
+      int32_t nPoints = 0;
       for (float u = 0; u <= 1; u += stepu) {
         for (float v = 0; v <= 1; v += stepv) {
           float fx0, fy0, fz0;

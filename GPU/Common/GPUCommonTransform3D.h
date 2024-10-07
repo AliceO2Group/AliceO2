@@ -27,7 +27,7 @@ class Transform3D
   Transform3D() = default;
   Transform3D(float* v)
   {
-    for (int i = 0; i < 12; i++) {
+    for (int32_t i = 0; i < 12; i++) {
       m[i] = v[i];
     }
   }

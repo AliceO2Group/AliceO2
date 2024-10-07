@@ -78,10 +78,10 @@ struct GPUMemorySizeScalers {
   inline size_t NTPCTracklets(size_t tpcHits) { return getValue(tpcMaxTracklets, NTPCStartHits(tpcHits) * tpcTrackletsPerStartHit); }
   inline size_t NTPCTrackletHits(size_t tpcHits) { return getValue(tpcMaxTrackletHits, hitOffset + tpcHits * tpcTrackletHitsPerHit); }
   inline size_t NTPCSectorTracks(size_t tpcHits) { return getValue(tpcMaxSectorTracks, tpcHits * tpcSectorTracksPerHit); }
-  inline size_t NTPCSectorTrackHits(size_t tpcHits, unsigned char withRejection = 0) { return getValue(tpcMaxSectorTrackHits, tpcHits * (withRejection ? tpcSectorTrackHitsPerHitWithRejection : tpcSectorTrackHitsPerHit)); }
+  inline size_t NTPCSectorTrackHits(size_t tpcHits, uint8_t withRejection = 0) { return getValue(tpcMaxSectorTrackHits, tpcHits * (withRejection ? tpcSectorTrackHitsPerHitWithRejection : tpcSectorTrackHitsPerHit)); }
   inline size_t NTPCMergedTracks(size_t tpcSliceTracks) { return getValue(tpcMaxMergedTracks, tpcSliceTracks * (conservative ? 1.0 : tpcMergedTrackPerSliceTrack)); }
   inline size_t NTPCMergedTrackHits(size_t tpcSliceTrackHitss) { return getValue(tpcMaxMergedTrackHits, tpcSliceTrackHitss * tpcMergedTrackHitPerSliceHit); }
-  inline size_t NTPCUnattachedHitsBase1024(int type) { return (returnMaxVal || conservative) ? 1024 : std::min<size_t>(1024, tpcCompressedUnattachedHitsBase1024[type] * factor * temporaryFactor); }
+  inline size_t NTPCUnattachedHitsBase1024(int32_t type) { return (returnMaxVal || conservative) ? 1024 : std::min<size_t>(1024, tpcCompressedUnattachedHitsBase1024[type] * factor * temporaryFactor); }
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

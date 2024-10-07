@@ -56,7 +56,7 @@ void* GPUTPCCompression::SetPointersOutput(void* mem)
 }
 
 template <class T>
-void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA)
+void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, uint32_t nClA, uint32_t nTr, uint32_t nClU, bool reducedClA)
 {
   computePointerWithAlignment(mem, c.qTotU, nClU); // Do not reorder, qTotU ist used as first address in GPUChainTracking::RunTPCCompression
   computePointerWithAlignment(mem, c.qMaxU, nClU);
@@ -67,7 +67,7 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
   computePointerWithAlignment(mem, c.sigmaTimeU, nClU);
   computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_ROW_COUNT * NSLICES);
 
-  unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
+  uint32_t nClAreduced = reducedClA ? nClA - nTr : nClA;
 
   if (!(mRec->GetParam().rec.tpc.compressionTypeMask & GPUSettings::CompressionTrackModel)) {
     return; // Track model disabled, do not allocate memory
@@ -106,7 +106,7 @@ void GPUTPCCompression::RegisterMemoryAllocation()
   if (mRec->GetProcessingSettings().tpcCompressionGatherMode == 3) {
     mMemoryResOutputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutputGPU, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCCompressionOutputGPU");
   }
-  unsigned int stackScratch = (mRec->GetProcessingSettings().tpcCompressionGatherMode != 3) ? GPUMemoryResource::MEMORY_STACK : 0;
+  uint32_t stackScratch = (mRec->GetProcessingSettings().tpcCompressionGatherMode != 3) ? GPUMemoryResource::MEMORY_STACK : 0;
   if (mRec->GetProcessingSettings().tpcCompressionGatherMode < 2) {
     mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT | stackScratch, "TPCCompressionOutput");
   }

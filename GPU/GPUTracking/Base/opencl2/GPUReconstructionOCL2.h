@@ -35,13 +35,13 @@ class GPUReconstructionOCL2Backend : public GPUReconstructionOCL
  protected:
   GPUReconstructionOCL2Backend(const GPUSettingsDeviceBackend& cfg);
 
-  template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlSetupArgs<T, I, Args...>& args);
-  template <class S, class T, int I, bool MULTI>
+  template <class T, int32_t I = 0, typename... Args>
+  int32_t runKernelBackend(const krnlSetupArgs<T, I, Args...>& args);
+  template <class S, class T, int32_t I, bool MULTI>
   S& getKernelObject();
 
-  int GetOCLPrograms() override;
-  bool CheckPlatform(unsigned int i) override;
+  int32_t GetOCLPrograms() override;
+  bool CheckPlatform(uint32_t i) override;
 };
 
 using GPUReconstructionOCL2 = GPUReconstructionKernels<GPUReconstructionOCL2Backend>;

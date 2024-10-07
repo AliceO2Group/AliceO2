@@ -15,7 +15,7 @@ const double kTwoPi = TMath::TwoPi(); // 2.*kPi;
 const double kSliceDAngle = kTwoPi / 18.;
 const double kSliceAngleOffset = kSliceDAngle / 2;
 
-int GetSlice(double GlobalPhi)
+int32_t GetSlice(double GlobalPhi)
 {
   double phi = GlobalPhi;
   //  std::cout<<" GetSlice: phi = "<<phi<<std::endl;
@@ -26,18 +26,18 @@ int GetSlice(double GlobalPhi)
   if (phi < 0) {
     phi += kTwoPi;
   }
-  return (int)(phi / kSliceDAngle);
+  return (int32_t)(phi / kSliceDAngle);
 }
 
-int GetDSlice(double LocalPhi) { return GetSlice(LocalPhi + kSliceAngleOffset); }
+int32_t GetDSlice(double LocalPhi) { return GetSlice(LocalPhi + kSliceAngleOffset); }
 
-double GetSliceAngle(int iSlice) { return kSliceAngleOffset + iSlice * kSliceDAngle; }
+double GetSliceAngle(int32_t iSlice) { return kSliceAngleOffset + iSlice * kSliceDAngle; }
 
-int RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, AliExternalTrackParam& t0, int& iSlice)
+int32_t RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, AliExternalTrackParam& t0, int32_t& iSlice)
 {
   double phi = atan2(t.GetY(), t.GetX());
   //  std::cout<<" recalculate: phi = "<<phi<<std::endl;
-  int dSlice = GetDSlice(phi);
+  int32_t dSlice = GetDSlice(phi);
 
   if (dSlice == 0) {
     return 0; // nothing to do
@@ -57,13 +57,13 @@ int RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, AliExternalTrackParam& t0, i
   return 1;
 }
 
-int checkPropagation()
+int32_t checkPropagation()
 {
   // gSystem->Load("libAliHLTTPC");
 
   TH1F* hDiff[3] = {0, 0, 0};
 
-  for (int i = 0; i < 3; i++) {
+  for (int32_t i = 0; i < 3; i++) {
     char* s = i == 0 ? "X" : (i == 1 ? "Y" : "Z");
     char name[1024], title[1024];
     snprintf(name, 1024, "hDiff%s", s);
@@ -82,9 +82,9 @@ int checkPropagation()
   prop.SetPolynomialField(&field);
   prop.SetToyMCEventsFlag(kTRUE);
 
-  const int nTracks = 1000;
+  const int32_t nTracks = 1000;
 
-  for (int itr = 0; itr < nTracks; itr++) {
+  for (int32_t itr = 0; itr < nTracks; itr++) {
     std::cout << "Track " << itr << ":" << std::endl;
 
     double dphi = kTwoPi / nTracks;
@@ -95,7 +95,7 @@ int checkPropagation()
     // double theta = gRandom->Uniform(-60,60)*TMath::Pi()/180.;
     double pt = .1 * std::pow(10, gRandom->Uniform(0, 2.2));
     double q = 1.;
-    int iSlice = GetSlice(phi);
+    int32_t iSlice = GetSlice(phi);
     phi = phi - GetSliceAngle(iSlice);
 
     // std::cout<<"phi = "<<phi<<std::endl;
@@ -114,7 +114,7 @@ int checkPropagation()
       double alpha = GetSliceAngle(iSlice);
       double p[5] = {t.GetY(), t.GetZ(), t.GetSinPhi(), t.GetDzDs(), t.GetQPt()};
       double cv[15];
-      for (int i = 0; i < 15; i++) {
+      for (int32_t i = 0; i < 15; i++) {
         cv[i] = 0;
       }
       t0 = AliExternalTrackParam(x0, alpha, p, cv);
@@ -126,12 +126,12 @@ int checkPropagation()
     }
     AliHLTTPCGeometry geo;
 
-    for (int iRow = 0; iRow < geo.GetNRows(); iRow++) {
+    for (int32_t iRow = 0; iRow < geo.GetNRows(); iRow++) {
       // if( iRow>=50 ) break; //SG!!!
       float xRow = geo.Row2X(iRow);
       // transport to row
-      int err = 0;
-      for (int itry = 0; itry < 1; itry++) {
+      int32_t err = 0;
+      for (int32_t itry = 0; itry < 1; itry++) {
         double alpha = GetSliceAngle(iSlice);
         float B[3];
         prop.GetBxByBz(alpha, t.GetX(), t.GetY(), t.GetZ(), B);
@@ -158,7 +158,7 @@ int checkPropagation()
           break;
         }
         // rotate track coordinate system to current sector
-        int isNewSlice = RecalculateSlice(t, t0, iSlice);
+        int32_t isNewSlice = RecalculateSlice(t, t0, iSlice);
         if (!isNewSlice) {
           break;
         } else {
@@ -181,15 +181,15 @@ int checkPropagation()
       hDiff[2]->Fill(dz);
       // cout<<" x "<<xRow<<" dx "<<dx<<" dy "<<dy<<" dz "<<dz<<endl;
     } // iRow
-  }   // itr
+  } // itr
 
   // finish
 
   TFile* tout = new TFile("propagate.root", "RECREATE");
   TCanvas* c = new TCanvas("PropagatorErrors", "Propagator Errors", 0, 0, 700, 700. * 2. / 3.);
   c->Divide(3);
-  int ipad = 1;
-  for (int i = 0; i < 3; i++) {
+  int32_t ipad = 1;
+  for (int32_t i = 0; i < 3; i++) {
     c->cd(ipad++);
 
     if (tout) {

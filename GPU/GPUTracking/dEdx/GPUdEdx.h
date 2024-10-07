@@ -36,8 +36,8 @@ class GPUdEdx
 {
  public:
   GPUd() void clear() {}
-  GPUd() void fillCluster(float qtot, float qmax, int padRow, unsigned char slice, float trackSnp, float trackTgl, const GPUParam& param, const GPUCalibObjectsConst& calib, float z, float pad, float relTime) {}
-  GPUd() void fillSubThreshold(int padRow, const GPUParam& param) {}
+  GPUd() void fillCluster(float qtot, float qmax, int32_t padRow, uint8_t slice, float trackSnp, float trackTgl, const GPUParam& param, const GPUCalibObjectsConst& calib, float z, float pad, float relTime) {}
+  GPUd() void fillSubThreshold(int32_t padRow, const GPUParam& param) {}
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param) {}
 };
 
@@ -48,18 +48,18 @@ class GPUdEdx
  public:
   // The driver must call clear(), fill clusters row by row outside-in, then run computedEdx() to get the result
   GPUd() void clear();
-  GPUd() void fillCluster(float qtot, float qmax, int padRow, unsigned char slice, float trackSnp, float trackTgl, const GPUParam& param, const GPUCalibObjectsConst& calib, float z, float pad, float relTime);
-  GPUd() void fillSubThreshold(int padRow, const GPUParam& param);
+  GPUd() void fillCluster(float qtot, float qmax, int32_t padRow, uint8_t slice, float trackSnp, float trackTgl, const GPUParam& param, const GPUCalibObjectsConst& calib, float z, float pad, float relTime);
+  GPUd() void fillSubThreshold(int32_t padRow, const GPUParam& param);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
  private:
-  GPUd() float GetSortTruncMean(GPUCA_DEDX_STORAGE_TYPE* array, int count, int trunclow, int trunchigh);
-  GPUd() void checkSubThresh(int roc);
+  GPUd() float GetSortTruncMean(GPUCA_DEDX_STORAGE_TYPE* array, int32_t count, int32_t trunclow, int32_t trunchigh);
+  GPUd() void checkSubThresh(int32_t roc);
 
   template <typename T, typename fake = void>
   struct scalingFactor;
   template <typename fake>
-  struct scalingFactor<unsigned short, fake> {
+  struct scalingFactor<uint16_t, fake> {
     static constexpr float factor = 4.f;
     static constexpr float round = 0.5f;
   };
@@ -76,24 +76,24 @@ class GPUdEdx
   };
 #endif
 
-  static constexpr int MAX_NCL = GPUCA_ROW_COUNT; // Must fit in mNClsROC (unsigned char)!
+  static constexpr int32_t MAX_NCL = GPUCA_ROW_COUNT; // Must fit in mNClsROC (uint8_t)!
 
   GPUCA_DEDX_STORAGE_TYPE mChargeTot[MAX_NCL]; // No need for default, just some memory
   GPUCA_DEDX_STORAGE_TYPE mChargeMax[MAX_NCL]; // No need for default, just some memory
   float mSubThreshMinTot = 0.f;
   float mSubThreshMinMax = 0.f;
-  unsigned char mNClsROC[4] = {0};
-  unsigned char mNClsROCSubThresh[4] = {0};
-  unsigned char mCount = 0;
-  unsigned char mLastROC = 255;
-  char mNSubThresh = 0;
+  uint8_t mNClsROC[4] = {0};
+  uint8_t mNClsROCSubThresh[4] = {0};
+  uint8_t mCount = 0;
+  uint8_t mLastROC = 255;
+  uint8_t mNSubThresh = 0;
 };
 
-GPUdi() void GPUdEdx::checkSubThresh(int roc)
+GPUdi() void GPUdEdx::checkSubThresh(int32_t roc)
 {
   if (roc != mLastROC) {
     if (mNSubThresh && mCount + mNSubThresh <= MAX_NCL) {
-      for (int i = 0; i < mNSubThresh; i++) {
+      for (int32_t i = 0; i < mNSubThresh; i++) {
         mChargeTot[mCount] = (GPUCA_DEDX_STORAGE_TYPE)(mSubThreshMinTot * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);
         mChargeMax[mCount++] = (GPUCA_DEDX_STORAGE_TYPE)(mSubThreshMinMax * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);
       }
@@ -108,7 +108,7 @@ GPUdi() void GPUdEdx::checkSubThresh(int roc)
   mLastROC = roc;
 }
 
-GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned char slice, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const GPUCalibObjectsConst& calib, float z, float pad, float relTime)
+GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int32_t padRow, uint8_t slice, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const GPUCalibObjectsConst& calib, float z, float pad, float relTime)
 {
   if (mCount >= MAX_NCL) {
     return;
@@ -117,7 +117,7 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   // container containing all the dE/dx corrections
   auto calibContainer = calib.dEdxCalibContainer;
 
-  const int roc = param.tpcGeometry.GetROC(padRow);
+  const int32_t roc = param.tpcGeometry.GetROC(padRow);
   checkSubThresh(roc);
   float snp2 = trackSnp * trackSnp;
   if (snp2 > GPUCA_MAX_SIN_PHI_LOW) {
@@ -133,9 +133,9 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   const float tanTheta = CAMath::Sqrt(tgl2 * sec2);
 
   // getting the topology correction
-  const unsigned int padPos = CAMath::Float2UIntRn(pad); // position of the pad is shifted half a pad ( pad=3 -> centre position of third pad)
+  const uint32_t padPos = CAMath::Float2UIntRn(pad); // position of the pad is shifted half a pad ( pad=3 -> centre position of third pad)
   const float absRelPad = CAMath::Abs(pad - padPos);
-  const int region = param.tpcGeometry.GetRegion(padRow);
+  const int32_t region = param.tpcGeometry.GetRegion(padRow);
   z = CAMath::Abs(z);
   const float threshold = calibContainer->getZeroSupressionThreshold(slice, padRow, padPos); // TODO: Use the mean zero supresion threshold of all pads in the cluster?
   const bool useFullGainMap = calibContainer->isUsageOfFullGainMap();
@@ -205,9 +205,9 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   })
 }
 
-GPUdi() void GPUdEdx::fillSubThreshold(int padRow, const GPUParam& GPUrestrict() param)
+GPUdi() void GPUdEdx::fillSubThreshold(int32_t padRow, const GPUParam& GPUrestrict() param)
 {
-  const int roc = param.tpcGeometry.GetROC(padRow);
+  const int32_t roc = param.tpcGeometry.GetROC(padRow);
   checkSubThresh(roc);
   mNSubThresh++;
 }

@@ -58,22 +58,22 @@ class GPUTPCDecompression : public GPUProcessor
 #endif
 
  protected:
-  constexpr static unsigned int NSLICES = GPUCA_NSLICES;
+  constexpr static uint32_t NSLICES = GPUCA_NSLICES;
   o2::tpc::CompressedClusters mInputGPU;
 
-  unsigned int mMaxNativeClustersPerBuffer;
-  unsigned int* mNativeClustersIndex;
-  unsigned int* mUnattachedClustersOffsets;
-  unsigned int* mAttachedClustersOffsets;
+  uint32_t mMaxNativeClustersPerBuffer;
+  uint32_t* mNativeClustersIndex;
+  uint32_t* mUnattachedClustersOffsets;
+  uint32_t* mAttachedClustersOffsets;
   o2::tpc::ClusterNative* mTmpNativeClusters;
   o2::tpc::ClusterNative* mNativeClustersBuffer;
 
   template <class T>
-  void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
+  void SetPointersCompressedClusters(void*& mem, T& c, uint32_t nClA, uint32_t nTr, uint32_t nClU, bool reducedClA);
 
-  short mMemoryResInputGPU = -1;
-  short mResourceTmpIndexes = -1;
-  short mResourceTmpClustersOffsets = -1;
+  int16_t mMemoryResInputGPU = -1;
+  int16_t mResourceTmpIndexes = -1;
+  int16_t mResourceTmpClustersOffsets = -1;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 #endif // GPUTPCDECOMPRESSION_H

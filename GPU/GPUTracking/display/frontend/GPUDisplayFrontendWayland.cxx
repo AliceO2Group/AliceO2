@@ -59,9 +59,9 @@ struct CCallWrapper {
   }
 };
 
-int GPUDisplayFrontendWayland::GetKey(unsigned int key, unsigned int state)
+int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
 {
-  int retVal = 0;
+  int32_t retVal = 0;
   if (mXKBkeymap) {
     xkb_keysym_t sym = xkb_state_key_get_one_sym(mXKBstate, key + 8);
     if (sym == 65453) {
@@ -138,10 +138,10 @@ int GPUDisplayFrontendWayland::GetKey(unsigned int key, unsigned int state)
   return retVal;
 }
 
-void GPUDisplayFrontendWayland::createBuffer(unsigned int width, unsigned int height)
+void GPUDisplayFrontendWayland::createBuffer(uint32_t width, uint32_t height)
 {
-  const unsigned int stride = width * 4;
-  const unsigned int size = stride * height;
+  const uint32_t stride = width * 4;
+  const uint32_t size = stride * height;
   if (ftruncate(mFd, size) < 0) {
     throw std::runtime_error("Error setting waysland shm file size");
   }
@@ -160,7 +160,7 @@ void GPUDisplayFrontendWayland::createBuffer(unsigned int width, unsigned int he
   wl_surface_commit(mSurface);
 }
 
-void GPUDisplayFrontendWayland::recreateBuffer(unsigned int width, unsigned int height)
+void GPUDisplayFrontendWayland::recreateBuffer(uint32_t width, uint32_t height)
 {
   wl_surface_attach(mSurface, nullptr, 0, 0);
   wl_surface_commit(mSurface);
@@ -169,7 +169,7 @@ void GPUDisplayFrontendWayland::recreateBuffer(unsigned int width, unsigned int 
   createBuffer(width, height);
 }
 
-int GPUDisplayFrontendWayland::FrontendMain()
+int32_t GPUDisplayFrontendWayland::FrontendMain()
 {
   if (backend()->backendType() != GPUDisplayBackend::TYPE_VULKAN) {
     fprintf(stderr, "Only Vulkan backend supported\n");
@@ -232,7 +232,7 @@ int GPUDisplayFrontendWayland::FrontendMain()
   const wl_pointer_listener pointer_listener = {.enter = pointer_enter, .leave = pointer_leave, .motion = pointer_motion, .button = pointer_button, .axis = pointer_axis, .frame = nullptr, .axis_source = nullptr, .axis_stop = nullptr, .axis_discrete = nullptr};
 #pragma GCC diagnostic pop
 
-  auto keyboard_keymap = [](void* data, wl_keyboard* wl_keyboard, uint format, int fd, uint size) {
+  auto keyboard_keymap = [](void* data, wl_keyboard* wl_keyboard, uint format, int32_t fd, uint size) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     if (me->mXKBkeymap) {
       xkb_state_unref(me->mXKBstate);
@@ -248,8 +248,8 @@ int GPUDisplayFrontendWayland::FrontendMain()
   auto keyboard_leave = [](void* data, wl_keyboard* wl_keyboard, uint serial, wl_surface* surface) {};
   auto keyboard_key = [](void* data, wl_keyboard* wl_keyboard, uint serial, uint time, uint key, uint state) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
-    int symbol = me->GetKey(key, state);
-    int keyPress = (symbol >= 'a' && symbol <= 'z') ? symbol + 'A' - 'a' : symbol;
+    int32_t symbol = me->GetKey(key, state);
+    int32_t keyPress = (symbol >= 'a' && symbol <= 'z') ? symbol + 'A' - 'a' : symbol;
     if (state == XKB_KEY_DOWN) {
       me->mKeys[keyPress] = true;
       me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
@@ -263,7 +263,7 @@ int GPUDisplayFrontendWayland::FrontendMain()
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     xkb_state_update_mask(me->mXKBstate, mods_depressed, mods_latched, mods_locked, 0, 0, group);
   };
-  auto keyboard_repat = [](void* data, wl_keyboard* wl_keyboard, int rate, int delay) {};
+  auto keyboard_repat = [](void* data, wl_keyboard* wl_keyboard, int32_t rate, int32_t delay) {};
   const wl_keyboard_listener keyboard_listener = {.keymap = keyboard_keymap, .enter = keyboard_enter, .leave = keyboard_leave, .key = keyboard_key, .modifiers = keyboard_modifiers, .repeat_info = keyboard_repat};
 
   auto xdg_wm_base_ping = [](void* data, struct xdg_wm_base* xdg_wm_base, uint32_t serial) {
@@ -471,7 +471,7 @@ void GPUDisplayFrontendWayland::SetVSync(bool enable)
 {
 }
 
-int GPUDisplayFrontendWayland::StartDisplay()
+int32_t GPUDisplayFrontendWayland::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
@@ -481,13 +481,13 @@ int GPUDisplayFrontendWayland::StartDisplay()
   return (0);
 }
 
-void GPUDisplayFrontendWayland::getSize(int& width, int& height)
+void GPUDisplayFrontendWayland::getSize(int32_t& width, int32_t& height)
 {
   width = mDisplayWidth;
   height = mDisplayHeight;
 }
 
-int GPUDisplayFrontendWayland::getVulkanSurface(void* instance, void* surface)
+int32_t GPUDisplayFrontendWayland::getVulkanSurface(void* instance, void* surface)
 {
   VkWaylandSurfaceCreateInfoKHR info{};
   info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
@@ -497,7 +497,7 @@ int GPUDisplayFrontendWayland::getVulkanSurface(void* instance, void* surface)
   return vkCreateWaylandSurfaceKHR(*(VkInstance*)instance, &info, nullptr, (VkSurfaceKHR*)surface) != VK_SUCCESS;
 }
 
-unsigned int GPUDisplayFrontendWayland::getReqVulkanExtensions(const char**& p)
+uint32_t GPUDisplayFrontendWayland::getReqVulkanExtensions(const char**& p)
 {
   static const char* exts[] = {"VK_KHR_surface", "VK_KHR_wayland_surface"};
   p = exts;

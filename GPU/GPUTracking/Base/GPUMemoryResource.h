@@ -25,21 +25,21 @@ namespace gpu
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 struct GPUMemoryReuse {
-  enum Type : int {
+  enum Type : int32_t {
     NONE = 0,
     REUSE_1TO1 = 1
   };
-  enum Group : unsigned short {
+  enum Group : uint16_t {
     ClustererScratch,
     ClustererZS,
     TrackerScratch,
     TrackerDataLinks,
     TrackerDataWeights
   };
-  using ID = unsigned int;
+  using ID = uint32_t;
 
-  GPUMemoryReuse(Type t, Group g, unsigned short i) : type(t), id(((unsigned int)g << 16) | ((unsigned int)i & 0xFFFF)) {}
-  GPUMemoryReuse(bool condition, Type t, Group g, unsigned short i) : GPUMemoryReuse()
+  GPUMemoryReuse(Type t, Group g, uint16_t i) : type(t), id(((uint32_t)g << 16) | ((uint32_t)i & 0xFFFF)) {}
+  GPUMemoryReuse(bool condition, Type t, Group g, uint16_t i) : GPUMemoryReuse()
   {
     if (condition) {
       *this = GPUMemoryReuse{t, g, i};
@@ -102,7 +102,7 @@ class GPUMemoryResource
   const char* mName;
   size_t mSize;
   size_t mOverrideSize;
-  int mReuse;
+  int32_t mReuse;
   MemoryType mType;
 };
 } // namespace gpu

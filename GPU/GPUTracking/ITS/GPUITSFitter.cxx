@@ -29,7 +29,7 @@ void GPUITSFitter::InitializeProcessor()
 void* GPUITSFitter::SetPointersInput(void* mem)
 {
   computePointerWithAlignment(mem, mRoads, mNumberOfRoads);
-  for (int i = 0; i < 7; i++) {
+  for (int32_t i = 0; i < 7; i++) {
     computePointerWithAlignment(mem, mTF[i], mNTF[i]);
   }
   return mem;

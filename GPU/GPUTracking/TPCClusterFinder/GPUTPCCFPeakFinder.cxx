@@ -23,7 +23,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFPeakFinder::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFPeakFinder::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
@@ -72,11 +72,11 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
     return false;
   }
 
-  // Ensure q has the same float->int->float conversion error
+  // Ensure q has the same float->int32_t->float conversion error
   // as values in chargeMap, so identical charges are actually identical
   q = PackedCharge(q).unpack();
 
-  int idx = N * partId;
+  int32_t idx = N * partId;
   bool peak = true;
   peak = peak && buf[idx + 0].unpack() <= q;
   peak = peak && buf[idx + 1].unpack() <= q;
@@ -90,7 +90,7 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
   return peak;
 }
 
-GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem,
                                               const Array2D<PackedCharge>& chargeMap,
                                               const uchar* padHasLostBaseline,
                                               const ChargePos* positions,

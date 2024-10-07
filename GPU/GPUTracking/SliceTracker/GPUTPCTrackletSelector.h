@@ -36,10 +36,10 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
  public:
   MEM_CLASS_PRE()
   struct GPUSharedMemory {
-    int mItr0;          // index of the first track in the block
-    int mNThreadsTotal; // total n threads
-    int mNTracklets;    // n of tracklets
-    int mReserved;      // for alignment reasons
+    int32_t mItr0;          // index of the first track in the block
+    int32_t mNThreadsTotal; // total n threads
+    int32_t mNTracklets;    // n of tracklets
+    int32_t mReserved;      // for alignment reasons
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
     GPUTPCHitId mHits[GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletSelector)];
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
@@ -52,8 +52,8 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
   {
     return processors.tpcTrackers;
   }
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

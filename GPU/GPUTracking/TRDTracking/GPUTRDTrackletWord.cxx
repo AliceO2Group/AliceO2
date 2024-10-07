@@ -17,10 +17,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_TPC_GEOMETRY_O2
 
-GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord) : mHCId(-1), mTrackletWord(trackletWord)
+GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(uint32_t trackletWord) : mHCId(-1), mTrackletWord(trackletWord)
 {
 }
-GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord, int hcid) : mHCId(hcid), mTrackletWord(trackletWord) {}
+GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(uint32_t trackletWord, int32_t hcid) : mHCId(hcid), mTrackletWord(trackletWord) {}
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliTRDtrackletWord.h"
@@ -40,7 +40,7 @@ GPUTRDTrackletWord& GPUTRDTrackletWord::operator=(const AliTRDtrackletMCM& rhs)
 
 #endif // GPUCA_ALIROOT_LIB
 
-GPUd() int GPUTRDTrackletWord::GetYbin() const
+GPUd() int32_t GPUTRDTrackletWord::GetYbin() const
 {
   // returns (signed) value of Y
   if (mTrackletWord & 0x1000) {
@@ -50,7 +50,7 @@ GPUd() int GPUTRDTrackletWord::GetYbin() const
   }
 }
 
-GPUd() int GPUTRDTrackletWord::GetdYbin() const
+GPUd() int32_t GPUTRDTrackletWord::GetdYbin() const
 {
   // returns (signed) value of the deflection length
   if (mTrackletWord & (1 << 19)) {

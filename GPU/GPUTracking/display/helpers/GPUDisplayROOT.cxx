@@ -25,7 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "TSystem.h"
 #include "TMethodCall.h"
 
-int GPUDisplay::buildTrackFilter()
+int32_t GPUDisplay::buildTrackFilter()
 {
   if (!mCfgH.trackFilter) {
     return 0;
@@ -54,7 +54,7 @@ int GPUDisplay::buildTrackFilter()
 
 #else
 
-int GPUDisplay::buildTrackFilter()
+int32_t GPUDisplay::buildTrackFilter()
 {
 }
 

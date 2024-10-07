@@ -23,7 +23,7 @@ namespace gpu
 {
 
 struct GPUTRDTrackletLabels {
-  int mLabel[3];
+  int32_t mLabel[3];
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

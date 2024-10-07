@@ -36,21 +36,21 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   GPUDisplayFrontendWayland();
   ~GPUDisplayFrontendWayland() override = default;
 
-  int StartDisplay() override;
+  int32_t StartDisplay() override;
   void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
-  void getSize(int& width, int& height) override;
-  int getVulkanSurface(void* instance, void* surface) override;
-  unsigned int getReqVulkanExtensions(const char**& p) override;
+  void getSize(int32_t& width, int32_t& height) override;
+  int32_t getVulkanSurface(void* instance, void* surface) override;
+  uint32_t getReqVulkanExtensions(const char**& p) override;
 
  private:
-  int FrontendMain() override;
-  int GetKey(unsigned int key, unsigned int state);
-  void createBuffer(unsigned int width, unsigned int height);
-  void recreateBuffer(unsigned int width, unsigned int height);
+  int32_t FrontendMain() override;
+  int32_t GetKey(uint32_t key, uint32_t state);
+  void createBuffer(uint32_t width, uint32_t height);
+  void recreateBuffer(uint32_t width, uint32_t height);
 
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
   volatile bool mDisplayRunning = false;
@@ -71,7 +71,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
 
   wl_output* mOutput = nullptr;
 
-  int mFd = 0;
+  int32_t mFd = 0;
   wl_shm_pool* mPool;
   wl_buffer* mBuffer;
 
@@ -82,8 +82,8 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   zxdg_decoration_manager_v1* mDecManager = nullptr;
   // zxdg_toplevel_decoration_v1* mXdgDecoration = nullptr;
 
-  int mWidthRequested = 0;
-  int mHeightRequested = 0;
+  int32_t mWidthRequested = 0;
+  int32_t mHeightRequested = 0;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

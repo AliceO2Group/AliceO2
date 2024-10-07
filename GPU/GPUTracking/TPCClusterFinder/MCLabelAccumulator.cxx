@@ -37,7 +37,7 @@ void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)
   const auto& labels = mLabels->getLabels(index);
 
   for (const auto& label : labels) {
-    int h = label.getRawValue() % mMaybeHasLabel.size();
+    int32_t h = label.getRawValue() % mMaybeHasLabel.size();
 
     if (mMaybeHasLabel[h]) {
       auto lookup = std::find(mClusterLabels.begin(), mClusterLabels.end(), label);

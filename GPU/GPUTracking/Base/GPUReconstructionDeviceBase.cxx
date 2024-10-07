@@ -67,7 +67,7 @@ void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helpe
 
   par->mutex[0].lock();
   while (par->terminate == false) {
-    for (int i = par->num + 1; i < par->count; i += mProcessingSettings.nDeviceHelperThreads + 1) {
+    for (int32_t i = par->num + 1; i < par->count; i += mProcessingSettings.nDeviceHelperThreads + 1) {
       // if (mProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->num, i, par->phase);
       if ((par->functionCls->*par->function)(i, par->num + 1, par)) {
         par->error = 1;
@@ -98,7 +98,7 @@ void GPUReconstructionDeviceBase::ResetThisHelperThread(GPUReconstructionHelpers
   par->mutex[1].unlock();
 }
 
-int GPUReconstructionDeviceBase::GetGlobalLock(void*& pLock)
+int32_t GPUReconstructionDeviceBase::GetGlobalLock(void*& pLock)
 {
 #ifdef _WIN32
   HANDLE* semLock = new HANDLE;
@@ -144,11 +144,11 @@ void GPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 #endif
 }
 
-void GPUReconstructionDeviceBase::ResetHelperThreads(int helpers)
+void GPUReconstructionDeviceBase::ResetHelperThreads(int32_t helpers)
 {
   GPUImportant("Error occurred, GPU tracker helper threads will be reset (Number of threads %d (%d))", mProcessingSettings.nDeviceHelperThreads, mNSlaveThreads);
   SynchronizeGPU();
-  for (int i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
+  for (int32_t i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
     mHelperParams[i].reset = true;
     if (helpers || i >= mProcessingSettings.nDeviceHelperThreads) {
       pthread_mutex_lock(&((pthread_mutex_t*)mHelperParams[i].mutex)[1]);
@@ -157,9 +157,9 @@ void GPUReconstructionDeviceBase::ResetHelperThreads(int helpers)
   GPUImportant("GPU Tracker helper threads have ben reset");
 }
 
-int GPUReconstructionDeviceBase::StartHelperThreads()
+int32_t GPUReconstructionDeviceBase::StartHelperThreads()
 {
-  int nThreads = mProcessingSettings.nDeviceHelperThreads;
+  int32_t nThreads = mProcessingSettings.nDeviceHelperThreads;
   if (nThreads) {
     mHelperParams = new GPUReconstructionHelpers::helperParam[nThreads];
     if (mHelperParams == nullptr) {
@@ -167,12 +167,12 @@ int GPUReconstructionDeviceBase::StartHelperThreads()
       ExitDevice();
       return (1);
     }
-    for (int i = 0; i < nThreads; i++) {
+    for (int32_t i = 0; i < nThreads; i++) {
       mHelperParams[i].cls = this;
       mHelperParams[i].terminate = false;
       mHelperParams[i].reset = false;
       mHelperParams[i].num = i;
-      for (int j = 0; j < 2; j++) {
+      for (int32_t j = 0; j < 2; j++) {
         mHelperParams[i].mutex[j].lock();
       }
 
@@ -187,10 +187,10 @@ int GPUReconstructionDeviceBase::StartHelperThreads()
   return (0);
 }
 
-int GPUReconstructionDeviceBase::StopHelperThreads()
+int32_t GPUReconstructionDeviceBase::StopHelperThreads()
 {
   if (mNSlaveThreads) {
-    for (int i = 0; i < mNSlaveThreads; i++) {
+    for (int32_t i = 0; i < mNSlaveThreads; i++) {
       mHelperParams[i].terminate = true;
       mHelperParams[i].mutex[0].unlock();
       mHelperParams[i].mutex[1].lock();
@@ -207,14 +207,14 @@ int GPUReconstructionDeviceBase::StopHelperThreads()
 
 void GPUReconstructionDeviceBase::WaitForHelperThreads()
 {
-  for (int i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
+  for (int32_t i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
     pthread_mutex_lock(&((pthread_mutex_t*)mHelperParams[i].mutex)[1]);
   }
 }
 
-void GPUReconstructionDeviceBase::RunHelperThreads(int (GPUReconstructionHelpers::helperDelegateBase::*function)(int i, int t, GPUReconstructionHelpers::helperParam* p), GPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
+void GPUReconstructionDeviceBase::RunHelperThreads(int32_t (GPUReconstructionHelpers::helperDelegateBase::*function)(int32_t i, int32_t t, GPUReconstructionHelpers::helperParam* p), GPUReconstructionHelpers::helperDelegateBase* functionCls, int32_t count)
 {
-  for (int i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
+  for (int32_t i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
     mHelperParams[i].done = 0;
     mHelperParams[i].error = 0;
     mHelperParams[i].function = function;
@@ -224,7 +224,7 @@ void GPUReconstructionDeviceBase::RunHelperThreads(int (GPUReconstructionHelpers
   }
 }
 
-int GPUReconstructionDeviceBase::InitDevice()
+int32_t GPUReconstructionDeviceBase::InitDevice()
 {
   // cpu_set_t mask;
   // CPU_ZERO(&mask);
@@ -250,7 +250,7 @@ int GPUReconstructionDeviceBase::InitDevice()
     AddGPUEvents(mDebugEvents);
   }
 
-  int retVal = InitDevice_Runtime();
+  int32_t retVal = InitDevice_Runtime();
   if (retVal) {
     GPUImportant("GPU Tracker initialization failed");
     return (1);
@@ -286,13 +286,13 @@ void* GPUReconstructionDeviceBase::GPUProcessorProcessors::SetPointersDeviceProc
   return mem;
 }
 
-int GPUReconstructionDeviceBase::ExitDevice()
+int32_t GPUReconstructionDeviceBase::ExitDevice()
 {
   if (StopHelperThreads()) {
     return (1);
   }
 
-  int retVal = ExitDevice_Runtime();
+  int32_t retVal = ExitDevice_Runtime();
   mProcessorsShadow = nullptr;
   mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPoolEnd = mDeviceMemoryPoolEnd = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
   mHostMemorySize = mDeviceMemorySize = 0;
@@ -300,12 +300,12 @@ int GPUReconstructionDeviceBase::ExitDevice()
   return retVal;
 }
 
-int GPUReconstructionDeviceBase::registerMemoryForGPU_internal(const void* ptr, size_t size)
+int32_t GPUReconstructionDeviceBase::registerMemoryForGPU_internal(const void* ptr, size_t size)
 {
   return IsGPU();
 }
 
-int GPUReconstructionDeviceBase::unregisterMemoryForGPU_internal(const void* ptr)
+int32_t GPUReconstructionDeviceBase::unregisterMemoryForGPU_internal(const void* ptr)
 {
   return IsGPU();
 }
@@ -321,7 +321,7 @@ void GPUReconstructionDeviceBase::unregisterRemainingRegisteredMemory()
 void GPUReconstructionDeviceBase::runConstantRegistrators()
 {
   auto& list = getDeviceConstantMemRegistratorsVector();
-  for (unsigned int i = 0; i < list.size(); i++) {
+  for (uint32_t i = 0; i < list.size(); i++) {
     mDeviceConstantMemList.emplace_back(list[i]());
   }
 }

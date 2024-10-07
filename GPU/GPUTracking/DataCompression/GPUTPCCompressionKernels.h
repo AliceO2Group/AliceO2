@@ -29,26 +29,26 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
  public:
   GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCCompression; }
 
-  enum K : int {
+  enum K : int32_t {
     step0attached = 0,
     step1unattached = 1,
   };
 
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)> {
-    GPUAtomic(unsigned int) nCount;
-    unsigned int lastIndex;
-    unsigned int sortBuffer[GPUCA_TPC_COMP_CHUNK_SIZE];
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int32_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)> {
+    GPUAtomic(uint32_t) nCount;
+    uint32_t lastIndex;
+    uint32_t sortBuffer[GPUCA_TPC_COMP_CHUNK_SIZE];
   };
 
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 
-  template <int I>
+  template <int32_t I>
   class GPUTPCCompressionKernels_Compare
   {
    public:
     GPUhdi() GPUTPCCompressionKernels_Compare(const o2::tpc::ClusterNative* p) : mClsPtr(p) {}
-    GPUd() bool operator()(unsigned int a, unsigned int b) const;
+    GPUd() bool operator()(uint32_t a, uint32_t b) const;
 
    protected:
     const o2::tpc::ClusterNative* mClsPtr;
@@ -59,7 +59,7 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
 {
 
  public:
-  enum K : int {
+  enum K : int32_t {
     unbuffered,
     buffered32,
     buffered64,
@@ -67,25 +67,25 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
     multiBlock
   };
 
-  using Vec16 = unsigned short;
-  using Vec32 = unsigned int;
-  using Vec64 = unsigned long;
+  using Vec16 = uint16_t;
+  using Vec32 = uint32_t;
+  using Vec64 = uint64_t;
   using Vec128 = uint4;
 
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<unsigned int, GPUCA_GET_THREAD_COUNT(GPUCA_LB_COMPRESSION_GATHER)> {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<uint32_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_COMPRESSION_GATHER)> {
     union {
-      unsigned int warpOffset[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)];
+      uint32_t warpOffset[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)];
       Vec32 buf32[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)][GPUCA_WARP_SIZE];
       Vec64 buf64[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)][GPUCA_WARP_SIZE];
       Vec128 buf128[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)][GPUCA_WARP_SIZE];
       struct {
-        unsigned int sizes[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)][GPUCA_WARP_SIZE];
-        unsigned int srcOffsets[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)][GPUCA_WARP_SIZE];
+        uint32_t sizes[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)][GPUCA_WARP_SIZE];
+        uint32_t srcOffsets[GPUCA_GET_WARP_COUNT(GPUCA_LB_COMPRESSION_GATHER)][GPUCA_WARP_SIZE];
       } unbuffered;
     };
 
     template <typename V>
-    GPUdi() V* getBuffer(int iWarp);
+    GPUdi() V* getBuffer(int32_t iWarp);
   };
 
   template <typename Scalar, typename BaseVector>
@@ -97,31 +97,31 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
     Scalar elems[Size];
   };
 
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 
   template <typename T, typename S>
   GPUdi() static bool isAlignedTo(const S* ptr);
 
   template <typename T>
-  GPUdi() static void compressorMemcpy(GPUgeneric() T* dst, GPUgeneric() const T* src, unsigned int size, int nThreads, int iThread);
+  GPUdi() static void compressorMemcpy(GPUgeneric() T* dst, GPUgeneric() const T* src, uint32_t size, int32_t nThreads, int32_t iThread);
 
   template <typename Scalar, typename Vector>
-  GPUdi() static void compressorMemcpyVectorised(Scalar* dst, const Scalar* src, unsigned int size, int nThreads, int iThread);
+  GPUdi() static void compressorMemcpyVectorised(Scalar* dst, const Scalar* src, uint32_t size, int32_t nThreads, int32_t iThread);
 
   template <typename T>
-  GPUdi() static void compressorMemcpyBasic(T* dst, const T* src, unsigned int size, int nThreads, int iThread, int nBlocks = 1, int iBlock = 0);
+  GPUdi() static void compressorMemcpyBasic(T* dst, const T* src, uint32_t size, int32_t nThreads, int32_t iThread, int32_t nBlocks = 1, int32_t iBlock = 0);
 
   template <typename V, typename T, typename S>
-  GPUdi() static void compressorMemcpyBuffered(V* buf, T* dst, const T* src, const S* nums, const unsigned int* srcOffets, unsigned int nEntries, int nLanes, int iLane, int diff = 0, size_t scaleBase1024 = 1024);
+  GPUdi() static void compressorMemcpyBuffered(V* buf, T* dst, const T* src, const S* nums, const uint32_t* srcOffets, uint32_t nEntries, int32_t nLanes, int32_t iLane, int32_t diff = 0, size_t scaleBase1024 = 1024);
 
   template <typename T>
-  GPUdi() static unsigned int calculateWarpOffsets(GPUSharedMemory& smem, T* nums, unsigned int start, unsigned int end, int nWarps, int iWarp, int nLanes, int iLane);
+  GPUdi() static uint32_t calculateWarpOffsets(GPUSharedMemory& smem, T* nums, uint32_t start, uint32_t end, int32_t nWarps, int32_t iWarp, int32_t nLanes, int32_t iLane);
 
   template <typename V>
-  GPUdii() static void gatherBuffered(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+  GPUdii() static void gatherBuffered(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 
-  GPUdii() static void gatherMulti(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+  GPUdii() static void gatherMulti(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
