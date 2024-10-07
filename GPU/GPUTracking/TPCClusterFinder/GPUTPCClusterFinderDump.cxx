@@ -37,7 +37,7 @@ void GPUTPCClusterFinder::DumpDigits(std::ostream& out)
 void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view title)
 {
   out << "\nClusterer - " << title << " - Slice " << mISlice << " - Fragment " << mPmemory->fragment.index << "\n";
-  Array2D<ushort> map(mPchargeMap);
+  Array2D<uint16_t> map(mPchargeMap);
 
   out << std::hex;
 
@@ -47,7 +47,7 @@ void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view titl
   for (TPCFragmentTime i = start; i < end; i++) {
     int32_t zeros = 0;
     for (GlobalPad j = 0; j < TPC_NUM_OF_PADS; j++) {
-      ushort q = map[{j, i}];
+      uint16_t q = map[{j, i}];
       zeros += (q == 0);
       if (q != 0) {
         if (zeros > 0) {
@@ -71,7 +71,7 @@ void GPUTPCClusterFinder::DumpPeakMap(std::ostream& out, std::string_view title)
 {
   out << "\nClusterer - " << title << " - Slice " << mISlice << " - Fragment " << mPmemory->fragment.index << "\n";
 
-  Array2D<uchar> map(mPpeakMap);
+  Array2D<uint8_t> map(mPpeakMap);
 
   out << std::hex;
 
@@ -83,7 +83,7 @@ void GPUTPCClusterFinder::DumpPeakMap(std::ostream& out, std::string_view title)
 
     out << i << ":";
     for (GlobalPad j = 0; j < TPC_NUM_OF_PADS; j++) {
-      uchar q = map[{j, i}];
+      uint8_t q = map[{j, i}];
       zeros += (q == 0);
       if (q != 0) {
         if (zeros > 0) {

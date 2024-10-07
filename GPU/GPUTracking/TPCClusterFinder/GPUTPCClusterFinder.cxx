@@ -159,9 +159,9 @@ void GPUTPCClusterFinder::PrepareMC()
   assert(mNMaxClusterPerRow > 0);
 
   clearMCMemory();
-  mPindexMap = new uint[TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen)];
+  mPindexMap = new uint32_t[TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen)];
   mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUCA_ROW_COUNT];
-  mPlabelsInRow = new uint[GPUCA_ROW_COUNT];
+  mPlabelsInRow = new uint32_t[GPUCA_ROW_COUNT];
 }
 
 void GPUTPCClusterFinder::clearMCMemory()

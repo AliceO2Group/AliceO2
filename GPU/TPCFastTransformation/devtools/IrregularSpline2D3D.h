@@ -355,7 +355,7 @@ GPUdi() void IrregularSpline2D3D::getSplineVec(const float* correctedData, float
 
   float dataV[9 + V::size()];
   // dataVvec.scatter( dataV, Vc::SimdArray<float,12>::IndexType::IndexesFromZero() );
-  //dataVvec.scatter(dataV, Vc::SimdArray<uint, 12>(Vc::IndexesFromZero));
+  // dataVvec.scatter(dataV, Vc::SimdArray<uint32_t, 12>(Vc::IndexesFromZero));
   dataVvec.store(dataV, Vc::Unaligned);
 
   for (uint32_t i = 12; i < 9 + V::size(); i++) { // fill not used part of the vector with 0

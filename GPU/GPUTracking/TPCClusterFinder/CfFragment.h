@@ -104,7 +104,7 @@ struct CfFragment {
   }
 
  private:
-  GPUd() CfFragment(uint index_, bool hasBacklog_, tpccf::TPCTime start_, tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen)
+  GPUd() CfFragment(uint32_t index_, bool hasBacklog_, tpccf::TPCTime start_, tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen)
   {
     this->index = index_;
     this->hasBacklog = hasBacklog_;

@@ -126,7 +126,7 @@ void main()
 
   static constexpr const char* fieldModelShaderCode = R"(
 layout(std430, binding = 0) restrict readonly buffer field_config_ssbo {
-    uint StepCount;
+    uint32_t StepCount;
     float StepSize;
 } field_config;
 
@@ -458,7 +458,7 @@ const float positionScale = 100.0f;
 void main() {
     vec3 position = gl_in[0].gl_Position.xyz;
 
-    for(uint i = 0; i < field_config.StepCount; ++i) {
+    for(uint32_t i = 0; i < field_config.StepCount; ++i) {
         gl_Position = um.ModelViewProj * vec4(position/positionScale, 1.0f);
         EmitVertex();
         const vec3 b_vec = Field(position);
