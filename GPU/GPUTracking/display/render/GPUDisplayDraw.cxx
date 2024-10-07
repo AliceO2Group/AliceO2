@@ -963,7 +963,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     totalVertizes += mVertexBuffer[i].size();
   }
   if (totalVertizes > 0xFFFFFFFF) {
-    throw std::runtime_error("Display vertex count exceeds 32bit uint counter");
+    throw std::runtime_error("Display vertex count exceeds 32bit uint32_t counter");
   }
   size_t needMultiVBOSize = mBackend->needMultiVBO();
   mUseMultiVBO = needMultiVBOSize && (totalVertizes * sizeof(mVertexBuffer[0][0]) >= needMultiVBOSize);

@@ -65,7 +65,7 @@
 #define int64_t long
 #define int32_t int
 #define int16_t short
-#define int8_t char
+#define int8_t signed char
 
 // Disable assertions since they produce errors in GPU Code
 #ifdef assert

@@ -17,13 +17,6 @@
 
 #include "GPUDef.h"
 
-#ifndef __OPENCL__
-using uchar = uint8_t;
-#endif
-#ifdef __APPLE__
-using ulong = uint64_t;
-#endif
-
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
 #define CHARGEMAP_TILING_LAYOUT
 
@@ -53,14 +46,8 @@ using ulong = uint64_t;
 #define TPC_MAX_FRAGMENT_LEN_HOST 1000
 #define TPC_MAX_FRAGMENT_LEN_PADDED(size) ((size) + 2 * GPUCF_PADDING_TIME)
 
-#if 0
-#define DBG_PRINT(msg, ...) printf(msg "\n", __VA_ARGS__)
-#else
-#define DBG_PRINT(msg, ...) static_cast<void>(0)
-#endif
-
 #ifdef GPUCA_GPUCODE
-#define CPU_ONLY(x) static_cast<void>(0)
+#define CPU_ONLY(x)
 #define CPU_PTR(x) nullptr
 #else
 #define CPU_ONLY(x) x

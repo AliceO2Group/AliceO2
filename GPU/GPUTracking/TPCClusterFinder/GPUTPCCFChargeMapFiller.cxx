@@ -23,14 +23,14 @@ using namespace GPUCA_NAMESPACE::gpu::tpccf;
 template <>
 GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillIndexMap>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
-  Array2D<uint> indexMap(clusterer.mPindexMap);
+  Array2D<uint32_t> indexMap(clusterer.mPindexMap);
   fillIndexMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, clusterer.mPdigits, indexMap, clusterer.mPmemory->counters.nDigitsInFragment);
 }
 
 GPUd() void GPUTPCCFChargeMapFiller::fillIndexMapImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread,
                                                       const CfFragment& fragment,
                                                       const tpc::Digit* digits,
-                                                      Array2D<uint>& indexMap,
+                                                      Array2D<uint32_t>& indexMap,
                                                       size_t maxDigit)
 {
   size_t idx = get_global_id(0);

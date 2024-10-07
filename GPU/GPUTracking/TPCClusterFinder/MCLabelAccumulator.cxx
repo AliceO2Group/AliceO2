@@ -32,7 +32,7 @@ void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)
     return;
   }
 
-  uint index = mIndexMap[pos];
+  uint32_t index = mIndexMap[pos];
 
   const auto& labels = mLabels->getLabels(index);
 
@@ -51,7 +51,7 @@ void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)
   }
 }
 
-void MCLabelAccumulator::commit(Row row, uint indexInRow, uint maxElemsPerBucket)
+void MCLabelAccumulator::commit(Row row, uint32_t indexInRow, uint32_t maxElemsPerBucket)
 {
   if (indexInRow >= maxElemsPerBucket || !engaged()) {
     return;

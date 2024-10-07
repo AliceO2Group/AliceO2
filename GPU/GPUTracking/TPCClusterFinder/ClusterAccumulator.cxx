@@ -42,7 +42,7 @@ GPUd() bool ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::Cl
   bool wasSplitInPad = mSplitInPad >= param.rec.tpc.cfMinSplitNum;
   bool isSingleCluster = (mPadSigma == 0) || (mTimeSigma == 0);
 
-  uchar flags = 0;
+  uint8_t flags = 0;
   flags |= (isEdgeCluster) ? tpc::ClusterNative::flagEdge : 0;
   flags |= (wasSplitInTime) ? tpc::ClusterNative::flagSplitTime : 0;
   flags |= (wasSplitInPad) ? tpc::ClusterNative::flagSplitPad : 0;

@@ -53,9 +53,9 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
   GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() void findPeaksImpl(int32_t, int32_t, int32_t, int32_t, GPUSharedMemory&, const Array2D<PackedCharge>&, const uchar*, const ChargePos*, tpccf::SizeT, const GPUSettingsRec&, const TPCPadGainCalib&, uchar*, Array2D<uchar>&);
+  static GPUd() void findPeaksImpl(int32_t, int32_t, int32_t, int32_t, GPUSharedMemory&, const Array2D<PackedCharge>&, const uint8_t*, const ChargePos*, tpccf::SizeT, const GPUSettingsRec&, const TPCPadGainCalib&, uint8_t*, Array2D<uint8_t>&);
 
-  static GPUd() bool isPeak(GPUSharedMemory&, tpccf::Charge, const ChargePos&, ushort, const Array2D<PackedCharge>&, const GPUSettingsRec&, ChargePos*, PackedCharge*);
+  static GPUd() bool isPeak(GPUSharedMemory&, tpccf::Charge, const ChargePos&, uint16_t, const Array2D<PackedCharge>&, const GPUSettingsRec&, ChargePos*, PackedCharge*);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

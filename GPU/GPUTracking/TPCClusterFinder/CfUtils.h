@@ -32,19 +32,19 @@ class CfUtils
     return (pos.pad() < 2 || pos.pad() >= padsPerRow - 2);
   }
 
-  static GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
+  static GPUdi() bool innerAboveThreshold(uint8_t aboveThreshold, uint16_t outerIdx)
   {
     return aboveThreshold & (1 << cfconsts::OuterToInner[outerIdx]);
   }
 
-  static GPUdi() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
+  static GPUdi() bool innerAboveThresholdInv(uint8_t aboveThreshold, uint16_t outerIdx)
   {
     return aboveThreshold & (1 << cfconsts::OuterToInnerInv[outerIdx]);
   }
 
-  static GPUdi() bool isPeak(uchar peak) { return peak & 0x01; }
+  static GPUdi() bool isPeak(uint8_t peak) { return peak & 0x01; }
 
-  static GPUdi() bool isAboveThreshold(uchar peak) { return peak >> 1; }
+  static GPUdi() bool isAboveThreshold(uint8_t peak) { return peak >> 1; }
 
   static GPUdi() int32_t warpPredicateScan(int32_t pred, int32_t* sum)
   {
@@ -159,14 +159,14 @@ class CfUtils
   }
 
   template <size_t SCRATCH_PAD_WORK_GROUP_SIZE, typename SharedMemory>
-  static GPUdi() ushort partition(SharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
+  static GPUdi() uint16_t partition(SharedMemory& smem, uint16_t ll, bool pred, uint16_t partSize, uint16_t* newPartSize)
   {
     bool participates = ll < partSize;
 
     int32_t part;
     int32_t lpos = blockPredicateScan<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, int32_t(!pred && participates), &part);
 
-    ushort pos = (participates && !pred) ? lpos : part;
+    uint16_t pos = (participates && !pred) ? lpos : part;
 
     *newPartSize = part;
     return pos;
@@ -175,24 +175,24 @@ class CfUtils
   template <typename T>
   static GPUdi() void blockLoad(
     const Array2D<T>& map,
-    uint wgSize,
-    uint elems,
-    ushort ll,
-    uint offset,
-    uint N,
+    uint32_t wgSize,
+    uint32_t elems,
+    uint16_t ll,
+    uint32_t offset,
+    uint32_t N,
     GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
     GPUgeneric() T* buf)
   {
 #if defined(GPUCA_GPUCODE)
     GPUbarrier();
-    ushort x = ll % N;
-    ushort y = ll / N;
+    uint16_t x = ll % N;
+    uint16_t y = ll / N;
     tpccf::Delta2 d = neighbors[x + offset];
 
     for (uint32_t i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
-      uint writeTo = N * i + x;
+      uint32_t writeTo = N * i + x;
       buf[writeTo] = map[readFrom.delta(d)];
     }
     GPUbarrier();
@@ -208,7 +208,7 @@ class CfUtils
     for (uint32_t i = 0; i < N; i++) {
       tpccf::Delta2 d = neighbors[i + offset];
 
-      uint writeTo = N * ll + i;
+      uint32_t writeTo = N * ll + i;
       buf[writeTo] = map[readFrom.delta(d)];
     }
 
@@ -219,25 +219,25 @@ class CfUtils
   template <typename T, bool Inv = false>
   static GPUdi() void condBlockLoad(
     const Array2D<T>& map,
-    ushort wgSize,
-    ushort elems,
-    ushort ll,
-    ushort offset,
-    ushort N,
+    uint16_t wgSize,
+    uint16_t elems,
+    uint16_t ll,
+    uint16_t offset,
+    uint16_t N,
     GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
-    const uchar* aboveThreshold,
+    const uint8_t* aboveThreshold,
     GPUgeneric() T* buf)
   {
 #if defined(GPUCA_GPUCODE)
     GPUbarrier();
-    ushort y = ll / N;
-    ushort x = ll % N;
+    uint16_t y = ll / N;
+    uint16_t x = ll % N;
     tpccf::Delta2 d = neighbors[x + offset];
     for (uint32_t i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
-      uchar above = aboveThreshold[i];
-      uint writeTo = N * i + x;
+      uint8_t above = aboveThreshold[i];
+      uint32_t writeTo = N * i + x;
       T v(0);
       bool cond = (Inv) ? innerAboveThresholdInv(above, x + offset)
                         : innerAboveThreshold(above, x + offset);
@@ -253,13 +253,13 @@ class CfUtils
     }
 
     ChargePos readFrom = posBcast[ll];
-    uchar above = aboveThreshold[ll];
+    uint8_t above = aboveThreshold[ll];
     GPUbarrier();
 
     for (uint32_t i = 0; i < N; i++) {
       tpccf::Delta2 d = neighbors[i + offset];
 
-      uint writeTo = N * ll + i;
+      uint32_t writeTo = N * ll + i;
       T v(0);
       bool cond = (Inv) ? innerAboveThresholdInv(above, i + offset)
                         : innerAboveThreshold(above, i + offset);

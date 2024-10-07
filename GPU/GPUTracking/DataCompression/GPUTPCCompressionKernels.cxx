@@ -348,13 +348,13 @@ GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpy<uint8_t>(uint8_t* 
   CONSTEXPR const int32_t vec32Elems = CpyVector<uint8_t, Vec32>::Size;
   CONSTEXPR const int32_t vec16Elems = CpyVector<uint8_t, Vec16>::Size;
 
-  if (size >= uint(nThreads * vec128Elems)) {
+  if (size >= uint32_t(nThreads * vec128Elems)) {
     compressorMemcpyVectorised<uint8_t, Vec128>(dst, src, size, nThreads, iThread);
-  } else if (size >= uint(nThreads * vec64Elems)) {
+  } else if (size >= uint32_t(nThreads * vec64Elems)) {
     compressorMemcpyVectorised<uint8_t, Vec64>(dst, src, size, nThreads, iThread);
-  } else if (size >= uint(nThreads * vec32Elems)) {
+  } else if (size >= uint32_t(nThreads * vec32Elems)) {
     compressorMemcpyVectorised<uint8_t, Vec32>(dst, src, size, nThreads, iThread);
-  } else if (size >= uint(nThreads * vec16Elems)) {
+  } else if (size >= uint32_t(nThreads * vec16Elems)) {
     compressorMemcpyVectorised<uint8_t, Vec16>(dst, src, size, nThreads, iThread);
   } else {
     compressorMemcpyBasic(dst, src, size, nThreads, iThread);
@@ -368,11 +368,11 @@ GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpy<uint16_t>(uint16_t
   CONSTEXPR const int32_t vec64Elems = CpyVector<uint16_t, Vec64>::Size;
   CONSTEXPR const int32_t vec32Elems = CpyVector<uint16_t, Vec32>::Size;
 
-  if (size >= uint(nThreads * vec128Elems)) {
+  if (size >= uint32_t(nThreads * vec128Elems)) {
     compressorMemcpyVectorised<uint16_t, Vec128>(dst, src, size, nThreads, iThread);
-  } else if (size >= uint(nThreads * vec64Elems)) {
+  } else if (size >= uint32_t(nThreads * vec64Elems)) {
     compressorMemcpyVectorised<uint16_t, Vec64>(dst, src, size, nThreads, iThread);
-  } else if (size >= uint(nThreads * vec32Elems)) {
+  } else if (size >= uint32_t(nThreads * vec32Elems)) {
     compressorMemcpyVectorised<uint16_t, Vec32>(dst, src, size, nThreads, iThread);
   } else {
     compressorMemcpyBasic(dst, src, size, nThreads, iThread);
@@ -385,9 +385,9 @@ GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpy<uint32_t>(uint32_t
   CONSTEXPR const int32_t vec128Elems = CpyVector<uint32_t, Vec128>::Size;
   CONSTEXPR const int32_t vec64Elems = CpyVector<uint32_t, Vec64>::Size;
 
-  if (size >= uint(nThreads * vec128Elems)) {
+  if (size >= uint32_t(nThreads * vec128Elems)) {
     compressorMemcpyVectorised<uint32_t, Vec128>(dst, src, size, nThreads, iThread);
-  } else if (size >= uint(nThreads * vec64Elems)) {
+  } else if (size >= uint32_t(nThreads * vec64Elems)) {
     compressorMemcpyVectorised<uint32_t, Vec64>(dst, src, size, nThreads, iThread);
   } else {
     compressorMemcpyBasic(dst, src, size, nThreads, iThread);

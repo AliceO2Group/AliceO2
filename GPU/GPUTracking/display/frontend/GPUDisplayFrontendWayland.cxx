@@ -232,7 +232,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   const wl_pointer_listener pointer_listener = {.enter = pointer_enter, .leave = pointer_leave, .motion = pointer_motion, .button = pointer_button, .axis = pointer_axis, .frame = nullptr, .axis_source = nullptr, .axis_stop = nullptr, .axis_discrete = nullptr};
 #pragma GCC diagnostic pop
 
-  auto keyboard_keymap = [](void* data, wl_keyboard* wl_keyboard, uint format, int32_t fd, uint size) {
+  auto keyboard_keymap = [](void* data, wl_keyboard* wl_keyboard, uint32_t format, int32_t fd, uint32_t size) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     if (me->mXKBkeymap) {
       xkb_state_unref(me->mXKBstate);
@@ -244,9 +244,9 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     munmap(keymap_string, size);
     close(fd);
   };
-  auto keyboard_enter = [](void* data, wl_keyboard* wl_keyboard, uint serial, wl_surface* surface, wl_array* keys) {};
-  auto keyboard_leave = [](void* data, wl_keyboard* wl_keyboard, uint serial, wl_surface* surface) {};
-  auto keyboard_key = [](void* data, wl_keyboard* wl_keyboard, uint serial, uint time, uint key, uint state) {
+  auto keyboard_enter = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, wl_surface* surface, wl_array* keys) {};
+  auto keyboard_leave = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, wl_surface* surface) {};
+  auto keyboard_key = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     int32_t symbol = me->GetKey(key, state);
     int32_t keyPress = (symbol >= 'a' && symbol <= 'z') ? symbol + 'A' - 'a' : symbol;
@@ -259,7 +259,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       me->mKeysShift[keyPress] = false;
     }
   };
-  auto keyboard_modifiers = [](void* data, wl_keyboard* wl_keyboard, uint serial, uint mods_depressed, uint mods_latched, uint mods_locked, uint group) {
+  auto keyboard_modifiers = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     xkb_state_update_mask(me->mXKBstate, mods_depressed, mods_latched, mods_locked, 0, 0, group);
   };
