@@ -404,27 +404,30 @@ bool MatchITSTPCQC::init()
   for (int i = 0; i <= nbinsMassK0; i++) {
     ybinsMassK0[i] = yminMassK0 + i * dyMassK0;
   }
-  const Int_t nbinsMultK0 = 6;
-  Double_t* zbinsMultK0pp = new Double_t[nbinsMultK0 + 1];
-  Double_t* zbinsMultK0PbPb = new Double_t[nbinsMultK0 + 1];
-  Double_t zminMultK0pp = 0.f;
-  Double_t zmaxMultK0pp = 1.e6;
-  Double_t zminMultK0PbPb = 0.f;
-  Double_t zmaxMultK0PbPb = 6.e6;
-  Double_t dzMultK0pp = (zmaxMultK0pp - zminMultK0pp) / nbinsMultK0;
-  for (int i = 0; i <= nbinsMultK0; i++) {
+  const Int_t nbinsMultK0pp = mNBinsTPCOccpp;
+  Double_t* zbinsMultK0pp = new Double_t[nbinsMultK0pp + 1];
+  Double_t zminMultK0pp = mMinTPCOccpp;
+  Double_t zmaxMultK0pp = mMaxTPCOccpp;
+  Double_t dzMultK0pp = (zmaxMultK0pp - zminMultK0pp) / nbinsMultK0pp;
+  for (int i = 0; i <= nbinsMultK0pp; i++) {
     zbinsMultK0pp[i] = zminMultK0pp + i * dzMultK0pp;
   }
-  Double_t dzMultK0PbPb = (zmaxMultK0PbPb - zminMultK0PbPb) / nbinsMultK0;
-  for (int i = 0; i <= nbinsMultK0; i++) {
+
+  const Int_t nbinsMultK0PbPb = mNBinsTPCOccPbPb;
+  Double_t* zbinsMultK0PbPb = new Double_t[nbinsMultK0PbPb + 1];
+  Double_t zminMultK0PbPb = mMinTPCOccPbPb;
+  Double_t zmaxMultK0PbPb = mMaxTPCOccPbPb;
+  LOG(info) << "************************************** zminMultK0PbPb = " << zminMultK0PbPb << " zmaxMultK0PbPb = " << zmaxMultK0PbPb;
+  Double_t dzMultK0PbPb = (zmaxMultK0PbPb - zminMultK0PbPb) / nbinsMultK0PbPb;
+  for (int i = 0; i <= nbinsMultK0PbPb; i++) {
     zbinsMultK0PbPb[i] = zminMultK0PbPb + i * dzMultK0PbPb;
   }
 
   if (mDoK0QC) {
     // V0s
-    mK0MassVsPtVsOccpp = new TH3F("mK0MassVsPtVsOccpp", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ.", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0, zbinsMultK0pp);
+    mK0MassVsPtVsOccpp = new TH3F("mK0MassVsPtVsOccpp", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ.", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0pp, zbinsMultK0pp);
 
-    mK0MassVsPtVsOccPbPb = new TH3F("mK0MassVsPtVsOccPbPb", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0, zbinsMultK0PbPb);
+    mK0MassVsPtVsOccPbPb = new TH3F("mK0MassVsPtVsOccPbPb", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0PbPb, zbinsMultK0PbPb);
   }
 
   LOG(info) << "Printing configuration cuts";

@@ -279,6 +279,12 @@ class MatchITSTPCQC
   void setMaxK0Eta(float v) { mMaxEtaK0 = v; }
   void setRefitK0(bool v) { mRefit = v; }
   void setCutK0Mass(float v) { mCutK0Mass = v; }
+  void setMinTPCOccpp(float v) { mMinTPCOccpp = v; }
+  void setMaxTPCOccpp(float v) { mMaxTPCOccpp = v; }
+  void setNBinsTPCOccpp(int v) { mNBinsTPCOccpp = v; }
+  void setMinTPCOccPbPb(float v) { mMinTPCOccPbPb = v; }
+  void setMaxTPCOccPbPb(float v) { mMaxTPCOccPbPb = v; }
+  void setNBinsTPCOccPbPb(int v) { mNBinsTPCOccPbPb = v; }
 
   void printParams()
   {
@@ -296,6 +302,12 @@ class MatchITSTPCQC
     LOG(info) << "etaCut               = " << mEtaCut;
     LOG(info) << "cutK0Mass            = " << mCutK0Mass;
     LOG(info) << "maxEtaK0             = " << mMaxEtaK0;
+    LOG(info) << "minTPCOccpp          = " << mMinTPCOccpp;
+    LOG(info) << "maxTPCOccpp          = " << mMaxTPCOccpp;
+    LOG(info) << "nBinsTPCOccpp        = " << mNBinsTPCOccpp;
+    LOG(info) << "minTPCOccPbPb        = " << mMinTPCOccPbPb;
+    LOG(info) << "maxTPCOccPbPb        = " << mMaxTPCOccPbPb;
+    LOG(info) << "nBinsTPCOccPbPb      = " << mNBinsTPCOccPbPb;
   }
 
  private:
@@ -435,8 +447,14 @@ class MatchITSTPCQC
   std::vector<float> mTBinClOcc;                    ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
   gsl::span<const unsigned int> mTPCRefitterOccMap; ///< externally set TPC clusters occupancy map
   bool mIsHI = false;
-  float mK0Scaling = 1.f; // permill that we want to keep of K0S
-  uint64_t mNK0 = 0;      // number of found V0s
+  float mK0Scaling = 1.f;      // permill that we want to keep of K0S
+  uint64_t mNK0 = 0;           // number of found V0s
+  float mMinTPCOccpp = 0.f;    // min TPC occupancy for K0s plot for pp collisions
+  float mMaxTPCOccpp = 1.e6;   // max TPC occupancy for K0s plot for pp collisions
+  int mNBinsTPCOccpp = 6;      // number of bins in TPC occupancy for K0s plot for pp collisions
+  float mMinTPCOccPbPb = 0.f;  // min TPC occupancy for K0s plot for PbPb collisions
+  float mMaxTPCOccPbPb = 8.e6; // max TPC occupancy for K0s plot for PbPb collisions
+  int mNBinsTPCOccPbPb = 8;    // number of bins in TPC occupancy for K0s plot for PbPb collisions
 
   ClassDefNV(MatchITSTPCQC, 3);
 };

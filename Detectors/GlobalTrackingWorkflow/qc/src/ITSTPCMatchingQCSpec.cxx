@@ -52,6 +52,12 @@ void ITSTPCMatchingQCDevice::init(InitContext& /*ic*/)
   mMatchITSTPCQC->setCutK0Mass(params.cutK0Mass);
   mMatchITSTPCQC->setMaxK0Eta(params.maxEtaK0);
   mMatchITSTPCQC->setK0Scaling(params.K0Scaling);
+  mMatchITSTPCQC->setMinTPCOccpp(params.minTPCOccpp);
+  mMatchITSTPCQC->setMaxTPCOccpp(params.maxTPCOccpp);
+  mMatchITSTPCQC->setNBinsTPCOccpp(params.nBinsTPCOccpp);
+  mMatchITSTPCQC->setMinTPCOccPbPb(params.minTPCOccPbPb);
+  mMatchITSTPCQC->setMaxTPCOccPbPb(params.maxTPCOccPbPb);
+  mMatchITSTPCQC->setNBinsTPCOccPbPb(params.nBinsTPCOccPbPb);
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   if (mUseMC) {
     mMatchITSTPCQC->setUseMC(mUseMC);
