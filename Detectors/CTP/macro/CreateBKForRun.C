@@ -18,53 +18,56 @@
 #endif
 using namespace o2::ctp;
 
-void CreateBKForRun(int runNumber = 0)
+void CreateBKForRun()
 {
+  std::vector<int> runs = {558124,558126,558215,558217,558221,558244,558247};
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::string mCCDBPathCTPConfig = "CTP/Config/Config";
-
-  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  auto soreor = ccdbMgr.getRunDuration(runNumber);
-  uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
-  std::cout << "Timestamp:" << timeStamp << std::endl;
   //
-  std::string srun = std::to_string(runNumber);
-  std::map<string, string> metadata;
-  metadata["runNumber"] = srun;
-  auto ctpscalers = ccdbMgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timeStamp, metadata);
-  if (ctpscalers == nullptr) {
-    LOG(info) << "CTPRunScalers not in database, timestamp:" << timeStamp;
-  }
-  auto ctpcfg = ccdbMgr.getSpecific<CTPConfiguration>(mCCDBPathCTPConfig, timeStamp, metadata);
-  if (ctpcfg == nullptr) {
-    LOG(info) << "CTPRunConfig not in database, timestamp:" << timeStamp;
-  }
-  //
-  std::string filename = srun + "BK.txt";
+  std::string filename = "BKcounters.txt";
   std::ofstream outfile(filename);
   if (!outfile) {
     Error("", "Failed to open file %s", filename.c_str());
     return;
   }
-  //
-  ctpscalers->convertRawToO2();
-  std::vector<CTPClass>& ctpcls = ctpcfg->getCTPClasses();
-  std::vector<int> clslist = ctpcfg->getTriggerClassList();
-  for (size_t i = 0; i < clslist.size(); i++) {
-    // std::cout << i << " " << ctpcls[i].name ;
-    std::array<uint64_t, 7> cnts = ctpscalers->getIntegralForClass(i);
-    if (clslist[i] != (int)cnts[0]) {
-      LOG(fatal) << "cls list incompatible with counters";
+  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+  for(auto const& runNumber : runs) {
+    auto soreor = ccdbMgr.getRunDuration(runNumber);
+    uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
+    std::cout << runNumber << " Timestamp:" << timeStamp << std::endl;
+    //
+    std::string srun = std::to_string(runNumber);
+    std::map<string, string> metadata;
+    metadata["runNumber"] = srun;
+    auto ctpscalers = ccdbMgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timeStamp, metadata);
+    if (ctpscalers == nullptr) {
+      LOG(info) << "CTPRunScalers not in database, timestamp:" << timeStamp;
     }
-    std::cout << std::setw(21) << ctpcls[cnts[0]].name;
-    outfile << ctpcls[i].name;
-    for (int j = 1; j < 7; j++) {
-      // std::cout << std::setw(21) << " " << cnts[j];
-      std::cout << ", " << cnts[j];
-      outfile << ", " << cnts[j];
+    auto ctpcfg = ccdbMgr.getSpecific<CTPConfiguration>(mCCDBPathCTPConfig, timeStamp, metadata);
+    if (ctpcfg == nullptr) {
+      LOG(info) << "CTPRunConfig not in database, timestamp:" << timeStamp;
     }
-    std::cout << std::endl;
-    outfile << std::endl;
+    //
+    ctpscalers->convertRawToO2();
+    std::vector<CTPClass>& ctpcls = ctpcfg->getCTPClasses();
+    std::vector<int> clslist = ctpcfg->getTriggerClassList();
+    auto times = ctpscalers->getTimeLimit();
+    for (size_t i = 0; i < clslist.size(); i++) {
+      // std::cout << i << " " << ctpcls[i].name ;
+      std::array<uint64_t, 7> cnts = ctpscalers->getIntegralForClass(i);
+      if (clslist[i] != (int)cnts[0]) {
+        LOG(fatal) << "cls list incompatible with counters";
+      }
+      std::cout << std::setw(21) << ctpcls[cnts[0]].name;
+      outfile << runNumber << ", " << ctpcls[i].name << ", " << std::get<1>(times)/1000;
+      for (int j = 1; j < 7; j++) {
+        // std::cout << std::setw(21) << " " << cnts[j];
+        std::cout << ", " << cnts[j];
+        outfile << ", " << cnts[j];
+      }
+      std::cout << std::endl;
+      outfile << std::endl;
+    }
   }
   // ctpscalers->printFromZero(std::cout);
   outfile.close();
