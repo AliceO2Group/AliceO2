@@ -29,8 +29,7 @@ template <>
 GPUdii() void GPUTPCCFClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, int8_t onlyMC)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  CPU_ONLY(
-    MCLabelAccumulator labelAcc(clusterer));
+  CPU_ONLY(MCLabelAccumulator labelAcc(clusterer));
 
   tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 
@@ -132,8 +131,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
 
     Charge q = cluster->updateInner(p, d);
 
-    CPU_ONLY(
-      labelAcc->collect(pos.delta(d), q));
+    CPU_ONLY(labelAcc->collect(pos.delta(d), q));
 
     aboveThreshold |= (uint8_t(q > calib.tpc.cfInnerThreshold) << i);
   }
@@ -162,8 +160,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
     Charge q = cluster->updateOuter(p, d);
     static_cast<void>(q); // Avoid unused varible warning on GPU.
 
-    CPU_ONLY(
-      labelAcc->collect(pos.delta(d), q));
+    CPU_ONLY(labelAcc->collect(pos.delta(d), q));
   }
 }
 
