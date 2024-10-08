@@ -82,7 +82,6 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   int32_t unregisterMemoryForGPU_internal(const void* ptr) override;
 
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) override;
-  size_t TransferMemoryInternal(GPUMemoryResource* res, int32_t stream, deviceEvent* ev, deviceEvent* evList, int32_t nEvents, bool toGPU, const void* src, void* dst) override;
   size_t GPUMemCpy(void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) override;
   void ReleaseEvent(deviceEvent ev) override;
   void RecordMarker(deviceEvent ev, int32_t stream) override;

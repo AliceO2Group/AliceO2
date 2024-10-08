@@ -411,21 +411,10 @@ size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, 
   } else {
     GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*)src - (char*)mDeviceMemoryBase, size, dst, nEvents, evList->getEventList<cl_event>(), ev->getEventList<cl_event>()));
   }
+  if (mProcessingSettings.serializeGPU & 2) {
+    GPUDebug(("GPUMemCpy " + std::to_string(toGPU)).c_str(), stream, true);
+  }
   return size;
-}
-
-size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int32_t stream, deviceEvent* ev, deviceEvent* evList, int32_t nEvents, bool toGPU, const void* src, void* dst)
-{
-  if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
-    if (mProcessingSettings.debugLevel >= 4) {
-      GPUInfo("Skipped transfer of non-GPU memory resource: %s", res->Name());
-    }
-    return 0;
-  }
-  if (mProcessingSettings.debugLevel >= 3 && (strcmp(res->Name(), "ErrorCodes") || mProcessingSettings.debugLevel >= 4)) {
-    GPUInfo("Copying to %s: %s - %ld bytes", toGPU ? "GPU" : "Host", res->Name(), (int64_t)res->Size());
-  }
-  return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
 size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream, deviceEvent* ev)
@@ -434,6 +423,9 @@ size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* sr
     SynchronizeGPU();
   }
   GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_constant, stream == -1, offset, size, src, 0, nullptr, ev->getEventList<cl_event>()));
+  if (mProcessingSettings.serializeGPU & 2) {
+    GPUDebug("WriteToConstantMemory", stream, true);
+  }
   return size;
 }
 

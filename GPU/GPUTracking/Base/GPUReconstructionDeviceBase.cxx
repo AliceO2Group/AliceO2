@@ -325,3 +325,17 @@ void GPUReconstructionDeviceBase::runConstantRegistrators()
     mDeviceConstantMemList.emplace_back(list[i]());
   }
 }
+
+size_t GPUReconstructionDeviceBase::TransferMemoryInternal(GPUMemoryResource* res, int32_t stream, deviceEvent* ev, deviceEvent* evList, int32_t nEvents, bool toGPU, const void* src, void* dst)
+{
+  if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
+    if (mProcessingSettings.debugLevel >= 4) {
+      GPUInfo("Skipped transfer of non-GPU memory resource: %s", res->Name());
+    }
+    return 0;
+  }
+  if (mProcessingSettings.debugLevel >= 3 && (strcmp(res->Name(), "ErrorCodes") || mProcessingSettings.debugLevel >= 4)) {
+    GPUInfo("Copying to %s: %s - %ld bytes", toGPU ? "GPU" : "Host", res->Name(), (int64_t)res->Size());
+  }
+  return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
+}
