@@ -243,7 +243,7 @@ struct GBTDataTrailer : public GBTWord {
     id = GBTFlagDataTrailer;
   }
 
-  uint8_t getPacketState() const { return data8[8]; }
+  uint8_t getPacketState() const { return data8[8] & (MaxStateCombinations - 1); }
 
   void setByte(uint8_t v, int which) = delete;
 
