@@ -20,7 +20,7 @@ using namespace o2::ctp;
 
 void CreateBKForRun()
 {
-  std::vector<int> runs = {558124,558126,558215,558217,558221,558244,558247};
+  std::vector<int> runs = {558124, 558126, 558215, 558217, 558221, 558244, 558247};
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::string mCCDBPathCTPConfig = "CTP/Config/Config";
   //
@@ -31,7 +31,7 @@ void CreateBKForRun()
     return;
   }
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  for(auto const& runNumber : runs) {
+  for (auto const& runNumber : runs) {
     auto soreor = ccdbMgr.getRunDuration(runNumber);
     uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
     std::cout << runNumber << " Timestamp:" << timeStamp << std::endl;
@@ -59,7 +59,7 @@ void CreateBKForRun()
         LOG(fatal) << "cls list incompatible with counters";
       }
       std::cout << std::setw(21) << ctpcls[cnts[0]].name;
-      outfile << runNumber << ", " << ctpcls[i].name << ", " << std::get<1>(times)/1000;
+      outfile << runNumber << ", " << ctpcls[i].name << ", " << std::get<1>(times) / 1000;
       for (int j = 1; j < 7; j++) {
         // std::cout << std::setw(21) << " " << cnts[j];
         std::cout << ", " << cnts[j];
