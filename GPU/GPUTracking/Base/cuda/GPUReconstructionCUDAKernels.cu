@@ -81,11 +81,6 @@ int32_t GPUReconstructionCUDABackend::runKernelBackend(const krnlSetupArgs<T, I,
     std::apply([this, &args](auto&... vals) { this->runKernelBackendInternal<T, I, Args...>(args.s, vals...); }, args.v);
   }
   GPUFailedMsg(cudaGetLastError());
-  if (mProcessingSettings.checkKernelFailures) {
-    if (GPUDebug(GetKernelName<T, I>(), args.s.x.stream, true)) {
-      throw std::runtime_error("Kernel Failure");
-    }
-  }
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->Streams[x.stream]));
   }
