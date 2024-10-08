@@ -1989,36 +1989,34 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
   return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
 }
 
-template <typename R, typename T, typename Column>
+template <typename R, typename T, typename C>
 R getColumnValue(const T& rowIterator)
 {
-  return static_cast<R>(static_cast<Column>(rowIterator).get());
+  return static_cast<R>(static_cast<C>(rowIterator).get());
 }
 
 template <typename R, typename T>
 using ColumnGetterFunction = R (*)(const T&);
 
-template <typename R, typename T, typename Column>
+template <typename R, typename T, typename C>
 ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
 {
-  using Col = Column;
-
   if (found) {
     return nullptr;
   }
 
-  if constexpr (std::is_arithmetic_v<typename Col::type> && std::is_convertible_v<typename Col::type, R>) {
-    if constexpr (o2::soa::is_dynamic_v<Col>) {
-      if constexpr (o2::framework::pack_size(typename Col::bindings_t{}) == o2::framework::pack_size(typename Col::callable_t::args{})) {
-        if (columnLabel == std::string_view(&Col::columnLabel()[1]) || columnLabel == std::string_view(Col::columnLabel())) {
+  if constexpr (std::is_arithmetic_v<typename C::type> && std::is_convertible_v<typename C::type, R>) {
+    if constexpr (o2::soa::is_dynamic_v<C>) {
+      if constexpr (o2::framework::pack_size(typename C::bindings_t{}) == o2::framework::pack_size(typename C::callable_t::args{})) {
+        if (std::string_view(&columnLabel[1]) == std::string_view(C::columnLabel()) || columnLabel == std::string_view(C::columnLabel())) {
           found = true;
-          return &getColumnValue<R, T, Col>;
+          return &getColumnValue<R, T, C>;
         }
       }
-    } else if constexpr (o2::soa::is_persistent_v<Col> && !o2::soa::is_index_column_v<Col>) {
-      if (columnLabel == std::string_view(Col::columnLabel())) {
+    } else if constexpr (o2::soa::is_persistent_v<C> && !o2::soa::is_index_column_v<C>) {
+      if (columnLabel == std::string_view(C::columnLabel())) {
         found = true;
-        return &getColumnValue<R, T, Col>;
+        return &getColumnValue<R, T, C>;
       }
     }
   }
@@ -2027,7 +2025,7 @@ ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, 
 }
 
 template <typename R, typename T, typename... Cs>
-ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, const T& rowIterator, const std::string_view& columnLabel)
+ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, const std::string_view& columnLabel)
 {
   std::string_view labelView(columnLabel);
   bool found = false;
@@ -2043,9 +2041,9 @@ ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, co
 }
 
 template <typename R, typename T>
-ColumnGetterFunction<R, typename T::iterator> getColumnGetterByLabel(const T& table, const std::string_view& columnLabel)
+ColumnGetterFunction<R, typename T::iterator> getColumnGetterByLabel(const std::string_view& columnLabel)
 {
-  return getColumnGetterByLabel<R>(typename T::columns{}, table.begin(), columnLabel);
+  return getColumnGetterByLabel<R, typename T::iterator>(typename T::columns{}, columnLabel);
 }
 } // namespace row_helpers
 } // namespace o2::soa

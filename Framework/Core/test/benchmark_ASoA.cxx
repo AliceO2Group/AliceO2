@@ -306,8 +306,8 @@ static void BM_ASoADynamicColumnPresentGetGetterByLabel(benchmark::State& state)
   for (auto _ : state) {
     Test tests{table};
     float sum = 0;
-    auto xGetter = o2::soa::row_helpers::getColumnGetterByLabel<float>(tests, "x");
-    auto yGetter = o2::soa::row_helpers::getColumnGetterByLabel<float>(tests, "y");
+    auto xGetter = o2::soa::row_helpers::getColumnGetterByLabel<float, Test>("x");
+    auto yGetter = o2::soa::row_helpers::getColumnGetterByLabel<float, Test>("y");
     for (auto& test : tests) {
       sum += xGetter(test) + yGetter(test);
     }
@@ -363,7 +363,7 @@ static void BM_ASoADynamicColumnCallGetGetterByLabel(benchmark::State& state)
   Test tests{table};
   for (auto _ : state) {
     float sum = 0;
-    auto sumGetter = o2::soa::row_helpers::getColumnGetterByLabel<float>(tests, "Sum");
+    auto sumGetter = o2::soa::row_helpers::getColumnGetterByLabel<float, Test>("Sum");
     for (auto& test : tests) {
       sum += sumGetter(test);
     }
