@@ -53,6 +53,8 @@ struct Options {
   bool genVertices = false;         // whether to assign vertices to collisions
   std::string configKeyValues = ""; // string to init config key values
   long timestamp = -1;              // timestamp for CCDB queries
+  std::string individualTFextraction = ""; // triggers extraction of individuel timeframe components when non-null
+                                           // format is path prefix
 };
 
 enum class InteractionLockMode {
@@ -198,7 +200,10 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of the first timeframe int this context. Allows to generate contexts for different start orbits")(
     "first-orbit", bpo::value<uint32_t>(&optvalues.firstOrbit)->default_value(0), "First orbit in the run (HBFUtils.firstOrbit)")(
     "maxCollsPerTF", bpo::value<int>(&optvalues.maxCollsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe. By default no constraint.")(
-    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision")("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')")("with-vertices", "Assign vertices to collisions.")("timestamp", bpo::value<long>(&optvalues.timestamp)->default_value(-1L), "Timestamp for CCDB queries / anchoring");
+    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision")(
+    "configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')")("with-vertices", "Assign vertices to collisions.")("timestamp", bpo::value<long>(&optvalues.timestamp)->default_value(-1L), "Timestamp for CCDB queries / anchoring")(
+    "extract-per-timeframe", bpo::value<std::string>(&optvalues.individualTFextraction)->default_value(""),
+    "Extract individual timeframe contexts. Format required: time_frame_prefix[:comma_separated_list_of_signals_to_offset]");
 
   options.add_options()("help,h", "Produce help message.");
 
@@ -431,7 +436,7 @@ int main(int argc, char* argv[])
   // apply max collision per timeframe filters + reindexing of event id (linearisation and compactification)
   digicontext.applyMaxCollisionFilter(options.tfid * options.orbitsPerTF, options.orbitsPerTF, options.maxCollsPerTF);
 
-  digicontext.finalizeTimeframeStructure(options.tfid * options.orbitsPerTF, options.orbitsPerTF);
+  auto numTimeFrames = digicontext.finalizeTimeframeStructure(options.tfid * options.orbitsPerTF, options.orbitsPerTF);
 
   if (options.genVertices) {
     // TODO: offer option taking meanVertex directly from CCDB ! "GLO/Calib/MeanVertex"
@@ -455,6 +460,73 @@ int main(int argc, char* argv[])
     digicontext.printCollisionSummary(options.qedInteraction.size() > 0);
   }
   digicontext.saveToFile(options.outfilename);
+
+  // extract individual timeframes
+  if (options.individualTFextraction.size() > 0) {
+    // we are asked to extract individual timeframe components
+
+    LOG(info) << "Extracting individual timeframe collision contexts";
+    // extract prefix path to store these collision contexts
+    // Function to check the pattern and extract tokens from b
+    auto check_and_extract_tokens = [](const std::string& input, std::vector<std::string>& tokens) {
+      // the regular expression pattern for expected input format
+      const std::regex pattern(R"(^([a-zA-Z0-9]+)(:([a-zA-Z0-9]+(,[a-zA-Z0-9]+)*))?$)");
+      std::smatch matches;
+
+      // Check if the input matches the pattern
+      if (std::regex_match(input, matches, pattern)) {
+        // Clear any existing tokens in the vector
+        tokens.clear();
+
+        // matches[1] contains the part before the colon which we save first
+        tokens.push_back(matches[1].str());
+        // matches[2] contains the comma-separated list
+        std::string b = matches[2].str();
+        std::regex token_pattern(R"([a-zA-Z0-9]+)");
+        auto tokens_begin = std::sregex_iterator(b.begin(), b.end(), token_pattern);
+        auto tokens_end = std::sregex_iterator();
+
+        // Iterate over the tokens and add them to the vector
+        for (std::sregex_iterator i = tokens_begin; i != tokens_end; ++i) {
+          tokens.push_back((*i).str());
+        }
+        return true;
+      }
+      LOG(error) << "Argument for --extract-per-timeframe does not match specification";
+      return false;
+    };
+
+    std::vector<std::string> tokens;
+    if (check_and_extract_tokens(options.individualTFextraction, tokens)) {
+      auto path_prefix = tokens[0];
+      std::vector<int> sources_to_offset{};
+
+      LOG(info) << "PREFIX is " << path_prefix;
+
+      for (int i = 1; i < tokens.size(); ++i) {
+        LOG(info) << "Offsetting " << tokens[i];
+        sources_to_offset.push_back(digicontext.findSimPrefix(tokens[i]));
+      }
+
+      // now we are ready to loop over all timeframes
+      for (int tf_id = 0; tf_id < numTimeFrames; ++tf_id) {
+        auto copy = digicontext.extractSingleTimeframe(tf_id, sources_to_offset);
+
+        // each individual case gets QED interactions injected
+        // This should probably be done inside the extraction itself
+        if (digicontext.isQEDProvided()) {
+          auto qedSpec = parseInteractionSpec(options.qedInteraction, ispecs, options.useexistingkinematics);
+          copy.fillQED(qedSpec.name, qedSpec.mcnumberasked, qedSpec.interactionRate);
+        }
+
+        std::stringstream str;
+        str << path_prefix << (tf_id + 1) << "/collisioncontext.root";
+        copy.saveToFile(str.str());
+        LOG(info) << "----";
+        copy.printCollisionSummary(options.qedInteraction.size() > 0);
+      }
+    }
+  }
 
   return 0;
 }

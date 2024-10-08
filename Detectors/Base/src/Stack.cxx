@@ -606,6 +606,9 @@ void Stack::Reset()
   mTrackRefs->clear();
   mTrackIDtoParticlesEntry.clear();
   mHitCounter = 0;
+  mIndexMap.clear();
+  mIndexOfPrimaries.clear();
+  mTransportedIDs.clear();
 }
 
 void Stack::Register()
