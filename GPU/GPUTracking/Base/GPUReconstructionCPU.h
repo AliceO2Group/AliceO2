@@ -234,7 +234,7 @@ inline int32_t GPUReconstructionCPU::runKernel(krnlSetup&& setup, Args&&... args
   }
   double deviceTimerTime = 0.;
   int32_t retVal = runKernelImplWrapper(gpu_reconstruction_kernels::classArgument<S, I>(), cpuFallback, deviceTimerTime, std::forward<krnlSetup&&>(setup), std::forward<Args>(args)...);
-  if (GPUDebug(GetKernelName<S, I>(), stream)) {
+  if (GPUDebug(GetKernelName<S, I>(), stream, mProcessingSettings.checkKernelFailures)) {
     throw std::runtime_error("kernel failure");
   }
   if (mProcessingSettings.debugLevel >= 1) {
