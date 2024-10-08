@@ -156,10 +156,7 @@ Variant::~Variant()
     case variant_trait_v<float*>:
     case variant_trait_v<double*>:
     case variant_trait_v<bool*>:
-    case variant_trait_v<std::string*>:
-      if (reinterpret_cast<void**>(&mStore) != nullptr) {
-        free(*reinterpret_cast<void**>(&mStore));
-      }
+      free(*reinterpret_cast<void**>(&mStore));
       return;
     default:
       return;
