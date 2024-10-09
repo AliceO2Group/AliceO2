@@ -33,6 +33,7 @@
 #include <cassert>
 #include <memory>
 #include <type_traits>
+#include <concepts>
 
 #include <fairmq/FwdDecls.h>
 
@@ -206,6 +207,28 @@ class InputRecord
     }
     return this->getByPos(pos, part);
   }
+
+  template <typename R>
+    requires std::is_convertible_v<R, char const*>
+  DataRef getRef(R binding, int part = 0) const
+  {
+    return getDataRefByString(binding, part);
+  }
+
+  template <typename R>
+    requires requires(R r) { r.c_str(); }
+  DataRef getRef(R binding, int part = 0) const
+  {
+    return getDataRefByString(binding.c_str(), part);
+  }
+
+  template <typename R>
+    requires std::is_convertible_v<R, DataRef>
+  DataRef getRef(R ref, int part = 0) const
+  {
+    return ref;
+  }
+
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and
   /// return the data associated to the given label.
@@ -220,20 +243,7 @@ class InputRecord
   template <typename T = DataRef, typename R>
   decltype(auto) get(R binding, int part = 0) const
   {
-    DataRef ref{nullptr, nullptr};
-    using decayed = std::decay_t<R>;
-
-    // Get the actual dataref
-    if constexpr (std::is_same_v<decayed, char const*> ||
-                  std::is_same_v<decayed, char*>) {
-      ref = getDataRefByString(binding, part);
-    } else if constexpr (std::is_same_v<decayed, std::string>) {
-      ref = getDataRefByString(binding.c_str(), part);
-    } else if constexpr (std::is_same_v<decayed, DataRef>) {
-      ref = binding;
-    } else {
-      static_assert(always_static_assert_v<R>, "Unknown binding type");
-    }
+    DataRef ref = getRef(binding, part);
 
     using PointerLessValueT = std::remove_pointer_t<T>;
 
