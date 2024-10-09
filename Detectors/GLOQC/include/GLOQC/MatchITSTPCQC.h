@@ -249,8 +249,6 @@ class MatchITSTPCQC
   void setBz(float bz) { mBz = bz; }
   void setDoK0QC(bool v) { mDoK0QC = v; }
   bool getDoK0QC() const { return mDoK0QC; }
-  void setK0Scaling(float v) { mK0Scaling = v; }
-  float getK0Scaling() const { return mK0Scaling; }
 
   // ITS track
   void setMinPtITSCut(float v) { mPtITSCut = v; };
@@ -285,6 +283,12 @@ class MatchITSTPCQC
   void setMinTPCOccPbPb(float v) { mMinTPCOccPbPb = v; }
   void setMaxTPCOccPbPb(float v) { mMaxTPCOccPbPb = v; }
   void setNBinsTPCOccPbPb(int v) { mNBinsTPCOccPbPb = v; }
+  void setK0Scaling(float v) { mK0Scaling = v; }
+  float getK0Scaling() const { return mK0Scaling; }
+  void setK0MaxDCA(float v) { mK0MaxDCA = v; }
+  float getK0MaxDCA() { return mK0MaxDCA; }
+  void setK0MinCosPA(float v) { mK0MinCosPA = v; }
+  float getK0MinCosPA() const { return mK0MinCosPA; }
 
   void printParams()
   {
@@ -455,6 +459,8 @@ class MatchITSTPCQC
   float mMinTPCOccPbPb = 0.f;  // min TPC occupancy for K0s plot for PbPb collisions
   float mMaxTPCOccPbPb = 8.e6; // max TPC occupancy for K0s plot for PbPb collisions
   int mNBinsTPCOccPbPb = 8;    // number of bins in TPC occupancy for K0s plot for PbPb collisions
+  float mK0MaxDCA = 0.01;      // max DCA to select the K0
+  float mK0MinCosPA = 0.995;   // min cosPA to select the K0
 
   ClassDefNV(MatchITSTPCQC, 3);
 };

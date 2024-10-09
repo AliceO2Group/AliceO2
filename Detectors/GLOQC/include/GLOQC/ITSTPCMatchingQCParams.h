@@ -46,6 +46,8 @@ struct ITSTPCMatchingQCParams : public o2::conf::ConfigurableParamHelper<ITSTPCM
   float minTPCOccPbPb = 0.f;
   float maxTPCOccPbPb = 8.e6;
   int nBinsTPCOccPbPb = 8;
+  float maxK0DCA = 0.01;
+  float minK0CosPA = 0.995;
 
   O2ParamDef(ITSTPCMatchingQCParams, "ITSTPCMatchingQC");
 };

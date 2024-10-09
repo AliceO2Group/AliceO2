@@ -58,6 +58,8 @@ void ITSTPCMatchingQCDevice::init(InitContext& /*ic*/)
   mMatchITSTPCQC->setMinTPCOccPbPb(params.minTPCOccPbPb);
   mMatchITSTPCQC->setMaxTPCOccPbPb(params.maxTPCOccPbPb);
   mMatchITSTPCQC->setNBinsTPCOccPbPb(params.nBinsTPCOccPbPb);
+  mMatchITSTPCQC->setK0MaxDCA(params.maxK0DCA);
+  mMatchITSTPCQC->setK0MinCosPA(params.minK0CosPA);
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   if (mUseMC) {
     mMatchITSTPCQC->setUseMC(mUseMC);

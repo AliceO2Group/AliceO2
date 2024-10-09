@@ -1079,7 +1079,14 @@ bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoDat
   if (mMaxEtaK0 < std::abs(v0sel.getEta())) {
     return false;
   }
-  if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass) {
+
+  if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass || v0sel.getDCA() > mK0MaxDCA || v0sel.getCosPA() < mK0MinCosPA) {
+    if (v0sel.getDCA() > mK0MaxDCA && v0sel.getCosPA() < mK0MinCosPA) {
+      LOG(debug) << "v0sel.getDCA() = " << v0sel.getDCA() << " max is " << mK0MaxDCA << " returning ... ";
+    }
+    if (v0sel.getCosPA() > mK0MinCosPA) {
+      LOG(debug) << "v0sel.getCosPA() = " << v0sel.getCosPA() << " min is " << mK0MinCosPA << " returning ... ";
+    }
     return false;
   }
   // get the corresponding PV
