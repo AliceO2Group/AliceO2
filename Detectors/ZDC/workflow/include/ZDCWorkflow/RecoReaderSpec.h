@@ -33,6 +33,7 @@ class RecoReader : public framework::Task
  private:
   std::unique_ptr<TTree> mTree;
   std::unique_ptr<TFile> mFile;
+  bool mWaveformEnable = false;
 };
 
 /// create a processor spec

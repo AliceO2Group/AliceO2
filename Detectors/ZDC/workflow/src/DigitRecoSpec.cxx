@@ -275,12 +275,10 @@ void DigitRecoSpec::run(ProcessingContext& pc)
 void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.eor();
-  LOGF(info, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
-       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  LOGF(info, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const bool enableDebugOut = true,
-                                              const bool enableZDCTDCCorr = true, const bool enableZDCEnergyParam = true, const bool enableZDCTowerParam = true, const bool enableBaselineParam = true)
+framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const bool enableDebugOut = true, const bool enableZDCTDCCorr = true, const bool enableZDCEnergyParam = true, const bool enableZDCTowerParam = true, const bool enableBaselineParam = true)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);

@@ -450,8 +450,21 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
-  if ((ih == 7 || ih == 8) && (t1 < mInterCalibConfig->tower_cut_ZP || t2 < mInterCalibConfig->tower_cut_ZP || t3 < mInterCalibConfig->tower_cut_ZP || t4 < mInterCalibConfig->tower_cut_ZP)) {
-    return;
+  if ((ih == HidZPA || ih == HidZPAX)){
+    if(t1 < mInterCalibConfig->towerCutLow_ZPA[0] || t2 < mInterCalibConfig->towerCutLow_ZPA[1] || t3 < mInterCalibConfig->towerCutLow_ZPA[2] || t4 < mInterCalibConfig->towerCutLow_ZPA[3]){
+      return;
+    }
+    if(t1 > mInterCalibConfig->towerCutHigh_ZPA[0] || t2 > mInterCalibConfig->towerCutHigh_ZPA[1] || t3 > mInterCalibConfig->towerCutHigh_ZPA[2] || t4 > mInterCalibConfig->towerCutHigh_ZPA[3]){
+      return;
+    }
+  }
+  if (ih == HidZPC || ih == HidZPCX) {
+    if(t1 < mInterCalibConfig->towerCutLow_ZPC[0] || t2 < mInterCalibConfig->towerCutLow_ZPC[1] || t3 < mInterCalibConfig->towerCutLow_ZPC[2] || t4 < mInterCalibConfig->towerCutLow_ZPC[3]){
+      return;
+    }
+    if(t1 > mInterCalibConfig->towerCutHigh_ZPC[0] || t2 > mInterCalibConfig->towerCutHigh_ZPC[1] || t3 > mInterCalibConfig->towerCutHigh_ZPC[2] || t4 > mInterCalibConfig->towerCutHigh_ZPC[3]){
+      return;
+    }
   }
   double val[NPAR] = {tc, t1, t2, t3, t4, 1};
   if (tc > minfty && t1 > minfty && t2 > minfty && t3 > minfty && t4 > minfty) {
@@ -483,7 +496,7 @@ void InterCalib::fcn(int& npar, double* gin, double& chi, double* par, int iflag
       chi += (i == 0 ? par[i] : -par[i]) * (j == 0 ? par[j] : -par[j]) * mAdd[i][j];
     }
   }
-  chi = chi / (1 + par[1]*par[1] + par[2]*par[2] + par[3]*par[3] + par[4]*par[4]); 
+  chi = chi / (1 + par[1] * par[1] + par[2] * par[2] + par[3] * par[3] + par[4] * par[4]);
 }
 
 int InterCalib::mini(int ih)
@@ -552,7 +565,7 @@ int InterCalib::mini(int ih)
       l_bnd = mInterCalibConfig->l_bnd[ih];
       u_bnd = mInterCalibConfig->u_bnd[ih];
       for (int i = 1; i <= 4; i++) {
-        if (TMath::Abs(mPar[ih][i] - l_bnd) < 1e-3 || TMath::Abs(mPar[ih][i] - u_bnd) < 1e-3) {
+        if (TMath::Abs(mPar[ih][i] - l_bnd) < 1e-2 || TMath::Abs(mPar[ih][i] - u_bnd) < 1e-2) {
           retry = true;
           LOG(warn) << "ih=" << ih << " par " << i << " too close to boundaries";
           if (ih == 1 || ih == 7) {

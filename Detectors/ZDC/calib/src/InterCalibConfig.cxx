@@ -28,7 +28,11 @@ void InterCalibConfig::print() const
   }
   LOG(info) << "xcut_ZPA = " << xcut_ZPA;
   LOG(info) << "xcut_ZPC = " << xcut_ZPC;
-  LOG(info) << "tower_cut_ZP = " << tower_cut_ZP;
+  LOG(info) << "towerCutLow_ZPA = {" << towerCutLow_ZPA[0] << ", " << towerCutLow_ZPA[1] << ", " << towerCutLow_ZPA[2] << ", " << towerCutLow_ZPA[3] << "};";
+  LOG(info) << "towerCutHigh_ZPA = {" << towerCutHigh_ZPA[0] << ", " << towerCutHigh_ZPA[1] << ", " << towerCutHigh_ZPA[2] << ", " << towerCutHigh_ZPA[3] << "};";
+  LOG(info) << "towerCutLow_ZPC = {" << towerCutLow_ZPC[0] << ", " << towerCutLow_ZPC[1] << ", " << towerCutLow_ZPC[2] << ", " << towerCutLow_ZPC[3] << "};";
+  LOG(info) << "towerCutHigh_ZPC = {" << towerCutHigh_ZPC[0] << ", " << towerCutHigh_ZPC[1] << ", " << towerCutHigh_ZPC[2] << ", " << towerCutHigh_ZPC[3] << "};";
+  LOG(info) << "rms_cut_ZP = " << rms_cut_ZP;
   if (cross_check) {
     LOG(warn) << "THIS IS A CROSS CHECK CONFIGURATION (vs SUM)";
   }
