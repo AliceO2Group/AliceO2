@@ -102,8 +102,6 @@ void* DataRefUtils::decodeCCDB(DataRef const& ref, std::type_info const& tinfo)
     return nullptr;
   }
 
-  extractCCDBHeaders(ref);
-
   TClass* tcl = TClass::GetClass(tinfo);
   result = extractFromTFile(memFile, tcl, "ccdb_object");
   if (!result) {
