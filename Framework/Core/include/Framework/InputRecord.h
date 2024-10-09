@@ -40,6 +40,10 @@
 namespace o2::framework
 {
 
+// Wrapper class to get CCDB metadata
+struct CCDBMetadataExtractor {
+};
+
 struct InputSpec;
 class InputSpan;
 class CallbackService;
@@ -462,6 +466,49 @@ class InputRecord
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
     }
+  }
+
+  template <typename T = DataRef, typename R>
+  std::map<std::string, std::string>& get(R binding, int part = 0) const
+    requires std::same_as<T, CCDBMetadataExtractor>
+  {
+    auto ref = getRef(binding, part);
+    auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
+    auto payloadSize = DataRefUtils::getPayloadSize(ref);
+    auto method = header->payloadSerializationMethod;
+    if (method != header::gSerializationMethodCCDB) {
+      throw runtime_error("Attempt to extract metadata from a non-CCDB serialised message");
+    }
+    // This is to support deserialising objects from CCDB. Contrary to what happens for
+    // other objects, those objects are most likely long lived, so we
+    // keep around an instance of the associated object and deserialise it only when
+    // it's updated.
+    auto id = ObjectCache::Id::fromRef(ref);
+    ConcreteDataMatcher matcher{header->dataOrigin, header->dataDescription, header->subSpecification};
+    // If the matcher does not have an entry in the cache, deserialise it
+    // and cache the deserialised object at the given id.
+    auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
+    LOGP(debug, "{}", path);
+    auto& cache = mRegistry.get<ObjectCache>();
+    auto cacheEntry = cache.matcherToMetadataId.find(path);
+    if (cacheEntry == cache.matcherToMetadataId.end()) {
+      cache.matcherToMetadataId.insert(std::make_pair(path, id));
+      cache.idToMetadata[id] = extractCCDBHeaders(ref);
+      LOGP(info, "Caching CCDB metadata {}: {}", id.value, path);
+      return cache.idToMetadata[id];
+    }
+    auto& oldId = cacheEntry->second;
+    // The id in the cache is the same, let's simply return it.
+    if (oldId.value == id.value) {
+      LOGP(debug, "Returning cached CCDB metatada {}: {}", id.value, path);
+      return cache.idToMetadata[id];
+    }
+    // The id in the cache is different. Let's destroy the old cached entry
+    // and create a new one.
+    LOGP(info, "Replacing cached entry {} with {} for {}", oldId.value, id.value, path);
+    cache.idToObject[id] = extracCCDBMetadata(ref);
+    oldId.value = id.value;
+    return cache.idToObject[id];
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
