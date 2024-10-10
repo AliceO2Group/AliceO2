@@ -547,14 +547,14 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
   if (mBranchReaders.empty()) {
     throw runtime_error("No columns will be read");
   }
-  //tree->SetCacheSize(50000000);
-  // FIXME: see https://github.com/root-project/root/issues/8962 and enable
-  // again once fixed.
-  //tree->SetClusterPrefetch(true);
-  //for (auto& reader : mBranchReaders) {
-  //  tree->AddBranchToCache(reader->branch());
-  //}
-  //tree->StopCacheLearningPhase();
+  // Was affected by https://github.com/root-project/root/issues/8962
+  // Re-enabling this seems to cut the number of IOPS in half
+  tree->SetCacheSize(25000000);
+  tree->SetClusterPrefetch(true);
+  for (auto& reader : mBranchReaders) {
+    tree->AddBranchToCache(reader->branch());
+  }
+  tree->StopCacheLearningPhase();
 }
 
 void TreeToTable::setLabel(const char* label)

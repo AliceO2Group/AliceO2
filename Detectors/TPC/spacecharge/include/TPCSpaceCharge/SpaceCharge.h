@@ -369,6 +369,20 @@ class SpaceCharge
   void calcGlobalCorrWithGlobalDistIterative(const Side side, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachZ = 1, const DataT approachR = 1, const DataT approachPhi = 1, const DataT diffCorr = 50e-6);
   void calcGlobalCorrWithGlobalDistIterative(const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachZ = 1, const DataT approachR = 1, const DataT approachPhi = 1, const DataT diffCorr = 50e-6);
 
+  /// Calculate global distortions using the global corrections by scaling with second distortion object, which will be consistent with scaled corrections in cartesian coordinates (as done in the tracking)
+  /// \param side Side of the TPC
+  /// \param scSCale possible second sc object
+  /// \param scale scaling for second sc object
+  void calcGlobalDistWithGlobalCorrIterativeLinearCartesian(const Side side, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
+  void calcGlobalDistWithGlobalCorrIterativeLinearCartesian(const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
+
+  /// Calculate global corrections using the global distortions by scaling with second distortion object, which will be consistent with scaled corrections in cartesian coordinates
+  /// \param side Side of the TPC
+  /// \param scSCale possible second sc object
+  /// \param scale scaling for second sc object
+  void calcGlobalCorrWithGlobalDistIterativeLinearCartesian(const Side side, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
+  void calcGlobalCorrWithGlobalDistIterativeLinearCartesian(const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
+
   /// \return returns number of vertices in z direction
   unsigned short getNZVertices() const { return mParamGrid.NZVertices; }
 
@@ -1373,6 +1387,7 @@ class SpaceCharge
   void initRodAlignmentVoltages(const MisalignmentType misalignmentType, const FCType fcType, const int sector, const Side side, const float deltaPot);
 
   void calcGlobalDistCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr, const SpaceCharge<DataT>* scSCale, float scale, const Type type);
+  void calcGlobalDistCorrIterativeLinearCartesian(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachX, const DataT approachY, const DataT approachZ, const DataT diffCorr, const SpaceCharge<DataT>* scSCale, float scale, const Type type);
 
   ClassDefNV(SpaceCharge, 6);
 };

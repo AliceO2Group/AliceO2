@@ -31,10 +31,6 @@ const extern DataProcessorLabel uniqueProxyLabel;
 // Thus, AliECS will not perform host and port allocation automatically. It takes priority over `uniqueProxyLabel`.
 const extern DataProcessorLabel preserveRawChannelsLabel;
 
-// This label makes AliECS templates add the property `qcConfiguration` to the tasks, allowing them
-// to reconfigure in init with a freshly templated config.
-const extern DataProcessorLabel qcReconfigurable;
-
 } // namespace ecs
 } // namespace o2::framework
 

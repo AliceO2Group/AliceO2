@@ -104,6 +104,8 @@ class HistogramRegistry
   std::shared_ptr<T> add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
   template <typename T>
   std::shared_ptr<T> add(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2 = false);
+  template <typename T>
+  std::shared_ptr<T> add(const std::string& name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2 = false);
 
   void addClone(const std::string& source, const std::string& target);
 
@@ -367,6 +369,12 @@ std::shared_ptr<T> HistogramRegistry::add(char const* const name, char const* co
   } else {
     throw runtime_error_f(R"(Histogram type specified in add<>("%s") does not match the actual type of the histogram!)", name);
   }
+}
+
+template <typename T>
+std::shared_ptr<T> HistogramRegistry::add(const std::string& name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2)
+{
+  return add<T>(name.c_str(), title, histType, axes, callSumw2);
 }
 
 template <typename T>
