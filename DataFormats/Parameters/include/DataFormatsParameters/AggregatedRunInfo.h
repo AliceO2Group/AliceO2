@@ -22,6 +22,8 @@
 namespace o2::parameters
 {
 
+class GRPECSObject;
+
 /// Composite struct where one may collect important global properties of data "runs"
 /// aggregated from various sources (GRPECS, RunInformation CCDB entries, etc.).
 /// Also offers the authoritative algorithms to collect these information for easy reuse
@@ -36,6 +38,7 @@ struct AggregatedRunInfo {
   int64_t orbitEOR;    // orbit when run ends after orbit reset
 
   // we may have pointers to actual data source objects GRPECS, ...
+  o2::parameters::GRPECSObject* grpECS = nullptr; // pointer to GRPECSobject (fetched during struct building)
 
   // fills and returns AggregatedRunInfo for a given run number.
   static AggregatedRunInfo buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber);
