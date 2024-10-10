@@ -48,7 +48,7 @@ TEST_CASE("DataRelayer")
     TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
   DataProcessingStats stats(
     TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-    TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
+    TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()), {});
   int quickUpdateInterval = 1;
   using MetricSpec = DataProcessingStats::MetricSpec;
   std::vector<MetricSpec> specs{

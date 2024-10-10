@@ -715,14 +715,14 @@ o2::framework::ServiceSpec
       O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Queueing oldest possible timeslice %" PRIu64 " propagation for execution.",
                              (uint64_t)oldestPossibleOutput.timeslice.value);
       AsyncQueueHelpers::post(
-        queue, AsyncTask{ .timeslice = TimesliceId{oldestPossibleTimeslice}, 
-                .id = decongestion.oldestPossibleTimesliceTask, 
+        queue, AsyncTask{ .timeslice = TimesliceId{oldestPossibleTimeslice},
+                .id = decongestion.oldestPossibleTimesliceTask,
                 .debounce = -1, .callback = decongestionCallback}
             .user<DecongestionContext>(DecongestionContext{.ref = services, .oldestPossibleOutput = oldestPossibleOutput}));
 
       if (decongestion.orderedCompletionPolicyActive) {
         AsyncQueueHelpers::post(
-          queue, AsyncTask{.timeslice = TimesliceId{oldestPossibleOutput.timeslice.value},.id = decongestion.oldestPossibleTimesliceTask,  .debounce = -1, 
+          queue, AsyncTask{.timeslice = TimesliceId{oldestPossibleOutput.timeslice.value},.id = decongestion.oldestPossibleTimesliceTask,  .debounce = -1,
           .callback = decongestionCallbackOrdered}
           .user<DecongestionContext>({.ref = services, .oldestPossibleOutput = oldestPossibleOutput}));
       } },
@@ -867,8 +867,11 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       clock_gettime(CLOCK_REALTIME, &now);
       uv_update_time(state.loop);
       uint64_t offset = now.tv_sec * 1000 - uv_now(state.loop);
+      DataProcessingStats::DefaultConfig config = {
+        .minOnlinePublishInterval = std::stoi(options.GetProperty<std::string>("dpl-stats-min-online-publishing-interval").c_str()) * 1000};
       auto* stats = new DataProcessingStats(TimingHelpers::defaultRealtimeBaseConfigurator(offset, state.loop),
-                                            TimingHelpers::defaultCPUTimeConfigurator(state.loop));
+                                            TimingHelpers::defaultCPUTimeConfigurator(state.loop),
+                                            config);
       auto& runningWorkflow = services.get<RunningWorkflowInfo const>();
 
       // It makes no sense to update the stats more often than every 5s
