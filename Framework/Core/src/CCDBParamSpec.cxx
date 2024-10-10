@@ -21,9 +21,9 @@ ConfigParamSpec ccdbPathSpec(std::string const& path)
   return ConfigParamSpec{"ccdb-path", VariantType::String, path, {fmt::format("Path in CCDB ({})", path)}, ConfigParamKind::kGeneric};
 }
 
-ConfigParamSpec ccdbRunDependent(bool defaultValue)
+ConfigParamSpec ccdbRunDependent(int defaultValue)
 {
-  return ConfigParamSpec{"ccdb-run-dependent", VariantType::Bool, defaultValue, {"Give object for specific run number"}, ConfigParamKind::kGeneric};
+  return ConfigParamSpec{"ccdb-run-dependent", VariantType::Int, defaultValue, {"Give object for specific run number"}, ConfigParamKind::kGeneric};
 }
 
 ConfigParamSpec ccdbQueryRateSpec(int r)
@@ -45,11 +45,11 @@ std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, std::vector<
   return ccdbParamSpec(path, false, metadata, qrate);
 }
 
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata, int qrate)
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, int runDependent, std::vector<CCDBMetadata> metadata, int qrate)
 {
   // Add here CCDB objecs which should be considered run dependent
   std::vector<ConfigParamSpec> result{ccdbPathSpec(path)};
-  if (runDependent) {
+  if (runDependent > 0) {
     result.push_back(ccdbRunDependent(runDependent));
   }
   if (qrate != 0) {
