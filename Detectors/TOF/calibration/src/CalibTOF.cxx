@@ -212,7 +212,7 @@ void CalibTOF::run(int flag, int sector)
           int channelInSector = (ipad + ich) % o2::tof::Geo::NPADSXSECTOR;
 
           mTimeSlewingObj->setFractionUnderPeak(sector, channelInSector, fractionUnderPeak);
-          mTimeSlewingObj->setSigmaPeak(sector, channelInSector, abs(funcChOffset->GetParameter(2)));
+          mTimeSlewingObj->setSigmaPeak(sector, channelInSector, std::abs(funcChOffset->GetParameter(2)));
 
           // now fill 2D histo for time-slewing using current channel offset
 
@@ -237,7 +237,7 @@ void CalibTOF::run(int flag, int sector)
               int istrip = ((ich + ipad) / o2::tof::Geo::NPADS) % o2::tof::Geo::NSTRIPXSECTOR;
               gTimeVsTot->SetName(Form("pad_%02d_%02d_%02d", sector, istrip, ipad % o2::tof::Geo::NPADS));
               gTimeVsTot->Write();
-              //	      histoChTimeSlewingTemp->Write(Form("histoChTimeSlewingTemp_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS)); // no longer written since it produces a very large output
+              //      histoChTimeSlewingTemp->Write(Form("histoChTimeSlewingTemp_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS)); // no longer written since it produces a very large output
             }
           } else if (flag & kChannelOffset) {
             mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, 0, mCalibChannelOffset[ich + ipad]);
@@ -603,8 +603,8 @@ Int_t CalibTOF::FitPeak(TF1* fitFunc, TH1* h, Float_t startSigma, Float_t nSigma
   /* refit with better range */
   for (Int_t i = 0; i < 3; i++) {
     fitCent = fitFunc->GetParameter(1);
-    fitMin = fitCent - nSigmaMin * abs(fitFunc->GetParameter(2));
-    fitMax = fitCent + nSigmaMax * abs(fitFunc->GetParameter(2));
+    fitMin = fitCent - nSigmaMin * std::abs(fitFunc->GetParameter(2));
+    fitMax = fitCent + nSigmaMax * std::abs(fitFunc->GetParameter(2));
     if (fitMin < -12500) {
       fitMin = -12500;
     }
@@ -735,9 +735,9 @@ void CalibTOF::flagProblematics()
     hsigmapeak->Fit(fFuncSigma, "WWq0");
     hfractionpeak->Fit(fFuncFraction, "WWq0");
 
-    sigmaMin = fFuncSigma->GetParameter(1) - mNsigmaSigmaProblematicCut * abs(fFuncSigma->GetParameter(2));
-    sigmaMax = fFuncSigma->GetParameter(1) + mNsigmaSigmaProblematicCut * abs(fFuncSigma->GetParameter(3));
-    fractionMin = fFuncFraction->GetParameter(1) - mNsigmaFractionProblematicCut * abs(fFuncFraction->GetParameter(2));
+    sigmaMin = fFuncSigma->GetParameter(1) - mNsigmaSigmaProblematicCut * std::abs(fFuncSigma->GetParameter(2));
+    sigmaMax = fFuncSigma->GetParameter(1) + mNsigmaSigmaProblematicCut * std::abs(fFuncSigma->GetParameter(3));
+    fractionMin = fFuncFraction->GetParameter(1) - mNsigmaFractionProblematicCut * std::abs(fFuncFraction->GetParameter(2));
 
     for (int k = 0; k < o2::tof::Geo::NPADX; k++) {
       ipad = 48 * iz + k;
