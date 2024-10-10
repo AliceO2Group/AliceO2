@@ -143,20 +143,20 @@ double Utils::subtractInteractionBC(double time, int& mask, bool subLatency)
     if (deltaCBC >= -8 && deltaCBC < 8) {
       mask += (1 << (deltaCBC + 8)); // fill bc candidates
     }
-    if (abs(deltaCBC) < dbc) {
+    if (std::abs(deltaCBC) < dbc) {
       bcc = bc - deltaCBC;
       dbcSigned = deltaCBC;
-      dbc = abs(dbcSigned);
+      dbc = std::abs(dbcSigned);
     }
-    if (abs(deltaCBC + o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the right border (last BC of the orbit)
+    if (std::abs(deltaCBC + o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the right border (last BC of the orbit)
       bcc = bc - deltaCBC - o2::constants::lhc::LHCMaxBunches;
       dbcSigned = deltaCBC + o2::constants::lhc::LHCMaxBunches;
-      dbc = abs(dbcSigned);
+      dbc = std::abs(dbcSigned);
     }
-    if (abs(deltaCBC - o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the left border (BC=0)
+    if (std::abs(deltaCBC - o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the left border (BC=0)
       bcc = bc - deltaCBC + o2::constants::lhc::LHCMaxBunches;
       dbcSigned = deltaCBC - o2::constants::lhc::LHCMaxBunches;
-      dbc = abs(dbcSigned);
+      dbc = std::abs(dbcSigned);
     }
   }
   if (dbcSigned >= -8 && dbcSigned < 8) {
@@ -192,20 +192,20 @@ float Utils::subtractInteractionBC(float time, int& mask, bool subLatency)
     if (deltaCBC >= -8 && deltaCBC < 8) {
       mask += (1 << (deltaCBC + 8)); // fill bc candidates
     }
-    if (abs(deltaCBC) < dbc) {
+    if (std::abs(deltaCBC) < dbc) {
       bcc = bc - deltaCBC;
       dbcSigned = deltaCBC;
-      dbc = abs(dbcSigned);
+      dbc = std::abs(dbcSigned);
     }
-    if (abs(deltaCBC + o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the right border (last BC of the orbit)
+    if (std::abs(deltaCBC + o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the right border (last BC of the orbit)
       bcc = bc - deltaCBC - o2::constants::lhc::LHCMaxBunches;
       dbcSigned = deltaCBC + o2::constants::lhc::LHCMaxBunches;
-      dbc = abs(dbcSigned);
+      dbc = std::abs(dbcSigned);
     }
-    if (abs(deltaCBC - o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the left border (BC=0)
+    if (std::abs(deltaCBC - o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the left border (BC=0)
       bcc = bc - deltaCBC + o2::constants::lhc::LHCMaxBunches;
       dbcSigned = deltaCBC - o2::constants::lhc::LHCMaxBunches;
-      dbc = abs(dbcSigned);
+      dbc = std::abs(dbcSigned);
     }
   }
   if (dbcSigned >= -8 && dbcSigned < 8) {
