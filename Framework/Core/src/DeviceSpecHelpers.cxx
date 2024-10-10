@@ -1753,6 +1753,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                                              //
     ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                                                 //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                                                //
+    ("dpl-stats-min-online-publishing-interval", bpo::value<std::string>(), "minimum flushing interval for online metrics (in s)")                                   //
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
     ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //

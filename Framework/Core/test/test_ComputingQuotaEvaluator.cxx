@@ -75,7 +75,7 @@ TEST_CASE("TestComputingQuotaEvaluator")
   };
 
   DataProcessingStats stats(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-                            TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
+                            TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()), {});
 
   ServiceRegistry registry;
   ServiceRegistryRef ref(registry);
