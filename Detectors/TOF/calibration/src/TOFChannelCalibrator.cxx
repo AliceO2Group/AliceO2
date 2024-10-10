@@ -627,7 +627,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
         mFitCal->Fill(ich, localFitter.GetParameter(ichLocal));
 #endif
         ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fracUnderPeak[ichLocal]);
-        ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(std::sqrt(localFitter.GetCovarianceMatrixElement(ichLocal, ichLocal))));
+        ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, std::abs(std::sqrt(localFitter.GetCovarianceMatrixElement(ichLocal, ichLocal))));
       }
 
     } // end loop strips
@@ -783,12 +783,12 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       fractionUnderPeak = entriesInChannel > 0 ? c->integral(ich, intmin, intmax) / entriesInChannel : 0;
       // now we need to store the results in the TimeSlewingObject
       ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fractionUnderPeak);
-      ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(fitValues[2]));
+      ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, std::abs(fitValues[2]));
 
       int tobeused = o2::tof::Utils::getMaxUsedChannel(ich);
       fitValues[1] += tobeused * o2::tof::Geo::BC_TIME_INPS; // adjust by adding the right BC
 
-      if (abs(fitValues[1]) > mRange) {
+      if (std::abs(fitValues[1]) > mRange) {
         ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, -1);
         ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, 99999);
       }

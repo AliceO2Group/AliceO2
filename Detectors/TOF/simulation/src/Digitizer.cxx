@@ -302,8 +302,8 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     tot = 0;
   }
 
-  Float_t xborder = Geo::XPAD * 0.5 - TMath::Abs(x);
-  Float_t zborder = Geo::ZPAD * 0.5 - TMath::Abs(z);
+  Float_t xborder = Geo::XPAD * 0.5 - std::abs(x);
+  Float_t zborder = Geo::ZPAD * 0.5 - std::abs(z);
   Float_t border = TMath::Min(xborder, zborder);
 
   Float_t timewalkX = x * mTimeWalkeSlope;
@@ -326,7 +326,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
   // Decalibrate
   float tsCorr = mCalibApi->getTimeDecalibration(channel, tot);
-  if (TMath::Abs(tsCorr) > 200E3) { // accept correction up to 200 ns
+  if (std::abs(tsCorr) > 200E3) { // accept correction up to 200 ns
     LOG(error) << "Wrong de-calibration correction for ch = " << channel << ", tot = " << tot << " (Skip it)";
     return;
   }
@@ -483,10 +483,10 @@ Float_t Digitizer::getCharge(Float_t eDep)
 //______________________________________________________________________
 Bool_t Digitizer::isFired(Float_t x, Float_t z, Float_t charge)
 {
-  if (TMath::Abs(x) > Geo::XPAD * 0.5 + 0.3) {
+  if (std::abs(x) > Geo::XPAD * 0.5 + 0.3) {
     return kFALSE;
   }
-  if (TMath::Abs(z) > Geo::ZPAD * 0.5 + 0.3) {
+  if (std::abs(z) > Geo::ZPAD * 0.5 + 0.3) {
     return kFALSE;
   }
 
@@ -505,7 +505,7 @@ Bool_t Digitizer::isFired(Float_t x, Float_t z, Float_t charge)
 //______________________________________________________________________
 Float_t Digitizer::getEffX(Float_t x)
 {
-  Float_t xborder = Geo::XPAD * 0.5 - TMath::Abs(x);
+  Float_t xborder = Geo::XPAD * 0.5 - std::abs(x);
 
   if (xborder > 0) {
     if (xborder > mBound1) {
@@ -532,7 +532,7 @@ Float_t Digitizer::getEffX(Float_t x)
 //______________________________________________________________________
 Float_t Digitizer::getEffZ(Float_t z)
 {
-  Float_t zborder = Geo::ZPAD * 0.5 - TMath::Abs(z);
+  Float_t zborder = Geo::ZPAD * 0.5 - std::abs(z);
 
   if (zborder > 0) {
     if (zborder > mBound1) {
