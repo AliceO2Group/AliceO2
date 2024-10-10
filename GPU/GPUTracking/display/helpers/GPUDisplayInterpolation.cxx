@@ -27,9 +27,9 @@ void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<floa
   if (x.size() != y.size() || x.size() < 2) {
     return;
   }
-  int k = x.size() - 1;
+  int32_t k = x.size() - 1;
   if (mVerbose) {
-    for (unsigned int i = 0; i < x.size(); i++) {
+    for (uint32_t i = 0; i < x.size(); i++) {
       GPUInfo("Point %u: %f --> %f", i, x[i], y[i]);
     }
   }
@@ -39,36 +39,36 @@ void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<floa
   md.resize(k + 1);
   mx.resize(k + 1);
   vecpod<float> h(k + 1), alpha(k + 1), l(k + 1), mu(k + 1), z(k + 1);
-  for (int i = 0; i <= k; i++) {
+  for (int32_t i = 0; i <= k; i++) {
     ma[i] = y[i];
   }
-  for (int i = 0; i < k; i++) {
+  for (int32_t i = 0; i < k; i++) {
     h[i] = x[i + 1] - x[i];
   }
-  for (int i = 1; i < k; i++) {
+  for (int32_t i = 1; i < k; i++) {
     alpha[i] = 3.f / h[i] * (ma[i + 1] - ma[i]) - 3.f / h[i - 1] * (ma[i] - ma[i - 1]);
   }
   l[0] = l[k] = 1;
   mu[0] = z[0] = z[k] = mc[k] = 0;
-  for (int i = 1; i < k; i++) {
+  for (int32_t i = 1; i < k; i++) {
     l[i] = 2.f * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
     mu[i] = h[i] / l[i];
     z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
   }
-  for (int i = k - 1; i >= 0; i--) {
+  for (int32_t i = k - 1; i >= 0; i--) {
     mc[i] = z[i] - mu[i] * mc[i + 1];
     mb[i] = (ma[i + 1] - ma[i]) / h[i] - h[i] / 3.f * (mc[i + 1] + 2.f * mc[i]);
     md[i] = (mc[i + 1] - mc[i]) / (3.f * h[i]);
   }
-  for (int i = 0; i <= k; i++) {
+  for (int32_t i = 0; i <= k; i++) {
     mx[i] = x[i];
   }
 }
 
 float GPUDisplay::opengl_spline::evaluate(float x)
 {
-  int base = 0;
-  const int k = mx.size() - 1;
+  int32_t base = 0;
+  const int32_t k = mx.size() - 1;
   if (k < 0) {
     return (0);
   }

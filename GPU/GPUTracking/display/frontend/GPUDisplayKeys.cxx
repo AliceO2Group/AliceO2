@@ -71,12 +71,12 @@ const char* HelpText[] = {
 void GPUDisplay::PrintHelp()
 {
   mInfoHelpTimer.ResetStart();
-  for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
+  for (uint32_t i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
     GPUInfo("%s", HelpText[i]);
   }
 }
 
-void GPUDisplay::HandleKey(unsigned char key)
+void GPUDisplay::HandleKey(uint8_t key)
 {
   GPUSettingsDisplayHeavy oldCfgH = mCfgH;
   GPUSettingsDisplayLight oldCfgL = mCfgL;
@@ -152,10 +152,10 @@ void GPUDisplay::HandleKey(unsigned char key)
     }
   } else if (key == 'F') {
     mCfgR.fullScreen ^= 1;
-    SetInfo("Toggling full screen (%d)", (int)mCfgR.fullScreen);
+    SetInfo("Toggling full screen (%d)", (int32_t)mCfgR.fullScreen);
   } else if (key == '_') {
     mCfgR.maximized ^= 1;
-    SetInfo("Toggling Maximized window (%d)", (int)mCfgR.maximized);
+    SetInfo("Toggling Maximized window (%d)", (int32_t)mCfgR.maximized);
   } else if (key == 'R') {
     mCfgR.maxFPSRate ^= 1;
     SetInfo("FPS rate %s", mCfgR.maxFPSRate ? "not limited" : "limited");
@@ -175,12 +175,7 @@ void GPUDisplay::HandleKey(unsigned char key)
       mCfgH.markClusters <<= 1;
     }
     SetInfo("Cluster flag highlight mask set to %d (%s)", mCfgH.markClusters,
-            mCfgH.markClusters == 0 ? "off" : mCfgH.markClusters == 1    ? "split pad"
-                                            : mCfgH.markClusters == 2    ? "split time"
-                                            : mCfgH.markClusters == 4    ? "edge"
-                                            : mCfgH.markClusters == 8    ? "singlePad"
-                                            : mCfgH.markClusters == 0x10 ? "reject distance"
-                                                                         : "reject error");
+            mCfgH.markClusters == 0 ? "off" : mCfgH.markClusters == 1 ? "split pad" : mCfgH.markClusters == 2 ? "split time" : mCfgH.markClusters == 4 ? "edge" : mCfgH.markClusters == 8 ? "singlePad" : mCfgH.markClusters == 0x10 ? "reject distance" : "reject error");
   } else if (key == 'z') {
     mCfgH.markFakeClusters ^= 1;
     SetInfo("Marking fake clusters: %s", mCfgH.markFakeClusters ? "on" : "off");
@@ -318,40 +313,40 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == mFrontend->KEY_F1) {
     if (mFrontend->mKeysShift[mFrontend->KEY_F1]) {
       mCfgH.drawTPCTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawTPC ^= 1;
-      SetInfo("Showing TPC Clusters: %d", (int)mCfgL.drawTPC);
+      SetInfo("Showing TPC Clusters: %d", (int32_t)mCfgL.drawTPC);
     }
   } else if (key == mFrontend->KEY_F2) {
     if (mFrontend->mKeysShift[mFrontend->KEY_F2]) {
       mCfgH.drawTRDTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawTRD ^= 1;
-      SetInfo("Showing TRD Tracklets: %d", (int)mCfgL.drawTRD);
+      SetInfo("Showing TRD Tracklets: %d", (int32_t)mCfgL.drawTRD);
     }
   } else if (key == mFrontend->KEY_F3) {
     if (mFrontend->mKeysShift[mFrontend->KEY_F3]) {
       mCfgH.drawTOFTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawTOF ^= 1;
-      SetInfo("Showing TOF Hits: %d", (int)mCfgL.drawTOF);
+      SetInfo("Showing TOF Hits: %d", (int32_t)mCfgL.drawTOF);
     }
   } else if (key == mFrontend->KEY_F4) {
     if (mFrontend->mKeysShift[mFrontend->KEY_F4]) {
       mCfgH.drawITSTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawITS ^= 1;
-      SetInfo("Showing ITS Clusters: %d", (int)mCfgL.drawITS);
+      SetInfo("Showing ITS Clusters: %d", (int32_t)mCfgL.drawITS);
     }
   } else if (key == mFrontend->KEY_F12 && mFrontend->mKeysShift[mFrontend->KEY_F12]) {
     mCfgH.drawTracksAndFilter ^= 1;
     SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
-    static int nScreenshot = 1;
+    static int32_t nScreenshot = 1;
     char fname[32];
     snprintf(fname, 32, "screenshot%d.bmp", nScreenshot++);
     mRequestScreenshot = true;
@@ -378,7 +373,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     SetInfo("Interpolating visualization settings during Animation %s", mAnimationChangeConfig ? "enabled" : "disabled");
   } else if (key == 'Y') {
     setAnimationPoint();
-    SetInfo("Added Animation point (%d points, %6.2f seconds)", (int)mAnimateVectors[0].size(), mAnimateVectors[0].back());
+    SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimateVectors[0].size(), mAnimateVectors[0].back());
   } else if (key == 'X') {
     resetAnimation();
     SetInfo("Reset Animation points", 1);
@@ -394,9 +389,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     if (mCfgL.animationMode == 6) {
       SetInfo("Animation mode %d - Centered on origin", mCfgL.animationMode);
     } else {
-      SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfgL.animationMode, (mCfgL.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfgL.animationMode & 4) ? "Spherical (Euler angles)"
-                                                                                                                                                                               : "Cartesian",
-              (mCfgL.animationMode & 1) ? "Euler angles" : "Quaternion");
+      SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfgL.animationMode, (mCfgL.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfgL.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfgL.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
   } else if (key == 'u') {
     mCfgH.trackFilter = (mCfgH.trackFilter + 1) % (mConfig.filterMacros.size() + 1);
@@ -405,7 +398,7 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {
-      int retval = fwrite(&mViewMatrix, sizeof(mViewMatrix), 1, ftmp);
+      int32_t retval = fwrite(&mViewMatrix, sizeof(mViewMatrix), 1, ftmp);
       if (retval != 1) {
         GPUError("Error writing position to file");
       } else {
@@ -419,7 +412,7 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'p') {
     FILE* ftmp = fopen("glpos.tmp", "rb");
     if (ftmp) {
-      int retval = fread(&mViewMatrix, 1, sizeof(mViewMatrix), ftmp);
+      int32_t retval = fread(&mViewMatrix, 1, sizeof(mViewMatrix), ftmp);
       if (retval == sizeof(mViewMatrix)) {
         GPUInfo("Position read from file");
       } else {
@@ -434,9 +427,9 @@ void GPUDisplay::HandleKey(unsigned char key)
     FILE* ftmp = fopen("glanimation.tmp", "w+b");
     if (ftmp) {
       fwrite(&mCfgL, sizeof(mCfgL), 1, ftmp);
-      int size = mAnimateVectors[0].size();
+      int32_t size = mAnimateVectors[0].size();
       fwrite(&size, sizeof(size), 1, ftmp);
-      for (int i = 0; i < 9; i++) {
+      for (int32_t i = 0; i < 9; i++) {
         fwrite(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp);
       }
       fwrite(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp);
@@ -448,10 +441,10 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'P') {
     FILE* ftmp = fopen("glanimation.tmp", "rb");
     if (ftmp) {
-      int retval = fread(&mCfgL, sizeof(mCfgL), 1, ftmp);
-      int size;
+      int32_t retval = fread(&mCfgL, sizeof(mCfgL), 1, ftmp);
+      int32_t size;
       retval += fread(&size, sizeof(size), 1, ftmp);
-      for (int i = 0; i < 9; i++) {
+      for (int32_t i = 0; i < 9; i++) {
         mAnimateVectors[i].resize(size);
         retval += fread(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp);
       }
@@ -521,12 +514,12 @@ void GPUDisplay::HandleKey(unsigned char key)
   }
 }
 
-void GPUDisplay::HandleSendKey(int key)
+void GPUDisplay::HandleSendKey(int32_t key)
 {
   // GPUError("key %d '%c'", key, (char) key);
 
   bool shifted = key >= 'A' && key <= 'Z';
-  int press = key;
+  int32_t press = key;
   if (press >= 'a' && press <= 'z') {
     press += 'A' - 'a';
   }
@@ -538,7 +531,7 @@ void GPUDisplay::HandleSendKey(int key)
 
 void GPUDisplay::PrintGLHelpText(float colorValue)
 {
-  for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
+  for (uint32_t i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
     OpenGLPrint(HelpText[i], 40.f, 35 + std::max(20, mDrawTextFontSize + 4) * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }

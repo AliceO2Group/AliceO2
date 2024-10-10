@@ -30,10 +30,10 @@ class GPUDisplayInterface
  public:
   GPUDisplayInterface(const GPUDisplayInterface&) = delete;
   virtual ~GPUDisplayInterface();
-  virtual int StartDisplay() = 0;
+  virtual int32_t StartDisplay() = 0;
   virtual void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) = 0;
   virtual void WaitForNextEvent() = 0;
-  virtual void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) = 0;
+  virtual void SetCollisionFirstCluster(uint32_t collision, int32_t slice, int32_t cluster) = 0;
   virtual void UpdateCalib(const GPUCalibObjectsConst* calib) = 0;
   virtual void UpdateParam(const GPUParam* param) = 0;
   static GPUDisplayInterface* getDisplay(GPUDisplayFrontendInterface* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
@@ -49,12 +49,12 @@ class GPUDisplayFrontendInterface
   static GPUDisplayFrontendInterface* getFrontend(const char* type);
   virtual void DisplayExit() = 0;
   virtual bool EnableSendKey() = 0;
-  virtual int getDisplayControl() const = 0;
-  virtual int getSendKey() const = 0;
-  virtual int getNeedUpdate() const = 0;
-  virtual void setDisplayControl(int v) = 0;
-  virtual void setSendKey(int v) = 0;
-  virtual void setNeedUpdate(int v) = 0;
+  virtual int32_t getDisplayControl() const = 0;
+  virtual int32_t getSendKey() const = 0;
+  virtual int32_t getNeedUpdate() const = 0;
+  virtual void setDisplayControl(int32_t v) = 0;
+  virtual void setSendKey(int32_t v) = 0;
+  virtual void setNeedUpdate(int32_t v) = 0;
   virtual const char* frontendName() const = 0;
 
  protected:

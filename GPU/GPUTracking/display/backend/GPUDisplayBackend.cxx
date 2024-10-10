@@ -48,7 +48,7 @@ GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
     return new GPUDisplayBackendVulkan;
   } else
 #endif
-    if (strcmp(type, "opengl") == 0 || strcmp(type, "auto") == 0) {
+  if (strcmp(type, "opengl") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayBackendOpenGL;
   } else {
     GPUError("Requested renderer not available");
@@ -56,9 +56,9 @@ GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
   return nullptr;
 }
 
-int GPUDisplayBackend::InitBackend()
+int32_t GPUDisplayBackend::InitBackend()
 {
-  int retVal = InitBackendA();
+  int32_t retVal = InitBackendA();
   if (retVal) {
     return retVal;
   }
@@ -100,14 +100,14 @@ int GPUDisplayBackend::InitBackend()
     return 0;
   }
 
-  int fontSize = mDisplay->cfg().fontSize;
+  int32_t fontSize = mDisplay->cfg().fontSize;
   mDisplay->drawTextFontSize() = fontSize;
   if (smoothFont()) {
     fontSize *= 4; // Font size scaled by 4, can be downsampled
   }
   FT_Set_Pixel_Sizes(face, 0, fontSize);
 
-  for (unsigned int i = 0; i < 128; i++) {
+  for (uint32_t i = 0; i < 128; i++) {
     if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
       GPUError("Error loading freetype symbol");
       return 0;
@@ -140,9 +140,9 @@ void GPUDisplayBackend::fillIndirectCmdBuffer()
   mCmdBuffer.clear();
   mIndirectSliceOffset.resize(GPUCA_NSLICES);
   // TODO: Check if this can be parallelized
-  for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
+  for (int32_t iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
     mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
-    for (unsigned int k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
+    for (uint32_t k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
       mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSlice][k], 1, mDisplay->vertexBufferStart()[iSlice][k], 0);
     }
   }
@@ -151,8 +151,8 @@ void GPUDisplayBackend::fillIndirectCmdBuffer()
 float GPUDisplayBackend::getDownsampleFactor(bool screenshot)
 {
   float factor = 1.0f;
-  int fsaa = mDisplay->cfgR().drawQualityDownsampleFSAA;
-  int screenshotScale = mDisplay->cfgR().screenshotScaleFactor;
+  int32_t fsaa = mDisplay->cfgR().drawQualityDownsampleFSAA;
+  int32_t screenshotScale = mDisplay->cfgR().screenshotScaleFactor;
   if (fsaa) {
     factor *= fsaa;
   }

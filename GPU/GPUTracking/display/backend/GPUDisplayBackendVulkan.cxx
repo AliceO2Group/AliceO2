@@ -32,13 +32,13 @@ QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentTexture_frag_spv);
 QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentText_frag_spv);
 
 // #define CHKERR(cmd) {cmd;}
-#define CHKERR(cmd)                                                                                     \
-  do {                                                                                                  \
-    auto tmp_internal_retVal = cmd;                                                                     \
-    if ((int)tmp_internal_retVal < 0) {                                                                 \
-      GPUError("VULKAN ERROR: %d: %s (%s: %d)", (int)tmp_internal_retVal, "ERROR", __FILE__, __LINE__); \
-      throw std::runtime_error("Vulkan Failure");                                                       \
-    }                                                                                                   \
+#define CHKERR(cmd)                                                                                         \
+  do {                                                                                                      \
+    auto tmp_internal_retVal = cmd;                                                                         \
+    if ((int32_t)tmp_internal_retVal < 0) {                                                                 \
+      GPUError("VULKAN ERROR: %d: %s (%s: %d)", (int32_t)tmp_internal_retVal, "ERROR", __FILE__, __LINE__); \
+      throw std::runtime_error("Vulkan Failure");                                                           \
+    }                                                                                                       \
   } while (false)
 
 GPUDisplayBackendVulkan::GPUDisplayBackendVulkan()
@@ -50,7 +50,7 @@ GPUDisplayBackendVulkan::~GPUDisplayBackendVulkan() = default;
 
 // ---------------------------- VULKAN HELPERS ----------------------------
 
-static int checkVulkanLayersSupported(const std::vector<const char*>& validationLayers)
+static int32_t checkVulkanLayersSupported(const std::vector<const char*>& validationLayers)
 {
   std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
   for (const char* layerName : validationLayers) {
@@ -113,7 +113,7 @@ vk::Extent2D GPUDisplayBackendVulkan::chooseSwapExtent(const vk::SurfaceCapabili
   if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    int width, height;
+    int32_t width, height;
     mDisplay->frontend()->getSize(width, height);
     vk::Extent2D actualExtent = {(uint32_t)width, (uint32_t)height};
     actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
@@ -221,7 +221,7 @@ static void createImageI(vk::Device device, vk::PhysicalDevice physicalDevice, v
   device.bindImageMemory(image, imageMemory, 0);
 }
 
-static unsigned int getMaxUsableSampleCount(vk::PhysicalDeviceProperties& physicalDeviceProperties)
+static uint32_t getMaxUsableSampleCount(vk::PhysicalDeviceProperties& physicalDeviceProperties)
 {
   vk::SampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
   if (counts & vk::SampleCountFlagBits::e64) {
@@ -240,7 +240,7 @@ static unsigned int getMaxUsableSampleCount(vk::PhysicalDeviceProperties& physic
   return 1;
 }
 
-static vk::SampleCountFlagBits getMSAASamplesFlag(unsigned int msaa)
+static vk::SampleCountFlagBits getMSAASamplesFlag(uint32_t msaa)
 {
   if (msaa == 2) {
     return vk::SampleCountFlagBits::e2;
@@ -281,7 +281,7 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
 
   std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
   bool found = false;
-  for (unsigned int i = 0; i < queueFamilies.size(); i++) {
+  for (uint32_t i = 0; i < queueFamilies.size(); i++) {
     if (!(queueFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics)) {
       return (-1);
     }
@@ -299,9 +299,9 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
   }
 
   std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
-  unsigned int extensionsFound = 0;
-  for (unsigned int i = 0; i < reqDeviceExtensions.size(); i++) {
-    for (unsigned int j = 0; j < availableExtensions.size(); j++) {
+  uint32_t extensionsFound = 0;
+  for (uint32_t i = 0; i < reqDeviceExtensions.size(); i++) {
+    for (uint32_t j = 0; j < availableExtensions.size(); j++) {
       if (strcmp(reqDeviceExtensions[i], availableExtensions[j].extensionName) == 0) {
         extensionsFound++;
         break;
@@ -326,7 +326,7 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
     score += 1e11;
   }
 
-  for (unsigned int i = 0; i < memoryProperties.memoryHeapCount; i++) {
+  for (uint32_t i = 0; i < memoryProperties.memoryHeapCount; i++) {
     if (memoryProperties.memoryHeaps[i].flags & vk::MemoryHeapFlagBits::eDeviceLocal) {
       score += memoryProperties.memoryHeaps[i].size;
     }
@@ -354,7 +354,7 @@ void GPUDisplayBackendVulkan::createDevice()
   const std::vector<const char*> reqValidationLayers = {
     "VK_LAYER_KHRONOS_validation"};
   auto debugCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
-    static int throwOnError = getenv("GPUCA_VULKAN_VALIDATION_THROW") ? atoi(getenv("GPUCA_VULKAN_VALIDATION_THROW")) : 0;
+    static int32_t throwOnError = getenv("GPUCA_VULKAN_VALIDATION_THROW") ? atoi(getenv("GPUCA_VULKAN_VALIDATION_THROW")) : 0;
     static bool showVulkanValidationInfo = getenv("GPUCA_VULKAN_VALIDATION_INFO") && atoi(getenv("GPUCA_VULKAN_VALIDATION_INFO"));
     switch (messageSeverity) {
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
@@ -429,7 +429,7 @@ void GPUDisplayBackendVulkan::createDevice()
     throw std::runtime_error("No Vulkan device present!");
   }
   double bestScore = -1.;
-  for (unsigned int i = 0; i < devices.size(); i++) {
+  for (uint32_t i = 0; i < devices.size(); i++) {
     double score = checkDevice(devices[i], reqDeviceExtensions);
     if (mDisplay->param()->par.debugLevel >= 2) {
       vk::PhysicalDeviceProperties deviceProperties = devices[i].getProperties();
@@ -441,7 +441,7 @@ void GPUDisplayBackendVulkan::createDevice()
     }
   }
   if (mDisplay->cfg().vulkan.forceDevice != -1) {
-    if (mDisplay->cfg().vulkan.forceDevice < 0 || mDisplay->cfg().vulkan.forceDevice >= (int)devices.size()) {
+    if (mDisplay->cfg().vulkan.forceDevice < 0 || mDisplay->cfg().vulkan.forceDevice >= (int32_t)devices.size()) {
       throw std::runtime_error("Invalid Vulkan device selected");
     }
     mPhysicalDevice = devices[mDisplay->cfg().vulkan.forceDevice];
@@ -463,7 +463,7 @@ void GPUDisplayBackendVulkan::createDevice()
   mCubicFilterSupported = (bool)(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterCubicEXT);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
   if (mDisplay->param()->par.debugLevel >= 2) {
-    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Cubic Filtering %d, Mailbox present mode %d\n", (int)mMaxMSAAsupported, (int)mZSupported, (int)mStencilSupported, (int)mCubicFilterSupported, (int)mailboxSupported);
+    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Cubic Filtering %d, Mailbox present mode %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mCubicFilterSupported, (int32_t)mailboxSupported);
   }
 
   vk::DeviceQueueCreateInfo queueCreateInfo{};
@@ -536,7 +536,7 @@ void GPUDisplayBackendVulkan::createSemaphoresAndFences()
   mMixFinishedSemaphore.resize(mFramesInFlight);
   mDownsampleFinishedSemaphore.resize(mFramesInFlight);
   mInFlightFence.resize(mFramesInFlight);
-  for (unsigned int i = 0; i < mFramesInFlight; i++) {
+  for (uint32_t i = 0; i < mFramesInFlight; i++) {
     mImageAvailableSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
     mRenderFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
     mTextFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
@@ -563,10 +563,10 @@ void GPUDisplayBackendVulkan::clearSemaphoresAndFences()
 
 void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
 {
-  for (int j = 0; j < 3; j++) {
+  for (int32_t j = 0; j < 3; j++) {
     mUniformBuffersMat[j].resize(mFramesInFlight);
     mUniformBuffersCol[j].resize(mFramesInFlight);
-    for (unsigned int i = 0; i < mFramesInFlight; i++) {
+    for (uint32_t i = 0; i < mFramesInFlight; i++) {
       mUniformBuffersMat[j][i] = createBuffer(sizeof(hmm_mat4), nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
       mUniformBuffersCol[j][i] = createBuffer(sizeof(float) * 4, nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
     }
@@ -608,14 +608,14 @@ void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
   vk::DescriptorSetAllocateInfo allocInfo{};
   allocInfo.descriptorPool = mDescriptorPool;
   allocInfo.descriptorSetCount = (uint32_t)mFramesInFlight;
-  for (int j = 0; j < 3; j++) { // 0 = Render, 1 = Text, 2 = Texture
+  for (int32_t j = 0; j < 3; j++) { // 0 = Render, 1 = Text, 2 = Texture
     std::vector<vk::DescriptorSetLayout> layouts(mFramesInFlight, j ? mUniformDescriptorTexture : mUniformDescriptor);
     allocInfo.pSetLayouts = layouts.data();
     mDescriptorSets[j] = mDevice.allocateDescriptorSets(allocInfo);
 
-    for (int k = 0; k < 2; k++) {
+    for (int32_t k = 0; k < 2; k++) {
       auto& mUniformBuffers = k ? mUniformBuffersCol[j] : mUniformBuffersMat[j];
-      for (unsigned int i = 0; i < mFramesInFlight; i++) {
+      for (uint32_t i = 0; i < mFramesInFlight; i++) {
         vk::DescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = mUniformBuffers[i].buffer;
         bufferInfo.offset = 0;
@@ -645,13 +645,13 @@ void GPUDisplayBackendVulkan::clearUniformLayoutsAndBuffers()
   mDevice.destroyDescriptorSetLayout(mUniformDescriptor, nullptr);
   mDevice.destroyDescriptorSetLayout(mUniformDescriptorTexture, nullptr);
   mDevice.destroyDescriptorPool(mDescriptorPool, nullptr);
-  for (int j = 0; j < 3; j++) {
+  for (int32_t j = 0; j < 3; j++) {
     clearVector(mUniformBuffersMat[j], [&](auto& x) { clearBuffer(x); });
     clearVector(mUniformBuffersCol[j], [&](auto& x) { clearBuffer(x); });
   }
 }
 
-void GPUDisplayBackendVulkan::setMixDescriptor(int descriptorIndex, int imageIndex)
+void GPUDisplayBackendVulkan::setMixDescriptor(int32_t descriptorIndex, int32_t imageIndex)
 {
   vk::DescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -741,7 +741,7 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   mSwapChain = mDevice.createSwapchainKHR(swapCreateInfo, nullptr);
 
   mSwapChainImages = mDevice.getSwapchainImagesKHR(mSwapChain);
-  unsigned int oldFramesInFlight = mFramesInFlight;
+  uint32_t oldFramesInFlight = mFramesInFlight;
   mImageCount = mSwapChainImages.size();
   mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight == 0 ? mImageCount : mDisplay->cfg().vulkan.nFramesInFlight;
   mCommandBufferPerImage = mFramesInFlight == mImageCount;
@@ -759,7 +759,7 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   }
 
   mSwapChainImageViews.resize(mImageCount);
-  for (unsigned int i = 0; i < mImageCount; i++) {
+  for (uint32_t i = 0; i < mImageCount; i++) {
     mSwapChainImageViews[i] = createImageViewI(mDevice, mSwapChainImages[i], mSurfaceFormat.format);
   }
 }
@@ -774,7 +774,7 @@ void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixi
 {
   mDevice.waitIdle();
   bool needUpdateSwapChain = mMustUpdateSwapChain || mDownsampleFactor != getDownsampleFactor(forScreenshot) || mSwapchainImageReadable != forScreenshot;
-  bool needUpdateOffscreenBuffers = needUpdateSwapChain || mMSAASampleCount != getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
+  bool needUpdateOffscreenBuffers = needUpdateSwapChain || mMSAASampleCount != getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
   clearPipeline();
   if (needUpdateOffscreenBuffers) {
     clearOffscreenBuffers();
@@ -792,7 +792,7 @@ void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixi
 
 void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool forMixing)
 {
-  mMSAASampleCount = getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
+  mMSAASampleCount = getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
   mZActive = mZSupported && mDisplay->cfgL().depthBuffer;
   mMixingSupported = forMixing;
 
@@ -823,7 +823,7 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   colorAttachmentResolve.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
   colorAttachmentResolve.initialLayout = vk::ImageLayout::eUndefined;
   colorAttachmentResolve.finalLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-  int nAttachments = 0;
+  int32_t nAttachments = 0;
   vk::AttachmentReference colorAttachmentRef{};
   colorAttachmentRef.attachment = nAttachments++;
   colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
@@ -866,7 +866,7 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   renderPassInfo.pDependencies = &dependency;
   mRenderPass = mDevice.createRenderPass(renderPassInfo, nullptr);
 
-  const unsigned int imageCountWithMixImages = mImageCount * (mMixingSupported ? 2 : 1);
+  const uint32_t imageCountWithMixImages = mImageCount * (mMixingSupported ? 2 : 1);
   mRenderTargetView.resize(imageCountWithMixImages);
   mFramebuffers.resize(imageCountWithMixImages);
   if (mDownsampleFSAA) {
@@ -919,7 +919,7 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
     mRenderPassTexture = mDevice.createRenderPass(renderPassInfo, nullptr);
   }
 
-  for (unsigned int i = 0; i < imageCountWithMixImages; i++) {
+  for (uint32_t i = 0; i < imageCountWithMixImages; i++) {
     if (i < mImageCount) { // Main render chain
       // primary buffer mSwapChainImageViews[i] created as part of createSwapChain, not here
     } else if (!mDownsampleFSAA) { // for rendering to mixBuffer
@@ -990,7 +990,7 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
     mMixingTextureVertexArray = createBuffer(sizeof(vertices), &vertices[0][0], vk::BufferUsageFlagBits::eVertexBuffer, 1);
 
     if (mCommandBufferPerImage) {
-      for (unsigned int i = 0; i < mFramesInFlight; i++) {
+      for (uint32_t i = 0; i < mFramesInFlight; i++) {
         setMixDescriptor(i, i);
       }
     }
@@ -1157,7 +1157,7 @@ void GPUDisplayBackendVulkan::createPipeline()
 
   mPipelines.resize(mMixingSupported ? 5 : 4);
   static constexpr vk::PrimitiveTopology types[3] = {vk::PrimitiveTopology::ePointList, vk::PrimitiveTopology::eLineList, vk::PrimitiveTopology::eLineStrip};
-  for (unsigned int i = 0; i < mPipelines.size(); i++) {
+  for (uint32_t i = 0; i < mPipelines.size(); i++) {
     if (i == 4) { // Texture rendering
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
@@ -1203,7 +1203,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   }
 }
 
-void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandBuffer, unsigned int imageIndex, bool toMixBuffer)
+void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, bool toMixBuffer)
 {
   commandBuffer.reset({});
 
@@ -1284,7 +1284,7 @@ void GPUDisplayBackendVulkan::writeToBuffer(VulkanBuffer& buffer, size_t size, c
   }
 }
 
-GPUDisplayBackendVulkan::VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData, vk::BufferUsageFlags type, int deviceMemory)
+GPUDisplayBackendVulkan::VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData, vk::BufferUsageFlags type, int32_t deviceMemory)
 {
   vk::MemoryPropertyFlags properties;
   if (deviceMemory) {
@@ -1372,7 +1372,7 @@ void GPUDisplayBackendVulkan::writeToImage(VulkanImage& image, const void* srcDa
   clearBuffer(tmp);
 }
 
-GPUDisplayBackendVulkan::VulkanImage GPUDisplayBackendVulkan::createImage(unsigned int sizex, unsigned int sizey, const void* srcData, size_t srcSize, vk::Format format)
+GPUDisplayBackendVulkan::VulkanImage GPUDisplayBackendVulkan::createImage(uint32_t sizex, uint32_t sizey, const void* srcData, size_t srcSize, vk::Format format)
 {
   VulkanImage image;
   createImageI(mDevice, mPhysicalDevice, image.image, image.memory, sizex, sizey, format, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal, vk::SampleCountFlagBits::e1);
@@ -1398,7 +1398,7 @@ void GPUDisplayBackendVulkan::clearImage(VulkanImage& image)
 
 // ---------------------------- VULKAN INIT EXIT ----------------------------
 
-int GPUDisplayBackendVulkan::InitBackendA()
+int32_t GPUDisplayBackendVulkan::InitBackendA()
 {
   mEnableValidationLayers = mDisplay->param() && mDisplay->param()->par.debugLevel >= 2;
   mFramesInFlight = 2;
@@ -1436,7 +1436,7 @@ void GPUDisplayBackendVulkan::ExitBackendA()
 
 // ---------------------------- USER CODE ----------------------------
 
-void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int height)
+void GPUDisplayBackendVulkan::resizeScene(uint32_t width, uint32_t height)
 {
   if (mScreenWidth == width && mScreenHeight == height) {
     return;
@@ -1461,7 +1461,7 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
   needRecordCommandBuffers();
 }
 
-unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType tt)
+uint32_t GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType tt)
 {
   auto first = std::get<0>(v);
   auto count = std::get<1>(v);
@@ -1480,7 +1480,7 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
   if (mDisplay->cfgR().useGLIndirectDraw) {
     mCurrentCommandBuffer.drawIndirect(mIndirectCommandBuffer.buffer, (mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand), count, sizeof(DrawArraysIndirectCommand));
   } else {
-    for (unsigned int k = 0; k < count; k++) {
+    for (uint32_t k = 0; k < count; k++) {
       mCurrentCommandBuffer.draw(mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
     }
   }
@@ -1777,9 +1777,9 @@ void GPUDisplayBackendVulkan::needRecordCommandBuffers()
   std::fill(mCommandBufferUpToDate.begin(), mCommandBufferUpToDate.end(), false);
 }
 
-void GPUDisplayBackendVulkan::addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data)
+void GPUDisplayBackendVulkan::addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data)
 {
-  if (symbol != (int)mFontSymbols.size()) {
+  if (symbol != (int32_t)mFontSymbols.size()) {
     throw std::runtime_error("Incorrect symbol ID");
   }
   mFontSymbols.emplace_back(FontSymbolVulkan{{{sizex, sizey}, {offsetx, offsety}, advance}, nullptr, 0.f, 0.f, 0.f, 0.f});
@@ -1792,29 +1792,29 @@ void GPUDisplayBackendVulkan::addFontSymbol(int symbol, int sizex, int sizey, in
 
 void GPUDisplayBackendVulkan::initializeTextDrawing()
 {
-  int maxSizeX = 0, maxSizeY = 0, maxBigX = 0, maxBigY = 0, maxRowY = 0;
+  int32_t maxSizeX = 0, maxSizeY = 0, maxBigX = 0, maxBigY = 0, maxRowY = 0;
   bool smooth = smoothFont();
   // Build a mega texture containing all fonts
   for (auto& symbol : mFontSymbols) {
     maxSizeX = std::max(maxSizeX, symbol.size[0]);
     maxSizeY = std::max(maxSizeY, symbol.size[1]);
   }
-  unsigned int nn = ceil(std::sqrt(mFontSymbols.size()));
-  int sizex = nn * maxSizeX;
-  int sizey = nn * maxSizeY;
+  uint32_t nn = ceil(std::sqrt(mFontSymbols.size()));
+  int32_t sizex = nn * maxSizeX;
+  int32_t sizey = nn * maxSizeY;
   std::unique_ptr<char[]> bigImage{new char[sizex * sizey]};
   memset(bigImage.get(), 0, sizex * sizey);
-  int rowy = 0, colx = 0;
-  for (unsigned int i = 0; i < mFontSymbols.size(); i++) {
+  int32_t rowy = 0, colx = 0;
+  for (uint32_t i = 0; i < mFontSymbols.size(); i++) {
     auto& s = mFontSymbols[i];
     if (colx + s.size[0] > sizex) {
       colx = 0;
       rowy += maxRowY;
       maxRowY = 0;
     }
-    for (int k = 0; k < s.size[1]; k++) {
-      for (int j = 0; j < s.size[0]; j++) {
-        char val = s.data.get()[j + k * s.size[0]];
+    for (int32_t k = 0; k < s.size[1]; k++) {
+      for (int32_t j = 0; j < s.size[0]; j++) {
+        int8_t val = s.data.get()[j + k * s.size[0]];
         if (!smooth) {
           val = val < 0 ? 0xFF : 0;
         }
@@ -1832,13 +1832,13 @@ void GPUDisplayBackendVulkan::initializeTextDrawing()
     colx += s.size[0];
   }
   if (maxBigX != sizex) {
-    for (int y = 1; y < maxBigY; y++) {
+    for (int32_t y = 1; y < maxBigY; y++) {
       memmove(bigImage.get() + y * maxBigX, bigImage.get() + y * sizex, maxBigX);
     }
   }
   sizex = maxBigX;
   sizey = maxBigY;
-  for (unsigned int i = 0; i < mFontSymbols.size(); i++) {
+  for (uint32_t i = 0; i < mFontSymbols.size(); i++) {
     auto& s = mFontSymbols[i];
     s.x0 /= sizex;
     s.x1 /= sizex;
@@ -1856,7 +1856,7 @@ void GPUDisplayBackendVulkan::updateFontTextureDescriptor()
   imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
   imageInfo.imageView = mFontImage.view;
   imageInfo.sampler = mTextureSampler;
-  for (unsigned int i = 0; i < mFramesInFlight; i++) {
+  for (uint32_t i = 0; i < mFramesInFlight; i++) {
     vk::WriteDescriptorSet descriptorWrite{};
     descriptorWrite.dstSet = mDescriptorSets[1][i];
     descriptorWrite.dstBinding = 2;
@@ -1880,8 +1880,8 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
   }
 
   for (const char* c = s; *c; c++) {
-    if ((int)*c > (int)mFontSymbols.size()) {
-      GPUError("Trying to draw unsupported symbol: %d > %d\n", (int)*c, (int)mFontSymbols.size());
+    if ((int32_t)*c > (int32_t)mFontSymbols.size()) {
+      GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;
     }
     const FontSymbolVulkan& sym = mFontSymbols[*c];
@@ -1919,9 +1919,9 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
 
 void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels)
 {
-  unsigned int width = mScreenWidth * mDisplay->cfgR().screenshotScaleFactor;
-  unsigned int height = mScreenHeight * mDisplay->cfgR().screenshotScaleFactor;
-  static constexpr int bytesPerPixel = 4;
+  uint32_t width = mScreenWidth * mDisplay->cfgR().screenshotScaleFactor;
+  uint32_t height = mScreenHeight * mDisplay->cfgR().screenshotScaleFactor;
+  static constexpr int32_t bytesPerPixel = 4;
   pixels.resize(width * height * bytesPerPixel);
 
   vk::Image dstImage, dstImage2, src2;
@@ -1932,8 +1932,8 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   if (mDisplay->cfgR().screenshotScaleFactor != 1) {
     createImageI(mDevice, mPhysicalDevice, dstImage2, dstImageMemory2, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
     cmdImageMemoryBarrier(cmdBuffer, dstImage2, {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-    vk::Offset3D blitSizeSrc = {(int)mRenderWidth, (int)mRenderHeight, 1};
-    vk::Offset3D blitSizeDst = {(int)width, (int)height, 1};
+    vk::Offset3D blitSizeSrc = {(int32_t)mRenderWidth, (int32_t)mRenderHeight, 1};
+    vk::Offset3D blitSizeDst = {(int32_t)width, (int32_t)height, 1};
     vk::ImageBlit imageBlitRegion{};
     imageBlitRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
     imageBlitRegion.srcSubresource.layerCount = 1;
@@ -1968,7 +1968,7 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   const char* data;
   CHKERR(mDevice.mapMemory(dstImageMemory, 0, VK_WHOLE_SIZE, {}, (void**)&data));
   data += subResourceLayout.offset;
-  for (unsigned int i = 0; i < height; i++) {
+  for (uint32_t i = 0; i < height; i++) {
     memcpy(pixels.data() + i * width * bytesPerPixel, data + (height - i - 1) * width * bytesPerPixel, width * bytesPerPixel);
   }
   mDevice.unmapMemory(dstImageMemory);
@@ -1980,7 +1980,7 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   }
 }
 
-unsigned int GPUDisplayBackendVulkan::DepthBits()
+uint32_t GPUDisplayBackendVulkan::DepthBits()
 {
   return 32;
 }

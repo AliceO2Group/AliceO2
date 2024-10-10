@@ -22,7 +22,7 @@
 namespace GPUCA_NAMESPACE::gpu
 {
 struct GLfb {
-  unsigned int fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
+  uint32_t fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
   bool tex = false;
   bool msaa = false;
   bool depth = false;
@@ -33,30 +33,30 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
  public:
   GPUDisplayBackendOpenGL();
   ~GPUDisplayBackendOpenGL() override = default;
-  int ExtInit() override;
+  int32_t ExtInit() override;
   bool CoreProfile() override;
-  unsigned int DepthBits() override;
+  uint32_t DepthBits() override;
 
  protected:
-  void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa, unsigned int width, unsigned int height);
+  void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa, uint32_t width, uint32_t height);
   void deleteFB(GLfb& fb);
 
-  unsigned int drawVertices(const vboList& v, const drawType t) override;
-  unsigned int drawField() override;
+  uint32_t drawVertices(const vboList& v, const drawType t) override;
+  uint32_t drawField() override;
   void ActivateColor(std::array<float, 4>& color) override;
   void setQuality() override;
   void setDepthBuffer() override;
-  void setFrameBuffer(unsigned int newID = 0);
-  int InitBackendA() override;
-  int InitMagFieldVisualization();
+  void setFrameBuffer(uint32_t newID = 0);
+  int32_t InitBackendA() override;
+  int32_t InitMagFieldVisualization();
   void ExitBackendA() override;
   void ExitMagFieldVisualization();
-  static int checkShaderStatus(unsigned int shader);
-  static int checkProgramStatus(unsigned int program);
+  static int32_t checkShaderStatus(uint32_t shader);
+  static int32_t checkProgramStatus(uint32_t program);
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
-  void resizeScene(unsigned int width, unsigned int height) override;
+  void resizeScene(uint32_t width, uint32_t height) override;
   void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
   void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
@@ -69,51 +69,51 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   size_t needMultiVBO() override { return 0x100000000ll; }
   void readImageToPixels();
 
-  void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
+  void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override;
   void initializeTextDrawing() override;
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
   struct FontSymbolOpenGL : public FontSymbol {
-    unsigned int texId;
+    uint32_t texId;
   };
 
-  unsigned int mVertexShader;
-  unsigned int mFragmentShader;
-  unsigned int mVertexShaderTexture;
-  unsigned int mVertexShaderPassthrough;
-  unsigned int mFragmentShaderTexture;
-  unsigned int mFragmentShaderText;
-  unsigned int mGeometryShader;
-  unsigned int mShaderProgram;
-  unsigned int mShaderProgramText;
-  unsigned int mShaderProgramTexture;
-  unsigned int mShaderProgramField;
-  unsigned int mVertexArray;
+  uint32_t mVertexShader;
+  uint32_t mFragmentShader;
+  uint32_t mVertexShaderTexture;
+  uint32_t mVertexShaderPassthrough;
+  uint32_t mFragmentShaderTexture;
+  uint32_t mFragmentShaderText;
+  uint32_t mGeometryShader;
+  uint32_t mShaderProgram;
+  uint32_t mShaderProgramText;
+  uint32_t mShaderProgramTexture;
+  uint32_t mShaderProgramField;
+  uint32_t mVertexArray;
 
-  unsigned int mIndirectId;
-  std::vector<unsigned int> mVBOId;
+  uint32_t mIndirectId;
+  std::vector<uint32_t> mVBOId;
   std::vector<FontSymbolOpenGL> mFontSymbols;
-  int mModelViewProjId;
-  int mColorId;
-  int mModelViewProjIdTexture;
-  int mAlphaIdTexture;
-  int mModelViewProjIdText;
-  int mColorIdText;
-  unsigned int mSPIRVModelViewBuffer;
-  unsigned int mSPIRVColorBuffer;
+  int32_t mModelViewProjId;
+  int32_t mColorId;
+  int32_t mModelViewProjIdTexture;
+  int32_t mAlphaIdTexture;
+  int32_t mModelViewProjIdText;
+  int32_t mColorIdText;
+  uint32_t mSPIRVModelViewBuffer;
+  uint32_t mSPIRVColorBuffer;
 
-  unsigned int mFieldModelViewBuffer;
-  unsigned int mFieldModelConstantsBuffer;
-  unsigned int mSolenoidSegmentsBuffer;
-  unsigned int mSolenoidParameterizationBuffer;
-  unsigned int mDipoleSegmentsBuffer;
-  unsigned int mDipoleParameterizationBuffer;
+  uint32_t mFieldModelViewBuffer;
+  uint32_t mFieldModelConstantsBuffer;
+  uint32_t mSolenoidSegmentsBuffer;
+  uint32_t mSolenoidParameterizationBuffer;
+  uint32_t mDipoleSegmentsBuffer;
+  uint32_t mDipoleParameterizationBuffer;
 
-  unsigned int VAO_text, VBO_text;
+  uint32_t VAO_text, VBO_text;
 
-  unsigned int VAO_texture, VBO_texture;
+  uint32_t VAO_texture, VBO_texture;
 
-  unsigned int VAO_field, VBO_field;
+  uint32_t VAO_field, VBO_field;
 
   bool mSPIRVShaders = false;
 

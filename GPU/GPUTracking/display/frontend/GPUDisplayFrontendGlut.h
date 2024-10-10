@@ -26,7 +26,7 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
   GPUDisplayFrontendGlut();
   ~GPUDisplayFrontendGlut() override = default;
 
-  int StartDisplay() override;
+  int32_t StartDisplay() override;
   void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
@@ -34,26 +34,26 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
  private:
-  int FrontendMain() override;
+  int32_t FrontendMain() override;
 
   static void displayFunc();
   static void glutLoopFunc();
-  static void keyboardUpFunc(unsigned char key, int x, int y);
-  static void keyboardDownFunc(unsigned char key, int x, int y);
-  static void specialUpFunc(int key, int x, int y);
-  static void specialDownFunc(int key, int x, int y);
-  static void mouseMoveFunc(int x, int y);
-  static void mMouseWheelFunc(int button, int dir, int x, int y);
-  static void mouseFunc(int button, int state, int x, int y);
-  static void ResizeSceneWrapper(int width, int height);
-  static int GetKey(int key);
-  static void GetKey(int keyin, int& keyOut, int& keyPressOut, bool special);
+  static void keyboardUpFunc(uint8_t key, int32_t x, int32_t y);
+  static void keyboardDownFunc(uint8_t key, int32_t x, int32_t y);
+  static void specialUpFunc(int32_t key, int32_t x, int32_t y);
+  static void specialDownFunc(int32_t key, int32_t x, int32_t y);
+  static void mouseMoveFunc(int32_t x, int32_t y);
+  static void mMouseWheelFunc(int32_t button, int32_t dir, int32_t x, int32_t y);
+  static void mouseFunc(int32_t button, int32_t state, int32_t x, int32_t y);
+  static void ResizeSceneWrapper(int32_t width, int32_t height);
+  static int32_t GetKey(int32_t key);
+  static void GetKey(int32_t keyin, int32_t& keyOut, int32_t& keyPressOut, bool special);
 
   volatile bool mGlutRunning = false;
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
 
-  int mWidth = INIT_WIDTH;
-  int mHeight = INIT_HEIGHT;
+  int32_t mWidth = INIT_WIDTH;
+  int32_t mHeight = INIT_HEIGHT;
   bool mFullScreen = false;
 };
 } // namespace GPUCA_NAMESPACE::gpu

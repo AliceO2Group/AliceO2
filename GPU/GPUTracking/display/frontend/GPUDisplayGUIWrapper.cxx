@@ -76,7 +76,7 @@ void GPUDisplayGUIWrapper::UpdateTimer()
 
 void GPUDisplayGUIWrapper::guiThread()
 {
-  static int tmp_argc = 1;
+  static int32_t tmp_argc = 1;
   static const char* tmp_argv[2] = {"GPU CA Standalone Event Display GUI", NULL};
   mO->app.reset(new QApplication(tmp_argc, (char**)tmp_argv));
   while (!mO->terminate) {
@@ -116,7 +116,7 @@ void GPUDisplayGUIWrapper::guiThread()
   mO->app.reset(nullptr);
 }
 
-int GPUDisplayGUIWrapper::start()
+int32_t GPUDisplayGUIWrapper::start()
 {
   if (!mO->started) {
     {
@@ -134,7 +134,7 @@ int GPUDisplayGUIWrapper::start()
   return 0;
 }
 
-int GPUDisplayGUIWrapper::stop()
+int32_t GPUDisplayGUIWrapper::stop()
 {
   if (mO->started) {
     mO->stop = true;
@@ -148,7 +148,7 @@ int GPUDisplayGUIWrapper::stop()
   return 0;
 }
 
-int GPUDisplayGUIWrapper::focus()
+int32_t GPUDisplayGUIWrapper::focus()
 {
   if (mO->started) {
   }

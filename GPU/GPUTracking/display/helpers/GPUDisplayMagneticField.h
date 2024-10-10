@@ -51,7 +51,7 @@ class GPUDisplayMagneticField
   static constexpr std::size_t MAX_CHEBYSHEV_ORDER = 32;
 
   struct RenderConstantsUniform {
-    unsigned int StepCount;
+    uint32_t StepCount;
     float StepSize;
   };
 
@@ -61,21 +61,21 @@ class GPUDisplayMagneticField
     float MaxZ;
     float MultiplicativeFactor;
 
-    int ZSegments;
+    int32_t ZSegments;
 
     float SegDim1[MAX_DIM1_SEGMENTS];
 
-    int BegSegDim2[MAX_DIM1_SEGMENTS];
-    int NSegDim2[MAX_DIM1_SEGMENTS];
+    int32_t BegSegDim2[MAX_DIM1_SEGMENTS];
+    int32_t NSegDim2[MAX_DIM1_SEGMENTS];
 
     float SegDim2[MAX_DIM2_SEGMENTS];
 
-    int BegSegDim3[MAX_DIM2_SEGMENTS];
-    int NSegDim3[MAX_DIM2_SEGMENTS];
+    int32_t BegSegDim3[MAX_DIM2_SEGMENTS];
+    int32_t NSegDim3[MAX_DIM2_SEGMENTS];
 
     float SegDim3[MAX_DIM3_SEGMENTS];
 
-    int SegID[MAX_DIM3_SEGMENTS];
+    int32_t SegID[MAX_DIM3_SEGMENTS];
   };
 
   template <std::size_t MAX_PARAMETERIZATIONS, std::size_t MAX_ROWS, std::size_t MAX_COLUMNS, std::size_t MAX_COEFFICIENTS>
@@ -85,15 +85,15 @@ class GPUDisplayMagneticField
     float BMin[MAX_PARAMETERIZATIONS];
     float BMax[MAX_PARAMETERIZATIONS];
 
-    int NRows[MAX_PARAMETERIZATIONS];
-    int ColsAtRowOffset[MAX_PARAMETERIZATIONS];
-    int CofsAtRowOffset[MAX_PARAMETERIZATIONS];
+    int32_t NRows[MAX_PARAMETERIZATIONS];
+    int32_t ColsAtRowOffset[MAX_PARAMETERIZATIONS];
+    int32_t CofsAtRowOffset[MAX_PARAMETERIZATIONS];
 
-    int NColsAtRow[MAX_ROWS];
-    int CofsAtColOffset[MAX_ROWS];
+    int32_t NColsAtRow[MAX_ROWS];
+    int32_t CofsAtColOffset[MAX_ROWS];
 
-    int NCofsAtCol[MAX_COLUMNS];
-    int AtColCoefOffset[MAX_COLUMNS];
+    int32_t NCofsAtCol[MAX_COLUMNS];
+    int32_t AtColCoefOffset[MAX_COLUMNS];
 
     float Coeffs[MAX_COEFFICIENTS];
   };
@@ -110,9 +110,9 @@ class GPUDisplayMagneticField
     vtx(float a, float b, float c) : x(a), y(b), z(c) {}
   };
 
-  int initializeUniforms();
+  int32_t initializeUniforms();
 #ifdef GPUCA_O2_LIB
-  int initializeUniformsFromField(o2::field::MagneticField* field);
+  int32_t initializeUniformsFromField(o2::field::MagneticField* field);
 #endif
   void generateSeedPoints(std::size_t count);
 

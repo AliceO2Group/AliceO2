@@ -48,7 +48,7 @@ GPUDisplayFrontend::~GPUDisplayFrontend() = default;
 void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 {
   GPUDisplayFrontend* me = reinterpret_cast<GPUDisplayFrontend*>(ptr);
-  int retVal = me->FrontendMain();
+  int32_t retVal = me->FrontendMain();
   if (retVal == -1) {
     me->InitDisplay(true);
   }
@@ -63,15 +63,15 @@ void GPUDisplayFrontend::HandleSendKey()
   }
 }
 
-void GPUDisplayFrontend::HandleKey(unsigned char key) { mDisplay->HandleKey(key); }
-int GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
-void GPUDisplayFrontend::ResizeScene(int width, int height)
+void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
+int32_t GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
+void GPUDisplayFrontend::ResizeScene(int32_t width, int32_t height)
 {
   mDisplayHeight = height;
   mDisplayWidth = width;
   mDisplay->ResizeScene(width, height);
 }
-int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
+int32_t GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
 void GPUDisplayFrontend::ExitDisplay()
 {
   mDisplay->ExitDisplay();
@@ -89,9 +89,9 @@ void GPUDisplayFrontend::stopGUI()
 #endif
 }
 
-int GPUDisplayFrontend::startGUI()
+int32_t GPUDisplayFrontend::startGUI()
 {
-  int retVal = 1;
+  int32_t retVal = 1;
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
   if (!mGUI) {
     mGUI.reset(new GPUDisplayGUIWrapper);
@@ -122,7 +122,7 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
   } else
 #endif
 #ifdef _WIN32
-    if (strcmp(type, "windows") == 0 || strcmp(type, "auto") == 0) {
+  if (strcmp(type, "windows") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayFrontendWindows;
   } else
 #elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
@@ -131,17 +131,17 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
   } else
 #endif
 #if defined(GPUCA_STANDALONE) && defined(GPUCA_BUILD_EVENT_DISPLAY_GLFW)
-    if (strcmp(type, "glfw") == 0 || strcmp(type, "auto") == 0) {
+  if (strcmp(type, "glfw") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayFrontendGlfw;
   } else
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
-    if (strcmp(type, "wayland") == 0 || (strcmp(type, "auto") == 0 && getenv("XDG_SESSION_TYPE") && strcmp(getenv("XDG_SESSION_TYPE"), "wayland") == 0)) {
+  if (strcmp(type, "wayland") == 0 || (strcmp(type, "auto") == 0 && getenv("XDG_SESSION_TYPE") && strcmp(getenv("XDG_SESSION_TYPE"), "wayland") == 0)) {
     return new GPUDisplayFrontendWayland;
   } else
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
-    if (strcmp(type, "glut") == 0 || strcmp(type, "auto") == 0) {
+  if (strcmp(type, "glut") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayFrontendGlut;
   } else
 #endif
@@ -156,7 +156,7 @@ GPUDisplayBackend* GPUDisplayFrontend::backend()
   return mDisplay->backend();
 }
 
-int& GPUDisplayFrontend::drawTextFontSize()
+int32_t& GPUDisplayFrontend::drawTextFontSize()
 {
   return mDisplay->drawTextFontSize();
 }
