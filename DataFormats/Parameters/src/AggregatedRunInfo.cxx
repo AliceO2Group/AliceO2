@@ -63,24 +63,25 @@ o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(o2::
     int64_t ctp_run_number = (*ctp_first_run_orbit)[1];
     int64_t ctp_orbitSOR = (*ctp_first_run_orbit)[2];
 
-    if (ctp_run_number != runnumber) {
-      LOG(error) << "AggregatedRunInfo: run number inconsistency found (asked: " << runnumber << " vs CTP found: " << ctp_run_number << ")";
-    }
+    if (ctp_run_number == runnumber) {
+      // overwrite orbitSOR
+      if (ctp_orbitSOR != orbitSOR) {
+        LOG(warn) << "The calculated orbitSOR " << orbitSOR << " differs from CTP orbitSOR " << ctp_orbitSOR;
+        // reasons for this is different unit of time storage in RunInformation (ms) and orbitReset (us), etc.
 
-    // overwrite orbitSOR
-    if (ctp_orbitSOR != orbitSOR) {
-      LOG(warn) << "The calculated orbitSOR " << orbitSOR << " differs from CTP orbitSOR " << ctp_orbitSOR;
-      // reasons for this is different unit of time storage in RunInformation (ms) and orbitReset (us), etc.
-
-      // so we need to adjust the SOR timings to be consistent
-      auto sor_new = (int64_t)((tsOrbitReset + ctp_orbitSOR * o2::constants::lhc::LHCOrbitMUS) / 1000.);
-      if (sor_new != sor) {
-        LOG(warn) << "Adjusting SOR from " << sor << " to " << sor_new;
-        sor = sor_new;
+        // so we need to adjust the SOR timings to be consistent
+        auto sor_new = (int64_t)((tsOrbitReset + ctp_orbitSOR * o2::constants::lhc::LHCOrbitMUS) / 1000.);
+        if (sor_new != sor) {
+          LOG(warn) << "Adjusting SOR from " << sor << " to " << sor_new;
+          sor = sor_new;
+        }
       }
+      orbitSOR = ctp_orbitSOR;
+    } else {
+      LOG(error) << "AggregatedRunInfo: run number inconsistency found (asked: " << runnumber << " vs CTP found: " << ctp_run_number << ")";
+      LOG(error) << " ... not using CTP info";
     }
-    orbitSOR = ctp_orbitSOR;
   }
 
-  return AggregatedRunInfo{runnumber, sor, eor, nOrbitsPerTF, tsOrbitReset, orbitSOR, orbitEOR};
+  return AggregatedRunInfo{runnumber, sor, eor, nOrbitsPerTF, tsOrbitReset, orbitSOR, orbitEOR, grpecs};
 }
