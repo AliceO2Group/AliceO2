@@ -38,7 +38,7 @@ struct AggregatedRunInfo {
   int64_t orbitEOR;    // orbit when run ends after orbit reset
 
   // we may have pointers to actual data source objects GRPECS, ...
-  o2::parameters::GRPECSObject* grpECS = nullptr; // pointer to GRPECSobject (fetched during struct building)
+  const o2::parameters::GRPECSObject* grpECS = nullptr; // pointer to GRPECSobject (fetched during struct building)
 
   // fills and returns AggregatedRunInfo for a given run number.
   static AggregatedRunInfo buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber);
