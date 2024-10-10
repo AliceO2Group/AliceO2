@@ -46,9 +46,9 @@ float genRand()
 BOOST_AUTO_TEST_CASE(Polynomials5D)
 {
   std::srand(std::time(nullptr));
-  const int nPar5D4Deg = 126;         // number of parameters
-  const int nDim = 5;                 // dimensions
-  const int nDegree = 4;              // degree
+  const int32_t nPar5D4Deg = 126;     // number of parameters
+  const int32_t nDim = 5;             // dimensions
+  const int32_t nDegree = 4;          // degree
   const float abstolerance = 0.0001f; // abosulte difference between refernce to polynomial class
 
   MultivariatePolynomial<nDim, nDegree> polCT;       // compile time polynomial
@@ -59,10 +59,10 @@ BOOST_AUTO_TEST_CASE(Polynomials5D)
   BOOST_CHECK(nPar5D4Deg == polRT.getNParams());
 
   float par[nPar5D4Deg]{20};
-  for (int iter = 0; iter < 10; ++iter) {
+  for (int32_t iter = 0; iter < 10; ++iter) {
 
     // draw random parameters
-    for (int i = 1; i < nPar5D4Deg; ++i) {
+    for (int32_t i = 1; i < nPar5D4Deg; ++i) {
       par[i] = genRand();
     }
 
@@ -92,9 +92,9 @@ BOOST_AUTO_TEST_CASE(Polynomials5D)
 BOOST_AUTO_TEST_CASE(Polynomials5D_InteractionOnly)
 {
   std::srand(std::time(nullptr));
-  const int nPar5D5DegInteraction = 32; // number of parameters
-  const int nDim = 5;                   // dimensions
-  const int nDegree = 5;                // degree
+  const int32_t nPar5D5DegInteraction = 32; // number of parameters
+  const int32_t nDim = 5;                   // dimensions
+  const int32_t nDegree = 5;                // degree
   const float abstolerance = 0.0001f;   // abosulte difference between refernce to polynomial class
   const bool interactionOnly = true;
 
@@ -106,10 +106,10 @@ BOOST_AUTO_TEST_CASE(Polynomials5D_InteractionOnly)
   BOOST_CHECK(nPar5D5DegInteraction == polRT.getNParams());
 
   float par[nPar5D5DegInteraction]{20};
-  for (int iter = 0; iter < 10; ++iter) {
+  for (int32_t iter = 0; iter < 10; ++iter) {
 
     // draw random parameters
-    for (int i = 1; i < nPar5D5DegInteraction; ++i) {
+    for (int32_t i = 1; i < nPar5D5DegInteraction; ++i) {
       par[i] = genRand();
     }
 
@@ -139,9 +139,9 @@ BOOST_AUTO_TEST_CASE(Polynomials5D_InteractionOnly)
 BOOST_AUTO_TEST_CASE(Piecewise_polynomials)
 {
   std::srand(std::time(nullptr));
-  const int nPar5D5DegInteraction = 32; // number of parameters
-  const int nDim = 5;                   // dimensions
-  const int nDegree = 5;                // degree
+  const int32_t nPar5D5DegInteraction = 32; // number of parameters
+  const int32_t nDim = 5;                   // dimensions
+  const int32_t nDegree = 5;                // degree
   const bool interactionOnly = true;    // consider only interaction terms
 
   // reference polynomial which will be approximated by the NDPiecewisePolynomials
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(Piecewise_polynomials)
   // define picewise polynomials with a lower degree than the original reference function
   std::vector<float> xMin(nDim, 0);
   std::vector<float> xMax(nDim, 1);
-  const std::vector<unsigned int> nVert(nDim, 4);
+  const std::vector<uint32_t> nVert(nDim, 4);
   NDPiecewisePolynomials<nDim, nDegree - 2, interactionOnly> piecewisePol(xMin.data(), xMax.data(), nVert.data());
 
   // define function which will be used to approximate the picewise polynomials
@@ -161,18 +161,18 @@ BOOST_AUTO_TEST_CASE(Piecewise_polynomials)
   };
 
   float par[nPar5D5DegInteraction]{20};
-  for (int iter = 0; iter < 5; ++iter) {
+  for (int32_t iter = 0; iter < 5; ++iter) {
 
     // draw random parameters
-    for (int i = 1; i < nPar5D5DegInteraction; ++i) {
+    for (int32_t i = 1; i < nPar5D5DegInteraction; ++i) {
       par[i] = genRand();
     }
 
     polCT.setParams(par);
 
     // define number of axiliary points which will be used for the fitting
-    const unsigned int nAux = 4;
-    const std::vector<unsigned int> nAxiliaryPoints(nDim, nAux);
+    const uint32_t nAux = 4;
+    const std::vector<uint32_t> nAxiliaryPoints(nDim, nAux);
 
     // perform the fitting of the picewise polynomials
     piecewisePol.performFits(refFunc, nAxiliaryPoints.data());
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(Piecewise_polynomials)
     }
 
     // check for safe evaluation outside of the grid at upper boundary
-    const std::vector<int> indexHigh(nDim, nAux - 2);
+    const std::vector<int32_t> indexHigh(nDim, nAux - 2);
     for (float a = xMax[0]; a <= xMax[0] + 10; a += 2.f) {
       for (float b = xMax[1]; b <= xMax[1] + 10; b += 2.f) {
         for (float c = xMax[2]; c <= xMax[2] + 10; c += 2.f) {

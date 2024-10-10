@@ -46,19 +46,19 @@ class GPUTPCGeometry // TODO: Make values constexpr
                                                       187.f, 188.2f, 189.4f, 190.6f, 191.8f, 193.f, 194.2f, 195.4f, 196.6f, 197.8f, 199.f, 200.2f, 201.4f, 202.6f, 203.8f, 205.f, 206.2f, 209.65f, 211.15f, 212.65f, 214.15f, 215.65f,
                                                       217.15f, 218.65f, 220.15f, 221.65f, 223.15f, 224.65f, 226.15f, 227.65f, 229.15f, 230.65f, 232.15f, 233.65f, 235.15f, 236.65f, 238.15f, 239.65f, 241.15f, 242.65f, 244.15f, 245.65f});
 
-  const unsigned char mNPads[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= {66, 66, 66, 68, 68, 68, 70, 70, 70, 72, 72, 72, 74, 74, 74, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 88, 88, 88,
-                                                                  90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 92, 92, 92, 94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 100, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80, 82, 82,
-                                                                  82, 84, 84, 84, 84, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 102, 102, 102, 104, 104, 104, 106, 110,
-                                                                  110, 112, 112, 112, 114, 114, 114, 116, 116, 116, 118, 118, 118, 118, 118, 120, 120, 122, 122, 124, 124, 124, 126, 126, 128, 128, 128, 130, 130, 132, 132, 132, 134, 134, 136, 136, 138, 138});
+  const uint8_t mNPads[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= {66, 66, 66, 68, 68, 68, 70, 70, 70, 72, 72, 72, 74, 74, 74, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 88, 88, 88,
+                                                            90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 92, 92, 92, 94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 100, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80, 82, 82,
+                                                            82, 84, 84, 84, 84, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 102, 102, 102, 104, 104, 104, 106, 110,
+                                                            110, 112, 112, 112, 114, 114, 114, 116, 116, 116, 118, 118, 118, 118, 118, 120, 120, 122, 122, 124, 124, 124, 126, 126, 128, 128, 128, 130, 130, 132, 132, 132, 134, 134, 136, 136, 138, 138});
 
-  const unsigned char mRegion[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                                                                   4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9});
-  const unsigned char mRegionRows[10] GPUCA_CPP11_INIT(= {17, 15, 16, 15, 18, 16, 16, 14, 13, 12});
-  const unsigned char mRegionStart[10] GPUCA_CPP11_INIT(= {0, 17, 32, 48, 63, 81, 97, 113, 127, 140});
+  const uint8_t mRegion[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                                                             4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9});
+  const uint8_t mRegionRows[10] GPUCA_CPP11_INIT(= {17, 15, 16, 15, 18, 16, 16, 14, 13, 12});
+  const uint8_t mRegionStart[10] GPUCA_CPP11_INIT(= {0, 17, 32, 48, 63, 81, 97, 113, 127, 140});
 
-  const unsigned char mSampaMapping[10] GPUCA_CPP11_INIT(= {0, 0, 1, 1, 2, 3, 3, 4, 4, 2});
-  const unsigned char mChannelOffset[10] GPUCA_CPP11_INIT(= {0, 16, 0, 16, 0, 0, 16, 0, 16, 16});
-  const unsigned char mSectorFECOffset[5] GPUCA_CPP11_INIT(= {0, 15, 15 + 18, 15 + 18 + 18, 15 + 18 + 18 + 20});
+  const uint8_t mSampaMapping[10] GPUCA_CPP11_INIT(= {0, 0, 1, 1, 2, 3, 3, 4, 4, 2});
+  const uint8_t mChannelOffset[10] GPUCA_CPP11_INIT(= {0, 16, 0, 16, 0, 0, 16, 0, 16, 16});
+  const uint8_t mSectorFECOffset[5] GPUCA_CPP11_INIT(= {0, 15, 15 + 18, 15 + 18 + 18, 15 + 18 + 18 + 20});
 
   const float mPadHeight[10] GPUCA_CPP11_INIT(= {.75f, .75f, .75f, .75f, 1.f, 1.f, 1.2f, 1.2f, 1.5f, 1.5f});
   const float mPadWidth[10] GPUCA_CPP11_INIT(= {.416f, .420f, .420f, .436f, .6f, .6f, .608f, .588f, .604f, .607f});
@@ -68,16 +68,16 @@ class GPUTPCGeometry // TODO: Make values constexpr
 #endif
 
  public:
-  GPUd() int GetRegion(int row) const { return mRegion[row]; }
-  GPUd() int GetRegionRows(int region) const { return mRegionRows[region]; }
-  GPUd() int GetRegionStart(int region) const { return mRegionStart[region]; }
-  GPUd() int GetSampaMapping(int region) const { return mSampaMapping[region]; }
-  GPUd() int GetChannelOffset(int region) const { return mChannelOffset[region]; }
-  GPUd() int GetSectorFECOffset(int partition) const { return mSectorFECOffset[partition]; }
-  GPUd() int GetROC(int row) const { return row < 97 ? (row < 63 ? 0 : 1) : (row < 127 ? 2 : 3); }
-  GPUd() int EndIROC() const { return 63; }
-  GPUd() int EndOROC1() const { return 97; }
-  GPUd() int EndOROC2() const { return 127; }
+  GPUd() int32_t GetRegion(int32_t row) const { return mRegion[row]; }
+  GPUd() int32_t GetRegionRows(int32_t region) const { return mRegionRows[region]; }
+  GPUd() int32_t GetRegionStart(int32_t region) const { return mRegionStart[region]; }
+  GPUd() int32_t GetSampaMapping(int32_t region) const { return mSampaMapping[region]; }
+  GPUd() int32_t GetChannelOffset(int32_t region) const { return mChannelOffset[region]; }
+  GPUd() int32_t GetSectorFECOffset(int32_t partition) const { return mSectorFECOffset[partition]; }
+  GPUd() int32_t GetROC(int32_t row) const { return row < 97 ? (row < 63 ? 0 : 1) : (row < 127 ? 2 : 3); }
+  GPUd() int32_t EndIROC() const { return 63; }
+  GPUd() int32_t EndOROC1() const { return 97; }
+  GPUd() int32_t EndOROC2() const { return 127; }
 #else
   const float mX[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= {85.195f, 85.945f, 86.695f, 87.445f, 88.195f, 88.945f, 89.695f, 90.445f, 91.195f, 91.945f, 92.695f, 93.445f, 94.195f, 94.945f, 95.695f, 96.445f, 97.195f, 97.945f, 98.695f, 99.445f, 100.195f, 100.945f, 101.695f,
                                                       102.445f, 103.195f, 103.945f, 104.695f, 105.445f, 106.195f, 106.945f, 107.695f, 108.445f, 109.195f, 109.945f, 110.695f, 111.445f, 112.195f, 112.945f, 113.695f, 114.445f, 115.195f, 115.945f, 116.695f, 117.445f, 118.195f, 118.945f,
@@ -87,10 +87,10 @@ class GPUTPCGeometry // TODO: Make values constexpr
                                                       187.180f, 188.180f, 189.180f, 190.180f, 191.180f, 192.180f, 193.180f, 194.180f, 195.180f, 196.180f, 197.180f, 198.180f, 199.430f, 200.930f, 202.430f, 203.930f, 205.430f, 206.930f, 208.430f, 209.930f, 211.430f, 212.930f, 214.430f,
                                                       215.930f, 217.430f, 218.930f, 220.430f, 221.930f, 223.430f, 224.930f, 226.430f, 227.930f, 229.430f, 230.930f, 232.430f, 233.930f, 235.430f, 236.930f, 238.430f, 239.930f, 241.430f, 242.930f, 244.430f, 245.930f});
 
-  const unsigned char mNPads[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= {68, 68, 68, 68, 70, 70, 70, 72, 72, 72, 74, 74, 74, 76, 76, 76, 78, 78, 78, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 88, 88, 88, 90, 90, 90, 92, 92, 92,
-                                                                  94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106, 106, 108, 108, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80, 82, 82, 82, 84, 84,
-                                                                  84, 86, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 96, 98, 98, 98, 100, 100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106, 106, 106, 108,
-                                                                  108, 108, 110, 110, 110, 110, 112, 112, 114, 114, 114, 116, 116, 118, 118, 120, 120, 122, 122, 122, 124, 124, 126, 126, 128, 128, 130, 130, 130, 132, 132, 134, 134, 136, 136, 138, 138, 138, 140});
+  const uint8_t mNPads[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= {68, 68, 68, 68, 70, 70, 70, 72, 72, 72, 74, 74, 74, 76, 76, 76, 78, 78, 78, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 88, 88, 88, 90, 90, 90, 92, 92, 92,
+                                                            94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106, 106, 108, 108, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80, 82, 82, 82, 84, 84,
+                                                            84, 86, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 96, 98, 98, 98, 100, 100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106, 106, 106, 108,
+                                                            108, 108, 110, 110, 110, 110, 112, 112, 114, 114, 114, 116, 116, 118, 118, 120, 120, 122, 122, 122, 124, 124, 126, 126, 128, 128, 130, 130, 130, 132, 132, 134, 134, 136, 136, 138, 138, 138, 140});
 
   const float mPadHeight[3] GPUCA_CPP11_INIT(= {.75f, 1.f, 1.5f});
   const float mPadWidth[3] GPUCA_CPP11_INIT(= {.4f, .6f, .6f});
@@ -100,13 +100,13 @@ class GPUTPCGeometry // TODO: Make values constexpr
 #endif
 
  public:
-  GPUd() int GetRegion(int row) const { return (row < 63 ? 0 : row < 63 + 64 ? 1 : 2); }
-  GPUd() int GetRegionRows(int region) const { return 0; }  // dummy
-  GPUd() int GetRegionStart(int region) const { return 0; } // dummy
-  GPUd() int GetROC(int row) const { return GetRegion(row); }
-  GPUd() int EndIROC() const { return 63; }
-  GPUd() int EndOROC1() const { return 63 + 64; }
-  GPUd() int EndOROC2() const { return GPUCA_ROW_COUNT; }
+  GPUd() int32_t GetRegion(int32_t row) const { return (row < 63 ? 0 : row < 63 + 64 ? 1 : 2); }
+  GPUd() int32_t GetRegionRows(int32_t region) const { return 0; }  // dummy
+  GPUd() int32_t GetRegionStart(int32_t region) const { return 0; } // dummy
+  GPUd() int32_t GetROC(int32_t row) const { return GetRegion(row); }
+  GPUd() int32_t EndIROC() const { return 63; }
+  GPUd() int32_t EndOROC1() const { return 63 + 64; }
+  GPUd() int32_t EndOROC2() const { return GPUCA_ROW_COUNT; }
 #endif
  private:
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
@@ -114,32 +114,32 @@ class GPUTPCGeometry // TODO: Make values constexpr
 #endif
  public:
   GPUd() static CONSTEXPR float TPCLength() { return 250.f - 0.275f; }
-  GPUd() float Row2X(int row) const { return (mX[row]); }
-  GPUd() float PadHeight(int row) const { return (mPadHeight[GetRegion(row)]); }
-  GPUd() float PadHeightByRegion(int region) const { return (mPadHeight[region]); }
-  GPUd() float PadWidth(int row) const { return (mPadWidth[GetRegion(row)]); }
-  GPUd() unsigned char NPads(int row) const { return mNPads[row]; }
+  GPUd() float Row2X(int32_t row) const { return (mX[row]); }
+  GPUd() float PadHeight(int32_t row) const { return (mPadHeight[GetRegion(row)]); }
+  GPUd() float PadHeightByRegion(int32_t region) const { return (mPadHeight[region]); }
+  GPUd() float PadWidth(int32_t row) const { return (mPadWidth[GetRegion(row)]); }
+  GPUd() uint8_t NPads(int32_t row) const { return mNPads[row]; }
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  GPUd() float LinearPad2Y(int slice, int row, float pad) const
+  GPUd() float LinearPad2Y(int32_t slice, int32_t row, float pad) const
   {
     const float u = (pad - 0.5f * mNPads[row]) * PadWidth(row);
     return (slice >= GPUCA_NSLICES / 2) ? -u : u;
   }
 
-  GPUd() static float LinearTime2Z(int slice, float time)
+  GPUd() static float LinearTime2Z(int32_t slice, float time)
   {
     const float v = 250.f - time * FACTOR_T2Z; // Used in compression, must remain constant at 250cm!
     return (slice >= GPUCA_NSLICES / 2) ? -v : v;
   }
 
-  GPUd() float LinearY2Pad(int slice, int row, float y) const
+  GPUd() float LinearY2Pad(int32_t slice, int32_t row, float y) const
   {
     const float u = (slice >= GPUCA_NSLICES / 2) ? -y : y;
     return u / PadWidth(row) + 0.5f * mNPads[row];
   }
 
-  GPUd() static float LinearZ2Time(int slice, float z)
+  GPUd() static float LinearZ2Time(int32_t slice, float z)
   {
     const float v = (slice >= GPUCA_NSLICES / 2) ? -z : z;
     return (250.f - v) * FACTOR_Z2T; // Used in compression, must remain constant at 250cm

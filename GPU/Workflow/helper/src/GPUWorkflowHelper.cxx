@@ -22,7 +22,7 @@ using namespace o2::gpu;
 
 struct GPUWorkflowHelper::tmpDataContainer {
   std::vector<o2::BaseCluster<float>> ITSClustersArray;
-  std::vector<int> tpcLinkITS, tpcLinkTRD, tpcLinkTOF;
+  std::vector<int32_t> tpcLinkITS, tpcLinkTRD, tpcLinkTOF;
   std::vector<const o2::track::TrackParCov*> globalTracks;
   std::vector<float> globalTrackTimes;
 };
@@ -213,11 +213,11 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   };
   recoCont.createTracksVariadic(creator);
   if (maskTrk[GID::TPC] && retVal->tpcLinkTRD.size()) {
-    for (unsigned int i = 0; i < ioPtr.nTRDTracksTPCTRD; i++) { // TODO: This should be handled by the createTracks logic, but so far it lacks the TRD tracks
+    for (uint32_t i = 0; i < ioPtr.nTRDTracksTPCTRD; i++) { // TODO: This should be handled by the createTracks logic, but so far it lacks the TRD tracks
       retVal->tpcLinkTRD[ioPtr.trdTracksTPCTRD[i].getRefGlobalTrackId().getIndex()] = i;
     }
     if (ioPtr.nTracksTPCITSO2) {
-      for (unsigned int i = 0; i < ioPtr.nTRDTracksITSTPCTRD; i++) {
+      for (uint32_t i = 0; i < ioPtr.nTRDTracksITSTPCTRD; i++) {
         retVal->tpcLinkTRD[ioPtr.tracksTPCITSO2[ioPtr.trdTracksITSTPCTRD[i].getRefGlobalTrackId().getIndex()].getRefTPC().getIndex()] = i | 0x40000000;
       }
     }

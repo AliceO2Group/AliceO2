@@ -155,7 +155,7 @@ struct GBTLink {
       long offs = sizeof(RDH);
       char* ptrR = ((char*)ptr) + sizeof(RDH);
       while (offs < szd) {
-        const o2::itsmft::GBTWord* w = reinterpret_cast<const o2::itsmft::GBTWord*>(ptrR);
+        const GBTWord* w = reinterpret_cast<const o2::itsmft::GBTWord*>(ptrR);
         std::string com = fmt::format(" | FeeID:{:#06x} offs: {:6} ", feeID, offs);
         if (w->isData()) {
           com += "data word";
@@ -164,12 +164,12 @@ struct GBTLink {
         } else if (w->isDataTrailer()) {
           com += "data trailer";
         } else if (w->isTriggerWord()) {
-          com += "trigger word";
+          const GBTTrigger* trw = (const GBTTrigger*)w;
+          com += fmt::format("trigger word bc:{} orbit:{} noData:{} int:{} cont:{}", trw->bc, trw->orbit, trw->noData, trw->internal, trw->continuation);
         } else if (w->isDiagnosticWord()) {
           com += "diag word";
         } else if (w->isCalibrationWord()) {
-          com += "calib word";
-          com += fmt::format(" #{}", ((const GBTCalibration*)w)->calibCounter);
+          com += fmt::format("calib word count:{:5} data:{:#08x}", ((const GBTCalibration*)w)->calibCounter, ((const GBTCalibration*)w)->calibUserField);
         } else if (w->isCableDiagnostic()) {
           com += "cable diag word";
         } else if (w->isStatus()) {

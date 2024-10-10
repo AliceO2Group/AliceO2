@@ -32,16 +32,16 @@ class GPUReconstructionHelpers
   struct helperParam {
     pthread_t threadId;
     GPUReconstructionDeviceBase* cls;
-    int num;
+    int32_t num;
     std::mutex mutex[2];
-    char terminate;
+    int8_t terminate;
     helperDelegateBase* functionCls;
-    int (helperDelegateBase::*function)(int, int, helperParam*);
-    int phase;
-    int count;
-    volatile int done;
-    volatile char error;
-    volatile char reset;
+    int32_t (helperDelegateBase::*function)(int32_t, int32_t, helperParam*);
+    int32_t phase;
+    int32_t count;
+    volatile int32_t done;
+    volatile int8_t error;
+    volatile int8_t reset;
   };
 };
 } // namespace gpu

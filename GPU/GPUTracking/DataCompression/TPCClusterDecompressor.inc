@@ -24,20 +24,20 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-static inline auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::function<void(const ClusterNative&, unsigned int)> func)
+static inline auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const uint32_t offset, uint32_t slice, uint32_t row, uint32_t pad, uint32_t time, std::function<void(const ClusterNative&, uint32_t)> func)
 {
   const auto cluster = ClusterNative(time, clustersCompressed->flagsA[offset], pad, clustersCompressed->sigmaTimeA[offset], clustersCompressed->sigmaPadA[offset], clustersCompressed->qMaxA[offset], clustersCompressed->qTotA[offset]);
   func(cluster, offset);
   return cluster;
 }
 
-static inline const auto& decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative>& clusterVector)
+static inline const auto& decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const uint32_t offset, uint32_t slice, uint32_t row, uint32_t pad, uint32_t time, std::vector<ClusterNative>& clusterVector)
 {
   clusterVector.emplace_back(time, clustersCompressed->flagsA[offset], pad, clustersCompressed->sigmaTimeA[offset], clustersCompressed->sigmaPadA[offset], clustersCompressed->qMaxA[offset], clustersCompressed->qTotA[offset]);
   return clusterVector.back();
 }
 
-static inline auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative> (&clusters)[GPUCA_NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[GPUCA_NSLICES][GPUCA_ROW_COUNT])
+static inline auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const uint32_t offset, uint32_t slice, uint32_t row, uint32_t pad, uint32_t time, std::vector<ClusterNative> (&clusters)[GPUCA_NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[GPUCA_NSLICES][GPUCA_ROW_COUNT])
 {
   std::vector<ClusterNative>& clusterVector = clusters[slice][row];
   auto& lock = locks[slice][row];
@@ -51,17 +51,17 @@ static inline auto decompressTrackStore(const o2::tpc::CompressedClusters* clust
 }
 
 template <typename... Args>
-inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* clustersCompressed, const GPUParam& param, const unsigned int maxTime, const unsigned int i, unsigned int& offset, Args&... args)
+inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* clustersCompressed, const GPUParam& param, const uint32_t maxTime, const uint32_t i, uint32_t& offset, Args&... args)
 {
   float zOffset = 0;
-  unsigned int slice = clustersCompressed->sliceA[i];
-  unsigned int row = clustersCompressed->rowA[i];
+  uint32_t slice = clustersCompressed->sliceA[i];
+  uint32_t row = clustersCompressed->rowA[i];
   GPUTPCCompressionTrackModel track;
-  unsigned int j;
+  uint32_t j;
   for (j = 0; j < clustersCompressed->nTrackClusters[i]; j++) {
-    unsigned int pad = 0, time = 0;
+    uint32_t pad = 0, time = 0;
     if (j) {
-      unsigned char tmpSlice = clustersCompressed->sliceLegDiffA[offset - i - 1];
+      uint8_t tmpSlice = clustersCompressed->sliceLegDiffA[offset - i - 1];
       bool changeLeg = (tmpSlice >= NSLICES);
       if (changeLeg) {
         tmpSlice -= NSLICES;
@@ -85,7 +85,7 @@ inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* cl
       if (track.Propagate(param.tpcGeometry.Row2X(row), param.SliceParam[slice].Alpha)) {
         break;
       }
-      unsigned int timeTmp = clustersCompressed->timeResA[offset - i - 1];
+      uint32_t timeTmp = clustersCompressed->timeResA[offset - i - 1];
       if (timeTmp & 800000) {
         timeTmp |= 0xFF000000;
       }
@@ -93,7 +93,7 @@ inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* cl
       float tmpPad = CAMath::Max(0.f, CAMath::Min((float)param.tpcGeometry.NPads(GPUCA_ROW_COUNT - 1), param.tpcGeometry.LinearY2Pad(slice, row, track.Y())));
       pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(tmpPad);
       time = time & 0xFFFFFF;
-      pad = (unsigned short)pad;
+      pad = (uint16_t)pad;
       if (pad >= param.tpcGeometry.NPads(row) * ClusterNative::scalePadPacked) {
         if (pad >= 0xFFFF - 11968) { // Constant 11968 = (2^15 - MAX_PADS(138) * scalePadPacked(64)) / 2
           pad = 0;
@@ -127,12 +127,12 @@ inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* cl
   offset += clustersCompressed->nTrackClusters[i] - j;
 }
 
-static inline const auto& decompressHitsStore(const CompressedClusters* clustersCompressed, unsigned int k, unsigned int time, unsigned short pad, ClusterNative* &cl)
+static inline const auto& decompressHitsStore(const CompressedClusters* clustersCompressed, uint32_t k, uint32_t time, uint16_t pad, ClusterNative*& cl)
 {
   return ((*(cl++) = ClusterNative(time, clustersCompressed->flagsU[k], pad, clustersCompressed->sigmaTimeU[k], clustersCompressed->sigmaPadU[k], clustersCompressed->qMaxU[k], clustersCompressed->qTotU[k])));
 }
 
-static inline auto decompressHitsStore(const CompressedClusters* clustersCompressed, unsigned int k, unsigned int time, unsigned short pad, std::function<void(const ClusterNative&, unsigned int)> func)
+static inline auto decompressHitsStore(const CompressedClusters* clustersCompressed, uint32_t k, uint32_t time, uint16_t pad, std::function<void(const ClusterNative&, uint32_t)> func)
 {
   const auto cluster = ClusterNative(time, clustersCompressed->flagsU[k], pad, clustersCompressed->sigmaTimeU[k], clustersCompressed->sigmaPadU[k], clustersCompressed->qMaxU[k], clustersCompressed->qTotU[k]);
   func(cluster, k);
@@ -140,16 +140,16 @@ static inline auto decompressHitsStore(const CompressedClusters* clustersCompres
 }
 
 template <typename... Args>
-inline void TPCClusterDecompressor::decompressHits(const CompressedClusters* clustersCompressed, const unsigned int start, const unsigned int end, Args&... args)
+inline void TPCClusterDecompressor::decompressHits(const CompressedClusters* clustersCompressed, const uint32_t start, const uint32_t end, Args&... args)
 {
-  unsigned int time = 0;
-  unsigned short pad = 0;
-  for (unsigned int k = start; k < end; k++) {
+  uint32_t time = 0;
+  uint16_t pad = 0;
+  for (uint32_t k = start; k < end; k++) {
     /*if (cl >= clustersNative.clustersLinear + nTotalClusters) {
       throw std::runtime_error("Bad TPC CTF data, decoded more clusters than announced");
     }*/
     if (clustersCompressed->nComppressionModes & GPUSettings::CompressionDifferences) {
-      unsigned int timeTmp = clustersCompressed->timeDiffU[k];
+      uint32_t timeTmp = clustersCompressed->timeDiffU[k];
       if (timeTmp & 800000) {
         timeTmp |= 0xFF000000;
       }

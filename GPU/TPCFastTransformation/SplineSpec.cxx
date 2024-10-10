@@ -61,8 +61,8 @@ void SplineContainer<DataT>::setActualBufferAddress(char* actualFlatBufferPtr)
 
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
   mGrid = reinterpret_cast<Spline1D<DataT>*>(mFlatBufferPtr);
-  int offset = sizeof(*mGrid) * mXdim;
-  for (int i = 0; i < mXdim; i++) {
+  int32_t offset = sizeof(*mGrid) * mXdim;
+  for (int32_t i = 0; i < mXdim; i++) {
     offset = alignSize(offset, mGrid[i].getBufferAlignmentBytes());
     mGrid[i].setActualBufferAddress(mFlatBufferPtr + offset);
     offset += mGrid[i].getFlatBufferSize();
@@ -76,7 +76,7 @@ void SplineContainer<DataT>::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
   mParameters = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mParameters);
-  for (int i = 0; i < mXdim; i++) {
+  for (int32_t i = 0; i < mXdim; i++) {
     char* buffer = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGrid[i].getFlatBufferPtr());
     mGrid[i].setFutureBufferAddress(buffer);
   }
@@ -88,7 +88,7 @@ template <typename DataT>
 void SplineContainer<DataT>::print() const
 {
   printf(" Irregular Spline %dD->%dD: \n", mXdim, mYdim);
-  for (int i = 0; i < mXdim; i++) {
+  for (int32_t i = 0; i < mXdim; i++) {
     printf(" grid X%d: \n", i);
     mGrid[i].print();
   }
@@ -108,7 +108,7 @@ void SplineContainer<DataT>::cloneFromObject(const SplineContainer<DataT>& obj, 
   mNknots = obj.mNknots;
 
   Spline1D<DataT>* newGrid = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGrid);
-  for (int i = 0; i < mXdim; i++) {
+  for (int32_t i = 0; i < mXdim; i++) {
     char* buffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGrid[i].getFlatBufferPtr());
     newGrid[i].cloneFromObject(obj.mGrid[i], buffer);
   }
@@ -129,7 +129,7 @@ void SplineContainer<DataT>::moveBufferTo(char* newFlatBufferPtr)
 
 template <typename DataT>
 void SplineContainer<DataT>::recreate(
-  int nXdim, int nYdim, const int numberOfKnots[/* nXdim */], const int* const knots[/* nXdim */])
+  int32_t nXdim, int32_t nYdim, const int32_t numberOfKnots[/* nXdim */], const int32_t* const knots[/* nXdim */])
 {
   /// Constructor for an irregular spline
 
@@ -140,7 +140,7 @@ void SplineContainer<DataT>::recreate(
   Spline1D<DataT> vGrids[mXdim];
 
   mNknots = 1;
-  for (int i = 0; i < mXdim; i++) {
+  for (int32_t i = 0; i < mXdim; i++) {
     if (knots) {
       vGrids[i].recreate(0, numberOfKnots[i], knots[i]);
     } else if (numberOfKnots) {
@@ -151,9 +151,9 @@ void SplineContainer<DataT>::recreate(
     mNknots *= vGrids[i].getNumberOfKnots();
   }
 
-  int offset = sizeof(Spline1D<DataT>) * mXdim;
+  int32_t offset = sizeof(Spline1D<DataT>) * mXdim;
 
-  for (int i = 0; i < mXdim; i++) {
+  for (int32_t i = 0; i < mXdim; i++) {
     offset = alignSize(offset, vGrids[i].getBufferAlignmentBytes());
     offset += vGrids[i].getFlatBufferSize();
   }
@@ -167,7 +167,7 @@ void SplineContainer<DataT>::recreate(
 
   offset = sizeof(Spline1D<DataT>) * mXdim;
 
-  for (int i = 0; i < mXdim; i++) {
+  for (int32_t i = 0; i < mXdim; i++) {
     new (&mGrid[i]) Spline1D<DataT>; // constructor
     offset = alignSize(offset, mGrid[i].getBufferAlignmentBytes());
     mGrid[i].cloneFromObject(vGrids[i], mFlatBufferPtr + offset);
@@ -178,14 +178,14 @@ void SplineContainer<DataT>::recreate(
   mParameters = reinterpret_cast<DataT*>(mFlatBufferPtr + offset);
   offset += getSizeOfParameters();
 
-  for (int i = 0; i < getNumberOfParameters(); i++) {
+  for (int32_t i = 0; i < getNumberOfParameters(); i++) {
     mParameters[i] = 0;
   }
 }
 
 template <typename DataT>
 void SplineContainer<DataT>::recreate(
-  int nXdim, int nYdim, const int numberOfKnots[/* nXdim */])
+  int32_t nXdim, int32_t nYdim, const int32_t numberOfKnots[/* nXdim */])
 {
   /// Constructor for a regular spline
   recreate(nXdim, nYdim, numberOfKnots, nullptr);
@@ -199,7 +199,7 @@ template <typename DataT>
 void SplineContainer<DataT>::
   approximateFunction(const double xMin[/* mXdim */], const double xMax[/* mXdim */],
                       std::function<void(const double x[/* mXdim */], double f[/*mYdim*/])> F,
-                      const int nAuxiliaryDataPoints[/* mXdim */])
+                      const int32_t nAuxiliaryDataPoints[/* mXdim */])
 {
   /// approximate a function F with this spline
   SplineHelper<DataT> helper;
@@ -208,7 +208,7 @@ void SplineContainer<DataT>::
 
 #ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
-int SplineContainer<DataT>::writeToFile(TFile& outf, const char* name)
+int32_t SplineContainer<DataT>::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
   return FlatObject::writeToFile(*this, outf, name);
@@ -223,7 +223,7 @@ SplineContainer<DataT>* SplineContainer<DataT>::readFromFile(
 }
 
 template <typename DataT>
-int SplineContainer<DataT>::test(const bool draw, const bool drawDataPoints)
+int32_t SplineContainer<DataT>::test(const bool draw, const bool drawDataPoints)
 {
   return SplineHelper<DataT>::test(draw, drawDataPoints);
 }

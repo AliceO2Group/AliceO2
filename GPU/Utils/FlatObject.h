@@ -67,7 +67,7 @@ namespace gpu
 /// a) by calling
 ///    void startConstruction();
 ///    ... do something ..
-///    void finishConstruction( int flatBufferSize );
+///    void finishConstruction( int32_t flatBufferSize );
 ///
 /// b) or by cloning from another constructed(!) object:
 ///  obj.CloneFromObject(..)
@@ -118,7 +118,7 @@ namespace gpu
 #ifndef GPUCA_GPUCODE // code invisible on GPU
 
 template <typename T>
-T* resizeArray(T*& ptr, int oldSize, int newSize, T* newPtr = nullptr)
+T* resizeArray(T*& ptr, int32_t oldSize, int32_t newSize, T* newPtr = nullptr)
 {
   // Resize array pointed by ptr. T must be a POD class.
   // If the non-null newPtr is provided, use it instead of allocating a new one.
@@ -131,7 +131,7 @@ T* resizeArray(T*& ptr, int oldSize, int newSize, T* newPtr = nullptr)
     if (!newPtr) {
       newPtr = new T[newSize];
     }
-    int mcp = std::min(newSize, oldSize);
+    int32_t mcp = std::min(newSize, oldSize);
     if (mcp) {
       assert(ptr);
       std::memmove(newPtr, ptr, mcp * sizeof(T));
@@ -146,7 +146,7 @@ T* resizeArray(T*& ptr, int oldSize, int newSize, T* newPtr = nullptr)
 }
 
 template <typename T>
-T** resizeArray(T**& ptr, int oldSize, int newSize, T** newPtr = nullptr)
+T** resizeArray(T**& ptr, int32_t oldSize, int32_t newSize, T** newPtr = nullptr)
 {
   // Resize array of pointers pointed by ptr.
   // If the non-null newPtr is provided, use it instead of allocating a new one.
@@ -159,7 +159,7 @@ T** resizeArray(T**& ptr, int oldSize, int newSize, T** newPtr = nullptr)
     if (!newPtr) {
       newPtr = new T*[newSize];
     }
-    int mcp = std::min(newSize, oldSize);
+    int32_t mcp = std::min(newSize, oldSize);
     std::memmove(newPtr, ptr, mcp * sizeof(T*));
     if (newSize > oldSize) {
       std::memset(newPtr + mcp, 0, (newSize - oldSize) * sizeof(T*));
@@ -204,7 +204,7 @@ class FlatObject
   /// Finishes construction: creates internal flat buffer.
   /// A daughter class should put all created variable-size members to this buffer
   ///
-  void finishConstruction(int flatBufferSize);
+  void finishConstruction(int32_t flatBufferSize);
 
 /// Initializes from another object, copies data to newBufferPtr
 /// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
@@ -259,7 +259,7 @@ class FlatObject
   const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
 
   /// Tells if the object is constructed
-  bool isConstructed() const { return (mConstructionMask & (unsigned int)ConstructionState::Constructed); }
+  bool isConstructed() const { return (mConstructionMask & (uint32_t)ConstructionState::Constructed); }
 
   /// Tells if the buffer is internal
   bool isBufferInternal() const { return ((mFlatBufferPtr != nullptr) && (mFlatBufferPtr == mFlatBufferContainer)); }
@@ -291,7 +291,7 @@ class FlatObject
 
   /// write a child class object to the file
   template <class T, class TFile>
-  static int writeToFile(T& obj, TFile& outf, const char* name);
+  static int32_t writeToFile(T& obj, TFile& outf, const char* name);
 
   /// read a child class object from the file
   template <class T, class TFile>
@@ -313,14 +313,14 @@ class FlatObject
   /// _______________  Data members  _______________________________________________
 
   /// Enumeration of construction states
-  enum ConstructionState : unsigned int {
+  enum ConstructionState : uint32_t {
     NotConstructed = 0x0, ///< the object is not constructed
     Constructed = 0x1,    ///< the object is constructed, temporary memory is released
     InProgress = 0x2      ///< construction started: temporary  memory is reserved
   };
 
-  int mFlatBufferSize = 0;                                            ///< size of the flat buffer
-  unsigned int mConstructionMask = ConstructionState::NotConstructed; ///< mask for constructed object members, first two bytes are used by this class
+  int32_t mFlatBufferSize = 0;                                        ///< size of the flat buffer
+  uint32_t mConstructionMask = ConstructionState::NotConstructed;     ///< mask for constructed object members, first two bytes are used by this class
   char* mFlatBufferContainer = nullptr;                               //[mFlatBufferSize]  Optional container for the flat buffer
   char* mFlatBufferPtr = nullptr;                                     //!  Pointer to the flat buffer
 
@@ -357,19 +357,19 @@ inline void FlatObject::destroy()
   mConstructionMask = ConstructionState::NotConstructed;
 }
 
-inline void FlatObject::finishConstruction(int flatBufferSize)
+inline void FlatObject::finishConstruction(int32_t flatBufferSize)
 {
   /// Finishes construction: creates internal flat buffer.
   /// A daughter class should put all created variable-size members to this buffer
 
-  assert(mConstructionMask & (unsigned int)ConstructionState::InProgress);
+  assert(mConstructionMask & (uint32_t)ConstructionState::InProgress);
 
   mFlatBufferSize = flatBufferSize;
   mFlatBufferPtr = mFlatBufferContainer = new char[mFlatBufferSize];
 
   memset((void*)mFlatBufferPtr, 0, mFlatBufferSize); // just to avoid random behavior in case of bugs
 
-  mConstructionMask = (unsigned int)ConstructionState::Constructed; // clear other possible construction flags
+  mConstructionMask = (uint32_t)ConstructionState::Constructed; // clear other possible construction flags
 }
 
 inline void FlatObject::cloneFromObject(const FlatObject& obj, char* newFlatBufferPtr)
@@ -392,7 +392,7 @@ inline void FlatObject::cloneFromObject(const FlatObject& obj, char* newFlatBuff
   mFlatBufferSize = obj.mFlatBufferSize;
   mFlatBufferContainer = newFlatBufferPtr ? nullptr : mFlatBufferPtr; // external buffer is not provided, make object to own the buffer
   std::memcpy(mFlatBufferPtr, obj.mFlatBufferPtr, obj.mFlatBufferSize);
-  mConstructionMask = (unsigned int)ConstructionState::Constructed;
+  mConstructionMask = (uint32_t)ConstructionState::Constructed;
 }
 
 inline void FlatObject::moveBufferTo(char* newFlatBufferPtr)
@@ -461,8 +461,8 @@ inline void FlatObject::printC() const
 {
   /// Print the content of the flat buffer
   bool lfdone = false;
-  for (int i = 0; i < mFlatBufferSize; i++) {
-    unsigned char v = mFlatBufferPtr[i];
+  for (int32_t i = 0; i < mFlatBufferSize; i++) {
+    uint8_t v = mFlatBufferPtr[i];
     lfdone = false;
     printf("0x%02x ", v);
     if (i && ((i + 1) % 20) == 0) {
@@ -479,7 +479,7 @@ inline void FlatObject::printC() const
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU
 template <class T, class TFile>
-inline int FlatObject::writeToFile(T& obj, TFile& outf, const char* name)
+inline int32_t FlatObject::writeToFile(T& obj, TFile& outf, const char* name)
 {
   /// store to file
   assert(obj.isConstructed());

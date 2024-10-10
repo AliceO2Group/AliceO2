@@ -40,9 +40,9 @@ GPUO2InterfaceDisplay::GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* 
 
 GPUO2InterfaceDisplay::~GPUO2InterfaceDisplay() = default;
 
-int GPUO2InterfaceDisplay::startDisplay()
+int32_t GPUO2InterfaceDisplay::startDisplay()
 {
-  int retVal = mDisplay->StartDisplay();
+  int32_t retVal = mDisplay->StartDisplay();
   if (retVal) {
     return retVal;
   }
@@ -50,7 +50,7 @@ int GPUO2InterfaceDisplay::startDisplay()
   return 0;
 }
 
-int GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
+int32_t GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
 {
   std::unique_ptr<GPUTrackingInOutPointers> tmpPtr;
   if (mConfig->configProcessing.runMC) {
@@ -70,7 +70,7 @@ int GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
   return 0;
 }
 
-int GPUO2InterfaceDisplay::endDisplay()
+int32_t GPUO2InterfaceDisplay::endDisplay()
 {
   mFrontend->DisplayExit();
   return 0;

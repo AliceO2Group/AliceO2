@@ -26,18 +26,17 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, char onlyMC)
+GPUdii() void GPUTPCCFClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, int8_t onlyMC)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  CPU_ONLY(
-    MCLabelAccumulator labelAcc(clusterer));
+  CPU_ONLY(MCLabelAccumulator labelAcc(clusterer));
 
   tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 
   GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow);
 }
 
-GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
+GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread,
                                                        processorType& clusterer,
                                                        const CfFragment& fragment,
                                                        GPUSharedMemory& smem,
@@ -45,13 +44,13 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
                                                        const ChargePos* filteredPeakPositions,
                                                        const GPUSettingsRec& calib,
                                                        MCLabelAccumulator* labelAcc,
-                                                       uint clusternum,
-                                                       uint maxClusterPerRow,
-                                                       uint* clusterInRow,
+                                                       uint32_t clusternum,
+                                                       uint32_t maxClusterPerRow,
+                                                       uint32_t* clusterInRow,
                                                        tpc::ClusterNative* clusterByRow,
-                                                       uint* clusterPosInRow)
+                                                       uint32_t* clusterPosInRow)
 {
-  uint idx = get_global_id(0);
+  uint32_t idx = get_global_id(0);
 
   // For certain configurations dummy work items are added, so the total
   // number of work items is dividable by 64.
@@ -93,7 +92,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
     return;
   }
 
-  uint rowIndex = 0;
+  uint32_t rowIndex = 0;
   if (clusterByRow != nullptr) {
     rowIndex = sortIntoBuckets(
       clusterer,
@@ -114,28 +113,27 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
 
 GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
   const GPUSettingsRec& calib,
-  ushort lid,
-  ushort N,
+  uint16_t lid,
+  uint16_t N,
   const PackedCharge* buf,
   const ChargePos& pos,
   ClusterAccumulator* cluster,
   MCLabelAccumulator* labelAcc,
-  uchar* innerAboveThreshold)
+  uint8_t* innerAboveThreshold)
 {
-  uchar aboveThreshold = 0;
+  uint8_t aboveThreshold = 0;
 
   GPUCA_UNROLL(U(), U())
-  for (ushort i = 0; i < N; i++) {
+  for (uint16_t i = 0; i < N; i++) {
     Delta2 d = cfconsts::InnerNeighbors[i];
 
     PackedCharge p = buf[N * lid + i];
 
     Charge q = cluster->updateInner(p, d);
 
-    CPU_ONLY(
-      labelAcc->collect(pos.delta(d), q));
+    CPU_ONLY(labelAcc->collect(pos.delta(d), q));
 
-    aboveThreshold |= (uchar(q > calib.tpc.cfInnerThreshold) << i);
+    aboveThreshold |= (uint8_t(q > calib.tpc.cfInnerThreshold) << i);
   }
 
   innerAboveThreshold[lid] = aboveThreshold;
@@ -144,17 +142,17 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
 }
 
 GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
-  ushort lid,
-  ushort N,
-  ushort M,
-  ushort offset,
+  uint16_t lid,
+  uint16_t N,
+  uint16_t M,
+  uint16_t offset,
   const PackedCharge* buf,
   const ChargePos& pos,
   ClusterAccumulator* cluster,
   MCLabelAccumulator* labelAcc)
 {
   GPUCA_UNROLL(U(), U())
-  for (ushort i = offset; i < M + offset; i++) {
+  for (uint16_t i = offset; i < M + offset; i++) {
     PackedCharge p = buf[N * lid + i];
 
     Delta2 d = cfconsts::OuterNeighbors[i];
@@ -162,8 +160,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
     Charge q = cluster->updateOuter(p, d);
     static_cast<void>(q); // Avoid unused varible warning on GPU.
 
-    CPU_ONLY(
-      labelAcc->collect(pos.delta(d), q));
+    CPU_ONLY(labelAcc->collect(pos.delta(d), q));
   }
 }
 
@@ -173,11 +170,11 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
   ChargePos pos,
   ChargePos* posBcast,
   PackedCharge* buf,
-  uchar* innerAboveThreshold,
+  uint8_t* innerAboveThreshold,
   ClusterAccumulator* myCluster,
   MCLabelAccumulator* labelAcc)
 {
-  ushort ll = get_local_id(0);
+  uint16_t ll = get_local_id(0);
 
   posBcast[ll] = pos;
   GPUbarrier();
@@ -202,11 +199,11 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
     labelAcc,
     innerAboveThreshold);
 
-  ushort wgSizeHalf = (SCRATCH_PAD_WORK_GROUP_SIZE + 1) / 2;
+  uint16_t wgSizeHalf = (SCRATCH_PAD_WORK_GROUP_SIZE + 1) / 2;
 
   bool inGroup1 = ll < wgSizeHalf;
 
-  ushort llhalf = (inGroup1) ? ll : (ll - wgSizeHalf);
+  uint16_t llhalf = (inGroup1) ? ll : (ll - wgSizeHalf);
 
   CfUtils::condBlockLoad(
     chargeMap,
@@ -258,9 +255,9 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
 #endif
 }
 
-GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(processorType& clusterer, const tpc::ClusterNative& cluster, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
+GPUd() uint32_t GPUTPCCFClusterizer::sortIntoBuckets(processorType& clusterer, const tpc::ClusterNative& cluster, uint32_t row, uint32_t maxElemsPerBucket, uint32_t* elemsInBucket, tpc::ClusterNative* buckets)
 {
-  uint index = CAMath::AtomicAdd(&elemsInBucket[row], 1u);
+  uint32_t index = CAMath::AtomicAdd(&elemsInBucket[row], 1u);
   if (index < maxElemsPerBucket) {
     buckets[maxElemsPerBucket * row + index] = cluster;
   } else {

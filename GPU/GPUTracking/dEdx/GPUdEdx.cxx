@@ -30,12 +30,12 @@ GPUd() void GPUdEdx::clear()
 GPUd() void GPUdEdx::computedEdx(GPUdEdxInfo& GPUrestrict() output, const GPUParam& GPUrestrict() param)
 {
   checkSubThresh(255);
-  const int truncLow = param.rec.tpc.dEdxTruncLow;
-  const int truncHigh = param.rec.tpc.dEdxTruncHigh;
-  const int countIROC = mNClsROC[0];
-  const int countOROC1 = mNClsROC[1];
-  const int countOROC2 = mNClsROC[2];
-  const int countOROC3 = mNClsROC[3];
+  const int32_t truncLow = param.rec.tpc.dEdxTruncLow;
+  const int32_t truncHigh = param.rec.tpc.dEdxTruncHigh;
+  const int32_t countIROC = mNClsROC[0];
+  const int32_t countOROC1 = mNClsROC[1];
+  const int32_t countOROC2 = mNClsROC[2];
+  const int32_t countOROC3 = mNClsROC[3];
   output.dEdxTotIROC = GetSortTruncMean(mChargeTot + countOROC3 + countOROC2 + countOROC1, countIROC, truncLow, truncHigh);
   output.dEdxTotOROC1 = GetSortTruncMean(mChargeTot + countOROC3 + countOROC2, countOROC1, truncLow, truncHigh);
   output.dEdxTotOROC2 = GetSortTruncMean(mChargeTot + countOROC3, countOROC2, truncLow, truncHigh);
@@ -56,7 +56,7 @@ GPUd() void GPUdEdx::computedEdx(GPUdEdxInfo& GPUrestrict() output, const GPUPar
   output.NHitsSubThresholdOROC3 = countOROC3;
 }
 
-GPUd() float GPUdEdx::GetSortTruncMean(GPUCA_DEDX_STORAGE_TYPE* GPUrestrict() array, int count, int trunclow, int trunchigh)
+GPUd() float GPUdEdx::GetSortTruncMean(GPUCA_DEDX_STORAGE_TYPE* GPUrestrict() array, int32_t count, int32_t trunclow, int32_t trunchigh)
 {
   trunclow = count * trunclow / 128;
   trunchigh = count * trunchigh / 128;
@@ -65,7 +65,7 @@ GPUd() float GPUdEdx::GetSortTruncMean(GPUCA_DEDX_STORAGE_TYPE* GPUrestrict() ar
   }
   CAAlgo::sort(array, array + count);
   float mean = 0;
-  for (int i = trunclow; i < trunchigh; i++) {
+  for (int32_t i = trunclow; i < trunchigh; i++) {
     mean += (float)array[i] * (1.f / scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor);
   }
   return (mean / (trunchigh - trunclow));

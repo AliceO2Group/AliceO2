@@ -22,11 +22,11 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 struct GPUTPCGMMergedTrackHit {
-  unsigned int num;
-  unsigned char slice, row, leg, state;
+  uint32_t num;
+  uint8_t slice, row, leg, state;
 #ifdef GPUCA_ALIROOT_LIB
   float x, y, z;
-  unsigned short amp;
+  uint16_t amp;
 #endif
 
   // NOTE: the lower states must match those from ClusterNative!
@@ -45,7 +45,7 @@ struct GPUTPCGMMergedTrackHit {
 
 struct GPUTPCGMMergedTrackHitXYZ {
   float x, y, z;
-  unsigned short amp;
+  uint16_t amp;
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
   float pad;
   float time;

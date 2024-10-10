@@ -31,13 +31,13 @@ class GPUTPCGMOfflineFitter : public AliTPCtracker
   GPUTPCGMOfflineFitter();
   ~GPUTPCGMOfflineFitter();
 
-  void Initialize(const GPUParam& hltParam, Long_t TimeStamp, bool isMC);
+  void Initialize(const GPUParam& hltParam, long TimeStamp, bool isMC);
 
   void RefitTrack(GPUTPCGMMergedTrack& track, const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrackHit* clusters);
 
-  int CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, AliTPCclusterMI& c);
+  int32_t CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, AliTPCclusterMI& c);
 
-  bool FitOffline(const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrack& gmtrack, GPUTPCGMMergedTrackHit* clusters, int& N);
+  bool FitOffline(const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrack& gmtrack, GPUTPCGMMergedTrackHit* clusters, int32_t& N);
 
  private:
   GPUParam fCAParam;

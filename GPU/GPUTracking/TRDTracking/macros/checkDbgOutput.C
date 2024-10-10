@@ -770,7 +770,7 @@ void MakeLogScale(TH1* hist, Double_t xMin = -1, Double_t xMax = -1)
   Double_t logXmin = TMath::Log10(xMin);
   Double_t logXmax = TMath::Log10(xMax);
   Double_t binWidth = (logXmax - logXmin) / nBins;
-  for (int i = 0; i <= nBins; i++) {
+  for (int32_t i = 0; i <= nBins; i++) {
     xBins[i] = xMin + TMath::Power(10, logXmin + i * binWidth);
   }
   hist->GetXaxis()->Set(nBins, xBins);
@@ -1149,8 +1149,8 @@ void LoopFakes(Int_t nEntries = -1)
         if ((*nMatchingTracklets)[iLy] > 0) {
           // matching tracklet would have been available
           hFracAvailable->Fill(trkPt);
-          int trackSector = (*trackSec)[iLy];
-          int trackletSector = (*trackletSecReal)[iLy];
+          int32_t trackSector = (*trackSec)[iLy];
+          int32_t trackletSector = (*trackletSecReal)[iLy];
           if ((*trackSec)[iLy] == (*trackletSecReal)[iLy] && TMath::Abs((*trackYreal)[iLy] - (*trackletYreal)[iLy]) < (*roadY)[iLy] && TMath::Abs((*trackZreal)[iLy] - (*trackletZreal)[iLy]) < (*roadZ)[iLy]) {
             // matching tracklet available and in search road
             hChi2Real->Fill((*chi2Real)[iLy]);
@@ -1500,7 +1500,7 @@ void RecreateDyPlotJochen()
   TH2F* hDy = new TH2F("dy", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBinsPerDim, -60, 60, nBinsPerDim, -2, 2);
   TAxis* axX = hDy->GetXaxis();
   TAxis* axY = hDy->GetYaxis();
-  std::vector<int> nEntries(nBins); // number of entries for given bin
+  std::vector<int32_t> nEntries(nBins); // number of entries for given bin
   std::vector<float> dYacc(nBins);  // accumulated values for dy for specific bin
   for (Int_t i = 0; i < tree->GetEntries(); i++) {
     // loop over all tracks

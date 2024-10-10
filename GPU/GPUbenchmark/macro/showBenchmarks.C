@@ -12,7 +12,7 @@
 #include <iostream>
 #endif
 
-int nBins{500};
+int32_t nBins{500};
 float minHist{0.f}, maxHist{1e4};
 void showBenchmarks(const bool times = false, const TString fileName = "0_benchmark_result.root")
 {
@@ -21,7 +21,7 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
   std::vector<std::vector<TH1F*>> histograms;
   std::vector<TGraphErrors*> results;
   std::vector<std::string> tests = {"read", "write", "copy"};
-  std::vector<std::string> types = {"char", "int", "unsigned_long"};
+  std::vector<std::string> types = {"int8_t", "int32_t", "uint64_t"};
   std::vector<std::string> modes = {"seq", "conc"};
   std::vector<std::string> patterns = {"SB", "MB"};
 
@@ -50,13 +50,13 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
                         elapsed->GetEntry(keyPair.second->LoadTree(0));
                         auto nChunk = measures->size();
                         histograms.emplace_back(nChunk);
-                        for (int iHist{0}; iHist < (int)nChunk; ++iHist) {
+                        for (int32_t iHist{0}; iHist < (int32_t)nChunk; ++iHist) {
                           histograms.back()[iHist] = new TH1F(Form("Chunk_%d_%s", iHist, keyPair.first.c_str()), Form("Chunk_%d_%s;ms", iHist, keyPair.first.c_str()), 1000, 0, 1e4);
                         }
                         for (size_t iEntry(0); iEntry < (size_t)keyPair.second->GetEntriesFast(); ++iEntry) {
                           auto tentry = keyPair.second->LoadTree(iEntry);
                           elapsed->GetEntry(tentry);
-                          for (int iHist{0}; iHist < (int)nChunk; ++iHist) {
+                          for (int32_t iHist{0}; iHist < (int32_t)nChunk; ++iHist) {
                             histograms.back()[iHist]->Fill((*measures)[iHist]);
                           }
                         }
@@ -74,7 +74,7 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
                         TGraphErrors* g = new TGraphErrors(nChunk, xCoord.data(), yCoord.data(), exCoord.data(), eyCoord.data());
                         g->GetYaxis()->SetRangeUser(0, 5000);
                         g->GetXaxis()->SetRangeUser(-2.f, nChunk);
-                        g->SetTitle(Form("%s, N_{test}=%d;chunk_id;elapsed (s)", keyPair.first.c_str(), (int)keyPair.second->GetEntriesFast()));
+                        g->SetTitle(Form("%s, N_{test}=%d;chunk_id;elapsed (s)", keyPair.first.c_str(), (int32_t)keyPair.second->GetEntriesFast()));
                         g->SetFillColor(kBlue);
                         g->SetFillStyle(3001);
                         g->Draw("AB");
@@ -87,13 +87,13 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
                       throughput->GetEntry(keyPair.second->LoadTree(0));
                       auto nChunk = measures->size();
                       histograms.emplace_back(nChunk);
-                      for (int iHist{0}; iHist < (int)nChunk; ++iHist) {
+                      for (int32_t iHist{0}; iHist < (int32_t)nChunk; ++iHist) {
                         histograms.back()[iHist] = new TH1F(Form("Chunk_%d_%s", iHist, keyPair.first.c_str()), Form("Chunk_%d_%s;GB/s", iHist, keyPair.first.c_str()), 1000, 0, 1e3);
                       }
                       for (size_t iEntry(0); iEntry < (size_t)keyPair.second->GetEntriesFast(); ++iEntry) {
                         auto tentry = keyPair.second->LoadTree(iEntry);
                         throughput->GetEntry(tentry);
-                        for (int iHist{0}; iHist < (int)nChunk; ++iHist) {
+                        for (int32_t iHist{0}; iHist < (int32_t)nChunk; ++iHist) {
                           histograms.back()[iHist]->Fill((*measures)[iHist]);
                         }
                       }
@@ -111,7 +111,7 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
                       TGraphErrors* g = new TGraphErrors(nChunk, xCoord.data(), yCoord.data(), exCoord.data(), eyCoord.data());
                       g->GetYaxis()->SetRangeUser(0, 150);
                       g->GetXaxis()->SetRangeUser(-2.f, nChunk);
-                      g->SetTitle(Form("%s, N_{test}=%d;chunk_id;throughput (GB/s)", keyPair.first.c_str(), (int)keyPair.second->GetEntriesFast()));
+                      g->SetTitle(Form("%s, N_{test}=%d;chunk_id;throughput (GB/s)", keyPair.first.c_str(), (int32_t)keyPair.second->GetEntriesFast()));
                       g->SetFillColor(kBlue);
                       g->SetFillStyle(3001);
                       g->Draw("AB");

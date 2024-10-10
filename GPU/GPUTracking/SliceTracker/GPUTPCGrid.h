@@ -34,19 +34,19 @@ class GPUTPCGrid
 {
  public:
   GPUd() void CreateEmpty();
-  GPUd() void Create(float yMin, float yMax, float zMin, float zMax, int ny, int nz);
+  GPUd() void Create(float yMin, float yMax, float zMin, float zMax, int32_t ny, int32_t nz);
 
-  GPUd() int GetBin(float Y, float Z) const;
+  GPUd() int32_t GetBin(float Y, float Z) const;
   /**
  * returns -1 if the row is empty == no hits
  */
-  GPUd() int GetBinBounded(float Y, float Z) const;
-  GPUd() void GetBin(float Y, float Z, int* const bY, int* const bZ) const;
-  GPUd() void GetBinArea(float Y, float Z, float dy, float dz, int& bin, int& ny, int& nz) const;
+  GPUd() int32_t GetBinBounded(float Y, float Z) const;
+  GPUd() void GetBin(float Y, float Z, int32_t* const bY, int32_t* const bZ) const;
+  GPUd() void GetBinArea(float Y, float Z, float dy, float dz, int32_t& bin, int32_t& ny, int32_t& nz) const;
 
-  GPUd() unsigned int N() const { return mN; }
-  GPUd() unsigned int Ny() const { return mNy; }
-  GPUd() unsigned int Nz() const { return mNz; }
+  GPUd() uint32_t N() const { return mN; }
+  GPUd() uint32_t Ny() const { return mNy; }
+  GPUd() uint32_t Nz() const { return mNz; }
   GPUd() float YMin() const { return mYMin; }
   GPUd() float YMax() const { return mYMax; }
   GPUd() float ZMin() const { return mZMin; }
@@ -57,9 +57,9 @@ class GPUTPCGrid
  private:
   friend class GPUTPCNeighboursFinder;
 
-  unsigned int mNy; //* N bins in Y
-  unsigned int mNz; //* N bins in Z
-  unsigned int mN;  //* total N bins
+  uint32_t mNy;     //* N bins in Y
+  uint32_t mNz;     //* N bins in Z
+  uint32_t mN;      //* total N bins
   float mYMin;      //* minimal Y value
   float mYMax;      //* maximal Y value
   float mZMin;      //* minimal Z value

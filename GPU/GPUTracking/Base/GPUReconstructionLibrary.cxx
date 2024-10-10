@@ -111,11 +111,11 @@ std::shared_ptr<GPUReconstruction::LibraryLoader>* GPUReconstruction::GetLibrary
     return &sLibOCL2;
 #endif
   } else {
-    GPUError("Error: Invalid device type %u", (unsigned int)type);
+    GPUError("Error: Invalid device type %u", (uint32_t)type);
     return nullptr;
   }
   if (verbose) {
-    GPUInfo("%s Support not compiled in for device type %u (%s)", GPUDataTypes::DEVICE_TYPE_NAMES[type], (unsigned int)type, GPUDataTypes::DEVICE_TYPE_NAMES[type]);
+    GPUInfo("%s Support not compiled in for device type %u (%s)", GPUDataTypes::DEVICE_TYPE_NAMES[type], (uint32_t)type, GPUDataTypes::DEVICE_TYPE_NAMES[type]);
   }
   return nullptr;
 }
@@ -139,7 +139,7 @@ GPUReconstruction::LibraryLoader::LibraryLoader(const char* lib, const char* fun
 
 GPUReconstruction::LibraryLoader::~LibraryLoader() { CloseLibrary(); }
 
-int GPUReconstruction::LibraryLoader::LoadLibrary()
+int32_t GPUReconstruction::LibraryLoader::LoadLibrary()
 {
   static std::mutex mut;
   std::lock_guard<std::mutex> lock(mut);
@@ -183,7 +183,7 @@ GPUReconstruction* GPUReconstruction::LibraryLoader::GetPtr(const GPUSettingsDev
   return tmp(cfg);
 }
 
-int GPUReconstruction::LibraryLoader::CloseLibrary()
+int32_t GPUReconstruction::LibraryLoader::CloseLibrary()
 {
   if (mGPUEntry == nullptr) {
     return 1;

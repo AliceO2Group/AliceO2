@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <typeinfo>
+#include <cstring>
 #include "Framework/DataRefUtils.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/Logger.h"
@@ -80,11 +81,27 @@ void* DataRefUtils::decodeCCDB(DataRef const& ref, std::type_info const& tinfo)
   Int_t previousErrorLevel = gErrorIgnoreLevel;
   gErrorIgnoreLevel = kFatal;
   auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
-  TMemFile memFile("name", const_cast<char*>(ref.payload), dh->payloadSize, "READ");
+  const char* buff = const_cast<char*>(ref.payload);
+  size_t flSize = dh->payloadSize;
+  // does it have a flattened headers map attached in the end?
+  constexpr char FlatHeaderAnnot[] = "$HEADER$";
+  constexpr int Offset = sizeof(int) + sizeof(FlatHeaderAnnot);
+  int headerSize = 0;
+  LOGP(debug, "DHPayloadSize={}>{} Ref:{}/{} Cmp {}:{}", dh->payloadSize, Offset, dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>(), std::string{buff + dh->payloadSize - sizeof(FlatHeaderAnnot)}, std::string{FlatHeaderAnnot});
+
+  if (dh->payloadSize >= Offset &&
+      !std::strncmp(buff + dh->payloadSize - sizeof(FlatHeaderAnnot), FlatHeaderAnnot, sizeof(FlatHeaderAnnot))) {
+    headerSize = *reinterpret_cast<const int*>(buff + dh->payloadSize - Offset);
+  }
+  if (headerSize <= 0) {
+    LOGP(fatal, "Anomalous flattened header size {} extracted", headerSize);
+  }
+  TMemFile memFile("name", const_cast<char*>(ref.payload), dh->payloadSize - headerSize, "READ");
   gErrorIgnoreLevel = previousErrorLevel;
   if (memFile.IsZombie()) {
     return nullptr;
   }
+
   TClass* tcl = TClass::GetClass(tinfo);
   result = extractFromTFile(memFile, tcl, "ccdb_object");
   if (!result) {
@@ -92,6 +109,38 @@ void* DataRefUtils::decodeCCDB(DataRef const& ref, std::type_info const& tinfo)
   }
   memFile.Close();
   return result;
+}
+
+std::map<std::string, std::string> DataRefUtils::extractCCDBHeaders(DataRef const& ref)
+{
+  auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
+  const char* buff = const_cast<char*>(ref.payload);
+  // does it have a flattened headers map attached in the end?
+  constexpr char FlatHeaderAnnot[] = "$HEADER$";
+  constexpr int Offset = sizeof(int) + sizeof(FlatHeaderAnnot);
+  int headerSize = 0, ss0 = 0;
+  if (dh->payloadSize >= Offset && !std::strncmp(buff + dh->payloadSize - sizeof(FlatHeaderAnnot), FlatHeaderAnnot, sizeof(FlatHeaderAnnot))) {
+    headerSize = *reinterpret_cast<const int*>(buff + dh->payloadSize - Offset);
+  }
+  if (headerSize <= 0) {
+    LOGP(fatal, "Anomalous flattened header size {} extracted", headerSize);
+  }
+  buff += dh->payloadSize - headerSize; // jump to the start of flattened header
+  headerSize -= Offset;
+  const char* str0 = &buff[ss0++];
+  std::map<std::string, std::string> res;
+  while (ss0 < headerSize) {
+    if (buff[ss0++] == 0) {
+      if (!str0) {
+        str0 = &buff[ss0]; // new key string is found
+      } else {
+        res.emplace(std::string(str0), std::string(&buff[ss0])); // new value string found, add key value to the map
+        LOGP(debug, "Header{} {}:{}", res.size(), std::string(str0), std::string(&buff[ss0]));
+        str0 = nullptr;
+      }
+    }
+  }
+  return res;
 }
 
 } // namespace o2::framework

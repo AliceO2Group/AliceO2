@@ -101,7 +101,7 @@ AliHLTComponentDataType GPUTPCTrackerComponent::GetOutputDataType()
   return GPUTPCDefinitions::fgkTrackletsDataType;
 }
 
-void GPUTPCTrackerComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
+void GPUTPCTrackerComponent::GetOutputDataSize(uint64_t& constBase, double& inputMultiplier)
 {
   // define guess for the output data size
   constBase = 10000;     // minimum size
@@ -131,24 +131,24 @@ void GPUTPCTrackerComponent::SetDefaultConfiguration()
   fBenchmark.SetTimer(1, "reco");
 }
 
-int GPUTPCTrackerComponent::ReadConfigurationString(const char* arguments)
+int32_t GPUTPCTrackerComponent::ReadConfigurationString(const char* arguments)
 {
   // Set configuration parameters for the CA tracker component from the string
 
-  int iResult = 0;
+  int32_t iResult = 0;
   if (!arguments) {
     return iResult;
   }
 
   TString allArgs = arguments;
   TString argument;
-  int bMissingParam = 0;
+  int32_t bMissingParam = 0;
 
   TObjArray* pTokens = allArgs.Tokenize(" ");
 
-  int nArgs = pTokens ? pTokens->GetEntries() : 0;
+  int32_t nArgs = pTokens ? pTokens->GetEntries() : 0;
 
-  for (int i = 0; i < nArgs; i++) {
+  for (int32_t i = 0; i < nArgs; i++) {
     argument = ((TObjString*)pTokens->At(i))->GetString();
     if (argument.IsNull()) {
       continue;
@@ -301,7 +301,7 @@ int GPUTPCTrackerComponent::ReadConfigurationString(const char* arguments)
   return iResult;
 }
 
-int GPUTPCTrackerComponent::ReadCDBEntry(const char* cdbEntry, const char* chainId)
+int32_t GPUTPCTrackerComponent::ReadCDBEntry(const char* cdbEntry, const char* chainId)
 {
   // see header file for class documentation
 
@@ -333,7 +333,7 @@ int GPUTPCTrackerComponent::ReadCDBEntry(const char* cdbEntry, const char* chain
   return ReadConfigurationString(pString->GetString().Data());
 }
 
-int GPUTPCTrackerComponent::Configure(const char* cdbEntry, const char* chainId, const char* commandLine)
+int32_t GPUTPCTrackerComponent::Configure(const char* cdbEntry, const char* chainId, const char* commandLine)
 {
   // Configure the component
   // There are few levels of configuration,
@@ -343,16 +343,16 @@ int GPUTPCTrackerComponent::Configure(const char* cdbEntry, const char* chainId,
   SetDefaultConfiguration();
 
   //* read the default CDB entry
-  int iResult1 = ReadCDBEntry(nullptr, chainId);
+  int32_t iResult1 = ReadCDBEntry(nullptr, chainId);
 
   //* read magnetic field
   fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
-  int iResult2 = (cdbEntry) ? ReadCDBEntry(cdbEntry, chainId) : 0;
+  int32_t iResult2 = (cdbEntry) ? ReadCDBEntry(cdbEntry, chainId) : 0;
 
   //* read extra parameters from input (if they are)
-  int iResult3 = 0;
+  int32_t iResult3 = 0;
 
   if (commandLine && commandLine[0] != '\0') {
     HLTInfo("received configuration string from HLT framework: \"%s\"", commandLine);
@@ -366,7 +366,7 @@ int GPUTPCTrackerComponent::Configure(const char* cdbEntry, const char* chainId,
   return iResult1 ? iResult1 : (iResult2 ? iResult2 : iResult3);
 }
 
-int GPUTPCTrackerComponent::ConfigureSlices()
+int32_t GPUTPCTrackerComponent::ConfigureSlices()
 {
   // Initialize the tracker slices
   GPUSettingsRec rec;
@@ -420,7 +420,7 @@ void* GPUTPCTrackerComponent::TrackerInit(void* par)
   return (nullptr);
 }
 
-int GPUTPCTrackerComponent::DoInit(int argc, const char** argv)
+int32_t GPUTPCTrackerComponent::DoInit(int argc, const char** argv)
 {
   if (fRec) {
     return EINPROGRESS;
@@ -428,14 +428,14 @@ int GPUTPCTrackerComponent::DoInit(int argc, const char** argv)
 
   // Configure the CA tracker component
   TString arguments = "";
-  for (int i = 0; i < argc; i++) {
+  for (int32_t i = 0; i < argc; i++) {
     if (!arguments.IsNull()) {
       arguments += " ";
     }
     arguments += argv[i];
   }
 
-  int retVal = Configure(nullptr, nullptr, arguments.Data());
+  int32_t retVal = Configure(nullptr, nullptr, arguments.Data());
   if (retVal == 0) {
     if (fAsync) {
       if (fAsyncProcessor.Initialize(1)) {
@@ -467,7 +467,7 @@ void* GPUTPCTrackerComponent::TrackerExit(void* par)
   return (nullptr);
 }
 
-int GPUTPCTrackerComponent::DoDeinit()
+int32_t GPUTPCTrackerComponent::DoDeinit()
 {
   // see header file for class documentation
   if (fAsync) {
@@ -480,13 +480,13 @@ int GPUTPCTrackerComponent::DoDeinit()
   return 0;
 }
 
-int GPUTPCTrackerComponent::Reconfigure(const char* cdbEntry, const char* chainId)
+int32_t GPUTPCTrackerComponent::Reconfigure(const char* cdbEntry, const char* chainId)
 {
   // Reconfigure the component from OCDB .
   return Configure(cdbEntry, chainId, nullptr);
 }
 
-int GPUTPCTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks)
+int32_t GPUTPCTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks)
 {
   //* process event
   if (!fRec) {
@@ -501,13 +501,13 @@ int GPUTPCTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   tmpPar.fSize = &size;
   tmpPar.mOutputBlocks = &outputBlocks;
 
-  static int trackerTimeout = 0;
+  static int32_t trackerTimeout = 0;
   if (trackerTimeout) {
     size = 0;
     return (0);
   }
 
-  int retVal;
+  int32_t retVal;
   if (fAsync) {
     void* asyncRetVal = nullptr;
     if (fAsyncProcessor.InitializeAsyncMemberTask(this, &GPUTPCTrackerComponent::TrackerDoEvent, &tmpPar, &asyncRetVal, fAsync) != 0) {
@@ -516,10 +516,10 @@ int GPUTPCTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       size = 0;
       return (-ENODEV);
     } else {
-      retVal = (int)(size_t)asyncRetVal;
+      retVal = (int32_t)(size_t)asyncRetVal;
     }
   } else {
-    retVal = (int)(size_t)TrackerDoEvent(&tmpPar);
+    retVal = (int32_t)(size_t)TrackerDoEvent(&tmpPar);
   }
   return (retVal);
 }
@@ -554,10 +554,10 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][fgkNPatches] = {nullptr};
   const AliHLTTPCRawClusterData* clustersRaw[NSLICES][fgkNPatches] = {nullptr};
 
-  for (unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++) {
+  for (uint64_t ndx = 0; ndx < evtData.fBlockCnt; ndx++) {
     const AliHLTComponentBlockData& pBlock = blocks[ndx];
-    int slice = AliHLTTPCDefinitions::GetMinSliceNr(pBlock);
-    int patch = AliHLTTPCDefinitions::GetMinPatchNr(pBlock);
+    int32_t slice = AliHLTTPCDefinitions::GetMinSliceNr(pBlock);
+    int32_t patch = AliHLTTPCDefinitions::GetMinPatchNr(pBlock);
     if (pBlock.fDataType == AliHLTTPCDefinitions::RawClustersDataType()) {
       clustersRaw[slice][patch] = (const AliHLTTPCRawClusterData*)pBlock.fPtr;
     } else if (pBlock.fDataType == AliHLTTPCDefinitions::ClustersXYZDataType()) {
@@ -566,12 +566,12 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   }
 
   GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
-  int nClusters[NSLICES] = {0};
+  int32_t nClusters[NSLICES] = {0};
 
-  int nClustersTotal = 0;
-  for (int slice = 0; slice < NSLICES; slice++) {
-    int nClustersSliceTotal = 0;
-    for (int patch = 0; patch < 6; patch++) {
+  int32_t nClustersTotal = 0;
+  for (int32_t slice = 0; slice < NSLICES; slice++) {
+    int32_t nClustersSliceTotal = 0;
+    for (int32_t patch = 0; patch < 6; patch++) {
       if (clustersXYZ[slice][patch]) {
         nClustersSliceTotal += clustersXYZ[slice][patch]->fCount;
       }
@@ -585,7 +585,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
       clusterData[slice] = new GPUTPCClusterData[nClustersSliceTotal];
       nClusters[slice] = nClustersSliceTotal;
       GPUTPCClusterData* pCluster = clusterData[slice];
-      for (int patch = 0; patch < 6; patch++) {
+      for (int32_t patch = 0; patch < 6; patch++) {
         if (clustersXYZ[slice][patch] != nullptr && clustersRaw[slice][patch] != nullptr) {
           const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[slice][patch];
           const AliHLTTPCRawClusterData& clRaw = *clustersRaw[slice][patch];
@@ -595,8 +595,8 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
             continue;
           }
 
-          const int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
-          for (int ic = 0; ic < clXYZ.fCount; ic++) {
+          const int32_t firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
+          for (int32_t ic = 0; ic < clXYZ.fCount; ic++) {
             const AliHLTTPCClusterXYZ& c = clXYZ.fClusters[ic];
             const AliHLTTPCRawCluster& cRaw = clRaw.fClusters[ic];
             if (c.GetZ() > fClusterZCut || c.GetZ() < -fClusterZCut) {
@@ -639,7 +639,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   }
 
   fChain->ClearIOPointers();
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
     fChain->mIOPtrs.clusterData[i] = clusterData[i];
     fChain->mIOPtrs.nClusterData[i] = nClusters[i];
   }
@@ -664,24 +664,24 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   }
   fBenchmark.Stop(1);
   HLTInfo("Processed %d clusters", nClustersTotal);
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
     fChain->GetTPCSliceTrackers()[i].Clear();
   }
 
-  int ret = 0;
+  int32_t ret = 0;
   size = 0;
 
   if (fRec->OutputControl().size == 1) {
     HLTWarning("Output buffer size exceeded buffer size %d, tracks are not stored", maxBufferSize);
     ret = -ENOSPC;
   } else {
-    for (int slice = 0; slice < NSLICES; slice++) {
+    for (int32_t slice = 0; slice < NSLICES; slice++) {
       GPUTPCSliceOutput* pOut = fChain->GetTPCSliceTrackers()[slice].Output();
       if (!pOut) {
         continue;
       }
       HLTDebug("%d tracks found for slice %d", pOut->NTracks(), slice);
-      unsigned int blockSize = pOut->Size();
+      uint32_t blockSize = pOut->Size();
       if (blockSize > 0) {
         AliHLTComponentBlockData bd;
         FillBlockData(bd);
@@ -696,7 +696,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
     }
   }
 
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
     if (clusterData[i]) {
       delete[] clusterData[i];
     }

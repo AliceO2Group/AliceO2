@@ -36,7 +36,7 @@ QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_command);
 QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_command_arch);
 #endif
 
-int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
+int32_t GPUReconstructionCUDA::genRTC(std::string& filename, uint32_t& nCompile)
 {
 #ifndef GPUCA_ALIROOT_LIB
   std::string rtcparam = std::string(mProcessingSettings.rtc.optSpecialCode ? "#define GPUCA_RTC_SPECIAL_CODE(...) __VA_ARGS__\n" : "#define GPUCA_RTC_SPECIAL_CODE(...)\n") + GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtc.optConstexpr);
@@ -50,7 +50,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
   std::vector<std::string> kernels;
   getRTCKernelCalls(kernels);
   std::string kernelsall;
-  for (unsigned int i = 0; i < kernels.size(); i++) {
+  for (uint32_t i = 0; i < kernels.size(); i++) {
     kernelsall += kernels[i] + "\n";
   }
 
@@ -70,7 +70,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
 
   nCompile = mProcessingSettings.rtc.compilePerKernel ? kernels.size() : 1;
   bool cacheLoaded = false;
-  int fd = 0;
+  int32_t fd = 0;
   if (mProcessingSettings.rtc.cacheOutput) {
     if (mProcessingSettings.RTCcacheFolder != ".") {
       std::filesystem::create_directories(mProcessingSettings.RTCcacheFolder);
@@ -133,7 +133,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
           break;
         }
         std::vector<char> buffer;
-        for (unsigned int i = 0; i < nCompile; i++) {
+        for (uint32_t i = 0; i < nCompile; i++) {
           if (fread(&len, sizeof(len), 1, fp) != 1) {
             throw std::runtime_error("Cache file corrupt");
           }
@@ -167,7 +167,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
-    for (unsigned int i = 0; i < nCompile; i++) {
+    for (uint32_t i = 0; i < nCompile; i++) {
       if (mProcessingSettings.debugLevel >= 3) {
         printf("Compiling %s\n", (filename + "_" + std::to_string(i) + mRtcSrcExtension).c_str());
       }
@@ -223,7 +223,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
       }
 
       std::vector<char> buffer;
-      for (unsigned int i = 0; i < nCompile; i++) {
+      for (uint32_t i = 0; i < nCompile; i++) {
         FILE* fp2 = fopen((filename + "_" + std::to_string(i) + mRtcBinExtension).c_str(), "rb");
         if (fp2 == nullptr) {
           throw std::runtime_error("Cannot open cuda module file");

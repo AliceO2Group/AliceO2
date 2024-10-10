@@ -73,13 +73,13 @@ void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
       return false;
     };
     mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
-    for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+    for (uint32_t i = 0; i < mPipeline->workers.size(); i++) {
       mPipeline->workers[i].thread = std::thread([this, i]() { RunWorkerThread(i); });
     }
   }
 }
 
-void GPURecoWorkflowSpec::RunWorkerThread(int id)
+void GPURecoWorkflowSpec::RunWorkerThread(int32_t id)
 {
   LOG(debug) << "Running pipeline worker " << id;
   auto& workerContext = mPipeline->workers[id];
@@ -154,7 +154,7 @@ void GPURecoWorkflowSpec::finalizeInputPipelinedJob(GPUTrackingInOutPointers* pt
   context->jobInputFinalNotify.notify_one();
 }
 
-int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<GPURecoWorkflow_QueueObject>& context)
+int32_t GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<GPURecoWorkflow_QueueObject>& context)
 {
   mPipeline->runStarted = true;
   mPipeline->stateNotify.notify_all();
@@ -181,8 +181,8 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
 
     size_t ptrsTotal = 0;
     const void* firstPtr = nullptr;
-    for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
-      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+    for (uint32_t i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+      for (uint32_t j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         if (firstPtr == nullptr && ptrs.tpcZS->slice[i].count[j]) {
           firstPtr = ptrs.tpcZS->slice[i].zsPtr[j][0];
         }
@@ -201,15 +201,15 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
 
     size_t* ptrBuffer = messageBuffer.data() + sizeof(preMessage) / sizeof(size_t);
     size_t ptrsCopied = 0;
-    int lastRegion = -1;
-    for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
-      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+    int32_t lastRegion = -1;
+    for (uint32_t i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+      for (uint32_t j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         preMessage.pointerCounts[i][j] = ptrs.tpcZS->slice[i].count[j];
-        for (unsigned int k = 0; k < ptrs.tpcZS->slice[i].count[j]; k++) {
+        for (uint32_t k = 0; k < ptrs.tpcZS->slice[i].count[j]; k++) {
           const void* curPtr = ptrs.tpcZS->slice[i].zsPtr[j][k];
           bool regionFound = lastRegion != -1 && (size_t)curPtr >= (size_t)mRegionInfos[lastRegion].ptr && (size_t)curPtr < (size_t)mRegionInfos[lastRegion].ptr + mRegionInfos[lastRegion].size;
           if (!regionFound) {
-            for (unsigned int l = 0; l < mRegionInfos.size(); l++) {
+            for (uint32_t l = 0; l < mRegionInfos.size(); l++) {
               if ((size_t)curPtr >= (size_t)mRegionInfos[l].ptr && (size_t)curPtr < (size_t)mRegionInfos[l].ptr + mRegionInfos[l].size) {
                 lastRegion = l;
                 regionFound = true;
@@ -286,7 +286,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
   auto* device = mPipeline->fmqDevice;
   while (!mPipeline->shouldTerminate) {
     bool received = false;
-    int recvTimeot = 1000;
+    int32_t recvTimeot = 1000;
     fair::mq::MessagePtr msg;
     LOG(debug) << "Waiting for out of band message";
     auto shouldReceive = [this]() { return ((mPipeline->fmqState == fair::mq::State::Running || (mPipeline->fmqState == fair::mq::State::Ready && mPipeline->fmqPreviousState == fair::mq::State::Running)) && !mPipeline->endOfStreamAsyncReceived); };
@@ -352,16 +352,16 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     size_t* ptrBuffer = (size_t*)msg->GetData() + sizeof(pipelinePrepareMessage) / sizeof(size_t);
     context->tpcZSmeta.Pointers[0][0].resize(m->pointersTotal);
     context->tpcZSmeta.Sizes[0][0].resize(m->pointersTotal);
-    int lastRegion = -1;
-    for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
-      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+    int32_t lastRegion = -1;
+    for (uint32_t i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+      for (uint32_t j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         context->tpcZS.slice[i].count[j] = m->pointerCounts[i][j];
-        for (unsigned int k = 0; k < context->tpcZS.slice[i].count[j]; k++) {
+        for (uint32_t k = 0; k < context->tpcZS.slice[i].count[j]; k++) {
           bool regionManaged = ptrBuffer[2 * m->pointersTotal + ptrsCopied + k];
           size_t regionId = ptrBuffer[3 * m->pointersTotal + ptrsCopied + k];
           bool regionFound = lastRegion != -1 && mRegionInfos[lastRegion].managed == regionManaged && mRegionInfos[lastRegion].id == regionId;
           if (!regionFound) {
-            for (unsigned int l = 0; l < mRegionInfos.size(); l++) {
+            for (uint32_t l = 0; l < mRegionInfos.size(); l++) {
               if (mRegionInfos[l].managed == regionManaged && mRegionInfos[l].id == regionId) {
                 lastRegion = l;
                 regionFound = true;
@@ -370,7 +370,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
             }
           }
           if (!regionFound) {
-            LOG(fatal) << "Received ZS Ptr for SHM region (managed " << (int)regionManaged << ", id " << regionId << "), which was not registered for us";
+            LOG(fatal) << "Received ZS Ptr for SHM region (managed " << (int32_t)regionManaged << ", id " << regionId << "), which was not registered for us";
           }
           context->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + (size_t)mRegionInfos[lastRegion].ptr);
           context->tpcZSmeta.Sizes[0][0][ptrsCopied + k] = ptrBuffer[m->pointersTotal + ptrsCopied + k];
@@ -402,13 +402,13 @@ void GPURecoWorkflowSpec::ExitPipeline()
     mPipeline->fmqDevice = nullptr;
     mPipeline->shouldTerminate = true;
     mPipeline->stateNotify.notify_all();
-    for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+    for (uint32_t i = 0; i < mPipeline->workers.size(); i++) {
       mPipeline->workers[i].inputQueueNotify.notify_one();
     }
     if (mPipeline->receiveThread.joinable()) {
       mPipeline->receiveThread.join();
     }
-    for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+    for (uint32_t i = 0; i < mPipeline->workers.size(); i++) {
       if (mPipeline->workers[i].thread.joinable()) {
         mPipeline->workers[i].thread.join();
       }

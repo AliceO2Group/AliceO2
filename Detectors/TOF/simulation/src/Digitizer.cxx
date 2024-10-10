@@ -69,6 +69,7 @@ void Digitizer::init()
 {
 
   // set first readout window in MC production getting
+  // orbitFirstSampled corresponds to the start of the concrete timeframe (it is set in O2DPG productions)
   mReadoutWindowCurrent = uint64_t(o2::raw::HBFUtils::Instance().orbitFirstSampled) * Geo::NWINDOW_IN_ORBIT;
 
   // method to initialize the parameters neede to digitize and the array of strip objects containing
@@ -91,12 +92,21 @@ void Digitizer::init()
 
 int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
 {
+  const double max_hit_time = TOFSimParams::Instance().max_hit_time;
+
   // hits array of TOF hits for a given simulated event
   // digits passed from external to be filled, in continuous readout mode we will push it on mDigitsPerTimeFrame vector of vectors of digits
 
   //  printf("process event time = %f with %ld hits\n",mEventTime.getTimeNS(),hits->size());
 
-  uint64_t readoutwindow = uint64_t((mEventTime.getTimeNS() - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV); // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
+  uint64_t readoutwindow = getReadoutWindow(mEventTime.getTimeNS());
+
+  // determines the maximal readout window difference to a preceding RO which can still affect the current readout window
+  int max_readout_diff = int(max_hit_time * Geo::READOUTWINDOW_INV) + 1;
+  // early return based on events happening earlier than MAX_READOUT_DIFF away from current RO frame
+  if (readoutwindow < mReadoutWindowCurrent && mReadoutWindowCurrent - readoutwindow > max_readout_diff) {
+    return 0;
+  }
 
   if (mContinuous && readoutwindow > mReadoutWindowCurrent) { // if we are moving in future readout windows flush previous ones (only for continuous readout mode)
     digits->clear();
@@ -110,9 +120,18 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
   for (auto& hit : *hits) {
     // TODO: put readout window counting/selection
     //  neglect very slow particles (low energy neutrons)
-    if (hit.GetTime() > 1000) { // 1 mus
+    if (hit.GetTime() > max_hit_time) { // 1 mus
       continue;
     }
+
+    // discard hits arriving before the minimum readout window
+    auto hit_ro_window = getReadoutWindow(double(hit.GetTime()) + mEventTime.getTimeNS() /*+ Geo::LATENCYWINDOW*/);
+
+    // discard hits arriving too early
+    if (hit_ro_window < mReadoutWindowCurrent) {
+      continue;
+    }
+
     processHit(hit, mEventTime.getTimeOffsetWrtBC() + Geo::LATENCYWINDOW);
   } // end loop over hits
 

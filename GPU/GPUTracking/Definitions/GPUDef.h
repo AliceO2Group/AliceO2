@@ -22,9 +22,9 @@
 #include "GPUDefOpenCL12Templates.h"
 #include "GPUCommonRtypes.h"
 
-// Macros for masking ptrs in OpenCL kernel calls as unsigned long (The API only allows us to pass buffer objects)
+// Macros for masking ptrs in OpenCL kernel calls as uint64_t (The API only allows us to pass buffer objects)
 #ifdef __OPENCL__
-  #define GPUPtr1(a, b) unsigned long b
+  #define GPUPtr1(a, b) uint64_t b
   #define GPUPtr2(a, b) ((__global a) (a) b)
 #else
   #define GPUPtr1(a, b) a b
@@ -41,9 +41,9 @@
   #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) & __restrict__ varname = varshared;
   #define CA_SHARED_STORAGE(storage) storage
   #define CA_SHARED_CACHE(target, src, size) \
-    static_assert((size) % sizeof(int) == 0, "Invalid shared cache size"); \
-    for (unsigned int i_shared_cache = get_local_id(0); i_shared_cache < (size) / sizeof(int); i_shared_cache += get_local_size(0)) { \
-      reinterpret_cast<GPUsharedref() int*>(target)[i_shared_cache] = reinterpret_cast<GPUglobalref() const int*>(src)[i_shared_cache]; \
+    static_assert((size) % sizeof(int32_t) == 0, "Invalid shared cache size"); \
+    for (uint32_t i_shared_cache = get_local_id(0); i_shared_cache < (size) / sizeof(int32_t); i_shared_cache += get_local_size(0)) { \
+      reinterpret_cast<GPUsharedref() int32_t*>(target)[i_shared_cache] = reinterpret_cast<GPUglobalref() const int32_t*>(src)[i_shared_cache]; \
     }
   #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) \
     CA_SHARED_CACHE(target, src, size) \

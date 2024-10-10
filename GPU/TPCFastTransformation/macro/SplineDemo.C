@@ -23,8 +23,8 @@
 
 #endif
 
-const int Fdegree = 5;
-int nKnots = 4;
+const int32_t Fdegree = 5;
+int32_t nKnots = 4;
 
 static double Fcoeff[2 * (Fdegree + 1)];
 
@@ -32,7 +32,7 @@ void F(double u, double f[])
 {
   double uu = u * TMath::Pi() / (nKnots - 1);
   f[0] = 0; //Fcoeff[0]/2;
-  for (int i = 1; i <= Fdegree; i++) {
+  for (int32_t i = 1; i <= Fdegree; i++) {
     f[0] += Fcoeff[2 * i] * TMath::Cos(i * uu) + Fcoeff[2 * i + 1] * TMath::Sin(i * uu);
   }
 }
@@ -44,7 +44,7 @@ void F(float u, float f[])
   double t0=1;
   double t1 = uu;
   f[0] = 0;
-  for (int i = 1; i <= Fdegree*2; i++) {
+  for (int32_t i = 1; i <= Fdegree*2; i++) {
      double t = t = 2*uu*t1-t0;
      f[0] += Fcoeff[i]*t;
      t0 = t1;
@@ -105,10 +105,10 @@ bool askStep()
   return (!doAskSteps) ? 1 : ask();
 }
 
-int SplineDemo()
+int32_t SplineDemo()
 {
 
-  const int nAxiliaryPoints = 10;
+  const int32_t nAxiliaryPoints = 10;
 
   using namespace o2::gpu;
 
@@ -123,14 +123,14 @@ int SplineDemo()
   TH1F* histMinMaxBestFit = new TH1F("histMinMaxBestFit", "MinMax BestFit", 100, -1., 1.);
   TH1F* histMinMaxCheb = new TH1F("histMinMaxCheb", "MinMax Chebyshev", 100, -1., 1.);
 
-  for (int seed = 12;; seed++) {
+  for (int32_t seed = 12;; seed++) {
 
     //seed = gRandom->Integer(100000); // 605
 
     gRandom->SetSeed(seed);
     std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
 
-    for (int i = 0; i < 2 * (Fdegree + 1); i++) {
+    for (int32_t i = 0; i < 2 * (Fdegree + 1); i++) {
       Fcoeff[i] = gRandom->Uniform(-1, 1);
     }
 
@@ -142,11 +142,11 @@ int SplineDemo()
     helper.approximateFunctionClassic(splineClassic, 0, nKnots - 1, F);
 
     IrregularSpline1D splineLocal;
-    int nKnotsLocal = 2 * nKnots - 1;
+    int32_t nKnotsLocal = 2 * nKnots - 1;
     splineLocal.constructRegular(nKnotsLocal);
 
     std::unique_ptr<float[]> parametersLocal(new float[nKnotsLocal]);
-    for (int i = 0; i < nKnotsLocal; i++) {
+    for (int32_t i = 0; i < nKnotsLocal; i++) {
       parametersLocal[i] = Flocal(splineLocal.getKnot(i).u);
     }
     splineLocal.correctEdges(parametersLocal.get());
@@ -161,14 +161,14 @@ int SplineDemo()
 
     TNtuple* knots = new TNtuple("knots", "knots", "type:u:f");
 
-    for (int i = 0; i < nKnots; i++) {
+    for (int32_t i = 0; i < nKnots; i++) {
       double u = splineClassic.getKnot(i).u;
       double fs = splineClassic.interpolate(splineClassic.convUtoX(u));
       knots->Fill(1, u, fs);
     }
 
     helper.setSpline(spline, 1, nAxiliaryPoints);
-    for (int j = 0; j < helper.getNumberOfDataPoints(); j++) {
+    for (int32_t j = 0; j < helper.getNumberOfDataPoints(); j++) {
       const typename Spline1DHelperOld<float>::DataPoint& p = helper.getDataPoint(j);
       double f0;
       F(p.u, &f0);
@@ -184,7 +184,7 @@ int SplineDemo()
       knots->Fill(5, uCheb, fCheb);
     }
 
-    for (int i = 0; i < splineLocal.getNumberOfKnots(); i++) {
+    for (int32_t i = 0; i < splineLocal.getNumberOfKnots(); i++) {
       double u = splineLocal.getKnot(i).u;
       double fs = splineLocal.getSpline(parametersLocal.get(), u);
       knots->Fill(4, u * (nKnots - 1), fs);
@@ -193,7 +193,7 @@ int SplineDemo()
     TNtuple* nt = new TNtuple("nt", "nt", "u:f0:fBestFit:fClass:fLocal:fCheb");
 
     float stepS = 1.e-4;
-    int nSteps = (int)(1. / stepS + 1);
+    int32_t nSteps = (int32_t)(1. / stepS + 1);
 
     double statDfBestFit = 0;
     double statDfClass = 0;
@@ -207,7 +207,7 @@ int SplineDemo()
 
     double drawMax = -1.e20;
     double drawMin = 1.e20;
-    int statN = 0;
+    int32_t statN = 0;
     for (float s = 0; s < 1. + stepS; s += stepS) {
       double u = s * (nKnots - 1);
       double f0;

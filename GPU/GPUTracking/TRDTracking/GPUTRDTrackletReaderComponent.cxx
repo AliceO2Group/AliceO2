@@ -85,7 +85,7 @@ void GPUTRDTrackletReaderComponent::GetInputDataTypes(vector<AliHLTComponentData
 
 AliHLTComponentDataType GPUTRDTrackletReaderComponent::GetOutputDataType() { return kAliHLTMultipleDataType; }
 
-int GPUTRDTrackletReaderComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
+int32_t GPUTRDTrackletReaderComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
 {
   tgtList.clear();
   tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackletDataType);
@@ -93,7 +93,7 @@ int GPUTRDTrackletReaderComponent::GetOutputDataTypes(AliHLTComponentDataTypeLis
   return tgtList.size();
 }
 
-void GPUTRDTrackletReaderComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
+void GPUTRDTrackletReaderComponent::GetOutputDataSize(uint64_t& constBase, double& inputMultiplier)
 {
   constBase = 5000000;
   inputMultiplier = 0;
@@ -103,18 +103,18 @@ void GPUTRDTrackletReaderComponent::GetOCDBObjectDescription(TMap* const /*targe
 
 AliHLTComponent* GPUTRDTrackletReaderComponent::Spawn() { return new GPUTRDTrackletReaderComponent; }
 
-int GPUTRDTrackletReaderComponent::Reconfigure(const char* /*cdbEntry*/, const char* /*chainId*/) { return 0; }
+int32_t GPUTRDTrackletReaderComponent::Reconfigure(const char* /*cdbEntry*/, const char* /*chainId*/) { return 0; }
 
-int GPUTRDTrackletReaderComponent::ReadPreprocessorValues(const char* /*modules*/) { return 0; }
+int32_t GPUTRDTrackletReaderComponent::ReadPreprocessorValues(const char* /*modules*/) { return 0; }
 
-int GPUTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const char** argv)
+int32_t GPUTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const char** argv)
 {
 
   if (argc <= 0) {
     return 0;
   }
 
-  unsigned short iArg = 0;
+  uint16_t iArg = 0;
   TString argument(argv[iArg]);
 
   if (!argument.CompareTo("-debug")) {
@@ -130,10 +130,10 @@ int GPUTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const cha
   return 0;
 }
 
-int GPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv)
+int32_t GPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv)
 {
 
-  int iResult = 0;
+  int32_t iResult = 0;
 
   do {
 
@@ -182,7 +182,7 @@ int GPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv)
   }
 
   vector<const char*> remainingArgs;
-  for (int i = 0; i < argc; ++i) {
+  for (int32_t i = 0; i < argc; ++i) {
     remainingArgs.push_back(argv[i]);
   }
 
@@ -193,7 +193,7 @@ int GPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv)
   return iResult;
 }
 
-int GPUTRDTrackletReaderComponent::DoDeinit()
+int32_t GPUTRDTrackletReaderComponent::DoDeinit()
 {
 
   if (fRawReaderTrd) {
@@ -216,7 +216,7 @@ int GPUTRDTrackletReaderComponent::DoDeinit()
 
 // void GPUTRDTrackletReaderComponent::DbgLog(const char* prefix, const char* msg){
 //  AliHLTEventID_t eventNumber = fEventId;
-//  int runNumber = -1;
+//  int32_t runNumber = -1;
 //  HLTInfo("TRDGM %s-%s: [PRE] %s%s",
 //   (runNumber >= 0) ? Form("%06d", runNumber) : "XXXXXX",
 //   (eventNumber != fgkInvalidEventId) ? Form("%05llu", eventNumber) : "XXXXX",
@@ -227,7 +227,7 @@ void GPUTRDTrackletReaderComponent::DbgLog(const char* prefix, ...)
 {
 #ifdef __TRDHLTDEBUG
   AliHLTEventID_t eventNumber = fEventId;
-  int runNumber = -1;
+  int32_t runNumber = -1;
   printf("TRDHLTGM %s-X-%s: [PRE] %s", (runNumber >= 0) ? Form("%06d", runNumber) : "XXXXXX", (eventNumber != fgkInvalidEventId) ? Form("%05llu", eventNumber) : "XXXXX", (strlen(prefix) > 0) ? Form("<%s> ", prefix) : "");
 #endif
   va_list args;
@@ -238,21 +238,21 @@ void GPUTRDTrackletReaderComponent::DbgLog(const char* prefix, ...)
   va_end(args);
 }
 
-int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEventData, AliHLTComponentTriggerData& /*trigData*/)
+int32_t GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEventData, AliHLTComponentTriggerData& /*trigData*/)
 {
 
   fEventId = hltEventData.fEventID;
 
-  HLTInfo("### START DoEvent [event id: %llu, %d blocks, size: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+  HLTInfo("### START DoEvent [event id: %lu, %d blocks, size: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
 
   // event processing function
-  int iResult = 0;
+  int32_t iResult = 0;
 
   fTrackletArray->Clear();
   fRawReaderMem->ClearBuffers();
 
   if (!IsDataEvent()) { // process data events only
-    HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d] (skipped: no data event)", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+    HLTInfo("### END   DoEvent [event id: %lu, %d blocks, size: %d] (skipped: no data event)", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
     return iResult;
   }
 
@@ -262,12 +262,12 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
   { // read raw data
 
     TString infoStr("");
-    unsigned int sourceSectors = 0;
+    uint32_t sourceSectors = 0;
 
     // loop over all incoming TRD raw data blocks
     for (const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD); pBlock != nullptr && iResult >= 0; pBlock = GetNextInputBlock()) {
 
-      int trdSector = -1;
+      int32_t trdSector = -1;
 
       // determine sector from block specification
       for (unsigned pos = 0; pos < 8 * sizeof(AliHLTUInt32_t); pos++) {
@@ -287,7 +287,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
       // add data block to rawreader
       infoStr += Form("%02d, ", trdSector);
       sourceSectors |= pBlock->fSpecification;
-      if (!fRawReaderMem->AddBuffer((unsigned char*)pBlock->fPtr, pBlock->fSize, trdSector + 1024)) {
+      if (!fRawReaderMem->AddBuffer((uint8_t*)pBlock->fPtr, pBlock->fSize, trdSector + 1024)) {
         LogError("Could not add buffer of data block  %s, 0x%08x to rawreader", DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification);
         continue;
       }
@@ -301,10 +301,10 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
       fRawReaderTrd->ReadEvent();
 
       // read and process TRD tracklets
-      int nTracklets = fTrackletArray->GetEntriesFast();
+      int32_t nTracklets = fTrackletArray->GetEntriesFast();
 
       HLTInfo("There are %i tracklets in this event\n", nTracklets);
-      for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet) {
+      for (int32_t iTracklet = 0; iTracklet < nTracklets; ++iTracklet) {
         GPUTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
         outputTrkls.push_back(trkl);
       }
@@ -327,7 +327,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
         HLTFatal("No tracklet branch found in tracklet tree");
         return -EINVAL;
       }
-      int nTracklets = trklbranch->GetEntries();
+      int32_t nTracklets = trklbranch->GetEntries();
       HLTInfo("Input tree with %d TRD MCM tracklets", nTracklets);
 
       //-----------------------------------
@@ -366,8 +366,8 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
       AliTRDtrackletMCM* trkl = 0x0;
       trklbranch->SetAddress(&trkl);
 
-      for (int iTracklet = 0; iTracklet < nTracklets; iTracklet++) {
-        int nbytes = trklbranch->GetEntry(iTracklet, 1);
+      for (int32_t iTracklet = 0; iTracklet < nTracklets; iTracklet++) {
+        int32_t nbytes = trklbranch->GetEntry(iTracklet, 1);
         if (!trkl || nbytes <= 0) {
           HLTWarning("Can not read entry from tracklet branch");
           continue;
@@ -390,7 +390,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
     iResult = PushBack(&outputTrklsMC[0], outputTrklsMC.size() * sizeof(outputTrklsMC[0]), AliHLTTRDDefinitions::fgkTRDMCTrackletDataType, 0);
   }
 
-  HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d, output tracklets: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size());
+  HLTInfo("### END   DoEvent [event id: %lu, %d blocks, size: %d, output tracklets: %d]", hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size());
 
   return iResult;
 }

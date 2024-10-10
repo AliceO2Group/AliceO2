@@ -26,11 +26,11 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 #if defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)
-typedef unsigned int calink;
-typedef unsigned int cahit;
+typedef uint32_t calink;
+typedef uint32_t cahit;
 #else
-typedef unsigned int calink;
-typedef unsigned int cahit;
+typedef uint32_t calink;
+typedef uint32_t cahit;
 #endif
 struct cahit2 { cahit x, y; };
 }

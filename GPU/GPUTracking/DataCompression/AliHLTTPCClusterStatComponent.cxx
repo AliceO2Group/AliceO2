@@ -61,15 +61,15 @@ void AliHLTTPCClusterStatComponent::GetInputDataTypes(AliHLTComponentDataTypeLis
 
 AliHLTComponentDataType AliHLTTPCClusterStatComponent::GetOutputDataType() { return kAliHLTDataTypeHistogram | kAliHLTDataOriginOut; }
 
-void AliHLTTPCClusterStatComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
+void AliHLTTPCClusterStatComponent::GetOutputDataSize(uint64_t& constBase, double& inputMultiplier)
 {
   constBase = 2000000;
   inputMultiplier = 0.0;
 }
 
-int AliHLTTPCClusterStatComponent::ProcessOption(TString option, TString value)
+int32_t AliHLTTPCClusterStatComponent::ProcessOption(TString option, TString value)
 {
-  int iResult = 0;
+  int32_t iResult = 0;
 
   if (option.EqualTo("print-clusters")) {
     fPrintClusters = 1;
@@ -90,9 +90,9 @@ int AliHLTTPCClusterStatComponent::ProcessOption(TString option, TString value)
   return iResult;
 }
 
-int AliHLTTPCClusterStatComponent::DoInit(int argc, const char** argv)
+int32_t AliHLTTPCClusterStatComponent::DoInit(int argc, const char** argv)
 {
-  int iResult = 0;
+  int32_t iResult = 0;
 
   if (ProcessOptionString(GetComponentArgs()) < 0) {
     HLTFatal("wrong config string! %s", GetComponentArgs().c_str());
@@ -135,7 +135,7 @@ int AliHLTTPCClusterStatComponent::DoInit(int argc, const char** argv)
   return iResult;
 }
 
-int AliHLTTPCClusterStatComponent::DoDeinit()
+int32_t AliHLTTPCClusterStatComponent::DoDeinit()
 {
   if (fDumpClusters) {
     fclose(fp);
@@ -145,7 +145,7 @@ int AliHLTTPCClusterStatComponent::DoDeinit()
   return 0;
 }
 
-void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y, float z, float padtime[])
+void AliHLTTPCClusterStatComponent::TransformReverse(int32_t slice, int32_t row, float y, float z, float padtime[])
 {
   AliTPCcalibDB* calib = AliTPCcalibDB::Instance();
   AliTPCParam* param = calib->GetParameters();
@@ -156,8 +156,8 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
   float sign = slice < NSLICES / 2 ? 1 : -1;
   float zwidth;
 
-  int sector;
-  int sectorrow;
+  int32_t sector;
+  int32_t sectorrow;
   if (row < AliHLTTPCGeometry::GetNRowLow()) {
     sector = slice;
     sectorrow = row;
@@ -181,7 +181,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
   padtime[1] = (1024.f - time);
 }
 
-void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float pad, float time, float xyz[])
+void AliHLTTPCClusterStatComponent::TransformForward(int32_t slice, int32_t row, float pad, float time, float xyz[])
 {
   AliTPCcalibDB* calib = AliTPCcalibDB::Instance();
   AliTPCParam* param = calib->GetParameters();
@@ -192,8 +192,8 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
   float sign = slice < NSLICES / 2 ? 1 : -1;
   float zwidth;
 
-  int sector;
-  int sectorrow;
+  int32_t sector;
+  int32_t sectorrow;
   if (row < AliHLTTPCGeometry::GetNRowLow()) {
     sector = slice;
     sectorrow = row;
@@ -240,9 +240,9 @@ static bool AliHLTTPCClusterStat_sorthelper(const AliHLTTPCRawCluster& a, const 
   return (false);
 }
 
-int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* /*outputPtr*/, AliHLTUInt32_t& /*size*/, AliHLTComponentBlockDataList& /*outputBlocks*/)
+int32_t AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* /*outputPtr*/, AliHLTUInt32_t& /*size*/, AliHLTComponentBlockDataList& /*outputBlocks*/)
 {
-  int iResult = 0;
+  int32_t iResult = 0;
 
   if (!IsDataEvent()) {
     return iResult;
@@ -251,7 +251,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
   if (!fAggregate) {
     fTotal = fEdge = fSplitPad = fSplitTime = fSplitPadTime = fSplitPadOrTime = 0;
   }
-  int nBlocks = evtData.fBlockCnt;
+  int32_t nBlocks = evtData.fBlockCnt;
 
   AliHLTTPCRawClusterData* clustersArray[NSLICES][NPATCHES];
   AliHLTTPCClusterXYZData* clustersTransformedArray[NSLICES][NPATCHES];
@@ -272,25 +272,25 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
   const AliTPCRecoParam* rec = transform->GetCurrentRecoParam();
   transform->SetCurrentTimeStamp(GetTimeStamp());
 
-  for (int ndx = 0; ndx < nBlocks; ndx++) {
+  for (int32_t ndx = 0; ndx < nBlocks; ndx++) {
     const AliHLTComponentBlockData* iter = blocks + ndx;
 
     if (iter->fDataType == (AliHLTTPCDefinitions::fgkRawClustersDataType | kAliHLTDataOriginTPC)) {
-      int slice = AliHLTTPCDefinitions::GetMinSliceNr(iter->fSpecification);
-      int patch = AliHLTTPCDefinitions::GetMinPatchNr(iter->fSpecification);
+      int32_t slice = AliHLTTPCDefinitions::GetMinSliceNr(iter->fSpecification);
+      int32_t patch = AliHLTTPCDefinitions::GetMinPatchNr(iter->fSpecification);
 
       clustersArray[slice][patch] = (AliHLTTPCRawClusterData*)(iter->fPtr);
     }
 
     if (iter->fDataType == AliHLTTPCDefinitions::ClustersXYZDataType()) {
-      int slice = AliHLTTPCDefinitions::GetMinSliceNr(iter->fSpecification);
-      int patch = AliHLTTPCDefinitions::GetMinPatchNr(iter->fSpecification);
+      int32_t slice = AliHLTTPCDefinitions::GetMinSliceNr(iter->fSpecification);
+      int32_t patch = AliHLTTPCDefinitions::GetMinPatchNr(iter->fSpecification);
 
       clustersTransformedArray[slice][patch] = (AliHLTTPCClusterXYZData*)(iter->fPtr);
       if (clustersTransformedArray[slice][patch]->fCount) {
         clustersTrackIDArray[slice][patch] = new AliHLTTPCTrackHelperStruct[clustersTransformedArray[slice][patch]->fCount];
         memset(clustersTrackIDArray[slice][patch], 0, clustersTransformedArray[slice][patch]->fCount * sizeof(AliHLTTPCTrackHelperStruct));
-        for (int i = 0; i < clustersTransformedArray[slice][patch]->fCount; i++) {
+        for (int32_t i = 0; i < clustersTransformedArray[slice][patch]->fCount; i++) {
           clustersTrackIDArray[slice][patch][i].fID = -1;
         }
       }
@@ -311,7 +311,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
   double residualBarrelTrackY = 0, residualBarrelTrackZ = 0, residualExternalTrackY = 0, residualExternalTrackZ = 0, residualBacktransformPad = 0, residualBacktransformTime = 0;
   double residualBarrelTrackYabs = 0, residualBarrelTrackZabs = 0, residualExternalTrackYabs = 0, residualExternalTrackZabs = 0, residualBacktransformPadabs = 0, residualBacktransformTimeabs = 0;
   double residualFitTrackY = 0, residualFitTrackZ = 0, residualFitTrackYabs = 0, residualFitTrackZabs = 0, residualTrackRawPad = 0, residualTrackRawTime = 0, residualTrackRawPadabs = 0, residualTrackRawTimeabs = 0;
-  int nClusterTracks = 0, nClusters = 0, nClusterTracksRaw = 0;
+  int32_t nClusterTracks = 0, nClusters = 0, nClusterTracksRaw = 0;
 
   const AliHLTUInt8_t* pCurrent = reinterpret_cast<const AliHLTUInt8_t*>(tracks->fTracklets);
   if (fCompressionStudy) {
@@ -319,7 +319,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
     prop.SetMaxSinPhi(.999);
     prop.SetMaterialTPC();
     GPUTPCGMPolynomialField field;
-    int err = GPUTPCGMPolynomialFieldManager::GetPolynomialField(field);
+    int32_t err = GPUTPCGMPolynomialFieldManager::GetPolynomialField(field);
     if (err != 0) {
       HLTError("Can not initialize polynomial magnetic field");
       return -1;
@@ -339,15 +339,15 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
       GPUTPCGMTrackParam ftrack;
       float falpha;
 
-      int hitsUsed = 0;
+      int32_t hitsUsed = 0;
       float averageCharge = 0;
       float averageQMax = 0;
       AliHLTTPCTrackHelperStruct* hitIndexCache[1024];
-      for (int ip = 0; ip < track->fNPoints; ip++) {
-        int clusterID = track->fPointIDs[ip];
-        int slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
-        int patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
-        int index = AliHLTTPCGeometry::CluID2Index(clusterID);
+      for (int32_t ip = 0; ip < track->fNPoints; ip++) {
+        int32_t clusterID = track->fPointIDs[ip];
+        int32_t slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
+        int32_t patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
+        int32_t index = AliHLTTPCGeometry::CluID2Index(clusterID);
 
         if (clustersTrackIDArray[slice][patch][index].fID != -1) {
           HLTDebug("Already assigned hit %d of track %d, skipping", ip, i);
@@ -362,7 +362,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         AliHLTTPCRawCluster& cluster = clustersArray[slice][patch]->fClusters[index];
         AliHLTTPCClusterXYZ& clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];
 
-        int padrow = AliHLTTPCGeometry::GetFirstRow(patch) + cluster.GetPadRow();
+        int32_t padrow = AliHLTTPCGeometry::GetFirstRow(patch) + cluster.GetPadRow();
         float x = AliHLTTPCGeometry::Row2X(padrow);
         float y = 0.0f;
         float z = 0.0f;
@@ -392,7 +392,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         if (ip == 0) {
           ftrack.Par()[0] = xyz[1];
           ftrack.Par()[1] = xyz[2];
-          for (int k = 2; k < 5; k++) {
+          for (int32_t k = 2; k < 5; k++) {
             ftrack.Par()[k] = etrack.GetParameter()[k];
           }
           ftrack.SetX(xyz[0]);
@@ -466,7 +466,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         averageQMax += cluster.GetQMax();
 
         if (ip != 0) {
-          int rowType = padrow < 64 ? 0 : (padrow < 128 ? 2 : 1);
+          int32_t rowType = padrow < 64 ? 0 : (padrow < 128 ? 2 : 1);
           prop.Update(xyz[1], xyz[2], rowType, *mSliceParam, 0, 0, nullptr, false, slice > 18, -1.f, 0.f, 0.f);
         }
       }
@@ -474,19 +474,19 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         averageCharge /= hitsUsed;
         averageQMax /= hitsUsed;
       }
-      for (int ip = 0; ip < hitsUsed; ip++) {
+      for (int32_t ip = 0; ip < hitsUsed; ip++) {
         hitIndexCache[ip]->fAverageQMax = averageQMax;
         hitIndexCache[ip]->fAverageQTot = averageCharge;
       }
-      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(UInt_t);
+      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(uint32_t);
     }
   }
 
-  for (unsigned int is = 0; is < NSLICES; is++) {
-    for (unsigned int ip = 0; ip < NPATCHES; ip++) {
+  for (uint32_t is = 0; is < NSLICES; is++) {
+    for (uint32_t ip = 0; ip < NPATCHES; ip++) {
       AliHLTTPCRawClusterData* clusters = clustersArray[is][ip];
       AliHLTTPCClusterXYZData* clustersTransformed = clustersTransformedArray[is][ip];
-      int firstRow = AliHLTTPCGeometry::GetFirstRow(ip);
+      int32_t firstRow = AliHLTTPCGeometry::GetFirstRow(ip);
 
       if (clusters == nullptr) {
         HLTDebug("Clusters missing for slice %d patch %d\n", is, ip);
@@ -507,29 +507,29 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         std::sort(sortedClusters, sortedClusters + clusters->fCount, AliHLTTPCClusterStat_sorthelper);
       }
 
-      for (UInt_t iCluster = 0; iCluster < clusters->fCount; iCluster++) {
+      for (uint32_t iCluster = 0; iCluster < clusters->fCount; iCluster++) {
         AliHLTTPCRawCluster& cluster = clusters->fClusters[iCluster];
         AliHLTTPCClusterXYZ& clusterTransformed = clustersTransformed->fClusters[iCluster];
         static AliHLTTPCTrackHelperStruct tmp;
         AliHLTTPCTrackHelperStruct& clusterTrack = fCompressionStudy ? clustersTrackIDArray[is][ip][iCluster] : tmp;
 
         if (fCompressionStudy) {
-          int row = cluster.GetPadRow() + firstRow;
+          int32_t row = cluster.GetPadRow() + firstRow;
 
           float xyz[3];
           TransformForward(is, row, cluster.GetPad(), cluster.GetTime(), xyz);
 
           /*float xyzOrig[3], xyzLocGlob[3];
                     {
-                        int sector = AliHLTTPCGeometry::GetNRowLow() ? is : is + NSLICES;
-                        int sectorrow = AliHLTTPCGeometry::GetNRowLow() ? row : row - AliHLTTPCGeometry::GetNRowLow();
+                        int32_t sector = AliHLTTPCGeometry::GetNRowLow() ? is : is + NSLICES;
+                        int32_t sectorrow = AliHLTTPCGeometry::GetNRowLow() ? row : row - AliHLTTPCGeometry::GetNRowLow();
 
                         Double_t xx[] = {(double) sectorrow, cluster.GetPad(), cluster.GetTime()};
                         transform->Transform(xx, &sector, 0, 1);
 
                         Double_t yy[] = {(double) sectorrow, cluster.GetPad(), cluster.GetTime()};
                         transform->Local2RotatedGlobal(sector, yy);
-                        for (int k = 0; k < 3; k++)
+                        for (int32_t k = 0; k < 3; k++)
                         {
                             xyzOrig[k] = xx[k];
                             xyzLocGlob[k] = yy[k];
@@ -566,9 +566,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         AliHLTTPCRawCluster& cluster2 = fSort ? sortedClusters[iCluster] : cluster;
 
         if (fPrintClusters) {
-          HLTImportant("Event %d Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackId %d, ResPad %.2f ResTime %.2f AvgQTot %d AvgQMax %d", fEvent, is, ip, (int)cluster2.GetPadRow(), cluster2.GetPad(),
-                       cluster2.GetTime(), cluster2.GetSigmaPad2(), cluster2.GetSigmaTime2(), (int)cluster2.GetQMax(), (int)cluster2.GetCharge(), (int)cluster2.GetFlagSplitPad(), (int)cluster2.GetFlagSplitTime(), (int)cluster2.GetFlagEdge(), (int)clusterTrack.fID,
-                       clusterTrack.fResidualPad, clusterTrack.fResidualTime, (int)clusterTrack.fAverageQTot, (int)clusterTrack.fAverageQMax);
+          HLTImportant("Event %d Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackId %d, ResPad %.2f ResTime %.2f AvgQTot %d AvgQMax %d", fEvent, is, ip, (int32_t)cluster2.GetPadRow(), cluster2.GetPad(),
+                       cluster2.GetTime(), cluster2.GetSigmaPad2(), cluster2.GetSigmaTime2(), (int32_t)cluster2.GetQMax(), (int32_t)cluster2.GetCharge(), (int32_t)cluster2.GetFlagSplitPad(), (int32_t)cluster2.GetFlagSplitTime(), (int32_t)cluster2.GetFlagEdge(), (int32_t)clusterTrack.fID,
+                       clusterTrack.fResidualPad, clusterTrack.fResidualTime, (int32_t)clusterTrack.fAverageQTot, (int32_t)clusterTrack.fAverageQMax);
         }
 
         if (fCompressionStudy && clusterTrack.fID == -1) {
@@ -585,11 +585,11 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
     const AliHLTUInt8_t* pCurrent = reinterpret_cast<const AliHLTUInt8_t*>(tracks->fTracklets);
     for (unsigned i = 0; i < tracks->fCount; i++) {
       const AliHLTExternalTrackParam* track = reinterpret_cast<const AliHLTExternalTrackParam*>(pCurrent);
-      for (int ip = 0; ip < track->fNPoints; ip++) {
-        int clusterID = track->fPointIDs[ip];
-        int slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
-        int patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
-        int index = AliHLTTPCGeometry::CluID2Index(clusterID);
+      for (int32_t ip = 0; ip < track->fNPoints; ip++) {
+        int32_t clusterID = track->fPointIDs[ip];
+        int32_t slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
+        int32_t patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
+        int32_t index = AliHLTTPCGeometry::CluID2Index(clusterID);
 
         AliHLTTPCRawCluster& cluster = clustersArray[slice][patch]->fClusters[index];
         AliHLTTPCClusterXYZ& clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];
@@ -599,19 +599,19 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
           PrintDumpClustersScaled(slice, patch, cluster, clusterTransformed, clusterTrack);
         }
       }
-      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(UInt_t);
+      pCurrent += sizeof(AliHLTExternalTrackParam) + track->fNPoints * sizeof(uint32_t);
     }
   }
 
-  for (unsigned int is = 0; is < NSLICES; is++) {
-    for (unsigned int ip = 0; ip < NPATCHES; ip++) {
+  for (uint32_t is = 0; is < NSLICES; is++) {
+    for (uint32_t ip = 0; ip < NPATCHES; ip++) {
       if (clustersTrackIDArray[is][ip]) {
         delete[] clustersTrackIDArray[is][ip];
       }
     }
   }
 
-  int total = fTotal == 0 ? 1 : fTotal;
+  int32_t total = fTotal == 0 ? 1 : fTotal;
   fAssigned += nClusterTracks;
   HLTImportant("Total %d Assigned %d (%2.0f\%) SplitPad %d (%2.0f\%) SplitTime %d (%2.0f\%) SplitPadTime %d (%2.0f\%) SplitPadOrTime %d (%2.0f\%) Edge %d (%2.0f\%)", fTotal, fAssigned, (float)fAssigned / (float)total * 100.f, fSplitPad, (float)fSplitPad / (float)total * 100.f, fSplitTime,
                (float)fSplitTime / (float)total * 100.f, fSplitPadTime, (float)fSplitPadTime / (float)total * 100.f, fSplitPadOrTime, (float)fSplitPadOrTime / (float)total * 100.f, fEdge, (float)fEdge / (float)total * 100.f);
@@ -655,7 +655,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
   return iResult;
 }
 
-void AliHLTTPCClusterStatComponent::PrintDumpClustersScaled(int is, int ip, AliHLTTPCRawCluster& cluster, AliHLTTPCClusterXYZ& clusterTransformed, AliHLTTPCClusterStatComponent::AliHLTTPCTrackHelperStruct& clusterTrack)
+void AliHLTTPCClusterStatComponent::PrintDumpClustersScaled(int32_t is, int32_t ip, AliHLTTPCRawCluster& cluster, AliHLTTPCClusterXYZ& clusterTransformed, AliHLTTPCClusterStatComponent::AliHLTTPCTrackHelperStruct& clusterTrack)
 {
   AliHLTUInt64_t pad64 = 0;
   if (!isnan(cluster.GetPad())) {
@@ -691,28 +691,28 @@ void AliHLTTPCClusterStatComponent::PrintDumpClustersScaled(int is, int ip, AliH
   time64res = (AliHLTUInt64_t)round(clusterTrack.fResidualTime * AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kTime].fScale);
 
   if (fDumpClusters) {
-    int dumpVals[16] = {fEvent,
-                        (int)is,
-                        (int)ip,
-                        (int)cluster.GetPadRow(),
-                        (int)pad64,
-                        (int)time64,
-                        (int)sigmaPad64,
-                        (int)sigmaTime64,
-                        (int)cluster.GetQMax(),
-                        (int)cluster.GetCharge(),
-                        (int)(cluster.GetFlagEdge() * 4 + cluster.GetFlagSplitPad() * 2 + cluster.GetFlagSplitTime()),
-                        (int)clusterTrack.fID,
-                        (int)pad64res,
-                        (int)time64res,
-                        (int)clusterTrack.fAverageQTot,
-                        (int)clusterTrack.fAverageQMax};
-    fwrite(dumpVals, sizeof(int), 16, fp);
+    int32_t dumpVals[16] = {fEvent,
+                            (int32_t)is,
+                            (int32_t)ip,
+                            (int32_t)cluster.GetPadRow(),
+                            (int32_t)pad64,
+                            (int32_t)time64,
+                            (int32_t)sigmaPad64,
+                            (int32_t)sigmaTime64,
+                            (int32_t)cluster.GetQMax(),
+                            (int32_t)cluster.GetCharge(),
+                            (int32_t)(cluster.GetFlagEdge() * 4 + cluster.GetFlagSplitPad() * 2 + cluster.GetFlagSplitTime()),
+                            (int32_t)clusterTrack.fID,
+                            (int32_t)pad64res,
+                            (int32_t)time64res,
+                            (int32_t)clusterTrack.fAverageQTot,
+                            (int32_t)clusterTrack.fAverageQMax};
+    fwrite(dumpVals, sizeof(int32_t), 16, fp);
   }
 
   if (fPrintClustersScaled) {
-    HLTImportant("Event %d Slice %d, Patch %d, Row %d, Pad %d, Time %d, SPad %d, STime %d, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackID %d, PadRes %d, TimeRes %d AvgTot %d AvgMax %d", fEvent, is, ip, (int)cluster.GetPadRow(), (int)pad64, (int)time64, (int)sigmaPad64,
-                 (int)sigmaTime64, (int)cluster.GetQMax(), (int)cluster.GetCharge(), (int)cluster.GetFlagSplitPad(), (int)cluster.GetFlagSplitTime(), (int)cluster.GetFlagEdge(), (int)clusterTrack.fID, (int)pad64res, (int)time64res, (int)clusterTrack.fAverageQTot,
-                 (int)clusterTrack.fAverageQMax);
+    HLTImportant("Event %d Slice %d, Patch %d, Row %d, Pad %d, Time %d, SPad %d, STime %d, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackID %d, PadRes %d, TimeRes %d AvgTot %d AvgMax %d", fEvent, is, ip, (int32_t)cluster.GetPadRow(), (int32_t)pad64, (int32_t)time64, (int32_t)sigmaPad64,
+                 (int32_t)sigmaTime64, (int32_t)cluster.GetQMax(), (int32_t)cluster.GetCharge(), (int32_t)cluster.GetFlagSplitPad(), (int32_t)cluster.GetFlagSplitTime(), (int32_t)cluster.GetFlagEdge(), (int32_t)clusterTrack.fID, (int32_t)pad64res, (int32_t)time64res, (int32_t)clusterTrack.fAverageQTot,
+                 (int32_t)clusterTrack.fAverageQMax);
   }
 }
