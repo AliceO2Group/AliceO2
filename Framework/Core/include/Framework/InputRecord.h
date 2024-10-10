@@ -493,7 +493,7 @@ class InputRecord
     auto cacheEntry = cache.matcherToMetadataId.find(path);
     if (cacheEntry == cache.matcherToMetadataId.end()) {
       cache.matcherToMetadataId.insert(std::make_pair(path, id));
-      cache.idToMetadata[id] = extractCCDBHeaders(ref);
+      cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
       LOGP(info, "Caching CCDB metadata {}: {}", id.value, path);
       return cache.idToMetadata[id];
     }
@@ -506,9 +506,9 @@ class InputRecord
     // The id in the cache is different. Let's destroy the old cached entry
     // and create a new one.
     LOGP(info, "Replacing cached entry {} with {} for {}", oldId.value, id.value, path);
-    cache.idToObject[id] = extracCCDBMetadata(ref);
+    cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
     oldId.value = id.value;
-    return cache.idToObject[id];
+    return cache.idToMetadata[id];
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.

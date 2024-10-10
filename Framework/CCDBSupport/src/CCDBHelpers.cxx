@@ -198,6 +198,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
   auto sid = _o2_signpost_id_t{(int64_t)timingInfo.timeslice};
   O2_SIGNPOST_START(ccdb, sid, "populateCacheWith", "Starting to populate cache with CCDB objects");
   for (auto& route : helper->routes) {
+    int64_t timestampToUse = timestamp;
     O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Fetching object for route %{public}s", DataSpecUtils::describe(route.matcher).data());
     objCnt++;
     auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
@@ -212,8 +213,14 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     for (auto& meta : route.matcher.metadata) {
       if (meta.name == "ccdb-path") {
         path = meta.defaultValue.get<std::string>();
-      } else if (meta.name == "ccdb-run-dependent" && meta.defaultValue.get<bool>() == true) {
-        metadata["runNumber"] = dtc.runNumber;
+      } else if (meta.name == "ccdb-run-dependent" && meta.defaultValue.get<int>() > 0) {
+        if (meta.defaultValue.get<int>() == 1) {
+          metadata["runNumber"] = dtc.runNumber;
+        } else if (meta.defaultValue.get<int>() == 2) {
+          timestampToUse = std::stoi(dtc.runNumber);
+        } else {
+          LOGP(fatal, "Undefined run-dependent option {} for spec {}/{}/{}", meta.defaultValue.get<int>(), concrete.origin.as<std::string>(), concrete.description.as<std::string>(), int(concrete.subSpec));
+        }
       } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
         std::string key = meta.name.substr(ccdbMetadataPrefix.size());
         auto value = meta.defaultValue.get<std::string>();
@@ -232,7 +239,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       uint64_t cachePopulatedAt = url2uuid->second.cachePopulatedAt;
       // If timestamp is before the time the element was cached or after the claimed validity, we need to check validity, again
       // when online.
-      bool cacheExpired = (validUntil <= timestamp) || (timestamp <= cachePopulatedAt);
+      bool cacheExpired = (validUntil <= timestampToUse) || (timestamp < cachePopulatedAt);
       checkValidity = (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) && (isOnline || cacheExpired);
     } else {
       checkValidity = true; // never skip check if the cache is empty
@@ -242,10 +249,10 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
 
     const auto& api = helper->getAPI(path);
     if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
-      LOGP(detail, "Loading {} for timestamp {}", path, timestamp);
-      api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
+      LOGP(detail, "Loading {} for timestamp {}", path, timestampToUse);
+      api.loadFileToMemory(v, path, metadata, timestampToUse, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-        LOGP(fatal, "Unable to find object {}/{}", path, timestamp);
+        LOGP(fatal, "Unable to find object {}/{}", path, timestampToUse);
         // FIXME: I should send a dummy message.
         continue;
       }
@@ -256,7 +263,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       helper->mapURL2UUID[path].lastCheckedTF = timingInfo.tfCounter;
       if (etag.empty()) {
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
-        helper->mapURL2UUID[path].cachePopulatedAt = timestamp;
+        helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
@@ -269,7 +276,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       if (v.size()) { // but should be overridden by fresh object
         // somewhere here pruneFromCache should be called
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
-        helper->mapURL2UUID[path].cachePopulatedAt = timestamp;
+        helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;
         helper->mapURL2UUID[path].cacheValidUntil = headers["Cache-Valid-Until"].empty() ? 0 : std::stoul(headers["Cache-Valid-Until"]);
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
