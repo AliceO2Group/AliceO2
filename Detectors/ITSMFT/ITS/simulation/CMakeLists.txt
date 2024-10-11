@@ -13,6 +13,7 @@ o2_add_library(ITSSimulation
                SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
                        src/Detector.cxx src/V3Services.cxx src/V3Cage.cxx
                        src/DescriptorInnerBarrelITS2.cxx src/ITSDataSimulator.cxx
+                       src/ITSSimParam.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITSMFTSimulation ROOT::Physics
                                      $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Base> $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>)
 
@@ -24,7 +25,8 @@ o2_target_root_dictionary(ITSSimulation
                                   include/ITSSimulation/V3Cage.h
                                   include/ITSSimulation/V11Geometry.h
                                   include/ITSSimulation/V3Services.h
-                                  include/ITSSimulation/DescriptorInnerBarrelITS2.h)
+                                  include/ITSSimulation/DescriptorInnerBarrelITS2.h
+                                  include/ITSSimulation/ITSSimParam.h)
 
 o2_data_file(COPY data  DESTINATION Detectors/ITS/simulation)
 
