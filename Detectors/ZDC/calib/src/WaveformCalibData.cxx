@@ -188,6 +188,21 @@ int WaveformCalibData::saveDebugHistos(const std::string fn)
 }
 
 //______________________________________________________________________________
+int WaveformCalibData::dumpCalib(const std::string fn)
+{
+  TDirectory* cwd = gDirectory;
+  TFile* f = new TFile(fn.data(), "recreate");
+  if (f->IsZombie()) {
+    LOG(error) << "Cannot create file: " << fn;
+    return 1;
+  }
+  f->WriteObjectAny((void*)this,o2::zdc::WaveformCalibData::Class(),"WaveformCalibData");
+  f->Close();
+  cwd->cd();
+  return 0;
+}
+
+//______________________________________________________________________________
 void WaveformCalibData::clear()
 {
   mCTimeBeg = 0;

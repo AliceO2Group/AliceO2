@@ -36,7 +36,6 @@ namespace zdc
 void RecoReader::init(InitContext& ic)
 {
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("zdc-reco-infile"));
-  mWaveformEnable = ic.options().get<bool>("waveform-enable");
   mFile.reset(TFile::Open(filename.c_str()));
   if (!mFile->IsOpen()) {
     LOG(error) << "Cannot open the " << filename.c_str() << " file !";
@@ -62,23 +61,18 @@ void RecoReader::run(ProcessingContext& pc)
   mTree->SetBranchAddress("ZDCRecE", &EnergyPtr);
   mTree->SetBranchAddress("ZDCRecTDC", &TDCDataPtr);
   mTree->SetBranchAddress("ZDCRecInfo", &InfoPtr);
-  if(mWaveformEnable){
-    mTree->SetBranchAddress("ZDCWaveform", &WaveformPtr);
-  }
+  mTree->SetBranchAddress("ZDCWaveform", &WaveformDataPtr);
 
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
+  LOG(info) << "ZDCRecoReader pushed " << RecBC.size() << " b.c. " << Energy.size() << " Energies " << TDCData.size() << " TDCs " << Info.size() << " Infos "  << WaveformData.size() << " Waveform chunks";
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0}, RecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0}, Energy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0}, TDCData);
   pc.outputs().snapshot(Output{"ZDC", "INFO", 0}, Info);
-  if(mWaveformEnable){
-    LOG(info) << "ZDCRecoReader pushed " << RecBC.size() << " b.c. " << Energy.size() << " Energies " << TDCData.size() << " TDCs " << Info.size() << " Infos";
-    pc.outputs().snapshot(Output{"ZDC", "WAVE", 0}, Waveform);
-  }else{
-    LOG(info) << "ZDCRecoReader pushed " << RecBC.size() << " b.c. " << Energy.size() << " Energies " << TDCData.size() << " TDCs " << Info.size() << " Infos"  << Wave.size() << " Waveform chunks";
-  }
+  pc.outputs().snapshot(Output{"ZDC", "WAVE", 0}, WaveformData);
+
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -92,9 +86,8 @@ DataProcessorSpec getRecoReaderSpec()
   outputs.emplace_back("ZDC", "ENERGY", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "INFO", 0, Lifetime::Timeframe);
-  if(mWaveformEnable){
-    outputs.emplace_back("ZDC", "WAVE", 0, Lifetime::Timeframe);
-  }
+  outputs.emplace_back("ZDC", "WAVE", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "zdc-reco-reader",
     Inputs{},
@@ -102,7 +95,7 @@ DataProcessorSpec getRecoReaderSpec()
     AlgorithmSpec{adaptFromTask<RecoReader>()},
     Options{
       {"zdc-reco-infile", VariantType::String, "zdcreco.root", {"Name of the input file"}},
-      {"waveform-enable", VariantType::Bool, false, {"Read waveform data"}}
+      {"enable-waveform", VariantType::Bool, false, {"Read waveform data"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 

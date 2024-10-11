@@ -37,9 +37,11 @@ class WaveformCalibEPN
               const gsl::span<const o2::zdc::ZDCWaveform>& wave);
   int endOfRun();
   int saveDebugHistos(const std::string fn = "ZDCWaveformCalibEPN.root");
+  int dumpCalib(const std::string fn = "ZDCWaveformCalibEPNDump.root");
   void setConfig(const WaveformCalibConfig* param) { mConfig = param; };
   const WaveformCalibConfig* getConfig() const { return mConfig; };
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDumpCalib() { mDumpCalib = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   void setVerbosity(int val) { mVerbosity = val; }
   WaveformCalibData mData;
@@ -48,6 +50,7 @@ class WaveformCalibEPN
  private:
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
+  bool mDumpCalib = false;
   int32_t mNBin = 0;
   int32_t mVerbosity = DbgMinimal;
   const WaveformCalibConfig* mConfig = nullptr; /// Configuration of intercalibration

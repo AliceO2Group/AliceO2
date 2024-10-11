@@ -20,9 +20,10 @@ WaveformCalibConfig::WaveformCalibConfig()
     cutLow[isig] = -std::numeric_limits<float>::infinity();
     cutHigh[isig] = std::numeric_limits<float>::infinity();
   }
+  // Firmware aligns signals within one sample
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-    cutTimeLow[itdc] = -1.25;
-    cutTimeHigh[itdc] = 1.25;
+    cutTimeHigh[itdc] = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC;
+    cutTimeLow[itdc] = -cutTimeHigh[itdc];
   }
 }
 
