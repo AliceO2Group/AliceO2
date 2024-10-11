@@ -22,6 +22,7 @@
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DataFormatsParameters/GRPMagField.h"
+#include "DataFormatsParameters/AggregatedRunInfo.h"
 
 namespace o2::framework
 {
@@ -92,6 +93,7 @@ struct GRPGeomRequest {
                      Ideal,
                      Alignments };
 
+  bool askAggregateRunInfo = false;
   bool askGRPECS = false;
   bool askGRPLHCIF = false;
   bool askGRPMagField = false;
@@ -105,6 +107,7 @@ struct GRPGeomRequest {
 
   GRPGeomRequest() = delete;
   GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce = false, bool needPropD = false, std::string detMaskString = "all");
+  void requireAggregateRunInfo(std::vector<o2::framework::InputSpec>& inputs);
   void addInput(const o2::framework::InputSpec&& isp, std::vector<o2::framework::InputSpec>& inputs);
 };
 
@@ -121,14 +124,16 @@ class GRPGeomHelper
   }
   void setRequest(std::shared_ptr<GRPGeomRequest> req);
   bool finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
-  void checkUpdates(o2::framework::ProcessingContext& pc) const;
+  void checkUpdates(o2::framework::ProcessingContext& pc);
 
   auto getAlignment(o2::detectors::DetID det) const { return mAlignments[det]; }
   auto getMatLUT() const { return mMatLUT; }
   auto getGRPECS() const { return mGRPECS; }
   auto getGRPLHCIF() const { return mGRPLHCIF; }
   auto getGRPMagField() const { return mGRPMagField; }
-  auto getOrbitResetTimeMS() const { return mOrbitResetTimeMS; }
+  auto getOrbitResetTimeMS() const { return mOrbitResetTimeMUS / 1000; }
+  auto getOrbitResetTimeMUS() const { return mOrbitResetTimeMUS; }
+  const o2::parameters::AggregatedRunInfo& getAggregatedRunInfo() const { return mAggregatedRunInfo; }
   static int getNHBFPerTF();
 
  private:
@@ -141,7 +146,8 @@ class GRPGeomHelper
   const o2::parameters::GRPECSObject* mGRPECS = nullptr;
   const o2::parameters::GRPLHCIFData* mGRPLHCIF = nullptr;
   const o2::parameters::GRPMagField* mGRPMagField = nullptr;
-  long mOrbitResetTimeMS = 0; // orbit reset time in milliseconds
+  o2::parameters::AggregatedRunInfo mAggregatedRunInfo{};
+  long mOrbitResetTimeMUS = 0; // orbit reset time in microseconds
 };
 
 } // namespace base
