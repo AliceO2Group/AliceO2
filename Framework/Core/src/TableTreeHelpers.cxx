@@ -550,9 +550,17 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
   // Was affected by https://github.com/root-project/root/issues/8962
   // Re-enabling this seems to cut the number of IOPS in half
   tree->SetCacheSize(25000000);
-  tree->SetClusterPrefetch(true);
+  // tree->SetClusterPrefetch(true);
   for (auto& reader : mBranchReaders) {
     tree->AddBranchToCache(reader->branch());
+    if (strncmp(reader->branch()->GetName(), "fIndexArray", strlen("fIndexArray")) == 0) {
+      std::string sizeBranchName = reader->branch()->GetName();
+      sizeBranchName += "_size";
+      TBranch* sizeBranch = (TBranch*)tree->GetBranch(sizeBranchName.c_str());
+      if (sizeBranch) {
+        tree->AddBranchToCache(sizeBranch);
+      }
+    }
   }
   tree->StopCacheLearningPhase();
 }
