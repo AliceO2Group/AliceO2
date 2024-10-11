@@ -173,7 +173,6 @@ void Detector::addAlignableVolumes() const
 
 void Detector::fillParallelWorld() const
 {
-  LOG(warning) << "Parallel world is not filled for " << GetName();
 }
 
 int Detector::registerSensitiveVolumeAndGetVolID(TGeoVolume const* vol)
