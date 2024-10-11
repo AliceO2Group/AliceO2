@@ -309,7 +309,7 @@ bool GPUChainTracking::ValidateSettings()
       GPUError("Must use external output for double pipeline mode");
       return false;
     }
-    if (ProcessingSettings().tpcCompressionGatherMode == 1) {
+    if (GetProcessingSettings().tpcCompressionGatherMode == 1) {
       GPUError("Double pipeline incompatible to compression mode 1");
       return false;
     }
@@ -318,7 +318,11 @@ bool GPUChainTracking::ValidateSettings()
       return false;
     }
   }
-  if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && (ProcessingSettings().tpcCompressionGatherMode == 1 || ProcessingSettings().tpcCompressionGatherMode == 3)) {
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCDecompression) && GetProcessingSettings().tpcApplyCFCutsAtDecoding && !GetProcessingSettings().tpcUseOldCPUDecoding) {
+    GPUError("tpcApplyCFCutsAtDecoding currently requires tpcUseOldCPUDecoding");
+    return false;
+  }
+  if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && (GetProcessingSettings().tpcCompressionGatherMode == 1 || GetProcessingSettings().tpcCompressionGatherMode == 3)) {
     GPUError("Invalid tpcCompressionGatherMode for compression on CPU");
     return false;
   }
@@ -888,7 +892,7 @@ int32_t GPUChainTracking::RunChainFinalize()
     if (GetProcessingSettings().eventDisplay->getDisplayControl() == 2) {
       mDisplayRunning = false;
       GetProcessingSettings().eventDisplay->DisplayExit();
-      ProcessingSettings().eventDisplay = nullptr;
+      const_cast<GPUSettingsProcessing&>(GetProcessingSettings()).eventDisplay = nullptr; // TODO: fixme - eventDisplay should probably not be put into ProcessingSettings in the first place
       return (2);
     }
     GetProcessingSettings().eventDisplay->setDisplayControl(0);

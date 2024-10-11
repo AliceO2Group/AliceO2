@@ -285,6 +285,7 @@ AddOption(tpcSingleSector, int32_t, -1, "", 0, "Restrict TPC processing to a sin
 AddOption(tpcDownscaledEdx, uint8_t, 0, "", 0, "If != 0, downscale dEdx processing (if enabled) to x %")
 AddOption(tpcMaxAttachedClustersPerSectorRow, uint32_t, 51000, "", 0, "Maximum number of TPC attached clusters which can be decoded per SectorRow")
 AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
+AddOption(tpcApplyCFCutsAtDecoding, bool, false, "", 0, "Apply cluster cuts from clusterization during decoding of compressed clusters")
 AddOption(RTCcacheFolder, std::string, "./rtccache/", "", 0, "Folder in which the cache file is stored")
 AddOption(RTCprependCommand, std::string, "", "", 0, "Prepend RTC compilation commands by this string")
 AddOption(RTCoverrideArchitecture, std::string, "", "", 0, "Override arhcitecture part of RTC compilation command line")
