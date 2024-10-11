@@ -206,7 +206,7 @@ void GPUChainTracking::PrintOutputStat()
 {
   int32_t nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
   uint32_t nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : GetTPCMerger().NMaxClusters();
-  if (ProcessingSettings().createO2Output > 1) {
+  if (GetProcessingSettings().createO2Output > 1) {
     nTracks = mIOPtrs.nOutputTracksTPCO2;
     nAttachedClusters = mIOPtrs.nMergedTrackHits;
   } else {
@@ -244,7 +244,7 @@ void GPUChainTracking::PrintOutputStat()
     }
     snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
   }
-  GPUInfo("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total) - %s format)%s", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, ProcessingSettings().createO2Output > 1 ? "O2" : "GPU", trdText);
+  GPUInfo("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total) - %s format)%s", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, GetProcessingSettings().createO2Output > 1 ? "O2" : "GPU", trdText);
 }
 
 void GPUChainTracking::SanityCheck()

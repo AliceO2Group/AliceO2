@@ -59,31 +59,30 @@ class GPUChain
 
   const GPUParam& GetParam() const { return mRec->mHostConstantMem->param; }
   const GPUSettingsGRP& GetGRPSettings() const { return mRec->mGRPSettings; }
-  const GPUSettingsDeviceBackend& GetDeviceBackendSettings() const { return mRec->mDeviceBackendSettings; }
-  const GPUSettingsProcessing& GetProcessingSettings() const { return mRec->mProcessingSettings; }
   const GPUCalibObjectsConst& calib() const { return processors()->calibObjects; }
   GPUReconstruction* rec() { return mRec; }
   const GPUReconstruction* rec() const { return mRec; }
   inline const GPUConstantMem* GetProcessors() { return mRec->processors(); }
 
+  // Make functions from GPUReconstruction*** available
   GPUReconstruction::RecoStepField GetRecoSteps() const { return mRec->GetRecoSteps(); }
   GPUReconstruction::RecoStepField GetRecoStepsGPU() const { return mRec->GetRecoStepsGPU(); }
   GPUReconstruction::InOutTypeField GetRecoStepsInputs() const { return mRec->GetRecoStepsInputs(); }
   GPUReconstruction::InOutTypeField GetRecoStepsOutputs() const { return mRec->GetRecoStepsOutputs(); }
+  inline const GPUSettingsDeviceBackend& GetDeviceBackendSettings() const { return mRec->mDeviceBackendSettings; }
+  inline const GPUSettingsProcessing& GetProcessingSettings() const { return mRec->mProcessingSettings; }
 
  protected:
   GPUReconstructionCPU* mRec;
   GPUChain(GPUReconstruction* rec) : mRec((GPUReconstructionCPU*)rec) {}
 
   int32_t GetThread();
-
   // Make functions from GPUReconstruction*** available
   inline GPUConstantMem* processors() { return mRec->processors(); }
   inline GPUConstantMem* processorsShadow() { return mRec->mProcessorsShadow; }
   inline GPUConstantMem* processorsDevice() { return mRec->mDeviceConstantMem; }
   inline GPUParam& param() { return mRec->param(); }
   inline const GPUConstantMem* processors() const { return mRec->processors(); }
-  inline GPUSettingsProcessing& ProcessingSettings() { return mRec->mProcessingSettings; }
   inline void SynchronizeStream(int32_t stream) { mRec->SynchronizeStream(stream); }
   inline void SynchronizeEvents(deviceEvent* evList, int32_t nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
   inline void SynchronizeEventAndRelease(deviceEvent& ev, bool doGPU = true)
