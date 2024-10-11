@@ -11,21 +11,20 @@
 
 #include "Framework/DataProcessingStats.h"
 #include "Framework/RuntimeError.h"
-#include "Framework/ServiceRegistryRef.h"
-#include "Framework/DeviceState.h"
 #include "Framework/Logger.h"
 #include <uv.h>
-#include <iostream>
 #include <atomic>
-#include <utility>
+#include <thread>
 
 namespace o2::framework
 {
 
 DataProcessingStats::DataProcessingStats(std::function<void(int64_t& base, int64_t& offset)> getRealtimeBase_,
-                                         std::function<int64_t(int64_t base, int64_t offset)> getTimestamp_)
+                                         std::function<int64_t(int64_t base, int64_t offset)> getTimestamp_,
+                                         DefaultConfig config_)
   : getTimestamp(getTimestamp_),
-    getRealtimeBase(getRealtimeBase_)
+    getRealtimeBase(getRealtimeBase_),
+    config(config_)
 {
   getRealtimeBase(realTimeBase, initialTimeOffset);
 }
@@ -269,6 +268,9 @@ void DataProcessingStats::registerMetric(MetricSpec const& spec)
   metricSpecs[spec.metricId] = spec;
   metricsNames[spec.metricId] = spec.name;
   metrics[spec.metricId] = spec.defaultValue;
+  if (metricSpecs[spec.metricId].scope == Scope::Online) {
+    metricSpecs[spec.metricId].minPublishInterval = std::max(metricSpecs[spec.metricId].minPublishInterval, config.minOnlinePublishInterval);
+  }
   int64_t currentTime = getTimestamp(realTimeBase, initialTimeOffset);
   updateInfos[spec.metricId] = UpdateInfo{currentTime, currentTime};
   updated[spec.metricId] = spec.sendInitialValue;
