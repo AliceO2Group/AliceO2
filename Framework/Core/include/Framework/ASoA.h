@@ -2000,17 +2000,15 @@ template <typename R, typename T>
 using ColumnGetterFunction = R (*)(const T&);
 
 template <typename T, typename R>
-concept dynamic_with_common_getter = is_dynamic_v<T> && 
-  // lambda is callable without additional free args
-  framework::pack_size(typename T::bindings_t{}) == framework::pack_size(typename T::callable_t::args{}) &&
-  requires (T t)
-{
-  { t.get() } -> std::convertible_to<R>;
-};
+concept dynamic_with_common_getter = is_dynamic_v<T> &&
+                                     // lambda is callable without additional free args
+                                     framework::pack_size(typename T::bindings_t{}) == framework::pack_size(typename T::callable_t::args{}) &&
+                                     requires(T t) {
+                                       { t.get() } -> std::convertible_to<R>;
+                                     };
 
 template <typename T, typename R>
-concept persistent_with_common_getter = is_persistent_v<T> && requires (T t)
-{
+concept persistent_with_common_getter = is_persistent_v<T> && requires(T t) {
   { t.get() } -> std::convertible_to<R>;
 };
 
@@ -2020,21 +2018,21 @@ using with_common_getter_t = typename std::conditional<persistent_with_common_ge
 template <typename R, typename T, persistent_with_common_getter<R> C>
 ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
 {
-    if (std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
-      found = true;
-    }
+  if (std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
+    found = true;
+  }
 
-    return &getColumnValue<R, T, C>;
+  return &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, dynamic_with_common_getter<R> C>
 ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
 {
-    if (std::strcmp(&columnLabel[1], C::columnLabel()) == 0 || std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
-        found = true;
-    }
+  if (std::strcmp(&columnLabel[1], C::columnLabel()) == 0 || std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
+    found = true;
+  }
 
-    return &getColumnValue<R, T, C>;
+  return &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, typename... Cs>
@@ -2801,7 +2799,7 @@ DECLARE_SOA_ITERATOR_METADATA();
     }                                                                                                                      \
                                                                                                                            \
     using bindings_t = typename o2::framework::pack<Bindings...>;                                                          \
-    using bindings_types_t = typename o2::framework::pack<typename Bindings::type...>;                                              \
+    using bindings_types_t = typename o2::framework::pack<typename Bindings::type...>;                                     \
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
