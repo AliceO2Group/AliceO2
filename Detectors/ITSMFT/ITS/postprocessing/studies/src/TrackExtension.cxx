@@ -43,7 +43,9 @@ using o2::steer::MCKinematicsReader;
 class TrackExtensionStudy : public Task
 {
   struct ParticleInfo {
-    dataformats::MCEventHeader event;
+    float eventX;
+    float eventY;
+    float eventZ;
     int pdg;
     float pt;
     float eta;
@@ -273,7 +275,9 @@ void TrackExtensionStudy::process()
       mParticleInfo[iSource][iEvent].resize(mKineReader->getTracks(iSource, iEvent).size()); // tracks
       for (auto iPart{0}; iPart < mKineReader->getTracks(iEvent).size(); ++iPart) {
         const auto& part = mKineReader->getTracks(iSource, iEvent)[iPart];
-        mParticleInfo[iSource][iEvent][iPart].event = mcEvent;
+        mParticleInfo[iSource][iEvent][iPart].eventX = mcEvent.GetX();
+        mParticleInfo[iSource][iEvent][iPart].eventY = mcEvent.GetY();
+        mParticleInfo[iSource][iEvent][iPart].eventZ = mcEvent.GetZ();
         mParticleInfo[iSource][iEvent][iPart].pdg = part.GetPdgCode();
         mParticleInfo[iSource][iEvent][iPart].pt = part.GetPt();
         mParticleInfo[iSource][iEvent][iPart].phi = part.GetPhi();
@@ -407,7 +411,7 @@ void TrackExtensionStudy::process()
     // impact parameter
     while (isGood && std::abs(part.pdg) == 211) {
       auto trkC = part.track;
-      collision.setXYZ(part.vx, part.vy, part.vz);
+      collision.setXYZ(part.eventX, part.eventY, part.eventZ);
       if (!o2::base::Propagator::Instance()->propagateToDCA(collision, trkC, o2::base::Propagator::Instance()->getNominalBz(), 2.0, o2::base::Propagator::MatCorrType::USEMatCorrTGeo, &impactParameter)) {
         break;
       }
