@@ -16,9 +16,12 @@
 #include "TColor.h"
 #include "TCanvas.h"
 #include "TH1F.h"
+#include "TF1.h"
 #include "TEfficiency.h"
+#include "TMarker.h"
 #include "TLegend.h"
 #include "TTree.h"
+#include "TLatex.h"
 
 #include <memory>
 #include <array>
@@ -282,21 +285,208 @@ void PostTrackExtension(const char* fileName = "TrackExtensionStudy.root")
     auto t = fIn->Get<TTree>("tree");
     auto c = new TCanvas("cKG", "", 800, 600);
     c->Divide(3, 2);
-    auto p = c->cd(1);
-    p->SetGrid();
-    auto h = p->DrawFrame(-.5, 0., .5, 30.);
-    h->GetXaxis()->SetTitle("#it{p}_{T,TRK}-#it{p}_{T,MC}");
-    h->GetYaxis()->SetTitle("n. counts");
-    t->Draw("trk.getPt()-mcTrk.getPt()>>hPtNo(100,-.5,.5)", "isGood&&!isExtended", "HIST;SAME");
-    auto htemp = (TH1F*)p->GetPrimitive("hPtNo");
-    htemp->Scale(1.0 / htemp->Integral("width"));
-    htemp->SetLineColor(kRed);
-    t->Draw("trk.getPt()-mcTrk.getPt()>>hPtYes(100,-.5,.5)", "isGood&&isExtended", "HIST;SAME");
-    htemp = (TH1F*)p->GetPrimitive("hPtYes");
-    htemp->Scale(1.0 / htemp->Integral("width"));
-    htemp->SetLineColor(kBlue);
-    p->Modified();
-    p->Update();
+    {
+      auto p = c->cd(1);
+      p->SetGrid();
+      auto h = p->DrawFrame(-.6, 0., .6, 9.);
+      h->GetXaxis()->SetTitle("#frac{Q^{2}}{p_{T,TRK}}-#frac{Q^{2}}{p_{T,MC}}");
+      h->GetYaxis()->SetTitle("n. counts");
+      t->Draw("trk.getQ2Pt()-mcTrk.getQ2Pt()>>hPtNo(100,-.6,.6)", "isGood&&!isExtended", "HIST;SAME");
+      auto hNo = (TH1F*)p->GetPrimitive("hPtNo");
+      hNo->Scale(1.0 / hNo->Integral("width"));
+      hNo->SetLineColor(kRed);
+      auto fitNo = new TF1("fitNo", "gaus", -0.04, 0.04);
+      hNo->Fit(fitNo, "QR");
+      fitNo->SetLineColor(kRed);
+      fitNo->Draw("SAME");
+      auto textNo = new TLatex(-0.55, 8.2, Form("#mu = %.3f, #sigma = %.3f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textNo->SetTextColor(kRed);
+      textNo->SetNDC(false);
+      textNo->SetTextSize(0.05);
+      textNo->Draw();
+
+      t->Draw("trk.getQ2Pt()-mcTrk.getQ2Pt()>>hPtYes(100,-.6,.6)", "isGood&&isExtended", "HIST;SAME");
+      auto hYes = (TH1F*)p->GetPrimitive("hPtYes");
+      hYes->Scale(1.0 / hYes->Integral("width"));
+      hYes->SetLineColor(kBlue);
+      auto fitYes = new TF1("fitYes", "gaus", -0.04, 0.04);
+      hYes->Fit(fitYes, "QR");
+      fitYes->SetLineColor(kBlue);
+      fitYes->Draw("SAME");
+      auto textYes = new TLatex(-0.55, 7, Form("#mu = %.4f, #sigma = %.4f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textYes->SetTextColor(kBlue);
+      textYes->SetNDC(false);
+      textYes->SetTextSize(0.05);
+      textYes->Draw();
+
+      p->Modified();
+      p->Update();
+    }
+    {
+      auto p = c->cd(2);
+      p->SetGrid();
+      auto h = p->DrawFrame(-3, 0., 3, 2.);
+      h->GetXaxis()->SetTitle("Y_{TRK}-Y_{MC}");
+      h->GetYaxis()->SetTitle("n. counts");
+      t->Draw("trk.getY()-mcTrk.getY()>>hYNo(100,-3,3)", "isGood&&!isExtended", "HIST;SAME");
+      auto hNo = (TH1F*)p->GetPrimitive("hYNo");
+      hNo->Scale(1.0 / hNo->Integral("width"));
+      hNo->SetLineColor(kRed);
+      auto fitNo = new TF1("fitNo", "gaus", -0.5, 0.5);
+      hNo->Fit(fitNo, "QR");
+      fitNo->SetLineColor(kRed);
+      fitNo->Draw("SAME");
+      auto textNo = new TLatex(-2, 1.7, Form("#mu = %.3f, #sigma = %.3f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textNo->SetTextColor(kRed);
+      textNo->SetNDC(false);
+      textNo->SetTextSize(0.05);
+      textNo->Draw();
+
+      t->Draw("trk.getY()-mcTrk.getY()>>hYYes(100,-3,3)", "isGood&&isExtended", "HIST;SAME");
+      auto hYes = (TH1F*)p->GetPrimitive("hYYes");
+      hYes->Scale(1.0 / hYes->Integral("width"));
+      hYes->SetLineColor(kBlue);
+      auto fitYes = new TF1("fitYes", "gaus", -0.5, 0.5);
+      hYes->Fit(fitYes, "QR");
+      fitYes->SetLineColor(kBlue);
+      fitYes->Draw("SAME");
+      auto textYes = new TLatex(-2, 1.5, Form("#mu = %.4f, #sigma = %.4f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textYes->SetTextColor(kBlue);
+      textYes->SetNDC(false);
+      textYes->SetTextSize(0.05);
+      textYes->Draw();
+
+      p->Modified();
+      p->Update();
+    }
+    {
+      auto p = c->cd(3);
+      p->SetGrid();
+      auto h = p->DrawFrame(-2, 0., 2, 4.2);
+      h->GetXaxis()->SetTitle("Z_{TRK}-Z_{MC}");
+      h->GetYaxis()->SetTitle("n. counts");
+      t->Draw("trk.getZ()-mcTrk.getZ()>>hZNo(100,-2,2)", "isGood&&!isExtended", "HIST;SAME");
+      auto hNo = (TH1F*)p->GetPrimitive("hZNo");
+      hNo->Scale(1.0 / hNo->Integral("width"));
+      hNo->SetLineColor(kRed);
+      auto fitNo = new TF1("fitNo", "gaus", -0.2, 0.2);
+      hNo->Fit(fitNo, "QR");
+      fitNo->SetLineColor(kRed);
+      fitNo->Draw("SAME");
+      auto textNo = new TLatex(-1.7, 3.8, Form("#mu = %.3f, #sigma = %.3f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textNo->SetTextColor(kRed);
+      textNo->SetNDC(false);
+      textNo->SetTextSize(0.05);
+      textNo->Draw();
+
+      t->Draw("trk.getZ()-mcTrk.getZ()>>hZYes(100,-2,2)", "isGood&&isExtended", "HIST;SAME");
+      auto hYes = (TH1F*)p->GetPrimitive("hZYes");
+      hYes->Scale(1.0 / hYes->Integral("width"));
+      hYes->SetLineColor(kBlue);
+      auto fitYes = new TF1("fitYes", "gaus", -0.2, 0.2);
+      hYes->Fit(fitYes, "QR");
+      fitYes->SetLineColor(kBlue);
+      fitYes->Draw("SAME");
+      auto textYes = new TLatex(-1.7, 3.5, Form("#mu = %.4f, #sigma = %.4f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textYes->SetTextColor(kBlue);
+      textYes->SetNDC(false);
+      textYes->SetTextSize(0.05);
+      textYes->Draw();
+
+      p->Modified();
+      p->Update();
+    }
+    {
+      auto p = c->cd(4);
+      p->SetGrid();
+      auto h = p->DrawFrame(-0.02, 0., 0.02, 370.);
+      h->GetXaxis()->SetTitle("TGL_{TRK}-TGL_{MC}");
+      h->GetYaxis()->SetTitle("n. counts");
+      t->Draw("trk.getTgl()-mcTrk.getTgl()>>hTglNo(100,-0.02,0.02)", "isGood&&!isExtended", "HIST;SAME");
+      auto hNo = (TH1F*)p->GetPrimitive("hTglNo");
+      hNo->Scale(1.0 / hNo->Integral("width"));
+      hNo->SetLineColor(kRed);
+      auto fitNo = new TF1("fitNo", "gaus", -0.003, 0.003);
+      hNo->Fit(fitNo, "QR");
+      fitNo->SetLineColor(kRed);
+      fitNo->Draw("SAME");
+      auto textNo = new TLatex(-0.018, 330, Form("#mu = %.3f, #sigma = %.3f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textNo->SetTextColor(kRed);
+      textNo->SetNDC(false);
+      textNo->SetTextSize(0.05);
+      textNo->Draw();
+
+      t->Draw("trk.getTgl()-mcTrk.getTgl()>>hTglYes(100,-0.02,0.02)", "isGood&&isExtended", "HIST;SAME");
+      auto hYes = (TH1F*)p->GetPrimitive("hTglYes");
+      hYes->Scale(1.0 / hYes->Integral("width"));
+      hYes->SetLineColor(kBlue);
+      auto fitYes = new TF1("fitYes", "gaus", -0.003, 0.003);
+      hYes->Fit(fitYes, "QR");
+      fitYes->SetLineColor(kBlue);
+      fitYes->Draw("SAME");
+      auto textYes = new TLatex(-0.018, 310, Form("#mu = %.6f, #sigma = %.6f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textYes->SetTextColor(kBlue);
+      textYes->SetNDC(false);
+      textYes->SetTextSize(0.05);
+      textYes->Draw();
+
+      p->Modified();
+      p->Update();
+    }
+    {
+      auto p = c->cd(5);
+      p->SetGrid();
+      auto h = p->DrawFrame(-0.08, 0., 0.08, 80.);
+      h->GetXaxis()->SetTitle("SNP_{TRK}-SNP_{MC}");
+      h->GetYaxis()->SetTitle("n. counts");
+      t->Draw("trk.getSnp()-mcTrk.getSnp()>>hSnpNo(100,-0.08,0.08)", "isGood&&!isExtended", "HIST;SAME");
+      auto hNo = (TH1F*)p->GetPrimitive("hSnpNo");
+      hNo->Scale(1.0 / hNo->Integral("width"));
+      hNo->SetLineColor(kRed);
+      auto fitNo = new TF1("fitNo", "gaus", -0.03, 0.03);
+      hNo->Fit(fitNo, "QR");
+      fitNo->SetLineColor(kRed);
+      fitNo->Draw("SAME");
+      auto textNo = new TLatex(-0.07, 72, Form("#mu = %.3f, #sigma = %.3f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textNo->SetTextColor(kRed);
+      textNo->SetNDC(false);
+      textNo->SetTextSize(0.05);
+      textNo->Draw();
+
+      t->Draw("trk.getSnp()-mcTrk.getSnp()>>hSnpYes(100,-0.08,0.08)", "isGood&&isExtended", "HIST;SAME");
+      auto hYes = (TH1F*)p->GetPrimitive("hSnpYes");
+      hYes->Scale(1.0 / hYes->Integral("width"));
+      hYes->SetLineColor(kBlue);
+      auto fitYes = new TF1("fitYes", "gaus", -0.03, 0.03);
+      hYes->Fit(fitYes, "QR");
+      fitYes->SetLineColor(kBlue);
+      fitYes->Draw("SAME");
+      auto textYes = new TLatex(-0.07, 66, Form("#mu = %.6f, #sigma = %.6f", fitNo->GetParameter(1), fitNo->GetParameter(2)));
+      textYes->SetTextColor(kBlue);
+      textYes->SetNDC(false);
+      textYes->SetTextSize(0.05);
+      textYes->Draw();
+
+      p->Modified();
+      p->Update();
+    }
+    {
+      auto p = c->cd(6);
+      auto legend = new TLegend(0.2, 0.2, 0.8, 0.8);
+      legend->SetTextSize(0.06);
+      legend->SetLineWidth(3);
+      legend->SetHeader("GOOD tracks", "C");
+      auto mBlue = new TMarker();
+      mBlue->SetMarkerColor(kBlue);
+      mBlue->SetMarkerSize(4);
+      legend->AddEntry(mBlue, "extended", "p");
+      auto mRed = new TMarker();
+      mRed->SetMarkerColor(kRed);
+      mRed->SetMarkerSize(4);
+      legend->AddEntry(mRed, "normal", "p");
+      legend->SetLineColor(kRed);
+      legend->Draw();
+    }
     c->SaveAs("trkExt_kinematics.pdf");
   }
 }

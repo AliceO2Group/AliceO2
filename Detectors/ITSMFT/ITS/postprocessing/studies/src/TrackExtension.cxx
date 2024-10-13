@@ -20,8 +20,11 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSStudies/Helpers.h"
 #include "ITSStudies/TrackExtension.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "Steer/MCKinematicsReader.h"
+#include "ReconstructionDataFormats/Vertex.h"
+#include "ReconstructionDataFormats/DCA.h"
 
 #include <bitset>
 
@@ -40,7 +43,7 @@ using o2::steer::MCKinematicsReader;
 class TrackExtensionStudy : public Task
 {
   struct ParticleInfo {
-    int event;
+    dataformats::MCEventHeader event;
     int pdg;
     float pt;
     float eta;
@@ -117,6 +120,9 @@ class TrackExtensionStudy : public Task
   std::unique_ptr<TH1D> mEExtensionMixNum, mEExtensionMixPurityNum, mEExtensionMixFakeNum;
   std::array<std::unique_ptr<TH1D>, mBitPatternsBefore.size()> mEExtensionPatternGoodNum, mEExtensionPatternFakeNum;
   std::array<std::array<std::unique_ptr<TH1D>, mBitPatternsAfter.size()>, mBitPatternsBefore.size()> mEExtensionPatternIndGoodNum, mEExtensionPatternIndFakeNum;
+  // DCA
+  std::unique_ptr<TH2D> mDCAxyVsPtPionsNormal, mDCAxyVsPtPionsExtended;
+  std::unique_ptr<TH2D> mDCAzVsPtPionsNormal, mDCAzVsPtPionsExtended;
 
   template <class T, typename... C, typename... F>
   std::unique_ptr<T> createHistogram(C... n, F... b)
@@ -227,6 +233,12 @@ void TrackExtensionStudy::init(InitContext& ic)
     }
   }
 
+  /// DCA
+  mDCAxyVsPtPionsNormal = createHistogram<TH2D>("hDCAxyVsPtResNormal", "DCA_{#it{xy}} NORMAL Pions;#it{p}_{T} (GeV/#it{c});#sigma(DCA_{#it{xy}}) (#mum)", effHistBins, xbins.data(), 1000, -500, 500);
+  mDCAxyVsPtPionsExtended = createHistogram<TH2D>("hDCAxyVsPtResExtended", "DCA_{#it{xy}} EXTENDED Pions;#it{p}_{T} (GeV/#it{c});#sigma(DCA_{#it{xy}}) (#mum)", effHistBins, xbins.data(), 1000, -500, 500);
+  mDCAzVsPtPionsNormal = createHistogram<TH2D>("hDCAzVsPtResNormal", "DCA_{#it{z}} NORMAL Pions;#it{p}_{T} (GeV/#it{c});#sigma(DCA_{#it{z}}) (#mum)", effHistBins, xbins.data(), 1000, -500, 500);
+  mDCAzVsPtPionsExtended = createHistogram<TH2D>("hDCAzVsPtResExtended", "DCA_{#it{z}} EXTENDED Pions;#it{p}_{T} (GeV/#it{c});#sigma(DCA_{#it{z}}) (#mum)", effHistBins, xbins.data(), 1000, -500, 500);
+
   mStream = std::make_unique<utils::TreeStreamRedirector>(mOutFileName.c_str(), "RECREATE");
 }
 
@@ -257,10 +269,11 @@ void TrackExtensionStudy::process()
   for (int iSource{0}; iSource < mKineReader->getNSources(); ++iSource) {
     mParticleInfo[iSource].resize(mKineReader->getNEvents(iSource)); // events
     for (int iEvent{0}; iEvent < mKineReader->getNEvents(iSource); ++iEvent) {
+      const auto& mcEvent = mKineReader->getMCEventHeader(iSource, iEvent);
       mParticleInfo[iSource][iEvent].resize(mKineReader->getTracks(iSource, iEvent).size()); // tracks
       for (auto iPart{0}; iPart < mKineReader->getTracks(iEvent).size(); ++iPart) {
-        auto& part = mKineReader->getTracks(iSource, iEvent)[iPart];
-        mParticleInfo[iSource][iEvent][iPart].event = iEvent;
+        const auto& part = mKineReader->getTracks(iSource, iEvent)[iPart];
+        mParticleInfo[iSource][iEvent][iPart].event = mcEvent;
         mParticleInfo[iSource][iEvent][iPart].pdg = part.GetPdgCode();
         mParticleInfo[iSource][iEvent][iPart].pt = part.GetPt();
         mParticleInfo[iSource][iEvent][iPart].phi = part.GetPhi();
@@ -336,6 +349,8 @@ void TrackExtensionStudy::process()
   LOGP(info, "\t- Total number of good: {} ({:.2f} %)", good, good * 100. / mTracks.size());
   LOGP(info, "\t- Total number of extensions: {} ({:.2f} %)", extended, extended * 100. / mTracks.size());
 
+  o2::dataformats::VertexBase collision;
+  o2::dataformats::DCA impactParameter;
   LOGP(info, "** Filling histograms ... ");
   for (auto iTrack{0}; iTrack < mTracks.size(); ++iTrack) {
     auto& lab = mTracksMCLabels[iTrack];
@@ -386,6 +401,26 @@ void TrackExtensionStudy::process()
                  << "isGood=" << isGood
                  << "isExtended=" << extPattern.any()
                  << "\n";
+      break;
+    }
+
+    // impact parameter
+    while (isGood && std::abs(part.pdg) == 211) {
+      auto trkC = part.track;
+      collision.setXYZ(part.vx, part.vy, part.vz);
+      if (!o2::base::Propagator::Instance()->propagateToDCA(collision, trkC, o2::base::Propagator::Instance()->getNominalBz(), 2.0, o2::base::Propagator::MatCorrType::USEMatCorrTGeo, &impactParameter)) {
+        break;
+      }
+
+      auto dcaXY = impactParameter.getY() * 1e4;
+      auto dcaZ = impactParameter.getZ() * 1e4;
+      if (!extPattern.any()) {
+        mDCAxyVsPtPionsNormal->Fill(part.pt, dcaXY);
+        mDCAzVsPtPionsNormal->Fill(part.pt, dcaZ);
+      } else {
+        mDCAxyVsPtPionsExtended->Fill(part.pt, dcaXY);
+        mDCAzVsPtPionsExtended->Fill(part.pt, dcaZ);
+      }
       break;
     }
 
