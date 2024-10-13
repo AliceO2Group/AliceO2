@@ -141,7 +141,7 @@ void TrackExtensionStudy::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mWithTree = ic.options().get<bool>("with-tree");
 
-  constexpr size_t effHistBins = 100;
+  constexpr size_t effHistBins = 40;
   constexpr float effPtCutLow = 0.01;
   constexpr float effPtCutHigh = 10.;
   auto xbins = helpers::makeLogBinning(effHistBins, effPtCutLow, effPtCutHigh);
