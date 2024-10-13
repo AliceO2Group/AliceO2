@@ -28,6 +28,7 @@ DECLARE_SOA_COLUMN_FULL(X, x, float, "x");
 DECLARE_SOA_COLUMN_FULL(Y, y, float, "y");
 DECLARE_SOA_COLUMN_FULL(Z, z, float, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
+DECLARE_SOA_DYNAMIC_COLUMN(SumFreeArgs, sumFreeArgs, [](float x, float y, float freeArg) { return x + y + freeArg; });
 } // namespace test
 
 DECLARE_SOA_TABLE(TestTable, "AOD", "TESTTBL", test::X, test::Y, test::Z, test::Sum<test::X, test::Y>);
@@ -358,7 +359,8 @@ static void BM_ASoADynamicColumnCallGetGetterByLabel(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X, test::Y, test::Sum<test::X, test::Y>>;
+  // SumFreeArgs presence checks if dynamic columns get() is handled correctly during compilation
+  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X, test::Y, test::Sum<test::X, test::Y>, test::SumFreeArgs<test::X, test::Y>>;
 
   Test tests{table};
   for (auto _ : state) {

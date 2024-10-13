@@ -28,6 +28,7 @@
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
+#include <concepts>
 #include <gsl/span>
 #include <limits>
 
@@ -1998,40 +1999,51 @@ R getColumnValue(const T& rowIterator)
 template <typename R, typename T>
 using ColumnGetterFunction = R (*)(const T&);
 
-template <typename R, typename T, typename C>
+template <typename T, typename R>
+concept dynamic_with_common_getter = is_dynamic_v<T> && 
+  // lambda is callable without additional free args
+  framework::pack_size(typename T::bindings_t{}) == framework::pack_size(typename T::callable_t::args{}) &&
+  requires (T t)
+{
+  { t.get() } -> std::convertible_to<R>;
+};
+
+template <typename T, typename R>
+concept persistent_with_common_getter = is_persistent_v<T> && requires (T t)
+{
+  { t.get() } -> std::convertible_to<R>;
+};
+
+template <typename T, typename R>
+using with_common_getter_t = typename std::conditional<persistent_with_common_getter<T, R> || dynamic_with_common_getter<T, R>, std::true_type, std::false_type>::type;
+
+template <typename R, typename T, persistent_with_common_getter<R> C>
 ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
 {
-  if (found) {
-    return nullptr;
-  }
-
-  if constexpr (std::is_arithmetic_v<typename C::type> && std::is_convertible_v<typename C::type, R>) {
-    if constexpr (o2::soa::is_dynamic_v<C>) {
-      if constexpr (o2::framework::pack_size(typename C::bindings_t{}) == o2::framework::pack_size(typename C::callable_t::args{})) {
-        if (std::string_view(&columnLabel[1]) == std::string_view(C::columnLabel()) || columnLabel == std::string_view(C::columnLabel())) {
-          found = true;
-          return &getColumnValue<R, T, C>;
-        }
-      }
-    } else if constexpr (o2::soa::is_persistent_v<C> && !o2::soa::is_index_column_v<C>) {
-      if (columnLabel == std::string_view(C::columnLabel())) {
-        found = true;
-        return &getColumnValue<R, T, C>;
-      }
+    if (std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
+      found = true;
     }
-  }
 
-  return nullptr;
+    return &getColumnValue<R, T, C>;
+}
+
+template <typename R, typename T, dynamic_with_common_getter<R> C>
+ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
+{
+    if (std::strcmp(&columnLabel[1], C::columnLabel()) == 0 || std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
+        found = true;
+    }
+
+    return &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, typename... Cs>
 ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, const std::string_view& columnLabel)
 {
-  std::string_view labelView(columnLabel);
   bool found = false;
   ColumnGetterFunction<R, T> func;
 
-  (void)((func = createGetterPtr<R, T, Cs>(labelView, found), found) || ...);
+  (void)((func = createGetterPtr<R, T, Cs>(columnLabel, found), found) || ...);
 
   if (!found) {
     throw std::runtime_error("Getter for provided columnLabel not found!");
@@ -2043,7 +2055,9 @@ ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, co
 template <typename R, typename T>
 ColumnGetterFunction<R, typename T::iterator> getColumnGetterByLabel(const std::string_view& columnLabel)
 {
-  return getColumnGetterByLabel<R, typename T::iterator>(typename T::columns{}, columnLabel);
+  using TypesWithCommonGetter = o2::framework::selected_pack_multicondition<with_common_getter_t, framework::pack<R>, typename T::columns>;
+
+  return getColumnGetterByLabel<R, typename T::iterator>(TypesWithCommonGetter{}, columnLabel);
 }
 } // namespace row_helpers
 } // namespace o2::soa
@@ -2787,6 +2801,7 @@ DECLARE_SOA_ITERATOR_METADATA();
     }                                                                                                                      \
                                                                                                                            \
     using bindings_t = typename o2::framework::pack<Bindings...>;                                                          \
+    using bindings_types_t = typename o2::framework::pack<typename Bindings::type...>;                                              \
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
