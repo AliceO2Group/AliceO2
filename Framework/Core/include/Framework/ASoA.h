@@ -2013,9 +2013,6 @@ concept persistent_with_common_getter = is_persistent_v<T> && requires(T t) {
   { t.get() } -> std::convertible_to<R>;
 };
 
-template <typename T, typename R>
-using with_common_getter_t = typename std::conditional<persistent_with_common_getter<T, R> || dynamic_with_common_getter<T, R>, std::true_type, std::false_type>::type;
-
 template <typename R, typename T, persistent_with_common_getter<R> C>
 ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
 {
@@ -2025,7 +2022,7 @@ ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
     return nullptr;
   }
 
-  return (std::strncmp(columnLabel.data(), C::columnLabel(), n)) ? nullptr : &getColumnValue<R, T, C>;
+  return (std::strcmp(columnLabel.data(), C::columnLabel())) ? nullptr : &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, dynamic_with_common_getter<R> C>
@@ -2037,7 +2034,7 @@ ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
     return nullptr;
   }
 
-  return ((std::strncmp(&columnLabel[1], C::columnLabel(), n - 1) && std::strncmp(columnLabel.data(), C::columnLabel(), n))) ? nullptr : &getColumnValue<R, T, C>;
+  return ((std::strcmp(&columnLabel[1], C::columnLabel()) && std::strcmp(columnLabel.data(), C::columnLabel()))) ? nullptr : &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, typename... Cs>
@@ -2053,6 +2050,9 @@ ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, co
 
   return func;
 }
+
+template <typename T, typename R>
+using with_common_getter_t = typename std::conditional<persistent_with_common_getter<T, R> || dynamic_with_common_getter<T, R>, std::true_type, std::false_type>::type;
 
 template <typename R, typename T>
 ColumnGetterFunction<R, typename T::iterator> getColumnGetterByLabel(const std::string_view& columnLabel)
