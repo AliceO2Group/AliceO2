@@ -458,8 +458,9 @@ int DigitizerTRU::GetTRUIndexFromSTUIndex(Int_t id, Int_t detector)
 //______________________________________________________________________
 int DigitizerTRU::GetChannelForMaskRun2(int mask, int bitnumber, bool onethirdsm)
 {
-  if (onethirdsm)
+  if (onethirdsm) {
     return mask * 16 + bitnumber;
+  }
   const int kChannelMap[6][16] = {{8, 9, 10, 11, 20, 21, 22, 23, 32, 33, 34, 35, 44, 45, 46, 47},    // Channels in mask0
                                   {56, 57, 58, 59, 68, 69, 70, 71, 80, 81, 82, 83, 92, 93, 94, 95},  // Channels in mask1
                                   {4, 5, 6, 7, 16, 17, 18, 19, 28, 29, 30, 31, 40, 41, 42, 43},      // Channels in mask2
