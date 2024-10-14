@@ -93,7 +93,7 @@ void* DataRefUtils::decodeCCDB(DataRef const& ref, std::type_info const& tinfo)
       !std::strncmp(buff + dh->payloadSize - sizeof(FlatHeaderAnnot), FlatHeaderAnnot, sizeof(FlatHeaderAnnot))) {
     headerSize = *reinterpret_cast<const int*>(buff + dh->payloadSize - Offset);
   }
-  if (headerSize <= 0) {
+  if (headerSize < 0) {
     LOGP(fatal, "Anomalous flattened header size {} extracted", headerSize);
   }
   TMemFile memFile("name", const_cast<char*>(ref.payload), dh->payloadSize - headerSize, "READ");
@@ -119,16 +119,21 @@ std::map<std::string, std::string> DataRefUtils::extractCCDBHeaders(DataRef cons
   constexpr char FlatHeaderAnnot[] = "$HEADER$";
   constexpr int Offset = sizeof(int) + sizeof(FlatHeaderAnnot);
   int headerSize = 0, ss0 = 0;
+  std::map<std::string, std::string> res;
   if (dh->payloadSize >= Offset && !std::strncmp(buff + dh->payloadSize - sizeof(FlatHeaderAnnot), FlatHeaderAnnot, sizeof(FlatHeaderAnnot))) {
     headerSize = *reinterpret_cast<const int*>(buff + dh->payloadSize - Offset);
+  } else { // header was not added
+    LOGP(warn, "CCDB headers were not added to condition object blob, returning dummy header map");
+    return res;
   }
-  if (headerSize <= 0) {
+
+  if (headerSize < 0) {
     LOGP(fatal, "Anomalous flattened header size {} extracted", headerSize);
   }
+
   buff += dh->payloadSize - headerSize; // jump to the start of flattened header
   headerSize -= Offset;
   const char* str0 = &buff[ss0++];
-  std::map<std::string, std::string> res;
   while (ss0 < headerSize) {
     if (buff[ss0++] == 0) {
       if (!str0) {
