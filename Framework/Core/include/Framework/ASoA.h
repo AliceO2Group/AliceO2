@@ -29,6 +29,7 @@
 #include <cassert>
 #include <fmt/format.h>
 #include <concepts>
+#include <cstring>
 #include <gsl/span>
 #include <limits>
 
@@ -2016,35 +2017,38 @@ template <typename T, typename R>
 using with_common_getter_t = typename std::conditional<persistent_with_common_getter<T, R> || dynamic_with_common_getter<T, R>, std::true_type, std::false_type>::type;
 
 template <typename R, typename T, persistent_with_common_getter<R> C>
-ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
+ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
 {
-  if (std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
-    found = true;
+  const size_t n = columnLabel.size();
+
+  if(n == 0 || n != strlen(C::columnLabel())) {
+    return nullptr;
   }
 
-  return &getColumnValue<R, T, C>;
+  return (std::strncmp(columnLabel.data(), C::columnLabel(), n)) ? nullptr : &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, dynamic_with_common_getter<R> C>
-ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
+ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
 {
-  if (std::strcmp(&columnLabel[1], C::columnLabel()) == 0 || std::strcmp(columnLabel.data(), C::columnLabel()) == 0) {
-    found = true;
+  const size_t n = columnLabel.size();
+
+  if(n == 0 || n != strlen(C::columnLabel())) {
+    return nullptr;
   }
 
-  return &getColumnValue<R, T, C>;
+  return ((std::strncmp(&columnLabel[1], C::columnLabel(), n-1) && std::strncmp(columnLabel.data(), C::columnLabel(), n))) ? nullptr : &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, typename... Cs>
 ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, const std::string_view& columnLabel)
 {
-  bool found = false;
   ColumnGetterFunction<R, T> func;
 
-  (void)((func = createGetterPtr<R, T, Cs>(columnLabel, found), found) || ...);
+  (void)((func = createGetterPtr<R, T, Cs>(columnLabel), func) || ...);
 
-  if (!found) {
-    throw std::runtime_error("Getter for provided columnLabel not found!");
+  if (!func) {
+    throw framework::runtime_error("Getter for provided columnLabel not found!");
   }
 
   return func;
