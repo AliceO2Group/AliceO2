@@ -2799,7 +2799,6 @@ DECLARE_SOA_ITERATOR_METADATA();
     }                                                                                                                      \
                                                                                                                            \
     using bindings_t = typename o2::framework::pack<Bindings...>;                                                          \
-    using bindings_types_t = typename o2::framework::pack<typename Bindings::type...>;                                     \
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
