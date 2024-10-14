@@ -23,9 +23,9 @@ struct CCDBMetadata {
 };
 
 ConfigParamSpec ccdbPathSpec(std::string const& path);
-ConfigParamSpec ccdbRunDependent(bool defaultValue = true);
+ConfigParamSpec ccdbRunDependent(int defaultValue = 1); // <1: not run-dependent, 1: run-dependent object with usual timestamp, 2: run-dependent object with runNumber used instead of timestamp
 
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata = {}, int qrate = 0);
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, int runDependent, std::vector<CCDBMetadata> metadata = {}, int qrate = 0);
 /// Helper to create an InputSpec which will read from a CCDB
 /// Notice that those input specs have some convetions for their metadata:
 ///

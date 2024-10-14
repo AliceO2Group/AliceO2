@@ -22,23 +22,27 @@
 namespace o2::parameters
 {
 
+class GRPECSObject;
+
 /// Composite struct where one may collect important global properties of data "runs"
 /// aggregated from various sources (GRPECS, RunInformation CCDB entries, etc.).
 /// Also offers the authoritative algorithms to collect these information for easy reuse
 /// across various algorithms (anchoredMC, analysis, ...)
 struct AggregatedRunInfo {
-  int runNumber;       // run number
-  int64_t sor;         // best known timestamp for the start of run
-  int64_t eor;         // best known timestamp for end of run
-  int64_t orbitsPerTF; // number of orbits per TF
-  int64_t orbitReset;  // timestamp of orbit reset before run
-  int64_t orbitSOR;    // orbit when run starts after orbit reset
-  int64_t orbitEOR;    // orbit when run ends after orbit reset
+  int runNumber = 0;       // run number
+  int64_t sor = 0;         // best known timestamp for the start of run
+  int64_t eor = 0;         // best known timestamp for end of run
+  int64_t orbitsPerTF = 0; // number of orbits per TF
+  int64_t orbitReset = 0;  // timestamp of orbit reset before run
+  int64_t orbitSOR = 0;    // orbit when run starts after orbit reset
+  int64_t orbitEOR = 0;    // orbit when run ends after orbit reset
 
   // we may have pointers to actual data source objects GRPECS, ...
+  const o2::parameters::GRPECSObject* grpECS = nullptr; // pointer to GRPECSobject (fetched during struct building)
 
   // fills and returns AggregatedRunInfo for a given run number.
   static AggregatedRunInfo buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber);
+  static AggregatedRunInfo buildAggregatedRunInfo(int runnumber, long sorMS, long eorMS, long orbitResetMUS, const o2::parameters::GRPECSObject* grpecs, const std::vector<Long64_t>* ctfFirstRunOrbitVec);
 };
 
 } // namespace o2::parameters

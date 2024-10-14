@@ -11,6 +11,7 @@
 
 #include "MCHSimulation/Digitizer.h"
 
+#include "DetectorsRaw/HBFUtils.h"
 #include "MCHSimulation/DigitizerParam.h"
 
 namespace o2::mch
@@ -56,11 +57,14 @@ size_t Digitizer::digitize(std::vector<ROFRecord>& rofs,
     nPileup += d.second->digitize(irDigitsAndLabels);
   }
 
-  // fill the external containers
+  // fill the external containers, skipping digits produced before the beginning of the TF
+  auto firstTFOrbit = o2::raw::HBFUtils::Instance().getFirstSampledTFIR().orbit;
   for (const auto& [ir, digitsAndLabels] : irDigitsAndLabels) {
-    rofs.emplace_back(ROFRecord(ir, digits.size(), digitsAndLabels.first.size()));
-    digits.insert(digits.end(), digitsAndLabels.first.begin(), digitsAndLabels.first.end());
-    labels.mergeAtBack(digitsAndLabels.second);
+    if (ir.orbit >= firstTFOrbit) {
+      rofs.emplace_back(ROFRecord(ir, digits.size(), digitsAndLabels.first.size()));
+      digits.insert(digits.end(), digitsAndLabels.first.begin(), digitsAndLabels.first.end());
+      labels.mergeAtBack(digitsAndLabels.second);
+    }
   }
 
   return nPileup;

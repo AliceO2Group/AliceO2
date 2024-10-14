@@ -194,7 +194,7 @@ class CCDBManagerInstance
   /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
   std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true);
   static std::pair<int64_t, int64_t> getRunDuration(o2::ccdb::CcdbApi const& api, int runnumber, bool fatal = true);
-
+  static std::pair<int64_t, int64_t> getRunDuration(const MD& headers);
   std::string getSummaryString() const;
 
   size_t getFetchedSize() const { return mFetchedSize; }

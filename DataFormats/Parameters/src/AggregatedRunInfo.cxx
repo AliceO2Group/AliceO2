@@ -41,46 +41,43 @@ o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(o2::
   std::map<std::string, std::string> metadata;
   metadata["runNumber"] = Form("%d", runnumber);
   auto grpecs = ccdb.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", run_mid_timestamp, metadata);
+  bool oldFatalState = ccdb.getFatalWhenNull();
+  ccdb.setFatalWhenNull(false);
+  auto ctp_first_run_orbit = ccdb.getForTimeStamp<std::vector<Long64_t>>("CTP/Calib/FirstRunOrbit", run_mid_timestamp);
+  ccdb.setFatalWhenNull(oldFatalState);
+  return buildAggregatedRunInfo(runnumber, sor, eor, tsOrbitReset, grpecs, ctp_first_run_orbit);
+}
+
+o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(int runnumber, long sorMS, long eorMS, long orbitResetMUS, const o2::parameters::GRPECSObject* grpecs, const std::vector<Long64_t>* ctfFirstRunOrbitVec)
+{
   auto nOrbitsPerTF = grpecs->getNHBFPerTF();
-
-  // calculate SOR orbit
-  int64_t orbitSOR = (sor * 1000 - tsOrbitReset) / o2::constants::lhc::LHCOrbitMUS;
-  int64_t orbitEOR = (eor * 1000 - tsOrbitReset) / o2::constants::lhc::LHCOrbitMUS;
-
+  // calculate SOR/EOR orbits
+  int64_t orbitSOR = (sorMS * 1000 - orbitResetMUS) / o2::constants::lhc::LHCOrbitMUS;
+  int64_t orbitEOR = (eorMS * 1000 - orbitResetMUS) / o2::constants::lhc::LHCOrbitMUS;
   // adjust to the nearest TF edge to satisfy condition (orbitSOR % nOrbitsPerTF == 0)
   orbitSOR = (orbitSOR / nOrbitsPerTF + 1) * nOrbitsPerTF; // +1 to choose the safe boundary ... towards run middle
   orbitEOR = orbitEOR / nOrbitsPerTF * nOrbitsPerTF;
-
-  // fetch SOR directly from CTP entry on CCDB
-  bool oldFatalState = ccdb.getFatalWhenNull();
-  ccdb.setFatalWhenNull(false);
-  auto ctp_first_run_orbit = ccdb.getForTimeStamp<std::vector<int64_t>>("CTP/Calib/FirstRunOrbit", run_mid_timestamp);
-  ccdb.setFatalWhenNull(oldFatalState);
-  if (ctp_first_run_orbit && ctp_first_run_orbit->size() >= 3) {
-    // if we have CTP first run orbit available, we should use it
-
-    // int64_t creation_time = (*ctp_first_run_orbit)[0];
-    int64_t ctp_run_number = (*ctp_first_run_orbit)[1];
-    int64_t ctp_orbitSOR = (*ctp_first_run_orbit)[2];
-
-    if (ctp_run_number != runnumber) {
-      LOG(error) << "AggregatedRunInfo: run number inconsistency found (asked: " << runnumber << " vs CTP found: " << ctp_run_number << ")";
-    }
-
-    // overwrite orbitSOR
-    if (ctp_orbitSOR != orbitSOR) {
-      LOG(warn) << "The calculated orbitSOR " << orbitSOR << " differs from CTP orbitSOR " << ctp_orbitSOR;
-      // reasons for this is different unit of time storage in RunInformation (ms) and orbitReset (us), etc.
-
-      // so we need to adjust the SOR timings to be consistent
-      auto sor_new = (int64_t)((tsOrbitReset + ctp_orbitSOR * o2::constants::lhc::LHCOrbitMUS) / 1000.);
-      if (sor_new != sor) {
-        LOG(warn) << "Adjusting SOR from " << sor << " to " << sor_new;
-        sor = sor_new;
+  if (ctfFirstRunOrbitVec && ctfFirstRunOrbitVec->size() >= 3) { // if we have CTP first run orbit available, we should use it
+    int64_t creation_timeIGNORED = (*ctfFirstRunOrbitVec)[0];    // do not use CTP start of run time!
+    int64_t ctp_run_number = (*ctfFirstRunOrbitVec)[1];
+    int64_t ctp_orbitSOR = (*ctfFirstRunOrbitVec)[2];
+    if (creation_timeIGNORED == -1 && ctp_run_number == -1 && ctp_orbitSOR == -1) {
+      LOGP(warn, "Default dummy CTP/Calib/FirstRunOrbit was provide, ignoring");
+    } else if (ctp_run_number == runnumber) { // overwrite orbitSOR
+      if (ctp_orbitSOR != orbitSOR) {
+        LOGP(warn, "The calculated orbitSOR {} differs from CTP orbitSOR {}", orbitSOR, ctp_orbitSOR);
+        // reasons for this is different unit of time storage in RunInformation (ms) and orbitReset (us), etc.
+        // so we need to adjust the SOR timings to be consistent
+        auto sor_new = (int64_t)((orbitResetMUS + ctp_orbitSOR * o2::constants::lhc::LHCOrbitMUS) / 1000.);
+        if (sor_new != sorMS) {
+          LOGP(warn, "Adjusting SOR from {} to {}", sorMS, sor_new);
+          sorMS = sor_new;
+        }
       }
+      orbitSOR = ctp_orbitSOR;
+    } else {
+      LOGP(error, "AggregatedRunInfo: run number inconsistency found (asked: {} vs CTP found: {}, ignoring", runnumber, ctp_run_number);
     }
-    orbitSOR = ctp_orbitSOR;
   }
-
-  return AggregatedRunInfo{runnumber, sor, eor, nOrbitsPerTF, tsOrbitReset, orbitSOR, orbitEOR};
+  return AggregatedRunInfo{runnumber, sorMS, eorMS, nOrbitsPerTF, orbitResetMUS, orbitSOR, orbitEOR, grpecs};
 }

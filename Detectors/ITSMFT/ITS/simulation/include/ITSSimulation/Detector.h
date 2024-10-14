@@ -159,6 +159,9 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Add alignable top volumes
   void addAlignableVolumes() const override;
 
+  /// Add ITS chip volumes to parallel world geometry
+  void fillParallelWorld() const override;
+
   /// Add alignable Layer volumes
   /// \param lr layer number
   /// \param parent path of the parent volume

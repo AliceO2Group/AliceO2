@@ -103,6 +103,7 @@ class Pdg(Enum):
     kDPlus = 411
     kDS = 431
     kDSBar = -431
+    kDSStar = 433
     kDS1 = 10433
     kDS2Star = 435
     kDStar = 413
