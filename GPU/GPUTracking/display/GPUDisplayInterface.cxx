@@ -19,6 +19,7 @@
 #include <dlfcn.h>
 #include <mutex>
 #include <tuple>
+#include <stdexcept>
 
 using namespace GPUCA_NAMESPACE::gpu;
 
