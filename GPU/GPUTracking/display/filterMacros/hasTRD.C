@@ -6,7 +6,7 @@ void gpuDisplayTrackFilter(std::vector<bool>* filter, const GPUTrackingInOutPoin
   if (!ioPtrs->tpcLinkTRD) {
     return;
   }
-  for (unsigned int i = 0; i < filter->size(); i++) {
+  for (uint32_t i = 0; i < filter->size(); i++) {
     (*filter)[i] = ioPtrs->tpcLinkTRD[i] != -1;
   }
 }

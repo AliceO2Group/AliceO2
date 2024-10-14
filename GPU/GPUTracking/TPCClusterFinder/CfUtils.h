@@ -32,38 +32,38 @@ class CfUtils
     return (pos.pad() < 2 || pos.pad() >= padsPerRow - 2);
   }
 
-  static GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
+  static GPUdi() bool innerAboveThreshold(uint8_t aboveThreshold, uint16_t outerIdx)
   {
     return aboveThreshold & (1 << cfconsts::OuterToInner[outerIdx]);
   }
 
-  static GPUdi() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
+  static GPUdi() bool innerAboveThresholdInv(uint8_t aboveThreshold, uint16_t outerIdx)
   {
     return aboveThreshold & (1 << cfconsts::OuterToInnerInv[outerIdx]);
   }
 
-  static GPUdi() bool isPeak(uchar peak) { return peak & 0x01; }
+  static GPUdi() bool isPeak(uint8_t peak) { return peak & 0x01; }
 
-  static GPUdi() bool isAboveThreshold(uchar peak) { return peak >> 1; }
+  static GPUdi() bool isAboveThreshold(uint8_t peak) { return peak >> 1; }
 
-  static GPUdi() int warpPredicateScan(int pred, int* sum)
+  static GPUdi() int32_t warpPredicateScan(int32_t pred, int32_t* sum)
   {
 #ifdef __HIPCC__
-    int iLane = hipThreadIdx_x % warpSize;
+    int32_t iLane = hipThreadIdx_x % warpSize;
     uint64_t waveMask = __ballot(pred);
     uint64_t lowerWarpMask = (1ull << iLane) - 1ull;
-    int myOffset = __popcll(waveMask & lowerWarpMask);
+    int32_t myOffset = __popcll(waveMask & lowerWarpMask);
     *sum = __popcll(waveMask);
     return myOffset;
 #elif defined(__CUDACC__)
-    int iLane = threadIdx.x % warpSize;
+    int32_t iLane = threadIdx.x % warpSize;
     uint32_t waveMask = __ballot_sync(0xFFFFFFFF, pred);
     uint32_t lowerWarpMask = (1u << iLane) - 1u;
-    int myOffset = __popc(waveMask & lowerWarpMask);
+    int32_t myOffset = __popc(waveMask & lowerWarpMask);
     *sum = __popc(waveMask);
     return myOffset;
 #else // CPU / OpenCL fallback
-    int myOffset = warp_scan_inclusive_add(pred ? 1 : 0);
+    int32_t myOffset = warp_scan_inclusive_add(pred ? 1 : 0);
     *sum = warp_broadcast(myOffset, GPUCA_WARP_SIZE - 1);
     myOffset--;
     return myOffset;
@@ -71,38 +71,38 @@ class CfUtils
   }
 
   template <size_t BlockSize, typename SharedMemory>
-  static GPUdi() int blockPredicateScan(SharedMemory& smem, int pred, int* sum = nullptr)
+  static GPUdi() int32_t blockPredicateScan(SharedMemory& smem, int32_t pred, int32_t* sum = nullptr)
   {
 #if defined(__HIPCC__) || defined(__CUDACC__)
-    int iThread =
+    int32_t iThread =
 #ifdef __HIPCC__
       hipThreadIdx_x;
 #else
       threadIdx.x;
 #endif
 
-    int iWarp = iThread / warpSize;
-    int nWarps = BlockSize / warpSize;
+    int32_t iWarp = iThread / warpSize;
+    int32_t nWarps = BlockSize / warpSize;
 
-    int warpSum;
-    int laneOffset = warpPredicateScan(pred, &warpSum);
+    int32_t warpSum;
+    int32_t laneOffset = warpPredicateScan(pred, &warpSum);
 
     if (iThread % warpSize == 0) {
       smem.warpPredicateSum[iWarp] = warpSum;
     }
     __syncthreads();
 
-    int warpOffset = 0;
+    int32_t warpOffset = 0;
 
     if (sum == nullptr) {
-      for (int w = 0; w < iWarp; w++) {
-        int s = smem.warpPredicateSum[w];
+      for (int32_t w = 0; w < iWarp; w++) {
+        int32_t s = smem.warpPredicateSum[w];
         warpOffset += s;
       }
     } else {
       *sum = 0;
-      for (int w = 0; w < nWarps; w++) {
-        int s = smem.warpPredicateSum[w];
+      for (int32_t w = 0; w < nWarps; w++) {
+        int32_t s = smem.warpPredicateSum[w];
         if (w < iWarp) {
           warpOffset += s;
         }
@@ -112,7 +112,7 @@ class CfUtils
 
     return warpOffset + laneOffset;
 #else // CPU / OpenCL fallback
-    int lpos = work_group_scan_inclusive_add(pred ? 1 : 0);
+    int32_t lpos = work_group_scan_inclusive_add(pred ? 1 : 0);
     if (sum != nullptr) {
       *sum = work_group_broadcast(lpos, BlockSize - 1);
     }
@@ -122,20 +122,20 @@ class CfUtils
   }
 
   template <size_t BlockSize, typename SharedMemory>
-  static GPUdi() int blockPredicateSum(SharedMemory& smem, int pred)
+  static GPUdi() int32_t blockPredicateSum(SharedMemory& smem, int32_t pred)
   {
 #if defined(__HIPCC__) || defined(__CUDACC__)
-    int iThread =
+    int32_t iThread =
 #ifdef __HIPCC__
       hipThreadIdx_x;
 #else
       threadIdx.x;
 #endif
 
-    int iWarp = iThread / warpSize;
-    int nWarps = BlockSize / warpSize;
+    int32_t iWarp = iThread / warpSize;
+    int32_t nWarps = BlockSize / warpSize;
 
-    int warpSum =
+    int32_t warpSum =
 #ifdef __HIPCC__
       __popcll(__ballot(pred));
 #else
@@ -147,8 +147,8 @@ class CfUtils
     }
     __syncthreads();
 
-    int sum = 0;
-    for (int w = 0; w < nWarps; w++) {
+    int32_t sum = 0;
+    for (int32_t w = 0; w < nWarps; w++) {
       sum += smem.warpPredicateSum[w];
     }
 
@@ -159,14 +159,14 @@ class CfUtils
   }
 
   template <size_t SCRATCH_PAD_WORK_GROUP_SIZE, typename SharedMemory>
-  static GPUdi() ushort partition(SharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
+  static GPUdi() uint16_t partition(SharedMemory& smem, uint16_t ll, bool pred, uint16_t partSize, uint16_t* newPartSize)
   {
     bool participates = ll < partSize;
 
-    int part;
-    int lpos = blockPredicateScan<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, int(!pred && participates), &part);
+    int32_t part;
+    int32_t lpos = blockPredicateScan<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, int32_t(!pred && participates), &part);
 
-    ushort pos = (participates && !pred) ? lpos : part;
+    uint16_t pos = (participates && !pred) ? lpos : part;
 
     *newPartSize = part;
     return pos;
@@ -175,24 +175,24 @@ class CfUtils
   template <typename T>
   static GPUdi() void blockLoad(
     const Array2D<T>& map,
-    uint wgSize,
-    uint elems,
-    ushort ll,
-    uint offset,
-    uint N,
+    uint32_t wgSize,
+    uint32_t elems,
+    uint16_t ll,
+    uint32_t offset,
+    uint32_t N,
     GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
     GPUgeneric() T* buf)
   {
 #if defined(GPUCA_GPUCODE)
     GPUbarrier();
-    ushort x = ll % N;
-    ushort y = ll / N;
+    uint16_t x = ll % N;
+    uint16_t y = ll / N;
     tpccf::Delta2 d = neighbors[x + offset];
 
-    for (unsigned int i = y; i < wgSize; i += (elems / N)) {
+    for (uint32_t i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
-      uint writeTo = N * i + x;
+      uint32_t writeTo = N * i + x;
       buf[writeTo] = map[readFrom.delta(d)];
     }
     GPUbarrier();
@@ -205,10 +205,10 @@ class CfUtils
 
     GPUbarrier();
 
-    for (unsigned int i = 0; i < N; i++) {
+    for (uint32_t i = 0; i < N; i++) {
       tpccf::Delta2 d = neighbors[i + offset];
 
-      uint writeTo = N * ll + i;
+      uint32_t writeTo = N * ll + i;
       buf[writeTo] = map[readFrom.delta(d)];
     }
 
@@ -219,25 +219,25 @@ class CfUtils
   template <typename T, bool Inv = false>
   static GPUdi() void condBlockLoad(
     const Array2D<T>& map,
-    ushort wgSize,
-    ushort elems,
-    ushort ll,
-    ushort offset,
-    ushort N,
+    uint16_t wgSize,
+    uint16_t elems,
+    uint16_t ll,
+    uint16_t offset,
+    uint16_t N,
     GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
-    const uchar* aboveThreshold,
+    const uint8_t* aboveThreshold,
     GPUgeneric() T* buf)
   {
 #if defined(GPUCA_GPUCODE)
     GPUbarrier();
-    ushort y = ll / N;
-    ushort x = ll % N;
+    uint16_t y = ll / N;
+    uint16_t x = ll % N;
     tpccf::Delta2 d = neighbors[x + offset];
-    for (unsigned int i = y; i < wgSize; i += (elems / N)) {
+    for (uint32_t i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
-      uchar above = aboveThreshold[i];
-      uint writeTo = N * i + x;
+      uint8_t above = aboveThreshold[i];
+      uint32_t writeTo = N * i + x;
       T v(0);
       bool cond = (Inv) ? innerAboveThresholdInv(above, x + offset)
                         : innerAboveThreshold(above, x + offset);
@@ -253,13 +253,13 @@ class CfUtils
     }
 
     ChargePos readFrom = posBcast[ll];
-    uchar above = aboveThreshold[ll];
+    uint8_t above = aboveThreshold[ll];
     GPUbarrier();
 
-    for (unsigned int i = 0; i < N; i++) {
+    for (uint32_t i = 0; i < N; i++) {
       tpccf::Delta2 d = neighbors[i + offset];
 
-      uint writeTo = N * ll + i;
+      uint32_t writeTo = N * ll + i;
       T v(0);
       bool cond = (Inv) ? innerAboveThresholdInv(above, i + offset)
                         : innerAboveThreshold(above, i + offset);

@@ -191,34 +191,34 @@ void CalibdEdxContainer::setZeroSupresssionThreshold(const CalDet<float>& thresh
   mThresholdMap = thresholdMapTmp;
 }
 
-CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thresholdMap, const float maxThreshold, const int nPadsInRowCl, const int nPadsInPadCl) const
+CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thresholdMap, const float maxThreshold, const int32_t nPadsInRowCl, const int32_t nPadsInPadCl) const
 {
   CalDet<float> thresholdMapProcessed(thresholdMap);
 
-  for (unsigned int sector = 0; sector < Mapper::NSECTORS; ++sector) {
-    for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
-      const int maxRow = Mapper::ROWSPERREGION[region] - 1;
-      for (int lrow = 0; lrow <= maxRow; ++lrow) {
+  for (uint32_t sector = 0; sector < Mapper::NSECTORS; ++sector) {
+    for (uint32_t region = 0; region < Mapper::NREGIONS; ++region) {
+      const int32_t maxRow = Mapper::ROWSPERREGION[region] - 1;
+      for (int32_t lrow = 0; lrow <= maxRow; ++lrow) {
         // find first row of the cluster
-        const int rowStart = std::clamp(lrow - nPadsInRowCl, 0, maxRow);
-        const int rowEnd = std::clamp(lrow + nPadsInRowCl, 0, maxRow);
-        const int addPadsStart = Mapper::ADDITIONALPADSPERROW[region][lrow];
+        const int32_t rowStart = std::clamp(lrow - nPadsInRowCl, 0, maxRow);
+        const int32_t rowEnd = std::clamp(lrow + nPadsInRowCl, 0, maxRow);
+        const int32_t addPadsStart = Mapper::ADDITIONALPADSPERROW[region][lrow];
 
-        for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+        for (uint32_t pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
           float sumThr = 0;
-          int countThr = 0;
+          int32_t countThr = 0;
           // loop ove the rows from the cluster
-          for (int rowCl = rowStart; rowCl <= rowEnd; ++rowCl) {
+          for (int32_t rowCl = rowStart; rowCl <= rowEnd; ++rowCl) {
             // shift local pad in row in case current row from the cluster has more pads in the row
-            const int addPadsCl = Mapper::ADDITIONALPADSPERROW[region][rowCl];
-            const int diffAddPads = addPadsCl - addPadsStart;
-            const int padClCentre = pad + diffAddPads;
+            const int32_t addPadsCl = Mapper::ADDITIONALPADSPERROW[region][rowCl];
+            const int32_t diffAddPads = addPadsCl - addPadsStart;
+            const int32_t padClCentre = pad + diffAddPads;
 
-            const int maxPad = Mapper::PADSPERROW[region][rowCl] - 1;
-            const int padStart = std::clamp(padClCentre - nPadsInPadCl, 0, maxPad);
-            const int padEnd = std::clamp(padClCentre + nPadsInPadCl, 0, maxPad);
-            for (int padCl = padStart; padCl <= padEnd; ++padCl) {
-              const int globalPad = Mapper::getGlobalPadNumber(rowCl, padCl, region);
+            const int32_t maxPad = Mapper::PADSPERROW[region][rowCl] - 1;
+            const int32_t padStart = std::clamp(padClCentre - nPadsInPadCl, 0, maxPad);
+            const int32_t padEnd = std::clamp(padClCentre + nPadsInPadCl, 0, maxPad);
+            for (int32_t padCl = padStart; padCl <= padEnd; ++padCl) {
+              const int32_t globalPad = Mapper::getGlobalPadNumber(rowCl, padCl, region);
               // skip for current cluster position as the charge there is not effected from the thresold
               if (padCl == pad && rowCl == lrow) {
                 continue;
@@ -234,7 +234,7 @@ CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thres
             }
           }
           const float meanThresold = sumThr / countThr;
-          const int globalPad = Mapper::getGlobalPadNumber(lrow, pad, region);
+          const int32_t globalPad = Mapper::getGlobalPadNumber(lrow, pad, region);
           thresholdMapProcessed.setValue(sector, globalPad, meanThresold);
         }
       }
@@ -265,8 +265,8 @@ void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
   const float defaultVal = getMinZeroSupresssionThreshold() + (getMaxZeroSupresssionThreshold() - getMinZeroSupresssionThreshold()) / 2;
   mThresholdMap.setMinCorrectionFactor(defaultVal - 0.1f);
   mThresholdMap.setMaxCorrectionFactor(defaultVal + 0.1f);
-  for (int sector = 0; sector < o2::tpc::constants::MAXSECTOR; ++sector) {
-    for (unsigned short globPad = 0; globPad < TPC_PADS_IN_SECTOR; ++globPad) {
+  for (int32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; ++sector) {
+    for (uint16_t globPad = 0; globPad < TPC_PADS_IN_SECTOR; ++globPad) {
       mThresholdMap.setGainCorrection(sector, globPad, defaultVal);
     }
   }

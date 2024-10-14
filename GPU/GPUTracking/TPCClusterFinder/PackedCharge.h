@@ -24,7 +24,7 @@ namespace GPUCA_NAMESPACE::gpu
 class PackedCharge
 {
  public:
-  using BasicType = unsigned short;
+  using BasicType = uint16_t;
   static_assert(sizeof(BasicType) == 2);
 
   enum Constants : BasicType {

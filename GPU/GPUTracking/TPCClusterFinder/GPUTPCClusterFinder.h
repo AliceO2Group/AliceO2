@@ -60,20 +60,20 @@ class GPUTPCClusterFinder : public GPUProcessor
       tpccf::SizeT nPositions = 0;
       tpccf::SizeT nPeaks = 0;
       tpccf::SizeT nClusters = 0;
-      unsigned int maxTimeBin = 0;
-      unsigned int nPagesSubslice = 0;
+      uint32_t maxTimeBin = 0;
+      uint32_t nPagesSubslice = 0;
     } counters;
     CfFragment fragment;
   };
 
   struct ZSOffset {
-    unsigned int offset;
-    unsigned short endpoint;
-    unsigned short num;
+    uint32_t offset;
+    uint16_t endpoint;
+    uint16_t num;
   };
 
   struct MinMaxCN {
-    unsigned int zsPtrFirst, zsPageFirst, zsPtrLast, zsPageLast;
+    uint32_t zsPtrFirst, zsPageFirst, zsPtrLast, zsPageLast;
   };
 
 #ifndef GPUCA_GPUCODE
@@ -89,57 +89,57 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersZS(void* mem);
   void* SetPointersZSOffset(void* mem);
 
-  unsigned int getNSteps(size_t items) const;
+  uint32_t getNSteps(size_t items) const;
   void SetNMaxDigits(size_t nDigits, size_t nPages, size_t nDigitsFragment, size_t nDigitsEndpointMax);
 
   void PrepareMC();
   void clearMCMemory();
 #endif
-  unsigned char* mPzs = nullptr;
+  uint8_t* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
   MinMaxCN* mMinMaxCN = nullptr;
-  unsigned char* mPpadIsNoisy = nullptr;
+  uint8_t* mPpadIsNoisy = nullptr;
   tpc::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
   ChargePos* mPpositions = nullptr;
   ChargePos* mPpeakPositions = nullptr;
   ChargePos* mPfilteredPeakPositions = nullptr;
-  unsigned char* mPisPeak = nullptr;
-  unsigned int* mPclusterPosInRow = nullptr; // store the index where the corresponding cluster is stored in a bucket.
-                                             // Required when MC are enabled to write the mc data to the correct position.
-                                             // Set to >= mNMaxClusterPerRow if cluster was discarded.
-  unsigned short* mPchargeMap = nullptr;
-  unsigned char* mPpeakMap = nullptr;
-  unsigned int* mPindexMap = nullptr;
-  unsigned int* mPclusterInRow = nullptr;
+  uint8_t* mPisPeak = nullptr;
+  uint32_t* mPclusterPosInRow = nullptr; // store the index where the corresponding cluster is stored in a bucket.
+                                         // Required when MC are enabled to write the mc data to the correct position.
+                                         // Set to >= mNMaxClusterPerRow if cluster was discarded.
+  uint16_t* mPchargeMap = nullptr;
+  uint8_t* mPpeakMap = nullptr;
+  uint32_t* mPindexMap = nullptr;
+  uint32_t* mPclusterInRow = nullptr;
   tpc::ClusterNative* mPclusterByRow = nullptr;
   GPUTPCClusterMCInterimArray* mPlabelsByRow = nullptr;
-  int* mPbuf = nullptr;
+  int32_t* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
-  GPUdi() int* GetScanBuffer(int iBuf) const { return mPbuf + iBuf * mBufSize; }
+  GPUdi() int32_t* GetScanBuffer(int32_t iBuf) const { return mPbuf + iBuf * mBufSize; }
 
   o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> const* mPinputLabels = nullptr;
-  unsigned int* mPlabelsInRow = nullptr;
-  unsigned int mPlabelsHeaderGlobalOffset = 0;
-  unsigned int mPlabelsDataGlobalOffset = 0;
+  uint32_t* mPlabelsInRow = nullptr;
+  uint32_t mPlabelsHeaderGlobalOffset = 0;
+  uint32_t mPlabelsDataGlobalOffset = 0;
 
-  int mISlice = 0;
-  constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
-  unsigned int mNMaxClusterPerRow = 0;
-  unsigned int mNMaxClusters = 0;
-  unsigned int mNMaxPages = 0;
+  int32_t mISlice = 0;
+  constexpr static int32_t mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
+  uint32_t mNMaxClusterPerRow = 0;
+  uint32_t mNMaxClusters = 0;
+  uint32_t mNMaxPages = 0;
   size_t mNMaxDigits = 0;
   size_t mNMaxDigitsFragment = 0;
   size_t mNMaxDigitsEndpoint = 0;
   size_t mNMaxPeaks = 0;
   size_t mBufSize = 0;
-  unsigned int mNBufs = 0;
+  uint32_t mNBufs = 0;
 
-  short mMemoryId = -1;
-  short mScratchId = -1;
-  short mZSId = -1;
-  short mZSOffsetId = -1;
-  short mOutputId = -1;
+  int16_t mMemoryId = -1;
+  int16_t mScratchId = -1;
+  int16_t mZSId = -1;
+  int16_t mZSOffsetId = -1;
+  int16_t mOutputId = -1;
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);

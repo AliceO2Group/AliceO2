@@ -15,6 +15,8 @@
 #ifndef QONMODULE_TIMER_H
 #define QONMODULE_TIMER_H
 
+#include <cstdint>
+
 class HighResTimer
 {
  public:
@@ -28,13 +30,13 @@ class HighResTimer
   double GetElapsedTime();
   double GetCurrentElapsedTime(bool reset = false);
   void StopAndStart(HighResTimer& startTimer);
-  int IsRunning() { return running; }
+  int32_t IsRunning() { return running; }
   void AddTime(double t);
 
  private:
   double ElapsedTime = 0.;
   double StartTime = 0.;
-  int running = 0;
+  int32_t running = 0;
 
   static double GetFrequency();
   static double GetTime();

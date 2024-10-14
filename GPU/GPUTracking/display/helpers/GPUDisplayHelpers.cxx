@@ -23,7 +23,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-int GPUDisplay::getNumThreads()
+int32_t GPUDisplay::getNumThreads()
 {
   if (mChain) {
     return mChain->GetProcessingSettings().ompThreads;

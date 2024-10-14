@@ -28,7 +28,7 @@
 #include <vulkan/vulkan_xlib.h>
 #endif
 
-typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int32_t*);
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -38,7 +38,7 @@ GPUDisplayFrontendX11::GPUDisplayFrontendX11()
   mFrontendName = "X11";
 }
 
-int GPUDisplayFrontendX11::GetKey(int key)
+int32_t GPUDisplayFrontendX11::GetKey(int32_t key)
 {
   if (key == 65453) {
     return ('-');
@@ -139,16 +139,16 @@ int GPUDisplayFrontendX11::GetKey(int key)
   return 0;
 }
 
-void GPUDisplayFrontendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
+void GPUDisplayFrontendX11::GetKey(XEvent& event, int32_t& keyOut, int32_t& keyPressOut)
 {
   char tmpString[9];
   KeySym sym;
   if (XLookupString(&event.xkey, tmpString, 8, &sym, nullptr) == 0) {
     tmpString[0] = 0;
   }
-  int specialKey = GetKey(sym);
-  int localeKey = (unsigned char)tmpString[0];
-  // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", (int)event.xkey.keycode, (int)sym, (char)sym, (int)localeKey, (char)localeKey, (int)specialKey, (char)specialKey);
+  int32_t specialKey = GetKey(sym);
+  int32_t localeKey = (uint8_t)tmpString[0];
+  // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", (int32_t)event.xkey.keycode, (int32_t)sym, (char)sym, (int32_t)localeKey, (char)localeKey, (int32_t)specialKey, (char)specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -182,15 +182,15 @@ void GPUDisplayFrontendX11::OpenGLPrint(const char* s, float x, float y, float r
 #endif
 }
 
-int GPUDisplayFrontendX11::FrontendMain()
+int32_t GPUDisplayFrontendX11::FrontendMain()
 {
   XSetWindowAttributes windowAttributes;
   XVisualInfo* visualInfo = nullptr;
   XEvent event;
   Colormap colorMap;
   GLXContext glxContext = nullptr;
-  int errorBase;
-  int eventBase;
+  int32_t errorBase;
+  int32_t eventBase;
 
   // Open a connection to the X server
   mDisplay = XOpenDisplay(nullptr);
@@ -215,13 +215,13 @@ int GPUDisplayFrontendX11::FrontendMain()
   }
 
   // Require MSAA, double buffering, and Depth buffer
-  int attribs[] = {GLX_X_RENDERABLE, True, GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT, GLX_RENDER_TYPE, GLX_RGBA_BIT, GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, True,
-                   // GLX_SAMPLE_BUFFERS  , 1, //Disable MSAA here, we do it by rendering to offscreenbuffer
-                   // GLX_SAMPLES         , MSAA_SAMPLES,
-                   None};
+  int32_t attribs[] = {GLX_X_RENDERABLE, True, GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT, GLX_RENDER_TYPE, GLX_RGBA_BIT, GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, True,
+                       // GLX_SAMPLE_BUFFERS  , 1, //Disable MSAA here, we do it by rendering to offscreenbuffer
+                       // GLX_SAMPLES         , MSAA_SAMPLES,
+                       None};
 
   GLXFBConfig fbconfig = nullptr;
-  int fbcount;
+  int32_t fbcount;
   GLXFBConfig* fbc = glXChooseFBConfig(mDisplay, DefaultScreen(mDisplay), attribs, &fbcount);
   if (fbc == nullptr || fbcount == 0) {
     GPUError("Failed to get MSAA GLXFBConfig");
@@ -240,7 +240,7 @@ int GPUDisplayFrontendX11::FrontendMain()
     // Create an OpenGL rendering context
     glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
     if (glXCreateContextAttribsARB) {
-      int context_attribs[] = {
+      int32_t context_attribs[] = {
         GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
         GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
         GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
@@ -291,8 +291,8 @@ int GPUDisplayFrontendX11::FrontendMain()
       GPUError("XLoadQueryFont failed.");
       return (-1);
     } else {
-      int first = font_info->min_char_or_byte2;
-      int last = font_info->max_char_or_byte2;
+      int32_t first = font_info->min_char_or_byte2;
+      int32_t last = font_info->max_char_or_byte2;
       glXUseXFont(font_info->fid, first, last - first + 1, mFontBase + first);
     }
   }
@@ -309,7 +309,7 @@ int GPUDisplayFrontendX11::FrontendMain()
 
   XMapWindow(mDisplay, mWindow);
   XFlush(mDisplay);
-  int x11_fd = ConnectionNumber(mDisplay);
+  int32_t x11_fd = ConnectionNumber(mDisplay);
 
   // Enable vsync
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
@@ -331,10 +331,10 @@ int GPUDisplayFrontendX11::FrontendMain()
 
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   while (1) {
-    int num_ready_fds;
+    int32_t num_ready_fds;
     struct timeval tv;
     fd_set in_fds;
-    int waitCount = 0;
+    int32_t waitCount = 0;
     do {
       FD_ZERO(&in_fds);
       FD_SET(x11_fd, &in_fds);
@@ -399,7 +399,7 @@ int GPUDisplayFrontendX11::FrontendMain()
         }
 
         case KeyPress: {
-          int handleKey = 0, keyPress = 0;
+          int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
           mKeysShift[keyPress] = mKeys[KEY_SHIFT];
           mKeys[keyPress] = true;
@@ -408,7 +408,7 @@ int GPUDisplayFrontendX11::FrontendMain()
         }
 
         case KeyRelease: {
-          int handleKey = 0, keyPress = 0;
+          int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
           mKeys[keyPress] = false;
           mKeysShift[keyPress] = false;
@@ -514,11 +514,11 @@ void GPUDisplayFrontendX11::ToggleMaximized(bool set)
 void GPUDisplayFrontendX11::SetVSync(bool enable)
 {
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
-    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int)enable);
+    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int32_t)enable);
   }
 }
 
-int GPUDisplayFrontendX11::StartDisplay()
+int32_t GPUDisplayFrontendX11::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
@@ -528,11 +528,11 @@ int GPUDisplayFrontendX11::StartDisplay()
   return (0);
 }
 
-void GPUDisplayFrontendX11::getSize(int& width, int& height)
+void GPUDisplayFrontendX11::getSize(int32_t& width, int32_t& height)
 {
   Window root_return;
-  int x_return, y_return;
-  unsigned int width_return, height_return, border_width_return, depth_return;
+  int32_t x_return, y_return;
+  uint32_t width_return, height_return, border_width_return, depth_return;
   if (XGetGeometry(mDisplay, mWindow, &root_return, &x_return, &y_return, &width_return, &height_return, &border_width_return, &depth_return) == 0) {
     throw std::runtime_error("Cannot query X11 window geometry");
   }
@@ -540,7 +540,7 @@ void GPUDisplayFrontendX11::getSize(int& width, int& height)
   height = height_return;
 }
 
-int GPUDisplayFrontendX11::getVulkanSurface(void* instance, void* surface)
+int32_t GPUDisplayFrontendX11::getVulkanSurface(void* instance, void* surface)
 {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
   VkXlibSurfaceCreateInfoKHR info{};
@@ -554,7 +554,7 @@ int GPUDisplayFrontendX11::getVulkanSurface(void* instance, void* surface)
 #endif
 }
 
-unsigned int GPUDisplayFrontendX11::getReqVulkanExtensions(const char**& p)
+uint32_t GPUDisplayFrontendX11::getReqVulkanExtensions(const char**& p)
 {
   static const char* exts[] = {"VK_KHR_surface", "VK_KHR_xlib_surface"};
   p = exts;

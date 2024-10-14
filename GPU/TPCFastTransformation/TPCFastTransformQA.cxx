@@ -36,7 +36,7 @@ using namespace std;
 
 TPCFastTransformQA::TPCFastTransformQA() {}
 
-int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
+int32_t TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
 {
   const char* fileName = "fastTransformQA.root";
 
@@ -61,7 +61,7 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
   }
   rec->Print();
 
-  int lastTimeBin = rec->GetLastBin();
+  int32_t lastTimeBin = rec->GetLastBin();
 
   // measure execution time
   {
@@ -70,8 +70,8 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
     double sum1 = 0;
     for (Int_t iSec = 0; iSec < 1; iSec++) {
       LOG(info) << "Measure original transformation time for TPC sector " << iSec << " ..";
-      int nRows = tpcParam->GetNRow(iSec);
-      for (int iRow = 0; iRow < nRows; iRow++) {
+      int32_t nRows = tpcParam->GetNRow(iSec);
+      for (int32_t iRow = 0; iRow < nRows; iRow++) {
         Int_t nPads = tpcParam->GetNPads(iSec, iRow);
         for (float pad = 0.5; pad < nPads; pad += 1.) {
           for (float time = 0; time < lastTimeBin; time++) {
@@ -91,10 +91,10 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
     double sum2 = 0;
     for (Int_t iSec = 0; iSec < 1; iSec++) {
       LOG(info) << "Measure fast transformation time for TPC sector " << iSec << " ..";
-      int nRows = tpcParam->GetNRow(iSec);
-      for (int iRow = 0; iRow < nRows; iRow++) {
+      int32_t nRows = tpcParam->GetNRow(iSec);
+      for (int32_t iRow = 0; iRow < nRows; iRow++) {
         Int_t nPads = tpcParam->GetNPads(iSec, iRow);
-        int slice = 0, slicerow = 0;
+        int32_t slice = 0, slicerow = 0;
         AliHLTTPCGeometry::Sector2Slice(slice, slicerow, iSec, iRow);
         for (float pad = 0.5; pad < nPads; pad += 1.) {
           for (float time = 0; time < lastTimeBin; time++) {
@@ -114,7 +114,7 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
 
     LOG(info) << "Fast Transformation speedup: " << 1. * timer1.RealTime() / timer2.RealTime() * nCalls2 / nCalls1;
 
-    int size = sizeof(fastTransform) + fastTransform.getFlatBufferSize();
+    int32_t size = sizeof(fastTransform) + fastTransform.getFlatBufferSize();
     LOG(info) << "Fast Transformation memory usage: " << size / 1000. / 1000. << " MB";
     LOG(info) << "ignore this " << sum1 << " " << sum2;
   }
@@ -128,11 +128,11 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
     TNtuple* nt = new TNtuple("fastTransformQA", "fastTransformQA", "sec:row:pad:time:x:y:z:fx:fy:fz");
 
     for (Int_t iSec = 0; iSec < 1; iSec++) {
-      int nRows = tpcParam->GetNRow(iSec);
-      for (int iRow = 0; iRow < nRows; iRow++) {
+      int32_t nRows = tpcParam->GetNRow(iSec);
+      for (int32_t iRow = 0; iRow < nRows; iRow++) {
         LOG(info) << "Write fastTransform QA for TPC sector " << iSec << ", row " << iRow << " ..";
         Int_t nPads = tpcParam->GetNPads(iSec, iRow);
-        int slice = 0, slicerow = 0;
+        int32_t slice = 0, slicerow = 0;
         AliHLTTPCGeometry::Sector2Slice(slice, slicerow, iSec, iRow);
         for (float pad = 0.5; pad < nPads; pad += 1.) {
           for (float time = 0; time < lastTimeBin; time++) {
@@ -154,7 +154,7 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
   return 0;
 }
 
-int TPCFastTransformQA::doQA(Long_t TimeStamp)
+int32_t TPCFastTransformQA::doQA(long TimeStamp)
 {
   TPCFastTransform fastTransform;
   TPCFastTransformManager man;

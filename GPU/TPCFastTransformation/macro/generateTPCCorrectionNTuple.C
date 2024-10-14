@@ -84,12 +84,12 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
   TFile* f = new TFile("tpcCorrection.root", "RECREATE");
   TNtuple* nt = new TNtuple("dist", "dist", "slice:row:su:sv:dx:du:dv");
 
-  int nSlices = 1; // fastTransform->getNumberOfSlices();
-  // for( int slice=0; slice<nSlices; slice++){
-  for (int slice = 0; slice < 1; slice++) {
+  int32_t nSlices = 1; // fastTransform->getNumberOfSlices();
+  // for( int32_t slice=0; slice<nSlices; slice++){
+  for (int32_t slice = 0; slice < 1; slice++) {
     const o2::gpu::TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
-    for (int row = 0; row < geo.getNumberOfRows(); row++) {
+    for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
 
       float x = geo.getRowInfo(row).x;
 

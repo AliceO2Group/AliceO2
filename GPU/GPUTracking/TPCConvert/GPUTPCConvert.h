@@ -39,7 +39,7 @@ class GPUTPCConvert : public GPUProcessor
   void* SetPointersMemory(void* mem);
 #endif
 
-  constexpr static unsigned int NSLICES = GPUCA_NSLICES;
+  constexpr static uint32_t NSLICES = GPUCA_NSLICES;
 
   struct Memory {
     GPUTPCClusterData* clusters[NSLICES];
@@ -48,10 +48,10 @@ class GPUTPCConvert : public GPUProcessor
  protected:
   Memory* mMemory = nullptr;
   GPUTPCClusterData* mClusters = nullptr;
-  unsigned int mNClustersTotal = 0;
+  uint32_t mNClustersTotal = 0;
 
-  short mMemoryResOutput = -1;
-  short mMemoryResMemory = -1;
+  int16_t mMemoryResOutput = -1;
+  int16_t mMemoryResMemory = -1;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

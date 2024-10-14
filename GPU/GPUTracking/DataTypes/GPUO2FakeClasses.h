@@ -39,31 +39,31 @@ class TrackTPC
 class CalibdEdxContainer
 {
  public:
-  static bool isDead(int slice, int row, int pad) { return false; }
+  static bool isDead(int32_t slice, int32_t row, int32_t pad) { return false; }
 };
 struct ClusterNative {
   GPUd() static float getTime() { return 0.f; }
   GPUd() static float getPad() { return 0.f; }
-  GPUd() static int getFlags() { return 0; }
-  GPUd() static void setTimeFlags(float t, int f) {}
+  GPUd() static int32_t getFlags() { return 0; }
+  GPUd() static void setTimeFlags(float t, int32_t f) {}
   GPUd() static void setPad(float p) {}
   GPUd() static void setSigmaTime(float s) {}
   GPUd() static void setSigmaPad(float s) {}
 
-  unsigned char qTot, qMax;
+  uint8_t qTot, qMax;
 };
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
   const ClusterNative* clusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClustersSector[GPUCA_NSLICES];
-  unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClustersTotal;
+  uint32_t nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
+  uint32_t nClustersSector[GPUCA_NSLICES];
+  uint32_t clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
+  uint32_t nClustersTotal;
   void setOffsetPtrs() {}
 };
 #ifndef __OPENCL__
 struct TPCZSHDR {
-  static const unsigned int TPC_ZS_PAGE_SIZE = 8192;
+  static const uint32_t TPC_ZS_PAGE_SIZE = 8192;
 };
 #endif
 } // namespace tpc

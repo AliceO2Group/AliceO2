@@ -42,12 +42,12 @@ inline std::string print_type<char>(char val)
   return std::to_string(val);
 };
 template <>
-inline std::string print_type<signed char>(signed char val)
+inline std::string print_type<int8_t>(int8_t val)
 {
   return std::to_string(val);
 };
 template <>
-inline std::string print_type<unsigned char>(unsigned char val)
+inline std::string print_type<uint8_t>(uint8_t val)
 {
   return std::to_string(val);
 };

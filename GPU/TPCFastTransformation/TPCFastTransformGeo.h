@@ -46,7 +46,7 @@ class TPCFastTransformGeo
   /// The struct contains necessary info about TPC padrow
   struct RowInfo {
     float x;          ///< nominal X coordinate of the row [cm]
-    int maxPad;       ///< maximal pad number = n pads - 1
+    int32_t maxPad;   ///< maximal pad number = n pads - 1
     float padWidth;   ///< width of pads [cm]
     float u0;         ///< min. u coordinate
     float scaleUtoSU; ///< scale for su (scaled u ) coordinate
@@ -81,10 +81,10 @@ class TPCFastTransformGeo
   /// _______________  Construction interface  ________________________
 
   /// Starts the initialization procedure, reserves temporary memory
-  void startConstruction(int numberOfRows);
+  void startConstruction(int32_t numberOfRows);
 
   /// Initializes a TPC row
-  void setTPCrow(int iRow, float x, int nPads, float padWidth);
+  void setTPCrow(int32_t iRow, float x, int32_t nPads, float padWidth);
 
   /// Sets TPC geometry
   ///
@@ -101,24 +101,24 @@ class TPCFastTransformGeo
   void finishConstruction();
 
   /// Is the object constructed
-  bool isConstructed() const { return (mConstructionMask == (unsigned int)ConstructionState::Constructed); }
+  bool isConstructed() const { return (mConstructionMask == (uint32_t)ConstructionState::Constructed); }
 
   /// _______________  Getters _________________________________
 
   /// Gives number of TPC slices
-  GPUd() static constexpr int getNumberOfSlices() { return NumberOfSlices; }
+  GPUd() static constexpr int32_t getNumberOfSlices() { return NumberOfSlices; }
 
   /// Gives number of TPC slices in A side
-  GPUd() static constexpr int getNumberOfSlicesA() { return NumberOfSlicesA; }
+  GPUd() static constexpr int32_t getNumberOfSlicesA() { return NumberOfSlicesA; }
 
   /// Gives number of TPC rows
-  GPUd() int getNumberOfRows() const { return mNumberOfRows; }
+  GPUd() int32_t getNumberOfRows() const { return mNumberOfRows; }
 
   /// Gives slice info
-  GPUd() const SliceInfo& getSliceInfo(int slice) const;
+  GPUd() const SliceInfo& getSliceInfo(int32_t slice) const;
 
   /// Gives TPC row info
-  GPUd() const RowInfo& getRowInfo(int row) const;
+  GPUd() const RowInfo& getRowInfo(int32_t row) const;
 
   /// Gives Z length of the TPC, side A
   GPUd() float getTPCzLengthA() const { return mTPCzLengthA; }
@@ -127,7 +127,7 @@ class TPCFastTransformGeo
   GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
 
   /// Gives Z length of the TPC, depending on the slice
-  GPUd() float getTPCzLength(int slice) const
+  GPUd() float getTPCzLength(int32_t slice) const
   {
     return (slice < NumberOfSlicesA) ? mTPCzLengthA
                                      : mTPCzLengthC;
@@ -139,53 +139,53 @@ class TPCFastTransformGeo
   /// _______________  Conversion of coordinate systems __________
 
   /// convert Local -> Global c.s.
-  GPUd() void convLocalToGlobal(int slice, float lx, float ly, float lz, float& gx, float& gy, float& gz) const;
+  GPUd() void convLocalToGlobal(int32_t slice, float lx, float ly, float lz, float& gx, float& gy, float& gz) const;
 
   /// convert Global->Local c.s.
-  GPUd() void convGlobalToLocal(int slice, float gx, float gy, float gz, float& lx, float& ly, float& lz) const;
+  GPUd() void convGlobalToLocal(int32_t slice, float gx, float gy, float gz, float& lx, float& ly, float& lz) const;
 
   /// convert UV -> Local c.s.
-  GPUd() void convUVtoLocal(int slice, float u, float v, float& y, float& z) const;
-  GPUd() void convVtoLocal(int slice, float v, float& z) const;
+  GPUd() void convUVtoLocal(int32_t slice, float u, float v, float& y, float& z) const;
+  GPUd() void convVtoLocal(int32_t slice, float v, float& z) const;
 
   /// convert Local-> UV c.s.
-  GPUd() void convLocalToUV(int slice, float y, float z, float& u, float& v) const;
+  GPUd() void convLocalToUV(int32_t slice, float y, float z, float& u, float& v) const;
 
   /// convert UV -> Scaled UV
-  GPUd() void convUVtoScaledUV(int slice, int row, float u, float v, float& su, float& sv) const;
+  GPUd() void convUVtoScaledUV(int32_t slice, int32_t row, float u, float v, float& su, float& sv) const;
 
   /// convert Scaled UV -> UV
-  GPUd() void convScaledUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const;
+  GPUd() void convScaledUVtoUV(int32_t slice, int32_t row, float su, float sv, float& u, float& v) const;
 
   /// convert Scaled UV -> Local c.s.
-  GPUd() void convScaledUVtoLocal(int slice, int row, float su, float sv, float& ly, float& lz) const;
+  GPUd() void convScaledUVtoLocal(int32_t slice, int32_t row, float su, float sv, float& ly, float& lz) const;
 
   /// convert Pad coordinate -> U
-  GPUd() float convPadToU(int row, float pad) const;
+  GPUd() float convPadToU(int32_t row, float pad) const;
 
   /// convert U -> Pad coordinate
-  GPUd() float convUtoPad(int row, float u) const;
+  GPUd() float convUtoPad(int32_t row, float u) const;
 
   /// Print method
   void print() const;
 
   /// Method for testing consistency
-  int test(int slice, int row, float ly, float lz) const;
+  int32_t test(int32_t slice, int32_t row, float ly, float lz) const;
 
   /// Method for testing consistency
-  int test() const;
+  int32_t test() const;
 
  private:
   /// _______________  Data members  _______________________________________________
 
-  static constexpr int NumberOfSlices = 36;                  ///< Number of TPC slices ( slice = inner + outer sector )
-  static constexpr int NumberOfSlicesA = NumberOfSlices / 2; ///< Number of TPC slices side A
-  static constexpr int MaxNumberOfRows = 160;                ///< Max Number of TPC rows in a slice
+  static constexpr int32_t NumberOfSlices = 36;                  ///< Number of TPC slices ( slice = inner + outer sector )
+  static constexpr int32_t NumberOfSlicesA = NumberOfSlices / 2; ///< Number of TPC slices side A
+  static constexpr int32_t MaxNumberOfRows = 160;                ///< Max Number of TPC rows in a slice
 
   /// _______________  Construction control  _______________________________________________
 
   /// Enumeration of construction states
-  enum ConstructionState : unsigned int {
+  enum ConstructionState : uint32_t {
     NotConstructed = 0x0, ///< the object is not constructed
     Constructed = 0x1,    ///< the object is constructed, temporary memory is released
     InProgress = 0x2,     ///< construction started: temporary  memory is reserved
@@ -193,11 +193,11 @@ class TPCFastTransformGeo
     AlignmentIsSet = 0x8  ///< the TPC alignment is set
   };
 
-  unsigned int mConstructionMask = ConstructionState::NotConstructed; ///< mask for constructed object members, first two bytes are used by this class
+  uint32_t mConstructionMask = ConstructionState::NotConstructed; ///< mask for constructed object members, first two bytes are used by this class
 
   /// _______________  Geometry  _______________________________________________
 
-  int mNumberOfRows = 0;        ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
+  int32_t mNumberOfRows = 0;    ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
   float mTPCzLengthA = 0.f;     ///< Z length of the TPC, side A
   float mTPCzLengthC = 0.f;     ///< Z length of the TPC, side C
   float mTPCalignmentZ = 0.f;   ///< Global Z shift of the TPC detector. It is applied at the end of the transformation.
@@ -218,7 +218,7 @@ class TPCFastTransformGeo
 //              Inline implementations of some methods
 // =======================================================================
 
-GPUdi() const TPCFastTransformGeo::SliceInfo& TPCFastTransformGeo::getSliceInfo(int slice) const
+GPUdi() const TPCFastTransformGeo::SliceInfo& TPCFastTransformGeo::getSliceInfo(int32_t slice) const
 {
   /// Gives slice info
   if (slice < 0 || slice >= NumberOfSlices) { // return zero object
@@ -227,7 +227,7 @@ GPUdi() const TPCFastTransformGeo::SliceInfo& TPCFastTransformGeo::getSliceInfo(
   return mSliceInfos[slice];
 }
 
-GPUdi() const TPCFastTransformGeo::RowInfo& TPCFastTransformGeo::getRowInfo(int row) const
+GPUdi() const TPCFastTransformGeo::RowInfo& TPCFastTransformGeo::getRowInfo(int32_t row) const
 {
   /// Gives TPC row info
   if (row < 0 || row >= mNumberOfRows) { // return zero object
@@ -236,7 +236,7 @@ GPUdi() const TPCFastTransformGeo::RowInfo& TPCFastTransformGeo::getRowInfo(int 
   return mRowInfos[row];
 }
 
-GPUdi() void TPCFastTransformGeo::convLocalToGlobal(int slice, float lx, float ly, float lz, float& gx, float& gy, float& gz) const
+GPUdi() void TPCFastTransformGeo::convLocalToGlobal(int32_t slice, float lx, float ly, float lz, float& gx, float& gy, float& gz) const
 {
   /// convert Local -> Global c.s.
   const SliceInfo& sliceInfo = getSliceInfo(slice);
@@ -245,7 +245,7 @@ GPUdi() void TPCFastTransformGeo::convLocalToGlobal(int slice, float lx, float l
   gz = lz;
 }
 
-GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int slice, float gx, float gy, float gz, float& lx, float& ly, float& lz) const
+GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int32_t slice, float gx, float gy, float gz, float& lx, float& ly, float& lz) const
 {
   /// convert Global -> Local c.s.
   const SliceInfo& sliceInfo = getSliceInfo(slice);
@@ -254,7 +254,7 @@ GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int slice, float gx, float g
   lz = gz;
 }
 
-GPUdi() void TPCFastTransformGeo::convVtoLocal(int slice, float v, float& lz) const
+GPUdi() void TPCFastTransformGeo::convVtoLocal(int32_t slice, float v, float& lz) const
 {
   /// convert UV -> Local c.s.
   if (slice < NumberOfSlicesA) { // TPC side A
@@ -265,7 +265,7 @@ GPUdi() void TPCFastTransformGeo::convVtoLocal(int slice, float v, float& lz) co
   lz += mTPCalignmentZ; // global TPC alignment
 }
 
-GPUdi() void TPCFastTransformGeo::convUVtoLocal(int slice, float u, float v, float& ly, float& lz) const
+GPUdi() void TPCFastTransformGeo::convUVtoLocal(int32_t slice, float u, float v, float& ly, float& lz) const
 {
   /// convert UV -> Local c.s.
   if (slice < NumberOfSlicesA) { // TPC side A
@@ -278,7 +278,7 @@ GPUdi() void TPCFastTransformGeo::convUVtoLocal(int slice, float u, float v, flo
   lz += mTPCalignmentZ; // global TPC alignment
 }
 
-GPUdi() void TPCFastTransformGeo::convLocalToUV(int slice, float ly, float lz, float& u, float& v) const
+GPUdi() void TPCFastTransformGeo::convLocalToUV(int32_t slice, float ly, float lz, float& u, float& v) const
 {
   /// convert Local-> UV c.s.
   lz = lz - mTPCalignmentZ;      // global TPC alignment
@@ -291,7 +291,7 @@ GPUdi() void TPCFastTransformGeo::convLocalToUV(int slice, float ly, float lz, f
   }
 }
 
-GPUdi() void TPCFastTransformGeo::convUVtoScaledUV(int slice, int row, float u, float v, float& su, float& sv) const
+GPUdi() void TPCFastTransformGeo::convUVtoScaledUV(int32_t slice, int32_t row, float u, float v, float& su, float& sv) const
 {
   /// convert UV -> Scaled UV
   const RowInfo& rowInfo = getRowInfo(row);
@@ -303,7 +303,7 @@ GPUdi() void TPCFastTransformGeo::convUVtoScaledUV(int slice, int row, float u, 
   }
 }
 
-GPUdi() void TPCFastTransformGeo::convScaledUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const
+GPUdi() void TPCFastTransformGeo::convScaledUVtoUV(int32_t slice, int32_t row, float su, float sv, float& u, float& v) const
 {
   /// convert Scaled UV -> UV
   const RowInfo& rowInfo = getRowInfo(row);
@@ -315,7 +315,7 @@ GPUdi() void TPCFastTransformGeo::convScaledUVtoUV(int slice, int row, float su,
   }
 }
 
-GPUdi() void TPCFastTransformGeo::convScaledUVtoLocal(int slice, int row, float su, float sv, float& ly, float& lz) const
+GPUdi() void TPCFastTransformGeo::convScaledUVtoLocal(int32_t slice, int32_t row, float su, float sv, float& ly, float& lz) const
 {
   /// convert Scaled UV -> Local c.s.
   float u, v;
@@ -323,14 +323,14 @@ GPUdi() void TPCFastTransformGeo::convScaledUVtoLocal(int slice, int row, float 
   convUVtoLocal(slice, u, v, ly, lz);
 }
 
-GPUdi() float TPCFastTransformGeo::convPadToU(int row, float pad) const
+GPUdi() float TPCFastTransformGeo::convPadToU(int32_t row, float pad) const
 {
   /// convert Pad coordinate -> U
   const RowInfo& rowInfo = getRowInfo(row);
   return (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
 }
 
-GPUdi() float TPCFastTransformGeo::convUtoPad(int row, float u) const
+GPUdi() float TPCFastTransformGeo::convUtoPad(int32_t row, float u) const
 {
   /// convert U -> Pad coordinate
   const RowInfo& rowInfo = getRowInfo(row);

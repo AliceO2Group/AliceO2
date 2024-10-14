@@ -60,6 +60,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/load_all_libs.C
             macro/putCondition.C
             macro/rootlogon.C
+            macro/CreateSampleIRFrames.C
             Detectors/Upgrades/ALICE3/macros/ALICE3Field.C)
 
 

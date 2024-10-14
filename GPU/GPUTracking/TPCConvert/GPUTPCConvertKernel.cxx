@@ -22,17 +22,17 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCConvertKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCConvertKernel::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
-  const int iSlice = iBlock / GPUCA_ROW_COUNT;
-  const int iRow = iBlock % GPUCA_ROW_COUNT;
+  const int32_t iSlice = iBlock / GPUCA_ROW_COUNT;
+  const int32_t iRow = iBlock % GPUCA_ROW_COUNT;
   GPUTPCConvert& GPUrestrict() convert = processors.tpcConverter;
   const o2::tpc::ClusterNativeAccess* GPUrestrict() native = processors.ioPtrs.clustersNative;
   GPUTPCClusterData* GPUrestrict() clusters = convert.mMemory->clusters[iSlice];
-  const int idOffset = native->clusterOffset[iSlice][iRow];
-  const int indexOffset = native->clusterOffset[iSlice][iRow] - native->clusterOffset[iSlice][0];
+  const int32_t idOffset = native->clusterOffset[iSlice][iRow];
+  const int32_t indexOffset = native->clusterOffset[iSlice][iRow] - native->clusterOffset[iSlice][0];
 
-  for (unsigned int k = get_local_id(0); k < native->nClusters[iSlice][iRow]; k += get_local_size(0)) {
+  for (uint32_t k = get_local_id(0); k < native->nClusters[iSlice][iRow]; k += get_local_size(0)) {
     const auto& GPUrestrict() clin = native->clusters[iSlice][iRow][k];
     float x, y, z;
     GPUTPCConvertImpl::convert(processors, iSlice, iRow, clin.getPad(), clin.getTime(), x, y, z);

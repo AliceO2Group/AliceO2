@@ -33,8 +33,8 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
     return;
   }
   seeds->Clear();
-  int index = 0;
-  for (int i = 0; i < merger->NOutputTracks(); i++) {
+  int32_t index = 0;
+  for (int32_t i = 0; i < merger->NOutputTracks(); i++) {
     const GPUTPCGMMergedTrack& track = merger->OutputTracks()[i];
     if (!track.OK()) {
       continue;
@@ -43,14 +43,14 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
     AliTPCtrack tr;
     tr.Set(track.GetParam().GetX(), track.GetAlpha(), track.GetParam().GetPar(), track.GetParam().GetCov());
     AliTPCseed* seed = new (tpctracker->NextFreeSeed()) AliTPCseed(tr);
-    for (int j = 0; j < GPUCA_ROW_COUNT; j++) {
+    for (int32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
       seed->SetClusterPointer(j, nullptr);
       seed->SetClusterIndex(j, -1);
     }
-    int ncls = 0;
-    int lastrow = -1;
-    int lastleg = -1;
-    for (int j = track.NClusters() - 1; j >= 0; j--) {
+    int32_t ncls = 0;
+    int32_t lastrow = -1;
+    int32_t lastleg = -1;
+    for (int32_t j = track.NClusters() - 1; j >= 0; j--) {
       const GPUTPCGMMergedTrackHit& cls = merger->Clusters()[track.FirstClusterRef() + j];
       if (cls.state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
@@ -63,7 +63,7 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
       }
 
       AliTPCtrackerRow& row = tpctracker->GetRow(cls.slice % 18, cls.row);
-      unsigned int clIndexOffline = 0;
+      uint32_t clIndexOffline = 0;
       AliTPCclusterMI* clOffline = row.FindNearest2(cls.y, cls.z, 0.01f, 0.01f, clIndexOffline);
       if (!clOffline) {
         continue;
@@ -111,8 +111,8 @@ void GPUTPCGMTracksToTPCSeeds::UpdateParamsOuter(TObjArray* seeds)
   if (merger == nullptr) {
     return;
   }
-  int index = 0;
-  for (int i = 0; i < merger->NOutputTracks(); i++) {
+  int32_t index = 0;
+  for (int32_t i = 0; i < merger->NOutputTracks(); i++) {
     const GPUTPCGMMergedTrack& track = merger->OutputTracks()[i];
     if (!track.OK()) {
       continue;
@@ -133,8 +133,8 @@ void GPUTPCGMTracksToTPCSeeds::UpdateParamsInner(TObjArray* seeds)
   if (merger == nullptr) {
     return;
   }
-  int index = 0;
-  for (int i = 0; i < merger->NOutputTracks(); i++) {
+  int32_t index = 0;
+  for (int32_t i = 0; i < merger->NOutputTracks(); i++) {
     const GPUTPCGMMergedTrack& track = merger->OutputTracks()[i];
     if (!track.OK()) {
       continue;

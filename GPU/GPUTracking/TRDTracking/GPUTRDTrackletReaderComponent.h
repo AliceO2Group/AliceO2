@@ -81,8 +81,8 @@ class GPUTRDTrackletReaderComponent : public AliHLTProcessor
   const char* GetComponentID();
   void GetInputDataTypes(vector<AliHLTComponentDataType>& list);
   AliHLTComponentDataType GetOutputDataType();
-  int GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
-  void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  int32_t GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
+  void GetOutputDataSize(uint64_t& constBase, double& inputMultiplier);
   void GetOCDBObjectDescription(TMap* const targetMap);
 
   // Spawn function, return new class instance
@@ -90,12 +90,12 @@ class GPUTRDTrackletReaderComponent : public AliHLTProcessor
 
  protected:
   // AliHLTComponent interface functions
-  int DoInit(int argc, const char** argv);
-  int DoDeinit();
-  int DoEvent(const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData);
-  int ScanConfigurationArgument(int argc, const char** argv);
-  int Reconfigure(const char* cdbEntry, const char* chainId);
-  int ReadPreprocessorValues(const char* modules);
+  int32_t DoInit(int argc, const char** argv);
+  int32_t DoDeinit();
+  int32_t DoEvent(const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData);
+  int32_t ScanConfigurationArgument(int argc, const char** argv);
+  int32_t Reconfigure(const char* cdbEntry, const char* chainId);
+  int32_t ReadPreprocessorValues(const char* modules);
 
   using AliHLTProcessor::DoEvent;
 

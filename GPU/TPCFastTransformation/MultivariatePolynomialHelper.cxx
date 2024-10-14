@@ -51,7 +51,7 @@ std::string MultivariatePolynomialHelper<0, 0, false>::getFormula() const
   std::string formula = "";
 #ifndef GPUCA_NO_FMT
   const auto terms = getTerms();
-  for (int i = 0; i < (int)terms.size() - 1; ++i) {
+  for (int32_t i = 0; i < (int32_t)terms.size() - 1; ++i) {
     formula += fmt::format("{} + ", terms[i]);
   }
   formula += terms.back();
@@ -62,8 +62,8 @@ std::string MultivariatePolynomialHelper<0, 0, false>::getFormula() const
 std::vector<std::string> MultivariatePolynomialHelper<0, 0, false>::getTerms() const
 {
   std::vector<std::string> terms{"par[0]"};
-  int indexPar = 1;
-  for (unsigned int deg = 1; deg <= mDegree; ++deg) {
+  int32_t indexPar = 1;
+  for (uint32_t deg = 1; deg <= mDegree; ++deg) {
     const auto strTmp = combination_with_repetiton<std::vector<std::string>>(deg, mDim, nullptr, indexPar, nullptr, mInteractionOnly);
     terms.insert(terms.end(), strTmp.begin(), strTmp.end());
   }
@@ -73,7 +73,7 @@ std::vector<std::string> MultivariatePolynomialHelper<0, 0, false>::getTerms() c
 TLinearFitter MultivariatePolynomialHelper<0, 0, false>::getTLinearFitter() const
 {
   const std::string formula = getTLinearFitterFormula();
-  TLinearFitter fitter(int(mDim), formula.data(), "");
+  TLinearFitter fitter(int32_t(mDim), formula.data(), "");
   return fitter;
 }
 
@@ -82,10 +82,10 @@ std::vector<float> MultivariatePolynomialHelper<0, 0, false>::fit(TLinearFitter&
   if (clearPoints) {
     fitter.ClearPoints();
   }
-  const int nDim = static_cast<int>(x.size() / y.size());
-  fitter.AssignData(static_cast<int>(y.size()), nDim, x.data(), y.data(), error.empty() ? nullptr : error.data());
+  const int32_t nDim = static_cast<int32_t>(x.size() / y.size());
+  fitter.AssignData(static_cast<int32_t>(y.size()), nDim, x.data(), y.data(), error.empty() ? nullptr : error.data());
 
-  const int status = fitter.Eval();
+  const int32_t status = fitter.Eval();
   if (status != 0) {
 #ifndef GPUCA_NO_FMT
     LOGP(info, "Fitting failed with status: {}", status);
@@ -96,7 +96,7 @@ std::vector<float> MultivariatePolynomialHelper<0, 0, false>::fit(TLinearFitter&
   TVectorD params;
   fitter.GetParameters(params);
   std::vector<float> paramsFloat;
-  paramsFloat.reserve(static_cast<unsigned int>(params.GetNrows()));
+  paramsFloat.reserve(static_cast<uint32_t>(params.GetNrows()));
   std::copy(params.GetMatrixArray(), params.GetMatrixArray() + params.GetNrows(), std::back_inserter(paramsFloat));
   return paramsFloat;
 }
@@ -108,23 +108,23 @@ std::vector<float> MultivariatePolynomialHelper<0, 0, false>::fit(std::vector<do
 }
 
 template <class Type>
-Type MultivariatePolynomialHelper<0, 0, false>::combination_with_repetiton(const unsigned int degree, const unsigned int dim, const float par[], int& indexPar, const float x[], const bool interactionOnly) const
+Type MultivariatePolynomialHelper<0, 0, false>::combination_with_repetiton(const uint32_t degree, const uint32_t dim, const float par[], int32_t& indexPar, const float x[], const bool interactionOnly) const
 {
   {
     // each digit represents the currently set dimension
-    unsigned int pos[FMaxdegree + 1]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    uint32_t pos[FMaxdegree + 1]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     // return value is either the sum of all polynomials or a vector of strings containing the formula for each polynomial
     Type val(0);
     for (;;) {
       // starting on the rightmost digit
-      for (unsigned int i = degree; i > 0; --i) {
+      for (uint32_t i = degree; i > 0; --i) {
         // check if digit of current position is at is max position
         if (pos[i] == dim) {
           // increase digit of left position
           ++pos[i - 1];
           // resetting the indices of the digits to the right
-          for (unsigned int j = i; j <= degree; ++j) {
+          for (uint32_t j = i; j <= degree; ++j) {
             pos[j] = pos[i - 1];
           }
         }
@@ -174,11 +174,11 @@ Type MultivariatePolynomialHelper<0, 0, false>::combination_with_repetiton(const
   }
 }
 
-float MultivariatePolynomialHelper<0, 0, false>::evalPol(const float par[], const float x[], const unsigned int degree, const unsigned int dim, const bool interactionOnly) const
+float MultivariatePolynomialHelper<0, 0, false>::evalPol(const float par[], const float x[], const uint32_t degree, const uint32_t dim, const bool interactionOnly) const
 {
   float val = par[0];
-  int indexPar = 1;
-  for (unsigned int deg = 1; deg <= degree; ++deg) {
+  int32_t indexPar = 1;
+  for (uint32_t deg = 1; deg <= degree; ++deg) {
     val += combination_with_repetiton<float>(deg, dim, par, indexPar, x, interactionOnly);
   }
   return val;

@@ -32,7 +32,7 @@
 using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
-int createTPCFastTransform(TPCFastTransform& fastTransform)
+int32_t createTPCFastTransform(TPCFastTransform& fastTransform)
 {
 
   AliTPCcalibDB* tpcCalib = AliTPCcalibDB::Instance();
@@ -41,14 +41,14 @@ int createTPCFastTransform(TPCFastTransform& fastTransform)
     return -1;
   }
   AliTPCTransform* origTransform = tpcCalib->GetTransform();
-  UInt_t timeStamp = origTransform->GetCurrentTimeStamp();
+  uint32_t timeStamp = origTransform->GetCurrentTimeStamp();
 
   TPCFastTransformManager manager;
 
   TStopwatch timer;
   timer.Start();
 
-  int err = manager.create(fastTransform, origTransform, timeStamp);
+  int32_t err = manager.create(fastTransform, origTransform, timeStamp);
 
   timer.Stop();
 

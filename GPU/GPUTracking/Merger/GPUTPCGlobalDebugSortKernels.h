@@ -36,8 +36,8 @@ class GPUTPCGlobalDebugSortKernels : public GPUKernelTemplate
   typedef GPUTPCGMMerger processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors) { return &processors.tpcMerger; }
 
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& tracker, char parameter);
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& tracker, int8_t parameter);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

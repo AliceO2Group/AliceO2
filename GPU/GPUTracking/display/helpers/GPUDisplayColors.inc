@@ -162,11 +162,11 @@ inline void GPUDisplay::SetColorMarked()
   }
   ActivateColor();
 }
-inline void GPUDisplay::SetCollisionColor(int col)
+inline void GPUDisplay::SetCollisionColor(int32_t col)
 {
-  int red = (col * 2) % 5;
-  int blue = (2 + col * 3) % 7;
-  int green = (4 + col * 5) % 6;
+  int32_t red = (col * 2) % 5;
+  int32_t blue = (2 + col * 3) % 7;
+  int32_t green = (4 + col * 5) % 6;
   if (mCfgL.invertColors && red == 4 && blue == 5 && green == 6) {
     red = 0;
   }

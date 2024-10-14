@@ -35,7 +35,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #if !defined(GPUCA_GPUCODE)
 
 template <class DataT>
-void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots)
+void Spline1DContainer<DataT>::recreate(int32_t nYdim, int32_t numberOfKnots)
 {
   /// Constructor for a regular spline
   /// \param numberOfKnots     Number of knots
@@ -44,15 +44,15 @@ void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots)
     numberOfKnots = 2;
   }
 
-  std::vector<int> knots(numberOfKnots);
-  for (int i = 0; i < numberOfKnots; i++) {
+  std::vector<int32_t> knots(numberOfKnots);
+  for (int32_t i = 0; i < numberOfKnots; i++) {
     knots[i] = i;
   }
   recreate(nYdim, numberOfKnots, knots.data());
 }
 
 template <class DataT>
-void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots, const int inputKnots[])
+void Spline1DContainer<DataT>::recreate(int32_t nYdim, int32_t numberOfKnots, const int32_t inputKnots[])
 {
   /// Main constructor for an irregular spline
   ///
@@ -68,19 +68,19 @@ void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots, const int 
 
   mYdim = (nYdim >= 0) ? nYdim : 0;
 
-  std::vector<int> knotU;
+  std::vector<int32_t> knotU;
 
   { // sort knots
-    std::vector<int> tmp;
-    for (int i = 0; i < numberOfKnots; i++) {
+    std::vector<int32_t> tmp;
+    for (int32_t i = 0; i < numberOfKnots; i++) {
       tmp.push_back(inputKnots[i]);
     }
     std::sort(tmp.begin(), tmp.end());
 
     knotU.push_back(0); //  first knot at 0
 
-    for (unsigned int i = 1; i < tmp.size(); ++i) {
-      int u = tmp[i] - tmp[0];
+    for (uint32_t i = 1; i < tmp.size(); ++i) {
+      int32_t u = tmp[i] - tmp[0];
       if (knotU.back() < u) { // remove duplicated knots
         knotU.push_back(u);
       }
@@ -95,9 +95,9 @@ void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots, const int 
   mXmin = 0.;
   mXtoUscale = 1.;
 
-  const int uToKnotMapOffset = mNumberOfKnots * sizeof(Knot);
-  int parametersOffset = uToKnotMapOffset + (mUmax + 1) * sizeof(int);
-  int bufferSize = parametersOffset;
+  const int32_t uToKnotMapOffset = mNumberOfKnots * sizeof(Knot);
+  int32_t parametersOffset = uToKnotMapOffset + (mUmax + 1) * sizeof(int32_t);
+  int32_t bufferSize = parametersOffset;
   if (mYdim > 0) {
     parametersOffset = alignSize(bufferSize, getParameterAlignmentBytes());
     bufferSize = parametersOffset + getSizeOfParameters();
@@ -105,20 +105,20 @@ void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots, const int 
 
   FlatObject::finishConstruction(bufferSize);
 
-  mUtoKnotMap = reinterpret_cast<int*>(mFlatBufferPtr + uToKnotMapOffset);
+  mUtoKnotMap = reinterpret_cast<int32_t*>(mFlatBufferPtr + uToKnotMapOffset);
   mParameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
 
-  for (int i = 0; i < getNumberOfParameters(); i++) {
+  for (int32_t i = 0; i < getNumberOfParameters(); i++) {
     mParameters[i] = 0;
   }
 
   Knot* s = getKnots();
 
-  for (int i = 0; i < mNumberOfKnots; i++) {
+  for (int32_t i = 0; i < mNumberOfKnots; i++) {
     s[i].u = knotU[i];
   }
 
-  for (int i = 0; i < mNumberOfKnots - 1; i++) {
+  for (int32_t i = 0; i < mNumberOfKnots - 1; i++) {
     s[i].Li = 1. / (s[i + 1].u - s[i].u); // do division in double
   }
 
@@ -126,9 +126,9 @@ void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots, const int 
 
   // Set up the map (integer U) -> (knot index)
 
-  int* map = getUtoKnotMap();
+  int32_t* map = getUtoKnotMap();
 
-  const int iKnotMax = mNumberOfKnots - 2;
+  const int32_t iKnotMax = mNumberOfKnots - 2;
 
   //
   // With iKnotMax=nKnots-2 we map the U==Umax coordinate to the last [nKnots-2, nKnots-1] segment.
@@ -136,7 +136,7 @@ void Spline1DContainer<DataT>::recreate(int nYdim, int numberOfKnots, const int 
   // Any U from [0,Umax] is mapped to some knot_i such, that the next knot_i+1 always exist
   //
 
-  for (int u = 0, iKnot = 0; u <= mUmax; u++) {
+  for (int32_t u = 0, iKnot = 0; u <= mUmax; u++) {
     if ((knotU[iKnot + 1] == u) && (iKnot < iKnotMax)) {
       iKnot = iKnot + 1;
     }
@@ -154,8 +154,8 @@ void Spline1DContainer<DataT>::print() const
   printf("  mUmax = %d\n", mUmax);
   printf("  mUtoKnotMap = %p \n", (void*)mUtoKnotMap);
   printf("  knots: ");
-  for (int i = 0; i < mNumberOfKnots; i++) {
-    printf("%d ", (int)getKnot(i).u);
+  for (int32_t i = 0; i < mNumberOfKnots; i++) {
+    printf("%d ", (int32_t)getKnot(i).u);
   }
   printf("\n");
 }
@@ -166,7 +166,7 @@ template <class DataT>
 void Spline1DContainer<DataT>::approximateFunction(
   double xMin, double xMax,
   std::function<void(double x, double f[])> F,
-  int nAxiliaryDataPoints)
+  int32_t nAxiliaryDataPoints)
 {
   /// approximate a function F with this spline
   Spline1DHelper<DataT> helper;
@@ -175,7 +175,7 @@ void Spline1DContainer<DataT>::approximateFunction(
 
 #ifndef GPUCA_ALIROOT_LIB
 template <class DataT>
-int Spline1DContainer<DataT>::writeToFile(TFile& outf, const char* name)
+int32_t Spline1DContainer<DataT>::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
   return FlatObject::writeToFile(*this, outf, name);
@@ -243,9 +243,9 @@ void Spline1DContainer<DataT>::setActualBufferAddress(char* actualFlatBufferPtr)
 
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
 
-  const int uToKnotMapOffset = mNumberOfKnots * sizeof(Knot);
-  mUtoKnotMap = reinterpret_cast<int*>(mFlatBufferPtr + uToKnotMapOffset);
-  int parametersOffset = uToKnotMapOffset + (mUmax + 1) * sizeof(int);
+  const int32_t uToKnotMapOffset = mNumberOfKnots * sizeof(Knot);
+  mUtoKnotMap = reinterpret_cast<int32_t*>(mFlatBufferPtr + uToKnotMapOffset);
+  int32_t parametersOffset = uToKnotMapOffset + (mUmax + 1) * sizeof(int32_t);
   if (mYdim > 0) {
     parametersOffset = alignSize(parametersOffset, getParameterAlignmentBytes());
   }
@@ -263,7 +263,7 @@ void Spline1DContainer<DataT>::setFutureBufferAddress(char* futureFlatBufferPtr)
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 template <class DataT>
-int Spline1DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
+int32_t Spline1DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
 {
   return Spline1DHelper<DataT>::test(draw, drawDataPoints);
 }

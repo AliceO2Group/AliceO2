@@ -35,10 +35,10 @@ class GPUTPCNeighboursCleaner : public GPUKernelTemplate
  public:
   MEM_CLASS_PRE()
   struct GPUSharedMemory {
-    int mIRow;   // current row index
-    int mIRowUp; // current row index
-    int mIRowDn; // current row index
-    int mNHits;  // number of hits
+    int32_t mIRow;   // current row index
+    int32_t mIRowUp; // current row index
+    int32_t mIRowDn; // current row index
+    int32_t mNHits;  // number of hits
   };
 
   typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
@@ -48,8 +48,8 @@ class GPUTPCNeighboursCleaner : public GPUKernelTemplate
   {
     return processors.tpcTrackers;
   }
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t /*nBlocks*/, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

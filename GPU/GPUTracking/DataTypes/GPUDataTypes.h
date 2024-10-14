@@ -117,7 +117,7 @@ namespace gpu
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include "utils/bitfield.h"
 #define ENUM_CLASS class
-#define ENUM_UINT : unsigned int
+#define ENUM_UINT : uint32_t
 #define GPUCA_RECO_STEP GPUDataTypes::RecoStep
 #else
 #define ENUM_CLASS
@@ -181,13 +181,13 @@ class GPUDataTypes
   static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL", "OCL2"};
   static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression", "Global Refit"};
   static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
-  typedef bitfield<RecoStep, unsigned int> RecoStepField;
-  typedef bitfield<InOutType, unsigned int> InOutTypeField;
-  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
-  constexpr static int N_GENERAL_STEPS = sizeof(GPUDataTypes::GENERAL_STEP_NAMES) / sizeof(GPUDataTypes::GENERAL_STEP_NAMES[0]);
+  typedef bitfield<RecoStep, uint32_t> RecoStepField;
+  typedef bitfield<InOutType, uint32_t> InOutTypeField;
+  constexpr static int32_t N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
+  constexpr static int32_t N_GENERAL_STEPS = sizeof(GPUDataTypes::GENERAL_STEP_NAMES) / sizeof(GPUDataTypes::GENERAL_STEP_NAMES[0]);
 #endif
 #ifdef GPUCA_NOCOMPAT
-  static constexpr unsigned int NSLICES = 36;
+  static constexpr uint32_t NSLICES = 36;
 #endif
   static DeviceType GetDeviceType(const char* type);
 };
@@ -230,25 +230,25 @@ typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 mu
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
 
 struct GPUTrackingInOutZS {
-  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
-  static constexpr unsigned int NENDPOINTS = 20;
+  static constexpr uint32_t NSLICES = GPUDataTypes::NSLICES;
+  static constexpr uint32_t NENDPOINTS = 20;
   struct GPUTrackingInOutZSSlice {
     const void* const* zsPtr[NENDPOINTS];
-    const unsigned int* nZSPtr[NENDPOINTS];
-    unsigned int count[NENDPOINTS];
+    const uint32_t* nZSPtr[NENDPOINTS];
+    uint32_t count[NENDPOINTS];
   };
   struct GPUTrackingInOutZSCounts {
-    unsigned int count[NSLICES][NENDPOINTS] = {};
+    uint32_t count[NSLICES][NENDPOINTS] = {};
   };
   struct GPUTrackingInOutZSMeta {
     void* ptr[NSLICES][NENDPOINTS];
-    unsigned int n[NSLICES][NENDPOINTS];
+    uint32_t n[NSLICES][NENDPOINTS];
   };
   GPUTrackingInOutZSSlice slice[NSLICES];
 };
 
 struct GPUTrackingInOutDigits {
-  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
+  static constexpr uint32_t NSLICES = GPUDataTypes::NSLICES;
   const o2::tpc::Digit* tpcDigits[NSLICES] = {nullptr};
   size_t nTPCDigits[NSLICES] = {0};
   const GPUTPCDigitsMCInput* tpcDigitsMC = nullptr;
@@ -258,91 +258,91 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
 
   // TPC
-  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
+  static constexpr uint32_t NSLICES = GPUDataTypes::NSLICES;
   const GPUTrackingInOutZS* tpcZS = nullptr;
   const GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
-  unsigned int nClusterData[NSLICES] = {0};
+  uint32_t nClusterData[NSLICES] = {0};
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
-  unsigned int nRawClusters[NSLICES] = {0};
+  uint32_t nRawClusters[NSLICES] = {0};
   const o2::tpc::ClusterNativeAccess* clustersNative = nullptr;
   const GPUTPCTrack* sliceTracks[NSLICES] = {nullptr};
-  unsigned int nSliceTracks[NSLICES] = {0};
+  uint32_t nSliceTracks[NSLICES] = {0};
   const GPUTPCHitId* sliceClusters[NSLICES] = {nullptr};
-  unsigned int nSliceClusters[NSLICES] = {0};
+  uint32_t nSliceClusters[NSLICES] = {0};
   const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
-  unsigned int nMCLabelsTPC = 0;
+  uint32_t nMCLabelsTPC = 0;
   const GPUTPCMCInfo* mcInfosTPC = nullptr;
-  unsigned int nMCInfosTPC = 0;
+  uint32_t nMCInfosTPC = 0;
   const GPUTPCMCInfoCol* mcInfosTPCCol = nullptr;
-  unsigned int nMCInfosTPCCol = 0;
+  uint32_t nMCInfosTPCCol = 0;
   const GPUTPCGMMergedTrack* mergedTracks = nullptr;
-  unsigned int nMergedTracks = 0;
+  uint32_t nMergedTracks = 0;
   const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
   const GPUTPCGMMergedTrackHitXYZ* mergedTrackHitsXYZ = nullptr;
-  unsigned int nMergedTrackHits = 0;
-  const unsigned int* mergedTrackHitAttachment = nullptr;
-  const unsigned char* mergedTrackHitStates = nullptr;
+  uint32_t nMergedTrackHits = 0;
+  const uint32_t* mergedTrackHitAttachment = nullptr;
+  const uint8_t* mergedTrackHitStates = nullptr;
   const o2::tpc::TrackTPC* outputTracksTPCO2 = nullptr;
-  unsigned int nOutputTracksTPCO2 = 0;
-  const unsigned int* outputClusRefsTPCO2 = nullptr;
-  unsigned int nOutputClusRefsTPCO2 = 0;
+  uint32_t nOutputTracksTPCO2 = 0;
+  const uint32_t* outputClusRefsTPCO2 = nullptr;
+  uint32_t nOutputClusRefsTPCO2 = 0;
   const o2::MCCompLabel* outputTracksTPCO2MC = nullptr;
   const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
 
   // TPC links
-  int* tpcLinkITS = nullptr;
-  int* tpcLinkTRD = nullptr;
-  int* tpcLinkTOF = nullptr;
+  int32_t* tpcLinkITS = nullptr;
+  int32_t* tpcLinkTRD = nullptr;
+  int32_t* tpcLinkTOF = nullptr;
   const o2::track::TrackParCov** globalTracks = nullptr;
   float* globalTrackTimes = nullptr;
-  unsigned int nGlobalTracks = 0;
+  uint32_t nGlobalTracks = 0;
 
   // TRD
   const GPUTRDTrackletWord* trdTracklets = nullptr;
   const GPUTRDSpacePoint* trdSpacePoints = nullptr;
-  unsigned int nTRDTracklets = 0;
+  uint32_t nTRDTracklets = 0;
   const GPUTRDTrackGPU* trdTracks = nullptr;
   const GPUTRDTrack* trdTracksO2 = nullptr;
-  unsigned int nTRDTracks = 0;
+  uint32_t nTRDTracks = 0;
   const float* trdTriggerTimes = nullptr;
-  const int* trdTrackletIdxFirst = nullptr;
-  const char* trdTrigRecMask = nullptr;
-  unsigned int nTRDTriggerRecords = 0;
+  const int32_t* trdTrackletIdxFirst = nullptr;
+  const uint8_t* trdTrigRecMask = nullptr;
+  uint32_t nTRDTriggerRecords = 0;
   const GPUTRDTrack* trdTracksITSTPCTRD = nullptr;
-  unsigned int nTRDTracksITSTPCTRD = 0;
+  uint32_t nTRDTracksITSTPCTRD = 0;
   const GPUTRDTrack* trdTracksTPCTRD = nullptr;
-  unsigned int nTRDTracksTPCTRD = 0;
+  uint32_t nTRDTracksTPCTRD = 0;
 
   // TOF
   const o2::tof::Cluster* tofClusters = nullptr;
-  unsigned int nTOFClusters = 0;
+  uint32_t nTOFClusters = 0;
   const o2::dataformats::MatchInfoTOF* itstpctofMatches = nullptr;
-  unsigned int nITSTPCTOFMatches = 0;
+  uint32_t nITSTPCTOFMatches = 0;
   const o2::dataformats::MatchInfoTOF* itstpctrdtofMatches = nullptr;
-  unsigned int nITSTPCTRDTOFMatches = 0;
+  uint32_t nITSTPCTRDTOFMatches = 0;
   const o2::dataformats::MatchInfoTOF* tpctrdtofMatches = nullptr;
-  unsigned int nTPCTRDTOFMatches = 0;
+  uint32_t nTPCTRDTOFMatches = 0;
   const o2::dataformats::MatchInfoTOF* tpctofMatches = nullptr;
-  unsigned int nTPCTOFMatches = 0;
+  uint32_t nTPCTOFMatches = 0;
 
   // ITS
   const o2::itsmft::CompClusterExt* itsCompClusters = nullptr;
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* itsClusterMC = nullptr;
   const o2::BaseCluster<float>* itsClusters = nullptr;
-  unsigned int nItsClusters = 0;
+  uint32_t nItsClusters = 0;
   const o2::itsmft::ROFRecord* itsClusterROF = nullptr;
-  unsigned int nItsClusterROF = 0;
+  uint32_t nItsClusterROF = 0;
   const o2::its::TrackITS* itsTracks = nullptr;
   const o2::MCCompLabel* itsTrackMC = nullptr;
-  unsigned int nItsTracks = 0;
-  const int* itsTrackClusIdx = nullptr;
+  uint32_t nItsTracks = 0;
+  const int32_t* itsTrackClusIdx = nullptr;
   const o2::itsmft::ROFRecord* itsTrackROF = nullptr;
-  unsigned int nItsTrackROF = 0;
+  uint32_t nItsTrackROF = 0;
 
   // TPC-ITS
   const o2::dataformats::TrackTPCITS* tracksTPCITSO2 = nullptr;
-  unsigned int nTracksTPCITSO2 = 0;
+  uint32_t nTracksTPCITSO2 = 0;
 
   // Common
   const GPUSettingsTF* settingsTF = nullptr;

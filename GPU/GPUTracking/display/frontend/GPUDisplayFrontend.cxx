@@ -48,7 +48,7 @@ GPUDisplayFrontend::~GPUDisplayFrontend() = default;
 void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 {
   GPUDisplayFrontend* me = reinterpret_cast<GPUDisplayFrontend*>(ptr);
-  int retVal = me->FrontendMain();
+  int32_t retVal = me->FrontendMain();
   if (retVal == -1) {
     me->InitDisplay(true);
   }
@@ -63,15 +63,15 @@ void GPUDisplayFrontend::HandleSendKey()
   }
 }
 
-void GPUDisplayFrontend::HandleKey(unsigned char key) { mDisplay->HandleKey(key); }
-int GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
-void GPUDisplayFrontend::ResizeScene(int width, int height)
+void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
+int32_t GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
+void GPUDisplayFrontend::ResizeScene(int32_t width, int32_t height)
 {
   mDisplayHeight = height;
   mDisplayWidth = width;
   mDisplay->ResizeScene(width, height);
 }
-int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
+int32_t GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
 void GPUDisplayFrontend::ExitDisplay()
 {
   mDisplay->ExitDisplay();
@@ -89,9 +89,9 @@ void GPUDisplayFrontend::stopGUI()
 #endif
 }
 
-int GPUDisplayFrontend::startGUI()
+int32_t GPUDisplayFrontend::startGUI()
 {
-  int retVal = 1;
+  int32_t retVal = 1;
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
   if (!mGUI) {
     mGUI.reset(new GPUDisplayGUIWrapper);
@@ -156,7 +156,7 @@ GPUDisplayBackend* GPUDisplayFrontend::backend()
   return mDisplay->backend();
 }
 
-int& GPUDisplayFrontend::drawTextFontSize()
+int32_t& GPUDisplayFrontend::drawTextFontSize()
 {
   return mDisplay->drawTextFontSize();
 }

@@ -35,15 +35,15 @@ class GPUReconstructionOCL1Backend : public GPUReconstructionOCL
  protected:
   GPUReconstructionOCL1Backend(const GPUSettingsDeviceBackend& cfg);
 
-  template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlSetupArgs<T, I, Args...>& args);
-  template <class S, class T, int I, bool MULTI>
+  template <class T, int32_t I = 0, typename... Args>
+  int32_t runKernelBackend(const krnlSetupArgs<T, I, Args...>& args);
+  template <class S, class T, int32_t I, bool MULTI>
   S& getKernelObject();
 
   RecoStepField AvailableGPURecoSteps() override { return (RecoStep::TPCSliceTracking); }
   bool ContextForAllPlatforms() override { return true; }
-  bool CheckPlatform(unsigned int i) override;
-  int GetOCLPrograms() override;
+  bool CheckPlatform(uint32_t i) override;
+  int32_t GetOCLPrograms() override;
 };
 
 using GPUReconstructionOCL1 = GPUReconstructionKernels<GPUReconstructionOCL1Backend>;

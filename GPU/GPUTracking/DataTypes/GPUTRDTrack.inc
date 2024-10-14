@@ -34,7 +34,7 @@ GPUd() void GPUTRDTrack_t<T>::initialize()
   mCollisionId = -1;
   mFlags = 0;
   mIsCrossingNeighbor = 0;
-  for (int i = 0; i < kNLayers; ++i) {
+  for (int32_t i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = -1;
   }
 }
@@ -62,11 +62,11 @@ GPUd() void GPUTRDTrack_t<T>::ConvertTo(GPUTRDTrackDataRecord& t) const
   t.fq1Pt = T::getQ2Pt();
   t.mSinPhi = T::getSnp();
   t.fTgl = T::getTgl();
-  for (int i = 0; i < 15; i++) {
+  for (int32_t i = 0; i < 15; i++) {
     t.fC[i] = T::getCov()[i];
   }
   t.fTPCTrackID = getRefGlobalTrackIdRaw();
-  for (int i = 0; i < kNLayers; i++) {
+  for (int32_t i = 0; i < kNLayers; i++) {
     t.fAttachedTracklets[i] = getTrackletIndex(i);
   }
 }
@@ -84,7 +84,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   mFlags = 0;
   mIsCrossingNeighbor = 0;
   mCollisionId = -1;
-  for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
+  for (int32_t iLayer = 0; iLayer < kNLayers; iLayer++) {
     mAttachedTracklets[iLayer] = t.fAttachedTracklets[iLayer];
   }
 }
@@ -114,7 +114,7 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
   : T(t), mChi2(t.mChi2), mSignal(t.mSignal), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags), mIsCrossingNeighbor(t.mIsCrossingNeighbor)
 {
   // copy constructor
-  for (int i = 0; i < kNLayers; ++i) {
+  for (int32_t i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = t.mAttachedTracklets[i];
   }
 }
@@ -140,18 +140,18 @@ GPUd() GPUTRDTrack_t<T>& GPUTRDTrack_t<T>::operator=(const GPUTRDTrack_t<T>& t)
   mCollisionId = t.mCollisionId;
   mFlags = t.mFlags;
   mIsCrossingNeighbor = t.mIsCrossingNeighbor;
-  for (int i = 0; i < kNLayers; ++i) {
+  for (int32_t i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = t.mAttachedTracklets[i];
   }
   return *this;
 }
 
 template <typename T>
-GPUd() int GPUTRDTrack_t<T>::getNlayersFindable() const
+GPUd() int32_t GPUTRDTrack_t<T>::getNlayersFindable() const
 {
   // returns number of layers in which the track is in active area of TRD
-  int retVal = 0;
-  for (int iLy = 0; iLy < kNLayers; iLy++) {
+  int32_t retVal = 0;
+  for (int32_t iLy = 0; iLy < kNLayers; iLy++) {
     if ((mFlags >> iLy) & 0x1) {
       ++retVal;
     }
@@ -160,11 +160,11 @@ GPUd() int GPUTRDTrack_t<T>::getNlayersFindable() const
 }
 
 template <typename T>
-GPUd() int GPUTRDTrack_t<T>::getNmissingConsecLayers(int iLayer) const
+GPUd() int32_t GPUTRDTrack_t<T>::getNmissingConsecLayers(int32_t iLayer) const
 {
   // returns number of consecutive layers in which the track was
   // inside the deadzone up to (and including) the given layer
-  int retVal = 0;
+  int32_t retVal = 0;
   while (!getIsFindable(iLayer)) {
     ++retVal;
     --iLayer;

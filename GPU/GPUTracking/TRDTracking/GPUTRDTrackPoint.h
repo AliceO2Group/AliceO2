@@ -19,11 +19,11 @@
 
 struct GPUTRDTrackPoint {
   float fX[3];
-  short fVolumeId;
+  int16_t fVolumeId;
 };
 
 struct GPUTRDTrackPointData {
-  unsigned int fCount; // number of space points
+  uint32_t fCount; // number of space points
 #if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
   GPUTRDTrackPoint fPoints[1]; // array of space points
 #else

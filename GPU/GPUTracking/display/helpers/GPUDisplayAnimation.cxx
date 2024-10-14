@@ -35,7 +35,7 @@ void GPUDisplay::setAnimationPoint()
     mAnimateVectors[2].emplace_back(anglePhi);
     mAnimateVectors[3].emplace_back(angleTheta);
   } else {
-    for (int i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < 3; i++) {
       mAnimateVectors[i + 1].emplace_back(mXYZ[i]);
     }
     // Cartesian
@@ -44,7 +44,7 @@ void GPUDisplay::setAnimationPoint()
   mAnimateVectors[4].emplace_back(r);
   if (mCfgL.animationMode & 1) // Euler-angles
   {
-    for (int i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < 3; i++) {
       float newangle = mAngle[i];
       if (mAnimateVectors[0].size()) {
         mAnimationCloseAngle(newangle, mAnimateVectors[i + 5].back());
@@ -58,13 +58,13 @@ void GPUDisplay::setAnimationPoint()
     if (mAnimateVectors[0].size()) {
       mAnimateCloseQuaternion(v, mAnimateVectors[5].back(), mAnimateVectors[6].back(), mAnimateVectors[7].back(), mAnimateVectors[8].back());
     }
-    for (int i = 0; i < 4; i++) {
+    for (int32_t i = 0; i < 4; i++) {
       mAnimateVectors[i + 5].emplace_back(v[i]);
     }
   }
   float delay = 0.f;
   if (mAnimateVectors[0].size()) {
-    delay = mAnimateVectors[0].back() + ((int)(mAnimationDelay * 20)) / 20.f;
+    delay = mAnimateVectors[0].back() + ((int32_t)(mAnimationDelay * 20)) / 20.f;
   }
   mAnimateVectors[0].emplace_back(delay);
   mAnimateConfig.emplace_back(mCfgL);
@@ -72,7 +72,7 @@ void GPUDisplay::setAnimationPoint()
 
 void GPUDisplay::resetAnimation()
 {
-  for (int i = 0; i < 9; i++) {
+  for (int32_t i = 0; i < 9; i++) {
     mAnimateVectors[i].clear();
   }
   mAnimateConfig.clear();
@@ -84,7 +84,7 @@ void GPUDisplay::removeAnimationPoint()
   if (mAnimateVectors[0].size() == 0) {
     return;
   }
-  for (int i = 0; i < 9; i++) {
+  for (int32_t i = 0; i < 9; i++) {
     mAnimateVectors[i].pop_back();
   }
   mAnimateConfig.pop_back();
@@ -92,7 +92,7 @@ void GPUDisplay::removeAnimationPoint()
 
 void GPUDisplay::startAnimation()
 {
-  for (int i = 0; i < 8; i++) {
+  for (int32_t i = 0; i < 8; i++) {
     mAnimationSplines[i].create(mAnimateVectors[0], mAnimateVectors[i + 1]);
   }
   mAnimationTimer.ResetStart();
@@ -101,7 +101,7 @@ void GPUDisplay::startAnimation()
   mAnimationLastBase = 0;
 }
 
-int GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
+int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
   float time = animateTime;
   if (mAnimate && time < 0) {
@@ -125,12 +125,12 @@ int GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4
     return 0;
   }
   float vals[8];
-  for (int i = 0; i < 8; i++) {
+  for (int32_t i = 0; i < 8; i++) {
     vals[i] = mAnimationSplines[i].evaluate(time);
   }
   if (mAnimationChangeConfig && animateTime < 0) {
-    int base = 0;
-    int k = mAnimateVectors[0].size() - 1;
+    int32_t base = 0;
+    int32_t k = mAnimateVectors[0].size() - 1;
     while (base < k && time > mAnimateVectors[0][base]) {
       base++;
     }
@@ -162,7 +162,7 @@ int GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4
       if (mag < 0.0001f) {
         vals[7] = 1;
       } else {
-        for (int i = 0; i < 4; i++) {
+        for (int32_t i = 0; i < 4; i++) {
           vals[4 + i] /= mag;
         }
       }
@@ -184,7 +184,7 @@ int GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4
       r = 1;
     }
     r = vals[3] / r;
-    for (int i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < 3; i++) {
       vals[i] *= r;
     }
   }

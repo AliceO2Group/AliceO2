@@ -13,6 +13,7 @@
 
 #include "Framework/DataRef.h"
 #include <unordered_map>
+#include <map>
 
 namespace o2::framework
 {
@@ -46,6 +47,12 @@ struct ObjectCache {
   /// A map from a CacheId (which is the void* ptr of the previous map).
   /// to an actual (type erased) pointer to the deserialised object.
   std::unordered_map<Id, void*, Id::hash_fn> idToObject;
+
+  /// A cache to the deserialised metadata
+  /// We keep it separate because we want to avoid that looking up
+  /// the metadata also pollutes the object cache.
+  std::unordered_map<std::string, Id> matcherToMetadataId;
+  std::unordered_map<Id, std::map<std::string, std::string>, Id::hash_fn> idToMetadata;
 };
 
 } // namespace o2::framework

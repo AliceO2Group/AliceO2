@@ -84,7 +84,7 @@ void GPUTRDTrackerComponent::GetInputDataTypes(std::vector<AliHLTComponentDataTy
 
 AliHLTComponentDataType GPUTRDTrackerComponent::GetOutputDataType() { return kAliHLTMultipleDataType; }
 
-int GPUTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
+int32_t GPUTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
 {
   // see header file for class documentation
   tgtList.clear();
@@ -94,7 +94,7 @@ int GPUTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtL
   return tgtList.size();
 }
 
-void GPUTRDTrackerComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
+void GPUTRDTrackerComponent::GetOutputDataSize(uint64_t& constBase, double& inputMultiplier)
 {
   // define guess for the output data size
   constBase = 1000;     // minimum size
@@ -107,11 +107,11 @@ AliHLTComponent* GPUTRDTrackerComponent::Spawn()
   return new GPUTRDTrackerComponent;
 }
 
-int GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
+int32_t GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
 {
   // Set configuration parameters for the TRD tracker component from the string
 
-  int iResult = 0;
+  int32_t iResult = 0;
   if (!arguments) {
     return iResult;
   }
@@ -121,9 +121,9 @@ int GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
 
   TObjArray* pTokens = allArgs.Tokenize(" ");
 
-  int nArgs = pTokens ? pTokens->GetEntries() : 0;
+  int32_t nArgs = pTokens ? pTokens->GetEntries() : 0;
 
-  for (int i = 0; i < nArgs; i++) {
+  for (int32_t i = 0; i < nArgs; i++) {
     argument = ((TObjString*)pTokens->At(i))->GetString();
     if (argument.IsNull()) {
       continue;
@@ -151,11 +151,11 @@ int GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
 }
 
 // #################################################################################
-int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
+int32_t GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
 {
   // see header file for class documentation
 
-  int iResult = 0;
+  int32_t iResult = 0;
   if (fTracker) {
     return -EINPROGRESS;
   }
@@ -175,7 +175,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   fTrackList->SetOwner(kFALSE);
 
   TString arguments = "";
-  for (int i = 0; i < argc; i++) {
+  for (int32_t i = 0; i < argc; i++) {
     if (!arguments.IsNull()) {
       arguments += " ";
     }
@@ -221,7 +221,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
 }
 
 // #################################################################################
-int GPUTRDTrackerComponent::DoDeinit()
+int32_t GPUTRDTrackerComponent::DoDeinit()
 {
   // see header file for class documentation
   delete fTracker;
@@ -232,7 +232,7 @@ int GPUTRDTrackerComponent::DoDeinit()
 }
 
 // #################################################################################
-int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, std::vector<AliHLTComponentBlockData>& outputBlocks)
+int32_t GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, std::vector<AliHLTComponentBlockData>& outputBlocks)
 {
   // process event
 
@@ -251,29 +251,29 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   AliHLTUInt32_t maxBufferSize = size;
   size = 0; // output size
 
-  int iResult = 0;
+  int32_t iResult = 0;
 
   if (fTrackList->GetEntries() != 0) {
     fTrackList->Clear(); // tracks are owned by GPUTRDTrackerGPU
   }
 
-  int nBlocks = evtData.fBlockCnt;
+  int32_t nBlocks = evtData.fBlockCnt;
 
   const AliHLTTracksData* tpcData = nullptr;
   const AliHLTTracksData* itsData = nullptr;
   const AliHLTTrackMCData* tpcDataMC = nullptr;
 
   std::vector<GPUTRDTrackGPU> tracksTPC;
-  std::vector<int> tracksTPCId;
+  std::vector<int32_t> tracksTPCId;
 
   bool hasMCtracklets = false;
 
-  int nTrackletsTotal = 0;
-  int nTrackletsTotalMC = 0;
+  int32_t nTrackletsTotal = 0;
+  int32_t nTrackletsTotalMC = 0;
   const GPUTRDTrackletWord* tracklets = nullptr;
   const GPUTRDTrackletLabels* trackletsMC = nullptr;
 
-  for (int iBlock = 0; iBlock < nBlocks; iBlock++) {
+  for (int32_t iBlock = 0; iBlock < nBlocks; iBlock++) {
     if (blocks[iBlock].fDataType == (kAliHLTDataTypeTrack | kAliHLTDataOriginITS) && fRequireITStrack) {
       itsData = (const AliHLTTracksData*)blocks[iBlock].fPtr;
       fBenchmark.AddInput(blocks[iBlock].fSize);
@@ -312,41 +312,41 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   // copy tracklets into temporary vector to allow for sorting them (the input array is const)
   std::vector<GPUTRDTrackletWord> trackletsTmp(nTrackletsTotal);
-  for (int iTrklt = 0; iTrklt < nTrackletsTotal; ++iTrklt) {
+  for (int32_t iTrklt = 0; iTrklt < nTrackletsTotal; ++iTrklt) {
     trackletsTmp[iTrklt] = tracklets[iTrklt];
   }
 
-  int nTPCtracks = tpcData->fCount;
+  int32_t nTPCtracks = tpcData->fCount;
   std::vector<bool> itsAvail(nTPCtracks, false);
   if (itsData) {
     // look for ITS tracks with >= 2 hits
-    int nITStracks = itsData->fCount;
+    int32_t nITStracks = itsData->fCount;
     const AliHLTExternalTrackParam* currITStrack = itsData->fTracklets;
-    for (int iTrkITS = 0; iTrkITS < nITStracks; iTrkITS++) {
+    for (int32_t iTrkITS = 0; iTrkITS < nITStracks; iTrkITS++) {
       if (currITStrack->fNPoints >= 2) {
         itsAvail.at(currITStrack->fTrackID) = true;
       }
-      unsigned int dSize = sizeof(AliHLTExternalTrackParam) + currITStrack->fNPoints * sizeof(unsigned int);
+      uint32_t dSize = sizeof(AliHLTExternalTrackParam) + currITStrack->fNPoints * sizeof(uint32_t);
       currITStrack = (AliHLTExternalTrackParam*)(((Byte_t*)currITStrack) + dSize);
     }
   }
-  std::map<int, int> mcLabels;
+  std::map<int32_t, int32_t> mcLabels;
   if (tpcDataMC) {
     // look for TPC track MC labels
-    int nMCtracks = tpcDataMC->fCount;
-    for (int iMC = 0; iMC < nMCtracks; iMC++) {
+    int32_t nMCtracks = tpcDataMC->fCount;
+    for (int32_t iMC = 0; iMC < nMCtracks; iMC++) {
       const AliHLTTrackMCLabel& lab = tpcDataMC->fLabels[iMC];
       mcLabels[lab.fTrackID] = lab.fMCLabel;
     }
   }
   const AliHLTExternalTrackParam* currOutTrackTPC = tpcData->fTracklets;
-  for (int iTrk = 0; iTrk < nTPCtracks; iTrk++) {
+  for (int32_t iTrk = 0; iTrk < nTPCtracks; iTrk++) {
     // store TPC tracks (if required only the ones with >=2 ITS hits)
     if (itsData != nullptr && !itsAvail.at(currOutTrackTPC->fTrackID)) {
       continue;
     }
     GPUTRDTrackGPU t(*currOutTrackTPC);
-    int mcLabel = -1;
+    int32_t mcLabel = -1;
     if (tpcDataMC) {
       if (mcLabels.find(currOutTrackTPC->fTrackID) != mcLabels.end()) {
         mcLabel = mcLabels[currOutTrackTPC->fTrackID];
@@ -354,7 +354,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
     tracksTPC.push_back(t);
     tracksTPCId.push_back(currOutTrackTPC->fTrackID);
-    unsigned int dSize = sizeof(AliHLTExternalTrackParam) + currOutTrackTPC->fNPoints * sizeof(unsigned int);
+    uint32_t dSize = sizeof(AliHLTExternalTrackParam) + currOutTrackTPC->fNPoints * sizeof(uint32_t);
     currOutTrackTPC = (AliHLTExternalTrackParam*)+(((Byte_t*)currOutTrackTPC) + dSize);
   }
 
@@ -367,7 +367,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   fChain->mIOPtrs.nMergedTracks = tracksTPC.size();
   fChain->mIOPtrs.nTRDTracklets = nTrackletsTotal;
   fChain->mIOPtrs.nTRDTriggerRecords = 1;
-  char trigRecMaskDummy[1] = {1};
+  uint8_t trigRecMaskDummy[1] = {1};
   fChain->mIOPtrs.trdTrigRecMask = &(trigRecMaskDummy[0]);
   fRec->PrepareEvent();
   fRec->SetupGPUProcessor(fTracker, true);
@@ -376,7 +376,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   fChain->mIOPtrs.trdTracklets = &(trackletsTmp[0]);
 
   // loop over all tracks
-  for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack) {
+  for (uint32_t iTrack = 0; iTrack < tracksTPC.size(); ++iTrack) {
     fTracker->LoadTrack(tracksTPC[iTrack], tracksTPCId[iTrack]);
   }
 
@@ -385,11 +385,11 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   fBenchmark.Stop(1);
 
   GPUTRDTrackGPU* trackArray = fTracker->Tracks();
-  int nTracks = fTracker->NTracks();
+  int32_t nTracks = fTracker->NTracks();
   GPUTRDSpacePoint* spacePoints = fTracker->SpacePoints();
 
   // TODO delete fTrackList since it only works for TObjects (or use compiler flag after tests with GPU track type)
-  // for (int iTrack=0; iTrack<nTracks; ++iTrack) {
+  // for (int32_t iTrack=0; iTrack<nTracks; ++iTrack) {
   //  fTrackList->AddLast(&trackArray[iTrack]);
   //}
 
@@ -408,9 +408,9 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     GPUTRDTrackData* outTracks = (GPUTRDTrackData*)(outputPtr);
     outTracks->fCount = 0;
-    int assignedTracklets = 0;
+    int32_t assignedTracklets = 0;
 
-    for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
+    for (int32_t iTrk = 0; iTrk < nTracks; ++iTrk) {
       GPUTRDTrackGPU& t = trackArray[iTrk];
       if (t.getNtracklets() == 0) {
         continue;
@@ -452,21 +452,21 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       empty.fX[1] = 0;
       empty.fX[2] = 0;
       empty.fVolumeId = 0;
-      for (int i = 0; i < nTrackletsTotal; ++i) {
+      for (int32_t i = 0; i < nTrackletsTotal; ++i) {
         outTrackPoints->fPoints[i] = empty;
       }
     }
 
-    for (int i = 0; i < nTrackletsTotal; ++i) {
+    for (int32_t i = 0; i < nTrackletsTotal; ++i) {
       const GPUTRDSpacePoint& sp = spacePoints[i];
       GPUTRDTrackPoint* currOutPoint = &outTrackPoints->fPoints[i];
       currOutPoint->fX[0] = sp.getX(); // x in sector coordinates
       currOutPoint->fX[1] = sp.getY(); // y in sector coordinates
       currOutPoint->fX[2] = sp.getZ(); // z in sector coordinates
-      int detId = trackletsTmp[i].GetDetector();
-      int layer = detId % 6;                                     // TRD layer number for given detector
-      int modId = (detId / 18) * 5 + ((detId % 30) / 6);         // global TRD stack number [0..89]
-      int volId = (UShort_t(9 + layer) << 11) | UShort_t(modId); // taken from AliGeomManager::LayerToVolUID(). AliGeomManager::ELayerID(AliGeomManager::kTRD1) == 9
+      int32_t detId = trackletsTmp[i].GetDetector();
+      int32_t layer = detId % 6;                                     // TRD layer number for given detector
+      int32_t modId = (detId / 18) * 5 + ((detId % 30) / 6);         // global TRD stack number [0..89]
+      int32_t volId = (UShort_t(9 + layer) << 11) | UShort_t(modId); // taken from AliGeomManager::LayerToVolUID(). AliGeomManager::ELayerID(AliGeomManager::kTRD1) == 9
       currOutPoint->fVolumeId = volId;
     }
     AliHLTComponentBlockData resultDataSP;
@@ -489,11 +489,11 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 }
 
 // #################################################################################
-int GPUTRDTrackerComponent::Reconfigure(const char* cdbEntry, const char* chainId)
+int32_t GPUTRDTrackerComponent::Reconfigure(const char* cdbEntry, const char* chainId)
 {
   // see header file for class documentation
 
-  int iResult = 0;
+  int32_t iResult = 0;
   TString cdbPath;
   if (cdbEntry) {
     cdbPath = cdbEntry;

@@ -19,7 +19,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, float nominalFieldkG, GPUTPCGMPolynomialField& field)
+int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, float nominalFieldkG, GPUTPCGMPolynomialField& field)
 {
   //
   // get pre-calculated polynomial field approximation of the TPC region
@@ -27,15 +27,15 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, 
   // returns -2 if number of coefficients in GPUTPCGMPolynomialField is not 10
   //
 
-  const int kTpcM = GPUTPCGMPolynomialField::NTPCM;
-  const int kTrdM = GPUTPCGMPolynomialField::NTRDM;
-  const int kItsM = GPUTPCGMPolynomialField::NITSM;
+  const int32_t kTpcM = GPUTPCGMPolynomialField::NTPCM;
+  const int32_t kTrdM = GPUTPCGMPolynomialField::NTRDM;
+  const int32_t kItsM = GPUTPCGMPolynomialField::NITSM;
 
   //
   // polynomial coefficients for the Uniform Bz field
   //
   float kSolUBx[100], kSolUBy[100], kSolUBz[100];
-  for (int i = 0; i < 100; i++) {
+  for (int32_t i = 0; i < 100; i++) {
     kSolUBx[i] = 0;
     kSolUBy[i] = 0;
     kSolUBz[i] = 0;
@@ -155,21 +155,21 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, 
   }
 
   float TpcBx[kTpcM], TpcBy[kTpcM], TpcBz[kTpcM];
-  for (int i = 0; i < kTpcM; i++) {
+  for (int32_t i = 0; i < kTpcM; i++) {
     TpcBx[i] = nominalBz * cTpcBx[i];
     TpcBy[i] = nominalBz * cTpcBy[i];
     TpcBz[i] = nominalBz * cTpcBz[i];
   }
 
   float TrdBx[kTrdM], TrdBy[kTrdM], TrdBz[kTrdM];
-  for (int i = 0; i < kTrdM; i++) {
+  for (int32_t i = 0; i < kTrdM; i++) {
     TrdBx[i] = nominalBz * cTrdBx[i];
     TrdBy[i] = nominalBz * cTrdBy[i];
     TrdBz[i] = nominalBz * cTrdBz[i];
   }
 
   float ItsBx[kItsM], ItsBy[kItsM], ItsBz[kItsM];
-  for (int i = 0; i < kItsM; i++) {
+  for (int32_t i = 0; i < kItsM; i++) {
     ItsBx[i] = nominalBz * cItsBx[i];
     ItsBy[i] = nominalBz * cItsBy[i];
     ItsBz[i] = nominalBz * cItsBz[i];
@@ -183,7 +183,7 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, 
   return 0;
 }
 
-int GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPUTPCGMPolynomialField& field)
+int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPUTPCGMPolynomialField& field)
 {
   //
   // get closest pre-calculated polynomial field approximation of the TPC region  for the given field value nominalFieldkG
@@ -234,7 +234,7 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPU
 #include "TH1F.h"
 #include "TStyle.h"
 
-int GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialField& field)
+int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialField& field)
 {
   //
   // get pre-calculated polynomial field approximation of the TPC region appropriate for the current AliTracker field map (if exists)
@@ -266,7 +266,7 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialField& 
   return GetPolynomialField(type, AliTracker::GetBz(), field);
 }
 
-int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolynomialField& polyField, double step)
+int32_t GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolynomialField& polyField, double step)
 {
   //
   // Fit magnetic field with polynoms
@@ -286,7 +286,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
 
   const double sectorAngleShift = 10. / 180. * TMath::Pi();
   const double sectorAngle = 20. / 180. * TMath::Pi();
-  const int nRows = AliHLTTPCGeometry::GetNRows();
+  const int32_t nRows = AliHLTTPCGeometry::GetNRows();
 
   double xMin = AliHLTTPCGeometry::Row2X(0);
   double xMax = AliHLTTPCGeometry::Row2X(nRows - 1);
@@ -295,7 +295,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
 
   double dA = 1. / rMax; // angular step == 1 cm at outer radius
   dA *= step;
-  int nSectorParticles = (int)(sectorAngle / dA);
+  int32_t nSectorParticles = (int32_t)(sectorAngle / dA);
   if (nSectorParticles < 1) {
     nSectorParticles = 1;
   }
@@ -314,12 +314,12 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
 
   std::cout << "solenoidBz = " << solenoidBzkG << " kG" << std::endl;
 
-  const int M = GPUTPCGMPolynomialField::NTPCM;
+  const int32_t M = GPUTPCGMPolynomialField::NTPCM;
   AliHLTTPCPolynomFit fitBx(M);
   AliHLTTPCPolynomFit fitBy(M);
   AliHLTTPCPolynomFit fitBz(M);
 
-  for (int sector = 0; sector < 18; sector++) {
+  for (int32_t sector = 0; sector < 18; sector++) {
     std::cout << "sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector * sectorAngle;
     double cs = TMath::Cos(asec);
@@ -327,7 +327,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
     for (double al = alMin; al < alMax; al += dA) {
       std::cout << "angle " << al / TMath::Pi() * 180. << " grad " << std::endl;
       double tg = TMath::Tan(al);
-      for (int row = 0; row < AliHLTTPCGeometry::GetNRows(); row++) {
+      for (int32_t row = 0; row < AliHLTTPCGeometry::GetNRows(); row++) {
         double xl = AliHLTTPCGeometry::Row2X(row);
         double yl = xl * tg;
         double x = xl * cs - yl * ss;
@@ -362,9 +362,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
   float cY[M];
   float cZ[M];
 
-  int errX = fitBx.Fit(cX);
-  int errY = fitBy.Fit(cY);
-  int errZ = fitBz.Fit(cZ);
+  int32_t errX = fitBx.Fit(cX);
+  int32_t errY = fitBy.Fit(cY);
+  int32_t errZ = fitBz.Fit(cZ);
 
   if (errX != 0 || errY != 0 || errZ != 0) {
     std::cout << "Fit of polynamial field failed!!!:  errX " << errX << " errY " << errY << " errZ " << errZ << std::endl;
@@ -380,7 +380,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
   // scale result
   double nominalBz = solenoidBzkG * gpu_common_constants::kCLight;
 
-  for (int i = 0; i < M; i++) {
+  for (int32_t i = 0; i < M; i++) {
     cX[i] = nominalBz * cX[i];
     cY[i] = nominalBz * cY[i];
     cZ[i] = nominalBz * cZ[i];
@@ -394,7 +394,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
   TH1F histBy("Performance B_y", "Error B_y", 1000, -0.005, 0.005);
   TH1F histBz("Performance B_z", "Error B_z", 1000, -0.005, 0.005);
 
-  for (int sector = 0; sector < 18; sector++) {
+  for (int32_t sector = 0; sector < 18; sector++) {
     std::cout << "check quality: sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector * sectorAngle;
     double cs = TMath::Cos(asec);
@@ -402,7 +402,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
     for (double al = alMin; al < alMax; al += dA) {
       std::cout << "check quality: angle " << al / TMath::Pi() * 180. << " grad " << std::endl;
       double tg = TMath::Tan(al);
-      for (int row = 0; row < AliHLTTPCGeometry::GetNRows(); row++) {
+      for (int32_t row = 0; row < AliHLTTPCGeometry::GetNRows(); row++) {
         double xl = AliHLTTPCGeometry::Row2X(row);
         double yl = xl * tg;
         double x = xl * cs - yl * ss;
@@ -446,7 +446,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
   return 0;
 }
 
-int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolynomialField& polyField, double step)
+int32_t GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolynomialField& polyField, double step)
 {
   //
   // Fit magnetic field with polynoms
@@ -476,7 +476,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
 
   double dA = 1. / rMax; // angular step == 1 cm at outer radius
   dA *= step;
-  int nSectorParticles = (int)(sectorAngle / dA);
+  int32_t nSectorParticles = (int32_t)(sectorAngle / dA);
   if (nSectorParticles < 1) {
     nSectorParticles = 1;
   }
@@ -492,12 +492,12 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
 
   std::cout << "solenoidBz = " << solenoidBzkG << " kG" << std::endl;
 
-  const int M = GPUTPCGMPolynomialField::NTRDM;
+  const int32_t M = GPUTPCGMPolynomialField::NTRDM;
   AliHLTTPCPolynomFit fitBx(M);
   AliHLTTPCPolynomFit fitBy(M);
   AliHLTTPCPolynomFit fitBz(M);
 
-  for (int sector = 0; sector < AliTRDgeometry::Nsector(); sector++) {
+  for (int32_t sector = 0; sector < AliTRDgeometry::Nsector(); sector++) {
     std::cout << "sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector * sectorAngle;
     double cs = TMath::Cos(asec);
@@ -538,9 +538,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
   float cY[M];
   float cZ[M];
 
-  int errX = fitBx.Fit(cX);
-  int errY = fitBy.Fit(cY);
-  int errZ = fitBz.Fit(cZ);
+  int32_t errX = fitBx.Fit(cX);
+  int32_t errY = fitBy.Fit(cY);
+  int32_t errZ = fitBz.Fit(cZ);
 
   if (errX != 0 || errY != 0 || errZ != 0) {
     std::cout << "Fit of polynamial field failed!!!" << std::endl;
@@ -556,7 +556,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
   // scale result
   double nominalBz = solenoidBzkG * gpu_common_constants::kCLight;
 
-  for (int i = 0; i < M; i++) {
+  for (int32_t i = 0; i < M; i++) {
     cX[i] = nominalBz * cX[i];
     cY[i] = nominalBz * cY[i];
     cZ[i] = nominalBz * cZ[i];
@@ -570,7 +570,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
   TH1F histBy("Performance B_y", "Error B_y", 1000, -0.005, 0.005);
   TH1F histBz("Performance B_z", "Error B_z", 1000, -0.005, 0.005);
 
-  for (int sector = 0; sector < AliTRDgeometry::Nsector(); sector++) {
+  for (int32_t sector = 0; sector < AliTRDgeometry::Nsector(); sector++) {
     std::cout << "check quality: sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector * sectorAngle;
     double cs = TMath::Cos(asec);
@@ -621,7 +621,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
   return 0;
 }
 
-int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolynomialField& polyField, double step)
+int32_t GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolynomialField& polyField, double step)
 {
   //
   // Fit magnetic field with polynoms
@@ -652,7 +652,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
 
   double dA = .1 / rMax; // angular step == 0.1 cm at the outer radius
   dA *= step;
-  int nSectorParticles = (int)(sectorAngle / dA);
+  int32_t nSectorParticles = (int32_t)(sectorAngle / dA);
   if (nSectorParticles < 1) {
     nSectorParticles = 1;
   }
@@ -672,14 +672,14 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
 
   std::cout << "solenoidBz = " << solenoidBzkG << " kG" << std::endl;
 
-  const int M = GPUTPCGMPolynomialField::NITSM;
+  const int32_t M = GPUTPCGMPolynomialField::NITSM;
   AliHLTTPCPolynomFit fitBx(M);
   AliHLTTPCPolynomFit fitBy(M);
   AliHLTTPCPolynomFit fitBz(M);
 
   double coneSlope = (zMax - zITS) / (xMax - xITS);
 
-  for (int sector = 0; sector < 18; sector++) {
+  for (int32_t sector = 0; sector < 18; sector++) {
     std::cout << "sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector * sectorAngle;
     double cs = TMath::Cos(asec);
@@ -723,9 +723,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   float cY[M];
   float cZ[M];
 
-  int errX = fitBx.Fit(cX);
-  int errY = fitBy.Fit(cY);
-  int errZ = fitBz.Fit(cZ);
+  int32_t errX = fitBx.Fit(cX);
+  int32_t errY = fitBy.Fit(cY);
+  int32_t errZ = fitBz.Fit(cZ);
 
   if (errX != 0 || errY != 0 || errZ != 0) {
     std::cout << "Fit of polynamial field failed!!!:  errX " << errX << " errY " << errY << " errZ " << errZ << std::endl;
@@ -741,7 +741,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   // scale result
   double nominalBz = solenoidBzkG * gpu_common_constants::kCLight;
 
-  for (int i = 0; i < M; i++) {
+  for (int32_t i = 0; i < M; i++) {
     cX[i] = nominalBz * cX[i];
     cY[i] = nominalBz * cY[i];
     cZ[i] = nominalBz * cZ[i];
@@ -755,7 +755,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   TH1F histBy("Performance B_y", "Error B_y", 1000, -0.005, 0.005);
   TH1F histBz("Performance B_z", "Error B_z", 1000, -0.005, 0.005);
 
-  for (int sector = 0; sector < 18; sector++) {
+  for (int32_t sector = 0; sector < 18; sector++) {
     std::cout << "check quality: sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector * sectorAngle;
     double cs = TMath::Cos(asec);

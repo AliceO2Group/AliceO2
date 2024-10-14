@@ -1,4 +1,4 @@
-int fitPolynomialFieldTrd()
+int32_t fitPolynomialFieldTrd()
 {
   gSystem->Load("libAliHLTTPC");
   GPUTPCGMPolynomialField polyField;

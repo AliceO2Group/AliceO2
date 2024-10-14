@@ -23,7 +23,7 @@
 using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
-int moveTPCFastTransform()
+int32_t moveTPCFastTransform()
 {
 
   // gSystem->Load("libAliTPCFastTransformation");

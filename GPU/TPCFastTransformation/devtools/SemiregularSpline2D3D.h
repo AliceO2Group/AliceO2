@@ -92,7 +92,7 @@ class SemiregularSpline2D3D : public FlatObject
 
   /// Constructor
   ///
-  void construct(const int numberOfRows, const int numbersOfKnots[]);
+  void construct(const int32_t numberOfRows, const int32_t numbersOfKnots[]);
 
   /// _______________  Main functionality   ________________________
 
@@ -113,30 +113,30 @@ class SemiregularSpline2D3D : public FlatObject
   void getSplineVec(const float* correctedData, float u, float v, float& x, float& y, float& z) const;
 
   /// Get number total of knots: UxV
-  int getNumberOfKnots() const { return mNumberOfKnots; }
+  int32_t getNumberOfKnots() const { return mNumberOfKnots; }
 
   /// Get number of rows. Always the same as gridV's number of knots
-  int getNumberOfRows() const { return mNumberOfRows; }
+  int32_t getNumberOfRows() const { return mNumberOfRows; }
 
   /// Get 1-D grid for U coordinate
   const RegularSpline1D& getGridV() const { return mGridV; }
 
   /// Get 1-D grid for V coordinate
   //const RegularSpline1D& getGridV() const { return mGridV; }
-  const RegularSpline1D& getGridU(const int i) const { return getSplineArray()[i]; }
+  const RegularSpline1D& getGridU(const int32_t i) const { return getSplineArray()[i]; }
 
   /// Get u,v of i-th knot
-  void getKnotUV(int iKnot, float& u, float& v) const;
+  void getKnotUV(int32_t iKnot, float& u, float& v) const;
 
   /// Get size of the mFlatBuffer data
   size_t getFlatBufferSize() const { return mFlatBufferSize; }
 
   ///Gets the knot index which is the i-th knot in v-space and the j-th knot in u-space
-  int getDataIndex(int i, int j) const;
-  int getDataIndex0(int i, int j) const;
+  int32_t getDataIndex(int32_t i, int32_t j) const;
+  int32_t getDataIndex0(int32_t i, int32_t j) const;
 
   /// Gets the offset for the data index map inside the flat buffer
-  int getDataIndexMapOffset() const { return mDataIndexMapOffset; }
+  int32_t getDataIndexMapOffset() const { return mDataIndexMapOffset; }
 
   /// Get pointer to the flat buffer
   const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
@@ -156,9 +156,9 @@ class SemiregularSpline2D3D : public FlatObject
     return reinterpret_cast<const RegularSpline1D*>(mFlatBufferPtr);
   }
 
-  const int* getDataIndexMap() const
+  const int32_t* getDataIndexMap() const
   {
-    return reinterpret_cast<const int*>(mFlatBufferPtr + mDataIndexMapOffset);
+    return reinterpret_cast<const int32_t*>(mFlatBufferPtr + mDataIndexMapOffset);
   }
 
  private:
@@ -169,9 +169,9 @@ class SemiregularSpline2D3D : public FlatObject
     return reinterpret_cast<RegularSpline1D*>(mFlatBufferPtr);
   }
 
-  int* getDataIndexMapNonConst()
+  int32_t* getDataIndexMapNonConst()
   {
-    return reinterpret_cast<int*>(mFlatBufferPtr + mDataIndexMapOffset);
+    return reinterpret_cast<int32_t*>(mFlatBufferPtr + mDataIndexMapOffset);
   }
 
   ///
@@ -179,9 +179,9 @@ class SemiregularSpline2D3D : public FlatObject
   ///
 
   RegularSpline1D mGridV; ///< grid for V axis
-  int mNumberOfRows;
-  int mNumberOfKnots;
-  int mDataIndexMapOffset;
+  int32_t mNumberOfRows;
+  int32_t mNumberOfKnots;
+  int32_t mDataIndexMapOffset;
 
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(SemiregularSpline2D3D, 1);
@@ -192,23 +192,23 @@ class SemiregularSpline2D3D : public FlatObject
 ///       Inline implementations of some methods
 /// ====================================================
 
-inline int SemiregularSpline2D3D::getDataIndex(int u, int v) const
+inline int32_t SemiregularSpline2D3D::getDataIndex(int32_t u, int32_t v) const
 {
   return (getDataIndexMap()[v] + u) * 3;
 }
 
-inline int SemiregularSpline2D3D::getDataIndex0(int u, int v) const
+inline int32_t SemiregularSpline2D3D::getDataIndex0(int32_t u, int32_t v) const
 {
   return (getDataIndexMap()[v] + u);
 }
 
-inline void SemiregularSpline2D3D::getKnotUV(int iKnot, float& u, float& v) const
+inline void SemiregularSpline2D3D::getKnotUV(int32_t iKnot, float& u, float& v) const
 {
 
   // iterate through all RegularSpline1D's
-  for (int i = 0; i < mNumberOfRows; i++) {
+  for (int32_t i = 0; i < mNumberOfRows; i++) {
     const RegularSpline1D& gridU = getGridU(i);
-    const int nk = gridU.getNumberOfKnots();
+    const int32_t nk = gridU.getNumberOfKnots();
 
     // if the searched index is less or equal as the number of knots in the current spline
     // the searched u-v-coordinates have to be in this spline.
@@ -234,19 +234,19 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
   //Regular v-Grid (vertical)
   const RegularSpline1D& gridV = getGridV();
 
-  int nv = mNumberOfRows;
+  int32_t nv = mNumberOfRows;
 
   //EIGENTLICH V VOR U!!!
   //Wegen Splines aber U vor V
 
   { // ==== left edge of U ====
     //loop through all gridUs
-    for (int iv = 1; iv < mNumberOfRows - 1; iv++) {
+    for (int32_t iv = 1; iv < mNumberOfRows - 1; iv++) {
       T* f0 = data + getDataIndex(0, iv);
       T* f1 = f0 + 3;
       T* f2 = f0 + 6;
       T* f3 = f0 + 9;
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f0[idim] = (T)(0.5 * f0[idim] + 1.5 * f1[idim] - 1.5 * f2[idim] + 0.5 * f3[idim]);
       }
     }
@@ -254,14 +254,14 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
 
   { // ==== right edge of U ====
     //loop through all gridUs
-    for (int iv = 1; iv < mNumberOfRows - 1; iv++) {
+    for (int32_t iv = 1; iv < mNumberOfRows - 1; iv++) {
       const RegularSpline1D& gridU = getGridU(iv);
-      int nu = gridU.getNumberOfKnots();
+      int32_t nu = gridU.getNumberOfKnots();
       T* f0 = data + getDataIndex(nu - 4, iv);
       T* f1 = f0 + 3;
       T* f2 = f0 + 6;
       T* f3 = f0 + 9;
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f3[idim] = (T)(0.5 * f0[idim] - 1.5 * f1[idim] + 1.5 * f2[idim] + 0.5 * f3[idim]);
       }
     }
@@ -269,9 +269,9 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
 
   { // ==== low edge of V ====
     const RegularSpline1D& gridU = getGridU(0);
-    int nu = gridU.getNumberOfKnots();
+    int32_t nu = gridU.getNumberOfKnots();
 
-    for (int iu = 0; iu < nu; iu++) {
+    for (int32_t iu = 0; iu < nu; iu++) {
       //f0 to f3 are the x,y,z values of 4 points in the grid along the v axis.
       //Since there are no knots because of the irregularity you can get this by using the getSplineMethod.
       T* f0 = data + getDataIndex(iu, 0);
@@ -285,16 +285,16 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
       T f1[3] = {x1, y1, z1};
       T f2[3] = {x2, y2, z2};
       T f3[3] = {x3, y3, z3};
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f0[idim] = (T)(0.5 * f0[idim] + 1.5 * f1[idim] - 1.5 * f2[idim] + 0.5 * f3[idim]);
       }
     }
   }
 
   { // ==== high edge of V ====
-    int nu = getGridU(nv - 1).getNumberOfKnots();
+    int32_t nu = getGridU(nv - 1).getNumberOfKnots();
 
-    for (int iu = 0; iu < nu; iu++) {
+    for (int32_t iu = 0; iu < nu; iu++) {
 
       float u = getGridU(nv - 1).knotIndexToU(iu);
 
@@ -307,7 +307,7 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
       T f1[3] = {x2, y2, z2};
       T f2[3] = {x3, y3, z3};
       T* f3 = data + getDataIndex(iu, nv - 1);
-      for (int idim = 0; idim < 3; idim++) {
+      for (int32_t idim = 0; idim < 3; idim++) {
         f3[idim] = (T)(0.5 * f0[idim] - 1.5 * f1[idim] + 1.5 * f2[idim] + 0.5 * f3[idim]);
       }
     }
@@ -320,7 +320,7 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
     T* f1 = f0 + 3;
     T* f2 = f0 + 6;
     T* f3 = f0 + 9;
-    for (int idim = 0; idim < 3; idim++) {
+    for (int32_t idim = 0; idim < 3; idim++) {
       f0[idim] = (T)(0.5 * f0[idim] + 1.5 * f1[idim] - 1.5 * f2[idim] + 0.5 * f3[idim]);
     }
   }
@@ -328,12 +328,12 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
   { // ==== Lower right corner with u-direction ===
 
     const RegularSpline1D& gridU = getGridU(0);
-    int nu = gridU.getNumberOfKnots();
+    int32_t nu = gridU.getNumberOfKnots();
     T* f0 = data + getDataIndex(nu - 4, 0);
     T* f1 = f0 + 3;
     T* f2 = f0 + 6;
     T* f3 = f0 + 9;
-    for (int idim = 0; idim < 3; idim++) {
+    for (int32_t idim = 0; idim < 3; idim++) {
       f3[idim] = (T)(0.5 * f0[idim] - 1.5 * f1[idim] + 1.5 * f2[idim] + 0.5 * f3[idim]);
     }
   }
@@ -343,19 +343,19 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
     T* f1 = f0 + 3;
     T* f2 = f0 + 6;
     T* f3 = f0 + 9;
-    for (int idim = 0; idim < 3; idim++) {
+    for (int32_t idim = 0; idim < 3; idim++) {
       f0[idim] = (T)(0.5 * f0[idim] + 1.5 * f1[idim] - 1.5 * f2[idim] + 0.5 * f3[idim]);
     }
   }
 
   { // ==== upper right corner with u-direction ===
     const RegularSpline1D& gridU = getGridU(nv - 1);
-    int nu = gridU.getNumberOfKnots();
+    int32_t nu = gridU.getNumberOfKnots();
     T* f0 = data + getDataIndex(nu - 4, nv - 1);
     T* f1 = f0 + 3;
     T* f2 = f0 + 6;
     T* f3 = f0 + 9;
-    for (int idim = 0; idim < 3; idim++) {
+    for (int32_t idim = 0; idim < 3; idim++) {
       f3[idim] = (T)(0.5 * f0[idim] - 1.5 * f1[idim] + 1.5 * f2[idim] + 0.5 * f3[idim]);
     }
   }
@@ -367,22 +367,22 @@ inline void SemiregularSpline2D3D::getSpline(const T* correctedData, float u, fl
   // Get interpolated value for f(u,v) using data array correctedData[getNumberOfKnots()] with corrected edges
 
   // find the v indizes of the u-splines that are needed.
-  int iknotv = mGridV.getKnotIndex(v);
+  int32_t iknotv = mGridV.getKnotIndex(v);
 
   // to save the index positions of u-coordinates we create an array
   T dataVx[12];
-  //int dataOffset0 = getDataIndex0(0, iknotv-1); //index of the very left point in the vi-1-th gridU
+  // int32_t dataOffset0 = getDataIndex0(0, iknotv-1); //index of the very left point in the vi-1-th gridU
 
   // we loop through the 4 needed u-Splines
-  int vxIndex = 0;
-  for (int vi = 0; vi < 4; vi++, vxIndex += 3) {
+  int32_t vxIndex = 0;
+  for (int32_t vi = 0; vi < 4; vi++, vxIndex += 3) {
 
-    const int vDelta = iknotv + vi - 1;
+    const int32_t vDelta = iknotv + vi - 1;
     const RegularSpline1D& gridU = getGridU(vDelta);
     // and find at which index in that specific spline the u-coordinate must lay.
 
-    const int ui = gridU.getKnotIndex(u);
-    const int dataOffset = getDataIndex(ui - 1, vDelta); //(dataOffset0 + (ui-1))*3;
+    const int32_t ui = gridU.getKnotIndex(u);
+    const int32_t dataOffset = getDataIndex(ui - 1, vDelta); //(dataOffset0 + (ui-1))*3;
 
     dataVx[vxIndex + 0] = gridU.getSpline(ui, correctedData[dataOffset], correctedData[dataOffset + 3], correctedData[dataOffset + 6], correctedData[dataOffset + 9], u);
     dataVx[vxIndex + 1] = gridU.getSpline(ui, correctedData[dataOffset + 1], correctedData[dataOffset + 4], correctedData[dataOffset + 7], correctedData[dataOffset + 10], u);
@@ -429,15 +429,15 @@ inline void SemiregularSpline2D3D::getSplineVec(const float* correctedData, floa
   */
 
   //workaround 1:
-  int vGridi = mGridV.getKnotIndex(v);
+  int32_t vGridi = mGridV.getKnotIndex(v);
 
   float dataU[12];
-  int vOffset = 0;
-  for (int vi = 0; vi < 4; vi++, vOffset += 3) {
+  int32_t vOffset = 0;
+  for (int32_t vi = 0; vi < 4; vi++, vOffset += 3) {
     const RegularSpline1D& gridU = getGridU(vi + vGridi - 1);
 
     // and find at which index in that specific spline the u-coordinate must lay.
-    int ui = gridU.getKnotIndex(u);
+    int32_t ui = gridU.getKnotIndex(u);
 
     // using getDataIndex we know at which position knot (ui, vi) is saved.
     // dataU0 to U3 are 4 points along the u-spline surrounding the u coordinate.

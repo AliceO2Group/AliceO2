@@ -35,7 +35,7 @@ using namespace o2::track;
 using namespace o2::base;
 using namespace o2::tpc;
 
-static constexpr int kIGNORE_ENDS = 3;
+static constexpr int32_t kIGNORE_ENDS = 3;
 
 #define IgnoreErrors(SNP)                                                                                            \
   if (mIgnoreErrorsOnTrackEnds) {                                                                                    \
@@ -207,20 +207,20 @@ GPUd() static const float* getPar(const GPUTPCGMTrackParam& trk) { return trk.Ge
 GPUd() static const float* getPar(const TrackParCov& trk) { return trk.getParams(); }
 
 template <class T, class S>
-GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
+GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 {
-  CADEBUG(int ii; printf("\nRefitting track\n"));
+  CADEBUG(int32_t ii; printf("\nRefitting track\n"));
   typename refitTrackTypes<S>::propagator prop;
   S trk;
   float TrackParCovChi2 = 0.f;
   convertTrack<S, T, typename refitTrackTypes<S>::propagator>(trk, trkX, prop, &TrackParCovChi2);
-  int begin = 0, count;
+  int32_t begin = 0, count;
   float tOffset;
   if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
     count = trkX.NClusters();
     if (trkX.Looper()) {
-      int leg = mPtrackHits[trkX.FirstClusterRef() + trkX.NClusters() - 1].leg;
-      for (int i = trkX.NClusters() - 2; i > 0; i--) {
+      int32_t leg = mPtrackHits[trkX.FirstClusterRef() + trkX.NClusters() - 1].leg;
+      for (int32_t i = trkX.NClusters() - 2; i > 0; i--) {
         if (mPtrackHits[trkX.FirstClusterRef() + i].leg != leg) {
           begin = i + 1;
           break;
@@ -241,21 +241,21 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
     CADEBUG(printf("\t%21sInit    Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", prop.GetAlpha(), trk.GetX(), trk.Par()[0], trk.Par()[1], trk.Par()[4], prop.GetQPt0(), trk.Par()[2], prop.GetSinPhi0(), sqrtf(trk.Cov()[0]), sqrtf(trk.Cov()[2]), sqrtf(trk.Cov()[5]), sqrtf(trk.Cov()[14])));
   }
 
-  int direction = outward ? -1 : 1;
-  int start = outward ? count - 1 : begin;
-  int stop = outward ? begin - 1 : count;
+  int32_t direction = outward ? -1 : 1;
+  int32_t start = outward ? count - 1 : begin;
+  int32_t stop = outward ? begin - 1 : count;
   const ClusterNative* cl = nullptr;
   uint8_t sector = 255, row = 255;
-  int lastSector = -1, currentSector = -1, currentRow = -1;
-  short clusterState = 0, nextState = 0;
-  int nFitted = 0;
+  int32_t lastSector = -1, currentSector = -1, currentRow = -1;
+  int16_t clusterState = 0, nextState = 0;
+  int32_t nFitted = 0;
   float sumInvSqrtCharge = 0.f;
-  int nAvgCharge = 0;
+  int32_t nAvgCharge = 0;
 
-  for (int i = start; i != stop; i += cl ? 0 : direction) {
+  for (int32_t i = start; i != stop; i += cl ? 0 : direction) {
     float x = 0, y = 0, z = 0, charge = 0; // FIXME: initialization unneeded, but GCC incorrectly produces uninitialized warnings otherwise
     float time = 0.f, invCharge = 0.f, invSqrtCharge = 0.f; // Same here...
-    int clusters = 0;
+    int32_t clusters = 0;
     while (true) {
       if (!cl) {
         CADEBUG(ii = i);
@@ -291,7 +291,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         }
         if (clusters == 0) {
           mPfastTransformHelper->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tOffset);
-          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int)sector, x, y, z, (int)nextState));
+          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int32_t)sector, x, y, z, (int32_t)nextState));
           currentRow = row;
           currentSector = sector;
           charge = cl->qTot;
@@ -302,7 +302,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         } else {
           float xx, yy, zz;
           mPfastTransformHelper->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
-          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int)sector, xx, yy, zz, (int)nextState));
+          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int32_t)sector, xx, yy, zz, (int32_t)nextState));
           x += xx * cl->qTot;
           y += yy * cl->qTot;
           z += zz * cl->qTot;
@@ -324,7 +324,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       x /= charge;
       y /= charge;
       z /= charge;
-      CADEBUG(printf("\tMerged Hit  Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", row, mPparam->Alpha(sector), (int)sector, x, y, z, (int)clusterState));
+      CADEBUG(printf("\tMerged Hit  Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", row, mPparam->Alpha(sector), (int32_t)sector, x, y, z, (int32_t)clusterState));
     }
 
     float invAvgCharge = (sumInvSqrtCharge += invSqrtCharge) / ++nAvgCharge;
@@ -422,12 +422,12 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 }
 
 #if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
-template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
-template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
-template GPUdni() int GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov);
-template GPUdni() int GPUTrackingRefit::RefitTrack<TrackTPC, GPUTPCGMTrackParam>(TrackTPC& trk, bool outward, bool resetCov);
-template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
-template GPUdni() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<TrackTPC, GPUTPCGMTrackParam>(TrackTPC& trk, bool outward, bool resetCov);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
 #endif
 
 #ifndef GPUCA_GPUCODE

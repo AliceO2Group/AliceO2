@@ -32,13 +32,13 @@ struct TPCPadGainCorrectionStepNum {
 };
 
 template <>
-struct TPCPadGainCorrectionStepNum<unsigned char> {
-  static constexpr int value = 254;
+struct TPCPadGainCorrectionStepNum<uint8_t> {
+  static constexpr int32_t value = 254;
 };
 
 template <>
-struct TPCPadGainCorrectionStepNum<unsigned short> {
-  static constexpr int value = 65534;
+struct TPCPadGainCorrectionStepNum<uint16_t> {
+  static constexpr int32_t value = 65534;
 };
 
 struct TPCPadGainCalib {
@@ -59,68 +59,68 @@ struct TPCPadGainCalib {
 #endif
 
   // Deal with pad gain correction from here on
-  GPUdi() void setGainCorrection(int sector, tpccf::Row row, tpccf::Pad pad, float c)
+  GPUdi() void setGainCorrection(int32_t sector, tpccf::Row row, tpccf::Pad pad, float c)
   {
     mGainCorrection[sector].set(globalPad(row, pad), c);
   }
 
-  GPUdi() void setGainCorrection(int sector, unsigned short globalPad, float c)
+  GPUdi() void setGainCorrection(int32_t sector, uint16_t globalPad, float c)
   {
     mGainCorrection[sector].set(globalPad, c);
   }
 
-  GPUdi() float getGainCorrection(int sector, tpccf::Row row, tpccf::Pad pad) const
+  GPUdi() float getGainCorrection(int32_t sector, tpccf::Row row, tpccf::Pad pad) const
   {
     return mGainCorrection[sector].get(globalPad(row, pad));
   }
 
-  GPUdi() unsigned short globalPad(tpccf::Row row, tpccf::Pad pad) const
+  GPUdi() uint16_t globalPad(tpccf::Row row, tpccf::Pad pad) const
   {
     return mPadOffsetPerRow[row] + pad;
   }
 
   GPUdi() void setMinCorrectionFactor(const float minCorrectionFactor)
   {
-    for (int sector = 0; sector < GPUCA_NSLICES; sector++) {
+    for (int32_t sector = 0; sector < GPUCA_NSLICES; sector++) {
       mGainCorrection[sector].mMinCorrectionFactor = minCorrectionFactor;
     }
   }
 
   GPUdi() void setMaxCorrectionFactor(const float maxCorrectionFactor)
   {
-    for (int sector = 0; sector < GPUCA_NSLICES; sector++) {
+    for (int32_t sector = 0; sector < GPUCA_NSLICES; sector++) {
       mGainCorrection[sector].mMaxCorrectionFactor = maxCorrectionFactor;
     }
   }
 
  private:
-  template <typename T = unsigned short>
+  template <typename T = uint16_t>
   class SectorPadGainCorrection
   {
 
    public:
     float mMinCorrectionFactor = 0.f;
     float mMaxCorrectionFactor = 2.f;
-    constexpr static int NumOfSteps = TPCPadGainCorrectionStepNum<T>::value;
+    constexpr static int32_t NumOfSteps = TPCPadGainCorrectionStepNum<T>::value;
 
     GPUdi() SectorPadGainCorrection()
     {
       reset();
     }
 
-    GPUdi() void set(unsigned short globalPad, float c)
+    GPUdi() void set(uint16_t globalPad, float c)
     {
       at(globalPad) = pack(c);
     }
 
-    GPUdi() float get(unsigned short globalPad) const
+    GPUdi() float get(uint16_t globalPad) const
     {
       return unpack(at(globalPad));
     }
 
     GPUd() void reset()
     {
-      for (unsigned short p = 0; p < TPC_PADS_IN_SECTOR; p++) {
+      for (uint16_t p = 0; p < TPC_PADS_IN_SECTOR; p++) {
         set(p, 1.0f);
       }
     }
@@ -142,19 +142,19 @@ struct TPCPadGainCalib {
 
     T mGainCorrection[TPC_PADS_IN_SECTOR];
 
-    GPUdi() T& at(unsigned short globalPad)
+    GPUdi() T& at(uint16_t globalPad)
     {
       return mGainCorrection[globalPad];
     }
 
-    GPUdi() const T& at(unsigned short globalPad) const
+    GPUdi() const T& at(uint16_t globalPad) const
     {
       return mGainCorrection[globalPad];
     }
   };
 
-  unsigned short mPadOffsetPerRow[GPUCA_ROW_COUNT];
-  SectorPadGainCorrection<unsigned short> mGainCorrection[GPUCA_NSLICES];
+  uint16_t mPadOffsetPerRow[GPUCA_ROW_COUNT];
+  SectorPadGainCorrection<uint16_t> mGainCorrection[GPUCA_NSLICES];
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

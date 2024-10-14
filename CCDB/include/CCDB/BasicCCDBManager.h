@@ -115,6 +115,10 @@ class CCDBManagerInstance
     return getForTimeStamp<T>(path, timestamp);
   }
 
+  /// retrieve an object of type T from CCDB as stored under path and using the timestamp in the middle of the run + metadata. The run number is provided separately to conform to typical analysis use (in which case metadata does not include runNumber)
+  template <typename T>
+  T* getSpecificForRun(std::string const& path, int runNumber, MD metaData = MD());
+
   /// detect online processing modes (i.e. CCDB objects may be updated in the lifetime of the manager)
   bool isOnline() const { return mDeplMode == o2::framework::DeploymentMode::OnlineAUX || mDeplMode == o2::framework::DeploymentMode::OnlineDDS || mDeplMode == o2::framework::DeploymentMode::OnlineECS; }
 
@@ -318,6 +322,14 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
 template <typename T>
 T* CCDBManagerInstance::getForRun(std::string const& path, int runNumber, bool setRunMetadata)
 {
+  auto metaData = setRunMetadata ? MD{{"runNumber", std::to_string(runNumber)}} : MD{};
+  mMetaData = metaData;
+  return getSpecificForRun<T>(path, runNumber, metaData);
+}
+
+template <typename T>
+T* CCDBManagerInstance::getSpecificForRun(std::string const& path, int runNumber, MD metaData)
+{
   auto [start, stop] = getRunDuration(runNumber);
   if (start < 0 || stop < 0) {
     if (mFatalWhenNull) {
@@ -325,8 +337,7 @@ T* CCDBManagerInstance::getForRun(std::string const& path, int runNumber, bool s
     }
     return nullptr;
   }
-  mMetaData = setRunMetadata ? MD{{"runNumber", std::to_string(runNumber)}} : MD{};
-  return getForTimeStamp<T>(path, start / 2 + stop / 2);
+  return getSpecific<T>(path, start / 2 + stop / 2, metaData);
 }
 
 class BasicCCDBManager : public CCDBManagerInstance

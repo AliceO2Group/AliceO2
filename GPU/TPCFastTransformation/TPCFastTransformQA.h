@@ -57,18 +57,18 @@ class TPCFastTransformQA
   /// _______________  Main functionality  ________________________
 
   /// create fast transformation and perform a quality check
-  int doQA(Long_t TimeStamp);
+  int32_t doQA(long TimeStamp);
 
   /// create perform quality check
-  int doQA(const TPCFastTransform& fastTransform);
+  int32_t doQA(const TPCFastTransform& fastTransform);
 
  private:
   /// Stores an error message
-  int storeError(Int_t code, const char* msg);
+  int32_t storeError(Int_t code, const char* msg);
   TString mError; ///< error string
 };
 
-inline int TPCFastTransformQA::storeError(int code, const char* msg)
+inline int32_t TPCFastTransformQA::storeError(int32_t code, const char* msg)
 {
   mError = msg;
   LOG(info) << msg;

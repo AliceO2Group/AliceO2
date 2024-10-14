@@ -44,10 +44,10 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   };
 
   // Compile time minimum version defined in GPUDisplay.h, keep in sync!
-  static constexpr int GL_MIN_VERSION_MAJOR = 4;
-  static constexpr int GL_MIN_VERSION_MINOR = 5;
+  static constexpr int32_t GL_MIN_VERSION_MAJOR = 4;
+  static constexpr int32_t GL_MIN_VERSION_MINOR = 5;
 
-  virtual int StartDisplay() = 0;                                                                                            // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
+  virtual int32_t StartDisplay() = 0;                                                                                        // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
   void DisplayExit() override = 0;                                                                                           // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
@@ -56,79 +56,79 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
   GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
-  virtual void getSize(int& width, int& height) { width = height = 0; }
-  virtual int getVulkanSurface(void* instance, void* surface) { return 1; }
-  virtual unsigned int getReqVulkanExtensions(const char**& p) { return 0; };
+  virtual void getSize(int32_t& width, int32_t& height) { width = height = 0; }
+  virtual int32_t getVulkanSurface(void* instance, void* surface) { return 1; }
+  virtual uint32_t getReqVulkanExtensions(const char**& p) { return 0; };
 
-  int getDisplayControl() const override { return mDisplayControl; }
-  int getSendKey() const override { return mSendKey; }
-  int getNeedUpdate() const override { return mNeedUpdate; }
-  void setDisplayControl(int v) override { mDisplayControl = v; }
-  void setSendKey(int v) override { mSendKey = v; }
-  void setNeedUpdate(int v) override { mNeedUpdate = v; }
+  int32_t getDisplayControl() const override { return mDisplayControl; }
+  int32_t getSendKey() const override { return mSendKey; }
+  int32_t getNeedUpdate() const override { return mNeedUpdate; }
+  void setDisplayControl(int32_t v) override { mDisplayControl = v; }
+  void setSendKey(int32_t v) override { mSendKey = v; }
+  void setNeedUpdate(int32_t v) override { mNeedUpdate = v; }
 
   frontendTypes frontendType() const { return mFrontendType; }
   const char* frontendName() const override { return mFrontendName; }
 
-  int startGUI();
+  int32_t startGUI();
   void stopGUI();
   bool isGUIRunning();
 
   // volatile variables to exchange control informations between display and backend
-  volatile int mDisplayControl = 0; // Control for next event (=1) or quit (=2)
-  volatile int mSendKey = 0;        // Key sent by external entity (usually console), may be ignored by backend.
-  volatile int mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
+  volatile int32_t mDisplayControl = 0; // Control for next event (=1) or quit (=2)
+  volatile int32_t mSendKey = 0;        // Key sent by external entity (usually console), may be ignored by backend.
+  volatile int32_t mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
 
  protected:
-  virtual int FrontendMain() = 0;
+  virtual int32_t FrontendMain() = 0;
   static void* FrontendThreadWrapper(void*);
 
-  static constexpr int INIT_WIDTH = 1024, INIT_HEIGHT = 768;                            // Initial window size, before maximizing
+  static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
-  static constexpr int KEY_UP = 1;
-  static constexpr int KEY_DOWN = 2;
-  static constexpr int KEY_LEFT = 3;
-  static constexpr int KEY_RIGHT = 4;
-  static constexpr int KEY_PAGEUP = 5;
-  static constexpr int KEY_PAGEDOWN = 6;
-  static constexpr int KEY_SHIFT = 8;
-  static constexpr int KEY_ALT = 9;
-  static constexpr int KEY_RALT = 10;
-  static constexpr int KEY_CTRL = 11;
-  static constexpr int KEY_RCTRL = 12;
-  static constexpr int KEY_ENTER = 13; // fixed at 13
-  static constexpr int KEY_F1 = 14;
-  static constexpr int KEY_F2 = 15;
-  static constexpr int KEY_F3 = 26;
-  static constexpr int KEY_F4 = 17;
-  static constexpr int KEY_F5 = 18;
-  static constexpr int KEY_F6 = 19;
-  static constexpr int KEY_F7 = 20;
-  static constexpr int KEY_F8 = 21;
-  static constexpr int KEY_F9 = 22;
-  static constexpr int KEY_F10 = 23;
-  static constexpr int KEY_F11 = 24;
-  static constexpr int KEY_F12 = 25;
-  static constexpr int KEY_INSERT = 26;
-  static constexpr int KEY_ESCAPE = 27; // fixed at 27
-  static constexpr int KEY_HOME = 28;
-  static constexpr int KEY_END = 29;
-  static constexpr int KEY_SPACE = 32; // fixed at 32
+  static constexpr int32_t KEY_UP = 1;
+  static constexpr int32_t KEY_DOWN = 2;
+  static constexpr int32_t KEY_LEFT = 3;
+  static constexpr int32_t KEY_RIGHT = 4;
+  static constexpr int32_t KEY_PAGEUP = 5;
+  static constexpr int32_t KEY_PAGEDOWN = 6;
+  static constexpr int32_t KEY_SHIFT = 8;
+  static constexpr int32_t KEY_ALT = 9;
+  static constexpr int32_t KEY_RALT = 10;
+  static constexpr int32_t KEY_CTRL = 11;
+  static constexpr int32_t KEY_RCTRL = 12;
+  static constexpr int32_t KEY_ENTER = 13; // fixed at 13
+  static constexpr int32_t KEY_F1 = 14;
+  static constexpr int32_t KEY_F2 = 15;
+  static constexpr int32_t KEY_F3 = 26;
+  static constexpr int32_t KEY_F4 = 17;
+  static constexpr int32_t KEY_F5 = 18;
+  static constexpr int32_t KEY_F6 = 19;
+  static constexpr int32_t KEY_F7 = 20;
+  static constexpr int32_t KEY_F8 = 21;
+  static constexpr int32_t KEY_F9 = 22;
+  static constexpr int32_t KEY_F10 = 23;
+  static constexpr int32_t KEY_F11 = 24;
+  static constexpr int32_t KEY_F12 = 25;
+  static constexpr int32_t KEY_INSERT = 26;
+  static constexpr int32_t KEY_ESCAPE = 27; // fixed at 27
+  static constexpr int32_t KEY_HOME = 28;
+  static constexpr int32_t KEY_END = 29;
+  static constexpr int32_t KEY_SPACE = 32; // fixed at 32
 
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down
   bool mMouseDnR = false;         // Right mouse button down
   float mMouseDnX, mMouseDnY;     // X/Y position where mouse button was pressed
   float mMouseMvX, mMouseMvY;     // Current mouse pointer position
-  int mMouseWheel = 0;            // Incremental value of mouse wheel, ca +/- 100 per wheel tick
+  int32_t mMouseWheel = 0;        // Incremental value of mouse wheel, ca +/- 100 per wheel tick
   bool mKeys[256] = {false};      // Array of mKeys currently pressed
   bool mKeysShift[256] = {false}; // Array whether shift was held during key-press
-  int mDisplayHeight = INIT_HEIGHT;
-  int mDisplayWidth = INIT_WIDTH;
-  int mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
+  int32_t mDisplayHeight = INIT_HEIGHT;
+  int32_t mDisplayWidth = INIT_WIDTH;
+  int32_t mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
 
-  int mMaxFPSRate = 0; // run at highest possible frame rate, do not sleep in between frames
+  int32_t mMaxFPSRate = 0; // run at highest possible frame rate, do not sleep in between frames
 
   GPUDisplay* mDisplay = nullptr;        // Ptr to display, not owning, set by display when it connects to backend
   GPUDisplayBackend* mBackend = nullptr; // Ptr to backend, not owning
@@ -138,13 +138,13 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 
-  void HandleKey(unsigned char key);         // Callback for handling key presses
-  int DrawGLScene();                         // Callback to draw the GL scene
+  void HandleKey(uint8_t key);               // Callback for handling key presses
+  int32_t DrawGLScene();                     // Callback to draw the GL scene
   void HandleSendKey();                      // Optional callback to handle key press from external source (e.g. stdin by default)
-  void ResizeScene(int width, int height);   // Callback when GL window is resized
-  int InitDisplay(bool initFailure = false); // Callback to initialize the GL Display (to be called in StartDisplay)
+  void ResizeScene(int32_t width, int32_t height); // Callback when GL window is resized
+  int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                        // Callback to clean up the GL Display
-  int& drawTextFontSize();
+  int32_t& drawTextFontSize();
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

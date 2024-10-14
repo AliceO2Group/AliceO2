@@ -25,7 +25,7 @@
 #pragma link C++ class o2::tpc::TrackTPC + ;
 #pragma link C++ class o2::track::TrackParametrization < float> + ;
 #pragma link C++ class o2::track::TrackParametrizationWithError < float> + ;
-#pragma link C++ class o2::dataformats::RangeReference < unsigned int, unsigned short> + ;
+#pragma link C++ class o2::dataformats::RangeReference < uint32_t, uint16_t> + ;
 #pragma link C++ class o2::tpc::dEdxInfo + ;
 #pragma link C++ class o2::track::PID + ;
 

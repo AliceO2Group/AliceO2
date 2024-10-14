@@ -1687,12 +1687,15 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
     ho.counter++;
     try {
       if (chunk.capacity() < chunk.size() + realsize) {
+        // estimate headers size when converted to annotated text string
+        const char hannot[] = "header";
+        size_t hsize = getFlatHeaderSize(ho.header);
         auto cl = ho.header.find("Content-Length");
         if (cl != ho.header.end()) {
           size_t sizeFromHeader = std::stol(cl->second);
-          sz = std::max(chunk.size() * (sizeFromHeader ? 1 : 2) + realsize, sizeFromHeader);
+          sz = hsize + std::max(chunk.size() * (sizeFromHeader ? 1 : 2) + realsize, sizeFromHeader);
         } else {
-          sz = std::max(chunk.size() * 2, chunk.size() + realsize);
+          sz = hsize + std::max(chunk.size() * 2, chunk.size() + realsize);
           // LOGP(debug, "SIZE IS NOT IN HEADER, allocate {}", sz);
         }
         chunk.reserve(sz);
@@ -1883,6 +1886,25 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   requestContext.considerSnapshot = considerSnapshot;
   std::vector<RequestContext> contexts = {requestContext};
   vectoredLoadFileToMemory(contexts);
+}
+
+void CcdbApi::appendFlatHeader(o2::pmr::vector<char>& dest, const std::map<std::string, std::string>& headers)
+{
+  size_t hsize = getFlatHeaderSize(headers), cnt = dest.size();
+  dest.resize(cnt + hsize);
+  auto addString = [&dest, &cnt](const std::string& s) {
+    for (char c : s) {
+      dest[cnt++] = c;
+    }
+    dest[cnt++] = 0;
+  };
+
+  for (auto& h : headers) {
+    addString(h.first);
+    addString(h.second);
+  }
+  *reinterpret_cast<int*>(&dest[cnt]) = hsize;                                     // store size
+  std::memcpy(&dest[cnt + sizeof(int)], FlatHeaderAnnot, sizeof(FlatHeaderAnnot)); // annotate the flattened headers map
 }
 
 void CcdbApi::navigateSourcesAndLoadFile(RequestContext& requestContext, int& fromSnapshot, size_t* requestCounter) const

@@ -65,7 +65,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) \
-  for (int i = 0; i < count; i++) {                                                  \
+  for (int32_t i = 0; i < count; i++) {                                              \
     dst.name[i] = src.name[i];                                                       \
   }
 #define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)

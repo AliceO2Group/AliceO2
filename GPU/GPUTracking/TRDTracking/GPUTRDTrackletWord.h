@@ -32,8 +32,8 @@ namespace gpu
 class GPUTRDTrackletWord
 {
  public:
-  GPUd() GPUTRDTrackletWord(unsigned int trackletWord = 0);
-  GPUd() GPUTRDTrackletWord(unsigned int trackletWord, int hcid);
+  GPUd() GPUTRDTrackletWord(uint32_t trackletWord = 0);
+  GPUd() GPUTRDTrackletWord(uint32_t trackletWord, int32_t hcid);
   GPUdDefault() GPUTRDTrackletWord(const GPUTRDTrackletWord& rhs) CON_DEFAULT;
   GPUdDefault() GPUTRDTrackletWord& operator=(const GPUTRDTrackletWord& rhs) CON_DEFAULT;
   GPUdDefault() ~GPUTRDTrackletWord() CON_DEFAULT;
@@ -49,28 +49,28 @@ class GPUTRDTrackletWord
   GPUd() bool operator<=(const GPUTRDTrackletWord& t) const { return (GetHCId() < t.GetHCId()) || (GetHCId() == t.GetHCId()); }
 
   // ----- Getters for contents of tracklet word -----
-  GPUd() int GetYbin() const;
-  GPUd() int GetdYbin() const;
-  GPUd() int GetZbin() const { return ((mTrackletWord >> 20) & 0xf); }
-  GPUd() int GetPID() const { return ((mTrackletWord >> 24) & 0xff); }
+  GPUd() int32_t GetYbin() const;
+  GPUd() int32_t GetdYbin() const;
+  GPUd() int32_t GetZbin() const { return ((mTrackletWord >> 20) & 0xf); }
+  GPUd() int32_t GetPID() const { return ((mTrackletWord >> 24) & 0xff); }
 
   // ----- Getters for offline corresponding values -----
-  GPUd() double GetPID(int /* is */) const { return (double)GetPID() / 256.f; }
-  GPUd() int GetDetector() const { return mHCId / 2; }
-  GPUd() int GetHCId() const { return mHCId; }
+  GPUd() double GetPID(int32_t /* is */) const { return (double)GetPID() / 256.f; }
+  GPUd() int32_t GetDetector() const { return mHCId / 2; }
+  GPUd() int32_t GetHCId() const { return mHCId; }
   GPUd() float GetdYdX() const { return (GetdYbin() * 140e-4f / 3.f); }
   GPUd() float GetdY() const { return GetdYbin() * 140e-4f; }
   GPUd() float GetY() const { return (GetYbin() * 160e-4f); }
-  GPUd() unsigned int GetTrackletWord() const { return mTrackletWord; }
+  GPUd() uint32_t GetTrackletWord() const { return mTrackletWord; }
 
-  GPUd() void SetTrackletWord(unsigned int trackletWord) { mTrackletWord = trackletWord; }
-  GPUd() void SetDetector(int id) { mHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
-  GPUd() void SetHCId(int id) { mHCId = id; }
+  GPUd() void SetTrackletWord(uint32_t trackletWord) { mTrackletWord = trackletWord; }
+  GPUd() void SetDetector(int32_t id) { mHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
+  GPUd() void SetHCId(int32_t id) { mHCId = id; }
 
  protected:
-  int mHCId;                  // half-chamber ID
-  unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y
-                              //          bits:   8   4            7          13
+  int32_t mHCId;          // half-chamber ID
+  uint32_t mTrackletWord; // tracklet word: PID | Z | deflection length | Y
+                          //          bits:   8   4            7          13
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
@@ -97,11 +97,11 @@ class GPUTRDTrackletWord : private o2::trd::Tracklet64
   GPUd() bool operator>(const GPUTRDTrackletWord& t) const { return (getHCID() > t.getHCID()); }
   GPUd() bool operator<=(const GPUTRDTrackletWord& t) const { return (getHCID() < t.getHCID()) || (getHCID() == t.getHCID()); }
 
-  GPUd() int GetZbin() const { return getPadRow(); }
+  GPUd() int32_t GetZbin() const { return getPadRow(); }
   GPUd() float GetY() const { return getUncalibratedY(); }
   GPUd() float GetdY() const { return getUncalibratedDy(); }
-  GPUd() int GetDetector() const { return getDetector(); }
-  GPUd() int GetHCId() const { return getHCID(); }
+  GPUd() int32_t GetDetector() const { return getDetector(); }
+  GPUd() int32_t GetHCId() const { return getHCID(); }
 
   // IMPORTANT: Do not add members, this class must keep the same memory layout as o2::trd::Tracklet64
 };
