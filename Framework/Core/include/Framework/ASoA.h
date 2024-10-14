@@ -2021,7 +2021,7 @@ ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
 {
   const size_t n = columnLabel.size();
 
-  if(n == 0 || n != strlen(C::columnLabel())) {
+  if (n == 0 || n != strlen(C::columnLabel())) {
     return nullptr;
   }
 
@@ -2033,11 +2033,11 @@ ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
 {
   const size_t n = columnLabel.size();
 
-  if(n == 0 || n != strlen(C::columnLabel())) {
+  if (n == 0 || n != strlen(C::columnLabel())) {
     return nullptr;
   }
 
-  return ((std::strncmp(&columnLabel[1], C::columnLabel(), n-1) && std::strncmp(columnLabel.data(), C::columnLabel(), n))) ? nullptr : &getColumnValue<R, T, C>;
+  return ((std::strncmp(&columnLabel[1], C::columnLabel(), n - 1) && std::strncmp(columnLabel.data(), C::columnLabel(), n))) ? nullptr : &getColumnValue<R, T, C>;
 }
 
 template <typename R, typename T, typename... Cs>
