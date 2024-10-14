@@ -94,6 +94,7 @@ set(SRCS_NO_CINT
     Global/GPUErrors.cxx
     Merger/GPUTPCGMMergerGPU.cxx
     Debug/GPUROOTDumpCore.cxx
+    Debug/GPUTPCClusterFilter.cxx
     utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
