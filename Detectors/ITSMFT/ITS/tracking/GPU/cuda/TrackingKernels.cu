@@ -717,9 +717,11 @@ void trackSeedHandler(CellSeed* trackSeeds,
                       float maxChi2ClusterAttachment,
                       float maxChi2NDF,
                       const o2::base::Propagator* propagator,
-                      const o2::base::PropagatorF::MatCorrType matCorrType)
+                      const o2::base::PropagatorF::MatCorrType matCorrType,
+                      const int nBlocks,
+                      const int nThreads)
 {
-  gpu::fitTrackSeedsKernel<<<20, 256>>>(
+  gpu::fitTrackSeedsKernel<<<nBlocks, nThreads>>>(
     trackSeeds,               // CellSeed* trackSeeds,
     foundTrackingFrameInfo,   // TrackingFrameInfo** foundTrackingFrameInfo,
     tracks,                   // o2::its::TrackITSExt* tracks,
