@@ -192,15 +192,15 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp, unsigned long f
             bct0--;
           }
           float tof = matchingPair.getSignal() - bct0 * Geo::BC_TIME_INPS;
-          if (abs(tof - matchingPair.getLTIntegralOut().getTOF(2)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(3)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(4)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(0)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(1)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(5)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(6)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(7)) < 600) {
-          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(8)) < 600) {
+          if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(2)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(3)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(4)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(0)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(1)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(5)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(6)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(7)) < 600) {
+          } else if (std::abs(tof - matchingPair.getLTIntegralOut().getTOF(8)) < 600) {
           } else { // no pion, kaon, proton, electron, muon, deuteron, triton, 3He, 4He
             matchingPair.setFakeMatch();
           }
@@ -557,7 +557,7 @@ void MatchTOF::propagateTPCTracks(int sec)
     }
 
     if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) {
-      if (!propagateToRefXWithoutCov(trc, o2::constants::geom::XTPCOuterRef, 10, mBz) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
+      if (!propagateToRefXWithoutCov(trc, o2::constants::geom::XTPCOuterRef, 10, mBz) || std::abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
         mNotPropagatedToTOF[trkType::UNCONS]++;
         continue;
       }
@@ -566,7 +566,7 @@ void MatchTOF::propagateTPCTracks(int sec)
     o2::base::Propagator::Instance()->estimateLTFast(intLT0, trc);
 
     // the "rough" propagation worked; now we can propagate considering also the cov matrix
-    if (!propagateToRefX(trc, mXRef, 2, intLT0)) { // || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix w>
+    if (!propagateToRefX(trc, mXRef, 2, intLT0)) { // || std::abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix w>
       mNotPropagatedToTOF[trkType::UNCONS]++;
       continue;
     }
@@ -603,7 +603,7 @@ void MatchTOF::propagateConstrTracks(int sec)
     }
 
     // the "rough" propagation worked; now we can propagate considering also the cov matrix
-    if (!propagateToRefX(trc, mXRef, 2, intLT0) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked;>
+    if (!propagateToRefX(trc, mXRef, 2, intLT0) || std::abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked;>
       mNotPropagatedToTOF[trkType::CONSTR]++;
       continue;
     }
@@ -706,7 +706,7 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
   // compute track length up to now
   mLTinfos[sector][trkType::UNCONS].emplace_back(intLT0);
   float vz0 = _tr.getZAt(0, mBz);
-  if (abs(vz0) > 9000) {
+  if (std::abs(vz0) > 9000) {
     vz0 = _tr.getZ() - _tr.getX() * _tr.getTgl();
   }
   mVZtpcOnly[sector].push_back(vz0);
@@ -727,14 +727,14 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
     }
 
     if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) {
-      if (!propagateToRefX(trc, o2::constants::geom::XTPCOuterRef, 10, intLT0) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happ
+      if (!propagateToRefX(trc, o2::constants::geom::XTPCOuterRef, 10, intLT0) || std::abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happ
         mNotPropagatedToTOF[trkType::UNCONS]++;
         return;
       }
     }
 
     // the "rough" propagation worked; now we can propagate considering also the cov matrix
-    if (!propagateToRefX(trc, mXRef, 2, intLT0)) { // || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happen that it does not if the prop>
+    if (!propagateToRefX(trc, mXRef, 2, intLT0)) { // || std::abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happen that it does not if the prop>
       mNotPropagatedToTOF[trkType::UNCONS]++;
       return;
     }
@@ -1411,10 +1411,10 @@ void MatchTOF::doMatchingForTPC(int sec)
           }
 
           if (mMatchParams->applyPIDcutTPConly) {                                 // for TPC only tracks allowing possibility to apply a PID cut
-            if (abs(tof - trkLTInt[ibc][iPropagation].getTOF(2)) < 2000) {        // pion hypotesis
-            } else if (abs(tof - trkLTInt[ibc][iPropagation].getTOF(3)) < 2000) { // kaon hypoteis
-            } else if (abs(tof - trkLTInt[ibc][iPropagation].getTOF(4)) < 2000) { // proton hypotesis
-            } else {                                                              // reject matching
+            if (std::abs(tof - trkLTInt[ibc][iPropagation].getTOF(2)) < 2000) {   // pion hypotesis
+            } else if (std::abs(tof - trkLTInt[ibc][iPropagation].getTOF(3)) < 2000) { // kaon hypoteis
+            } else if (std::abs(tof - trkLTInt[ibc][iPropagation].getTOF(4)) < 2000) { // proton hypotesis
+            } else {                                                                   // reject matching
               continue;
             }
           }
@@ -1518,7 +1518,7 @@ int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FI
     if (mHasFillScheme && !mFillScheme[ir.bc]) {
       continue;
     }
-    bool quality = (fabs(FITRecPoints[i].getCollisionTime(0)) < 1000 && fabs(FITRecPoints[i].getVertex()) < 1000);
+    bool quality = (std::abs(FITRecPoints[i].getCollisionTime(0)) < 1000 && std::abs(FITRecPoints[i].getVertex()) < 1000);
     if (bestQuality && !quality) { // if current has no good quality and the one previoulsy selected has -> discard the current one
       continue;
     }
@@ -1596,7 +1596,7 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
           float timeNew = TOFClusWork[matchingPair.getTOFClIndex()].getTime() - deltaT;
           float timeOld = TOFClusWork[prevMatching.getTOFClIndex()].getTime();
 
-          if (fabs(timeNew - timeOld) < 200) {
+          if (std::abs(timeNew - timeOld) < 200) {
             // update time information averaging the two (the second one corrected for the difference in the track length)
             prevMatching.setSignal((timeNew + timeOld) * 0.5);
             prevMatching.setChi2(0);                                                                // flag such cases with chi2 equal to zero
@@ -1820,7 +1820,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
       refReached = true; // we reached the 371cm reference
     }
     istep++;
-    if (fabs(trc.getY()) > trc.getX() * tanHalfSector) { // we are still in the same sector
+    if (std::abs(trc.getY()) > trc.getX() * tanHalfSector) { // we are still in the same sector
       // we need to rotate the track to go to the new sector
       //Printf("propagateToRefX: changing sector");
       auto alphaNew = o2::math_utils::angle2Alpha(trc.getPhiPos());
@@ -1860,7 +1860,7 @@ bool MatchTOF::propagateToRefXWithoutCov(const o2::track::TrackParCov& trc, floa
       refReached = true; // we reached the 371cm reference
     }
     istep++;
-    if (fabs(trcNoCov.getY()) > trcNoCov.getX() * tanHalfSector) { // we are still in the same sector
+    if (std::abs(trcNoCov.getY()) > trcNoCov.getX() * tanHalfSector) { // we are still in the same sector
       // we need to rotate the track to go to the new sector
       //Printf("propagateToRefX: changing sector");
       auto alphaNew = o2::math_utils::angle2Alpha(trcNoCov.getPhiPos());
@@ -1877,7 +1877,7 @@ bool MatchTOF::propagateToRefXWithoutCov(const o2::track::TrackParCov& trc, floa
   //  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");
   //Printf("propagateToRefX: snp of teh track is %f (--> %f grad)", trcNoCov.getSnp(), TMath::ASin(trcNoCov.getSnp())*TMath::RadToDeg());
 
-  return refReached && std::abs(trcNoCov.getSnp()) < 0.95 && TMath::Abs(trcNoCov.getZ()) < Geo::MAXHZTOF; // Here we need to put MAXSNP
+  return refReached && std::abs(trcNoCov.getSnp()) < 0.95 && std::abs(trcNoCov.getZ()) < Geo::MAXHZTOF; // Here we need to put MAXSNP
 }
 
 //______________________________________________
@@ -1900,7 +1900,7 @@ void MatchTOF::updateTimeDependentParams()
   mTPCBin2Z = mTPCTBinMUS * mTPCVDrift;
 
   mBz = o2::base::Propagator::Instance()->getNominalBz();
-  mMaxInvPt = abs(mBz) > 0.1 ? 1. / (abs(mBz) * 0.05) : 999.;
+  mMaxInvPt = std::abs(mBz) > 0.1 ? 1. / (std::abs(mBz) * 0.05) : 999.;
 
   const auto& trackTune = TrackTuneParams::Instance();
   float scale = mTPCCorrMapsHelper->getInstLumiCTP();

@@ -31,7 +31,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
 {
  public:
   static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFPeakFinder);
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, SCRATCH_PAD_WORK_GROUP_SIZE> {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, SCRATCH_PAD_WORK_GROUP_SIZE> {
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
   };
@@ -49,13 +49,13 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = defaultKernel, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int32_t iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const uchar*, const ChargePos*, tpccf::SizeT, const GPUSettingsRec&, const TPCPadGainCalib&, uchar*, Array2D<uchar>&);
+  static GPUd() void findPeaksImpl(int32_t, int32_t, int32_t, int32_t, GPUSharedMemory&, const Array2D<PackedCharge>&, const uint8_t*, const ChargePos*, tpccf::SizeT, const GPUSettingsRec&, const TPCPadGainCalib&, uint8_t*, Array2D<uint8_t>&);
 
-  static GPUd() bool isPeak(GPUSharedMemory&, tpccf::Charge, const ChargePos&, ushort, const Array2D<PackedCharge>&, const GPUSettingsRec&, ChargePos*, PackedCharge*);
+  static GPUd() bool isPeak(GPUSharedMemory&, tpccf::Charge, const ChargePos&, uint16_t, const Array2D<PackedCharge>&, const GPUSettingsRec&, ChargePos*, PackedCharge*);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

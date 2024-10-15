@@ -22,18 +22,18 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFDeconvolution::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFDeconvolution::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
+  Array2D<uint8_t> isPeakMap(clusterer.mPpeakMap);
   GPUTPCCFDeconvolution::deconvolutionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions);
 }
 
-GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                       const Array2D<uchar>& peakMap,
+GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem,
+                                                       const Array2D<uint8_t>& peakMap,
                                                        Array2D<PackedCharge>& chargeMap,
                                                        const ChargePos* positions,
-                                                       const uint digitnum)
+                                                       const uint32_t digitnum)
 {
   SizeT idx = get_global_id(0);
 
@@ -44,12 +44,12 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
 
   bool iamPeak = CfUtils::isPeak(peakMap[pos]);
 
-  char peakCount = (iamPeak) ? 1 : 0;
+  int8_t peakCount = (iamPeak) ? 1 : 0;
 
-  ushort ll = get_local_id(0);
-  ushort partId = ll;
+  uint16_t ll = get_local_id(0);
+  uint16_t partId = ll;
 
-  ushort in3x3 = 0;
+  uint16_t in3x3 = 0;
   bool exclude3x3 = iamPeak || !pos.valid();
   partId = CfUtils::partition<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, ll, exclude3x3, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
 
@@ -69,12 +69,12 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
     smem.posBcast1,
     smem.buf);
 
-  uchar aboveThreshold = 0;
+  uint8_t aboveThreshold = 0;
   if (partId < in3x3) {
     peakCount = countPeaksInner(partId, smem.buf, &aboveThreshold);
   }
 
-  ushort in5x5 = 0;
+  uint16_t in5x5 = 0;
   partId = CfUtils::partition<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, partId, peakCount > 0 && !exclude3x3, in3x3, &in5x5);
 
   if (partId < in5x5) {
@@ -83,7 +83,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
   }
   GPUbarrier();
 
-  CfUtils::condBlockLoad<uchar, true>(
+  CfUtils::condBlockLoad<uint8_t, true>(
     peakMap,
     in5x5,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -105,7 +105,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
   }
 
   bool has3x3 = (peakCount > 0);
-  peakCount = CAMath::Abs(int(peakCount));
+  peakCount = CAMath::Abs(int32_t(peakCount));
   bool split = (peakCount > 1);
 
   peakCount = (peakCount == 0) ? 1 : peakCount;
@@ -116,31 +116,31 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
   chargeMap[pos] = p;
 }
 
-GPUdi() char GPUTPCCFDeconvolution::countPeaksInner(
-  ushort ll,
-  const uchar* isPeak,
-  uchar* aboveThreshold)
+GPUdi() uint8_t GPUTPCCFDeconvolution::countPeaksInner(
+  uint16_t ll,
+  const uint8_t* isPeak,
+  uint8_t* aboveThreshold)
 {
-  char peaks = 0;
+  uint8_t peaks = 0;
   GPUCA_UNROLL(U(), U())
-  for (uchar i = 0; i < 8; i++) {
-    uchar p = isPeak[ll * 8 + i];
+  for (uint8_t i = 0; i < 8; i++) {
+    uint8_t p = isPeak[ll * 8 + i];
     peaks += CfUtils::isPeak(p);
-    *aboveThreshold |= uchar(CfUtils::isAboveThreshold(p)) << i;
+    *aboveThreshold |= uint8_t(CfUtils::isAboveThreshold(p)) << i;
   }
 
   return peaks;
 }
 
-GPUdi() char GPUTPCCFDeconvolution::countPeaksOuter(
-  ushort ll,
-  uchar aboveThreshold,
-  const uchar* isPeak)
+GPUdi() uint8_t GPUTPCCFDeconvolution::countPeaksOuter(
+  uint16_t ll,
+  uint8_t aboveThreshold,
+  const uint8_t* isPeak)
 {
-  char peaks = 0;
+  uint8_t peaks = 0;
   GPUCA_UNROLL(U(), U())
-  for (uchar i = 0; i < 16; i++) {
-    uchar p = isPeak[ll * 16 + i];
+  for (uint8_t i = 0; i < 16; i++) {
+    uint8_t p = isPeak[ll * 16 + i];
     peaks += CfUtils::isPeak(p);
   }
 

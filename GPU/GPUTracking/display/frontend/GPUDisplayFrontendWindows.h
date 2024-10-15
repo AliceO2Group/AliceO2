@@ -25,7 +25,7 @@ class GPUDisplayFrontendWindows : public GPUDisplayFrontend
   GPUDisplayFrontendWindows();
   ~GPUDisplayFrontendWindows() override = default;
 
-  int StartDisplay() override;
+  int32_t StartDisplay() override;
   void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
@@ -33,7 +33,7 @@ class GPUDisplayFrontendWindows : public GPUDisplayFrontend
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
  private:
-  int FrontendMain() override;
+  int32_t FrontendMain() override;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

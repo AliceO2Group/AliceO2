@@ -20,14 +20,14 @@
 using namespace o2::tpc;
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
-void CalibdEdxTrackTopologyPol::dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName) const
+void CalibdEdxTrackTopologyPol::dumpToTree(const uint32_t nSamplingPoints[/* Dim */], const char* outName) const
 {
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     const auto treename = getPolyName(i, ChargeType::Max);
     mCalibPolsqMax[i].dumpToTree(nSamplingPoints, outName, treename.data(), false);
   }
 
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     const auto treename = getPolyName(i, ChargeType::Tot);
     mCalibPolsqTot[i].dumpToTree(nSamplingPoints, outName, treename.data(), false);
   }
@@ -39,17 +39,17 @@ void CalibdEdxTrackTopologyPol::cloneFromObject(const CalibdEdxTrackTopologyPol&
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
 
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     char* buffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCalibPolsqTot[i].getFlatBufferPtr());
     mCalibPolsqTot[i].cloneFromObject(obj.mCalibPolsqTot[i], buffer);
   }
 
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     char* buffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCalibPolsqMax[i].getFlatBufferPtr());
     mCalibPolsqMax[i].cloneFromObject(obj.mCalibPolsqMax[i], buffer);
   }
 
-  for (int i = 0; i < FFits; ++i) {
+  for (int32_t i = 0; i < FFits; ++i) {
     mScalingFactorsqTot[i] = obj.mScalingFactorsqTot[i];
     mScalingFactorsqMax[i] = obj.mScalingFactorsqMax[i];
   }
@@ -66,7 +66,7 @@ void CalibdEdxTrackTopologyPol::moveBufferTo(char* newFlatBufferPtr)
 
 void CalibdEdxTrackTopologyPol::destroy()
 {
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     mCalibPolsqTot[i].destroy();
     mCalibPolsqMax[i].destroy();
   }
@@ -77,12 +77,12 @@ void CalibdEdxTrackTopologyPol::setActualBufferAddress(char* actualFlatBufferPtr
 {
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
   size_t offset = 0;
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     offset = alignSize(offset, mCalibPolsqTot[i].getBufferAlignmentBytes());
     mCalibPolsqTot[i].setActualBufferAddress(mFlatBufferPtr + offset);
     offset += mCalibPolsqTot[i].getFlatBufferSize();
   }
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     offset = alignSize(offset, mCalibPolsqMax[i].getBufferAlignmentBytes());
     mCalibPolsqMax[i].setActualBufferAddress(mFlatBufferPtr + offset);
     offset += mCalibPolsqMax[i].getFlatBufferSize();
@@ -91,11 +91,11 @@ void CalibdEdxTrackTopologyPol::setActualBufferAddress(char* actualFlatBufferPtr
 
 void CalibdEdxTrackTopologyPol::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     char* buffer = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mCalibPolsqTot[i].getFlatBufferPtr());
     mCalibPolsqTot[i].setFutureBufferAddress(buffer);
   }
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     char* buffer = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mCalibPolsqMax[i].getFlatBufferPtr());
     mCalibPolsqMax[i].setFutureBufferAddress(buffer);
   }
@@ -112,12 +112,12 @@ void CalibdEdxTrackTopologyPol::construct()
   size_t offsets1[FFits];
   size_t offsets2[FFits];
 
-  for (int index = 0; index < FFits; ++index) {
+  for (int32_t index = 0; index < FFits; ++index) {
     buffSize = alignSize(buffSize, mCalibPolsqTot[index].getBufferAlignmentBytes());
     offsets1[index] = buffSize;
     buffSize += mCalibPolsqTot[index].getFlatBufferSize();
   }
-  for (int index = 0; index < FFits; ++index) {
+  for (int32_t index = 0; index < FFits; ++index) {
     buffSize = alignSize(buffSize, mCalibPolsqMax[index].getBufferAlignmentBytes());
     offsets2[index] = buffSize;
     buffSize += mCalibPolsqMax[index].getFlatBufferSize();
@@ -125,18 +125,18 @@ void CalibdEdxTrackTopologyPol::construct()
 
   FlatObject::finishConstruction(buffSize);
 
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     mCalibPolsqTot[i].moveBufferTo(mFlatBufferPtr + offsets1[i]);
   }
-  for (unsigned int i = 0; i < FFits; i++) {
+  for (uint32_t i = 0; i < FFits; i++) {
     mCalibPolsqMax[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
   }
 }
 
 void CalibdEdxTrackTopologyPol::setDefaultPolynomials()
 {
-  for (int i = 0; i < FFits; ++i) {
-    const unsigned int n[FDim]{6, 5, 5, 5, 5};
+  for (int32_t i = 0; i < FFits; ++i) {
+    const uint32_t n[FDim]{6, 5, 5, 5, 5};
 
     //                        z tan(theta) sin(phi) |relPad| relTime
     const float minqMax[FDim]{0, 0, 0, 0, -0.5f};
@@ -190,15 +190,15 @@ void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPol
     return;
   }
 
-  for (int i = 0; i < FFits; ++i) {
+  for (int32_t i = 0; i < FFits; ++i) {
     mCalibPolsqTot[i].setFromContainer(container.mCalibPols[i]);
   }
 
-  for (int i = 0; i < FFits; ++i) {
+  for (int32_t i = 0; i < FFits; ++i) {
     mCalibPolsqMax[i].setFromContainer(container.mCalibPols[FFits + i]);
   }
 
-  for (int i = 0; i < FFits; ++i) {
+  for (int32_t i = 0; i < FFits; ++i) {
     mScalingFactorsqTot[i] = container.mScalingFactorsqTot[i];
     mScalingFactorsqMax[i] = container.mScalingFactorsqMax[i];
   }
@@ -220,7 +220,7 @@ void CalibdEdxTrackTopologyPol::loadFromFile(const char* fileName, const char* n
 
 void CalibdEdxTrackTopologyPol::setPolynomialsFromFile(TFile& inpf)
 {
-  for (int ireg = 0; ireg < FFits; ++ireg) {
+  for (int32_t ireg = 0; ireg < FFits; ++ireg) {
     const auto polnameqTot = getPolyName(ireg, ChargeType::Tot);
     mCalibPolsqTot[ireg].loadFromFile(inpf, polnameqTot.data());
     const auto polnameqMax = getPolyName(ireg, ChargeType::Max);
@@ -229,7 +229,7 @@ void CalibdEdxTrackTopologyPol::setPolynomialsFromFile(TFile& inpf)
   construct();
 }
 
-std::string CalibdEdxTrackTopologyPol::getPolyName(const int region, const ChargeType charge)
+std::string CalibdEdxTrackTopologyPol::getPolyName(const int32_t region, const ChargeType charge)
 {
   const std::string typeName[2] = {"qMax", "qTot"};
   const std::string polname = fmt::format("polynomial_{}_region{}", typeName[charge], region).data();

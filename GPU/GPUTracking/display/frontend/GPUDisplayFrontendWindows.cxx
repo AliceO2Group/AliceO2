@@ -37,7 +37,7 @@ bool fullscreen = TRUE; // Fullscreen Flag Set To Fullscreen Mode By Default
 
 POINT mouseCursorPos;
 
-volatile int mouseReset = false;
+volatile int32_t mouseReset = false;
 
 void KillGLWindow() // Properly Kill The Window
 {
@@ -78,17 +78,17 @@ void KillGLWindow() // Properly Kill The Window
   }
 }
 
-BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscreenflag)
+BOOL CreateGLWindow(char* title, int32_t width, int32_t height, int32_t bits, bool fullscreenflag)
 {
   GLuint PixelFormat;               // Holds The Results After Searching For A Match
   WNDCLASS wc;                      // Windows Class Structure
   DWORD dwExStyle;                  // Window Extended Style
   DWORD dwStyle;                    // Window Style
   RECT WindowRect;                  // Grabs Rectangle Upper Left / Lower Right Values
-  WindowRect.left = (long)0;        // Set Left Value To 0
-  WindowRect.right = (long)width;   // Set Right Value To Requested Width
-  WindowRect.top = (long)0;         // Set Top Value To 0
-  WindowRect.bottom = (long)height; // Set Bottom Value To Requested Height
+  WindowRect.left = (int64_t)0;     // Set Left Value To 0
+  WindowRect.right = (int64_t)width;   // Set Right Value To Requested Width
+  WindowRect.top = (int64_t)0;         // Set Top Value To 0
+  WindowRect.bottom = (int64_t)height; // Set Bottom Value To Requested Height
 
   fullscreen = fullscreenflag; // Set The Global Fullscreen Flag
 
@@ -150,7 +150,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
         PFD_SUPPORT_OPENGL |         // Format Must Support OpenGL
         PFD_DOUBLEBUFFER,            // Must Support Double Buffering
       PFD_TYPE_RGBA,                 // Request An RGBA Format
-      (unsigned char)bits,           // Select Our Color Depth
+      (uint8_t)bits,                 // Select Our Color Depth
       0,
       0,
       0,
@@ -217,7 +217,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
   return TRUE;
 }
 
-int GetKey(int key)
+int32_t GetKey(int32_t key)
 {
   if (key == 107 || key == 187) {
     return ('+');
@@ -322,7 +322,7 @@ GPUDisplayFrontendWindows::GPUDisplayFrontendWindows()
   mFrontendName = "Win32";
 }
 
-int GPUDisplayFrontendWindows::FrontendMain()
+int32_t GPUDisplayFrontendWindows::FrontendMain()
 {
   MSG msg;
   BOOL done = FALSE;
@@ -376,7 +376,7 @@ void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}
 
-int GPUDisplayFrontendWindows::StartDisplay()
+int32_t GPUDisplayFrontendWindows::StartDisplay()
 {
   HANDLE hThread;
   if ((hThread = CreateThread(nullptr, nullptr, &OpenGLWrapper, this, nullptr, nullptr)) == nullptr) {

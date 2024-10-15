@@ -48,12 +48,12 @@ class AliHLT3DTrackParam : public TObject
   double GetPy() const { return mParam[4]; }
   double GetPz() const { return mParam[5]; }
   double GetChi2() const { return fChi2; }
-  int GetNDF() const { return fNDF; }
-  int GetCharge() const { return fSignQ; }
+  int32_t GetNDF() const { return fNDF; }
+  int32_t GetCharge() const { return fSignQ; }
 
-  double GetParameter(int i) const { return mParam[i]; }
-  double GetCovariance(int i) const { return fCov[i]; }
-  double GetCovariance(int i, int j) const { return fCov[(j <= i) ? i * (i + 1) / 2 + j : j * (j + 1) / 2 + i]; }
+  double GetParameter(int32_t i) const { return mParam[i]; }
+  double GetCovariance(int32_t i) const { return fCov[i]; }
+  double GetCovariance(int32_t i, int32_t j) const { return fCov[(j <= i) ? i * (i + 1) / 2 + j : j * (j + 1) / 2 + i]; }
 
   //*
   //* Accessors
@@ -68,8 +68,8 @@ class AliHLT3DTrackParam : public TObject
   double Py() const { return mParam[4]; }
   double Pz() const { return mParam[5]; }
   double Chi2() const { return fChi2; }
-  int NDF() const { return fNDF; }
-  int Charge() const { return fSignQ; }
+  int32_t NDF() const { return fNDF; }
+  int32_t Charge() const { return fSignQ; }
 
   //* Accessors with calculations( &value, &estimated sigma )
   //* error flag returned (0 means no error during calculations)
@@ -78,8 +78,8 @@ class AliHLT3DTrackParam : public TObject
   //*  MODIFIERS
   //*
 
-  void SetParam(int i, double v) { mParam[i] = v; }
-  void SetCov(int i, double v) { fCov[i] = v; }
+  void SetParam(int32_t i, double v) { mParam[i] = v; }
+  void SetCov(int32_t i, double v) { fCov[i] = v; }
   void SetX(double v) { mParam[0] = v; }
   void SetY(double v) { mParam[1] = v; }
   void SetZ(double v) { mParam[2] = v; }
@@ -87,8 +87,8 @@ class AliHLT3DTrackParam : public TObject
   void SetPy(double v) { mParam[4] = v; }
   void SetPz(double v) { mParam[5] = v; }
   void SetChi2(double v) { fChi2 = v; }
-  void SetNDF(int v) { fNDF = v; }
-  void SetCharge(int v) { fSignQ = v; }
+  void SetNDF(int32_t v) { fNDF = v; }
+  void SetCharge(int32_t v) { fSignQ = v; }
 
   //*
   //*  UTILITIES
@@ -128,8 +128,8 @@ class AliHLT3DTrackParam : public TObject
   double mParam[6]; // Parameters ( x, y, z, px, py, pz ): 3-position and 3-momentum
   double fCov[21];  // Covariance matrix
   double fChi2;     // Chi^2
-  int fNDF;         // Number of Degrees of Freedom
-  int fSignQ;       // Charge
+  int32_t fNDF;     // Number of Degrees of Freedom
+  int32_t fSignQ;   // Charge
 
   ClassDef(AliHLT3DTrackParam, 1);
 };

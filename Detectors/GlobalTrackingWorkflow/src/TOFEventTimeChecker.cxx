@@ -266,10 +266,10 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     float betaexpPr = mL / mExpPr * cinv;
 
     //Mass
-    float mass = mP / beta * TMath::Sqrt(TMath::Abs(1 - beta * beta));
-    float massexpPi = mP / betaexpPi * TMath::Sqrt(TMath::Abs(1 - betaexpPi * betaexpPi));
-    float massexpKa = mP / betaexpKa * TMath::Sqrt(TMath::Abs(1 - betaexpKa * betaexpKa));
-    float massexpPr = mP / betaexpPr * TMath::Sqrt(TMath::Abs(1 - betaexpPr * betaexpPr));
+    float mass = mP / beta * TMath::Sqrt(std::abs(1 - beta * beta));
+    float massexpPi = mP / betaexpPi * TMath::Sqrt(std::abs(1 - betaexpPi * betaexpPi));
+    float massexpKa = mP / betaexpKa * TMath::Sqrt(std::abs(1 - betaexpKa * betaexpKa));
+    float massexpPr = mP / betaexpPr * TMath::Sqrt(std::abs(1 - betaexpPr * betaexpPr));
 
     if (massexpPi < 0.13) { // remove wrong track lengths
       continue;

@@ -44,10 +44,10 @@ constexpr float MaxSinPhi = 0.999f;
 class GPUTPCCompressionTrackModel
 {
  public:
-  GPUd() void Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& proc);
-  GPUd() int Propagate(float x, float alpha);
-  GPUd() int Filter(float y, float z, int iRow);
-  GPUd() int Mirror();
+  GPUd() void Init(float x, float y, float z, float alpha, uint8_t qPt, const GPUParam& proc);
+  GPUd() int32_t Propagate(float x, float alpha);
+  GPUd() int32_t Filter(float y, float z, int32_t iRow);
+  GPUd() int32_t Mirror();
 
 #if defined(GPUCA_COMPRESSION_TRACK_MODEL_MERGER) || defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
   GPUd() float X() const
@@ -91,13 +91,13 @@ class GPUTPCCompressionTrackModel
   // helper functions for standalone propagation and update methods
   GPUd() void updatePhysicalTrackValues(PhysicalTrackModel& trk);
   GPUd() void changeDirection();
-  GPUd() int rotateToAlpha(float newAlpha);
-  GPUd() int propagateToXBzLightNoUpdate(PhysicalTrackModel& t, float x, float Bz, float& dLp);
+  GPUd() int32_t rotateToAlpha(float newAlpha);
+  GPUd() int32_t propagateToXBzLightNoUpdate(PhysicalTrackModel& t, float x, float Bz, float& dLp);
   GPUd() bool setDirectionAlongX(PhysicalTrackModel& t);
-  GPUd() int followLinearization(const PhysicalTrackModel& t0e, float Bz, float dLp);
+  GPUd() int32_t followLinearization(const PhysicalTrackModel& t0e, float Bz, float dLp);
   GPUd() void calculateMaterialCorrection();
   GPUd() float approximateBetheBloch(float beta2);
-  GPUd() void getClusterErrors2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
+  GPUd() void getClusterErrors2(int32_t iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
   GPUd() void resetCovariance();
 
 #endif
@@ -141,7 +141,7 @@ class GPUTPCCompressionTrackModel
   float mAlpha;
   float mP[5];
   float mC[15];
-  int mNDF = -5;
+  int32_t mNDF = -5;
   float mCosAlpha;
   float mSinAlpha;
 

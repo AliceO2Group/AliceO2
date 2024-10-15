@@ -31,7 +31,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   GPUDisplayBackendVulkan();
   ~GPUDisplayBackendVulkan() override;
 
-  unsigned int DepthBits() override;
+  uint32_t DepthBits() override;
 
  protected:
   struct SwapChainSupportDetails {
@@ -43,13 +43,13 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
     vk::Buffer buffer;
     vk::DeviceMemory memory;
     size_t size = 0;
-    int deviceMemory;
+    int32_t deviceMemory;
   };
   struct VulkanImage {
     vk::Image image;
     vk::ImageView view;
     vk::DeviceMemory memory;
-    unsigned int sizex = 0, sizey = 0;
+    uint32_t sizex = 0, sizey = 0;
     vk::Format format;
   };
   struct FontSymbolVulkan : public GPUDisplayBackend::FontSymbol {
@@ -62,12 +62,12 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
     float color[4];
   };
 
-  unsigned int drawVertices(const vboList& v, const drawType t) override;
+  uint32_t drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
   void SetVSync(bool enable) override { mMustUpdateSwapChain = true; };
   void setDepthBuffer() override {};
   bool backendNeedRedraw() override;
-  int InitBackendA() override;
+  int32_t InitBackendA() override;
   void ExitBackendA() override;
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
@@ -76,25 +76,25 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(vk::CommandBuffer cmdBuffer, float mixSlaveImage);
-  void setMixDescriptor(int descriptorIndex, int imageIndex);
+  void setMixDescriptor(int32_t descriptorIndex, int32_t imageIndex);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
-  void resizeScene(unsigned int width, unsigned int height) override;
+  void resizeScene(uint32_t width, uint32_t height) override;
   float getYFactor() const override { return -1.0f; }
-  int getMaxMSAA() const override { return mMaxMSAAsupported; }
+  int32_t getMaxMSAA() const override { return mMaxMSAAsupported; }
 
   double checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions);
   vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
   void transitionImageLayout(vk::CommandBuffer commandBuffer, vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
-  VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, vk::BufferUsageFlags type = vk::BufferUsageFlagBits::eVertexBuffer, int deviceMemory = 1);
+  VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, vk::BufferUsageFlags type = vk::BufferUsageFlagBits::eVertexBuffer, int32_t deviceMemory = 1);
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
   void clearBuffer(VulkanBuffer& buffer);
-  VulkanImage createImage(unsigned int sizex, unsigned int sizey, const void* srcData = nullptr, size_t srcSize = 0, vk::Format format = vk::Format::eR8G8B8A8Srgb);
+  VulkanImage createImage(uint32_t sizex, uint32_t sizey, const void* srcData = nullptr, size_t srcSize = 0, vk::Format format = vk::Format::eR8G8B8A8Srgb);
   void writeToImage(VulkanImage& image, const void* srcData, size_t srcSize);
   void clearImage(VulkanImage& image);
   void clearVertexBuffers();
 
-  void startFillCommandBuffer(vk::CommandBuffer& commandBuffer, unsigned int imageIndex, bool toMixBuffer = false);
+  void startFillCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, bool toMixBuffer = false);
   void endFillCommandBuffer(vk::CommandBuffer& commandBuffer);
   vk::CommandBuffer getSingleTimeCommandBuffer();
   void submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer);
@@ -124,11 +124,11 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void recreateRendering(bool forScreenshot = false, bool forMixing = false);
   void needRecordCommandBuffers();
 
-  void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
+  void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override;
   void initializeTextDrawing() override;
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
-  unsigned int mGraphicsFamily;
+  uint32_t mGraphicsFamily;
   SwapChainSupportDetails mSwapChainDetails;
   bool mEnableValidationLayers = false;
 
@@ -165,13 +165,13 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   bool mCommandBufferPerImage = false;
   bool mCommandInfrastructureCreated = false;
-  unsigned int mImageCount = 0;
-  unsigned int mFramesInFlight = 0;
-  int mCurrentFrame = 0;
+  uint32_t mImageCount = 0;
+  uint32_t mFramesInFlight = 0;
+  int32_t mCurrentFrame = 0;
   uint32_t mCurrentImageIndex = 0;
-  int mCurrentBufferSet = 0;
+  int32_t mCurrentBufferSet = 0;
   vk::CommandBuffer mCurrentCommandBuffer;
-  int mCurrentCommandBufferLastPipeline = -1;
+  int32_t mCurrentCommandBufferLastPipeline = -1;
 
   std::vector<vk::CommandBuffer> mCommandBuffers;
   std::vector<vk::CommandBuffer> mCommandBuffersDownsample;
@@ -205,7 +205,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   bool mSwapchainImageReadable = false;
   vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
-  unsigned int mMaxMSAAsupported = 0;
+  uint32_t mMaxMSAAsupported = 0;
   bool mZActive = false;
   bool mZSupported = false;
   bool mStencilSupported = false;

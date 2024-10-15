@@ -30,7 +30,7 @@ using namespace o2::framework;
 TEST_CASE("DataProcessingStats")
 {
   DataProcessingStats stats(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-                            TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
+                            TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()), {});
 
   o2::framework::clean_all_runtime_errors();
   stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric});
@@ -190,7 +190,7 @@ TEST_CASE("DataProcessingStatsOutOfOrder")
     int64_t value[] = {0, 1000, 999, 998};
     return base + value[count++] - offset;
   };
-  DataProcessingStats stats(realtimeTime, cpuTime);
+  DataProcessingStats stats(realtimeTime, cpuTime, {});
   // Notice this will consume one value in the cpuTime.
   stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric});
   stats.updateStats({DummyMetric, DataProcessingStats::Op::Set, 2});
@@ -222,7 +222,7 @@ TEST_CASE("DataProcessingStatsInstantaneousRate")
 
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
-  DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator);
+  DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator, {});
   stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .kind = DataProcessingStats::Kind::Rate});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 0);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
@@ -265,7 +265,7 @@ TEST_CASE("DataProcessingStatsCumulativeRate")
 
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
-  DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator);
+  DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator, {});
   stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .kind = DataProcessingStats::Kind::Rate});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
@@ -310,7 +310,7 @@ TEST_CASE("DataProcessingStatsPublishing")
 
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
-  DataProcessingStats stats(realtimeTimestamp, cpuTimeTimestamp);
+  DataProcessingStats stats(realtimeTimestamp, cpuTimeTimestamp, {});
   stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .minPublishInterval = 5000});
   stats.registerMetric({.name = "dummy_metric2", .metricId = DummyMetric2, .minPublishInterval = 2000});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
@@ -355,7 +355,7 @@ TEST_CASE("DataProcessingStatsPublishingRepeated")
 
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
-  DataProcessingStats stats(realtimeTimestamp, cpuTimeTimestamp);
+  DataProcessingStats stats(realtimeTimestamp, cpuTimeTimestamp, {});
   stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .minPublishInterval = 3000, .maxRefreshLatency = 9000});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);

@@ -18,14 +18,14 @@
 
 #endif
 
-const int Fdegree = 4;
+const int32_t Fdegree = 4;
 
 static double Fcoeff[2 * (Fdegree + 1)];
 
 double F(double x)
 {
   double f = Fcoeff[0] / 2;
-  for (int i = 1; i <= Fdegree; i++) {
+  for (int32_t i = 1; i <= Fdegree; i++) {
     f += Fcoeff[2 * i] * TMath::Cos(i * x) +
          Fcoeff[2 * i + 1] * TMath::Sin(i * x);
   }
@@ -44,23 +44,23 @@ bool ask()
   return (str != "q" && str != ".q");
 }
 
-int ChebFitTest()
+int32_t ChebFitTest()
 {
   const double xMin = 0.5;
   const double xMax = M_PI - 0.5;
-  const int nFitPoints = 10;
-  const int nCoeff = 10;
+  const int32_t nFitPoints = 10;
+  const int32_t nCoeff = 10;
 
   using namespace o2::gpu;
 
   gRandom->SetSeed(0);
 
-  for (int seed = 1;; seed++) {
+  for (int32_t seed = 1;; seed++) {
     gRandom->SetSeed(seed);
     std::cout << "Random seed: " << seed << " " << gRandom->GetSeed()
               << std::endl;
 
-    for (int i = 0; i < 2 * (Fdegree + 1); i++) {
+    for (int32_t i = 0; i < 2 * (Fdegree + 1); i++) {
       Fcoeff[i] = gRandom->Uniform(-1, 1);
     }
 
@@ -70,7 +70,7 @@ int ChebFitTest()
     o2::gpu::ChebyshevFit1D cheb1(nCoeff - 1, xMin + 0.5, xMax - 0.5);
 
     double dx = (xMax - xMin) / (nFitPoints - 1);
-    for (int ip = 0; ip < nFitPoints; ip++) {
+    for (int32_t ip = 0; ip < nFitPoints; ip++) {
       double x = xMin + ip * dx;
       double f = F(x);
       cheb1.addMeasurement(x, f);

@@ -72,24 +72,24 @@ class GPUO2Interface
   GPUO2Interface();
   ~GPUO2Interface();
 
-  int Initialize(const GPUO2InterfaceConfiguration& config);
+  int32_t Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
-  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, unsigned int iThread = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
-  void Clear(bool clearOutputs, unsigned int iThread = 0);
-  void DumpEvent(int nEvent, GPUTrackingInOutPointers* data);
+  int32_t RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, uint32_t iThread = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
+  void Clear(bool clearOutputs, uint32_t iThread = 0);
+  void DumpEvent(int32_t nEvent, GPUTrackingInOutPointers* data);
   void DumpSettings();
 
   void GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame);
-  const o2::base::Propagator* GetDeviceO2Propagator(int iThread = 0) const;
+  const o2::base::Propagator* GetDeviceO2Propagator(int32_t iThread = 0) const;
   void UseGPUPolynomialFieldInPropagator(o2::base::Propagator* prop) const;
 
   // Updates all calibration objects that are != nullptr in newCalib
-  int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread = 0);
+  int32_t UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, uint32_t iThread = 0);
 
-  int registerMemoryForGPU(const void* ptr, size_t size);
-  int unregisterMemoryForGPU(const void* ptr);
-  void setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v);
+  int32_t registerMemoryForGPU(const void* ptr, size_t size);
+  int32_t unregisterMemoryForGPU(const void* ptr);
+  void setErrorCodeOutput(std::vector<std::array<uint32_t, 4>>* v);
 
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
@@ -99,7 +99,7 @@ class GPUO2Interface
 
   bool mContinuous = false;
 
-  unsigned int mNContexts = 0;
+  uint32_t mNContexts = 0;
   std::unique_ptr<GPUO2Interface_processingContext[]> mCtx;
 
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;

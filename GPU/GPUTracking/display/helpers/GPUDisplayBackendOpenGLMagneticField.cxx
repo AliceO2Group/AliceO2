@@ -49,17 +49,17 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 
-#define CHKERR(cmd)                                                                                             \
-  do {                                                                                                          \
-    (cmd);                                                                                                      \
-    GLenum err = glGetError();                                                                                  \
-    while (err != GL_NO_ERROR) {                                                                                \
-      GPUError("OpenGL Error %d: %s (%s: %d)", (int)err, (const char*)gluErrorString(err), __FILE__, __LINE__); \
-      throw std::runtime_error("OpenGL Failure");                                                               \
-    }                                                                                                           \
+#define CHKERR(cmd)                                                                                                 \
+  do {                                                                                                              \
+    (cmd);                                                                                                          \
+    GLenum err = glGetError();                                                                                      \
+    while (err != GL_NO_ERROR) {                                                                                    \
+      GPUError("OpenGL Error %d: %s (%s: %d)", (int32_t)err, (const char*)gluErrorString(err), __FILE__, __LINE__); \
+      throw std::runtime_error("OpenGL Failure");                                                                   \
+    }                                                                                                               \
   } while (false)
 
-int GPUDisplayBackendOpenGL::InitMagFieldVisualization()
+int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
 {
 #ifndef GPUCA_NO_FMT
   mMagneticFieldVisualization = std::make_unique<GPUDisplayMagneticField>();
@@ -144,13 +144,13 @@ int GPUDisplayBackendOpenGL::InitMagFieldVisualization()
   return 0;
 }
 
-unsigned int GPUDisplayBackendOpenGL::drawField()
+uint32_t GPUDisplayBackendOpenGL::drawField()
 {
   if (!mMagneticFieldVisualization) {
     return InitMagFieldVisualization(); // next frame will fill MVP matrix
   }
 
-  if (mMagneticFieldVisualization->mFieldLineSeedPoints.size() != (unsigned int)mDisplay->cfgL().bFieldLinesCount) {
+  if (mMagneticFieldVisualization->mFieldLineSeedPoints.size() != (uint32_t)mDisplay->cfgL().bFieldLinesCount) {
     mMagneticFieldVisualization->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
     CHKERR(glNamedBufferData(VBO_field, mMagneticFieldVisualization->mFieldLineSeedPoints.size() * sizeof(GPUDisplayMagneticField::vtx), mMagneticFieldVisualization->mFieldLineSeedPoints.data(), GL_STATIC_DRAW));
   }
@@ -196,10 +196,10 @@ void GPUDisplayBackendOpenGL::ExitMagFieldVisualization()
 }
 
 #else  // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-int GPUDisplayBackendOpenGL::InitMagFieldVisualization()
+int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
 {
   return 0;
 }
-unsigned int GPUDisplayBackendOpenGL::drawField() { return 0; }
+uint32_t GPUDisplayBackendOpenGL::drawField() { return 0; }
 void GPUDisplayBackendOpenGL::ExitMagFieldVisualization() {}
 #endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL

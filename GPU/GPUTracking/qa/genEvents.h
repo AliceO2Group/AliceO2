@@ -30,7 +30,7 @@ class genEvents
  public:
   genEvents(GPUChainTracking* rec) {}
   void InitEventGenerator() {}
-  int GenerateEvent(const GPUParam& sliceParam, char* filename) { return 1; }
+  int32_t GenerateEvent(const GPUParam& sliceParam, char* filename) { return 1; }
   void FinishEventGenerator() {}
 
   static void RunEventGenerator(GPUChainTracking* rec){};
@@ -43,28 +43,28 @@ class genEvents
  public:
   genEvents(GPUChainTracking* rec) : mRec(rec) {}
   void InitEventGenerator();
-  int GenerateEvent(const GPUParam& sliceParam, char* filename);
+  int32_t GenerateEvent(const GPUParam& sliceParam, char* filename);
   void FinishEventGenerator();
 
   static void RunEventGenerator(GPUChainTracking* rec);
 
  private:
-  int GetSlice(double GlobalPhi);
-  int GetDSlice(double LocalPhi);
-  double GetSliceAngle(int iSlice);
-  int RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, int& iSlice);
+  int32_t GetSlice(double GlobalPhi);
+  int32_t GetDSlice(double LocalPhi);
+  double GetSliceAngle(int32_t iSlice);
+  int32_t RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, int32_t& iSlice);
   double GetGaus(double sigma);
 
   TH1F* mClusterError[3][2] = {{nullptr, nullptr}, {nullptr, nullptr}, {nullptr, nullptr}};
 
   struct GenCluster {
-    int sector;
-    int row;
-    int mcID;
+    int32_t sector;
+    int32_t row;
+    int32_t mcID;
     float x;
     float y;
     float z;
-    unsigned int id;
+    uint32_t id;
   };
 
   const double mTwoPi = 2 * M_PI;

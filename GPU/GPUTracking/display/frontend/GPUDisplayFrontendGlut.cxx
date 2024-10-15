@@ -44,7 +44,7 @@ void GPUDisplayFrontendGlut::glutLoopFunc()
   displayFunc();
 }
 
-int GPUDisplayFrontendGlut::GetKey(int key)
+int32_t GPUDisplayFrontendGlut::GetKey(int32_t key)
 {
   if (key == GLUT_KEY_UP) {
     return KEY_UP;
@@ -125,10 +125,10 @@ int GPUDisplayFrontendGlut::GetKey(int key)
   return (0);
 }
 
-void GPUDisplayFrontendGlut::GetKey(int key, int& keyOut, int& keyPressOut, bool special)
+void GPUDisplayFrontendGlut::GetKey(int32_t key, int32_t& keyOut, int32_t& keyPressOut, bool special)
 {
-  int specialKey = special ? GetKey(key) : 0;
-  // GPUInfo("Key: key %d (%c) (special %d) -> %d (%c) special %d (%c)", key, (char) key, (int) special, (int) key, key, specialKey, (char) specialKey);
+  int32_t specialKey = special ? GetKey(key) : 0;
+  // GPUInfo("Key: key %d (%c) (special %d) -> %d (%c) special %d (%c)", key, (char) key, (int32_t) special, (int32_t) key, key, specialKey, (char) specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -140,41 +140,41 @@ void GPUDisplayFrontendGlut::GetKey(int key, int& keyOut, int& keyPressOut, bool
   }
 }
 
-void GPUDisplayFrontendGlut::keyboardDownFunc(unsigned char key, int x, int y)
+void GPUDisplayFrontendGlut::keyboardDownFunc(uint8_t key, int32_t x, int32_t y)
 {
-  int handleKey = 0, keyPress = 0;
+  int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
   me->mKeysShift[keyPress] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
   me->mKeys[keyPress] = true;
   me->HandleKey(handleKey);
 }
 
-void GPUDisplayFrontendGlut::keyboardUpFunc(unsigned char key, int x, int y)
+void GPUDisplayFrontendGlut::keyboardUpFunc(uint8_t key, int32_t x, int32_t y)
 {
-  int handleKey = 0, keyPress = 0;
+  int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
   me->mKeys[keyPress] = false;
   me->mKeysShift[keyPress] = false;
 }
 
-void GPUDisplayFrontendGlut::specialDownFunc(int key, int x, int y)
+void GPUDisplayFrontendGlut::specialDownFunc(int32_t key, int32_t x, int32_t y)
 {
-  int handleKey = 0, keyPress = 0;
+  int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
   me->mKeysShift[keyPress] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
   me->mKeys[keyPress] = true;
   me->HandleKey(handleKey);
 }
 
-void GPUDisplayFrontendGlut::specialUpFunc(int key, int x, int y)
+void GPUDisplayFrontendGlut::specialUpFunc(int32_t key, int32_t x, int32_t y)
 {
-  int handleKey = 0, keyPress = 0;
+  int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
   me->mKeys[keyPress] = false;
   me->mKeysShift[keyPress] = false;
 }
 
-void GPUDisplayFrontendGlut::ResizeSceneWrapper(int width, int height)
+void GPUDisplayFrontendGlut::ResizeSceneWrapper(int32_t width, int32_t height)
 {
   if (!me->mFullScreen) {
     me->mWidth = width;
@@ -183,7 +183,7 @@ void GPUDisplayFrontendGlut::ResizeSceneWrapper(int width, int height)
   me->ResizeScene(width, height);
 }
 
-void GPUDisplayFrontendGlut::mouseFunc(int button, int state, int x, int y)
+void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x, int32_t y)
 {
   if (button == 3) {
     me->mMouseWheel += 100;
@@ -206,15 +206,15 @@ void GPUDisplayFrontendGlut::mouseFunc(int button, int state, int x, int y)
   }
 }
 
-void GPUDisplayFrontendGlut::mouseMoveFunc(int x, int y)
+void GPUDisplayFrontendGlut::mouseMoveFunc(int32_t x, int32_t y)
 {
   me->mMouseMvX = x;
   me->mMouseMvY = y;
 }
 
-void GPUDisplayFrontendGlut::mMouseWheelFunc(int button, int dir, int x, int y) { me->mMouseWheel += dir; }
+void GPUDisplayFrontendGlut::mMouseWheelFunc(int32_t button, int32_t dir, int32_t x, int32_t y) { me->mMouseWheel += dir; }
 
-int GPUDisplayFrontendGlut::FrontendMain()
+int32_t GPUDisplayFrontendGlut::FrontendMain()
 {
   if (backend()->backendType() != GPUDisplayBackend::TYPE_OPENGL) {
     fprintf(stderr, "Only OpenGL backend supported\n");
@@ -226,7 +226,7 @@ int GPUDisplayFrontendGlut::FrontendMain()
     drawTextFontSize() = 12;
   }
 
-  int nopts = 2;
+  int32_t nopts = 2;
   char opt1[] = "progname";
   char opt2[] = "-direct";
   char* opts[] = {opt1, opt2};
@@ -293,7 +293,7 @@ void GPUDisplayFrontendGlut::OpenGLPrint(const char* s, float x, float y, float 
   }
   glColor4f(r, g, b, a);
   glRasterPos2f(x, y);
-  glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)s);
+  glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const uint8_t*)s);
 #endif
 }
 
@@ -310,7 +310,7 @@ void GPUDisplayFrontendGlut::SwitchFullscreen(bool set)
 void GPUDisplayFrontendGlut::ToggleMaximized(bool set) {}
 void GPUDisplayFrontendGlut::SetVSync(bool enable) {}
 
-int GPUDisplayFrontendGlut::StartDisplay()
+int32_t GPUDisplayFrontendGlut::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {

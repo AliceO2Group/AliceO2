@@ -48,7 +48,7 @@
 
 using namespace std;
 
-int initTPCcalibration(const Char_t* cdbUri, int runNumber, bool isMC)
+int32_t initTPCcalibration(const Char_t* cdbUri, int32_t runNumber, bool isMC)
 {
 
   // --------------------------------------
@@ -179,7 +179,7 @@ int initTPCcalibration(const Char_t* cdbUri, int runNumber, bool isMC)
 
   recParam = new AliTPCRecoParam(*recParam);
 
-  unsigned int timeStamp = grpObj->GetTimeStart();
+  uint32_t timeStamp = grpObj->GetTimeStart();
 
   if (isMC && !recParam->GetUseCorrectionMap()) {
     timeStamp = 0;
@@ -188,7 +188,7 @@ int initTPCcalibration(const Char_t* cdbUri, int runNumber, bool isMC)
   tpcCalib->GetTransform()->SetCurrentRecoParam(recParam);
 
   AliTPCTransform* origTransform = tpcCalib->GetTransform();
-  origTransform->SetCurrentTimeStamp(static_cast<UInt_t>(timeStamp));
+  origTransform->SetCurrentTimeStamp(static_cast<uint32_t>(timeStamp));
 
   Double_t bz = AliTracker::GetBz();
   cout << "\n\nBz field is set to " << bz << ", time stamp is set to " << timeStamp << endl

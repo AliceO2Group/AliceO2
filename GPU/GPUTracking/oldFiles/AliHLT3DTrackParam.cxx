@@ -99,34 +99,34 @@ void AliHLT3DTrackParam::TransportToDS(double Bz, double DS, double* T0)
     {0, 0, 0,    0,  0,  1, }};
   // clang-format on
 
-  for (int i = 0; i < 6; i++) {
+  for (int32_t i = 0; i < 6; i++) {
     mParam[i] = T0[i];
-    for (int j = 0; j < 6; j++) {
+    for (int32_t j = 0; j < 6; j++) {
       mParam[i] += mJ[i][j] * d[j];
     }
   }
 
   double mA[6][6];
-  for (int k = 0, i = 0; i < 6; i++) {
-    for (int j = 0; j <= i; j++, k++) {
+  for (int32_t k = 0, i = 0; i < 6; i++) {
+    for (int32_t j = 0; j <= i; j++, k++) {
       mA[i][j] = mA[j][i] = fCov[k];
     }
   }
 
   double mJC[6][6];
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
+  for (int32_t i = 0; i < 6; i++) {
+    for (int32_t j = 0; j < 6; j++) {
       mJC[i][j] = 0;
-      for (int k = 0; k < 6; k++) {
+      for (int32_t k = 0; k < 6; k++) {
         mJC[i][j] += mJ[i][k] * mA[k][j];
       }
     }
   }
 
-  for (int k = 0, i = 0; i < 6; i++) {
-    for (int j = 0; j <= i; j++, k++) {
+  for (int32_t k = 0, i = 0; i < 6; i++) {
+    for (int32_t j = 0; j <= i; j++, k++) {
       fCov[k] = 0;
-      for (int l = 0; l < 6; l++) {
+      for (int32_t l = 0; l < 6; l++) {
         fCov[k] += mJC[i][l] * mJ[j][l];
       }
     }
@@ -139,7 +139,7 @@ void AliHLT3DTrackParam::InitializeCovarianceMatrix()
 {
   //* Initialization of covariance matrix
 
-  for (int i = 0; i < 21; i++) {
+  for (int32_t i = 0; i < 21; i++) {
     fCov[i] = 0;
   }
   fSignQ = 0;
@@ -341,26 +341,26 @@ void AliHLT3DTrackParam::RotateCoordinateSystem(double alpha)
   // clang-format on
 
   double mA[6][6];
-  for (int k = 0, i = 0; i < 6; i++) {
-    for (int j = 0; j <= i; j++, k++) {
+  for (int32_t k = 0, i = 0; i < 6; i++) {
+    for (int32_t j = 0; j <= i; j++, k++) {
       mA[i][j] = mA[j][i] = fCov[k];
     }
   }
 
   double mJC[6][6];
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
+  for (int32_t i = 0; i < 6; i++) {
+    for (int32_t j = 0; j < 6; j++) {
       mJC[i][j] = 0;
-      for (int k = 0; k < 6; k++) {
+      for (int32_t k = 0; k < 6; k++) {
         mJC[i][j] += mJ[i][k] * mA[k][j];
       }
     }
   }
 
-  for (int k = 0, i = 0; i < 6; i++) {
-    for (int j = 0; j <= i; j++, k++) {
+  for (int32_t k = 0, i = 0; i < 6; i++) {
+    for (int32_t j = 0; j <= i; j++, k++) {
       fCov[k] = 0;
-      for (int l = 0; l < 6; l++) {
+      for (int32_t l = 0; l < 6; l++) {
         fCov[k] += mJC[i][l] * mJ[j][l];
       }
     }
@@ -398,26 +398,26 @@ void AliHLT3DTrackParam::Get5Parameters(double alpha, double T[6], double C[15])
   // clang-format on
 
   double mA[6][6];
-  for (int k = 0, i = 0; i < 6; i++) {
-    for (int j = 0; j <= i; j++, k++) {
+  for (int32_t k = 0, i = 0; i < 6; i++) {
+    for (int32_t j = 0; j <= i; j++, k++) {
       mA[i][j] = mA[j][i] = t.fCov[k];
     }
   }
 
   double mJC[5][6];
-  for (int i = 0; i < 5; i++) {
-    for (int j = 0; j < 6; j++) {
+  for (int32_t i = 0; i < 5; i++) {
+    for (int32_t j = 0; j < 6; j++) {
       mJC[i][j] = 0;
-      for (int k = 0; k < 6; k++) {
+      for (int32_t k = 0; k < 6; k++) {
         mJC[i][j] += mJ[i][k] * mA[k][j];
       }
     }
   }
 
-  for (int k = 0, i = 0; i < 5; i++) {
-    for (int j = 0; j <= i; j++, k++) {
+  for (int32_t k = 0, i = 0; i < 5; i++) {
+    for (int32_t j = 0; j <= i; j++, k++) {
       C[k] = 0;
-      for (int l = 0; l < 6; l++) {
+      for (int32_t l = 0; l < 6; l++) {
         C[k] += mJC[i][l] * mJ[j][l];
       }
     }

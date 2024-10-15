@@ -104,8 +104,8 @@ class WindowFiller
 
  protected:
   // info TOF timewindow
-  uint64_t mReadoutWindowCurrent = 0;
-  InteractionRecord mFirstIR{0, 0}; // reference IR (1st IR of the timeframe)
+  uint64_t mReadoutWindowCurrent = 0; // keeps track of current readout window
+  InteractionRecord mFirstIR{0, 0};   // reference IR (1st IR of the timeframe)
   InteractionTimeRecord mEventTime;
 
   bool mContinuous = true;

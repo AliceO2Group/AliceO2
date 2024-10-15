@@ -60,12 +60,12 @@ GPUDisplayBackendOpenGL::GPUDisplayBackendOpenGL()
 }
 
 #ifdef GPUCA_DISPLAY_GL3W
-int GPUDisplayBackendOpenGL::ExtInit()
+int32_t GPUDisplayBackendOpenGL::ExtInit()
 {
   return gl3wInit();
 }
 #else
-int GPUDisplayBackendOpenGL::ExtInit()
+int32_t GPUDisplayBackendOpenGL::ExtInit()
 {
   return glewInit();
 }
@@ -83,17 +83,17 @@ bool GPUDisplayBackendOpenGL::CoreProfile()
 #endif
 
 // #define CHKERR(cmd) {cmd;}
-#define CHKERR(cmd)                                                                                             \
-  do {                                                                                                          \
-    (cmd);                                                                                                      \
-    GLenum err = glGetError();                                                                                  \
-    while (err != GL_NO_ERROR) {                                                                                \
-      GPUError("OpenGL Error %d: %s (%s: %d)", (int)err, (const char*)gluErrorString(err), __FILE__, __LINE__); \
-      throw std::runtime_error("OpenGL Failure");                                                               \
-    }                                                                                                           \
+#define CHKERR(cmd)                                                                                                 \
+  do {                                                                                                              \
+    (cmd);                                                                                                          \
+    GLenum err = glGetError();                                                                                      \
+    while (err != GL_NO_ERROR) {                                                                                    \
+      GPUError("OpenGL Error %d: %s (%s: %d)", (int32_t)err, (const char*)gluErrorString(err), __FILE__, __LINE__); \
+      throw std::runtime_error("OpenGL Failure");                                                                   \
+    }                                                                                                               \
   } while (false)
 
-unsigned int GPUDisplayBackendOpenGL::DepthBits()
+uint32_t GPUDisplayBackendOpenGL::DepthBits()
 {
   GLint depthBits = 0;
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
@@ -102,7 +102,7 @@ unsigned int GPUDisplayBackendOpenGL::DepthBits()
   return depthBits;
 }
 
-void GPUDisplayBackendOpenGL::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa, unsigned int width, unsigned int height)
+void GPUDisplayBackendOpenGL::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa, uint32_t width, uint32_t height)
 {
   fb.tex = tex;
   fb.depth = withDepth;
@@ -154,7 +154,7 @@ void GPUDisplayBackendOpenGL::createFB(GLfb& fb, bool tex, bool withDepth, bool 
 
   GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
   if (status != GL_FRAMEBUFFER_COMPLETE) {
-    GPUError("Error creating framebuffer (tex %d) - incomplete (%d)", (int)tex, status);
+    GPUError("Error creating framebuffer (tex %d) - incomplete (%d)", (int32_t)tex, status);
     exit(1);
   }
   CHKERR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFboId));
@@ -180,7 +180,7 @@ void GPUDisplayBackendOpenGL::deleteFB(GLfb& fb)
   fb.created = false;
 }
 
-unsigned int GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType tt)
+uint32_t GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType tt)
 {
   static constexpr GLenum types[3] = {GL_POINTS, GL_LINES, GL_LINE_STRIP};
   GLenum t = types[tt];
@@ -210,7 +210,7 @@ unsigned int GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawT
   if (mDisplay->cfgR().useGLIndirectDraw) {
     CHKERR(glMultiDrawArraysIndirect(t, (void*)(size_t)((mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand)), count, 0));
   } else if (OPENGL_EMULATE_MULTI_DRAW) {
-    for (unsigned int k = 0; k < count; k++) {
+    for (uint32_t k = 0; k < count; k++) {
       CHKERR(glDrawArrays(t, mDisplay->vertexBufferStart()[iSlice][first + k], mDisplay->vertexBufferCount()[iSlice][first + k]));
     }
   } else {
@@ -257,7 +257,7 @@ void GPUDisplayBackendOpenGL::setDepthBuffer()
   }
 }
 
-void GPUDisplayBackendOpenGL::setFrameBuffer(unsigned int newID)
+void GPUDisplayBackendOpenGL::setFrameBuffer(uint32_t newID)
 {
   if (newID == 0) {
     CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
@@ -269,9 +269,9 @@ void GPUDisplayBackendOpenGL::setFrameBuffer(unsigned int newID)
   }
 }
 
-int GPUDisplayBackendOpenGL::checkShaderStatus(unsigned int shader)
+int32_t GPUDisplayBackendOpenGL::checkShaderStatus(uint32_t shader)
 {
-  int status, loglen;
+  int32_t status, loglen;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
   if (!status) {
     printf("failed to compile shader\n");
@@ -285,9 +285,9 @@ int GPUDisplayBackendOpenGL::checkShaderStatus(unsigned int shader)
   return 0;
 }
 
-int GPUDisplayBackendOpenGL::checkProgramStatus(unsigned int program)
+int32_t GPUDisplayBackendOpenGL::checkProgramStatus(uint32_t program)
 {
-  int status, loglen;
+  int32_t status, loglen;
   glGetProgramiv(program, GL_LINK_STATUS, &status);
   if (!status) {
     printf("failed to link program\n");
@@ -301,14 +301,14 @@ int GPUDisplayBackendOpenGL::checkProgramStatus(unsigned int program)
   return 0;
 }
 
-int GPUDisplayBackendOpenGL::InitBackendA()
+int32_t GPUDisplayBackendOpenGL::InitBackendA()
 {
   if (mDisplay->param()->par.debugLevel >= 2) {
     auto renderer = glGetString(GL_RENDERER);
     GPUInfo("Renderer: %s", (const char*)renderer);
   }
 
-  int glVersion[2] = {0, 0};
+  int32_t glVersion[2] = {0, 0};
   glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
   glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
   if (glVersion[0] < GPUDisplayFrontend::GL_MIN_VERSION_MAJOR || (glVersion[0] == GPUDisplayFrontend::GL_MIN_VERSION_MAJOR && glVersion[1] < GPUDisplayFrontend::GL_MIN_VERSION_MINOR)) {
@@ -457,7 +457,7 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
 {
   // TODO: Check if this can be parallelized
   if (mDisplay->useMultiVBO()) {
-    for (int i = 0; i < GPUCA_NSLICES; i++) {
+    for (int32_t i = 0; i < GPUCA_NSLICES; i++) {
       CHKERR(glNamedBufferData(mVBOId[i], mDisplay->vertexBuffer()[i].size() * sizeof(mDisplay->vertexBuffer()[i][0]), mDisplay->vertexBuffer()[i].data(), GL_STATIC_DRAW));
     }
   } else {
@@ -551,7 +551,7 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
   }
 
   if (mDisplay->cfgR().drawQualityMSAA) {
-    unsigned int dstId = toMixBuffer ? mMixBuffer.fb_id : (mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
+    uint32_t dstId = toMixBuffer ? mMixBuffer.fb_id : (mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
     CHKERR(glBlitNamedFramebuffer(mOffscreenBufferMSAA.fb_id, dstId, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
   }
   if (includeMixImage > 0) {
@@ -569,9 +569,9 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
 
 void GPUDisplayBackendOpenGL::readImageToPixels()
 {
-  int scaleFactor = mDisplay->cfgR().screenshotScaleFactor;
-  unsigned int width = mScreenWidth * scaleFactor;
-  unsigned int height = mScreenHeight * scaleFactor;
+  int32_t scaleFactor = mDisplay->cfgR().screenshotScaleFactor;
+  uint32_t width = mScreenWidth * scaleFactor;
+  uint32_t height = mScreenHeight * scaleFactor;
   GLfb tmpBuffer;
   if (mDisplay->cfgR().drawQualityDownsampleFSAA && mDisplay->cfgR().screenshotScaleFactor != 1) {
     createFB(tmpBuffer, false, true, false, width, height);
@@ -680,21 +680,21 @@ void GPUDisplayBackendOpenGL::lineWidthFactor(float factor)
   CHKERR(glLineWidth(mDisplay->cfgL().lineWidth * mDownsampleFactor * factor));
 }
 
-void GPUDisplayBackendOpenGL::addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data)
+void GPUDisplayBackendOpenGL::addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data)
 {
-  int oldAlign;
+  int32_t oldAlign;
   CHKERR(glGetIntegerv(GL_UNPACK_ALIGNMENT, &oldAlign));
   CHKERR(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-  if (symbol != (int)mFontSymbols.size()) {
+  if (symbol != (int32_t)mFontSymbols.size()) {
     throw std::runtime_error("Incorrect symbol ID");
   }
-  unsigned int texId;
+  uint32_t texId;
   glGenTextures(1, &texId);
-  std::vector<unsigned char> tmp;
+  std::vector<uint8_t> tmp;
   if (!smoothFont()) {
     tmp.resize(sizex * sizey);
-    unsigned char* src = (unsigned char*)data;
-    for (int i = 0; i < sizex * sizey; i++) {
+    uint8_t* src = (uint8_t*)data;
+    for (int32_t i = 0; i < sizex * sizey; i++) {
       tmp[i] = src[i] > 128 ? 255 : 0;
     }
     data = tmp.data();
@@ -736,8 +736,8 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
   for (const char* c = s; *c; c++) {
-    if ((int)*c > (int)mFontSymbols.size()) {
-      GPUError("Trying to draw unsupported symbol: %d > %d\n", (int)*c, (int)mFontSymbols.size());
+    if ((int32_t)*c > (int32_t)mFontSymbols.size()) {
+      GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;
     }
     FontSymbolOpenGL sym = mFontSymbols[*c];
@@ -779,7 +779,7 @@ void GPUDisplayBackendOpenGL::ClearOffscreenBuffers()
   }
 }
 
-void GPUDisplayBackendOpenGL::resizeScene(unsigned int width, unsigned int height)
+void GPUDisplayBackendOpenGL::resizeScene(uint32_t width, uint32_t height)
 {
   mScreenWidth = width;
   mScreenHeight = height;
@@ -821,27 +821,27 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
 GPUDisplayBackendOpenGL::GPUDisplayBackendOpenGL()
 {
 }
-int GPUDisplayBackendOpenGL::checkShaderStatus(unsigned int shader) { return 0; }
-int GPUDisplayBackendOpenGL::checkProgramStatus(unsigned int program) { return 0; }
-int GPUDisplayBackendOpenGL::ExtInit() { throw std::runtime_error("Insufficnet OpenGL version"); }
+int32_t GPUDisplayBackendOpenGL::checkShaderStatus(uint32_t shader) { return 0; }
+int32_t GPUDisplayBackendOpenGL::checkProgramStatus(uint32_t program) { return 0; }
+int32_t GPUDisplayBackendOpenGL::ExtInit() { throw std::runtime_error("Insufficnet OpenGL version"); }
 bool GPUDisplayBackendOpenGL::CoreProfile() { return false; }
-unsigned int GPUDisplayBackendOpenGL::DepthBits() { return 0; }
-unsigned int GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType t) { return 0; }
+uint32_t GPUDisplayBackendOpenGL::DepthBits() { return 0; }
+uint32_t GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType t) { return 0; }
 void GPUDisplayBackendOpenGL::ActivateColor(std::array<float, 4>& color) {}
 void GPUDisplayBackendOpenGL::setQuality() {}
 void GPUDisplayBackendOpenGL::setDepthBuffer() {}
-int GPUDisplayBackendOpenGL::InitBackendA() { throw std::runtime_error("Insufficnet OpenGL version"); }
+int32_t GPUDisplayBackendOpenGL::InitBackendA() { throw std::runtime_error("Insufficnet OpenGL version"); }
 void GPUDisplayBackendOpenGL::ExitBackendA() {}
 void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes) {}
 void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) {}
-void GPUDisplayBackendOpenGL::resizeScene(unsigned int width, unsigned int height) {}
+void GPUDisplayBackendOpenGL::resizeScene(uint32_t width, uint32_t height) {}
 void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
 void GPUDisplayBackendOpenGL::finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
 void GPUDisplayBackendOpenGL::prepareText() {}
 void GPUDisplayBackendOpenGL::finishText() {}
 void GPUDisplayBackendOpenGL::pointSizeFactor(float factor) {}
 void GPUDisplayBackendOpenGL::lineWidthFactor(float factor) {}
-void GPUDisplayBackendOpenGL::addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) {}
+void GPUDisplayBackendOpenGL::addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) {}
 void GPUDisplayBackendOpenGL::initializeTextDrawing() {}
 void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float* color, float scale) {}
 #endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL

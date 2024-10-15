@@ -53,7 +53,7 @@ void* GPUTPCClusterFinder::SetPointersInput(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersZSOffset(void* mem)
 {
-  const int n = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) ? mNMaxPages : GPUTrackingInOutZS::NENDPOINTS;
+  const int32_t n = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) ? mNMaxPages : GPUTrackingInOutZS::NENDPOINTS;
   if (n) {
     computePointerWithAlignment(mem, mPzsOffsets, n);
   }
@@ -99,15 +99,15 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
   AllocateAndInitializeLate();
   mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_STACK, "TPCClustererInput");
 
-  int scratchType = GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK;
+  int32_t scratchType = GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK;
   if (mRec->GetProcessingSettings().runMC) {
     scratchType |= GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU;
   }
-  mScratchId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersScratch, scratchType, "TPCClustererScratch", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererScratch, (unsigned short)(mISlice % mRec->GetProcessingSettings().nTPCClustererLanes)});
+  mScratchId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersScratch, scratchType, "TPCClustererScratch", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererScratch, (uint16_t)(mISlice % mRec->GetProcessingSettings().nTPCClustererLanes)});
 
   mMemoryId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCClustererMemory");
   mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_STACK, "TPCClustererOutput");
-  mZSId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersZS, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_CUSTOM_TRANSFER | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_STACK, "TPCClustererZSData", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererZS, (unsigned short)(mISlice % mRec->GetProcessingSettings().nTPCClustererLanes)});
+  mZSId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersZS, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_CUSTOM_TRANSFER | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_STACK, "TPCClustererZSData", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererZS, (uint16_t)(mISlice % mRec->GetProcessingSettings().nTPCClustererLanes)});
   mZSOffsetId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersZSOffset, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_CUSTOM_TRANSFER | GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_STACK, "TPCClustererZSOffsets");
 }
 
@@ -117,35 +117,35 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxClusters = mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsFragment, true);
   mNMaxClusterPerRow = 0.01f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigits, true); // TODO: Can save some memory hery by using mNMaxClusters, and copying the computed clusters out after every fragment
   if (io.settingsTF && io.settingsTF->hasNHBFPerTF) {
-    unsigned int threshold = 300000 * io.settingsTF->nHBFPerTF / 128;                                                            // TODO: Probably one would need to do this on a row-basis for a better estimate, but currently not supported
-    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, std::min<unsigned int>(threshold, mNMaxClusterPerRow * 10)); // Relative increased value up until a threshold, for noisy pads
-    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, io.settingsTF->nHBFPerTF * 20000 / 256);                     // Absolute increased value, to have a minimum for noisy pads
+    uint32_t threshold = 300000 * io.settingsTF->nHBFPerTF / 128;                                                        // TODO: Probably one would need to do this on a row-basis for a better estimate, but currently not supported
+    mNMaxClusterPerRow = std::max<uint32_t>(mNMaxClusterPerRow, std::min<uint32_t>(threshold, mNMaxClusterPerRow * 10)); // Relative increased value up until a threshold, for noisy pads
+    mNMaxClusterPerRow = std::max<uint32_t>(mNMaxClusterPerRow, io.settingsTF->nHBFPerTF * 20000 / 256);                 // Absolute increased value, to have a minimum for noisy pads
   }
   if (mNMaxDigitsEndpoint) {
-    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, 0.0085f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsEndpoint * GPUTrackingInOutZS::NENDPOINTS, true));
+    mNMaxClusterPerRow = std::max<uint32_t>(mNMaxClusterPerRow, 0.0085f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsEndpoint * GPUTrackingInOutZS::NENDPOINTS, true));
   }
   if (mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow) {
-    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow);
+    mNMaxClusterPerRow = std::max<uint32_t>(mNMaxClusterPerRow, mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow);
   }
 
-  mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigitsFragment);
+  mBufSize = nextMultipleOf<std::max<int32_t>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigitsFragment);
   mNBufs = getNSteps(mBufSize);
 }
 
 void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages, size_t nDigitsFragment, size_t nDigitsEndpointMax)
 {
-  mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(nDigits);
+  mNMaxDigits = nextMultipleOf<std::max<int32_t>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(nDigits);
   mNMaxPages = nPages;
   mNMaxDigitsFragment = nDigitsFragment;
   mNMaxDigitsEndpoint = nDigitsEndpointMax;
 }
 
-unsigned int GPUTPCClusterFinder::getNSteps(size_t items) const
+uint32_t GPUTPCClusterFinder::getNSteps(size_t items) const
 {
   if (items == 0) {
     return 0;
   }
-  unsigned int c = 1;
+  uint32_t c = 1;
   size_t capacity = mScanWorkGroupSize;
   while (items > capacity) {
     capacity *= mScanWorkGroupSize;
@@ -159,9 +159,9 @@ void GPUTPCClusterFinder::PrepareMC()
   assert(mNMaxClusterPerRow > 0);
 
   clearMCMemory();
-  mPindexMap = new uint[TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen)];
+  mPindexMap = new uint32_t[TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen)];
   mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUCA_ROW_COUNT];
-  mPlabelsInRow = new uint[GPUCA_ROW_COUNT];
+  mPlabelsInRow = new uint32_t[GPUCA_ROW_COUNT];
 }
 
 void GPUTPCClusterFinder::clearMCMemory()

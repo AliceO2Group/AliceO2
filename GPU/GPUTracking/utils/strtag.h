@@ -18,17 +18,18 @@
 #include <stdexcept>
 #include <string>
 
-template <class T = unsigned long>
+template <class T = uint64_t>
 #if defined(__cplusplus) && __cplusplus >= 201402L
 constexpr
 #endif
-T qStr2Tag(const char* str)
+  T
+  qStr2Tag(const char* str)
 {
   if (strlen(str) != sizeof(T)) {
     throw std::runtime_error("Invalid tag length");
   }
   T tmp;
-  for (unsigned int i = 0; i < sizeof(T); i++) {
+  for (uint32_t i = 0; i < sizeof(T); i++) {
     ((char*)&tmp)[i] = str[i];
   }
   return tmp;

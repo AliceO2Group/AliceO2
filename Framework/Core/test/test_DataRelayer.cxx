@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <catch_amalgamated.hpp>
+#include "Framework/DeviceState.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "MemoryResources/MemoryResources.h"
@@ -47,7 +48,7 @@ TEST_CASE("DataRelayer")
     TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
   DataProcessingStats stats(
     TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-    TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
+    TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()), {});
   int quickUpdateInterval = 1;
   using MetricSpec = DataProcessingStats::MetricSpec;
   std::vector<MetricSpec> specs{
@@ -60,10 +61,12 @@ TEST_CASE("DataRelayer")
     stats.registerMetric(spec);
   }
 
+  DeviceState state;
   ref.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&monitoring));
   ref.registerService(ServiceRegistryHelpers::handleForService<DataProcessingStats>(&stats));
   ref.registerService(ServiceRegistryHelpers::handleForService<DataProcessingStates>(&states));
   ref.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
+  ref.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(&state));
   // A simple test where an input is provided
   // and the subsequent InputRecord is immediately requested.
   SECTION("TestNoWait")

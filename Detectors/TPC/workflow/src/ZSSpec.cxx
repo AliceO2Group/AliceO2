@@ -66,7 +66,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
   using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, NSectors>;
 
   struct ProcessAttributes {
-    std::unique_ptr<unsigned long long int[]> zsoutput;
+    std::unique_ptr<uint64_t[]> zsoutput;
     std::unique_ptr<IonTailCorrection> itcorr;
     std::vector<unsigned int> sizes;
     std::vector<int> tpcSectors;
@@ -216,7 +216,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
 
   struct ProcessAttributes {
     std::array<std::vector<Digit>, NSectors> outDigits;
-    std::unique_ptr<unsigned long long int[]> zsinput;
+    std::unique_ptr<unsigned long[]> zsinput;
     std::vector<unsigned int> sizes;
     std::unique_ptr<o2::tpc::ZeroSuppress> decoder;
     std::vector<int> tpcSectors;

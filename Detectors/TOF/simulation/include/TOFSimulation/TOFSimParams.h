@@ -33,6 +33,8 @@ struct TOFSimParams : public o2::conf::ConfigurableParamHelper<TOFSimParams> {
   float eff_boundary2 = 0.833; // efficiency in the pad border
   float eff_boundary3 = 0.1;   // efficiency in mBound3
 
+  float max_hit_time = 1000.; // time cutoff for hits (time of flight); default 1us
+
   O2ParamDef(TOFSimParams, "TOFSimParams");
 };
 

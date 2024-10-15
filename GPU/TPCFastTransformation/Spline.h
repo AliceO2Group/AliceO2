@@ -34,11 +34,11 @@ namespace gpu
 ///
 /// --- Example of creating a spline ---
 ///
-///  constexpr int nDimX = 2, nDimY = 1;
-///  int nKnots[nDimX] = {2, 3}; //  2 x 3 knots
-///  int knotsU1[] = {0, 1};     // relative knot positions
-///  int knotsU2[] = {0, 2, 5};
-///  int *knotsU[nDimX] = {knotsU1, knotsU2};
+///  constexpr int32_t nDimX = 2, nDimY = 1;
+///  int32_t nKnots[nDimX] = {2, 3}; //  2 x 3 knots
+///  int32_t knotsU1[] = {0, 1};     // relative knot positions
+///  int32_t knotsU2[] = {0, 2, 5};
+///  int32_t *knotsU[nDimX] = {knotsU1, knotsU2};
 ///
 ///  o2::gpu::Spline<float, nDimX, nDimY> spline(nKnots, knotsU);
 ///
@@ -73,7 +73,7 @@ namespace gpu
 ///    XdimT < 0 : the number of X dimensions will be set in the runtime, and it will not exceed abs(XdimT)
 /// \param YdimT same for the Y dimensions
 ///
-template <typename DataT, int XdimT = 0, int YdimT = 0>
+template <typename DataT, int32_t XdimT = 0, int32_t YdimT = 0>
 class Spline
   : public SplineSpec<DataT, XdimT, YdimT, SplineUtil::getSpec(XdimT, YdimT)>
 {

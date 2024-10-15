@@ -20,10 +20,10 @@
 namespace o2::gpu
 {
 
-GPUdii() void GPUTPCCompression_EncodeUnattached(unsigned char nComppressionModes, const o2::tpc::ClusterNative& orgCl, unsigned int& outTime, unsigned short& outPad, const o2::tpc::ClusterNative* orgClPre = nullptr)
+GPUdii() void GPUTPCCompression_EncodeUnattached(uint8_t nComppressionModes, const o2::tpc::ClusterNative& orgCl, uint32_t& outTime, uint16_t& outPad, const o2::tpc::ClusterNative* orgClPre = nullptr)
 {
   if (nComppressionModes & GPUSettings::CompressionDifferences) {
-    unsigned int lastTime = 0, lastPad = 0;
+    uint32_t lastTime = 0, lastPad = 0;
     if (orgClPre) {
       lastPad = orgClPre->padPacked;
       lastTime = orgClPre->getTimePacked();

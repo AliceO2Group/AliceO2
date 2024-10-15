@@ -17,13 +17,13 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLight(float x, float Bz, float& GPUrestrict() dLp)
+GPUd() int32_t GPUTPCGMPhysicalTrackModel::PropagateToXBzLight(float x, float Bz, float& GPUrestrict() dLp)
 {
   GPUTPCGMPhysicalTrackModel t = *this;
   if (CAMath::Abs(x - t.X()) < 1.e-8f) {
     return 0;
   }
-  int err = t.PropagateToXBzLightNoUpdate(x, Bz, dLp);
+  int32_t err = t.PropagateToXBzLightNoUpdate(x, Bz, dLp);
   if (err) {
     return (err);
   }
@@ -32,7 +32,7 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLight(float x, float Bz, fl
   return 0;
 }
 
-GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, float Bz, float& GPUrestrict() dLp)
+GPUd() int32_t GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, float Bz, float& GPUrestrict() dLp)
 {
   //
   // transport the track to X=x in magnetic field B = ( 0, 0, Bz[kG*0.000299792458f] )
@@ -86,7 +86,7 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, floa
   return 0;
 }
 
-GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, float By, float Bz, float& GPUrestrict() dLp)
+GPUd() int32_t GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, float By, float Bz, float& GPUrestrict() dLp)
 {
   //
   // transport the track to X=x in magnetic field B = ( Bx, By, Bz )[kG*0.000299792458f]
@@ -185,7 +185,7 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, flo
   return 0;
 }
 
-GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToLpBz(float Lp, float Bz)
+GPUd() int32_t GPUTPCGMPhysicalTrackModel::PropagateToLpBz(float Lp, float Bz)
 {
   // Lp is path length L over track momentum p in [cm/GeV], Bz in kG*clight
   //

@@ -26,48 +26,39 @@ using namespace o2::header;
 void RDHUtils::printRDH(const RAWDataHeaderV4& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
-  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x Packet:%-3d MemSize:%-4d OffsNext:%-4d prio.:%d BL:%-5d HS:%-2d HV:%d",
-       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), int(rdh.packetCounter), int(rdh.memorySize),
-       int(rdh.offsetToNext), int(rdh.priority), int(rdh.blockLength), int(rdh.headerSize), int(rdh.version));
-  LOGF(info, "HBOrb:%-9u TrOrb:%-9u Trg:%32s HBBC:%-4d TrBC:%-4d Page:%-5d Stop:%d Par:%-5d DetFld:0x%04x", //
+  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x HBOrb:%-9u TrOrb:%-9u Trg:%32s HBBC:%-4d TrBC:%-4d Packet:%-3d Page:%-5d Stop:%d Par:%-5d DetFld:0x%04x MemSize:%-4d OffsNext:%-4d prio.:%d BL:%-5d HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId),
        rdh.heartbeatOrbit, rdh.triggerOrbit, trb.to_string().c_str(), int(rdh.heartbeatBC), int(rdh.triggerBC),
-       int(rdh.pageCnt), int(rdh.stop), int(rdh.par), int(rdh.detectorField));
+       int(rdh.packetCounter), int(rdh.pageCnt), int(rdh.stop), int(rdh.par), int(rdh.detectorField), int(rdh.memorySize),
+       int(rdh.offsetToNext), int(rdh.priority), int(rdh.blockLength), int(rdh.headerSize), int(rdh.version));
 }
 
 //_________________________________________________
 void RDHUtils::printRDH(const RAWDataHeaderV5& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
-  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x Packet:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
-       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), int(rdh.packetCounter), int(rdh.memorySize),
+  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x Orbit:%-9u BC:%-4d Stop:%d Page:%-5d Packet:%-3d Trg:%32s Par:%-5d DetFld:0x%04x MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), rdh.orbit, int(rdh.bunchCrossing), int(rdh.stop), int(rdh.pageCnt),
+       int(rdh.packetCounter), trb.to_string().c_str(), int(rdh.detectorPAR), int(rdh.detectorField), int(rdh.memorySize),
        int(rdh.offsetToNext), int(rdh.priority), int(rdh.headerSize), int(rdh.version));
-  LOGF(info, "Orbit:%-9u BC:%-4d Stop:%d Page:%-5d Trg:%32s Par:%-5d DetFld:0x%04x",
-       rdh.orbit, int(rdh.bunchCrossing), int(rdh.stop), int(rdh.pageCnt), trb.to_string().c_str(),
-       int(rdh.detectorPAR), int(rdh.detectorField));
 }
 
 //_________________________________________________
 void RDHUtils::printRDH(const RAWDataHeaderV7& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
-  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x SrcID:%s[%d] Packet:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
-       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), DAQID::DAQtoO2(rdh.sourceID).str, int(rdh.sourceID), int(rdh.packetCounter),
-       int(rdh.memorySize), int(rdh.offsetToNext), int(rdh.priority), int(rdh.headerSize), int(rdh.version));
-  LOGF(info, "Orbit:%-9u BC:%-4d DataFormat:%-2d Stop:%d Page:%-5d Trg:%32s Par:%-5d DetFld:0x%04x",
-       rdh.orbit, int(rdh.bunchCrossing), int(rdh.dataFormat), int(rdh.stop), int(rdh.pageCnt), trb.to_string().c_str(),
-       int(rdh.detectorPAR), int(rdh.detectorField));
+  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x SrcID:%s[%d] Orbit:%-9u BC:%-4d DataFormat:%-2d Stop:%d Page:%-5d Packet:%-3d Trg:%32s Par:%-5d DetFld:0x%04x MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), DAQID::DAQtoO2(rdh.sourceID).str, int(rdh.sourceID), rdh.orbit, int(rdh.bunchCrossing), int(rdh.dataFormat), int(rdh.stop), int(rdh.pageCnt), int(rdh.packetCounter),
+       trb.to_string().c_str(), int(rdh.detectorPAR), int(rdh.detectorField), int(rdh.memorySize), int(rdh.offsetToNext), int(rdh.priority), int(rdh.headerSize), int(rdh.version));
 }
 
 //_________________________________________________
 void RDHUtils::printRDH(const RAWDataHeaderV6& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
-  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x SrcID:%s[%d] Packet:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
-       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), DAQID::DAQtoO2(rdh.sourceID).str, int(rdh.sourceID), int(rdh.packetCounter),
-       int(rdh.memorySize), int(rdh.offsetToNext), int(rdh.priority), int(rdh.headerSize), int(rdh.version));
-  LOGF(info, "Orbit:%-9u BC:%-4d Stop:%d Page:%-5d Trg:%32s Par:%-5d DetFld:0x%04x",
-       rdh.orbit, int(rdh.bunchCrossing), int(rdh.stop), int(rdh.pageCnt), trb.to_string().c_str(),
-       int(rdh.detectorPAR), int(rdh.detectorField));
+  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x SrcID:%s[%d] Orbit:%-9u BC:%-4d Stop:%d Page:%-5d Packet:%-3d Trg:%32s Par:%-5d DetFld:0x%04x MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), DAQID::DAQtoO2(rdh.sourceID).str, int(rdh.sourceID), rdh.orbit, int(rdh.bunchCrossing), int(rdh.stop), int(rdh.pageCnt),
+       int(rdh.packetCounter), trb.to_string().c_str(), int(rdh.detectorPAR), int(rdh.detectorField), int(rdh.memorySize), int(rdh.offsetToNext), int(rdh.priority), int(rdh.headerSize), int(rdh.version));
 }
 
 //_________________________________________________

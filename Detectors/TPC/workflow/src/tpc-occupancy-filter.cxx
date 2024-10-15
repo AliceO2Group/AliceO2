@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <cstdint>
 
 #include "Algorithm/RangeTokenizer.h"
 #include "Framework/WorkflowSpec.h"
@@ -37,8 +38,8 @@ using namespace o2::framework;
 using namespace o2::tpc;
 
 // Global variable used to transport data to the completion policy
-std::vector<InputSpec> gPolicyData;
-unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+static std::vector<InputSpec> gPolicyData;
+static uint64_t gTpcSectorMask = 0xFFFFFFFFF;
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)

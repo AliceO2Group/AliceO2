@@ -18,7 +18,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-int GPUChainTracking::RunRefit()
+int32_t GPUChainTracking::RunRefit()
 {
 #ifdef GPUCA_HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::Refit;

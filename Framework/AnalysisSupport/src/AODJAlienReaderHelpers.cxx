@@ -41,8 +41,6 @@
 #include <arrow/table.h>
 #include <arrow/util/key_value_metadata.h>
 
-#include <thread>
-
 using namespace o2;
 using namespace o2::aod;
 
@@ -140,6 +138,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
     auto filename = options.get<std::string>("aod-file-private");
 
+    auto maxRate = options.get<float>("aod-max-io-rate");
+
     std::string parentFileReplacement;
     if (options.isSet("aod-parent-base-path-replacement")) {
       parentFileReplacement = options.get<std::string>("aod-parent-base-path-replacement");
@@ -192,6 +192,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
                            fileCounter,
                            numTF,
                            watchdog,
+                           maxRate,
                            didir, reportTFN, reportTFFileName](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
@@ -222,6 +223,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         return;
       }
 
+      int64_t startTime = uv_hrtime();
+      int64_t startSize = totalSizeCompressed;
       for (auto& route : requestedTables) {
         if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
           continue;
@@ -277,6 +280,18 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           }
         }
         first = false;
+      }
+      int64_t stopSize = totalSizeCompressed;
+      int64_t bytesDelta = stopSize - startSize;
+      int64_t stopTime = uv_hrtime();
+      float currentDelta = float(stopTime - startTime) / 1000000000; // in s
+      if (ceil(maxRate) > 0.) {
+        float extraTime = (bytesDelta / 1000000 - currentDelta * maxRate) / maxRate;
+        // We only sleep if we read faster than the max-read-rate.
+        if (extraTime > 0.) {
+          LOGP(info, "Read {} MB in {} s. Sleeping for {} seconds to stay within {} MB/s limit.", bytesDelta / 1000000, currentDelta, extraTime, maxRate);
+          uv_sleep(extraTime * 1000); // in milliseconds
+        }
       }
       totalDFSent++;
       monitoring.send(Metric{(uint64_t)totalDFSent, "df-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));

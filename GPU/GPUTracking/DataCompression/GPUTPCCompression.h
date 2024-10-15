@@ -58,26 +58,26 @@ class GPUTPCCompression : public GPUProcessor
   void* SetPointersMemory(void* mem);
 #endif
 
-  static constexpr unsigned int P_MAX_QMAX = 1 << 10;
-  static constexpr unsigned int P_MAX_QTOT = 5 * 5 * P_MAX_QMAX;
-  static constexpr unsigned int P_MAX_TIME = 1 << 24;
-  static constexpr unsigned int P_MAX_PAD = 1 << 16;
-  static constexpr unsigned int P_MAX_SIGMA = 1 << 8;
-  static constexpr unsigned int P_MAX_FLAGS = 1 << 8;
-  static constexpr unsigned int P_MAX_QPT = 1 << 8;
+  static constexpr uint32_t P_MAX_QMAX = 1 << 10;
+  static constexpr uint32_t P_MAX_QTOT = 5 * 5 * P_MAX_QMAX;
+  static constexpr uint32_t P_MAX_TIME = 1 << 24;
+  static constexpr uint32_t P_MAX_PAD = 1 << 16;
+  static constexpr uint32_t P_MAX_SIGMA = 1 << 8;
+  static constexpr uint32_t P_MAX_FLAGS = 1 << 8;
+  static constexpr uint32_t P_MAX_QPT = 1 << 8;
 
-  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QTOT); }
-  GPUd() static void truncateSignificantBitsChargeMax(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QMAX); }
-  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpc.sigBitsWidth, P_MAX_SIGMA); }
+  GPUd() static void truncateSignificantBitsCharge(uint16_t& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QTOT); }
+  GPUd() static void truncateSignificantBitsChargeMax(uint16_t& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QMAX); }
+  GPUd() static void truncateSignificantBitsWidth(uint8_t& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpc.sigBitsWidth, P_MAX_SIGMA); }
 
  protected:
   struct memory {
-    unsigned int nStoredTracks = 0;
-    unsigned int nStoredAttachedClusters = 0;
-    unsigned int nStoredUnattachedClusters = 0;
+    uint32_t nStoredTracks = 0;
+    uint32_t nStoredAttachedClusters = 0;
+    uint32_t nStoredUnattachedClusters = 0;
   };
 
-  constexpr static unsigned int NSLICES = GPUCA_NSLICES;
+  constexpr static uint32_t NSLICES = GPUCA_NSLICES;
 
   o2::tpc::CompressedClustersPtrs mPtrs;
   o2::tpc::CompressedClusters* mOutput = nullptr;
@@ -85,43 +85,43 @@ class GPUTPCCompression : public GPUProcessor
   o2::tpc::CompressedClustersFlat* mOutputFlat = nullptr;
 
   memory* mMemory = nullptr;
-  unsigned int* mAttachedClusterFirstIndex = nullptr;
-  unsigned char* mClusterStatus = nullptr;
+  uint32_t* mAttachedClusterFirstIndex = nullptr;
+  uint8_t* mClusterStatus = nullptr;
 
-  unsigned int mMaxTracks = 0;
-  unsigned int mMaxClusters = 0;
-  unsigned int mMaxTrackClusters = 0;
-  unsigned int mMaxClustersInCache = 0;
+  uint32_t mMaxTracks = 0;
+  uint32_t mMaxClusters = 0;
+  uint32_t mMaxTrackClusters = 0;
+  uint32_t mMaxClustersInCache = 0;
   size_t mMaxClusterFactorBase1024 = 0;
 
   template <class T>
-  void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
+  void SetPointersCompressedClusters(void*& mem, T& c, uint32_t nClA, uint32_t nTr, uint32_t nClU, bool reducedClA);
   template <class T>
-  GPUd() static void truncateSignificantBits(T& val, unsigned int nBits, unsigned int max);
+  GPUd() static void truncateSignificantBits(T& val, uint32_t nBits, uint32_t max);
 
-  short mMemoryResOutputHost = -1;
-  short mMemoryResOutputGPU = -1;
+  int16_t mMemoryResOutputHost = -1;
+  int16_t mMemoryResOutputGPU = -1;
 };
 
 template <class T>
-GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits, unsigned int max)
+GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, uint32_t nBits, uint32_t max)
 {
   if (nBits == 0) {
     return;
   }
 
-  unsigned int val = v;
-  unsigned int ldz = sizeof(unsigned int) * 8 - CAMath::Clz(val);
+  uint32_t val = v;
+  uint32_t ldz = sizeof(uint32_t) * 8 - CAMath::Clz(val);
   if (val && ldz > nBits) {
     if (val & (1 << (ldz - nBits - 1))) {
       val += (1 << (ldz - nBits - 1));
-      ldz = sizeof(unsigned int) * 8 - CAMath::Clz(val);
+      ldz = sizeof(uint32_t) * 8 - CAMath::Clz(val);
     }
     val &= ((1 << ldz) - 1) ^ ((1 << (ldz - nBits)) - 1);
     if (val >= max) {
       val = max - 1;
     }
-    // GPUInfo("CHANGING X %x --> %x", (unsigned int) v, val);
+    // GPUInfo("CHANGING X %x --> %x", (uint32_t) v, val);
     v = val;
   }
 }

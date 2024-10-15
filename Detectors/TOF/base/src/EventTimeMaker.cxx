@@ -152,7 +152,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
       }
       float err = evtime.mTrackTimes[i] - averageBest;
       err *= sqrt(evtime.mWeights[i]);
-      err = fabs(err);
+      err = std::abs(err);
       if (err > errworse) {
         errworse = err;
         worse = i;
@@ -293,7 +293,7 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
       const eventTimeTrack& ctrack = tracks[trackInSet[itrk]];
       starttime[itrk] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
 
-      if (fabs(starttime[itrk] - refT0) < 2000) { // otherwise time inconsistent with the int BC
+      if (std::abs(starttime[itrk] - refT0) < 2000) { // otherwise time inconsistent with the int BC
         weighttime[itrk] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
         average += starttime[itrk] * weighttime[itrk];
         sumweights += weighttime[itrk];
@@ -329,7 +329,7 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
     const eventTimeTrack& ctrack = tracks[trackInSet[itrk]];
     float err = ctrack.mSignal - ctrack.expTimes[hypo[itrk]] - averageBest;
     err /= ctrack.expSigma[hypo[itrk]];
-    err = fabs(err);
+    err = std::abs(err);
     if (err > errworse) {
       errworse = err;
       worse = itrk;
@@ -404,7 +404,7 @@ int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector
     const eventTimeTrack& ctrack = tracks[trackInSet[itrk]];
     float err = ctrack.mSignal - ctrack.expTimes[hypo[itrk]] - averageBest;
     err /= ctrack.expSigma[hypo[itrk]];
-    err = fabs(err);
+    err = std::abs(err);
     if (err > errworse) {
       errworse = err;
       worse = itrk;

@@ -88,7 +88,7 @@ inline void RecoInputContainer::fillGPUIOPtr(o2::gpu::GPUTrackingInOutPointers* 
   ptrs->nTRDTriggerRecords = mNTriggerRecords;
   ptrs->trdTriggerTimes = &(trdTriggerTimes[0]);
   ptrs->trdTrackletIdxFirst = &(trdTriggerIndices[0]);
-  ptrs->trdTrigRecMask = reinterpret_cast<const char*>(mTrigRecMask.data());
+  ptrs->trdTrigRecMask = reinterpret_cast<const uint8_t*>(mTrigRecMask.data());
   ptrs->nTRDTracklets = mNTracklets;
   ptrs->trdTracklets = reinterpret_cast<const o2::gpu::GPUTRDTrackletWord*>(mTracklets.data());
   ptrs->trdSpacePoints = reinterpret_cast<const o2::gpu::GPUTRDSpacePoint*>(mSpacePoints.data());

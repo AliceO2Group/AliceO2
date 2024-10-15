@@ -23,8 +23,8 @@
 
 #endif
 
-const int Fdegree = 10;
-int nKnots = 6;
+const int32_t Fdegree = 10;
+int32_t nKnots = 6;
 
 static double Fcoeff[2 * (Fdegree + 1)];
 
@@ -32,7 +32,7 @@ void F(double u, double f[])
 {
   double uu = u * TMath::Pi() / (nKnots - 1);
   f[0] = 0; // Fcoeff[0]/2;
-  for (int i = 1; i <= Fdegree; i++) {
+  for (int32_t i = 1; i <= Fdegree; i++) {
     f[0] += Fcoeff[2 * i] * TMath::Cos(i * uu) + Fcoeff[2 * i + 1] * TMath::Sin(i * uu);
   }
 }
@@ -77,10 +77,10 @@ bool askStep()
   return doContinie;
 }
 
-int SplineRecoveryDemo()
+int32_t SplineRecoveryDemo()
 {
 
-  const int nAxiliaryPoints = 10;
+  const int32_t nAxiliaryPoints = 10;
 
   using namespace o2::gpu;
 
@@ -93,25 +93,25 @@ int SplineRecoveryDemo()
   TH1F* histDfBestFit = new TH1F("histDfBestFit", "Df BestFit", 100, -1., 1.);
   TH1F* histMinMaxBestFit = new TH1F("histMinMaxBestFit", "MinMax BestFit", 100, -1., 1.);
 
-  for (int seed = 12; doContinie; seed++) {
+  for (int32_t seed = 12; doContinie; seed++) {
 
     // seed = gRandom->Integer(100000); // 605
 
     gRandom->SetSeed(seed);
     std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
 
-    for (int i = 0; i < 2 * (Fdegree + 1); i++) {
+    for (int32_t i = 0; i < 2 * (Fdegree + 1); i++) {
       Fcoeff[i] = gRandom->Uniform(-1, 1);
     }
 
-    for (int deadRegion = -1; doContinie && (deadRegion < nKnots - 1); deadRegion++) {
+    for (int32_t deadRegion = -1; doContinie && (deadRegion < nKnots - 1); deadRegion++) {
 
       TNtuple* knots = new TNtuple("knots", "knots", "type:u:f");
 
       o2::gpu::Spline1D<float, 1> spline(nKnots);
       spline.approximateFunction(0, nKnots - 1, F, nAxiliaryPoints);
 
-      for (int i = 0; i < nKnots; i++) {
+      for (int32_t i = 0; i < nKnots; i++) {
         double u = spline.getKnot(i).u;
         double fs = spline.interpolate(spline.convUtoX(u));
         knots->Fill(2, u, fs);
@@ -121,11 +121,11 @@ int SplineRecoveryDemo()
       o2::gpu::Spline1DHelper<float> helper;
       {
         vector<double> vu, vy;
-        for (int i = 0; i < nKnots - 1; i++) {
+        for (int32_t i = 0; i < nKnots - 1; i++) {
           if (i < deadRegion || i > deadRegion + 1) {
             double u = spline.getKnot(i).u;
             double du = (spline.getKnot(i + 1).u - u) / (nAxiliaryPoints + 1);
-            for (int iax = 0; iax < nAxiliaryPoints + 1; iax++, u += du) {
+            for (int32_t iax = 0; iax < nAxiliaryPoints + 1; iax++, u += du) {
               double f = F1D(u);
               vu.push_back(u);
               vy.push_back(f);
@@ -134,7 +134,7 @@ int SplineRecoveryDemo()
           }
         }
         {
-          int i = nKnots - 1;
+          int32_t i = nKnots - 1;
           if (i < deadRegion || i > deadRegion + 2) {
             double u = spline.getKnot(i).u;
             double f = F1D(u);
@@ -150,7 +150,7 @@ int SplineRecoveryDemo()
 
       canv->Draw();
 
-      for (int i = 0; i < nKnots; i++) {
+      for (int32_t i = 0; i < nKnots; i++) {
         double u = splineRecovered.getKnot(i).u;
         double fs = splineRecovered.interpolate(splineRecovered.convUtoX(u));
         knots->Fill(1, u, fs);
@@ -159,7 +159,7 @@ int SplineRecoveryDemo()
       TNtuple* nt = new TNtuple("nt", "nt", "u:f0:fBestFit:fRec");
 
       float stepS = 1.e-4;
-      int nSteps = (int)(1. / stepS + 1);
+      int32_t nSteps = (int32_t)(1. / stepS + 1);
 
       double statDfBestFit = 0;
       double statDfRec = 0;
@@ -169,7 +169,7 @@ int SplineRecoveryDemo()
 
       double drawMax = -1.e20;
       double drawMin = 1.e20;
-      int statN = 0;
+      int32_t statN = 0;
       for (float s = 0; s < 1. + stepS; s += stepS) {
         double u = s * (nKnots - 1);
         double f0;
@@ -251,7 +251,7 @@ int SplineRecoveryDemo()
         break;
       }
       {
-        int col = kGreen + 2;
+        int32_t col = kGreen + 2;
         nt->SetMarkerColor(col);
         nt->SetMarkerStyle(8);
         nt->SetMarkerSize(1.);
@@ -281,7 +281,7 @@ int SplineRecoveryDemo()
       }
 
       {
-        int col = kRed;
+        int32_t col = kRed;
         nt->SetMarkerSize(1.);
         nt->SetMarkerColor(col);
         nt->Draw("fRec:u", "", "P,same");
@@ -328,7 +328,7 @@ int SplineRecoveryDemo()
 
       delete legend;
     } // dead region
-  }   // random F
+  } // random F
 
   return 0;
 }

@@ -16,5 +16,4 @@ namespace o2::framework::ecs
 
 const DataProcessorLabel uniqueProxyLabel = {"ecs-unique-proxy"};
 const DataProcessorLabel preserveRawChannelsLabel = {"ecs-preserve-raw-channels"};
-const DataProcessorLabel qcReconfigurable = {"qc-reconfigurable"};
 }

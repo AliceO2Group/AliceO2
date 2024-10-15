@@ -22,12 +22,12 @@ namespace gpu
 class GPUTPCHitId
 {
  public:
-  GPUhd() void Set(int row, int hit) { mId = (hit << 8) | row; }
-  GPUhd() int RowIndex() const { return mId & 0xff; }
-  GPUhd() int HitIndex() const { return mId >> 8; }
+  GPUhd() void Set(int32_t row, int32_t hit) { mId = (hit << 8) | row; }
+  GPUhd() int32_t RowIndex() const { return mId & 0xff; }
+  GPUhd() int32_t HitIndex() const { return mId >> 8; }
 
  private:
-  int mId;
+  int32_t mId;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

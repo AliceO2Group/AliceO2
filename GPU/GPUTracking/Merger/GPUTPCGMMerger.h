@@ -66,30 +66,30 @@ class GPUTPCGMMerger : public GPUProcessor
   ~GPUTPCGMMerger() CON_DEFAULT;
   GPUTPCGMMerger(const GPUTPCGMMerger&) CON_DELETE;
   const GPUTPCGMMerger& operator=(const GPUTPCGMMerger&) const CON_DELETE;
-  static CONSTEXPR const int NSLICES = GPUCA_NSLICES; //* N slices
+  static CONSTEXPR const int32_t NSLICES = GPUCA_NSLICES; //* N slices
 
   struct memory {
-    GPUAtomic(unsigned int) nRetryRefit;
-    GPUAtomic(unsigned int) nLoopData;
-    GPUAtomic(unsigned int) nUnpackedTracks;
-    GPUAtomic(unsigned int) nOutputTracks;
-    GPUAtomic(unsigned int) nOutputTrackClusters;
-    GPUAtomic(unsigned int) nO2Tracks;
-    GPUAtomic(unsigned int) nO2ClusRefs;
+    GPUAtomic(uint32_t) nRetryRefit;
+    GPUAtomic(uint32_t) nLoopData;
+    GPUAtomic(uint32_t) nUnpackedTracks;
+    GPUAtomic(uint32_t) nOutputTracks;
+    GPUAtomic(uint32_t) nOutputTrackClusters;
+    GPUAtomic(uint32_t) nO2Tracks;
+    GPUAtomic(uint32_t) nO2ClusRefs;
     const GPUTPCTrack* firstGlobalTracks[NSLICES];
-    GPUAtomic(unsigned int) tmpCounter[2 * NSLICES];
-    GPUAtomic(unsigned int) nLooperMatchCandidates;
+    GPUAtomic(uint32_t) tmpCounter[2 * NSLICES];
+    GPUAtomic(uint32_t) nLooperMatchCandidates;
   };
 
   struct trackCluster {
-    unsigned int id;
-    unsigned char row;
-    unsigned char slice;
-    unsigned char leg;
+    uint32_t id;
+    uint8_t row;
+    uint8_t slice;
+    uint8_t leg;
   };
 
   struct tmpSort {
-    unsigned int x;
+    uint32_t x;
     float y;
   };
 
@@ -107,96 +107,96 @@ class GPUTPCGMMerger : public GPUProcessor
   void* SetPointersOutputState(void* mem);
   void* SetPointersMemory(void* mem);
 
-  void SetSliceData(int index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
+  void SetSliceData(int32_t index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
 
-  GPUhdi() int NOutputTracks() const { return mMemory->nOutputTracks; }
+  GPUhdi() int32_t NOutputTracks() const { return mMemory->nOutputTracks; }
   GPUhdi() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
   GPUhdi() GPUTPCGMMergedTrack* OutputTracks() { return mOutputTracks; }
   GPUhdi() const GPUdEdxInfo* OutputTracksdEdx() const { return mOutputTracksdEdx; }
   GPUhdi() GPUdEdxInfo* OutputTracksdEdx() { return mOutputTracksdEdx; }
-  GPUhdi() unsigned int NClusters() const { return mNClusters; }
-  GPUhdi() unsigned int NMaxClusters() const { return mNMaxClusters; }
-  GPUhdi() unsigned int NMaxTracks() const { return mNMaxTracks; }
-  GPUhdi() unsigned int NMaxOutputTrackClusters() const { return mNMaxOutputTrackClusters; }
-  GPUhdi() unsigned int NOutputTrackClusters() const { return mMemory->nOutputTrackClusters; }
+  GPUhdi() uint32_t NClusters() const { return mNClusters; }
+  GPUhdi() uint32_t NMaxClusters() const { return mNMaxClusters; }
+  GPUhdi() uint32_t NMaxTracks() const { return mNMaxTracks; }
+  GPUhdi() uint32_t NMaxOutputTrackClusters() const { return mNMaxOutputTrackClusters; }
+  GPUhdi() uint32_t NOutputTrackClusters() const { return mMemory->nOutputTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
   GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return (mClusters); }
   GPUhdi() const GPUTPCGMMergedTrackHitXYZ* ClustersXYZ() const { return mClustersXYZ; }
   GPUhdi() GPUTPCGMMergedTrackHitXYZ* ClustersXYZ() { return (mClustersXYZ); }
-  GPUhdi() GPUAtomic(unsigned int) * ClusterAttachment() const { return mClusterAttachment; }
-  GPUhdi() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
-  GPUhdi() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
-  GPUhdi() unsigned int* RetryRefitIds() const { return mRetryRefitIds; }
-  GPUhdi() unsigned char* ClusterStateExt() const { return mClusterStateExt; }
+  GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
+  GPUhdi() uint32_t* TrackOrderAttach() const { return mTrackOrderAttach; }
+  GPUhdi() uint32_t* TrackOrderProcess() const { return mTrackOrderProcess; }
+  GPUhdi() uint32_t* RetryRefitIds() const { return mRetryRefitIds; }
+  GPUhdi() uint8_t* ClusterStateExt() const { return mClusterStateExt; }
   GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUhdi() memory* Memory() const { return mMemory; }
-  GPUhdi() GPUAtomic(unsigned int) * TmpCounter() { return mMemory->tmpCounter; }
+  GPUhdi() GPUAtomic(uint32_t) * TmpCounter() { return mMemory->tmpCounter; }
   GPUhdi() uint2* ClusRefTmp() { return mClusRefTmp; }
-  GPUhdi() unsigned int* TrackSort() { return mTrackSort; }
+  GPUhdi() uint32_t* TrackSort() { return mTrackSort; }
   GPUhdi() tmpSort* TrackSortO2() { return mTrackSortO2; }
   GPUhdi() MergeLooperParam* LooperCandidates() { return mLooperCandidates; }
-  GPUhdi() GPUAtomic(unsigned int) * SharedCount() { return mSharedCount; }
-  GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int i) { return mBorderRange[i]; }
-  GPUhdi() const gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int i) const { return mBorderRange[i]; }
-  GPUhdi() GPUTPCGMBorderTrack* BorderTracks(int i) { return mBorder[i]; }
+  GPUhdi() GPUAtomic(uint32_t) * SharedCount() { return mSharedCount; }
+  GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int32_t i) { return mBorderRange[i]; }
+  GPUhdi() const gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int32_t i) const { return mBorderRange[i]; }
+  GPUhdi() GPUTPCGMBorderTrack* BorderTracks(int32_t i) { return mBorder[i]; }
   GPUhdi() o2::tpc::TrackTPC* OutputTracksTPCO2() { return mOutputTracksTPCO2; }
-  GPUhdi() unsigned int* OutputClusRefsTPCO2() { return mOutputClusRefsTPCO2; }
+  GPUhdi() uint32_t* OutputClusRefsTPCO2() { return mOutputClusRefsTPCO2; }
   GPUhdi() o2::MCCompLabel* OutputTracksTPCO2MC() { return mOutputTracksTPCO2MC; }
-  GPUhdi() unsigned int NOutputTracksTPCO2() const { return mMemory->nO2Tracks; }
-  GPUhdi() unsigned int NOutputClusRefsTPCO2() const { return mMemory->nO2ClusRefs; }
+  GPUhdi() uint32_t NOutputTracksTPCO2() const { return mMemory->nO2Tracks; }
+  GPUhdi() uint32_t NOutputClusRefsTPCO2() const { return mMemory->nO2ClusRefs; }
   GPUhdi() GPUTPCGMSliceTrack* SliceTrackInfos() { return mSliceTrackInfos; }
-  GPUhdi() int NMaxSingleSliceTracks() const { return mNMaxSingleSliceTracks; }
-  GPUhdi() int* TrackIDs() { return mTrackIDs; }
-  GPUhdi() int* TmpSortMemory() { return mTmpSortMemory; }
+  GPUhdi() int32_t NMaxSingleSliceTracks() const { return mNMaxSingleSliceTracks; }
+  GPUhdi() int32_t* TrackIDs() { return mTrackIDs; }
+  GPUhdi() int32_t* TmpSortMemory() { return mTmpSortMemory; }
 
-  GPUd() unsigned short MemoryResMemory() { return mMemoryResMemory; }
-  GPUd() unsigned short MemoryResOutput() const { return mMemoryResOutput; }
-  GPUd() unsigned short MemoryResOutputState() const { return mMemoryResOutputState; }
-  GPUd() unsigned short MemoryResOutputO2() const { return mMemoryResOutputO2; }
-  GPUd() unsigned short MemoryResOutputO2Clus() const { return mMemoryResOutputO2Clus; }
-  GPUd() unsigned short MemoryResOutputO2MC() const { return mMemoryResOutputO2MC; }
-  GPUd() unsigned short MemoryResOutputO2Scratch() const { return mMemoryResOutputO2Scratch; }
+  GPUd() uint16_t MemoryResMemory() { return mMemoryResMemory; }
+  GPUd() uint16_t MemoryResOutput() const { return mMemoryResOutput; }
+  GPUd() uint16_t MemoryResOutputState() const { return mMemoryResOutputState; }
+  GPUd() uint16_t MemoryResOutputO2() const { return mMemoryResOutputO2; }
+  GPUd() uint16_t MemoryResOutputO2Clus() const { return mMemoryResOutputO2Clus; }
+  GPUd() uint16_t MemoryResOutputO2MC() const { return mMemoryResOutputO2MC; }
+  GPUd() uint16_t MemoryResOutputO2Scratch() const { return mMemoryResOutputO2Scratch; }
 
-  GPUd() int RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice);
-  GPUd() void SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr);
+  GPUd() int32_t RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int32_t slice);
+  GPUd() void SetTrackClusterZT(GPUTPCGMSliceTrack& track, int32_t iSlice, const GPUTPCTrack* sliceTr);
 
-  int CheckSlices();
-  GPUd() void RefitSliceTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
-  GPUd() void UnpackSliceGlobal(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
-  GPUd() void UnpackSaveNumber(int id);
-  GPUd() void UnpackResetIds(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
-  GPUd() void MergeCE(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool output);
-  GPUd() void MergeWithinSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void MergeSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam);
-  template <int I>
-  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode);
-  GPUd() void MergeBorderTracksSetup(int& n1, int& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int& jSlice, int iSlice, char withinSlice, char mergeMode) const;
-  template <int I>
-  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, gputpcgmmergertypes::GPUTPCGMBorderRange* range, int N, int cmpMax);
-  GPUd() void SortTracks(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void PrepareClustersForFit0(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void PrepareClustersForFit1(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void PrepareClustersForFit2(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void Finalize0(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void Finalize1(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void Finalize2(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveFindConnectedComponentsSetup(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveFindConnectedComponentsHookNeighbors(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveFindConnectedComponentsHookLinks(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveFindConnectedComponentsMultiJump(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveMergeSlices(gputpcgmmergertypes::GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
-  GPUd() void MergeLoopersInit(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void MergeLoopersSort(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void MergeLoopersMain(int nBlocks, int nThreads, int iBlock, int iThread);
+  int32_t CheckSlices();
+  GPUd() void RefitSliceTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSlice);
+  GPUd() void UnpackSliceGlobal(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSlice);
+  GPUd() void UnpackSaveNumber(int32_t id);
+  GPUd() void UnpackResetIds(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSlice);
+  GPUd() void MergeCE(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ClearTrackLinks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, bool output);
+  GPUd() void MergeWithinSlicesPrepare(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void MergeSlicesPrepare(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t border0, int32_t border1, int8_t useOrigTrackParam);
+  template <int32_t I>
+  GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSlice, int8_t withinSlice, int8_t mergeMode);
+  GPUd() void MergeBorderTracksSetup(int32_t& n1, int32_t& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int32_t& jSlice, int32_t iSlice, int8_t withinSlice, int8_t mergeMode) const;
+  template <int32_t I>
+  GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, gputpcgmmergertypes::GPUTPCGMBorderRange* range, int32_t N, int32_t cmpMax);
+  GPUd() void SortTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void SortTracksQPt(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void SortTracksPrepare(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareClustersForFit0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareClustersForFit1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareClustersForFit2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void LinkGlobalTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void CollectMergedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void Finalize0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void Finalize1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void Finalize2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ResolveFindConnectedComponentsSetup(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ResolveFindConnectedComponentsHookNeighbors(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ResolveFindConnectedComponentsHookLinks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ResolveFindConnectedComponentsMultiJump(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ResolveMergeSlices(gputpcgmmergertypes::GPUResolveSharedMemory& smem, int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int8_t useOrigTrackParam, int8_t mergeAll);
+  GPUd() void MergeLoopersInit(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void MergeLoopersSort(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void MergeLoopersMain(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out) const;
-  void DumpMergeRanges(std::ostream& out, int withinSlice, int mergeMode) const;
+  void DumpMergeRanges(std::ostream& out, int32_t withinSlice, int32_t mergeMode) const;
   void DumpTrackLinks(std::ostream& out, bool output, const char* type) const;
   void DumpMergedWithinSlices(std::ostream& out) const;
   void DumpMergedBetweenSlices(std::ostream& out) const;
@@ -206,95 +206,95 @@ class GPUTPCGMMerger : public GPUProcessor
   void DumpRefit(std::ostream& out) const;
   void DumpFinal(std::ostream& out) const;
 
-  template <int mergeType>
-  void MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac) const;
-  void MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac) const;
-  const GPUTPCGMBorderTrack& MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId) const;
+  template <int32_t mergeType>
+  void MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t slice1, int32_t slice2, int32_t mergeMode, float weight, float frac) const;
+  void MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t slice1, int32_t slice2, int32_t mergeMode, float weight, float frac) const;
+  const GPUTPCGMBorderTrack& MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int32_t N, int32_t trackId) const;
   void DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track) const;
-  std::vector<unsigned int> StreamerOccupancyBin(int iSlice, int iRow, float time) const;
-  std::vector<float> StreamerUncorrectedZY(int iSlice, int iRow, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop) const;
+  std::vector<uint32_t> StreamerOccupancyBin(int32_t iSlice, int32_t iRow, float time) const;
+  std::vector<float> StreamerUncorrectedZY(int32_t iSlice, int32_t iRow, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop) const;
 
-  void DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal, float avgInvCharge, float posY, float posZ, short clusterState, int retValReject, float err2Y, float err2Z) const;
+  void DebugStreamerUpdate(int32_t iTrk, int32_t ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, int8_t rejectChi2, bool refit, int32_t retVal, float avgInvCharge, float posY, float posZ, int16_t clusterState, int32_t retValReject, float err2Y, float err2Z) const;
 #endif
 
-  GPUdi() int SliceTrackInfoFirst(int iSlice) const { return mSliceTrackInfoIndex[iSlice]; }
-  GPUdi() int SliceTrackInfoLast(int iSlice) const { return mSliceTrackInfoIndex[iSlice + 1]; }
-  GPUdi() int SliceTrackInfoGlobalFirst(int iSlice) const { return mSliceTrackInfoIndex[NSLICES + iSlice]; }
-  GPUdi() int SliceTrackInfoGlobalLast(int iSlice) const { return mSliceTrackInfoIndex[NSLICES + iSlice + 1]; }
-  GPUdi() int SliceTrackInfoLocalTotal() const { return mSliceTrackInfoIndex[NSLICES]; }
-  GPUdi() int SliceTrackInfoTotal() const { return mSliceTrackInfoIndex[2 * NSLICES]; }
+  GPUdi() int32_t SliceTrackInfoFirst(int32_t iSlice) const { return mSliceTrackInfoIndex[iSlice]; }
+  GPUdi() int32_t SliceTrackInfoLast(int32_t iSlice) const { return mSliceTrackInfoIndex[iSlice + 1]; }
+  GPUdi() int32_t SliceTrackInfoGlobalFirst(int32_t iSlice) const { return mSliceTrackInfoIndex[NSLICES + iSlice]; }
+  GPUdi() int32_t SliceTrackInfoGlobalLast(int32_t iSlice) const { return mSliceTrackInfoIndex[NSLICES + iSlice + 1]; }
+  GPUdi() int32_t SliceTrackInfoLocalTotal() const { return mSliceTrackInfoIndex[NSLICES]; }
+  GPUdi() int32_t SliceTrackInfoTotal() const { return mSliceTrackInfoIndex[2 * NSLICES]; }
 
  private:
-  GPUd() void MergeSlicesPrepareStep2(int nBlocks, int nThreads, int iBlock, int iThread, int iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(unsigned int) * nB, bool useOrigTrackParam = false);
-  template <int I>
-  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice1, GPUTPCGMBorderTrack* B1, int N1, int iSlice2, GPUTPCGMBorderTrack* B2, int N2, int mergeMode = 0);
+  GPUd() void MergeSlicesPrepareStep2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(uint32_t) * nB, bool useOrigTrackParam = false);
+  template <int32_t I>
+  GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSlice1, GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSlice2, GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode = 0);
 
-  GPUd() void MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, const GPUTPCGMMergedTrackHitXYZ* clsXYZ, int itr);
+  GPUd() void MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, const GPUTPCGMMergedTrackHitXYZ* clsXYZ, int32_t itr);
 
   void CheckMergedTracks();
 #ifndef GPUCA_GPUCODE
   void PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out) const;
   template <class T, class S>
-  long int GetTrackLabelA(const S& trk) const;
+  int64_t GetTrackLabelA(const S& trk) const;
   template <class S>
-  long int GetTrackLabel(const S& trk) const;
+  int64_t GetTrackLabel(const S& trk) const;
 #endif
 
-  GPUdi() void setBlockRange(int elems, int nBlocks, int iBlock, int& start, int& end);
-  GPUdi() void hookEdge(int u, int v);
+  GPUdi() void setBlockRange(int32_t elems, int32_t nBlocks, int32_t iBlock, int32_t& start, int32_t& end);
+  GPUdi() void hookEdge(int32_t u, int32_t v);
 
-  int mNextSliceInd[NSLICES];
-  int mPrevSliceInd[NSLICES];
+  int32_t mNextSliceInd[NSLICES];
+  int32_t mPrevSliceInd[NSLICES];
 
   const GPUTPCSliceOutput* mkSlices[NSLICES]; //* array of input slice tracks
 
-  int* mTrackLinks;
-  int* mTrackCCRoots; // root of the connected component of this track
+  int32_t* mTrackLinks;
+  int32_t* mTrackCCRoots; // root of the connected component of this track
 
-  unsigned int mNTotalSliceTracks;       // maximum number of incoming slice tracks
-  unsigned int mNMaxTracks;              // maximum number of output tracks
-  unsigned int mNMaxSingleSliceTracks;   // max N tracks in one slice
-  unsigned int mNMaxOutputTrackClusters; // max number of clusters in output tracks (double-counting shared clusters)
-  unsigned int mNMaxClusters;            // max total unique clusters (in event)
-  unsigned int mNMaxLooperMatches;       // Maximum number of candidate pairs for looper matching
+  uint32_t mNTotalSliceTracks;       // maximum number of incoming slice tracks
+  uint32_t mNMaxTracks;              // maximum number of output tracks
+  uint32_t mNMaxSingleSliceTracks;   // max N tracks in one slice
+  uint32_t mNMaxOutputTrackClusters; // max number of clusters in output tracks (double-counting shared clusters)
+  uint32_t mNMaxClusters;            // max total unique clusters (in event)
+  uint32_t mNMaxLooperMatches;       // Maximum number of candidate pairs for looper matching
 
-  unsigned short mMemoryResMemory;
-  unsigned short mMemoryResOutput;
-  unsigned short mMemoryResOutputState;
-  unsigned short mMemoryResOutputO2;
-  unsigned short mMemoryResOutputO2Clus;
-  unsigned short mMemoryResOutputO2MC;
-  unsigned short mMemoryResOutputO2Scratch;
+  uint16_t mMemoryResMemory;
+  uint16_t mMemoryResOutput;
+  uint16_t mMemoryResOutputState;
+  uint16_t mMemoryResOutputO2;
+  uint16_t mMemoryResOutputO2Clus;
+  uint16_t mMemoryResOutputO2MC;
+  uint16_t mMemoryResOutputO2Scratch;
 
-  int mNClusters;                       // Total number of incoming clusters (from slice tracks)
+  int32_t mNClusters;                   // Total number of incoming clusters (from slice tracks)
   GPUTPCGMMergedTrack* mOutputTracks;   //* array of output merged tracks
   GPUdEdxInfo* mOutputTracksdEdx;       //* dEdx information
   GPUTPCGMSliceTrack* mSliceTrackInfos; //* additional information for slice tracks
-  int* mSliceTrackInfoIndex;
+  int32_t* mSliceTrackInfoIndex;
   GPUTPCGMMergedTrackHit* mClusters;
   GPUTPCGMMergedTrackHitXYZ* mClustersXYZ;
-  int* mGlobalClusterIDs;
-  GPUAtomic(unsigned int) * mClusterAttachment;
+  int32_t* mGlobalClusterIDs;
+  GPUAtomic(uint32_t) * mClusterAttachment;
   o2::tpc::TrackTPC* mOutputTracksTPCO2;
-  unsigned int* mOutputClusRefsTPCO2;
+  uint32_t* mOutputClusRefsTPCO2;
   o2::MCCompLabel* mOutputTracksTPCO2MC;
   MergeLooperParam* mLooperCandidates;
 
-  unsigned int* mTrackOrderAttach;
-  unsigned int* mTrackOrderProcess;
-  unsigned char* mClusterStateExt;
+  uint32_t* mTrackOrderAttach;
+  uint32_t* mTrackOrderProcess;
+  uint8_t* mClusterStateExt;
   uint2* mClusRefTmp;
-  int* mTrackIDs;
-  int* mTmpSortMemory;
-  unsigned int* mTrackSort;
+  int32_t* mTrackIDs;
+  int32_t* mTmpSortMemory;
+  uint32_t* mTrackSort;
   tmpSort* mTrackSortO2;
-  GPUAtomic(unsigned int) * mSharedCount; // Must be unsigned int unfortunately for atomic support
+  GPUAtomic(uint32_t) * mSharedCount;     // Must be uint32_t unfortunately for atomic support
   GPUTPCGMBorderTrack* mBorderMemory;     // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRangeMemory;    // memory for border tracks
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRange[NSLICES]; // memory for border tracks
   memory* mMemory;
-  unsigned int* mRetryRefitIds;
+  uint32_t* mRetryRefitIds;
   GPUTPCGMLoopData* mLoopData;
 };
 } // namespace gpu

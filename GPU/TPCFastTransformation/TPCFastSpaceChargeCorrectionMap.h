@@ -49,7 +49,7 @@ class TPCFastSpaceChargeCorrectionMap
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor: creates an empty uninitialized object
-  TPCFastSpaceChargeCorrectionMap(int nRocs, int nRows)
+  TPCFastSpaceChargeCorrectionMap(int32_t nRocs, int32_t nRows)
   {
     init(nRocs, nRows);
   }
@@ -58,43 +58,43 @@ class TPCFastSpaceChargeCorrectionMap
   ~TPCFastSpaceChargeCorrectionMap() = default;
 
   /// (re-)init the map
-  void init(int nRocs, int nRows)
+  void init(int32_t nRocs, int32_t nRows)
   {
     mNrocs = nRocs;
     mNrows = nRows;
-    int n = mNrocs * mNrows;
+    int32_t n = mNrocs * mNrows;
     fDataPoints.resize(n);
-    for (unsigned int i = 0; i < fDataPoints.size(); ++i) {
+    for (uint32_t i = 0; i < fDataPoints.size(); ++i) {
       fDataPoints[i].clear();
     }
   }
 
   /// Starts the construction procedure, reserves temporary memory
-  void addCorrectionPoint(int iRoc, int iRow,
+  void addCorrectionPoint(int32_t iRoc, int32_t iRow,
                           double y, double z,
                           double dx, double dy, double dz)
   {
-    int ind = mNrows * iRoc + iRow;
+    int32_t ind = mNrows * iRoc + iRow;
     fDataPoints.at(ind).push_back(CorrectionPoint{y, z,
                                                   dx, dy, dz});
   }
 
-  const std::vector<CorrectionPoint>& getPoints(int iRoc, int iRow) const
+  const std::vector<CorrectionPoint>& getPoints(int32_t iRoc, int32_t iRow) const
   {
-    int ind = mNrows * iRoc + iRow;
+    int32_t ind = mNrows * iRoc + iRow;
     return fDataPoints.at(ind);
   }
 
-  int getNrocs() const { return mNrocs; }
+  int32_t getNrocs() const { return mNrocs; }
 
-  int getNrows() const { return mNrows; }
+  int32_t getNrows() const { return mNrows; }
 
   bool isInitialized() const { return mNrocs > 0 && mNrows > 0; }
 
  private:
   /// _______________  Data members  _______________________________________________
-  int mNrocs{0};
-  int mNrows{0};
+  int32_t mNrocs{0};
+  int32_t mNrows{0};
   std::vector<std::vector<CorrectionPoint>> fDataPoints; //! (transient!!) points with space charge correction
 
 #ifndef GPUCA_ALIROOT_LIB

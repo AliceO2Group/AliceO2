@@ -33,8 +33,8 @@ class GPUTPCMCPoint
   float Sy() const { return fSy; }
   float Sz() const { return fSz; }
   float Time() const { return fTime; }
-  int ISlice() const { return mISlice; }
-  int TrackID() const { return fTrackID; }
+  int32_t ISlice() const { return mISlice; }
+  int32_t TrackID() const { return fTrackID; }
 
   void SetX(float v) { fX = v; }
   void SetY(float v) { fY = v; }
@@ -43,8 +43,8 @@ class GPUTPCMCPoint
   void SetSy(float v) { fSy = v; }
   void SetSz(float v) { fSz = v; }
   void SetTime(float v) { fTime = v; }
-  void SetISlice(int v) { mISlice = v; }
-  void SetTrackID(int v) { fTrackID = v; }
+  void SetISlice(int32_t v) { mISlice = v; }
+  void SetTrackID(int32_t v) { fTrackID = v; }
 
   static bool Compare(const GPUTPCMCPoint& p1, const GPUTPCMCPoint& p2)
   {
@@ -57,7 +57,7 @@ class GPUTPCMCPoint
     return (p1.Sx() < p2.Sx());
   }
 
-  static bool CompareSlice(const GPUTPCMCPoint& p, int slice) { return (p.ISlice() < slice); }
+  static bool CompareSlice(const GPUTPCMCPoint& p, int32_t slice) { return (p.ISlice() < slice); }
 
   static bool CompareX(const GPUTPCMCPoint& p, float X) { return (p.Sx() < X); }
 
@@ -69,8 +69,8 @@ class GPUTPCMCPoint
   float fSy;    //* slice Y position
   float fSz;    //* slice Z position
   float fTime;  //* time
-  int mISlice;  //* slice number
-  int fTrackID; //* mc track number
+  int32_t mISlice;  //* slice number
+  int32_t fTrackID; //* mc track number
 };
 
 #endif // GPUTPCMCPOINT_H

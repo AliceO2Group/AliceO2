@@ -14,7 +14,11 @@
 
 #ifndef QCONFIG_H_GENERAL
 #define QCONFIG_H_GENERAL
-extern int qConfigParse(int argc, const char** argv, const char* filename = nullptr);
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cstdint>
+#endif
+
+extern int32_t qConfigParse(int argc, const char** argv, const char* filename = nullptr);
 extern void qConfigPrint();
 namespace qConfig
 {
@@ -44,40 +48,40 @@ enum qConfigRetVal { qcrOK = 0,
                             (preoptshort == 0 && thisoption[1] == optnameshort && thisoption[2] == 0) || (thisoption[1] == '-' && strlen(preopt) == 0 && strcmp(&thisoption[2], name) == 0) || \
                             (preoptshort != 0 && thisoption[1] == preoptshort && thisoption[2] == optnameshort && thisoption[3] == 0) || (thisoption[1] == '-' && strlen(preopt) && strncmp(&thisoption[2], preopt, strlen(preopt)) == 0 && strcmp(&thisoption[2 + strlen(preopt)], name) == 0)))
 
-#define AddOption(name, type, default, optname, optnameshort, ...)                             \
-  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                      \
-  {                                                                                            \
-    int retVal = qConfigType<type>::qAddOption(tmp.name, i, argv, argc, default, __VA_ARGS__); \
-    if (retVal) {                                                                              \
-      return (retVal);                                                                         \
-    }                                                                                          \
+#define AddOption(name, type, default, optname, optnameshort, ...)                                 \
+  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                          \
+  {                                                                                                \
+    int32_t retVal = qConfigType<type>::qAddOption(tmp.name, i, argv, argc, default, __VA_ARGS__); \
+    if (retVal) {                                                                                  \
+      return (retVal);                                                                             \
+    }                                                                                              \
   }
 
-#define AddOptionSet(name, type, value, optname, optnameshort, ...)                                      \
-  else if (QCONFIG_COMPARE(optname, "", optnameshort))                                                   \
-  {                                                                                                      \
-    int retVal = qConfigType<type>::qAddOption(tmp.name, i, nullptr, 0, value, __VA_ARGS__, set(value)); \
-    if (retVal) {                                                                                        \
-      return (retVal);                                                                                   \
-    }                                                                                                    \
+#define AddOptionSet(name, type, value, optname, optnameshort, ...)                                          \
+  else if (QCONFIG_COMPARE(optname, "", optnameshort))                                                       \
+  {                                                                                                          \
+    int32_t retVal = qConfigType<type>::qAddOption(tmp.name, i, nullptr, 0, value, __VA_ARGS__, set(value)); \
+    if (retVal) {                                                                                            \
+      return (retVal);                                                                                       \
+    }                                                                                                        \
   }
 
-#define AddOptionVec(name, type, optname, optnameshort, ...)                             \
-  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                \
-  {                                                                                      \
-    int retVal = qConfigType<type>::qAddOptionVec(tmp.name, i, argv, argc, __VA_ARGS__); \
-    if (retVal) {                                                                        \
-      return (retVal);                                                                   \
-    }                                                                                    \
+#define AddOptionVec(name, type, optname, optnameshort, ...)                                 \
+  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                    \
+  {                                                                                          \
+    int32_t retVal = qConfigType<type>::qAddOptionVec(tmp.name, i, argv, argc, __VA_ARGS__); \
+    if (retVal) {                                                                            \
+      return (retVal);                                                                       \
+    }                                                                                        \
   }
 
-#define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                    \
-  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                         \
-  {                                                                                               \
-    int retVal = qConfigType<type>::qAddOptionArray(tmp.name, count, i, argv, argc, __VA_ARGS__); \
-    if (retVal) {                                                                                 \
-      return (retVal);                                                                            \
-    }                                                                                             \
+#define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                        \
+  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                             \
+  {                                                                                                   \
+    int32_t retVal = qConfigType<type>::qAddOptionArray(tmp.name, count, i, argv, argc, __VA_ARGS__); \
+    if (retVal) {                                                                                     \
+      return (retVal);                                                                                \
+    }                                                                                                 \
   }
 
 #define AddSubConfig(name, instance)
@@ -140,14 +144,14 @@ enum qConfigRetVal { qcrOK = 0,
     }                                            \
   }
 
-#define AddShortcut(cmd, cmdshort, forward, help, ...)             \
-  else if (QCONFIG_COMPARE(cmd, "", cmdshort))                     \
-  {                                                                \
-    const char* options[] = {"", __VA_ARGS__, nullptr};            \
-    const int nOptions = sizeof(options) / sizeof(options[0]) - 1; \
-    qConfigParse(nOptions, options, nullptr);                      \
-    thisoption = forward;                                          \
-    goto repeat;                                                   \
+#define AddShortcut(cmd, cmdshort, forward, help, ...)                 \
+  else if (QCONFIG_COMPARE(cmd, "", cmdshort))                         \
+  {                                                                    \
+    const char* options[] = {"", __VA_ARGS__, nullptr};                \
+    const int32_t nOptions = sizeof(options) / sizeof(options[0]) - 1; \
+    qConfigParse(nOptions, options, nullptr);                          \
+    thisoption = forward;                                              \
+    goto repeat;                                                       \
   }
 
 // End QCONFIG_PARSE
@@ -189,21 +193,21 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddOption(name, type, default, optname, optnameshort, ...) std::cout << "\t" << blockName << qon_mxstr(name) << ": " << qConfig::print_type(qconfig_tmp_object.name) << "\n";
 #define AddVariable(name, type, default) std::cout << "\t" << blockName << qon_mxstr(name) << ": " << qConfig::print_type(qconfig_tmp_object.name) << "\n";
 #define AddOptionSet(name, type, value, optname, optnameshort, ...)
-#define AddOptionVec(name, type, optname, optnameshort, ...)            \
-  {                                                                     \
-    std::cout << "\t" << blockName << qon_mxstr(name) << "[]: ";        \
-    for (unsigned int i = 0; i < qconfig_tmp_object.name.size(); i++) { \
-      if (i) {                                                          \
-        std::cout << ", ";                                              \
-      }                                                                 \
-      std::cout << qConfig::print_type(qconfig_tmp_object.name[i]);     \
-    }                                                                   \
-    std::cout << "\n";                                                  \
+#define AddOptionVec(name, type, optname, optnameshort, ...)        \
+  {                                                                 \
+    std::cout << "\t" << blockName << qon_mxstr(name) << "[]: ";    \
+    for (uint32_t i = 0; i < qconfig_tmp_object.name.size(); i++) { \
+      if (i) {                                                      \
+        std::cout << ", ";                                          \
+      }                                                             \
+      std::cout << qConfig::print_type(qconfig_tmp_object.name[i]); \
+    }                                                               \
+    std::cout << "\n";                                              \
   }
 #define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                                                     \
   {                                                                                                                                \
     std::cout << "\t" << blockName << qon_mxstr(name) << "[" << count << "]: " << qConfig::print_type(qconfig_tmp_object.name[0]); \
-    for (int i = 1; i < count; i++) {                                                                                              \
+    for (int32_t i = 1; i < count; i++) {                                                                                          \
       std::cout << ", " << qConfig::print_type(qconfig_tmp_object.name[i]);                                                        \
     }                                                                                                                              \
     std::cout << "\n";                                                                                                             \
@@ -257,7 +261,7 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddOptionArrayRTC(name, type, count, default, optname, optnameshort, help, ...)                                                                                            \
   if (useConstexpr) {                                                                                                                                                              \
     out << "static constexpr " << qon_mxstr(type) << " " << qon_mxstr(name) << "[" << count << "] = {" << qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[0]); \
-    for (int i = 1; i < count; i++) {                                                                                                                                              \
+    for (int32_t i = 1; i < count; i++) {                                                                                                                                          \
       out << ", " << qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[i]);                                                                                      \
     }                                                                                                                                                                              \
     out << "};\n";                                                                                                                                                                 \

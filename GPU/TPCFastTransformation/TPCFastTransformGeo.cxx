@@ -29,7 +29,7 @@ TPCFastTransformGeo::TPCFastTransformGeo()
 {
   // Default Constructor: creates an empty uninitialized object
   double dAlpha = 2. * M_PI / (NumberOfSlicesA);
-  for (int i = 0; i < NumberOfSlices; i++) {
+  for (int32_t i = 0; i < NumberOfSlices; i++) {
     SliceInfo& s = mSliceInfos[i];
     double alpha = dAlpha * (i + 0.5);
     s.sinAlpha = sin(alpha);
@@ -37,12 +37,12 @@ TPCFastTransformGeo::TPCFastTransformGeo()
   }
   mSliceInfos[NumberOfSlices] = SliceInfo{0.f, 0.f};
 
-  for (int i = 0; i < MaxNumberOfRows + 1; i++) {
+  for (int32_t i = 0; i < MaxNumberOfRows + 1; i++) {
     mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
   }
 }
 
-void TPCFastTransformGeo::startConstruction(int numberOfRows)
+void TPCFastTransformGeo::startConstruction(int32_t numberOfRows)
 {
   /// Starts the construction procedure
 
@@ -59,7 +59,7 @@ void TPCFastTransformGeo::startConstruction(int numberOfRows)
   mScaleSVtoVsideA = 0.f;
   mScaleSVtoVsideC = 0.f;
 
-  for (int i = 0; i < MaxNumberOfRows; i++) {
+  for (int32_t i = 0; i < MaxNumberOfRows; i++) {
     mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
   }
 }
@@ -90,7 +90,7 @@ void TPCFastTransformGeo::setTPCalignmentZ(float tpcAlignmentZ)
   mConstructionMask |= ConstructionState::AlignmentIsSet;
 }
 
-void TPCFastTransformGeo::setTPCrow(int iRow, float x, int nPads, float padWidth)
+void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float padWidth)
 {
   /// Initializes a TPC row
   assert(mConstructionMask & ConstructionState::InProgress);
@@ -125,11 +125,11 @@ void TPCFastTransformGeo::finishConstruction()
   assert(mConstructionMask & ConstructionState::GeometryIsSet);  // geometry is  set
   assert(mConstructionMask & ConstructionState::AlignmentIsSet); // alignment is  set
 
-  for (int i = 0; i < mNumberOfRows; i++) { // all TPC rows are initialized
+  for (int32_t i = 0; i < mNumberOfRows; i++) { // all TPC rows are initialized
     assert(getRowInfo(i).maxPad > 0);
   }
 
-  mConstructionMask = (unsigned int)ConstructionState::Constructed; // clear all other construction flags
+  mConstructionMask = (uint32_t)ConstructionState::Constructed; // clear all other construction flags
 }
 
 void TPCFastTransformGeo::print() const
@@ -142,17 +142,17 @@ void TPCFastTransformGeo::print() const
   LOG(info) << "mTPCzLengthC = " << mTPCzLengthC;
   LOG(info) << "mTPCalignmentZ = " << mTPCalignmentZ;
   LOG(info) << "TPC Rows : ";
-  for (int i = 0; i < mNumberOfRows; i++) {
+  for (int32_t i = 0; i < mNumberOfRows; i++) {
     LOG(info) << " tpc row " << i << ": x = " << mRowInfos[i].x << " maxPad = " << mRowInfos[i].maxPad << " padWidth = " << mRowInfos[i].padWidth;
   }
 #endif
 }
 
-int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
+int32_t TPCFastTransformGeo::test(int32_t slice, int32_t row, float ly, float lz) const
 {
   /// Check consistency of the class
 
-  int error = 0;
+  int32_t error = 0;
 
   if (!isConstructed()) {
     error = -1;
@@ -213,7 +213,7 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
   return error;
 }
 
-int TPCFastTransformGeo::test() const
+int32_t TPCFastTransformGeo::test() const
 {
   /// Check consistency of the class
 

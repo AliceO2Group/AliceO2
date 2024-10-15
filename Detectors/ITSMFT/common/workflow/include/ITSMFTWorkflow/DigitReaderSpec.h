@@ -24,6 +24,8 @@
 #include "Headers/DataHeader.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 
 using namespace o2::framework;
 
@@ -48,7 +50,7 @@ class DigitReader : public Task
   std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
   std::vector<o2::itsmft::ROFRecord> mDigROFRec, *mDigROFRecPtr = &mDigROFRec;
   std::vector<o2::itsmft::MC2ROFRecord> mDigMC2ROFs, *mDigMC2ROFsPtr = &mDigMC2ROFs;
-
+  o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> mConstLabels;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
 
   std::unique_ptr<TFile> mFile;
@@ -56,6 +58,10 @@ class DigitReader : public Task
   bool mUseMC = true;    // use MC truth
   bool mUseCalib = true; // send calib data
   bool mTriggerOut = true; // send dummy triggers vector
+  bool mUseIRFrames = false; // selected IRFrames modes
+  int mROFBiasInBC = 0;
+  int mROFLengthInBC = 0;
+  int mNRUs = 0;
   std::string mDetName = "";
   std::string mDetNameLC = "";
   std::string mFileName = "";

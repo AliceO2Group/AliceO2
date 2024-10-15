@@ -31,7 +31,7 @@
 #define DEFAULT_OPENCL_COMPILER_OPTIONS ""
 #define DEFAULT_OUTPUT_FILE "opencl.out"
 
-int main(int argc, char** argv)
+int32_t main(int argc, char** argv)
 {
   const char* output_file = DEFAULT_OUTPUT_FILE;
   std::string compiler_options = DEFAULT_OPENCL_COMPILER_OPTIONS;
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 
   printf("Passing command line options:\n");
   bool add_option = false;
-  for (int i = 1; i < argc; i++) {
+  for (int32_t i = 1; i < argc; i++) {
     if (add_option) {
       compiler_options += " ";
       compiler_options += argv[i];
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
   bool found = false;
 
   _makefiles_opencl_platform_info pinfo;
-  for (unsigned int i_platform = 0; i_platform < num_platforms; i_platform++) {
+  for (uint32_t i_platform = 0; i_platform < num_platforms; i_platform++) {
     clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_PROFILE, 64, pinfo.platform_profile, nullptr);
     clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VERSION, 64, pinfo.platform_version, nullptr);
     clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, pinfo.platform_name, nullptr);
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
   cl_uint freq, shaders;
 
   printf("Available OPENCL devices:\n");
-  for (unsigned int i = 0; i < pinfo.count; i++) {
+  for (uint32_t i = 0; i < pinfo.count; i++) {
     printf("Examining device %u\n", i);
 
     clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 64, dinfo.device_name, nullptr);
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
     clGetDeviceInfo(devices[i], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, nullptr);
     clGetDeviceInfo(devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, nullptr);
     clGetDeviceInfo(devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(dinfo.nbits), &dinfo.nbits, nullptr);
-    printf("Found Device %u : %s %s (Frequency %d, Shaders %d, %d bit)\n", i, dinfo.device_vendor, dinfo.device_name, (int)freq, (int)shaders, (int)dinfo.nbits);
+    printf("Found Device %u : %s %s (Frequency %d, Shaders %d, %d bit)\n", i, dinfo.device_vendor, dinfo.device_name, (int32_t)freq, (int32_t)shaders, (int32_t)dinfo.nbits);
   }
 
   if (files.size() == 0) {
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
   if (buffers == nullptr) {
     quit("Memory allocation error\n");
   }
-  for (unsigned int i = 0; i < files.size(); i++) {
+  for (uint32_t i = 0; i < files.size(); i++) {
     printf("Reading source file %s\n", files[i]);
     FILE* fp = fopen(files[i], "rb");
     if (fp == nullptr) {
@@ -177,11 +177,11 @@ int main(int argc, char** argv)
   if (ocl_error != CL_SUCCESS) {
     fprintf(stderr, "OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, compiler_options.c_str());
     fprintf(stderr, "OpenCL Kernel:\n\n");
-    for (unsigned int i = 0; i < files.size(); i++) {
+    for (uint32_t i = 0; i < files.size(); i++) {
       printf("%s\n\n", buffers[i]);
     }
 
-    for (unsigned int i = 0; i < pinfo.count; i++) {
+    for (uint32_t i = 0; i < pinfo.count; i++) {
       cl_build_status status;
       clGetProgramBuildInfo(program, devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr);
       if (status == CL_BUILD_ERROR) {
@@ -197,7 +197,7 @@ int main(int argc, char** argv)
       }
     }
   }
-  for (unsigned int i = 0; i < files.size(); i++) {
+  for (uint32_t i = 0; i < files.size(); i++) {
     free(buffers[i]);
   }
   free(buffers);
@@ -215,8 +215,8 @@ int main(int argc, char** argv)
   if (binary_buffers == nullptr) {
     quit("Memory allocation error");
   }
-  for (unsigned int i = 0; i < pinfo.count; i++) {
-    printf("Binary size for device %d: %d\n", i, (int)binary_sizes[i]);
+  for (uint32_t i = 0; i < pinfo.count; i++) {
+    printf("Binary size for device %d: %d\n", i, (int32_t)binary_sizes[i]);
     binary_buffers[i] = (char*)malloc(binary_sizes[i]);
     memset(binary_buffers[i], 0, binary_sizes[i]);
     if (binary_buffers[i] == nullptr) {
@@ -238,7 +238,7 @@ int main(int argc, char** argv)
   const char* magic_bytes = "QOCLPB";
   fwrite(magic_bytes, 1, strlen(magic_bytes) + 1, fp);
   fwrite(&pinfo, 1, sizeof(pinfo), fp);
-  for (unsigned int i = 0; i < pinfo.count; i++) {
+  for (uint32_t i = 0; i < pinfo.count; i++) {
     clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 64, dinfo.device_name, nullptr);
     clGetDeviceInfo(devices[i], CL_DEVICE_VENDOR, 64, dinfo.device_vendor, nullptr);
     dinfo.binary_size = binary_sizes[i];
@@ -248,7 +248,7 @@ int main(int argc, char** argv)
   fclose(fp);
 
   printf("All done, cleaning up remaining buffers\n");
-  for (unsigned int i = 0; i < pinfo.count; i++) {
+  for (uint32_t i = 0; i < pinfo.count; i++) {
     free(binary_buffers[i]);
   }
   free(binary_sizes);

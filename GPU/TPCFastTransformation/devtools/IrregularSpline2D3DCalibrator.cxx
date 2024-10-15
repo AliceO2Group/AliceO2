@@ -34,13 +34,13 @@ IrregularSpline2D3DCalibrator::IrregularSpline2D3DCalibrator()
   setMaxNKnots(5, 5);
 }
 
-void IrregularSpline2D3DCalibrator::setRasterSize(int nKnotsU, int nKnotsV)
+void IrregularSpline2D3DCalibrator::setRasterSize(int32_t nKnotsU, int32_t nKnotsV)
 {
   /// set maximal size of the spline grid
 
-  int n[2] = {nKnotsU, nKnotsV};
+  int32_t n[2] = {nKnotsU, nKnotsV};
 
-  for (int uv = 0; uv < 2; ++uv) {
+  for (int32_t uv = 0; uv < 2; ++uv) {
     if (n[uv] < mMaxNKnots[uv]) {
       n[uv] = mMaxNKnots[uv];
     }
@@ -49,14 +49,14 @@ void IrregularSpline2D3DCalibrator::setRasterSize(int nKnotsU, int nKnotsV)
   mRaster.constructRegular(n[0], n[1]);
 }
 
-void IrregularSpline2D3DCalibrator::setMaxNKnots(int nKnotsU, int nKnotsV)
+void IrregularSpline2D3DCalibrator::setMaxNKnots(int32_t nKnotsU, int32_t nKnotsV)
 {
   /// set maximal size of the spline grid
 
   mMaxNKnots[0] = nKnotsU;
   mMaxNKnots[1] = nKnotsV;
 
-  for (int uv = 0; uv < 2; ++uv) {
+  for (int32_t uv = 0; uv < 2; ++uv) {
     if (mMaxNKnots[uv] < 5) {
       mMaxNKnots[uv] = 5;
     }
@@ -70,7 +70,7 @@ void IrregularSpline2D3DCalibrator::startCalibration(std::function<void(float, f
   // fill the raster data
   mRasterData.resize(mRaster.getNumberOfKnots() * 3);
 
-  for (int i = 0; i < mRaster.getNumberOfKnots(); ++i) {
+  for (int32_t i = 0; i < mRaster.getNumberOfKnots(); ++i) {
     float u = 0, v = 0, fx = 0, fy = 0, fz = 0;
     mRaster.getKnotUV(i, u, v);
     F(u, v, fx, fy, fz);
@@ -82,12 +82,12 @@ void IrregularSpline2D3DCalibrator::startCalibration(std::function<void(float, f
   mRaster.correctEdges(mRasterData.data());
 
   // create current spline
-  for (int uv = 0; uv < 2; ++uv) {
+  for (int32_t uv = 0; uv < 2; ++uv) {
     // LOG(info)<<"n Raster knots: "<<mRaster.getGrid(uv).getNumberOfKnots();
     mKnots[uv].clear();
     double du = 1. / (mMaxNKnots[uv] - 1);
-    int lastKnot = 0;
-    for (int i = 1; i < mMaxNKnots[uv] - 1; ++i) {
+    int32_t lastKnot = 0;
+    for (int32_t i = 1; i < mMaxNKnots[uv] - 1; ++i) {
       KnotData d;
       d.uv = uv;
       double u = i * du;
@@ -121,7 +121,7 @@ void IrregularSpline2D3DCalibrator::createSpline(IrregularSpline2D3D& sp, std::v
 {
   // recreate a spline with  respect to knots in mKnots[] lists
 
-  for (int uv = 0; uv < 2; ++uv) {
+  for (int32_t uv = 0; uv < 2; ++uv) {
     mTemp[uv].reserve(mMaxNKnots[uv]);
     mTemp[uv].clear();
     mTemp[uv].push_back(0.f);
@@ -136,7 +136,7 @@ void IrregularSpline2D3DCalibrator::createSpline(IrregularSpline2D3D& sp, std::v
                mTemp[1].size(), mTemp[1].data(), mRaster.getGrid(1).getNumberOfKnots());
 
   data.resize(sp.getNumberOfKnots() * 3);
-  for (int i = 0; i < sp.getNumberOfKnots(); ++i) {
+  for (int32_t i = 0; i < sp.getNumberOfKnots(); ++i) {
     float u = 0, v = 0, fx = 0, fy = 0, fz = 0;
     sp.getKnotUV(i, u, v);
     mRaster.getSplineVec(mRasterData.data(), u, v, fx, fy, fz);
@@ -156,7 +156,7 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
   ret.cost = mMaxDeviation + 1.e10;
   ret.iter = knot;
 
-  int uv = knot->uv;
+  int32_t uv = knot->uv;
 
   bool isSpaceUp = 0;
 
@@ -189,8 +189,8 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
   }
   // get the area of interest
 
-  int regionKnotFirst = knot->rasterKnot;
-  int regionKnotLast = knot->rasterKnot;
+  int32_t regionKnotFirst = knot->rasterKnot;
+  int32_t regionKnotLast = knot->rasterKnot;
   getRegionOfInfluence(knot, regionKnotFirst, regionKnotLast);
 
   // get the current cost
@@ -231,15 +231,15 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
   ret.cost = mMaxDeviation + 1.e10;
   ret.iter = knot;
 
-  int uv = knot->uv;
+  int32_t uv = knot->uv;
 
   if (mSpline.getGrid(uv).getNumberOfKnots() <= 5) {
     return ret;
   }
   // get the area of interest
 
-  int regionKnotFirst = knot->rasterKnot;
-  int regionKnotLast = knot->rasterKnot;
+  int32_t regionKnotFirst = knot->rasterKnot;
+  int32_t regionKnotLast = knot->rasterKnot;
 
   getRegionOfInfluence(knot, regionKnotFirst, regionKnotLast);
 
@@ -259,14 +259,14 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
   return ret;
 }
 
-void IrregularSpline2D3DCalibrator::getRegionOfInfluence(std::list<KnotData>::iterator knot, int& regionKnotFirst, int& regionKnotLast) const
+void IrregularSpline2D3DCalibrator::getRegionOfInfluence(std::list<KnotData>::iterator knot, int32_t& regionKnotFirst, int32_t& regionKnotLast) const
 {
-  int uv = knot->uv;
+  int32_t uv = knot->uv;
   regionKnotFirst = knot->rasterKnot;
   regionKnotLast = knot->rasterKnot;
   std::list<KnotData>::iterator next = knot;
   std::list<KnotData>::iterator prev = knot;
-  for (int i = 0; i < 3; ++i) {
+  for (int32_t i = 0; i < 3; ++i) {
     if (prev != mKnots[uv].begin()) {
       --prev;
       regionKnotFirst = prev->rasterKnot;
@@ -295,7 +295,7 @@ bool IrregularSpline2D3DCalibrator::doCalibrationStep()
   bestAction.action = Action::Move::No;
   bestAction.cost = 1.e10;
 
-  for (int uv = 0; uv < 2; ++uv) {
+  for (int32_t uv = 0; uv < 2; ++uv) {
     for (std::list<KnotData>::iterator i = mKnots[uv].begin(); i != mKnots[uv].end(); ++i) {
       Action a = checkActionShift(i);
       if (a.cost < bestAction.cost) {
@@ -322,11 +322,11 @@ bool IrregularSpline2D3DCalibrator::doCalibrationStep()
 
   // second, try to remove a knot
 
-  //for (int axis = 0; axis < 2; axis++) {
+  // for (int32_t axis = 0; axis < 2; axis++) {
   bestAction.action = Action::Move::No;
   bestAction.cost = mMaxDeviation + 1.e10;
 
-  for (int uv = 0; uv < 2; ++uv) {
+  for (int32_t uv = 0; uv < 2; ++uv) {
 
     for (std::list<KnotData>::iterator i = mKnots[uv].begin(); i != mKnots[uv].end(); ++i) {
       Action a = checkActionRemove(i);
@@ -366,21 +366,21 @@ std::unique_ptr<float[]> IrregularSpline2D3DCalibrator::calibrateSpline(Irregula
   createCurrentSpline();
   spline_uv.cloneFromObject(mSpline, nullptr);
   std::unique_ptr<float[]> tmp(new float[mSpline.getNumberOfKnots()]);
-  for (int i = 0; i < mSpline.getNumberOfKnots(); ++i) {
+  for (int32_t i = 0; i < mSpline.getNumberOfKnots(); ++i) {
     tmp[i] = mSplineData[i];
   }
   return tmp;
 }
 
-double IrregularSpline2D3DCalibrator::getMaxDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int axis0, int knot0) const
+double IrregularSpline2D3DCalibrator::getMaxDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int32_t axis0, int32_t knot0) const
 {
-  int axis1 = (axis0 == 0) ? 1 : 0;
+  int32_t axis1 = (axis0 == 0) ? 1 : 0;
   float u[2];
   u[axis0] = mRaster.getGrid(axis0).getKnot(knot0).u;
 
   double dMax2 = 0.;
 
-  for (int knot1 = 0; knot1 < mRaster.getGrid(axis1).getNumberOfKnots(); ++knot1) {
+  for (int32_t knot1 = 0; knot1 < mRaster.getGrid(axis1).getNumberOfKnots(); ++knot1) {
     u[axis1] = mRaster.getGrid(axis1).getKnot(knot1).u;
     float fx0, fy0, fz0, fx, fy, fz;
     mRaster.getSplineVec(mRasterData.data(), u[0], u[1], fx0, fy0, fz0);
@@ -397,10 +397,10 @@ double IrregularSpline2D3DCalibrator::getMaxDeviationLine(const IrregularSpline2
 }
 
 double IrregularSpline2D3DCalibrator::getMaxDeviationArea(const IrregularSpline2D3D& spline, const std::vector<float>& data,
-                                                          int axis, int knotFirst, int knotLast) const
+                                                          int32_t axis, int32_t knotFirst, int32_t knotLast) const
 {
   double dMax = 0.;
-  for (int knot = knotFirst; knot <= knotLast; ++knot) {
+  for (int32_t knot = knotFirst; knot <= knotLast; ++knot) {
     double d = getMaxDeviationLine(spline, data, axis, knot);
     if (dMax < d) {
       dMax = d;
@@ -409,15 +409,15 @@ double IrregularSpline2D3DCalibrator::getMaxDeviationArea(const IrregularSpline2
   return dMax;
 }
 
-double IrregularSpline2D3DCalibrator::getIntegralDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int axis0, int knot0) const
+double IrregularSpline2D3DCalibrator::getIntegralDeviationLine(const IrregularSpline2D3D& spline, const std::vector<float>& data, int32_t axis0, int32_t knot0) const
 {
-  int axis1 = (axis0 == 0) ? 1 : 0;
+  int32_t axis1 = (axis0 == 0) ? 1 : 0;
   float u[2];
   u[axis0] = mRaster.getGrid(axis0).getKnot(knot0).u;
 
   double sum = 0.;
 
-  for (int knot1 = 0; knot1 < mRaster.getGrid(axis1).getNumberOfKnots(); ++knot1) {
+  for (int32_t knot1 = 0; knot1 < mRaster.getGrid(axis1).getNumberOfKnots(); ++knot1) {
     u[axis1] = mRaster.getGrid(axis1).getKnot(knot1).u;
     float fx0, fy0, fz0, fx, fy, fz;
     mRaster.getSplineVec(mRasterData.data(), u[0], u[1], fx0, fy0, fz0);
@@ -433,10 +433,10 @@ double IrregularSpline2D3DCalibrator::getIntegralDeviationLine(const IrregularSp
 }
 
 double IrregularSpline2D3DCalibrator::getIntegralDeviationArea(const IrregularSpline2D3D& spline, const std::vector<float>& data,
-                                                               int axis, int knotFirst, int knotLast) const
+                                                               int32_t axis, int32_t knotFirst, int32_t knotLast) const
 {
   double sum = 0.;
-  for (int knot = knotFirst; knot <= knotLast; ++knot) {
+  for (int32_t knot = knotFirst; knot <= knotLast; ++knot) {
     sum += getIntegralDeviationLine(spline, data, axis, knot);
   }
   return sum;

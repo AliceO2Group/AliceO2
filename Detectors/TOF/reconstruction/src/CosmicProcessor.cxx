@@ -103,7 +103,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
     for (int j = i + 1; j < ndig2; j++) {
       auto& dig2 = (*array)[j];
       int64_t bc2 = int64_t(dig2.getBC()) - bc1;
-      if (labs(bc2) > bcdist) {
+      if (std::abs(bc2) > bcdist) {
         continue;
       }
 
@@ -126,7 +126,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
       float lt2 = pos2[0] * pos2[0] + pos2[1] * pos2[1];
       float l = sqrt(lt2 + pos2[2] * pos2[2]);
 
-      if (!trackFound && lt2 < 40000 && fabs(dtime) < 10000) {
+      if (!trackFound && lt2 < 40000 && std::abs(dtime) < 10000) {
         mCosmicTrackTemp.emplace_back(ch2, pos2or[0], pos2or[1], pos2or[2], dtime, tot2);
       }
 
@@ -139,7 +139,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
 
       dtime -= l * 33.356409; // corrected for pad distance assuiming muonn downward
 
-      if (fabs(dtime) > thr) {
+      if (std::abs(dtime) > thr) {
         continue;
       }
 

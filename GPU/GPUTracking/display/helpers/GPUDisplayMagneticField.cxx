@@ -47,9 +47,9 @@ void GPUDisplayMagneticField::generateSeedPoints(std::size_t count)
   std::mt19937 rng(0xDEADBEEF);
 
   // TODO: fetch these values from somewhere?
-  std::uniform_int_distribution<int> generator_x(-512, 512);
-  std::uniform_int_distribution<int> generator_y(-512, 512);
-  std::uniform_int_distribution<int> generator_z(-455 - 1312, -455 + 1312);
+  std::uniform_int_distribution<int32_t> generator_x(-512, 512);
+  std::uniform_int_distribution<int32_t> generator_y(-512, 512);
+  std::uniform_int_distribution<int32_t> generator_z(-455 - 1312, -455 + 1312);
 
   mFieldLineSeedPoints.clear();
 
@@ -131,7 +131,7 @@ std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> loadParams(std::i
 }
 
 #ifndef GPUCA_O2_LIB
-int GPUDisplayMagneticField::initializeUniforms()
+int32_t GPUDisplayMagneticField::initializeUniforms()
 {
   mSolenoidSegments = std::make_unique<SolenoidSegmentsUniform>();
   mDipoleSegments = std::make_unique<DipoleSegmentsUniform>();
@@ -177,7 +177,7 @@ int GPUDisplayMagneticField::initializeUniforms()
 #endif
 
 #if !defined(GPUCA_NO_ROOT) && defined(GPUCA_O2_LIB)
-int GPUDisplayMagneticField::initializeUniforms()
+int32_t GPUDisplayMagneticField::initializeUniforms()
 {
   mRenderConstantsUniform = std::make_unique<RenderConstantsUniform>();
 
@@ -198,7 +198,7 @@ int GPUDisplayMagneticField::initializeUniforms()
   return initializeUniformsFromField(field);
 }
 
-int GPUDisplayMagneticField::initializeUniformsFromField(o2::field::MagneticField* field)
+int32_t GPUDisplayMagneticField::initializeUniformsFromField(o2::field::MagneticField* field)
 {
   const auto chebMap = field->getMeasuredMap();
 
@@ -279,8 +279,8 @@ int GPUDisplayMagneticField::initializeUniformsFromField(o2::field::MagneticFiel
   const auto getParameterSolenoid = [chebMap](Int_t i) { return chebMap->getParameterSolenoid(i); };
   const auto getParameterDipole = [chebMap](Int_t i) { return chebMap->getParameterDipole(i); };
 
-  auto countArraySizes = [](int numberOfParametrization, auto& getParameter) {
-    int TotalRows = 0, TotalColumns = 0, TotalCoefficients = 0;
+  auto countArraySizes = [](int32_t numberOfParametrization, auto& getParameter) {
+    int32_t TotalRows = 0, TotalColumns = 0, TotalCoefficients = 0;
     UShort_t MaxChebyshevOrder = 0;
 
     for (auto i = 0; i < numberOfParametrization; ++i) {
@@ -389,8 +389,8 @@ int GPUDisplayMagneticField::initializeUniformsFromField(o2::field::MagneticFiel
   mDipoleSegments = std::make_unique<DipoleSegmentsUniform>();
   loadSegments(dipoleTableInfo, *mDipoleSegments);
 
-  auto initParametrization = [](int numberOfParametrization, auto& getParameter, auto& parametrizationUniform) {
-    int ColsAtRowOffset = 0, CofsAtRowOffset = 0, CofsAtColOffset = 0, Coeffs = 0;
+  auto initParametrization = [](int32_t numberOfParametrization, auto& getParameter, auto& parametrizationUniform) {
+    int32_t ColsAtRowOffset = 0, CofsAtRowOffset = 0, CofsAtColOffset = 0, Coeffs = 0;
 
     for (auto i = 0; i < numberOfParametrization; ++i) {
       const auto param = getParameter(i);

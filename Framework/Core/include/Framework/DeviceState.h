@@ -17,8 +17,6 @@
 
 #include <vector>
 #include <string>
-#include <map>
-#include <utility>
 #include <atomic>
 
 typedef struct uv_loop_s uv_loop_t;
@@ -68,8 +66,18 @@ struct DeviceState {
     STREAM_CONTEXT_LOG = 1 << 4,         // Log for the StreamContext callbacks
   };
 
+  enum ProcessingType : int {
+    Any,             // Any kind of processing is allowed
+    CalibrationOnly, // Only calibrations are allowed to be processed / produced
+  };
+
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
+  // What kind of processing is allowed. By default we allow any.
+  // If we are past the data processing timeout, this will be
+  // CalibrationOnly. We need to reset it at every start.
+  ProcessingType allowedProcessing = ProcessingType::Any;
+
   bool quitRequested = false;
   std::atomic<int64_t> cleanupCount = -1;
 

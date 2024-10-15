@@ -19,14 +19,14 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-unsigned int GPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters)
+uint32_t GPUTPCSliceOutput::EstimateSize(uint32_t nOfTracks, uint32_t nOfTrackClusters)
 {
   // calculate the amount of memory [bytes] needed for the event
   return sizeof(GPUTPCSliceOutput) + sizeof(GPUTPCTrack) * nOfTracks + sizeof(GPUTPCSliceOutCluster) * nOfTrackClusters;
 }
 
 #ifndef GPUCA_GPUCODE
-void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int nTrackHits, GPUOutputControl* outputControl, void*& internalMemory)
+void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int32_t nTracks, int32_t nTrackHits, GPUOutputControl* outputControl, void*& internalMemory)
 {
   // Allocate All memory needed for slice output
   const size_t memsize = EstimateSize(nTracks, nTrackHits);

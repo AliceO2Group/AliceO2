@@ -22,8 +22,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 TPCPadGainCalib::TPCPadGainCalib()
 {
   GPUTPCGeometry geo{};
-  int offset = 0;
-  for (int r = 0; r < GPUCA_ROW_COUNT; r++) {
+  int32_t offset = 0;
+  for (int32_t r = 0; r < GPUCA_ROW_COUNT; r++) {
     mPadOffsetPerRow[r] = offset;
     offset += geo.NPads(r);
   }
@@ -46,8 +46,8 @@ TPCPadGainCalib::TPCPadGainCalib(const o2::tpc::CalDet<float>& gainMap, const fl
 
 void TPCPadGainCalib::setFromMap(const o2::tpc::CalDet<float>& gainMap, const bool inv)
 {
-  for (int sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
-    for (int p = 0; p < TPC_PADS_IN_SECTOR; p++) {
+  for (int32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
+    for (int32_t p = 0; p < TPC_PADS_IN_SECTOR; p++) {
       const float gainVal = gainMap.getValue(sector, p);
       inv ? mGainCorrection[sector].set(p, (gainVal > 1.e-5f) ? 1.f / gainVal : 1.f) : mGainCorrection[sector].set(p, gainVal);
     }

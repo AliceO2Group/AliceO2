@@ -109,9 +109,9 @@ namespace gpu
 ///   f[0] = x*x+3.f; // F(x)
 ///  };
 ///
-///  const int nKnots = 3;
+///  const int32_t nKnots = 3;
 ///
-///  int knots[nKnots] = {0, 1, 5}; // relative(!) knot positions
+///  int32_t knots[nKnots] = {0, 1, 5}; // relative(!) knot positions
 ///
 ///  Spline1D<float,1> spline( nKnots, knots ); // create 1-dimensional spline with the knots
 ///
@@ -134,7 +134,7 @@ namespace gpu
 ///    YdimT = 0 : the number of Y dimensions will be set in the runtime
 ///    YdimT < 0 : the number of Y dimensions will be set in the runtime, and it will not exceed abs(YdimT)
 ///
-template <typename DataT, int YdimT = 0>
+template <typename DataT, int32_t YdimT = 0>
 class Spline1D
   : public Spline1DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT)>
 {

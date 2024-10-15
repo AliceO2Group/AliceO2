@@ -29,7 +29,7 @@ namespace gpu
 class GPUTPCSliceOutCluster
 {
  public:
-  GPUhd() void Set(unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z)
+  GPUhd() void Set(uint32_t id, uint8_t row, uint8_t flags, uint16_t amp, float x, float y, float z)
   {
     mRow = row;
     mFlags = flags;
@@ -43,16 +43,16 @@ class GPUTPCSliceOutCluster
   GPUhd() float GetX() const { return mX; }
   GPUhd() float GetY() const { return mY; }
   GPUhd() float GetZ() const { return mZ; }
-  GPUhd() unsigned short GetAmp() const { return mAmp; }
-  GPUhd() unsigned int GetId() const { return mId; }
-  GPUhd() unsigned char GetRow() const { return mRow; }
-  GPUhd() unsigned char GetFlags() const { return mFlags; }
+  GPUhd() uint16_t GetAmp() const { return mAmp; }
+  GPUhd() uint32_t GetId() const { return mId; }
+  GPUhd() uint8_t GetRow() const { return mRow; }
+  GPUhd() uint8_t GetFlags() const { return mFlags; }
 
  private:
-  unsigned int mId;     // Id
-  unsigned char mRow;   // row
-  unsigned char mFlags; // flags
-  unsigned short mAmp;  // amplitude
+  uint32_t mId;         // Id
+  uint8_t mRow;         // row
+  uint8_t mFlags;       // flags
+  uint16_t mAmp;        // amplitude
   float mX;             // coordinates
   float mY;             // coordinates
   float mZ;             // coordinates

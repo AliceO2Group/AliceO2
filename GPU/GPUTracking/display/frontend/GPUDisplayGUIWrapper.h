@@ -30,9 +30,9 @@ class GPUDisplayGUIWrapper
   bool isRunning() const;
   void UpdateTimer();
 
-  int start();
-  int stop();
-  int focus();
+  int32_t start();
+  int32_t stop();
+  int32_t focus();
 
  private:
   std::unique_ptr<GPUDisplayGUIWrapperObjects> mO;

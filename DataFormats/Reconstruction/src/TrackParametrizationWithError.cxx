@@ -736,7 +736,7 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
 
 //______________________________________________
 template <typename value_T>
-GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Unchecked(const value_t* p, const value_t* cov) const -> value_t
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Quiet(const value_t* p, const value_t* cov) const -> value_t
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
   auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
