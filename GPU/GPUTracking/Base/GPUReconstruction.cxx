@@ -300,7 +300,7 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoSteps.stepsGPUMask & RecoStep::TPCMerging) || !param().rec.tpc.mergerReadFromTrackerDirectly) {
     mProcessingSettings.fullMergerOnGPU = false;
   }
-  if (mProcessingSettings.debugLevel > 3 || !mProcessingSettings.fullMergerOnGPU || mProcessingSettings.deterministicGPUReconstruction) {
+  if (mProcessingSettings.debugLevel > 3 || !IsGPU() || !mProcessingSettings.fullMergerOnGPU || mProcessingSettings.deterministicGPUReconstruction) {
     mProcessingSettings.delayedOutput = false;
   }
   if (!mProcessingSettings.fullMergerOnGPU && (GetRecoStepsGPU() & RecoStep::TPCMerging)) {
