@@ -479,7 +479,7 @@
         <!-- selection of files to consider as CMakeLists files -->
         <!-- relative to CMLfiles/mainDir -->
         <fileName>
-          TableProducer/CMakeLists.txt
+          TableProducer/CMakeLists.txt, TableProducer/Converters/CMakeLists.txt
         </fileName>
       </CMLfiles>
 
@@ -492,7 +492,7 @@
         <!-- selection of files to consider as task code files -->
         <!-- relative to codeFiles/mainDir -->
         <fileName>
-          TableProducer/*.cxx
+          TableProducer/*.cxx, TableProducer/Converters/*.cxx
         </fileName>
       </codeFiles>
     </DataModel>
