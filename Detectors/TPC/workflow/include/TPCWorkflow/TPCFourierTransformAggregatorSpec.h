@@ -201,7 +201,7 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    if (!mDisableScaler) {
+    if (!mDisableScaler && !mProcessSACs) {
       makeTPCScaler(ec.outputs(), true);
     }
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
