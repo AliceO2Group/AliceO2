@@ -2030,7 +2030,7 @@ ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
 {
   const size_t n = columnLabel.size();
 
-  if (n == 0 || n != strlen(C::columnLabel())) {
+  if (n == 0 || (n != strlen(C::columnLabel()) && n-1 != strlen(C::columnLabel()))) {
     return nullptr;
   }
 
