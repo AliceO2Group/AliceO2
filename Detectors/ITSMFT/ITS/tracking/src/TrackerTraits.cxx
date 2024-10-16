@@ -111,7 +111,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice, in
           const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; /// protecting from overflows adding the detector resolution
           const float sigmaZ{o2::gpu::CAMath::Sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * tf->getMSangle(iLayer)))};
 
-          const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
+          const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer + 1, zAtRmin, zAtRmax,
                                                   sigmaZ * mTrkParams[iteration].NSigmaCut, tf->getPhiCut(iLayer))};
           if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
             continue;
@@ -675,8 +675,16 @@ void TrackerTraits::findRoads(const int iteration)
 
 void TrackerTraits::extendTracks(const int iteration)
 {
+  if (iteration != 2) {
+    return;
+  }
+  static uint32_t iTrack{0};
   for (int rof{0}; rof < mTimeFrame->getNrof(); ++rof) {
     for (auto& track : mTimeFrame->getTracks(rof)) {
+      if (track.getNClusters() == 7) {
+        continue;
+      }
+      LOG(info) << iTrack++ << " ========================================================= " << track.asString() << '\n';
       auto backup{track};
       bool success{false};
       if (track.getLastClusterLayer() != mTrkParams[iteration].NLayers - 1) {
@@ -690,6 +698,9 @@ void TrackerTraits::extendTracks(const int iteration)
         track.resetCovariance();
         track.setChi2(0);
         bool fitSuccess = fitTrack(track, 0, mTrkParams[iteration].NLayers, 1, mTrkParams[iteration].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+
+        LOG(info) << "Inwards refit: " << fitSuccess << '\n';
+
         if (!fitSuccess) {
           track = backup;
           continue;
@@ -702,6 +713,9 @@ void TrackerTraits::extendTracks(const int iteration)
           track = backup;
           continue;
         }
+
+        LOG(info) << "Outwards refit: " << fitSuccess << '\n';
+
         mTimeFrame->mNExtendedTracks++;
         mTimeFrame->mNExtendedUsedClusters += track.getNClusters() - backup.getNClusters();
         auto pattern = track.getPattern();
@@ -715,6 +729,10 @@ void TrackerTraits::extendTracks(const int iteration)
           }
           mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
         }
+
+        LOG(info) << fmt::format("Extended track from {:07b} to {:07b}", backup.getPattern() & 0xff, track.getPattern() & 0xff) << '\n';
+      } else {
+        LOGP(info, "---- Nothing done!");
       }
     }
   }
@@ -830,8 +848,8 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
     }
 
     if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-      float radl = 9.36f; // Radiation length of Si [cm]
-      float rho = 2.33f;  // Density of Si [g/cm^3]
+      constexpr float radl = 9.36f; // Radiation length of Si [cm]
+      constexpr float rho = 2.33f;  // Density of Si [g/cm^3]
       if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * radl * rho, true)) {
         continue;
       }
@@ -852,103 +870,207 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
 
 bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration)
 {
+  static int iTrack{0};
+  // precalculate MC label of track
+  std::vector<std::pair<MCCompLabel, size_t>> occurrences;
+  for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+    const int index = track->getClusterIndex(iCluster);
+    if (index == constants::its::UnusedIndex) {
+      continue;
+    }
+    auto labels = mTimeFrame->getClusterLabels(iCluster, index);
+    bool found{false};
+    for (size_t iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
+      std::pair<o2::MCCompLabel, size_t>& occurrence = occurrences[iOcc];
+      for (auto& label : labels) {
+        if (label == occurrence.first) {
+          ++occurrence.second;
+          found = true;
+        }
+      }
+    }
+    if (!found) {
+      for (auto& label : labels) {
+        occurrences.emplace_back(label, 1);
+      }
+    }
+  }
+  std::sort(std::begin(occurrences), std::end(occurrences), [](auto e1, auto e2) { return e1.second > e2.second; });
+  auto maxOccurrencesValue = occurrences[0].first;
+  auto pattern = track->getPattern();
+  for (int ic{TrackITSExt::MaxClusters}; ic--;) {
+    auto clid = track->getClusterIndex(ic);
+    if (clid != constants::its::UnusedIndex) {
+      auto labelsSpan = mTimeFrame->getClusterLabels(ic, clid);
+      for (auto& currentLabel : labelsSpan) {
+        if (currentLabel == maxOccurrencesValue) {
+          pattern |= 0x1 << (16 + ic); // set bit if correct
+          break;
+        }
+      }
+    }
+  }
+  track->setPattern(pattern);
+  if (occurrences[0].second < track->getNumberOfClusters()) {
+    maxOccurrencesValue.setFakeFlag();
+  }
+
   auto propInstance = o2::base::Propagator::Instance();
   const int step = -1 + outward * 2;
   const int end = outward ? mTrkParams[iteration].NLayers - 1 : 0;
+  LOG(info) << fmt::format("---- {}: Following {} track {} (pattern={:07b}) step={} end={}", iTrack++ / 2, (!maxOccurrencesValue.isFake()) ? "good" : "fake", (outward) ? "outwards" : "inwards", track->getPattern() & 0xff, step, end) << '\n';
   std::vector<TrackITSExt> hypotheses(1, *track);
-  for (auto& hypo : hypotheses) {
-    int iLayer = outward ? track->getLastClusterLayer() : track->getFirstClusterLayer();
+  for (size_t iHypo{0}; iHypo < hypotheses.size(); ++iHypo) {
+    auto hypo{hypotheses[iHypo]};
+    int iLayer = static_cast<int>(outward ? hypo.getLastClusterLayer() : hypo.getFirstClusterLayer());
+    LOGP(info, "Stepping iHypo={}/{} on iLayer {}", iHypo, hypotheses.size(), iLayer);
+    // per layer we add new hypotheses
     while (iLayer != end) {
-      iLayer += step;
-      const float r = mTrkParams[iteration].LayerRadii[iLayer];
-      float x{-999};
-      if (!hypo.getXatLabR(r, x, mTimeFrame->getBz(), o2::track::DirAuto) || x <= 0.f) {
-        continue;
+      iLayer += step; // step through all layers until we reach the end, this allows for skipping on empty layers
+      LOGP(info, "Try on next layer {}!", iLayer);
+
+      // Ise there a good cluster to be found?
+      auto clusters = mTimeFrame->getClustersOnLayer(rof, iLayer);
+      auto foundLayerCls{false}, foundNewHypo{false};
+      for (const auto cls : clusters) {
+        auto labels = mTimeFrame->getClusterLabels(iLayer, cls.clusterId);
+        for (const auto& lbl : labels) {
+          if (maxOccurrencesValue.compare(lbl) == 1) {
+            auto used = mTimeFrame->isClusterUsed(iLayer, cls.clusterId);
+            LOGP(info, "There is a good cluster; used={}!", used);
+            cls.print();
+            foundLayerCls = true;
+            auto rect = getBinsRect(cls, iLayer, 0, 0, 0.1, 0.05);
+            LOGP(info, "Rectangle of good Cls: x={} y={} z={} w={}", rect.x, rect.y, rect.z, rect.w);
+            break;
+          }
+          if (foundLayerCls) {
+            break;
+          }
+        }
+      }
+      if (!foundLayerCls) {
+        LOGP(info, "No good cluster on this layer");
       }
 
+      const float r = mTrkParams[iteration].LayerRadii[iLayer];
+      // get an estimate of the trackinf-frame x for the next step
+      float x{-999};
+      if (!hypo.getXatLabR(r, x, mTimeFrame->getBz(), o2::track::DirAuto) || x <= 0.f) {
+        LOGP(error, "Failed to get x={} at r={}", x, r);
+        continue;
+      }
+      // estimate hypo's trk parameters at that x
       auto& hypoParam{outward ? hypo.getParamOut() : hypo.getParamIn()};
       if (!propInstance->propagateToX(hypoParam, x, mTimeFrame->getBz(), PropagatorF::MAX_SIN_PHI,
                                       PropagatorF::MAX_STEP, mTrkParams[iteration].CorrType)) {
+        LOGP(error, "failed hypo prop");
         continue;
       }
 
-      if (mTrkParams[iteration].CorrType == PropagatorF::MatCorrType::USEMatCorrNONE) {
-        float radl = 9.36f; // Radiation length of Si [cm]
-        float rho = 2.33f;  // Density of Si [g/cm^3]
+      if (mTrkParams[iteration].CorrType == PropagatorF::MatCorrType::USEMatCorrNONE) { // account for material affects if propagator does not
+        constexpr float radl = 9.36f;                                                   // Radiation length of Si [cm]
+        constexpr float rho = 2.33f;                                                    // Density of Si [g/cm^3]
         if (!hypoParam.correctForMaterial(mTrkParams[iteration].LayerxX0[iLayer], mTrkParams[iteration].LayerxX0[iLayer] * radl * rho, true)) {
+          LOGP(error, "failed mat cor");
           continue;
         }
       }
+
+      auto glo = hypoParam.getXYZGlo();
+      LOGP(info, "Propagate x={} y={} z={}; phi={}", glo.X(), glo.Y(), glo.Z(), hypoParam.getPhi());
+
+      // calculate the search window on this layer
       const float phi{hypoParam.getPhi()};
       const float ePhi{o2::gpu::CAMath::Sqrt(hypoParam.getSigmaSnp2() / hypoParam.getCsp2())};
       const float z{hypoParam.getZ()};
       const float eZ{o2::gpu::CAMath::Sqrt(hypoParam.getSigmaZ2())};
-      const int4 selectedBinsRect{getBinsRect(iLayer, phi, mTrkParams[iteration].NSigmaCut * ePhi, z, mTrkParams[iteration].NSigmaCut * eZ)};
-
+      const int4 selectedBinsRect{getBinsRect<true>(iLayer, phi, mTrkParams[iteration].NSigmaCut * ePhi, z, z, mTrkParams[iteration].NSigmaCut * eZ)};
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
+        LOGP(info, "empty rectangle!");
         continue;
       }
+      LOGP(info, "Rectangle: x={} y={} z={} w={}", selectedBinsRect.x, selectedBinsRect.y, selectedBinsRect.z, selectedBinsRect.w);
 
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
 
       if (phiBinsNum < 0) {
+        LOGP(error, "manual phi bins");
         phiBinsNum += mTrkParams[iteration].PhiBins;
       }
 
       gsl::span<const Cluster> layer1 = mTimeFrame->getClustersOnLayer(rof, iLayer);
       if (layer1.empty()) {
+        LOGP(info, "No clusters on layer!");
         continue;
       }
+      LOGP(info, "There are {} clusters", layer1.size());
 
-      TrackITSExt currentHypo{hypo}, newHypo{hypo};
-      bool first{true};
-      for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
+      // check all clusters in search windows for possible new hypotheses
+      for (int iPhiCount = 0; iPhiCount < phiBinsNum; iPhiCount++) {
         int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams[iteration].PhiBins;
         const int firstBinIndex{mTimeFrame->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
         const int firstRowClusterIndex = mTimeFrame->getIndexTable(rof, iLayer)[firstBinIndex];
         const int maxRowClusterIndex = mTimeFrame->getIndexTable(rof, iLayer)[maxBinIndex];
+        LOGP(info, "-- iPhiCount={}/{} bins={}/{} rowClsIdx={}/{}", iPhiCount, phiBinsNum, firstBinIndex, maxBinIndex, firstRowClusterIndex, maxRowClusterIndex);
+
+        if (firstRowClusterIndex == maxRowClusterIndex) {
+          LOGP(error, "no clusters to check!");
+        }
 
         for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
+          LOGP(info, "iCls={}/{}", iNextCluster, maxRowClusterIndex);
           if (iNextCluster >= (int)layer1.size()) {
+            LOGP(info, "BREAK {}", layer1.size());
             break;
           }
           const Cluster& nextCluster{layer1[iNextCluster]};
 
           if (mTimeFrame->isClusterUsed(iLayer, nextCluster.clusterId)) {
+            LOGP(info, "Already used cluster!");
             continue;
           }
 
           const TrackingFrameInfo& trackingHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).at(nextCluster.clusterId);
 
-          TrackITSExt& tbupdated = first ? hypo : newHypo;
+          auto tbupdated{hypo};
           auto& tbuParams = outward ? tbupdated.getParamOut() : tbupdated.getParamIn();
+          trackingHit.print();
           if (!tbuParams.rotate(trackingHit.alphaTrackingFrame)) {
+            LOGP(info, "failed rotation");
             continue;
           }
 
           if (!propInstance->propagateToX(tbuParams, trackingHit.xTrackingFrame, mTimeFrame->getBz(),
                                           PropagatorF::MAX_SIN_PHI, PropagatorF::MAX_STEP, PropagatorF::MatCorrType::USEMatCorrNONE)) {
+            LOGP(info, "failed propagation");
             continue;
           }
 
           auto predChi2{tbuParams.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
           if (predChi2 >= track->getChi2() * mTrkParams[iteration].NSigmaCut) {
+            LOGP(info, "failed chi2 cut {}", predChi2);
             continue;
           }
 
           if (!tbuParams.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
+            LOGP(info, "Failed update");
             continue;
           }
           tbupdated.setChi2(tbupdated.getChi2() + predChi2); /// This is wrong for outward propagation as the chi2 refers to inward parameters
           tbupdated.setExternalClusterIndex(iLayer, nextCluster.clusterId, true);
-
-          if (!first) {
-            hypotheses.emplace_back(tbupdated);
-            newHypo = currentHypo;
-          }
-          first = false;
+          foundNewHypo = true;
+          LOGP(info, "NEW HYPO FOUND");
+          hypotheses.emplace_back(tbupdated);
         }
+      }
+      if (foundNewHypo && foundLayerCls) {
+        LOGP(info, "++++ good cls found with new hypo");
+      } else if (foundNewHypo) {
+        LOGP(info, "---- fake cls found with new hypo");
+      } else if (foundLayerCls) {
+        LOGP(info, "---- missed good cluster");
       }
     }
   }
@@ -959,6 +1081,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
     if (hypo.isBetter(*bestHypo, track->getChi2() * mTrkParams[iteration].NSigmaCut)) {
       bestHypo = &hypo;
       swapped = true;
+      LOGP(info, "Found better hypotheses!");
     }
   }
   *track = *bestHypo;

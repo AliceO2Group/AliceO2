@@ -30,3 +30,5 @@ o2_target_root_dictionary(ITSPostprocessing
                         include/ITSStudies/TrackCuts.h
                         include/ITSStudies/TrackMethods.h
                 LINKDEF src/ITSStudiesLinkDef.h)
+
+add_subdirectory(macros)
