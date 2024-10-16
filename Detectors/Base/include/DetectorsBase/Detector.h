@@ -106,6 +106,9 @@ class Detector : public FairDetector
   /// declare alignable volumes of detector
   virtual void addAlignableVolumes() const;
 
+  /// fill parallel geometry with sensitive volumes of detector
+  virtual void fillParallelWorld() const;
+
   /// Sets per wrapper volume parameters
   virtual void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan);
 

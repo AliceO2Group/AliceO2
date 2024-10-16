@@ -30,13 +30,19 @@ GPUd() bool ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::Cl
   if (mTimeMean < param.rec.tpc.clustersShiftTimebinsClusterizer) {
     return false;
   }
+  if (q <= param.rec.tpc.cfQMaxCutoffSingleTime && mTimeSigma == 0) {
+    return false;
+  }
+  if (q <= param.rec.tpc.cfQMaxCutoffSinglePad && mPadSigma == 0) {
+    return false;
+  }
 
   bool isEdgeCluster = CfUtils::isAtEdge(pos, param.tpcGeometry.NPads(pos.row()));
   bool wasSplitInTime = mSplitInTime >= param.rec.tpc.cfMinSplitNum;
   bool wasSplitInPad = mSplitInPad >= param.rec.tpc.cfMinSplitNum;
   bool isSingleCluster = (mPadSigma == 0) || (mTimeSigma == 0);
 
-  uchar flags = 0;
+  uint8_t flags = 0;
   flags |= (isEdgeCluster) ? tpc::ClusterNative::flagEdge : 0;
   flags |= (wasSplitInTime) ? tpc::ClusterNative::flagSplitTime : 0;
   flags |= (wasSplitInPad) ? tpc::ClusterNative::flagSplitPad : 0;

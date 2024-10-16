@@ -17,6 +17,7 @@ o2_add_library(DataFormatsFDD
                         O2::DataFormatsFIT
                         O2::SimulationDataFormat
                         O2::CommonDataFormat
+                        O2::DetectorsCommonDataFormats
 )
 
 o2_target_root_dictionary(DataFormatsFDD
@@ -28,3 +29,4 @@ o2_target_root_dictionary(DataFormatsFDD
           include/DataFormatsFDD/RawEventData.h
           include/DataFormatsFDD/LookUpTable.h
           include/DataFormatsFDD/CTF.h)
+

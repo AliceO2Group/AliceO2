@@ -36,8 +36,8 @@ void BuildTopologyDictionary::accountTopology(const itsmft::ClusterTopology& clu
     //___________________DEFINING_TOPOLOGY_CHARACTERISTICS__________________
     itsmft::TopologyInfo topInf;
     topInf.mPattern.setPattern(cluster.getPattern().data());
-    int& rs = topInf.mSizeX = cluster.getRowSpan();
-    int& cs = topInf.mSizeZ = cluster.getColumnSpan();
+    topInf.mSizeX = cluster.getRowSpan();
+    topInf.mSizeZ = cluster.getColumnSpan();
     //__________________COG_Determination_____________
     topInf.mNpixels = cluster.getClusterPattern().getCOG(topInf.mCOGx, topInf.mCOGz);
     if (useDf) {
@@ -45,8 +45,8 @@ void BuildTopologyDictionary::accountTopology(const itsmft::ClusterTopology& clu
       topInf.mZmean = dZ;
       topoStat.countsWithBias = 1;
     } else { // assign expected sigmas from the pixel X, Z sizes
-      topInf.mXsigma2 = SegmentationSuperAlpide::mPitchRow * SegmentationSuperAlpide::mPitchRow / 12.f / (float)std::min(10, topInf.mSizeX);
-      topInf.mZsigma2 = SegmentationSuperAlpide::mPitchCol * SegmentationSuperAlpide::mPitchCol / 12.f / (float)std::min(10, topInf.mSizeZ);
+      topInf.mXsigma2 = 1.f / 12.f / (float)std::min(10, topInf.mSizeX);
+      topInf.mZsigma2 = 1.f / 12.f / (float)std::min(10, topInf.mSizeZ);
     }
     mMapInfo.emplace(cluster.getHash(), topInf);
   } else {
@@ -153,7 +153,7 @@ void BuildTopologyDictionary::groupRareTopologies()
   LOG(info) << "Number of clusters: " << mTotClusters;
 
   double totFreq = 0.;
-  for (int j = 0; j < mNCommonTopologies; j++) {
+  for (unsigned int j = 0; j < mNCommonTopologies; j++) {
     itsmft::GroupStruct gr;
     gr.mHash = mTopologyFrequency[j].second;
     gr.mFrequency = ((double)(mTopologyFrequency[j].first)) / mTotClusters;
@@ -272,7 +272,7 @@ void BuildTopologyDictionary::groupRareTopologies()
 
 std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& DB)
 {
-  for (int i = 0; i < DB.mNCommonTopologies; i++) {
+  for (unsigned int i = 0; i < DB.mNCommonTopologies; i++) {
     const unsigned long& hash = DB.mTopologyFrequency[i].second;
     os << "Hash: " << hash << '\n';
     os << "counts: " << DB.mTopologyMap.find(hash)->second.countsTotal;

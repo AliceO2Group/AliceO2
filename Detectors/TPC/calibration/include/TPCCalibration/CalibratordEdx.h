@@ -95,13 +95,23 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   /// Write debug output to file
   void finalizeDebugOutput() const;
 
+  /// Track debugging
+  void setTrackDebug(bool debug) { mEnableTrackDebug = debug; }
+
+  /// Dump histograms
+  void setDumpHistograms(uint32_t flags) { mDumpHistograms = flags; }
+
+  uint32_t getDumpHistograms() const { return mDumpHistograms; }
+
  private:
   int mdEdxBins{};                              ///< Number of dEdx bins
   float mMindEdx{};                             ///< Minimum value for the dEdx histograms
   float mMaxdEdx{};                             ///< Maximum value for the dEdx histograms
   int mAngularBins{};                           ///< Number of bins for angular data, like Tgl and Snp
   bool mFitSnp{};                               ///< enable Snp correction
+  bool mEnableTrackDebug{false};                ///< enable track-by-track debugging
   int mMinEntries{};                            ///< Minimum amount of tracks in each time slot, to get enough statics
+  uint32_t mDumpHistograms{0};                  ///< dump histograms bitmask: 0x1 = as THn; 0x2 as TTree
   std::array<int, 3> mFitThreshold{};           ///< Minimum entries per stack to perform sector, 1D and 2D fit
   bool mApplyCuts{true};                        ///< Flag to enable tracks cuts
   std::tuple<float, int, float> mElectronCut{}; ///< Values passed to CalibdEdx::setElectronCut

@@ -30,7 +30,7 @@ void* GPUTPCDecompression::SetPointersInputGPU(void* mem)
 }
 
 template <class T>
-void GPUTPCDecompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA)
+void GPUTPCDecompression::SetPointersCompressedClusters(void*& mem, T& c, uint32_t nClA, uint32_t nTr, uint32_t nClU, bool reducedClA)
 {
   computePointerWithAlignment(mem, c.qTotU, nClU); // Do not reorder, qTotU ist used as first address in GPUChainTracking::RunTPCCompression
   computePointerWithAlignment(mem, c.qMaxU, nClU);
@@ -41,7 +41,7 @@ void GPUTPCDecompression::SetPointersCompressedClusters(void*& mem, T& c, unsign
   computePointerWithAlignment(mem, c.sigmaTimeU, nClU);
   computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_ROW_COUNT * NSLICES);
 
-  unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
+  uint32_t nClAreduced = reducedClA ? nClA - nTr : nClA;
 
   if (!(mRec->GetParam().rec.tpc.compressionTypeMask & GPUSettings::CompressionTrackModel)) {
     return; // Track model disabled, do not allocate memory

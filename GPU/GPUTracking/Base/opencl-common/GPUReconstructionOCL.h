@@ -34,38 +34,37 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
   GPUReconstructionOCL(const GPUSettingsDeviceBackend& cfg);
 
  protected:
-  int InitDevice_Runtime() override;
-  int ExitDevice_Runtime() override;
+  int32_t InitDevice_Runtime() override;
+  int32_t ExitDevice_Runtime() override;
   void UpdateAutomaticProcessingSettings() override;
 
-  int GPUFailedMsgAI(const long int error, const char* file, int line);
-  void GPUFailedMsgA(const long int error, const char* file, int line);
+  int32_t GPUFailedMsgAI(const int64_t error, const char* file, int32_t line);
+  void GPUFailedMsgA(const int64_t error, const char* file, int32_t line);
 
   void SynchronizeGPU() override;
-  int DoStuckProtection(int stream, deviceEvent event) override;
-  int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override;
-  void SynchronizeStream(int stream) override;
-  void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
-  void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;
-  bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
+  int32_t DoStuckProtection(int32_t stream, deviceEvent event) override;
+  int32_t GPUDebug(const char* state = "UNKNOWN", int32_t stream = -1, bool force = false) override;
+  void SynchronizeStream(int32_t stream) override;
+  void SynchronizeEvents(deviceEvent* evList, int32_t nEvents = 1) override;
+  void StreamWaitForEvents(int32_t stream, deviceEvent* evList, int32_t nEvents = 1) override;
+  bool IsEventDone(deviceEvent* evList, int32_t nEvents = 1) override;
 
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
-  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
-  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) override;
+  size_t GPUMemCpy(void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) override;
   void ReleaseEvent(deviceEvent ev) override;
-  void RecordMarker(deviceEvent ev, int stream) override;
+  void RecordMarker(deviceEvent ev, int32_t stream) override;
 
-  virtual int GetOCLPrograms() = 0;
-  virtual bool CheckPlatform(unsigned int i) = 0;
+  virtual int32_t GetOCLPrograms() = 0;
+  virtual bool CheckPlatform(uint32_t i) = 0;
   virtual bool ContextForAllPlatforms() { return false; }
 
-  template <class T, int I = 0>
-  int AddKernel(bool multi = false);
-  template <class T, int I = 0>
-  unsigned int FindKernel(int num);
+  template <class T, int32_t I = 0>
+  int32_t AddKernel(bool multi = false);
+  template <class T, int32_t I = 0>
+  uint32_t FindKernel(int32_t num);
   template <typename K, typename... Args>
-  int runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args);
-  template <class T, int I = 0>
+  int32_t runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args);
+  template <class T, int32_t I = 0>
   gpu_reconstruction_kernels::krnlProperties getKernelPropertiesBackend();
 
   GPUReconstructionOCLInternals* mInternals;

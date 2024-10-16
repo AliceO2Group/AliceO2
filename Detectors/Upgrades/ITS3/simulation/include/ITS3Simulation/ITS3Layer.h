@@ -20,7 +20,8 @@
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
 
-#include "fairlogger/Logger.h"
+#include "Framework/Logger.h"
+#include <fmt/core.h>
 
 namespace o2::its3
 {
@@ -39,20 +40,7 @@ class ITS3Layer
   // HalfBarrel             CarbonForm
   // Layer                  Layer
  public:
-  ITS3Layer(int layer = 0) : mNLayer(layer)
-  {
-    LOGP(info, "Called on {} layer {}", layer, mNLayer);
-  }
-
-  ITS3Layer(TGeoVolume* motherVolume, int layer = 0) : ITS3Layer(layer)
-  {
-    createLayer(motherVolume);
-  }
-
-  // Create one layer of ITS3 and attach it to the motherVolume.
-  void createLayer(TGeoVolume* motherVolume);
-
-  enum BuildLevel : uint8_t {
+  enum class BuildLevel : uint8_t {
     kPixelArray = 0,
     kTile,
     kRSU,
@@ -62,14 +50,40 @@ class ITS3Layer
     kLayer,
     kAll,
   };
+  static constexpr std::array<std::string_view, static_cast<size_t>(BuildLevel::kAll)> mNames{"PixelArray", "Tile", "RSU", "Segment", "CarbonForm", "Chip", "Layer"};
+  static std::string_view getName(BuildLevel b)
+  {
+    return mNames[static_cast<size_t>((b == BuildLevel::kAll) ? BuildLevel::kLayer : b)];
+  }
 
+  explicit ITS3Layer(int layer = 0) : mNLayer(layer)
+  {
+    LOGP(debug, "Called on {} layer {}", layer, mNLayer);
+    init();
+  }
+
+  explicit ITS3Layer(TGeoVolume* motherVolume, int layer = 0) : ITS3Layer(layer)
+  {
+    createLayer(motherVolume);
+  }
+
+  explicit ITS3Layer(int layer, TGeoVolume* motherVolume, TGeoMatrix* mat = nullptr, BuildLevel level = BuildLevel::kAll, bool createMaterials = false) : ITS3Layer(layer)
+  {
+    buildPartial(motherVolume, mat, level, createMaterials);
+  }
+
+  // Create one layer of ITS3 and attach it to the motherVolume.
+  void createLayer(TGeoVolume* motherVolume);
   // Build a partial Version of the detector.
-  void buildPartial(TGeoVolume* motherVolume, TGeoMatrix* mat = nullptr, BuildLevel level = kAll);
+  void buildPartial(TGeoVolume* motherVolume, TGeoMatrix* mat = nullptr, BuildLevel level = BuildLevel::kAll, bool createMaterials = false);
 
  private:
+  bool mBuilt{false};
   TGeoMedium* mSilicon{nullptr};
   TGeoMedium* mAir{nullptr};
   TGeoMedium* mCarbon{nullptr};
+  void getMaterials(bool create = false);
+  TGeoMedium* getMaterial(const char* matName, bool create = false);
 
   void init();
   void createPixelArray();
@@ -95,7 +109,7 @@ class ITS3Layer
   TGeoVolumeAssembly* mCarbonForm{nullptr};
   TGeoVolumeAssembly* mLayer{nullptr};
 
-  ClassDef(ITS3Layer, 1);
+  ClassDef(ITS3Layer, 2);
 };
 } // namespace o2::its3
 

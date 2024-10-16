@@ -786,16 +786,14 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZ(const math_utils::Point3D<doubl
 
 namespace o2::base
 {
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
 template class PropagatorImpl<float>;
-#ifndef GPUCA_GPUCODE_DEVICE
-template class PropagatorImpl<double>;
+template bool GPUdni() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool GPUdni() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 #endif
-#ifndef __HIPCC__ // TODO: Fixme: must prevent HIP from compiling this, should file bug report
-template bool GPUd() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
-template bool GPUd() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
-#ifndef GPUCA_GPUCODE_DEVICE
+#ifndef GPUCA_GPUCODE
+template class PropagatorImpl<double>;
 template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackPar_t>(PropagatorImpl<double>::TrackPar_t&, double, double, bool, double, double, int, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackParCov_t>(PropagatorImpl<double>::TrackParCov_t&, double, double, bool, double, double, int, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
-#endif
 #endif
 } // namespace o2::base

@@ -91,10 +91,12 @@ class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<TPCV
 
  public:
   TPCVDriftTglCalibration() = default;
-  TPCVDriftTglCalibration(int ntgl, float tglMax, int ndtgl, float dtglMax, uint32_t slotL, float maxDelay, size_t minEnt) : mNBinsTgl(ntgl), mMaxTgl(tglMax), mNBinsDTgl(ndtgl), mMaxDTgl(dtglMax), mMineEntriesPerSlot(minEnt)
+  TPCVDriftTglCalibration(int ntgl, float tglMax, int ndtgl, float dtglMax, uint32_t slotL, float offsetFrac, float maxDelay, size_t minEnt, float offset = 0.f)
+    : mNBinsTgl(ntgl), mMaxTgl(tglMax), mNBinsDTgl(ndtgl), mMaxDTgl(dtglMax), mMineEntriesPerSlot(minEnt)
   {
     setSlotLengthInSeconds(slotL);
     setMaxSlotsDelay(maxDelay);
+    setStartOffsetFrac(offsetFrac);
   }
 
   ~TPCVDriftTglCalibration() final = default;

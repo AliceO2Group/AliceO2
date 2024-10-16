@@ -26,6 +26,7 @@
 #pragma link C++ class o2::base::GeometryManager::MatBudgetExt + ;
 #pragma link C++ class o2::base::MaterialManager + ;
 #pragma link C++ class o2::MaterialManagerParam + ;
+#pragma link C++ class o2::GeometryManagerParam + ;
 #pragma link C++ class o2::base::SimFieldUtils + ;
 
 #pragma link C++ class o2::base::Ray + ;
@@ -35,6 +36,9 @@
 #pragma link C++ class o2::base::MatLayerCylSet + ;
 #pragma link C++ class o2::base::Aligner + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::base::Aligner> + ;
+
+#pragma link C++ class o2::GlobalParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::GlobalParams> + ;
 
 #pragma link C++ class o2::data::Stack + ;
 

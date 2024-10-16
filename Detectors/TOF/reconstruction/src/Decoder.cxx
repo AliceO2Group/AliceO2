@@ -238,7 +238,7 @@ void Decoder::fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int c
   dinfo.channel = Geo::getCHFromECH(echannel);
 
   if (dinfo.channel < 0) { // it should not happen!
-    LOG(error) << "No valid channel for icrate = " << icrate << ", itrm = " << itrm << ", ichain = " << ichain << ", itdc = " << itdc << ", channel = " << channel;
+    LOG(debug) << "No valid channel for icrate = " << icrate << ", itrm = " << itrm << ", ichain = " << ichain << ", itdc = " << itdc << ", channel = " << channel;
   }
 
   dinfo.tot = tot;

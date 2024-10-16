@@ -47,7 +47,7 @@ class ClusterReader : public Task
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mClusterMCTruth, *mClusterMCTruthPtr = &mClusterMCTruth;
   std::vector<o2::itsmft::MC2ROFRecord> mClusMC2ROFs, *mClusMC2ROFsPtr = &mClusMC2ROFs;
 
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginIT3;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
@@ -55,8 +55,9 @@ class ClusterReader : public Task
   bool mUseMC = true;       // use MC truth
   bool mUsePatterns = true; // send patterns
 
-  std::string mDetName = "IT3";
-  std::string mDetNameLC = "it3";
+  std::string mDetName = "ITS"; // pretending to be ITS
+  std::string mDetNameLC = "its";
+  std::string mDetNameReal = "IT3";
   std::string mFileName = "";
   std::string mClusTreeName = "o2sim";
   std::string mClusROFBranchName = "ClustersROF";

@@ -38,7 +38,7 @@ using namespace o2::dataformats;
 using namespace o2::gpu;
 using CompletionPolicyData = std::vector<InputSpec>;
 static CompletionPolicyData gPolicyData;
-static constexpr unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+static constexpr uint64_t gTpcSectorMask = 0xFFFFFFFFF;
 static std::function<bool(o2::framework::DataProcessingHeader::StartTime)>* gPolicyOrderCheck;
 static std::shared_ptr<GPURecoWorkflowSpec> gTask;
 
@@ -137,7 +137,7 @@ static const std::unordered_map<std::string, ioType> OutputMap{
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
-  std::vector<int> tpcSectors(o2::tpc::Sector::MAXSECTOR);
+  std::vector<int32_t> tpcSectors(o2::tpc::Sector::MAXSECTOR);
   std::iota(tpcSectors.begin(), tpcSectors.end(), 0);
 
   auto inputType = cfgc.options().get<std::string>("input-type");
@@ -184,7 +184,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.runTRDTracking = isEnabled(outputTypes, ioType::TRDTracks);
   cfg.tpcTriggerHandling = isEnabled(outputTypes, ioType::TPCTriggers) || cfg.caClusterer;
   cfg.enableDoublePipeline = cfgc.options().get<bool>("enableDoublePipeline");
-  cfg.tpcDeadMapSources = cfgc.options().get<int>("tpc-deadMap-sources");
+  cfg.tpcDeadMapSources = cfgc.options().get<int32_t>("tpc-deadMap-sources");
   cfg.runITSTracking = isEnabled(outputTypes, ioType::ITSTracks);
   cfg.itsOverrBeamEst = isEnabled(inputTypes, ioType::MeanVertex);
 

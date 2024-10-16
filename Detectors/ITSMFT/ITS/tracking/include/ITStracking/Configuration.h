@@ -98,6 +98,7 @@ struct TrackingParameters {
   bool FindShortTracks = false;
   bool PerPrimaryVertexProcessing = false;
   bool SaveTimeBenchmarks = false;
+  bool DoUPCIteration = false;
 };
 
 inline int TrackingParameters::CellMinimumLevel()
@@ -106,12 +107,14 @@ inline int TrackingParameters::CellMinimumLevel()
 }
 
 struct VertexingParameters {
+  int nIterations = 1;         // Number of vertexing passes to perform
+  int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a round
   bool allowSingleContribClusters = false;
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   int ZBins{1};
   int PhiBins{128};
-
+  int deltaRof = 0;
   float zCut = 0.002f;
   float phiCut = 0.005f;
   float pairCut = 0.04f;

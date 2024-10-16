@@ -18,7 +18,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int32_t /*nBlocks*/, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& GPUrestrict() tracker)
 {
   // *
   // * kill link to the neighbour if the neighbour is not pointed to the cluster
@@ -36,8 +36,8 @@ GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, 
 
   if (s.mIRow <= GPUCA_ROW_COUNT - 3) {
 #ifdef GPUCA_GPUCODE
-    int Up = s.mIRowUp;
-    int Dn = s.mIRowDn;
+    int32_t Up = s.mIRowUp;
+    int32_t Dn = s.mIRowDn;
     GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
     GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.Row(Up);
     GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = tracker.Row(Dn);
@@ -51,7 +51,7 @@ GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, 
     //   the link
     // - look at down link, if it's valid but the up link in the row below doesn't link to us remove
     //   the link
-    for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
+    for (int32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
       calink up = tracker.HitLinkUpData(row, ih);
       if (up != CALINK_INVAL) {
         calink upDn = tracker.HitLinkDownData(rowUp, up);

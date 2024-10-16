@@ -39,8 +39,11 @@
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #endif
 
-void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hitfile = "o2sim_HitsIT3.root",
-                       std::string inputGeom = "o2sim_geometry.root", std::string dictfile = "", bool batch = false)
+void CheckClustersITS3(const std::string& clusfile = "o2clus_its.root",
+                       const std::string& hitfile = "o2sim_HitsIT3.root",
+                       const std::string& inputGeom = "",
+                       std::string dictfile = "./ccdb/IT3/Calib/ClusterDictionary/snapshot.root",
+                       bool batch = false)
 {
   gROOT->SetBatch(batch);
 
@@ -59,7 +62,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
   std::vector<HitVec*> hitVecPool;
   std::vector<MC2HITS_map> mc2hitVec;
 
-  ULong_t cPattValid{0}, cPattInvalid{0};
+  ULong_t cPattValid{0}, cPattInvalid{0}, cLabelInvalid{0}, cNoMC{0};
 
   TFile fout("CheckClusters.root", "recreate");
   TNtuple nt("ntc", "cluster ntuple", "ev:lab:hlx:hlz:hgx:hgz:tx:tz:cgx:cgy:cgz:clx:cly:clz:dx:dy:dz:ex:ez:patid:rof:npx:id");
@@ -82,9 +85,9 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
   TFile fileC(clusfile.data());
   auto* clusTree = dynamic_cast<TTree*>(fileC.Get("o2sim"));
   std::vector<CompClusterExt>* clusArr = nullptr;
-  clusTree->SetBranchAddress("IT3ClusterComp", &clusArr);
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
   std::vector<unsigned char>* patternsPtr = nullptr;
-  auto pattBranch = clusTree->GetBranch("IT3ClusterPatt");
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
   if (pattBranch != nullptr) {
     pattBranch->SetAddress(&patternsPtr);
   }
@@ -102,14 +105,14 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
-  clusTree->SetBranchAddress("IT3ClustersROF", &rofRecVecP);
+  clusTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
 
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
-  if ((hitTree != nullptr) && (clusTree->GetBranch("IT3ClusterMCTruth") != nullptr)) {
-    clusTree->SetBranchAddress("IT3ClusterMCTruth", &clusLabArr);
-    clusTree->SetBranchAddress("IT3ClustersMC2ROF", &mc2rofVecP);
+  if ((hitTree != nullptr) && (clusTree->GetBranch("ITSClusterMCTruth") != nullptr)) {
+    clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
+    clusTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
   }
 
   clusTree->GetEntry(0);
@@ -192,6 +195,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
       const auto& lab = (clusLabArr->getLabels(clEntry))[0];
 
       if (!lab.isValid()) {
+        ++cLabelInvalid;
         continue;
       }
 
@@ -202,7 +206,8 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
       uint64_t key = (uint64_t(trID) << 32) + chipID;
       auto hitEntry = mc2hit.find(key);
       if (hitEntry == mc2hit.end()) {
-        LOG(error) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
+        LOG(debug) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
+        ++cNoMC;
         continue;
       }
       const auto& hit = (*hitArray)[hitEntry->second];
@@ -246,10 +251,6 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
         o2::its3::SuperSegmentations[layer].curvedToFlat(locC.X(), locC.Y(), xFlatSta, yFlatSta);
         locC.SetXYZ(xFlatSta, yFlatSta, locC.Z());
       }
-      LOGP(debug, "{:*^30}", "START");
-      LOGP(debug, "Cluster: X={:.5f} ; Z={:.5f} ; NPix={}", locC.X(), locC.Z(), npix);
-      LOGP(debug, "Hit    : X={:.5f} ; Z={:.5f}", locH.X(), locH.Z());
-      LOGP(debug, "{:*^30}", "END");
 
       std::array<float, 23> data = {(float)lab.getEventID(), (float)trID,
                                     locH.X(), locH.Z(),
@@ -265,6 +266,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
   }
 
   LOGP(info, "There were {} valid PatternIDs and {} ({:.1f}%) invalid ones", cPattValid, cPattInvalid, ((float)cPattInvalid / (float)(cPattInvalid + cPattValid)) * 100);
+  LOGP(info, "There were {} invalid Labels and {} with No MC Hit information ", cLabelInvalid, cNoMC);
 
   auto canvCgXCgY = new TCanvas("canvCgXCgY", "", 1600, 1600);
   canvCgXCgY->Divide(2, 2);

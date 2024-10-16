@@ -22,7 +22,7 @@
 #include "TCanvas.h"
 #include "IrregularSpline1D.h"
 
-const int PolynomDegree = 7;
+const int32_t PolynomDegree = 7;
 double coeff[PolynomDegree + 1];
 
 float F(float u)
@@ -30,7 +30,7 @@ float F(float u)
   u -= 0.5;
   double uu = 1.;
   double f = 0;
-  for (int i = 0; i <= PolynomDegree; i++) {
+  for (int32_t i = 0; i <= PolynomDegree; i++) {
     f += coeff[i] * uu;
     uu *= u;
   }
@@ -39,37 +39,37 @@ float F(float u)
 
 typedef double myfloat;
 
-int IrregularSpline1DTest()
+int32_t IrregularSpline1DTest()
 {
 
   using namespace GPUCA_NAMESPACE::gpu;
 
   std::cout << "Test roundf(): " << std::endl;
   for (float x = 0.; x <= 1.; x += 0.1) {
-    std::cout << "roundf(" << x << ") = " << roundf(x) << " " << (int)roundf(x) << std::endl;
+    std::cout << "roundf(" << x << ") = " << roundf(x) << " " << (int32_t)roundf(x) << std::endl;
   }
 
   std::cout << "Test 5 knots for n bins:" << std::endl;
-  for (int n = 4; n < 20; n++) {
-    int bin1 = (int)roundf(.25 * n);
-    int bin2 = (int)roundf(.50 * n);
-    int bin3 = (int)roundf(.75 * n);
+  for (int32_t n = 4; n < 20; n++) {
+    int32_t bin1 = (int32_t)roundf(.25 * n);
+    int32_t bin2 = (int32_t)roundf(.50 * n);
+    int32_t bin3 = (int32_t)roundf(.75 * n);
     std::cout << n << ": 0 " << bin1 << " " << bin2 << " " << bin3 << " " << n << std::endl;
   }
 
   std::cout << "Test interpolation.." << std::endl;
 
   gRandom->SetSeed(0);
-  UInt_t seed = gRandom->Integer(100000); // 605
+  uint32_t seed = gRandom->Integer(100000); // 605
 
   gRandom->SetSeed(seed);
   std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
-  for (int i = 0; i <= PolynomDegree; i++) {
+  for (int32_t i = 0; i <= PolynomDegree; i++) {
     coeff[i] = gRandom->Uniform(-1, 1);
   }
 
-  const int initNKnotsU = 10;
-  int nAxisBinsU = 10;
+  const int32_t initNKnotsU = 10;
+  int32_t nAxisBinsU = 10;
 
   float du = 1. / (initNKnotsU - 1);
 
@@ -78,7 +78,7 @@ int IrregularSpline1DTest()
   knotsU[0] = 0;
   knotsU[initNKnotsU - 1] = 1;
 
-  for (int i = 1; i < initNKnotsU - 1; i++) {
+  for (int32_t i = 1; i < initNKnotsU - 1; i++) {
     knotsU[i] = i * du + gRandom->Uniform(-du / 3, du / 3);
   }
 
@@ -86,9 +86,9 @@ int IrregularSpline1DTest()
 
   spline.construct(initNKnotsU, knotsU, nAxisBinsU);
 
-  int nKnotsTot = spline.getNumberOfKnots();
+  int32_t nKnotsTot = spline.getNumberOfKnots();
   std::cout << "Knots: initial " << initNKnotsU << ", created " << nKnotsTot << std::endl;
-  for (int i = 0; i < nKnotsTot; i++) {
+  for (int32_t i = 0; i < nKnotsTot; i++) {
     std::cout << "knot " << i << ": " << spline.getKnot(i).u << std::endl;
   }
 
@@ -97,9 +97,9 @@ int IrregularSpline1DTest()
   myfloat* data0 = new myfloat[nKnotsTot]; // original data
   myfloat* data = new myfloat[nKnotsTot];  // corrected data
 
-  int nu = gridU.getNumberOfKnots();
+  int32_t nu = gridU.getNumberOfKnots();
 
-  for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
+  for (int32_t i = 0; i < gridU.getNumberOfKnots(); i++) {
     data0[i] = F(gridU.getKnot(i).u);
     // SG random
     data0[i] = gRandom->Uniform(-1., 1.);
@@ -113,13 +113,13 @@ int IrregularSpline1DTest()
 
   TH1F* qaX = new TH1F("qaX", "qaX [um]", 1000, -1000., 1000.);
 
-  int iter = 0;
+  int32_t iter = 0;
   float stepu = 1.e-4;
-  int nSteps = (int)(1. / stepu + 1);
+  int32_t nSteps = (int32_t)(1. / stepu + 1);
 
   TNtuple* knots = new TNtuple("knots", "knots", "u:f");
   double diff = 0;
-  for (int i = 0; i < nu; i++) {
+  for (int32_t i = 0; i < nu; i++) {
     double u = gridU.getKnot(i).u;
     double f0 = data0[i];
     knots->Fill(u, f0);

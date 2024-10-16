@@ -39,13 +39,13 @@ class TimeFrame
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
-template <int NLayers = 7>
+template <int32_t NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
 };
 namespace gpu
 {
-template <int NLayers = 7>
+template <int32_t NLayers = 7>
 class TimeFrameGPU : public TimeFrame
 {
 };

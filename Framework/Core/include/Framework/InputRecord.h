@@ -33,11 +33,16 @@
 #include <cassert>
 #include <memory>
 #include <type_traits>
+#include <concepts>
 
 #include <fairmq/FwdDecls.h>
 
 namespace o2::framework
 {
+
+// Wrapper class to get CCDB metadata
+struct CCDBMetadataExtractor {
+};
 
 struct InputSpec;
 class InputSpan;
@@ -206,6 +211,28 @@ class InputRecord
     }
     return this->getByPos(pos, part);
   }
+
+  template <typename R>
+    requires std::is_convertible_v<R, char const*>
+  DataRef getRef(R binding, int part = 0) const
+  {
+    return getDataRefByString(binding, part);
+  }
+
+  template <typename R>
+    requires requires(R r) { r.c_str(); }
+  DataRef getRef(R binding, int part = 0) const
+  {
+    return getDataRefByString(binding.c_str(), part);
+  }
+
+  template <typename R>
+    requires std::is_convertible_v<R, DataRef>
+  DataRef getRef(R ref, int part = 0) const
+  {
+    return ref;
+  }
+
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and
   /// return the data associated to the given label.
@@ -220,20 +247,7 @@ class InputRecord
   template <typename T = DataRef, typename R>
   decltype(auto) get(R binding, int part = 0) const
   {
-    DataRef ref{nullptr, nullptr};
-    using decayed = std::decay_t<R>;
-
-    // Get the actual dataref
-    if constexpr (std::is_same_v<decayed, char const*> ||
-                  std::is_same_v<decayed, char*>) {
-      ref = getDataRefByString(binding, part);
-    } else if constexpr (std::is_same_v<decayed, std::string>) {
-      ref = getDataRefByString(binding.c_str(), part);
-    } else if constexpr (std::is_same_v<decayed, DataRef>) {
-      ref = binding;
-    } else {
-      static_assert(always_static_assert_v<R>, "Unknown binding type");
-    }
+    DataRef ref = getRef(binding, part);
 
     using PointerLessValueT = std::remove_pointer_t<T>;
 
@@ -452,6 +466,49 @@ class InputRecord
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
     }
+  }
+
+  template <typename T = DataRef, typename R>
+  std::map<std::string, std::string>& get(R binding, int part = 0) const
+    requires std::same_as<T, CCDBMetadataExtractor>
+  {
+    auto ref = getRef(binding, part);
+    auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
+    auto payloadSize = DataRefUtils::getPayloadSize(ref);
+    auto method = header->payloadSerializationMethod;
+    if (method != header::gSerializationMethodCCDB) {
+      throw runtime_error("Attempt to extract metadata from a non-CCDB serialised message");
+    }
+    // This is to support deserialising objects from CCDB. Contrary to what happens for
+    // other objects, those objects are most likely long lived, so we
+    // keep around an instance of the associated object and deserialise it only when
+    // it's updated.
+    auto id = ObjectCache::Id::fromRef(ref);
+    ConcreteDataMatcher matcher{header->dataOrigin, header->dataDescription, header->subSpecification};
+    // If the matcher does not have an entry in the cache, deserialise it
+    // and cache the deserialised object at the given id.
+    auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
+    LOGP(debug, "{}", path);
+    auto& cache = mRegistry.get<ObjectCache>();
+    auto cacheEntry = cache.matcherToMetadataId.find(path);
+    if (cacheEntry == cache.matcherToMetadataId.end()) {
+      cache.matcherToMetadataId.insert(std::make_pair(path, id));
+      cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
+      LOGP(info, "Caching CCDB metadata {}: {}", id.value, path);
+      return cache.idToMetadata[id];
+    }
+    auto& oldId = cacheEntry->second;
+    // The id in the cache is the same, let's simply return it.
+    if (oldId.value == id.value) {
+      LOGP(debug, "Returning cached CCDB metatada {}: {}", id.value, path);
+      return cache.idToMetadata[id];
+    }
+    // The id in the cache is different. Let's destroy the old cached entry
+    // and create a new one.
+    LOGP(info, "Replacing cached entry {} with {} for {}", oldId.value, id.value, path);
+    cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
+    oldId.value = id.value;
+    return cache.idToMetadata[id];
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.

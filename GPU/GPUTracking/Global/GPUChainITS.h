@@ -19,7 +19,7 @@
 namespace o2::its
 {
 struct Cluster;
-template <unsigned char N>
+template <uint8_t N>
 class Road;
 class Cell;
 struct TrackingFrameInfo;
@@ -37,10 +37,10 @@ class GPUChainITS : public GPUChain
   ~GPUChainITS() override;
   void RegisterPermanentMemoryAndProcessors() override;
   void RegisterGPUProcessors() override;
-  int Init() override;
-  int PrepareEvent() override;
-  int Finalize() override;
-  int RunChain() override;
+  int32_t Init() override;
+  int32_t PrepareEvent() override;
+  int32_t Finalize() override;
+  int32_t RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
 
   o2::its::TrackerTraits* GetITSTrackerTraits();
@@ -48,13 +48,13 @@ class GPUChainITS : public GPUChain
   o2::its::TimeFrame* GetITSTimeframe();
 
  protected:
-  GPUChainITS(GPUReconstruction* rec, unsigned int maxTracks = GPUCA_MAX_ITS_FIT_TRACKS);
+  GPUChainITS(GPUReconstruction* rec, uint32_t maxTracks = GPUCA_MAX_ITS_FIT_TRACKS);
   std::unique_ptr<o2::its::TrackerTraits> mITSTrackerTraits;
   std::unique_ptr<o2::its::VertexerTraits> mITSVertexerTraits;
   std::unique_ptr<o2::its::TimeFrame> mITSTimeFrame;
   std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkAllocator;
 
-  unsigned int mMaxTracks;
+  uint32_t mMaxTracks;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

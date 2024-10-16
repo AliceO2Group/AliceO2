@@ -28,7 +28,7 @@
 namespace GPUCA_NAMESPACE::gpu
 {
 
-static const char* opencl_error_string(int errorcode)
+static const char* opencl_error_string(int32_t errorcode)
 {
   switch (errorcode) {
     case CL_SUCCESS:
@@ -131,15 +131,15 @@ static const char* opencl_error_string(int errorcode)
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
 #define GPUFailedMsgI(x) GPUFailedMsgAI(x, __FILE__, __LINE__)
 
-static inline long int OCLsetKernelParameters_helper(cl_kernel& k, int i)
+static inline int64_t OCLsetKernelParameters_helper(cl_kernel& k, int32_t i)
 {
   return 0;
 }
 
 template <typename T, typename... Args>
-static inline long int OCLsetKernelParameters_helper(cl_kernel& kernel, int i, const T& firstParameter, const Args&... restOfParameters)
+static inline int64_t OCLsetKernelParameters_helper(cl_kernel& kernel, int32_t i, const T& firstParameter, const Args&... restOfParameters)
 {
-  long int retVal = clSetKernelArg(kernel, i, sizeof(T), &firstParameter);
+  int64_t retVal = clSetKernelArg(kernel, i, sizeof(T), &firstParameter);
   if (retVal) {
     return retVal;
   }
@@ -147,12 +147,12 @@ static inline long int OCLsetKernelParameters_helper(cl_kernel& kernel, int i, c
 }
 
 template <typename... Args>
-static inline long int OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
+static inline int64_t OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
 {
   return OCLsetKernelParameters_helper(kernel, 0, args...);
 }
 
-static inline long int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
+static inline int64_t clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
 {
   return clEnqueueNDRangeKernel(queue, krnl, 1, nullptr, &global_size, &local_size, wait == nullptr ? 0 : nWaitEvents, wait, pEvent);
 }
@@ -173,7 +173,7 @@ struct GPUReconstructionOCLInternals {
 };
 
 template <typename K, typename... Args>
-inline int GPUReconstructionOCL::runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args)
+inline int32_t GPUReconstructionOCL::runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args)
 {
   auto& x = _xyz.x;
   auto& y = _xyz.y;
@@ -207,8 +207,8 @@ inline int GPUReconstructionOCL::runKernelBackendInternal(const krnlSetupTime& _
   return 0;
 }
 
-template <class T, int I>
-int GPUReconstructionOCL::AddKernel(bool multi)
+template <class T, int32_t I>
+int32_t GPUReconstructionOCL::AddKernel(bool multi)
 {
   std::string name(GetKernelName<T, I>());
   if (multi) {
@@ -226,15 +226,15 @@ int GPUReconstructionOCL::AddKernel(bool multi)
   return 0;
 }
 
-template <class T, int I>
-inline unsigned int GPUReconstructionOCL::FindKernel(int num)
+template <class T, int32_t I>
+inline uint32_t GPUReconstructionOCL::FindKernel(int32_t num)
 {
   std::string name(GetKernelName<T, I>());
   if (num > 1) {
     name += "_multi";
   }
 
-  for (unsigned int k = 0; k < mInternals->kernels.size(); k++) {
+  for (uint32_t k = 0; k < mInternals->kernels.size(); k++) {
     if (mInternals->kernels[k].second == name) {
       return (k);
     }

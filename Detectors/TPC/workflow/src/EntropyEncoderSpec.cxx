@@ -148,7 +148,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     if (clusters.nTracks && clusters.solenoidBz != -1e6f && clusters.solenoidBz != mParam->bzkG) {
       throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
     }
-    if (clusters.nTracks && clusters.maxTimeBin != -1e6 && clusters.maxTimeBin != mParam->par.continuousMaxTimeBin) {
+    if (clusters.nTracks && clusters.maxTimeBin != -1e6 && clusters.maxTimeBin != mParam->continuousMaxTimeBin) {
       throw std::runtime_error("Configured max time bin does not match value used for track model encoding");
     }
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
@@ -162,7 +162,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     const float totalT = std::max(mFastTransform->getMaxDriftTime(0), mFastTransform->getMaxDriftTime(GPUCA_NSLICES / 2));
 
     unsigned int offset = 0, lasti = 0;
-    const unsigned int maxTime = (mParam->par.continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
+    const unsigned int maxTime = (mParam->continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
 #ifdef WITH_OPENMP
 #pragma omp parallel for firstprivate(offset, lasti) num_threads(mNThreads)
 #endif

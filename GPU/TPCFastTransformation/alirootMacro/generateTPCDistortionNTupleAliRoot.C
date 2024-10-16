@@ -49,7 +49,7 @@
 using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
-int generateTPCDistortionNTupleAliRoot()
+int32_t generateTPCDistortionNTupleAliRoot()
 {
   AliTPCcalibDB* tpcCalib = AliTPCcalibDB::Instance();
   if (!tpcCalib) {
@@ -64,12 +64,12 @@ int generateTPCDistortionNTupleAliRoot()
     return -1;
   }
 
-  UInt_t timeStamp = origTransform->GetCurrentTimeStamp();
+  uint32_t timeStamp = origTransform->GetCurrentTimeStamp();
 
   TPCFastTransformManager manager;
   TPCFastTransform fastTransform;
 
-  int err = manager.create(fastTransform, origTransform, timeStamp);
+  int32_t err = manager.create(fastTransform, origTransform, timeStamp);
 
   if (err != 0) {
     cerr << "Cannot create fast transformation object from AliTPCcalibDB, TPCFastTransformManager returns  " << err << endl;
@@ -85,19 +85,19 @@ int generateTPCDistortionNTupleAliRoot()
   TFile* f = new TFile("tpcDistortionNTuple.root", "RECREATE");
   TNtuple* nt = new TNtuple("dist", "dist", "slice:row:su:sv:dx:du:dv");
 
-  int nSlices = 1; //fastTransform.getNumberOfSlices();
-  //for( int slice=0; slice<nSlices; slice++){
-  for (int slice = 0; slice < 1; slice++) {
+  int32_t nSlices = 1; // fastTransform.getNumberOfSlices();
+  // for( int32_t slice=0; slice<nSlices; slice++){
+  for (int32_t slice = 0; slice < 1; slice++) {
     const TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
-    for (int row = 0; row < geo.getNumberOfRows(); row++) {
+    for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
 
       float x = geo.getRowInfo(row).x;
-      const int nKnots = 101;
-      for (int knotU = 0; knotU < nKnots; knotU++) {
+      const int32_t nKnots = 101;
+      for (int32_t knotU = 0; knotU < nKnots; knotU++) {
         float su = knotU / (double)(nKnots - 1);
 
-        for (int knotV = 0; knotV < nKnots; knotV++) {
+        for (int32_t knotV = 0; knotV < nKnots; knotV++) {
           float sv = knotV / (double)(nKnots - 1);
 
           //for (float su = 0.; su <= 1.; su += 0.01) {
@@ -117,9 +117,9 @@ int generateTPCDistortionNTupleAliRoot()
           // original TPC transformation (row,pad,time) -> (x,y,z) without time-of-flight correction
           float ox = 0, oy = 0, oz = 0;
           {
-            int sector = 0, secrow = 0;
+            int32_t sector = 0, secrow = 0;
             AliHLTTPCGeometry::Slice2Sector(slice, row, sector, secrow);
-            int is[] = {sector};
+            int32_t is[] = {sector};
             double xx[] = {static_cast<double>(secrow), pad, time};
             origTransform->Transform(xx, is, 0, 1);
             ox = xx[0];

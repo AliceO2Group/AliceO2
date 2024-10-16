@@ -773,10 +773,10 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate, Int_t isector)
     step[2] = -getGeoDistances(isector, iplate, istrip);
     translate(posLoc2[0], posLoc2[1], posLoc2[2], step);
 
-    if (fabs(posLoc2[1]) > 10) {
+    if (std::abs(posLoc2[1]) > 10) {
       continue;
     }
-    if (fabs(posLoc2[2]) > 10) {
+    if (std::abs(posLoc2[2]) > 10) {
       continue;
     }
 
@@ -788,8 +788,8 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate, Int_t isector)
 
     rotateToStrip(posLoc2, iplate, istrip, isector);
 
-    if ((TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
-        (TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5)) {
+    if ((std::abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (std::abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
+        (std::abs(posLoc2[2]) <= WCPCBZ * 0.5)) {
       step[0] = -0.5 * NPADX * XPAD;
       step[1] = 0.;
       step[2] = -0.5 * NPADZ * ZPAD;
@@ -891,11 +891,11 @@ Int_t Geo::getPlate(const Float_t* pos)
   Float_t zLocal = pos[2];
 
   Float_t deltaRhoLoc = (RMAX - RMIN) * 0.5 - MODULEWALLTHICKNESS + yLocal;
-  Float_t deltaZetaLoc = TMath::Abs(zLocal);
+  Float_t deltaZetaLoc = std::abs(zLocal);
 
   Float_t deltaRHOmax = 0.;
 
-  if (TMath::Abs(zLocal) >= EXTERINTERMODBORDER1 && TMath::Abs(zLocal) <= EXTERINTERMODBORDER2) {
+  if (std::abs(zLocal) >= EXTERINTERMODBORDER1 && std::abs(zLocal) <= EXTERINTERMODBORDER2) {
     deltaRhoLoc -= LENGTHEXINMODBORDER;
     deltaZetaLoc = EXTERINTERMODBORDER2 - deltaZetaLoc;
     deltaRHOmax = (RMAX - RMIN) * 0.5 - MODULEWALLTHICKNESS - 2. * LENGTHEXINMODBORDER; // old 5.35, new 4.8
@@ -913,7 +913,7 @@ Int_t Geo::getPlate(const Float_t* pos)
         iPlate = 3;
       }
     }
-  } else if (TMath::Abs(zLocal) >= INTERCENTRMODBORDER1 && TMath::Abs(zLocal) <= INTERCENTRMODBORDER2) {
+  } else if (std::abs(zLocal) >= INTERCENTRMODBORDER1 && std::abs(zLocal) <= INTERCENTRMODBORDER2) {
     deltaRhoLoc -= LENGTHINCEMODBORDERD;
     deltaZetaLoc = deltaZetaLoc - INTERCENTRMODBORDER1;
     deltaRHOmax = (RMAX - RMIN) * 0.5 - MODULEWALLTHICKNESS - 2. * LENGTHINCEMODBORDERD; // old 0.39, new 0.2

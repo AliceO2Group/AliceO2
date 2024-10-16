@@ -87,6 +87,8 @@ class SVertexer
   enum Hyp3body {
     H3L3body,
     AntiH3L3body,
+    H4L3body,
+    AntiH4L3body,
     He4L3body,
     AntiHe4L3body,
     He5L3body,

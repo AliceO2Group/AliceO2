@@ -58,7 +58,8 @@ class V0 : public o2::track::TrackParCov
   float calcMass2AsAntiHyperTriton() const { return calcMass2PID(PID::Pion, PID::Helium3); }
   float calcMass2AsHyperhydrog4() const { return calcMass2PID(PID::Alpha, PID::Pion); }
   float calcMass2AsAntiHyperhydrog4() const { return calcMass2PID(PID::Pion, PID::Alpha); }
-
+  float calcAPQt() const;
+  float calcAPAlpha() const;
   float calcR2() const { return getX() * getX() + getY() * getY(); }
 
  protected:

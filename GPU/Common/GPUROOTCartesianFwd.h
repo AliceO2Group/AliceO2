@@ -24,11 +24,11 @@ namespace ROOT
 {
 namespace Math
 {
-template <class T, unsigned int D1, unsigned int D2, class R>
+template <class T, uint32_t D1, uint32_t D2, class R>
 class SMatrix;
-template <class T, unsigned int D>
+template <class T, uint32_t D>
 class MatRepSym;
-template <class T, unsigned int D1, unsigned int D2>
+template <class T, uint32_t D1, uint32_t D2>
 class MatRepStd;
 template <class CoordSystem, class Tag>
 class PositionVector2D;
@@ -53,9 +53,9 @@ namespace math_utils
 
 namespace detail
 {
-template <typename T, int I>
+template <typename T, int32_t I>
 struct GPUPoint2D;
-template <typename T, int I>
+template <typename T, int32_t I>
 struct GPUPoint3D;
 } // namespace detail
 

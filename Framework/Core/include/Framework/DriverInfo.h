@@ -153,8 +153,6 @@ struct DriverInfo {
   unsigned short resourcesMonitoringDumpInterval = 0;
   /// Port used by the websocket control. 0 means not initialised.
   unsigned short port = 0;
-  /// Last port used for tracy
-  short tracyPort = 8086;
   /// The minimum level after which the device will exit with 1
   LogParsingHelpers::LogLevel minFailureLevel = LogParsingHelpers::LogLevel::Fatal;
 

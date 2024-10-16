@@ -32,21 +32,21 @@ namespace gpu
 class GPUTPCGMBorderTrack
 {
  public:
-  GPUd() int TrackID() const { return mTrackID; }
-  GPUd() short NClusters() const { return mNClusters; }
-  GPUd() short Row() const { return mRow; }
+  GPUd() int32_t TrackID() const { return mTrackID; }
+  GPUd() int16_t NClusters() const { return mNClusters; }
+  GPUd() int16_t Row() const { return mRow; }
   GPUd() const float* Par() const { return mP; }
   GPUd() float ZOffsetLinear() const { return mZOffsetLinear; }
   GPUd() const float* Cov() const { return mC; }
   GPUd() const float* CovD() const { return mD; }
 
-  GPUd() void SetTrackID(int v) { mTrackID = v; }
-  GPUd() void SetNClusters(short v) { mNClusters = v; }
-  GPUd() void SetRow(short v) { mRow = v; }
-  GPUd() void SetPar(int i, float x) { mP[i] = x; }
+  GPUd() void SetTrackID(int32_t v) { mTrackID = v; }
+  GPUd() void SetNClusters(int16_t v) { mNClusters = v; }
+  GPUd() void SetRow(int16_t v) { mRow = v; }
+  GPUd() void SetPar(int32_t i, float x) { mP[i] = x; }
   GPUd() void SetZOffsetLinear(float v) { mZOffsetLinear = v; }
-  GPUd() void SetCov(int i, float x) { mC[i] = x; }
-  GPUd() void SetCovD(int i, float x) { mD[i] = x; }
+  GPUd() void SetCov(int32_t i, float x) { mC[i] = x; }
+  GPUd() void SetCovD(int32_t i, float x) { mD[i] = x; }
 
   GPUd() static bool CheckChi2(float x1, float y1, float cx1, float cxy1, float cy1, float x2, float y2, float cx2, float cxy2, float cy2, float chi2cut)
   {
@@ -89,12 +89,12 @@ class GPUTPCGMBorderTrack
   GPUd() void LimitCov()
   {
     // TODO: Why are Cov entries so large?
-    for (int i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < 2; i++) {
       if (mC[i] > 5.f) {
         mC[i] = 5.f;
       }
     }
-    for (int i = 2; i < 4; i++) {
+    for (int32_t i = 2; i < 4; i++) {
       if (mC[i] > 0.5f) {
         mC[i] = 0.5f;
       }
@@ -103,7 +103,7 @@ class GPUTPCGMBorderTrack
     if (mC[4] > maxCov4) {
       mC[4] = maxCov4;
     }
-    for (int i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < 2; i++) {
       if (mD[i] > 0.5f) {
         mD[i] = 0.5f;
       }
@@ -117,9 +117,9 @@ class GPUTPCGMBorderTrack
   }
 
  private:
-  int mTrackID;     // track index
-  short mNClusters; // n clusters
-  short mRow;
+  int32_t mTrackID;   // track index
+  int16_t mNClusters; // n clusters
+  int16_t mRow;
   float mP[5];
   float mZOffsetLinear; // Z Offset, in case of T offset scaled linearly to Z with nominal vDrift. Used only for matching / merging
   float mC[5];

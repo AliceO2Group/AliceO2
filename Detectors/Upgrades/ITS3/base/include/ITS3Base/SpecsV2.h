@@ -108,26 +108,30 @@ constexpr EColor color{kGray};
 } // namespace carbonfoam
 constexpr unsigned int nLayers{3};
 constexpr unsigned int nTotLayers{7};
-constexpr unsigned int nChipsIB{2 * nLayers};
-constexpr std::array<bool, nTotLayers> isITS3Layer{true, true, true, false, false, false, false}; ///< mask indicating a new layer
-constexpr std::array<float, nLayers> radii{19.0006 * mm, 25.228 * mm, 31.4554 * mm};              // middle radius e.g. inner radius+thickness/2.
+constexpr unsigned int nSensorsIB{2 * nLayers};
 constexpr float equatorialGap{1 * mm};
 constexpr std::array<unsigned int, nLayers> nSegments{3, 4, 5};
-constexpr float thickness{50 * mu};    //< Physical Thickness of chip
-constexpr float effThickness{66 * mu}; //< Physical thickness + metal substrate
+constexpr float thickness{50 * mu};                                                                                                  //< Physical Thickness of chip
+constexpr float effThickness{66 * mu};                                                                                               //< Physical thickness + metal substrate
+constexpr std::array<float, nLayers> radii{19.0006 * mm, 25.228 * mm, 31.4554 * mm};                                                 // middle radius e.g. inner radius+thickness/2.
+constexpr std::array<float, nLayers> radiiInner{radii[0] - thickness / 2.f, radii[1] - thickness / 2.f, radii[2] - thickness / 2.f}; // inner radius
+constexpr std::array<float, nLayers> radiiOuter{radii[0] + thickness / 2.f, radii[1] + thickness / 2.f, radii[2] + thickness / 2.f}; // inner radius
 namespace detID
 {
 constexpr unsigned int mDetIDs{2 * 12 * 12 * 12};                //< 2 Hemispheres * (3,4,5=12 segments in a layer) * 12 RSUs in a segment * 12 Tiles in a RSU
 constexpr unsigned int l0IDStart{0};                             //< Start DetID layer 0
 constexpr unsigned int l0IDEnd{2 * 3 * 12 * 12 - 1};             //< End First DetID layer 0; inclusive range
+constexpr unsigned int l0IDTot{2 * 3 * 12 * 12};                 //< Total DetID in Layer 0
 constexpr unsigned int l1IDStart{l0IDEnd + 1};                   //< Start DetID layer 1
 constexpr unsigned int l1IDEnd{l1IDStart + 2 * 4 * 12 * 12 - 1}; //< End First DetID layer 1; inclusive range
+constexpr unsigned int l1IDTot{2 * 4 * 12 * 12};                 //< Total DetID in Layer 1
 constexpr unsigned int l2IDStart{l1IDEnd + 1};                   //< Start DetID layer 2
 constexpr unsigned int l2IDEnd{l2IDStart + 2 * 5 * 12 * 12 - 1}; //< End First DetID layer 2; inclusive range
+constexpr unsigned int l2IDTot{2 * 5 * 12 * 12};                 //< Total DetID in Layer 2
 constexpr unsigned int nChips{l2IDEnd + 1};                      //< number of Chips (PixelArrays) in IB
 
 template <typename T = int>
-inline int getDetID2Layer(T detID)
+inline T getDetID2Layer(T detID)
 {
   if (static_cast<T>(l0IDStart) <= detID && detID <= static_cast<T>(l0IDEnd)) {
     return 0;
@@ -135,6 +139,20 @@ inline int getDetID2Layer(T detID)
     return 1;
   } else if (static_cast<T>(l2IDStart) <= detID && detID <= static_cast<T>(l2IDEnd)) {
     return 2;
+  }
+  return -1;
+}
+
+template <typename T = int>
+inline T getSensorID(T detID)
+{
+  auto layer = getDetID2Layer(detID);
+  if (layer == 0) {
+    return ((detID - l0IDStart) < static_cast<T>(l0IDTot) / 2) ? 0 : 1;
+  } else if (layer == 1) {
+    return ((detID - l1IDStart) < static_cast<T>(l1IDTot) / 2) ? 2 : 3;
+  } else if (layer == 2) {
+    return ((detID - l2IDStart) < static_cast<T>(l2IDTot) / 2) ? 4 : 5;
   }
   return -1;
 }

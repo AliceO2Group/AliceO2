@@ -47,10 +47,10 @@ namespace gpu
 ///  auto F = [&](double x1, double x2, double f[] ) {
 ///   f[0] = 1.f + x1 + x2*x2; // F(x1,x2)
 ///  };
-///  const int nKnotsU=2;
-///  const int nKnotsV=3;
-///  int knotsU[nKnotsU] = {0, 1};
-///  int knotsV[nKnotsV] = {0, 2, 5};
+///  const int32_t nKnotsU=2;
+///  const int32_t nKnotsV=3;
+///  int32_t knotsU[nKnotsU] = {0, 1};
+///  int32_t knotsV[nKnotsV] = {0, 2, 5};
 ///  Spline2D<float,1> spline(nKnotsU, knotsU, nKnotsV, knotsV ); // spline with 1-dimensional codomain
 ///  spline.approximateFunction(0., 1., 0.,1., F); //initialize spline to approximate F on [0., 1.]x[0., 1.] area
 ///  float S = spline.interpolate(.1, .3 ); // interpolated value at (.1,.3)
@@ -70,7 +70,7 @@ namespace gpu
 ///    YdimT = 0 : the number of Y dimensions will be set in the runtime
 ///    YdimT < 0 : the number of Y dimensions will be set in the runtime, and it will not exceed abs(YdimT)
 ///
-template <typename DataT, int YdimT = 0>
+template <typename DataT, int32_t YdimT = 0>
 class Spline2D
   : public Spline2DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT)>
 {

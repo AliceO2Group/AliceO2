@@ -40,7 +40,7 @@ GPUTPCGMOfflineFitter::GPUTPCGMOfflineFitter() : fCAParam() {}
 
 GPUTPCGMOfflineFitter::~GPUTPCGMOfflineFitter() {}
 
-void GPUTPCGMOfflineFitter::Initialize(const GPUParam& hltParam, Long_t TimeStamp, bool isMC)
+void GPUTPCGMOfflineFitter::Initialize(const GPUParam& hltParam, long TimeStamp, bool isMC)
 {
   //
 
@@ -80,7 +80,7 @@ void GPUTPCGMOfflineFitter::RefitTrack(GPUTPCGMMergedTrack& track, const GPUTPCG
     return;
   }
 
-  int nTrackHits = track.NClusters();
+  int32_t nTrackHits = track.NClusters();
   cout << "call FitOffline .. " << endl;
   bool ok = FitOffline(field, track, clusters + track.FirstClusterRef(), nTrackHits);
   cout << ".. end of call FitOffline " << endl;
@@ -98,7 +98,7 @@ void GPUTPCGMOfflineFitter::RefitTrack(GPUTPCGMMergedTrack& track, const GPUTPCG
   track.Alpha() = Alpha;
 
   {
-    int ind = track.FirstClusterRef();
+    int32_t ind = track.FirstClusterRef();
     float alphaa = fCAParam.Alpha(clusters[ind].slice);
     float xx = clusters[ind].fX;
     float yy = clusters[ind].fY;
@@ -111,7 +111,7 @@ void GPUTPCGMOfflineFitter::RefitTrack(GPUTPCGMMergedTrack& track, const GPUTPCG
   }
 }
 
-int GPUTPCGMOfflineFitter::CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, AliTPCclusterMI& c)
+int32_t GPUTPCGMOfflineFitter::CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, AliTPCclusterMI& c)
 {
   // Create AliTPCclusterMI for the HLT hit
 
@@ -127,15 +127,15 @@ int GPUTPCGMOfflineFitter::CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, A
   c.SetX(h.fX);
   c.SetY(h.fY);
   c.SetZ(h.fZ);
-  int index = (((sector << 8) + row) << 16) + 0;
+  int32_t index = (((sector << 8) + row) << 16) + 0;
   return index;
 }
 
-bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrack& gmtrack, GPUTPCGMMergedTrackHit* clusters, int& N)
+bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrack& gmtrack, GPUTPCGMMergedTrackHit* clusters, int32_t& N)
 {
   const float maxSinPhi = GPUCA_MAX_SIN_PHI;
 
-  int maxN = N;
+  int32_t maxN = N;
   float covYYUpd = 0.;
   float lastUpdateX = -1.;
 
@@ -157,14 +157,14 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
   lastUpdateX = -1;
 
   // find last leg
-  int ihitStart = 0;
-  for (int ihit = 0; ihit < maxN; ihit++) {
+  int32_t ihitStart = 0;
+  for (int32_t ihit = 0; ihit < maxN; ihit++) {
     if (clusters[ihit].leg != clusters[ihitStart].leg) {
       ihitStart = ihit;
     }
   }
 
-  for (int ihit = ihitStart; ihit < maxN; ihit++) {
+  for (int32_t ihit = ihitStart; ihit < maxN; ihit++) {
     if (clusters[ihit].fState < 0) {
       continue; // hit is excluded from fit
     }
@@ -215,14 +215,14 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
     seed.SetClusterPointer(iRow, &cluster);
     seed.SetCurrentClusterIndex1(tpcindex);
 
-    int retVal;
+    int32_t retVal;
     float threshold = 3. + (lastUpdateX >= 0 ? (fabsf(seed.GetX() - lastUpdateX) / 2) : 0.);
     if (N > 2 && (fabsf(yy - seed.GetY()) > threshold || fabsf(zz - seed.GetZ()) > threshold)) {
       retVal = 2;
     } else {
       Int_t err = !(AliTPCtracker::FollowToNext(seed, iRow));
 
-      const int err2 = N > 0 && CAMath::Abs(seed.GetSnp()) >= maxSinForUpdate;
+      const int32_t err2 = N > 0 && CAMath::Abs(seed.GetSnp()) >= maxSinForUpdate;
       if (err || err2) {
         if (markNonFittedClusters) {
           if (N > 0 && (fabsf(yy - seed.GetY()) > 3 || fabsf(zz - seed.GetZ()) > 3)) {
@@ -275,9 +275,9 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
     prop.SetMaxSinPhi(maxSinPhi);
     prop.SetToyMCEventsFlag(fCAParam.ToyMCEventsFlag());
 
-    for (int k = 0; k < 3; k++) // max 3 attempts
+    for (int32_t k = 0; k < 3; k++) // max 3 attempts
     {
-      int err = prop.PropagateToXAlpha(fCAParam.GetTrackReferenceX(), Alpha, 0);
+      int32_t err = prop.PropagateToXAlpha(fCAParam.GetTrackReferenceX(), Alpha, 0);
       t.ConstrainSinPhi();
       if (fabsf(t.GetY()) <= t.GetX() * tan(kSectAngle / 2.f)) {
         break;

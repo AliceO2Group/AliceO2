@@ -16,6 +16,7 @@ install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/Framework
 o2_add_library(FrameworkFoundation
                SOURCES src/RuntimeError.cxx
                src/Signpost.cxx
+               src/BacktraceHelpers.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation3rdparty
               )

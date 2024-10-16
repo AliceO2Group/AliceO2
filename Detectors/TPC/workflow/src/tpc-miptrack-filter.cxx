@@ -49,10 +49,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     auto logger = BranchDefinition<TrackOutputType>::Spectator([](TrackOutputType const& tracks) {
       LOG(info) << "writing " << tracks.size() << " track(s)";
     });
-    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "MIPS", 0}, //
-                                                       "TPCTracks", "track-branch-name",           //
-                                                       1,                                          //
-                                                       logger};                                    //
+    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "MIPS", 0, Lifetime::Sporadic}, //
+                                                       "TPCTracks", "track-branch-name",                               //
+                                                       1,                                                              //
+                                                       logger};                                                        //
 
     workflow.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
                                               std::move(tracksdef))());

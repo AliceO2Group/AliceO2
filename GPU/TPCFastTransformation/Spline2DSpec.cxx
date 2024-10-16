@@ -61,8 +61,8 @@ void Spline2DContainer<DataT>::setActualBufferAddress(char* actualFlatBufferPtr)
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
 
   const size_t u2Offset = alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
-  int parametersOffset = u2Offset;
-  //int bufferSize = parametersOffset;
+  int32_t parametersOffset = u2Offset;
+  // int32_t bufferSize = parametersOffset;
   mParameters = nullptr;
 
   parametersOffset = alignSize(u2Offset + mGridX2.getFlatBufferSize(), getParameterAlignmentBytes());
@@ -128,8 +128,8 @@ void Spline2DContainer<DataT>::moveBufferTo(char* newFlatBufferPtr)
 
 template <typename DataT>
 void Spline2DContainer<DataT>::recreate(
-  int nYdim,
-  int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[])
+  int32_t nYdim,
+  int32_t numberOfKnotsU1, const int32_t knotsU1[], int32_t numberOfKnotsU2, const int32_t knotsU2[])
 {
   /// Constructor for an irregular spline
 
@@ -140,8 +140,8 @@ void Spline2DContainer<DataT>::recreate(
   mGridX2.recreate(0, numberOfKnotsU2, knotsU2);
 
   const size_t u2Offset = alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
-  int parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
-  int bufferSize = parametersOffset;
+  int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
+  int32_t bufferSize = parametersOffset;
   mParameters = nullptr;
 
   parametersOffset = alignSize(bufferSize, getParameterAlignmentBytes());
@@ -153,14 +153,14 @@ void Spline2DContainer<DataT>::recreate(
   mGridX2.moveBufferTo(mFlatBufferPtr + u2Offset);
 
   mParameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
-  for (int i = 0; i < getNumberOfParameters(); i++) {
+  for (int32_t i = 0; i < getNumberOfParameters(); i++) {
     mParameters[i] = 0;
   }
 }
 
 template <typename DataT>
-void Spline2DContainer<DataT>::recreate(int nYdim,
-                                        int numberOfKnotsU1, int numberOfKnotsU2)
+void Spline2DContainer<DataT>::recreate(int32_t nYdim,
+                                        int32_t numberOfKnotsU1, int32_t numberOfKnotsU2)
 {
   /// Constructor for a regular spline
 
@@ -171,8 +171,8 @@ void Spline2DContainer<DataT>::recreate(int nYdim,
   mGridX2.recreate(0, numberOfKnotsU2);
 
   const size_t u2Offset = alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
-  int parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
-  int bufferSize = parametersOffset;
+  int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
+  int32_t bufferSize = parametersOffset;
   mParameters = nullptr;
 
   parametersOffset = alignSize(bufferSize, getParameterAlignmentBytes());
@@ -184,7 +184,7 @@ void Spline2DContainer<DataT>::recreate(int nYdim,
   mGridX2.moveBufferTo(mFlatBufferPtr + u2Offset);
 
   mParameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
-  for (int i = 0; i < getNumberOfParameters(); i++) {
+  for (int32_t i = 0; i < getNumberOfParameters(); i++) {
     mParameters[i] = 0;
   }
 }
@@ -197,7 +197,7 @@ template <typename DataT>
 void Spline2DContainer<DataT>::approximateFunction(
   double x1Min, double x1Max, double x2Min, double x2Max,
   std::function<void(double x1, double x2, double f[])> F,
-  int nAuxiliaryDataPointsX1, int nAuxiliaryDataPointsX2)
+  int32_t nAuxiliaryDataPointsX1, int32_t nAuxiliaryDataPointsX2)
 {
   /// approximate a function F with this spline
   Spline2DHelper<DataT> helper;
@@ -208,7 +208,7 @@ template <typename DataT>
 void Spline2DContainer<DataT>::approximateFunctionViaDataPoints(
   double x1Min, double x1Max, double x2Min, double x2Max,
   std::function<void(double x1, double x2, double f[])> F,
-  int nAuxiliaryDataPointsX1, int nAuxiliaryDataPointsX2)
+  int32_t nAuxiliaryDataPointsX1, int32_t nAuxiliaryDataPointsX2)
 {
   /// approximate a function F with this spline
   Spline2DHelper<DataT> helper;
@@ -217,7 +217,7 @@ void Spline2DContainer<DataT>::approximateFunctionViaDataPoints(
 
 #ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
-int Spline2DContainer<DataT>::writeToFile(TFile& outf, const char* name)
+int32_t Spline2DContainer<DataT>::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
   return FlatObject::writeToFile(*this, outf, name);
@@ -232,7 +232,7 @@ Spline2DContainer<DataT>* Spline2DContainer<DataT>::readFromFile(
 }
 
 template <typename DataT>
-int Spline2DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
+int32_t Spline2DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
 {
   return Spline2DHelper<DataT>::test(draw, drawDataPoints);
 }

@@ -27,6 +27,10 @@
 #include <atomic>
 #endif
 
+#if !defined(GPUCA_GPUCODE_COMPILEKERNELS) && (!defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__))
+#include <cstdint>
+#endif
+
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 namespace GPUCA_NAMESPACE
 {
@@ -75,17 +79,20 @@ class GPUCommonMath
   GPUd() static CONSTEXPR float Pi() { return 3.1415927f; }
   GPUd() static float Round(float x);
   GPUd() static float Floor(float x);
-  GPUd() static unsigned int Float2UIntReint(const float& x);
-  GPUd() static unsigned int Float2UIntRn(float x);
-  GPUd() static int Float2IntRn(float x);
+  GPUd() static uint32_t Float2UIntReint(const float& x);
+  GPUd() static uint32_t Float2UIntRn(float x);
+  GPUd() static int32_t Float2IntRn(float x);
   GPUd() static float Modf(float x, float y);
   GPUd() static bool Finite(float x);
-  GPUd() static unsigned int Clz(unsigned int val);
-  GPUd() static unsigned int Popcount(unsigned int val);
+  GPUd() static uint32_t Clz(uint32_t val);
+  GPUd() static uint32_t Popcount(uint32_t val);
 
   GPUhdni() static float Hypot(float x, float y);
   GPUhdni() static float Hypot(float x, float y, float z);
   GPUhdni() static float Hypot(float x, float y, float z, float w);
+
+  template <typename T>
+  GPUhd() static void Swap(T& a, T& b);
 
   template <class T>
   GPUdi() static T AtomicExch(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
@@ -134,10 +141,10 @@ class GPUCommonMath
   {
     GPUCommonMath::AtomicMinInternal(addr, val);
   }
-  GPUd() static int Mul24(int a, int b);
+  GPUd() static int32_t Mul24(int32_t a, int32_t b);
   GPUd() static float FMulRZ(float a, float b);
 
-  template <int I, class T>
+  template <int32_t I, class T>
   GPUd() CONSTEXPR static T nextMultipleOf(T val);
 
 #ifdef GPUCA_NOCOMPAT
@@ -160,11 +167,11 @@ class GPUCommonMath
 
  private:
   template <class S, class T>
-  GPUd() static unsigned int AtomicExchInternal(S* addr, T val);
+  GPUd() static uint32_t AtomicExchInternal(S* addr, T val);
   template <class S, class T>
   GPUd() static bool AtomicCASInternal(S* addr, T cmp, T val);
   template <class S, class T>
-  GPUd() static unsigned int AtomicAddInternal(S* addr, T val);
+  GPUd() static uint32_t AtomicAddInternal(S* addr, T val);
   template <class S, class T>
   GPUd() static void AtomicMaxInternal(S* addr, T val);
   template <class S, class T>
@@ -173,7 +180,7 @@ class GPUCommonMath
 
 typedef GPUCommonMath CAMath;
 
-// CHOICE Syntax: CHOISE(Host, CUDA&HIP, OpenCL)
+// CHOICE Syntax: CHOICE(Host, CUDA&HIP, OpenCL)
 #if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__)) // clang-format off
     #define CHOICE(c1, c2, c3) (c2) // Select second option for CUDA and HIP
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
@@ -182,7 +189,7 @@ typedef GPUCommonMath CAMath;
     #define CHOICE(c1, c2, c3) (c1) // Select first option for Host
 #endif // clang-format on
 
-template <int I, class T>
+template <int32_t I, class T>
 GPUdi() CONSTEXPR T GPUCommonMath::nextMultipleOf(T val)
 {
   if CONSTEXPR (I & (I - 1)) {
@@ -209,23 +216,23 @@ GPUdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 
 GPUdi() float GPUCommonMath::Modf(float x, float y) { return CHOICE(fmodf(x, y), fmodf(x, y), fmod(x, y)); }
 
-GPUdi() unsigned int GPUCommonMath::Float2UIntReint(const float& x)
+GPUdi() uint32_t GPUCommonMath::Float2UIntReint(const float& x)
 {
 #if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return __float_as_uint(x);
 #elif defined(GPUCA_GPUCODE_DEVICE) && (defined(__OPENCL__) || defined(__OPENCLCPP__))
   return as_uint(x);
 #else
-  return reinterpret_cast<const unsigned int&>(x);
+  return reinterpret_cast<const uint32_t&>(x);
 #endif
 }
 
-GPUdi() unsigned int GPUCommonMath::Float2UIntRn(float x) { return (unsigned int)(int)(x + 0.5f); }
+GPUdi() uint32_t GPUCommonMath::Float2UIntRn(float x) { return (uint32_t)(int32_t)(x + 0.5f); }
 GPUdi() float GPUCommonMath::Floor(float x) { return CHOICE(floorf(x), floorf(x), floor(x)); }
 
 #ifdef GPUCA_NO_FAST_MATH
 GPUdi() float GPUCommonMath::Round(float x) { return CHOICE(roundf(x), roundf(x), round(x)); }
-GPUdi() int GPUCommonMath::Float2IntRn(float x) { return (int)Round(x); }
+GPUdi() int32_t GPUCommonMath::Float2IntRn(float x) { return (int32_t)Round(x); }
 GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), isfinite(x), true); }
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), (float)sqrt((double)x), sqrt(x)); }
 GPUdi() float GPUCommonMath::ATan(float x) { return CHOICE((float)atan((double)x), (float)atan((double)x), atan(x)); }
@@ -240,7 +247,7 @@ GPUdi() float GPUCommonMath::Log(float x) { return CHOICE((float)log((double)x),
 GPUdi() float GPUCommonMath::Exp(float x) { return CHOICE((float)exp((double)x), (float)exp((double)x), exp(x)); }
 #else
 GPUdi() float GPUCommonMath::Round(float x) { return CHOICE(roundf(x), rintf(x), rint(x)); }
-GPUdi() int GPUCommonMath::Float2IntRn(float x) { return CHOICE((int)Round(x), __float2int_rn(x), (int)Round(x)); }
+GPUdi() int32_t GPUCommonMath::Float2IntRn(float x) { return CHOICE((int32_t)Round(x), __float2int_rn(x), (int32_t)Round(x)); }
 GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), true, true); }
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), sqrtf(x), sqrt(x)); }
 GPUdi() float GPUCommonMath::ATan(float x) { return CHOICE(atanf(x), atanf(x), atan(x)); }
@@ -280,12 +287,12 @@ GPUhdi() void GPUCommonMath::SinCosd(double x, double& s, double& c)
 #endif
 }
 
-GPUdi() unsigned int GPUCommonMath::Clz(unsigned int x)
+GPUdi() uint32_t GPUCommonMath::Clz(uint32_t x)
 {
 #if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
   return x == 0 ? 32 : CHOICE(__builtin_clz(x), __clz(x), __builtin_clz(x)); // use builtin if available
 #else
-  for (int i = 31; i >= 0; i--) {
+  for (int32_t i = 31; i >= 0; i--) {
     if (x & (1u << i)) {
       return (31 - i);
     }
@@ -294,7 +301,7 @@ GPUdi() unsigned int GPUCommonMath::Clz(unsigned int x)
 #endif
 }
 
-GPUdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
+GPUdi() uint32_t GPUCommonMath::Popcount(uint32_t x)
 {
 #if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && (!defined(__OPENCL__) /*|| defined(__OPENCLCPP__)*/) // TODO: remove OPENCLCPP workaround when reported SPIR-V bug is fixed
   // use builtin if available
@@ -319,6 +326,20 @@ GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z)
 GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z, float w)
 {
   return Sqrt(x * x + y * y + z * z + w * w);
+}
+
+template <typename T>
+GPUd() void _swap(T& a, T& b)
+{
+  T tmp = a;
+  a = b;
+  b = tmp;
+}
+
+template <typename T>
+GPUhdi() void GPUCommonMath::Swap(T& a, T& b)
+{
+  CHOICE(std::swap(a, b), _swap<T>(a, b), _swap<T>(a, b));
 }
 
 template <class T>
@@ -387,7 +408,7 @@ GPUdi() float GPUCommonMath::InvSqrt(float _x)
 #else
   union {
     float f;
-    int i;
+    int32_t i;
   } x = {_x};
   const float xhalf = 0.5f * x.f;
   x.i = 0x5f3759df - (x.i >> 1);
@@ -411,7 +432,7 @@ GPUhdi() double GPUCommonMath::Abs<double>(double x)
 #endif
 
 template <>
-GPUhdi() int GPUCommonMath::Abs<int>(int x)
+GPUhdi() int32_t GPUCommonMath::Abs<int32_t>(int32_t x)
 {
   return CHOICE(abs(x), abs(x), abs(x));
 }
@@ -431,7 +452,7 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 }
 
 template <class S, class T>
-GPUdi() unsigned int GPUCommonMath::AtomicExchInternal(S* addr, T val)
+GPUdi() uint32_t GPUCommonMath::AtomicExchInternal(S* addr, T val)
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
   return ::atomic_exchange(addr, val);
@@ -440,7 +461,7 @@ GPUdi() unsigned int GPUCommonMath::AtomicExchInternal(S* addr, T val)
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicExch(addr, val);
 #elif defined(WITH_OPENMP)
-  unsigned int old;
+  uint32_t old;
   __atomic_exchange(addr, &val, &old, __ATOMIC_SEQ_CST);
   return old;
 #else
@@ -465,7 +486,7 @@ GPUdi() bool GPUCommonMath::AtomicCASInternal(S* addr, T cmp, T val)
 }
 
 template <class S, class T>
-GPUdi() unsigned int GPUCommonMath::AtomicAddInternal(S* addr, T val)
+GPUdi() uint32_t GPUCommonMath::AtomicAddInternal(S* addr, T val)
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
   return ::atomic_fetch_add(addr, val);
@@ -521,9 +542,9 @@ GPUdii() void GPUCommonMath::AtomicMaxInternal(GPUglobalref() GPUgeneric() GPUAt
     val = 0.f;
   }
   if (val >= 0) {
-    AtomicMaxInternal((GPUAtomic(int)*)addr, __float_as_int(val));
+    AtomicMaxInternal((GPUAtomic(int32_t)*)addr, __float_as_int(val));
   } else {
-    AtomicMinInternal((GPUAtomic(unsigned int)*)addr, __float_as_uint(val));
+    AtomicMinInternal((GPUAtomic(uint32_t)*)addr, __float_as_uint(val));
   }
 }
 template <>
@@ -533,9 +554,9 @@ GPUdii() void GPUCommonMath::AtomicMinInternal(GPUglobalref() GPUgeneric() GPUAt
     val = 0.f;
   }
   if (val >= 0) {
-    AtomicMinInternal((GPUAtomic(int)*)addr, __float_as_int(val));
+    AtomicMinInternal((GPUAtomic(int32_t)*)addr, __float_as_int(val));
   } else {
-    AtomicMaxInternal((GPUAtomic(unsigned int)*)addr, __float_as_uint(val));
+    AtomicMaxInternal((GPUAtomic(uint32_t)*)addr, __float_as_uint(val));
   }
 }
 #endif

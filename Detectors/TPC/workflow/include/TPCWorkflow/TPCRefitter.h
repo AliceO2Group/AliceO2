@@ -13,11 +13,7 @@
 #define O2_TPC_DATA_FILTER_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/Track.h"
-#include "MathUtils/detail/Bracket.h"
-#include "DataFormatsTPC/ClusterNative.h"
 
 namespace o2::tpc
 {
@@ -27,7 +23,7 @@ struct CorrectionMapsLoaderGloOpts;
 namespace o2::trackstudy
 {
 /// create a processor spec
-o2::framework::DataProcessorSpec getTPCRefitterSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
+o2::framework::DataProcessorSpec getTPCRefitterSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool requestCosmics = false);
 
 } // namespace o2::trackstudy
 

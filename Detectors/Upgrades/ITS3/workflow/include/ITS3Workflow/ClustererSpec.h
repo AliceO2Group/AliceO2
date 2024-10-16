@@ -37,12 +37,12 @@ class ClustererDPL : public Task
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
 
-  int mState = 0;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
+  int mState = 0;
   int mNThreads = 1;
   bool mUseClusterDictionary = true;
   std::unique_ptr<o2::its3::Clusterer> mClusterer = nullptr;
-  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
 
 /// create a processor spec

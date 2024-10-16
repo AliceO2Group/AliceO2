@@ -80,7 +80,8 @@ struct GBTLink {
   enum Verbosity : int8_t { Silent = -1,
                             VerboseErrors,
                             VerboseHeaders,
-                            VerboseData };
+                            VerboseData,
+                            VerboseRawDump };
 
   using RDH = o2::header::RDHAny;
   using RDHUtils = o2::raw::RDHUtils;
@@ -108,6 +109,7 @@ struct GBTLink {
 
   // transient data filled from current RDH
   int wordLength = o2::itsmft::GBTPaddedWordLength; // padded (16bytes) vs non-padded (10bytes) words
+  bool alwaysParseTrigger = false;
   bool expectPadding = true;
   bool rofJumpWasSeen = false; // this link had jump in ROF IR
   uint32_t lanesActive = 0;   // lanes declared by the payload header
@@ -141,6 +143,43 @@ struct GBTLink {
   void cacheData(const void* ptr, size_t sz)
   {
     rawData.add(reinterpret_cast<const PayLoadSG::DataType*>(ptr), sz);
+    if (verbosity >= VerboseRawDump) {
+
+      LOGP(info, "Caching new RDH block for {}", describe());
+      const auto* rdh = reinterpret_cast<const RDH*>(ptr);
+      if (!rdh) {
+        return;
+      }
+      RDHUtils::printRDH(rdh);
+      long szd = RDHUtils::getMemorySize(*rdh);
+      long offs = sizeof(RDH);
+      char* ptrR = ((char*)ptr) + sizeof(RDH);
+      while (offs < szd) {
+        const GBTWord* w = reinterpret_cast<const o2::itsmft::GBTWord*>(ptrR);
+        std::string com = fmt::format(" | FeeID:{:#06x} offs: {:6} ", feeID, offs);
+        if (w->isData()) {
+          com += "data word";
+        } else if (w->isDataHeader()) {
+          com += "data header";
+        } else if (w->isDataTrailer()) {
+          com += "data trailer";
+        } else if (w->isTriggerWord()) {
+          const GBTTrigger* trw = (const GBTTrigger*)w;
+          com += fmt::format("trigger word bc:{} orbit:{} noData:{} int:{} cont:{}", trw->bc, trw->orbit, trw->noData, trw->internal, trw->continuation);
+        } else if (w->isDiagnosticWord()) {
+          com += "diag word";
+        } else if (w->isCalibrationWord()) {
+          com += fmt::format("calib word count:{:5} data:{:#08x}", ((const GBTCalibration*)w)->calibCounter, ((const GBTCalibration*)w)->calibUserField);
+        } else if (w->isCableDiagnostic()) {
+          com += "cable diag word";
+        } else if (w->isStatus()) {
+          com += "status word";
+        }
+        w->printX(expectPadding, com);
+        offs += wordLength;
+        ptrR += wordLength;
+      }
+    }
   }
 
   bool needToPrintError(uint32_t count) { return verbosity == Silent ? false : (verbosity > VerboseErrors || count == 1); }
@@ -227,6 +266,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   currRawPiece = rawData.currentPiece();
   uint8_t errRes = uint8_t(GBTLink::NoError);
   bool expectPacketDone = false;
+  bool verboseRawData = verbosity > 0 && ((verbosity % VerboseData) == 0);
   ir.clear();
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
@@ -318,13 +358,13 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         break;
       }
       if (gbtTrg) {
-        if (!gbtTrg->continuation) { // this is a continuation from the previous CRU page
-          statistics.nTriggers++;
-          lanesStop = 0;
-          lanesWithData = 0;
+        if (!gbtTrg->continuation || alwaysParseTrigger) { // this is a continuation from the previous CRU page
+          statistics.nTriggers += gbtTrg->continuation == 0;
           ir.bc = gbtTrg->bc;
           ir.orbit = gbtTrg->orbit;
           trigger = gbtTrg->triggerType;
+          lanesStop = 0;
+          lanesWithData = 0;
         }
         if (gbtTrg->noData) {
           if (verbosity >= VerboseHeaders) {
@@ -351,7 +391,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     expectPacketDone = true;
 
     while (!gbtD->isDataTrailer() && !(cruPageAlignmentPaddingSeen = isAlignmentPadding())) { // start reading real payload
-      if (verbosity >= VerboseData) {
+      if (verboseRawData) {
         gbtD->printX(expectPadding);
       }
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
@@ -380,9 +420,13 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       dataOffset += wordLength;
 
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTrailerWord(gbtT));
+      // are we at the end of the page?
+      if ((cruPageAlignmentPaddingSeen = isAlignmentPadding())) {
+        dataOffset = lastPageSize;
+      }
       // we finished the GBT page, but there might be continuation on the next CRU page
       if (!gbtT->packetDone) {
-        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, (dataOffset < currRawPiece->size && !isAlignmentPadding())));
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, (dataOffset < currRawPiece->size && !cruPageAlignmentPaddingSeen)));
         continue; // keep reading next CRU page
       }
       // accumulate packet states

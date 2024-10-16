@@ -222,10 +222,11 @@ const char* getGainErrorDescription(unsigned int errorcode);
 /// FastOR index or TRU index is called, or by the TRU data handler if
 /// the patch index is outside range.
 enum class TRUDecodingError_t {
-  TRU_INDEX_INVALID,    ///< TRU index invalid
-  PATCH_INDEX_INVALID,  ///< Patch index outside range
-  FASTOR_INDEX_INVALID, ///< FastOR index unknown
-  UNKNOWN_ERROR         ///< Unknown error type
+  TRU_INDEX_INVALID,        ///< TRU index invalid
+  PATCH_INDEX_INVALID,      ///< Patch index outside range
+  FASTOR_INDEX_INVALID,     ///< FastOR index unknown
+  FASTOR_STARTTIME_INVALID, ///< FastOr stattime is larger than 14
+  UNKNOWN_ERROR             ///< Unknown error type
 };
 
 /// \brief Get the number of TRU error codes
@@ -253,6 +254,8 @@ constexpr int getErrorCodeFromTRUDecodingError(TRUDecodingError_t error)
       return 1;
     case TRUDecodingError_t::FASTOR_INDEX_INVALID:
       return 2;
+    case TRUDecodingError_t::FASTOR_STARTTIME_INVALID:
+      return 3;
     case TRUDecodingError_t::UNKNOWN_ERROR:
       return -1;
   }

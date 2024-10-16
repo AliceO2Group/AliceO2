@@ -66,7 +66,7 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
   AliHLTComponentDataType GetOutputDataType();
 
   /** @see component interface @ref AliHLTComponent::GetOutputDataSize */
-  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  virtual void GetOutputDataSize(uint64_t& constBase, double& inputMultiplier);
 
   /** @see component interface @ref AliHLTComponent::Spawn */
   AliHLTComponent* Spawn();
@@ -77,16 +77,16 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
   // capabilities of the component.
 
   /** @see component interface @ref AliHLTComponent::DoInit */
-  int DoInit(int argc, const char** argv);
+  int32_t DoInit(int argc, const char** argv);
 
   /** @see component interface @ref AliHLTComponent::DoDeinit */
-  int DoDeinit();
+  int32_t DoDeinit();
 
   /** reconfigure **/
-  int Reconfigure(const char* cdbEntry, const char* chainId);
+  int32_t Reconfigure(const char* cdbEntry, const char* chainId);
 
   /** @see component interface @ref AliHLTProcessor::DoEvent */
-  int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks);
+  int32_t DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks);
 
  private:
   struct AliHLTTPCTrackerWrapperData {
@@ -97,12 +97,12 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
     vector<AliHLTComponentBlockData>* mOutputBlocks;
   };
 
-  static const int NSLICES = 36;    //* N slices
-  static const int fgkNPatches = 6; //* N slices
+  static const int32_t NSLICES = 36;    //* N slices
+  static const int32_t fgkNPatches = 6; //* N slices
 
   /** magnetic field */
   double fSolenoidBz;              // see above
-  int fMinNTrackClusters;          //* required min number of clusters on the track
+  int32_t fMinNTrackClusters;      //* required min number of clusters on the track
   double fMinTrackPt;              //* required min Pt of tracks
   double fClusterZCut;             //* cut on cluster Z position (for noise rejection at the age of TPC)
   double mNeighboursSearchArea;    //* area in cm for the neighbour search algorithm
@@ -110,24 +110,24 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
   double fClusterErrorCorrectionZ; // correction for the cluster errors
 
   AliHLTComponentBenchmark fBenchmark;           // benchmarks
-  char fAllowGPU;                                //* Allow this tracker to run on GPU
-  int fGPUHelperThreads;                         // Number of helper threads for GPU tracker, set to -1 to use default number
-  int fCPUTrackers;                              // Number of CPU trackers to run in addition to GPU tracker
-  char fGlobalTracking;                          // Activate global tracking feature
-  int fGPUDeviceNum;                             // GPU Device to use, default -1 for auto detection
+  int8_t fAllowGPU;                              //* Allow this tracker to run on GPU
+  int32_t fGPUHelperThreads;                     // Number of helper threads for GPU tracker, set to -1 to use default number
+  int32_t fCPUTrackers;                          // Number of CPU trackers to run in addition to GPU tracker
+  int8_t fGlobalTracking;                        // Activate global tracking feature
+  int32_t fGPUDeviceNum;                         // GPU Device to use, default -1 for auto detection
   TString fGPUType;                              // GPU type to use "CUDA", "HIP", "OCL"
-  int fGPUStuckProtection;                       // Protect from stuck GPUs
-  int fAsync;                                    // Run tracking in async thread to catch GPU hangs....
+  int32_t fGPUStuckProtection;                   // Protect from stuck GPUs
+  int32_t fAsync;                                // Run tracking in async thread to catch GPU hangs....
   float fSearchWindowDZDR;                       // See TPCCAParam
   GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec; // GPUReconstruction
   GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;
 
   /** set configuration parameters **/
   void SetDefaultConfiguration();
-  int ReadConfigurationString(const char* arguments);
-  int ReadCDBEntry(const char* cdbEntry, const char* chainId);
-  int Configure(const char* cdbEntry, const char* chainId, const char* commandLine);
-  int ConfigureSlices();
+  int32_t ReadConfigurationString(const char* arguments);
+  int32_t ReadCDBEntry(const char* cdbEntry, const char* chainId);
+  int32_t Configure(const char* cdbEntry, const char* chainId, const char* commandLine);
+  int32_t ConfigureSlices();
 
   AliHLTAsyncMemberProcessor<GPUTPCTrackerComponent> fAsyncProcessor;
   void* TrackerInit(void*);

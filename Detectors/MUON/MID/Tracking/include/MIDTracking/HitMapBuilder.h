@@ -55,7 +55,8 @@ class HitMapBuilder
 
   /// Sets the masked channels
   /// \param maskedChannels vector of masked channels
-  void setMaskedChannels(const std::vector<ColumnData>& maskedChannels);
+  /// \param clear clear the current masks
+  void setMaskedChannels(const std::vector<ColumnData>& maskedChannels, bool clear);
 
  private:
   /// Checks if the track crossed the same element

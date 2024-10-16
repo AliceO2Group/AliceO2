@@ -58,11 +58,14 @@ class O2DPLDisplaySpec : public o2::framework::Task
                    std::shared_ptr<o2::base::GRPGeomRequest> gr,
                    std::shared_ptr<o2::emcal::CalibLoader> emcCalibLoader,
                    const std::string& jsonPath, const std::string& ext,
-                   std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks,
+                   std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks, int numberOfBytes,
                    bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime,
                    const EveWorkflowHelper::Bracket& timeBracket, bool removeTPCEta,
-                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers, float primaryVertexMinZ, float primaryVertexMaxZ, float primaryVertexMinX, float primaryVertexMaxX, float primaryVertexMinY, float primaryVertexMaxY, float maxEMCALCellTime, float minEMCALCellEnergy)
-    : mDisableWrite(disableWrite), mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEMCALCalibLoader(emcCalibLoader), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mPrimaryVertexMinZ(primaryVertexMinZ), mPrimaryVertexMaxZ(primaryVertexMaxZ), mPrimaryVertexMinX(primaryVertexMinX), mPrimaryVertexMaxX(primaryVertexMaxX), mPrimaryVertexMinY(primaryVertexMinY), mPrimaryVertexMaxY(primaryVertexMaxY), mEMCALMaxCellTime(maxEMCALCellTime), mEMCALMinCellEnergy(minEMCALCellEnergy), mRunType(o2::parameters::GRPECS::NONE)
+                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent,
+                   bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers,
+                   float primaryVertexMinZ, float primaryVertexMaxZ, float primaryVertexMinX, float primaryVertexMaxX, float primaryVertexMinY, float primaryVertexMaxY,
+                   float maxEMCALCellTime, float minEMCALCellEnergy)
+    : mDisableWrite(disableWrite), mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEMCALCalibLoader(emcCalibLoader), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mNumberOfBytes(numberOfBytes), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mPrimaryVertexMinZ(primaryVertexMinZ), mPrimaryVertexMaxZ(primaryVertexMaxZ), mPrimaryVertexMinX(primaryVertexMinX), mPrimaryVertexMaxX(primaryVertexMaxX), mPrimaryVertexMinY(primaryVertexMinY), mPrimaryVertexMaxY(primaryVertexMaxY), mEMCALMaxCellTime(maxEMCALCellTime), mEMCALMinCellEnergy(minEMCALCellEnergy), mRunType(o2::parameters::GRPECS::NONE)
 
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
@@ -92,6 +95,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
   std::chrono::milliseconds mTimeInterval; // minimal interval between files in milliseconds
   int mNumberOfFiles;                      // maximum number of files in folder - newer replaces older
   int mNumberOfTracks;                     // maximum number of track in single file (0 means no limit)
+  int mNumberOfBytes;                      // number of bytes stored in period which causes stopping saving a new file
   bool mTrackSorting;                      // perform sorting tracks by track time before applying filters
   int mOnlyNthEvent;                       // process only every nth event.
   int mMaxPrimaryVertices;                 // max number of primary vertices to draw per time frame

@@ -122,7 +122,7 @@ int main(int argc, const char** argv)
   rawwriter.init();
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
-  for (auto en : *treereader) {
+  while (treereader->Next()) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
   rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::Str::concat_string(outputdir, "/EMCraw.cfg"));

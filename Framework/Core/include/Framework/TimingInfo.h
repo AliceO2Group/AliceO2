@@ -23,7 +23,11 @@ namespace o2::framework
 
 struct TimingInfo {
   constexpr static ServiceKind service_kind = ServiceKind::Stream;
-  size_t timeslice; /// the timeslice associated to current processing
+  size_t timeslice = 0;       /// the timeslice associated to current processing. The default
+                              /// is in general overridden unless the end of stream arrives
+                              /// without any previous processing, so we need to 0 it,
+                              /// and not use -1, which would break the oldest possible timeframe
+                              /// in that case.
   uint32_t firstTForbit = -1; /// the orbit the TF begins
   uint32_t tfCounter = -1;    // the counter associated to a TF
   uint32_t runNumber = -1;
@@ -36,9 +40,11 @@ struct TimingInfo {
   /// from a new run, as being processed by the current stream.
   /// FIXME: for now this is the same as the above.
   bool streamRunNumberChanged = false;
+  /// Wether this kind of data should be flushed during end of stream.
+  bool keepAtEndOfStream = false;
 
   static bool timesliceIsTimer(size_t timeslice) { return timeslice > 1652945069870351; }
-  bool isTimer() const { return timesliceIsTimer(timeslice); };
+  [[nodiscard]] bool isTimer() const { return timesliceIsTimer(timeslice); };
 };
 
 } // namespace o2::framework

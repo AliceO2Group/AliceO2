@@ -165,7 +165,7 @@ struct GBTWord {
 
   uint8_t getHeader() const { return id; }
 
-  void printX(bool padded = true) const;
+  void printX(bool padded = true, std::string com = "") const;
   void printB(bool padded = true) const;
 
   ClassDefNV(GBTWord, 1);
@@ -243,7 +243,7 @@ struct GBTDataTrailer : public GBTWord {
     id = GBTFlagDataTrailer;
   }
 
-  uint8_t getPacketState() const { return data8[8]; }
+  uint8_t getPacketState() const { return data8[8] & (MaxStateCombinations - 1); }
 
   void setByte(uint8_t v, int which) = delete;
 

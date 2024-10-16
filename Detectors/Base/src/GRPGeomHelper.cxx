@@ -63,7 +63,7 @@ GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, 
     addInput({"orbitReset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset")}, inputs);
   }
   if (askGRPECS) {
-    addInput({"grpecs", "GLO", "GRPECS", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPECS", true)}, inputs); // Run dependent !!!
+    addInput({"grpecs", "GLO", "GRPECS", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPECS", 1)}, inputs); // Run dependent !!!
   }
   if (askGRPLHCIF) {
     addInput({"grplhcif", "GLO", "GRPLHCIF", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPLHCIF")}, inputs);
@@ -71,6 +71,22 @@ GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, 
   if (askGRPMagField) {
     addInput({"grpfield", "GLO", "GRPMAGFIELD", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPMagField", {}, 1)}, inputs); // query every TF
   }
+}
+
+void GRPGeomRequest::requireAggregateRunInfo(std::vector<o2::framework::InputSpec>& inputs)
+{
+  askAggregateRunInfo = true;
+  // require dependencies
+  if (!askGRPECS) {
+    askGRPECS = true;
+    addInput({"grpecs", "GLO", "GRPECS", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPECS", 1)}, inputs);
+  }
+  if (!askTime) {
+    askTime = true;
+    addInput({"orbitReset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset")}, inputs);
+  }
+  addInput({"RCTRunInfo", "RCT", "RunInfo", 0, Lifetime::Condition, ccdbParamSpec("RCT/Info/RunInformation", 2)}, inputs);
+  addInput({"CTPRunOrbit", "CTP", "RunOrbit", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/FirstRunOrbit")}, inputs); // TODO: should become run-depenendent (1) object
 }
 
 void GRPGeomRequest::addInput(const o2::framework::InputSpec&& isp, std::vector<o2::framework::InputSpec>& inputs)
@@ -124,8 +140,8 @@ bool GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return true;
   }
   if (mRequest->askTime && matcher == ConcreteDataMatcher("CTP", "ORBITRESET", 0)) {
-    mOrbitResetTimeMS = (*(std::vector<Long64_t>*)obj)[0] / 1000;
-    LOG(info) << "orbit reset time updated to " << mOrbitResetTimeMS;
+    mOrbitResetTimeMUS = (*(std::vector<Long64_t>*)obj)[0];
+    LOG(info) << "orbit reset time updated to " << mOrbitResetTimeMUS;
     return true;
   }
   if (mRequest->askMatLUT && matcher == ConcreteDataMatcher("GLO", "MATLUT", 0)) {
@@ -159,7 +175,7 @@ bool GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   return false;
 }
 
-void GRPGeomHelper::checkUpdates(ProcessingContext& pc) const
+void GRPGeomHelper::checkUpdates(ProcessingContext& pc)
 {
   // request input just to trigger finaliseCCDB if there was an update
 
@@ -224,6 +240,14 @@ void GRPGeomHelper::checkUpdates(ProcessingContext& pc) const
           pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
         }
       }
+    }
+    if (mRequest->askAggregateRunInfo) {
+      const auto hmap = pc.inputs().get<o2::framework::CCDBMetadataExtractor>("RCTRunInfo"); // metadata only!
+      auto rl = o2::ccdb::BasicCCDBManager::getRunDuration(hmap);
+      auto ctfFirstRunOrbitVec = pc.inputs().get<std::vector<Long64_t>*>("CTPRunOrbit");
+      mAggregatedRunInfo = o2::parameters::AggregatedRunInfo::buildAggregatedRunInfo(pc.services().get<o2::framework::TimingInfo>().runNumber, rl.first, rl.second, mOrbitResetTimeMUS, mGRPECS, ctfFirstRunOrbitVec.get());
+      LOGP(debug, "Extracted AggregateRunInfo: runNumber:{}, sor:{}, eor:{}, orbitsPerTF:{}, orbitReset:{}, orbitSOR:{}, orbitEOR:{}",
+           mAggregatedRunInfo.runNumber, mAggregatedRunInfo.sor, mAggregatedRunInfo.eor, mAggregatedRunInfo.orbitsPerTF, mAggregatedRunInfo.orbitReset, mAggregatedRunInfo.orbitSOR, mAggregatedRunInfo.orbitEOR);
     }
   }
 }

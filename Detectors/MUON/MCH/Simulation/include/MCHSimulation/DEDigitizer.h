@@ -43,6 +43,12 @@ class DEDigitizer
    */
   DEDigitizer(int deId, math_utils::Transform3D transformation, std::mt19937& random);
 
+  /** Set the first orbit of the processed TF.
+   *
+   * @param firstTFOrbit TF first orbit
+   */
+  void setFirstTFOrbit(uint32_t firstTFOrbit) { mFirstTFOrbit = firstTFOrbit; }
+
   /** Process one MCH Hit.
    *
    * This will convert the hit eloss into a charge and spread (according
@@ -122,6 +128,8 @@ class DEDigitizer
   std::poisson_distribution<int> mNofNoisyPadsDist; ///< random number of noisy pads generator (poisson distribution)
   std::uniform_int_distribution<int> mPadIdDist;    ///< random pad ID generator (uniform distribution)
   std::uniform_int_distribution<int> mBCDist;       ///< random BC number inside ROF generator (uniform distribution)
+
+  uint32_t mFirstTFOrbit; ///< first orbit of the TF being processed
 
   std::vector<std::vector<Signal>> mSignals; ///< list of signals per pad
 };

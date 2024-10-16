@@ -66,32 +66,60 @@ class define:
     else:
       self.cont = line
 
+  def getDefineArguments(self, line):
+    oi,ci = findInBrackets('(', ')', line)
+    # split at ','
+    vtmp = line[oi+1:ci].split(',')
+    # but avoid splitting strings containing a ',', like e.g. ... , "alpha, beta", ...
+    vars = []
+    vars.append(vtmp[0])
+    cnt = 1
+    goon = cnt < len(vtmp)
+    while goon:
+      if np.mod(vars[-1].count('"'),2) != 0:
+        vars[-1] += vtmp[cnt]
+      else:
+        vars.append(vtmp[cnt])
+
+      cnt += 1
+      goon = cnt < len(vtmp)
+
+    return vars
+
   def expandLine(self, line):
     expandedLine = " ".join(line.split())
 
     if self.name in line:
       if len(self.vars) == 0:
         # no substitution of variables needed
-        expandedLine = line.replace(self.name, self.cont)
+        # replace occurences of self.name with self.cont
+        expandedLine = line
+        aa = re.findall(r"[\w']+", line)
+        if aa.count(self.name):
+          expandedLine = line.replace(self.name, self.cont)
       else:
         inds = [i for i in range(len(line)) if line.startswith(self.name, i)]
         expandedLine = line[:inds[0]]
+        addRest = True
+        lastc = 0
         for i, ind in enumerate(inds):
 
           # make sure that the name of the define == self.name and not only starts with self.name
           words = line[ind:].split('(')
           if words[0].strip() != self.name:
             if i < len(inds)-1:
-              expandedLine += line[ind:inds[i+1]]
+              expandedLine += line[ind:inds[i+1]-1]
+              lastc = inds[i+1]
             else:
               expandedLine += line[ind:]
+              lastc = len(line)
             continue
 
           # substitute variables vars
-          vars = "".join(line[ind:].split("(")[1:]).split(")")[0].split(",")
+          vars = self.getDefineArguments(line[ind:])
           if len(vars) != len(self.vars):
             print("ATTENTION")
-            print("Substitution error!")
+            print("Substitution error 1!")
             print('>> ', line)
           else:
             words = split(self.cont)
@@ -100,6 +128,29 @@ class define:
                 if self.vars[ind1].strip() in words[ind2]:
                   words[ind2] = re.sub(self.vars[ind1].strip(), vars[ind1].strip(), words[ind2])
             expandedLine += block(words)
+
+            # last added character of line
+            if i < len(inds)-1:
+              i1 = inds[i+1]-1
+            else:
+              i1 = len(line)
+            seq = countBrackets('(', ')', line[inds[i]:i1])
+            d = list()
+            for x, y in zip(seq[0::], seq[1::]):
+              d.append(y-x)
+            if d.count(-1) > 0:
+              lastc = inds[i]+d.index(-1)+2
+            else:
+              print("ATTENTION")
+              print("Substitution error 2!")
+              print('>> ', line)
+
+            expandedLine += line[lastc:i1]
+            lastc = i1
+
+        # add rest of the line
+        if lastc < len(line):
+          expandedLine += line[lastc:]
 
       # remove ##, which connects two strings
       expandedLine = block(split(expandedLine.replace(" # # ", "")))
@@ -159,7 +210,7 @@ def countBrackets(obr, cbr, line):
       for i2 in range(i1, len(line)):
         seq[i2] += 1
     for i1 in icl:
-      for i2 in range(i1+len(cbr), len(line)):
+      for i2 in range(i1+len(cbr)-1, len(line)):
         seq[i2] -= 1
 
   else:
@@ -199,8 +250,9 @@ def findInBrackets(obr, cbr, line):
     # find next seq == 0 (closing)
     inds = [i for i, x in enumerate(seq[oi:]) if x == 0]
     if len(inds) > 0:
-      ci = inds[0]+oi
+      ci = inds[0]+oi+1
     else:
+      print("\n error: ", line)
       sys.exit('<findInBrackets> '+obr+' ... '+cbr+' missmatch! EXIT -->')
 
   return [oi, ci]
@@ -300,6 +352,7 @@ def pickContent(lines_in_file):
   #   ATTENTION: '//' can be part of a string, e.g. http://alice-ccdb.cern.ch
   # 2. consider extensions \
   # 3. remove comment blocks /* ... */
+  # 4. substitute defines
   linesWithoutComments = list()
   lineToAdd = ""
   for line in lines_in_file:
@@ -307,8 +360,6 @@ def pickContent(lines_in_file):
     # 1. remove the comments // but not the //!
     l = ' '.join(line.split())+' '
     obr = countBrackets('"', '"', l)
-    #print("line: ", l)
-    #print(" obr: ",obr)
     i1 = l.find("//")
     while i1 >= 0:
       if obr[i1] == 0 and l[i1+2] != "!":
@@ -332,7 +383,7 @@ def pickContent(lines_in_file):
     stat = res[0]
     linesWithoutComments[ind] = res[1]
 
-  # select all lines starting with #define
+  # 4. select all lines starting with #define
   idfs = [l for l, s in enumerate(linesWithoutComments) if s.lstrip().startswith("#define")]
   for idf in idfs:
     ws = split(linesWithoutComments[idf])

@@ -45,40 +45,40 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
  protected:
   GPUReconstructionDeviceBase(const GPUSettingsDeviceBackend& cfg, size_t sizeCheck);
 
-  int InitDevice() override;
-  virtual int InitDevice_Runtime() = 0;
-  int ExitDevice() override;
-  virtual int ExitDevice_Runtime() = 0;
-  int registerMemoryForGPU_internal(const void* ptr, size_t size) override;
-  int unregisterMemoryForGPU_internal(const void* ptr) override;
+  int32_t InitDevice() override;
+  virtual int32_t InitDevice_Runtime() = 0;
+  int32_t ExitDevice() override;
+  virtual int32_t ExitDevice_Runtime() = 0;
+  int32_t registerMemoryForGPU_internal(const void* ptr, size_t size) override;
+  int32_t unregisterMemoryForGPU_internal(const void* ptr) override;
   void unregisterRemainingRegisteredMemory();
 
-  virtual const GPUTPCTracker* CPUTracker(int iSlice) { return &processors()->tpcTrackers[iSlice]; }
+  virtual const GPUTPCTracker* CPUTracker(int32_t iSlice) { return &processors()->tpcTrackers[iSlice]; }
 
-  int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override = 0;
-  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override = 0;
-  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override = 0;
-  size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
+  int32_t GPUDebug(const char* state = "UNKNOWN", int32_t stream = -1, bool force = false) override = 0;
+  size_t TransferMemoryInternal(GPUMemoryResource* res, int32_t stream, deviceEvent* ev, deviceEvent* evList, int32_t nEvents, bool toGPU, const void* src, void* dst) override;
+  size_t GPUMemCpy(void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) override = 0;
+  size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) override;
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) override = 0;
 
-  int StartHelperThreads() override;
-  int StopHelperThreads() override;
-  void RunHelperThreads(int (GPUReconstructionHelpers::helperDelegateBase::*function)(int, int, GPUReconstructionHelpers::helperParam*), GPUReconstructionHelpers::helperDelegateBase* functionCls, int count) override;
-  int HelperError(int iThread) const override { return mHelperParams[iThread].error; }
-  int HelperDone(int iThread) const override { return mHelperParams[iThread].done; }
+  int32_t StartHelperThreads() override;
+  int32_t StopHelperThreads() override;
+  void RunHelperThreads(int32_t (GPUReconstructionHelpers::helperDelegateBase::*function)(int32_t, int32_t, GPUReconstructionHelpers::helperParam*), GPUReconstructionHelpers::helperDelegateBase* functionCls, int32_t count) override;
+  int32_t HelperError(int32_t iThread) const override { return mHelperParams[iThread].error; }
+  int32_t HelperDone(int32_t iThread) const override { return mHelperParams[iThread].done; }
   void WaitForHelperThreads() override;
-  void ResetHelperThreads(int helpers) override;
+  void ResetHelperThreads(int32_t helpers) override;
   void ResetThisHelperThread(GPUReconstructionHelpers::helperParam* par);
 
-  int GetGlobalLock(void*& pLock);
+  int32_t GetGlobalLock(void*& pLock);
   void ReleaseGlobalLock(void* sem);
 
   static void* helperWrapper_static(void* arg);
   void* helperWrapper(GPUReconstructionHelpers::helperParam* par);
 
-  int mDeviceId = -1;                                             // Device ID used by backend
+  int32_t mDeviceId = -1;                                         // Device ID used by backend
   GPUReconstructionHelpers::helperParam* mHelperParams = nullptr; // Control Struct for helper threads
-  int mNSlaveThreads = 0;                                         // Number of slave threads currently active
+  int32_t mNSlaveThreads = 0;                                     // Number of slave threads currently active
 
   struct DebugEvents {
     deviceEvent DebugStart, DebugStop; // Debug timer events
@@ -94,7 +94,7 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   void runConstantRegistrators();
 };
 
-inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev, deviceEvent* evList, int32_t nEvents)
 {
   if (onGpu) {
     return GPUMemCpy(dst, src, size, stream, toGPU, ev, evList, nEvents);

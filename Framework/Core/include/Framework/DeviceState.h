@@ -17,8 +17,6 @@
 
 #include <vector>
 #include <string>
-#include <map>
-#include <utility>
 #include <atomic>
 
 typedef struct uv_loop_s uv_loop_t;
@@ -29,6 +27,8 @@ typedef struct uv_async_s uv_async_t;
 
 namespace o2::framework
 {
+
+struct DataProcessorContext;
 
 /// Running state information of a given device
 struct DeviceState {
@@ -66,8 +66,18 @@ struct DeviceState {
     STREAM_CONTEXT_LOG = 1 << 4,         // Log for the StreamContext callbacks
   };
 
+  enum ProcessingType : int {
+    Any,             // Any kind of processing is allowed
+    CalibrationOnly, // Only calibrations are allowed to be processed / produced
+  };
+
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
+  // What kind of processing is allowed. By default we allow any.
+  // If we are past the data processing timeout, this will be
+  // CalibrationOnly. We need to reset it at every start.
+  ProcessingType allowedProcessing = ProcessingType::Any;
+
   bool quitRequested = false;
   std::atomic<int64_t> cleanupCount = -1;
 
@@ -108,6 +118,11 @@ struct DeviceState {
   /// the bits we are interested in.
   std::vector<int> severityStack;
   TransitionHandlingState transitionHandling = TransitionHandlingState::NoTransition;
+
+  // The DataProcessorContext which was most recently active.
+  // We use this to determine if we should trigger the loop without
+  // waiting for some events.
+  std::atomic<DataProcessorContext*> lastActiveDataProcessor = nullptr;
 };
 
 } // namespace o2::framework

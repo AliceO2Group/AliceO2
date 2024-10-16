@@ -81,7 +81,7 @@ void IrregularSpline2D3D::setFutureBufferAddress(char* futureFlatBufferPtr)
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-void IrregularSpline2D3D::construct(int numberOfKnotsU, const float knotsU[], int numberOfAxisBinsU, int numberOfKnotsV, const float knotsV[], int numberOfAxisBinsV)
+void IrregularSpline2D3D::construct(int32_t numberOfKnotsU, const float knotsU[], int32_t numberOfAxisBinsU, int32_t numberOfKnotsV, const float knotsV[], int32_t numberOfAxisBinsV)
 {
   /// Constructor
   ///
@@ -117,7 +117,7 @@ void IrregularSpline2D3D::construct(int numberOfKnotsU, const float knotsU[], in
   mGridV.moveBufferTo(mFlatBufferPtr + vOffset);
 }
 
-void IrregularSpline2D3D::constructRegular(int numberOfKnotsU, int numberOfKnotsV)
+void IrregularSpline2D3D::constructRegular(int32_t numberOfKnotsU, int32_t numberOfKnotsV)
 {
   /// Constructor for a regular spline
   /// \param numberOfKnotsU     U axis: Number of knots in knots[] array

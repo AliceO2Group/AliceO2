@@ -83,7 +83,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
       if (mDistortionScaleType == 1) {
         mSpaceCharge->distortElectron(posEle);
       } else if (mDistortionScaleType == 2) {
-        mSpaceCharge->distortElectron(posEle, mSpaceChargeDer.get(), mLumiScaleFactor);
+        mSpaceCharge->distortElectron(posEle, (mUseScaledDistortions ? nullptr : mSpaceChargeDer.get()), mLumiScaleFactor);
       }
 
       /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
@@ -110,6 +110,12 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
           continue;
         }
         const float absoluteTime = eleTime + mTDriftOffset + (mEventTime - mOutputDigitTimeOffset); /// in us
+
+        /// the absolute time needs to be within the readout limits
+        /// (otherwise negative times would all be accumulated in the 0-th timebin further below)
+        if (!(absoluteTime >= 0 /* && absoluteTime <= timeframelength */)) {
+          continue;
+        }
 
         /// Attachment
         if (electronTransport.isElectronAttachment(driftTime)) {
@@ -217,9 +223,14 @@ void Digitizer::setUseSCDistortions(std::string_view finp)
 
 void Digitizer::setStartTime(double time)
 {
+  // this is setting the first timebin index for the digit container
+  // note that negative times w.r.t start of timeframe/data-taking == mOutputDigitTimeOffset
+  // will yield the 0-th bin (due to casting logic in sampaProcessing)
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   sampaProcessing.updateParameters(mVDrift);
-  mDigitContainer.setStartTime(sampaProcessing.getTimeBinFromTime(time - mOutputDigitTimeOffset));
+  const auto timediff = time - mOutputDigitTimeOffset;
+  const auto starttimebin = sampaProcessing.getTimeBinFromTime(timediff);
+  mDigitContainer.setStartTime(starttimebin);
 }
 
 void Digitizer::setLumiScaleFactor()
@@ -236,4 +247,34 @@ void Digitizer::setMeanLumiDistortions(float meanLumi)
 void Digitizer::setMeanLumiDistortionsDerivative(float meanLumi)
 {
   mSpaceChargeDer->setMeanLumi(meanLumi);
+}
+
+void Digitizer::recalculateDistortions()
+{
+  if (!mSpaceCharge || !mSpaceChargeDer) {
+    LOGP(info, "Average or derivative distortions not set");
+    return;
+  }
+
+  // recalculate distortions only in case the inst lumi differs from the avg lumi
+  if (mSpaceCharge->getMeanLumi() != CorrMapParam::Instance().lumiInst) {
+    for (int iside = 0; iside < 2; ++iside) {
+      const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
+      // this needs to be done only once
+      LOGP(info, "Calculating corrections for average distortions");
+      mSpaceCharge->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
+
+      LOGP(info, "Calculating corrections for derivative distortions");
+      mSpaceChargeDer->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
+
+      LOGP(info, "Calculating scaled distortions with scaling factor {}", mLumiScaleFactor);
+      mSpaceCharge->calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, mSpaceChargeDer.get(), mLumiScaleFactor);
+    }
+    // set new lumi of avg map
+    mSpaceCharge->setMeanLumi(CorrMapParam::Instance().lumiInst);
+  } else {
+    LOGP(info, "Inst. lumi {} is same as mean lumi {}. Skip recalculation of distortions", CorrMapParam::Instance().lumiInst, mSpaceCharge->getMeanLumi());
+  }
+
+  mUseScaledDistortions = true;
 }

@@ -21,16 +21,16 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 template <>
-GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& GPUrestrict() tracker)
 {
   // Sorts the Start Hits by Row Index
   if (iThread == 0) {
-    const int tmpNRows = GPUCA_ROW_COUNT - 6;
-    const int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
-    const int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
-    int startOffset2 = 0;
+    const int32_t tmpNRows = GPUCA_ROW_COUNT - 6;
+    const int32_t nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
+    const int32_t nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
+    int32_t startOffset2 = 0;
     GPUCA_UNROLL(, U())
-    for (int ir = 1; ir < GPUCA_ROW_COUNT - 5; ir++) {
+    for (int32_t ir = 1; ir < GPUCA_ROW_COUNT - 5; ir++) {
       if (ir < nStartRow) {
         startOffset2 += tracker.mRowStartHitCountOffset[ir];
       }
@@ -41,17 +41,17 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iB
   }
   GPUbarrier();
 
-  int startOffset = s.mStartOffset;
+  int32_t startOffset = s.mStartOffset;
 #ifdef __HIPCC__ // TODO: Fixme
-  for (int ir = -1; ++ir < s.mNRows;) {
+  for (int32_t ir = -1; ++ir < s.mNRows;) {
 #else
-  for (int ir = 0; ir < s.mNRows; ir++) {
+  for (int32_t ir = 0; ir < s.mNRows; ir++) {
 #endif
     GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
     GPUglobalref() GPUTPCHitId* const GPUrestrict() tmpStartHits = tracker.mTrackletTmpStartHits + (s.mStartRow + ir) * tracker.mNMaxRowStartHits;
 
-    const int tmpLen = tracker.mRowStartHitCountOffset[ir + s.mStartRow]; // Length of hits in row stored by StartHitsFinder
-    for (int j = iThread; j < tmpLen; j += nThreads) {
+    const int32_t tmpLen = tracker.mRowStartHitCountOffset[ir + s.mStartRow]; // Length of hits in row stored by StartHitsFinder
+    for (int32_t j = iThread; j < tmpLen; j += nThreads) {
       startHits[startOffset + j] = tmpStartHits[j];
     }
     startOffset += tmpLen;

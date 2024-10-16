@@ -34,7 +34,7 @@ namespace o2::tpc
 {
 
 /// flags to set which corrections will be loaded from the CCDB
-enum class CalibsdEdx : unsigned short {
+enum class CalibsdEdx : uint16_t {
   CalTopologySpline = 1 << 0,  ///< flag for a topology correction using splines
   CalTopologyPol = 1 << 1,     ///< flag for a topology correction using polynomials
   CalThresholdMap = 1 << 2,    ///< flag for using threshold map
@@ -43,11 +43,11 @@ enum class CalibsdEdx : unsigned short {
   CalTimeGain = 1 << 5,        ///< flag for residual dE/dx time dependent gain correction
 };
 
-inline CalibsdEdx operator|(CalibsdEdx a, CalibsdEdx b) { return static_cast<CalibsdEdx>(static_cast<int>(a) | static_cast<int>(b)); }
+inline CalibsdEdx operator|(CalibsdEdx a, CalibsdEdx b) { return static_cast<CalibsdEdx>(static_cast<int32_t>(a) | static_cast<int32_t>(b)); }
 
-inline CalibsdEdx operator&(CalibsdEdx a, CalibsdEdx b) { return static_cast<CalibsdEdx>(static_cast<int>(a) & static_cast<int>(b)); }
+inline CalibsdEdx operator&(CalibsdEdx a, CalibsdEdx b) { return static_cast<CalibsdEdx>(static_cast<int32_t>(a) & static_cast<int32_t>(b)); }
 
-inline CalibsdEdx operator~(CalibsdEdx a) { return static_cast<CalibsdEdx>(~static_cast<int>(a)); }
+inline CalibsdEdx operator~(CalibsdEdx a) { return static_cast<CalibsdEdx>(~static_cast<int32_t>(a)); }
 
 ///
 /// This container class contains all necessary corrections for the dE/dx
@@ -60,7 +60,9 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 {
  public:
   /// Default constructor: creates an empty uninitialized object
+#ifndef GPUCA_GPUCODE
   CalibdEdxContainer() CON_DEFAULT;
+#endif
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject() instead
   CalibdEdxContainer(const CalibdEdxContainer&) CON_DELETE;
@@ -81,7 +83,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \param relTime relative time position of the cluster
   /// \param threshold zero supression threshold
   /// \param charge charge of the cluster
-  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime, const float threshold, const float charge) const
+  GPUd() float getTopologyCorrection(const int32_t region, const ChargeType chargeT, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime, const float threshold, const float charge) const
   {
     return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, chargeT, tanTheta, sinPhi, z, relPad, relTime, threshold, charge) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, chargeT, tanTheta, sinPhi, z) : getDefaultTopologyCorrection(tanTheta, sinPhi));
   }
@@ -90,7 +92,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \param region region of the TPC
   /// \param chargeT type of the charge (qMax or qTot)
   /// \param x coordinates where the correction is evaluated
-  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, float x[]) const
+  GPUd() float getTopologyCorrection(const int32_t region, const ChargeType chargeT, float x[]) const
   {
     return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, chargeT, x) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, chargeT, x) : getDefaultTopologyCorrection(x[0], x[1]));
   }
@@ -110,22 +112,22 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \return returns zero supression threshold
   /// \param sector tpc sector
   /// \param row global pad row
-  GPUd() float getZeroSupressionThreshold(const int sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mThresholdMap.getGainCorrection(sector, row, pad); }
+  GPUd() float getZeroSupressionThreshold(const int32_t sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mThresholdMap.getGainCorrection(sector, row, pad); }
 
   /// \return returns gain from the full gain map
   /// \param sector tpc sector
   /// \param row global pad row
-  GPUd() float getGain(const int sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mGainMap.getGainCorrection(sector, row, pad); }
+  GPUd() float getGain(const int32_t sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mGainMap.getGainCorrection(sector, row, pad); }
 
   /// \return returns gain from residual gain map
   /// \param sector tpc sector
   /// \param row global pad row
-  GPUd() float getResidualGain(const int sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mGainMapResidual.getGainCorrection(sector, row, pad); }
+  GPUd() float getResidualGain(const int32_t sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mGainMapResidual.getGainCorrection(sector, row, pad); }
 
   /// \return returns if channel is tagged by the dead map
   /// \param sector tpc sector
   /// \param row global pad row
-  GPUd() bool isDead(const int sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mDeadChannelMap.isSet(sector, row, pad); }
+  GPUd() bool isDead(const int32_t sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mDeadChannelMap.isSet(sector, row, pad); }
 
   /// \return returns the residual dE/dx correction for the cluster charge
   /// \param stack ID of the GEM stack
@@ -275,7 +277,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \param maxThreshold max threshold value which will be considered for averaging
   /// \param nPadsInRowCl number of pads in row direction which will be taken into account (+- nPadsInRowCl)
   /// \param nPadsInPadCl number of pads in pad direction which will be taken into account (+- nPadsInPadCl)
-  CalDet<float> processThresholdMap(const CalDet<float>& thresholdMap, const float maxThreshold, const int nPadsInRowCl = 2, const int nPadsInPadCl = 2) const;
+  CalDet<float> processThresholdMap(const CalDet<float>& thresholdMap, const float maxThreshold, const int32_t nPadsInRowCl = 2, const int32_t nPadsInPadCl = 2) const;
 #endif
 
 #ifndef GPUCA_ALIROOT_LIB

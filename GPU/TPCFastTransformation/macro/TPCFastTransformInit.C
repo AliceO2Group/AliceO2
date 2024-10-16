@@ -102,11 +102,11 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   // the difference
 
   double maxDiff[3] = {0., 0., 0.};
-  int maxDiffRoc[3] = {0, 0, 0};
-  int maxDiffRow[3] = {0, 0, 0};
+  int32_t maxDiffRoc[3] = {0, 0, 0};
+  int32_t maxDiffRow[3] = {0, 0, 0};
 
   double sumDiff[3] = {0., 0., 0.};
-  long nDiff = 0;
+  int64_t nDiff = 0;
 
   // a debug file with some NTuples
 
@@ -162,23 +162,23 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   branch->SetAddress(&v);
   branch->SetAutoDelete(kTRUE);
 
-  for (int iVox = 0; iVox < voxResTree->GetEntriesFast(); iVox++) {
+  for (int32_t iVox = 0; iVox < voxResTree->GetEntriesFast(); iVox++) {
 
     voxResTree->GetEntry(iVox);
 
     float voxEntries = v->stat[o2::tpc::TrackResiduals::VoxV];
 
-    int xBin =
+    int32_t xBin =
       v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
 
-    int y2xBin =
+    int32_t y2xBin =
       v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
 
-    int z2xBin =
+    int32_t z2xBin =
       v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
 
-    int iRoc = (int)v->bsec;
-    int iRow = (int)xBin;
+    int32_t iRoc = (int32_t)v->bsec;
+    int32_t iRow = (int32_t)xBin;
 
     double x = trackResiduals.getX(xBin); // radius of the pad row
 
@@ -219,7 +219,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     cy -= y;
     cz -= z;
     double d[3] = {cx - correctionX, cy - correctionY, cz - correctionZ};
-    for (int i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < 3; i++) {
       if (fabs(maxDiff[i]) < fabs(d[i])) {
         maxDiff[i] = d[i];
         maxDiffRoc[i] = iRoc;
@@ -236,10 +236,10 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
 
   std::cout << "create debug ntuples ..." << std::endl;
 
-  for (int iRoc = 0; iRoc < geo.getNumberOfSlices(); iRoc++) {
-    // for (int iRoc = 0; iRoc < 1; iRoc++) {
+  for (int32_t iRoc = 0; iRoc < geo.getNumberOfSlices(); iRoc++) {
+    // for (int32_t iRoc = 0; iRoc < 1; iRoc++) {
     std::cout << "debug ntules for roc " << iRoc << std::endl;
-    for (int iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
+    for (int32_t iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
 
       double x = geo.getRowInfo(iRow).x;
 
@@ -265,9 +265,9 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
 
       const auto& gridU = corr.getSpline(iRoc, iRow).getGridX1();
       const auto& gridV = corr.getSpline(iRoc, iRow).getGridX2();
-      for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
+      for (int32_t iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
         double su = gridU.convUtoX(gridU.getKnot(iu).getU());
-        for (int iv = 0; iv < gridV.getNumberOfKnots(); iv++) {
+        for (int32_t iv = 0; iv < gridV.getNumberOfKnots(); iv++) {
           double sv = gridV.convUtoX(gridV.getKnot(iv).getU());
           float u, v;
           corr.convGridToUV(iRoc, iRow, iu, iv, u, v);
@@ -291,7 +291,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
         corrHelper->getCorrectionMap();
       auto& points = map.getPoints(iRoc, iRow);
 
-      for (unsigned int ip = 0; ip < points.size(); ip++) {
+      for (uint32_t ip = 0; ip < points.size(); ip++) {
         auto point = points[ip];
         float y = point.mY;
         float z = point.mZ;
@@ -312,7 +312,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     }
   }
 
-  for (int i = 0; i < 3; i++) {
+  for (int32_t i = 0; i < 3; i++) {
     sumDiff[i] = sqrt(sumDiff[i]) / nDiff;
   }
 

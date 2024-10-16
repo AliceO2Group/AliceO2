@@ -161,12 +161,18 @@ int main(int argc, char* argv[])
     // Scan versions e.g. 001 or 002 ...
     TString v0Name{"O2v0_???"}, trkExtraName{"O2trackextra*"};
     TRegexp v0Re(v0Name, kTRUE), trkExtraRe(trkExtraName, kTRUE);
+    bool hasTrackQA{false};
+    TString trackQAName{"O2trackqa*"};
+    TRegexp trackQARe(trackQAName, kTRUE);
     for (TObject* obj : *treeList) {
       TString st = obj->GetName();
       if (st.Index(v0Re) != kNPOS) {
         v0Name = st;
       } else if (st.Index(trkExtraRe) != kNPOS) {
         trkExtraName = st;
+      } else if (st.Index(trackQARe) != kNPOS) {
+        hasTrackQA = true;
+        trackQAName = st;
       }
     }
 
@@ -194,22 +200,38 @@ int main(int argc, char* argv[])
       exitCode = 8;
       break;
     }
+    // TrackQA
+    TTree* trackQA;
+    if (hasTrackQA && (trackQA = (TTree*)inputFile->Get(Form("%s/%s", dfName, trackQAName.Data()))) == nullptr) {
+      exitCode = 20;
+      break;
+    }
 
     // We need to loop over the V0s once and flag the prong indices
     int trackIdxPos = 0, trackIdxNeg = 0;
-    std::unordered_map<int, bool> keepV0TPCs;
+    std::vector<bool> keepV0s(trackExtraTree->GetEntries(), false);
     v0s->SetBranchAddress("fIndexTracks_Pos", &trackIdxPos);
     v0s->SetBranchAddress("fIndexTracks_Neg", &trackIdxNeg);
     auto nV0s = v0s->GetEntriesFast();
     for (int i{0}; i < nV0s; ++i) {
       v0s->GetEntry(i);
-      keepV0TPCs[trackIdxPos] = true;
-      keepV0TPCs[trackIdxNeg] = true;
+      keepV0s[trackIdxPos] = true;
+      keepV0s[trackIdxNeg] = true;
+    }
+
+    // TrackQA
+    std::vector<bool> keepTrackQA;
+    if (hasTrackQA) {
+      keepTrackQA.assign(trackExtraTree->GetEntries(), false);
+      trackQA->SetBranchAddress("fIndexTracks", &trackIdxPos);
+      for (int i{0}; i < trackQA->GetEntries(); ++i) {
+        trackQA->GetEntry(i);
+        keepTrackQA[trackIdxPos] = true;
+      }
     }
 
     std::vector<int> acceptedTracks(trackExtraTree->GetEntries(), -1);
     std::vector<bool> hasCollision(trackExtraTree->GetEntries(), false);
-    std::vector<int> keepV0s(v0s->GetEntries(), -1);
 
     uint8_t tpcNClsFindable = 0;
     bool bTPClsFindable = false;
@@ -271,7 +293,8 @@ int main(int argc, char* argv[])
       if (tpcNClsFindable > 0 && TRDPattern == 0 && TOFChi2 < -1. &&
           (!bITSClusterMap || ITSClusterMap == 0) &&
           (!bITSClusterSizes || ITSClusterSizes == 0) &&
-          (keepV0TPCs.find(i) == keepV0TPCs.end())) {
+          (!hasTrackQA || !keepTrackQA[i]) &&
+          !keepV0s[i]) {
         counter++;
       } else {
         acceptedTracks[i] = i - counter;
@@ -331,16 +354,10 @@ int main(int argc, char* argv[])
         }
       }
 
-      bool processingTracks = treeName.BeginsWith("O2track"); // matches any of the track tables
-      bool processingCascades = treeName.BeginsWith("O2cascade");
-      bool processingV0s = treeName.BeginsWith("O2v0");
-      bool processingAmbiguousTracks = treeName.BeginsWith("O2ambiguoustrack");
-
-      auto indexV0s = -1;
-      if (processingCascades) {
-        inputTree->SetBranchAddress("fIndexV0s", &indexV0s);
-        outputTree->SetBranchAddress("fIndexV0s", &indexV0s);
-      }
+      const bool processingTracked = treeName.BeginsWith("O2tracked");
+      const bool processingTrackQA = treeName.BeginsWith("O2trackqa");
+      const bool processingTracks = treeName.BeginsWith("O2track") && !processingTracked && !processingTrackQA; // matches any of the track tables and not tracked{v0s,cascase,3body} or trackqa;
+      const bool processingAmbiguousTracks = treeName.BeginsWith("O2ambiguoustrack");
 
       auto entries = inputTree->GetEntries();
       for (int i = 0; i < entries; i++) {
@@ -367,15 +384,6 @@ int main(int argc, char* argv[])
           }
         }
 
-        // Reassign v0 index of cascades
-        if (processingCascades) {
-          if (keepV0s[indexV0s] < 0) {
-            fillThisEntry = false;
-          } else {
-            indexV0s = keepV0s[indexV0s];
-          }
-        }
-
         // Keep only tracks which have no collision, see O2-3601
         if (processingAmbiguousTracks) {
           if (hasCollision[i]) {
@@ -385,14 +393,25 @@ int main(int argc, char* argv[])
 
         if (fillThisEntry) {
           outputTree->Fill();
-          if (processingV0s) {
-            keepV0s[i] = outputTree->GetEntries() - 1;
-          }
         }
       }
 
       if (entries != outputTree->GetEntries()) {
         printf("      Reduced from %lld to %lld entries\n", entries, outputTree->GetEntries());
+        // sanity check by hardcoding the trees for which we expect a reduction
+        const TString tableName{removeVersionSuffix(outputTree->GetName())};
+        static const std::array<TString, 4> checkNames{"O2track", "O2trackextra", "O2trackcov", "O2ambiguoustrack"}; // O2track -> O2track_iu; O2trackcov -> O2trackcov_iu
+        std::vector<bool> checks(checkNames.size(), false);
+        for (size_t i{0}; i < checkNames.size(); ++i) {
+          if (tableName.EqualTo(checkNames[i])) {
+            checks[i] = true;
+          }
+        }
+        if (std::none_of(checks.begin(), checks.end(), [](bool b) { return b; })) {
+          exitCode = 30;
+          printf("       -> Reduction is not expected for this tree!\n");
+          break;
+        }
       }
 
       delete inputTree;

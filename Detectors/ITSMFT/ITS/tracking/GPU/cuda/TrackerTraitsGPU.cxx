@@ -20,17 +20,16 @@
 
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
+#include "ITStracking/TrackingConfigParam.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 constexpr int UnusedIndex{-1};
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialiseHybrid(iteration, mTrkParams[iteration], nLayers);
+  mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], nLayers);
   mTimeFrameGPU->loadTrackingFrameInfoDevice(iteration);
 }
 
@@ -382,7 +381,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       for (int iLayer{startLayer - 1}; iLayer > 0 && level > 2; --iLayer) {
         lastCellSeed.swap(updatedCellSeed);
         lastCellId.swap(updatedCellId);
-        updatedCellSeed.clear();
+        std::vector<CellSeed>().swap(updatedCellSeed); /// tame the memory peaks
         updatedCellId.clear();
         processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
       }
@@ -399,7 +398,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
     }
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds);
     mTimeFrameGPU->loadTrackSeedsDevice(trackSeeds);
-
+    auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
     trackSeedHandler(
       mTimeFrameGPU->getDeviceTrackSeeds(),             // CellSeed* trackSeeds,
       mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo,
@@ -410,7 +409,9 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       mTrkParams[0].MaxChi2ClusterAttachment,           // float maxChi2ClusterAttachment,
       mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
       mTimeFrameGPU->getDevicePropagator(),             // const o2::base::Propagator* propagator
-      mCorrType);                                       // o2::base::PropagatorImpl<float>::MatCorrType
+      mCorrType,                                        // o2::base::PropagatorImpl<float>::MatCorrType
+      conf.nBlocks,
+      conf.nThreads);
 
     mTimeFrameGPU->downloadTrackITSExtDevice(trackSeeds);
 
@@ -462,11 +463,10 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
     }
   }
-  if (iteration == 2) {
-    mTimeFrameGPU->unregisterHostMemory(0); // FIXME this needs to work also with sync
+  if (iteration == mTrkParams.size() - 1) {
+    mTimeFrameGPU->unregisterHostMemory(0);
   }
 };
 
 template class TrackerTraitsGPU<7>;
-} // namespace its
-} // namespace o2
+} // namespace o2::its

@@ -93,8 +93,9 @@ void dump(const std::string what, DPMAP m, int verbose)
 
       std::cout << fmt::format("{:64s} {:4d} ({:4d} unique) values of mean {:7.2f} : ", i.first.get_alias(), v.size(), vv.size(), mean);
       if (verbose > 1) {
+        std::cout << "\n";
         for (auto dp : vv) {
-          std::cout << " " << dp << "\n";
+          std::cout << fmt::format(" {:7.2f} ", sum(0., dp)) << dp << "\n";
         }
       }
       std::cout << "timeRange=" << timeRange.first << " " << timeRange.second << "\n";
@@ -187,7 +188,15 @@ void makeDefaultCCDBEntry(const std::string ccdbUrl, uint64_t timestamp)
   DPMAP dpMap;
   std::string ccdb = fmt::format("{}/Calib/HV", o2::muon::subsysname());
 #if defined(MUON_SUBSYSTEM_MCH)
-  // TODO: do the same for MCH
+  std::array<o2::mch::dcs::MeasurementType, 2> types{o2::mch::dcs::MeasurementType::HV_V, o2::mch::dcs::MeasurementType::HV_I};
+  std::array<double, 2> defaultValues{1650., 0.1};
+  for (size_t itype = 0; itype < 2; ++itype) {
+    auto aliases = o2::mch::dcs::aliases({types[itype]});
+    for (const auto& alias : aliases) {
+      auto obj = o2::dcs::createDataPointCompositeObject(alias, defaultValues[itype], timestamp_seconds, timestamp_ms);
+      dpMap[obj.id].emplace_back(obj.data);
+    }
+  }
 #elif defined(MUON_SUBSYSTEM_MID)
   std::array<o2::mid::dcs::MeasurementType, 2> types{o2::mid::dcs::MeasurementType::HV_V, o2::mid::dcs::MeasurementType::HV_I};
   std::array<double, 2> defaultValues{9600., 5};
@@ -209,7 +218,12 @@ void makeDefaultCCDBEntry(const std::string ccdbUrl, uint64_t timestamp)
   md["default"] = "true";
   std::cout << "storing default values of " << o2::muon::subsysname() << " data points to " << ccdb << "\n";
 
+#if defined(MUON_SUBSYSTEM_MCH)
+  md["Created"] = "1";
+  api.storeAsTFileAny(&dpMap, ccdb, md, 1, 9999999999999);
+#elif defined(MUON_SUBSYSTEM_MID)
   api.storeAsTFileAny(&dpMap, ccdb, md, 1, timestamp);
+#endif
 }
 
 bool match(const std::vector<std::string>& queries, const char* pattern)

@@ -63,7 +63,7 @@ struct TaskStreamInfo {
   /// The registry associated to the task being run
   ServiceRegistry* registry;
   /// The libuv task handle
-  uv_work_t task;
+  uv_work_t* task;
   /// Wether or not this task is running
   bool running = false;
 };
@@ -113,7 +113,6 @@ class DataProcessingDevice : public fair::mq::Device
   std::vector<fair::mq::RegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   std::mutex mRegionInfoMutex;
   ProcessingPolicies mProcessingPolicies; /// User policies related to data processing
-  bool mWasActive = false;                /// Whether or not the device was active at last iteration.
   std::vector<uv_work_t> mHandles;        /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;   /// Information about the task running in the associated mHandle.
   /// Handle to wake up the main loop from other threads

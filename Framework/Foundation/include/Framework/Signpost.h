@@ -234,7 +234,9 @@ inline _o2_signpost_id_t _o2_signpost_id_make_with_pointer(_o2_log_t* log, void 
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <execinfo.h>
 #include "Framework/RuntimeError.h"
+#include "Framework/BacktraceHelpers.h"
 void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, va_list args);
 
 // returns true if the push was successful, false if the stack was full
@@ -377,6 +379,12 @@ void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* n
   vsnprintf(prebuffer + s, 4096 - s, format, args);
   va_end(args);
   O2_LOG_MACRO("%s", prebuffer);
+  if (log->stacktrace > 1) {
+    void* traces[o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE];
+    // We add one extra frame, because one is for the logging
+    int maxBacktrace = backtrace(traces, (log->stacktrace + 1) < o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE ? (log->stacktrace + 1) : o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE);
+    o2::framework::BacktraceHelpers::demangled_backtrace_symbols(traces, maxBacktrace, STDERR_FILENO);
+  }
 }
 
 // This will look at the slot in the log associated to the ID.

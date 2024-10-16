@@ -16,6 +16,7 @@
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "Framework/Logger.h"
 
 using namespace o2::its;
 
@@ -30,9 +31,9 @@ void RecoGeomHelper::RecoChip::updateLimits(const o2::math_utils::Point3D<float>
 //_____________________________________________________________________
 void RecoGeomHelper::RecoChip::print() const
 {
-  printf("Ch#%4d Alp: %+.3f X:%5.2f %+6.3f<y<%+6.3f  %+6.3f<z<%+6.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f}\n",
-         id, alp, xRef, yRange.getMin(), yRange.getMax(), zRange.getMin(), zRange.getMax(),
-         xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1());
+  LOGF(info, "Ch#%4d Alp: %+.3f X:%5.2f %+6.3f<y<%+6.3f  %+6.3f<z<%+6.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f}\n",
+       id, alp, xRef, yRange.getMin(), yRange.getMax(), zRange.getMin(), zRange.getMax(),
+       xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1());
 }
 
 //_____________________________________________________________________
@@ -77,10 +78,10 @@ void RecoGeomHelper::RecoLadder::init()
 void RecoGeomHelper::RecoLadder::print() const
 {
   assert(overlapWithNext != Undefined || chips.size() == 0); // make sure there are no undefined ladders after init is done
-  printf("Ladder %3d  %.3f<phi[<%.3f>]<%.3f dPhiH:%.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f} | %3d chips | OvlNext: %s\n",
-         id, phiRange.getMin(), phiMean, phiRange.getMax(), dphiH,
-         xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1(), (int)chips.size(),
-         overlapWithNext == Undefined ? "N/A" : ((overlapWithNext == NoOverlap ? "NO" : (overlapWithNext == Above ? "Above" : "Below"))));
+  LOGF(info, "Ladder %3d  %.3f<phi[<%.3f>]<%.3f dPhiH:%.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f} | %3d chips | OvlNext: %s\n",
+       id, phiRange.getMin(), phiMean, phiRange.getMax(), dphiH,
+       xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1(), (int)chips.size(),
+       overlapWithNext == Undefined ? "N/A" : ((overlapWithNext == NoOverlap ? "NO" : (overlapWithNext == Above ? "Above" : "Below"))));
   for (const auto& ch : chips) {
     ch.print();
   }
@@ -220,8 +221,8 @@ void RecoGeomHelper::RecoLayer::updateLimits(const o2::math_utils::Point3D<float
 //_____________________________________________________________________
 void RecoGeomHelper::RecoLayer::print() const
 {
-  printf("\nLayer %d %.2f<r<%.2f %+.2f<z<%+.2f  %d ladders\n",
-         id, rRange.getMin(), rRange.getMax(), zRange.getMin(), zRange.getMax(), (int)ladders.size());
+  LOGF(info, "\nLayer %d %.2f<r<%.2f %+.2f<z<%+.2f  %d ladders\n",
+       id, rRange.getMin(), rRange.getMax(), zRange.getMin(), zRange.getMax(), (int)ladders.size());
   for (const auto& ld : ladders) {
     ld.print();
   }

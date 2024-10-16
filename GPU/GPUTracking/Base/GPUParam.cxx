@@ -73,17 +73,17 @@ void GPUParam::SetDefaults(float solenoidBz)
   };
   // clang-format on
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 6; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 6; k++) {
         ParamS0Par[i][j][k] = kParamS0Par[i][j][k];
       }
     }
   }
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 4; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 4; k++) {
         ParamErrorsSeeding0[i][j][k] = kParamErrorsSeeding0[i][j][k];
       }
     }
@@ -98,11 +98,11 @@ void GPUParam::SetDefaults(float solenoidBz)
   constexpr float plusZmax = 249.778;
   constexpr float minusZmin = -249.645;
   constexpr float minusZmax = -0.0799937;
-  for (int i = 0; i < GPUCA_NSLICES; i++) {
+  for (int32_t i = 0; i < GPUCA_NSLICES; i++) {
     const bool zPlus = (i < GPUCA_NSLICES / 2);
     SliceParam[i].ZMin = zPlus ? plusZmin : minusZmin;
     SliceParam[i].ZMax = zPlus ? plusZmax : minusZmax;
-    int tmp = i;
+    int32_t tmp = i;
     if (tmp >= GPUCA_NSLICES / 2) {
       tmp -= GPUCA_NSLICES / 2;
     }
@@ -119,9 +119,8 @@ void GPUParam::SetDefaults(float solenoidBz)
   par.assumeConstantBz = false;
   par.toyMCEventsFlag = false;
   par.continuousTracking = false;
-  par.continuousMaxTimeBin = 0;
+  continuousMaxTimeBin = 0;
   par.debugLevel = 0;
-  par.resetTimers = false;
   par.earlyTpcTransform = false;
 }
 
@@ -132,19 +131,18 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
     par.assumeConstantBz = g->constBz;
     par.toyMCEventsFlag = g->homemadeEvents;
     par.continuousTracking = g->continuousMaxTimeBin != 0;
-    par.continuousMaxTimeBin = g->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->continuousMaxTimeBin;
+    continuousMaxTimeBin = g->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->continuousMaxTimeBin;
   }
   par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
   qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f; // Repeat here, since passing in g is optional
   if (p) {
     par.debugLevel = p->debugLevel;
-    par.resetTimers = p->resetTimers;
     UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);
   }
   if (w) {
-    par.dodEdx = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
+    par.dodEdx = dodEdxDownscaled = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
     if (par.dodEdx && p && p->tpcDownscaledEdx != 0) {
-      par.dodEdx = (rand() % 100) < p->tpcDownscaledEdx;
+      dodEdxDownscaled = (rand() % 100) < p->tpcDownscaledEdx;
     }
   }
 }
@@ -177,10 +175,10 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
 void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
-  for (int yz = 0; yz < 2; yz++) {
+  for (int32_t yz = 0; yz < 2; yz++) {
     const float* param = yz ? zErrorParam : yErrorParam;
-    for (int rowType = 0; rowType < 4; rowType++) {
-      constexpr int regionMap[4] = {0, 4, 6, 8};
+    for (int32_t rowType = 0; rowType < 4; rowType++) {
+      constexpr int32_t regionMap[4] = {0, 4, 6, 8};
       ParamErrors[yz][rowType][0] = param[0] * param[0];
       ParamErrors[yz][rowType][1] = param[1] * param[1] * tpcGeometry.PadHeightByRegion(regionMap[rowType]);
       ParamErrors[yz][rowType][2] = param[2] * param[2] / tpcGeometry.TPCLength() / tpcGeometry.PadHeightByRegion(regionMap[rowType]);
@@ -207,17 +205,17 @@ void GPUParam::LoadClusterErrors(bool Print)
     return;
   }
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 6; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 6; k++) {
         ParamS0Par[i][j][k] = clparam->GetParamS0Par(i, j, k);
       }
     }
   }
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 4; k++) {
+  for (int32_t i = 0; i < 2; i++) {
+    for (int32_t j = 0; j < 3; j++) {
+      for (int32_t k = 0; k < 4; k++) {
         ParamErrorsSeeding0[i][j][k] = clparam->GetParamRMS0(i, j, k);
       }
     }
@@ -231,11 +229,11 @@ void GPUParam::LoadClusterErrors(bool Print)
 #endif
     std::cout << "ParamS0Par[2][3][7]=" << std::endl;
     std::cout << " { " << std::endl;
-    for (int i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < 2; i++) {
       std::cout << "   { " << std::endl;
-      for (int j = 0; j < 3; j++) {
+      for (int32_t j = 0; j < 3; j++) {
         std::cout << " { ";
-        for (int k = 0; k < 6; k++) {
+        for (int32_t k = 0; k < 6; k++) {
           std::cout << ParamS0Par[i][j][k] << ", ";
         }
         std::cout << " }, " << std::endl;
@@ -246,11 +244,11 @@ void GPUParam::LoadClusterErrors(bool Print)
 
     std::cout << "ParamErrorsSeeding0[2][3][4]=" << std::endl;
     std::cout << " { " << std::endl;
-    for (int i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < 2; i++) {
       std::cout << "   { " << std::endl;
-      for (int j = 0; j < 3; j++) {
+      for (int32_t j = 0; j < 3; j++) {
         std::cout << " { ";
-        for (int k = 0; k < 4; k++) {
+        for (int32_t k = 0; k < 4; k++) {
           std::cout << ParamErrorsSeeding0[i][j][k] << ", ";
         }
         std::cout << " }, " << std::endl;
@@ -269,7 +267,7 @@ void GPUParam::LoadClusterErrors(bool Print)
 
 void GPUParamRTC::setFrom(const GPUParam& param)
 {
-  memcpy((char*)this, (char*)&param, sizeof(param));
+  memcpy((void*)this, (void*)&param, sizeof(param));
 }
 
 std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexpr)
@@ -277,6 +275,8 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
   return "#ifndef GPUCA_GPUCODE_DEVICE\n"
          "#include <string>\n"
          "#include <vector>\n"
+         "#include <cstdint>\n"
+         "#include <cstddef>\n"
          "#endif\n"
          "namespace o2::gpu { class GPUDisplayFrontendInterface; }\n" +
          qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);

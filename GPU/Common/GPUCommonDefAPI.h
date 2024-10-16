@@ -20,6 +20,10 @@
   #error Please include GPUCommonDef.h!
 #endif
 
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cstdint>
+#endif
+
 //Define macros for GPU keywords. i-version defines inline functions.
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
@@ -54,21 +58,21 @@
   #define GPUconstantref()                          // reference / ptr to constant memory
   #define GPUconstexprref()                         // reference / ptr to variable declared as GPUconstexpr()
 
-  #ifndef __VECTOR_TYPES_H__ // ROOT will pull in these CUDA definitions if built against CUDA, so we have to add an ugly protection here
+  #ifndef __VECTOR_TYPES_H__ // FIXME: ROOT will pull in these CUDA definitions if built against CUDA, so we have to add an ugly protection here
     struct float4 { float x, y, z, w; };
     struct float3 { float x, y, z; };
     struct float2 { float x; float y; };
-    struct uchar2 { unsigned char x, y; };
-    struct short2 { short x, y; };
-    struct ushort2 { unsigned short x, y; };
-    struct int2 { int x, y; };
-    struct int3 { int x, y, z; };
-    struct int4 { int x, y, z, w; };
-    struct uint1 { unsigned int x; };
-    struct uint2 { unsigned int x, y; };
-    struct uint3 { unsigned int x, y, z; };
-    struct uint4 { unsigned int x, y, z, w; };
-    struct dim3 { unsigned int x, y, z; };
+    struct uchar2 { uint8_t x, y; };
+    struct short2 { int16_t x, y; };
+    struct ushort2 { uint16_t x, y; };
+    struct int2 { int32_t x, y; };
+    struct int3 { int32_t x, y, z; };
+    struct int4 { int32_t x, y, z, w; };
+    struct uint1 { uint32_t x; };
+    struct uint2 { uint32_t x, y; };
+    struct uint3 { uint32_t x, y, z; };
+    struct uint4 { uint32_t x, y, z, w; };
+    struct dim3 { uint32_t x, y, z; };
   #endif
 #elif defined(__OPENCL__) // Defines for OpenCL
   #define GPUd()
@@ -95,15 +99,15 @@
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUbarrierWarp()
     #define GPUAtomic(type) atomic<type>
-    static_assert(sizeof(atomic<unsigned int>) == sizeof(unsigned int), "Invalid size of atomic type");
+    static_assert(sizeof(atomic<uint32_t>) == sizeof(uint32_t), "Invalid size of atomic type");
   #else
     #define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
     #define GPUbarrierWarp()
     #if defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS)
       namespace GPUCA_NAMESPACE { namespace gpu {
       template <class T> struct oclAtomic;
-      template <> struct oclAtomic<unsigned int> {typedef atomic_uint t;};
-      static_assert(sizeof(oclAtomic<unsigned int>::t) == sizeof(unsigned int), "Invalid size of atomic type");
+      template <> struct oclAtomic<uint32_t> {typedef atomic_uint t;};
+      static_assert(sizeof(oclAtomic<uint32_t>::t) == sizeof(uint32_t), "Invalid size of atomic type");
       }}
       #define GPUAtomic(type) GPUCA_NAMESPACE::gpu::oclAtomic<type>::t
     #else
@@ -152,7 +156,11 @@
   #define GPUbarrierWarp()
   #define GPUAtomic(type) type
 #elif defined(__CUDACC__) //Defines for CUDA
-  #define GPUd() __device__
+  #ifndef GPUCA_GPUCODE_DEVICE
+    #define GPUd() __device__ inline // FIXME: DR: Workaround: mark device function as inline such that nvcc does not create bogus host symbols
+  #else
+    #define GPUd() __device__
+  #endif
   #define GPUdDefault()
   #define GPUhdDefault()
   #define GPUdi() __device__ inline

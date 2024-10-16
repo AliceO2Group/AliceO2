@@ -11,6 +11,7 @@
 
 #include "MCHSimulation/Digitizer.h"
 
+#include "DetectorsRaw/HBFUtils.h"
 #include "MCHSimulation/DigitizerParam.h"
 
 namespace o2::mch
@@ -22,6 +23,13 @@ Digitizer::Digitizer(geo::TransformationCreator transformationCreator)
   mapping::forEachDetectionElement([&](int deId) {
     mDEDigitizers[deId] = std::make_unique<DEDigitizer>(deId, transformationCreator(deId), mRandom);
   });
+}
+
+void Digitizer::setFirstTFOrbit(uint32_t firstTFOrbit)
+{
+  for (auto& d : mDEDigitizers) {
+    d.second->setFirstTFOrbit(firstTFOrbit);
+  }
 }
 
 void Digitizer::processHits(gsl::span<const Hit> hits, const InteractionRecord& collisionTime, int evID, int srcID)
@@ -49,11 +57,14 @@ size_t Digitizer::digitize(std::vector<ROFRecord>& rofs,
     nPileup += d.second->digitize(irDigitsAndLabels);
   }
 
-  // fill the external containers
+  // fill the external containers, skipping digits produced before the beginning of the TF
+  auto firstTFOrbit = o2::raw::HBFUtils::Instance().getFirstSampledTFIR().orbit;
   for (const auto& [ir, digitsAndLabels] : irDigitsAndLabels) {
-    rofs.emplace_back(ROFRecord(ir, digits.size(), digitsAndLabels.first.size()));
-    digits.insert(digits.end(), digitsAndLabels.first.begin(), digitsAndLabels.first.end());
-    labels.mergeAtBack(digitsAndLabels.second);
+    if (ir.orbit >= firstTFOrbit) {
+      rofs.emplace_back(ROFRecord(ir, digits.size(), digitsAndLabels.first.size()));
+      digits.insert(digits.end(), digitsAndLabels.first.begin(), digitsAndLabels.first.end());
+      labels.mergeAtBack(digitsAndLabels.second);
+    }
   }
 
   return nPileup;

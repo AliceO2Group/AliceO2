@@ -45,12 +45,12 @@ void SemiregularSpline2D3D::relocateBufferPointers(const char* oldBuffer, char* 
   /// relocate pointers from old to new buffer location
 
   /*char *bufferV = FlatObject::relocatePointer( oldBuffer, actualBuffer, mGridV.getFlatBufferPtr() );
-	mGridV.setActualBufferAddress( bufferV );*/
+  mGridV.setActualBufferAddress( bufferV );*/
 
-  /*for( int i=0; i<mNumberOfRows; i++) {
-	char *bufferUi = FlatObject::relocatePointer(oldBuffer, actualBuffer, mSplineArray[i].getFlatBufferPtr() );
-	mSplineArray[i].setActualBufferAddress( bufferUi );
-	}*/
+  /*for( int32_t i=0; i<mNumberOfRows; i++) {
+    char *bufferUi = FlatObject::relocatePointer(oldBuffer, actualBuffer, mSplineArray[i].getFlatBufferPtr() );
+    mSplineArray[i].setActualBufferAddress( bufferUi );
+  }*/
 }
 
 void SemiregularSpline2D3D::cloneFromObject(const SemiregularSpline2D3D& obj, char* newFlatBufferPtr)
@@ -84,26 +84,26 @@ void SemiregularSpline2D3D::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
   /*const char* oldFlatBufferPtr = mFlatBufferPtr;
- 
-	char *bufferV = relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mGridV.getFlatBufferPtr() );
-	mGridV.setFutureBufferAddress( bufferV );*/
 
-  /*for( int i=0; i<mNumberOfRows; i++ ) {
-	char *bufferUi = relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mSplineArray[i].getFlatBufferPtr() );
-	mSplineArray[i].setFutureBufferAddress( bufferUi );
-	}*/
+  char *bufferV = relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mGridV.getFlatBufferPtr() );
+  mGridV.setFutureBufferAddress( bufferV );*/
+
+  /*for( int32_t i=0; i<mNumberOfRows; i++ ) {
+    char *bufferUi = relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mSplineArray[i].getFlatBufferPtr() );
+    mSplineArray[i].setFutureBufferAddress( bufferUi );
+  }*/
 
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-void SemiregularSpline2D3D::construct(const int numberOfRowsInput, const int numbersOfKnots[])
+void SemiregularSpline2D3D::construct(const int32_t numberOfRowsInput, const int32_t numbersOfKnots[])
 {
   /// Constructor
   ///
   /// When the number of rows / knots is less than 5 it will be set to 5
   ///
 
-  int numberOfRows = numberOfRowsInput;
+  int32_t numberOfRows = numberOfRowsInput;
   if (numberOfRows < 5) {
     numberOfRows = 5;
   }
@@ -118,10 +118,10 @@ void SemiregularSpline2D3D::construct(const int numberOfRowsInput, const int num
   RegularSpline1D splineArray[numberOfRows];
 
   // And construct them
-  for (int i = 0; i < numberOfRowsInput; i++) {
+  for (int32_t i = 0; i < numberOfRowsInput; i++) {
     splineArray[i].construct(numbersOfKnots[i]);
   }
-  for (int i = numberOfRowsInput; i < numberOfRows; i++) {
+  for (int32_t i = numberOfRowsInput; i < numberOfRows; i++) {
     splineArray[i].construct(5);
   }
 
@@ -129,20 +129,20 @@ void SemiregularSpline2D3D::construct(const int numberOfRowsInput, const int num
   mDataIndexMapOffset = numberOfRows * sizeof(RegularSpline1D);
 
   //The buffer size is the size of the array
-  FlatObject::finishConstruction(mDataIndexMapOffset + numberOfRows * sizeof(int));
+  FlatObject::finishConstruction(mDataIndexMapOffset + numberOfRows * sizeof(int32_t));
 
   // Array for the 1D-Splines inside the buffer
   RegularSpline1D* bufferSplines = getSplineArrayNonConst();
 
   // paste local splineArray to the buffer
-  for (int i = 0; i < numberOfRows; i++) {
+  for (int32_t i = 0; i < numberOfRows; i++) {
     bufferSplines[i] = splineArray[i];
   }
 
   // Just calculating the total number of knots in this 2D3D spline.
-  int numberOfKnots = 0;
-  for (int i = 0; i < numberOfRows; i++) {
-    int knotsU = getGridU(i).getNumberOfKnots();
+  int32_t numberOfKnots = 0;
+  for (int32_t i = 0; i < numberOfRows; i++) {
+    int32_t knotsU = getGridU(i).getNumberOfKnots();
     numberOfKnots += knotsU;
   }
 
@@ -151,13 +151,13 @@ void SemiregularSpline2D3D::construct(const int numberOfRowsInput, const int num
   mNumberOfKnots = numberOfKnots;
 
   // map to save the starting data index for each v-coordinate
-  int* dataIndexMap = getDataIndexMapNonConst();
+  int32_t* dataIndexMap = getDataIndexMapNonConst();
 
   // this will count the amount of u-knots "under" a v-coordinate
-  int uSum = 0;
+  int32_t uSum = 0;
 
   //count the amount of knots which are in gridU's lower than i
-  for (int dv = 0; dv < mNumberOfRows; dv++) {
+  for (int32_t dv = 0; dv < mNumberOfRows; dv++) {
     dataIndexMap[dv] = uSum;
     uSum += numbersOfKnots[dv];
   }

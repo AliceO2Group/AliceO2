@@ -117,7 +117,13 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir, b
     while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], *seenChipIDsPtr, chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
       if (verifyDecoder) {
-        seenChips[chipData->getChipID()] = chipData;
+        auto ID = chipData->getChipID();
+        // Since the errored chips are not recorded, we need to add them
+        // separately
+        if (seenChipIDsInCable.empty() || seenChipIDsInCable.back() != ID) {
+          seenChipIDsInCable.push_back(ID);
+        }
+        seenChips[ID] = chipData;
       }
       auto nhits = chipData->getData().size();
       if (nhits && doneChips[chipData->getChipID()]) {

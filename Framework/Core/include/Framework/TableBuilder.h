@@ -33,6 +33,7 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
+#include <concepts>
 
 namespace arrow
 {
@@ -462,10 +463,10 @@ struct CachedInsertion {
   int pos = 0;
 };
 
-template <size_t I, typename T, template <typename U> typename InsertionPolicy>
-struct BuilderHolder : InsertionPolicy<T> {
+template <size_t I, typename T, typename P>
+struct BuilderHolder : P {
   static constexpr size_t index = I;
-  using Policy = InsertionPolicy<T>;
+  using Policy = P;
   using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
@@ -562,60 +563,16 @@ template <class T, std::size_t N>
 struct is_bounded_array<std::array<T, N>> : std::true_type {
 };
 
-template <size_t I, typename T>
-struct HolderTrait {
+template <typename T>
+concept BulkInsertable = (std::integral<std::decay<T>> && !std::same_as<bool, std::decay_t<T>>);
 
-  using Holder = BuilderHolder<I, T, DirectInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, int8_t> {
-  using Holder = BuilderHolder<I, int8_t, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, uint8_t> {
-  using Holder = BuilderHolder<I, uint8_t, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, uint16_t> {
-  using Holder = BuilderHolder<I, uint16_t, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, int16_t> {
-  using Holder = BuilderHolder<I, int16_t, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, int> {
-  using Holder = BuilderHolder<I, int, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, float> {
-  using Holder = BuilderHolder<I, float, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, double> {
-  using Holder = BuilderHolder<I, double, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, unsigned int> {
-  using Holder = BuilderHolder<I, unsigned int, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, uint64_t> {
-  using Holder = BuilderHolder<I, uint64_t, CachedInsertion>;
-};
-
-template <size_t I>
-struct HolderTrait<I, int64_t> {
-  using Holder = BuilderHolder<I, int64_t, CachedInsertion>;
+template <typename T>
+struct InsertionTrait {
+  static consteval DirectInsertion<T> policy()
+    requires(!BulkInsertable<T>);
+  static consteval CachedInsertion<T> policy()
+    requires(BulkInsertable<T>);
+  using Policy = decltype(policy());
 };
 
 /// Helper function to convert a brace-initialisable struct to
@@ -645,7 +602,7 @@ template <typename... ARGS>
 constexpr auto makeHolderTypes()
 {
   return []<std::size_t... Is>(std::index_sequence<Is...>) {
-    return std::tuple(typename HolderTrait<Is, ARGS>::Holder(arrow::default_memory_pool())...);
+    return std::tuple(BuilderHolder<Is, ARGS, typename InsertionTrait<ARGS>::Policy>(arrow::default_memory_pool())...);
   }(std::make_index_sequence<sizeof...(ARGS)>{});
 }
 
@@ -653,7 +610,7 @@ template <typename... ARGS>
 auto makeHolders(arrow::MemoryPool* pool, size_t nRows)
 {
   return [pool, nRows]<std::size_t... Is>(std::index_sequence<Is...>) {
-    return new std::tuple(typename HolderTrait<Is, ARGS>::Holder(pool, nRows)...);
+    return new std::tuple(BuilderHolder<Is, ARGS, typename InsertionTrait<ARGS>::Policy>(pool, nRows)...);
   }(std::make_index_sequence<sizeof...(ARGS)>{});
 }
 
@@ -668,7 +625,7 @@ class TableBuilder
   static void throwError(RuntimeErrorRef const& ref);
 
   template <typename... ARGS>
-  using HoldersTuple = typename std::tuple<typename HolderTrait<0, ARGS>::Holder...>;
+  using HoldersTuple = typename std::tuple<BuilderHolder<0, ARGS, typename InsertionTrait<ARGS>::Policy>...>;
 
   template <typename... ARGS>
   using HoldersTupleIndexed = decltype(makeHolderTypes<ARGS...>());
@@ -886,12 +843,12 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table>& fullT
                                             expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name);
 
 /// Expression-based column generator to materialize columns
-template <typename... C>
+template <o2::framework::OriginEnc ORIGIN, typename... C>
 auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
 {
   auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables));
   if (fullTable->num_rows() == 0) {
-    return makeEmptyTable<soa::Table<C...>>(name);
+    return makeEmptyTable<soa::Table<ORIGIN, C...>>(name);
   }
   static auto fields = o2::soa::createFieldsFromColumns(columns);
   static auto new_schema = std::make_shared<arrow::Schema>(fields);

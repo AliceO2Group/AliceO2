@@ -39,7 +39,7 @@ extern GPUSettingsStandalone configStandalone;
 }
 static auto& config = configStandalone.TF;
 
-GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, int (*read)(int), int nEvents) : mChain(chain), mReadEvent(read), mNEventsInDirectory(nEvents), mDisUniReal(0.f, 1.f), mRndGen1(configStandalone.seed), mRndGen2(mDisUniInt(mRndGen1))
+GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, int32_t (*read)(int32_t), int32_t nEvents) : mChain(chain), mReadEvent(read), mNEventsInDirectory(nEvents), mDisUniReal(0.f, 1.f), mRndGen1(configStandalone.seed), mRndGen2(mDisUniInt(mRndGen1))
 {
   mMaxBunchesFull = TIME_ORBIT / config.bunchSpacing;
   mMaxBunches = (TIME_ORBIT - config.abortGapTime) / config.bunchSpacing;
@@ -67,40 +67,40 @@ GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, 
   }
 }
 
-int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float minZ, float maxZ, bool silent)
+int32_t GPUReconstructionTimeframe::ReadEventShifted(int32_t iEvent, float shiftZ, float minZ, float maxZ, bool silent)
 {
   mReadEvent(iEvent);
   if (config.overlayRaw) {
     float shiftTTotal = (((double)config.timeFrameLen - DRIFT_TIME) * ((double)TPCZ / (double)DRIFT_TIME) - shiftZ) / mChain->GetTPCTransformHelper()->getCorrMap()->getVDrift();
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (unsigned int j = 0; j < mChain->mIOPtrs.nRawClusters[iSlice]; j++) {
+    for (uint32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (uint32_t j = 0; j < mChain->mIOPtrs.nRawClusters[iSlice]; j++) {
         auto& tmp = mChain->mIOMem.rawClusters[iSlice][j];
         tmp.fTime += shiftTTotal;
       }
     }
   }
   if (shiftZ != 0.f) {
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (unsigned int j = 0; j < mChain->mIOPtrs.nClusterData[iSlice]; j++) {
+    for (uint32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (uint32_t j = 0; j < mChain->mIOPtrs.nClusterData[iSlice]; j++) {
         auto& tmp = mChain->mIOMem.clusterData[iSlice][j];
         tmp.z += iSlice < NSLICES / 2 ? shiftZ : -shiftZ;
       }
     }
-    for (unsigned int i = 0; i < mChain->mIOPtrs.nMCInfosTPC; i++) {
+    for (uint32_t i = 0; i < mChain->mIOPtrs.nMCInfosTPC; i++) {
       auto& tmp = mChain->mIOMem.mcInfosTPC[i];
       tmp.z += i < NSLICES / 2 ? shiftZ : -shiftZ;
     }
   }
 
   // Remove clusters outside boundaries
-  unsigned int nClusters = 0;
-  unsigned int removed = 0;
+  uint32_t nClusters = 0;
+  uint32_t removed = 0;
   if (minZ > -1e6 || maxZ > -1e6) {
-    unsigned int currentClusterTotal = 0;
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      unsigned int currentClusterSlice = 0;
+    uint32_t currentClusterTotal = 0;
+    for (uint32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
+      uint32_t currentClusterSlice = 0;
       bool doRaw = config.overlayRaw && mChain->mIOPtrs.nClusterData[iSlice] == mChain->mIOPtrs.nRawClusters[iSlice];
-      for (unsigned int i = 0; i < mChain->mIOPtrs.nClusterData[iSlice]; i++) {
+      for (uint32_t i = 0; i < mChain->mIOPtrs.nClusterData[iSlice]; i++) {
         float sign = iSlice < NSLICES / 2 ? 1 : -1;
         if (sign * mChain->mIOMem.clusterData[iSlice][i].z >= minZ && sign * mChain->mIOMem.clusterData[iSlice][i].z <= maxZ) {
           if (currentClusterSlice != i) {
@@ -130,13 +130,13 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
       mChain->mIOPtrs.nMCLabelsTPC = nClusters;
     }
   } else {
-    for (unsigned int i = 0; i < NSLICES; i++) {
+    for (uint32_t i = 0; i < NSLICES; i++) {
       nClusters += mChain->mIOPtrs.nClusterData[i];
     }
   }
 
   if (!silent) {
-    GPUInfo("Read %u Clusters with %d MC labels and %d MC tracks", nClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
+    GPUInfo("Read %u Clusters with %d MC labels and %d MC tracks", nClusters, (int32_t)mChain->mIOPtrs.nMCLabelsTPC, (int32_t)mChain->mIOPtrs.nMCInfosTPC);
     if (minZ > -1e6 || maxZ > 1e6) {
       GPUInfo("\tRemoved %u / %u clusters", removed, nClusters + removed);
     }
@@ -149,9 +149,9 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
 void GPUReconstructionTimeframe::MergeShiftedEvents()
 {
   mChain->ClearIOPointers();
-  for (unsigned int i = 0; i < mShiftedEvents.size(); i++) {
+  for (uint32_t i = 0; i < mShiftedEvents.size(); i++) {
     auto& ptr = std::get<0>(mShiftedEvents[i]);
-    for (unsigned int j = 0; j < NSLICES; j++) {
+    for (uint32_t j = 0; j < NSLICES; j++) {
       mChain->mIOPtrs.nClusterData[j] += ptr.nClusterData[j];
       if (config.overlayRaw) {
         mChain->mIOPtrs.nRawClusters[j] += ptr.nRawClusters[j];
@@ -162,10 +162,10 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
     mChain->mIOPtrs.nMCInfosTPCCol += ptr.nMCInfosTPCCol;
     SetDisplayInformation(i);
   }
-  unsigned int nClustersTotal = 0;
-  unsigned int nClustersTotalRaw = 0;
-  unsigned int nClustersSliceOffset[NSLICES] = {0};
-  for (unsigned int i = 0; i < NSLICES; i++) {
+  uint32_t nClustersTotal = 0;
+  uint32_t nClustersTotalRaw = 0;
+  uint32_t nClustersSliceOffset[NSLICES] = {0};
+  for (uint32_t i = 0; i < NSLICES; i++) {
     nClustersSliceOffset[i] = nClustersTotal;
     nClustersTotal += mChain->mIOPtrs.nClusterData[i];
     nClustersTotalRaw += mChain->mIOPtrs.nRawClusters[i];
@@ -181,13 +181,13 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
   mChain->AllocateIOMemory();
   mChain->mIOPtrs.clustersNative = nullptr;
 
-  unsigned int nTrackOffset = 0;
-  unsigned int nColOffset = 0;
-  unsigned int nClustersEventOffset[NSLICES] = {0};
-  for (unsigned int i = 0; i < mShiftedEvents.size(); i++) {
+  uint32_t nTrackOffset = 0;
+  uint32_t nColOffset = 0;
+  uint32_t nClustersEventOffset[NSLICES] = {0};
+  for (uint32_t i = 0; i < mShiftedEvents.size(); i++) {
     auto& ptr = std::get<0>(mShiftedEvents[i]);
-    unsigned int inEventOffset = 0;
-    for (unsigned int j = 0; j < NSLICES; j++) {
+    uint32_t inEventOffset = 0;
+    for (uint32_t j = 0; j < NSLICES; j++) {
       memcpy((void*)&mChain->mIOMem.clusterData[j][nClustersEventOffset[j]], (void*)ptr.clusterData[j], ptr.nClusterData[j] * sizeof(ptr.clusterData[j][0]));
       if (nClustersTotalRaw) {
         memcpy((void*)&mChain->mIOMem.rawClusters[j][nClustersEventOffset[j]], (void*)ptr.rawClusters[j], ptr.nRawClusters[j] * sizeof(ptr.rawClusters[j][0]));
@@ -195,10 +195,10 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
       if (mChain->mIOPtrs.nMCLabelsTPC) {
         memcpy((void*)&mChain->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j]], (void*)&ptr.mcLabelsTPC[inEventOffset], ptr.nClusterData[j] * sizeof(ptr.mcLabelsTPC[0]));
       }
-      for (unsigned int k = 0; k < ptr.nClusterData[j]; k++) {
+      for (uint32_t k = 0; k < ptr.nClusterData[j]; k++) {
         mChain->mIOMem.clusterData[j][nClustersEventOffset[j] + k].id = nClustersSliceOffset[j] + nClustersEventOffset[j] + k;
         if (mChain->mIOPtrs.nMCLabelsTPC) {
-          for (int l = 0; l < 3; l++) {
+          for (int32_t l = 0; l < 3; l++) {
             auto& label = mChain->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j] + k].fClusterID[l];
             if (label.fMCID >= 0) {
               label.fMCID += nTrackOffset;
@@ -212,7 +212,7 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
     }
 
     memcpy((void*)&mChain->mIOMem.mcInfosTPC[nTrackOffset], (void*)ptr.mcInfosTPC, ptr.nMCInfosTPC * sizeof(ptr.mcInfosTPC[0]));
-    for (unsigned int j = 0; j < ptr.nMCInfosTPCCol; j++) {
+    for (uint32_t j = 0; j < ptr.nMCInfosTPCCol; j++) {
       mChain->mIOMem.mcInfosTPCCol[nColOffset + j] = ptr.mcInfosTPCCol[j];
       mChain->mIOMem.mcInfosTPCCol[nColOffset + j].first += nTrackOffset;
     }
@@ -220,28 +220,28 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
     nColOffset += ptr.nMCInfosTPCCol;
   }
 
-  GPUInfo("Merged %d events, %u clusters total", (int)mShiftedEvents.size(), nClustersTotal);
+  GPUInfo("Merged %d events, %u clusters total", (int32_t)mShiftedEvents.size(), nClustersTotal);
 
   mShiftedEvents.clear();
 }
 
-int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
+int32_t GPUReconstructionTimeframe::LoadCreateTimeFrame(int32_t iEvent)
 {
   if (config.nTotalEventsInTF && mNTotalCollisions >= config.nTotalEventsInTF) {
     return (2);
   }
 
-  long long int nBunch = -DRIFT_TIME / config.bunchSpacing;
-  long long int lastBunch = config.timeFrameLen / config.bunchSpacing;
-  long long int lastTFBunch = lastBunch - DRIFT_TIME / config.bunchSpacing;
-  int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
-  int nTrain = 0;
-  int mcMin = -1, mcMax = -1;
-  unsigned int nTotalClusters = 0;
+  int64_t nBunch = -DRIFT_TIME / config.bunchSpacing;
+  int64_t lastBunch = config.timeFrameLen / config.bunchSpacing;
+  int64_t lastTFBunch = lastBunch - DRIFT_TIME / config.bunchSpacing;
+  int32_t nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
+  int32_t nTrain = 0;
+  int32_t mcMin = -1, mcMax = -1;
+  uint32_t nTotalClusters = 0;
   while (nBunch < lastBunch) {
-    for (int iTrain = 0; iTrain < config.bunchTrainCount && nBunch < lastBunch; iTrain++) {
-      int nCollisionsInTrain = 0;
-      for (int iBunch = 0; iBunch < config.bunchCount && nBunch < lastBunch; iBunch++) {
+    for (int32_t iTrain = 0; iTrain < config.bunchTrainCount && nBunch < lastBunch; iTrain++) {
+      int32_t nCollisionsInTrain = 0;
+      for (int32_t iBunch = 0; iBunch < config.bunchCount && nBunch < lastBunch; iBunch++) {
         const bool inTF = nBunch >= 0 && nBunch < lastTFBunch && (config.nTotalEventsInTF == 0 || nCollisions < mNTotalCollisions + config.nTotalEventsInTF);
         if (mcMin == -1 && inTF) {
           mcMin = mChain->mIOPtrs.nMCInfosTPC;
@@ -249,7 +249,7 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
         if (mcMax == -1 && nBunch >= 0 && !inTF) {
           mcMax = mChain->mIOPtrs.nMCInfosTPC;
         }
-        int nInBunchPileUp = 0;
+        int32_t nInBunchPileUp = 0;
         double randVal = mDisUniReal(inTF ? mRndGen2 : mRndGen1);
         double p = exp(-mCollisionProbability);
         double p2 = p;
@@ -269,7 +269,7 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
           } else {
             nBorderCollisions++;
           }
-          int useEvent;
+          int32_t useEvent;
           if (config.noEventRepeat == 1) {
             useEvent = mSimBunchNoRepeatEvent;
           } else {
@@ -282,13 +282,13 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
           }
           mEventUsed[useEvent] = 1;
           double shift = (double)nBunch * (double)config.bunchSpacing * (double)TPCZ / (double)DRIFT_TIME;
-          int nClusters = ReadEventShifted(useEvent, shift, 0, (double)config.timeFrameLen * (double)TPCZ / (double)DRIFT_TIME, true);
+          int32_t nClusters = ReadEventShifted(useEvent, shift, 0, (double)config.timeFrameLen * (double)TPCZ / (double)DRIFT_TIME, true);
           if (nClusters < 0) {
             GPUError("Unexpected error");
             return (1);
           }
           nTotalClusters += nClusters;
-          printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int)(nBunch * config.bunchSpacing), inTF ? " inside" : "outside",
+          printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6ld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int32_t)(nBunch * config.bunchSpacing), inTF ? " inside" : "outside",
                  nCollisions, nBunch, nTrain, nClusters, mChain->mIOPtrs.nMCLabelsTPC, mChain->mIOPtrs.nMCInfosTPC);
           nInBunchPileUp++;
           nCollisionsInTrain++;
@@ -318,7 +318,7 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
   GPUInfo("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)", nCollisions, nBorderCollisions, nTrainCollissions, (float)nCollisions / (float)(config.timeFrameLen - DRIFT_TIME) * 1e9, nMultipleCollisions,
           nTrainMultipleCollisions);
   MergeShiftedEvents();
-  GPUInfo("\tTotal clusters: %u, MC Labels %d, MC Infos %d", nTotalClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
+  GPUInfo("\tTotal clusters: %u, MC Labels %d, MC Infos %d", nTotalClusters, (int32_t)mChain->mIOPtrs.nMCLabelsTPC, (int32_t)mChain->mIOPtrs.nMCInfosTPC);
 
   if (!config.noBorder && mChain->GetQA()) {
     mChain->GetQA()->SetMCTrackRange(mcMin, mcMax);
@@ -326,9 +326,9 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
   return (0);
 }
 
-int GPUReconstructionTimeframe::LoadMergedEvents(int iEvent)
+int32_t GPUReconstructionTimeframe::LoadMergedEvents(int32_t iEvent)
 {
-  for (int iEventInTimeframe = 0; iEventInTimeframe < config.nMerge; iEventInTimeframe++) {
+  for (int32_t iEventInTimeframe = 0; iEventInTimeframe < config.nMerge; iEventInTimeframe++) {
     float shift;
     if (config.shiftFirstEvent || iEventInTimeframe) {
       if (config.randomizeDistance) {
@@ -361,10 +361,10 @@ int GPUReconstructionTimeframe::LoadMergedEvents(int iEvent)
   return (0);
 }
 
-void GPUReconstructionTimeframe::SetDisplayInformation(int iCol)
+void GPUReconstructionTimeframe::SetDisplayInformation(int32_t iCol)
 {
   if (mChain->GetEventDisplay()) {
-    for (unsigned int sl = 0; sl < NSLICES; sl++) {
+    for (uint32_t sl = 0; sl < NSLICES; sl++) {
       mChain->GetEventDisplay()->SetCollisionFirstCluster(iCol, sl, mChain->mIOPtrs.nClusterData[sl]);
     }
     mChain->GetEventDisplay()->SetCollisionFirstCluster(iCol, NSLICES, mChain->mIOPtrs.nMCInfosTPC);

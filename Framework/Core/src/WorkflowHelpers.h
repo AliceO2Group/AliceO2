@@ -22,9 +22,6 @@
 
 namespace o2::framework
 {
-static constexpr std::array<header::DataOrigin, 3> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}};
-static constexpr std::array<header::DataOrigin, 5> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}, header::DataOrigin{"AMD"}};
-static constexpr std::array<header::DataOrigin, 4> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}};
 
 inline static std::string debugWorkflow(std::vector<DataProcessorSpec> const& specs)
 {
@@ -184,21 +181,6 @@ struct WorkflowHelpers {
   // @a workflow the workflow to decorate
   // @a ctx the context for the configuration phase
   static void injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx);
-
-  /// Helper functions to add AOD related internal devices.
-  /// FIXME: moved here until we have proper plugin based amendment
-  ///        of device injection
-  static void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
-                                        std::vector<InputSpec> const& requestedInputs,
-                                        DataProcessorSpec& publisher);
-  static void addMissingOutputsToSpawner(std::vector<OutputSpec> const& providedSpecials,
-                                         std::vector<InputSpec> const& requestedSpecials,
-                                         std::vector<InputSpec>& requestedAODs,
-                                         DataProcessorSpec& publisher);
-  static void addMissingOutputsToBuilder(std::vector<InputSpec> const& requestedSpecials,
-                                         std::vector<InputSpec>& requestedAODs,
-                                         std::vector<InputSpec>& requestedDYNs,
-                                         DataProcessorSpec& publisher);
 
   // Final adjustments to @a workflow after service devices have been injected.
   static void adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx);

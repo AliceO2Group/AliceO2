@@ -47,18 +47,18 @@ struct NDPiecewisePolynomialContainer {
   /// \param xmin minimum coordinates of the grid
   /// \param xmax maximum coordinates of the grid
   /// \param nVertices number of vertices: defines number of fits per dimension
-  NDPiecewisePolynomialContainer(const unsigned int dim, const unsigned int degree, const unsigned int nParameters, const float params[/* nParameters*/], const bool interactionOnly, const float xMin[/* Dim*/], const float xMax[/* Dim*/], const unsigned int nVertices[/* Dim*/]) : mDim{dim}, mDegree{degree}, mParams{params, params + nParameters}, mInteractionOnly{interactionOnly}, mMin{xMin, xMin + dim}, mMax{xMax, xMax + dim}, mN{nVertices, nVertices + dim} {};
+  NDPiecewisePolynomialContainer(const uint32_t dim, const uint32_t degree, const uint32_t nParameters, const float params[/* nParameters*/], const bool interactionOnly, const float xMin[/* Dim*/], const float xMax[/* Dim*/], const uint32_t nVertices[/* Dim*/]) : mDim{dim}, mDegree{degree}, mParams{params, params + nParameters}, mInteractionOnly{interactionOnly}, mMin{xMin, xMin + dim}, mMax{xMax, xMax + dim}, mN{nVertices, nVertices + dim} {};
 
   /// for ROOT I/O
   NDPiecewisePolynomialContainer() = default;
 
-  const unsigned int mDim{};            ///< number of dimensions of the polynomial
-  const unsigned int mDegree{};         ///< degree of the polynomials
+  const uint32_t mDim{};                ///< number of dimensions of the polynomial
+  const uint32_t mDegree{};             ///< degree of the polynomials
   const std::vector<float> mParams{};   ///< parameters of the polynomial
   const bool mInteractionOnly{};        ///< consider only interaction terms
   const std::vector<float> mMin{};      ///< min vertices positions of the grid
   const std::vector<float> mMax{};      ///< max vertices positions of the grid
-  const std::vector<unsigned int> mN{}; ///< number of vertices for each dimension
+  const std::vector<uint32_t> mN{};     ///< number of vertices for each dimension
 };
 #endif
 
@@ -71,13 +71,13 @@ struct NDPiecewisePolynomialContainer {
 ///
 /// For usage see: testMultivarPolynomials.cxx
 ///
-/// TODO: add possibillity to perform the fits on scattered data points (+add weighting of points)
+/// TODO: add possibillity to perform the fits with weighting of points
 ///
 /// \tparam Dim number of dimensions
 /// \tparam Degree degree of the polynomials
 /// \tparam InteractionOnly: consider only interaction terms: ignore x[0]*x[0]..., x[1]*x[1]*x[2]... etc. terms (same feature as 'interaction_only' in sklearn https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html)
 ///                          can be used for N-linear interpolation (https://en.wikipedia.org/wiki/Trilinear_interpolation#Alternative_algorithm)
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 class NDPiecewisePolynomials : public FlatObject
 {
  public:
@@ -86,7 +86,7 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param min minimum coordinates of the grid
   /// \param max maximum coordinates of the grid (note: the resulting polynomials can NOT be evaluated at the maximum coordinates: only at min <= X < max)
   /// \param n number of vertices: defines number of fits per dimension: nFits = n - 1. n should be at least 2 to perform one fit
-  NDPiecewisePolynomials(const float min[/* Dim */], const float max[/* Dim */], const unsigned int n[/* Dim */]) { init(min, max, n); }
+  NDPiecewisePolynomials(const float min[/* Dim */], const float max[/* Dim */], const uint32_t n[/* Dim */]) { init(min, max, n); }
 #endif
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// constructor construct and object by initializing it from an object stored in a Root file
@@ -130,7 +130,7 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param x coordinates where to interpolate
   GPUd() float eval(float x[/* Dim */]) const
   {
-    int index[Dim];
+    int32_t index[Dim];
     setIndex<Dim - 1>(x, index);
     clamp<Dim - 1>(x, index);
     return MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::evalPol(getParameters(index), x);
@@ -140,7 +140,7 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param x coordinates where to interpolate (note: the resulting polynomials can NOT be evaluated at the maximum coordinates: only at min <= X < max)
   GPUd() float evalUnsafe(const float x[/* Dim */]) const
   {
-    int index[Dim];
+    int32_t index[Dim];
     setIndex<Dim - 1>(x, index);
     return MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::evalPol(getParameters(index), x);
   }
@@ -148,22 +148,22 @@ class NDPiecewisePolynomials : public FlatObject
   /// evaluate specific polynomial at given index for given coordinate
   /// \param x coordinates where to interpolate
   /// \param index index of the polynomial
-  GPUd() float evalPol(const float x[/* Dim */], const int index[/* Dim */]) const { return MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::evalPol(getParameters(index), x); }
+  GPUd() float evalPol(const float x[/* Dim */], const int32_t index[/* Dim */]) const { return MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::evalPol(getParameters(index), x); }
 
   /// \return returns min range for given dimension
-  GPUd() float getXMin(const unsigned int dim) const { return mMin[dim]; }
+  GPUd() float getXMin(const uint32_t dim) const { return mMin[dim]; }
 
   /// \return returns max range for given dimension
-  GPUd() float getXMax(const unsigned int dim) const { return mMax[dim]; }
+  GPUd() float getXMax(const uint32_t dim) const { return mMax[dim]; }
 
   /// \return returns inverse spacing for given dimension
-  GPUd() float getInvSpacing(const unsigned int dim) const { return mInvSpacing[dim]; }
+  GPUd() float getInvSpacing(const uint32_t dim) const { return mInvSpacing[dim]; }
 
   /// \return returns number of vertices for given dimension
-  GPUd() unsigned int getNVertices(const unsigned int dim) const { return mN[dim]; }
+  GPUd() uint32_t getNVertices(const uint32_t dim) const { return mN[dim]; }
 
   /// \return returns number of polynomial fits for given dimension
-  GPUd() unsigned int getNPolynomials(const unsigned int dim) const { return mN[dim] - 1; }
+  GPUd() uint32_t getNPolynomials(const uint32_t dim) const { return mN[dim] - 1; }
 
   /// \return returns the parameters of the coefficients
   GPUd() const float* getParams() const { return mParams; }
@@ -176,13 +176,18 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param min minimum coordinates of the grid
   /// \param max maximum coordinates of the grid (note: the resulting polynomials can NOT be evaluated at the maximum coordinates: only at min <= X < max)
   /// \param n number of vertices: defines number of fits per dimension: nFits = n - 1. n should be at least 2 to perform one fit
-  void init(const float min[/* Dim */], const float max[/* Dim */], const unsigned int n[/* Dim */]);
+  void init(const float min[/* Dim */], const float max[/* Dim */], const uint32_t n[/* Dim */]);
 
 #ifndef GPUCA_STANDALONE
   /// perform the polynomial fits on the grid
   /// \param func function which returns for every input x on the defined grid the true value
   /// \param nAuxiliaryPoints number of points which will be used for the fits (should be at least 2)
-  void performFits(const std::function<double(const double x[/* Dim */])>& func, const unsigned int nAuxiliaryPoints[/* Dim */]);
+  void performFits(const std::function<double(const double x[/* Dim */])>& func, const uint32_t nAuxiliaryPoints[/* Dim */]);
+
+  /// perform the polynomial fits on scatter points
+  /// \param x scatter points used to make the fits of size 'y.size() * Dim' as in TLinearFitter
+  /// \param y response values
+  void performFits(const std::vector<float>& x, const std::vector<float>& y);
 
   /// load parameters from input file (which were written using the writeToFile method)
   /// \param inpf input file
@@ -202,10 +207,10 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param outName name of the output file
   /// \param treeName name of the tree
   /// \param recreateFile create new output file or update the output file
-  void dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName = "debug.root", const char* treeName = "tree", const bool recreateFile = true) const;
+  void dumpToTree(const uint32_t nSamplingPoints[/* Dim */], const char* outName = "debug.root", const char* treeName = "tree", const bool recreateFile = true) const;
 
   /// \return returns total number of polynomial fits
-  unsigned int getNPolynomials() const;
+  uint32_t getNPolynomials() const;
 #endif
 
   /// converts the class to a container which can be written to a root file
@@ -216,14 +221,14 @@ class NDPiecewisePolynomials : public FlatObject
   void setFromContainer(const NDPiecewisePolynomialContainer& container);
 
   /// \return returns the total number of stored parameters
-  unsigned int getNParameters() const { return getNPolynomials() * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly); }
+  uint32_t getNParameters() const { return getNPolynomials() * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly); }
 #endif
 
   /// \return returns number of dimensions of the polynomials
-  GPUd() static constexpr unsigned int getDim() { return Dim; }
+  GPUd() static constexpr uint32_t getDim() { return Dim; }
 
   /// \return returns the degree of the polynomials
-  GPUd() static constexpr unsigned int getDegree() { return Degree; }
+  GPUd() static constexpr uint32_t getDegree() { return Degree; }
 
   /// \return returns whether only interaction terms are considered
   GPUd() static constexpr bool isInteractionOnly() { return InteractionOnly; }
@@ -233,37 +238,37 @@ class NDPiecewisePolynomials : public FlatObject
   float mMin[Dim]{};             ///< min vertices positions of the grid
   float mMax[Dim]{};             ///< max vertices positions of the grid
   float mInvSpacing[Dim]{};      ///< inverse spacings of the grid
-  unsigned int mN[Dim]{};        ///< number of vertices for each dimension
+  uint32_t mN[Dim]{};            ///< number of vertices for each dimension
   DataTParams* mParams{nullptr}; ///< storage for the parameters
 
   /// \returns vertex number for given position and dimension
   /// \param x position
   /// \param dim dimension
-  GPUd() int getVertex(const float x, const unsigned int dim) const { return ((x - mMin[dim]) * mInvSpacing[dim]); }
+  GPUd() int32_t getVertex(const float x, const uint32_t dim) const { return ((x - mMin[dim]) * mInvSpacing[dim]); }
 
   /// returns terms which are needed to calculate the index for the grid for given dimension
   /// \param dim dimension
-  GPUd() unsigned int getTerms(const unsigned int dim) const { return (dim == 0) ? 1 : (mN[dim - 1] - 1) * getTerms(dim - 1); }
+  GPUd() uint32_t getTerms(const uint32_t dim) const { return (dim == 0) ? 1 : (mN[dim - 1] - 1) * getTerms(dim - 1); }
 
   /// returns index for accessing the parameter on the grid
   /// \param ix index per dimension
-  GPUd() unsigned int getDataIndex(const int ix[/* Dim */]) const { return getDataIndex<Dim - 1>(ix) * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly); }
+  GPUd() uint32_t getDataIndex(const int32_t ix[/* Dim */]) const { return getDataIndex<Dim - 1>(ix) * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly); }
 
   /// helper function to get the index
-  template <unsigned int DimTmp>
-  GPUd() unsigned int getDataIndex(const int ix[/* Dim */]) const;
+  template <uint32_t DimTmp>
+  GPUd() uint32_t getDataIndex(const int32_t ix[/* Dim */]) const;
 
   /// \return returns pointer to memory where the parameters for given indices are stored
   /// \param index indices of polynomials
-  GPUd() const float* getParameters(const int index[/* Dim */]) const { return &mParams[getDataIndex(index)]; }
+  GPUd() const float* getParameters(const int32_t index[/* Dim */]) const { return &mParams[getDataIndex(index)]; }
 
   /// helper function to fill array containing the indices to where the parameters are stored
-  template <unsigned int DimTmp>
-  GPUd() void setIndex(const float x[/* Dim */], int index[/* Dim */]) const;
+  template <uint32_t DimTmp>
+  GPUd() void setIndex(const float x[/* Dim */], int32_t index[/* Dim */]) const;
 
   /// clamp input coordinates to avoid extrapolation
-  template <unsigned int DimTmp>
-  GPUd() void clamp(float x[/* Dim */], int index[/* Dim */]) const;
+  template <uint32_t DimTmp>
+  GPUd() void clamp(float x[/* Dim */], int32_t index[/* Dim */]) const;
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// perform the actual fit in the grid
@@ -273,20 +278,20 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param fitter TLinearFitter which is used for performing the fits
   /// \param xCords buffer for x-coordinates
   /// \param response buffer for y-coordinates
-  void fitInnerGrid(const std::function<double(const double x[/* Dim */])>& func, const unsigned int nAuxiliaryPoints[/* Dim */], const int currentIndex[/* Dim */], TLinearFitter& fitter, std::vector<double>& xCords, std::vector<double>& response);
+  void fitInnerGrid(const std::function<double(const double x[/* Dim */])>& func, const uint32_t nAuxiliaryPoints[/* Dim */], const int32_t currentIndex[/* Dim */], TLinearFitter& fitter, std::vector<double>& xCords, std::vector<double>& response);
 
   /// heler function to loop over all dimensions
-  void checkPos(const unsigned int iMax[/* Dim */], int pos[/* Dim */]) const;
+  void checkPos(const uint32_t iMax[/* Dim */], int32_t pos[/* Dim */]) const;
 
   /// \return returns step width of the inner grid
   /// \param dim dimension
   /// \param nAuxiliaryPoints number of Auxiliary points for given dimension
-  double getStepWidth(const unsigned int dim, const int nAuxiliaryPoints) const { return 1 / (static_cast<double>(mInvSpacing[dim]) * (nAuxiliaryPoints - 1)); }
+  double getStepWidth(const uint32_t dim, const int32_t nAuxiliaryPoints) const { return 1 / (static_cast<double>(mInvSpacing[dim]) * (nAuxiliaryPoints - 1)); }
 
   /// \return returns vertex position for given index and dimension
   /// \param ix index
   /// \param dim dimension
-  double getVertexPosition(const unsigned int ix, const int dim) const { return ix / static_cast<double>(mInvSpacing[dim]) + mMin[dim]; }
+  double getVertexPosition(const uint32_t ix, const int32_t dim) const { return ix / static_cast<double>(mInvSpacing[dim]) + mMin[dim]; }
 #endif
 
 #if !defined(GPUCA_GPUCODE)
@@ -307,7 +312,7 @@ class NDPiecewisePolynomials : public FlatObject
 //=================================================================================
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::loadFromFile(TFile& inpf, const char* name)
 {
   NDPiecewisePolynomialContainer* gridTmp = nullptr;
@@ -321,7 +326,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::loadFromFile(TFile& i
 #endif
   }
 }
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFromContainer(const NDPiecewisePolynomialContainer& container)
 {
   if (Dim != container.mDim) {
@@ -345,14 +350,14 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFromContainer(cons
   init(container.mMin.data(), container.mMax.data(), container.mN.data());
   setParams(container.mParams.data());
 }
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::writeToFile(TFile& outf, const char* name) const
 {
   const NDPiecewisePolynomialContainer cont = getContainer();
   outf.WriteObject(&cont, name);
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setDefault()
 {
   const auto nParamsPerPol = MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly);
@@ -366,12 +371,12 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setDefault()
 #endif
 
 #ifndef GPUCA_GPUCODE
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::cloneFromObject(const NDPiecewisePolynomials<Dim, Degree, InteractionOnly>& obj, char* newFlatBufferPtr)
 {
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
-  for (unsigned int i = 0; i < Dim; ++i) {
+  for (uint32_t i = 0; i < Dim; ++i) {
     mMin[i] = obj.mMin[i];
     mMax[i] = obj.mMax[i];
     mInvSpacing[i] = obj.mInvSpacing[i];
@@ -382,7 +387,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::cloneFromObject(const
   }
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::moveBufferTo(char* newFlatBufferPtr)
 {
   char* oldFlatBufferPtr = mFlatBufferPtr;
@@ -392,7 +397,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::moveBufferTo(char* ne
   setActualBufferAddress(currFlatBufferPtr);
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::construct()
 {
   FlatObject::startConstruction();
@@ -402,30 +407,30 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::construct()
 }
 #endif
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::destroy()
 {
   mParams = nullptr;
   FlatObject::destroy();
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
   mParams = reinterpret_cast<DataTParams*>(mFlatBufferPtr);
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   mParams = FlatObject::relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mParams);
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-template <unsigned int DimTmp>
-GPUdi() unsigned int NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDataIndex(const int ix[/* Dim */]) const
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+template <uint32_t DimTmp>
+GPUdi() uint32_t NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDataIndex(const int32_t ix[/* Dim */]) const
 {
   if constexpr (DimTmp > 0) {
     return ix[DimTmp] * getTerms(DimTmp) + getDataIndex<DimTmp - 1>(ix);
@@ -433,9 +438,9 @@ GPUdi() unsigned int NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDa
   return ix[DimTmp];
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-template <unsigned int DimTmp>
-GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setIndex(const float x[/* Dim */], int index[/* Dim */]) const
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+template <uint32_t DimTmp>
+GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setIndex(const float x[/* Dim */], int32_t index[/* Dim */]) const
 {
   index[DimTmp] = getVertex(x[DimTmp], DimTmp);
   if constexpr (DimTmp > 0) {
@@ -444,9 +449,9 @@ GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setIndex(cons
   return;
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-template <unsigned int DimTmp>
-GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x[/* Dim */], int index[/* Dim */]) const
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+template <uint32_t DimTmp>
+GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x[/* Dim */], int32_t index[/* Dim */]) const
 {
   if (index[DimTmp] <= 0) {
     index[DimTmp] = 0;
@@ -456,7 +461,7 @@ GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x
     }
 
   } else {
-    if (index[DimTmp] >= int(mN[DimTmp] - 1)) {
+    if (index[DimTmp] >= int32_t(mN[DimTmp] - 1)) {
       index[DimTmp] = mN[DimTmp] - 2;
       x[DimTmp] = mMax[DimTmp];
     }
@@ -468,10 +473,10 @@ GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x
 }
 
 #ifndef GPUCA_GPUCODE
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::init(const float min[], const float max[], const unsigned int n[])
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::init(const float min[], const float max[], const uint32_t n[])
 {
-  for (unsigned int i = 0; i < Dim; ++i) {
+  for (uint32_t i = 0; i < Dim; ++i) {
     mMin[i] = min[i];
     mMax[i] = max[i];
     mN[i] = n[i];
@@ -482,31 +487,31 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::init(const float min[
 #endif
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-unsigned int NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getNPolynomials() const
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+uint32_t NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getNPolynomials() const
 {
-  unsigned int nP = getNPolynomials(0);
-  for (unsigned int i = 1; i < Dim; ++i) {
+  uint32_t nP = getNPolynomials(0);
+  for (uint32_t i = 1; i < Dim; ++i) {
     nP *= getNPolynomials(i);
   }
   return nP;
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::checkPos(const unsigned int iMax[/* Dim */], int pos[/* Dim */]) const
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::checkPos(const uint32_t iMax[/* Dim */], int32_t pos[/* Dim */]) const
 {
-  for (unsigned int i = 0; i < Dim; ++i) {
-    if (pos[i] == int(iMax[i])) {
+  for (uint32_t i = 0; i < Dim; ++i) {
+    if (pos[i] == int32_t(iMax[i])) {
       ++pos[i + 1];
       std::fill_n(pos, i + 1, 0);
     }
   }
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std::function<double(const double x[/* Dim */])>& func, const unsigned int nAuxiliaryPoints[/* Dim */])
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std::function<double(const double x[/* Dim */])>& func, const uint32_t nAuxiliaryPoints[/* Dim */])
 {
-  const int nTotalFits = getNPolynomials();
+  const int32_t nTotalFits = getNPolynomials();
 #ifndef GPUCA_ALIROOT_LIB
   LOGP(info, "Perform fitting of {}D-Polynomials of degree {} for a total of {} fits.", Dim, Degree, nTotalFits);
 #endif
@@ -514,8 +519,8 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std
   MultivariatePolynomialHelper<0, 0, false> pol(Dim, Degree, InteractionOnly);
   TLinearFitter fitter = pol.getTLinearFitter();
 
-  unsigned int nPoints = 1;
-  for (unsigned int i = 0; i < Dim; ++i) {
+  uint32_t nPoints = 1;
+  for (uint32_t i = 0; i < Dim; ++i) {
     nPoints *= nAuxiliaryPoints[i];
   }
 
@@ -524,20 +529,20 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std
   xCords.reserve(Dim * nPoints);
   response.reserve(nPoints);
 
-  unsigned int nPolynomials[Dim]{0};
-  for (unsigned int i = 0; i < Dim; ++i) {
+  uint32_t nPolynomials[Dim]{0};
+  for (uint32_t i = 0; i < Dim; ++i) {
     nPolynomials[i] = getNPolynomials(i);
   }
 
-  int pos[Dim + 1]{0};
-  unsigned int counter = 0;
-  const int printDebugForNFits = int(nTotalFits / 20) + 1;
+  int32_t pos[Dim + 1]{0};
+  uint32_t counter = 0;
+  const int32_t printDebugForNFits = int32_t(nTotalFits / 20) + 1;
 
   for (;;) {
     const bool debug = !(++counter % printDebugForNFits);
     if (debug) {
 #ifndef GPUCA_ALIROOT_LIB
-      LOGP(info, "Peforming fit {} out of {}", counter, nTotalFits);
+      LOGP(info, "Performing fit {} out of {}", counter, nTotalFits);
 #endif
     }
 
@@ -554,10 +559,99 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std
   }
 }
 
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::fitInnerGrid(const std::function<double(const double x[/* Dim */])>& func, const unsigned int nAuxiliaryPoints[/* Dim */], const int currentIndex[/* Dim */], TLinearFitter& fitter, std::vector<double>& xCords, std::vector<double>& response)
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std::vector<float>& x, const std::vector<float>& y)
 {
-  int pos[Dim + 1]{0};
+  const int32_t nTotalFits = getNPolynomials();
+#ifndef GPUCA_ALIROOT_LIB
+  LOGP(info, "Perform fitting of {}D-Polynomials of degree {} for a total of {} fits.", Dim, Degree, nTotalFits);
+#endif
+
+  // approximate number of points
+  uint32_t nPoints = 2 * y.size() / nTotalFits;
+
+  // polynomial index -> indices to datapoints
+  std::unordered_map<int32_t, std::vector<size_t>> dataPointsIndices;
+  for (int32_t i = 0; i < nTotalFits; ++i) {
+    dataPointsIndices[i].reserve(nPoints);
+  }
+
+  // check for each data point which polynomial to use
+  for (size_t i = 0; i < y.size(); ++i) {
+    std::array<int32_t, Dim> index;
+    float xVal[Dim];
+    std::copy(x.begin() + i * Dim, x.begin() + i * Dim + Dim, xVal);
+    setIndex<Dim - 1>(xVal, index.data());
+
+    std::array<int32_t, Dim> indexClamped{index};
+    clamp<Dim - 1>(xVal, indexClamped.data());
+
+    // check if data points are in the grid
+    if (index == indexClamped) {
+      // index of the polyniomial
+      const uint32_t idx = getDataIndex(index.data()) / MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly);
+
+      // store index to data point
+      dataPointsIndices[idx].emplace_back(i);
+    }
+  }
+
+  // for fitting
+  MultivariatePolynomialHelper<0, 0, false> pol(Dim, Degree, InteractionOnly);
+  TLinearFitter fitter = pol.getTLinearFitter();
+
+  uint32_t counter = 0;
+  const int32_t printDebugForNFits = int32_t(nTotalFits / 20) + 1;
+
+  // temp storage for x and y values for fitting
+  std::vector<double> xCords;
+  std::vector<double> response;
+
+  for (int32_t i = 0; i < nTotalFits; ++i) {
+    const bool debug = !(++counter % printDebugForNFits);
+    if (debug) {
+#ifndef GPUCA_ALIROOT_LIB
+      LOGP(info, "Performing fit {} out of {}", counter, nTotalFits);
+#endif
+    }
+
+    // store values for fitting
+    if (dataPointsIndices[i].empty()) {
+#ifndef GPUCA_ALIROOT_LIB
+      LOGP(info, "No data points to fit");
+#endif
+      continue;
+    }
+
+    const auto nP = dataPointsIndices[i].size();
+    xCords.reserve(Dim * nP);
+    response.reserve(nP);
+    xCords.clear();
+    response.clear();
+
+    // add datapoints to fit
+    for (size_t j = 0; j < nP; ++j) {
+      const size_t idxOrig = dataPointsIndices[i][j];
+
+      // insert x values at the end of xCords
+      const int32_t idxXStart = idxOrig * Dim;
+      xCords.insert(xCords.end(), x.begin() + idxXStart, x.begin() + idxXStart + Dim);
+      response.emplace_back(y[idxOrig]);
+    }
+
+    // perform the fit on the points TODO make errors configurable
+    std::vector<double> error;
+    const auto params = MultivariatePolynomialHelper<0, 0, false>::fit(fitter, xCords, response, error, true);
+
+    // store parameters
+    std::copy(params.begin(), params.end(), &mParams[i * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly)]);
+  }
+}
+
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::fitInnerGrid(const std::function<double(const double x[/* Dim */])>& func, const uint32_t nAuxiliaryPoints[/* Dim */], const int32_t currentIndex[/* Dim */], TLinearFitter& fitter, std::vector<double>& xCords, std::vector<double>& response)
+{
+  int32_t pos[Dim + 1]{0};
 
   // add points which will be used for the fit
   for (;;) {
@@ -567,7 +661,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::fitInnerGrid(const st
       break;
     }
 
-    for (unsigned int iDim = 0; iDim < Dim; ++iDim) {
+    for (uint32_t iDim = 0; iDim < Dim; ++iDim) {
       const double stepWidth = getStepWidth(iDim, nAuxiliaryPoints[iDim]);
       const double vertexPos = getVertexPosition(currentIndex[iDim], iDim);
       const double realPosTmp = vertexPos + pos[iDim] * stepWidth;
@@ -585,24 +679,24 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::fitInnerGrid(const st
   const auto params = MultivariatePolynomialHelper<0, 0, false>::fit(fitter, xCords, response, error, true);
 
   // store parameters
-  const unsigned int index = getDataIndex(currentIndex);
+  const uint32_t index = getDataIndex(currentIndex);
   std::copy(params.begin(), params.end(), &mParams[index]);
 }
 
 #ifndef GPUCA_ALIROOT_LIB
-template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName, const char* treeName, const bool recreateFile) const
+template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const uint32_t nSamplingPoints[/* Dim */], const char* outName, const char* treeName, const bool recreateFile) const
 {
   o2::utils::TreeStreamRedirector pcstream(outName, recreateFile ? "RECREATE" : "UPDATE");
 
   double factor[Dim]{};
-  for (unsigned int iDim = 0; iDim < Dim; ++iDim) {
+  for (uint32_t iDim = 0; iDim < Dim; ++iDim) {
     factor[iDim] = (mMax[iDim] - mMin[iDim]) / (nSamplingPoints[iDim] - 1);
   }
 
   std::vector<float> x(Dim);
-  std::vector<unsigned int> ix(Dim);
-  int pos[Dim + 1]{0};
+  std::vector<uint32_t> ix(Dim);
+  int32_t pos[Dim + 1]{0};
 
   for (;;) {
     checkPos(nSamplingPoints, pos);
@@ -611,7 +705,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const unsi
       break;
     }
 
-    for (unsigned int iDim = 0; iDim < Dim; ++iDim) {
+    for (uint32_t iDim = 0; iDim < Dim; ++iDim) {
       ix[iDim] = pos[iDim];
       x[iDim] = mMin[iDim] + pos[iDim] * factor[iDim];
     }

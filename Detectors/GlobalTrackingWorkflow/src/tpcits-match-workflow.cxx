@@ -84,7 +84,7 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   }
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
-  auto srcL = src | GID::getSourcesMask("ITS,TPC"); // ITS is neadded always, TPC must be loaded even if bare TPC tracks are not used in matching
+  auto srcL = src | GID::getSourcesMask("ITS,TPC"); // ITS is needed always, TPC must be loaded even if bare TPC tracks are not used in matching
   if (sclOpt.requestCTPLumi) {
     srcL = srcL | GID::getSourcesMask("CTP");
   }

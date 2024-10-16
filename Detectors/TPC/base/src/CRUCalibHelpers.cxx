@@ -12,7 +12,9 @@
 #include <fstream>
 #include <iostream>
 #include <numeric>
+#include <vector>
 
+#include "TPCBase/Utils.h"
 #include "TROOT.h"
 
 #include "Framework/Logger.h"
@@ -102,9 +104,25 @@ void cru_calib_helpers::debugDiff(std::string_view file1, std::string_view file2
   }
 }
 
-std::unordered_map<std::string, CalPad> cru_calib_helpers::preparePedestalFiles(const CalPad& pedestals, const CalPad& noise, float sigmaNoise, float minADC, float pedestalOffset, bool onlyFilled, bool maskBad, float noisyChannelThreshold, float sigmaNoiseNoisyChannels, float badChannelThreshold, bool fixedSize)
+std::unordered_map<std::string, CalPad> cru_calib_helpers::preparePedestalFiles(const CalPad& pedestals, const CalPad& noise, std::vector<float> sigmaNoiseROCType, std::vector<float> minADCROCType, float pedestalOffset, bool onlyFilled, bool maskBad, float noisyChannelThreshold, float sigmaNoiseNoisyChannels, float badChannelThreshold, bool fixedSize)
 {
   const auto& mapper = Mapper::instance();
+
+  auto expandVector = [](std::vector<float>& vec, const std::string name) {
+    if (vec.size() == 1) {
+      vec.resize(4);
+      std::fill_n(&vec[1], 3, vec[0]);
+    } else if (vec.size() == 2) {
+      vec.resize(4);
+      std::fill_n(&vec[2], 2, vec[1]);
+    } else if (vec.size() != 4) {
+      LOGP(fatal, "{} definition must be either one value for all ROC types, or {{IROC, OROC}}, or {{IROC, OROC1, OROC2, OROC3}}", name);
+    }
+    LOGP(info, "Using {} = {{{}}}", name, utils::elementsToString(vec));
+  };
+
+  expandVector(sigmaNoiseROCType, "sigmaNoiseROCType");
+  expandVector(minADCROCType, "minADCROCType");
 
   std::unordered_map<std::string, CalPad> pedestalsThreshold;
   pedestalsThreshold["Pedestals"] = CalPad("Pedestals");
@@ -147,6 +165,9 @@ std::unordered_map<std::string, CalPad> cru_calib_helpers::preparePedestalFiles(
       const int fecInPartition = fecInfo.getIndex() - partInfo.getSectorFECOffset();
       // const int dataWrapperID = fecInPartition >= fecOffset;
       // const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
+      const int rocType = roc.isIROC() ? 0 : cru.partition() - 1;
+      const float sigmaNoise = sigmaNoiseROCType[rocType];
+      const float minADC = minADCROCType[rocType];
 
       const auto traceLength = traceLengths[ipad];
 
@@ -174,6 +195,7 @@ std::unordered_map<std::string, CalPad> cru_calib_helpers::preparePedestalFiles(
       float threshold = (noise > 0) ? std::max(sigmaNoise * noise, minADC) : 0;
       threshold = std::min(threshold, 1023.f);
       float thresholdHighNoise = (noiseCorr > noisyChannelThreshold) ? std::max(sigmaNoiseNoisyChannels * noise, minADC) : threshold;
+      thresholdHighNoise = std::min(thresholdHighNoise, 1023.f);
 
       float pedestalHighNoise = pedestal;
       if (noiseCorr > badChannelThreshold) {

@@ -136,7 +136,7 @@ class AlignParam
   ClassDefNV(AlignParam, 1);
 };
 
-}
-}
+} // namespace detectors
+} // namespace o2
 
 #endif

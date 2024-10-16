@@ -23,6 +23,7 @@ class FairVolume;
 namespace o2::focal
 {
 
+class Hit;
 class Geometry;
 
 /// \struct Parent
@@ -39,22 +40,33 @@ struct Parent {
 /// \ingroup FOCALsimulation
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since June 6, 2024
+/// \author Adam Matyja <adam.tomasz.matyja@cern.ch>, Institute of Nuclear Physics, PAN, Cracov, Poland
+/// \since June 24, 2024
+/// class based on AliFOCALv2.h in aliroot
+/// It builds the ECAL (Adam) and HCAL (Hadi) seperately
+/// For the ECAL: it builds it tower by tower
+/// For the HCAL:
+///
+/// The detector class handles the implementation of the FOCAL detector
+/// within the virtual Monte-Carlo framework and the simulation of the
+/// FOCAL detector up to hit generation
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum MediumType_t { ID_TUNGSTEN = 0,
-                      ID_SILICON = 1,
-                      ID_G10 = 2,
-                      ID_COPPER = 3,
-                      ID_STEEL = 4,
-                      ID_ALLOY = 5,
-                      ID_CERAMIC = 6,
-                      ID_PB = 7,
-                      ID_SC = 8,
-                      ID_SIINSENS = 9,
-                      ID_ALUMINIUM = 10,
-                      ID_VAC = 11,
-                      ID_AIR = 12 };
+                      ID_SIPAD = 1,
+                      ID_SIPIX = 2,
+                      ID_G10 = 3,
+                      ID_COPPER = 4,
+                      ID_STEEL = 5,
+                      ID_ALLOY = 6,
+                      ID_CERAMIC = 7,
+                      ID_PB = 8,
+                      ID_SC = 9,
+                      ID_SIINSENS = 10,
+                      ID_ALUMINIUM = 11,
+                      ID_VAC = 12,
+                      ID_AIR = 13 };
   /// \brief Dummy constructor
   Detector() = default;
 
@@ -139,11 +151,15 @@ class Detector : public o2::base::DetImpl<Detector>
 
   virtual void addAlignableVolumes() const override;
   void addAlignableVolumesHCAL() const;
+  void addAlignableVolumesECAL() const;
 
   void ConstructGeometry() override;
 
   virtual void CreateHCALSpaghetti();
   virtual void CreateHCALSandwich();
+
+  /// \brief Generate ECAL geometry
+  void CreateECALGeometry();
 
   /// \brief Add new superparent to the container
   /// \param trackID Track ID of the superparent
@@ -151,17 +167,32 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param energy Energy of the superparent
   Parent* AddSuperparent(int trackID, int pdg, double energy);
 
+  /// \brief Processing hit creation in the ECAL Pad sensitive volume
+  /// \param v Current sensitive volume
+  bool ProcessHitsEPad(FairVolume* v = nullptr);
+
+  /// \brief Processing hit creation in the ECAL Pixel sensitive volume
+  /// \param v Current sensitive volume
+  bool ProcessHitsEPix(FairVolume* v = nullptr);
+
+  /// \brief Processing hit creation in the HCAL sensitive volume
+  /// \param v Current sensitive volume
+  bool ProcessHitsHCAL(FairVolume* v = nullptr);
+
  private:
   /// \brief Copy constructor (used in MT)
   Detector(const Detector& rhs);
 
   Geometry* mGeometry; //!<! Geometry pointer
 
-  int mMedSensHCal = 0; //!<! Sensitive Medium for HCal
+  int mMedSensHCal = 0;    //!<! Sensitive Medium for HCal
+  int mMedSensECalPad = 0; //!<! Sensitive Medium for ECal Pads
+  int mMedSensECalPix = 0; //!<! Sensitive Medium for ECal Pixels
 
   std::vector<const Composition*> mGeoCompositions; //!<! list of FOCAL compositions
 
-  std::vector<o2::focal::Hit>* mHits; ///< Container with hits
+  std::vector<o2::focal::Hit>* mHits;                                              ///< Container with hits
+  std::unordered_map<Hit::HitID, unsigned int, Hit::HitIDHasher> mHitIndexMapping; ///< Mapping the hits to a cell in the detector
 
   std::unordered_map<int, int> mSuperParentsIndices; //!<! Super parent indices (track index - superparent index)
   std::unordered_map<int, Parent> mSuperParents;     //!<! Super parent kine info (superparent index - superparent object)
@@ -172,8 +203,8 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mCurrentPrimaryID; //!<! ID of the current primary
   Int_t mCurrentParentID;  //!<! ID of the current parent
 
-  std::vector<std::string> mSensitiveHCAL; //!<! List of sensitive volumes
-  int mVolumeIDScintillator = -1;          //!<! Volume ID of the scintillator volume
+  std::vector<std::string> mSensitive; //!<! List of sensitive volumes
+  int mVolumeIDScintillator = -1;      //!<! Volume ID of the scintillator volume
 
   template <typename Det>
   friend class o2::base::DetImpl;

@@ -71,6 +71,9 @@ class ChannelMasksHandler
   /// Comparison operator
   bool operator==(const ChannelMasksHandler& right) const { return mMasks == right.mMasks; }
 
+  /// Clear masks
+  void clear() { mMasks.clear(); }
+
  private:
   /// Gets the mask
   /// \param deId Detection element ID

@@ -61,13 +61,14 @@ class Digitizer : public WindowFiller
   Float_t getEffZ(Float_t z);
   Float_t getFractionOfCharge(Float_t x, Float_t z);
 
-  Float_t getTimeLastHit(Int_t idigit) const { return 0; }
-  Float_t getTotLastHit(Int_t idigit) const { return 0; }
-  Int_t getXshift(Int_t idigit) const { return 0; }
-  Int_t getZshift(Int_t idigit) const { return 0; }
+  Float_t getTimeLastHit(Int_t idigit) const { return mTimeLastHit[idigit]; }
+  Float_t getTotLastHit(Int_t idigit) const { return mTotLastHit[idigit]; }
+  Int_t getXshift(Int_t idigit) const { return mXLastShift[idigit]; }
+  Int_t getZshift(Int_t idigit) const { return mZLastShift[idigit]; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
 
+  void runFullTestExample(const char* geo = "");
   void test(const char* geo = "");
   void testFromHits(const char* geo = "", const char* hits = "AliceO2_TGeant3.tof.mc_10_event.root");
 
@@ -81,6 +82,14 @@ class Digitizer : public WindowFiller
   void setEffBoundary1(float val) { mEffBoundary1 = val; }
   void setEffBoundary2(float val) { mEffBoundary2 = val; }
   void setEffBoundary3(float val) { mEffBoundary3 = val; }
+
+  // determines the readout window id, given a time in nanoseconds (relative
+  // to orbit-reset)
+  uint64_t getReadoutWindow(double timeNS) const
+  {
+    // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
+    return uint64_t((timeNS - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV);
+  }
 
  private:
   // parameters
@@ -134,6 +143,11 @@ class Digitizer : public WindowFiller
 
   void checkIfReuseFutureDigits();
 
+  int mNLastHit = 0;
+  float mTimeLastHit[10];
+  float mTotLastHit[10];
+  Int_t mXLastShift[10];
+  Int_t mZLastShift[10];
   ClassDefNV(Digitizer, 1);
 };
 } // namespace tof

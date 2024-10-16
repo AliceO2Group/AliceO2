@@ -37,6 +37,7 @@
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "TPCBase/CDBInterface.h"
 #include "DetectorsCalibration/Utils.h"
+#include "TPCCalibration/IDCCCDBHelper.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -154,6 +155,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   }
 
   static constexpr header::DataDescription getDataDescriptionIDC0() { return header::DataDescription{"IDC0"}; }
+  static constexpr header::DataDescription getDataDescriptionIDC0Mean() { return header::DataDescription{"IDC0MEAN"}; }
   static constexpr header::DataDescription getDataDescriptionIDC1() { return header::DataDescription{"IDC1"}; }
   static constexpr header::DataDescription getDataDescriptionTimeStamp() { return header::DataDescription{"FOURIERTS"}; }
   static constexpr header::DataDescription getDataDescriptionIntervals() { return header::DataDescription{"INTERVALS"}; }
@@ -215,6 +217,11 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
         const unsigned int iSide = static_cast<unsigned int>(side);
         LOGP(info, "Sending IDC1 for side {} of size {}", iSide, mIDCFactorization.getIDCOneVec(side).size());
         output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDC1(), header::DataHeader::SubSpecificationType{iSide}}, mIDCFactorization.getIDCOneVec(side));
+
+        // calculating mean of IDC0 for the IDC scalers
+        const float mean = o2::tpc::IDCCCDBHelper<float>::getMeanIDC0(side, mIDCFactorization.getIDCZero(side), mIDCFactorization.getPadStatusMapPtr());
+        LOGP(info, "Sending mean of: {}", mean);
+        output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDC0Mean(), header::DataHeader::SubSpecificationType{iSide}}, mean);
       }
       output.snapshot(Output{gDataOriginTPC, getDataDescriptionTimeStamp()}, std::vector<long>{mTimestampStart, timeStampEnd});
       output.snapshot(Output{gDataOriginTPC, getDataDescriptionIntervals()}, mIDCFactorization.getIntegrationIntervalsPerTF());
@@ -457,6 +464,7 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
   if (sendOutputFFT) {
     for (auto side : sides) {
       outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionIDC1(), header::DataHeader::SubSpecificationType{side}}, Lifetime::Sporadic);
+      outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionIDC0Mean(), header::DataHeader::SubSpecificationType{side}}, Lifetime::Sporadic);
     }
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionTimeStamp(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionIntervals(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);

@@ -19,12 +19,21 @@ namespace conf
 
 namespace
 {
-static const std::string confstrings[4] = {"FTFP_BERT_EMV+optical", "FTFP_BERT_EMV+optical+biasing", "FTFP_INCLXX_EMV+optical",
+static const std::string confstrings[8] = {"FTFP_BERT+optical",
+                                           "FTFP_BERT+optical+biasing",
+                                           "FTFP_INCLXX+optical",
+                                           "FTFP_BERT_HP+optical",
+                                           "FTFP_BERT_EMV+optical",
+                                           "FTFP_BERT_EMV+optical+biasing",
+                                           "FTFP_INCLXX_EMV+optical",
                                            "FTFP_BERT_HP_EMV+optical"};
 }
 
 std::string const& G4Params::getPhysicsConfigString() const
 {
+  if (physicsmode == o2::conf::EG4Physics::kUSER) {
+    return userPhysicsList;
+  }
   return confstrings[(int)physicsmode];
 }
 

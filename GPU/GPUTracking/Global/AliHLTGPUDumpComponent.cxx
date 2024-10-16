@@ -82,7 +82,7 @@ void AliHLTGPUDumpComponent::GetInputDataTypes(vector<AliHLTComponentDataType>& 
 
 AliHLTComponentDataType AliHLTGPUDumpComponent::GetOutputDataType() { return AliHLTTPCDefinitions::RawClustersDataType(); }
 
-void AliHLTGPUDumpComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
+void AliHLTGPUDumpComponent::GetOutputDataSize(uint64_t& constBase, double& inputMultiplier)
 {
   constBase = 10000;     // minimum size
   inputMultiplier = 0.6; // size relative to input
@@ -90,7 +90,7 @@ void AliHLTGPUDumpComponent::GetOutputDataSize(unsigned long& constBase, double&
 
 AliHLTComponent* AliHLTGPUDumpComponent::Spawn() { return new AliHLTGPUDumpComponent; }
 
-int AliHLTGPUDumpComponent::DoInit(int argc, const char** argv)
+int32_t AliHLTGPUDumpComponent::DoInit(int argc, const char** argv)
 {
   fSolenoidBz = GetBz();
   fIsMC = TVirtualMC::GetMC();
@@ -157,11 +157,11 @@ int AliHLTGPUDumpComponent::DoInit(int argc, const char** argv)
   return 0;
 }
 
-int AliHLTGPUDumpComponent::DoDeinit() { return 0; }
+int32_t AliHLTGPUDumpComponent::DoDeinit() { return 0; }
 
-int AliHLTGPUDumpComponent::Reconfigure(const char* cdbEntry, const char* chainId) { return 0; }
+int32_t AliHLTGPUDumpComponent::Reconfigure(const char* cdbEntry, const char* chainId) { return 0; }
 
-int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks)
+int32_t AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks)
 {
   if (GetFirstInputBlock(kAliHLTDataTypeSOR) || GetFirstInputBlock(kAliHLTDataTypeEOR)) {
     return 0;
@@ -178,12 +178,12 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   const AliHLTTPCRawClusterData* clustersRaw[NSLICES][NPATCHES] = {nullptr};
   bool labelsPresent = false;
   const GPUTRDTrackletWord* TRDtracklets = nullptr;
-  int nTRDTrackletsTotal = 0;
+  int32_t nTRDTrackletsTotal = 0;
 
-  for (unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++) {
+  for (uint64_t ndx = 0; ndx < evtData.fBlockCnt; ndx++) {
     const AliHLTComponentBlockData& pBlock = blocks[ndx];
-    int slice = AliHLTTPCDefinitions::GetMinSliceNr(pBlock);
-    int patch = AliHLTTPCDefinitions::GetMinPatchNr(pBlock);
+    int32_t slice = AliHLTTPCDefinitions::GetMinSliceNr(pBlock);
+    int32_t patch = AliHLTTPCDefinitions::GetMinPatchNr(pBlock);
     if (pBlock.fDataType == AliHLTTPCDefinitions::RawClustersDataType()) {
       clustersRaw[slice][patch] = (const AliHLTTPCRawClusterData*)pBlock.fPtr;
     } else if (pBlock.fDataType == AliHLTTPCDefinitions::ClustersXYZDataType()) {
@@ -200,18 +200,18 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   std::vector<AliHLTTPCRawCluster> rawClusters[NSLICES];
   std::vector<GPUTPCClusterData> clusterData[NSLICES];
 
-  int nClustersTotal = 0;
-  for (int slice = 0; slice < NSLICES; slice++) {
-    int nClustersSliceTotal = 0;
+  int32_t nClustersTotal = 0;
+  for (int32_t slice = 0; slice < NSLICES; slice++) {
+    int32_t nClustersSliceTotal = 0;
     clusterData[slice].clear();
     rawClusters[slice].clear();
-    for (int patch = 0; patch < 6; patch++) {
+    for (int32_t patch = 0; patch < 6; patch++) {
       if (clustersXYZ[slice][patch]) {
         nClustersSliceTotal += clustersXYZ[slice][patch]->fCount;
       }
     }
     GPUTPCClusterData cluster;
-    for (int patch = 0; patch < 6; patch++) {
+    for (int32_t patch = 0; patch < 6; patch++) {
       if (clustersXYZ[slice][patch] != nullptr && clustersRaw[slice][patch] != nullptr) {
         const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[slice][patch];
         const AliHLTTPCRawClusterData& clRaw = *clustersRaw[slice][patch];
@@ -221,8 +221,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
           continue;
         }
 
-        const int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
-        for (int ic = 0; ic < clXYZ.fCount; ic++) {
+        const int32_t firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
+        for (int32_t ic = 0; ic < clXYZ.fCount; ic++) {
           const AliHLTTPCClusterXYZ& c = clXYZ.fClusters[ic];
           const AliHLTTPCRawCluster& cRaw = clRaw.fClusters[ic];
           if (fabsf(c.GetZ()) > 300) {
@@ -250,16 +250,16 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 #endif
           AliHLTTPCRawCluster tmp = cRaw;
           tmp.fPadRow += firstRow;
-          if ((unsigned int)cluster.amp >= 25 * 1024) {
-            GPUError("Invalid cluster charge, truncating (%d >= %d)", (int)cluster.amp, 25 * 1024);
+          if ((uint32_t)cluster.amp >= 25 * 1024) {
+            GPUError("Invalid cluster charge, truncating (%d >= %d)", (int32_t)cluster.amp, 25 * 1024);
             cluster.amp = 25 * 1024 - 1;
           }
-          if ((unsigned int)tmp.GetCharge() >= 25 * 1024) {
-            GPUError("Invalid raw cluster charge, truncating (%d >= %d)", (int)tmp.GetCharge(), 25 * 1024);
+          if ((uint32_t)tmp.GetCharge() >= 25 * 1024) {
+            GPUError("Invalid raw cluster charge, truncating (%d >= %d)", (int32_t)tmp.GetCharge(), 25 * 1024);
             tmp.SetCharge(25 * 1024 - 1);
           }
-          if ((unsigned int)tmp.GetQMax() >= 1024) {
-            GPUError("Invalid raw cluster charge max, truncating (%d >= %d)", (int)tmp.GetQMax(), 1024);
+          if ((uint32_t)tmp.GetQMax() >= 1024) {
+            GPUError("Invalid raw cluster charge max, truncating (%d >= %d)", (int32_t)tmp.GetQMax(), 1024);
             tmp.SetQMax(1024 - 1);
           }
           clusterData[slice].emplace_back(cluster);
@@ -269,7 +269,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
         }
       }
     }
-    HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, (int)clusterData[slice].size(), slice);
+    HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, (int32_t)clusterData[slice].size(), slice);
   }
 
   if (nClustersTotal < 100) {
@@ -277,12 +277,12 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
   fChain->ClearIOPointers();
 
-  for (int i = 0; i < NSLICES; i++) {
+  for (int32_t i = 0; i < NSLICES; i++) {
     fChain->mIOPtrs.nClusterData[i] = clusterData[i].size();
     fChain->mIOPtrs.clusterData[i] = clusterData[i].data();
     fChain->mIOPtrs.nRawClusters[i] = rawClusters[i].size();
     fChain->mIOPtrs.rawClusters[i] = rawClusters[i].data();
-    HLTDebug("Slice %d - Clusters %d", i, (int)clusterData[i].size());
+    HLTDebug("Slice %d - Clusters %d", i, (int32_t)clusterData[i].size());
   }
 
   std::vector<AliHLTTPCClusterMCLabel> labels;
@@ -290,14 +290,14 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   if (labelsPresent) {
     // Write cluster labels
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (uint32_t iSlice = 0; iSlice < NSLICES; iSlice++) {
       GPUTPCClusterData* pCluster = clusterData[iSlice].data();
-      for (unsigned int iPatch = 0; iPatch < NPATCHES; iPatch++) {
+      for (uint32_t iPatch = 0; iPatch < NPATCHES; iPatch++) {
         if (clusterLabels[iSlice][iPatch] == nullptr || clustersXYZ[iSlice][iPatch] == nullptr || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) {
           continue;
         }
         const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[iSlice][iPatch];
-        for (int ic = 0; ic < clXYZ.fCount; ic++) {
+        for (int32_t ic = 0; ic < clXYZ.fCount; ic++) {
           if (pCluster->id != AliHLTTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) {
             continue;
           }
@@ -309,13 +309,13 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
 
     if (labels.size() != nClustersTotal) {
-      HLTFatal("Error getting cluster MC labels (%d labels, %d clusters)", (int)labels.size(), nClustersTotal);
+      HLTFatal("Error getting cluster MC labels (%d labels, %d clusters)", (int32_t)labels.size(), nClustersTotal);
       return (-EINVAL);
     }
 
     fChain->mIOPtrs.nMCLabelsTPC = labels.size();
     fChain->mIOPtrs.mcLabelsTPC = labels.data();
-    HLTDebug("Number of mc labels %d", (int)labels.size());
+    HLTDebug("Number of mc labels %d", (int32_t)labels.size());
 
     // Write MC tracks
     bool OK = false;
@@ -329,7 +329,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       rl->LoadKinematics();
       rl->LoadTrackRefs();
 
-      int nTracks = rl->GetHeader()->GetNtrack();
+      int32_t nTracks = rl->GetHeader()->GetNtrack();
       mcInfo.resize(nTracks);
 
       AliStack* stack = rl->Stack();
@@ -348,15 +348,15 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
         break;
       }
 
-      int nPrimaries = stack->GetNprimary();
+      int32_t nPrimaries = stack->GetNprimary();
 
       std::vector<AliTrackReference*> trackRefs(nTracks, nullptr);
       TClonesArray* tpcRefs = nullptr;
       branch->SetAddress(&tpcRefs);
-      int nr = TR->GetEntries();
-      for (int r = 0; r < nr; r++) {
+      int32_t nr = TR->GetEntries();
+      for (int32_t r = 0; r < nr; r++) {
         TR->GetEvent(r);
-        for (int i = 0; i < tpcRefs->GetEntriesFast(); i++) {
+        for (int32_t i = 0; i < tpcRefs->GetEntriesFast(); i++) {
           AliTrackReference* tpcRef = (AliTrackReference*)tpcRefs->UncheckedAt(i);
           if (tpcRef->DetectorId() != AliTrackReference::kTPC) {
             continue;
@@ -374,7 +374,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
       memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
 
-      for (int i = 0; i < nTracks; i++) {
+      for (int32_t i = 0; i < nTracks; i++) {
         mcInfo[i].pid = -100;
         TParticle* particle = (TParticle*)stack->Particle(i);
         if (particle == nullptr) {
@@ -384,9 +384,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
           continue;
         }
 
-        int charge = (int)particle->GetPDG()->Charge();
-        int prim = stack->IsPhysicalPrimary(i);
-        int hasPrimDaughter = particle->GetFirstDaughter() != -1 && particle->GetFirstDaughter() < nPrimaries;
+        int32_t charge = (int32_t)particle->GetPDG()->Charge();
+        int32_t prim = stack->IsPhysicalPrimary(i);
+        int32_t hasPrimDaughter = particle->GetFirstDaughter() != -1 && particle->GetFirstDaughter() < nPrimaries;
 
         mcInfo[i].charge = charge;
         mcInfo[i].prim = prim;
@@ -423,7 +423,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
         // if (ref) HLTImportant("Particle %d: Charge %d, Prim %d, PrimDaughter %d, Pt %f %f ref %p\n", i, charge, prim, hasPrimDaughter, ref->Pt(), particle->Pt(), ref);
       }
-      for (int i = 0; i < nTracks; i++) {
+      for (int32_t i = 0; i < nTracks; i++) {
         delete trackRefs[i];
       }
 
@@ -437,21 +437,21 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     fChain->mIOPtrs.nMCInfosTPC = mcInfo.size();
     fChain->mIOPtrs.mcInfosTPC = mcInfo.data();
-    static const GPUTPCMCInfoCol mcColInfo = {0, (unsigned int)mcInfo.size()};
+    static const GPUTPCMCInfoCol mcColInfo = {0, (uint32_t)mcInfo.size()};
     fChain->mIOPtrs.mcInfosTPCCol = &mcColInfo;
     fChain->mIOPtrs.nMCInfosTPCCol = 1;
-    HLTDebug("Number of MC infos: %d", (int)mcInfo.size());
+    HLTDebug("Number of MC infos: %d", (int32_t)mcInfo.size());
   }
-  unsigned int clusterNum = 0;
-  for (unsigned int slice = 0; slice < NSLICES; slice++) {
-    for (int k = 0; k < fChain->mIOPtrs.nClusterData[slice]; k++) {
+  uint32_t clusterNum = 0;
+  for (uint32_t slice = 0; slice < NSLICES; slice++) {
+    for (int32_t k = 0; k < fChain->mIOPtrs.nClusterData[slice]; k++) {
       clusterData[slice][k].id = clusterNum++;
     }
   }
 
   fChain->mIOPtrs.nTRDTracklets = nTRDTrackletsTotal;
   std::vector<GPUTRDTrackletWord> tracklets(nTRDTrackletsTotal);
-  for (int i = 0; i < nTRDTrackletsTotal; i++) {
+  for (int32_t i = 0; i < nTRDTrackletsTotal; i++) {
     tracklets[i] = TRDtracklets[i];
   }
   std::sort(tracklets.data(), tracklets.data() + nTRDTrackletsTotal);
@@ -459,19 +459,19 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   fChain->mIOPtrs.nTRDTriggerRecords = 1;
   static float t = 0.f;
-  static int o = 0;
+  static int32_t o = 0;
   fChain->mIOPtrs.trdTriggerTimes = &t;
   fChain->mIOPtrs.trdTrackletIdxFirst = &o;
 
-  HLTDebug("Number of TRD tracklets: %d", (int)nTRDTrackletsTotal);
+  HLTDebug("Number of TRD tracklets: %d", (int32_t)nTRDTrackletsTotal);
 
-  static int nEvent = 0;
+  static int32_t nEvent = 0;
   char filename[256];
   std::ofstream out;
 
   if (nEvent == 0) {
     std::unique_ptr<TPCFastTransform> fFastTransformIRS(new TPCFastTransform);
-    long TimeStamp = (getenv("DUMP_TIMESTAMP_SOR") && atoi(getenv("DUMP_TIMESTAMP_SOR"))) ? fInitTimestamp : GetTimeStamp();
+    int64_t TimeStamp = (getenv("DUMP_TIMESTAMP_SOR") && atoi(getenv("DUMP_TIMESTAMP_SOR"))) ? fInitTimestamp : GetTimeStamp();
     if (fIsMC && !fRecParam->GetUseCorrectionMap()) {
       TimeStamp = 0;
     }

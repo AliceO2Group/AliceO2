@@ -156,6 +156,8 @@ TRUDecodingError_t getTRUDecodingErrorFromErrorCode(unsigned int errorcode)
       return TRUDecodingError_t::PATCH_INDEX_INVALID;
     case 2:
       return TRUDecodingError_t::FASTOR_INDEX_INVALID;
+    case 3:
+      return TRUDecodingError_t::FASTOR_STARTTIME_INVALID;
     default:
       return TRUDecodingError_t::UNKNOWN_ERROR;
   }
@@ -170,6 +172,8 @@ const char* getTRUDecodingErrorName(TRUDecodingError_t errortype)
       return "PatchIndexInvalid";
     case TRUDecodingError_t::FASTOR_INDEX_INVALID:
       return "FastORIndexInvalid";
+    case TRUDecodingError_t::FASTOR_STARTTIME_INVALID:
+      return "FastORStartTimeInvalid";
     default:
       return "UnknownError";
   }
@@ -189,6 +193,8 @@ const char* getTRUDecodingErrorTitle(TRUDecodingError_t errortype)
       return "Patch index invalid";
     case TRUDecodingError_t::FASTOR_INDEX_INVALID:
       return "FastOR index invalid";
+    case TRUDecodingError_t::FASTOR_STARTTIME_INVALID:
+      return "FastOR starttime invalid";
     default:
       return "Unknown error";
   }
@@ -208,6 +214,8 @@ const char* getTRUDecodingErrorErrorDescription(TRUDecodingError_t errortype)
       return "Patch index is invalid";
     case TRUDecodingError_t::FASTOR_INDEX_INVALID:
       return "FastOR index is invalid";
+    case TRUDecodingError_t::FASTOR_STARTTIME_INVALID:
+      return "FastOR starttime is invalid";
     default:
       return "Unknown error";
   }

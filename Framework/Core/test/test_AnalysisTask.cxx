@@ -233,7 +233,7 @@ TEST_CASE("TestPartitionIteration")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 8);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, aod::test::X, aod::test::Y>;
+  using TestA = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, o2::soa::Index<>, aod::test::X, aod::test::Y>;
   using FilteredTest = o2::soa::Filtered<TestA>;
   using PartitionTest = Partition<TestA>;
   using PartitionFilteredTest = Partition<o2::soa::Filtered<TestA>>;

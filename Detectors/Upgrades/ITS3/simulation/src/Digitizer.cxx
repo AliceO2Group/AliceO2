@@ -18,11 +18,11 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "ITS3Base/SpecsV2.h"
+#include "Framework/Logger.h"
 
 #include <TRandom.h>
 #include <vector>
 #include <numeric>
-#include <fairlogger/Logger.h> // for LOG
 
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
@@ -34,11 +34,14 @@ using namespace o2::its3;
 
 void Digitizer::init()
 {
-  mGeometry->Print();
   const int numOfChips = mGeometry->getNumberOfChips();
   mChips.resize(numOfChips);
   for (int i = numOfChips; i--;) {
     mChips[i].setChipIndex(i);
+    if (mDeadChanMap != nullptr) {
+      mChips[i].disable(mDeadChanMap->isFullChipMasked(i));
+      mChips[i].setDeadChanMap(mDeadChanMap);
+    }
   }
 
   if (mParams.getAlpSimResponse() == nullptr) {
@@ -137,7 +140,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
 
     auto& extra = *(mExtraBuff.front().get());
-    for (int iChip{0}; iChip < mChips.size(); ++iChip) {
+    for (size_t iChip{0}; iChip < mChips.size(); ++iChip) {
       auto& chip = mChips[iChip];
       if (constants::detID::isDetITS3(iChip)) { // Check if this is a chip of ITS3
         chip.addNoise(mROFrameMin, mROFrameMin, &mParams, SuperSegmentation::mNRows, SuperSegmentation::mNCols);
@@ -189,6 +192,11 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
+  int chipID = hit.GetDetectorID();
+  auto& chip = mChips[chipID];
+  if (chip.isDisabled()) {
+    return;
+  }
   float timeInROF = hit.GetTime() * sec2ns;
   if (timeInROF > 20e3) {
     const int maxWarn = 10;
@@ -368,7 +376,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
-  auto& chip = mChips[detID];
   auto roFrameAbs = mNewROFrame + roFrameRel;
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;

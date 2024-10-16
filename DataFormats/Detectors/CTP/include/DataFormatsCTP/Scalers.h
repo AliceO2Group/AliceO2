@@ -87,13 +87,21 @@ struct CTPScalerRecordO2 {
 class CTPRunScalers
 {
  public:
+  //
+  // static constexpr uint32_t NCOUNTERS = 1052;
+  // v1
+  // static constexpr uint32_t NCOUNTERS = 1070;
+  // v2 - orbitid added at the end
+  static constexpr uint32_t NCOUNTERSv2 = 1071;
+  static constexpr uint32_t NCOUNTERS = 1085;
+  static std::vector<std::string> scalerNames;
   CTPRunScalers() = default;
-
   void printStream(std::ostream& stream) const;
   void printO2(std::ostream& stream) const;
   void printFromZero(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
   std::vector<uint32_t> getClassIndexes() const;
+  uint32_t getRunNumber() { return mRunNumber; };
   int getScalerIndexForClass(uint32_t cls) const;
   std::vector<CTPScalerRecordO2>& getScalerRecordO2() { return mScalerRecordO2; };
   std::vector<CTPScalerRecordRaw>& getScalerRecordRaw() { return mScalerRecordRaw; };
@@ -106,7 +114,6 @@ class CTPRunScalers
   void setDetectorMask(o2::detectors::DetID::mask_t mask) { mDetectorMask = mask; };
   void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
   void addScalerRacordRaw(CTPScalerRecordRaw& scalerrecordraw) { mScalerRecordRaw.push_back(scalerrecordraw); };
-  uint32_t getRunNUmber() { return mRunNumber; };
   int printRates();
   int printIntegrals();
   int printInputRateAndIntegral(int inp);
@@ -115,16 +122,7 @@ class CTPRunScalers
   //
   int addOrbitOffset(uint32_t offset);
   //
-  // static constexpr uint32_t NCOUNTERS = 1052;
-  // v1
-  // static constexpr uint32_t NCOUNTERS = 1070;
-  // v2 - orbitid added at the end
-  static constexpr uint32_t NCOUNTERSv2 = 1071;
-  static constexpr uint32_t NCOUNTERS = 1085;
-  static std::vector<std::string> scalerNames;
-
   void printLMBRateVsT() const; // prints LMB interaction rate vs time for debugging
-
   // returns the pair of global (levelled) interaction rate, as well as interpolated
   // rate in Hz at a certain orbit number within the run
   std::pair<double, double> getRate(uint32_t orbit, int classindex, int type) const;
@@ -132,6 +130,19 @@ class CTPRunScalers
   /// same with absolute  timestamp (not orbit) as argument
   std::pair<double, double> getRateGivenT(double timestamp, int classindex, int type) const;
 
+  /// retrieves integral for class
+  std::array<uint64_t, 7> getIntegralForClass(int i) const
+  {
+    return {
+      mScalerRecordO2[0].scalers[i].classIndex,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmBefore - mScalerRecordO2[0].scalers[i].lmBefore,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmAfter - mScalerRecordO2[0].scalers[i].lmAfter,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0Before - mScalerRecordO2[0].scalers[i].l0Before,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0After - mScalerRecordO2[0].scalers[i].l0After,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1Before - mScalerRecordO2[0].scalers[i].l1Before,
+      mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1After - mScalerRecordO2[0].scalers[i].l1After,
+    };
+  }
   /// retrieves time boundaries of this scaler object from O2 scalers
   std::pair<unsigned long, unsigned long> getTimeLimit() const
   {

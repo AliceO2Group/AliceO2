@@ -27,9 +27,9 @@ struct DigitFilterParam : o2::conf::ConfigurableParamHelper<DigitFilterParam> {
   uint8_t mPMbitsGood = (1 << ChannelData::EEventDataBit::kIsCFDinADCgate) | (1 << ChannelData::EEventDataBit::kIsEventInTVDC);
   uint8_t mPMbitsBad = (1 << ChannelData::EEventDataBit::kIsDoubleEvent) | (1 << ChannelData::EEventDataBit::kIsTimeInfoNOTvalid) | (1 << ChannelData::EEventDataBit::kIsTimeInfoLate) | (1 << ChannelData::EEventDataBit::kIsAmpHigh) | (1 << ChannelData::EEventDataBit::kIsTimeInfoLost);
   uint8_t mPMbitsToCheck = mPMbitsGood | mPMbitsBad;
-  uint8_t mTrgBitsGood = (1 << Triggers::bitVertex) | (1 << Triggers::bitDataIsValid);
-  uint8_t mTrgBitsBad = (1 << Triggers::bitOutputsAreBlocked);
-  uint8_t mTrgBitsToCheck = mTrgBitsGood | mTrgBitsBad;
+  uint64_t mTrgBitsGood = Triggers::word(Triggers::bitVertex, Triggers::bitDataIsValid);
+  uint64_t mTrgBitsBad = Triggers::word(Triggers::bitOutputsAreBlocked);
+  uint64_t mTrgBitsToCheck = mTrgBitsGood | mTrgBitsBad;
 
   O2ParamDef(DigitFilterParam, "FT0DigitFilterParam");
 };
@@ -41,12 +41,13 @@ struct ChannelFilterParam : o2::conf::ConfigurableParamHelper<ChannelFilterParam
   int16_t mTimeLower = -2050;
 
   uint8_t mPMbitsGood = 0;
-  uint8_t mPMbitsBad = 0;                                                   // no checking for bad bits
+  uint8_t mPMbitsBad = 0; // no checking for bad bits
   uint8_t mPMbitsToCheck = mPMbitsGood | mPMbitsBad;
 
-  uint8_t mTrgBitsGood = 0;
-  uint8_t mTrgBitsBad = 0;                                // Laser haven't been used in 2022, no check for bad bits
-  uint8_t mTrgBitsToCheck = mTrgBitsGood | mTrgBitsBad;
+  uint64_t mTrgBitsGood = 0;
+  uint64_t mTrgBitsBad = 0; // Laser haven't been used in 2022, no check for bad bits
+  uint64_t mTrgBitsToCheck = mTrgBitsGood | mTrgBitsBad;
+
   bool checkPMbits(uint8_t pmBits) const
   {
     return (pmBits & mPMbitsToCheck) == mPMbitsGood;

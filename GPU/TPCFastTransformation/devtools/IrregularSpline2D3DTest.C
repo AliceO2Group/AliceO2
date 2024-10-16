@@ -37,12 +37,12 @@
 
 float Fx(float u, float v)
 {
-  const int PolynomDegree = 7;
+  const int32_t PolynomDegree = 7;
   static double cu[PolynomDegree + 1], cv[PolynomDegree + 1];
   static bool isInitialized = 0;
 
   if (!isInitialized) {
-    for (int i = 0; i <= PolynomDegree; i++) {
+    for (int32_t i = 0; i <= PolynomDegree; i++) {
       cu[i] = i * gRandom->Uniform(-1, 1);
       cv[i] = i * gRandom->Uniform(-1, 1);
     }
@@ -53,7 +53,7 @@ float Fx(float u, float v)
   double uu = 1.;
   double vv = 1.;
   double f = 0;
-  for (int i = 0; i <= PolynomDegree; i++) {
+  for (int32_t i = 0; i <= PolynomDegree; i++) {
     f += cu[i] * uu;
     f += cv[i] * vv;
     uu *= u;
@@ -65,30 +65,30 @@ float Fx(float u, float v)
 float Fy(float u, float v) { return v; }
 float Fz(float u, float v) { return (u - .5) * (u - .5); }
 
-int IrregularSpline2D3DTest()
+int32_t IrregularSpline2D3DTest()
 {
   using namespace o2::gpu;
 
   gRandom->SetSeed(0);
-  UInt_t seed = gRandom->Integer(100000); // 605
+  uint32_t seed = gRandom->Integer(100000); // 605
   gRandom->SetSeed(seed);
   std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
 
   IrregularSpline2D3D spline;
 
   {
-    const int nKnotsU = 7, nKnotsV = 7;
+    const int32_t nKnotsU = 7, nKnotsV = 7;
     float knotsU[nKnotsU], knotsV[nKnotsV];
 
-    int nAxisTicksU = 20;
-    int nAxisTicksV = 20;
+    int32_t nAxisTicksU = 20;
+    int32_t nAxisTicksV = 20;
 
     double du = 1. / (nKnotsU - 1);
     double dv = 1. / (nKnotsV - 1);
-    for (int i = 1; i < nKnotsU - 1; i++) {
+    for (int32_t i = 1; i < nKnotsU - 1; i++) {
       knotsU[i] = i * du + gRandom->Uniform(-du / 3., du / 3.);
     }
-    for (int i = 1; i < nKnotsV - 1; i++) {
+    for (int32_t i = 1; i < nKnotsV - 1; i++) {
       knotsV[i] = i * dv + gRandom->Uniform(-dv / 3., dv / 3.);
     }
 
@@ -103,7 +103,7 @@ int IrregularSpline2D3DTest()
     spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
   }
 
-  int nKnotsTot = spline.getNumberOfKnots();
+  int32_t nKnotsTot = spline.getNumberOfKnots();
 
   const IrregularSpline1D& gridU = spline.getGridU();
   const IrregularSpline1D& gridV = spline.getGridV();
@@ -111,13 +111,13 @@ int IrregularSpline2D3DTest()
   float* data0 = new float[3 * nKnotsTot];
   float* data = new float[3 * nKnotsTot];
 
-  int nu = gridU.getNumberOfKnots();
+  int32_t nu = gridU.getNumberOfKnots();
 
-  for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
+  for (int32_t i = 0; i < gridU.getNumberOfKnots(); i++) {
     double u = gridU.getKnot(i).u;
-    for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
+    for (int32_t j = 0; j < gridV.getNumberOfKnots(); j++) {
       double v = gridV.getKnot(j).u;
-      int ind = (nu * j + i) * 3;
+      int32_t ind = (nu * j + i) * 3;
       data0[ind + 0] = Fx(u, v);
       data0[ind + 1] = Fy(u, v);
       data0[ind + 2] = Fz(u, v);
@@ -126,7 +126,7 @@ int IrregularSpline2D3DTest()
     }
   }
 
-  for (int i = 0; i < 3 * nKnotsTot; i++) {
+  for (int32_t i = 0; i < 3 * nKnotsTot; i++) {
     data[i] = data0[i];
   }
 
@@ -145,14 +145,14 @@ int IrregularSpline2D3DTest()
   gknots->SetMarkerStyle(8);
   gknots->SetMarkerColor(kRed);
 
-  int gknotsN = 0;
+  int32_t gknotsN = 0;
   TNtuple* knots = new TNtuple("knots", "knots", "u:v:f");
   double diff = 0;
-  for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
-    for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
+  for (int32_t i = 0; i < gridU.getNumberOfKnots(); i++) {
+    for (int32_t j = 0; j < gridV.getNumberOfKnots(); j++) {
       double u = gridU.getKnot(i).u;
       double v = gridV.getKnot(j).u;
-      int ind = (nu * j + i) * 3;
+      int32_t ind = (nu * j + i) * 3;
       double fx0 = data0[ind + 0];
       knots->Fill(u, v, fx0);
       float x, y, z;
@@ -173,19 +173,19 @@ int IrregularSpline2D3DTest()
   gf0->SetName("gf0");
   gf0->SetTitle("gf0");
   gf0->SetLineColor(kRed);
-  int gf0N = 0;
+  int32_t gf0N = 0;
 
   TGraph2D* gfs = new TGraph2D();
   gfs->SetName("gfs");
   gfs->SetTitle("gfs");
   gfs->SetLineColor(kBlue);
-  int gfsN = 0;
+  int32_t gfsN = 0;
 
   TH1F* qaX = new TH1F("qaX", "qaX [um]", 1000, -100., 100.);
   TH1F* qaY = new TH1F("qaY", "qaY [um]", 1000, -10., 10.);
   TH1F* qaZ = new TH1F("qaZ", "qaZ [um]", 1000, -10., 10.);
 
-  int iter = 0;
+  int32_t iter = 0;
   float stepu = 1.e-3;
   float stepv = 1.e-3;
 

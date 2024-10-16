@@ -43,4 +43,7 @@
 #pragma link C++ class o2::math_utils::Bracketd_t + ;
 #pragma link C++ class o2::math_utils::Tsallis + ;
 
+#pragma link C++ class o2::math_utils::Legendre1DPolynominal + ;
+#pragma link C++ class o2::math_utils::Legendre2DPolynominal + ;
+
 #endif

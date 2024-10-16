@@ -251,6 +251,17 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
     mErrorCounter++;
   }
 
+  // before to move to RDH close check we are not already out of buffer (it is the last chance to call rewind and not to store RDH open)
+  if (mEncoderPointer >= mEncoderPointerMax) {
+    LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer in RDH open = " << mEncoderPointer << " >= "
+               << "mEncoderPointerMax = " << mEncoderPointerMax;
+    long byteOutOfBuffer = mEncoderPointer + rdh->headerSize - mEncoderPointerMax;
+    LOG(error) << "byte out of buffer = " << byteOutOfBuffer;
+
+    encoderRewind();
+    return true;
+  }
+
   /** copy RDH close to encoder buffer **/
   /** CAREFUL WITH THE PAGE COUNTER **/
   if (mEncoderPointer + rdh->headerSize >= mEncoderPointerMax) {

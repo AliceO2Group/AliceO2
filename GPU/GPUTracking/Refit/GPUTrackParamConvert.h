@@ -28,20 +28,20 @@ namespace o2::gpu
 
 GPUdi() static void convertTrackParam(GPUTPCGMTrackParam& trk, const o2::track::TrackParCov& trkX)
 {
-  for (int i = 0; i < 5; i++) {
+  for (int32_t i = 0; i < 5; i++) {
     trk.Par()[i] = trkX.getParams()[i];
   }
-  for (int i = 0; i < 15; i++) {
+  for (int32_t i = 0; i < 15; i++) {
     trk.Cov()[i] = trkX.getCov()[i];
   }
   trk.X() = trkX.getX();
 }
 GPUdi() static void convertTrackParam(o2::track::TrackParCov& trk, const GPUTPCGMTrackParam& trkX)
 {
-  for (int i = 0; i < 5; i++) {
+  for (int32_t i = 0; i < 5; i++) {
     trk.setParam(trkX.GetPar()[i], i);
   }
-  for (int i = 0; i < 15; i++) {
+  for (int32_t i = 0; i < 15; i++) {
     trk.setCov(trkX.GetCov()[i], i);
   }
   trk.setX(trkX.GetX());

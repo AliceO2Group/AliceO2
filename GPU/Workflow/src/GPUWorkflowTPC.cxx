@@ -281,14 +281,14 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     mTPCDeadChannelMapCreator->finalizeDeadChannelMap();
     mdEdxCalibContainerBufferNew.get()->setDeadChannelMap(mTPCDeadChannelMapCreator->getDeadChannelMap());
     LOGP(info, "Updating dead channel map with IDC pad flags: {} / {} dead pads from pad flags / total",
-         mTPCDeadChannelMapCreator->getDeadChannelMapIDC().getSum<int>(), mTPCDeadChannelMapCreator->getDeadChannelMap().getSum<int>());
+         mTPCDeadChannelMapCreator->getDeadChannelMapIDC().getSum<int32_t>(), mTPCDeadChannelMapCreator->getDeadChannelMap().getSum<int32_t>());
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "TPCRUNINFO", 0)) {
     copyCalibsToBuffer();
     mTPCDeadChannelMapCreator->loadFEEConfigViaRunInfoTS(mCreationForCalib);
     mTPCDeadChannelMapCreator->finalizeDeadChannelMap();
     mdEdxCalibContainerBufferNew.get()->setDeadChannelMap(mTPCDeadChannelMapCreator->getDeadChannelMap());
     LOGP(info, "Updating dead channel map with the FEE info loaded via TPCRUNINFO for creation time {}: {} / {} dead pads from FEE info / total",
-         mCreationForCalib, mTPCDeadChannelMapCreator->getDeadChannelMapFEE().getSum<int>(), mTPCDeadChannelMapCreator->getDeadChannelMap().getSum<int>());
+         mCreationForCalib, mTPCDeadChannelMapCreator->getDeadChannelMapFEE().getSum<int32_t>(), mTPCDeadChannelMapCreator->getDeadChannelMap().getSum<int32_t>());
   } else if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
   } else if (mCalibObjects.mFastTransformHelper->accountCCDBInputs(matcher, obj)) {
   }
@@ -421,7 +421,7 @@ void GPURecoWorkflowSpec::doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* b
     auto diagInner = trackTune.getCovInnerTotal(scale);
     auto diagOuter = trackTune.getCovOuterTotal(scale);
 
-    for (unsigned int itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
+    for (uint32_t itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
       auto& trc = tpcTracks[itr];
       if (trackTune.useTPCInnerCorr) {
         trc.updateParams(trackTune.tpcParInner);

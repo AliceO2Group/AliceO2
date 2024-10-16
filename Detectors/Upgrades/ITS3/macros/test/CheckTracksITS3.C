@@ -70,12 +70,12 @@ struct ParticleInfo {
 
 #pragma link C++ class ParticleInfo + ;
 
-void CheckTracksITS3(const std::string& tracfile = "o2trac_its3.root",
-                     const std::string& clusfile = "o2clus_it3.root",
+void CheckTracksITS3(const std::string& tracfile = "o2trac_its.root",
+                     const std::string& clusfile = "o2clus_its.root",
                      const std::string& kinefile = "o2sim_Kine.root",
                      const std::string& magfile = "o2sim_grp.root",
-                     const std::string& inputGeom = "o2sim_geometry.root",
-                     bool batch = true)
+                     const std::string& inputGeom = "",
+                     bool batch = false)
 {
   gROOT->SetBatch(batch);
 
@@ -104,19 +104,19 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its3.root",
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::itsmft::CompClusterExt>* clusArr = nullptr;
   std::vector<CompClusterExt>* clusArrITS = nullptr;
-  clusTree->SetBranchAddress("IT3ClusterComp", &clusArr);
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
-  clusTree->SetBranchAddress("IT3ClusterMCTruth", &clusLabArr);
+  clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
 
   // Reconstructed tracks
   TFile::Open(tracfile.data());
   TTree* recTree = (TTree*)gFile->Get("o2sim");
   std::vector<TrackITS>* recArr = nullptr;
-  recTree->SetBranchAddress("IT3Track", &recArr);
+  recTree->SetBranchAddress("ITSTrack", &recArr);
   // Track MC labels
   std::vector<o2::MCCompLabel>* trkLabArr = nullptr;
-  recTree->SetBranchAddress("IT3TrackMCTruth", &trkLabArr);
+  recTree->SetBranchAddress("ITSTrackMCTruth", &trkLabArr);
 
   std::cout << "** Filling particle table ... " << std::flush;
   int lastEventIDcl = -1, cf = 0;
@@ -154,8 +154,9 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its3.root",
 
     for (unsigned int iClus{0}; iClus < clssize; ++iClus) {
       auto lab = (clusLabArr->getLabels(iClus))[0];
-      if (!lab.isValid() || lab.getSourceID() != 0 || !lab.isCorrect())
+      if (!lab.isValid() || lab.getSourceID() != 0 || !lab.isCorrect()) {
         continue;
+      }
 
       int trackID, evID, srcID;
       bool fake;
@@ -354,12 +355,12 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its3.root",
 
   h_phi_eff->SetTotalHistogram(*h_phi_den, "");
   h_phi_eff->SetPassedHistogram(*h_phi_num, "");
-  h_phi_eff->SetTitle("Tracking Efficiency;#it{#eta};Eff.");
+  h_phi_eff->SetTitle("Tracking Efficiency;#varphi;Eff.");
   h_phi_eff->Write();
 
   h_eta_eff->SetTotalHistogram(*h_eta_den, "");
   h_eta_eff->SetPassedHistogram(*h_eta_num, "");
-  h_eta_eff->SetTitle("Tracking Efficiency;#varphi;Eff.");
+  h_eta_eff->SetTitle("Tracking Efficiency;#it{#eta};Eff.");
   h_eta_eff->Write();
 
   file.Close();

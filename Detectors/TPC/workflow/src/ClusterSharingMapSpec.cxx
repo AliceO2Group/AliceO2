@@ -41,8 +41,8 @@ void ClusterSharingMapSpec::run(ProcessingContext& pc)
 
   std::shared_ptr<o2::gpu::GPUParam> param = o2::gpu::GPUO2InterfaceUtils::getFullParamShared(0.f, nHBPerTF);
   auto& bufVecSh = pc.outputs().make<std::vector<unsigned char>>(Output{o2::header::gDataOriginTPC, "CLSHAREDMAP", 0}, clustersTPC->clusterIndex.nClustersTotal);
-  size_t occupancyMapSize = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(nHBPerTF, param.get());
-  auto& bufVecOcc = pc.outputs().make<std::vector<unsigned int>>(Output{o2::header::gDataOriginTPC, "TPCOCCUPANCYMAP", 0}, occupancyMapSize);
+  size_t occupancyMapSizeBytes = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(nHBPerTF, param.get());
+  auto& bufVecOcc = pc.outputs().make<std::vector<unsigned int>>(Output{o2::header::gDataOriginTPC, "TPCOCCUPANCYMAP", 0}, occupancyMapSizeBytes / sizeof(int));
   o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(&clustersTPC->clusterIndex, tracksTPC, tracksTPCClRefs.data(), bufVecSh.data(), bufVecOcc.data(), nHBPerTF, param.get());
 
   timer.Stop();

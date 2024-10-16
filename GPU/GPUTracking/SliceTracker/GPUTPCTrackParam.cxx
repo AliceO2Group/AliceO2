@@ -698,10 +698,10 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
   bool ok = CAMath::Finite(GetX()) && CAMath::Finite(mSignCosPhi) && CAMath::Finite(mChi2);
 
   const float* c = Cov();
-  for (int i = 0; i < 15; i++) {
+  for (int32_t i = 0; i < 15; i++) {
     ok = ok && CAMath::Finite(c[i]);
   }
-  for (int i = 0; i < 5; i++) {
+  for (int32_t i = 0; i < 5; i++) {
     ok = ok && CAMath::Finite(Par()[i]);
   }
 
@@ -728,7 +728,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
 }
 
 MEM_CLASS_PRE()
-GPUd() void MEM_LG(GPUTPCTrackParam)::ConstrainZ(float& z, int sector, float& z0, float& lastZ)
+GPUd() void MEM_LG(GPUTPCTrackParam)::ConstrainZ(float& z, int32_t sector, float& z0, float& lastZ)
 {
   if (sector < GPUCA_NSLICES / 2) {
     if (z < 0) {
@@ -775,7 +775,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::ShiftZ(float z1, float z2, float x1, float
   if (dist1r2 < 4) {
     const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
     const float beta = CAMath::ATan2(mParam.mP[0], mParam.mX);
-    const int comp = mParam.mP[2] > CAMath::Sin(beta);
+    const int32_t comp = mParam.mP[2] > CAMath::Sin(beta);
     const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
     const float res = CAMath::Abs(sinab - mParam.mP[2]);
 
@@ -838,7 +838,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::Print() const
 }
 
 MEM_CLASS_PRE()
-GPUd() int MEM_LG(GPUTPCTrackParam)::GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const
+GPUd() int32_t MEM_LG(GPUTPCTrackParam)::GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const
 {
   float k = mParam.mP[4] * bz;
   float dx = x - mParam.mX;

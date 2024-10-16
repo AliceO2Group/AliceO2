@@ -28,14 +28,16 @@ namespace event_visualisation
 class DirectoryLoader
 {
  private:
-  static int getNumberOfFiles(std::string& path, std::vector<std::string>& ext);
-  static std::string getLatestFile(std::string& path, std::vector<std::string>& ext);
+  static int getNumberOfFiles(const std::string& path, std::vector<std::string>& ext);
+  static std::string getLatestFile(const std::string& path, std::vector<std::string>& ext);
 
  public:
   static std::deque<std::string> load(const std::string& path, const std::string& marker, const std::vector<std::string>& ext);
   static std::deque<std::string> load(const std::vector<std::string>& paths, const std::string& marker, const std::vector<std::string>& ext);
+  static std::vector<std::string> allFolders(const std::string& location);
+  static bool canCreateNextFile(const std::vector<std::string>& paths, const std::string& marker, const std::vector<std::string>& ext, long long millisec, long capacityAllowed);
   static void reduceNumberOfFiles(const std::string& path, const std::deque<std::string>& files, std::size_t filesInFolder);
-  static void removeOldestFiles(std::string& path, std::vector<std::string>& ext, int remaining);
+  static void removeOldestFiles(const std::string& path, std::vector<std::string>& ext, int remaining);
 };
 
 } // namespace event_visualisation

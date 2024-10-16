@@ -55,9 +55,17 @@ class MCKinematicsReader
     }
   }
 
+  /// constructing directly from a digitization context
+  MCKinematicsReader(o2::steer::DigitizationContext const* context)
+  {
+    initFromDigitContext(context);
+  }
+
   /// inits the reader from a digitization context
   /// returns true if successful
   bool initFromDigitContext(std::string_view filename);
+
+  bool initFromDigitContext(o2::steer::DigitizationContext const* digicontext);
 
   /// inits the reader from a simple kinematics file
   bool initFromKinematics(std::string_view filename);
@@ -120,6 +128,7 @@ class MCKinematicsReader
   void initIndexedTrackRefs(std::vector<o2::TrackReference>& refs, o2::dataformats::MCTruthContainer<o2::TrackReference>& indexedrefs) const;
 
   DigitizationContext const* mDigitizationContext = nullptr;
+  bool mOwningDigiContext = false;
 
   // chains for each source
   std::vector<TChain*> mInputChains;

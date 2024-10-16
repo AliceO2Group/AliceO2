@@ -53,7 +53,7 @@
 #define GPUCA_ATTRRES(XX, ...) GPUCA_M_EXPAND(GPUCA_M_CAT(GPUCA_ATTRRES_, GPUCA_M_FIRST(__VA_ARGS__)))(XX, __VA_ARGS__)
 // GPU Kernel entry point for single sector
 #define GPUCA_KRNLGPU_SINGLE_DEF(x_class, x_attributes, x_arguments, ...) \
-  GPUg() void GPUCA_ATTRRES(,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))(GPUCA_CONSMEM_PTR int iSlice_internal GPUCA_M_STRIP(x_arguments))
+  GPUg() void GPUCA_ATTRRES(,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))(GPUCA_CONSMEM_PTR int32_t iSlice_internal GPUCA_M_STRIP(x_arguments))
 #ifdef GPUCA_KRNL_DEFONLY
 #define GPUCA_KRNLGPU_SINGLE(...) GPUCA_KRNLGPU_SINGLE_DEF(__VA_ARGS__);
 #else
@@ -66,16 +66,16 @@
 
 // GPU Kernel entry point for multiple sector
 #define GPUCA_KRNLGPU_MULTI_DEF(x_class, x_attributes, x_arguments, ...) \
-  GPUg() void GPUCA_ATTRRES(,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount GPUCA_M_STRIP(x_arguments))
+  GPUg() void GPUCA_ATTRRES(,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)(GPUCA_CONSMEM_PTR int32_t firstSlice, int32_t nSliceCount GPUCA_M_STRIP(x_arguments))
 #ifdef GPUCA_KRNL_DEFONLY
 #define GPUCA_KRNLGPU_MULTI(...) GPUCA_KRNLGPU_MULTI_DEF(__VA_ARGS__);
 #else
 #define GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward, ...) GPUCA_KRNLGPU_MULTI_DEF(x_class, x_attributes, x_arguments, x_forward, __VA_ARGS__) \
   { \
-    const int iSlice_internal = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
-    const int nSliceBlockOffset = get_num_groups(0) * iSlice_internal / nSliceCount; \
-    const int sliceBlockId = get_group_id(0) - nSliceBlockOffset; \
-    const int sliceGridDim = get_num_groups(0) * (iSlice_internal + 1) / nSliceCount - get_num_groups(0) * (iSlice_internal) / nSliceCount; \
+    const int32_t iSlice_internal = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
+    const int32_t nSliceBlockOffset = get_num_groups(0) * iSlice_internal / nSliceCount; \
+    const int32_t sliceBlockId = get_group_id(0) - nSliceBlockOffset; \
+    const int32_t sliceGridDim = get_num_groups(0) * (iSlice_internal + 1) / nSliceCount - get_num_groups(0) * (iSlice_internal) / nSliceCount; \
     GPUshared() typename GPUCA_M_STRIP_FIRST(x_class)::MEM_LOCAL(GPUSharedMemory) smem; \
     GPUCA_M_STRIP_FIRST(x_class)::template Thread<GPUCA_M_KRNL_NUM(x_class)>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, GPUCA_M_STRIP_FIRST(x_class)::Processor(GPUCA_CONSMEM)[firstSlice + iSlice_internal] GPUCA_M_STRIP(x_forward)); \
   }
@@ -134,7 +134,7 @@
 #define GPUCA_KRNL_PROP(x_class, x_attributes) \
   template <> gpu_reconstruction_kernels::krnlProperties GPUCA_KRNL_BACKEND_CLASS::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>() { \
     gpu_reconstruction_kernels::krnlProperties ret = gpu_reconstruction_kernels::krnlProperties{GPUCA_ATTRRES(_INTERNAL_PROP,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes)))}; \
-    return ret.nThreads > 0 ? ret : gpu_reconstruction_kernels::krnlProperties{(int)mThreadCount}; \
+    return ret.nThreads > 0 ? ret : gpu_reconstruction_kernels::krnlProperties{(int32_t)mThreadCount}; \
   }
 
 // Generate GPU kernel and host wrapper

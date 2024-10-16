@@ -21,7 +21,7 @@
 #define STD_OUT stdout
 #endif
 
-qSem::qSem(int num)
+qSem::qSem(int32_t num)
 {
   max = num;
   if (sem_init(&sem, 0, num)) {
@@ -36,27 +36,27 @@ qSem::~qSem()
   }
 }
 
-int qSem::Lock()
+int32_t qSem::Lock()
 {
-  int retVal;
+  int32_t retVal;
   if ((retVal = sem_wait(&sem))) {
     fprintf(STD_OUT, "Error locking semaphore");
   }
   return (retVal);
 }
 
-int qSem::Unlock()
+int32_t qSem::Unlock()
 {
-  int retVal;
+  int32_t retVal;
   if ((retVal = sem_post(&sem))) {
     fprintf(STD_OUT, "Error unlocking semaphire");
   }
   return (retVal);
 }
 
-int qSem::Trylock()
+int32_t qSem::Trylock()
 {
-  int retVal = sem_trywait(&sem);
+  int32_t retVal = sem_trywait(&sem);
   if (retVal) {
     if (errno == EAGAIN) {
       return (EBUSY);
@@ -67,9 +67,9 @@ int qSem::Trylock()
 }
 
 #ifndef _WIN32
-int qSem::Query()
+int32_t qSem::Query()
 {
-  int value;
+  int32_t value;
   if (sem_getvalue(&sem, &value) != 0) {
     value = -1;
   }

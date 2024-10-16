@@ -46,38 +46,38 @@ class GPUSettings
                               RejectionStrategyB = 2 };
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  static CONSTEXPR const unsigned int TPC_MAX_TF_TIME_BIN = ((256 * 3564 + 2 * 8 - 2) / 8);
+  static CONSTEXPR const uint32_t TPC_MAX_TF_TIME_BIN = ((256 * 3564 + 2 * 8 - 2) / 8);
 #endif
 };
 
 #ifdef GPUCA_NOCOMPAT
 // Settings describing the global run parameters
 struct GPUSettingsGRP {
-  // All new members must be sizeof(int) resp. sizeof(float) for alignment reasons!
+  // All new members must be sizeof(int32_t) resp. sizeof(float) for alignment reasons!, default value for newly added members for old data will be 0.
   float solenoidBzNominalGPU = -5.00668f; // solenoid field strength
-  int constBz = 0;                        // for test-MC events with constant Bz
-  int homemadeEvents = 0;                 // Toy-MC events
-  int continuousMaxTimeBin = 0;           // 0 for triggered events, -1 for default of 23ms
-  int needsClusterer = 0;                 // Set to true if the data requires the clusterizer
-  int doCompClusterDecode = 0;            // Set to true if the data contains compressed TPC clusters
+  int32_t constBz = 0;                    // for test-MC events with constant Bz
+  int32_t homemadeEvents = 0;             // Toy-MC events
+  int32_t continuousMaxTimeBin = 0;       // 0 for triggered events, -1 for default TF length
+  int32_t needsClusterer = 0;             // Set to true if the data requires the clusterizer
+  int32_t doCompClusterDecode = 0;        // Set to true if the data contains compressed TPC clusters
 };
 
 // Parameters of the current time frame
 struct GPUSettingsTF {
-  int hasTfStartOrbit = 0;
-  int tfStartOrbit = 0;
-  int hasRunStartOrbit = 0;
-  int runStartOrbit = 0;
-  int hasSimStartOrbit = 0;
-  int simStartOrbit = 0;
-  int hasNHBFPerTF = 0;
-  int nHBFPerTF = 0;
+  int32_t hasTfStartOrbit = 0;
+  int32_t tfStartOrbit = 0;
+  int32_t hasRunStartOrbit = 0;
+  int32_t runStartOrbit = 0;
+  int32_t hasSimStartOrbit = 0;
+  int32_t simStartOrbit = 0;
+  int32_t hasNHBFPerTF = 0;
+  int32_t nHBFPerTF = 0;
 };
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)
 struct GPUSettingsDeviceBackend {
-  unsigned int deviceType = GPUDataTypes::DeviceType::CPU; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
-  char forceDeviceType = true;                             // Fail if device initialization fails, otherwise falls back to CPU
+  uint32_t deviceType = GPUDataTypes::DeviceType::CPU;     // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
+  uint8_t forceDeviceType = 1;                             // Fail if device initialization fails, otherwise falls back to CPU
   GPUReconstruction* master = nullptr;                     // GPUReconstruction master object
 };
 #endif

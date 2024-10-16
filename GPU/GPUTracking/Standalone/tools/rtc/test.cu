@@ -24,10 +24,10 @@
     }                                                   \
   } while (0)
 
-int main(int argc, char** argv)
+int32_t main(int argc, char** argv)
 {
   //Read Sourcecode from file
-  unsigned int filesize;
+  uint32_t filesize;
   FILE* pFile;
   //Open file
   if ((pFile = fopen("source.cu", "rb")) == NULL)

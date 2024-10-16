@@ -1063,10 +1063,12 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeUnpackImpl(dst_IT dest, int slot) const
   const auto* srcIt = block.getData();
   // we have a vector of one and the same value. All information is in the metadata
   if (packingWidth == 0) {
-    const dest_t value = [&]() {
+    const dest_t value = [&]() -> dest_t {
       // Bugfix: We tried packing values with a width of 0 Bits;
       if (md.nDataWords > 0) {
-        return static_cast<dest_t>(*srcIt);
+        LOGP(debug, "packing bug recovery: MD nStreams:{} messageLength:{} nLiterals:{} messageWordSize:{} coderType:{} streamSize:{} probabilityBits:{} (int)opt:{} min:{} max:{} literalsPackingOffset:{} literalsPackingWidth:{} nDictWords:{} nDataWords:{} nLiteralWords:{}",
+             value, md.nStreams, md.messageLength, md.nLiterals, md.messageWordSize, md.coderType, md.streamSize, md.probabilityBits, (int)md.opt, md.min, md.max, md.literalsPackingOffset, md.literalsPackingWidth, md.nDictWords, md.nDataWords, md.nLiteralWords);
+        return offset + static_cast<dest_t>(*srcIt);
       }
       // normal case:
       return offset;

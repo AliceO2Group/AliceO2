@@ -50,7 +50,7 @@ struct TripletEqualTo {
 typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> TripletsMap_t;
 
 template <typename T>
-framework::Produces<T> createTableCursor(framework::ProcessingContext& pc)
+auto createTableCursor(framework::ProcessingContext& pc)
 {
   framework::Produces<T> c;
   c.resetCursor(pc.outputs()

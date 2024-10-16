@@ -227,7 +227,7 @@ void CcdbApi::init(std::string const& host)
     if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS ||
         deploymentMode == o2::framework::DeploymentMode::OnlineAUX ||
         deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
-      mCurlTimeoutDownload = 5;
+      mCurlTimeoutDownload = 15;
     } else if (deploymentMode == o2::framework::DeploymentMode::Grid ||
                deploymentMode == o2::framework::DeploymentMode::FST) {
       mCurlTimeoutDownload = 15;
@@ -656,7 +656,20 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
     const auto key = boost::algorithm::trim_copy(header.substr(0, index));
     const auto value = boost::algorithm::trim_copy(header.substr(index + 1));
     LOGP(debug, "Adding #{} {} -> {}", headers->size(), key, value);
-    headers->insert(std::make_pair(key, value));
+    bool insert = true;
+    if (key == "Content-Length") {
+      auto cl = headers->find("Content-Length");
+      if (cl != headers->end()) {
+        if (std::stol(cl->second) < stol(value)) {
+          headers->erase(key);
+        } else {
+          insert = false;
+        }
+      }
+    }
+    if (insert) {
+      headers->insert(std::make_pair(key, value));
+    }
   }
   return size * nitems;
 }
@@ -1674,11 +1687,15 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
     ho.counter++;
     try {
       if (chunk.capacity() < chunk.size() + realsize) {
+        // estimate headers size when converted to annotated text string
+        const char hannot[] = "header";
+        size_t hsize = getFlatHeaderSize(ho.header);
         auto cl = ho.header.find("Content-Length");
         if (cl != ho.header.end()) {
-          sz = std::max(chunk.size() + realsize, (size_t)std::stol(cl->second));
+          size_t sizeFromHeader = std::stol(cl->second);
+          sz = hsize + std::max(chunk.size() * (sizeFromHeader ? 1 : 2) + realsize, sizeFromHeader);
         } else {
-          sz = chunk.size() + realsize;
+          sz = hsize + std::max(chunk.size() * 2, chunk.size() + realsize);
           // LOGP(debug, "SIZE IS NOT IN HEADER, allocate {}", sz);
         }
         chunk.reserve(sz);
@@ -1869,6 +1886,25 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   requestContext.considerSnapshot = considerSnapshot;
   std::vector<RequestContext> contexts = {requestContext};
   vectoredLoadFileToMemory(contexts);
+}
+
+void CcdbApi::appendFlatHeader(o2::pmr::vector<char>& dest, const std::map<std::string, std::string>& headers)
+{
+  size_t hsize = getFlatHeaderSize(headers), cnt = dest.size();
+  dest.resize(cnt + hsize);
+  auto addString = [&dest, &cnt](const std::string& s) {
+    for (char c : s) {
+      dest[cnt++] = c;
+    }
+    dest[cnt++] = 0;
+  };
+
+  for (auto& h : headers) {
+    addString(h.first);
+    addString(h.second);
+  }
+  *reinterpret_cast<int*>(&dest[cnt]) = hsize;                                     // store size
+  std::memcpy(&dest[cnt + sizeof(int)], FlatHeaderAnnot, sizeof(FlatHeaderAnnot)); // annotate the flattened headers map
 }
 
 void CcdbApi::navigateSourcesAndLoadFile(RequestContext& requestContext, int& fromSnapshot, size_t* requestCounter) const
