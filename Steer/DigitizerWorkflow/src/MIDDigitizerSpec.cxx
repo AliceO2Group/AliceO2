@@ -20,6 +20,7 @@
 #include "Framework/Task.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsBase/BaseDPLDigitizer.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsMID/ROFRecord.h"
@@ -83,6 +84,8 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::MID, mSimChains);
     auto& irecords = context->getEventRecords();
 
+    auto firstTFOrbit = o2::raw::HBFUtils::Instance().getFirstSampledTFIR().orbit;
+
     auto& eventParts = context->getEventParts();
     std::vector<o2::mid::ColumnData> digits, digitsAccum;
     std::vector<o2::mid::ROFRecord> rofRecords;
@@ -93,6 +96,11 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     for (int collID = 0; collID < irecords.size(); ++collID) {
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
+
+      // Skip digits produced before the first orbit
+      if (irecords[collID].orbit < firstTFOrbit) {
+        continue;
+      }
       auto firstEntry = digitsAccum.size();
       for (auto& part : eventParts[collID]) {
         mDigitizer->setEventID(part.entryID);
