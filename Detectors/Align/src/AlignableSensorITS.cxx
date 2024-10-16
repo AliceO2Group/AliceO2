@@ -66,5 +66,40 @@ void AlignableSensorITS::prepareMatrixT2L()
   setMatrixT2L(t2l);
 }
 
+void AlignableSensorITS::prepareMatrixL2G(bool reco)
+{
+  // Note that for ITS2 it is NOT the same as GeometryManager::getMatrix() (i.e. that of the alignable volule)
+  // since we need the matrix of epitaxial layer and not the whole chip
+  auto geom = o2::its::GeometryTGeo::Instance();
+  const auto* m = geom->extractMatrixSensor(getVolID());
+  if (!m) {
+    LOGP(fatal, "Failed on :GeometryTGeo::extractMatrixSensor({})", getVolID());
+  }
+  reco ? setMatrixL2GReco(*m) : setMatrixL2G(*m);
+}
+
+void AlignableSensorITS::prepareMatrixL2GIdeal()
+{
+  // Note that for ITS2 it is NOT the same as GeometryManager::getOriginalMatrix (i.e. that of the alignable volule)
+  // since we need the matrix of epitaxial layer and not the whole chip
+  auto geom = o2::its::GeometryTGeo::Instance();
+  TGeoHMatrix mtmp;
+  if (!base::GeometryManager::getOriginalMatrix(getSymName(), mtmp)) { // this is chip ideal matrix, not that of the epitaxial layer
+    LOG(fatal) << "Failed to find ideal L2G matrix for " << getSymName();
+  }
+  // we have to apply to it the difference between the aligner epitaxial layer matrix and that of the chip
+  const auto* malgSens = geom->extractMatrixSensor(getVolID());
+  if (!malgSens) {
+    LOGP(fatal, "Failed on :GeometryTGeo::extractMatrixSensor({})", getVolID());
+  }
+  const auto* malgChip = geom->getMatrix(getVolID());
+  // correct chip original matrix by the difference between aligneg chip and sensor matrices
+  // Sens_ideal = Chip_ideal * Chip_aligned^-1 * Sens_aligned
+  auto chAlignInv = malgChip->Inverse();
+  chAlignInv.Multiply(*malgSens);
+  mtmp.Multiply(chAlignInv);
+  setMatrixL2GIdeal(mtmp);
+}
+
 } // namespace align
 } // namespace o2
