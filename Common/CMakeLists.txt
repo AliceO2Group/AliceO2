@@ -16,5 +16,6 @@ add_subdirectory(Types)
 add_subdirectory(Utils)
 add_subdirectory(SimConfig)
 add_subdirectory(DCAFitter)
+add_subdirectory(ML)
 
 o2_data_file(COPY maps DESTINATION Common)

@@ -742,7 +742,7 @@ int32_t GPUChainTracking::RunChain()
       return 1;
     }
   } else if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
-    if (runRecoStep(RecoStep::TPCClusterFinding, &GPUChainTracking::RunTPCClusterizer, false)) { // FIXME: This enables the neural network clusterization -> Need to actually set this as configurable
+    if (runRecoStep(RecoStep::TPCClusterFinding, &GPUChainTracking::RunTPCClusterizer, false)) {
       return 1;
     }
   }
