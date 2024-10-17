@@ -64,3 +64,9 @@ o2_add_executable(digits-writer
                   COMPONENT_NAME zdc
                   SOURCES src/digits-writer-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCReconstruction)
+
+o2_add_executable(digits-parser
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-parser-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCReconstruction)
+
