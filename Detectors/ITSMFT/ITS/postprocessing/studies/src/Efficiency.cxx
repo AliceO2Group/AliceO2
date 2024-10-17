@@ -730,10 +730,10 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
             }
           }
         }
-      }                   // end loop on clusters
+      } // end loop on clusters
       totClus += NLAYERS; // summing only the number of clusters in the considered layers. Since the imposition of 7-clusters tracks, if the track is valid should release as clusters as the number of considered layers
-    }                     // end loop on tracks per ROF
-  }                       // end loop on ROFRecords array
+    } // end loop on tracks per ROF
+  } // end loop on ROFRecords array
   LOGP(info, "Total number of clusters: {} ", totClus);
   LOGP(info, "total nLabels: {}", nLabels);
   LOGP(info, "Number of duplicated clusters: {}", duplicated);
@@ -925,7 +925,7 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
       } // end loop on clusters
       totClus += ncl;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
 
   LOGP(info, "Total number of possible cluster duplicated in L0: {} ", possibleduplicated[0]);
   LOGP(info, "Total number of possible cluster duplicated in L1: {} ", possibleduplicated[1]);
@@ -1130,8 +1130,8 @@ void EfficiencyStudy::studyDCAcutsMC()
           } // end loop on all the clusters in the rof
         }
       } // end loop on clusters associated to the track
-    }   // end loop on tracks per ROF
-  }     // end loop on ROFRecords array
+    } // end loop on tracks per ROF
+  } // end loop on ROFRecords array
 
   for (int i = 0; i < 20; i++) {
     LOGP(info, "Cut: {} sigma -> number of duplicated clusters: {} nDCAMatches: {} nGoodMatches: {} nFakeMatches: {}", i + 1, duplicated, nDCAMatches[i], nGoodMatches[i], nFakeMatches[i]);
@@ -1486,8 +1486,8 @@ void EfficiencyStudy::studyClusterSelectionMC()
           }
         }
       } // end loop on clusters associated to the track
-    }   // end loop on tracks per ROF
-  }     // end loop on ROFRecords array
+    } // end loop on tracks per ROF
+  } // end loop on ROFRecords array
 
   mOutFile->mkdir("EfficiencyCuts/");
   mOutFile->cd("EfficiencyCuts/");
@@ -1949,7 +1949,7 @@ void EfficiencyStudy::saveDataInfo()
       } // end loop on clusters
       totClus += ncl;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
   LOGP(info, "Total number of clusters: {} ", totClus);
 }
 
@@ -2235,7 +2235,7 @@ void EfficiencyStudy::getEfficiency(bool isMC)
       } // end loop on clusters associated to the track
       totNClusters += NLAYERS;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
 
   std::cout << " Num of duplicated clusters L0: " << nDuplicatedClusters[0] << " N tracks selected: " << nTracksSelected[0] << std::endl;
   std::cout << " Num of duplicated clusters L1: " << nDuplicatedClusters[1] << " N tracks selected: " << nTracksSelected[1] << std::endl;
@@ -2529,7 +2529,7 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
       } // end loop on clusters associated to the track
       totNClusters += NLAYERS;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
 
   std::cout << " Num of duplicated clusters L0: " << nDuplicatedClusters[0] << " N tracks selected: " << nTracksSelected[0] << std::endl;
   std::cout << " Num of duplicated clusters L1: " << nDuplicatedClusters[1] << " N tracks selected: " << nTracksSelected[1] << std::endl;
