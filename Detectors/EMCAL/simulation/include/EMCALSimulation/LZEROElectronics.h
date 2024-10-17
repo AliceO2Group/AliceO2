@@ -79,7 +79,7 @@ class LZEROElectronics
   void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
   /// Sets the masked fastOrs from the CCDB in the LZERO
-  void setMaskedFastOrs(std::vector<int> maskedfastors) { mMaskedFastOrs = maskedfastors; }
+  void setMaskedFastOrs(std::vector<int> const& maskedfastors) { mMaskedFastOrs = maskedfastors; }
   void printMaskedFastOrs();
 
   /// Set Threshold for LZERO algorithm
@@ -110,7 +110,7 @@ class LZEROElectronics
 
   /// Getter for the pattern of peaks found by the LZERO algorithm
   /// \param p TRUElectronics object
-  const std::vector<int>& getFiredPatches(TRUElectronics& p) const
+  const std::vector<int>& getFiredPatches(TRUElectronics const& p) const
   {
     return p.mFiredPatches;
   }
