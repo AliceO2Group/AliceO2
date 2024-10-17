@@ -31,6 +31,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "EMCALCalib/FeeDCS.h"
 
 namespace o2
 {
@@ -40,6 +41,7 @@ class TreeStreamRedirector;
 }
 namespace emcal
 {
+class FeeDCS;
 
 /// \class DigitizerTRU
 /// \brief EMCAL DigitizerTRU, digitizes with the help of a temporary description based upon a pol9*Heavyside
@@ -79,6 +81,13 @@ class DigitizerTRU
   /// Sets geometry for trigger mapping
   void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
+  /// Sets FEE DCS for the masking of the fastOrs
+  void setFEE(o2::emcal::FeeDCS* fees) { mFeeDCS = fees; }
+
+  /// Sets the masked fastOrs from the CCDB in the LZERO
+  void setMaskedFastOrsInLZERO();
+  void printMaskedFastOrsInLZERO();
+
   void setWindowStartTime(int time) { mTimeWindowStart = time; }
   void setDebugStreaming(bool doStreaming) { mEnableDebugStreaming = doStreaming; }
 
@@ -101,11 +110,19 @@ class DigitizerTRU
   /// Getter for debug mode
   bool isDebugMode() { return mEnableDebugStreaming; }
 
+  /// Getter for triggers
+  const std::vector<EMCALTriggerInputs>& getTriggerInputs() { return LZERO.getTriggerInputs(); }
+
   /// Getter for patches
   std::vector<TRUElectronics> getPatchesVector() { return patchesFromAllTRUs; }
 
   /// raw pointers used here to allow interface with TF1
   static double rawResponseFunction(double* x, double* par);
+
+  /// Utility functions obtained from QC for EMC
+  int GetTRUIndexFromSTUIndex(Int_t id, Int_t detector);
+  int GetChannelForMaskRun2(int mask, int bitnumber, bool onethirdsm);
+  std::vector<int> GetAbsFastORIndexFromMask();
 
  private:
   short mEventTimeOffset = 0;        ///< event time difference from trigger time (in number of bins)
@@ -134,6 +151,7 @@ class DigitizerTRU
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
   // std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStreamPatch = nullptr;
   bool mEnableDebugStreaming = false;
+  o2::emcal::FeeDCS* mFeeDCS; ///< EMCAL FEE DCS
 
   ClassDefNV(DigitizerTRU, 1);
 };

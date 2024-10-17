@@ -113,13 +113,11 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     // At the end of the loop run the peak finder
     // Ship to LONEElectronics in case a peak is found
     // Entire logic limited to timebin by timebin -> effectively implementing time scan
-
     counterDigitTimeBin++;
 
     for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
       // Digit loop
       // The peak finding algorithm is run after getting out of the loop!
-
       if (digitsList.size() == 0) {
         continue;
       }
@@ -154,7 +152,10 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
-      fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
+      // fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
+      if (std::find(mMaskedFastOrs.begin(), mMaskedFastOrs.end(), fastor) != mMaskedFastOrs.end()) {
+        fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
+      }
 
       digIndex++;
     }
@@ -172,13 +173,21 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     // It accounts for the difference in times between L0a, L0b, and then there will be a L1 and L1b delay
     // There is 1BC uncertainty on the trigger readout due to steps in the interaction between CTP and detector simulations
     bool foundPeak = false;
+    int counterWhichTRU = 0;
+    int triggeredTRU = -1;
+    std::vector<int> triggeredPatches;
     for (auto& patches : patchesFromAllTRUs) {
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
       auto firedPatches = getFiredPatches(patches);
+      if (foundPeakCurrentTRU == true && foundPeak == false) {
+        triggeredTRU = counterWhichTRU;
+        triggeredPatches = firedPatches;
+      }
       if (foundPeakCurrentTRU) {
         foundPeak = true;
       }
+      counterWhichTRU += 1;
     }
 
     if (foundPeak == true) {
@@ -187,6 +196,8 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     EMCALTriggerInputs TriggerInputsForL1;
     if (foundPeak) {
       TriggerInputsForL1.mInterRecord = record;
+      TriggerInputsForL1.mTriggeredTRU = triggeredTRU;
+      TriggerInputsForL1.mTriggeredPatches = triggeredPatches;
       int whichTRU = 0;
       for (auto& patches : patchesFromAllTRUs) {
         int whichFastOr = 0;
@@ -226,5 +237,16 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       mTriggers.push_back(TriggerInputsForL1);
       // mTriggersPatch.push_back(TriggerInputsPatch);
     }
+  }
+}
+//________________________________________________________
+void LZEROElectronics::printMaskedFastOrs()
+{
+  LOG(info) << "===============================";
+  LOG(info) << "== PRINT MASK SAVED IN LZERO ==";
+  int counter = 0;
+  for (auto fastOr : mMaskedFastOrs) {
+    LOG(info) << "fastOr masked (number, ID) = (" << counter << ", " << fastOr;
+    counter += 1;
   }
 }
