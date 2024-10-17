@@ -60,6 +60,7 @@ static constexpr bool is_enumeration_v<Enumeration<BEGIN, END, STEP>> = true;
 
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
+namespace {
 struct AnalysisDataProcessorBuilder {
   template <typename T>
   static ConfigParamSpec getSpec()
@@ -374,6 +375,7 @@ struct AnalysisDataProcessorBuilder {
     std::invoke(processingFunction, task, g, std::get<A>(at)...);
   }
 };
+}
 
 struct SetDefaultProcesses {
   std::vector<std::pair<std::string, bool>> map;
@@ -385,8 +387,9 @@ struct TaskName {
   std::string value;
 };
 
+namespace {
 template <typename T, typename... A>
-auto getTaskNameSetProcesses(TaskName first, SetDefaultProcesses second, A... args)
+auto getTaskNameSetProcesses(std::string& outputName, TaskName first, SetDefaultProcesses second, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
   for (auto& setting : second.map) {
@@ -396,11 +399,12 @@ auto getTaskNameSetProcesses(TaskName first, SetDefaultProcesses second, A... ar
       },
       *task.get());
   }
-  return std::make_tuple(first.value, task);
+  outputName = first.value;
+  return task;
 }
 
 template <typename T, typename... A>
-auto getTaskNameSetProcesses(SetDefaultProcesses first, TaskName second, A... args)
+auto getTaskNameSetProcesses(std::string& outputName, SetDefaultProcesses first, TaskName second, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
   for (auto& setting : first.map) {
@@ -410,11 +414,12 @@ auto getTaskNameSetProcesses(SetDefaultProcesses first, TaskName second, A... ar
       },
       *task.get());
   }
-  return std::make_tuple(second.value, task);
+  outputName = second.value;
+  return task;
 }
 
 template <typename T, typename... A>
-auto getTaskNameSetProcesses(SetDefaultProcesses first, A... args)
+auto getTaskNameSetProcesses(std::string& outputName, SetDefaultProcesses first, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
   for (auto& setting : first.map) {
@@ -425,40 +430,27 @@ auto getTaskNameSetProcesses(SetDefaultProcesses first, A... args)
       *task.get());
   }
   auto type_name_str = type_name<T>();
-  std::string name = type_to_task_name(type_name_str);
-  return std::make_tuple(name, task);
+  outputName = type_to_task_name(type_name_str);
+  return task;
 }
 
 template <typename T, typename... A>
-auto getTaskNameSetProcesses(TaskName first, A... args)
+auto getTaskNameSetProcesses(std::string& outputName, TaskName first, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
-  return std::make_tuple(first.value, task);
+  outputName = first.value;
+  return task;
 }
 
 template <typename T, typename... A>
-auto getTaskNameSetProcesses(A... args)
-{
-  auto task = std::make_shared<T>(std::forward<A>(args)...);
-  auto type_name_str = type_name<T>();
-  std::string name = type_to_task_name(type_name_str);
-  return std::make_tuple(name, task);
-}
-
-template <typename T, typename... A>
-auto getTaskName(TaskName first, A... args)
-{
-  auto task = std::make_shared<T>(std::forward<A>(args)...);
-  return std::make_tuple(first.value, task);
-}
-
-template <typename T, typename... A>
-auto getTaskName(A... args)
+auto getTaskNameSetProcesses(std::string& outputName, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
   auto type_name_str = type_name<T>();
-  std::string name = type_to_task_name(type_name_str);
-  return std::make_tuple(name, task);
+  outputName = type_to_task_name(type_name_str);
+  return task;
+}
+
 }
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -468,7 +460,8 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
 
-  auto [name_str, task] = getTaskNameSetProcesses<T>(args...);
+  std::string name_str;
+  auto task = getTaskNameSetProcesses<T>(name_str, args...);
 
   auto suffix = ctx.options().get<std::string>("workflow-suffix");
   if (!suffix.empty()) {
