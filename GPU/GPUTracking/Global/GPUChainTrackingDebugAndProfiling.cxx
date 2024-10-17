@@ -18,9 +18,15 @@
 #include <map>
 #include <memory>
 #include <string>
+
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
 #include "bitmapfile.h"
 #endif
+
+#ifdef GPUCA_HAVE_O2HEADERS
+#include "GPUTPCClusterFilter.h"
+#endif
+
 #define PROFILE_MAX_SIZE (100 * 1024 * 1024)
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -291,4 +297,41 @@ void GPUChainTracking::SanityCheck()
     GPUError("Sanity check found %lu errors", nErrors);
   }
 #endif
+}
+
+void GPUChainTracking::RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* clusters, std::function<o2::tpc::ClusterNative*(size_t)> allocator, bool applyClusterCuts)
+{
+  GPUTPCClusterFilter clusterFilter(*clusters);
+  o2::tpc::ClusterNative* outputBuffer;
+  for (int32_t iPhase = 0; iPhase < 2; iPhase++) {
+    uint32_t countTotal = 0;
+    for (uint32_t iSector = 0; iSector < GPUCA_NSLICES; iSector++) {
+      for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+        uint32_t count = 0;
+        for (uint32_t k = 0; k < clusters->nClusters[iSector][iRow]; k++) {
+          o2::tpc::ClusterNative cl = clusters->clusters[iSector][iRow][k];
+          bool keep = true;
+          if (applyClusterCuts) {
+            keep = keep && cl.qTot > param().rec.tpc.cfQTotCutoff && cl.qMax > param().rec.tpc.cfQMaxCutoff;
+            keep = keep && (!(cl.getFlags() & o2::tpc::ClusterNative::flagSingle) || ((cl.sigmaPadPacked || cl.qMax > param().rec.tpc.cfQMaxCutoffSinglePad) && (cl.sigmaTimePacked || cl.qMax > param().rec.tpc.cfQMaxCutoffSingleTime)));
+          }
+          keep = keep && (!GetProcessingSettings().tpcApplyDebugClusterFilter || clusterFilter.filter(iSector, iRow, cl));
+          if (iPhase && keep) {
+            outputBuffer[countTotal] = cl;
+          }
+          count += keep;
+          countTotal += keep;
+        }
+        if (iPhase) {
+          clusters->nClusters[iSector][iRow] = count;
+        }
+      }
+    }
+    if (iPhase) {
+      clusters->clustersLinear = outputBuffer;
+      clusters->setOffsetPtrs();
+    } else {
+      outputBuffer = allocator(countTotal);
+    }
+  }
 }

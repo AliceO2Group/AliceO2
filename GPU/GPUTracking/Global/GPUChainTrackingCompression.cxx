@@ -21,7 +21,6 @@
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTPCCFChainContext.h"
 #include "TPCClusterDecompressor.h"
-#include "GPUTPCClusterFilter.h"
 #endif
 #include "utils/strtag.h"
 
@@ -227,36 +226,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
       return 1;
     }
     if (GetProcessingSettings().tpcApplyCFCutsAtDecoding) {
-      GPUTPCClusterFilter clusterFilter(*mClusterNativeAccess);
-      ClusterNative* outputBuffer;
-      for (int32_t iPhase = 0; iPhase < 2; iPhase++) {
-        uint32_t countTotal = 0;
-        for (uint32_t iSector = 0; iSector < GPUCA_NSLICES; iSector++) {
-          for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
-            uint32_t count = 0;
-            for (uint32_t k = 0; k < mClusterNativeAccess->nClusters[iSector][iRow]; k++) {
-              ClusterNative cl = mClusterNativeAccess->clusters[iSector][iRow][k];
-              bool keep = cl.qTot > param().rec.tpc.cfQTotCutoff && cl.qMax > param().rec.tpc.cfQMaxCutoff;
-              keep = keep && (cl.sigmaPadPacked || !(cl.getFlags() & ClusterNative::flagSingle) || cl.qMax > param().rec.tpc.cfQMaxCutoffSinglePad) && (cl.sigmaTimePacked || !(cl.getFlags() & ClusterNative::flagSingle) || cl.qMax > param().rec.tpc.cfQMaxCutoffSingleTime);
-              keep = keep && (!GetProcessingSettings().tpcApplyDebugClusterFilter || clusterFilter.filter(iSector, iRow, cl));
-              count += keep;
-              countTotal += keep;
-              if (iPhase) {
-                outputBuffer[countTotal] = cl;
-              }
-            }
-            if (iPhase) {
-              mClusterNativeAccess->nClusters[iSector][iRow] = count;
-            }
-          }
-        }
-        if (iPhase) {
-          mClusterNativeAccess->clustersLinear = outputBuffer;
-          mClusterNativeAccess->setOffsetPtrs();
-        } else {
-          outputBuffer = allocatorFinal(countTotal);
-        }
-      }
+      RunTPCClusterFilter(mClusterNativeAccess.get(), allocatorFinal, true);
     }
     decompressTimer.Stop();
     mIOPtrs.clustersNative = mClusterNativeAccess.get();

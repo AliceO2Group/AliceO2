@@ -462,8 +462,8 @@ EndConfig()
 
 // Settings for the standalone benchmark
 BeginConfig(GPUSettingsStandalone, configStandalone)
-AddOption(runGPU, bool, true, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
-AddOptionSet(runGPU, bool, false, "", 'c', "Use CPU for processing", message("CPU enabled"))
+AddOption(runGPU, uint8_t, 1, "", 'g', "Use GPU for processing", message("GPU processing enabled"), set(2))
+AddOptionSet(runGPU, uint8_t, 0, "", 'c', "Use CPU for processing", message("CPU enabled"))
 AddOption(gpuType, std::string, "AUTO", "", 0, "GPU type (CUDA / HIP / OCL / OCL2) or CPU or AUTO")
 AddOption(runGPUforce, bool, true, "", 0, "Force usage of the specified GPU device type, no CPU fallback")
 AddOption(noprompt, bool, true, "", 0, "Do prompt for keypress before exiting")

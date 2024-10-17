@@ -312,6 +312,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 #endif
   void RunTPCTrackingMerger_MergeBorderTracks(int8_t withinSlice, int8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCTrackingMerger_Resolve(int8_t useOrigTrackParam, int8_t mergeAll, GPUReconstruction::krnlDeviceType deviceType);
+  void RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* clusters, std::function<o2::tpc::ClusterNative*(size_t)> allocator, bool applyClusterCuts);
 
   std::atomic_flag mLockAtomicOutputBuffer = ATOMIC_FLAG_INIT;
   std::mutex mMutexUpdateCalib;
