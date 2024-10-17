@@ -66,6 +66,7 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
            {"aod-writer-resmode", VariantType::String, "RECREATE", {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}},
            {"aod-writer-ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}},
            {"aod-writer-keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}},
+           {"aod-writer-df-offset", VariantType::UInt64, 0UL, {"Offset for dataframe numbering"}},
 
            {"fairmq-rate-logging", VariantType::Int, 0, {"Rate logging for FairMQ channels"}},
            {"fairmq-recv-buffer-size", VariantType::Int, 4, {"recvBufferSize option for FairMQ channels"}},

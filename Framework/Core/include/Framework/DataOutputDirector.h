@@ -70,14 +70,16 @@ struct DataOutputDirector {
   void readSpecs(std::vector<InputSpec> inputs);
 
   // fill the DataOutputDirector with information from a json file
-  std::tuple<std::string, std::string, std::string, float, int> readJson(std::string const& fnjson);
-  std::tuple<std::string, std::string, std::string, float, int> readJsonString(std::string const& stjson);
+  std::tuple<std::string, std::string, std::string, float, int, uint64_t> readJson(std::string const& fnjson);
+  std::tuple<std::string, std::string, std::string, float, int, uint64_t> readJsonString(std::string const& stjson);
 
   // read/write private members
   int getNumberTimeFramesToMerge() { return mnumberTimeFramesToMerge; }
   void setNumberTimeFramesToMerge(int ntfmerge) { mnumberTimeFramesToMerge = ntfmerge > 0 ? ntfmerge : 1; }
   std::string getFileMode() { return mfileMode; }
   void setFileMode(std::string filemode) { mfileMode = filemode; }
+  uint64_t getDFOffset() { return dataFrameOffset; }
+  void setDFOffset(uint64_t offset) { offset > 0 ? dataFrameOffset = offset : 0; }
 
   // get matching DataOutputDescriptors
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(header::DataHeader dh);
@@ -111,10 +113,11 @@ struct DataOutputDirector {
   int mfileCounter = 1;
   float mmaxfilesize = -1.;
   int mnumberTimeFramesToMerge = 1;
+  uint64_t dataFrameOffset = 0;
   std::string mfileMode = "RECREATE";
 
-  std::tuple<std::string, std::string, std::string, float, int> readJsonDocument(Document* doc);
-  const std::tuple<std::string, std::string, std::string, float, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), std::string(""), -1., -1);
+  std::tuple<std::string, std::string, std::string, float, int, uint64_t> readJsonDocument(Document* doc);
+  const std::tuple<std::string, std::string, std::string, float, int, uint64_t> memptyanswer = std::make_tuple(std::string(""), std::string(""), std::string(""), -1., -1, 0);
 };
 
 } // namespace o2::framework
