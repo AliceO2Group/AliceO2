@@ -19,7 +19,7 @@ namespace o2
 namespace zdc
 {
 
-framework::WorkflowSpec getRecoWorkflow(const int verbosity)
+framework::WorkflowSpec getParserWorkflow(const int verbosity)
 {
   framework::WorkflowSpec specs;
   specs.emplace_back(o2::zdc::getDigitReaderSpec(false));

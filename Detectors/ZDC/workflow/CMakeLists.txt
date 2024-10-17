@@ -20,6 +20,7 @@ o2_add_library(ZDCWorkflow
                        src/RecoWorkflow.cxx
                        src/DigitRecoSpec.cxx
                        src/DigitReaderSpec.cxx
+                       src/DigitParserSpec.cxx
                        src/RecoReaderSpec.cxx
                        src/ParserWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
