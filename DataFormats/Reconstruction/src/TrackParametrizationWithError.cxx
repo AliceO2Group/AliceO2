@@ -754,6 +754,14 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Quiet(const 
   return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
 }
 
+//______________________________________________
+template <typename value_T>
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs) const -> value_t
+{
+  MatrixDSym5 cov; // perform matrix operations in double!
+  return getPredictedChi2(rhs, cov);
+}
+
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // Disable function relying on ROOT SMatrix on GPU
 
 //______________________________________________
@@ -776,14 +784,6 @@ void TrackParametrizationWithError<value_T>::buildCombinedCovMatrix(const TrackP
   cov(kQ2Pt, kSnp) = static_cast<double>(getSigma1PtSnp()) + static_cast<double>(rhs.getSigma1PtSnp());
   cov(kQ2Pt, kTgl) = static_cast<double>(getSigma1PtTgl()) + static_cast<double>(rhs.getSigma1PtTgl());
   cov(kQ2Pt, kQ2Pt) = static_cast<double>(getSigma1Pt2()) + static_cast<double>(rhs.getSigma1Pt2());
-}
-
-//______________________________________________
-template <typename value_T>
-GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs) const -> value_t
-{
-  MatrixDSym5 cov; // perform matrix operations in double!
-  return getPredictedChi2(rhs, cov);
 }
 
 //______________________________________________
@@ -867,7 +867,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const TrackParametriz
   }
 
   // updated covariance: Cov0 = Cov0 - K*Cov0
-  matK *= ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams>>(matC0);
+  matK *= o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepStd<double, kNParams>>(matC0);
   mC[kSigY2] -= matK(kY, kY);
   mC[kSigZY] -= matK(kZ, kY);
   mC[kSigZ2] -= matK(kZ, kZ);
