@@ -41,6 +41,9 @@ class MatchInfoTOF
   void setChi2(float chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
 
+  void setHitPattern(std::uint8_t hitPattern) { mHitPattern = hitPattern; }
+  std::uint8_t getHitPattern() const { return mHitPattern; }
+
   o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }
   const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
   void print() const;
@@ -66,6 +69,7 @@ class MatchInfoTOF
  private:
   int mIdLocal;                      // track id in sector of the pair track-TOFcluster
   float mChi2;                       // chi2 of the pair track-TOFcluster
+  std::uint8_t mHitPattern;          // mask of the hit pattern in TOF
   o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
   int mIdxTOFCl;                     ///< Idx for TOF cluster
   GTrackID mIdxTrack;                ///< Idx for track
