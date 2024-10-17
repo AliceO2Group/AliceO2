@@ -29,12 +29,14 @@
 #include "GPUO2InterfaceUtils.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DataFormatsTPC/Constants.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 #include "GPUO2InterfaceRefit.h"
 
 using namespace o2::gloqc;
 using namespace o2::mcutils;
 using MCTrack = o2::MCTrackT<float>;
+using DetID = o2::detectors::DetID;
 
 MatchITSTPCQC::~MatchITSTPCQC()
 {
@@ -417,7 +419,6 @@ bool MatchITSTPCQC::init()
   Double_t* zbinsMultK0PbPb = new Double_t[nbinsMultK0PbPb + 1];
   Double_t zminMultK0PbPb = mMinTPCOccPbPb;
   Double_t zmaxMultK0PbPb = mMaxTPCOccPbPb;
-  LOG(info) << "************************************** zminMultK0PbPb = " << zminMultK0PbPb << " zmaxMultK0PbPb = " << zmaxMultK0PbPb;
   Double_t dzMultK0PbPb = (zmaxMultK0PbPb - zminMultK0PbPb) / nbinsMultK0PbPb;
   for (int i = 0; i <= nbinsMultK0PbPb; i++) {
     zbinsMultK0PbPb[i] = zminMultK0PbPb + i * dzMultK0PbPb;
@@ -432,6 +433,12 @@ bool MatchITSTPCQC::init()
 
   LOG(info) << "Printing configuration cuts";
   printParams();
+
+  delete[] xbinsPt;
+  delete[] xbinsPtK0;
+  delete[] ybinsMassK0;
+  delete[] zbinsMultK0pp;
+  delete[] zbinsMultK0PbPb;
 
   return true;
 }
@@ -1032,7 +1039,13 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     static int tfID = 0;
     for (int iv = 0; iv < nv0; iv++) {
       const auto v0id = v0IDs[iv];
-      pv2sv[v0id.getVertexID()].push_back(iv);
+      o2::dataformats::GlobalTrackID id0 = v0id.getProngID(0), id1 = v0id.getProngID(1);
+      if (id0.getSourceDetectorsMask()[DetID::ITS] && id1.getSourceDetectorsMask()[DetID::ITS] &&
+          mRecoCont.isTrackSourceLoaded(id0.getSource()) && mRecoCont.isTrackSourceLoaded(id1.getSource())) { // taking only tracks for which there is the ITS in the track sources
+        pv2sv[v0id.getVertexID()].push_back(iv);
+      } else {
+        LOG(debug) << "Skipping this V0: the track sources do not contain ITS";
+      }
     }
     int nV0sOk = 0;
     // processing every sec vtx for each prim vtx
