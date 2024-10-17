@@ -98,7 +98,8 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
             activeModules[i] != "TF3" &&
             activeModules[i] != "RCH" &&
             activeModules[i] != "MI3" &&
-            activeModules[i] != "ECL") {
+            activeModules[i] != "ECL" &&
+            activeModules[i] != "FVD") {
           LOGP(fatal, "List of active modules contains {}, which is not a module from the upgrades.", activeModules[i]);
         }
       }
@@ -112,7 +113,8 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
             activeModules[i] == "TF3" ||
             activeModules[i] == "RCH" ||
             activeModules[i] == "MI3" ||
-            activeModules[i] == "ECL") {
+            activeModules[i] == "ECL" ||
+            activeModules[i] == "FVD") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
@@ -130,6 +132,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
             d == DetID::TF3 ||
             d == DetID::RCH ||
             d == DetID::ECL ||
+            d == DetID::FVD ||
             d == DetID::MI3) {
           activeModules.emplace_back(DetID::getName(d));
         }
@@ -149,7 +152,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
       activeModules.emplace_back("SHIL");
       for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT && d != DetID::TF3 && d != DetID::RCH && d != DetID::ECL && d != DetID::MI3) {
+        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT && d != DetID::TF3 && d != DetID::RCH && d != DetID::ECL && d != DetID::FVD && d != DetID::MI3) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }

@@ -99,7 +99,8 @@ class SimTraits
       /*TF3*/ VS{ "TF3Hit" },
       /*RCH*/ VS{ "RCHHit" },
       /*MI3*/ VS{ "MI3Hit" },
-      /*ECL*/ VS{ "ECLHit" }
+      /*ECL*/ VS{ "ECLHit" },
+      /*FVD*/ VS{ "FVDHit" }
 #endif
     };
   // clang-format on
