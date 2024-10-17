@@ -314,8 +314,9 @@ void EfficiencyStudy::init(InitContext& ic)
   int nbPt = 75;
   double xbins[nbPt + 1], ptcutl = 0.05, ptcuth = 7.5;
   double a = std::log(ptcuth / ptcutl) / nbPt;
-  for (int i = 0; i <= nbPt; i++)
+  for (int i = 0; i <= nbPt; i++) {
     xbins[i] = ptcutl * std::exp(i * a);
+  }
 
   mOutFile = std::make_unique<TFile>(mOutFileName.c_str(), "recreate");
 
@@ -569,8 +570,9 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
       int firstClus = track.getFirstClusterEntry(); // get the first cluster of the track
       int ncl = track.getNumberOfClusters();        // get the number of clusters of the track
 
-      if (ncl < 7)
+      if (ncl < 7) {
         continue;
+      }
 
       float ip[2];
       track.getImpactParams(0, 0, 0, 0, ip);
@@ -578,18 +580,21 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
       // if (abs(ip[0])>0.001 ) continue; ///pv not in (0,0,0)
 
       auto& tracklab = mTracksMCLabels[iTrack];
-      if (tracklab.isFake())
+      if (tracklab.isFake()) {
         continue;
+      }
 
       auto pt = trackParCov.getPt();
       auto eta = trackParCov.getEta();
 
       float phiTrack = trackParCov.getPhi() * 180 / M_PI;
 
-      if (pt < mPtCuts[0] || pt > mPtCuts[1])
+      if (pt < mPtCuts[0] || pt > mPtCuts[1]) {
         continue;
-      if (eta < mEtaCuts[0] || eta > mEtaCuts[1])
+      }
+      if (eta < mEtaCuts[0] || eta > mEtaCuts[1]) {
         continue;
+      }
 
       float phioriginal = 0;
       float phiduplicated = 0;
@@ -604,8 +609,9 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
         UShort_t colOriginal = clusOriginal.getCol();
 
         auto layer = mGeometry->getLayer(clusOriginal.getSensorID());
-        if (layer >= NLAYERS)
-          continue;                                                            // checking only selected layers
+        if (layer >= NLAYERS) {
+          continue; // checking only selected layers
+        }
         auto labsTrack = mClustersMCLCont->getLabels(mInputITSidxs[iclTrack]); // get labels of the cluster associated to the track
 
         o2::math_utils::Point3D<float> clusOriginalPointTrack = {clusOriginalPoint.getX(), clusOriginalPoint.getY(), clusOriginalPoint.getZ()};
@@ -621,8 +627,9 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
         m2DClusterOriginalPositions->Fill(clusOriginalPointGlob.x(), clusOriginalPointGlob.y());
 
         for (auto& labT : labsTrack) { // for each valid label iterate over ALL the clusters in the ROF to see if there are duplicates
-          if (labT != tracklab)
+          if (labT != tracklab) {
             continue;
+          }
           nLabels++;
           if (labT.isValid()) {
             for (unsigned int iClus = rofIndexClus; iClus < rofIndexClus + rofNEntriesClus; iClus++) { // iteration over ALL the clusters in the ROF
@@ -631,8 +638,9 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
               auto clusDuplicatedPoint = mITSClustersArray[iClus];
 
               auto layerClus = mGeometry->getLayer(clusDuplicated.getSensorID());
-              if (layerClus != layer)
+              if (layerClus != layer) {
                 continue;
+              }
 
               o2::math_utils::Point3D<float> clusDuplicatedPointTrack = {clusDuplicatedPoint.getX(), clusDuplicatedPoint.getY(), clusDuplicatedPoint.getZ()};
               o2::math_utils::Point3D<float> clusDuplicatedPointGlob = mGeometry->getMatrixT2G(clusDuplicated.getSensorID()) * clusDuplicatedPointTrack;
@@ -648,17 +656,21 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
                                                                          // if (clusDuplicated.getSensorID() != clusOriginal.getSensorID()) { /// check that the duplicated cluster is not the original one just counted twice
 
                   // applying constraints: the cluster should be on the same layer, should be on an adjacent stave and on the same or adjacent chip position
-                  if (clusDuplicated.getSensorID() == clusOriginal.getSensorID())
+                  if (clusDuplicated.getSensorID() == clusOriginal.getSensorID()) {
                     continue;
+                  }
                   auto layerDuplicated = mGeometry->getLayer(clusDuplicated.getSensorID());
-                  if (layerDuplicated != layerClus)
+                  if (layerDuplicated != layerClus) {
                     continue;
+                  }
                   auto staveDuplicated = mGeometry->getStave(clusDuplicated.getSensorID());
-                  if (abs(staveDuplicated - staveOriginal) != 1)
+                  if (abs(staveDuplicated - staveOriginal) != 1) {
                     continue;
+                  }
                   auto chipDuplicated = mGeometry->getChipIdInStave(clusDuplicated.getSensorID());
-                  if (abs(chipDuplicated - chipOriginal) > 1)
+                  if (abs(chipDuplicated - chipOriginal) > 1) {
                     continue;
+                  }
 
                   duplicated++;
 
@@ -730,10 +742,10 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
             }
           }
         }
-      }                   // end loop on clusters
+      } // end loop on clusters
       totClus += NLAYERS; // summing only the number of clusters in the considered layers. Since the imposition of 7-clusters tracks, if the track is valid should release as clusters as the number of considered layers
-    }                     // end loop on tracks per ROF
-  }                       // end loop on ROFRecords array
+    } // end loop on tracks per ROF
+  } // end loop on ROFRecords array
   LOGP(info, "Total number of clusters: {} ", totClus);
   LOGP(info, "total nLabels: {}", nLabels);
   LOGP(info, "Number of duplicated clusters: {}", duplicated);
@@ -745,8 +757,9 @@ int EfficiencyStudy::getDCAClusterTrackMC(int countDuplicated = 0)
       for (unsigned int lay = 0; lay < NLAYERS; lay++) {
         LOGP(info, "°°°°°°°°°°°°°°°°°°°°°°°° LAYER {} °°°°°°°°°°°°°°°°°°°°°°°°", lay);
         for (auto& it : label_vecClus[iROF][lay]) {
-          if (it.second.size() <= 1)
+          if (it.second.size() <= 1) {
             continue; // printing only duplicates
+          }
           std::cout << " \n++++++++++++ Label: ";
           auto label = it.first;
           it.first.print();
@@ -809,21 +822,25 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
       int firstClus = track.getFirstClusterEntry(); // get the first cluster of the track
       int ncl = track.getNumberOfClusters();        // get the number of clusters of the track
 
-      if (ncl < 7)
+      if (ncl < 7) {
         continue;
+      }
 
       auto& tracklab = mTracksMCLabels[iTrack];
-      if (tracklab.isFake())
+      if (tracklab.isFake()) {
         continue;
+      }
 
       auto pt = trackParCov.getPt();
       auto eta = trackParCov.getEta();
 
       // applying the cuts on the track - only pt and eta cuts since for phi the layer is needed
-      if (pt < mPtCuts[0] || pt > mPtCuts[1])
+      if (pt < mPtCuts[0] || pt > mPtCuts[1]) {
         continue;
-      if (eta < mEtaCuts[0] || eta > mEtaCuts[1])
+      }
+      if (eta < mEtaCuts[0] || eta > mEtaCuts[1]) {
         continue;
+      }
 
       float phi = -999.;
       float phiOriginal = -999.;
@@ -836,8 +853,9 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
         auto chipOriginal = mGeometry->getChipIdInStave(clusOriginal.getSensorID());
 
         auto layer = mGeometry->getLayer(clusOriginal.getSensorID());
-        if (layer >= NLAYERS)
-          continue;                                                            // checking only selected layers
+        if (layer >= NLAYERS) {
+          continue; // checking only selected layers
+        }
         auto labsTrack = mClustersMCLCont->getLabels(mInputITSidxs[iclTrack]); // get labels of the cluster associated to the track
 
         o2::math_utils::Point3D<float> clusOriginalPointTrack = {clusOriginalPoint.getX(), clusOriginalPoint.getY(), clusOriginalPoint.getZ()};
@@ -872,12 +890,14 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
           }
         }
 
-        if (!keepTrack)
+        if (!keepTrack) {
           continue; /// if the track (cluster) is not eligible for any layer, go to the next one
+        }
 
         for (auto& labT : labsTrack) { // for each valid label iterate over ALL the clusters in the ROF to see if there are duplicates
-          if (labT != tracklab)
+          if (labT != tracklab) {
             continue;
+          }
 
           if (labT.isValid()) {
             for (unsigned int iClus = rofIndexClus; iClus < rofIndexClus + rofNEntriesClus; iClus++) { // iteration over ALL the clusters in the ROF
@@ -886,8 +906,9 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
               auto clusDuplicatedPoint = mITSClustersArray[iClus];
 
               auto layerClus = mGeometry->getLayer(clusDuplicated.getSensorID());
-              if (layerClus != layer)
+              if (layerClus != layer) {
                 continue;
+              }
 
               o2::math_utils::Point3D<float> clusDuplicatedPointTrack = {clusDuplicatedPoint.getX(), clusDuplicatedPoint.getY(), clusDuplicatedPoint.getZ()};
               o2::math_utils::Point3D<float> clusDuplicatedPointGlob = mGeometry->getMatrixT2G(clusDuplicated.getSensorID()) * clusDuplicatedPointTrack;
@@ -902,17 +923,21 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
                                                                          // if (clusDuplicated.getSensorID() != clusOriginal.getSensorID()) { /// check that the duplicated cluster is not the original one just counted twice
 
                   // applying constraints: the cluster should be on the same layer, should be on an adjacent stave and on the same or adjacent chip position
-                  if (clusDuplicated.getSensorID() == clusOriginal.getSensorID())
+                  if (clusDuplicated.getSensorID() == clusOriginal.getSensorID()) {
                     continue;
+                  }
                   auto layerDuplicated = mGeometry->getLayer(clusDuplicated.getSensorID());
-                  if (layerDuplicated != layerClus)
+                  if (layerDuplicated != layerClus) {
                     continue;
+                  }
                   auto staveDuplicated = mGeometry->getStave(clusDuplicated.getSensorID());
-                  if (abs(staveDuplicated - staveOriginal) != 1)
+                  if (abs(staveDuplicated - staveOriginal) != 1) {
                     continue;
+                  }
                   auto chipDuplicated = mGeometry->getChipIdInStave(clusDuplicated.getSensorID());
-                  if (abs(chipDuplicated - chipOriginal) > 1)
+                  if (abs(chipDuplicated - chipOriginal) > 1) {
                     continue;
+                  }
 
                   duplicated[layer]++;
                   std::cout << "Taken L" << layer << " # " << duplicated[layer] << " : pt, eta, phi = " << pt << " , " << eta << " , " << phiOriginal << " Label: " << std::endl;
@@ -925,7 +950,7 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
       } // end loop on clusters
       totClus += ncl;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
 
   LOGP(info, "Total number of possible cluster duplicated in L0: {} ", possibleduplicated[0]);
   LOGP(info, "Total number of possible cluster duplicated in L1: {} ", possibleduplicated[1]);
@@ -990,8 +1015,9 @@ void EfficiencyStudy::studyDCAcutsMC()
   int nbPt = 75;
   double xbins[nbPt + 1], ptcutl = 0.05, ptcuth = 7.5;
   double a = std::log(ptcuth / ptcutl) / nbPt;
-  for (int i = 0; i <= nbPt; i++)
+  for (int i = 0; i <= nbPt; i++) {
     xbins[i] = ptcutl * std::exp(i * a);
+  }
 
   for (unsigned int iROF = 0; iROF < mTracksROFRecords.size(); iROF++) { // loop on ROFRecords array
     rofIndexTrack = mTracksROFRecords[iROF].getFirstEntry();
@@ -1009,10 +1035,12 @@ void EfficiencyStudy::studyDCAcutsMC()
       float ip[2];
       track.getImpactParams(0, 0, 0, 0, ip);
 
-      if (pt < mPtCuts[0] || pt > mPtCuts[1])
+      if (pt < mPtCuts[0] || pt > mPtCuts[1]) {
         continue;
-      if (eta < mEtaCuts[0] || eta > mEtaCuts[1])
+      }
+      if (eta < mEtaCuts[0] || eta > mEtaCuts[1]) {
         continue;
+      }
 
       float phiTrack = trackParCov.getPhi() * 180 / M_PI;
 
@@ -1021,12 +1049,14 @@ void EfficiencyStudy::studyDCAcutsMC()
       int firstClus = track.getFirstClusterEntry(); // get the first cluster of the track
       int ncl = track.getNumberOfClusters();        // get the number of clusters of the track
 
-      if (ncl < 7)
+      if (ncl < 7) {
         continue;
+      }
 
       auto& tracklab = mTracksMCLabels[iTrack];
-      if (tracklab.isFake())
+      if (tracklab.isFake()) {
         continue;
+      }
 
       if (mVerboseOutput) {
         LOGP(info, "--------- track Label: ");
@@ -1037,8 +1067,9 @@ void EfficiencyStudy::studyDCAcutsMC()
         auto& clusOriginal = mClusters[mInputITSidxs[iclTrack]];
         auto clusOriginalPoint = mITSClustersArray[mInputITSidxs[iclTrack]]; // cluster spacepoint in the tracking system
         auto layerOriginal = mGeometry->getLayer(clusOriginal.getSensorID());
-        if (layerOriginal >= NLAYERS)
+        if (layerOriginal >= NLAYERS) {
           continue;
+        }
         auto labsOriginal = mClustersMCLCont->getLabels(mInputITSidxs[iclTrack]); // get labels of the cluster associated to the track (original)
         auto staveOriginal = mGeometry->getStave(clusOriginal.getSensorID());
         auto chipOriginal = mGeometry->getChipIdInStave(clusOriginal.getSensorID());
@@ -1049,26 +1080,32 @@ void EfficiencyStudy::studyDCAcutsMC()
         phiOriginal = clusOriginalPointGlob.phi() * 180 / M_PI;
 
         for (auto& labT : labsOriginal) { // for each valid label iterate over ALL the clusters in the ROF to see if there are duplicates
-          if (labT != tracklab)
+          if (labT != tracklab) {
             continue;
-          if (!labT.isValid())
+          }
+          if (!labT.isValid()) {
             continue;
+          }
 
           /// for each oroginal cluster iterate over all the possible "adjacent" clusters (stave +-1, chip =,+-1) and calculate the DCA with the track. Then compare the cluster label with the track label to see if it is a true or fake match
           for (unsigned int iClus = rofIndexClus; iClus < rofIndexClus + rofNEntriesClus; iClus++) { // iteration over ALL the clusters in the ROF
             auto clusDuplicated = mClusters[iClus];
             //// applying constraints: the cluster should be on the same layer, should be on an adjacent stave and on the same or adjacent chip position
-            if (clusDuplicated.getSensorID() == clusOriginal.getSensorID())
+            if (clusDuplicated.getSensorID() == clusOriginal.getSensorID()) {
               continue;
+            }
             auto layerDuplicated = mGeometry->getLayer(clusDuplicated.getSensorID());
-            if (layerDuplicated != layerOriginal)
+            if (layerDuplicated != layerOriginal) {
               continue;
+            }
             auto staveDuplicated = mGeometry->getStave(clusDuplicated.getSensorID());
-            if (abs(staveDuplicated - staveOriginal) != 1)
+            if (abs(staveDuplicated - staveOriginal) != 1) {
               continue;
+            }
             auto chipDuplicated = mGeometry->getChipIdInStave(clusDuplicated.getSensorID());
-            if (abs(chipDuplicated - chipOriginal) > 1)
+            if (abs(chipDuplicated - chipOriginal) > 1) {
               continue;
+            }
 
             auto labsDuplicated = mClustersMCLCont->getLabels(iClus);
 
@@ -1082,14 +1119,16 @@ void EfficiencyStudy::studyDCAcutsMC()
             /// Compute the DCA between the duplicated cluster location and the track
             trackParCov.rotate(mGeometry->getSensorRefAlpha(clusDuplicated.getSensorID()));
             if (propagator->propagateToDCA(clusDuplicatedPointGlob, trackParCov, b, 2.f, matCorr, &clusDuplicatedDCA)) { // check if the propagation fails
-              if (mVerboseOutput)
+              if (mVerboseOutput) {
                 LOGP(info, "Propagation ok");
+              }
               /// checking the DCA for 20 different sigma ranges
               for (int i = 0; i < 20; i++) {
                 if (abs(dcaXY[layerDuplicated] - clusDuplicatedDCA[0]) < (i + 1) * sigmaDcaXY[layerDuplicated] && abs(dcaZ[layerDuplicated] - clusDuplicatedDCA[1]) < (i + 1) * sigmaDcaZ[layerDuplicated]) { // check if the DCA is within the cut i*sigma
 
-                  if (mVerboseOutput)
+                  if (mVerboseOutput) {
                     LOGP(info, "Check DCA ok: {} < {}; {} < {}", abs(meanDCAxyDuplicated[layerDuplicated] - clusDuplicatedDCA[0]), (i + 1) * sigmaDCAxyDuplicated[layerDuplicated], abs(meanDCAzDuplicated[layerDuplicated] - clusDuplicatedDCA[1]), (i + 1) * sigmaDCAzDuplicated[layerDuplicated]);
+                  }
                   nDCAMatches[i]++;
                   bool isGoodMatch = false;
 
@@ -1122,16 +1161,18 @@ void EfficiencyStudy::studyDCAcutsMC()
                     mnFakeMatchesPhi_layer[layerDuplicated]->Fill(phi, i);
                     mnFakeMatchesPhiTrack_layer[layerDuplicated]->Fill(phiTrack, i);
                   }
-                } else if (mVerboseOutput)
+                } else if (mVerboseOutput) {
                   LOGP(info, "Check DCA failed");
+                }
               }
-            } else if (mVerboseOutput)
+            } else if (mVerboseOutput) {
               LOGP(info, "Propagation failed");
+            }
           } // end loop on all the clusters in the rof
         }
       } // end loop on clusters associated to the track
-    }   // end loop on tracks per ROF
-  }     // end loop on ROFRecords array
+    } // end loop on tracks per ROF
+  } // end loop on ROFRecords array
 
   for (int i = 0; i < 20; i++) {
     LOGP(info, "Cut: {} sigma -> number of duplicated clusters: {} nDCAMatches: {} nGoodMatches: {} nFakeMatches: {}", i + 1, duplicated, nDCAMatches[i], nGoodMatches[i], nFakeMatches[i]);
@@ -1145,31 +1186,36 @@ void EfficiencyStudy::studyDCAcutsMC()
       mEfficiencyTotal_layer[l]->SetBinContent(i + 1, double(nGoodMatches_layer[l][i] + nFakeMatches_layer[l][i]));
 
       for (int ipt = 0; ipt < mPtDuplicated[l]->GetNbinsX(); ipt++) {
-        if (mPtDuplicated[l]->GetBinContent(ipt + 1) != 0)
+        if (mPtDuplicated[l]->GetBinContent(ipt + 1) != 0) {
           mEfficiencyGoodMatchPt_layer[l]->SetBinContent(ipt + 1, i + 1, mnGoodMatchesPt_layer[l]->GetBinContent(ipt + 1, i + 1) / mPtDuplicated[l]->GetBinContent(ipt + 1));
+        }
         mEfficiencyFakeMatchPt_layer[l]->SetBinContent(ipt + 1, i + 1, mnFakeMatchesPt_layer[l]->GetBinContent(ipt + 1, i + 1) / mPtDuplicated[l]->GetBinContent(ipt + 1));
       }
 
       for (int ieta = 0; ieta < mEtaDuplicated[l]->GetNbinsX(); ieta++) {
-        if (mEtaDuplicated[l]->GetBinContent(ieta + 1) != 0)
+        if (mEtaDuplicated[l]->GetBinContent(ieta + 1) != 0) {
           mEfficiencyGoodMatchEta_layer[l]->SetBinContent(ieta + 1, i + 1, mnGoodMatchesEta_layer[l]->GetBinContent(ieta + 1, i + 1) / mEtaDuplicated[l]->GetBinContent(ieta + 1));
+        }
         mEfficiencyFakeMatchEta_layer[l]->SetBinContent(ieta + 1, i + 1, mnFakeMatchesEta_layer[l]->GetBinContent(ieta + 1, i + 1) / mEtaDuplicated[l]->GetBinContent(ieta + 1));
       }
 
       for (int iphi = 0; iphi < mPhiDuplicated[l]->GetNbinsX(); iphi++) {
-        if (mPhiDuplicated[l]->GetBinContent(iphi + 1) != 0)
+        if (mPhiDuplicated[l]->GetBinContent(iphi + 1) != 0) {
           mEfficiencyGoodMatchPhi_layer[l]->SetBinContent(iphi + 1, i + 1, mnGoodMatchesPhi_layer[l]->GetBinContent(iphi + 1, i + 1) / mPhiDuplicated[l]->GetBinContent(iphi + 1));
+        }
         mEfficiencyFakeMatchPhi_layer[l]->SetBinContent(iphi + 1, i + 1, mnFakeMatchesPhi_layer[l]->GetBinContent(iphi + 1, i + 1) / mPhiDuplicated[l]->GetBinContent(iphi + 1));
       }
 
       for (int iphi = 0; iphi < mPhiOriginalIfDuplicated[l]->GetNbinsX(); iphi++) {
-        if (mPhiOriginalIfDuplicated[l]->GetBinContent(iphi + 1) != 0)
+        if (mPhiOriginalIfDuplicated[l]->GetBinContent(iphi + 1) != 0) {
           mEfficiencyGoodMatchPhiOriginal_layer[l]->SetBinContent(iphi + 1, i + 1, mnGoodMatchesPhiOriginal_layer[l]->GetBinContent(iphi + 1, i + 1) / mPhiOriginalIfDuplicated[l]->GetBinContent(iphi + 1));
+        }
       }
 
       for (int iphi = 0; iphi < mPhiTrackDuplicated[l]->GetNbinsX(); iphi++) {
-        if (mPhiTrackDuplicated[l]->GetBinContent(iphi + 1) != 0)
+        if (mPhiTrackDuplicated[l]->GetBinContent(iphi + 1) != 0) {
           mEfficiencyGoodMatchPhiTrack_layer[l]->SetBinContent(iphi + 1, i + 1, mnGoodMatchesPhiTrack_layer[l]->GetBinContent(iphi + 1, i + 1) / mPhiTrackDuplicated[l]->GetBinContent(iphi + 1));
+        }
         mEfficiencyFakeMatchPhiTrack_layer[l]->SetBinContent(iphi + 1, i + 1, mnFakeMatchesPhiTrack_layer[l]->GetBinContent(iphi + 1, i + 1) / mPhiTrackDuplicated[l]->GetBinContent(iphi + 1));
       }
     }
@@ -1334,20 +1380,24 @@ void EfficiencyStudy::studyClusterSelectionMC()
       int firstClus = track.getFirstClusterEntry(); // get the first cluster of the track
       int ncl = track.getNumberOfClusters();        // get the number of clusters of the track
 
-      if (ncl < 7)
+      if (ncl < 7) {
         continue;
+      }
 
       auto& tracklab = mTracksMCLabels[iTrack];
-      if (tracklab.isFake())
+      if (tracklab.isFake()) {
         continue;
+      }
 
       auto pt = trackParCov.getPt();
       auto eta = trackParCov.getEta();
 
-      if (pt < mPtCuts[0] || pt > mPtCuts[1])
+      if (pt < mPtCuts[0] || pt > mPtCuts[1]) {
         continue;
-      if (eta < mEtaCuts[0] || eta > mEtaCuts[1])
+      }
+      if (eta < mEtaCuts[0] || eta > mEtaCuts[1]) {
         continue;
+      }
 
       // auto phi = trackParCov.getPhi()*180/M_PI;
       float phi = -999.;
@@ -1363,8 +1413,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
         // LOGP(info, "New cluster");
         auto& clusOriginal = mClusters[mInputITSidxs[iclTrack]];
         auto layerOriginal = mGeometry->getLayer(clusOriginal.getSensorID());
-        if (layerOriginal >= NLAYERS)
+        if (layerOriginal >= NLAYERS) {
           continue;
+        }
 
         IPOriginalxy[layerOriginal]->Fill(ip[0]);
         IPOriginalz[layerOriginal]->Fill(ip[1]);
@@ -1389,17 +1440,21 @@ void EfficiencyStudy::studyClusterSelectionMC()
           auto clusDuplicated = mClusters[iClus];
 
           //// applying constraints: the cluster should be on the same layer, should be on an adjacent stave and on the same or adjacent chip position
-          if (clusDuplicated.getSensorID() == clusOriginal.getSensorID())
+          if (clusDuplicated.getSensorID() == clusOriginal.getSensorID()) {
             continue;
+          }
           auto layerDuplicated = mGeometry->getLayer(clusDuplicated.getSensorID());
-          if (layerDuplicated != layerOriginal)
+          if (layerDuplicated != layerOriginal) {
             continue;
+          }
           auto staveDuplicated = mGeometry->getStave(clusDuplicated.getSensorID());
-          if (abs(staveDuplicated - staveOriginal) != 1)
+          if (abs(staveDuplicated - staveOriginal) != 1) {
             continue;
+          }
           auto chipDuplicated = mGeometry->getChipIdInStave(clusDuplicated.getSensorID());
-          if (abs(chipDuplicated - chipOriginal) > 1)
+          if (abs(chipDuplicated - chipOriginal) > 1) {
             continue;
+          }
 
           auto labsDuplicated = mClustersMCLCont->getLabels(iClus);
 
@@ -1422,8 +1477,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
             continue;
           }
 
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             LOGP(info, "Propagation ok");
+          }
           double rDCA = std::hypot(clusDuplicatedDCA[0], clusDuplicatedDCA[1]);
 
           // taking the closest cluster within x sigma
@@ -1439,8 +1495,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
         // here clusID_rDCA_label is updated with the closest cluster to the track other than the original one
         // checking if it is a good or fake match looking at the labels
 
-        if (!adjacentFound)
+        if (!adjacentFound) {
           continue;
+        }
 
         bool isGood = false;
         for (auto lab : std::get<2>(clusID_rDCA_label)) {
@@ -1486,8 +1543,8 @@ void EfficiencyStudy::studyClusterSelectionMC()
           }
         }
       } // end loop on clusters associated to the track
-    }   // end loop on tracks per ROF
-  }     // end loop on ROFRecords array
+    } // end loop on tracks per ROF
+  } // end loop on ROFRecords array
 
   mOutFile->mkdir("EfficiencyCuts/");
   mOutFile->cd("EfficiencyCuts/");
@@ -1522,8 +1579,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
 
   ///////////////// plotting results
   for (int l = 0; l < 3; l++) {
-    if (mVerboseOutput)
+    if (mVerboseOutput) {
       std::cout << "Pt L" << l << "\n\n";
+    }
 
     diffPhivsPt[l]->Write();
     IPOriginalifDuplicatedxy[l]->Write();
@@ -1580,8 +1638,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
     for (int ibin = 1; ibin <= mNFakeMatchesPtEta[l]->GetNbinsX(); ibin++) {
       for (int jbin = 1; jbin <= mNFakeMatchesPtEta[l]->GetNbinsY(); jbin++) {
         if (mNFakeMatchesPtEta[l]->GetBinContent(ibin, jbin) > mDuplicatedPtEta[l]->GetBinContent(ibin, jbin)) {
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             std::cout << "--- PtEta fakematches : Npass = " << mNFakeMatchesPtEta[l]->GetBinContent(ibin, jbin) << ",  Nall = " << mDuplicatedPtEta[l]->GetBinContent(ibin, jbin) << " for ibin = " << ibin << ", jbin = " << jbin << std::endl;
+          }
           mNFakeMatchesPtEta[l]->SetBinContent(ibin, jbin, mDuplicatedPtEta[l]->GetBinContent(ibin, jbin));
         }
       }
@@ -1642,8 +1701,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
     for (int ibin = 1; ibin <= mNFakeMatchesPtEta[l]->GetNbinsX(); ibin++) {
       for (int jbin = 1; jbin <= mNFakeMatchesPtEta[l]->GetNbinsY(); jbin++) {
         if (mNFakeMatchesPtEta[l]->GetBinContent(ibin, jbin) > mDuplicatedPtEta[l]->GetBinContent(ibin, jbin)) {
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             std::cout << "--- PtEta fakematches : Npass = " << mNFakeMatchesPtEta[l]->GetBinContent(ibin, jbin) << ",  Nall = " << mDuplicatedPtEta[l]->GetBinContent(ibin, jbin) << " for ibin = " << ibin << ", jbin = " << jbin << std::endl;
+          }
           mNFakeMatchesPtEta[l]->SetBinContent(ibin, jbin, mDuplicatedPtEta[l]->GetBinContent(ibin, jbin));
         }
       }
@@ -1681,8 +1741,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
     for (int ibin = 1; ibin <= mNFakeMatchesPtPhi[l]->GetNbinsX(); ibin++) {
       for (int jbin = 1; jbin <= mNFakeMatchesPtPhi[l]->GetNbinsY(); jbin++) {
         if (mNFakeMatchesPtPhi[l]->GetBinContent(ibin, jbin) > mDuplicatedPtPhi[l]->GetBinContent(ibin, jbin)) {
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             std::cout << "--- Pt: Npass = " << mNFakeMatchesPtPhi[l]->GetBinContent(ibin, jbin) << ",  Nall = " << mDuplicatedPtPhi[l]->GetBinContent(ibin, jbin) << " for ibin = " << ibin << ", jbin = " << jbin << std::endl;
+          }
           mNFakeMatchesPtPhi[l]->SetBinContent(ibin, jbin, mDuplicatedPtPhi[l]->GetBinContent(ibin, jbin));
         }
       }
@@ -1720,8 +1781,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
     for (int ibin = 1; ibin <= mNFakeMatchesEtaPhi[l]->GetNbinsX(); ibin++) {
       for (int jbin = 1; jbin <= mNFakeMatchesEtaPhi[l]->GetNbinsY(); jbin++) {
         if (mNFakeMatchesEtaPhi[l]->GetBinContent(ibin, jbin) > mDuplicatedEtaPhi[l]->GetBinContent(ibin, jbin)) {
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             std::cout << "--- Eta: Npass = " << mNFakeMatchesEtaPhi[l]->GetBinContent(ibin, jbin) << ",  Nall = " << mDuplicatedEtaPhi[l]->GetBinContent(ibin, jbin) << " for ibin = " << ibin << ", jbin = " << jbin << std::endl;
+          }
           mNFakeMatchesEtaPhi[l]->SetBinContent(ibin, jbin, mDuplicatedEtaPhi[l]->GetBinContent(ibin, jbin));
         }
       }
@@ -1742,8 +1804,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
     effEtaPhi[l][1]->Write();
 
     // EtaAllPt
-    if (mVerboseOutput)
+    if (mVerboseOutput) {
       std::cout << "Eta L" << l << "\n\n";
+    }
 
     effEtaAllPt[l] = new TCanvas(Form("effEtaAllPt_L%d", l));
 
@@ -1752,8 +1815,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
 
     for (int ibin = 1; ibin <= mNFakeMatchesEtaAllPt[l]->GetNbinsX(); ibin++) {
       if (mNFakeMatchesEtaAllPt[l]->GetBinContent(ibin) > mDuplicatedEtaAllPt[l]->GetBinContent(ibin)) {
-        if (mVerboseOutput)
+        if (mVerboseOutput) {
           std::cout << "--- EtaAllPt: Npass = " << mNFakeMatchesEtaAllPt[l]->GetBinContent(ibin) << ",  Nall = " << mDuplicatedEtaAllPt[l]->GetBinContent(ibin) << " for ibin = " << ibin << std::endl;
+        }
         mNFakeMatchesEtaAllPt[l]->SetBinContent(ibin, mDuplicatedEtaAllPt[l]->GetBinContent(ibin));
       }
     }
@@ -1783,8 +1847,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
 
       for (int ibin = 1; ibin <= mNFakeMatchesEta[l][ipt]->GetNbinsX(); ibin++) {
         if (mNFakeMatchesEta[l][ipt]->GetBinContent(ibin) > mDuplicatedEta[l][ipt]->GetBinContent(ibin)) {
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             std::cout << "--- Eta : Npass = " << mNFakeMatchesEta[l][ipt]->GetBinContent(ibin) << ",  Nall = " << mDuplicatedEta[l][ipt]->GetBinContent(ibin) << " for ibin = " << ibin << std::endl;
+          }
           mNFakeMatchesEta[l][ipt]->SetBinContent(ibin, mDuplicatedEta[l][ipt]->GetBinContent(ibin));
         }
       }
@@ -1810,8 +1875,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
 
       for (int ibin = 1; ibin <= mNGoodMatchesPhi[l][ipt]->GetNbinsX(); ibin++) {
         if (mNGoodMatchesPhi[l][ipt]->GetBinContent(ibin) > mDuplicatedPhi[l][ipt]->GetBinContent(ibin)) {
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             std::cout << "--- Phi L: Npass = " << mNGoodMatchesPhi[l][ipt]->GetBinContent(ibin) << ",  Nall = " << mDuplicatedPhi[l][ipt]->GetBinContent(ibin) << " for ibin = " << ibin << std::endl;
+          }
           mNGoodMatchesPhi[l][ipt]->SetBinContent(ibin, 0);
         }
       }
@@ -1821,8 +1887,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
 
       for (int ibin = 1; ibin <= mNFakeMatchesPhi[l][ipt]->GetNbinsX(); ibin++) {
         if (mNFakeMatchesPhi[l][ipt]->GetBinContent(ibin) > mDuplicatedPhi[l][ipt]->GetBinContent(ibin)) {
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             std::cout << "--- Phi L: Npass = " << mNFakeMatchesPhi[l][ipt]->GetBinContent(ibin) << ",  Nall = " << mDuplicatedPhi[l][ipt]->GetBinContent(ibin) << " for ibin = " << ibin << std::endl;
+          }
           mNFakeMatchesPhi[l][ipt]->SetBinContent(ibin, mDuplicatedPhi[l][ipt]->GetBinContent(ibin));
         }
       }
@@ -1845,15 +1912,17 @@ void EfficiencyStudy::studyClusterSelectionMC()
     }
 
     // PhiAllPt
-    if (mVerboseOutput)
+    if (mVerboseOutput) {
       std::cout << "Phi L" << l << "\n\n";
+    }
 
     effPhiAllPt[l] = new TCanvas(Form("effPhiAllPt_L%d", l));
 
     for (int ibin = 1; ibin <= mNGoodMatchesPhiAllPt[l]->GetNbinsX(); ibin++) {
       if (mNGoodMatchesPhiAllPt[l]->GetBinContent(ibin) > mDuplicatedPhiAllPt[l]->GetBinContent(ibin)) {
-        if (mVerboseOutput)
+        if (mVerboseOutput) {
           std::cout << "--- phi all good Npass = " << mNGoodMatchesPhiAllPt[l]->GetBinContent(ibin) << ",  Nall = " << mDuplicatedPhiAllPt[l]->GetBinContent(ibin) << " for ibin = " << ibin << std::endl;
+        }
         mNGoodMatchesPhiAllPt[l]->SetBinContent(ibin, 0);
       }
     }
@@ -1863,8 +1932,9 @@ void EfficiencyStudy::studyClusterSelectionMC()
 
     for (int ibin = 1; ibin <= mNFakeMatchesPhiAllPt[l]->GetNbinsX(); ibin++) {
       if (mNFakeMatchesPhiAllPt[l]->GetBinContent(ibin) > mDuplicatedPhiAllPt[l]->GetBinContent(ibin)) {
-        if (mVerboseOutput)
+        if (mVerboseOutput) {
           std::cout << "--- phi all fake Npass = " << mNFakeMatchesPhiAllPt[l]->GetBinContent(ibin) << ",  Nall = " << mDuplicatedPhiAllPt[l]->GetBinContent(ibin) << " for ibin = " << ibin << std::endl;
+        }
         mNFakeMatchesPhiAllPt[l]->SetBinContent(ibin, mDuplicatedPhiAllPt[l]->GetBinContent(ibin));
       }
     }
@@ -1909,8 +1979,9 @@ void EfficiencyStudy::saveDataInfo()
       int firstClus = track.getFirstClusterEntry(); // get the first cluster of the track
       int ncl = track.getNumberOfClusters();        // get the number of clusters of the track
 
-      if (ncl < 7)
+      if (ncl < 7) {
         continue;
+      }
       float ip[2];
       track.getImpactParams(0, 0, 0, 0, ip);
 
@@ -1932,8 +2003,9 @@ void EfficiencyStudy::saveDataInfo()
         auto chipOriginal = mGeometry->getChipIdInStave(clusOriginal.getSensorID());
 
         auto layer = mGeometry->getLayer(clusOriginal.getSensorID());
-        if (layer >= NLAYERS)
+        if (layer >= NLAYERS) {
           continue; // checking only selected layers
+        }
 
         o2::math_utils::Point3D<float> clusOriginalPointTrack = {clusOriginalPoint.getX(), clusOriginalPoint.getY(), clusOriginalPoint.getZ()};
         o2::math_utils::Point3D<float> clusOriginalPointGlob = mGeometry->getMatrixT2G(clusOriginal.getSensorID()) * clusOriginalPointTrack;
@@ -1949,7 +2021,7 @@ void EfficiencyStudy::saveDataInfo()
       } // end loop on clusters
       totClus += ncl;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
   LOGP(info, "Total number of clusters: {} ", totClus);
 }
 
@@ -1975,8 +2047,9 @@ void EfficiencyStudy::getEfficiency(bool isMC)
   int nbPt = 75;
   double xbins[nbPt + 1], ptcutl = 0.05, ptcuth = 7.5;
   double a = std::log(ptcuth / ptcutl) / nbPt;
-  for (int i = 0; i <= nbPt; i++)
+  for (int i = 0; i <= nbPt; i++) {
     xbins[i] = ptcutl * std::exp(i * a);
+  }
 
   int totNClusters;
   int nDuplClusters;
@@ -2008,26 +2081,31 @@ void EfficiencyStudy::getEfficiency(bool isMC)
       float phiTrack = trackParCov.getPhi() * 180 / M_PI;
 
       // applying the cuts on the track - only pt and eta, and chi2 cuts since for phi(cluster) the layer is needed
-      if (pt < mPtCuts[0] || pt > mPtCuts[1])
+      if (pt < mPtCuts[0] || pt > mPtCuts[1]) {
         continue;
-      if (eta < mEtaCuts[0] || eta > mEtaCuts[1])
+      }
+      if (eta < mEtaCuts[0] || eta > mEtaCuts[1]) {
         continue;
-      if (chi2 > mChi2cut)
+      }
+      if (chi2 > mChi2cut) {
         continue;
+      }
 
       /// the cut on phi, since it is layer-dependent, can be applied only after finding the cluster and then the layer
 
       int firstClus = track.getFirstClusterEntry(); // get the first cluster of the track
       int ncl = track.getNumberOfClusters();        // get the number of clusters of the track
 
-      if (ncl < 7)
+      if (ncl < 7) {
         continue;
+      }
 
       o2::MCCompLabel tracklab;
       if (isMC) {
         tracklab = mTracksMCLabels[iTrack];
-        if (tracklab.isFake())
+        if (tracklab.isFake()) {
           continue;
+        }
       }
 
       if (mVerboseOutput && isMC) {
@@ -2089,8 +2167,9 @@ void EfficiencyStudy::getEfficiency(bool isMC)
         }
 
         /////////////////////////////////////
-        if (!(keepTrack))
+        if (!(keepTrack)) {
           continue; /// if the track (cluster) is not eligible for any layer, go to the next one
+        }
         else {      /// fill the den and go ahead
           chi2trackAccepted->Fill(chi2);
           denPt[layerOriginal]->Fill(pt);
@@ -2128,17 +2207,21 @@ void EfficiencyStudy::getEfficiency(bool isMC)
           phi = clusDuplicatedPointGlob.phi() * 180 / M_PI;
 
           //// applying constraints: the cluster should be on the same layer, should be on an adjacent stave and on the same or adjacent chip position
-          if (clusDuplicated.getSensorID() == clusOriginal.getSensorID())
+          if (clusDuplicated.getSensorID() == clusOriginal.getSensorID()) {
             continue;
+          }
           auto layerDuplicated = mGeometry->getLayer(clusDuplicated.getSensorID());
-          if (layerDuplicated != layerOriginal)
+          if (layerDuplicated != layerOriginal) {
             continue;
+          }
           auto staveDuplicated = mGeometry->getStave(clusDuplicated.getSensorID());
-          if (abs(staveDuplicated - staveOriginal) != 1)
+          if (abs(staveDuplicated - staveOriginal) != 1) {
             continue;
+          }
           auto chipDuplicated = mGeometry->getChipIdInStave(clusDuplicated.getSensorID());
-          if (abs(chipDuplicated - chipOriginal) > 1)
+          if (abs(chipDuplicated - chipOriginal) > 1) {
             continue;
+          }
 
           gsl::span<const o2::MCCompLabel> labsDuplicated = {};
           if (isMC) {
@@ -2184,8 +2267,9 @@ void EfficiencyStudy::getEfficiency(bool isMC)
           DistanceClustersYAftercuts[layerDuplicated]->Fill(abs(clusDuplicatedPointGlob.y() - clusOriginalPointGlob.y()));
           DistanceClustersZAftercuts[layerDuplicated]->Fill(abs(clusDuplicatedPointGlob.z() - clusOriginalPointGlob.z()));
 
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             LOGP(info, "Propagation ok");
+          }
           double rDCA = std::hypot(clusDuplicatedDCA[0], clusDuplicatedDCA[1]);
 
           // taking the closest cluster within x sigma
@@ -2205,8 +2289,9 @@ void EfficiencyStudy::getEfficiency(bool isMC)
 
         // here clusID_rDCA_label is updated with the closest cluster to the track other than the original one
 
-        if (!adjacentFound)
+        if (!adjacentFound) {
           continue;
+        }
         nDuplClusters++;
         nDuplicatedClusters[layerOriginal]++;
         numPt[layerOriginal]->Fill(ptDuplicated);
@@ -2235,7 +2320,7 @@ void EfficiencyStudy::getEfficiency(bool isMC)
       } // end loop on clusters associated to the track
       totNClusters += NLAYERS;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
 
   std::cout << " Num of duplicated clusters L0: " << nDuplicatedClusters[0] << " N tracks selected: " << nTracksSelected[0] << std::endl;
   std::cout << " Num of duplicated clusters L1: " << nDuplicatedClusters[1] << " N tracks selected: " << nTracksSelected[1] << std::endl;
@@ -2268,8 +2353,9 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
   int nbPt = 75;
   double xbins[nbPt + 1], ptcutl = 0.05, ptcuth = 7.5;
   double a = std::log(ptcuth / ptcutl) / nbPt;
-  for (int i = 0; i <= nbPt; i++)
+  for (int i = 0; i <= nbPt; i++) {
     xbins[i] = ptcutl * std::exp(i * a);
+  }
 
   int totNClusters;
   int nDuplClusters;
@@ -2300,25 +2386,30 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
       float phiTrack = trackParCov.getPhi() * 180 / M_PI;
 
       // applying the cuts on the track - only pt and eta cuts since for phi(cluster) the layer is needed
-      if (pt < mPtCuts[0] || pt > mPtCuts[1])
+      if (pt < mPtCuts[0] || pt > mPtCuts[1]) {
         continue;
-      if (eta < mEtaCuts[0] || eta > mEtaCuts[1])
+      }
+      if (eta < mEtaCuts[0] || eta > mEtaCuts[1]) {
         continue;
-      if (chi2 > mChi2cut)
+      }
+      if (chi2 > mChi2cut) {
         continue;
+      }
       /// the cut on phi, since it is layer-dependent, can be applied only after finding the cluster and then the layer
 
       int firstClus = track.getFirstClusterEntry(); // get the first cluster of the track
       int ncl = track.getNumberOfClusters();        // get the number of clusters of the track
 
-      if (ncl < 7)
+      if (ncl < 7) {
         continue;
+      }
 
       o2::MCCompLabel tracklab;
       if (isMC) {
         tracklab = mTracksMCLabels[iTrack];
-        if (tracklab.isFake())
+        if (tracklab.isFake()) {
           continue;
+        }
       }
 
       if (mVerboseOutput && isMC) {
@@ -2372,8 +2463,9 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
             }
           }
         }
-        if (!(keepTrack))
+        if (!(keepTrack)) {
           continue; /// if the track (cluster) is not eligible for any layer, go to the next one
+        }
         else {      /// fill the den and go ahead
           chi2trackAccepted->Fill(chi2);
           denPt[layerOriginal]->Fill(pt);
@@ -2412,11 +2504,13 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
           phi = clusDuplicatedPointGlob.phi() * 180 / M_PI;
 
           //// applying constraints: the cluster should be on the same layer, should be on an adjacent stave and on the same or adjacent chip position
-          if (clusDuplicated.getSensorID() == clusOriginal.getSensorID())
+          if (clusDuplicated.getSensorID() == clusOriginal.getSensorID()) {
             continue;
+          }
           auto layerDuplicated = mGeometry->getLayer(clusDuplicated.getSensorID());
-          if (layerDuplicated != layerOriginal)
+          if (layerDuplicated != layerOriginal) {
             continue;
+          }
           labelCandidateDuplicated = mClustersMCLCont->getLabels(iClus)[0];
           if (labelCandidateDuplicated == tracklab) {
             duplExists = true;
@@ -2424,11 +2518,13 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
             clusDuplicated.print();
           }
           auto staveDuplicated = mGeometry->getStave(clusDuplicated.getSensorID());
-          if (abs(staveDuplicated - staveOriginal) != 1)
+          if (abs(staveDuplicated - staveOriginal) != 1) {
             continue;
+          }
           auto chipDuplicated = mGeometry->getChipIdInStave(clusDuplicated.getSensorID());
-          if (abs(chipDuplicated - chipOriginal) > 1)
+          if (abs(chipDuplicated - chipOriginal) > 1) {
             continue;
+          }
 
           std::cout << "checks passed" << std::endl;
 
@@ -2468,8 +2564,9 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
           DistanceClustersYAftercuts[layerDuplicated]->Fill(abs(clusDuplicatedPointGlob.y() - clusOriginalPointGlob.y()));
           DistanceClustersZAftercuts[layerDuplicated]->Fill(abs(clusDuplicatedPointGlob.z() - clusOriginalPointGlob.z()));
 
-          if (mVerboseOutput)
+          if (mVerboseOutput) {
             LOGP(info, "Propagation ok");
+          }
           double rDCA = std::hypot(clusDuplicatedDCA[0], clusDuplicatedDCA[1]);
 
           // taking the closest cluster within x sigma
@@ -2529,7 +2626,7 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
       } // end loop on clusters associated to the track
       totNClusters += NLAYERS;
     } // end loop on tracks per ROF
-  }   // end loop on ROFRecords array
+  } // end loop on ROFRecords array
 
   std::cout << " Num of duplicated clusters L0: " << nDuplicatedClusters[0] << " N tracks selected: " << nTracksSelected[0] << std::endl;
   std::cout << " Num of duplicated clusters L1: " << nDuplicatedClusters[1] << " N tracks selected: " << nTracksSelected[1] << std::endl;
