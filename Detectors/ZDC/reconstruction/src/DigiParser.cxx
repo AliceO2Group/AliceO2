@@ -118,11 +118,11 @@ void DigiParser::init()
     if (mSignalTH[ich] == nullptr) {
       TString hname = TString::Format("hsth_%s", ChannelNames[ich].data());
       TString htit = TString::Format("Signal %s AUTOT & Hit; Sample; ADC", ChannelNames[ich].data());
-      mSignalTH[ich] = std::make_unique<TH2F>(hname, htit, 2 * NTimeBinsPerBC, -0.5 - NTimeBinsPerBC, NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      mSignalTH[ich] = std::make_unique<TH2F>(hname, htit, 5 * NTimeBinsPerBC, -0.5 - 3 * NTimeBinsPerBC, 2 * NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
     }
     if (mBunchH[ich] == nullptr) {
       TString hname = TString::Format("hbh_%s", ChannelNames[ich].data());
-      TString htit = TString::Format("Bunch %s AUTOT Hit; Sample; ADC", ChannelNames[ich].data());
+      TString htit = TString::Format("Bunch %s AUTOT Hit; BC units; - BC hundreds", ChannelNames[ich].data());
       mBunchH[ich] = std::make_unique<TH2F>(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
     }
   }
@@ -130,7 +130,7 @@ void DigiParser::init()
 
 void DigiParser::eor()
 {
-  TFile* f = new TFile("ZDCDumpRaw.root", "recreate");
+  TFile* f = new TFile(mOutput.data(), "recreate");
   if (f->IsZombie()) {
     LOG(fatal) << "Cannot write to file " << f->GetName();
     return;
@@ -147,7 +147,13 @@ void DigiParser::eor()
     setStat(mCounts[i].get());
     mCounts[i]->Write();
   }
+  for (uint32_t i = 0; i < NChannels; i++) {
+    setStat(mSignalTH[i].get());
+    mSignalTH[i]->Write();
+  }
+  setModuleLabel(mTransmitted.get());
   mTransmitted->Write();
+  setModuleLabel(mFired.get());
   mFired->Write();
   f->Close();
 }
@@ -189,31 +195,53 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
       auto& chd = chdata[chEnt];
       if (chd.id > IdDummy && chd.id < NChannels) {
         chRef[ibc][chd.id] = chEnt;
+        mTransmitted->Fill(chd.id);
       }
       chEnt++;
     }
   }
 
-  for (int ibc = 0; ibc < mNBC; ibc++) {
-    auto& ir = bcdata[ibc].ir;
-    // Check previous, current and next bunch crossings
-    for (int ibn = -1; ibn < 4; ibn++) {
-      int ibt = ibc + ibn;
-      if (ibt >= 0) {     // Check backward and current bunch
-        if (ibt < mNBC) { // Check forward bunches
-          auto bcd = bcdata[ibt].ir.differenceInBC(ir);
-          if (bcd == 0) {
-            // Fill bunch map
-            for (uint32_t isig = 0; isig < NChannels; isig++) {
+  for (uint32_t isig = 0; isig < NChannels; isig++) {
+    for (int ibc = 0; ibc < mNBC; ibc++) {
+      auto& ir = bcdata[ibc].ir;
+      // Identify pile-up
+      if (mRejectPileUp) {
+        bool pile = false;
+        // Check previous bunches
+        for (int ibn = -1; ibn >= -4; ibn--) {
+          int ibt = ibc + ibn;
+          if (ibt >= 0) { // Check backward and current bunch
+            auto bcd = bcdata[ibt].ir.differenceInBC(ir);
+            if (bcd == ibn) {
+              if (bcdata[ibt].triggers & mChMask[isig] != 0) {
+                pile = true;
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+        }
+        if (pile) {
+          continue;
+        }
+      }
+      // Check previous, current and next bunch crossings
+      for (int ibn = -1; ibn < 4; ibn++) {
+        int ibt = ibc + ibn;
+        if (ibt >= 0) {     // Check backward and current bunch
+          if (ibt < mNBC) { // Check forward bunches
+            auto bcd = bcdata[ibt].ir.differenceInBC(ir);
+            if (bcd == 0) {
+              // Fill bunch map
               if (bcdata[ibc].triggers & mChMask[isig] != 0) {
                 double bc_d = uint32_t(ir.bc / 100);
                 double bc_m = uint32_t(ir.bc % 100);
                 mBunchH[isig]->Fill(bc_m, -bc_d);
+                mFired->Fill(isig);
               }
             }
-          }
-          if (bcd == ibn) {
-            for (uint32_t isig = 0; isig < NChannels; isig++) {
+            if (bcd == ibn) {
               if (bcdata[ibt].triggers & mChMask[isig] != 0) {
                 // Fill waveform
                 auto ref = chRef[ibc][isig];
@@ -224,9 +252,9 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
                 }
               }
             }
+          } else {
+            break;
           }
-        }else{
-          break;
         }
       }
     }
@@ -266,7 +294,7 @@ void DigiParser::setStat(TH1* h)
 void DigiParser::setModuleLabel(TH1* h)
 {
   for (uint32_t isig = 0; isig < NChannels; isig++) {
-    h->GetXaxis()->SetBinLabel(isig+1, ChannelNames[isig].data());
+    h->GetXaxis()->SetBinLabel(isig + 1, ChannelNames[isig].data());
   }
 }
 

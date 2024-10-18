@@ -49,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  auto verbosity = configcontext.options().get<int>("reco-verbosity");
+  auto verbosity = configcontext.options().get<int>("verbosity");
 
   auto wf = o2::zdc::getParserWorkflow(verbosity);
 

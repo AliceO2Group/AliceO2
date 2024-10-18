@@ -55,6 +55,7 @@ DigitParserSpec::DigitParserSpec(const int verbosity) : mVerbosity(verbosity)
 
 void DigitParserSpec::init(o2::framework::InitContext& ic)
 {
+  mWorker.setOutput(ic.options().get<std::string>("parser-output"));
 }
 
 void DigitParserSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -118,7 +119,7 @@ framework::DataProcessorSpec getDigitParserSpec(const int verbosity = 0)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DigitParserSpec>(verbosity)},
-    o2::framework::Options{}};
+    o2::framework::Options{{"parser-output", o2::framework::VariantType::String, "ZDCDigiParser.root", {"Output file name"}}}};
 }
 
 } // namespace zdc

@@ -13,6 +13,7 @@
 
 #include "ZDCWorkflow/ParserWorkflow.h"
 #include "ZDCWorkflow/DigitReaderSpec.h"
+#include "ZDCWorkflow/DigitParserSpec.h"
 
 namespace o2
 {
@@ -22,8 +23,7 @@ namespace zdc
 framework::WorkflowSpec getParserWorkflow(const int verbosity)
 {
   framework::WorkflowSpec specs;
-  specs.emplace_back(o2::zdc::getDigitReaderSpec(false));
-//  specs.emplace_back(o2::zdc::getDigitRecoSpec(verbosity, enableDebugOut, enableZDCTDCCorr, enableZDCEnergyParam, enableZDCTowerParam, enableBaselineParam));
+  specs.emplace_back(o2::zdc::getDigitParserSpec(verbosity));
   return specs;
 }
 

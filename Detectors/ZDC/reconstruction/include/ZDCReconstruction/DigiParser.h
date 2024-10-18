@@ -54,6 +54,9 @@ class DigiParser
   {
     mVerbosity = v;
   }
+  void setOutput(std::string output){
+    mOutput = output;
+  }
   int getVerbosity() const { return mVerbosity; }
   void eor();
 
@@ -68,6 +71,8 @@ private:
   void setModuleLabel(TH1* h);
 
   int32_t mVerbosity = DbgMinimal;
+  bool mRejectPileUp = true;
+  std::string mOutput = "ZDCDigiParser.root";
   uint32_t mTriggerMask = 0;                     /// Mask of triggering channels
   uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger pattern
   uint32_t mChMask[NChannels] = {0};             /// Identify all channels in readout pattern
