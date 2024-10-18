@@ -338,7 +338,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   TString getMatrixPath(int index) const;
 
- protected:
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
   /// for a given chip 'index' by quering the TGeoManager
   TGeoHMatrix* extractMatrixSensor(int index) const;
@@ -349,6 +348,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // get sensor tracking frame alpha and x
   void extractSensorXAlpha(int isn, float& x, float& alp);
 
+ protected:
   /// This routine computes the layer number a given the chip index
   /// \param int index The chip index number, starting from zero.
   /// \param int indexInLr The chip index inside a layer, starting from zero.

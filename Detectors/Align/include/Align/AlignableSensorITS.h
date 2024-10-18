@@ -36,6 +36,8 @@ class AlignableSensorITS final : public AlignableSensor
   AlignableSensorITS(const char* name, int vid, int iid, Controller* ctr);
   ~AlignableSensorITS() final = default;
   void prepareMatrixT2L() final;
+  void prepareMatrixL2G(bool reco = false) final;
+  void prepareMatrixL2GIdeal() final;
   //
  protected:
   //

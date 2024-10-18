@@ -282,6 +282,7 @@ class Controller final : public TObject
   int getDebugOutputLevel() const { return mDebugOutputLevel; }
   void setDebugOutputLevel(int i) { mDebugOutputLevel = i; }
   void setDebugStream(o2::utils::TreeStreamRedirector* d) { mDBGOut = d; }
+  o2::utils::TreeStreamRedirector* getDebugStream() { return mDBGOut; }
 
   void setTPCParam(const o2::gpu::GPUParam* par) { mTPCParam = par; }
   const o2::gpu::GPUParam* getTPCParam() const { return mTPCParam; }
