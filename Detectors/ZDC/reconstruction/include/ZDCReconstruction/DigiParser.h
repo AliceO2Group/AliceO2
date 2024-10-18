@@ -54,10 +54,13 @@ class DigiParser
   {
     mVerbosity = v;
   }
+  int getVerbosity() const { return mVerbosity; }
   void setOutput(std::string output){
     mOutput = output;
   }
-  int getVerbosity() const { return mVerbosity; }
+  void setRejectPileUp(bool op =  true){
+    mRejectPileUp = op;
+  }
   void eor();
 
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };

@@ -118,7 +118,11 @@ void DigiParser::init()
     if (mSignalTH[ich] == nullptr) {
       TString hname = TString::Format("hsth_%s", ChannelNames[ich].data());
       TString htit = TString::Format("Signal %s AUTOT & Hit; Sample; ADC", ChannelNames[ich].data());
-      mSignalTH[ich] = std::make_unique<TH2F>(hname, htit, 5 * NTimeBinsPerBC, -0.5 - 3 * NTimeBinsPerBC, 2 * NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      if(mRejectPileUp){
+        mSignalTH[ich] = std::make_unique<TH2F>(hname, htit, 3 * NTimeBinsPerBC, -0.5 - 1 * NTimeBinsPerBC, 2 * NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      }else{
+        mSignalTH[ich] = std::make_unique<TH2F>(hname, htit, 5 * NTimeBinsPerBC, -0.5 - 3 * NTimeBinsPerBC, 2 * NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      }
     }
     if (mBunchH[ich] == nullptr) {
       TString hname = TString::Format("hbh_%s", ChannelNames[ich].data());
@@ -196,6 +200,9 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
       if (chd.id > IdDummy && chd.id < NChannels) {
         chRef[ibc][chd.id] = chEnt;
         mTransmitted->Fill(chd.id);
+        if(bcdata[ibc].triggers & mChMask[chd.id] != 0){
+          mFired->Fill(chd.id);
+        }
       }
       chEnt++;
     }
@@ -206,23 +213,24 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
       auto& ir = bcdata[ibc].ir;
       // Identify pile-up
       if (mRejectPileUp) {
-        bool pile = false;
+        int nsig = 0;
         // Check previous bunches
-        for (int ibn = -1; ibn >= -4; ibn--) {
+        for (int ibn = -4; ibn < 5; ibn++) {
           int ibt = ibc + ibn;
           if (ibt >= 0) { // Check backward and current bunch
+            if(ibt < mNBC){
             auto bcd = bcdata[ibt].ir.differenceInBC(ir);
             if (bcd == ibn) {
               if (bcdata[ibt].triggers & mChMask[isig] != 0) {
-                pile = true;
-                break;
+                nsig++;
               }
-            } else {
-              break;
             }
+          }else{
+            break;
+          }
           }
         }
-        if (pile) {
+        if (nsig>1) {
           continue;
         }
       }

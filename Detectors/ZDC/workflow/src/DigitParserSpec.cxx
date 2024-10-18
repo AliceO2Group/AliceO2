@@ -56,6 +56,7 @@ DigitParserSpec::DigitParserSpec(const int verbosity) : mVerbosity(verbosity)
 void DigitParserSpec::init(o2::framework::InitContext& ic)
 {
   mWorker.setOutput(ic.options().get<std::string>("parser-output"));
+  mWorker.setRejectPileUp((ic.options().get<int>("reject-pileup")) != 0);
 }
 
 void DigitParserSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -119,7 +120,8 @@ framework::DataProcessorSpec getDigitParserSpec(const int verbosity = 0)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DigitParserSpec>(verbosity)},
-    o2::framework::Options{{"parser-output", o2::framework::VariantType::String, "ZDCDigiParser.root", {"Output file name"}}}};
+    o2::framework::Options{{"parser-output", o2::framework::VariantType::String, "ZDCDigiParser.root", {"Output file name"}},
+                           {"reject-pileup", o2::framework::VariantType::Int, 1, {"Reject pile-up for signal shapes 0/1"}}}};
 }
 
 } // namespace zdc
