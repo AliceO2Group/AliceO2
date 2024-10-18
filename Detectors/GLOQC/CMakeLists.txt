@@ -15,7 +15,9 @@ o2_add_library(GLOQC
                SOURCES src/MatchITSTPCQC.cxx
                        src/ITSTPCMatchingQCParams.cxx
 
-  PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing)
+  PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing
+  PRIVATE_LINK_LIBRARIES O2::GPUO2Interface
+                        O2::GPUTracking)
 
 o2_target_root_dictionary(GLOQC
                           HEADERS include/GLOQC/MatchITSTPCQC.h
