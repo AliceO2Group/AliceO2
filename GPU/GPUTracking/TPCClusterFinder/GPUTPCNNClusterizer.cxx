@@ -505,9 +505,9 @@ GPUdii() void GPUTPCNNClusterizer::updateClusterInner(
   const ChargePos& pos,
   ClusterAccumulator* cluster,
   MCLabelAccumulator* labelAcc,
-  uchar* innerAboveThreshold)
+  uint8_t* innerAboveThreshold)
 {
-  uchar aboveThreshold = 0;
+  uint8_t aboveThreshold = 0;
 
   GPUCA_UNROLL(U(), U())
   for (ushort i = 0; i < N; i++) {
@@ -520,7 +520,7 @@ GPUdii() void GPUTPCNNClusterizer::updateClusterInner(
     CPU_ONLY(
       labelAcc->collect(pos.delta(d), q));
 
-    aboveThreshold |= (uchar(q > calib.tpc.cfInnerThreshold) << i);
+    aboveThreshold |= (uint8_t(q > calib.tpc.cfInnerThreshold) << i);
   }
 
   innerAboveThreshold[lid] = aboveThreshold;
@@ -558,7 +558,7 @@ GPUdii() void GPUTPCNNClusterizer::buildCluster(
   ChargePos pos,
   ChargePos* posBcast,
   PackedCharge* buf,
-  uchar* innerAboveThreshold,
+  uint8_t* innerAboveThreshold,
   ClusterAccumulator* myCluster,
   MCLabelAccumulator* labelAcc)
 {
