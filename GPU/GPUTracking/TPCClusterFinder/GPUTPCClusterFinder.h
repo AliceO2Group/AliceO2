@@ -19,6 +19,10 @@
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
 #include "CfFragment.h"
+#include "ML/ort_interface.h"
+#include "ML/3rdparty/GPUORTFloat16.h"
+
+using namespace o2::ml;
 
 namespace o2
 {
@@ -141,6 +145,20 @@ class GPUTPCClusterFinder : public GPUProcessor
   int16_t mZSOffsetId = -1;
   int16_t mOutputId = -1;
 
+  int nnClusterizerSizeInputRow = 3;
+  int nnClusterizerSizeInputPad = 3;
+  int nnClusterizerSizeInputTime = 3;
+  int nnClusterizerElementSize = -1;
+  bool nnClusterizerAddIndexData = true;
+  float nnClassThreshold = 0.16;
+  bool nnSigmoidTrafoClassThreshold = 1;
+  int nnClusterizerUseCFregression = 0;
+  int nnClusterizerBatchedMode = 1;
+  int nnClusterizerVerbosity = 0;
+
+  std::unordered_map<std::string, std::string> OrtOptions;
+  OrtModel model_class, model_reg_1, model_reg_2; // For splitting clusters
+  
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);
   void DumpChargeMap(std::ostream& out, std::string_view);
