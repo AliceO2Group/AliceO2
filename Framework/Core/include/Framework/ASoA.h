@@ -28,6 +28,8 @@
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
+#include <concepts>
+#include <cstring>
 #include <gsl/span>
 #include <limits>
 
@@ -1987,6 +1989,77 @@ template <typename T, typename... Cs>
 std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci = std::numeric_limits<uint64_t>::max(), uint64_t ai = std::numeric_limits<uint64_t>::max(), uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
 {
   return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
+}
+
+template <typename R, typename T, typename C>
+R getColumnValue(const T& rowIterator)
+{
+  return static_cast<R>(static_cast<C>(rowIterator).get());
+}
+
+template <typename R, typename T>
+using ColumnGetterFunction = R (*)(const T&);
+
+template <typename T, typename R>
+concept dynamic_with_common_getter = is_dynamic_v<T> &&
+                                     // lambda is callable without additional free args
+                                     framework::pack_size(typename T::bindings_t{}) == framework::pack_size(typename T::callable_t::args{}) &&
+                                     requires(T t) {
+                                       { t.get() } -> std::convertible_to<R>;
+                                     };
+
+template <typename T, typename R>
+concept persistent_with_common_getter = is_persistent_v<T> && requires(T t) {
+  { t.get() } -> std::convertible_to<R>;
+};
+
+template <typename R, typename T, persistent_with_common_getter<R> C>
+ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
+{
+  const size_t n = columnLabel.size();
+
+  if (n == 0 || n != strlen(C::columnLabel())) {
+    return nullptr;
+  }
+
+  return (std::strcmp(columnLabel.data(), C::columnLabel())) ? nullptr : &getColumnValue<R, T, C>;
+}
+
+template <typename R, typename T, dynamic_with_common_getter<R> C>
+ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel)
+{
+  const size_t n = columnLabel.size();
+
+  if (n == 0 || (n != strlen(C::columnLabel()) && n - 1 != strlen(C::columnLabel()))) {
+    return nullptr;
+  }
+
+  return ((std::strcmp(&columnLabel[1], C::columnLabel()) && std::strcmp(columnLabel.data(), C::columnLabel()))) ? nullptr : &getColumnValue<R, T, C>;
+}
+
+template <typename R, typename T, typename... Cs>
+ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, const std::string_view& columnLabel)
+{
+  ColumnGetterFunction<R, T> func;
+
+  (void)((func = createGetterPtr<R, T, Cs>(columnLabel), func) || ...);
+
+  if (!func) {
+    throw framework::runtime_error("Getter for provided columnLabel not found!");
+  }
+
+  return func;
+}
+
+template <typename T, typename R>
+using with_common_getter_t = typename std::conditional<persistent_with_common_getter<T, R> || dynamic_with_common_getter<T, R>, std::true_type, std::false_type>::type;
+
+template <typename R, typename T>
+ColumnGetterFunction<R, typename T::iterator> getColumnGetterByLabel(const std::string_view& columnLabel)
+{
+  using TypesWithCommonGetter = o2::framework::selected_pack_multicondition<with_common_getter_t, framework::pack<R>, typename T::columns>;
+
+  return getColumnGetterByLabel<R, typename T::iterator>(TypesWithCommonGetter{}, columnLabel);
 }
 } // namespace row_helpers
 } // namespace o2::soa
