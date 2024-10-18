@@ -2169,8 +2169,7 @@ void EfficiencyStudy::getEfficiency(bool isMC)
         /////////////////////////////////////
         if (!(keepTrack)) {
           continue; /// if the track (cluster) is not eligible for any layer, go to the next one
-        }
-        else {      /// fill the den and go ahead
+        } else {    /// fill the den and go ahead
           chi2trackAccepted->Fill(chi2);
           denPt[layerOriginal]->Fill(pt);
           denPhi[layerOriginal]->Fill(phiOriginal);
@@ -2465,8 +2464,7 @@ void EfficiencyStudy::getEfficiencyAndTrackInfo(bool isMC)
         }
         if (!(keepTrack)) {
           continue; /// if the track (cluster) is not eligible for any layer, go to the next one
-        }
-        else {      /// fill the den and go ahead
+        } else {    /// fill the den and go ahead
           chi2trackAccepted->Fill(chi2);
           denPt[layerOriginal]->Fill(pt);
           denPhi[layerOriginal]->Fill(phiOriginal);
