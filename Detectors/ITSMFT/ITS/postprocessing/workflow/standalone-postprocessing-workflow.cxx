@@ -22,6 +22,7 @@
 #include "ITSStudies/AvgClusSize.h"
 #include "ITSStudies/PIDStudy.h"
 #include "ITSStudies/AnomalyStudy.h"
+#include "ITSStudies/Efficiency.h"
 #include "ITSStudies/TrackCheck.h"
 #include "ITSStudies/TrackExtension.h"
 #include "Steer/MCKinematicsReader.h"
@@ -51,8 +52,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"impact-parameter-study", VariantType::Bool, false, {"Perform the impact parameter study"}},
     {"anomaly-study", VariantType::Bool, false, {"Perform the anomaly study"}},
     {"track-extension-study", VariantType::Bool, false, {"Perform the track extension study"}},
+    {"efficiency-study", VariantType::Bool, false, {"Perform the efficiency study"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
+  // o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
   std::swap(workflowOptions, options);
 }
 
@@ -116,6 +118,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcCls = GID::getSourcesMask("ITS");
     o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
     specs.emplace_back(o2::its::study::getTrackExtensionStudy(srcTrc, srcCls, useMC, mcKinematicsReader));
+  }
+  if (configcontext.options().get<bool>("efficiency-study")) {
+    anyStudy = true;
+    srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
+    srcCls = GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
+    if (!configcontext.options().get<bool>("input-from-upstream")) {
+      o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
+    }
+    specs.emplace_back(o2::its::study::getEfficiencyStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
   }
   if (!anyStudy) {
     LOGP(info, "No study selected, dryrunning");

@@ -94,6 +94,13 @@ struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<Anomal
   O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
 };
 
+struct ITSEfficiencyParamConfig : public o2::conf::ConfigurableParamHelper<ITSEfficiencyParamConfig> {
+  std::string outFileName = "ITS_efficiencyStudy.root";
+  double b = 0; // Solenoid field in kG (+/-)
+
+  O2ParamDef(ITSEfficiencyParamConfig, "ITSEfficiencyParam");
+};
+
 struct ITSImpactParameterParamConfig : public o2::conf::ConfigurableParamHelper<ITSImpactParameterParamConfig> {
   std::string outFileName = "its_ImpParameter.root";
   int minNumberOfContributors = 0;
