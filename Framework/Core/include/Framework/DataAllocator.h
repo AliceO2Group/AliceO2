@@ -57,14 +57,6 @@ namespace o2::framework
 {
 struct ServiceRegistry;
 
-#define ERROR_STRING                                    \
-  "data type T not supported by API, "                  \
-  "\n specializations available for"                    \
-  "\n - trivially copyable, non-polymorphic structures" \
-  "\n - arrays of those"                                \
-  "\n - TObject with additional constructor arguments"  \
-  "\n - std containers of those"
-
 /// Helper to allow framework managed objecs to have a callback
 /// when they go out of scope. For example, this could
 /// be used to serialize a message into a buffer before the
@@ -130,6 +122,10 @@ struct LifetimeHolder {
   }
 };
 
+template <typename T>
+concept VectorOfMessageableTypes = is_specialization_v<T, std::vector> &&
+                                   is_messageable<typename T::value_type>::value;
+
 /// This allocator is responsible to make sure that the messages created match
 /// the provided spec and that depending on how many pipelined reader we
 /// have, messages get created on the channel for the reader of the current
@@ -163,91 +159,113 @@ class DataAllocator
   // and with subspecification 0xdeadbeef.
   void cookDeadBeef(const Output& spec);
 
-  /// Generic helper to create an object which is owned by the framework and
-  /// returned as a reference to the own object.
-  /// Note: decltype(auto) will deduce the return type from the expression and it
-  /// will be lvalue reference for the framework-owned objects. Instances of local
-  /// variables like shared_ptr will be returned by value/move/return value optimization.
-  /// Objects created this way will be sent to the channel specified by @spec
   template <typename T, typename... Args>
+    requires(is_specialization_v<T, UninitializedVector>)
   decltype(auto) make(const Output& spec, Args... args)
   {
     auto& timingInfo = mRegistry.get<TimingInfo>();
     auto& context = mRegistry.get<MessageContext>();
 
-    if constexpr (is_specialization_v<T, UninitializedVector>) {
-      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
-      using ValueType = typename T::value_type;
+    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+    // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
+    using ValueType = typename T::value_type;
 
-      // Note: initial payload size is 0 and will be set by the context before sending
-      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
-      return context.add<MessageContext::VectorObject<ValueType, MessageContext::ContainerRefObject<std::vector<ValueType, o2::pmr::NoConstructAllocator<ValueType>>>>>(
-                      std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...)
-        .get();
-    } else if constexpr (is_specialization_v<T, std::vector> && has_messageable_value_type<T>::value) {
-      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      // this catches all std::vector objects with messageable value type before checking if is also
-      // has a root dictionary, so non-serialized transmission is preferred
-      using ValueType = typename T::value_type;
+    // Note: initial payload size is 0 and will be set by the context before sending
+    fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
+    return context.add<MessageContext::VectorObject<ValueType, MessageContext::ContainerRefObject<std::vector<ValueType, o2::pmr::NoConstructAllocator<ValueType>>>>>(
+                    std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...)
+      .get();
+  }
 
-      // Note: initial payload size is 0 and will be set by the context before sending
-      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
-      return context.add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...).get();
-    } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
-      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      // Extended support for types implementing the Root ClassDef interface, both TObject
-      // derived types and others
-      if constexpr (enable_root_serialization<T>::value) {
-        fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
+  template <typename T, typename... Args>
+    requires VectorOfMessageableTypes<T>
+  decltype(auto) make(const Output& spec, Args... args)
+  {
+    auto& timingInfo = mRegistry.get<TimingInfo>();
+    auto& context = mRegistry.get<MessageContext>();
 
-        return context.add<typename enable_root_serialization<T>::object_type>(std::move(headerMessage), routeIndex, std::forward<Args>(args)...).get();
-      } else {
-        static_assert(enable_root_serialization<T>::value, "Please make sure you include RootMessageContext.h");
-      }
-      // Note: initial payload size is 0 and will be set by the context before sending
-    } else if constexpr (std::is_base_of_v<std::string, T>) {
-      auto* s = new std::string(args...);
-      adopt(spec, s);
-      return *s;
-    } else if constexpr (requires { static_cast<struct TableBuilder>(std::declval<std::decay_t<T>>()); }) {
-      auto tb = std::move(LifetimeHolder<TableBuilder>(new std::decay_t<T>(args...)));
-      adopt(spec, tb);
-      return tb;
-    } else if constexpr (requires { static_cast<struct TreeToTable>(std::declval<std::decay_t<T>>()); }) {
-      auto t2t = std::move(LifetimeHolder<TreeToTable>(new std::decay_t<T>(args...)));
-      adopt(spec, t2t);
-      return t2t;
-    } else if constexpr (sizeof...(Args) == 0) {
-      if constexpr (is_messageable<T>::value == true) {
-        return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
-      } else {
-        static_assert(always_static_assert_v<T>, ERROR_STRING);
-      }
-    } else if constexpr (sizeof...(Args) == 1) {
-      using FirstArg = typename std::tuple_element<0, std::tuple<Args...>>::type;
-      if constexpr (std::is_integral_v<FirstArg>) {
-        if constexpr (is_messageable<T>::value == true) {
-          auto [nElements] = std::make_tuple(args...);
-          auto size = nElements * sizeof(T);
-          auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+    // this catches all std::vector objects with messageable value type before checking if is also
+    // has a root dictionary, so non-serialized transmission is preferred
+    using ValueType = typename T::value_type;
 
-          fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, size);
-          return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), routeIndex, 0, nElements).get();
-        }
-      } else if constexpr (std::is_same_v<FirstArg, std::shared_ptr<arrow::Schema>>) {
-        if constexpr (std::is_base_of_v<arrow::ipc::RecordBatchWriter, T>) {
-          auto [schema] = std::make_tuple(args...);
-          std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
-          create(spec, &writer, schema);
-          return writer;
-        }
-      } else {
-        static_assert(always_static_assert_v<T>, ERROR_STRING);
-      }
+    // Note: initial payload size is 0 and will be set by the context before sending
+    fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
+    return context.add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...).get();
+  }
+
+  template <typename T, typename... Args>
+    requires(!VectorOfMessageableTypes<T> && has_root_dictionary<T>::value == true && is_messageable<T>::value == false)
+  decltype(auto) make(const Output& spec, Args... args)
+  {
+    auto& timingInfo = mRegistry.get<TimingInfo>();
+    auto& context = mRegistry.get<MessageContext>();
+
+    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+    // Extended support for types implementing the Root ClassDef interface, both TObject
+    // derived types and others
+    if constexpr (enable_root_serialization<T>::value) {
+      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
+
+      return context.add<typename enable_root_serialization<T>::object_type>(std::move(headerMessage), routeIndex, std::forward<Args>(args)...).get();
     } else {
-      static_assert(always_static_assert_v<T>, ERROR_STRING);
+      static_assert(enable_root_serialization<T>::value, "Please make sure you include RootMessageContext.h");
     }
+  }
+
+  template <typename T, typename... Args>
+    requires(std::is_base_of_v<std::string, T>)
+  decltype(auto) make(const Output& spec, Args... args)
+  {
+    auto* s = new std::string(args...);
+    adopt(spec, s);
+    return *s;
+  }
+
+  template <typename T, typename... Args>
+    requires(requires { static_cast<struct TableBuilder>(std::declval<std::decay_t<T>>()); })
+  decltype(auto) make(const Output& spec, Args... args)
+  {
+    auto tb = std::move(LifetimeHolder<TableBuilder>(new std::decay_t<T>(args...)));
+    adopt(spec, tb);
+    return tb;
+  }
+
+  template <typename T, typename... Args>
+    requires(requires { static_cast<struct TreeToTable>(std::declval<std::decay_t<T>>()); })
+  decltype(auto) make(const Output& spec, Args... args)
+  {
+    auto t2t = std::move(LifetimeHolder<TreeToTable>(new std::decay_t<T>(args...)));
+    adopt(spec, t2t);
+    return t2t;
+  }
+
+  template <typename T>
+    requires(is_messageable<T>::value == true)
+  decltype(auto) make(const Output& spec)
+  {
+    return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
+  }
+
+  template <typename T>
+    requires(is_messageable<T>::value)
+  decltype(auto) make(const Output& spec, std::integral auto nElements)
+  {
+    auto& timingInfo = mRegistry.get<TimingInfo>();
+    auto& context = mRegistry.get<MessageContext>();
+    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+
+    fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, nElements * sizeof(T));
+    return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), routeIndex, 0, nElements).get();
+  }
+
+  template <typename T, typename Arg>
+    requires(std::is_same_v<Arg, std::shared_ptr<arrow::Schema>>)
+  decltype(auto) make(const Output& spec, Arg schema)
+  {
+    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+    create(spec, &writer, schema);
+    return writer;
   }
 
   /// Adopt a string in the framework and serialize / send
