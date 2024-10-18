@@ -156,8 +156,10 @@ void DigiParser::eor()
     mSignalTH[i]->Write();
   }
   setModuleLabel(mTransmitted.get());
+  mTransmitted->SetMinimum(0);
   mTransmitted->Write();
   setModuleLabel(mFired.get());
+  mFired->SetMinimum(0);
   mFired->Write();
   f->Close();
 }

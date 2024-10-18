@@ -33,7 +33,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{"verbosity", VariantType::Int, 0, {"verbosity level"}});
+  workflowOptions.push_back(ConfigParamSpec{"verbosity-level", VariantType::Int, 0, {"verbosity level"}});
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
@@ -49,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  auto verbosity = configcontext.options().get<int>("verbosity");
+  auto verbosity = configcontext.options().get<int>("verbosity-level");
 
   auto wf = o2::zdc::getParserWorkflow(verbosity);
 
