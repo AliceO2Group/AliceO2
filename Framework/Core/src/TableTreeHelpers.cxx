@@ -128,54 +128,6 @@ BranchToColumn::BranchToColumn(TBranch* branch, bool VLA, std::string name, EDat
   }
 }
 
-template <typename T>
-inline T doSwap(T)
-{
-  static_assert(always_static_assert_v<T>, "Unsupported type");
-}
-
-template <>
-inline uint16_t doSwap(uint16_t x)
-{
-  return swap16_(x);
-}
-
-template <>
-inline uint32_t doSwap(uint32_t x)
-{
-  return swap32_(x);
-}
-
-template <>
-inline uint64_t doSwap(uint64_t x)
-{
-  return swap64_(x);
-}
-
-template <typename T>
-void doSwapCopy_(void* dest, void* source, int size) noexcept
-{
-  auto tdest = static_cast<T*>(dest);
-  auto tsrc = static_cast<T*>(source);
-  for (auto i = 0; i < size; ++i) {
-    tdest[i] = doSwap<T>(tsrc[i]);
-  }
-}
-
-void swapCopy(unsigned char* dest, char* source, int size, int typeSize) noexcept
-{
-  switch (typeSize) {
-    case 1:
-      return (void)std::memcpy(dest, source, size);
-    case 2:
-      return doSwapCopy_<uint16_t>(dest, source, size);
-    case 4:
-      return doSwapCopy_<uint32_t>(dest, source, size);
-    case 8:
-      return doSwapCopy_<uint64_t>(dest, source, size);
-  }
-}
-
 std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> BranchToColumn::read(TBuffer* buffer)
 {
   auto totalEntries = mBranch->GetEntries();
