@@ -37,6 +37,7 @@
 #endif
 
 #include "utils/strtag.h"
+#include <CommonUtils/StringUtils.h>
 
 #ifndef GPUCA_NO_VC
 #include <Vc/Vc>
