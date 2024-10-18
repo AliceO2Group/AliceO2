@@ -93,6 +93,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     size_t currTrig = 0;                    // from which collision is the current TRD trigger (only needed for debug information)
     bool firstEvent = true;                 // Flag for the first event processed
 
+    // the interaction record marking the timeframe start
     auto firstTF = InteractionTimeRecord(o2::raw::HBFUtils::Instance().getFirstSampledTFIR(), 0);
 
     TStopwatch timer;
