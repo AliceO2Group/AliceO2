@@ -23,6 +23,7 @@
 #include "Framework/Task.h"
 #include <TStopwatch.h>
 #include "CommonUtils/NameConf.h"
+#include "ZDCReconstruction/DigiParser.h"
 
 namespace o2
 {
@@ -42,7 +43,7 @@ class DigitParserSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  //DigiReco mWorker;                  // Reconstruction object
+  DigiParser mWorker;                  // Reconstruction object
   int mVerbosity = 0;                // Verbosity level during recostruction
   bool mInitialized = false;         // Connect once to CCDB during initialization
   TStopwatch mTimer;

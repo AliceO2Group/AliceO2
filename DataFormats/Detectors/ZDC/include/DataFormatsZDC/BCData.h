@@ -55,8 +55,9 @@ struct BCData {
   o2::dataformats::RangeRefComp<6> ref;
   o2::InteractionRecord ir;
   std::array<uint16_t, NModules> moduleTriggers{};
+  // N.B. channels and triggers have geographical addressing (0x1 << (NChPerModule * im + ic)
   uint32_t channels = 0;    // pattern of channels it refers to
-  uint32_t triggers = 0;    // pattern of triggered channels (not necessarily stored) in this BC
+  uint32_t triggers = 0;    // pattern of triggered channels (not necessarily stored) in this BC (i.e. with Hit bit on)
   uint8_t ext_triggers = 0; // pattern of ALICE triggers
 
   BCData() = default;

@@ -70,7 +70,7 @@ void DigitParserSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, 
     if (mVerbosity > DbgZero) {
       config->print();
     }
-    // mWorker.setModuleConfig(config);
+    mWorker.setModuleConfig(config);
   }
 }
 
@@ -80,8 +80,8 @@ void DigitParserSpec::run(ProcessingContext& pc)
     LOG(info) << "DigitParserSpec::run initialization";
     mInitialized = true;
     updateTimeDependentParams(pc);
-    // mWorker.setVerbosity(mVerbosity);
-    // mWorker.init();
+    mWorker.setVerbosity(mVerbosity);
+    mWorker.init();
   }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
@@ -90,16 +90,16 @@ void DigitParserSpec::run(ProcessingContext& pc)
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
-//   int rval = mWorker.process(peds, bcdata, chans);
-//   if (rval != 0 || mWorker.inError()) {
-//     LOG(warning) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD -> processing ended in ERROR @ line " << rval;
-//   }
+  int rval = mWorker.process(peds, bcdata, chans);
+  if (rval != 0) {
+    LOG(warning) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD -> processing ended in ERROR @ line " << rval;
+  }
   mTimer.Stop();
 }
 
 void DigitParserSpec::endOfStream(EndOfStreamContext& ec)
 {
-  // mWorker.eor();
+  mWorker.eor();
   LOGF(info, "ZDC digits parsing total time: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

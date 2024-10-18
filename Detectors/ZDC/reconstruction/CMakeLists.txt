@@ -13,6 +13,7 @@ o2_add_library(ZDCReconstruction
                SOURCES src/CTFCoder.cxx
                        src/CTFHelper.cxx
                        src/DigiReco.cxx
+                       src/DigiParser.cxx
                        src/RecoParamZDC.cxx
                        src/ZDCTDCParam.cxx
                        src/ZDCEnergyParam.cxx
