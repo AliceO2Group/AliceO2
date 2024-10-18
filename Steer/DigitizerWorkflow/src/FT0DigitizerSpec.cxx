@@ -113,11 +113,23 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels;
 
+    // the interaction record marking the timeframe start
+    auto firstTF = InteractionTimeRecord(o2::raw::HBFUtils::Instance().getFirstSampledTFIR(), 0);
+
     // mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts(withQED);
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
+      // Note: Very crude filter to neglect collisions coming before
+      // the first interaction record of the timeframe. Remove this, once these collisions can be handled
+      // within the digitization routine. Collisions before this timeframe might impact digits of this timeframe.
+      // See https://its.cern.ch/jira/browse/O2-5395.
+      if (timesview[collID] < firstTF) {
+        LOG(info) << "Too early: Not digitizing collision " << collID;
+        continue;
+      }
+
       mDigitizer.setInteractionRecord(timesview[collID]);
       LOG(debug) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
       // for each collision, loop over the constituents event and source IDs

@@ -33,6 +33,7 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFV0/Digit.h"
 #include <Steer/MCKinematicsReader.h>
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -125,6 +126,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     mDigitizerTRU.setMaskedFastOrsInLZERO();
   }
 
+  // the interaction record marking the timeframe start
+  auto firstTF = InteractionTimeRecord(o2::raw::HBFUtils::Instance().getFirstSampledTFIR(), 0);
+
   // ------------------------------
   // TRIGGER Simulation
   // ------------------------------
@@ -136,6 +140,14 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // (aka loop over all the interaction records)
   int collisionN = 0;
   for (int collID = 0; collID < timesview.size(); ++collID) {
+    // Note: Very crude filter to neglect collisions coming before
+    // the first interaction record of the timeframe. Remove this, once these collisions can be handled
+    // within the digitization routine. Collisions before this timeframe might impact digits of this timeframe.
+    // See https://its.cern.ch/jira/browse/O2-5395.
+    if (timesview[collID] < firstTF) {
+      LOG(info) << "Too early: Not digitizing collision " << collID;
+      continue;
+    }
 
     if (mRunDigitizerTRU == false) {
       break;

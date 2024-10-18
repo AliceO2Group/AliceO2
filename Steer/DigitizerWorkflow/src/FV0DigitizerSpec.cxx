@@ -29,6 +29,7 @@
 #include "DataFormatsFV0/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include <TFile.h>
 
 using namespace o2::framework;
@@ -71,10 +72,22 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords(withQED); //TODO: QED implementation to be tested
     auto& eventParts = context->getEventParts(withQED); //TODO: QED implementation to be tested
 
+    // the interaction record marking the timeframe start
+    auto firstTF = InteractionTimeRecord(o2::raw::HBFUtils::Instance().getFirstSampledTFIR(), 0);
+
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     std::vector<o2::fv0::Hit> hits;
     for (int collID = 0; collID < irecords.size(); ++collID) {
+      // Note: Very crude filter to neglect collisions coming before
+      // the first interaction record of the timeframe. Remove this, once these collisions can be handled
+      // within the digitization routine. Collisions before this timeframe might impact digits of this timeframe.
+      // See https://its.cern.ch/jira/browse/O2-5395.
+      if (irecords[collID] < firstTF) {
+        LOG(info) << "Too early: Not digitizing collision " << collID;
+        continue;
+      }
+
       mDigitizer.clear();
       const auto& irec = irecords[collID];
       mDigitizer.setInteractionRecord(irec);

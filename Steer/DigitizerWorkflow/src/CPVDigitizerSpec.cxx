@@ -29,6 +29,7 @@
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimConfig/DigiParams.h"
 #include "Framework/CCDBParamSpec.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -121,9 +122,21 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   bool isLastStream = true;
   double eventTime = timesview[0].getTimeNS() - o2::cpv::CPVSimParams::Instance().mDeadTime; // checked above that list not empty
   int eventId = 0;
+
+  // the interaction record marking the timeframe start
+  auto firstTF = InteractionTimeRecord(o2::raw::HBFUtils::Instance().getFirstSampledTFIR(), 0);
+
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < n; ++collID) {
+    // Note: Very crude filter to neglect collisions coming before
+    // the first interaction record of the timeframe. Remove this, once these collisions can be handled
+    // within the digitization routine. Collisions before this timeframe might impact digits of this timeframe.
+    // See https://its.cern.ch/jira/browse/O2-5395.
+    if (timesview[collID] < firstTF) {
+      LOG(info) << "Too early: Not digitizing collision " << collID;
+      continue;
+    }
 
     double dt = timesview[collID].getTimeNS() - eventTime; // start new PHOS readout, continue current or dead time?
     if (dt > mReadoutTime && dt < mDeadTime) {             // dead time, skip event

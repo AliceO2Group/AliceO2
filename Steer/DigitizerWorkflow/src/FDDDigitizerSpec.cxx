@@ -30,6 +30,7 @@
 #include "DataFormatsFDD/ChannelData.h"
 #include "DataFormatsFDD/MCLabel.h"
 #include "DataFormatsFIT/DeadChannelMap.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -96,7 +97,18 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<o2::fdd::Hit> hits;
     o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> labels;
 
+    // the interaction record marking the timeframe start
+    auto firstTF = InteractionTimeRecord(o2::raw::HBFUtils::Instance().getFirstSampledTFIR(), 0);
+
     for (int collID = 0; collID < irecords.size(); ++collID) {
+      // Note: Very crude filter to neglect collisions coming before
+      // the first interaction record of the timeframe. Remove this, once these collisions can be handled
+      // within the digitization routine. Collisions before this timeframe might impact digits of this timeframe.
+      // See https://its.cern.ch/jira/browse/O2-5395.
+      if (irecords[collID] < firstTF) {
+        LOG(info) << "Too early: Not digitizing collision " << collID;
+        continue;
+      }
 
       const auto& irec = irecords[collID];
       mDigitizer.setInteractionRecord(irec);
