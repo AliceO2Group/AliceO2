@@ -1249,8 +1249,8 @@ namespace o2::track
 {
 #if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
 template class TrackParametrizationWithError<float>;
-#ifndef __OPENCL__
-template class TrackParametrizationWithError<double>;
 #endif
+#ifndef GPUCA_GPUCODE
+template class TrackParametrizationWithError<double>;
 #endif
 } // namespace o2::track
