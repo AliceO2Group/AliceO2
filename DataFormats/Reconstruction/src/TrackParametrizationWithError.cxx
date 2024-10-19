@@ -22,9 +22,6 @@
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <iostream>
-#ifndef GPUCA_STANDALONE
-#include "Math/SMatrix.h"
-#endif
 #endif
 
 #ifndef GPUCA_ALIGPUCODE
