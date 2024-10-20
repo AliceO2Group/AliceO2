@@ -337,7 +337,6 @@ has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching
 # Temporary extra options
 
 if has_processing_step MUON_SYNC_RECO; then
-
   [[ -z ${ARGS_EXTRA_PROCESS_o2_mid_reco_workflow:-} ]] && ARGS_EXTRA_PROCESS_o2_mid_reco_workflow="--mid-tracker-keep-best"
   [[ -z ${ARGS_EXTRA_PROCESS_o2_mch_reco_workflow:-} ]] && ARGS_EXTRA_PROCESS_o2_mch_reco_workflow="--digits"
   if [[ -z ${CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow:-} ]]; then
