@@ -334,6 +334,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     extraInfoHolder.itsClusterSizes,
                     extraInfoHolder.tpcNClsFindable,
                     extraInfoHolder.tpcNClsFindableMinusFound,
+                    extraInfoHolder.tpcNClsFindableMinusPID,
                     extraInfoHolder.tpcNClsFindableMinusCrossedRows,
                     extraInfoHolder.tpcNClsShared,
                     extraInfoHolder.trdPattern,
@@ -2495,6 +2496,8 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - tpcClData.found;
     extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
     extraInfoHolder.tpcNClsShared = tpcClData.shared;
+    uint32_t clsUsedForPID = tpcOrig.getdEdx().NHitsIROC + tpcOrig.getdEdx().NHitsOROC1 + tpcOrig.getdEdx().NHitsOROC2 + tpcOrig.getdEdx().NHitsOROC3;
+    extraInfoHolder.tpcNClsFindableMinusPID = tpcOrig.getNClusters() - clsUsedForPID;
     if (src == GIndex::TPC) { // standalone TPC track should set its time from their timebins range
       if (needBCSlice) {
         double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value

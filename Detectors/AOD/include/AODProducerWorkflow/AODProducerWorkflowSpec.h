@@ -374,6 +374,7 @@ class AODProducerWorkflowDPL : public Task
     uint8_t itsClusterMap = 0;
     uint8_t tpcNClsFindable = 0;
     int8_t tpcNClsFindableMinusFound = 0;
+    int8_t tpcNClsFindableMinusPID = 0;
     int8_t tpcNClsFindableMinusCrossedRows = 0;
     uint8_t tpcNClsShared = 0;
     uint8_t trdPattern = 0;
