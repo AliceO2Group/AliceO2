@@ -19,6 +19,7 @@
 #include <TH1D.h>
 #include <TH1F.h>
 #include <TH2F.h>
+#include <TH3F.h>
 #include <TEfficiency.h>
 #include <TObjArray.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -28,6 +29,11 @@
 #include "Steer/MCKinematicsReader.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "DCAFitter/DCAFitterN.h"
+#include "GPUO2InterfaceConfiguration.h"
+// #include "GPUSettingsO2.h"
+#include "GPUParam.h"
+#include "GPUParam.inc"
+
 #include <unordered_map>
 #include <vector>
 #include <array>
@@ -63,7 +69,7 @@ class MatchITSTPCQC
   void setDataRequest(const std::shared_ptr<o2::globaltracking::DataRequest>& dr) { mDataRequest = dr; }
   void finalize();
   void reset();
-  bool processV0(int iv, o2::globaltracking::RecoContainer& recoData);
+  bool processV0(int iv, o2::globaltracking::RecoContainer& recoData, std::vector<float>& mTBinClOcc, float pvTime);
   bool refitV0(const o2::dataformats::V0Index& id, o2::dataformats::V0& v0, o2::globaltracking::RecoContainer& recoData);
 
   TH1D* getHistoPtNum(matchType m) const { return mPtNum[m]; }
@@ -130,7 +136,8 @@ class MatchITSTPCQC
   TH1D* getHisto1OverPtPhysPrimDen(matchType m) const { return m1OverPtPhysPrimDen[m]; }
   TEfficiency* getFractionITSTPCmatchPhysPrim1OverPt(matchType m) const { return mFractionITSTPCmatchPhysPrim1OverPt[m]; }
 
-  TH2F* getHistoK0MassVsPt() const { return mK0MassVsPt; }
+  TH3F* getHistoK0MassVsPtVsOccpp() const { return mK0MassVsPtVsOccpp; }
+  TH3F* getHistoK0MassVsPtVsOccPbPb() const { return mK0MassVsPtVsOccPbPb; }
 
   void getHistos(TObjArray& objar);
 
@@ -228,7 +235,8 @@ class MatchITSTPCQC
     publisher->startPublishing(mDCArVsPtDen);
     publisher->startPublishing(mFractionITSTPCmatchDCArVsPt);
     if (mDoK0QC) {
-      publisher->startPublishing(mK0MassVsPt);
+      publisher->startPublishing(mK0MassVsPtVsOccpp);
+      publisher->startPublishing(mK0MassVsPtVsOccPbPb);
     }
   }
 
@@ -269,6 +277,18 @@ class MatchITSTPCQC
   void setMaxK0Eta(float v) { mMaxEtaK0 = v; }
   void setRefitK0(bool v) { mRefit = v; }
   void setCutK0Mass(float v) { mCutK0Mass = v; }
+  void setMinTPCOccpp(float v) { mMinTPCOccpp = v; }
+  void setMaxTPCOccpp(float v) { mMaxTPCOccpp = v; }
+  void setNBinsTPCOccpp(int v) { mNBinsTPCOccpp = v; }
+  void setMinTPCOccPbPb(float v) { mMinTPCOccPbPb = v; }
+  void setMaxTPCOccPbPb(float v) { mMaxTPCOccPbPb = v; }
+  void setNBinsTPCOccPbPb(int v) { mNBinsTPCOccPbPb = v; }
+  void setK0Scaling(float v) { mK0Scaling = v; }
+  float getK0Scaling() const { return mK0Scaling; }
+  void setK0MaxDCA(float v) { mK0MaxDCA = v; }
+  float getK0MaxDCA() { return mK0MaxDCA; }
+  void setK0MinCosPA(float v) { mK0MinCosPA = v; }
+  float getK0MinCosPA() const { return mK0MinCosPA; }
 
   void printParams()
   {
@@ -286,6 +306,12 @@ class MatchITSTPCQC
     LOG(info) << "etaCut               = " << mEtaCut;
     LOG(info) << "cutK0Mass            = " << mCutK0Mass;
     LOG(info) << "maxEtaK0             = " << mMaxEtaK0;
+    LOG(info) << "minTPCOccpp          = " << mMinTPCOccpp;
+    LOG(info) << "maxTPCOccpp          = " << mMaxTPCOccpp;
+    LOG(info) << "nBinsTPCOccpp        = " << mNBinsTPCOccpp;
+    LOG(info) << "minTPCOccPbPb        = " << mMinTPCOccPbPb;
+    LOG(info) << "maxTPCOccPbPb        = " << mMaxTPCOccPbPb;
+    LOG(info) << "nBinsTPCOccPbPb      = " << mNBinsTPCOccPbPb;
   }
 
  private:
@@ -408,12 +434,33 @@ class MatchITSTPCQC
 
   // for V0s
   o2::vertexing::DCAFitterN<2> mFitterV0;
-  TH2F* mK0MassVsPt = nullptr;
+  TH3F* mK0MassVsPtVsOccpp = nullptr;
+  TH3F* mK0MassVsPtVsOccPbPb = nullptr;
   bool mDoK0QC = false;     // whether to fill the K0 QC plot(s)
   float mCutK0Mass = 0.05;  // cut on the difference between the K0 mass and the PDG mass
   bool mRefit = false;      // whether to refit or not
   float mMaxEtaK0 = 0.8;    // cut on the K0 eta
   long int mTimestamp = -1; // timestamp used to load the SVertexParam object: if differnt from -1, we don't load (it means we already did it)
+  std::unique_ptr<o2::gpu::GPUO2InterfaceConfiguration> mConfig;
+  std::unique_ptr<o2::gpu::GPUSettingsO2> mConfParam;
+  // std::unique_ptr<o2::gpu::GPUParam> mParam;
+  std::shared_ptr<o2::gpu::GPUParam> mParam = nullptr;
+  int mNHBPerTF = 0;
+  int mNTPCOccBinLength = 0; ///< TPC occ. histo bin length in TBs
+  float mNTPCOccBinLengthInv;
+  std::vector<float> mTBinClOcc;                    ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
+  gsl::span<const unsigned int> mTPCRefitterOccMap; ///< externally set TPC clusters occupancy map
+  bool mIsHI = false;
+  float mK0Scaling = 1.f;      // permill that we want to keep of K0S
+  uint64_t mNK0 = 0;           // number of found V0s
+  float mMinTPCOccpp = 0.f;    // min TPC occupancy for K0s plot for pp collisions
+  float mMaxTPCOccpp = 1.e6;   // max TPC occupancy for K0s plot for pp collisions
+  int mNBinsTPCOccpp = 6;      // number of bins in TPC occupancy for K0s plot for pp collisions
+  float mMinTPCOccPbPb = 0.f;  // min TPC occupancy for K0s plot for PbPb collisions
+  float mMaxTPCOccPbPb = 8.e6; // max TPC occupancy for K0s plot for PbPb collisions
+  int mNBinsTPCOccPbPb = 8;    // number of bins in TPC occupancy for K0s plot for PbPb collisions
+  float mK0MaxDCA = 0.01;      // max DCA to select the K0
+  float mK0MinCosPA = 0.995;   // min cosPA to select the K0
 
   ClassDefNV(MatchITSTPCQC, 3);
 };

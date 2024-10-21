@@ -26,10 +26,17 @@
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "Framework/InputRecord.h"
 #include "Framework/TimingInfo.h"
+#include "GPUO2InterfaceUtils.h"
+#include "CommonConstants/LHCConstants.h"
+#include "DataFormatsTPC/Constants.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+
+#include "GPUO2InterfaceRefit.h"
 
 using namespace o2::gloqc;
 using namespace o2::mcutils;
 using MCTrack = o2::MCTrackT<float>;
+using DetID = o2::detectors::DetID;
 
 MatchITSTPCQC::~MatchITSTPCQC()
 {
@@ -42,6 +49,7 @@ MatchITSTPCQC::~MatchITSTPCQC()
 void MatchITSTPCQC::deleteHistograms()
 {
 
+  LOG(debug) << "Deleting histos...";
   for (int i = 0; i < matchType::SIZE; ++i) {
     // Pt
     delete mPtNum[i];
@@ -124,7 +132,8 @@ void MatchITSTPCQC::deleteHistograms()
   delete mFractionITSTPCmatchDCArVsPt;
 
   // K0
-  delete mK0MassVsPt;
+  delete mK0MassVsPtVsOccpp;
+  delete mK0MassVsPtVsOccPbPb;
 }
 
 //__________________________________________________________
@@ -205,7 +214,8 @@ void MatchITSTPCQC::reset()
 
   // K0
   if (mDoK0QC) {
-    mK0MassVsPt->Reset();
+    mK0MassVsPtVsOccpp->Reset();
+    mK0MassVsPtVsOccPbPb->Reset();
   }
 }
 
@@ -375,13 +385,60 @@ bool MatchITSTPCQC::init()
     }
   }
 
+  // log binning for pT for K0s
+  const Int_t nbinsPtK0 = 10;
+  const Double_t xminPtK0 = 0.01;
+  const Double_t xmaxPtK0 = 20;
+  Double_t* xbinsPtK0 = new Double_t[nbinsPtK0 + 1];
+  Double_t xlogminPtK0 = TMath::Log10(xminPtK0);
+  Double_t xlogmaxPtK0 = TMath::Log10(xmaxPtK0);
+  Double_t dlogxPtK0 = (xlogmaxPtK0 - xlogminPtK0) / nbinsPtK0;
+  for (int i = 0; i <= nbinsPtK0; i++) {
+    Double_t xlogPtK0 = xlogminPtK0 + i * dlogxPtK0;
+    xbinsPtK0[i] = TMath::Exp(TMath::Log(10) * xlogPtK0);
+  }
+  // the other bins
+  const Int_t nbinsMassK0 = 100;
+  Double_t* ybinsMassK0 = new Double_t[nbinsMassK0 + 1];
+  Double_t yminMassK0 = 0.4;
+  Double_t ymaxMassK0 = 0.6;
+  Double_t dyMassK0 = (ymaxMassK0 - yminMassK0) / nbinsMassK0;
+  for (int i = 0; i <= nbinsMassK0; i++) {
+    ybinsMassK0[i] = yminMassK0 + i * dyMassK0;
+  }
+  const Int_t nbinsMultK0pp = mNBinsTPCOccpp;
+  Double_t* zbinsMultK0pp = new Double_t[nbinsMultK0pp + 1];
+  Double_t zminMultK0pp = mMinTPCOccpp;
+  Double_t zmaxMultK0pp = mMaxTPCOccpp;
+  Double_t dzMultK0pp = (zmaxMultK0pp - zminMultK0pp) / nbinsMultK0pp;
+  for (int i = 0; i <= nbinsMultK0pp; i++) {
+    zbinsMultK0pp[i] = zminMultK0pp + i * dzMultK0pp;
+  }
+
+  const Int_t nbinsMultK0PbPb = mNBinsTPCOccPbPb;
+  Double_t* zbinsMultK0PbPb = new Double_t[nbinsMultK0PbPb + 1];
+  Double_t zminMultK0PbPb = mMinTPCOccPbPb;
+  Double_t zmaxMultK0PbPb = mMaxTPCOccPbPb;
+  Double_t dzMultK0PbPb = (zmaxMultK0PbPb - zminMultK0PbPb) / nbinsMultK0PbPb;
+  for (int i = 0; i <= nbinsMultK0PbPb; i++) {
+    zbinsMultK0PbPb[i] = zminMultK0PbPb + i * dzMultK0PbPb;
+  }
+
   if (mDoK0QC) {
     // V0s
-    mK0MassVsPt = new TH2F("mK0MassVsPt", "K0 invariant mass vs Pt; Pt [GeV/c]; K0s mass [GeV/c^2]", 100, 0.f, 20.f, 100, 0.3, 0.7);
+    mK0MassVsPtVsOccpp = new TH3F("mK0MassVsPtVsOccpp", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ.", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0pp, zbinsMultK0pp);
+
+    mK0MassVsPtVsOccPbPb = new TH3F("mK0MassVsPtVsOccPbPb", "K0 invariant mass vs Pt vs TPC occupancy; Pt [GeV/c]; K0s mass [GeV/c^2]; TPC occ", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0PbPb, zbinsMultK0PbPb);
   }
 
   LOG(info) << "Printing configuration cuts";
   printParams();
+
+  delete[] xbinsPt;
+  delete[] xbinsPtK0;
+  delete[] ybinsMassK0;
+  delete[] zbinsMultK0pp;
+  delete[] zbinsMultK0PbPb;
 
   return true;
 }
@@ -404,6 +461,7 @@ void MatchITSTPCQC::initDataRequest()
   if (mDoK0QC) {
     mDataRequest->requestPrimaryVertices(mUseMC);
     mDataRequest->requestSecondaryVertices(mUseMC);
+    mDataRequest->requestTPCClusters(false);
   }
 }
 
@@ -420,6 +478,13 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     // we have not yet initialized the SVertexer params; let's do it
     ctx.inputs().get<o2::vertexing::SVertexerParams*>("SVParam");
     mTimestamp = ctx.services().get<o2::framework::TimingInfo>().creation;
+    auto grplhcif = o2::base::GRPGeomHelper::instance().getGRPLHCIF();
+    if (grplhcif->getBeamZ(0) != 1 || grplhcif->getBeamZ(1) != 1) {
+      LOG(info) << "We are in Heavy Ion: Z for beam 0 = " << grplhcif->getBeamZ(0) << " ; Z for beam 1 = " << grplhcif->getBeamZ(1);
+      mIsHI = true;
+    } else {
+      LOG(info) << "We are not in Heavy Ion: Z for beam 0 = " << grplhcif->getBeamZ(0) << " ; Z for beam 1 = " << grplhcif->getBeamZ(1);
+    }
   }
 
   static int evCount = 0;
@@ -428,9 +493,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   mITSTracks = mRecoCont.getITSTracks();
   mITSTPCTracks = mRecoCont.getTPCITSTracks();
 
-  LOG(debug) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
-  LOG(debug) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
-  LOG(debug) << "****** Number of found ITS    tracks = " << mITSTracks.size();
+  LOG(info) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
+  LOG(info) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
+  LOG(info) << "****** Number of found ITS    tracks = " << mITSTracks.size();
 
   // cache selection for TPC and ITS tracks
   std::vector<bool> isTPCTrackSelectedEntry(mTPCTracks.size(), false);
@@ -532,7 +597,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         }
       }
     }
-    LOG(info) << "number of entries in map for nominator (without duplicates) = " << mMapLabels.size();
+    LOG(debug) << "number of entries in map for nominator (without duplicates) = " << mMapLabels.size();
     // now we use only the tracks in the map to fill the histograms (--> tracks have passed the
     // track selection and there are no duplicated tracks wrt the same MC label)
     for (int i = 0; i < matchType::SIZE; ++i) {
@@ -786,8 +851,8 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         }
       }
     }
-    LOG(info) << "number of entries in map for denominator of TPC tracks (without duplicates) = " << mMapRefLabels[matchType::TPC].size() + mMapLabels[matchType::TPC].size();
-    LOG(info) << "number of entries in map for denominator of ITS tracks (without duplicates) = " << mMapRefLabels[matchType::ITS].size() + mMapLabels[matchType::ITS].size();
+    LOG(debug) << "number of entries in map for denominator of TPC tracks (without duplicates) = " << mMapRefLabels[matchType::TPC].size() + mMapLabels[matchType::TPC].size();
+    LOG(debug) << "number of entries in map for denominator of ITS tracks (without duplicates) = " << mMapRefLabels[matchType::ITS].size() + mMapLabels[matchType::ITS].size();
     // now we use only the tracks in the map to fill the histograms (--> tracks have passed the
     // track selection and there are no duplicated tracks wrt the same MC label)
     for (auto const& el : mMapRefLabels[matchType::TPC]) {
@@ -895,45 +960,117 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     }
   }
 
-  if (mDoK0QC) {
+  if (mDoK0QC && mRecoCont.getPrimaryVertices().size() > 0) {
     // now doing K0S
     const auto pvertices = mRecoCont.getPrimaryVertices();
-    LOG(info) << "Found " << pvertices.size() << " primary vertices";
+    LOG(info) << "****** Number of PVs                 = " << pvertices.size();
+
+    // getting occupancy estimator
+    mNHBPerTF = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+    if (!mParam) {
+      // for occupancy estimator
+      mParam = o2::gpu::GPUO2InterfaceUtils::getFullParamShared(0.f, mNHBPerTF);
+    }
+    size_t occupancyMapSizeBytes = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(mNHBPerTF, mParam.get());
+    LOG(debug) << "occupancyMapSizeBytes = " << occupancyMapSizeBytes;
+    mTPCRefitterOccMap = mRecoCont.occupancyMapTPC;
+    o2::gpu::GPUO2InterfaceUtils::paramUseExternalOccupancyMap(mParam.get(), mNHBPerTF, mTPCRefitterOccMap.data(), occupancyMapSizeBytes);
+
+    std::vector<float> mTBinClOcc; ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i * mNTPCOccBinLength
+    mTBinClOcc.clear();
+    int mNTPCOccBinLength = mParam->rec.tpc.occupancyMapTimeBins;
+    LOG(debug) << "mNTPCOccBinLength = " << mNTPCOccBinLength;
+    mNTPCOccBinLengthInv = 1. / mNTPCOccBinLength;
+    if (mNTPCOccBinLength > 1 && mTPCRefitterOccMap.size()) {
+      int nTPCBinsInTF = mNHBPerTF * o2::constants::lhc::LHCMaxBunches / 8; // number of TPC time bins in 1 TF, considering that 1 TPC time bin is 8 bunches
+      int ninteg = 0;
+      int nTPCOccBinsInTF = nTPCBinsInTF * mNTPCOccBinLengthInv;                                    // how many occupancy bins in 1 TF; mNTPCOccBinLengthInv is the inverse of the length of an occupancy bin
+      int sumBins = std::max(1, int(o2::constants::lhc::LHCMaxBunches / 8 * mNTPCOccBinLengthInv)); // we will integrate occupancy at max for this number of bins: the max between 1 and the number of occupancy bins in 1 orbit
+      LOG(debug) << "number of TPC TB in 1 TF = nTPCBinsInTF = " << nTPCBinsInTF << " ; number of occupancy bins in 1 TF = nTPCOccBinsInTF = " << nTPCOccBinsInTF;
+      LOG(debug) << "bins to integrate = sumBins = " << sumBins;
+      mTBinClOcc.resize(nTPCOccBinsInTF);
+      std::vector<float> mltHistTB(nTPCOccBinsInTF);
+      float sm = 0., tb = 0.5 * mNTPCOccBinLength;
+      bool foundNotZero = false;
+      for (int i = 0; i < nTPCOccBinsInTF; i++) { // for every occupancy bin in the TF
+        mltHistTB[i] = mParam->GetUnscaledMult(tb);
+        if (mParam->GetUnscaledMult(tb) != 0) {
+          LOG(debug) << "i = " << i << " tb = " << tb << " mltHistTB[" << i << "] = " << mltHistTB[i];
+          foundNotZero = true;
+        }
+        tb += mNTPCOccBinLength;
+      }
+      if (!foundNotZero) {
+        LOG(debug) << "No mult bin was found different from 0!";
+      }
+      foundNotZero = false;
+      // now we fill the occupancy map; we integrate the sumBins after the current one, but when we are at the last 27 bins of the TF, where we integrate what we have left till the end of the TF; for practical reasons, we start from the end, adding all the time, and then also removing the last bin, when we have enough, so that we always add together sumBins bins (except, as said, for the last part of the TF)
+      for (int i = nTPCOccBinsInTF; i--;) {
+        if (mltHistTB[i] != 0) {
+          foundNotZero = true;
+        }
+        LOG(debug) << "i = " << i << " sm before = " << sm;
+        sm += mltHistTB[i];
+        LOG(debug) << "i = " << i << " sm after = " << sm;
+        if (i + sumBins < nTPCOccBinsInTF) {
+          LOG(debug) << "i = " << i << " sumBins = " << sumBins << " nTPCOccBinsInTF = " << nTPCOccBinsInTF << " we have to decrease sm by = " << mltHistTB[i + sumBins];
+          sm -= mltHistTB[i + sumBins];
+          LOG(debug) << "i = " << i << " sm after 2 = " << sm;
+        }
+        mTBinClOcc[i] = sm;
+        LOG(debug) << "i = " << i << " mTBinClOcc[" << i << "] = " << mTBinClOcc[i];
+      }
+      if (!foundNotZero) {
+        LOG(debug) << "No mult bin was found different from 0! sm = " << sm;
+      }
+    } else {
+      mTBinClOcc.resize(1);
+    }
 
     auto v0IDs = mRecoCont.getV0sIdx();
     auto nv0 = v0IDs.size();
     if (nv0 > mRecoCont.getV0s().size()) {
       mRefit = true;
     }
-    LOG(info) << "Found " << mRecoCont.getV0s().size() << " V0s in reco container";
-    LOG(info) << "Found " << nv0 << " V0s ids";
+    LOG(debug) << "Found " << mRecoCont.getV0s().size() << " V0s in reco container";
+    LOG(debug) << "Found " << nv0 << " V0s ids";
     // associating sec vtxs to prim vtx
     std::map<int, std::vector<int>> pv2sv;
     static int tfID = 0;
     for (int iv = 0; iv < nv0; iv++) {
       const auto v0id = v0IDs[iv];
-      pv2sv[v0id.getVertexID()].push_back(iv);
+      o2::dataformats::GlobalTrackID id0 = v0id.getProngID(0), id1 = v0id.getProngID(1);
+      if (id0.getSourceDetectorsMask()[DetID::ITS] && id1.getSourceDetectorsMask()[DetID::ITS] &&
+          mRecoCont.isTrackSourceLoaded(id0.getSource()) && mRecoCont.isTrackSourceLoaded(id1.getSource())) { // taking only tracks for which there is the ITS in the track sources
+        pv2sv[v0id.getVertexID()].push_back(iv);
+      } else {
+        LOG(debug) << "Skipping this V0: the track sources do not contain ITS";
+      }
     }
     int nV0sOk = 0;
     // processing every sec vtx for each prim vtx
+    int myCount = 0;
     for (auto it : pv2sv) {
       int pvID = it.first;
       auto& vv = it.second;
       if (pvID < 0 || vv.size() == 0) {
         continue;
       }
+      const auto& pv = mRecoCont.getPrimaryVertex(pvID);
+      float pvTime = pv.getTimeStamp().getTimeStamp(); // in \mus
       for (int iv0 : vv) {
-        nV0sOk += processV0(iv0, mRecoCont) ? 1 : 0;
+        nV0sOk += processV0(iv0, mRecoCont, mTBinClOcc, pvTime) ? 1 : 0;
       }
+      ++myCount;
     }
 
-    LOG(info) << "Processed " << nV0sOk << " V0s";
+    LOG(debug) << "Processed " << nV0sOk << " V0s";
   }
   evCount++;
 }
 
 //__________________________________________________________
-bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoData)
+bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoData, std::vector<float>& mTBinClOcc, float pvTime)
 {
   o2::dataformats::V0 v0;
   auto v0s = recoData.getV0s();
@@ -941,6 +1078,13 @@ bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoDat
   static int tfID = 0;
 
   const auto& v0id = v0IDs[iv];
+  ++mNK0;
+  if (mNK0 % int(1 / mK0Scaling) == 0) {
+    LOG(debug) << "Checking " << mNK0 << "th V0: refitting it, since we keep " << mK0Scaling * 100 << "% of all V0s";
+  } else {
+    LOG(debug) << "Checking " << mNK0 << "th K0: NOT refitting it, but skipping it, since we keep " << mK0Scaling * 100 << "% of all V0s";
+    return false;
+  }
   if (mRefit && !refitV0(v0id, v0, recoData)) {
     return false;
   }
@@ -948,17 +1092,34 @@ bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoDat
   if (mMaxEtaK0 < std::abs(v0sel.getEta())) {
     return false;
   }
-  LOG(info) << "Find K0 with mass " << std::sqrt(v0sel.calcMass2AsK0());
-  if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass) {
+
+  if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass || v0sel.getDCA() > mK0MaxDCA || v0sel.getCosPA() < mK0MinCosPA) {
+    if (v0sel.getDCA() > mK0MaxDCA && v0sel.getCosPA() < mK0MinCosPA) {
+      LOG(debug) << "v0sel.getDCA() = " << v0sel.getDCA() << " max is " << mK0MaxDCA << " returning ... ";
+    }
+    if (v0sel.getCosPA() > mK0MinCosPA) {
+      LOG(debug) << "v0sel.getCosPA() = " << v0sel.getCosPA() << " min is " << mK0MinCosPA << " returning ... ";
+    }
     return false;
   }
-  mK0MassVsPt->Fill(v0sel.getPt(), std::sqrt(v0sel.calcMass2AsK0()));
+  // get the corresponding PV
+  int tb = pvTime / (8 * o2::constants::lhc::LHCBunchSpacingMUS) * mNTPCOccBinLengthInv; // V0 time in TPC time bins
+  LOG(debug) << "pvTime = " << pvTime << " tb = " << tb;
+  float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
+  ++mNK0;
+  LOG(debug) << "Filling K0 histogram with pt = " << v0sel.getPt() << " mass = " << std::sqrt(v0sel.calcMass2AsK0()) << " mult TPC = " << mltTPC;
+  if (!mIsHI) {
+    mK0MassVsPtVsOccpp->Fill(v0sel.getPt(), std::sqrt(v0sel.calcMass2AsK0()), mltTPC);
+  } else {
+    mK0MassVsPtVsOccPbPb->Fill(v0sel.getPt(), std::sqrt(v0sel.calcMass2AsK0()), mltTPC);
+  }
   return true;
 }
 
 //__________________________________________________________
 bool MatchITSTPCQC::refitV0(const o2::dataformats::V0Index& id, o2::dataformats::V0& v0, o2::globaltracking::RecoContainer& recoData)
 {
+  LOG(debug) << "Refitting V0";
   if (!recoData.isTrackSourceLoaded(id.getProngID(0).getSource()) || !recoData.isTrackSourceLoaded(id.getProngID(1).getSource())) {
     return false;
   }
@@ -1095,9 +1256,9 @@ void MatchITSTPCQC::setEfficiency(TEfficiency* eff, TH1* hnum, TH1* hden, bool i
   // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
   if constexpr (false) { // checking
     bool bad{false};
-    LOG(info) << "Setting efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
-    LOG(info) << "Num " << hnum->GetName() << " " << hnum->GetNbinsX() << " " << hnum->GetNbinsY() << " with " << hnum->GetEntries() << " entries";
-    LOG(info) << "Den " << hden->GetName() << " " << hden->GetNbinsX() << " " << hden->GetNbinsY() << " with " << hden->GetEntries() << " entries";
+    LOG(debug) << "Setting efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
+    LOG(debug) << "Num " << hnum->GetName() << " " << hnum->GetNbinsX() << " " << hnum->GetNbinsY() << " with " << hnum->GetEntries() << " entries";
+    LOG(debug) << "Den " << hden->GetName() << " " << hden->GetNbinsX() << " " << hden->GetNbinsY() << " with " << hden->GetEntries() << " entries";
     if (hnum->GetDimension() != hden->GetDimension()) {
       LOGP(warning, "Histograms have different dimensions (num={} to den={})", hnum->GetDimension(), hden->GetDimension());
       bad = true;
@@ -1228,5 +1389,6 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mFractionITSTPCmatchDCArVsPt);
 
   // V0
-  objar.Add(mK0MassVsPt);
+  objar.Add(mK0MassVsPtVsOccpp);
+  objar.Add(mK0MassVsPtVsOccPbPb);
 }
