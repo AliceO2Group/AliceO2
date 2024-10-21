@@ -2329,15 +2329,25 @@ bool isOutputToPipe()
 
 bool isInputConfig()
 {
+  O2_SIGNPOST_ID_GENERATE(sid, driver);
+  O2_SIGNPOST_START(driver, sid, "isInputConfig", "Checking if stdin is a configuration file");
   struct stat s;
   int r = fstat(STDIN_FILENO, &s);
   // If stdin cannot be statted, we assume the shell is some sort of
   // non-interactive container thing
   if (r < 0) {
+    O2_SIGNPOST_END(driver, sid, "isInputConfig", "Could not open stdin for reading.");
     return false;
   }
   // If stdin is a pipe or a file, we try to fetch configuration from there
-  return ((s.st_mode & S_IFIFO) != 0 || (s.st_mode & S_IFREG) != 0);
+  bool isPipe = ((s.st_mode & S_IFIFO) != 0);
+  bool isStandardFile = ((s.st_mode & S_IFREG) != 0);
+  if (isPipe || isStandardFile) {
+    O2_SIGNPOST_END(driver, sid, "isInputConfig", "stdin is a %{public}s. Reading config file from it.", isPipe ? "pipe" : "file");
+    return true;
+  }
+  O2_SIGNPOST_END(driver, sid, "isInputConfig", "stdin is neither a pipe nor a file. We are first workflow a chain.");
+  return false;
 }
 
 void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
@@ -2881,7 +2891,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   std::vector<DataProcessorInfo> dataProcessorInfos;
   CommandInfo commandInfo{};
 
-  if (isatty(STDIN_FILENO) == false && isInputConfig()) {
+  if (isInputConfig()) {
     std::vector<DataProcessorSpec> importedWorkflow;
     bool previousWorked = WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos, commandInfo);
     if (previousWorked == false) {
