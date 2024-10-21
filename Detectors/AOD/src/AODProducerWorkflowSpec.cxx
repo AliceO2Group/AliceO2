@@ -341,6 +341,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.tpcChi2NCl, mTrackChi2),
                     truncateFloatFraction(extraInfoHolder.trdChi2, mTrackChi2),
                     truncateFloatFraction(extraInfoHolder.tofChi2, mTrackChi2),
+                    extraInfoHolder.tofHitPattern,
                     truncateFloatFraction(extraInfoHolder.tpcSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.trdSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.length, mTrackSignal),
@@ -2441,6 +2442,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   if (contributorsGID[GIndex::Source::TOF].isIndexSet()) { // ITS-TPC-TRD-TOF, ITS-TPC-TOF, TPC-TRD-TOF, TPC-TOF
     const auto& tofMatch = data.getTOFMatch(trackIndex);
     extraInfoHolder.tofChi2 = tofMatch.getChi2();
+    extraInfoHolder.tofHitPattern = (tofMatch.getChannel() << 8) | tofMatch.getHitPattern();
     const auto& tofInt = tofMatch.getLTIntegralOut();
     float intLen = tofInt.getL();
     extraInfoHolder.length = intLen;
