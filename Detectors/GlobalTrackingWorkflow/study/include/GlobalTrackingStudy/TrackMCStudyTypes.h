@@ -43,9 +43,12 @@ struct MCTrackInfo {
   int16_t nTPCClShared = 0;
   uint8_t minTPCRow = -1;
   uint8_t maxTPCRow = 0;
+  uint8_t maxTPCRowInner = 0; // highest row in the sector containing the lowest one
+  uint8_t minTPCRowSect = -1;
+  uint8_t maxTPCRowSect = -1;
   int8_t nITSCl = 0;
   int8_t pattITSCl = 0;
-  ClassDefNV(MCTrackInfo, 1);
+  ClassDefNV(MCTrackInfo, 2);
 };
 
 struct RecTrack {
@@ -107,6 +110,70 @@ struct TrackFamily { // set of tracks related to the same MC label
   static RecTrack dummyRecTrack; //
 
   ClassDefNV(TrackFamily, 1);
+};
+
+struct ClResTPC {
+  uint8_t sect = 0;
+  uint8_t row = 0;
+  uint8_t ncont = 0;
+  uint8_t flags = 0;
+  float snp = 0;
+  float tgl = 0;
+  float qmax = 0;
+  float qtot = 0;
+  float occ = 0;
+  std::array<float, 3> clPos{};
+  std::array<float, 3> below{};
+  std::array<float, 3> above{};
+
+  int getNExt() const { return below[0] > 1. + above[0] > 1.; }
+
+  float getDY() const { return clPos[1] - getYRef(); }
+  float getDZ() const { return clPos[2] - getZRef(); }
+
+  float getYRef() const
+  {
+    float y = 0;
+    int n = 0;
+    if (below[0] > 1.) {
+      y += below[1];
+      n++;
+    }
+    if (above[0] > 1.) {
+      y += above[1];
+      n++;
+    }
+    return n == 1 ? y : 0.5 * y;
+  }
+
+  float getZRef() const
+  {
+    float z = 0;
+    int n = 0;
+    if (below[0] > 1.) {
+      z += below[2];
+      n++;
+    }
+    if (above[0] > 1.) {
+      z += above[2];
+      n++;
+    }
+    return n == 1 ? z : 0.5 * z;
+  }
+
+  float getDXMin() const
+  {
+    float adxA = 1e9, adxB = 1e9;
+    if (above[0] > 1.) {
+      adxA = clPos[0] - above[0];
+    }
+    if (below[0] > 1.) {
+      adxB = clPos[0] - below[0];
+    }
+    return std::abs(adxA) < std::abs(adxB) ? adxA : adxB;
+  }
+
+  ClassDefNV(ClResTPC, 1);
 };
 
 struct RecPV {

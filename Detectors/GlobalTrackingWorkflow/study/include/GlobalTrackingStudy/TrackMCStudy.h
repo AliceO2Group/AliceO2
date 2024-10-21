@@ -15,12 +15,13 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 namespace o2::trackstudy
 {
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getTrackMCStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus);
+o2::framework::DataProcessorSpec getTrackMCStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
 
 } // namespace o2::trackstudy
 

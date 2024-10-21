@@ -19,6 +19,8 @@
 #include "Framework/CallbacksPolicy.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
@@ -41,6 +43,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation, never use it"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -56,6 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!useMC) {
     throw std::runtime_error("MC cannot be disabled for this workflow");
   }
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS,TPC");
 
@@ -68,8 +72,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, true);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, true); // P-vertex is always needed
-  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls));
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
 
+  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls, sclOpt));
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
