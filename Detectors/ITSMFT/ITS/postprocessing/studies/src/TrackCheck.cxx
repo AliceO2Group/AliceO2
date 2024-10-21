@@ -798,7 +798,19 @@ void TrackCheckStudy::process()
   mEffEtaSec = std::make_unique<TEfficiency>(*mGoodEtaSec, *mDenominatorEtaSec);
   mEffFakeEtaSec = std::make_unique<TEfficiency>(*mFakeEtaSec, *mDenominatorEtaSec);
 
+  mEffGoodPts.resize(4);
+  mEffFakePts.resize(4);
+  mEffGoodEtas.resize(4);
+  mEffFakeEtas.resize(4);
+  mEffGoodRad.resize(4);
+  mEffFakeRad.resize(4);
+  mEffGoodZ.resize(4);
+  mEffFakeZ.resize(4);
   for (int ii = 0; ii < 4; ii++) {
+    mEffGoodPts[ii].resize(4);
+    mEffFakePts[ii].resize(4);
+    mEffGoodEtas[ii].resize(4);
+    mEffFakeEtas[ii].resize(4);
     for (int yy = 0; yy < 4; yy++) {
       mEffGoodPts[ii][yy] = std::make_unique<TEfficiency>(*mGoodPts[ii][yy], *mTotPts[ii][yy]);
       mEffFakePts[ii][yy] = std::make_unique<TEfficiency>(*mFakePts[ii][yy], *mTotPts[ii][yy]);

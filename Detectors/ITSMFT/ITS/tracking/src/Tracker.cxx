@@ -120,7 +120,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   total += evaluateTask(&Tracker::findShortPrimaries, "Short primaries finding", logger);
 
   std::stringstream sstream;
-  if (constants::DoTimeBenchmarks) {
+  if constexpr (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
             << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms using " << mTraits->getNThreads() << " threads.";
   }
@@ -200,7 +200,7 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
   // total += evaluateTask(&Tracker::findShortPrimaries, "Hybrid short primaries finding", logger);
 
   std::stringstream sstream;
-  if (constants::DoTimeBenchmarks) {
+  if constexpr (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
             << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms using " << mTraits->getNThreads() << " threads.";
   }
