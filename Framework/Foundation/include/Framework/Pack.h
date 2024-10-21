@@ -371,15 +371,6 @@ constexpr auto unique_pack(pack<T, Ts...>, PT p2)
 template <typename P>
 using unique_pack_t = decltype(unique_pack(P{}, pack<>{}));
 
-template <typename... Ts>
-inline constexpr std::tuple<Ts...> pack_to_tuple(pack<Ts...>)
-{
-  return std::tuple<Ts...>{};
-}
-
-template <typename P>
-using pack_to_tuple_t = decltype(pack_to_tuple(P{}));
-
 template <typename T, std::size_t... Is>
 inline auto sequence_to_pack(std::integer_sequence<std::size_t, Is...>)
 {
