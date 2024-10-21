@@ -512,6 +512,46 @@ int main(int argc, char* argv[])
     }
     return r;
   }
+  // check if Kinematics input file is provided
+  LOG(info) << "Kinematics input file: " << conf.getKineInput();
+  if (conf.getKineInput().size() > 0) {
+    std::string path = conf.getKineInput();
+    std::size_t pos = path.find(':');
+    std::string kinefilename;
+    int ntf = 1;
+    if (pos != std::string::npos) {
+      kinefilename = path.substr(0, pos);
+      ntf = std::stoi(path.substr(pos + 1));
+    } else {
+      kinefilename = path;
+    }
+    LOG(info) << "Using Kinematics input file: " << kinefilename << ", TimeFrame number: " << ntf;
+    TFile kinefile(kinefilename.c_str(), "READ");
+    if (kinefile.IsZombie()) {
+      LOG(fatal) << "Could not open Kinematics input file: " << kinefilename;
+      return 2;
+    }
+    TFile splitkinefile(Form("%s_Kine.root", conf.getOutPrefix().c_str()), "RECREATE");
+    TTree* kine = (TTree*)kinefile.Get("o2sim");
+    const int nentries = kine->GetEntries();
+    const int nevsim = conf.getNEvents();
+    TTree* kineout = kine->CloneTree(0);
+    ntf -= 1;
+    if ((ntf + 1) * nevsim > kine->GetEntries()) {
+      LOG(fatal) << "Not enough events in the input file to get the entries in the interval [" << ntf * nevsim << ',' << (ntf + 1) * nevsim << "]";
+      return 2;
+    }
+    for (int i = ntf * nevsim; i < (ntf + 1) * nevsim; ++i) {
+      kine->GetEntry(i);
+      kineout->Fill();
+    }
+    splitkinefile.Write();
+    kinefile.Close();
+    splitkinefile.Close();
+    LOG(info) << "Kinematics input file processed successfully";
+    LOG(info) << "Splitting time took " << timer.RealTime() << " s";
+    return 0;
+  }
 
   gAskedEvents = conf.getNEvents();
   if (conf.asService()) {
