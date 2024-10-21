@@ -26,6 +26,8 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "SimConfig/DigiParams.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 ClassImp(o2::emcal::Digitizer);
 
@@ -79,6 +81,8 @@ void Digitizer::init()
     }
   } else {
   }
+
+  mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
 
   if (mEnableDebugStreaming) {
     mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebug.root", "RECREATE");
@@ -164,6 +168,13 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
     return;
   }
 
+  // check if this hit because it comes from an event before readout starts and it does not effect this RO
+  LOG(debug) << "mIsBeforeFirstRO " << mIsBeforeFirstRO << "     sDigit.getTimeStamp() " << sDigit.getTimeStamp() << "    mSimParam->getSignalDelay() " << mSimParam->getSignalDelay() << "   mPhase " << mPhase << "   total: " << sDigit.getTimeStamp() + mSimParam->getSignalDelay() + mPhase * 25 << "   EMC_TOF_MAX " << EMC_TOF_MAX << "  mTimeBCns " << mTimeBCns;
+  if (mIsBeforeFirstRO && sDigit.getTimeStamp() + mTimeBCns < 0) {
+    LOG(debug) << "disregard this hit because it comes from an event before readout starts and it does not effect this RO";
+    return;
+  }
+
   Double_t energies[15];
   if (mSimulateTimeResponse) {
     if (sDigit.getTimeStamp() + mSimParam->getSignalDelay() + mPhase * 25 > EMC_TOF_MAX) {
@@ -245,5 +256,17 @@ void Digitizer::setEventTime(o2::InteractionTimeRecord record, bool trigger)
   if (mPhase == 4) {
     mPhase = 0;
     mEventTimeOffset++;
+  }
+
+  // get time difference between current bc and start of RO in ns
+  auto nbc = record.differenceInBC(mIRFirstSampledTF);
+  mTimeBCns = record.getTimeOffsetWrtBC();
+  mTimeBCns += nbc * o2::constants::lhc::LHCBunchSpacingNS;
+
+  if (nbc < 0) {
+    // this event is before the first RO
+    mIsBeforeFirstRO = true;
+  } else {
+    mIsBeforeFirstRO = false;
   }
 }
