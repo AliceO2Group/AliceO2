@@ -31,7 +31,7 @@ namespace fdd
 class RecPointReader : public Task
 {
  public:
-  RecPointReader(bool useMC = true);
+  RecPointReader(bool useMC = false);
   ~RecPointReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -42,7 +42,7 @@ class RecPointReader : public Task
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
 
-  bool mUseMC = true; // use MC truth
+  bool mUseMC = false; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
 
   std::vector<o2::fdd::RecPoint>* mRecPoints = nullptr;

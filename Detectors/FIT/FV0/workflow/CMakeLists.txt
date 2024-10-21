@@ -53,6 +53,16 @@ o2_add_executable(flp-dpl-workflow
                   PUBLIC_LINK_LIBRARIES O2::FV0Workflow O2::FITWorkflow O2::FV0Raw
                   TARGETVARNAME fv0flpexe)
 
+o2_add_executable(recpoints-reader-workflow
+                  SOURCES src/recpoints-reader-workflow.cxx
+                  COMPONENT_NAME fv0
+                  PUBLIC_LINK_LIBRARIES O2::FV0Workflow)
+
+o2_add_executable(recpoints-writer-workflow
+                  SOURCES src/recpoints-writer-workflow.cxx
+                  COMPONENT_NAME fv0
+                  PUBLIC_LINK_LIBRARIES O2::FV0Workflow)
+
 o2_add_executable(integrate-cluster-workflow
                   SOURCES src/cluster-integrator.cxx
                   COMPONENT_NAME fv0

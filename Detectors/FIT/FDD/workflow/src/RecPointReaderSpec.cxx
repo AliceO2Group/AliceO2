@@ -11,15 +11,13 @@
 
 /// @file  RecPointReaderSpec.cxx
 
-#include <vector>
-
-#include "TTree.h"
-
-#include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "FDDWorkflow/RecPointReaderSpec.h"
 #include "CommonUtils/NameConf.h"
+
+#include <vector>
 
 using namespace o2::framework;
 using namespace o2::fdd;

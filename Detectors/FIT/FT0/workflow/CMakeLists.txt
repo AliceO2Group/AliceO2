@@ -98,6 +98,11 @@ o2_add_executable(recpoints-reader-workflow
                   COMPONENT_NAME ft0
                   PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
 
+o2_add_executable(recpoints-writer-workflow
+                  SOURCES src/recpoints-writer-workflow.cxx
+                  COMPONENT_NAME ft0
+                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
+
 o2_add_executable(integrate-cluster-workflow
                   SOURCES src/cluster-integrator.cxx
                   COMPONENT_NAME ft0

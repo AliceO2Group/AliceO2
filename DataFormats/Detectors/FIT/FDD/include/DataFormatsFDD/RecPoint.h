@@ -9,8 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file RecPoint.h
+/// \file  RecPoint.h
 /// \brief Definition of the FDD RecPoint class
+
 #ifndef ALICEO2_FDD_RECPOINT_H
 #define ALICEO2_FDD_RECPOINT_H
 
@@ -42,6 +43,7 @@ struct ChannelDataFloat {
   }
 
   void print() const;
+  bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);
 };
@@ -79,6 +81,9 @@ class RecPoint
   short static constexpr sDummyCollissionTime = 32767;
   int getFirstEntry() const { return mRef.getFirstEntry(); }
   int getEntriesInCurrentBC() const { return mRef.getEntries(); }
+
+  void print() const;
+  bool operator==(const RecPoint&) const = default;
 
  private:
   o2::dataformats::RangeReference<int, int> mRef;
