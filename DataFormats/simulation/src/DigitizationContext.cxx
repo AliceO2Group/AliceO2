@@ -19,6 +19,7 @@
 #include <numeric> // for iota
 #include <MathUtils/Cartesian.h>
 #include <DataFormatsCalibration/MeanVertexObject.h>
+#include <filesystem>
 
 using namespace o2::steer;
 
@@ -196,10 +197,52 @@ o2::parameters::GRPObject const& DigitizationContext::getGRP() const
 
 void DigitizationContext::saveToFile(std::string_view filename) const
 {
+  // checks if the path content of filename exists ... otherwise it is created before creating the ROOT file
+  auto ensure_path_exists = [](std::string_view filename) {
+    try {
+      // Extract the directory path from the filename
+      std::filesystem::path file_path(filename);
+      std::filesystem::path dir_path = file_path.parent_path();
+
+      // Check if the directory path is empty (which means filename was just a name without path)
+      if (dir_path.empty()) {
+        // nothing to do
+        return true;
+      }
+
+      // Create directories if they do not exist
+      if (!std::filesystem::exists(dir_path)) {
+        if (std::filesystem::create_directories(dir_path)) {
+          // std::cout << "Directories created successfully: " << dir_path.string() << std::endl;
+          return true;
+        } else {
+          std::cerr << "Failed to create directories: " << dir_path.string() << std::endl;
+          return false;
+        }
+      }
+      return true;
+    } catch (const std::filesystem::filesystem_error& ex) {
+      std::cerr << "Filesystem error: " << ex.what() << std::endl;
+      return false;
+    } catch (const std::exception& ex) {
+      std::cerr << "General error: " << ex.what() << std::endl;
+      return false;
+    }
+  };
+
+  if (!ensure_path_exists(filename)) {
+    LOG(error) << "Filename contains path component which could not be created";
+    return;
+  }
+
   TFile file(filename.data(), "RECREATE");
-  auto cl = TClass::GetClass(typeid(*this));
-  file.WriteObjectAny(this, cl, "DigitizationContext");
-  file.Close();
+  if (file.IsOpen()) {
+    auto cl = TClass::GetClass(typeid(*this));
+    file.WriteObjectAny(this, cl, "DigitizationContext");
+    file.Close();
+  } else {
+    LOG(error) << "Could not write to file " << filename.data();
+  }
 }
 
 DigitizationContext* DigitizationContext::loadFromFile(std::string_view filename)
@@ -391,13 +434,15 @@ void DigitizationContext::applyMaxCollisionFilter(long startOrbit, long orbitsPe
   mEventParts = newparts;
 }
 
-void DigitizationContext::finalizeTimeframeStructure(long startOrbit, long orbitsPerTF)
+int DigitizationContext::finalizeTimeframeStructure(long startOrbit, long orbitsPerTF)
 {
   mTimeFrameStartIndex = getTimeFrameBoundaries(mEventRecords, startOrbit, orbitsPerTF);
   LOG(info) << "Fixed " << mTimeFrameStartIndex.size() << " timeframes ";
   for (auto p : mTimeFrameStartIndex) {
     LOG(info) << p.first << " " << p.second;
   }
+
+  return mTimeFrameStartIndex.size();
 }
 
 std::unordered_map<int, int> DigitizationContext::getCollisionIndicesForSource(int source) const
@@ -482,4 +527,54 @@ void DigitizationContext::sampleInteractionVertices(o2::dataformats::MeanVertexO
       vertex_cache[std::pair<int, int>(source, event)] = cacheindex;
     }
   }
+}
+
+DigitizationContext DigitizationContext::extractSingleTimeframe(int timeframeid, std::vector<int> const& sources_to_offset)
+{
+  DigitizationContext r; // make a return object
+  if (mTimeFrameStartIndex.size() == 0) {
+    LOG(error) << "No timeframe structure determined; Returning empty object. Please call ::finalizeTimeframeStructure before calling this function";
+    return r;
+  }
+  r.mSimPrefixes = mSimPrefixes;
+  r.mMuBC = mMuBC;
+  try {
+    auto startend = mTimeFrameStartIndex.at(timeframeid);
+
+    auto startindex = startend.first;
+    auto endindex = startend.second;
+
+    std::copy(mEventRecords.begin() + startindex, mEventRecords.begin() + endindex, std::back_inserter(r.mEventRecords));
+    std::copy(mEventParts.begin() + startindex, mEventParts.begin() + endindex, std::back_inserter(r.mEventParts));
+    std::copy(mInteractionVertices.begin() + startindex, mInteractionVertices.begin() + endindex, std::back_inserter(r.mInteractionVertices));
+
+    // let's assume we want to fix the ids for source = source_id
+    // Then we find the first index that has this source_id and take the corresponding number
+    // as offset. Thereafter we subtract this offset from all known event parts.
+    auto perform_offsetting = [&r](int source_id) {
+      auto indices_for_source = r.getCollisionIndicesForSource(source_id);
+      int minvalue = r.mEventParts.size();
+      for (auto& p : indices_for_source) {
+        if (p.first < minvalue) {
+          minvalue = p.first;
+        }
+      }
+      // now fix them
+      for (auto& p : indices_for_source) {
+        auto index_into_mEventParts = p.second;
+        for (auto& part : r.mEventParts[index_into_mEventParts]) {
+          if (part.sourceID == source_id) {
+            part.entryID -= minvalue;
+          }
+        }
+      }
+    };
+    for (auto source_id : sources_to_offset) {
+      perform_offsetting(source_id);
+    }
+
+  } catch (std::exception) {
+    LOG(warn) << "No such timeframe id in collision context. Returing empty object";
+  }
+  return r;
 }
