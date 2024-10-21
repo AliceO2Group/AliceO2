@@ -426,7 +426,7 @@ DataProcessorSpec
         // get TF number from startTime
         auto it = tfNumbers.find(startTime);
         if (it != tfNumbers.end()) {
-          tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
+          tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge() + dod->getDFOffset();
         } else {
           LOGP(fatal, "No time frame number found for output with start time {}", startTime);
           throw std::runtime_error("Processing is stopped!");

@@ -215,7 +215,7 @@ void DataOutputDirector::readSpecs(std::vector<InputSpec> inputs)
   }
 }
 
-std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector::readJson(std::string const& fnjson)
+std::tuple<std::string, std::string, std::string, float, int, uint64_t> DataOutputDirector::readJson(std::string const& fnjson)
 {
   // open the file
   FILE* fjson = fopen(fnjson.c_str(), "r");
@@ -231,28 +231,26 @@ std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector
   // parse the json file
   Document jsonDocument;
   jsonDocument.ParseStream(jsonStream);
-  auto [rdn, dfn, fmode, mfs, ntfm] = readJsonDocument(&jsonDocument);
+  auto [rdn, dfn, fmode, mfs, ntfm, offset] = readJsonDocument(&jsonDocument);
 
   // clean up
   fclose(fjson);
 
-  return std::make_tuple(rdn, dfn, fmode, mfs, ntfm);
+  return std::make_tuple(rdn, dfn, fmode, mfs, ntfm, offset);
 }
 
-std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector::readJsonString(std::string const& jsonString)
+std::tuple<std::string, std::string, std::string, float, int, uint64_t> DataOutputDirector::readJsonString(std::string const& jsonString)
 {
   // parse the json string
   Document jsonDocument;
   jsonDocument.Parse(jsonString.c_str());
-  auto [rdn, dfn, fmode, mfs, ntfm] = readJsonDocument(&jsonDocument);
+  auto [rdn, dfn, fmode, mfs, ntfm, offset] = readJsonDocument(&jsonDocument);
 
-  return std::make_tuple(rdn, dfn, fmode, mfs, ntfm);
+  return std::make_tuple(rdn, dfn, fmode, mfs, ntfm, offset);
 }
 
-std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector::readJsonDocument(Document* jsonDocument)
+std::tuple<std::string, std::string, std::string, float, int, uint64_t> DataOutputDirector::readJsonDocument(Document* jsonDocument)
 {
-  std::string smc(":");
-  std::string slh("/");
   const char* itemName;
 
   // initialisations
@@ -261,6 +259,7 @@ std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector
   std::string fmode("");
   float maxfs = -1.;
   int ntfm = -1;
+  uint64_t offset = 0;
 
   // is it a proper json document?
   if (jsonDocument->HasParseError()) {
@@ -351,8 +350,21 @@ std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector
     }
   }
 
+  itemName = "offset";
+  if (dodirItem.HasMember(itemName)) {
+    if (dodirItem[itemName].IsNumber()) {
+      offset = dodirItem[itemName].GetUint64();
+      setDFOffset(offset);
+    } else {
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a number!", itemName);
+      return memptyanswer;
+    }
+  }
+
   itemName = "OutputDescriptors";
   if (dodirItem.HasMember(itemName)) {
+    std::string slh("/");
+    std::string smc(":");
     if (!dodirItem[itemName].IsArray()) {
       LOGP(error, "Check the JSON document! Item \"{}\" must be an array!", itemName);
       return memptyanswer;
@@ -419,7 +431,7 @@ std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector
     printOut();
   }
 
-  return std::make_tuple(resdir, dfn, fmode, maxfs, ntfm);
+  return std::make_tuple(resdir, dfn, fmode, maxfs, ntfm, offset);
 }
 
 std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(header::DataHeader dh)
