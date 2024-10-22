@@ -104,7 +104,7 @@ void Vertexer::getGlobalConfiguration()
 {
   auto& vc = o2::its::VertexerParamConfig::Instance();
   vc.printKeyValues(true, true);
-  auto& grc = o2::its::GpuRecoParamConfig::Instance();
+  auto& grc = o2::its::ITSGpuTrackingParamConfig::Instance();
 
   // This is odd: we override only the parameters for the first iteration.
   // Variations for the next iterations are set in the trackingInterfrace.

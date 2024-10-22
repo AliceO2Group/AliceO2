@@ -20,6 +20,7 @@
 #include "Framework/Task.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsBase/BaseDPLDigitizer.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsMID/ROFRecord.h"
@@ -30,6 +31,7 @@
 #include "MIDSimulation/ChamberResponse.h"
 #include "MIDSimulation/ChamberEfficiencyResponse.h"
 #include "MIDSimulation/Geometry.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "DataFormatsMID/MCLabel.h"
 
 using namespace o2::framework;
@@ -83,6 +85,10 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::MID, mSimChains);
     auto& irecords = context->getEventRecords();
 
+    auto firstTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
+    auto delay = InteractionRecord(mElectronicsDelay.localToBC, 0);
+    auto firstTimeTF = InteractionTimeRecord(firstTF + delay, 0);
+
     auto& eventParts = context->getEventParts();
     std::vector<o2::mid::ColumnData> digits, digitsAccum;
     std::vector<o2::mid::ROFRecord> rofRecords;
@@ -93,6 +99,11 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     for (int collID = 0; collID < irecords.size(); ++collID) {
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
+
+      // Skip digits produced before the first orbit
+      if (irecords[collID] < firstTimeTF) {
+        continue;
+      }
       auto firstEntry = digitsAccum.size();
       for (auto& part : eventParts[collID]) {
         mDigitizer->setEventID(part.entryID);
@@ -136,6 +147,7 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
+  ElectronicsDelay mElectronicsDelay;                                                // Electronics delay
 };
 
 o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel, bool mctruth)

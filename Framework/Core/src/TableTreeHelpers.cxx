@@ -128,54 +128,6 @@ BranchToColumn::BranchToColumn(TBranch* branch, bool VLA, std::string name, EDat
   }
 }
 
-template <typename T>
-inline T doSwap(T)
-{
-  static_assert(always_static_assert_v<T>, "Unsupported type");
-}
-
-template <>
-inline uint16_t doSwap(uint16_t x)
-{
-  return swap16_(x);
-}
-
-template <>
-inline uint32_t doSwap(uint32_t x)
-{
-  return swap32_(x);
-}
-
-template <>
-inline uint64_t doSwap(uint64_t x)
-{
-  return swap64_(x);
-}
-
-template <typename T>
-void doSwapCopy_(void* dest, void* source, int size) noexcept
-{
-  auto tdest = static_cast<T*>(dest);
-  auto tsrc = static_cast<T*>(source);
-  for (auto i = 0; i < size; ++i) {
-    tdest[i] = doSwap<T>(tsrc[i]);
-  }
-}
-
-void swapCopy(unsigned char* dest, char* source, int size, int typeSize) noexcept
-{
-  switch (typeSize) {
-    case 1:
-      return (void)std::memcpy(dest, source, size);
-    case 2:
-      return doSwapCopy_<uint16_t>(dest, source, size);
-    case 4:
-      return doSwapCopy_<uint32_t>(dest, source, size);
-    case 8:
-      return doSwapCopy_<uint64_t>(dest, source, size);
-  }
-}
-
 std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> BranchToColumn::read(TBuffer* buffer)
 {
   auto totalEntries = mBranch->GetEntries();
@@ -547,14 +499,22 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
   if (mBranchReaders.empty()) {
     throw runtime_error("No columns will be read");
   }
-  //tree->SetCacheSize(50000000);
-  // FIXME: see https://github.com/root-project/root/issues/8962 and enable
-  // again once fixed.
-  //tree->SetClusterPrefetch(true);
-  //for (auto& reader : mBranchReaders) {
-  //  tree->AddBranchToCache(reader->branch());
-  //}
-  //tree->StopCacheLearningPhase();
+  // Was affected by https://github.com/root-project/root/issues/8962
+  // Re-enabling this seems to cut the number of IOPS in half
+  tree->SetCacheSize(25000000);
+  // tree->SetClusterPrefetch(true);
+  for (auto& reader : mBranchReaders) {
+    tree->AddBranchToCache(reader->branch());
+    if (strncmp(reader->branch()->GetName(), "fIndexArray", strlen("fIndexArray")) == 0) {
+      std::string sizeBranchName = reader->branch()->GetName();
+      sizeBranchName += "_size";
+      TBranch* sizeBranch = (TBranch*)tree->GetBranch(sizeBranchName.c_str());
+      if (sizeBranch) {
+        tree->AddBranchToCache(sizeBranch);
+      }
+    }
+  }
+  tree->StopCacheLearningPhase();
 }
 
 void TreeToTable::setLabel(const char* label)

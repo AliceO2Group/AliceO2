@@ -286,6 +286,7 @@ AddOption(tpcDownscaledEdx, uint8_t, 0, "", 0, "If != 0, downscale dEdx processi
 AddOption(tpcMaxAttachedClustersPerSectorRow, uint32_t, 51000, "", 0, "Maximum number of TPC attached clusters which can be decoded per SectorRow")
 AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
 AddOption(tpcApplyCFCutsAtDecoding, bool, false, "", 0, "Apply cluster cuts from clusterization during decoding of compressed clusters")
+AddOption(tpcApplyDebugClusterFilter, bool, false, "", 0, "Apply custom cluster filter of GPUTPCClusterFilter class")
 AddOption(RTCcacheFolder, std::string, "./rtccache/", "", 0, "Folder in which the cache file is stored")
 AddOption(RTCprependCommand, std::string, "", "", 0, "Prepend RTC compilation commands by this string")
 AddOption(RTCoverrideArchitecture, std::string, "", "", 0, "Override arhcitecture part of RTC compilation command line")
@@ -461,8 +462,8 @@ EndConfig()
 
 // Settings for the standalone benchmark
 BeginConfig(GPUSettingsStandalone, configStandalone)
-AddOption(runGPU, bool, true, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
-AddOptionSet(runGPU, bool, false, "", 'c', "Use CPU for processing", message("CPU enabled"))
+AddOption(runGPU, uint8_t, 1, "", 'g', "Use GPU for processing", message("GPU processing enabled"), set(2))
+AddOptionSet(runGPU, uint8_t, 0, "", 'c', "Use CPU for processing", message("CPU enabled"))
 AddOption(gpuType, std::string, "AUTO", "", 0, "GPU type (CUDA / HIP / OCL / OCL2) or CPU or AUTO")
 AddOption(runGPUforce, bool, true, "", 0, "Force usage of the specified GPU device type, no CPU fallback")
 AddOption(noprompt, bool, true, "", 0, "Do prompt for keypress before exiting")

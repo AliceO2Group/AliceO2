@@ -94,6 +94,7 @@ set(SRCS_NO_CINT
     Global/GPUErrors.cxx
     Merger/GPUTPCGMMergerGPU.cxx
     Debug/GPUROOTDumpCore.cxx
+    Debug/GPUTPCClusterFilter.cxx
     utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
@@ -166,6 +167,7 @@ set(HDRS_INSTALL
     TRDTracking/GPUTRDTrackletLabels.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrackPoint.h
+    DataTypes/GPUTPCGMPolynomialField.h
 )
 
 # Sources for O2 and for Standalone if requested in config file

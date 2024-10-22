@@ -51,6 +51,7 @@ o2_add_executable(digitizer-workflow
                                         O2::MCHDigitFiltering
                                         O2::MFTSimulation
                                         O2::MIDSimulation
+                                        O2::MIDRaw
                                         O2::PHOSSimulation
                                         O2::CPVSimulation
                                         O2::TOFSimulation
@@ -109,6 +110,7 @@ o2_add_executable(digitizer-workflow
                                         O2::MCHDigitFiltering
                                         O2::MFTSimulation
                                         O2::MIDSimulation
+                                        O2::MIDRaw
                                         O2::PHOSSimulation
                                         O2::CPVSimulation
                                         O2::TOFSimulation

@@ -39,8 +39,23 @@ void trackletFinderHandler(const Cluster* clustersNextLayer,    // 0 2
                            const unsigned int startRofId,
                            const unsigned int rofSize,
                            const float phiCut,
-                           const size_t maxTrackletsPerCluster)
+                           const unsigned int maxTrackletsPerCluster,
+                           const int nBlocks,
+                           const int nThreads)
 {
+  gpu::trackleterKernelMultipleRof<Mode><<<nBlocks, nThreads>>>(
+    clustersNextLayer,       // const Cluster* clustersNextLayer,    // 0 2
+    clustersCurrentLayer,    // const Cluster* clustersCurrentLayer, // 1 1
+    sizeNextLClusters,       // const int* sizeNextLClusters,
+    sizeCurrentLClusters,    // const int* sizeCurrentLClusters,
+    nextIndexTables,         // const int* nextIndexTables,
+    Tracklets,               // Tracklet* Tracklets,
+    foundTracklets,          // int* foundTracklets,
+    utils,                   // const IndexTableUtils* utils,
+    startRofId,              // const unsigned int startRofId,
+    rofSize,                 // const unsigned int rofSize,
+    phiCut,                  // const float phiCut,
+    maxTrackletsPerCluster); // const unsigned int maxTrackletsPerCluster = 1e2
 }
 /*
 GPUd() float smallestAngleDifference(float a, float b)
@@ -96,7 +111,7 @@ GPUd() void printOnBlock(const unsigned int bId, const char* str, Args... args)
   }
 }
 
-GPUg() void printBufferOnThread(const int* v, size_t size, const int len = 150, const unsigned int tId = 0)
+GPUg() void printBufferOnThread(const int* v, unsigned int size, const int len = 150, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     for (int i{0}; i < size; ++i) {
@@ -109,7 +124,7 @@ GPUg() void printBufferOnThread(const int* v, size_t size, const int len = 150, 
   }
 }
 
-GPUg() void printBufferOnThreadF(const float* v, size_t size, const unsigned int tId = 0)
+GPUg() void printBufferOnThreadF(const float* v, unsigned int size, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf("vector :");
@@ -127,7 +142,7 @@ GPUg() void resetTrackletsKernel(Tracklet* tracklets, const int nTracklets)
   }
 }
 
-GPUg() void dumpFoundTrackletsKernel(const Tracklet* tracklets, const int* nTracklet, const size_t nClustersMiddleLayer, const int maxTrackletsPerCluster)
+GPUg() void dumpFoundTrackletsKernel(const Tracklet* tracklets, const int* nTracklet, const unsigned int nClustersMiddleLayer, const int maxTrackletsPerCluster)
 {
   for (int iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < nClustersMiddleLayer; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
     const int stride{iCurrentLayerClusterIndex * maxTrackletsPerCluster};
@@ -160,7 +175,7 @@ GPUg() void trackleterKernelSingleRof(
   int* foundTracklets,
   const IndexTableUtils* utils,
   const short rofId,
-  const size_t maxTrackletsPerCluster = 1e2)
+  const unsigned int maxTrackletsPerCluster = 1e2)
 {
   const int phiBins{utils->getNphiBins()};
   const int zBins{utils->getNzBins()};
@@ -168,7 +183,7 @@ GPUg() void trackleterKernelSingleRof(
   for (int iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < sizeCurrentLClusters; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
     if (iCurrentLayerClusterIndex < sizeCurrentLClusters) {
       unsigned int storedTracklets{0};
-      const size_t stride{iCurrentLayerClusterIndex * maxTrackletsPerCluster};
+      const unsigned int stride{iCurrentLayerClusterIndex * maxTrackletsPerCluster};
       const Cluster& currentCluster = clustersCurrentLayer[iCurrentLayerClusterIndex];
       const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, *utils)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
@@ -218,7 +233,7 @@ GPUg() void trackleterKernelMultipleRof(
   const short startRofId,
   const short rofSize,
   const float phiCut,
-  const size_t maxTrackletsPerCluster = 1e2)
+  const unsigned int maxTrackletsPerCluster = 1e2)
 {
   const int phiBins{utils->getNphiBins()};
   const int zBins{utils->getNzBins()};
@@ -235,7 +250,7 @@ GPUg() void trackleterKernelMultipleRof(
     // single rof loop on layer1 clusters
     for (int iCurrentLayerClusterIndex = threadIdx.x; iCurrentLayerClusterIndex < nClustersCurrentLayerRof; iCurrentLayerClusterIndex += blockDim.x) {
       unsigned int storedTracklets{0};
-      const size_t stride{iCurrentLayerClusterIndex * maxTrackletsPerCluster};
+      const unsigned int stride{iCurrentLayerClusterIndex * maxTrackletsPerCluster};
       const Cluster& currentCluster = clustersCurrentLayerRof[iCurrentLayerClusterIndex];
       const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, *utils)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
@@ -276,7 +291,7 @@ template <bool initRun>
 GPUg() void trackletSelectionKernelSingleRof(
   const Cluster* clusters0,
   const Cluster* clusters1,
-  const size_t nClustersMiddleLayer,
+  const unsigned int nClustersMiddleLayer,
   Tracklet* tracklets01,
   Tracklet* tracklets12,
   const int* nFoundTracklet01,
@@ -436,7 +451,7 @@ GPUg() void computeCentroidsKernel(
   Line* lines,
   int* nFoundLines,
   int* nExclusiveFoundLines,
-  const size_t nClustersMiddleLayer,
+  const unsigned int nClustersMiddleLayer,
   float* centroids,
   const float lowHistX,
   const float highHistX,
@@ -446,7 +461,7 @@ GPUg() void computeCentroidsKernel(
 {
   const int nLines = nExclusiveFoundLines[nClustersMiddleLayer - 1] + nFoundLines[nClustersMiddleLayer - 1];
   const int maxIterations{nLines * (nLines - 1) / 2};
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
+  for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
     int iFirstLine = currentThreadIndex / nLines;
     int iSecondLine = currentThreadIndex % nLines;
     // All unique pairs
@@ -496,7 +511,7 @@ GPUg() void computeZCentroidsKernel(
   const int binOpeningX,
   const int binOpeningY)
 {
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
+  for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
     if (tmpVtX[0].value || tmpVtX[1].value) {
       float tmpX{lowHistX + tmpVtX[0].key * binSizeHistX + binSizeHistX / 2};
       int sumWX{tmpVtX[0].value};
@@ -543,7 +558,7 @@ GPUg() void computeVertexKernel(
   const int minContributors,
   const int binOpeningZ)
 {
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
+  for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
     if (currentThreadIndex == 0) {
       if (tmpVertexBins[2].value > 1 && (tmpVertexBins[0].value || tmpVertexBins[1].value)) {
         float z{lowHistZ + tmpVertexBins[2].key * binSizeHistZ + binSizeHistZ / 2};

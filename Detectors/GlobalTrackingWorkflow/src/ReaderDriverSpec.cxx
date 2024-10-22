@@ -75,7 +75,7 @@ void ReadeDriverSpec::run(ProcessingContext& pc)
     LOGP(debug, "OUTVEC {}/{}", v.back().getMin().asString(), v.back().getMax().asString());
   }
   count++;
-  if ((HBFINI::LastIRFrameIndex == -1 && count == HBFINI::NTFs) || (v.size() && v.back().isLast())) {
+  if ((HBFINI::LastIRFrameIndex == -1 && count == mNTF) || (v.size() && v.back().isLast())) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

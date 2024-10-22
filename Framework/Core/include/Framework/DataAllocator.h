@@ -144,8 +144,8 @@ class DataAllocator
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
   template <typename T>
+    requires std::is_fundamental_v<T>
   struct UninitializedVector {
-    static_assert(std::is_fundamental<T>::value, "UninitializedVector only allowed for fundamental types");
     using value_type = T;
   };
 

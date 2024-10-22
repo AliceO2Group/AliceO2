@@ -170,12 +170,14 @@ struct qConfigType {
     settings.max = maxval.v;
   }
   static inline void qProcessSetting(qConfigSettings<T>& settings, qmessage_t msg) { settings.message = msg.v; }
-  static inline void qProcessSetting(qConfigSettings<T>& settings, qset_t<T> set)
+  template <typename S>
+  static inline void qProcessSetting(qConfigSettings<T>& settings, qset_t<S> set)
   {
     settings.doSet = true;
     settings.set = set.v;
   }
-  static inline void qProcessSetting(qConfigSettings<T>& settings, qdef_t<T> set)
+  template <typename S>
+  static inline void qProcessSetting(qConfigSettings<T>& settings, qdef_t<S> set)
   {
     settings.doDefault = true;
     settings.set = set.v;

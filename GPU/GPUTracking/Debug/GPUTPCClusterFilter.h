@@ -9,19 +9,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITStracking/TrackingConfigParam.h"
-#include "ITStracking/Configuration.h"
+/// \file GPUTPCClusterFilter.h
+/// \author David Rohr
 
-namespace o2
-{
-namespace its
-{
-static auto& sVertexerParamITS = o2::its::VertexerParamConfig::Instance();
-static auto& sCATrackerParamITS = o2::its::TrackerParamConfig::Instance();
-static auto& sGpuRecoParamITS = o2::its::ITSGpuTrackingParamConfig::Instance();
+#ifndef GPUTPCCLUSTERFILTER_H
+#define GPUTPCCLUSTERFILTER_H
 
-O2ParamImpl(o2::its::VertexerParamConfig);
-O2ParamImpl(o2::its::TrackerParamConfig);
-O2ParamImpl(o2::its::ITSGpuTrackingParamConfig);
-} // namespace its
-} // namespace o2
+#include <cstdint>
+
+namespace o2::tpc
+{
+struct ClusterNativeAccess;
+struct ClusterNative;
+} // namespace o2::tpc
+
+namespace o2::gpu
+{
+class GPUTPCClusterFilter
+{
+ public:
+  GPUTPCClusterFilter(const o2::tpc::ClusterNativeAccess& clusters);
+  bool filter(uint32_t sector, uint32_t row, o2::tpc::ClusterNative& cl);
+};
+} // namespace o2::gpu
+
+#endif

@@ -20,6 +20,7 @@
 
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 namespace o2::its
 {
@@ -28,7 +29,7 @@ constexpr int UnusedIndex{-1};
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialiseHybrid(iteration, mTrkParams[iteration], nLayers);
+  mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], nLayers);
   mTimeFrameGPU->loadTrackingFrameInfoDevice(iteration);
 }
 
@@ -397,7 +398,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
     }
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds);
     mTimeFrameGPU->loadTrackSeedsDevice(trackSeeds);
-
+    auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
     trackSeedHandler(
       mTimeFrameGPU->getDeviceTrackSeeds(),             // CellSeed* trackSeeds,
       mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo,
@@ -408,7 +409,9 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       mTrkParams[0].MaxChi2ClusterAttachment,           // float maxChi2ClusterAttachment,
       mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
       mTimeFrameGPU->getDevicePropagator(),             // const o2::base::Propagator* propagator
-      mCorrType);                                       // o2::base::PropagatorImpl<float>::MatCorrType
+      mCorrType,                                        // o2::base::PropagatorImpl<float>::MatCorrType
+      conf.nBlocks,
+      conf.nThreads);
 
     mTimeFrameGPU->downloadTrackITSExtDevice(trackSeeds);
 

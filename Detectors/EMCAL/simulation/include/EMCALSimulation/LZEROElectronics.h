@@ -39,6 +39,8 @@ namespace emcal
 /// \param mLastTimesumAllFastOrs Vector of tuples with TRU ID, FastOrID with STU indexing, and their last Timesums
 struct EMCALTriggerInputs {
   o2::InteractionRecord mInterRecord;                               ///< Last known interaction record
+  int mTriggeredTRU;                                                ///< Trigger TRU
+  std::vector<int> mTriggeredPatches;                               ///< Trigger patches, in local STU indexing
   std::vector<std::tuple<int, int, double>> mLastTimesumAllFastOrs; ///< TRU ID, FastOrID with STU indexing, and its last Timesum
 };
 
@@ -76,6 +78,10 @@ class LZEROElectronics
   /// Sets geometry for trigger mapping
   void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
+  /// Sets the masked fastOrs from the CCDB in the LZERO
+  void setMaskedFastOrs(std::vector<int> const& maskedfastors) { mMaskedFastOrs = maskedfastors; }
+  void printMaskedFastOrs();
+
   /// Set Threshold for LZERO algorithm
   /// \param threshold LZERO algorithm threshold
   void setThreshold(double threshold) { mThreshold = threshold; }
@@ -104,7 +110,7 @@ class LZEROElectronics
 
   /// Getter for the pattern of peaks found by the LZERO algorithm
   /// \param p TRUElectronics object
-  const std::vector<int>& getFiredPatches(TRUElectronics& p) const
+  const std::vector<int>& getFiredPatches(TRUElectronics const& p) const
   {
     return p.mFiredPatches;
   }
@@ -131,6 +137,7 @@ class LZEROElectronics
   // const SimParam* mSimParam = nullptr;                 ///< SimParam object
   std::vector<EMCALTriggerInputs> mTriggers;           ///< Triggers to be sent out
   std::vector<EMCALTriggerInputsPatch> mTriggersPatch; ///< Triggers to be sent out
+  std::vector<int> mMaskedFastOrs;                     ///< Masked fastOrs from CCDB
   bool mSimulateNoiseDigits = true;                    ///< simulate noise digits
   // TriggerMappingV2* mTriggerMap = nullptr;             ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
   Geometry* mGeometry = nullptr; ///< EMCAL geometry
