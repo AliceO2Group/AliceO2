@@ -407,6 +407,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(IsPVContributor, isPVContributor, //! Run 3: Has this
                            [](uint8_t flags) -> bool { return (flags & o2::aod::track::PVContributor) == o2::aod::track::PVContributor; });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
+DECLARE_SOA_DYNAMIC_COLUMN(MinFractionOfTPCclustersForPID, minFractionOfTPCclustersForPID, //! Minimum fraction of TPC clusters used for PID in bins of 0.125
+                           [](uint32_t flags) -> float { return ((flags >> 25) & 0x7) * 0.125; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //! Number of crossed TPC Rows
@@ -551,6 +553,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                        track::PIDForTracking<track::Flags>,
                        track::IsPVContributor<track::Flags>,
+                       track::MinFractionOfTPCclustersForPID<track::Flags>,
                        track::HasITS<track::DetectorMap>, track::HasTPC<track::DetectorMap>,
                        track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
@@ -578,6 +581,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                                  track::PIDForTracking<track::Flags>,
                                  track::IsPVContributor<track::Flags>,
+                                 track::MinFractionOfTPCclustersForPID<track::Flags>,
                                  track::HasITS<track::v001::DetectorMap>, track::HasTPC<track::v001::DetectorMap>,
                                  track::HasTRD<track::v001::DetectorMap>, track::HasTOF<track::v001::DetectorMap>,
                                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
