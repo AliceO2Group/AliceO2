@@ -110,6 +110,9 @@ class Digitizer : public TObject
   bool mSmearEnergy = true;                                                             ///< do time and energy smearing
   bool mSimulateTimeResponse = true;                                                    ///< simulate time response
   const SimParam* mSimParam = nullptr;                                                  ///< SimParam object
+  bool mIsBeforeFirstRO = false;                                                        ///< check if the signal comes before the ROF
+  o2::InteractionRecord mIRFirstSampledTF;                                              ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
+  double mTimeBCns;                                                                     ///< time difference between bc and start of ROF in ns
 
   std::vector<Digit> mTempDigitVector;     ///< temporary digit storage
   o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
