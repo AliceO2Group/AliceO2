@@ -136,9 +136,9 @@ void DigitReader::run(ProcessingContext& pc)
         ent++;
       }
       o2::utils::IRFrameSelector irfSel;
-      irfSel.setSelectedIRFrames(irFrames, 0, 0, mROFBiasInBC, true);
-      const auto irMin = irFrames.front().getMin();
-      const auto irMax = irFrames.back().getMax();
+      irfSel.setSelectedIRFrames(irFrames, 0, 0, -mROFBiasInBC, true);
+      const auto irMin = irfSel.getIRFrames().front().getMin(); // use processed IRframes for rough comparisons (possible shift!)
+      const auto irMax = irfSel.getIRFrames().back().getMax();
       LOGP(info, "Selecting IRFrame {}-{}", irMin.asString(), irMax.asString());
       while (ent < mTree->GetEntries()) {
         // do we need to read a new entry?
@@ -159,7 +159,7 @@ void DigitReader::run(ProcessingContext& pc)
         std::vector<int> rofOld2New;
         rofOld2New.resize(mDigROFRec.size(), -1);
 
-        if (mDigROFRec.front().getBCData() <= irMax && mDigROFRec.back().getBCData() >= irMin) { // there is an overlap
+        if (mDigROFRec.front().getBCData() <= irMax && (mDigROFRec.back().getBCData() + mROFLengthInBC - 1) >= irMin) { // there is an overlap
           for (int irof = 0; irof < (int)mDigROFRec.size(); irof++) {
             const auto& rof = mDigROFRec[irof];
             if (irfSel.check({rof.getBCData(), rof.getBCData() + mROFLengthInBC - 1}) != -1) {
@@ -198,7 +198,7 @@ void DigitReader::run(ProcessingContext& pc)
             mc2rof.maxROF = mx;
           }
         }
-        if (mDigROFRec.back().getBCData() < irMax) { // need to check the next entry
+        if (mDigROFRec.back().getBCData() + mROFLengthInBC - 1 < irMax) { // need to check the next entry
           ent++;
           continue;
         }
