@@ -49,6 +49,9 @@ expressions::BindingNode getMatchingIndexNode()
 
 template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... As>
 struct GroupedCombinationsGenerator {
+  template <typename P>
+  using pack_to_tuple_t = decltype(std::apply([](auto... t) { return std::tuple(t...); }, P{}));
+
   using GroupedIteratorType = pack_to_tuple_t<interleaved_pack_t<repeated_type_pack_t<typename G::iterator, sizeof...(As)>, pack<As...>>>;
 
   struct GroupedIterator : public GroupingPolicy {
