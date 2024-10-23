@@ -9,13 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Constants)
-add_subdirectory(MathUtils)
-add_subdirectory(Field)
-add_subdirectory(Types)
-add_subdirectory(Utils)
-add_subdirectory(ML)
-add_subdirectory(SimConfig)
-add_subdirectory(DCAFitter)
-
-o2_data_file(COPY maps DESTINATION Common)
+o2_add_library(ML
+               SOURCES src/ort_interface.cxx
+               TARGETVARNAME targetName
+               PRIVATE_LINK_LIBRARIES O2::Framework ONNXRuntime::ONNXRuntime)

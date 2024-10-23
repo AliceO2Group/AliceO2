@@ -81,6 +81,11 @@ if(OpenMP_CXX_FOUND)
   target_link_libraries(${mergertargetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
+o2_add_executable(onnx-interface
+                  COMPONENT_NAME test
+                  SOURCES test/test_onnx_interface_headers.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::SimulationDataFormat O2::TPCQC O2::DataFormatsTPC O2::TPCBase O2::ML Boost::thread O2::GPUTracking)
+
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME tpc
