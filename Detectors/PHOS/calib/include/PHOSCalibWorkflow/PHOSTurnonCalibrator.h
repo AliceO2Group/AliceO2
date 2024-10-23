@@ -15,8 +15,6 @@
 /// @file   PHOSTurnonCalibrator.h
 /// @brief  Device to calculate PHOS turn-on curve and bad map
 
-#include "Framework/Task.h"
-#include "Framework/WorkflowSpec.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/Cell.h"
@@ -26,9 +24,7 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace phos
+namespace o2::phos
 {
 
 class PHOSTurnonSlot
@@ -96,8 +92,6 @@ class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o
   ClassDefOverride(PHOSTurnonCalibrator, 1);
 };
 
-o2::framework::DataProcessorSpec getPHOSTunronCalibDeviceSpec(bool useCCDB);
-} // namespace phos
 } // namespace o2
 
 #endif

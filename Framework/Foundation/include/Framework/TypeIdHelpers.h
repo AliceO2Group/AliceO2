@@ -72,7 +72,7 @@ constexpr static std::string_view type_name()
 
 struct TypeIdHelpers {
   template <typename T>
-  constexpr static uint32_t uniqueId()
+  consteval static uint32_t uniqueId()
   {
 #ifdef __CLING__
     constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
