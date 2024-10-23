@@ -133,7 +133,7 @@ int WaveformCalibEPN::endOfRun()
              mData.getEntries(is), mConfig->cutLow[is], mConfig->cutHigh[is],
              itdc, mConfig->cutTimeLow[itdc], mConfig->cutTimeHigh[itdc],
              mData.getFirstValid(is), mData.mPeak, mData.getLastValid(is));
-      }else{
+      } else {
         LOGF(info, "Waveform %2d %s with %10d events and cuts AMP:(%g:%g) TDC:%d:(%g:%g)", is, ChannelNames[is].data(),
              mData.getEntries(is), mConfig->cutLow[is], mConfig->cutHigh[is],
              itdc, mConfig->cutTimeLow[itdc], mConfig->cutTimeHigh[itdc]);

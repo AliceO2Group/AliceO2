@@ -43,9 +43,9 @@ class DigitParserSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  DigiParser mWorker;                  // Reconstruction object
-  int mVerbosity = 0;                // Verbosity level during recostruction
-  bool mInitialized = false;         // Connect once to CCDB during initialization
+  DigiParser mWorker;        // Reconstruction object
+  int mVerbosity = 0;        // Verbosity level during recostruction
+  bool mInitialized = false; // Connect once to CCDB during initialization
   TStopwatch mTimer;
 };
 

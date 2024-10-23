@@ -90,9 +90,9 @@ void DigiParser::init()
     if (mSignalTH[ich] == nullptr) {
       TString hname = TString::Format("hsth_%s", ChannelNames[ich].data());
       TString htit = TString::Format("Signal %s AUTOT & Hit; Sample; ADC", ChannelNames[ich].data());
-      if(mRejectPileUp){
+      if (mRejectPileUp) {
         mSignalTH[ich] = std::make_unique<TH2F>(hname, htit, 3 * NTimeBinsPerBC, -0.5 - 1 * NTimeBinsPerBC, 2 * NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
-      }else{
+      } else {
         mSignalTH[ich] = std::make_unique<TH2F>(hname, htit, 5 * NTimeBinsPerBC, -0.5 - 3 * NTimeBinsPerBC, 2 * NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
       }
     }
@@ -174,7 +174,7 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
       if (chd.id > IdDummy && chd.id < NChannels) {
         chRef[ibc][chd.id] = chEnt;
         mTransmitted->Fill(chd.id);
-        if((bcdata[ibc].triggers & mChMask[chd.id]) != 0){
+        if ((bcdata[ibc].triggers & mChMask[chd.id]) != 0) {
           mFired->Fill(chd.id);
         }
       }
@@ -192,19 +192,19 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
         for (int ibn = -4; ibn < 5; ibn++) {
           int ibt = ibc + ibn;
           if (ibt >= 0) { // Check backward and current bunch
-            if(ibt < mNBC){
-            auto bcd = bcdata[ibt].ir.differenceInBC(ir);
-            if (bcd == ibn) {
-              if ((bcdata[ibt].triggers & mChMask[isig]) != 0) {
-                nsig++;
+            if (ibt < mNBC) {
+              auto bcd = bcdata[ibt].ir.differenceInBC(ir);
+              if (bcd == ibn) {
+                if ((bcdata[ibt].triggers & mChMask[isig]) != 0) {
+                  nsig++;
+                }
               }
+            } else {
+              break;
             }
-          }else{
-            break;
-          }
           }
         }
-        if (nsig>1) {
+        if (nsig > 1) {
           continue;
         }
       }

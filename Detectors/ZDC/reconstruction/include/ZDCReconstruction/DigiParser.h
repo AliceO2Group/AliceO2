@@ -55,10 +55,12 @@ class DigiParser
     mVerbosity = v;
   }
   int getVerbosity() const { return mVerbosity; }
-  void setOutput(std::string output){
+  void setOutput(std::string output)
+  {
     mOutput = output;
   }
-  void setRejectPileUp(bool op =  true){
+  void setRejectPileUp(bool op = true)
+  {
     mRejectPileUp = op;
   }
   void eor();
@@ -66,8 +68,8 @@ class DigiParser
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
 
-private:
-  const ModuleConfig* mModuleConfig = nullptr;              /// Trigger/readout configuration object
+ private:
+  const ModuleConfig* mModuleConfig = nullptr; /// Trigger/readout configuration object
   const RecoParamZDC* mRopt = nullptr;
 
   void setStat(TH1* h);
@@ -76,8 +78,8 @@ private:
   int32_t mVerbosity = DbgMinimal;
   bool mRejectPileUp = true;
   std::string mOutput = "ZDCDigiParser.root";
-  uint32_t mTriggerMask = 0;                     /// Mask of triggering channels
-  uint32_t mChMask[NChannels] = {0};             /// Identify all channels in readout pattern
+  uint32_t mTriggerMask = 0;         /// Mask of triggering channels
+  uint32_t mChMask[NChannels] = {0}; /// Identify all channels in readout pattern
 
   std::unique_ptr<TH1> mTransmitted = nullptr;
   std::unique_ptr<TH1> mFired = nullptr;

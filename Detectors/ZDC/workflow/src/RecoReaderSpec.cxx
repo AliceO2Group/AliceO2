@@ -66,7 +66,7 @@ void RecoReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << "ZDCRecoReader pushed " << RecBC.size() << " b.c. " << Energy.size() << " Energies " << TDCData.size() << " TDCs " << Info.size() << " Infos "  << WaveformData.size() << " Waveform chunks";
+  LOG(info) << "ZDCRecoReader pushed " << RecBC.size() << " b.c. " << Energy.size() << " Energies " << TDCData.size() << " TDCs " << Info.size() << " Infos " << WaveformData.size() << " Waveform chunks";
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0}, RecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0}, Energy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0}, TDCData);

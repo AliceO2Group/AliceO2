@@ -106,7 +106,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
         float x, rms;
         ev.centroidZPA(x, rms);
         cumulate(HidZPA, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
-        if (x < -(mInterCalibConfig->xcut_ZPA) && rms >= mInterCalibConfig->rms_cut_ZP ) {
+        if (x < -(mInterCalibConfig->xcut_ZPA) && rms >= mInterCalibConfig->rms_cut_ZP) {
           cumulate(HidZPAX, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
         }
       }
@@ -271,19 +271,19 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
-  if ((ih == HidZPA || ih == HidZPAX)){
-    if(t1 < mInterCalibConfig->towerCutLow_ZPA[0] || t2 < mInterCalibConfig->towerCutLow_ZPA[1] || t3 < mInterCalibConfig->towerCutLow_ZPA[2] || t4 < mInterCalibConfig->towerCutLow_ZPA[4]){ 
+  if ((ih == HidZPA || ih == HidZPAX)) {
+    if (t1 < mInterCalibConfig->towerCutLow_ZPA[0] || t2 < mInterCalibConfig->towerCutLow_ZPA[1] || t3 < mInterCalibConfig->towerCutLow_ZPA[2] || t4 < mInterCalibConfig->towerCutLow_ZPA[4]) {
       return;
     }
-    if(t1 > mInterCalibConfig->towerCutHigh_ZPA[0] || t2 > mInterCalibConfig->towerCutHigh_ZPA[1] || t3 > mInterCalibConfig->towerCutHigh_ZPA[2] || t4 > mInterCalibConfig->towerCutHigh_ZPA[4]){ 
+    if (t1 > mInterCalibConfig->towerCutHigh_ZPA[0] || t2 > mInterCalibConfig->towerCutHigh_ZPA[1] || t3 > mInterCalibConfig->towerCutHigh_ZPA[2] || t4 > mInterCalibConfig->towerCutHigh_ZPA[4]) {
       return;
     }
   }
   if (ih == HidZPC || ih == HidZPCX) {
-    if(t1 < mInterCalibConfig->towerCutLow_ZPC[0] || t2 < mInterCalibConfig->towerCutLow_ZPC[1] || t3 < mInterCalibConfig->towerCutLow_ZPC[2] || t4 < mInterCalibConfig->towerCutLow_ZPC[4]){ 
+    if (t1 < mInterCalibConfig->towerCutLow_ZPC[0] || t2 < mInterCalibConfig->towerCutLow_ZPC[1] || t3 < mInterCalibConfig->towerCutLow_ZPC[2] || t4 < mInterCalibConfig->towerCutLow_ZPC[4]) {
       return;
     }
-    if(t1 > mInterCalibConfig->towerCutHigh_ZPC[0] || t2 > mInterCalibConfig->towerCutHigh_ZPC[1] || t3 > mInterCalibConfig->towerCutHigh_ZPC[2] || t4 > mInterCalibConfig->towerCutHigh_ZPC[4]){ 
+    if (t1 > mInterCalibConfig->towerCutHigh_ZPC[0] || t2 > mInterCalibConfig->towerCutHigh_ZPC[1] || t3 > mInterCalibConfig->towerCutHigh_ZPC[2] || t4 > mInterCalibConfig->towerCutHigh_ZPC[4]) {
       return;
     }
   }

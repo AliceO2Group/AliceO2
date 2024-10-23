@@ -38,11 +38,11 @@ struct InterCalibConfig {
   // the same as for ZPA/ZPC with no cuts
   double xcut_ZPA = 0;
   double xcut_ZPC = 0;
-  double rms_cut_ZP = 0;   // RMS of ZP centroid can go from 0 to 8.4 cm
-  double towerCutLow_ZPA[4] = { 0, 0, 0, 0}; // Applied to all ZP fits except ZPI
-  double towerCutLow_ZPC[4] = { 0, 0, 0, 0}; // Applied to all ZP fits except ZPI
-  double towerCutHigh_ZPA[4] = { std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity() }; // Applied to all ZP fits except ZPI
-  double towerCutHigh_ZPC[4] = { std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity() }; // Applied to all ZP fits except ZPI
+  double rms_cut_ZP = 0;                                                                                                                                                                         // RMS of ZP centroid can go from 0 to 8.4 cm
+  double towerCutLow_ZPA[4] = {0, 0, 0, 0};                                                                                                                                                      // Applied to all ZP fits except ZPI
+  double towerCutLow_ZPC[4] = {0, 0, 0, 0};                                                                                                                                                      // Applied to all ZP fits except ZPI
+  double towerCutHigh_ZPA[4] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()}; // Applied to all ZP fits except ZPI
+  double towerCutHigh_ZPC[4] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()}; // Applied to all ZP fits except ZPI
   bool cross_check = false;
 
   int nb1[NH] = {0};      /// 1D histogram: number of bins

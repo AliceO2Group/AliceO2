@@ -196,7 +196,7 @@ int WaveformCalibData::dumpCalib(const std::string fn)
     LOG(error) << "Cannot create file: " << fn;
     return 1;
   }
-  f->WriteObjectAny((void*)this,o2::zdc::WaveformCalibData::Class(),"WaveformCalibData");
+  f->WriteObjectAny((void*)this, o2::zdc::WaveformCalibData::Class(), "WaveformCalibData");
   f->Close();
   cwd->cd();
   return 0;

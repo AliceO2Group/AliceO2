@@ -450,19 +450,19 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
-  if ((ih == HidZPA || ih == HidZPAX)){
-    if(t1 < mInterCalibConfig->towerCutLow_ZPA[0] || t2 < mInterCalibConfig->towerCutLow_ZPA[1] || t3 < mInterCalibConfig->towerCutLow_ZPA[2] || t4 < mInterCalibConfig->towerCutLow_ZPA[3]){
+  if ((ih == HidZPA || ih == HidZPAX)) {
+    if (t1 < mInterCalibConfig->towerCutLow_ZPA[0] || t2 < mInterCalibConfig->towerCutLow_ZPA[1] || t3 < mInterCalibConfig->towerCutLow_ZPA[2] || t4 < mInterCalibConfig->towerCutLow_ZPA[3]) {
       return;
     }
-    if(t1 > mInterCalibConfig->towerCutHigh_ZPA[0] || t2 > mInterCalibConfig->towerCutHigh_ZPA[1] || t3 > mInterCalibConfig->towerCutHigh_ZPA[2] || t4 > mInterCalibConfig->towerCutHigh_ZPA[3]){
+    if (t1 > mInterCalibConfig->towerCutHigh_ZPA[0] || t2 > mInterCalibConfig->towerCutHigh_ZPA[1] || t3 > mInterCalibConfig->towerCutHigh_ZPA[2] || t4 > mInterCalibConfig->towerCutHigh_ZPA[3]) {
       return;
     }
   }
   if (ih == HidZPC || ih == HidZPCX) {
-    if(t1 < mInterCalibConfig->towerCutLow_ZPC[0] || t2 < mInterCalibConfig->towerCutLow_ZPC[1] || t3 < mInterCalibConfig->towerCutLow_ZPC[2] || t4 < mInterCalibConfig->towerCutLow_ZPC[3]){
+    if (t1 < mInterCalibConfig->towerCutLow_ZPC[0] || t2 < mInterCalibConfig->towerCutLow_ZPC[1] || t3 < mInterCalibConfig->towerCutLow_ZPC[2] || t4 < mInterCalibConfig->towerCutLow_ZPC[3]) {
       return;
     }
-    if(t1 > mInterCalibConfig->towerCutHigh_ZPC[0] || t2 > mInterCalibConfig->towerCutHigh_ZPC[1] || t3 > mInterCalibConfig->towerCutHigh_ZPC[2] || t4 > mInterCalibConfig->towerCutHigh_ZPC[3]){
+    if (t1 > mInterCalibConfig->towerCutHigh_ZPC[0] || t2 > mInterCalibConfig->towerCutHigh_ZPC[1] || t3 > mInterCalibConfig->towerCutHigh_ZPC[2] || t4 > mInterCalibConfig->towerCutHigh_ZPC[3]) {
       return;
     }
   }
