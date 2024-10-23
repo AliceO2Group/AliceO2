@@ -1556,7 +1556,7 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
   int i = 0;
 
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
-  for (const o2::dataformats::MatchInfoTOFReco& matchingPair : matchedTracksPairs) {
+  for (o2::dataformats::MatchInfoTOFReco& matchingPair : matchedTracksPairs) {
     int trkType = (int)matchingPair.getTrackType();
 
     int itrk = matchingPair.getIdLocal();
@@ -1610,6 +1610,24 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
     matchedTracksIndex[trkType][itrk] = matchedTracks[trkTypeSplitted].size();              // index of the MatchInfoTOF correspoding to this track
     matchedClustersIndex[matchingPair.getTOFClIndex()] = matchedTracksIndex[trkType][itrk]; // index of the track that was matched to this cluster
 
+    // let's check if cluster has multiple-hits (noferini)
+    if (TOFClusWork[matchingPair.getTOFClIndex()].getNumOfContributingChannels() > 1) {
+      const auto& tofcl = TOFClusWork[matchingPair.getTOFClIndex()];
+      // has an additional hit Up or Down (Z-dir)
+      matchingPair.setHitPatternUpDown(tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUp) ||
+                                       tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUpLeft) ||
+                                       tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUpRight) ||
+                                       tofcl.isAdditionalChannelSet(o2::tof::Cluster::kDown) ||
+                                       tofcl.isAdditionalChannelSet(o2::tof::Cluster::kDownLeft) ||
+                                       tofcl.isAdditionalChannelSet(o2::tof::Cluster::kDownRight));
+      // has an additional hit Left or Right (X-dir)
+      matchingPair.setHitPatternLeftRight(tofcl.isAdditionalChannelSet(o2::tof::Cluster::kLeft) ||
+                                          tofcl.isAdditionalChannelSet(o2::tof::Cluster::kDownLeft) ||
+                                          tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUpLeft) ||
+                                          tofcl.isAdditionalChannelSet(o2::tof::Cluster::kRight) ||
+                                          tofcl.isAdditionalChannelSet(o2::tof::Cluster::kDownRight) ||
+                                          tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUpRight));
+    }
     matchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
 
     // get fit info
