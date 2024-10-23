@@ -34,8 +34,7 @@ class DigitRecoSpec : public o2::framework::Task
 {
  public:
   DigitRecoSpec();
-  DigitRecoSpec(const int verbosity, const bool debugOut,
-                const bool enableZDCTDCCorr, const bool enableZDCEnergyParam, const bool enableZDCTowerParam, const bool enableBaselineParam);
+  DigitRecoSpec(const int verbosity, const bool debugOut, const bool enableZDCTDCCorr, const bool enableZDCEnergyParam, const bool enableZDCTowerParam, const bool enableBaselineParam);
   ~DigitRecoSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);

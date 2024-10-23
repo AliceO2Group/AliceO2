@@ -201,6 +201,9 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
 // a compensation of the time jitter
 int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave, WaveformCalibData& data)
 {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+  LOG(info) << "WaveformCalibQueue::" << __func__ << " isig=" << isig << " " << ChannelNames[isig] << " tdcid=" << SignalTDC[isig] << " tdc_sig=" << TDCSignal[SignalTDC[isig]] << " " << ChannelNames[TDCSignal[SignalTDC[isig]]];
+#endif
   int ipkb = -1; // Bunch where peak is found
   int ipk = -1;  // peak position within bunch
   float min = std::numeric_limits<float>::infinity();
@@ -213,7 +216,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     // #endif
     if (mHasInfos[isig][ib] || mHasInfos[TDCSignal[SignalTDC[isig]]][ib]) {
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-      LOG(info) << "isig=" << isig << " ib=" << ib << " tdcid=" << SignalTDC[isig] << " tdc_sig=" << TDCSignal[SignalTDC[isig]] << " " << mHasInfos[isig][ib] << " " << mHasInfos[TDCSignal[SignalTDC[isig]]][ib];
+      LOG(info) << "HasInfos on ib = " << ib << " tdcid=" << SignalTDC[isig] << " tdc_sig=" << TDCSignal[SignalTDC[isig]] << " " << mHasInfos[isig][ib] << " " << mHasInfos[TDCSignal[SignalTDC[isig]]][ib];
 #endif
       hasInfos = true;
     }
@@ -237,8 +240,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
       }
     }
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig=" << isig << " mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib]
-              << " ifound=" << ifound << " hasInfos=" << hasInfos;
+    LOG(info) << " isig=" << isig << " mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib] << " ifound=" << ifound << " hasInfos=" << hasInfos;
 #endif
     // Need to have consecutive data for all bunches
     if (!ifound || hasInfos) {
@@ -247,10 +249,13 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   }
   if (ipkb != mPk) {
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " != mPk " << mPk << " SKIP";
+    LOG(info) << " isig = " << isig << " ipkb " << ipkb << " != mPk " << mPk << " SKIP";
 #endif
     return -1;
   } else {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << " isig = " << isig << " ADDING DATA";
+#endif
     int ppos = NIS * ipkb + ipk;
     int itdc = SignalTDC[isig];
     if (isig != TDCSignal[itdc]) {
@@ -258,6 +263,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
       float amp = max - min;
       if (amp < mCfg->cutLow[isig] || amp > mCfg->cutHigh[isig]) {
         // No warning messages for amplitude cuts on towers
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+        LOG(info) << " isig = " << isig << " amplitude " << amp << " not in range " << mCfg->cutLow[isig] << " : " << mCfg->cutHigh[isig];
+#endif
         return -1;
       }
       if ((ppos - mPeak) < mTimeLow[itdc] || (ppos - mPeak) > mTimeHigh[itdc]) {

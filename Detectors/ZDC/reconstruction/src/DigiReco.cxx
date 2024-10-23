@@ -68,6 +68,9 @@ void DigiReco::init()
           }
         }
       }
+    } else {
+      // Fill mask to identify TDC channels
+      mTDCMask[itdc] = (0x1 << (4 * ropt.tmod[itdc] + ropt.tch[itdc]));
     }
   next_itdc:;
     if (mVerbosity > DbgZero) {
@@ -356,6 +359,9 @@ void DigiReco::init()
           }
         }
       }
+    } else {
+      // Fill mask to identify all channels
+      mChMask[ich] = (0x1 << (4 * ropt.amod[ich] + ropt.ach[ich]));
     }
   next_ich:;
     if (mVerbosity > DbgZero) {

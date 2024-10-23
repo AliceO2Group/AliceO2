@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_RECOWORKFLOW_H
-#define O2_ZDC_RECOWORKFLOW_H
+#ifndef O2_ZDC_PARSERWORKFLOW_H
+#define O2_ZDC_PARSERWORKFLOW_H
 
-/// @file   RecoWorkflow.h
+/// @file   ParserWorkflow.h
 
 #include "Framework/WorkflowSpec.h"
 
@@ -20,7 +20,7 @@ namespace o2
 {
 namespace zdc
 {
-framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut, const bool enableZDCTDCCorr, const bool enableZDCEnergyParam, const bool enableZDCTowerParam, const bool enableBaselineParam);
+framework::WorkflowSpec getParserWorkflow(const int verbosity);
 } // namespace zdc
 } // namespace o2
 #endif

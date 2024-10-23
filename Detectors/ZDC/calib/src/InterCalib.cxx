@@ -210,12 +210,12 @@ void InterCalib::assign(int ih, bool ismod)
   } else if (ih == 5) {
     nid = 1;
     id = id_5;
-    LOG(warn) << "InterCalib::assign unimplemented coefficient ih = " << ih;
+    LOG(warn) << "InterCalib::assign is not implemented for coefficient ih = " << ih;
     return;
   } else if (ih == 6) {
     nid = 1;
     id = id_6;
-    LOG(warn) << "InterCalib::assign unimplemented coefficient ih = " << ih;
+    LOG(warn) << "InterCalib::assign is not implemented for coefficient ih = " << ih;
     return;
   } else if (ih == 7 || ih == 8) {
     nid = 4;
@@ -246,15 +246,23 @@ void InterCalib::assign(int ih, bool ismod)
       if (oldval > 0) {
         val = val * mPar[ih][iid + 1];
       }
-      if (mVerbosity > DbgZero) {
+      if (mTowerParamUpd.modified[ich]) {
+        LOGF(warn, "%s OVERWRITING MODIFIED PARAMETER %8.6f", ChannelNames[ich].data(), mTowerParamUpd.getTowerCalib(ich));
+        LOGF(info, "%s updated %8.6f -> %8.6f", ChannelNames[ich].data(), oldval, val);
+      } else if (mVerbosity > DbgZero) {
         LOGF(info, "%s updated %8.6f -> %8.6f", ChannelNames[ich].data(), oldval, val);
       }
       mTowerParamUpd.setTowerCalib(ich, val, true);
     } else {
-      if (mVerbosity > DbgZero) {
-        LOGF(info, "%s NOT CHANGED %8.6f", ChannelNames[ich].data(), oldval);
+      // Check if another fit has already modified the parameters
+      if (mTowerParamUpd.modified[ich]) {
+        LOGF(warn, "%s NOT OVERWRITING MODIFIED PARAMETER %8.6f", ChannelNames[ich].data(), mTowerParamUpd.getTowerCalib(ich));
+      } else {
+        if (mVerbosity > DbgZero) {
+          LOGF(info, "%s NOT CHANGED %8.6f", ChannelNames[ich].data(), oldval);
+        }
+        mTowerParamUpd.setTowerCalib(ich, oldval, false);
       }
-      mTowerParamUpd.setTowerCalib(ich, oldval, false);
     }
   }
 }
@@ -294,6 +302,10 @@ int InterCalib::process(const char* hname, int ic)
     ih = HidZNI;
   } else if (hn.EqualTo("hZPI")) {
     ih = HidZPI;
+  } else if (hn.EqualTo("hZPAX")) {
+    ih = HidZPAX;
+  } else if (hn.EqualTo("hZPCX")) {
+    ih = HidZPCX;
   } else {
     LOGF(error, "Not recognized histogram name: %s\n", hname);
     return -1;
@@ -434,18 +446,32 @@ void InterCalib::add(int ih, o2::dataformats::FlatHisto2D<float>& h2)
 
 void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
 {
+  constexpr double minfty = -std::numeric_limits<double>::infinity();
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
-  double val[NPAR] = {0, 0, 0, 0, 0, 1};
-  val[0] = tc;
-  val[1] = t1;
-  val[2] = t2;
-  val[3] = t3;
-  val[4] = t4;
-  for (int32_t i = 0; i < NPAR; i++) {
-    for (int32_t j = i; j < NPAR; j++) {
-      mData.mSum[ih][i][j] += val[i] * val[j] * w;
+  if ((ih == HidZPA || ih == HidZPAX)) {
+    if (t1 < mInterCalibConfig->towerCutLow_ZPA[0] || t2 < mInterCalibConfig->towerCutLow_ZPA[1] || t3 < mInterCalibConfig->towerCutLow_ZPA[2] || t4 < mInterCalibConfig->towerCutLow_ZPA[3]) {
+      return;
+    }
+    if (t1 > mInterCalibConfig->towerCutHigh_ZPA[0] || t2 > mInterCalibConfig->towerCutHigh_ZPA[1] || t3 > mInterCalibConfig->towerCutHigh_ZPA[2] || t4 > mInterCalibConfig->towerCutHigh_ZPA[3]) {
+      return;
+    }
+  }
+  if (ih == HidZPC || ih == HidZPCX) {
+    if (t1 < mInterCalibConfig->towerCutLow_ZPC[0] || t2 < mInterCalibConfig->towerCutLow_ZPC[1] || t3 < mInterCalibConfig->towerCutLow_ZPC[2] || t4 < mInterCalibConfig->towerCutLow_ZPC[3]) {
+      return;
+    }
+    if (t1 > mInterCalibConfig->towerCutHigh_ZPC[0] || t2 > mInterCalibConfig->towerCutHigh_ZPC[1] || t3 > mInterCalibConfig->towerCutHigh_ZPC[2] || t4 > mInterCalibConfig->towerCutHigh_ZPC[3]) {
+      return;
+    }
+  }
+  double val[NPAR] = {tc, t1, t2, t3, t4, 1};
+  if (tc > minfty && t1 > minfty && t2 > minfty && t3 > minfty && t4 > minfty) {
+    for (int32_t i = 0; i < NPAR; i++) {
+      for (int32_t j = i; j < NPAR; j++) {
+        mData.mSum[ih][i][j] += val[i] * val[j] * w;
+      }
     }
   }
   // mData.mSum[ih][5][5] contains the number of analyzed events
@@ -470,6 +496,7 @@ void InterCalib::fcn(int& npar, double* gin, double& chi, double* par, int iflag
       chi += (i == 0 ? par[i] : -par[i]) * (j == 0 ? par[j] : -par[j]) * mAdd[i][j];
     }
   }
+  chi = chi / (1 + par[1] * par[1] + par[2] * par[2] + par[3] * par[3] + par[4] * par[4]);
 }
 
 int InterCalib::mini(int ih)
@@ -498,15 +525,11 @@ int InterCalib::mini(int ih)
   // Calibration cvoefficient is forced to and step is forced to zero
   mMn[ih]->mnparm(0, "c0", 1., 0., 1., 1., ierflg);
 
-  // Special fit for proton calorimeters: fit least exposed towers with using previous
-  // fit of all towers
+  // Special fit for proton calorimeters: fit least exposed towers
+  // starting from parameters of previous fit to all towers
 
   // Tower 1
-  if (ih == HidZPCX) {
-    mMn[ih]->mnparm(1, "c1", mPar[HidZPC][1], 0, l_bnd, u_bnd, ierflg);
-  } else {
-    mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
-  }
+  mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
 
   // Tower 2
   // Only two ZEM calorimeters: equalize response
@@ -518,20 +541,11 @@ int InterCalib::mini(int ih)
     step = 0;
   }
 
-  if (ih == HidZPCX) {
-    mMn[ih]->mnparm(2, "c2", mPar[HidZPC][2], 0, l_bnd, u_bnd, ierflg);
-  } else {
-    mMn[ih]->mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
-  }
+  mMn[ih]->mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
 
   // Towers 3 and 4
-  if (ih == HidZPAX) {
-    mMn[ih]->mnparm(3, "c3", mPar[HidZPA][3], 0, l_bnd, u_bnd, ierflg);
-    mMn[ih]->mnparm(4, "c4", mPar[HidZPA][4], 0, l_bnd, u_bnd, ierflg);
-  } else {
-    mMn[ih]->mnparm(3, "c3", start, step, l_bnd, u_bnd, ierflg);
-    mMn[ih]->mnparm(4, "c4", start, step, l_bnd, u_bnd, ierflg);
-  }
+  mMn[ih]->mnparm(3, "c3", start, step, l_bnd, u_bnd, ierflg);
+  mMn[ih]->mnparm(4, "c4", start, step, l_bnd, u_bnd, ierflg);
 
   // Offset
   l_bnd = mInterCalibConfig->l_bnd_o[ih];
@@ -551,13 +565,15 @@ int InterCalib::mini(int ih)
       l_bnd = mInterCalibConfig->l_bnd[ih];
       u_bnd = mInterCalibConfig->u_bnd[ih];
       for (int i = 1; i <= 4; i++) {
-        if (TMath::Abs(mPar[ih][i] - l_bnd) < 1e-3 || TMath::Abs(mPar[ih][i] - u_bnd) < 1e-3) {
+        if (TMath::Abs(mPar[ih][i] - l_bnd) < 1e-2 || TMath::Abs(mPar[ih][i] - u_bnd) < 1e-2) {
           retry = true;
           LOG(warn) << "ih=" << ih << " par " << i << " too close to boundaries";
           if (ih == 1 || ih == 7) {
-            mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPAC + i], 0, l_bnd, u_bnd, ierflg);
+            // mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPAC + i], 0, l_bnd, u_bnd, ierflg);
+            mMn[ih]->mnparm(i, parn[i], mInterCalibConfig->start[ih], 0, l_bnd, u_bnd, ierflg);
           } else if (ih == 3 || ih == 8) {
-            mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPCC + i], 0, l_bnd, u_bnd, ierflg);
+            // mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPCC + i], 0, l_bnd, u_bnd, ierflg);
+            mMn[ih]->mnparm(i, parn[i], mInterCalibConfig->start[ih], 0, l_bnd, u_bnd, ierflg);
           } else {
             LOG(fatal) << "ERROR on InterCalib minimization ih=" << ih;
           }

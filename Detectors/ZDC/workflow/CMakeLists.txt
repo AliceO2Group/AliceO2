@@ -20,7 +20,9 @@ o2_add_library(ZDCWorkflow
                        src/RecoWorkflow.cxx
                        src/DigitRecoSpec.cxx
                        src/DigitReaderSpec.cxx
+                       src/DigitParserSpec.cxx
                        src/RecoReaderSpec.cxx
+                       src/ParserWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsZDC
                                      O2::ZDCRaw
@@ -64,3 +66,9 @@ o2_add_executable(digits-writer
                   COMPONENT_NAME zdc
                   SOURCES src/digits-writer-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCReconstruction)
+
+o2_add_executable(digits-parser
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-parser-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCReconstruction)
+

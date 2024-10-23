@@ -41,6 +41,10 @@ int WaveformCalibEPN::init()
     setSaveDebugHistos();
   }
 
+  if (opt.dumpCalib == true) {
+    setDumpCalib();
+  }
+
   mQueue.configure(cfg);
   if (mVerbosity > DbgZero) {
     mQueue.printConf();
@@ -99,6 +103,7 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 #endif
     if (mask != 0) {
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      // Print last recorded event. Not the event at peak position
       ev.print();
       ev.printDecodedMessages();
       mQueue.print();
@@ -122,17 +127,25 @@ int WaveformCalibEPN::endOfRun()
   if (mVerbosity > DbgZero) {
     LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
     for (int is = 0; is < NChannels; is++) {
+      int itdc = SignalTDC[is];
       if (mData.getEntries(is) > 0) {
-        int itdc = SignalTDC[is];
         LOGF(info, "Waveform %2d %s with %10d events and cuts AMP:(%g:%g) TDC:%d:(%g:%g) Valid:[%d:%d:%d]", is, ChannelNames[is].data(),
              mData.getEntries(is), mConfig->cutLow[is], mConfig->cutHigh[is],
              itdc, mConfig->cutTimeLow[itdc], mConfig->cutTimeHigh[itdc],
              mData.getFirstValid(is), mData.mPeak, mData.getLastValid(is));
+      } else {
+        LOGF(info, "Waveform %2d %s with %10d events and cuts AMP:(%g:%g) TDC:%d:(%g:%g)", is, ChannelNames[is].data(),
+             mData.getEntries(is), mConfig->cutLow[is], mConfig->cutHigh[is],
+             itdc, mConfig->cutTimeLow[itdc], mConfig->cutTimeHigh[itdc]);
       }
     }
   }
+  const auto& opt = CalibParamZDC::Instance();
   if (mSaveDebugHistos) {
-    saveDebugHistos();
+    saveDebugHistos(opt.outputDir + "ZDCWaveformCalibEPN.root");
+  }
+  if (mDumpCalib) {
+    dumpCalib(opt.outputDir + "ZDCWaveformCalibEPNDump.root");
   }
   return 0;
 }
@@ -141,4 +154,10 @@ int WaveformCalibEPN::endOfRun()
 int WaveformCalibEPN::saveDebugHistos(const std::string fn)
 {
   return mData.saveDebugHistos(fn);
+}
+
+//______________________________________________________________________________
+int WaveformCalibEPN::dumpCalib(const std::string fn)
+{
+  return mData.dumpCalib(fn);
 }
