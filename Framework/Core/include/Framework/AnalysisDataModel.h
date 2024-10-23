@@ -243,6 +243,7 @@ DECLARE_SOA_COLUMN(ITSClusterSizes, itsClusterSizes, uint32_t);                 
 DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);                                    //! Old cluster ITS cluster map, kept for version 0 compatibility
 DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);                                //! Findable TPC clusters for this track geometry
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);             //! TPC Clusters: Findable - Found
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusPID, tpcNClsFindableMinusPID, int8_t);                 //! TPC Clusters: Findable - Found clusters used for PID
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t); //! TPC Clusters: Findable - crossed rows
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);                                    //! Number of shared TPC clusters
 DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);                                          //! Contributor to the track on TRD layer in bits 0-5, starting from the innermost, bit 6 indicates a potentially split tracklet, bit 7 if the track crossed a padrow
@@ -409,6 +410,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis us
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsPID, tpcNClsPID, //! Number of found TPC clusters used for PID
+                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusPID) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusPID; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //! Number of crossed TPC Rows
                            [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return (int16_t)tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
@@ -599,13 +602,44 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
+DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "TRACKEXTRA", 2, // On disk version of TracksExtra, version 2
+                                 track::TPCInnerParam, track::Flags, track::ITSClusterSizes,
+                                 track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusPID, track::TPCNClsFindableMinusCrossedRows,
+                                 track::TPCNClsShared, track::v001::extensions::TPCDeltaTFwd<track::TrackTimeRes, track::Flags>, track::v001::extensions::TPCDeltaTBwd<track::TrackTimeRes, track::Flags>,
+                                 track::TRDPattern, track::ITSChi2NCl, track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
+                                 track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
+                                 track::PIDForTracking<track::Flags>,
+                                 track::IsPVContributor<track::Flags>,
+                                 track::HasITS<track::v001::DetectorMap>, track::HasTPC<track::v001::DetectorMap>,
+                                 track::HasTRD<track::v001::DetectorMap>, track::HasTOF<track::v001::DetectorMap>,
+                                 track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
+                                 track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
+                                 track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
+                                 track::v001::IsITSAfterburner<track::v001::DetectorMap, track::ITSChi2NCl>,
+                                 track::TOFExpTimeEl<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimeMu<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimePi<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimeKa<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimePr<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimeDe<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimeTr<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimeHe<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimeAl<track::Length, track::TOFExpMom>,
+                                 track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
+                                 track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
+
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::DetectorMap);
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::v001::DetectorMap);
+DECLARE_SOA_EXTENDED_TABLE(TracksExtra_002, StoredTracksExtra_002, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
+                           track::v001::DetectorMap);
 
-using StoredTracksExtra = StoredTracksExtra_001;
-using TracksExtra = TracksExtra_001;
+using StoredTracksExtra = StoredTracksExtra_002;
+using TracksExtra = TracksExtra_002;
 
 using Track = Tracks::iterator;
 using TrackIU = TracksIU::iterator;
