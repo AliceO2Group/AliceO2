@@ -111,11 +111,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::its::study::getAnomalyStudy(srcCls, useMC));
   }
   if (configcontext.options().get<bool>("track-extension-study")) {
+    if (!useMC) {
+      LOGP(fatal, "Track Extension Study needs MC!");
+    }
     anyStudy = true;
     srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
     srcCls = GID::getSourcesMask("ITS");
-    o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
-    specs.emplace_back(o2::its::study::getTrackExtensionStudy(srcTrc, srcCls, useMC, mcKinematicsReader));
+    o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, true, srcCls, srcTrc);
+    specs.emplace_back(o2::its::study::getTrackExtensionStudy(srcTrc, srcCls, mcKinematicsReader));
   }
   if (!anyStudy) {
     LOGP(info, "No study selected, dryrunning");
