@@ -35,15 +35,6 @@
 #include <utility>
 #endif
 
-std::vector<std::string> getColumnNames(o2::header::DataHeader dh)
-{
-  auto description = std::string(dh.dataDescription.str);
-  auto origin = std::string(dh.dataOrigin.str);
-
-  // default: column names = {}
-  return {};
-}
-
 namespace o2::framework
 {
 using namespace rapidjson;
@@ -395,20 +386,10 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
 
   // add branches to read
   // fill the table
-  auto colnames = getColumnNames(dh);
   t2t->setLabel(tree->GetName());
-  if (colnames.size() == 0) {
-    totalSizeCompressed += tree->GetZipBytes();
-    totalSizeUncompressed += tree->GetTotBytes();
-    t2t->addAllColumns(tree);
-  } else {
-    for (auto& colname : colnames) {
-      TBranch* branch = tree->GetBranch(colname.c_str());
-      totalSizeCompressed += branch->GetZipBytes("*");
-      totalSizeUncompressed += branch->GetTotBytes("*");
-    }
-    t2t->addAllColumns(tree, std::move(colnames));
-  }
+  totalSizeCompressed += tree->GetZipBytes();
+  totalSizeUncompressed += tree->GetTotBytes();
+  t2t->addAllColumns(tree);
   t2t->fill(tree);
   delete tree;
 
