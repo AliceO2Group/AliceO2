@@ -83,8 +83,8 @@ class MatchInfoTOF
   float mVz = 0.0;                   ///< Vz from TOF match
   int mChannel = -1;                 ///< channel
   // Hit pattern information
-  bool mHitUpDown = false;           ///< hit pattern in TOF up-down
-  bool mHitLeftRight = false;        ///< hit pattern in TOF left-right
+  bool mHitUpDown = false;    ///< hit pattern in TOF up-down
+  bool mHitLeftRight = false; ///< hit pattern in TOF left-right
 
   ClassDefNV(MatchInfoTOF, 6);
 };
