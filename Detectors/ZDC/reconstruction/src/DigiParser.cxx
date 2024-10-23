@@ -62,35 +62,7 @@ void DigiParser::init()
     }
   next_ich:;
     if (mVerbosity > DbgZero) {
-      LOG(info) << "Channel " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
-    }
-  }
-
-  // Fill maps to decode the pattern of channels with hit
-  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-    // If the reconstruction parameters were not manually set
-    if (ropt.tmod[itdc] < 0 || ropt.tch[itdc] < 0) {
-      int isig = TDCSignal[itdc];
-      for (int im = 0; im < NModules; im++) {
-        for (uint32_t ic = 0; ic < NChPerModule; ic++) {
-          if (mModuleConfig->modules[im].channelID[ic] == isig && mModuleConfig->modules[im].readChannel[ic]) {
-            // ropt.updateFromString(TString::Format("RecoParamZDC.tmod[%d]=%d;",itdc,im));
-            // ropt.updateFromString(TString::Format("RecoParamZDC.tch[%d]=%d;",itdc,ic));
-            ropt.tmod[itdc] = im;
-            ropt.tch[itdc] = ic;
-            // Fill mask to identify TDC channels
-            mTDCMask[itdc] = (0x1 << (4 * im + ic));
-            goto next_itdc;
-          }
-        }
-      }
-    } else {
-      mTDCMask[itdc] = (0x1 << (4 * ropt.tmod[itdc] + ropt.tch[itdc]));
-    }
-  next_itdc:;
-    if (mVerbosity > DbgZero) {
-      LOG(info) << "TDC " << itdc << "(" << ChannelNames[TDCSignal[itdc]] << ")"
-                << " mod " << ropt.tmod[itdc] << " ch " << ropt.tch[itdc];
+      LOG(info) << "Channel " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich] << " bit " << (4 * ropt.amod[ich] + ropt.ach[ich]);
     }
   }
 
@@ -202,7 +174,7 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
       if (chd.id > IdDummy && chd.id < NChannels) {
         chRef[ibc][chd.id] = chEnt;
         mTransmitted->Fill(chd.id);
-        if(bcdata[ibc].triggers & mChMask[chd.id] != 0){
+        if((bcdata[ibc].triggers & mChMask[chd.id]) != 0){
           mFired->Fill(chd.id);
         }
       }
@@ -223,7 +195,7 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
             if(ibt < mNBC){
             auto bcd = bcdata[ibt].ir.differenceInBC(ir);
             if (bcd == ibn) {
-              if (bcdata[ibt].triggers & mChMask[isig] != 0) {
+              if ((bcdata[ibt].triggers & mChMask[isig]) != 0) {
                 nsig++;
               }
             }
@@ -244,7 +216,7 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
             auto bcd = bcdata[ibt].ir.differenceInBC(ir);
             if (bcd == 0) {
               // Fill bunch map
-              if (bcdata[ibc].triggers & mChMask[isig] != 0) {
+              if ((bcdata[ibc].triggers & mChMask[isig]) != 0) {
                 double bc_d = uint32_t(ir.bc / 100);
                 double bc_m = uint32_t(ir.bc % 100);
                 mBunchH[isig]->Fill(bc_m, -bc_d);
@@ -252,7 +224,7 @@ int DigiParser::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, co
               }
             }
             if (bcd == ibn) {
-              if (bcdata[ibt].triggers & mChMask[isig] != 0) {
+              if ((bcdata[ibt].triggers & mChMask[isig]) != 0) {
                 // Fill waveform
                 auto ref = chRef[ibc][isig];
                 if (ref != ZDCRefInitVal) {

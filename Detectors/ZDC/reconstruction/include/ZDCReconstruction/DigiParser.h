@@ -77,7 +77,6 @@ private:
   bool mRejectPileUp = true;
   std::string mOutput = "ZDCDigiParser.root";
   uint32_t mTriggerMask = 0;                     /// Mask of triggering channels
-  uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger pattern
   uint32_t mChMask[NChannels] = {0};             /// Identify all channels in readout pattern
 
   std::unique_ptr<TH1> mTransmitted = nullptr;
