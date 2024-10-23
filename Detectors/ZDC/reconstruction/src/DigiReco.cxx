@@ -68,7 +68,7 @@ void DigiReco::init()
           }
         }
       }
-    }else{
+    } else {
       // Fill mask to identify TDC channels
       mTDCMask[itdc] = (0x1 << (4 * ropt.tmod[itdc] + ropt.tch[itdc]));
     }
