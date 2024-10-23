@@ -25,6 +25,7 @@ set(SRCS
     TPCFastSpaceChargeCorrection.cxx
     TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
+    TPCFastTransformPOD.cxx
     CorrectionMapsHelper.cxx
 )
 

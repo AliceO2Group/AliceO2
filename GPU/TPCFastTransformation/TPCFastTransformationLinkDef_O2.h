@@ -63,6 +63,7 @@
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::RowInfo + ;
 
 #pragma link C++ class o2::gpu::TPCFastTransform + ;
+#pragma link C++ class o2::gpu::TPCFastTransformPOD;
 
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrectionMap + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::RowInfo + ;
