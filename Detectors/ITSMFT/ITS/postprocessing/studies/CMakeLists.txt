@@ -10,23 +10,24 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(ITSPostprocessing
-               SOURCES src/ImpactParameter.cxx
-                       src/AvgClusSize.cxx
-                       src/PIDStudy.cxx
-                       src/ITSStudiesConfigParam.cxx
-                       src/AnomalyStudy.cxx
-                       src/TrackCheck.cxx
-                       src/TrackExtension.cxx
-                       src/Helpers.cxx
-               PUBLIC_LINK_LIBRARIES O2::GlobalTracking
-                                     O2::GlobalTrackingWorkflowReaders
-                                     O2::GlobalTrackingWorkflowHelpers
-                                     O2::DataFormatsGlobalTracking
-                                     O2::DetectorsVertexing
-                                     O2::DetectorsBase)
+SOURCES src/ImpactParameter.cxx
+        src/AvgClusSize.cxx
+        src/PIDStudy.cxx
+        src/ITSStudiesConfigParam.cxx
+        src/AnomalyStudy.cxx
+        src/TrackCheck.cxx
+        src/TrackExtension.cxx
+        src/Efficiency.cxx
+        src/Helpers.cxx
+PUBLIC_LINK_LIBRARIES O2::GlobalTracking
+                      O2::GlobalTrackingWorkflowReaders
+                      O2::GlobalTrackingWorkflowHelpers
+                      O2::DataFormatsGlobalTracking
+                      O2::DetectorsVertexing
+                      O2::DetectorsBase)
 
 o2_target_root_dictionary(ITSPostprocessing
-                HEADERS include/ITSStudies/ITSStudiesConfigParam.h
-                        include/ITSStudies/TrackCuts.h
-                        include/ITSStudies/TrackMethods.h
-                LINKDEF src/ITSStudiesLinkDef.h)
+HEADERS include/ITSStudies/ITSStudiesConfigParam.h
+        include/ITSStudies/TrackCuts.h
+        include/ITSStudies/TrackMethods.h
+LINKDEF src/ITSStudiesLinkDef.h)
