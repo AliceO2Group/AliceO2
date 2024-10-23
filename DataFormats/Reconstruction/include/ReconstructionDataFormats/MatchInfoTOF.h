@@ -41,6 +41,12 @@ class MatchInfoTOF
   void setChi2(float chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
 
+  void setHitPatternUpDown(bool v) { mHitUpDown = v; }
+  bool getHitPatternUpDown() const { return mHitUpDown; }
+
+  void setHitPatternLeftRight(bool v) { mHitLeftRight = v; }
+  bool getHitPatternLeftRight() const { return mHitLeftRight; }
+
   o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }
   const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
   void print() const;
@@ -76,6 +82,9 @@ class MatchInfoTOF
   double mSignal = 0.0;              ///< TOF time in ps
   float mVz = 0.0;                   ///< Vz from TOF match
   int mChannel = -1;                 ///< channel
+  // Hit pattern information
+  bool mHitUpDown = false;    ///< hit pattern in TOF up-down
+  bool mHitLeftRight = false; ///< hit pattern in TOF left-right
 
   ClassDefNV(MatchInfoTOF, 6);
 };
