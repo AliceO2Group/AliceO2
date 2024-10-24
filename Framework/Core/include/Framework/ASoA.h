@@ -2765,7 +2765,7 @@ DECLARE_SOA_ITERATOR_METADATA();
 
 #define DECLARE_SOA_TABLE_STAGED(_BaseName_, _Description_, ...)                                   \
   DECLARE_SOA_TABLE_FULL_VERSIONED(_BaseName_, #_BaseName_, "AOD", _Description_, 0, __VA_ARGS__); \
-  DECLARE_SOA_TABLE_FULL_VERSIONED(Stored##_BaseName_, "Stored" #_BaseName_, "AOD1", _Description_, 0, __VA_ARGS__);
+  DECLARE_SOA_TABLE_FULL_VERSIONED(Stored##_BaseName_, "Stored" #_BaseName_, "AOD1", _Description_, 0, __VA_ARGS__, soa::Marker<1>);
 
 #define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)                                                      \
   template <o2::framework::OriginEnc ORIGIN = o2::framework::OriginEnc{_Origin_}>                                                           \
