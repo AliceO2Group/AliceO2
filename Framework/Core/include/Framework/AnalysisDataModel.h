@@ -250,6 +250,7 @@ DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);                              
 DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);                                            //! Chi2 / cluster for the TPC track segment
 DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);                                                  //! Chi2 for the TRD track segment
 DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);                                                  //! Chi2 for the TOF track segment
+DECLARE_SOA_COLUMN(ITSSignal, itsSignal, float);                                              //! dE/dx signal in the ITS (Run 2)
 DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);                                              //! dE/dx signal in the TPC
 DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //! PID signal in the TRD
 DECLARE_SOA_COLUMN(Length, length, float);                                                    //! Track length
@@ -604,6 +605,9 @@ DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA",
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::v001::DetectorMap);
 
+DECLARE_SOA_TABLE(Run2TrackExtras, "AOD", "RUN2TRACKEXTRA",
+                  track::ITSSignal);
+
 using StoredTracksExtra = StoredTracksExtra_001;
 using TracksExtra = TracksExtra_001;
 
@@ -612,6 +616,7 @@ using TrackIU = TracksIU::iterator;
 using TrackCov = TracksCov::iterator;
 using TrackCovIU = TracksCovIU::iterator;
 using TrackExtra = TracksExtra::iterator;
+using Run2TrackExtra = Run2TrackExtras::iterator;
 
 } // namespace aod
 namespace soa
