@@ -34,6 +34,7 @@ enum class CDBType {
   CalLaserTracks,      ///< Laser track calibration data
   CalVDriftTgl,        ///< ITS-TPC difTgl vdrift calibration
   CalTimeGain,         ///< Gain variation over time
+  CalTimeGainMC,       ///< Gain variation over time for MC
   CalGas,              ///< DCS gas measurements
   CalTemperature,      ///< DCS temperature measurements
   CalHV,               ///< DCS HV measurements
@@ -98,6 +99,7 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
   {CDBType::CalLaserTracks, "TPC/Calib/LaserTracks"},
   {CDBType::CalTimeGain, "TPC/Calib/TimeGain"},
+  {CDBType::CalTimeGainMC, "TPC/Calib/TimeGainMC"},
   {CDBType::CalGas, "TPC/Calib/Gas"},
   {CDBType::CalTemperature, "TPC/Calib/Temperature"},
   {CDBType::CalHV, "TPC/Calib/HV"},

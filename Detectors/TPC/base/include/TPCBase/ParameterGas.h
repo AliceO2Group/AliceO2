@@ -45,6 +45,16 @@ struct ParameterGas : public o2::conf::ConfigurableParamHelper<ParameterGas> {
 };
 
 } // namespace tpc
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::tpc::ParameterGas> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif // ALICEO2_TPC_ParameterGas_H_

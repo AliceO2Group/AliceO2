@@ -71,6 +71,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"filtered-input", VariantType::Bool, false, {"Filtered tracks, clusters input, prefix dataDescriptors with F"}},
     {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}},
     {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
+    {"tpc-mc-time-gain", VariantType::Bool, false, {"use time gain calibration for MC (true) or for data (false)"}},
   };
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -184,7 +185,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("ignore-dist-stf"),      //
                                                 cfgc.options().get<bool>("select-ir-frames"),
                                                 cfgc.options().get<bool>("filtered-input"),
-                                                cfgc.options().get<int>("tpc-deadMap-sources"));
+                                                cfgc.options().get<int>("tpc-deadMap-sources"),
+                                                cfgc.options().get<bool>("tpc-mc-time-gain"));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);

@@ -86,7 +86,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool askDISTSTF = true,
                                     bool selIR = false,
                                     bool filteredInp = false,
-                                    int deadMapSources = -1);
+                                    int deadMapSources = -1,
+                                    bool useMCTimeGain = false);
 
 void cleanupCallback();
 

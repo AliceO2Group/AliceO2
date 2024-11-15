@@ -100,7 +100,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
-                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int deadMapSources)
+                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int deadMapSources, bool useMCTimeGain)
 {
   InputType inputType;
   try {
@@ -473,6 +473,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.askDISTSTF = askDISTSTF;
     cfg.tpcTriggerHandling = isEnabled(OutputType::TPCTriggers) || cfg.caClusterer;
     cfg.tpcDeadMapSources = deadMapSources;
+    cfg.tpcUseMCTimeGain = useMCTimeGain;
 
     Inputs ggInputs;
     auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
