@@ -251,7 +251,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() float getInterpolationSafetyMargin() const { return fInterpolationSafetyMargin; }
 
   /// Gives TPC row info
-  GPUd() const RowInfo& getRowInfo(int row) const { return mRowInfos[row]; }
+  GPUd() const RowInfo& getRowInfo(int32_t row) const { return mRowInfos[row]; }
 
   /// Gives TPC slice info
   GPUd() const SliceInfo& getSliceInfo(int32_t slice) const
@@ -321,7 +321,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Class version. It is used to read older versions from disc.
   /// The default version 3 is the one before this field was introduced.
   /// The actual version must be set in startConstruction().
-  int mClassVersion{3};
+  int32_t mClassVersion{3};
 
   RowInfo mRowInfos[TPCFastTransformGeo::getMaxNumberOfRows()]; ///< RowInfo array
 
