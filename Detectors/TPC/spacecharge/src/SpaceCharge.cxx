@@ -43,6 +43,7 @@
 #include "TStopwatch.h"
 #include "ROOT/RDataFrame.hxx"
 #include "THnSparse.h"
+#include "TRandom.h"
 
 #include <random>
 
@@ -246,6 +247,10 @@ void SpaceCharge<DataT>::setDefaultStaticDistortionsGEMFrameChargeUp(const Side 
 template <typename DataT>
 size_t SpaceCharge<DataT>::getPhiBinsGapFrame(const Side side) const
 {
+  if (MGParameters::normalizeGridToNSector == 1) {
+    return 0;
+  }
+
   const auto& regInf = Mapper::instance().getPadRegionInfo(0);
   const float localYEdgeIROC = regInf.getPadsInRowRegion(0) / 2 * regInf.getPadWidth();
   const auto globalPosGap = Mapper::LocalToGlobal(LocalPosition2D(regInf.getRadiusFirstRow(), -(localYEdgeIROC + GEMFrameParameters<DataT>::WIDTHFRAME)), Sector(0));
@@ -268,16 +273,15 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
 }
 
 template <typename DataT>
-std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongRIndices(const Side side) const
+std::vector<std::pair<size_t, float>> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongRIndices(const Side side) const
 {
-  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
   const auto radiusStart = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEIROCBOTTOM / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSBOTTOM[0], 2));
   const auto rStart = getNearestRVertex(radiusStart, side);
 
   const auto radiusEnd = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEOROC3TOP / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSTOP[3], 2));
   const auto rEnd = getNearestRVertex(radiusEnd, side); // mParamGrid.NRVertices - 1
 
-  const int verticesPerSector = simOneSectorOnly ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  const int verticesPerSector = mParamGrid.NPhiVertices / MGParameters::normalizeGridToNSector;
 
   const auto& regInf = Mapper::instance().getPadRegionInfo(0);
   const float localYEdgeIROC = regInf.getPadsInRowRegion(0) / 2 * regInf.getPadWidth();
@@ -300,7 +304,8 @@ std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongRIndice
     radii.emplace_back(std::sqrt(std::pow(GEMFrameParameters<DataT>::POSTOP[stack], 2) + std::pow(localYEdge, 2)));
   }
 
-  std::vector<size_t> potentialInd;
+  std::vector<std::pair<size_t, float>> potentialInd;
+  const float weight = 1;
   for (size_t iR = rStart; iR < rEnd; ++iR) {
     const DataT radius = getRVertex(iR, side);
     auto const it = std::lower_bound(radii.begin(), radii.end(), radius);
@@ -315,13 +320,13 @@ std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongRIndice
         break;
       }
 
-      for (int sector = 0; sector < (simOneSectorOnly ? 1 : SECTORSPERSIDE); ++sector) {
+      for (int sector = 0; sector < MGParameters::normalizeGridToNSector; ++sector) {
         const size_t iPhiLeft = sector * verticesPerSector + iPhiTmp;
         const size_t iZ = mParamGrid.NZVertices - 1;
-        potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiLeft));
+        potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiLeft), weight);
         if (iPhiTmp > 0) {
           const size_t iPhiRight = (sector + 1) * verticesPerSector - iPhiTmp;
-          potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiRight));
+          potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiRight), weight);
         }
       }
     }
@@ -339,36 +344,34 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::setBoundaryFromIndices(const std::function<DataT(DataT)>& potentialFunc, const std::vector<size_t>& indices, const Side side)
+void SpaceCharge<DataT>::setBoundaryFromIndices(const std::function<DataT(DataT)>& potentialFunc, const std::vector<std::pair<size_t, float>>& indices, const Side side)
 {
-  for (const auto& index : indices) {
+  /*
+    make check for the weights
+    Loop over bins in the radial direction
+    Check for duplicates and use the one with larger weight
+  */
+
+  for (const auto& indexw : indices) {
+    const int index = indexw.first;
     const int iZ = mPotential[side].getIndexZ(index);
     const int iR = mPotential[side].getIndexR(index);
     const int iPhi = mPotential[side].getIndexPhi(index);
     const DataT radius = getRVertex(iR, side);
-    mPotential[side](iZ, iR, iPhi) = potentialFunc(radius);
+    const float weight = indexw.second;
+    const float pot = mPotential[side](iZ, iR, iPhi);
+    const float potNew = weight * potentialFunc(radius);
+    if (std::abs(potNew) > std::abs(pot)) {
+      mPotential[side](iZ, iR, iPhi) = potNew;
+    }
   }
 }
 
 template <typename DataT>
-std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongPhiIndices(const GEMstack stack, const bool bottom, const Side side, const bool outerFrame, const bool noGap) const
+std::vector<std::pair<size_t, float>> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongPhiIndices(const GEMstack stack, const bool bottom, const Side side, const bool outerFrame, const bool noGap) const
 {
-  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
-
   // to avoid double counting
   auto indices = getPotentialBoundaryGEMFrameAlongRIndices(side);
-
-  if (!bottom && outerFrame) {
-    // if OROC3 to OFC check outer GEM frame from OROC3!
-    const auto indicesOROC3 = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::OROC3gem, false, side, false);
-    indices.insert(indices.end(), indicesOROC3.begin(), indicesOROC3.end());
-    std::sort(indices.begin(), indices.end());
-  } else if (bottom && outerFrame) {
-    // if IROC to IFC check inner GEM frame from IROC
-    const auto indicesIROC = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::IROCgem, true, side, false);
-    indices.insert(indices.end(), indicesIROC.begin(), indicesIROC.end());
-    std::sort(indices.begin(), indices.end());
-  }
 
   int region = 0;
   float offsStart = 0;
@@ -415,10 +418,10 @@ std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongPhiIndi
     nVerticesR = 1;
   }
 
-  std::vector<size_t> potentialInd;
-  const int verticesPerSector = simOneSectorOnly ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / SECTORSPERSIDE;
-  const auto nBinsPhi = (outerFrame || noGap) ? 0 : (simOneSectorOnly ? 0 : getPhiBinsGapFrame(side));
-  for (int sector = 0; sector < (simOneSectorOnly ? 1 : SECTORSPERSIDE); ++sector) {
+  std::vector<std::pair<size_t, float>> potentialInd; // index, weight
+  const int verticesPerSector = mParamGrid.NPhiVertices / MGParameters::normalizeGridToNSector;
+  const auto nBinsPhi = (outerFrame || noGap) ? 0 : getPhiBinsGapFrame(side);
+  for (int sector = 0; sector < MGParameters::normalizeGridToNSector; ++sector) {
     const auto offsetPhi = sector * verticesPerSector + verticesPerSector / 2;
     for (size_t iPhiLocal = 0; iPhiLocal <= (verticesPerSector / 2 - nBinsPhi); ++iPhiLocal) {
       const auto iPhiLeft = offsetPhi + iPhiLocal;
@@ -432,31 +435,62 @@ std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongPhiIndi
 
       // end at gem frame
       if ((outerFrame && (stack == GEMstack::IROCgem))) {
-        nREnd = (radiusBottom - getRVertex(1, side)) / getGridSpacingR(side) + 2; // 2 safety margin
+        // TODO: remove this?
+        const float marginCM = 0; // 0.4;
+        const int nMargingBins = marginCM / getGridSpacingR(side) + 0.5;
+        nREnd = (radiusBottom - getRVertex(1, side) + 0.5) / getGridSpacingR(side) + nMargingBins; // 2 safety margin
+        radiusMax = 3 + getRVertex(getNearestRVertex(radiusBottom + getGridSpacingR(side) * nMargingBins, side), side);
       }
 
-      if (rStart == 0) {
+      rStart -= 1;
+      nREnd += 1;
+      if (rStart <= 0) {
         rStart = 1;
       }
 
+      if (nREnd >= mParamGrid.NRVertices) {
+        nREnd = mParamGrid.NRVertices - 1;
+      }
+
+      float lxMin = radiusStart;
+      if ((outerFrame && (stack == GEMstack::IROCgem))) {
+        lxMin = 0;
+      }
+      const float lxMax = (nREnd == mParamGrid.NRVertices - 1) ? 9999 : radiusMax;
       for (size_t iR = rStart; iR < nREnd; ++iR) {
         const size_t iZ = mParamGrid.NZVertices - 1;
+        float weight = 1;
         if (iPhiLeft < getNPhiVertices()) {
-          if (noGap || !std::binary_search(indices.begin(), indices.end(), mPotential[side].getDataIndex(iZ, iR, iPhiLeft))) {
-            potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiLeft));
+          if (noGap || !std::binary_search(indices.begin(), indices.end(), std::make_pair(mPotential[side].getDataIndex(iZ, iR, iPhiLeft), 0.0f), [](const auto& a, const auto& b) { return (a.first < b.first); })) {
+
+            // check how much of the bin is in the lx range and assign weigth
+            const int nIterPoints = 1000;
+            int nPointsGood = 0;
+            for (int i = 0; i < nIterPoints; ++i) {
+              const float radius = getRVertex(iR, side) + getGridSpacingR(side) * gRandom->Uniform(-0.5, 0.5);
+              const float phi = getGridSpacingPhi(side) * gRandom->Uniform(-0.5, 0.5);
+              const DataT lx = radius * std::cos(phi + localphi);
+              if ((lx >= lxMin) && (lx <= lxMax)) {
+                ++nPointsGood;
+              }
+            }
+            weight = nPointsGood / double(nIterPoints);
+            potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiLeft), weight);
           }
         }
 
-        if (iPhiLocal && (noGap || !std::binary_search(indices.begin(), indices.end(), mPotential[side].getDataIndex(iZ, iR, iPhiRight)))) {
-          potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiRight));
+        if (iPhiLocal && (noGap || !std::binary_search(indices.begin(), indices.end(), std::make_pair(mPotential[side].getDataIndex(iZ, iR, iPhiRight), 0.0f), [](const auto& a, const auto& b) { return (a.first < b.first); }))) {
+          potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiRight), weight);
         }
       }
     }
   }
   // remove duplicate entries
-  std::unordered_set<size_t> set(potentialInd.begin(), potentialInd.end());
-  potentialInd.assign(set.begin(), set.end());
   std::sort(potentialInd.begin(), potentialInd.end());
+
+  // Remove duplicates
+  potentialInd.erase(std::unique(potentialInd.begin(), potentialInd.end()), potentialInd.end());
+
   return potentialInd;
 }
 
@@ -1810,6 +1844,18 @@ DataT SpaceCharge<DataT>::getDensityCyl(const DataT z, const DataT r, const Data
 }
 
 template <typename DataT>
+std::vector<float> SpaceCharge<DataT>::getDensityCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side) const
+{
+  const auto nPoints = z.size();
+  std::vector<float> density(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    density[i] = getDensityCyl(z[i], r[i], phi[i], side);
+  }
+  return density;
+}
+
+template <typename DataT>
 DataT SpaceCharge<DataT>::getPotentialCyl(const DataT z, const DataT r, const DataT phi, const Side side) const
 {
   return mInterpolatorPotential[side](z, r, phi);
@@ -1885,7 +1931,8 @@ void SpaceCharge<DataT>::getCorrections(const DataT x, const DataT y, const Data
   } else {
     // convert cartesian to polar
     const DataT radius = getRadiusFromCartesian(x, y);
-    const DataT phi = getPhiFromCartesian(x, y);
+    DataT phi = getPhiFromCartesian(x, y);
+    o2::math_utils::detail::bringTo02PiGen(phi);
 
     DataT corrR{};
     DataT corrRPhi{};
@@ -2421,7 +2468,7 @@ void SpaceCharge<DataT>::makeElectronDriftPathGif(const char* inpFile, TH2F& hDu
 template <typename DataT>
 void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, const int nZPoints, const int nRPoints, const int nPhiPoints, const bool randomize) const
 {
-  const DataT phiSpacing = GridProp::getGridSpacingPhi(nPhiPoints) / (MGParameters::normalizeGridToOneSector ? SECTORSPERSIDE : 1);
+  const DataT phiSpacing = GridProp::getGridSpacingPhi(nPhiPoints) * (MGParameters::normalizeGridToNSector / double(SECTORSPERSIDE));
   const DataT rSpacing = GridProp::getGridSpacingR(nRPoints);
   const DataT zSpacing = side == Side::A ? GridProp::getGridSpacingZ(nZPoints) : -GridProp::getGridSpacingZ(nZPoints);
 
@@ -2459,6 +2506,7 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
   std::vector<std::vector<LocalPosition3D>> lPosOut(nPhiPoints);
   std::vector<std::vector<int>> sectorOut(nPhiPoints);
   std::vector<std::vector<size_t>> globalIdxOut(nPhiPoints);
+  std::vector<std::vector<bool>> isOnPadPlane(nPhiPoints);
 
 #pragma omp parallel for num_threads(sNThreads)
   for (int iPhi = 0; iPhi < nPhiPoints; ++iPhi) {
@@ -2494,6 +2542,7 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
     lPosOut[iPhi].reserve(nPoints);
     sectorOut[iPhi].reserve(nPoints);
     globalIdxOut[iPhi].reserve(nPoints);
+    isOnPadPlane[iPhi].reserve(nPoints);
 
     std::mt19937 rng(std::random_device{}());
     DataT phiPos = iPhi * phiSpacing;
@@ -2603,6 +2652,12 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
         sectorOut[iPhi].emplace_back(sector);
         const size_t idx = (iZ + nZPoints * (iR + iPhi * nRPoints));
         globalIdxOut[iPhi].emplace_back(idx);
+
+        const float xDist = getXFromPolar(radiusDistorted, phiDistorted);
+        const float yDist = getYFromPolar(radiusDistorted, phiDistorted);
+        GlobalPosition3D posTmp(xDist, yDist, zPos);
+        const DigitPos digiPadPos = o2::tpc::Mapper::instance().findDigitPosFromGlobalPosition(posTmp);
+        isOnPadPlane[iPhi].emplace_back(digiPadPos.isValid());
       }
     }
   }
@@ -2645,6 +2700,7 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
   dfStore = dfStore.DefineSlotEntry("bZ", [&bZOut = bZOut](unsigned int, ULong64_t entry) { return bZOut[entry]; });
   dfStore = dfStore.DefineSlotEntry("bPhi", [&bPhiOut = bPhiOut](unsigned int, ULong64_t entry) { return bPhiOut[entry]; });
   dfStore = dfStore.DefineSlotEntry("globalIndex", [&globalIdxOut = globalIdxOut](unsigned int, ULong64_t entry) { return globalIdxOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("isOnPadPlane", [&isOnPadPlane = isOnPadPlane](unsigned int, ULong64_t entry) { return isOnPadPlane[entry]; });
   dfStore.Snapshot("tree", outFileName);
   timer.Print("u");
 }
@@ -3356,20 +3412,20 @@ void SpaceCharge<DataT>::readMetaData(std::string_view file)
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::setSimOneSector()
+void SpaceCharge<DataT>::setSimNSector(const int nSectors)
 {
   LOGP(warning, "Use this feature only if you know what you are doing!");
-  o2::tpc::MGParameters::normalizeGridToOneSector = true;
-  RegularGrid gridTmp[FNSIDES]{{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices) / SECTORSPERSIDE, mParamGrid},
-                               {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices) / SECTORSPERSIDE, mParamGrid}};
+  o2::tpc::MGParameters::normalizeGridToNSector = nSectors;
+  RegularGrid gridTmp[FNSIDES]{{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices) / SECTORSPERSIDE * nSectors, mParamGrid},
+                               {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices) / SECTORSPERSIDE * nSectors, mParamGrid}};
   mGrid3D[0] = gridTmp[0];
   mGrid3D[1] = gridTmp[1];
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::unsetSimOneSector()
+void SpaceCharge<DataT>::unsetSimNSector()
 {
-  o2::tpc::MGParameters::normalizeGridToOneSector = false;
+  o2::tpc::MGParameters::normalizeGridToNSector = SECTORSPERSIDE;
 }
 
 template <typename DataT>
@@ -3422,6 +3478,20 @@ void SpaceCharge<DataT>::addChargeDensity(const SpaceCharge<DataT>& otherSC)
 
   mDensity[Side::A] += otherSC.mDensity[Side::A];
   mDensity[Side::C] += otherSC.mDensity[Side::C];
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::addGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side)
+{
+  const bool sameGrid = (getNPhiVertices() == otherSC.getNPhiVertices()) && (getNRVertices() == otherSC.getNRVertices()) && (getNZVertices() == otherSC.getNZVertices());
+  if (!sameGrid) {
+    LOGP(warning, "Space charge objects have different grid definition");
+    return;
+  }
+
+  mGlobalCorrdR[side] += otherSC.mGlobalCorrdR[side];
+  mGlobalCorrdZ[side] += otherSC.mGlobalCorrdZ[side];
+  mGlobalCorrdRPhi[side] += otherSC.mGlobalCorrdRPhi[side];
 }
 
 template <typename DataT>
@@ -3739,9 +3809,27 @@ void SpaceCharge<DataT>::setIFCChargeUpFallingPot(const float deltaPot, const fl
 template <typename DataT>
 void SpaceCharge<DataT>::setGlobalCorrections(const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gCorr, const Side side)
 {
-  initContainer(mGlobalCorrdR[side], true);
-  initContainer(mGlobalCorrdZ[side], true);
-  initContainer(mGlobalCorrdRPhi[side], true);
+  setGlobalDistCorr(Type::Corrections, gCorr, side);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setGlobalDistortions(const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gDist, const Side side)
+{
+  setGlobalDistCorr(Type::Distortions, gDist, side);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setGlobalDistCorr(const Type type, const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gFunc, const Side side)
+{
+  if (type == Type::Distortions) {
+    initContainer(mGlobalDistdR[side], true);
+    initContainer(mGlobalDistdZ[side], true);
+    initContainer(mGlobalDistdRPhi[side], true);
+  } else {
+    initContainer(mGlobalCorrdR[side], true);
+    initContainer(mGlobalCorrdZ[side], true);
+    initContainer(mGlobalCorrdRPhi[side], true);
+  }
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
@@ -3761,7 +3849,7 @@ void SpaceCharge<DataT>::setGlobalCorrections(const std::function<void(int secto
         DataT gCx = 0;
         DataT gCy = 0;
         DataT gCz = 0;
-        gCorr(sector, x, y, z, gCx, gCy, gCz);
+        gFunc(sector, x, y, z, gCx, gCy, gCz);
         const DataT gCxCorr = x + gCx;
         const DataT gCyCorr = y + gCy;
 
@@ -3772,9 +3860,15 @@ void SpaceCharge<DataT>::setGlobalCorrections(const std::function<void(int secto
         const DataT corrRPhi = phiDiff * radius;
 
         // store corrections
-        mGlobalCorrdR[side](iZ, iR, iPhi) = corrR;
-        mGlobalCorrdZ[side](iZ, iR, iPhi) = gCz;
-        mGlobalCorrdRPhi[side](iZ, iR, iPhi) = corrRPhi;
+        if (type == Type::Distortions) {
+          mGlobalDistdR[side](iZ, iR, iPhi) = corrR;
+          mGlobalDistdZ[side](iZ, iR, iPhi) = gCz;
+          mGlobalDistdRPhi[side](iZ, iR, iPhi) = corrRPhi;
+        } else {
+          mGlobalCorrdR[side](iZ, iR, iPhi) = corrR;
+          mGlobalCorrdZ[side](iZ, iR, iPhi) = gCz;
+          mGlobalCorrdRPhi[side](iZ, iR, iPhi) = corrRPhi;
+        }
       }
     }
   }
@@ -3838,9 +3932,10 @@ void SpaceCharge<DataT>::setROCMisalignment(int stackType, int misalignmentType,
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::fillROCMisalignment(const std::vector<size_t>& indicesTop, const std::vector<size_t>& indicesBottom, int sector, int misalignmentType, const std::pair<float, float>& deltaPotPar)
+void SpaceCharge<DataT>::fillROCMisalignment(const std::vector<std::pair<size_t, float>>& indicesTop, const std::vector<std::pair<size_t, float>>& indicesBottom, int sector, int misalignmentType, const std::pair<float, float>& deltaPotPar)
 {
-  for (const auto& index : indicesTop) {
+  for (const auto& indexw : indicesTop) {
+    const int index = indexw.first;
     const int iZ = DataContainer3D<float>::getIndexZ(index, getNZVertices(), getNRVertices(), getNPhiVertices());
     const int iRStart = DataContainer3D<float>::getIndexR(index, getNZVertices(), getNRVertices(), getNPhiVertices());
     const int iPhi = DataContainer3D<float>::getIndexPhi(index, getNZVertices(), getNRVertices(), getNPhiVertices());
@@ -3853,7 +3948,8 @@ void SpaceCharge<DataT>::fillROCMisalignment(const std::vector<size_t>& indicesT
 
     for (size_t iR = iRStart; iR > 0; --iR) {
       const size_t currInd = (iZ + getNZVertices() * (iR + iPhi * getNRVertices()));
-      const bool foundVertexBottom = std::binary_search(indicesBottom.begin(), indicesBottom.end(), currInd);
+      const bool foundVertexBottom = std::binary_search(indicesBottom.begin(), indicesBottom.end(), std::make_pair(currInd, 0.0f), [](const auto& a, const auto& b) { return (a.first < b.first); });
+
       if (foundVertexBottom) {
         break;
       }
@@ -3982,7 +4078,7 @@ void SpaceCharge<DataT>::initAfterReadingFromFile()
 }
 
 template <typename DataT>
-float SpaceCharge<DataT>::getDCAr(float tgl, const int nPoints, const float phi, o2::utils::TreeStreamRedirector* pcstream) const
+float SpaceCharge<DataT>::getDCAr(float tgl, const int nPoints, const float phi, float rStart, o2::utils::TreeStreamRedirector* pcstream) const
 {
   const float rmin = getRMin(o2::tpc::Side::A);
   std::vector<float> dRphi;
@@ -3990,7 +4086,7 @@ float SpaceCharge<DataT>::getDCAr(float tgl, const int nPoints, const float phi,
   dRphi.reserve(nPoints);
   r.reserve(nPoints);
   for (int i = 0; i < nPoints; ++i) {
-    float radius = rmin + i;
+    float radius = (rStart > 0) ? (rStart + i) : (rmin + i);
     float z = tgl * radius;
     DataT distZ = 0;
     DataT distR = 0;
@@ -4030,6 +4126,7 @@ float SpaceCharge<DataT>::getDCAr(float tgl, const int nPoints, const float phi,
                 << "r=" << r
                 << "dRphi=" << dRphi
                 << "tgl=" << tgl
+                << "phi=" << phi
                 << "dca=" << dca
                 << "rInterpol=" << rInterpol
                 << "dRPhiInterpol=" << dRPhiInterpol
@@ -4045,6 +4142,26 @@ void SpaceCharge<DataT>::setPotential(int iz, int ir, int iphi, Side side, float
 {
   initContainer(mPotential[side], true);
   mPotential[side](iz, ir, iphi) = val;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::downSampleObject(const int nZNew, const int nRNew, const int nPhiNew)
+{
+  o2::tpc::SpaceCharge<DataT> scNew(getBField(), nZNew, nRNew, nPhiNew);
+  for (int iside = 0; iside < 2; ++iside) {
+    const o2::tpc::Side side = (iside == 0) ? o2::tpc::Side::A : o2::tpc::Side::C;
+    const std::vector<std::reference_wrapper<const DataContainer>> dataRef{mLocalDistdR[iside], mLocalDistdZ[iside], mLocalDistdRPhi[iside], mLocalVecDistdR[iside], mLocalVecDistdZ[iside], mLocalVecDistdRPhi[iside], mLocalCorrdR[iside], mLocalCorrdZ[iside], mLocalCorrdRPhi[iside], mGlobalDistdR[iside], mGlobalDistdZ[iside], mGlobalDistdRPhi[iside], mGlobalCorrdR[iside], mGlobalCorrdZ[iside], mGlobalCorrdRPhi[iside], mDensity[iside], mPotential[iside], mElectricFieldEr[iside], mElectricFieldEz[iside], mElectricFieldEphi[iside]};
+    const std::vector<std::reference_wrapper<DataContainer>> dataNew{scNew.mLocalDistdR[iside], scNew.mLocalDistdZ[iside], scNew.mLocalDistdRPhi[iside], scNew.mLocalVecDistdR[iside], scNew.mLocalVecDistdZ[iside], scNew.mLocalVecDistdRPhi[iside], scNew.mLocalCorrdR[iside], scNew.mLocalCorrdZ[iside], scNew.mLocalCorrdRPhi[iside], scNew.mGlobalDistdR[iside], scNew.mGlobalDistdZ[iside], scNew.mGlobalDistdRPhi[iside], scNew.mGlobalCorrdR[iside], scNew.mGlobalCorrdZ[iside], scNew.mGlobalCorrdRPhi[iside], scNew.mDensity[iside], scNew.mPotential[iside], scNew.mElectricFieldEr[iside], scNew.mElectricFieldEz[iside], scNew.mElectricFieldEphi[iside]};
+    for (int i = 0; i < dataRef.size(); ++i) {
+      const auto& objRef = dataRef[i].get();
+      if (objRef.getNDataPoints()) {
+        auto& objNew = dataNew[i].get();
+        scNew.initContainer(objNew, true);
+        objNew = objRef.convert(scNew.mGrid3D[iside], mGrid3D[iside], sNThreads);
+      }
+    }
+  }
+  *this = std::move(scNew);
 }
 
 using DataTD = double;

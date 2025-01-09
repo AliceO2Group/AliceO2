@@ -331,7 +331,6 @@ void DataContainer3D<DataT>::dumpSlice(std::string_view treename, std::string_vi
   ROOT::RDataFrame dFrame(treename, fileIn);
 
   auto df = dFrame.Define("slice", [rangeiZ, rangeiR, rangeiPhi](const std::pair<long, std::vector<float>>& values, unsigned short nz, unsigned short nr, unsigned short nphi) {
-    const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
     std::vector<size_t> ir;
     std::vector<size_t> iphi;
     std::vector<size_t> iz;
@@ -370,12 +369,12 @@ void DataContainer3D<DataT>::dumpSlice(std::string_view treename, std::string_vi
 
       const float rTmp = o2::tpc::GridProperties<float>::getRMin() + o2::tpc::GridProperties<float>::getGridSpacingR(nr) * iRTmp;
       const float zTmp = o2::tpc::GridProperties<float>::getZMin() + o2::tpc::GridProperties<float>::getGridSpacingZ(nz) * iZTmp;
-      const float phiTmp = o2::tpc::GridProperties<float>::getPhiMin() + o2::tpc::GridProperties<float>::getGridSpacingPhi(nphi) / (simOneSectorOnly ? SECTORSPERSIDE : 1) * iPhiTmp;
+      const float phiTmp = o2::tpc::GridProperties<float>::getPhiMin() + o2::tpc::GridProperties<float>::getGridSpacingPhi(nphi) * (MGParameters::normalizeGridToNSector / double(SECTORSPERSIDE)) * iPhiTmp;
 
       const float x = rTmp * std::cos(phiTmp);
       const float y = rTmp * std::sin(phiTmp);
       const LocalPosition3D pos(x, y, zTmp);
-      unsigned char secNum = simOneSectorOnly ? 0 : std::floor(phiTmp / SECPHIWIDTH);
+      unsigned char secNum = std::floor(phiTmp / SECPHIWIDTH);
       Sector sector(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
       LocalPosition3D lPosTmp = Mapper::GlobalToLocal(pos, sector);
 
@@ -428,10 +427,9 @@ void DataContainer3D<DataT>::dumpInterpolation(std::string_view treename, std::s
 
   // define grid for interpolation
   using GridProp = GridProperties<DataT>;
-  const RegularGrid3D<DataT> mGrid3D(GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(nz), GridProp::getGridSpacingR(nr), o2::tpc::GridProperties<float>::getGridSpacingPhi(nphi) / (MGParameters::normalizeGridToOneSector ? SECTORSPERSIDE : 1), ParamSpaceCharge{nr, nz, nphi});
+  const RegularGrid3D<DataT> mGrid3D(GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(nz), GridProp::getGridSpacingR(nr), o2::tpc::GridProperties<float>::getGridSpacingPhi(nphi) * (MGParameters::normalizeGridToNSector / double(SECTORSPERSIDE)), ParamSpaceCharge{nr, nz, nphi});
 
   auto interpolate = [&mGrid3D = std::as_const(mGrid3D), &data = std::as_const(data), rangeR, rangeZ, rangePhi, nR, nZ, nPhi](unsigned int, ULong64_t iPhi) {
-    const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
     std::vector<size_t> ir;
     std::vector<size_t> iphi;
     std::vector<size_t> iz;
@@ -473,7 +471,7 @@ void DataContainer3D<DataT>::dumpInterpolation(std::string_view treename, std::s
         const float x = rPos * std::cos(phiPos);
         const float y = rPos * std::sin(phiPos);
         const LocalPosition3D pos(x, y, zPos);
-        unsigned char secNum = simOneSectorOnly ? 0 : std::floor(phiPos / SECPHIWIDTH);
+        unsigned char secNum = std::floor(phiPos / SECPHIWIDTH); // TODO CHECK THIS
         Sector sector(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
         LocalPosition3D lPosTmp = Mapper::GlobalToLocal(pos, sector);
         lPos.emplace_back(lPosTmp);
@@ -510,6 +508,27 @@ bool DataContainer3D<DataT>::getVertices(std::string_view treename, std::string_
   tree->GetEntry(0);
   delete tree;
   return true;
+}
+
+template <typename DataT>
+DataContainer3D<DataT> DataContainer3D<DataT>::convert(const o2::tpc::RegularGrid3D<DataT>& gridNew, const o2::tpc::RegularGrid3D<DataT>& gridRef, const int threads) const
+{
+  const int nZNew = gridNew.getNZ();
+  const int nRNew = gridNew.getNR();
+  const int nPhiNew = gridNew.getNPhi();
+  DataContainer3D<DataT> contCont(nZNew, nRNew, nPhiNew);
+#pragma omp parallel for num_threads(threads)
+  for (size_t iPhi = 0; iPhi < nPhiNew; ++iPhi) {
+    const DataT phi = gridNew.getPhiVertex(iPhi);
+    for (size_t iR = 0; iR < nRNew; ++iR) {
+      const DataT radius = gridNew.getRVertex(iR);
+      for (size_t iZ = 0; iZ < nZNew; ++iZ) {
+        const DataT z = gridNew.getZVertex(iZ);
+        contCont(iZ, iR, iPhi) = interpolate(z, radius, phi, gridRef);
+      }
+    }
+  }
+  return contCont;
 }
 
 template class o2::tpc::DataContainer3D<float>;

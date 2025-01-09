@@ -940,7 +940,7 @@ void PoissonSolver<DataT>::residue2D(Vector& residue, const Vector& matricesCurr
     for (int j = 1; j < tnZColumn - 1; ++j) {
       residue(i, j, iPhi) = ih2 * (coefficient1[i] * matricesCurrentV(i + 1, j, iPhi) + coefficient2[i] * matricesCurrentV(i - 1, j, iPhi) + tempRatio * (matricesCurrentV(i, j + 1, iPhi) + matricesCurrentV(i, j - 1, iPhi)) - inverseTempFourth * matricesCurrentV(i, j, iPhi)) + matricesCurrentCharge(i, j, iPhi);
     } // end cols
-  }   // end nRRow
+  } // end nRRow
 
   // Boundary points.
   for (int i = 0; i < tnRRow; ++i) {
@@ -997,7 +997,7 @@ void PoissonSolver<DataT>::residue3D(Vector& residue, const Vector& matricesCurr
                                   coefficient3[i] * (signPlus * matricesCurrentV(i, j, mp1) + signMinus * matricesCurrentV(i, j, mm1)) - inverseCoefficient4[i] * matricesCurrentV(i, j, m)) +
                            matricesCurrentCharge(i, j, m);
       } // end cols
-    }   // end mParamGrid.NRVertices
+    } // end mParamGrid.NRVertices
   }
 }
 
@@ -1263,9 +1263,9 @@ void PoissonSolver<DataT>::relax3D(Vector& matricesCurrentV, const Vector& matri
           for (int i = isw; i < tnRRow - 1; i += 2) {
             (matricesCurrentV)(i, j, m) = (coefficient2[i] * (matricesCurrentV)(i - 1, j, m) + tempRatioZ * ((matricesCurrentV)(i, j - 1, m) + (matricesCurrentV)(i, j + 1, m)) + coefficient1[i] * (matricesCurrentV)(i + 1, j, m) + coefficient3[i] * (signPlus * (matricesCurrentV)(i, j, mp1) + signMinus * (matricesCurrentV)(i, j, mm1)) + (h2 * (matricesCurrentCharge)(i, j, m))) * coefficient4[i];
           } // end cols
-        }   // end mParamGrid.NRVertices
-      }     // end phi
-    }       // end sweep
+        } // end mParamGrid.NRVertices
+      } // end phi
+    } // end sweep
   } else if (MGParameters::relaxType == RelaxType::Jacobi) {
     // for each slice
     for (int m = 0; m < iPhi; ++m) {
@@ -1306,8 +1306,8 @@ void PoissonSolver<DataT>::relax3D(Vector& matricesCurrentV, const Vector& matri
         for (int i = 1; i < tnRRow - 1; ++i) {
           (matricesCurrentV)(i, j, m) = (coefficient2[i] * (matricesCurrentV)(i - 1, j, m) + tempRatioZ * ((matricesCurrentV)(i, j - 1, m) + (matricesCurrentV)(i, j + 1, m)) + coefficient1[i] * (matricesCurrentV)(i + 1, j, m) + coefficient3[i] * (signPlus * (matricesCurrentV)(i, j, mp1) + signMinus * (matricesCurrentV)(i, j, mm1)) + (h2 * (matricesCurrentCharge)(i, j, m))) * coefficient4[i];
         } // end cols
-      }   // end mParamGrid.NRVertices
-    }     // end phi
+      } // end mParamGrid.NRVertices
+    } // end phi
   } else {
     // Case weighted Jacobi
     // TODO
@@ -1329,15 +1329,15 @@ void PoissonSolver<DataT>::relax2D(Vector& matricesCurrentV, const Vector& matri
           matricesCurrentV(i, j, iPhi) = tempFourth * (coefficient1[i] * matricesCurrentV(i + 1, j, iPhi) + coefficient2[i] * matricesCurrentV(i - 1, j, iPhi) +
                                                        tempRatio * (matricesCurrentV(i, j + 1, iPhi) + matricesCurrentV(i, j - 1, iPhi)) + (h2 * matricesCurrentCharge(i, j, iPhi)));
         } // end cols
-      }   // end mParamGrid.NRVertices
-    }     // end pass red-black
+      } // end mParamGrid.NRVertices
+    } // end pass red-black
   } else if (MGParameters::relaxType == RelaxType::Jacobi) {
     for (int j = 1; j < tnZColumn - 1; ++j) {
       for (int i = 1; i < tnRRow - 1; ++i) {
         matricesCurrentV(i, j, iPhi) = tempFourth * (coefficient1[i] * matricesCurrentV(i + 1, j, iPhi) + coefficient2[i] * matricesCurrentV(i - 1, j, iPhi) +
                                                      tempRatio * (matricesCurrentV(i, j + 1, iPhi) + matricesCurrentV(i, j - 1, iPhi)) + (h2 * matricesCurrentCharge(i, j, iPhi)));
       } // end cols
-    }   // end mParamGrid.NRVertices
+    } // end mParamGrid.NRVertices
   } else if (MGParameters::relaxType == RelaxType::WeightedJacobi) {
     // Weighted Jacobi
     // TODO
@@ -1421,7 +1421,7 @@ void PoissonSolver<DataT>::restrict3D(Vector& matricesCurrentCharge, const Vecto
 
           matricesCurrentCharge(i, j, m) = residue(ii, jj, mm) / 8 + s1 / 16 + s2 / 32 + s3 / 64;
         } // end cols
-      }   // end mParamGrid.NRVertices
+      } // end mParamGrid.NRVertices
 
       // for boundary
       for (int j = 0, jj = 0; j < tnZColumn; ++j, jj += 2) {
@@ -1460,7 +1460,7 @@ void PoissonSolver<DataT>::restrict2D(Vector& matricesCurrentCharge, const Vecto
                                             (residue(iip1, jjp1, iphi) + residue(iim1, jjp1, iphi) + residue(iip1, jjm1, iphi) + residue(iim1, jjm1, iphi)) / 16;
       }
     } // end cols
-  }   // end mParamGrid.NRVertices
+  } // end mParamGrid.NRVertices
   // boundary
   // for boundary
   for (int j = 0, jj = 0; j < tnZColumn; ++j, jj += 2) {
@@ -1520,7 +1520,7 @@ void PoissonSolver<DataT>::calcCoefficients2D(unsigned int from, unsigned int to
 template <typename DataT>
 DataT PoissonSolver<DataT>::getGridSizePhiInv()
 {
-  return MGParameters::normalizeGridToOneSector ? (INVTWOPI * SECTORSPERSIDE) : INVTWOPI;
+  return INVTWOPI * SECTORSPERSIDE / MGParameters::normalizeGridToNSector;
 }
 
 template class o2::tpc::PoissonSolver<double>;

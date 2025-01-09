@@ -204,10 +204,13 @@ class SpaceCharge
 
   /// simulate only one sector instead of 18 per side. This makes currently only sense for the static distortions (ToDo: simplify usage)
   /// phi max will be restricted to 2Pi/18 for this instance and for global instance of poisson solver
-  void setSimOneSector();
+  void setSimOneSector() { setSimNSector(1); }
+
+  /// simulate N sectors
+  void setSimNSector(const int nSectors);
 
   /// unsetting simulation of one sector
-  static void unsetSimOneSector();
+  static void unsetSimNSector();
 
   /// setting default potential (same potential for all GEM frames. The default value of 1000V are matched to distortions observed in laser data without X-Ray etc.
   /// \param side side of the TPC where the potential will be set
@@ -308,9 +311,23 @@ class SpaceCharge
   /// scaling the space-charge density for given stack
   void scaleChargeDensityStack(const float scalingFactor, const Sector sector, const GEMstack stack);
 
+  /// scale the potential by a scaling factor
+  /// \param scalingFactor factor to scale the potential
+  /// \param side side for which the potential will be scaled
+  void scalePotential(const DataT scalingFactor, const Side side) { mPotential[side] *= scalingFactor; }
+
   /// add space charge density from other object (this.mDensity = this.mDensity + other.mDensity)
   /// \param otherSC other space-charge object, which charge will be added to current object
   void addChargeDensity(const SpaceCharge<DataT>& otherSC);
+
+  /// add global corrections from other space charge object
+  void addGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side);
+
+  /// convert space-charge object to new definition of number of vertices
+  /// \param nZNew new number of vertices in z direction
+  /// \param nRNew new number of vertices in r direction
+  /// \param nPhiNew new number of vertices in phi direction
+  void downSampleObject(const int nZNew, const int nRNew, const int nPhiNew);
 
   /// step 3: calculate the local distortions and corrections with an electric field
   /// \param type calculate local corrections or local distortions: type = o2::tpc::SpaceCharge<>::Type::Distortions or o2::tpc::SpaceCharge<>::Type::Corrections
@@ -414,6 +431,9 @@ class SpaceCharge
   /// \param r global r coordinate
   /// \param phi global phi coordinate
   DataT getDensityCyl(const DataT z, const DataT r, const DataT phi, const Side side) const;
+
+  /// get the potential for list of given coordinate
+  std::vector<float> getDensityCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side) const;
 
   /// get the potential for given coordinate
   /// \param z global z coordinate
@@ -1184,6 +1204,10 @@ class SpaceCharge
   /// \param gCorr function returning global corrections for given global coordinate
   void setGlobalCorrections(const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gCorr, const Side side);
 
+  /// setting the global distortions directly from input function provided in global coordinates
+  /// \param gDist function returning global distortions for given global coordinate
+  void setGlobalDistortions(const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gDist, const Side side);
+
   /// set misalignment of ROC for shift in z
   /// \param sector sector for which the misalignment in z will be applied (if sector=-1 all sectors are shifted)
   /// \param type 0=IROC, 1=OROC, 2=IROC+OROC
@@ -1229,7 +1253,16 @@ class SpaceCharge
   /// \param tgl tgl of the track
   /// \param nPoints number of points used to calculate the DCAr
   /// \param pcstream if provided debug output is being created
-  float getDCAr(float tgl, const int nPoints, const float phi, o2::utils::TreeStreamRedirector* pcstream = nullptr) const;
+  float getDCAr(float tgl, const int nPoints, const float phi, float rStart = -1, o2::utils::TreeStreamRedirector* pcstream = nullptr) const;
+
+  /// \return returns nearest phi vertex for given phi position
+  size_t getNearestPhiVertex(const DataT phi, const Side side) const { return std::round(phi / getGridSpacingPhi(side)); }
+
+  /// \return returns nearest r vertex for given radius position
+  size_t getNearestRVertex(const DataT r, const Side side) const { return std::round((r - getRMin(side)) / getGridSpacingR(side) + 0.5); }
+
+  /// \return returns number of bins in phi direction for the gap between sectors and for the GEM frame
+  size_t getPhiBinsGapFrame(const Side side) const;
 
  private:
   ParamSpaceCharge mParamGrid{};                                                                          ///< parameters of the grid on which the calculations are performed
@@ -1352,15 +1385,6 @@ class SpaceCharge
   /// dump the created electron tracks with calculateElectronDriftPath function to a tree
   void dumpElectronTracksToTree(const std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>>& electronTracks, const int nSamplingPoints, const char* outFile) const;
 
-  /// \return returns nearest phi vertex for given phi position
-  size_t getNearestPhiVertex(const DataT phi, const Side side) const { return std::round(phi / getGridSpacingPhi(side)); }
-
-  /// \return returns nearest r vertex for given radius position
-  size_t getNearestRVertex(const DataT r, const Side side) const { return std::round((r - getRMin(side)) / getGridSpacingR(side) + 0.5); }
-
-  /// \return returns number of bins in phi direction for the gap between sectors and for the GEM frame
-  size_t getPhiBinsGapFrame(const Side side) const;
-
   /// \return setting the boundary potential for given GEM stack
   void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame = false);
 
@@ -1372,22 +1396,24 @@ class SpaceCharge
 
   void initAllBuffers();
 
-  void setBoundaryFromIndices(const std::function<DataT(DataT)>& potentialFunc, const std::vector<size_t>& indices, const Side side);
+  void setBoundaryFromIndices(const std::function<DataT(DataT)>& potentialFunc, const std::vector<std::pair<size_t, float>>& indices, const Side side);
 
   /// get indices of the GEM frame along r
-  std::vector<size_t> getPotentialBoundaryGEMFrameAlongRIndices(const Side side) const;
+  std::vector<std::pair<size_t, float>> getPotentialBoundaryGEMFrameAlongRIndices(const Side side) const;
 
   /// get indices of the GEM frame along phi
-  std::vector<size_t> getPotentialBoundaryGEMFrameAlongPhiIndices(const GEMstack stack, const bool bottom, const Side side, const bool outerFrame, const bool noGap = false) const;
+  std::vector<std::pair<size_t, float>> getPotentialBoundaryGEMFrameAlongPhiIndices(const GEMstack stack, const bool bottom, const Side side, const bool outerFrame, const bool noGap = false) const;
 
   void setROCMisalignment(int stackType, int misalignmentType, int sector, const float potMin, const float potMax);
-  void fillROCMisalignment(const std::vector<size_t>& indicesTop, const std::vector<size_t>& indicesBottom, int sector, int misalignmentType, const std::pair<float, float>& deltaPotPar);
+  void fillROCMisalignment(const std::vector<std::pair<size_t, float>>& indicesTop, const std::vector<std::pair<size_t, float>>& indicesBottom, int sector, int misalignmentType, const std::pair<float, float>& deltaPotPar);
 
   /// set potentialsdue to ROD misalignment
   void initRodAlignmentVoltages(const MisalignmentType misalignmentType, const FCType fcType, const int sector, const Side side, const float deltaPot);
 
   void calcGlobalDistCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr, const SpaceCharge<DataT>* scSCale, float scale, const Type type);
   void calcGlobalDistCorrIterativeLinearCartesian(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachX, const DataT approachY, const DataT approachZ, const DataT diffCorr, const SpaceCharge<DataT>* scSCale, float scale, const Type type);
+
+  void setGlobalDistCorr(const Type type, const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gFunc, const Side side);
 
   ClassDefNV(SpaceCharge, 6);
 };
