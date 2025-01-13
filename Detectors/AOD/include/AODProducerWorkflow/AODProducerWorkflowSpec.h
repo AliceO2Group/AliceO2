@@ -496,8 +496,8 @@ class AODProducerWorkflowDPL : public Task
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,
                            std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
-  template <typename fwdTracksCursorType, typename fwdTracksCovCursorType, typename AmbigFwdTracksCursorType>
-  void addToFwdTracksTable(fwdTracksCursorType& fwdTracksCursor, fwdTracksCovCursorType& fwdTracksCovCursor, AmbigFwdTracksCursorType& ambigFwdTracksCursor,
+  template <typename fwdTracksCursorType, typename fwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename mftTracksCovCursorType>
+  void addToFwdTracksTable(fwdTracksCursorType& fwdTracksCursor, fwdTracksCovCursorType& fwdTracksCovCursor, AmbigFwdTracksCursorType& ambigFwdTracksCursor, mftTracksCovCursorType& mftTracksCovCursor,
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID, std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
   TrackExtraInfo processBarrelTrack(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
@@ -511,7 +511,7 @@ class AODProducerWorkflowDPL : public Task
   // * fills tables collision by collision
   // * interaction time is for TOF information
   template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
-            typename MFTTracksCursorType, typename AmbigMFTTracksCursorType,
+            typename MFTTracksCursorType, typename MFTTracksCovCursorType, typename AmbigMFTTracksCursorType,
             typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename FwdTrkClsCursorType>
   void fillTrackTablesPerCollision(int collisionID,
                                    std::uint64_t collisionBC,
@@ -524,6 +524,7 @@ class AODProducerWorkflowDPL : public Task
                                    TracksQACursorType& tracksQACursor,
                                    AmbigTracksCursorType& ambigTracksCursor,
                                    MFTTracksCursorType& mftTracksCursor,
+                                   MFTTracksCovCursorType& mftTracksCovCursor,
                                    AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                                    FwdTracksCursorType& fwdTracksCursor,
                                    FwdTracksCovCursorType& fwdTracksCovCursor,

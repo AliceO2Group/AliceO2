@@ -417,7 +417,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
 }
 
 template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
-          typename MFTTracksCursorType, typename AmbigMFTTracksCursorType,
+          typename MFTTracksCursorType, typename MFTTracksCovCursorType, typename AmbigMFTTracksCursorType,
           typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename FwdTrkClsCursorType>
 void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          std::uint64_t collisionBC,
@@ -430,6 +430,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          TracksQACursorType& tracksQACursor,
                                                          AmbigTracksCursorType& ambigTracksCursor,
                                                          MFTTracksCursorType& mftTracksCursor,
+                                                         MFTTracksCovCursorType& mftTracksCovCursor,
                                                          AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                                                          FwdTracksCursorType& fwdTracksCursor,
                                                          FwdTracksCovCursorType& fwdTracksCovCursor,
@@ -449,6 +450,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
     } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH || src == GIndex::Source::MCHMID) {
       fwdTracksCursor.reserve(nToReserve + fwdTracksCursor.lastIndex());
       fwdTracksCovCursor.reserve(nToReserve + fwdTracksCovCursor.lastIndex());
+      if (src == GIndex::Source::MFTMCH) {
+        mftTracksCovCursor.reserve(nToReserve + mftTracksCovCursor.lastIndex());
+      }
     } else {
       tracksCursor.reserve(nToReserve + tracksCursor.lastIndex());
       tracksCovCursor.reserve(nToReserve + tracksCovCursor.lastIndex());
@@ -468,7 +472,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           if (trackIndex.isAmbiguous() && mGIDToTableFwdID.find(trackIndex) != mGIDToTableFwdID.end()) {           // was it already stored ?
             continue;
           }
-          addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
+          addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, mftTracksCovCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
           mGIDToTableFwdID.emplace(trackIndex, mTableTrFwdID);
           addClustersToFwdTrkClsTable(data, fwdTrkClsCursor, trackIndex, mTableTrFwdID);
           mTableTrFwdID++;
@@ -588,9 +592,9 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
   }
 }
 
-template <typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType>
+template <typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename mftTracksCovCursorType>
 void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksCursor, FwdTracksCovCursorType& fwdTracksCovCursor,
-                                                 AmbigFwdTracksCursorType& ambigFwdTracksCursor, GIndex trackID,
+                                                 AmbigFwdTracksCursorType& ambigFwdTracksCursor, mftTracksCovCursorType& mftTracksCovCursor, GIndex trackID,
                                                  const o2::globaltracking::RecoContainer& data, int collisionID, std::uint64_t collisionBC,
                                                  const std::map<uint64_t, int>& bcsMap)
 {
@@ -732,6 +736,8 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.trackTimeRes = time.getTimeStampError() * 1.e3;
   } else { // This is a GlobalMuonTrack or a GlobalForwardTrack
     const auto& track = data.getGlobalFwdTrack(trackID);
+    const auto& mftTracks = data.getMFTTracks();
+    const auto& mfttrack = mftTracks[track.getMFTTrackID()];
     if (!extrapMCHTrack(track.getMCHTrackID())) {
       LOGF(warn, "Unable to extrapolate MCH track with ID %d! Dummy parameters will be used", track.getMCHTrackID());
     }
@@ -771,6 +777,26 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdCovInfo.rho1PtTgl = (Char_t)(128. * track.getCovariances()(3, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigTgl));
 
     fwdInfo.trackTypeId = (fwdInfo.chi2matchmchmid >= 0) ? o2::aod::fwdtrack::GlobalMuonTrack : o2::aod::fwdtrack::GlobalForwardTrack;
+
+    float sX = TMath::Sqrt(mfttrack.getSigma2X()), sY = TMath::Sqrt(mfttrack.getSigma2Y()), sPhi = TMath::Sqrt(mfttrack.getSigma2Phi()),
+          sTgl = TMath::Sqrt(mfttrack.getSigma2Tanl()), sQ2Pt = TMath::Sqrt(mfttrack.getSigma2InvQPt());
+
+    mftTracksCovCursor(fwdInfo.matchmfttrackid,
+                       truncateFloatFraction(sX, mTrackCovDiag),
+                       truncateFloatFraction(sY, mTrackCovDiag),
+                       truncateFloatFraction(sPhi, mTrackCovDiag),
+                       truncateFloatFraction(sTgl, mTrackCovDiag),
+                       truncateFloatFraction(sQ2Pt, mTrackCovDiag),
+                       (Char_t)(128. * mfttrack.getCovariances()(0, 1) / (sX * sY)),
+                       (Char_t)(128. * mfttrack.getCovariances()(0, 2) / (sPhi * sX)),
+                       (Char_t)(128. * mfttrack.getCovariances()(1, 2) / (sPhi * sY)),
+                       (Char_t)(128. * mfttrack.getCovariances()(0, 3) / (sTgl * sX)),
+                       (Char_t)(128. * mfttrack.getCovariances()(1, 3) / (sTgl * sY)),
+                       (Char_t)(128. * mfttrack.getCovariances()(2, 3) / (sTgl * sPhi)),
+                       (Char_t)(128. * mfttrack.getCovariances()(0, 4) / (sQ2Pt * sX)),
+                       (Char_t)(128. * mfttrack.getCovariances()(1, 4) / (sQ2Pt * sY)),
+                       (Char_t)(128. * mfttrack.getCovariances()(2, 4) / (sQ2Pt * sPhi)),
+                       (Char_t)(128. * mfttrack.getCovariances()(3, 4) / (sQ2Pt * sTgl)));
   }
 
   std::uint64_t bcOfTimeRef;
@@ -1820,6 +1846,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mcParticlesCursor = createTableCursor<o2::aod::StoredMcParticles_001>(pc);
   auto mcTrackLabelCursor = createTableCursor<o2::aod::McTrackLabels>(pc);
   auto mftTracksCursor = createTableCursor<o2::aod::StoredMFTTracks>(pc);
+  auto mftTracksCovCursor = createTableCursor<o2::aod::StoredMFTTracksCov>(pc);
   auto tracksCursor = createTableCursor<o2::aod::StoredTracksIU>(pc);
   auto tracksCovCursor = createTableCursor<o2::aod::StoredTracksCovIU>(pc);
   auto tracksExtraCursor = createTableCursor<o2::aod::StoredTracksExtra>(pc);
@@ -2131,7 +2158,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
   // fixme: interaction time is undefined for unassigned tracks (?)
   fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor,
-                              ambigTracksCursor, mftTracksCursor, ambigMFTTracksCursor,
+                              ambigTracksCursor, mftTracksCursor, mftTracksCovCursor, ambigMFTTracksCursor,
                               fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
 
   // filling collisions and tracks into tables
@@ -2173,7 +2200,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
     fillTrackTablesPerCollision(collisionID, globalBC, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor, ambigTracksCursor,
-                                mftTracksCursor, ambigMFTTracksCursor,
+                                mftTracksCursor, mftTracksCovCursor, ambigMFTTracksCursor,
                                 fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
     collisionID++;
   }
@@ -3001,6 +3028,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<StoredMcParticles_001>::spec(),
     OutputForTable<McTrackLabels>::spec(),
     OutputForTable<StoredMFTTracks>::spec(),
+    OutputForTable<StoredMFTTracksCov>::spec(),
     OutputForTable<StoredTracksIU>::spec(),
     OutputForTable<StoredTracksCovIU>::spec(),
     OutputForTable<StoredTracksExtra>::spec(),
