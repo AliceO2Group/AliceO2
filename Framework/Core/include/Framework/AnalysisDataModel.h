@@ -951,6 +951,32 @@ DECLARE_SOA_EXTENDED_TABLE(FwdTracksCov, StoredFwdTracksCov, "EXFWDTRACKCOV", 0,
 using FwdTrack = FwdTracks::iterator;
 using FwdTrackCovFwd = FwdTracksCov::iterator;
 
+DECLARE_SOA_TABLE_FULL(StoredMFTTracksCov, "MFTTracksCov", "AOD", "MFTTRACKCOV", //!
+                       o2::soa::Index<>, fwdtrack::MFTTrackId,
+                       fwdtrack::SigmaX, fwdtrack::SigmaY, fwdtrack::SigmaPhi, fwdtrack::SigmaTgl, fwdtrack::Sigma1Pt,
+                       fwdtrack::RhoXY, fwdtrack::RhoPhiX, fwdtrack::RhoPhiY, fwdtrack::RhoTglX, fwdtrack::RhoTglY,
+                       fwdtrack::RhoTglPhi, fwdtrack::Rho1PtX, fwdtrack::Rho1PtY, fwdtrack::Rho1PtPhi, fwdtrack::Rho1PtTgl);
+
+DECLARE_SOA_EXTENDED_TABLE(MFTTracksCov, StoredMFTTracksCov, "EXMFTTRACKCOV", 0, //!
+                           aod::fwdtrack::CXX,
+                           aod::fwdtrack::CXY,
+                           aod::fwdtrack::CYY,
+                           aod::fwdtrack::CPhiX,
+                           aod::fwdtrack::CPhiY,
+                           aod::fwdtrack::CPhiPhi,
+                           aod::fwdtrack::CTglX,
+                           aod::fwdtrack::CTglY,
+                           aod::fwdtrack::CTglPhi,
+                           aod::fwdtrack::CTglTgl,
+                           aod::fwdtrack::C1PtX,
+                           aod::fwdtrack::C1PtY,
+                           aod::fwdtrack::C1PtPhi,
+                           aod::fwdtrack::C1PtTgl,
+                           aod::fwdtrack::C1Pt21Pt2);
+
+using MFTTrack = MFTTracks::iterator;
+using MFTTrackCovFwd = MFTTracksCov::iterator;
+
 } // namespace aod
 namespace soa
 {
