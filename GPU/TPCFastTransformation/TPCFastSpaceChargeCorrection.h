@@ -68,8 +68,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     float scaleCorrVtoGrid{0.f};              ///< scale corrected V to V-grid coordinate
     float maxCorr[3]{10.f, 10.f, 10.f};       ///< max correction for dX, dU, dV
     float minCorr[3]{-10.f, -10.f, -10.f};    ///< min correction for dX, dU, dV
-    float maxInvCorr[3]{10.f, 10.f, 10.f};    ///< max inverse correction for dX, dU, dV
-    float minInvCorr[3]{-10.f, -10.f, -10.f}; ///< min inverse correction for dX, dU, dV
     RowActiveArea activeArea;
 
     void resetMaxValues()
@@ -92,28 +90,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
       maxCorr[2] = GPUCommonMath::Max(maxCorr[2], dv);
       minCorr[2] = GPUCommonMath::Min(minCorr[2], dv);
-    }
-
-    void resetMaxValuesInv()
-    {
-      maxInvCorr[0] = 1.f;
-      minInvCorr[0] = -1.f;
-      maxInvCorr[1] = 1.f;
-      minInvCorr[1] = -1.f;
-      maxInvCorr[2] = 1.f;
-      minInvCorr[2] = -1.f;
-    }
-
-    void updateMaxValuesInv(float dx, float du, float dv)
-    {
-      maxInvCorr[0] = GPUCommonMath::Max(maxInvCorr[0], dx);
-      minInvCorr[0] = GPUCommonMath::Min(minInvCorr[0], dx);
-
-      maxInvCorr[1] = GPUCommonMath::Max(maxInvCorr[1], du);
-      minInvCorr[1] = GPUCommonMath::Min(minInvCorr[1], du);
-
-      maxInvCorr[2] = GPUCommonMath::Max(maxInvCorr[2], dv);
-      minInvCorr[2] = GPUCommonMath::Min(minInvCorr[2], dv);
     }
 
     ClassDefNV(SliceRowInfo, 2);
@@ -494,7 +470,15 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
   float dx = 0;
   spline.interpolateU(splineData, gridU, gridV, &dx);
   const auto& info = getSliceRowInfo(slice, row);
-  dx = GPUCommonMath::Max(info.minInvCorr[0], GPUCommonMath::Min(info.maxInvCorr[0], dx));
+
+  float s = corrV / info.gridCorrV0;
+  if (s < 0.) {
+    s = 0.;
+  }
+  if (s > 1.) {
+    s = 1.;
+  }
+  dx = GPUCommonMath::Clamp(s * dx, info.minCorr[0], info.maxCorr[0]);
   x = mGeo.getRowInfo(row).x + dx;
 }
 
@@ -510,8 +494,15 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
   float duv[2];
   spline.interpolateU(splineData, gridU, gridV, duv);
   const auto& info = getSliceRowInfo(slice, row);
-  duv[0] = GPUCommonMath::Max(info.minInvCorr[1], GPUCommonMath::Min(info.maxInvCorr[1], duv[0]));
-  duv[1] = GPUCommonMath::Max(info.minInvCorr[2], GPUCommonMath::Min(info.maxInvCorr[2], duv[1]));
+  float s = corrV / info.gridCorrV0;
+  if (s < 0.) {
+    s = 0.;
+  }
+  if (s > 1.) {
+    s = 1.;
+  }
+  duv[0] = GPUCommonMath::Clamp(s * duv[0], info.minCorr[1], info.maxCorr[1]);
+  duv[1] = GPUCommonMath::Clamp(s * duv[1], info.minCorr[2], info.maxCorr[2]);
   nomU = corrU - duv[0];
   nomV = corrV - duv[1];
 }

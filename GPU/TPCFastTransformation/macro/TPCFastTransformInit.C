@@ -202,41 +202,44 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   TFile* debugFile = new TFile("transformDebug.root", "RECREATE");
   debugFile->cd();
 
-  // ntuple with created TPC corrections
-  TNtuple* debugCorr = new TNtuple("corr", "corr", "iRoc:iRow:x:y:z:cx:cy:cz");
+  // debug ntuple with created TPC corrections
+  //
+  // measured x,y,z; corrections cx,cy,cz from the measured to the real x,y,z;
+  // inverse corrections ix,iy,iz at the real position (x+cx,y+cy,z+cz)
+  // ideally, ix = cx, iy = cy, iz = cz
+  TNtuple* debugCorr = new TNtuple("corr", "corr", "iRoc:iRow:x:y:z:cx:cy:cz:ix:iy:iz");
 
   debugCorr->SetMarkerStyle(8);
   debugCorr->SetMarkerSize(0.1);
   debugCorr->SetMarkerColor(kBlack);
 
-  // ntuple with the input data: voxel corrections
+  // ntuple with the input data: voxels and corrections
   debugFile->cd();
   TNtuple* debugVox =
-    new TNtuple("vox", "vox", "iRoc:iRow:n:x:y:z:vx:vy:vz:cx:cy:cz");
+    new TNtuple("vox", "vox", "iRoc:iRow:n:x:y:z:vx:vy:vz");
 
   debugVox->SetMarkerStyle(8);
   debugVox->SetMarkerSize(0.8);
   debugVox->SetMarkerColor(kBlue);
 
-  // duplicate of debugVox
+  // duplicate of debugVox + the spline data at voxels in a different color
   debugFile->cd();
   TNtuple* debugCorrVox =
-    new TNtuple("corrvox", "corrvox", "iRoc:iRow:n:x:y:z:vx:vy:vz:cx:cy:cz");
+    new TNtuple("corrvox", "corrvox", "iRoc:iRow:n:x:y:z:vx:vy:vz:cx:cy:cz:ix:iy:iz");
 
   debugCorrVox->SetMarkerStyle(8);
   debugCorrVox->SetMarkerSize(0.8);
   debugCorrVox->SetMarkerColor(kMagenta);
 
-  // ntuple with spline grid points
+  // corrections at the spline grid points
   debugFile->cd();
-  TNtuple* debugGrid = new TNtuple("grid", "grid", "iRoc:iRow:x:y:z:cx:cy:cz");
+  TNtuple* debugGrid = new TNtuple("grid", "grid", "iRoc:iRow:x:y:z:cx:cy:cz:ix:iy:iz");
 
   debugGrid->SetMarkerStyle(8);
   debugGrid->SetMarkerSize(1.2);
   debugGrid->SetMarkerColor(kBlack);
 
-  // ntuple with data points created from voxels (with data smearing and
-  // extension to the edges)
+  // ntuple with data points created from voxels (with the data smearing, extension to the edges etc.)
   debugFile->cd();
   TNtuple* debugPoints =
     new TNtuple("points", "points", "iRoc:iRow:x:y:z:px:py:pz:cx:cy:cz");
@@ -253,6 +256,34 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
 
   const o2::gpu::TPCFastTransformGeo& geo = helper->getGeometry();
 
+  auto getAllCorrections = [&](int iRoc, int iRow, float u, float v, float& x, float& y, float& z, float& cx, float& cy, float& cz, float& ix, float& iy, float& iz) {
+    // define x,y,z
+
+    x = geo.getRowInfo(iRow).x;
+    geo.convUVtoLocal(iRoc, u, v, y, z);
+
+    // get the corrections cx,cy,cz at x,y,z
+    float cu, cv;
+    corr.getCorrection(iRoc, iRow, u, v, cx, cu, cv);
+    geo.convUVtoLocal(iRoc, cu, cv, cy, cz);
+
+    float corrected_u = u + cu;
+    float corrected_v = v + cv;
+    float corrected_x = x + cx;
+    float corrected_y, corrected_z;
+    geo.convUVtoLocal(iRoc, corrected_u, corrected_v, corrected_y, corrected_z);
+
+    // get the inverse corrections ix,iy,iz at the corrected x,y,z
+    float inverted_x, inverted_u, inverted_v, inverted_y, inverted_z;
+    corr.getCorrectionInvCorrectedX(iRoc, iRow, corrected_u, corrected_v, inverted_x);
+    corr.getCorrectionInvUV(iRoc, iRow, corrected_u, corrected_v, inverted_u, inverted_v);
+    geo.convUVtoLocal(iRoc, inverted_u, inverted_v, inverted_y, inverted_z);
+
+    ix = corrected_x - inverted_x;
+    iy = corrected_y - inverted_y;
+    iz = corrected_z - inverted_z;
+  };
+
   o2::tpc::TrackResiduals::VoxRes* v = nullptr;
   TBranch* branch = voxResTree->GetBranch("voxRes");
   branch->SetAddress(&v);
@@ -260,6 +291,8 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
 
   int32_t iRocLast = -1;
   int32_t iRowLast = -1;
+
+  std::cout << "fill debug ntuples at voxels ..." << std::endl;
 
   for (int32_t iVox = 0; iVox < voxResTree->GetEntriesFast(); iVox++) {
 
@@ -312,12 +345,10 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
       z = x * v->stat[o2::tpc::TrackResiduals::VoxZ];
     }
 
-    float u, v, cx, cu, cv, cy, cz;
+    float u, v;
     geo.convLocalToUV(iRoc, y, z, u, v);
-    corr.getCorrection(iRoc, iRow, u, v, cx, cu, cv);
-    geo.convUVtoLocal(iRoc, u + cu, v + cv, cy, cz);
-    cy -= y;
-    cz -= z;
+    float x1, y1, z1, cx, cy, cz, ix, iy, iz;
+    getAllCorrections(iRoc, iRow, u, v, x1, y1, z1, cx, cy, cz, ix, iy, iz);
 
     double d[3] = {cx - correctionX, cy - correctionY, cz - correctionZ};
     if (voxEntries >= 1.) {
@@ -334,13 +365,14 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
       nDiff++;
     }
 
-    debugVox->Fill(iRoc, iRow, voxEntries, x, y, z, correctionX, correctionY, correctionZ,
-                   cx, cy, cz);
+    debugVox->Fill(iRoc, iRow, voxEntries, x, y, z, correctionX, correctionY, correctionZ);
+
     debugCorrVox->Fill(iRoc, iRow, voxEntries, x, y, z, correctionX, correctionY, correctionZ,
-                       cx, cy, cz);
+                       cx, cy, cz, ix, iy, iz);
   }
 
-  std::cout << "create debug ntuples ..." << std::endl;
+  std::cout
+    << "fill debug ntuples everywhere .." << std::endl;
 
   for (int32_t iRoc = 0; iRoc < geo.getNumberOfSlices(); iRoc++) {
     // for (int32_t iRoc = 0; iRoc < 1; iRoc++) {
@@ -399,18 +431,14 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
             for (uint32_t iv = 0; iv < pv.size(); iv++) {
               float u = pu[iu];
               float v = pv[iv];
-              float x, y, z;
-              geo.convUVtoLocal(iRoc, u, v, y, z);
-              float cx, cu, cv;
-              corr.getCorrection(iRoc, iRow, u, v, cx, cu, cv);
-              float cy, cz;
-              geo.convUVtoLocal(iRoc, u + cu, v + cv, cy, cz);
-              cy -= y;
-              cz -= z;
+
+              float x, y, z, cx, cy, cz, ix, iy, iz;
+              getAllCorrections(iRoc, iRow, u, v, x, y, z, cx, cy, cz, ix, iy, iz);
+
               if (iter == 0) {
-                debugGrid->Fill(iRoc, iRow, x, y, z, cx, cy, cz);
+                debugGrid->Fill(iRoc, iRow, x, y, z, cx, cy, cz, ix, iy, iz);
               } else {
-                debugCorr->Fill(iRoc, iRow, x, y, z, cx, cy, cz);
+                debugCorr->Fill(iRoc, iRow, x, y, z, cx, cy, cz, ix, iy, iz);
               }
             }
           }
@@ -462,7 +490,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   std::cout << "Mean difference in x,y,z : " << sumDiff[0] << " " << sumDiff[1]
             << " " << sumDiff[2] << std::endl;
 
-  corr.testInverse(0);
+  corr.testInverse(true);
 
   debugFile->cd();
   debugCorr->Write();
