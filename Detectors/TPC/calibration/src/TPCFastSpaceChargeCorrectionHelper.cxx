@@ -146,7 +146,6 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
         int nDataPoints = data.size();
         auto& info = correction.getSliceRowInfo(slice, row);
         info.resetMaxValues();
-        info.resetMaxValuesInv();
         if (nDataPoints >= 4) {
           std::vector<double> pointSU(nDataPoints);
           std::vector<double> pointSV(nDataPoints);
@@ -160,7 +159,6 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
             pointCorr[3 * i + 1] = du;
             pointCorr[3 * i + 2] = dv;
             info.updateMaxValues(20. * dx, 20. * du, 20. * dv);
-            info.updateMaxValuesInv(-20. * dx, -20. * du, -20. * dv);
           }
           helper.approximateDataPoints(spline, splineParameters, 0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax(), &pointSU[0],
                                        &pointSV[0], &pointCorr[0], nDataPoints);
@@ -908,46 +906,60 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
     // LOG(info) << "inverse transform for slice " << slice ;
-    double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
 
     auto myThread = [&](int iThread) {
       Spline2DHelper<float> helper;
       std::vector<float> splineParameters;
-      ChebyshevFit1D chebFitterX, chebFitterU, chebFitterV;
 
       for (int row = iThread; row < mGeo.getNumberOfRows(); row += mNthreads) {
         TPCFastSpaceChargeCorrection::SplineType spline = correction.getSpline(slice, row);
         helper.setSpline(spline, 10, 10);
-        std::vector<double> dataPointCU, dataPointCV, dataPointF;
-
-        float u0, u1, v0, v1;
-        mGeo.convScaledUVtoUV(slice, row, 0., 0., u0, v0);
-        mGeo.convScaledUVtoUV(slice, row, 1., 1., u1, v1);
 
         double x = mGeo.getRowInfo(row).x;
-        int nPointsU = (spline.getGridX1().getNumberOfKnots() - 1) * 10;
-        int nPointsV = (spline.getGridX2().getNumberOfKnots() - 1) * 10;
+        auto& sliceRowInfo = correction.getSliceRowInfo(slice, row);
 
-        double stepU = (u1 - u0) / (nPointsU - 1);
-        double stepV = (v1 - v0) / (nPointsV - 1);
-
-        if (prn) {
-          LOG(info) << "u0 " << u0 << " u1 " << u1 << " v0 " << v0 << " v1 " << v1;
+        std::vector<double> gridU;
+        {
+          const auto& grid = spline.getGridX1();
+          for (int i = 0; i < grid.getNumberOfKnots(); i++) {
+            if (i == grid.getNumberOfKnots() - 1) {
+              gridU.push_back(grid.getKnot(i).u);
+              break;
+            }
+            for (double s = 1.; s > 0.; s -= 0.1) {
+              gridU.push_back(s * grid.getKnot(i).u + (1. - s) * grid.getKnot(i + 1).u);
+            }
+          }
         }
-        TPCFastSpaceChargeCorrection::RowActiveArea& area = correction.getSliceRowInfo(slice, row).activeArea;
+        std::vector<double> gridV;
+        {
+          const auto& grid = spline.getGridX2();
+          for (int i = 0; i < grid.getNumberOfKnots(); i++) {
+            if (i == grid.getNumberOfKnots() - 1) {
+              gridV.push_back(grid.getKnot(i).u);
+              break;
+            }
+            for (double s = 1.; s > 0.; s -= 0.1) {
+              gridV.push_back(s * grid.getKnot(i).u + (1. - s) * grid.getKnot(i + 1).u);
+            }
+          }
+        }
+
+        std::vector<double> dataPointCU, dataPointCV, dataPointF;
+        dataPointCU.reserve(gridU.size() * gridV.size());
+        dataPointCV.reserve(gridU.size() * gridV.size());
+        dataPointF.reserve(gridU.size() * gridV.size());
+
+        TPCFastSpaceChargeCorrection::RowActiveArea& area = sliceRowInfo.activeArea;
         area.cuMin = 1.e10;
         area.cuMax = -1.e10;
+        double cvMin = 1.e10;
 
-        /*
-        v1 = area.vMax;
-        stepV = (v1 - v0) / (nPointsU - 1);
-        if (stepV < 1.f) {
-          stepV = 1.f;
-        }
-        */
+        for (int iu = 0; iu < gridU.size(); iu++) {
+          for (int iv = 0; iv < gridV.size(); iv++) {
+            float u, v;
+            correction.convGridToUV(slice, row, gridU[iu], gridV[iv], u, v);
 
-        for (double u = u0; u < u1 + stepU; u += stepU) {
-          for (double v = v0; v < v1 + stepV; v += stepV) {
             float dx, du, dv;
             correction.getCorrection(slice, row, u, v, dx, du, dv);
             dx *= scaling[0];
@@ -976,39 +988,41 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
             dataPointF.push_back(dx);
             dataPointF.push_back(du);
             dataPointF.push_back(dv);
-
-            if (prn) {
-              LOG(info) << "measurement cu " << cu << " cv " << cv << " dx " << dx << " du " << du << " dv " << dv;
-            }
-          } // v
-        }   // u
+          }
+        }
 
         if (area.cuMax - area.cuMin < 0.2) {
           area.cuMax = .1;
           area.cuMin = -.1;
         }
-        if (area.cvMax < 0.1) {
+        if (area.cvMax - cvMin < 0.2) {
           area.cvMax = .1;
+          cvMin = -.1;
         }
+
         if (prn) {
           LOG(info) << "slice " << slice << " row " << row << " max drift L = " << correction.getMaxDriftLength(slice, row)
                     << " active area: cuMin " << area.cuMin << " cuMax " << area.cuMax << " vMax " << area.vMax << " cvMax " << area.cvMax;
         }
 
-        TPCFastSpaceChargeCorrection::SliceRowInfo& info = correction.getSliceRowInfo(slice, row);
-        info.gridCorrU0 = area.cuMin;
-        info.scaleCorrUtoGrid = spline.getGridX1().getUmax() / (area.cuMax - area.cuMin);
-        info.scaleCorrVtoGrid = spline.getGridX2().getUmax() / area.cvMax;
+        // define the grid for the inverse correction
 
-        info.gridCorrU0 = u0;
-        info.gridCorrV0 = info.gridV0;
-        info.scaleCorrUtoGrid = spline.getGridX1().getUmax() / (u1 - info.gridCorrU0);
-        info.scaleCorrVtoGrid = spline.getGridX2().getUmax() / (v1 - info.gridCorrV0);
+        sliceRowInfo.gridCorrU0 = area.cuMin;
+        sliceRowInfo.gridCorrV0 = cvMin;
+        sliceRowInfo.scaleCorrUtoGrid = spline.getGridX1().getUmax() / (area.cuMax - area.cuMin);
+        sliceRowInfo.scaleCorrVtoGrid = spline.getGridX2().getUmax() / area.cvMax;
+
+        /*
+        sliceRowInfo.gridCorrU0 = sliceRowInfo.gridU0;
+        sliceRowInfo.gridCorrV0 = sliceRowInfo.gridV0;
+        sliceRowInfo.scaleCorrUtoGrid = sliceRowInfo.scaleUtoGrid;
+        sliceRowInfo.scaleCorrVtoGrid = sliceRowInfo.scaleVtoGrid;
+        */
 
         int nDataPoints = dataPointCU.size();
         for (int i = 0; i < nDataPoints; i++) {
-          dataPointCU[i] = (dataPointCU[i] - info.gridCorrU0) * info.scaleCorrUtoGrid;
-          dataPointCV[i] = (dataPointCV[i] - info.gridCorrV0) * info.scaleCorrVtoGrid;
+          dataPointCU[i] = (dataPointCU[i] - sliceRowInfo.gridCorrU0) * sliceRowInfo.scaleCorrUtoGrid;
+          dataPointCV[i] = (dataPointCV[i] - sliceRowInfo.gridCorrV0) * sliceRowInfo.scaleCorrVtoGrid;
         }
 
         splineParameters.resize(spline.getNumberOfParameters());

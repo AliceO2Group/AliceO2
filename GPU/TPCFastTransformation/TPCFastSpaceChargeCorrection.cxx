@@ -19,6 +19,7 @@
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
+#include <string>
 #include <cmath>
 #include "Spline2DHelper.h"
 #endif
@@ -514,15 +515,41 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
   tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSlicesA() / 2) + 1.;
   tpcR2max = tpcR2max * tpcR2max;
 
-  double maxDtpc[3] = {0, 0, 0};
-  double maxD = 0;
+  struct MaxValue {
+    double V{0.};
+    int Roc{-1};
+    int Row{-1};
+
+    void update(double v, int roc, int row)
+    {
+      if (fabs(v) > fabs(V)) {
+        V = v;
+        Roc = roc;
+        Row = row;
+      }
+    }
+    void update(const MaxValue& other)
+    {
+      update(other.V, other.Roc, other.Row);
+    }
+
+    std::string toString()
+    {
+      std::stringstream ss;
+      ss << V << "(" << Roc << "," << Row << ")";
+      return ss.str();
+    }
+  };
+
+  MaxValue maxDtpc[3];
+  MaxValue maxD;
 
   for (int32_t slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
     if (prn) {
       LOG(info) << "check inverse transform for slice " << slice;
     }
-    double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
-    double maxDslice[3] = {0, 0, 0};
+    double vLength = mGeo.getTPCzLength(slice);
+    MaxValue maxDslice[3];
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
       float u0, u1, v0, v1;
       mGeo.convScaledUVtoUV(slice, row, 0., 0., u0, v0);
@@ -530,9 +557,12 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
       double x = mGeo.getRowInfo(row).x;
       double stepU = (u1 - u0) / 100.;
       double stepV = (v1 - v0) / 100.;
-      double maxDrow[3] = {0, 0, 0};
+      MaxValue maxDrow[3];
       for (double u = u0; u < u1; u += stepU) {
         for (double v = v0; v < v1; v += stepV) {
+          if (v < getSliceRowInfo(slice, row).gridV0) {
+            continue;
+          }
           float dx, du, dv;
           getCorrection(slice, row, u, v, dx, du, dv);
           double cx = x + dx;
@@ -545,11 +575,9 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
           float nx, nu, nv;
           getCorrectionInvCorrectedX(slice, row, cu, cv, nx);
           getCorrectionInvUV(slice, row, cu, cv, nu, nv);
-          double d[3] = {nx - cx, nu - u, nv - v};
+          double d[3] = {(cx - nx) - dx, (cu - nu) - du, (cv - nv) - dv};
           for (int32_t i = 0; i < 3; i++) {
-            if (fabs(d[i]) > fabs(maxDrow[i])) {
-              maxDrow[i] = d[i];
-            }
+            maxDrow[i].update(d[i], slice, row);
           }
 
           if (0 && prn && fabs(d[0]) + fabs(d[1]) + fabs(d[2]) > 0.1) {
@@ -560,32 +588,26 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
           }
         }
       }
-      if (0 && prn) {
+      if (1 && prn) {
         LOG(info) << "slice " << slice << " row " << row
-                  << " dx " << maxDrow[0] << " du " << maxDrow[1] << " dv " << maxDrow[2];
+                  << " dx " << maxDrow[0].V << " du " << maxDrow[1].V << " dv " << maxDrow[2].V;
       }
       for (int32_t i = 0; i < 3; i++) {
-        if (fabs(maxDslice[i]) < fabs(maxDrow[i])) {
-          maxDslice[i] = maxDrow[i];
-        }
-        if (fabs(maxDtpc[i]) < fabs(maxDrow[i])) {
-          maxDtpc[i] = maxDrow[i];
-        }
-        if (fabs(maxD) < fabs(maxDrow[i])) {
-          maxD = maxDrow[i];
-        }
+        maxDslice[i].update(maxDrow[i]);
+        maxDtpc[i].update(maxDrow[i]);
+        maxD.update(maxDrow[i]);
       }
     }
     if (prn) {
-      LOG(info) << "inverse correction: slice " << slice
-                << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2];
+      LOG(info) << "inverse correction: slice " << slice << ". Max deviations: "
+                << " dx " << maxDslice[0].toString() << " du " << maxDslice[1].toString() << " dv " << maxDslice[2].toString();
     }
   } // slice
 
   LOG(info) << "Test inverse TPC correction. max deviations: "
-            << " dx " << maxDtpc[0] << " du " << maxDtpc[1] << " dv " << maxDtpc[2] << " cm";
+            << " dx " << maxDtpc[0].toString() << " du " << maxDtpc[1].toString() << " dv " << maxDtpc[2].toString() << " cm";
 
-  return maxD;
+  return maxD.V;
 }
 
 #endif // GPUCA_GPUCODE
