@@ -134,17 +134,17 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
 
   LOG(info) << "fast space charge correction helper: init from data points";
 
-  for (int slice = 0; slice < correction.getGeometry().getNumberOfSlices(); slice++) {
+  for (int roc = 0; roc < correction.getGeometry().getNumberOfRocs(); roc++) {
 
     auto myThread = [&](int iThread) {
       for (int row = iThread; row < correction.getGeometry().getNumberOfRows(); row += mNthreads) {
 
-        TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
+        TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(roc, row);
         Spline2DHelper<float> helper;
-        float* splineParameters = correction.getSplineData(slice, row);
-        const std::vector<o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint>& data = mCorrectionMap.getPoints(slice, row);
+        float* splineParameters = correction.getSplineData(roc, row);
+        const std::vector<o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint>& data = mCorrectionMap.getPoints(roc, row);
         int nDataPoints = data.size();
-        auto& info = correction.getSliceRowInfo(slice, row);
+        auto& info = correction.getRocRowInfo(roc, row);
         info.resetMaxValues();
         if (nDataPoints >= 4) {
           std::vector<double> pointSU(nDataPoints);
@@ -152,7 +152,7 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
           std::vector<double> pointCorr(3 * nDataPoints); // 3 dimensions
           for (int i = 0; i < nDataPoints; ++i) {
             double su, sv, dx, du, dv;
-            getSpaceChargeCorrection(correction, slice, row, data[i], su, sv, dx, du, dv);
+            getSpaceChargeCorrection(correction, roc, row, data[i], su, sv, dx, du, dv);
             pointSU[i] = su;
             pointSV[i] = sv;
             pointCorr[3 * i + 0] = dx;
@@ -182,7 +182,7 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
       th.join();
     }
 
-  } // slice
+  } // roc
 
   watch.Stop();
 
@@ -191,7 +191,7 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
   initInverse(correction, 0);
 }
 
-void TPCFastSpaceChargeCorrectionHelper::getSpaceChargeCorrection(const TPCFastSpaceChargeCorrection& correction, int slice, int row, o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p,
+void TPCFastSpaceChargeCorrectionHelper::getSpaceChargeCorrection(const TPCFastSpaceChargeCorrection& correction, int roc, int row, o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p,
                                                                   double& su, double& sv, double& dx, double& du, double& dv)
 {
   // get space charge correction in internal TPCFastTransform coordinates su,sv->dx,du,dv
@@ -202,14 +202,14 @@ void TPCFastSpaceChargeCorrectionHelper::getSpaceChargeCorrection(const TPCFastS
 
   // not corrected coordinates in u,v
   float u = 0.f, v = 0.f, fsu = 0.f, fsv = 0.f;
-  mGeo.convLocalToUV(slice, p.mY, p.mZ, u, v);
-  correction.convUVtoGrid(slice, row, u, v, fsu, fsv);
-  // mGeo.convUVtoScaledUV(slice, row, u, v, fsu, fsv);
+  mGeo.convLocalToUV(roc, p.mY, p.mZ, u, v);
+  correction.convUVtoGrid(roc, row, u, v, fsu, fsv);
+  // mGeo.convUVtoScaledUV(roc, row, u, v, fsu, fsv);
   su = fsu;
   sv = fsv;
   // corrected coordinates in u,v
   float u1 = 0.f, v1 = 0.f;
-  mGeo.convLocalToUV(slice, p.mY + p.mDy, p.mZ + p.mDz, u1, v1);
+  mGeo.convLocalToUV(roc, p.mY + p.mDy, p.mZ + p.mDz, u1, v1);
 
   dx = p.mDx;
   du = u1 - u;
@@ -286,7 +286,7 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
     /// set space charge correction in the local coordinates
     /// as a continious function
 
-    int nRocs = mGeo.getNumberOfSlices();
+    int nRocs = mGeo.getNumberOfRocs();
     int nRows = mGeo.getNumberOfRows();
     mCorrectionMap.init(nRocs, nRows);
 
@@ -337,8 +337,8 @@ void TPCFastSpaceChargeCorrectionHelper::testGeometry(const TPCFastTransformGeo&
 {
   const Mapper& mapper = Mapper::instance();
 
-  if (geo.getNumberOfSlices() != Sector::MAXSECTOR) {
-    LOG(fatal) << "Wrong number of sectors :" << geo.getNumberOfSlices() << " instead of " << Sector::MAXSECTOR << std::endl;
+  if (geo.getNumberOfRocs() != Sector::MAXSECTOR) {
+    LOG(fatal) << "Wrong number of sectors :" << geo.getNumberOfRocs() << " instead of " << Sector::MAXSECTOR << std::endl;
   }
 
   if (geo.getNumberOfRows() != mapper.getNumberOfRows()) {
@@ -404,7 +404,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   const o2::gpu::TPCFastTransformGeo& geo = helper->getGeometry();
 
   o2::gpu::TPCFastSpaceChargeCorrectionMap& map = helper->getCorrectionMap();
-  map.init(geo.getNumberOfSlices(), geo.getNumberOfRows());
+  map.init(geo.getNumberOfRocs(), geo.getNumberOfRows());
 
   int nY2Xbins = trackResiduals.getNY2XBins();
   int nZ2Xbins = trackResiduals.getNZ2XBins();
@@ -480,7 +480,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   // std::cout << "n knots Z: " << nKnotsZ << std::endl;
 
   const int nRows = geo.getNumberOfRows();
-  const int nROCs = geo.getNumberOfSlices();
+  const int nROCs = geo.getNumberOfRocs();
 
   { // create the correction object
 
@@ -501,10 +501,10 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   } // .. create the correction object
 
   // set the grid borders
-  for (int iRoc = 0; iRoc < geo.getNumberOfSlices(); iRoc++) {
+  for (int iRoc = 0; iRoc < geo.getNumberOfRocs(); iRoc++) {
     for (int iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
       const auto& rowInfo = geo.getRowInfo(iRow);
-      auto& info = correction.getSliceRowInfo(iRoc, iRow);
+      auto& info = correction.getRocRowInfo(iRoc, iRow);
       const auto& spline = correction.getSpline(iRoc, iRow);
       double yMin = rowInfo.x * trackResiduals.getY2X(iRow, 0);
       double yMax = rowInfo.x * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
@@ -616,7 +616,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
               vox.mZ = x * z2x;
               vox.mDy = x / trackResiduals.getDY2XI(xBin, iy);
               vox.mDz = x * trackResiduals.getDZ2X(iz);
-              if (iRoc >= geo.getNumberOfSlicesA()) {
+              if (iRoc >= geo.getNumberOfRocsA()) {
                 vox.mZ = -vox.mZ;
               }
               data.mY *= x;
@@ -720,7 +720,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
         // feed the row data to the helper
 
-        auto& info = correction.getSliceRowInfo(iRoc, iRow);
+        auto& info = correction.getRocRowInfo(iRoc, iRow);
         const auto& spline = correction.getSpline(iRoc, iRow);
 
         auto addEdge = [&](int iy1, int iz1, int iy2, int iz2, int nSteps) {
@@ -813,21 +813,21 @@ void TPCFastSpaceChargeCorrectionHelper::initMaxDriftLength(o2::gpu::TPCFastSpac
   double tpcR2min = mGeo.getRowInfo(0).x - 1.;
   tpcR2min = tpcR2min * tpcR2min;
   double tpcR2max = mGeo.getRowInfo(mGeo.getNumberOfRows() - 1).x;
-  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSlicesA() / 2) + 1.;
+  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfRocsA() / 2) + 1.;
   tpcR2max = tpcR2max * tpcR2max;
 
   ChebyshevFit1D chebFitter;
 
-  for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
+  for (int roc = 0; roc < mGeo.getNumberOfRocs(); roc++) {
     if (prn) {
-      LOG(info) << "init MaxDriftLength for slice " << slice;
+      LOG(info) << "init MaxDriftLength for roc " << roc;
     }
-    double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
-    TPCFastSpaceChargeCorrection::SliceInfo& sliceInfo = correction.getSliceInfo(slice);
-    sliceInfo.vMax = 0.f;
+    double vLength = (roc < mGeo.getNumberOfRocsA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
+    TPCFastSpaceChargeCorrection::RocInfo& rocInfo = correction.getRocInfo(roc);
+    rocInfo.vMax = 0.f;
 
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-      TPCFastSpaceChargeCorrection::RowActiveArea& area = correction.getSliceRowInfo(slice, row).activeArea;
+      TPCFastSpaceChargeCorrection::RowActiveArea& area = correction.getRocRowInfo(roc, row).activeArea;
       area.cvMax = 0;
       area.vMax = 0;
       area.cuMin = mGeo.convPadToU(row, 0.f);
@@ -843,7 +843,7 @@ void TPCFastSpaceChargeCorrectionHelper::initMaxDriftLength(o2::gpu::TPCFastSpac
         while (v1 - v0 > 0.1) {
           float v = 0.5 * (v0 + v1);
           float dx, du, dv;
-          correction.getCorrection(slice, row, u, v, dx, du, dv);
+          correction.getCorrection(roc, row, u, v, dx, du, dv);
           double cx = x + dx;
           double cu = u + du;
           double cv = v + dv;
@@ -872,11 +872,11 @@ void TPCFastSpaceChargeCorrectionHelper::initMaxDriftLength(o2::gpu::TPCFastSpac
       for (int i = 0; i < 5; i++) {
         area.maxDriftLengthCheb[i] = chebFitter.getCoefficients()[i];
       }
-      if (sliceInfo.vMax < area.vMax) {
-        sliceInfo.vMax = area.vMax;
+      if (rocInfo.vMax < area.vMax) {
+        rocInfo.vMax = area.vMax;
       }
     } // row
-  }   // slice
+  } // roc
 }
 
 void TPCFastSpaceChargeCorrectionHelper::initInverse(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn)
@@ -902,22 +902,22 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
   double tpcR2min = mGeo.getRowInfo(0).x - 1.;
   tpcR2min = tpcR2min * tpcR2min;
   double tpcR2max = mGeo.getRowInfo(mGeo.getNumberOfRows() - 1).x;
-  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSlicesA() / 2) + 1.;
+  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfRocsA() / 2) + 1.;
   tpcR2max = tpcR2max * tpcR2max;
 
-  for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
-    // LOG(info) << "inverse transform for slice " << slice ;
+  for (int roc = 0; roc < mGeo.getNumberOfRocs(); roc++) {
+    // LOG(info) << "inverse transform for roc " << roc ;
 
     auto myThread = [&](int iThread) {
       Spline2DHelper<float> helper;
       std::vector<float> splineParameters;
 
       for (int row = iThread; row < mGeo.getNumberOfRows(); row += mNthreads) {
-        TPCFastSpaceChargeCorrection::SplineType spline = correction.getSpline(slice, row);
+        TPCFastSpaceChargeCorrection::SplineType spline = correction.getSpline(roc, row);
         helper.setSpline(spline, 10, 10);
 
         double x = mGeo.getRowInfo(row).x;
-        auto& sliceRowInfo = correction.getSliceRowInfo(slice, row);
+        auto& rocRowInfo = correction.getRocRowInfo(roc, row);
 
         std::vector<double> gridU;
         {
@@ -951,7 +951,7 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
         dataPointCV.reserve(gridU.size() * gridV.size());
         dataPointF.reserve(gridU.size() * gridV.size());
 
-        TPCFastSpaceChargeCorrection::RowActiveArea& area = sliceRowInfo.activeArea;
+        TPCFastSpaceChargeCorrection::RowActiveArea& area = rocRowInfo.activeArea;
         area.cuMin = 1.e10;
         area.cuMax = -1.e10;
         double cvMin = 1.e10;
@@ -959,17 +959,17 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
         for (int iu = 0; iu < gridU.size(); iu++) {
           for (int iv = 0; iv < gridV.size(); iv++) {
             float u, v;
-            correction.convGridToUV(slice, row, gridU[iu], gridV[iv], u, v);
+            correction.convGridToUV(roc, row, gridU[iu], gridV[iv], u, v);
 
             float dx, du, dv;
-            correction.getCorrection(slice, row, u, v, dx, du, dv);
+            correction.getCorrection(roc, row, u, v, dx, du, dv);
             dx *= scaling[0];
             du *= scaling[0];
             dv *= scaling[0];
             // add remaining corrections
             for (int i = 1; i < corrections.size(); ++i) {
               float dxTmp, duTmp, dvTmp;
-              corrections[i]->getCorrection(slice, row, u, v, dxTmp, duTmp, dvTmp);
+              corrections[i]->getCorrection(roc, row, u, v, dxTmp, duTmp, dvTmp);
               dx += dxTmp * scaling[i];
               du += duTmp * scaling[i];
               dv += dvTmp * scaling[i];
@@ -1002,28 +1002,28 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
         }
 
         if (prn) {
-          LOG(info) << "slice " << slice << " row " << row << " max drift L = " << correction.getMaxDriftLength(slice, row)
+          LOG(info) << "roc " << roc << " row " << row << " max drift L = " << correction.getMaxDriftLength(roc, row)
                     << " active area: cuMin " << area.cuMin << " cuMax " << area.cuMax << " vMax " << area.vMax << " cvMax " << area.cvMax;
         }
 
         // define the grid for the inverse correction
 
-        sliceRowInfo.gridCorrU0 = area.cuMin;
-        sliceRowInfo.gridCorrV0 = cvMin;
-        sliceRowInfo.scaleCorrUtoGrid = spline.getGridX1().getUmax() / (area.cuMax - area.cuMin);
-        sliceRowInfo.scaleCorrVtoGrid = spline.getGridX2().getUmax() / area.cvMax;
+        rocRowInfo.gridCorrU0 = area.cuMin;
+        rocRowInfo.gridCorrV0 = cvMin;
+        rocRowInfo.scaleCorrUtoGrid = spline.getGridX1().getUmax() / (area.cuMax - area.cuMin);
+        rocRowInfo.scaleCorrVtoGrid = spline.getGridX2().getUmax() / area.cvMax;
 
         /*
-        sliceRowInfo.gridCorrU0 = sliceRowInfo.gridU0;
-        sliceRowInfo.gridCorrV0 = sliceRowInfo.gridV0;
-        sliceRowInfo.scaleCorrUtoGrid = sliceRowInfo.scaleUtoGrid;
-        sliceRowInfo.scaleCorrVtoGrid = sliceRowInfo.scaleVtoGrid;
+        rocRowInfo.gridCorrU0 = rocRowInfo.gridU0;
+        rocRowInfo.gridCorrV0 = rocRowInfo.gridV0;
+        rocRowInfo.scaleCorrUtoGrid = rocRowInfo.scaleUtoGrid;
+        rocRowInfo.scaleCorrVtoGrid = rocRowInfo.scaleVtoGrid;
         */
 
         int nDataPoints = dataPointCU.size();
         for (int i = 0; i < nDataPoints; i++) {
-          dataPointCU[i] = (dataPointCU[i] - sliceRowInfo.gridCorrU0) * sliceRowInfo.scaleCorrUtoGrid;
-          dataPointCV[i] = (dataPointCV[i] - sliceRowInfo.gridCorrV0) * sliceRowInfo.scaleCorrVtoGrid;
+          dataPointCU[i] = (dataPointCU[i] - rocRowInfo.gridCorrU0) * rocRowInfo.scaleCorrUtoGrid;
+          dataPointCV[i] = (dataPointCV[i] - rocRowInfo.gridCorrV0) * rocRowInfo.scaleCorrVtoGrid;
         }
 
         splineParameters.resize(spline.getNumberOfParameters());
@@ -1033,8 +1033,8 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
                                      dataPointCU.data(), dataPointCV.data(),
                                      dataPointF.data(), dataPointCU.size());
 
-        float* splineX = correction.getSplineData(slice, row, 1);
-        float* splineUV = correction.getSplineData(slice, row, 2);
+        float* splineX = correction.getSplineData(roc, row, 1);
+        float* splineUV = correction.getSplineData(roc, row, 2);
         for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
           splineX[i] = splineParameters[3 * i + 0];
           splineUV[2 * i + 0] = splineParameters[3 * i + 1];
@@ -1055,7 +1055,7 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
       th.join();
     }
 
-  } // slice
+  } // roc
   float duration = watch.RealTime();
   LOGP(info, "Inverse tooks: {}s", duration);
 }

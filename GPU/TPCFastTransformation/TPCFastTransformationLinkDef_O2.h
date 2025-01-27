@@ -59,7 +59,7 @@
 #pragma link C++ class o2::gpu::IrregularSpline2D3DCalibrator + ;
 
 #pragma link C++ class o2::gpu::TPCFastTransformGeo + ;
-#pragma link C++ class o2::gpu::TPCFastTransformGeo::SliceInfo + ;
+#pragma link C++ class o2::gpu::TPCFastTransformGeo::RocInfo + ;
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::RowInfo + ;
 
 #pragma link C++ class o2::gpu::TPCFastTransform + ;
@@ -68,9 +68,9 @@
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::RowInfo + ;
 
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection + ;
-#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SliceInfo + ;
+#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::RocInfo + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::RowActiveArea + ;
-#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SliceRowInfo + ;
+#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::RocRowInfo + ;
 
 #pragma link C++ class o2::gpu::CorrectionMapsHelper + ;
 #pragma link C++ struct o2::gpu::MultivariatePolynomialContainer + ;

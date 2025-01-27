@@ -46,14 +46,14 @@ struct TPCSlowSpaceChargeCorrection {
   ~TPCSlowSpaceChargeCorrection();
 
   /// getting the corrections for global coordinates
-  void getCorrections(const float gx, const float gy, const float gz, const int32_t slice, float& gdxC, float& gdyC, float& gdzC) const;
+  void getCorrections(const float gx, const float gy, const float gz, const int32_t roc, float& gdxC, float& gdyC, float& gdzC) const;
 
   o2::tpc::SpaceCharge<float>* mCorr{nullptr}; ///< reference space charge corrections
 #else
   ~TPCSlowSpaceChargeCorrection() = default;
 
   /// setting dummy corrections for GPU
-  GPUd() void getCorrections(const float gx, const float gy, const float gz, const int32_t slice, float& gdxC, float& gdyC, float& gdzC) const
+  GPUd() void getCorrections(const float gx, const float gy, const float gz, const int32_t roc, float& gdxC, float& gdyC, float& gdzC) const
   {
     gdxC = 0;
     gdyC = 0;
@@ -182,50 +182,50 @@ class TPCFastTransform : public FlatObject
 
   /// _______________ The main method: cluster transformation _______________________
   ///
-  /// Transforms raw TPC coordinates to local XYZ withing a slice
+  /// Transforms raw TPC coordinates to local XYZ withing a roc
   /// taking calibration + alignment into account.
   ///
-  GPUd() void Transform(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
-  GPUd() void TransformXYZ(int32_t slice, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
+  GPUd() void Transform(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
+  GPUd() void TransformXYZ(int32_t roc, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
 
   /// Transformation in the time frame
-  GPUd() void TransformInTimeFrame(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
-  GPUd() void TransformInTimeFrame(int32_t slice, float time, float& z, float maxTimeBin) const;
+  GPUd() void TransformInTimeFrame(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
+  GPUd() void TransformInTimeFrame(int32_t roc, float time, float& z, float maxTimeBin) const;
 
   /// Inverse transformation
-  GPUd() void InverseTransformInTimeFrame(int32_t slice, int32_t row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
-  GPUd() float InverseTransformInTimeFrame(int32_t slice, float z, float maxTimeBin) const;
+  GPUd() void InverseTransformInTimeFrame(int32_t roc, int32_t row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
+  GPUd() float InverseTransformInTimeFrame(int32_t roc, float z, float maxTimeBin) const;
 
   /// Inverse transformation: Transformed Y and Z -> transformed X
-  GPUd() void InverseTransformYZtoX(int32_t slice, int32_t row, float y, float z, float& x, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
+  GPUd() void InverseTransformYZtoX(int32_t roc, int32_t row, float y, float z, float& x, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
 
   /// Inverse transformation: Transformed Y and Z -> Y and Z, transformed w/o space charge correction
-  GPUd() void InverseTransformYZtoNominalYZ(int32_t slice, int32_t row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
+  GPUd() void InverseTransformYZtoNominalYZ(int32_t roc, int32_t row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
 
   /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
-  GPUd() void InverseTransformXYZtoNominalXYZ(int32_t slice, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
+  GPUd() void InverseTransformXYZtoNominalXYZ(int32_t roc, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
 
   /// Ideal transformation with Vdrift only - without calibration
-  GPUd() void TransformIdeal(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
-  GPUd() void TransformIdealZ(int32_t slice, float time, float& z, float vertexTime) const;
+  GPUd() void TransformIdeal(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
+  GPUd() void TransformIdealZ(int32_t roc, float time, float& z, float vertexTime) const;
 
-  GPUd() void convPadTimeToUV(int32_t slice, int32_t row, float pad, float time, float& u, float& v, float vertexTime) const;
-  GPUd() void convPadTimeToUVinTimeFrame(int32_t slice, int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const;
-  GPUd() void convTimeToVinTimeFrame(int32_t slice, float time, float& v, float maxTimeBin) const;
+  GPUd() void convPadTimeToUV(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float vertexTime) const;
+  GPUd() void convPadTimeToUVinTimeFrame(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const;
+  GPUd() void convTimeToVinTimeFrame(int32_t roc, float time, float& v, float maxTimeBin) const;
 
-  GPUd() void convUVtoPadTime(int32_t slice, int32_t row, float u, float v, float& pad, float& time, float vertexTime) const;
-  GPUd() void convUVtoPadTimeInTimeFrame(int32_t slice, int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const;
+  GPUd() void convUVtoPadTime(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float vertexTime) const;
+  GPUd() void convUVtoPadTimeInTimeFrame(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const;
   GPUd() void convVtoTime(float v, float& time, float vertexTime) const;
 
-  GPUd() float convTimeToZinTimeFrame(int32_t slice, float time, float maxTimeBin) const;
-  GPUd() float convZtoTimeInTimeFrame(int32_t slice, float z, float maxTimeBin) const;
-  GPUd() float convDeltaTimeToDeltaZinTimeFrame(int32_t slice, float deltaTime) const;
-  GPUd() float convDeltaZtoDeltaTimeInTimeFrame(int32_t slice, float deltaZ) const;
+  GPUd() float convTimeToZinTimeFrame(int32_t roc, float time, float maxTimeBin) const;
+  GPUd() float convZtoTimeInTimeFrame(int32_t roc, float z, float maxTimeBin) const;
+  GPUd() float convDeltaTimeToDeltaZinTimeFrame(int32_t roc, float deltaTime) const;
+  GPUd() float convDeltaZtoDeltaTimeInTimeFrame(int32_t roc, float deltaZ) const;
   GPUd() float convDeltaZtoDeltaTimeInTimeFrameAbs(float deltaZ) const;
-  GPUd() float convZOffsetToVertexTime(int32_t slice, float zOffset, float maxTimeBin) const;
-  GPUd() float convVertexTimeToZOffset(int32_t slice, float vertexTime, float maxTimeBin) const;
+  GPUd() float convZOffsetToVertexTime(int32_t roc, float zOffset, float maxTimeBin) const;
+  GPUd() float convVertexTimeToZOffset(int32_t roc, float vertexTime, float maxTimeBin) const;
 
-  GPUd() void getTOFcorrection(int32_t slice, int32_t row, float x, float y, float z, float& dz) const;
+  GPUd() void getTOFcorrection(int32_t roc, int32_t row, float x, float y, float z, float& dz) const;
 
   void setApplyCorrectionOn() { mApplyCorrection = 1; }
   void setApplyCorrectionOff() { mApplyCorrection = 0; }
@@ -276,13 +276,13 @@ class TPCFastTransform : public FlatObject
   GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
 
   /// maximal possible drift time of the active area
-  GPUd() float getMaxDriftTime(int32_t slice, int32_t row, float pad) const;
+  GPUd() float getMaxDriftTime(int32_t roc, int32_t row, float pad) const;
 
   /// maximal possible drift time of the active area
-  GPUd() float getMaxDriftTime(int32_t slice, int32_t row) const;
+  GPUd() float getMaxDriftTime(int32_t roc, int32_t row) const;
 
   /// maximal possible drift time of the active area
-  GPUd() float getMaxDriftTime(int32_t slice) const;
+  GPUd() float getMaxDriftTime(int32_t roc) const;
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
@@ -359,7 +359,7 @@ class TPCFastTransform : public FlatObject
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
-  GPUd() void TransformInternal(int32_t slice, int32_t row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const;
+  GPUd() void TransformInternal(int32_t roc, int32_t row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const;
 
   ClassDefNV(TPCFastTransform, 4);
 };
@@ -368,69 +368,69 @@ class TPCFastTransform : public FlatObject
 //              Inline implementations of some methods
 // =======================================================================
 
-GPUdi() void TPCFastTransform::convPadTimeToUV(int32_t slice, int32_t row, float pad, float time, float& u, float& v, float vertexTime) const
+GPUdi() void TPCFastTransform::convPadTimeToUV(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float vertexTime) const
 {
-  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
+  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
+  const TPCFastTransformGeo::RocInfo& rocInfo = getGeometry().getRocInfo(roc);
 
   float x = rowInfo.x;
   u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
 
   float y = sideC ? -u : u; // pads are mirrorred on C-side
-  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
+  float yLab = y * rocInfo.cosAlpha + x * rocInfo.sinAlpha;
 
   v = (time - mT0 - vertexTime) * (mVdrift + mVdriftCorrY * yLab) + mLdriftCorr; // drift length cm
 }
 
-GPUdi() void TPCFastTransform::convTimeToVinTimeFrame(int32_t slice, float time, float& v, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convTimeToVinTimeFrame(int32_t roc, float time, float& v, float maxTimeBin) const
 {
   v = (time - mT0 - maxTimeBin) * mVdrift + mLdriftCorr; // drift length cm
-  if (slice < getGeometry().getNumberOfSlicesA()) {
+  if (roc < getGeometry().getNumberOfRocsA()) {
     v += getGeometry().getTPCzLengthA();
   } else {
     v += getGeometry().getTPCzLengthC();
   }
 }
 
-GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int32_t slice, int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const
 {
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
   u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
-  convTimeToVinTimeFrame(slice, time, v, maxTimeBin);
+  convTimeToVinTimeFrame(roc, time, v, maxTimeBin);
 }
 
-GPUdi() float TPCFastTransform::convZOffsetToVertexTime(int32_t slice, float zOffset, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convZOffsetToVertexTime(int32_t roc, float zOffset, float maxTimeBin) const
 {
-  if (slice < getGeometry().getNumberOfSlicesA()) {
+  if (roc < getGeometry().getNumberOfRocsA()) {
     return maxTimeBin - (getGeometry().getTPCzLengthA() + zOffset) / mVdrift;
   } else {
     return maxTimeBin - (getGeometry().getTPCzLengthC() - zOffset) / mVdrift;
   }
 }
 
-GPUdi() float TPCFastTransform::convVertexTimeToZOffset(int32_t slice, float vertexTime, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convVertexTimeToZOffset(int32_t roc, float vertexTime, float maxTimeBin) const
 {
-  if (slice < getGeometry().getNumberOfSlicesA()) {
+  if (roc < getGeometry().getNumberOfRocsA()) {
     return (maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthA();
   } else {
     return -((maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthC());
   }
 }
 
-GPUdi() void TPCFastTransform::convUVtoPadTime(int32_t slice, int32_t row, float u, float v, float& pad, float& time, float vertexTime) const
+GPUdi() void TPCFastTransform::convUVtoPadTime(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float vertexTime) const
 {
-  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
+  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
+  const TPCFastTransformGeo::RocInfo& rocInfo = getGeometry().getRocInfo(roc);
 
   pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
 
   float x = rowInfo.x;
   float y = sideC ? -u : u; // pads are mirrorred on C-side
-  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
+  float yLab = y * rocInfo.cosAlpha + x * rocInfo.sinAlpha;
   time = mT0 + vertexTime + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
 }
 
@@ -440,9 +440,9 @@ GPUdi() void TPCFastTransform::convVtoTime(float v, float& time, float vertexTim
   time = mT0 + vertexTime + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
 }
 
-GPUdi() void TPCFastTransform::convUVtoPadTimeInTimeFrame(int32_t slice, int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convUVtoPadTimeInTimeFrame(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const
 {
-  if (slice < getGeometry().getNumberOfSlicesA()) {
+  if (roc < getGeometry().getNumberOfRocsA()) {
     v -= getGeometry().getTPCzLengthA();
   } else {
     v -= getGeometry().getTPCzLengthC();
@@ -452,17 +452,17 @@ GPUdi() void TPCFastTransform::convUVtoPadTimeInTimeFrame(int32_t slice, int32_t
   time = mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
 }
 
-GPUdi() void TPCFastTransform::getTOFcorrection(int32_t slice, int32_t /*row*/, float x, float y, float z, float& dz) const
+GPUdi() void TPCFastTransform::getTOFcorrection(int32_t roc, int32_t /*row*/, float x, float y, float z, float& dz) const
 {
   // calculate time of flight correction for  z coordinate
 
-  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
+  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
   float distZ = z - mPrimVtxZ;
   float dv = -GPUCommonMath::Sqrt(x * x + y * y + distZ * distZ) * mTOFcorr;
   dz = sideC ? dv : -dv;
 }
 
-GPUdi() void TPCFastTransform::TransformInternal(int32_t slice, int32_t row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransform::TransformInternal(int32_t roc, int32_t row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
   GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
   if (mApplyCorrection) {
@@ -471,15 +471,15 @@ GPUdi() void TPCFastTransform::TransformInternal(int32_t slice, int32_t row, flo
 #ifndef GPUCA_GPUCODE
       if (mCorrectionSlow) {
         float ly, lz;
-        getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+        getGeometry().convUVtoLocal(roc, u, v, ly, lz);
         float gx, gy, gz;
-        getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+        getGeometry().convLocalToGlobal(roc, x, ly, lz, gx, gy, gz);
 
         float gdxC, gdyC, gdzC;
-        mCorrectionSlow->getCorrections(gx, gy, gz, slice, gdxC, gdyC, gdzC);
-        getGeometry().convGlobalToLocal(slice, gdxC, gdyC, gdzC, dx, du, dv);
+        mCorrectionSlow->getCorrections(gx, gy, gz, roc, gdxC, gdyC, gdzC);
+        getGeometry().convGlobalToLocal(roc, gdxC, gdyC, gdzC, dx, du, dv);
 
-        if (slice >= 18) {
+        if (roc >= 18) {
           du = -du; // mirror for c-Side
         } else {
           dv = -dv; // mirror z for A-Side
@@ -487,17 +487,17 @@ GPUdi() void TPCFastTransform::TransformInternal(int32_t slice, int32_t row, flo
       } else
 #endif // GPUCA_GPUCODE
       {
-        mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+        mCorrection.getCorrection(roc, row, u, v, dx, du, dv);
         if (ref) {
           if ((scale > 0.f) && (scaleMode == 0)) { // scaling was requested
             float dxRef, duRef, dvRef;
-            ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+            ref->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
             dx = (dx - dxRef) * scale + dxRef;
             du = (du - duRef) * scale + duRef;
             dv = (dv - dvRef) * scale + dvRef;
           } else if ((scale != 0.f) && ((scaleMode == 1) || (scaleMode == 2))) {
             float dxRef, duRef, dvRef;
-            ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+            ref->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
             dx = dxRef * scale + dx;
             du = duRef * scale + du;
             dv = dvRef * scale + dv;
@@ -505,7 +505,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int32_t slice, int32_t row, flo
         }
         if (ref2 && (scale2 != 0)) {
           float dxRef, duRef, dvRef;
-          ref2->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+          ref2->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
           dx = dxRef * scale2 + dx;
           du = duRef * scale2 + du;
           dv = dvRef * scale2 + dv;
@@ -514,43 +514,43 @@ GPUdi() void TPCFastTransform::TransformInternal(int32_t slice, int32_t row, flo
     }
     GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
       float ly, lz;
-      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+      getGeometry().convUVtoLocal(roc, u, v, ly, lz);
 
       float gx, gy, gz;
-      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+      getGeometry().convLocalToGlobal(roc, x, ly, lz, gx, gy, gz);
 
       float lyT, lzT;
       float uCorr = u + du;
       float vCorr = v + dv;
       float lxT = x + dx;
-      getGeometry().convUVtoLocal(slice, uCorr, vCorr, lyT, lzT);
+      getGeometry().convUVtoLocal(roc, uCorr, vCorr, lyT, lzT);
 
       float invYZtoXScaled;
-      InverseTransformYZtoX(slice, row, lyT, lzT, invYZtoXScaled, ref, ref2, scale, scale2, scaleMode);
+      InverseTransformYZtoX(roc, row, lyT, lzT, invYZtoXScaled, ref, ref2, scale, scale2, scaleMode);
 
       float invYZtoX;
-      InverseTransformYZtoX(slice, row, lyT, lzT, invYZtoX);
+      InverseTransformYZtoX(roc, row, lyT, lzT, invYZtoX);
 
       float YZtoNominalY;
       float YZtoNominalZ;
-      InverseTransformYZtoNominalYZ(slice, row, lyT, lzT, YZtoNominalY, YZtoNominalZ);
+      InverseTransformYZtoNominalYZ(roc, row, lyT, lzT, YZtoNominalY, YZtoNominalZ);
 
       float YZtoNominalYScaled;
       float YZtoNominalZScaled;
-      InverseTransformYZtoNominalYZ(slice, row, lyT, lzT, YZtoNominalYScaled, YZtoNominalZScaled, ref, ref2, scale, scale2, scaleMode);
+      InverseTransformYZtoNominalYZ(roc, row, lyT, lzT, YZtoNominalYScaled, YZtoNominalZScaled, ref, ref2, scale, scale2, scaleMode);
 
       float dxRef, duRef, dvRef;
       if (ref) {
-        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+        ref->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
       }
 
       float dxRef2, duRef2, dvRef2;
       if (ref2) {
-        ref2->mCorrection.getCorrection(slice, row, u, v, dxRef2, duRef2, dvRef2);
+        ref2->mCorrection.getCorrection(roc, row, u, v, dxRef2, duRef2, dvRef2);
       }
 
       float dxOrig, duOrig, dvOrig;
-      mCorrection.getCorrection(slice, row, u, v, dxOrig, duOrig, dvOrig);
+      mCorrection.getCorrection(roc, row, u, v, dxOrig, duOrig, dvOrig);
 
       o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
                                                                                          // corrections in x, u, v
@@ -569,7 +569,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int32_t slice, int32_t row, flo
                                                                                          << "v=" << v
                                                                                          << "u=" << u
                                                                                          << "row=" << row
-                                                                                         << "slice=" << slice
+                                                                                         << "roc=" << roc
                                                                                          << "scale=" << scale
                                                                                          << "scale2=" << scale2
                                                                                          // original local coordinates
@@ -601,51 +601,51 @@ GPUdi() void TPCFastTransform::TransformInternal(int32_t slice, int32_t row, flo
   }
 }
 
-GPUdi() void TPCFastTransform::TransformXYZ(int32_t slice, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransform::TransformXYZ(int32_t roc, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
   float u, v;
-  getGeometry().convLocalToUV(slice, y, z, u, v);
-  TransformInternal(slice, row, u, v, x, ref, ref2, scale, scale2, scaleMode);
-  getGeometry().convUVtoLocal(slice, u, v, y, z);
+  getGeometry().convLocalToUV(roc, y, z, u, v);
+  TransformInternal(roc, row, u, v, x, ref, ref2, scale, scale2, scaleMode);
+  getGeometry().convUVtoLocal(roc, u, v, y, z);
   float dzTOF = 0;
-  getTOFcorrection(slice, row, x, y, z, dzTOF);
+  getTOFcorrection(roc, row, x, y, z, dzTOF);
   z += dzTOF;
 }
 
-GPUdi() void TPCFastTransform::Transform(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransform::Transform(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
   /// _______________ The main method: cluster transformation _______________________
   ///
-  /// Transforms raw TPC coordinates to local XYZ withing a slice
+  /// Transforms raw TPC coordinates to local XYZ withing a roc
   /// taking calibration + alignment into account.
   ///
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
 
-  // const SliceInfo &sliceInfo = getSliceInfo( slice );
-  // bool sideC = ( slice >= NumberOfSlices / 2 );
+  // const RocInfo &rocInfo = getRocInfo( roc );
+  // bool sideC = ( roc >= NumberOfRocs / 2 );
 
   x = rowInfo.x;
   float u = 0, v = 0;
-  convPadTimeToUV(slice, row, pad, time, u, v, vertexTime);
+  convPadTimeToUV(roc, row, pad, time, u, v, vertexTime);
 
-  TransformInternal(slice, row, u, v, x, ref, ref2, scale, scale2, scaleMode);
+  TransformInternal(roc, row, u, v, x, ref, ref2, scale, scale2, scaleMode);
 
-  getGeometry().convUVtoLocal(slice, u, v, y, z);
+  getGeometry().convUVtoLocal(roc, u, v, y, z);
 
   float dzTOF = 0;
-  getTOFcorrection(slice, row, x, y, z, dzTOF);
+  getTOFcorrection(roc, row, x, y, z, dzTOF);
   z += dzTOF;
 }
 
-GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t slice, float time, float& z, float maxTimeBin) const
+GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t roc, float time, float& z, float maxTimeBin) const
 {
   float v = 0;
-  convTimeToVinTimeFrame(slice, time, v, maxTimeBin);
-  getGeometry().convVtoLocal(slice, v, z);
+  convTimeToVinTimeFrame(roc, time, v, maxTimeBin);
+  getGeometry().convVtoLocal(roc, v, z);
 }
 
-GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
+GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
 {
   /// _______________ Special cluster transformation for a time frame _______________________
   ///
@@ -656,43 +656,43 @@ GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t slice, int32_t row, 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
   x = rowInfo.x;
   float u = 0, v = 0;
-  convPadTimeToUVinTimeFrame(slice, row, pad, time, u, v, maxTimeBin);
-  getGeometry().convUVtoLocal(slice, u, v, y, z);
+  convPadTimeToUVinTimeFrame(roc, row, pad, time, u, v, maxTimeBin);
+  getGeometry().convUVtoLocal(roc, u, v, y, z);
 }
 
-GPUdi() void TPCFastTransform::InverseTransformInTimeFrame(int32_t slice, int32_t row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const
+GPUdi() void TPCFastTransform::InverseTransformInTimeFrame(int32_t roc, int32_t row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const
 {
   /// Inverse transformation to TransformInTimeFrame
   float u = 0, v = 0;
-  getGeometry().convLocalToUV(slice, y, z, u, v);
-  convUVtoPadTimeInTimeFrame(slice, row, u, v, pad, time, maxTimeBin);
+  getGeometry().convLocalToUV(roc, y, z, u, v);
+  convUVtoPadTimeInTimeFrame(roc, row, u, v, pad, time, maxTimeBin);
 }
 
-GPUdi() float TPCFastTransform::InverseTransformInTimeFrame(int32_t slice, float z, float maxTimeBin) const
+GPUdi() float TPCFastTransform::InverseTransformInTimeFrame(int32_t roc, float z, float maxTimeBin) const
 {
   float pad, time;
-  InverseTransformInTimeFrame(slice, 0, 0, 0, z, pad, time, maxTimeBin);
+  InverseTransformInTimeFrame(roc, 0, 0, 0, z, pad, time, maxTimeBin);
   return time;
 }
 
-GPUdi() void TPCFastTransform::TransformIdealZ(int32_t slice, float time, float& z, float vertexTime) const
+GPUdi() void TPCFastTransform::TransformIdealZ(int32_t roc, float time, float& z, float vertexTime) const
 {
   /// _______________ The main method: cluster transformation _______________________
   ///
-  /// Transforms time TPC coordinates to local Z withing a slice
+  /// Transforms time TPC coordinates to local Z withing a roc
   /// Ideal transformation: only Vdrift from DCS.
   /// No space charge corrections, no time of flight correction
   ///
 
   float v = (time - mT0 - vertexTime) * mVdrift; // drift length cm
-  getGeometry().convVtoLocal(slice, v, z);
+  getGeometry().convVtoLocal(roc, v, z);
 }
 
-GPUdi() void TPCFastTransform::TransformIdeal(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
+GPUdi() void TPCFastTransform::TransformIdeal(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
 {
   /// _______________ The main method: cluster transformation _______________________
   ///
-  /// Transforms raw TPC coordinates to local XYZ withing a slice
+  /// Transforms raw TPC coordinates to local XYZ withing a roc
   /// Ideal transformation: only Vdrift from DCS.
   /// No space charge corrections, no time of flight correction
   ///
@@ -703,10 +703,10 @@ GPUdi() void TPCFastTransform::TransformIdeal(int32_t slice, int32_t row, float 
   float u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
   float v = (time - mT0 - vertexTime) * mVdrift; // drift length cm
 
-  getGeometry().convUVtoLocal(slice, u, v, y, z);
+  getGeometry().convUVtoLocal(roc, u, v, y, z);
 }
 
-GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int32_t slice, float time, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int32_t roc, float time, float maxTimeBin) const
 {
   /// _______________ Special cluster transformation for a time frame _______________________
   ///
@@ -717,7 +717,7 @@ GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int32_t slice, float time
 
   float v = (time - mT0 - maxTimeBin) * mVdrift + mLdriftCorr; // drift length cm
   float z = getGeometry().getTPCalignmentZ();                  // global TPC alignment
-  if (slice < getGeometry().getNumberOfSlicesA()) {
+  if (roc < getGeometry().getNumberOfRocsA()) {
     z -= v;
   } else {
     z += v;
@@ -725,11 +725,11 @@ GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int32_t slice, float time
   return z;
 }
 
-GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(int32_t slice, float z, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(int32_t roc, float z, float maxTimeBin) const
 {
   /// Inverse transformation of convTimeToZinTimeFrame()
   float v;
-  if (slice < getGeometry().getNumberOfSlicesA()) {
+  if (roc < getGeometry().getNumberOfRocsA()) {
     v = getGeometry().getTPCalignmentZ() - z;
   } else {
     v = z - getGeometry().getTPCalignmentZ();
@@ -737,10 +737,10 @@ GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(int32_t slice, float z, f
   return mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
 }
 
-GPUdi() float TPCFastTransform::convDeltaTimeToDeltaZinTimeFrame(int32_t slice, float deltaTime) const
+GPUdi() float TPCFastTransform::convDeltaTimeToDeltaZinTimeFrame(int32_t roc, float deltaTime) const
 {
   float deltaZ = deltaTime * mVdrift;
-  return slice < getGeometry().getNumberOfSlicesA() ? -deltaZ : deltaZ;
+  return roc < getGeometry().getNumberOfRocsA() ? -deltaZ : deltaZ;
 }
 
 GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrameAbs(float deltaZ) const
@@ -748,80 +748,80 @@ GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrameAbs(float deltaZ
   return deltaZ / mVdrift;
 }
 
-GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrame(int32_t slice, float deltaZ) const
+GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrame(int32_t roc, float deltaZ) const
 {
   float deltaT = deltaZ / mVdrift;
-  return slice < getGeometry().getNumberOfSlicesA() ? -deltaT : deltaT;
+  return roc < getGeometry().getNumberOfRocsA() ? -deltaT : deltaT;
 }
 
 /*
-GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int32_t slice) const
+GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int32_t roc) const
 {
   /// Return a value of the last timebin where correction map is valid
   float u, v, pad, time;
-  getGeometry().convScaledUVtoUV(slice, 0, 0.f, 1.f, u, v);
-  convUVtoPadTime(slice, 0, u, v, pad, time, 0);
+  getGeometry().convScaledUVtoUV(roc, 0, 0.f, 1.f, u, v);
+  convUVtoPadTime(roc, 0, u, v, pad, time, 0);
   return time;
 }
 */
 
-GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t slice, int32_t row, float pad) const
+GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t roc, int32_t row, float pad) const
 {
   /// maximal possible drift time of the active area
-  float maxL = mCorrection.getMaxDriftLength(slice, row, pad);
+  float maxL = mCorrection.getMaxDriftLength(roc, row, pad);
 
-  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
+  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
+  const TPCFastTransformGeo::RocInfo& rocInfo = getGeometry().getRocInfo(roc);
 
   float x = rowInfo.x;
   float u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
 
   float y = sideC ? -u : u; // pads are mirrorred on C-side
-  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
+  float yLab = y * rocInfo.cosAlpha + x * rocInfo.sinAlpha;
   return mT0 + (maxL - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
 }
 
-GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t slice, int32_t row) const
+GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t roc, int32_t row) const
 {
   /// maximal possible drift time of the active area
-  float maxL = mCorrection.getMaxDriftLength(slice, row);
+  float maxL = mCorrection.getMaxDriftLength(roc, row);
   float maxTime = 0.f;
   convVtoTime(maxL, maxTime, 0.f);
   return maxTime;
 }
 
-GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t slice) const
+GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t roc) const
 {
   /// maximal possible drift time of the active area
-  float maxL = mCorrection.getMaxDriftLength(slice);
+  float maxL = mCorrection.getMaxDriftLength(roc);
   float maxTime = 0.f;
   convVtoTime(maxL, maxTime, 0.f);
   return maxTime;
 }
 
-GPUdi() void TPCFastTransform::InverseTransformYZtoX(int32_t slice, int32_t row, float y, float z, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransform::InverseTransformYZtoX(int32_t roc, int32_t row, float y, float z, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
   GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
   /// Transformation y,z -> x
   float u = 0, v = 0;
-  getGeometry().convLocalToUV(slice, y, z, u, v);
+  getGeometry().convLocalToUV(roc, y, z, u, v);
   if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
-    mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
+    mCorrection.getCorrectionInvCorrectedX(roc, row, u, v, x);
     if (ref) { // scaling was requested
       if (scaleMode == 0 && scale > 0.f) {
         float xr;
-        ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+        ref->mCorrection.getCorrectionInvCorrectedX(roc, row, u, v, xr);
         x = (x - xr) * scale + xr;
       } else if ((scale != 0) && ((scaleMode == 1) || (scaleMode == 2))) {
         float xr;
-        ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+        ref->mCorrection.getCorrectionInvCorrectedX(roc, row, u, v, xr);
         x = (xr - getGeometry().getRowInfo(row).x) * scale + x; // xr=mGeo.getRowInfo(row).x + dx;
       }
     }
     if (ref2 && (scale2 != 0)) {
       float xr;
-      ref2->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+      ref2->mCorrection.getCorrectionInvCorrectedX(roc, row, u, v, xr);
       x = (xr - getGeometry().getRowInfo(row).x) * scale2 + x; // xr=mGeo.getRowInfo(row).x + dx;
     }
   } else {
@@ -829,7 +829,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int32_t slice, int32_t row,
   }
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoX").data()
-                                                                                       << "slice=" << slice
+                                                                                       << "roc=" << roc
                                                                                        << "row=" << row
                                                                                        << "scale=" << scale
                                                                                        << "y=" << y
@@ -841,29 +841,29 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int32_t slice, int32_t row,
   })
 }
 
-GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int32_t slice, int32_t row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int32_t roc, int32_t row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
   GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
   /// Transformation y,z -> x
   float u = 0, v = 0, un = 0, vn = 0;
-  getGeometry().convLocalToUV(slice, y, z, u, v);
+  getGeometry().convLocalToUV(roc, y, z, u, v);
   if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
-    mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
+    mCorrection.getCorrectionInvUV(roc, row, u, v, un, vn);
     if (ref) { // scaling was requested
       if (scaleMode == 0 && scale > 0.f) {
         float unr = 0, vnr = 0;
-        ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+        ref->mCorrection.getCorrectionInvUV(roc, row, u, v, unr, vnr);
         un = (un - unr) * scale + unr;
         vn = (vn - vnr) * scale + vnr;
       } else if ((scale != 0) && ((scaleMode == 1) || (scaleMode == 2))) {
         float unr = 0, vnr = 0;
-        ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+        ref->mCorrection.getCorrectionInvUV(roc, row, u, v, unr, vnr);
         un = (unr - u) * scale + un; // unr = u - duv[0];
         vn = (vnr - v) * scale + vn;
       }
       if (ref2 && (scale2 != 0)) {
         float unr = 0, vnr = 0;
-        ref2->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+        ref2->mCorrection.getCorrectionInvUV(roc, row, u, v, unr, vnr);
         un = (unr - u) * scale2 + un; // unr = u - duv[0];
         vn = (vnr - v) * scale2 + vn;
       }
@@ -872,11 +872,11 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int32_t slice, int3
     un = u;
     vn = v;
   }
-  getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
+  getGeometry().convUVtoLocal(roc, un, vn, ny, nz);
 
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
-                                                                                       << "slice=" << slice
+                                                                                       << "roc=" << roc
                                                                                        << "row=" << row
                                                                                        << "scale=" << scale
                                                                                        << "y=" << y
@@ -891,7 +891,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int32_t slice, int3
   })
 }
 
-GPUdi() void TPCFastTransform::InverseTransformXYZtoNominalXYZ(int32_t slice, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransform::InverseTransformXYZtoNominalXYZ(int32_t roc, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
   /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
   int32_t row2 = row + 1;
@@ -902,8 +902,8 @@ GPUdi() void TPCFastTransform::InverseTransformXYZtoNominalXYZ(int32_t slice, in
   float nx2, ny2, nz2; // nominal coordinates for row2
   nx1 = getGeometry().getRowInfo(row).x;
   nx2 = getGeometry().getRowInfo(row2).x;
-  InverseTransformYZtoNominalYZ(slice, row, y, z, ny1, nz1, ref, ref2, scale, scale2, scaleMode);
-  InverseTransformYZtoNominalYZ(slice, row2, y, z, ny2, nz2, ref, ref2, scale, scale2, scaleMode);
+  InverseTransformYZtoNominalYZ(roc, row, y, z, ny1, nz1, ref, ref2, scale, scale2, scaleMode);
+  InverseTransformYZtoNominalYZ(roc, row2, y, z, ny2, nz2, ref, ref2, scale, scale2, scaleMode);
   float c1 = (nx2 - nx) / (nx2 - nx1);
   float c2 = (nx - nx1) / (nx2 - nx1);
   nx = x;

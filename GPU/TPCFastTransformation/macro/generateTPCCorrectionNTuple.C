@@ -82,12 +82,12 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
   const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
   TFile* f = new TFile("tpcCorrection.root", "RECREATE");
-  TNtuple* nt = new TNtuple("dist", "dist", "slice:row:su:sv:dx:du:dv");
+  TNtuple* nt = new TNtuple("dist", "dist", "sector:row:su:sv:dx:du:dv");
 
-  int32_t nSlices = 1; // fastTransform->getNumberOfSlices();
-  // for( int32_t slice=0; slice<nSlices; slice++){
-  for (int32_t slice = 0; slice < 1; slice++) {
-    const o2::gpu::TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
+  int32_t nSectors = 1; // fastTransform->getNumberOfSectors();
+  // for( int32_t sector=0; sector<nSectors; sector++){
+  for (int32_t sector = 0; sector < 1; sector++) {
+    const o2::gpu::TPCFastTransformGeo::SectorInfo& sectorInfo = geo.getSectorInfo(sector);
 
     for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
 
@@ -96,12 +96,12 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
       for (float su = 0.; su <= 1.; su += 0.01) {
         for (float sv = 0.; sv <= 1.; sv += 0.01) {
           float u, v, y = 0, z = 0;
-          geo.convScaledUVtoUV(slice, row, su, sv, u, v);
-          geo.convUVtoLocal(slice, u, v, y, z);
+          geo.convScaledUVtoUV(sector, row, su, sv, u, v);
+          geo.convUVtoLocal(sector, u, v, y, z);
 
           // local 2 global
           float gx, gy, gz;
-          geo.convLocalToGlobal(slice, x, y, z, gx, gy, gz);
+          geo.convLocalToGlobal(sector, x, y, z, gx, gy, gz);
 
           o2::tpc::GlobalPosition3D positionCorrected(gx, gy, gz);
           sc->correctElectron(positionCorrected);
@@ -111,15 +111,15 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
 
           // global to local
           float x1, y1, z1;
-          geo.convGlobalToLocal(slice, gx, gy, gz, x1, y1, z1);
+          geo.convGlobalToLocal(sector, gx, gy, gz, x1, y1, z1);
           float u1 = 0, v1 = 0;
-          geo.convLocalToUV(slice, y1, z1, u1, v1);
+          geo.convLocalToUV(sector, y1, z1, u1, v1);
 
           float dx = x1 - x;
           float du = u1 - u;
           float dv = v1 - v;
-          std::cout << slice << " " << row << " " << su << " " << sv << " " << dx << " " << du << " " << dv << std::endl;
-          nt->Fill(slice, row, su, sv, dx, du, dv);
+          std::cout << sector << " " << row << " " << su << " " << sv << " " << dx << " " << du << " " << dv << std::endl;
+          nt->Fill(sector, row, su, sv, dx, du, dv);
         }
       }
     }

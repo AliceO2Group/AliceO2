@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
 
   BOOST_CHECK_EQUAL(geo.test(), 0);
 
-  BOOST_CHECK_EQUAL(geo.getNumberOfSlices(), Sector::MAXSECTOR);
+  BOOST_CHECK_EQUAL(geo.getNumberOfRocs(), Sector::MAXSECTOR);
   BOOST_CHECK_EQUAL(geo.getNumberOfRows(), mapper.getNumberOfRows());
 
   double maxDx = 0, maxDy = 0;
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
     dlz = lz1 - lz;
   };
 
-  int nRocs = geo.getNumberOfSlices();
+  int nRocs = geo.getNumberOfRocs();
   int nRows = geo.getNumberOfRows();
   TPCFastSpaceChargeCorrectionMap& scData = TPCFastTransformHelperO2::instance()->getCorrectionMap();
   scData.init(nRocs, nRows);
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
         }
       }
     } // row
-  }   // slice
+  } // roc
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
@@ -158,12 +158,12 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   double statDiff = 0., statN = 0.;
   double statDiffFile = 0., statNFile = 0.;
 
-  for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
-    //std::cout << "slice " << slice << " ... " << std::endl;
+  for (int roc = 0; roc < geo.getNumberOfRocs(); roc += 1) {
+    // std::cout << "roc " << roc << " ... " << std::endl;
 
-    const TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
+    const TPCFastTransformGeo::RocInfo& rocInfo = geo.getRocInfo(roc);
 
-    float lastTimeBin = fastTransform->getMaxDriftTime(slice, 0.f);
+    float lastTimeBin = fastTransform->getMaxDriftTime(roc, 0.f);
 
     for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
@@ -172,31 +172,31 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
       for (int pad = 0; pad < nPads; pad += 10) {
 
         for (float time = 0; time < lastTimeBin; time += 30) {
-          //std::cout<<"slice "<<slice<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
+          // std::cout<<"roc "<<roc<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
 
           fastTransform->setApplyCorrectionOff();
           float x0, y0, z0;
-          fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
+          fastTransform->Transform(roc, row, pad, time, x0, y0, z0);
 
-          BOOST_CHECK_EQUAL(geo.test(slice, row, y0, z0), 0);
+          BOOST_CHECK_EQUAL(geo.test(roc, row, y0, z0), 0);
 
           fastTransform->setApplyCorrectionOn();
           float x1, y1, z1;
-          fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
+          fastTransform->Transform(roc, row, pad, time, x1, y1, z1);
 
           // local to UV
           float u0, v0, u1, v1;
-          geo.convLocalToUV(slice, y0, z0, u0, v0);
-          geo.convLocalToUV(slice, y1, z1, u1, v1);
+          geo.convLocalToUV(roc, y0, z0, u0, v0);
+          geo.convLocalToUV(roc, y1, z1, u1, v1);
           double dx, du, dv;
-          correctionUV(slice, row, u0, v0, dx, du, dv);
+          correctionUV(roc, row, u0, v0, dx, du, dv);
           statDiff += fabs((x1 - x0) - dx) + fabs((u1 - u0) - du) + fabs((v1 - v0) - dv);
           statN += 3;
           //std::cout << (x1 - x0) - dx << " " << (u1 - u0) - du << " " << (v1 - v0) - dv << std::endl; //": v0 " << v0 <<" z0 "<<z0<<" v1 "<< v1<<" z1 "<<z1 << std::endl;
           //BOOST_CHECK_MESSAGE(0, "SG");
 
           float x1f, y1f, z1f;
-          fromFile->Transform(slice, row, pad, time, x1f, y1f, z1f);
+          fromFile->Transform(roc, row, pad, time, x1f, y1f, z1f);
           statDiffFile += fabs(x1f - x1) + fabs(y1f - y1) + fabs(z1f - z1);
           statNFile += 3;
         }
