@@ -58,16 +58,16 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   };
 
   struct SliceRowInfo {
-    float gridU0{0.f};                        //< U coordinate of the U-grid start
-    float scaleUtoGrid{0.f};                  //< scale U to U-grid coordinate
-    float gridV0{0.f};                        ///< V coordinate of the V-grid start
-    float scaleVtoGrid{0.f};                  //< scale V to V-grid coordinate
-    float gridCorrU0{0.f};                    ///< U coordinate of the U-grid start for corrected U
-    float scaleCorrUtoGrid{0.f};              ///< scale corrected U to U-grid coordinate
-    float gridCorrV0{0.f};                    ///< V coordinate of the V-grid start for corrected V
-    float scaleCorrVtoGrid{0.f};              ///< scale corrected V to V-grid coordinate
-    float maxCorr[3]{10.f, 10.f, 10.f};       ///< max correction for dX, dU, dV
-    float minCorr[3]{-10.f, -10.f, -10.f};    ///< min correction for dX, dU, dV
+    float gridU0{0.f};                     //< U coordinate of the U-grid start
+    float scaleUtoGrid{0.f};               //< scale U to U-grid coordinate
+    float gridV0{0.f};                     ///< V coordinate of the V-grid start
+    float scaleVtoGrid{0.f};               //< scale V to V-grid coordinate
+    float gridCorrU0{0.f};                 ///< U coordinate of the U-grid start for corrected U
+    float scaleCorrUtoGrid{0.f};           ///< scale corrected U to U-grid coordinate
+    float gridCorrV0{0.f};                 ///< V coordinate of the V-grid start for corrected V
+    float scaleCorrVtoGrid{0.f};           ///< scale corrected V to V-grid coordinate
+    float maxCorr[3]{10.f, 10.f, 10.f};    ///< max correction for dX, dU, dV
+    float minCorr[3]{-10.f, -10.f, -10.f}; ///< min correction for dX, dU, dV
     RowActiveArea activeArea;
 
     void resetMaxValues()
@@ -198,12 +198,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() float getMaxDriftLength(int32_t slice) const;
 
   /// _______________  Utilities  _______________________________________________
-
-  /// shrink u,v coordinats to the TPC row area +/- fkInterpolationSafetyMargin
-  GPUd() void schrinkUV(int32_t slice, int32_t row, float& u, float& v) const;
-
-  /// shrink corrected u,v coordinats to the TPC row area +/- fkInterpolationSafetyMargin
-  GPUd() void schrinkCorrectedUV(int32_t slice, int32_t row, float& corrU, float& corrV) const;
 
   /// convert u,v to internal grid coordinates
   GPUd() void convUVtoGrid(int32_t slice, int32_t row, float u, float v, float& gridU, float& gridV) const;
@@ -338,60 +332,9 @@ GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineData(int32_t slice, 
   return reinterpret_cast<float*>(mSplineData[iSpline] + mSliceDataSizeBytes[iSpline] * slice + rowInfo.dataOffsetBytes[iSpline]);
 }
 
-GPUdi() void TPCFastSpaceChargeCorrection::schrinkUV(int32_t slice, int32_t row, float& u, float& v) const
-{
-  /// shrink u,v coordinats to the TPC row area +/- fInterpolationSafetyMargin
-
-  const TPCFastTransformGeo::RowInfo& rowInfo = mGeo.getRowInfo(row);
-
-  float uWidth05 = rowInfo.getUwidth() * (0.5f + fInterpolationSafetyMargin);
-  float vWidth = mGeo.getTPCzLength(slice);
-
-  if (u < -uWidth05) {
-    u = -uWidth05;
-  }
-  if (u > uWidth05) {
-    u = uWidth05;
-  }
-  if (v < -0.1f * vWidth) {
-    v = -0.1f * vWidth;
-  }
-  if (v > 1.1f * vWidth) {
-    v = 1.1f * vWidth;
-  }
-}
-
-GPUdi() void TPCFastSpaceChargeCorrection::schrinkCorrectedUV(int32_t slice, int32_t row, float& corrU, float& corrV) const
-{
-  /// shrink corrected u,v coordinats to the TPC row area +/- fInterpolationSafetyMargin
-
-  const TPCFastTransformGeo::RowInfo& rowInfo = mGeo.getRowInfo(row);
-  const SliceRowInfo& sliceRowInfo = getSliceRowInfo(slice, row);
-
-  float uMargin = fInterpolationSafetyMargin * rowInfo.getUwidth();
-  float vMargin = fInterpolationSafetyMargin * mGeo.getTPCzLength(slice);
-
-  if (corrU < sliceRowInfo.activeArea.cuMin - uMargin) {
-    corrU = sliceRowInfo.activeArea.cuMin - uMargin;
-  }
-
-  if (corrU > sliceRowInfo.activeArea.cuMax + uMargin) {
-    corrU = sliceRowInfo.activeArea.cuMax + uMargin;
-  }
-
-  if (corrV < 0.f - vMargin) {
-    corrV = 0.f - vMargin;
-  }
-
-  if (corrV > sliceRowInfo.activeArea.cvMax + vMargin) {
-    corrV = sliceRowInfo.activeArea.cvMax + vMargin;
-  }
-}
-
 GPUdi() void TPCFastSpaceChargeCorrection::convUVtoGrid(int32_t slice, int32_t row, float u, float v, float& gu, float& gv) const
 {
-  schrinkUV(slice, row, u, v);
-  const SliceRowInfo& info = getSliceRowInfo(slice, row);
+  const auto& info = getSliceRowInfo(slice, row);
   gu = (u - info.gridU0) * info.scaleUtoGrid;
   gv = (v - info.gridV0) * info.scaleVtoGrid;
 }
@@ -406,34 +349,36 @@ GPUdi() void TPCFastSpaceChargeCorrection::convGridToUV(int32_t slice, int32_t r
 
 GPUdi() void TPCFastSpaceChargeCorrection::convCorrectedUVtoGrid(int32_t slice, int32_t row, float corrU, float corrV, float& gridU, float& gridV) const
 {
-  schrinkCorrectedUV(slice, row, corrU, corrV);
-
-  const SliceRowInfo& sliceRowInfo = getSliceRowInfo(slice, row);
-
-  gridU = (corrU - sliceRowInfo.gridCorrU0) * sliceRowInfo.scaleCorrUtoGrid;
-  gridV = (corrV - sliceRowInfo.gridCorrV0) * sliceRowInfo.scaleCorrVtoGrid;
+  const SliceRowInfo& info = getSliceRowInfo(slice, row);
+  gridU = (corrU - info.gridCorrU0) * info.scaleCorrUtoGrid;
+  gridV = (corrV - info.gridCorrV0) * info.scaleCorrVtoGrid;
 }
 
 GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrection(int32_t slice, int32_t row, float u, float v, float& dx, float& du, float& dv) const
 {
+  const auto& info = getSliceRowInfo(slice, row);
   const SplineType& spline = getSpline(slice, row);
   const float* splineData = getSplineData(slice, row);
   float gridU = 0, gridV = 0;
   convUVtoGrid(slice, row, u, v, gridU, gridV);
+  // shrink to the grid area
+  gridU = GPUCommonMath::Clamp(gridU, 0.f, (float)spline.getGridX1().getUmax());
+  gridV = GPUCommonMath::Clamp(gridV, 0.f, (float)spline.getGridX2().getUmax());
+
   float dxuv[3];
   spline.interpolateU(splineData, gridU, gridV, dxuv);
-  const auto& info = getSliceRowInfo(slice, row);
+
   float s = v / info.gridV0;
-  if (s < 0.) {
-    s = 0.;
-  }
-  if (s > 1.) {
-    s = 1.;
+
+  if (v >= info.gridV0) {
+    s = 1.f;
+  } else if (v <= 0.f) {
+    s = 0.f;
   }
 
-  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], s * dxuv[0]));
-  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], s * dxuv[1]));
-  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], s * dxuv[2]));
+  dx = GPUCommonMath::Clamp(s * dxuv[0], info.minCorr[0], info.maxCorr[0]);
+  du = GPUCommonMath::Clamp(s * dxuv[1], info.minCorr[1], info.maxCorr[1]);
+  dv = GPUCommonMath::Clamp(s * dxuv[2], info.minCorr[2], info.maxCorr[2]);
   return 0;
 }
 
@@ -462,22 +407,28 @@ GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrectionOld(int32_t slice, in
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
   int32_t slice, int32_t row, float corrU, float corrV, float& x) const
 {
+  const auto& info = getSliceRowInfo(slice, row);
+  const Spline2D<float, 1>& spline = reinterpret_cast<const Spline2D<float, 1>&>(getSpline(slice, row));
+  const float* splineData = getSplineData(slice, row, 1);
+
   float gridU, gridV;
   convCorrectedUVtoGrid(slice, row, corrU, corrV, gridU, gridV);
 
-  const Spline2D<float, 1>& spline = reinterpret_cast<const Spline2D<float, 1>&>(getSpline(slice, row));
-  const float* splineData = getSplineData(slice, row, 1);
+  // shrink to the grid area
+  gridU = GPUCommonMath::Clamp(gridU, 0.f, (float)spline.getGridX1().getUmax());
+  gridV = GPUCommonMath::Clamp(gridV, 0.f, (float)spline.getGridX2().getUmax());
+
   float dx = 0;
   spline.interpolateU(splineData, gridU, gridV, &dx);
-  const auto& info = getSliceRowInfo(slice, row);
 
   float s = corrV / info.gridCorrV0;
-  if (s < 0.) {
-    s = 0.;
+
+  if (corrV >= info.gridCorrV0) {
+    s = 1.f;
+  } else if (corrV <= 0.f) {
+    s = 0.f;
   }
-  if (s > 1.) {
-    s = 1.;
-  }
+
   dx = GPUCommonMath::Clamp(s * dx, info.minCorr[0], info.maxCorr[0]);
   x = mGeo.getRowInfo(row).x + dx;
 }
@@ -485,22 +436,27 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
   int32_t slice, int32_t row, float corrU, float corrV, float& nomU, float& nomV) const
 {
+  const Spline2D<float, 2>& spline = reinterpret_cast<const Spline2D<float, 2>&>(getSpline(slice, row));
+  const float* splineData = getSplineData(slice, row, 2);
+
   float gridU, gridV;
   convCorrectedUVtoGrid(slice, row, corrU, corrV, gridU, gridV);
 
-  const Spline2D<float, 2>& spline = reinterpret_cast<const Spline2D<float, 2>&>(getSpline(slice, row));
-  const float* splineData = getSplineData(slice, row, 2);
+  // shrink to the grid area
+  gridU = GPUCommonMath::Clamp(gridU, 0.f, (float)spline.getGridX1().getUmax());
+  gridV = GPUCommonMath::Clamp(gridV, 0.f, (float)spline.getGridX2().getUmax());
 
   float duv[2];
   spline.interpolateU(splineData, gridU, gridV, duv);
   const auto& info = getSliceRowInfo(slice, row);
   float s = corrV / info.gridCorrV0;
-  if (s < 0.) {
-    s = 0.;
+
+  if (corrV >= info.gridCorrV0) {
+    s = 1.f;
+  } else if (corrV <= 0.f) {
+    s = 0.f;
   }
-  if (s > 1.) {
-    s = 1.;
-  }
+
   duv[0] = GPUCommonMath::Clamp(s * duv[0], info.minCorr[1], info.maxCorr[1]);
   duv[1] = GPUCommonMath::Clamp(s * duv[1], info.minCorr[2], info.maxCorr[2]);
   nomU = corrU - duv[0];
