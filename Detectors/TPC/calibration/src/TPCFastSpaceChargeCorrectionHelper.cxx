@@ -457,9 +457,9 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       y = iy * dy;
       y = y / (y1 - y0) * 2 - 1.;
       if (iuv == 0) {
-        LOG(info) << "convert y bin: " << yold << " -> " << y << " -> " << iy;
+        LOG(info) << "TPC SC splines: convert y bin: " << yold << " -> " << y << " -> " << iy;
       } else {
-        LOG(info) << "convert z bin: " << yold << " -> " << y << " -> " << iy;
+        LOG(info) << "TPC SC splines: convert z bin: " << yold << " -> " << y << " -> " << iy;
       }
     }
 
@@ -514,11 +514,12 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       double uMax = yMax;
       double vMin = geo.getTPCzLength(iRoc) - zMax;
       double vMax = geo.getTPCzLength(iRoc) - zMin;
-      // std::cout << " uMin: " << uMin << " uMax: " << yuMax << " zMin: " << vMin << " zMax: " << vMax << std::endl;
       info.gridU0 = uMin;
       info.scaleUtoGrid = spline.getGridX1().getUmax() / (uMax - uMin);
       info.gridV0 = vMin;
       info.scaleVtoGrid = spline.getGridX2().getUmax() / (vMax - vMin);
+      // std::cout << " iRoc " << iRoc << " iRow " << iRow << " uMin: " << uMin << " uMax: " << uMax << " vMin: " << vMin << " vMax: " << vMax
+      //<< " grid scale u "<< info.scaleUtoGrid << " grid scale v "<< info.scaleVtoGrid<< std::endl;
     }
   }
 
@@ -629,7 +630,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
                   << std::endl;
               }
               */
-              if (1) { // always use voxel center instead of the mean position
+              if (0) { // debug: always use voxel center instead of the mean position
                 data.mY = vox.mY;
                 data.mZ = vox.mZ;
               }
