@@ -28,14 +28,14 @@ using namespace o2::gpu;
 TPCFastTransformGeo::TPCFastTransformGeo()
 {
   // Default Constructor: creates an empty uninitialized object
-  double dAlpha = 2. * M_PI / (NumberOfSlicesA);
-  for (int32_t i = 0; i < NumberOfSlices; i++) {
-    SliceInfo& s = mSliceInfos[i];
+  double dAlpha = 2. * M_PI / (NumberOfRocsA);
+  for (int32_t i = 0; i < NumberOfRocs; i++) {
+    RocInfo& s = mRocInfos[i];
     double alpha = dAlpha * (i + 0.5);
     s.sinAlpha = sin(alpha);
     s.cosAlpha = cos(alpha);
   }
-  mSliceInfos[NumberOfSlices] = SliceInfo{0.f, 0.f};
+  mRocInfos[NumberOfRocs] = RocInfo{0.f, 0.f};
 
   for (int32_t i = 0; i < MaxNumberOfRows + 1; i++) {
     mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
@@ -104,7 +104,7 @@ void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float 
 
   // Make scaled U = area between the geometrical sector borders
 
-  const double sectorAngle = 2. * M_PI / NumberOfSlicesA;
+  const double sectorAngle = 2. * M_PI / NumberOfRocsA;
   const double scaleXtoRowWidth = 2. * tan(0.5 * sectorAngle);
   double uWidth = x * scaleXtoRowWidth; // distance to the sector border
 
@@ -148,7 +148,7 @@ void TPCFastTransformGeo::print() const
 #endif
 }
 
-int32_t TPCFastTransformGeo::test(int32_t slice, int32_t row, float ly, float lz) const
+int32_t TPCFastTransformGeo::test(int32_t roc, int32_t row, float ly, float lz) const
 {
   /// Check consistency of the class
 
@@ -164,16 +164,16 @@ int32_t TPCFastTransformGeo::test(int32_t slice, int32_t row, float ly, float lz
   float lx1 = 0.f, ly1 = 0.f, lz1 = 0.f;
   float gx = 0.f, gy = 0.f, gz = 0.f;
 
-  convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
-  convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
+  convLocalToGlobal(roc, lx, ly, lz, gx, gy, gz);
+  convGlobalToLocal(roc, gx, gy, gz, lx1, ly1, lz1);
 
   if (fabs(lx1 - lx) > 1.e-4 || fabs(ly1 - ly) > 1.e-4 || fabs(lz1 - lz) > 1.e-7) {
     LOG(info) << "Error local <-> global: x " << lx << " dx " << lx1 - lx << " y " << ly << " dy " << ly1 - ly << " z " << lz << " dz " << lz1 - lz;
     error = -3;
   }
   float u = 0.f, v = 0.f;
-  convLocalToUV(slice, ly, lz, u, v);
-  convUVtoLocal(slice, u, v, ly1, lz1);
+  convLocalToUV(roc, ly, lz, u, v);
+  convUVtoLocal(roc, u, v, ly1, lz1);
 
   if (fabs(ly1 - ly) + fabs(lz1 - lz) > 1.e-6) {
     LOG(info) << "Error local <-> UV: y " << ly << " dy " << ly1 - ly << " z " << lz << " dz " << lz1 - lz;
@@ -182,7 +182,7 @@ int32_t TPCFastTransformGeo::test(int32_t slice, int32_t row, float ly, float lz
 
   float su = 0.f, sv = 0.f;
 
-  convUVtoScaledUV(slice, row, u, v, su, sv);
+  convUVtoScaledUV(roc, row, u, v, su, sv);
 
   if (su < 0.f || su > 1.f) {
     LOG(info) << "Error scaled U range: u " << u << " su " << su;
@@ -190,7 +190,7 @@ int32_t TPCFastTransformGeo::test(int32_t slice, int32_t row, float ly, float lz
   }
 
   float u1 = 0.f, v1 = 0.f;
-  convScaledUVtoUV(slice, row, su, sv, u1, v1);
+  convScaledUVtoUV(roc, row, su, sv, u1, v1);
 
   if (fabs(u1 - u) > 1.e-4 || fabs(v1 - v) > 1.e-4) {
     LOG(info) << "Error UV<->scaled UV: u " << u << " du " << u1 - u << " v " << v << " dv " << v1 - v;

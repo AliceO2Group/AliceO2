@@ -87,14 +87,14 @@ int32_t TPCFastTransformManager::create(TPCFastTransform& fastTransform,
 
     float tpcZlengthSideA = tpcParam->GetZLength(0);
     float tpcZlengthSideC =
-      tpcParam->GetZLength(TPCFastTransformGeo::getNumberOfSlices() / 2);
+      tpcParam->GetZLength(TPCFastTransformGeo::getNumberOfRocs() / 2);
 
     geo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
     geo.setTPCalignmentZ(-mOrigTransform->GetDeltaZCorrTime());
 
     for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
-      int32_t slice = 0, sector = 0, secrow = 0;
-      AliHLTTPCGeometry::Slice2Sector(slice, row, sector, secrow);
+      int32_t roc = 0, sector = 0, secrow = 0;
+      AliHLTTPCGeometry::Slice2Sector(roc, row, sector, secrow);
       Int_t nPads = tpcParam->GetNPads(sector, secrow);
       float xRow = tpcParam->GetPadRowRadii(sector, secrow);
       float padWidth = tpcParam->GetInnerPadPitchWidth();
@@ -272,40 +272,40 @@ int32_t TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransfo
 
   recoParam->SetUseTOFCorrection(kFALSE);
 
-  for (int32_t slice = 0; slice < geo.getNumberOfSlices(); slice++) {
+  for (int32_t roc = 0; roc < geo.getNumberOfRocs(); roc++) {
 
     for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
 
       const TPCFastTransformGeo::RowInfo& rowInfo = geo.getRowInfo(row);
 
-      const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
-      float* data = correction.getSplineData(slice, row);
+      const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(roc, row);
+      float* data = correction.getSplineData(roc, row);
 
       Spline2DHelper<float> helper;
       helper.setSpline(spline, 4, 4);
       auto F = [&](double su, double sv, double dxuv[3]) {
         float x = rowInfo.x;
-        // x, u, v cordinates of the knot (local cartesian coord. of slice
+        // x, u, v cordinates of the knot (local cartesian coord. of roc
         // towards central electrode )
         float u = 0, v = 0;
-        geo.convScaledUVtoUV(slice, row, su, sv, u, v);
+        geo.convScaledUVtoUV(roc, row, su, sv, u, v);
 
         // row, pad, time coordinates of the knot
         float vertexTime = 0.f;
         float pad = 0.f, time = 0.f;
-        fastTransform.convUVtoPadTime(slice, row, u, v, pad, time, vertexTime);
+        fastTransform.convUVtoPadTime(roc, row, u, v, pad, time, vertexTime);
 
         // nominal x,y,z coordinates of the knot (without corrections and
         // time-of-flight correction)
         float y = 0, z = 0;
-        geo.convUVtoLocal(slice, u, v, y, z);
+        geo.convUVtoLocal(roc, u, v, y, z);
 
         // original TPC transformation (row,pad,time) -> (x,y,z) without
         // time-of-flight correction
         float ox = 0, oy = 0, oz = 0;
         {
           int32_t sector = 0, secrow = 0;
-          AliHLTTPCGeometry::Slice2Sector(slice, row, sector, secrow);
+          AliHLTTPCGeometry::Slice2Sector(roc, row, sector, secrow);
           int32_t is[] = {sector};
           double xx[] = {static_cast<double>(secrow), pad, time};
           mOrigTransform->Transform(xx, is, 0, 1);
@@ -315,7 +315,7 @@ int32_t TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransfo
         }
         // convert to u,v
         float ou = 0, ov = 0;
-        geo.convLocalToUV(slice, oy, oz, ou, ov);
+        geo.convLocalToUV(roc, oy, oz, ou, ov);
 
         // corrections in x,u,v:
         dxuv[0] = ox - x;
@@ -325,7 +325,7 @@ int32_t TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransfo
 
       helper.approximateFunction(data, 0., 1., 0., 1., F);
     } // row
-  } // slice
+  } // roc
 
   // set back the time-of-flight correction;
 
