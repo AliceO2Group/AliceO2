@@ -59,7 +59,7 @@ class Digit
   Digit(int det, int row, int pad, ArrayADC adc, int phase = 0);
   Digit(int det, int row, int pad); // add adc data and pretrigger phase in a separate step
   Digit(int det, int rob, int mcm, int channel, ArrayADC adc, int phase = 0);
-  Digit(int det, int rob, int mcm, int channel); // add adc data in a seperate step
+  Digit(int det, int rob, int mcm, int channel, int phase = 0); // add adc data
 
   // Copy
   Digit(const Digit&) = default;
@@ -74,9 +74,11 @@ class Digit
   void setDetector(int det) { mDetector = ((mDetector & 0xf000) | (det & 0xfff)); }
   void setADC(ArrayADC const& adc) { mADC = adc; }
   void setADC(const gsl::span<ADC_t>& adc) { std::copy(adc.begin(), adc.end(), mADC.begin()); }
-  void setPreTrigPhase(int phase) { mDetector = (((phase & 0xf) << 12) | (mDetector & 0xfff)); }
+  // set the trigger phase make sure it is mapped to 2 bits as it can only have 4 valid numbers shifted 0,3,6,9 or 1,4,7,10 etc.
+  void setPreTrigPhase(int phase);
   // Get methods
   int getDetector() const { return mDetector & 0xfff; }
+  int getDetectorInFull() const { return mDetector; } // return the entire mDetector 16 bits, so far only for CTF encoding.
   int getHCId() const { return (mDetector & 0xfff) * 2 + (mROB % 2); }
   int getPadRow() const { return HelperMethods::getPadRowFromMCM(mROB, mMCM); }
   int getPadCol() const { return HelperMethods::getPadColFromADC(mROB, mMCM, mChannel); }

@@ -259,8 +259,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
       uint32_t firstEntryDig = digVec.size();
       int16_t cid = 0;
       for (uint32_t id = 0; id < entriesDig[itrig]; id++) {
-        cid += CIDDig[digCount]; // 1st digit of trigger was encoded with abs CID, then increments
-        auto& dig = digVec.emplace_back(cid, ROBDig[digCount], MCMDig[digCount], chanDig[digCount]);
+        cid += CIDDig[digCount]; // as cid has phase, its stored fully not  // 1st digit of trigger was encoded with abs CID, then increments
+        auto& dig = digVec.emplace_back(cid & 0xfff, ROBDig[digCount], MCMDig[digCount], chanDig[digCount], (cid >> 12) & 0x3);
         dig.setADC({&ADCDig[adcCount], constants::TIMEBINS});
         digCount++;
         adcCount += constants::TIMEBINS;

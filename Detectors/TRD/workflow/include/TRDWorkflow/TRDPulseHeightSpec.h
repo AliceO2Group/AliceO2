@@ -58,6 +58,8 @@ class PuseHeightDevice : public o2::framework::Task
     if (mRunStopRequested) {
       std::vector<PHData> mPHValues{}; // the calibration expects data at every TF, so inject dummy
       pc.outputs().snapshot(Output{"TRD", "PULSEHEIGHT", 0}, mPHValues);
+      std::vector<PHDataHD> mPHValuesHD{}; // the calibration expects data at every TF, so inject dummy
+      pc.outputs().snapshot(Output{"TRD", "PULSEHEIGHTHD", 0}, mPHValuesHD);
       return;
     }
     RecoContainer recoData;

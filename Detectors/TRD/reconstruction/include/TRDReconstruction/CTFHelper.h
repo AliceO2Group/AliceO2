@@ -288,12 +288,12 @@ class CTFHelper
     // assume sorting in CID: for the 1st digit of the trigger return the abs CID, for the following ones: difference to previous CID
     value_type operator*() const
     {
-      return (*mTrigStart)[mIndex] ? mData[mIndex].getDetector() : mData[mIndex].getDetector() - mData[mIndex - 1].getDetector();
+      return (*mTrigStart)[mIndex] ? mData[mIndex].getDetectorInFull() : mData[mIndex].getDetectorInFull() - mData[mIndex - 1].getDetectorInFull();
     }
     value_type operator[](difference_type i) const
     {
       size_t id = mIndex + i;
-      return (*mTrigStart)[id] ? mData[id].getDetector() : mData[id].getDetector() - mData[id - 1].getDetector();
+      return (*mTrigStart)[id] ? mData[id].getDetectorInFull() : mData[id].getDetectorInFull() - mData[id - 1].getDetectorInFull();
     }
   };
 

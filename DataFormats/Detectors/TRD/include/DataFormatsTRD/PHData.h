@@ -61,6 +61,66 @@ class PHData
 
   ClassDefNV(PHData, 1);
 };
+
+/*
+  This data type is used to send around the information required to fill PH plots per chamber
+
+  |19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
+  -------------------------------------------------------------
+  |type |nNeighb |   time bin   |        detector number      |
+  -------------------------------------------------------------
+*/
+/*
+  This data type is used to send around the information required to fill PH plots per chamber
+
+  |15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
+  ------------------------------------------------
+  |                 ADC sum for all neigbours     |
+  ------------------------------------------------
+*/
+
+class PHDataHD
+{
+ public:
+  enum Origin : uint8_t {
+    ITSTPCTRD,
+    TPCTRD,
+    TRACKLET,
+    OTHER
+  };
+
+  PHDataHD() = default;
+  PHDataHD(int adc, int det, int tb, int nb, int type) { set(adc, det, tb, nb, type); }
+
+  void set(int adc, int det, int tb, int nb, int type)
+  {
+    mDetector = det;
+    mTimeBin = tb;
+    mType = type;
+    mNNeighbours = nb;
+    mADC = adc;
+  }
+
+  // the ADC sum for given time bin for up to three neighbours
+  int getADC() const { return mADC; }
+  // the TRD detector number
+  int getDetector() const { return mDetector; }
+  // the given time bin
+  int getTimebin() const { return mTimeBin; }
+  // number of neighbouring digits for which the ADC is accumulated
+  int getNNeighbours() const { return mNNeighbours; }
+  // the origin of this point: digit on ITS-TPC-TRD track, ... (see enum Origin above)
+  int getType() const { return mType; }
+
+ private:
+  uint16_t mDetector{0};
+  uint8_t mTimeBin{0};
+  uint8_t mType{0};
+  uint8_t mNNeighbours{0};
+  uint16_t mADC{0};
+
+  ClassDefNV(PHDataHD, 1);
+};
 } // namespace o2::trd
 
 #endif // ALICEO2_TRD_PHDATA_H_

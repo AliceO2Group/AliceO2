@@ -23,6 +23,8 @@
 
 #include <set>
 #include <utility>
+#include <algorithm>
+#include <execution>
 
 using namespace o2::trd;
 

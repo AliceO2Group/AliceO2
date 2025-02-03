@@ -12,6 +12,7 @@
 #include "DataFormatsTRD/Digit.h"
 #include <iostream>
 #include <algorithm>
+#include "fairlogger/Logger.h"
 
 namespace o2::trd
 {
@@ -46,12 +47,18 @@ Digit::Digit(int det, int rob, int mcm, int channel, ArrayADC adc, int pretrigph
   setPreTrigPhase(pretrigphase);
 }
 
-Digit::Digit(int det, int rob, int mcm, int channel) // add adc data in a seperate step
+Digit::Digit(int det, int rob, int mcm, int channel, int pretrigphase) // add adc data in a seperate step
 {
   setDetector(det);
   setROB(rob);
   setMCM(mcm);
   setChannel(channel);
+  setPreTrigPhase(pretrigphase);
+}
+
+void Digit::setPreTrigPhase(int phase)
+{
+  mDetector = ((((phase) & 0x3) << 12) | (mDetector & 0xfff));
 }
 
 bool Digit::isSharedDigit() const
