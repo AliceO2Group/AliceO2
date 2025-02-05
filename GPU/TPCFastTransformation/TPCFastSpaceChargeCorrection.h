@@ -180,7 +180,9 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// _______________ The main method: cluster correction  _______________________
   ///
-  GPUd() int32_t getCorrection(int32_t roc, int32_t row, float u, float v, float& dx, float& du, float& dv) const;
+  GPUd() int32_t getCorrectionInternal(int32_t roc, int32_t row, float u, float v, float& dx, float& du, float& dv) const;
+
+  GPUdi() std::tuple<float, float, float> getCorrectionLocal(int32_t roc, int32_t row, float y, float z) const;
 
   /// inverse correction: Corrected U and V -> coorrected X
   GPUd() void getCorrectionInvCorrectedX(int32_t roc, int32_t row, float corrU, float corrV, float& corrX) const;
@@ -198,6 +200,10 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() float getMaxDriftLength(int32_t roc) const;
 
   /// _______________  Utilities  _______________________________________________
+
+  /// convert local y, z to internal grid coordinates u,v
+  /// return values: u, v, scaling factor
+  GPUd() std::tuple<float, float, float> convLocalToGrid(int32_t roc, int32_t row, float y, float z) const;
 
   /// convert u,v to internal grid coordinates
   GPUd() void convUVtoGrid(int32_t roc, int32_t row, float u, float v, float& gridU, float& gridV) const;
@@ -258,9 +264,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);
   /// release temporary memory used during construction
   void releaseConstructionMemory();
-
-  /// temporary method with the an way of calculating 2D spline
-  GPUd() int32_t getCorrectionOld(int32_t roc, int32_t row, float u, float v, float& dx, float& du, float& dv) const;
 
   /// _______________  Data members  _______________________________________________
 
@@ -354,7 +357,7 @@ GPUdi() void TPCFastSpaceChargeCorrection::convCorrectedUVtoGrid(int32_t roc, in
   gridV = (corrV - info.gridCorrV0) * info.scaleCorrVtoGrid;
 }
 
-GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrection(int32_t roc, int32_t row, float u, float v, float& dx, float& du, float& dv) const
+GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrectionInternal(int32_t roc, int32_t row, float u, float v, float& dx, float& du, float& dv) const
 {
   const auto& info = getRocRowInfo(roc, row);
   const SplineType& spline = getSpline(roc, row);
@@ -382,26 +385,41 @@ GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrection(int32_t roc, int32_t
   return 0;
 }
 
-GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrectionOld(int32_t roc, int32_t row, float u, float v, float& dx, float& du, float& dv) const
+GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::getCorrectionLocal(int32_t roc, int32_t row, float y, float z) const
 {
+  const auto& info = getRocRowInfo(roc, row);
   const SplineType& spline = getSpline(roc, row);
   const float* splineData = getSplineData(roc, row);
+
+  float u, v;
+
+  mGeo.convLocalToUV(roc, y, z, u, v);
+
   float gridU = 0, gridV = 0;
   convUVtoGrid(roc, row, u, v, gridU, gridV);
+  // shrink to the grid area
+  gridU = GPUCommonMath::Clamp(gridU, 0.f, (float)spline.getGridX1().getUmax());
+  gridV = GPUCommonMath::Clamp(gridV, 0.f, (float)spline.getGridX2().getUmax());
+
   float dxuv[3];
-  spline.interpolateUold(splineData, gridU, gridV, dxuv);
-  const auto& info = getRocRowInfo(roc, row);
+  spline.interpolateU(splineData, gridU, gridV, dxuv);
+
   float s = v / info.gridV0;
-  if (s < 0.) {
-    s = 0.;
+
+  if (v >= info.gridV0) {
+    s = 1.f;
+  } else if (v <= 0.f) {
+    s = 0.f;
   }
-  if (s > 1.) {
-    s = 1.;
-  }
-  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], s * dxuv[0]));
-  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], s * dxuv[1]));
-  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], s * dxuv[2]));
-  return 0;
+
+  float dx = GPUCommonMath::Clamp(s * dxuv[0], info.minCorr[0], info.maxCorr[0]);
+  float du = GPUCommonMath::Clamp(s * dxuv[1], info.minCorr[1], info.maxCorr[1]);
+  float dv = GPUCommonMath::Clamp(s * dxuv[2], info.minCorr[2], info.maxCorr[2]);
+
+  float dy, dz;
+  mGeo.convUVtoLocal(roc, du, dv, dy, dz);
+
+  return {dx, dy, dz};
 }
 
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(

@@ -56,12 +56,7 @@ void TPCFastTransformHelperO2::init()
   mGeo.startConstruction(nRows);
 
   auto& detParam = ParameterDetector::Instance();
-  float tpcZlengthSideA = detParam.TPClength;
-  float tpcZlengthSideC = detParam.TPClength;
-
-  mGeo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
-
-  mGeo.setTPCalignmentZ(0.);
+  mGeo.setTPCzLength(detParam.TPClength);
 
   for (int iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
     Sector sector = 0;
@@ -114,12 +109,8 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     // set some initial calibration values, will be reinitialised later int updateCalibration()
     const float t0 = 0.;
     const float vDrift = 0.f;
-    const float vdCorrY = 0.;
-    const float ldCorr = 0.;
-    const float tofCorr = 0.;
-    const float primVtxZ = 0.;
     const long int initTimeStamp = -1;
-    fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+    fastTransform.setCalibration1(initTimeStamp, t0, vDrift);
 
     fastTransform.finishConstruction();
   }
@@ -171,19 +162,13 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   const double vDrift = elParam.ZbinWidth * vDriftRef * vDriftFactor; // cm/timebin
 
   // fast transform formula:
-  // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr
-  // Z = Z(L) +  tpcAlignmentZ
+  // L = (t-t0)*mVdrift
+  // Z = Z(L)
   // spline corrections for xyz
-  // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
   const double t0 = (driftTimeOffset + elParam.getAverageShapingTime()) / elParam.ZbinWidth;
 
-  const double vdCorrY = 0.;
-  const double ldCorr = 0.;
-  const double tofCorr = 0.;
-  const double primVtxZ = 0.;
-
-  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+  fastTransform.setCalibration1(TimeStamp, t0, vDrift);
 
   return 0;
 }

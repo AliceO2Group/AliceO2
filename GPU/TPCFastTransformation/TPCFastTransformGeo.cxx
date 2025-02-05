@@ -35,10 +35,10 @@ TPCFastTransformGeo::TPCFastTransformGeo()
     s.sinAlpha = sin(alpha);
     s.cosAlpha = cos(alpha);
   }
-  mRocInfos[NumberOfRocs] = RocInfo{0.f, 0.f};
+  mRocInfos[NumberOfRocs] = RocInfo{};
 
   for (int32_t i = 0; i < MaxNumberOfRows + 1; i++) {
-    mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
+    mRowInfos[i] = RowInfo{};
   }
 }
 
@@ -51,43 +51,23 @@ void TPCFastTransformGeo::startConstruction(int32_t numberOfRows)
   mConstructionMask = ConstructionState::InProgress;
   mNumberOfRows = numberOfRows;
 
-  mTPCzLengthA = 0.f;
-  mTPCzLengthC = 0.f;
-  mTPCalignmentZ = 0.f;
-  mScaleVtoSVsideA = 0.f;
-  mScaleVtoSVsideC = 0.f;
-  mScaleSVtoVsideA = 0.f;
-  mScaleSVtoVsideC = 0.f;
+  mTPCzLength = 0.f;
 
   for (int32_t i = 0; i < MaxNumberOfRows; i++) {
-    mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
+    mRowInfos[i] = RowInfo{};
   }
 }
 
-void TPCFastTransformGeo::setTPCzLength(float tpcZlengthSideA, float tpcZlengthSideC)
+void TPCFastTransformGeo::setTPCzLength(float tpcZlength)
 {
   /// Sets TPC z length for both sides
 
   assert(mConstructionMask & ConstructionState::InProgress);
-  assert((tpcZlengthSideA > 0.f) && (tpcZlengthSideC > 0.f));
+  assert(tpcZlength > 0.f);
 
-  mTPCzLengthA = tpcZlengthSideA;
-  mTPCzLengthC = tpcZlengthSideC;
-  mScaleSVtoVsideA = tpcZlengthSideA + 3.; // add some extra possible drift length due to the space charge distortions
-  mScaleSVtoVsideC = tpcZlengthSideC + 3.;
-  mScaleVtoSVsideA = 1. / mScaleSVtoVsideA;
-  mScaleVtoSVsideC = 1. / mScaleSVtoVsideC;
+  mTPCzLength = tpcZlength;
 
   mConstructionMask |= ConstructionState::GeometryIsSet;
-}
-
-void TPCFastTransformGeo::setTPCalignmentZ(float tpcAlignmentZ)
-{
-  /// Sets the TPC alignment
-  assert(mConstructionMask & ConstructionState::InProgress);
-
-  mTPCalignmentZ = tpcAlignmentZ;
-  mConstructionMask |= ConstructionState::AlignmentIsSet;
 }
 
 void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float padWidth)
@@ -113,8 +93,6 @@ void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float 
   row.maxPad = nPads - 1;
   row.padWidth = padWidth;
   row.u0 = -uWidth / 2.;
-  row.scaleUtoSU = 1. / uWidth;
-  row.scaleSUtoU = uWidth;
 }
 
 void TPCFastTransformGeo::finishConstruction()
@@ -123,7 +101,6 @@ void TPCFastTransformGeo::finishConstruction()
 
   assert(mConstructionMask & ConstructionState::InProgress);     // construction in process
   assert(mConstructionMask & ConstructionState::GeometryIsSet);  // geometry is  set
-  assert(mConstructionMask & ConstructionState::AlignmentIsSet); // alignment is  set
 
   for (int32_t i = 0; i < mNumberOfRows; i++) { // all TPC rows are initialized
     assert(getRowInfo(i).maxPad > 0);
@@ -138,9 +115,7 @@ void TPCFastTransformGeo::print() const
 #if !defined(GPUCA_GPUCODE)
   LOG(info) << "TPC Fast Transformation Geometry: ";
   LOG(info) << "mNumberOfRows = " << mNumberOfRows;
-  LOG(info) << "mTPCzLengthA = " << mTPCzLengthA;
-  LOG(info) << "mTPCzLengthC = " << mTPCzLengthC;
-  LOG(info) << "mTPCalignmentZ = " << mTPCalignmentZ;
+  LOG(info) << "mTPCzLength = " << mTPCzLength;
   LOG(info) << "TPC Rows : ";
   for (int32_t i = 0; i < mNumberOfRows; i++) {
     LOG(info) << " tpc row " << i << ": x = " << mRowInfos[i].x << " maxPad = " << mRowInfos[i].maxPad << " padWidth = " << mRowInfos[i].padWidth;
@@ -179,26 +154,26 @@ int32_t TPCFastTransformGeo::test(int32_t roc, int32_t row, float ly, float lz) 
     LOG(info) << "Error local <-> UV: y " << ly << " dy " << ly1 - ly << " z " << lz << " dz " << lz1 - lz;
     error = -4;
   }
+  /*
+    float su = 0.f, sv = 0.f;
 
-  float su = 0.f, sv = 0.f;
+    convUVtoScaledUV(roc, row, u, v, su, sv);
 
-  convUVtoScaledUV(roc, row, u, v, su, sv);
+    if (su < 0.f || su > 1.f) {
+      LOG(info) << "Error scaled U range: u " << u << " su " << su;
+      error = -5;
+    }
 
-  if (su < 0.f || su > 1.f) {
-    LOG(info) << "Error scaled U range: u " << u << " su " << su;
-    error = -5;
-  }
+    float u1 = 0.f, v1 = 0.f;
+    convScaledUVtoUV(roc, row, su, sv, u1, v1);
 
-  float u1 = 0.f, v1 = 0.f;
-  convScaledUVtoUV(roc, row, su, sv, u1, v1);
-
-  if (fabs(u1 - u) > 1.e-4 || fabs(v1 - v) > 1.e-4) {
-    LOG(info) << "Error UV<->scaled UV: u " << u << " du " << u1 - u << " v " << v << " dv " << v1 - v;
-    error = -6;
-  }
-
+    if (fabs(u1 - u) > 1.e-4 || fabs(v1 - v) > 1.e-4) {
+      LOG(info) << "Error UV<->scaled UV: u " << u << " du " << u1 - u << " v " << v << " dv " << v1 - v;
+      error = -6;
+    }
+  */
   float pad = convUtoPad(row, u);
-  u1 = convPadToU(row, pad);
+  float u1 = convPadToU(row, pad);
 
   if (fabs(u1 - u) > 1.e-5) {
     LOG(info) << "Error U<->Pad: u " << u << " pad " << pad << " du " << u1 - u;

@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
       float u = 0, v = 0;
-      fastTransform.convPadTimeToUV(0, row, pad, 0, u, v, 0.);
+      fastTransform.convPadTimeToUV(row, pad, 0, u, v, 0.);
 
       double dx = x - c.X();
       double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
@@ -192,8 +192,8 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
           correctionUV(roc, row, u0, v0, dx, du, dv);
           statDiff += fabs((x1 - x0) - dx) + fabs((u1 - u0) - du) + fabs((v1 - v0) - dv);
           statN += 3;
-          //std::cout << (x1 - x0) - dx << " " << (u1 - u0) - du << " " << (v1 - v0) - dv << std::endl; //": v0 " << v0 <<" z0 "<<z0<<" v1 "<< v1<<" z1 "<<z1 << std::endl;
-          //BOOST_CHECK_MESSAGE(0, "SG");
+          // std::cout << (x1 - x0) - dx << " " << (u1 - u0) - du << " " << (v1 - v0) - dv << std::endl; //": v0 " << v0 <<" z0 "<<z0<<" v1 "<< v1<<" z1 "<<z1 << std::endl;
+          // BOOST_CHECK_MESSAGE(0, "SG");
 
           float x1f, y1f, z1f;
           fromFile->Transform(roc, row, pad, time, x1f, y1f, z1f);

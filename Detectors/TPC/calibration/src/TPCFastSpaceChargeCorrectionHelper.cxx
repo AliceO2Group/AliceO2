@@ -63,12 +63,8 @@ void TPCFastSpaceChargeCorrectionHelper::initGeometry()
   mGeo.startConstruction(nRows);
 
   auto& detParam = ParameterDetector::Instance();
-  float tpcZlengthSideA = detParam.TPClength;
-  float tpcZlengthSideC = detParam.TPClength;
 
-  mGeo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
-
-  mGeo.setTPCalignmentZ(0.);
+  mGeo.setTPCzLength(detParam.TPClength);
 
   for (int iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
     Sector sector = 0;
@@ -295,7 +291,7 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
       auto myThread = [&](int iThread) {
         for (int iRow = iThread; iRow < nRows; iRow += mNthreads) {
           const auto& info = mGeo.getRowInfo(iRow);
-          double vMax = mGeo.getTPCzLength(iRoc);
+          double vMax = mGeo.getTPCzLength();
           double dv = vMax / (6. * (nKnotsZ - 1));
 
           double dpad = info.maxPad / (6. * (nKnotsY - 1));
@@ -512,8 +508,8 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       double zMax = rowInfo.x * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
       double uMin = yMin;
       double uMax = yMax;
-      double vMin = geo.getTPCzLength(iRoc) - zMax;
-      double vMax = geo.getTPCzLength(iRoc) - zMin;
+      double vMin = geo.getTPCzLength() - zMax;
+      double vMax = geo.getTPCzLength() - zMin;
       info.gridU0 = uMin;
       info.scaleUtoGrid = spline.getGridX1().getUmax() / (uMax - uMin);
       info.gridV0 = vMin;
@@ -822,7 +818,7 @@ void TPCFastSpaceChargeCorrectionHelper::initMaxDriftLength(o2::gpu::TPCFastSpac
     if (prn) {
       LOG(info) << "init MaxDriftLength for roc " << roc;
     }
-    double vLength = (roc < mGeo.getNumberOfRocsA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
+    double vLength = mGeo.getTPCzLength();
     TPCFastSpaceChargeCorrection::RocInfo& rocInfo = correction.getRocInfo(roc);
     rocInfo.vMax = 0.f;
 
@@ -843,7 +839,7 @@ void TPCFastSpaceChargeCorrectionHelper::initMaxDriftLength(o2::gpu::TPCFastSpac
         while (v1 - v0 > 0.1) {
           float v = 0.5 * (v0 + v1);
           float dx, du, dv;
-          correction.getCorrection(roc, row, u, v, dx, du, dv);
+          correction.getCorrectionInternal(roc, row, u, v, dx, du, dv);
           double cx = x + dx;
           double cu = u + du;
           double cv = v + dv;
@@ -962,14 +958,14 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
             correction.convGridToUV(roc, row, gridU[iu], gridV[iv], u, v);
 
             float dx, du, dv;
-            correction.getCorrection(roc, row, u, v, dx, du, dv);
+            correction.getCorrectionInternal(roc, row, u, v, dx, du, dv);
             dx *= scaling[0];
             du *= scaling[0];
             dv *= scaling[0];
             // add remaining corrections
             for (int i = 1; i < corrections.size(); ++i) {
               float dxTmp, duTmp, dvTmp;
-              corrections[i]->getCorrection(roc, row, u, v, dxTmp, duTmp, dvTmp);
+              corrections[i]->getCorrectionInternal(roc, row, u, v, dxTmp, duTmp, dvTmp);
               dx += dxTmp * scaling[i];
               du += duTmp * scaling[i];
               dv += dvTmp * scaling[i];
