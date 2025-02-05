@@ -159,7 +159,7 @@ class TPCFastTransform : public FlatObject
   ///
   /// It must be called once during construction,
   /// but also may be called afterwards to reset these parameters.
-  void setCalibration(int64_t timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ);
+  void setCalibration1(int64_t timeStamp, float t0, float vDrift);
 
   /// Set Lumi info
   void setLumi(float l) { mLumi = l; }
@@ -183,7 +183,7 @@ class TPCFastTransform : public FlatObject
   /// _______________ The main method: cluster transformation _______________________
   ///
   /// Transforms raw TPC coordinates to local XYZ withing a roc
-  /// taking calibration + alignment into account.
+  /// taking calibration into account.
   ///
   GPUd() void Transform(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
   GPUd() void TransformXYZ(int32_t roc, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
@@ -209,12 +209,12 @@ class TPCFastTransform : public FlatObject
   GPUd() void TransformIdeal(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
   GPUd() void TransformIdealZ(int32_t roc, float time, float& z, float vertexTime) const;
 
-  GPUd() void convPadTimeToUV(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float vertexTime) const;
-  GPUd() void convPadTimeToUVinTimeFrame(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const;
-  GPUd() void convTimeToVinTimeFrame(int32_t roc, float time, float& v, float maxTimeBin) const;
+  GPUd() void convPadTimeToUV(int32_t row, float pad, float time, float& u, float& v, float vertexTime) const;
+  GPUd() void convPadTimeToUVinTimeFrame(int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const;
+  GPUd() void convTimeToVinTimeFrame(float time, float& v, float maxTimeBin) const;
 
-  GPUd() void convUVtoPadTime(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float vertexTime) const;
-  GPUd() void convUVtoPadTimeInTimeFrame(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const;
+  GPUd() void convUVtoPadTime(int32_t row, float u, float v, float& pad, float& time, float vertexTime) const;
+  GPUd() void convUVtoPadTimeInTimeFrame(int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const;
   GPUd() void convVtoTime(float v, float& time, float vertexTime) const;
 
   GPUd() float convTimeToZinTimeFrame(int32_t roc, float time, float maxTimeBin) const;
@@ -222,10 +222,8 @@ class TPCFastTransform : public FlatObject
   GPUd() float convDeltaTimeToDeltaZinTimeFrame(int32_t roc, float deltaTime) const;
   GPUd() float convDeltaZtoDeltaTimeInTimeFrame(int32_t roc, float deltaZ) const;
   GPUd() float convDeltaZtoDeltaTimeInTimeFrameAbs(float deltaZ) const;
-  GPUd() float convZOffsetToVertexTime(int32_t roc, float zOffset, float maxTimeBin) const;
-  GPUd() float convVertexTimeToZOffset(int32_t roc, float vertexTime, float maxTimeBin) const;
-
-  GPUd() void getTOFcorrection(int32_t roc, int32_t row, float x, float y, float z, float& dz) const;
+  GPUd() float convZOffsetToVertexTime(int32_t sector, float zOffset, float maxTimeBin) const;
+  GPUd() float convVertexTimeToZOffset(int32_t sector, float vertexTime, float maxTimeBin) const;
 
   void setApplyCorrectionOn() { mApplyCorrection = 1; }
   void setApplyCorrectionOff() { mApplyCorrection = 0; }
@@ -244,15 +242,6 @@ class TPCFastTransform : public FlatObject
 
   /// Return T0 in time bin units
   GPUd() float getT0() const { return mT0; }
-
-  /// Return VdriftCorrY in time_bin / cn
-  GPUd() float getVdriftCorrY() const { return mVdriftCorrY; }
-
-  /// Return LdriftCorr offset in cm
-  GPUd() float getLdriftCorr() const { return mLdriftCorr; }
-
-  /// Return TOF correction (vdrift / C)
-  GPUd() float getTOFCorr() const { return mLdriftCorr; }
 
   /// Return map lumi
   GPUd() float getLumi() const { return mLumi; }
@@ -330,23 +319,10 @@ class TPCFastTransform : public FlatObject
   ///
   /// t = (float) time bin, y = global y
   ///
-  /// L(t,y) = (t-mT0)*(mVdrift + mVdriftCorrY*y ) + mLdriftCorr  ____
+  /// L(t,y) = (t-mT0)*mVdrift  ____
   ///
-  float mT0;          ///< T0 in [time bin]
-  float mVdrift;      ///< VDrift in  [cm/time bin]
-  float mVdriftCorrY; ///< VDrift correction for global Y[cm] in [1/time bin]
-  float mLdriftCorr;  ///< drift length correction in [cm]
-
-  /// A coefficient for Time-Of-Flight correction: drift length -= EstimatedDistanceToVtx[cm]*mTOFcorr
-  ///
-  /// Since this correction requires a knowledge of the spatial position, it is appied after mCorrection,
-  /// not on the drift length but directly on V coordinate.
-  ///
-  /// mTOFcorr == mVdrift/(speed of light)
-  ///
-  float mTOFcorr;
-
-  float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
+  float mT0;     ///< T0 in [time bin]
+  float mVdrift; ///< VDrift in  [cm/time bin]
 
   float mLumi;            ///< luminosity estimator
   float mLumiError;       ///< error on luminosity
@@ -359,7 +335,7 @@ class TPCFastTransform : public FlatObject
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
-  GPUd() void TransformInternal(int32_t roc, int32_t row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const;
+  GPUd() void TransformLocal(int32_t roc, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const;
 
   ClassDefNV(TPCFastTransform, 4);
 };
@@ -368,248 +344,195 @@ class TPCFastTransform : public FlatObject
 //              Inline implementations of some methods
 // =======================================================================
 
-GPUdi() void TPCFastTransform::convPadTimeToUV(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float vertexTime) const
+GPUdi() void TPCFastTransform::convPadTimeToUV(int32_t row, float pad, float time, float& u, float& v, float vertexTime) const
 {
-  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
-
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  const TPCFastTransformGeo::RocInfo& rocInfo = getGeometry().getRocInfo(roc);
-
   float x = rowInfo.x;
   u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
-
-  float y = sideC ? -u : u; // pads are mirrorred on C-side
-  float yLab = y * rocInfo.cosAlpha + x * rocInfo.sinAlpha;
-
-  v = (time - mT0 - vertexTime) * (mVdrift + mVdriftCorrY * yLab) + mLdriftCorr; // drift length cm
+  v = (time - mT0 - vertexTime) * (mVdrift); // drift length cm
 }
 
-GPUdi() void TPCFastTransform::convTimeToVinTimeFrame(int32_t roc, float time, float& v, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convTimeToVinTimeFrame(float time, float& v, float maxTimeBin) const
 {
-  v = (time - mT0 - maxTimeBin) * mVdrift + mLdriftCorr; // drift length cm
-  if (roc < getGeometry().getNumberOfRocsA()) {
-    v += getGeometry().getTPCzLengthA();
-  } else {
-    v += getGeometry().getTPCzLengthC();
-  }
+  v = (time - mT0 - maxTimeBin) * mVdrift; // drift length cm
+  v += getGeometry().getTPCzLength();
 }
 
-GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int32_t roc, int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int32_t row, float pad, float time, float& u, float& v, float maxTimeBin) const
 {
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
   u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
-  convTimeToVinTimeFrame(roc, time, v, maxTimeBin);
+  convTimeToVinTimeFrame(time, v, maxTimeBin);
 }
 
-GPUdi() float TPCFastTransform::convZOffsetToVertexTime(int32_t roc, float zOffset, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convZOffsetToVertexTime(int32_t sector, float zOffset, float maxTimeBin) const
 {
-  if (roc < getGeometry().getNumberOfRocsA()) {
-    return maxTimeBin - (getGeometry().getTPCzLengthA() + zOffset) / mVdrift;
+  if (sector < getGeometry().getNumberOfSectorsA()) {
+    return maxTimeBin - (getGeometry().getTPCzLength() + zOffset) / mVdrift;
   } else {
-    return maxTimeBin - (getGeometry().getTPCzLengthC() - zOffset) / mVdrift;
+    return maxTimeBin - (getGeometry().getTPCzLength() - zOffset) / mVdrift;
   }
 }
 
-GPUdi() float TPCFastTransform::convVertexTimeToZOffset(int32_t roc, float vertexTime, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convVertexTimeToZOffset(int32_t sector, float vertexTime, float maxTimeBin) const
 {
-  if (roc < getGeometry().getNumberOfRocsA()) {
-    return (maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthA();
+  if (sector < getGeometry().getNumberOfSectorsA()) {
+    return (maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLength();
   } else {
-    return -((maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthC());
+    return -((maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLength());
   }
 }
 
-GPUdi() void TPCFastTransform::convUVtoPadTime(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float vertexTime) const
+GPUdi() void TPCFastTransform::convUVtoPadTime(int32_t row, float u, float v, float& pad, float& time, float vertexTime) const
 {
-  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
-
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  const TPCFastTransformGeo::RocInfo& rocInfo = getGeometry().getRocInfo(roc);
-
   pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
-
-  float x = rowInfo.x;
-  float y = sideC ? -u : u; // pads are mirrorred on C-side
-  float yLab = y * rocInfo.cosAlpha + x * rocInfo.sinAlpha;
-  time = mT0 + vertexTime + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
+  time = mT0 + vertexTime + v / mVdrift;
 }
 
 GPUdi() void TPCFastTransform::convVtoTime(float v, float& time, float vertexTime) const
 {
-  float yLab = 0.f;
-  time = mT0 + vertexTime + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
+  time = mT0 + vertexTime + v / mVdrift;
 }
 
-GPUdi() void TPCFastTransform::convUVtoPadTimeInTimeFrame(int32_t roc, int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convUVtoPadTimeInTimeFrame(int32_t row, float u, float v, float& pad, float& time, float maxTimeBin) const
 {
-  if (roc < getGeometry().getNumberOfRocsA()) {
-    v -= getGeometry().getTPCzLengthA();
-  } else {
-    v -= getGeometry().getTPCzLengthC();
-  }
+  v -= getGeometry().getTPCzLength();
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
   pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
-  time = mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
+  time = mT0 + maxTimeBin + v / mVdrift;
 }
 
-GPUdi() void TPCFastTransform::getTOFcorrection(int32_t roc, int32_t /*row*/, float x, float y, float z, float& dz) const
-{
-  // calculate time of flight correction for  z coordinate
-
-  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
-  float distZ = z - mPrimVtxZ;
-  float dv = -GPUCommonMath::Sqrt(x * x + y * y + distZ * distZ) * mTOFcorr;
-  dz = sideC ? dv : -dv;
-}
-
-GPUdi() void TPCFastTransform::TransformInternal(int32_t roc, int32_t row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransform::TransformLocal(int32_t roc, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
   GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
-  if (mApplyCorrection) {
-    float dx = 0.f, du = 0.f, dv = 0.f;
-    if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
+
+  if (!mApplyCorrection) {
+    return;
+  }
+
+  float dx = 0.f, dy = 0.f, dz = 0.f;
+
+  if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
 #ifndef GPUCA_GPUCODE
-      if (mCorrectionSlow) {
-        float ly, lz;
-        getGeometry().convUVtoLocal(roc, u, v, ly, lz);
-        float gx, gy, gz;
-        getGeometry().convLocalToGlobal(roc, x, ly, lz, gx, gy, gz);
-
-        float gdxC, gdyC, gdzC;
-        mCorrectionSlow->getCorrections(gx, gy, gz, roc, gdxC, gdyC, gdzC);
-        getGeometry().convGlobalToLocal(roc, gdxC, gdyC, gdzC, dx, du, dv);
-
-        if (roc >= 18) {
-          du = -du; // mirror for c-Side
-        } else {
-          dv = -dv; // mirror z for A-Side
-        }
-      } else
+    if (mCorrectionSlow) {
+      float gx, gy, gz;
+      getGeometry().convLocalToGlobal(roc, x, y, z, gx, gy, gz);
+      float gdxC, gdyC, gdzC;
+      mCorrectionSlow->getCorrections(gx, gy, gz, roc, gdxC, gdyC, gdzC);
+      getGeometry().convGlobalToLocal(roc, gdxC, gdyC, gdzC, dx, dy, dz);
+    } else
 #endif // GPUCA_GPUCODE
-      {
-        mCorrection.getCorrection(roc, row, u, v, dx, du, dv);
-        if (ref) {
-          if ((scale > 0.f) && (scaleMode == 0)) { // scaling was requested
-            float dxRef, duRef, dvRef;
-            ref->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
-            dx = (dx - dxRef) * scale + dxRef;
-            du = (du - duRef) * scale + duRef;
-            dv = (dv - dvRef) * scale + dvRef;
-          } else if ((scale != 0.f) && ((scaleMode == 1) || (scaleMode == 2))) {
-            float dxRef, duRef, dvRef;
-            ref->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
-            dx = dxRef * scale + dx;
-            du = duRef * scale + du;
-            dv = dvRef * scale + dv;
-          }
+    {
+      std::tie(dx, dy, dz) = mCorrection.getCorrectionLocal(roc, row, y, z);
+      if (ref) {
+        if ((scale > 0.f) && (scaleMode == 0)) { // scaling was requested
+          auto [dxRef, dyRef, dzRef] = ref->mCorrection.getCorrectionLocal(roc, row, y, z);
+          dx = (dx - dxRef) * scale + dxRef;
+          dy = (dy - dyRef) * scale + dyRef;
+          dz = (dz - dzRef) * scale + dzRef;
+        } else if ((scale != 0.f) && ((scaleMode == 1) || (scaleMode == 2))) {
+          auto [dxRef, dyRef, dzRef] = ref->mCorrection.getCorrectionLocal(roc, row, y, z);
+          dx = dxRef * scale + dx;
+          dy = dyRef * scale + dy;
+          dz = dzRef * scale + dz;
         }
-        if (ref2 && (scale2 != 0)) {
-          float dxRef, duRef, dvRef;
-          ref2->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
-          dx = dxRef * scale2 + dx;
-          du = duRef * scale2 + du;
-          dv = dvRef * scale2 + dv;
-        }
+      }
+      if (ref2 && (scale2 != 0)) {
+        auto [dxRef, dyRef, dzRef] = ref2->mCorrection.getCorrectionLocal(roc, row, y, z);
+        dx = dxRef * scale2 + dx;
+        dy = dyRef * scale2 + dy;
+        dz = dzRef * scale2 + dz;
       }
     }
-    GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-      float ly, lz;
-      getGeometry().convUVtoLocal(roc, u, v, ly, lz);
-
-      float gx, gy, gz;
-      getGeometry().convLocalToGlobal(roc, x, ly, lz, gx, gy, gz);
-
-      float lyT, lzT;
-      float uCorr = u + du;
-      float vCorr = v + dv;
-      float lxT = x + dx;
-      getGeometry().convUVtoLocal(roc, uCorr, vCorr, lyT, lzT);
-
-      float invYZtoXScaled;
-      InverseTransformYZtoX(roc, row, lyT, lzT, invYZtoXScaled, ref, ref2, scale, scale2, scaleMode);
-
-      float invYZtoX;
-      InverseTransformYZtoX(roc, row, lyT, lzT, invYZtoX);
-
-      float YZtoNominalY;
-      float YZtoNominalZ;
-      InverseTransformYZtoNominalYZ(roc, row, lyT, lzT, YZtoNominalY, YZtoNominalZ);
-
-      float YZtoNominalYScaled;
-      float YZtoNominalZScaled;
-      InverseTransformYZtoNominalYZ(roc, row, lyT, lzT, YZtoNominalYScaled, YZtoNominalZScaled, ref, ref2, scale, scale2, scaleMode);
-
-      float dxRef, duRef, dvRef;
-      if (ref) {
-        ref->mCorrection.getCorrection(roc, row, u, v, dxRef, duRef, dvRef);
-      }
-
-      float dxRef2, duRef2, dvRef2;
-      if (ref2) {
-        ref2->mCorrection.getCorrection(roc, row, u, v, dxRef2, duRef2, dvRef2);
-      }
-
-      float dxOrig, duOrig, dvOrig;
-      mCorrection.getCorrection(roc, row, u, v, dxOrig, duOrig, dvOrig);
-
-      o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
-                                                                                         // corrections in x, u, v
-                                                                                         << "dxOrig=" << dxOrig
-                                                                                         << "duOrig=" << duOrig
-                                                                                         << "dvOrig=" << dvOrig
-                                                                                         << "dxRef=" << dxRef
-                                                                                         << "duRef=" << duRef
-                                                                                         << "dvRef=" << dvRef
-                                                                                         << "dxRef2=" << dxRef2
-                                                                                         << "duRef2=" << duRef2
-                                                                                         << "dvRef2=" << dvRef2
-                                                                                         << "dx=" << dx
-                                                                                         << "du=" << du
-                                                                                         << "dv=" << dv
-                                                                                         << "v=" << v
-                                                                                         << "u=" << u
-                                                                                         << "row=" << row
-                                                                                         << "roc=" << roc
-                                                                                         << "scale=" << scale
-                                                                                         << "scale2=" << scale2
-                                                                                         // original local coordinates
-                                                                                         << "ly=" << ly
-                                                                                         << "lz=" << lz
-                                                                                         << "lx=" << x
-                                                                                         // corrected local coordinated
-                                                                                         << "lxT=" << lxT
-                                                                                         << "lyT=" << lyT
-                                                                                         << "lzT=" << lzT
-                                                                                         // global uncorrected coordinates
-                                                                                         << "gx=" << gx
-                                                                                         << "gy=" << gy
-                                                                                         << "gz=" << gz
-                                                                                         // some transformations which are applied
-                                                                                         << "invYZtoX=" << invYZtoX
-                                                                                         << "invYZtoXScaled=" << invYZtoXScaled
-                                                                                         << "YZtoNominalY=" << YZtoNominalY
-                                                                                         << "YZtoNominalYScaled=" << YZtoNominalYScaled
-                                                                                         << "YZtoNominalZ=" << YZtoNominalZ
-                                                                                         << "YZtoNominalZScaled=" << YZtoNominalZScaled
-                                                                                         << "scaleMode=" << scaleMode
-                                                                                         << "\n";
-    })
-
-    x += dx;
-    u += du;
-    v += dv;
   }
+
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+    float lx = x, ly = y, lz = z;
+
+    float gx, gy, gz;
+    getGeometry().convLocalToGlobal(roc, lx, ly, lz, gx, gy, gz);
+
+    float lxT = lx + dx;
+    float lyT = ly + dy;
+    float lzT = lz + dz;
+
+    float invYZtoXScaled;
+    InverseTransformYZtoX(roc, row, lyT, lzT, invYZtoXScaled, ref, ref2, scale, scale2, scaleMode);
+
+    float invYZtoX;
+    InverseTransformYZtoX(roc, row, lyT, lzT, invYZtoX);
+
+    float YZtoNominalY;
+    float YZtoNominalZ;
+    InverseTransformYZtoNominalYZ(roc, row, lyT, lzT, YZtoNominalY, YZtoNominalZ);
+
+    float YZtoNominalYScaled;
+    float YZtoNominalZScaled;
+    InverseTransformYZtoNominalYZ(roc, row, lyT, lzT, YZtoNominalYScaled, YZtoNominalZScaled, ref, ref2, scale, scale2, scaleMode);
+
+    float dxRef = 0.f, dyRef = 0.f, dzRef = 0.f;
+    if (ref) {
+      std::tie(dxRef, dyRef, dzRef) = ref->mCorrection.getCorrectionLocal(roc, row, y, z);
+    }
+
+    float dxRef2 = 0.f, duRef2 = 0.f, dvRef2 = 0.f;
+    if (ref2) {
+      std::tie(dxRef2, duRef2, dvRef2) = ref2->mCorrection.getCorrectionLocal(roc, row, y, z);
+    }
+
+    auto [dxOrig, dyOrig, dzOrig] = mCorrection.getCorrectionLocal(roc, row, y, z);
+
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
+                                                                                       // corrections in x, u, v
+                                                                                       << "dxOrig=" << dxOrig
+                                                                                       << "dyOrig=" << dyOrig
+                                                                                       << "dzOrig=" << dzOrig
+                                                                                       << "dxRef=" << dxRef
+                                                                                       << "dyRef=" << dyRef
+                                                                                       << "dzRef=" << dzRef
+                                                                                       << "dxRef2=" << dxRef2
+                                                                                       << "dyRef2=" << dyRef2
+                                                                                       << "dzRef2=" << dzRef2
+                                                                                       << "dx=" << dx
+                                                                                       << "dy=" << dy
+                                                                                       << "dz=" << dz
+                                                                                       << "row=" << row
+                                                                                       << "roc=" << roc
+                                                                                       << "scale=" << scale
+                                                                                       << "scale2=" << scale2
+                                                                                       // original local coordinates
+                                                                                       << "ly=" << ly
+                                                                                       << "lz=" << lz
+                                                                                       << "lx=" << lx
+                                                                                       // corrected local coordinated
+                                                                                       << "lxT=" << lxT
+                                                                                       << "lyT=" << lyT
+                                                                                       << "lzT=" << lzT
+                                                                                       // global uncorrected coordinates
+                                                                                       << "gx=" << gx
+                                                                                       << "gy=" << gy
+                                                                                       << "gz=" << gz
+                                                                                       // some transformations which are applied
+                                                                                       << "invYZtoX=" << invYZtoX
+                                                                                       << "invYZtoXScaled=" << invYZtoXScaled
+                                                                                       << "YZtoNominalY=" << YZtoNominalY
+                                                                                       << "YZtoNominalYScaled=" << YZtoNominalYScaled
+                                                                                       << "YZtoNominalZ=" << YZtoNominalZ
+                                                                                       << "YZtoNominalZScaled=" << YZtoNominalZScaled
+                                                                                       << "scaleMode=" << scaleMode
+                                                                                       << "\n";
+  })
+
+  x += dx;
+  y += dy;
+  z += dz;
 }
 
 GPUdi() void TPCFastTransform::TransformXYZ(int32_t roc, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
 {
-  float u, v;
-  getGeometry().convLocalToUV(roc, y, z, u, v);
-  TransformInternal(roc, row, u, v, x, ref, ref2, scale, scale2, scaleMode);
-  getGeometry().convUVtoLocal(roc, u, v, y, z);
-  float dzTOF = 0;
-  getTOFcorrection(roc, row, x, y, z, dzTOF);
-  z += dzTOF;
+
+  TransformLocal(roc, row, x, y, z, ref, ref2, scale, scale2, scaleMode);
 }
 
 GPUdi() void TPCFastTransform::Transform(int32_t roc, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const
@@ -617,31 +540,23 @@ GPUdi() void TPCFastTransform::Transform(int32_t roc, int32_t row, float pad, fl
   /// _______________ The main method: cluster transformation _______________________
   ///
   /// Transforms raw TPC coordinates to local XYZ withing a roc
-  /// taking calibration + alignment into account.
+  /// taking calibration into account.
   ///
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
 
-  // const RocInfo &rocInfo = getRocInfo( roc );
-  // bool sideC = ( roc >= NumberOfRocs / 2 );
-
   x = rowInfo.x;
   float u = 0, v = 0;
-  convPadTimeToUV(roc, row, pad, time, u, v, vertexTime);
-
-  TransformInternal(roc, row, u, v, x, ref, ref2, scale, scale2, scaleMode);
-
+  convPadTimeToUV(row, pad, time, u, v, vertexTime);
   getGeometry().convUVtoLocal(roc, u, v, y, z);
 
-  float dzTOF = 0;
-  getTOFcorrection(roc, row, x, y, z, dzTOF);
-  z += dzTOF;
+  TransformLocal(roc, row, x, y, z, ref, ref2, scale, scale2, scaleMode);
 }
 
 GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t roc, float time, float& z, float maxTimeBin) const
 {
   float v = 0;
-  convTimeToVinTimeFrame(roc, time, v, maxTimeBin);
+  convTimeToVinTimeFrame(time, v, maxTimeBin);
   getGeometry().convVtoLocal(roc, v, z);
 }
 
@@ -656,7 +571,7 @@ GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t roc, int32_t row, fl
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
   x = rowInfo.x;
   float u = 0, v = 0;
-  convPadTimeToUVinTimeFrame(roc, row, pad, time, u, v, maxTimeBin);
+  convPadTimeToUVinTimeFrame(row, pad, time, u, v, maxTimeBin);
   getGeometry().convUVtoLocal(roc, u, v, y, z);
 }
 
@@ -665,7 +580,7 @@ GPUdi() void TPCFastTransform::InverseTransformInTimeFrame(int32_t roc, int32_t 
   /// Inverse transformation to TransformInTimeFrame
   float u = 0, v = 0;
   getGeometry().convLocalToUV(roc, y, z, u, v);
-  convUVtoPadTimeInTimeFrame(roc, row, u, v, pad, time, maxTimeBin);
+  convUVtoPadTimeInTimeFrame(row, u, v, pad, time, maxTimeBin);
 }
 
 GPUdi() float TPCFastTransform::InverseTransformInTimeFrame(int32_t roc, float z, float maxTimeBin) const
@@ -715,26 +630,16 @@ GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int32_t roc, float time, 
   /// Only Z coordinate.
   ///
 
-  float v = (time - mT0 - maxTimeBin) * mVdrift + mLdriftCorr; // drift length cm
-  float z = getGeometry().getTPCalignmentZ();                  // global TPC alignment
-  if (roc < getGeometry().getNumberOfRocsA()) {
-    z -= v;
-  } else {
-    z += v;
-  }
+  float v = (time - mT0 - maxTimeBin) * mVdrift; // drift length cm
+  float z = (roc < getGeometry().getNumberOfRocsA()) ? -v : v;
   return z;
 }
 
 GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(int32_t roc, float z, float maxTimeBin) const
 {
   /// Inverse transformation of convTimeToZinTimeFrame()
-  float v;
-  if (roc < getGeometry().getNumberOfRocsA()) {
-    v = getGeometry().getTPCalignmentZ() - z;
-  } else {
-    v = z - getGeometry().getTPCalignmentZ();
-  }
-  return mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
+  float v = (roc < getGeometry().getNumberOfRocsA()) ? -z : z;
+  return mT0 + maxTimeBin + v / mVdrift;
 }
 
 GPUdi() float TPCFastTransform::convDeltaTimeToDeltaZinTimeFrame(int32_t roc, float deltaTime) const
@@ -769,17 +674,7 @@ GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t roc, int32_t row, float 
 {
   /// maximal possible drift time of the active area
   float maxL = mCorrection.getMaxDriftLength(roc, row, pad);
-
-  bool sideC = (roc >= getGeometry().getNumberOfRocsA());
-  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  const TPCFastTransformGeo::RocInfo& rocInfo = getGeometry().getRocInfo(roc);
-
-  float x = rowInfo.x;
-  float u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
-
-  float y = sideC ? -u : u; // pads are mirrorred on C-side
-  float yLab = y * rocInfo.cosAlpha + x * rocInfo.sinAlpha;
-  return mT0 + (maxL - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
+  return mT0 + maxL / mVdrift;
 }
 
 GPUdi() float TPCFastTransform::getMaxDriftTime(int32_t roc, int32_t row) const

@@ -37,7 +37,7 @@
 using namespace o2::gpu;
 
 TPCFastTransform::TPCFastTransform()
-  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mLumi(TPCFastTransform::DEFLUMI), mLumiError(0.f), mLumiScaleFactor(1.0f), mIDC(TPCFastTransform::DEFIDC), mIDCError(0.f), mCTP2IDCFallBackThreshold(30.f)
+  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mLumi(TPCFastTransform::DEFLUMI), mLumiError(0.f), mLumiScaleFactor(1.0f), mIDC(TPCFastTransform::DEFIDC), mIDCError(0.f), mCTP2IDCFallBackThreshold(30.f)
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -54,10 +54,6 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
   mApplyCorrection = obj.mApplyCorrection;
   mT0 = obj.mT0;
   mVdrift = obj.mVdrift;
-  mVdriftCorrY = obj.mVdriftCorrY;
-  mLdriftCorr = obj.mLdriftCorr;
-  mTOFcorr = obj.mTOFcorr;
-  mPrimVtxZ = obj.mPrimVtxZ;
   mLumi = obj.mLumi;
   mLumiError = obj.mLumiError;
   mIDC = obj.mIDC;
@@ -123,7 +119,7 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mCorrection.cloneFromObject(correction, nullptr);
 }
 
-void TPCFastTransform::setCalibration(int64_t timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ)
+void TPCFastTransform::setCalibration1(int64_t timeStamp, float t0, float vDrift)
 {
   /// Sets all drift calibration parameters and the time stamp
   ///
@@ -133,10 +129,6 @@ void TPCFastTransform::setCalibration(int64_t timeStamp, float t0, float vDrift,
   mTimeStamp = timeStamp;
   mT0 = t0;
   mVdrift = vDrift;
-  mVdriftCorrY = vDriftCorrY;
-  mLdriftCorr = lDriftCorr;
-  mTOFcorr = tofCorr;
-  mPrimVtxZ = primVtxZ;
   mConstructionMask |= ConstructionExtraState::CalibrationIsSet;
 }
 
@@ -160,10 +152,6 @@ void TPCFastTransform::print() const
   LOG(info) << "mApplyCorrection = " << mApplyCorrection;
   LOG(info) << "mT0 = " << mT0;
   LOG(info) << "mVdrift = " << mVdrift;
-  LOG(info) << "mVdriftCorrY = " << mVdriftCorrY;
-  LOG(info) << "mLdriftCorr = " << mLdriftCorr;
-  LOG(info) << "mTOFcorr = " << mTOFcorr;
-  LOG(info) << "mPrimVtxZ = " << mPrimVtxZ;
   LOG(info) << "mLumi = " << mLumi;
   LOG(info) << "mLumiError = " << mLumiError;
   LOG(info) << "mIDC = " << mIDC;

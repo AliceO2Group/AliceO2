@@ -225,7 +225,7 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
         info.scaleUtoGrid = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getUwidth();
 
         info.gridV0 = infoOld.gridV0;
-        info.scaleVtoGrid = spline.getGridX2().getUmax() / (mGeo.getTPCzLength(roc) + 3. - info.gridV0);
+        info.scaleVtoGrid = spline.getGridX2().getUmax() / (mGeo.getTPCzLength() + 3. - info.gridV0);
 
         info.gridCorrU0 = infoOld.gridCorrU0;
         info.scaleCorrUtoGrid = infoOld.scaleCorrUtoGrid;
@@ -440,7 +440,7 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
 {
   // initialise all corrections to 0.
   for (int32_t roc = 0; roc < mGeo.getNumberOfRocs(); roc++) {
-    double vLength = (roc < mGeo.getNumberOfRocsA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
+    double vLength = mGeo.getTPCzLength();
     RocInfo& rocInfo = getRocInfo(roc);
     rocInfo.vMax = vLength;
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
@@ -548,12 +548,14 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
     if (prn) {
       LOG(info) << "check inverse transform for roc " << roc;
     }
-    double vLength = mGeo.getTPCzLength(roc);
+    double vLength = mGeo.getTPCzLength();
     MaxValue maxDroc[3];
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
-      float u0, u1, v0, v1;
-      mGeo.convScaledUVtoUV(roc, row, 0., 0., u0, v0);
-      mGeo.convScaledUVtoUV(roc, row, 1., 1., u1, v1);
+      float u0 = mGeo.getRowInfo(row).getUmin();
+      float u1 = mGeo.getRowInfo(row).getUmax();
+      float v0 = 0.;
+      float v1 = vLength;
+
       double x = mGeo.getRowInfo(row).x;
       double stepU = (u1 - u0) / 100.;
       double stepV = (v1 - v0) / 100.;
@@ -564,7 +566,7 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
             continue;
           }
           float dx, du, dv;
-          getCorrection(roc, row, u, v, dx, du, dv);
+          getCorrectionInternal(roc, row, u, v, dx, du, dv);
           double cx = x + dx;
           double cu = u + du;
           double cv = v + dv;
