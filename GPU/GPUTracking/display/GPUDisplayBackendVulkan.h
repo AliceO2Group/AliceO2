@@ -133,8 +133,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mEnableValidationLayers = false;
 
   vk::Instance mInstance;
-  vk::DynamicLoader mDL;
-  vk::DispatchLoaderDynamic mDLD;
   vk::DebugUtilsMessengerEXT mDebugMessenger;
   vk::PhysicalDevice mPhysicalDevice;
   vk::Device mDevice;
