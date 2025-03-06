@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
 
   BOOST_CHECK_EQUAL(geo.test(), 0);
 
-  BOOST_CHECK_EQUAL(geo.getNumberOfRocs(), Sector::MAXSECTOR);
+  BOOST_CHECK_EQUAL(geo.getNumberOfSectors(), Sector::MAXSECTOR);
   BOOST_CHECK_EQUAL(geo.getNumberOfRows(), mapper.getNumberOfRows());
 
   double maxDx = 0, maxDy = 0;
@@ -71,15 +71,16 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
     for (int pad = 0; pad < nPads; pad++) {
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
-      float u = 0, v = 0;
-      fastTransform.convPadTimeToUV(row, pad, 0, u, v, 0.);
-
+      float y = 0, z = 0;
+      int sector = 0;
+      float time = 0.;
+      fastTransform.convPadTimeToLocal(sector, row, pad, time, y, z, 0.);
       double dx = x - c.X();
-      double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
+      double dy = y - (-c.Y()); // diferent sign convention for Y coordinate in the map
       BOOST_CHECK(fabs(dx) < 1.e-6);
       BOOST_CHECK(fabs(dy) < 1.e-5);
       if (fabs(dy) >= 1.e-5) {
-        std::cout << "row " << row << " pad " << pad << " y calc " << u << " y in map " << -c.Y() << " dy " << dy << std::endl;
+        std::cout << "row " << row << " pad " << pad << " y calc " << y << " y in map " << -c.Y() << " dy " << dy << std::endl;
       }
       if (fabs(maxDx) < fabs(dx)) {
         maxDx = dx;
@@ -104,46 +105,46 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   std::unique_ptr<TPCFastTransform> fastTransform0(TPCFastTransformHelperO2::instance()->create(0));
   const TPCFastTransformGeo& geo = fastTransform0->getGeometry();
 
-  auto correctionUV = [&](int roc, int /*row*/, const double u, const double v, double& dX, double& dU, double& dV) {
+  auto correctionUV = [&](int sector, int /*row*/, const double u, const double v, double& dX, double& dU, double& dV) {
     // float lx = geo.getRowInfo(row).x;
     dX = 1. + 1 * u + 0.1 * u * u;
     dU = 2. + 0.2 * u + 0.002 * u * u; // + 0.001 * u * u * u;
     dV = 3. + 0.1 * v + 0.01 * v * v;  //+ 0.0001 * v * v * v;
   };
 
-  auto correctionLocal = [&](int roc, int row, double ly, double lz,
+  auto correctionLocal = [&](int sector, int row, double ly, double lz,
                              double& dx, double& dly, double& dlz) {
     float u, v;
-    geo.convLocalToUV(roc, ly, lz, u, v);
+    geo.convLocalToUV(sector, ly, lz, u, v);
     double du, dv;
-    correctionUV(roc, row, u, v, dx, du, dv);
+    correctionUV(sector, row, u, v, dx, du, dv);
     float ly1, lz1;
-    geo.convUVtoLocal(roc, u + du, v + dv, ly1, lz1);
+    geo.convUVtoLocal(sector, u + du, v + dv, ly1, lz1);
     dly = ly1 - ly;
     dlz = lz1 - lz;
   };
 
-  int nRocs = geo.getNumberOfRocs();
+  int nSectors = geo.getNumberOfSectors();
   int nRows = geo.getNumberOfRows();
   TPCFastSpaceChargeCorrectionMap& scData = TPCFastTransformHelperO2::instance()->getCorrectionMap();
-  scData.init(nRocs, nRows);
+  scData.init(nSectors, nRows);
 
-  for (int iRoc = 0; iRoc < nRocs; iRoc++) {
+  for (int iSector = 0; iSector < nSectors; iSector++) {
     for (int iRow = 0; iRow < nRows; iRow++) {
       double dsu = 1. / (3 * 8 - 3);
       double dsv = 1. / (3 * 20 - 3);
       for (double su = 0.f; su < 1.f + .5 * dsu; su += dsv) {
         for (double sv = 0.f; sv < 1.f + .5 * dsv; sv += dsv) {
           float ly = 0.f, lz = 0.f;
-          geo.convScaledUVtoLocal(iRoc, iRow, su, sv, ly, lz);
+          geo.convScaledUVtoLocal(iSector, iRow, su, sv, ly, lz);
           double dx, dy, dz;
-          correctionLocal(iRoc, iRow, ly, lz, dx, dy, dz);
-          scData.addCorrectionPoint(iRoc, iRow,
+          correctionLocal(iSector, iRow, ly, lz, dx, dy, dz);
+          scData.addCorrectionPoint(iSector, iRow,
                                     ly, lz, dx, dy, dz);
         }
       }
     } // row
-  } // roc
+  } // sector
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
@@ -158,12 +159,12 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   double statDiff = 0., statN = 0.;
   double statDiffFile = 0., statNFile = 0.;
 
-  for (int roc = 0; roc < geo.getNumberOfRocs(); roc += 1) {
-    // std::cout << "roc " << roc << " ... " << std::endl;
+  for (int sector = 0; sector < geo.getNumberOfSectors(); sector += 1) {
+    // std::cout << "sector " << sector << " ... " << std::endl;
 
-    const TPCFastTransformGeo::RocInfo& rocInfo = geo.getRocInfo(roc);
+    const TPCFastTransformGeo::SectorInfo& sectorInfo = geo.getSectorInfo(sector);
 
-    float lastTimeBin = fastTransform->getMaxDriftTime(roc, 0.f);
+    float lastTimeBin = fastTransform->getMaxDriftTime(sector, 0.f);
 
     for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
@@ -172,31 +173,31 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
       for (int pad = 0; pad < nPads; pad += 10) {
 
         for (float time = 0; time < lastTimeBin; time += 30) {
-          // std::cout<<"roc "<<roc<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
+          // std::cout<<"sector "<<sector<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
 
           fastTransform->setApplyCorrectionOff();
           float x0, y0, z0;
-          fastTransform->Transform(roc, row, pad, time, x0, y0, z0);
+          fastTransform->Transform(sector, row, pad, time, x0, y0, z0);
 
-          BOOST_CHECK_EQUAL(geo.test(roc, row, y0, z0), 0);
+          BOOST_CHECK_EQUAL(geo.test(sector, row, y0, z0), 0);
 
           fastTransform->setApplyCorrectionOn();
           float x1, y1, z1;
-          fastTransform->Transform(roc, row, pad, time, x1, y1, z1);
+          fastTransform->Transform(sector, row, pad, time, x1, y1, z1);
 
           // local to UV
           float u0, v0, u1, v1;
-          geo.convLocalToUV(roc, y0, z0, u0, v0);
-          geo.convLocalToUV(roc, y1, z1, u1, v1);
+          geo.convLocalToUV(sector, y0, z0, u0, v0);
+          geo.convLocalToUV(sector, y1, z1, u1, v1);
           double dx, du, dv;
-          correctionUV(roc, row, u0, v0, dx, du, dv);
+          correctionUV(sector, row, u0, v0, dx, du, dv);
           statDiff += fabs((x1 - x0) - dx) + fabs((u1 - u0) - du) + fabs((v1 - v0) - dv);
           statN += 3;
           // std::cout << (x1 - x0) - dx << " " << (u1 - u0) - du << " " << (v1 - v0) - dv << std::endl; //": v0 " << v0 <<" z0 "<<z0<<" v1 "<< v1<<" z1 "<<z1 << std::endl;
           // BOOST_CHECK_MESSAGE(0, "SG");
 
           float x1f, y1f, z1f;
-          fromFile->Transform(roc, row, pad, time, x1f, y1f, z1f);
+          fromFile->Transform(sector, row, pad, time, x1f, y1f, z1f);
           statDiffFile += fabs(x1f - x1) + fabs(y1f - y1) + fabs(z1f - z1);
           statNFile += 3;
         }

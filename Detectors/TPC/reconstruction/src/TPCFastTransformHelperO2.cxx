@@ -177,8 +177,8 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
 {
   const Mapper& mapper = Mapper::instance();
 
-  if (geo.getNumberOfRocs() != Sector::MAXSECTOR) {
-    LOG(fatal) << "Wrong number of sectors :" << geo.getNumberOfRocs() << " instead of " << Sector::MAXSECTOR << std::endl;
+  if (geo.getNumberOfSectors() != Sector::MAXSECTOR) {
+    LOG(fatal) << "Wrong number of sectors :" << geo.getNumberOfSectors() << " instead of " << Sector::MAXSECTOR << std::endl;
   }
 
   if (geo.getNumberOfRows() != mapper.getNumberOfRows()) {

@@ -35,7 +35,7 @@ TPCFastSpaceChargeCorrection::TPCFastSpaceChargeCorrection()
     mScenarioPtr(nullptr),
     mTimeStamp(-1),
     mSplineData{nullptr, nullptr, nullptr},
-    mRocDataSizeBytes{0, 0, 0}
+    mSectorDataSizeBytes{0, 0, 0}
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -64,7 +64,7 @@ void TPCFastSpaceChargeCorrection::destroy()
   mTimeStamp = -1;
   for (int32_t is = 0; is < 3; is++) {
     mSplineData[is] = nullptr;
-    mRocDataSizeBytes[is] = 0;
+    mSectorDataSizeBytes[is] = 0;
   }
   FlatObject::destroy();
 }
@@ -101,13 +101,13 @@ void TPCFastSpaceChargeCorrection::cloneFromObject(const TPCFastSpaceChargeCorre
 
   mTimeStamp = obj.mTimeStamp;
 
-  for (int32_t i = 0; i < TPCFastTransformGeo::getNumberOfRocs(); ++i) {
-    mRocInfo[i] = obj.mRocInfo[i];
+  for (int32_t i = 0; i < TPCFastTransformGeo::getNumberOfSectors(); ++i) {
+    mSectorInfo[i] = obj.mSectorInfo[i];
   }
 
-  mRocDataSizeBytes[0] = obj.mRocDataSizeBytes[0];
-  mRocDataSizeBytes[1] = obj.mRocDataSizeBytes[1];
-  mRocDataSizeBytes[2] = obj.mRocDataSizeBytes[2];
+  mSectorDataSizeBytes[0] = obj.mSectorDataSizeBytes[0];
+  mSectorDataSizeBytes[1] = obj.mSectorDataSizeBytes[1];
+  mSectorDataSizeBytes[2] = obj.mSectorDataSizeBytes[2];
 
   // variable-size data
   mScenarioPtr = obj.mScenarioPtr;
@@ -121,8 +121,8 @@ void TPCFastSpaceChargeCorrection::cloneFromObject(const TPCFastSpaceChargeCorre
     mRowInfos[i] = obj.mRowInfos[i];
   }
 
-  for (int32_t i = 0; i < TPCFastTransformGeo::getNumberOfRocs() * TPCFastTransformGeo::getMaxNumberOfRows(); i++) {
-    mRocRowInfos[i] = obj.mRocRowInfos[i];
+  for (int32_t i = 0; i < TPCFastTransformGeo::getNumberOfSectors() * TPCFastTransformGeo::getMaxNumberOfRows(); i++) {
+    mSectorRowInfos[i] = obj.mSectorRowInfos[i];
   }
 
   relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
@@ -143,7 +143,7 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
 
   struct RowInfoVersion3 {
     int32_t splineScenarioID{0};  ///< scenario index (which of Spline2D splines to use)
-    size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing a TPC roc
+    size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing a TPC sector
   };
 
   struct RowActiveAreaVersion3 {
@@ -154,7 +154,7 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
     float cvMax{0.f};
   };
 
-  struct RocRowInfoVersion3 {
+  struct SectorRowInfoVersion3 {
     float gridV0{0.f};           ///< V coordinate of the V-grid start
     float gridCorrU0{0.f};       ///< U coordinate of the U-grid start for corrected U
     float gridCorrV0{0.f};       ///< V coordinate of the V-grid start for corrected V
@@ -171,13 +171,13 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
     rowsSize = sizeof(RowInfoVersion3) * mGeo.getNumberOfRows();
   }
 
-  size_t rocRowsOffset = rowsOffset + rowsSize;
-  size_t rocRowsSize = 0;
-  if (mClassVersion == 3) { // copy old-format rocrow data from the buffer to the arrays
-    rocRowsSize = sizeof(RocRowInfoVersion3) * mGeo.getNumberOfRows() * mGeo.getNumberOfRocs();
+  size_t sectorRowsOffset = rowsOffset + rowsSize;
+  size_t sectorRowsSize = 0;
+  if (mClassVersion == 3) { // copy old-format sectorrow data from the buffer to the arrays
+    sectorRowsSize = sizeof(SectorRowInfoVersion3) * mGeo.getNumberOfRows() * mGeo.getNumberOfSectors();
   }
 
-  size_t scOffset = alignSize(rocRowsOffset + rocRowsSize, SplineType::getClassAlignmentBytes());
+  size_t scOffset = alignSize(sectorRowsOffset + sectorRowsSize, SplineType::getClassAlignmentBytes());
   size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
 
   mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr + scOffset);
@@ -192,12 +192,12 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
   }
   size_t bufferSize = scBufferOffset + scBufferSize;
   for (int32_t is = 0; is < 3; is++) {
-    size_t rocDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
-    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + rocDataOffset);
-    bufferSize = rocDataOffset + mRocDataSizeBytes[is] * mGeo.getNumberOfRocs();
+    size_t sectorDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + sectorDataOffset);
+    bufferSize = sectorDataOffset + mSectorDataSizeBytes[is] * mGeo.getNumberOfSectors();
   }
 
-  if (mClassVersion == 3) { // copy old-format rocrow data from the buffer to the arrays
+  if (mClassVersion == 3) { // copy old-format sectorrow data from the buffer to the arrays
 
     auto* rowInfosOld = reinterpret_cast<RowInfoVersion3*>(mFlatBufferPtr + rowsOffset);
     for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
@@ -214,13 +214,13 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
       spline.setXrange(0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax());
     }
 
-    auto* rocRowInfosOld = reinterpret_cast<RocRowInfoVersion3*>(mFlatBufferPtr + rocRowsOffset);
+    auto* sectorRowInfosOld = reinterpret_cast<SectorRowInfoVersion3*>(mFlatBufferPtr + sectorRowsOffset);
 
-    for (int32_t roc = 0; roc < mGeo.getNumberOfRocs(); roc++) {
+    for (int32_t sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
       for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
-        RocRowInfoVersion3& infoOld = rocRowInfosOld[mGeo.getNumberOfRows() * roc + row];
-        RocRowInfo& info = getRocRowInfo(roc, row);
-        const auto& spline = getSpline(roc, row);
+        SectorRowInfoVersion3& infoOld = sectorRowInfosOld[mGeo.getNumberOfRows() * sector + row];
+        SectorRowInfo& info = getSectorRowInfo(sector, row);
+        const auto& spline = getSpline(sector, row);
         info.gridU0 = mGeo.getRowInfo(row).u0;
         info.scaleUtoGrid = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getUwidth();
 
@@ -232,14 +232,6 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
 
         info.gridCorrV0 = infoOld.gridCorrV0;
         info.scaleCorrVtoGrid = infoOld.scaleCorrVtoGrid;
-
-        info.activeArea.vMax = infoOld.activeArea.vMax;
-        info.activeArea.cuMin = infoOld.activeArea.cuMin;
-        info.activeArea.cuMax = infoOld.activeArea.cuMax;
-        info.activeArea.cvMax = infoOld.activeArea.cvMax;
-        for (int32_t i = 0; i < 5; i++) {
-          info.activeArea.maxDriftLengthCheb[i] = infoOld.activeArea.maxDriftLengthCheb[i];
-        }
       }
     }
   }
@@ -276,7 +268,7 @@ void TPCFastSpaceChargeCorrection::print() const
   mGeo.print();
   LOG(info) << "  mNumberOfScenarios = " << mNumberOfScenarios;
   LOG(info) << "  mTimeStamp = " << mTimeStamp;
-  LOG(info) << "  mRocDataSizeBytes = " << mRocDataSizeBytes[0] << " " << mRocDataSizeBytes[1] << " " << mRocDataSizeBytes[2];
+  LOG(info) << "  mSectorDataSizeBytes = " << mSectorDataSizeBytes[0] << " " << mSectorDataSizeBytes[1] << " " << mSectorDataSizeBytes[2];
   {
     LOG(info) << "  TPC rows: ";
     for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
@@ -292,9 +284,9 @@ void TPCFastSpaceChargeCorrection::print() const
   }
   if (mScenarioPtr) {
     LOG(info) << " Spline Data: ";
-    for (int32_t is = 0; is < mGeo.getNumberOfRocs(); is++) {
+    for (int32_t is = 0; is < mGeo.getNumberOfSectors(); is++) {
       for (int32_t ir = 0; ir < mGeo.getNumberOfRows(); ir++) {
-        LOG(info) << "roc " << is << " row " << ir << ": ";
+        LOG(info) << "sector " << is << " row " << ir << ": ";
         const SplineType& spline = getSpline(is, ir);
         const float* d = getSplineData(is, ir);
         int32_t k = 0;
@@ -305,8 +297,8 @@ void TPCFastSpaceChargeCorrection::print() const
           LOG(info) << "";
         }
       }
-      //    LOG(info) << "inverse correction: roc " << roc
-      //            << " dx " << maxDroc[0] << " du " << maxDroc[1] << " dv " << maxDroc[2] ;
+      //    LOG(info) << "inverse correction: sector " << sector
+      //            << " dx " << maxDsector[0] << " du " << maxDsector[1] << " dv " << maxDsector[2] ;
     }
   }
 }
@@ -345,7 +337,7 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
   mScenarioPtr = nullptr;
   for (int32_t s = 0; s < 3; s++) {
     mSplineData[s] = nullptr;
-    mRocDataSizeBytes[s] = 0;
+    mSectorDataSizeBytes[s] = 0;
   }
   mClassVersion = 4;
 }
@@ -401,18 +393,18 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
   size_t bufferSize = scBufferOffsets[0] + scBufferSize;
-  size_t rocDataOffset[3];
+  size_t sectorDataOffset[3];
   for (int32_t is = 0; is < 3; is++) {
-    rocDataOffset[is] = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
-    mRocDataSizeBytes[is] = 0;
+    sectorDataOffset[is] = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    mSectorDataSizeBytes[is] = 0;
     for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
       RowInfo& row = mRowInfos[i];
       SplineType& spline = mConstructionScenarios[row.splineScenarioID];
-      row.dataOffsetBytes[is] = alignSize(mRocDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
-      mRocDataSizeBytes[is] = row.dataOffsetBytes[is] + spline.getSizeOfParameters();
+      row.dataOffsetBytes[is] = alignSize(mSectorDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
+      mSectorDataSizeBytes[is] = row.dataOffsetBytes[is] + spline.getSizeOfParameters();
     }
-    mRocDataSizeBytes[is] = alignSize(mRocDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
-    bufferSize = rocDataOffset[is] + mRocDataSizeBytes[is] * mGeo.getNumberOfRocs();
+    mSectorDataSizeBytes[is] = alignSize(mSectorDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
+    bufferSize = sectorDataOffset[is] + mSectorDataSizeBytes[is] * mGeo.getNumberOfSectors();
   }
 
   FlatObject::finishConstruction(bufferSize);
@@ -427,7 +419,7 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
   }
 
   for (int32_t is = 0; is < 3; is++) {
-    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + rocDataOffset[is]);
+    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + sectorDataOffset[is]);
   }
   releaseConstructionMemory();
 
@@ -439,15 +431,15 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
 GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
 {
   // initialise all corrections to 0.
-  for (int32_t roc = 0; roc < mGeo.getNumberOfRocs(); roc++) {
+  for (int32_t sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
     double vLength = mGeo.getTPCzLength();
-    RocInfo& rocInfo = getRocInfo(roc);
-    rocInfo.vMax = vLength;
+    SectorInfo& sectorInfo = getSectorInfo(sector);
+    sectorInfo.vMax = vLength;
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
-      const SplineType& spline = getSpline(roc, row);
+      const SplineType& spline = getSpline(sector, row);
 
       for (int32_t is = 0; is < 3; is++) {
-        float* data = getSplineData(roc, row, is);
+        float* data = getSplineData(sector, row, is);
         int32_t nPar = spline.getNumberOfParameters();
         if (is == 1) {
           nPar = nPar / 3;
@@ -460,7 +452,7 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
         }
       }
 
-      RocRowInfo& info = getRocRowInfo(roc, row);
+      SectorRowInfo& info = getSectorRowInfo(sector, row);
 
       info.gridU0 = mGeo.getRowInfo(row).u0;
       info.scaleUtoGrid = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getUwidth();
@@ -473,18 +465,8 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
       info.scaleCorrUtoGrid = info.scaleUtoGrid;
       info.scaleCorrVtoGrid = info.scaleVtoGrid;
 
-      RowActiveArea& area = info.activeArea;
-      for (int32_t i = 1; i < 5; i++) {
-        area.maxDriftLengthCheb[i] = 0;
-      }
-      area.maxDriftLengthCheb[0] = vLength;
-      area.cuMin = info.gridCorrU0;
-      area.cuMax = -area.cuMin;
-      area.vMax = vLength;
-      area.cvMax = vLength;
-
     } // row
-  } // roc
+  } // sector
 }
 
 void TPCFastSpaceChargeCorrection::constructWithNoCorrection(const TPCFastTransformGeo& geo)
@@ -512,31 +494,31 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
   double tpcR2min = mGeo.getRowInfo(0).x - 1.;
   tpcR2min = tpcR2min * tpcR2min;
   double tpcR2max = mGeo.getRowInfo(mGeo.getNumberOfRows() - 1).x;
-  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfRocsA() / 2) + 1.;
+  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSectorsA() / 2) + 1.;
   tpcR2max = tpcR2max * tpcR2max;
 
   struct MaxValue {
     double V{0.};
-    int Roc{-1};
+    int Sector{-1};
     int Row{-1};
 
-    void update(double v, int roc, int row)
+    void update(double v, int sector, int row)
     {
       if (fabs(v) > fabs(V)) {
         V = v;
-        Roc = roc;
+        Sector = sector;
         Row = row;
       }
     }
     void update(const MaxValue& other)
     {
-      update(other.V, other.Roc, other.Row);
+      update(other.V, other.Sector, other.Row);
     }
 
     std::string toString()
     {
       std::stringstream ss;
-      ss << V << "(" << Roc << "," << Row << ")";
+      ss << V << "(" << Sector << "," << Row << ")";
       return ss.str();
     }
   };
@@ -544,70 +526,75 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
   MaxValue maxDtpc[3];
   MaxValue maxD;
 
-  for (int32_t roc = 0; roc < mGeo.getNumberOfRocs(); roc++) {
+  for (int32_t sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
     if (prn) {
-      LOG(info) << "check inverse transform for roc " << roc;
+      LOG(info) << "check inverse transform for sector " << sector;
     }
     double vLength = mGeo.getTPCzLength();
-    MaxValue maxDroc[3];
+    MaxValue maxDsector[3];
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
-      float u0 = mGeo.getRowInfo(row).getUmin();
-      float u1 = mGeo.getRowInfo(row).getUmax();
-      float v0 = 0.;
-      float v1 = vLength;
-
       double x = mGeo.getRowInfo(row).x;
-      double stepU = (u1 - u0) / 100.;
-      double stepV = (v1 - v0) / 100.;
+      auto [y0, y1] = mGeo.getRowInfo(row).getYrange();
+      auto [z0, z1] = mGeo.getZrange(sector);
+
+      // grid borders
+      if (sector < mGeo.getNumberOfSectorsA()) {
+        z1 = vLength - getSectorRowInfo(sector, row).gridV0;
+      } else {
+        z0 = getSectorRowInfo(sector, row).gridV0 - vLength;
+      }
+
+      double stepY = (y1 - y0) / 100.;
+      double stepZ = (z1 - z0) / 100.;
       MaxValue maxDrow[3];
-      for (double u = u0; u < u1; u += stepU) {
-        for (double v = v0; v < v1; v += stepV) {
-          if (v < getRocRowInfo(roc, row).gridV0) {
+      for (double y = y0; y < y1; y += stepY) {
+        for (double z = z0; z < z1; z += stepZ) {
+          auto [dx, dy, dz] = getCorrectionLocal(sector, row, y, z);
+          double realX = x + dx;
+          double realY = y + dy;
+          double realZ = z + dz;
+          if (!isLocalInsideGrid(sector, row, y, z) || !isLocalInsideGrid(sector, row, realY, realZ)) {
             continue;
           }
-          float dx, du, dv;
-          getCorrectionInternal(roc, row, u, v, dx, du, dv);
-          double cx = x + dx;
-          double cu = u + du;
-          double cv = v + dv;
-          double r2 = cx * cx + cu * cu;
-          if (cv < 0 || cv > vLength || r2 < tpcR2min || r2 > tpcR2max) {
+          double r2 = realX * realX + realY * realY;
+          if (realY < y0 || realY > y1 ||
+              realZ < z0 || realZ > z1 ||
+              r2 < tpcR2min || r2 > tpcR2max) {
             continue;
           }
-          float nx, nu, nv;
-          getCorrectionInvCorrectedX(roc, row, cu, cv, nx);
-          getCorrectionInvUV(roc, row, cu, cv, nu, nv);
-          double d[3] = {(cx - nx) - dx, (cu - nu) - du, (cv - nv) - dv};
+          float dxr = getCorrectionXatRealYZ(sector, row, realY, realZ);
+          auto [dyr, dzr] = getCorrectionYZatRealYZ(sector, row, realY, realZ);
+          double d[3] = {dxr - dx, dyr - dy, dzr - dz};
           for (int32_t i = 0; i < 3; i++) {
-            maxDrow[i].update(d[i], roc, row);
+            maxDrow[i].update(d[i], sector, row);
           }
 
           if (0 && prn && fabs(d[0]) + fabs(d[1]) + fabs(d[2]) > 0.1) {
-            LOG(info) << nx - cx << " " << nu - u << " " << nv - v
-                      << " x,u,v " << x << ", " << u << ", " << v
-                      << " dx,du,dv " << cx - x << ", " << cu - u << ", " << cv - v
-                      << " nx,nu,nv " << nx - x << ", " << cu - nu << ", " << cv - nv;
+            LOG(info) << dxr - dx << " " << dyr - dy << " " << dzr - dz
+                      << " measured xyz " << x << ", " << y << ", " << z
+                      << " dx,dy,dz from measured point " << dx << ", " << dy << ", " << dz
+                      << " dx,dy,dz from real point " << dxr << ", " << dyr << ", " << dzr;
           }
         }
       }
-      if (1 && prn) {
-        LOG(info) << "roc " << roc << " row " << row
-                  << " dx " << maxDrow[0].V << " du " << maxDrow[1].V << " dv " << maxDrow[2].V;
+      if (0 && prn) {
+        LOG(info) << "sector " << sector << " row " << row
+                  << " dx " << maxDrow[0].V << " dy " << maxDrow[1].V << " dz " << maxDrow[2].V;
       }
       for (int32_t i = 0; i < 3; i++) {
-        maxDroc[i].update(maxDrow[i]);
+        maxDsector[i].update(maxDrow[i]);
         maxDtpc[i].update(maxDrow[i]);
         maxD.update(maxDrow[i]);
       }
     }
     if (prn) {
-      LOG(info) << "inverse correction: roc " << roc << ". Max deviations: "
-                << " dx " << maxDroc[0].toString() << " du " << maxDroc[1].toString() << " dv " << maxDroc[2].toString();
+      LOG(info) << "inverse correction: sector " << sector << ". Max deviations: "
+                << " dx " << maxDsector[0].toString() << " dy " << maxDsector[1].toString() << " dz " << maxDsector[2].toString();
     }
-  } // roc
+  } // sector
 
   LOG(info) << "Test inverse TPC correction. max deviations: "
-            << " dx " << maxDtpc[0].toString() << " du " << maxDtpc[1].toString() << " dv " << maxDtpc[2].toString() << " cm";
+            << " dx " << maxDtpc[0].toString() << " dy " << maxDtpc[1].toString() << " dz " << maxDtpc[2].toString() << " cm";
 
   return maxD.V;
 }

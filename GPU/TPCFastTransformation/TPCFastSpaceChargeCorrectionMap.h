@@ -49,20 +49,20 @@ class TPCFastSpaceChargeCorrectionMap
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor: creates an empty uninitialized object
-  TPCFastSpaceChargeCorrectionMap(int32_t nRocs, int32_t nRows)
+  TPCFastSpaceChargeCorrectionMap(int32_t nSectors, int32_t nRows)
   {
-    init(nRocs, nRows);
+    init(nSectors, nRows);
   }
 
   /// Destructor
   ~TPCFastSpaceChargeCorrectionMap() = default;
 
   /// (re-)init the map
-  void init(int32_t nRocs, int32_t nRows)
+  void init(int32_t nSectors, int32_t nRows)
   {
-    mNrocs = nRocs;
+    mNsectors = nSectors;
     mNrows = nRows;
-    int32_t n = mNrocs * mNrows;
+    int32_t n = mNsectors * mNrows;
     fDataPoints.resize(n);
     for (uint32_t i = 0; i < fDataPoints.size(); ++i) {
       fDataPoints[i].clear();
@@ -70,30 +70,30 @@ class TPCFastSpaceChargeCorrectionMap
   }
 
   /// Starts the construction procedure, reserves temporary memory
-  void addCorrectionPoint(int32_t iRoc, int32_t iRow,
+  void addCorrectionPoint(int32_t iSector, int32_t iRow,
                           double y, double z,
                           double dx, double dy, double dz)
   {
-    int32_t ind = mNrows * iRoc + iRow;
+    int32_t ind = mNrows * iSector + iRow;
     fDataPoints.at(ind).push_back(CorrectionPoint{y, z,
                                                   dx, dy, dz});
   }
 
-  const std::vector<CorrectionPoint>& getPoints(int32_t iRoc, int32_t iRow) const
+  const std::vector<CorrectionPoint>& getPoints(int32_t iSector, int32_t iRow) const
   {
-    int32_t ind = mNrows * iRoc + iRow;
+    int32_t ind = mNrows * iSector + iRow;
     return fDataPoints.at(ind);
   }
 
-  int32_t getNrocs() const { return mNrocs; }
+  int32_t getNsectors() const { return mNsectors; }
 
   int32_t getNrows() const { return mNrows; }
 
-  bool isInitialized() const { return mNrocs > 0 && mNrows > 0; }
+  bool isInitialized() const { return mNsectors > 0 && mNrows > 0; }
 
  private:
   /// _______________  Data members  _______________________________________________
-  int32_t mNrocs{0};
+  int32_t mNsectors{0};
   int32_t mNrows{0};
   std::vector<std::vector<CorrectionPoint>> fDataPoints; //! (transient!!) points with space charge correction
 
