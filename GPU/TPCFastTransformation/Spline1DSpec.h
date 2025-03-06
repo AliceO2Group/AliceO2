@@ -369,7 +369,41 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     dDr = v * a;
     // F(u) = dSl * Sl + dSr * Sr + dDl * Dl + dDr * Dr;
   }
+  /*
+    template <typename T>
+    GPUd() void getUsecondDerivatives(const Knot& knotL, DataT u,
+                                      T& dSl, T& dDl, T& dSr, T& dDr,
+                                      T& dSl2, T& dDl2, T& dSr2, T& dDr2) const
+    {
+      /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
+      /// over the spline values Sl, Sr and the slopes Dl, Dr
 
+      if (u < (DataT)0) {
+        u = (DataT)0;
+      }
+      if (u > (DataT)TBase::getUmax()) {
+        u = (DataT)TBase::getUmax();
+      }
+
+      u = u - knotL.u;
+      T v = u * T(knotL.Li); // scaled u
+      T vm1 = v - 1.;
+      T a = u * vm1;
+      T v2 = v * v;
+      dSr = v2 * (3. - 2 * v);
+      dSl = 1. - dSr;
+      dDl = vm1 * a;
+      dDr = v * a;
+      T dv = T(knotL.Li);
+      dSr2 = 6. * v * (1. - v) * dv;
+      dSl2 = -dSr2;
+      dDl2 = (v - 1) * (3 * v - 1);
+      dDr = u * (v * v - v);
+      dDr2 = 3.f * v * v - 2.f * v;
+      // F(u) = dSl * Sl + dSr * Sr + dDl * Dl + dDr * Dr;
+      // dF(u)/du = dSl2 * Sl + dSr2 * Sr + dDl2 * Dl + dDr2 * Dr;
+    }
+  */
   using TBase::convXtoU;
   using TBase::getKnot;
   using TBase::getKnots;

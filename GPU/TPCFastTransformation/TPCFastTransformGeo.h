@@ -34,11 +34,11 @@ namespace gpu
 class TPCFastTransformGeo
 {
  public:
-  /// The struct contains necessary info for TPC ROC
-  struct RocInfo {
+  /// The struct contains necessary info for TPC sector
+  struct SectorInfo {
     float sinAlpha{0.f}; ///< sin of the angle between the local x and the global x
     float cosAlpha{0.f}; ///< cos of the angle between the local x and the global x
-    ClassDefNV(RocInfo, 1);
+    ClassDefNV(SectorInfo, 1);
   };
 
   /// The struct contains necessary info about TPC padrow
@@ -53,6 +53,15 @@ class TPCFastTransformGeo
 
     /// get U max
     GPUd() float getUmax() const { return -u0; }
+
+    /// get Y min
+    GPUd() float getYmin() const { return u0; }
+
+    /// get Y max
+    GPUd() float getYmax() const { return -u0; }
+
+    /// get Y range
+    GPUd() std::tuple<float, float> getYrange() const { return {getYmin(), getYmax()}; }
 
     /// get width in U
     GPUd() float getUwidth() const { return -2.f * u0; }
@@ -81,7 +90,7 @@ class TPCFastTransformGeo
 
   /// _______________  Construction interface  ________________________
 
-  /// Starts the initialization procedure, reserves temporary memory
+  /// Starts the initialization psectoredure, reserves temporary memory
   void startConstruction(int32_t numberOfRows);
 
   /// Initializes a TPC row
@@ -100,11 +109,11 @@ class TPCFastTransformGeo
 
   /// _______________  Getters _________________________________
 
-  /// Gives number of TPC ROCs
-  GPUd() static constexpr int32_t getNumberOfRocs() { return NumberOfRocs; }
+  /// Gives number of TPC sectors
+  GPUd() static constexpr int32_t getNumberOfSectors() { return NumberOfSectors; }
 
-  /// Gives number of TPC ROCs on the A side
-  GPUd() static constexpr int32_t getNumberOfRocsA() { return NumberOfRocsA; }
+  /// Gives number of TPC sectors on the A side
+  GPUd() static constexpr int32_t getNumberOfSectorsA() { return NumberOfSectorsA; }
 
   /// Gives number of TPC rows
   GPUd() int32_t getNumberOfRows() const { return mNumberOfRows; }
@@ -112,8 +121,8 @@ class TPCFastTransformGeo
   /// Gives number of TPC rows
   GPUd() static constexpr int getMaxNumberOfRows() { return MaxNumberOfRows; }
 
-  /// Gives roc info
-  GPUd() const RocInfo& getRocInfo(int32_t roc) const;
+  /// Gives sector info
+  GPUd() const SectorInfo& getSectorInfo(int32_t sector) const;
 
   /// Gives TPC row info
   GPUd() const RowInfo& getRowInfo(int32_t row) const;
@@ -121,20 +130,31 @@ class TPCFastTransformGeo
   /// Gives Z length of the TPC, one Z side
   GPUd() float getTPCzLength() const { return mTPCzLength; }
 
+  /// Gives Z range for the corresponding TPC side
+  GPUd() std::tuple<float, float> getZrange(int32_t sector) const;
+
   /// _______________  Conversion of coordinate systems __________
 
   /// convert Local -> Global c.s.
-  GPUd() void convLocalToGlobal(int32_t roc, float lx, float ly, float lz, float& gx, float& gy, float& gz) const;
+  GPUd() void convLocalToGlobal(int32_t sector, float lx, float ly, float lz, float& gx, float& gy, float& gz) const;
 
   /// convert Global->Local c.s.
-  GPUd() void convGlobalToLocal(int32_t roc, float gx, float gy, float gz, float& lx, float& ly, float& lz) const;
+  GPUd() void convGlobalToLocal(int32_t sector, float gx, float gy, float gz, float& lx, float& ly, float& lz) const;
+
+  /// convert Pad, DriftLength -> Local c.s.
+  GPUd() std::tuple<float, float> convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const;
+
+  /// convert DriftLength -> Local c.s.
+  GPUd() float convDriftLengthToLocal(int32_t sector, float driftLength) const;
+
+  /// convert Local c.s. -> Pad, DriftLength
+  GPUd() std::tuple<float, float> convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const;
 
   /// convert UV -> Local c.s.
-  GPUd() void convUVtoLocal(int32_t roc, float u, float v, float& y, float& z) const;
-  GPUd() void convVtoLocal(int32_t roc, float v, float& z) const;
+  GPUd() void convUVtoLocal1(int32_t sector, float u, float v, float& y, float& z) const;
 
   /// convert Local-> UV c.s.
-  GPUd() void convLocalToUV(int32_t roc, float y, float z, float& u, float& v) const;
+  GPUd() void convLocalToUV1(int32_t sector, float y, float z, float& u, float& v) const;
 
   /// convert Pad coordinate -> U
   GPUd() float convPadToU(int32_t row, float pad) const;
@@ -146,7 +166,7 @@ class TPCFastTransformGeo
   void print() const;
 
   /// Method for testing consistency
-  int32_t test(int32_t roc, int32_t row, float ly, float lz) const;
+  int32_t test(int32_t sector, int32_t row, float ly, float lz) const;
 
   /// Method for testing consistency
   int32_t test() const;
@@ -154,9 +174,9 @@ class TPCFastTransformGeo
  private:
   /// _______________  Data members  _______________________________________________
 
-  static constexpr int32_t NumberOfRocs = 36;                ///< Number of TPC rocs ( roc = inner + outer sector )
-  static constexpr int32_t NumberOfRocsA = NumberOfRocs / 2; ///< Number of TPC rocs side A
-  static constexpr int32_t MaxNumberOfRows = 160;            ///< Max Number of TPC rows in a roc
+  static constexpr int32_t NumberOfSectors = 36;                   ///< Number of TPC sectors ( sector = inner + outer sector )
+  static constexpr int32_t NumberOfSectorsA = NumberOfSectors / 2; ///< Number of TPC sectors side A
+  static constexpr int32_t MaxNumberOfRows = 160;                  ///< Max Number of TPC rows in a sector
 
   /// _______________  Construction control  _______________________________________________
 
@@ -172,10 +192,10 @@ class TPCFastTransformGeo
 
   /// _______________  Geometry  _______________________________________________
 
-  int32_t mNumberOfRows = 0;    ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
-  float mTPCzLength = 0.f;      ///< Z length of one TPC side (A or C)
+  int32_t mNumberOfRows = 0; ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
+  float mTPCzLength = 0.f;   ///< Z length of one TPC side (A or C)
 
-  RocInfo mRocInfos[NumberOfRocs + 1];    ///< array of roc information [fixed size]
+  SectorInfo mSectorInfos[NumberOfSectors + 1]; ///< array of sector information [fixed size]
   RowInfo mRowInfos[MaxNumberOfRows + 1]; ///< array of row information [fixed size]
 
   ClassDefNV(TPCFastTransformGeo, 3);
@@ -185,13 +205,13 @@ class TPCFastTransformGeo
 //              Inline implementations of some methods
 // =======================================================================
 
-GPUdi() const TPCFastTransformGeo::RocInfo& TPCFastTransformGeo::getRocInfo(int32_t roc) const
+GPUdi() const TPCFastTransformGeo::SectorInfo& TPCFastTransformGeo::getSectorInfo(int32_t sector) const
 {
-  /// Gives roc info
-  if (roc < 0 || roc >= NumberOfRocs) { // return zero object
-    roc = NumberOfRocs;
+  /// Gives sector info
+  if (sector < 0 || sector >= NumberOfSectors) { // return zero object
+    sector = NumberOfSectors;
   }
-  return mRocInfos[roc];
+  return mSectorInfos[sector];
 }
 
 GPUdi() const TPCFastTransformGeo::RowInfo& TPCFastTransformGeo::getRowInfo(int32_t row) const
@@ -203,55 +223,93 @@ GPUdi() const TPCFastTransformGeo::RowInfo& TPCFastTransformGeo::getRowInfo(int3
   return mRowInfos[row];
 }
 
-GPUdi() void TPCFastTransformGeo::convLocalToGlobal(int32_t roc, float lx, float ly, float lz, float& gx, float& gy, float& gz) const
+GPUdi() void TPCFastTransformGeo::convLocalToGlobal(int32_t sector, float lx, float ly, float lz, float& gx, float& gy, float& gz) const
 {
   /// convert Local -> Global c.s.
-  const RocInfo& rocInfo = getRocInfo(roc);
-  gx = lx * rocInfo.cosAlpha - ly * rocInfo.sinAlpha;
-  gy = lx * rocInfo.sinAlpha + ly * rocInfo.cosAlpha;
+  const SectorInfo& sectorInfo = getSectorInfo(sector);
+  gx = lx * sectorInfo.cosAlpha - ly * sectorInfo.sinAlpha;
+  gy = lx * sectorInfo.sinAlpha + ly * sectorInfo.cosAlpha;
   gz = lz;
 }
 
-GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int32_t roc, float gx, float gy, float gz, float& lx, float& ly, float& lz) const
+GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int32_t sector, float gx, float gy, float gz, float& lx, float& ly, float& lz) const
 {
   /// convert Global -> Local c.s.
-  const RocInfo& rocInfo = getRocInfo(roc);
-  lx = gx * rocInfo.cosAlpha + gy * rocInfo.sinAlpha;
-  ly = -gx * rocInfo.sinAlpha + gy * rocInfo.cosAlpha;
+  const SectorInfo& sectorInfo = getSectorInfo(sector);
+  lx = gx * sectorInfo.cosAlpha + gy * sectorInfo.sinAlpha;
+  ly = -gx * sectorInfo.sinAlpha + gy * sectorInfo.cosAlpha;
   lz = gz;
 }
 
-GPUdi() void TPCFastTransformGeo::convVtoLocal(int32_t roc, float v, float& lz) const
+GPUdi() std::tuple<float, float> TPCFastTransformGeo::convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const
 {
-  /// convert UV -> Local c.s.
-  if (roc < NumberOfRocsA) { // TPC side A
-    lz = mTPCzLength - v;
-  } else {                 // TPC side C
-    lz = v - mTPCzLength;  // drift direction is mirrored on C-side
+  /// convert Pad, DriftLength -> Local c.s.
+  const RowInfo& rowInfo = getRowInfo(row);
+  float u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
+  float y, z;
+  if (sector < NumberOfSectorsA) { // TPC side A
+    y = u;
+    z = mTPCzLength - driftLength;
+  } else {                         // TPC side C
+    y = -u;                        // pads are mirrorred on C-side
+    z = driftLength - mTPCzLength; // drift direction is mirrored on C-side
   }
+  return {y, z};
 }
 
-GPUdi() void TPCFastTransformGeo::convUVtoLocal(int32_t roc, float u, float v, float& ly, float& lz) const
+GPUdi() float TPCFastTransformGeo::convDriftLengthToLocal(int32_t sector, float driftLength) const
+{
+  /// convert DriftLength -> Local c.s.
+  return (sector < NumberOfSectorsA) ? (mTPCzLength - driftLength) : (driftLength - mTPCzLength);
+}
+
+GPUdi() void TPCFastTransformGeo::convUVtoLocal1(int32_t sector, float u, float v, float& ly, float& lz) const
 {
   /// convert UV -> Local c.s.
-  if (roc < NumberOfRocsA) { // TPC side A
+  if (sector < NumberOfSectorsA) { // TPC side A
     ly = u;
     lz = mTPCzLength - v;
-  } else {                 // TPC side C
-    ly = -u;               // pads are mirrorred on C-side
-    lz = v - mTPCzLength;  // drift direction is mirrored on C-side
+  } else {                // TPC side C
+    ly = -u;              // pads are mirrorred on C-side
+    lz = v - mTPCzLength; // drift direction is mirrored on C-side
   }
 }
 
-GPUdi() void TPCFastTransformGeo::convLocalToUV(int32_t roc, float ly, float lz, float& u, float& v) const
+GPUdi() std::tuple<float, float> TPCFastTransformGeo::getZrange(int32_t sector) const
+{
+  /// z range for the sector
+  if (sector < NumberOfSectorsA) { // TPC side A
+    return {0.f, mTPCzLength};
+  } else { // TPC side C
+    return {-mTPCzLength, 0.f};
+  }
+}
+
+GPUdi() std::tuple<float, float> TPCFastTransformGeo::convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const
+{
+  /// convert Local c.s. -> Pad, DriftLength
+  float u, l;
+  if (sector < NumberOfSectorsA) { // TPC side A
+    u = y;
+    l = mTPCzLength - z;
+  } else {               // TPC side C
+    u = -y;              // pads are mirrorred on C-side
+    l = z + mTPCzLength; // drift direction is mirrored on C-side
+  }
+  const TPCFastTransformGeo::RowInfo& rowInfo = getRowInfo(row);
+  float pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
+  return {pad, l};
+}
+
+GPUdi() void TPCFastTransformGeo::convLocalToUV1(int32_t sector, float ly, float lz, float& u, float& v) const
 {
   /// convert Local-> UV c.s.
-  if (roc < NumberOfRocsA) { // TPC side A
+  if (sector < NumberOfSectorsA) { // TPC side A
     u = ly;
     v = mTPCzLength - lz;
-  } else {                 // TPC side C
-    u = -ly;               // pads are mirrorred on C-side
-    v = lz + mTPCzLength;  // drift direction is mirrored on C-side
+  } else {                // TPC side C
+    u = -ly;              // pads are mirrorred on C-side
+    v = lz + mTPCzLength; // drift direction is mirrored on C-side
   }
 }
 

@@ -86,14 +86,13 @@ class TPCFastSpaceChargeCorrectionHelper
 
   /// Create SpaceCharge correction out of the voxel tree
   std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> createFromTrackResiduals(
-    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree, bool useSmoothed = false, bool invertSigns = false);
+    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree, TTree* voxResTreeInverse, bool useSmoothed, bool invertSigns);
+
   /// _______________  Utilities   ________________________
 
   const TPCFastTransformGeo& getGeometry() { return mGeo; }
 
   TPCFastSpaceChargeCorrectionMap& getCorrectionMap() { return mCorrectionMap; }
-
-  void fillSpaceChargeCorrectionFromMap(TPCFastSpaceChargeCorrection& correction);
 
   void testGeometry(const TPCFastTransformGeo& geo) const;
 
@@ -103,15 +102,13 @@ class TPCFastSpaceChargeCorrectionHelper
   /// initialise inverse transformation from linear combination of several input corrections
   void initInverse(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn);
 
+  void MergeCorrections(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn);
+
  private:
   /// geometry initialization
   void initGeometry();
 
-  /// get space charge correction in internal TPCFastTransform coordinates u,v->dx,du,dv
-  void getSpaceChargeCorrection(const TPCFastSpaceChargeCorrection& correction, int slice, int row, o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p, double& su, double& sv, double& dx, double& du, double& dv);
-
-  /// initialise max drift length
-  void initMaxDriftLength(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn);
+  void fillSpaceChargeCorrectionFromMap(TPCFastSpaceChargeCorrection& correction, bool processingInverseCorrection);
 
   static TPCFastSpaceChargeCorrectionHelper* sInstance; ///< singleton instance
   bool mIsInitialized = 0;                              ///< initialization flag
