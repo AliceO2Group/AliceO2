@@ -719,8 +719,26 @@ void TrackResiduals::smooth(int iSec)
         if (!(resVox.flags & SmoothDone)) {
           continue;
         }
-        resVox.DS[ResZ] += resVox.stat[VoxZ] * resVox.DS[ResX]; // remove slope*dX contribution from dZ
-        resVox.D[ResZ] += resVox.stat[VoxZ] * resVox.DS[ResX];  // remove slope*dX contribution from dZ
+        // TODO: Usage of Z/X is bug???
+        float z2x = resVox.stat[VoxZ];
+        if (mDoAdhocCorrectionZ2X) {
+          //
+          const float z = z2x * resVox.stat[VoxX] - resVox.DS[ResZ];
+          const float x = resVox.stat[VoxX] - resVox.DS[ResX]; // is subration of DS[ResX] correct?
+          z2x = z / x;
+        }
+        resVox.DS[ResZ] += z2x * resVox.DS[ResX]; // remove slope*dX contribution from dZ
+        resVox.D[ResZ] += z2x * resVox.DS[ResX];  // remove slope*dX contribution from dZ
+                                                  //
+        if (mAdhocScalingX[iSec >= 18] != 0) {
+          const float aDX = resVox.DS[ResX] * mAdhocScalingX[iSec >= 18];
+          resVox.D[ResX] += aDX;
+          resVox.DS[ResX] += aDX;
+          resVox.D[ResY] += aDX * resVox.stat[VoxF];
+          resVox.DS[ResY] += aDX * resVox.stat[VoxF];
+          resVox.D[ResZ] += aDX * z2x;
+          resVox.DS[ResZ] += aDX * z2x;
+        }
       }
     }
   }

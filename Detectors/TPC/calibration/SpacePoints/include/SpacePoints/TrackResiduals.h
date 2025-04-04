@@ -443,6 +443,12 @@ class TrackResiduals
   /// output tree
   TTree* getOutputTree() { return mTreeOut.get(); }
 
+  /// Ad-hoc radial scaling factor A/C-Side
+  void setAdhocScalingFactorX(const std::array<float, 2>& scaling) { mAdhocScalingX = scaling; }
+
+  /// Ad-hoc correction of Z/X
+  void doAdhocCorrectionZ2X(bool corr) { mDoAdhocCorrectionZ2X = corr; }
+
  private:
   std::bitset<SECTORSPERSIDE * SIDES> mInitResultsContainer{};
 
@@ -502,6 +508,8 @@ class TrackResiduals
   std::array<std::vector<VoxRes>, SECTORSPERSIDE * SIDES> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
   VoxRes mVoxelResultsOut{};                                                                ///< the results from mVoxelResults are copied in here to be able to stream them
   VoxRes* mVoxelResultsOutPtr{&mVoxelResultsOut};                                           ///< pointer to set the branch address to for the output
+  std::array<float, 2> mAdhocScalingX{0, 0};                                                ///< Ad-hoc radial scaling factor
+  bool mDoAdhocCorrectionZ2X{false};                                                        ///< If to do ad-hoc correction for Z/X
 
   ClassDefNV(TrackResiduals, 3);
 };
