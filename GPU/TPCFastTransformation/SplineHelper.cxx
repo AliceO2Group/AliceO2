@@ -410,8 +410,8 @@ void SplineHelper<DataT>::approximateFunction(
         }
         double splineF[mFdimensions];
         double u = mHelpers[dimension].getDataPoint(i).u;
-        mHelpers[dimension].getSpline().interpolateU(mFdimensions, parD[dimension].get(), u, splineF); // recalculate at all datapoints of dimension
-        for (int32_t dim = 0; dim < mFdimensions; dim++) {                                             // writing it in allParameters
+        mHelpers[dimension].getSpline().interpolateAtU(mFdimensions, parD[dimension].get(), u, splineF); // recalculate at all datapoints of dimension
+        for (int32_t dim = 0; dim < mFdimensions; dim++) {                                               // writing it in allParameters
           // LOG(info)<<allParameters [p-(int32_t)(pow(2.0, dimension))] [(int32_t)(startdatapoint*mFdimensions + i*distance + dim)]<<", ";
           allParameters[p - (int32_t)(pow(2.0, dimension))][(int32_t)(startdatapoint * mFdimensions + i * distance + dim)] = splineF[dim]; // write it in the array.
           // LOG(info)<<allParameters [p-(int32_t)(pow(2.0, dimension))] [(int32_t)(startdatapoint*mFdimensions + i*distance + dim)]<<",   ";

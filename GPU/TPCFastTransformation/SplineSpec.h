@@ -276,13 +276,13 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
     for (int32_t i = 0; i < nXdim; i++) {
       u[i] = mGrid[i].convXtoU(x[i]);
     }
-    interpolateU<SafetyLevel::kSafe>(mXdim, mYdim, mParameters, u, S);
+    interpolateAtU<SafetyLevel::kSafe>(mXdim, mYdim, mParameters, u, S);
   }
 
   /// Get interpolated value for S(u):inpXdim->inpYdim using spline parameters Parameters
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() void interpolateU(int32_t inpXdim, int32_t inpYdim, GPUgeneric() const DataT Parameters[],
-                           const DataT u[/*inpXdim*/], GPUgeneric() DataT S[/*inpYdim*/]) const
+  GPUd() void interpolateAtU(int32_t inpXdim, int32_t inpYdim, GPUgeneric() const DataT Parameters[],
+                             const DataT u[/*inpXdim*/], GPUgeneric() DataT S[/*inpYdim*/]) const
   {
     const auto nXdimTmp = SplineUtil::getNdim<XdimT>(mXdim);
     const auto nXdim = nXdimTmp.get();
@@ -345,7 +345,7 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
       DataT coordinate = u[d];
       typedef Spline1DSpec<DataT, 0, 0> TGridX;
       const TGridX& gridX = *((const TGridX*)&(mGrid[d]));
-      gridX.interpolateU(nInterpolations, knotL, S0, D0, S1, D1, coordinate, iParameters);
+      gridX.interpolateAtU(nInterpolations, knotL, S0, D0, S1, D1, coordinate, iParameters);
       nInterpolations /= 4;
       nKnots /= 2;
     } // end d (every dimension)
@@ -354,7 +354,7 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
       S[i] = iParameters[i]; // write into result-array
       // LOG(info)<<iParameters[i] <<", ";
     }
-  } // end interpolateU
+  } // end interpolateAtU
 
  protected:
   using TBase::mGrid;
@@ -421,10 +421,10 @@ class SplineSpec<DataT, XdimT, YdimT, 1>
 
   /// Get interpolated value for an YdimT-dimensional S(u1,u2) using spline parameters Parameters.
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() void interpolateU(GPUgeneric() const DataT Parameters[],
-                           const DataT u[/*XdimT*/], GPUgeneric() DataT S[/*YdimT*/]) const
+  GPUd() void interpolateAtU(GPUgeneric() const DataT Parameters[],
+                             const DataT u[/*XdimT*/], GPUgeneric() DataT S[/*YdimT*/]) const
   {
-    TBase::template interpolateU<SafeT>(XdimT, YdimT, Parameters, u, S);
+    TBase::template interpolateAtU<SafeT>(XdimT, YdimT, Parameters, u, S);
   }
 
   /// _______________  Suppress some parent class methods   ________________________
@@ -432,7 +432,7 @@ class SplineSpec<DataT, XdimT, YdimT, 1>
 #if !defined(GPUCA_GPUCODE)
   using TBase::recreate;
 #endif
-  using TBase::interpolateU;
+  using TBase::interpolateAtU;
 };
 
 /// ==================================================================================================
@@ -490,7 +490,7 @@ class SplineSpec<DataT, XdimT, YdimT, 2>
 
   ///  _______  Expert tools: interpolation with given nYdim and external Parameters _______
 
-  using TBase::interpolateU;
+  using TBase::interpolateAtU;
 
   /// Check dimensions
   void checkDimensions(int32_t& nXdim, int32_t& nYdim)

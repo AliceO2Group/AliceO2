@@ -77,7 +77,7 @@ namespace gpu
 /// One can store all F-dependent spline parameters outside of the spline object
 /// and provide them at each interpolation call.
 /// To do so, create a spline with nYdimensions=0; create spline parameters for F via Spline1DHelper class;
-/// then use special interpolateU(..) methods for the interpolation.
+/// then use special interpolateAtU(..) methods for the interpolation.
 ///
 /// This feature allows one to use the same spline object for the approximation of different functions
 /// on the same grid of knots.

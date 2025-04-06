@@ -287,33 +287,38 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
   /// Get interpolated value S(x)
   GPUd() void interpolate(DataT x, GPUgeneric() DataT S[/*mYdim*/]) const
   {
-    interpolateU<SafetyLevel::kSafe>(mYdim, mParameters, convXtoU(x), S);
+    interpolateAtU<SafetyLevel::kSafe>(mYdim, mParameters, convXtoU(x), S);
   }
 
   /// Get interpolated value for an nYdim-dimensional S(u) using spline parameters Parameters.
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() void interpolateU(int32_t inpYdim, GPUgeneric() const DataT Parameters[],
-                           DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
+  GPUd() void interpolateAtU(int32_t inpYdim, GPUgeneric() const DataT Parameters[],
+                             DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
   {
     const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
     const auto nYdim = nYdimTmp.get();
     int32_t iknot = TBase::template getLeftKnotIndexForU<SafeT>(u);
     const DataT* d = Parameters + (2 * nYdim) * iknot;
-    interpolateU(nYdim, getKnots()[iknot], &(d[0]), &(d[nYdim]), &(d[2 * nYdim]), &(d[3 * nYdim]), u, S);
+    interpolateAtU(nYdim, getKnots()[iknot], &(d[0]), &(d[nYdim]), &(d[2 * nYdim]), &(d[3 * nYdim]), u, S);
   }
 
   /// The main mathematical utility.
   /// Get interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
   /// using the spline values Sl, Sr and the slopes Dl, Dr
   template <typename T>
-  GPUd() void interpolateU(int32_t inpYdim, const Knot& knotL,
-                           GPUgeneric() const T Sl[/*mYdim*/], GPUgeneric() const T Dl[/*mYdim*/],
-                           GPUgeneric() const T Sr[/*mYdim*/], GPUgeneric() const T Dr[/*mYdim*/],
-                           DataT u, GPUgeneric() T S[/*mYdim*/]) const
+  GPUd() void interpolateAtU(int32_t inpYdim, const Knot& knotL,
+                             GPUgeneric() const T Sl[/*mYdim*/], GPUgeneric() const T Dl[/*mYdim*/],
+                             GPUgeneric() const T Sr[/*mYdim*/], GPUgeneric() const T Dr[/*mYdim*/],
+                             DataT u, GPUgeneric() T S[/*mYdim*/]) const
   {
     const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
     const auto nYdim = nYdimTmp.get();
 
+    auto [dSdSl, dSdDl, dSdSr, dSdDr] = getSderivativesOverParsAtU<T>(knotL, u);
+    for (int32_t dim = 0; dim < nYdim; ++dim) {
+      S[dim] = dSdSr * Sr[dim] + dSdSl * Sl[dim] + dSdDl * Dl[dim] + dSdDr * Dr[dim];
+    }
+    /*
     if (u < (DataT)0) {
       u = (DataT)0;
     }
@@ -330,6 +335,7 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
       T b = df - Dl[dim] - a;
       S[dim] = ((a * v + b) * v + Dl[dim]) * uu + Sl[dim];
     }
+    */
     /*
      another way to calculate f(u):
      T uu = T(u - knotL.u);
@@ -345,11 +351,10 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
   }
 
   template <typename T>
-  GPUd() void getUderivatives(const Knot& knotL, DataT u,
-                              T& dSl, T& dDl, T& dSr, T& dDr) const
+  GPUd() std::tuple<T, T, T, T> getSderivativesOverParsAtU(const Knot& knotL, DataT u) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
-    /// over the spline values Sl, Sr and the slopes Dl, Dr
+    /// over the spline parameters Sl(eft), Sr(ight) and the slopes Dl, Dr
 
     if (u < (DataT)0) {
       u = (DataT)0;
@@ -363,11 +368,12 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     T vm1 = v - 1.;
     T a = u * vm1;
     T v2 = v * v;
-    dSr = v2 * (3. - 2 * v);
-    dSl = 1. - dSr;
-    dDl = vm1 * a;
-    dDr = v * a;
-    // F(u) = dSl * Sl + dSr * Sr + dDl * Dl + dDr * Dr;
+    T dSdSr = v2 * (3. - 2 * v);
+    T dSdSl = 1. - dSdSr;
+    T dSdDl = vm1 * a;
+    T dSdDr = v * a;
+    // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
+    return std::make_tuple(dSdSl, dSdDl, dSdSr, dSdDr);
   }
   /*
     template <typename T>
@@ -480,21 +486,21 @@ class Spline1DSpec<DataT, YdimT, 1>
 
   /// Get interpolated value for an YdimT-dimensional S(u) using spline parameters Parameters.
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() void interpolateU(GPUgeneric() const DataT Parameters[],
-                           DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
+  GPUd() void interpolateAtU(GPUgeneric() const DataT Parameters[],
+                             DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
   {
-    TBase::template interpolateU<SafeT>(YdimT, Parameters, u, S);
+    TBase::template interpolateAtU<SafeT>(YdimT, Parameters, u, S);
   }
 
   /// Get interpolated value for an YdimT-dimensional S(u) at the segment [knotL, next knotR]
   /// using the spline values Sl, Sr and the slopes Dl, Dr
   template <typename T>
-  GPUd() void interpolateU(const typename TBase::Knot& knotL,
-                           GPUgeneric() const T Sl[/*mYdim*/], GPUgeneric() const T Dl[/*mYdim*/],
-                           GPUgeneric() const T Sr[/*mYdim*/], GPUgeneric() const T Dr[/*mYdim*/],
-                           DataT u, GPUgeneric() T S[/*mYdim*/]) const
+  GPUd() void interpolateAtU(const typename TBase::Knot& knotL,
+                             GPUgeneric() const T Sl[/*mYdim*/], GPUgeneric() const T Dl[/*mYdim*/],
+                             GPUgeneric() const T Sr[/*mYdim*/], GPUgeneric() const T Dr[/*mYdim*/],
+                             DataT u, GPUgeneric() T S[/*mYdim*/]) const
   {
-    TBase::interpolateU(YdimT, knotL, Sl, Dl, Sr, Dr, u, S);
+    TBase::interpolateAtU(YdimT, knotL, Sl, Dl, Sr, Dr, u, S);
   }
 
   using TBase::getNumberOfKnots;
@@ -504,7 +510,7 @@ class Spline1DSpec<DataT, YdimT, 1>
 #if !defined(GPUCA_GPUCODE)
   using TBase::recreate;
 #endif
-  using TBase::interpolateU;
+  using TBase::interpolateAtU;
 };
 
 /// ==================================================================================================
@@ -552,7 +558,7 @@ class Spline1DSpec<DataT, YdimT, 2>
 
   ///  _______  Expert tools: interpolation with given nYdim and external Parameters _______
 
-  using TBase::interpolateU;
+  using TBase::interpolateAtU;
   ClassDefNV(Spline1DSpec, 0);
 };
 
