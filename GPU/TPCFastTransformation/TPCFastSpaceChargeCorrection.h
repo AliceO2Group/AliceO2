@@ -410,7 +410,7 @@ GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::getCorrect
   auto [gridU, gridV, scale] = convLocalToGrid(sector, row, y, z);
 
   float dxyz[3];
-  spline.interpolateU(splineData, gridU, gridV, dxyz);
+  spline.interpolateAtU(splineData, gridU, gridV, dxyz);
 
   float dx = scale * GPUCommonMath::Clamp(dxyz[0], info.minCorr[0], info.maxCorr[0]);
   float dy = scale * GPUCommonMath::Clamp(dxyz[1], info.minCorr[1], info.maxCorr[1]);
@@ -427,7 +427,7 @@ GPUdi() float TPCFastSpaceChargeCorrection::getCorrectionXatRealYZ(int32_t secto
   auto [gridU, gridV, scale] = convCorrectedLocalToGrid(sector, row, realY, realZ);
 
   float dx = 0;
-  spline.interpolateU(splineData, gridU, gridV, &dx);
+  spline.interpolateAtU(splineData, gridU, gridV, &dx);
 
   dx = scale * GPUCommonMath::Clamp(dx, info.minCorr[0], info.maxCorr[0]);
   return dx;
@@ -443,7 +443,7 @@ GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::getCorrectionYZat
   const float* splineData = getSplineData(sector, row, 2);
 
   float dyz[2];
-  spline.interpolateU(splineData, gridU, gridV, dyz);
+  spline.interpolateAtU(splineData, gridU, gridV, dyz);
 
   dyz[0] = scale * GPUCommonMath::Clamp(dyz[0], info.minCorr[1], info.maxCorr[1]);
   dyz[1] = scale * GPUCommonMath::Clamp(dyz[1], info.minCorr[2], info.maxCorr[2]);

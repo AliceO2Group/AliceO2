@@ -194,7 +194,7 @@ void Spline2DHelper<DataT>::approximateFunction(
     for (int32_t ipu = 0; ipu < nDataPointsU; ipu++) {
       double splineF[Ndim];
       double u = mHelperU1.getDataPoint(ipu).u;
-      mHelperU1.getSpline().interpolateU(Ndim, parUdbl.get(), u, splineF);
+      mHelperU1.getSpline().interpolateAtU(Ndim, parUdbl.get(), u, splineF);
       for (int32_t dim = 0; dim < Ndim; dim++) {
         rotDataPointF[(ipu * nDataPointsV + ipv) * Ndim + dim] = splineF[dim];
       }
