@@ -318,7 +318,10 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     for (int32_t dim = 0; dim < nYdim; ++dim) {
       S[dim] = dSdSr * Sr[dim] + dSdSl * Sl[dim] + dSdDl * Dl[dim] + dSdDr * Dr[dim];
     }
+
     /*
+    another way to calculate f(u):
+
     if (u < (DataT)0) {
       u = (DataT)0;
     }
@@ -335,18 +338,6 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
       T b = df - Dl[dim] - a;
       S[dim] = ((a * v + b) * v + Dl[dim]) * uu + Sl[dim];
     }
-    */
-    /*
-     another way to calculate f(u):
-     T uu = T(u - knotL.u);
-     T v = uu * T(knotL.Li); // scaled u
-     T vm1 = v-1;
-     T v2 = v * v;
-     float cSr = v2*(3-2*v);
-     float cSl = 1-cSr;
-     float cDl = v*vm1*vm1*knotL.L;
-     float cDr = v2*vm1*knotL.L;
-     return cSl*Sl + cSr*Sr + cDl*Dl + cDr*Dr;
     */
   }
 
@@ -365,51 +356,50 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
 
     u = u - knotL.u;
     T v = u * T(knotL.Li); // scaled u
-    T vm1 = v - 1.;
+    T vm1 = v - T(1.);
     T a = u * vm1;
     T v2 = v * v;
-    T dSdSr = v2 * (3. - 2 * v);
-    T dSdSl = 1. - dSdSr;
+    T dSdSr = v2 * (T(3.) - v - v);
+    T dSdSl = T(1.) - dSdSr;
     T dSdDl = vm1 * a;
     T dSdDr = v * a;
     // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
     return std::make_tuple(dSdSl, dSdDl, dSdSr, dSdDr);
   }
-  /*
-    template <typename T>
-    GPUd() void getUsecondDerivatives(const Knot& knotL, DataT u,
-                                      T& dSl, T& dDl, T& dSr, T& dDr,
-                                      T& dSl2, T& dDl2, T& dSr2, T& dDr2) const
-    {
-      /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
-      /// over the spline values Sl, Sr and the slopes Dl, Dr
 
-      if (u < (DataT)0) {
-        u = (DataT)0;
-      }
-      if (u > (DataT)TBase::getUmax()) {
-        u = (DataT)TBase::getUmax();
-      }
+  template <typename T>
+  GPUd() std::tuple<T, T, T, T, T, T, T, T> getSDderivativesOverParsAtU(const Knot& knotL, DataT u) const
+  {
+    /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
+    /// over the spline values Sl, Sr and the slopes Dl, Dr
 
-      u = u - knotL.u;
-      T v = u * T(knotL.Li); // scaled u
-      T vm1 = v - 1.;
-      T a = u * vm1;
-      T v2 = v * v;
-      dSr = v2 * (3. - 2 * v);
-      dSl = 1. - dSr;
-      dDl = vm1 * a;
-      dDr = v * a;
-      T dv = T(knotL.Li);
-      dSr2 = 6. * v * (1. - v) * dv;
-      dSl2 = -dSr2;
-      dDl2 = (v - 1) * (3 * v - 1);
-      dDr = u * (v * v - v);
-      dDr2 = 3.f * v * v - 2.f * v;
-      // F(u) = dSl * Sl + dSr * Sr + dDl * Dl + dDr * Dr;
-      // dF(u)/du = dSl2 * Sl + dSr2 * Sr + dDl2 * Dl + dDr2 * Dr;
+    if (u < (DataT)0) {
+      u = (DataT)0;
     }
-  */
+    if (u > (DataT)TBase::getUmax()) {
+      u = (DataT)TBase::getUmax();
+    }
+
+    u = u - knotL.u;
+    T v = u * T(knotL.Li); // scaled u
+    T vm1 = v - T(1.);
+    T a = u * vm1;
+    T v2 = v * v;
+    T dSdSr = v2 * (T(3.) - v - v);
+    T dSdSl = T(1.) - dSdSr;
+    T dSdDl = vm1 * a;
+    T dSdDr = v * a;
+
+    T dv = T(knotL.Li);
+    T dDdSr = 6. * v * (T(1.) - v) * dv;
+    T dDdSl = -dDdSr;
+    T dDdDl = vm1 * (v + v + vm1);
+    T dDdDr = v * (v + vm1 + vm1);
+    // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
+    // D(u) = dS(u)/du = dDdSl * Sl + dDdSr * Sr + dDdDl * Dl + dDdDr * Dr;
+    return std::make_tuple(dSdSl, dSdDl, dSdSr, dSdDr, dDdSl, dDdDl, dDdSr, dDdDr);
+  }
+
   using TBase::convXtoU;
   using TBase::getKnot;
   using TBase::getKnots;

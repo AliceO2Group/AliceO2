@@ -358,6 +358,132 @@ class Spline2DSpec<DataT, YdimT, 0>
     }
   }
 
+  /// Get interpolated parameters (like parameters stored at knots) for an inpYdim-dimensional S(u1,u2) using spline parameters Parameters.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() void interpolateParametersAtU(int32_t inpYdim, GPUgeneric() const DataT Parameters[],
+                                       DataT u1, DataT u2, GPUgeneric() DataT P[/* 4*inpYdim */]) const
+  {
+
+    const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
+    const int32_t nYdim = nYdimTmp.get();
+
+    // const auto maxYdim = SplineUtil::getMaxNdim<YdimT>(inpYdim);
+    // const int32_t maxYdim4 = 4 * maxYdim.get();
+
+    // const auto nYdim2 = nYdim * 2;
+    const auto nYdim4 = nYdim * 4;
+
+    DataT *S = P,
+          *R = P + nYdim,
+          *Q = P + nYdim * 2,
+          *W = P + nYdim * 3;
+
+    const DataT& u = u1;
+    const DataT& v = u2;
+    int32_t nu = mGridX1.getNumberOfKnots();
+    int32_t iu = mGridX1.template getLeftKnotIndexForU<SafeT>(u);
+    int32_t iv = mGridX2.template getLeftKnotIndexForU<SafeT>(v);
+
+    const typename TBase::Knot& knotU = mGridX1.template getKnot<SafetyLevel::kNotSafe>(iu);
+    const typename TBase::Knot& knotV = mGridX2.template getKnot<SafetyLevel::kNotSafe>(iv);
+
+    const DataT* A = Parameters + (nu * iv + iu) * nYdim4; // values { {Y1,Y2,Y3}, {Y1,Y2,Y3}'v, {Y1,Y2,Y3}'u, {Y1,Y2,Y3}''vu } at {u0, v0}
+    const DataT* B = A + nYdim4 * nu;                      // values { ... } at {u0, v1}
+
+    auto [dSdSl, dSdDl, dSdSr, dSdDr, dRdSl, dRdDl, dRdSr, dRdDr] = mGridX1.template getSDderivativesOverParsAtU<DataT>(knotU, u);
+    auto [dSdSd, dSdDd, dSdSu, dSdDu, dQdSd, dQdDd, dQdSu, dQdDu] = mGridX2.template getSDderivativesOverParsAtU<DataT>(knotV, v);
+
+    // when nYdim == 1:
+
+    // Function value S
+    // S = dSdSl * (dSdSd * A[0] + dSdDd * A[1]) + dSdDl * (dSdSd * A[2] + dSdDd * A[3]) +
+    //     dSdSr * (dSdSd * A[4] + dSdDd * A[5]) + dSdDr * (dSdSd * A[6] + dSdDd * A[7]) +
+    //     dSdSl * (dSdSu * B[0] + dSdDu * B[1]) + dSdDl * (dSdSu * B[2] + dSdDu * B[3]) +
+    //     dSdSr * (dSdSu * B[4] + dSdDu * B[5]) + dSdDr * (dSdSu * B[6] + dSdDu * B[7]);
+
+    {
+      DataT a[8] = {dSdSl * dSdSd, dSdSl * dSdDd, dSdDl * dSdSd, dSdDl * dSdDd,
+                    dSdSr * dSdSd, dSdSr * dSdDd, dSdDr * dSdSd, dSdDr * dSdDd};
+      DataT b[8] = {dSdSl * dSdSu, dSdSl * dSdDu, dSdDl * dSdSu, dSdDl * dSdDu,
+                    dSdSr * dSdSu, dSdSr * dSdDu, dSdDr * dSdSu, dSdDr * dSdDu};
+
+      // S = sum a[i]*A[i] + b[i]*B[i]
+
+      for (int32_t dim = 0; dim < nYdim; dim++) {
+        S[dim] = 0;
+        for (int32_t i = 0; i < 8; i++) {
+          S[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
+        }
+      }
+    }
+
+    // Derivative R = dS / du
+    // R = dRdSl * (dSdSd * A[0] + dSdDd * A[1]) + dRdDl * (dSdSd * A[2] + dSdDd * A[3]) +
+    //     dRdSr * (dSdSd * A[4] + dSdDd * A[5]) + dRdDr * (dSdSd * A[6] + dSdDd * A[7]) +
+    //     dRdSl * (dSdSu * B[0] + dSdDu * B[1]) + dRdDl * (dSdSu * B[2] + dSdDu * B[3]) +
+    //     dRdSr * (dSdSu * B[4] + dSdDu * B[5]) + dRdDr * (dSdSu * B[6] + dSdDu * B[7]);
+
+    {
+      DataT a[8] = {dRdSl * dSdSd, dRdSl * dSdDd, dRdDl * dSdSd, dRdDl * dSdDd,
+                    dRdSr * dSdSd, dRdSr * dSdDd, dRdDr * dSdSd, dRdDr * dSdDd};
+      DataT b[8] = {dRdSl * dSdSu, dRdSl * dSdDu, dRdDl * dSdSu, dRdDl * dSdDu,
+                    dRdSr * dSdSu, dRdSr * dSdDu, dRdDr * dSdSu, dRdDr * dSdDu};
+
+      // R = sum a[i]*A[i] + b[i]*B[i]
+
+      for (int32_t dim = 0; dim < nYdim; dim++) {
+        R[dim] = 0;
+        for (int32_t i = 0; i < 8; i++) {
+          R[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
+        }
+      }
+    }
+
+    // Derivative Q = dS / dv
+    // Q = dSdSl * (dQdSd * A[0] + dQdDd * A[1]) + dSdDl * (dQdSd * A[2] + dQdDd * A[3]) +
+    //     dSdSr * (dQdSd * A[4] + dQdDd * A[5]) + dSdDr * (dQdSd * A[6] + dQdDd * A[7]) +
+    //     dSdSl * (dQdSu * B[0] + dQdDu * B[1]) + dSdDl * (dQdSu * B[2] + dQdDu * B[3]) +
+    //     dSdSr * (dQdSu * B[4] + dQdDu * B[5]) + dSdDr * (dQdSu * B[6] + dQdDu * B[7]);
+
+    {
+      DataT a[8] = {dSdSl * dQdSd, dSdSl * dQdDd, dSdDl * dQdSd, dSdDl * dQdDd,
+                    dSdSr * dQdSd, dSdSr * dQdDd, dSdDr * dQdSd, dSdDr * dQdDd};
+      DataT b[8] = {dSdSl * dQdSu, dSdSl * dQdDu, dSdDl * dQdSu, dSdDl * dQdDu,
+                    dSdSr * dQdSu, dSdSr * dQdDu, dSdDr * dQdSu, dSdDr * dQdDu};
+
+      // Q = sum a[i]*A[i] + b[i]*B[i]
+
+      for (int32_t dim = 0; dim < nYdim; dim++) {
+        Q[dim] = 0;
+        for (int32_t i = 0; i < 8; i++) {
+          Q[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
+        }
+      }
+    }
+
+    // cross-derivative W = (dS)^2 / du / dv
+    // W = dRdSl * (dQdSd * A[0] + dQdDd * A[1]) + dRdDl * (dQdSd * A[2] + dQdDd * A[3]) +
+    //     dRdSr * (dQdSd * A[4] + dQdDd * A[5]) + dRdDr * (dQdSd * A[6] + dQdDd * A[7]) +
+    //     dRdSl * (dQdSu * B[0] + dQdDu * B[1]) + dRdDl * (dQdSu * B[2] + dQdDu * B[3]) +
+    //     dRdSr * (dQdSu * B[4] + dQdDu * B[5]) + dRdDr * (dQdSu * B[6] + dQdDu * B[7]);
+
+    {
+      DataT a[8] = {dRdSl * dQdSd, dRdSl * dQdDd, dRdDl * dQdSd, dRdDl * dQdDd,
+                    dRdSr * dQdSd, dRdSr * dQdDd, dRdDr * dQdSd, dRdDr * dQdDd};
+      DataT b[8] = {dRdSl * dQdSu, dRdSl * dQdDu, dRdDl * dQdSu, dRdDl * dQdDu,
+                    dRdSr * dQdSu, dRdSr * dQdDu, dRdDr * dQdSu, dRdDr * dQdDu};
+
+      // W = sum a[i]*A[i] + b[i]*B[i]
+
+      for (int32_t dim = 0; dim < nYdim; dim++) {
+        W[dim] = 0;
+        for (int32_t i = 0; i < 8; i++) {
+          W[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
+        }
+      }
+    }
+  }
+
  protected:
   using TBase::mGridX1;
   using TBase::mGridX2;
@@ -429,9 +555,16 @@ class Spline2DSpec<DataT, YdimT, 1>
   /// Get interpolated value for an YdimT-dimensional S(u1,u2) using spline parameters Parameters.
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
   GPUd() void interpolateAtU(GPUgeneric() const DataT Parameters[],
-                             DataT u1, DataT u2, GPUgeneric() DataT S[/*nYdim*/]) const
+                             DataT u1, DataT u2, GPUgeneric() DataT S[/*YdimT*/]) const
   {
     TBase::template interpolateAtU<SafeT>(YdimT, Parameters, u1, u2, S);
+  }
+
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() void interpolateParametersAtU(GPUgeneric() const DataT Parameters[],
+                                       DataT u1, DataT u2, GPUgeneric() DataT P[/* 4*YdimT */]) const
+  {
+    TBase::template interpolateParametersAtU<SafeT>(YdimT, Parameters, u1, u2, P);
   }
 
   /// Get interpolated value for an YdimT-dimensional S(u1,u2) using spline parameters Parameters.
