@@ -176,8 +176,8 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
         }
 
         if (processingInverseCorrection) {
-          float* splineX = correction.getSplineData(sector, row, 1);
-          float* splineYZ = correction.getSplineData(sector, row, 2);
+          float* splineX = correction.getSplineDataInvX(sector, row);
+          float* splineYZ = correction.getSplineDataInvYZ(sector, row);
           for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
             splineX[i] = splineParameters[3 * i + 0];
             splineYZ[2 * i + 0] = splineParameters[3 * i + 1];
@@ -940,8 +940,8 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
                                      dataPointGridU.data(), dataPointGridV.data(),
                                      dataPointF.data(), nDataPoints);
 
-        float* splineX = correction.getSplineData(sector, row, 1);
-        float* splineUV = correction.getSplineData(sector, row, 2);
+        float* splineX = correction.getSplineDataInvX(sector, row);
+        float* splineUV = correction.getSplineDataInvYZ(sector, row);
         for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
           splineX[i] = splineParameters[3 * i + 0];
           splineUV[2 * i + 0] = splineParameters[3 * i + 1];
@@ -967,77 +967,129 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
   LOGP(info, "Inverse tooks: {}s", duration);
 }
 
-void TPCFastSpaceChargeCorrectionHelper::MergeCorrections(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn)
+void TPCFastSpaceChargeCorrectionHelper::MergeCorrections(
+  o2::gpu::TPCFastSpaceChargeCorrection& mainCorrection, float mainScale,
+  const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>>& additionalCorrections, bool /*prn*/)
 {
   /// merge several corrections
-  /*
+
   TStopwatch watch;
   LOG(info) << "fast space charge correction helper: Merge corrections";
 
-  if (corrections.size() != scaling.size()) {
-    LOGP(error, "Input corrections and scaling values have different size");
-    return;
-  }
+  const auto& geo = mainCorrection.getGeometry();
 
-  auto& correction = *(corrections.front());
-
-  for (int sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
+  for (int sector = 0; sector < geo.getNumberOfSectors(); sector++) {
 
     auto myThread = [&](int iThread) {
-      for (int row = iThread; row < mGeo.getNumberOfRows(); row += mNthreads) {
-        TPCFastSpaceChargeCorrection::SplineType spline = correction.getSpline(sector, row);
+      for (int row = iThread; row < geo.getNumberOfRows(); row += mNthreads) {
+        const auto& spline = mainCorrection.getSpline(sector, row);
 
-        std::vector<float> splineParameters(spline.getNumberOfParameters());
-        std::vector<float> splineParametersInvX(spline.getNumberOfParameters());
-        std::vector<float> splineParametersInvYZ(spline.getNumberOfParameters());
+        float* splineParameters = mainCorrection.getSplineData(sector, row);
+        float* splineParametersInvX = mainCorrection.getSplineDataInvX(sector, row);
+        float* splineParametersInvYZ = mainCorrection.getSplineDataInvYZ(sector, row);
+
+        auto& secRowInfo = mainCorrection.getSectorRowInfo(sector, row);
+
+        constexpr int nKnotPar1d = 4;
+        constexpr int nKnotPar2d = nKnotPar1d * 2;
+        constexpr int nKnotPar3d = nKnotPar1d * 3;
+
+        { // scale the main correction
+          for (int i = 0; i < 3; i++) {
+            secRowInfo.maxCorr[i] *= mainScale;
+            secRowInfo.minCorr[i] *= mainScale;
+          }
+          double parscale[4] = {mainScale, mainScale, mainScale, mainScale * mainScale};
+          for (int iknot = 0, ind = 0; iknot < spline.getNumberOfKnots(); iknot++) {
+            for (int ipar = 0; ipar < nKnotPar1d; ++ipar) {
+              for (int idim = 0; idim < 3; idim++, ind++) {
+                splineParameters[ind] *= parscale[ipar];
+              }
+            }
+          }
+          for (int iknot = 0, ind = 0; iknot < spline.getNumberOfKnots(); iknot++) {
+            for (int ipar = 0; ipar < nKnotPar1d; ++ipar) {
+              for (int idim = 0; idim < 1; idim++, ind++) {
+                splineParametersInvX[ind] *= parscale[ipar];
+              }
+            }
+          }
+          for (int iknot = 0, ind = 0; iknot < spline.getNumberOfKnots(); iknot++) {
+            for (int ipar = 0; ipar < nKnotPar1d; ++ipar) {
+              for (int idim = 0; idim < 2; idim++, ind++) {
+                splineParametersInvYZ[ind] *= parscale[ipar];
+              }
+            }
+          }
+        }
+
+        // add the other corrections
 
         const auto& gridU = spline.getGridX1();
         const auto& gridV = spline.getGridX2();
 
-        for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
-          double u = gridU.getKnot(iu).u;
-          for (int iv = 0; iv < gridV.getNumberOfKnots(); iv++) {
-            int knotIndex = spline.getKnotIndex(iu, iv);
+        for (int icorr = 0; icorr < additionalCorrections.size(); ++icorr) {
+          const auto& corr = *(additionalCorrections[icorr].first);
+          double scale = additionalCorrections[icorr].second;
+          auto& linfo = corr.getSectorRowInfo(sector, row);
+          secRowInfo.updateMaxValues(linfo.getMaxValues(), scale);
+          secRowInfo.updateMaxValues(linfo.getMinValues(), scale);
 
-            double v = gridV.getKnot(iu).u;
-            auto [y, z] = correction.convGridToLocal(sector, row, u, v);
-            constexpr int nKnotPar1d = 4;
-            constexpr int nKnotPar2d = nKnotPar1d * 2;
-            constexpr int nKnotPar3d = nKnotPar1d * 3;
+          double scaleU = secRowInfo.scaleUtoGrid / linfo.scaleUtoGrid;
+          double scaleV = secRowInfo.scaleVtoGrid / linfo.scaleVtoGrid;
 
-            for (int i = 0; i < corrections.size(); ++i) {
-              double s = scaling[i];
-              auto p = corrections[i]->getCorrectionParameters(sector, row, y, z);
-              for (int j = 0; j < nKnotPar3d; ++j) {
-                splineParameters[knotIndex * nKnotPar3d + j] += s * p[j];
+          for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
+            double u = gridU.getKnot(iu).u;
+            for (int iv = 0; iv < gridV.getNumberOfKnots(); iv++) {
+              double v = gridV.getKnot(iu).u;
+              int knotIndex = spline.getKnotIndex(iu, iv);
+              float P[nKnotPar3d];
+
+              { // direct correction
+                auto [y, z] = mainCorrection.convGridToLocal(sector, row, u, v);
+                // return values: u, v, scaling factor
+                auto [lu, lv, ls] = corr.convLocalToGrid(sector, row, y, z);
+                ls *= scale;
+                double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * ls * scaleU * scaleV};
+                const auto& spl = corr.getSpline(sector, row);
+                spl.interpolateParametersAtU(corr.getSplineData(sector, row), lu, lv, P);
+                for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
+                  for (int idim = 0; idim < 3; idim++, ind++) {
+                    splineParameters[knotIndex * nKnotPar3d + ind] += parscale[ipar] * P[ind];
+                  }
+                }
               }
-              auto pInvX = corrections[i]->getCorrectionParametersInvX(sector, row, y, z);
-              for (int j = 0; j < nKnotPar1d; ++j) {
-                splineParametersInvX[knotIndex * nKnotPar1d + j] += s * pInvX[j];
-              }
-              auto pInvYZ = corrections[i]->getCorrectionParametersInvYZ(sector, row, y, z);
-              for (int j = 0; j < nKnotPar2d; ++j) {
-                splineParametersInvYZ[knotIndex * nKnotPar2d + j] += s * pInvYZ[j];
-              }
-            }
-          } // iv
-        }   // iu
 
-        float* splineXYZ = correction.getSplineData(sector, row, 0);
-        float* splineInvX = correction.getSplineData(sector, row, 1);
-        float* splineInvYZ = correction.getSplineData(sector, row, 2);
+              auto [y, z] = mainCorrection.convGridToCorrectedLocal(sector, row, u, v);
+              // return values: u, v, scaling factor
+              auto [lu, lv, ls] = corr.convCorrectedLocalToGrid(sector, row, y, z);
+              ls *= scale;
+              double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * ls * scaleU * scaleV};
 
-        for (int i = 0; i < spline.getNumberOfParameters(); i++) {
-          splineXYZ[i] = splineParameters[i];
-        }
-        for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
-          splineX[i] = splineParametersInvX[i];
-          splineYZ[2 * i + 0] = splineParametersInvYZ[2 * i + 0];
-          splineYZ[2 * i + 1] = splineParametersInvYZ[2 * i + 1];
-        }
+              { // inverse X correction
+                corr.getSplineInvX(sector, row).interpolateParametersAtU(corr.getSplineDataInvX(sector, row), lu, lv, P);
+                for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
+                  for (int idim = 0; idim < 1; idim++, ind++) {
+                    splineParametersInvX[knotIndex * nKnotPar1d + ind] += parscale[ipar] * P[ind];
+                  }
+                }
+              }
+
+              { // inverse YZ correction
+                corr.getSplineInvYZ(sector, row).interpolateParametersAtU(corr.getSplineDataInvYZ(sector, row), lu, lv, P);
+                for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
+                  for (int idim = 0; idim < 2; idim++, ind++) {
+                    splineParametersInvYZ[knotIndex * nKnotPar2d + ind] += parscale[ipar] * P[ind];
+                  }
+                }
+              }
+
+            } // iv
+          } // iu
+        } // corrections
 
       } // row
-    };  // thread
+    }; // thread
 
     std::vector<std::thread> threads(mNthreads);
 
@@ -1054,7 +1106,6 @@ void TPCFastSpaceChargeCorrectionHelper::MergeCorrections(std::vector<o2::gpu::T
   } // sector
   float duration = watch.RealTime();
   LOGP(info, "Merge of corrections tooks: {}s", duration);
-  */
 }
 
 } // namespace tpc

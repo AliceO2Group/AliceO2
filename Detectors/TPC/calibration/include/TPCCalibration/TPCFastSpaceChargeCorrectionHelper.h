@@ -102,7 +102,15 @@ class TPCFastSpaceChargeCorrectionHelper
   /// initialise inverse transformation from linear combination of several input corrections
   void initInverse(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn);
 
-  void MergeCorrections(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn);
+  /// merge several corrections
+  /// \param mainCorrection main correction
+  /// \param scale scaling factor for the main correction
+  /// \param additionalCorrections vector of pairs of additional corrections and their scaling factors
+  /// \param prn printout flag
+  /// \return main correction merged with additional corrections
+  void MergeCorrections(
+    o2::gpu::TPCFastSpaceChargeCorrection& mainCorrection, float scale,
+    const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>>& additionalCorrections, bool prn);
 
  private:
   /// geometry initialization

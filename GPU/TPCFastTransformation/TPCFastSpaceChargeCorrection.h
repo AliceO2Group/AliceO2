@@ -82,6 +82,24 @@ class TPCFastSpaceChargeCorrection : public FlatObject
       maxCorr[2] = GPUCommonMath::Max(maxCorr[2], dv);
     }
 
+    void updateMaxValues(std::tuple<float, float, float> dxdudv, float scale)
+    {
+      float dx = std::get<0>(dxdudv) * scale;
+      float du = std::get<1>(dxdudv) * scale;
+      float dv = std::get<2>(dxdudv) * scale;
+      updateMaxValues(dx, du, dv);
+    }
+
+    std::tuple<float, float, float> getMaxValues() const
+    {
+      return std::make_tuple(maxCorr[0], maxCorr[1], maxCorr[2]);
+    }
+
+    std::tuple<float, float, float> getMinValues() const
+    {
+      return std::make_tuple(minCorr[0], minCorr[1], minCorr[2]);
+    }
+
     ClassDefNV(SectorRowInfo, 2);
   };
 
@@ -90,7 +108,11 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     ClassDefNV(SectorInfo, 1);
   };
 
-  typedef Spline2D<float, 3> SplineType;
+  typedef Spline2D<float, 3> SplineTypeXYZ;
+  typedef Spline2D<float, 1> SplineTypeInvX;
+  typedef Spline2D<float, 2> SplineTypeInvYZ;
+
+  typedef SplineTypeXYZ SplineType;
 
   /// _____________  Constructors / destructors __________________________
 
@@ -168,6 +190,30 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Gives pointer to spline data
   GPUd() const float* getSplineData(int32_t sector, int32_t row, int32_t iSpline = 0) const;
 
+  /// Gives const pointer to a spline for the inverse X correction
+  GPUd() const SplineTypeInvX& getSplineInvX(int32_t sector, int32_t row) const;
+
+  /// Gives pointer to a spline for the inverse X correction
+  GPUd() SplineTypeInvX& getSplineInvX(int32_t sector, int32_t row);
+
+  /// Gives pointer to spline data for the inverse X correction
+  GPUd() float* getSplineDataInvX(int32_t sector, int32_t row);
+
+  /// Gives pointer to spline data for the inverse X correction
+  GPUd() const float* getSplineDataInvX(int32_t sector, int32_t row) const;
+
+  /// Gives const pointer to a spline for the inverse YZ correction
+  GPUd() const SplineTypeInvYZ& getSplineInvYZ(int32_t sector, int32_t row) const;
+
+  /// Gives pointer to a spline for the inverse YZ correction
+  GPUd() SplineTypeInvYZ& getSplineInvYZ(int32_t sector, int32_t row);
+
+  /// Gives pointer to spline data for the inverse YZ correction
+  GPUd() float* getSplineDataInvYZ(int32_t sector, int32_t row);
+
+  /// Gives pointer to spline data for the inverse YZ correction
+  GPUd() const float* getSplineDataInvYZ(int32_t sector, int32_t row) const;
+
   /// _______________ The main method: cluster correction  _______________________
   ///
   // GPUd() int32_t getCorrectionInternal(int32_t sector, int32_t row, float u, float v, float& dx, float& du, float& dv) const;
@@ -192,6 +238,10 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// convert corrected u,v to internal grid coordinates
   GPUd() std::tuple<float, float, float> convCorrectedLocalToGrid(int32_t sector, int32_t row, float y, float z) const;
+
+  /// convert internal grid coordinates to corrected u,v
+  /// return values: u, v, scaling factor
+  GPUd() std::tuple<float, float> convGridToCorrectedLocal(int32_t sector, int32_t row, float u, float v) const;
 
   GPUd() bool isLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const;
 
@@ -316,6 +366,54 @@ GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineData(int32_t sector,
   return reinterpret_cast<float*>(mSplineData[iSpline] + mSectorDataSizeBytes[iSpline] * sector + rowInfo.dataOffsetBytes[iSpline]);
 }
 
+GPUdi() TPCFastSpaceChargeCorrection::SplineTypeInvX& TPCFastSpaceChargeCorrection::getSplineInvX(int32_t sector, int32_t row)
+{
+  /// Gives pointer to spline for the inverse X correction
+  return reinterpret_cast<SplineTypeInvX&>(getSpline(sector, row));
+}
+
+GPUdi() const TPCFastSpaceChargeCorrection::SplineTypeInvX& TPCFastSpaceChargeCorrection::getSplineInvX(int32_t sector, int32_t row) const
+{
+  /// Gives const pointer to spline for the inverse X correction
+  return reinterpret_cast<const SplineTypeInvX&>(getSpline(sector, row));
+}
+
+GPUdi() float* TPCFastSpaceChargeCorrection::getSplineDataInvX(int32_t sector, int32_t row)
+{
+  /// Gives pointer to spline data for the inverse X correction
+  return getSplineData(sector, row, 1);
+}
+
+GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineDataInvX(int32_t sector, int32_t row) const
+{
+  /// Gives pointer to spline data for the inverse X correction
+  return getSplineData(sector, row, 1);
+}
+
+GPUdi() TPCFastSpaceChargeCorrection::SplineTypeInvYZ& TPCFastSpaceChargeCorrection::getSplineInvYZ(int32_t sector, int32_t row)
+{
+  /// Gives pointer to spline for the inverse YZ correction
+  return reinterpret_cast<SplineTypeInvYZ&>(getSpline(sector, row));
+}
+
+GPUdi() const TPCFastSpaceChargeCorrection::SplineTypeInvYZ& TPCFastSpaceChargeCorrection::getSplineInvYZ(int32_t sector, int32_t row) const
+{
+  /// Gives const pointer to spline for the inverse YZ correction
+  return reinterpret_cast<const SplineTypeInvYZ&>(getSpline(sector, row));
+}
+
+GPUdi() float* TPCFastSpaceChargeCorrection::getSplineDataInvYZ(int32_t sector, int32_t row)
+{
+  /// Gives pointer to spline data for the inverse YZ correction
+  return getSplineData(sector, row, 2);
+}
+
+GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineDataInvYZ(int32_t sector, int32_t row) const
+{
+  /// Gives pointer to spline data for the inverse YZ correction
+  return getSplineData(sector, row, 2);
+}
+
 GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::convLocalToGrid(int32_t sector, int32_t row, float y, float z) const
 {
   /// convert local y, z to internal grid coordinates u,v
@@ -401,6 +499,17 @@ GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::convCorrec
   return {gridU, gridV, scale};
 }
 
+GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::convGridToCorrectedLocal(int32_t sector, int32_t row, float gridU, float gridV) const
+{
+  /// convert internal grid coordinates u,v to corrected y, z
+  const SectorRowInfo& info = getSectorRowInfo(sector, row);
+  float u = info.gridCorrU0 + gridU / info.scaleCorrUtoGrid;
+  float v = info.gridCorrV0 + gridV / info.scaleCorrVtoGrid;
+  float y, z;
+  mGeo.convUVtoLocal1(sector, u, v, y, z);
+  return {y, z};
+}
+
 GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::getCorrectionLocal(int32_t sector, int32_t row, float y, float z) const
 {
   const auto& info = getSectorRowInfo(sector, row);
@@ -421,33 +530,21 @@ GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::getCorrect
 GPUdi() float TPCFastSpaceChargeCorrection::getCorrectionXatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const
 {
   const auto& info = getSectorRowInfo(sector, row);
-  const Spline2D<float, 1>& spline = reinterpret_cast<const Spline2D<float, 1>&>(getSpline(sector, row));
-  const float* splineData = getSplineData(sector, row, 1);
-
   auto [gridU, gridV, scale] = convCorrectedLocalToGrid(sector, row, realY, realZ);
-
   float dx = 0;
-  spline.interpolateAtU(splineData, gridU, gridV, &dx);
-
+  getSplineInvX(sector, row).interpolateAtU(getSplineDataInvX(sector, row), gridU, gridV, &dx);
   dx = scale * GPUCommonMath::Clamp(dx, info.minCorr[0], info.maxCorr[0]);
   return dx;
 }
 
 GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::getCorrectionYZatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const
 {
-
   auto [gridU, gridV, scale] = convCorrectedLocalToGrid(sector, row, realY, realZ);
-
   const auto& info = getSectorRowInfo(sector, row);
-  const Spline2D<float, 2>& spline = reinterpret_cast<const Spline2D<float, 2>&>(getSpline(sector, row));
-  const float* splineData = getSplineData(sector, row, 2);
-
   float dyz[2];
-  spline.interpolateAtU(splineData, gridU, gridV, dyz);
-
+  getSplineInvYZ(sector, row).interpolateAtU(getSplineDataInvYZ(sector, row), gridU, gridV, dyz);
   dyz[0] = scale * GPUCommonMath::Clamp(dyz[0], info.minCorr[1], info.maxCorr[1]);
   dyz[1] = scale * GPUCommonMath::Clamp(dyz[1], info.minCorr[2], info.maxCorr[2]);
-
   return {dyz[0], dyz[1]};
 }
 
