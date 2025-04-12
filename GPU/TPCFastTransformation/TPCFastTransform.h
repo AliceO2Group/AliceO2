@@ -551,7 +551,7 @@ GPUdi() void TPCFastTransform::Transform(int32_t sector, int32_t row, float pad,
 GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t sector, float time, float& z, float maxTimeBin) const
 {
   float l = (time - mT0 - maxTimeBin) * mVdrift; // drift length cm
-  z = getGeometry().convDriftLengthToLocal(sector, l);
+  z = getGeometry().convDriftLengthToZ(sector, l);
 }
 
 GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
@@ -590,7 +590,7 @@ GPUdi() void TPCFastTransform::TransformIdealZ(int32_t sector, float time, float
   ///
 
   float l = (time - mT0 - vertexTime) * mVdrift; // drift length cm
-  z = getGeometry().convDriftLengthToLocal(sector, l);
+  z = getGeometry().convDriftLengthToZ(sector, l);
 }
 
 GPUdi() void TPCFastTransform::TransformIdeal(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const

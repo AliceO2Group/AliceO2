@@ -46,25 +46,19 @@ class TPCFastTransformGeo
     float x{0.f};        ///< nominal X coordinate of the padrow [cm]
     int32_t maxPad{0};   ///< maximal pad number = n pads - 1
     float padWidth{0.f}; ///< width of pads [cm]
-    float u0{0.f};       ///< min. u coordinate
-
-    /// get U min
-    GPUd() float getUmin() const { return u0; }
-
-    /// get U max
-    GPUd() float getUmax() const { return -u0; }
+    float yMin{0.f};     ///< min. y coordinate
 
     /// get Y min
-    GPUd() float getYmin() const { return u0; }
+    GPUd() float getYmin() const { return yMin; }
 
     /// get Y max
-    GPUd() float getYmax() const { return -u0; }
+    GPUd() float getYmax() const { return -yMin; }
 
     /// get Y range
     GPUd() std::tuple<float, float> getYrange() const { return {getYmin(), getYmax()}; }
 
-    /// get width in U
-    GPUd() float getUwidth() const { return -2.f * u0; }
+    /// get width in Y
+    GPUd() float getYwidth() const { return -2.f * yMin; }
 
     ClassDefNV(RowInfo, 1);
   };
@@ -145,22 +139,13 @@ class TPCFastTransformGeo
   GPUd() std::tuple<float, float> convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const;
 
   /// convert DriftLength -> Local c.s.
-  GPUd() float convDriftLengthToLocal(int32_t sector, float driftLength) const;
+  GPUd() float convDriftLengthToZ(int32_t sector, float driftLength) const;
+
+  /// convert Z to DriftLength
+  GPUd() float convZtoDriftLength(int32_t sector, float z) const;
 
   /// convert Local c.s. -> Pad, DriftLength
   GPUd() std::tuple<float, float> convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const;
-
-  /// convert UV -> Local c.s.
-  GPUd() void convUVtoLocal1(int32_t sector, float u, float v, float& y, float& z) const;
-
-  /// convert Local-> UV c.s.
-  GPUd() void convLocalToUV1(int32_t sector, float y, float z, float& u, float& v) const;
-
-  /// convert Pad coordinate -> U
-  GPUd() float convPadToU(int32_t row, float pad) const;
-
-  /// convert U -> Pad coordinate
-  GPUd() float convUtoPad(int32_t row, float u) const;
 
   /// Print method
   void print() const;
@@ -257,22 +242,16 @@ GPUdi() std::tuple<float, float> TPCFastTransformGeo::convPadDriftLengthToLocal(
   return {y, z};
 }
 
-GPUdi() float TPCFastTransformGeo::convDriftLengthToLocal(int32_t sector, float driftLength) const
+GPUdi() float TPCFastTransformGeo::convDriftLengthToZ(int32_t sector, float driftLength) const
 {
   /// convert DriftLength -> Local c.s.
   return (sector < NumberOfSectorsA) ? (mTPCzLength - driftLength) : (driftLength - mTPCzLength);
 }
 
-GPUdi() void TPCFastTransformGeo::convUVtoLocal1(int32_t sector, float u, float v, float& ly, float& lz) const
+GPUdi() float TPCFastTransformGeo::convZtoDriftLength(int32_t sector, float z) const
 {
-  /// convert UV -> Local c.s.
-  if (sector < NumberOfSectorsA) { // TPC side A
-    ly = u;
-    lz = mTPCzLength - v;
-  } else {                // TPC side C
-    ly = -u;              // pads are mirrorred on C-side
-    lz = v - mTPCzLength; // drift direction is mirrored on C-side
-  }
+  /// convert Z to DriftLength
+  return (sector < NumberOfSectorsA) ? (mTPCzLength - z) : (z + mTPCzLength);
 }
 
 GPUdi() std::tuple<float, float> TPCFastTransformGeo::getZrange(int32_t sector) const
@@ -299,32 +278,6 @@ GPUdi() std::tuple<float, float> TPCFastTransformGeo::convLocalToPadDriftLength(
   const TPCFastTransformGeo::RowInfo& rowInfo = getRowInfo(row);
   float pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
   return {pad, l};
-}
-
-GPUdi() void TPCFastTransformGeo::convLocalToUV1(int32_t sector, float ly, float lz, float& u, float& v) const
-{
-  /// convert Local-> UV c.s.
-  if (sector < NumberOfSectorsA) { // TPC side A
-    u = ly;
-    v = mTPCzLength - lz;
-  } else {                // TPC side C
-    u = -ly;              // pads are mirrorred on C-side
-    v = lz + mTPCzLength; // drift direction is mirrored on C-side
-  }
-}
-
-GPUdi() float TPCFastTransformGeo::convPadToU(int32_t row, float pad) const
-{
-  /// convert Pad coordinate -> U
-  const RowInfo& rowInfo = getRowInfo(row);
-  return (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
-}
-
-GPUdi() float TPCFastTransformGeo::convUtoPad(int32_t row, float u) const
-{
-  /// convert U -> Pad coordinate
-  const RowInfo& rowInfo = getRowInfo(row);
-  return u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
 }
 
 } // namespace gpu
