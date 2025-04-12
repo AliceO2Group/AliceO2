@@ -202,15 +202,16 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
     for (int pad = 0; pad < nPads; pad++) {
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
-      double u = geo.convPadToU(row, pad);
+
+      auto [y, z] = geo.convPadDriftLengthToLocal(0, row, pad, 0.);
 
       const double dx = x - c.X();
-      const double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
+      const double dy = y - (-c.Y()); // diferent sign convention for Y coordinate in the map
 
       if (fabs(dx) >= 1.e-6 || fabs(dy) >= 1.e-5) {
         LOG(warning) << "wrong calculated pad position:"
                      << " row " << row << " pad " << pad << " x calc " << x << " x in map " << c.X() << " dx " << (x - c.X())
-                     << " y calc " << u << " y in map " << -c.Y() << " dy " << dy << std::endl;
+                     << " y calc " << y << " y in map " << -c.Y() << " dy " << dy << std::endl;
       }
       if (fabs(maxDx) < fabs(dx)) {
         maxDx = dx;

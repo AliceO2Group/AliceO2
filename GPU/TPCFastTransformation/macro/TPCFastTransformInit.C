@@ -185,9 +185,10 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
         for (int32_t iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
           auto& info = corr.getSectorRowInfo(iSector, iRow);
           std::cout << "sector " << iSector << " row " << iRow
-                    << " gridV0 " << info.gridV0 << " gridCorrU0 " << info.gridCorrU0 << " gridCorrV0 " << info.gridCorrV0
-                    << " scaleCorrUtoGrid " << info.scaleCorrUtoGrid << " scaleCorrVtoGrid " << info.scaleCorrVtoGrid
-                    << " gridU0 " << info.gridU0 << " scaleUtoGrid " << info.scaleUtoGrid << " scaleVtoGrid " << info.scaleVtoGrid
+                    << " gridY0 " << info.gridMeasured.y0 << " gridL0 " << info.gridMeasured.l0
+                    << " scaleYtoGrid " << info.gridMeasured.yScale << " scaleLtoGrid " << info.gridMeasured.lScale
+                    << " gridRealY0 " << info.gridReal.y0 << " gridRealL0 " << info.gridReal.l0
+                    << " scaleRealYtoGrid " << info.gridReal.yScale << " scaleRealLtoGrid " << info.gridReal.lScale
                     << std::endl;
         }
       }

@@ -141,48 +141,18 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
 {
   /// Sets the actual location of the external flat buffer after it has been moved (e.g. to another maschine)
 
-  struct RowInfoVersion3 {
-    int32_t splineScenarioID{0};  ///< scenario index (which of Spline2D splines to use)
-    size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing a TPC sector
-  };
-
-  struct RowActiveAreaVersion3 {
-    float maxDriftLengthCheb[5]{0.f};
-    float vMax{0.f};
-    float cuMin{0.f};
-    float cuMax{0.f};
-    float cvMax{0.f};
-  };
-
-  struct SectorRowInfoVersion3 {
-    float gridV0{0.f};           ///< V coordinate of the V-grid start
-    float gridCorrU0{0.f};       ///< U coordinate of the U-grid start for corrected U
-    float gridCorrV0{0.f};       ///< V coordinate of the V-grid start for corrected V
-    float scaleCorrUtoGrid{0.f}; ///< scale corrected U to U-grid coordinate
-    float scaleCorrVtoGrid{0.f}; ///< scale corrected V to V-grid coordinate
-    RowActiveAreaVersion3 activeArea;
-  };
+  if (mClassVersion != 4) {
+    LOG(error) << "TPCFastSpaceChargeCorrection::setActualBufferAddress() called with class version " << mClassVersion << ". This is not supported.";
+    return;
+  }
 
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
 
-  size_t rowsOffset = 0;
-  size_t rowsSize = 0;
-  if (mClassVersion == 3) {
-    rowsSize = sizeof(RowInfoVersion3) * mGeo.getNumberOfRows();
-  }
-
-  size_t sectorRowsOffset = rowsOffset + rowsSize;
-  size_t sectorRowsSize = 0;
-  if (mClassVersion == 3) { // copy old-format sectorrow data from the buffer to the arrays
-    sectorRowsSize = sizeof(SectorRowInfoVersion3) * mGeo.getNumberOfRows() * mGeo.getNumberOfSectors();
-  }
-
-  size_t scOffset = alignSize(sectorRowsOffset + sectorRowsSize, SplineType::getClassAlignmentBytes());
   size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
 
-  mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr + scOffset);
+  mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr);
 
-  size_t scBufferOffset = alignSize(scOffset + scSize, SplineType::getBufferAlignmentBytes());
+  size_t scBufferOffset = alignSize(scSize, SplineType::getBufferAlignmentBytes());
   size_t scBufferSize = 0;
 
   for (int32_t i = 0; i < mNumberOfScenarios; i++) {
@@ -195,45 +165,6 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
     size_t sectorDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
     mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + sectorDataOffset);
     bufferSize = sectorDataOffset + mSectorDataSizeBytes[is] * mGeo.getNumberOfSectors();
-  }
-
-  if (mClassVersion == 3) { // copy old-format sectorrow data from the buffer to the arrays
-
-    auto* rowInfosOld = reinterpret_cast<RowInfoVersion3*>(mFlatBufferPtr + rowsOffset);
-    for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
-      RowInfoVersion3& infoOld = rowInfosOld[i];
-      RowInfo& info = mRowInfos[i];
-      info.splineScenarioID = infoOld.splineScenarioID;
-      for (int32_t is = 0; is < 3; is++) {
-        info.dataOffsetBytes[is] = infoOld.dataOffsetBytes[is];
-      }
-    }
-
-    for (int32_t is = 0; is < mNumberOfScenarios; is++) {
-      auto& spline = mScenarioPtr[is];
-      spline.setXrange(0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax());
-    }
-
-    auto* sectorRowInfosOld = reinterpret_cast<SectorRowInfoVersion3*>(mFlatBufferPtr + sectorRowsOffset);
-
-    for (int32_t sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
-      for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
-        SectorRowInfoVersion3& infoOld = sectorRowInfosOld[mGeo.getNumberOfRows() * sector + row];
-        SectorRowInfo& info = getSectorRowInfo(sector, row);
-        const auto& spline = getSpline(sector, row);
-        info.gridU0 = mGeo.getRowInfo(row).u0;
-        info.scaleUtoGrid = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getUwidth();
-
-        info.gridV0 = infoOld.gridV0;
-        info.scaleVtoGrid = spline.getGridX2().getUmax() / (mGeo.getTPCzLength() + 3. - info.gridV0);
-
-        info.gridCorrU0 = infoOld.gridCorrU0;
-        info.scaleCorrUtoGrid = infoOld.scaleCorrUtoGrid;
-
-        info.gridCorrV0 = infoOld.gridCorrV0;
-        info.scaleCorrVtoGrid = infoOld.scaleCorrVtoGrid;
-      }
-    }
   }
 }
 
@@ -454,17 +385,12 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
 
       SectorRowInfo& info = getSectorRowInfo(sector, row);
 
-      info.gridU0 = mGeo.getRowInfo(row).u0;
-      info.scaleUtoGrid = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getUwidth();
+      info.gridMeasured.y0 = mGeo.getRowInfo(row).getYmin();
+      info.gridMeasured.yScale = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getYwidth();
+      info.gridMeasured.l0 = 0.f;
+      info.gridMeasured.lScale = spline.getGridX2().getUmax() / vLength;
 
-      info.gridV0 = 0.f;
-      info.scaleVtoGrid = spline.getGridX2().getUmax() / vLength;
-
-      info.gridCorrU0 = info.gridU0;
-      info.gridCorrV0 = info.gridV0;
-      info.scaleCorrUtoGrid = info.scaleUtoGrid;
-      info.scaleCorrVtoGrid = info.scaleVtoGrid;
-
+      info.gridReal = info.gridMeasured;
     } // row
   } // sector
 }
@@ -539,9 +465,9 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
 
       // grid borders
       if (sector < mGeo.getNumberOfSectorsA()) {
-        z1 = vLength - getSectorRowInfo(sector, row).gridV0;
+        z1 = vLength - getSectorRowInfo(sector, row).gridMeasured.l0;
       } else {
-        z0 = getSectorRowInfo(sector, row).gridV0 - vLength;
+        z0 = getSectorRowInfo(sector, row).gridMeasured.l0 - vLength;
       }
 
       double stepY = (y1 - y0) / 100.;

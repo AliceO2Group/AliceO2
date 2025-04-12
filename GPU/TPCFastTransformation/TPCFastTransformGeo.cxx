@@ -92,7 +92,7 @@ void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float 
   row.x = x;
   row.maxPad = nPads - 1;
   row.padWidth = padWidth;
-  row.u0 = -uWidth / 2.;
+  row.yMin = -uWidth / 2.;
 }
 
 void TPCFastTransformGeo::finishConstruction()

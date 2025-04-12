@@ -354,15 +354,14 @@ void TPCFastSpaceChargeCorrectionHelper::testGeometry(const TPCFastTransformGeo&
     for (int pad = 0; pad < nPads; pad++) {
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
-      double u = geo.convPadToU(row, pad);
-
+      auto [y, z] = geo.convPadDriftLengthToLocal(0, row, pad, 0.);
       const double dx = x - c.X();
-      const double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
+      const double dy = y - (-c.Y()); // diferent sign convention for Y coordinate in the map
 
       if (fabs(dx) >= 1.e-6 || fabs(dy) >= 1.e-5) {
         LOG(warning) << "wrong calculated pad position:"
                      << " row " << row << " pad " << pad << " x calc " << x << " x in map " << c.X() << " dx " << (x - c.X())
-                     << " y calc " << u << " y in map " << -c.Y() << " dy " << dy << std::endl;
+                     << " y calc " << y << " y in map " << -c.Y() << " dy " << dy << std::endl;
       }
       if (fabs(maxDx) < fabs(dx)) {
         maxDx = dx;
@@ -499,18 +498,14 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       double yMax = rowInfo.x * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
       double zMin = rowInfo.x * trackResiduals.getZ2X(0);
       double zMax = rowInfo.x * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
-      double uMin = yMin;
-      double uMax = yMax;
-      double vMin = geo.getTPCzLength() - zMax;
-      double vMax = geo.getTPCzLength() - zMin;
-      info.gridU0 = uMin;
-      info.scaleUtoGrid = spline.getGridX1().getUmax() / (uMax - uMin);
-      info.gridV0 = vMin;
-      info.scaleVtoGrid = spline.getGridX2().getUmax() / (vMax - vMin);
-      info.gridCorrU0 = info.gridU0;
-      info.gridCorrV0 = info.gridV0;
-      info.scaleCorrUtoGrid = info.scaleUtoGrid;
-      info.scaleCorrVtoGrid = info.scaleVtoGrid;
+      double lMin = geo.getTPCzLength() - zMax;
+      double lMax = geo.getTPCzLength() - zMin;
+      info.gridMeasured.y0 = yMin;
+      info.gridMeasured.yScale = spline.getGridX1().getUmax() / (yMax - yMin);
+      info.gridMeasured.l0 = lMin;
+      info.gridMeasured.lScale = spline.getGridX2().getUmax() / (lMax - lMin);
+
+      info.gridReal = info.gridMeasured;
 
       // std::cout << " iSector " << iSector << " iRow " << iRow << " uMin: " << uMin << " uMax: " << uMax << " vMin: " << vMin << " vMax: " << vMax
       //<< " grid scale u "<< info.scaleUtoGrid << " grid scale v "<< info.scaleVtoGrid<< std::endl;
@@ -593,8 +588,8 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
       auto myThread = [&](int iThread, int nTreads) {
         struct Voxel {
-          float mY, mZ;            // not-distorted local coordinates
-          float mDy, mDz;          // bin size
+          float mY, mZ;            // non-distorted local coordinates
+          float mDy, mDz;          // voxel size
           int mSmoothingStep{100}; // is the voxel data original or smoothed at this step
         };
 
@@ -905,11 +900,10 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
 
             double realY = y + dy;
             double realZ = z + dz;
-            float realU, realV;
-            mGeo.convLocalToUV1(sector, realY, realZ, realU, realV);
+            double realL = mGeo.convZtoDriftLength(sector, realZ);
 
-            dataPointGridU.push_back(realU);
-            dataPointGridV.push_back(realV);
+            dataPointGridU.push_back(realY);
+            dataPointGridV.push_back(realL);
             dataPointF.push_back(dx);
             dataPointF.push_back(dy);
             dataPointF.push_back(dz);
@@ -920,17 +914,14 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
 
         auto& sectorRowInfo = correction.getSectorRowInfo(sector, row);
 
-        sectorRowInfo.gridCorrU0 = sectorRowInfo.gridU0;
-        sectorRowInfo.gridCorrV0 = sectorRowInfo.gridV0;
-        sectorRowInfo.scaleCorrUtoGrid = sectorRowInfo.scaleUtoGrid;
-        sectorRowInfo.scaleCorrVtoGrid = sectorRowInfo.scaleVtoGrid;
+        sectorRowInfo.gridReal = sectorRowInfo.gridMeasured;
 
         int nDataPoints = dataPointGridU.size();
 
         // convert real Y,Z to grid U,V
         for (int i = 0; i < nDataPoints; i++) {
-          dataPointGridU[i] = (dataPointGridU[i] - sectorRowInfo.gridCorrU0) * sectorRowInfo.scaleCorrUtoGrid;
-          dataPointGridV[i] = (dataPointGridV[i] - sectorRowInfo.gridCorrV0) * sectorRowInfo.scaleCorrVtoGrid;
+          dataPointGridU[i] = (dataPointGridU[i] - sectorRowInfo.gridReal.y0) * sectorRowInfo.gridReal.yScale;
+          dataPointGridV[i] = (dataPointGridV[i] - sectorRowInfo.gridReal.l0) * sectorRowInfo.gridReal.lScale;
         }
 
         splineParameters.resize(spline.getNumberOfParameters());
@@ -1035,8 +1026,10 @@ void TPCFastSpaceChargeCorrectionHelper::MergeCorrections(
           secRowInfo.updateMaxValues(linfo.getMaxValues(), scale);
           secRowInfo.updateMaxValues(linfo.getMinValues(), scale);
 
-          double scaleU = secRowInfo.scaleUtoGrid / linfo.scaleUtoGrid;
-          double scaleV = secRowInfo.scaleVtoGrid / linfo.scaleVtoGrid;
+          double scaleU = secRowInfo.gridMeasured.yScale / linfo.gridMeasured.yScale;
+          double scaleV = secRowInfo.gridMeasured.lScale / linfo.gridMeasured.lScale;
+          double scaleRealU = secRowInfo.gridReal.yScale / linfo.gridReal.yScale;
+          double scaleRealV = secRowInfo.gridReal.lScale / linfo.gridReal.lScale;
 
           for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
             double u = gridU.getKnot(iu).u;
@@ -1060,11 +1053,11 @@ void TPCFastSpaceChargeCorrectionHelper::MergeCorrections(
                 }
               }
 
-              auto [y, z] = mainCorrection.convGridToCorrectedLocal(sector, row, u, v);
+              auto [y, z] = mainCorrection.convGridToRealLocal(sector, row, u, v);
               // return values: u, v, scaling factor
-              auto [lu, lv, ls] = corr.convCorrectedLocalToGrid(sector, row, y, z);
+              auto [lu, lv, ls] = corr.convRealLocalToGrid(sector, row, y, z);
               ls *= scale;
-              double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * ls * scaleU * scaleV};
+              double parscale[4] = {ls, ls * scaleRealU, ls * scaleRealV, ls * ls * scaleRealU * scaleRealV};
 
               { // inverse X correction
                 corr.getSplineInvX(sector, row).interpolateParametersAtU(corr.getSplineDataInvX(sector, row), lu, lv, P);
