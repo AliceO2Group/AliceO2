@@ -258,12 +258,14 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
     correction.startConstruction(mGeo, nCorrectionScenarios);
 
     // assign spline type for TPC rows
-    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-      int scenario = row / 10;
-      if (scenario >= nCorrectionScenarios) {
-        scenario = nCorrectionScenarios - 1;
+    for (int sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
+      for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+        int scenario = row / 10;
+        if (scenario >= nCorrectionScenarios) {
+          scenario = nCorrectionScenarios - 1;
+        }
+        correction.setRowScenarioID(sector, row, scenario);
       }
-      correction.setRowScenarioID(row, scenario);
     }
 
     for (int scenario = 0; scenario < nCorrectionScenarios; scenario++) {
@@ -397,93 +399,100 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   int nY2Xbins = trackResiduals.getNY2XBins();
   int nZ2Xbins = trackResiduals.getNZ2XBins();
 
-  std::vector<double> uvBinsDouble[2];
+  std::vector<double> knotsDouble[3];
 
-  uvBinsDouble[0].reserve(nY2Xbins);
-  uvBinsDouble[1].reserve(nZ2Xbins);
+  knotsDouble[0].reserve(nY2Xbins);
+  knotsDouble[1].reserve(nZ2Xbins);
+  knotsDouble[2].reserve(nZ2Xbins);
+
+  // to get enouth measurements, make a spline knot at every second bin. Boundary bins are always included.
 
   for (int i = 0, j = nY2Xbins - 1; i <= j; i += 2, j -= 2) {
-    uvBinsDouble[0].push_back(trackResiduals.getY2X(0, i));
+    knotsDouble[0].push_back(trackResiduals.getY2X(0, i));
     if (j >= i + 1) {
-      uvBinsDouble[0].push_back(trackResiduals.getY2X(0, j));
+      knotsDouble[0].push_back(trackResiduals.getY2X(0, j));
     }
   }
 
   for (int i = 0, j = nZ2Xbins - 1; i <= j; i += 2, j -= 2) {
-    uvBinsDouble[1].push_back(-trackResiduals.getZ2X(i));
+    knotsDouble[1].push_back(trackResiduals.getZ2X(i));
+    knotsDouble[2].push_back(-trackResiduals.getZ2X(i));
     if (j >= i + 1) {
-      uvBinsDouble[1].push_back(-trackResiduals.getZ2X(j));
+      knotsDouble[1].push_back(trackResiduals.getZ2X(j));
+      knotsDouble[2].push_back(-trackResiduals.getZ2X(j));
     }
   }
 
-  std::vector<int> uvBinsInt[2];
+  std::vector<int> knotsInt[3];
 
-  for (int iuv = 0; iuv < 2; iuv++) {
-    auto& bins = uvBinsDouble[iuv];
-    std::sort(bins.begin(), bins.end());
+  for (int dim = 0; dim < 3; dim++) {
+    auto& knotsD = knotsDouble[dim];
+    std::sort(knotsD.begin(), knotsD.end());
 
-    auto& binsInt = uvBinsInt[iuv];
-    binsInt.reserve(bins.size());
-
-    double dy = bins[1] - bins[0];
-    for (int i = 2; i < bins.size(); i++) {
-      double dd = bins[i] - bins[i - 1];
-      if (dd < dy) {
-        dy = dd;
+    double pitch = knotsD[1] - knotsD[0]; // min distance between the knots
+    for (int i = 2; i < knotsD.size(); i++) {
+      double d = knotsD[i] - knotsD[i - 1];
+      if (d < pitch) {
+        pitch = d;
       }
     }
-    // spline knots must be positioned on the grid with integer internal coordinate
-    // take the knot position accuracy of 0.1*dy
-    dy = dy / 10.;
-    double y0 = bins[0];
-    double y1 = bins[bins.size() - 1];
-    for (auto& y : bins) {
-      y -= y0;
-      int iy = int(y / dy + 0.5);
-      binsInt.push_back(iy);
-      double yold = y / (y1 - y0) * 2 - 1.;
-      y = iy * dy;
-      y = y / (y1 - y0) * 2 - 1.;
-      if (iuv == 0) {
-        LOG(info) << "TPC SC splines: convert y bin: " << yold << " -> " << y << " -> " << iy;
-      } else {
-        LOG(info) << "TPC SC splines: convert z bin: " << yold << " -> " << y << " -> " << iy;
-      }
+    // spline knots must be positioned on the grid with an integer internal coordinate
+    // we set the knot positioning accuracy to 0.1*pitch
+    pitch = 0.1 * pitch;
+    auto& knotsI = knotsInt[dim];
+    knotsI.reserve(knotsD.size());
+    double u0 = knotsD[0];
+    double u1 = knotsD[knotsD.size() - 1];
+    for (auto& u : knotsD) {
+      u -= u0;
+      int iu = int(u / pitch + 0.5);
+      knotsI.push_back(iu);
+      // debug printout: corrected vs original knot positions, scaled to [-1,1] interval
+      double uorig = u / (u1 - u0) * 2 - 1.;
+      u = (iu * pitch) / (u1 - u0) * 2 - 1.;
+      LOG(info) << "TPC SC splines: convert " << (dim == 0 ? "y" : (dim == 1 ? "z" : "-z")) << " bin to the knot: " << uorig << " -> " << u << " -> " << iu;
     }
 
-    if (binsInt.size() < 2) {
-      binsInt.clear();
-      binsInt.push_back(0);
-      binsInt.push_back(1);
+    if (knotsI.size() < 2) { // minimum 2 knots
+      knotsI.clear();
+      knotsI.push_back(0);
+      knotsI.push_back(1);
     }
   }
 
-  auto& yBinsInt = uvBinsInt[0];
-  auto& zBinsInt = uvBinsInt[1];
+  auto& yKnotsInt = knotsInt[0];
+  auto& zKnotsIntA = knotsInt[1];
+  auto& zKnotsIntC = knotsInt[2];
 
-  int nKnotsY = yBinsInt.size();
-  int nKnotsZ = zBinsInt.size();
+  int nKnotsY = yKnotsInt.size();
+  int nKnotsZA = zKnotsIntA.size();
+  int nKnotsZC = zKnotsIntC.size();
 
   // std::cout << "n knots Y: " << nKnotsY << std::endl;
-  // std::cout << "n knots Z: " << nKnotsZ << std::endl;
+  // std::cout << "n knots Z: " << nKnotsZA << ",  " << nKnotsZC << std::endl;
 
   const int nRows = geo.getNumberOfRows();
   const int nSectors = geo.getNumberOfSectors();
 
   { // create the correction object
 
-    const int nCorrectionScenarios = 1;
+    const int nCorrectionScenarios = 2; // different grids for TPC A and TPC C sides
 
     correction.startConstruction(geo, nCorrectionScenarios);
 
     // init rows
-    for (int row = 0; row < geo.getNumberOfRows(); row++) {
-      correction.setRowScenarioID(row, 0);
+    for (int iSector = 0; iSector < nSectors; iSector++) {
+      int id = iSector < geo.getNumberOfSectorsA() ? 0 : 1;
+      for (int row = 0; row < geo.getNumberOfRows(); row++) {
+        correction.setRowScenarioID(iSector, row, id);
+      }
     }
     { // init spline scenario
       TPCFastSpaceChargeCorrection::SplineType spline;
-      spline.recreate(nKnotsY, &yBinsInt[0], nKnotsZ, &zBinsInt[0]);
+      spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZA, &zKnotsIntA[0]);
       correction.setSplineScenario(0, spline);
+      spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZC, &zKnotsIntC[0]);
+      correction.setSplineScenario(1, spline);
     }
     correction.finishConstruction();
   } // .. create the correction object
@@ -491,19 +500,23 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   // set the grid borders
   for (int iSector = 0; iSector < geo.getNumberOfSectors(); iSector++) {
     for (int iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
-      const auto& rowInfo = geo.getRowInfo(iRow);
       auto& info = correction.getSectorRowInfo(iSector, iRow);
       const auto& spline = correction.getSpline(iSector, iRow);
-      double yMin = rowInfo.x * trackResiduals.getY2X(iRow, 0);
-      double yMax = rowInfo.x * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
-      double zMin = rowInfo.x * trackResiduals.getZ2X(0);
-      double zMax = rowInfo.x * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
-      double lMin = geo.getTPCzLength() - zMax;
-      double lMax = geo.getTPCzLength() - zMin;
-      info.gridMeasured.y0 = yMin;
-      info.gridMeasured.yScale = spline.getGridX1().getUmax() / (yMax - yMin);
-      info.gridMeasured.l0 = lMin;
-      info.gridMeasured.lScale = spline.getGridX2().getUmax() / (lMax - lMin);
+      double rowX = geo.getRowInfo(iRow).x;
+      double yMin = rowX * trackResiduals.getY2X(iRow, 0);
+      double yMax = rowX * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
+      double zMin = rowX * trackResiduals.getZ2X(0);
+      double zMax = rowX * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
+      double zOut = zMax;
+      if (iSector >= geo.getNumberOfSectorsA()) {
+        // TPC C side
+        zOut = -zOut;
+        zMax = -zMin;
+        zMin = zOut;
+      }
+      info.gridMeasured.set(yMin, spline.getGridX1().getUmax() / (yMax - yMin), // y
+                            zMin, spline.getGridX2().getUmax() / (zMax - zMin), // z
+                            zOut, geo.getZreadout(iSector));                    // correction scaling region
 
       info.gridReal = info.gridMeasured;
 
@@ -514,16 +527,16 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
   LOG(info) << "fast space charge correction helper: preparation took " << watch1.RealTime() << "s";
 
-  for (int processingInverseCorrection = 0; processingInverseCorrection < 2; processingInverseCorrection++) {
+  for (int processingInverseCorrection = 0; processingInverseCorrection <= 1; processingInverseCorrection++) {
 
     TTree* currentTree = (processingInverseCorrection) ? voxResTreeInverse : voxResTree;
 
     if (!currentTree) {
       continue;
     }
-
-    LOG(info) << "fast space charge correction helper: " << ((processingInverseCorrection) ? "inverse" : "direct")
-              << " : fill data points from track residuals.. ";
+    const char* directionName = (processingInverseCorrection) ? "inverse" : "direct";
+    LOG(info) << "\n fast space charge correction helper: Process " << directionName
+              << " correction: fill data points from track residuals.. ";
 
     TStopwatch watch3;
     o2::gpu::TPCFastSpaceChargeCorrectionMap& map = helper->getCorrectionMap();
@@ -548,34 +561,42 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
     { // read data from the tree to vSectorData
 
       ROOT::TTreeProcessorMT processor(*currentTree, mNthreads);
-
+      std::string errMsg = std::string("Error reading ") + directionName + " track residuals: ";
       auto myThread = [&](TTreeReader& readerSubRange) {
         TTreeReaderValue<o2::tpc::TrackResiduals::VoxRes> v(readerSubRange, "voxRes");
         while (readerSubRange.Next()) {
           int iSector = (int)v->bsec;
           if (iSector < 0 || iSector >= nSectors) {
-            LOG(fatal) << "Error reading voxels: voxel Sector number " << iSector << " is out of range";
+            LOG(fatal) << errMsg << "Sector number " << iSector << " is out of range";
             continue;
           }
           int iRow = (int)v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
           if (iRow < 0 || iRow >= nRows) {
-            LOG(fatal) << "Row number " << iRow << " is out of range";
+            LOG(fatal) << errMsg << "Row number " << iRow << " is out of range";
           }
+          double rowX = trackResiduals.getX(iRow);         // X of the pad row
           int iy = v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
           int iz = v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
           auto& data = vSectorData[iSector * nRows + iRow][iy * nZ2Xbins + iz];
           data.mNentries = (int)v->stat[o2::tpc::TrackResiduals::VoxV];
           data.mX = v->stat[o2::tpc::TrackResiduals::VoxX];
-          data.mY = v->stat[o2::tpc::TrackResiduals::VoxF];
-          data.mZ = v->stat[o2::tpc::TrackResiduals::VoxZ];
+          data.mY = v->stat[o2::tpc::TrackResiduals::VoxF] * rowX;
+          data.mZ = v->stat[o2::tpc::TrackResiduals::VoxZ] * rowX;
           data.mCx = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
           data.mCy = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
           data.mCz = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
-          if (0 && data.mNentries < 1) {
-            data.mCx = 0.;
-            data.mCy = 0.;
-            data.mCz = 0.;
-            data.mNentries = 1;
+          if (invertSigns) {
+            data.mCx *= -1.;
+            data.mCy *= -1.;
+            data.mCz *= -1.;
+          }
+          if (data.mNentries > 0) {
+            if (iSector < geo.getNumberOfSectorsA() && data.mZ < 0) {
+              LOG(error) << errMsg << "fitted Z coordinate " << data.mZ << " is negative for sector " << iSector;
+            }
+            if (iSector >= geo.getNumberOfSectorsA() && data.mZ > 0) {
+              LOG(error) << errMsg << "fitted Z coordinate " << data.mZ << " is positive for sector " << iSector;
+            }
           }
         }
       };
@@ -599,7 +620,6 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
           // LOG(info) << "Processing Sector " << iSector << " row " << iRow;
 
           // complete the voxel data
-
           {
             int xBin = iRow;
             double x = trackResiduals.getX(xBin); // radius of the pad row
@@ -619,36 +639,28 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
                 if (iSector >= geo.getNumberOfSectorsA()) {
                   vox.mZ = -vox.mZ;
                 }
-                data.mY *= x;
-                data.mZ *= x;
-                /*
-                if ( fabs(x - data.mX) > 0.01 || fabs(vox.mY - data.mY) > 5. || fabs(vox.mZ - data.mZ) > 5.) {
-                  std::cout
-                    << " sector " << iSector << " row " << iRow
-                    << " voxel x " << x << " y " << vox.mY << " z " << vox.mZ
-                    << " data x " << data.mX << " y " << data.mY << " z " << data.mZ
-                    << std::endl;
-                }
-                */
-                if (0) { // debug: always use voxel center instead of the mean position
-                  data.mY = vox.mY;
-                  data.mZ = vox.mZ;
-                }
-                if (data.mNentries < 1) { // no data
+                if (data.mNentries > 0) { // voxel contains data
+                  vox.mSmoothingStep = 0; // take original data
+                  isDataFound = true;
+                  if (fabs(x - data.mX) > 1. || fabs(vox.mY - data.mY) > 5. || fabs(vox.mZ - data.mZ) > 5.) {
+                    std::cout << directionName << ": fitted voxel is too far from the nominal position: "
+                              << " sector " << iSector << " row " << iRow
+                              << " center x " << x << " y " << vox.mY << " z " << vox.mZ
+                              << " fitted x " << data.mX << " y " << data.mY << " z " << data.mZ
+                              << std::endl;
+                  }
+                } else { // no data, take voxel center position
                   data.mCx = 0.;
                   data.mCy = 0.;
                   data.mCz = 0.;
+                  data.mX = x;
                   data.mY = vox.mY;
                   data.mZ = vox.mZ;
-                  vox.mSmoothingStep = 100;
-                } else { // voxel contains data
-                  if (invertSigns) {
-                    data.mCx *= -1.;
-                    data.mCy *= -1.;
-                    data.mCz *= -1.;
-                  }
-                  vox.mSmoothingStep = 0; // original data
-                  isDataFound = true;
+                  vox.mSmoothingStep = 100; // fill this data point with smoothed values from the neighbours
+                }
+                if (0) { // debug: always use voxel center instead of the mean position
+                  data.mY = vox.mY;
+                  data.mZ = vox.mZ;
                 }
               }
             }
@@ -734,13 +746,13 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
             if (vox2.mSmoothingStep > 2) {
               LOG(fatal) << "empty voxel is not repared: y " << iy2 << " z " << iz2;
             }
-            double y1 = vox1.mY;
-            double z1 = vox1.mZ;
+            double y1 = data1.mY;
+            double z1 = data1.mZ;
             double cx1 = data1.mCx;
             double cy1 = data1.mCy;
             double cz1 = data1.mCz;
-            double y2 = vox2.mY;
-            double z2 = vox2.mZ;
+            double y2 = data2.mY;
+            double z2 = data2.mZ;
             double cx2 = data2.mCx;
             double cy2 = data2.mCy;
             double cz2 = data2.mCz;
@@ -849,6 +861,9 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
       std::vector<float> splineParameters;
 
       for (int row = iThread; row < mGeo.getNumberOfRows(); row += mNthreads) {
+        auto& sectorRowInfo = correction.getSectorRowInfo(sector, row);
+        sectorRowInfo.gridReal = sectorRowInfo.gridMeasured;
+
         TPCFastSpaceChargeCorrection::SplineType spline = correction.getSpline(sector, row);
         helper.setSpline(spline, 10, 10);
 
@@ -897,33 +912,16 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
               dy += dyTmp * scaling[i];
               dz += dzTmp * scaling[i];
             }
-
-            double realY = y + dy;
-            double realZ = z + dz;
-            double realL = mGeo.convZtoDriftLength(sector, realZ);
-
-            dataPointGridU.push_back(realY);
-            dataPointGridV.push_back(realL);
-            dataPointF.push_back(dx);
-            dataPointF.push_back(dy);
-            dataPointF.push_back(dz);
+            auto [gridU, gridV, scale] = correction.convRealLocalToGrid(sector, row, y + dy, z + dz);
+            dataPointGridU.push_back(gridU);
+            dataPointGridV.push_back(gridV);
+            dataPointF.push_back(scale * dx);
+            dataPointF.push_back(scale * dy);
+            dataPointF.push_back(scale * dz);
           }
         }
 
-        // define the grid for the inverse correction
-
-        auto& sectorRowInfo = correction.getSectorRowInfo(sector, row);
-
-        sectorRowInfo.gridReal = sectorRowInfo.gridMeasured;
-
         int nDataPoints = dataPointGridU.size();
-
-        // convert real Y,Z to grid U,V
-        for (int i = 0; i < nDataPoints; i++) {
-          dataPointGridU[i] = (dataPointGridU[i] - sectorRowInfo.gridReal.y0) * sectorRowInfo.gridReal.yScale;
-          dataPointGridV[i] = (dataPointGridV[i] - sectorRowInfo.gridReal.l0) * sectorRowInfo.gridReal.lScale;
-        }
-
         splineParameters.resize(spline.getNumberOfParameters());
 
         helper.approximateDataPoints(spline, splineParameters.data(), 0., spline.getGridX1().getUmax(),
@@ -1026,10 +1024,10 @@ void TPCFastSpaceChargeCorrectionHelper::MergeCorrections(
           secRowInfo.updateMaxValues(linfo.getMaxValues(), scale);
           secRowInfo.updateMaxValues(linfo.getMinValues(), scale);
 
-          double scaleU = secRowInfo.gridMeasured.yScale / linfo.gridMeasured.yScale;
-          double scaleV = secRowInfo.gridMeasured.lScale / linfo.gridMeasured.lScale;
-          double scaleRealU = secRowInfo.gridReal.yScale / linfo.gridReal.yScale;
-          double scaleRealV = secRowInfo.gridReal.lScale / linfo.gridReal.lScale;
+          double scaleU = secRowInfo.gridMeasured.getYscale() / linfo.gridMeasured.getYscale();
+          double scaleV = secRowInfo.gridMeasured.getZscale() / linfo.gridMeasured.getZscale();
+          double scaleRealU = secRowInfo.gridReal.getYscale() / linfo.gridReal.getYscale();
+          double scaleRealV = secRowInfo.gridReal.getZscale() / linfo.gridReal.getZscale();
 
           for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
             double u = gridU.getKnot(iu).u;

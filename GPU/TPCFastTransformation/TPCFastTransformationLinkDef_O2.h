@@ -70,6 +70,7 @@
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SectorInfo + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SectorRowInfo + ;
+#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::GridInfo + ;
 
 #pragma link C++ class o2::gpu::CorrectionMapsHelper + ;
 #pragma link C++ struct o2::gpu::MultivariatePolynomialContainer + ;

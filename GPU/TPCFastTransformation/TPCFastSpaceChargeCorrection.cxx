@@ -35,7 +35,7 @@ TPCFastSpaceChargeCorrection::TPCFastSpaceChargeCorrection()
     mScenarioPtr(nullptr),
     mTimeStamp(-1),
     mSplineData{nullptr, nullptr, nullptr},
-    mSectorDataSizeBytes{0, 0, 0}
+    mDataSizeBytes{0, 0, 0}
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -64,7 +64,7 @@ void TPCFastSpaceChargeCorrection::destroy()
   mTimeStamp = -1;
   for (int32_t is = 0; is < 3; is++) {
     mSplineData[is] = nullptr;
-    mSectorDataSizeBytes[is] = 0;
+    mDataSizeBytes[is] = 0;
   }
   FlatObject::destroy();
 }
@@ -105,9 +105,9 @@ void TPCFastSpaceChargeCorrection::cloneFromObject(const TPCFastSpaceChargeCorre
     mSectorInfo[i] = obj.mSectorInfo[i];
   }
 
-  mSectorDataSizeBytes[0] = obj.mSectorDataSizeBytes[0];
-  mSectorDataSizeBytes[1] = obj.mSectorDataSizeBytes[1];
-  mSectorDataSizeBytes[2] = obj.mSectorDataSizeBytes[2];
+  mDataSizeBytes[0] = obj.mDataSizeBytes[0];
+  mDataSizeBytes[1] = obj.mDataSizeBytes[1];
+  mDataSizeBytes[2] = obj.mDataSizeBytes[2];
 
   // variable-size data
   mScenarioPtr = obj.mScenarioPtr;
@@ -162,9 +162,9 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
   }
   size_t bufferSize = scBufferOffset + scBufferSize;
   for (int32_t is = 0; is < 3; is++) {
-    size_t sectorDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
-    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + sectorDataOffset);
-    bufferSize = sectorDataOffset + mSectorDataSizeBytes[is] * mGeo.getNumberOfSectors();
+    size_t splineDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + splineDataOffset);
+    bufferSize = splineDataOffset + mDataSizeBytes[is];
   }
 }
 
@@ -199,14 +199,8 @@ void TPCFastSpaceChargeCorrection::print() const
   mGeo.print();
   LOG(info) << "  mNumberOfScenarios = " << mNumberOfScenarios;
   LOG(info) << "  mTimeStamp = " << mTimeStamp;
-  LOG(info) << "  mSectorDataSizeBytes = " << mSectorDataSizeBytes[0] << " " << mSectorDataSizeBytes[1] << " " << mSectorDataSizeBytes[2];
-  {
-    LOG(info) << "  TPC rows: ";
-    for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
-      const RowInfo& r = mRowInfos[i];
-      LOG(info) << " tpc row " << i << ": splineScenarioID = " << r.splineScenarioID << " dataOffsetBytes = " << r.dataOffsetBytes;
-    }
-  }
+  LOG(info) << "  mDataSizeBytes = " << mDataSizeBytes[0] << " " << mDataSizeBytes[1] << " " << mDataSizeBytes[2];
+
   if (mScenarioPtr) {
     for (int32_t i = 0; i < mNumberOfScenarios; i++) {
       LOG(info) << " SplineScenario " << i << ": ";
@@ -255,8 +249,23 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
 
   assert(mConstructionScenarios != nullptr);
 
-  for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
-    mRowInfos[i].splineScenarioID = -1;
+  for (int32_t i = 0; i < mGeo.getNumberOfSectors(); i++) {
+    mSectorInfo[i].vMax1 = 0.;
+    for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
+      auto& row = mSectorRowInfos[mGeo.getMaxNumberOfRows() * i + j];
+      row.splineScenarioID = -1;
+      row.gridReal = {};
+      row.gridMeasured = {};
+      row.dataOffsetBytes[0] = 0;
+      row.dataOffsetBytes[1] = 0;
+      row.dataOffsetBytes[2] = 0;
+      row.minCorr[0] = 0;
+      row.minCorr[1] = 0;
+      row.minCorr[2] = 0;
+      row.maxCorr[0] = 0;
+      row.maxCorr[1] = 0;
+      row.maxCorr[2] = 0;
+    }
   }
 
   for (int32_t i = 0; i < mNumberOfScenarios; i++) {
@@ -268,18 +277,18 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
   mScenarioPtr = nullptr;
   for (int32_t s = 0; s < 3; s++) {
     mSplineData[s] = nullptr;
-    mSectorDataSizeBytes[s] = 0;
+    mDataSizeBytes[s] = 0;
   }
   mClassVersion = 4;
 }
 
-void TPCFastSpaceChargeCorrection::setRowScenarioID(int32_t iRow, int32_t iScenario)
+void TPCFastSpaceChargeCorrection::setRowScenarioID(int32_t iSector, int32_t iRow, int32_t iScenario)
 {
   /// Initializes a TPC row
   assert(mConstructionMask & ConstructionState::InProgress);
+  assert(iSector >= 0 && iSector < mGeo.getNumberOfSectors());
   assert(iRow >= 0 && iRow < mGeo.getNumberOfRows() && iScenario >= 0 && iScenario < mNumberOfScenarios);
-
-  RowInfo& row = mRowInfos[iRow];
+  auto& row = getSectorRowInfo(iSector, iRow);
   row.splineScenarioID = iScenario;
   for (int32_t s = 0; s < 3; s++) {
     row.dataOffsetBytes[s] = 0;
@@ -302,9 +311,14 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
 
   assert(mConstructionMask & ConstructionState::InProgress);
 
-  for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
-    assert(mRowInfos[i].splineScenarioID >= 0);
+  for (int32_t i = 0; i < mGeo.getNumberOfSectors(); i++) {
+    for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
+      SectorRowInfo& row = getSectorRowInfo(i, j);
+      assert(row.splineScenarioID >= 0);
+      assert(row.splineScenarioID < mNumberOfScenarios);
+    }
   }
+
   for (int32_t i = 0; i < mNumberOfScenarios; i++) {
     assert(mConstructionScenarios[i].isConstructed());
   }
@@ -324,18 +338,20 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
   size_t bufferSize = scBufferOffsets[0] + scBufferSize;
-  size_t sectorDataOffset[3];
+  size_t splineDataOffset[3];
   for (int32_t is = 0; is < 3; is++) {
-    sectorDataOffset[is] = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
-    mSectorDataSizeBytes[is] = 0;
-    for (int32_t i = 0; i < mGeo.getNumberOfRows(); i++) {
-      RowInfo& row = mRowInfos[i];
-      SplineType& spline = mConstructionScenarios[row.splineScenarioID];
-      row.dataOffsetBytes[is] = alignSize(mSectorDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
-      mSectorDataSizeBytes[is] = row.dataOffsetBytes[is] + spline.getSizeOfParameters();
+    splineDataOffset[is] = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    mDataSizeBytes[is] = 0;
+    for (int32_t i = 0; i < mGeo.getNumberOfSectors(); i++) {
+      for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
+        SectorRowInfo& row = getSectorRowInfo(i, j);
+        SplineType& spline = mConstructionScenarios[row.splineScenarioID];
+        row.dataOffsetBytes[is] = alignSize(mDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
+        mDataSizeBytes[is] = row.dataOffsetBytes[is] + spline.getSizeOfParameters();
+      }
     }
-    mSectorDataSizeBytes[is] = alignSize(mSectorDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
-    bufferSize = sectorDataOffset[is] + mSectorDataSizeBytes[is] * mGeo.getNumberOfSectors();
+    mDataSizeBytes[is] = alignSize(mDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
+    bufferSize = splineDataOffset[is] + mDataSizeBytes[is];
   }
 
   FlatObject::finishConstruction(bufferSize);
@@ -350,7 +366,7 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
   }
 
   for (int32_t is = 0; is < 3; is++) {
-    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + sectorDataOffset[is]);
+    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + splineDataOffset[is]);
   }
   releaseConstructionMemory();
 
@@ -363,9 +379,9 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
 {
   // initialise all corrections to 0.
   for (int32_t sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
-    double vLength = mGeo.getTPCzLength();
-    SectorInfo& sectorInfo = getSectorInfo(sector);
-    sectorInfo.vMax = vLength;
+
+    getSectorInfo(sector).vMax1 = mGeo.getTPCzLength();
+
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
       const SplineType& spline = getSpline(sector, row);
 
@@ -385,10 +401,12 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
 
       SectorRowInfo& info = getSectorRowInfo(sector, row);
 
-      info.gridMeasured.y0 = mGeo.getRowInfo(row).getYmin();
-      info.gridMeasured.yScale = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getYwidth();
-      info.gridMeasured.l0 = 0.f;
-      info.gridMeasured.lScale = spline.getGridX2().getUmax() / vLength;
+      float y0 = mGeo.getRowInfo(row).getYmin();
+      float yScale = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getYwidth();
+      float z0 = mGeo.getZmin(sector);
+      float zScale = spline.getGridX2().getUmax() / mGeo.getTPCzLength();
+      float zReadout = mGeo.getZreadout(sector);
+      info.gridMeasured.set(y0, yScale, z0, zScale, zReadout, zReadout);
 
       info.gridReal = info.gridMeasured;
     } // row
@@ -399,8 +417,10 @@ void TPCFastSpaceChargeCorrection::constructWithNoCorrection(const TPCFastTransf
 {
   const int32_t nCorrectionScenarios = 1;
   startConstruction(geo, nCorrectionScenarios);
-  for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
-    setRowScenarioID(row, 0);
+  for (int32_t sector = 0; sector < geo.getNumberOfSectors(); sector++) {
+    for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
+      setRowScenarioID(sector, row, 0);
+    }
   }
   {
     TPCFastSpaceChargeCorrection::SplineType spline;
@@ -456,19 +476,12 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
     if (prn) {
       LOG(info) << "check inverse transform for sector " << sector;
     }
-    double vLength = mGeo.getTPCzLength();
+
     MaxValue maxDsector[3];
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
       double x = mGeo.getRowInfo(row).x;
       auto [y0, y1] = mGeo.getRowInfo(row).getYrange();
       auto [z0, z1] = mGeo.getZrange(sector);
-
-      // grid borders
-      if (sector < mGeo.getNumberOfSectorsA()) {
-        z1 = vLength - getSectorRowInfo(sector, row).gridMeasured.l0;
-      } else {
-        z0 = getSectorRowInfo(sector, row).gridMeasured.l0 - vLength;
-      }
 
       double stepY = (y1 - y0) / 100.;
       double stepZ = (z1 - z0) / 100.;
@@ -479,7 +492,7 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
           double realX = x + dx;
           double realY = y + dy;
           double realZ = z + dz;
-          if (!isLocalInsideGrid(sector, row, y, z) || !isLocalInsideGrid(sector, row, realY, realZ)) {
+          if (!isLocalInsideGrid(sector, row, y, z) || !isRealLocalInsideGrid(sector, row, realY, realZ)) {
             continue;
           }
           double r2 = realX * realX + realY * realY;
