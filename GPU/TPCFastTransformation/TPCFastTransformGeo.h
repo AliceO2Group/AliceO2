@@ -126,6 +126,9 @@ class TPCFastTransformGeo
 
   /// Gives Z range for the corresponding TPC side
   GPUd() std::tuple<float, float> getZrange(int32_t sector) const;
+  GPUd() float getZmin(int32_t sector) const;
+  GPUd() float getZmax(int32_t sector) const;
+  GPUd() float getZreadout(int32_t sector) const;
 
   /// _______________  Conversion of coordinate systems __________
 
@@ -139,10 +142,10 @@ class TPCFastTransformGeo
   GPUd() std::tuple<float, float> convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const;
 
   /// convert DriftLength -> Local c.s.
-  GPUd() float convDriftLengthToZ(int32_t sector, float driftLength) const;
+  GPUd() float convDriftLengthToZ1(int32_t sector, float driftLength) const;
 
   /// convert Z to DriftLength
-  GPUd() float convZtoDriftLength(int32_t sector, float z) const;
+  GPUd() float convZtoDriftLength1(int32_t sector, float z) const;
 
   /// convert Local c.s. -> Pad, DriftLength
   GPUd() std::tuple<float, float> convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const;
@@ -181,7 +184,7 @@ class TPCFastTransformGeo
   float mTPCzLength = 0.f;   ///< Z length of one TPC side (A or C)
 
   SectorInfo mSectorInfos[NumberOfSectors + 1]; ///< array of sector information [fixed size]
-  RowInfo mRowInfos[MaxNumberOfRows + 1]; ///< array of row information [fixed size]
+  RowInfo mRowInfos[MaxNumberOfRows + 1];       ///< array of row information [fixed size]
 
   ClassDefNV(TPCFastTransformGeo, 3);
 };
@@ -242,13 +245,13 @@ GPUdi() std::tuple<float, float> TPCFastTransformGeo::convPadDriftLengthToLocal(
   return {y, z};
 }
 
-GPUdi() float TPCFastTransformGeo::convDriftLengthToZ(int32_t sector, float driftLength) const
+GPUdi() float TPCFastTransformGeo::convDriftLengthToZ1(int32_t sector, float driftLength) const
 {
   /// convert DriftLength -> Local c.s.
   return (sector < NumberOfSectorsA) ? (mTPCzLength - driftLength) : (driftLength - mTPCzLength);
 }
 
-GPUdi() float TPCFastTransformGeo::convZtoDriftLength(int32_t sector, float z) const
+GPUdi() float TPCFastTransformGeo::convZtoDriftLength1(int32_t sector, float z) const
 {
   /// convert Z to DriftLength
   return (sector < NumberOfSectorsA) ? (mTPCzLength - z) : (z + mTPCzLength);
@@ -261,6 +264,36 @@ GPUdi() std::tuple<float, float> TPCFastTransformGeo::getZrange(int32_t sector) 
     return {0.f, mTPCzLength};
   } else { // TPC side C
     return {-mTPCzLength, 0.f};
+  }
+}
+
+GPUdi() float TPCFastTransformGeo::getZmin(int32_t sector) const
+{
+  /// z min for the sector
+  if (sector < NumberOfSectorsA) { // TPC side A
+    return 0.f;
+  } else { // TPC side C
+    return -mTPCzLength;
+  }
+}
+
+GPUdi() float TPCFastTransformGeo::getZmax(int32_t sector) const
+{
+  /// z max for the sector
+  if (sector < NumberOfSectorsA) { // TPC side A
+    return mTPCzLength;
+  } else { // TPC side C
+    return 0.f;
+  }
+}
+
+GPUdi() float TPCFastTransformGeo::getZreadout(int32_t sector) const
+{
+  /// z readout for the sector
+  if (sector < NumberOfSectorsA) { // TPC side A
+    return mTPCzLength;
+  } else { // TPC side C
+    return -mTPCzLength;
   }
 }
 

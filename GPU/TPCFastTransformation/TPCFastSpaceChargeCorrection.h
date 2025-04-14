@@ -43,31 +43,58 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// \brief The struct contains necessary info for TPC padrow
   ///
   struct RowInfo {
-    int32_t splineScenarioID{0};  ///< scenario index (which of Spline2D splines to use)
-    size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing the TPC sector
     ClassDefNV(RowInfo, 1);
   };
 
   struct GridInfo {
-    float y0{0.f};     ///< Y coordinate of the U-grid start
-    float yScale{0.f}; //< scale Y to U-grid coordinate
-    float l0{0.f};     ///< Drift Length coordinate of the V-grid start
-    float lScale{0.f}; //< scale Drift Length to V-grid coordinate
+   private:
+    float y0{0.f};                 ///< Y coordinate of the U-grid start
+    float yScale{0.f};             //< scale Y to U-grid coordinate
+    float z0{0.f};                 ///< Z coordinate of the V-grid start
+    float zScale{0.f};             //< scale Z to V-grid coordinate
+    float zOut{0.f};               // outer z of the grid;
+    float splineScalingWithZ{0.f}; ///< spline scaling factor in the Z region between the zOut and the readout plane
 
-    float getScale(float l) const
+   public:
+    void set(float y0, float yScale, float z0, float zScale, float zOut, float zReadout)
     {
-      if (l < 0.f) { // outside of the TPC
-        return 0.f;
-      }
-      if (l < l0) { // between the grid and the readout
-        return l / l0;
-      }
-      return 1.f; // inside the grid
+      this->y0 = y0;
+      this->yScale = yScale;
+      this->z0 = z0;
+      this->zScale = zScale;
+      this->zOut = zOut;
+      // no scaling when the distance to the readout is too small
+      this->splineScalingWithZ = fabs(zReadout - zOut) > 1. ? 1. / (zReadout - zOut) : 0.;
+    }
+
+    float getY0() const { return y0; }
+    float getYscale() const { return yScale; }
+    float getZ0() const { return z0; }
+    float getZscale() const { return zScale; }
+
+    float getSpineScaleForZ(float z) const
+    {
+      return 1.f - GPUCommonMath::Clamp((z - zOut) * splineScalingWithZ, 0.f, 1.f);
+    }
+
+    /// convert local y, z to internal grid coordinates u,v, and spline scale
+    std::tuple<float, float, float> convLocalToGridUntruncated(float y, float z) const
+    {
+      return {(y - y0) * yScale, (z - z0) * zScale, getSpineScaleForZ(z)};
+    }
+
+    /// convert internal grid coordinates u,v to local y, z
+    std::tuple<float, float> convGridToLocal(float gridU, float gridV) const
+    {
+      return {y0 + gridU / yScale, z0 + gridV / zScale};
     }
     ClassDefNV(GridInfo, 1);
   };
 
   struct SectorRowInfo {
+    int32_t splineScenarioID{0};  ///< scenario index (which of Spline2D splines to use)
+    size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing a TPC sector
+
     GridInfo gridMeasured; ///< grid info for measured coordinates
     GridInfo gridReal;     ///< grid info for real coordinates
 
@@ -118,7 +145,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   };
 
   struct SectorInfo {
-    float vMax{0.f}; ///< Max value of V coordinate
+    float vMax1{0.f}; ///< Max value of V coordinate
     ClassDefNV(SectorInfo, 1);
   };
 
@@ -170,7 +197,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   void startConstruction(const TPCFastTransformGeo& geo, int32_t numberOfSplineScenarios);
 
   /// Initializes a TPC row
-  void setRowScenarioID(int32_t iRow, int32_t iScenario);
+  void setRowScenarioID(int32_t iSector, int32_t iRow, int32_t iScenario);
 
   /// Sets approximation scenario
   void setSplineScenario(int32_t scenarioIndex, const SplineType& spline);
@@ -259,6 +286,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() std::tuple<float, float> convGridToRealLocal(int32_t sector, int32_t row, float u, float v) const;
 
   GPUd() bool isLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const;
+  GPUd() bool isRealLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const;
 
   /// TPC geometry information
   GPUd() const TPCFastTransformGeo& getGeometry() const
@@ -333,7 +361,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   char* mSplineData[3]; //! (transient!!) pointer to the spline data in the flat buffer
 
-  size_t mSectorDataSizeBytes[3]; ///< size of the data for one sector in the flat buffer
+  size_t mDataSizeBytes[3]; ///< size of the data for one sector in the flat buffer
 
   float fInterpolationSafetyMargin{0.1f}; // 10% area around the TPC row. Outside of this area the interpolation returns the boundary values.
 
@@ -356,29 +384,25 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 GPUdi() const TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int32_t sector, int32_t row) const
 {
   /// Gives const pointer to spline
-  const RowInfo& rowInfo = mRowInfos[row];
-  return mScenarioPtr[rowInfo.splineScenarioID];
+  return mScenarioPtr[getSectorRowInfo(sector, row).splineScenarioID];
 }
 
 GPUdi() TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int32_t sector, int32_t row)
 {
   /// Gives pointer to spline
-  const RowInfo& rowInfo = mRowInfos[row];
-  return mScenarioPtr[rowInfo.splineScenarioID];
+  return mScenarioPtr[getSectorRowInfo(sector, row).splineScenarioID];
 }
 
 GPUdi() float* TPCFastSpaceChargeCorrection::getSplineData(int32_t sector, int32_t row, int32_t iSpline)
 {
   /// Gives pointer to spline data
-  const RowInfo& rowInfo = mRowInfos[row];
-  return reinterpret_cast<float*>(mSplineData[iSpline] + mSectorDataSizeBytes[iSpline] * sector + rowInfo.dataOffsetBytes[iSpline]);
+  return reinterpret_cast<float*>(mSplineData[iSpline] + getSectorRowInfo(sector, row).dataOffsetBytes[iSpline]);
 }
 
 GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineData(int32_t sector, int32_t row, int32_t iSpline) const
 {
   /// Gives pointer to spline data
-  const RowInfo& rowInfo = mRowInfos[row];
-  return reinterpret_cast<float*>(mSplineData[iSpline] + mSectorDataSizeBytes[iSpline] * sector + rowInfo.dataOffsetBytes[iSpline]);
+  return reinterpret_cast<const float*>(mSplineData[iSpline] + getSectorRowInfo(sector, row).dataOffsetBytes[iSpline]);
 }
 
 GPUdi() TPCFastSpaceChargeCorrection::SplineTypeInvX& TPCFastSpaceChargeCorrection::getSplineInvX(int32_t sector, int32_t row)
@@ -433,37 +457,35 @@ GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::convLocalT
 {
   /// convert local y, z to internal grid coordinates u,v
   /// return values: u, v, scaling factor
-  const auto& info = getSectorRowInfo(sector, row);
   const SplineType& spline = getSpline(sector, row);
-
-  float l = mGeo.convZtoDriftLength(sector, z);
-  float scale = info.gridMeasured.getScale(l);
-  float gridU = (y - info.gridMeasured.y0) * info.gridMeasured.yScale;
-  float gridV = (l - info.gridMeasured.l0) * info.gridMeasured.lScale;
-
-  // shrink to the grid area
+  auto [gridU, gridV, scale] = getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(y, z);
+  // shrink to the grid
   gridU = GPUCommonMath::Clamp(gridU, 0.f, (float)spline.getGridX1().getUmax());
   gridV = GPUCommonMath::Clamp(gridV, 0.f, (float)spline.getGridX2().getUmax());
-
   return {gridU, gridV, scale};
 }
 
 GPUdi() bool TPCFastSpaceChargeCorrection::isLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const
 {
-  /// ccheck if local y, z are inside the grid
-
-  const auto& info = getSectorRowInfo(sector, row);
+  /// check if local y, z are inside the grid
+  auto [gridU, gridV, scale] = getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(y, z);
   const auto& spline = getSpline(sector, row);
-  float l = mGeo.convZtoDriftLength(sector, z);
-
-  float gridU = (y - info.gridMeasured.y0) * info.gridMeasured.yScale;
-  float gridV = (l - info.gridMeasured.l0) * info.gridMeasured.lScale;
-
-  // shrink to the grid area
-  if (gridU < 0.f || gridU > (float)spline.getGridX1().getUmax()) {
+  // shrink to the grid
+  if (gridU < 0.f || gridU > (float)spline.getGridX1().getUmax() || //
+      gridV < 0.f || gridV > (float)spline.getGridX2().getUmax()) {
     return false;
   }
-  if (gridV < 0.f || gridV > (float)spline.getGridX2().getUmax()) {
+  return true;
+}
+
+GPUdi() bool TPCFastSpaceChargeCorrection::isRealLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const
+{
+  /// check if local y, z are inside the grid
+  auto [gridU, gridV, scale] = getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(y, z);
+  const auto& spline = getSpline(sector, row);
+  // shrink to the grid
+  if (gridU < 0.f || gridU > (float)spline.getGridX1().getUmax() || //
+      gridV < 0.f || gridV > (float)spline.getGridX2().getUmax()) {
     return false;
   }
   return true;
@@ -472,39 +494,24 @@ GPUdi() bool TPCFastSpaceChargeCorrection::isLocalInsideGrid(int32_t sector, int
 GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::convGridToLocal(int32_t sector, int32_t row, float gridU, float gridV) const
 {
   /// convert internal grid coordinates u,v to local y, z
-  const SectorRowInfo& info = getSectorRowInfo(sector, row);
-  float y = info.gridMeasured.y0 + gridU / info.gridMeasured.yScale;
-  float l = info.gridMeasured.l0 + gridV / info.gridMeasured.lScale;
-  float z = mGeo.convDriftLengthToZ(sector, l);
-  return {y, z};
+  return getSectorRowInfo(sector, row).gridMeasured.convGridToLocal(gridU, gridV);
 }
 
 GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::convRealLocalToGrid(int32_t sector, int32_t row, float y, float z) const
 {
   /// convert real y, z to the internal grid coordinates + scale
-  const auto& info = getSectorRowInfo(sector, row);
-  const auto& spline = getSpline(sector, row);
-
-  float l = mGeo.convZtoDriftLength(sector, z);
-  float scale = info.gridReal.getScale(l);
-  float gridU = (y - info.gridReal.y0) * info.gridReal.yScale;
-  float gridV = (l - info.gridReal.l0) * info.gridReal.lScale;
-
-  // shrink to the grid area
+  const SplineType& spline = getSpline(sector, row);
+  auto [gridU, gridV, scale] = getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(y, z);
+  // shrink to the grid
   gridU = GPUCommonMath::Clamp(gridU, 0.f, (float)spline.getGridX1().getUmax());
   gridV = GPUCommonMath::Clamp(gridV, 0.f, (float)spline.getGridX2().getUmax());
-
   return {gridU, gridV, scale};
 }
 
 GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::convGridToRealLocal(int32_t sector, int32_t row, float gridU, float gridV) const
 {
   /// convert internal grid coordinates u,v to the real y, z
-  const SectorRowInfo& info = getSectorRowInfo(sector, row);
-  float y = info.gridReal.y0 + gridU / info.gridReal.yScale;
-  float l = info.gridReal.l0 + gridV / info.gridReal.lScale;
-  float z = mGeo.convDriftLengthToZ(sector, l);
-  return {y, z};
+  return getSectorRowInfo(sector, row).gridReal.convGridToLocal(gridU, gridV);
 }
 
 GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::getCorrectionLocal(int32_t sector, int32_t row, float y, float z) const

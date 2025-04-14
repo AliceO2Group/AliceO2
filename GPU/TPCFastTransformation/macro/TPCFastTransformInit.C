@@ -150,7 +150,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
   o2::tpc::TPCFastSpaceChargeCorrectionHelper* corrHelper = o2::tpc::TPCFastSpaceChargeCorrectionHelper::instance();
 
   corrHelper->setNthreadsToMaximum();
-  // corrHelper->setNthreads(1);
+  corrHelper->setNthreads(1);
 
   auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree, voxResTreeInverse, useSmoothed, invertSigns);
 
@@ -185,10 +185,10 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
         for (int32_t iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
           auto& info = corr.getSectorRowInfo(iSector, iRow);
           std::cout << "sector " << iSector << " row " << iRow
-                    << " gridY0 " << info.gridMeasured.y0 << " gridL0 " << info.gridMeasured.l0
-                    << " scaleYtoGrid " << info.gridMeasured.yScale << " scaleLtoGrid " << info.gridMeasured.lScale
-                    << " gridRealY0 " << info.gridReal.y0 << " gridRealL0 " << info.gridReal.l0
-                    << " scaleRealYtoGrid " << info.gridReal.yScale << " scaleRealLtoGrid " << info.gridReal.lScale
+                    << " gridY0 " << info.gridMeasured.getY0() << " gridZ0 " << info.gridMeasured.getZ0()
+                    << " scaleYtoGrid " << info.gridMeasured.getYscale() << " scaleLtoGrid " << info.gridMeasured.getZscale()
+                    << " gridRealY0 " << info.gridReal.getY0() << " gridRealZ0 " << info.gridReal.getZ0()
+                    << " scaleRealYtoGrid " << info.gridReal.getYscale() << " scaleRealLtoGrid " << info.gridReal.getZscale()
                     << std::endl;
         }
       }
@@ -379,7 +379,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
       const auto& gridY = corr.getSpline(iSector, iRow).getGridX1();
       const auto& gridZ = corr.getSpline(iSector, iRow).getGridX2();
       if (iSector == 0 && iRow == 0) {
-        std::cout << "spline scenario " << corr.getRowInfo(iRow).splineScenarioID << std::endl;
+        std::cout << "spline scenario " << corr.getSectorRowInfo(iSector, iRow).splineScenarioID << std::endl;
         std::cout << "spline grid Y: u = " << 0 << ".." << gridY.getUmax() << ", x = " << gridY.getXmin() << ".." << gridY.getXmax() << std::endl;
         std::cout << "spline grid Z: u = " << 0 << ".." << gridZ.getUmax() << ", x = " << gridZ.getXmin() << ".." << gridZ.getXmax() << std::endl;
       }

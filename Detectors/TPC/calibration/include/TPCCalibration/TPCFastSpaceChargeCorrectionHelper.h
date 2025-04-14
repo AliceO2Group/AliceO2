@@ -85,8 +85,16 @@ class TPCFastSpaceChargeCorrectionHelper
     const int nKnotsY = 10, const int nKnotsZ = 20);
 
   /// Create SpaceCharge correction out of the voxel tree
+  /// \param trackResiduals TrackResiduals object
+  /// \param voxResTree TTree with voxel residuals
+  /// \param voxResTreeInverse TTree with inverse voxel residuals
+  /// \param useSmoothed if true, use smoothed residuals
+  /// \param invertSigns if true, invert the signs of the residuals
+  /// \return pointer to the created TPCFastSpaceChargeCorrection object
+  /// \note voxel trees wont be changed. They are read as non-const because of the ROOT::TTreeProcessorMT interface
   std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> createFromTrackResiduals(
-    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree, TTree* voxResTreeInverse, bool useSmoothed, bool invertSigns);
+    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree, TTree* voxResTreeInverse, //
+    bool useSmoothed, bool invertSigns);
 
   /// _______________  Utilities   ________________________
 
