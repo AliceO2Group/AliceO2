@@ -51,6 +51,7 @@ struct TrackingParameters {
   float Diamond[3] = {0.f, 0.f, 0.f};
 
   /// General parameters
+  bool AllowSharingFirstCluster = false;
   int ClusterSharing = 0;
   int MinTrackLength = 7;
   float NSigmaCut = 5;
