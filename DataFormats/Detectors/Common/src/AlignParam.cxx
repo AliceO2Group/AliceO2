@@ -357,8 +357,8 @@ int AlignParam::getLevel() const
 void AlignParam::print() const
 {
   // print parameters
-  printf("%s : %6d | X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getAlignableID(), getX(),
-         getY(), getZ(), getPsi(), getTheta(), getPhi());
+  printf("%s (Lvl:%2d): %6d | %s | tra: X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getLevel(), getAlignableID(), (mIsGlobal) ? "G" : "L",
+         getX(), getY(), getZ(), getPsi(), getTheta(), getPhi());
 }
 
 //_____________________________________________________________________________
