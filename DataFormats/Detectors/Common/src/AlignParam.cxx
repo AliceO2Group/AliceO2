@@ -12,12 +12,12 @@
 /// \file AlignParam.cxx
 /// \brief Implementation of the base alignment parameters class
 
-#include <fairlogger/Logger.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
 #include <TGeoOverlap.h>
 #include <TGeoPhysicalNode.h>
 
+#include "Framework/Logger.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 
 using namespace o2::detectors;
@@ -261,7 +261,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
 }
 
 //_____________________________________________________________________________
-bool AlignParam::applyToGeometry() const
+bool AlignParam::applyToGeometry(int printLevel) const
 {
   /// Apply the current alignment object to the TGeo geometry
   /// This method returns FALSE if the symname of the object was not
@@ -311,9 +311,19 @@ bool AlignParam::applyToGeometry() const
     TGeoHMatrix* g = node->GetMatrix(node->GetLevel() - 1);
     align->MultiplyLeft(node->GetMatrix(node->GetLevel() - 1)->Inverse());
   }
-  LOG(debug) << "Aligning volume " << symname;
 
   node->Align(align);
+
+  if (getLevel() <= printLevel) {
+    LOGP(info, "{:*^100}", symname);
+    LOGP(info, " - Alignment parameter:");
+    print();
+    LOGP(info, " - Alignment matrix:");
+    align->Print();
+    LOGP(info, " - Node:");
+    node->Print();
+    LOGP(info, "{:~^100}", symname);
+  }
 
   return true;
 }
