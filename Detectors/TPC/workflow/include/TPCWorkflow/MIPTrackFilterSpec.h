@@ -17,6 +17,8 @@
 #define O2_TPC_MIPTRACKFILTERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+using GID = o2::dataformats::GlobalTrackID;
 
 using namespace o2::framework;
 
@@ -24,7 +26,7 @@ namespace o2::tpc
 {
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getMIPTrackFilterSpec();
+o2::framework::DataProcessorSpec getMIPTrackFilterSpec(GID::mask_t srcTracks = GID::getSourcesMask("TPC"));
 
 } // namespace o2::tpc
 

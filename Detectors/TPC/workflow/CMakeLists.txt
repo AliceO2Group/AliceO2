@@ -200,7 +200,7 @@ o2_add_executable(idc-test-ft
 o2_add_executable(miptrack-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-miptrack-filter.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTrackingWorkflow)
 
 o2_add_executable(track-and-cluster-filter
                   COMPONENT_NAME tpc
