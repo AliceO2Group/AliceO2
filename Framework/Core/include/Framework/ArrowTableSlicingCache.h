@@ -28,10 +28,10 @@ struct SliceInfoPtr {
 };
 
 struct SliceInfoUnsortedPtr {
-  gsl::span<int const> values;
+  std::span<int const> values;
   ListVector const* groups;
 
-  gsl::span<int64_t const> getSliceFor(int value) const;
+  std::span<int64_t const> getSliceFor(int value) const;
 };
 
 struct Entry {

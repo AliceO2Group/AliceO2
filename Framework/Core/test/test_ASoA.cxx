@@ -1150,8 +1150,8 @@ TEST_CASE("TestListColumns")
   for (auto& row : tbl) {
     auto f = row.l1();
     auto i = row.l2();
-    auto constexpr bf = std::same_as<decltype(f), gsl::span<const float, (size_t)-1>>;
-    auto constexpr bi = std::same_as<decltype(i), gsl::span<const int, (size_t)-1>>;
+    auto constexpr bf = std::same_as<decltype(f), std::span<const float, (size_t)-1>>;
+    auto constexpr bi = std::same_as<decltype(i), std::span<const int, (size_t)-1>>;
     REQUIRE(bf);
     REQUIRE(bi);
     REQUIRE(f.size() == s);

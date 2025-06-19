@@ -264,9 +264,9 @@ struct GroupSlicer {
     std::tuple<A...>* mAt;
     typename grouping_t::iterator mGroupingElement;
     uint64_t position = 0;
-    gsl::span<int64_t const> groupSelection;
-    std::array<gsl::span<int64_t const> const*, sizeof...(A)> selections;
-    std::array<gsl::span<int64_t const>::iterator, sizeof...(A)> starts;
+    std::span<int64_t const> groupSelection;
+    std::array<std::span<int64_t const> const*, sizeof...(A)> selections;
+    std::array<std::span<int64_t const>::iterator, sizeof...(A)> starts;
 
     std::array<SliceInfoPtr, sizeof...(A)> sliceInfos;
     std::array<SliceInfoUnsortedPtr, sizeof...(A)> sliceInfosUnsorted;

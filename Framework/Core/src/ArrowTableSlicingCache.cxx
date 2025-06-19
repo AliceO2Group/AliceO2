@@ -42,7 +42,7 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   return {offsets[value], sizes[value]};
 }
 
-gsl::span<const int64_t> SliceInfoUnsortedPtr::getSliceFor(int value) const
+std::span<const int64_t> SliceInfoUnsortedPtr::getSliceFor(int value) const
 {
   if (values.empty()) {
     return {};
