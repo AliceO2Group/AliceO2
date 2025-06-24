@@ -120,7 +120,7 @@ template <typename T>
 concept is_producable = soa::has_metadata<aod::MetadataTrait<T>> || soa::has_metadata<aod::MetadataTrait<typename T::parent_t>>;
 
 template <typename T>
-concept is_enumerated_iterator = requires (T t) { t.globalIndex(); };
+concept is_enumerated_iterator = requires(T t) { t.globalIndex(); };
 
 template <is_producable T>
 struct WritingCursor {
