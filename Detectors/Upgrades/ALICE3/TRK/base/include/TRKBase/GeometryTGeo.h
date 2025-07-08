@@ -73,7 +73,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   void setOwner(bool v) { mOwner = v; }
 
   void Print(Option_t* opt = "") const;
-  void PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int indexRetrieved) const;
+  void PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const;
 
   int getLayer(int index) const;
   int getStave(int index) const;

@@ -263,58 +263,35 @@ bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk
 TString GeometryTGeo::getMatrixPath(int index) const
 {
 
-  int subDetID, petalcase, disk, lay, stave, halfstave; //// TODO: add chips in a second step
-  getChipID(index, subDetID, petalcase, disk, lay, stave, halfstave);
+  int subDetID, petalcase, disk, layer, stave, halfstave; //// TODO: add chips in a second step
+  getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
 
-  int indexRetrieved = getChipIndex(subDetID, petalcase, disk, lay, stave, halfstave);
+  PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
 
-  PrintChipID(index, subDetID, petalcase, disk, lay, stave, halfstave, indexRetrieved);
+  // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
+  TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
 
-  // TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
-  TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be replaced
-
-  // if (wrID >= 0) {
-  //   path += Form("%s%d_1/", getITSWrapVolPattern(), wrID);
-  // }
-
-  // if (isVD) {
-  //   path += Form("%s%d_1/", getTRKPetalPattern(), index);
-
-  // } else {
-  // path += Form("%s%d_1/", getTRKLayerPattern(), index);
-  // }
-
-  // if (!mIsLayerITS3[lay]) {
-  //   path +=
-  //     Form("%s%d_1/", getITSLayerPattern(), lay);
-  //   if (mNumberOfHalfBarrels > 0) {
-  //     path += Form("%s%d_%d/", getITSHalfBarrelPattern(), lay, hba);
-  //   }
-  //   path +=
-  //     Form("%s%d_%d/", getITSStavePattern(), lay, stav);
-
-  //   if (mNumberOfHalfStaves[lay] > 0) {
-  //     path += Form("%s%d_%d/", getITSHalfStavePattern(), lay, sstav);
-  //   }
-  //   if (mNumberOfModules[lay] > 0) {
-  //     path += Form("%s%d_%d/", getITSModulePattern(), lay, mod);
-  //   }
-  //   path += Form("%s%d_%d/%s%d_1", getITSChipPattern(), lay, chipInMod, getITSSensorPattern(), lay);
-  // } else {
-  //   // hba = carbonform
-  //   // stav = 0
-  //   // sstav = segment
-  //   // mod = rsu
-  //   // chipInMod = tile
-  //   // sensor = pixelarray
-  //   path += Form("%s_0/", getITS3LayerPattern(lay));
-  //   path += Form("%s_%d/", getITS3CarbonFormPattern(lay), hba);
-  //   path += Form("%s_0/", getITS3ChipPattern(lay));
-  //   path += Form("%s_%d/", getITS3SegmentPattern(lay), sstav);
-  //   path += Form("%s_%d/", getITS3RSUPattern(lay), mod);
-  //   path += Form("%s_%d/", getITS3TilePattern(lay), chipInMod);
-  //   path += Form("%s_0", getITS3PixelArrayPattern(lay));
-  // }
+  if (subDetID == 0) { // VD
+    if (disk >= 0) {
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk);                                   // PETALCASEx_DISKy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKSensorPattern(), disk); // PETALCASEx_DISKy_TRKSensory_1
+    } else if (layer >= 0) {
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer);                                    // PETALCASEx_LAYERy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKStavePattern(), layer);  // PETALCASEx_LAYERy_TRKStavey_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
+    }
+  } else if (subDetID == 1) {                                          // MLOT
+    path += Form("%s%d_1/", getTRKLayerPattern(), layer);              // TRKLayerx_1
+    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);      // TRKStavex_y
+    if (mNumberOfHalfStaves[layer] == 2) {                             // staggered geometry
+      path += Form("%s%d_%d/", getTRKChipPattern(), layer, halfstave); // TRKChipx_0/1
+    } else if (mNumberOfHalfStaves[layer] == 1) {                      // turbo geometry
+      path += Form("%s%d_1/", getTRKChipPattern(), layer);             // TRKChipx_1
+    }
+    path += Form("%s%d_1/", getTRKSensorPattern(), layer); // TRKSensorx_1
+  }
   return path;
 }
 
@@ -672,7 +649,7 @@ int GeometryTGeo::extractNumberOfHalfStavesMLOT(int lay) const
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int indexRetrieved) const
+void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const
 {
   std::cout << "\nindex = " << index << std::endl;
   std::cout << "subDetID = " << subDetID << std::endl;
@@ -682,7 +659,6 @@ void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk,
   std::cout << "first chip index = " << getFirstChipIndex(lay, petalcase, subDetID) << std::endl;
   std::cout << "stave = " << stave << std::endl;
   std::cout << "halfstave = " << halfstave << std::endl;
-  std::cout << "check index Retrieved = " << indexRetrieved << std::endl;
 }
 
 //__________________________________________________________________________
