@@ -16,6 +16,7 @@
 
 #include "TFile.h"
 #include "TTree.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -34,64 +35,67 @@ namespace o2
 namespace itsmft
 {
 
+template <int N>
 class DigitReader : public Task
 {
  public:
+  static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
+  static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
+  static constexpr int NLayers{o2::itsmft::DPLAlpideParam<N>::getNLayers()};
+  static constexpr int RLayers = o2::itsmft::DPLAlpideParam<N>::supportsStaggering() ? NLayers : 1;
+
   DigitReader() = delete;
-  DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib, bool triggerOut);
+  DigitReader(bool useMC, bool useCalib, bool triggerOut);
   ~DigitReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  protected:
   void connectTree(const std::string& filename);
+  template <typename Ptr>
+  void setBranchAddress(const std::string& base, Ptr& addr, int layer = -1);
+  std::string getBranchName(const std::string& base, int index);
 
-  std::vector<o2::itsmft::Digit> mDigits, *mDigitsPtr = &mDigits;
+  std::array<std::vector<o2::itsmft::Digit>*, NLayers> mDigits;
   std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
-  std::vector<o2::itsmft::ROFRecord> mDigROFRec, *mDigROFRecPtr = &mDigROFRec;
-  std::vector<o2::itsmft::MC2ROFRecord> mDigMC2ROFs, *mDigMC2ROFsPtr = &mDigMC2ROFs;
-  o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> mConstLabels;
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
+  std::array<std::vector<o2::itsmft::ROFRecord>*, NLayers> mDigROFRec;
+  std::array<std::vector<o2::itsmft::MC2ROFRecord>*, NLayers> mDigMC2ROFs;
+  std::array<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>, NLayers> mConstLabels;
+  std::array<o2::dataformats::IOMCTruthContainerView*, NLayers> mPLabels;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
-  bool mUseMC = true;    // use MC truth
-  bool mUseCalib = true; // send calib data
-  bool mTriggerOut = true; // send dummy triggers vector
+  bool mUseMC = true;        // use MC truth
+  bool mUseCalib = true;     // send calib data
+  bool mTriggerOut = true;   // send dummy triggers vector
   bool mUseIRFrames = false; // selected IRFrames modes
   int mROFBiasInBC = 0;
   int mROFLengthInBC = 0;
   int mNRUs = 0;
-  std::string mDetName = "";
-  std::string mDetNameLC = "";
-  std::string mFileName = "";
+  std::string mDetName;
+  std::string mDetNameLC;
+  std::string mFileName;
   std::string mDigTreeName = "o2sim";
   std::string mDigitBranchName = "Digit";
-  std::string mDigROFBranchName = "DigitROF";
+  std::string mDigitROFBranchName = "DigitROF";
   std::string mCalibBranchName = "Calib";
 
-  std::string mDigtMCTruthBranchName = "DigitMCTruth";
-  std::string mDigtMC2ROFBranchName = "DigitMC2ROF";
+  std::string mDigitMCTruthBranchName = "DigitMCTruth";
+  std::string mDigitMC2ROFBranchName = "DigitMC2ROF";
 };
 
-class ITSDigitReader : public DigitReader
+class ITSDigitReader : public DigitReader<o2::detectors::DetID::ITS>
 {
  public:
   ITSDigitReader(bool useMC = true, bool useCalib = false, bool useTriggers = true)
-    : DigitReader(o2::detectors::DetID::ITS, useMC, useCalib, useTriggers)
-  {
-    mOrigin = o2::header::gDataOriginITS;
-  }
+    : DigitReader<o2::detectors::DetID::ITS>(useMC, useCalib, useTriggers) {}
 };
 
-class MFTDigitReader : public DigitReader
+class MFTDigitReader : public DigitReader<o2::detectors::DetID::MFT>
 {
  public:
   MFTDigitReader(bool useMC = true, bool useCalib = false, bool useTriggers = true)
-    : DigitReader(o2::detectors::DetID::MFT, useMC, useCalib, useTriggers)
-  {
-    mOrigin = o2::header::gDataOriginMFT;
-  }
+    : DigitReader<o2::detectors::DetID::MFT>(useMC, useCalib, useTriggers) {}
 };
 
 /// create a processor spec

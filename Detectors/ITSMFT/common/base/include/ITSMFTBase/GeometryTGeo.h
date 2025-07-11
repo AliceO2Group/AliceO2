@@ -11,7 +11,7 @@
 
 /// \file GeometryTGeo.h
 /// \brief Definition of the GeometryTGeo class : common part for ITS and MFT
-/// \brief collects ITS and MFT common methods to acces matrices
+/// \brief collects ITS and MFT common methods to access matrices
 
 /// \author ruben.shahoyan@cern.ch
 #ifndef ALICEO2_ITSMFT_GEOMETRYTGEO_H_
@@ -37,7 +37,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   ~GeometryTGeo() override = default;
 
   Int_t getNumberOfChips() const { return mSize; }
-  /// build detector layout data, must be overriden by detector
+  virtual Int_t getLayer(Int_t index) const { return -1; };
+  /// build detector layout data, must be overridden by detector
   virtual void Build(int loadTrans) = 0;
 
   bool isOwner() const { return mOwner; }
