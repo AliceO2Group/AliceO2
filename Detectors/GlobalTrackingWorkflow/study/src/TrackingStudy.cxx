@@ -274,25 +274,25 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     const auto clRefs = recoData.getTPCTracksClusterRefs();
     const auto tpcClusAcc = recoData.getTPCClusters();
     const auto shMap = recoData.clusterShMapTPC;
+
     if (recoData.inputsTPCclusters) {
-      uint8_t clSect = 0, clRow = 0, clRowP = -1;
+      uint8_t clSect = 0, clRow = 0, lowestR = -1;
       uint32_t clIdx = 0;
-      for (int ic = 0; ic < trc.getNClusterReferences(); ic++) {
+      for (int ic = 0; ic < trc.getNClusterReferences(); ic++) { // outside -> inside ordering, but on the sector boundaries backward jumps are possible
         trc.getClusterReference(clRefs, ic, clSect, clRow, clIdx);
-        if (clRow != clRowP) {
+        if (clRow < lowestR) {
           trExt.rowCountTPC++;
-          clRowP = clRow;
+          lowestR = clRow;
         }
         unsigned int absoluteIndex = tpcClusAcc.clusterOffset[clSect][clRow] + clIdx;
         if (shMap[absoluteIndex] & o2::gpu::GPUTPCGMMergedTrackHit::flagShared) {
           trExt.nClTPCShared++;
         }
       }
-      trc.getClusterReference(clRefs, trc.getNClusterReferences() - 1, clSect, clRow, clIdx);
-      trExt.rowMinTPC = clRow;
+      trExt.rowMinTPC = lowestR;
       const auto& clus = tpcClusAcc.clusters[clSect][clRow][clIdx];
       trExt.padFromEdge = uint8_t(clus.getPad());
-      int npads = o2::gpu::GPUTPCGeometry::NPads(clRow);
+      int npads = o2::gpu::GPUTPCGeometry::NPads(lowestR);
       if (trExt.padFromEdge > npads / 2) {
         trExt.padFromEdge = npads - 1 - trExt.padFromEdge;
       }
@@ -314,9 +314,9 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       uint8_t clSect0 = 0, clRow0 = 0, clSect1 = 0, clRow1 = 0;
       uint32_t clIdx0 = 0, clIdx1 = 0;
       int ic1Start = 0;
-      for (int ic0 = 0; ic0 < trc0.getNClusterReferences(); ic0++) { // outside -> inside
+      for (int ic0 = 0; ic0 < trc0.getNClusterReferences(); ic0++) { // outside -> inside, but on the sector boundaries backward jumps are possible
         trc0.getClusterReference(clRefs, ic0, clSect0, clRow0, clIdx0);
-        for (int ic1 = ic1Start; ic1 < trc1.getNClusterReferences(); ic1++) { // outside -> inside
+        for (int ic1 = ic1Start; ic1 < trc1.getNClusterReferences(); ic1++) { // outside -> inside, but on the sector boundaries backward jumps are possible
           trc1.getClusterReference(clRefs, ic1, clSect1, clRow1, clIdx1);
           if (clRow1 > clRow0) {
             ic1Start = ic1 + 1;
