@@ -20,13 +20,15 @@
 #include "GPUDisplayInterface.h"
 #include "GPUSettings.h"
 
-#include "../utils/vecpod.h"
-#include "../utils/qsem.h"
-
 #include <array>
+#include <mutex>
+#include <condition_variable>
+
 #include "HandMadeMath.h"
 
 #include "utils/timer.h"
+#include "utils/vecpod.h"
+#include "utils/qsem.h"
 
 namespace o2::gpu
 {
@@ -44,7 +46,8 @@ class GPUDisplay : public GPUDisplayInterface
 
   int32_t StartDisplay() override;
   void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) override;
-  void WaitForNextEvent() override;
+  void BlockTillNextEvent() override;
+  void WaitTillEventShown() override;
   void SetCollisionFirstCluster(uint32_t collision, int32_t sector, int32_t cluster) override;
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
   void UpdateParam(const GPUParam* param) override { mParam = param; }
@@ -221,7 +224,10 @@ class GPUDisplay : public GPUDisplayInterface
   GPUSettingsDisplayRenderer mCfgR;
   const GPUSettingsProcessing& mProcessingSettings;
   GPUQA* mQA;
+
   qSem mSemLockDisplay;
+  std::mutex mMutexLoadAndShowEvent;
+  std::condition_variable mCVLoadAndShowEvent;
 
   bool mDrawTextInCompatMode = false;
   int32_t mDrawTextFontSize = 0;
@@ -272,13 +278,14 @@ class GPUDisplay : public GPUDisplayInterface
   vecpod<int32_t> mTRDTrackIds;
   vecpod<bool> mITSStandaloneTracks;
   std::vector<bool> mTrackFilter;
-  bool mUpdateTrackFilter = false;
 
-  int32_t mUpdateVertexLists = 1;
-  int32_t mUpdateEventData = 0;
-  int32_t mUpdateDrawCommands = 1;
-  int32_t mUpdateRenderPipeline = 0;
-  volatile int32_t mResetScene = 0;
+  volatile bool mUpdateTrackFilter = false;
+  volatile bool mUpdateVertexLists = true;
+  volatile bool mUpdateEventData = false;
+  volatile bool mUpdateDrawCommands = true;
+  volatile bool mUpdateRenderPipeline = false;
+  volatile bool mResetScene = false;
+  volatile bool mLoadAndShowEvent = false;
 
   int32_t mAnimate = 0;
   HighResTimer mAnimationTimer;

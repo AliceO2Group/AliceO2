@@ -944,7 +944,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     break; // TODO: Only sector 0 filled for now
   }
 
-  mUpdateVertexLists = 0;
+  mUpdateVertexLists = false;
   size_t totalVertizes = 0;
   for (int32_t i = 0; i < NSECTORS; i++) {
     totalVertizes += mVertexBuffer[i].size();

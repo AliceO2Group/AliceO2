@@ -89,7 +89,7 @@ void GPUDisplay::HandleKey(uint8_t key)
     mFrontend->mDisplayControl = 2;
     SetInfo("Exiting", 1);
   } else if (key == 'r') {
-    mResetScene = 1;
+    mResetScene = true;
     SetInfo("View reset", 1);
   } else if (key == mFrontend->KEY_ALT && mFrontend->mKeysShift[mFrontend->KEY_ALT]) {
     mCfgR.camLookOrigin ^= 1;

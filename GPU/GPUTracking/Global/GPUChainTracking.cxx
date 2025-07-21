@@ -824,6 +824,7 @@ int32_t GPUChainTracking::RunChainFinalize()
 
   if (GetProcessingSettings().eventDisplay) {
     if (!mDisplayRunning) {
+      GPUInfo("Starting Event Display...");
       if (mEventDisplay->StartDisplay()) {
         return (1);
       }
@@ -831,6 +832,8 @@ int32_t GPUChainTracking::RunChainFinalize()
     } else {
       mEventDisplay->ShowNextEvent();
     }
+
+    mEventDisplay->WaitTillEventShown();
 
     if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
       while (kbhit()) {
@@ -863,9 +866,9 @@ int32_t GPUChainTracking::RunChainFinalize()
       return (2);
     }
     GetProcessingSettings().eventDisplay->setDisplayControl(0);
-    GPUInfo("Loading next event");
+    GPUInfo("Loading next event...");
 
-    mEventDisplay->WaitForNextEvent();
+    mEventDisplay->BlockTillNextEvent();
   }
 
   return 0;
