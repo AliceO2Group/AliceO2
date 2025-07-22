@@ -633,7 +633,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     mUpdateDrawCommands = true;
   }
 
-  HighResTimer timerDraw;
+  HighResTimer timerDraw(mUpdateVertexLists);
   if (animateTime < 0 && (mUpdateEventData || mResetScene) && mIOPtrs) {
     timerDraw.ResetStart();
     DrawGLScene_updateEventData();

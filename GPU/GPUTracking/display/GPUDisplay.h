@@ -287,6 +287,7 @@ class GPUDisplay : public GPUDisplayInterface
   volatile bool mUpdateRenderPipeline = false;
   volatile bool mResetScene = false;
   volatile bool mLoadAndShowEvent = false;
+  bool mTracksArePropagated = false;
 
   int32_t mAnimate = 0;
   HighResTimer mAnimationTimer;

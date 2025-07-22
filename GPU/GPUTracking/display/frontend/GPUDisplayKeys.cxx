@@ -493,6 +493,9 @@ void GPUDisplay::HandleKey(uint8_t key)
   if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
     mUpdateEventData = true;
   }
+  if (mCfgL.propagateTracks != 0 && !mTracksArePropagated) {
+    mUpdateVertexLists = true;
+  }
   if (memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0 || memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0) {
     mUpdateDrawCommands = true;
   }

@@ -494,6 +494,9 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
     if (!mIOPtrs->clustersNative) {
       continue;
     }
+    if (mCfgL.propagateTracks == 0) {
+      continue;
+    }
 
     // Propagate track paramters / plot MC tracks
     for (int32_t iMC = 0; iMC < 2; iMC++) {
@@ -992,6 +995,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     GPUInfo("Display Time: Vertex TOF:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 
+  mTracksArePropagated = mCfgL.propagateTracks != 0;
   mUpdateVertexLists = false;
   size_t totalVertizes = 0;
   for (int32_t i = 0; i < NSECTORS; i++) {
