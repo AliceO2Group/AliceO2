@@ -154,7 +154,6 @@ AddOptionRTC(mergerInterpolateErrors, uint8_t, 1, "", 0, "Use interpolation inst
 AddOptionRTC(mergerInterpolateRejectAlsoOnCurrentPosition, uint8_t, 1, "", 0, "When using mergerInterpolateErrors, reject based on chi2 twice computed with interpolated and current track position")
 AddOptionRTC(mergeCE, uint8_t, 1, "", 0, "Merge tracks accross the central electrode")
 AddOptionRTC(retryRefit, int8_t, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails (=2 means retry in same kernel, =1 for separate kernel")
-AddOptionRTC(looperInterpolationInExtraPass, int8_t, -1, "", 0, "Perform looper interpolation in an extra pass")
 AddOptionRTC(dropSecondaryLegsInOutput, int8_t, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 AddOptionRTC(enablePID, int8_t, 1, "", 0, "Enable PID response")
 AddOptionRTC(PID_useNsigma, int8_t, 1, "", 0, "Use nSigma instead of absolute distance in PID response")

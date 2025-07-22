@@ -189,31 +189,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       CADEBUG(printf("\tLeg %3d Sector %2d %4sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", (int32_t)cluster.leg, (int32_t)cluster.sector, "", prop.GetAlpha(), (CAMath::Abs(prop.GetAlpha() - clAlpha) < 0.01 ? "   " : " R!"), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
       // clang-format on
       if (allowModification && changeDirection && !noFollowCircle && !noFollowCircle2) {
-        bool tryFollow = lastRow != 255;
-        if (tryFollow) {
-          const GPUTPCGMTrackParam backup = *this;
-          const float backupAlpha = prop.GetAlpha();
-          if (FollowCircle<0>(merger, prop, lastSector, lastRow, iTrk, clAlpha, xx, yy, cluster.sector, cluster.row, inFlyDirection)) {
-            CADEBUG(printf("Error during follow circle, resetting track!\n"));
-            *this = backup;
-            prop.SetTrack(this, backupAlpha);
+        if (lastRow != 255) {
+          if (!(merger->Param().rec.tpc.disableRefitAttachment & 4)) {
+            StoreAttachMirror(merger, lastSector, lastRow, iTrk, clAlpha, yy, xx, cluster.sector, cluster.row, inFlyDirection, prop.GetAlpha());
             noFollowCircle = true;
-            tryFollow = false;
           }
-        }
-        if (tryFollow) {
-          MirrorTo(prop, yy, zz, inFlyDirection, param, cluster.row, clusterState, false, cluster.sector);
-          lastUpdateX = mX;
-          lastLeg = cluster.leg;
-          lastSector = cluster.sector;
-          lastRow = 255;
-          N++;
-          resetT0 = initResetT0();
-          // clang-format off
-          CADEBUG(printf("\n"));
-          CADEBUG(printf("\t%21sMirror  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
-          // clang-format on
-          continue;
         }
       } else if (allowModification && lastRow != 255 && CAMath::Abs(cluster.row - lastRow) > 1) {
         if GPUCA_RTC_CONSTEXPR (GPUCA_GET_CONSTEXPR(param.par, dodEdx)) {
@@ -269,8 +249,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         CADEBUG(printf(" -- MirroredY: %f --> %f", mP[0], mirrordY));
         if (CAMath::Abs(yy - mP[0]) > CAMath::Abs(yy - mirrordY)) {
           CADEBUG(printf(" - Mirroring!!!"));
-          if (allowModification) {
-            AttachClustersMirror<0>(merger, cluster.sector, cluster.row, iTrk, yy, prop); // TODO: Never true, will always call FollowCircle above, really???
+          if (allowModification && !(merger->Param().rec.tpc.disableRefitAttachment & 8)) {
+            StoreAttachMirror(merger, cluster.sector, cluster.row, iTrk, 0, yy, 0, -1, 0, 0, prop.GetAlpha());
           }
           MirrorTo(prop, yy, zz, inFlyDirection, param, cluster.row, clusterState, true, cluster.sector);
           noFollowCircle = false;
@@ -751,24 +731,15 @@ GPUdii() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() 
   GPUTPCGMLoopData& data = Merger->LoopData()[loopIdx];
   prop.SetTrack(&data.param, data.alpha);
   if (data.toSector == -1) {
-    data.param.AttachClustersMirror<1>(Merger, data.sector, data.row, data.track, data.toY, prop, true);
+    data.param.AttachClustersMirror(Merger, data.sector, data.row, data.track, data.toY, prop);
   } else {
-    data.param.FollowCircle<1>(Merger, prop, data.sector, data.row, data.track, data.toAlpha, data.toX, data.toY, data.toSector, data.toRow, data.inFlyDirection, true);
+    data.param.FollowCircle(Merger, prop, data.sector, data.row, data.track, data.toAlpha, data.toX, data.toY, data.toSector, data.toRow, data.inFlyDirection);
   }
 }
 
-template <int32_t I>
-GPUdic(0, 1) int32_t GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& GPUrestrict() prop, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toX, float toY, int32_t toSector, int32_t toRow, bool inFlyDirection, bool phase2)
+GPUdi() int32_t GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& GPUrestrict() prop, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toX, float toY, int32_t toSector, int32_t toRow, bool inFlyDirection)
 {
   static constexpr float kSectAngle = 2 * M_PI / 18.f;
-  if (Merger->Param().rec.tpc.disableRefitAttachment & 4) {
-    return 1;
-  }
-  const bool inExtraPass = Merger->Param().rec.tpc.looperInterpolationInExtraPass == -1 ? GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION : Merger->Param().rec.tpc.looperInterpolationInExtraPass;
-  if (inExtraPass && phase2 == false) {
-    StoreAttachMirror(Merger, sector, iRow, iTrack, toAlpha, toY, toX, toSector, toRow, inFlyDirection, prop.GetAlpha());
-    return 1;
-  }
   const GPUParam& GPUrestrict() param = Merger->Param();
   bool right;
   float dAlpha = toAlpha - prop.GetAlpha();
@@ -862,19 +833,9 @@ GPUdic(0, 1) int32_t GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUr
   return (0);
 }
 
-template <int32_t I>
-GPUdni() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, float toY, GPUTPCGMPropagator& GPUrestrict() prop, bool phase2)
+GPUdi() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, float toY, GPUTPCGMPropagator& GPUrestrict() prop)
 {
   static constexpr float kSectAngle = 2 * M_PI / 18.f;
-
-  if (Merger->Param().rec.tpc.disableRefitAttachment & 8) {
-    return;
-  }
-  const bool inExtraPass = Merger->Param().rec.tpc.looperInterpolationInExtraPass == -1 ? GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION : Merger->Param().rec.tpc.looperInterpolationInExtraPass;
-  if (inExtraPass && phase2 == false) {
-    StoreAttachMirror(Merger, sector, iRow, iTrack, 0, toY, 0, -1, 0, 0, prop.GetAlpha());
-    return;
-  }
   // Note that the coordinate system is rotated by 90 degree swapping X and Y!
   float X = mP[2] > 0 ? mP[0] : -mP[0];
   float toX = mP[2] > 0 ? toY : -toY;

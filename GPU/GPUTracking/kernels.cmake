@@ -142,7 +142,6 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP
                             TRACKLET_SELECTOR_HITS_REG_SIZE
                             ALTERNATE_BORDER_SORT
                             SORT_BEFORE_FIT
-                            MERGER_SPLIT_LOOP_INTERPOLATION
                             NO_ATOMIC_PRECHECK
                             COMP_GATHER_KERNEL
                             COMP_GATHER_MODE

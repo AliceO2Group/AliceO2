@@ -224,9 +224,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (param().rec.tpc.retryRefit == 1) {
     runKernel<GPUTPCGMMergerTrackFit>(GetGridAuto(0), -1);
   }
-  if (param().rec.tpc.looperInterpolationInExtraPass == -1 ? mRec->getGPUParameters(doGPU).par_MERGER_SPLIT_LOOP_INTERPOLATION : param().rec.tpc.looperInterpolationInExtraPass) {
-    runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));
-  }
+  runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));
 
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpRefit, *mDebugFile);
   runKernel<GPUTPCGMMergerFinalize, 0>(GetGridAuto(0, deviceType));

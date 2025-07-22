@@ -271,9 +271,6 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
 #endif
     mProcessingSettings->overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
     param().rec.tpc.nWaysOuter = true;
-    if (param().rec.tpc.looperInterpolationInExtraPass == -1) {
-      param().rec.tpc.looperInterpolationInExtraPass = 0;
-    }
     if (GetProcessingSettings().createO2Output > 1) {
       mProcessingSettings->createO2Output = 1;
     }
