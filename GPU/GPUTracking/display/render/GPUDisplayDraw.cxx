@@ -122,70 +122,91 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int32_t iSector, int32_t sele
   return (vboList(startCount, mVertexBufferStart[iSector].size() - startCount, iSector));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawClusters(int32_t iSector, int32_t select, uint32_t iCol)
+void GPUDisplay::DrawClusters(int32_t iSector)
 {
-  size_t startCount = mVertexBufferStart[iSector].size();
-  size_t startCountInner = mVertexBuffer[iSector].size();
-  if (mOverlayTFClusters.size() > 0 || iCol == 0 || mNCollissions) {
-    const int32_t firstCluster = (mOverlayTFClusters.size() > 1 && iCol > 0) ? mOverlayTFClusters[iCol - 1][iSector] : 0;
-    const int32_t lastCluster = (mOverlayTFClusters.size() > 1 && iCol + 1 < mOverlayTFClusters.size()) ? mOverlayTFClusters[iCol][iSector] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSector] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0);
-    [[maybe_unused]] const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
-    for (int32_t cidInSector = firstCluster; cidInSector < lastCluster; cidInSector++) {
-      const int32_t cid = GET_CID(iSector, cidInSector);
-#ifdef GPUCA_TPC_GEOMETRY_O2
-      if (checkClusterCollision) {
-        const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
-        if (labels.size() ? (iCol != mQA->GetMCLabelCol(labels[0])) : (iCol != 0)) {
-          continue;
-        }
-      }
-#endif
-      if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
-        continue;
-      }
-      bool draw = mGlobalPos[cid].w == select;
-
-      if (mCfgH.markAdjacentClusters) {
-        const int32_t attach = mIOPtrs->mergedTrackHitAttachment[cid];
-        if (attach) {
-          if (mCfgH.markAdjacentClusters >= 32) {
-            if (mQA && mQA->clusterRemovable(attach, mCfgH.markAdjacentClusters == 33)) {
-              draw = select == tMARKED;
-            }
-          } else if ((mCfgH.markAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {
-            draw = select == tMARKED;
-          } else if ((mCfgH.markAdjacentClusters & 1) && (attach & (gputpcgmmergertypes::attachGood | gputpcgmmergertypes::attachTube)) == 0) {
-            draw = select == tMARKED;
-          } else if ((mCfgH.markAdjacentClusters & 4) && (attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
-            draw = select == tMARKED;
-          } else if ((mCfgH.markAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
-            draw = select == tMARKED;
-          } else if (mCfgH.markAdjacentClusters & 8) {
-            if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
-              draw = select == tMARKED;
-            }
-          }
-        }
-      } else if (mCfgH.markClusters) {
-        int16_t flags;
-        if (mParam->par.earlyTpcTransform) {
-          flags = mIOPtrs->clusterData[iSector][cidInSector].flags;
-        } else {
-          flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
-        }
-        const bool match = flags & mCfgH.markClusters;
-        draw = (select == tMARKED) ? (match) : (draw && !match);
-      } else if (mCfgH.markFakeClusters) {
-        const bool fake = (mQA->HitAttachStatus(cid));
-        draw = (select == tMARKED) ? (fake) : (draw && !fake);
-      }
-      if (draw) {
-        mVertexBuffer[iSector].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
-      }
+  std::vector<std::array<vecpod<vtx>, N_POINTS_TYPE_TPC>> vertexCache(mNCollissions);
+  if (mClusterBufferSizeCache[iSector].size() < (uint32_t)mNCollissions) {
+    mClusterBufferSizeCache[iSector].resize(mNCollissions);
+  }
+  for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
+    for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
+      vertexCache[iCol][i].reserve(mClusterBufferSizeCache[iSector][iCol][i]);
     }
   }
-  insertVertexList(iSector, startCountInner, mVertexBuffer[iSector].size());
-  return (vboList(startCount, mVertexBufferStart[iSector].size() - startCount, iSector));
+
+  uint32_t col = 0;
+  const int32_t nClustersInSector = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSector] : (mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0);
+  [[maybe_unused]] const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
+  for (int32_t cidInSector = 0; cidInSector < nClustersInSector; cidInSector++) {
+    const int32_t cid = GET_CID(iSector, cidInSector);
+#ifdef GPUCA_TPC_GEOMETRY_O2
+    if (checkClusterCollision) {
+      const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
+      col = labels.size() ? mQA->GetMCLabelCol(labels[0]) : 0;
+    } else
+#endif
+      if (mOverlayTFClusters.size()) {
+      while (col < mOverlayTFClusters.size() && cidInSector >= mOverlayTFClusters[col][iSector]) {
+        col++;
+      }
+    }
+    if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
+      continue;
+    }
+    int32_t select = mGlobalPos[cid].w;
+
+    if (mCfgH.markAdjacentClusters) {
+      const int32_t attach = mIOPtrs->mergedTrackHitAttachment[cid];
+      if (attach) {
+        if (mCfgH.markAdjacentClusters >= 32) {
+          if (mQA && mQA->clusterRemovable(attach, mCfgH.markAdjacentClusters == 33)) {
+            select = tMARKED;
+          }
+        } else if ((mCfgH.markAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {
+          select = tMARKED;
+        } else if ((mCfgH.markAdjacentClusters & 1) && (attach & (gputpcgmmergertypes::attachGood | gputpcgmmergertypes::attachTube)) == 0) {
+          select = tMARKED;
+        } else if ((mCfgH.markAdjacentClusters & 4) && (attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
+          select = tMARKED;
+        } else if ((mCfgH.markAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
+          select = tMARKED;
+        } else if (mCfgH.markAdjacentClusters & 8) {
+          if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
+            select = tMARKED;
+          }
+        }
+      }
+    } else if (mCfgH.markClusters) {
+      int16_t flags;
+      if (mParam->par.earlyTpcTransform) {
+        flags = mIOPtrs->clusterData[iSector][cidInSector].flags;
+      } else {
+        flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
+      }
+      if (flags & mCfgH.markClusters) {
+        select = tMARKED;
+      }
+    } else if (mCfgH.markFakeClusters) {
+      if (mQA->HitAttachStatus(cid)) {
+        select = tMARKED;
+      }
+    }
+    vertexCache[col][select].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
+  }
+
+  size_t startCountInner = mVertexBuffer[iSector].size();
+  mVertexBuffer[iSector].resize(mVertexBuffer[iSector].size() + nClustersInSector);
+  for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
+    for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
+      uint32_t count = vertexCache[iCol][i].size();
+      mClusterBufferSizeCache[iSector][iCol][i] = std::max(mClusterBufferSizeCache[iSector][iCol][i], count);
+      memcpy((void*)&mVertexBuffer[iSector][startCountInner], (const void*)vertexCache[iCol][i].data(), count * sizeof(vertexCache[iCol][i][0]));
+      size_t startCount = mVertexBufferStart[iSector].size();
+      insertVertexList(iSector, startCountInner, startCountInner + count);
+      startCountInner += count;
+      mGlDLPoints[iSector][i][iCol] = vboList(startCount, mVertexBufferStart[iSector].size() - startCount, iSector);
+    }
+  }
 }
 
 GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int32_t id, bool dodown)
@@ -925,11 +946,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     }
 
     tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
-      for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
-        for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
-          mGlDLPoints[iSector][i][iCol] = DrawClusters(iSector, i, iCol);
-        }
-      } // clang-format off
+      DrawClusters(iSector); // clang-format off
     }, tbb::simple_partitioner()); // clang-format on
     if (timer.IsRunning()) {
       GPUInfo("Display Time: Vertex Clusters:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);

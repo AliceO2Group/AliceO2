@@ -193,7 +193,7 @@ class GPUDisplay : public GPUDisplayInterface
   void SetCollisionColor(int32_t col);
   void updateConfig();
   void drawPointLinestrip(int32_t iSector, int32_t cid, int32_t id, int32_t id_limit = TRACK_TYPE_ID_LIMIT);
-  vboList DrawClusters(int32_t iSector, int32_t select, uint32_t iCol);
+  void DrawClusters(int32_t iSector);
   vboList DrawSpacePointsTRD(int32_t iSector, int32_t select, int32_t iCol);
   vboList DrawSpacePointsTOF(int32_t iSector, int32_t select, int32_t iCol);
   vboList DrawSpacePointsITS(int32_t iSector, int32_t select, int32_t iCol);
@@ -256,6 +256,7 @@ class GPUDisplay : public GPUDisplayInterface
   vecpod<vtx> mVertexBuffer[NSECTORS];
   vecpod<int32_t> mVertexBufferStart[NSECTORS];
   vecpod<uint32_t> mVertexBufferCount[NSECTORS];
+  std::vector<std::array<uint32_t, N_POINTS_TYPE_TPC>> mClusterBufferSizeCache[NSECTORS];
 
   std::unique_ptr<float4[]> mGlobalPosPtr;
   std::unique_ptr<float4[]> mGlobalPosPtrTRD;
