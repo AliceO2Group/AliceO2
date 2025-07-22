@@ -273,6 +273,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     mCfgL.pointSize = 2.0f;
     mCfgL.lineWidth = 1.4f;
     mCfgL.drawSector = -1;
+    mCfgL.showCollision = -1;
     mCfgH.xAdd = mCfgH.zAdd = 0;
     mCfgR.camLookOrigin = mCfgR.camYUp = false;
     mAngleRollOrigin = -1e9f;
