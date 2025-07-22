@@ -99,7 +99,7 @@ using namespace o2::gpu;
   bool unattached = attach == 0;                                                                 \
   float qpt = 0;                                                                                 \
   bool lowPt = false;                                                                            \
-  bool mev200 = false;                                                                           \
+  [[maybe_unused]] bool mev200 = false;                                                          \
   bool mergedLooper = false;                                                                     \
   int32_t id = attach & gputpcgmmergertypes::attachTrackMask;                                    \
   if (!unattached) {                                                                             \
@@ -126,7 +126,6 @@ using namespace o2::gpu;
 
 #define CHECK_CLUSTER_STATE_NOCOUNT()                                             \
   CHECK_CLUSTER_STATE_INIT()                                                      \
-  (void)mev200; /* silence unused variable warning*/                              \
   if (!lowPt && !mergedLooper) {                                                  \
     GPUTPCClusterRejection::GetProtectionStatus<false>(attach, physics, protect); \
   }
@@ -1981,8 +1980,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
 
   std::vector<Color_t> colorNums(COLORCOUNT);
   if (!qcout) {
-    static int32_t initColorsInitialized = initColors();
-    (void)initColorsInitialized;
+    [[maybe_unused]] static int32_t initColorsInitialized = initColors();
   }
   for (int32_t i = 0; i < COLORCOUNT; i++) {
     colorNums[i] = qcout ? defaultColorNums[i] : mColors[i]->GetNumber();

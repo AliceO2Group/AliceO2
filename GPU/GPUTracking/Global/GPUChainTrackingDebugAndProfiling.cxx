@@ -70,7 +70,7 @@ int32_t GPUChainTracking::DoProfile()
   fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
   fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
 
-  int32_t nEmptySync = 0;
+  [[maybe_unused]] int32_t nEmptySync = 0;
   for (uint32_t i = 0; i < bmpheight * ConstructorBlockCount() * ConstructorThreadCount(); i += ConstructorBlockCount() * ConstructorThreadCount()) {
     int32_t fEmpty = 1;
     for (uint32_t j = 0; j < ConstructorBlockCount() * ConstructorThreadCount(); j++) {
@@ -103,7 +103,6 @@ int32_t GPUChainTracking::DoProfile()
     } else {
       nEmptySync = 0;
     }
-    (void)nEmptySync;
     // if (nEmptySync == GPUCA_SCHED_ROW_STEP + 2) break;
   }
 

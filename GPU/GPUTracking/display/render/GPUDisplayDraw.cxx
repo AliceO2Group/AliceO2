@@ -129,7 +129,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int32_t iSector, int32_t select, ui
   if (mOverlayTFClusters.size() > 0 || iCol == 0 || mNCollissions) {
     const int32_t firstCluster = (mOverlayTFClusters.size() > 1 && iCol > 0) ? mOverlayTFClusters[iCol - 1][iSector] : 0;
     const int32_t lastCluster = (mOverlayTFClusters.size() > 1 && iCol + 1 < mOverlayTFClusters.size()) ? mOverlayTFClusters[iCol][iSector] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSector] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0);
-    const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
+    [[maybe_unused]] const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
     for (int32_t cidInSector = firstCluster; cidInSector < lastCluster; cidInSector++) {
       const int32_t cid = GET_CID(iSector, cidInSector);
 #ifdef GPUCA_TPC_GEOMETRY_O2
@@ -139,8 +139,6 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int32_t iSector, int32_t select, ui
           continue;
         }
       }
-#else
-      (void)checkClusterCollision;
 #endif
       if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
         continue;
