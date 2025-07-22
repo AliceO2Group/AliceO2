@@ -663,10 +663,9 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
 {
 #ifdef GPUCA_O2_LIB
   if (!mO2MCDataLoaded) {
-    HighResTimer timer;
+    HighResTimer timer(mTracking && mTracking->GetProcessingSettings().debugLevel);
     if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
       GPUInfo("Start reading O2 Track MC information");
-      timer.Start();
     }
     static constexpr float PRIM_MAX_T = 0.01f;
 
@@ -776,7 +775,7 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
         }
       }
     }
-    if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
+    if (timer.IsRunning()) {
       GPUInfo("Finished reading O2 Track MC information (%f seconds)", timer.GetCurrentElapsedTime());
     }
     mO2MCDataLoaded = true;
@@ -922,7 +921,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     mClusterParam.resize(GetNMCLabels());
     memset(mClusterParam.data(), 0, mClusterParam.size() * sizeof(mClusterParam[0]));
   }
-  HighResTimer timer;
+  HighResTimer timer(QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 2));
 
   mNEvents++;
   if (mConfig.writeMCLabels) {
@@ -934,9 +933,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
   bool mcAvail = mcPresent() || tracksExtMC;
 
-  if (mcAvail) {
-    // Assign Track MC Labels
-    timer.Start();
+  if (mcAvail) { // Assign Track MC Labels
     if (tracksExternal) {
 #ifdef GPUCA_O2_LIB
       for (uint32_t i = 0; i < tracksExternal->size(); i++) {
@@ -987,7 +984,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       });
     }
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Assign Track Labels:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1127,7 +1124,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Cluster attach status:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1154,7 +1151,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Compute cluster label weights:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1178,7 +1175,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       } // clang-format off
     }, tbb::simple_partitioner()); // clang-format on
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Compute track mc parameters:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1268,7 +1265,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
         }
       }
-      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+      if (timer.IsRunning()) {
         GPUInfo("QA Time: Fill efficiency histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1444,7 +1441,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
         }
       }
-      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+      if (timer.IsRunning()) {
         GPUInfo("QA Time: Fill resolution histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1671,7 +1668,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
 
-      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+      if (timer.IsRunning()) {
         GPUInfo("QA Time: Fill cluster histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1765,7 +1762,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       clusterAttachCounts.clear();
     }
 
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Fill track statistics:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
   }
@@ -1838,7 +1835,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     mClusterCounts = counts_t();
   }
 
-  if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+  if (timer.IsRunning()) {
     GPUInfo("QA Time: Cluster Counts:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 

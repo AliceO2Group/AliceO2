@@ -23,6 +23,7 @@
 #include "GPUTPCConvertImpl.h"
 #include "GPUTRDGeometry.h"
 #include "GPUTRDTrackletWord.h"
+#include "GPUChainTracking.h"
 #include "GPUParam.inc"
 
 #include "DataFormatsTOF/Cluster.h"
@@ -40,7 +41,7 @@ using namespace o2::gpu;
 
 void GPUDisplay::DrawGLScene_updateEventData()
 {
-  mTimerDraw.ResetStart();
+  HighResTimer timer(mChain->GetProcessingSettings().debugLevel >= 2);
   if (mIOPtrs->clustersNative) {
     mCurrentClusters = mIOPtrs->clustersNative->nClustersTotal;
   } else {
@@ -110,6 +111,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
       }
     }
   }
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Init:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
 
   if (mCfgH.trackFilter) {
     uint32_t nTracks = mConfig.showTPCTracksFromO2Format ? mIOPtrs->nOutputTracksTPCO2 : mIOPtrs->nMergedTracks;
@@ -128,6 +132,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
     }
   }
   mUpdateTrackFilter = false;
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Track Filter:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
 
   mMaxClusterZ = tbb::parallel_reduce(tbb::blocked_range<int32_t>(0, NSECTORS, 1), float(0.f), [&](const tbb::blocked_range<int32_t>& r, float maxClusterZ) {
     for (int32_t iSector = r.begin(); iSector < r.end(); iSector++) {
@@ -174,6 +181,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
     }
     return maxClusterZ; // clang-format off
   }, [](const float a, const float b) { return std::max(a, b); }, tbb::simple_partitioner()); // clang-format on
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Load TPC:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
 
   mMaxClusterZ = tbb::parallel_reduce(tbb::blocked_range<int32_t>(0, mCurrentSpacePointsTRD, 32), float(mMaxClusterZ), [&](const tbb::blocked_range<int32_t>& r, float maxClusterZ) {
     int32_t trdTriggerRecord = -1;
@@ -209,6 +219,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
     }
     return maxClusterZ; // clang-format off
   }, [](const float a, const float b) { return std::max(a, b); }, tbb::static_partitioner()); // clang-format on
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Load TRD:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
 
   mMaxClusterZ = tbb::parallel_reduce(tbb::blocked_range<int32_t>(0, mCurrentClustersTOF, 32), float(mMaxClusterZ), [&](const tbb::blocked_range<int32_t>& r, float maxClusterZ) {
     for (int32_t i = r.begin(); i < r.end(); i++) {
@@ -230,6 +243,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
     }
     return maxClusterZ; // clang-format off
   }, [](const float a, const float b) { return std::max(a, b); }); // clang-format on
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Load TOF:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
 
   if (mCurrentClustersITS) {
     float itsROFhalfLen = 0;
@@ -269,5 +285,8 @@ void GPUDisplay::DrawGLScene_updateEventData()
         i++;
       }
     }
+  }
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Load ITS:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 }

@@ -237,6 +237,7 @@ int32_t GPUDisplay::DrawGLScene()
 
 void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
+  HighResTimer timer(mUpdateVertexLists && mChain->GetProcessingSettings().debugLevel >= 2);
   int32_t mMouseWheelTmp = mFrontend->mMouseWheel;
   mFrontend->mMouseWheel = 0;
   bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->KEY_ALT];
@@ -419,6 +420,9 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   if (mFrontend->mMouseDn || mFrontend->mMouseDnR) {
     mFrontend->mMouseDnX = mFrontend->mMouseMvX;
     mFrontend->mMouseDnY = mFrontend->mMouseMvY;
+  }
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Camera:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 }
 
@@ -618,7 +622,6 @@ void GPUDisplay::DrawGLScene_drawCommands()
 
 void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
-  bool showTimer = false;
   bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
 
   updateOptions();
@@ -629,8 +632,9 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     mUpdateDrawCommands = true;
   }
 
+  HighResTimer timerDraw;
   if (animateTime < 0 && (mUpdateEventData || mResetScene) && mIOPtrs) {
-    showTimer = true;
+    timerDraw.ResetStart();
     DrawGLScene_updateEventData();
     mTimerFPS.ResetStart();
     mFramesDoneFPS = 0;
@@ -646,8 +650,8 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   // Prepare Event
   if (mUpdateVertexLists && mIOPtrs) {
     size_t totalVertizes = DrawGLScene_updateVertexList();
-    if (showTimer) {
-      printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int32_t)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (int64_t)totalVertizes, (int64_t)(totalVertizes * sizeof(mVertexBuffer[0][0])));
+    if (timerDraw.IsRunning()) {
+      printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int32_t)(timerDraw.GetCurrentElapsedTime() * 1000000.), (int64_t)totalVertizes, (int64_t)(totalVertizes * sizeof(mVertexBuffer[0][0])));
     }
   }
 
@@ -668,7 +672,8 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     mBackend->drawField();
   }
 
-  mUpdateDrawCommands = mUpdateRenderPipeline = false;
+  mUpdateDrawCommands = false;
+  mUpdateRenderPipeline = false;
   mBackend->finishDraw(doScreenshot, renderToMixBuffer, mixSlaveImage);
 
   if (animateTime < 0) {

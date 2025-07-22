@@ -310,7 +310,7 @@ class GPUDisplay : public GPUDisplayInterface
 
   float mFPSScale = 1, mFPSScaleadjust = 0;
   int32_t mFramesDone = 0, mFramesDoneFPS = 0;
-  HighResTimer mTimerFPS, mTimerDisplay, mTimerDraw;
+  HighResTimer mTimerFPS;
   vboList mGlDLLines[NSECTORS][N_LINES_TYPE];
   vecpod<std::array<vboList, N_FINAL_TYPE>> mGlDLFinal[NSECTORS];
   vboList mGlDLFinalITS;

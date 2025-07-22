@@ -21,6 +21,7 @@ class HighResTimer
 {
  public:
   HighResTimer() = default;
+  HighResTimer(bool start);
   ~HighResTimer() = default;
   void Start();
   void Stop();

@@ -23,6 +23,13 @@
 #include <ctime>
 #endif
 
+HighResTimer::HighResTimer(bool start)
+{
+  if (start) {
+    ResetStart();
+  }
+}
+
 inline double HighResTimer::GetTime()
 {
 #ifdef _WIN32
