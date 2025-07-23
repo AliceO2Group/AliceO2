@@ -38,7 +38,7 @@ struct Stack {
   struct freeobj {
     freeobj(memory_resource* mr) : resource(mr) {}
     memory_resource* resource{nullptr};
-    void operator()(std::byte* ptr) { resource->deallocate(ptr, 0, 0); }
+    void operator()(std::byte* ptr) { resource->deallocate(ptr, 0, alignof(std::max_align_t)); }
   };
 
  public:
