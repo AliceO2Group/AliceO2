@@ -216,7 +216,9 @@ void GPUChainTracking::PrintOutputStat()
   } else {
     for (uint32_t k = 0; k < mIOPtrs.nMergedTracks; k++) {
       if (mIOPtrs.mergedTracks[k].OK()) {
-        nTracks++;
+        if (!mIOPtrs.mergedTracks[k].MergedLooper()) {
+          nTracks++;
+        }
         nAttachedClusters += mIOPtrs.mergedTracks[k].NClusters();
         nAttachedClustersFitted += mIOPtrs.mergedTracks[k].NClustersFitted();
       }

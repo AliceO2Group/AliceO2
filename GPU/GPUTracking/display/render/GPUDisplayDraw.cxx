@@ -464,6 +464,13 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
         } else {
           if (!drawing) {
             startCountInner = mVertexBuffer[iSector].size();
+            if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
+              if (k == 0 && track->PrevSegment() >= 0) {
+                const auto& prevtrk = mIOPtrs->mergedTracks[track->PrevSegment()];
+                int32_t prevcid = mIOPtrs->mergedTrackHits[prevtrk.FirstClusterRef() + prevtrk.NClusters() - 1].num;
+                drawPointLinestrip(iSector, prevcid, tFINALTRACK, separateExtrapolatedTracksLimit);
+              }
+            }
             if (lastCluster != -1 && (!mCfgH.splitCETracks || lastSide == (mGlobalPos[cid].z < 0))) {
               int32_t lastcid;
               if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
@@ -511,6 +518,11 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
         }
         if (lastCluster == -1) {
           continue;
+        }
+        if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
+          if (track->MergedLooperConnected()) {
+            continue;
+          }
         }
       }
 
@@ -610,7 +622,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + trkParam.Y() * trkParam.Y() > (iMC ? (450 * 450) : (300 * 300)))) {
             break;
           }
-          if (fabsf(trkParam.Z() + ZOffset) > mMaxClusterZ + (iMC ? 0 : 0)) {
+          if (fabsf(trkParam.Z() + ZOffset) > mMaxClusterZ) {
             break;
           }
           if (fabsf(trkParam.Z() - z0) > (iMC ? GPUTPCGeometry::TPCLength() : GPUTPCGeometry::TPCLength())) {

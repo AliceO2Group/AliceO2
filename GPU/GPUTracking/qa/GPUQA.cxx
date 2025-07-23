@@ -100,13 +100,15 @@ using namespace o2::gpu;
   float qpt = 0;                                                                                 \
   bool lowPt = false;                                                                            \
   [[maybe_unused]] bool mev200 = false;                                                          \
-  bool mergedLooper = false;                                                                     \
+  bool mergedLooperUnconnected = false;                                                          \
+  bool mergedLooperConnected = false;                                                            \
   int32_t id = attach & gputpcgmmergertypes::attachTrackMask;                                    \
   if (!unattached) {                                                                             \
     qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt());                        \
     lowPt = qpt * mTracking->GetParam().qptB5Scaler > mTracking->GetParam().rec.tpc.rejectQPtB5; \
     mev200 = qpt > 5;                                                                            \
-    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();                           \
+    mergedLooperUnconnected = mTracking->mIOPtrs.mergedTracks[id].MergedLooperUnconnected();     \
+    mergedLooperConnected = mTracking->mIOPtrs.mergedTracks[id].MergedLooperConnected();         \
   }                                                                                              \
   bool physics = false, protect = false;                                                         \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
@@ -118,15 +120,17 @@ using namespace o2::gpu;
   }                                                                                                        \
   if (lowPt) {                                                                                             \
     mClusterCounts.nLowPt++;                                                                               \
-  } else if (mergedLooper) {                                                                               \
-    mClusterCounts.nMergedLooper++;                                                                        \
+  } else if (mergedLooperUnconnected) {                                                                    \
+    mClusterCounts.nMergedLooperUnconnected++;                                                             \
+  } else if (mergedLooperConnected) {                                                                      \
+    mClusterCounts.nMergedLooperConnected++;                                                               \
   } else {                                                                                                 \
     GPUTPCClusterRejection::GetProtectionStatus<true>(attach, physics, protect, &mClusterCounts, &mev200); \
   }
 
 #define CHECK_CLUSTER_STATE_NOCOUNT()                                             \
   CHECK_CLUSTER_STATE_INIT()                                                      \
-  if (!lowPt && !mergedLooper) {                                                  \
+  if (!lowPt && !mergedLooperUnconnected && !mergedLooperConnected) {             \
     GPUTPCClusterRejection::GetProtectionStatus<false>(attach, physics, protect); \
   }
 
@@ -2967,7 +2971,8 @@ int32_t GPUQA::DoClusterCounts(uint64_t* attachClusterCounts, int32_t mode)
     PrintClusterCount(mode, num, "Removed (Strategy B)", mClusterCounts.nTotal - mClusterCounts.nProt, mClusterCounts.nTotal);
   }
 
-  PrintClusterCount(mode, num, "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooper, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Merged Loopers (Track Merging)", mClusterCounts.nMergedLooperConnected, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooperUnconnected, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "High Inclination Angle", mClusterCounts.nHighIncl, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Rejected", mClusterCounts.nRejected, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Tube (> 200 MeV)", mClusterCounts.nTube, mClusterCounts.nTotal);

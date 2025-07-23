@@ -47,7 +47,7 @@ struct GPUMemorySizeScalers {
   double tpcSectorTracksPerHit = 0.02;
   double tpcSectorTrackHitsPerHit = 0.8;
   double tpcSectorTrackHitsPerHitWithRejection = 1.0;
-  double tpcMergedTrackPerSectorTrack = 0.9;
+  double tpcMergedTrackPerSectorTrack = 1.0;
   double tpcMergedTrackHitPerSectorHit = 1.1;
   size_t tpcCompressedUnattachedHitsBase1024[3] = {900, 900, 500}; // No ratio, but integer fraction of 1024 for exact computation
 

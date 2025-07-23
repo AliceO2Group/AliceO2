@@ -45,13 +45,18 @@ class GPUTPCGMMergedTrack
   GPUd() bool Looper() const { return mFlags & 0x02; }
   GPUd() bool CSide() const { return mFlags & 0x04; }
   GPUd() bool CCE() const { return mFlags & 0x08; }
-  GPUd() bool MergedLooper() const { return mFlags & 0x10; }
+  GPUd() bool MergedLooperUnconnected() const { return mFlags & 0x10; }
+  GPUd() bool MergedLooperConnected() const { return mFlags & 0x20; }
+  GPUd() bool MergedLooper() const { return mFlags & 0x30; }
+  GPUd() int32_t PrevSegment() const { return mPrevSegment; }
+  GPUd() uint8_t Flags() const { return mFlags; }
 
   GPUd() void SetNClusters(int32_t v) { mNClusters = v; }
   GPUd() void SetNClustersFitted(int32_t v) { mNClustersFitted = v; }
   GPUd() void SetFirstClusterRef(int32_t v) { mFirstClusterRef = v; }
   GPUd() void SetParam(const GPUTPCGMTrackParam& v) { mParam = v; }
   GPUd() void SetAlpha(float v) { mAlpha = v; }
+  GPUd() void SetPrevSegment(int32_t v) { mPrevSegment = v; }
   GPUd() void SetOK(bool v)
   {
     if (v) {
@@ -84,7 +89,7 @@ class GPUTPCGMMergedTrack
       mFlags &= 0xF7;
     }
   }
-  GPUd() void SetMergedLooper(bool v)
+  GPUd() void SetMergedLooperUnconnected(bool v)
   {
     if (v) {
       mFlags |= 0x10;
@@ -92,10 +97,15 @@ class GPUTPCGMMergedTrack
       mFlags &= 0xEF;
     }
   }
+  GPUd() void SetMergedLooperConnected(bool v)
+  {
+    if (v) {
+      mFlags |= 0x20;
+    } else {
+      mFlags &= 0xDF;
+    }
+  }
   GPUd() void SetFlags(uint8_t v) { mFlags = v; }
-  GPUd() void SetLegs(uint8_t v) { mLegs = v; }
-  GPUd() uint8_t Legs() const { return mLegs; }
-  GPUd() uint8_t Flags() const { return mFlags; }
 
   GPUd() const gputpcgmmergertypes::GPUTPCOuterParam& OuterParam() const { return mOuterParam; }
   GPUd() gputpcgmmergertypes::GPUTPCOuterParam& OuterParam() { return mOuterParam; }
@@ -106,11 +116,11 @@ class GPUTPCGMMergedTrack
 
   float mAlpha;              //* alpha angle
   uint32_t mFirstClusterRef; //* index of the first track cluster in corresponding cluster arrays
+  int32_t mPrevSegment;      //* next segment in case of looping track
   // TODO: Change to 8 bit
   uint32_t mNClusters;       //* number of track clusters
   uint32_t mNClustersFitted; //* number of clusters used in fit
   uint8_t mFlags;
-  uint8_t mLegs;
 
 #if !defined(GPUCA_STANDALONE)
   ClassDefNV(GPUTPCGMMergedTrack, 0);
