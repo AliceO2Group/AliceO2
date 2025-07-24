@@ -703,10 +703,10 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       configStandalone.noprompt = 1;
     }
     if (tmpRetVal == 3 && configStandalone.proc.ignoreNonFatalGPUErrors) {
-      printf("Non-FATAL GPU error occured, ignoring\n");
+      printf("GPU Standalone Benchmark: Non-FATAL GPU error occured, ignoring\n");
     } else if (tmpRetVal && !configStandalone.continueOnError) {
       if (tmpRetVal != 2) {
-        printf("Error occured\n");
+        printf("GPU Standalone Benchmark: Error occured\n");
       }
       return 1;
     }

@@ -21,15 +21,18 @@ namespace o2::gpu
 {
 class GPUDisplayFrontendNone : public GPUDisplayFrontend
 {
-  GPUDisplayFrontendNone() = default;
+ public:
+  GPUDisplayFrontendNone();
   ~GPUDisplayFrontendNone() override = default;
 
-  int32_t StartDisplay() override { return 1; }
   void DisplayExit() override {}
   void SwitchFullscreen(bool set) override {}
   void ToggleMaximized(bool set) override {}
   void SetVSync(bool enable) override {}
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override {}
+
+ private:
+  int32_t FrontendMain() override;
 };
 } // namespace o2::gpu
 

@@ -826,6 +826,7 @@ int32_t GPUChainTracking::RunChainFinalize()
     if (!mDisplayRunning) {
       GPUInfo("Starting Event Display...");
       if (mEventDisplay->StartDisplay()) {
+        GPUError("Error starting Event Display");
         return (1);
       }
       mDisplayRunning = true;

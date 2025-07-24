@@ -9,27 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayFrontendNone.cxx
+/// \file GPUDisplayBackendNone.cxx
 /// \author David Rohr
 
-#include "GPUDisplayFrontendNone.h"
-#include "GPUDisplayGUIWrapper.h"
+#include "GPUCommonDef.h"
+#include "GPUDisplayBackendNone.h"
+
 using namespace o2::gpu;
 
-GPUDisplayFrontendNone::GPUDisplayFrontendNone()
+GPUDisplayBackendNone::GPUDisplayBackendNone()
 {
-  mFrontendType = TYPE_NONE;
-  mFrontendName = "NONE";
+  mBackendType = TYPE_NONE;
+  mBackendName = "NONE";
 }
 
-int32_t GPUDisplayFrontendNone::FrontendMain()
+int32_t GPUDisplayBackendNone::InitBackendA()
 {
-  if (InitDisplay()) {
-    return 1;
-  }
-  do {
-    DrawGLScene();
-    HandleSendKey();
-  } while (mDisplayControl != 2);
+
   return 0;
 }
