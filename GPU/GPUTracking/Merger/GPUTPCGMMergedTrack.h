@@ -49,6 +49,7 @@ class GPUTPCGMMergedTrack
   GPUd() bool MergedLooperConnected() const { return mFlags & 0x20; }
   GPUd() bool MergedLooper() const { return mFlags & 0x30; }
   GPUd() int32_t PrevSegment() const { return mPrevSegment; }
+  GPUd() uint8_t Leg() const { return mLeg; }
   GPUd() uint8_t Flags() const { return mFlags; }
 
   GPUd() void SetNClusters(int32_t v) { mNClusters = v; }
@@ -57,6 +58,7 @@ class GPUTPCGMMergedTrack
   GPUd() void SetParam(const GPUTPCGMTrackParam& v) { mParam = v; }
   GPUd() void SetAlpha(float v) { mAlpha = v; }
   GPUd() void SetPrevSegment(int32_t v) { mPrevSegment = v; }
+  GPUd() void SetLeg(uint8_t v) { mLeg = v; }
   GPUd() void SetOK(bool v)
   {
     if (v) {
@@ -121,6 +123,7 @@ class GPUTPCGMMergedTrack
   uint32_t mNClusters;       //* number of track clusters
   uint32_t mNClustersFitted; //* number of clusters used in fit
   uint8_t mFlags;
+  uint8_t mLeg;
 
 #if !defined(GPUCA_STANDALONE)
   ClassDefNV(GPUTPCGMMergedTrack, 0);

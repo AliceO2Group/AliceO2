@@ -1704,7 +1704,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
           rowClCount += !(trackClusters[track.FirstClusterRef() + jNext].state & GPUTPCGMMergedTrackHit::flagReject);
         }
-        if (trackClusters[track.FirstClusterRef() + j].leg == trackClusters[track.FirstClusterRef() + track.NClusters() - 1].leg && rowClCount) {
+        if (!track.MergedLooper() && rowClCount) {
           nClCorrected++;
         }
         if (mcAvail && rowClCount) {

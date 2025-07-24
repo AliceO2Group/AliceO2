@@ -82,7 +82,6 @@ class GPUTPCGMMerger : public GPUProcessor
     uint32_t id;
     uint8_t row;
     uint8_t sector;
-    uint8_t leg;
   };
 
   struct tmpSort {

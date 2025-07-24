@@ -223,15 +223,6 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
   float tOffset;
   if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
     count = trkX.NClusters();
-    if (trkX.Looper()) {
-      int32_t leg = mPtrackHits[trkX.FirstClusterRef() + trkX.NClusters() - 1].leg;
-      for (int32_t i = trkX.NClusters() - 2; i > 0; i--) {
-        if (mPtrackHits[trkX.FirstClusterRef() + i].leg != leg) {
-          begin = i + 1;
-          break;
-        }
-      }
-    }
     tOffset = trkX.GetParam().GetTZOffset();
   } else if constexpr (std::is_same_v<T, TrackTPC>) {
     count = trkX.getNClusters();

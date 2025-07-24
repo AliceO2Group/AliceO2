@@ -434,6 +434,16 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
       // Print TPC part of track
       int32_t separateExtrapolatedTracksLimit = (mCfgH.separateExtrapolatedTracks ? tEXTRAPOLATEDTRACK : TRACK_TYPE_ID_LIMIT);
       uint32_t lastSide = -1;
+      int32_t prevcid = -1;
+      int32_t leg = 0;
+      if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
+        if (track->PrevSegment() >= 0) {
+          const auto& prevtrk = mIOPtrs->mergedTracks[track->PrevSegment()];
+          prevcid = mIOPtrs->mergedTrackHits[prevtrk.FirstClusterRef() + ((track->Leg() & 1) ? (prevtrk.NClusters() - 1) : 0)].num;
+          leg = track->Leg();
+        }
+      }
+
       for (int32_t k = 0; k < nClusters; k++) {
         if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
           if (mCfgH.hideRejectedClusters && (mIOPtrs->mergedTrackHits[track->FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject)) {
@@ -464,13 +474,6 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
         } else {
           if (!drawing) {
             startCountInner = mVertexBuffer[iSector].size();
-            if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
-              if (k == 0 && track->PrevSegment() >= 0) {
-                const auto& prevtrk = mIOPtrs->mergedTracks[track->PrevSegment()];
-                int32_t prevcid = mIOPtrs->mergedTrackHits[prevtrk.FirstClusterRef() + prevtrk.NClusters() - 1].num;
-                drawPointLinestrip(iSector, prevcid, tFINALTRACK, separateExtrapolatedTracksLimit);
-              }
-            }
             if (lastCluster != -1 && (!mCfgH.splitCETracks || lastSide == (mGlobalPos[cid].z < 0))) {
               int32_t lastcid;
               if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
@@ -479,6 +482,8 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
                 lastcid = &track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative) - mIOPtrs->clustersNative->clustersLinear;
               }
               drawPointLinestrip(iSector, lastcid, tFINALTRACK, separateExtrapolatedTracksLimit);
+            } else if (prevcid != -1 && k == 0 && (leg & 1) == 0) {
+              drawPointLinestrip(iSector, prevcid, tFINALTRACK, separateExtrapolatedTracksLimit);
             }
             drawPointLinestrip(iSector, cid, tFINALTRACK, separateExtrapolatedTracksLimit);
           }
@@ -486,6 +491,9 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
         }
         lastCluster = k;
         lastSide = mGlobalPos[cid].z < 0;
+      }
+      if (prevcid != -1 && (leg & 1) && drawing) {
+        drawPointLinestrip(iSector, prevcid, tFINALTRACK, separateExtrapolatedTracksLimit);
       }
 
       // Print ITS part of track
