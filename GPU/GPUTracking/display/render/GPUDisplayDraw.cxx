@@ -439,8 +439,14 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         if (track->PrevSegment() >= 0) {
           const auto& prevtrk = mIOPtrs->mergedTracks[track->PrevSegment()];
-          prevcid = mIOPtrs->mergedTrackHits[prevtrk.FirstClusterRef() + ((track->Leg() & 1) ? (prevtrk.NClusters() - 1) : 0)].num;
           leg = track->Leg();
+          for (int32_t iChk = (leg & 1) ? (prevtrk.NClusters() - 1) : 0; iChk != ((leg & 1) ? -1 : (int32_t)prevtrk.NClusters()); iChk += (leg & 1) ? -1 : 1) {
+            const auto& hit = mIOPtrs->mergedTrackHits[prevtrk.FirstClusterRef() + iChk];
+            if (!mCfgH.hideRejectedClusters || !(hit.state & GPUTPCGMMergedTrackHit::flagReject)) {
+              prevcid = hit.num;
+              break;
+            }
+          }
         }
       }
 
