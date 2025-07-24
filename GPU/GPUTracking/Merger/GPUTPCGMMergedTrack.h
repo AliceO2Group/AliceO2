@@ -119,9 +119,8 @@ class GPUTPCGMMergedTrack
   float mAlpha;              //* alpha angle
   uint32_t mFirstClusterRef; //* index of the first track cluster in corresponding cluster arrays
   int32_t mPrevSegment;      //* next segment in case of looping track
-  // TODO: Change to 8 bit
-  uint32_t mNClusters;       //* number of track clusters
-  uint32_t mNClustersFitted; //* number of clusters used in fit
+  uint16_t mNClusters;       //* number of track clusters
+  uint16_t mNClustersFitted; //* number of clusters used in fit
   uint8_t mFlags;
   uint8_t mLeg;
 
