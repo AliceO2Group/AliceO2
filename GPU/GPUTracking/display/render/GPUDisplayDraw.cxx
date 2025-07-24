@@ -376,6 +376,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
 
       size_t startCountInner = mVertexBuffer[iSector].size();
       bool drawing = false;
+      uint32_t lastSide = -1;
 
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (!mCfgH.drawTracksAndFilter && !(mCfgH.drawTPCTracks || (mCfgH.drawITSTracks && mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1) || (mCfgH.drawTRDTracks && mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1) || (mCfgH.drawTOFTracks && mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1))) {
@@ -397,6 +398,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           drawing = true;
           mVertexBuffer[iSector].emplace_back(mGlobalPosTOF[cid].x, mGlobalPosTOF[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTOF[cid].z);
           mGlobalPosTOF[cid].w = tTOFATTACHED;
+          lastSide = mGlobalPosTOF[cid].z < 0;
         }
       }
 
@@ -410,6 +412,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           drawing = true;
           mVertexBuffer[iSector].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
           mVertexBuffer[iSector].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
+          lastSide = mGlobalPosTRD[cid].z < 0;
           mGlobalPosTRD[cid].w = tTRDATTACHED;
         }
       };
@@ -433,17 +436,15 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
 
       // Print TPC part of track
       int32_t separateExtrapolatedTracksLimit = (mCfgH.separateExtrapolatedTracks ? tEXTRAPOLATEDTRACK : TRACK_TYPE_ID_LIMIT);
-      uint32_t lastSide = -1;
-      int32_t prevcid = -1;
-      int32_t leg = 0;
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         if (track->PrevSegment() >= 0) {
           const auto& prevtrk = mIOPtrs->mergedTracks[track->PrevSegment()];
-          leg = track->Leg();
-          for (int32_t iChk = (leg & 1) ? (prevtrk.NClusters() - 1) : 0; iChk != ((leg & 1) ? -1 : (int32_t)prevtrk.NClusters()); iChk += (leg & 1) ? -1 : 1) {
+          for (int32_t iChk = prevtrk.NClusters() - 1; iChk >= 0; iChk--) {
             const auto& hit = mIOPtrs->mergedTrackHits[prevtrk.FirstClusterRef() + iChk];
             if (!mCfgH.hideRejectedClusters || !(hit.state & GPUTPCGMMergedTrackHit::flagReject)) {
-              prevcid = hit.num;
+              drawPointLinestrip(iSector, hit.num, tFINALTRACK, separateExtrapolatedTracksLimit);
+              lastSide = mGlobalPos[hit.num].z < 0;
+              drawing = true;
               break;
             }
           }
@@ -488,8 +489,6 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
                 lastcid = &track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative) - mIOPtrs->clustersNative->clustersLinear;
               }
               drawPointLinestrip(iSector, lastcid, tFINALTRACK, separateExtrapolatedTracksLimit);
-            } else if (prevcid != -1 && k == 0 && (leg & 1) == 0) {
-              drawPointLinestrip(iSector, prevcid, tFINALTRACK, separateExtrapolatedTracksLimit);
             }
             drawPointLinestrip(iSector, cid, tFINALTRACK, separateExtrapolatedTracksLimit);
           }
@@ -497,9 +496,6 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
         }
         lastCluster = k;
         lastSide = mGlobalPos[cid].z < 0;
-      }
-      if (prevcid != -1 && (leg & 1) && drawing) {
-        drawPointLinestrip(iSector, prevcid, tFINALTRACK, separateExtrapolatedTracksLimit);
       }
 
       // Print ITS part of track

@@ -42,7 +42,7 @@ class GPUTPCGMMergedTrack
     return mAlpha;
   }
   GPUd() bool OK() const { return mFlags & 0x01; }
-  GPUd() bool Looper() const { return mFlags & 0x02; }
+  GPUd() bool Looper() const { return mFlags & 0x02; } // TODO: Get rid of the looper flag, or rename it if still needed.
   GPUd() bool CSide() const { return mFlags & 0x04; }
   GPUd() bool CCE() const { return mFlags & 0x08; }
   GPUd() bool MergedLooperUnconnected() const { return mFlags & 0x10; }

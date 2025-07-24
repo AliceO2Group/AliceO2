@@ -55,7 +55,6 @@ class GPUTPCGMSectorTrack
   GPUd() float DzDs() const { return mParam.mDzDs; }
   GPUd() float QPt() const { return mParam.mQPt; }
   GPUd() float TZOffset() const { return mTZOffset; }
-  GPUd() uint8_t Leg() const { return mLeg; }
 
   GPUd() int32_t LocalTrackId() const { return mLocalTrackId; }
   GPUd() void SetLocalTrackId(int32_t v) { mLocalTrackId = v; }
@@ -99,7 +98,6 @@ class GPUTPCGMSectorTrack
   GPUd() void SetNeighbor(int32_t v, int32_t i) { mNeighbour[i] = v; }
   GPUd() void SetPrevSegmentNeighbour(int32_t v) { mSegmentNeighbour[0] = v; }
   GPUd() void SetNextSegmentNeighbour(int32_t v) { mSegmentNeighbour[1] = v; }
-  GPUd() void SetLeg(uint8_t v) { mLeg = v; }
 
   GPUd() void CopyParamFrom(const GPUTPCGMSectorTrack& t)
   {
@@ -136,7 +134,6 @@ class GPUTPCGMSectorTrack
   int32_t mLocalTrackId;            // Corrected local track id in terms of GMSectorTracks array for extrapolated tracks, UNDEFINED for local tracks!
   int32_t mExtrapolatedTrackIds[2]; // IDs of associated extrapolated tracks
   uint8_t mSector;                  // sector of this track segment
-  uint8_t mLeg;                     // Leg of this track segment
 
   ClassDefNV(GPUTPCGMSectorTrack, 1);
 };

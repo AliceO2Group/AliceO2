@@ -1435,13 +1435,14 @@ namespace // anonymous
 {
 struct GPUTPCGMMerger_CompareClusterIds {
   const GPUTPCGMMerger::trackCluster* const mCmp;
-  GPUd() GPUTPCGMMerger_CompareClusterIds(const GPUTPCGMMerger::trackCluster* cmp) : mCmp(cmp) {}
+  const bool revert;
+  GPUd() GPUTPCGMMerger_CompareClusterIds(const GPUTPCGMMerger::trackCluster* cmp, bool r) : mCmp(cmp), revert(r) {}
   GPUd() bool operator()(const int16_t aa, const int16_t bb)
   {
     const GPUTPCGMMerger::trackCluster& a = mCmp[aa];
     const GPUTPCGMMerger::trackCluster& b = mCmp[bb];
     if (a.row != b.row) {
-      return (a.row > b.row);
+      return (a.row > b.row) ^ revert;
     }
     return GPUCA_DETERMINISTIC_CODE((a.id != b.id) ? (a.id > b.id) : (aa > bb), a.id > b.id);
   }
@@ -1460,6 +1461,8 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
   GPUTPCGMSectorTrack* trbase = nullptr;
   int32_t leg = 0;
   int32_t lastMergedSegment = -1;
+  bool revertSegments = false;
+  bool revertInSegment = false;
   while (true) {
     if (trbase && !Param().rec.tpc.dropLoopers) {
       int32_t jtr = trbase->NextNeighbour();
@@ -1469,7 +1472,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
           trbase = nullptr;
         } else {
           trbase->SetPrevSegmentNeighbour(1000000001);
-          leg--;
+          leg += revertSegments ? 1 : -1;
         }
       } else {
         trbase = nullptr;
@@ -1488,15 +1491,68 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
       if (itr >= SectorTrackInfoLocalTotal()) {
         break;
       }
-      itr += nThreads * nBlocks;
+      revertSegments = false;
+      revertInSegment = false;
       trbase->SetPrevSegmentNeighbour(1000000000);
       int32_t jtr = trbase->NextNeighbour();
       leg = 0;
-      while (jtr >= 0) {
-        leg++;
-        jtr = mSectorTrackInfos[jtr].NextNeighbour();
+      if (jtr >= 0) {
+        int32_t lasttr = itr;
+        while (jtr >= 0) { // --------------- count segments ---------------
+          if (&mSectorTrackInfos[jtr] == trbase) {
+            break; // Break cyclic graph
+          }
+          lasttr = jtr;
+          leg++;
+          jtr = mSectorTrackInfos[jtr].NextNeighbour();
+        }
+
+        float mainZT = 1e9;
+        revertSegments = true;
+        for (uint32_t k = 0; k < 2; k++) { // --------------- check if first or last segment is primary ---------------
+          int32_t ichk = k ? lasttr : itr;
+          const GPUTPCGMSectorTrack* trchk = &mSectorTrackInfos[ichk];
+          while (true) {
+            float zt = Param().par.earlyTpcTransform ? CAMath::Min(CAMath::Abs(trchk->ClusterZT0()), CAMath::Abs(trchk->ClusterZTN())) : -trchk->MinClusterZT(); // Negative time ~ smallest z, behaves the same way
+            if (zt < mainZT) {
+              if (k) {
+                revertSegments = false;
+                break;
+              }
+              mainZT = zt;
+            }
+            int32_t next = trchk->NextSegmentNeighbour();
+            if (next < 0 || next == ichk) {
+              break; // Breaks also cycles
+            }
+            trchk = &mSectorTrackInfos[next];
+          }
+        }
+        if (revertSegments) {
+          leg = 0;
+        }
+
+        { // --------------- find longest sector track of main segment ---------------
+          int32_t length = 0;
+          int32_t ichk = revertSegments ? itr : lasttr;
+          const GPUTPCGMSectorTrack* trchk = &mSectorTrackInfos[ichk];
+          const GPUTPCGMSectorTrack* longest = trchk;
+          while (true) {
+            if (trchk->OrigTrack()->NHits() > length) {
+              longest = trchk;
+              length = trchk->OrigTrack()->NHits();
+            }
+            int32_t next = trchk->NextSegmentNeighbour();
+            if (next < 0 || next == ichk) {
+              break; // Breaks also cycles
+            }
+            trchk = &mSectorTrackInfos[next];
+          }
+          revertInSegment = (longest->ClusterZT0() < longest->ClusterZTN()) ^ (Param().par.earlyTpcTransform ? !longest->CSide() : false);
+        }
       }
       lastMergedSegment = -1;
+      itr += nThreads * nBlocks;
     }
 
     do {
@@ -1513,7 +1569,6 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
         }
         nHits += tr->NClusters();
 
-        tr->SetLeg(leg);
         trackParts[nParts++] = tr;
         for (int32_t i = 0; i < 2; i++) {
           if (tr->ExtrapolatedTrackId(i) != -1) {
@@ -1523,8 +1578,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
             if (nHits + mSectorTrackInfos[tr->ExtrapolatedTrackId(i)].NClusters() > kMaxClusters) {
               break;
             }
-            trackParts[nParts] = &mSectorTrackInfos[tr->ExtrapolatedTrackId(i)];
-            trackParts[nParts++]->SetLeg(leg);
+            trackParts[nParts++] = &mSectorTrackInfos[tr->ExtrapolatedTrackId(i)];
             nHits += mSectorTrackInfos[tr->ExtrapolatedTrackId(i)].NClusters();
           }
         }
@@ -1538,7 +1592,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
       }
 
       // unpack and sort clusters
-      if (nParts > 1) {
+      if (nParts > 1 && (!revertInSegment ^ (leg & 1))) {
         GPUCommonAlgorithm::sort(trackParts, trackParts + nParts, [](const GPUTPCGMSectorTrack* a, const GPUTPCGMSectorTrack* b) {
           GPUCA_DETERMINISTIC_CODE( // clang-format off
             if (a->X() != b->X()) {
@@ -1576,11 +1630,14 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
         break;
       }
 
-      bool ordered = true;
-      for (int32_t i = 1; i < nHits; i++) {
-        if (trackClusters[i].row > trackClusters[i - 1].row || trackClusters[i].id == trackClusters[i - 1].id) {
-          ordered = false;
-          break;
+      const bool mustReverse = revertInSegment ^ (leg & 1);
+      bool ordered = !mustReverse;
+      if (ordered) {
+        for (int32_t i = 1; i < nHits; i++) {
+          if ((trackClusters[i].row > trackClusters[i - 1].row) ^ mustReverse || trackClusters[i].id == trackClusters[i - 1].id) {
+            ordered = false;
+            break;
+          }
         }
       }
       int32_t firstTrackIndex = 0;
@@ -1594,7 +1651,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
           clusterIndices[i] = i;
         }
 
-        GPUCommonAlgorithm::sort(clusterIndices, clusterIndices + nHits, GPUTPCGMMerger_CompareClusterIds(trackClusters));
+        GPUCommonAlgorithm::sort(clusterIndices, clusterIndices + nHits, GPUTPCGMMerger_CompareClusterIds(trackClusters, mustReverse));
 
         nTmpHits = 0;
         firstTrackIndex = lastTrackIndex = -1;
@@ -1659,16 +1716,24 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
       }
 
       GPUTPCGMMergedTrack& mergedTrack = mMergedTracks[iOutputTrack];
-      mergedTrack.SetFlags(0);
-      mergedTrack.SetOK(true);
-      mergedTrack.SetLooper(leg > 0 || lastMergedSegment >= 0);
-      mergedTrack.SetNClusters(nHits);
-      mergedTrack.SetFirstClusterRef(iMergedTrackFirstCluster);
       GPUTPCGMTrackParam& p1 = mergedTrack.Param();
       const GPUTPCGMSectorTrack& p2 = *trackParts[firstTrackIndex];
+      mergedTrack.SetFlags(0);
+      mergedTrack.SetOK(true);
+      mergedTrack.SetLeg(leg);
+      mergedTrack.SetLooper(leg > 0);
+      mergedTrack.SetNClusters(nHits);
+      mergedTrack.SetFirstClusterRef(iMergedTrackFirstCluster);
       mergedTrack.SetCSide(p2.CSide());
       mergedTrack.SetMergedLooperConnected(leg > 0);
-      mergedTrack.SetPrevSegment(lastMergedSegment);
+      if (revertSegments) {
+        mergedTrack.SetPrevSegment(-1);
+        if (lastMergedSegment >= 0) {
+          mMergedTracks[lastMergedSegment].SetPrevSegment(iOutputTrack);
+        }
+      } else {
+        mergedTrack.SetPrevSegment(lastMergedSegment);
+      }
       lastMergedSegment = iOutputTrack;
 
       GPUTPCGMBorderTrack b;
