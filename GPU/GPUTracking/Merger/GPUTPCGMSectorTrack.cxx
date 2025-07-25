@@ -274,13 +274,25 @@ GPUd() bool GPUTPCGMSectorTrack::FilterErrors(const GPUTPCGMMerger* merger, int3
   return ok;
 }
 
+template <>
+GPUd() bool GPUTPCGMSectorTrack::TransportToX<2>(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const
+{
+  if (CAMath::Abs(x - mParam2.mX) < CAMath::Abs(x - mParam.mX) && mParam2.mX > 0) {
+    return TransportToX<1>(merger, x, Bz, b, maxSinPhi, doCov);
+  } else {
+    return TransportToX<0>(merger, x, Bz, b, maxSinPhi, doCov);
+  }
+}
+
+template <int I>
 GPUd() bool GPUTPCGMSectorTrack::TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const
 {
+  const auto& param = I ? mParam2 : mParam;
   Bz = -Bz;
-  float ex = mParam.mCosPhi;
-  float ey = mParam.mSinPhi;
-  float k = mParam.mQPt * Bz;
-  float dx = x - mParam.mX;
+  float ex = param.mCosPhi;
+  float ey = param.mSinPhi;
+  float k = param.mQPt * Bz;
+  float dx = x - param.mX;
   float ey1 = k * dx + ey;
 
   if (CAMath::Abs(ey1) > maxSinPhi) {
@@ -308,13 +320,13 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToX(GPUTPCGMMerger* merger, float x, f
     dS = dl + dl * a * (k2 + a * (k4)); //+ k6*a) );
   }
 
-  float dz = dS * mParam.mDzDs;
+  float dz = dS * param.mDzDs;
 
-  b.SetPar(0, mParam.mY + dy);
-  b.SetPar(1, mParam.mZ + dz);
+  b.SetPar(0, param.mY + dy);
+  b.SetPar(1, param.mZ + dz);
   b.SetPar(2, ey1);
-  b.SetPar(3, mParam.mDzDs);
-  b.SetPar(4, mParam.mQPt);
+  b.SetPar(3, param.mDzDs);
+  b.SetPar(4, param.mQPt);
   if (merger->Param().par.earlyTpcTransform) {
     b.SetZOffsetLinear(mTZOffset);
   } else {
@@ -327,33 +339,33 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToX(GPUTPCGMMerger* merger, float x, f
 
   float ex1i = 1.f / ex1;
   float hh = dxcci * ex1i * norm2;
-  float h2 = hh * mParam.mSecPhi;
+  float h2 = hh * param.mSecPhi;
   float h4 = Bz * dxcci * hh;
 
-  float c20 = mParam.mC3;
-  float c22 = mParam.mC5;
-  float c31 = mParam.mC7;
-  float c33 = mParam.mC9;
-  float c40 = mParam.mC10;
-  float c42 = mParam.mC12;
-  float c44 = mParam.mC14;
+  float c20 = param.mC3;
+  float c22 = param.mC5;
+  float c31 = param.mC7;
+  float c33 = param.mC9;
+  float c40 = param.mC10;
+  float c42 = param.mC12;
+  float c44 = param.mC14;
 
   float c20ph4c42 = c20 + h4 * c42;
   float h2c22 = h2 * c22;
   float h4c44 = h4 * c44;
   float n7 = c31 + dS * c33;
 
-  if (CAMath::Abs(mParam.mQPt) > 6.66f) // Special treatment for low Pt
+  if (CAMath::Abs(param.mQPt) > 6.66f) // Special treatment for low Pt
   {
-    b.SetCov(0, CAMath::Max(mParam.mC0, mParam.mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40))); // Do not decrease Y cov for matching!
+    b.SetCov(0, CAMath::Max(param.mC0, param.mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40))); // Do not decrease Y cov for matching!
     float C2tmp = dS * 2.f * c31;
     if (C2tmp < 0) {
       C2tmp = 0;
     }
-    b.SetCov(1, mParam.mC2 + C2tmp + dS * dS * c33); // Incorrect formula, correct would be "dS * (c31 + n7)", but we need to make sure cov(Z) increases regardless of the direction of the propagation
+    b.SetCov(1, param.mC2 + C2tmp + dS * dS * c33); // Incorrect formula, correct would be "dS * (c31 + n7)", but we need to make sure cov(Z) increases regardless of the direction of the propagation
   } else {
-    b.SetCov(0, mParam.mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
-    b.SetCov(1, mParam.mC2 + dS * (c31 + n7));
+    b.SetCov(0, param.mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
+    b.SetCov(1, param.mC2 + dS * (c31 + n7));
   }
   b.SetCov(2, c22 + dxBz * (c42 + c42 + dxBz * c44));
   b.SetCov(3, c33);
@@ -365,6 +377,9 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToX(GPUTPCGMMerger* merger, float x, f
 
   return 1;
 }
+
+template GPUdni() bool GPUTPCGMSectorTrack::TransportToX<0>(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const;
+template GPUdni() bool GPUTPCGMSectorTrack::TransportToX<1>(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const;
 
 GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float newX, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const
 {
