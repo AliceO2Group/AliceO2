@@ -211,6 +211,20 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
       }
     }
 
+    if (track.PrevSegment() >= 0) {
+      const GPUTPCGMMergedTrack* chkTrk = &tracks[track.PrevSegment()];
+      while (chkTrk->PrevSegment() >= 0) {
+        auto next = &tracks[chkTrk->PrevSegment()];
+        if (next == &track) {
+          break;
+        }
+        chkTrk = next;
+      }
+      const auto& firstPrevCluster = trackClusters[chkTrk->FirstClusterRef()];
+      t1 = clusters->clustersLinear[firstPrevCluster.num].getTime();
+      sector1 = firstPrevCluster.sector;
+    }
+
     bool cce = track.CCE() && ((sector1 < MAXSECTOR / 2) ^ (sector2 < MAXSECTOR / 2));
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
     if (merger.Param().par.continuousTracking) {

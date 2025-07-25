@@ -515,7 +515,8 @@ GPUd() int32_t GPUTPCGMMerger::RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack
   trk.DzDs() = inTrack->Param().GetDzDs();
   trk.QPt() = inTrack->Param().GetQPt();
   trk.TZOffset() = GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, inTrack->Param().GetZOffset(), Param().continuousMaxTimeBin);
-  trk.ShiftZ(this, sector, sectorTrack.ClusterZT0(), sectorTrack.ClusterZTN(), inTrack->Param().GetX(), inTrack->Param().GetX()); // We do not store the inner / outer cluster X, so we just use the track X instead
+  const auto tmp = sectorTrack.ClusterZTN() > sectorTrack.ClusterZT0() ? std::array<float, 2>{sectorTrack.ClusterZTN(), sectorTrack.ClusterZT0()} : std::array<float, 2>{sectorTrack.ClusterZT0(), sectorTrack.ClusterZTN()};
+  trk.ShiftZ(this, sector, tmp[0], tmp[1], inTrack->Param().GetX()); // We do not store the inner / outer cluster X, so we just use the track X instead
   sectorTrack.SetX2(0.f);
   for (int32_t way = 0; way < 2; way++) {
     if (way) {
@@ -1791,11 +1792,35 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
 {
   for (uint32_t i = iBlock * nThreads + iThread; i < mMemory->nMergedTracks; i += nBlocks * nThreads) {
     mTrackOrderAttach[mTrackSort[i]] = i;
-    const GPUTPCGMMergedTrack& trk = mMergedTracks[i];
+    GPUTPCGMMergedTrack& trk = mMergedTracks[i];
     if (trk.OK()) {
       for (uint32_t j = 0; j < trk.NClusters(); j++) {
         mClusterAttachment[mClusters[trk.FirstClusterRef() + j].num] = attachAttached | attachGood;
         CAMath::AtomicAdd(&mSharedCount[mClusters[trk.FirstClusterRef() + j].num], 1u);
+      }
+      if (!trk.CCE() && !trk.MergedLooper()) {
+        GPUTPCGMMergedTrack* updTrk = &trk;
+        while (updTrk->PrevSegment() >= 0) {
+          auto next = &mMergedTracks[updTrk->PrevSegment()];
+          if (next == &trk) {
+            break;
+          }
+          updTrk = next;
+        }
+        const auto &cl0 = mClusters[trk.FirstClusterRef()], &cln = mClusters[updTrk->FirstClusterRef() + updTrk->NClusters() - 1];
+        const auto& GPUrestrict() cls = GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
+        float z0 = cls[cl0.num].getTime(), zn = cls[cln.num].getTime();
+        const auto tmp = zn > z0 ? std::array<float, 3>{zn, z0, GPUTPCGeometry::Row2X(cln.row)} : std::array<float, 3>{z0, zn, GPUTPCGeometry::Row2X(cl0.row)};
+        trk.Param().ShiftZ(this, cl0.sector, tmp[0], tmp[1], tmp[2]);
+        updTrk = &trk;
+        while (updTrk->PrevSegment() >= 0) {
+          auto next = &mMergedTracks[updTrk->PrevSegment()];
+          if (next == &trk) {
+            break;
+          }
+          updTrk = next;
+          updTrk->Param().TZOffset() = trk.Param().TZOffset();
+        }
       }
     }
   }
