@@ -114,7 +114,6 @@ class GPUChainTracking : public GPUChain
     std::unique_ptr<GPUTPCMCInfoCol[]> mcInfosTPCCol;
     std::unique_ptr<GPUTPCGMMergedTrack[]> mergedTracks;
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
-    std::unique_ptr<GPUTPCGMMergedTrackHitXYZ[]> mergedTrackHitsXYZ;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDSpacePoint[]> trdSpacePoints;
     std::unique_ptr<float[]> trdTriggerTimes;

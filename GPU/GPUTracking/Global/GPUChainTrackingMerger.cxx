@@ -260,9 +260,6 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
         GPUMemCpy(RecoStep::TPCMerging, Merger.MergedTracksdEdx(), MergerShadowAll.MergedTracksdEdx(), Merger.NMergedTracks() * sizeof(*Merger.MergedTracksdEdx()), outputStream, 0);
       }
       GPUMemCpy(RecoStep::TPCMerging, Merger.Clusters(), MergerShadowAll.Clusters(), Merger.NMergedTrackClusters() * sizeof(*Merger.Clusters()), outputStream, 0);
-      if (param().par.earlyTpcTransform) {
-        GPUMemCpy(RecoStep::TPCMerging, Merger.ClustersXYZ(), MergerShadowAll.ClustersXYZ(), Merger.NMergedTrackClusters() * sizeof(*Merger.ClustersXYZ()), outputStream, 0);
-      }
       GPUMemCpy(RecoStep::TPCMerging, Merger.ClusterAttachment(), MergerShadowAll.ClusterAttachment(), Merger.NMaxClusters() * sizeof(*Merger.ClusterAttachment()), outputStream, 0);
     }
     if (GetProcessingSettings().outputSharedClusterMap) {
@@ -327,7 +324,6 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mIOPtrs.mergedTracks = Merger.MergedTracks();
   mIOPtrs.nMergedTracks = Merger.NMergedTracks();
   mIOPtrs.mergedTrackHits = Merger.Clusters();
-  mIOPtrs.mergedTrackHitsXYZ = Merger.ClustersXYZ();
   mIOPtrs.nMergedTrackHits = Merger.NMergedTrackClusters();
   mIOPtrs.mergedTrackHitAttachment = Merger.ClusterAttachment();
   mIOPtrs.mergedTrackHitStates = Merger.ClusterStateExt();
@@ -341,7 +337,6 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     processorsShadow()->ioPtrs.mergedTracks = MergerShadow.MergedTracks();
     processorsShadow()->ioPtrs.nMergedTracks = Merger.NMergedTracks();
     processorsShadow()->ioPtrs.mergedTrackHits = MergerShadow.Clusters();
-    processorsShadow()->ioPtrs.mergedTrackHitsXYZ = MergerShadow.ClustersXYZ();
     processorsShadow()->ioPtrs.nMergedTrackHits = Merger.NMergedTrackClusters();
     processorsShadow()->ioPtrs.mergedTrackHitAttachment = MergerShadow.ClusterAttachment();
     processorsShadow()->ioPtrs.mergedTrackHitStates = MergerShadow.ClusterStateExt();

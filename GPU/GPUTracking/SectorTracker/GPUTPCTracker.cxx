@@ -17,7 +17,6 @@
 #include "GPUTPCTrack.h"
 #include "GPUCommonMath.h"
 
-#include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUParam.inc"

@@ -38,11 +38,6 @@ struct GPUTPCGMMergedTrackHit {
                   flagHighIncl = 0x80 };
 };
 
-struct GPUTPCGMMergedTrackHitXYZ {
-  float x, y, z;
-  uint16_t amp;
-};
-
 } // namespace o2::gpu
 
 #endif

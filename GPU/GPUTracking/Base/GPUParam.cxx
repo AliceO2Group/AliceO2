@@ -111,7 +111,6 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
   par.continuousTracking = false;
   continuousMaxTimeBin = 0;
   tpcCutTimeBin = 0;
-  par.earlyTpcTransform = false;
 }
 
 void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w, const GPUSettingsRecDynamic* d)
@@ -122,7 +121,6 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
     continuousMaxTimeBin = g->grpContinuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->grpContinuousMaxTimeBin;
     tpcCutTimeBin = g->tpcCutTimeBin;
   }
-  par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
   qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f; // Repeat here, since passing in g is optional
   if (p) {
     UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);

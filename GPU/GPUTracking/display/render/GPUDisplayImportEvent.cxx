@@ -19,7 +19,6 @@
 #include "GPUDisplay.h"
 #include "frontend/GPUDisplayInfo.inc"
 #include "GPUO2DataTypes.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTRDGeometry.h"
 #include "GPUTRDTrackletWord.h"
@@ -139,35 +138,24 @@ void GPUDisplay::DrawGLScene_updateEventData()
   mMaxClusterZ = tbb::parallel_reduce(tbb::blocked_range<int32_t>(0, NSECTORS, 1), float(0.f), [&](const tbb::blocked_range<int32_t>& r, float maxClusterZ) {
     for (int32_t iSector = r.begin(); iSector < r.end(); iSector++) {
       int32_t row = 0;
-      uint32_t nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSector] : (mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0);
+      uint32_t nCls = mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0;
       for (uint32_t i = 0; i < nCls; i++) {
         int32_t cid;
-        if (mParam->par.earlyTpcTransform) {
-          const auto& cl = mIOPtrs->clusterData[iSector][i];
-          cid = cl.id;
-          row = cl.row;
-        } else {
-          cid = mIOPtrs->clustersNative->clusterOffset[iSector][0] + i;
-          while (row < GPUCA_ROW_COUNT - 1 && mIOPtrs->clustersNative->clusterOffset[iSector][row + 1] <= (uint32_t)cid) {
-            row++;
-          }
+        cid = mIOPtrs->clustersNative->clusterOffset[iSector][0] + i;
+        while (row < GPUCA_ROW_COUNT - 1 && mIOPtrs->clustersNative->clusterOffset[iSector][row + 1] <= (uint32_t)cid) {
+          row++;
         }
         if (cid >= mNMaxClusters) {
           throw std::runtime_error("Cluster Buffer Size exceeded");
         }
         float4* ptr = &mGlobalPos[cid];
-        if (mParam->par.earlyTpcTransform) {
-          const auto& cl = mIOPtrs->clusterData[iSector][i];
-          mParam->Sector2Global(iSector, (mCfgH.clustersOnNominalRow ? GPUTPCGeometry::Row2X(row) : cl.x) + mCfgH.xAdd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
-        } else {
-          float x, y, z;
-          const auto& cln = mIOPtrs->clustersNative->clusters[iSector][0][i];
-          GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, iSector, row, cln.getPad(), cln.getTime(), x, y, z);
-          if (mCfgH.clustersOnNominalRow) {
-            x = GPUTPCGeometry::Row2X(row);
-          }
-          mParam->Sector2Global(iSector, x + mCfgH.xAdd, y, z, &ptr->x, &ptr->y, &ptr->z);
+        float x, y, z;
+        const auto& cln = mIOPtrs->clustersNative->clusters[iSector][0][i];
+        GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, iSector, row, cln.getPad(), cln.getTime(), x, y, z);
+        if (mCfgH.clustersOnNominalRow) {
+          x = GPUTPCGeometry::Row2X(row);
         }
+        mParam->Sector2Global(iSector, x + mCfgH.xAdd, y, z, &ptr->x, &ptr->y, &ptr->z);
 
         if (fabsf(ptr->z) > maxClusterZ) {
           maxClusterZ = fabsf(ptr->z);

@@ -45,7 +45,6 @@
 #include "GPUTPCGMPropagator.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCMCInfo.h"
-#include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
 #include "GPUTPCClusterRejection.h"
@@ -1048,8 +1047,6 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             bool comp;
             if (revLabel == -1) {
               comp = true;
-            } else if (mTracking->GetParam().par.earlyTpcTransform) {
-              comp = fabsf(trks[i].GetParam().GetZ() + trks[i].GetParam().GetTZOffset()) < fabsf(trks[revLabel].GetParam().GetZ() + trks[revLabel].GetParam().GetTZOffset());
             } else {
               float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSECTORS / 2, trks[i].GetParam().GetTZOffset());
               float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSECTORS / 2, trks[revLabel].GetParam().GetTZOffset());
@@ -1387,13 +1384,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (!mParam->continuousMaxTimeBin) {
             return param.GetZ() - mc1.z;
           }
-#ifdef GPUCA_TPC_GEOMETRY_O2
-          if (!mParam->par.earlyTpcTransform) {
-            float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTZOffset() - mc1.t0);
-            return param.GetZ() + shift - mc1.z;
-          }
-#endif
-          return param.Z() + param.TZOffset() - mc1.z;
+          float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTZOffset() - mc1.t0);
+          return param.GetZ() + shift - mc1.z;
         };
 
         prop.SetTrack(&param, alpha);

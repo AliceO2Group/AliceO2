@@ -22,7 +22,6 @@
 #include "GPUTRDTracker.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUQA.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTPCGMPropagator.h"
 #include "GPUTPCMCInfo.h"
@@ -41,7 +40,7 @@
 
 using namespace o2::gpu;
 
-#define GET_CID(sector, i) (mParam->par.earlyTpcTransform ? mIOPtrs->clusterData[sector][i].id : (mIOPtrs->clustersNative->clusterOffset[sector][0] + i))
+#define GET_CID(sector, i) (mIOPtrs->clustersNative->clusterOffset[sector][0] + i)
 
 const GPUTRDGeometry* GPUDisplay::trdGeometry() { return (GPUTRDGeometry*)mCalib->trdGeometry; }
 const GPUTPCTracker& GPUDisplay::sectorTracker(int32_t iSector) { return mChain->GetProcessors()->tpcTrackers[iSector]; }
@@ -135,7 +134,7 @@ void GPUDisplay::DrawClusters(int32_t iSector)
   }
 
   uint32_t col = 0;
-  const int32_t nClustersInSector = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSector] : (mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0);
+  const int32_t nClustersInSector = mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0;
   [[maybe_unused]] const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
   for (int32_t cidInSector = 0; cidInSector < nClustersInSector; cidInSector++) {
     const int32_t cid = GET_CID(iSector, cidInSector);
@@ -178,11 +177,7 @@ void GPUDisplay::DrawClusters(int32_t iSector)
       }
     } else if (mCfgH.markClusters) {
       int16_t flags;
-      if (mParam->par.earlyTpcTransform) {
-        flags = mIOPtrs->clusterData[iSector][cidInSector].flags;
-      } else {
-        flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
-      }
+      flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
       if (flags & mCfgH.markClusters) {
         select = tMARKED;
       }
@@ -556,24 +551,17 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
             trkParam.Set(t);
           }
 
-          if (mParam->par.earlyTpcTransform) {
-            if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
-              x = mIOPtrs->mergedTrackHitsXYZ[track->FirstClusterRef() + lastCluster].x;
-              ZOffset = track->GetParam().GetTZOffset();
-            }
+          float y, z;
+          if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
+            auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
+            const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
+            GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.sector, cl.row, cln.getPad(), cln.getTime(), x, y, z);
+            ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(iSector, track->GetParam().GetTZOffset(), mParam->continuousMaxTimeBin);
           } else {
-            float y, z;
-            if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
-              auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
-              const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
-              GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.sector, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(iSector, track->GetParam().GetTZOffset(), mParam->continuousMaxTimeBin);
-            } else {
-              uint8_t sector, row;
-              auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);
-              GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, sector, row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, track->getTime0(), mParam->continuousMaxTimeBin);
-            }
+            uint8_t sector, row;
+            auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);
+            GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, sector, row, cln.getPad(), cln.getTime(), x, y, z);
+            ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, track->getTime0(), mParam->continuousMaxTimeBin);
           }
         } else {
           const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];

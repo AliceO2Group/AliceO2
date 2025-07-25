@@ -116,8 +116,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint32_t NMergedTrackClusters() const { return mMemory->nMergedTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
   GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return (mClusters); }
-  GPUhdi() const GPUTPCGMMergedTrackHitXYZ* ClustersXYZ() const { return mClustersXYZ; }
-  GPUhdi() GPUTPCGMMergedTrackHitXYZ* ClustersXYZ() { return (mClustersXYZ); }
   GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhdi() uint32_t* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhdi() uint32_t* TrackOrderProcess() const { return mTrackOrderProcess; }
@@ -225,7 +223,7 @@ class GPUTPCGMMerger : public GPUProcessor
   template <int32_t I>
   GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode = 0);
 
-  GPUd() void MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, const GPUTPCGMMergedTrackHitXYZ* clsXYZ, int32_t itr);
+  GPUd() void MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, int32_t itr);
 
   void CheckMergedTracks();
 #ifndef GPUCA_GPUCODE
@@ -267,7 +265,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUTPCGMSectorTrack* mSectorTrackInfos = nullptr; //* additional information for sector tracks
   int32_t* mSectorTrackInfoIndex = nullptr;
   GPUTPCGMMergedTrackHit* mClusters = nullptr;
-  GPUTPCGMMergedTrackHitXYZ* mClustersXYZ = nullptr;
   GPUAtomic(uint32_t) * mClusterAttachment = nullptr;
   o2::tpc::TrackTPC* mOutputTracksTPCO2 = nullptr;
   uint32_t* mOutputClusRefsTPCO2 = nullptr;

@@ -147,7 +147,6 @@ AddOptionRTC(compressionTypeMask, uint8_t, o2::gpu::GPUSettings::CompressionFull
 AddOptionRTC(compressionSortOrder, uint8_t, o2::gpu::GPUSettings::SortTime, "", 0, "Sort order of TPC compression (0 = time, 1 = pad, 2 = Z-time-pad, 3 = Z-pad-time, 4 = no sorting (use incoming order))")
 AddOptionRTC(sigBitsCharge, uint8_t, 4, "", 0, "Number of significant bits for TPC cluster charge in compression mode 1")
 AddOptionRTC(sigBitsWidth, uint8_t, 3, "", 0, "Number of significant bits for TPC cluster width in compression mode 1")
-AddOptionRTC(forceEarlyTransform, int8_t, -1, "", 0, "Force early TPC transformation also for continuous data (-1 = auto)")
 AddOptionRTC(dropLoopers, uint8_t, 0, "", 0, "Drop looping tracks starting from second loop")
 AddOptionRTC(mergerCovSource, uint8_t, 2, "", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following, 2 = refit (default)")
 AddOptionRTC(mergerInterpolateErrors, uint8_t, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
@@ -661,7 +660,6 @@ EndConfig()
 BeginHiddenConfig(GPUSettingsParam, param)
 AddVariableRTC(continuousTracking, int8_t, 0) // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
 AddVariableRTC(dodEdx, int8_t, 0)             // Do dEdx computation
-AddVariableRTC(earlyTpcTransform, int8_t, 0)  // do Early TPC transformation
 EndConfig()
 
 EndNamespace() // gpu

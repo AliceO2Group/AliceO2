@@ -90,7 +90,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
     }
     uint32_t myId = CAMath::AtomicAdd(&merger.Memory()->nO2Tracks, 1u);
     tmpData[i] = {nCl, CAMath::AtomicAdd(&merger.Memory()->nO2ClusRefs, nCl + (nCl + 1) / 2)};
-    trackSort[myId] = {i, (merger.Param().par.earlyTpcTransform || tracks[i].CSide()) ? tracks[i].GetParam().GetTZOffset() : -tracks[i].GetParam().GetTZOffset()};
+    trackSort[myId] = {i, tracks[i].CSide() ? tracks[i].GetParam().GetTZOffset() : -tracks[i].GetParam().GetTZOffset()};
   }
 }
 

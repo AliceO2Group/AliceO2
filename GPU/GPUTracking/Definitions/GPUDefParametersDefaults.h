@@ -305,9 +305,6 @@
   #ifndef GPUCA_LB_GPUTRDTrackerKernels_o2Version
     #define GPUCA_LB_GPUTRDTrackerKernels_o2Version 512
   #endif
-  #ifndef GPUCA_LB_GPUTPCConvertKernel
-    #define GPUCA_LB_GPUTPCConvertKernel 256
-  #endif
   #ifndef GPUCA_LB_GPUTPCCompressionKernels_step0attached
     #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 256
   #endif

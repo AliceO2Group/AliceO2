@@ -37,11 +37,7 @@ GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCT
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSector = sector;
-  if (merger->Param().par.earlyTpcTransform) {
-    mTZOffset = t.GetZOffset();
-  } else {
-    mTZOffset = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
-  }
+  mTZOffset = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
   mNClusters = sectorTr->NHits();
 }
 
@@ -327,11 +323,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToX(GPUTPCGMMerger* merger, float x, f
   b.SetPar(2, ey1);
   b.SetPar(3, param.mDzDs);
   b.SetPar(4, param.mQPt);
-  if (merger->Param().par.earlyTpcTransform) {
-    b.SetZOffsetLinear(mTZOffset);
-  } else {
-    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTZOffset, merger->Param().continuousMaxTimeBin));
-  }
+  b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTZOffset, merger->Param().continuousMaxTimeBin));
 
   if (!doCov) {
     return (1);
@@ -486,11 +478,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float
   b.SetPar(2, ey1);
   b.SetPar(3, dzds);
   b.SetPar(4, qpt);
-  if (merger->Param().par.earlyTpcTransform) {
-    b.SetZOffsetLinear(mTZOffset);
-  } else {
-    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTZOffset, merger->Param().continuousMaxTimeBin));
-  }
+  b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTZOffset, merger->Param().continuousMaxTimeBin));
 
   b.SetCov(0, c00 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
   b.SetCov(1, c11 + dS * (c31 + n7));

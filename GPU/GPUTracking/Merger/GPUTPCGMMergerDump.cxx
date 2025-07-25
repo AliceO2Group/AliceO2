@@ -19,7 +19,6 @@
 #include <iomanip>
 #include <numeric>
 #include "GPUTPCTracker.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCGMMerger.h"
 #include "GPUO2DataTypes.h"

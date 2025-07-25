@@ -69,10 +69,6 @@ class GPUTPCTracker : public GPUProcessor
     int32_t nLocalTrackHits = 0;        // see above
   };
 
-  GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const
-  {
-    return mData.ClusterData();
-  }
   GPUhdi() const GPUTPCRow& Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
   GPUhdni() GPUglobalref() commonMemoryStruct* CommonMemory() const
   {

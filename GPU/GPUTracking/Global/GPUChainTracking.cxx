@@ -21,11 +21,11 @@
 #include "GPUChainTrackingGetters.inc"
 #include "GPUReconstructionIO.h"
 #include "GPUChainTrackingDefs.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTPCTrack.h"
 #include "GPUTPCHitId.h"
+#include "GPUTPCClusterData.h"
 #include "TPCZSLinkMapping.h"
 #include "GPUTRDTrackletWord.h"
 #include "AliHLTTPCClusterMCData.h"
@@ -93,9 +93,6 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   if (GetRecoSteps() & RecoStep::TRDTracking) {
     mRec->RegisterGPUProcessor(&processors()->trdTrackerO2, GetRecoStepsGPU() & RecoStep::TRDTracking);
   }
-  if (GetRecoSteps() & RecoStep::TPCConversion) {
-    mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
-  }
   if (GetRecoSteps() & RecoStep::TPCCompression) {
     mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
   }
@@ -141,9 +138,6 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTrackerO2, &processors()->trdTrackerO2);
   }
-  if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
-    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcConverter, &processors()->tpcConverter);
-  }
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
@@ -182,11 +176,9 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Invalid GPU Reconstruction Step Setting: dEdx requires TPC Merger to be active");
     return false;
   }
-  if (!param().par.earlyTpcTransform) {
-    if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging)) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) {
-      GPUError("Invalid Reconstruction Step Setting: Tracking without early transform requires TPC Conversion to be active");
-      return false;
-    }
+  if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging)) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) {
+    GPUError("Invalid Reconstruction Step Setting: Tracking requires TPC Conversion to be active");
+    return false;
   }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCRaw)) {
     GPUError("Invalid input, TPC Clusterizer needs TPC raw input");
@@ -566,7 +558,6 @@ void GPUChainTracking::AllocateIOMemory()
   AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPCCol, mIOPtrs.mcInfosTPCCol, mIOMem.mcInfosTPCCol);
   AllocateIOMemoryHelper(mIOPtrs.nMergedTracks, mIOPtrs.mergedTracks, mIOMem.mergedTracks);
   AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
-  AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHitsXYZ, mIOMem.mergedTrackHitsXYZ);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdSpacePoints, mIOMem.trdSpacePoints);
