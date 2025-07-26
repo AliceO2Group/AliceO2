@@ -71,9 +71,9 @@ class GPUTPCGMTrackParam
   {
     return mP[4];
   }
-  GPUd() float& TZOffset()
+  GPUd() float& TOffset()
   {
-    return mTZOffset;
+    return mTOffset;
   }
 
   GPUhd() float GetX() const { return mX; }
@@ -82,7 +82,7 @@ class GPUTPCGMTrackParam
   GPUd() float GetSinPhi() const { return mP[2]; }
   GPUd() float GetDzDs() const { return mP[3]; }
   GPUd() float GetQPt() const { return mP[4]; }
-  GPUd() float GetTZOffset() const { return mTZOffset; }
+  GPUd() float GetTOffset() const { return mTOffset; }
 
   GPUd() float GetKappa(float Bz) const { return -mP[4] * Bz; }
 
@@ -217,7 +217,7 @@ class GPUTPCGMTrackParam
   GPUd() int32_t initResetT0();
 
   float mX;        // x position
-  float mTZOffset; // Z offset with early transform, T offset otherwise
+  float mTOffset;  // Z offset with early transform, T offset otherwise
   float mP[5];     // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
   float mC[15];    // the covariance matrix for Y,Z,SinPhi,..
   float mChi2;     // the chi^2 value

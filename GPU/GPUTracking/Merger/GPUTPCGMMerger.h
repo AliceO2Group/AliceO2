@@ -151,7 +151,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() uint16_t MemoryResOutputO2Scratch() const { return mMemoryResOutputO2Scratch; }
 
   GPUd() int32_t RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack, const GPUTPCTrack* inTrack, float alpha, int32_t sector);
-  GPUd() void SetTrackClusterZT(GPUTPCGMSectorTrack& track, int32_t iSector, const GPUTPCTrack* sectorTr);
+  GPUd() void SetTrackClusterT(GPUTPCGMSectorTrack& track, int32_t iSector, const GPUTPCTrack* sectorTr);
 
   int32_t CheckSectors();
   GPUd() void RefitSectorTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector);

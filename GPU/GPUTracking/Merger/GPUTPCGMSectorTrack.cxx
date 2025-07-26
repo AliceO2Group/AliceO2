@@ -37,7 +37,7 @@ GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCT
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSector = sector;
-  mTZOffset = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
+  mTOffset = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
   mNClusters = sectorTr->NHits();
 }
 
@@ -54,7 +54,7 @@ GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPC
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSector = sector;
-  mTZOffset = trk.GetTZOffset();
+  mTOffset = trk.GetTOffset();
   mNClusters = sectorTr->NHits();
   mParam.mC0 = trk.GetCov(0);
   mParam.mC2 = trk.GetCov(2);
@@ -256,7 +256,7 @@ GPUd() bool GPUTPCGMSectorTrack::FilterErrors(const GPUTPCGMMerger* merger, int3
 
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = CAMath::Finite(mParam.mX) && CAMath::Finite(mParam.mY) && CAMath::Finite(mParam.mZ) && CAMath::Finite(mParam.mSinPhi) && CAMath::Finite(mParam.mDzDs) && CAMath::Finite(mParam.mQPt) && CAMath::Finite(mParam.mCosPhi) && CAMath::Finite(mParam.mSecPhi) && CAMath::Finite(mTZOffset) && CAMath::Finite(mParam.mC0) && CAMath::Finite(mParam.mC2) &&
+  bool ok = CAMath::Finite(mParam.mX) && CAMath::Finite(mParam.mY) && CAMath::Finite(mParam.mZ) && CAMath::Finite(mParam.mSinPhi) && CAMath::Finite(mParam.mDzDs) && CAMath::Finite(mParam.mQPt) && CAMath::Finite(mParam.mCosPhi) && CAMath::Finite(mParam.mSecPhi) && CAMath::Finite(mTOffset) && CAMath::Finite(mParam.mC0) && CAMath::Finite(mParam.mC2) &&
             CAMath::Finite(mParam.mC3) && CAMath::Finite(mParam.mC5) && CAMath::Finite(mParam.mC7) && CAMath::Finite(mParam.mC9) && CAMath::Finite(mParam.mC10) && CAMath::Finite(mParam.mC12) && CAMath::Finite(mParam.mC14);
 
   if (mParam.mC0 <= 0.f || mParam.mC2 <= 0.f || mParam.mC5 <= 0.f || mParam.mC9 <= 0.f || mParam.mC14 <= 0.f || mParam.mC0 > 5.f || mParam.mC2 > 5.f || mParam.mC5 > 2.f || mParam.mC9 > 2.f) {
@@ -323,7 +323,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToX(GPUTPCGMMerger* merger, float x, f
   b.SetPar(2, ey1);
   b.SetPar(3, param.mDzDs);
   b.SetPar(4, param.mQPt);
-  b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTZOffset, merger->Param().continuousMaxTimeBin));
+  b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTOffset, merger->Param().continuousMaxTimeBin));
 
   if (!doCov) {
     return (1);
@@ -478,7 +478,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float
   b.SetPar(2, ey1);
   b.SetPar(3, dzds);
   b.SetPar(4, qpt);
-  b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTZOffset, merger->Param().continuousMaxTimeBin));
+  b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTOffset, merger->Param().continuousMaxTimeBin));
 
   b.SetCov(0, c00 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
   b.SetCov(1, c11 + dS * (c31 + n7));

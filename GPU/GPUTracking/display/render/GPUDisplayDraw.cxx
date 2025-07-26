@@ -556,7 +556,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
             auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
             const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
             GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.sector, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-            ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(iSector, track->GetParam().GetTZOffset(), mParam->continuousMaxTimeBin);
+            ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(iSector, track->GetParam().GetTOffset(), mParam->continuousMaxTimeBin);
           } else {
             uint8_t sector, row;
             auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);

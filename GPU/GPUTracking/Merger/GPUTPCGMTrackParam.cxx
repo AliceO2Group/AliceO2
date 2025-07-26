@@ -134,7 +134,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       float xx, yy, zz;
       {
         const ClusterNative& GPUrestrict() cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
-        merger->GetConstantMem()->calibObjects.fastTransformHelper->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), xx, yy, zz, mTZOffset);
+        merger->GetConstantMem()->calibObjects.fastTransformHelper->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);
       }
       // clang-format off
       CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f (Missed %d)\n", ihit, maxN, (int32_t)clusters[ihit].row, clAlpha, (int32_t)clusters[ihit].sector, xx, yy, zz, nMissed));
@@ -469,7 +469,7 @@ GPUd() int32_t GPUTPCGMTrackParam::MergeDoubleRowClusters(int32_t& ihit, int32_t
       const ClusterNative& GPUrestrict() cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
       float clamp = cl.qTot;
       float clx, cly, clz;
-      merger->GetConstantMem()->calibObjects.fastTransformHelper->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), clx, cly, clz, mTZOffset);
+      merger->GetConstantMem()->calibObjects.fastTransformHelper->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), clx, cly, clz, mTOffset);
       float dy = cly - projY;
       float dz = clz - projZ;
       if (noReject == 0 && (dy * dy > maxDistY || dz * dz > maxDistZ)) {
@@ -526,7 +526,7 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
     return -1e6f;
   }
 
-  const float zOffset = Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, mTZOffset, Merger->Param().continuousMaxTimeBin);
+  const float zOffset = Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, mTOffset, Merger->Param().continuousMaxTimeBin);
   const float y0 = row.Grid().YMin();
   const float stepY = row.HstepY();
   const float z0 = row.Grid().ZMin() - zOffset; // We can use our own ZOffset, since this is only used temporarily anyway
@@ -886,27 +886,27 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
   if (!beamlineReached) {
     float refZ = ((sector < GPUCA_NSECTORS / 2) ? merger->Param().rec.tpc.defaultZOffsetOverR : -merger->Param().rec.tpc.defaultZOffsetOverR) * clx;
     float basez;
-    merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->TransformIdealZ(sector, cltmax, basez, mTZOffset);
+    merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->TransformIdealZ(sector, cltmax, basez, mTOffset);
     deltaZ = basez - refZ;
   }
   {
     float deltaT = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaZtoDeltaTimeInTimeFrame(sector, deltaZ);
-    mTZOffset += deltaT;
+    mTOffset += deltaT;
     mP[1] -= deltaZ;
     const float maxT = cltmin - merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getT0();
     const float minT = cltmax - merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(sector);
-    // printf("T Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, minT, maxT, mTZOffset);
+    // printf("T Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, minT, maxT, mTOffset);
     deltaT = 0.f;
-    if (mTZOffset < minT) {
-      deltaT = minT - mTZOffset;
+    if (mTOffset < minT) {
+      deltaT = minT - mTOffset;
     }
-    if (mTZOffset + deltaT > maxT) {
-      deltaT = maxT - mTZOffset;
+    if (mTOffset + deltaT > maxT) {
+      deltaT = maxT - mTOffset;
     }
     if (deltaT != 0.f) {
       deltaZ = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(sector, deltaT);
-      // printf("Moving clusters to TPC Range: QPt %f, New mTZOffset %f, t1 %f, t2 %f, Shift %f in Z: %f to %f --> %f to %f in T\n", mP[4], mTZOffset + deltaT, tz1, tz2, deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaT, tz1 - mTZOffset - deltaT);
-      mTZOffset += deltaT;
+      // printf("Moving clusters to TPC Range: QPt %f, New mTOffset %f, t1 %f, t2 %f, Shift %f in Z: %f to %f --> %f to %f in T\n", mP[4], mTOffset + deltaT, tz1, tz2, deltaZ, tz2 - mTOffset, tz1 - mTOffset, tz2 - mTOffset - deltaT, tz1 - mTOffset - deltaT);
+      mTOffset += deltaT;
       mP[1] -= deltaZ;
     }
   }

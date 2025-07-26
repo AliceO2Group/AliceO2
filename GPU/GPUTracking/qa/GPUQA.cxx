@@ -1048,8 +1048,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             if (revLabel == -1) {
               comp = true;
             } else {
-              float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSECTORS / 2, trks[i].GetParam().GetTZOffset());
-              float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSECTORS / 2, trks[revLabel].GetParam().GetTZOffset());
+              float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSECTORS / 2, trks[i].GetParam().GetTOffset());
+              float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSECTORS / 2, trks[revLabel].GetParam().GetTOffset());
               comp = fabsf(trks[i].GetParam().GetZ() + shift1) < fabsf(trks[revLabel].GetParam().GetZ() + shift2);
             }
             if (revLabel == -1 || !trks[revLabel].OK() || (trks[i].OK() && comp)) {
@@ -1345,7 +1345,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             param.Cov()[k] = (*tracksExternal)[i].getCov()[k];
           }
           param.X() = (*tracksExternal)[i].getX();
-          param.TZOffset() = (*tracksExternal)[i].getTime0();
+          param.TOffset() = (*tracksExternal)[i].getTime0();
           alpha = (*tracksExternal)[i].getAlpha();
           side = (*tracksExternal)[i].hasBothSidesClusters() ? 2 : ((*tracksExternal)[i].hasCSideClusters() ? 1 : 0);
 #endif
@@ -1384,7 +1384,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (!mParam->continuousMaxTimeBin) {
             return param.GetZ() - mc1.z;
           }
-          float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTZOffset() - mc1.t0);
+          float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTOffset() - mc1.t0);
           return param.GetZ() + shift - mc1.z;
         };
 
@@ -1726,10 +1726,10 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
       mNCl[1]->Fill(nClCorrected);
-      mT0[0]->Fill(track.GetParam().GetTZOffset());
+      mT0[0]->Fill(track.GetParam().GetTOffset());
       if (mTrackMCLabels.size() && !mTrackMCLabels[i].isFake() && !track.MergedLooper() && !track.CCE()) {
         const auto& info = GetMCTrack(mTrackMCLabels[i]);
-        mT0[1]->Fill(track.GetParam().GetTZOffset() - info.t0);
+        mT0[1]->Fill(track.GetParam().GetTOffset() - info.t0);
       }
     }
     if (mClNative && mTracking && mTracking->GetTPCTransformHelper()) {
@@ -1849,7 +1849,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (attach & gputpcgmmergertypes::attachFlagMask) {
             uint32_t track = attach & gputpcgmmergertypes::attachTrackMask;
             const auto& trk = mTracking->mIOPtrs.mergedTracks[track];
-            mTracking->GetTPCTransformHelper()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTZOffset());
+            mTracking->GetTPCTransformHelper()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTOffset());
             mTracking->GetParam().Sector2Global(i, x, y, z, &x, &y, &z);
           }
           uint32_t extState = mTracking->mIOPtrs.mergedTrackHitStates ? mTracking->mIOPtrs.mergedTrackHitStates[clid] : 0;

@@ -223,7 +223,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
   float tOffset;
   if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
     count = trkX.NClusters();
-    tOffset = trkX.GetParam().GetTZOffset();
+    tOffset = trkX.GetParam().GetTOffset();
   } else if constexpr (std::is_same_v<T, TrackTPC>) {
     count = trkX.getNClusters();
     tOffset = trkX.getTime0();

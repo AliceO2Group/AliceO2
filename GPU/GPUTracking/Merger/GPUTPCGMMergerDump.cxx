@@ -51,7 +51,7 @@ void GPUTPCGMMerger::DumpSectorTracks(std::ostream& out) const
       out << "  Track type " << iGlobal << "\n";
       for (int32_t j = mSectorTrackInfoIndex[iSector + NSECTORS * iGlobal]; j < mSectorTrackInfoIndex[iSector + NSECTORS * iGlobal + 1]; j++) {
         const auto& trk = mSectorTrackInfos[j];
-        out << "    Track " << j << ": LocalId " << (iGlobal ? (trk.LocalTrackId() >> 24) : -1) << "/" << (iGlobal ? (trk.LocalTrackId() & 0xFFFFFF) : -1) << " X " << trk.X() << " offsetz " << trk.TZOffset() << " A " << trk.Alpha() << " Y " << trk.Y() << " Z " << trk.Z() << " SinPhi " << trk.SinPhi() << " CosPhi " << trk.CosPhi() << " SecPhi " << trk.SecPhi() << " Tgl " << trk.DzDs() << " QPt " << trk.QPt() << "\n";
+        out << "    Track " << j << ": LocalId " << (iGlobal ? (trk.LocalTrackId() >> 24) : -1) << "/" << (iGlobal ? (trk.LocalTrackId() & 0xFFFFFF) : -1) << " X " << trk.X() << " offsetz " << trk.TOffset() << " A " << trk.Alpha() << " Y " << trk.Y() << " Z " << trk.Z() << " SinPhi " << trk.SinPhi() << " CosPhi " << trk.CosPhi() << " SecPhi " << trk.SecPhi() << " Tgl " << trk.DzDs() << " QPt " << trk.QPt() << "\n";
       }
     }
   }
@@ -140,7 +140,7 @@ void GPUTPCGMMerger::DumpCollected(std::ostream& out) const
   for (uint32_t i = 0; i < mMemory->nMergedTracks; i++) {
     const auto& trk = mMergedTracks[i];
     const auto& p = trk.GetParam();
-    out << "  Track " << i << ": Loop " << trk.Looper() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " offset " << p.GetTZOffset() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << "\n";
+    out << "  Track " << i << ": Loop " << trk.Looper() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " offset " << p.GetTOffset() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << "\n";
   }
   out << std::setprecision(ss);
 }
@@ -201,7 +201,7 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out) const
     }
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
-    out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " offset " << p.GetTZOffset() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
+    out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " offset " << p.GetTOffset() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
         << " dEdx " << (trk.OK() && Param().dodEdxEnabled ? mMergedTracksdEdx[i].dEdxTotTPC : -1.f) << "/" << (trk.OK() && Param().dodEdxEnabled ? mMergedTracksdEdx[i].dEdxMaxTPC : -1.f)
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4]
         << " NFitted " << trk.NClustersFitted() << " flags " << (int)trk.Flags() << "\n";

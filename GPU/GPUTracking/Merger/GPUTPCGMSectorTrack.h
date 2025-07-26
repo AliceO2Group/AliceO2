@@ -54,7 +54,7 @@ class GPUTPCGMSectorTrack
   GPUd() float SecPhi() const { return mParam.mSecPhi; }
   GPUd() float DzDs() const { return mParam.mDzDs; }
   GPUd() float QPt() const { return mParam.mQPt; }
-  GPUd() float TZOffset() const { return mTZOffset; }
+  GPUd() float TOffset() const { return mTOffset; }
 
   GPUd() int32_t LocalTrackId() const { return mLocalTrackId; }
   GPUd() void SetLocalTrackId(int32_t v) { mLocalTrackId = v; }
@@ -62,14 +62,14 @@ class GPUTPCGMSectorTrack
   GPUd() void SetExtrapolatedTrackId(int32_t n, int32_t v) { mExtrapolatedTrackIds[n] = v; }
   GPUd() int32_t* ExtrapolatedTrackIds() { return mExtrapolatedTrackIds; }
 
-  GPUd() float MaxClusterZT() const { return CAMath::Max(mClusterZT[0], mClusterZT[1]); }
-  GPUd() float MinClusterZT() const { return CAMath::Min(mClusterZT[0], mClusterZT[1]); }
-  GPUd() float ClusterZT0() const { return mClusterZT[0]; }
-  GPUd() float ClusterZTN() const { return mClusterZT[1]; }
-  GPUd() void SetClusterZT(float v1, float v2)
+  GPUd() float MaxClusterT() const { return CAMath::Max(mClusterT[0], mClusterT[1]); }
+  GPUd() float MinClusterT() const { return CAMath::Min(mClusterT[0], mClusterT[1]); }
+  GPUd() float ClusterT0() const { return mClusterT[0]; }
+  GPUd() float ClusterTN() const { return mClusterT[1]; }
+  GPUd() void SetClusterT(float v1, float v2)
   {
-    mClusterZT[0] = v1;
-    mClusterZT[1] = v2;
+    mClusterT[0] = v1;
+    mClusterT[1] = v2;
   }
 
   GPUd() void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sectorTr, float alpha, int32_t sector);
@@ -126,9 +126,9 @@ class GPUTPCGMSectorTrack
   const GPUTPCTrack* mOrigTrack;    // pointer to original sector track
   sectorTrackParam mParam;          // Track parameters
   sectorTrackParam mParam2;         // Parameters at other side
-  float mTZOffset;                  // Z offset with early transform, T offset otherwise
+  float mTOffset;                   // Z offset with early transform, T offset otherwise
   float mAlpha;                     // alpha angle
-  float mClusterZT[2];              // Minimum maximum cluster Z / T
+  float mClusterT[2];               // Minimum maximum cluster T
   int32_t mNClusters;               // N clusters
   int32_t mNeighbour[2];            //
   int32_t mSegmentNeighbour[2];     //

@@ -33,7 +33,7 @@ using namespace o2::tpc;
 using namespace o2::tpc::constants;
 
 GPUdi() static constexpr uint8_t getFlagsReject() { return GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagHighIncl; }
-GPUdi() static uint32_t getFlagsRequired(const GPUSettingsRec& rec) { return rec.tpc.dropSecondaryLegsInOutput ? gputpcgmmergertypes::attachGoodLeg : gputpcgmmergertypes::attachZero; }
+GPUdi() static uint32_t getFlagsRequired(const GPUSettingsRec& rec) { return gputpcgmmergertypes::attachGoodLeg; }
 
 namespace o2::gpu::internal
 {
@@ -65,7 +65,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
     if (!tracks[i].OK()) {
       continue;
     }
-    if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && tracks[i].MergedLooper()) {
+    if (tracks[i].MergedLooper()) {
       continue;
     }
 
@@ -79,7 +79,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
     if (nCl == 0) {
       continue;
     }
-    if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && nCl + 2 < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
+    if (nCl + 2 < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
       continue;
     }
     if (merger.Param().rec.tpc.minNClustersFinalTrack != -1 && nCl < (uint32_t)merger.Param().rec.tpc.minNClustersFinalTrack) {
@@ -90,7 +90,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
     }
     uint32_t myId = CAMath::AtomicAdd(&merger.Memory()->nO2Tracks, 1u);
     tmpData[i] = {nCl, CAMath::AtomicAdd(&merger.Memory()->nO2ClusRefs, nCl + (nCl + 1) / 2)};
-    trackSort[myId] = {i, tracks[i].CSide() ? tracks[i].GetParam().GetTZOffset() : -tracks[i].GetParam().GetTZOffset()};
+    trackSort[myId] = {i, tracks[i].CSide() ? tracks[i].GetParam().GetTOffset() : -tracks[i].GetParam().GetTOffset()};
   }
 }
 
@@ -228,7 +228,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
     bool cce = track.CCE() && ((sector1 < MAXSECTOR / 2) ^ (sector2 < MAXSECTOR / 2));
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
     if (merger.Param().par.continuousTracking) {
-      time0 = track.GetParam().GetTZOffset();
+      time0 = track.GetParam().GetTOffset();
       if (cce) {
         bool lastSide = trackClusters[track.FirstClusterRef()].sector < MAXSECTOR / 2;
         float delta = 0.f;
