@@ -531,10 +531,12 @@ int32_t GPUQA::InitQACreateHistograms()
       snprintf(name, 2048, i ? "nrows_with_cluster" : "nclusters");
       createHist(mNCl[i], name, name, 160, 0, 159);
     }
-    snprintf(name, 2048, "tracks");
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
-    createHist(mTracks, name, name, AXIS_BINS[4], binsPt.get());
-    createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250);
+    createHist(mTracks, "tracks_pt", "tracks_pt", AXIS_BINS[4], binsPt.get());
+    const uint32_t maxTime = (mTracking && mTracking->GetParam().continuousMaxTimeBin > 0) ? mTracking->GetParam().continuousMaxTimeBin : TPC_MAX_TIME_BIN_TRIGGERED;
+    createHist(mT0[0], "tracks_t0", "tracks_t0", (maxTime + 1) / 10, 0, maxTime);
+    createHist(mT0[1], "tracks_t0_res", "tracks_t0_res", 1000, -100, 100);
+    createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250); // TODO: Pass name only once
   }
 
   if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
@@ -1732,6 +1734,11 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
       mNCl[1]->Fill(nClCorrected);
+      mT0[0]->Fill(track.GetParam().GetTZOffset());
+      if (mTrackMCLabels.size() && !mTrackMCLabels[i].isFake() && !track.MergedLooper() && !track.CCE()) {
+        const auto& info = GetMCTrack(mTrackMCLabels[i]);
+        mT0[1]->Fill(track.GetParam().GetTZOffset() - info.t0);
+      }
     }
     if (mClNative && mTracking && mTracking->GetTPCTransformHelper()) {
       for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
@@ -2130,7 +2137,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
 
     // Create Canvas for track statistic histos
     if (mQATasks & taskTrackStatistics) {
-      mCTracks = createGarbageCollected<TCanvas>("ctracks", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
+      mCTracks = createGarbageCollected<TCanvas>("ctrackspt", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
       mCTracks->cd();
       mPTracks = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPTracks->Draw();
@@ -2138,7 +2145,15 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       SetLegend(mLTracks);
 
       for (int32_t i = 0; i < 2; i++) {
-        snprintf(name, 2048, "cncl%d Pull", i);
+        snprintf(name, 2048, "ctrackst0%d", i);
+        mCT0[i] = createGarbageCollected<TCanvas>(name, "Track T0", 0, 0, 700, 700. * 2. / 3.);
+        mCT0[i]->cd();
+        mPT0[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
+        mPT0[i]->Draw();
+        mLT0[i] = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+        SetLegend(mLT0[i]);
+
+        snprintf(name, 2048, "cncl%d", i);
         mCNCl[i] = createGarbageCollected<TCanvas>(name, i ? "Number of clusters (corrected for multiple per row)" : "Number of clusters per track", 0, 0, 700, 700. * 2. / 3.);
         mCNCl[i]->cd();
         mPNCl[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
@@ -2742,7 +2757,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
   if (mQATasks & taskTrackStatistics) {
     // Process track statistic histograms
     float tmpMax = 0.;
-    for (int32_t k = 0; k < ConfigNumInputs; k++) {
+    for (int32_t k = 0; k < ConfigNumInputs; k++) { // TODO: Simplify this drawing, avoid copy&paste
       TH1F* e = mTracks;
       if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
@@ -2786,6 +2801,51 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
 
     for (int32_t i = 0; i < 2; i++) {
+      tmpMax = 0.;
+      for (int32_t k = 0; k < ConfigNumInputs; k++) {
+        TH1F* e = mT0[i];
+        if (GetHist(e, tin, k, nNewInput) == nullptr) {
+          continue;
+        }
+        e->SetMaximum(-1111);
+        if (e->GetMaximum() > tmpMax) {
+          tmpMax = e->GetMaximum();
+        }
+      }
+      mPT0[i]->cd();
+      for (int32_t k = 0; k < ConfigNumInputs; k++) {
+        TH1F* e = mT0[i];
+        if (GetHist(e, tin, k, nNewInput) == nullptr) {
+          continue;
+        }
+        if (tout && !mConfig.inputHistogramsOnly && k == 0) {
+          e->Write();
+        }
+        e->SetMaximum(tmpMax * 1.02);
+        e->SetMinimum(tmpMax * -0.02);
+        e->SetStats(kFALSE);
+        e->SetLineWidth(1);
+        e->GetYaxis()->SetTitle("a.u.");
+        e->GetXaxis()->SetTitle(i ? "to vs t0_{mc}" : "t0");
+        if (qcout) {
+          qcout->Add(e);
+        }
+        e->SetMarkerColor(kBlack);
+        e->SetLineColor(colorNums[k % COLORCOUNT]);
+        e->Draw(k == 0 ? "" : "same");
+        GetName(fname, k);
+        snprintf(name, 2048, "%sTrack T0 %s", fname, i ? "" : "resolution");
+        mLT0[i]->AddEntry(e, name, "l");
+      }
+      mLT0[i]->Draw();
+      mCT0[i]->cd();
+      snprintf(name, 2048, "plots/t0%s.pdf", i ? "_res" : "");
+      mCT0[i]->Print(name);
+      if (mConfig.writeRootFiles) {
+        snprintf(name, 2048, "plots/t0%s.root", i ? "_res" : "");
+        mCT0[i]->Print(name);
+      }
+
       tmpMax = 0.;
       for (int32_t k = 0; k < ConfigNumInputs; k++) {
         TH1F* e = mNCl[i];

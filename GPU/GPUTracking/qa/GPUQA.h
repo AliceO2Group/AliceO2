@@ -305,6 +305,11 @@ class GPUQA
   TPad* mPNCl[2];
   TLegend* mLNCl[2];
 
+  TH1F* mT0[2];
+  TCanvas* mCT0[2];
+  TPad* mPT0[2];
+  TLegend* mLT0[2];
+
   TH2F* mClXY;
   TCanvas* mCClXY;
   TPad* mPClXY;
