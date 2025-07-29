@@ -71,7 +71,6 @@ class V0Index : public DecayNBodyIndex<2>
   ClassDefNV(V0Index, 1);
 };
 
-
 class Decay3BodyIndex : public DecayNBodyIndex<3>
 {
  public:
