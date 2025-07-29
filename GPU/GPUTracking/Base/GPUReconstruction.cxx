@@ -270,7 +270,6 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     GPUError("WARNING, deterministicGPUReconstruction needs GPUCA_DETERMINISTIC_MODE for being fully deterministic, without only most indeterminism by concurrency is removed, but floating point effects remain!");
 #endif
     mProcessingSettings->overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
-    param().rec.tpc.nWaysOuter = true;
     if (GetProcessingSettings().createO2Output > 1) {
       mProcessingSettings->createO2Output = 1;
     }

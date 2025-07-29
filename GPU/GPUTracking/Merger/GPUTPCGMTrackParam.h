@@ -153,7 +153,7 @@ class GPUTPCGMTrackParam
   GPUd() void AttachClustersMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, float toY, GPUTPCGMPropagator& prop);
   GPUd() int32_t FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toX, float toY, int32_t toSector, int32_t toRow, bool inFlyDirection);
   GPUd() void StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toY, float toX, int32_t toSector, int32_t toRow, bool inFlyDirection, float alpha);
-  GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, const GPUTPCGMPropagator& prop, int32_t phase);
+  GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha);
   GPUd() static void RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t loopIdx);
 
   GPUd() void AddCovDiagErrors(const float* GPUrestrict() errors2);

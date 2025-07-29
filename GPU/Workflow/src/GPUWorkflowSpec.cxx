@@ -227,7 +227,6 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configProcessing.runQA = -mQATaskMask;
     }
   }
-  mConfig->configReconstruction.tpc.nWaysOuter = true;
   mConfig->configInterface.outputToExternalBuffers = true;
   if (mConfParam->synchronousProcessing) {
     mConfig->configReconstruction.useMatLUT = false;

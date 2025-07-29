@@ -62,7 +62,7 @@ int32_t GPUChainTracking::RunTRDTrackingInternal()
       if (!Tracker.PreCheckTrackTRDCandidate(trk)) {
         continue;
       }
-      const GPUTRDTrackGPU& trktrd = param().rec.tpc.nWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
+      const GPUTRDTrackGPU& trktrd = (GPUTRDTrackGPU)trk.OuterParam();
       if (!Tracker.CheckTrackTRDCandidate(trktrd)) {
         continue;
       }

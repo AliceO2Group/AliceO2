@@ -299,8 +299,8 @@ bool GPUChainTracking::ValidateSettings()
     return false;
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
-    if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || param().rec.tpc.nWaysOuter == 0 || (GetMatLUT() == nullptr && !GetProcessingSettings().willProvideO2PropagatorLate))) {
-      GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled (%d), nWaysOuter is set (%d), and matBudLUT is available (0x%p)", (int32_t)GetProcessingSettings().createO2Output, (int32_t)param().rec.tpc.nWaysOuter, (void*)GetMatLUT());
+    if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || (GetMatLUT() == nullptr && !GetProcessingSettings().willProvideO2PropagatorLate))) {
+      GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled (%d), and matBudLUT is available (0x%p)", (int32_t)GetProcessingSettings().createO2Output, (void*)GetMatLUT());
       return false;
     }
     if ((GetRecoStepsGPU() & RecoStep::TRDTracking) && !GetProcessingSettings().trdTrackModelO2 && GetProcessingSettings().createO2Output > 1) {

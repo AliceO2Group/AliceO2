@@ -85,9 +85,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
     float sumInvSqrtCharge = 0.f;
     int32_t nAvgCharge = 0;
 
-    if (iWay && param.rec.tpc.nWaysOuter) {
-      if (iWay == nWays - 1) {
-        StoreOuter(&track.OuterParam(), prop, 0);
+    if (iWay) {
+      if (iWay && ((nWays - iWay) & 1) == 1) {
+        StoreOuter(&track.OuterParam(), prop.GetAlpha());
       }
     }
 
@@ -626,9 +626,9 @@ GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float
          (up ? (-mP[0] * lrFactor > toX || (right ^ (mP[2] > 0))) : (-mP[0] * lrFactor < toX || (right ^ (mP[2] < 0)))); // don't overshoot in X
 }
 
-GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, const GPUTPCGMPropagator& prop, int32_t phase)
+GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha)
 {
-  CADEBUG(printf("\t%21sStorO%d  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", phase, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14])));
+  CADEBUG(printf("\t%21sStorO  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14])));
   for (int32_t i = 0; i < 5; i++) {
     outerParam->P[i] = mP[i];
   }
@@ -636,7 +636,7 @@ GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterPar
     outerParam->C[i] = mC[i];
   }
   outerParam->X = mX;
-  outerParam->alpha = prop.GetAlpha();
+  outerParam->alpha = alpha;
 }
 
 GPUdic(0, 1) void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toY, float toX, int32_t toSector, int32_t toRow, bool inFlyDirection, float alpha)

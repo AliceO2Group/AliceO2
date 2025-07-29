@@ -220,7 +220,6 @@ int32_t ReadConfiguration(int argc, char** argv)
     if (configStandalone.runGPU) {
       configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
     }
-    configStandalone.rec.tpc.nWaysOuter = 1;
     configStandalone.rec.tpc.trackReferenceX = 83;
     configStandalone.proc.outputSharedClusterMap = 1;
     configStandalone.proc.clearO2OutputFromGPU = 1;
@@ -415,9 +414,6 @@ int32_t SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCClusterFinding));
 
   if (steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking)) {
-    if (recSet.tpc.nWays > 1) {
-      recSet.tpc.nWaysOuter = 1;
-    }
     if (procSet.createO2Output && !procSet.trdTrackModelO2) {
       procSet.createO2Output = 1; // Must not be 2, to make sure TPC GPU tracks are still available for TRD
     }
