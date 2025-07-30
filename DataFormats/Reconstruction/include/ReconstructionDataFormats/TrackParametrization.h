@@ -248,6 +248,8 @@ class TrackParametrization
 #ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
   std::string asStringHexadecimal();
+  size_t hash() const { return hash(getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt()); }
+  static size_t hash(float x, float alp, float y, float z, float snp, float tgl, float q2pt);
 #endif
 
   GPUd() void updateParam(value_t delta, int i);
@@ -751,6 +753,21 @@ GPUdi() void TrackParametrization<value_T>::updateParams(const value_t* delta)
     mP[kSnp] = -constants::math::Almost1;
   }
 }
+
+#ifndef GPUCA_ALIGPUCODE
+template <typename value_T>
+size_t TrackParametrization<value_T>::hash(float x, float alp, float y, float z, float snp, float tgl, float q2pt)
+{
+  size_t h = std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(x, 0xFFFFFFF0));
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(alp, 0xFFFFFFF0)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(y, 0xFFFFFFF0)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(z, 0xFFFFFFF0)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(snp, 0xFFFFFF00)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(tgl, 0xFFFFFF00)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(q2pt, 0xFFFFFC00)) << 1;
+  return h;
+}
+#endif
 
 } // namespace track
 } // namespace o2
