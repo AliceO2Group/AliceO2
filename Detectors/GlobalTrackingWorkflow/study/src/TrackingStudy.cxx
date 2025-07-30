@@ -479,6 +479,7 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           auto& trcExt = trcExtVec.emplace_back();
           recoData.getTrackTime(vid, trcExt.ttime, trcExt.ttimeE);
           trcExt.track = trc;
+          trcExt.hashIU = trc.hash();
           trcExt.dca = dca;
           trcExt.gid = vid;
           trcExt.xmin = xmin;

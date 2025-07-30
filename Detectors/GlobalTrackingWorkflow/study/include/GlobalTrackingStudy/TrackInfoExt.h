@@ -53,7 +53,7 @@ struct TrackInfoExt {
   uint8_t padFromEdge = -1;
   uint8_t rowMaxTPC = 0;
   uint8_t rowCountTPC = 0;
-
+  size_t hashIU = 0;
   void setTPCA() { setBit(int(TPCA)); }
   void setTPCC() { setBit(int(TPCC)); }
   void setTPCAC() { setBit(int(TPCC)); }
@@ -74,7 +74,7 @@ struct TrackInfoExt {
   void resetBit(int bit) { flags &= ~(kBitMask & (0x1 << bit)); }
   bool isBitSet(int bit) const { return flags & (kBitMask & (0x1 << bit)); }
 
-  ClassDefNV(TrackInfoExt, 7);
+  ClassDefNV(TrackInfoExt, 8);
 };
 
 } // namespace dataformats
