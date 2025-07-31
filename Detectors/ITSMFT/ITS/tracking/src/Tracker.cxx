@@ -66,6 +66,7 @@ void Tracker::clustersToTracks(const LogFunc& logger, const LogFunc& error)
     LOGP(error, "Exception: {}", err.what());
     if (mTrkParams[iteration].DropTFUponFailure) {
       mMemoryPool->print();
+      mTimeFrame->wipe();
       ++mNumberOfDroppedTFs;
       error("...Dropping Timeframe...");
     } else {
