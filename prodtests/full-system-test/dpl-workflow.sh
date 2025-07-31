@@ -272,7 +272,8 @@ if [[ $GPUTYPE == "HIP" ]]; then
     GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
   fi
   # serialization workaround for MI100 nodes: remove it again if the problem will be fixed in ROCm, then also remove the DISABLE_MI100_SERIALIZATION flag in the O2DPG parse script
-  [[ $EPNSYNCMODE == 1 || -n ${OPTIMIZED_PARALLEL_ASYNC:-} ]] && [[ ${EPN_NODE_MI100:-} == "1" ]] && [[ ${DISABLE_MI100_SERIALIZATION:-0} != 1 ]] && GPU_CONFIG_KEY+="GPU_proc.amdMI100SerializationWorkaround=1;"
+  [[ $EPNSYNCMODE == 1 ]] && [[ ${EPN_NODE_MI100:-} == "1" ]] && [[ ${DISABLE_MI100_SERIALIZATION:-0} != 1 ]] && GPU_CONFIG_KEY+="GPU_proc.amdMI100SerializationWorkaround=1;"
+  [[ -n ${OPTIMIZED_PARALLEL_ASYNC:-} ]] && [[ ${EPN_NODE_MI100:-} == "1" ]] && [[ ${DISABLE_MI100_SERIALIZATION:-0} != 1 ]] && GPU_CONFIG_KEY+="GPU_proc.serializeGPU=3;"
   #export HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2
 else
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=-2;"
