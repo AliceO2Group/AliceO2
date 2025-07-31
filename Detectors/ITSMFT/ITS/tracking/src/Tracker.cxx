@@ -39,6 +39,7 @@ Tracker::Tracker(TrackerTraits7* traits) : mTraits(traits)
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
   if (traits->isGPU()) {
+    ITSGpuTrackingParamConfig::Instance().maybeOverride();
     ITSGpuTrackingParamConfig::Instance().printKeyValues(true, true);
   }
 }
