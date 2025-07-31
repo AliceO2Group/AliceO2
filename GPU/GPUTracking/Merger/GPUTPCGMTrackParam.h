@@ -149,12 +149,12 @@ class GPUTPCGMTrackParam
   GPUd() bool AttachClustersPropagate(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t lastRow, int32_t toRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop, bool inFlyDirection, float maxSinPhi = GPUCA_MAX_SIN_PHI, bool checkdEdx = false);
   GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use
   GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z);
-  // We force to compile these twice, for RefitLoop and for Fit, for better optimization
-  GPUd() void AttachClustersMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, float toY, GPUTPCGMPropagator& prop);
+  // We force to compile these twice, for PropagateLooper and for Fit, for better optimization
+  GPUd() void AttachClustersLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outer, GPUTPCGMPropagator& prop);
   GPUd() int32_t FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toX, float toY, int32_t toSector, int32_t toRow, bool inFlyDirection);
-  GPUd() void StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toY, float toX, int32_t toSector, int32_t toRow, bool inFlyDirection, float alpha);
+  GPUd() void StoreLoopPropagation(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outerParam, float alpha);
   GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha);
-  GPUd() static void RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t loopIdx);
+  GPUd() static void PropagateLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t loopIdx);
 
   GPUd() void AddCovDiagErrors(const float* GPUrestrict() errors2);
   GPUd() void AddCovDiagErrorsWithCorrelations(const float* GPUrestrict() errors2);
@@ -227,15 +227,10 @@ class GPUTPCGMTrackParam
 struct GPUTPCGMLoopData {
   GPUTPCGMTrackParam param;
   uint32_t track;
-  float toY;
-  float toX;
   float alpha;
-  float toAlpha;
   uint8_t sector;
   uint8_t row;
-  int8_t toSector;
-  uint8_t toRow;
-  uint8_t inFlyDirection;
+  uint8_t outerParam;
 };
 
 GPUdi() int32_t GPUTPCGMTrackParam::initResetT0()
