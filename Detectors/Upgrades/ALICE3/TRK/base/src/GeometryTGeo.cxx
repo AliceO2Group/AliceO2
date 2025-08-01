@@ -11,9 +11,9 @@
 
 #include <TRKBase/GeometryTGeo.h>
 #include <TGeoManager.h>
-// #include "TRKBase/SegmentationChip.h"
+#include "TRKBase/SegmentationChip.h"
 
-// using Segmentation = o2::trk::SegmentationChip;
+using Segmentation = o2::trk::SegmentationChip;
 
 namespace o2
 {
@@ -302,40 +302,40 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   // Note, the if the effective sensitive layer thickness is smaller than the
   // total physical sensor tickness, this matrix is biased and connot be used
   // directly for transformation from sensor frame to global one.
-  //
   // Therefore we need to add a shift
+
   auto path = getMatrixPath(index);
 
   static TGeoHMatrix matTmp;
-  // gGeoManager->PushPath(); // Preserve the modeler state.
+  gGeoManager->PushPath(); // Preserve the modeler state.
 
-  // if (!gGeoManager->cd(path.Data())) {
-  //   gGeoManager->PopPath();
-  //   LOG(error) << "Error in cd-ing to " << path.Data();
-  //   return nullptr;
-  // } // end if !gGeoManager
+  if (!gGeoManager->cd(path.Data())) {
+    gGeoManager->PopPath();
+    LOG(error) << "Error in cd-ing to " << path.Data();
+    return nullptr;
+  } // end if !gGeoManager
 
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
 
   // RSS
-  // printf("%d/%d/%d %s\n", lay, stav, detInSta, path.Data());
   // matTmp.Print();
   // Restore the modeler state.
   gGeoManager->PopPath();
 
   static int chipInGlo{0};
 
+  /// TODO:
   // account for the difference between physical sensitive layer (where charge collection is simulated) and effective sensor thicknesses
-  // in the ITS3 case this accounted by specialized functions
-  // double delta = Segmentation::SensorLayerThickness;
-  // static TGeoTranslation tra(0., 0.5 * delta, 0.);
-  // #ifdef ENABLE_UPGRADES // only apply for non ITS3 OB layers
-  //   if (!mIsLayerITS3[getLayer(index)]) {
-  //     matTmp *= tra;
-  //   }
-  // #else
+  // in the VD case this will be accounted by specialized functions during the clusterization (following what it is done for ITS3)
+  // this can be done once the right sensor thickness is in place in the geometry
+  // double delta = 0.;
+  // if (getSubDetID(index) == 1){ /// ML/OT
+  //   delta = Segmentation::SensorLayerThicknessVD - Segmentation::SiliconTickness;
+  //   static TGeoTranslation tra(0., 0.5 * delta, 0.);
   //   matTmp *= tra;
-  // #endif
+  // }
+  // std::cout<<"-----"<<std::endl;
+  // matTmp.Print();
 
   return &matTmp;
 }
@@ -361,6 +361,8 @@ void GeometryTGeo::fillMatrixCache(int mask)
       cacheL2G.setMatrix(Mat3D(*hm), i);
     }
   }
+
+  // TODO: build matrices for the cases T2L, T2G and T2GRot when needed
 }
 
 //__________________________________________________________________________
