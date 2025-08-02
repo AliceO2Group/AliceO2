@@ -117,18 +117,14 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
   }
 
   if (clustererNN.mNnClusterizerAddIndexData) {
-    float sector_norm = sector / 36.f;
-    float row_norm = row / 152.f;
-    float pad_norm = static_cast<float>(pad) / GPUTPCGeometry::NPads(row);
-
     if (dtype == 0) {
-      clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)sector_norm;
-      clustererNN.mInputData_16[write_idx + 1] = (OrtDataType::Float16_t)row_norm;
-      clustererNN.mInputData_16[write_idx + 2] = (OrtDataType::Float16_t)pad_norm;
+      clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)(static_cast<float>(sector) / o2::tpc::constants::MAXSECTOR);
+      clustererNN.mInputData_16[write_idx + 1] = (OrtDataType::Float16_t)(static_cast<float>(row) / o2::tpc::constants::MAXGLOBALPADROW);
+      clustererNN.mInputData_16[write_idx + 2] = (OrtDataType::Float16_t)(static_cast<float>(pad) / GPUTPCGeometry::NPads(row));
     } else {
-      clustererNN.mInputData_32[write_idx] = sector_norm;
-      clustererNN.mInputData_32[write_idx + 1] = row_norm;
-      clustererNN.mInputData_32[write_idx + 2] = pad_norm;
+      clustererNN.mInputData_32[write_idx] = static_cast<float>(sector) / o2::tpc::constants::MAXSECTOR;
+      clustererNN.mInputData_32[write_idx + 1] = static_cast<float>(row) / o2::tpc::constants::MAXGLOBALPADROW;
+      clustererNN.mInputData_32[write_idx + 2] = static_cast<float>(pad) / GPUTPCGeometry::NPads(row);
     }
   }
 
@@ -178,8 +174,8 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
     uint32_t write_idx = base_idx * clustererNN.mNnClusterizerElementSize + clustererNN.mNnClusterizerChargeArraySize + data_idx;
 
     float index_values[3] = {
-      sector / 36.f,
-      row / 152.f,
+      static_cast<float>(sector) / o2::tpc::constants::MAXSECTOR,
+      static_cast<float>(row) / o2::tpc::constants::MAXGLOBALPADROW,
       static_cast<float>(pad) / GPUTPCGeometry::NPads(row)};
 
     if (dtype == 0) {
@@ -335,11 +331,11 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     return;
   }
 
-  tpc::ClusterNative* clusterOut = (withMC) ? nullptr : clusterer.mPclusterByRow;
+  tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow;
 
   // LOG(info) << glo_idx << " -- " << model_output_index << " / " << clustererNN.outputDataReg1.size() << " / " << clustererNN.mNnClusterizerModelReg1NumOutputNodes << " -- " << clusterer.peakPositions.size() << " -- " << clusterer.centralCharges.size();
 
-  if (clustererNN.mOutputDataClass[full_glo_idx] == 1 || (clustererNN.mNnClusterizerModelReg2NumOutputNodes != -1 && clustererNN.mOutputDataClass[full_glo_idx] >= 1)) {
+  if (clustererNN.mOutputDataClass[full_glo_idx] == 1 || (clustererNN.mNnClusterizerUseClassification <= 0)) {
 
     ClusterAccumulator pc;
 
@@ -451,7 +447,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
 
   uint32_t model_output_index = glo_idx * clustererNN.mNnClusterizerModelReg2NumOutputNodes;
 
-  if (clustererNN.mOutputDataClass[full_glo_idx] > 0) {
+  if ((clustererNN.mOutputDataClass[full_glo_idx] > 0) || (clustererNN.mNnClusterizerUseClassification <= 0)) {
 
     ClusterAccumulator pc;
 

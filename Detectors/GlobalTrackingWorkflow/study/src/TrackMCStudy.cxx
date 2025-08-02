@@ -280,20 +280,33 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
     return patt;
   };
 
-  auto getLowestPadrow = [&recoData](const o2::tpc::TrackTPC& trc, RecTrack& tref) {
+  auto fillTPCClusterInfo = [&recoData](const o2::tpc::TrackTPC& trc, RecTrack& tref) {
     if (recoData.inputsTPCclusters) {
-      uint8_t clSect = 0, clRow = 0;
+      uint8_t clSect = 0, clRow = 0, lowestR = -1;
       uint32_t clIdx = 0;
       const auto clRefs = recoData.getTPCTracksClusterRefs();
       const auto tpcClusAcc = recoData.getTPCClusters();
-      trc.getClusterReference(clRefs, trc.getNClusterReferences() - 1, clSect, clRow, clIdx);
+      const auto shMap = recoData.clusterShMapTPC;
+      for (int ic = 0; ic < trc.getNClusterReferences(); ic++) { // outside -> inside ordering, but on the sector boundaries backward jumps are possible
+        trc.getClusterReference(clRefs, ic, clSect, clRow, clIdx);
+        if (clRow < lowestR) {
+          tref.rowCountTPC++;
+          lowestR = clRow;
+        }
+        unsigned int absoluteIndex = tpcClusAcc.clusterOffset[clSect][clRow] + clIdx;
+        if (shMap[absoluteIndex] & o2::gpu::GPUTPCGMMergedTrackHit::flagShared) {
+          tref.nClTPCShared++;
+        }
+      }
+      tref.lowestPadRow = lowestR;
       const auto& clus = tpcClusAcc.clusters[clSect][clRow][clIdx];
       int padFromEdge = int(clus.getPad()), npads = o2::gpu::GPUTPCGeometry::NPads(clRow);
       if (padFromEdge > npads / 2) {
         padFromEdge = npads - 1 - padFromEdge;
       }
       tref.padFromEdge = uint8_t(padFromEdge);
-      tref.lowestPadRow = clRow;
+      trc.getClusterReference(clRefs, 0, clSect, clRow, clIdx);
+      tref.rowMaxTPC = clRow;
     }
   };
 
@@ -557,7 +570,10 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
         if (msk[DetID::TPC]) {
           const auto& trtpc = recoData.getTPCTrack(gidSet[GTrackID::TPC]);
           tref.nClTPC = trtpc.getNClusters();
-          getLowestPadrow(trtpc, tref);
+          if (trtpc.hasBothSidesClusters()) {
+            tref.flags |= RecTrack::HASACSides;
+          }
+          fillTPCClusterInfo(trtpc, tref);
           flagTPCClusters(trtpc, entry.first);
           if (trackFam.entTPC < 0) {
             trackFam.entTPC = tcnt;
@@ -748,8 +764,8 @@ void TrackMCStudy::fillMCClusterInfo(const o2::globaltracking::RecoContainer& re
   const auto& params = o2::trackstudy::TrackMCStudyConfig::Instance();
 
   ClResTPC clRes{};
-  for (uint8_t sector = 0; sector < 36; sector++) {
-    for (uint8_t row = 0; row < 152; row++) {
+  for (uint8_t row = 0; row < 152; row++) { // we need to go in increasing row, so this should be the outer loop
+    for (uint8_t sector = 0; sector < 36; sector++) {
       unsigned int offs = TPCClusterIdxStruct.clusterOffset[sector][row];
       for (unsigned int icl0 = 0; icl0 < TPCClusterIdxStruct.nClusters[sector][row]; icl0++) {
         const auto labels = TPCClMClab->getLabels(icl0 + offs);

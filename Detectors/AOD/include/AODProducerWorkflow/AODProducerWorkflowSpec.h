@@ -246,7 +246,7 @@ class AODProducerWorkflowDPL : public Task
   std::mt19937 mGenerator{}; ///< random generator for trackQA sampling
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
-  float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
+  float mMaxPropXiu{5.0f}; // max X_IU for which track is to be propagated if mPropTracks is true. (other option: o2::constants::geom::XTPCInnerRef + 0.1f)
 
   std::unordered_set<GIndex> mGIDUsedBySVtx;
   std::unordered_set<GIndex> mGIDUsedByStr;

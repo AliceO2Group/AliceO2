@@ -43,6 +43,7 @@ class GPUTPCNNClusterizer : public GPUProcessor
   int32_t mNnClusterizerChargeArraySize = -1;
   int32_t mNnClusterizerElementSize = -1;
   int8_t mNnClusterizerAddIndexData = 1;
+  int8_t mNnClusterizerUseClassification = 1;
   float mNnClassThreshold = 0.01;
   int8_t mNnSigmoidTrafoClassThreshold = 1;
   int8_t mNnClusterizerSetDeconvolutionFlags = 1;

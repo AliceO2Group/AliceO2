@@ -470,6 +470,15 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
                     0.185, 0, "Resonance", ionCode);
   }
 
+  // Lambda(1405)0
+  ionCode = 102132;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("Lambda_1405_0", "Lambda_1405_0", 1.405, kFALSE, 0.05, 0, "Resonance", ionCode);
+  }
+  if (!db->GetParticle(-ionCode)) {
+    db->AddParticle("AntiLambda_1405_0", "AntiLambda_1405_0", 1.405, kFALSE, 0.05, 0, "Resonance", -ionCode);
+  }
+
   // Lambda(1520)0
   ionCode = 102134;
   if (!db->GetParticle(ionCode)) {

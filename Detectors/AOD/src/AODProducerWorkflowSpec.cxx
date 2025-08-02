@@ -540,7 +540,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           }
           const auto& trOrig = data.getTrackParam(trackIndex);
           bool isProp = false;
-          if (mPropTracks && trOrig.getX() < mMinPropR &&
+          if (mPropTracks && trOrig.getX() < mMaxPropXiu &&
               mGIDUsedBySVtx.find(trackIndex) == mGIDUsedBySVtx.end() &&
               mGIDUsedByStr.find(trackIndex) == mGIDUsedByStr.end()) { // Do not propagate track assoc. to V0s and str. tracking
             auto trackPar(trOrig);
@@ -1688,6 +1688,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
   mThinTracks = ic.options().get<bool>("thin-tracks");
   mPropTracks = ic.options().get<bool>("propagate-tracks");
+  mMaxPropXiu = ic.options().get<float>("propagate-tracks-max-xiu");
   mPropMuons = ic.options().get<bool>("propagate-muons");
   if (auto s = ic.options().get<std::string>("with-streamers"); !s.empty()) {
     mStreamerFlags.set(s);
@@ -3299,6 +3300,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"ctpreadout-create", VariantType::Int, 0, {"Create CTP digits from detector readout and CTP inputs. !=1 -- off, 1 -- on"}},
       ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
       ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
+      ConfigParamSpec{"propagate-tracks-max-xiu", VariantType::Float, 5.0f, {"Propagate tracks to IP if X_IU smaller than this value (and if propagate tracks enabled)"}},
       ConfigParamSpec{"hepmc-update", VariantType::String, "always", {"When to update HepMC Aux tables: always - force update, never - never update, all - if all keys are present, any - when any key is present (not valid yet)"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
       ConfigParamSpec{"thin-tracks", VariantType::Bool, false, {"Produce thinned track tables"}},

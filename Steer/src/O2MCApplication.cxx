@@ -383,6 +383,10 @@ void addSpecialParticles()
   // f1(1420) (PDG: width = 54 MeV) Spin/Parity might not be correct
   TVirtualMC::GetMC()->DefineParticle(20333, "f1_1420", kPTNeutron, 1.42640, 0.0, 1e-24, "Hadron", 0.05490, 3, 1, 0, 0, 0, 0, 0, 1, kTRUE);
 
+  // lambda1405 (PDG: width = 50 MeV)
+  TVirtualMC::GetMC()->DefineParticle(102132, "Lambda1405", kPTNeutron, 1.405, 0.0, 1.316e-23, "Hadron", 0.050, 0, 1, 0, 0, 0, 0, 0, 2, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-102132, "AntiLambda1405", kPTNeutron, 1.405, 0.0, 1.316e-23, "Hadron", 0.050, 0, 1, 0, 0, 0, 0, 0, 2, kTRUE);
+
   // Glueball hunting family
   // Their life times are not known, so we set them to 1e-24
   // f0(1370) (PDG: width = 200-500 MeV) Spin/Parity might not be correct
@@ -1379,6 +1383,43 @@ void addSpecialParticles()
 
   TVirtualMC::GetMC()->SetDecayMode(20223, bratio2, mode); // f1(1285)
   TVirtualMC::GetMC()->SetDecayMode(20333, bratio2, mode); // f1(1420)
+
+  // Define the decay modes for the Lambda(1405)
+  for (Int_t kz = 0; kz < 6; kz++) {
+    bratio[kz] = 0.;
+    mode[kz][0] = 0;
+    mode[kz][1] = 0;
+    mode[kz][2] = 0;
+  }
+  // 33.3 % sigma-pi+, sigma+pi-, sigma0pi0
+  bratio[0] = 33.3;
+  mode[0][0] = 3112; // Sigma-
+  mode[0][1] = 211;  // negative pion
+  bratio[1] = 33.3;
+  mode[1][0] = 3222; // Sigma+
+  mode[1][1] = -211; // positive pion
+  bratio[2] = 33.3;
+  mode[2][0] = 3212;                                       // Sigma0
+  mode[2][1] = 111;                                        // neutral pion
+  TVirtualMC::GetMC()->SetDecayMode(102132, bratio, mode); // Lambda(1405)
+  // Define the decay modes for the Anti-Lambda(1405)
+  for (Int_t kz = 0; kz < 6; kz++) {
+    abratio[kz] = 0.;
+    amode[kz][0] = 0;
+    amode[kz][1] = 0;
+    amode[kz][2] = 0;
+  }
+  // 33.3 % sigma-pi-, sigma-pi+, sigma0pi0
+  abratio[0] = 33.3;
+  amode[0][0] = -3112; // AntiSigma-
+  amode[0][1] = -211;  // positive pion
+  abratio[1] = 33.3;
+  amode[1][0] = -3222; // AntiSigma+
+  amode[1][1] = 211;   // negative pion
+  abratio[2] = 33.3;
+  amode[2][0] = -3212;                                        // Sigma0
+  amode[2][1] = 111;                                          // negative pion
+  TVirtualMC::GetMC()->SetDecayMode(-102132, abratio, amode); // Anti-Lambda(1405)
 
   // Lambda1520/Lambda1520bar
 
