@@ -47,13 +47,10 @@ struct Tracklet final {
   GPUhdi() auto getDeltaRof() const { return rof[1] - rof[0]; }
   GPUhdi() auto getSpanRof(const Tracklet& o) const noexcept { return o2::gpu::CAMath::Max(getMaxRof(), o.getMaxRof()) - o2::gpu::CAMath::Min(getMinRof(), o.getMinRof()); }
   GPUhdi() unsigned char operator<(const Tracklet&) const;
-#if !defined(GPUCA_NO_FMT) && !defined(GPUCA_GPUCODE_DEVICE)
-  std::string asString() const
+  GPUhd() void print() const
   {
-    return fmt::format("fClIdx:{} fROF:{} sClIdx:{} sROF:{} (DROF:{})", firstClusterIndex, rof[0], secondClusterIndex, rof[1], getDeltaRof());
+    printf("TRKLT: fClIdx:%d fROF:%d sClIdx:%d sROF:%d (DROF:%d) tgl=%f phi=%f\n", firstClusterIndex, rof[0], secondClusterIndex, rof[1], getDeltaRof(), tanLambda, phi);
   }
-  void print() const { LOG(info) << asString(); }
-#endif
 
   int firstClusterIndex{constants::UnusedIndex};
   int secondClusterIndex{constants::UnusedIndex};
