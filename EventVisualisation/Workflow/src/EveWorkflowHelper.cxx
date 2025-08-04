@@ -524,11 +524,11 @@ void EveWorkflowHelper::save(const std::string& jsonPath, const std::string& ext
   FileProducer producer(jsonPath, ext);
   producer.reduceNumberOfFiles(numberOfFiles);
   Location location({.fileName = producer.newFileName(),
-                            .port = receiverPort,
-                            .timeout = receiverTimeout,
-                            .host = receiverHostname,
-                            .toFile = !useOnlySockets,
-                            .toSocket = !useOnlyFiles});
+                     .port = receiverPort,
+                     .timeout = receiverTimeout,
+                     .host = receiverHostname,
+                     .toFile = !useOnlySockets,
+                     .toSocket = !useOnlyFiles});
   VisualisationEventSerializer::getInstance(ext)->toFile(mEvent, location);
 }
 
