@@ -35,7 +35,7 @@
 using namespace std::chrono_literals;
 
 // source file name, destination (not existing) file name, if limit > 0 then limit EACH type of data
-int singleFileConversion(const std::string& src, const o2::event_visualisation::Location& dst, const int limit = -1)
+int singleFileConversion(const std::string& src, o2::event_visualisation::Location& dst, const int limit = -1)
 {
   LOGF(info, "Translate: %s -> %s", src, dst.fileName());
   o2::event_visualisation::VisualisationEvent vEvent;

@@ -523,13 +523,13 @@ void EveWorkflowHelper::save(const std::string& jsonPath, const std::string& ext
   mEvent.setEveVersion(o2_eve_version);
   FileProducer producer(jsonPath, ext);
   producer.reduceNumberOfFiles(numberOfFiles);
-
-  VisualisationEventSerializer::getInstance(ext)->toFile(mEvent, Location({.fileName = producer.newFileName(),
-                                                                           .port = receiverPort,
-                                                                           .timeout = receiverTimeout,
-                                                                           .host = receiverHostname,
-                                                                           .toFile = !useOnlySockets,
-                                                                           .toSocket = !useOnlyFiles}));
+  Location location({.fileName = producer.newFileName(),
+                            .port = receiverPort,
+                            .timeout = receiverTimeout,
+                            .host = receiverHostname,
+                            .toFile = !useOnlySockets,
+                            .toSocket = !useOnlyFiles});
+  VisualisationEventSerializer::getInstance(ext)->toFile(mEvent, location);
 }
 
 std::vector<PNT>

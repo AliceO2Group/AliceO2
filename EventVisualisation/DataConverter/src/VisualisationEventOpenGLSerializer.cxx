@@ -83,7 +83,7 @@ const auto CALT = "CALT"; // calo PID
 
 const auto FINE = "FINE"; //
 
-void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event, Location location)
+void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event, Location& location)
 {
   std::string fileName = location.fileName();
   static const std::vector<std::string> det_coma = {
