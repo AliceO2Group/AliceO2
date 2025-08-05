@@ -18,8 +18,8 @@
 
 #include "ITStracking/Constants.h"
 #include "ITStracking/Cluster.h"
+#include "MathUtils/Utils.h"
 #include "GPUCommonRtypes.h"
-#include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
 #include "GPUCommonLogger.h"
 
@@ -67,8 +67,8 @@ GPUhdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secon
     secondClusterIndex{secondClusterOrderingIndex},
     tanLambda{(firstCluster.zCoordinate - secondCluster.zCoordinate) /
               (firstCluster.radius - secondCluster.radius)},
-    phi{o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
-                                      firstCluster.xCoordinate - secondCluster.xCoordinate)},
+    phi{o2::math_utils::fastATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
+                                  firstCluster.xCoordinate - secondCluster.xCoordinate)},
     rof{static_cast<short>(rof0), static_cast<short>(rof1)}
 {
   // Nothing to do
