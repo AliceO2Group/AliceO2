@@ -331,6 +331,9 @@ struct TimeSeriesdEdx {
 };
 
 struct TimeSeriesITSTPC {
+  float mVDrift = 0;                          ///< drift velocity in cm/us
+  float mPressure = 0;                        ///< pressure
+  float mTemperature = 0;                     ///< temperature
   TimeSeries mTSTPC;                          ///< TPC standalone DCAs
   TimeSeries mTSITSTPC;                       ///< ITS-TPC standalone DCAs
   ITSTPC_Matching mITSTPCAll;                 ///< ITS-TPC matching efficiency for ITS standalone + afterburner
@@ -499,7 +502,7 @@ struct TimeSeriesITSTPC {
     nVertexContributors_Quantiles.resize(nTotalQ);
   }
 
-  ClassDefNV(TimeSeriesITSTPC, 5);
+  ClassDefNV(TimeSeriesITSTPC, 6);
 };
 
 } // end namespace tpc

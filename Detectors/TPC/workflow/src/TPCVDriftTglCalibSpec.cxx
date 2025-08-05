@@ -20,6 +20,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "Framework/Task.h"
+#include "TPCCalibration/PressureTemperatureHelper.h"
 
 using namespace o2::framework;
 
@@ -52,12 +53,24 @@ class TPCVDriftTglCalibSpec : public Task
       return;
     }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    mPTHelper.extractCCDBInputs(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::Triplet<float, float, float>>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     if (data.size()) {
       LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 2 << " tracks"; // 1st entry is for VDrift, 2nd for the offset
     }
-    mCalibrator->process(data);
+
+    // if no T/P scaling of the VDrift was performed get the current T/P
+    float tp = 0;
+    if (!data.empty()) {
+      // third value of first entry is the T/P ratio, if it is 0, we use the current T/P
+      if (data[0].third == 0) {
+        const auto timestamp = pc.services().get<o2::framework::TimingInfo>().creation;
+        tp = mPTHelper.getTP(timestamp);
+      }
+    }
+
+    mCalibrator->process(data, tp);
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       LOG(info) << "Run stop requested, finalizing";
       mRunStopRequested = true;
@@ -80,13 +93,15 @@ class TPCVDriftTglCalibSpec : public Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    mPTHelper.accountCCDBInputs(matcher, obj);
   }
 
  private:
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::tpc::TPCVDriftTglCalibration> mCalibrator;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
-  bool mRunStopRequested = false; // flag that run was stopped (ant the last output is sent)
+  PressureTemperatureHelper mPTHelper; // helper to extract pressure and temperature from CCDB
+  bool mRunStopRequested = false;      // flag that run was stopped (ant the last output is sent)
 };
 
 //_____________________________________________________________
@@ -133,6 +148,8 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL"}, Lifetime::Sporadic);
   slot0frac = 1. - slot0frac;
+
+  PressureTemperatureHelper::requestCCDBInputs(inputs);
 
   return DataProcessorSpec{
     "tpc-vd-tgl-calib",

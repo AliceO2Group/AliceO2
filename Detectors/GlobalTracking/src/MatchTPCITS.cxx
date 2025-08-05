@@ -101,7 +101,7 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp,
       break;
     }
     if (mVDriftCalibOn) { // in the beginning of the output vector we send the full and reference VDrift used for this TF
-      calib.emplace_back(mTPCVDrift, mTPCDrift.refVDrift, -999.);
+      calib.emplace_back(mTPCVDrift, mTPCDrift.refVDrift, mTPCDrift.refTP);
       calib.emplace_back(mTPCDriftTimeOffset, mTPCDrift.refTimeOffset, -999.);
     }
 

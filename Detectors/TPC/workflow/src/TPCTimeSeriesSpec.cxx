@@ -19,7 +19,6 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ControlService.h"
-#include "DataFormatsTPC/WorkflowHelper.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "TPCBase/Mapper.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -31,7 +30,6 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "MathUtils/Tsallis.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "CommonDataFormat/AbstractRefAccessor.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
@@ -46,6 +44,7 @@
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "TPCCalibration/PressureTemperatureHelper.h"
 
 using namespace o2::globaltracking;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -127,16 +126,20 @@ class TPCTimeSeries : public Task
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     mTPCVDriftHelper.extractCCDBInputs(pc);
+    mPTHelper.extractCCDBInputs(pc);
     if (mTPCVDriftHelper.isUpdated()) {
       mTPCVDriftHelper.acknowledgeUpdate();
       mVDrift = mTPCVDriftHelper.getVDriftObject().getVDrift();
       LOGP(info, "Updated reference drift velocity to: {}", mVDrift);
     }
+    mBufferDCA.mVDrift = mVDrift;
 
     const int nBins = getNBins();
 
     mTimeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + processing_helpers::getFirstTForbit(pc) * o2::constants::lhc::LHCOrbitMUS / 1000;
     mRun = processing_helpers::getRunNumber(pc);
+    mBufferDCA.mTemperature = mPTHelper.getMeanTemperature(mTimeMS);
+    mBufferDCA.mPressure = mPTHelper.getPressure(mTimeMS);
 
     // init only once
     if (mAvgADCAr.size() != nBins) {
@@ -870,6 +873,7 @@ class TPCTimeSeries : public Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
     mTPCVDriftHelper.accountCCDBInputs(matcher, obj);
+    mPTHelper.accountCCDBInputs(matcher, obj);
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   }
 
@@ -1107,6 +1111,7 @@ class TPCTimeSeries : public Task
   long mTimeMS{};                                                          ///< time in MS of current TF
   int mRun{};                                                              ///< run number
   int mMaxOccupancyHistBins{912};                                          ///< maximum number of occupancy bins
+  PressureTemperatureHelper mPTHelper;                                     ///< helper to extract pressure and temperature from CCDB
 
   /// check if track passes coarse cuts
   bool acceptTrack(const TrackTPC& track) const { return std::abs(track.getTgl()) < mMaxTgl; }
@@ -1823,12 +1828,11 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   dataRequest->requestTracks(srcTracks, useMC);
   dataRequest->requestClusters(GTrackID::getSourcesMask("TPC"), useMC);
 
-  dataRequest->requestFT0RecPoints(false);
-
   bool tpcOnly = srcTracks == GTrackID::getSourcesMask("TPC");
   if (!tpcOnly) {
-    dataRequest->requestPrimaryVertices(useMC);
+    dataRequest->requestFT0RecPoints(useMC);
   }
+  dataRequest->requestPrimaryVertices(useMC);
 
   const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(!disableWriter,                 // orbitResetTime
@@ -1842,6 +1846,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
                                                                 true);
 
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
+  PressureTemperatureHelper::requestCCDBInputs(dataRequest->inputs);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTimeSeries(), 0, Lifetime::Sporadic);
   if (!disableWriter) {

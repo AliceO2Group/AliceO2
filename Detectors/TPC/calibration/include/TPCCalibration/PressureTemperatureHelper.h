@@ -63,15 +63,35 @@ class PressureTemperatureHelper
   /// get pressure for given time stamp in ms
   float getPressure(const ULong64_t timestamp) const { return interpolate(mPressure.second, mPressure.first, timestamp); }
 
+  /// manually set the pressure
+  void setPressure(const std::pair<std::vector<float>, std::vector<ULong64_t>>& pressure) { mPressure = pressure; }
+
+  /// manually set the temperature
+  void setTemperature(const std::pair<std::vector<float>, std::vector<ULong64_t>>& temperatureA, const std::pair<std::vector<float>, std::vector<ULong64_t>>& temperatureC)
+  {
+    mTemperatureA = temperatureA;
+    mTemperatureC = temperatureC;
+  }
+
   /// get temperature for given time stamp in ms
   dataformats::Pair<float, float> getTemperature(const ULong64_t timestamp) const { return dataformats::Pair<float, float>{interpolate(mTemperatureA.second, mTemperatureA.first, timestamp), interpolate(mTemperatureC.second, mTemperatureC.first, timestamp)}; }
+
+  /// get mean temperature over A and C side
+  float getMeanTemperature(const ULong64_t timestamp) const;
+
+  // get ratio of temperature over pressure for given time stamp
+  float getTP(int64_t ts) const;
 
   static constexpr o2::header::DataDescription getDataDescriptionPressure() { return o2::header::DataDescription{"pressure"}; }
   static constexpr o2::header::DataDescription getDataDescriptionTemperature() { return o2::header::DataDescription{"temperature"}; }
 
+  /// get minimum and maximum time stamps of the pressure and temperature data
+  std::pair<ULong64_t, ULong64_t> getMinMaxTime() const;
+
  protected:
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
   static void addOutput(std::vector<o2::framework::OutputSpec>& outputs, o2::framework::OutputSpec&& osp);
+  static constexpr float toKelvin(float celsius) { return celsius + 273.15f; } // convert Celsius to Kelvin
 
   std::pair<std::vector<float>, std::vector<ULong64_t>> mPressure;     ///< pressure values for both measurements
   std::pair<std::vector<float>, std::vector<ULong64_t>> mTemperatureA; ///< temperature values A-side

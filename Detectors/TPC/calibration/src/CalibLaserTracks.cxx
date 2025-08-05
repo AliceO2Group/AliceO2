@@ -24,13 +24,13 @@
 #include <string_view>
 
 using namespace o2::tpc;
-void CalibLaserTracks::fill(std::vector<TrackTPC> const& tracks)
+void CalibLaserTracks::fill(std::vector<TrackTPC> const& tracks, float tp)
 {
-  fill(gsl::span(tracks.data(), tracks.size()));
+  fill(gsl::span(tracks.data(), tracks.size()), tp);
 }
 
 //______________________________________________________________________________
-void CalibLaserTracks::fill(const gsl::span<const TrackTPC> tracks)
+void CalibLaserTracks::fill(const gsl::span<const TrackTPC> tracks, float tp)
 {
   // ===| clean up TF data |===
   mZmatchPairsTFA.clear();
@@ -62,6 +62,9 @@ void CalibLaserTracks::fill(const gsl::span<const TrackTPC> tracks)
 
   mCalibDataTF.firstTime = mTFstart;
   mCalibDataTF.lastTime = tfEnd;
+
+  mAvgTP = (mAvgTP * mCalibData.processedTFs + tp) / (mCalibData.processedTFs + 1);
+  mAvgDriftV = (mAvgDriftV * mCalibData.processedTFs + mDriftV) / (mCalibData.processedTFs + 1);
 
   // ===| TF counters |===
   ++mCalibData.processedTFs;
@@ -147,6 +150,8 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
                   << "ltr=" << ltr              // matched ideal laser track
                   << "trOutLtr=" << parOutAtLtr // track rotated and propagated to ideal track position
                   << "TPCTracks=" << writeTrack // original TPC track
+                  << "mDriftV=" << mDriftV
+                  << "laserTrackID=" << laserTrackID
                   << "\n";
   }
 }
@@ -277,6 +282,18 @@ void CalibLaserTracks::merge(const CalibLaserTracks* other)
   mCalibData.firstTime = std::min(mCalibData.firstTime, other->mCalibData.firstTime);
   mCalibData.lastTime = std::max(mCalibData.lastTime, other->mCalibData.lastTime);
 
+  if ((mAvgTP > 0) && (other->mAvgTP > 0)) {
+    mAvgTP = (mAvgTP + other->mAvgTP) / 2.0;
+  } else if (other->mAvgTP > 0) {
+    mAvgTP = other->mAvgTP;
+  }
+
+  if ((mAvgDriftV > 0) && (other->mAvgDriftV > 0)) {
+    mAvgDriftV = (mAvgDriftV + other->mAvgDriftV) / 2.0;
+  } else if (other->mAvgDriftV > 0) {
+    mAvgDriftV = other->mAvgDriftV;
+  }
+
   sort(mZmatchPairsA);
   sort(mZmatchPairsC);
 
@@ -296,6 +313,7 @@ void CalibLaserTracks::endTF()
                     << "zPairsA=" << mZmatchPairsTFA
                     << "zPairsC=" << mZmatchPairsTFC
                     << "calibData=" << mCalibDataTF
+                    << "mDriftV=" << mDriftV
                     << "\n";
   }
 }
@@ -330,7 +348,7 @@ void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<
   auto dvA = fit(pairsA, "A-Side");
   auto dvC = fit(pairsC, "C-Side");
   calibData.creationTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  calibData.refVDrift = mDriftV;
+  calibData.refVDrift = mAvgDriftV;
   calibData.dvOffsetA = dvA.x1;
   calibData.dvCorrectionA = dvA.x2;
   calibData.nTracksA = uint16_t(pairsA.size());
@@ -340,6 +358,7 @@ void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<
   calibData.nTracksC = uint16_t(pairsC.size());
 
   calibData.refTimeOffset = mTOffsetMUS;
+  calibData.tp = mAvgTP;
 }
 
 //______________________________________________________________________________

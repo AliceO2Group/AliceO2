@@ -20,6 +20,7 @@
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/InputRecord.h"
 #include "Framework/ConcreteDataMatcher.h"
+#include "Framework/TimingInfo.h"
 
 using namespace o2::tpc;
 using namespace o2::framework;
@@ -43,8 +44,17 @@ VDriftHelper::VDriftHelper()
   if (o2::conf::ConfigurableParam::getProvenance("TPCDetParam.DriftTimeOffset") == o2::conf::ConfigurableParam::EParamProvenance::kRT) { // we stick to this value
     mVD.creationTime = std::numeric_limits<long>::max();
     mForceParamOffset = true;
-    LOGP(info, "TPC dridt time offset was set from command line to {} mus ({} TB), will neglect update from CCDB",
+    LOGP(info, "TPC drift time offset was set from command line to {} mus ({} TB), will neglect update from CCDB",
          mVD.refTimeOffset, detpar.DriftTimeOffset);
+  }
+
+  // check if temperature and pressure is set from the command line
+  if ((o2::conf::ConfigurableParam::getProvenance("TPCGasParam.Temperature") == o2::conf::ConfigurableParam::EParamProvenance::kRT) && (o2::conf::ConfigurableParam::getProvenance("TPCGasParam.Pressure") == o2::conf::ConfigurableParam::EParamProvenance::kRT)) { // we stick to this value
+    mForceTPScaling = true;
+    LOGP(info, "VDriftHelper: Temperature and pressure were set from command line to {} C and {} mbar, will neglect updates from CCDB", gaspar.Temperature, gaspar.Pressure);
+    if (gaspar.Temperature <= 0 || gaspar.Pressure <= 0) {
+      LOGP(info, "VDriftHelper: Disabling VDrift scaling with T / P");
+    }
   }
 
   mUpdated = true;
@@ -74,11 +84,12 @@ void VDriftHelper::accountLaserCalibration(const LtrCalibData* calib, long fallB
     mVDLaser.corrFact = 1. / corr;
     mVDLaser.creationTime = calib->creationTime;
     mVDLaser.refTimeOffset = calib->refTimeOffset;
+    mVDLaser.refTP = calib->tp;
     mUpdated = true;
     mSource = Source::Laser;
     if (mMayRenormSrc & (0x1U << Source::Laser)) { // this was 1st setting?
       if (corr != 1.f) {                           // this may happen if old-style (non-normalized) standalone or non-normalized run-time laset calibration is used
-        LOGP(warn, "VDriftHelper: renorming initinal TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVDLaser.refVDrift, mVDLaser.corrFact, mVDLaser.getVDrift(), getSourceName(mSource));
+        LOGP(warn, "VDriftHelper: renorming initial TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVDLaser.refVDrift, mVDLaser.corrFact, mVDLaser.getVDrift(), getSourceName(mSource));
         mVDLaser.normalize(); // renorm reference to have correction = 1.
       }
       mMayRenormSrc &= ~(0x1U << Source::Laser); // unset MayRenorm
@@ -103,11 +114,11 @@ void VDriftHelper::accountDriftCorrectionITSTPCTgl(const VDriftCorrFact* calib)
   mSource = Source::ITSTPCTgl;
   if (mMayRenormSrc & (0x1U << Source::ITSTPCTgl)) {         // this was 1st setting?
     if (!mForceParamDrift && mVDTPCITSTgl.corrFact != 1.f) { // this may happen if calibration from prevous run is used
-      LOGP(warn, "VDriftHelper: renorming initinal TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVDTPCITSTgl.refVDrift, mVDTPCITSTgl.corrFact, mVDTPCITSTgl.getVDrift(), getSourceName(mSource));
+      LOGP(warn, "VDriftHelper: renorming initial TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVDTPCITSTgl.refVDrift, mVDTPCITSTgl.corrFact, mVDTPCITSTgl.getVDrift(), getSourceName(mSource));
       mVDTPCITSTgl.normalize(); // renorm reference to have correction = 1.
     }
     if (!mForceParamOffset && mVDTPCITSTgl.timeOffsetCorr != 0.) {
-      LOGP(warn, "VDriftHelper: renorming initinal TPC refTimeOffset={}/correction={} to {}/0.0, source: {}", mVDTPCITSTgl.refTimeOffset, mVDTPCITSTgl.timeOffsetCorr, mVDTPCITSTgl.getTimeOffset(), getSourceName());
+      LOGP(warn, "VDriftHelper: renorming initial TPC refTimeOffset={}/correction={} to {}/0.0, source: {}", mVDTPCITSTgl.refTimeOffset, mVDTPCITSTgl.timeOffsetCorr, mVDTPCITSTgl.getTimeOffset(), getSourceName());
       mVDTPCITSTgl.normalizeOffset();
     }
     mMayRenormSrc &= ~(0x1U << Source::ITSTPCTgl); // unset MayRenorm
@@ -135,9 +146,34 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
   if (itstpcTgl) {
     pc.inputs().get<o2::tpc::VDriftCorrFact*>("vdriftTgl");
   }
-  if (mUpdated) { // there was a change
+  mPTHelper.extractCCDBInputs(pc);
+
+  if (mUpdated || mIsTPScalingPossible) { // there was a change
     // prefer among laser and tgl VDrift the one with the latest update time
     auto saveVD = mVD;
+
+    // apply TP scaling of mVD if possible
+    if (float tp = mPTHelper.getTP(pc.services().get<o2::framework::TimingInfo>().creation); tp > 0) {
+      // try to extract refTP if needed
+      auto& vd = (mVDTPCITSTgl.creationTime < mVDLaser.creationTime) ? mVDLaser : mVDTPCITSTgl;
+      if (mForceTPScaling) {
+        const auto& gaspar = o2::tpc::ParameterGas::Instance();
+        tp = (gaspar.Temperature > 0 && gaspar.Pressure > 0) ? ((gaspar.Temperature + 273.15) / gaspar.Pressure) : -1;
+        mIsTPScalingPossible = (tp > 0) && (vd.refTP > 0 || extractTPForVDrift(vd));
+      } else {
+        mIsTPScalingPossible = (vd.refTP > 0) || extractTPForVDrift(vd);
+      }
+      if (mIsTPScalingPossible) {
+        mUpdated = true;
+        vd.normalize(0, tp);
+        if (vd.creationTime == saveVD.creationTime) {
+          LOGP(info, "VDriftHelper: Scaling VDrift from {} to {} with T/P from {} to {}", saveVD.getVDrift(), vd.getVDrift(), saveVD.refTP, vd.refTP);
+        } else {
+          LOGP(info, "VDriftHelper: Init new VDrift of {} with T/P {}", vd.getVDrift(), vd.refTP);
+        }
+      }
+    }
+
     mVD = mVDTPCITSTgl.creationTime < mVDLaser.creationTime ? mVDLaser : mVDTPCITSTgl;
     auto& loserVD = mVDTPCITSTgl.creationTime < mVDLaser.creationTime ? mVDTPCITSTgl : mVDLaser;
 
@@ -178,6 +214,8 @@ void VDriftHelper::requestCCDBInputs(std::vector<InputSpec>& inputs, bool laser,
     // VDrift calibration may change during the run (in opposite to Laser calibration, at least at the moment), so ask per-TF query
     addInput(inputs, {"vdriftTgl", "TPC", "VDriftTgl", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalVDriftTgl), {}, 1)});
   }
+  // adding pressure and temperature inputs
+  PressureTemperatureHelper::requestCCDBInputs(inputs);
 }
 
 //________________________________________________________
@@ -199,5 +237,42 @@ bool VDriftHelper::accountCCDBInputs(const ConcreteDataMatcher& matcher, void* o
     accountLaserCalibration(static_cast<LtrCalibData*>(obj));
     return true;
   }
-  return false;
+  return mPTHelper.accountCCDBInputs(matcher, obj);
+}
+
+bool VDriftHelper::extractTPForVDrift(VDriftCorrFact& vdrift, int64_t tsStepMS)
+{
+  const int64_t tsStart = vdrift.firstTime;
+  const int64_t tsEnd = vdrift.lastTime;
+
+  // make sanity check of the time range
+  const auto [minValidTime, maxValidTime] = mPTHelper.getMinMaxTime();
+  const int64_t minTimeAccepted = static_cast<int64_t>(minValidTime) - 20 * o2::ccdb::CcdbObjectInfo::MINUTE;
+  const int64_t maxTimeAccepted = static_cast<int64_t>(maxValidTime) + 20 * o2::ccdb::CcdbObjectInfo::MINUTE;
+
+  // check if the stored time stamp range is valid i.e. check if the range is in the vicinity of the current time
+  if ((minTimeAccepted > tsEnd) || (tsStart > maxTimeAccepted)) {
+    // check if creation time can be used
+    LOGP(warn, "VDriftHelper: Time range of VDrift object {} - {} is not valid for time range of T/P object {} - {}! Do not extract ref. T/P for VDrift!", tsStart, tsEnd, minValidTime, maxValidTime);
+    return false;
+  }
+
+  double meanTP = 0;
+  int countTP = 0;
+
+  for (int64_t ts = tsStart; ts < tsEnd; ts += tsStepMS) {
+    meanTP += mPTHelper.getTP(ts);
+    ++countTP;
+  }
+
+  if (countTP == 0) {
+    LOGP(error, "VDriftHelper: Could not get T/P for time range {} -> {}", tsStart, tsEnd);
+    return false;
+  }
+
+  meanTP /= countTP;
+
+  LOGP(info, "VDriftHelper: Setting mean T/P for VDrift to {} for time range {} -> {}", meanTP, tsStart, tsEnd);
+  vdrift.refTP = meanTP;
+  return true;
 }
