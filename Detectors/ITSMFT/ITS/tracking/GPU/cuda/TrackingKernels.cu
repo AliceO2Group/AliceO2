@@ -29,14 +29,13 @@
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/ExternalAllocator.h"
-#include "DataFormatsITS/TrackITS.h"
-#include "ReconstructionDataFormats/Vertex.h"
-
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
 #include "ITStrackingGPU/Utils.h"
 
-// O2 track model
+#include "MathUtils/Utils.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsBase/Propagator.h"
 using namespace o2::track;
@@ -629,7 +628,7 @@ GPUg() void computeLayerTrackletsMultiROFKernel(
                 if constexpr (initRun) {
                   trackletsLUT[layerIndex][currentSortedIndex]++; // we need l0 as well for usual exclusive sums.
                 } else {
-                  const float phi{o2::gpu::CAMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
+                  const float phi{o2::math_utils::fastATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
                   const int nextSortedIndex{ROFClusters[layerIndex + 1][targetROF] + nextClusterIndex};
                   new (tracklets[layerIndex] + trackletsLUT[layerIndex][currentSortedIndex] + storedTracklets) Tracklet{currentSortedIndex, nextSortedIndex, tanL, phi, pivotROF, targetROF};
