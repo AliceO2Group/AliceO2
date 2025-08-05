@@ -173,7 +173,7 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
 
                 if (deltaZ / sigmaZ < mTrkParams[iteration].NSigmaCut &&
                     ((deltaPhi < mTimeFrame->getPhiCut(iLayer) || o2::gpu::GPUCommonMath::Abs(deltaPhi - o2::constants::math::TwoPI) < mTimeFrame->getPhiCut(iLayer)))) {
-                  const float phi{o2::gpu::CAMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
+                  const float phi{o2::math_utils::fastATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL = (currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius);
                   if constexpr (decltype(Tag)::value == PassMode::OnePass::value) {
                     tracklets.emplace_back(currentSortedIndex, mTimeFrame->getSortedIndex(targetROF, iLayer + 1, iNext), tanL, phi, pivotROF, targetROF);
