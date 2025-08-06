@@ -116,7 +116,6 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
                                          conf.nBlocksLayerTracklets[iteration],
                                          conf.nThreadsLayerTracklets[iteration],
                                          mTimeFrameGPU->getStreams());
-  mTimeFrameGPU->syncStreams(); // TODO evaluate if this can be removed
 }
 
 template <int nLayers>
@@ -125,18 +124,30 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
   mTimeFrameGPU->createCellsLUTDevice();
   auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
 
+  std::vector<bool> isTrackletStreamSynched(this->mTrkParams[iteration].TrackletsPerRoad());
+  auto syncOnce = [&](const int iLayer) {
+    if (!isTrackletStreamSynched[iLayer]) {
+      mTimeFrameGPU->syncStream(iLayer);
+      isTrackletStreamSynched[iLayer] = true;
+    }
+  };
+
   for (int iLayer = 0; iLayer < this->mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
-    if (!mTimeFrameGPU->getNTracklets()[iLayer + 1] || !mTimeFrameGPU->getNTracklets()[iLayer]) {
+    // need to ensure that trackleting on layers iLayer and iLayer + 1 are done (only once)
+    syncOnce(iLayer);
+    syncOnce(iLayer + 1);
+    // if there are no tracklets skip entirely
+    const int currentLayerTrackletsNum{static_cast<int>(mTimeFrameGPU->getNTracklets()[iLayer])};
+    if (!currentLayerTrackletsNum || !mTimeFrameGPU->getNTracklets()[iLayer + 1]) {
       mTimeFrameGPU->getNCells()[iLayer] = 0;
       continue;
     }
-    const int currentLayerTrackletsNum{static_cast<int>(mTimeFrameGPU->getNTracklets()[iLayer])};
     countCellsHandler(mTimeFrameGPU->getDeviceArrayClusters(),
                       mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
                       mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
                       mTimeFrameGPU->getDeviceArrayTracklets(),
                       mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
-                      mTimeFrameGPU->getNTracklets()[iLayer],
+                      currentLayerTrackletsNum,
                       iLayer,
                       nullptr,
                       mTimeFrameGPU->getDeviceArrayCellsLUT(),
@@ -147,14 +158,15 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
                       this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
                       this->mTrkParams[iteration].NSigmaCut,
                       conf.nBlocksLayerCells[iteration],
-                      conf.nThreadsLayerCells[iteration]);
+                      conf.nThreadsLayerCells[iteration],
+                      mTimeFrameGPU->getStreams());
     mTimeFrameGPU->createCellsBuffers(iLayer);
     computeCellsHandler(mTimeFrameGPU->getDeviceArrayClusters(),
                         mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
                         mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
                         mTimeFrameGPU->getDeviceArrayTracklets(),
                         mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
-                        mTimeFrameGPU->getNTracklets()[iLayer],
+                        currentLayerTrackletsNum,
                         iLayer,
                         mTimeFrameGPU->getDeviceCells()[iLayer],
                         mTimeFrameGPU->getDeviceArrayCellsLUT(),
@@ -165,8 +177,10 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
                         this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
                         this->mTrkParams[iteration].NSigmaCut,
                         conf.nBlocksLayerCells[iteration],
-                        conf.nThreadsLayerCells[iteration]);
+                        conf.nThreadsLayerCells[iteration],
+                        mTimeFrameGPU->getStreams());
   }
+  mTimeFrameGPU->syncStreams(); // TODO evaluate if this can be removed
 }
 
 template <int nLayers>

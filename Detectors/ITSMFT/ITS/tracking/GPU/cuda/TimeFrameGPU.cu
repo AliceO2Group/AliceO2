@@ -402,7 +402,7 @@ void TimeFrameGPU<nLayers>::createCellsLUTDevice()
 template <int nLayers>
 void TimeFrameGPU<nLayers>::createCellsBuffers(const int layer)
 {
-  GPUTimer timer(mGpuStreams[0], "creating cells buffers");
+  GPUTimer timer(mGpuStreams[layer], "creating cells buffers");
   mNCells[layer] = 0;
   GPUChkErrS(cudaMemcpyAsync(&mNCells[layer], mCellsLUTDevice[layer] + mNTracklets[layer], sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
   GPULog("gpu-transfer: creating cell buffer for {} elements on layer {}, for {:.2f} MB.", mNCells[layer], layer, mNCells[layer] * sizeof(CellSeed) / constants::MB);
@@ -565,6 +565,12 @@ void TimeFrameGPU<nLayers>::initialise(const int iteration,
 {
   mGpuStreams.resize(nLayers);
   o2::its::TimeFrame<nLayers>::initialise(iteration, trkParam, maxLayers);
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::syncStream(const size_t stream)
+{
+  mGpuStreams[stream].sync();
 }
 
 template <int nLayers>

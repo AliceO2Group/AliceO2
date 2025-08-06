@@ -25,7 +25,10 @@ namespace gpu
 
 #ifdef GPUCA_GPUCODE // GPUg() global kernels must only when compiled by GPU compiler
 
-GPUdi() int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
+GPUdi() int4 getEmptyBinsRect()
+{
+  return int4{0, 0, 0, 0};
+}
 
 GPUd() bool fitTrack(TrackITSExt& track,
                      int start,
@@ -137,7 +140,8 @@ void countCellsHandler(const Cluster** sortedClusters,
                        const float cellDeltaTanLambdaSigma,
                        const float nSigmaCut,
                        const int nBlocks,
-                       const int nThreads);
+                       const int nThreads,
+                       gpu::Streams& streams);
 
 void computeCellsHandler(const Cluster** sortedClusters,
                          const Cluster** unsortedClusters,
@@ -155,7 +159,8 @@ void computeCellsHandler(const Cluster** sortedClusters,
                          const float cellDeltaTanLambdaSigma,
                          const float nSigmaCut,
                          const int nBlocks,
-                         const int nThreads);
+                         const int nThreads,
+                         gpu::Streams& streams);
 
 unsigned int countCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                         int* neighboursLUTs,

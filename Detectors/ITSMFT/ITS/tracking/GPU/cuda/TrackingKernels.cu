@@ -1065,9 +1065,10 @@ void countCellsHandler(
   const float cellDeltaTanLambdaSigma,
   const float nSigmaCut,
   const int nBlocks,
-  const int nThreads)
+  const int nThreads,
+  gpu::Streams& streams)
 {
-  gpu::computeLayerCellsKernel<true><<<nBlocks, nThreads>>>(
+  gpu::computeLayerCellsKernel<true><<<nBlocks, nThreads, 0, streams[layer].get()>>>(
     sortedClusters,           // const Cluster**
     unsortedClusters,         // const Cluster**
     tfInfo,                   // const TrackingFrameInfo**
@@ -1082,7 +1083,7 @@ void countCellsHandler(
     maxChi2ClusterAttachment, // const float
     cellDeltaTanLambdaSigma,  // const float
     nSigmaCut);               // const float
-  gpu::cubExclusiveScanInPlace(cellsLUTsHost, nTracklets + 1);
+  gpu::cubExclusiveScanInPlace(cellsLUTsHost, nTracklets + 1, streams[layer].get());
 }
 
 void computeCellsHandler(
@@ -1102,9 +1103,10 @@ void computeCellsHandler(
   const float cellDeltaTanLambdaSigma,
   const float nSigmaCut,
   const int nBlocks,
-  const int nThreads)
+  const int nThreads,
+  gpu::Streams& streams)
 {
-  gpu::computeLayerCellsKernel<false><<<nBlocks, nThreads>>>(
+  gpu::computeLayerCellsKernel<false><<<nBlocks, nThreads, 0, streams[layer].get()>>>(
     sortedClusters,           // const Cluster**
     unsortedClusters,         // const Cluster**
     tfInfo,                   // const TrackingFrameInfo**

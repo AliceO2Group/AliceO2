@@ -73,12 +73,8 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   void downloadCellsDevice();
   void downloadCellsLUTDevice();
   void unregisterRest();
-  template <Task task>
-  auto& getStream(const size_t stream)
-  {
-    return mGpuStreams[stream];
-  }
   auto& getStreams() { return mGpuStreams; }
+  void syncStream(const size_t stream);
   void syncStreams();
   virtual void wipe() final;
 
