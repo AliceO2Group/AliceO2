@@ -116,6 +116,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
                                          conf.nBlocksLayerTracklets[iteration],
                                          conf.nThreadsLayerTracklets[iteration],
                                          mTimeFrameGPU->getStreams());
+  mTimeFrameGPU->syncStreams(); // TODO evaluate if this can be removed
 }
 
 template <int nLayers>

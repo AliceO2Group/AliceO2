@@ -94,16 +94,21 @@ class Stream
  public:
 #if defined(__HIPCC__)
   using Handle = hipStream_t;
-  static constexpr Handle Default = 0;
+  static constexpr Handle DefaultStream = 0;
+  // static constexpr unsigned int DefaultFlag = hipStreamNonBlocking; TODO replace once ready
+  static constexpr unsigned int DefaultFlag = 0;
 #elif defined(__CUDACC__)
   using Handle = cudaStream_t;
-  static constexpr Handle Default = 0;
+  static constexpr Handle DefaultStream = 0;
+  // static constexpr unsigned int DefaultFlag = cudaStreamNonBlocking; TODO replace once ready
+  static constexpr unsigned int DefaultFlag = 0;
 #else
   using Handle = void*;
-  static constexpr Handle Default = nullptr;
+  static constexpr Handle DefaultStream = nullptr;
+  static constexpr unsigned int DefaultFlag = 0;
 #endif
 
-  Stream(unsigned int flags = 0)
+  Stream(unsigned int flags = DefaultFlag)
   {
 #if defined(__HIPCC__)
     GPUChkErrS(hipStreamCreateWithFlags(&mHandle, flags));
@@ -115,7 +120,7 @@ class Stream
   Stream(Handle h) : mHandle(h) {}
   ~Stream()
   {
-    if (mHandle != Default) {
+    if (mHandle != DefaultStream) {
 #if defined(__HIPCC__)
       GPUChkErrS(hipStreamDestroy(mHandle));
 #elif defined(__CUDACC__)
@@ -124,7 +129,7 @@ class Stream
     }
   }
 
-  operator bool() const { return mHandle != Default; }
+  operator bool() const { return mHandle != DefaultStream; }
   const Handle& get() { return mHandle; }
   void sync() const
   {
@@ -136,7 +141,7 @@ class Stream
   }
 
  private:
-  Handle mHandle{Default};
+  Handle mHandle{DefaultStream};
 };
 static_assert(sizeof(Stream) == sizeof(void*), "Stream type must match pointer type!");
 
@@ -150,6 +155,12 @@ class Streams
   void clear() { mStreams.clear(); }
   auto& operator[](size_t i) { return mStreams[i % mStreams.size()]; }
   void push_back(const Stream& stream) { mStreams.push_back(stream); }
+  void sync()
+  {
+    for (auto& s : mStreams) {
+      s.sync();
+    }
+  }
 
  private:
   std::vector<Stream> mStreams;

@@ -876,9 +876,9 @@ GPUhi() void cubExclusiveScanInPlace(T* in_out, int num_items, cudaStream_t stre
   void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
   GPUChkErrS(cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  GPUChkErrS(cudaMalloc(&d_temp_storage, temp_storage_bytes));
+  GPUChkErrS(cudaMallocAsync(&d_temp_storage, temp_storage_bytes, stream));
   GPUChkErrS(cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  GPUChkErrS(cudaFree(d_temp_storage));
+  GPUChkErrS(cudaFreeAsync(d_temp_storage, stream));
 }
 
 template <typename Vector>
@@ -893,9 +893,9 @@ GPUhi() void cubInclusiveScanInPlace(T* in_out, int num_items, cudaStream_t stre
   void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
   GPUChkErrS(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  GPUChkErrS(cudaMalloc(&d_temp_storage, temp_storage_bytes));
+  GPUChkErrS(cudaMallocAsync(&d_temp_storage, temp_storage_bytes, stream));
   GPUChkErrS(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  GPUChkErrS(cudaFree(d_temp_storage));
+  GPUChkErrS(cudaFreeAsync(d_temp_storage, stream));
 }
 
 template <typename Vector>
@@ -1030,6 +1030,8 @@ void computeTrackletsInROFsHandler(const IndexTableUtils* utils,
       resolutions[iLayer],
       radii[iLayer + 1] - radii[iLayer],
       mulScatAng[iLayer]);
+    /// Internal thrust allocation serialize this part to a degree
+    /// TODO switch to cub equivelent and do all work on one stream
     thrust::device_ptr<Tracklet> tracklets_ptr(spanTracklets[iLayer]);
     auto nosync_policy = THRUST_NAMESPACE::par_nosync.on(streams[iLayer].get());
     thrust::sort(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[iLayer], gpu::sort_tracklets());

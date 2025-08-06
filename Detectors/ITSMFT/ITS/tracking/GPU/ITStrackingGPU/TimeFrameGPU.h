@@ -79,6 +79,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
     return mGpuStreams[stream];
   }
   auto& getStreams() { return mGpuStreams; }
+  void syncStreams();
   virtual void wipe() final;
 
   /// interface
@@ -108,7 +109,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   std::vector<unsigned int> getClusterSizes();
   const unsigned char** getDeviceArrayUsedClusters() const { return mUsedClustersDeviceArray; }
   const int** getDeviceROframeClusters() const { return mROFrameClustersDeviceArray; }
-  Tracklet** getDeviceArrayTracklets() { return mTrackletsDeviceArray; }
+  Tracklet** getDeviceArrayTracklets() { return mTrackletsDevice.data(); }
   int** getDeviceArrayTrackletsLUT() const { return mTrackletsLUTDeviceArray; }
   int** getDeviceArrayCellsLUT() const { return mCellsLUTDeviceArray; }
   int** getDeviceArrayNeighboursCellLUT() const { return mNeighboursCellLUTDeviceArray; }
@@ -140,7 +141,8 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   int getNumberOfNeighbours() const final;
 
  private:
-  void allocMemAsync(void**, size_t, Stream&, bool); // Abstract owned and unowned memory allocations
+  void allocMemAsync(void**, size_t, Stream&, bool); // Abstract owned and unowned memory allocations on specific stream
+  void allocMem(void**, size_t, bool);               // Abstract owned and unowned memory allocations on default stream
   bool mHostRegistered = false;
   TimeFrameGPUParameters mGpuParams;
 
@@ -167,7 +169,6 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   const unsigned char** mUsedClustersDeviceArray;
   const int** mROFrameClustersDeviceArray;
   std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
-  Tracklet** mTrackletsDeviceArray;
   std::array<int*, nLayers - 1> mTrackletsLUTDevice;
   std::array<int*, nLayers - 2> mCellsLUTDevice;
   std::array<int*, nLayers - 3> mNeighboursLUTDevice;
@@ -195,8 +196,6 @@ class TimeFrameGPU : public TimeFrame<nLayers>
 
   // State
   Streams mGpuStreams;
-  size_t mAvailMemGB;
-  bool mFirstInit = true;
 
   // Temporary buffer for storing output tracks from GPU tracking
   bounded_vector<TrackITSExt> mTrackITSExt;
