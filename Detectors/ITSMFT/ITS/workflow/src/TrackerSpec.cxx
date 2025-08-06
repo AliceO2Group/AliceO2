@@ -60,7 +60,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   mITSTrackingInterface.updateTimeDependentParams(pc);
   mITSTrackingInterface.run(pc);
   mTimer.Stop();
-  LOGP(info, "CPU Reconstruction time for this TF {} s (cpu), {} s (wall)", mTimer.CpuTime() - cput, mTimer.RealTime() - realt);
+  LOGP(info, "CPU Reconstruction time for this TF {:.2f} s (cpu), {:.2f} s (wall)", mTimer.CpuTime() - cput, mTimer.RealTime() - realt);
 }
 
 void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)

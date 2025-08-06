@@ -17,6 +17,7 @@
 #define O2EVE_VISUALISATIONEVENTSERIALIZER_H
 
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
+#include "EventVisualisationDataConverter/Location.h"
 #include <string>
 #include <map>
 
@@ -45,7 +46,7 @@ class VisualisationEventSerializer
   static o2::dataformats::GlobalTrackID deserialize(unsigned source, unsigned index, unsigned flags);
   static VisualisationEventSerializer* getInstance(std::string ext) { return instances[ext]; }
   virtual bool fromFile(VisualisationEvent& event, std::string fileName) = 0;
-  virtual void toFile(const VisualisationEvent& event, std::string fileName) = 0;
+  virtual void toFile(const VisualisationEvent& event, Location& location) = 0;
   virtual const std::string serializerName() const = 0;
   virtual ~VisualisationEventSerializer() = default;
 };

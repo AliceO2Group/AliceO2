@@ -20,6 +20,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include "EventVisualisationDataConverter/Location.h"
 
 namespace o2::event_visualisation
 {
@@ -82,8 +83,9 @@ const auto CALT = "CALT"; // calo PID
 
 const auto FINE = "FINE"; //
 
-void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event, std::string fileName)
+void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event, Location& location)
 {
+  std::string fileName = location.fileName();
   static const std::vector<std::string> det_coma = {
     "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ITS-TPC",
     "TPC-TOF", "TPC-TRD", "MFT-MCH", "ITS-TPC-TRD", "ITS-TPC-TOF", "TPC-TRD-TOF", "MFT-MCH-MID", "ITS-TPC-TRD-TOF", "ITS-AB", "CTP",
@@ -91,7 +93,9 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
   std::ostringstream buf;
   constexpr auto SIGSIZE = 512;
   unsigned char data[SIGSIZE];
-  std::ofstream out(fileName, std::ios::out | std::ios::binary);
+  // std::ofstream out(fileName, std::ios::out | std::ios::binary);
+
+  location.open();
   // head --bytes 512 fileName.eve
   buf << "eve" << std::endl;
   buf << "version=1.00" << std::endl;
@@ -104,7 +108,7 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
   memcpy((char*)&data[0], buf.str().c_str(), SIGSIZE);
   data[SIGSIZE - 2] = '\n';
   data[SIGSIZE - 1] = 0;
-  out.write((char*)&data[0], SIGSIZE); // <----0 SIGN
+  location.write((char*)&data[0], SIGSIZE); // <----0 SIGN
 
   const auto trackNo = event.getTracksSpan().size();
   int phsCount = 0;
@@ -140,7 +144,7 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
     head[Header::emcCount] = emcCount;
     head[Header::primaryVertex] = event.getPrimaryVertex();
     head[Header::tfCounter] = event.getTfCounter();
-    out.write(static_cast<char*>(chunkHEAD), chunkSize(chunkHEAD)); // <----1 HEAD
+    location.write(static_cast<char*>(chunkHEAD), chunkSize(chunkHEAD)); // <----1 HEAD
     free(chunkHEAD);
   }
 
@@ -171,15 +175,15 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
       celm[index] = track.getClusterCount();
       index++;
     }
-    out.write(static_cast<char*>(chunkTTYP), chunkSize(chunkTTYP)); // <----2 TTYP
+    location.write(static_cast<char*>(chunkTTYP), chunkSize(chunkTTYP)); // <----2 TTYP
     free(chunkTTYP);
-    out.write(static_cast<char*>(chunkTELM), chunkSize(chunkTELM)); // <----3 TELM
+    location.write(static_cast<char*>(chunkTELM), chunkSize(chunkTELM)); // <----3 TELM
     free(chunkTELM);
-    out.write(static_cast<char*>(chunkCELM), chunkSize(chunkCELM)); // <----3 CELM
+    location.write(static_cast<char*>(chunkCELM), chunkSize(chunkCELM)); // <----3 CELM
     free(chunkCELM);
-    out.write(static_cast<char*>(chunkTGID), chunkSize(chunkTGID)); // <----3 GIND
+    location.write(static_cast<char*>(chunkTGID), chunkSize(chunkTGID)); // <----3 GIND
     free(chunkTGID);
-    out.write(static_cast<char*>(chunkTPID), chunkSize(chunkTPID)); // <----3 TPID (tracks pid)
+    location.write(static_cast<char*>(chunkTPID), chunkSize(chunkTPID)); // <----3 TPID (tracks pid)
     free(chunkTPID);
   }
 
@@ -230,17 +234,17 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
         cxyz[cidx++] = track.getClustersSpan()[i].Z();
       }
     }
-    out.write(static_cast<char*>(chunkTXYZ), chunkSize(chunkTXYZ)); // <----4 TXYZ
+    location.write(static_cast<char*>(chunkTXYZ), chunkSize(chunkTXYZ)); // <----4 TXYZ
     free(chunkTXYZ);
-    out.write(static_cast<char*>(chunkCXYZ), chunkSize(chunkCXYZ)); // <----4 CXYZ
+    location.write(static_cast<char*>(chunkCXYZ), chunkSize(chunkCXYZ)); // <----4 CXYZ
     free(chunkCXYZ);
-    out.write(static_cast<char*>(chunkTIME), chunkSize(chunkTIME)); // <----4 TIME
+    location.write(static_cast<char*>(chunkTIME), chunkSize(chunkTIME)); // <----4 TIME
     free(chunkTIME);
-    out.write(static_cast<char*>(chunkSXYZ), chunkSize(chunkSXYZ)); // <----4 SXYZ
+    location.write(static_cast<char*>(chunkSXYZ), chunkSize(chunkSXYZ)); // <----4 SXYZ
     free(chunkSXYZ);
-    out.write(static_cast<char*>(chunkCRGE), chunkSize(chunkCRGE)); // <----4 CRGE
+    location.write(static_cast<char*>(chunkCRGE), chunkSize(chunkCRGE)); // <----4 CRGE
     free(chunkCRGE);
-    out.write(static_cast<char*>(chunkATPE), chunkSize(chunkATPE)); // <----4 CRGE
+    location.write(static_cast<char*>(chunkATPE), chunkSize(chunkATPE)); // <----4 CRGE
     free(chunkATPE);
   }
 
@@ -260,11 +264,11 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
       uxyz[idx++] = c.Y();
       uxyz[idx++] = c.Z();
     }
-    out.write(static_cast<char*>(chunkUGID), chunkSize(chunkUGID)); //
+    location.write(static_cast<char*>(chunkUGID), chunkSize(chunkUGID)); //
     free(chunkUGID);
-    out.write(static_cast<char*>(chunkUTIM), chunkSize(chunkUTIM)); //
+    location.write(static_cast<char*>(chunkUTIM), chunkSize(chunkUTIM)); //
     free(chunkUTIM);
-    out.write(static_cast<char*>(chunkUXYZ), chunkSize(chunkUXYZ)); //
+    location.write(static_cast<char*>(chunkUXYZ), chunkSize(chunkUXYZ)); //
     free(chunkUXYZ);
   }
 
@@ -300,22 +304,22 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
       }
     }
 
-    out.write((char*)chunkCALO, chunkSize(chunkCALO)); //
+    location.write((char*)chunkCALO, chunkSize(chunkCALO)); //
     free(chunkCALO);
-    out.write((char*)chunkCALP, chunkSize(chunkCALP)); //
+    location.write((char*)chunkCALP, chunkSize(chunkCALP)); //
     free(chunkCALP);
-    out.write((char*)chunkCALG, chunkSize(chunkCALG)); //
+    location.write((char*)chunkCALG, chunkSize(chunkCALG)); //
     free(chunkCALG);
-    out.write((char*)chunkCALT, chunkSize(chunkCALT)); //
+    location.write((char*)chunkCALT, chunkSize(chunkCALT)); //
     free(chunkCALT);
   }
 
   {
     const auto chunkFINE = createChunk(FINE, 0);
-    out.write(static_cast<char*>(chunkFINE), chunkSize(chunkFINE)); // <----5 FINE
+    location.write(static_cast<char*>(chunkFINE), chunkSize(chunkFINE)); // <----5 FINE
     free(chunkFINE);
   }
-  out.close();
+  location.close();
 }
 
 void* VisualisationEventOpenGLSerializer::createChunk(const char* lbl, unsigned size)

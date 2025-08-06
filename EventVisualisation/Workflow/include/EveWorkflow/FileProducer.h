@@ -26,16 +26,15 @@ namespace event_visualisation
 class FileProducer
 {
  private:
-  size_t mFilesInFolder;
   std::string mPath;
   std::string mName;
   std::string mExt;
 
  public:
-  explicit FileProducer(const std::string& path, const std::string& ext, int filesInFolder = -1,
-                        const std::string& name = "tracks_{timestamp}_{hostname}_{pid}{ext}");
+  explicit FileProducer(const std::string& path, const std::string& ext, const std::string& name = "tracks_{timestamp}_{hostname}_{pid}{ext}");
 
   [[nodiscard]] std::string newFileName() const;
+  void reduceNumberOfFiles(size_t filesInFolder) const;
 };
 
 } // namespace event_visualisation

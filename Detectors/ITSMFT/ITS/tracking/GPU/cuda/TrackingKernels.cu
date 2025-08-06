@@ -201,7 +201,13 @@ GPUd() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
 }
 
 struct sort_tracklets {
-  GPUhd() bool operator()(const Tracklet& a, const Tracklet& b) { return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex); }
+  GPUhd() bool operator()(const Tracklet& a, const Tracklet& b)
+  {
+    if (a.firstClusterIndex != b.firstClusterIndex) {
+      return a.firstClusterIndex < b.firstClusterIndex;
+    }
+    return a.secondClusterIndex < b.secondClusterIndex;
+  }
 };
 
 struct equal_tracklets {
@@ -263,23 +269,34 @@ struct compare_track_chi2 {
   }
 };
 
-GPUd() gpuSpan<const Vertex> getPrimaryVertices(const int rof,
-                                                const int* roframesPV,
-                                                const int nROF,
-                                                const uint8_t* mask,
-                                                const Vertex* vertices)
+GPUdii() gpuSpan<const Vertex> getPrimaryVertices(const int rof,
+                                                  const int* roframesPV,
+                                                  const int nROF,
+                                                  const uint8_t* mask,
+                                                  const Vertex* vertices)
 {
   const int start_pv_id = roframesPV[rof];
   const int stop_rof = rof >= nROF - 1 ? nROF : rof + 1;
-  size_t delta = mask[rof] ? roframesPV[stop_rof] - start_pv_id : 0; // return empty span if ROF is excluded
+  const size_t delta = mask[rof] ? roframesPV[stop_rof] - start_pv_id : 0; // return empty span if ROF is excluded
   return gpuSpan<const Vertex>(&vertices[start_pv_id], delta);
 };
 
-GPUd() gpuSpan<const Cluster> getClustersOnLayer(const int rof,
-                                                 const int totROFs,
-                                                 const int layer,
-                                                 const int** roframesClus,
-                                                 const Cluster** clusters)
+GPUdii() gpuSpan<const Vertex> getPrimaryVertices(const int romin,
+                                                  const int romax,
+                                                  const int* roframesPV,
+                                                  const int nROF,
+                                                  const Vertex* vertices)
+{
+  const int start_pv_id = roframesPV[romin];
+  const int stop_rof = romax >= nROF - 1 ? nROF : romax + 1;
+  return gpuSpan<const Vertex>(&vertices[start_pv_id], roframesPV[stop_rof] - roframesPV[romin]);
+};
+
+GPUdii() gpuSpan<const Cluster> getClustersOnLayer(const int rof,
+                                                   const int totROFs,
+                                                   const int layer,
+                                                   const int** roframesClus,
+                                                   const Cluster** clusters)
 {
   if (rof < 0 || rof >= totROFs) {
     return gpuSpan<const Cluster>();
@@ -360,6 +377,8 @@ GPUg() void computeLayerCellNeighboursKernel(
   int* neighboursIndexTable,
   int** cellsLUTs,
   gpuPair<int, int>* cellNeighbours,
+  const Tracklet** tracklets,
+  const int deltaROF,
   const float maxChi2ClusterAttachment,
   const float bz,
   const int layerIndex,
@@ -377,15 +396,29 @@ GPUg() void computeLayerCellNeighboursKernel(
       if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex) { // Check if cells share the same tracklet
         break;
       }
+
+      if (deltaROF) {
+        const auto& trkl00 = tracklets[layerIndex][currentCellSeed.getFirstTrackletIndex()];
+        const auto& trkl01 = tracklets[layerIndex + 1][currentCellSeed.getSecondTrackletIndex()];
+        const auto& trkl10 = tracklets[layerIndex + 1][nextCellSeed.getFirstTrackletIndex()];
+        const auto& trkl11 = tracklets[layerIndex + 2][nextCellSeed.getSecondTrackletIndex()];
+        if ((o2::gpu::CAMath::Max(trkl00.getMaxRof(), o2::gpu::CAMath::Max(trkl01.getMaxRof(), o2::gpu::CAMath::Max(trkl10.getMaxRof(), trkl11.getMaxRof()))) -
+             o2::gpu::CAMath::Min(trkl00.getMinRof(), o2::gpu::CAMath::Min(trkl01.getMinRof(), o2::gpu::CAMath::Min(trkl10.getMinRof(), trkl11.getMinRof())))) > deltaROF) {
+          continue;
+        }
+      }
+
       if (!nextCellSeed.rotate(currentCellSeed.getAlpha()) ||
           !nextCellSeed.propagateTo(currentCellSeed.getX(), bz)) {
         continue;
       }
+
       float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed);
       if (chi2 > maxChi2ClusterAttachment) /// TODO: switch to the chi2 wrt cluster to avoid correlation
       {
         continue;
       }
+
       if constexpr (initRun) {
         atomicAdd(neighboursLUT + iNextCell, 1);
         neighboursIndexTable[iCurrentCellIndex]++;
@@ -412,6 +445,7 @@ GPUg() void computeLayerCellsKernel(
   const int layer,
   CellSeed* cells,
   int** cellsLUTs,
+  const int deltaROF,
   const float bz,
   const float maxChi2ClusterAttachment,
   const float cellDeltaTanLambdaSigma,
@@ -432,6 +466,9 @@ GPUg() void computeLayerCellsKernel(
         break;
       }
       const Tracklet& nextTracklet = tracklets[layer + 1][iNextTrackletIndex];
+      if (deltaROF && currentTracklet.getSpanRof(nextTracklet) > deltaROF) {
+        continue;
+      }
       const float deltaTanLambda{o2::gpu::CAMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
 
       if (deltaTanLambda / cellDeltaTanLambdaSigma < nSigmaCut) {
@@ -515,9 +552,12 @@ GPUg() void computeLayerTrackletsMultiROFKernel(
 {
   const int phiBins{utils->getNphiBins()};
   const int zBins{utils->getNzBins()};
+  const int tableSize{phiBins * zBins + 1};
   for (unsigned int iROF{blockIdx.x}; iROF < endROF - startROF; iROF += gridDim.x) {
-    const short rof0 = iROF + startROF;
-    auto primaryVertices = getPrimaryVertices(rof0, rofPV, totalROFs, multMask, vertices);
+    const short pivotROF = iROF + startROF;
+    const short minROF = o2::gpu::CAMath::Max(startROF, static_cast<int>(pivotROF - deltaROF));
+    const short maxROF = o2::gpu::CAMath::Min(endROF - 1, static_cast<int>(pivotROF + deltaROF));
+    auto primaryVertices = getPrimaryVertices(minROF, maxROF, rofPV, totalROFs, vertices);
     if (primaryVertices.empty()) {
       continue;
     }
@@ -526,17 +566,17 @@ GPUg() void computeLayerTrackletsMultiROFKernel(
     if ((endVtx - startVtx) <= 0) {
       continue;
     }
-    const short minROF = o2::gpu::CAMath::Max(startROF, static_cast<int>(rof0 - deltaROF));
-    const short maxROF = o2::gpu::CAMath::Min(endROF - 1, static_cast<int>(rof0 + deltaROF));
-    auto clustersCurrentLayer = getClustersOnLayer(rof0, totalROFs, layerIndex, ROFClusters, clusters);
+
+    auto clustersCurrentLayer = getClustersOnLayer(pivotROF, totalROFs, layerIndex, ROFClusters, clusters);
     if (clustersCurrentLayer.empty()) {
       continue;
     }
 
     for (int currentClusterIndex = threadIdx.x; currentClusterIndex < clustersCurrentLayer.size(); currentClusterIndex += blockDim.x) {
+
       unsigned int storedTracklets{0};
       const auto& currentCluster{clustersCurrentLayer[currentClusterIndex]};
-      const int currentSortedIndex{ROFClusters[layerIndex][rof0] + currentClusterIndex};
+      const int currentSortedIndex{ROFClusters[layerIndex][pivotROF] + currentClusterIndex};
       if (usedClusters[layerIndex][currentCluster.clusterId]) {
         continue;
       }
@@ -564,9 +604,8 @@ GPUg() void computeLayerTrackletsMultiROFKernel(
           phiBinsNum += phiBins;
         }
 
-        const int tableSize{phiBins * zBins + 1};
-        for (short rof1{minROF}; rof1 <= maxROF; ++rof1) {
-          auto clustersNextLayer = getClustersOnLayer(rof1, totalROFs, layerIndex + 1, ROFClusters, clusters);
+        for (short targetROF{minROF}; targetROF <= maxROF; ++targetROF) {
+          auto clustersNextLayer = getClustersOnLayer(targetROF, totalROFs, layerIndex + 1, ROFClusters, clusters);
           if (clustersNextLayer.empty()) {
             continue;
           }
@@ -574,8 +613,8 @@ GPUg() void computeLayerTrackletsMultiROFKernel(
             int iPhiBin = (selectedBinsRect.y + iPhiCount) % phiBins;
             const int firstBinIndex{utils->getBinIndex(selectedBinsRect.x, iPhiBin)};
             const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
-            const int firstRowClusterIndex = indexTables[layerIndex + 1][(rof1)*tableSize + firstBinIndex];
-            const int maxRowClusterIndex = indexTables[layerIndex + 1][(rof1)*tableSize + maxBinIndex];
+            const int firstRowClusterIndex = indexTables[layerIndex + 1][(targetROF)*tableSize + firstBinIndex];
+            const int maxRowClusterIndex = indexTables[layerIndex + 1][(targetROF)*tableSize + maxBinIndex];
             for (int nextClusterIndex{firstRowClusterIndex}; nextClusterIndex < maxRowClusterIndex; ++nextClusterIndex) {
               if (nextClusterIndex >= clustersNextLayer.size()) {
                 break;
@@ -592,8 +631,8 @@ GPUg() void computeLayerTrackletsMultiROFKernel(
                 } else {
                   const float phi{o2::gpu::CAMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
-                  const int nextSortedIndex{ROFClusters[layerIndex + 1][rof1] + nextClusterIndex};
-                  new (tracklets[layerIndex] + trackletsLUT[layerIndex][currentSortedIndex] + storedTracklets) Tracklet{currentSortedIndex, nextSortedIndex, tanL, phi, rof0, rof1};
+                  const int nextSortedIndex{ROFClusters[layerIndex + 1][targetROF] + nextClusterIndex};
+                  new (tracklets[layerIndex] + trackletsLUT[layerIndex][currentSortedIndex] + storedTracklets) Tracklet{currentSortedIndex, nextSortedIndex, tanL, phi, pivotROF, targetROF};
                 }
                 ++storedTracklets;
               }
@@ -1018,6 +1057,7 @@ void countCellsHandler(
   CellSeed* cells,
   int** cellsLUTsArrayDevice,
   int* cellsLUTsHost,
+  const int deltaROF,
   const float bz,
   const float maxChi2ClusterAttachment,
   const float cellDeltaTanLambdaSigma,
@@ -1035,6 +1075,7 @@ void countCellsHandler(
     layer,                    // const int
     cells,                    // CellSeed*
     cellsLUTsArrayDevice,     // int**
+    deltaROF,                 // const int
     bz,                       // const float
     maxChi2ClusterAttachment, // const float
     cellDeltaTanLambdaSigma,  // const float
@@ -1053,6 +1094,7 @@ void computeCellsHandler(
   CellSeed* cells,
   int** cellsLUTsArrayDevice,
   int* cellsLUTsHost,
+  const int deltaROF,
   const float bz,
   const float maxChi2ClusterAttachment,
   const float cellDeltaTanLambdaSigma,
@@ -1070,6 +1112,7 @@ void computeCellsHandler(
     layer,                    // const int
     cells,                    // CellSeed*
     cellsLUTsArrayDevice,     // int**
+    deltaROF,                 // const int
     bz,                       // const float
     maxChi2ClusterAttachment, // const float
     cellDeltaTanLambdaSigma,  // const float
@@ -1081,6 +1124,8 @@ unsigned int countCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                         int** cellsLUTs,
                                         gpuPair<int, int>* cellNeighbours,
                                         int* neighboursIndexTable,
+                                        const Tracklet** tracklets,
+                                        const int deltaROF,
                                         const float maxChi2ClusterAttachment,
                                         const float bz,
                                         const int layerIndex,
@@ -1096,12 +1141,13 @@ unsigned int countCellNeighboursHandler(CellSeed** cellsLayersDevice,
     neighboursIndexTable,
     cellsLUTs,
     cellNeighbours,
+    tracklets,
+    deltaROF,
     maxChi2ClusterAttachment,
     bz,
     layerIndex,
     nCells,
     maxCellNeighbours);
-
   gpu::cubInclusiveScanInPlace(neighboursLUT, nCellsNext);
   gpu::cubExclusiveScanInPlace(neighboursIndexTable, nCells + 1);
   unsigned int nNeighbours;
@@ -1114,6 +1160,8 @@ void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                   int** cellsLUTs,
                                   gpuPair<int, int>* cellNeighbours,
                                   int* neighboursIndexTable,
+                                  const Tracklet** tracklets,
+                                  const int deltaROF,
                                   const float maxChi2ClusterAttachment,
                                   const float bz,
                                   const int layerIndex,
@@ -1130,6 +1178,8 @@ void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
     neighboursIndexTable,
     cellsLUTs,
     cellNeighbours,
+    tracklets,
+    deltaROF,
     maxChi2ClusterAttachment,
     bz,
     layerIndex,

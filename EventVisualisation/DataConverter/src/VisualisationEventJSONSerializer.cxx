@@ -29,8 +29,9 @@ using namespace rapidjson;
 namespace o2::event_visualisation
 {
 
-void VisualisationEventJSONSerializer::toFile(const VisualisationEvent& event, std::string fileName)
+void VisualisationEventJSONSerializer::toFile(const VisualisationEvent& event, Location& location)
 {
+  std::string fileName = location.fileName();
   std::string json = toJson(event);
   std::ofstream out(fileName);
   out << json;

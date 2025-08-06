@@ -93,8 +93,9 @@ bool VisualisationEventROOTSerializer::existUInt64(TFile& f, const char* name)
   return true;
 }
 
-void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, std::string fileName)
+void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, Location& location)
 {
+  std::string fileName = location.fileName();
   TFile f(fileName.c_str(), "recreate");
 
   saveInt("runNumber", event.mRunNumber);
