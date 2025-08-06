@@ -349,26 +349,20 @@ void TimeFrameGPU<nLayers>::createNeighboursIndexTablesDevice()
 {
   GPUTimer timer(mGpuStreams[0], "creating cells neighbours");
   // Here we do also the creation of the CellsDeviceArray, as the cells buffers are populated separately in the previous steps.
-  allocMemAsync(reinterpret_cast<void**>(&mCellsDeviceArray), (nLayers - 2) * sizeof(CellSeed*), mGpuStreams[0], this->getExtAllocator());
-  GPUChkErrS(cudaHostRegister(mCellsDevice.data(), (nLayers - 2) * sizeof(CellSeed*), cudaHostRegisterPortable));
-  GPUChkErrS(cudaMemcpyAsync(mCellsDeviceArray, mCellsDevice.data(), (nLayers - 2) * sizeof(CellSeed*), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
   for (auto iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
     GPULog("gpu-transfer: loading neighbours LUT for {} elements on layer {}, for {:.2f} MB.", mNCells[iLayer], iLayer, mNCells[iLayer] * sizeof(CellSeed) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mNeighboursIndexTablesDevice[iLayer]), (mNCells[iLayer] + 1) * sizeof(int), mGpuStreams[0], this->getExtAllocator());
-    GPUChkErrS(cudaMemsetAsync(mNeighboursIndexTablesDevice[iLayer], 0, (mNCells[iLayer] + 1) * sizeof(int), mGpuStreams[0].get()));
-    if (iLayer < nLayers - 3) {
-      mNNeighbours[iLayer] = 0;
-    }
+    allocMemAsync(reinterpret_cast<void**>(&mNeighboursIndexTablesDevice[iLayer]), (mNCells[iLayer] + 1) * sizeof(int), mGpuStreams[iLayer], this->getExtAllocator());
+    GPUChkErrS(cudaMemsetAsync(mNeighboursIndexTablesDevice[iLayer], 0, (mNCells[iLayer] + 1) * sizeof(int), mGpuStreams[iLayer].get()));
   }
 }
 
 template <int nLayers>
 void TimeFrameGPU<nLayers>::createNeighboursLUTDevice(const int layer, const unsigned int nCells)
 {
-  GPUTimer timer(mGpuStreams[0], "reserving neighboursLUT");
+  GPUTimer timer(mGpuStreams[layer], "reserving neighboursLUT");
   GPULog("gpu-allocation: reserving neighbours LUT for {} elements on layer {} , for {:.2f} MB.", nCells + 1, layer, (nCells + 1) * sizeof(int) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighboursLUTDevice[layer]), (nCells + 1) * sizeof(int), mGpuStreams[0], this->getExtAllocator()); // We need one element more to move exc -> inc
-  GPUChkErrS(cudaMemsetAsync(mNeighboursLUTDevice[layer], 0, (nCells + 1) * sizeof(int), mGpuStreams[0].get()));
+  allocMemAsync(reinterpret_cast<void**>(&mNeighboursLUTDevice[layer]), (nCells + 1) * sizeof(int), mGpuStreams[layer], this->getExtAllocator()); // We need one element more to move exc -> inc
+  GPUChkErrS(cudaMemsetAsync(mNeighboursLUTDevice[layer], 0, (nCells + 1) * sizeof(int), mGpuStreams[layer].get()));
 }
 
 template <int nLayers>
@@ -382,8 +376,6 @@ void TimeFrameGPU<nLayers>::loadCellsDevice()
     GPUChkErrS(cudaMemsetAsync(mNeighboursIndexTablesDevice[iLayer], 0, (this->mCells[iLayer].size() + 1) * sizeof(int), mGpuStreams[iLayer].get()));
     GPUChkErrS(cudaMemcpyAsync(mCellsDevice[iLayer], this->mCells[iLayer].data(), this->mCells[iLayer].size() * sizeof(CellSeed), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
   }
-  allocMemAsync(reinterpret_cast<void**>(&mCellsDeviceArray), (nLayers - 2) * sizeof(CellSeed*), mGpuStreams[0], this->getExtAllocator());
-  GPUChkErrS(cudaMemcpyAsync(mCellsDeviceArray, mCellsDevice.data(), (nLayers - 2) * sizeof(CellSeed*), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
 }
 
 template <int nLayers>
@@ -441,35 +433,15 @@ void TimeFrameGPU<nLayers>::loadTrackSeedsDevice(bounded_vector<CellSeed>& seeds
 }
 
 template <int nLayers>
-void TimeFrameGPU<nLayers>::createNeighboursDevice(const unsigned int layer, const unsigned int nNeighbours)
+void TimeFrameGPU<nLayers>::createNeighboursDevice(const unsigned int layer)
 {
-  GPUTimer timer(mGpuStreams[0], "reserving neighbours");
+  GPUTimer timer(mGpuStreams[layer], "reserving neighbours");
+  GPUChkErrS(cudaMemcpyAsync(&(this->mNNeighbours[layer]), &(mNeighboursLUTDevice[layer][this->mNCells[layer + 1] - 1]), sizeof(unsigned int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
   GPULog("gpu-allocation: reserving {} neighbours (pairs), for {:.2f} MB.", nNeighbours, nNeighbours * sizeof(gpuPair<int, int>) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighbourPairsDevice[layer]), nNeighbours * sizeof(gpuPair<int, int>), mGpuStreams[0], this->getExtAllocator());
-  GPUChkErrS(cudaMemsetAsync(mNeighbourPairsDevice[layer], -1, nNeighbours * sizeof(gpuPair<int, int>), mGpuStreams[0].get()));
+  allocMemAsync(reinterpret_cast<void**>(&mNeighbourPairsDevice[layer]), (this->mNNeighbours[layer]) * sizeof(gpuPair<int, int>), mGpuStreams[layer], this->getExtAllocator());
+  GPUChkErrS(cudaMemsetAsync(mNeighbourPairsDevice[layer], -1, (this->mNNeighbours[layer]) * sizeof(gpuPair<int, int>), mGpuStreams[layer].get()));
   GPULog("gpu-allocation: reserving {} neighbours, for {:.2f} MB.", nNeighbours, nNeighbours * sizeof(gpuPair<int, int>) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighboursDevice[layer]), nNeighbours * sizeof(int), mGpuStreams[0], this->getExtAllocator());
-}
-
-template <int nLayers>
-void TimeFrameGPU<nLayers>::createNeighboursDevice(const unsigned int layer, std::vector<std::pair<int, int>>& neighbours)
-{
-  GPUTimer timer(mGpuStreams[0], "reserving neighbours");
-  this->mCellsNeighbours[layer].clear();
-  this->mCellsNeighbours[layer].resize(neighbours.size());
-  GPULog("gpu-allocation: reserving {} neighbours (pairs), for {:.2f} MB.", neighbours.size(), neighbours.size() * sizeof(gpuPair<int, int>) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighbourPairsDevice[layer]), neighbours.size() * sizeof(gpuPair<int, int>), mGpuStreams[0], this->getExtAllocator());
-  GPUChkErrS(cudaMemsetAsync(mNeighbourPairsDevice[layer], -1, neighbours.size() * sizeof(gpuPair<int, int>), mGpuStreams[0].get()));
-  GPULog("gpu-allocation: reserving {} neighbours, for {:.2f} MB.", neighbours.size(), neighbours.size() * sizeof(gpuPair<int, int>) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighboursDevice[layer]), neighbours.size() * sizeof(int), mGpuStreams[0], this->getExtAllocator());
-}
-
-template <int nLayers>
-void TimeFrameGPU<nLayers>::createNeighboursDeviceArray()
-{
-  GPUTimer timer(mGpuStreams[0], "reserving neighbours");
-  allocMemAsync(reinterpret_cast<void**>(&mNeighboursDeviceArray), (nLayers - 2) * sizeof(int*), mGpuStreams[0], this->getExtAllocator());
-  GPUChkErrS(cudaMemcpyAsync(mNeighboursDeviceArray, mNeighboursDevice.data(), (nLayers - 2) * sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
+  allocMemAsync(reinterpret_cast<void**>(&mNeighboursDevice[layer]), (this->mNNeighbours[layer]) * sizeof(int), mGpuStreams[layer], this->getExtAllocator());
 }
 
 template <int nLayers>
@@ -530,15 +502,6 @@ void TimeFrameGPU<nLayers>::downloadTrackITSExtDevice(bounded_vector<CellSeed>& 
   GPUChkErrS(cudaMemcpyAsync(mTrackITSExt.data(), mTrackITSExtDevice, seeds.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
   GPUChkErrS(cudaHostUnregister(mTrackITSExt.data()));
   GPUChkErrS(cudaHostUnregister(seeds.data()));
-}
-
-template <int nLayers>
-void TimeFrameGPU<nLayers>::unregisterRest()
-{
-  GPUTimer timer(mGpuStreams[0], "unregistering rest of the host memory");
-  GPULog("unregistering rest of the host memory...");
-  GPUChkErrS(cudaHostUnregister(mCellsDevice.data()));
-  // GPUChkErrS(cudaHostUnregister(mTrackletsDevice.data()));
 }
 
 template <int nLayers>

@@ -62,17 +62,15 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   void createCellsDevice();
   void createCellsLUTDevice();
   void createNeighboursIndexTablesDevice();
-  void createNeighboursDevice(const unsigned int layer, const unsigned int nNeighbours);
-  void createNeighboursDevice(const unsigned int layer, std::vector<std::pair<int, int>>& neighbours);
+  void createNeighboursDevice(const unsigned int layer);
   void createNeighboursLUTDevice(const int, const unsigned int);
-  void createNeighboursDeviceArray();
   void createTrackITSExtDevice(bounded_vector<CellSeed>&);
   void downloadTrackITSExtDevice(bounded_vector<CellSeed>&);
   void downloadCellsNeighboursDevice(std::vector<bounded_vector<std::pair<int, int>>>&, const int);
   void downloadNeighboursLUTDevice(bounded_vector<int>&, const int);
   void downloadCellsDevice();
   void downloadCellsLUTDevice();
-  void unregisterRest();
+  auto& getStream(const size_t stream) { return mGpuStreams[stream]; }
   auto& getStreams() { return mGpuStreams; }
   void syncStream(const size_t stream);
   void syncStreams();
@@ -96,7 +94,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   gpuPair<int, int>* getDeviceNeighbourPairs(const int layer) { return mNeighbourPairsDevice[layer]; }
   std::array<int*, nLayers - 2>& getDeviceNeighboursAll() { return mNeighboursDevice; }
   int* getDeviceNeighbours(const int layer) { return mNeighboursDevice[layer]; }
-  int** getDeviceNeighboursArray() { return mNeighboursDeviceArray; }
+  int** getDeviceNeighboursArray() { return mNeighboursDevice.data(); }
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
   const TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() const { return mTrackingFrameInfoDeviceArray; }
   const Cluster** getDeviceArrayClusters() const { return mClustersDeviceArray; }
@@ -109,7 +107,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   int** getDeviceArrayTrackletsLUT() const { return mTrackletsLUTDeviceArray; }
   int** getDeviceArrayCellsLUT() const { return mCellsLUTDeviceArray; }
   int** getDeviceArrayNeighboursCellLUT() const { return mNeighboursCellLUTDeviceArray; }
-  CellSeed** getDeviceArrayCells() const { return mCellsDeviceArray; }
+  CellSeed** getDeviceArrayCells() { return mCellsDevice.data(); }
   CellSeed* getDeviceTrackSeeds() { return mTrackSeedsDevice; }
   o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
   float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
@@ -176,7 +174,6 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   std::array<CellSeed*, nLayers - 2> mCellsDevice;
   std::array<int*, nLayers - 2> mNeighboursIndexTablesDevice;
   CellSeed* mTrackSeedsDevice;
-  CellSeed** mCellsDeviceArray;
   std::array<o2::track::TrackParCovF*, nLayers - 2> mCellSeedsDevice;
   o2::track::TrackParCovF** mCellSeedsDeviceArray;
   std::array<float*, nLayers - 2> mCellSeedsChi2Device;
@@ -186,7 +183,6 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   TrackITSExt* mTrackITSExtDevice;
   std::array<gpuPair<int, int>*, nLayers - 2> mNeighbourPairsDevice;
   std::array<int*, nLayers - 2> mNeighboursDevice;
-  int** mNeighboursDeviceArray;
   std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
   const TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
 

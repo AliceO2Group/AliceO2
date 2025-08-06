@@ -1123,23 +1123,24 @@ void computeCellsHandler(
     nSigmaCut);               // const float
 }
 
-unsigned int countCellNeighboursHandler(CellSeed** cellsLayersDevice,
-                                        int* neighboursLUT,
-                                        int** cellsLUTs,
-                                        gpuPair<int, int>* cellNeighbours,
-                                        int* neighboursIndexTable,
-                                        const Tracklet** tracklets,
-                                        const int deltaROF,
-                                        const float maxChi2ClusterAttachment,
-                                        const float bz,
-                                        const int layerIndex,
-                                        const unsigned int nCells,
-                                        const unsigned int nCellsNext,
-                                        const int maxCellNeighbours,
-                                        const int nBlocks,
-                                        const int nThreads)
+void countCellNeighboursHandler(CellSeed** cellsLayersDevice,
+                                int* neighboursLUT,
+                                int** cellsLUTs,
+                                gpuPair<int, int>* cellNeighbours,
+                                int* neighboursIndexTable,
+                                const Tracklet** tracklets,
+                                const int deltaROF,
+                                const float maxChi2ClusterAttachment,
+                                const float bz,
+                                const int layerIndex,
+                                const unsigned int nCells,
+                                const unsigned int nCellsNext,
+                                const int maxCellNeighbours,
+                                const int nBlocks,
+                                const int nThreads,
+                                gpu::Stream& stream)
 {
-  gpu::computeLayerCellNeighboursKernel<true><<<nBlocks, nThreads>>>(
+  gpu::computeLayerCellNeighboursKernel<true><<<nBlocks, nThreads, 0, stream.get()>>>(
     cellsLayersDevice,
     neighboursLUT,
     neighboursIndexTable,
@@ -1152,11 +1153,8 @@ unsigned int countCellNeighboursHandler(CellSeed** cellsLayersDevice,
     layerIndex,
     nCells,
     maxCellNeighbours);
-  gpu::cubInclusiveScanInPlace(neighboursLUT, nCellsNext);
-  gpu::cubExclusiveScanInPlace(neighboursIndexTable, nCells + 1);
-  unsigned int nNeighbours;
-  GPUChkErrS(cudaMemcpy(&nNeighbours, &neighboursLUT[nCellsNext - 1], sizeof(unsigned int), cudaMemcpyDeviceToHost));
-  return nNeighbours;
+  gpu::cubInclusiveScanInPlace(neighboursLUT, nCellsNext, stream.get());
+  gpu::cubExclusiveScanInPlace(neighboursIndexTable, nCells + 1, stream.get());
 }
 
 void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
@@ -1173,10 +1171,10 @@ void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                   const unsigned int nCellsNext,
                                   const int maxCellNeighbours,
                                   const int nBlocks,
-                                  const int nThreads)
+                                  const int nThreads,
+                                  gpu::Stream& stream)
 {
-
-  gpu::computeLayerCellNeighboursKernel<false><<<nBlocks, nThreads>>>(
+  gpu::computeLayerCellNeighboursKernel<false><<<nBlocks, nThreads, 0, stream.get()>>>(
     cellsLayersDevice,
     neighboursLUT,
     neighboursIndexTable,
@@ -1189,21 +1187,23 @@ void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
     layerIndex,
     nCells,
     maxCellNeighbours);
-  GPUChkErrS(cudaPeekAtLastError());
-  GPUChkErrS(cudaDeviceSynchronize());
 }
 
 int filterCellNeighboursHandler(gpuPair<int, int>* cellNeighbourPairs,
                                 int* cellNeighbours,
                                 unsigned int nNeigh,
+                                gpu::Stream& stream,
                                 o2::its::ExternalAllocator* allocator)
 {
+  /// Internal thrust allocation serialize this part to a degree
+  /// TODO switch to cub equivelent and do all work on one stream
+  auto nosync_policy = THRUST_NAMESPACE::par_nosync.on(stream.get());
   thrust::device_ptr<gpuPair<int, int>> neighVectorPairs(cellNeighbourPairs);
   thrust::device_ptr<int> validNeighs(cellNeighbours);
-  auto updatedEnd = thrust::remove_if(neighVectorPairs, neighVectorPairs + nNeigh, gpu::is_invalid_pair<int, int>());
+  auto updatedEnd = thrust::remove_if(nosync_policy, neighVectorPairs, neighVectorPairs + nNeigh, gpu::is_invalid_pair<int, int>());
   size_t newSize = updatedEnd - neighVectorPairs;
-  thrust::stable_sort(neighVectorPairs, neighVectorPairs + newSize, gpu::sort_by_second<int, int>());
-  thrust::transform(neighVectorPairs, neighVectorPairs + newSize, validNeighs, gpu::pair_to_first<int, int>());
+  thrust::stable_sort(nosync_policy, neighVectorPairs, neighVectorPairs + newSize, gpu::sort_by_second<int, int>());
+  thrust::transform(nosync_policy, neighVectorPairs, neighVectorPairs + newSize, validNeighs, gpu::pair_to_first<int, int>());
 
   return newSize;
 }

@@ -162,21 +162,22 @@ void computeCellsHandler(const Cluster** sortedClusters,
                          const int nThreads,
                          gpu::Streams& streams);
 
-unsigned int countCellNeighboursHandler(CellSeed** cellsLayersDevice,
-                                        int* neighboursLUTs,
-                                        int** cellsLUTs,
-                                        gpuPair<int, int>* cellNeighbours,
-                                        int* neighboursIndexTable,
-                                        const Tracklet** tracklets,
-                                        const int deltaROF,
-                                        const float maxChi2ClusterAttachment,
-                                        const float bz,
-                                        const int layerIndex,
-                                        const unsigned int nCells,
-                                        const unsigned int nCellsNext,
-                                        const int maxCellNeighbours,
-                                        const int nBlocks,
-                                        const int nThreads);
+void countCellNeighboursHandler(CellSeed** cellsLayersDevice,
+                                int* neighboursLUTs,
+                                int** cellsLUTs,
+                                gpuPair<int, int>* cellNeighbours,
+                                int* neighboursIndexTable,
+                                const Tracklet** tracklets,
+                                const int deltaROF,
+                                const float maxChi2ClusterAttachment,
+                                const float bz,
+                                const int layerIndex,
+                                const unsigned int nCells,
+                                const unsigned int nCellsNext,
+                                const int maxCellNeighbours,
+                                const int nBlocks,
+                                const int nThreads,
+                                gpu::Stream& stream);
 
 void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                   int* neighboursLUTs,
@@ -192,11 +193,13 @@ void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                   const unsigned int nCellsNext,
                                   const int maxCellNeighbours,
                                   const int nBlocks,
-                                  const int nThreads);
+                                  const int nThreads,
+                                  gpu::Stream& stream);
 
 int filterCellNeighboursHandler(gpuPair<int, int>*,
                                 int*,
                                 unsigned int,
+                                gpu::Stream&,
                                 o2::its::ExternalAllocator* = nullptr);
 
 template <int nLayers = 7>
