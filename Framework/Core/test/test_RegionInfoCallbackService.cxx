@@ -8,18 +8,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include <boost/algorithm/string.hpp>
-
-#include "Framework/InputSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/Logger.h"
-
-#include <chrono>
-#include <thread>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
