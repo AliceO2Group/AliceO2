@@ -126,18 +126,10 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
   mTimeFrameGPU->createCellsLUTDevice();
   auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
 
-  std::vector<bool> isTrackletStreamSynched(this->mTrkParams[iteration].TrackletsPerRoad());
-  auto syncOnce = [&](const int iLayer) {
-    if (!isTrackletStreamSynched[iLayer]) {
-      mTimeFrameGPU->syncStream(iLayer);
-      isTrackletStreamSynched[iLayer] = true;
-    }
-  };
-
+  mTimeFrameGPU->syncStream(0);
   for (int iLayer = 0; iLayer < this->mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
-    // need to ensure that trackleting on layers iLayer and iLayer + 1 are done (only once)
-    syncOnce(iLayer);
-    syncOnce(iLayer + 1);
+    mTimeFrameGPU->syncStream(iLayer + 1);
+
     // if there are no tracklets skip entirely
     const int currentLayerTrackletsNum{static_cast<int>(mTimeFrameGPU->getNTracklets()[iLayer])};
     if (!currentLayerTrackletsNum || !mTimeFrameGPU->getNTracklets()[iLayer + 1]) {
@@ -191,18 +183,10 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
   mTimeFrameGPU->createNeighboursIndexTablesDevice();
   const auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
 
-  std::vector<bool> isCellStreamSynched(this->mTrkParams[iteration].TrackletsPerRoad() - 1);
-  auto syncOnce = [&](const int iLayer) {
-    if (!isCellStreamSynched[iLayer]) {
-      mTimeFrameGPU->syncStream(iLayer);
-      isCellStreamSynched[iLayer] = true;
-    }
-  };
-
+  mTimeFrameGPU->syncStream(0);
   for (int iLayer{0}; iLayer < this->mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
     // ensure that celling is done for iLayer and iLayer+1 is done
-    syncOnce(iLayer);
-    syncOnce(iLayer + 1);
+    mTimeFrameGPU->syncStream(iLayer + 1);
 
     const int currentLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer])};
     const int nextLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer + 1])};
