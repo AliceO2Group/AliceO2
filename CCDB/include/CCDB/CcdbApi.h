@@ -576,9 +576,6 @@ class CcdbApi //: public DatabaseInterface
   // convert type_info to TClass, throw on failure
   static TClass* tinfo2TClass(std::type_info const& tinfo);
 
-  // split string on delimiters and return tokens as vector
-  std::vector<std::string> splitString(const std::string& str, const char* delimiters);
-
   typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
 
   void initCurlOptionsForRetrieve(CURL* curlHandle, void* pointer, CurlWriteCallback writeCallback, bool followRedirect = true) const;

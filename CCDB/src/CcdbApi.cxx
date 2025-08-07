@@ -24,6 +24,7 @@
 #include "Framework/DataTakingContext.h"
 #include <chrono>
 #include <memory>
+#include <ranges>
 #include <sstream>
 #include <TFile.h>
 #include <TGrid.h>
@@ -1665,22 +1666,13 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
   return ret;
 }
 
-std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)
-{
-  std::vector<std::string> tokens;
-  char stringForStrTok[str.length() + 1];
-  strcpy(stringForStrTok, str.c_str());
-  char* token = strtok(stringForStrTok, delimiters);
-  while (token != nullptr) {
-    tokens.emplace_back(token);
-    token = strtok(nullptr, delimiters);
-  }
-  return tokens;
-}
-
 void CcdbApi::initHostsPool(std::string hosts)
 {
-  hostsPool = splitString(hosts, ",;");
+  hostsPool.clear();
+  auto splitted = hosts | std::views::transform([](char c) { return (c == ';') ? ',' : c; }) | std::views::split(',');
+  for (auto&& part : splitted) {
+    hostsPool.emplace_back(part.begin(), part.end());
+  }
 }
 
 std::string CcdbApi::getHostUrl(int hostIndex) const
