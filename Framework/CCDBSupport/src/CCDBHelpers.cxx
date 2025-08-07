@@ -20,10 +20,8 @@
 #include "CCDB/CcdbApi.h"
 #include "CommonConstants/LHCConstants.h"
 #include "Framework/Signpost.h"
-#include <typeinfo>
 #include <TError.h>
 #include <TMemFile.h>
-#include <functional>
 
 O2_DECLARE_DYNAMIC_LOG(ccdb);
 
@@ -155,6 +153,55 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
         }
         str = c + 1;
       } break;
+    }
+  }
+}
+
+void initialiseHelper(CCDBFetcherHelper& helper, ConfigParamRegistry const& options, std::vector<o2::framework::OutputRoute> const& outputRoutes)
+{
+  std::unordered_map<std::string, bool> accountedSpecs;
+  auto defHost = options.get<std::string>("condition-backend");
+  auto checkRate = options.get<int>("condition-tf-per-query");
+  auto checkMult = options.get<int>("condition-tf-per-query-multiplier");
+  helper.timeToleranceMS = options.get<int64_t>("condition-time-tolerance");
+  helper.queryPeriodGlo = checkRate > 0 ? checkRate : std::numeric_limits<int>::max();
+  helper.queryPeriodFactor = checkMult > 0 ? checkMult : 1;
+  LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}", defHost, helper.queryPeriodGlo, helper.queryPeriodFactor == 1 ? std::string{} : fmt::format(", (query for high-rate objects downscaled by {})", helper.queryPeriodFactor));
+  LOGP(info, "Hook to enable signposts for CCDB messages at {}", (void*)&private_o2_log_ccdb->stacktrace);
+  auto remapString = options.get<std::string>("condition-remap");
+  CCDBHelpers::ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
+  if (!result.error.empty()) {
+    throw runtime_error_f("Error while parsing remapping string %s", result.error.c_str());
+  }
+  helper.remappings = result.remappings;
+  helper.apis[""].init(defHost); // default backend
+  LOGP(info, "Initialised default CCDB host {}", defHost);
+  //
+  for (auto& entry : helper.remappings) { // init api instances for every host seen in the remapping
+    if (helper.apis.find(entry.second) == helper.apis.end()) {
+      helper.apis[entry.second].init(entry.second);
+      LOGP(info, "Initialised custom CCDB host {}", entry.second);
+    }
+    LOGP(info, "{} is remapped to {}", entry.first, entry.second);
+  }
+  helper.createdNotBefore = std::to_string(options.get<int64_t>("condition-not-before"));
+  helper.createdNotAfter = std::to_string(options.get<int64_t>("condition-not-after"));
+
+  for (auto& route : outputRoutes) {
+    if (route.matcher.lifetime != Lifetime::Condition) {
+      continue;
+    }
+    auto specStr = DataSpecUtils::describe(route.matcher);
+    if (accountedSpecs.find(specStr) != accountedSpecs.end()) {
+      continue;
+    }
+    accountedSpecs[specStr] = true;
+    helper.routes.push_back(route);
+    LOGP(info, "The following route is a condition {}", DataSpecUtils::describe(route.matcher));
+    for (auto& metadata : route.matcher.metadata) {
+      if (metadata.type == VariantType::String) {
+        LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue.asString());
+      }
     }
   }
 }
@@ -307,51 +354,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
   return adaptStateful([](CallbackService& callbacks, ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
-      std::unordered_map<std::string, bool> accountedSpecs;
-      auto defHost = options.get<std::string>("condition-backend");
-      auto checkRate = options.get<int>("condition-tf-per-query");
-      auto checkMult = options.get<int>("condition-tf-per-query-multiplier");
-      helper->timeToleranceMS = options.get<int64_t>("condition-time-tolerance");
-      helper->queryPeriodGlo = checkRate > 0 ? checkRate : std::numeric_limits<int>::max();
-      helper->queryPeriodFactor = checkMult > 0 ? checkMult : 1;
-      LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}", defHost, helper->queryPeriodGlo, helper->queryPeriodFactor == 1 ? std::string{} : fmt::format(", (query for high-rate objects downscaled by {})", helper->queryPeriodFactor));
-      LOGP(info, "Hook to enable signposts for CCDB messages at {}", (void*)&private_o2_log_ccdb->stacktrace);
-      auto remapString = options.get<std::string>("condition-remap");
-      ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
-      if (!result.error.empty()) {
-        throw runtime_error_f("Error while parsing remapping string %s", result.error.c_str());
-      }
-      helper->remappings = result.remappings;
-      helper->apis[""].init(defHost); // default backend
-      LOGP(info, "Initialised default CCDB host {}", defHost);
-      //
-      for (auto& entry : helper->remappings) { // init api instances for every host seen in the remapping
-        if (helper->apis.find(entry.second) == helper->apis.end()) {
-          helper->apis[entry.second].init(entry.second);
-          LOGP(info, "Initialised custom CCDB host {}", entry.second);
-        }
-        LOGP(info, "{} is remapped to {}", entry.first, entry.second);
-      }
-      helper->createdNotBefore = std::to_string(options.get<int64_t>("condition-not-before"));
-      helper->createdNotAfter = std::to_string(options.get<int64_t>("condition-not-after"));
-
-      for (auto &route : spec.outputs) {
-        if (route.matcher.lifetime != Lifetime::Condition) {
-          continue;
-        }
-        auto specStr = DataSpecUtils::describe(route.matcher);
-        if (accountedSpecs.find(specStr) != accountedSpecs.end()) {
-          continue;
-        }
-        accountedSpecs[specStr] = true;
-        helper->routes.push_back(route);
-        LOGP(info, "The following route is a condition {}", DataSpecUtils::describe(route.matcher));
-        for (auto& metadata : route.matcher.metadata) {
-          if (metadata.type == VariantType::String) {
-            LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue.asString());
-          }
-        }
-      }
+      initialiseHelper(*helper, options, spec.outputs);
       /// Add a callback on stop which dumps the statistics for the caching per
       /// path
       callbacks.set<CallbackService::Id::Stop>([helper]() {
