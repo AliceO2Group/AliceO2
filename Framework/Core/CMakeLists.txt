@@ -315,11 +315,14 @@ set_property(TARGET o2-test-framework-root PROPERTY RUNTIME_OUTPUT_DIRECTORY ${o
 add_test(NAME framework:root COMMAND o2-test-framework-root --skip-benchmarks)
 add_test(NAME framework:crash COMMAND  sh -e -c "PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:$PATH ${CMAKE_CURRENT_LIST_DIR}/test/test_AllCrashTypes.sh")
 
-o2_add_test(InfoLogger NAME test_Framework_test_InfoLogger
-            SOURCES test/test_InfoLogger.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::InfoLogger)
+add_executable(o2-test-framework-infologger
+               test/test_InfoLogger.cxx)
+target_link_libraries(o2-test-framework-infologger PRIVATE O2::Framework)
+target_link_libraries(o2-test-framework-infologger PRIVATE AliceO2::InfoLogger)
+target_link_libraries(o2-test-framework-infologger PRIVATE O2::Catch2)
+set_property(TARGET o2-test-framework-infologger
+             PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+add_test(NAME framework:infologger COMMAND o2-test-framework-infologger)
 
 o2_add_executable(dpl-null-sink
                   SOURCES src/o2NullSink.cxx
