@@ -12,6 +12,7 @@
 #ifndef O2_FRAMEWORK_ARROWTYPES_H
 #define O2_FRAMEWORK_ARROWTYPES_H
 #include "arrow/type_fwd.h"
+#include <span>
 
 namespace o2::soa
 {
@@ -61,6 +62,10 @@ struct arrow_array_for<float> {
 template <>
 struct arrow_array_for<double> {
   using type = arrow::DoubleArray;
+};
+template <>
+struct arrow_array_for<std::span<std::byte>> {
+  using type = arrow::BinaryViewArray;
 };
 template <int N>
 struct arrow_array_for<float[N]> {

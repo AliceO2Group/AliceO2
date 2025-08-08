@@ -23,11 +23,12 @@
 #include "Framework/ArrowTableSlicingCache.h" // IWYU pragma: export
 #include "Framework/SliceCache.h"             // IWYU pragma: export
 #include "Framework/VariantHelpers.h"         // IWYU pragma: export
-#include <arrow/table.h>                      // IWYU pragma: export
-#include <arrow/array.h>                      // IWYU pragma: export
-#include <arrow/util/config.h>                // IWYU pragma: export
-#include <gandiva/selection_vector.h>         // IWYU pragma: export
-#include <array>                              // IWYU pragma: export
+#include <arrow/array/array_binary.h>
+#include <arrow/table.h>              // IWYU pragma: export
+#include <arrow/array.h>              // IWYU pragma: export
+#include <arrow/util/config.h>        // IWYU pragma: export
+#include <gandiva/selection_vector.h> // IWYU pragma: export
+#include <array>                      // IWYU pragma: export
 #include <cassert>
 #include <fmt/format.h>
 #include <concepts>
@@ -579,7 +580,15 @@ class ColumnIterator : ChunkingPolicy
   }
 
   decltype(auto) operator*() const
-    requires((!std::same_as<bool, std::decay_t<T>>) && !std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
+    requires((!std::same_as<bool, std::decay_t<T>>) && std::same_as<arrow_array_for_t<T>, arrow::BinaryViewArray>)
+  {
+    checkSkipChunk();
+    auto array = std::static_pointer_cast<arrow::BinaryViewArray>(mColumn->chunk(mCurrentChunk));
+    return array->GetView(*mCurrentPos - mFirstIndex);
+  }
+
+  decltype(auto) operator*() const
+    requires((!std::same_as<bool, std::decay_t<T>>) && !std::same_as<arrow_array_for_t<T>, arrow::ListArray> && !std::same_as<arrow_array_for_t<T>, arrow::BinaryViewArray>)
   {
     checkSkipChunk();
     return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));

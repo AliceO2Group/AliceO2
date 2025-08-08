@@ -98,6 +98,7 @@ O2_ARROW_STL_CONVERSION(long unsigned, UInt64Type)
 O2_ARROW_STL_CONVERSION(float, FloatType)
 O2_ARROW_STL_CONVERSION(double, DoubleType)
 O2_ARROW_STL_CONVERSION(std::string, StringType)
+O2_ARROW_STL_CONVERSION(std::span<std::byte>, BinaryViewType)
 } // namespace detail
 
 void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label);
@@ -274,6 +275,29 @@ struct BuilderMaker<bool> {
   }
 };
 
+template <>
+struct BuilderMaker<std::span<std::byte>> {
+  using FillType = std::span<std::byte>;
+  using STLValueType = std::span<std::byte>;
+  using ArrowType = typename detail::ConversionTraits<std::span<std::byte>>::ArrowType;
+  using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
+  {
+    return std::make_unique<BuilderType>(pool);
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::TypeTraits<ArrowType>::type_singleton();
+  }
+
+  static arrow::Status append(BuilderType& builder, std::span<std::byte> value)
+  {
+    return builder.Append((char*)value.data(), (int64_t)value.size());
+  }
+};
+
 template <typename ITERATOR>
 struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
   using FillType = std::pair<ITERATOR, ITERATOR>;
@@ -423,6 +447,13 @@ struct DirectInsertion {
   }
 
   template <typename BUILDER>
+    requires std::same_as<std::span<std::byte>, T>
+  arrow::Status append(BUILDER& builder, T value)
+  {
+    return builder->Append((char*)value.data(), (int64_t)value.size());
+  }
+
+  template <typename BUILDER>
   arrow::Status flush(BUILDER&)
   {
     return arrow::Status::OK();
@@ -569,7 +600,7 @@ template <typename... ARGS>
 using IndexedHoldersTuple = decltype(makeHolderTypes<ARGS...>());
 
 template <typename T>
-concept ShouldNotDeconstruct = std::is_bounded_array_v<T> || std::is_arithmetic_v<T> || framework::is_base_of_template_v<std::vector, T>;
+concept ShouldNotDeconstruct = std::is_bounded_array_v<T> || std::is_arithmetic_v<T> || framework::is_base_of_template_v<std::vector, T> || std::same_as<std::span<std::byte>, T>;
 
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
