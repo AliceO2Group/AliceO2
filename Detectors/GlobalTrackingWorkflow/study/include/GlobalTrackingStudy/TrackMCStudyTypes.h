@@ -292,7 +292,8 @@ struct ClResTPC {
 struct RecPV {
   o2::dataformats::PrimaryVertex pv{};
   o2::MCEventLabel mcEvLbl{};
-  ClassDefNV(RecPV, 1);
+  int id = -1;
+  ClassDefNV(RecPV, 2);
 };
 
 struct MCVertex {

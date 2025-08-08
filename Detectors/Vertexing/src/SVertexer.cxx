@@ -265,6 +265,10 @@ void SVertexer::init()
   // std::vector<std::pair<int, int>> vTEID = {{trID0, evID0},{trID1, evID1} ...}.
   // It is expected trID0 and trID1 are the labels of MC prongs
   // #include "sv_labels_to_watch.inc"
+  //
+  // or just add locally something like
+  // std::vector<std::pair<int, int>> vTEID = {{930, 63}};
+
   for (auto& p : vTEID) {
     mWatchLblVec.emplace_back(p.first, p.second, 0);
     mWatchLblVec.emplace_back(p.first + 1, p.second, 0);
@@ -495,7 +499,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
           int vtMCID = recoData.getPrimaryVertexMCLabel(iv).getEventID();
           mWatchHitVtxOK = vtMCID == mWatchLb.getEventID();
           mWatchHitRep = fmt::format("watched label {} for {}, MCVtx={}", mWatchLb.asString(), tvid.asString(), mWatchHitVtxOK);
-          LOGP(info, "Checking {}", mWatchHitRep);
+          LOGP(info, "Checking {} | PV#={}", mWatchHitRep, iv);
         }
       }
 #endif
