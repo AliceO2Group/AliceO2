@@ -95,13 +95,11 @@ class Stream
 #if defined(__HIPCC__)
   using Handle = hipStream_t;
   static constexpr Handle DefaultStream = 0;
-  // static constexpr unsigned int DefaultFlag = hipStreamNonBlocking; TODO replace once ready
-  static constexpr unsigned int DefaultFlag = 0;
+  static constexpr unsigned int DefaultFlag = hipStreamNonBlocking;
 #elif defined(__CUDACC__)
   using Handle = cudaStream_t;
   static constexpr Handle DefaultStream = 0;
-  // static constexpr unsigned int DefaultFlag = cudaStreamNonBlocking; TODO replace once ready
-  static constexpr unsigned int DefaultFlag = 0;
+  static constexpr unsigned int DefaultFlag = cudaStreamNonBlocking;
 #else
   using Handle = void*;
   static constexpr Handle DefaultStream = nullptr;

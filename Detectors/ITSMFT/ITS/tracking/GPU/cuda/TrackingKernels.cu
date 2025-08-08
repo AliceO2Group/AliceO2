@@ -145,9 +145,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
 
     if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
       const float xx0 = (iLayer > 2) ? 1.e-2f : 5.e-3f; // Rough layer thickness
-      constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
-      constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
-      if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true)) {
+      if (!track.correctForMaterial(xx0, xx0 * constants::Radl * constants::Rho, true)) {
         return false;
       }
     }
@@ -728,13 +726,13 @@ GPUg() void processNeighboursKernel(const int layer,
       if (!seed.o2::track::TrackParCov::update(trHit.positionTrackingFrame, trHit.covarianceTrackingFrame)) {
         continue;
       }
-      seed.getClusters()[layer - 1] = neighbourCell.getFirstClusterIndex();
-      seed.setLevel(neighbourCell.getLevel());
-      seed.setFirstTrackletIndex(neighbourCell.getFirstTrackletIndex());
-      seed.setSecondTrackletIndex(neighbourCell.getSecondTrackletIndex());
       if constexpr (dryRun) {
         foundSeedsTable[iCurrentCell]++;
       } else {
+        seed.getClusters()[layer - 1] = neighbourCell.getFirstClusterIndex();
+        seed.setLevel(neighbourCell.getLevel());
+        seed.setFirstTrackletIndex(neighbourCell.getFirstTrackletIndex());
+        seed.setSecondTrackletIndex(neighbourCell.getSecondTrackletIndex());
         updatedCellsIds[foundSeedsTable[iCurrentCell] + foundSeeds] = neighbourCellId;
         updatedCellSeeds[foundSeedsTable[iCurrentCell] + foundSeeds] = seed;
       }
@@ -870,23 +868,33 @@ GPUg() void printCellSeeds(CellSeed* seed, int nCells, const unsigned int tId = 
   }
 }
 
+GPUhi() void allocateMemory(void** p, size_t bytes, cudaStream_t stream = nullptr, ExternalAllocator* alloc = nullptr)
+{
+  if (alloc) {
+    *p = alloc->allocate(bytes);
+  } else {
+    GPUChkErrS(cudaMallocAsync(p, bytes, stream));
+  }
+}
+
+GPUhi() void deallocateMemory(void* p, size_t bytes, cudaStream_t stream = nullptr, ExternalAllocator* alloc = nullptr)
+{
+  if (alloc) {
+    alloc->deallocate(reinterpret_cast<char*>(p), bytes);
+  } else {
+    GPUChkErrS(cudaFreeAsync(p, stream));
+  }
+}
+
 template <typename T>
 GPUhi() void cubExclusiveScanInPlace(T* in_out, int num_items, cudaStream_t stream = nullptr, ExternalAllocator* alloc = nullptr)
 {
   void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
   GPUChkErrS(cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  if (alloc) {
-    d_temp_storage = alloc->allocate(temp_storage_bytes);
-  } else {
-    GPUChkErrS(cudaMallocAsync(&d_temp_storage, temp_storage_bytes, stream));
-  }
+  allocateMemory(&d_temp_storage, temp_storage_bytes, stream, alloc);
   GPUChkErrS(cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  if (alloc) {
-    alloc->deallocate(reinterpret_cast<char*>(d_temp_storage), temp_storage_bytes);
-  } else {
-    GPUChkErrS(cudaFreeAsync(d_temp_storage, stream));
-  }
+  deallocateMemory(d_temp_storage, temp_storage_bytes, stream, alloc);
 }
 
 template <typename Vector>
@@ -901,21 +909,13 @@ GPUhi() void cubInclusiveScanInPlace(T* in_out, int num_items, cudaStream_t stre
   void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
   GPUChkErrS(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  if (alloc) {
-    d_temp_storage = alloc->allocate(temp_storage_bytes);
-  } else {
-    GPUChkErrS(cudaMallocAsync(&d_temp_storage, temp_storage_bytes, stream));
-  }
+  allocateMemory(&d_temp_storage, temp_storage_bytes, stream, alloc);
   GPUChkErrS(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, in_out, in_out, num_items, stream));
-  if (alloc) {
-    alloc->deallocate(reinterpret_cast<char*>(d_temp_storage), temp_storage_bytes);
-  } else {
-    GPUChkErrS(cudaFreeAsync(d_temp_storage, stream));
-  }
+  deallocateMemory(d_temp_storage, temp_storage_bytes, stream, alloc);
 }
 
 template <typename Vector>
-GPUhi() void cubInclusiveScanInPlace(Vector& in_out, int num_items, cudaStream_t stream = nullptr, ExternalAllocator* alloc = nullptr)
+GPUhi() void cubInclusiveScanInPlace(Vector& in_out, int num_items, cudaStream_t stream = nullptr, o2::its::ExternalAllocator* alloc = nullptr)
 {
   cubInclusiveScanInPlace(thrust::raw_pointer_cast(in_out.data()), num_items, stream, alloc);
 }
@@ -1048,13 +1048,30 @@ void computeTrackletsInROFsHandler(const IndexTableUtils* utils,
       resolutions[iLayer],
       radii[iLayer + 1] - radii[iLayer],
       mulScatAng[iLayer]);
-    /// Internal thrust allocation serialize this part to a degree
-    /// TODO switch to cub equivelent and do all work on one stream
-    thrust::device_ptr<Tracklet> tracklets_ptr(spanTracklets[iLayer]);
-    auto nosync_policy = THRUST_NAMESPACE::par_nosync.on(streams[iLayer].get());
-    thrust::sort(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[iLayer], gpu::sort_tracklets());
-    auto unique_end = thrust::unique(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[iLayer], gpu::equal_tracklets());
-    nTracklets[iLayer] = unique_end - tracklets_ptr;
+    if (nTracklets[iLayer]) {
+      Tracklet *tracklets_in = spanTracklets[iLayer], *tracklets_out{nullptr};
+      size_t n = nTracklets[iLayer];
+      size_t sort_temp_bytes = 0;
+      GPUChkErrS(cub::DeviceMergeSort::SortKeys(nullptr, sort_temp_bytes, tracklets_in, n, gpu::sort_tracklets{}, streams[iLayer].get()));
+      void* sort_temp_storage = nullptr;
+      gpu::allocateMemory(&sort_temp_storage, sort_temp_bytes, streams[iLayer].get(), alloc);
+      GPUChkErrS(cub::DeviceMergeSort::SortKeys(sort_temp_storage, sort_temp_bytes, tracklets_in, n, gpu::sort_tracklets{}, streams[iLayer].get()));
+      gpu::allocateMemory(reinterpret_cast<void**>(&tracklets_out), n * sizeof(Tracklet), streams[iLayer].get(), alloc);
+      size_t unique_temp_bytes = 0;
+      int* num_selected = nullptr;
+      gpu::allocateMemory(reinterpret_cast<void**>(&num_selected), sizeof(int), streams[iLayer].get(), alloc);
+      GPUChkErrS(cub::DeviceSelect::Unique(nullptr, unique_temp_bytes, tracklets_in, tracklets_out, num_selected, n, streams[iLayer].get()));
+      void* unique_temp_storage = nullptr;
+      gpu::allocateMemory(&unique_temp_storage, unique_temp_bytes, streams[iLayer].get(), alloc);
+      GPUChkErrS(cub::DeviceSelect::Unique(unique_temp_storage, unique_temp_bytes, tracklets_in, tracklets_out, num_selected, n, streams[iLayer].get()));
+      GPUChkErrS(cudaMemcpyAsync(tracklets_in, tracklets_out, n * sizeof(Tracklet), cudaMemcpyDeviceToDevice, streams[iLayer].get()));
+      GPUChkErrS(cudaMemcpyAsync(&nTracklets[iLayer], num_selected, sizeof(int), cudaMemcpyDeviceToHost, streams[iLayer].get()));
+      streams[iLayer].sync();
+      gpu::deallocateMemory(tracklets_out, n * sizeof(Tracklet), streams[iLayer].get(), alloc);
+      gpu::deallocateMemory(sort_temp_storage, sort_temp_bytes, streams[iLayer].get(), alloc);
+      gpu::deallocateMemory(unique_temp_storage, unique_temp_bytes, streams[iLayer].get(), alloc);
+      gpu::deallocateMemory(num_selected, sizeof(int), streams[iLayer].get(), alloc);
+    }
     if (iLayer > 0) {
       GPUChkErrS(cudaMemsetAsync(trackletsLUTsHost[iLayer], 0, nClusters[iLayer] * sizeof(int), streams[iLayer].get()));
       gpu::compileTrackletsLookupTableKernel<<<nBlocks, nThreads, 0, streams[iLayer].get()>>>(
@@ -1215,8 +1232,35 @@ int filterCellNeighboursHandler(gpuPair<int, int>* cellNeighbourPairs,
                                 gpu::Stream& stream,
                                 o2::its::ExternalAllocator* allocator)
 {
-  /// Internal thrust allocation serialize this part to a degree
-  /// TODO switch to cub equivelent and do all work on one stream
+#ifndef __HIPCC__
+  int* d_num_selected = nullptr;
+  gpu::allocateMemory(reinterpret_cast<void**>(&d_num_selected), sizeof(int), stream.get(), allocator);
+  size_t select_bytes = 0;
+  GPUChkErrS(cub::DeviceSelect::If(nullptr, select_bytes, cellNeighbourPairs, static_cast<gpuPair<int, int>*>(nullptr), d_num_selected, nNeigh, gpu::is_valid_pair<int, int>(), stream.get()));
+  void* select_temp = nullptr;
+  gpu::allocateMemory(&select_temp, select_bytes, stream.get(), allocator);
+  gpuPair<int, int>* d_temp_valid = nullptr;
+  gpu::allocateMemory(reinterpret_cast<void**>(&d_temp_valid), nNeigh * sizeof(gpuPair<int, int>), stream.get(), allocator);
+  GPUChkErrS(cub::DeviceSelect::If(select_temp, select_bytes, cellNeighbourPairs, d_temp_valid, d_num_selected, nNeigh, gpu::is_valid_pair<int, int>(), stream.get()));
+  int newSize = 0;
+  GPUChkErrS(cudaMemcpyAsync(&newSize, d_num_selected, sizeof(int), cudaMemcpyDeviceToHost, stream.get()));
+  stream.sync(); // needed to get newSize
+  size_t sort_bytes = 0;
+  GPUChkErrS(cub::DeviceMergeSort::SortPairs(nullptr, sort_bytes, d_temp_valid, d_temp_valid, newSize, gpu::sort_by_second<int, int>(), stream.get()));
+  void* sort_temp = nullptr;
+  gpu::allocateMemory(&sort_temp, sort_bytes, stream.get(), allocator);
+  GPUChkErrS(cub::DeviceMergeSort::SortPairs(sort_temp, sort_bytes, d_temp_valid, d_temp_valid, newSize, gpu::sort_by_second<int, int>(), stream.get()));
+  size_t transform_bytes = 0;
+  GPUChkErrS(cub::DeviceTransform::Transform(nullptr, transform_bytes, d_temp_valid, cellNeighbours, newSize, gpu::pair_to_first<int, int>(), stream.get()));
+  void* transform_temp = nullptr;
+  gpu::allocateMemory(&transform_temp, transform_bytes, stream.get(), allocator);
+  GPUChkErrS(cub::DeviceTransform::Transform(transform_temp, transform_bytes, d_temp_valid, cellNeighbours, newSize, gpu::pair_to_first<int, int>(), stream.get()));
+  gpu::deallocateMemory(transform_temp, transform_bytes, stream.get(), allocator);
+  gpu::deallocateMemory(d_temp_valid, newSize * sizeof(gpuPair<int, int>), stream.get(), allocator);
+  gpu::deallocateMemory(sort_temp, sort_bytes, stream.get(), allocator);
+  gpu::deallocateMemory(d_num_selected, sizeof(int), stream.get(), allocator);
+  gpu::deallocateMemory(select_temp, select_bytes, stream.get(), allocator);
+#else // FIXME using thrust here since hipcub does not yet have DeviceTransform
   auto nosync_policy = THRUST_NAMESPACE::par_nosync.on(stream.get());
   thrust::device_ptr<gpuPair<int, int>> neighVectorPairs(cellNeighbourPairs);
   thrust::device_ptr<int> validNeighs(cellNeighbours);
@@ -1224,6 +1268,7 @@ int filterCellNeighboursHandler(gpuPair<int, int>* cellNeighbourPairs,
   size_t newSize = updatedEnd - neighVectorPairs;
   thrust::stable_sort(nosync_policy, neighVectorPairs, neighVectorPairs + newSize, gpu::sort_by_second<int, int>());
   thrust::transform(nosync_policy, neighVectorPairs, neighVectorPairs + newSize, validNeighs, gpu::pair_to_first<int, int>());
+#endif
 
   return newSize;
 }
