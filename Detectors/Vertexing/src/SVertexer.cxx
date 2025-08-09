@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/StrangeTrack.h"
 #include "CommonConstants/GeomConstants.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -259,6 +260,17 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
 //__________________________________________________________________
 void SVertexer::init()
 {
+#ifdef _DBGMC_SVERTEXER_
+  // must contain vector of {trackID, evID} pairs to watch, in the format
+  // std::vector<std::pair<int, int>> vTEID = {{trID0, evID0},{trID1, evID1} ...}.
+  // It is expected trID0 and trID1 are the labels of MC prongs
+  // #include "sv_labels_to_watch.inc"
+  for (auto& p : vTEID) {
+    mWatchLblVec.emplace_back(p.first, p.second, 0);
+    mWatchLblVec.emplace_back(p.first + 1, p.second, 0);
+  }
+#endif
+  //
 }
 
 //__________________________________________________________________
@@ -472,11 +484,31 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
     for (; it < itLim; it++) {
       auto tvid = trackIndex[it];
+#ifdef _DBGMC_SVERTEXER_
+      mWatchHit = false;
+      mWatchHitVtxOK = false;
+      mWatchHitRep = "";
+      if (mUseMC && mWatchLblVec.size()) {
+        mWatchLb = recoData.getTrackMCLabel(tvid);
+        mWatchHit = checkLbl(mWatchLb);
+        if (mWatchHit) {
+          int vtMCID = recoData.getPrimaryVertexMCLabel(iv).getEventID();
+          mWatchHitVtxOK = vtMCID == mWatchLb.getEventID();
+          mWatchHitRep = fmt::format("watched label {} for {}, MCVtx={}", mWatchLb.asString(), tvid.asString(), mWatchHitVtxOK);
+          LOGP(info, "Checking {}", mWatchHitRep);
+        }
+      }
+#endif
       if (!recoData.isTrackSourceLoaded(tvid.getSource())) {
         continue;
       }
       if (tvid.getSource() == GIndex::TPC) {
         if (mSVParams->mExcludeTPCtracks) {
+#ifdef _DBGMC_SVERTEXER_
+          if (mWatchHit) {
+            LOGP(info, "Reject {} due to the ExcludeTPCtracks", mWatchHitRep);
+          }
+#endif
           continue;
         }
         // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
@@ -490,10 +522,20 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         auto tref = tmap.find(tvid);
         if (tref != tmap.end()) {
           mTracksPool[tref->second.second][tref->second.first].vBracket.setMax(iv); // this track was already processed with other vertex, account the latter
+#ifdef _DBGMC_SVERTEXER_
+          if (mWatchHit) {
+            LOGP(info, "Skipping already processed ambiguous {}", mWatchHitRep);
+          }
+#endif
           continue;
         }
         // was it already rejected?
         if (rejmap.find(tvid) != rejmap.end()) {
+#ifdef _DBGMC_SVERTEXER_
+          if (mWatchHit) {
+            LOGP(info, "Skipping already rejected ambiguous {}", mWatchHitRep);
+          }
+#endif
           continue;
         }
       }
@@ -541,6 +583,11 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         if (tvid.isAmbiguous()) {
           rejmap[tvid] = true;
         }
+#ifdef _DBGMC_SVERTEXER_
+        if (mWatchHit) {
+          LOGP(info, "Reject {} in acceptTrack", mWatchHitRep);
+        }
+#endif
         continue;
       }
 
@@ -557,6 +604,11 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       if (tvid.isAmbiguous()) { // track attached to >1 vertex, remember that it was already processed
         tmap[tvid] = {mTracksPool[posneg].size() - 1, posneg};
       }
+#ifdef _DBGMC_SVERTEXER_
+      if (mWatchHit) {
+        LOGP(info, "Pooled {}", mWatchHitRep);
+      }
+#endif
     }
   }
   // register 1st track of each charge for each vertex
@@ -582,10 +634,39 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   auto& fitterV0 = mFitterV0[ithread];
   // Fast rough cuts on pairs before feeding to DCAFitter, tracks are not in the same Frame or at same X
   bool isTPConly = (seedP.gid.getSource() == GIndex::TPC || seedN.gid.getSource() == GIndex::TPC);
+#ifdef _DBGMC_SVERTEXER_
+  bool watchHit = false, watchHitVtxOK = false;
+  o2::MCCompLabel watchLb0, watchLb1;
+  std::string watchPairRep{};
+  if (mUseMC && mWatchLblVec.size()) {
+    watchLb0 = mRecoCont->getTrackMCLabel(seedP.gid);
+    watchLb1 = mRecoCont->getTrackMCLabel(seedN.gid);
+    watchHit = checkLbl(watchLb0) && checkLbl(watchLb1) && (watchLb0.getEventID() == watchLb1.getEventID() && std::abs(watchLb0.getTrackID() - watchLb1.getTrackID()) == 1);
+    if (watchHit) {
+      auto vlist = seedP.vBracket.getOverlap(seedN.vBracket); // indices of vertices shared by both seeds
+      for (int iv = vlist.getMin(); iv <= vlist.getMax(); iv++) {
+        int vtMCID = mRecoCont->getPrimaryVertexMCLabel(iv).getEventID();
+        watchHitVtxOK = vtMCID == watchLb0.getEventID();
+        if (watchHitVtxOK) {
+          break;
+        }
+      }
+      if (watchHitVtxOK) {
+        watchPairRep = fmt::format("watched labels {} of {} and {} of {}, MCVtx={}", watchLb0.asString(), seedP.gid.asString(), watchLb1.asString(), seedN.gid.asString(), watchHitVtxOK);
+        LOGP(info, "Checking {}", watchPairRep);
+      }
+    }
+  }
+#endif
   if (mSVParams->mTPCTrackPhotonTune && isTPConly) {
     // Check if Tgl is close enough
     if (std::abs(seedP.getTgl() - seedN.getTgl()) > mSVParams->maxV0TglAbsDiff) {
       LOG(debug) << "RejTgl";
+#ifdef _DBGMC_SVERTEXER_
+      if (watchHit && watchHitVtxOK) {
+        LOGP(info, "Reject {}, RegTgl:{}", watchPairRep, seedP.getTgl() - seedN.getTgl());
+      }
+#endif
       return false;
     }
     // Check in transverse plane
@@ -599,8 +680,15 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
                            trkPosCircle.yC - trkEleCircle.yC);
     float r2r = trkPosCircle.rC + trkEleCircle.rC;
     float dcr = c2c - r2r;
+
     if (std::abs(dcr) > mSVParams->mTPCTrackD2R) {
       LOG(debug) << "RejD2R " << c2c << " " << r2r << " " << dcr;
+#ifdef _DBGMC_SVERTEXER_
+      if (watchHit && watchHitVtxOK) {
+        LOGP(info, "Reject {} on dCR = {} (r2r={} c2c={}) (xyr: [{} {} {}] : [{} {} {}])",
+             watchPairRep, dcr, r2r, c2c, trkPosCircle.xC, trkPosCircle.yC, trkPosCircle.rC, trkEleCircle.xC, trkEleCircle.yC, trkEleCircle.rC);
+      }
+#endif
       return false;
     }
     // Will the conversion point look somewhat reasonable
@@ -609,6 +697,12 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     float dR = std::hypot(r2_r * trkPosCircle.xC + r1_r * trkEleCircle.xC, r2_r * trkPosCircle.yC + r1_r * trkEleCircle.yC);
     if (dR > mSVParams->mTPCTrackDR) {
       LOG(debug) << "RejDR" << dR;
+#ifdef _DBGMC_SVERTEXER_
+      if (watchHit && watchHitVtxOK) {
+        LOGP(info, "Reject {} on dR = {} (xyr: [{} {} {}] : [{} {} {}])",
+             watchPairRep, dR, trkPosCircle.xC, trkPosCircle.yC, trkPosCircle.rC, trkEleCircle.xC, trkEleCircle.yC, trkEleCircle.rC);
+      }
+#endif
       return false;
     }
 
@@ -631,6 +725,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   if (nCand == 0) { // discard this pair
     LOG(debug) << "RejDCAFitter";
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {}: no candidates", watchPairRep);
+    }
+#endif
     return false;
   }
   const auto& v0XYZ = fitterV0.getPCACandidate();
@@ -639,17 +738,32 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   float dxv0 = v0XYZ[0] - mMeanVertex.getX(), dyv0 = v0XYZ[1] - mMeanVertex.getY(), r2v0 = dxv0 * dxv0 + dyv0 * dyv0;
   if (r2v0 < mMinR2ToMeanVertex) {
     LOG(debug) << "RejMinR2ToMeanVertex";
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {} on RejMinR2ToMeanVertex check: r2v0={}", watchPairRep, r2v0);
+    }
+#endif
     return false;
   }
   float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;
   if (drv0P > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
       drv0N > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
     LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {} on causality check: dr:{} {}", watchPairRep, drv0P, drv0N);
+    }
+#endif
     return false;
   }
   const int cand = 0;
   if (!fitterV0.isPropagateTracksToVertexDone(cand) && !fitterV0.propagateTracksToVertex(cand)) {
     LOG(debug) << "RejProp failed";
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {} on propagateTracksToVertex", watchPairRep);
+    }
+#endif
     return false;
   }
   const auto& trPProp = fitterV0.getTrack(0, cand);
@@ -665,10 +779,20 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   float pt2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1], prodXYv0 = dxv0 * pV0[0] + dyv0 * pV0[1], tDCAXY = prodXYv0 / pt2V0;
   if (pt2V0 < mMinPt2V0) { // pt cut
     LOG(debug) << "RejPt2 " << pt2V0;
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {} on MinPt2V0 check: {}", watchPairRep, pt2V0);
+    }
+#endif
     return false;
   }
   if (pV0[2] * pV0[2] / pt2V0 > mMaxTgl2V0) { // tgLambda cut
     LOG(debug) << "RejTgL " << pV0[2] * pV0[2] / pt2V0;
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {} on MaxTgl2V0 check: {}", watchPairRep, pV0[2] * pV0[2] / pt2V0);
+    }
+#endif
     return false;
   }
   float p2V0 = pt2V0 + pV0[2] * pV0[2], ptV0 = std::sqrt(pt2V0);
@@ -722,6 +846,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   if (!goodHyp && mSVParams->checkV0Hypothesis) {
     LOG(debug) << "RejHypo";
     if (!checkFor3BodyDecays && !checkForCascade) {
+#ifdef _DBGMC_SVERTEXER_
+      if (watchHit && watchHitVtxOK) {
+        LOGP(info, "Reject {} as a bad hypothesis for >2 prong decays", watchPairRep);
+      }
+#endif
       return false;
     } else {
       rejectAfter3BodyCheck = true;
@@ -735,6 +864,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     if (dca2 > mMaxDCAXY2ToMeanVertexV0Casc || cosPAXY < mSVParams->minCosPAXYMeanVertexCascV0) {
       LOG(debug) << "Rej for cascade DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
       if (!checkFor3BodyDecays) {
+#ifdef _DBGMC_SVERTEXER_
+        if (watchHit && watchHitVtxOK) {
+          LOGP(info, "Reject {} as a bad cascade", watchPairRep);
+        }
+#endif
         return false;
       } else {
         rejectAfter3BodyCheck = true;
@@ -757,9 +891,22 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       if (mSVParams->mTPCTrackPhotonTune && isTPConly) {
         // Check for looser cut for tpc-only photons only
         if (dca2 > mSVParams->mTPCTrackMaxDCAXY2ToMeanVertex) {
+#ifdef _DBGMC_SVERTEXER_
+          if (watchHit && watchHitVtxOK) {
+            auto tv0 = fitterV0.createParentTrackPar();
+            LOGP(info, "Reject {} in TPCTrackMaxDCAXY2ToMeanVertex check: dca2={} : V0 XYZ:[{:.2f},{:.2f},{:.2f}], P:[{:.2f},{:.2f},{:.2f}] | {}",
+                 watchPairRep, dca2, v0XYZ[0], v0XYZ[1], v0XYZ[2], pV0[0], pV0[1], pV0[2], tv0.asString());
+          }
+#endif
           return false;
         }
       } else {
+#ifdef _DBGMC_SVERTEXER_
+        if (watchHit && watchHitVtxOK) {
+          auto tv0 = fitterV0.createParentTrackPar();
+          LOGP(info, "Reject {} in mMaxDCAXY2ToMeanVertex ({}) and CosPAXYMeanVertex ({}) checks | {}", watchPairRep, dca2, cosPAXY, tv0.asString());
+        }
+#endif
         return false;
       }
     }
@@ -793,6 +940,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     bestCosPA = cosPA;
   }
   if (!candFound) {
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {} as no candidate PV is found", watchPairRep);
+    }
+#endif
     return false;
   }
   if (bestCosPA < mSVParams->minCosPACascV0) {
@@ -809,6 +961,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     n3bodyDecays += check3bodyDecays(v0Idxnew, v0new, rv0, pV0, p2V0, iP, POS, vlist, ithread);
   }
   if (rejectAfter3BodyCheck) {
+#ifdef _DBGMC_SVERTEXER_
+    if (watchHit && watchHitVtxOK) {
+      LOGP(info, "Reject {} after 3-body check", watchPairRep);
+    }
+#endif
     return false;
   }
 
@@ -851,7 +1008,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       mStrTracker->processV0(iv, v0new, v0Idxnew, ithread);
     }
   }
-
+#ifdef _DBGMC_SVERTEXER_
+  if (watchHit && watchHitVtxOK) {
+    LOGP(info, "Watched {}, V0 status: {}", watchPairRep, mV0sIdxTmp[ithread].size() - nV0Ini != 0 ? "ACC" : "REJ");
+  }
+#endif
   return mV0sIdxTmp[ithread].size() - nV0Ini != 0;
 }
 
@@ -1280,6 +1441,11 @@ void SVertexer::setNThreads(int n)
 bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid)
 {
   if (mSVParams->mTPCTrackMaxX > 0. && trTPC.getX() > mSVParams->mTPCTrackMaxX) {
+#ifdef _DBGMC_SVERTEXER_
+    if (mWatchHit) {
+      LOGP(info, "Reject {} in processTPCTrack: TPCTrackMaxX check, {}", mWatchHitRep, trTPC.getX());
+    }
+#endif
     return true;
   }
   // if TPC trackis unconstrained, try to create in the tracks pool a clone constrained to vtxid vertex time.
@@ -1306,6 +1472,11 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
     mTracksPool[posneg].pop_back(); // discard
+#ifdef _DBGMC_SVERTEXER_
+    if (mWatchHit) {
+      LOGP(info, "Reject {} in processTPCTrack: correctTPCTrack fails", mWatchHitRep);
+    }
+#endif
     return true;
   }
 
@@ -1319,15 +1490,29 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
     o2::math_utils::CircleXYf_t trkCircle;
     trLoc.getCircleParams(mBz, trkCircle, sna, csa);
     float cR = std::hypot(trkCircle.xC, trkCircle.yC);
-    float drd2 = std::sqrt(cR * cR - trkCircle.rC * trkCircle.rC);
-    bool dRD2 = drd2 > mSVParams->mTPCTrackXY2Radius;
+    bool dRD2 = cR - trkCircle.rC > mSVParams->mTPCTrackXY2Radius;
 
     if (dCls || dDPV || dRD2) {
       mTracksPool[posneg].pop_back();
+#ifdef _DBGMC_SVERTEXER_
+      if (mWatchHit) {
+        LOGP(info, "Reject {} in processTPCTrack: CheckClus:{} ({}) CheckDPv:{} ({}) CheckRD2:{} ({}) | {}",
+             mWatchHitRep,
+             dCls,
+             trTPC.getNClusters(),
+             dDPV,
+             trLoc.getX() * trLoc.getTgl() - trLoc.getZ() + vtx.getZ(),
+             dRD2, cR - trkCircle.rC > mSVParams->mTPCTrackXY2Radius, ((o2::track::TrackPar&)trLoc).asString());
+      }
+#endif
       return true;
     }
   }
-
+#ifdef _DBGMC_SVERTEXER_
+  if (mWatchHit) {
+    LOGP(info, "Pooled TPC-only {}", mWatchHitRep);
+  }
+#endif
   return true;
 }
 

@@ -15,6 +15,8 @@
 #ifndef O2_S_VERTEXER_H
 #define O2_S_VERTEXER_H
 
+// #define _DBGMC_SVERTEXER_
+
 #include "gsl/span"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -196,6 +198,23 @@ class SVertexer
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
   std::vector<DCAFitterN<3>> mFitter3body;
+
+#ifdef _DBGMC_SVERTEXER_
+  bool mWatchHit = false;
+  bool mWatchHitVtxOK = false;
+  std::string mWatchHitRep{};
+  o2::MCCompLabel mWatchLb;
+  std::vector<o2::MCCompLabel> mWatchLblVec;
+  bool checkLbl(o2::MCCompLabel& l) const
+  {
+    for (auto lb : mWatchLblVec) {
+      if (lb == l) {
+        return true;
+      }
+    }
+    return false;
+  }
+#endif
 
   PIDResponse mPIDresponse;
 
