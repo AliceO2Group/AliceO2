@@ -974,7 +974,8 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
       if (DataSpecUtils::validate(input) == false) {
         ss << "In spec " << spec.name << " input specification "
            << ii << " requires binding, description and origin"
-                    " to be fully specified";
+                    " to be fully specified (found "
+           << input.binding << ":" << DataSpecUtils::describe(input) << ")";
         throw std::runtime_error(ss.str());
       }
     }
