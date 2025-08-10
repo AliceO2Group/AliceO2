@@ -220,6 +220,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // to enable distribution of triggers
   workflowOptions.push_back(ConfigParamSpec{"with-trigger", VariantType::Bool, false, {"enable distribution of CTP trigger digits"}});
+
+  // option to propagate CTP Lumi scaler counts (if >=0) into the CTP digits
+  workflowOptions.push_back(ConfigParamSpec{"store-ctp-lumi", VariantType::Float, -1.f, {"store CTP lumi scaler in CTP digits (if >= 0)"}});
 }
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
@@ -798,10 +801,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the CTP part
   if (isEnabled(o2::detectors::DetID::CTP)) {
     detList.emplace_back(o2::detectors::DetID::CTP);
+    float lumiScaler = configcontext.options().get<float>("store-ctp-lumi");
     // connect the CTP digitization
-    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, detList));
+    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, detList, lumiScaler));
     // connect the CTP digit writer
-    specs.emplace_back(o2::ctp::getDigitWriterSpec(false));
+    specs.emplace_back(o2::ctp::getDigitWriterSpec(lumiScaler >= 0));
   }
   // GRP updater: must come after all detectors since requires their list
   if (!configcontext.options().get<bool>("only-context")) {

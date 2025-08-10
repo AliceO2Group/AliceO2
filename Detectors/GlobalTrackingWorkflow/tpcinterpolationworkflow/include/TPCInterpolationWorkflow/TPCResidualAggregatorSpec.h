@@ -145,7 +145,6 @@ class ResidualAggregatorDevice : public o2::framework::Task
     using lumiDataType = std::decay_t<decltype(pc.inputs().get<o2::ctp::LumiInfo>(""))>;
     std::optional<lumiDataType> lumiInput;
     if (mCTPInput) {
-      recoCont.getCTPLumi();
       lumiInput = recoCont.getCTPLumi();
       lumi = &lumiInput.value();
     }

@@ -17,12 +17,14 @@
 #include "Framework//Task.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CTPSimulation/Digitizer.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFV0/Digit.h"
+#include "CommonConstants/LHCConstants.h"
 
 #include <TStopwatch.h>
 #include <gsl/span>
@@ -37,7 +39,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   using GRP = o2::parameters::GRPObject;
 
  public:
-  CTPDPLDigitizerTask(const std::vector<o2::detectors::DetID>& detList) : o2::base::BaseDPLDigitizer(), mDigitizer(), mDetList(detList) {}
+  CTPDPLDigitizerTask(const std::vector<o2::detectors::DetID>& detList, float ctpLumiScaler) : o2::base::BaseDPLDigitizer(), mDigitizer(), mDetList(detList), mLumiScaler(ctpLumiScaler) {}
   ~CTPDPLDigitizerTask() override = default;
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -85,6 +87,12 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     pc.outputs().snapshot(Output{"CTP", "DIGITS", 0}, digits);
     LOG(info) << "CTP PRESENT being sent.";
     pc.outputs().snapshot(Output{"CTP", "ROMode", 0}, mROMode);
+    if (mLumiScaler >= 0.) {
+      uint32_t nhbf = mLumiScaler > 0.f ? uint32_t(int(mLumiScaler) / mLumiScaler * o2::constants::lhc::LHCRevFreq) : 0;
+      o2::ctp::LumiInfo lminfo{pc.services().get<o2::framework::TimingInfo>().firstTForbit, nhbf, 0, uint64_t(mLumiScaler), 0};
+      LOG(info) << "CTP Lumi scaler " << lminfo.counts << " for integration time of " << lminfo.nHBFCounted << " being sent";
+      pc.outputs().snapshot(Output{"CTP", "LUMI", 0}, lminfo);
+    }
     timer.Stop();
     LOG(info) << "CTP Digitization took " << timer.CpuTime() << "s";
   }
@@ -102,8 +110,10 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT;
   o2::ctp::Digitizer mDigitizer; ///< Digitizer
   std::vector<o2::detectors::DetID> mDetList;
+  float mLumiScaler = -1.;
 };
-o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, bool mctruth)
+
+o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, float ctpLumiScaler, bool mctruth)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> output;
@@ -119,12 +129,15 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
   }
   inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", true));
   output.emplace_back("CTP", "DIGITS", 0, Lifetime::Timeframe);
+  if (ctpLumiScaler >= 0.f) {
+    output.emplace_back("CTP", "LUMI", 0, Lifetime::Timeframe);
+  }
   output.emplace_back("CTP", "ROMode", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "CTPDigitizer",
     inputs,
     output,
-    AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>(detList)},
+    AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>(detList, ctpLumiScaler)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
