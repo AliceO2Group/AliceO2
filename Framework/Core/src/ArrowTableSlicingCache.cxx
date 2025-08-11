@@ -35,25 +35,8 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   if (values.empty()) {
     return {offset, 0};
   }
-  int64_t p = static_cast<int64_t>(values.size()) - 1;
-  while (values[p] < 0) {
-    --p;
-    if (p < 0) {
-      return {offset, 0};
-    }
-  }
 
-  if (value > values[p]) {
-    return {offset, 0};
-  }
-
-  for (auto i = 0U; i < values.size(); ++i) {
-    if (values[i] == value) {
-      return {offset, counts[i]};
-    }
-    offset += counts[i];
-  }
-  return {offset, 0};
+  return {(*offsets)[value], (*sizes)[value]};
 }
 
 gsl::span<const int64_t> SliceInfoUnsortedPtr::getSliceFor(int value) const
@@ -84,6 +67,8 @@ ArrowTableSlicingCache::ArrowTableSlicingCache(Cache&& bsks, Cache&& bsksUnsorte
 {
   values.resize(bindingsKeys.size());
   counts.resize(bindingsKeys.size());
+  offsets.resize(bindingsKeys.size());
+  sizes.resize(bindingsKeys.size());
 
   valuesUnsorted.resize(bindingsKeysUnsorted.size());
   groups.resize(bindingsKeysUnsorted.size());
@@ -97,6 +82,10 @@ void ArrowTableSlicingCache::setCaches(Cache&& bsks, Cache&& bsksUnsorted)
   values.resize(bindingsKeys.size());
   counts.clear();
   counts.resize(bindingsKeys.size());
+  offsets.clear();
+  offsets.resize(bindingsKeys.size());
+  sizes.clear();
+  sizes.resize(bindingsKeys.size());
   valuesUnsorted.clear();
   valuesUnsorted.resize(bindingsKeysUnsorted.size());
   groups.clear();
@@ -108,6 +97,8 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   if (table->num_rows() == 0) {
     values[pos].reset();
     counts[pos].reset();
+    offsets[pos].clear();
+    sizes[pos].clear();
     return arrow::Status::OK();
   }
   auto& [b, k, e] = bindingsKeys[pos];
@@ -125,6 +116,31 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   counts[pos].reset();
   values[pos] = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
   counts[pos] = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+
+  int maxValue = 0;
+  for (auto i = values[pos]->length() - 1; i >= 0; --i) {
+    if (values[pos]->Value(i) < 0) {
+      continue;
+    } else {
+      maxValue = values[pos]->Value(i);
+      break;
+    }
+  }
+
+  offsets[pos].resize(maxValue + 1);
+  sizes[pos].resize(maxValue);
+  std::fill(offsets[pos].begin(), offsets[pos].end(), 0);
+  std::fill(sizes[pos].begin(), sizes[pos].end(), 0);
+  int64_t offset = 0;
+  for (auto i = 0U; i < values[pos]->length(); ++i) {
+    auto value = values[pos]->Value(i);
+    if (value >= 0) {
+      offsets[pos][value] = offset;
+      sizes[pos][value] = counts[pos]->Value(i);
+    }
+    offset += counts[pos]->Value(i);
+  }
+  offsets[pos][maxValue] = offset;
   return arrow::Status::OK();
 }
 
@@ -221,14 +237,18 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
 {
   if (values[pos] == nullptr && counts[pos] == nullptr) {
     return {
-      {},
-      {} //
+      {},//
+      {},//
+      nullptr, //
+      nullptr //
     };
   }
 
   return {
-    {reinterpret_cast<int const*>(values[pos]->values()->data()), static_cast<size_t>(values[pos]->length())},
-    {reinterpret_cast<int64_t const*>(counts[pos]->values()->data()), static_cast<size_t>(counts[pos]->length())} //
+    {reinterpret_cast<int const*>(values[pos]->values()->data()), static_cast<size_t>(values[pos]->length())},     //
+    {reinterpret_cast<int64_t const*>(counts[pos]->values()->data()), static_cast<size_t>(counts[pos]->length())}, //
+    &(offsets[pos]),                                                                                               //
+    &(sizes[pos])                                                                                                  //
   };
 }
 

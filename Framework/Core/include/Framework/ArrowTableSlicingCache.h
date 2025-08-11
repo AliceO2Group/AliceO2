@@ -23,6 +23,8 @@ using ListVector = std::vector<std::vector<int64_t>>;
 struct SliceInfoPtr {
   gsl::span<int const> values;
   gsl::span<int64_t const> counts;
+  std::vector<int64_t> const* offsets;
+  std::vector<int64_t> const* sizes;
 
   std::pair<int64_t, int64_t> getSliceFor(int value) const;
 };
@@ -66,6 +68,8 @@ struct ArrowTableSlicingCache {
   Cache bindingsKeys;
   std::vector<std::shared_ptr<arrow::NumericArray<arrow::Int32Type>>> values;
   std::vector<std::shared_ptr<arrow::NumericArray<arrow::Int64Type>>> counts;
+  std::vector<std::vector<int64_t>> offsets;
+  std::vector<std::vector<int64_t>> sizes;
 
   Cache bindingsKeysUnsorted;
   std::vector<std::vector<int>> valuesUnsorted;
