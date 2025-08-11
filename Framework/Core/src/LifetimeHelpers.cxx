@@ -353,7 +353,7 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
   if (size == 0) {
     return 0;
   }
-  auto* buffer = (o2::pmr::vector<char>*)userdata;
+  auto* buffer = (std::pmr::vector<char>*)userdata;
   size_t oldSize = buffer->size();
   buffer->resize(oldSize + nmemb * size);
   memcpy(buffer->data() + oldSize, p, nmemb * size);

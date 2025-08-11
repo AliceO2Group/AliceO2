@@ -116,12 +116,12 @@ size_t writeCallbackNoLambda(void* contents, size_t size, size_t nmemb, void* ch
   return realsize;
 }
 
-std::vector<CURL*> prepareAsyncHandles(size_t num, std::vector<o2::pmr::vector<char>*>& dests)
+std::vector<CURL*> prepareAsyncHandles(size_t num, std::vector<std::pmr::vector<char>*>& dests)
 {
   std::vector<CURL*> handles;
 
   for (int i = 0; i < num; i++) {
-    auto dest = new o2::pmr::vector<char>();
+    auto dest = new std::pmr::vector<char>();
     dests.push_back(dest);
     CURL* curl_handle = curl_easy_init();
     handles.push_back(curl_handle);
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(asynch_schedule_test)
   }
 
   CCDBDownloader downloader;
-  std::vector<o2::pmr::vector<char>*> dests;
+  std::vector<std::pmr::vector<char>*> dests;
   auto handles = prepareAsyncHandles(TRANSFERS, dests);
   size_t transfersLeft = 0;
 

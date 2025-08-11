@@ -128,7 +128,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
 // Decodes one page
 // It is NOT assumed that CTP HBF has never more than one page.
 // 1 HBF/page <= 8000kB = 8*1024*8/120 = 546 GBT words = 546 IRs/page = 5.5 MHz
-int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, o2::pmr::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
+int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::pmr::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
   int ret = 0;
   static int nwrites = 0;
@@ -495,7 +495,7 @@ int RawDataDecoder::decodeRawFatal(o2::framework::InputRecord& inputs, std::vect
 //
 int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
-  o2::pmr::vector<CTPDigit> pmrdigits;
+  std::pmr::vector<CTPDigit> pmrdigits;
   int ret = decodeRaw(inputs, filter, pmrdigits, lumiPointsHBF1);
   for (auto const d : pmrdigits) {
     digits.push_back(d);
@@ -532,7 +532,7 @@ int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit
 }
 //
 
-int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, o2::pmr::vector<CTPDigit>& digits, uint32_t TFOrbit, uint64_t trgclassmask)
+int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, std::pmr::vector<CTPDigit>& digits, uint32_t TFOrbit, uint64_t trgclassmask)
 {
   // int nClasswoInp = 0; // counting classes without input which should never happen
   int lost = 0;
@@ -598,7 +598,7 @@ int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digit
   return lost;
 }
 //
-int RawDataDecoder::checkReadoutConsistentncy(o2::pmr::vector<CTPDigit>& digits, uint64_t trgclassmask, uint64_t trgclassmaskNoTrgDet)
+int RawDataDecoder::checkReadoutConsistentncy(std::pmr::vector<CTPDigit>& digits, uint64_t trgclassmask, uint64_t trgclassmaskNoTrgDet)
 {
   LOG(debug) << "Checking readout";
   int ret = 0;

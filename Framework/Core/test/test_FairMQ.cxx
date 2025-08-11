@@ -27,7 +27,7 @@ using namespace o2::pmr;
 //__________________________________________________________________________________________________
 // addDataBlock for generic (compatible) containers, that is contiguous containers using the pmr allocator
 template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT, fair::mq::MessagePtr>::value, int>::type = 0>
-bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
+bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, fair::mq::MemoryResource* targetResource = nullptr)
 {
   auto headerMessage = o2::pmr::getMessage(std::move(inputStack), targetResource);
   auto dataMessage = o2::pmr::getMessage(std::forward<ContainerT>(inputData), targetResource);
@@ -42,7 +42,7 @@ bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, Contai
 // addDataBlock for data already wrapped in fair::mq::MessagePtr
 // note: since we cannot partially specialize function templates, use SFINAE here instead
 template <typename ContainerT, typename std::enable_if<std::is_same<ContainerT, fair::mq::MessagePtr>::value, int>::type = 0>
-bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
+bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, fair::mq::MemoryResource* targetResource = nullptr)
 {
   // make sure the payload size in DataHeader corresponds to message size
   using o2::header::DataHeader;
@@ -174,9 +174,8 @@ TEST_CASE("addDataBlockForEach_test")
       int i;
       int j;
     };
-    using namespace fair::mq::pmr;
     fair::mq::Parts message;
-    std::vector<elem, polymorphic_allocator<elem>> vec(polymorphic_allocator<elem>{allocZMQ});
+    std::vector<elem, std::pmr::polymorphic_allocator<elem>> vec(std::pmr::polymorphic_allocator<elem>{allocZMQ});
     vec.reserve(100);
     vec.push_back({1, 2});
     vec.push_back({3, 4});

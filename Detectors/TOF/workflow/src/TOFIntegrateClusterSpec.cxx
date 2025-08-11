@@ -60,8 +60,8 @@ class TOFIntegrateClusters : public Task
     const float sliceWidthMSinv = 1. / float(sliceWidthMS);
 
     // storage for integrated currents
-    o2::pmr::vector<float> iTOFCNCl(nSlices);
-    o2::pmr::vector<float> iTOFCqTot(nSlices);
+    std::pmr::vector<float> iTOFCNCl(nSlices);
+    std::pmr::vector<float> iTOFCqTot(nSlices);
 
     const auto clusters = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
     if (mTagNoise) {
@@ -106,7 +106,7 @@ class TOFIntegrateClusters : public Task
   std::vector<int> mCounterNeighbours;                    ///< buffer for noise removal (contains number of neighbouring cluster for time +-mTimeCutNoisePS)
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///< info for CCDB request
 
-  void sendOutput(ProcessingContext& pc, o2::pmr::vector<float> iTOFCNCl, o2::pmr::vector<float> iTOFCqTot)
+  void sendOutput(ProcessingContext& pc, std::pmr::vector<float> iTOFCNCl, std::pmr::vector<float> iTOFCqTot)
   {
     pc.outputs().adoptContainer(Output{header::gDataOriginTOF, "ITOFCN"}, std::move(iTOFCNCl));
     pc.outputs().adoptContainer(Output{header::gDataOriginTOF, "ITOFCQ"}, std::move(iTOFCqTot));

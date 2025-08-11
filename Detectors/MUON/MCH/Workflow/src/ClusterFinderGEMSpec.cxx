@@ -303,8 +303,8 @@ class ClusterFinderGEMTask
 
  private:
   //_________________________________________________________________________________________________
-  void writeClusters(std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters,
-                     std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>& usedDigits) const
+  void writeClusters(std::vector<Cluster, std::pmr::polymorphic_allocator<Cluster>>& clusters,
+                     std::vector<Digit, std::pmr::polymorphic_allocator<Digit>>& usedDigits) const
   {
     /// fill the output messages with clusters and attached digits of the current event
     /// modify the references to the attached digits according to their position in the global vector

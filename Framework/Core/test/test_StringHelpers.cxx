@@ -12,6 +12,9 @@
 #include <catch_amalgamated.hpp>
 #include "Framework/StringHelpers.h"
 
+static constexpr std::string_view part1 = "o2::aod::track::";
+static constexpr std::string_view part2 = "pt";
+
 TEST_CASE("StringHelpersHash")
 {
   std::string s{"test-string"};
@@ -19,6 +22,8 @@ TEST_CASE("StringHelpersHash")
   REQUIRE(runtime_hash(s.c_str()) == compile_time_hash("test-string"));
   REQUIRE(runtime_hash(cs) == compile_time_hash("test-string"));
   REQUIRE(runtime_hash(s.c_str()) == runtime_hash(cs));
+
+  REQUIRE(compile_time_hash(part1, part2) == "o2::aod::track::pt"_h);
 }
 
 template <typename T>

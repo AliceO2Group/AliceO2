@@ -28,9 +28,6 @@
 #ifndef ALICEO2_MEMORY_RESOURCES_
 #define ALICEO2_MEMORY_RESOURCES_
 
-#include <boost/container/pmr/memory_resource.hpp>
-#include <boost/container/pmr/monotonic_buffer_resource.hpp>
-#include <boost/container/pmr/polymorphic_allocator.hpp>
 #include <cstring>
 #include <string>
 #include <type_traits>
@@ -45,12 +42,8 @@
 namespace o2::pmr
 {
 
-using FairMQMemoryResource = fair::mq::MemoryResource;
-using ChannelResource = fair::mq::ChannelResource;
-using namespace fair::mq::pmr;
-
 template <typename ContainerT>
-fair::mq::MessagePtr getMessage(ContainerT&& container, FairMQMemoryResource* targetResource = nullptr)
+fair::mq::MessagePtr getMessage(ContainerT&& container, fair::mq::MemoryResource* targetResource = nullptr)
 {
   return fair::mq::getMessage(std::forward<ContainerT>(container), targetResource);
 }
@@ -60,7 +53,7 @@ fair::mq::MessagePtr getMessage(ContainerT&& container, FairMQMemoryResource* ta
 /// Ownership of hte message is taken. Meant to be used for transparent data adoption in containers.
 /// In combination with the SpectatorAllocator this is an alternative to using span, as raw memory
 /// (e.g. an existing buffer message) will be accessible with appropriate container.
-class MessageResource : public FairMQMemoryResource
+class MessageResource : public fair::mq::MemoryResource
 {
 
  public:
@@ -82,7 +75,7 @@ class MessageResource : public FairMQMemoryResource
   size_t getNumberOfMessages() const noexcept override { return mMessageData ? 1 : 0; }
 
  protected:
-  FairMQMemoryResource* mUpstream{nullptr};
+  fair::mq::MemoryResource* mUpstream{nullptr};
   size_t mMessageSize{0};
   void* mMessageData{nullptr};
   bool initialImport{true};
@@ -113,14 +106,14 @@ class MessageResource : public FairMQMemoryResource
 
 // The NoConstructAllocator behaves like the normal pmr vector but does not call constructors / destructors
 template <typename T>
-class NoConstructAllocator : public fair::mq::pmr::polymorphic_allocator<T>
+class NoConstructAllocator : public std::pmr::polymorphic_allocator<T>
 {
  public:
-  using fair::mq::pmr::polymorphic_allocator<T>::polymorphic_allocator;
+  using std::pmr::polymorphic_allocator<T>::polymorphic_allocator;
   using propagate_on_container_move_assignment = std::true_type;
 
   template <typename... Args>
-  NoConstructAllocator(Args&&... args) : fair::mq::pmr::polymorphic_allocator<T>(std::forward<Args>(args)...)
+  NoConstructAllocator(Args&&... args) : std::pmr::polymorphic_allocator<T>(std::forward<Args>(args)...)
   {
   }
 
@@ -145,13 +138,13 @@ class NoConstructAllocator : public fair::mq::pmr::polymorphic_allocator<T>
 //__________________________________________________________________________________________________
 //__________________________________________________________________________________________________
 
-using BytePmrAllocator = fair::mq::pmr::polymorphic_allocator<std::byte>;
+using BytePmrAllocator = std::pmr::polymorphic_allocator<std::byte>;
 template <class T>
-using vector = std::vector<T, fair::mq::pmr::polymorphic_allocator<T>>;
+using vector = std::vector<T, std::pmr::polymorphic_allocator<T>>;
 
 //__________________________________________________________________________________________________
 /// Get the allocator associated to a transport factory
-inline static FairMQMemoryResource* getTransportAllocator(fair::mq::TransportFactory* factory)
+inline static fair::mq::MemoryResource* getTransportAllocator(fair::mq::TransportFactory* factory)
 {
   return *factory;
 }

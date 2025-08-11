@@ -102,8 +102,8 @@ class TrackSamplerTask
   }
 
   //_________________________________________________________________________________________________
-  int readOneEvent(std::vector<TrackMCH, o2::pmr::polymorphic_allocator<TrackMCH>>& tracks,
-                   std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters)
+  int readOneEvent(std::vector<TrackMCH, std::pmr::polymorphic_allocator<TrackMCH>>& tracks,
+                   std::vector<Cluster, std::pmr::polymorphic_allocator<Cluster>>& clusters)
   {
     /// fill the output messages with the tracks and attached clusters of the current event
     /// modify the references to the attached clusters according to their position in the global vector

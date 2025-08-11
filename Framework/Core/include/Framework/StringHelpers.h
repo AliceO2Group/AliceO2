@@ -85,6 +85,13 @@ consteval uint32_t crc32(Ts... Vs)
   return crc;
 }
 
+template <typename... Ts>
+  requires(std::same_as<Ts, std::string_view> && ...)
+consteval uint32_t compile_time_hash(Ts... Vs)
+{
+  return crc32(Vs...) ^ 0xFFFFFFFF;
+}
+
 consteval uint32_t compile_time_hash(char const* str)
 {
   return crc32(str, static_cast<int>(__builtin_strlen(str)) - 1) ^ 0xFFFFFFFF;

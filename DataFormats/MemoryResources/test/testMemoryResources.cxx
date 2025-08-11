@@ -19,6 +19,7 @@
 #include <fairmq/ProgOptions.h>
 #include <vector>
 #include <cstring>
+#include <memory_resource>
 
 namespace o2::pmr
 {
@@ -60,8 +61,6 @@ BOOST_AUTO_TEST_CASE(transportallocatormap_test)
   BOOST_CHECK(_tmp == allocZMQ);
 }
 
-using namespace fair::mq::pmr;
-
 BOOST_AUTO_TEST_CASE(allocator_test)
 {
   size_t session{(size_t)getpid() * 1000 + 1};
@@ -76,7 +75,7 @@ BOOST_AUTO_TEST_CASE(allocator_test)
   testData::nconstructions = 0;
 
   {
-    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{allocZMQ});
+    std::vector<testData, std::pmr::polymorphic_allocator<testData>> v(std::pmr::polymorphic_allocator<testData>{allocZMQ});
     v.reserve(3);
     BOOST_CHECK(v.capacity() == 3);
     BOOST_CHECK(allocZMQ->getNumberOfMessages() == 1);
@@ -110,7 +109,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 
   // test message creation on the same channel it was allocated with
   {
-    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{allocZMQ});
+    std::vector<testData, std::pmr::polymorphic_allocator<testData>> v(std::pmr::polymorphic_allocator<testData>{allocZMQ});
     v.emplace_back(1);
     v.emplace_back(2);
     v.emplace_back(3);
@@ -125,7 +124,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 
   // test message creation on a different channel than it was allocated with
   {
-    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{allocZMQ});
+    std::vector<testData, std::pmr::polymorphic_allocator<testData>> v(std::pmr::polymorphic_allocator<testData>{allocZMQ});
     v.emplace_back(4);
     v.emplace_back(5);
     v.emplace_back(6);
@@ -137,7 +136,6 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   BOOST_CHECK(message->GetSize() == 3 * sizeof(testData));
   messageArray = static_cast<int*>(message->GetData());
   BOOST_CHECK(messageArray[0] == 4 && messageArray[1] == 5 && messageArray[2] == 6);
-
 }
 
 }; // namespace o2::pmr

@@ -1241,4 +1241,4 @@ bool o2::tpc::IDCFactorization::checkReceivedIDCs()
   return idcsGood;
 }
 
-template void o2::tpc::IDCFactorization::calcIDCOne(const o2::pmr::vector<float>&, const int, const int, const unsigned int, const CRU, std::vector<std::vector<float>>&, const IDCZero*, const CalDet<PadFlags>*, const bool);
+template void o2::tpc::IDCFactorization::calcIDCOne(const std::pmr::vector<float>&, const int, const int, const unsigned int, const CRU, std::vector<std::vector<float>>&, const IDCZero*, const CalDet<PadFlags>*, const bool);

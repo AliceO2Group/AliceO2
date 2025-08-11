@@ -128,7 +128,7 @@ DataProcessorSpec generateData(const std::string nameRootFile, const std::string
 
         // loop over cells
         // ToDo: Make more realistic assumption that we dont always have the same amount of cells per event
-        o2::pmr::vector<o2::emcal::Cell> CellOutput;
+        std::pmr::vector<o2::emcal::Cell> CellOutput;
         for (int i = 0; i < nCellsPerEvent; ++i) {
           double cellID = 0;
           double cellE = 0;
@@ -157,7 +157,7 @@ DataProcessorSpec generateData(const std::string nameRootFile, const std::string
         }
         // send output
         LOG(debug) << "sending " << CellOutput.size() << "cells";
-        o2::pmr::vector<o2::emcal::TriggerRecord> TriggerOutput;
+        std::pmr::vector<o2::emcal::TriggerRecord> TriggerOutput;
         TriggerOutput.emplace_back(0, 0, 0, CellOutput.size());
 
         ctx.outputs().adoptContainer(Output{o2::header::gDataOriginEMC, "CELLS", 0}, std::move(CellOutput));

@@ -145,7 +145,7 @@ class TrackFinderTask
     auto& trackROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"trackrofs"});
     auto& mchTracks = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracks"});
     auto& usedClusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"trackclusters"});
-    std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>* usedDigits(nullptr);
+    std::vector<Digit, std::pmr::polymorphic_allocator<Digit>>* usedDigits(nullptr);
     if (mDigits) {
       usedDigits = &pc.outputs().make<std::vector<Digit>>(OutputRef{"trackdigits"});
     }
@@ -219,9 +219,9 @@ class TrackFinderTask
   //_________________________________________________________________________________________________
   void writeTracks(const std::list<Track>& tracks, const gsl::span<const Digit>& digitsIn,
                    const ROFRecord& clusterROF, uint32_t firstTForbit,
-                   std::vector<TrackMCH, o2::pmr::polymorphic_allocator<TrackMCH>>& mchTracks,
-                   std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& usedClusters,
-                   std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>* usedDigits) const
+                   std::vector<TrackMCH, std::pmr::polymorphic_allocator<TrackMCH>>& mchTracks,
+                   std::vector<Cluster, std::pmr::polymorphic_allocator<Cluster>>& usedClusters,
+                   std::vector<Digit, std::pmr::polymorphic_allocator<Digit>>* usedDigits) const
   {
     /// fill the output messages with tracks and attached clusters and digits if requested
 

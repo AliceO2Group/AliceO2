@@ -41,7 +41,7 @@ namespace o2::ccdb
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
 struct HeaderObjectPair_t {
   std::multimap<std::string, std::string> header;
-  o2::pmr::vector<char>* object = nullptr;
+  std::pmr::vector<char>* object = nullptr;
   int counter = 0;
 };
 

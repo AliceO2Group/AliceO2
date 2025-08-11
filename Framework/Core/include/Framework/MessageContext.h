@@ -28,11 +28,11 @@
 #include <fairmq/Parts.h>
 
 #include <cassert>
-#include <functional>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <memory_resource>
 
 #include <fairmq/FwdDecls.h>
 
@@ -182,7 +182,7 @@ class MessageContext
 
   // A memory resource which can force a minimum alignment, so that
   // the whole polymorphic allocator business is happy...
-  class AlignedMemoryResource : public pmr::FairMQMemoryResource
+  class AlignedMemoryResource : public fair::mq::MemoryResource
   {
    public:
     AlignedMemoryResource(fair::mq::MemoryResource* other)
@@ -230,7 +230,7 @@ class MessageContext
       return mUpstream->deallocate(p, bytes, alignment < 64 ? 64 : alignment);
     }
 
-    [[nodiscard]] bool do_is_equal(const pmr::memory_resource& other) const noexcept override
+    [[nodiscard]] bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override
     {
       return this == &other;
     }
@@ -240,7 +240,7 @@ class MessageContext
   };
 
   /// ContainerRefObject handles a message object holding an instance of type T
-  /// The allocator type is required to be o2::pmr::polymorphic_allocator
+  /// The allocator type is required to be std::pmr::polymorphic_allocator
   /// can not adopt an existing message, because the polymorphic_allocator will call type constructor,
   /// so this works only with new messages
   /// FIXME: not sure if we want to have this for all container types
@@ -251,7 +251,7 @@ class MessageContext
     using value_type = typename T::value_type;
     using return_type = T;
     using buffer_type = return_type;
-    static_assert(std::is_base_of<o2::pmr::polymorphic_allocator<value_type>, typename T::allocator_type>::value, "container must have polymorphic allocator");
+    static_assert(std::is_base_of<std::pmr::polymorphic_allocator<value_type>, typename T::allocator_type>::value, "container must have polymorphic allocator");
     /// default contructor forbidden, object always has to control message instances
     ContainerRefObject() = delete;
     /// constructor taking header message by move and creating the paypload message
@@ -263,7 +263,7 @@ class MessageContext
         // the memory resource takes ownership of the message
         mResource{mFactory ? AlignedMemoryResource(mFactory->GetMemoryResource()) : AlignedMemoryResource(nullptr)},
         // create the vector with apropriate underlying memory resource for the message
-        mData{std::forward<Args>(args)..., pmr::polymorphic_allocator<value_type>(&mResource)}
+        mData{std::forward<Args>(args)..., std::pmr::polymorphic_allocator<value_type>(&mResource)}
     {
       // FIXME: drop this repeated check and make sure at initial setup of devices that everything is fine
       // introduce error policy
@@ -313,7 +313,7 @@ class MessageContext
   /// VectorObject handles a message object holding std::vector with polymorphic_allocator
   /// can not adopt an existing message, because the polymorphic_allocator will call the element constructor,
   /// so this works only with new messages
-  template <typename T, typename _BASE = ContainerRefObject<std::vector<T, o2::pmr::polymorphic_allocator<T>>>>
+  template <typename T, typename _BASE = ContainerRefObject<std::vector<T, std::pmr::polymorphic_allocator<T>>>>
   class VectorObject : public _BASE
   {
    public:

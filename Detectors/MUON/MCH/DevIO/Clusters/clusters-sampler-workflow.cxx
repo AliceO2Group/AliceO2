@@ -101,7 +101,7 @@ class ClusterSamplerTask
     // create the output messages
     auto& rofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
     auto& clusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clusters"});
-    std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>* digits(nullptr);
+    std::vector<Digit, std::pmr::polymorphic_allocator<Digit>>* digits(nullptr);
     if (mDoDigits) {
       digits = &pc.outputs().make<std::vector<Digit>>(OutputRef{"digits"});
     }
@@ -115,8 +115,8 @@ class ClusterSamplerTask
 
  private:
   //_________________________________________________________________________________________________
-  int readOneEvent(std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters,
-                   std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>* digits)
+  int readOneEvent(std::vector<Cluster, std::pmr::polymorphic_allocator<Cluster>>& clusters,
+                   std::vector<Digit, std::pmr::polymorphic_allocator<Digit>>* digits)
   {
     /// fill the internal buffers with the clusters and digits of the current event
 

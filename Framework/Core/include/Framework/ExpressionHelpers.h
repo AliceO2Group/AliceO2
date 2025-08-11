@@ -25,17 +25,26 @@ struct DatumSpec {
   size_t hash = 0;
   atype::type type = atype::NA;
 
-  explicit DatumSpec(size_t index, atype::type type_) : datum{index}, type{type_} {}
-  explicit DatumSpec(LiteralNode::var_t literal, atype::type type_) : datum{literal}, type{type_} {}
-  explicit DatumSpec(std::string binding, size_t hash_, atype::type type_) : datum{binding}, hash{hash_}, type{type_} {}
+  explicit constexpr DatumSpec(size_t index, atype::type type_) : datum{index}, type{type_} {}
+  explicit constexpr DatumSpec(LiteralNode::var_t literal, atype::type type_) : datum{literal}, type{type_} {}
+  explicit constexpr DatumSpec(std::string binding, size_t hash_, atype::type type_) : datum{binding}, hash{hash_}, type{type_} {}
   DatumSpec() = default;
   DatumSpec(DatumSpec const&) = default;
   DatumSpec(DatumSpec&&) = default;
   DatumSpec& operator=(DatumSpec const&) = default;
   DatumSpec& operator=(DatumSpec&&) = default;
-};
 
-bool operator==(DatumSpec const& lhs, DatumSpec const& rhs);
+  bool operator==(DatumSpec const& rhs) const
+  {
+    bool eqValue = this->datum == rhs.datum;
+    bool eqHash = true;
+    if (this->datum.index() == 3 && eqValue) {
+      eqHash = this->hash == rhs.hash;
+    }
+    bool eqType = this->type == rhs.type;
+    return eqValue && eqHash && eqType;
+  }
+};
 
 std::ostream& operator<<(std::ostream& os, DatumSpec const& spec);
 

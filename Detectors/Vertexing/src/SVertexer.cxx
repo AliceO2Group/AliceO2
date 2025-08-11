@@ -216,7 +216,7 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
 
     auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0});
     auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0});
-    o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
+    std::pmr::vector<o2::MCCompLabel> mcLabsOut;
     strTracksOut.resize(mNStrangeTracks);
     strClustOut.resize(mNStrangeTracks);
     if (mStrTracker->getMCTruthOn()) {

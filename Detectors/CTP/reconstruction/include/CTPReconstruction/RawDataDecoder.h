@@ -35,7 +35,7 @@ class RawDataDecoder
   ~RawDataDecoder() = default;
   static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
   int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
-  int decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, o2::pmr::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1);
+  int decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::pmr::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1);
   int decodeRawFatal(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter);
   int decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1);
   void setDecodeInps(bool decodeinps) { mDecodeInps = decodeinps; }
@@ -54,8 +54,8 @@ class RawDataDecoder
   CTPConfiguration& getCTPConfig() { return mCTPConfig; }
   int init();
   static int shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit, std::bitset<48>& inpmask, int64_t shift, int level, std::map<o2::InteractionRecord, CTPDigit>& digmap);
-  static int shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, o2::pmr::vector<CTPDigit>& digits, uint32_t TFOrbit, uint64_t trgclassmask = 0xffffffffffffffff);
-  int checkReadoutConsistentncy(o2::pmr::vector<CTPDigit>& digits, uint64_t trgclassmask = 0xffffffffffffffff, uint64_t trigclassmaskNoTrgDets = 0xffffffffffffffff);
+  static int shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, std::pmr::vector<CTPDigit>& digits, uint32_t TFOrbit, uint64_t trgclassmask = 0xffffffffffffffff);
+  int checkReadoutConsistentncy(std::pmr::vector<CTPDigit>& digits, uint64_t trgclassmask = 0xffffffffffffffff, uint64_t trigclassmaskNoTrgDets = 0xffffffffffffffff);
   std::array<uint64_t, o2::ctp::CTP_NCLASSES> getClassErrorsA() { return mClassErrorsA; }
   std::array<uint64_t, o2::ctp::CTP_NCLASSES> getClassErrorsB() { return mClassErrorsB; }
   std::array<uint64_t, o2::ctp::CTP_NCLASSES> getClassCountersA() { return mClassCountersA; }

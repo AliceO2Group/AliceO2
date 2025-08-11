@@ -560,7 +560,7 @@ BOOST_AUTO_TEST_CASE(multi_host_test)
   api.init("http://bogus-host.cern.ch,http://ccdb-test.cern.ch:8080");
   std::map<std::string, std::string> metadata;
   std::map<std::string, std::string> headers;
-  o2::pmr::vector<char> dst;
+  std::pmr::vector<char> dst;
   std::string url = "Analysis/ALICE3/Centrality";
   api.loadFileToMemory(dst, url, metadata, 1645780010602, &headers, "", "", "", true);
   BOOST_CHECK(dst.size() != 0);
@@ -572,7 +572,7 @@ BOOST_AUTO_TEST_CASE(vectored)
   api.init("http://ccdb-test.cern.ch:8080");
 
   int TEST_SAMPLE_SIZE = 5;
-  std::vector<o2::pmr::vector<char>> dests(TEST_SAMPLE_SIZE);
+  std::vector<std::pmr::vector<char>> dests(TEST_SAMPLE_SIZE);
   std::vector<std::map<std::string, std::string>> metadatas(TEST_SAMPLE_SIZE);
   std::vector<std::map<std::string, std::string>> headers(TEST_SAMPLE_SIZE);
 

@@ -230,7 +230,7 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
           o2::tpc::CRU cruTmp(icru);
           const unsigned int nPads = o2::tpc::Mapper::PADSPERREGION[cruTmp.region()];
           const int cru = (icru + tf * Mapper::NREGIONS) % o2::tpc::CRU::MaxCRU; // shuffle CRUs
-          o2::pmr::vector<float> idcs;
+          std::pmr::vector<float> idcs;
           idcs.reserve(generateIDCs ? o2::tpc::Mapper::PADSPERREGION[cruTmp.region()] : mIDCs[cru].size());
           const int nIntervals = intervalsRand.size();
           for (int interval = 0; interval < nIntervals; ++interval) {

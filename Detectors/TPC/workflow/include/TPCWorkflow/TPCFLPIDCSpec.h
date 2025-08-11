@@ -93,7 +93,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
       ++mCountTFsForBuffer;
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int cru = tpcCRUHeader->subSpecification >> 7;
-      auto vecIDCs = pc.inputs().get<o2::pmr::vector<float>>(ref);
+      auto vecIDCs = pc.inputs().get<std::pmr::vector<float>>(ref);
       mIDCs[cru].insert(mIDCs[cru].end(), vecIDCs.begin(), vecIDCs.end());
 
       if (mEnableSynchProc) {
@@ -164,7 +164,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
   bool mDumpIDCs{};                                                                                                                                                                                  ///< dump IDCs to tree for debugging
   int mCountTFsForBuffer{0};                                                                                                                                                                         ///< count processed TFs to track when the output will be send
   std::pair<std::vector<float>, std::vector<unsigned int>> mOneDIDCs{};                                                                                                                              ///< 1D-IDCs which will be send to the EPNs
-  std::unordered_map<unsigned int, o2::pmr::vector<float>> mIDCs{};                                                                                                                                  ///< object for averaging and grouping of the IDCs
+  std::unordered_map<unsigned int, std::pmr::vector<float>> mIDCs{};                                                                                                                                 ///< object for averaging and grouping of the IDCs
   std::unordered_map<unsigned int, std::deque<std::pair<std::vector<float>, std::vector<unsigned int>>>> mBuffer1DIDCs{};                                                                            ///< buffer for 1D-IDCs. The buffered 1D-IDCs for n TFs will be send to the EPNs for synchronous reco. Zero initialized to avoid empty first TFs!
   CalDet<PadFlags>* mPadFlagsMap{nullptr};                                                                                                                                                           ///< status flag for each pad (i.e. if the pad is dead)
   IDCZero mIDCZero{};                                                                                                                                                                                ///< I_0(r,\phi) = <I(r,\phi,t)>_t: Used for calculating IDC1 (provided from input file or CCDB)
@@ -173,7 +173,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
   /// update the time dependent parameters if they have changed (i.e. update the pad status map)
   void updateTimeDependentParams(ProcessingContext& pc) { pc.inputs().get<o2::tpc::CalDet<PadFlags>*>("tpcpadmap").get(); }
 
-  void sendOutputSync(DataAllocator& output, const o2::pmr::vector<float>& idc, const uint32_t cru)
+  void sendOutputSync(DataAllocator& output, const std::pmr::vector<float>& idc, const uint32_t cru)
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
     const CRU cruTmp(cru);

@@ -574,6 +574,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
     callbacks.set<CallbackService::Id::EndOfStream>(eoscb);
 
+    /// call the task's init() function first as it may manipulate the task's elements
+    if constexpr (requires { task->init(ic); }) {
+      task->init(ic);
+    }
+
     /// update configurables in filters and partitions
     homogeneous_apply_refs(
       [&ic](auto& element) -> bool { return analysis_task_parsers::updatePlaceholders(ic, element); },
@@ -583,10 +588,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       return analysis_task_parsers::createExpressionTrees(expressionInfos, element);
     },
                            *task.get());
-
-    if constexpr (requires { task->init(ic); }) {
-      task->init(ic);
-    }
 
     /// parse process functions to enable requested grouping caches - note that at this state process configurables have their final values
     if constexpr (requires { &T::process; }) {

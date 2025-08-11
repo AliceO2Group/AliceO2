@@ -14,6 +14,7 @@
 #include "Framework/AnalysisDataModel.h"
 #include <catch_amalgamated.hpp>
 #include <arrow/util/config.h>
+#include <iostream>
 
 using namespace o2::framework;
 using namespace o2::framework::expressions;
@@ -127,7 +128,7 @@ TEST_CASE("TestTreeParsing")
   REQUIRE(ptfilter.node->left->self.index() == 1);
   REQUIRE(ptfilter.node->right->self.index() == 3);
   auto ptfilterspecs = createOperations(ptfilter);
-  REQUIRE(ptfilterspecs[0].left == (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
+  REQUIRE(ptfilterspecs[0].left == (DatumSpec{std::string{"fPt"}, "o2::aod::track::pt"_h, atype::FLOAT}));
   REQUIRE(ptfilterspecs[0].right == (DatumSpec{LiteralNode::var_t{0.5f}, atype::FLOAT}));
   REQUIRE(ptfilterspecs[0].result == (DatumSpec{0u, atype::BOOL}));
 
@@ -143,7 +144,7 @@ TEST_CASE("TestTreeParsing")
   REQUIRE(ptfilter2.node->right->self.index() == 3);
   REQUIRE(std::get<PlaceholderNode>(ptfilter2.node->right->self).name == "prefix.pTCut");
   auto ptfilterspecs2 = createOperations(ptfilter2);
-  REQUIRE(ptfilterspecs2[0].left == (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
+  REQUIRE(ptfilterspecs2[0].left == (DatumSpec{std::string{"fPt"}, "o2::aod::track::pt"_h, atype::FLOAT}));
   REQUIRE(ptfilterspecs2[0].right == (DatumSpec{LiteralNode::var_t{1.0f}, atype::FLOAT}));
   REQUIRE(ptfilterspecs2[0].result == (DatumSpec{0u, atype::BOOL}));
 
@@ -161,12 +162,12 @@ TEST_CASE("TestGandivaTreeCreation")
 {
   Projector pze = o2::aod::track::Pze::Projector();
   auto pzspecs = createOperations(pze);
-  REQUIRE(pzspecs[0].left == (DatumSpec{std::string{"fTgl"}, typeid(o2::aod::track::Tgl).hash_code(), atype::FLOAT}));
+  REQUIRE(pzspecs[0].left == (DatumSpec{std::string{"fTgl"}, "o2::aod::track::tgl"_h, atype::FLOAT}));
   REQUIRE(pzspecs[0].right == (DatumSpec{1u, atype::FLOAT}));
   REQUIRE(pzspecs[0].result == (DatumSpec{0u, atype::FLOAT}));
 
   REQUIRE(pzspecs[1].left == (DatumSpec{LiteralNode::var_t{1.f}, atype::FLOAT}));
-  REQUIRE(pzspecs[1].right == (DatumSpec{std::string{"fSigned1Pt"}, typeid(o2::aod::track::Signed1Pt).hash_code(), atype::FLOAT}));
+  REQUIRE(pzspecs[1].right == (DatumSpec{std::string{"fSigned1Pt"}, "o2::aod::track::signed1Pt"_h, atype::FLOAT}));
   REQUIRE(pzspecs[1].result == (DatumSpec{1u, atype::FLOAT}));
   auto infield1 = o2::aod::track::Signed1Pt::asArrowField();
   auto infield2 = o2::aod::track::Tgl::asArrowField();
@@ -200,7 +201,7 @@ TEST_CASE("TestGandivaTreeCreation")
   REQUIRE(bwf[0].right == (DatumSpec{LiteralNode::var_t{0u}, atype::UINT32}));
   REQUIRE(bwf[0].result == (DatumSpec{0u, atype::BOOL}));
 
-  REQUIRE(bwf[1].left == (DatumSpec{std::string{"fFlags"}, typeid(o2::aod::track::Flags).hash_code(), atype::UINT32}));
+  REQUIRE(bwf[1].left == (DatumSpec{std::string{"fFlags"}, "o2::aod::track::flags"_h, atype::UINT32}));
   REQUIRE(bwf[1].right == (DatumSpec{LiteralNode::var_t{static_cast<uint32_t>(o2::aod::track::TPCrefit)}, atype::UINT32}));
   REQUIRE(bwf[1].result == (DatumSpec{1u, atype::UINT32}));
 
@@ -220,7 +221,7 @@ TEST_CASE("TestGandivaTreeCreation")
   REQUIRE(rf[0].right == (DatumSpec{LiteralNode::var_t{0.1f}, atype::FLOAT}));
   REQUIRE(rf[0].result == (DatumSpec{0u, atype::BOOL}));
 
-  REQUIRE(rf[1].left == (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
+  REQUIRE(rf[1].left == (DatumSpec{std::string{"fPt"}, "o2::aod::track::pt"_h, atype::FLOAT}));
   REQUIRE(rf[1].right == (DatumSpec{}));
   REQUIRE(rf[1].result == (DatumSpec{1u, atype::FLOAT}));
 
@@ -249,15 +250,15 @@ TEST_CASE("TestConditionalExpressions")
   REQUIRE(cfspecs[1].condition == (DatumSpec{5u, atype::BOOL}));
   REQUIRE(cfspecs[1].result == (DatumSpec{2u, atype::BOOL}));
 
-  REQUIRE(cfspecs[2].left == (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
+  REQUIRE(cfspecs[2].left == (DatumSpec{std::string{"fPt"}, "o2::aod::track::pt"_h, atype::FLOAT}));
   REQUIRE(cfspecs[2].right == (DatumSpec{LiteralNode::var_t{1.0f}, atype::FLOAT}));
   REQUIRE(cfspecs[2].result == (DatumSpec{5u, atype::BOOL}));
 
-  REQUIRE(cfspecs[3].left == (DatumSpec{std::string{"fPhi"}, typeid(o2::aod::track::Phi).hash_code(), atype::FLOAT}));
+  REQUIRE(cfspecs[3].left == (DatumSpec{std::string{"fPhi"}, "o2::aod::track::phi"_h, atype::FLOAT}));
   REQUIRE(cfspecs[3].right == (DatumSpec{LiteralNode::var_t{(float)(M_PI / 2.)}, atype::FLOAT}));
   REQUIRE(cfspecs[3].result == (DatumSpec{4u, atype::BOOL}));
 
-  REQUIRE(cfspecs[4].left == (DatumSpec{std::string{"fPhi"}, typeid(o2::aod::track::Phi).hash_code(), atype::FLOAT}));
+  REQUIRE(cfspecs[4].left == (DatumSpec{std::string{"fPhi"}, "o2::aod::track::phi"_h, atype::FLOAT}));
   REQUIRE(cfspecs[4].right == (DatumSpec{LiteralNode::var_t{(float)(M_PI / 2.)}, atype::FLOAT}));
   REQUIRE(cfspecs[4].result == (DatumSpec{3u, atype::BOOL}));
 
@@ -265,7 +266,7 @@ TEST_CASE("TestConditionalExpressions")
   REQUIRE(cfspecs[5].right == (DatumSpec{LiteralNode::var_t{1.0f}, atype::FLOAT}));
   REQUIRE(cfspecs[5].result == (DatumSpec{1u, atype::BOOL}));
 
-  REQUIRE(cfspecs[6].left == (DatumSpec{std::string{"fEta"}, typeid(o2::aod::track::Eta).hash_code(), atype::FLOAT}));
+  REQUIRE(cfspecs[6].left == (DatumSpec{std::string{"fEta"}, "o2::aod::track::eta"_h, atype::FLOAT}));
   REQUIRE(cfspecs[6].right == (DatumSpec{}));
   REQUIRE(cfspecs[6].result == (DatumSpec{6u, atype::FLOAT}));
 
@@ -323,4 +324,55 @@ TEST_CASE("TestBinnedExpressions")
   auto schema2 = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Phi::asArrowField(), o2::aod::track::X::asArrowField(), o2::aod::track::Y::asArrowField(), o2::aod::track::Z::asArrowField()});
   auto tree2 = createExpressionTree(p2specs, schema2);
   REQUIRE(tree2->ToString() == "if (bool less_than((float) fPhi, (const float) 0 raw(0))) { (const float) -1 raw(bf800000) } else { if (bool less_than((float) fPhi, (const float) 1.5708 raw(3fc90fdb))) { float add(float add(float multiply(float multiply((const float) 1 raw(3f800000), (float) fX), (float) fX), float multiply(float multiply((const float) 2 raw(40000000), (float) fY), (float) fY)), float multiply(float multiply((const float) 3 raw(40400000), (float) fZ), (float) fZ)) } else { if (bool less_than((float) fPhi, (const float) 3.14159 raw(40490fdb))) { float add(float add(float multiply(float multiply((const float) 1.1 raw(3f8ccccd), (float) fX), (float) fX), float multiply(float multiply((const float) 2.1 raw(40066666), (float) fY), (float) fY)), float multiply(float multiply((const float) 3.1 raw(40466666), (float) fZ), (float) fZ)) } else { if (bool less_than((float) fPhi, (const float) 4.71239 raw(4096cbe4))) { float add(float add(float multiply(float multiply((const float) 1.2 raw(3f99999a), (float) fX), (float) fX), float multiply(float multiply((const float) 2.2 raw(400ccccd), (float) fY), (float) fY)), float multiply(float multiply((const float) 3.2 raw(404ccccd), (float) fZ), (float) fZ)) } else { if (bool less_than((float) fPhi, (const float) 6.28319 raw(40c90fdb))) { float add(float add(float multiply(float multiply((const float) 1.3 raw(3fa66666), (float) fX), (float) fX), float multiply(float multiply((const float) 2.3 raw(40133333), (float) fY), (float) fY)), float multiply(float multiply((const float) 3.3 raw(40533333), (float) fZ), (float) fZ)) } else { (const float) -1 raw(bf800000) } } } } }");
+}
+
+void printTokens(Tokenizer& t)
+{
+  int token;
+  while ((token = t.nextToken()) && (token != Token::EoL)) {
+    std::cout << t.TokenStr << " ";
+  };
+  std::cout << std::endl;
+}
+
+TEST_CASE("TestStringExpressionsParsing")
+{
+  Filter f = (o2::aod::track::flags & 1u) != 0u && (o2::aod::track::pt <= 10.f);
+  std::string input = "(o2::aod::track::flags & 1u) != 0u && (o2::aod::track::pt <= 10.f)";
+
+  auto t1 = createOperations(f);
+  Filter ff = Parser::parse(input);
+  auto t2 = createOperations(ff);
+
+  auto schema = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Flags::asArrowField(), o2::aod::track::Pt::asArrowField()});
+  auto tree1 = createExpressionTree(t1, schema);
+  auto tree2 = createExpressionTree(t2, schema);
+
+  REQUIRE(tree1->ToString() == tree2->ToString());
+
+  Projector p = -1.f * nlog(ntan(o2::constants::math::PIQuarter - 0.5f * natan(o2::aod::fwdtrack::tgl)));
+  input = "-1.f * nlog(ntan(PIQuarter - 0.5f * natan(o2::aod::fwdtrack::tgl)))";
+
+  auto tp1 = createOperations(p);
+  Projector pp = Parser::parse(input);
+  auto tp2 = createOperations(pp);
+
+  schema = std::make_shared<arrow::Schema>(std::vector{o2::aod::fwdtrack::Tgl::asArrowField()});
+  auto treep1 = createExpressionTree(tp1, schema);
+  auto treep2 = createExpressionTree(tp2, schema);
+
+  REQUIRE(treep1->ToString() == treep2->ToString());
+
+  Filter f2 = o2::aod::track::signed1Pt > 0.f && ifnode(nabs(o2::aod::track::eta) < 1.0f, nabs(o2::aod::track::x) > 2.0f, nabs(o2::aod::track::y) > 3.0f);
+  input = "o2::aod::track::signed1Pt > 0.f && ifnode(nabs(o2::aod::track::eta) < 1.0f, nabs(o2::aod::track::x) > 2.0f, nabs(o2::aod::track::y) > 3.0f)";
+
+  auto tf1 = createOperations(f2);
+  Filter ff2 = Parser::parse(input);
+  auto tf2 = createOperations(ff2);
+
+  schema = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Eta::asArrowField(), o2::aod::track::Signed1Pt::asArrowField(), o2::aod::track::X::asArrowField(), o2::aod::track::Y::asArrowField()});
+  auto treef1 = createExpressionTree(tf1, schema);
+  auto treef2 = createExpressionTree(tf2, schema);
+
+  REQUIRE(treef1->ToString() == treef2->ToString());
 }

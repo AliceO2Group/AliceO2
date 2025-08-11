@@ -247,7 +247,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::vector<InputSpec> mFilter{};                                                    ///< filter for looping over input data
   std::vector<header::DataDescription> mDataDescrOut{};
 
-  void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru, o2::pmr::vector<float> idcs)
+  void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru, std::pmr::vector<float> idcs)
   {
     pc.outputs().adoptContainer(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, std::move(idcs));
   }

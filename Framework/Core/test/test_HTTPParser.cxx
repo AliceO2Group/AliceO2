@@ -9,8 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <boost/test/tools/old/interface.hpp>
-
 #include "../src/HTTPParser.h"
 #include <catch_amalgamated.hpp>
 

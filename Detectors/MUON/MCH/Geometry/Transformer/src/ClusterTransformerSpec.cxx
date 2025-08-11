@@ -42,7 +42,7 @@ namespace o2::mch
 // convert all clusters from local to global reference frames
 void local2global(geo::TransformationCreator transformation,
                   gsl::span<const Cluster> localClusters,
-                  std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& globalClusters)
+                  std::vector<Cluster, std::pmr::polymorphic_allocator<Cluster>>& globalClusters)
 {
   int i{0};
   globalClusters.insert(globalClusters.end(), localClusters.begin(), localClusters.end());

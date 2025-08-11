@@ -314,8 +314,7 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   BOOST_CHECK(h3->secret == 42);
 
   // test constructing from a buffer and an additional header
-  using namespace fair::mq::pmr;
-  Stack s5(new_delete_resource(), s1.data(), Stack{}, meta);
+  Stack s5(std::pmr::new_delete_resource(), s1.data(), Stack{}, meta);
   BOOST_CHECK(s5.size() == s1.size() + sizeof(meta));
   // check if we can find the header even though there was an empty stack in the middle
   h3 = get<test::MetaHeader*>(s5.data());
@@ -329,7 +328,7 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   BOOST_CHECK(h4 == h3);
 
   // let's assume we have some stack that is missing the required DataHeader at the beginning:
-  Stack s6{new_delete_resource(), DataHeader{}, s1.data()};
+  Stack s6{std::pmr::new_delete_resource(), DataHeader{}, s1.data()};
   BOOST_CHECK(s6.size() == sizeof(DataHeader) + s1.size());
 }
 
