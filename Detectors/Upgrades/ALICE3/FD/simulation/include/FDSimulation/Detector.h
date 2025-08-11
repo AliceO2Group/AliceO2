@@ -101,25 +101,18 @@ class Detector : public o2::base::DetImpl<Detector>
 
   float ringSize(float zmod, float eta);
 
-  unsigned int mNumberOfSectors;
-  unsigned int mNumberOfRingsA;
-  unsigned int mNumberOfRingsC;
-  float mDzScint;
-  float mDzPlate;
+  unsigned int mNumberOfRingsA, mNumberOfRingsC, mNumberOfSectors;
+  float mDzScint, mDzPlate;
 
-  std::vector<float> mRingSizesA = {};
-  std::vector<float> mRingSizesC = {};
+  std::vector<float> mRingSizesA = {}, mRingSizesC = {};
 
-  float mEtaMaxA, mEtaMaxC;
-  float mEtaMinA, mEtaMinC;
+  float mEtaMaxA, mEtaMaxC, mEtaMinA, mEtaMinC;
   float mZA, mZC;
 
   bool mPlateBehindA, mFullContainer;
 
   void defineSensitiveVolumes();
   void definePassiveVolumes();
-
-  unsigned int getChannelId(TVector3 vec);
 
   /// Transient data about track passing the sensor, needed by ProcessHits()
   struct TrackData {               // this is transient

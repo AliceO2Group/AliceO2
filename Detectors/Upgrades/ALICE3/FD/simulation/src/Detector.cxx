@@ -127,7 +127,7 @@ Detector::~Detector()
 
 void Detector::InitializeO2Detector()
 {
-  LOG(info) << "Initialize FD detector";
+  LOG(info) << "Initialize Forward Detector";
   mGeometryTGeo = GeometryTGeo::Instance();
   defineSensitiveVolumes();
 }
@@ -138,6 +138,9 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (!(fMC->TrackCharge())) {
     return kFALSE;
   }
+
+  int detId;
+  int volID = fMC->CurrentVolID(detId);
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
 
@@ -170,7 +173,6 @@ bool Detector::ProcessHits(FairVolume* vol)
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     int trackId = stack->GetCurrentTrackNumber();
-    unsigned int detId = getChannelId(mTrackData.mPositionStart.Vect());
 
     math_utils::Point3D<float> posStart(mTrackData.mPositionStart.X(), mTrackData.mPositionStart.Y(), mTrackData.mPositionStart.Z());
     math_utils::Point3D<float> posStop(positionStop.X(), positionStop.Y(), positionStop.Z());
@@ -186,7 +188,7 @@ bool Detector::ProcessHits(FairVolume* vol)
   return true;
 }
 
-o2::fd::Hit* Detector::addHit(int trackId, unsigned int cellId,
+o2::fd::Hit* Detector::addHit(int trackId, unsigned int detId,
                               const math_utils::Point3D<float>& startPos,
                               const math_utils::Point3D<float>& endPos,
                               const math_utils::Vector3D<float>& startMom,
@@ -195,7 +197,7 @@ o2::fd::Hit* Detector::addHit(int trackId, unsigned int cellId,
                               double eLoss,
                               int particlePdg)
 {
-  mHits->emplace_back(trackId, cellId, startPos,
+  mHits->emplace_back(trackId, detId, startPos,
                       endPos, startMom, startE, endTime, eLoss, particlePdg);
   return &(mHits->back());
 }
@@ -277,14 +279,14 @@ void Detector::buildModules()
   TGeoVolume* vCave = gGeoManager->GetVolume("cave");
 
   if (!vCave) {
-    LOG(fatal) << "Could not find the top volume (cave)!";
+    LOG(fatal) << "Could not find the top volume!";
   }
 
   TGeoVolumeAssembly* vFDA = buildModuleA();
   TGeoVolumeAssembly* vFDC = buildModuleC();
 
   vCave->AddNode(vFDA, 1, new TGeoTranslation(0., 0., mZA));
-  vCave->AddNode(vFDC, 1, new TGeoTranslation(0., 0., mZC));
+  vCave->AddNode(vFDC, 2, new TGeoTranslation(0., 0., mZC));
 }
 
 TGeoVolumeAssembly* Detector::buildModuleA()
@@ -311,7 +313,7 @@ TGeoVolumeAssembly* Detector::buildModuleA()
       nod->SetLineColor(kRed);
       ring->AddNode(nod, cellId);
     }
-    mod->AddNode(ring, 1);
+    mod->AddNode(ring, ir + 1);
   }
 
   // Aluminium plates on one or both sides of the A side module
@@ -355,7 +357,7 @@ TGeoVolumeAssembly* Detector::buildModuleC()
       nod->SetLineColor(kBlue);
       ring->AddNode(nod, cellId);
     }
-    mod->AddNode(ring, 1);
+    mod->AddNode(ring, ir + 1);
   }
 
   // Aluminium plates on both sides of the C side module
@@ -368,7 +370,7 @@ TGeoVolumeAssembly* Detector::buildModuleC()
     double dpz = mDzScint / 2 + mDzPlate / 2;
 
     mod->AddNode(pnod1, 1, new TGeoTranslation(0, 0, dpz));
-    mod->AddNode(pnod2, 1, new TGeoTranslation(0, 0, -dpz));
+    mod->AddNode(pnod2, 2, new TGeoTranslation(0, 0, -dpz));
   }
 
   return mod;
@@ -381,45 +383,18 @@ void Detector::defineSensitiveVolumes()
   TGeoVolume* v;
   TString volumeName;
 
-  int nCellA = mNumberOfRingsA * mNumberOfSectors;
-  int nCellC = mNumberOfRingsC * mNumberOfSectors;
+  int nCellsA = mNumberOfRingsA * mNumberOfSectors;
+  int nCellsC = mNumberOfRingsC * mNumberOfSectors;
 
-  LOG(info) << "number of A rings = " << mNumberOfRingsA << " number of cells = " << nCellA;
+  LOG(info) << "number of A rings = " << mNumberOfRingsA << " number of cells = " << nCellsA;
+  LOG(info) << "number of C rings = " << mNumberOfRingsC << " number of cells = " << nCellsC;
 
-  for (int iv = 0; iv < nCellA + nCellC; iv++) {
+  for (int iv = 0; iv < nCellsA + nCellsC; iv++) {
     volumeName = "fd_node" + std::to_string(iv);
     v = gGeoManager->GetVolume(volumeName);
-    LOG(info) << "Adding FD Sensitive Volume => " << v->GetName();
+    LOG(info) << "Adding sensitive volume => " << v->GetName();
     AddSensitiveVolume(v);
   }
-}
-
-unsigned int Detector::getChannelId(TVector3 vec)
-{
-  float phi = vec.Phi();
-  if (phi < 0) {
-    phi += TMath::TwoPi();
-  }
-
-  float r = vec.Perp();
-  float z = vec.Z();
-
-  int isect = int(phi / (TMath::TwoPi() / mNumberOfSectors));
-
-  std::vector<float> rd = z > 0 ? mRingSizesA : mRingSizesC;
-  int noff = z > 0 ? 0 : mNumberOfRingsA * mNumberOfSectors;
-
-  int ir = 0;
-
-  for (int i = 1; i < rd.size(); i++) {
-    if (r < rd[i]) {
-      break;
-    } else {
-      ir++;
-    }
-  }
-
-  return ir * mNumberOfSectors + isect + noff;
 }
 
 float Detector::ringSize(float z, float eta)
