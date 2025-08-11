@@ -39,7 +39,7 @@ DECLARE_SOA_TABLE(SkimmedExampleTrack, "AOD", "SKIMEXTRK", //!
 struct EtaAndClsHistogramsSimple {
   OutputObj<TH2F> etaClsH{TH2F("eta_vs_pt", "#eta vs pT", 102, -2.01, 2.01, 100, 0, 10)};
   Produces<o2::aod::SkimmedExampleTrack> skimEx;
-  Configurable<std::string> trackFilterString{"track-filter","o2::aod::track::pt < 10.f", "Track filter string"};
+  Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
   Filter trackFilter = o2::aod::track::pt < 10.f;
 
   void init(InitContext&)
@@ -62,7 +62,7 @@ struct EtaAndClsHistogramsSimple {
 struct EtaAndClsHistogramsIUSimple {
   OutputObj<TH2F> etaClsH{TH2F("eta_vs_pt", "#eta vs pT", 102, -2.01, 2.01, 100, 0, 10)};
   Produces<o2::aod::SkimmedExampleTrack> skimEx;
-  Configurable<std::string> trackFilterString{"track-filter","o2::aod::track::pt < 10.f", "Track filter string"};
+  Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
   Filter trackFilter = o2::aod::track::pt < 10.f;
 
   void init(InitContext&)
@@ -84,7 +84,7 @@ struct EtaAndClsHistogramsIUSimple {
 
 struct EtaAndClsHistogramsFull {
   OutputObj<TH3F> etaClsH{TH3F("eta_vs_cls_vs_sigmapT", "#eta vs N_{cls} vs sigma_{1/pT}", 102, -2.01, 2.01, 160, -0.5, 159.5, 100, 0, 10)};
-  Configurable<std::string> trackFilterString{"track-filter","o2::aod::track::pt < 10.f", "Track filter string"};
+  Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
   Filter trackFilter = o2::aod::track::pt < 10.f;
 
   void init(InitContext&)
