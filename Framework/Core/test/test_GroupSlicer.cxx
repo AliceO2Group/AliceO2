@@ -526,7 +526,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
     if (filler[0] > filler[1]) {
       std::swap(filler[0], filler[1]);
     }
-    partsWriter(0, std::floor( i / 10.), i, filler);
+    partsWriter(0, std::floor(i / 10.), i, filler);
   }
   auto partsTable = builderP.finalize();
 
