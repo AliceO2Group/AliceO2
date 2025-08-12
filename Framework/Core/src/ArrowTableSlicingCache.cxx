@@ -240,13 +240,13 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
   if (values[pos] == nullptr && counts[pos] == nullptr) {
     return {
       nullptr, //
-      nullptr //
+      nullptr  //
     };
   }
 
   return {
-    &(offsets[pos]),                                                                                               //
-    &(sizes[pos])                                                                                                  //
+    &(offsets[pos]), //
+    &(sizes[pos])    //
   };
 }
 
