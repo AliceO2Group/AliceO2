@@ -246,9 +246,7 @@ struct GroupSlicer {
         pos = position;
       }
       // optimized split
-      auto oc = sliceInfos[index].getSliceFor(pos);
-      uint64_t offset = oc.first;
-      auto count = oc.second;
+      auto [offset, count] = sliceInfos[index].getSliceFor(pos);
       auto groupedElementsTable = originalTable.rawSlice(offset, offset + count - 1);
       groupedElementsTable.bindInternalIndicesTo(&originalTable);
       return groupedElementsTable;

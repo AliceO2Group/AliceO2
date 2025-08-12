@@ -32,7 +32,10 @@ void updatePairList(Cache& list, std::string const& binding, std::string const& 
 std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
 {
   int64_t offset = 0;
-  if (values.empty()) {
+  if ((*offsets).empty()) {
+    return {offset, 0};
+  }
+  if ((size_t)value > (*offsets).size()) {
     return {offset, 0};
   }
 
@@ -117,7 +120,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   values[pos] = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
   counts[pos] = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
 
-  int maxValue = 0;
+  int maxValue = -1;
   for (auto i = values[pos]->length() - 1; i >= 0; --i) {
     if (values[pos]->Value(i) < 0) {
       continue;
@@ -128,7 +131,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   }
 
   offsets[pos].resize(maxValue + 1);
-  sizes[pos].resize(maxValue);
+  sizes[pos].resize(maxValue + 1);
   std::fill(offsets[pos].begin(), offsets[pos].end(), 0);
   std::fill(sizes[pos].begin(), sizes[pos].end(), 0);
   int64_t offset = 0;
@@ -140,7 +143,6 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
     }
     offset += counts[pos]->Value(i);
   }
-  offsets[pos][maxValue] = offset;
   return arrow::Status::OK();
 }
 
@@ -237,16 +239,12 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
 {
   if (values[pos] == nullptr && counts[pos] == nullptr) {
     return {
-      {},//
-      {},//
       nullptr, //
       nullptr //
     };
   }
 
   return {
-    {reinterpret_cast<int const*>(values[pos]->values()->data()), static_cast<size_t>(values[pos]->length())},     //
-    {reinterpret_cast<int64_t const*>(counts[pos]->values()->data()), static_cast<size_t>(counts[pos]->length())}, //
     &(offsets[pos]),                                                                                               //
     &(sizes[pos])                                                                                                  //
   };
