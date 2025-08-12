@@ -323,10 +323,10 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
   for (uint32_t i = 1; i < tokens.size(); i++) {
     mCounters[i - 1] = std::stoull(tokens.at(i));
     if (i < (NRUNS + 1)) {
-      //std::cout << mCounters[i - 1] << " ";
+      // std::cout << mCounters[i - 1] << " ";
     }
   }
-  //std::cout << std::endl;
+  // std::cout << std::endl;
   LOG(debug) << "Counter size:" << tokens.size();
   //
   for (uint32_t i = 0; i < NRUNS; i++) {
@@ -367,7 +367,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     }
   }
   mEOX = 0;
-  //printActiveRuns();
+  // printActiveRuns();
   return 0;
 }
 void CTPRunManager::printActiveRuns() const

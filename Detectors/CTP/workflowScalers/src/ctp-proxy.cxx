@@ -70,9 +70,9 @@ InjectorFunction dcs2dpl(std::string& ccdbhost, std::string& bkhost, std::string
     nprint++;
     int nlimit = 60;
     int nrange = 8;
-    if( nprint > nlimit && nprint < (nlimit + nrange + 1)) {
+    if (nprint > nlimit && nprint < (nlimit + nrange + 1)) {
       LOG(info) << "received message " << messageHeader << " of size " << dataSize << " # parts:" << parts.Size(); // << " Payload:" << messageData;
-      if(nprint == (nlimit + nrange) ) {
+      if (nprint == (nlimit + nrange)) {
         nprint = 0;
       }
     }
