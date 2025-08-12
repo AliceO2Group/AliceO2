@@ -97,11 +97,11 @@ void ArrowTableSlicingCache::setCaches(Cache&& bsks, Cache&& bsksUnsorted)
 
 arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table> const& table)
 {
+  values[pos].reset();
+  counts[pos].reset();
+  offsets[pos].clear();
+  sizes[pos].clear();
   if (table->num_rows() == 0) {
-    values[pos].reset();
-    counts[pos].reset();
-    offsets[pos].clear();
-    sizes[pos].clear();
     return arrow::Status::OK();
   }
   auto& [b, k, e] = bindingsKeys[pos];
@@ -137,11 +137,12 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   int64_t offset = 0;
   for (auto i = 0U; i < values[pos]->length(); ++i) {
     auto value = values[pos]->Value(i);
+    auto count = counts[pos]->Value(i);
     if (value >= 0) {
       offsets[pos][value] = offset;
-      sizes[pos][value] = counts[pos]->Value(i);
+      sizes[pos][value] = count;
     }
-    offset += counts[pos]->Value(i);
+    offset += count;
   }
   return arrow::Status::OK();
 }
