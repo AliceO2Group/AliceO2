@@ -30,6 +30,8 @@ struct BadChannelCalibratorParam : public o2::conf::ConfigurableParamHelper<BadC
   int minRequiredNofEntriesPerChannel = 10000; ///< mininum pedestal digits per channel needed to assess a channel quality
   float minRequiredCalibratedFraction = 0.9f;  ///< minimum fraction of channels for which we need a quality value to produce a bad channel map.
 
+  int nThreads = 1; ///< number of paralle threads for processing the pedestal data
+
   bool onlyAtEndOfStream = {true}; ///< only produce bad channel map at end of stream (EoS). In that case the minRequiredCalibratedFraction and minRequiredNofEntriesPerChannel are irrelevant.
 
   O2ParamDef(BadChannelCalibratorParam, "MCHBadChannelCalibratorParam");

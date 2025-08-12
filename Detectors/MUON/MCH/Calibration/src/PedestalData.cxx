@@ -19,6 +19,9 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <mutex>
+#include <thread>
+#include <queue>
 
 namespace o2::mch::calibration
 {
@@ -69,45 +72,107 @@ PedestalData::PedestalMatrix PedestalData::initPedestalMatrix(uint16_t solarId)
 void PedestalData::fill(gsl::span<const PedestalDigit> digits)
 {
   bool mDebug = false;
+  static std::mutex pedestalMutex;
+  static std::set<uint16_t> solarIds = o2::mch::raw::getSolarUIDs<o2::mch::raw::ElectronicMapperGenerated>();
 
-  for (auto& d : digits) {
-    uint16_t solarId = d.getSolarId();
-    uint8_t dsId = d.getDsId();
-    uint8_t channel = d.getChannel();
+  if (digits.empty()) {
+    return;
+  }
 
-    auto iPedestal = mPedestals.find(solarId);
+  LOGP(info, "processing {} digits with {} threads", (int)digits.size(), mNThreads);
 
-    if (iPedestal == mPedestals.end()) {
-      auto iPedestalsNew = mPedestals.emplace(std::make_pair(solarId, initPedestalMatrix(solarId)));
-      iPedestal = iPedestalsNew.first;
+  // fill the queue of SOLAR IDs to be processed
+  std::queue<uint16_t> solarQueue;
+  for (auto solarId : solarIds) {
+    solarQueue.push(solarId);
+  }
+
+  auto processSolarDigits = [&]() {
+    while (true) {
+      int targetSolarId = -1;
+      PedestalsMap::iterator iPedestal;
+      bool pedestalsAreInitialized;
+
+      // non thread-safe access to solarQueue, protected by the pedestalMutex
+      {
+        std::lock_guard<std::mutex> lock(pedestalMutex);
+
+        // stop when there are no mor SOLAR IDs to process
+        if (solarQueue.empty()) {
+          break;
+        }
+
+        // get the next SOLAR ID to be processed
+        targetSolarId = solarQueue.front();
+        solarQueue.pop();
+
+        // update the iterator to the pedestal data for the target SOLAR
+        iPedestal = mPedestals.find(targetSolarId);
+        if (iPedestal == mPedestals.end()) {
+          pedestalsAreInitialized = false;
+        } else {
+          pedestalsAreInitialized = true;
+        }
+      }
+
+      // loop over digits, selecting only those belonging to the target SOLAR
+      for (auto& d : digits) {
+        uint16_t solarId = d.getSolarId();
+        if (solarId != targetSolarId) {
+          continue;
+        }
+
+        // non thread-safe access to Pedestals structure, protected by the pedestalMutex
+        if (!pedestalsAreInitialized) {
+          std::lock_guard<std::mutex> lock(pedestalMutex);
+
+          // create the pedestals structure corresponding to the SOLAR ID to be processed
+          iPedestal = mPedestals.emplace(std::make_pair(targetSolarId, initPedestalMatrix(targetSolarId))).first;
+
+          if (iPedestal == mPedestals.end()) {
+            LOGP(fatal, "failed to insert new element in padestals map");
+            break;
+          }
+          pedestalsAreInitialized = true;
+        }
+
+        uint8_t dsId = d.getDsId();
+        uint8_t channel = d.getChannel();
+
+        auto& ped = iPedestal->second[dsId][channel];
+
+        for (uint16_t i = 0; i < d.nofSamples(); i++) {
+          auto s = d.getSample(i);
+
+          ped.mEntries += 1;
+          uint64_t N = ped.mEntries;
+
+          double p0 = ped.mPedestal;
+          double p = p0 + (s - p0) / N;
+          ped.mPedestal = p;
+
+          double M0 = ped.mVariance;
+          double M = M0 + (s - p0) * (s - p);
+          ped.mVariance = M;
+        }
+
+        if (mDebug) {
+          LOGP(info, "solarId {}  dsId {}  ch {}  nsamples {}  entries{}  mean {}  variance {}",
+               (int)solarId, (int)dsId, (int)channel, d.nofSamples(), ped.mEntries, ped.mPedestal, ped.mVariance);
+        }
+      }
     }
+  };
 
-    if (iPedestal == mPedestals.end()) {
-      LOGP(fatal, "failed to insert new element in padestals map");
-      break;
-    }
+  // process the digits in parallel threads
+  std::vector<std::thread> threads;
+  for (int ti = 0; ti < mNThreads; ti++) {
+    threads.emplace_back(processSolarDigits);
+  }
 
-    auto& ped = iPedestal->second[dsId][channel];
-
-    for (uint16_t i = 0; i < d.nofSamples(); i++) {
-      auto s = d.getSample(i);
-
-      ped.mEntries += 1;
-      uint64_t N = ped.mEntries;
-
-      double p0 = ped.mPedestal;
-      double p = p0 + (s - p0) / N;
-      ped.mPedestal = p;
-
-      double M0 = ped.mVariance;
-      double M = M0 + (s - p0) * (s - p);
-      ped.mVariance = M;
-    }
-
-    if (mDebug) {
-      LOGP(info, "solarId {}  dsId {}  ch {}  nsamples {}  entries{}  mean {}  variance {}",
-           (int)solarId, (int)dsId, (int)channel, d.nofSamples(), ped.mEntries, ped.mPedestal, ped.mVariance);
-    }
+  // wait for all threads to finish processing
+  for (auto& thread : threads) {
+    thread.join();
   }
 }
 

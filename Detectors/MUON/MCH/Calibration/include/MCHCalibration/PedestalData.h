@@ -86,6 +86,8 @@ class PedestalData
 
   uint32_t size() const;
 
+  void setNThreads(int nThreads) { mNThreads = nThreads; }
+
  private:
   PedestalData::PedestalMatrix initPedestalMatrix(uint16_t solarId);
 
@@ -94,8 +96,9 @@ class PedestalData
 
   PedestalsMap mPedestals{}; ///< internal storage of all PedestalChannel values
   uint32_t mSize{0};         ///< total number of valid channels in the pedestals map
+  int mNThreads{1};          ///< number of parallel threads to process the pedestal digits
 
-  ClassDefNV(PedestalData, 1)
+  ClassDefNV(PedestalData, 2)
 };
 
 namespace impl
