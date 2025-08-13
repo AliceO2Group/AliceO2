@@ -339,6 +339,7 @@ o2_add_executable(dpl-run
 foreach(b
         DataDescriptorMatcher
         DataRelayer
+        Stack
         DeviceMetricsInfo
         InputRecord
         TableBuilder
