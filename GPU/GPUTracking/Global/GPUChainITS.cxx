@@ -17,7 +17,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "ITStracking/ExternalAllocator.h"
 #include "GPUReconstructionIncludesITS.h"
-#include <algorithm>
+#include <mutex>
 
 using namespace o2::gpu;
 
@@ -28,6 +28,7 @@ class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
  public:
   void* allocate(size_t size) override
   {
+    std::scoped_lock lck(mLock);
     return mFWReco->AllocateDirectMemory(size, GPUMemoryResource::MEMORY_GPU);
   }
   void deallocate(char* ptr, size_t) override {}
@@ -35,6 +36,7 @@ class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
 
  private:
   o2::gpu::GPUReconstruction* mFWReco;
+  std::mutex mLock;
 };
 } // namespace o2::its
 
