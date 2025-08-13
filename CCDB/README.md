@@ -31,7 +31,7 @@ If you access the CCDB with a web browser, add `/browse` at the end of the URL t
 ```c++
 // init
 CcdbApi api;
-map<string, string> metadata; // can be empty
+std::map<std::string, std::string> metadata; // can be empty
 api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
 // store abitrary user object in strongly typed manner
 auto deadpixels = new o2::FOO::DeadPixelMap();
@@ -39,7 +39,7 @@ api.storeAsTFileAny(deadpixels, "FOO/DeadPixels", metadata);
 // read like this (you have to specify the type)
 auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata); 
 // read like this to get the headers as well, and thus the metadata attached to the object 
-map<string, string> headers;
+std::map<std::string, std::string> headers;
 auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata /* constraint the objects retrieved to those matching the metadata */, -1 /* timestamp */, &headers /* the headers attached to the returned object */); 
 // finally, use this method to retrieve only the headers (and thus the metadata)
 std::map<std::string, std::string> headers = f.api.retrieveHeaders("FOO/DeadPixels", f.metadata); 
@@ -50,7 +50,7 @@ std::map<std::string, std::string> headers = f.api.retrieveHeaders("FOO/DeadPixe
 ```c++
 // init
 CcdbApi api;
-map<string, string> metadata; // can be empty
+std::map<std::string, std::string> metadata; // can be empty
 api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
 // create a local snapshot of everthing in or below the FOO folder valid for timestamp 12345
 api.snapshot("FOO", "/tmp/CCDBSnapshot/", 12345);
