@@ -21,8 +21,8 @@ namespace o2::framework
 using ListVector = std::vector<std::vector<int64_t>>;
 
 struct SliceInfoPtr {
-  std::vector<int64_t> const* offsets;
-  std::vector<int64_t> const* sizes;
+  gsl::span<int64_t const> offsets;
+  gsl::span<int64_t const> sizes;
 
   std::pair<int64_t, int64_t> getSliceFor(int value) const;
 };

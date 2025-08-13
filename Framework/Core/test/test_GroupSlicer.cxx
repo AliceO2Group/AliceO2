@@ -245,8 +245,8 @@ TEST_CASE("GroupSlicerMismatchedGroups")
     if (i == 3 || i == 10 || i == 12 || i == 16 || i == 19) {
       continue;
     }
-    for (auto j = 0.f; j < 5; j += 0.5f) {
-      trksWriter(0, i, 0.5f * j);
+    for (auto j = 0; j < 10; ++j) {
+      trksWriter(0, i, 0.5f * (j / 2.));
     }
   }
   auto trkTable = builderT.finalize();
@@ -297,8 +297,8 @@ TEST_CASE("GroupSlicerMismatchedUnassignedGroups")
       ++skip;
       continue;
     }
-    for (auto j = 0.f; j < 5; j += 0.5f) {
-      trksWriter(0, i, 0.5f * j);
+    for (auto j = 0; j < 10; ++j) {
+      trksWriter(0, i, 0.5f * (j / 2.));
     }
   }
   for (auto i = 0; i < 5; ++i) {

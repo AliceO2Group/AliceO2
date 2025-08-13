@@ -32,14 +32,14 @@ void updatePairList(Cache& list, std::string const& binding, std::string const& 
 std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
 {
   int64_t offset = 0;
-  if ((*offsets).empty()) {
+  if (offsets.empty()) {
     return {offset, 0};
   }
-  if ((size_t)value > (*offsets).size()) {
+  if ((size_t)value >= offsets.size()) {
     return {offset, 0};
   }
 
-  return {(*offsets)[value], (*sizes)[value]};
+  return {offsets[value], sizes[value]};
 }
 
 gsl::span<const int64_t> SliceInfoUnsortedPtr::getSliceFor(int value) const
@@ -240,14 +240,14 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
 {
   if (values[pos] == nullptr && counts[pos] == nullptr) {
     return {
-      nullptr, //
-      nullptr  //
+      {}, //
+      {}  //
     };
   }
 
   return {
-    &(offsets[pos]), //
-    &(sizes[pos])    //
+    gsl::span{offsets[pos].data(), offsets[pos].size()}, //
+    gsl::span(sizes[pos].data(), sizes[pos].size())    //
   };
 }
 
