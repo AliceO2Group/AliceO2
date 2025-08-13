@@ -247,7 +247,7 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
 
   return {
     gsl::span{offsets[pos].data(), offsets[pos].size()}, //
-    gsl::span(sizes[pos].data(), sizes[pos].size())    //
+    gsl::span(sizes[pos].data(), sizes[pos].size())      //
   };
 }
 
