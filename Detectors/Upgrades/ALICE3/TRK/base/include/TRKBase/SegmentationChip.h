@@ -28,15 +28,17 @@ namespace o2::trk
 /// This is a work-in-progress code derived from the ITS2 and ITS3 segmentations.
 class SegmentationChip
 {
-  // This class defines the segmenation of the TRK chips in the ALICE3 upgrade. We define
-  // two coordinate systems, one width x,z detector local coordianates (cm) and
-  // the more natural row,col layout: Also all the transformation between these
-  // two. The class provides the transformation from the stave/layer/disk to TGeo
-  // coordinates.
+  // This class defines the segmenation of the TRK chips in the ALICE3 upgrade.
+  // The "global coordinate system" refers to the hit position in cm in the global coordinate system centered in 0,0,0
+  // The "local coordinate system" refers to the hit position in cm in the coordinate system of the sensor, which
+  // is centered in 0,0,0 in the case of curved layers, and in the middle of the chip in the case of flat layers
+  // The "detector coordinate system" refers to the hit position in row,col inside the sensor
+  // This class provides the transformations from the local and detector coordinate systems
+  // The conversion between global and local coordinate systems is operated by the transformation matrices
   // For the curved VD layers there exist three coordinate systems and one is transient.
   // 1. The global (curved) coordinate system. The chip's center of coordinate system is
   //    defined at the the mid-point of the detector.
-  // 2. The flat coordinate system. This is the tube segment projected onto a flat
+  // 2. The local (flat) coordinate system. This is the tube segment projected onto a flat
   //    surface. In the projection we implicitly assume that the inner and outer
   //    stretch does not depend on the radius.
   // 3. The detector coordinate system. Defined by the row and column segmentation
@@ -58,17 +60,15 @@ class SegmentationChip
   static constexpr float PitchColVD{constants::VD::petal::layer::pitchZ};
   static constexpr float PitchRowVD{constants::VD::petal::layer::pitchX};
 
-  static constexpr float PitchColML{constants::moduleMLOT::chip::pitchZ};
-  static constexpr float PitchRowML{constants::moduleMLOT::chip::pitchX};
-
-  static constexpr float PitchColOT{constants::moduleMLOT::chip::pitchZ};
-  static constexpr float PitchRowOT{constants::moduleMLOT::chip::pitchX};
+  static constexpr float PitchColMLOT{constants::moduleMLOT::chip::pitchZ};
+  static constexpr float PitchRowMLOT{constants::moduleMLOT::chip::pitchX};
 
   static constexpr float SensorLayerThicknessVD = {constants::VD::petal::layer::totalThickness}; // physical thickness of sensitive part = 30 um
   static constexpr float SensorLayerThicknessML = {constants::moduleMLOT::chip::totalThickness}; // physical thickness of sensitive part = 100 um
   static constexpr float SensorLayerThicknessOT = {constants::moduleMLOT::chip::totalThickness}; // physical thickness of sensitive part = 100 um
 
-  static constexpr float SiliconTickness = constants::silicon::thickness; // effective thickness of sensitive part
+  static constexpr float SiliconThicknessVD = constants::VD::silicon::thickness;           // effective thickness of sensitive part
+  static constexpr float SiliconThicknessMLOT = constants::moduleMLOT::silicon::thickness; // effective thickness of sensitive part
 
   static constexpr std::array<double, constants::VD::petal::nLayers> radiiVD = constants::VD::petal::layer::radii;
 
@@ -86,24 +86,25 @@ class SegmentationChip
   /// \param int subDetID Sub-detector ID (0 for VD, 1 for ML/OT)
   /// \param int layer Layer number (0 to 2 for VD, 0 to 7 for ML/OT)
   /// \param int disk Disk number (0 to 5 for VD)
-  static bool globalToDetector(float xRow, float zCol, int& iRow, int& iCol, int subDetID, int layer, int disk) noexcept
+  static bool localToDetector(float xRow, float zCol, int& iRow, int& iCol, int subDetID, int layer, int disk) noexcept
   {
     if (!isValidGlob(xRow, zCol, subDetID, layer)) {
-      LOGP(info, "Global coordinates not valid: row = {} cm, col = {} cm", xRow, zCol);
+      LOGP(debug, "Local coordinates not valid: row = {} cm, col = {} cm", xRow, zCol);
       return false;
     }
+    localToDetectorUnchecked(xRow, zCol, iRow, iCol, subDetID, layer, disk);
 
-    globalToDetectorUnchecked(xRow, zCol, iRow, iCol, subDetID, layer, disk);
+    LOG(debug) << "Result from localToDetectorUnchecked: xRow " << xRow << " -> iRow " << iRow << ", zCol " << zCol << " -> iCol " << iCol << " on subDetID, layer, disk: " << subDetID << " " << layer << " " << disk;
 
     if (!isValidDet(iRow, iCol, subDetID, layer)) {
       iRow = iCol = -1;
-      LOGP(info, "Detector coordinates not valid: iRow = {}, iCol = {}", iRow, iCol);
+      LOGP(debug, "Detector coordinates not valid: iRow = {}, iCol = {}", iRow, iCol);
       return false;
     }
     return true;
   };
   /// same but w/o check for row/column range
-  static void globalToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, int subDetID, int layer, int disk) noexcept
+  static void localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, int subDetID, int layer, int disk) noexcept
   {
     // convert to row/col w/o over/underflow check
     float pitchRow(0), pitchCol(0);
@@ -116,13 +117,13 @@ class SegmentationChip
       maxLength = constants::VD::petal::layer::length;
       // TODO: change this to use the layer and disk
     } else if (subDetID == 1 && layer <= 3) { // ML
-      pitchRow = PitchRowML;
-      pitchCol = PitchColML;
+      pitchRow = PitchRowMLOT;
+      pitchCol = PitchColMLOT;
       maxWidth = constants::ML::width;
       maxLength = constants::ML::length;
     } else if (subDetID == 1 && layer >= 4) { // OT
-      pitchRow = PitchRowOT;
-      pitchCol = PitchColOT;
+      pitchRow = PitchRowMLOT;
+      pitchCol = PitchColMLOT;
       maxWidth = constants::OT::width;
       maxLength = constants::OT::length;
     }
@@ -131,7 +132,7 @@ class SegmentationChip
     iCol = static_cast<int>(std::floor((zCol + maxLength / 2) / pitchCol));
   };
 
-  // Check global coordinates (cm) validity.
+  // Check local coordinates (cm) validity.
   static constexpr bool isValidGlob(float x, float z, int subDetID, int layer) noexcept
   {
     float maxWidth(0), maxLength(0);
@@ -165,8 +166,7 @@ class SegmentationChip
       nRows = constants::OT::nRows;
       nCols = constants::OT::nCols;
     }
-    return (row >= 0 && row < static_cast<float>(nRows) &&
-            col >= 0 && col < static_cast<float>(nCols));
+    return (row >= 0 && row < static_cast<float>(nRows) && col >= 0 && col < static_cast<float>(nCols));
   }
 
   /// Transformation from Detector cell coordinates to Geant detector centered
@@ -182,34 +182,37 @@ class SegmentationChip
   /// \param int subDetID Sub-detector ID (0 for VD, 1 for ML/OT)
   /// \param int layer Layer number (0 to 2 for VD, 0 to 7 for ML/OT)
   /// \param int disk Disk number (0 to 5 for VD)
-  static constexpr bool detectorToGlobal(int iRow, int iCol, float& xRow, float& zCol, int subDetID, int layer, int disk) noexcept
+  static constexpr bool detectorToLocal(int iRow, int iCol, float& xRow, float& zCol, int subDetID, int layer, int disk) noexcept
   {
-    if (!isValidDet(xRow, zCol, subDetID, layer)) {
+    if (!isValidDet(iRow, iCol, subDetID, layer)) {
       LOGP(debug, "Detector coordinates not valid: iRow = {}, iCol = {}", iRow, iCol);
       return false;
     }
-    detectorToGlobalUnchecked(iRow, iCol, xRow, zCol, subDetID, layer, disk);
+    detectorToLocalUnchecked(iRow, iCol, xRow, zCol, subDetID, layer, disk);
+    LOG(debug) << "Result from detectorToLocalUnchecked: iRow " << iRow << " -> xRow " << xRow << ", iCol " << iCol << " -> zCol " << zCol << " on subDetID, layer, disk: " << subDetID << " " << layer << " " << disk;
 
     if (!isValidGlob(xRow, zCol, subDetID, layer)) {
-      LOGP(debug, "Global coordinates not valid: row = {} cm, col = {} cm", xRow, zCol);
+      LOGP(debug, "Local coordinates not valid: row = {} cm, col = {} cm", xRow, zCol);
       return false;
     }
     return true;
   };
 
-  // Same as detectorToGlobal w.o. checks.
+  // Same as detectorToLocal w.o. checks.
   // We position ourself in the middle of the pixel.
-  static void detectorToGlobalUnchecked(int& row, int& col, float xRow, float zCol, int subDetID, int layer, int disk) noexcept
+  static void detectorToLocalUnchecked(int row, int col, float& xRow, float& zCol, int subDetID, int layer, int disk) noexcept
   {
+    /// xRow = half chip width - iRow(center) * pitch
+    /// zCol = iCol * pitch - half chip lenght
     if (subDetID == 0) {
-      xRow = -(row + 0.5f) * PitchRowVD + constants::VD::petal::layer::width[layer] / 2;
-      zCol = (col + 0.5f) * PitchColVD - constants::VD::petal::layer::length / 2;
+      xRow = 0.5 * (constants::VD::petal::layer::width[layer] - PitchRowVD) - (row * PitchRowVD);
+      zCol = col * PitchColVD + 0.5 * (PitchColVD - constants::VD::petal::layer::length);
     } else if (subDetID == 1 && layer <= 3) { // ML
-      xRow = -(row + 0.5f) * PitchRowML + constants::ML::width / 2;
-      zCol = (col + 0.5f) * PitchColML - constants::ML::length / 2;
+      xRow = 0.5 * (constants::ML::width - PitchRowMLOT) - (row * PitchRowMLOT);
+      zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::ML::length);
     } else if (subDetID == 1 && layer >= 4) { // OT
-      xRow = -(row + 0.5f) * PitchRowOT + constants::OT::width / 2;
-      zCol = (col + 0.5f) * PitchColOT - constants::OT::length / 2;
+      xRow = 0.5 * (constants::OT::width - PitchRowMLOT) - (row * PitchRowMLOT);
+      zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::OT::length);
     }
   }
 
@@ -225,7 +228,6 @@ class SegmentationChip
   /// the center of the sensitive volume.
   /// \return math_utils::Vector2D<float>: x and y represent the detector local flat coordinates x and y
   // in cm with respect to the center of the sensitive volume.
-
   static math_utils::Vector2D<float> curvedToFlat(const int layer, const float xCurved, const float yCurved) noexcept
   {
     // Align the flat surface with the curved survace of the original chip (and account for metal stack, TODO)
@@ -258,6 +260,20 @@ class SegmentationChip
     float xCurved = dist * std::cos(phi);
     float yCurved = dist * std::sin(phi);
     return math_utils::Vector2D<float>(xCurved, yCurved);
+  }
+
+  /// Print segmentation info
+  static const void Print() noexcept
+  {
+    LOG(info) << "Number of rows:\nVD L0: " << constants::VD::petal::layer::nRows[0]
+              << "\nVD L1: " << constants::VD::petal::layer::nRows[1]
+              << "\nVD L2: " << constants::VD::petal::layer::nRows[2]
+              << "\nML stave: " << constants::ML::nRows
+              << "\nOT stave: " << constants::OT::nRows;
+
+    LOG(info) << "Number of cols:\nVD: " << constants::VD::petal::layer::nCols
+              << "\nML stave: " << constants::ML::nCols
+              << "\nOT stave: " << constants::OT::nCols;
   }
 };
 

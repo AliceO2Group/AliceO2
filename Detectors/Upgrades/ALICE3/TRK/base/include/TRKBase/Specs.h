@@ -30,13 +30,16 @@ constexpr double cm{1};
 constexpr double mu{1e-4};
 constexpr double mm{1e-1};
 
-// namespace metalstack /// still to be defined
-// {
-// constexpr double thickness{5 * mu}; // physical thickness of the copper metal stack
-// }
-
 namespace VD // TODO: add a primitive segmentation with more granularity wrt 1/4 layer = 1 chip
 {
+namespace silicon
+{
+constexpr double thickness{30 * mu}; // thickness of the silicon (should be 10 um epitaxial layer + 20 um substrate)?
+} // namespace silicon
+namespace metalstack
+{
+constexpr double thickness{0 * mu}; // thickness of the copper metal stack - for the moment it is not implemented
+} // namespace metalstack
 namespace petal
 {
 constexpr int nLayers{3}; // number of layers in each VD petal
@@ -45,12 +48,12 @@ namespace layer
 {
 constexpr double pitchX{10 * mu};                                                                                                                        // pitch of the row
 constexpr double pitchZ{10 * mu};                                                                                                                        // pitch of the column
-constexpr double totalThickness{30 * mu};                                                                                                                // total thickness of the chip
-constexpr std::array<double, nLayers> radii{0.5 * cm, 1.2 * cm, 2.5 * cm};                                                                               // width of the quarter of layer in cm
+constexpr double totalThickness{silicon::thickness + metalstack::thickness};                                                                             // total thickness of the chip
+constexpr std::array<double, nLayers> radii{0.5 * cm, 1.2 * cm, 2.5 * cm};                                                                               // radius of layer in cm
 constexpr std::array<double, nLayers> width{radii[0] * 2 * M_PI / 4, radii[1] * 2 * M_PI / 4, radii[2] * 2 * M_PI / 4};                                  // width of the quarter of layer in cm
 constexpr double length{50 * cm};                                                                                                                        // length of the layer
 constexpr int nCols{static_cast<int>(length / pitchZ)};                                                                                                  // number of columns in the chip
-constexpr std::array<int, nLayers> nRows{static_cast<int>(width[0] / pitchX), static_cast<int>(width[1] / pitchX), static_cast<int>(width[2] / pitchX)}; // number of rows in the chip
+constexpr std::array<int, nLayers> nRows{static_cast<int>(width[0] / pitchX), static_cast<int>(width[1] / pitchX), static_cast<int>(width[2] / pitchX)}; // number of rows in the chip. For the moment is different for each layer since a siner segmentation in repetitive units is stil to be implemented
 
 } // namespace layer
 namespace disk
@@ -62,16 +65,24 @@ constexpr double radiusOut{2.5 * cm};
 } // namespace VD
 
 namespace moduleMLOT /// same for ML and OT for the moment
-{                    /// TODO: account for different modules in case of change
+{                    /// TODO: account for different modules in case of changes
+namespace silicon
+{
+constexpr double thickness{100 * mu}; // thickness of the silicon (should be 10 um epitaxial layer + 90 um substrate)?
+} // namespace silicon
+namespace metalstack
+{
+constexpr double thickness{0 * mu}; // thickness of the copper metal stack - for the moment it is not implemented
+} // namespace metalstack
 namespace chip
 {
-constexpr double width{25 * mm};                        // width of the chip
-constexpr double length{32 * mm};                       // length of the chip
-constexpr double pitchX{50 * mu};                       // pitch of the row
-constexpr double pitchZ{50 * mu};                       // pitch of the column
-constexpr int nRows{static_cast<int>(width / pitchX)};  // number of columns in the chip
-constexpr int nCold{static_cast<int>(length / pitchZ)}; // number of rows in the chipù
-constexpr double totalThickness{100 * mu};              // total thickness of the chip
+constexpr double width{25 * mm};                                             // width of the chip
+constexpr double length{32 * mm};                                            // length of the chip
+constexpr double pitchX{50 * mu};                                            // pitch of the row
+constexpr double pitchZ{50 * mu};                                            // pitch of the column
+constexpr int nRows{static_cast<int>(width / pitchX)};                       // number of columns in the chip
+constexpr int nCols{static_cast<int>(length / pitchZ)};                      // number of rows in the chip
+constexpr double totalThickness{silicon::thickness + metalstack::thickness}; // total thickness of the chip
 /// Set to 0 for the moment, to be adjusted with the actual design of the chip if needed
 static constexpr float PassiveEdgeReadOut = 0.f; // width of the readout edge (Passive bottom)
 static constexpr float PassiveEdgeTop = 0.f;     // Passive area on top
@@ -86,7 +97,7 @@ constexpr double outerEdgeShortSide{0.1 * mm}; // gap between the chips and the 
 constexpr double width{chip::width * 2 + gaps::interChips + 2 * gaps::outerEdgeLongSide};        // width of the module
 constexpr double length{chip::length * 4 + 3 * gaps::interChips + 2 * gaps::outerEdgeShortSide}; // length of the module
 constexpr int nRows{static_cast<int>(width / chip::pitchX)};                                     // number of columns in the module
-constexpr int nCold{static_cast<int>(length / chip::pitchZ)};                                    // number of rows in the module
+constexpr int nCols{static_cast<int>(length / chip::pitchZ)};                                    // number of rows in the module
 } // namespace moduleMLOT
 
 namespace ML
@@ -98,17 +109,21 @@ constexpr int nCols{static_cast<int>(length / constants::moduleMLOT::chip::pitch
 } // namespace ML
 
 namespace OT
-{
+{                                                                         //// TODO: add shorter lenght of the stave of L4
 constexpr double width{moduleMLOT::width * 2};                            // width of the stave
 constexpr double length{moduleMLOT::length * 20};                         // length of the stave
 constexpr int nRows{static_cast<int>(width / moduleMLOT::chip::pitchX)};  // number of rows in the stave
 constexpr int nCols{static_cast<int>(length / moduleMLOT::chip::pitchZ)}; // number of columns in the stave
 } // namespace OT
 
-namespace silicon
+namespace apts /// parameters for the APTS response
 {
-constexpr double thickness{10 * mu}; // thickness of active material
-} // namespace silicon
+constexpr double pitchX{15.0 * mu};
+constexpr double pitchZ{15.0 * mu};
+constexpr double responseYShift{15.5 * mu};
+constexpr double thickness{45 * mu};
+} // namespace apts
+
 } // namespace o2::trk::constants
 
 #endif

@@ -24,6 +24,7 @@ o2_add_library(TRKSimulation
                PUBLIC_LINK_LIBRARIES O2::TRKBase
                                      O2::FT3Simulation
                                      O2::ITSMFTSimulation
+                                     O2::DetectorsRaw
                                      O2::SimulationDataFormat)
 
 o2_target_root_dictionary(TRKSimulation

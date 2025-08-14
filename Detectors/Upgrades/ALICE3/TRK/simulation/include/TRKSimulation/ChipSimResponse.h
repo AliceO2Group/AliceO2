@@ -9,177 +9,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ChipSimResponse.h
-/// \brief Definition of the TRK chip simulated response parametrization
+#ifndef ALICEO2_TRKSIMULATION_CHIPSIMRESPONSE_H
+#define ALICEO2_TRKSIMULATION_CHIPSIMRESPONSE_H
 
-#ifndef ALICEO2_TRK_CHIPSIMRESPONSE_H
-#define ALICEO2_TRK_CHIPSIMRESPONSE_H
-
-#include <array>
-#include <string>
-#include <vector>
-#include <Rtypes.h>
-
-#include "TRKBase/SegmentationChip.h"
+#include "ITSMFTSimulation/AlpideSimResponse.h"
 
 namespace o2
 {
 namespace trk
 {
-/*
- * ChipRespSimMat : class to access the response: probability to collect electron
- * in MNPix*MNPix cells.
- */
-class ChipRespSimMat
+
+class ChipSimResponse : public o2::itsmft::AlpideSimResponse
 {
- public:
-  static int constexpr NPix = 5;              /// side of quadrant (pixels) with non-0 response
-  static int constexpr MatSize = NPix * NPix; /// number of pixels in the quadrant
-  static int constexpr getNPix() { return NPix; }
-
-  ChipRespSimMat() = default;
-  ~ChipRespSimMat() = default;
-
-  void adopt(const ChipRespSimMat& src, bool flipRow = false, bool flipCol = false)
-  {
-    // copy constructor with option of channels flipping
-    for (int iRow = NPix; iRow--;) {
-      int rw = flipRow ? NPix - 1 - iRow : iRow;
-      for (int iCol = NPix; iCol--;) {
-        int bDest = rw * NPix + (flipCol ? NPix - 1 - iCol : iCol);
-        data[bDest] = src.data[iRow * NPix + iCol];
-      }
-    }
-  }
-
-  /// probability to find an electron in pixel ix,iy,iz
-  float getValue(int iRow, int iCol) const { return data[iRow * NPix + iCol]; }
-  float getValue(int iRow, int iCol, bool flipRow, bool flipCol) const
-  {
-    int bin = (flipRow ? NPix - 1 - iRow : iRow) * NPix + (flipCol ? NPix - 1 - iCol : iCol);
-    return data[bin];
-  }
-
-  /// pointer on underlying array
-  std::array<float, MatSize>* getArray() { return &data; }
-
-  /// print values
-  void print(bool flipRow = false, bool flipCol = false) const;
-
- private:
-  std::array<float, MatSize> data;
-
-  // ClassDefNV(ChipRespSimMat, 1);
-};
-
-/*
- * ChipSimResponse: container for Chip simulates parameterized response matrices
- * Based on the ITS2 and ITS3 sim response code.
- * Provides for the electron injected to point X(columns direction),Y (rows direction)
- * (with respect to pixel center) and Z (depth, with respect to epitaxial layer inner
- * serface!!! i.e. touching the substrate) the probability to be collected in every
- * of NPix*NPix pixels with reference pixel in the center.
- */
-
-class ChipSimResponse
-{
-
- private:
-  int getColBin(float pos) const;
-  int getRowBin(float pos) const;
-  int getDepthBin(float pos) const;
-  std::string composeDataName(int colBin, int rowBin);
-
-  int mNBinCol = 0;                                     /// number of bins in X(col direction)
-  int mNBinRow = 0;                                     /// number of bins in Y(row direction)
-  int mNBinDpt = 0;                                     /// number of bins in Z(sensor dept)
-  int mMaxBinCol = 0;                                   /// max allowed Xb (to avoid subtraction)
-  int mMaxBinRow = 0;                                   /// max allowed Yb (to avoid subtraction)
-  float mColMaxVD = SegmentationChip::PitchColVD / 2.f; /// upper boundary of Col in the VD
-  float mRowMaxVD = SegmentationChip::PitchRowVD / 2.f; /// upper boundary of Row in the VD
-  float mColMaxML = SegmentationChip::PitchColML / 2.f; /// upper boundary of Col in the ML
-  float mRowMaxML = SegmentationChip::PitchRowML / 2.f; /// upper boundary of Row in the ML
-  float mColMaxOT = SegmentationChip::PitchColOT / 2.f; /// upper boundary of Col in the OT
-  float mRowMaxOT = SegmentationChip::PitchRowOT / 2.f; /// upper boundary of Row in the OT
-  float mDptMin = 0.f;                                  /// lower boundary of Dpt
-  float mDptMax = 0.f;                                  /// upper boundary of Dpt
-  float mDptShift = 0.f;                                /// shift of the depth center wrt 0
-  float mStepInvCol = 0;                                /// inverse step of the Col grid
-  float mStepInvRow = 0;                                /// inverse step of the Row grid
-  float mStepInvDpt = 0;                                /// inverse step of the Dpt grid
-  std::vector<ChipRespSimMat> mData;                    /// response data
-  /// path to look for data file
-  std::string mDataPath;
-  std::string mGridColName = "grid_list_x.txt";             /// name of the file with grid in Col
-  std::string mGridRowName = "grid_list_y.txt";             /// name of the file with grid in Row
-  std::string mColRowDataFmt = "data_pixels_%.2f_%.2f.txt"; /// format to read the data for given Col,Row
-
  public:
   ChipSimResponse() = default;
-  virtual ~ChipSimResponse() = default;
+  ChipSimResponse(const ChipSimResponse& other) = default;
+  ChipSimResponse(const o2::itsmft::AlpideSimResponse* base) : o2::itsmft::AlpideSimResponse(*base) {}
 
   void initData(int tableNumber, std::string dataPath, const bool quiet = true);
 
-  bool getResponse(float vRow, float vCol, float cDepth, ChipRespSimMat& dest, const int nLayer) const;
-  const ChipRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol, const int subDetID, const int nLayer) const;
-  const ChipRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol, float rowMax, float colMax) const;
-  static int constexpr getNPix() { return ChipRespSimMat::getNPix(); }
-  int getNBinCol() const { return mNBinCol; }
-  int getNBinRow() const { return mNBinRow; }
-  int getNBinDepth() const { return mNBinDpt; }
-  float getColMaxVD() const { return mColMaxVD; }
-  float getRowMaxVD() const { return mRowMaxVD; }
-  float getColMaxML() const { return mColMaxML; }
-  float getRowMaxML() const { return mRowMaxML; }
-  float getDepthMin() const { return mDptMin; }
-  float getDepthMax() const { return mDptMax; }
-  float getDepthShift() const { return mDptShift; }
-  float getStepCol() const { return mStepInvCol ? 1. / mStepInvCol : 0.f; }
-  float getStepRow() const { return mStepInvRow ? 1. / mStepInvRow : 0.f; }
-  float getStepDepth() const { return mStepInvDpt ? 1. / mStepInvDpt : 0.f; }
-  void setColMaxVD(float v) noexcept { mColMaxVD = v; }
-  void setRowMaxVD(float v) noexcept { mRowMaxVD = v; }
-  void setColMaxML(float v) noexcept { mColMaxML = v; }
-  void setRowMaxML(float v) noexcept { mRowMaxML = v; }
-  void setDataPath(const std::string pth) { mDataPath = pth; }
-  void setGridColName(const std::string nm) { mGridColName = nm; }
-  void setGridRowName(const std::string nm) { mGridRowName = nm; }
-  void setColRowDataFmt(const std::string nm) { mColRowDataFmt = nm; }
-  const std::string& getDataPath() const { return mDataPath; }
-  const std::string& getGridColName() const { return mGridColName; }
-  const std::string& getGridRowName() const { return mGridRowName; }
-  const std::string& getColRowDataFmt() const { return mColRowDataFmt; }
-  void print() const;
-
-  // ClassDefNV(ChipSimResponse, 2);
+  ClassDef(ChipSimResponse, 1);
 };
-
-//-----------------------------------------------------
-inline int ChipSimResponse::getColBin(float pos) const
-{
-  /// get column bin w/o checking for over/under flow. pos MUST be >=0
-  int i = pos * mStepInvCol + 0.5f;
-  return i < mNBinCol ? i : mMaxBinCol;
-}
-
-//-----------------------------------------------------
-inline int ChipSimResponse::getRowBin(float pos) const
-{
-  // get row bin w/o checking for over/under flow. pos MUST be >=0
-  int i = pos * mStepInvRow + 0.5f;
-  return i < mNBinRow ? i : mMaxBinRow;
-}
-
-//-----------------------------------------------------
-inline int ChipSimResponse::getDepthBin(float pos) const
-{
-  // get depth bin w/o checking for over/under flow. pos is with respect of the beginning
-  // of epitaxial layer
-  int i = (mDptMax - pos) * mStepInvDpt;
-  return i < 0 ? 0 : i; // depth bin
-}
 
 } // namespace trk
 } // namespace o2
 
-#endif
+#endif // ALICEO2_TRKSIMULATION_CHIPSIMRESPONSE_H

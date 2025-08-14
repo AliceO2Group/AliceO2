@@ -266,7 +266,7 @@ TString GeometryTGeo::getMatrixPath(int index) const
   int subDetID, petalcase, disk, layer, stave, halfstave; //// TODO: add chips in a second step
   getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
 
-  PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
+  // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
 
   // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
