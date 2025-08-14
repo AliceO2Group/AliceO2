@@ -28,8 +28,8 @@ class DataChunk : public std::vector<char, o2::pmr::polymorphic_allocator<char>>
  public:
   // FIXME: want to have a general forwarding, but then the copy constructor is not deleted any more despite
   // it's declared deleted
-  //template <typename... Args>
-  //DataChunk(T&& arg, Args&&... args) : std::vector<char, o2::pmr::polymorphic_allocator<char>>(std::forward<Args>(args)...)
+  // template <typename... Args>
+  // DataChunk(T&& arg, Args&&... args) : std::vector<char, o2::pmr::polymorphic_allocator<char>>(std::forward<Args>(args)...)
   //{
   //}
 

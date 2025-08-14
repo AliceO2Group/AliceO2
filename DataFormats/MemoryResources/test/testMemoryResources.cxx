@@ -137,7 +137,6 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   BOOST_CHECK(message->GetSize() == 3 * sizeof(testData));
   messageArray = static_cast<int*>(message->GetData());
   BOOST_CHECK(messageArray[0] == 4 && messageArray[1] == 5 && messageArray[2] == 6);
-
 }
 
 }; // namespace o2::pmr
