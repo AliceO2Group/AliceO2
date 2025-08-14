@@ -37,10 +37,9 @@ struct Stack {
 
  private:
   struct freeobj {
-    freeobj(memory_resource* mr, size_t s) : resource(mr), size(s) {}
+    freeobj(memory_resource* mr) : resource(mr) {}
     memory_resource* resource{nullptr};
-    size_t size{0};
-    void operator()(std::byte* ptr) { resource->deallocate(ptr, size, alignof(std::max_align_t)); }
+    void operator()(std::byte* ptr) { resource->deallocate(ptr, 0, alignof(std::max_align_t)); }
   };
 
  public:
@@ -101,7 +100,7 @@ struct Stack {
   Stack(const allocator_type allocatorArg, Headers&&... headers)
     : allocator{allocatorArg},
       bufferSize{calculateSize(std::forward<Headers>(headers)...)},
-      buffer{static_cast<std::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource(), bufferSize}}
+      buffer{static_cast<std::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource()}}
   {
     if constexpr (sizeof...(headers) > 1) {
       injectAll(buffer.get(), std::forward<Headers>(headers)...);
@@ -144,7 +143,7 @@ struct Stack {
  private:
   allocator_type allocator{std::pmr::new_delete_resource()};
   size_t bufferSize{0};
-  BufferType buffer{nullptr, freeobj{allocator.resource(), 0}};
+  BufferType buffer{nullptr, freeobj{allocator.resource()}};
 
   //______________________________________________________________________________________________
   template <typename T>
