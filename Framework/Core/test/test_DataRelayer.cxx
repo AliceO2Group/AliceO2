@@ -26,7 +26,6 @@
 #include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
 #include <fairmq/TransportFactory.h>
-#include <fairmq/MemoryResources.h>
 #include <array>
 #include <vector>
 #include <uv.h>

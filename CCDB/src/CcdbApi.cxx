@@ -844,7 +844,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
     return false;
   }
 
-  std::pmr::vector<char> buff;
+  o2::pmr::vector<char> buff;
   std::map<std::string, std::string> headers;
   // avoid creating snapshot via loadFileToMemory itself
   loadFileToMemory(buff, path, metadata, timestamp, &headers, "", createdNotAfter, createdNotBefore, false);
@@ -1830,7 +1830,7 @@ void CcdbApi::removeLeakingSemaphores(std::string const& snapshotdir, bool remov
 
 void CcdbApi::getFromSnapshot(bool createSnapshot, std::string const& path,
                               long timestamp, std::map<std::string, std::string>& headers,
-                              std::string& snapshotpath, std::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const
+                              std::string& snapshotpath, o2::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const
 {
   if (createSnapshot) { // create named semaphore
     std::string logfile = mSnapshotCachePath + "/log";
@@ -1884,7 +1884,7 @@ void CcdbApi::loadFileToMemory(std::vector<char>& dest, std::string const& path,
                                std::map<std::string, std::string>* headers, std::string const& etag,
                                const std::string& createdNotAfter, const std::string& createdNotBefore, bool considerSnapshot) const
 {
-  std::pmr::vector<char> destP;
+  o2::pmr::vector<char> destP;
   destP.reserve(dest.size());
   loadFileToMemory(destP, path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore, considerSnapshot);
   dest.clear();
@@ -1894,7 +1894,7 @@ void CcdbApi::loadFileToMemory(std::vector<char>& dest, std::string const& path,
   }
 }
 
-void CcdbApi::loadFileToMemory(std::pmr::vector<char>& dest, std::string const& path,
+void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
                                std::map<std::string, std::string> const& metadata, long timestamp,
                                std::map<std::string, std::string>* headers, std::string const& etag,
                                const std::string& createdNotAfter, const std::string& createdNotBefore, bool considerSnapshot) const
@@ -1912,7 +1912,7 @@ void CcdbApi::loadFileToMemory(std::pmr::vector<char>& dest, std::string const& 
   vectoredLoadFileToMemory(contexts);
 }
 
-void CcdbApi::appendFlatHeader(std::pmr::vector<char>& dest, const std::map<std::string, std::string>& headers)
+void CcdbApi::appendFlatHeader(o2::pmr::vector<char>& dest, const std::map<std::string, std::string>& headers)
 {
   size_t hsize = getFlatHeaderSize(headers), cnt = dest.size();
   dest.resize(cnt + hsize);
@@ -1977,7 +1977,7 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
   }
 }
 
-bool CcdbApi::loadLocalContentToMemory(std::pmr::vector<char>& dest, std::string& url) const
+bool CcdbApi::loadLocalContentToMemory(o2::pmr::vector<char>& dest, std::string& url) const
 {
   if (url.find("alien:/", 0) != std::string::npos) {
     std::map<std::string, std::string> localHeaders;
@@ -2005,7 +2005,7 @@ bool CcdbApi::loadLocalContentToMemory(std::pmr::vector<char>& dest, std::string
   return false;
 }
 
-void CcdbApi::loadFileToMemory(std::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders, bool fetchLocalMetaData) const
+void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders, bool fetchLocalMetaData) const
 {
   // Read file to memory as vector. For special case of the locally cached file retriev metadata stored directly in the file
   constexpr size_t MaxCopySize = 0x1L << 25;

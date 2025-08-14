@@ -13,7 +13,6 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
-#include "MemoryResources/MemoryResources.h"
 #include <fairmq/TransportFactory.h>
 #include <catch_amalgamated.hpp>
 

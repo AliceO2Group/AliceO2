@@ -206,7 +206,7 @@ void initialiseHelper(CCDBFetcherHelper& helper, ConfigParamRegistry const& opti
   }
 }
 
-auto getOrbitResetTime(std::pmr::vector<char> const& v) -> Long64_t
+auto getOrbitResetTime(o2::pmr::vector<char> const& v) -> Long64_t
 {
   Int_t previousErrorLevel = gErrorIgnoreLevel;
   gErrorIgnoreLevel = kFatal;
