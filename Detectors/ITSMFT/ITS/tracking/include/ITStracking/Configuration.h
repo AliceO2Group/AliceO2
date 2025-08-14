@@ -31,6 +31,7 @@ namespace o2::its
 
 struct TrackingParameters {
   int CellMinimumLevel() const noexcept { return MinTrackLength - constants::ClustersPerCell + 1; }
+  int NeighboursPerRoad() const noexcept { return NLayers - 3; }
   int CellsPerRoad() const noexcept { return NLayers - 2; }
   int TrackletsPerRoad() const noexcept { return NLayers - 1; }
   std::string asString() const;

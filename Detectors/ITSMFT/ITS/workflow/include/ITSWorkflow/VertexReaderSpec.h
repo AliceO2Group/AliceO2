@@ -19,7 +19,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "ReconstructionDataFormats/Vertex.h"
+#include "ITStracking/Definitions.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
@@ -30,8 +30,6 @@ namespace its
 
 class VertexReader : public o2::framework::Task
 {
-  using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
-
  public:
   VertexReader() = default;
   ~VertexReader() override = default;

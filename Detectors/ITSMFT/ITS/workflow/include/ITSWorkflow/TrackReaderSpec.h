@@ -20,11 +20,11 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
+#include "ITStracking/Definitions.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
@@ -33,8 +33,6 @@ namespace its
 
 class TrackReader : public o2::framework::Task
 {
-  using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
-
  public:
   TrackReader(bool useMC = true);
   ~TrackReader() override = default;

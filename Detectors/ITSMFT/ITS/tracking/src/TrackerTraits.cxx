@@ -481,7 +481,7 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
   };
 
   mTaskArena->execute([&] {
-    for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].NeighboursPerRoad(); ++iLayer) {
       deepVectorClear(mTimeFrame->getCellsNeighbours()[iLayer]);
       deepVectorClear(mTimeFrame->getCellsNeighboursLUT()[iLayer]);
       if (mTimeFrame->getCells()[iLayer + 1].empty() ||

@@ -16,16 +16,13 @@
 #ifndef TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 #define TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 
-#include <cmath>
+#include <oneapi/tbb.h>
 
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/BoundedAllocator.h"
-
-#include <oneapi/tbb.h>
-#include <oneapi/tbb/partitioner.h>
 
 // #define OPTIMISATION_OUTPUT
 

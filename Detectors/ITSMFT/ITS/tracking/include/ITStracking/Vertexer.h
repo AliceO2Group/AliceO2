@@ -26,16 +26,14 @@
 #include <oneapi/tbb/task_arena.h>
 
 #include "ITStracking/Constants.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/BoundedAllocator.h"
-#include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2::its
 {
-
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class Vertexer
 {

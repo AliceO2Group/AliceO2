@@ -62,7 +62,6 @@ namespace gpu
 template <int>
 class TimeFrameGPU;
 }
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 template <int nLayers = 7>
 struct TimeFrame {
