@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 1
+# FindO2GPU.cmake Version 2
 
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
@@ -125,6 +125,8 @@ if(ENABLE_CUDA)
     if(GPUCA_CUDA_GCCBIN)
       message(STATUS "Using as CUDA GCC version: ${GPUCA_CUDA_GCCBIN}")
       set(CMAKE_CUDA_HOST_COMPILER "${GPUCA_CUDA_GCCBIN}")
+    elseif(DEFINED ENV{GCC_TOOLCHAIN_ROOT})
+      set(CMAKE_CUDA_HOST_COMPILER "$ENV{GCC_TOOLCHAIN_ROOT}/bin/gcc")
     endif()
     enable_language(CUDA)
     get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
@@ -278,6 +280,12 @@ if(ENABLE_HIP)
       endif()
     endif()
     if (CMAKE_HIP_COMPILER)
+      if(GPUCA_HIP_GCCBIN)
+        message(STATUS "Using as HIP GCC version: ${GPUCA_HIP_GCCBIN}")
+        set(CMAKE_HIP_HOST_COMPILER "${GPUCA_HIP_GCCBIN}")
+      elseif(DEFINED ENV{GCC_TOOLCHAIN_ROOT})
+        set(CMAKE_HIP_HOST_COMPILER "$ENV{GCC_TOOLCHAIN_ROOT}/bin/gcc")
+      endif()
       enable_language(HIP)
       message(STATUS "HIP language enabled: ${CMAKE_HIP_COMPILER}")
     endif()
