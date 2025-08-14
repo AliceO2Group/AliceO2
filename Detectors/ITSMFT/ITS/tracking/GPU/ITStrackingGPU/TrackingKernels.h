@@ -13,6 +13,10 @@
 #ifndef ITSTRACKINGGPU_TRACKINGKERNELS_H_
 #define ITSTRACKINGGPU_TRACKINGKERNELS_H_
 
+#include <gsl/gsl>
+
+#include "ITStracking/BoundedAllocator.h"
+#include "ITStrackingGPU/Utils.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonDef.h"
 
@@ -25,43 +29,43 @@ namespace gpu
 
 #ifdef GPUCA_GPUCODE // GPUg() global kernels must only when compiled by GPU compiler
 
-GPUdi() int4 getEmptyBinsRect()
+GPUdii() int4 getEmptyBinsRect()
 {
   return int4{0, 0, 0, 0};
 }
 
-GPUd() bool fitTrack(TrackITSExt& track,
-                     int start,
-                     int end,
-                     int step,
-                     float chi2clcut,
-                     float chi2ndfcut,
-                     float maxQoverPt,
-                     int nCl,
-                     float Bz,
-                     TrackingFrameInfo** tfInfos,
-                     const o2::base::Propagator* prop,
-                     o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE);
+GPUdii() bool fitTrack(TrackITSExt& track,
+                       int start,
+                       int end,
+                       int step,
+                       float chi2clcut,
+                       float chi2ndfcut,
+                       float maxQoverPt,
+                       int nCl,
+                       float Bz,
+                       TrackingFrameInfo** tfInfos,
+                       const o2::base::Propagator* prop,
+                       o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE);
 
 template <int nLayers = 7>
-GPUg() void fitTrackSeedsKernel(
-  CellSeed* trackSeeds,
-  const TrackingFrameInfo** foundTrackingFrameInfo,
-  o2::its::TrackITSExt* tracks,
-  const float* minPts,
-  const unsigned int nSeeds,
-  const float Bz,
-  const int startLevel,
-  float maxChi2ClusterAttachment,
-  float maxChi2NDF,
-  const o2::base::Propagator* propagator,
-  const o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorF::MatCorrType::USEMatCorrLUT);
+GPUg() void fitTrackSeedsKernel(CellSeed* trackSeeds,
+                                const TrackingFrameInfo** foundTrackingFrameInfo,
+                                o2::its::TrackITSExt* tracks,
+                                const float* minPts,
+                                const unsigned int nSeeds,
+                                const float Bz,
+                                const int startLevel,
+                                float maxChi2ClusterAttachment,
+                                float maxChi2NDF,
+                                const o2::base::Propagator* propagator,
+                                const o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorF::MatCorrType::USEMatCorrLUT);
 #endif
 } // namespace gpu
 
 template <int nLayers = 7>
 void countTrackletsInROFsHandler(const IndexTableUtils* utils,
                                  const uint8_t* multMask,
+                                 const int layer,
                                  const int startROF,
                                  const int endROF,
                                  const int maxROF,
@@ -94,6 +98,7 @@ void countTrackletsInROFsHandler(const IndexTableUtils* utils,
 template <int nLayers = 7>
 void computeTrackletsInROFsHandler(const IndexTableUtils* utils,
                                    const uint8_t* multMask,
+                                   const int layer,
                                    const int startROF,
                                    const int endROF,
                                    const int maxROF,

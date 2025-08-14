@@ -11,6 +11,7 @@
 ///
 
 #include <array>
+#include <vector>
 #include <unistd.h>
 
 #include "DataFormatsITS/TrackITS.h"
@@ -27,15 +28,21 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 {
   mTimeFrameGPU->initialise(iteration, this->mTrkParams[iteration], nLayers);
-  mTimeFrameGPU->loadClustersDevice(iteration);
-  mTimeFrameGPU->loadUnsortedClustersDevice(iteration);
-  mTimeFrameGPU->loadClustersIndexTables(iteration);
-  mTimeFrameGPU->loadTrackingFrameInfoDevice(iteration);
-  mTimeFrameGPU->loadMultiplicityCutMask(iteration);
+
+  // on default stream
   mTimeFrameGPU->loadVertices(iteration);
-  mTimeFrameGPU->loadROframeClustersDevice(iteration);
-  mTimeFrameGPU->createUsedClustersDevice(iteration);
   mTimeFrameGPU->loadIndexTableUtils(iteration);
+  mTimeFrameGPU->loadMultiplicityCutMask(iteration);
+  mTimeFrameGPU->createUsedClustersDeviceArray(iteration);
+  mTimeFrameGPU->createClustersDeviceArray(iteration);
+  mTimeFrameGPU->createUnsortedClustersDeviceArray(iteration);
+  mTimeFrameGPU->createClustersIndexTablesArray(iteration);
+  mTimeFrameGPU->createTrackingFrameInfoDeviceArray(iteration);
+  mTimeFrameGPU->createROFrameClustersDeviceArray(iteration);
+  mTimeFrameGPU->createTrackletsLUTDeviceArray(iteration);
+  mTimeFrameGPU->createTrackletsBuffersArray(iteration);
+  mTimeFrameGPU->createCellsBuffersArray(iteration);
+  mTimeFrameGPU->createCellsLUTDeviceArray(iteration);
 }
 
 template <int nLayers>
@@ -53,40 +60,23 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
   int startROF{this->mTrkParams[iteration].nROFsPerIterations > 0 ? iROFslice * this->mTrkParams[iteration].nROFsPerIterations : 0};
   int endROF{o2::gpu::CAMath::Min(this->mTrkParams[iteration].nROFsPerIterations > 0 ? (iROFslice + 1) * this->mTrkParams[iteration].nROFsPerIterations + this->mTrkParams[iteration].DeltaROF : mTimeFrameGPU->getNrof(), mTimeFrameGPU->getNrof())};
 
-  mTimeFrameGPU->createTrackletsLUTDevice(iteration);
-  countTrackletsInROFsHandler<nLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
-                                       mTimeFrameGPU->getDeviceMultCutMask(),
-                                       startROF,
-                                       endROF,
-                                       mTimeFrameGPU->getNrof(),
-                                       this->mTrkParams[iteration].DeltaROF,
-                                       iVertex,
-                                       mTimeFrameGPU->getDeviceVertices(),
-                                       mTimeFrameGPU->getDeviceROFramesPV(),
-                                       mTimeFrameGPU->getPrimaryVerticesNum(),
-                                       mTimeFrameGPU->getDeviceArrayClusters(),
-                                       mTimeFrameGPU->getClusterSizes(),
-                                       mTimeFrameGPU->getDeviceROframeClusters(),
-                                       mTimeFrameGPU->getDeviceArrayUsedClusters(),
-                                       mTimeFrameGPU->getDeviceArrayClustersIndexTables(),
-                                       mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
-                                       mTimeFrameGPU->getDeviceTrackletsLUTs(), // Required for the exclusive sums
-                                       iteration,
-                                       this->mTrkParams[iteration].NSigmaCut,
-                                       mTimeFrameGPU->getPhiCuts(),
-                                       this->mTrkParams[iteration].PVres,
-                                       mTimeFrameGPU->getMinRs(),
-                                       mTimeFrameGPU->getMaxRs(),
-                                       mTimeFrameGPU->getPositionResolutions(),
-                                       this->mTrkParams[iteration].LayerRadii,
-                                       mTimeFrameGPU->getMSangles(),
-                                       mTimeFrameGPU->getExternalAllocator(),
-                                       conf.nBlocksLayerTracklets[iteration],
-                                       conf.nThreadsLayerTracklets[iteration],
-                                       mTimeFrameGPU->getStreams());
-  mTimeFrameGPU->createTrackletsBuffers();
-  computeTrackletsInROFsHandler<nLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
+  for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
+    // TODO lazy loading of essential data on separate streams
+    mTimeFrameGPU->createUsedClustersDevice(iteration, iLayer);
+    mTimeFrameGPU->loadClustersDevice(iteration, iLayer);
+    mTimeFrameGPU->loadUnsortedClustersDevice(iteration, iLayer);
+    mTimeFrameGPU->loadClustersIndexTables(iteration, iLayer);
+    mTimeFrameGPU->loadROFrameClustersDevice(iteration, iLayer);
+    mTimeFrameGPU->recordEvent(iLayer);
+  }
+
+  // processing starts here
+  for (int iLayer{0}; iLayer < this->mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
+    mTimeFrameGPU->createTrackletsLUTDevice(iteration, iLayer);
+    mTimeFrameGPU->waitEvent(iLayer, iLayer + 1); // wait stream until all data is available
+    countTrackletsInROFsHandler<nLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
                                          mTimeFrameGPU->getDeviceMultCutMask(),
+                                         iLayer,
                                          startROF,
                                          endROF,
                                          mTimeFrameGPU->getNrof(),
@@ -97,14 +87,11 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
                                          mTimeFrameGPU->getPrimaryVerticesNum(),
                                          mTimeFrameGPU->getDeviceArrayClusters(),
                                          mTimeFrameGPU->getClusterSizes(),
-                                         mTimeFrameGPU->getDeviceROframeClusters(),
+                                         mTimeFrameGPU->getDeviceROFrameClusters(),
                                          mTimeFrameGPU->getDeviceArrayUsedClusters(),
                                          mTimeFrameGPU->getDeviceArrayClustersIndexTables(),
-                                         mTimeFrameGPU->getDeviceArrayTracklets(),
-                                         mTimeFrameGPU->getDeviceTracklet(),
-                                         mTimeFrameGPU->getNTracklets(),
                                          mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
-                                         mTimeFrameGPU->getDeviceTrackletsLUTs(),
+                                         mTimeFrameGPU->getDeviceTrackletsLUTs(), // Required for the exclusive sums
                                          iteration,
                                          this->mTrkParams[iteration].NSigmaCut,
                                          mTimeFrameGPU->getPhiCuts(),
@@ -118,24 +105,69 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
                                          conf.nBlocksLayerTracklets[iteration],
                                          conf.nThreadsLayerTracklets[iteration],
                                          mTimeFrameGPU->getStreams());
+    mTimeFrameGPU->createTrackletsBuffers(iLayer);
+    if (mTimeFrameGPU->getNTracklets()[iLayer] == 0) {
+      return;
+    }
+    computeTrackletsInROFsHandler<nLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
+                                           mTimeFrameGPU->getDeviceMultCutMask(),
+                                           iLayer,
+                                           startROF,
+                                           endROF,
+                                           mTimeFrameGPU->getNrof(),
+                                           this->mTrkParams[iteration].DeltaROF,
+                                           iVertex,
+                                           mTimeFrameGPU->getDeviceVertices(),
+                                           mTimeFrameGPU->getDeviceROFramesPV(),
+                                           mTimeFrameGPU->getPrimaryVerticesNum(),
+                                           mTimeFrameGPU->getDeviceArrayClusters(),
+                                           mTimeFrameGPU->getClusterSizes(),
+                                           mTimeFrameGPU->getDeviceROFrameClusters(),
+                                           mTimeFrameGPU->getDeviceArrayUsedClusters(),
+                                           mTimeFrameGPU->getDeviceArrayClustersIndexTables(),
+                                           mTimeFrameGPU->getDeviceArrayTracklets(),
+                                           mTimeFrameGPU->getDeviceTracklets(),
+                                           mTimeFrameGPU->getNTracklets(),
+                                           mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
+                                           mTimeFrameGPU->getDeviceTrackletsLUTs(),
+                                           iteration,
+                                           this->mTrkParams[iteration].NSigmaCut,
+                                           mTimeFrameGPU->getPhiCuts(),
+                                           this->mTrkParams[iteration].PVres,
+                                           mTimeFrameGPU->getMinRs(),
+                                           mTimeFrameGPU->getMaxRs(),
+                                           mTimeFrameGPU->getPositionResolutions(),
+                                           this->mTrkParams[iteration].LayerRadii,
+                                           mTimeFrameGPU->getMSangles(),
+                                           mTimeFrameGPU->getExternalAllocator(),
+                                           conf.nBlocksLayerTracklets[iteration],
+                                           conf.nThreadsLayerTracklets[iteration],
+                                           mTimeFrameGPU->getStreams());
+  }
 }
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
 {
-  mTimeFrameGPU->createCellsLUTDevice();
   auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
 
-  mTimeFrameGPU->syncStream(0);
-  for (int iLayer = 0; iLayer < this->mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
-    mTimeFrameGPU->syncStream(iLayer + 1);
+  for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
+    // TODO lazy loading of essential data on separate streams
+    mTimeFrameGPU->loadTrackingFrameInfoDevice(iteration, iLayer);
+    mTimeFrameGPU->recordEvent(iLayer);
+  }
 
+  for (int iLayer{0}; iLayer < this->mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
     // if there are no tracklets skip entirely
     const int currentLayerTrackletsNum{static_cast<int>(mTimeFrameGPU->getNTracklets()[iLayer])};
     if (!currentLayerTrackletsNum || !mTimeFrameGPU->getNTracklets()[iLayer + 1]) {
       mTimeFrameGPU->getNCells()[iLayer] = 0;
-      continue;
+      return;
     }
+
+    mTimeFrameGPU->createCellsLUTDevice(iLayer);
+    mTimeFrameGPU->waitEvent(iLayer, iLayer + 1); // wait stream until all data is available
+    mTimeFrameGPU->waitEvent(iLayer, iLayer + 2); // wait stream until all data is available
     countCellsHandler(mTimeFrameGPU->getDeviceArrayClusters(),
                       mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
                       mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
@@ -156,6 +188,9 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
                       conf.nThreadsLayerCells[iteration],
                       mTimeFrameGPU->getStreams());
     mTimeFrameGPU->createCellsBuffers(iLayer);
+    if (mTimeFrameGPU->getNCells()[iLayer] == 0) {
+      return;
+    }
     computeCellsHandler(mTimeFrameGPU->getDeviceArrayClusters(),
                         mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
                         mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
@@ -180,21 +215,16 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
 {
-  mTimeFrameGPU->createNeighboursIndexTablesDevice();
   const auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
 
-  mTimeFrameGPU->syncStream(0);
-  for (int iLayer{0}; iLayer < this->mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
-    // ensure that celling is done for iLayer and iLayer+1 is done
-    mTimeFrameGPU->syncStream(iLayer + 1);
-
+  for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NeighboursPerRoad(); ++iLayer) {
     const int currentLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer])};
     const int nextLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer + 1])};
     if (!nextLayerCellsNum || !currentLayerCellsNum) {
       mTimeFrameGPU->getNNeighbours()[iLayer] = 0;
       continue;
     }
-
+    mTimeFrameGPU->createNeighboursIndexTablesDevice(iLayer);
     mTimeFrameGPU->createNeighboursLUTDevice(iLayer, nextLayerCellsNum);
     countCellNeighboursHandler(mTimeFrameGPU->getDeviceArrayCells(),
                                mTimeFrameGPU->getDeviceNeighboursLUT(iLayer), // LUT is initialised here.
@@ -214,6 +244,9 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
                                conf.nThreadsFindNeighbours[iteration],
                                mTimeFrameGPU->getStream(iLayer));
     mTimeFrameGPU->createNeighboursDevice(iLayer);
+    if (mTimeFrameGPU->getNNeighbours()[iLayer] == 0) {
+      continue;
+    }
     computeCellNeighboursHandler(mTimeFrameGPU->getDeviceArrayCells(),
                                  mTimeFrameGPU->getDeviceNeighboursLUT(iLayer),
                                  mTimeFrameGPU->getDeviceArrayCellsLUT(),
@@ -236,8 +269,8 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
                                                                                mTimeFrameGPU->getStream(iLayer),
                                                                                mTimeFrameGPU->getExternalAllocator());
   }
-  mTimeFrameGPU->syncStreams(); // TODO evaluate if this can be removed
-};
+  mTimeFrameGPU->syncStreams(false);
+}
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)

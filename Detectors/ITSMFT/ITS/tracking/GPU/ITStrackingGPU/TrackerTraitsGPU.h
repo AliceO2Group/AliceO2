@@ -24,7 +24,7 @@ class TrackerTraitsGPU final : public TrackerTraits<nLayers>
 {
  public:
   TrackerTraitsGPU() = default;
-  ~TrackerTraitsGPU() override = default;
+  ~TrackerTraitsGPU() final = default;
 
   void adoptTimeFrame(TimeFrame<nLayers>* tf) final;
   void initialiseTimeFrame(const int iteration) final;
