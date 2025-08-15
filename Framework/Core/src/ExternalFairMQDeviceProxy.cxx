@@ -13,6 +13,8 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/DefaultsHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/InitContext.h"
@@ -534,7 +536,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       timingInfo.runNumber = dh->runNumber;
       timingInfo.tfCounter = dh->tfCounter;
       LOG(debug) << msgidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(msgidx + 1)->GetSize();
-      if (dh->runNumber == 0 || (dh->tfCounter == 0 && dh->dataDescription.as<std::string>() != "EOS") || (fmqRunNumber > 0 && fmqRunNumber != dh->runNumber)) {
+      if (DefaultsHelpers::deploymentMode() != DeploymentMode::FST && (dh->runNumber == 0 || (dh->tfCounter == 0 && dh->dataDescription.as<std::string>() != "EOS") || (fmqRunNumber > 0 && fmqRunNumber != dh->runNumber))) {
         LOG(error) << "INVALID runNumber / tfCounter: runNumber " << dh->runNumber
                    << ", tfCounter " << dh->tfCounter << ", FMQ runNumber " << fmqRunNumber
                    << " for msgidx " << msgidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(msgidx + 1)->GetSize();
