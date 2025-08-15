@@ -666,7 +666,6 @@ void TimeFrame<nLayers>::wipe()
   deepVectorClear(mROFramesPV);
   deepVectorClear(mPrimaryVertices);
   deepVectorClear(mRoads);
-  deepVectorClear(mRoadLabels);
   deepVectorClear(mMSangles);
   deepVectorClear(mPhiCuts);
   deepVectorClear(mPositionResolution);
@@ -676,9 +675,15 @@ void TimeFrame<nLayers>::wipe()
   deepVectorClear(mTrackletsIndexROF);
   deepVectorClear(mPrimaryVertices);
   deepVectorClear(mTrackletClusters);
-  deepVectorClear(mVerticesContributorLabels);
   deepVectorClear(mLines);
-  deepVectorClear(mLinesLabels);
+  if (hasMCinformation()) {
+    deepVectorClear(mLinesLabels);
+    deepVectorClear(mVerticesContributorLabels);
+    deepVectorClear(mTrackletLabels);
+    deepVectorClear(mCellLabels);
+    deepVectorClear(mRoadLabels);
+    deepVectorClear(mTracksLabel);
+  }
 }
 
 template class TimeFrame<7>;
