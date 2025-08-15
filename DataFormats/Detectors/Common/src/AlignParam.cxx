@@ -308,8 +308,9 @@ bool AlignParam::applyToGeometry(int printLevel) const
   TGeoHMatrix* align = new TGeoHMatrix(createMatrix());
   if (mIsGlobal) {
     align->Multiply(node->GetMatrix());
-    TGeoHMatrix* g = node->GetMatrix(node->GetLevel() - 1);
     align->MultiplyLeft(node->GetMatrix(node->GetLevel() - 1)->Inverse());
+  } else {
+    align->MultiplyLeft(node->GetOriginalMatrix());
   }
 
   node->Align(align);
