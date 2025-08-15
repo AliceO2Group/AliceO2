@@ -168,47 +168,47 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
     mTimeFrameGPU->createCellsLUTDevice(iLayer);
     mTimeFrameGPU->waitEvent(iLayer, iLayer + 1); // wait stream until all data is available
     mTimeFrameGPU->waitEvent(iLayer, iLayer + 2); // wait stream until all data is available
-    countCellsHandler(mTimeFrameGPU->getDeviceArrayClusters(),
-                      mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
-                      mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
-                      mTimeFrameGPU->getDeviceArrayTracklets(),
-                      mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
-                      currentLayerTrackletsNum,
-                      iLayer,
-                      nullptr,
-                      mTimeFrameGPU->getDeviceArrayCellsLUT(),
-                      mTimeFrameGPU->getDeviceCellLUTs()[iLayer],
-                      this->mTrkParams[iteration].DeltaROF,
-                      this->mBz,
-                      this->mTrkParams[iteration].MaxChi2ClusterAttachment,
-                      this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
-                      this->mTrkParams[iteration].NSigmaCut,
-                      mTimeFrameGPU->getExternalAllocator(),
-                      conf.nBlocksLayerCells[iteration],
-                      conf.nThreadsLayerCells[iteration],
-                      mTimeFrameGPU->getStreams());
+    countCellsHandler<nLayers>(mTimeFrameGPU->getDeviceArrayClusters(),
+                               mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
+                               mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
+                               mTimeFrameGPU->getDeviceArrayTracklets(),
+                               mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
+                               currentLayerTrackletsNum,
+                               iLayer,
+                               nullptr,
+                               mTimeFrameGPU->getDeviceArrayCellsLUT(),
+                               mTimeFrameGPU->getDeviceCellLUTs()[iLayer],
+                               this->mTrkParams[iteration].DeltaROF,
+                               this->mBz,
+                               this->mTrkParams[iteration].MaxChi2ClusterAttachment,
+                               this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
+                               this->mTrkParams[iteration].NSigmaCut,
+                               mTimeFrameGPU->getExternalAllocator(),
+                               conf.nBlocksLayerCells[iteration],
+                               conf.nThreadsLayerCells[iteration],
+                               mTimeFrameGPU->getStreams());
     mTimeFrameGPU->createCellsBuffers(iLayer);
     if (mTimeFrameGPU->getNCells()[iLayer] == 0) {
       return;
     }
-    computeCellsHandler(mTimeFrameGPU->getDeviceArrayClusters(),
-                        mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
-                        mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
-                        mTimeFrameGPU->getDeviceArrayTracklets(),
-                        mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
-                        currentLayerTrackletsNum,
-                        iLayer,
-                        mTimeFrameGPU->getDeviceCells()[iLayer],
-                        mTimeFrameGPU->getDeviceArrayCellsLUT(),
-                        mTimeFrameGPU->getDeviceCellLUTs()[iLayer],
-                        this->mTrkParams[iteration].DeltaROF,
-                        this->mBz,
-                        this->mTrkParams[iteration].MaxChi2ClusterAttachment,
-                        this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
-                        this->mTrkParams[iteration].NSigmaCut,
-                        conf.nBlocksLayerCells[iteration],
-                        conf.nThreadsLayerCells[iteration],
-                        mTimeFrameGPU->getStreams());
+    computeCellsHandler<nLayers>(mTimeFrameGPU->getDeviceArrayClusters(),
+                                 mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
+                                 mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
+                                 mTimeFrameGPU->getDeviceArrayTracklets(),
+                                 mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
+                                 currentLayerTrackletsNum,
+                                 iLayer,
+                                 mTimeFrameGPU->getDeviceCells()[iLayer],
+                                 mTimeFrameGPU->getDeviceArrayCellsLUT(),
+                                 mTimeFrameGPU->getDeviceCellLUTs()[iLayer],
+                                 this->mTrkParams[iteration].DeltaROF,
+                                 this->mBz,
+                                 this->mTrkParams[iteration].MaxChi2ClusterAttachment,
+                                 this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
+                                 this->mTrkParams[iteration].NSigmaCut,
+                                 conf.nBlocksLayerCells[iteration],
+                                 conf.nThreadsLayerCells[iteration],
+                                 mTimeFrameGPU->getStreams());
   }
 }
 
@@ -226,43 +226,43 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
     }
     mTimeFrameGPU->createNeighboursIndexTablesDevice(iLayer);
     mTimeFrameGPU->createNeighboursLUTDevice(iLayer, nextLayerCellsNum);
-    countCellNeighboursHandler(mTimeFrameGPU->getDeviceArrayCells(),
-                               mTimeFrameGPU->getDeviceNeighboursLUT(iLayer), // LUT is initialised here.
-                               mTimeFrameGPU->getDeviceArrayCellsLUT(),
-                               mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
-                               mTimeFrameGPU->getDeviceNeighboursIndexTables(iLayer),
-                               (const Tracklet**)mTimeFrameGPU->getDeviceArrayTracklets(),
-                               this->mTrkParams[0].DeltaROF,
-                               this->mTrkParams[0].MaxChi2ClusterAttachment,
-                               this->mBz,
-                               iLayer,
-                               currentLayerCellsNum,
-                               nextLayerCellsNum,
-                               1e2,
-                               mTimeFrameGPU->getExternalAllocator(),
-                               conf.nBlocksFindNeighbours[iteration],
-                               conf.nThreadsFindNeighbours[iteration],
-                               mTimeFrameGPU->getStream(iLayer));
+    countCellNeighboursHandler<nLayers>(mTimeFrameGPU->getDeviceArrayCells(),
+                                        mTimeFrameGPU->getDeviceNeighboursLUT(iLayer), // LUT is initialised here.
+                                        mTimeFrameGPU->getDeviceArrayCellsLUT(),
+                                        mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
+                                        mTimeFrameGPU->getDeviceNeighboursIndexTables(iLayer),
+                                        (const Tracklet**)mTimeFrameGPU->getDeviceArrayTracklets(),
+                                        this->mTrkParams[0].DeltaROF,
+                                        this->mTrkParams[0].MaxChi2ClusterAttachment,
+                                        this->mBz,
+                                        iLayer,
+                                        currentLayerCellsNum,
+                                        nextLayerCellsNum,
+                                        1e2,
+                                        mTimeFrameGPU->getExternalAllocator(),
+                                        conf.nBlocksFindNeighbours[iteration],
+                                        conf.nThreadsFindNeighbours[iteration],
+                                        mTimeFrameGPU->getStream(iLayer));
     mTimeFrameGPU->createNeighboursDevice(iLayer);
     if (mTimeFrameGPU->getNNeighbours()[iLayer] == 0) {
       continue;
     }
-    computeCellNeighboursHandler(mTimeFrameGPU->getDeviceArrayCells(),
-                                 mTimeFrameGPU->getDeviceNeighboursLUT(iLayer),
-                                 mTimeFrameGPU->getDeviceArrayCellsLUT(),
-                                 mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
-                                 mTimeFrameGPU->getDeviceNeighboursIndexTables(iLayer),
-                                 (const Tracklet**)mTimeFrameGPU->getDeviceArrayTracklets(),
-                                 this->mTrkParams[0].DeltaROF,
-                                 this->mTrkParams[0].MaxChi2ClusterAttachment,
-                                 this->mBz,
-                                 iLayer,
-                                 currentLayerCellsNum,
-                                 nextLayerCellsNum,
-                                 1e2,
-                                 conf.nBlocksFindNeighbours[iteration],
-                                 conf.nThreadsFindNeighbours[iteration],
-                                 mTimeFrameGPU->getStream(iLayer));
+    computeCellNeighboursHandler<nLayers>(mTimeFrameGPU->getDeviceArrayCells(),
+                                          mTimeFrameGPU->getDeviceNeighboursLUT(iLayer),
+                                          mTimeFrameGPU->getDeviceArrayCellsLUT(),
+                                          mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
+                                          mTimeFrameGPU->getDeviceNeighboursIndexTables(iLayer),
+                                          (const Tracklet**)mTimeFrameGPU->getDeviceArrayTracklets(),
+                                          this->mTrkParams[0].DeltaROF,
+                                          this->mTrkParams[0].MaxChi2ClusterAttachment,
+                                          this->mBz,
+                                          iLayer,
+                                          currentLayerCellsNum,
+                                          nextLayerCellsNum,
+                                          1e2,
+                                          conf.nBlocksFindNeighbours[iteration],
+                                          conf.nThreadsFindNeighbours[iteration],
+                                          mTimeFrameGPU->getStream(iLayer));
     mTimeFrameGPU->getArrayNNeighbours()[iLayer] = filterCellNeighboursHandler(mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
                                                                                mTimeFrameGPU->getDeviceNeighbours(iLayer),
                                                                                mTimeFrameGPU->getArrayNNeighbours()[iLayer],
@@ -278,7 +278,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
   auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
   for (int startLevel{this->mTrkParams[iteration].CellsPerRoad()}; startLevel >= this->mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
     const int minimumLayer{startLevel - 1};
-    bounded_vector<CellSeed> trackSeeds(this->getMemoryPool().get());
+    bounded_vector<CellSeed<nLayers>> trackSeeds(this->getMemoryPool().get());
     for (int startLayer{this->mTrkParams[iteration].CellsPerRoad() - 1}; startLayer >= minimumLayer; --startLayer) {
       if ((this->mTrkParams[iteration].StartLayerMask & (1 << (startLayer + 2))) == 0) {
         continue;

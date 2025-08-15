@@ -49,7 +49,7 @@ class TrackerTraitsGPU final : public TrackerTraits<nLayers>
 
  private:
   IndexTableUtils* mDeviceIndexTableUtils;
-  gpu::TimeFrameGPU<7>* mTimeFrameGPU;
+  gpu::TimeFrameGPU<nLayers>* mTimeFrameGPU;
 };
 
 } // namespace o2::its

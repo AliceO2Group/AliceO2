@@ -27,6 +27,8 @@ namespace o2::its::gpu
 template <int nLayers = 7>
 class TimeFrameGPU : public TimeFrame<nLayers>
 {
+  using typename TimeFrame<nLayers>::CellSeedN;
+
  public:
   TimeFrameGPU();
   ~TimeFrameGPU() = default;
@@ -64,7 +66,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   void loadTrackSeedsDevice();
   void loadTrackSeedsChi2Device();
   void loadRoadsDevice();
-  void loadTrackSeedsDevice(bounded_vector<CellSeed>&);
+  void loadTrackSeedsDevice(bounded_vector<CellSeedN>&);
   void createTrackletsBuffers(const int);
   void createTrackletsBuffersArray(const int);
   void createCellsBuffers(const int);
@@ -75,8 +77,8 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   void createNeighboursIndexTablesDevice(const int);
   void createNeighboursDevice(const unsigned int layer);
   void createNeighboursLUTDevice(const int, const unsigned int);
-  void createTrackITSExtDevice(bounded_vector<CellSeed>&);
-  void downloadTrackITSExtDevice(bounded_vector<CellSeed>&);
+  void createTrackITSExtDevice(bounded_vector<CellSeedN>&);
+  void downloadTrackITSExtDevice(bounded_vector<CellSeedN>&);
   void downloadCellsNeighboursDevice(std::vector<bounded_vector<std::pair<int, int>>>&, const int);
   void downloadNeighboursLUTDevice(bounded_vector<int>&, const int);
   void downloadCellsDevice();
@@ -125,8 +127,8 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   int** getDeviceArrayTrackletsLUT() const { return mTrackletsLUTDeviceArray; }
   int** getDeviceArrayCellsLUT() const { return mCellsLUTDeviceArray; }
   int** getDeviceArrayNeighboursCellLUT() const { return mNeighboursCellLUTDeviceArray; }
-  CellSeed** getDeviceArrayCells() { return mCellsDeviceArray; }
-  CellSeed* getDeviceTrackSeeds() { return mTrackSeedsDevice; }
+  CellSeedN** getDeviceArrayCells() { return mCellsDeviceArray; }
+  CellSeedN* getDeviceTrackSeeds() { return mTrackSeedsDevice; }
   o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
   float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
   int* getDeviceNeighboursIndexTables(const int layer) { return mNeighboursIndexTablesDevice[layer]; }
@@ -145,7 +147,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   gsl::span<int*> getDeviceTrackletsLUTs() { return mTrackletsLUTDevice; }
   gsl::span<int*> getDeviceCellLUTs() { return mCellsLUTDevice; }
   gsl::span<Tracklet*> getDeviceTracklets() { return mTrackletsDevice; }
-  gsl::span<CellSeed*> getDeviceCells() { return mCellsDevice; }
+  gsl::span<CellSeedN*> getDeviceCells() { return mCellsDevice; }
 
   // Overridden getters
   int getNumberOfTracklets() const final;
@@ -189,10 +191,10 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   int** mNeighboursCellDeviceArray{nullptr};
   int** mNeighboursCellLUTDeviceArray{nullptr};
   int** mTrackletsLUTDeviceArray{nullptr};
-  std::array<CellSeed*, nLayers - 2> mCellsDevice;
-  CellSeed** mCellsDeviceArray;
+  std::array<CellSeedN*, nLayers - 2> mCellsDevice;
+  CellSeedN** mCellsDeviceArray;
   std::array<int*, nLayers - 3> mNeighboursIndexTablesDevice;
-  CellSeed* mTrackSeedsDevice{nullptr};
+  CellSeedN* mTrackSeedsDevice{nullptr};
   std::array<o2::track::TrackParCovF*, nLayers - 2> mCellSeedsDevice;
   o2::track::TrackParCovF** mCellSeedsDeviceArray;
   std::array<float*, nLayers - 2> mCellSeedsChi2Device;

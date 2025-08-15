@@ -190,7 +190,7 @@ void Tracker<nLayers>::computeRoadsMClabels()
         }
       }
 
-      const CellSeed& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
+      const auto& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
 
       if (isFirstRoadCell) {
 

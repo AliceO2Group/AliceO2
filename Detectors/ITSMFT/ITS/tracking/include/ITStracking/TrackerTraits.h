@@ -22,6 +22,7 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/TimeFrame.h"
+#include "ITStracking/Cell.h"
 #include "ITStracking/BoundedAllocator.h"
 
 // #define OPTIMISATION_OUTPUT
@@ -39,6 +40,8 @@ class TrackITSExt;
 template <int nLayers = 7>
 class TrackerTraits
 {
+  using CellSeedN = CellSeed<nLayers>;
+
  public:
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame<nLayers>* tf) { mTimeFrame = tf; }
@@ -55,7 +58,7 @@ class TrackerTraits
   virtual void findShortPrimaries();
 
   virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration);
-  virtual void processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeed>& updatedCellSeed, bounded_vector<int>& updatedCellId);
+  virtual void processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeedN>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId);
 
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars) { mTrkParams = trkPars; }
   TimeFrame<nLayers>* getTimeFrame() { return mTimeFrame; }
