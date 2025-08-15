@@ -35,8 +35,9 @@ namespace o2::its
 class ITSTrackingInterface
 {
   static constexpr int NLayers{7};
-  using TrackerTraits7 = TrackerTraits<NLayers>;
-  using TimeFrame7 = TimeFrame<NLayers>;
+  using TrackerN = Tracker<NLayers>;
+  using TrackerTraitsN = TrackerTraits<NLayers>;
+  using TimeFrameN = TimeFrame<NLayers>;
 
  public:
   ITSTrackingInterface(bool isMC,
@@ -66,13 +67,13 @@ class ITSTrackingInterface
   virtual void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj);
 
   // Custom
-  void setTraitsFromProvider(VertexerTraits*, TrackerTraits7*, TimeFrame7*);
+  void setTraitsFromProvider(VertexerTraits*, TrackerTraitsN*, TimeFrameN*);
   void setTrackingMode(TrackingMode::Type mode = TrackingMode::Unset) { mMode = mode; }
 
   auto getTracker() const { return mTracker.get(); }
   auto getVertexer() const { return mVertexer.get(); }
 
-  TimeFrame7* mTimeFrame = nullptr;
+  TimeFrameN* mTimeFrame = nullptr;
 
  protected:
   virtual void loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
@@ -88,7 +89,7 @@ class ITSTrackingInterface
   TrackingMode::Type mMode = TrackingMode::Unset;
   bool mOverrideBeamEstimation = false;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
-  std::unique_ptr<Tracker> mTracker = nullptr;
+  std::unique_ptr<TrackerN> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
