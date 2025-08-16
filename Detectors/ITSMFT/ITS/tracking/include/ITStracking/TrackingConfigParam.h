@@ -97,6 +97,8 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool doUPCIteration = false;             // Perform an additional iteration for UPC events on tagged vertices. You want to combine this config with VertexerParamConfig.nIterations=2
   int nIterations = MaxIter;               // overwrite the number of iterations
 
+  bool createArtefactLabels{false}; // create on-the-fly labels for the artefacts
+
   int nThreads = 1;
   bool printMemory = false;
   size_t maxMemory = std::numeric_limits<size_t>::max();

@@ -187,6 +187,8 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
       p.MinPt[lslot] *= bFactor;
     }
 
+    p.createArtefactLabels = tc.createArtefactLabels;
+
     p.PrintMemory = tc.printMemory;
     p.MaxMemory = tc.maxMemory;
     p.DropTFUponFailure = tc.dropTFUponFailure;
