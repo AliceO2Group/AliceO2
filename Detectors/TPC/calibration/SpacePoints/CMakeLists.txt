@@ -19,6 +19,7 @@ o2_add_library(SpacePoints
                                      O2::CommonUtils
                                      O2::TPCBase
                                      O2::TRDBase
+                                     O2::TOFBase
                                      O2::TPCReconstruction
                                      O2::TPCFastTransformation
                                      O2::ITStracking

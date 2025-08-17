@@ -105,8 +105,9 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
   if (mDebugOutput) {
     mInterpolation.setDumpTrackPoints();
-    mInterpolation.setITSClusterDictionary(mITSDict);
   }
+  mInterpolation.setExtDetResid(mExtDetResid);
+  mInterpolation.setITSClusterDictionary(mITSDict);
 }
 
 void TPCInterpolationDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -158,7 +159,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mask_t srcVtx, GTrackID::mask_t srcTrk, GTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mask_t srcVtx, GTrackID::mask_t srcTrk, GTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
@@ -199,7 +200,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
     "tpc-track-interpolation",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, srcTrk, srcTrkMap, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, srcTrk, srcTrkMap, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid)},
     Options{
       {"matCorrType", VariantType::Int, 2, {"material correction type (definition in Propagator.h)"}},
       {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
