@@ -65,14 +65,14 @@ constexpr std::array<std::string_view, BasicOp::Conditional + 1> mapping{
   "ifnode"};
 
 constexpr std::array<std::string_view, 8> cfgtypes{
-  "uint16_t",   // 0
-  "int16_t",    // 1
-  "uint32_t",   // 2
-  "int32_t",    // 3
-  "uint64_t",   // 4
-  "int64_t",    // 5
-  "float",      // 6
-  "double"      // 7
+  "uint16_t", // 0
+  "int16_t",  // 1
+  "uint32_t", // 2
+  "int32_t",  // 3
+  "uint64_t", // 4
+  "int64_t",  // 5
+  "float",    // 6
+  "double"    // 7
 };
 
 /// math constants to recognize in string expressions
@@ -825,7 +825,7 @@ Tokenizer::Tokenizer(std::string const& input)
   LastChar = ' ';
   if (!source.empty()) {
     source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end()); // strip whitespaces
-    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end()); // strip quotes
+    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end());         // strip quotes
   }
   current = source.begin();
 }
@@ -840,7 +840,7 @@ void Tokenizer::reset(std::string const& input)
   source = input;
   if (!source.empty()) {
     source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end()); // strip whitespaces
-    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end()); // strip quotes
+    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end());         // strip quotes
   }
   current = source.begin();
   currentToken = Token::Unexpected;
