@@ -170,7 +170,7 @@ struct PlaceholderNode : LiteralNode {
     : LiteralNode{defaultValue},
       name{path}
   {
-    retrieve = [](InitContext& context, char const* name){ return LiteralNode::var_t{context.options().get<T>(name)}; };
+    retrieve = [](InitContext& context, char const* name) { return LiteralNode::var_t{context.options().get<T>(name)}; };
   }
 
   void reset(InitContext& context)
