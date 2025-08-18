@@ -375,4 +375,19 @@ TEST_CASE("TestStringExpressionsParsing")
   auto treef2 = createExpressionTree(tf2, schema);
 
   REQUIRE(treef1->ToString() == treef2->ToString());
+
+  Configurable<float> pTCut{"pTCut", 0.5f, "Lower pT limit"};
+  Filter pcfg1 = o2::aod::track::pt > pTCut;
+  Filter pcfg2 = Parser::parse("o2::aod::track::pt > ncfg(float, 0.5, \"pTCut\")");
+  auto pcfg1specs = createOperations(pcfg1);
+  auto pcfg2specs = createOperations(pcfg2);
+
+  REQUIRE(pcfg2.node->right->self.index() == 3);
+  REQUIRE(pcfg2specs[0].right == (DatumSpec{LiteralNode::var_t{0.5f}, atype::FLOAT}));
+
+  schema = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Pt::asArrowField()});
+  auto tree1c = createExpressionTree(pcfg1specs, schema);
+  auto tree2c = createExpressionTree(pcfg2specs, schema);
+
+  REQUIRE(tree1c->ToString() == tree2c->ToString());
 }

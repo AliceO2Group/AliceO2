@@ -165,6 +165,14 @@ struct PlaceholderNode : LiteralNode {
     retrieve = [](InitContext& context, char const* name) { return LiteralNode::var_t{static_cast<AT>(context.options().get<T>(name))}; };
   }
 
+  template <typename T>
+  PlaceholderNode(T defaultValue, std::string&& path)
+    : LiteralNode{defaultValue},
+      name{path}
+  {
+    retrieve = [](InitContext& context, char const* name){ return LiteralNode::var_t{context.options().get<T>(name)}; };
+  }
+
   void reset(InitContext& context)
   {
     value = retrieve(context, name.data());
@@ -594,6 +602,13 @@ inline Node protect0(Node&& expr)
 {
   auto copy = expr;
   return ifnode(nabs(Node{copy}) < o2::constants::math::Almost0, o2::constants::math::Almost0, Node{copy});
+}
+
+/// context-independent configurable
+template <typename T>
+inline Node ncfg(T defaultValue, std::string path)
+{
+  return PlaceholderNode(defaultValue, path);
 }
 
 /// A struct, containing the root of the expression tree

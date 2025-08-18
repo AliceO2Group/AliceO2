@@ -45,7 +45,7 @@ struct EtaAndClsHistogramsSimple {
   void init(InitContext&)
   {
     if (!trackFilterString->empty()) {
-      trackFilter = trackFilterString;
+      trackFilter = Parser::parse((std::string)trackFilterString);
     }
   }
 
@@ -68,7 +68,7 @@ struct EtaAndClsHistogramsIUSimple {
   void init(InitContext&)
   {
     if (!trackFilterString->empty()) {
-      trackFilter = trackFilterString;
+      trackFilter = Parser::parse((std::string)trackFilterString);
     }
   }
 
@@ -90,7 +90,7 @@ struct EtaAndClsHistogramsFull {
   void init(InitContext&)
   {
     if (!trackFilterString->empty()) {
-      trackFilter = trackFilterString;
+      trackFilter = Parser::parse((std::string)trackFilterString);
     }
   }
 
