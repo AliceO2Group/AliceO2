@@ -38,7 +38,7 @@ class GeometryBase
     }
   }
   GPUd() bool getSMstatus(int sm) const { return (mSMStatus & (0x1 << sm)) != 0; }
-  GPUd() static int getDetectorSec(int det) { return (det / (constants::NLAYER * constants::NSTACK)); }
+  GPUd() static int getDetectorSec(int det) { return (det % (constants::NLAYER * constants::NSTACK)); }
   GPUd() static int getDetectorSec(int layer, int stack) { return (layer + stack * constants::NLAYER); }
   GPUd() static int getDetector(int layer, int stack, int sector) { return (layer + stack * constants::NLAYER + sector * constants::NLAYER * constants::NSTACK); }
   GPUd() static int getLayer(int det) { return (det % constants::NLAYER); }
