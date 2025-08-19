@@ -168,16 +168,18 @@ struct PlaceholderNode : LiteralNode {
   template <typename T>
   PlaceholderNode(T defaultValue, std::string&& path)
     : LiteralNode{defaultValue},
-      name{path}
+      stored_name{path},
+      name{stored_name}
   {
     retrieve = [](InitContext& context, char const* name) { return LiteralNode::var_t{context.options().get<T>(name)}; };
   }
 
   void reset(InitContext& context)
   {
-    value = retrieve(context, name.data());
+    value = retrieve(context, stored_name.empty() ? name.data() : stored_name.data());
   }
 
+  std::string stored_name;
   std::string const& name;
   LiteralNode::var_t (*retrieve)(InitContext&, char const*);
 };
