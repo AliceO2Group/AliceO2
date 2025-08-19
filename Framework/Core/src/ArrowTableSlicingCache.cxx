@@ -102,7 +102,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   auto column = table->GetColumnByName(k);
 
   // starting from the end, find the first positive value, in a sorted column it is the largest index
-  for (auto iChunk = column->num_chunks() - 1; iChunk >=0; --iChunk) {
+  for (auto iChunk = column->num_chunks() - 1; iChunk >= 0; --iChunk) {
     auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
     for (auto iElement = chunk.length() - 1; iElement >= 0; --iElement) {
       auto value = chunk.Value(iElement);
