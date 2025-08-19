@@ -814,7 +814,7 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
         TrackITSExt temporaryTrack{seed};
         temporaryTrack.resetCovariance();
         temporaryTrack.setChi2(0);
-        for (int iL{0}; iL < 7; ++iL) {
+        for (int iL{0}; iL < nLayers; ++iL) {
           temporaryTrack.setExternalClusterIndex(iL, seed.getCluster(iL), seed.getCluster(iL) != constants::UnusedIndex);
         }
 

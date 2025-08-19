@@ -35,6 +35,8 @@ namespace o2::its
 class ITSTrackingInterface
 {
   static constexpr int NLayers{7};
+  using VertexerN = Vertexer<NLayers>;
+  using VertexerTraitsN = VertexerTraits<NLayers>;
   using TrackerN = Tracker<NLayers>;
   using TrackerTraitsN = TrackerTraits<NLayers>;
   using TimeFrameN = TimeFrame<NLayers>;
@@ -67,7 +69,7 @@ class ITSTrackingInterface
   virtual void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj);
 
   // Custom
-  void setTraitsFromProvider(VertexerTraits*, TrackerTraitsN*, TimeFrameN*);
+  void setTraitsFromProvider(VertexerTraitsN*, TrackerTraitsN*, TimeFrameN*);
   void setTrackingMode(TrackingMode::Type mode = TrackingMode::Unset) { mMode = mode; }
 
   auto getTracker() const { return mTracker.get(); }
@@ -90,7 +92,7 @@ class ITSTrackingInterface
   bool mOverrideBeamEstimation = false;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<TrackerN> mTracker = nullptr;
-  std::unique_ptr<Vertexer> mVertexer = nullptr;
+  std::unique_ptr<VertexerN> mVertexer = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;

@@ -56,7 +56,7 @@ o2::its::TrackerTraits<7>* GPUChainITS::GetITSTrackerTraits()
   return mITSTrackerTraits.get();
 }
 
-o2::its::VertexerTraits* GPUChainITS::GetITSVertexerTraits()
+o2::its::VertexerTraits<7>* GPUChainITS::GetITSVertexerTraits()
 {
   if (mITSVertexerTraits == nullptr) {
     mRec->GetITSTraits(nullptr, &mITSVertexerTraits, nullptr);

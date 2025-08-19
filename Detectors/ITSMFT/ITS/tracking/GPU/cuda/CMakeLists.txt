@@ -22,8 +22,8 @@ if(CUDA_ENABLED)
                            TimeFrameGPU.cu
                            TracerGPU.cu
                            TrackingKernels.cu
-                           VertexingKernels.cu
-                           VertexerTraitsGPU.cxx
+                           # VertexingKernels.cu
+                           # VertexerTraitsGPU.cxx
                    PUBLIC_INCLUDE_DIRECTORIES ../
                    PUBLIC_LINK_LIBRARIES O2::ITStracking
                                          O2::SimConfig

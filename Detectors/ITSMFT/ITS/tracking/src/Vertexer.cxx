@@ -26,7 +26,8 @@
 namespace o2::its
 {
 
-Vertexer::Vertexer(VertexerTraits* traits) : mTraits(traits)
+template <int nLayers>
+Vertexer<nLayers>::Vertexer(VertexerTraitsN* traits) : mTraits(traits)
 {
   if (!mTraits) {
     LOG(fatal) << "nullptr passed to ITS vertexer construction.";
@@ -34,7 +35,8 @@ Vertexer::Vertexer(VertexerTraits* traits) : mTraits(traits)
   mVertParams.resize(1);
 }
 
-float Vertexer::clustersToVertices(LogFunc logger)
+template <int nLayers>
+float Vertexer<nLayers>::clustersToVertices(LogFunc logger)
 {
   LogFunc evalLog = [](const std::string&) {};
 
@@ -87,16 +89,18 @@ float Vertexer::clustersToVertices(LogFunc logger)
   return timeInit + timeTracklet + timeSelection + timeVertexing;
 }
 
-void Vertexer::adoptTimeFrame(TimeFrame7& tf)
+template <int nLayers>
+void Vertexer<nLayers>::adoptTimeFrame(TimeFrameN& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
 }
 
-void Vertexer::printEpilog(LogFunc& logger,
-                           const unsigned int trackletN01, const unsigned int trackletN12,
-                           const unsigned selectedN, const unsigned int vertexN, const float initT,
-                           const float trackletT, const float selecT, const float vertexT)
+template <int nLayers>
+void Vertexer<nLayers>::printEpilog(LogFunc& logger,
+                                    const unsigned int trackletN01, const unsigned int trackletN12,
+                                    const unsigned selectedN, const unsigned int vertexN, const float initT,
+                                    const float trackletT, const float selecT, const float vertexT)
 {
   logger(fmt::format(" - {} Vertexer: found {} | {} tracklets in: {} ms", mTraits->getName(), trackletN01, trackletN12, trackletT));
   logger(fmt::format(" - {} Vertexer: selected {} tracklets in: {} ms", mTraits->getName(), selectedN, selecT));
@@ -106,5 +110,7 @@ void Vertexer::printEpilog(LogFunc& logger,
     mMemoryPool->print();
   }
 }
+
+template class Vertexer<7>;
 
 } // namespace o2::its

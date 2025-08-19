@@ -95,8 +95,9 @@ GPUdii() int4 getEmptyBinsRect()
   return int4{0, 0, 0, 0};
 }
 
+template <int nLayers>
 GPUdii() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                const o2::its::IndexTableUtils& utils,
+                                const IndexTableUtils<nLayers>& utils,
                                 const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = o2::gpu::CAMath::Min(z1, z2) - maxdeltaz;
@@ -331,7 +332,7 @@ GPUg() void fitTrackSeedsKernel(
     temporaryTrack.resetCovariance();
     temporaryTrack.setChi2(0);
     auto& clusters = seed.getClusters();
-    for (int iL{0}; iL < 7; ++iL) {
+    for (int iL{0}; iL < nLayers; ++iL) {
       temporaryTrack.setExternalClusterIndex(iL, clusters[iL], clusters[iL] != constants::UnusedIndex);
     }
     bool fitSuccess = fitTrack(temporaryTrack,               // TrackITSExt& track,
@@ -523,9 +524,9 @@ GPUg() void computeLayerCellsKernel(
   }
 }
 
-template <bool initRun>
+template <bool initRun, int nLayers>
 GPUg() void computeLayerTrackletsMultiROFKernel(
-  const IndexTableUtils* utils,
+  const IndexTableUtils<nLayers>* utils,
   const uint8_t* multMask,
   const int layerIndex,
   const int startROF,
@@ -601,7 +602,7 @@ GPUg() void computeLayerTrackletsMultiROFKernel(
         const float zAtRmax{tanLambda * (maxR - currentCluster.radius) + currentCluster.zCoordinate};
         const float sqInverseDeltaZ0{1.f / (math_utils::Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + constants::Tolerance)}; /// protecting from overflows adding the detector resolution
         const float sigmaZ{o2::gpu::CAMath::Sqrt(math_utils::Sq(resolution) * math_utils::Sq(tanLambda) * ((math_utils::Sq(inverseR0) + sqInverseDeltaZ0) * math_utils::Sq(meanDeltaR) + 1.f) + math_utils::Sq(meanDeltaR * MSAngle))};
-        const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex + 1, *utils, zAtRmin, zAtRmax, sigmaZ * NSigmaCut, phiCut)};
+        const int4 selectedBinsRect{getBinsRect<nLayers>(currentCluster, layerIndex + 1, *utils, zAtRmin, zAtRmax, sigmaZ * NSigmaCut, phiCut)};
         if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
           continue;
         }
@@ -769,7 +770,7 @@ GPUhi() void deallocateMemory(void* p, size_t bytes, cudaStream_t stream = nullp
 } // namespace gpu
 
 template <int nLayers>
-void countTrackletsInROFsHandler(const IndexTableUtils* utils,
+void countTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
                                  const uint8_t* multMask,
                                  const int layer,
                                  const int startROF,
@@ -833,7 +834,7 @@ void countTrackletsInROFsHandler(const IndexTableUtils* utils,
 }
 
 template <int nLayers>
-void computeTrackletsInROFsHandler(const IndexTableUtils* utils,
+void computeTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
                                    const uint8_t* multMask,
                                    const int layer,
                                    const int startROF,
@@ -1241,7 +1242,7 @@ void trackSeedHandler(CellSeed<nLayers>* trackSeeds,
 }
 
 /// Explicit instantiation of ITS2 handlers
-template void countTrackletsInROFsHandler<7>(const IndexTableUtils* utils,
+template void countTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                              const uint8_t* multMask,
                                              const int layer,
                                              const int startROF,
@@ -1273,7 +1274,7 @@ template void countTrackletsInROFsHandler<7>(const IndexTableUtils* utils,
                                              const int nThreads,
                                              gpu::Streams& streams);
 
-template void computeTrackletsInROFsHandler<7>(const IndexTableUtils* utils,
+template void computeTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                                const uint8_t* multMask,
                                                const int layer,
                                                const int startROF,

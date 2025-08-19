@@ -28,9 +28,10 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
-using namespace o2::its;
+namespace o2::its
+{
 
-template <TrackletMode Mode, bool EvalRun>
+template <TrackletMode Mode, bool EvalRun, int nLayers>
 static void trackleterKernelHost(
   const gsl::span<const Cluster>& clustersNextLayer,    // 0 2
   const gsl::span<const Cluster>& clustersCurrentLayer, // 1 1
@@ -39,7 +40,7 @@ static void trackleterKernelHost(
   const float phiCut,
   bounded_vector<Tracklet>& tracklets,
   gsl::span<int> foundTracklets,
-  const IndexTableUtils& utils,
+  const IndexTableUtils<nLayers>& utils,
   const short pivotRof,
   const short targetRof,
   gsl::span<int> rofFoundTrackletsOffsets, // we want to change those, to keep track of the offset in deltaRof>0
@@ -51,7 +52,7 @@ static void trackleterKernelHost(
   for (int iCurrentLayerClusterIndex = 0; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
     const Cluster& currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
-    const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
+    const int4 selectedBinsRect{VertexerTraits<nLayers>::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
       if (phiBinsNum < 0) {
@@ -151,7 +152,8 @@ static void trackletSelectionKernelHost(
   }
 }
 
-void VertexerTraits::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& tfPar)
+template <int nLayers>
+void VertexerTraits<nLayers>::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;
   mIndexTableUtils.setTrackingParameters(vrtPar[0]);
@@ -162,7 +164,8 @@ void VertexerTraits::updateVertexingParameters(const std::vector<VertexingParame
 }
 
 // Main functions
-void VertexerTraits::computeTracklets(const int iteration)
+template <int nLayers>
+void VertexerTraits<nLayers>::computeTracklets(const int iteration)
 {
   mTaskArena->execute([&] {
     tbb::parallel_for(
@@ -283,7 +286,8 @@ void VertexerTraits::computeTracklets(const int iteration)
 #endif
 }
 
-void VertexerTraits::computeTrackletMatching(const int iteration)
+template <int nLayers>
+void VertexerTraits<nLayers>::computeTrackletMatching(const int iteration)
 {
   mTaskArena->execute([&] {
     tbb::parallel_for(
@@ -341,7 +345,8 @@ void VertexerTraits::computeTrackletMatching(const int iteration)
   deepVectorClear(mTimeFrame->getTracklets()[1]);
 }
 
-void VertexerTraits::computeVertices(const int iteration)
+template <int nLayers>
+void VertexerTraits<nLayers>::computeVertices(const int iteration)
 {
   auto nsigmaCut{std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f)};
   bounded_vector<Vertex> vertices(mMemoryPool.get());
@@ -497,7 +502,8 @@ void VertexerTraits::computeVertices(const int iteration)
 #endif
 }
 
-void VertexerTraits::addTruthSeedingVertices()
+template <int nLayers>
+void VertexerTraits<nLayers>::addTruthSeedingVertices()
 {
   LOGP(info, "Using truth seeds as vertices; will skip computations");
   mTimeFrame->resetRofPV();
@@ -562,7 +568,8 @@ void VertexerTraits::addTruthSeedingVertices()
   LOGP(info, "Found {}/{} ROFs with {} vertices -> <NV>={:.2f}", vertices.size(), mTimeFrame->getNrof(), nVerts, (float)nVerts / (float)vertices.size());
 }
 
-void VertexerTraits::setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena)
+template <int nLayers>
+void VertexerTraits<nLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena)
 {
 #if defined(VTX_DEBUG)
   LOGP(info, "Vertexer with debug output forcing single thread");
@@ -578,7 +585,8 @@ void VertexerTraits::setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena)
 #endif
 }
 
-void VertexerTraits::debugComputeTracklets(int iteration)
+template <int nLayers>
+void VertexerTraits<nLayers>::debugComputeTracklets(int iteration)
 {
   auto stream = new utils::TreeStreamRedirector("artefacts_tf.root", "recreate");
   LOGP(info, "writing debug output for computeTracklets");
@@ -597,7 +605,8 @@ void VertexerTraits::debugComputeTracklets(int iteration)
   delete stream;
 }
 
-void VertexerTraits::debugComputeTrackletMatching(int iteration)
+template <int nLayers>
+void VertexerTraits<nLayers>::debugComputeTrackletMatching(int iteration)
 {
   auto stream = new utils::TreeStreamRedirector("artefacts_tf.root", "update");
   LOGP(info, "writing debug output for computeTrackletMatching");
@@ -718,7 +727,8 @@ void VertexerTraits::debugComputeTrackletMatching(int iteration)
   delete stream;
 }
 
-void VertexerTraits::debugComputeVertices(int iteration)
+template <int nLayers>
+void VertexerTraits<nLayers>::debugComputeVertices(int iteration)
 {
   auto stream = new utils::TreeStreamRedirector("artefacts_tf.root", "update");
   LOGP(info, "writing debug output for computeVertices");
@@ -831,3 +841,6 @@ void VertexerTraits::debugComputeVertices(int iteration)
   stream->Close();
   delete stream;
 }
+
+template class VertexerTraits<7>;
+} // namespace o2::its

@@ -27,13 +27,14 @@ template <int>
 class CellSeed;
 class TrackingFrameInfo;
 class Tracklet;
+template <int>
 class IndexTableUtils;
 class Cluster;
 class TrackITSExt;
 class ExternalAllocator;
 
 template <int nLayers = 7>
-void countTrackletsInROFsHandler(const IndexTableUtils* utils,
+void countTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
                                  const uint8_t* multMask,
                                  const int layer,
                                  const int startROF,
@@ -66,7 +67,7 @@ void countTrackletsInROFsHandler(const IndexTableUtils* utils,
                                  gpu::Streams& streams);
 
 template <int nLayers = 7>
-void computeTrackletsInROFsHandler(const IndexTableUtils* utils,
+void computeTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
                                    const uint8_t* multMask,
                                    const int layer,
                                    const int startROF,

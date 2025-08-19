@@ -382,11 +382,11 @@ void ITSTrackingInterface::printSummary() const
   mTracker->printSummary();
 }
 
-void ITSTrackingInterface::setTraitsFromProvider(VertexerTraits* vertexerTraits,
+void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits,
                                                  TrackerTraitsN* trackerTraits,
                                                  TimeFrameN* frame)
 {
-  mVertexer = std::make_unique<Vertexer>(vertexerTraits);
+  mVertexer = std::make_unique<VertexerN>(vertexerTraits);
   mTracker = std::make_unique<TrackerN>(trackerTraits);
   mTimeFrame = frame;
   mVertexer->adoptTimeFrame(*mTimeFrame);

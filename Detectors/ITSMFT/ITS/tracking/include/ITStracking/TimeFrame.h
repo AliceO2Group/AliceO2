@@ -65,6 +65,7 @@ class TimeFrameGPU;
 
 template <int nLayers = 7>
 struct TimeFrame {
+  using IndexTableUtilsN = IndexTableUtils<nLayers>;
   using CellSeedN = CellSeed<nLayers>;
   friend class gpu::TimeFrameGPU<nLayers>;
 
@@ -273,7 +274,7 @@ struct TimeFrame {
   void printCellLUTs();
   void printSliceInfo(const int, const int);
 
-  IndexTableUtils mIndexTableUtils;
+  IndexTableUtilsN mIndexTableUtils;
 
   bool mIsGPU = false;
 

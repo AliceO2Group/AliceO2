@@ -16,16 +16,19 @@
 #ifndef TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 #define TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 
+#include <array>
+
+#include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "CommonConstants/MathConstants.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
 
-namespace o2
+namespace o2::its
 {
-namespace its
-{
+
+template <int nLayers>
 class IndexTableUtils
 {
  public:
@@ -48,12 +51,13 @@ class IndexTableUtils
   int mNzBins = 0;
   int mNphiBins = 0;
   float mInversePhiBinSize = 0.f;
-  float mLayerZ[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
-  float mInverseZBinSize[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  std::array<float, nLayers> mLayerZ{};
+  std::array<float, nLayers> mInverseZBinSize{};
 };
 
+template <int nLayers>
 template <class T>
-inline void IndexTableUtils::setTrackingParameters(const T& params)
+inline void IndexTableUtils<nLayers>::setTrackingParameters(const T& params)
 {
   mInversePhiBinSize = params.PhiBins / o2::constants::math::TwoPI;
   mNzBins = params.ZBins;
@@ -66,28 +70,33 @@ inline void IndexTableUtils::setTrackingParameters(const T& params)
   }
 }
 
-inline float IndexTableUtils::getInverseZCoordinate(const int layerIndex) const
+template <int nLayers>
+inline float IndexTableUtils<nLayers>::getInverseZCoordinate(const int layerIndex) const
 {
   return 0.5f * mNzBins / mLayerZ[layerIndex];
 }
 
-GPUhdi() int IndexTableUtils::getZBinIndex(const int layerIndex, const float zCoordinate) const
+template <int nLayers>
+GPUhdi() int IndexTableUtils<nLayers>::getZBinIndex(const int layerIndex, const float zCoordinate) const
 {
   return (zCoordinate + mLayerZ[layerIndex]) * mInverseZBinSize[layerIndex];
 }
 
-GPUhdi() int IndexTableUtils::getPhiBinIndex(const float currentPhi) const
+template <int nLayers>
+GPUhdi() int IndexTableUtils<nLayers>::getPhiBinIndex(const float currentPhi) const
 {
   return (currentPhi * mInversePhiBinSize);
 }
 
-GPUhdi() int IndexTableUtils::getBinIndex(const int zIndex, const int phiIndex) const
+template <int nLayers>
+GPUhdi() int IndexTableUtils<nLayers>::getBinIndex(const int zIndex, const int phiIndex) const
 {
   return o2::gpu::GPUCommonMath::Min(phiIndex * mNzBins + zIndex, mNzBins * mNphiBins - 1);
 }
 
-GPUhdi() int IndexTableUtils::countRowSelectedBins(const int* indexTable, const int phiBinIndex,
-                                                   const int minZBinIndex, const int maxZBinIndex) const
+template <int nLayers>
+GPUhdi() int IndexTableUtils<nLayers>::countRowSelectedBins(const int* indexTable, const int phiBinIndex,
+                                                            const int minZBinIndex, const int maxZBinIndex) const
 {
   const int firstBinIndex{getBinIndex(minZBinIndex, phiBinIndex)};
   const int maxBinIndex{firstBinIndex + maxZBinIndex - minZBinIndex + 1};
@@ -95,14 +104,14 @@ GPUhdi() int IndexTableUtils::countRowSelectedBins(const int* indexTable, const 
   return indexTable[maxBinIndex] - indexTable[firstBinIndex];
 }
 
-GPUhdi() void IndexTableUtils::print() const
+template <int nLayers>
+GPUhdi() void IndexTableUtils<nLayers>::print() const
 {
   printf("NzBins: %d, NphiBins: %d, InversePhiBinSize: %f\n", mNzBins, mNphiBins, mInversePhiBinSize);
-  for (int iLayer{0}; iLayer < 7; ++iLayer) {
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
     printf("Layer %d: Z: %f, InverseZBinSize: %f\n", iLayer, mLayerZ[iLayer], mInverseZBinSize[iLayer]);
   }
 }
-} // namespace its
-} // namespace o2
 
+} // namespace o2::its
 #endif /* TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_ */

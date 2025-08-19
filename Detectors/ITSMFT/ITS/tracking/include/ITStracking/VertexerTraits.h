@@ -48,10 +48,11 @@ enum class TrackletMode {
   Layer1Layer2 = 2
 };
 
+template <int nLayers>
 class VertexerTraits
 {
-  static constexpr int NLayers{7};
-  using TimeFrame7 = TimeFrame<NLayers>;
+  using IndexTableUtilsN = IndexTableUtils<nLayers>;
+  using TimeFrameN = TimeFrame<nLayers>;
 
  public:
   VertexerTraits() = default;
@@ -62,8 +63,8 @@ class VertexerTraits
     return int4{0, 0, 0, 0};
   }
   GPUhd() const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
-  GPUhd() static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi, const IndexTableUtils&);
-  GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
+  GPUhd() static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi, const IndexTableUtilsN&);
+  GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtilsN&);
   GPUhd() const int2 getPhiBins(float phi, float deltaPhi) { return getPhiBins(phi, deltaPhi, mIndexTableUtils); }
 
   // virtual vertexer interface
@@ -71,7 +72,7 @@ class VertexerTraits
   virtual void computeTracklets(const int iteration = 0);
   virtual void computeTrackletMatching(const int iteration = 0);
   virtual void computeVertices(const int iteration = 0);
-  virtual void adoptTimeFrame(TimeFrame7* tf) noexcept { mTimeFrame = tf; }
+  virtual void adoptTimeFrame(TimeFrameN* tf) noexcept { mTimeFrame = tf; }
   virtual void updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
 
   // truth tracking
@@ -81,7 +82,6 @@ class VertexerTraits
   auto& getVertexingParameters() { return mVrtParams; }
   auto getVertexingParameters() const { return mVrtParams; }
   void setVertexingParameters(std::vector<VertexingParameters>& vertParams) { mVrtParams = vertParams; }
-  void dumpVertexerTraits();
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena);
   int getNThreads() { return mTaskArena->max_concurrency(); }
   virtual bool isGPU() const noexcept { return false; }
@@ -112,10 +112,10 @@ class VertexerTraits
 
  protected:
   std::vector<VertexingParameters> mVrtParams;
-  IndexTableUtils mIndexTableUtils;
+  IndexTableUtilsN mIndexTableUtils;
 
   // Frame related quantities
-  TimeFrame7* mTimeFrame = nullptr; // observer ptr
+  TimeFrameN* mTimeFrame = nullptr; // observer ptr
  private:
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
@@ -126,20 +126,23 @@ class VertexerTraits
   void debugComputeVertices(int iteration);
 };
 
-inline void VertexerTraits::initialise(const TrackingParameters& trackingParams, const int iteration)
+template <int nLayers>
+inline void VertexerTraits<nLayers>::initialise(const TrackingParameters& trackingParams, const int iteration)
 {
   mTimeFrame->initialise(0, trackingParams, 3, (bool)(!iteration)); // iteration for initialisation must be 0 for correctly resetting the frame, we need to pass the non-reset flag for vertices as well, tho.
 }
 
-GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi, const IndexTableUtils& utils)
+template <int nLayers>
+GPUhdi() const int2 VertexerTraits<nLayers>::getPhiBins(float phi, float dPhi, const IndexTableUtilsN& utils)
 {
   return int2{utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi - dPhi)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi + dPhi))};
 }
 
-GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                const float directionZIntersection, float maxdeltaz, float maxdeltaphi,
-                                                const IndexTableUtils& utils)
+template <int nLayers>
+GPUhdi() const int4 VertexerTraits<nLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi,
+                                                         const IndexTableUtilsN& utils)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phi - maxdeltaphi;
@@ -157,8 +160,9 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 
-GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+template <int nLayers>
+GPUhdi() const int4 VertexerTraits<nLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   return VertexerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection, maxdeltaz, maxdeltaphi, mIndexTableUtils);
 }

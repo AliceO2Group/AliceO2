@@ -58,8 +58,8 @@ class CookedTrackerDPL : public Task
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;
-  std::unique_ptr<VertexerTraits> mVertexerTraitsPtr = nullptr;
-  std::unique_ptr<Vertexer> mVertexerPtr = nullptr;
+  std::unique_ptr<VertexerTraits<7>> mVertexerTraitsPtr = nullptr;
+  std::unique_ptr<Vertexer<7>> mVertexerPtr = nullptr;
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
   TStopwatch mTimer;

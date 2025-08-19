@@ -21,6 +21,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/MathUtils.h"
+#include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/BoundedAllocator.h"
@@ -40,9 +41,10 @@ class TrackITSExt;
 template <int nLayers = 7>
 class TrackerTraits
 {
+ public:
+  using IndexTableUtilsN = IndexTableUtils<nLayers>;
   using CellSeedN = CellSeed<nLayers>;
 
- public:
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame<nLayers>* tf) { mTimeFrame = tf; }
   virtual void initialiseTimeFrame(const int iteration) { mTimeFrame->initialise(iteration, mTrkParams[iteration], mTrkParams[iteration].NLayers); }
@@ -119,7 +121,7 @@ inline const int4 TrackerTraits<nLayers>::getBinsRect(const int layerIndex, floa
     return getEmptyBinsRect();
   }
 
-  const IndexTableUtils& utils{mTimeFrame->mIndexTableUtils};
+  const IndexTableUtilsN& utils{mTimeFrame->mIndexTableUtils};
   return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex, zRangeMin)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
               o2::gpu::GPUCommonMath::Min(mTrkParams[0].ZBins - 1, utils.getZBinIndex(layerIndex, zRangeMax)), // /!\ trkParams can potentially change across iterations

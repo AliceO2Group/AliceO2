@@ -53,8 +53,8 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, TrackingMode::Type trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
 {
-  mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
-  mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
+  mVertexerTraitsPtr = std::make_unique<VertexerTraits<7>>();
+  mVertexerPtr = std::make_unique<Vertexer<7>>(mVertexerTraitsPtr.get());
 }
 
 void CookedTrackerDPL::init(InitContext& ic)
