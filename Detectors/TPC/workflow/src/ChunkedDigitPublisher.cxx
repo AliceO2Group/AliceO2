@@ -21,8 +21,10 @@
 #include "DataFormatsTPC/Digit.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "TPCReaderWorkflow/PublisherSpec.h"
 #include "TPCSimulation/CommonMode.h"
 #include "DetectorsBase/Detector.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
@@ -52,6 +54,10 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 using namespace o2::framework;
 using namespace o2::header;
 
+template <typename T>
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using DigitOutputType = std::vector<o2::tpc::Digit>;
+
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
@@ -74,6 +80,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option to disable MC truth
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}});
+  workflowOptions.push_back(ConfigParamSpec{"write-digits-file", VariantType::Int, 0, {"Enable writing of tpcdigis.root file"}});
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
@@ -255,7 +262,7 @@ class Task
 /// create the processor spec
 /// describing a processor aggregating digits for various TPC sectors and writing them to file
 /// MC truth information is also aggregated and written out
-DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, std::vector<int> const& tpcsectors, bool mctruth, bool publish = true)
+void getSpec(WorkflowSpec& specs, std::vector<int> const& laneConfiguration, std::vector<int> const& tpcsectors, bool mctruth, bool publish = true, bool writeDigitsFile = false)
 {
   //data definitions
   using DigitsOutputType = std::vector<o2::tpc::Digit>;
@@ -273,8 +280,75 @@ DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, std::vector
     }
   }
 
-  return DataProcessorSpec{
-    "TPCDigitMerger", {}, outputs, AlgorithmSpec{o2::framework::adaptFromTask<Task>(laneConfiguration, tpcsectors, mctruth)}, Options{}};
+  specs.emplace_back(DataProcessorSpec{"TPCDigitMerger", {}, outputs, AlgorithmSpec{o2::framework::adaptFromTask<Task>(laneConfiguration, tpcsectors, mctruth)}, Options{}});
+
+  if (writeDigitsFile) {
+    // Using publishing logic from TPC: RecoWorkflow.cxx
+    auto getIndex = [tpcsectors](o2::framework::DataRef const& ref) {
+      auto const* tpcSectorHeader = o2::framework::DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
+      if (!tpcSectorHeader) {
+        throw std::runtime_error("TPC sector header missing in header stack");
+      }
+      if (tpcSectorHeader->sector() < 0) {
+        // special data sets, don't write
+        return ~(size_t)0;
+      }
+      size_t index = 0;
+      for (auto const& sector : tpcsectors) {
+        if (sector == tpcSectorHeader->sector()) {
+          return index;
+        }
+        ++index;
+      }
+      throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector()) + " not configured for writing");
+    };
+    auto getName = [tpcsectors](std::string base, size_t index) {
+      return base + "_" + std::to_string(tpcsectors.at(index));
+    };
+    auto makeWriterSpec = [tpcsectors, laneConfiguration, mctruth, getIndex, getName](const char* processName,
+                                                                                        const char* defaultFileName,
+                                                                                        const char* defaultTreeName,
+                                                                                        auto&& databranch,
+                                                                                        auto&& mcbranch,
+                                                                                        bool singleBranch = false) {
+      if (tpcsectors.size() == 0) {
+        throw std::invalid_argument(std::string("writer process configuration needs list of TPC sectors"));
+      }
+
+      auto amendInput = [tpcsectors, laneConfiguration](InputSpec& input, size_t index) {
+        input.binding += std::to_string(laneConfiguration[index]);
+        DataSpecUtils::updateMatchingSubspec(input, laneConfiguration[index]);
+      };
+      auto amendBranchDef = [laneConfiguration, amendInput, tpcsectors, getIndex, getName, singleBranch](auto&& def, bool enableMC = true) {
+        if (!singleBranch) {
+          def.keys = mergeInputs(def.keys, laneConfiguration.size(), amendInput);
+          // the branch is disabled if set to 0
+          def.nofBranches = enableMC ? tpcsectors.size() : 0;
+          def.getIndex = getIndex;
+          def.getName = getName;
+        } else {
+          // instead of the separate sector branches only one is going to be written
+          def.nofBranches = enableMC ? 1 : 0;
+        }
+        return std::move(def);
+      };
+
+      return std::move(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                              std::move(amendBranchDef(databranch)),
+                                              std::move(amendBranchDef(mcbranch, mctruth)))());
+    };
+
+    using DigitOutputType = std::vector<o2::tpc::Digit>;
+    specs.push_back(makeWriterSpec("tpc-digits-writer",
+                                   "tpcdigits.root",
+                                   "o2sim",
+                                   BranchDefinition<DigitOutputType>{InputSpec{"data", "TPC", "DIGITS", 0},
+                                                                     "TPCDigit",
+                                                                     "digit-branch-name"},
+                                   BranchDefinition<o2::dataformats::MCLabelContainer>{InputSpec{"mc", "TPC", "DIGITSMCTR", 0},
+                                                                                        "TPCDigitMCTruth",
+                                                                                        "digitmc-branch-name"}));
+  }
 }
 
 } // end namespace tpc
@@ -287,11 +361,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto numlanes = configcontext.options().get<int>("tpc-lanes");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
+  bool writeDigitsFile = configcontext.options().get<bool>("write-digits-file");
   auto tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
 
   std::vector<int> lanes(numlanes);
   std::iota(lanes.begin(), lanes.end(), 0);
-  specs.emplace_back(o2::tpc::getSpec(lanes, tpcsectors, mctruth));
+  o2::tpc::getSpec(specs, lanes, tpcsectors, mctruth, true, writeDigitsFile);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
