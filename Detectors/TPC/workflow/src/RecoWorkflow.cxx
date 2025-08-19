@@ -434,7 +434,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                    (caClusterer || decompressTPC || inputType == InputType::PassThrough) && !isEnabled(OutputType::SendClustersPerSector)));
   }
 
-  if ((isEnabled(OutputType::TPCTriggers) || caClusterer) && !isEnabled(OutputType::DisableWriter)) {
+  if ((isEnabled(OutputType::TPCTriggers) || (caClusterer && runGPUReco)) && !isEnabled(OutputType::DisableWriter)) {
     specs.push_back(o2::tpc::getTPCTriggerWriterSpec());
   }
 
