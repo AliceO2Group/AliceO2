@@ -613,11 +613,13 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mPipeline->mutexDecodeInput);
 
   GRPGeomHelper::instance().checkUpdates(pc);
-  if (mSpecConfig.runITSTracking && pc.inputs().getPos("itsTGeo") >= 0) {
-    pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
-  }
-  if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
-    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
+  if (mSpecConfig.enableDoublePipeline != 2) {
+    if (mSpecConfig.runITSTracking && pc.inputs().getPos("itsTGeo") >= 0) {
+      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+    }
+    if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+      LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
+    }
   }
 
   GPUTrackingInOutPointers ptrs;
@@ -630,23 +632,25 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   mTFSettings->hasNHBFPerTF = 1;
   mTFSettings->nHBFPerTF = mConfParam->overrideNHbfPerTF ? mConfParam->overrideNHbfPerTF : GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
   mTFSettings->hasRunStartOrbit = 0;
-  if (mVerbosity) {
-    LOG(info) << "TF firstTForbit " << mTFSettings->tfStartOrbit << " nHBF " << mTFSettings->nHBFPerTF << " runStartOrbit " << mTFSettings->runStartOrbit << " simStartOrbit " << mTFSettings->simStartOrbit;
-  }
   ptrs.settingsTF = mTFSettings.get();
 
-  if (mConfParam->checkFirstTfOrbit) {
-    static uint32_t lastFirstTFOrbit = -1;
-    static uint32_t lastTFCounter = -1;
-    if (lastFirstTFOrbit != -1 && lastTFCounter != -1) {
-      int32_t diffOrbit = tinfo.firstTForbit - lastFirstTFOrbit;
-      int32_t diffCounter = tinfo.tfCounter - lastTFCounter;
-      if (diffOrbit != diffCounter * mTFSettings->nHBFPerTF) {
-        LOG(error) << "Time frame has mismatching firstTfOrbit - Last orbit/counter: " << lastFirstTFOrbit << " " << lastTFCounter << " - Current: " << tinfo.firstTForbit << " " << tinfo.tfCounter;
-      }
+  if (mSpecConfig.enableDoublePipeline != 2) {
+    if (mVerbosity) {
+      LOG(info) << "TF firstTForbit " << mTFSettings->tfStartOrbit << " nHBF " << mTFSettings->nHBFPerTF << " runStartOrbit " << mTFSettings->runStartOrbit << " simStartOrbit " << mTFSettings->simStartOrbit;
     }
-    lastFirstTFOrbit = tinfo.firstTForbit;
-    lastTFCounter = tinfo.tfCounter;
+    if (mConfParam->checkFirstTfOrbit) {
+      static uint32_t lastFirstTFOrbit = -1;
+      static uint32_t lastTFCounter = -1;
+      if (lastFirstTFOrbit != -1 && lastTFCounter != -1) {
+        int32_t diffOrbit = tinfo.firstTForbit - lastFirstTFOrbit;
+        int32_t diffCounter = tinfo.tfCounter - lastTFCounter;
+        if (diffOrbit != diffCounter * mTFSettings->nHBFPerTF) {
+          LOG(error) << "Time frame has mismatching firstTfOrbit - Last orbit/counter: " << lastFirstTFOrbit << " " << lastTFCounter << " - Current: " << tinfo.firstTForbit << " " << tinfo.tfCounter;
+        }
+      }
+      lastFirstTFOrbit = tinfo.firstTForbit;
+      lastTFCounter = tinfo.tfCounter;
+    }
   }
 
   o2::globaltracking::RecoContainer inputTracksTRD;
@@ -1142,12 +1146,12 @@ Inputs GPURecoWorkflowSpec::inputs()
   } else if (mSpecConfig.enableDoublePipeline == 1) {
     inputs.emplace_back("pipelineprepare", gDataOriginGPU, "PIPELINEPREPARE", 0, Lifetime::Timeframe);
   }
-  if (mSpecConfig.outputTracks || mSpecConfig.caClusterer) {
+  if (mSpecConfig.enableDoublePipeline != 2 && (mSpecConfig.outputTracks || mSpecConfig.caClusterer)) {
     // calibration objects for TPC clusterization
     inputs.emplace_back("tpcgain", gDataOriginTPC, "PADGAINFULL", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainFull)));
     inputs.emplace_back("tpcaltrosync", gDataOriginTPC, "ALTROSYNCSIGNAL", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::AltroSyncSignal)));
   }
-  if (mSpecConfig.outputTracks) {
+  if (mSpecConfig.enableDoublePipeline != 2 && mSpecConfig.outputTracks) {
     // calibration objects for TPC tracking
     const auto mapSources = mSpecConfig.tpcDeadMapSources;
     if (mapSources != 0) {
@@ -1217,15 +1221,17 @@ Inputs GPURecoWorkflowSpec::inputs()
     } else if (mSpecConfig.itsTriggerType == 2) {
       inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
     }
-    if (mSpecConfig.isITS3) {
-      inputs.emplace_back("cldict", "IT3", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/ClusterDictionary"));
-      inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-    } else {
-      inputs.emplace_back("itscldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
-      inputs.emplace_back("itsalppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-    }
-    if (mSpecConfig.itsOverrBeamEst) {
-      inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+    if (mSpecConfig.enableDoublePipeline != 2) {
+      if (mSpecConfig.isITS3) {
+        inputs.emplace_back("cldict", "IT3", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/ClusterDictionary"));
+        inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+      } else {
+        inputs.emplace_back("itscldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
+        inputs.emplace_back("itsalppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+      }
+      if (mSpecConfig.itsOverrBeamEst) {
+        inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+      }
     }
     if (mSpecConfig.processMC) {
       inputs.emplace_back("itsmclabels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
