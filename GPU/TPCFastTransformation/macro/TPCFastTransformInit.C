@@ -56,12 +56,13 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
     To visiualise the results:
 
     root -l transformDebug.root
-    corr->Draw("cx:y:z","iSector==0&&iRow==10","")
-    grid->Draw("cx:y:z","iSector==0&&iRow==10","same")
-    vox->Draw("vx:y:z","iSector==0&&iRow==10","same")
-    corrvox->Draw("cx:y:z","iSector==0&&iRow==10","same")
-    points->Draw("px:y:z","iSector==0&&iRow==10","same")
+    all->Draw("cx:y:z","sec==0&&iRow==10","")
+    grid->Draw("cx:y:z","sec==0&&iRow==10","same")
+    vox->Draw("vx:y:z","sec==0&&iRow==10","same")
+    points->Draw("px:y:z","sec==0&&row==10","same")
   */
+
+  const bool debugMirrorAdata2C = 0;
 
   if (gSystem->AccessPathName(fileName)) {
     std::cout << " input file " << fileName << " does not exist!" << std::endl;
@@ -152,7 +153,15 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
   corrHelper->setNthreadsToMaximum();
   corrHelper->setNthreads(1);
 
-  auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree, voxResTreeInverse, useSmoothed, invertSigns);
+  if (debugMirrorAdata2C) {
+    corrHelper->setDebugMirrorAdata2C();
+  }
+  // corrHelper->setDebugUseVoxelCenters();
+
+  o2::gpu::TPCFastSpaceChargeCorrectionMap mapDirect(0, 0), mapInverse(0, 0);
+
+  auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree, voxResTreeInverse, useSmoothed, invertSigns,
+                                                      &mapDirect, &mapInverse);
 
   std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(
     helper->create(0, *corrPtr));
@@ -199,15 +208,6 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
 
   o2::gpu::TPCFastSpaceChargeCorrection& corr = fastTransform->getCorrection();
 
-  // the difference
-
-  double maxDiff[3] = {0., 0., 0.};
-  int32_t maxDiffSector[3] = {0, 0, 0};
-  int32_t maxDiffRow[3] = {0, 0, 0};
-
-  double sumDiff[3] = {0., 0., 0.};
-  int64_t nDiff = 0;
-
   // a debug file with some NTuples
 
   TDirectory* currDir = gDirectory;
@@ -220,46 +220,77 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
   // measured x,y,z; corrections cx,cy,cz from the measured to the real x,y,z;
   // inverse corrections ix,iy,iz at the real position (x+cx,y+cy,z+cz)
   // ideally, ix = cx, iy = cy, iz = cz
-  TNtuple* debugCorr = new TNtuple("corr", "corr", "iSector:iRow:x:y:z:cx:cy:cz:ix:iy:iz");
+  TNtuple* ntAll = new TNtuple("all", "all",
+                               debugMirrorAdata2C ? "sec:row:x:y:z:cx:cy:cz:ix:iy:iz:cxC:cyC:czC:ixC:iyC:izC"
+                                                  : "sec:row:x:y:z:cx:cy:cz:ix:iy:iz");
 
-  debugCorr->SetMarkerStyle(8);
-  debugCorr->SetMarkerSize(0.1);
-  debugCorr->SetMarkerColor(kBlack);
+  ntAll->SetMarkerStyle(8);
+  ntAll->SetMarkerSize(0.1);
+  ntAll->SetMarkerColor(kBlack);
 
-  // ntuple with the input data: voxels and corrections
   debugFile->cd();
-  TNtuple* debugVox =
-    new TNtuple("vox", "vox", "iSector:iRow:n:x:y:z:vx:vy:vz");
+  TNtuple* ntInvAll = new TNtuple("invall", "invall",
+                                  debugMirrorAdata2C ? "sec:row:x:y:z:cx:cy:cz:cxC:cyC:czC"
+                                                     : "sec:row:x:y:z:cx:cy:cz");
 
-  debugVox->SetMarkerStyle(8);
-  debugVox->SetMarkerSize(0.8);
-  debugVox->SetMarkerColor(kBlue);
+  ntInvAll->SetMarkerStyle(8);
+  ntInvAll->SetMarkerSize(0.1);
+  ntInvAll->SetMarkerColor(kBlack);
 
   // duplicate of debugVox + the spline data at voxels in a different color
   debugFile->cd();
-  TNtuple* debugCorrVox =
-    new TNtuple("corrvox", "corrvox", "iSector:iRow:n:x:y:z:vx:vy:vz:cx:cy:cz:ix:iy:iz");
+  TNtuple* ntVox =
+    new TNtuple("vox", "vox",
+                debugMirrorAdata2C ? "sec:row:n:x:y:z:vx:vy:vz:cx:cy:cz:ix:iy:iz:cxC:cyC:czC:ixC:iyC:izC"
+                                   : "sec:row:n:x:y:z:vx:vy:vz:cx:cy:cz:ix:iy:iz");
 
-  debugCorrVox->SetMarkerStyle(8);
-  debugCorrVox->SetMarkerSize(0.8);
-  debugCorrVox->SetMarkerColor(kMagenta);
+  ntVox->SetMarkerStyle(8);
+  ntVox->SetMarkerSize(0.8);
+  ntVox->SetMarkerColor(kMagenta);
+
+  // duplicate of debugVox + the spline data at voxels in a different color
+  debugFile->cd();
+  TNtuple* ntInvVox =
+    new TNtuple("invvox", "invvox",
+                debugMirrorAdata2C ? "sec:row:n:x:y:z:vx:vy:vz:cx:cy:cz:cxC:cyC:czC"
+                                   : "sec:row:n:x:y:z:vx:vy:vz:cx:cy:cz");
+
+  ntInvVox->SetMarkerStyle(8);
+  ntInvVox->SetMarkerSize(0.8);
+  ntInvVox->SetMarkerColor(kMagenta);
 
   // corrections at the spline grid points
   debugFile->cd();
-  TNtuple* debugGrid = new TNtuple("grid", "grid", "iSector:iRow:x:y:z:cx:cy:cz:ix:iy:iz");
+  TNtuple* ntGrid = new TNtuple("grid", "grid", "sec:row:x:y:z:cx:cy:cz:ix:iy:iz");
 
-  debugGrid->SetMarkerStyle(8);
-  debugGrid->SetMarkerSize(1.2);
-  debugGrid->SetMarkerColor(kBlack);
+  ntGrid->SetMarkerStyle(8);
+  ntGrid->SetMarkerSize(1.2);
+  ntGrid->SetMarkerColor(kBlack);
+
+  // corrections at the spline grid points
+  debugFile->cd();
+  TNtuple* ntInvGrid = new TNtuple("invgrid", "invgrid", "sec:row:x:y:z:cx:cy:cz");
+
+  ntInvGrid->SetMarkerStyle(8);
+  ntInvGrid->SetMarkerSize(1.2);
+  ntGrid->SetMarkerColor(kBlack);
 
   // ntuple with data points created from voxels (with the data smearing, extension to the edges etc.)
   debugFile->cd();
-  TNtuple* debugPoints =
-    new TNtuple("points", "points", "iSector:iRow:x:y:z:px:py:pz:cx:cy:cz");
+  TNtuple* ntFitPoints =
+    new TNtuple("fitpoints", "fit points", "sec:row:x:y:z:px:py:pz:cx:cy:cz");
 
-  debugPoints->SetMarkerStyle(8);
-  debugPoints->SetMarkerSize(0.4);
-  debugPoints->SetMarkerColor(kRed);
+  ntFitPoints->SetMarkerStyle(8);
+  ntFitPoints->SetMarkerSize(0.4);
+  ntFitPoints->SetMarkerColor(kRed);
+
+  debugFile->cd();
+  TNtuple* ntInvFitPoints =
+    new TNtuple("invfitpoints", "fit points", "sec:row:x:y:z:px:py:pz:cx:cy:cz");
+
+  ntInvFitPoints->SetMarkerStyle(8);
+  ntInvFitPoints->SetMarkerSize(0.4);
+  ntInvFitPoints->SetMarkerColor(kRed);
 
   currDir->cd();
 
@@ -269,224 +300,318 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
 
   const o2::gpu::TPCFastTransformGeo& geo = helper->getGeometry();
 
-  auto getAllCorrections = [&](int iSector, int iRow, float y, float z, float& cx, float& cy, float& cz, float& ix, float& iy, float& iz) {
-    // get the corrections cx,cy,cz at x,y,z
-    std::tie(cx, cy, cz) = corr.getCorrectionLocal(iSector, iRow, y, z);
-    float realY = y + cy;
-    float realZ = z + cz;
+  auto getInvCorrections = [&](int iSector, int iRow, float realY, float realZ, float& ix, float& iy, float& iz) {
+    // get the inverse corrections ix, iy, iz at x,y,z
     ix = corr.getCorrectionXatRealYZ(iSector, iRow, realY, realZ);
     std::tie(iy, iz) = corr.getCorrectionYZatRealYZ(iSector, iRow, realY, realZ);
   };
 
-  o2::tpc::TrackResiduals::VoxRes* v = nullptr;
-  TBranch* branch = voxResTree->GetBranch("voxRes");
-  branch->SetAddress(&v);
-  branch->SetAutoDelete(kTRUE);
+  auto getAllCorrections = [&](int iSector, int iRow, float y, float z, float& cx, float& cy, float& cz, float& ix, float& iy, float& iz) {
+    // get the corrections cx,cy,cz at x,y,z
+    std::tie(cx, cy, cz) = corr.getCorrectionLocal(iSector, iRow, y, z);
+    getInvCorrections(iSector, iRow, y + cy, z + cz, ix, iy, iz);
+  };
 
-  int32_t iSectorLast = -1;
-  int32_t iRowLast = -1;
+  for (int direction = 0; direction < 2; direction++) { // 0 - normal, 1 - inverse
 
-  std::cout << "fill debug ntuples at voxels ..." << std::endl;
-
-  for (int32_t iVox = 0; iVox < voxResTree->GetEntriesFast(); iVox++) {
-
-    voxResTree->GetEntry(iVox);
-
-    float voxEntries = v->stat[o2::tpc::TrackResiduals::VoxV];
-
-    int32_t xBin =
-      v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
-
-    int32_t y2xBin =
-      v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
-
-    int32_t z2xBin =
-      v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
-
-    int32_t iSector = (int32_t)v->bsec;
-    int32_t iRow = (int32_t)xBin;
-
-    iSectorLast = iSector;
-    iRowLast = iRow;
-
-    double x = trackResiduals.getX(xBin); // radius of the pad row
-
-    double y2x = trackResiduals.getY2X(
-      xBin, y2xBin); // y/x coordinate of the bin ~-0.15 ... 0.15
-
-    double z2x =
-      trackResiduals.getZ2X(z2xBin); // z/x coordinate of the bin 0.1 .. 0.9
-
-    double y = x * y2x;
-    double z = x * z2x;
-
-    if (iSector >= geo.getNumberOfSectorsA()) {
-      z = -z;
+    TTree* currentTree = (direction == 0) ? voxResTree : voxResTreeInverse;
+    if (!currentTree) {
+      std::cout << "tree voxResTree does not exist!" << std::endl;
+      return;
     }
 
-    double correctionX = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
-    double correctionY = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
-    double correctionZ = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
+    o2::tpc::TrackResiduals::VoxRes* v = nullptr;
+    TBranch* branch = currentTree->GetBranch("voxRes");
+    branch->SetAddress(&v);
+    branch->SetAutoDelete(kTRUE);
 
-    if (invertSigns) {
-      correctionX *= -1.;
-      correctionY *= -1.;
-      correctionZ *= -1.;
-    }
+    int32_t iSectorLast = -1;
+    int32_t iRowLast = -1;
 
-    if (voxEntries > 0.) { // use mean statistical positions instead of the bin centers:
-      y = x * v->stat[o2::tpc::TrackResiduals::VoxF];
-      z = x * v->stat[o2::tpc::TrackResiduals::VoxZ];
-    }
+    // the difference
 
-    float cx, cy, cz, ix, iy, iz;
-    getAllCorrections(iSector, iRow, y, z, cx, cy, cz, ix, iy, iz);
+    double maxDiff[3] = {0., 0., 0.};
+    int32_t maxDiffSector[3] = {0, 0, 0};
+    int32_t maxDiffRow[3] = {0, 0, 0};
 
-    if (voxEntries >= 1.) {
-      double d[3] = {cx - correctionX, cy - correctionY, cz - correctionZ};
+    double sumDiff[3] = {0., 0., 0.};
+    int64_t nDiff = 0;
 
-      for (int32_t i = 0; i < 3; i++) {
-        if (fabs(maxDiff[i]) < fabs(d[i])) {
-          maxDiff[i] = d[i];
-          maxDiffSector[i] = iSector;
-          maxDiffRow[i] = iRow;
-          // std::cout << " sector " << iSector << " row " << iRow << " xyz " << i
-          //  << " diff " << d[i] << " entries " << voxEntries << " y " << y2xBin << " z " << z2xBin << std::endl;
-        }
-        sumDiff[i] += d[i] * d[i];
-      }
-      nDiff++;
-    }
+    std::cout << "fill debug ntuples at voxels ..." << std::endl;
 
-    debugVox->Fill(iSector, iRow, voxEntries, x, y, z, correctionX, correctionY, correctionZ);
+    for (int32_t iVox = 0; iVox < currentTree->GetEntriesFast(); iVox++) {
 
-    debugCorrVox->Fill(iSector, iRow, voxEntries, x, y, z, correctionX, correctionY, correctionZ,
-                       cx, cy, cz, ix, iy, iz);
-  }
+      currentTree->GetEntry(iVox);
 
-  std::cout
-    << "fill debug ntuples everywhere .." << std::endl;
+      float voxEntries = v->stat[o2::tpc::TrackResiduals::VoxV];
 
-  for (int32_t iSector = 0; iSector < geo.getNumberOfSectors(); iSector++) {
-    // for (int32_t iSector = 0; iSector < 1; iSector++) {
-    std::cout << "debug ntules for sector " << iSector << std::endl;
-    for (int32_t iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
+      int32_t xBin =
+        v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
 
-      double x = geo.getRowInfo(iRow).x;
+      int32_t y2xBin =
+        v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
 
-      // the spline grid
+      int32_t z2xBin =
+        v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
 
-      const auto& gridY = corr.getSpline(iSector, iRow).getGridX1();
-      const auto& gridZ = corr.getSpline(iSector, iRow).getGridX2();
-      if (iSector == 0 && iRow == 0) {
-        std::cout << "spline scenario " << corr.getSectorRowInfo(iSector, iRow).splineScenarioID << std::endl;
-        std::cout << "spline grid Y: u = " << 0 << ".." << gridY.getUmax() << ", x = " << gridY.getXmin() << ".." << gridY.getXmax() << std::endl;
-        std::cout << "spline grid Z: u = " << 0 << ".." << gridZ.getUmax() << ", x = " << gridZ.getXmin() << ".." << gridZ.getXmax() << std::endl;
+      int32_t iSector = (int32_t)v->bsec;
+      int32_t iRow = (int32_t)xBin;
+
+      iSectorLast = iSector;
+      iRowLast = iRow;
+
+      double x = trackResiduals.getX(xBin); // radius of the pad row
+
+      double y2x = trackResiduals.getY2X(
+        xBin, y2xBin); // y/x coordinate of the bin ~-0.15 ... 0.15
+
+      double z2x =
+        trackResiduals.getZ2X(z2xBin); // z/x coordinate of the bin 0.1 .. 0.9
+
+      double y = x * y2x;
+      double z = x * z2x;
+
+      double correctionX = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
+      double correctionY = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
+      double correctionZ = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
+
+      double voxelSizeY = x / trackResiduals.getDY2XI(xBin, y2xBin);
+      double voxelSizeZ = x * trackResiduals.getDZ2X(z2xBin);
+
+      if (invertSigns) {
+        correctionX *= -1.;
+        correctionY *= -1.;
+        correctionZ *= -1.;
       }
 
-      // the correction
-      {
-        std::vector<double> points[2], knots[2];
-
-        auto [yMin, yMax] = geo.getRowInfo(iRow).getYrange();
-        auto [zMin, zMax] = geo.getZrange(iSector);
-
-        points[0].push_back(yMin);
-        points[0].push_back(yMax);
-        points[1].push_back(zMin);
-        points[1].push_back(zMax);
-
-        for (int32_t iu = 0; iu < gridY.getNumberOfKnots(); iu++) {
-          auto [y, z] = corr.convGridToLocal(iSector, iRow, gridY.getKnot(iu).getU(), 0.);
-          knots[0].push_back(y);
-          points[0].push_back(y);
-        }
-        for (int32_t iv = 0; iv < gridZ.getNumberOfKnots(); iv++) {
-          auto [y, z] = corr.convGridToLocal(iSector, iRow, 0., gridZ.getKnot(iv).getU());
-          knots[1].push_back(z);
-          points[1].push_back(z);
-        }
-
-        for (int32_t iyz = 0; iyz <= 1; iyz++) {
-          std::sort(knots[iyz].begin(), knots[iyz].end());
-          std::sort(points[iyz].begin(), points[iyz].end());
-          int32_t n = points[iyz].size();
-          for (int32_t i = 0; i < n - 1; i++) {
-            double d = (points[iyz][i + 1] - points[iyz][i]) / 10.;
-            for (int32_t ii = 1; ii < 10; ii++) {
-              points[iyz].push_back(points[iyz][i] + d * ii);
-            }
+      if (!corrHelper->isDebugUseVoxelCenters()) {
+        if (voxEntries > 0.) {
+          // use mean statistical positions instead of the bin centers, unless they are wrong
+          double yFit = x * v->stat[o2::tpc::TrackResiduals::VoxF];
+          if (fabs(yFit - y) <= corrHelper->getVoxelMeanValidityRange() * voxelSizeY / 2.) {
+            y = yFit;
           }
-          std::sort(points[iyz].begin(), points[iyz].end());
+          double zFit = x * v->stat[o2::tpc::TrackResiduals::VoxZ];
+          if (fabs(zFit - z) <= corrHelper->getVoxelMeanValidityRange() * voxelSizeZ / 2.) {
+            z = zFit;
+          }
+        }
+      }
+
+      int mirrorSector = iSector + geo.getNumberOfSectorsA();
+
+      if (iSector >= geo.getNumberOfSectorsA()) {
+        z = -z;
+        mirrorSector = iSector - geo.getNumberOfSectorsA();
+      }
+
+      float cx{0.f}, cy{0.f}, cz{0.f}, ix{0.f}, iy{0.f}, iz{0.f};
+      float cxC{0.f}, cyC{0.f}, czC{0.f}, ixC{0.f}, iyC{0.f}, izC{0.f};
+      if (direction == 0) {
+        getAllCorrections(iSector, iRow, y, z, cx, cy, cz, ix, iy, iz);
+        if (debugMirrorAdata2C) {
+          getAllCorrections(mirrorSector, iRow, y, -z, cxC, cyC, czC, ixC, iyC, izC);
+        }
+        float ntEntry[] = {(float)iSector, (float)iRow, voxEntries,
+                           (float)x, (float)y, (float)z,
+                           (float)correctionX, (float)correctionY, (float)correctionZ,
+                           (float)cx, (float)cy, (float)cz,
+                           (float)ix, (float)iy, (float)iz,
+                           (float)cxC, (float)cyC, (float)czC, (float)ixC, (float)iyC, (float)izC};
+
+        // fill the ntuple with the correction at the voxel
+        ntVox->Fill(ntEntry);
+      } else {
+        getInvCorrections(iSector, iRow, y, z, cx, cy, cz);
+        if (debugMirrorAdata2C) {
+          getInvCorrections(mirrorSector, iRow, y, -z, cxC, cyC, czC);
+        }
+        float ntEntry[] = {(float)iSector, (float)iRow, voxEntries,
+                           (float)x, (float)y, (float)z,
+                           (float)correctionX, (float)correctionY, (float)correctionZ,
+                           (float)cx, (float)cy, (float)cz,
+                           (float)cxC, (float)cyC, (float)czC};
+        // fill the ntuple with the correction at the voxel
+        ntInvVox->Fill(ntEntry);
+      }
+
+      if (voxEntries >= 1.) {
+        double d[3] = {cx - correctionX, cy - correctionY, cz - correctionZ};
+
+        for (int32_t i = 0; i < 3; i++) {
+          if (fabs(maxDiff[i]) < fabs(d[i])) {
+            maxDiff[i] = d[i];
+            maxDiffSector[i] = iSector;
+            maxDiffRow[i] = iRow;
+            // std::cout << " sector " << iSector << " row " << iRow << " xyz " << i
+            //  << " diff " << d[i] << " entries " << voxEntries << " y " << y2xBin << " z " << z2xBin << std::endl;
+          }
+          sumDiff[i] += d[i] * d[i];
+        }
+        nDiff++;
+      }
+    }
+
+    std::cout
+      << "fill debug ntuples everywhere .." << std::endl;
+
+    for (int32_t iSector = 0; iSector < geo.getNumberOfSectors(); iSector++) {
+      // for (int32_t iSector = 0; iSector < 1; iSector++) {
+      std::cout << "debug ntules for sector " << iSector << std::endl;
+
+      int mirrorSector = (iSector >= geo.getNumberOfSectorsA()) ? iSector - geo.getNumberOfSectorsA() : iSector + geo.getNumberOfSectorsA();
+
+      for (int32_t iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
+
+        double x = geo.getRowInfo(iRow).x;
+
+        // the spline grid
+
+        const auto& gridY = corr.getSpline(iSector, iRow).getGridX1();
+        const auto& gridZ = corr.getSpline(iSector, iRow).getGridX2();
+        if (iSector == 0 && iRow == 0) {
+          std::cout << "spline scenario " << corr.getSectorRowInfo(iSector, iRow).splineScenarioID << std::endl;
+          std::cout << "spline grid Y: u = " << 0 << ".." << gridY.getUmax() << ", x = " << gridY.getXmin() << ".." << gridY.getXmax() << std::endl;
+          std::cout << "spline grid Z: u = " << 0 << ".." << gridZ.getUmax() << ", x = " << gridZ.getXmin() << ".." << gridZ.getXmax() << std::endl;
         }
 
-        for (int32_t iter = 0; iter < 2; iter++) {
-          std::vector<double>& py = ((iter == 0) ? knots[0] : points[0]);
-          std::vector<double>& pz = ((iter == 0) ? knots[1] : points[1]);
-          for (uint32_t iu = 0; iu < py.size(); iu++) {
-            for (uint32_t iv = 0; iv < pz.size(); iv++) {
-              float y = py[iu];
-              float z = pz[iv];
-              float cx, cy, cz, ix, iy, iz;
-              getAllCorrections(iSector, iRow, y, z, cx, cy, cz, ix, iy, iz);
-              if (iter == 0) {
-                debugGrid->Fill(iSector, iRow, x, y, z, cx, cy, cz, ix, iy, iz);
-              } else {
-                debugCorr->Fill(iSector, iRow, x, y, z, cx, cy, cz, ix, iy, iz);
+        // the correction
+        {
+          std::vector<double> points[2], knots[2];
+
+          auto [yMin, yMax] = geo.getRowInfo(iRow).getYrange();
+          auto [zMin, zMax] = geo.getZrange(iSector);
+
+          points[0].push_back(yMin);
+          points[0].push_back(yMax);
+          points[1].push_back(zMin);
+          points[1].push_back(zMax);
+
+          for (int32_t iu = 0; iu < gridY.getNumberOfKnots(); iu++) {
+            auto [y, z] = corr.convGridToLocal(iSector, iRow, gridY.getKnot(iu).getU(), 0.);
+            knots[0].push_back(y);
+            points[0].push_back(y);
+          }
+          for (int32_t iv = 0; iv < gridZ.getNumberOfKnots(); iv++) {
+            auto [y, z] = corr.convGridToLocal(iSector, iRow, 0., gridZ.getKnot(iv).getU());
+            knots[1].push_back(z);
+            points[1].push_back(z);
+          }
+
+          for (int32_t iyz = 0; iyz <= 1; iyz++) {
+            std::sort(knots[iyz].begin(), knots[iyz].end());
+            std::sort(points[iyz].begin(), points[iyz].end());
+            int32_t n = points[iyz].size();
+            for (int32_t i = 0; i < n - 1; i++) {
+              double d = (points[iyz][i + 1] - points[iyz][i]) / 10.;
+              for (int32_t ii = 1; ii < 10; ii++) {
+                points[iyz].push_back(points[iyz][i] + d * ii);
+              }
+            }
+            std::sort(points[iyz].begin(), points[iyz].end());
+          }
+
+          for (int32_t iter = 0; iter < 2; iter++) {
+            std::vector<double>& py = ((iter == 0) ? knots[0] : points[0]);
+            std::vector<double>& pz = ((iter == 0) ? knots[1] : points[1]);
+            for (uint32_t iu = 0; iu < py.size(); iu++) {
+              for (uint32_t iv = 0; iv < pz.size(); iv++) {
+                float y = py[iu];
+                float z = pz[iv];
+                float cx{0}, cy{0}, cz{0}, ix{0}, iy{0}, iz{0};
+                float cxC{0}, cyC{0}, czC{0}, ixC{0}, iyC{0}, izC{0};
+                if (direction == 0) {
+                  getAllCorrections(iSector, iRow, y, z, cx, cy, cz, ix, iy, iz);
+                  if (debugMirrorAdata2C) {
+                    getAllCorrections(mirrorSector, iRow, y, -z, cxC, cyC, czC, ixC, iyC, izC);
+                  }
+                  if (iter == 0) {
+                    ntGrid->Fill(iSector, iRow, x, y, z, cx, cy, cz, ix, iy, iz);
+                  } else {
+                    float ntEntry[] = {(float)iSector, (float)iRow, (float)x, y, z,
+                                       cx, cy, cz, ix, iy, iz,
+                                       cxC, cyC, czC, ixC, iyC, izC};
+                    ntAll->Fill(ntEntry);
+                  }
+                } else {
+                  getInvCorrections(iSector, iRow, y, z, cx, cy, cz);
+                  if (debugMirrorAdata2C) {
+                    getInvCorrections(mirrorSector, iRow, y, -z, cxC, cyC, czC);
+                  }
+                  if (iter == 0) {
+                    ntInvGrid->Fill(iSector, iRow, x, y, z, cx, cy, cz);
+                  } else {
+                    float ntEntry[] = {(float)iSector, (float)iRow, (float)x, y, z,
+                                       cx, cy, cz,
+                                       cxC, cyC, czC};
+                    ntInvAll->Fill(ntEntry);
+                  }
+                }
               }
             }
           }
         }
-      }
 
-      // the data points used in spline fit
-      // (they are kept in
-      // TPCFastTransformHelperO2::instance()->getCorrectionMap() )
+        // the data points used in spline fit
+        // (they are kept in
+        // TPCFastTransformHelperO2::instance()->getCorrectionMap() )
 
-      o2::gpu::TPCFastSpaceChargeCorrectionMap& map =
-        corrHelper->getCorrectionMap();
-      auto& points = map.getPoints(iSector, iRow);
+        o2::gpu::TPCFastSpaceChargeCorrectionMap& map = (direction == 0 ? mapDirect : mapInverse);
 
-      for (uint32_t ip = 0; ip < points.size(); ip++) {
-        auto point = points[ip];
-        float y = point.mY;
-        float z = point.mZ;
-        float correctionX = point.mDx;
-        float correctionY = point.mDy;
-        float correctionZ = point.mDz;
+        auto& points = map.getPoints(iSector, iRow);
 
-        auto [cx, cy, cz] =
-          corr.getCorrectionLocal(iSector, iRow, y, z);
-
-        debugPoints->Fill(iSector, iRow, x, y, z, correctionX, correctionY,
-                          correctionZ, cx, cy, cz);
+        for (uint32_t ip = 0; ip < points.size(); ip++) {
+          auto point = points[ip];
+          float y = point.mY;
+          float z = point.mZ;
+          float correctionX = point.mDx;
+          float correctionY = point.mDy;
+          float correctionZ = point.mDz;
+          if (direction == 0) {
+            auto [cx, cy, cz] =
+              corr.getCorrectionLocal(iSector, iRow, y, z);
+            ntFitPoints->Fill(iSector, iRow, x, y, z, correctionX, correctionY,
+                              correctionZ, cx, cy, cz);
+          } else {
+            float cx =
+              corr.getCorrectionXatRealYZ(iSector, iRow, y, z);
+            auto [cy, cz] =
+              corr.getCorrectionYZatRealYZ(iSector, iRow, y, z);
+            ntInvFitPoints->Fill(iSector, iRow, x, y, z, correctionX, correctionY,
+                                 correctionZ, cx, cy, cz);
+          }
+        }
       }
     }
-  }
 
-  for (int32_t i = 0; i < 3; i++) {
-    sumDiff[i] = sqrt(sumDiff[i]) / nDiff;
-  }
+    for (int32_t i = 0; i < 3; i++) {
+      sumDiff[i] = sqrt(sumDiff[i]) / nDiff;
+    }
 
-  std::cout << "Max difference in x :  " << maxDiff[0] << " at Sector "
-            << maxDiffSector[0] << " row " << maxDiffRow[0] << std::endl;
+    std::cout << "Max difference in x :  " << maxDiff[0] << " at Sector "
+              << maxDiffSector[0] << " row " << maxDiffRow[0] << std::endl;
 
-  std::cout << "Max difference in y :  " << maxDiff[1] << " at Sector "
-            << maxDiffSector[1] << " row " << maxDiffRow[1] << std::endl;
+    std::cout << "Max difference in y :  " << maxDiff[1] << " at Sector "
+              << maxDiffSector[1] << " row " << maxDiffRow[1] << std::endl;
 
-  std::cout << "Max difference in z :  " << maxDiff[2] << " at Sector "
-            << maxDiffSector[2] << " row " << maxDiffRow[2] << std::endl;
+    std::cout << "Max difference in z :  " << maxDiff[2] << " at Sector "
+              << maxDiffSector[2] << " row " << maxDiffRow[2] << std::endl;
 
-  std::cout << "Mean difference in x,y,z : " << sumDiff[0] << " " << sumDiff[1]
-            << " " << sumDiff[2] << std::endl;
+    std::cout << "Mean difference in x,y,z : " << sumDiff[0] << " " << sumDiff[1]
+              << " " << sumDiff[2] << std::endl;
+  } // direction
 
   corr.testInverse(true);
 
   debugFile->cd();
-  debugCorr->Write();
-  debugVox->Write();
-  debugCorrVox->Write();
-  debugGrid->Write();
-  debugPoints->Write();
+  ntAll->Write();
+  ntVox->Write();
+  ntGrid->Write();
+  ntFitPoints->Write();
+  ntInvAll->Write();
+  ntInvVox->Write();
+  ntInvGrid->Write();
+  ntInvFitPoints->Write();
+
   debugFile->Close();
 }

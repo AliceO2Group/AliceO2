@@ -90,11 +90,16 @@ class TPCFastSpaceChargeCorrectionHelper
   /// \param voxResTreeInverse TTree with inverse voxel residuals
   /// \param useSmoothed if true, use smoothed residuals
   /// \param invertSigns if true, invert the signs of the residuals
+  /// \param fitPointsDirect debug: pointer to the data used for the direct correction
+  /// \param fitPointsInverse debug: pointer to the data used for the inverse correction
   /// \return pointer to the created TPCFastSpaceChargeCorrection object
   /// \note voxel trees wont be changed. They are read as non-const because of the ROOT::TTreeProcessorMT interface
+  ///
   std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> createFromTrackResiduals(
     const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree, TTree* voxResTreeInverse, //
-    bool useSmoothed, bool invertSigns);
+    bool useSmoothed, bool invertSigns,                                                         //
+    TPCFastSpaceChargeCorrectionMap* fitPointsDirect = nullptr,
+    TPCFastSpaceChargeCorrectionMap* fitPointsInverse = nullptr);
 
   /// _______________  Utilities   ________________________
 
@@ -116,9 +121,27 @@ class TPCFastSpaceChargeCorrectionHelper
   /// \param additionalCorrections vector of pairs of additional corrections and their scaling factors
   /// \param prn printout flag
   /// \return main correction merged with additional corrections
-  void MergeCorrections(
+  void mergeCorrections(
     o2::gpu::TPCFastSpaceChargeCorrection& mainCorrection, float scale,
     const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>>& additionalCorrections, bool prn);
+
+  /// how far the voxel mean is allowed to be outside of the voxel (1.1 means 10%)
+  void setVoxelMeanValidityRange(double range)
+  {
+    mVoxelMeanValidityRange = range;
+  }
+
+  double getVoxelMeanValidityRange() const { return mVoxelMeanValidityRange; }
+
+  /// debug: if true, use voxel centers instead of the fitted positions for correction
+  void setDebugUseVoxelCenters();
+
+  bool isDebugUseVoxelCenters() const { return mDebugUseVoxelCenters; }
+
+  /// debug: if true, mirror the data from the A side to the C side of the TPC
+  void setDebugMirrorAdata2C();
+
+  bool isDebugMirrorAdata2C() const { return mDebugMirrorAdata2C; }
 
  private:
   /// geometry initialization
@@ -132,6 +155,11 @@ class TPCFastSpaceChargeCorrectionHelper
   TPCFastTransformGeo mGeo;                             ///< geometry parameters
 
   TPCFastSpaceChargeCorrectionMap mCorrectionMap{0, 0};
+
+  double mVoxelMeanValidityRange{1.1}; ///< debug: how far the voxel mean is allowed to be outside of the voxel (1.1 means 10%)
+
+  bool mDebugUseVoxelCenters{false}; ///< debug: if true, use voxel centers instead of the fitted positions for correction
+  bool mDebugMirrorAdata2C{false};   ///< debug: if true, mirror the data from the A side to the C side of the TPC
 
   ClassDefNV(TPCFastSpaceChargeCorrectionHelper, 0);
 };
