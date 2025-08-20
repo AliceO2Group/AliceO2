@@ -47,11 +47,10 @@ struct VDriftCorrFact {
     float normVDrift = newVRef;
     if (newVRef == 0.f) {
       normVDrift = refVDrift * corrFact;
-      if ((tp == 0) || (refTP == 0)) {
-        newVRef = normVDrift; // no T/P scaling applied
-      } else {
+      newVRef = normVDrift;
+      if ((tp > 0) && (refTP > 0)) {
         // linear scaling based on relative change of T/P
-        newVRef = normVDrift * (1 + (tp - refTP) / refTP);
+        normVDrift *= refTP / tp;
         refTP = tp; // update reference T/P
       }
     }
