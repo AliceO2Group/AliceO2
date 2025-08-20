@@ -613,7 +613,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mPipeline->mutexDecodeInput);
 
   GRPGeomHelper::instance().checkUpdates(pc);
-  if (pc.inputs().getPos("itsTGeo") >= 0) {
+  if (mSpecConfig.runITSTracking && pc.inputs().getPos("itsTGeo") >= 0) {
     pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
   }
   if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
@@ -1045,7 +1045,7 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
     mGRPGeomUpdated = false;
     needCalibUpdate = true;
 
-    if (!mITSGeometryCreated) {
+    if (mSpecConfig.runITSTracking && !mITSGeometryCreated) {
       o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
       geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
       mITSGeometryCreated = true;
@@ -1078,15 +1078,13 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
       }
       mMatLUTCreated = true;
     }
-    if (!mTRDGeometryCreated) {
-      if (mSpecConfig.readTRDtracklets) {
-        auto gm = o2::trd::Geometry::instance();
-        gm->createPadPlaneArray();
-        gm->createClusterMatrixArray();
-        mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
-        newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
-        LOG(info) << "Loaded TRD geometry";
-      }
+    if (mSpecConfig.readTRDtracklets && !mTRDGeometryCreated) {
+      auto gm = o2::trd::Geometry::instance();
+      gm->createPadPlaneArray();
+      gm->createClusterMatrixArray();
+      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+      newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+      LOG(info) << "Loaded TRD geometry";
       mTRDGeometryCreated = true;
     }
   }
