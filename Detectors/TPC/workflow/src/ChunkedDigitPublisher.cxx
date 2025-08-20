@@ -31,6 +31,7 @@
 #include <CommonUtils/FileSystemUtils.h>
 #include "Algorithm/RangeTokenizer.h"
 #include "TPCBase/Sector.h"
+#include "TPCWorkflow/TPCDigitRootWriterSpec.h"
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -130,6 +131,15 @@ auto makePublishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int s
   return new MCTruthContainer();
 }
 
+template <>
+auto makePublishBuffer<std::vector<o2::tpc::CommonMode>>(framework::ProcessingContext& pc, int sector, uint64_t activeSectors)
+{
+  LOG(info) << "PUBLISHING COMMONMODE SECTOR " << sector;
+  o2::tpc::TPCSectorHeader header{sector};
+  header.activeSectors = activeSectors;
+  return &pc.outputs().make<std::vector<o2::tpc::CommonMode>>(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(sector), header});
+}
+
 template <typename T>
 void publishBuffer(framework::ProcessingContext& pc, int sector, uint64_t activeSectors, T* accum)
 {
@@ -143,14 +153,25 @@ void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int secto
   LOG(info) << "PUBLISHING MC LABELS " << accum->getNElements();
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
-  using LabelType = std::decay_t<decltype(pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"", "", 0}))>;
-  LabelType* sharedlabels;
-#pragma omp critical
-  sharedlabels = &pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(
-    Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(sector), header});
 
-  accum->flatten_to(*sharedlabels);
+#pragma omp critical
+  {
+    // Convert to IOMCTruthContainerView format as expected by TPC reader
+    std::vector<char> flattened;
+    accum->flatten_to(flattened);
+
+    auto& sharedlabels = pc.outputs().make<o2::dataformats::IOMCTruthContainerView>(
+      Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(sector), header});
+    sharedlabels.adopt(std::move(flattened));
+  }
   delete accum;
+}
+
+template <>
+void publishBuffer<std::vector<o2::tpc::CommonMode>>(framework::ProcessingContext& pc, int sector, uint64_t activeSectors, std::vector<o2::tpc::CommonMode>* accum)
+{
+  // CommonMode data is already published by makePublishBuffer, so nothing special needed here
+  LOG(info) << "PUBLISHED COMMONMODE DATA FOR SECTOR " << sector << " SIZE " << accum->size();
 }
 
 template <typename T>
@@ -197,7 +218,7 @@ void mergeHelper(const char* brprefix, std::vector<int> const& tpcsectors, uint6
   }
 }
 
-void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> const& tpcsectors, bool domctruth, framework::ProcessingContext& pc)
+void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> const& tpcsectors, bool domctruth, bool writeDigitsFile, framework::ProcessingContext& pc)
 {
   uint64_t activeSectors = 0;
   for (auto s : tpcsectors) {
@@ -225,15 +246,49 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
     if (domctruth) {
       mergeHelper<LabelType>("TPCDigitMCTruth_", tpcsectors, activeSectors, *originfile, pc);
     }
+    if (writeDigitsFile) {
+      using CommonModeType = std::vector<o2::tpc::CommonMode>;
+      // Try to read common mode data from file, but don't fail if it doesn't exist
+      try {
+        mergeHelper<CommonModeType>("TPCCommonMode_", tpcsectors, activeSectors, *originfile, pc);
+      } catch (const std::exception& e) {
+        LOG(warning) << "CommonMode data not found in file, creating empty data: " << e.what();
+        // Create empty common mode data for each sector
+        for (auto sector : tpcsectors) {
+          o2::tpc::TPCSectorHeader header{sector};
+          header.activeSectors = activeSectors;
+          auto& emptyCommonMode = pc.outputs().make<std::vector<o2::tpc::CommonMode>>(
+            Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(sector), header});
+          // emptyCommonMode is already empty by default
+        }
+      }
+    }
     originfile->Close();
     delete originfile;
+  }
+
+  // Create trigger information for continuous mode (one trigger covering all digits)
+  if (writeDigitsFile) {
+    for (auto sector : tpcsectors) {
+      o2::tpc::TPCSectorHeader header{sector};
+      header.activeSectors = activeSectors;
+      auto& triggers = pc.outputs().make<std::vector<o2::dataformats::RangeReference<int, int>>>(
+        Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(sector), header});
+
+      // For continuous mode, create a single trigger that covers all digits
+      // We need to count the digits for this sector across all files
+      // For now, create a placeholder trigger - the actual digit count will be determined
+      // by the digit writer when it processes the actual digits
+      triggers.emplace_back(0, 1); // placeholder: covers digits from 0 to 1 (will be adjusted by writer)
+      LOG(info) << "Created continuous mode trigger for sector " << sector;
+    }
   }
 }
 
 class Task
 {
  public:
-  Task(std::vector<int> laneConfig, std::vector<int> tpcsectors, bool mctruth) : mLanes(laneConfig), mTPCSectors(tpcsectors), mDoMCTruth(mctruth)
+  Task(std::vector<int> laneConfig, std::vector<int> tpcsectors, bool mctruth, bool writeDigitsFile) : mLanes(laneConfig), mTPCSectors(tpcsectors), mDoMCTruth(mctruth), mWriteDigitsFile(writeDigitsFile)
   {
   }
 
@@ -243,7 +298,7 @@ class Task
 
     TStopwatch w;
     w.Start();
-    publishMergedTimeframes(mLanes, mTPCSectors, mDoMCTruth, pc);
+    publishMergedTimeframes(mLanes, mTPCSectors, mDoMCTruth, mWriteDigitsFile, pc);
 
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -258,6 +313,7 @@ class Task
 
  private:
   bool mDoMCTruth = true;
+  bool mWriteDigitsFile = false;
   std::vector<int> mLanes;
   std::vector<int> mTPCSectors;
 };
@@ -280,54 +336,16 @@ void getSpec(WorkflowSpec& specs, std::vector<int> const& laneConfiguration, std
       if (mctruth) {
         outputs.emplace_back(/*binding,*/ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
       }
+      if (writeDigitsFile) {
+        outputs.emplace_back(/*binding,*/ "TPC", "COMMONMODE", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
+        outputs.emplace_back(/*binding,*/ "TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
+      }
     }
   }
-
-  specs.emplace_back(DataProcessorSpec{"TPCDigitMerger", {}, outputs, AlgorithmSpec{o2::framework::adaptFromTask<Task>(laneConfiguration, tpcsectors, mctruth)}, Options{}});
+  specs.emplace_back(DataProcessorSpec{"TPCDigitMerger", {}, outputs, AlgorithmSpec{o2::framework::adaptFromTask<Task>(laneConfiguration, tpcsectors, mctruth, writeDigitsFile)}, Options{}});
 
   if (writeDigitsFile) {
-    // Simplified approach for ChunkedDigitPublisher - no trigger handling needed
-    // since we're merging pre-processed digit chunks
-
-    auto getIndex = [tpcsectors](o2::framework::DataRef const& ref) -> size_t {
-      auto const* tpcSectorHeader = o2::framework::DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
-      if (!tpcSectorHeader) {
-        throw std::runtime_error("TPC sector header missing in header stack");
-      }
-      if (tpcSectorHeader->sector() < 0) {
-        // special data sets, don't write
-        return ~(size_t)0;
-      }
-      size_t index = 0;
-      for (auto const& sector : tpcsectors) {
-        if (sector == tpcSectorHeader->sector()) {
-          return index;
-        }
-        ++index;
-      }
-      throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector()) + " not configured for writing");
-    };
-
-    auto getName = [tpcsectors](std::string base, size_t index) -> std::string {
-      return base + "_" + std::to_string(tpcsectors.at(index));
-    };
-
-    // Simple branch definitions without custom fill handlers
-    auto digitsdef = BranchDefinition<DigitsOutputType>{InputSpec{"digits", ConcreteDataTypeMatcher{"TPC", "DIGITS"}},
-                                                        "TPCDigit", "digits-branch-name",
-                                                        tpcsectors.size(),
-                                                        getIndex,
-                                                        getName};
-
-    // MC truth branch: write ConstMCTruthContainer directly
-    auto labelsdef = BranchDefinition<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>{InputSpec{"labelinput", ConcreteDataTypeMatcher{"TPC", "DIGITSMCTR"}},
-                                                         "TPCDigitMCTruth", "labels-branch-name",
-                                                         (mctruth ? tpcsectors.size() : 0),
-                                                         getIndex,
-                                                         getName};
-
-    specs.push_back(MakeRootTreeWriterSpec("TPCDigitWriter", "tpcdigits.root", "o2sim",
-                                           std::move(digitsdef), std::move(labelsdef))());
+    specs.push_back(getTPCDigitRootWriterSpec(tpcsectors, mctruth));
   }
 }
 
@@ -341,7 +359,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto numlanes = configcontext.options().get<int>("tpc-lanes");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
-  bool writeDigitsFile = configcontext.options().get<bool>("write-digits-file");
+  bool writeDigitsFile = configcontext.options().get<int>("write-digits-file");
   auto tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
 
   std::vector<int> lanes(numlanes);

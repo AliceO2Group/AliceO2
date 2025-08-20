@@ -14,7 +14,7 @@
 /// @since  2018-04-19
 /// @brief  Processor spec for a ROOT file writer for TPC digits
 
-#include "TPCDigitRootWriterSpec.h"
+#include "TPCWorkflow/TPCDigitRootWriterSpec.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "Framework/InputRecord.h"
