@@ -159,7 +159,9 @@ const char* controlOption()
 }
 
 template <typename T>
-  requires(is_spawns<T> || is_builds<T> || is_defines<T>)
+concept with_base_table = requires(T const& t) { t.base_specs(); };
+
+template <with_base_table T>
 bool requestInputs(std::vector<InputSpec>& inputs, T const& entity)
 {
   auto base_specs = entity.base_specs();
