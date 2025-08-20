@@ -14,7 +14,7 @@
 /// @since  2018-04-19
 /// @brief  Processor spec for a ROOT file writer for TPC digits
 
-#include "TPCDigitRootWriterSpec.h"
+#include "TPCSimWorkflow/TPCDigitRootWriterSpec.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "Framework/InputRecord.h"
@@ -77,7 +77,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     }
   };
 
-  //branch definitions for RootTreeWriter spec
+  // branch definitions for RootTreeWriter spec
   using DigitsOutputType = std::vector<o2::tpc::Digit>;
   using CommonModeOutputType = std::vector<o2::tpc::CommonMode>;
 
@@ -156,8 +156,8 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
       LOG(info) << "DIGIT SIZE " << digiData.size();
       const auto& trigS = (*trigP2Sect.get())[sector];
       int entries = 0;
-      if (!trigS.size()) {
-        std::runtime_error("Digits for sector " + std::to_string(sector) + " are received w/o info on grouping in triggers");
+      if (trigS.size() == 0) {
+        LOG(warn) << "Digits for sector " + std::to_string(sector) + " are received w/o trigger info. Will assume continuous mode";
       } else { // check consistency of Ndigits with that of expected from the trigger
         int nExp = trigS.back().getFirstEntry() + trigS.back().getEntries() - trigS.front().getFirstEntry();
         if (nExp != digiData.size()) {
@@ -167,7 +167,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
       }
 
       {
-        if (trigS.size() == 1) { // just 1 entry (continous mode?), use digits directly
+        if (trigS.size() <= 1) { // just 1 entry (continous mode?), use digits directly
           auto ptr = &digiData;
           branch.SetAddress(&ptr);
           branch.Fill();
@@ -214,8 +214,8 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
       LOG(info) << "MCTRUTH ELEMENTS " << labeldata.getIndexedSize()
                 << " WITH " << labeldata.getNElements() << " LABELS";
       const auto& trigS = (*trigP2Sect.get())[sector];
-      if (!trigS.size()) {
-        throw std::runtime_error("MCTruth for sector " + std::to_string(sector) + " are received w/o info on grouping in triggers");
+      if (trigS.size() == 0) {
+        LOG(warn) << "MCTruth for sector " + std::to_string(sector) + " received w/o trigger info. Will assume continuous mode";
       } else {
         int nExp = trigS.back().getFirstEntry() + trigS.back().getEntries() - trigS.front().getFirstEntry();
         if (nExp != labeldata.getIndexedSize()) {
@@ -225,7 +225,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
         }
       }
       {
-        if (trigS.size() == 1) { // just 1 entry (continous mode?), use labels directly
+        if (trigS.size() <= 1) { // just 0 or 1 entry (continous mode?), use labels directly
           outputcontainer.adopt(labelbuffer);
           br->Fill();
           br->ResetAddress();

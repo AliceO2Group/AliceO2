@@ -21,9 +21,3 @@ o2_add_library(TPCReaderWorkflow
                                      O2::DPLUtils
                                      O2::TPCBase
            )
-
-if(OpenMP_CXX_FOUND)
-  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
-  target_compile_definitions(${mergertargetName} PRIVATE WITH_OPENMP)
-  target_link_libraries(${mergertargetName} PRIVATE OpenMP::OpenMP_CXX)
-endif()

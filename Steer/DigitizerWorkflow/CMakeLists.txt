@@ -24,7 +24,6 @@ o2_add_executable(digitizer-workflow
                           src/CPVDigitizerSpec.cxx
                           src/SimReaderSpec.cxx
                           src/SimpleDigitizerWorkflow.cxx
-                          src/TPCDigitRootWriterSpec.cxx
                           src/TPCDigitizerSpec.cxx
                           src/ZDCDigitizerSpec.cxx
                           src/TOFDigitizerSpec.cxx
@@ -59,6 +58,7 @@ o2_add_executable(digitizer-workflow
                                         O2::TOFReconstruction
                                         O2::TOFWorkflowIO
                                         O2::TPCSimulation
+                                        O2::TPCSimWorkflow
                                         O2::TRDSimulation
                                         O2::TRDWorkflow
                                         O2::TRDWorkflowIO
