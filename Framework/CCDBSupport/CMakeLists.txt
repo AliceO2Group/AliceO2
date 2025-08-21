@@ -1,4 +1,4 @@
-# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2025 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -9,14 +9,21 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 o2_add_library(FrameworkCCDBSupport
-               SOURCES 
+               SOURCES
                 src/Plugin.cxx
+                src/CCDBFetcherHelper.cxx
                 src/CCDBHelpers.cxx
+                src/AnalysisCCDBHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES O2::Framework O2::CCDB)
 
-o2_add_test(CCDBHelpers NAME test_Framework_test_CCDBHelpers
-            SOURCES test/test_CCDBHelpers.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkCCDBSupport)
+add_executable(o2-test-framework-ccdbsupport
+               test/test_CCDBHelpers.cxx)
+target_link_libraries(o2-test-framework-ccdbsupport PRIVATE O2::Framework)
+target_link_libraries(o2-test-framework-ccdbsupport PRIVATE O2::FrameworkCCDBSupport)
+target_link_libraries(o2-test-framework-ccdbsupport PRIVATE O2::Catch2)
+
+get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
+set_property(TARGET o2-test-framework-ccdbsupport PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+
+add_test(NAME framework:ccdbsupport COMMAND o2-test-framework-ccdbsupport --skip-benchmarks)
