@@ -170,8 +170,7 @@ struct WritingCursor {
   decltype(FFL(std::declval<cursor_t>())) cursor;
 
  private:
-  template <is_enumerated_iterator A>
-  static decltype(auto) extract(A const& arg)
+  static decltype(auto) extract(is_enumerated_iterator auto const& arg)
   {
     return arg.globalIndex();
   }
