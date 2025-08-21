@@ -373,7 +373,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
                  static_cast<float>(peak.pad()) + clustererNN.mOutputDataReg1_16[model_output_index].ToFloat(),
                  notSinglePad ? clustererNN.mOutputDataReg1_16[model_output_index + 2].ToFloat() : 0,
                  (clusterer.mPmemory->fragment).start + static_cast<float>(peak.time()) + clustererNN.mOutputDataReg1_16[model_output_index + 1].ToFloat(),
-                 notSingleTime ? clustererNN.mOutputDataReg1_16[model_output_index + 3].ToFloat() : 0.f,
+                 notSingleTime ? clustererNN.mOutputDataReg1_16[model_output_index + 3].ToFloat() : 0,
                  clustererNN.mClusterFlags[2 * glo_idx],
                  clustererNN.mClusterFlags[2 * glo_idx + 1]);
     } else if (dtype == 1) {
