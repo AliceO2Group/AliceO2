@@ -575,7 +575,7 @@ class ColumnIterator : ChunkingPolicy
     auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
     auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
     auto length = list->value_length(*mCurrentPos - mFirstIndex);
-    return std::span<unwrap_t<T> const>{mCurrent + mFirstIndex + offset, mCurrent + mFirstIndex + (offset + length)};
+    return gsl::span<unwrap_t<T> const>{mCurrent + mFirstIndex + offset, mCurrent + mFirstIndex + (offset + length)};
   }
 
   decltype(auto) operator*() const
@@ -2556,12 +2556,12 @@ consteval auto getIndexTargets()
     _Name_##Ids(_Name_##Ids const& other) = default;                                                     \
     _Name_##Ids& operator=(_Name_##Ids const& other) = default;                                          \
                                                                                                          \
-    std::span<const _Type_> inline getIds() const                                                        \
+    gsl::span<const _Type_> inline getIds() const                                                        \
     {                                                                                                    \
       return _Getter_##Ids();                                                                            \
     }                                                                                                    \
                                                                                                          \
-    std::span<const _Type_> _Getter_##Ids() const                                                        \
+    gsl::span<const _Type_> _Getter_##Ids() const                                                        \
     {                                                                                                    \
       return *mColumnIterator;                                                                           \
     }                                                                                                    \
@@ -2915,12 +2915,12 @@ consteval auto getIndexTargets()
     _Name_##Ids() = default;                                                                             \
     _Name_##Ids(_Name_##Ids const& other) = default;                                                     \
     _Name_##Ids& operator=(_Name_##Ids const& other) = default;                                          \
-    std::span<const _Type_> inline getIds() const                                                        \
+    gsl::span<const _Type_> inline getIds() const                                                        \
     {                                                                                                    \
       return _Getter_##Ids();                                                                            \
     }                                                                                                    \
                                                                                                          \
-    std::span<const _Type_> _Getter_##Ids() const                                                        \
+    gsl::span<const _Type_> _Getter_##Ids() const                                                        \
     {                                                                                                    \
       return *mColumnIterator;                                                                           \
     }                                                                                                    \
