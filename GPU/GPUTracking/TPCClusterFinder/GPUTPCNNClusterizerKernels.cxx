@@ -360,20 +360,28 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
       return;
     }
 
+    bool notSinglePad = false, notSingleTime = false;
+    for (uint16_t i = 0; i < 8; i++) {
+      Delta2 d = cfconsts::InnerNeighbors[i];
+      CfChargePos tmp_pos = peak.delta(d);
+      notSinglePad |= (d.x != 0) && (static_cast<float>(chargeMap[tmp_pos].unpack()) > 0);
+      notSingleTime |= (d.y != 0) && (static_cast<float>(chargeMap[tmp_pos].unpack()) > 0);
+    }
+
     if (dtype == 0) {
       pc.setFull(central_charge * clustererNN.mOutputDataReg1_16[model_output_index + 4].ToFloat(),
                  static_cast<float>(peak.pad()) + clustererNN.mOutputDataReg1_16[model_output_index].ToFloat(),
-                 clustererNN.mOutputDataReg1_16[model_output_index + 2].ToFloat(),
+                 notSinglePad ? clustererNN.mOutputDataReg1_16[model_output_index + 2].ToFloat() : 0,
                  (clusterer.mPmemory->fragment).start + static_cast<float>(peak.time()) + clustererNN.mOutputDataReg1_16[model_output_index + 1].ToFloat(),
-                 clustererNN.mOutputDataReg1_16[model_output_index + 3].ToFloat(),
+                 notSingleTime ? clustererNN.mOutputDataReg1_16[model_output_index + 3].ToFloat() : 0.f,
                  clustererNN.mClusterFlags[2 * glo_idx],
                  clustererNN.mClusterFlags[2 * glo_idx + 1]);
     } else if (dtype == 1) {
       pc.setFull(central_charge * clustererNN.mOutputDataReg1_32[model_output_index + 4],
                  static_cast<float>(peak.pad()) + clustererNN.mOutputDataReg1_32[model_output_index],
-                 clustererNN.mOutputDataReg1_32[model_output_index + 2],
+                 notSinglePad ? clustererNN.mOutputDataReg1_32[model_output_index + 2] : 0.f,
                  (clusterer.mPmemory->fragment).start + static_cast<float>(peak.time()) + clustererNN.mOutputDataReg1_32[model_output_index + 1],
-                 clustererNN.mOutputDataReg1_32[model_output_index + 3],
+                 notSingleTime ? clustererNN.mOutputDataReg1_32[model_output_index + 3] : 0.f,
                  clustererNN.mClusterFlags[2 * glo_idx],
                  clustererNN.mClusterFlags[2 * glo_idx + 1]);
     }
