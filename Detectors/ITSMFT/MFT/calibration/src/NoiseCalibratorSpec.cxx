@@ -79,12 +79,12 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
         sendOutputCcdbMerge(pc.outputs());
       } else if (mOutputType.compare("DCS") == 0) {
         LOG(info) << "Sending an object to DCS-Merge";
-        sendOutputDcsMerge(ec.outputs());
+        sendOutputDcsMerge(pc.outputs());
       } else {
         LOG(info) << "Sending an object to Production-CCDB, Production-CCDB-Merge and DCS-Merge";
-        sendOutputCcdb(ec.outputs());
-        sendOutputDcsMerge(ec.outputs());
-        sendOutputCcdbMerge(ec.outputs());
+        sendOutputCcdb(pc.outputs());
+        sendOutputDcsMerge(pc.outputs());
+        sendOutputCcdbMerge(pc.outputs());
       }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
     }
@@ -103,12 +103,12 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
         sendOutputCcdbMerge(pc.outputs());
       } else if (mOutputType.compare("DCS") == 0) {
         LOG(info) << "Sending an object to DCS-Merge";
-        sendOutputDcsMerge(ec.outputs());
+        sendOutputDcsMerge(pc.outputs());
       } else {
         LOG(info) << "Sending an object to Production-CCDB, Production-CCDB-Merge and DCS-Merge";
-        sendOutputCcdb(ec.outputs());
-        sendOutputDcsMerge(ec.outputs());
-        sendOutputCcdbMerge(ec.outputs());
+        sendOutputCcdb(pc.outputs());
+        sendOutputDcsMerge(pc.outputs());
+        sendOutputCcdbMerge(pc.outputs());
       }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
     }
