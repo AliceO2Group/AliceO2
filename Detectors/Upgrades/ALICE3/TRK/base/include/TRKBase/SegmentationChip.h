@@ -236,8 +236,8 @@ class SegmentationChip
 
     // the y position is in the silicon volume however we need the chip volume (silicon+metalstack)
     // this is accounted by a y shift
-    float xFlat = -constants::VD::petal::layer::radii[layer] * phi; /// this is equal to the circumference segment covered between y=0 and the phi angle
-    float yFlat = dist - constants::VD::petal::layer::radii[layer];
+    float xFlat = constants::VD::petal::layer::radii[layer] * phi; /// this is equal to the circumference segment covered between y=0 and the phi angle
+    float yFlat = constants::VD::petal::layer::radii[layer] - dist;
     return math_utils::Vector2D<float>(xFlat, yFlat);
   }
 
@@ -253,8 +253,8 @@ class SegmentationChip
   static constexpr math_utils::Vector2D<float> flatToCurved(int layer, float xFlat, float yFlat) noexcept
   {
     // Revert the curvedToFlat transformation
-    float dist = yFlat + constants::VD::petal::layer::radii[layer];
-    float phi = -xFlat / constants::VD::petal::layer::radii[layer];
+    float dist =  constants::VD::petal::layer::radii[layer] - yFlat;
+    float phi = xFlat / constants::VD::petal::layer::radii[layer];
     // the y position is in the chip volume however we need the silicon volume
     // this is accounted by a -y shift
     float xCurved = dist * std::cos(phi);
