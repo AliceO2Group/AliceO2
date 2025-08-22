@@ -18,6 +18,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DataSpecViews.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
@@ -184,6 +185,21 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 {"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
                 {"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
   };
+  DataProcessorSpec analysisCCDBBackend{
+    .name = "internal-dpl-aod-ccdb",
+    .inputs = {},
+    .outputs = {},
+    .algorithm = AlgorithmSpec::dummyAlgorithm(),
+    .options = {{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}},
+                {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
+                {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
+                {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
+                {"condition-tf-per-query", VariantType::Int, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <=0"}},
+                {"condition-tf-per-query-multiplier", VariantType::Int, defaultConditionQueryRateMultiplier(), {"check conditions once per this amount of nominal checks"}},
+                {"condition-time-tolerance", VariantType::Int64, 5000ll, {"prefer creation time if its difference to orbit-derived time exceeds threshold (ms), impose if <0"}},
+                {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+                {"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+                {"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}};
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
                                    {},
@@ -357,6 +373,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"IDX"})) {
         DataSpecUtils::updateInputList(ac.requestedIDXs, InputSpec{input});
       }
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"ATIM"})) {
+        DataSpecUtils::updateInputList(ac.requestedTIMs, InputSpec{input});
+      }
     }
 
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
@@ -366,6 +385,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         ac.providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"DYN"})) {
         ac.providedDYNs.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATIM"})) {
+        ac.providedTIMs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         ac.providedOutputObjHist.emplace_back(output);
         auto it = std::find_if(ac.outObjHistMap.begin(), ac.outObjHistMap.end(), [&](auto&& x) { return x.id == hash; });
@@ -384,7 +405,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
   auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
   std::sort(ac.requestedDYNs.begin(), ac.requestedDYNs.end(), inputSpecLessThan);
+  std::sort(ac.requestedTIMs.begin(), ac.requestedTIMs.end(), inputSpecLessThan);
   std::sort(ac.providedDYNs.begin(), ac.providedDYNs.end(), outputSpecLessThan);
+  std::sort(ac.providedTIMs.begin(), ac.providedTIMs.end(), outputSpecLessThan);
 
   DataProcessorSpec indexBuilder{
     "internal-dpl-aod-index-builder",
@@ -393,6 +416,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::indexBuilderCallback(ac.requestedIDXs),
     {}};
   AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, indexBuilder);
+
+  ac.requestedTIMs | views::filter_not_matching(ac.providedTIMs) | sinks::append_to{ac.analysisCCDBInputs};
+  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
+  if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS) {
+    AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher({}, ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedTIMs, analysisCCDBBackend);
+  }
 
   for (auto& input : ac.requestedDYNs) {
     if (std::none_of(ac.providedDYNs.begin(), ac.providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
@@ -566,6 +595,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
       }
     }
+  }
+
+  // add the Analysys CCDB backend which reads CCDB objects using a provided
+  // table
+  if (analysisCCDBBackend.outputs.empty() == false) {
+    // add normal reader
+    auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
+    analysisCCDBBackend.algorithm = algo;
+    extraSpecs.push_back(analysisCCDBBackend);
   }
 
   // add the timer

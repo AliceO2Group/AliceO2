@@ -65,7 +65,8 @@ concept is_enumeration = is_enumeration_v<std::decay_t<T>>;
 
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
-namespace {
+namespace
+{
 struct AnalysisDataProcessorBuilder {
   template <soa::is_iterator G, typename... Args>
   static void addGroupingCandidates(Cache& bk, Cache& bku, bool enabled)
@@ -417,7 +418,7 @@ struct AnalysisDataProcessorBuilder {
     std::invoke(processingFunction, task, g, std::get<A>(at)...);
   }
 };
-}
+} // namespace
 
 struct SetDefaultProcesses {
   std::vector<std::pair<std::string, bool>> map;
@@ -429,7 +430,8 @@ struct TaskName {
   std::string value;
 };
 
-namespace {
+namespace
+{
 template <typename T, typename... A>
 auto getTaskNameSetProcesses(std::string& outputName, TaskName first, SetDefaultProcesses second, A... args)
 {
@@ -493,7 +495,7 @@ auto getTaskNameSetProcesses(std::string& outputName, A... args)
   return task;
 }
 
-}
+} // namespace
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
