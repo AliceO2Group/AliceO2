@@ -33,7 +33,7 @@ outreach.frequency.refresh.rate:      1
 #screenshot.message.line.0:             Run number: 520144 <- change/comment it in .o2eve_config
 #screenshot.message.line.1:             First TF orbit: 1301515 <- change/comment it in .o2eve_config
 #screenshot.message.line.2:             Date: Tue Jul 5 17:48:51 2022 <- change/comment it in .o2eve_config
-#screenshot.message.line.3:             Detectors: ITS,TPC <- change/comment it in .o2eve_config
+#screenshot.message.line.3:             Detectors: ITS,TPC,FIT <- change/comment it in .o2eve_config
 
 # towers
 emcal.barrel.radius:                    500
@@ -90,6 +90,8 @@ MID.draw:                               1
 PHS.draw:                               1
 EMC.draw:                               1
 CPV.draw:                               1
+FT0.draw:                               1
+FV0.draw:                               1
 
 ITS.color:                              634
 TPC.color:                              3
@@ -101,6 +103,8 @@ MID.color:                              4
 PHS.color:                              5
 EMC.color:                              53
 CPV.color:                              920
+FT0.color:                              827
+FV0.color:                              851
 
 ITS.trans:                              70
 TPC.trans:                              70
@@ -112,6 +116,8 @@ MID.trans:                              80
 PHS.trans:                              50
 EMC.trans:                              50
 CPV.trans:                              50
+FT0.trans:                              70
+FV0.trans:                              70
 
 ITS.line.color:                         1
 TPC.line.color:                         1
@@ -123,6 +129,8 @@ MID.line.color:                         1
 PHS.line.color:                         1
 EMC.line.color:                         1
 CPV.line.color:                         1
+FT0.line.color:                         1
+FV0.line.color:                         1
 
 #Gui.DefaultFont:                        -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1
 #Gui.MenuFont:                           -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1
