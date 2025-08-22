@@ -37,7 +37,7 @@
 namespace o2::trk
 {
 
-class Digitizer : public TObject
+class Digitizer
 {
   using ExtraDig = std::vector<itsmft::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
 
@@ -174,7 +174,5 @@ class Digitizer : public TObject
 
   const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
   const o2::itsmft::NoiseMap* mNoiseMap = nullptr;
-
-  ClassDef(Digitizer, 1);
 };
 } // namespace o2::trk

@@ -62,22 +62,29 @@ void Digitizer::init()
 
   /// setting scale factors to adapt to the APTS response function (adjusting pitch and Y shift)
   // TODO: adjust Y shift when the geometry is improved
+  LOG(debug) << " Depth max: " << mChipSimRespVD->getDepthMax();
+  LOG(debug) << " Depth min: " << mChipSimRespVD->getDepthMin();
+
+  float thicknessVD = 0.0095; // cm --- hardcoded based on geometry currently present
+  float thicknessMLOT = 0.1;  // cm --- hardcoded based on geometry currently present
+
   mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
   mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
-  mSimRespVDScaleDepth = o2::trk::constants::apts::thickness / (0.1);                 /// introducing this scaling factor because the silicon thickness for the moment is 1 mm -> rescale to 45 um which is the depth of the APTS response
-  mSimRespVDShift = mChipSimRespVD->getDepthMax() - 0.1 * mSimRespVDScaleDepth / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
+  mSimRespVDScaleDepth = o2::trk::constants::apts::thickness / (thicknessVD); /// introducing this scaling factor because the silicon thickness for the moment is 1 mm -> rescale to 45 um which is the depth of the APTS response
+  // mSimRespVDShift = mChipSimRespVD->getDepthMax() - thicknessVD * mSimRespVDScaleDepth / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
+  mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
   mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
   mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
-  mSimRespMLOTScaleDepth = o2::trk::constants::apts::thickness / (0.1);                     /// introducing this scaling factor because the silicon thickness for the moment is 1 mm -> rescale to 45 um which is the depth of the APTS response
-  mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - 0.1 * mSimRespMLOTScaleDepth / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
-  mSimRespOrientation = true;
+  mSimRespMLOTScaleDepth = o2::trk::constants::apts::thickness / (thicknessMLOT);                     /// introducing this scaling factor because the silicon thickness for the moment is 1 mm -> rescale to 45 um which is the depth of the APTS response
+  mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT * mSimRespMLOTScaleDepth / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
+  mSimRespOrientation = false;
 
   // importing the parameters from DPLDigitizerParam.h
   auto& dOptTRK = DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
 
   LOGP(info, "TRK Digitizer is initialised.");
   mParams.print();
-  LOGP(info, "VD shift = {} = {} - {} ; ML/OT shift = {} = {} - {}", mSimRespVDShift, mChipSimRespVD->getDepthMax(), 0.1 * mSimRespVDScaleDepth / 2.f, mSimRespMLOTShift, mChipSimRespMLOT->getDepthMax(), 0.1 * mSimRespMLOTScaleDepth / 2.f);
+  LOGP(info, "VD shift = {}  ; ML/OT shift = {} = {} - {}", mSimRespVDShift, mSimRespMLOTShift, mChipSimRespMLOT->getDepthMax(), thicknessMLOT * mSimRespMLOTScaleDepth / 2.f);
   LOGP(info, "VD pixel scale on x = {} ; z = {}", mSimRespVDScaleX, mSimRespVDScaleZ);
   LOGP(info, "ML/OT pixel scale on x = {} ; z = {}", mSimRespMLOTScaleX, mSimRespMLOTScaleZ);
   LOGP(info, "Response orientation: {}", mSimRespOrientation ? "flipped" : "normal");
@@ -125,7 +132,6 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
   for (int i : hitIdx) {
-    // (*hits)[i].Print("");
     processHit((*hits)[i], mROFrameMax, evID, srcID);
   }
 
@@ -179,75 +185,78 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
 //_______________________________________________________________________
 void Digitizer::fillOutputContainer(uint32_t frameLast)
 {
-  // std::cout << "Entering fillOutputContainer " << std::endl;
-  // // // fill output with digits from min.cached up to requested frame, generating the noise beforehand
-  // if (frameLast > mROFrameMax) {
-  //   frameLast = mROFrameMax;
-  // }
-  // // // make sure all buffers for extra digits are created up to the maxFrame
-  // getExtraDigBuffer(mROFrameMax);
-  // LOG(info) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
-  //           << frameLast;
+  std::cout << "Entering fillOutputContainer " << std::endl;
+  std::cout << "Digit size before fill: " << mDigits->size() << std::endl;
+  // // fill output with digits from min.cached up to requested frame, generating the noise beforehand
+  if (frameLast > mROFrameMax) {
+    frameLast = mROFrameMax;
+  }
+  // // make sure all buffers for extra digits are created up to the maxFrame
+  getExtraDigBuffer(mROFrameMax);
+  LOG(info) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
+            << frameLast;
 
-  // o2::itsmft::ROFRecord rcROF; /// using temporarly itsmft::ROFRecord
+  o2::itsmft::ROFRecord rcROF; /// using temporarly itsmft::ROFRecord
 
-  // // we have to write chips in RO increasing order, therefore have to loop over the frames here
-  // for (; mROFrameMin <= frameLast; mROFrameMin++) {
-  //   rcROF.setROFrame(mROFrameMin);
-  //   rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
-  //   auto& extra = *(mExtraBuff.front().get());
-  //   for (auto& chip : mChips) { /// TODO: do also for ML?
-  //     if (chip.isDisabled()) {
-  //       continue;
-  //     }
-  //     // chip.addNoiseVD(mROFrameMin, mROFrameMin, &mParams);
-  //     auto& buffer = chip.getPreDigits();
-  //     if (buffer.empty()) {
-  //       continue;
-  //     }
-  //     auto itBeg = buffer.begin();
-  //     auto iter = itBeg;
-  //     ULong64_t maxKey = chip.getOrderingKey(mROFrameMin + 1, 0, 0) - 1; // fetch digits with key below that
-  //     for (; iter != buffer.end(); ++iter) {
-  //       if (iter->first > maxKey) {
-  //         break; // is the digit ROFrame from the key > the max requested frame
-  //       }
-  //       auto& preDig = iter->second; // preDigit
-  //       if (preDig.charge >= mParams.getChargeThreshold()) {
-  //         int digID = mDigits->size();
-  //         mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge);
-  //         mMCLabels->addElement(digID, preDig.labelRef.label);
-  //         auto& nextRef = preDig.labelRef; // extra contributors are in extra array
-  //         while (nextRef.next >= 0) {
-  //           nextRef = extra[nextRef.next];
-  //           mMCLabels->addElement(digID, nextRef.label);
-  //         }
-  //       }
-  //     }
-  //     buffer.erase(itBeg, iter);
-  //   }
-  //   // finalize ROF record
-  //   rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
-  //   if (isContinuous()) {
-  //     rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC());
-  //   } else {
-  //     rcROF.getBCData() = mEventTime; // RSTODO do we need to add trigger delay?
-  //   }
-  //   if (mROFRecords) {
-  //     mROFRecords->push_back(rcROF);
-  //   }
-  //   extra.clear(); // clear container for extra digits of the mROFrameMin ROFrame
-  //                  // and move it as a new slot in the end
-  //   mExtraBuff.emplace_back(mExtraBuff.front().release());
-  //   mExtraBuff.pop_front();
-  // }
+  // we have to write chips in RO increasing order, therefore have to loop over the frames here
+  for (; mROFrameMin <= frameLast; mROFrameMin++) {
+    std::cout << "Entering ROFrame " << mROFrameMin << std::endl;
+    rcROF.setROFrame(mROFrameMin);
+    rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
+
+    auto& extra = *(mExtraBuff.front().get());
+    for (auto& chip : mChips) {
+      if (chip.isDisabled()) {
+        continue;
+      }
+      // chip.addNoise(mROFrameMin, mROFrameMin, &mParams);  /// TODO: add noise
+      auto& buffer = chip.getPreDigits();
+      if (buffer.empty()) {
+        continue;
+      }
+      auto itBeg = buffer.begin();
+      auto iter = itBeg;
+      ULong64_t maxKey = chip.getOrderingKey(mROFrameMin + 1, 0, 0) - 1; // fetch digits with key below that
+      for (; iter != buffer.end(); ++iter) {
+        if (iter->first > maxKey) {
+          break; // is the digit ROFrame from the key > the max requested frame
+        }
+        auto& preDig = iter->second; // preDigit
+        if (preDig.charge >= mParams.getChargeThreshold()) {
+          int digID = mDigits->size();
+          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge);
+          LOG(debug) << "Adding digit ID: " << digID << " with chipID: " << chip.getChipIndex() << ", row: " << preDig.row << ", col: " << preDig.col << ", charge: " << preDig.charge;
+          mMCLabels->addElement(digID, preDig.labelRef.label);
+          auto& nextRef = preDig.labelRef; // extra contributors are in extra array
+          while (nextRef.next >= 0) {
+            nextRef = extra[nextRef.next];
+            mMCLabels->addElement(digID, nextRef.label);
+          }
+        }
+      }
+      buffer.erase(itBeg, iter);
+    }
+    // finalize ROF record
+    rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
+    if (isContinuous()) {
+      rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC());
+    } else {
+      rcROF.getBCData() = mEventTime; // RSTODO do we need to add trigger delay?
+    }
+    if (mROFRecords->size()) {
+      mROFRecords->push_back(rcROF);
+    }
+    extra.clear(); // clear container for extra digits of the mROFrameMin ROFrame
+                   // and move it as a new slot in the end
+    mExtraBuff.emplace_back(mExtraBuff.front().release());
+    mExtraBuff.pop_front();
+  }
 }
 
 //_______________________________________________________________________
 void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID)
 {
   int chipID = hit.GetDetectorID(); //// the chip ID at the moment is not referred to the chip but to a wider detector element (e.g. quarter of layer or disk in VD, stave in ML, half stave in OT)
-  LOG(debug) << "Processing hit for chip " << chipID << " in event " << evID << " from source " << srcID;
   int subDetID = mGeometry->getSubDetID(chipID);
 
   int layer = mGeometry->getLayer(chipID);
@@ -257,6 +266,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     LOG(debug) << "Skipping disk " << disk;
     return; // skipping hits on disks for the moment
   }
+
+  LOG(debug) << "Processing hit for chip " << chipID;
   auto& chip = mChips[chipID];
   if (chip.isDisabled()) {
     LOG(debug) << "Skipping disabled chip " << chipID;
@@ -325,15 +336,15 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // std::cout<<"Going back to glob coordinates: " << (matrix * exampleLoc) << std::endl;
 
   //// adapting the depth (Y) of the chip to the APTS response maximum depth
+  LOG(debug) << "local original: startPos = " << xyzLocS << ", endPos = " << xyzLocE << std::endl;
   if (subDetID == 0) {
     xyzLocS.SetY(xyzLocS.Y() * mSimRespVDScaleDepth);
     xyzLocE.SetY(xyzLocE.Y() * mSimRespVDScaleDepth);
-    LOG(debug) << "rescaled: startPos Y = " << xyzLocS.Y() << ", endPos Y = " << xyzLocE.Y() << std::endl;
   } else {
     xyzLocS.SetY(xyzLocS.Y() * mSimRespMLOTScaleDepth);
     xyzLocE.SetY(xyzLocE.Y() * mSimRespMLOTScaleDepth);
-    LOG(debug) << "rescaled: startPos Y = " << xyzLocS.Y() << ", endPos Y = " << xyzLocE.Y() << std::endl;
   }
+  LOG(debug) << "rescaled Y: startPos = " << xyzLocS << ", endPos = " << xyzLocE << std::endl;
 
   math_utils::Vector3D<float> step(xyzLocE);
   step -= xyzLocS;
@@ -344,7 +355,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   xyzLocS += stepH;
   xyzLocE -= stepH;
 
-  LOG(debug) << "Step into the sensitive volume: " << step;
+  LOG(debug) << "Step into the sensitive volume: " << step << ".  Number of steps: " << nSteps;
   int rowS = -1, colS = -1, rowE = -1, colE = -1, nSkip = 0;
 
   /// here it is the control whether the hit is in the sensitive matrix based on the segmentation
@@ -365,8 +376,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     }
     xyzLocE -= step;
   }
-
-  LOG(info) << "rowS: " << rowS << " colS: " << colS << " rowE: " << rowE << " colE: " << colE;
 
   int nCols = getNCols(subDetID, layer);
   int nRows = getNRows(subDetID, layer);
@@ -428,7 +437,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
       rowPrev = row;
       colPrev = col;
     }
-    bool flipCol = true, flipRow = true;
+    bool flipCol = false, flipRow = false;
     // note that response needs coordinates along column row (locX) (locZ) then depth (locY)
     float rowMax{}, colMax{};
     const AlpideRespSimMat* rspmat{nullptr};
@@ -442,13 +451,24 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
       rspmat = resp->getResponse(mSimRespMLOTScaleX * (xyzLocS.X() - cRowPix), mSimRespMLOTScaleZ * (xyzLocS.Z() - cColPix), xyzLocS.Y(), flipRow, flipCol, rowMax, colMax);
     }
 
+    float tempPitchX = 0, tempPitchZ = 0;
+    if (subDetID == 0) {
+      tempPitchX = Segmentation::PitchRowVD;
+      tempPitchZ = Segmentation::PitchColVD;
+    } else {
+      tempPitchX = Segmentation::PitchRowMLOT;
+      tempPitchZ = Segmentation::PitchColMLOT;
+    }
+    LOG(debug) << "X and Z inside pixel at start = " << (xyzLocS.X() - cRowPix) << " , " << (xyzLocS.Z() - cColPix) << ", rescaled: " << mSimRespMLOTScaleX * (xyzLocS.X() - cRowPix) << " , " << mSimRespMLOTScaleZ * (xyzLocS.Z() - cColPix);
+    LOG(debug) << "Hit inside pitch? X: " << ((xyzLocS.X() - cRowPix) < tempPitchX) << "  Z: " << ((xyzLocS.Z() - cColPix) < tempPitchZ);
+
     xyzLocS += step;
 
     if (rspmat == nullptr) {
-      LOG(error) << "Error in rspmat for step " << iStep << " / " << nSteps;
+      LOG(debug) << "Error in rspmat for step " << iStep << " / " << nSteps;
       continue;
     }
-    LOG(debug) << "rspmat valid! for step " << iStep << " / " << nSteps;
+    LOG(debug) << "rspmat valid! for step " << iStep << " / " << nSteps << ", (row,col) = (" << row << "," << col << ")";
     // rspmat->print(); // print the response matrix for debugging
 
     for (int irow = AlpideRespSimMat::NPix; irow--;) {
@@ -469,9 +489,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto roFrameAbs = mNewROFrame + roFrameRel;
-  for (int irow = rowSpan; irow--;) {
-    uint16_t rowIS = irow + rowS;
-    for (int icol = colSpan; icol--;) {
+  LOG(debug) << "Spanning through rows and columns; rowspan = " << rowSpan << " colspan = " << colSpan << " = " << colE << " - " << colS << " +1 " << std::endl;
+  for (int irow = rowSpan; irow--;) {          // irow ranging from 4 to 0
+    uint16_t rowIS = irow + rowS;              // row distant irow from the row of the hit start
+    for (int icol = colSpan; icol--;) {        // icol ranging from 4 to 0
       float nEleResp = respMatrix[irow][icol]; // value of the probability of the response in this pixel
       if (nEleResp <= 1.e-36) {
         continue;
@@ -485,7 +506,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
                    << mParams.getMinChargeToAccount() << " for pixel " << irow << " " << icol;
         continue;
       }
-      uint16_t colIS = icol + colS;
+
+      uint16_t colIS = icol + colS; // col distant icol from the col of the hit start
       if (mNoiseMap && mNoiseMap->isNoisy(chipID, rowIS, colIS)) {
         continue;
       }
