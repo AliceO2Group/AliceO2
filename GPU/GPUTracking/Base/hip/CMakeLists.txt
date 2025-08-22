@@ -63,8 +63,9 @@ if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
   endforeach()
 
   add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_HIPIFIED_CHK.done
-                     COMMAND diff -u ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip > ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_HIPIFIED_CHK.done
+                     COMMAND bash -c "diff -u <(sed 's,//.*$,,g' ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip) <(sed 's,//.*$,,g' ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip) > ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_HIPIFIED_CHK.done"
                      DEPENDS ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip
+                     VERBATIM
                      COMMENT "Checking HIPified file ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip")
   add_custom_target(${MODULE}_HIPIFIED_CHK ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_HIPIFIED_CHK.done)
 else()
