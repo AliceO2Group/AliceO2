@@ -37,6 +37,8 @@ enum EVisualisationGroup {
   PHS,
   CPV,
   HMP,
+  FT0,
+  FV0,
   NvisualisationGroups
 };
 
@@ -51,7 +53,9 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "EMC",
   "PHS",
   "CPV",
-  "HMP"};
+  "HMP",
+  "FT0",
+  "FV0"};
 
 const bool R3Visualisation[NvisualisationGroups] = {
   true, //"ITS",
@@ -65,6 +69,8 @@ const bool R3Visualisation[NvisualisationGroups] = {
   true, //"PHS",
   true, //"CPV"
   true, //"HMP"
+  true, //"FT0"
+  true, //"FV0"
 };
 
 enum EVisualisationDataType {
