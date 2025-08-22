@@ -157,7 +157,7 @@ int ctpCCDBManager::saveOrbitReset(long timeStamp)
   o2::ccdb::CcdbApi api;
   std::map<std::string, std::string> metadata; // can be empty
   api.init(mCCDBHost.c_str());  // or http://localhost:8080 for a local installation
-  //int ret = api.storeAsTFileAny(&vect, mCCDBPathOrbitReset, metadata, tmin, tmax);
+  // int ret = api.storeAsTFileAny(&vect, mCCDBPathOrbitReset, metadata, tmin, tmax);
   std::cout << "Storing:" << mCCDBPathOrbitReset << " tmin:" << tmin << " tmax:" << tmax << " ts:" << timeStamp << std::endl;
   std::string filename = "orbitReset.root";
   TClass* tcls = TClass::GetClass(typeid(vect));
