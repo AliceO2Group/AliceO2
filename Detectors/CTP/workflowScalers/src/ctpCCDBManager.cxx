@@ -157,9 +157,16 @@ int ctpCCDBManager::saveOrbitReset(long timeStamp)
   o2::ccdb::CcdbApi api;
   std::map<std::string, std::string> metadata; // can be empty
   api.init(mCCDBHost.c_str());  // or http://localhost:8080 for a local installation
-
-  // store abitrary user object in strongly typed manner
-  int ret = api.storeAsTFileAny(&vect, mCCDBPathOrbitReset, metadata, tmin, tmax);
+  //int ret = api.storeAsTFileAny(&vect, mCCDBPathOrbitReset, metadata, tmin, tmax);
+  std::cout << "Storing:" << mCCDBPathOrbitReset << " tmin:" << tmin << " tmax:" << tmax << " ts:" << timeStamp << std::endl;
+  std::string filename = "orbitReset.root";
+  TClass* tcls = TClass::GetClass(typeid(vect));
+  auto ti = tcls->GetTypeInfo();
+  auto classname = "std::vector<int64_t>";
+  metadata["adjustableEOV"] = "true";
+  int ret = api.storeAsTFile_impl(&(vect), *ti, mCCDBPathOrbitReset, metadata, tmin, tmax);
+  o2::ccdb::CcdbObjectInfo oi(mCCDBPathOrbitReset, classname, filename, metadata, tmin, tmax);
+  adjustOverriddenEOV(api, oi);
   if (ret == 0) {
     LOG(info) << "Orbit reset  saved in ccdb:" << mCCDBHost << " tmin:" << tmin << " tmax:" << tmax;
   } else {
