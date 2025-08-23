@@ -15,6 +15,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/TrackingConfigParam.h"
 
 namespace o2
@@ -22,8 +23,6 @@ namespace o2
 using namespace framework;
 namespace its
 {
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
-
 TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        bool isMC,
                        int trgType,

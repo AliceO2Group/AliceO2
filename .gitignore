@@ -82,6 +82,9 @@ bazel-*
 # direnv
 .envrc
 
+# git wrappers
+.sl
+
 # LSP support on macOS with vim
 .clangd
 DataFormats/Detectors/CTP/include/DataFormatsCTP/Scalers.h

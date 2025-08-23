@@ -28,7 +28,7 @@ int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart,
 {
   // data base
   if (mCCDBHost == "none") {
-    LOG(info) << "Scalers not written to CCDB none";
+    LOG(debug) << "Scalers not written to CCDB none";
     return 0;
   }
   // CTPActiveRun* run = mActiveRuns[i];
@@ -56,7 +56,7 @@ int ctpCCDBManager::saveRunScalersToQCDB(CTPRunScalers& scalers, long timeStart,
 {
   // data base
   if (mQCDBHost == "none") {
-    LOG(info) << "Scalers not written to QCDB none";
+    LOG(debug) << "Scalers not written to QCDB none";
     return 0;
   }
   // CTPActiveRun* run = mActiveRuns[i];q

@@ -78,12 +78,12 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
         LOG(info) << "Sending an object to Production-CCDBMerge";
         sendOutputCcdbMerge(pc.outputs());
       } else if (mOutputType.compare("DCS") == 0) {
-        LOG(info) << "Sending an object to DCS-CCDB";
-        sendOutputDcs(pc.outputs());
+        LOG(info) << "Sending an object to DCS-Merge";
+        sendOutputDcsMerge(pc.outputs());
       } else {
-        LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
-        sendOutputCcdbDcs(pc.outputs());
-        LOG(info) << "Sending an object to Production-CCDBMerge";
+        LOG(info) << "Sending an object to Production-CCDB, Production-CCDB-Merge and DCS-Merge";
+        sendOutputCcdb(pc.outputs());
+        sendOutputDcsMerge(pc.outputs());
         sendOutputCcdbMerge(pc.outputs());
       }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
@@ -102,12 +102,12 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
         LOG(info) << "Sending an object to Production-CCDBMerge";
         sendOutputCcdbMerge(pc.outputs());
       } else if (mOutputType.compare("DCS") == 0) {
-        LOG(info) << "Sending an object to DCS-CCDB";
-        sendOutputDcs(pc.outputs());
+        LOG(info) << "Sending an object to DCS-Merge";
+        sendOutputDcsMerge(pc.outputs());
       } else {
-        LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
-        sendOutputCcdbDcs(pc.outputs());
-        LOG(info) << "Sending an object to Production-CCDBMerge";
+        LOG(info) << "Sending an object to Production-CCDB, Production-CCDB-Merge and DCS-Merge";
+        sendOutputCcdb(pc.outputs());
+        sendOutputDcsMerge(pc.outputs());
         sendOutputCcdbMerge(pc.outputs());
       }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
@@ -385,7 +385,7 @@ void NoiseCalibratorSpec::sendOutputDcs(DataAllocator& output)
 void NoiseCalibratorSpec::sendOutputDcsMerge(DataAllocator& output)
 {
 
-  LOG(info) << "DCS mode";
+  LOG(info) << "DCS-Merge mode";
 
   static bool done = false;
   if (done) {

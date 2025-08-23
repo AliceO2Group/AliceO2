@@ -20,6 +20,7 @@
 #include <iostream>
 #include <iterator>
 #include <numeric>
+#include <limits>
 #include <sstream>
 
 namespace o2::mch::calibration
@@ -65,6 +66,8 @@ void BadChannelCalibrator::finalize()
 
 bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
 {
+  static auto loggerStart = std::chrono::high_resolution_clock::now();
+  static auto loggerEnd = loggerStart;
   const int minNofEntries = BadChannelCalibratorParam::Instance().minRequiredNofEntriesPerChannel;
   const o2::mch::calibration::PedestalData* pedData = slot.getContainer();
   auto nofChannels = pedData->size();
@@ -75,9 +78,35 @@ bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
 
   bool hasEnough = nofCalibrated > requiredChannels;
 
-  LOGP(info,
-       "nofChannelWithEnoughStat(>{})={} nofChannels={} requiredChannels={} hasEnough={}",
-       minNofEntries, nofCalibrated, nofChannels, requiredChannels, hasEnough);
+  // logging of calibration statistics
+  loggerEnd = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
+  if (mLoggingInterval > 0 && loggerElapsed.count() > mLoggingInterval) {
+    int minEntriesPerChannel{std::numeric_limits<int>::max()};
+    int maxEntriesPerChannel{0};
+    uint64_t averageEntriesPerChannel = 0;
+    std::for_each(pedData->cbegin(), pedData->cend(),
+                  [&](const PedestalChannel& c) {
+                    if (c.mEntries == 0) {
+                      return;
+                    }
+                    if (c.mEntries > maxEntriesPerChannel) {
+                      maxEntriesPerChannel = c.mEntries;
+                    }
+                    if (c.mEntries < minEntriesPerChannel) {
+                      minEntriesPerChannel = c.mEntries;
+                    }
+                    averageEntriesPerChannel += c.mEntries;
+                  });
+    if (nofChannels > 0) {
+      averageEntriesPerChannel /= nofChannels;
+    }
+    LOGP(warning, "channel stats: min={} max={} average={}", minEntriesPerChannel, maxEntriesPerChannel, averageEntriesPerChannel);
+    LOGP(warning,
+         "nofChannelWithEnoughStat(>{})={} nofChannels={} requiredChannels={} hasEnough={}",
+         minNofEntries, nofCalibrated, nofChannels, requiredChannels, hasEnough);
+    loggerStart = std::chrono::high_resolution_clock::now();
+  }
 
   return hasEnough;
 }
@@ -92,7 +121,7 @@ void BadChannelCalibrator::finalizeSlot(Slot& slot)
   mBadChannelsVector.clear();
 
   o2::mch::calibration::PedestalData* pedestalData = slot.getContainer();
-  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOG(warning) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
   // keep track of first TimeFrame
   if (slot.getTFStart() < mTFStart) {
@@ -120,9 +149,11 @@ void BadChannelCalibrator::finalizeSlot(Slot& slot)
 BadChannelCalibrator::Slot&
   BadChannelCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
+  const int nThreads = static_cast<int>(BadChannelCalibratorParam::Instance().nThreads);
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<PedestalData>());
+  slot.getContainer()->setNThreads(nThreads);
   return slot;
 }
 

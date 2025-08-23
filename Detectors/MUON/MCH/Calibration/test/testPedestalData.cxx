@@ -84,6 +84,17 @@ BOOST_AUTO_TEST_CASE(TestIteratorOnCompletePedestalData)
     ++n;
   }
   BOOST_TEST(n == allDigits.size());
+
+  // multi-threaded version
+  PedestalData pdmt;
+  pdmt.setNThreads(8);
+  pdmt.fill(allDigits);
+
+  int nmt{0};
+  for (const auto& ped : pdmt) {
+    ++nmt;
+  }
+  BOOST_TEST(nmt == allDigits.size());
 }
 
 BOOST_AUTO_TEST_CASE(TestIteratorEquality)
@@ -113,6 +124,16 @@ BOOST_AUTO_TEST_CASE(TestIteratorPreIncrementable)
     n++;
   }
   BOOST_TEST(n == 2768);
+
+  // multi-threaded version
+  PedestalData pdmt;
+  pdmt.setNThreads(8);
+  pdmt.fill(digits);
+  int nmt{0};
+  for (auto rec : pdmt) {
+    nmt++;
+  }
+  BOOST_TEST(nmt == 2768);
   // 2768 = 1856 pads in solar 328 + 721 pads in solar 721
   // Note that solar 328 has 29 dual sampas
   // solar 721 has 15 dual sampas

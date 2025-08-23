@@ -68,13 +68,17 @@ class BadChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   const BadChannelsVector& getBadChannelsVector() const { return mBadChannelsVector; }
   const PedestalsVector& getPedestalsVector() const { return mPedestalsVector; }
 
+  void setLoggingInterval(int loggingInterval) { mLoggingInterval = loggingInterval; }
+
  private:
   TFType mTFStart;
 
   BadChannelsVector mBadChannelsVector; ///< vector containing the unique IDs of the bad/noisy channels
   PedestalsVector mPedestalsVector;     ///< vector containing the source pedestal information used for bad channel decision
 
-  ClassDefOverride(BadChannelCalibrator, 1);
+  int mLoggingInterval = 0; ///< time interval between statistics logging messages
+
+  ClassDefOverride(BadChannelCalibrator, 2);
 };
 
 } // namespace o2::mch::calibration

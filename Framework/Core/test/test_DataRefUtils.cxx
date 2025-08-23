@@ -15,7 +15,6 @@
 #include <TMessage.h>
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRefUtils.h"
-#include <fairmq/TransportFactory.h>
 #include <catch_amalgamated.hpp>
 
 #include <memory>

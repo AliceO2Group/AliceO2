@@ -50,7 +50,7 @@ SelectionVector selectionToVector(gandiva::Selection const& sel)
   return rows;
 }
 
-SelectionVector sliceSelection(gsl::span<int64_t const> const& mSelectedRows, int64_t nrows, uint64_t offset)
+SelectionVector sliceSelection(std::span<int64_t const> const& mSelectedRows, int64_t nrows, uint64_t offset)
 {
   auto start = offset;
   auto end = start + nrows;
@@ -217,7 +217,7 @@ std::shared_ptr<arrow::Table> PreslicePolicySorted::getSliceFor(int value, std::
   return output;
 }
 
-gsl::span<const int64_t> PreslicePolicyGeneral::getSliceFor(int value) const
+std::span<const int64_t> PreslicePolicyGeneral::getSliceFor(int value) const
 {
   return this->sliceInfo.getSliceFor(value);
 }

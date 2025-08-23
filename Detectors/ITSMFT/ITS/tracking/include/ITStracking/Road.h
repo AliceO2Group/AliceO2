@@ -16,13 +16,15 @@
 #ifndef TRACKINGCA_INCLUDE_ROAD_H
 #define TRACKINGCA_INCLUDE_ROAD_H
 
+#include <array>
+
 #include "ITStracking/Constants.h"
 #include "GPUCommonDef.h"
 
 namespace o2::its
 {
 
-template <unsigned char maxRoadSize = 5>
+template <unsigned char maxRoadSize>
 class Road final
 {
  public:
@@ -60,7 +62,7 @@ class Road final
   }
 
  private:
-  int mCellIds[maxRoadSize]{constants::UnusedIndex};
+  std::array<int, maxRoadSize> mCellIds = constants::helpers::initArray<int, maxRoadSize, constants::UnusedIndex>();
   unsigned char mRoadSize{0};
   bool mIsFakeRoad{false};
 };

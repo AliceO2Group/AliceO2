@@ -16,16 +16,14 @@
 #ifndef TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 #define TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 
-#include <cmath>
+#include <oneapi/tbb.h>
 
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/TimeFrame.h"
+#include "ITStracking/Cell.h"
 #include "ITStracking/BoundedAllocator.h"
-
-#include <oneapi/tbb.h>
-#include <oneapi/tbb/partitioner.h>
 
 // #define OPTIMISATION_OUTPUT
 
@@ -42,6 +40,8 @@ class TrackITSExt;
 template <int nLayers = 7>
 class TrackerTraits
 {
+  using CellSeedN = CellSeed<nLayers>;
+
  public:
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame<nLayers>* tf) { mTimeFrame = tf; }
@@ -58,7 +58,7 @@ class TrackerTraits
   virtual void findShortPrimaries();
 
   virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration);
-  virtual void processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeed>& updatedCellSeed, bounded_vector<int>& updatedCellId);
+  virtual void processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeedN>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId);
 
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars) { mTrkParams = trkPars; }
   TimeFrame<nLayers>* getTimeFrame() { return mTimeFrame; }

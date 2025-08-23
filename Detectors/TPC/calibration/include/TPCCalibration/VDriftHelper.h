@@ -18,6 +18,7 @@
 
 #include "GPUCommonRtypes.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
+#include "TPCCalibration/PressureTemperatureHelper.h"
 #include <array>
 #include <vector>
 #include <string_view>
@@ -56,6 +57,7 @@ class VDriftHelper
   Source getSource() const { return mSource; }
   static std::string_view getSourceName(Source s) { return SourceNames[s]; }
   std::string_view getSourceName() const { return SourceNames[mSource]; }
+  const auto& getPTHelper() const { return mPTHelper; }
 
   bool accountCCDBInputs(const o2::framework::ConcreteDataMatcher& matcher, void* obj);
   void extractCCDBInputs(o2::framework::ProcessingContext& pc, bool laser = true, bool itstpcTgl = true);
@@ -63,16 +65,20 @@ class VDriftHelper
 
  protected:
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
+  bool extractTPForVDrift(VDriftCorrFact& vdrift, int64_t tsStepMS = 100 * 1000);
   VDriftCorrFact mVDLaser{};
   VDriftCorrFact mVDTPCITSTgl{};
   VDriftCorrFact mVD{};
-  Source mSource{Source::Param}; // update source
-  bool mUpdated = false;  // signal update, must be reset once new value is fetched
+  Source mSource{Source::Param};       // update source
+  bool mUpdated = false;               // signal update, must be reset once new value is fetched
+  bool mIsTPScalingPossible = false;   // if T/P scaling is possible always perform the updating
   bool mForceParamDrift = false;       // enforce vdrift from gasParam
   bool mForceParamOffset = false;      // enforce offset from DetectorParam
+  bool mForceTPScaling = false;        // enforce T/P scaling from gasParam (scaling disabled by negative T or P)
   uint32_t mMayRenormSrc = 0xffffffff; // if starting VDrift correction != 1, we will renorm reference in such a way that initial correction is 1.0, flag per source
+  PressureTemperatureHelper mPTHelper; // helper to extract pressure and temperature from CCDB
 
-  ClassDefNV(VDriftHelper, 1);
+  ClassDefNV(VDriftHelper, 2);
 };
 } // namespace o2::tpc
 #endif

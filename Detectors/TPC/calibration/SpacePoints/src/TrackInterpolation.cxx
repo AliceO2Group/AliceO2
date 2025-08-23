@@ -272,7 +272,7 @@ void TrackInterpolation::process()
   trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].end());
   trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].end());
 
-  int nSeeds = mSeeds.size();
+  int nSeeds = mSeeds.size(), lastChecked = 0;
   int maxOutputTracks = (mMaxTracksPerTF >= 0) ? mMaxTracksPerTF + mAddTracksForMapPerTF : nSeeds;
   mTrackData.reserve(maxOutputTracks);
   mClRes.reserve(maxOutputTracks * param::NPadRows);
@@ -286,51 +286,65 @@ void TrackInterpolation::process()
     if (mParams->enableTrackDownsampling && !isTrackSelected(mSeeds[seedIndex])) {
       continue;
     }
+
+    auto addPart = [this, seedIndex](GTrackID::Source src) {
+      this->mGIDs.push_back(this->mGIDtables[seedIndex][src]);
+      this->mGIDtables.push_back(this->mRecoCont->getSingleDetectorRefs(this->mGIDs.back()));
+      this->mTrackTimes.push_back(this->mTrackTimes[seedIndex]);
+      this->mSeeds.push_back(this->mSeeds[seedIndex]);
+    };
+
+    GTrackID::mask_t partsAdded;
     if (!mSingleSourcesConfigured && !mSourcesConfiguredMap[mGIDs[seedIndex].getSource()]) {
       auto src = findValidSource(mSourcesConfiguredMap, static_cast<GTrackID::Source>(mGIDs[seedIndex].getSource()));
       if (src == GTrackID::ITSTPCTRD || src == GTrackID::ITSTPC) {
-        LOGP(debug, "process: Found valid source {}", GTrackID::getSourceName(src));
-        mGIDs.push_back(mGIDtables[seedIndex][src]);
-        mGIDtables.push_back(mRecoCont->getSingleDetectorRefs(mGIDs.back()));
-        mTrackTimes.push_back(mTrackTimes[seedIndex]);
-        mSeeds.push_back(mSeeds[seedIndex]);
+        LOGP(debug, "process {}: Found valid source {} for {} | nseeds:{} mSeeds:{} used: {}", iSeed, GTrackID::getSourceName(src), GTrackID::getSourceName(mGIDs[seedIndex].getSource()), nSeeds, mSeeds.size(), mTrackDataCompact.size());
+        addPart(src);
       }
     }
     if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
-      LOG(debug) << "We already have reached mMaxTracksPerTF, but we continue to create seeds until mAddTracksForMapPerTF is also reached";
+      if (!maxTracksReached) {
+        LOGP(info, "We already have reached mMaxTracksPerTF={}, but we continue to create seeds until mAddTracksForMapPerTF={} is also reached, iSeed: {} of {} inital seeds", mMaxTracksPerTF, mAddTracksForMapPerTF, iSeed, nSeeds);
+      }
+      maxTracksReached = true;
       continue;
     }
     if (mGIDs[seedIndex].includesDet(DetID::TRD) || mGIDs[seedIndex].includesDet(DetID::TOF)) {
       interpolateTrack(seedIndex);
+      LOGP(debug, "interpolateTrack {} {}, accepted: {}", iSeed, GTrackID::getSourceName(mGIDs[seedIndex].getSource()), mTrackDataCompact.size());
       if (mProcessSeeds) {
-        if (mGIDs[seedIndex].includesDet(DetID::TRD) && mGIDs[seedIndex].includesDet(DetID::TOF)) {
-          mGIDs.push_back(mGIDtables[seedIndex][GTrackID::ITSTPCTRD]);
-          mGIDtables.push_back(mRecoCont->getSingleDetectorRefs(mGIDs.back()));
-          mTrackTimes.push_back(mTrackTimes[seedIndex]);
-          mSeeds.push_back(mSeeds[seedIndex]);
+        if (mGIDs[seedIndex].includesDet(DetID::TRD) && mGIDs[seedIndex].includesDet(DetID::TOF) && !partsAdded[GTrackID::ITSTPCTRD]) {
+          addPart(GTrackID::ITSTPCTRD);
         }
-        mGIDs.push_back(mGIDtables[seedIndex][GTrackID::ITSTPC]);
-        mGIDtables.push_back(mRecoCont->getSingleDetectorRefs(mGIDs.back()));
-        mTrackTimes.push_back(mTrackTimes[seedIndex]);
-        mSeeds.push_back(mSeeds[seedIndex]);
+        if (!partsAdded[GTrackID::ITSTPC]) {
+          addPart(GTrackID::ITSTPC);
+        }
       }
     } else {
       extrapolateTrack(seedIndex);
+      LOGP(debug, "extrapolateTrack {} {}, accepted: {}", iSeed, GTrackID::getSourceName(mGIDs[seedIndex].getSource()), mTrackDataCompact.size());
     }
+    lastChecked = iSeed;
   }
-  if (mSeeds.size() > nSeeds) {
-    LOGP(info, "Up to {} tracks out of {} additional seeds will be processed", mAddTracksForMapPerTF, mSeeds.size() - nSeeds);
+  std::vector<int> remSeeds;
+  if (mSeeds.size() > ++lastChecked) {
+    remSeeds.resize(mSeeds.size() - lastChecked);
+    std::iota(remSeeds.begin(), remSeeds.end(), lastChecked);
+    std::shuffle(remSeeds.begin(), remSeeds.end(), g);
+    LOGP(info, "Up to {} tracks out of {} additional seeds will be processed in random order, of which {} are stripped versions, accepted seeds: {}", mAddTracksForMapPerTF, remSeeds.size(), mSeeds.size() - nSeeds, mTrackDataCompact.size());
   }
-  for (int iSeed = nSeeds; iSeed < (int)mSeeds.size(); ++iSeed) {
-    if (!mProcessSeeds && mAddTracksForMapPerTF > 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksForMapPerTF) {
-      LOG(info) << "Maximum number of additional tracks per TF reached. Skipping the remaining " << mSeeds.size() - iSeed << " tracks.";
+  int extraChecked = 0;
+  for (int iSeed : remSeeds) {
+    if (mAddTracksForMapPerTF > 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksForMapPerTF) {
+      LOGP(info, "Maximum number {} of additional tracks per TF reached. Skipping the remaining {} tracks", mAddTracksForMapPerTF, remSeeds.size() - extraChecked);
       break;
     }
-    // this loop will only be entered in case mProcessSeeds is set
-    LOGP(debug, "Processing additional track {}", mGIDs[iSeed].asString());
+    extraChecked++;
     if (mGIDs[iSeed].includesDet(DetID::TRD) || mGIDs[iSeed].includesDet(DetID::TOF)) {
       interpolateTrack(iSeed);
+      LOGP(debug, "extra check {} of {}, seed {} interpolateTrack {}, used: {}", extraChecked, remSeeds.size(), iSeed, GTrackID::getSourceName(mGIDs[iSeed].getSource()), mTrackDataCompact.size());
     } else {
+      LOGP(debug, "extra check {} of {}, seed {} extrapolateTrack {}, used: {}", extraChecked, remSeeds.size(), iSeed, GTrackID::getSourceName(mGIDs[iSeed].getSource()), mTrackDataCompact.size());
       extrapolateTrack(iSeed);
     }
   }

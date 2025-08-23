@@ -216,14 +216,14 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time, bool start)
   }
   scalrec.intRecord.bc = 0;
   mActiveRuns[irun]->scalers.addScalerRacordRaw(scalrec);
-  LOG(info) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
+  LOG(debug) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
   // scalrec.printStream(std::cout);
   // printCounters();
   return 0;
 }
 int CTPRunManager::processMessage(std::string& topic, const std::string& message)
 {
-  LOG(info) << "Processing message with topic:" << topic;
+  LOG(debug) << "Processing message with topic:" << topic;
   std::string firstcounters;
   if (topic.find("clear") != std::string::npos) {
     mRunsLoaded.clear();
@@ -283,7 +283,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     // get config
     size_t irun = message.find("run");
     if (irun == std::string::npos) {
-      LOG(warning) << "run keyword not found in SOX";
+      LOG(debug) << "run keyword not found in SOX";
       irun = message.size();
     }
     LOG(info) << "SOX received, Run keyword position:" << irun;
@@ -319,22 +319,22 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
   }
   double timeStamp = std::stold(tokens.at(0));
   std::time_t tt = timeStamp;
-  LOG(info) << "Processing scalers, all good, time:" << tokens.at(0) << " " << std::asctime(std::localtime(&tt));
+  LOG(debug) << "Processing scalers, all good, time:" << tokens.at(0) << " " << std::asctime(std::localtime(&tt));
   for (uint32_t i = 1; i < tokens.size(); i++) {
     mCounters[i - 1] = std::stoull(tokens.at(i));
     if (i < (NRUNS + 1)) {
-      std::cout << mCounters[i - 1] << " ";
+      // std::cout << mCounters[i - 1] << " ";
     }
   }
-  std::cout << std::endl;
-  LOG(info) << "Counter size:" << tokens.size();
+  // std::cout << std::endl;
+  LOG(debug) << "Counter size:" << tokens.size();
   //
   for (uint32_t i = 0; i < NRUNS; i++) {
     if ((mCounters[i] == 0) && (mActiveRunNumbers[i] == 0)) {
       // not active
     } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == mCounters[i])) {
       // active , do scalers
-      LOG(info) << "Run continue:" << mCounters[i];
+      LOG(debug) << "Run continue:" << mCounters[i];
       addScalers(i, tt);
       // LOG(info) << " QC period:" << mActiveRunNumbers[i] << " " << mActiveRuns[i]->qcwpcount << " " << mQCWritePeriod;
       if (mActiveRuns[i]->qcwpcount > mQCWritePeriod) {
@@ -367,7 +367,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     }
   }
   mEOX = 0;
-  printActiveRuns();
+  // printActiveRuns();
   return 0;
 }
 void CTPRunManager::printActiveRuns() const

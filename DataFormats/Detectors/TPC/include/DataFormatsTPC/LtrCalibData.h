@@ -42,6 +42,7 @@ struct LtrCalibData {
   std::vector<uint16_t> matchedLtrIDs; ///< matched laser track IDs
   std::vector<uint16_t> nTrackTF;      ///< number of laser tracks per TF
   std::vector<float> dEdx;             ///< dE/dx of each track
+  float tp{0.f};                       ///< temperature over pressure ratio
 
   bool isValid() const
   {
@@ -138,7 +139,7 @@ struct LtrCalibData {
     dEdx.clear();
   }
 
-  ClassDefNV(LtrCalibData, 4);
+  ClassDefNV(LtrCalibData, 5);
 };
 
 } // namespace o2::tpc

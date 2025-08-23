@@ -19,6 +19,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/ControlService.h"
 #include "DataFormatsTPC/Digit.h"
+#include "TPCSimWorkflow/TPCDigitRootWriterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "TPCSimulation/CommonMode.h"
@@ -46,6 +47,9 @@
 #include <omp.h>
 #endif
 #include <TStopwatch.h>
+#include "CommonDataFormat/RangeReference.h"
+
+using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
 
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
@@ -70,6 +74,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
   workflowOptions.push_back(
     ConfigParamSpec{"tpc-sectors", VariantType::String, sectorDefault.c_str(), {sectorshelp}});
+
+  // option to write merged data to file
+  workflowOptions.push_back(ConfigParamSpec{"writer-mode", o2::framework::VariantType::Bool, false, {"enable ROOT file output"}});
 
   // option to disable MC truth
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
@@ -104,14 +111,30 @@ void copyHelper<MCTruthContainer>(MCTruthContainer const& origin, MCTruthContain
   target.mergeAtBack(origin);
 }
 
+// a trait to map TPC data types to a DPL channel name
+template <typename T>
+struct OutputChannelName;
+template <>
+struct OutputChannelName<std::vector<o2::tpc::Digit>> {
+  static constexpr char value[] = "DIGITS";
+};
+template <>
+struct OutputChannelName<std::vector<o2::tpc::CommonMode>> {
+  static constexpr char value[] = "COMMONMODE";
+};
+template <>
+struct OutputChannelName<std::vector<DigiGroupRef>> {
+  static constexpr char value[] = "DIGTRIGGERS";
+};
+
 template <typename T>
 auto makePublishBuffer(framework::ProcessingContext& pc, int sector, uint64_t activeSectors)
 {
-  LOG(info) << "PUBLISHING SECTOR " << sector;
+  LOG(info) << "PUBLISHING SECTOR " << sector << " FOR CHANNEL " << OutputChannelName<T>::value;
 
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
-  return &pc.outputs().make<T>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(sector), header});
+  return &pc.outputs().make<T>(Output{"TPC", OutputChannelName<T>::value, static_cast<SubSpecificationType>(sector), header});
 }
 
 template <>
@@ -187,6 +210,30 @@ void mergeHelper(const char* brprefix, std::vector<int> const& tpcsectors, uint6
   }
 }
 
+template <>
+void mergeHelper<std::vector<DigiGroupRef>>(const char* brprefix, std::vector<int> const& tpcsectors, uint64_t activeSectors,
+                                            TFile& originfile, framework::ProcessingContext& pc)
+{
+  // specialization for TPC Trigger
+  auto keyslist = originfile.GetListOfKeys();
+  for (int i = 0; i < keyslist->GetEntries(); ++i) {
+    auto key = keyslist->At(i);
+    int sector = atoi(key->GetName());
+    if (std::find(tpcsectors.begin(), tpcsectors.end(), sector) == tpcsectors.end()) {
+      // do nothing if sector not wanted
+      continue;
+    }
+
+    using AccumType = std::decay_t<decltype(makePublishBuffer<std::vector<DigiGroupRef>>(pc, sector, activeSectors))>;
+    AccumType accum;
+#pragma omp critical
+    accum = makePublishBuffer<std::vector<DigiGroupRef>>(pc, sector, activeSectors);
+    // no actual data sent. Continuous mode.
+
+    publishBuffer(pc, sector, activeSectors, accum);
+  }
+}
+
 void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> const& tpcsectors, bool domctruth, framework::ProcessingContext& pc)
 {
   uint64_t activeSectors = 0;
@@ -208,13 +255,21 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
     auto originfile = new TFile(filename.c_str(), "OPEN");
     assert(originfile);
 
-    //data definitions
+    // data definitions
     using DigitsType = std::vector<o2::tpc::Digit>;
     using LabelType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     mergeHelper<DigitsType>("TPCDigit_", tpcsectors, activeSectors, *originfile, pc);
     if (domctruth) {
       mergeHelper<LabelType>("TPCDigitMCTruth_", tpcsectors, activeSectors, *originfile, pc);
     }
+
+    // we also merge common modes and publish a (fake) trigger entry
+    using CommonModeType = std::vector<o2::tpc::CommonMode>;
+    mergeHelper<CommonModeType>("TPCCommonMode_", tpcsectors, activeSectors, *originfile, pc);
+
+    using TriggerType = std::vector<DigiGroupRef>;
+    mergeHelper<TriggerType>("TPCCommonMode_", tpcsectors, activeSectors, *originfile, pc);
+
     originfile->Close();
     delete originfile;
   }
@@ -257,7 +312,7 @@ class Task
 /// MC truth information is also aggregated and written out
 DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, std::vector<int> const& tpcsectors, bool mctruth, bool publish = true)
 {
-  //data definitions
+  // data definitions
   using DigitsOutputType = std::vector<o2::tpc::Digit>;
   using CommonModeOutputType = std::vector<o2::tpc::CommonMode>;
 
@@ -266,10 +321,14 @@ DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, std::vector
     // effectively the input expects one sector per subspecification
     for (int s = 0; s < 36; ++s) {
       OutputLabel binding{std::to_string(s)};
-      outputs.emplace_back(/*binding,*/ "TPC", "DIGITS", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
+      outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
       if (mctruth) {
-        outputs.emplace_back(/*binding,*/ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
+        outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
       }
+      // common mode
+      outputs.emplace_back("TPC", "COMMONMODE", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
+      // trigger records
+      outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(s), Lifetime::Timeframe);
     }
   }
 
@@ -287,11 +346,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto numlanes = configcontext.options().get<int>("tpc-lanes");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
+  bool writeout = configcontext.options().get<bool>("writer-mode");
   auto tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
 
   std::vector<int> lanes(numlanes);
   std::iota(lanes.begin(), lanes.end(), 0);
   specs.emplace_back(o2::tpc::getSpec(lanes, tpcsectors, mctruth));
+
+  if (writeout) {
+    // for now writeout to a ROOT file only works if all sectors
+    // are included
+    if (tpcsectors.size() != 36) {
+      LOG(error) << "You currently need to include all TPC sectors in the ROOT writer-mode";
+    } else {
+      std::vector<int> writerlanes(tpcsectors.size());
+      std::iota(writerlanes.begin(), writerlanes.end(), 0);
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(writerlanes, mctruth));
+    }
+  }
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

@@ -19,7 +19,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "ReconstructionDataFormats/Vertex.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/TrackingConfigParam.h"
 
 using namespace o2::framework;
@@ -28,7 +28,6 @@ namespace o2
 {
 namespace its
 {
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;

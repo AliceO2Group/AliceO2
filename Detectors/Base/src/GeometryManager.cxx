@@ -24,6 +24,7 @@
 #include <numeric>
 
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/GeometryManagerParam.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Aligner.h"
@@ -256,7 +257,7 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
 
   bool res = true;
   for (int i = 0; i < nvols; i++) {
-    if (!algPars[ord[i]].applyToGeometry()) {
+    if (!algPars[ord[i]].applyToGeometry(GeometryManagerParam::Instance().printLevel)) {
       res = false;
       LOG(error) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
     }

@@ -245,8 +245,8 @@ TEST_CASE("GroupSlicerMismatchedGroups")
     if (i == 3 || i == 10 || i == 12 || i == 16 || i == 19) {
       continue;
     }
-    for (auto j = 0.f; j < 5; j += 0.5f) {
-      trksWriter(0, i, 0.5f * j);
+    for (auto j = 0; j < 10; ++j) {
+      trksWriter(0, i, 0.5f * (j / 2.));
     }
   }
   auto trkTable = builderT.finalize();
@@ -260,21 +260,19 @@ TEST_CASE("GroupSlicerMismatchedGroups")
   auto s = slices.updateCacheEntry(0, trkTable);
   o2::framework::GroupSlicer g(e, tt, slices);
 
-  auto count = 0;
   for (auto& slice : g) {
     auto as = slice.associatedTables();
     auto gg = slice.groupingElement();
-    REQUIRE(gg.globalIndex() == count);
+    REQUIRE(gg.globalIndex() == (int64_t)slice.position);
     auto trks = std::get<aod::TrksX>(as);
-    if (count == 3 || count == 10 || count == 12 || count == 16 || count == 19) {
+    if (slice.position == 3 || slice.position == 10 || slice.position == 12 || slice.position == 16 || slice.position == 19) {
       REQUIRE(trks.size() == 0);
     } else {
       REQUIRE(trks.size() == 10);
     }
     for (auto& trk : trks) {
-      REQUIRE(trk.eventId() == count);
+      REQUIRE(trk.eventId() == (int64_t)slice.position);
     }
-    ++count;
   }
 }
 
@@ -299,8 +297,8 @@ TEST_CASE("GroupSlicerMismatchedUnassignedGroups")
       ++skip;
       continue;
     }
-    for (auto j = 0.f; j < 5; j += 0.5f) {
-      trksWriter(0, i, 0.5f * j);
+    for (auto j = 0; j < 10; ++j) {
+      trksWriter(0, i, 0.5f * (j / 2.));
     }
   }
   for (auto i = 0; i < 5; ++i) {
@@ -510,7 +508,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
 {
   TableBuilder builderE;
   auto evtsWriter = builderE.cursor<aod::Events>();
-  for (auto i = 0; i < 20; ++i) {
+  for (auto i = 0; i < 10; ++i) {
     evtsWriter(0, i, 0.5f * i, 2.f * i, 3.f * i);
   }
   auto evtTable = builderE.finalize();
@@ -523,7 +521,6 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
   std::uniform_int_distribution<> distrib(0, 99);
 
   for (auto i = 0; i < 100; ++i) {
-
     filler[0] = distrib(gen);
     filler[1] = distrib(gen);
     if (filler[0] > filler[1]) {
@@ -541,7 +538,6 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
   auto thingsTable = builderT.finalize();
 
   aod::Events e{evtTable};
-  // aod::Parts p{partsTable};
   aod::Things t{thingsTable};
   using FilteredParts = soa::Filtered<aod::Parts>;
   auto size = distrib(gen);

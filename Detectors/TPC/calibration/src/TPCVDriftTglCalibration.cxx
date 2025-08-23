@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCCalibration/TPCVDriftTglCalibration.h"
-#include "TPCBase/ParameterGas.h"
 #include "Framework/Logger.h"
 #include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -91,7 +90,7 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
                                                                corrFact,
                                                                corrFactErr,
                                                                float(cont->driftVFullMean),
-                                                               cont->tOffsetRef, 0.f});
+                                                               cont->tOffsetRef, 0.f, cont->tp});
     // at this stage the correction object is defined wrt average corrected drift used for the slot processing, we want to redefine it to run-constant reference vdrift
     vd.normalize(cont->driftVRef);
 

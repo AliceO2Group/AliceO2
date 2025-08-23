@@ -382,7 +382,7 @@ unsigned long TimeFrame<nLayers>::getArtefactsMemory() const
     size += sizeof(Tracklet) * trkl.size();
   }
   for (const auto& cells : mCells) {
-    size += sizeof(CellSeed) * cells.size();
+    size += sizeof(CellSeedN) * cells.size();
   }
   for (const auto& cellsN : mCellsNeighbours) {
     size += sizeof(int) * cellsN.size();
@@ -666,7 +666,6 @@ void TimeFrame<nLayers>::wipe()
   deepVectorClear(mROFramesPV);
   deepVectorClear(mPrimaryVertices);
   deepVectorClear(mRoads);
-  deepVectorClear(mRoadLabels);
   deepVectorClear(mMSangles);
   deepVectorClear(mPhiCuts);
   deepVectorClear(mPositionResolution);
@@ -676,9 +675,15 @@ void TimeFrame<nLayers>::wipe()
   deepVectorClear(mTrackletsIndexROF);
   deepVectorClear(mPrimaryVertices);
   deepVectorClear(mTrackletClusters);
-  deepVectorClear(mVerticesContributorLabels);
   deepVectorClear(mLines);
-  deepVectorClear(mLinesLabels);
+  if (hasMCinformation()) {
+    deepVectorClear(mLinesLabels);
+    deepVectorClear(mVerticesContributorLabels);
+    deepVectorClear(mTrackletLabels);
+    deepVectorClear(mCellLabels);
+    deepVectorClear(mRoadLabels);
+    deepVectorClear(mTracksLabel);
+  }
 }
 
 template class TimeFrame<7>;

@@ -119,6 +119,9 @@ class TableConsumer;
 template <typename T>
 concept is_producable = soa::has_metadata<aod::MetadataTrait<T>> || soa::has_metadata<aod::MetadataTrait<typename T::parent_t>>;
 
+template <typename T>
+concept is_enumerated_iterator = requires(T t) { t.globalIndex(); };
+
 template <is_producable T>
 struct WritingCursor {
  public:
@@ -126,9 +129,9 @@ struct WritingCursor {
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
   template <typename... Ts>
-  void operator()(Ts... args)
+  void operator()(Ts&&... args)
+    requires(sizeof...(Ts) == framework::pack_size(typename persistent_table_t::persistent_columns_t{}))
   {
-    static_assert(sizeof...(Ts) == framework::pack_size(typename persistent_table_t::persistent_columns_t{}), "Argument number mismatch");
     ++mCount;
     cursor(0, extract(args)...);
   }
@@ -167,15 +170,14 @@ struct WritingCursor {
   decltype(FFL(std::declval<cursor_t>())) cursor;
 
  private:
-  template <typename A>
-    requires requires { &A::globalIndex; }
-  static decltype(auto) extract(A const& arg)
+  static decltype(auto) extract(is_enumerated_iterator auto const& arg)
   {
     return arg.globalIndex();
   }
 
   template <typename A>
-  static decltype(auto) extract(A const& arg)
+    requires(!is_enumerated_iterator<A>)
+  static decltype(auto) extract(A&& arg)
   {
     return arg;
   }

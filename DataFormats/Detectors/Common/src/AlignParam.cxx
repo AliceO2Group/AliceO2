@@ -12,12 +12,12 @@
 /// \file AlignParam.cxx
 /// \brief Implementation of the base alignment parameters class
 
-#include <fairlogger/Logger.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
 #include <TGeoOverlap.h>
 #include <TGeoPhysicalNode.h>
 
+#include "Framework/Logger.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 
 using namespace o2::detectors;
@@ -261,7 +261,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
 }
 
 //_____________________________________________________________________________
-bool AlignParam::applyToGeometry() const
+bool AlignParam::applyToGeometry(int printLevel) const
 {
   /// Apply the current alignment object to the TGeo geometry
   /// This method returns FALSE if the symname of the object was not
@@ -308,12 +308,23 @@ bool AlignParam::applyToGeometry() const
   TGeoHMatrix* align = new TGeoHMatrix(createMatrix());
   if (mIsGlobal) {
     align->Multiply(node->GetMatrix());
-    TGeoHMatrix* g = node->GetMatrix(node->GetLevel() - 1);
     align->MultiplyLeft(node->GetMatrix(node->GetLevel() - 1)->Inverse());
+  } else {
+    align->MultiplyLeft(node->GetOriginalMatrix());
   }
-  LOG(debug) << "Aligning volume " << symname;
 
   node->Align(align);
+
+  if (getLevel() <= printLevel) {
+    LOGP(info, "{:*^100}", symname);
+    LOGP(info, " - Alignment parameter:");
+    print();
+    LOGP(info, " - Alignment matrix:");
+    align->Print();
+    LOGP(info, " - Node:");
+    node->Print();
+    LOGP(info, "{:~^100}", symname);
+  }
 
   return true;
 }
@@ -347,8 +358,8 @@ int AlignParam::getLevel() const
 void AlignParam::print() const
 {
   // print parameters
-  printf("%s : %6d | X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getAlignableID(), getX(),
-         getY(), getZ(), getPsi(), getTheta(), getPhi());
+  printf("%s (Lvl:%2d): %6d | %s | tra: X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getLevel(), getAlignableID(), (mIsGlobal) ? "G" : "L",
+         getX(), getY(), getZ(), getPsi(), getTheta(), getPhi());
 }
 
 //_____________________________________________________________________________

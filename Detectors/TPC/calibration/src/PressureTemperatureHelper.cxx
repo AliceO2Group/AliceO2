@@ -14,7 +14,7 @@
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
 #include "TPCCalibration/PressureTemperatureHelper.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBase/CDBTypes.h"
 #include "Framework/ProcessingContext.h"
 #include "DataFormatsTPC/DCS.h"
 #include "Framework/InputRecord.h"
@@ -52,14 +52,25 @@ bool PressureTemperatureHelper::accountCCDBInputs(const ConcreteDataMatcher& mat
     mTemperatureC.second.clear();
 
     for (const auto& dp : temp.statsA.data) {
-      mTemperatureA.first.emplace_back(dp.value.mean);
+      mTemperatureA.first.emplace_back(toKelvin(dp.value.mean));
       mTemperatureA.second.emplace_back(dp.time);
     }
 
     for (const auto& dp : temp.statsC.data) {
-      mTemperatureC.first.emplace_back(dp.value.mean);
+      mTemperatureC.first.emplace_back(toKelvin(dp.value.mean));
       mTemperatureC.second.emplace_back(dp.time);
     }
+
+    // check if temperature data is available
+    if (mTemperatureA.first.empty() && mTemperatureC.first.empty()) {
+      float temperature = toKelvin(temp.getMeanTempRaw());
+      mTemperatureA.first.emplace_back(temperature);
+      mTemperatureA.second.emplace_back(0);
+      mTemperatureC.first.emplace_back(temperature);
+      mTemperatureC.second.emplace_back(0);
+      LOGP(warning, "No temperature data available from fit. Using average temperature {} K", temperature);
+    }
+
     return true;
   }
   return false;
@@ -116,4 +127,64 @@ void PressureTemperatureHelper::sendPTForTS(o2::framework::ProcessingContext& pc
   LOGP(info, "Sending pressure {}, temperature A {} and temperature C {} for timestamp {}", pressure, temp.first, temp.second, timestamp);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTPC, o2::tpc::PressureTemperatureHelper::getDataDescriptionTemperature()}, temp);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTPC, o2::tpc::PressureTemperatureHelper::getDataDescriptionPressure()}, pressure);
+}
+
+float PressureTemperatureHelper::getTP(int64_t ts) const
+{
+  const float pressure = getPressure(ts);
+  const auto temp = getMeanTemperature(ts);
+  if (pressure <= 0) {
+    LOGP(error, "Pressure {} is zero or negative, cannot compute T/P ratio for timestamp {}", pressure, ts);
+    return 0;
+  }
+  const float tp = temp / pressure;
+  return tp;
+}
+
+float PressureTemperatureHelper::getMeanTemperature(const ULong64_t timestamp) const
+{
+  const auto temp = getTemperature(timestamp);
+
+  float sumT = 0;
+  int w = 0;
+  constexpr float minTemp = toKelvin(15);
+  constexpr float maxTemp = toKelvin(25);
+  if (auto t = temp.first; t > minTemp && t < maxTemp) {
+    sumT += t;
+    ++w;
+  }
+  if (auto t = temp.second; t > minTemp && t < maxTemp) {
+    sumT += t;
+    ++w;
+  }
+
+  if (w == 0) {
+    constexpr float defaultTemp = toKelvin(19.6440f);
+    LOGP(info, "Returning default temperature of {}K", defaultTemp);
+    return defaultTemp;
+  }
+
+  const float meanT = sumT / w;
+  return meanT;
+}
+
+std::pair<ULong64_t, ULong64_t> PressureTemperatureHelper::getMinMaxTime() const
+{
+  ULong64_t minTime = std::numeric_limits<ULong64_t>::max();
+  ULong64_t maxTime = 0;
+
+  if (!mPressure.first.empty()) {
+    minTime = std::min(minTime, mPressure.second.front());
+    maxTime = std::max(maxTime, mPressure.second.back());
+  }
+  if (!mTemperatureA.first.empty()) {
+    minTime = std::min(minTime, mTemperatureA.second.front());
+    maxTime = std::max(maxTime, mTemperatureA.second.back());
+  }
+  if (!mTemperatureC.first.empty()) {
+    minTime = std::min(minTime, mTemperatureC.second.front());
+    maxTime = std::max(maxTime, mTemperatureC.second.back());
+  }
+
+  return {minTime, maxTime};
 }

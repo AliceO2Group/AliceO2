@@ -37,6 +37,7 @@ void BadChannelCalibrationDevice::init(o2::framework::InitContext& ic)
   mCalibrator = std::make_unique<o2::mch::calibration::BadChannelCalibrator>();
   mCalibrator->setSlotLength(o2::calibration::INFINITE_TF);
   mCalibrator->setUpdateAtTheEndOfRunOnly();
+  mCalibrator->setLoggingInterval(mLoggingInterval);
   mTimeStamp = std::numeric_limits<uint64_t>::max();
 }
 
@@ -52,6 +53,8 @@ void BadChannelCalibrationDevice::logStats(size_t dataSize)
   static auto loggerEnd = loggerStart;
   static size_t nDigits = 0;
   static size_t nTF = 0;
+  static size_t nTFtot = 0;
+  static size_t nTFtotWithData = 0;
 
   if (mLoggingInterval == 0) {
     return;
@@ -59,11 +62,17 @@ void BadChannelCalibrationDevice::logStats(size_t dataSize)
 
   nDigits += dataSize;
   nTF += 1;
+  nTFtot += 1;
+  if (dataSize > 1000) {
+    nTFtotWithData += 1;
+  }
 
   loggerEnd = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
-  if (loggerElapsed.count() > 1000) {
-    LOG(info) << "received " << nDigits << " digits in " << nTF << " time frames";
+  if (loggerElapsed.count() > mLoggingInterval) {
+    LOG(warning) << "received " << nDigits << " digits in " << nTF << " time frames";
+    LOG(warning) << "received " << nTFtotWithData << " time frames with data out of " << nTFtot << " total time frames ("
+                 << ((nTFtot > 0) ? (nTFtotWithData * 100.0) / nTFtot : 0.0) << "%)";
     nDigits = 0;
     nTF = 0;
     loggerStart = std::chrono::high_resolution_clock::now();
@@ -86,7 +95,7 @@ void BadChannelCalibrationDevice::run(o2::framework::ProcessingContext& pc)
     std::string reason;
     if (mCalibrator->readyToSend(reason)) {
       mHasEnoughStat = true;
-      LOGP(info, "We're ready to send output to CCDB ({})", reason);
+      LOGP(warning, "We're ready to send output to CCDB ({})", reason);
       sendOutput(pc.outputs(), reason);
       mSkipData = true;
     }
@@ -139,12 +148,12 @@ void sendCalibrationOutput(o2::framework::DataAllocator& output,
   using clbUtils = o2::calibration::Utils;
   auto image = o2::ccdb::CcdbApi::createObjectImage(payload, payloadInfo);
 
-  LOG(info) << "Sending object " << payloadInfo->getPath()
-            << " of type" << payloadInfo->getObjectType()
-            << " /" << payloadInfo->getFileName()
-            << " of size " << image->size()
-            << " bytes, valid for " << payloadInfo->getStartValidityTimestamp()
-            << " : " << payloadInfo->getEndValidityTimestamp();
+  LOG(warning) << "Sending object " << payloadInfo->getPath()
+               << " of type" << payloadInfo->getObjectType()
+               << " /" << payloadInfo->getFileName()
+               << " of size " << image->size()
+               << " bytes, valid for " << payloadInfo->getStartValidityTimestamp()
+               << " : " << payloadInfo->getEndValidityTimestamp();
 
   output.snapshot(o2::framework::Output{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN", subSpec}, *image.get());
   output.snapshot(o2::framework::Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN", subSpec}, *payloadInfo);
@@ -168,7 +177,7 @@ void BadChannelCalibrationDevice::sendOutput(o2::framework::DataAllocator& outpu
     reason_with_entries = fmt::format("{} ; no entries", reason);
   }
 
-  LOGP(info, "sendOutput: {}", reason_with_entries);
+  LOGP(warning, "sendOutput: {}", reason_with_entries);
   mCalibrator->finalize();
 
   // the bad channels table is only updated if there is enough statistics

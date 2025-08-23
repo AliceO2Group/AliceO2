@@ -686,6 +686,9 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
 
     mMCInfosCol.resize(nSimTotalEvents);
     for (int32_t iSim = 0; iSim < mcReader.getNSources(); iSim++) {
+      if (iSim == o2::steer::QEDSOURCEID) {
+        continue;
+      }
       for (int32_t i = 0; i < mcReader.getNEvents(iSim); i++) {
         auto ir = evrec[i];
         auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);

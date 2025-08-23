@@ -355,7 +355,7 @@ class CcdbApi //: public DatabaseInterface
 
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
   typedef struct RequestContext {
-    std::pmr::vector<char>& dest;
+    o2::pmr::vector<char>& dest;
     std::string path;
     std::map<std::string, std::string> const& metadata;
     long timestamp;
@@ -365,7 +365,7 @@ class CcdbApi //: public DatabaseInterface
     std::string createdNotBefore;
     bool considerSnapshot;
 
-    RequestContext(std::pmr::vector<char>& d,
+    RequestContext(o2::pmr::vector<char>& d,
                    std::map<std::string, std::string> const& m,
                    std::map<std::string, std::string>& h)
       : dest(d), metadata(m), headers(h) {}
@@ -379,7 +379,7 @@ class CcdbApi //: public DatabaseInterface
 
   void getFromSnapshot(bool createSnapshot, std::string const& path,
                        long timestamp, std::map<std::string, std::string>& headers,
-                       std::string& snapshotpath, std::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const;
+                       std::string& snapshotpath, o2::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const;
   void releaseNamedSemaphore(boost::interprocess::named_semaphore* sem, std::string const& path) const;
   boost::interprocess::named_semaphore* createNamedSemaphore(std::string const& path) const;
   static std::string determineSemaphoreName(std::string const& basedir, std::string const& objectpath);
@@ -388,22 +388,22 @@ class CcdbApi //: public DatabaseInterface
   static bool removeSemaphore(std::string const& name, bool remove = false);
   static void removeLeakingSemaphores(std::string const& basedir, bool remove = false);
 
-  void loadFileToMemory(std::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders = nullptr, bool fetchLocalMetaData = true) const;
-  void loadFileToMemory(std::pmr::vector<char>& dest, std::string const& path,
+  void loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders = nullptr, bool fetchLocalMetaData = true) const;
+  void loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
                         std::map<std::string, std::string> const& metadata, long timestamp,
                         std::map<std::string, std::string>* headers, std::string const& etag,
                         const std::string& createdNotAfter, const std::string& createdNotBefore, bool considerSnapshot = true) const;
 
   // Loads files from alien and cvmfs into given destination.
-  bool loadLocalContentToMemory(std::pmr::vector<char>& dest, std::string& url) const;
+  bool loadLocalContentToMemory(o2::pmr::vector<char>& dest, std::string& url) const;
 
   // add annotated flattened headers in the end of the blob
-  static void appendFlatHeader(std::pmr::vector<char>& dest, const std::map<std::string, std::string>& headers);
+  static void appendFlatHeader(o2::pmr::vector<char>& dest, const std::map<std::string, std::string>& headers);
 
   // the failure to load the file to memory is signaled by 0 size and non-0 capacity
-  static bool isMemoryFileInvalid(const std::pmr::vector<char>& v) { return v.size() == 0 && v.capacity() > 0; }
+  static bool isMemoryFileInvalid(const o2::pmr::vector<char>& v) { return v.size() == 0 && v.capacity() > 0; }
   template <typename T>
-  static T* extractFromMemoryBlob(std::pmr::vector<char>& blob)
+  static T* extractFromMemoryBlob(o2::pmr::vector<char>& blob)
   {
     auto obj = static_cast<T*>(interpretAsTMemFileAndExtract(blob.data(), blob.size(), typeid(T)));
     if constexpr (std::is_base_of<o2::conf::ConfigurableParam, T>::value) {

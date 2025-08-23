@@ -62,13 +62,15 @@ namespace gpu
 template <int>
 class TimeFrameGPU;
 }
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 template <int nLayers = 7>
 struct TimeFrame {
+  using CellSeedN = CellSeed<nLayers>;
   friend class gpu::TimeFrameGPU<nLayers>;
+
   TimeFrame();
   virtual ~TimeFrame();
+
   const Vertex& getPrimaryVertex(const int ivtx) const { return mPrimaryVertices[ivtx]; }
   gsl::span<const Vertex> getPrimaryVertices(int rofId) const;
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
@@ -299,7 +301,7 @@ struct TimeFrame {
 
   std::array<bounded_vector<Cluster>, nLayers> mUnsortedClusters;
   std::vector<bounded_vector<Tracklet>> mTracklets;
-  std::vector<bounded_vector<CellSeed>> mCells;
+  std::vector<bounded_vector<CellSeedN>> mCells;
   bounded_vector<Road<nLayers - 2>> mRoads;
   std::vector<bounded_vector<TrackITSExt>> mTracks;
   std::vector<bounded_vector<int>> mCellsNeighbours;

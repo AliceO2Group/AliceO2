@@ -64,6 +64,17 @@ constexpr std::array<std::string_view, BasicOp::Conditional + 1> mapping{
   "nbitwise_not",
   "ifnode"};
 
+constexpr std::array<std::string_view, 8> cfgtypes{
+  "uint16_t", // 0
+  "int16_t",  // 1
+  "uint32_t", // 2
+  "int32_t",  // 3
+  "uint64_t", // 4
+  "int64_t",  // 5
+  "float",    // 6
+  "double"    // 7
+};
+
 /// math constants to recognize in string expressions
 constexpr std::array<std::string_view, 9> mathConstants{
   "Almost0",
@@ -813,7 +824,8 @@ Tokenizer::Tokenizer(std::string const& input)
 {
   LastChar = ' ';
   if (!source.empty()) {
-    source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end());
+    source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end()); // strip whitespaces
+    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end());         // strip quotes
   }
   current = source.begin();
 }
@@ -827,7 +839,8 @@ void Tokenizer::reset(std::string const& input)
   FloatValue = 0.f;
   source = input;
   if (!source.empty()) {
-    source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end());
+    source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end()); // strip whitespaces
+    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end());         // strip quotes
   }
   current = source.begin();
   currentToken = Token::Unexpected;
@@ -1202,6 +1215,78 @@ std::unique_ptr<Node> Parser::parseBase(Tokenizer& tk)
       }
       tk.nextToken();
       return node;
+    } else if (id == "ncfg") { // configurable placeholder, 3 args none of them can be expressions
+      int args = 0;
+      std::string type;
+      std::string value;
+      std::string path;
+      while (tk.currentToken != ')') {
+        do {
+          tk.nextToken();
+          if (args == 0) { // type
+            type = tk.TokenStr;
+            tk.nextToken();
+          } else if (args == 1) { // value
+            value = tk.TokenStr;
+            tk.nextToken();
+          } else if (args == 2) { // path
+            path = tk.TokenStr;
+            tk.nextToken();
+          } else {
+            throw runtime_error_f("Extra argument in configurable: %s", tk.TokenStr.c_str());
+          }
+          ++args;
+        } while (tk.currentToken == ',');
+      }
+      tk.nextToken();
+      auto locate = std::find(cfgtypes.begin(), cfgtypes.end(), type);
+      if (locate == cfgtypes.end()) {
+        throw runtime_error_f("Unsupported type in configurable: %s", type.c_str());
+      }
+      switch (std::distance(cfgtypes.begin(), locate)) {
+        case 0:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<uint16_t>(std::stoi(value)),
+              std::move(path)));
+        case 1:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<int16_t>(std::stoi(value)),
+              std::move(path)));
+        case 2:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<uint32_t>(std::stoi(value)),
+              std::move(path)));
+        case 3:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<int32_t>(std::stoi(value)),
+              std::move(path)));
+        case 4:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<uint64_t>(std::stoll(value)),
+              std::move(path)));
+        case 5:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<int64_t>(std::stol(value)),
+              std::move(path)));
+        case 6:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              std::stof(value),
+              std::move(path)));
+        case 7:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              std::stod(value),
+              std::move(path)));
+        default:
+          throw runtime_error_f("Unsupported type in configurable: %s", type.c_str());
+      }
     } else { // normal function
       auto node = std::make_unique<Node>(opFromToken(id), LiteralNode{-1}, LiteralNode{-1});
       int args = 0;

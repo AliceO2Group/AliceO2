@@ -32,7 +32,6 @@
 #include <gsl/span>
 
 #include <memory>
-#include <memory_resource>
 #include <vector>
 #include <map>
 #include <string>
@@ -450,7 +449,7 @@ class DataAllocator
   }
 
   // get the memory resource associated with an output
-  std::pmr::memory_resource* getMemoryResource(const Output& spec)
+  o2::pmr::FairMQMemoryResource* getMemoryResource(const Output& spec)
   {
     auto& timingInfo = mRegistry.get<TimingInfo>();
     auto& proxy = mRegistry.get<FairMQDeviceProxy>();
@@ -460,10 +459,10 @@ class DataAllocator
 
   // make a stl (pmr) vector
   template <typename T, typename... Args>
-  std::pmr::vector<T> makeVector(const Output& spec, Args&&... args)
+  o2::pmr::vector<T> makeVector(const Output& spec, Args&&... args)
   {
-    std::pmr::memory_resource* targetResource = getMemoryResource(spec);
-    return std::pmr::vector<T>{targetResource, std::forward<Args>(args)...};
+    o2::pmr::FairMQMemoryResource* targetResource = getMemoryResource(spec);
+    return o2::pmr::vector<T>{targetResource, std::forward<Args>(args)...};
   }
 
   struct CacheId {

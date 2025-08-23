@@ -272,7 +272,7 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
       });
 
     /// Create tracklets labels
-    if (mTimeFrame->hasMCinformation()) {
+    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
       tbb::parallel_for(
         tbb::blocked_range<int>(0, mTrkParams[iteration].TrackletsPerRoad()),
         [&](const tbb::blocked_range<int>& Layers) {
@@ -313,13 +313,13 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
     if (iLayer > 0) {
       deepVectorClear(mTimeFrame->getCellsLookupTable()[iLayer - 1]);
     }
-    if (mTimeFrame->hasMCinformation()) {
+    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
       deepVectorClear(mTimeFrame->getCellsLabel(iLayer));
     }
   }
 
   mTaskArena->execute([&] {
-    auto forTrackletCells = [&](auto Tag, int iLayer, bounded_vector<CellSeed>& layerCells, int iTracklet, int offset = 0) -> int {
+    auto forTrackletCells = [&](auto Tag, int iLayer, bounded_vector<CellSeedN>& layerCells, int iTracklet, int offset = 0) -> int {
       const Tracklet& currentTracklet{mTimeFrame->getTracklets()[iLayer][iTracklet]};
       const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
       const int nextLayerFirstTrackletIndex{mTimeFrame->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
@@ -392,7 +392,7 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
             } else if constexpr (decltype(Tag)::value == PassMode::TwoPassCount::value) {
               ++foundCells;
             } else if constexpr (decltype(Tag)::value == PassMode::TwoPassInsert::value) {
-              layerCells[offset++] = CellSeed(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2);
+              layerCells[offset++] = CellSeedN(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2);
             } else {
               static_assert(false, "Unknown mode!");
             }
@@ -458,14 +458,19 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
   });
 
   /// Create cells labels
-  if (mTimeFrame->hasMCinformation()) {
-    for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
-      for (const auto& cell : mTimeFrame->getCells()[iLayer]) {
-        MCCompLabel currentLab{mTimeFrame->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
-        MCCompLabel nextLab{mTimeFrame->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
-        mTimeFrame->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
-      }
-    }
+  if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
+    tbb::parallel_for(
+      tbb::blocked_range<int>(0, mTrkParams[iteration].CellsPerRoad()),
+      [&](const tbb::blocked_range<int>& Layers) {
+        for (int iLayer = Layers.begin(); iLayer < Layers.end(); ++iLayer) {
+          mTimeFrame->getCellsLabel(iLayer).reserve(mTimeFrame->getCells()[iLayer].size());
+          for (const auto& cell : mTimeFrame->getCells()[iLayer]) {
+            MCCompLabel currentLab{mTimeFrame->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
+            MCCompLabel nextLab{mTimeFrame->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
+            mTimeFrame->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+          }
+        }
+      });
   }
 }
 
@@ -481,7 +486,7 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
   };
 
   mTaskArena->execute([&] {
-    for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].NeighboursPerRoad(); ++iLayer) {
       deepVectorClear(mTimeFrame->getCellsNeighbours()[iLayer]);
       deepVectorClear(mTimeFrame->getCellsNeighboursLUT()[iLayer]);
       if (mTimeFrame->getCells()[iLayer + 1].empty() ||
@@ -615,7 +620,7 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
 }
 
 template <int nLayers>
-void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeed>& updatedCellSeeds, bounded_vector<int>& updatedCellsIds)
+void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeedN>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeedN>& updatedCellSeeds, bounded_vector<int>& updatedCellsIds)
 {
   CA_DEBUGGER(std::cout << "Processing neighbours layer " << iLayer << " level " << iLevel << ", size of the cell seeds: " << currentCellSeed.size() << std::endl);
   auto propagator = o2::base::Propagator::Instance();
@@ -626,7 +631,7 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
 
   mTaskArena->execute([&] {
     auto forCellNeighbours = [&](auto Tag, int iCell, int offset = 0) -> int {
-      const CellSeed& currentCell{currentCellSeed[iCell]};
+      const auto& currentCell{currentCellSeed[iCell]};
 
       if constexpr (decltype(Tag)::value != PassMode::TwoPassInsert::value) {
         if (currentCell.getLevel() != iLevel) {
@@ -646,7 +651,7 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
       for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
         CA_DEBUGGER(attempts++);
         const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iNeighbourCell];
-        const CellSeed& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
+        const auto& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
         if (neighbourCell.getSecondTrackletIndex() != currentCell.getFirstTrackletIndex()) {
           CA_DEBUGGER(failedByMismatch++);
           continue;
@@ -660,7 +665,7 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
         }
 
         /// Let's start the fitting procedure
-        CellSeed seed{currentCell};
+        CellSeedN seed{currentCell};
         const auto& trHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer - 1)[neighbourCell.getFirstClusterIndex()];
 
         if (!seed.rotate(trHit.alphaTrackingFrame)) {
@@ -767,17 +772,17 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
 
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
     CA_DEBUGGER(std::cout << "\t > Processing level " << startLevel << std::endl);
-    auto seedFilter = [&](const CellSeed& seed) {
+    auto seedFilter = [&](const auto& seed) {
       return seed.getQ2Pt() <= 1.e3 && seed.getChi2() <= mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5);
     };
-    bounded_vector<CellSeed> trackSeeds(mMemoryPool.get());
+    bounded_vector<CellSeedN> trackSeeds(mMemoryPool.get());
     for (int startLayer{mTrkParams[iteration].CellsPerRoad() - 1}; startLayer >= startLevel - 1; --startLayer) {
       if ((mTrkParams[iteration].StartLayerMask & (1 << (startLayer + 2))) == 0) {
         continue;
       }
       CA_DEBUGGER(std::cout << "\t\t > Starting processing layer " << startLayer << std::endl);
       bounded_vector<int> lastCellId(mMemoryPool.get()), updatedCellId(mMemoryPool.get());
-      bounded_vector<CellSeed> lastCellSeed(mMemoryPool.get()), updatedCellSeed(mMemoryPool.get());
+      bounded_vector<CellSeedN> lastCellSeed(mMemoryPool.get()), updatedCellSeed(mMemoryPool.get());
 
       processNeighbours(startLayer, startLevel, mTimeFrame->getCells()[startLayer], lastCellId, updatedCellSeed, updatedCellId);
 
@@ -805,7 +810,7 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
     bounded_vector<TrackITSExt> tracks(mMemoryPool.get());
     mTaskArena->execute([&] {
       auto forSeed = [&](auto Tag, int iSeed, int offset = 0) {
-        const CellSeed& seed{trackSeeds[iSeed]};
+        const auto& seed{trackSeeds[iSeed]};
         TrackITSExt temporaryTrack{seed};
         temporaryTrack.resetCovariance();
         temporaryTrack.setChi2(0);

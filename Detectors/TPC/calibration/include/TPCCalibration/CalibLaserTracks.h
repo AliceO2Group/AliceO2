@@ -25,7 +25,6 @@
 #include <gsl/span>
 #include <string_view>
 
-#include "CommonConstants/MathConstants.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/LaserTrack.h"
@@ -74,10 +73,12 @@ class CalibLaserTracks
   ~CalibLaserTracks() = default;
 
   /// process all tracks of one TF
-  void fill(const gsl::span<const TrackTPC> tracks);
+  /// \param tp ratio of temperature over pressure
+  void fill(const gsl::span<const TrackTPC> tracks, float tp = 0);
 
   /// process all tracks of one TF
-  void fill(std::vector<TrackTPC> const& tracks);
+  /// \param tp ratio of temperature over pressure
+  void fill(std::vector<TrackTPC> const& tracks, float tp = 0);
 
   /// process single track
   void processTrack(const TrackTPC& track);
@@ -163,6 +164,8 @@ class CalibLaserTracks
   float mDriftV{0};                                            ///< drift velocity used during reconstruction
   float mTOffsetMUS{0};                                        ///< time offset in \mus to impose
   float mZbinWidth{0};                                         ///< width of a bin in us
+  float mAvgTP{0};                                             ///< ratio of average temperature over pressure
+  float mAvgDriftV{0};                                         ///< average drift velocity used for the laser track calibration
   uint64_t mTFstart{0};                                        ///< start time of processed time frames
   uint64_t mTFend{0};                                          ///< end time of processed time frames
   LtrCalibData mCalibDataTF{};                                 ///< calibration data for single TF (debugging)
@@ -184,7 +187,7 @@ class CalibLaserTracks
   /// perform fits on the matched z-position pairs to extract the drift velocity correction factor and trigger offset
   void fillCalibData(LtrCalibData& calibData, const std::vector<TimePair>& pairsA, const std::vector<TimePair>& pairsC);
 
-  ClassDefNV(CalibLaserTracks, 1);
+  ClassDefNV(CalibLaserTracks, 2);
 };
 
 } // namespace o2::tpc

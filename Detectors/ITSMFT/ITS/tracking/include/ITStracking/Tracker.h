@@ -51,17 +51,15 @@ class GPUChainITS;
 namespace its
 {
 
+template <int nLayers>
 class Tracker
 {
-  static constexpr int NLayers{7};
-  using TrackerTraits7 = TrackerTraits<NLayers>;
-  using TimeFrame7 = TimeFrame<NLayers>;
   using LogFunc = std::function<void(const std::string& s)>;
 
  public:
-  Tracker(TrackerTraits<NLayers>* traits);
+  Tracker(TrackerTraits<nLayers>* traits);
 
-  void adoptTimeFrame(TimeFrame<NLayers>& tf);
+  void adoptTimeFrame(TimeFrame<nLayers>& tf);
 
   void clustersToTracks(
     const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; },
@@ -92,8 +90,8 @@ class Tracker
   template <typename... T, typename... F>
   float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args);
 
-  TrackerTraits7* mTraits = nullptr; /// Observer pointer, not owned by this class
-  TimeFrame7* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
+  TrackerTraits<nLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame<nLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<TrackingParameters> mTrkParams;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
@@ -115,8 +113,9 @@ class Tracker
   static constexpr std::array<const char*, NStates> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
 };
 
+template <int nLayers>
 template <typename... T, typename... F>
-float Tracker::evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
+float Tracker<nLayers>::evaluateTask(void (Tracker<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
 {
   float diff{0.f};
 

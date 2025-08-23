@@ -34,7 +34,8 @@ namespace o2::its
 {
 using o2::its::constants::GB;
 
-Tracker::Tracker(TrackerTraits7* traits) : mTraits(traits)
+template <int nLayers>
+Tracker<nLayers>::Tracker(TrackerTraits<nLayers>* traits) : mTraits(traits)
 {
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
@@ -44,7 +45,8 @@ Tracker::Tracker(TrackerTraits7* traits) : mTraits(traits)
   }
 }
 
-void Tracker::clustersToTracks(const LogFunc& logger, const LogFunc& error)
+template <int nLayers>
+void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& error)
 {
   LogFunc evalLog = [](const std::string&) {};
 
@@ -158,7 +160,8 @@ void Tracker::clustersToTracks(const LogFunc& logger, const LogFunc& error)
   }
 }
 
-void Tracker::computeRoadsMClabels()
+template <int nLayers>
+void Tracker<nLayers>::computeRoadsMClabels()
 {
   /// Moore's Voting Algorithm
   if (!mTimeFrame->hasMCinformation()) {
@@ -171,7 +174,7 @@ void Tracker::computeRoadsMClabels()
 
   for (int iRoad{0}; iRoad < roadsNum; ++iRoad) {
 
-    Road<5>& currentRoad{mTimeFrame->getRoads()[iRoad]};
+    auto& currentRoad{mTimeFrame->getRoads()[iRoad]};
     std::vector<std::pair<MCCompLabel, size_t>> occurrences;
     bool isFakeRoad{false};
     bool isFirstRoadCell{true};
@@ -187,7 +190,7 @@ void Tracker::computeRoadsMClabels()
         }
       }
 
-      const CellSeed& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
+      const auto& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
 
       if (isFirstRoadCell) {
 
@@ -262,7 +265,8 @@ void Tracker::computeRoadsMClabels()
   }
 }
 
-void Tracker::computeTracksMClabels()
+template <int nLayers>
+void Tracker<nLayers>::computeTracksMClabels()
 {
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {
@@ -320,7 +324,8 @@ void Tracker::computeTracksMClabels()
   }
 }
 
-void Tracker::rectifyClusterIndices()
+template <int nLayers>
+void Tracker<nLayers>::rectifyClusterIndices()
 {
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {
@@ -334,17 +339,21 @@ void Tracker::rectifyClusterIndices()
   }
 }
 
-void Tracker::adoptTimeFrame(TimeFrame7& tf)
+template <int nLayers>
+void Tracker<nLayers>::adoptTimeFrame(TimeFrame<nLayers>& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
 }
 
-void Tracker::printSummary() const
+template <int nLayers>
+void Tracker<nLayers>::printSummary() const
 {
   auto avgTF = mTotalTime * 1.e-3 / ((mTimeFrameCounter > 0) ? (double)mTimeFrameCounter : -1.0);
   auto avgTFwithDropped = mTotalTime * 1.e-3 / (((mTimeFrameCounter + mNumberOfDroppedTFs) > 0) ? (double)(mTimeFrameCounter + mNumberOfDroppedTFs) : -1.0);
   LOGP(info, "Tracker summary: Processed {} TFs (dropped {}) in TOT={:.2f} s, AVG/TF={:.2f} ({:.2f}) s", mTimeFrameCounter, mNumberOfDroppedTFs, mTotalTime * 1.e-3, avgTF, avgTFwithDropped);
 }
+
+template class Tracker<7>;
 
 } // namespace o2::its

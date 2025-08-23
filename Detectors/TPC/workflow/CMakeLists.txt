@@ -70,17 +70,6 @@ o2_add_library(TPCWorkflowStudies
                                      O2::GlobalTrackingWorkflow
            )
 
-o2_add_executable(chunkeddigit-merger
-        COMPONENT_NAME tpc
-        TARGETVARNAME mergertargetName
-        SOURCES src/ChunkedDigitPublisher.cxx
-        PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
-
-if(OpenMP_CXX_FOUND)
-  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
-  target_compile_definitions(${mergertargetName} PRIVATE WITH_OPENMP)
-  target_link_libraries(${mergertargetName} PRIVATE OpenMP::OpenMP_CXX)
-endif()
 
 
 o2_add_executable(reco-workflow

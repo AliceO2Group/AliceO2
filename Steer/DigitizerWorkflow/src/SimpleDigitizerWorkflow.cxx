@@ -30,7 +30,7 @@
 
 // for TPC
 #include "TPCDigitizerSpec.h"
-#include "TPCDigitRootWriterSpec.h"
+#include "TPCSimWorkflow/TPCDigitRootWriterSpec.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/CDBInterface.h"
 // needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)

@@ -56,6 +56,7 @@ InjectorFunction dcs2dpl(std::string& ccdbhost, std::string& bkhost, std::string
   runMgr->setCtpCfgDir(ctpcfgdir);
   runMgr->init();
   // runMgr->setClient(client);
+  static int nprint = 0;
   return [runMgr](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) -> bool {
     // FIXME: Why isn't this function using the timeslice index?
     // make sure just 2 messages received
@@ -66,7 +67,15 @@ InjectorFunction dcs2dpl(std::string& ccdbhost, std::string& bkhost, std::string
     std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
-    LOG(info) << "received message " << messageHeader << " of size " << dataSize << " # parts:" << parts.Size(); // << " Payload:" << messageData;
+    nprint++;
+    int nlimit = 60;
+    int nrange = 8;
+    if (nprint > nlimit && nprint < (nlimit + nrange + 1)) {
+      LOG(info) << "received message " << messageHeader << " of size " << dataSize << " # parts:" << parts.Size(); // << " Payload:" << messageData;
+      if (nprint == (nlimit + nrange)) {
+        nprint = 0;
+      }
+    }
     runMgr->processMessage(messageHeader, messageData);
     return true;
   };
