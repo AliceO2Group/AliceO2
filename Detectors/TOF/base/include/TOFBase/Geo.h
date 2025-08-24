@@ -66,6 +66,8 @@ class Geo
   static void antiRotateToSector(Float_t* xyz, Int_t isector);
   static void antiRotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector);
 
+  static void alignedToNominalSector(Float_t* xyz, Int_t isector);
+
   static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
   static void getDetID(Float_t* pos, Int_t* det);
   static Int_t getIndex(const Int_t* detId);               // Get channel index from det Id (for calibration mainly)
