@@ -673,7 +673,27 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
     std::vector<int32_t> refId;
 
     auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
-    auto evrec = dc->getEventRecords();
+    const auto& evrec = dc->getEventRecords();
+    const auto& evparts = dc->getEventParts();
+    std::vector<std::vector<float>> evTimeBins(mcReader.getNSources());
+    for (uint32_t i = 0; i < evTimeBins.size(); i++) {
+      evTimeBins[i].resize(mcReader.getNEvents(i), -100.f);
+    }
+    for (uint32_t i = 0; i < evrec.size(); i++) {
+      const auto& ir = evrec[i];
+      for (uint32_t j = 0; j < evparts[i].size(); j++) {
+        const int iSim = evparts[i][j].sourceID;
+        const int iEv = evparts[i][j].entryID;
+        if (iSim == o2::steer::QEDSOURCEID || ir.differenceInBC(o2::raw::HBFUtils::Instance().getFirstIR()) >= 0) {
+          auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
+          float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
+          if (evTimeBins[iSim][iEv] >= 0) {
+            throw std::runtime_error("Multiple time bins for same MC collision found");
+          }
+          evTimeBins[iSim][iEv] = timebin;
+        }
+      }
+    }
 
     uint32_t nSimSources = mcReader.getNSources();
     mMCEventOffset.resize(nSimSources);
@@ -687,9 +707,7 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
     mMCInfosCol.resize(nSimTotalEvents);
     for (int32_t iSim = 0; iSim < mcReader.getNSources(); iSim++) {
       for (int32_t i = 0; i < mcReader.getNEvents(iSim); i++) {
-        auto ir = evrec[i];
-        auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
-        float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
+        const float timebin = evTimeBins[iSim][i];
 
         const std::vector<o2::MCTrack>& tracks = mcReader.getTracks(iSim, i);
         const std::vector<o2::TrackReference>& trackRefs = mcReader.getTrackRefsByEvent(iSim, i);
@@ -1293,6 +1311,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           continue;
         }
         if (mc1.pid < 0) {
+          continue;
+        }
+        if (mc1.t0 == -100.f) {
           continue;
         }
         if (mConfig.filterCharge && mc1.charge * mConfig.filterCharge < 0) {
