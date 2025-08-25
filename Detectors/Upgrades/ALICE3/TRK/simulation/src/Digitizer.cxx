@@ -131,6 +131,7 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
             [hits](auto lhs, auto rhs) {
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
+  LOG(info) << "Processing " << nHits << " hits";
   for (int i : hitIdx) {
     processHit((*hits)[i], mROFrameMax, evID, srcID);
   }
@@ -185,8 +186,6 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
 //_______________________________________________________________________
 void Digitizer::fillOutputContainer(uint32_t frameLast)
 {
-  std::cout << "Entering fillOutputContainer " << std::endl;
-  std::cout << "Digit size before fill: " << mDigits->size() << std::endl;
   // // fill output with digits from min.cached up to requested frame, generating the noise beforehand
   if (frameLast > mROFrameMax) {
     frameLast = mROFrameMax;
@@ -200,7 +199,6 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
   for (; mROFrameMin <= frameLast; mROFrameMin++) {
-    std::cout << "Entering ROFrame " << mROFrameMin << std::endl;
     rcROF.setROFrame(mROFrameMin);
     rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
 
@@ -243,7 +241,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     } else {
       rcROF.getBCData() = mEventTime; // RSTODO do we need to add trigger delay?
     }
-    if (mROFRecords->size()) {
+    if (mROFRecords) {
       mROFRecords->push_back(rcROF);
     }
     extra.clear(); // clear container for extra digits of the mROFrameMin ROFrame
@@ -279,7 +277,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     const int maxWarn = 10;
     static int warnNo = 0;
     if (warnNo < maxWarn) {
-      LOG(info) << "Ignoring hit with time_in_event = " << timeInROF << " ns"
+      LOG(warning) << "Ignoring hit with time_in_event = " << timeInROF << " ns"
                 << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
     }
     return;
