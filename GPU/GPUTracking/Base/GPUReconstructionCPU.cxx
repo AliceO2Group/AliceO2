@@ -66,7 +66,7 @@ inline void GPUReconstructionCPU::runKernelBackend(const krnlSetupTime& _xyz, co
   int32_t nThreads = getNKernelHostThreads(false);
   if (nThreads > 1) {
     if (GetProcessingSettings().debugLevel >= 5) {
-      printf("Running %d Threads\n", mThreading->activeThreads->max_concurrency());
+      GPUInfo("Running %d Threads", mThreading->activeThreads->max_concurrency());
     }
     tbb::this_task_arena::isolate([&] {
       mThreading->activeThreads->execute([&] {
@@ -227,7 +227,7 @@ int32_t GPUReconstructionCPU::RunChains()
   mNEventsProcessed++;
 
   if (GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) {
-    printf("Allocated memory when starting processing %34s", "");
+    GPUInfo("Allocated memory when starting processing %34s", "");
     PrintMemoryOverview();
   }
   mTimerTotal.Start();
@@ -254,7 +254,7 @@ int32_t GPUReconstructionCPU::RunChains()
   mTimerTotal.Stop();
   mStatCPUTime += (double)(std::clock() - cpuTimerStart) / CLOCKS_PER_SEC;
   if (GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) {
-    printf("Allocated memory when ending processing %36s", "");
+    GPUInfo("Allocated memory when ending processing %36s", "");
     PrintMemoryOverview();
   }
 
