@@ -329,12 +329,27 @@ void fillBuffer(std::pair<std::vector<float>, std::vector<TimeStampType>>& buffe
     }
   }
 
-  std::pair<std::vector<float>, std::vector<TimeStampType>> buffTmp{
-    std::vector<float>(buffer.first.begin() + idxStartBuffer, buffer.first.end()),
-    std::vector<TimeStampType>(buffer.second.begin() + idxStartBuffer, buffer.second.end())};
+  std::pair<std::vector<float>, std::vector<TimeStampType>> buffTmp;
+  auto& [buffVals, buffTimes] = buffTmp;
 
-  buffTmp.first.insert(buffTmp.first.end(), values.first.begin(), values.first.end());
-  buffTmp.second.insert(buffTmp.second.end(), values.second.begin(), values.second.end());
+  // Preallocate enough capacity to avoid reallocations
+  buffVals.reserve(buffer.first.size() - idxStartBuffer + values.first.size());
+  buffTimes.reserve(buffer.second.size() - idxStartBuffer + values.second.size());
+  // Insert the kept part of the old buffer
+  buffVals.insert(buffVals.end(), buffer.first.begin() + idxStartBuffer, buffer.first.end());
+  buffTimes.insert(buffTimes.end(), buffer.second.begin() + idxStartBuffer, buffer.second.end());
+  // Insert the new values
+  buffVals.insert(buffVals.end(), values.first.begin(), values.first.end());
+  buffTimes.insert(buffTimes.end(), values.second.begin(), values.second.end());
+
+  // this should not happen
+  if (!std::is_sorted(buffTimes.begin(), buffTimes.end())) {
+    LOGP(info, "Pressure buffer not sorted after filling - sorting it");
+    std::vector<size_t> idx(buffTimes.size());
+    o2::math_utils::SortData(buffTimes, idx);
+    o2::math_utils::Reorder(buffVals, idx);
+    o2::math_utils::Reorder(buffTimes, idx);
+  }
 
   buffer = std::move(buffTmp);
 }
