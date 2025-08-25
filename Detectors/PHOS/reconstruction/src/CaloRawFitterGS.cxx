@@ -13,6 +13,8 @@
 /// \author Dmitri Peresunko
 
 #include <gsl/span>
+#include <cmath>
+#include <TMath.h>
 
 #include "PHOSReconstruction/CaloRawFitterGS.h"
 #include "PHOSBase/PHOSSimParams.h"
