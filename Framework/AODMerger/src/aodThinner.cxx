@@ -11,6 +11,7 @@
 
 #include <unordered_map>
 #include <getopt.h>
+#include <algorithm>
 
 #include "TSystem.h"
 #include "TStopwatch.h"
