@@ -278,7 +278,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     static int warnNo = 0;
     if (warnNo < maxWarn) {
       LOG(warning) << "Ignoring hit with time_in_event = " << timeInROF << " ns"
-                << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
+                   << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
     }
     return;
   }

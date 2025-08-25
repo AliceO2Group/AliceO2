@@ -253,7 +253,7 @@ class SegmentationChip
   static constexpr math_utils::Vector2D<float> flatToCurved(int layer, float xFlat, float yFlat) noexcept
   {
     // Revert the curvedToFlat transformation
-    float dist =  constants::VD::petal::layer::radii[layer] - yFlat;
+    float dist = constants::VD::petal::layer::radii[layer] - yFlat;
     float phi = xFlat / constants::VD::petal::layer::radii[layer];
     // the y position is in the chip volume however we need the silicon volume
     // this is accounted by a -y shift

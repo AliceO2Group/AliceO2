@@ -17,7 +17,6 @@
 #include "TRKSimulation/DigiParams.h"
 #include <cassert>
 
-
 using namespace o2::trk;
 
 DigiParams::DigiParams()
