@@ -28,6 +28,7 @@
 #include <TRandom.h>
 #include <TStopwatch.h>
 #include <TSystem.h>
+#include <TMath.h>
 #include <cstring>
 
 using namespace o2::cpv;
