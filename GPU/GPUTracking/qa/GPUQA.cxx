@@ -1729,7 +1729,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       mT0[0]->Fill(track.GetParam().GetTOffset());
       if (mTrackMCLabels.size() && !mTrackMCLabels[i].isFake() && !track.MergedLooper() && !track.CCE()) {
         const auto& info = GetMCTrack(mTrackMCLabels[i]);
-        mT0[1]->Fill(track.GetParam().GetTOffset() - info.t0);
+        if (info.t0 != -100.f) {
+          mT0[1]->Fill(track.GetParam().GetTOffset() - info.t0);
+        }
       }
     }
     if (mClNative && mTracking && mTracking->GetTPCTransformHelper()) {
