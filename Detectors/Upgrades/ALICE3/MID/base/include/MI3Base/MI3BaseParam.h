@@ -29,7 +29,6 @@ enum MIDLayout : int {
   ReducedRadius = 1
 };
 
-
 struct MIDBaseParam : public o2::conf::ConfigurableParamHelper<MIDBaseParam> {
   int mLayout = MIDLayout::StandardRadius;
 
