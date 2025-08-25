@@ -114,9 +114,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  if (!writecalib) {
-    useFIT = false;
-  }
+  //  if (!writecalib) {
+  //    useFIT = false;
+  //  }
 
   LOG(debug) << "TOF MATCHER WORKFLOW configuration";
   LOG(debug) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");

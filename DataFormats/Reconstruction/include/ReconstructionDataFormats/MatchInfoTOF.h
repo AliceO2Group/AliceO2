@@ -86,6 +86,14 @@ class MatchInfoTOF
                       hasT0_1BCbefore = 0x1 << 8,
                       hasT0_2BCbefore = 0x1 << 9 };
 
+  void setFT0Best(double val, float res = 200.)
+  {
+    mFT0Best = val;
+    mFT0BestRes = res;
+  }
+  double getFT0Best() const { return mFT0Best; }
+  float getFT0BestRes() const { return mFT0BestRes; }
+
  private:
   int mIdLocal;                      // track id in sector of the pair track-TOFcluster
   float mChi2;                       // chi2 of the pair track-TOFcluster
@@ -106,7 +114,10 @@ class MatchInfoTOF
   float mTgeant = 0.0;        ///< geant time in MC
   double mT0true = 0.0;       ///< t0true
 
-  ClassDefNV(MatchInfoTOF, 8);
+  double mFT0Best = 0.0;     //< best info for collision time
+  float mFT0BestRes = 200.0; //< resolution (in ps) of the best info for collision time
+
+  ClassDefNV(MatchInfoTOF, 9);
 };
 } // namespace dataformats
 } // namespace o2
