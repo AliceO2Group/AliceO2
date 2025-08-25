@@ -106,11 +106,41 @@ void Alice3Magnet::ConstructGeometry()
 
   // Passive Base configuration parameters
   auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
-  const bool doCopperStabilizer = (passiveBaseParam.mLayout == o2::passive::MagnetLayout::CopperStabilizer);
-  if (doCopperStabilizer) {
-    mRestMaterialThickness -= 3.3; // cm Remove the Aluminium stabiliser
-    mRestMaterialThickness += 2.2; // cm Add the Copper stabiliser
-    LOG(debug) << "Alice 3 magnet: using Copper Stabilizer with thickness " << mRestMaterialThickness << " cm";
+
+  switch (passiveBaseParam.mDetLayout) {
+    case o2::passive::DetLayout::StandardRadius:
+      // Defined in the header file
+      break;
+    case o2::passive::DetLayout::ReducedRadius:
+      mInnerWrapInnerRadius = 125.f; // cm
+      mInnerWrapThickness = 1.f;     // cm
+      mCoilInnerRadius = 145.f;      // cm
+      mCoilThickness = 0.3f;         // cm
+      mRestMaterialRadius = 145.3f;  // cm
+      mRestMaterialThickness = 6.8f; // cm
+      mOuterWrapInnerRadius = 165.f; // cm
+      mOuterWrapThickness = 3.f;     // cm
+      mZLength = 800.f;              // cm
+      break;
+    default:
+      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
+      break;
+  }
+
+  bool doCopperStabilizer = false;
+  switch (passiveBaseParam.mLayout) {
+    case o2::passive::MagnetLayout::AluminiumStabilizer:
+      // Handled in the header file
+      break;
+    case o2::passive::MagnetLayout::CopperStabilizer:
+      doCopperStabilizer = true;
+      mRestMaterialThickness -= 3.3; // cm Remove the Aluminium stabiliser
+      mRestMaterialThickness += 2.2; // cm Add the Copper stabiliser
+      LOG(debug) << "Alice 3 magnet: using Copper Stabilizer with thickness " << mRestMaterialThickness << " cm";
+      break;
+    default:
+      LOG(fatal) << "Unknown magnet layout " << passiveBaseParam.mLayout;
+      break;
   }
 
   TGeoManager* geoManager = gGeoManager;
