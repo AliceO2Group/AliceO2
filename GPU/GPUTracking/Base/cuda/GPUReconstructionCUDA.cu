@@ -247,8 +247,8 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
       throw std::runtime_error("Invalid warp size on GPU");
     }
     mWarpSize = deviceProp.warpSize;
-    mBlockCount = deviceProp.multiProcessorCount;
-    mMaxBackendThreads = std::max<int32_t>(mMaxBackendThreads, deviceProp.maxThreadsPerBlock * mBlockCount);
+    mMultiprocessorCount = deviceProp.multiProcessorCount;
+    mMaxBackendThreads = std::max<int32_t>(mMaxBackendThreads, deviceProp.maxThreadsPerBlock * mMultiprocessorCount);
     mDeviceName = deviceProp.name;
     mDeviceName += " (CUDA GPU)";
 
@@ -329,9 +329,9 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
     }
 
 #ifndef __HIPCC__ // CUDA
-    dummyInitKernel<<<mBlockCount, 256>>>(mDeviceMemoryBase);
+    dummyInitKernel<<<mMultiprocessorCount, 256>>>(mDeviceMemoryBase); // TODO: Can't we just use the CUDA version and hipify will take care of the rest?
 #else // HIP
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(dummyInitKernel), dim3(mBlockCount), dim3(256), 0, 0, mDeviceMemoryBase);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(dummyInitKernel), dim3(mMultiprocessorCount), dim3(256), 0, 0, mDeviceMemoryBase);
 #endif
 
     if (GetProcessingSettings().rtc.enable) {
@@ -373,7 +373,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
   } else {
     GPUReconstructionCUDA* master = dynamic_cast<GPUReconstructionCUDA*>(mMaster);
     mDeviceId = master->mDeviceId;
-    mBlockCount = master->mBlockCount;
+    mMultiprocessorCount = master->mMultiprocessorCount;
     mWarpSize = master->mWarpSize;
     mMaxBackendThreads = master->mMaxBackendThreads;
     mDeviceName = master->mDeviceName;

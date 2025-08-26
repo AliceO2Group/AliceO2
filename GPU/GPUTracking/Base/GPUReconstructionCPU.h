@@ -94,7 +94,7 @@ class GPUReconstructionCPU : public GPUReconstructionProcessing::KernelInterface
   GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU
   GPUConstantMem*& mProcessorsShadow = mProcShadow.mProcessorsProc;
 
-  uint32_t mBlockCount = 1;
+  uint32_t mMultiprocessorCount = 1;
   uint32_t mThreadCount = 1;
   uint32_t mWarpSize = 1;
 

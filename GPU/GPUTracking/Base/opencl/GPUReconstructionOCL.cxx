@@ -266,9 +266,9 @@ int32_t GPUReconstructionOCL::InitDevice_Runtime()
 
     mDeviceName = device_name.c_str();
     mDeviceName += " (OpenCL)";
-    mBlockCount = device_shaders;
+    mMultiprocessorCount = device_shaders;
     mWarpSize = 32;
-    mMaxBackendThreads = std::max<int32_t>(mMaxBackendThreads, deviceMaxWorkGroup * mBlockCount);
+    mMaxBackendThreads = std::max<int32_t>(mMaxBackendThreads, deviceMaxWorkGroup * mMultiprocessorCount);
 
     mInternals->context = clCreateContext(nullptr, 1, &mInternals->device, nullptr, nullptr, &ocl_error);
     if (GPUChkErrI(ocl_error)) {
@@ -378,7 +378,7 @@ int32_t GPUReconstructionOCL::InitDevice_Runtime()
     GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %ld / %ld bytes host / global memory, Stack frame %d, Constant memory %ld)", bestDevice, device_vendor, device_name, (int32_t)device_freq, (int32_t)device_shaders, (int64_t)mDeviceMemorySize, (int64_t)mHostMemorySize, -1, (int64_t)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionOCL* master = dynamic_cast<GPUReconstructionOCL*>(mMaster);
-    mBlockCount = master->mBlockCount;
+    mMultiprocessorCount = master->mMultiprocessorCount;
     mWarpSize = master->mWarpSize;
     mMaxBackendThreads = master->mMaxBackendThreads;
     mDeviceName = master->mDeviceName;

@@ -194,7 +194,7 @@ int32_t GPUReconstructionCPU::InitDevice()
     ClearAllocatedMemory();
   }
   if (GetProcessingSettings().inKernelParallel) {
-    mBlockCount = mMaxHostThreads;
+    mMultiprocessorCount = mMaxHostThreads;
   }
   mProcShadow.mProcessorsProc = processors();
   return 0;
