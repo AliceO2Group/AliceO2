@@ -81,7 +81,9 @@ TOF_CONFIG=
 TOF_INPUT=raw
 TOF_OUTPUT=clusters
 ITS_CONFIG_KEY=
+ITS_STF_DEC_CONFIG=
 MFT_CONFIG=
+MFT_STF_DEC_CONFIG=
 MFT_CONFIG_KEY=
 TRD_CONFIG=
 TRD_CONFIG_KEY=
@@ -113,14 +115,15 @@ if [[ $CTFINPUT != 1 ]]; then
 fi
 if [[ $SYNCMODE == 1 ]]; then
   has_detectors_gpu TPC ITS && ITS_CONFIG_KEY+="ITSCATrackerParam.trackingMode=0;" # sets ITS gpu reco to sync
+  ITS_STF_DEC_CONFIG+="ITSClustererParam.maxBCDiffToMaskBias=-1;"
+  MFT_STF_DEC_CONFIG+="MFTClustererParam.maxBCDiffToMaskBias=-1;"
+  [[ $BEAMTYPE == "PbPb" || $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]] && MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=4000;"
   if [[ $BEAMTYPE == "PbPb" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:-100};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:-200};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:-20};"
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:-0};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:-400};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:-20};"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=50000;MCHTracking.maxTrackingDuration=20;"
-    MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=20000;"
   elif [[ $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:--1};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:--1};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:--1};ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=20000;MCHTracking.maxTrackingDuration=10;"
-    MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=3000;"
   fi
   [[ -n ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   ITS_CONFIG_KEY+="ITSCATrackerParam.trackletsPerClusterLimit=${CUT_TRACKLETSPERCLUSTER_MAX_ITS:--1};ITSCATrackerParam.cellsPerClusterLimit=${CUT_CELLSPERCLUSTER_MAX_ITS:--1};"
@@ -534,12 +537,12 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates $RAWTODIGITOPTIONS --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)" "GPU_rec_tpc.zsThreshold=0"
   fi
-  has_detector ITS && ! has_detector_from_global_reader ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
-  has_detector MFT && ! has_detector_from_global_reader MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
+  has_detector ITS && ! has_detector_from_global_reader ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITS_STF_DEC_CONFIG;$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
+  has_detector MFT && ! has_detector_from_global_reader MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$MFT_STF_DEC_CONFIG;$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
   has_detector FT0 && ! has_detector_from_global_reader FT0 && ! has_detector_flp_processing FT0 && add_W o2-ft0-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N ft0-datareader-dpl FT0 RAW 1)"
   has_detector FV0 && ! has_detector_from_global_reader FV0 && ! has_detector_flp_processing FV0 && add_W o2-fv0-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N fv0-datareader-dpl FV0 RAW 1)"
   has_detector MID && ! has_detector_from_global_reader MID && add_W o2-mid-raw-to-digits-workflow "$MIDDEC_CONFIG --pipeline $(get_N MIDRawDecoder MID RAW 1),$(get_N MIDDecodedDataAggregator MID RAW 1)"
-  has_detector MCH && ! has_detector_from_global_reader MCH && add_W o2-mch-raw-to-digits-workflow "--pipeline $(get_N mch-data-decoder MCH RAW 1)"
+  has_detector MCH && ! has_detector_from_global_reader MCH && add_W o2-mch-raw-to-digits-workflow "--pipeline $(get_N mch-data-decoder MCH RAW 1 MCHRAWDEC)"
   has_detector TOF && ! has_detector_from_global_reader TOF && ! has_detector_flp_processing TOF && add_W o2-tof-compressor "--tof-compressor-paranoid --pipeline $(get_N tof-compressor-0 TOF RAW 1)"
   has_detector FDD && ! has_detector_from_global_reader FDD && ! has_detector_flp_processing FDD && add_W o2-fdd-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N fdd-datareader-dpl FDD RAW 1)"
   has_detector TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-datareader "$DISABLE_ROOT_OUTPUT --sortDigits --pipeline $(get_N trd-datareader TRD RAW 1 TRDRAWDEC)" "" 0
