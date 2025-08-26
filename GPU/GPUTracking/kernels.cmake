@@ -135,17 +135,17 @@ o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishClass2Regression"   "= TPC
 o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishDeconvolutionFlags" "= TPCNNCLUSTERFINDER"                                  LB uint8_t sector int8_t dtype int8_t withMC uint32_t batchStart)
 endif()
 
-o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP
-                            NEIGHBOURS_FINDER_UNROLL_GLOBAL
-                            NEIGHBOURS_FINDER_UNROLL_SHARED
-                            TRACKLET_SELECTOR_HITS_REG_SIZE
-                            ALTERNATE_BORDER_SORT
-                            SORT_BEFORE_FIT
-                            NO_ATOMIC_PRECHECK
-                            COMP_GATHER_KERNEL
-                            COMP_GATHER_MODE
-                            SORT_STARTHITS
-                            CF_SCAN_WORKGROUP_SIZE)
+o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP  # Number of neighhbours finder hits to cache in shared memory
+                            NEIGHBOURS_FINDER_UNROLL_GLOBAL # Unroll factor for neighbours finder iterating hits in local memory
+                            NEIGHBOURS_FINDER_UNROLL_SHARED # Fully unroll iteration over neighbours finder hits in shared memory [0/1]
+                            TRACKLET_SELECTOR_HITS_REG_SIZE # Number of hits to cache in shared memory in tracklet selector
+                            ALTERNATE_BORDER_SORT           # Use alternative border sort approach [0/1]
+                            SORT_BEFORE_FIT                 # Sort tracks after length to reduce warp serialization [0/1]
+                            NO_ATOMIC_PRECHECK              # Skip atomic precheck to reduce posterior synchronization [0/1]
+                            COMP_GATHER_KERNEL              # Default kernel to use for Compression Gather Operation [0 - 4]
+                            COMP_GATHER_MODE                # TPC Compression Gather Mode [0 - 3]
+                            SORT_STARTHITS                  # Sort start hits to improve cache locality during tracklet construction [0/1]
+                            CF_SCAN_WORKGROUP_SIZE)         # Work group size to use in clusterizer scan operation
 
-o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE
-                                   MERGER_INTERPOLATION_ERROR_TYPE)
+o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE                # Data type to use for intermediate storage of dEdx truncated mean inputs
+                                   MERGER_INTERPOLATION_ERROR_TYPE) # Data type for storing intermediate track residuals for interpolation
