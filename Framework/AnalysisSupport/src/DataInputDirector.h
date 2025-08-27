@@ -64,7 +64,7 @@ class DataInputDescriptor
 
   void addFileNameHolder(FileNameHolder* fn);
   int fillInputfiles();
-  bool setFile(int counter);
+  bool setFile(int counter, std::string_view origin);
 
   // getters
   std::string getInputfilesFilename();
@@ -74,9 +74,9 @@ class DataInputDescriptor
   int getNumberTimeFrames() { return mtotalNumberTimeFrames; }
   int findDFNumber(int file, std::string dfName);
 
-  uint64_t getTimeFrameNumber(int counter, int numTF);
-  arrow::dataset::FileSource getFileFolder(int counter, int numTF);
-  DataInputDescriptor* getParentFile(int counter, int numTF, std::string treename);
+  uint64_t getTimeFrameNumber(int counter, int numTF, std::string_view origin);
+  arrow::dataset::FileSource getFileFolder(int counter, int numTF, std::string_view origin);
+  DataInputDescriptor* getParentFile(int counter, int numTF, std::string treename, std::string_view origin);
   int getTimeFramesInFile(int counter);
   int getReadTimeFramesInFile(int counter);
 
