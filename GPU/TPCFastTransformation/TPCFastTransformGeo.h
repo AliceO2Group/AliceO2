@@ -18,6 +18,7 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMGEO_H
 
 #include "GPUCommonDef.h"
+#include "GPUCommonArray.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
 #include "GPUCommonRtypes.h"
@@ -55,7 +56,7 @@ class TPCFastTransformGeo
     GPUd() float getYmax() const { return -yMin; }
 
     /// get Y range
-    GPUd() std::tuple<float, float> getYrange() const { return {getYmin(), getYmax()}; }
+    GPUd() std::array<float, 2> getYrange() const { return {getYmin(), getYmax()}; }
 
     /// get width in Y
     GPUd() float getYwidth() const { return -2.f * yMin; }
@@ -125,7 +126,7 @@ class TPCFastTransformGeo
   GPUd() float getTPCzLength() const { return mTPCzLength; }
 
   /// Gives Z range for the corresponding TPC side
-  GPUd() std::tuple<float, float> getZrange(int32_t sector) const;
+  GPUd() std::array<float, 2> getZrange(int32_t sector) const;
   GPUd() float getZmin(int32_t sector) const;
   GPUd() float getZmax(int32_t sector) const;
   GPUd() float getZreadout(int32_t sector) const;
@@ -139,7 +140,7 @@ class TPCFastTransformGeo
   GPUd() void convGlobalToLocal(int32_t sector, float gx, float gy, float gz, float& lx, float& ly, float& lz) const;
 
   /// convert Pad, DriftLength -> Local c.s.
-  GPUd() std::tuple<float, float> convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const;
+  GPUd() std::array<float, 2> convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const;
 
   /// convert DriftLength -> Local c.s.
   GPUd() float convDriftLengthToZ1(int32_t sector, float driftLength) const;
@@ -148,7 +149,7 @@ class TPCFastTransformGeo
   GPUd() float convZtoDriftLength1(int32_t sector, float z) const;
 
   /// convert Local c.s. -> Pad, DriftLength
-  GPUd() std::tuple<float, float> convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const;
+  GPUd() std::array<float, 2> convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const;
 
   /// Print method
   void print() const;
@@ -229,7 +230,7 @@ GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int32_t sector, float gx, fl
   lz = gz;
 }
 
-GPUdi() std::tuple<float, float> TPCFastTransformGeo::convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const
+GPUdi() std::array<float, 2> TPCFastTransformGeo::convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength) const
 {
   /// convert Pad, DriftLength -> Local c.s.
   const RowInfo& rowInfo = getRowInfo(row);
@@ -257,7 +258,7 @@ GPUdi() float TPCFastTransformGeo::convZtoDriftLength1(int32_t sector, float z) 
   return (sector < NumberOfSectorsA) ? (mTPCzLength - z) : (z + mTPCzLength);
 }
 
-GPUdi() std::tuple<float, float> TPCFastTransformGeo::getZrange(int32_t sector) const
+GPUdi() std::array<float, 2> TPCFastTransformGeo::getZrange(int32_t sector) const
 {
   /// z range for the sector
   if (sector < NumberOfSectorsA) { // TPC side A
@@ -297,7 +298,7 @@ GPUdi() float TPCFastTransformGeo::getZreadout(int32_t sector) const
   }
 }
 
-GPUdi() std::tuple<float, float> TPCFastTransformGeo::convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const
+GPUdi() std::array<float, 2> TPCFastTransformGeo::convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z) const
 {
   /// convert Local c.s. -> Pad, DriftLength
   float u, l;

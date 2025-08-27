@@ -78,13 +78,13 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     }
 
     /// convert local y, z to internal grid coordinates u,v, and spline scale
-    std::tuple<float, float, float> convLocalToGridUntruncated(float y, float z) const
+    std::array<float, 3> convLocalToGridUntruncated(float y, float z) const
     {
       return {(y - y0) * yScale, (z - z0) * zScale, getSpineScaleForZ(z)};
     }
 
     /// convert internal grid coordinates u,v to local y, z
-    std::tuple<float, float> convGridToLocal(float gridU, float gridV) const
+    std::array<float, 2> convGridToLocal(float gridU, float gridV) const
     {
       return {y0 + gridU / yScale, z0 + gridV / zScale};
     }
@@ -123,22 +123,22 @@ class TPCFastSpaceChargeCorrection : public FlatObject
       maxCorr[2] = GPUCommonMath::Max(maxCorr[2], dv);
     }
 
-    void updateMaxValues(std::tuple<float, float, float> dxdudv, float scale)
+    void updateMaxValues(std::array<float, 3> dxdudv, float scale)
     {
-      float dx = std::get<0>(dxdudv) * scale;
-      float du = std::get<1>(dxdudv) * scale;
-      float dv = std::get<2>(dxdudv) * scale;
+      float dx = dxdudv[0] * scale;
+      float du = dxdudv[1] * scale;
+      float dv = dxdudv[2] * scale;
       updateMaxValues(dx, du, dv);
     }
 
-    std::tuple<float, float, float> getMaxValues() const
+    std::array<float, 3> getMaxValues() const
     {
-      return std::make_tuple(maxCorr[0], maxCorr[1], maxCorr[2]);
+      return {maxCorr[0], maxCorr[1], maxCorr[2]};
     }
 
-    std::tuple<float, float, float> getMinValues() const
+    std::array<float, 3> getMinValues() const
     {
-      return std::make_tuple(minCorr[0], minCorr[1], minCorr[2]);
+      return {minCorr[0], minCorr[1], minCorr[2]};
     }
 
     ClassDefNV(SectorRowInfo, 2);
@@ -259,31 +259,31 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   ///
   // GPUd() int32_t getCorrectionInternal(int32_t sector, int32_t row, float u, float v, float& dx, float& du, float& dv) const;
 
-  GPUdi() std::tuple<float, float, float> getCorrectionLocal(int32_t sector, int32_t row, float y, float z) const;
+  GPUdi() std::array<float, 3> getCorrectionLocal(int32_t sector, int32_t row, float y, float z) const;
 
   /// inverse correction: Real Y and Z -> Real X
   GPUd() float getCorrectionXatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const;
 
   /// inverse correction: Real Y and Z -> measred Y and Z
-  GPUd() std::tuple<float, float> getCorrectionYZatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const;
+  GPUd() std::array<float, 2> getCorrectionYZatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const;
 
   /// _______________  Utilities  _______________________________________________
 
   /// convert local y, z to internal grid coordinates u,v
   /// return values: u, v, scaling factor
-  GPUd() std::tuple<float, float, float> convLocalToGrid(int32_t sector, int32_t row, float y, float z) const;
+  GPUd() std::array<float, 3> convLocalToGrid(int32_t sector, int32_t row, float y, float z) const;
 
   /// convert internal grid coordinates u,v to local y, z
   /// return values: y, z, scaling factor
-  GPUd() std::tuple<float, float> convGridToLocal(int32_t sector, int32_t row, float u, float v) const;
+  GPUd() std::array<float, 2> convGridToLocal(int32_t sector, int32_t row, float u, float v) const;
 
   /// convert real Y, Z to the internal grid coordinates
   /// return values: u, v, scaling factor
-  GPUd() std::tuple<float, float, float> convRealLocalToGrid(int32_t sector, int32_t row, float y, float z) const;
+  GPUd() std::array<float, 3> convRealLocalToGrid(int32_t sector, int32_t row, float y, float z) const;
 
   /// convert internal grid coordinates to the real Y, Z
   /// return values: y, z
-  GPUd() std::tuple<float, float> convGridToRealLocal(int32_t sector, int32_t row, float u, float v) const;
+  GPUd() std::array<float, 2> convGridToRealLocal(int32_t sector, int32_t row, float u, float v) const;
 
   GPUd() bool isLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const;
   GPUd() bool isRealLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const;
@@ -453,7 +453,7 @@ GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineDataInvYZ(int32_t se
   return getSplineData(sector, row, 2);
 }
 
-GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::convLocalToGrid(int32_t sector, int32_t row, float y, float z) const
+GPUdi() std::array<float, 3> TPCFastSpaceChargeCorrection::convLocalToGrid(int32_t sector, int32_t row, float y, float z) const
 {
   /// convert local y, z to internal grid coordinates u,v
   /// return values: u, v, scaling factor
@@ -491,13 +491,13 @@ GPUdi() bool TPCFastSpaceChargeCorrection::isRealLocalInsideGrid(int32_t sector,
   return true;
 }
 
-GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::convGridToLocal(int32_t sector, int32_t row, float gridU, float gridV) const
+GPUdi() std::array<float, 2> TPCFastSpaceChargeCorrection::convGridToLocal(int32_t sector, int32_t row, float gridU, float gridV) const
 {
   /// convert internal grid coordinates u,v to local y, z
   return getSectorRowInfo(sector, row).gridMeasured.convGridToLocal(gridU, gridV);
 }
 
-GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::convRealLocalToGrid(int32_t sector, int32_t row, float y, float z) const
+GPUdi() std::array<float, 3> TPCFastSpaceChargeCorrection::convRealLocalToGrid(int32_t sector, int32_t row, float y, float z) const
 {
   /// convert real y, z to the internal grid coordinates + scale
   const SplineType& spline = getSpline(sector, row);
@@ -508,13 +508,13 @@ GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::convRealLo
   return {gridU, gridV, scale};
 }
 
-GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::convGridToRealLocal(int32_t sector, int32_t row, float gridU, float gridV) const
+GPUdi() std::array<float, 2> TPCFastSpaceChargeCorrection::convGridToRealLocal(int32_t sector, int32_t row, float gridU, float gridV) const
 {
   /// convert internal grid coordinates u,v to the real y, z
   return getSectorRowInfo(sector, row).gridReal.convGridToLocal(gridU, gridV);
 }
 
-GPUdi() std::tuple<float, float, float> TPCFastSpaceChargeCorrection::getCorrectionLocal(int32_t sector, int32_t row, float y, float z) const
+GPUdi() std::array<float, 3> TPCFastSpaceChargeCorrection::getCorrectionLocal(int32_t sector, int32_t row, float y, float z) const
 {
   const auto& info = getSectorRowInfo(sector, row);
   const SplineType& spline = getSpline(sector, row);
@@ -541,7 +541,7 @@ GPUdi() float TPCFastSpaceChargeCorrection::getCorrectionXatRealYZ(int32_t secto
   return dx;
 }
 
-GPUdi() std::tuple<float, float> TPCFastSpaceChargeCorrection::getCorrectionYZatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const
+GPUdi() std::array<float, 2> TPCFastSpaceChargeCorrection::getCorrectionYZatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const
 {
   auto [gridU, gridV, scale] = convRealLocalToGrid(sector, row, realY, realZ);
   const auto& info = getSectorRowInfo(sector, row);

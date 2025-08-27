@@ -668,22 +668,22 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
                   // correct the mean position if it is outside the voxel
                   std::stringstream msg;
                   if (fabs(x - data.mX) > mVoxelMeanValidityRange * dx / 2.) {
-                    msg << "\n     x: center " << x << " dx " << data.mX - x << " half bin size: " << dx / 2;
+                    msg << "\n         x: center " << x << " dx " << data.mX - x << " half bin size " << dx / 2;
                   }
 
                   if (fabs(vox.mY - data.mY) > mVoxelMeanValidityRange * vox.mDy / 2.) {
-                    msg << "\n     y: center " << vox.mY << " dy " << data.mY - vox.mY << " half bin size: " << vox.mDy / 2;
+                    msg << "\n         y: center " << vox.mY << " dy " << data.mY - vox.mY << " half bin size " << vox.mDy / 2;
                     data.mY = vox.mY;
                   }
 
                   if (fabs(vox.mZ - data.mZ) > mVoxelMeanValidityRange * vox.mDz / 2.) {
-                    msg << "\n     z: center " << vox.mZ << " dz " << data.mZ - vox.mZ << " half bin size: " << vox.mDz / 2;
+                    msg << "\n         z: center " << vox.mZ << " dz " << data.mZ - vox.mZ << " half bin size " << vox.mDz / 2;
                     data.mZ = vox.mZ;
                   }
 
                   if (!msg.str().empty()) {
                     LOG(warning) << directionName << " correction: fitted voxel position is outside the voxel: "
-                                 << " sector " << iSector << " row " << iRow << " bin: " << iy << " " << iz
+                                 << " sector " << iSector << " row " << iRow << " bin y " << iy << " bin z " << iz
                                  << msg.str();
                   }
 
