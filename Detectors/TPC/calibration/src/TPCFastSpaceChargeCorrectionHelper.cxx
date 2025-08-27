@@ -148,9 +148,13 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
         if (!processingInverseCorrection) {
           info.resetMaxValues();
         }
+        info.updateMaxValues(1., 1., 1.);
+        info.updateMaxValues(-1., -1., -1.);
+
         if (nDataPoints >= 4) {
           std::vector<double> pointGU(nDataPoints);
           std::vector<double> pointGV(nDataPoints);
+          std::vector<double> pointWeight(nDataPoints);
           std::vector<double> pointCorr(3 * nDataPoints); // 3 dimensions
           for (int i = 0; i < nDataPoints; ++i) {
             o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p = data[i];
@@ -161,15 +165,14 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
             }
             pointGU[i] = gu;
             pointGV[i] = gv;
+            pointWeight[i] = p.mWeight;
             pointCorr[3 * i + 0] = p.mDx;
             pointCorr[3 * i + 1] = p.mDy;
             pointCorr[3 * i + 2] = p.mDz;
-            if (!processingInverseCorrection) {
-              info.updateMaxValues(20. * p.mDx, 20. * p.mDy, 20. * p.mDz);
-            }
+            info.updateMaxValues(5. * p.mDx, 5. * p.mDy, 5. * p.mDz);
           }
-          helper.approximateDataPoints(spline, splineParameters.data(), 0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax(), &pointGU[0],
-                                       &pointGV[0], &pointCorr[0], nDataPoints);
+          helper.approximateDataPoints(spline, splineParameters.data(), 0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax(), pointGU.data(),
+                                       pointGV.data(), pointCorr.data(), pointWeight.data(), nDataPoints);
         } else {
           for (int i = 0; i < spline.getNumberOfParameters(); i++) {
             splineParameters[i] = 0.f;
@@ -301,7 +304,7 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
               double dx, dy, dz;
               correctionLocal(iSector, iRow, y, z, dx, dy, dz);
               mCorrectionMap.addCorrectionPoint(iSector, iRow,
-                                                y, z, dx, dy, dz);
+                                                y, z, dx, dy, dz, 1.);
             }
           }
         } // row
@@ -593,14 +596,6 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
             data.mCy *= -1.;
             data.mCz *= -1.;
           }
-          if (data.mNentries > 0) {
-            if (iSector < geo.getNumberOfSectorsA() && data.mZ < 0) {
-              LOG(error) << errMsg << "fitted Z coordinate " << data.mZ << " is negative for sector " << iSector;
-            }
-            if (iSector >= geo.getNumberOfSectorsA() && data.mZ > 0) {
-              LOG(error) << errMsg << "fitted Z coordinate " << data.mZ << " is positive for sector " << iSector;
-            }
-          }
         }
       };
       processor.Process(myThread);
@@ -623,6 +618,9 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
         }
       }
     }
+
+    double maxError[3] = {0., 0., 0.};
+    int nErrors = 0;
 
     for (int iSector = 0; iSector < nSectors; iSector++) {
 
@@ -682,9 +680,21 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
                   }
 
                   if (!msg.str().empty()) {
-                    LOG(warning) << directionName << " correction: fitted voxel position is outside the voxel: "
-                                 << " sector " << iSector << " row " << iRow << " bin y " << iy << " bin z " << iz
-                                 << msg.str();
+                    bool isMaxErrorExceeded = (fabs(data.mX - x) / dx > maxError[0]) ||
+                                              (fabs(data.mY - vox.mY) / vox.mDy > maxError[1]) ||
+                                              (fabs(data.mZ - vox.mZ) / vox.mDz > maxError[2]);
+                    static std::mutex mutex;
+                    mutex.lock();
+                    nErrors++;
+                    if (nErrors < 20 || isMaxErrorExceeded) {
+                      LOG(warning) << directionName << " correction: error N " << nErrors << "fitted voxel position is outside the voxel: "
+                                   << " sector " << iSector << " row " << iRow << " bin y " << iy << " bin z " << iz
+                                   << msg.str();
+                      maxError[0] = GPUCommonMath::Max(maxError[0], fabs(data.mX - x) / dx);
+                      maxError[1] = GPUCommonMath::Max(maxError[1], fabs(data.mY - vox.mY) / vox.mDy);
+                      maxError[2] = GPUCommonMath::Max(maxError[2], fabs(data.mZ - vox.mZ) / vox.mDz);
+                    }
+                    mutex.unlock();
                   }
 
                 } else { // no data, take voxel center position
@@ -773,17 +783,27 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
           auto& info = correction.getSectorRowInfo(iSector, iRow);
           const auto& spline = correction.getSpline(iSector, iRow);
 
-          auto addEdge = [&](int iy1, int iz1, int iy2, int iz2, int nSteps) {
+          auto addVoxel = [&](int iy, int iz, double weight) {
+            auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
+            if (vox.mSmoothingStep > 2) {
+              LOG(fatal) << "empty voxel is not repared: y " << iy << " z " << iz;
+            }
+            auto& data = vSectorData[iSector * nRows + iRow][iy * nZ2Xbins + iz];
+            map.addCorrectionPoint(iSector, iRow, data.mY, data.mZ, data.mCx, data.mCy, data.mCz, weight);
+          };
+
+          auto addEdge = [&](int iy1, int iz1, int iy2, int iz2, int nPoints) {
+            // add n points on the edge between two voxels excluding the voxel points
+            if (nPoints < 1)
+              return;
+            if (iy1 < 0 || iy1 >= nY2Xbins || iz1 < 0 || iz1 >= nZ2Xbins)
+              return;
+            if (iy2 < 0 || iy2 >= nY2Xbins || iz2 < 0 || iz2 >= nZ2Xbins)
+              return;
             auto& data1 = vSectorData[iSector * nRows + iRow][iy1 * nZ2Xbins + iz1];
             auto& vox1 = vRowVoxels[iy1 * nZ2Xbins + iz1];
             auto& data2 = vSectorData[iSector * nRows + iRow][iy2 * nZ2Xbins + iz2];
             auto& vox2 = vRowVoxels[iy2 * nZ2Xbins + iz2];
-            if (vox1.mSmoothingStep > 2) {
-              LOG(fatal) << "empty voxel is not repared: y " << iy1 << " z " << iz1;
-            }
-            if (vox2.mSmoothingStep > 2) {
-              LOG(fatal) << "empty voxel is not repared: y " << iy2 << " z " << iz2;
-            }
             double y1 = data1.mY;
             double z1 = data1.mZ;
             double cx1 = data1.mCx;
@@ -795,31 +815,35 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
             double cy2 = data2.mCy;
             double cz2 = data2.mCz;
 
-            for (int is = 0; is < nSteps; is++) {
-              double s2 = is / (double)nSteps;
+            for (int is = 1; is <= nPoints; is++) {
+              double s2 = is / (double)(nPoints + 1);
               double s1 = 1. - s2;
               double y = s1 * y1 + s2 * y2;
               double z = s1 * z1 + s2 * z2;
               double cx = s1 * cx1 + s2 * cx2;
               double cy = s1 * cy1 + s2 * cy2;
               double cz = s1 * cz1 + s2 * cz2;
-              map.addCorrectionPoint(iSector, iRow, y, z, cx, cy, cz);
+              map.addCorrectionPoint(iSector, iRow, y, z, cx, cy, cz, 1.);
             }
           };
 
-          for (int iy = 0; iy < nY2Xbins; iy++) {
-            for (int iz = 0; iz < nZ2Xbins - 1; iz++) {
-              addEdge(iy, iz, iy, iz + 1, 3);
-            }
-            addEdge(iy, nZ2Xbins - 1, iy, nZ2Xbins - 1, 1);
-          }
+          // original measurements weighted by 8 at each voxel and 8 additional artificial measurements around each voxel
+          //
+          // (y+1, z) 8 1 1 8 (y+1, z+1)
+          //          1 1 1 1 1
+          //          1 1 1 1 1
+          //    (y,z) 8 1 1 8 1
+          //          1 1 1 1 1
 
-          for (int iz = 0; iz < nZ2Xbins; iz++) {
-            for (int iy = 0; iy < nY2Xbins - 1; iy++) {
-              addEdge(iy, iz, iy + 1, iz, 3);
+          for (int iy = 0; iy < nY2Xbins; iy++) {
+            for (int iz = 0; iz < nZ2Xbins; iz++) {
+              addVoxel(iy, iz, 8);
+              addEdge(iy, iz, iy, iz + 1, 2);
+              addEdge(iy, iz, iy + 1, iz, 2);
+              addEdge(iy, iz, iy + 1, iz + 1, 2);
+              addEdge(iy + 1, iz, iy, iz + 1, 2);
             }
-            addEdge(nY2Xbins - 1, iz, nY2Xbins - 1, iz, 1);
-          } // iy
+          }
 
         } // iRow
       }; // myThread
@@ -939,10 +963,11 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
           }
         }
 
-        std::vector<double> dataPointGridU, dataPointGridV, dataPointF;
+        std::vector<double> dataPointGridU, dataPointGridV, dataPointF, dataPointWeight;
         dataPointGridU.reserve(gridU.size() * gridV.size());
         dataPointGridV.reserve(gridU.size() * gridV.size());
         dataPointF.reserve(3 * gridU.size() * gridV.size());
+        dataPointWeight.reserve(gridU.size() * gridV.size());
 
         for (int iu = 0; iu < gridU.size(); iu++) {
           for (int iv = 0; iv < gridV.size(); iv++) {
@@ -963,6 +988,7 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
             dataPointF.push_back(scale * dx);
             dataPointF.push_back(scale * dy);
             dataPointF.push_back(scale * dz);
+            dataPointWeight.push_back(1.);
           }
         }
 
@@ -972,7 +998,7 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
         helper.approximateDataPoints(spline, splineParameters.data(), 0., spline.getGridX1().getUmax(),
                                      0., spline.getGridX2().getUmax(),
                                      dataPointGridU.data(), dataPointGridV.data(),
-                                     dataPointF.data(), nDataPoints);
+                                     dataPointF.data(), dataPointWeight.data(), nDataPoints);
 
         float* splineX = correction.getSplineDataInvX(sector, row);
         float* splineUV = correction.getSplineDataInvYZ(sector, row);

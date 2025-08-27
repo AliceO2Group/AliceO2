@@ -74,7 +74,7 @@ class Spline2DHelper
   void approximateDataPoints(
     Spline2DContainer<DataT>& spline, DataT* splineParameters, double x1Min, double x1Max, double x2Min, double x2Max,
     const double dataPointX1[/*nDataPoints*/], const double dataPointX2[/*nDataPoints*/],
-    const double dataPointF[/*nDataPoints x spline.getYdimensions*/], int32_t nDataPoints);
+    const double dataPointF[/*nDataPoints x spline.getYdimensions*/], const double dataPointWeight[/*nDataPoints*/], int32_t nDataPoints);
 
   /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
