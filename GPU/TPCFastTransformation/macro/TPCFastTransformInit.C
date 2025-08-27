@@ -319,6 +319,8 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
 
   for (int direction = 0; direction < 2; direction++) { // 0 - normal, 1 - inverse
 
+    std::string directionName = (direction == 0) ? "direct" : "inverse";
+
     TTree* currentTree = (direction == 0) ? voxResTree : voxResTreeInverse;
     if (!currentTree) {
       std::cout << "tree voxResTree does not exist!" << std::endl;
@@ -342,7 +344,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
     double sumDiff[3] = {0., 0., 0.};
     int64_t nDiff = 0;
 
-    std::cout << "fill debug ntuples at voxels ..." << std::endl;
+    LOG(info) << directionName << " correction: fill debug ntuples at voxels ...";
 
     for (int32_t iVox = 0; iVox < currentTree->GetEntriesFast(); iVox++) {
 
@@ -457,12 +459,11 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
       }
     }
 
-    std::cout
-      << "fill debug ntuples everywhere .." << std::endl;
+    LOG(info) << directionName << " correction: fill debug ntuples everywhere ..";
 
     for (int32_t iSector = 0; iSector < geo.getNumberOfSectors(); iSector++) {
       // for (int32_t iSector = 0; iSector < 1; iSector++) {
-      std::cout << "debug ntules for sector " << iSector << std::endl;
+      LOG(info) << directionName << " correction: fill debug ntuples everywhere in sector " << iSector;
 
       int mirrorSector = (iSector >= geo.getNumberOfSectorsA()) ? iSector - geo.getNumberOfSectorsA() : iSector + geo.getNumberOfSectorsA();
 
@@ -592,17 +593,17 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
     for (int32_t i = 0; i < 3; i++) {
       sumDiff[i] = sqrt(sumDiff[i]) / nDiff;
     }
+    LOG(info) << directionName << " correction: max and mean differences between spline and voxel corrections:";
+    LOG(info) << "Max difference in x :  " << maxDiff[0] << " at Sector "
+              << maxDiffSector[0] << " row " << maxDiffRow[0];
 
-    std::cout << "Max difference in x :  " << maxDiff[0] << " at Sector "
-              << maxDiffSector[0] << " row " << maxDiffRow[0] << std::endl;
+    LOG(info) << "Max difference in y :  " << maxDiff[1] << " at Sector "
+              << maxDiffSector[1] << " row " << maxDiffRow[1];
 
-    std::cout << "Max difference in y :  " << maxDiff[1] << " at Sector "
-              << maxDiffSector[1] << " row " << maxDiffRow[1] << std::endl;
+    LOG(info) << "Max difference in z :  " << maxDiff[2] << " at Sector "
+              << maxDiffSector[2] << " row " << maxDiffRow[2];
 
-    std::cout << "Max difference in z :  " << maxDiff[2] << " at Sector "
-              << maxDiffSector[2] << " row " << maxDiffRow[2] << std::endl;
-
-    std::cout << "Mean difference in x,y,z : " << sumDiff[0] << " " << sumDiff[1]
+    LOG(info) << "Mean difference in x,y,z : " << sumDiff[0] << " " << sumDiff[1]
               << " " << sumDiff[2] << std::endl;
   } // direction
 

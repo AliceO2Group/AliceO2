@@ -42,8 +42,9 @@ class TPCFastSpaceChargeCorrectionMap
   /// \brief The struct contains necessary info for TPC padrow
   ///
   struct CorrectionPoint {
-    double mY, mZ;        // not-distorted local coordinates
-    double mDx, mDy, mDz; // corrections to the local coordinates
+    double mY{0.}, mZ{0.};            // not-distorted local coordinates
+    double mDx{0.}, mDy{0.}, mDz{0.}; // corrections to the local coordinates
+    double mWeight{0.};               // weight of the point
   };
 
   /// _____________  Constructors / destructors __________________________
@@ -72,11 +73,11 @@ class TPCFastSpaceChargeCorrectionMap
   /// Starts the construction procedure, reserves temporary memory
   void addCorrectionPoint(int32_t iSector, int32_t iRow,
                           double y, double z,
-                          double dx, double dy, double dz)
+                          double dx, double dy, double dz, double weight)
   {
     int32_t ind = mNrows * iSector + iRow;
     fDataPoints.at(ind).push_back(CorrectionPoint{y, z,
-                                                  dx, dy, dz});
+                                                  dx, dy, dz, weight});
   }
 
   const std::vector<CorrectionPoint>& getPoints(int32_t iSector, int32_t iRow) const

@@ -241,6 +241,7 @@ void Spline2DHelper<DataT>::approximateFunctionViaDataPoints(
   mFdimensions = spline.getYdimensions();
   std::vector<double> dataPointX1(getNumberOfDataPoints());
   std::vector<double> dataPointX2(getNumberOfDataPoints());
+  std::vector<double> dataPointWeight(getNumberOfDataPoints(), 1.);
   std::vector<double> dataPointF(getNumberOfDataPoints() * mFdimensions);
 
   double scaleX1 = (x1Max - x1Min) / ((double)mHelperU1.getSpline().getUmax());
@@ -256,7 +257,8 @@ void Spline2DHelper<DataT>::approximateFunctionViaDataPoints(
       F(x1, x2, &dataPointF[ind * mFdimensions]);
     }
   }
-  approximateDataPoints(spline, spline.getParameters(), x1Min, x1Max, x2Min, x2Max, &dataPointX1[0], &dataPointX2[0], &dataPointF[0], getNumberOfDataPoints());
+  approximateDataPoints(spline, spline.getParameters(), x1Min, x1Max, x2Min, x2Max, dataPointX1.data(), dataPointX2.data(), dataPointF.data(),
+                        dataPointWeight.data(), getNumberOfDataPoints());
 }
 
 template <typename DataT>
@@ -326,7 +328,7 @@ template <typename DataT>
 void Spline2DHelper<DataT>::approximateDataPoints(
   Spline2DContainer<DataT>& spline, DataT* splineParameters, double x1Min, double x1Max, double x2Min, double x2Max,
   const double dataPointX1[], const double dataPointX2[], const double dataPointF[/*getNumberOfDataPoints() x nFdim*/],
-  int32_t nDataPoints)
+  const double dataPointWeight[], int32_t nDataPoints)
 {
   /// Create best-fit spline parameters for a given input function F
 
@@ -343,6 +345,10 @@ void Spline2DHelper<DataT>::approximateDataPoints(
   for (int32_t iPoint = 0; iPoint < nDataPoints; ++iPoint) {
     double u = fGridU.convXtoU(dataPointX1[iPoint]);
     double v = fGridV.convXtoU(dataPointX2[iPoint]);
+    double weight = dataPointWeight[iPoint];
+    if (!(weight > 0.)) {
+      continue;
+    }
     int32_t iu = fGridU.getLeftKnotIndexForU(u);
     int32_t iv = fGridV.getLeftKnotIndexForU(v);
     double c[16];
@@ -353,14 +359,14 @@ void Spline2DHelper<DataT>::approximateDataPoints(
 
     for (int32_t i = 0; i < 16; i++) {
       for (int32_t j = i; j < 16; j++) {
-        solver.A(ind[i], ind[j]) += c[i] * c[j];
+        solver.A(ind[i], ind[j]) += weight * c[i] * c[j];
       }
     }
 
     for (int32_t iDim = 0; iDim < nFdim; iDim++) {
       double f = (double)dataPointF[iPoint * nFdim + iDim];
       for (int32_t i = 0; i < 16; i++) {
-        solver.B(ind[i], iDim) += f * c[i];
+        solver.B(ind[i], iDim) += weight * f * c[i];
       }
     }
   } // data points
