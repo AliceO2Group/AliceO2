@@ -39,23 +39,23 @@ static GPUDefParameters GPUDefParametersLoad()
   };
 }
 
-#define GPUCA_EXPORT_KERNEL_LB(name)                                            \
-  if (par.par_LB_maxThreads[i] > 0) {                                           \
-    o << "#define GPUCA_LB_" GPUCA_M_STR(name) " " << par.par_LB_maxThreads[i]; \
-    if (par.par_LB_minBlocks[i] > 0) {                                          \
-      o << ", " << par.par_LB_minBlocks[i];                                     \
-    }                                                                           \
-    if (!forRTC && par.par_LB_forceBlocks[i] > 0) {                             \
-      o << ", " << par.par_LB_forceBlocks[i];                                   \
-    }                                                                           \
-    o << "\n";                                                                  \
-  }                                                                             \
+#define GPUCA_EXPORT_KERNEL_LB(name)                                                                                                                     \
+  if (par.par_LB_maxThreads[i] > 0) {                                                                                                                    \
+    o << "#define GPUCA_LB_" GPUCA_M_STR(name) " " << par.par_LB_maxThreads[i];                                                                          \
+    if (par.par_LB_minBlocks[i] > 0) {                                                                                                                   \
+      o << ", " << GPUCA_CEIL_INT_DIV(par.par_LB_maxThreads[i] * par.par_LB_minBlocks[i], (minBlockFactor ? minBlockFactor : par.par_LB_maxThreads[i])); \
+    }                                                                                                                                                    \
+    if (!forRTC && par.par_LB_forceBlocks[i] > 0) {                                                                                                      \
+      o << ", " << par.par_LB_forceBlocks[i];                                                                                                            \
+    }                                                                                                                                                    \
+    o << "\n";                                                                                                                                           \
+  }                                                                                                                                                      \
   i++;
 
 #define GPUCA_EXPORT_KERNEL_PARAM(name) \
   o << "#define GPUCA_PAR_" GPUCA_M_STR(name) " " << GPUCA_M_CAT(par.par_, name) << "\n";
 
-static std::string GPUDefParametersExport(const GPUDefParameters& par, bool forRTC)
+static std::string GPUDefParametersExport(const GPUDefParameters& par, bool forRTC, int32_t minBlockFactor = 0)
 {
   std::stringstream o; // clang-format off
   int32_t i = 0;
