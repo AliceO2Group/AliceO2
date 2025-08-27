@@ -14,7 +14,7 @@
 
 #define GPUCA_GPUCODE_COMPILEKERNELS
 #include "GPUReconstructionHIPIncludesSystem.h"
-#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
+#define GPUCA_KRNL_REG(...) GPUCA_KRNL_REG_DEFAULT(__VA_ARGS__)
 #define GPUCA_KRNL(...) GPUCA_KRNLGPU(__VA_ARGS__);
 #include "GPUReconstructionHIPDef.h"
 #include "GPUReconstructionKernelMacros.h"

@@ -147,7 +147,8 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP
                             COMP_GATHER_KERNEL
                             COMP_GATHER_MODE
                             SORT_STARTHITS
-                            CF_SCAN_WORKGROUP_SIZE)
+                            CF_SCAN_WORKGROUP_SIZE
+                            AMD_EUS_PER_CU)
 
 o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE
                                    MERGER_INTERPOLATION_ERROR_TYPE)

@@ -74,7 +74,7 @@ int32_t GPUReconstructionCUDA::genRTC(std::string& filename, uint32_t& nCompile)
     }
     fclose(fp);
   }
-  const std::string launchBounds = o2::gpu::internal::GPUDefParametersExport(*mParDevice, true) +
+  const std::string launchBounds = o2::gpu::internal::GPUDefParametersExport(*mParDevice, true, mParDevice->par_AMD_EUS_PER_CU ? (mParDevice->par_AMD_EUS_PER_CU * mWarpSize) : 0) +
                                    "#define GPUCA_WARP_SIZE " + std::to_string(mWarpSize) + "\n";
   if (GetProcessingSettings().rtctech.printLaunchBounds || GetProcessingSettings().debugLevel >= 3) {
     GPUInfo("RTC Launch Bounds:\n%s", launchBounds.c_str());
