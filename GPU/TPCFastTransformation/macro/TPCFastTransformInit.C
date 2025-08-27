@@ -303,12 +303,17 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
   auto getInvCorrections = [&](int iSector, int iRow, float realY, float realZ, float& ix, float& iy, float& iz) {
     // get the inverse corrections ix, iy, iz at x,y,z
     ix = corr.getCorrectionXatRealYZ(iSector, iRow, realY, realZ);
-    std::tie(iy, iz) = corr.getCorrectionYZatRealYZ(iSector, iRow, realY, realZ);
+    const auto c = corr.getCorrectionYZatRealYZ(iSector, iRow, realY, realZ);
+    iy = c[0];
+    iz = c[1];
   };
 
   auto getAllCorrections = [&](int iSector, int iRow, float y, float z, float& cx, float& cy, float& cz, float& ix, float& iy, float& iz) {
     // get the corrections cx,cy,cz at x,y,z
-    std::tie(cx, cy, cz) = corr.getCorrectionLocal(iSector, iRow, y, z);
+    const auto c = corr.getCorrectionLocal(iSector, iRow, y, z);
+    cx = c[0];
+    cy = c[1];
+    cz = c[2];
     getInvCorrections(iSector, iRow, y + cy, z + cz, ix, iy, iz);
   };
 

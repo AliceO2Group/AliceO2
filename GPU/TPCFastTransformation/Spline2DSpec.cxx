@@ -29,8 +29,6 @@
 #include "Riostream.h"
 #include "TMath.h"
 #include "Spline2DHelper.h"
-#include "TCanvas.h"
-#include "TNtuple.h"
 #include "TFile.h"
 #include "GPUCommonMath.h"
 

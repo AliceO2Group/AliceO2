@@ -342,7 +342,7 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
   }
 
   template <typename T>
-  GPUd() std::tuple<T, T, T, T> getSderivativesOverParsAtU(const Knot& knotL, DataT u) const
+  GPUd() std::array<T, 4> getSderivativesOverParsAtU(const Knot& knotL, DataT u) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
     /// over the spline parameters Sl(eft), Sr(ight) and the slopes Dl, Dr
@@ -364,11 +364,11 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     T dSdDl = vm1 * a;
     T dSdDr = v * a;
     // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
-    return std::make_tuple(dSdSl, dSdDl, dSdSr, dSdDr);
+    return {dSdSl, dSdDl, dSdSr, dSdDr};
   }
 
   template <typename T>
-  GPUd() std::tuple<T, T, T, T, T, T, T, T> getSDderivativesOverParsAtU(const Knot& knotL, DataT u) const
+  GPUd() std::array<T, 8> getSDderivativesOverParsAtU(const Knot& knotL, DataT u) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
     /// over the spline values Sl, Sr and the slopes Dl, Dr
@@ -397,7 +397,7 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     T dDdDr = v * (v + vm1 + vm1);
     // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
     // D(u) = dS(u)/du = dDdSl * Sl + dDdSr * Sr + dDdDl * Dl + dDdDr * Dr;
-    return std::make_tuple(dSdSl, dSdDl, dSdSr, dSdDr, dDdSl, dDdDl, dDdSr, dDdDr);
+    return {dSdSl, dSdDl, dSdSr, dSdDr, dDdSl, dDdDl, dDdSr, dDdDr};
   }
 
   using TBase::convXtoU;
