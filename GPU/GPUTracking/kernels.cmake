@@ -145,7 +145,8 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP  # Number of neighhbo
                             COMP_GATHER_KERNEL              # Default kernel to use for Compression Gather Operation [0 - 4]
                             COMP_GATHER_MODE                # TPC Compression Gather Mode [0 - 3]
                             SORT_STARTHITS                  # Sort start hits to improve cache locality during tracklet construction [0/1]
-                            CF_SCAN_WORKGROUP_SIZE)         # Work group size to use in clusterizer scan operation
+                            CF_SCAN_WORKGROUP_SIZE          # Work group size to use in clusterizer scan operation
+			    AMD_EUS_PER_CU)	  	    # Number of SIMD units per Compute Unit (only for AMD GPUs)
 
 o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE                # Data type to use for intermediate storage of dEdx truncated mean inputs
                                    MERGER_INTERPOLATION_ERROR_TYPE) # Data type for storing intermediate track residuals for interpolation

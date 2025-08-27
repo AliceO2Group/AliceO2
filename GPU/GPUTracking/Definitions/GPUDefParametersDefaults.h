@@ -25,6 +25,7 @@
   // GPU-architecture-dependent default settings
   #if defined(GPUCA_GPUTYPE_MI2xx)
     #define GPUCA_WARP_SIZE 64
+    #define GPUCA_PAR_AMD_EUS_PER_CU 4
     #define GPUCA_THREAD_COUNT_DEFAULT 256
     #define GPUCA_LB_GPUTPCCreateTrackingData 256
     #define GPUCA_LB_GPUTPCStartHitsSorter 512, 1
@@ -87,6 +88,7 @@
     #define GPUCA_PAR_COMP_GATHER_MODE 3
   #elif defined(GPUCA_GPUTYPE_VEGA)
     #define GPUCA_WARP_SIZE 64
+    #define GPUCA_PAR_AMD_EUS_PER_CU 4
     #define GPUCA_THREAD_COUNT_DEFAULT 256
     #define GPUCA_LB_GPUTPCCreateTrackingData 128
     #define GPUCA_LB_GPUTPCStartHitsSorter 1024, 2
@@ -271,6 +273,9 @@
   // Default settings for GPU, if not already set for selected GPU type
   #ifndef GPUCA_WARP_SIZE
     #define GPUCA_WARP_SIZE 32
+  #endif
+  #ifndef GPUCA_PAR_AMD_EUS_PER_CU
+    #define GPUCA_PAR_AMD_EUS_PER_CU 0
   #endif
   #ifndef GPUCA_THREAD_COUNT_DEFAULT
     #define GPUCA_THREAD_COUNT_DEFAULT 256

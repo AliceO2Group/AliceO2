@@ -32,6 +32,21 @@
 #define GPUCA_M_KRNL_NAME(...) GPUCA_M_KRNL_NAME_A(GPUCA_M_STRIP(__VA_ARGS__))
 
 #if defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_HOSTONLY)
+
+#if defined(__HIPCC__) && !defined(GPUCA_GPUCODE_NO_LAUNCH_BOUNDS)
+  static_assert(GPUCA_PAR_AMD_EUS_PER_CU > 0);
+  #define GPUCA_MIN_WARPS_PER_EU(maxThreadsPerBlock, minBlocksPerCU) GPUCA_CEIL_INT_DIV((minBlocksPerCU) * (maxThreadsPerBlock), (GPUCA_WARP_SIZE * GPUCA_PAR_AMD_EUS_PER_CU))
+
+  #define GPUCA_LB_ARGS_1(maxThreadsPerBlock) maxThreadsPerBlock
+  #define GPUCA_LB_ARGS_2(maxThreadsPerBlock, minBlocksPerCU) maxThreadsPerBlock, GPUCA_MIN_WARPS_PER_EU(maxThreadsPerBlock, minBlocksPerCU)
+
+  #define GPUCA_LAUNCH_BOUNDS_SELECT(n, ...) GPUCA_M_CAT(GPUCA_LB_ARGS_, n)(__VA_ARGS__)
+  #define GPUCA_LAUNCH_BOUNDS_DISP(...) GPUCA_LAUNCH_BOUNDS_SELECT(GPUCA_M_COUNT(__VA_ARGS__), __VA_ARGS__)
+  #define GPUCA_KRNL_REG_DEFAULT(args) __launch_bounds__(GPUCA_LAUNCH_BOUNDS_DISP(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args))))
+#elif !defined(GPUCA_GPUCODE_NO_LAUNCH_BOUNDS)
+  #define GPUCA_KRNL_REG_DEFAULT(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
+#endif
+
 #ifndef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(...)
 #endif
