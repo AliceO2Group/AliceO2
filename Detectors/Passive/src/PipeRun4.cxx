@@ -215,8 +215,7 @@ void PipeRun4::ConstructGeometry()
   voberylliumTube->SetLineColor(kRed);
 
   TGeoTube* berylliumTubeVacuum =
-    new TGeoTube("IP_PIPEVACUUMsh", 0., kBeryliumSectionOuterRadius - kBeryliumSectionThickness,
-                 (kBeryliumSectionZmax - kBeryliumSectionZmin) / 2);
+    new TGeoTube("IP_PIPEVACUUMsh", 0., kBeryliumSectionOuterRadius, (kBeryliumSectionZmax - kBeryliumSectionZmin) / 2);
   TGeoVolume* voberylliumTubeVacuum = new TGeoVolume("IP_PIPEMOTHER", berylliumTubeVacuum, kMedVac);
   voberylliumTubeVacuum->AddNode(voberylliumTube, 1, gGeoIdentity);
   voberylliumTubeVacuum->SetVisibility(0);
