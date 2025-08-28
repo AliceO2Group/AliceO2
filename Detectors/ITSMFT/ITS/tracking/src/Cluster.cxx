@@ -37,7 +37,8 @@ Cluster::Cluster(const float x, const float y, const float z, const int index)
   // Nothing to do
 }
 
-Cluster::Cluster(const int layerIndex, const IndexTableUtils& utils, const Cluster& other)
+template <int nLayers>
+Cluster::Cluster(const int layerIndex, const IndexTableUtils<nLayers>& utils, const Cluster& other)
   : xCoordinate{other.xCoordinate},
     yCoordinate{other.yCoordinate},
     zCoordinate{other.zCoordinate},
@@ -51,7 +52,8 @@ Cluster::Cluster(const int layerIndex, const IndexTableUtils& utils, const Clust
   // Nothing to do
 }
 
-Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const IndexTableUtils& utils, const Cluster& other)
+template <int nLayers>
+Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const IndexTableUtils<nLayers>& utils, const Cluster& other)
   : xCoordinate{other.xCoordinate},
     yCoordinate{other.yCoordinate},
     zCoordinate{other.zCoordinate},

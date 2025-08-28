@@ -22,6 +22,8 @@ namespace o2::its
 template <int nLayers = 7>
 class TrackerTraitsGPU final : public TrackerTraits<nLayers>
 {
+  using typename TrackerTraits<nLayers>::IndexTableUtilsN;
+
  public:
   TrackerTraitsGPU() = default;
   ~TrackerTraitsGPU() final = default;
@@ -48,7 +50,7 @@ class TrackerTraitsGPU final : public TrackerTraits<nLayers>
   int getTFNumberOfCells() const override;
 
  private:
-  IndexTableUtils* mDeviceIndexTableUtils;
+  IndexTableUtilsN* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<nLayers>* mTimeFrameGPU;
 };
 

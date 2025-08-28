@@ -251,7 +251,7 @@ void GPUO2Interface::setErrorCodeOutput(std::vector<std::array<uint32_t, 4>>* v)
   }
 }
 
-void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits<7>*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame<7>*& timeFrame)
+void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits<7>*& trackerTraits, o2::its::VertexerTraits<7>*& vertexerTraits, o2::its::TimeFrame<7>*& timeFrame)
 {
   trackerTraits = mChainITS->GetITSTrackerTraits();
   vertexerTraits = mChainITS->GetITSVertexerTraits();

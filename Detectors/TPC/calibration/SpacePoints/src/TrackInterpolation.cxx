@@ -18,7 +18,9 @@
 #include "SpacePoints/TrackInterpolation.h"
 #include "SpacePoints/TrackResiduals.h"
 #include "ITStracking/IOUtils.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "TPCBase/ParameterElectronics.h"
+#include "TOFBase/Geo.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTRD/Constants.h"
@@ -30,6 +32,7 @@
 #include "TMath.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "Framework/Logger.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <set>
 #include <algorithm>
 #include <random>
@@ -37,6 +40,71 @@
 using namespace o2::tpc;
 using GTrackID = o2::dataformats::GlobalTrackID;
 using DetID = o2::detectors::DetID;
+
+bool UnbinnedResid::gInitDone = false;
+
+float UnbinnedResid::getAlpha() const
+{
+  if (!isITS()) {
+    return o2::math_utils::sector2Angle(sec % 18);
+  }
+  // ITS alpha repends on the chip ID
+  checkInitDone();
+  return o2::its::GeometryTGeo::Instance()->getSensorRefAlpha(channel);
+}
+
+float UnbinnedResid::getX() const
+{
+  if (isTPC()) {
+    return param::RowX[row];
+  }
+  checkInitDone();
+  if (isITS()) {
+    return o2::its::GeometryTGeo::Instance()->getSensorRefX(channel); // ITS X repends on the chip ID
+  }
+  if (isTRD()) {
+    auto geo = o2::trd::Geometry::instance();
+    ROOT::Math::Impl::Transform3D<double>::Point local{geo->cdrHght() - 0.5 - 0.279, 0., 0.}; // see TrackletTransformer::transformTracklet
+    return (geo->getMatrixT2L(channel) ^ local).X();
+  }
+  if (isTOF()) {
+    int det[5];
+    o2::tof::Geo::getVolumeIndices(channel + sec * o2::tof::Geo::NPADSXSECTOR, det);
+    float pos[3] = {0.f, 0.f, 0.f};
+    o2::tof::Geo::getPos(det, pos);
+    float posl[3] = {pos[0], pos[1], pos[2]};
+    o2::tof::Geo::rotateToSector(pos, sec);
+    return pos[2]; // coordinates in sector frame: note that the rotation above puts z in pos[1], the radial coordinate in pos[2], and the tangent coordinate in pos[0] (this is to match the TOF residual system, where we don't use the radial component), so we swap their positions.
+  }
+  LOGP(fatal, "Did not recognize detector type: row:{}, sec:{}, channel:{}", row, sec, channel);
+  return 0.;
+}
+
+void UnbinnedResid::checkInitDone()
+{
+  if (!gInitDone) {
+    LOGP(warn, "geometry initialization was not done, doing this for the current timestamp");
+    init();
+    if (!gInitDone) {
+      LOGP(fatal, "geometry initialization failed");
+    }
+  }
+}
+
+void UnbinnedResid::init(long timestamp)
+{
+  if (gInitDone) {
+    LOGP(warn, "Initialization was already done");
+    return;
+  }
+  if (!gGeoManager) {
+    o2::ccdb::BasicCCDBManager::instance().getSpecific<TGeoManager>("GLO/Config/GeometryAligned", timestamp);
+  }
+  auto geoTRD = o2::trd::Geometry::instance();
+  geoTRD->createPadPlaneArray();
+  geoTRD->createClusterMatrixArray();
+  gInitDone = true;
+}
 
 void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap)
 {
@@ -64,6 +132,9 @@ void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::da
   mTrackTypes.insert({GTrackID::ITSTPCTRD, 1});
   mTrackTypes.insert({GTrackID::ITSTPCTOF, 2});
   mTrackTypes.insert({GTrackID::ITSTPCTRDTOF, 3});
+
+  auto geom = o2::its::GeometryTGeo::Instance();
+  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
   mInitDone = true;
   LOGP(info, "Done initializing TrackInterpolation. Configured track input: {}. Track input specifically for map: {}",
@@ -241,7 +312,7 @@ void TrackInterpolation::process()
   // set the input containers
   mTPCTracksClusIdx = mRecoCont->getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &mRecoCont->getTPCClusters();
-  if (mDumpTrackPoints) {
+  {
     if (!mITSDict) {
       LOG(error) << "No ITS dictionary available";
       return;
@@ -273,6 +344,9 @@ void TrackInterpolation::process()
   trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].end());
 
   int nSeeds = mSeeds.size(), lastChecked = 0;
+  mParentID.clear();
+  mParentID.resize(nSeeds, -1);
+
   int maxOutputTracks = (mMaxTracksPerTF >= 0) ? mMaxTracksPerTF + mAddTracksForMapPerTF : nSeeds;
   mTrackData.reserve(maxOutputTracks);
   mClRes.reserve(maxOutputTracks * param::NPadRows);
@@ -292,6 +366,7 @@ void TrackInterpolation::process()
       this->mGIDtables.push_back(this->mRecoCont->getSingleDetectorRefs(this->mGIDs.back()));
       this->mTrackTimes.push_back(this->mTrackTimes[seedIndex]);
       this->mSeeds.push_back(this->mSeeds[seedIndex]);
+      this->mParentID.push_back(seedIndex); // store parent seed id
     };
 
     GTrackID::mask_t partsAdded;
@@ -378,6 +453,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.gid = mGIDs[iSeed];
   trackData.par = mSeeds[iSeed];
   auto& trkWork = mSeeds[iSeed];
+  o2::track::TrackPar trkInner{trkWork};
   // reset the cache array (sufficient to set cluster available to zero)
   for (auto& elem : mCache) {
     elem.clAvailable = 0;
@@ -436,10 +512,13 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       LOG(debug) << "Failed to rotate into TOF cluster sector frame";
       return;
     }
-    float clTOFX = clTOF.getX();
-    std::array<float, 2> clTOFYZ{clTOF.getY(), clTOF.getZ()};
+    float clTOFxyz[3] = {clTOF.getX(), clTOF.getY(), clTOF.getZ()};
+    if (!clTOF.isInNominalSector()) {
+      o2::tof::Geo::alignedToNominalSector(clTOFxyz, clTOFSec); // go from the aligned to nominal sector frame
+    }
+    std::array<float, 2> clTOFYZ{clTOFxyz[1], clTOFxyz[2]};
     std::array<float, 3> clTOFCov{mParams->sigYZ2TOF, 0.f, mParams->sigYZ2TOF}; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
-    if (!propagator->PropagateToXBxByBz(trkWork, clTOFX, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+    if (!propagator->PropagateToXBxByBz(trkWork, clTOFxyz[0], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       LOG(debug) << "Failed final propagation to TOF radius";
       return;
     }
@@ -457,41 +536,15 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       (*trackDataExtended).trkTRD = trkTRD;
     }
     for (int iLayer = o2::trd::constants::NLAYER - 1; iLayer >= 0; --iLayer) {
-      int trkltIdx = trkTRD.getTrackletIndex(iLayer);
-      if (trkltIdx < 0) {
-        // no TRD tracklet in this layer
+      std::array<float, 2> trkltTRDYZ{};
+      std::array<float, 3> trkltTRDCov{};
+      int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, &trkltTRDCov);
+      if (res == -1) { // no TRD tracklet in this layer
         continue;
       }
-      const auto& trdSP = mRecoCont->getTRDCalibratedTracklets()[trkltIdx];
-      const auto& trdTrklt = mRecoCont->getTRDTracklets()[trkltIdx];
-      if (mDumpTrackPoints) {
-        (*trackDataExtended).trkltTRD.push_back(trdTrklt);
-        (*trackDataExtended).clsTRD.push_back(trdSP);
-      }
-      auto trkltDet = trdTrklt.getDetector();
-      auto trkltSec = trkltDet / (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK);
-      if (trkltSec != o2::math_utils::angle2Sector(trkWork.getAlpha())) {
-        if (!trkWork.rotate(o2::math_utils::sector2Angle(trkltSec))) {
-          LOG(debug) << "Track could not be rotated in TRD tracklet coordinate system in layer " << iLayer;
-          return;
-        }
-      }
-      if (!propagator->PropagateToXBxByBz(trkWork, trdSP.getX(), mParams->maxSnp, mParams->maxStep, mMatCorr)) {
-        LOG(debug) << "Failed propagation to TRD layer " << iLayer;
+      if (res < -1) { // failed to reach this layer
         return;
       }
-
-      const auto* pad = mGeoTRD->getPadPlane(trkltDet);
-      float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
-      float tiltCorrUp = tilt * (trdSP.getZ() - trkWork.getZ());
-      float zPosCorrUp = trdSP.getZ() + mRecoParam.getZCorrCoeffNRC() * trkWork.getTgl(); // maybe Z can be corrected on avarage already by the tracklet transformer?
-      float padLength = pad->getRowSize(trdTrklt.getPadRow());
-      if (!((trkWork.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(trdSP.getZ() - trkWork.getZ()) < padLength))) {
-        tiltCorrUp = 0.f;
-      }
-      std::array<float, 2> trkltTRDYZ{trdSP.getY() - tiltCorrUp, zPosCorrUp};
-      std::array<float, 3> trkltTRDCov;
-      mRecoParam.recalcTrkltCov(tilt, trkWork.getSnp(), pad->getRowSize(trdTrklt.getPadRow()), trkltTRDCov);
       if (!trkWork.update(trkltTRDYZ, trkltTRDCov)) {
         LOG(debug) << "Failed to update track at TRD layer " << iLayer;
         return;
@@ -502,6 +555,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   if (mDumpTrackPoints) {
     (*trackDataExtended).trkOuter = trkWork;
   }
+  auto trkOuter = trkWork; // outer param
 
   // go back through the TPC and store updated track positions
   bool outerParamStored = false;
@@ -594,13 +648,98 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       }
     }
     trackData.clIdx.setEntries(nClValidated);
+
+    bool stopPropagation = !mExtDetResid;
+    if (!stopPropagation) {
+      // do we have TRD residuals to add?
+      trkWork = trkOuter;
+      if (gidTable[GTrackID::TRD].isIndexSet()) {
+        const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
+        for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
+          std::array<float, 2> trkltTRDYZ{};
+          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ);
+          if (res == -1) { // no traklet on this layer
+            continue;
+          }
+          if (res < -1) { // failed to reach this layer
+            stopPropagation = true;
+            break;
+          }
+
+          float tgPhi = trkWork.getSnp() / std::sqrt((1.f - trkWork.getSnp()) * (1.f + trkWork.getSnp()));
+          auto dy = trkltTRDYZ[0] - trkWork.getY();
+          auto dz = trkltTRDYZ[1] - trkWork.getZ();
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
+            mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 160 + iLayer, o2::math_utils::angle2Sector(trkWork.getAlpha()), (short)res);
+            trackData.nExtDetResid++;
+          }
+        }
+      }
+
+      // do we have TOF residual to add?
+      while (gidTable[GTrackID::TOF].isIndexSet() && !stopPropagation) {
+        const auto& clTOF = mRecoCont->getTOFClusters()[gidTable[GTrackID::TOF]];
+        float clTOFxyz[3] = {clTOF.getX(), clTOF.getY(), clTOF.getZ()};
+        if (!clTOF.isInNominalSector()) {
+          o2::tof::Geo::alignedToNominalSector(clTOFxyz, clTOF.getCount()); // go from the aligned to nominal sector frame
+        }
+        const float clTOFAlpha = o2::math_utils::sector2Angle(clTOF.getCount());
+        if (trkWork.getAlpha() != clTOFAlpha && !trkWork.rotate(clTOFAlpha)) {
+          LOG(debug) << "Failed to rotate into TOF cluster sector frame";
+          stopPropagation = true;
+          break;
+        }
+        if (!propagator->PropagateToXBxByBz(trkWork, clTOFxyz[0], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+          LOG(debug) << "Failed final propagation to TOF radius";
+          break;
+        }
+
+        float tgPhi = trkWork.getSnp() / std::sqrt((1.f - trkWork.getSnp()) * (1.f + trkWork.getSnp()));
+        auto dy = clTOFxyz[1] - trkWork.getY();
+        auto dz = clTOFxyz[2] - trkWork.getZ();
+        if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
+          mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 170, clTOF.getCount(), clTOF.getPadInSector());
+          trackData.nExtDetResid++;
+        }
+        break;
+      }
+
+      // add ITS residuals
+      while (!stopPropagation) {
+        auto& trkWorkITS = trkInner; // this is ITS outer param
+        auto nCl = trkITS.getNumberOfClusters();
+        auto clEntry = trkITS.getFirstClusterEntry();
+        auto geom = o2::its::GeometryTGeo::Instance();
+        for (int iCl = 0; iCl < nCl; iCl++) { // clusters are stored from outer to inner layers
+          const auto& cls = mITSClustersArray[mITSTrackClusIdx[clEntry + iCl]];
+          int chip = cls.getSensorID();
+          float chipX, chipAlpha;
+          geom->getSensorXAlphaRefPlane(cls.getSensorID(), chipX, chipAlpha);
+          if (!trkWorkITS.rotate(chipAlpha) || !propagator->PropagateToXBxByBz(trkWorkITS, chipX, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+            LOGP(debug, "Failed final propagation to ITS X={} alpha={}", chipX, chipAlpha);
+            stopPropagation = true;
+            break;
+          }
+          float tgPhi = trkWorkITS.getSnp() / std::sqrt((1.f - trkWorkITS.getSnp()) * (1.f + trkWorkITS.getSnp()));
+          auto dy = cls.getY() - trkWorkITS.getY();
+          auto dz = cls.getZ() - trkWorkITS.getZ();
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
+            mClRes.emplace_back(dy, dz, tgPhi, trkWorkITS.getY(), trkWorkITS.getZ(), 180 + geom->getLayer(cls.getSensorID()), -1, cls.getSensorID());
+            trackData.nExtDetResid++;
+          }
+        }
+        break;
+      }
+    }
+
+    mGIDsSuccess.push_back(mGIDs[iSeed]);
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
     mTrackData.push_back(std::move(trackData));
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
+      (*trackDataExtended).nExtDetResid = trackData.nExtDetResid;
       mTrackDataExtended.push_back(std::move(*trackDataExtended));
     }
-    mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, mGIDs[iSeed].getSource());
   }
   if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
@@ -609,6 +748,46 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mTrackDataUnfiltered.push_back(std::move(trkDataTmp));
     mClResUnfiltered.insert(mClResUnfiltered.end(), clusterResiduals.begin(), clusterResiduals.end());
   }
+}
+
+int TrackInterpolation::processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLayer, o2::track::TrackParCov& trkWork,
+                                        std::array<float, 2>* trkltTRDYZ, std::array<float, 3>* trkltTRDCov)
+{
+  // return chamber ID (0:539) in case of successful processing, -1 if there is no TRD tracklet at given layer, -2 if processing failed
+  int trkltIdx = trkTRD.getTrackletIndex(iLayer);
+  if (trkltIdx < 0) {
+    return -1; // no TRD tracklet in this layer
+  }
+  const auto& trdSP = mRecoCont->getTRDCalibratedTracklets()[trkltIdx];
+  const auto& trdTrklt = mRecoCont->getTRDTracklets()[trkltIdx];
+  auto trkltDet = trdTrklt.getDetector();
+  auto trkltSec = trkltDet / (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK);
+  if (trkltSec != o2::math_utils::angle2Sector(trkWork.getAlpha())) {
+    if (!trkWork.rotate(o2::math_utils::sector2Angle(trkltSec))) {
+      LOG(debug) << "Track could not be rotated in TRD tracklet coordinate system in layer " << iLayer;
+      return -2;
+    }
+  }
+  if (!o2::base::Propagator::Instance()->PropagateToXBxByBz(trkWork, trdSP.getX(), mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+    LOG(debug) << "Failed propagation to TRD layer " << iLayer;
+    return -2;
+  }
+  if (trkltTRDYZ) {
+    const auto* pad = mGeoTRD->getPadPlane(trkltDet);
+    float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
+    float tiltCorrUp = tilt * (trdSP.getZ() - trkWork.getZ());
+    float zPosCorrUp = trdSP.getZ() + mRecoParam.getZCorrCoeffNRC() * trkWork.getTgl(); // maybe Z can be corrected on avarage already by the tracklet transformer?
+    float padLength = pad->getRowSize(trdTrklt.getPadRow());
+    if (!((trkWork.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(trdSP.getZ() - trkWork.getZ()) < padLength))) {
+      tiltCorrUp = 0.f;
+    }
+    (*trkltTRDYZ)[0] = trdSP.getY() - tiltCorrUp;
+    (*trkltTRDYZ)[1] = zPosCorrUp;
+    if (trkltTRDCov) {
+      mRecoParam.recalcTrkltCov(tilt, trkWork.getSnp(), pad->getRowSize(trdTrklt.getPadRow()), *trkltTRDCov);
+    }
+  }
+  return trkltDet;
 }
 
 void TrackInterpolation::extrapolateTrack(int iSeed)
@@ -638,7 +817,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   trackData.gid = mGIDs[iSeed];
   trackData.par = mSeeds[iSeed];
 
-  auto& trkWork = mSeeds[iSeed];
+  auto trkWork = mSeeds[iSeed];
   float clusterTimeBinOffset = mTrackTimes[iSeed] / mTPCTimeBinMUS;
   auto propagator = o2::base::Propagator::Instance();
   unsigned short rowPrev = 0; // used to calculate dRow of two consecutive cluster residuals
@@ -681,6 +860,13 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     rowPrev = row;
     ++nMeasurements;
   }
+
+  TrackParams params; // for refitted track parameters and flagging rejected clusters
+  if (clusterResiduals.size() > constants::MAXGLOBALPADROW) {
+    LOGP(warn, "Extrapolated ITS-TPC track and found more reesiduals than possible ({})", clusterResiduals.size());
+    return;
+  }
+
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
@@ -691,19 +877,14 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     (*trackDataExtended).trkOuter = trkWork;
   }
 
-  TrackParams params; // for refitted track parameters and flagging rejected clusters
-  if (clusterResiduals.size() > constants::MAXGLOBALPADROW) {
-    LOGP(warn, "Extrapolated ITS-TPC track and found more reesiduals than possible ({})", clusterResiduals.size());
-    return;
-  }
   if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
-    // track is good
-    int nClValidated = 0;
-    int iRow = 0;
-    for (unsigned int iCl = 0; iCl < clusterResiduals.size(); ++iCl) {
+    // track is good, store TPC part
+
+    int nClValidated = 0, iRow = 0;
+    unsigned int iCl = 0;
+    for (iCl = 0; iCl < clusterResiduals.size(); ++iCl) {
       iRow += clusterResiduals[iCl].dRow;
-      if (params.flagRej[iCl]) {
-        // skip masked cluster residual
+      if (iRow < param::NPadRows && params.flagRej[iCl]) { // skip masked cluster residual
         continue;
       }
       ++nClValidated;
@@ -712,19 +893,107 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto dz = clusterResiduals[iCl].dz;
       const auto y = clusterResiduals[iCl].y;
       const auto z = clusterResiduals[iCl].z;
-      const auto sec = clusterResiduals[iCl].sec;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec);
+        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec);
       } else {
         ++mRejectedResiduals;
       }
     }
     trackData.clIdx.setEntries(nClValidated);
+
+    bool stopPropagation = !mExtDetResid;
+    if (!stopPropagation) {
+      // do we have TRD residuals to add?
+      int iSeedFull = mParentID[iSeed] == -1 ? iSeed : mParentID[iSeed];
+      auto gidFull = mGIDs[iSeedFull];
+      const auto& gidTableFull = mGIDtables[iSeedFull];
+      if (gidTableFull[GTrackID::TRD].isIndexSet()) {
+        const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTableFull[GTrackID::ITSTPCTRD]);
+        for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
+          std::array<float, 2> trkltTRDYZ{};
+          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ);
+          if (res == -1) { // no traklet on this layer
+            continue;
+          }
+          if (res < -1) { // failed to reach this layer
+            stopPropagation = true;
+            break;
+          }
+
+          float tgPhi = trkWork.getSnp() / std::sqrt((1.f - trkWork.getSnp()) * (1.f + trkWork.getSnp()));
+          auto dy = trkltTRDYZ[0] - trkWork.getY();
+          auto dz = trkltTRDYZ[1] - trkWork.getZ();
+          const auto sec = clusterResiduals[iCl].sec;
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
+            mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 160 + iLayer, o2::math_utils::angle2Sector(trkWork.getAlpha()), (short)res);
+            trackData.nTrkltsTRD++;
+            trackData.nExtDetResid++;
+          }
+        }
+      }
+
+      // do we have TOF residual to add?
+      while (gidTableFull[GTrackID::TOF].isIndexSet() && !stopPropagation) {
+        const auto& clTOF = mRecoCont->getTOFClusters()[gidTableFull[GTrackID::TOF]];
+        const float clTOFAlpha = o2::math_utils::sector2Angle(clTOF.getCount());
+        float clTOFxyz[3] = {clTOF.getX(), clTOF.getY(), clTOF.getZ()};
+        if (!clTOF.isInNominalSector()) {
+          o2::tof::Geo::alignedToNominalSector(clTOFxyz, clTOF.getCount()); // go from the aligned to nominal sector frame
+        }
+        if (trkWork.getAlpha() != clTOFAlpha && !trkWork.rotate(clTOFAlpha)) {
+          LOG(debug) << "Failed to rotate into TOF cluster sector frame";
+          stopPropagation = true;
+          break;
+        }
+        if (!propagator->PropagateToXBxByBz(trkWork, clTOFxyz[0], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+          LOG(debug) << "Failed final propagation to TOF radius";
+          break;
+        }
+
+        float tgPhi = trkWork.getSnp() / std::sqrt((1.f - trkWork.getSnp()) * (1.f + trkWork.getSnp()));
+        auto dy = clTOFxyz[1] - trkWork.getY();
+        auto dz = clTOFxyz[2] - trkWork.getZ();
+        if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
+          mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 170, clTOF.getCount(), clTOF.getPadInSector());
+          trackData.clAvailTOF = 1;
+          trackData.nExtDetResid++;
+        }
+        break;
+      }
+
+      // add ITS residuals
+      while (!stopPropagation) {
+        o2::track::TrackPar trkWorkITS{trackData.par}; // this is ITS outer param
+        auto nCl = trkITS.getNumberOfClusters();
+        auto clEntry = trkITS.getFirstClusterEntry();
+        auto geom = o2::its::GeometryTGeo::Instance();
+        for (int iCl = 0; iCl < nCl; iCl++) { // clusters are stored from outer to inner layers
+          const auto& cls = mITSClustersArray[mITSTrackClusIdx[clEntry + iCl]];
+          int chip = cls.getSensorID();
+          float chipX, chipAlpha;
+          geom->getSensorXAlphaRefPlane(cls.getSensorID(), chipX, chipAlpha);
+          if (!trkWorkITS.rotate(chipAlpha) || !propagator->PropagateToXBxByBz(trkWorkITS, chipX, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+            LOGP(debug, "Failed final propagation to ITS X={} alpha={}", chipX, chipAlpha);
+            stopPropagation = true;
+            break;
+          }
+          float tgPhi = trkWorkITS.getSnp() / std::sqrt((1.f - trkWorkITS.getSnp()) * (1.f + trkWorkITS.getSnp()));
+          auto dy = cls.getY() - trkWorkITS.getY();
+          auto dz = cls.getZ() - trkWorkITS.getZ();
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
+            mClRes.emplace_back(dy, dz, tgPhi, trkWorkITS.getY(), trkWorkITS.getZ(), 180 + geom->getLayer(cls.getSensorID()), -1, cls.getSensorID());
+            trackData.nExtDetResid++;
+          }
+        }
+        break;
+      }
+    }
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, mGIDs[iSeed].getSource());
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
+      (*trackDataExtended).nExtDetResid = trackData.nExtDetResid;
       mTrackDataExtended.push_back(std::move(*trackDataExtended));
     }
   }

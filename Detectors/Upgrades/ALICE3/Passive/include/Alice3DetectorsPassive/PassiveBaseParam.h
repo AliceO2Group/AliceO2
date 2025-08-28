@@ -29,10 +29,16 @@ enum MagnetLayout : int {
   CopperStabilizer = 1
 };
 
+enum DetLayout : int {
+  StandardRadius = 0,
+  ReducedRadius = 1
+};
+
 struct Alice3PassiveBaseParam : public o2::conf::ConfigurableParamHelper<Alice3PassiveBaseParam> {
   // Geometry Builder parameters
 
   int mLayout = MagnetLayout::AluminiumStabilizer;
+  int mDetLayout = DetLayout::StandardRadius;
 
   O2ParamDef(Alice3PassiveBaseParam, "Alice3PassiveBase");
 };

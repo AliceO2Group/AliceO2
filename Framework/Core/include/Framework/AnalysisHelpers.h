@@ -11,6 +11,7 @@
 #ifndef o2_framework_AnalysisHelpers_H_DEFINED
 #define o2_framework_AnalysisHelpers_H_DEFINED
 
+#include "ConfigParamSpec.h"
 #include "Framework/ASoA.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/IndexBuilderHelpers.h"
@@ -49,6 +50,19 @@ inline constexpr auto getSources()
   }.template operator()<T::sources.size(), T::sources>();
 }
 
+template <soa::with_ccdb_urls T>
+inline constexpr auto getCCDBUrls()
+{
+  std::vector<framework::ConfigParamSpec> result;
+  for (size_t i = 0; i < T::ccdb_urls.size(); ++i) {
+    result.push_back({std::string{"ccdb:"} + std::string{T::ccdb_bindings[i]},
+                      framework::VariantType::String,
+                      T::ccdb_urls[i],
+                      {"\"\""}});
+  }
+  return result;
+}
+
 template <soa::with_sources T>
 constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 {
@@ -67,18 +81,40 @@ constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }
+
+template <soa::with_ccdb_urls T>
+constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  std::vector<framework::ConfigParamSpec> results = getCCDBUrls<T>();
+  std::sort(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
+  auto last = std::unique(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
+  results.erase(last, results.end());
+  return results;
+}
+
+template <typename T>
+constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  return {};
+}
 }  // namespace
 
 template <TableRef R>
 constexpr auto tableRef2InputSpec()
 {
+  std::vector<framework::ConfigParamSpec> metadata;
+  auto m = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), m.begin(), m.end());
+  auto ccdbMetadata = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
+
   return framework::InputSpec{
     o2::aod::label<R>(),
     o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
     R.version,
     framework::Lifetime::Timeframe,
-    getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>()};
+    metadata};
 }
 
 template <TableRef R>

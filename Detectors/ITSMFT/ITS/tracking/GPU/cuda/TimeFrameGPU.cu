@@ -61,11 +61,11 @@ void TimeFrameGPU<nLayers>::loadIndexTableUtils(const int iteration)
 {
   GPUTimer timer("loading indextable utils");
   if (!iteration) {
-    GPULog("gpu-allocation: allocating IndexTableUtils buffer, for {:.2f} MB.", sizeof(IndexTableUtils) / constants::MB);
-    allocMem(reinterpret_cast<void**>(&mIndexTableUtilsDevice), sizeof(IndexTableUtils), this->getExtAllocator());
+    GPULog("gpu-allocation: allocating IndexTableUtils buffer, for {:.2f} MB.", sizeof(IndexTableUtilsN) / constants::MB);
+    allocMem(reinterpret_cast<void**>(&mIndexTableUtilsDevice), sizeof(IndexTableUtilsN), this->getExtAllocator());
   }
-  GPULog("gpu-transfer: loading IndexTableUtils object, for {:.2f} MB.", sizeof(IndexTableUtils) / constants::MB);
-  GPUChkErrS(cudaMemcpy(mIndexTableUtilsDevice, &(this->mIndexTableUtils), sizeof(IndexTableUtils), cudaMemcpyHostToDevice));
+  GPULog("gpu-transfer: loading IndexTableUtils object, for {:.2f} MB.", sizeof(IndexTableUtilsN) / constants::MB);
+  GPUChkErrS(cudaMemcpy(mIndexTableUtilsDevice, &(this->mIndexTableUtils), sizeof(IndexTableUtilsN), cudaMemcpyHostToDevice));
 }
 
 template <int nLayers>
@@ -547,7 +547,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::initialise(const int iteration,
                                        const TrackingParameters& trkParam,
                                        const int maxLayers,
-                                       IndexTableUtils* utils,
+                                       IndexTableUtilsN* utils,
                                        const TimeFrameGPUParameters* gpuParam)
 {
   mGpuStreams.resize(nLayers);

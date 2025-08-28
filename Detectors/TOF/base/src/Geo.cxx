@@ -988,6 +988,7 @@ void Geo::translate(Float_t* xyz, Float_t translationVector[3])
 
   return;
 }
+
 void Geo::translate(Float_t& x, Float_t& y, Float_t& z, Float_t translationVector[3])
 {
   //
@@ -1043,6 +1044,18 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
   }
 
   return;
+}
+
+void Geo::alignedToNominalSector(Float_t* xyz, Int_t isector)
+{
+  // rotate from the aligned sector frame coordinates to nominal ones (i.e. alpha=20*sector+10 deg.)
+  constexpr float CS[18] = {.848077e-01, 8.660254e-01, 6.427876e-01, 3.420202e-01, -4.371139e-08, -3.420201e-01, -6.427876e-01, -8.660254e-01, -9.848077e-01, -9.848077e-01, -8.660254e-01, -6.427875e-01, -3.420201e-01, 1.192488e-08, 3.420201e-01, 6.427875e-01, 8.660253e-01, 9.848078e-01};
+  constexpr float SN[18] = {1.736482e-01, 5.000000e-01, 7.660444e-01, 9.396926e-01, 1.000000e+00, 9.396926e-01, 7.660444e-01, 5.000001e-01, 1.736483e-01, -1.736482e-01, -5.000000e-01, -7.660446e-01, -9.396927e-01, -1.000000e+00, -9.396926e-01, -7.660445e-01, -5.000002e-01, -1.736480e-01};
+  Float_t xyzDummy[3] = {xyz[1], xyz[2], xyz[0]};      // go to twisted coordinates...
+  o2::tof::Geo::antiRotateToSector(xyzDummy, isector); // lab coordinates
+  xyz[0] = xyzDummy[0] * CS[isector] + xyzDummy[1] * SN[isector];
+  xyz[1] = -xyzDummy[0] * SN[isector] + xyzDummy[1] * CS[isector];
+  xyz[2] = xyzDummy[2];
 }
 
 void Geo::antiRotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector)

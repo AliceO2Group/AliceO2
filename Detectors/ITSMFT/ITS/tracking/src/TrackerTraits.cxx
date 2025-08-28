@@ -601,20 +601,14 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
       mTimeFrame->getCellsNeighbours()[iLayer].reserve(cellsNeighbours.size());
       std::ranges::transform(cellsNeighbours, std::back_inserter(mTimeFrame->getCellsNeighbours()[iLayer]), [](const auto& neigh) { return neigh.cell; });
 
-      auto it = cellsNeighbours.begin();
-      int current = it->nextCell;
-      int maxLvl = it->level;
-      ++it;
-      for (; it != cellsNeighbours.end(); ++it) {
-        if (it->nextCell == current) {
+      for (auto it = cellsNeighbours.begin(); it != cellsNeighbours.end();) {
+        int cellIdx = it->nextCell;
+        int maxLvl = it->level;
+        while (++it != cellsNeighbours.end() && it->nextCell == cellIdx) {
           maxLvl = std::max(maxLvl, it->level);
-        } else {
-          mTimeFrame->getCells()[iLayer + 1][current].setLevel(maxLvl);
-          current = it->nextCell;
-          maxLvl = it->level;
         }
+        o2::gpu::CAMath::AtomicMax(mTimeFrame->getCells()[iLayer + 1][cellIdx].getLevelPtr(), maxLvl);
       }
-      mTimeFrame->getCells()[iLayer + 1][current].setLevel(maxLvl);
     }
   });
 }
@@ -814,7 +808,7 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
         TrackITSExt temporaryTrack{seed};
         temporaryTrack.resetCovariance();
         temporaryTrack.setChi2(0);
-        for (int iL{0}; iL < 7; ++iL) {
+        for (int iL{0}; iL < nLayers; ++iL) {
           temporaryTrack.setExternalClusterIndex(iL, seed.getCluster(iL), seed.getCluster(iL) != constants::UnusedIndex);
         }
 

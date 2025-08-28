@@ -210,7 +210,7 @@ class GPUChain
   krnlExec GetGridAuto(int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
   krnlExec GetGridAutoStep(int32_t stream, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
 
-  inline uint32_t BlockCount() const { return mRec->mBlockCount; }
+  inline uint32_t BlockCount() const { return mRec->mMultiprocessorCount; }
   inline uint32_t WarpSize() const { return mRec->mWarpSize; }
   inline uint32_t ThreadCount() const { return mRec->mThreadCount; }
 

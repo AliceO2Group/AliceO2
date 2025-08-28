@@ -28,6 +28,7 @@ template <int nLayers = 7>
 class TimeFrameGPU : public TimeFrame<nLayers>
 {
   using typename TimeFrame<nLayers>::CellSeedN;
+  using typename TimeFrame<nLayers>::IndexTableUtilsN;
 
  public:
   TimeFrameGPU();
@@ -36,8 +37,8 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   /// Most relevant operations
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
-  void initialise(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
-  void initDevice(IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
+  void initialise(const int, const TrackingParameters&, const int, IndexTableUtilsN* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
+  void initDevice(IndexTableUtilsN*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceSAFitting();
   void loadIndexTableUtils(const int);
   void loadTrackingFrameInfoDevice(const int, const int);
@@ -98,7 +99,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
 
   /// interface
   int getNClustersInRofSpan(const int, const int, const int) const;
-  IndexTableUtils* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
+  IndexTableUtilsN* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
   int* getDeviceROFramesClusters(const int layer) { return mROFramesClustersDevice[layer]; }
   auto& getTrackITSExt() { return mTrackITSExt; }
   Vertex* getDeviceVertices() { return mPrimaryVerticesDevice; }
@@ -165,7 +166,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   std::array<int, nLayers - 3> mNNeighbours;
 
   // Device pointers
-  IndexTableUtils* mIndexTableUtilsDevice;
+  IndexTableUtilsN* mIndexTableUtilsDevice;
 
   // Hybrid pref
   uint8_t* mMultMaskDevice;

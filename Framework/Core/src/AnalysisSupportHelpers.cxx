@@ -207,6 +207,35 @@ void AnalysisSupportHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> c
   }
 }
 
+void AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher(
+  std::vector<OutputSpec> const& providedSpecials,
+  std::vector<InputSpec> const& requestedSpecials,
+  std::vector<InputSpec>& requestedAODs,
+  std::vector<InputSpec>& requestedDYNs,
+  DataProcessorSpec& publisher)
+{
+  for (auto& input : requestedSpecials) {
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+    publisher.outputs.emplace_back(concrete.origin, concrete.description, concrete.subSpec);
+    // FIXME: good enough for now...
+    for (auto& i : input.metadata) {
+      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
+        auto value = i.defaultValue.get<std::string>();
+        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
+        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+        if (j == publisher.inputs.end()) {
+          publisher.inputs.push_back(spec);
+        }
+        if (DataSpecUtils::partialMatch(spec, AODOrigins)) {
+          DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
+        } else if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"DYN"})) {
+          DataSpecUtils::updateInputList(requestedDYNs, std::move(spec));
+        }
+      }
+    }
+  }
+}
+
 // =============================================================================
 DataProcessorSpec AnalysisSupportHelpers::getOutputObjHistSink(ConfigContext const& ctx)
 {

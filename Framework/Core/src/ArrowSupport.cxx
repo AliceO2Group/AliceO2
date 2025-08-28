@@ -19,6 +19,8 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/CommonDataProcessors.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/DataSpecViews.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Tracing.h"
@@ -27,6 +29,7 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DevicesManager.h"
 #include "Framework/DeviceConfig.h"
+#include "Framework/PluginManager.h"
 #include "Framework/ServiceMetricsInfo.h"
 #include "WorkflowHelpers.h"
 #include "Framework/WorkflowSpecNode.h"
@@ -441,6 +444,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
     .adjustTopology = [](WorkflowSpecNode& node, ConfigContext const& ctx) {
       auto& workflow = node.specs;
       auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-spawner"; });
+      auto analysisCCDB = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-ccdb"; });
       auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
       auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-reader"; });
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-writer"; });
@@ -448,6 +452,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       ac.requestedAODs.clear();
       ac.requestedDYNs.clear();
       ac.providedDYNs.clear();
+      ac.providedTIMs.clear();
+      ac.requestedTIMs.clear();
 
 
       auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
@@ -511,6 +517,27 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
       }
 
+      if (analysisCCDB != workflow.end()) {
+        for (auto& d : workflow | views::exclude_by_name(analysisCCDB->name)) {
+          d.inputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::update_input_list{ac.requestedTIMs};
+          d.outputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::append_to{ac.providedTIMs};
+        }
+        std::sort(ac.requestedTIMs.begin(), ac.requestedTIMs.end(), inputSpecLessThan);
+        std::sort(ac.providedTIMs.begin(), ac.providedTIMs.end(), outputSpecLessThan);
+        // Use ranges::to<std::vector<>> in C++23...
+        ac.analysisCCDBInputs.clear();
+        ac.requestedTIMs | views::filter_not_matching(ac.providedTIMs) | sinks::append_to{ac.analysisCCDBInputs};
+
+        // recreate inputs and outputs
+        analysisCCDB->outputs.clear();
+        analysisCCDB->inputs.clear();
+        // replace AlgorithmSpec
+        // FIXME: it should be made more generic, so it does not need replacement...
+        // FIXME how can I make the lookup depend on DYN tables as well??
+        analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
+        AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher({}, ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedDYNs, *analysisCCDB);
+      }
+
       if (writer != workflow.end()) {
         workflow.erase(writer);
       }
@@ -537,6 +564,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           workflow.erase(reader);
         }
       }
+
+
 
       // replace writer as some outputs may have become dangling and some are now consumed
       auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);

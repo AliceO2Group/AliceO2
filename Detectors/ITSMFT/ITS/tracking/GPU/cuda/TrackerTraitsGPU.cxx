@@ -57,8 +57,8 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
 {
   const auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
 
-  int startROF{this->mTrkParams[iteration].nROFsPerIterations > 0 ? iROFslice * this->mTrkParams[iteration].nROFsPerIterations : 0};
-  int endROF{o2::gpu::CAMath::Min(this->mTrkParams[iteration].nROFsPerIterations > 0 ? (iROFslice + 1) * this->mTrkParams[iteration].nROFsPerIterations + this->mTrkParams[iteration].DeltaROF : mTimeFrameGPU->getNrof(), mTimeFrameGPU->getNrof())};
+  int startROF{0};
+  int endROF{mTimeFrameGPU->getNrof()};
 
   // start by queuing loading needed of two last layers
   for (int iLayer{nLayers}; iLayer-- > nLayers - 2;) {

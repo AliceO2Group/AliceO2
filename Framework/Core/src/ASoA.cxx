@@ -14,6 +14,11 @@
 #include "Framework/RuntimeError.h"
 #include <arrow/util/key_value_metadata.h>
 #include <arrow/util/config.h>
+#include <TMemFile.h>
+#include <TClass.h>
+#include <TTree.h>
+#include <TH1.h>
+#include <TError.h>
 
 namespace o2::soa
 {
@@ -149,7 +154,7 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view lab
     return caseInsensitiveCompare(label, f->name());
   });
   if (field == table->schema()->fields().end()) {
-    o2::framework::throw_error(o2::framework::runtime_error_f("Unable to find column with label %s", label));
+    o2::framework::throw_error(o2::framework::runtime_error_f("Unable to find column with label %s.", label));
   }
   auto index = std::distance(table->schema()->fields().begin(), field);
   return table->column(index).get();
@@ -168,6 +173,62 @@ void notFoundColumn(const char* label, const char* key)
 void missingOptionalPreslice(const char* label, const char* key)
 {
   throw o2::framework::runtime_error_f(R"(Optional Preslice with missing binding used: table "%s" (or join based on it) does not have column "%s")", label, key);
+}
+
+void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const char* what)
+{
+  Int_t previousErrorLevel = gErrorIgnoreLevel;
+  gErrorIgnoreLevel = kFatal;
+  // does it have a flattened headers map attached in the end?
+  TMemFile file("name", (char*)payload, size, "READ");
+  gErrorIgnoreLevel = previousErrorLevel;
+  if (file.IsZombie()) {
+    return nullptr;
+  }
+
+  if (!cl) {
+    return nullptr;
+  }
+  auto object = file.GetObjectChecked(what, cl);
+  if (!object) {
+    // it could be that object was stored with previous convention
+    // where the classname was taken as key
+    std::string objectName(cl->GetName());
+    objectName.erase(std::find_if(objectName.rbegin(), objectName.rend(), [](unsigned char ch) {
+                       return !std::isspace(ch);
+                     }).base(),
+                     objectName.end());
+    objectName.erase(objectName.begin(), std::find_if(objectName.begin(), objectName.end(), [](unsigned char ch) {
+                       return !std::isspace(ch);
+                     }));
+
+    object = file.GetObjectChecked(objectName.c_str(), cl);
+    LOG(warn) << "Did not find object under expected name " << what;
+    if (!object) {
+      return nullptr;
+    }
+    LOG(warn) << "Found object under deprecated name " << cl->GetName();
+  }
+  auto result = object;
+  // We need to handle some specific cases as ROOT ties them deeply
+  // to the file they are contained in
+  if (cl->InheritsFrom("TObject")) {
+    // make a clone
+    // detach from the file
+    auto tree = dynamic_cast<TTree*>((TObject*)object);
+    if (tree) {
+      tree->LoadBaskets(0x1L << 32); // make tree memory based
+      tree->SetDirectory(nullptr);
+      result = tree;
+    } else {
+      auto h = dynamic_cast<TH1*>((TObject*)object);
+      if (h) {
+        h->SetDirectory(nullptr);
+        result = h;
+      }
+    }
+  }
+  return result;
 }
 
 } // namespace o2::soa

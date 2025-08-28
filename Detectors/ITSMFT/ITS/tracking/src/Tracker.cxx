@@ -85,7 +85,7 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       }
       double timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
       int nTracklets{0}, nCells{0}, nNeighbours{0}, nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
-      int nROFsIterations = mTrkParams[iteration].nROFsPerIterations > 0 ? mTimeFrame->getNrof() / mTrkParams[iteration].nROFsPerIterations + bool(mTimeFrame->getNrof() % mTrkParams[iteration].nROFsPerIterations) : 1;
+      int nROFsIterations = (mTrkParams[iteration].nROFsPerIterations > 0 && !mTimeFrame->mIsGPU) ? mTimeFrame->getNrof() / mTrkParams[iteration].nROFsPerIterations + bool(mTimeFrame->getNrof() % mTrkParams[iteration].nROFsPerIterations) : 1;
       iVertex = std::min(maxNvertices, 0);
       logger(std::format("==== ITS {} Tracking iteration {} summary ====", mTraits->getName(), iteration));
 

@@ -281,7 +281,7 @@ struct InteractionRecord {
     return tmp;
   }
 
-#ifndef GPUCA_ALIGPUCODE
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   void print() const;
   std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionRecord const& ir);
@@ -359,7 +359,7 @@ struct InteractionTimeRecord : public InteractionRecord {
     return !((*this) > other);
   }
 
-#ifndef GPUCA_ALIGPUCODE
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   void print() const;
   std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionTimeRecord const& ir);

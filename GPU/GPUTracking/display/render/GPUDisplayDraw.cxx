@@ -539,6 +539,9 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           if (mc.pid < 0) {
             break;
           }
+          if (mc.t0 == -100.f) {
+            break;
+          }
 
           alphaOrg = mParam->Alpha(iSector);
           float c = cosf(alphaOrg);

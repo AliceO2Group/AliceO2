@@ -126,8 +126,16 @@ void Detector::createGeometry()
 
   // Build the MID
   mLayers.resize(2);
-  mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 301.f, 500.f);
-  mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 520.f); // arbitrarily reduced to get multiple of 5.2f
+  auto& midParam = MIDBaseParam::Instance();
+  const bool standardRadius = (midParam.mLayout == o2::mi3::MIDLayout::StandardRadius);
+
+  if (standardRadius) {
+    mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 301.f, 500.f);
+    mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 520.f); // arbitrarily reduced to get multiple of 5.2f
+  } else {
+    mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 266.f, 500.f);
+    mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 276.f, 520.f);
+  }
 
   for (auto& layer : mLayers) {
     layer.createLayer(vMID);

@@ -22,32 +22,23 @@
 namespace o2::its
 {
 
+template <int>
 class IndexTableUtils;
 
 struct Cluster final {
   GPUhdDefault() Cluster() = default;
   GPUhd() Cluster(const float x, const float y, const float z, const int idx);
-  GPUhd() Cluster(const int, const IndexTableUtils& utils, const Cluster&);
-  GPUhd() Cluster(const int, const float3&, const IndexTableUtils& utils, const Cluster&);
+  template <int nLayers>
+  GPUhd() Cluster(const int, const IndexTableUtils<nLayers>& utils, const Cluster&);
+  template <int nLayers>
+  GPUhd() Cluster(const int, const float3&, const IndexTableUtils<nLayers>& utils, const Cluster&);
   GPUhdDefault() Cluster(const Cluster&) = default;
   GPUhdDefault() Cluster(Cluster&&) noexcept = default;
   GPUhdDefault() ~Cluster() = default;
 
   GPUhdDefault() Cluster& operator=(const Cluster&) = default;
   GPUhdDefault() Cluster& operator=(Cluster&&) noexcept = default;
-
-  // TODO
-  /*GPUhdDefault() bool operator==(const Cluster&) const = default;*/
-  GPUhd() bool operator==(const Cluster& other) const
-  {
-    return xCoordinate == other.xCoordinate &&
-           yCoordinate == other.yCoordinate &&
-           zCoordinate == other.zCoordinate &&
-           phi == other.phi &&
-           radius == other.radius &&
-           clusterId == other.clusterId &&
-           indexTableBinIndex == other.indexTableBinIndex;
-  }
+  GPUhdDefault() bool operator==(const Cluster&) const = default;
 
   GPUhd() void print() const;
 

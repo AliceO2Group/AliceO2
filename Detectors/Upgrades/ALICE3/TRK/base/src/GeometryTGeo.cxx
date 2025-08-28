@@ -11,9 +11,9 @@
 
 #include <TRKBase/GeometryTGeo.h>
 #include <TGeoManager.h>
-// #include "TRKBase/SegmentationChip.h"
+#include "TRKBase/SegmentationChip.h"
 
-// using Segmentation = o2::trk::SegmentationChip;
+using Segmentation = o2::trk::SegmentationChip;
 
 namespace o2
 {
@@ -263,58 +263,35 @@ bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk
 TString GeometryTGeo::getMatrixPath(int index) const
 {
 
-  int subDetID, petalcase, disk, lay, stave, halfstave; //// TODO: add chips in a second step
-  getChipID(index, subDetID, petalcase, disk, lay, stave, halfstave);
+  int subDetID, petalcase, disk, layer, stave, halfstave; //// TODO: add chips in a second step
+  getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
 
-  int indexRetrieved = getChipIndex(subDetID, petalcase, disk, lay, stave, halfstave);
+  // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
 
-  PrintChipID(index, subDetID, petalcase, disk, lay, stave, halfstave, indexRetrieved);
+  // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
+  TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
 
-  // TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
-  TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be replaced
-
-  // if (wrID >= 0) {
-  //   path += Form("%s%d_1/", getITSWrapVolPattern(), wrID);
-  // }
-
-  // if (isVD) {
-  //   path += Form("%s%d_1/", getTRKPetalPattern(), index);
-
-  // } else {
-  // path += Form("%s%d_1/", getTRKLayerPattern(), index);
-  // }
-
-  // if (!mIsLayerITS3[lay]) {
-  //   path +=
-  //     Form("%s%d_1/", getITSLayerPattern(), lay);
-  //   if (mNumberOfHalfBarrels > 0) {
-  //     path += Form("%s%d_%d/", getITSHalfBarrelPattern(), lay, hba);
-  //   }
-  //   path +=
-  //     Form("%s%d_%d/", getITSStavePattern(), lay, stav);
-
-  //   if (mNumberOfHalfStaves[lay] > 0) {
-  //     path += Form("%s%d_%d/", getITSHalfStavePattern(), lay, sstav);
-  //   }
-  //   if (mNumberOfModules[lay] > 0) {
-  //     path += Form("%s%d_%d/", getITSModulePattern(), lay, mod);
-  //   }
-  //   path += Form("%s%d_%d/%s%d_1", getITSChipPattern(), lay, chipInMod, getITSSensorPattern(), lay);
-  // } else {
-  //   // hba = carbonform
-  //   // stav = 0
-  //   // sstav = segment
-  //   // mod = rsu
-  //   // chipInMod = tile
-  //   // sensor = pixelarray
-  //   path += Form("%s_0/", getITS3LayerPattern(lay));
-  //   path += Form("%s_%d/", getITS3CarbonFormPattern(lay), hba);
-  //   path += Form("%s_0/", getITS3ChipPattern(lay));
-  //   path += Form("%s_%d/", getITS3SegmentPattern(lay), sstav);
-  //   path += Form("%s_%d/", getITS3RSUPattern(lay), mod);
-  //   path += Form("%s_%d/", getITS3TilePattern(lay), chipInMod);
-  //   path += Form("%s_0", getITS3PixelArrayPattern(lay));
-  // }
+  if (subDetID == 0) { // VD
+    if (disk >= 0) {
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk);                                   // PETALCASEx_DISKy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKSensorPattern(), disk); // PETALCASEx_DISKy_TRKSensory_1
+    } else if (layer >= 0) {
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer);                                    // PETALCASEx_LAYERy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKStavePattern(), layer);  // PETALCASEx_LAYERy_TRKStavey_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
+    }
+  } else if (subDetID == 1) {                                          // MLOT
+    path += Form("%s%d_1/", getTRKLayerPattern(), layer);              // TRKLayerx_1
+    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);      // TRKStavex_y
+    if (mNumberOfHalfStaves[layer] == 2) {                             // staggered geometry
+      path += Form("%s%d_%d/", getTRKChipPattern(), layer, halfstave); // TRKChipx_0/1
+    } else if (mNumberOfHalfStaves[layer] == 1) {                      // turbo geometry
+      path += Form("%s%d_1/", getTRKChipPattern(), layer);             // TRKChipx_1
+    }
+    path += Form("%s%d_1/", getTRKSensorPattern(), layer); // TRKSensorx_1
+  }
   return path;
 }
 
@@ -325,40 +302,40 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   // Note, the if the effective sensitive layer thickness is smaller than the
   // total physical sensor tickness, this matrix is biased and connot be used
   // directly for transformation from sensor frame to global one.
-  //
   // Therefore we need to add a shift
+
   auto path = getMatrixPath(index);
 
   static TGeoHMatrix matTmp;
-  // gGeoManager->PushPath(); // Preserve the modeler state.
+  gGeoManager->PushPath(); // Preserve the modeler state.
 
-  // if (!gGeoManager->cd(path.Data())) {
-  //   gGeoManager->PopPath();
-  //   LOG(error) << "Error in cd-ing to " << path.Data();
-  //   return nullptr;
-  // } // end if !gGeoManager
+  if (!gGeoManager->cd(path.Data())) {
+    gGeoManager->PopPath();
+    LOG(error) << "Error in cd-ing to " << path.Data();
+    return nullptr;
+  } // end if !gGeoManager
 
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
 
   // RSS
-  // printf("%d/%d/%d %s\n", lay, stav, detInSta, path.Data());
   // matTmp.Print();
   // Restore the modeler state.
   gGeoManager->PopPath();
 
   static int chipInGlo{0};
 
+  /// TODO:
   // account for the difference between physical sensitive layer (where charge collection is simulated) and effective sensor thicknesses
-  // in the ITS3 case this accounted by specialized functions
-  // double delta = Segmentation::SensorLayerThickness;
-  // static TGeoTranslation tra(0., 0.5 * delta, 0.);
-  // #ifdef ENABLE_UPGRADES // only apply for non ITS3 OB layers
-  //   if (!mIsLayerITS3[getLayer(index)]) {
-  //     matTmp *= tra;
-  //   }
-  // #else
+  // in the VD case this will be accounted by specialized functions during the clusterization (following what it is done for ITS3)
+  // this can be done once the right sensor thickness is in place in the geometry
+  // double delta = 0.;
+  // if (getSubDetID(index) == 1){ /// ML/OT
+  //   delta = Segmentation::SensorLayerThicknessVD - Segmentation::SiliconTickness;
+  //   static TGeoTranslation tra(0., 0.5 * delta, 0.);
   //   matTmp *= tra;
-  // #endif
+  // }
+  // std::cout<<"-----"<<std::endl;
+  // matTmp.Print();
 
   return &matTmp;
 }
@@ -384,6 +361,8 @@ void GeometryTGeo::fillMatrixCache(int mask)
       cacheL2G.setMatrix(Mat3D(*hm), i);
     }
   }
+
+  // TODO: build matrices for the cases T2L, T2G and T2GRot when needed
 }
 
 //__________________________________________________________________________
@@ -672,7 +651,7 @@ int GeometryTGeo::extractNumberOfHalfStavesMLOT(int lay) const
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int indexRetrieved) const
+void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const
 {
   std::cout << "\nindex = " << index << std::endl;
   std::cout << "subDetID = " << subDetID << std::endl;
@@ -682,7 +661,6 @@ void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk,
   std::cout << "first chip index = " << getFirstChipIndex(lay, petalcase, subDetID) << std::endl;
   std::cout << "stave = " << stave << std::endl;
   std::cout << "halfstave = " << halfstave << std::endl;
-  std::cout << "check index Retrieved = " << indexRetrieved << std::endl;
 }
 
 //__________________________________________________________________________

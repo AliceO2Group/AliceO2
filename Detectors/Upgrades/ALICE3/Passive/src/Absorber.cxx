@@ -12,6 +12,7 @@
 #include <DetectorsBase/Detector.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <Alice3DetectorsPassive/Absorber.h>
+#include <Alice3DetectorsPassive/PassiveBaseParam.h>
 #include <TGeoArb8.h> // for TGeoTrap
 #include <TGeoCompositeShape.h>
 #include <TGeoCone.h>
@@ -130,25 +131,52 @@ void Alice3Absorber::ConstructGeometry()
   }
 
   TGeoPcon* absorings = new TGeoPcon(0., 360., 18);
-
-  absorings->DefineSection(0, 500, 236, 274);
-  absorings->DefineSection(1, 400, 236, 274);
-  absorings->DefineSection(2, 400, 232.5, 277.5);
-  absorings->DefineSection(3, 300, 232.5, 277.5);
-  absorings->DefineSection(4, 300, 227.5, 282.5);
-  absorings->DefineSection(5, 200, 227.5, 282.5);
-  absorings->DefineSection(6, 200, 222.5, 287.5);
-  absorings->DefineSection(7, 100, 222.5, 287.5);
-  absorings->DefineSection(8, 100, 220, 290);
-  absorings->DefineSection(9, -100, 220, 290);
-  absorings->DefineSection(10, -100, 222.5, 287.5);
-  absorings->DefineSection(11, -200, 222.5, 287.5);
-  absorings->DefineSection(12, -200, 227.5, 282.5);
-  absorings->DefineSection(13, -300, 227.5, 282.5);
-  absorings->DefineSection(14, -300, 232.5, 277.5);
-  absorings->DefineSection(15, -400, 232.5, 277.5);
-  absorings->DefineSection(16, -400, 236, 274);
-  absorings->DefineSection(17, -500, 236, 274);
+  auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
+  switch (passiveBaseParam.mDetLayout) {
+    case o2::passive::DetLayout::StandardRadius:
+      absorings->DefineSection(0, 500, 236, 274);
+      absorings->DefineSection(1, 400, 236, 274);
+      absorings->DefineSection(2, 400, 232.5, 277.5);
+      absorings->DefineSection(3, 300, 232.5, 277.5);
+      absorings->DefineSection(4, 300, 227.5, 282.5);
+      absorings->DefineSection(5, 200, 227.5, 282.5);
+      absorings->DefineSection(6, 200, 222.5, 287.5);
+      absorings->DefineSection(7, 100, 222.5, 287.5);
+      absorings->DefineSection(8, 100, 220, 290);
+      absorings->DefineSection(9, -100, 220, 290);
+      absorings->DefineSection(10, -100, 222.5, 287.5);
+      absorings->DefineSection(11, -200, 222.5, 287.5);
+      absorings->DefineSection(12, -200, 227.5, 282.5);
+      absorings->DefineSection(13, -300, 227.5, 282.5);
+      absorings->DefineSection(14, -300, 232.5, 277.5);
+      absorings->DefineSection(15, -400, 232.5, 277.5);
+      absorings->DefineSection(16, -400, 236, 274);
+      absorings->DefineSection(17, -500, 236, 274);
+      break;
+    case o2::passive::DetLayout::ReducedRadius:
+      absorings->DefineSection(0, 500, 201, 239);
+      absorings->DefineSection(1, 400, 201, 239);
+      absorings->DefineSection(2, 400, 197.5, 242.5);
+      absorings->DefineSection(3, 300, 197.5, 242.5);
+      absorings->DefineSection(4, 300, 192.5, 247.5);
+      absorings->DefineSection(5, 200, 192.5, 247.5);
+      absorings->DefineSection(6, 200, 187.5, 252.5);
+      absorings->DefineSection(7, 100, 187.5, 252.5);
+      absorings->DefineSection(8, 100, 185, 255);
+      absorings->DefineSection(9, -100, 185, 255);
+      absorings->DefineSection(10, -100, 187.5, 252.5);
+      absorings->DefineSection(11, -200, 187.5, 252.5);
+      absorings->DefineSection(12, -200, 192.5, 247.5);
+      absorings->DefineSection(13, -300, 192.5, 247.5);
+      absorings->DefineSection(14, -300, 197.5, 242.5);
+      absorings->DefineSection(15, -400, 197.5, 242.5);
+      absorings->DefineSection(16, -400, 201, 239);
+      absorings->DefineSection(17, -500, 201, 239);
+      break;
+    default:
+      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
+      break;
+  }
 
   // Insert
   absorings->SetName("absorings");

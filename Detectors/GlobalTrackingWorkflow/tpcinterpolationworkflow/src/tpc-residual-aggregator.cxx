@@ -14,9 +14,16 @@
 #include "TPCInterpolationWorkflow/TPCResidualAggregatorSpec.h"
 #include "TPCInterpolationWorkflow/TPCUnbinnedResidualReaderSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -27,6 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-ctp", VariantType::Bool, false, {"Subscribe to lumi info from CTP"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -78,6 +86,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto maskNone = GID::getSourcesMask(GID::NONE);
     o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, maskClusters, maskNone, maskNone, false);
   }
+
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   return specs;
 }

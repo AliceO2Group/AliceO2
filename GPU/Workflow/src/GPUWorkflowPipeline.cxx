@@ -177,7 +177,7 @@ int32_t GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingIn
     ptrs.tpcZS = &tpcZS;
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
-    auto prepareBuffer = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0}, 0u);
+    auto prepareDummyMessage = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0}, 0u);
 
     size_t ptrsTotal = 0;
     const void* firstPtr = nullptr;

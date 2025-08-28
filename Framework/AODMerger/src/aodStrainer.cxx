@@ -15,6 +15,7 @@
 #include <getopt.h>
 #include <sstream>
 #include <random>
+#include <algorithm>
 
 #include "TSystem.h"
 #include "TFile.h"

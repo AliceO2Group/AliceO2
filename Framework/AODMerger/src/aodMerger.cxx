@@ -13,6 +13,7 @@
 #include <list>
 #include <fstream>
 #include <getopt.h>
+#include <algorithm>
 
 #include "TSystem.h"
 #include "TFile.h"

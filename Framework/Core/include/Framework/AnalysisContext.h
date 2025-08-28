@@ -29,15 +29,23 @@ struct OutputObjectInfo {
   std::vector<std::string> bindings;
 };
 
-//
+// This will keep track of the inputs which have
+// been requested and for which we will need to inject
+// some source device.
 struct AnalysisContext {
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
   std::vector<InputSpec> requestedDYNs;
   std::vector<OutputSpec> providedDYNs;
   std::vector<InputSpec> requestedIDXs;
+  std::vector<OutputSpec> providedTIMs;
+  std::vector<InputSpec> requestedTIMs;
   std::vector<OutputSpec> providedOutputObjHist;
   std::vector<InputSpec> spawnerInputs;
+
+  // These are the timestamped tables which are required to
+  // inject the the CCDB objecs.
+  std::vector<InputSpec> analysisCCDBInputs;
 
   // Needed to created the hist writer
   std::vector<OutputTaskInfo> outTskMap;

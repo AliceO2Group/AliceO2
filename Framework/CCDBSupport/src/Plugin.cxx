@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/Plugins.h"
 #include "Framework/AlgorithmSpec.h"
+#include "AnalysisCCDBHelpers.h"
 #include "CCDBHelpers.h"
 
 struct CCDBFetcherPlugin : o2::framework::AlgorithmPlugin {
@@ -19,6 +20,14 @@ struct CCDBFetcherPlugin : o2::framework::AlgorithmPlugin {
   }
 };
 
+struct AnalysisCCDBFetcherPlugin : o2::framework::AlgorithmPlugin {
+  o2::framework::AlgorithmSpec create(o2::framework::ConfigContext const& ctx) final
+  {
+    return o2::framework::AnalysisCCDBHelpers::fetchFromCCDB(ctx);
+  }
+};
+
 DEFINE_DPL_PLUGINS_BEGIN
 DEFINE_DPL_PLUGIN_INSTANCE(CCDBFetcherPlugin, CustomAlgorithm);
+DEFINE_DPL_PLUGIN_INSTANCE(AnalysisCCDBFetcherPlugin, CustomAlgorithm);
 DEFINE_DPL_PLUGINS_END
