@@ -53,10 +53,10 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
     uint32_t nHits = 0;
     const uint32_t minHits = tracker.Param().rec.tpc.minNClustersTrackSeed == -1 ? GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracklet.Param().QPt() * tracker.Param().qptB5Scaler) : tracker.Param().rec.tpc.minNClustersTrackSeed;
     const uint32_t sharingMinNorm = minHits * tracker.Param().rec.tpc.trackletMinSharedNormFactor;
-    float maxShared = maxSharedFrac * sharingMinNorm;
+    const float maxSharedNorm = maxSharedFrac * sharingMinNorm;
 
     GPUCA_UNROLL(, U(1))
-    for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
+    for (irow = lastRow; irow >= firstRow && irow - firstRow + nHits >= minHits; irow--) {
       calink ih = tracker.TrackletRowHits()[tracklet.FirstHit() + (irow - firstRow)];
       if (ih != CALINK_DEAD_CHANNEL) {
         gap++;
@@ -64,7 +64,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
       if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
         GPUglobalref() const GPUTPCRow& row = tracker.Row(irow);
         const bool own = (tracker.HitWeight(row, ih) <= w);
-        const bool sharedOK = nShared <= (nHits < sharingMinNorm ? maxShared : nHits * maxSharedFrac);
+        const bool sharedOK = nShared <= (nHits < sharingMinNorm ? maxSharedNorm : nHits * maxSharedFrac);
         if (own || sharedOK) { // SG!!!
           gap = 0;
 #pragma GCC diagnostic push
@@ -86,7 +86,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
         }
       }
 
-      if (gap > tracker.Param().rec.tpc.trackFollowingMaxRowGap || irow == lastRow) { // store
+      if (gap > tracker.Param().rec.tpc.trackFollowingMaxRowGap || irow == firstRow) { // store
         if (nHits >= minHits) {
           uint32_t nFirstTrackHit = CAMath::AtomicAdd(tracker.NTrackHits(), (uint32_t)nHits);
           if (nFirstTrackHit + nHits > tracker.NMaxTrackHits()) {
@@ -111,11 +111,11 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
 #pragma GCC diagnostic pop
             if constexpr (GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE > 0) {
               if (inShared) {
-                tracker.TrackHits()[nFirstTrackHit + jh] = s.mHits[jh][iThread];
+                tracker.TrackHits()[nFirstTrackHit + nHits - 1 - jh] = s.mHits[jh][iThread];
               }
             }
             if (!inShared) {
-              tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE];
+              tracker.TrackHits()[nFirstTrackHit + nHits - 1 - jh] = trackHits[jh - GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE];
             }
           }
         }
