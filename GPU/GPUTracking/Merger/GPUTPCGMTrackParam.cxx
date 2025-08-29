@@ -229,19 +229,34 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedDistance;
       } else {
         int8_t rejectChi2 = attempt ? 0 : ((param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) ? (refit ? (GPUTPCGMPropagator::rejectInterFill + ((nWays - iWay) & 1)) : 0) : (allowModification && goodRows > 5));
-        GPUCA_DEBUG_STREAMER_CHECK(GPUTPCGMPropagator::DebugStreamerVals debugVals;);
-        if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) { // uncorrectedY > -1e6f implies allowModification
+
+        float err2Y, err2Z;
+        const float time = merger->GetConstantMem()->ioPtrs.clustersNative ? merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].getTime() : -1.f;
+        const float invSqrtCharge = merger->GetConstantMem()->ioPtrs.clustersNative ? CAMath::InvSqrt(merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
+        const float invCharge = merger->GetConstantMem()->ioPtrs.clustersNative ? (1.f / merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
+        float invAvgCharge = (sumInvSqrtCharge += invSqrtCharge) / ++nAvgCharge;
+        invAvgCharge *= invAvgCharge;
+
+        prop.GetErr2(err2Y, err2Z, param, zz, cluster.row, clusterState, cluster.sector, time, invAvgCharge, invCharge);
+
+        int retValInt = 0;
+        if (rejectChi2 >= GPUTPCGMPropagator::rejectInterFill) {
+          if (rejectChi2 == GPUTPCGMPropagator::rejectInterReject && interpolation.hit[ihit].errorY < (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
+            rejectChi2 = GPUTPCGMPropagator::rejectDirect;
+          } else {
+            retValInt = prop.InterpolateReject(param, yy, zz, clusterState, rejectChi2, &interpolation.hit[ihit], err2Y, err2Z);
+          }
+        }
+
+        if (retValInt) {
+          retValUpd = retValInt;
+        } else if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) { // uncorrectedY > -1e6f implies allowModification
           retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedEdge;
         } else {
-          const float time = merger->GetConstantMem()->ioPtrs.clustersNative ? merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].getTime() : -1.f;
-          const float invSqrtCharge = merger->GetConstantMem()->ioPtrs.clustersNative ? CAMath::InvSqrt(merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
-          const float invCharge = merger->GetConstantMem()->ioPtrs.clustersNative ? (1.f / merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
-          float invAvgCharge = (sumInvSqrtCharge += invSqrtCharge) / ++nAvgCharge;
-          invAvgCharge *= invAvgCharge;
-          retValUpd = prop.Update(yy, zz, cluster.row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, cluster.sector, time, invAvgCharge, invCharge GPUCA_DEBUG_STREAMER_CHECK(, &debugVals));
+          retValUpd = prop.Update(yy, zz, cluster.row, param, clusterState, rejectChi2, refit, err2Y, err2Z);
         }
         GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
-          merger->DebugStreamerUpdate(iTrk, ihit, xx, yy, zz, cluster, merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num], *this, prop, interpolation.hit[ihit], rejectChi2, refit, retValUpd, sumInvSqrtCharge / nAvgCharge * sumInvSqrtCharge / nAvgCharge, yy, zz, clusterState, debugVals.retVal, debugVals.err2Y, debugVals.err2Z);
+          merger->DebugStreamerUpdate(iTrk, ihit, xx, yy, zz, cluster, merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num], *this, prop, interpolation.hit[ihit], rejectChi2, refit, retValUpd, sumInvSqrtCharge / nAvgCharge * sumInvSqrtCharge / nAvgCharge, yy, zz, clusterState, retValInt, err2Y, err2Z);
         });
       }
       // clang-format off

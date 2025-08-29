@@ -608,24 +608,16 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge GPUCA_DEBUG_STREAMER_CHECK(, DebugStreamerVals* debugVals))
+GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge)
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgInvCharge, invCharge);
-  GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->err2Y = err2Y; debugVals->err2Z = err2Z; });
 
-  if (rejectChi2 >= rejectInterFill) {
-    if (rejectChi2 == rejectInterReject && inter->errorY < (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
-      rejectChi2 = rejectDirect;
-    } else {
-      int32_t retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
-      GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->retVal = retVal; });
-      if (retVal) {
-        return retVal;
-      }
-    }
-  }
+  return Update(posY, posZ, iRow, param, clusterState, rejectChi2, refit, err2Y, err2Z);
+}
 
+GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, bool refit, float err2Y, float err2Z)
+{
   if (mT->NDF() == -5) { // first measurement: no need to filter, as the result is known in advance. just set it.
     mT->ResetCovariance();
     float* mC = mT->Cov();

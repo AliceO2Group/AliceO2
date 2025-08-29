@@ -72,11 +72,6 @@ class GPUTPCGMPropagator
     float radLenInv, DLMax, EP2, sigmadE2, k22, k33, k43, k44; // precalculated values for MS and EnergyLoss correction
   };
 
-  struct DebugStreamerVals {
-    int32_t retVal = -100;
-    float err2Y = -1e6f, err2Z = -1e6f;
-  };
-
   GPUd() void SetMaterial(float radLen, float rho);
   GPUd() void SetMaterialTPC() { SetMaterial(28811.7f, 1.025e-3f); }
 
@@ -109,12 +104,13 @@ class GPUTPCGMPropagator
 
   GPUd() int32_t PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
-  GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, int8_t sideC, float time, float avgInvCharge, float invCharge GPUCA_DEBUG_STREAMER_CHECK(, DebugStreamerVals* debugVals = nullptr));
+  GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t rejectChi2, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge);
+  GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t rejectChi2, bool refit, float err2Y, float err2Z);
   GPUd() int32_t Update(float posY, float posZ, int16_t clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* param = nullptr);
   GPUd() int32_t InterpolateReject(const GPUParam& param, float posY, float posZ, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z);
   GPUd() float PredictChi2(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t sideC, float time, float avgCharge, float charge) const;
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;
-  GPUd() int32_t RejectCluster(float chiY, float chiZ, uint8_t clusterState)
+  GPUd() static int32_t RejectCluster(float chiY, float chiZ, uint8_t clusterState)
   {
     if (chiY > 9.f || chiZ > 9.f) { // TODO: Check how a track can have chi2/ncl > 18
       return 2;
