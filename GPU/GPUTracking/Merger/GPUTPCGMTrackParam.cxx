@@ -99,7 +99,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
     prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly > iWay);
     prop.SetMatLUT((param.rec.useMatLUT && iWay == nWays - 1) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
     prop.SetTrack(this, iWay ? prop.GetAlpha() : Alpha);
-    ConstrainSinPhi(prop.GetFitInProjections() ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
+    ConstrainSinPhi(iWay == 0 ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", iTrk, iWay, CAMath::Float2IntRn(prop.GetAlpha() / kSectAngle) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
 
     N = 0;
