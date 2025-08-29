@@ -653,11 +653,18 @@ GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict
   if (rejectChi2 == rejectInterFill) {
     inter->posY = mP[0];
     inter->posZ = mP[1];
-    inter->errorY = mC[0];
-    inter->errorZ = mC[2];
+    if (mT->NDF() <= 0) {
+      inter->errorY = inter->errorZ = 100.f;
+    } else {
+      inter->errorY = mC[0];
+      inter->errorZ = mC[2];
+    }
   } else if (rejectChi2 == rejectInterReject) {
     float chi2Y, chi2Z;
-    if (mFitInProjections || mT->NDF() <= 0) {
+    if (mT->NDF() <= 0) {
+      chi2Y = CAMath::Square((float)inter->posY - posY) / ((float)inter->errorY + err2Y);
+      chi2Z = CAMath::Square((float)inter->posZ - posZ) / ((float)inter->errorZ + err2Z);
+    } else if (mFitInProjections) {
       const float Iz0 = inter->posY - mP[0];
       const float Iz1 = inter->posZ - mP[1];
       const float Iw0 = 1.f / (mC[0] + (float)inter->errorY);
