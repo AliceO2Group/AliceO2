@@ -198,6 +198,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.QA.inputHistogramsOnly) {
     configStandalone.rundEdx = false;
+    configStandalone.noEvents = true;
   }
   if (configStandalone.QA.dumpToROOT) {
     configStandalone.proc.outputSharedClusterMap = true;
