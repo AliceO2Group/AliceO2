@@ -138,7 +138,7 @@ const std::vector expectedTasks{
 defaults:
   log_task_stdout: none
   log_task_stderr: none
-  exit_transition_timeout: 25
+  exit_transition_timeout: 40
   data_processing_timeout: 20
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -236,7 +236,7 @@ command:
 defaults:
   log_task_stdout: none
   log_task_stderr: none
-  exit_transition_timeout: 25
+  exit_transition_timeout: 40
   data_processing_timeout: 20
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -336,7 +336,7 @@ command:
 defaults:
   log_task_stdout: none
   log_task_stderr: none
-  exit_transition_timeout: 25
+  exit_transition_timeout: 40
   data_processing_timeout: 20
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -436,7 +436,7 @@ command:
 defaults:
   log_task_stdout: none
   log_task_stderr: none
-  exit_transition_timeout: 25
+  exit_transition_timeout: 40
   data_processing_timeout: 20
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&

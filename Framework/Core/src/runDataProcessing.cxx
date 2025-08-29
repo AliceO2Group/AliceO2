@@ -1038,7 +1038,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       defaultDataProcessingTimeout = "20";
       defaultInfologgerMode = "infoLoggerD";
     } else if (deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
-      defaultExitTransitionTimeout = "25";
+      defaultExitTransitionTimeout = "40";
       defaultDataProcessingTimeout = "20";
     }
     boost::program_options::options_description optsDesc;
