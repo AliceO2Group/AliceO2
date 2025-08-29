@@ -100,7 +100,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
     prop.SetMatLUT((param.rec.useMatLUT && iWay == nWays - 1) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
     prop.SetTrack(this, iWay ? prop.GetAlpha() : Alpha);
     ConstrainSinPhi(iWay == 0 ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
-    CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", iTrk, iWay, CAMath::Float2IntRn(prop.GetAlpha() / kSectAngle) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
+    CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n", iTrk, iWay, CAMath::Float2IntRn(prop.GetAlpha() / kSectAngle) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
 
     N = 0;
     lastUpdateX = -1;
@@ -190,7 +190,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         lastSector = cluster.sector;
       }
       // clang-format off
-      CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   Err %d", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[0] - yy, mP[1] - zz, sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValProp));
+      CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   PErr %d", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[0] - yy, mP[1] - zz, sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValProp));
       // clang-format on
 
       if (crossCE) {
@@ -265,10 +265,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       }
       // clang-format off
       CADEBUG(if (!CheckCov()) GPUError("INVALID COV AFTER UPDATE!!!"));
-      CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   Err %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd));
+      CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd));
       // clang-format on
 
-      ConstrainSinPhi();
+      ConstrainSinPhi();  // TODO: Limit using ConstrainSinPhi everywhere!
       if (retValUpd == 0) // track is updated
       {
         lastUpdateX = mX;
