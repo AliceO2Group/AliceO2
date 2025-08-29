@@ -1233,6 +1233,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^aod-bytes-read-uncompressed$");
   dumpableMetrics.emplace_back("^aod-bytes-read-compressed$");
   dumpableMetrics.emplace_back("^aod-file-read-info$");
+  dumpableMetrics.emplace_back("^aod-largest-object-written$");
   dumpableMetrics.emplace_back("^table-bytes-.*");
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");
