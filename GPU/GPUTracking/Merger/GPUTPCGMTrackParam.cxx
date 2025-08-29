@@ -95,8 +95,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
 
     ResetCovariance();
     prop.SetSeedingErrors(!(refit && attempt == 0));
-    prop.SetFitInProjections(param.rec.fitInProjections == -1 ? (iWay != 0) : param.rec.fitInProjections);
-    prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly > iWay);
+    prop.SetFitInProjections(param.rec.fitInProjections == -1 ? (iWay == 0) : param.rec.fitInProjections);
+    prop.SetPropagateBzOnly(iWay < param.rec.fitPropagateBzOnly);
     prop.SetMatLUT((param.rec.useMatLUT && iWay == nWays - 1) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
     prop.SetTrack(this, iWay ? prop.GetAlpha() : Alpha);
     ConstrainSinPhi(iWay == 0 ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
