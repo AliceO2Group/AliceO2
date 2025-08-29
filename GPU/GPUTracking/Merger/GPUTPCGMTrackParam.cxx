@@ -229,25 +229,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedDistance;
       } else {
         int8_t rejectChi2 = attempt ? 0 : ((param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) ? (refit ? (GPUTPCGMPropagator::rejectInterFill + ((nWays - iWay) & 1)) : 0) : (allowModification && goodRows > 5));
-#if EXTRACT_RESIDUALS == 1
-        if (iWay == nWays - 1 && interpolation.hit[ihit].errorY > (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
-          const float Iz0 = interpolation.hit[ihit].posY - mP[0];
-          const float Iz1 = interpolation.hit[ihit].posZ - mP[1];
-          float Iw0 = mC[2] + (float)interpolation.hit[ihit].errorZ;
-          float Iw2 = mC[0] + (float)interpolation.hit[ihit].errorY;
-          float Idet1 = 1.f / CAMath::Max(1e-10f, Iw0 * Iw2 - mC[1] * mC[1]);
-          const float Ik00 = (mC[0] * Iw0 + mC[1] * mC[1]) * Idet1;
-          const float Ik01 = (mC[0] * mC[1] + mC[1] * Iw2) * Idet1;
-          const float Ik10 = (mC[1] * Iw0 + mC[2] * mC[1]) * Idet1;
-          const float Ik11 = (mC[1] * mC[1] + mC[2] * Iw2) * Idet1;
-          const float ImP0 = mP[0] + Ik00 * Iz0 + Ik01 * Iz1;
-          const float ImP1 = mP[1] + Ik10 * Iz0 + Ik11 * Iz1;
-          const float ImC0 = mC[0] - Ik00 * mC[0] + Ik01 * mC[1];
-          const float ImC2 = mC[2] - Ik10 * mC[1] + Ik11 * mC[2];
-          auto& tup = GPUROOTDump<TNtuple>::get("clusterres", "row:clX:clY:clZ:angle:trkX:trkY:trkZ:trkSinPhi:trkDzDs:trkQPt:trkSigmaY2:trkSigmaZ2trkSigmaQPt2");
-          tup.Fill((float)cluster.row, xx, yy, zz, clAlpha, mX, ImP0, ImP1, mP[2], mP[3], mP[4], ImC0, ImC2, mC[14]);
-        }
-#endif
         GPUCA_DEBUG_STREAMER_CHECK(GPUTPCGMPropagator::DebugStreamerVals debugVals;);
         if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) { // uncorrectedY > -1e6f implies allowModification
           retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedEdge;
