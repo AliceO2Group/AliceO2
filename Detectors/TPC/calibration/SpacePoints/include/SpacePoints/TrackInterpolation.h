@@ -140,14 +140,19 @@ struct TrackData {
   float chi2TPC{};                           ///< chi2 of TPC track
   float chi2ITS{};                           ///< chi2 of ITS track
   float chi2TRD{};                           ///< chi2 of TRD track
+  float deltaTOF{};                          ///< TOFsignal - T0 - texp(PID), if T0 is available
 
   unsigned short nClsTPC{};                  ///< number of attached TPC clusters
   unsigned short nClsITS{};                  ///< number of attached ITS clusters
   unsigned short nTrkltsTRD{};               ///< number of attached TRD tracklets
-  unsigned short clAvailTOF{};               ///< whether or not track seed has a matched TOF cluster
+  unsigned short clAvailTOF{};               ///< whether or not track seed has a matched TOF cluster, if so, gives the resolution of the T0 in ps
   uint8_t nExtDetResid = 0;                  ///< number of external detectors (to TPC) residuals stored, on top of clIdx.getEntries
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of TPC cluster residuals of this track
-  ClassDefNV(TrackData, 7);
+
+  float getT0Error() const { return float(clAvailTOF); }
+  bool isTOFAvail() const { return clAvailTOF != 0; }
+
+  ClassDefNV(TrackData, 8);
 };
 
 /// \class TrackInterpolation
