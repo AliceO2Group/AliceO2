@@ -154,9 +154,6 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
   SetDefaults(g->solenoidBzNominalGPU, g->constBz);
   if (r) {
     rec = *r;
-    if (rec.fitPropagateBzOnly == -1) {
-      rec.fitPropagateBzOnly = rec.tpc.nWays - 1;
-    }
   }
   UpdateSettings(g, p, w);
 }

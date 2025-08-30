@@ -85,26 +85,28 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
     float sumInvSqrtCharge = 0.f;
     int32_t nAvgCharge = 0;
 
-    if (iWay && ((nWays - iWay) & 1) == 1) {
+    if (iWay && (iWay & 1) == 0) {
       StoreOuter(&track.OuterParam(), prop.GetAlpha());
     }
 
     int32_t resetT0 = initResetT0();
     const bool refit = (nWays == 1 || iWay >= 1);
+    const bool finalOutInFit = iWay + 2 >= nWays;
+    const bool finalFit = iWay == nWays - 1;
     const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
 
     ResetCovariance();
     prop.SetSeedingErrors(!(refit && attempt == 0));
-    prop.SetFitInProjections(param.rec.fitInProjections == -1 ? (iWay == 0) : param.rec.fitInProjections);
-    prop.SetPropagateBzOnly(iWay < param.rec.fitPropagateBzOnly);
-    prop.SetMatLUT((param.rec.useMatLUT && iWay == nWays - 1) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
+    prop.SetFitInProjections(true); // param.rec.fitInProjections == -1 ? (iWay == 0) : param.rec.fitInProjections); // TODO: Reenable once fixed
+    prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly == -1 ? !finalFit : param.rec.fitPropagateBzOnly);
+    prop.SetMatLUT((param.rec.useMatLUT && finalFit) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
     prop.SetTrack(this, iWay ? prop.GetAlpha() : Alpha);
     ConstrainSinPhi(iWay == 0 ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n", iTrk, iWay, CAMath::Float2IntRn(prop.GetAlpha() / kSectAngle) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
 
     N = 0;
     lastUpdateX = -1;
-    const bool inFlyDirection = !((iWay ^ nWays) & 1);
+    const bool inFlyDirection = iWay & 1;
     const int32_t wayDirection = (iWay & 1) ? -1 : 1;
 
     int32_t goodRows = 0;
@@ -116,13 +118,13 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
 
       if ((param.rec.tpc.trackFitRejectMode > 0 && nMissed >= param.rec.tpc.trackFitRejectMode) || nMissed2 >= param.rec.tpc.trackFitMaxRowMissedHard || clusters[ihit].state & GPUTPCGMMergedTrackHit::flagReject) {
         CADEBUG(printf("\tSkipping hit, %d hits rejected, flag %X\n", nMissed, (int32_t)clusters[ihit].state));
-        if (iWay + 2 >= nWays && !(clusters[ihit].state & GPUTPCGMMergedTrackHit::flagReject)) {
+        if (finalOutInFit && !(clusters[ihit].state & GPUTPCGMMergedTrackHit::flagReject)) {
           clusters[ihit].state |= GPUTPCGMMergedTrackHit::flagRejectErr;
         }
         continue;
       }
 
-      const bool allowModification = refit && (iWay == 0 || (((nWays - iWay) & 1) ? (ihit >= CAMath::Min(maxN / 2, 30)) : (ihit <= CAMath::Max(maxN / 2, maxN - 30))));
+      const bool allowChangeClusters = finalOutInFit && (nWays == 1 || ((iWay & 1) ? (ihit <= CAMath::Max(maxN / 2, maxN - 30)) : (ihit >= CAMath::Min(maxN / 2, 30))));
 
       int32_t ihitMergeFirst = ihit;
       uint8_t clusterState = clusters[ihit].state;
@@ -137,7 +139,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       // CADEBUG(if ((uint32_t)merger->GetTrackingChain()->mIOPtrs.nMCLabelsTPC > clusters[ihit].num))
       // CADEBUG({printf(" MC:"); for (int32_t i = 0; i < 3; i++) {int32_t mcId = merger->GetTrackingChain()->mIOPtrs.mcLabelsTPC[clusters[ihit].num].fClusterID[i].fMCID; if (mcId >= 0) printf(" %d", mcId); } } printf("\n"));
       // clang-format on
-      if (MergeDoubleRowClusters(ihit, wayDirection, clusters, merger, prop, xx, yy, zz, maxN, clAlpha, clusterState, allowModification) == -1) {
+      if (MergeDoubleRowClusters(ihit, wayDirection, clusters, merger, prop, xx, yy, zz, maxN, clAlpha, clusterState, allowChangeClusters) == -1) {
         nMissed++;
         nMissed2++;
         continue;
@@ -156,9 +158,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       // clang-format off
       CADEBUG(printf("\tSector %2d %11sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", (int32_t)cluster.sector, "", prop.GetAlpha(), (CAMath::Abs(prop.GetAlpha() - clAlpha) < 0.01 ? "   " : " R!"), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
       // clang-format on
-      if (allowModification && lastRow != 255 && CAMath::Abs(cluster.row - lastRow) > 1) {
+      if (allowChangeClusters && lastRow != 255 && CAMath::Abs(cluster.row - lastRow) > 1) {
         if GPUCA_RTC_CONSTEXPR (GPUCA_GET_CONSTEXPR(param.par, dodEdx)) {
-          bool dodEdx = param.dodEdxEnabled && param.rec.tpc.adddEdxSubThresholdClusters && iWay == nWays - 1 && CAMath::Abs(cluster.row - lastRow) == 2;
+          bool dodEdx = param.dodEdxEnabled && param.rec.tpc.adddEdxSubThresholdClusters && finalFit && CAMath::Abs(cluster.row - lastRow) == 2;
           dodEdx = AttachClustersPropagate(merger, cluster.sector, lastRow, cluster.row, iTrk, track.Leg() == 0, prop, inFlyDirection, GPUCA_MAX_SIN_PHI, dodEdx);
           if (dodEdx) {
             dEdx.fillSubThreshold(lastRow - wayDirection);
@@ -206,7 +208,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       }
 
       float uncorrectedY = -1e6f;
-      if (allowModification) {
+      if (allowChangeClusters) {
         uncorrectedY = AttachClusters(merger, cluster.sector, cluster.row, iTrk, track.Leg() == 0, prop);
       }
 
@@ -228,7 +230,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       if (mNDF > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF && (CAMath::Abs(yy - mP[0]) > threshold || CAMath::Abs(zz - mP[1]) > threshold)) {
         retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedDistance;
       } else {
-        int8_t rejectChi2 = attempt ? 0 : ((param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) ? (refit ? (GPUTPCGMPropagator::rejectInterFill + ((nWays - iWay) & 1)) : 0) : (allowModification && goodRows > 5));
+        int8_t rejectChi2 = attempt                                                                              ? 0                                                                         // In second attempt, we do not reject
+                            : (param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) ? (finalOutInFit ? (GPUTPCGMPropagator::rejectInterFill + !(iWay & 1)) : 0) // reject via interpolation
+                                                                                                                 : (allowChangeClusters && goodRows > 5);                                    // normal rejection during the fit
 
         float err2Y, err2Z;
         const float time = merger->GetConstantMem()->ioPtrs.clustersNative ? merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].getTime() : -1.f;
@@ -250,7 +254,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
 
         if (retValInt) {
           retValUpd = retValInt;
-        } else if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) { // uncorrectedY > -1e6f implies allowModification
+        } else if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) { // uncorrectedY > -1e6f implies allowChangeClusters
           retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedEdge;
         } else {
           retValUpd = prop.Update(yy, zz, cluster.row, param, clusterState, rejectChi2, refit, err2Y, err2Z);
@@ -280,7 +284,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
           prop.SetTrack(this, prop.GetAlpha());
         }
         if GPUCA_RTC_CONSTEXPR (GPUCA_GET_CONSTEXPR(param.par, dodEdx)) {
-          if (param.dodEdxEnabled && iWay == nWays - 1) { // TODO: Costimize flag to remove, and option to remove double-clusters
+          if (param.dodEdxEnabled && finalFit) { // TODO: Costimize flag to remove, and option to remove double-clusters
             bool acc = (clusterState & param.rec.tpc.dEdxClusterRejectionFlagMask) == 0, accAlt = (clusterState & param.rec.tpc.dEdxClusterRejectionFlagMaskAlt) == 0;
             if (acc || accAlt) {
               float qtot = 0, qmax = 0, pad = 0, relTime = 0;
@@ -308,9 +312,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
           }
         }
       } else if (retValUpd >= GPUTPCGMPropagator::updateErrorClusterRejected) { // cluster far away form the track
-        if (allowModification) {
+        if (allowChangeClusters) {
           MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectDistance);
-        } else if (iWay == nWays - 1) {
+        } else if (finalFit) {
           MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectErr);
         }
         nMissed++;
@@ -319,11 +323,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         break; // bad chi2 for the whole track, stop the fit
       }
     }
-    if (nWays - iWay <= 2 && !(merger->Param().rec.tpc.disableRefitAttachment & 4) && lastRow != 255 && lastSector != 255) {
+    if (finalOutInFit && !(merger->Param().rec.tpc.disableRefitAttachment & 4) && lastRow != 255 && lastSector != 255) {
       StoreLoopPropagation(merger, lastSector, lastRow, iTrk, lastRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row, prop.GetAlpha());
       CADEBUG(printf("\t\tSTORING %d lastRow %d row %d out %d\n", iTrk, (int)lastRow, (int)clusters[(iWay & 1) ? (maxN - 1) : 0].row, lastRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row));
     }
-    if (((nWays - iWay) & 1) && (iWay != nWays - 1) && !track.CCE() && !track.Looper()) {
+    if (!(iWay & 1) && !finalFit && !track.CCE() && !track.Looper()) {
       ShiftZ(clusters, merger, maxN);
     }
   }
@@ -339,8 +343,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
   if (param.rec.tpc.minNClustersFinalTrack != -1 && N + NTolerated < param.rec.tpc.minNClustersFinalTrack) {
     return false;
   }
-
-  // TODO: we have looping tracks here with 0 accepted clusters in the primary leg. In that case we should refit the track using only the primary leg.
 
   if (param.par.dodEdx && param.dodEdxEnabled) {
     dEdx.computedEdx(merger->MergedTracksdEdx()[iTrk], param);
