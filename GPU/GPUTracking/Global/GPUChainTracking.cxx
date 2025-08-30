@@ -253,8 +253,8 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("nWay setting musst be odd number!");
     return false;
   }
-  if (param().rec.tpc.mergerInterpolateErrors && param().rec.tpc.nWays == 1) {
-    GPUError("Cannot do error interpolation with NWays = 1!");
+  if (param().rec.tpc.mergerInterpolateErrors && param().rec.tpc.nWays < 3) {
+    GPUError("Cannot do error interpolation with NWays < 3!");
     return false;
   }
   if (param().continuousMaxTimeBin > (int32_t)GPUSettings::TPC_MAX_TF_TIME_BIN) {
