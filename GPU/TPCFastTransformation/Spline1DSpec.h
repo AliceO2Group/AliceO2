@@ -314,7 +314,11 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
     const auto nYdim = nYdimTmp.get();
 
-    auto [dSdSl, dSdDl, dSdSr, dSdDr] = getSderivativesOverParsAtU<T>(knotL, u);
+    auto val = getSderivativesOverParsAtU<T>(knotL, u);
+    const auto& dSdSl = val[0];
+    const auto& dSdDl = val[1];
+    const auto& dSdSr = val[2];
+    const auto& dSdDr = val[3];
     for (int32_t dim = 0; dim < nYdim; ++dim) {
       S[dim] = dSdSr * Sr[dim] + dSdSl * Sl[dim] + dSdDl * Dl[dim] + dSdDr * Dr[dim];
     }

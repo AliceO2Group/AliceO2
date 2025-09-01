@@ -1941,7 +1941,6 @@ GPUd() void GPUTPCGMMerger::MergeLoopersInit(int32_t nBlocks, int32_t nThreads, 
     const auto& p = trk.GetParam();
     const float qptabs = CAMath::Abs(p.GetQPt());
     if (trk.OK() && trk.NClusters() && trk.Leg() == 0 && qptabs * Param().qptB5Scaler > 5.f && qptabs * Param().qptB5Scaler <= lowPtThresh) {
-      const int32_t sector = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].sector;
       const float refz = p.GetZ() + (Param().par.continuousTracking ? GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(p.GetTOffset(), Param().continuousMaxTimeBin) : 0) + (trk.CSide() ? -100 : 100);
       float sinA, cosA;
       CAMath::SinCos(trk.GetAlpha(), sinA, cosA);
