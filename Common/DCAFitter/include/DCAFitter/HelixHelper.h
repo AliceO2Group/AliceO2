@@ -63,9 +63,10 @@ struct CrossInfo {
   {
     const auto& trcA = trax0.rC > trax1.rC ? trax0 : trax1; // designate the largest circle as A
     const auto& trcB = trax0.rC > trax1.rC ? trax1 : trax0;
+    nDCA = 0;
     float xDist = trcB.xC - trcA.xC, yDist = trcB.yC - trcA.yC;
     float dist2 = xDist * xDist + yDist * yDist, dist = o2::gpu::GPUCommonMath::Sqrt(dist2), rsum = trcA.rC + trcB.rC;
-    if (o2::gpu::GPUCommonMath::Sqrt(dist) < 1e-12) {
+    if (dist < 1e-12) {
       return nDCA; // circles are concentric?
     }
     if (dist > rsum) { // circles don't touch, chose a point in between
@@ -75,9 +76,13 @@ struct CrossInfo {
         return nDCA;
       }
       notTouchingXY(dist, xDist, yDist, trcA, trcB.rC, isCollinear);
-    } else if (dist + trcB.rC < trcA.rC) { // the small circle is nestled into large one w/o touching
-      // select the point of closest approach of 2 circles
-      notTouchingXY(dist, xDist, yDist, trcA, -trcB.rC, isCollinear);
+    } else if (auto dfr = dist + trcB.rC - trcA.rC; dfr < 0.) { // the small circle is nestled into large one w/o touching
+      if (dfr > -maxDistXY) {
+        // select the point of closest approach of 2 circles
+        notTouchingXY(dist, xDist, yDist, trcA, -trcB.rC, isCollinear);
+      } else {
+        return nDCA;
+      }
     } else { // 2 intersection points
       if (isCollinear) {
         /// collinear tracks, e.g. electrons from photon conversion
@@ -89,7 +94,7 @@ struct CrossInfo {
         xDCA[0] = r2_r * trcA.xC + r1_r * trcB.xC;
         yDCA[0] = r2_r * trcA.yC + r1_r * trcB.yC;
         nDCA = 1;
-      } else if (o2::gpu::GPUCommonMath::Sqrt(xDist) < o2::gpu::GPUCommonMath::Sqrt(yDist)) {
+      } else if (o2::gpu::GPUCommonMath::Abs(xDist) < o2::gpu::GPUCommonMath::Abs(yDist)) {
         // to simplify calculations, we move to new frame x->x+Xc0, y->y+Yc0, so that
         // the 1st one is centered in origin
         float a = (trcA.rC * trcA.rC - trcB.rC * trcB.rC + dist2) / (2. * yDist), b = -xDist / yDist, ab = a * b, bb = b * b;
@@ -167,7 +172,7 @@ struct CrossInfo {
     ///  yL(t) = yL + t Ky;  Ky = (sinAlp + cosAlp* snp/csp)
     ///  zL(t) = zL + t Kz;  Kz = tgl / csp
     ///  Note that Kx^2 + Ky^2 + Kz^2 = (1+tgl^2) / csp^2
-
+    nDCA = 0;
     float dx = trax1.xC - trax0.xC; // for straight line TrackAuxPar stores lab coordinates at referene point!!!
     float dy = trax1.yC - trax0.yC; //
     float dz = tr1.getZ() - tr0.getZ();
