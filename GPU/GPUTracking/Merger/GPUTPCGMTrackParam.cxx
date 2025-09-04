@@ -47,7 +47,7 @@
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_t iTrk, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int32_t& GPUrestrict() N, int32_t& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, int32_t attempt, float maxSinPhi, GPUTPCGMMergedTrack& GPUrestrict() track)
+GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_t iTrk, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int32_t& GPUrestrict() N, int32_t& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, float maxSinPhi, GPUTPCGMMergedTrack& GPUrestrict() track)
 {
   static constexpr float kDeg2Rad = M_PI / 180.f;
   CADEBUG(static constexpr float kSectAngle = 2 * M_PI / 18.f);
@@ -91,7 +91,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
     const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
 
     ResetCovariance();
-    prop.SetSeedingErrors(!(refit && attempt == 0));
+    prop.SetSeedingErrors(!(refit));
     prop.SetFitInProjections(true); // param.rec.fitInProjections == -1 ? (iWay == 0) : param.rec.fitInProjections); // TODO: Reenable once fixed
     prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly == -1 ? !finalFit : param.rec.fitPropagateBzOnly);
     prop.SetMatLUT((param.rec.useMatLUT && finalFit) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
@@ -104,7 +104,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
     const bool inFlyDirection = iWay & 1;
     const int32_t wayDirection = (iWay & 1) ? -1 : 1;
 
-    int32_t goodRows = 0;
     for (int32_t ihit = ihitStart; ihit >= 0 && ihit < maxN; ihit += wayDirection) {
       const bool crossCE = lastSector != 255 && ((lastSector < 18) ^ (clusters[ihit].sector < 18));
       if (crossCE) {
@@ -178,11 +177,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
           retValProp = prop.PropagateToXAlpha(xx, clAlpha, inFlyDirection);
         }
       }
-      if (lastRow == 255 || CAMath::Abs((int32_t)lastRow - (int32_t)cluster.row) > 5 || lastSector != cluster.sector || (param.rec.tpc.trackFitRejectMode < 0 && -nMissed <= param.rec.tpc.trackFitRejectMode)) {
-        goodRows = 0;
-      } else {
-        goodRows++;
-      }
       if (retValProp == 0) {
         lastRow = cluster.row;
         lastSector = cluster.sector;
@@ -227,17 +221,13 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedDistance;
       } else {
         int8_t rejectChi2 = 0;
-        if (attempt == 0) {
-          if (param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) {
-            if (iWay == nWays - 3) {
-              rejectChi2 = GPUTPCGMPropagator::rejectInterFill;
-            } else if (iWay == nWays - 2) {
-              rejectChi2 = GPUTPCGMPropagator::rejectInterReject;
-            } else if (iWay == nWays - 1) {
-              rejectChi2 = (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && GetNDF() > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF) ? GPUTPCGMPropagator::rejectDirect : 0;
-            }
-          } else {
-            rejectChi2 = allowChangeClusters && goodRows > 5;
+        if (param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) {
+          if (iWay == nWays - 3) {
+            rejectChi2 = GPUTPCGMPropagator::rejectInterFill;
+          } else if (iWay == nWays - 2) {
+            rejectChi2 = GPUTPCGMPropagator::rejectInterReject;
+          } else if (iWay == nWays - 1) {
+            rejectChi2 = (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && GetNDF() > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF) ? GPUTPCGMPropagator::rejectDirect : 0;
           }
         }
 
@@ -904,7 +894,7 @@ GPUd() bool GPUTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
   return ok;
 }
 
-GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int32_t iTrk, GPUTPCGMMerger* GPUrestrict() merger, int32_t attempt) // VS: GPUd changed to GPUdii. No change in output and no performance penalty.
+GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int32_t iTrk, GPUTPCGMMerger* GPUrestrict() merger) // VS: GPUd changed to GPUdii. No change in output and no performance penalty.
 {
   if (!track.OK()) {
     return;
@@ -919,27 +909,10 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
   GPUTPCGMTrackParam t = track.Param();
   float Alpha = track.Alpha();
   CADEBUG(int32_t nTrackHitsOld = nTrackHits; float ptOld = t.QPt());
-  bool ok = t.Fit(merger, iTrk, merger->Clusters() + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, constants::MAX_SIN_PHI, track);
+  bool ok = t.Fit(merger, iTrk, merger->Clusters() + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, constants::MAX_SIN_PHI, track);
   CADEBUG(printf("Finished Fit Track %d\n", iTrk));
   CADEBUG(printf("OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, OK %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, NTolerated, nTrackHits + NTolerated, ptOld, t.QPt(), t.SinPhi(), (int32_t)ok, t.Chi2(), t.Chi2() / CAMath::Max(1, nTrackHits)));
 
-  if (!ok && attempt == 0 && merger->Param().rec.tpc.retryRefit) {
-    for (uint32_t i = 0; i < track.NClusters(); i++) {
-      merger->Clusters()[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::clustererAndSharedFlags;
-    }
-    CADEBUG(printf("Track rejected, marking for retry\n"));
-    if (merger->Param().rec.tpc.retryRefit == 2) {
-      nTrackHits = track.NClusters();
-      NTolerated = 0; // Clusters not fit but tollerated for track length cut
-      t = track.Param();
-      Alpha = track.Alpha();
-      ok = t.Fit(merger, iTrk, merger->Clusters() + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, 1, constants::MAX_SIN_PHI, track);
-    } else {
-      uint32_t nRefit = CAMath::AtomicAdd(&merger->Memory()->nRetryRefit, 1u);
-      merger->RetryRefitIds()[nRefit] = iTrk;
-      return;
-    }
-  }
   if (CAMath::Abs(t.QPt()) < 1.e-4f) {
     t.QPt() = 1.e-4f;
   }
