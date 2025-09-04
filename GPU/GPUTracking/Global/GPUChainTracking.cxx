@@ -257,6 +257,10 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("Cannot do error interpolation with NWays < 3!");
     return false;
   }
+  if (param().rec.tpc.rebuildTrackInFit && !param().rec.tpc.mergerInterpolateErrors) {
+    GPUError("Need error interpolation to rebuild tracks during fit");
+    return false;
+  }
   if (param().continuousMaxTimeBin > (int32_t)GPUSettings::TPC_MAX_TF_TIME_BIN) {
     GPUError("configured max time bin exceeds 256 orbits");
     return false;
