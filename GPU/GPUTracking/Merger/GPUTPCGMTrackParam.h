@@ -141,7 +141,7 @@ class GPUTPCGMTrackParam
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.f) const;
   GPUd() bool CheckCov() const;
 
-  GPUd() bool Fit(GPUTPCGMMerger* merger, int32_t iTrk, GPUTPCGMMergedTrackHit* clusters, int32_t& N, int32_t& NTolerated, float& Alpha, int32_t attempt, float maxSinPhi, GPUTPCGMMergedTrack& track);
+  GPUd() bool Fit(GPUTPCGMMerger* merger, int32_t iTrk, GPUTPCGMMergedTrackHit* clusters, int32_t& N, int32_t& NTolerated, float& Alpha, float maxSinPhi, GPUTPCGMMergedTrack& track);
   GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, uint8_t row, uint8_t clusterState, bool mirrorParameters, int8_t sector);
   GPUd() int32_t MergeDoubleRowClusters(int32_t& ihit, int32_t wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int32_t maxN, float clAlpha, uint8_t& clusterState, bool rejectChi2);
@@ -200,7 +200,7 @@ class GPUTPCGMTrackParam
     }
   }
 
-  GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger* merger, int32_t attempt);
+  GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger* merger);
 
   GPUdi() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
   {

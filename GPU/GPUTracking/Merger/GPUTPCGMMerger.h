@@ -66,7 +66,6 @@ class GPUTPCGMMerger : public GPUProcessor
   static constexpr const int32_t NSECTORS = GPUCA_NSECTORS; //* N sectors
 
   struct memory {
-    GPUAtomic(uint32_t) nRetryRefit;
     GPUAtomic(uint32_t) nLoopData;
     GPUAtomic(uint32_t) nUnpackedTracks;
     GPUAtomic(uint32_t) nMergedTracks;
@@ -119,7 +118,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhdi() uint32_t* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhdi() uint32_t* TrackOrderProcess() const { return mTrackOrderProcess; }
-  GPUhdi() uint32_t* RetryRefitIds() const { return mRetryRefitIds; }
   GPUhdi() uint8_t* ClusterStateExt() const { return mClusterStateExt; }
   GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUhdi() memory* Memory() const { return mMemory; }
@@ -287,7 +285,6 @@ class GPUTPCGMMerger : public GPUProcessor
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRangeMemory = nullptr; // memory for border tracks
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRange[NSECTORS];       // memory for border tracks
   memory* mMemory = nullptr;
-  uint32_t* mRetryRefitIds = nullptr;
   GPUTPCGMLoopData* mLoopData = nullptr;
 };
 } // namespace o2::gpu
