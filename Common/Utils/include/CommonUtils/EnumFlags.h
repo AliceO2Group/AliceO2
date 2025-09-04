@@ -160,8 +160,9 @@ struct FlagsHelper final {
   static constexpr auto Max_v{Values.back()};                                                          // Enum last entry
   static constexpr auto Min_u_v{static_cast<size_t>(Min_v)};                                           // Enum first entry as size_t
   static constexpr auto Max_u_v{static_cast<size_t>(Max_v)};                                           // Enum last entry as size_t
-  static constexpr bool isContinuous() noexcept { return (Max_u_v - Min_u_v + 1) == count(); }         // Is the enum continuous
-  static constexpr auto MaxRep{((1 << (Max_u_v - Min_u_v + 1)) - 1) << Min_u_v};                       // largest representable value
+  static_assert(Max_u_v < std::numeric_limits<U>::digits, "Max Bit is beyond allow range defered from underlying type");
+  static constexpr bool isContinuous() noexcept { return (Max_u_v - Min_u_v + 1) == count(); }                             // Is the enum continuous
+  static constexpr auto MaxRep{((1ULL << (static_cast<unsigned long long>(Max_u_v - Min_u_v) + 1ULL)) - 1ULL) << Min_u_v}; // largest representable value
 
   template <E e>
   static constexpr std::string_view getName()
