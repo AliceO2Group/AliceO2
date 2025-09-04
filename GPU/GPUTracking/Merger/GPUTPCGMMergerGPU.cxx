@@ -19,11 +19,11 @@
 using namespace o2::gpu;
 
 template <>
-GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t mode)
+GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t mode, int32_t rebuilt)
 {
   GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), int32_t, ii, merger.NMergedTracks(), {
     const int32_t i = mode ? merger.TrackOrderProcess()[ii] : ii;
-    GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, &merger);
+    GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, &merger, rebuilt);
   });
 }
 
