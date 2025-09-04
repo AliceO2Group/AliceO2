@@ -1797,14 +1797,7 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
         CAMath::AtomicAdd(&mSharedCount[mClusters[trk.FirstClusterRef() + j].num], 1u);
       }
       if (!trk.CCE() && !trk.MergedLooper()) {
-        GPUTPCGMMergedTrack* updTrk = &trk;
-        while (updTrk->PrevSegment() >= 0) {
-          auto next = &mMergedTracks[updTrk->PrevSegment()];
-          if (next == &trk) {
-            break;
-          }
-          updTrk = next;
-        }
+        GPUTPCGMMergedTrack* updTrk = trk.GetFirstSegment(mMergedTracks);
         const auto &cl0 = mClusters[trk.FirstClusterRef()], &cln = mClusters[updTrk->FirstClusterRef() + updTrk->NClusters() - 1];
         const auto& GPUrestrict() cls = GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
         float z0 = cls[cl0.num].getTime(), zn = cls[cln.num].getTime();
@@ -1973,14 +1966,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int32_t nBlocks, int32_t nThreads, 
       const GPUTPCGMMergedTrack* trkI = &mMergedTracks[candidates[i].id];
       float refZI = candidates[i].refz;
       {
-        const auto* tmp = trkI;
-        while (tmp->PrevSegment() >= 0) {
-          const auto* next = &mMergedTracks[tmp->PrevSegment()];
-          if (next == trkI) {
-            break;
-          }
-          tmp = next;
-        }
+        const auto* tmp = trkI->GetFirstSegment(mMergedTracks);
         if (tmp != trkI && tmp->CSide() == trkI->CSide() && CAMath::Abs(tmp->GetParam().GetZ()) > CAMath::Abs(trkI->GetParam().GetZ())) {
           float tmpRefZ = refZI + tmp->GetParam().GetZ() - trkI->GetParam().GetZ();
           if (CAMath::Abs(tmpRefZ) < CAMath::Abs(candidates[j].refz) && CAMath::Abs(tmpRefZ) > CAMath::Abs(refZI)) {

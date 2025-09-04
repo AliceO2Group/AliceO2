@@ -49,6 +49,24 @@ class GPUTPCGMMergedTrack
   GPUd() bool MergedLooperConnected() const { return mFlags & 0x20; }
   GPUd() bool MergedLooper() const { return mFlags & 0x30; }
   GPUd() int32_t PrevSegment() const { return mPrevSegment; }
+  template <class T>
+  GPUd() static T* GetFirstSegment_helper(T* me, T* base)
+  {
+    if (me->mPrevSegment < 0) {
+      return me;
+    }
+    T* cur = &base[me->mPrevSegment];
+    while (cur->mPrevSegment >= 0) {
+      T* next = &base[cur->mPrevSegment];
+      if (next == me) {
+        return cur;
+      }
+      cur = next;
+    }
+    return cur;
+  }
+  GPUd() GPUTPCGMMergedTrack* GetFirstSegment(GPUTPCGMMergedTrack* base) { return GetFirstSegment_helper<GPUTPCGMMergedTrack>(this, base); }
+  GPUd() const GPUTPCGMMergedTrack* GetFirstSegment(const GPUTPCGMMergedTrack* base) const { return GetFirstSegment_helper<const GPUTPCGMMergedTrack>(this, base); }
   GPUd() uint8_t Leg() const { return mLeg; }
   GPUd() uint8_t Flags() const { return mFlags; }
 
