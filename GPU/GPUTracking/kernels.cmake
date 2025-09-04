@@ -51,7 +51,7 @@ o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, mergedTracks2"           "= TPC
 o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, borderTracks"            "= TPCMERGER"                                           NO int8_t parameter)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fill"                        "= TPCOCCUPANCY"                                        LB GPUTPCClusterOccupancyMapBin* map)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fold"                        "= TPCOCCUPANCY"                                        LB GPUTPCClusterOccupancyMapBin* map uint32_t* output)
-o2_gpu_add_kernel("GPUTPCGMMergerTrackFit"                                "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB int32_t mode)
+o2_gpu_add_kernel("GPUTPCGMMergerTrackFit"                                "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB int32_t mode int32_t rebuilt)
 o2_gpu_add_kernel("GPUTPCGMMergerFollowLoopers"                           "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT"         LB)
 o2_gpu_add_kernel("GPUTPCGMMergerUnpackResetIds"                          "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector)
 o2_gpu_add_kernel("GPUTPCGMMergerSectorRefit"                             "GPUTPCGMMergerGPU TPCMERGER MATLUT"                    LB int32_t iSector)
