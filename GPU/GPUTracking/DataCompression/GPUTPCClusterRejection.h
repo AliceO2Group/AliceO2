@@ -23,7 +23,7 @@ struct GPUTPCClusterRejection {
   template <bool C, class T = void, class S = void>
   static constexpr inline bool GetProtectionStatus(int32_t attach, bool& physics, bool& protect, T* counts = nullptr, S* mev200 = nullptr)
   {
-    (void)counts; // Avoid incorrect -Wunused-but-set-parameter warning
+    (void)counts; // FIXME: Avoid incorrect -Wunused-but-set-parameter warning
     (void)mev200;
     if (attach == 0) {
       return false;

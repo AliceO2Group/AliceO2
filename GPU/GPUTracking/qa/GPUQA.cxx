@@ -2967,11 +2967,11 @@ int32_t GPUQA::DoClusterCounts(uint64_t* attachClusterCounts, int32_t mode)
 
   PrintClusterCount(mode, num, "Merged Loopers (Track Merging)", mClusterCounts.nMergedLooperConnected, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooperUnconnected, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Looping Legs (other)", mClusterCounts.nLoopers, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "High Inclination Angle", mClusterCounts.nHighIncl, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Rejected", mClusterCounts.nRejected, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Tube (> 200 MeV)", mClusterCounts.nTube, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Tube (< 200 MeV)", mClusterCounts.nTube200, mClusterCounts.nTotal);
-  PrintClusterCount(mode, num, "Looping Legs", mClusterCounts.nLoopers, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Low Pt < 50 MeV", mClusterCounts.nLowPt, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Low Pt < 200 MeV", mClusterCounts.n200MeV, mClusterCounts.nTotal);
 
