@@ -21,10 +21,9 @@ using namespace o2::gpu;
 template <>
 GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t mode)
 {
-  const int32_t iEnd = mode == -1 ? merger.Memory()->nRetryRefit : merger.NMergedTracks();
-  GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), int32_t, ii, iEnd, {
-    const int32_t i = mode == -1 ? merger.RetryRefitIds()[ii] : mode ? merger.TrackOrderProcess()[ii] : ii;
-    GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, &merger, mode == -1);
+  GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), int32_t, ii, merger.NMergedTracks(), {
+    const int32_t i = mode ? merger.TrackOrderProcess()[ii] : ii;
+    GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, &merger);
   });
 }
 
