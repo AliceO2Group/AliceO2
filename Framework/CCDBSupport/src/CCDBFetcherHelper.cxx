@@ -51,10 +51,20 @@ void CCDBFetcherHelper::initialiseHelper(CCDBFetcherHelper& helper, ConfigParamR
   auto defHost = options.get<std::string>("condition-backend");
   auto checkRate = options.get<int>("condition-tf-per-query");
   auto checkMult = options.get<int>("condition-tf-per-query-multiplier");
+  helper.useTFSlice = options.get<int>("condition-use-slice-for-prescaling");
   helper.timeToleranceMS = options.get<int64_t>("condition-time-tolerance");
   helper.queryPeriodGlo = checkRate > 0 ? checkRate : std::numeric_limits<int>::max();
-  helper.queryPeriodFactor = checkMult > 0 ? checkMult : 1;
-  LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}", defHost, helper.queryPeriodGlo, helper.queryPeriodFactor == 1 ? std::string{} : fmt::format(", (query for high-rate objects downscaled by {})", helper.queryPeriodFactor));
+  helper.queryPeriodFactor = checkMult == 0 ? 1 : checkMult;
+  std::string extraCond{};
+  if (helper.useTFSlice) {
+    extraCond = ". Use TFSlice";
+    if (helper.useTFSlice > 0) {
+      extraCond += fmt::format(" + max TFcounter jump <= {}", helper.useTFSlice);
+    }
+  }
+  LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}{}", defHost, helper.queryPeriodGlo,
+       helper.queryPeriodFactor == 1 ? std::string{} : (helper.queryPeriodFactor > 0 ? fmt::format(", (query for high-rate objects downscaled by {})", helper.queryPeriodFactor) : fmt::format(", (query downscaled as TFcounter%{})", -helper.queryPeriodFactor)),
+       extraCond);
   LOGP(info, "Hook to enable signposts for CCDB messages at {}", (void*)&private_o2_log_ccdb->stacktrace);
   auto remapString = options.get<std::string>("condition-remap");
   ParserResult result = parseRemappings(remapString.c_str());
@@ -205,12 +215,21 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
       // If timestamp is before the time the element was cached or after the claimed validity, we need to check validity, again
       // when online.
       bool cacheExpired = (validUntil <= timestampToUse) || (op.timestamp < cachePopulatedAt);
-      checkValidity = (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) && (isOnline || cacheExpired);
+      if (isOnline || cacheExpired) {
+        if (!helper->useTFSlice) {
+          checkValidity = chRate > 0 ? (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) : (timingInfo.tfCounter % -chRate) == 0;
+        } else {
+          checkValidity = chRate > 0 ? (std::abs(int(timingInfo.timeslice - url2uuid->second.lastCheckedSlice)) >= chRate) : (timingInfo.timeslice % -chRate) == 0;
+          if (!checkValidity && helper->useTFSlice > std::abs(chRate)) { // make sure the interval is tolerated unless the check rate itself is too large
+            checkValidity = std::abs(int(timingInfo.tfCounter) - url2uuid->second.lastCheckedTF) > helper->useTFSlice;
+          }
+        }
+      }
     } else {
       checkValidity = true; // never skip check if the cache is empty
     }
 
-    O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "checkValidity is %{public}s for tfID %d of %{public}s", checkValidity ? "true" : "false", timingInfo.tfCounter, path.data());
+    O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "checkValidity is %{public}s for tf%{public}s %d of %{public}s", checkValidity ? "true" : "false", helper->useTFSlice ? "ID" : "Slice", helper->useTFSlice ? timingInfo.timeslice : timingInfo.tfCounter, path.data());
 
     const auto& api = helper->getAPI(path);
     if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
@@ -226,6 +245,7 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
         LOGP(detail, "******** Default entry used for {} ********", path);
       }
       helper->mapURL2UUID[path].lastCheckedTF = timingInfo.tfCounter;
+      helper->mapURL2UUID[path].lastCheckedSlice = timingInfo.timeslice;
       if (etag.empty()) {
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
         helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;

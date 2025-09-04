@@ -39,6 +39,7 @@ struct CCDBFetcherHelper {
     size_t minSize = -1ULL;
     size_t maxSize = 0;
     int lastCheckedTF = 0;
+    int lastCheckedSlice = 0;
   };
 
   struct RemapMatcher {
@@ -60,6 +61,7 @@ struct CCDBFetcherHelper {
   int queryPeriodGlo = 1;
   int queryPeriodFactor = 1;
   int64_t timeToleranceMS = 5000;
+  int useTFSlice = 0; // if non-zero, use TFslice instead of TFcounter for the validity check. If > requested checking rate, add additional check on |lastTFchecked - TCcounter|<=useTFSlice
 
   o2::ccdb::CcdbApi& getAPI(const std::string& path)
   {
@@ -165,10 +167,20 @@ void initialiseHelper(CCDBFetcherHelper& helper, ConfigParamRegistry const& opti
   auto defHost = options.get<std::string>("condition-backend");
   auto checkRate = options.get<int>("condition-tf-per-query");
   auto checkMult = options.get<int>("condition-tf-per-query-multiplier");
+  helper.useTFSlice = options.get<int>("condition-use-slice-for-prescaling");
   helper.timeToleranceMS = options.get<int64_t>("condition-time-tolerance");
   helper.queryPeriodGlo = checkRate > 0 ? checkRate : std::numeric_limits<int>::max();
-  helper.queryPeriodFactor = checkMult > 0 ? checkMult : 1;
-  LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}", defHost, helper.queryPeriodGlo, helper.queryPeriodFactor == 1 ? std::string{} : fmt::format(", (query for high-rate objects downscaled by {})", helper.queryPeriodFactor));
+  helper.queryPeriodFactor = checkMult == 0 ? 1 : checkMult;
+  std::string extraCond{};
+  if (helper.useTFSlice) {
+    extraCond = ". Use TFSlice";
+    if (helper.useTFSlice > 0) {
+      extraCond += fmt::format(" + max TFcounter jump <= {}", helper.useTFSlice);
+    }
+  }
+  LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}{}", defHost, helper.queryPeriodGlo,
+       helper.queryPeriodFactor == 1 ? std::string{} : (helper.queryPeriodFactor > 0 ? fmt::format(", (query for high-rate objects downscaled by {})", helper.queryPeriodFactor) : fmt::format(", (query downscaled as TFcounter%{})", -helper.queryPeriodFactor)),
+       extraCond);
   LOGP(info, "Hook to enable signposts for CCDB messages at {}", (void*)&private_o2_log_ccdb->stacktrace);
   auto remapString = options.get<std::string>("condition-remap");
   CCDBHelpers::ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
@@ -276,7 +288,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Adding metadata %{public}s: %{public}s to the request", key.data(), value.data());
         metadata[key] = value;
       } else if (meta.name == "ccdb-query-rate") {
-        chRate = meta.defaultValue.get<int>() * helper->queryPeriodFactor;
+        chRate = std::max(1, meta.defaultValue.get<int>()) * helper->queryPeriodFactor;
       }
     }
     const auto url2uuid = helper->mapURL2UUID.find(path);
@@ -289,12 +301,21 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       // If timestamp is before the time the element was cached or after the claimed validity, we need to check validity, again
       // when online.
       bool cacheExpired = (validUntil <= timestampToUse) || (timestamp < cachePopulatedAt);
-      checkValidity = (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) && (isOnline || cacheExpired);
+      if (isOnline || cacheExpired) {
+        if (!helper->useTFSlice) {
+          checkValidity = chRate > 0 ? (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) : (timingInfo.tfCounter % -chRate) == 0;
+        } else {
+          checkValidity = chRate > 0 ? (std::abs(int(timingInfo.timeslice - url2uuid->second.lastCheckedSlice)) >= chRate) : (timingInfo.timeslice % -chRate) == 0;
+          if (!checkValidity && helper->useTFSlice > std::abs(chRate)) { // make sure the interval is tolerated unless the check rate itself is too large
+            checkValidity = std::abs(int(timingInfo.tfCounter) - url2uuid->second.lastCheckedTF) > helper->useTFSlice;
+          }
+        }
+      }
     } else {
       checkValidity = true; // never skip check if the cache is empty
     }
 
-    O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "checkValidity is %{public}s for tfID %d of %{public}s", checkValidity ? "true" : "false", timingInfo.tfCounter, path.data());
+    O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "checkValidity is %{public}s for tf%{public}s %d of %{public}s", checkValidity ? "true" : "false", helper->useTFSlice ? "ID" : "Slice", helper->useTFSlice ? timingInfo.timeslice : timingInfo.tfCounter, path.data());
 
     const auto& api = helper->getAPI(path);
     if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
@@ -310,6 +331,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         LOGP(detail, "******** Default entry used for {} ********", path);
       }
       helper->mapURL2UUID[path].lastCheckedTF = timingInfo.tfCounter;
+      helper->mapURL2UUID[path].lastCheckedSlice = timingInfo.timeslice;
       if (etag.empty()) {
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
         helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;
@@ -382,21 +404,22 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
-          bool checkValidity = std::abs(int(timingInfo.tfCounter - helper->lastCheckedTFCounterOrbReset)) >= helper->queryPeriodGlo;
+          int32_t counter = helper->useTFSlice ? timingInfo.timeslice : timingInfo.tfCounter;
+          bool checkValidity = std::abs(int(counter - helper->lastCheckedTFCounterOrbReset)) >= helper->queryPeriodGlo;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
             etag = url2uuid->second.etag;
           } else {
             checkValidity = true; // never skip check if the cache is empty
           }
-          O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "checkValidity is %{public}s for tfID %d of %{public}s",
-                                 checkValidity ? "true" : "false", timingInfo.tfCounter, path.data());
+          O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "checkValidity is %{public}s for tf%{public}s %d of %{public}s",
+                                 checkValidity ? "true" : "false", helper->useTFSlice ? "ID" : "Slice", counter, path.data());
           Output output{"CTP", "OrbitReset", 0};
           Long64_t newOrbitResetTime = orbitResetTime;
           auto&& v = allocator.makeVector<char>(output);
           const auto& api = helper->getAPI(path);
           if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
-            helper->lastCheckedTFCounterOrbReset = timingInfo.tfCounter;
+            helper->lastCheckedTFCounterOrbReset = counter;
             api.loadFileToMemory(v, path, metadata, timingInfo.creation, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
             if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
               LOGP(fatal, "Unable to find CCDB object {}/{}", path, timingInfo.creation);
