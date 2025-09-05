@@ -360,6 +360,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
       return;
     }
 
+    // For flag influence on cluster error setting: O2/GPU/GPUTracking/Base/GPUParam.inc -> UpdateClusterError2ByState
     bool notSinglePad = false, notSingleTime = false;
     for (uint16_t i = 0; i < 8; i++) {
       Delta2 d = cfconsts::InnerNeighbors[i];
