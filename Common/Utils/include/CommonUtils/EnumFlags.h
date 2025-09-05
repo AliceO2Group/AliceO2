@@ -57,6 +57,7 @@ concept EnumFlagHelper = requires {
 template <EnumFlagHelper E>
 struct FlagsHelper final {
   using U = std::underlying_type_t<E>;
+  using UMax = uint64_t; // max represetable type
 
   static constexpr bool isScoped() noexcept
   {
@@ -144,8 +145,8 @@ struct FlagsHelper final {
   {
     constexpr std::array<bool, sizeof...(I)> valid{isValid<static_cast<E>(MinScan + I)>()...};
     constexpr auto count{std::count_if(valid.cbegin(), valid.cend(), [](bool v) noexcept { return v; })};
-    static_assert(count > 0, "Requiring non-empty enum!");
-    static_assert(count <= MaxUnderScan, "Underlying type of enum has less digits than given expected!");
+    static_assert(count > 0, "EnumFlag requires at least one enum value. Check that your enum has consecutive values starting from 0.");
+    static_assert(count <= MaxUnderScan, "Too many enum values for underlying type. Consider using a larger underlying type or fewer enum values.");
     std::array<E, count> values{};
     for (size_t idx{}, n{}; n < count; ++idx) {
       if (valid[idx]) {
@@ -161,8 +162,16 @@ struct FlagsHelper final {
   static constexpr auto Min_u_v{static_cast<size_t>(Min_v)};                                           // Enum first entry as size_t
   static constexpr auto Max_u_v{static_cast<size_t>(Max_v)};                                           // Enum last entry as size_t
   static_assert(Max_u_v < std::numeric_limits<U>::digits, "Max Bit is beyond allow range defered from underlying type");
-  static constexpr bool isContinuous() noexcept { return (Max_u_v - Min_u_v + 1) == count(); }                             // Is the enum continuous
-  static constexpr auto MaxRep{((1ULL << (static_cast<unsigned long long>(Max_u_v - Min_u_v) + 1ULL)) - 1ULL) << Min_u_v}; // largest representable value
+  static constexpr bool isContinuous() noexcept { return (Max_u_v - Min_u_v + 1) == count(); } // Is the enum continuous
+  static constexpr UMax makeMaxRep(size_t min, size_t max)
+  {
+    const size_t width = max - min + 1;
+    if (width >= std::numeric_limits<UMax>::digits) {
+      return std::numeric_limits<UMax>::max();
+    }
+    return ((UMax(1) << width) - 1) << min;
+  }
+  static constexpr auto MaxRep{makeMaxRep(Min_u_v, Max_u_v)}; // largest representable value
 
   template <E e>
   static constexpr std::string_view getName()
@@ -173,7 +182,7 @@ struct FlagsHelper final {
     }
     if constexpr (tpeek_v<e>[tp + getSpec<SVal::Start, SType::Enum_t>().size()] == getSpec<SVal::AnonStart, SType::Enum_t>()) {
 #if defined __clang__
-      if constexpr (tpeek_v<e>[tp + getSpec<SVal::Start, SType::enum_t>().size() + 1] == getSpec<SVal::AnonStart, SType::Enum_t>()) {
+      if constexpr (tpeek_v<e>[tp + getSpec<SVal::Start, SType::Enum_t>().size() + 1] == getSpec<SVal::AnonStart, SType::Enum_t>()) {
         return {};
       }
 #endif
@@ -215,7 +224,7 @@ struct FlagsHelper final {
   template <E e>
   static constexpr auto getNameValue{getName<e>()};
 
-  template <bool with_scope, std::size_t... I>
+  template <bool with_scope, size_t... I>
   static constexpr auto getNames(std::index_sequence<I...> /*unused*/)
   {
     if constexpr (with_scope) {
@@ -248,7 +257,7 @@ struct FlagsHelper final {
 
   static constexpr std::optional<E> fromString(std::string_view str) noexcept
   {
-    for (std::size_t i{0}; i < count(); ++i) {
+    for (size_t i{0}; i < count(); ++i) {
       if (Names[i] == str || NamesScoped[i] == str) {
         return Values[i];
       }
@@ -325,7 +334,7 @@ concept EnumFlag = requires {
 /**
  * \brief Classs to aggregate and manage enum-based on-off flags.
  *
- * This class manages flags as bits in the underlying type of an enum, allowing
+ * This class manages flags as bits in the underlying type of an enum (upto 64 bits), allowing
  * manipulation via enum member names. It supports operations akin to std::bitset
  * but is fully constexpr and is ideal for aggregating multiple on-off booleans,
  * e.g., enabling/disabling algorithm features.
@@ -371,12 +380,17 @@ class EnumFlags
   constexpr EnumFlags(const EnumFlags&) = default;
   // Move constructor.
   constexpr EnumFlags(EnumFlags&&) = default;
-  // Constructor to initialize with the underlyiny type.
+  // Constructor to initialize with the underlying type.
   constexpr explicit EnumFlags(U u) : mBits(u) {}
   // Initialize with a list of flags.
   constexpr EnumFlags(std::initializer_list<E> flags) noexcept
   {
     std::for_each(flags.begin(), flags.end(), [this](const E f) noexcept { mBits |= to_bit(f); });
+  }
+  // Init from a string.
+  EnumFlags(const std::string& str)
+  {
+    set(str);
   }
   // Destructor.
   constexpr ~EnumFlags() = default;
@@ -415,7 +429,7 @@ class EnumFlags
     }
   }
   // Returns the raw bitset value.
-  constexpr auto value() const noexcept
+  [[nodiscard]] constexpr auto value() const noexcept
   {
     return mBits;
   }
@@ -442,6 +456,13 @@ class EnumFlags
     return (mBits & to_bit(t)) != None;
   }
 
+  // Tests if all specified flags are set.
+  template <typename... Ts>
+  [[nodiscard]] constexpr bool test(Ts... flags) const noexcept
+  {
+    return ((test(flags) && ...));
+  }
+
   // Sets a specific flag.
   template <typename T>
     requires std::is_same_v<T, E>
@@ -462,6 +483,12 @@ class EnumFlags
   [[nodiscard]] constexpr bool any() const noexcept
   {
     return mBits != None;
+  }
+
+  // Checks if all flags are set.
+  [[nodiscard]] constexpr bool all() const noexcept
+  {
+    return mBits == All;
   }
 
   // Returns the bitset as a binary string.
@@ -505,7 +532,7 @@ class EnumFlags
   }
 
   // Checks if any flag is set (Boolean context).
-  constexpr explicit operator bool() const noexcept
+  [[nodiscard]] constexpr explicit operator bool() const noexcept
   {
     return any();
   }
@@ -513,19 +540,19 @@ class EnumFlags
   // Check if given flag is set.
   template <typename T>
     requires std::is_same_v<T, E>
-  constexpr bool operator[](const T t) noexcept
+  [[nodiscard]] constexpr bool operator[](const T t) const noexcept
   {
     return test(t);
   }
 
   // Checks if two flag sets are equal.
-  constexpr bool operator==(const EnumFlags& o) const noexcept
+  [[nodiscard]] constexpr bool operator==(const EnumFlags& o) const noexcept
   {
     return mBits == o.mBits;
   }
 
   // Checks if two flag sets are not equal.
-  constexpr bool operator!=(const EnumFlags& o) const noexcept
+  [[nodiscard]] constexpr bool operator!=(const EnumFlags& o) const noexcept
   {
     return mBits != o.mBits;
   }
@@ -584,7 +611,13 @@ class EnumFlags
   // Performs a bitwise XOR with another flag set.
   constexpr EnumFlags operator^(const EnumFlags& o) const noexcept
   {
-    return Flags(mBits ^ o.mBits);
+    return EnumFlags(mBits ^ o.mBits);
+  }
+
+  // Performs a bitwise and with another flag set.
+  constexpr EnumFlags operator&(const EnumFlags& o) const noexcept
+  {
+    return EnumFlags(mBits & o.mBits);
   }
 
   // Performs a bitwise XOR assignment.
@@ -596,14 +629,14 @@ class EnumFlags
 
   // Checks if all specified flags are set.
   template <typename... Ts>
-  constexpr bool all_of(Ts... flags) const noexcept
+  [[nodiscard]] constexpr bool all_of(Ts... flags) const noexcept
   {
-    return ((test(flags) && ...));
+    return test(flags...);
   }
 
   // Checks if none of the specified flags are set.
   template <typename... Ts>
-  constexpr bool none_of(Ts... flags) const noexcept
+  [[nodiscard]] constexpr bool none_of(Ts... flags) const noexcept
   {
     return (!(test(flags) || ...));
   }
@@ -617,7 +650,7 @@ class EnumFlags
   // Deserializes a string into the flag set.
   void deserialize(const std::string& data)
   {
-    uint64_t v = std::stoul(data);
+    typename H::UMax v = std::stoul(data);
     if (v > H::MaxRep) {
       throw std::out_of_range("Values exceeds enum range.");
     }
@@ -627,35 +660,29 @@ class EnumFlags
   // Counts the number of set bits (active flags).
   [[nodiscard]] constexpr size_t count() const noexcept
   {
-    size_t c{0};
-    for (size_t i{H::Min_u_v}; i < H::Max_u_v; ++i) {
-      if ((mBits & (U(1) << i)) != U(0)) {
-        ++c;
-      }
-    }
-    return c;
+    return std::popcount(mBits);
   }
 
   // Returns the union of two flag sets.
-  constexpr EnumFlags union_with(const EnumFlags& o) const noexcept
+  [[nodiscard]] constexpr EnumFlags union_with(const EnumFlags& o) const noexcept
   {
     return EnumFlags(mBits | o.mBits);
   }
 
   // Returns the intersection of two flag sets.
-  constexpr EnumFlags intersection_with(const EnumFlags& o) const noexcept
+  [[nodiscard]] constexpr EnumFlags intersection_with(const EnumFlags& o) const noexcept
   {
     return EnumFlags(mBits & o.mBits);
   }
 
   // Checks if all flags in another Flags object are present in the current object.
-  constexpr bool contains(const EnumFlags& other) const noexcept
+  [[nodiscard]] constexpr bool contains(const EnumFlags& other) const noexcept
   {
     return (mBits & other.mBits) == other.mBits;
   }
 
  private:
-  // Set implemnetation, bits was zeroed before.
+  // Set implementation, bits was zeroed before.
   void setImpl(const std::string& s, int base = 2)
   {
     if (std::all_of(s.begin(), s.end(), [](unsigned char c) { return std::isdigit(c); })) {
@@ -664,12 +691,12 @@ class EnumFlags
           throw std::invalid_argument("Invalid binary string.");
         }
       }
-      uint64_t v = std::stoul(s, nullptr, base);
+      typename H::UMax v = std::stoul(s, nullptr, base);
       if (v > H::MaxRep) {
         throw std::out_of_range("Values exceeds enum range.");
       }
       mBits = static_cast<U>(v);
-    } else if (std::all_of(s.begin(), s.end(), [](unsigned char c) { return std::isalnum(c) != 0 || c == '|' || c == ' ' || c == ':' || c == ','; })) {
+    } else if (std::all_of(s.begin(), s.end(), [](unsigned char c) { return std::isalnum(c) != 0 || c == '|' || c == ' ' || c == ':' || c == ',' || c == ';'; })) {
       std::string cs{s};
       std::transform(cs.begin(), cs.end(), cs.begin(), [](unsigned char c) { return std::tolower(c); });
       if (cs == H::All) {
@@ -677,7 +704,12 @@ class EnumFlags
       } else if (cs == H::None) {
         mBits = None;
       } else {
-        char token = (s.find(',') != std::string::npos) ? ',' : '|';
+        // accept as delimiter ' ', '|', ';', ','
+        char token = ' ';
+        std::string::size_type pos = s.find_first_of(",|;");
+        if (pos != std::string::npos) {
+          token = s[pos];
+        }
         for (const auto& tok : Str::tokenize(s, token)) {
           if (auto e = H::fromString(tok)) {
             mBits |= to_bit(*e);
