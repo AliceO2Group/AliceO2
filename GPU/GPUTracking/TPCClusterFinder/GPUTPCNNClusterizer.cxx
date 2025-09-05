@@ -16,11 +16,7 @@
 #include "ML/3rdparty/GPUORTFloat16.h"
 #include "GPUTPCNNClusterizer.h"
 #include "GPUSettings.h"
-#include "GPULogging.h"
-#include <cstdint>   // uintptr_t
-#include <iomanip>   // setprecision
-#include <ostream>
-#include <sstream>
+#include "GPUCommonLogger.h"
 
 using namespace o2::gpu;
 

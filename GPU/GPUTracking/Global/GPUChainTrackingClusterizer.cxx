@@ -43,7 +43,6 @@
 #include "DataFormatsTPC/Digit.h"
 #include "DataFormatsTPC/Constants.h"
 #include "TPCBase/RDHUtils.h"
-#include "GPULogging.h"
 
 #ifdef GPUCA_HAS_ONNX
 #include "GPUTPCNNClusterizerKernels.h"
