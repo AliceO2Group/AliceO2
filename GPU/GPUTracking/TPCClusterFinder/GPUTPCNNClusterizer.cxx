@@ -69,10 +69,10 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
   if (mNnClusterizerVerbosity > 2) {
     if (mNnClusterizerVerbosity > 3) {
       auto fmt = [](size_t bytes) {
-      std::ostringstream os;
-      double mb = bytes / (1024.0 * 1024.0);
-      os << bytes << " bytes (" << std::fixed << std::setprecision(3) << mb << " MB)";
-      return os.str();
+        std::ostringstream os;
+        double mb = bytes / (1024.0 * 1024.0);
+        os << bytes << " bytes (" << std::fixed << std::setprecision(3) << mb << " MB)";
+        return os.str();
       };
 
       // Element counts (number of array entries, not bytes)
@@ -101,35 +101,35 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
 
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") Pointers set for clusterizer with memoryID " << mMemoryId << " deviceID " << mDeviceId << " and sector " << mISector;
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mOutputDataClass pointer: " << mOutputDataClass
-          << " | elements=" << elemsOutputDataClass << " (= mNnClusterizerTotalClusters)"
-          << " | " << fmt(szOutputDataClass);
+                << " | elements=" << elemsOutputDataClass << " (= mNnClusterizerTotalClusters)"
+                << " | " << fmt(szOutputDataClass);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mClusterFlags pointer: " << static_cast<const void*>(mClusterFlags)
-          << " | elements=" << elemsClusterFlags << " (= 2 * mNnClusterizerBatchedMode)"
-          << " | " << fmt(szClusterFlags);
+                << " | elements=" << elemsClusterFlags << " (= 2 * mNnClusterizerBatchedMode)"
+                << " | " << fmt(szClusterFlags);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mInputData_16 pointer: " << mInputData_16
-          << " | elements=" << elemsInput16 << " (= mNnClusterizerBatchedMode * mNnClusterizerElementSize)"
-          << " | " << fmt(szInput16);
+                << " | elements=" << elemsInput16 << " (= mNnClusterizerBatchedMode * mNnClusterizerElementSize)"
+                << " | " << fmt(szInput16);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mModelProbabilities_16 pointer: " << mModelProbabilities_16
-          << " | elements=" << elemsProb16 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes)"
-          << " | " << fmt(szProb16);
+                << " | elements=" << elemsProb16 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes)"
+                << " | " << fmt(szProb16);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mOutputDataReg1_16 pointer: " << mOutputDataReg1_16
-          << " | elements=" << elemsReg1_16 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes)"
-          << " | " << fmt(szReg1_16);
+                << " | elements=" << elemsReg1_16 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes)"
+                << " | " << fmt(szReg1_16);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mOutputDataReg2_16 pointer: " << mOutputDataReg2_16
-          << " | elements=" << elemsReg2_16 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes)"
-          << " | " << fmt(szReg2_16);
+                << " | elements=" << elemsReg2_16 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes)"
+                << " | " << fmt(szReg2_16);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mInputData_32 pointer: " << mInputData_32
-          << " | elements=" << elemsInput32 << " (= mNnClusterizerBatchedMode * mNnClusterizerElementSize)"
-          << " | " << fmt(szInput32);
+                << " | elements=" << elemsInput32 << " (= mNnClusterizerBatchedMode * mNnClusterizerElementSize)"
+                << " | " << fmt(szInput32);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mModelProbabilities_32 pointer: " << mModelProbabilities_32
-          << " | elements=" << elemsProb32 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes)"
-          << " | " << fmt(szProb32);
+                << " | elements=" << elemsProb32 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes)"
+                << " | " << fmt(szProb32);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mOutputDataReg1_32 pointer: " << mOutputDataReg1_32
-          << " | elements=" << elemsReg1_32 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes)"
-          << " | " << fmt(szReg1_32);
+                << " | elements=" << elemsReg1_32 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes)"
+                << " | " << fmt(szReg1_32);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mOutputDataReg2_32 pointer: " << mOutputDataReg2_32
-          << " | elements=" << elemsReg2_32 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes)"
-          << " | " << fmt(szReg2_32);
+                << " | elements=" << elemsReg2_32 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes)"
+                << " | " << fmt(szReg2_32);
     }
     // Compute allocated bytes (difference between advanced pointer and start pointer)
     size_t allocatedBytes = static_cast<size_t>(reinterpret_cast<uintptr_t>(mem) - reinterpret_cast<uintptr_t>(startMem));
