@@ -57,7 +57,7 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
   template <int32_t iKernel = defaultKernel>
   GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, int8_t);
 
-  static GPUd() void computeClustersImpl(int32_t, int32_t, int32_t, int32_t, processorType&, const CfFragment&, GPUSharedMemory&, const CfArray2D<PackedCharge>&, const CfChargePos*, const GPUSettingsRec&, MCLabelAccumulator*, uint32_t, uint32_t, uint32_t*, tpc::ClusterNative*, uint32_t*);
+  static GPUd() void computeClustersImpl(int32_t, int32_t, int32_t, int32_t, processorType&, const CfFragment&, GPUSharedMemory&, const CfArray2D<PackedCharge>&, const CfChargePos*, const GPUSettingsRec&, MCLabelAccumulator*, uint32_t, uint32_t, uint32_t*, tpc::ClusterNative*, uint32_t*, int8_t);
 
   static GPUd() void buildCluster(const GPUSettingsRec&, const CfArray2D<PackedCharge>&, CfChargePos, CfChargePos*, PackedCharge*, uint8_t*, ClusterAccumulator*, MCLabelAccumulator*);
 
