@@ -50,7 +50,7 @@ class GPUTPCNNClusterizer : public GPUProcessor
   int32_t mNnClusterizerUseCfRegression = 0;
   int32_t mNnClusterizerBatchedMode = 1;
   int32_t mNnClusterizerTotalClusters = 1;
-  int32_t mNnClusterizerVerbosity = 0;
+  int32_t mNnClusterizerVerbosity = 1;
   int32_t mNnClusterizerBoundaryFillValue = -1;
   int32_t mNnClusterizerModelClassNumOutputNodes = -1;
   int32_t mNnClusterizerModelReg1NumOutputNodes = -1;

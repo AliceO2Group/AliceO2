@@ -54,7 +54,7 @@ void OrtModel::initOptions(std::unordered_map<std::string, std::string> optionsM
 
   // Load from options map
   if (!optionsMap.contains("model-path")) {
-    LOG(fatal) << "(ORT) Model path cannot be empty!";
+    LOG(fatal) << "(ORT) Model path must be contained in options map!";
   }
 
   if (!optionsMap["model-path"].empty()) {

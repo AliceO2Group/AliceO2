@@ -708,7 +708,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       if (nn_settings.nnClusterizerVerbosity > 0) {
         LOG(info) << "(ORT) Allocated ONNX stream for lane " << lane << " and device " << deviceId;
       }
-    };
+    }
     for (int32_t sector = 0; sector < NSECTORS; sector++) {
       GPUTPCNNClusterizer& clustererNN = processors()->tpcNNClusterer[sector];
       GPUTPCNNClusterizer& clustererNNShadow = doGPU ? processorsShadow()->tpcNNClusterer[sector] : clustererNN;
@@ -1029,7 +1029,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
               LOG(info) << "(NNCLUS, GPUChainTrackingClusterizer, this=" << this << ") Start. Loop=" << batch << ". (clustererNN=" << &clustererNN << ", clustererNNShadow=" << &clustererNNShadow << ")";
             }
             uint batchStart = batch * clustererNNShadow.mNnClusterizerBatchedMode;
-            size_t iSize = CAMath::Min((uint)clustererNNShadow.mNnClusterizerBatchedMode, (uint)(clusterer.mPmemory->counters.nClusters - batchStart - 1));
+            size_t iSize = CAMath::Min((uint)clustererNNShadow.mNnClusterizerBatchedMode, (uint)(clusterer.mPmemory->counters.nClusters - batchStart));
 
             // Filling the data
             if (mRec->IsGPU() || GetProcessingSettings().nn.nnClusterizerForceGpuInputFill) {
@@ -1038,9 +1038,6 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             } else {
               // Fills the whole input matrix at once -> better performance on CPU, but worse parallelizability
               runKernel<GPUTPCNNClusterizerKernels, GPUTPCNNClusterizerKernels::fillInputNNCPU>({GetGrid(iSize, lane), krnlRunRangeNone}, iSector, clustererNNShadow.mNnInferenceInputDType, propagateMCLabels, batchStart);
-            }
-            if (doGPU) { // This is to make sure that the network does not start the evaluation before all data is filled
-              SynchronizeStream(lane);
             }
             if (nn_settings.nnClusterizerVerbosity > 3) {
               LOG(info) << "(NNCLUS, GPUChainTrackingClusterizer, this=" << this << ") Done filling data. Loop=" << batch << ". (clustererNN=" << &clustererNN << ", clustererNNShadow=" << &clustererNNShadow << ")";
@@ -1240,8 +1237,10 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
   for (int32_t i = 0; i < GetProcessingSettings().nTPCClustererLanes; i++) {
 #ifdef GPUCA_HAS_ONNX
-    if (GetProcessingSettings().nn.applyNNclusterizer && GetProcessingSettings().nn.nnClusterizerVerbosity > 0) {
-      LOG(info) << "(ORT) Environment releasing...";
+    if (GetProcessingSettings().nn.applyNNclusterizer) {
+      if (GetProcessingSettings().nn.nnClusterizerVerbosity > 0) {
+        LOG(info) << "(ORT) Environment releasing...";
+      }
       GPUTPCNNClusterizerHost& nnApplication = nnApplications[i];
       nnApplication.mModelClass.release(true);
       nnApplication.mModelReg1.release(true);
