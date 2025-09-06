@@ -47,7 +47,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::run
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CPU_ONLY(MCLabelAccumulator labelAcc(clusterer));
   tpc::ClusterNative* clusterOut = (withMC) ? nullptr : clusterer.mPclusterByRow;
-  int8_t isAccepted = (clustererNN.mNnClusterizerUseClassification ? clustererNN.mOutputDataClass[CAMath::Min(glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] : 1);
+  int8_t isAccepted = (clustererNN.mNnClusterizerUseClassification ? (clustererNN.mOutputDataClass[CAMath::Min(glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] > 0) : 1);
   GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer, clusterer.mPmemory->fragment, reinterpret_cast<GPUTPCCFClusterizer::GPUSharedMemory&>(smem), chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, isAccepted);
 }
 
@@ -275,10 +275,14 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::det
   if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
-  if (dtype == 0) {
-    processors.tpcNNClusterer[sector].mOutputDataClass[glo_idx + batchStart] = (int32_t)((processors.tpcNNClusterer[sector].mModelProbabilities_16[glo_idx]).ToFloat() > processors.tpcNNClusterer[sector].mNnClassThreshold);
-  } else if (dtype == 1) {
-    processors.tpcNNClusterer[sector].mOutputDataClass[glo_idx + batchStart] = (int32_t)(processors.tpcNNClusterer[sector].mModelProbabilities_32[glo_idx] > processors.tpcNNClusterer[sector].mNnClassThreshold);
+  if(clustererNN.mNnClusterizerUseClassification) {
+    if (dtype == 0) {
+      clustererNN.mOutputDataClass[glo_idx + batchStart] = (int32_t)((clustererNN.mModelProbabilities_16[glo_idx]).ToFloat() > clustererNN.mNnClassThreshold);
+    } else if (dtype == 1) {
+      clustererNN.mOutputDataClass[glo_idx + batchStart] = (int32_t)(clustererNN.mModelProbabilities_32[glo_idx] > clustererNN.mNnClassThreshold);
+    }
+  } else {
+    clustererNN.mOutputDataClass[glo_idx + batchStart] = 1;
   }
 }
 
@@ -291,29 +295,33 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::det
   if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
-  uint32_t elem_iterator = glo_idx * clustererNN.mNnClusterizerModelClassNumOutputNodes;
-  float current_max_prob = 0.f; // If the neural network doesn't contain the softmax as a last layer, the outputs can range in [-infty, infty]
-  uint32_t class_label = 0;
-  for (uint32_t pIdx = elem_iterator; pIdx < elem_iterator + clustererNN.mNnClusterizerModelClassNumOutputNodes; pIdx++) {
-    if (pIdx == elem_iterator) {
-      if (dtype == 0) {
-        current_max_prob = static_cast<float>(clustererNN.mModelProbabilities_16[pIdx]);
-      } else if (dtype == 1) {
-        current_max_prob = clustererNN.mModelProbabilities_32[pIdx];
-      }
-    } else {
-      if (dtype == 0) {
-        current_max_prob = CAMath::Max(current_max_prob, clustererNN.mModelProbabilities_16[pIdx].ToFloat());
-      } else if (dtype == 1) {
-        current_max_prob = CAMath::Max(current_max_prob, clustererNN.mModelProbabilities_32[pIdx]);
+  if(clustererNN.mNnClusterizerUseClassification) {
+    uint32_t elem_iterator = glo_idx * clustererNN.mNnClusterizerModelClassNumOutputNodes;
+    float current_max_prob = 0.f; // If the neural network doesn't contain the softmax as a last layer, the outputs can range in [-infty, infty]
+    uint32_t class_label = 0;
+    for (uint32_t pIdx = elem_iterator; pIdx < elem_iterator + clustererNN.mNnClusterizerModelClassNumOutputNodes; pIdx++) {
+      if (pIdx == elem_iterator) {
+        if (dtype == 0) {
+          current_max_prob = static_cast<float>(clustererNN.mModelProbabilities_16[pIdx]);
+        } else if (dtype == 1) {
+          current_max_prob = clustererNN.mModelProbabilities_32[pIdx];
+        }
+      } else {
+        if (dtype == 0) {
+          current_max_prob = CAMath::Max(current_max_prob, clustererNN.mModelProbabilities_16[pIdx].ToFloat());
+        } else if (dtype == 1) {
+          current_max_prob = CAMath::Max(current_max_prob, clustererNN.mModelProbabilities_32[pIdx]);
+        }
       }
     }
-  }
-  // uint32_t class_label = std::distance(elem_iterator, std::max_element(elem_iterator, elem_iterator + clustererNN.mNnClusterizerModelClassNumOutputNodes)); // Multiple outputs of the class network are the probabilities for each class. The highest one "wins"
-  clustererNN.mOutputDataClass[glo_idx + batchStart] = class_label;
-  if (class_label > 1) {
-    clustererNN.mClusterFlags[2 * glo_idx] = 1;
-    clustererNN.mClusterFlags[2 * glo_idx + 1] = 1;
+    // uint32_t class_label = std::distance(elem_iterator, std::max_element(elem_iterator, elem_iterator + clustererNN.mNnClusterizerModelClassNumOutputNodes)); // Multiple outputs of the class network are the probabilities for each class. The highest one "wins"
+    clustererNN.mOutputDataClass[glo_idx + batchStart] = class_label;
+    if (class_label > 1) {
+      clustererNN.mClusterFlags[2 * glo_idx] = 1;
+      clustererNN.mClusterFlags[2 * glo_idx + 1] = 1;
+    }
+  } else {
+    clustererNN.mOutputDataClass[glo_idx + batchStart] = 1;
   }
 }
 
@@ -411,7 +419,9 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
 
   tpc::ClusterNative myCluster;
   bool rejectCluster = !pc.toNative(peak, central_charge, myCluster, clusterer.Param(), chargeMap);
-  rejectCluster &= (clustererNN.mNnClusterizerUseClassification ? clustererNN.mOutputDataClass[CAMath::Min(full_glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] : 1);
+  if (clustererNN.mNnClusterizerUseClassification) {
+    rejectCluster |= (clustererNN.mOutputDataClass[CAMath::Min(full_glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] <= 0);
+  }
   if (rejectCluster) {
     if (clusterer.mPclusterPosInRow) {
       clusterer.mPclusterPosInRow[full_glo_idx] = clusterer.mNMaxClusterPerRow;
@@ -519,7 +529,9 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
 
   tpc::ClusterNative myCluster;
   bool rejectCluster = !pc.toNative(peak, central_charge, myCluster, clusterer.Param(), chargeMap);
-  rejectCluster &= (clustererNN.mNnClusterizerUseClassification ? clustererNN.mOutputDataClass[CAMath::Min(full_glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] : 1);
+  if (clustererNN.mNnClusterizerUseClassification) {
+    rejectCluster |= (clustererNN.mOutputDataClass[CAMath::Min(full_glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] <= 0);
+  }
   if (rejectCluster) {
     if (clusterer.mPclusterPosInRow) {
       clusterer.mPclusterPosInRow[full_glo_idx] = clusterer.mNMaxClusterPerRow;
@@ -564,7 +576,9 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   }
 
   rejectCluster = !pc.toNative(peak, central_charge, myCluster, clusterer.Param(), chargeMap);
-  rejectCluster &= (clustererNN.mNnClusterizerUseClassification ? clustererNN.mOutputDataClass[CAMath::Min(full_glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] : 1);
+  if (clustererNN.mNnClusterizerUseClassification) {
+    rejectCluster |= (clustererNN.mOutputDataClass[CAMath::Min(full_glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] <= 0);
+  }
   if (rejectCluster) {
     if (clusterer.mPclusterPosInRow) {
       clusterer.mPclusterPosInRow[full_glo_idx] = clusterer.mNMaxClusterPerRow;
