@@ -1068,7 +1068,9 @@ struct TableIterator : IP, C... {
     : IP{policy},
       C(columnData[framework::has_type_at_v<C>(all_columns{})])...
   {
-    bind();
+    if (this->size() != 0) {
+      bind();
+    }
   }
 
   TableIterator(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
@@ -1076,7 +1078,9 @@ struct TableIterator : IP, C... {
     : IP{policy},
       C(columnData[framework::has_type_at_v<C>(all_columns{})])...
   {
-    bind();
+    if (this->size() != 0) {
+      bind();
+    }
     // In case we have an index column might need to constrain the actual
     // number of rows in the view to the range provided by the index.
     // FIXME: we should really understand what happens to an index when we
@@ -1089,14 +1093,18 @@ struct TableIterator : IP, C... {
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
-    bind();
+    if (this->size() != 0) {
+      bind();
+    }
   }
 
   TableIterator& operator=(TableIterator other)
   {
     IP::operator=(static_cast<IP const&>(other));
     (void(static_cast<C&>(*this) = static_cast<C>(other)), ...);
-    bind();
+    if (this->size() != 0) {
+      bind();
+    }
     return *this;
   }
 
@@ -1105,7 +1113,9 @@ struct TableIterator : IP, C... {
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
-    bind();
+    if (this->size() != 0) {
+      bind();
+    }
   }
 
   TableIterator& operator++()
@@ -1551,8 +1561,10 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
   uint64_t offset = 0;
   auto out = container.getSliceFor(value, table->asArrowTable(), offset);
   auto t = typename T::self_t({out}, offset);
-  table->copyIndexBindings(t);
-  t.bindInternalIndicesTo(table);
+  if (t.tableSize() != 0) {
+    table->copyIndexBindings(t);
+    t.bindInternalIndicesTo(table);
+  }
   return t;
 }
 
@@ -1560,9 +1572,11 @@ template <soa::is_filtered_table T>
 auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
   auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
-  table->copyIndexBindings(t);
-  t.bindInternalIndicesTo(table);
-  t.intersectWithSelection(table->getSelectedRows()); // intersect filters
+  if (t.tableSize() != 0) {
+    table->copyIndexBindings(t);
+    t.bindInternalIndicesTo(table);
+    t.intersectWithSelection(table->getSelectedRows()); // intersect filters
+  }
   return t;
 }
 
@@ -1571,8 +1585,10 @@ template <soa::is_table T>
 auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
   auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
-  table->copyIndexBindings(t);
-  t.bindInternalIndicesTo(table);
+  if (t.tableSize() != 0) {
+    table->copyIndexBindings(t);
+    t.bindInternalIndicesTo(table);
+  }
   return t;
 }
 
@@ -1596,12 +1612,16 @@ auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, u
 {
   if (offset >= static_cast<uint64_t>(table->tableSize())) {
     Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
-    table->copyIndexBindings(fresult);
+    if (fresult.tableSize() != 0) {
+      table->copyIndexBindings(fresult);
+    }
     return fresult;
   }
   auto slicedSelection = sliceSelection(table->getSelectedRows(), slice->num_rows(), offset);
   Filtered<typename T::base_t> fresult{{{slice}}, std::move(slicedSelection), offset};
-  table->copyIndexBindings(fresult);
+  if (fresult.tableSize() != 0) {
+    table->copyIndexBindings(fresult);
+  }
   return fresult;
 }
 
@@ -1625,7 +1645,9 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
   auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto t = typename T::self_t({table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
-  table->copyIndexBindings(t);
+  if (t.tableSize() != 0) {
+    table->copyIndexBindings(t);
+  }
   return t;
 }
 
@@ -1644,12 +1666,16 @@ auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
   if constexpr (soa::is_filtered_table<T>) {
     auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
-    t.intersectWithSelection(table->getSelectedRows());
-    table->copyIndexBindings(t);
+    if (t.tableSize() != 0) {
+      t.intersectWithSelection(table->getSelectedRows());
+      table->copyIndexBindings(t);
+    }
     return t;
   } else {
     auto t = Filtered<T>({table->asArrowTable()}, localCache.getSliceFor(value));
-    table->copyIndexBindings(t);
+    if (t.tableSize() != 0) {
+      table->copyIndexBindings(t);
+    }
     return t;
   }
 }
@@ -3299,12 +3325,16 @@ struct JoinFull : Table<o2::aod::Hash<"JOIN"_h>, D, o2::aod::Hash<"JOIN"_h>, Ts.
   JoinFull(std::shared_ptr<arrow::Table>&& table, uint64_t offset = 0)
     : base{std::move(table), offset}
   {
-    bindInternalIndicesTo(this);
+    if (this->tableSize() != 0) {
+      bindInternalIndicesTo(this);
+    }
   }
   JoinFull(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
     : base{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels}), offset}
   {
-    bindInternalIndicesTo(this);
+    if (this->tableSize() != 0) {
+      bindInternalIndicesTo(this);
+    }
   }
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;

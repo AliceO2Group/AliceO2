@@ -29,7 +29,7 @@ namespace o2::its::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC,
-                                    bool useCAtracker,
+                                    bool useCMtracker,
                                     TrackingMode::Type trmode,
                                     const bool overrideBeamPosition,
                                     bool upstreamDigits,
@@ -51,7 +51,9 @@ framework::WorkflowSpec getWorkflow(bool useMC,
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
   }
   if ((trmode != TrackingMode::Off) && (TrackerParamConfig::Instance().trackingMode != TrackingMode::Off)) {
-    if (useCAtracker) {
+    if (useCMtracker) {
+      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useGeom, useTrig, trmode));
+    } else {
       if (useGPUWF) {
         o2::gpu::GPURecoWorkflowSpec::Config cfg{
           .itsTriggerType = useTrig,
@@ -83,8 +85,6 @@ framework::WorkflowSpec getWorkflow(bool useMC,
       } else {
         specs.emplace_back(o2::its::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
       }
-    } else {
-      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useGeom, useTrig, trmode));
     }
     if (!disableRootOutput) {
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));

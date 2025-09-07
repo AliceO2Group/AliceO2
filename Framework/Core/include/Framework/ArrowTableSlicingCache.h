@@ -64,8 +64,6 @@ struct ArrowTableSlicingCache {
   constexpr static ServiceKind service_kind = ServiceKind::Stream;
 
   Cache bindingsKeys;
-  std::vector<std::shared_ptr<arrow::NumericArray<arrow::Int32Type>>> values;
-  std::vector<std::shared_ptr<arrow::NumericArray<arrow::Int64Type>>> counts;
   std::vector<std::vector<int64_t>> offsets;
   std::vector<std::vector<int64_t>> sizes;
 

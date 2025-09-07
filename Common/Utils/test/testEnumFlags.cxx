@@ -28,6 +28,46 @@ enum class TestEnum : uint8_t {
   Bit5VeryLongName,
 };
 
+// Very long enum
+// to test that it works beyond 32 bits
+enum class TestEnumLong : uint64_t {
+  Bit1,
+  Bit2,
+  Bit3,
+  Bit4,
+  Bit5,
+  Bit6,
+  Bit7,
+  Bit8,
+  Bit9,
+  Bit10,
+  Bit11,
+  Bit12,
+  Bit13,
+  Bit14,
+  Bit15,
+  Bit16,
+  Bit17,
+  Bit18,
+  Bit19,
+  Bit20,
+  Bit21,
+  Bit22,
+  Bit23,
+  Bit24,
+  Bit25,
+  Bit26,
+  Bit27,
+  Bit28,
+  Bit29,
+  Bit30,
+  Bit31,
+  Bit32,
+  Bit33,
+  Bit34,
+  // ...
+};
+
 BOOST_AUTO_TEST_CASE(Flags_test)
 {
   using EFlags = o2::utils::EnumFlags<TestEnum>;
@@ -256,5 +296,12 @@ BOOST_AUTO_TEST_CASE(Flags_test)
     // Test with disjoint sets
     EFlags flags3{TestEnum::Bit4};
     BOOST_CHECK(!flags1.contains(flags3)); // flags1 does not contain flags3
+  }
+
+  {
+    // Test compilation using an enum with more than 32 bits
+    o2::utils::EnumFlags<TestEnumLong> test;
+    test.set("Bit32");
+    BOOST_CHECK(test.test(TestEnumLong::Bit32));
   }
 }

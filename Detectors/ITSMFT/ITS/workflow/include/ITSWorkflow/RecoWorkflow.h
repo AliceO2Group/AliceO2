@@ -26,7 +26,7 @@ namespace its
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, TrackingMode::Type trmode, const bool overrideBeamPosition = false,
+framework::WorkflowSpec getWorkflow(bool useMC, bool useCMtracker, TrackingMode::Type trmode, const bool overrideBeamPosition = false,
                                     bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, bool useGeom = false, int useTrig = 0,
                                     bool useGPUWF = false, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
 }

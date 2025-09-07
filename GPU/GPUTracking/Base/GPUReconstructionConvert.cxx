@@ -25,7 +25,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUDataTypes.h"
 #include "GPUTPCGeometry.h"
-#include "AliHLTTPCRawCluster.h" // TODO: Is this still needed at all, or can it be removed?
+#include "AliHLTTPCRawCluster.h" // VS: It can not be removed. Used in line 93.
 #include "GPUParam.h"
 #include "GPULogging.h"
 #include <algorithm>
