@@ -58,7 +58,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
   auto& clustererNN = processors.tpcNNClusterer[sector];
 
   uint32_t glo_idx = get_global_id(0);
-  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
+  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
 
@@ -143,7 +143,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
   auto& clusterer = processors.tpcClusterer[sector];
   auto& clustererNN = processors.tpcNNClusterer[sector];
 
-  if (glo_idx >= clustererNN.mNnClusterizerBatchedMode * clustererNN.mNnClusterizerRowTimeSizeFull) {
+  if (glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode * clustererNN.mNnClusterizerRowTimeSizeFull) {
     return;
   }
 
@@ -272,7 +272,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::det
   uint32_t glo_idx = get_global_id(0);
   auto& clusterer = processors.tpcClusterer[sector];
   auto& clustererNN = processors.tpcNNClusterer[sector];
-  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
+  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
   if (clustererNN.mNnClusterizerUseClassification) {
@@ -292,7 +292,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::det
   uint32_t glo_idx = get_global_id(0);
   auto& clusterer = processors.tpcClusterer[sector];
   auto& clustererNN = processors.tpcNNClusterer[sector];
-  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
+  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
   if (clustererNN.mNnClusterizerUseClassification) {
@@ -331,7 +331,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   uint32_t glo_idx = get_global_id(0);
   auto& clusterer = processors.tpcClusterer[sector];
   auto& clustererNN = processors.tpcNNClusterer[sector];
-  if (glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
+  if (glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
 
@@ -453,7 +453,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   uint32_t glo_idx = get_global_id(0);
   auto& clusterer = processors.tpcClusterer[sector];
   auto& clustererNN = processors.tpcNNClusterer[sector];
-  if (glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
+  if (glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
 
@@ -611,7 +611,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   uint32_t glo_idx = get_global_id(0);
   auto& clusterer = processors.tpcClusterer[sector];
   auto& clustererNN = processors.tpcNNClusterer[sector];
-  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= clustererNN.mNnClusterizerBatchedMode) {
+  if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
