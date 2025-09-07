@@ -135,9 +135,14 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
     // Compute allocated bytes (difference between advanced pointer and start pointer)
     size_t allocatedBytes = static_cast<size_t>(reinterpret_cast<uintptr_t>(mem) - reinterpret_cast<uintptr_t>(startMem));
     double allocatedMB = static_cast<double>(allocatedBytes) / (1024.0 * 1024.0);
-    LOG(info) << std::fixed << std::setprecision(3)
-              << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") Total scratch allocation in setIOPointers: " << allocatedBytes
-              << " bytes (" << allocatedMB << " MB)";
+    {
+      char allocMsg[256];
+      int nn = snprintf(allocMsg, sizeof(allocMsg),
+                        "(NNCLUS, GPUTPCNNClusterizer, this=%p) Total scratch allocation in setIOPointers: %zu bytes (%.3f MB)",
+                        (void*)this, (size_t)allocatedBytes, allocatedMB);
+      (void)nn;
+      LOG(info) << allocMsg;
+    }
   }
 
   return mem;
