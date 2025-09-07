@@ -68,11 +68,12 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
 
   if (mNnClusterizerVerbosity > 2) {
     if (mNnClusterizerVerbosity > 3) {
-      auto fmt = [](size_t bytes) {
-        std::ostringstream os;
-        double mb = bytes / (1024.0 * 1024.0);
-        os << bytes << " bytes (" << std::fixed << std::setprecision(3) << mb << " MB)";
-        return os.str();
+      auto fmt = [](size_t bytes) -> const char* {
+        static char buf[64];
+        double mb = (double)bytes / (1024.0 * 1024.0);
+        int n = snprintf(buf, sizeof(buf), "%zu bytes (%.3f MB)", bytes, mb);
+        (void)n;
+        return buf;
       };
 
       // Element counts (number of array entries, not bytes)
