@@ -21,7 +21,9 @@
 #include "Framework/TableConsumer.h"
 #include "Framework/DataOutputDirector.h"
 #include "Framework/TableTreeHelpers.h"
+#include "Framework/Monitoring.h"
 
+#include <Monitoring/Monitoring.h>
 #include <TFile.h>
 #include <TFile.h>
 #include <TTree.h>
@@ -235,6 +237,7 @@ AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
 
 AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& ctx)
 {
+  using namespace monitoring;
   auto& ac = ctx.services().get<AnalysisContext>();
   auto tskmap = ac.outTskMap;
   auto objmap = ac.outObjHistMap;
@@ -269,7 +272,7 @@ AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& ctx)
 
     callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
-      auto mergePart = [&inputObjects, &objmap, &tskmap](DataRef const& ref) {
+      auto mergePart = [&inputObjects, &objmap, &tskmap, &pc](DataRef const& ref) {
         if (!ref.header) {
           LOG(error) << "Header not found";
           return;
@@ -381,7 +384,13 @@ AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& ctx)
             if (object->InheritsFrom(TList::Class())) {
               writeListToFile(static_cast<TList*>(object), parentDir->mkdir(object->GetName(), object->GetName(), true));
             } else {
-              parentDir->WriteObjectAny(object, object->Class(), object->GetName());
+              int objSize = parentDir->WriteObjectAny(object, object->Class(), object->GetName());
+              static int maxSizeWritten = 0;
+              if (objSize > maxSizeWritten) {
+                auto& monitoring = pc.services().get<Monitoring>();
+                maxSizeWritten = objSize;
+                monitoring.send(Metric{fmt::format("{}/{}:{}", object->ClassName(), object->GetName(), objSize), "aod-largest-object-written"}.addTag(tags::Key::Subsystem, tags::Value::DPL));
+              }
               auto* written = list->Remove(object);
               delete written;
             }

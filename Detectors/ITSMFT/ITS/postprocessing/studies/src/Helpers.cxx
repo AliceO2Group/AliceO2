@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cassert>
+#include <cmath>
 
 // o2 includes
 #include "ITSStudies/Helpers.h"

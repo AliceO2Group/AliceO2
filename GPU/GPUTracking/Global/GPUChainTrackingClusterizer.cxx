@@ -751,6 +751,9 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (buildNativeGPU) {
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   }
+  if (mWaitForFinalInputs && GetProcessingSettings().nTPCClustererLanes > 6) {
+    GPUFatal("ERROR, mWaitForFinalInputs cannot be called with nTPCClustererLanes > 6");
+  }
   if (buildNativeHost && !(buildNativeGPU && GetProcessingSettings().delayedOutput)) {
     if (mWaitForFinalInputs) {
       GPUFatal("Cannot use waitForFinalInput callback without delayed output");

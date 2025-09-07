@@ -11,6 +11,7 @@
 
 #include "Framework/AnalysisDataModelHelpers.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisSupportHelpers.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/Logger.h"
 
@@ -27,7 +28,6 @@ namespace o2::aod::datamodel
 std::string getTreeName(header::DataHeader dh)
 {
   auto description = std::string(dh.dataDescription.str);
-  auto origin = std::string(dh.dataOrigin.str);
   auto iver = (float)dh.subSpecification;
 
   // lower case of first part of description
@@ -38,11 +38,15 @@ std::string getTreeName(header::DataHeader dh)
   }
 
   // add prefix according to origin
-  if (origin == "AOD") {
-    treeName = "O2" + treeName;
+  for (auto possibleOrigin : framework::AODOrigins) {
+    if (dh.dataOrigin == possibleOrigin) {
+      treeName = "O2" + treeName;
+      break;
+    }
   }
 
   // exceptions from this
+  auto origin = std::string(dh.dataOrigin.str);
   if (origin == "AOD" && description == "MCCOLLISLABEL") {
     treeName = "O2mccollisionlabel";
   }

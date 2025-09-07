@@ -620,7 +620,13 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.nClsTPC = trkTPC.getNClusterReferences();
   trackData.nClsITS = trkITS.getNumberOfClusters();
   trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getNtracklets() : 0;
-  trackData.clAvailTOF = gidTable[GTrackID::TOF].isIndexSet() ? 1 : 0;
+  if (gidTable[GTrackID::TOF].isIndexSet()) {
+    const auto& tofMatch = mRecoCont->getTOFMatch(mGIDs[iSeed]);
+    trackData.deltaTOF = tofMatch.getSignal() - tofMatch.getFT0Best() - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
+    trackData.clAvailTOF = uint16_t(tofMatch.getFT0BestRes());
+  } else {
+    trackData.clAvailTOF = 0;
+  }
   trackData.dEdxTPC = trkTPC.getdEdx().dEdxTotTPC;
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
@@ -933,7 +939,11 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       }
 
       // do we have TOF residual to add?
+      trackData.clAvailTOF = 0;
       while (gidTableFull[GTrackID::TOF].isIndexSet() && !stopPropagation) {
+        const auto& tofMatch = mRecoCont->getTOFMatch(gidFull);
+        trackData.deltaTOF = tofMatch.getSignal() - tofMatch.getFT0Best() - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
+        trackData.clAvailTOF = uint16_t(tofMatch.getFT0BestRes());
         const auto& clTOF = mRecoCont->getTOFClusters()[gidTableFull[GTrackID::TOF]];
         const float clTOFAlpha = o2::math_utils::sector2Angle(clTOF.getCount());
         float clTOFxyz[3] = {clTOF.getX(), clTOF.getY(), clTOF.getZ()};
@@ -955,7 +965,6 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
         auto dz = clTOFxyz[2] - trkWork.getZ();
         if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
           mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 170, clTOF.getCount(), clTOF.getPadInSector());
-          trackData.clAvailTOF = 1;
           trackData.nExtDetResid++;
         }
         break;

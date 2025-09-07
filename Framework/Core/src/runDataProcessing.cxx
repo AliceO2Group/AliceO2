@@ -1038,7 +1038,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       defaultDataProcessingTimeout = "20";
       defaultInfologgerMode = "infoLoggerD";
     } else if (deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
-      defaultExitTransitionTimeout = "25";
+      defaultExitTransitionTimeout = "40";
       defaultDataProcessingTimeout = "20";
     }
     boost::program_options::options_description optsDesc;
@@ -1233,6 +1233,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^aod-bytes-read-uncompressed$");
   dumpableMetrics.emplace_back("^aod-bytes-read-compressed$");
   dumpableMetrics.emplace_back("^aod-file-read-info$");
+  dumpableMetrics.emplace_back("^aod-largest-object-written$");
   dumpableMetrics.emplace_back("^table-bytes-.*");
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");

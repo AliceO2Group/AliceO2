@@ -124,15 +124,22 @@ void DataInputDescriptor::addFileNameHolder(FileNameHolder* fn)
   mfilenames.emplace_back(fn);
 }
 
-bool DataInputDescriptor::setFile(int counter)
+bool DataInputDescriptor::setFile(int counter, std::string_view origin)
 {
   // no files left
   if (counter >= getNumberInputfiles()) {
     return false;
   }
 
+  // In case the origin starts with a anything but AOD, we add the origin as the suffix
+  // of the filename. In the future we might expand this for proper rewriting of the
+  // filename based on the origin and the original file information.
+  std::string filename = mfilenames[counter]->fileName;
+  if (!origin.starts_with("AOD")) {
+    filename = std::regex_replace(filename, std::regex("[.]root$"), fmt::format("_{}.root", origin));
+  }
+
   // open file
-  auto filename = mfilenames[counter]->fileName;
   auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
   if (rootFS.get()) {
     if (rootFS->GetFile()->GetName() == filename) {
@@ -213,11 +220,11 @@ bool DataInputDescriptor::setFile(int counter)
   return true;
 }
 
-uint64_t DataInputDescriptor::getTimeFrameNumber(int counter, int numTF)
+uint64_t DataInputDescriptor::getTimeFrameNumber(int counter, int numTF, std::string_view origin)
 {
 
   // open file
-  if (!setFile(counter)) {
+  if (!setFile(counter, origin)) {
     return 0ul;
   }
 
@@ -229,10 +236,10 @@ uint64_t DataInputDescriptor::getTimeFrameNumber(int counter, int numTF)
   return (mfilenames[counter]->listOfTimeFrameNumbers)[numTF];
 }
 
-arrow::dataset::FileSource DataInputDescriptor::getFileFolder(int counter, int numTF)
+arrow::dataset::FileSource DataInputDescriptor::getFileFolder(int counter, int numTF, std::string_view origin)
 {
   // open file
-  if (!setFile(counter)) {
+  if (!setFile(counter, origin)) {
     return {};
   }
 
@@ -246,7 +253,7 @@ arrow::dataset::FileSource DataInputDescriptor::getFileFolder(int counter, int n
   return {fmt::format("DF_{}", mfilenames[counter]->listOfTimeFrameNumbers[numTF]), mCurrentFilesystem};
 }
 
-DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF, std::string treename)
+DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF, std::string treename, std::string_view origin)
 {
   if (!mParentFileMap) {
     // This file has no parent map
@@ -283,7 +290,7 @@ DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF, 
   mParentFile->mdefaultFilenamesPtr = new std::vector<FileNameHolder*>;
   mParentFile->mdefaultFilenamesPtr->emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
   mParentFile->fillInputfiles();
-  mParentFile->setFile(0);
+  mParentFile->setFile(0, origin);
   return mParentFile;
 }
 
@@ -427,7 +434,8 @@ struct CalculateDelta {
     mTarget += (uv_hrtime() - start);
   }
 
-  void deactivate() {
+  void deactivate()
+  {
     active = false;
   }
 
@@ -440,7 +448,8 @@ struct CalculateDelta {
 bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)
 {
   CalculateDelta t(mIOTime);
-  auto folder = getFileFolder(counter, numTF);
+  std::string origin = dh.dataOrigin.as<std::string>();
+  auto folder = getFileFolder(counter, numTF, origin);
   if (!folder.filesystem()) {
     t.deactivate();
     return false;
@@ -473,7 +482,7 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   if (!format) {
     t.deactivate();
     LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.path());
-    auto parentFile = getParentFile(counter, numTF, treename);
+    auto parentFile = getParentFile(counter, numTF, treename, origin);
     if (parentFile != nullptr) {
       int parentNumTF = parentFile->findDFNumber(0, folder.path());
       if (parentNumTF == -1) {
@@ -817,8 +826,9 @@ arrow::dataset::FileSource DataInputDirector::getFileFolder(header::DataHeader d
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
+  std::string origin = dh.dataOrigin.as<std::string>();
 
-  return didesc->getFileFolder(counter, numTF);
+  return didesc->getFileFolder(counter, numTF, origin);
 }
 
 int DataInputDirector::getTimeFramesInFile(header::DataHeader dh, int counter)
@@ -839,8 +849,9 @@ uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counte
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
+  std::string origin = dh.dataOrigin.as<std::string>();
 
-  return didesc->getTimeFrameNumber(counter, numTF);
+  return didesc->getTimeFrameNumber(counter, numTF, origin);
 }
 
 bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)
@@ -858,6 +869,7 @@ bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, 
     didesc = mdefaultDataInputDescriptor;
     treename = aod::datamodel::getTreeName(dh);
   }
+  std::string origin = dh.dataOrigin.as<std::string>();
 
   auto result = didesc->readTree(outputs, dh, counter, numTF, treename, totalSizeCompressed, totalSizeUncompressed);
   return result;

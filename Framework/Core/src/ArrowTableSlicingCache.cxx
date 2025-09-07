@@ -31,12 +31,8 @@ void updatePairList(Cache& list, std::string const& binding, std::string const& 
 
 std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
 {
-  int64_t offset = 0;
-  if (offsets.empty()) {
-    return {offset, 0};
-  }
   if ((size_t)value >= offsets.size()) {
-    return {offset, 0};
+    return {0, 0};
   }
 
   return {offsets[value], sizes[value]};
@@ -68,8 +64,6 @@ ArrowTableSlicingCache::ArrowTableSlicingCache(Cache&& bsks, Cache&& bsksUnsorte
   : bindingsKeys{bsks},
     bindingsKeysUnsorted{bsksUnsorted}
 {
-  values.resize(bindingsKeys.size());
-  counts.resize(bindingsKeys.size());
   offsets.resize(bindingsKeys.size());
   sizes.resize(bindingsKeys.size());
 
@@ -81,10 +75,6 @@ void ArrowTableSlicingCache::setCaches(Cache&& bsks, Cache&& bsksUnsorted)
 {
   bindingsKeys = bsks;
   bindingsKeysUnsorted = bsksUnsorted;
-  values.clear();
-  values.resize(bindingsKeys.size());
-  counts.clear();
-  counts.resize(bindingsKeys.size());
   offsets.clear();
   offsets.resize(bindingsKeys.size());
   sizes.clear();
@@ -97,8 +87,6 @@ void ArrowTableSlicingCache::setCaches(Cache&& bsks, Cache&& bsksUnsorted)
 
 arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table> const& table)
 {
-  values[pos].reset();
-  counts[pos].reset();
   offsets[pos].clear();
   sizes[pos].clear();
   if (table->num_rows() == 0) {
@@ -109,41 +97,50 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
     throw runtime_error_f("Disabled cache %s/%s update requested", b.c_str(), k.c_str());
   }
   validateOrder(bindingsKeys[pos], table);
-  arrow::Datum value_counts;
-  auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-  ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {table->GetColumnByName(bindingsKeys[pos].key)},
-                                                     &options));
-  auto pair = static_cast<arrow::StructArray>(value_counts.array());
-  values[pos].reset();
-  counts[pos].reset();
-  values[pos] = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
-  counts[pos] = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
 
   int maxValue = -1;
-  for (auto i = values[pos]->length() - 1; i >= 0; --i) {
-    if (values[pos]->Value(i) < 0) {
-      continue;
-    } else {
-      maxValue = values[pos]->Value(i);
+  auto column = table->GetColumnByName(k);
+
+  // starting from the end, find the first positive value, in a sorted column it is the largest index
+  for (auto iChunk = column->num_chunks() - 1; iChunk >= 0; --iChunk) {
+    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
+    for (auto iElement = chunk.length() - 1; iElement >= 0; --iElement) {
+      auto value = chunk.Value(iElement);
+      if (value < 0) {
+        continue;
+      } else {
+        maxValue = value;
+        break;
+      }
+    }
+    if (maxValue >= 0) {
       break;
     }
   }
 
   offsets[pos].resize(maxValue + 1);
   sizes[pos].resize(maxValue + 1);
-  std::fill(offsets[pos].begin(), offsets[pos].end(), 0);
-  std::fill(sizes[pos].begin(), sizes[pos].end(), 0);
-  int64_t offset = 0;
-  for (auto i = 0U; i < values[pos]->length(); ++i) {
-    auto value = values[pos]->Value(i);
-    auto count = counts[pos]->Value(i);
-    if (value >= 0) {
-      offsets[pos][value] = offset;
-      sizes[pos][value] = count;
+
+  // loop over the index and collect size/offset
+  int lastValue = std::numeric_limits<int>::max();
+  int globalRow = 0;
+  for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
+    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
+    for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
+      auto v = chunk.Value(iElement);
+      if (v >= 0) {
+        if (v == lastValue) {
+          ++sizes[pos][v];
+        } else {
+          lastValue = v;
+          ++sizes[pos][v];
+          offsets[pos][v] = globalRow;
+        }
+      }
+      ++globalRow;
     }
-    offset += count;
   }
+
   return arrow::Status::OK();
 }
 
@@ -238,13 +235,6 @@ SliceInfoUnsortedPtr ArrowTableSlicingCache::getCacheUnsortedFor(const Entry& bi
 
 SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
 {
-  if (values[pos] == nullptr && counts[pos] == nullptr) {
-    return {
-      {}, //
-      {}  //
-    };
-  }
-
   return {
     gsl::span{offsets[pos].data(), offsets[pos].size()}, //
     gsl::span(sizes[pos].data(), sizes[pos].size())      //

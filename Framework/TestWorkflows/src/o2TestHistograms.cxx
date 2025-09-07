@@ -25,6 +25,7 @@ using namespace o2::framework::expressions;
 
 namespace o2::aod
 {
+O2ORIGIN("EMB");
 namespace skimmedExampleTrack
 {
 DECLARE_SOA_COLUMN(Pt, pt, float);   //!
@@ -49,7 +50,7 @@ struct EtaAndClsHistogramsSimple {
     }
   }
 
-  void process(soa::Filtered<aod::Tracks> const& tracks, aod::FT0s const&)
+  void process(soa::Filtered<aod::Tracks> const& tracks, aod::FT0s const&, aod::StoredTracksFrom<o2::aod::Hash<"EMB"_h>> const& ortherTracks)
   {
     LOGP(info, "Invoking the simple one");
     for (auto& track : tracks) {
@@ -72,7 +73,7 @@ struct EtaAndClsHistogramsIUSimple {
     }
   }
 
-  void process(soa::Filtered<aod::TracksIU> const& tracks, aod::FT0s const&)
+  void process(soa::Filtered<aod::TracksIU> const& tracks, aod::FT0s const&, aod::TracksIUFrom<o2::aod::Hash<"EMB"_h>> const& otherTracks)
   {
     LOGP(info, "Invoking the simple one IU");
     for (auto& track : tracks) {

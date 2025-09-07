@@ -369,7 +369,7 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << "defaults:\n";
   dumpOut << indLevel << indScheme << "log_task_stdout: none\n";
   dumpOut << indLevel << indScheme << "log_task_stderr: none\n";
-  std::string exitTransitionTimeout = "25"; // Allow 25 seconds to finish processing and calibrations
+  std::string exitTransitionTimeout = "40"; // Allow 40 seconds to finish processing and calibrations
   std::string dataProcessingTimeout = "20"; // Allow only 20 seconds to finish processing
   if (execution.args.size() > 2) {
     for (size_t i = 0; i < execution.args.size() - 1; ++i) {

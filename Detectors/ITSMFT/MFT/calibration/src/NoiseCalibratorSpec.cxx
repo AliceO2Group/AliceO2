@@ -378,8 +378,8 @@ void NoiseCalibratorSpec::sendOutputDcs(DataAllocator& output)
             << " : " << infoDcs.getEndValidityTimestamp();
 
   using clbUtilsDcs = o2::calibration::Utils;
-  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 0}, *imageDcs.get());
-  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 0}, infoDcs);
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 1}, *imageDcs.get());
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 1}, infoDcs);
 }
 
 void NoiseCalibratorSpec::sendOutputDcsMerge(DataAllocator& output)
@@ -447,8 +447,8 @@ void NoiseCalibratorSpec::sendOutputDcsMerge(DataAllocator& output)
             << " : " << infoDcs.getEndValidityTimestamp();
 
   using clbUtilsDcs = o2::calibration::Utils;
-  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 0}, *imageDcs.get());
-  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 0}, infoDcs);
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 1}, *imageDcs.get());
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 1}, infoDcs);
 }
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)

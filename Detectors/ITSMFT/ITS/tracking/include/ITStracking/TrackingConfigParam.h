@@ -121,19 +121,19 @@ struct ITSGpuTrackingParamConfig : public o2::conf::ConfigurableParamHelper<ITSG
   void maybeOverride() const;
 
   /// Individual kernel launch parameter for each iteration
-  int nBlocksLayerTracklets[MaxIter] = {30, 30, 30, 30};
+  int nBlocksLayerTracklets[MaxIter] = {60, 60, 60, 60};
   int nThreadsLayerTracklets[MaxIter] = {256, 256, 256, 256};
 
-  int nBlocksLayerCells[MaxIter] = {30, 30, 30, 30};
+  int nBlocksLayerCells[MaxIter] = {60, 60, 60, 60};
   int nThreadsLayerCells[MaxIter] = {256, 256, 256, 256};
 
-  int nBlocksFindNeighbours[MaxIter] = {30, 30, 30, 30};
+  int nBlocksFindNeighbours[MaxIter] = {60, 60, 60, 60};
   int nThreadsFindNeighbours[MaxIter] = {256, 256, 256, 256};
 
-  int nBlocksProcessNeighbours[MaxIter] = {30, 30, 30, 30};
+  int nBlocksProcessNeighbours[MaxIter] = {60, 60, 60, 60};
   int nThreadsProcessNeighbours[MaxIter] = {256, 256, 256, 256};
 
-  int nBlocksTracksSeeds[MaxIter] = {30, 30, 30, 30};
+  int nBlocksTracksSeeds[MaxIter] = {60, 60, 60, 60};
   int nThreadsTracksSeeds[MaxIter] = {256, 256, 256, 256};
 
   O2ParamDef(ITSGpuTrackingParamConfig, "ITSGpuTrackingParam");
