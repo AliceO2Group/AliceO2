@@ -55,6 +55,7 @@ class TPCTrackStudySpec : public Task
   {
     mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
     mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
   }
   ~TPCTrackStudySpec() final = default;
   void init(InitContext& ic) final;

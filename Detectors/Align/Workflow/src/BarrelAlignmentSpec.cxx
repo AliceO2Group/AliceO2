@@ -92,6 +92,7 @@ class BarrelAlignmentSpec : public Task
   {
     mTPCCorrMapsLoader.setLumiScaleType(tpcOpt.lumiType);
     mTPCCorrMapsLoader.setLumiScaleMode(tpcOpt.lumiMode);
+    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(tpcOpt.checkCTPIDCconsistency);
   }
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
