@@ -60,9 +60,6 @@
   #ifdef CADEBUG
     #undef CADEBUG
   #endif
-  #ifdef GPUCA_CADEBUG_ENABLED
-    #undef GPUCA_CADEBUG_ENABLED
-  #endif
   #if GPUCA_CADEBUG == 1 && !defined(GPUCA_GPUCODE)
     #define CADEBUG(...) __VA_ARGS__
     #define CADEBUG2(cmd, ...) {__VA_ARGS__; cmd;}
