@@ -57,9 +57,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 512
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -119,9 +119,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 512
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -181,9 +181,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 256, 2
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -243,9 +243,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 128, 2
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -398,14 +398,14 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerSortTracksPrepare
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step0
     #define GPUCA_LB_GPUTPCGMMergerFinalize_step0 256

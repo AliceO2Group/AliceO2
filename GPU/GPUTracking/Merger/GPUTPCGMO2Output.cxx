@@ -127,22 +127,23 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
   for (int32_t iTmp = get_global_id(0); iTmp < nTracks; iTmp += get_global_size(0)) {
     TrackTPC oTrack;
     const int32_t i = trackSort[iTmp].x;
-    auto snpIn = tracks[i].GetParam().GetSinPhi();
+    const auto& track = tracks[i];
+    auto snpIn = track.GetParam().GetSinPhi();
     if (snpIn > SNPThresh) {
       snpIn = SNPThresh;
     } else if (snpIn < -SNPThresh) {
       snpIn = -SNPThresh;
     }
-    oTrack.set(tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
-               {tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), snpIn, tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt()},
-               {tracks[i].GetParam().GetCov(0),
-                tracks[i].GetParam().GetCov(1), tracks[i].GetParam().GetCov(2),
-                tracks[i].GetParam().GetCov(3), tracks[i].GetParam().GetCov(4), tracks[i].GetParam().GetCov(5),
-                tracks[i].GetParam().GetCov(6), tracks[i].GetParam().GetCov(7), tracks[i].GetParam().GetCov(8), tracks[i].GetParam().GetCov(9),
-                tracks[i].GetParam().GetCov(10), tracks[i].GetParam().GetCov(11), tracks[i].GetParam().GetCov(12), tracks[i].GetParam().GetCov(13), tracks[i].GetParam().GetCov(14)});
+    oTrack.set(track.GetParam().GetX(), track.GetAlpha(),
+               {track.GetParam().GetY(), track.GetParam().GetZ(), snpIn, track.GetParam().GetDzDs(), track.GetParam().GetQPt()},
+               {track.GetParam().GetCov(0),
+                track.GetParam().GetCov(1), track.GetParam().GetCov(2),
+                track.GetParam().GetCov(3), track.GetParam().GetCov(4), track.GetParam().GetCov(5),
+                track.GetParam().GetCov(6), track.GetParam().GetCov(7), track.GetParam().GetCov(8), track.GetParam().GetCov(9),
+                track.GetParam().GetCov(10), track.GetParam().GetCov(11), track.GetParam().GetCov(12), track.GetParam().GetCov(13), track.GetParam().GetCov(14)});
 
-    oTrack.setChi2(tracks[i].GetParam().GetChi2());
-    auto& outerPar = tracks[i].OuterParam();
+    oTrack.setChi2(track.GetParam().GetChi2());
+    auto& outerPar = track.OuterParam();
     if GPUCA_RTC_CONSTEXPR (GPUCA_GET_CONSTEXPR(param.par, dodEdx)) {
       if (param.dodEdxEnabled) {
         oTrack.setdEdx(tracksdEdx[i]);
@@ -189,13 +190,13 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
     float t1 = 0, t2 = 0;
     int32_t sector1 = 0, sector2 = 0;
     const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem()->ioPtrs.clustersNative;
-    for (uint32_t j = 0; j < tracks[i].NClusters(); j++) {
-      if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
+    for (uint32_t j = 0; j < track.NClusters(); j++) {
+      if ((trackClusters[track.FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[track.FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
         continue;
       }
-      int32_t clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;
-      int32_t sector = trackClusters[tracks[i].FirstClusterRef() + j].sector;
-      int32_t globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
+      int32_t clusterIdGlobal = trackClusters[track.FirstClusterRef() + j].num;
+      int32_t sector = trackClusters[track.FirstClusterRef() + j].sector;
+      int32_t globalRow = trackClusters[track.FirstClusterRef() + j].row;
       int32_t clusterIdInRow = clusterIdGlobal - clusters->clusterOffset[sector][globalRow];
       clIndArr[nOutCl2] = clusterIdInRow;
       sectorIndexArr[nOutCl2] = sector;
@@ -210,24 +211,24 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
       }
     }
 
-    bool cce = tracks[i].CCE() && ((sector1 < MAXSECTOR / 2) ^ (sector2 < MAXSECTOR / 2));
+    bool cce = track.CCE() && ((sector1 < MAXSECTOR / 2) ^ (sector2 < MAXSECTOR / 2));
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
     if (merger.Param().par.continuousTracking) {
-      time0 = tracks[i].GetParam().GetTZOffset();
+      time0 = track.GetParam().GetTZOffset();
       if (cce) {
-        bool lastSide = trackClusters[tracks[i].FirstClusterRef()].sector < MAXSECTOR / 2;
+        bool lastSide = trackClusters[track.FirstClusterRef()].sector < MAXSECTOR / 2;
         float delta = 0.f;
-        for (uint32_t iCl = 1; iCl < tracks[i].NClusters(); iCl++) {
-          auto& cacl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
+        for (uint32_t iCl = 1; iCl < track.NClusters(); iCl++) {
+          auto& cacl1 = trackClusters[track.FirstClusterRef() + iCl];
           if (lastSide ^ (cacl1.sector < MAXSECTOR / 2)) {
             auto& cl1 = clusters->clustersLinear[cacl1.num];
-            auto& cl2 = clusters->clustersLinear[trackClusters[tracks[i].FirstClusterRef() + iCl - 1].num];
+            auto& cl2 = clusters->clustersLinear[trackClusters[track.FirstClusterRef() + iCl - 1].num];
             delta = CAMath::Abs(cl1.getTime() - cl2.getTime()) * 0.5f;
-            if (delta < MinDelta) {
-              delta = MinDelta;
-            }
             break;
           }
+        }
+        if (delta < MinDelta) {
+          delta = MinDelta;
         }
         tFwd = tBwd = delta;
       } else {
@@ -261,7 +262,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
     if (cce) {
       oTrack.setHasCSideClusters();
       oTrack.setHasASideClusters();
-    } else if (tracks[i].CSide()) {
+    } else if (track.CSide()) {
       oTrack.setHasCSideClusters();
     } else {
       oTrack.setHasASideClusters();

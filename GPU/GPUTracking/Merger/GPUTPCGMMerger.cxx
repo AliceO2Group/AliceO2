@@ -325,7 +325,7 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mTrackIDs, GPUCA_NSECTORS * mNMaxSingleSectorTracks); // UnpackResetIds - RefitSectorTracks - UnpackSectorGlobal
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
-  computePointerWithAlignment(mem, mTrackSort, mNMaxTracks); // PrepareClustersForFit0 - SortTracksQPt - PrepareClustersForFit1 - PrepareClustersForFit1 / Finalize0 - Finalize2
+  computePointerWithAlignment(mem, mTrackSort, mNMaxTracks); // PrepareForFit0 - SortTracksQPt - PrepareForFit1 - PrepareForFit1 / Finalize0 - Finalize2
   computePointerWithAlignment(mem, mSharedCount, mNMaxClusters);
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
@@ -1738,7 +1738,7 @@ GPUd() void GPUTPCGMMerger::SortTracksPrepare(int32_t nBlocks, int32_t nThreads,
   }
 }
 
-GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
+GPUd() void GPUTPCGMMerger::PrepareForFit0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
   for (uint32_t i = iBlock * nThreads + iThread; i < mMemory->nMergedTracks; i += nBlocks * nThreads) {
     mTrackSort[i] = i;
@@ -1763,7 +1763,7 @@ GPUd() void GPUTPCGMMerger::SortTracksQPt(int32_t nBlocks, int32_t nThreads, int
 #endif
 }
 
-GPUd() void GPUTPCGMMerger::PrepareClustersForFit1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
+GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
   for (uint32_t i = iBlock * nThreads + iThread; i < mMemory->nMergedTracks; i += nBlocks * nThreads) {
     mTrackOrderAttach[mTrackSort[i]] = i;
@@ -1777,7 +1777,7 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit1(int32_t nBlocks, int32_t nThr
   }
 }
 
-GPUd() void GPUTPCGMMerger::PrepareClustersForFit2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
+GPUd() void GPUTPCGMMerger::PrepareForFit2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
   for (uint32_t i = iBlock * nThreads + iThread; i < mMemory->nMergedTrackClusters; i += nBlocks * nThreads) {
     if (mSharedCount[mClusters[i].num] > 1) {

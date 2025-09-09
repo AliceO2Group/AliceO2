@@ -165,8 +165,8 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   runKernel<GPUTPCGMMergerLinkExtrapolatedTracks>(GetGridAuto(0, deviceType));
   runKernel<GPUTPCGMMergerCollect>(GetGridAuto(0, deviceType));
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::extrapolatedTracks1>({{1, -WarpSize(), 0, deviceType}}, 1);
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::extrapolatedTracks2>({{1, -WarpSize(), 0, deviceType}}, 1);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::mergedTracks1>({{1, -WarpSize(), 0, deviceType}}, 1);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::mergedTracks2>({{1, -WarpSize(), 0, deviceType}}, 1);
   }
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingCollectedTracks, doGPU, Merger, &GPUTPCGMMerger::DumpCollected, *mDebugFile);
 
@@ -196,11 +196,11 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadowAll.SharedCount(), maxId * sizeof(*MergerShadowAll.SharedCount()));
   runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadowAll.ClusterAttachment(), maxId * sizeof(*MergerShadowAll.ClusterAttachment()));
-  runKernel<GPUTPCGMMergerPrepareClusters, 0>(GetGridAuto(0, deviceType));
+  runKernel<GPUTPCGMMergerPrepareForFit, 0>(GetGridAuto(0, deviceType));
   CondWaitEvent(waitForTransfer, &mEvents->single);
   runKernel<GPUTPCGMMergerSortTracksQPt>(GetGridAuto(0, deviceType));
-  runKernel<GPUTPCGMMergerPrepareClusters, 1>(GetGridAuto(0, deviceType));
-  runKernel<GPUTPCGMMergerPrepareClusters, 2>(GetGridAuto(0, deviceType));
+  runKernel<GPUTPCGMMergerPrepareForFit, 1>(GetGridAuto(0, deviceType));
+  runKernel<GPUTPCGMMergerPrepareForFit, 2>(GetGridAuto(0, deviceType));
 
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingPrepareFit, doGPU, Merger, &GPUTPCGMMerger::DumpFitPrepare, *mDebugFile);
 

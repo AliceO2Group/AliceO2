@@ -170,9 +170,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void SortTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void SortTracksQPt(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void SortTracksPrepare(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
-  GPUd() void PrepareClustersForFit0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
-  GPUd() void PrepareClustersForFit1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
-  GPUd() void PrepareClustersForFit2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareForFit0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareForFit1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareForFit2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void LinkExtrapolatedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void CollectMergedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void Finalize0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
