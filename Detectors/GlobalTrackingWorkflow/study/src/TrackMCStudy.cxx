@@ -507,7 +507,7 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
   }
 
   LOGP(info, "collected {} MC tracks", mSelMCTracks.size());
-  if (params.minTPCRefsToExtractClRes > 0) { // prepare MC trackrefs for TPC
+  if (params.minTPCRefsToExtractClRes > 0 || params.storeTPCTrackRefs) { // prepare MC trackrefs for TPC
     processTPCTrackRefs();
   }
 
@@ -532,6 +532,15 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
       }
       return lhs.gid.getSource() > rhs.gid.getSource();
     });
+    if (params.storeTPCTrackRefs) {
+      auto rft = mSelTRefIdx.find(entry.first);
+      if (rft != mSelTRefIdx.end()) {
+        auto rfent = rft->second;
+        for (int irf = rfent.first; irf < rfent.second; irf++) {
+          trackFam.mcTrackInfo.trackRefsTPC.push_back(mSelTRefs[irf]);
+        }
+      }
+    }
     // fill track params
     int tcnt = 0;
     for (auto& tref : tracks) {
@@ -598,8 +607,8 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
       tcnt++;
     }
     if (trackFam.entITS > -1 && trackFam.entTPC > -1) { // ITS and TPC were found but matching failed
-      auto vidITS = tracks[trackFam.entITS].gid;
-      auto vidTPC = tracks[trackFam.entTPC].gid;
+      auto vidITS = recoData.getITSContributorGID(tracks[trackFam.entITS].gid);
+      auto vidTPC = recoData.getTPCContributorGID(tracks[trackFam.entTPC].gid);
       auto trcTPC = recoData.getTrackParam(vidTPC);
       auto trcITS = recoData.getTrackParamOut(vidITS);
       if (propagateToRefX(trcTPC, trcITS)) {
