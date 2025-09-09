@@ -514,7 +514,7 @@ GPUd() int32_t GPUTPCGMMerger::RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack
       const ClusterNative& cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[GetConstantMem()->ioPtrs.clustersNative->clusterOffset[sector][0] + clusterIndex];
       flags = cl.getFlags();
       GetConstantMem()->calibObjects.fastTransformHelper->Transform(sector, row, cl.getPad(), cl.getTime(), x, y, z, trk.TZOffset());
-      if (prop.PropagateToXAlpha(x, alpha, true)) {
+      if (prop.PropagateToXAlpha(x, alpha, way == 0)) {
         return way == 0;
       }
       trk.ConstrainSinPhi();
