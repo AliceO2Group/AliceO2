@@ -141,6 +141,11 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
         merger.MergedTracks()[currIdx] = firstItem;
       }
     }
+    for (int32_t j = 0; j < n; j++) {
+      if (merger.MergedTracks()[j].PrevSegment() >= 0) {
+        merger.MergedTracks()[j].SetPrevSegment(tmp2[merger.MergedTracks()[j].PrevSegment()]);
+      }
+    }
   }
   GPUbarrier();
   for (int32_t i = 0; i < 2 * GPUCA_NSECTORS; i++) {
