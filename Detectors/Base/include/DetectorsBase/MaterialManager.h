@@ -218,7 +218,7 @@ class MaterialManager
   std::unordered_map<std::string, float> mDensityMap;
 
   void initDensityMap();
-  float getDensity(std::string const& modname);
+  float getDensity(std::string const& modname, std::string const& matname);
 
   // Hide details by providing these private methods so it cannot happen that special settings
   // are applied as default settings by accident using a boolean flag
