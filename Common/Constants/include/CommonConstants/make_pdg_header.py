@@ -86,6 +86,9 @@ class PdgROOT(Enum):
 
 # Enum of additional particles
 class Pdg(Enum):
+    kEta = 221
+    kOmega = 223
+    kEtaPrime = 331
     kB0 = 511
     kB0Bar = -511
     kBPlus = 521
