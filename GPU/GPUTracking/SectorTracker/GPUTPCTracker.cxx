@@ -143,6 +143,15 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxTracklets = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
   mNMaxRowHits = mRec->MemoryScalers()->NTPCTrackletHits(mData.NumberOfHits());
   mNMaxTracks = mRec->MemoryScalers()->NTPCSectorTracks(mData.NumberOfHits());
+  if (io.clustersNative) {
+    uint32_t sectorOffset = mISector >= GPUCA_NSECTORS / 2 ? GPUCA_NSECTORS / 2 : 0;
+    uint32_t nextSector = (mISector + 1) % (GPUCA_NSECTORS / 2) + sectorOffset;
+    uint32_t prevSector = (mISector + GPUCA_NSECTORS - 1) % (GPUCA_NSECTORS / 2) + sectorOffset;
+    uint32_t nExtrapolationTracks = mRec->MemoryScalers()->NTPCSectorTracks((io.clustersNative->nClustersSector[nextSector] + io.clustersNative->nClustersSector[prevSector]) / 2) / 2;
+    if (nExtrapolationTracks > mNMaxTracks) {
+      mNMaxTracks = nExtrapolationTracks;
+    }
+  }
   mNMaxTrackHits = mRec->MemoryScalers()->NTPCSectorTrackHits(mData.NumberOfHits(), mRec->GetProcessingSettings().tpcInputWithClusterRejection);
 
   if (mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSectorTracking).par_SORT_STARTHITS) {
