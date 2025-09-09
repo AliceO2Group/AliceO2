@@ -29,7 +29,7 @@ namespace o2::gpu
 
 class ClusterAccumulator;
 class MCLabelAccumulator;
-class CfChargePos;
+struct CfChargePos;
 class PackedCharge;
 
 class GPUTPCNNClusterizerKernels : public GPUKernelTemplate
