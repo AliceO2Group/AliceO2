@@ -862,30 +862,31 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
   if (!merger->Param().par.continuousTracking) {
     return;
   }
-  const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz()));
-
-  const float dist2 = mX * mX + mP[0] * mP[0];
-  const float dist1r2 = dist2 * r1 * r1;
   float deltaZ = 0.f;
   bool beamlineReached = false;
-  if (dist1r2 < 4) {
-    const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
-    const float beta = CAMath::ATan2(mP[0], mX);
-    const int32_t comp = mP[2] > CAMath::Sin(beta);
-    const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
-    const float res = CAMath::Abs(sinab - mP[2]);
+  const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz()));
+  if (r1 < 0.01501) { // 100 MeV @ 0.5T ~ 0.66m cutof
+    const float dist2 = mX * mX + mP[0] * mP[0];
+    const float dist1r2 = dist2 * r1 * r1;
+    if (dist1r2 < 4) {
+      const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
+      const float beta = CAMath::ATan2(mP[0], mX);
+      const int32_t comp = mP[2] > CAMath::Sin(beta);
+      const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
+      const float res = CAMath::Abs(sinab - mP[2]);
 
-    if (res < 0.2) {
-      const float r = 1.f / r1;
-      const float dS = alpha * r;
-      float z0 = dS * mP[3];
-      if (CAMath::Abs(z0) > GPUTPCGeometry::TPCLength()) {
-        z0 = z0 > 0 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
+      if (res < 0.2) {
+        const float r = 1.f / r1;
+        const float dS = alpha * r;
+        float z0 = dS * mP[3];
+        if (CAMath::Abs(z0) > GPUTPCGeometry::TPCLength()) {
+          z0 = z0 > 0 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
+        }
+        deltaZ = mP[1] - z0;
+        beamlineReached = true;
+
+        // printf("X %9.3f Y %9.3f QPt %9.3f R %9.3f --> Alpha %9.3f Snp %9.3f Snab %9.3f Res %9.3f dS %9.3f z0 %9.3f\n", mX, mP[0], mP[4], r, alpha / 3.1415 * 180, mP[2], sinab, res, dS, z0);
       }
-      deltaZ = mP[1] - z0;
-      beamlineReached = true;
-
-      // printf("X %9.3f Y %9.3f QPt %9.3f R %9.3f --> Alpha %9.3f Snp %9.3f Snab %9.3f Res %9.3f dS %9.3f z0 %9.3f\n", mX, mP[0], mP[4], r, alpha / 3.1415 * 180, mP[2], sinab, res, dS, z0);
     }
   }
 

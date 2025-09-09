@@ -745,27 +745,29 @@ GPUd() void GPUTPCTrackParam::ConstrainZ(float& z, int32_t sector, float& z0, fl
 GPUd() void GPUTPCTrackParam::ShiftZ(float z1, float z2, float x1, float x2, float bz, float defaultZOffsetOverR)
 {
   const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mParam.mP[4] * bz));
-
-  const float dist2 = mParam.mX * mParam.mX + mParam.mP[0] * mParam.mP[0];
-  const float dist1r2 = dist2 * r1 * r1;
   float deltaZ = 0.f;
   bool beamlineReached = false;
-  if (dist1r2 < 4) {
-    const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
-    const float beta = CAMath::ATan2(mParam.mP[0], mParam.mX);
-    const int32_t comp = mParam.mP[2] > CAMath::Sin(beta);
-    const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
-    const float res = CAMath::Abs(sinab - mParam.mP[2]);
 
-    if (res < 0.2f) {
-      const float r = 1.f / r1;
-      const float dS = alpha * r;
-      float z0 = dS * mParam.mP[3];
-      if (CAMath::Abs(z0) > GPUTPCGeometry::TPCLength()) {
-        z0 = z0 > 0 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
+  if (r1 < 0.01501) { // 100 MeV @ 0.5T ~ 0.66m cutof
+    const float dist2 = mParam.mX * mParam.mX + mParam.mP[0] * mParam.mP[0];
+    const float dist1r2 = dist2 * r1 * r1;
+    if (dist1r2 < 4) {
+      const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
+      const float beta = CAMath::ATan2(mParam.mP[0], mParam.mX);
+      const int32_t comp = mParam.mP[2] > CAMath::Sin(beta);
+      const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
+      const float res = CAMath::Abs(sinab - mParam.mP[2]);
+
+      if (res < 0.2f) {
+        const float r = 1.f / r1;
+        const float dS = alpha * r;
+        float z0 = dS * mParam.mP[3];
+        if (CAMath::Abs(z0) > GPUTPCGeometry::TPCLength()) {
+          z0 = z0 > 0 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
+        }
+        deltaZ = mParam.mP[1] - z0;
+        beamlineReached = true;
       }
-      deltaZ = mParam.mP[1] - z0;
-      beamlineReached = true;
     }
   }
 
