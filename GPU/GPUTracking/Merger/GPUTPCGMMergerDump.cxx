@@ -51,7 +51,7 @@ void GPUTPCGMMerger::DumpSectorTracks(std::ostream& out) const
       out << "  Track type " << iGlobal << "\n";
       for (int32_t j = mSectorTrackInfoIndex[iSector + NSECTORS * iGlobal]; j < mSectorTrackInfoIndex[iSector + NSECTORS * iGlobal + 1]; j++) {
         const auto& trk = mSectorTrackInfos[j];
-        out << "    Track " << j << ": LocalId " << (iGlobal ? (trk.LocalTrackId() >> 24) : -1) << "/" << (iGlobal ? (trk.LocalTrackId() & 0xFFFFFF) : -1) << " X " << trk.X() << " offsetz " << trk.TOffset() << " A " << trk.Alpha() << " Y " << trk.Y() << " Z " << trk.Z() << " SinPhi " << trk.SinPhi() << " CosPhi " << trk.CosPhi() << " SecPhi " << trk.SecPhi() << " Tgl " << trk.DzDs() << " QPt " << trk.QPt() << "\n";
+        out << "    Track " << j << ": LocalId " << (iGlobal ? (trk.LocalTrackId() >> 24) : -1) << "/" << (iGlobal ? (trk.LocalTrackId() & 0xFFFFFF) : -1) << " NCl " << trk.NClusters() << " X " << trk.X() << " offsetz " << trk.TOffset() << " A " << trk.Alpha() << " Y " << trk.Y() << " Z " << trk.Z() << " SinPhi " << trk.SinPhi() << " CosPhi " << trk.CosPhi() << " SecPhi " << trk.SecPhi() << " Tgl " << trk.DzDs() << " QPt " << trk.QPt() << "\n";
       }
     }
   }
@@ -135,7 +135,7 @@ void GPUTPCGMMerger::DumpMergedBetweenSectors(std::ostream& out) const
 void GPUTPCGMMerger::DumpCollected(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
-  out << std::setprecision(2);
+  out << std::setprecision(6);
   out << "\nTPC Merger Collected Tracks\n";
   for (uint32_t i = 0; i < mMemory->nMergedTracks; i++) {
     const auto& trk = mMergedTracks[i];
