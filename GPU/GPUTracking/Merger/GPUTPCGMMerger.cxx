@@ -1348,23 +1348,15 @@ GPUd() void GPUTPCGMMerger::MergeCE(int32_t nBlocks, int32_t nThreads, int32_t i
         continue;
       }
       bool celooper = (trk[0]->GetParam().GetQPt() * Param().qptB5Scaler > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
+      celooper |= trk[0]->PrevSegment() != -1 && trk[1]->PrevSegment() != -1;
       if (!celooper && trk[0]->GetParam().GetPar(3) * trk[1]->GetParam().GetPar(3) < 0) {
         continue;
       }
 
-      uint32_t newRef = CAMath::AtomicAdd(&mMemory->nMergedTrackClusters, trk[0]->NClusters() + trk[1]->NClusters());
-      if (newRef + trk[0]->NClusters() + trk[1]->NClusters() >= mNMaxMergedTrackClusters) {
-        raiseError(GPUErrors::ERROR_MERGER_CE_HIT_OVERFLOW, newRef + trk[0]->NClusters() + trk[1]->NClusters(), mNMaxMergedTrackClusters);
-        for (uint32_t k = newRef; k < mNMaxMergedTrackClusters; k++) {
-          mClusters[k].num = 0;
-          mClusters[k].state = 0;
-        }
-        CAMath::AtomicExch(&mMemory->nMergedTrackClusters, mNMaxMergedTrackClusters);
-        return;
-      }
-
       bool needswap = false;
-      if (celooper) {
+      if (trk[0]->PrevSegment() == -1 && trk[1]->PrevSegment() >= 0) {
+        needswap = true;
+      } else if (celooper) {
         const float z0max = -CAMath::Min(cls[mClusters[trk[0]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].num].getTime());
         const float z1max = -CAMath::Min(cls[mClusters[trk[1]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].num].getTime());
         if (z1max < z0max) {
@@ -1379,13 +1371,25 @@ GPUd() void GPUTPCGMMerger::MergeCE(int32_t nBlocks, int32_t nThreads, int32_t i
         GPUCommonAlgorithm::swap(trk[0], trk[1]);
       }
 
-      if (celooper) {
+      if (celooper) { // TODO: Need propper handling, avoid falsely flagging the primary leg as looper
         trk[0]->SetMergedLooperConnected(true);
         trk[0]->SetCCE(true);
         trk[0]->SetLooper(true);
+        trk[1]->SetMergedLooperConnected(true);
         trk[1]->SetCCE(true);
         trk[1]->SetLooper(true);
         continue;
+      }
+
+      uint32_t newRef = CAMath::AtomicAdd(&mMemory->nMergedTrackClusters, trk[0]->NClusters() + trk[1]->NClusters());
+      if (newRef + trk[0]->NClusters() + trk[1]->NClusters() >= mNMaxMergedTrackClusters) {
+        raiseError(GPUErrors::ERROR_MERGER_CE_HIT_OVERFLOW, newRef + trk[0]->NClusters() + trk[1]->NClusters(), mNMaxMergedTrackClusters);
+        for (uint32_t k = newRef; k < mNMaxMergedTrackClusters; k++) {
+          mClusters[k].num = 0;
+          mClusters[k].state = 0;
+        }
+        CAMath::AtomicExch(&mMemory->nMergedTrackClusters, mNMaxMergedTrackClusters);
+        return;
       }
 
       if (Param().par.continuousTracking) {
@@ -1747,7 +1751,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
         mergedTrack.SetNClusters(0);
       }
       if (mergedTrack.NClusters() && mergedTrack.OK()) */
-      if (Param().rec.tpc.mergeCE) {
+      if (leg == 0 && Param().rec.tpc.mergeCE) {
         auto& cls = mConstantMem->ioPtrs.clustersNative->clustersLinear;
         bool CEside = cls[cl[0].num].getTime() < cls[cl[nHits - 1].num].getTime();
         MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], iOutputTrack);
