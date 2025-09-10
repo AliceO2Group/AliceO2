@@ -1141,18 +1141,16 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
             }
             if (trackIndex.includesDet(DetID::ITS)) {
               auto itsGID = data.getITSContributorGID(trackIndex);
-              if (itsGID.isIndexSet()) {
-                auto itsSource = itsGID.getSource();
-                if (itsSource == GIndex::ITS) {
-                  auto& itsTrack = data.getITSTrack(itsGID);
-                  for (unsigned int iL = 0; iL < 7; ++iL) {
-                    if (itsTrack.isFakeOnLayer(iL)) {
-                      labelHolder.labelMask |= (0x1 << iL);
-                    }
+              auto itsSource = itsGID.getSource();
+              if (itsSource == GIndex::ITS) {
+                auto& itsTrack = data.getITSTrack(itsGID);
+                for (unsigned int iL = 0; iL < 7; ++iL) {
+                  if (itsTrack.isFakeOnLayer(iL)) {
+                    labelHolder.labelMask |= (0x1 << iL);
                   }
-                } else if (itsSource == GIndex::ITSAB) {
-                  labelHolder.labelMask |= (data.getTrackMCLabel(itsGID).isFake() << 12);
                 }
+              } else if (itsSource == GIndex::ITSAB) {
+                labelHolder.labelMask |= (data.getTrackMCLabel(itsGID).isFake() << 12);
               }
             }
 
