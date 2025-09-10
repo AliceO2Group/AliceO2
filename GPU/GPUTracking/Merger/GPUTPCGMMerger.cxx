@@ -581,7 +581,7 @@ GPUd() void GPUTPCGMMerger::UnpackSectorGlobal(int32_t nBlocks, int32_t nThreads
   uint32_t nTracks = *trk.NTracks();
   for (uint32_t itr = nLocalTracks + iBlock * nThreads + iThread; itr < nTracks; itr += nBlocks * nThreads) {
     sectorTr = &trk.Tracks()[itr];
-    int32_t localId = mTrackIDs[(sectorTr->LocalTrackId() >> 24) * mNMaxSingleSectorTracks + (sectorTr->LocalTrackId() & 0xFFFFFF)];
+    int32_t localId = mTrackIDs[((sectorTr->LocalTrackId() >> 24) & 0x3F) * mNMaxSingleSectorTracks + (sectorTr->LocalTrackId() & 0xFFFFFF)];
     if (localId == -1) {
       continue;
     }
@@ -594,7 +594,7 @@ GPUd() void GPUTPCGMMerger::UnpackSectorGlobal(int32_t nBlocks, int32_t nThreads
     track.SetNextNeighbour(-1);
     track.SetNextSegmentNeighbour(-1);
     track.SetPrevSegmentNeighbour(-1);
-    track.SetLocalTrackId(localId);
+    track.SetLocalTrackId(localId | (sectorTr->LocalTrackId() & 0x40000000));
   }
 }
 
@@ -643,10 +643,9 @@ GPUd() void GPUTPCGMMerger::LinkExtrapolatedTracks(int32_t nBlocks, int32_t nThr
 {
   for (int32_t itr = SectorTrackInfoGlobalFirst(0) + iBlock * nThreads + iThread; itr < SectorTrackInfoGlobalLast(NSECTORS - 1); itr += nThreads * nBlocks) {
     GPUTPCGMSectorTrack& extrapolatedTrack = mSectorTrackInfos[itr];
-    GPUTPCGMSectorTrack& localTrack = mSectorTrackInfos[extrapolatedTrack.LocalTrackId()];
-    if (localTrack.ExtrapolatedTrackId(0) != -1 || !CAMath::AtomicCAS(&localTrack.ExtrapolatedTrackIds()[0], -1, itr)) {
-      localTrack.SetExtrapolatedTrackId(1, itr);
-    }
+    GPUTPCGMSectorTrack& localTrack = mSectorTrackInfos[extrapolatedTrack.LocalTrackId() & 0xFFFFFF];
+    int up = (extrapolatedTrack.LocalTrackId() & 0x40000000) ? 1 : 0;
+    localTrack.SetExtrapolatedTrackId(up, itr);
   }
 }
 
