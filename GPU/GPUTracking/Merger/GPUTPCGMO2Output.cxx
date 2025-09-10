@@ -212,7 +212,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
     }
 
     if (track.PrevSegment() >= 0) {
-      const GPUTPCGMMergedTrack* chkTrk = track.GetFirstSegment(tracks);
+      const GPUTPCGMMergedTrack* chkTrk = track.GetFirstSegment(tracks, merger.Param().rec.enableCyclicGraphWorkarounds);
       const auto& firstPrevCluster = trackClusters[chkTrk->FirstClusterRef()];
       t1 = clusters->clustersLinear[firstPrevCluster.num].getTime();
       sector1 = firstPrevCluster.sector;

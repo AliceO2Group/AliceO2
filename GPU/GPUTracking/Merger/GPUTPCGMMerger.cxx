@@ -1461,7 +1461,9 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
         if (trbase->PrevSegmentNeighbour() >= 0) {
           trbase = nullptr;
         } else {
-          trbase->SetPrevSegmentNeighbour(1000000001);
+          if (Param().rec.enableCyclicGraphWorkarounds) {
+            trbase->SetPrevSegmentNeighbour(1000000001);
+          }
           leg += revertSegments ? 1 : -1;
         }
       } else {
@@ -1483,13 +1485,15 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
       }
       revertSegments = false;
       revertInSegment = false;
-      trbase->SetPrevSegmentNeighbour(1000000000);
+      if (Param().rec.enableCyclicGraphWorkarounds) {
+        trbase->SetPrevSegmentNeighbour(1000000000);
+      }
       int32_t jtr = trbase->NextNeighbour();
       leg = 0;
       if (jtr >= 0) {
         int32_t lasttr = itr;
         while (jtr >= 0) { // --------------- count segments ---------------
-          if (&mSectorTrackInfos[jtr] == trbase) {
+          if (Param().rec.enableCyclicGraphWorkarounds && &mSectorTrackInfos[jtr] == trbase) {
             break; // Break cyclic graph
           }
           lasttr = jtr;
@@ -1512,7 +1516,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
               mainT = t;
             }
             int32_t next = trchk->NextSegmentNeighbour();
-            if (next < 0 || next == ichk) {
+            if (next < 0 || (Param().rec.enableCyclicGraphWorkarounds && next == ichk)) {
               break; // Breaks also cycles
             }
             trchk = &mSectorTrackInfos[next];
@@ -1533,7 +1537,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
               length = trchk->OrigTrack()->NHits();
             }
             int32_t next = trchk->NextSegmentNeighbour();
-            if (next < 0 || next == ichk) {
+            if (next < 0 || (Param().rec.enableCyclicGraphWorkarounds && next == ichk)) {
               break; // Breaks also cycles
             }
             trchk = &mSectorTrackInfos[next];
@@ -1575,7 +1579,9 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
         int32_t jtr = tr->NextSegmentNeighbour();
         if (jtr >= 0) {
           tr = &(mSectorTrackInfos[jtr]);
-          tr->SetPrevSegmentNeighbour(1000000002);
+          if (Param().rec.enableCyclicGraphWorkarounds) {
+            tr->SetPrevSegmentNeighbour(1000000002);
+          }
           continue;
         }
         break;
@@ -1797,7 +1803,7 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
         CAMath::AtomicAdd(&mSharedCount[mClusters[trk.FirstClusterRef() + j].num], 1u);
       }
       if (!trk.CCE() && !trk.MergedLooper()) {
-        GPUTPCGMMergedTrack* updTrk = trk.GetFirstSegment(mMergedTracks);
+        GPUTPCGMMergedTrack* updTrk = trk.GetFirstSegment(mMergedTracks, Param().rec.enableCyclicGraphWorkarounds);
         const auto &cl0 = mClusters[trk.FirstClusterRef()], &cln = mClusters[updTrk->FirstClusterRef() + updTrk->NClusters() - 1];
         const auto& GPUrestrict() cls = GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
         float z0 = cls[cl0.num].getTime(), zn = cls[cln.num].getTime();
@@ -1806,7 +1812,7 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
         updTrk = &trk;
         while (updTrk->PrevSegment() >= 0) {
           auto next = &mMergedTracks[updTrk->PrevSegment()];
-          if (next == &trk) {
+          if (Param().rec.enableCyclicGraphWorkarounds && next == &trk) {
             break;
           }
           updTrk = next;
@@ -1966,7 +1972,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int32_t nBlocks, int32_t nThreads, 
       const GPUTPCGMMergedTrack* trkI = &mMergedTracks[candidates[i].id];
       float refZI = candidates[i].refz;
       {
-        const auto* tmp = trkI->GetFirstSegment(mMergedTracks);
+        const auto* tmp = trkI->GetFirstSegment(mMergedTracks, Param().rec.enableCyclicGraphWorkarounds);
         if (tmp != trkI && tmp->CSide() == trkI->CSide() && CAMath::Abs(tmp->GetParam().GetZ()) > CAMath::Abs(trkI->GetParam().GetZ())) {
           float tmpRefZ = refZI + tmp->GetParam().GetZ() - trkI->GetParam().GetZ();
           if (CAMath::Abs(tmpRefZ) < CAMath::Abs(candidates[j].refz) && CAMath::Abs(tmpRefZ) > CAMath::Abs(refZI)) {

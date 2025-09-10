@@ -199,6 +199,7 @@ AddOptionRTC(fitInProjections, int8_t, -1, "", 0, "Fit in projection, -1 to enab
 AddOptionRTC(fitPropagateBzOnly, int8_t, -1, "", 0, "Propagate using Bz only for n passes")
 AddOptionRTC(useMatLUT, int8_t, 0, "", 0, "Use material lookup table for TPC refit")
 AddOptionRTC(trackingRefitGPUModel, int8_t, 1, "", 0, "Use GPU track model for the Global Track Refit")
+AddOptionRTC(enableCyclicGraphWorkarounds, int8_t, 0, "", 0, "Apply workarounds to avoid cyclic merge graphs, should not be needed")
 AddCustomCPP(void SetMinTrackPtB5(float v) { maxTrackQPtB5 = v > 0.001f ? (1.f / v) : (1.f / 0.001f); })
 AddSubConfig(GPUSettingsRecTPC, tpc)
 AddSubConfig(GPUSettingsRecTRD, trd)
