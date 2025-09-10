@@ -150,9 +150,9 @@ class GPUTPCGMTrackParam
   GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use
   GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z);
   // We force to compile these twice, for PropagateLooper and for Fit, for better optimization
-  GPUd() void AttachClustersLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outer, GPUTPCGMPropagator& prop);
-  GPUd() int32_t FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int32_t sector, int32_t iRow, int32_t iTrack, float toAlpha, float toX, float toY, int32_t toSector, int32_t toRow, bool inFlyDirection);
-  GPUd() void StoreLoopPropagation(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outerParam, float alpha);
+  GPUd() void AttachClustersLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, GPUTPCGMPropagator& prop);
+  GPUd() void AttachClustersLooperFollow(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards);
+  GPUd() void StoreLoopPropagation(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha);
   GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha);
   GPUd() static void PropagateLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t loopIdx);
 
@@ -213,7 +213,6 @@ class GPUTPCGMTrackParam
   }
 
  private:
-  GPUd() bool FollowCircleChk(float lrFactor, float toY, float toX, bool up, bool right);
   GPUd() int32_t initResetT0();
 
   float mX;        // x position
@@ -230,7 +229,7 @@ struct GPUTPCGMLoopData {
   float alpha;
   uint8_t sector;
   uint8_t row;
-  uint8_t outerParam;
+  uint8_t outwards;
 };
 
 GPUdi() int32_t GPUTPCGMTrackParam::initResetT0()
