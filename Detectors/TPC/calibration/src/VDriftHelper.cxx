@@ -166,7 +166,6 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
       if (mIsTPScalingPossible) {
         // if no new VDrift object was loaded and if delta TP is small, do not rescale and return
         if (!mUpdated && std::abs(tp - vd.refTP) < 1e-5) {
-          LOGP(info, "Do not rescale VDrift {}, T/P change is small: {} -> {}", vd.getVDrift(), vd.refTP, tp);
           return;
         }
         mUpdated = true;
@@ -251,7 +250,11 @@ bool VDriftHelper::extractTPForVDrift(VDriftCorrFact& vdrift, int64_t tsStepMS)
   const int64_t tsEnd = vdrift.lastTime;
 
   if (tsStart == tsEnd) {
-    LOGP(warn, "VDriftHelper: Cannot extract T/P for VDrift with identical start/end time {}!", tsStart);
+    static bool warned = false;
+    if (!warned) {
+      warned = true;
+      LOGP(warn, "VDriftHelper: Cannot extract T/P for VDrift with identical start/end time {}!", tsStart);
+    }
     return false;
   }
 
