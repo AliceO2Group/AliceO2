@@ -294,13 +294,14 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoSteps.stepsGPUMask & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings->mergerSortTracks = false;
   }
-
   if (GetProcessingSettings().debugLevel > 3 || !IsGPU() || GetProcessingSettings().deterministicGPUReconstruction) {
     mProcessingSettings->delayedOutput = false;
   }
-
   if (!GetProcessingSettings().rtc.enable) {
     mProcessingSettings->rtc.optConstexpr = false;
+  }
+  if (GetProcessingSettings().allSanityChecks) {
+    mProcessingSettings->clusterizerZSSanityCheck = mProcessingSettings->mergerSanityCheck = mProcessingSettings->outputSanityCheck = true;
   }
 
   mMemoryScalers->scalingFactor = GetProcessingSettings().memoryScalingFactor;

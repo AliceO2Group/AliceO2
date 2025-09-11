@@ -218,6 +218,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUdi() int32_t SectorTrackInfoLocalTotal() const { return mSectorTrackInfoIndex[NSECTORS]; }
   GPUdi() int32_t SectorTrackInfoTotal() const { return mSectorTrackInfoIndex[2 * NSECTORS]; }
 
+  void CheckMergeGraph();
+  void CheckCollectedTracks();
+
  private:
   GPUd() void MergeSectorsPrepareStep2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(uint32_t) * nB, bool useOrigTrackParam = false);
   template <int32_t I>
@@ -225,7 +228,6 @@ class GPUTPCGMMerger : public GPUProcessor
 
   GPUd() void MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, int32_t itr);
 
-  void CheckMergedTracks();
 #ifndef GPUCA_GPUCODE
   void PrintMergeGraph(const GPUTPCGMSectorTrack* trk, std::ostream& out) const;
   template <class T, class S>

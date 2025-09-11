@@ -251,7 +251,7 @@ void GPUChainTracking::PrintOutputStat()
   GPUInfo("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total) - %s format)%s", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, GetProcessingSettings().createO2Output > 1 ? "O2" : "GPU", trdText);
 }
 
-void GPUChainTracking::SanityCheck()
+void GPUChainTracking::OutputSanityCheck()
 {
   size_t nErrors = 0;
 

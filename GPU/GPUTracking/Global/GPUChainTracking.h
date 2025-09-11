@@ -291,7 +291,7 @@ class GPUChainTracking : public GPUChain
 
  private:
   int32_t RunChainFinalize();
-  void SanityCheck();
+  void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
   int32_t RunTPCClusterizer_prepare(bool restorePointers);
 #ifdef GPUCA_TPC_GEOMETRY_O2

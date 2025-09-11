@@ -149,7 +149,6 @@ class GPUTPCGMTrackParam
   GPUd() bool AttachClustersPropagate(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t lastRow, int32_t toRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop, bool inFlyDirection, float maxSinPhi = GPUCA_MAX_SIN_PHI, bool checkdEdx = false);
   GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use
   GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z);
-  // We force to compile these twice, for PropagateLooper and for Fit, for better optimization
   GPUd() void AttachClustersLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, GPUTPCGMPropagator& prop);
   GPUd() void AttachClustersLooperFollow(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards);
   GPUd() void StoreLoopPropagation(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha);

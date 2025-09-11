@@ -107,7 +107,7 @@ std::pair<uint32_t, uint32_t> GPUChainTracking::TPCClusterizerDecodeZSCountUpdat
   if (doGPU) {
     pages = o - processors()->tpcClusterer[iSector].mPzsOffsets;
   }
-  if (!doGPU && GetProcessingSettings().debugLevel >= 4 && mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
+  if (GetProcessingSettings().clusterizerZSSanityCheck && mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
     TPCClusterizerEnsureZSOffsets(iSector, fragment);
   }
   return {digits, pages};

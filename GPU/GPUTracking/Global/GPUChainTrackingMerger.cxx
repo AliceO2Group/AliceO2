@@ -163,6 +163,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   runKernel<GPUMemClean16>({{1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadowAll.TmpCounter(), 2 * NSECTORS * sizeof(*MergerShadowAll.TmpCounter()));
 
   runKernel<GPUTPCGMMergerLinkExtrapolatedTracks>(GetGridAuto(0, deviceType));
+  if (GetProcessingSettings().mergerSanityCheck) {
+    Merger.CheckMergeGraph();
+  }
   runKernel<GPUTPCGMMergerCollect>(GetGridAuto(0, deviceType));
   if (GetProcessingSettings().deterministicGPUReconstruction) {
     runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::mergedTracks1>({{1, -WarpSize(), 0, deviceType}}, 1);
@@ -188,6 +191,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUTPCGMMergerSortTracksPrepare>(GetGridAuto(0, deviceType));
     CondWaitEvent(waitForTransfer, &mEvents->single);
     runKernel<GPUTPCGMMergerSortTracks>(GetGridAuto(0, deviceType));
+  }
+  if (GetProcessingSettings().mergerSanityCheck) {
+    Merger.CheckCollectedTracks();
   }
 
   uint32_t maxId = Merger.NMaxClusters();

@@ -164,75 +164,6 @@ GPUTPCGMMerger::GPUTPCGMMerger()
 #if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
 #include "GPUQAHelper.h"
 
-void GPUTPCGMMerger::CheckMergedTracks()
-{
-  uint32_t nErr = 0;
-  std::vector<bool> trkUsed(SectorTrackInfoLocalTotal());
-  for (int32_t i = 0; i < SectorTrackInfoLocalTotal(); i++) {
-    trkUsed[i] = false;
-  }
-
-  for (int32_t itr = 0; itr < SectorTrackInfoLocalTotal(); itr++) {
-    GPUTPCGMSectorTrack& track = mSectorTrackInfos[itr];
-    if (track.PrevSegmentNeighbour() >= 0 && mSectorTrackInfos[track.PrevSegmentNeighbour()].NextSegmentNeighbour() != itr) {
-      GPUError("Invalid reciprocal segment link: %d PrevSegmentNeighbour %d NextSegmentNeighbour %d", itr, track.PrevSegmentNeighbour(), mSectorTrackInfos[track.PrevSegmentNeighbour()].NextSegmentNeighbour());
-      nErr++;
-    }
-    if (track.NextSegmentNeighbour() >= 0 && mSectorTrackInfos[track.NextSegmentNeighbour()].PrevSegmentNeighbour() != itr) {
-      GPUError("Invalid reciprocal segment link: %d NextSegmentNeighbour %d PrevSegmentNeighbour %d", itr, track.NextSegmentNeighbour(), mSectorTrackInfos[track.NextSegmentNeighbour()].PrevSegmentNeighbour());
-      nErr++;
-    }
-    if (track.PrevNeighbour() >= 0 && mSectorTrackInfos[track.PrevNeighbour()].NextNeighbour() != itr) {
-      GPUError("Invalid reciprocal  link: %d PrevNeighbour %d NextNeighbour %d", itr, track.PrevNeighbour(), mSectorTrackInfos[track.PrevNeighbour()].NextNeighbour());
-      nErr++;
-    }
-    if (track.NextNeighbour() >= 0 && mSectorTrackInfos[track.NextNeighbour()].PrevNeighbour() != itr) {
-      GPUError("Invalid reciprocal  link: %d NextNeighbour %d PrevNeighbour %d", itr, track.NextNeighbour(), mSectorTrackInfos[track.NextNeighbour()].PrevNeighbour());
-      nErr++;
-    }
-    if (track.PrevSegmentNeighbour() >= 0) {
-      continue;
-    }
-    if (track.PrevNeighbour() >= 0) {
-      continue;
-    }
-    GPUTPCGMSectorTrack *trbase = &track, *tr = &track;
-    while (true) {
-      int32_t iTrk = tr - mSectorTrackInfos;
-      if (trkUsed[iTrk]) {
-        GPUError("FAILURE: double use");
-        nErr++;
-      }
-      trkUsed[iTrk] = true;
-
-      int32_t jtr = tr->NextSegmentNeighbour();
-      if (jtr >= 0) {
-        tr = &(mSectorTrackInfos[jtr]);
-        continue;
-      }
-      jtr = trbase->NextNeighbour();
-      if (jtr >= 0) {
-        trbase = &(mSectorTrackInfos[jtr]);
-        tr = trbase;
-        if (tr->PrevSegmentNeighbour() >= 0) {
-          break;
-        }
-        continue;
-      }
-      break;
-    }
-  }
-  for (int32_t i = 0; i < SectorTrackInfoLocalTotal(); i++) {
-    if (trkUsed[i] == false) {
-      GPUError("FAILURE: trk missed");
-      nErr++;
-    }
-  }
-  if (nErr == 0) {
-    GPUInfo("Merged Track Graph OK");
-  }
-}
-
 template <class T>
 inline const auto* resolveMCLabels(const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* a, const AliHLTTPCClusterMCLabel* b)
 {
@@ -285,6 +216,122 @@ int64_t GPUTPCGMMerger::GetTrackLabel(const S& trk) const
 
 #endif
 // END DEBUG CODE
+
+void GPUTPCGMMerger::CheckCollectedTracks()
+{
+  uint32_t nErr = 0;
+  for (uint32_t i = 0; i < mMemory->nMergedTracks; i++) {
+    const GPUTPCGMMergedTrack& trk = mMergedTracks[i];
+    if (trk.OK()) {
+      if (trk.NClusters() == 0) {
+        GPUError("FAILURE: Track marked ok but has 0 clusters");
+        nErr++;
+      }
+      if (!trk.CCE() && !trk.MergedLooper()) {
+        const GPUTPCGMMergedTrack* updTrk = &trk;
+        while (updTrk->PrevSegment() >= 0) {
+          auto next = &mMergedTracks[updTrk->PrevSegment()];
+          if (!next->MergedLooper()) {
+            GPUError("FAILURE: prev segment not marked as merged looper\n");
+            nErr++;
+          }
+          if (next == &trk) {
+            GPUError("FAILURE: segment cycle found\n");
+            break;
+          }
+          updTrk = next;
+        }
+        if (updTrk->NClusters() == 0) {
+          printf("FAILURE: segment leg has 0 clusters");
+        }
+      }
+    }
+  }
+
+  if (nErr == 0) {
+    GPUInfo("Merged Tracks OK");
+  } else {
+    throw std::runtime_error("Error during track merging");
+  }
+}
+
+void GPUTPCGMMerger::CheckMergeGraph()
+{
+  uint32_t nErr = 0;
+  std::vector<bool> trkUsed(SectorTrackInfoLocalTotal());
+  for (int32_t i = 0; i < SectorTrackInfoLocalTotal(); i++) {
+    trkUsed[i] = false;
+  }
+
+  for (int32_t itr = 0; itr < SectorTrackInfoLocalTotal(); itr++) {
+    GPUTPCGMSectorTrack& track = mSectorTrackInfos[itr];
+    if (track.PrevSegmentNeighbour() >= 0 && mSectorTrackInfos[track.PrevSegmentNeighbour()].NextSegmentNeighbour() != itr) {
+      GPUError("FAILURE: Invalid reciprocal segment link: %d PrevSegmentNeighbour %d NextSegmentNeighbour %d", itr, track.PrevSegmentNeighbour(), mSectorTrackInfos[track.PrevSegmentNeighbour()].NextSegmentNeighbour());
+      nErr++;
+    }
+    if (track.NextSegmentNeighbour() >= 0 && mSectorTrackInfos[track.NextSegmentNeighbour()].PrevSegmentNeighbour() != itr) {
+      GPUError("FAILURE: Invalid reciprocal segment link: %d NextSegmentNeighbour %d PrevSegmentNeighbour %d", itr, track.NextSegmentNeighbour(), mSectorTrackInfos[track.NextSegmentNeighbour()].PrevSegmentNeighbour());
+      nErr++;
+    }
+    if (track.PrevNeighbour() >= 0 && mSectorTrackInfos[track.PrevNeighbour()].NextNeighbour() != itr) {
+      GPUError("FAILURE: Invalid reciprocal  link: %d PrevNeighbour %d NextNeighbour %d", itr, track.PrevNeighbour(), mSectorTrackInfos[track.PrevNeighbour()].NextNeighbour());
+      nErr++;
+    }
+    if (track.NextNeighbour() >= 0 && mSectorTrackInfos[track.NextNeighbour()].PrevNeighbour() != itr) {
+      GPUError("FAILURE: Invalid reciprocal  link: %d NextNeighbour %d PrevNeighbour %d", itr, track.NextNeighbour(), mSectorTrackInfos[track.NextNeighbour()].PrevNeighbour());
+      nErr++;
+    }
+    if (track.PrevSegmentNeighbour() >= 0) {
+      continue;
+    }
+    if (track.PrevNeighbour() >= 0) {
+      continue;
+    }
+    GPUTPCGMSectorTrack *trbase = &track, *tr = &track;
+    while (true) {
+      int32_t iTrk = tr - mSectorTrackInfos;
+      if (trkUsed[iTrk]) {
+        GPUError("FAILURE: double use");
+        nErr++;
+        break;
+      }
+      trkUsed[iTrk] = true;
+
+      int32_t jtr = tr->NextSegmentNeighbour();
+      if (jtr >= 0) {
+        tr = &(mSectorTrackInfos[jtr]);
+        if (tr->PrevNeighbour() >= 0) {
+          GPUError("FAILURE: Non-base segment has previous leg");
+          nErr++;
+        }
+        continue;
+      }
+      jtr = trbase->NextNeighbour();
+      if (jtr >= 0) {
+        trbase = &(mSectorTrackInfos[jtr]);
+        tr = trbase;
+        if (tr->PrevSegmentNeighbour() >= 0) {
+          GPUError("FAILURE: Neibhbour leg has previous segment neightbout");
+          nErr++;
+          break;
+        }
+        continue;
+      }
+      break;
+    }
+  }
+  for (int32_t i = 0; i < SectorTrackInfoLocalTotal(); i++) {
+    if (trkUsed[i] == false) {
+      GPUError("FAILURE: trk missed");
+      nErr++;
+    }
+  }
+  if (nErr == 0) {
+    GPUInfo("Merged Track Graph OK");
+  } else {
+    throw std::runtime_error("Invalid merge graph");
+  }
+}
 
 void GPUTPCGMMerger::PrintMergeGraph(const GPUTPCGMSectorTrack* trk, std::ostream& out) const
 {
@@ -1441,7 +1488,6 @@ struct GPUTPCGMMerger_CompareClusterIds {
 
 GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
-  // if (iThread == 0 && iBlock == 0) { CheckMergedTracks(); } return; // (if GPUCA_CADEBUG_ENABLED)
   static constexpr int32_t kMaxParts = 16;
   static constexpr int32_t kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 

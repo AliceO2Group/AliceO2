@@ -269,6 +269,10 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("noGPUMemoryRegistration only possible with gather mode 3 (set to %d / %d)", mRec->GetProcessingSettings().tpcCompressionGatherMode, gatherMode);
     return false;
   }
+  if (mRec->IsGPU() && (GetProcessingSettings().clusterizerZSSanityCheck || GetProcessingSettings().mergerSanityCheck)) {
+    GPUError("Clusterizer and merger Sanity checks only supported when not running on GPU");
+    return false;
+  }
   if (GetProcessingSettings().doublePipeline) {
     if (!GetRecoStepsOutputs().isOnlySet(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters, GPUDataTypes::InOutType::TPCClusters)) {
       GPUError("Invalid outputs for double pipeline mode 0x%x", (uint32_t)GetRecoStepsOutputs());
@@ -791,7 +795,7 @@ int32_t GPUChainTracking::RunChainFinalize()
   }
 
   if (GetProcessingSettings().outputSanityCheck) {
-    SanityCheck();
+    OutputSanityCheck();
   }
 
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));

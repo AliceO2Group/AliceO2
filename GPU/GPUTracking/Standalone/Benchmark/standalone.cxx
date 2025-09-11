@@ -843,7 +843,7 @@ int32_t main(int argc, char** argv)
       break;
     }
     if (configStandalone.runs2 > 1) {
-      printf("RUN2: %d\n", iRunOuter);
+      printf("\nRUN2: %d\n", iRunOuter);
     }
     int64_t nTracksTotal = 0;
     int64_t nClustersTotal = 0;
