@@ -1330,7 +1330,7 @@ void addSpecialParticles()
 
   TVirtualMC::GetMC()->SetDecayMode(9010221, bratio, mode);
 
-  // Define the 2-body phase space decay for the f2(1270)
+  // Define the 2-body phase space decay for f2(1270)
   //  Int_t mode[6][3];
   //  Float_t bratio[6];
 
