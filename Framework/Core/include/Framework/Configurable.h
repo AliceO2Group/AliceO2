@@ -114,9 +114,9 @@ template <typename T>
 concept is_process_configurable = is_configurable<T> && requires(T& t) { t.process; };
 
 #define PROCESS_SWITCH(_Class_, _Name_, _Help_, _Default_) \
-  decltype(ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_}) do##_Name_ = ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_};
+  decltype(o2::framework::ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_}) do##_Name_ = o2::framework::ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_};
 #define PROCESS_SWITCH_FULL(_Class_, _Method_, _Name_, _Help_, _Default_) \
-  decltype(ProcessConfigurable{&_Class_ ::_Method_, #_Name_, _Default_, _Help_}) do##_Name_ = ProcessConfigurable{&_Class_ ::_Method_, #_Name_, _Default_, _Help_};
+  decltype(o2::framework::ProcessConfigurable{&_Class_ ::_Method_, #_Name_, _Default_, _Help_}) do##_Name_ = o2::framework::ProcessConfigurable{&_Class_ ::_Method_, #_Name_, _Default_, _Help_};
 
 template <typename T, ConfigParamKind K, typename IP>
 std::ostream& operator<<(std::ostream& os, Configurable<T, K, IP> const& c)
