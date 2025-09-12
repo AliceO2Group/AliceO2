@@ -66,7 +66,9 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
     LOGP(error, "Too much memory used during {} in iteration {} in ROF span {}-{} iVtx={}: {:.2f} GB. Current limit is {:.2f} GB, check the detector status and/or the selections.",
          StateNames[mCurState], iteration, iROFs, iROFs + mTrkParams[iteration].nROFsPerIterations, iVertex,
          (double)mTimeFrame->getArtefactsMemory() / GB, (double)mTrkParams[iteration].MaxMemory / GB);
-    LOGP(error, "Exception: {}", err.what());
+    if (typeid(err) != typeid(std::bad_alloc) { // only print if the exceptions is different from what is expected
+      LOGP(error, "Exception: {}", err.what());
+    }
     if (mTrkParams[iteration].DropTFUponFailure) {
       mMemoryPool->print();
       mTimeFrame->wipe();
