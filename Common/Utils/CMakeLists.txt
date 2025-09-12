@@ -51,6 +51,15 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/IRFrameSelector.h
                                   include/CommonUtils/DebugStreamer.h)
 
+# Extra dictionaries only needed if tests are built
+if(BUILD_TESTING)
+    o2_add_library(CommonUtilsTest
+               SOURCES src/ConfigurableParamTest.cxx
+                       PUBLIC_LINK_LIBRARIES O2::CommonUtils)
+    o2_target_root_dictionary(CommonUtilsTest
+                              HEADERS include/CommonUtils/ConfigurableParamTest.h)
+endif()
+
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils
             LABELS utils
@@ -86,6 +95,12 @@ o2_add_test(EnumFlags
             LABELS utils
             SOURCES test/testEnumFlags.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils)
+
+o2_add_test(ConfigurableParam
+            COMPONENT_NAME CommonUtils
+            LABELS utils
+            SOURCES test/testConfigurableParam.cxx
+            PUBLIC_LINK_LIBRARIES O2::CommonUtilsTest)
 
 o2_add_executable(treemergertool
             COMPONENT_NAME CommonUtils
