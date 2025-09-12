@@ -25,13 +25,13 @@ namespace o2::its::gpu
 {
 
 template <int nLayers = 7>
-class TimeFrameGPU : public TimeFrame<nLayers>
+class TimeFrameGPU final : public TimeFrame<nLayers>
 {
   using typename TimeFrame<nLayers>::CellSeedN;
   using typename TimeFrame<nLayers>::IndexTableUtilsN;
 
  public:
-  TimeFrameGPU();
+  TimeFrameGPU() = default;
   ~TimeFrameGPU() = default;
 
   /// Most relevant operations
@@ -44,13 +44,13 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   void loadTrackingFrameInfoDevice(const int, const int);
   void createTrackingFrameInfoDeviceArray(const int);
   void loadUnsortedClustersDevice(const int, const int);
-  void createUnsortedClustersDeviceArray(const int);
+  void createUnsortedClustersDeviceArray(const int, const int = nLayers);
   void loadClustersDevice(const int, const int);
-  void createClustersDeviceArray(const int);
+  void createClustersDeviceArray(const int, const int = nLayers);
   void loadClustersIndexTables(const int, const int);
-  void createClustersIndexTablesArray(const int iteration);
+  void createClustersIndexTablesArray(const int);
   void createUsedClustersDevice(const int, const int);
-  void createUsedClustersDeviceArray(const int);
+  void createUsedClustersDeviceArray(const int, const int = nLayers);
   void loadUsedClustersDevice();
   void loadROFrameClustersDevice(const int, const int);
   void createROFrameClustersDeviceArray(const int);
@@ -85,6 +85,12 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   void downloadCellsDevice();
   void downloadCellsLUTDevice();
 
+  /// Vertexer
+  void createVtxTrackletsLUTDevice(const int32_t);
+  void createVtxTrackletsBuffers(const int32_t);
+  void createVtxLinesLUTDevice(const int32_t);
+  void createVtxLinesBuffer(const int32_t);
+
   /// synchronization
   auto& getStream(const size_t stream) { return mGpuStreams[stream]; }
   auto& getStreams() { return mGpuStreams; }
@@ -98,6 +104,8 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   virtual void wipe() final;
 
   /// interface
+  virtual bool isGPU() const noexcept final { return true; }
+  virtual const char* getName() const noexcept { return "GPU"; }
   int getNClustersInRofSpan(const int, const int, const int) const;
   IndexTableUtilsN* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
   int* getDeviceROFramesClusters(const int layer) { return mROFramesClustersDevice[layer]; }
@@ -122,7 +130,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   const Cluster** getDeviceArrayUnsortedClusters() const { return mUnsortedClustersDeviceArray; }
   const int** getDeviceArrayClustersIndexTables() const { return mClustersIndexTablesDeviceArray; }
   std::vector<unsigned int> getClusterSizes();
-  const unsigned char** getDeviceArrayUsedClusters() const { return mUsedClustersDeviceArray; }
+  uint8_t** getDeviceArrayUsedClusters() const { return mUsedClustersDeviceArray; }
   const int** getDeviceROFrameClusters() const { return mROFramesClustersDeviceArray; }
   Tracklet** getDeviceArrayTracklets() { return mTrackletsDeviceArray; }
   int** getDeviceArrayTrackletsLUT() const { return mTrackletsLUTDeviceArray; }
@@ -134,6 +142,19 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
   int* getDeviceNeighboursIndexTables(const int layer) { return mNeighboursIndexTablesDevice[layer]; }
   uint8_t* getDeviceMultCutMask() { return mMultMaskDevice; }
+
+  // Vertexer
+  auto& getDeviceNTrackletsPerROF() const noexcept { return mNTrackletsPerROFDevice; }
+  auto& getDeviceNTrackletsPerCluster() const noexcept { return mNTrackletsPerClusterDevice; }
+  auto& getDeviceNTrackletsPerClusterSum() const noexcept { return mNTrackletsPerClusterSumDevice; }
+  int32_t** getDeviceArrayNTrackletsPerROF() const noexcept { return mNTrackletsPerROFDeviceArray; }
+  int32_t** getDeviceArrayNTrackletsPerCluster() const noexcept { return mNTrackletsPerClusterDeviceArray; }
+  int32_t** getDeviceArrayNTrackletsPerClusterSum() const noexcept { return mNTrackletsPerClusterSumDeviceArray; }
+  uint8_t* getDeviceUsedTracklets() const noexcept { return mUsedTrackletsDevice; }
+  int32_t* getDeviceNLinesPerCluster() const noexcept { return mNLinesPerClusterDevice; }
+  int32_t* getDeviceNLinesPerClusterSum() const noexcept { return mNLinesPerClusterSumDevice; }
+  Line* getDeviceLines() const noexcept { return mLinesDevice; }
+  gsl::span<int*> getDeviceTrackletsPerROFs() { return mNTrackletsPerROFDevice; }
 
   void setDevicePropagator(const o2::base::PropagatorImpl<float>* p) final { this->mPropagatorDevice = p; }
 
@@ -180,7 +201,7 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   const Cluster** mClustersDeviceArray;
   const Cluster** mUnsortedClustersDeviceArray;
   const int** mClustersIndexTablesDeviceArray;
-  const unsigned char** mUsedClustersDeviceArray;
+  uint8_t** mUsedClustersDeviceArray;
   const int** mROFramesClustersDeviceArray;
   std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
   std::array<int*, nLayers - 1> mTrackletsLUTDevice;
@@ -207,6 +228,18 @@ class TimeFrameGPU : public TimeFrame<nLayers>
   std::array<int*, nLayers - 2> mNeighboursDevice;
   std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
   const TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
+
+  /// Vertexer
+  std::array<int32_t*, 2> mNTrackletsPerROFDevice;
+  std::array<int32_t*, 2> mNTrackletsPerClusterDevice;
+  std::array<int32_t*, 2> mNTrackletsPerClusterSumDevice;
+  uint8_t* mUsedTrackletsDevice;
+  int32_t* mNLinesPerClusterDevice;
+  int32_t* mNLinesPerClusterSumDevice;
+  int32_t** mNTrackletsPerROFDeviceArray;
+  int32_t** mNTrackletsPerClusterDeviceArray;
+  int32_t** mNTrackletsPerClusterSumDeviceArray;
+  Line* mLinesDevice;
 
   // State
   Streams mGpuStreams;

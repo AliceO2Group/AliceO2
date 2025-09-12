@@ -29,12 +29,6 @@ namespace o2::its::gpu
 {
 
 template <int nLayers>
-TimeFrameGPU<nLayers>::TimeFrameGPU()
-{
-  this->mIsGPU = true;
-}
-
-template <int nLayers>
 void TimeFrameGPU<nLayers>::allocMemAsync(void** ptr, size_t size, Stream& stream, bool extAllocator)
 {
   if (extAllocator) {
@@ -69,14 +63,14 @@ void TimeFrameGPU<nLayers>::loadIndexTableUtils(const int iteration)
 }
 
 template <int nLayers>
-void TimeFrameGPU<nLayers>::createUnsortedClustersDeviceArray(const int iteration)
+void TimeFrameGPU<nLayers>::createUnsortedClustersDeviceArray(const int iteration, const int maxLayers)
 {
   if (!iteration) {
     GPUTimer timer("creating unsorted clusters array");
     allocMem(reinterpret_cast<void**>(&mUnsortedClustersDeviceArray), nLayers * sizeof(Cluster*), this->getExtAllocator());
     GPUChkErrS(cudaHostRegister(mUnsortedClustersDevice.data(), nLayers * sizeof(Cluster*), cudaHostRegisterPortable));
     mPinnedUnsortedClusters.set(nLayers);
-    for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
+    for (auto iLayer{0}; iLayer < o2::gpu::CAMath::Min(maxLayers, nLayers); ++iLayer) {
       GPUChkErrS(cudaHostRegister(this->mUnsortedClusters[iLayer].data(), this->mUnsortedClusters[iLayer].size() * sizeof(Cluster), cudaHostRegisterPortable));
       mPinnedUnsortedClusters.set(iLayer);
     }
@@ -96,14 +90,14 @@ void TimeFrameGPU<nLayers>::loadUnsortedClustersDevice(const int iteration, cons
 }
 
 template <int nLayers>
-void TimeFrameGPU<nLayers>::createClustersDeviceArray(const int iteration)
+void TimeFrameGPU<nLayers>::createClustersDeviceArray(const int iteration, const int maxLayers)
 {
   if (!iteration) {
     GPUTimer timer("creating sorted clusters array");
     allocMem(reinterpret_cast<void**>(&mClustersDeviceArray), nLayers * sizeof(Cluster*), this->getExtAllocator());
     GPUChkErrS(cudaHostRegister(mClustersDevice.data(), nLayers * sizeof(Cluster*), cudaHostRegisterPortable));
     mPinnedClusters.set(nLayers);
-    for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
+    for (auto iLayer{0}; iLayer < o2::gpu::CAMath::Min(maxLayers, nLayers); ++iLayer) {
       GPUChkErrS(cudaHostRegister(this->mClusters[iLayer].data(), this->mClusters[iLayer].size() * sizeof(Cluster), cudaHostRegisterPortable));
       mPinnedClusters.set(iLayer);
     }
@@ -150,15 +144,15 @@ void TimeFrameGPU<nLayers>::loadClustersIndexTables(const int iteration, const i
 }
 
 template <int nLayers>
-void TimeFrameGPU<nLayers>::createUsedClustersDeviceArray(const int iteration)
+void TimeFrameGPU<nLayers>::createUsedClustersDeviceArray(const int iteration, const int maxLayers)
 {
   if (!iteration) {
     GPUTimer timer("creating used clusters flags");
-    allocMem(reinterpret_cast<void**>(&mUsedClustersDeviceArray), nLayers * sizeof(unsigned char*), this->getExtAllocator());
-    GPUChkErrS(cudaHostRegister(mUsedClustersDevice.data(), nLayers * sizeof(unsigned char*), cudaHostRegisterPortable));
+    allocMem(reinterpret_cast<void**>(&mUsedClustersDeviceArray), nLayers * sizeof(uint8_t*), this->getExtAllocator());
+    GPUChkErrS(cudaHostRegister(mUsedClustersDevice.data(), nLayers * sizeof(uint8_t*), cudaHostRegisterPortable));
     mPinnedUsedClusters.set(nLayers);
-    for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
-      GPUChkErrS(cudaHostRegister(this->mUsedClusters[iLayer].data(), this->mUsedClusters[iLayer].size() * sizeof(unsigned char), cudaHostRegisterPortable));
+    for (auto iLayer{0}; iLayer < o2::gpu::CAMath::Min(maxLayers, nLayers); ++iLayer) {
+      GPUChkErrS(cudaHostRegister(this->mUsedClusters[iLayer].data(), this->mUsedClusters[iLayer].size() * sizeof(uint8_t), cudaHostRegisterPortable));
       mPinnedUsedClusters.set(iLayer);
     }
   }
@@ -458,6 +452,87 @@ void TimeFrameGPU<nLayers>::createTrackITSExtDevice(bounded_vector<CellSeedN>& s
   allocMem(reinterpret_cast<void**>(&mTrackITSExtDevice), seeds.size() * sizeof(o2::its::TrackITSExt), this->getExtAllocator());
   GPUChkErrS(cudaMemset(mTrackITSExtDevice, 0, seeds.size() * sizeof(o2::its::TrackITSExt)));
   GPUChkErrS(cudaHostRegister(mTrackITSExt.data(), seeds.size() * sizeof(o2::its::TrackITSExt), cudaHostRegisterPortable));
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::createVtxTrackletsLUTDevice(const int32_t iteration)
+{
+  GPUTimer timer("creating vertexer tracklet LUTs");
+  const int32_t ncls = this->mClusters[1].size();
+  for (int32_t iMode{0}; iMode < 2; ++iMode) {
+    if (!iteration) {
+      GPULog("gpu-transfer: creating vertexer tracklets per cluster for {} elements for mode {}, for {:.2f} MB.", ncls, iMode, ncls * sizeof(int32_t) / constants::MB);
+      allocMemAsync(reinterpret_cast<void**>(&mNTrackletsPerClusterDevice[iMode]), ncls * sizeof(int32_t), mGpuStreams[iMode], this->getExtAllocator());
+
+      GPULog("gpu-transfer: creating vertexer tracklets per cluster sum for {} elements for mode {}, for {:.2f} MB.", ncls + 1, iMode, (ncls + 1) * sizeof(int32_t) / constants::MB);
+      allocMemAsync(reinterpret_cast<void**>(&mNTrackletsPerClusterSumDevice[iMode]), (ncls + 1) * sizeof(int32_t), mGpuStreams[iMode], this->getExtAllocator());
+
+      GPULog("gpu-transfer: creating vertexer tracklets per ROF for {} elements for mode {}, for {:.2f} MB.", this->mNrof + 1, iMode, (this->mNrof + 1) * sizeof(int32_t) / constants::MB);
+      allocMemAsync(reinterpret_cast<void**>(&mNTrackletsPerROFDevice[iMode]), (this->mNrof + 1) * sizeof(int32_t), mGpuStreams[iMode], this->getExtAllocator());
+    }
+    GPUChkErrS(cudaMemsetAsync(mNTrackletsPerClusterDevice[iMode], 0, ncls * sizeof(int32_t), mGpuStreams[iMode].get()));
+    GPUChkErrS(cudaMemsetAsync(mNTrackletsPerClusterSumDevice[iMode], 0, (ncls + 1) * sizeof(int32_t), mGpuStreams[iMode].get()));
+    GPUChkErrS(cudaMemsetAsync(mNTrackletsPerROFDevice[iMode], 0, (this->mNrof + 1) * sizeof(int32_t), mGpuStreams[iMode].get()));
+  }
+  mGpuStreams[0].sync();
+  mGpuStreams[1].sync();
+  if (!iteration) {
+    allocMem(reinterpret_cast<void**>(&mNTrackletsPerClusterDeviceArray), mNTrackletsPerClusterDevice.size() * sizeof(int32_t*), this->getExtAllocator());
+    GPUChkErrS(cudaMemcpy(mNTrackletsPerClusterDeviceArray, mNTrackletsPerClusterDevice.data(), mNTrackletsPerClusterDevice.size() * sizeof(int32_t*), cudaMemcpyHostToDevice));
+
+    allocMem(reinterpret_cast<void**>(&mNTrackletsPerClusterSumDeviceArray), mNTrackletsPerClusterSumDevice.size() * sizeof(int32_t*), this->getExtAllocator());
+    GPUChkErrS(cudaMemcpy(mNTrackletsPerClusterSumDeviceArray, mNTrackletsPerClusterSumDevice.data(), mNTrackletsPerClusterSumDevice.size() * sizeof(int32_t*), cudaMemcpyHostToDevice));
+
+    allocMem(reinterpret_cast<void**>(&mNTrackletsPerROFDeviceArray), mNTrackletsPerROFDevice.size() * sizeof(int32_t*), this->getExtAllocator());
+    GPUChkErrS(cudaMemcpy(mNTrackletsPerROFDeviceArray, mNTrackletsPerROFDevice.data(), mNTrackletsPerROFDevice.size() * sizeof(int32_t*), cudaMemcpyHostToDevice));
+  }
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::createVtxTrackletsBuffers(const int32_t iteration)
+{
+  GPUTimer timer("creating vertexer tracklet buffers");
+  for (int32_t iMode{0}; iMode < 2; ++iMode) {
+    this->mTotalTracklets[iMode] = 0;
+    GPUChkErrS(cudaMemcpyAsync(&(this->mTotalTracklets[iMode]), mNTrackletsPerClusterSumDevice[iMode] + this->mClusters[1].size(), sizeof(int32_t), cudaMemcpyDeviceToHost, mGpuStreams[iMode].get()));
+    GPULog("gpu-transfer: creating vertexer tracklets buffer for {} elements on layer {}, for {:.2f} MB.", this->mTotalTracklets[iMode], iMode, this->mTotalTracklets[iMode] * sizeof(Tracklet) / constants::MB);
+    allocMemAsync(reinterpret_cast<void**>(&mTrackletsDevice[iMode]), this->mTotalTracklets[iMode] * sizeof(Tracklet), mGpuStreams[iMode], this->getExtAllocator());
+  }
+  mGpuStreams[0].sync();
+  mGpuStreams[1].sync();
+  allocMem(reinterpret_cast<void**>(&mTrackletsDeviceArray), 2 * sizeof(Tracklet*), this->getExtAllocator());
+  GPUChkErrS(cudaHostRegister(mTrackletsDevice.data(), 2 * sizeof(Tracklet*), cudaHostRegisterPortable));
+  GPUChkErrS(cudaMemcpy(mTrackletsDeviceArray, mTrackletsDevice.data(), 2 * sizeof(Tracklet*), cudaMemcpyHostToDevice));
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::createVtxLinesLUTDevice(const int32_t iteration)
+{
+  GPUTimer timer("creating vertexer lines LUT and used tracklets buffer");
+  const int32_t ncls = this->mClusters[1].size();
+
+  GPULog("gpu-transfer: creating vertexer lines per cluster for {} elements , for {:.2f} MB.", ncls, ncls * sizeof(int32_t) / constants::MB);
+  allocMem(reinterpret_cast<void**>(&mNLinesPerClusterDevice), ncls * sizeof(int32_t), this->getExtAllocator());
+
+  GPULog("gpu-transfer: creating vertexer lines per cluster sum for {} elements , for {:.2f} MB.", ncls + 1, (ncls + 1) * sizeof(int32_t) / constants::MB);
+  allocMem(reinterpret_cast<void**>(&mNLinesPerClusterSumDevice), (ncls + 1) * sizeof(int32_t), this->getExtAllocator());
+
+  const int32_t ntrkls = this->mTotalTracklets[0];
+  GPULog("gpu-transfer: creating vertexer used tracklets for {} elements , for {:.2f} MB.", ntrkls, ntrkls * sizeof(uint8_t) / constants::MB);
+  allocMem(reinterpret_cast<void**>(&mUsedTrackletsDevice), ntrkls * sizeof(uint8_t), this->getExtAllocator());
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::createVtxLinesBuffer(const int32_t iteration)
+{
+  GPUTimer timer("creating vertexer lines buffer and resetting used tracklets");
+  int32_t nlines = 0;
+  GPUChkErrS(cudaMemcpy(&nlines, mNLinesPerClusterDevice + this->mClusters[1].size(), sizeof(int32_t), cudaMemcpyDeviceToHost));
+  this->mTotalLines = nlines;
+  GPULog("gpu-transfer: creating vertexer lines for {} elements , for {:.2f} MB.", nlines, nlines * sizeof(Line) / constants::MB);
+  allocMem(reinterpret_cast<void**>(&mLinesDevice), nlines * sizeof(Line), this->getExtAllocator());
+  // reset used tracklets
+  GPUChkErrS(cudaMemset(mUsedTrackletsDevice, 0, this->mTotalTracklets[0] * sizeof(uint8_t)));
 }
 
 template <int nLayers>
