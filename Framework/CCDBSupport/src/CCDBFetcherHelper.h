@@ -33,6 +33,7 @@ struct CCDBFetcherHelper {
     size_t minSize = -1ULL;
     size_t maxSize = 0;
     int lastCheckedTF = 0;
+    int lastCheckedSlice = 0;
   };
 
   struct RemapMatcher {
@@ -94,6 +95,7 @@ struct CCDBFetcherHelper {
   int queryPeriodGlo = 1;
   int queryPeriodFactor = 1;
   int64_t timeToleranceMS = 5000;
+  int useTFSlice = 0; // if non-zero, use TFslice instead of TFcounter for the validity check. If > requested checking rate, add additional check on |lastTFchecked - TCcounter|<=useTFSlice
 
   o2::ccdb::CcdbApi& getAPI(const std::string& path);
   static void initialiseHelper(CCDBFetcherHelper& helper, ConfigParamRegistry const& options);

@@ -44,7 +44,11 @@ struct SimCutParams : public o2::conf::ConfigurableParamHelper<SimCutParams> {
 struct SimMaterialParams : public o2::conf::ConfigurableParamHelper<SimMaterialParams> {
   // Local density value takes precedence over global density value, i.e. local values overwrite the global value.
   float globalDensityFactor = 1.f; // global factor that scales all material densities for systematic studies
-  std::string localDensityFactor; // Expected format: "SimMaterialParams.localDensityFactor=<mod1>:<value1>,<mod2>:<value2>,..."
+  // String to set densities on module or material level. Expected format:
+  // "SimMaterialParams.localDensityFactor=<mod1/matname>:<value1>,<mod2>:<value2>,..."
+  // Example: "SimMaterialParams.localDensityFactor=TPC/Air:1.2,ITS:5." will scale the density of the Air in TPC
+  //           with 1.2 and to 5.0 for all materials in ITS".
+  std::string localDensityFactor;
 
   O2ParamDef(SimMaterialParams, "SimMaterialParams");
 };

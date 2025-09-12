@@ -900,7 +900,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
       createEmptyOutput = !mConfParam->partialOutputForNonFatalErrors;
     } else {
-      throw std::runtime_error("GPU Reconstruction error: error code " + std::to_string(retVal));
+      LOG(fatal) << "GPU Reconstruction aborted with error code " << retVal << " - errors are not ignored - terminating";
     }
   }
 

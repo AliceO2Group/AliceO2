@@ -456,6 +456,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.runTPCTracking = true;
     cfg.lumiScaleType = sclOpts.lumiType;
     cfg.lumiScaleMode = sclOpts.lumiMode;
+    cfg.checkCTPIDCconsistency = sclOpts.checkCTPIDCconsistency;
     cfg.enableMShape = sclOpts.enableMShapeCorrection;
     cfg.enableCTPLumi = sclOpts.requestCTPLumi;
     cfg.decompressTPC = decompressTPC;

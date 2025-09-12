@@ -138,6 +138,7 @@ void CorrectionMapsLoader::addGlobalOptions(std::vector<ConfigParamSpec>& option
   addOption(options, ConfigParamSpec{"corrmap-lumi-mode", o2::framework::VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative; 2 = full + scale * derivative (for MC)"}});
   addOption(options, ConfigParamSpec{"enable-M-shape-correction", o2::framework::VariantType::Bool, false, {"Enable M-shape distortion correction"}});
   addOption(options, ConfigParamSpec{"disable-ctp-lumi-request", o2::framework::VariantType::Bool, false, {"do not request CTP lumi (regardless what is used for corrections)"}});
+  addOption(options, ConfigParamSpec{"disable-lumi-type-consistency-check", o2::framework::VariantType::Bool, false, {"disable check of selected CTP or IDC scaling source being consistent with the map"}});
 }
 
 //________________________________________________________
@@ -148,6 +149,7 @@ CorrectionMapsLoaderGloOpts CorrectionMapsLoader::parseGlobalOptions(const o2::f
   tpcopt.lumiMode = opts.get<int>("corrmap-lumi-mode");
   tpcopt.enableMShapeCorrection = opts.get<bool>("enable-M-shape-correction");
   tpcopt.requestCTPLumi = !opts.get<bool>("disable-ctp-lumi-request");
+  tpcopt.checkCTPIDCconsistency = !opts.get<bool>("disable-lumi-type-consistency-check");
   if (!tpcopt.requestCTPLumi && tpcopt.lumiType == 1) {
     LOGP(fatal, "Scaling with CTP Lumi is requested but this input is disabled");
   }
@@ -192,6 +194,9 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     } else if (getLumiScaleType() == 2) {
       mapMeanRate = mCorrMap->getIDC();
     }
+    if (mCheckCTPIDCConsistency) {
+      checkMeanScaleConsistency(mapMeanRate, mCorrMap->getCTP2IDCFallBackThreshold());
+    }
     if (getMeanLumiOverride() == 0 && mapMeanRate > 0.) {
       setMeanLumi(mapMeanRate, false);
     }
@@ -217,6 +222,9 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
       mapRefMeanRate = mCorrMapRef->getLumi();
     } else if (getLumiScaleType() == 2) {
       mapRefMeanRate = mCorrMapRef->getIDC();
+    }
+    if (mCheckCTPIDCConsistency) {
+      checkMeanScaleConsistency(mapRefMeanRate, mCorrMapRef->getCTP2IDCFallBackThreshold());
     }
     if (getMeanLumiRefOverride() == 0) {
       setMeanLumiRef(mapRefMeanRate);
@@ -325,6 +333,19 @@ void CorrectionMapsLoader::updateInverse()
     TPCFastSpaceChargeCorrectionHelper::instance()->initInverse(corr, scaling, false);
   } else {
     LOGP(info, "Reinitializing inverse correction with lumi scale mode {} not supported for now", mLumiScaleMode);
+  }
+}
+
+void CorrectionMapsLoader::checkMeanScaleConsistency(float meanLumi, float threshold) const
+{
+  if (getLumiScaleType() == 1) {
+    if (meanLumi < threshold) {
+      LOGP(fatal, "CTP Lumi scaling source is requested, but the map mean scale {} is below the threshold {}", meanLumi, threshold);
+    }
+  } else if (getLumiScaleType() == 2) {
+    if (meanLumi > threshold) {
+      LOGP(fatal, "IDC scaling source is requested, but the map mean scale {} is above the threshold {}", meanLumi, threshold);
+    }
   }
 }
 

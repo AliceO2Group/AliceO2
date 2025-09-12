@@ -75,6 +75,7 @@ class TrackingStudySpec : public Task
   {
     mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
     mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
   }
   ~TrackingStudySpec() final = default;
   void init(InitContext& ic) final;
