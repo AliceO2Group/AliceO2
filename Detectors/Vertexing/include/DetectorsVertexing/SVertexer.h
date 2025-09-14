@@ -15,7 +15,7 @@
 #ifndef O2_S_VERTEXER_H
 #define O2_S_VERTEXER_H
 
-// #define _DBGMC_SVERTEXER_
+#define _DBGMC_SVERTEXER_
 
 #include "gsl/span"
 #include "DataFormatsCalibration/MeanVertexObject.h"

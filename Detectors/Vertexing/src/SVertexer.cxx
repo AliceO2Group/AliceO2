@@ -265,6 +265,7 @@ void SVertexer::init()
   // std::vector<std::pair<int, int>> vTEID = {{trID0, evID0},{trID1, evID1} ...}.
   // It is expected trID0 and trID1 are the labels of MC prongs
   // #include "sv_labels_to_watch.inc"
+#include "/data0/pp/LHC24af_550916MC1/tf8/dec22.txt"
   //
   // or just add locally something like
   // std::vector<std::pair<int, int>> vTEID = {{930, 63}};
@@ -648,15 +649,18 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     watchHit = checkLbl(watchLb0) && checkLbl(watchLb1) && (watchLb0.getEventID() == watchLb1.getEventID() && std::abs(watchLb0.getTrackID() - watchLb1.getTrackID()) == 1);
     if (watchHit) {
       auto vlist = seedP.vBracket.getOverlap(seedN.vBracket); // indices of vertices shared by both seeds
+      std::string vlistStr{};
       for (int iv = vlist.getMin(); iv <= vlist.getMax(); iv++) {
         int vtMCID = mRecoCont->getPrimaryVertexMCLabel(iv).getEventID();
         watchHitVtxOK = vtMCID == watchLb0.getEventID();
+	vlistStr += fmt::format(" {}", iv);
         if (watchHitVtxOK) {
-          break;
+	  vlistStr += "+";
+	  //          break;
         }
       }
       if (watchHitVtxOK) {
-        watchPairRep = fmt::format("watched labels {} of {} and {} of {}, MCVtx={}", watchLb0.asString(), seedP.gid.asString(), watchLb1.asString(), seedN.gid.asString(), watchHitVtxOK);
+        watchPairRep = fmt::format("watched labels {} of {} and {} of {}, MCVtx={} in {}", watchLb0.asString(), seedP.gid.asString(), watchLb1.asString(), seedN.gid.asString(), watchHitVtxOK, vlistStr);
         LOGP(info, "Checking {}", watchPairRep);
       }
     }
