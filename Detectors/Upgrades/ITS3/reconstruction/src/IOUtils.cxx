@@ -64,7 +64,7 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
                         const its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  tf->resetROFrameData();
+  tf->resetROFrameData(rofs.size());
 
   auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));

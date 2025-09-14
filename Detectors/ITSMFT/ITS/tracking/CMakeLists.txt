@@ -56,3 +56,5 @@ o2_target_root_dictionary(ITStracking
 if(CUDA_ENABLED OR HIP_ENABLED)
   add_subdirectory(GPU)
 endif()
+
+add_subdirectory(test)

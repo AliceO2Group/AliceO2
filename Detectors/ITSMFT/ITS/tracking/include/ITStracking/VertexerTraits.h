@@ -82,7 +82,7 @@ class VertexerTraits
   virtual bool isGPU() const noexcept { return false; }
   virtual const char* getName() const noexcept { return "CPU"; }
   virtual bool usesMemoryPool() const noexcept { return true; }
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource>& pool) { mMemoryPool = pool; }
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
   static std::pair<o2::MCCompLabel, float> computeMain(const bounded_vector<o2::MCCompLabel>& elements)
   {

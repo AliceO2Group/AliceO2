@@ -33,12 +33,14 @@ void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
   mTimeFrameGPU->loadVertices(iteration);
   mTimeFrameGPU->loadIndexTableUtils(iteration);
   mTimeFrameGPU->loadMultiplicityCutMask(iteration);
+  // pinned on host
   mTimeFrameGPU->createUsedClustersDeviceArray(iteration);
   mTimeFrameGPU->createClustersDeviceArray(iteration);
   mTimeFrameGPU->createUnsortedClustersDeviceArray(iteration);
   mTimeFrameGPU->createClustersIndexTablesArray(iteration);
   mTimeFrameGPU->createTrackingFrameInfoDeviceArray(iteration);
   mTimeFrameGPU->createROFrameClustersDeviceArray(iteration);
+  // device array
   mTimeFrameGPU->createTrackletsLUTDeviceArray(iteration);
   mTimeFrameGPU->createTrackletsBuffersArray(iteration);
   mTimeFrameGPU->createCellsBuffersArray(iteration);
@@ -106,7 +108,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
                                          mTimeFrameGPU->getPositionResolutions(),
                                          this->mTrkParams[iteration].LayerRadii,
                                          mTimeFrameGPU->getMSangles(),
-                                         mTimeFrameGPU->getExternalAllocator(),
+                                         mTimeFrameGPU->getExternalDeviceAllocator(),
                                          conf.nBlocksLayerTracklets[iteration],
                                          conf.nThreadsLayerTracklets[iteration],
                                          mTimeFrameGPU->getStreams());
@@ -144,7 +146,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
                                            mTimeFrameGPU->getPositionResolutions(),
                                            this->mTrkParams[iteration].LayerRadii,
                                            mTimeFrameGPU->getMSangles(),
-                                           mTimeFrameGPU->getExternalAllocator(),
+                                           mTimeFrameGPU->getExternalDeviceAllocator(),
                                            conf.nBlocksLayerTracklets[iteration],
                                            conf.nThreadsLayerTracklets[iteration],
                                            mTimeFrameGPU->getStreams());
@@ -195,7 +197,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
                                this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
                                this->mTrkParams[iteration].NSigmaCut,
-                               mTimeFrameGPU->getExternalAllocator(),
+                               mTimeFrameGPU->getExternalDeviceAllocator(),
                                conf.nBlocksLayerCells[iteration],
                                conf.nThreadsLayerCells[iteration],
                                mTimeFrameGPU->getStreams());
@@ -251,7 +253,7 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
                                         currentLayerCellsNum,
                                         nextLayerCellsNum,
                                         1e2,
-                                        mTimeFrameGPU->getExternalAllocator(),
+                                        mTimeFrameGPU->getExternalDeviceAllocator(),
                                         conf.nBlocksFindNeighbours[iteration],
                                         conf.nThreadsFindNeighbours[iteration],
                                         mTimeFrameGPU->getStream(iLayer));
@@ -279,7 +281,7 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
                                                                                mTimeFrameGPU->getDeviceNeighbours(iLayer),
                                                                                mTimeFrameGPU->getArrayNNeighbours()[iLayer],
                                                                                mTimeFrameGPU->getStream(iLayer),
-                                                                               mTimeFrameGPU->getExternalAllocator());
+                                                                               mTimeFrameGPU->getExternalDeviceAllocator());
   }
   mTimeFrameGPU->syncStreams(false);
 }
@@ -310,7 +312,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
                                         this->mTrkParams[0].MaxChi2NDF,
                                         mTimeFrameGPU->getDevicePropagator(),
                                         this->mTrkParams[0].CorrType,
-                                        mTimeFrameGPU->getExternalAllocator(),
+                                        mTimeFrameGPU->getExternalDeviceAllocator(),
                                         conf.nBlocksProcessNeighbours[iteration],
                                         conf.nThreadsProcessNeighbours[iteration]);
     }
