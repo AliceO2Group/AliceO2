@@ -291,6 +291,8 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
 
   const Mapper& mapper = Mapper::instance();
 
+  const bool draw1D = nbins1D > 0;
+
   // ===| name and title |======================================================
   std::string title = calDet.getName();
   std::string name = calDet.getName();
@@ -305,11 +307,13 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   const int bufferSize = TH1::GetDefaultBufferSize();
   TH1::SetDefaultBufferSize(Sector::MAXSECTOR * mapper.getPadsInSector());
 
-  auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{0} (A-Side);{0}", title).data(),
-                           nbins1D, xMin1D, xMax1D); // TODO: modify ranges
+  auto hAside1D = draw1D ? new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{0} (A-Side);{0}", title).data(),
+                                    nbins1D, xMin1D, xMax1D)
+                         : nullptr; // TODO: modify ranges
 
-  auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{0} (C-Side);{0}", title).data(),
-                           nbins1D, xMin1D, xMax1D); // TODO: modify ranges
+  auto hCside1D = draw1D ? new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{0} (C-Side);{0}", title).data(),
+                                    nbins1D, xMin1D, xMax1D)
+                         : nullptr; // TODO: modify ranges
 
   auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{0} (A-Side);#it{{x}} (cm);#it{{y}} (cm);{0}", title).data(),
                            330, -270, 270, 330, -270, 270);
@@ -336,7 +340,9 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
         if (!hist2D->GetBinContent(bin)) {
           hist2D->SetBinContent(bin, double(val));
         }
-        hist1D->Fill(double(val));
+        if (draw1D) {
+          hist1D->Fill(double(val));
+        }
       }
     }
   }
@@ -352,13 +358,13 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   gStyle->SetOptStat("mr");
   auto c = outputCanvas;
   if (!c) {
-    c = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, 1000);
+    c = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, draw1D ? 1000 : 500);
   }
   gStyle->SetStatX(1. - gPad->GetRightMargin());
   gStyle->SetStatY(1. - gPad->GetTopMargin());
 
   c->Clear();
-  c->Divide(2, 2);
+  c->Divide(2, draw1D ? 2 : 1);
 
   c->cd(1);
   hAside2D->Draw("colz");
@@ -376,18 +382,22 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   adjustPalette(hCside2D, 0.92);
   drawSectorsXY(Side::C);
 
-  c->cd(3);
-  hAside1D->Draw();
+  if (draw1D) {
+    c->cd(3);
+    hAside1D->Draw();
 
-  c->cd(4);
-  hCside1D->Draw();
+    c->cd(4);
+    hCside1D->Draw();
+
+    // associate histograms to canvas
+    hAside1D->SetBit(TObject::kCanDelete);
+    hCside1D->SetBit(TObject::kCanDelete);
+  }
 
   // reset the buffer size
   TH1::SetDefaultBufferSize(bufferSize);
 
   // associate histograms to canvas
-  hAside1D->SetBit(TObject::kCanDelete);
-  hCside1D->SetBit(TObject::kCanDelete);
   hAside2D->SetBit(TObject::kCanDelete);
   hCside2D->SetBit(TObject::kCanDelete);
 
