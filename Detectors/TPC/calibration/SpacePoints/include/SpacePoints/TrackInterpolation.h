@@ -153,7 +153,7 @@ struct TrackData {
   float getT0Error() const { return float(clAvailTOF); }
   bool isTOFAvail() const { return clAvailTOF != 0; }
 
-  ClassDefNV(TrackData, 8);
+  ClassDefNV(TrackData, 9);
 };
 
 /// \class TrackInterpolation
