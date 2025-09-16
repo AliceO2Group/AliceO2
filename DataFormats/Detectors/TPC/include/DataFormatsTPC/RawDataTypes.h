@@ -28,6 +28,7 @@ enum Type : char {
   ZS = 2,      ///< final Zero Suppression (can be ILBZS, DLBZS)
   IDC = 3,     ///< Integrated Digitial Currents, with priority bit to end up in separate buffer
   SAC = 4,     ///< Sampled Analogue Currents from the current monitor
+  CMV = 5,     ///< Common mode values
 };
 
 const std::unordered_map<Type, std::string_view> TypeNameMap{
@@ -36,6 +37,7 @@ const std::unordered_map<Type, std::string_view> TypeNameMap{
   {Type::ZS, "ZS"},
   {Type::IDC, "IDC"},
   {Type::SAC, "SAC"},
+  {Type::CMV, "CMV"},
 };
 
 } // namespace o2::tpc::raw_data_types

@@ -13,7 +13,6 @@
 /// \author David Rohr
 
 #include "GPUParam.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCHit.h"
 #include "GPUTPCTrackingData.h"
 #include "GPUProcessor.h"

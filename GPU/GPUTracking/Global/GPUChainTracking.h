@@ -114,7 +114,6 @@ class GPUChainTracking : public GPUChain
     std::unique_ptr<GPUTPCMCInfoCol[]> mcInfosTPCCol;
     std::unique_ptr<GPUTPCGMMergedTrack[]> mergedTracks;
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
-    std::unique_ptr<GPUTPCGMMergedTrackHitXYZ[]> mergedTrackHitsXYZ;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDSpacePoint[]> trdSpacePoints;
     std::unique_ptr<float[]> trdTriggerTimes;
@@ -292,7 +291,7 @@ class GPUChainTracking : public GPUChain
 
  private:
   int32_t RunChainFinalize();
-  void SanityCheck();
+  void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
   int32_t RunTPCClusterizer_prepare(bool restorePointers);
 #ifdef GPUCA_TPC_GEOMETRY_O2

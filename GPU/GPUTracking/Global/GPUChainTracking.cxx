@@ -21,11 +21,11 @@
 #include "GPUChainTrackingGetters.inc"
 #include "GPUReconstructionIO.h"
 #include "GPUChainTrackingDefs.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTPCTrack.h"
 #include "GPUTPCHitId.h"
+#include "GPUTPCClusterData.h"
 #include "TPCZSLinkMapping.h"
 #include "GPUTRDTrackletWord.h"
 #include "AliHLTTPCClusterMCData.h"
@@ -93,9 +93,6 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   if (GetRecoSteps() & RecoStep::TRDTracking) {
     mRec->RegisterGPUProcessor(&processors()->trdTrackerO2, GetRecoStepsGPU() & RecoStep::TRDTracking);
   }
-  if (GetRecoSteps() & RecoStep::TPCConversion) {
-    mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
-  }
   if (GetRecoSteps() & RecoStep::TPCCompression) {
     mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
   }
@@ -141,9 +138,6 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTrackerO2, &processors()->trdTrackerO2);
   }
-  if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
-    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcConverter, &processors()->tpcConverter);
-  }
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
@@ -182,11 +176,9 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Invalid GPU Reconstruction Step Setting: dEdx requires TPC Merger to be active");
     return false;
   }
-  if (!param().par.earlyTpcTransform) {
-    if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging)) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) {
-      GPUError("Invalid Reconstruction Step Setting: Tracking without early transform requires TPC Conversion to be active");
-      return false;
-    }
+  if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging)) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) {
+    GPUError("Invalid Reconstruction Step Setting: Tracking requires TPC Conversion to be active");
+    return false;
   }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCRaw)) {
     GPUError("Invalid input, TPC Clusterizer needs TPC raw input");
@@ -261,8 +253,8 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("nWay setting musst be odd number!");
     return false;
   }
-  if (param().rec.tpc.mergerInterpolateErrors && param().rec.tpc.nWays == 1) {
-    GPUError("Cannot do error interpolation with NWays = 1!");
+  if (param().rec.tpc.mergerInterpolateErrors && param().rec.tpc.nWays < 3) {
+    GPUError("Cannot do error interpolation with NWays < 3!");
     return false;
   }
   if (param().continuousMaxTimeBin > (int32_t)GPUSettings::TPC_MAX_TF_TIME_BIN) {
@@ -275,6 +267,10 @@ bool GPUChainTracking::ValidateSettings()
   }
   if ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && GetProcessingSettings().noGPUMemoryRegistration && gatherMode != 3) {
     GPUError("noGPUMemoryRegistration only possible with gather mode 3 (set to %d / %d)", mRec->GetProcessingSettings().tpcCompressionGatherMode, gatherMode);
+    return false;
+  }
+  if (mRec->IsGPU() && (GetProcessingSettings().clusterizerZSSanityCheck || GetProcessingSettings().mergerSanityCheck)) {
+    GPUError("Clusterizer and merger Sanity checks only supported when not running on GPU");
     return false;
   }
   if (GetProcessingSettings().doublePipeline) {
@@ -307,8 +303,8 @@ bool GPUChainTracking::ValidateSettings()
     return false;
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
-    if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || param().rec.tpc.nWaysOuter == 0 || (GetMatLUT() == nullptr && !GetProcessingSettings().willProvideO2PropagatorLate))) {
-      GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled (%d), nWaysOuter is set (%d), and matBudLUT is available (0x%p)", (int32_t)GetProcessingSettings().createO2Output, (int32_t)param().rec.tpc.nWaysOuter, (void*)GetMatLUT());
+    if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || (GetMatLUT() == nullptr && !GetProcessingSettings().willProvideO2PropagatorLate))) {
+      GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled (%d), and matBudLUT is available (0x%p)", (int32_t)GetProcessingSettings().createO2Output, (void*)GetMatLUT());
       return false;
     }
     if ((GetRecoStepsGPU() & RecoStep::TRDTracking) && !GetProcessingSettings().trdTrackModelO2 && GetProcessingSettings().createO2Output > 1) {
@@ -566,7 +562,6 @@ void GPUChainTracking::AllocateIOMemory()
   AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPCCol, mIOPtrs.mcInfosTPCCol, mIOMem.mcInfosTPCCol);
   AllocateIOMemoryHelper(mIOPtrs.nMergedTracks, mIOPtrs.mergedTracks, mIOMem.mergedTracks);
   AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
-  AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHitsXYZ, mIOMem.mergedTrackHitsXYZ);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdSpacePoints, mIOMem.trdSpacePoints);
@@ -800,7 +795,7 @@ int32_t GPUChainTracking::RunChainFinalize()
   }
 
   if (GetProcessingSettings().outputSanityCheck) {
-    SanityCheck();
+    OutputSanityCheck();
   }
 
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
@@ -824,13 +819,17 @@ int32_t GPUChainTracking::RunChainFinalize()
 
   if (GetProcessingSettings().eventDisplay) {
     if (!mDisplayRunning) {
+      GPUInfo("Starting Event Display...");
       if (mEventDisplay->StartDisplay()) {
+        GPUError("Error starting Event Display");
         return (1);
       }
       mDisplayRunning = true;
     } else {
       mEventDisplay->ShowNextEvent();
     }
+
+    mEventDisplay->WaitTillEventShown();
 
     if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
       while (kbhit()) {
@@ -863,9 +862,9 @@ int32_t GPUChainTracking::RunChainFinalize()
       return (2);
     }
     GetProcessingSettings().eventDisplay->setDisplayControl(0);
-    GPUInfo("Loading next event");
+    GPUInfo("Loading next event...");
 
-    mEventDisplay->WaitForNextEvent();
+    mEventDisplay->BlockTillNextEvent();
   }
 
   return 0;

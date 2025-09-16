@@ -274,7 +274,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
       }
       CADEBUG(printf("%14s: SEA PROP  ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int32_t i = 0; i < 5; i++) { printf(" %8.3f", tParam.Par()[i]); } printf(" -"); for (int32_t i = 0; i < 15; i++) { printf(" %8.3f", tParam.Cov()[i]); } printf("\n"));
 
-      bool found = false;
+      [[maybe_unused]] bool found = false;
       float yUncorrected = tParam.GetY(), zUncorrected = tParam.GetZ();
       do {
         if (row.NHits() < 1) {
@@ -373,7 +373,6 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
           r.mFirstRow = iRow;
         }
       } while (false);
-      (void)found;
       if (!found && tracker.GetConstantMem()->calibObjects.dEdxCalibContainer) {
         uint32_t pad = CAMath::Float2UIntRn(GPUTPCGeometry::LinearY2Pad(tracker.ISector(), iRow, yUncorrected));
         if (pad < GPUTPCGeometry::NPads(iRow) && tracker.GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(tracker.ISector(), iRow, pad)) {

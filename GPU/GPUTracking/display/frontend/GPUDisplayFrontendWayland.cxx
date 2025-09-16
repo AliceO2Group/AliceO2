@@ -475,16 +475,6 @@ void GPUDisplayFrontendWayland::SetVSync(bool enable)
 {
 }
 
-int32_t GPUDisplayFrontendWayland::StartDisplay()
-{
-  static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
-    GPUError("Coult not Create frontend Thread...");
-    return (1);
-  }
-  return (0);
-}
-
 void GPUDisplayFrontendWayland::getSize(int32_t& width, int32_t& height)
 {
   width = mDisplayWidth;

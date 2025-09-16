@@ -136,6 +136,12 @@ struct ITSGpuTrackingParamConfig : public o2::conf::ConfigurableParamHelper<ITSG
   int nBlocksTracksSeeds[MaxIter] = {60, 60, 60, 60};
   int nThreadsTracksSeeds[MaxIter] = {256, 256, 256, 256};
 
+  int nBlocksVtxComputeTracklets[2] = {60, 60};
+  int nThreadsVtxComputeTracklets[2] = {256, 256};
+
+  int nBlocksVtxComputeMatching[2] = {60, 60};
+  int nThreadsVtxComputeMatching[2] = {256, 256};
+
   O2ParamDef(ITSGpuTrackingParamConfig, "ITSGpuTrackingParam");
 };
 

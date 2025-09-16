@@ -21,7 +21,7 @@
 #include "ITStracking/TimeFrame.h"
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
-// #include "ITStrackingGPU/VertexerTraitsGPU.h"
+#include "ITStrackingGPU/VertexerTraitsGPU.h"
 #include "ITStrackingGPU/TimeFrameGPU.h"
 #endif
 #else
@@ -39,10 +39,10 @@ template <int32_t>
 class TimeFrame
 {
 };
-// template <int32_t NLayers>
-// class VertexerTraitsGPU : public VertexerTraits<NLayers>
-// {
-// };
+template <int32_t NLayers>
+class VertexerTraitsGPU : public VertexerTraits<NLayers>
+{
+};
 template <int32_t NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits<NLayers>
 {

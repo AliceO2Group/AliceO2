@@ -29,13 +29,13 @@ class GPUTPCHit;
 class GPUTPCTrackingData
 {
  public:
-  GPUTPCTrackingData() : mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr) {}
+  GPUTPCTrackingData() = default;
 
 #ifndef GPUCA_GPUCODE_DEVICE
   ~GPUTPCTrackingData() = default;
   void InitializeRows(const GPUParam& p);
   void SetMaxData();
-  void SetClusterData(const GPUTPCClusterData* data, int32_t nClusters, int32_t clusterIdOffset);
+  void SetClusterData(int32_t nClusters, int32_t clusterIdOffset);
   void* SetPointersScratch(void* mem, bool idsOnGPU);
   void* SetPointersLinks(void* mem);
   void* SetPointersWeights(void* mem);
@@ -112,8 +112,6 @@ class GPUTPCTrackingData
 
   GPUhdi() GPUglobalref() GPUAtomic(uint32_t) * HitWeights() { return (mHitWeights); }
 
-  GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const { return mClusterData; }
-
  private:
 #ifndef GPUCA_GPUCODE
   GPUTPCTrackingData& operator=(const GPUTPCTrackingData&) = delete; // ROOT 5 tries to use this if it is not private
@@ -127,16 +125,16 @@ class GPUTPCTrackingData
   friend class GPUTPCNeighboursFinder;
   friend class GPUTPCStartHitsFinder;
 
-  int32_t mNumberOfHits; // the number of hits in this sector
-  int32_t mNumberOfHitsPlusAlign;
-  int32_t mClusterIdOffset;
+  int32_t mNumberOfHits = 0; // the number of hits in this sector
+  int32_t mNumberOfHitsPlusAlign = 0;
+  int32_t mClusterIdOffset = 0;
 
-  GPUglobalref() GPUTPCRow* mRows; // The row objects needed for most accessor functions
+  GPUglobalref() GPUTPCRow* mRows = nullptr; // The row objects needed for most accessor functions
 
-  GPUglobalref() calink* mLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
-  GPUglobalref() calink* mLinkDownData;      // hit index in the row below which is linked to the given (global) hit index
-  GPUglobalref() cahit2* mHitData;           // packed y,z coordinate of the given (global) hit index
-  GPUglobalref() int32_t* mClusterDataIndex; // see ClusterDataIndex()
+  GPUglobalref() calink* mLinkUpData = nullptr;        // hit index in the row above which is linked to the given (global) hit index
+  GPUglobalref() calink* mLinkDownData = nullptr;      // hit index in the row below which is linked to the given (global) hit index
+  GPUglobalref() cahit2* mHitData = nullptr;           // packed y,z coordinate of the given (global) hit index
+  GPUglobalref() int32_t* mClusterDataIndex = nullptr; // see ClusterDataIndex()
 
   /*
    * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization
@@ -144,7 +142,6 @@ class GPUTPCTrackingData
    */
   GPUglobalref() calink* mFirstHitInBin;            // see FirstHitInBin
   GPUglobalref() GPUAtomic(uint32_t) * mHitWeights; // the weight of the longest tracklet crossed the cluster
-  GPUglobalref() const GPUTPCClusterData* mClusterData;
 };
 
 GPUdi() calink GPUTPCTrackingData::HitLinkUpData(const GPUTPCRow& row, const calink& hitIndex) const { return mLinkUpData[row.mHitNumberOffset + hitIndex]; }

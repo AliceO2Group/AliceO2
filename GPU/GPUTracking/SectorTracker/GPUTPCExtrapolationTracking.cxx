@@ -112,7 +112,7 @@ GPUd() int32_t GPUTPCExtrapolationTracking::PerformExtrapolationTrackingRun(GPUT
     track.SetParam(tParam.GetParam());
     track.SetNHits(nHits);
     track.SetFirstHitID(hitId);
-    track.SetLocalTrackId((sectorSource.ISector() << 24) | sectorSource.Tracks()[iTrack].LocalTrackId());
+    track.SetLocalTrackId((direction == 1 ? 0x40000000 : 0) | (sectorSource.ISector() << 24) | sectorSource.Tracks()[iTrack].LocalTrackId());
   }
 
   return (nHits >= tracker.Param().rec.tpc.extrapolationTrackingMinHits);

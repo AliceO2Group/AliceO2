@@ -204,10 +204,8 @@ struct TimeFrame {
   void computeTracletsPerClusterScans();
   int& getNTrackletsROF(int rofId, int combId) { return mNTrackletsPerROF[combId][rofId]; }
   auto& getLines(int rofId) { return mLines[rofId]; }
-  int getNLinesTotal() const
-  {
-    return std::accumulate(mLines.begin(), mLines.end(), 0, [](int sum, const auto& l) { return sum + l.size(); });
-  }
+  int getNLinesTotal() const noexcept { return mTotalLines; }
+  void setNLinesTotal(uint32_t a) noexcept { mTotalLines = a; }
   auto& getTrackletClusters(int rofId) { return mTrackletClusters[rofId]; }
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
   gsl::span<Tracklet> getFoundTracklets(int rofId, int combId);
@@ -237,10 +235,9 @@ struct TimeFrame {
 
   void setExternalAllocator(ExternalAllocator* allocator)
   {
-    if (mIsGPU) {
+    if (isGPU()) {
       LOGP(debug, "Setting timeFrame allocator to external");
       mAllocator = allocator;
-      mExtAllocator = true; // to be removed
     } else {
       LOGP(fatal, "External allocator is currently only supported for GPU");
     }
@@ -276,8 +273,6 @@ struct TimeFrame {
 
   IndexTableUtilsN mIndexTableUtils;
 
-  bool mIsGPU = false;
-
   std::array<bounded_vector<Cluster>, nLayers> mClusters;
   std::array<bounded_vector<TrackingFrameInfo>, nLayers> mTrackingFrameInfo;
   std::array<bounded_vector<int>, nLayers> mClusterExternalIndices;
@@ -296,9 +291,8 @@ struct TimeFrame {
   bounded_vector<Vertex> mPrimaryVertices;
 
   // State if memory will be externally managed.
-  bool mExtAllocator = false;
   ExternalAllocator* mAllocator = nullptr;
-  bool getExtAllocator() const { return mExtAllocator; }
+  bool getExtAllocator() const noexcept { return mAllocator != nullptr; }
 
   std::array<bounded_vector<Cluster>, nLayers> mUnsortedClusters;
   std::vector<bounded_vector<Tracklet>> mTracklets;
@@ -312,6 +306,10 @@ struct TimeFrame {
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
 
   virtual void wipe();
+
+  // interface
+  virtual bool isGPU() const noexcept { return false; }
+  virtual const char* getName() const noexcept { return "CPU"; }
 
  private:
   void prepareClusters(const TrackingParameters& trkParam, const int maxLayers = nLayers);
@@ -348,6 +346,7 @@ struct TimeFrame {
   std::vector<std::pair<MCCompLabel, float>> mVerticesMCRecInfo;
   bounded_vector<MCCompLabel> mVerticesContributorLabels;
   std::array<uint32_t, 2> mTotalTracklets = {0, 0};
+  uint32_t mTotalLines = 0;
   unsigned int mNoVertexROF = 0;
   bounded_vector<int> mTotVertPerIteration;
   // \Vertexer

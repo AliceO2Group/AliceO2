@@ -43,11 +43,6 @@ class MCCompLabel;
 namespace its
 {
 
-enum class TrackletMode {
-  Layer0Layer1 = 0,
-  Layer1Layer2 = 2
-};
-
 template <int nLayers>
 class VertexerTraits
 {

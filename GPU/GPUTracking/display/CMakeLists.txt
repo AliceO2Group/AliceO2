@@ -55,7 +55,9 @@ set(SRCS ../utils/qsem.cxx
          helpers/GPUDisplayMagneticField.cxx
          frontend/GPUDisplayFrontend.cxx
          frontend/GPUDisplayFrontendGlfw.cxx
+         frontend/GPUDisplayFrontendNone.cxx
          backend/GPUDisplayBackend.cxx
+         backend/GPUDisplayBackendNone.cxx
          backend/GPUDisplayBackendOpenGL.cxx)
 
 set(SRCS_NO_H helpers/GPUDisplayLoader.cxx

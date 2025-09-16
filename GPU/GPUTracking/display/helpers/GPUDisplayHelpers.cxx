@@ -52,9 +52,6 @@ void GPUDisplay::disableUnsupportedOptions()
   if (!mChain) {
     mCfgL.excludeClusters = mCfgL.drawInitLinks = mCfgL.drawLinks = mCfgL.drawSeeds = mCfgL.drawTracklets = mCfgL.drawTracks = mCfgL.drawExtrapolatedTracks = 0;
   }
-  if (mConfig.showTPCTracksFromO2Format && mParam->par.earlyTpcTransform) {
-    throw std::runtime_error("Cannot run GPU display with early Transform when input is O2 tracks");
-  }
 }
 
 void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, float animateTime)

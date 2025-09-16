@@ -33,7 +33,6 @@ extern "C" int32_t gl3wInit();
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
-#include <pthread.h>
 
 #ifdef GPUCA_O2_LIB
 #if __has_include("../src/imgui.h")
@@ -416,16 +415,6 @@ void GPUDisplayFrontendGlfw::ToggleMaximized(bool set)
 }
 
 void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
-
-int32_t GPUDisplayFrontendGlfw::StartDisplay()
-{
-  static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
-    GPUError("Coult not Create GL Thread...");
-    return (1);
-  }
-  return (0);
-}
 
 bool GPUDisplayFrontendGlfw::EnableSendKey()
 {

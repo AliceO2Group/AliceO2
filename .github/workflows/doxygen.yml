@@ -13,7 +13,7 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y doxygen doxygen-doc doxygen-latex doxygen-gui graphviz cmake
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         ref: "dev"
         persist-credentials: false

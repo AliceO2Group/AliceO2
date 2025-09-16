@@ -12,46 +12,104 @@
 
 #ifndef ITSTRACKINGGPU_VERTEXINGKERNELS_H_
 #define ITSTRACKINGGPU_VERTEXINGKERNELS_H_
-#include "ITStracking/MathUtils.h"
-#include "ITStracking/Configuration.h"
-#include "ITStracking/ClusterLines.h"
+
+#include <cstdint>
+#include <gsl/span>
+#include <array>
 #include "ITStracking/Tracklet.h"
-
+#include "ITStracking/Cluster.h"
+#include "ITStracking/ClusterLines.h"
 #include "ITStrackingGPU/Utils.h"
-#include "ITStrackingGPU/ClusterLinesGPU.h"
-#include "ITStrackingGPU/VertexerTraitsGPU.h"
-#include "ITStrackingGPU/TracerGPU.h"
 
-namespace o2::its::gpu
+namespace o2::its
 {
-#ifdef GPUCA_GPUCODE // GPUg() global kernels must only when compiled by GPU compiler
-template <TrackletMode Mode>
-GPUg() void trackleterKernelMultipleRof(
-  const Cluster* clustersNextLayer,    // 0 2
-  const Cluster* clustersCurrentLayer, // 1 1
-  const int* sizeNextLClusters,
-  const int* sizeCurrentLClusters,
-  const int* nextIndexTables,
-  Tracklet* Tracklets,
-  int* foundTracklets,
-  const IndexTableUtils* utils,
-  const unsigned int startRofId,
-  const unsigned int rofSize,
-  const float phiCut,
-  const size_t maxTrackletsPerCluster);
-#endif
-template <TrackletMode Mode>
-void trackletFinderHandler(const Cluster* clustersNextLayer,    // 0 2
-                           const Cluster* clustersCurrentLayer, // 1 1
-                           const int* sizeNextLClusters,
-                           const int* sizeCurrentLClusters,
-                           const int* nextIndexTables,
-                           Tracklet* Tracklets,
-                           int* foundTracklets,
-                           const IndexTableUtils* utils,
-                           const unsigned int startRofId,
-                           const unsigned int rofSize,
-                           const float phiCut,
-                           const size_t maxTrackletsPerCluster = 1e2);
-} // namespace o2::its::gpu
+
+/// Trackleting
+template <int32_t nLayers>
+void countTrackletsInROFsHandler(const IndexTableUtils<nLayers>* GPUrestrict() utils,
+                                 const uint8_t* GPUrestrict() multMask,
+                                 const int32_t nRofs,
+                                 const int32_t deltaROF,
+                                 const int32_t* GPUrestrict() rofPV,
+                                 const int32_t vertPerRofThreshold,
+                                 const Cluster** GPUrestrict() clusters,
+                                 const uint32_t nClusters,
+                                 const int32_t** GPUrestrict() ROFClusters,
+                                 const uint8_t** GPUrestrict() usedClusters,
+                                 const int32_t** GPUrestrict() clustersIndexTables,
+                                 int32_t** trackletsPerClusterLUTs,
+                                 int32_t** trackletsPerClusterSumLUTs,
+                                 int32_t** trackletsPerROF,
+                                 const std::array<int32_t*, 2>& trackletsPerClusterLUTsHost,
+                                 const std::array<int32_t*, 2>& trackletsPerClusterSumLUTsHost,
+                                 const int32_t iteration,
+                                 const float phiCut,
+                                 const int32_t maxTrackletsPerCluster,
+                                 const int32_t nBlocks,
+                                 const int32_t nThreads,
+                                 gpu::Streams& streams);
+
+template <int32_t nLayers>
+void computeTrackletsInROFsHandler(const IndexTableUtils<nLayers>* GPUrestrict() utils,
+                                   const uint8_t* GPUrestrict() multMask,
+                                   const int32_t nRofs,
+                                   const int32_t deltaROF,
+                                   const int32_t* GPUrestrict() rofPV,
+                                   const int vertPerRofThreshold,
+                                   const Cluster** GPUrestrict() clusters,
+                                   const uint32_t nClusters,
+                                   const int32_t** GPUrestrict() ROFClusters,
+                                   const uint8_t** GPUrestrict() usedClusters,
+                                   const int32_t** GPUrestrict() clustersIndexTables,
+                                   Tracklet** GPUrestrict() foundTracklets,
+                                   const int32_t** GPUrestrict() trackletsPerClusterLUTs,
+                                   const int32_t** GPUrestrict() trackletsPerClusterSumLUTs,
+                                   const int32_t** GPUrestrict() trackletsPerROF,
+                                   const int32_t iteration,
+                                   const float phiCut,
+                                   const int32_t maxTrackletsPerCluster,
+                                   const int32_t nBlocks,
+                                   const int32_t nThreads,
+                                   gpu::Streams& streams);
+
+/// Selection
+void countTrackletsMatchingInROFsHandler(const int32_t nRofs,
+                                         const int32_t deltaROF,
+                                         const uint32_t nClusters,
+                                         const int32_t** GPUrestrict() ROFClusters,
+                                         const Cluster** GPUrestrict() clusters,
+                                         uint8_t** GPUrestrict() usedClusters,
+                                         const Tracklet** GPUrestrict() foundTracklets,
+                                         uint8_t* GPUrestrict() usedTracklets,
+                                         const int32_t** GPUrestrict() trackletsPerClusterLUTs,
+                                         const int32_t** GPUrestrict() trackletsPerClusterSumLUTs,
+                                         int32_t* GPUrestrict() linesPerClusterLUT,
+                                         int32_t* GPUrestrict() linesPerClusterSumLUT,
+                                         const int32_t iteration,
+                                         const float phiCut,
+                                         const float tanLambdaCut,
+                                         const int32_t nBlocks,
+                                         const int32_t nThreads,
+                                         gpu::Streams& streams);
+
+void computeTrackletsMatchingInROFsHandler(const int32_t nRofs,
+                                           const int32_t deltaROF,
+                                           const uint32_t nClusters,
+                                           const int32_t** GPUrestrict() ROFClusters,
+                                           const Cluster** GPUrestrict() clusters,
+                                           const uint8_t** GPUrestrict() usedClusters,
+                                           const Tracklet** GPUrestrict() foundTracklets,
+                                           uint8_t* GPUrestrict() usedTracklets,
+                                           const int32_t** GPUrestrict() trackletsPerClusterLUTs,
+                                           const int32_t** GPUrestrict() trackletsPerClusterSumLUTs,
+                                           const int32_t* GPUrestrict() linesPerClusterSumLUT,
+                                           Line* GPUrestrict() lines,
+                                           const int32_t iteration,
+                                           const float phiCut,
+                                           const float tanLambdaCut,
+                                           const int32_t nBlocks,
+                                           const int32_t nThreads,
+                                           gpu::Streams& streams);
+
+} // namespace o2::its
 #endif

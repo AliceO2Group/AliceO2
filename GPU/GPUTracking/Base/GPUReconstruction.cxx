@@ -269,11 +269,10 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
 #ifndef GPUCA_DETERMINISTIC_MODE
     GPUError("WARNING, deterministicGPUReconstruction needs GPUCA_DETERMINISTIC_MODE for being fully deterministic, without only most indeterminism by concurrency is removed, but floating point effects remain!");
 #endif
-    mProcessingSettings->overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
-    param().rec.tpc.nWaysOuter = true;
-    if (param().rec.tpc.looperInterpolationInExtraPass == -1) {
-      param().rec.tpc.looperInterpolationInExtraPass = 0;
+    if (mProcessingSettings->debugLevel >= 6 && ((mProcessingSettings->debugMask + 1) & mProcessingSettings->debugMask)) {
+      GPUError("WARNING: debugMask %d - debug output might not be deterministic with intermediate steps missing", mProcessingSettings->debugMask);
     }
+    mProcessingSettings->overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
     if (GetProcessingSettings().createO2Output > 1) {
       mProcessingSettings->createO2Output = 1;
     }
@@ -295,13 +294,14 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoSteps.stepsGPUMask & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings->mergerSortTracks = false;
   }
-
   if (GetProcessingSettings().debugLevel > 3 || !IsGPU() || GetProcessingSettings().deterministicGPUReconstruction) {
     mProcessingSettings->delayedOutput = false;
   }
-
   if (!GetProcessingSettings().rtc.enable) {
     mProcessingSettings->rtc.optConstexpr = false;
+  }
+  if (GetProcessingSettings().allSanityChecks) {
+    mProcessingSettings->clusterizerZSSanityCheck = mProcessingSettings->mergerSanityCheck = mProcessingSettings->outputSanityCheck = true;
   }
 
   mMemoryScalers->scalingFactor = GetProcessingSettings().memoryScalingFactor;

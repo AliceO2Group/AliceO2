@@ -66,7 +66,9 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
     LOGP(error, "Too much memory used during {} in iteration {} in ROF span {}-{} iVtx={}: {:.2f} GB. Current limit is {:.2f} GB, check the detector status and/or the selections.",
          StateNames[mCurState], iteration, iROFs, iROFs + mTrkParams[iteration].nROFsPerIterations, iVertex,
          (double)mTimeFrame->getArtefactsMemory() / GB, (double)mTrkParams[iteration].MaxMemory / GB);
-    LOGP(error, "Exception: {}", err.what());
+    if (typeid(err) != typeid(std::bad_alloc)) { // only print if the exceptions is different from what is expected
+      LOGP(error, "Exception: {}", err.what());
+    }
     if (mTrkParams[iteration].DropTFUponFailure) {
       mMemoryPool->print();
       mTimeFrame->wipe();
@@ -85,7 +87,7 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       }
       double timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
       int nTracklets{0}, nCells{0}, nNeighbours{0}, nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
-      int nROFsIterations = (mTrkParams[iteration].nROFsPerIterations > 0 && !mTimeFrame->mIsGPU) ? mTimeFrame->getNrof() / mTrkParams[iteration].nROFsPerIterations + bool(mTimeFrame->getNrof() % mTrkParams[iteration].nROFsPerIterations) : 1;
+      int nROFsIterations = (mTrkParams[iteration].nROFsPerIterations > 0 && !mTimeFrame->isGPU()) ? mTimeFrame->getNrof() / mTrkParams[iteration].nROFsPerIterations + bool(mTimeFrame->getNrof() % mTrkParams[iteration].nROFsPerIterations) : 1;
       iVertex = std::min(maxNvertices, 0);
       logger(std::format("==== ITS {} Tracking iteration {} summary ====", mTraits->getName(), iteration));
 

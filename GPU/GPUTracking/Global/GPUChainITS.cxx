@@ -70,7 +70,7 @@ o2::its::TimeFrame<7>* GPUChainITS::GetITSTimeframe()
     mRec->GetITSTraits(nullptr, nullptr, &mITSTimeFrame);
   }
 #if !defined(GPUCA_STANDALONE)
-  if (mITSTimeFrame->mIsGPU) {
+  if (mITSTimeFrame->isGPU()) {
     auto doFWExtAlloc = [this](size_t size) -> void* { return rec()->AllocateDirectMemory(size, GPUMemoryResource::MEMORY_GPU); };
 
     mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator);

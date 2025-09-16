@@ -17,6 +17,7 @@
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/combinable.h>
 
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/BoundedAllocator.h"
@@ -290,6 +291,7 @@ template <int nLayers>
 void VertexerTraits<nLayers>::computeTrackletMatching(const int iteration)
 {
   mTaskArena->execute([&] {
+    tbb::combinable<int> totalLines{0};
     tbb::parallel_for(
       tbb::blocked_range<short>(0, (short)mTimeFrame->getNrof()),
       [&](const tbb::blocked_range<short>& Rofs) {
@@ -333,8 +335,10 @@ void VertexerTraits<nLayers>::computeTrackletMatching(const int iteration)
                 mVrtParams[iteration].phiCut);
             }
           }
+          totalLines.local() += mTimeFrame->getLines(pivotRofId).size();
         }
       });
+    mTimeFrame->setNLinesTotal(totalLines.combine(std::plus<int>()));
   });
 
 #ifdef VTX_DEBUG

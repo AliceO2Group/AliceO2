@@ -13,7 +13,6 @@
 /// \author Matthias Kretz, Sergey Gorbunov, David Rohr
 
 #include "GPUParam.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCHit.h"
 #include "GPUTPCTrackingData.h"
 #include "GPUProcessor.h"
@@ -45,9 +44,8 @@ void GPUTPCTrackingData::InitializeRows(const GPUParam& p)
   }
 }
 
-void GPUTPCTrackingData::SetClusterData(const GPUTPCClusterData* data, int32_t nClusters, int32_t clusterIdOffset)
+void GPUTPCTrackingData::SetClusterData(int32_t nClusters, int32_t clusterIdOffset)
 {
-  mClusterData = data;
   mNumberOfHits = nClusters;
   mClusterIdOffset = clusterIdOffset;
 }
@@ -164,50 +162,10 @@ GPUdii() void GPUTPCTrackingData::SetRowGridEmpty(GPUTPCRow& GPUrestrict() row)
 
 GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUconstantref() const GPUConstantMem* GPUrestrict() mem, int32_t iSector, float* tmpMinMax)
 {
-#ifdef GPUCA_GPUCODE
-  constexpr bool EarlyTransformWithoutClusterNative = false;
-#else
-  bool EarlyTransformWithoutClusterNative = mem->param.par.earlyTpcTransform && mem->ioPtrs.clustersNative == nullptr;
-#endif
-  int32_t* tmpHitIndex = nullptr;
-  const uint32_t* NumberOfClustersInRow = nullptr;
-  const uint32_t* RowOffsets = nullptr;
-
 #ifndef GPUCA_GPUCODE
   vecpod<float2> YZData(mNumberOfHits);
   vecpod<calink> binMemory(mNumberOfHits);
-  uint32_t RowOffsetsA[GPUCA_ROW_COUNT];
-  uint32_t NumberOfClustersInRowA[GPUCA_ROW_COUNT];
-
   vecpod<int32_t> tmpHitIndexA;
-  if (EarlyTransformWithoutClusterNative) { // Implies mem->param.par.earlyTpcTransform but no ClusterNative present
-    NumberOfClustersInRow = NumberOfClustersInRowA;
-    RowOffsets = RowOffsetsA;
-    tmpHitIndexA.resize(mNumberOfHits);
-    tmpHitIndex = tmpHitIndexA.data();
-
-    memset(NumberOfClustersInRowA, 0, GPUCA_ROW_COUNT * sizeof(NumberOfClustersInRowA[0]));
-    for (int32_t i = 0; i < mNumberOfHits; i++) {
-      const int32_t tmpRow = mClusterData[i].row;
-      NumberOfClustersInRowA[tmpRow]++;
-    }
-    int32_t tmpOffset = 0;
-    for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
-      RowOffsetsA[i] = tmpOffset;
-      tmpOffset += NumberOfClustersInRow[i];
-    }
-    int32_t RowsFilled[GPUCA_ROW_COUNT];
-    memset(RowsFilled, 0, GPUCA_ROW_COUNT * sizeof(int32_t));
-    for (int32_t i = 0; i < mNumberOfHits; i++) {
-      float2 tmp;
-      tmp.x = mClusterData[i].y;
-      tmp.y = mClusterData[i].z;
-      int32_t tmpRow = mClusterData[i].row;
-      int32_t newIndex = RowOffsetsA[tmpRow] + (RowsFilled[tmpRow])++;
-      YZData[newIndex] = tmp;
-      tmpHitIndex[newIndex] = i;
-    }
-  } // Other cases below in loop over rows
 #else
   float2* YZData = (float2*)mLinkUpData; // TODO: we can do this as well on the CPU, just must make sure that CPU has the scratch memory
   calink* binMemory = (calink*)mHitWeights;
@@ -221,8 +179,8 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
     float zMin = 1.e6f;
     float zMax = -1.e6f;
 
-    const uint32_t NumberOfClusters = EarlyTransformWithoutClusterNative ? NumberOfClustersInRow[rowIndex] : mem->ioPtrs.clustersNative->nClusters[iSector][rowIndex];
-    const uint32_t RowOffset = EarlyTransformWithoutClusterNative ? RowOffsets[rowIndex] : (mem->ioPtrs.clustersNative->clusterOffset[iSector][rowIndex] - mem->ioPtrs.clustersNative->clusterOffset[iSector][0]);
+    const uint32_t NumberOfClusters = mem->ioPtrs.clustersNative->nClusters[iSector][rowIndex];
+    const uint32_t RowOffset = mem->ioPtrs.clustersNative->clusterOffset[iSector][rowIndex] - mem->ioPtrs.clustersNative->clusterOffset[iSector][0];
     constexpr const uint32_t maxN = 1u << (sizeof(calink) < 3 ? (sizeof(calink) * 8) : 24);
     GPUTPCRow& row = mRows[rowIndex];
     if (iThread == 0) {
@@ -251,25 +209,11 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
       continue;
     }
 
-    if (EarlyTransformWithoutClusterNative) {
-      for (uint32_t i = iThread; i < NumberOfClusters; i += nThreads) {
-        UpdateMinMaxYZ(yMin, yMax, zMin, zMax, YZData[RowOffset + i].x, YZData[RowOffset + i].y);
-      }
-    } else if (mem->param.par.earlyTpcTransform) { // Early transform case with ClusterNative present
-      for (uint32_t i = iThread; i < NumberOfClusters; i += nThreads) {
-        float2 tmp;
-        tmp.x = mClusterData[RowOffset + i].y;
-        tmp.y = mClusterData[RowOffset + i].z;
-        UpdateMinMaxYZ(yMin, yMax, zMin, zMax, tmp.x, tmp.y);
-        YZData[RowOffset + i] = tmp;
-      }
-    } else {
-      for (uint32_t i = iThread; i < NumberOfClusters; i += nThreads) {
-        float x, y, z;
-        GPUTPCConvertImpl::convert(*mem, iSector, rowIndex, mem->ioPtrs.clustersNative->clusters[iSector][rowIndex][i].getPad(), mem->ioPtrs.clustersNative->clusters[iSector][rowIndex][i].getTime(), x, y, z);
-        UpdateMinMaxYZ(yMin, yMax, zMin, zMax, y, z);
-        YZData[RowOffset + i] = CAMath::MakeFloat2(y, z);
-      }
+    for (uint32_t i = iThread; i < NumberOfClusters; i += nThreads) {
+      float x, y, z;
+      GPUTPCConvertImpl::convert(*mem, iSector, rowIndex, mem->ioPtrs.clustersNative->clusters[iSector][rowIndex][i].getPad(), mem->ioPtrs.clustersNative->clusters[iSector][rowIndex][i].getTime(), x, y, z);
+      UpdateMinMaxYZ(yMin, yMax, zMin, zMax, y, z);
+      YZData[RowOffset + i] = CAMath::MakeFloat2(y, z);
     }
 
     if (iThread == 0) {
@@ -380,7 +324,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
       const int32_t globalHitIndex = RowOffset + hitIndex;
 
       // allows to find the global hit index / coordinates from a global bin sorted hit index
-      mClusterDataIndex[globalBinsortedIndex] = EarlyTransformWithoutClusterNative ? tmpHitIndex[globalHitIndex] : (RowOffset + hitIndex);
+      mClusterDataIndex[globalBinsortedIndex] = RowOffset + hitIndex;
 
       const float xx = ((YZData[globalHitIndex].x - y0) * stepYi) + .5;
       const float yy = ((YZData[globalHitIndex].y - z0) * stepZi) + .5;

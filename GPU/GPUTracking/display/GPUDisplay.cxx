@@ -21,6 +21,8 @@
 #include <memory>
 #include <cstring>
 #include <stdexcept>
+#include <mutex>
+#include <condition_variable>
 
 #ifndef _WIN32
 #include "../utils/linux_helpers.h"
@@ -143,7 +145,7 @@ void GPUDisplay::ResizeScene(int32_t width, int32_t height, bool init)
   mBackend->resizeScene(width, height);
 
   if (init) {
-    mResetScene = 1;
+    mResetScene = true;
     mViewMatrix = MY_HMM_IDENTITY;
     mModelMatrix = MY_HMM_IDENTITY;
   }
@@ -220,6 +222,14 @@ int32_t GPUDisplay::DrawGLScene()
     GPUError("Runtime error %s during display", e.what());
     retVal = 1;
   }
+
+  if (mLoadAndShowEvent) {
+    {
+      std::lock_guard<std::mutex> lock(mMutexLoadAndShowEvent);
+      mLoadAndShowEvent = false;
+    }
+    mCVLoadAndShowEvent.notify_one();
+  }
   mSemLockDisplay.Unlock();
 
   return retVal;
@@ -227,6 +237,7 @@ int32_t GPUDisplay::DrawGLScene()
 
 void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
+  HighResTimer timer(mUpdateVertexLists && mChain->GetProcessingSettings().debugLevel >= 2);
   int32_t mMouseWheelTmp = mFrontend->mMouseWheel;
   mFrontend->mMouseWheel = 0;
   bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->KEY_ALT];
@@ -262,13 +273,14 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     mCfgL.pointSize = 2.0f;
     mCfgL.lineWidth = 1.4f;
     mCfgL.drawSector = -1;
+    mCfgL.showCollision = -1;
     mCfgH.xAdd = mCfgH.zAdd = 0;
     mCfgR.camLookOrigin = mCfgR.camYUp = false;
     mAngleRollOrigin = -1e9f;
     mCfgR.fov = 45.f;
-    mUpdateDrawCommands = 1;
+    mUpdateDrawCommands = true;
 
-    mResetScene = 0;
+    mResetScene = false;
   } else {
     float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(uint8_t)'W'] - mFrontend->mKeys[(uint8_t)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
     float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2f * mFPSScale);
@@ -386,7 +398,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     }
     if (deltaLine) {
       SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", mCfgL.lineWidth);
-      mUpdateDrawCommands = 1;
+      mUpdateDrawCommands = true;
     }
     minSize *= 2;
     int32_t deltaPoint = mFrontend->mKeys[(uint8_t)'+'] * (!mFrontend->mKeysShift[(uint8_t)'+']) - mFrontend->mKeys[(uint8_t)'-'] * (!mFrontend->mKeysShift[(uint8_t)'-']);
@@ -396,7 +408,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     }
     if (deltaPoint) {
       SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", mCfgL.pointSize);
-      mUpdateDrawCommands = 1;
+      mUpdateDrawCommands = true;
     }
   }
 
@@ -409,6 +421,9 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   if (mFrontend->mMouseDn || mFrontend->mMouseDnR) {
     mFrontend->mMouseDnX = mFrontend->mMouseMvX;
     mFrontend->mMouseDnY = mFrontend->mMouseMvY;
+  }
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Camera:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 }
 
@@ -608,7 +623,6 @@ void GPUDisplay::DrawGLScene_drawCommands()
 
 void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
-  bool showTimer = false;
   bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
 
   updateOptions();
@@ -616,17 +630,18 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     disableUnsupportedOptions();
   }
   if (mUpdateEventData || mUpdateVertexLists) {
-    mUpdateDrawCommands = 1;
+    mUpdateDrawCommands = true;
   }
 
+  HighResTimer timerDraw(mUpdateVertexLists);
   if (animateTime < 0 && (mUpdateEventData || mResetScene) && mIOPtrs) {
-    showTimer = true;
+    timerDraw.ResetStart();
     DrawGLScene_updateEventData();
     mTimerFPS.ResetStart();
     mFramesDoneFPS = 0;
     mFPSScaleadjust = 0;
-    mUpdateVertexLists = 1;
-    mUpdateEventData = 0;
+    mUpdateVertexLists = true;
+    mUpdateEventData = false;
   }
 
   hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
@@ -636,8 +651,8 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   // Prepare Event
   if (mUpdateVertexLists && mIOPtrs) {
     size_t totalVertizes = DrawGLScene_updateVertexList();
-    if (showTimer) {
-      printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int32_t)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (int64_t)totalVertizes, (int64_t)(totalVertizes * sizeof(mVertexBuffer[0][0])));
+    if (timerDraw.IsRunning()) {
+      printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int32_t)(timerDraw.GetCurrentElapsedTime() * 1000000.), (int64_t)totalVertizes, (int64_t)(totalVertizes * sizeof(mVertexBuffer[0][0])));
     }
   }
 
@@ -658,7 +673,8 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     mBackend->drawField();
   }
 
-  mUpdateDrawCommands = mUpdateRenderPipeline = 0;
+  mUpdateDrawCommands = false;
+  mUpdateRenderPipeline = false;
   mBackend->finishDraw(doScreenshot, renderToMixBuffer, mixSlaveImage);
 
   if (animateTime < 0) {
@@ -708,15 +724,25 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
   if (mMaxClusterZ <= 0) {
     mResetScene = true;
   }
-  mSemLockDisplay.Unlock();
   mFrontend->mNeedUpdate = 1;
   mUpdateEventData = true;
+  mLoadAndShowEvent = true;
+  mSemLockDisplay.Unlock();
 }
 
-void GPUDisplay::WaitForNextEvent() { mSemLockDisplay.Lock(); }
+void GPUDisplay::BlockTillNextEvent() { mSemLockDisplay.Lock(); }
+
+void GPUDisplay::WaitTillEventShown()
+{
+  std::unique_lock<std::mutex> lock(mMutexLoadAndShowEvent);
+  while (mLoadAndShowEvent) {
+    mCVLoadAndShowEvent.wait(lock);
+  }
+}
 
 int32_t GPUDisplay::StartDisplay()
 {
+  mLoadAndShowEvent = true;
   if (mFrontend->StartDisplay()) {
     return (1);
   }
