@@ -1103,7 +1103,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
           for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
             double u = gridU.getKnot(iu).u;
             for (int iv = 0; iv < gridV.getNumberOfKnots(); iv++) {
-              double v = gridV.getKnot(iu).u;
+              double v = gridV.getKnot(iv).u;
               int knotIndex = spline.getKnotIndex(iu, iv);
               float P[nKnotPar3d];
 

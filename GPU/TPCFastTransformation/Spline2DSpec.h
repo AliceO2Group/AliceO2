@@ -382,8 +382,8 @@ class Spline2DSpec<DataT, YdimT, 0>
     const auto nYdim4 = nYdim * 4;
 
     DataT *S = P,
-          *R = P + nYdim,
-          *Q = P + nYdim * 2,
+          *Q = P + nYdim,
+          *R = P + nYdim * 2,
           *W = P + nYdim * 3;
 
     const DataT& u = u1;
@@ -425,28 +425,6 @@ class Spline2DSpec<DataT, YdimT, 0>
       }
     }
 
-    // Derivative R = dS / du
-    // R = dRdSl * (dSdSd * A[0] + dSdDd * A[1]) + dRdDl * (dSdSd * A[2] + dSdDd * A[3]) +
-    //     dRdSr * (dSdSd * A[4] + dSdDd * A[5]) + dRdDr * (dSdSd * A[6] + dSdDd * A[7]) +
-    //     dRdSl * (dSdSu * B[0] + dSdDu * B[1]) + dRdDl * (dSdSu * B[2] + dSdDu * B[3]) +
-    //     dRdSr * (dSdSu * B[4] + dSdDu * B[5]) + dRdDr * (dSdSu * B[6] + dSdDu * B[7]);
-
-    {
-      DataT a[8] = {dRdSl * dSdSd, dRdSl * dSdDd, dRdDl * dSdSd, dRdDl * dSdDd,
-                    dRdSr * dSdSd, dRdSr * dSdDd, dRdDr * dSdSd, dRdDr * dSdDd};
-      DataT b[8] = {dRdSl * dSdSu, dRdSl * dSdDu, dRdDl * dSdSu, dRdDl * dSdDu,
-                    dRdSr * dSdSu, dRdSr * dSdDu, dRdDr * dSdSu, dRdDr * dSdDu};
-
-      // R = sum a[i]*A[i] + b[i]*B[i]
-
-      for (int32_t dim = 0; dim < nYdim; dim++) {
-        R[dim] = 0;
-        for (int32_t i = 0; i < 8; i++) {
-          R[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
-        }
-      }
-    }
-
     // Derivative Q = dS / dv
     // Q = dSdSl * (dQdSd * A[0] + dQdDd * A[1]) + dSdDl * (dQdSd * A[2] + dQdDd * A[3]) +
     //     dSdSr * (dQdSd * A[4] + dQdDd * A[5]) + dSdDr * (dQdSd * A[6] + dQdDd * A[7]) +
@@ -465,6 +443,28 @@ class Spline2DSpec<DataT, YdimT, 0>
         Q[dim] = 0;
         for (int32_t i = 0; i < 8; i++) {
           Q[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
+        }
+      }
+    }
+
+    // Derivative R = dS / du
+    // R = dRdSl * (dSdSd * A[0] + dSdDd * A[1]) + dRdDl * (dSdSd * A[2] + dSdDd * A[3]) +
+    //     dRdSr * (dSdSd * A[4] + dSdDd * A[5]) + dRdDr * (dSdSd * A[6] + dSdDd * A[7]) +
+    //     dRdSl * (dSdSu * B[0] + dSdDu * B[1]) + dRdDl * (dSdSu * B[2] + dSdDu * B[3]) +
+    //     dRdSr * (dSdSu * B[4] + dSdDu * B[5]) + dRdDr * (dSdSu * B[6] + dSdDu * B[7]);
+
+    {
+      DataT a[8] = {dRdSl * dSdSd, dRdSl * dSdDd, dRdDl * dSdSd, dRdDl * dSdDd,
+                    dRdSr * dSdSd, dRdSr * dSdDd, dRdDr * dSdSd, dRdDr * dSdDd};
+      DataT b[8] = {dRdSl * dSdSu, dRdSl * dSdDu, dRdDl * dSdSu, dRdDl * dSdDu,
+                    dRdSr * dSdSu, dRdSr * dSdDu, dRdDr * dSdSu, dRdDr * dSdDu};
+
+      // R = sum a[i]*A[i] + b[i]*B[i]
+
+      for (int32_t dim = 0; dim < nYdim; dim++) {
+        R[dim] = 0;
+        for (int32_t i = 0; i < 8; i++) {
+          R[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
         }
       }
     }
