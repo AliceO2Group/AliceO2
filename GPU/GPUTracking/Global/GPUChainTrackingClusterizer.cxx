@@ -709,6 +709,8 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         LOG(info) << "(ORT) Allocated ONNX stream for lane " << lane << " and device " << deviceId;
       }
     });
+    const int16_t maxFragmentLen = GetProcessingSettings().overrideClusterizerFragmentLen;
+    const uint32_t maxAllowedTimebin = param().par.continuousTracking ? std::max<int32_t>(param().continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
     for (int32_t sector = 0; sector < NSECTORS; sector++) {
       GPUTPCNNClusterizer& clustererNN = processors()->tpcNNClusterer[sector];
       GPUTPCNNClusterizer& clustererNNShadow = doGPU ? processorsShadow()->tpcNNClusterer[sector] : clustererNN;
@@ -716,12 +718,12 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       clustererNN.mDeviceId = deviceId;
       clustererNN.mISector = sector;
       clustererNN.mNnClusterizerTotalClusters = processors()->tpcClusterer[lane].mNMaxClusters;
-      nnApplications[lane].initClusterizer(nn_settings, clustererNN);
+      nnApplications[lane].initClusterizer(nn_settings, clustererNN, maxFragmentLen, maxAllowedTimebin);
       if (doGPU) {
         clustererNNShadow.mDeviceId = deviceId;
         clustererNNShadow.mISector = sector;
         clustererNNShadow.mNnClusterizerTotalClusters = processors()->tpcClusterer[lane].mNMaxClusters;
-        nnApplications[lane].initClusterizer(nn_settings, clustererNNShadow);
+        nnApplications[lane].initClusterizer(nn_settings, clustererNNShadow, maxFragmentLen, maxAllowedTimebin);
       }
       if (nn_settings.nnClusterizerVerbosity > 2) {
         LOG(info) << "(NNCLUS, GPUChainTrackingClusterizer, this=" << this << ") Processor initialized. Sector " << sector << ", lane " << lane << ", max clusters " << clustererNN.mNnClusterizerTotalClusters << " (clustererNN=" << &clustererNN << ", clustererNNShadow=" << &clustererNNShadow << ")";
