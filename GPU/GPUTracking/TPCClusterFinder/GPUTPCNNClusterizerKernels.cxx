@@ -427,7 +427,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   //   const int MAX_CHARS = 4096;
   //   char buffer[MAX_CHARS];
   //   int pos = 0;
-//
+  //
   //   auto appendChar = [&](char c) {
   //     if (pos < MAX_CHARS - 1) buffer[pos++] = c;
   //   };
@@ -458,7 +458,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   //       if (frac < 0) frac = 0;
   //     }
   //   };
-//
+  //
   //   appendStr("(NN CLUS) DEBUG: Boundary cluster detected (sector ");
   //   appendUInt(sector);
   //   appendStr(", row ");
@@ -474,10 +474,10 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   //   appendStr(" dtype=");
   //   appendInt(dtype);
   //   appendStr("] INPUT:");
-//
+  //
   //   int elemSize = clustererNN.mNnClusterizerElementSize;
   //   int baseIdx = glo_idx * elemSize;
-//
+  //
   //   int maxPrint = elemSize;
   //   for (int i = 0; i < maxPrint; ++i) {
   //     appendChar(' ');
@@ -486,7 +486,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   //     appendFloat(v);
   //     if (pos > (MAX_CHARS - 32)) { appendStr(" ..."); break; }
   //   }
-//
+  //
   //   buffer[pos] = 0;
   //   printf("%s\n", buffer);
   // }
@@ -754,7 +754,7 @@ GPUd() bool GPUTPCNNClusterizerKernels::isBoundary(int32_t row, int32_t pad, int
 
 GPUd() bool GPUTPCNNClusterizerKernels::isBoundaryPublish(int32_t idx, int32_t row, float& pad, float& time)
 {
-  if(pad < 0) {
+  if (pad < 0) {
     // printf("(NN CLUS) WARNING: Boundary detected, idx = %d, pad < 0: row %d, pad %f (%d, %d), time %f (%d, %d)\n", idx, row, pad, 0, static_cast<int>(GPUTPCGeometry::NPads(row)), time, 0, TPC_MAX_FRAGMENT_LEN_GPU);
     pad = 0.f;
     return true;
