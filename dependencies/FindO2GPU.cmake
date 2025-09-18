@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 2
+# FindO2GPU.cmake Version 3
 
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
@@ -109,7 +109,7 @@ if(ENABLE_CUDA)
   if(CUDA_COMPUTETARGET)
     set(CMAKE_CUDA_ARCHITECTURES ${CUDA_COMPUTETARGET})
   else()
-    set(CMAKE_CUDA_ARCHITECTURES 61-virtual)
+    set(CMAKE_CUDA_ARCHITECTURES 75-virtual)
   endif()
   set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
