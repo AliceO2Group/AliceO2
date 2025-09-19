@@ -1,0 +1,35 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file EEventDataBit.h
+/// \brief Enum type describing bits in ChainQTC flag
+/// \author wiktor.pierozak@cern.ch
+
+#ifndef O2_FIT_EEVENT_DATA_BIT_
+#define O2_FIT_EEVENT_DATA_BIT_
+
+namespace o2
+{
+namespace fv0
+{
+enum class EEventDataBit { kNumberADC = 0,
+                           kIsDoubleEvent,
+                           kIsTimeInfoNOTvalid,
+                           kIsCFDinADCgate,
+                           kIsTimeInfoLate,
+                           kIsAmpHigh,
+                           kIsEventInTVDC,
+                           kIsTimeInfoLost
+};
+}
+} // namespace o2
+
+#endif

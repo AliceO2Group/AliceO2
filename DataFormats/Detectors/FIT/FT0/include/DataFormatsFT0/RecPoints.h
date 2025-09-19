@@ -20,6 +20,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormat/Detectors/FIT/common/EEvebtDataBit.h"
 #include <array>
 #include "Rtypes.h"
 #include <TObject.h>
@@ -33,11 +34,15 @@ namespace ft0
 {
 
 struct ChannelDataFloat {
+  static constexpr int DUMMY_CHANNEL_ID = -1;
+  static constexpr int DUMMY_CHAIN_QTC = -1;
+  static constexpr float DUMMY_CFD_TIME = -20000;
+  static constexpr float DUMMY_QTC_AMPL = -20000;
 
-  int ChId = -1;          // channel Id
-  int ChainQTC = -1;      // QTC chain
-  float CFDTime = -20000; // time in ps, 0 at the LHC clk center
-  float QTCAmpl = -20000; // Amplitude mV
+  int ChId = DUMMY_CHANNEL_ID;    // channel Id
+  int ChainQTC = DUMMY_CHAIN_QTC; // QTC chain
+  float CFDTime = DUMMY_CFD_TIME; // time in ps, 0 at the LHC clk center
+  float QTCAmpl = DUMMY_QTC_AMPL; // Amplitude mV
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int iPmt, float time, float charge, int chainQTC)
@@ -48,7 +53,42 @@ struct ChannelDataFloat {
     ChainQTC = chainQTC;
   }
 
+  static void setFlag(fit::EEventDataBit bitFlag, int& chainQTC)
+  {
+    ChainQTC = uint8_t(ChainQTC) | 1u << bitFlag;
+  }
+  static void clearFlag(fit::EEventDataBit bitFlag, int& chainQTC)
+  {
+    ChainQTC = uint8_t(ChainQTC) & ~(1u << bitFlag);
+  }
+  void setFlag(int flag)
+  {
+    ChainQTC = flag;
+  }
+  void setFlag(fit::EEventDataBit bitFlag, bool value)
+  {
+    ChainQTC = uint8_t(ChainQTC) | uint8_t(value) << bitFlag;
+  }
+  bool getFlag(fit::EEventDataBit bitFlag) const
+  {
+    return bool(uint8_t(ChainQTC) & (1u << bitFlag));
+  }
+  bool areAllFlagsGood() const
+  {
+    return (!getFlag(fit::EEventDataBit::kIsDoubleEvent) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoNOTvalid) &&
+            getFlag(fit::EEventDataBit::kIsCFDinADCgate) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoLate) &&
+            !getFlag(fit::EEventDataBit::kIsAmpHigh) &&
+            getFlag(fit::EEventDataBit::kIsEventInTVDC) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoLost));
+  }
+
   void print() const;
+  [[nodiscard]] int getChannelId() const { return ChId; }
+  [[nodiscard]] float getTime() const { return CFDTime; }
+  [[nodiscard]] float getAmp() const { return QTCAmpl; }
+
   bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);

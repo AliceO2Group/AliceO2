@@ -18,6 +18,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFV0/Digit.h"
+#include "DataFormat/Detectors/FIT/common/EEvebtDataBit.h"
 #include <array>
 #include <gsl/span>
 
@@ -26,11 +27,15 @@ namespace o2
 namespace fv0
 {
 struct ChannelDataFloat {
+  static constexpr int DUMMY_CHANNEL_ID = -1;
+  static constexpr int DUMMY_CHAIN_QTC = -1;
+  static constexpr double DUMMY_CFD_TIME = -20000.0;
+  static constexpr double DUMMY_QTC_AMPL = -20000.0;
 
-  int channel = -1;       // channel Id
-  double time = -20000;   // time in ns, 0 at the LHC clk center
-  double charge = -20000; // charge [channels]
-  int adcId = -1;         // QTC chain
+  int channel = DUMMY_CHANNEL_ID; // channel Id
+  double time = DUMMY_CFD_TIME;   // time in ns, 0 at the LHC clk center
+  double charge = DUMMY_QTC_AMPL; // charge [channels]
+  int adcId = DUMMY_CHAIN_QTC;    // QTC chain
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int Channel, double Time, double Charge, int AdcId)
@@ -41,7 +46,37 @@ struct ChannelDataFloat {
     adcId = AdcId;
   }
 
+  static void setFlag(fit::EEventDataBit bitFlag, int& adcId)
+  {
+    adcId = uint8_t(adcId) | 1u << bitFlag;
+  }
+  static void clearFlag(fit::EEventDataBit bitFlag, int& adcId)
+  {
+    adcId = uint8_t(adcId) & ~(1u << bitFlag);
+  }
+  void setFlag(int flag)
+  {
+    adcId = flag;
+  }
+  bool getFlag(fit::EEventDataBit bitFlag)
+  {
+    return bool(uint8_t(adcId) & (1u << bitFlag));
+  }
+  bool areAllFlagsGood() const
+  {
+    return (!getFlag(fit::EEventDataBit::kIsDoubleEvent) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoNOTvalid) &&
+            getFlag(fit::EEventDataBit::kIsCFDinADCgate) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoLate) &&
+            !getFlag(fit::EEventDataBit::kIsAmpHigh) &&
+            getFlag(fit::EEventDataBit::kIsEventInTVDC) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoLost));
+  }
+
   void print() const;
+  [[nodiscard]] int getChannelId() const { return channel; }
+  [[nodiscard]] int getTime() const { return time; }
+  [[nodiscard]] int getAmp() const { return charge; }
   bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);

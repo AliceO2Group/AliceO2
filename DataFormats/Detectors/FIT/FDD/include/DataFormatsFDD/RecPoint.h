@@ -21,17 +21,22 @@
 #include "DataFormatsFDD/ChannelData.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFDD/Digit.h"
+#include "DataFormat/Detectors/FIT/common/EEvebtDataBit.h"
 
 namespace o2
 {
 namespace fdd
 {
 struct ChannelDataFloat {
+  static constexpr int DUMMY_CHANNEL_ID = -1;
+  static constexpr int DUMMY_CHAIN_QTC = -1;
+  static constexpr double DUMMY_CFD_TIME = -20000;
+  static constexpr double DUMMY_QTC_AMPL = -20000;
 
-  int mPMNumber = -1;         // channel Id
-  int adcId = -1;             // QTC chain
-  double mTime = -20000;      // time in ps, 0 at the LHC clk center
-  double mChargeADC = -20000; // charge [channels]
+  int mPMNumber = DUMMY_CHANNEL_ID;   // channel Id
+  int adcId = DUMMY_CHAIN_QTC;        // QTC chain
+  double mTime = DUMMY_CFD_TIME;      // time in ps, 0 at the LHC clk center
+  double mChargeADC = DUMMY_QTC_AMPL; // charge [channels]
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int Channel, double Time, double Charge, int AdcId)
@@ -42,7 +47,41 @@ struct ChannelDataFloat {
     adcId = AdcId;
   }
 
+  static void setFlag(fit::EEventDataBit bitFlag, int& adcId)
+  {
+    adcId = uint8_t(adcId) | 1u << bitFlag;
+  }
+  static void clearFlag(fit::EEventDataBit bitFlag, int& adcId)
+  {
+    adcId = uint8_t(adcId) & ~(1u << bitFlag);
+  }
+  void setFlag(int flag)
+  {
+    adcId = flag;
+  }
+  void setFlag(fit::EEventDataBit bitFlag, bool value)
+  {
+    adcId = uint8_t(adcId) | uint8_t(value) << bitFlag;
+  }
+  bool getFlag(fit::EEventDataBit bitFlag) const
+  {
+    return bool(uint8_t(adcId) & (1u << bitFlag));
+  }
+  bool areAllFlagsGood() const
+  {
+    return (!getFlag(fit::EEventDataBit::kIsDoubleEvent) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoNOTvalid) &&
+            getFlag(fit::EEventDataBit::kIsCFDinADCgate) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoLate) &&
+            !getFlag(fit::EEventDataBit::kIsAmpHigh) &&
+            getFlag(fit::EEventDataBit::kIsEventInTVDC) &&
+            !getFlag(fit::EEventDataBit::kIsTimeInfoLost));
+  }
+
   void print() const;
+  [[nodiscard]] int getChannelId() const { return mPMNumber; }
+  [[nodiscard]] double getTime() const { return mTime; }
+  [[nodiscard]] double getAmp() const { return mChargeADC; }
   bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);
