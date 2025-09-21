@@ -22,8 +22,7 @@ o2_add_library(DCAFitter
                                      O2::DetectorsBase)
 
 o2_target_root_dictionary(DCAFitter
-                          HEADERS include/DCAFitter/HelixHelper.h
-                                  include/DCAFitter/DCAFitterN.h
+                          HEADERS include/DCAFitter/DCAFitterN.h
                                   include/DCAFitter/FwdDCAFitterN.h)
 
 if (OpenMP_CXX_FOUND)

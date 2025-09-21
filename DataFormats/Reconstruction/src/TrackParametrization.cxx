@@ -651,7 +651,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
   // DirOutward (==1) - go along the track (increasing mX)
   // DirInward (==-1) - go backward (decreasing mX)
   //
-  const auto fy = mP[0], sn = mP[2];
+  const double fy = mP[0], sn = mP[2];
   const value_t kEps = 1.e-6;
   //
   if (gpu::CAMath::Abs(getSnp()) > constants::math::Almost1) {
@@ -670,18 +670,18 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
     if (r0 <= constants::math::Almost0) {
       return false; // the track is concentric to circle
     }
-    value_t tR2r0 = 1.f, g = 0.f, tmp = 0.f;
+    double tR2r0 = 1., g = 0., tmp = 0.;
     if (gpu::CAMath::Abs(circle.rC - r0) > kEps) {
       tR2r0 = circle.rC / r0;
       g = 0.5f * (r * r / (r0 * circle.rC) - tR2r0 - 1.f / tR2r0);
       tmp = 1.f + g * tR2r0;
     } else {
       tR2r0 = 1.0;
-      g = 0.5f * r * r / (r0 * circle.rC) - 1.f;
-      tmp = 0.5f * r * r / (r0 * r0);
+      g = 0.5 * r * r / (r0 * circle.rC) - 1.;
+      tmp = 0.5 * r * r / (r0 * r0);
     }
-    value_t det = (1.f - g) * (1.f + g);
-    if (det < 0.f) {
+    auto det = (1. - g) * (1. + g);
+    if (det < 0.) {
       return false; // does not reach raduis r
     }
     det = gpu::CAMath::Sqrt(det);
@@ -691,25 +691,26 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
     // where s0 and c0 make direction for the circle center (=circle.xC/r0 and circle.yC/r0)
     //
     x = circle.xC * tmp;
-    value_t y = circle.yC * tmp;
+    auto y = circle.yC * tmp;
     if (gpu::CAMath::Abs(circle.yC) > constants::math::Almost0) { // when circle.yC==0 the x,y is unique
-      value_t dfx = tR2r0 * gpu::CAMath::Abs(circle.yC) * det;
-      value_t dfy = tR2r0 * circle.xC * (circle.yC > 0.f ? det : -det);
+      auto dfx = tR2r0 * gpu::CAMath::Abs(circle.yC) * det;
+      auto dfy = tR2r0 * circle.xC * (circle.yC > 0. ? det : -det);
       if (dir == DirAuto) {                              // chose the one which corresponds to smallest step
-        value_t delta = (x - mX) * dfx - (y - fy) * dfy; // the choice of + in C will lead to smaller step if delta<0
-        x += delta < 0.f ? dfx : -dfx;
+        auto delta = (x - mX) * dfx - (y - fy) * dfy;    // the choice of + in C will lead to smaller step if delta<0
+        x += delta < 0. ? dfx : -dfx;
       } else if (dir == DirOutward) { // along track direction: x must be > mX
         x -= dfx;                     // try the smallest step (dfx is positive)
-        value_t dfeps = mX - x;       // handle special case of very small step
+        auto dfeps = mX - x;          // handle special case of very small step
         if (dfeps < -kEps) {
           return true;
         }
         if (gpu::CAMath::Abs(dfeps) < kEps && gpu::CAMath::Abs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
-          return mX;
+          x = mX;
+          return true;
         }
         x += dfx + dfx;
-        value_t dxm = x - mX;
-        if (dxm > 0.f) {
+        auto dxm = x - mX;
+        if (dxm > 0.) {
           return true;
         } else if (dxm < -kEps) {
           return false;
@@ -717,16 +718,17 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
         x = mX;                 // don't move
       } else {                  // backward: x must be < mX
         x += dfx;               // try the smallest step (dfx is positive)
-        value_t dfeps = x - mX; // handle special case of very small step
+        auto dfeps = x - mX;    // handle special case of very small step
         if (dfeps < -kEps) {
           return true;
         }
         if (gpu::CAMath::Abs(dfeps) < kEps && gpu::CAMath::Abs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
-          return mX;
+          x = mX;
+          return true;
         }
         x -= dfx + dfx;
-        value_t dxm = x - mX;
-        if (dxm < 0.f) {
+        auto dxm = x - mX;
+        if (dxm < 0.) {
           return true;
         }
         if (dxm > kEps) {
@@ -739,11 +741,11 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
         return false;
       }
     }
-    return x;
+    return true;
   }
   // this is a straight track
   if (gpu::CAMath::Abs(sn) >= constants::math::Almost1) { // || to Y axis
-    value_t det = (r - mX) * (r + mX);
+    double det = (r - mX) * (r + mX);
     if (det < 0.f) {
       return false; // does not reach raduis r
     }
@@ -753,7 +755,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
     }
     det = gpu::CAMath::Sqrt(det);
     if (dir == DirOutward) { // along the track direction
-      if (sn > 0.f) {
+      if (sn > 0.) {
         if (fy > det) {
           return false; // track is along Y axis and above the circle
         }
@@ -763,7 +765,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
         }
       }
     } else if (dir == DirInward) { // against track direction
-      if (sn > 0.f) {
+      if (sn > 0.) {
         if (fy < -det) {
           return false; // track is along Y axis
         }
@@ -772,13 +774,13 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
       }
     }
   } else if (gpu::CAMath::Abs(sn) <= constants::math::Almost0) { // || to X axis
-    value_t det = (r - fy) * (r + fy);
-    if (det < 0.f) {
+    double det = (r - fy) * (r + fy);
+    if (det < 0.) {
       return false; // does not reach raduis r
     }
     det = gpu::CAMath::Sqrt(det);
     if (dir == DirAuto) {
-      x = mX > 0.f ? det : -det; // choose the solution requiring the smalest step
+      x = mX > 0. ? det : -det; // choose the solution requiring the smalest step
       return true;
     } else if (dir == DirOutward) { // along the track direction
       if (mX > det) {
@@ -794,17 +796,17 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
       }
     }
   } else { // general case of straight line
-    value_t cs = gpu::CAMath::Sqrt((1.f - sn) * (1.f + sn));
-    value_t xsyc = mX * sn - fy * cs;
-    value_t det = (r - xsyc) * (r + xsyc);
-    if (det < 0.f) {
+    auto cs = gpu::CAMath::Sqrt((1. - sn) * (1. + sn));
+    auto xsyc = mX * sn - fy * cs;
+    auto det = (r - xsyc) * (r + xsyc);
+    if (det < 0.) {
       return false; // does not reach raduis r
     }
     det = gpu::CAMath::Sqrt(det);
-    value_t xcys = mX * cs + fy * sn;
-    value_t t = -xcys;
+    auto xcys = mX * cs + fy * sn;
+    auto t = -xcys;
     if (dir == DirAuto) {
-      t += t > 0.f ? -det : det; // chose the solution requiring the smalest step
+      t += t > 0. ? -det : det;  // chose the solution requiring the smalest step
     } else if (dir > 0) {        // go in increasing mX direction. ( t+-det > 0)
       if (t >= -det) {
         t += det; // take minimal step giving t>0

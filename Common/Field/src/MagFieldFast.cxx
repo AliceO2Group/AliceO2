@@ -145,7 +145,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const double xyz[3], double& b) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, double& b) const
+bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<double> xyz, double& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;

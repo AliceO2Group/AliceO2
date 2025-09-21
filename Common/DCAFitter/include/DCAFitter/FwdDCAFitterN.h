@@ -20,7 +20,7 @@
 #include "MathUtils/Cartesian.h"
 #include "ReconstructionDataFormats/TrackFwd.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "DCAFitter/HelixHelper.h"
+#include "ReconstructionDataFormats/HelixHelper.h"
 #include <TRandom.h>
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
