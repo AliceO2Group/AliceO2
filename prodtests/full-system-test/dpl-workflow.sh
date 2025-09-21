@@ -222,6 +222,9 @@ has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --local-cmp"
 
 if [[ $EPNSYNCMODE == 1 ]]; then
+  # dump raw data in case of GPU crash and set dump directory size limits; files are automatically cleaned by EPN after 60 days
+  GPU_CONFIG_KEY+="GPU_proc.debugOnFailure=1;GPU_proc.debugOnFailureDirectory=/data/tf/debug;GPU_proc.debugOnFailureMaxFiles=1000;GPU_proc.debugOnFailureMaxSize=500;GPU_proc.debugOnFailureSignalMask=2240;"
+
   EVE_OPT+=" --eve-dds-collection-index 0"
   MIDDEC_CONFIG+=" --feeId-config-file \"$MID_FEEID_MAP\""
   if [[ $EXTINPUT == 1 ]] && [[ $GPUTYPE != "CPU" ]] && [[ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]]; then

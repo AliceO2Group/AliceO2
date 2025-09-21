@@ -57,7 +57,8 @@ class GPUDisplayBackend
   enum backendTypes {
     TYPE_INVALID = -1,
     TYPE_OPENGL = 0,
-    TYPE_VULKAN = 1
+    TYPE_VULKAN = 1,
+    TYPE_NONE = 2
   };
 
   struct DrawArraysIndirectCommand {

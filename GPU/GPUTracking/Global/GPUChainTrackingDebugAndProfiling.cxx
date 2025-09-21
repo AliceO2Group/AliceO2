@@ -70,7 +70,7 @@ int32_t GPUChainTracking::DoProfile()
   fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
   fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
 
-  int32_t nEmptySync = 0;
+  [[maybe_unused]] int32_t nEmptySync = 0;
   for (uint32_t i = 0; i < bmpheight * ConstructorBlockCount() * ConstructorThreadCount(); i += ConstructorBlockCount() * ConstructorThreadCount()) {
     int32_t fEmpty = 1;
     for (uint32_t j = 0; j < ConstructorBlockCount() * ConstructorThreadCount(); j++) {
@@ -103,7 +103,6 @@ int32_t GPUChainTracking::DoProfile()
     } else {
       nEmptySync = 0;
     }
-    (void)nEmptySync;
     // if (nEmptySync == GPUCA_SCHED_ROW_STEP + 2) break;
   }
 
@@ -217,7 +216,9 @@ void GPUChainTracking::PrintOutputStat()
   } else {
     for (uint32_t k = 0; k < mIOPtrs.nMergedTracks; k++) {
       if (mIOPtrs.mergedTracks[k].OK()) {
-        nTracks++;
+        if (!mIOPtrs.mergedTracks[k].MergedLooper()) {
+          nTracks++;
+        }
         nAttachedClusters += mIOPtrs.mergedTracks[k].NClusters();
         nAttachedClustersFitted += mIOPtrs.mergedTracks[k].NClustersFitted();
       }
@@ -250,7 +251,7 @@ void GPUChainTracking::PrintOutputStat()
   GPUInfo("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total) - %s format)%s", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, GetProcessingSettings().createO2Output > 1 ? "O2" : "GPU", trdText);
 }
 
-void GPUChainTracking::SanityCheck()
+void GPUChainTracking::OutputSanityCheck()
 {
   size_t nErrors = 0;
 

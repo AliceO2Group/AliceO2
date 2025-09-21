@@ -22,7 +22,6 @@
 #include "GPUTRDTracker.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUQA.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTPCGMPropagator.h"
 #include "GPUTPCMCInfo.h"
@@ -41,7 +40,7 @@
 
 using namespace o2::gpu;
 
-#define GET_CID(sector, i) (mParam->par.earlyTpcTransform ? mIOPtrs->clusterData[sector][i].id : (mIOPtrs->clustersNative->clusterOffset[sector][0] + i))
+#define GET_CID(sector, i) (mIOPtrs->clustersNative->clusterOffset[sector][0] + i)
 
 const GPUTRDGeometry* GPUDisplay::trdGeometry() { return (GPUTRDGeometry*)mCalib->trdGeometry; }
 const GPUTPCTracker& GPUDisplay::sectorTracker(int32_t iSector) { return mChain->GetProcessors()->tpcTrackers[iSector]; }
@@ -122,72 +121,87 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int32_t iSector, int32_t sele
   return (vboList(startCount, mVertexBufferStart[iSector].size() - startCount, iSector));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawClusters(int32_t iSector, int32_t select, uint32_t iCol)
+void GPUDisplay::DrawClusters(int32_t iSector)
 {
-  size_t startCount = mVertexBufferStart[iSector].size();
-  size_t startCountInner = mVertexBuffer[iSector].size();
-  if (mOverlayTFClusters.size() > 0 || iCol == 0 || mNCollissions) {
-    const int32_t firstCluster = (mOverlayTFClusters.size() > 1 && iCol > 0) ? mOverlayTFClusters[iCol - 1][iSector] : 0;
-    const int32_t lastCluster = (mOverlayTFClusters.size() > 1 && iCol + 1 < mOverlayTFClusters.size()) ? mOverlayTFClusters[iCol][iSector] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSector] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0);
-    const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
-    for (int32_t cidInSector = firstCluster; cidInSector < lastCluster; cidInSector++) {
-      const int32_t cid = GET_CID(iSector, cidInSector);
-#ifdef GPUCA_TPC_GEOMETRY_O2
-      if (checkClusterCollision) {
-        const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
-        if (labels.size() ? (iCol != mQA->GetMCLabelCol(labels[0])) : (iCol != 0)) {
-          continue;
-        }
-      }
-#else
-      (void)checkClusterCollision;
-#endif
-      if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
-        continue;
-      }
-      bool draw = mGlobalPos[cid].w == select;
-
-      if (mCfgH.markAdjacentClusters) {
-        const int32_t attach = mIOPtrs->mergedTrackHitAttachment[cid];
-        if (attach) {
-          if (mCfgH.markAdjacentClusters >= 32) {
-            if (mQA && mQA->clusterRemovable(attach, mCfgH.markAdjacentClusters == 33)) {
-              draw = select == tMARKED;
-            }
-          } else if ((mCfgH.markAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {
-            draw = select == tMARKED;
-          } else if ((mCfgH.markAdjacentClusters & 1) && (attach & (gputpcgmmergertypes::attachGood | gputpcgmmergertypes::attachTube)) == 0) {
-            draw = select == tMARKED;
-          } else if ((mCfgH.markAdjacentClusters & 4) && (attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
-            draw = select == tMARKED;
-          } else if ((mCfgH.markAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
-            draw = select == tMARKED;
-          } else if (mCfgH.markAdjacentClusters & 8) {
-            if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
-              draw = select == tMARKED;
-            }
-          }
-        }
-      } else if (mCfgH.markClusters) {
-        int16_t flags;
-        if (mParam->par.earlyTpcTransform) {
-          flags = mIOPtrs->clusterData[iSector][cidInSector].flags;
-        } else {
-          flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
-        }
-        const bool match = flags & mCfgH.markClusters;
-        draw = (select == tMARKED) ? (match) : (draw && !match);
-      } else if (mCfgH.markFakeClusters) {
-        const bool fake = (mQA->HitAttachStatus(cid));
-        draw = (select == tMARKED) ? (fake) : (draw && !fake);
-      }
-      if (draw) {
-        mVertexBuffer[iSector].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
-      }
+  std::vector<std::array<vecpod<vtx>, N_POINTS_TYPE_TPC>> vertexCache(mNCollissions);
+  if (mClusterBufferSizeCache[iSector].size() < (uint32_t)mNCollissions) {
+    mClusterBufferSizeCache[iSector].resize(mNCollissions);
+  }
+  for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
+    for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
+      vertexCache[iCol][i].reserve(mClusterBufferSizeCache[iSector][iCol][i]);
     }
   }
-  insertVertexList(iSector, startCountInner, mVertexBuffer[iSector].size());
-  return (vboList(startCount, mVertexBufferStart[iSector].size() - startCount, iSector));
+
+  uint32_t col = 0;
+  const int32_t nClustersInSector = mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0;
+  [[maybe_unused]] const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
+  for (int32_t cidInSector = 0; cidInSector < nClustersInSector; cidInSector++) {
+    const int32_t cid = GET_CID(iSector, cidInSector);
+#ifdef GPUCA_TPC_GEOMETRY_O2
+    if (checkClusterCollision) {
+      const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
+      col = labels.size() ? mQA->GetMCLabelCol(labels[0]) : 0;
+    } else
+#endif
+      if (mOverlayTFClusters.size()) {
+      while (col < mOverlayTFClusters.size() && cidInSector >= mOverlayTFClusters[col][iSector]) {
+        col++;
+      }
+    }
+    if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
+      continue;
+    }
+    int32_t select = mGlobalPos[cid].w;
+
+    if (mCfgH.markAdjacentClusters) {
+      const int32_t attach = mIOPtrs->mergedTrackHitAttachment[cid];
+      if (attach) {
+        if (mCfgH.markAdjacentClusters >= 32) {
+          if (mQA && mQA->clusterRemovable(attach, mCfgH.markAdjacentClusters == 33)) {
+            select = tMARKED;
+          }
+        } else if ((mCfgH.markAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {
+          select = tMARKED;
+        } else if ((mCfgH.markAdjacentClusters & 1) && (attach & (gputpcgmmergertypes::attachGood | gputpcgmmergertypes::attachTube)) == 0) {
+          select = tMARKED;
+        } else if ((mCfgH.markAdjacentClusters & 4) && (attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
+          select = tMARKED;
+        } else if ((mCfgH.markAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
+          select = tMARKED;
+        } else if (mCfgH.markAdjacentClusters & 8) {
+          if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
+            select = tMARKED;
+          }
+        }
+      }
+    } else if (mCfgH.markClusters) {
+      int16_t flags;
+      flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
+      if (flags & mCfgH.markClusters) {
+        select = tMARKED;
+      }
+    } else if (mCfgH.markFakeClusters) {
+      if (mQA->HitAttachStatus(cid)) {
+        select = tMARKED;
+      }
+    }
+    vertexCache[col][select].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
+  }
+
+  size_t startCountInner = mVertexBuffer[iSector].size();
+  mVertexBuffer[iSector].resize(mVertexBuffer[iSector].size() + nClustersInSector);
+  for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
+    for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
+      uint32_t count = vertexCache[iCol][i].size();
+      mClusterBufferSizeCache[iSector][iCol][i] = std::max(mClusterBufferSizeCache[iSector][iCol][i], count);
+      memcpy((void*)&mVertexBuffer[iSector][startCountInner], (const void*)vertexCache[iCol][i].data(), count * sizeof(vertexCache[iCol][i][0]));
+      size_t startCount = mVertexBufferStart[iSector].size();
+      insertVertexList(iSector, startCountInner, startCountInner + count);
+      startCountInner += count;
+      mGlDLPoints[iSector][i][iCol] = vboList(startCount, mVertexBufferStart[iSector].size() - startCount, iSector);
+    }
+  }
 }
 
 GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int32_t id, bool dodown)
@@ -357,6 +371,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
 
       size_t startCountInner = mVertexBuffer[iSector].size();
       bool drawing = false;
+      uint32_t lastSide = -1;
 
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (!mCfgH.drawTracksAndFilter && !(mCfgH.drawTPCTracks || (mCfgH.drawITSTracks && mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1) || (mCfgH.drawTRDTracks && mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1) || (mCfgH.drawTOFTracks && mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1))) {
@@ -378,6 +393,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           drawing = true;
           mVertexBuffer[iSector].emplace_back(mGlobalPosTOF[cid].x, mGlobalPosTOF[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTOF[cid].z);
           mGlobalPosTOF[cid].w = tTOFATTACHED;
+          lastSide = mGlobalPosTOF[cid].z < 0;
         }
       }
 
@@ -391,6 +407,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           drawing = true;
           mVertexBuffer[iSector].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
           mVertexBuffer[iSector].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
+          lastSide = mGlobalPosTRD[cid].z < 0;
           mGlobalPosTRD[cid].w = tTRDATTACHED;
         }
       };
@@ -414,7 +431,21 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
 
       // Print TPC part of track
       int32_t separateExtrapolatedTracksLimit = (mCfgH.separateExtrapolatedTracks ? tEXTRAPOLATEDTRACK : TRACK_TYPE_ID_LIMIT);
-      uint32_t lastSide = -1;
+      if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
+        if (track->PrevSegment() >= 0) {
+          const auto& prevtrk = mIOPtrs->mergedTracks[track->PrevSegment()];
+          for (int32_t iChk = prevtrk.NClusters() - 1; iChk >= 0; iChk--) {
+            const auto& hit = mIOPtrs->mergedTrackHits[prevtrk.FirstClusterRef() + iChk];
+            if (!mCfgH.hideRejectedClusters || !(hit.state & GPUTPCGMMergedTrackHit::flagReject)) {
+              drawPointLinestrip(iSector, hit.num, tFINALTRACK, separateExtrapolatedTracksLimit);
+              lastSide = mGlobalPos[hit.num].z < 0;
+              drawing = true;
+              break;
+            }
+          }
+        }
+      }
+
       for (int32_t k = 0; k < nClusters; k++) {
         if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
           if (mCfgH.hideRejectedClusters && (mIOPtrs->mergedTrackHits[track->FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject)) {
@@ -475,6 +506,9 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
     if (!mIOPtrs->clustersNative) {
       continue;
     }
+    if (mCfgL.propagateTracks == 0) {
+      continue;
+    }
 
     // Propagate track paramters / plot MC tracks
     for (int32_t iMC = 0; iMC < 2; iMC++) {
@@ -489,6 +523,11 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
         }
         if (lastCluster == -1) {
           continue;
+        }
+        if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
+          if (track->MergedLooperConnected()) {
+            continue;
+          }
         }
       }
 
@@ -512,24 +551,17 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
             trkParam.Set(t);
           }
 
-          if (mParam->par.earlyTpcTransform) {
-            if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
-              x = mIOPtrs->mergedTrackHitsXYZ[track->FirstClusterRef() + lastCluster].x;
-              ZOffset = track->GetParam().GetTZOffset();
-            }
+          float y, z;
+          if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
+            auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
+            const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
+            GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.sector, cl.row, cln.getPad(), cln.getTime(), x, y, z);
+            ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(iSector, track->GetParam().GetTOffset(), mParam->continuousMaxTimeBin);
           } else {
-            float y, z;
-            if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
-              auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
-              const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
-              GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.sector, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(iSector, track->GetParam().GetTZOffset(), mParam->continuousMaxTimeBin);
-            } else {
-              uint8_t sector, row;
-              auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);
-              GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, sector, row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, track->getTime0(), mParam->continuousMaxTimeBin);
-            }
+            uint8_t sector, row;
+            auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);
+            GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, sector, row, cln.getPad(), cln.getTime(), x, y, z);
+            ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, track->getTime0(), mParam->continuousMaxTimeBin);
           }
         } else {
           const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
@@ -588,7 +620,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + trkParam.Y() * trkParam.Y() > (iMC ? (450 * 450) : (300 * 300)))) {
             break;
           }
-          if (fabsf(trkParam.Z() + ZOffset) > mMaxClusterZ + (iMC ? 0 : 0)) {
+          if (fabsf(trkParam.Z() + ZOffset) > mMaxClusterZ) {
             break;
           }
           if (fabsf(trkParam.Z() - z0) > (iMC ? GPUTPCGeometry::TPCLength() : GPUTPCGeometry::TPCLength())) {
@@ -757,6 +789,7 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int32_t sector)
 
 size_t GPUDisplay::DrawGLScene_updateVertexList()
 {
+  HighResTimer timer(mChain->GetProcessingSettings().debugLevel >= 2);
   for (int32_t i = 0; i < NSECTORS; i++) {
     mVertexBuffer[i].clear();
     mVertexBufferStart[i].clear();
@@ -778,6 +811,10 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       mGlDLFinal[iSector].resize(mNCollissions);
     }
   }
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Vertex Init:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
+
   int32_t numThreads = getNumThreads();
   tbb::task_arena(numThreads).execute([&] {
     if (mChain && (mChain->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking)) {
@@ -787,6 +824,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         mGlDLLines[iSector][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
         tracker.SetPointersDataLinks(mChain->rec()->Res(tracker.MemoryResLinks()).Ptr()); // clang-format off
       }, tbb::simple_partitioner()); // clang-format on
+      if (timer.IsRunning()) {
+        GPUInfo("Display Time: Vertex Links:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+      }
 
       tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
         const GPUTPCTracker& tracker = sectorTracker(iSector);
@@ -800,11 +840,17 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
           mGlDLGridTRD[iSector] = DrawGridTRD(iSector);
         } // clang-format off
       }, tbb::simple_partitioner()); // clang-format on
+      if (timer.IsRunning()) {
+        GPUInfo("Display Time: Vertex Seeds:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+      }
 
       tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
         const GPUTPCTracker& tracker = sectorTracker(iSector);
         mGlDLLines[iSector][tEXTRAPOLATEDTRACK] = DrawTracks(tracker, 1); // clang-format off
       }, tbb::simple_partitioner()); // clang-format on
+      if (timer.IsRunning()) {
+        GPUInfo("Display Time: Vertex Sector Tracks:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+      }
     }
     tbb::parallel_for(0, numThreads, [&](int32_t iThread) {
       mThreadTracks[iThread].resize(mNCollissions);
@@ -877,6 +923,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         mThreadTracks[GPUReconstruction::getHostThreadIndex()][col][sector][1].emplace_back(i);
       });
     }
+    if (timer.IsRunning()) {
+      GPUInfo("Display Time: Vertex Sort merged tracks:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+    }
 
     GPUTPCGMPropagator prop;
     prop.SetMaxSinPhi(.999);
@@ -905,18 +954,33 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         }
       } // clang-format off
     }, tbb::simple_partitioner()); // clang-format on
+    if (timer.IsRunning()) {
+      GPUInfo("Display Time: Vertex Merged Tracks:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+    }
 
     tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
-      for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
-        for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
-          mGlDLPoints[iSector][i][iCol] = DrawClusters(iSector, i, iCol);
-        }
-      } // clang-format off
+      DrawClusters(iSector); // clang-format off
     }, tbb::simple_partitioner()); // clang-format on
+    if (timer.IsRunning()) {
+      GPUInfo("Display Time: Vertex Clusters:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+    }
+
   });
   // End omp parallel
 
   mGlDLFinalITS = DrawFinalITS();
+  for (int32_t iSector = 0; iSector < NSECTORS; iSector++) {
+    for (int32_t i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
+      for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
+        mGlDLPoints[iSector][i][iCol] = DrawSpacePointsITS(iSector, i, iCol);
+      }
+    }
+    break; // TODO: Only sector 0 filled for now
+  }
+
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Vertex ITS:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
 
   for (int32_t iSector = 0; iSector < NSECTORS; iSector++) {
     for (int32_t i = N_POINTS_TYPE_TPC; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i++) {
@@ -924,6 +988,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         mGlDLPoints[iSector][i][iCol] = DrawSpacePointsTRD(iSector, i, iCol);
       }
     }
+  }
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Vertex TRD:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 
   for (int32_t iSector = 0; iSector < NSECTORS; iSector++) {
@@ -934,17 +1001,12 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     }
     break; // TODO: Only sector 0 filled for now
   }
-
-  for (int32_t iSector = 0; iSector < NSECTORS; iSector++) {
-    for (int32_t i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
-      for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
-        mGlDLPoints[iSector][i][iCol] = DrawSpacePointsITS(iSector, i, iCol);
-      }
-    }
-    break; // TODO: Only sector 0 filled for now
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Vertex TOF:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 
-  mUpdateVertexLists = 0;
+  mTracksArePropagated = mCfgL.propagateTracks != 0;
+  mUpdateVertexLists = false;
   size_t totalVertizes = 0;
   for (int32_t i = 0; i < NSECTORS; i++) {
     totalVertizes += mVertexBuffer[i].size();
@@ -970,5 +1032,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
   for (int32_t i = 0; i < (mUseMultiVBO ? GPUCA_NSECTORS : 1); i++) {
     mVertexBuffer[i].clear();
   }
+  if (timer.IsRunning()) {
+    GPUInfo("Display Time: Vertex Final:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+  }
+
   return totalVertizes;
 }

@@ -48,7 +48,7 @@ class GPUTPCNNClusterizerHost
   GPUTPCNNClusterizerHost(const GPUSettingsProcessingNNclusterizer& settings, bool useDeterministicMode = false) { init(settings, useDeterministicMode); }
 
   void init(const GPUSettingsProcessingNNclusterizer&, bool = false);
-  void initClusterizer(const GPUSettingsProcessingNNclusterizer&, GPUTPCNNClusterizer&);
+  void initClusterizer(const GPUSettingsProcessingNNclusterizer&, GPUTPCNNClusterizer&, int32_t = -1, int32_t = -1);
   void createBoundary(GPUTPCNNClusterizer&);
   void createIndexLookup(GPUTPCNNClusterizer&);
 

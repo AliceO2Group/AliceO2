@@ -146,13 +146,14 @@ struct TrackData {
   unsigned short nClsITS{};                  ///< number of attached ITS clusters
   unsigned short nTrkltsTRD{};               ///< number of attached TRD tracklets
   unsigned short clAvailTOF{};               ///< whether or not track seed has a matched TOF cluster, if so, gives the resolution of the T0 in ps
+  short TRDTrkltSlope[6] = {};               ///< TRD tracklet slope 0x7fff / param::MaxTRDSlope
   uint8_t nExtDetResid = 0;                  ///< number of external detectors (to TPC) residuals stored, on top of clIdx.getEntries
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of TPC cluster residuals of this track
 
   float getT0Error() const { return float(clAvailTOF); }
   bool isTOFAvail() const { return clAvailTOF != 0; }
 
-  ClassDefNV(TrackData, 8);
+  ClassDefNV(TrackData, 9);
 };
 
 /// \class TrackInterpolation
@@ -293,7 +294,7 @@ class TrackInterpolation
 
   void setExtDetResid(bool v) { mExtDetResid = v; }
 
-  int processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLayer, o2::track::TrackParCov& trkWork, std::array<float, 2>* trkltTRDYZ = nullptr, std::array<float, 3>* trkltTRDCov = nullptr);
+  int processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLayer, o2::track::TrackParCov& trkWork, std::array<float, 2>* trkltTRDYZ = nullptr, std::array<float, 3>* trkltTRDCov = nullptr, TrackData* trkData = nullptr);
 
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }

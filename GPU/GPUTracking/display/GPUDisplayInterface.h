@@ -40,7 +40,8 @@ class GPUDisplayInterface
   virtual ~GPUDisplayInterface();
   virtual int32_t StartDisplay() = 0;
   virtual void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) = 0;
-  virtual void WaitForNextEvent() = 0;
+  virtual void BlockTillNextEvent() = 0;
+  virtual void WaitTillEventShown() = 0;
   virtual void SetCollisionFirstCluster(uint32_t collision, int32_t sector, int32_t cluster) = 0;
   virtual void UpdateCalib(const GPUCalibObjectsConst* calib) = 0;
   virtual void UpdateParam(const GPUParam* param) = 0;

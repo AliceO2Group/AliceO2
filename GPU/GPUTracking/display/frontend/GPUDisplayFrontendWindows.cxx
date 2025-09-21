@@ -375,13 +375,3 @@ void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, flo
 void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}
-
-int32_t GPUDisplayFrontendWindows::StartDisplay()
-{
-  HANDLE hThread;
-  if ((hThread = CreateThread(nullptr, nullptr, &OpenGLWrapper, this, nullptr, nullptr)) == nullptr) {
-    GPUError("Coult not Create GL Thread...");
-    return (1);
-  }
-  return (0);
-}

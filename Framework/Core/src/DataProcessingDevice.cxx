@@ -96,6 +96,8 @@ O2_DECLARE_DYNAMIC_LOG(calibration);
 O2_DECLARE_DYNAMIC_LOG(async_queue);
 // Special log to track the forwarding requests
 O2_DECLARE_DYNAMIC_LOG(forwarding);
+// Special log to track CCDB related requests
+O2_DECLARE_DYNAMIC_LOG(ccdb);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;

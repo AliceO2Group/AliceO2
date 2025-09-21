@@ -53,11 +53,11 @@ static constexpr int NY2XBins = 15; ///< number of bins in y/x
 static constexpr int NZ2XBins = 5;  ///< number of bins in z/x
 
 // define ranges for compression to shorts in TPCClusterResiduals
-static constexpr float MaxResid = 20.f; ///< max residual in y and z
-static constexpr float MaxY = 50.f;     ///< max value for y position (sector coordinates)
-static constexpr float MaxZ = 300.f;    ///< max value for z position
-static constexpr float MaxTgSlp = 1.f;  ///< max value for phi (from snp, converted to tangens)
-
+static constexpr float MaxResid = 20.f;  ///< max residual in y and z
+static constexpr float MaxY = 50.f;      ///< max value for y position (sector coordinates)
+static constexpr float MaxZ = 300.f;     ///< max value for z position
+static constexpr float MaxTgSlp = 1.f;   ///< max value for phi (from snp, converted to tangens)
+static constexpr float MaxTRDSlope = 5.; ///< max value for the TRD tracklet getDy
 // miscellaneous
 static constexpr float sEps = 1e-6f; ///< small number for float comparisons
 

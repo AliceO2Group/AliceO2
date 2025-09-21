@@ -663,7 +663,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
         const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
         for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
           std::array<float, 2> trkltTRDYZ{};
-          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ);
+          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, nullptr, &trackData);
           if (res == -1) { // no traklet on this layer
             continue;
           }
@@ -757,7 +757,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
 }
 
 int TrackInterpolation::processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLayer, o2::track::TrackParCov& trkWork,
-                                        std::array<float, 2>* trkltTRDYZ, std::array<float, 3>* trkltTRDCov)
+                                        std::array<float, 2>* trkltTRDYZ, std::array<float, 3>* trkltTRDCov, TrackData* trkData)
 {
   // return chamber ID (0:539) in case of successful processing, -1 if there is no TRD tracklet at given layer, -2 if processing failed
   int trkltIdx = trkTRD.getTrackletIndex(iLayer);
@@ -791,6 +791,12 @@ int TrackInterpolation::processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLa
     (*trkltTRDYZ)[1] = zPosCorrUp;
     if (trkltTRDCov) {
       mRecoParam.recalcTrkltCov(tilt, trkWork.getSnp(), pad->getRowSize(trdTrklt.getPadRow()), *trkltTRDCov);
+    }
+  }
+  if (trkData) {
+    auto slope = trdSP.getDy();
+    if (std::abs(slope) < param::MaxTRDSlope) {
+      trkData->TRDTrkltSlope[iLayer] = slope * 0x7fff / param::MaxTRDSlope;
     }
   }
   return trkltDet;
@@ -915,9 +921,10 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto& gidTableFull = mGIDtables[iSeedFull];
       if (gidTableFull[GTrackID::TRD].isIndexSet()) {
         const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTableFull[GTrackID::ITSTPCTRD]);
+        trackData.nTrkltsTRD = trkTRD.getNtracklets();
         for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
           std::array<float, 2> trkltTRDYZ{};
-          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ);
+          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, nullptr, &trackData);
           if (res == -1) { // no traklet on this layer
             continue;
           }
@@ -932,7 +939,6 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           const auto sec = clusterResiduals[iCl].sec;
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
             mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 160 + iLayer, o2::math_utils::angle2Sector(trkWork.getAlpha()), (short)res);
-            trackData.nTrkltsTRD++;
             trackData.nExtDetResid++;
           }
         }

@@ -31,31 +31,24 @@
 namespace o2::its
 {
 
-class VertexerTraitsGPU final : public VertexerTraits
+template <int nLayers>
+class VertexerTraitsGPU final : public VertexerTraits<nLayers>
 {
  public:
   void initialise(const TrackingParameters&, const int iteration = 0) final;
-  void adoptTimeFrame(TimeFrame<7>*) noexcept final;
+  void adoptTimeFrame(TimeFrame<nLayers>* tf) noexcept final;
   void computeTracklets(const int iteration = 0) final;
   void computeTrackletMatching(const int iteration = 0) final;
   void computeVertices(const int iteration = 0) final;
   void updateVertexingParameters(const std::vector<VertexingParameters>&, const TimeFrameGPUParameters&) final;
-  void computeVerticesHist();
 
   bool isGPU() const noexcept final { return true; }
   const char* getName() const noexcept final { return "GPU"; }
 
  protected:
-  IndexTableUtils* mDeviceIndexTableUtils;
-  gpu::TimeFrameGPU<7>* mTimeFrameGPU;
+  gpu::TimeFrameGPU<nLayers>* mTimeFrameGPU;
   TimeFrameGPUParameters mTfGPUParams;
 };
-
-inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame<7>* tf) noexcept
-{
-  mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf);
-  mTimeFrame = static_cast<TimeFrame<7>*>(tf);
-}
 
 } // namespace o2::its
 

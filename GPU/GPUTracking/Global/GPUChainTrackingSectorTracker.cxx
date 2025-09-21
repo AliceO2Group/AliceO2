@@ -17,7 +17,6 @@
 #include "GPULogging.h"
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTrackingInputProvider.h"
 #include "GPUTPCClusterOccupancyMap.h"
 #include "GPUDefParametersRuntime.h"
@@ -74,25 +73,13 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
     GPUInfo("Running TPC Sector Tracker");
   }
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCSectorTracking;
-  if (!param().par.earlyTpcTransform) {
-    for (uint32_t i = 0; i < NSECTORS; i++) {
-      processors()->tpcTrackers[i].Data().SetClusterData(nullptr, mIOPtrs.clustersNative->nClustersSector[i], mIOPtrs.clustersNative->clusterOffset[i][0]);
-      if (doGPU) {
-        processorsShadow()->tpcTrackers[i].Data().SetClusterData(nullptr, mIOPtrs.clustersNative->nClustersSector[i], mIOPtrs.clustersNative->clusterOffset[i][0]); // TODO: not needed I think, anyway copied in SetupGPUProcessor
-      }
+  for (uint32_t i = 0; i < NSECTORS; i++) {
+    processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clustersNative->nClustersSector[i], mIOPtrs.clustersNative->clusterOffset[i][0]);
+    if (doGPU) {
+      processorsShadow()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clustersNative->nClustersSector[i], mIOPtrs.clustersNative->clusterOffset[i][0]); // TODO: not needed I think, anyway copied in SetupGPUProcessor
     }
-    mRec->MemoryScalers()->nTPCHits = mIOPtrs.clustersNative->nClustersTotal;
-  } else {
-    int32_t offset = 0;
-    for (uint32_t i = 0; i < NSECTORS; i++) {
-      processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clusterData[i], mIOPtrs.nClusterData[i], offset);
-      if (doGPU && GetRecoSteps().isSet(RecoStep::TPCConversion)) {
-        processorsShadow()->tpcTrackers[i].Data().SetClusterData(processorsShadow()->tpcConverter.mClusters + processors()->tpcTrackers[i].Data().ClusterIdOffset(), processors()->tpcTrackers[i].NHitsTotal(), processors()->tpcTrackers[i].Data().ClusterIdOffset());
-      }
-      offset += mIOPtrs.nClusterData[i];
-    }
-    mRec->MemoryScalers()->nTPCHits = offset;
   }
+  mRec->MemoryScalers()->nTPCHits = mIOPtrs.clustersNative->nClustersTotal;
   GPUInfo("Event has %u TPC Clusters, %d TRD Tracklets", (uint32_t)mRec->MemoryScalers()->nTPCHits, mIOPtrs.nTRDTracklets);
 
   for (uint32_t iSector = 0; iSector < NSECTORS; iSector++) {

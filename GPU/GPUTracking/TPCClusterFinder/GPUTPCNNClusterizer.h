@@ -60,6 +60,10 @@ class GPUTPCNNClusterizer : public GPUProcessor
   int32_t mISector = -1;
   int32_t mDeviceId = -1;
 
+  // charge array boundaries
+  int32_t maxFragmentLen = -1;
+  int32_t maxAllowedTimebin = -1; // == tpcMaxTimeBin
+
   // GPU optimizations
   uint32_t mNnClusterizerFullRowSize = 0;
   uint32_t mNnClusterizerFullPadSize = 0;

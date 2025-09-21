@@ -32,7 +32,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   const GPUParam& GPUrestrict() param = processors.param;
 
-  uint8_t lastLeg = 0;
   int32_t myTrack = 0;
   for (uint32_t i = get_global_id(0); i < ioPtrs.nMergedTracks; i += get_global_size(0)) {
     GPUbarrierWarp();
@@ -75,9 +74,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
         if ((hit.sector < GPUCA_NSECTORS) ^ (lastSector < GPUCA_NSECTORS)) {
           break;
         }
-        if (lastLeg != hit.leg && track.Mirror()) {
-          break;
-        }
         if (track.Propagate(geo.Row2X(hit.row), param.SectorParam[hit.sector].Alpha)) {
           break;
         }
@@ -93,7 +89,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
 
         myTrack = CAMath::AtomicAdd(&compressor.mMemory->nStoredTracks, 1u);
         compressor.mAttachedClusterFirstIndex[myTrack] = trk.FirstClusterRef();
-        lastLeg = hit.leg;
         c.qPtA[myTrack] = qpt;
         c.rowA[myTrack] = hit.row;
         c.sliceA[myTrack] = hit.sector;
@@ -114,12 +109,11 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
           sector -= lastSector;
         }
         c.rowDiffA[cidx] = row;
-        c.sliceLegDiffA[cidx] = (hit.leg == lastLeg ? 0 : compressor.NSECTORS) + sector;
+        c.sliceLegDiffA[cidx] = sector;
         float pad = CAMath::Max(0.f, CAMath::Min((float)geo.NPads(GPUCA_ROW_COUNT - 1), track.LinearY2Pad(hit.sector, track.Y(), geo.PadWidth(hit.row), geo.NPads(hit.row))));
         c.padResA[cidx] = orgCl.padPacked - orgCl.packPad(pad);
         float time = CAMath::Max(0.f, geo.LinearZ2Time(hit.sector, track.Z() + zOffset));
         c.timeResA[cidx] = (orgCl.getTimePacked() - orgCl.packTime(time)) & 0xFFFFFF;
-        lastLeg = hit.leg;
       }
       uint16_t qtot = orgCl.qTot, qmax = orgCl.qMax;
       uint8_t sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;

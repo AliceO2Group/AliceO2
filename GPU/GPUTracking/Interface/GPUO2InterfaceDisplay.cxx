@@ -30,7 +30,6 @@ GPUO2InterfaceDisplay::GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* 
   mConfig->configDisplay.showTPCTracksFromO2Format = true;
   mParam.reset(new GPUParam);
   mParam->SetDefaults(&config->configGRP, &config->configReconstruction, &config->configProcessing, nullptr);
-  mParam->par.earlyTpcTransform = 0;
   if (mConfig->configProcessing.runMC) {
     mQA.reset(new GPUQA(nullptr, &config->configQA, mParam.get()));
     mQA->InitO2MCData();
@@ -46,7 +45,8 @@ int32_t GPUO2InterfaceDisplay::startDisplay()
   if (retVal) {
     return retVal;
   }
-  mDisplay->WaitForNextEvent();
+  mDisplay->WaitTillEventShown();
+  mDisplay->BlockTillNextEvent();
   return 0;
 }
 
@@ -59,6 +59,7 @@ int32_t GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
     ptrs = tmpPtr.get();
   }
   mDisplay->ShowNextEvent(ptrs);
+  mDisplay->WaitTillEventShown();
   do {
     usleep(10000);
   } while (mFrontend->getDisplayControl() == 0);
@@ -66,7 +67,7 @@ int32_t GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
     return 1;
   }
   mFrontend->setDisplayControl(0);
-  mDisplay->WaitForNextEvent();
+  mDisplay->BlockTillNextEvent();
   return 0;
 }
 

@@ -16,7 +16,7 @@
 #include "helpers/GPUDisplayMagneticField.h"
 
 #include "GPUDisplayBackendOpenGL.h"
-
+#include "GPUDisplayBackendNone.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include "GPUDisplayBackendVulkan.h"
 #endif
@@ -51,6 +51,8 @@ GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
 #endif
   if (strcmp(type, "opengl") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayBackendOpenGL;
+  } else if (strcmp(type, "none") == 0) {
+    return new GPUDisplayBackendNone;
   } else {
     GPUError("Requested renderer not available");
   }

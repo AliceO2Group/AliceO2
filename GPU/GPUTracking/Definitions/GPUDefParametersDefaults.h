@@ -57,9 +57,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 512
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -80,7 +80,6 @@
     #define GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE 20
     #define GPUCA_PAR_ALTERNATE_BORDER_SORT 1
     #define GPUCA_PAR_SORT_BEFORE_FIT 1
-    #define GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION 1
     #define GPUCA_PAR_NO_ATOMIC_PRECHECK 1
     #define GPUCA_PAR_DEDX_STORAGE_TYPE uint16_t
     #define GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE half
@@ -120,9 +119,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 512
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -143,7 +142,6 @@
     #define GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE 20
     #define GPUCA_PAR_ALTERNATE_BORDER_SORT 1
     #define GPUCA_PAR_SORT_BEFORE_FIT 1
-    #define GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION 1
     #define GPUCA_PAR_NO_ATOMIC_PRECHECK 1
     #define GPUCA_PAR_DEDX_STORAGE_TYPE uint16_t
     #define GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE half
@@ -183,9 +181,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 256, 2
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -206,7 +204,6 @@
     #define GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE 20
     #define GPUCA_PAR_ALTERNATE_BORDER_SORT 1
     #define GPUCA_PAR_SORT_BEFORE_FIT 1
-    #define GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION 1
     #define GPUCA_PAR_NO_ATOMIC_PRECHECK 1
     #define GPUCA_PAR_DEDX_STORAGE_TYPE uint16_t
     #define GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE half
@@ -246,9 +243,9 @@
     #define GPUCA_LB_GPUTPCGMMergerLinkExtrapolatedTracks 256
     #define GPUCA_LB_GPUTPCGMMergerCollect 128, 2
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
@@ -261,7 +258,6 @@
     #define GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE 20
     #define GPUCA_PAR_ALTERNATE_BORDER_SORT 1
     #define GPUCA_PAR_SORT_BEFORE_FIT 1
-    #define GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION 1
     #define GPUCA_PAR_NO_ATOMIC_PRECHECK 1
     #define GPUCA_PAR_COMP_GATHER_KERNEL 4
     #define GPUCA_PAR_COMP_GATHER_MODE 3
@@ -308,9 +304,6 @@
   #endif
   #ifndef GPUCA_LB_GPUTRDTrackerKernels_o2Version
     #define GPUCA_LB_GPUTRDTrackerKernels_o2Version 512
-  #endif
-  #ifndef GPUCA_LB_GPUTPCConvertKernel
-    #define GPUCA_LB_GPUTPCConvertKernel 256
   #endif
   #ifndef GPUCA_LB_GPUTPCCompressionKernels_step0attached
     #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 256
@@ -405,14 +398,14 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerSortTracksPrepare
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step0 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step1 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2
+    #define GPUCA_LB_GPUTPCGMMergerPrepareForFit_step2 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step0
     #define GPUCA_LB_GPUTPCGMMergerFinalize_step0 256
@@ -529,9 +522,6 @@
   #ifndef GPUCA_PAR_SORT_BEFORE_FIT
     #define GPUCA_PAR_SORT_BEFORE_FIT 0
   #endif
-  #ifndef GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION
-    #define GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION 0
-  #endif
   #ifndef GPUCA_PAR_COMP_GATHER_KERNEL
     #define GPUCA_PAR_COMP_GATHER_KERNEL 0
   #endif
@@ -565,9 +555,6 @@
   #endif
   #ifndef GPUCA_PAR_SORT_BEFORE_FIT
     #define GPUCA_PAR_SORT_BEFORE_FIT 0
-  #endif
-  #ifndef GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION
-    #define GPUCA_PAR_MERGER_SPLIT_LOOP_INTERPOLATION 0
   #endif
   #ifndef GPUCA_PAR_COMP_GATHER_KERNEL
     #define GPUCA_PAR_COMP_GATHER_KERNEL 0

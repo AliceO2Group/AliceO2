@@ -19,7 +19,7 @@ o2_gpu_kernel_file_list(TPCSECTORDATA TPCTRACKER GPUTPCTrackingData.cxx)
 o2_gpu_kernel_file_list(TPCOCCUPANCY GPUTPCClusterOccupancyMap.cxx)
 o2_gpu_kernel_file_list(TPCDEDX GPUdEdx.cxx)
 o2_gpu_kernel_file_list(MATLUT MatLayerCylSet.cxx MatLayerCyl.cxx Ray.cxx)
-o2_gpu_kernel_file_list(TPCMERGER ERRORS GPUTPCGMMerger.cxx GPUTPCGMSectorTrack.cxx GPUTPCGMTrackParam.cxx GPUTPCGMPhysicalTrackModel.cxx GPUTPCGMPropagator.cxx)
+o2_gpu_kernel_file_list(TPCMERGER ERRORS GPUTPCGMSectorTrack.cxx GPUTPCGMMerger.cxx GPUTPCGMTrackParam.cxx GPUTPCGMPhysicalTrackModel.cxx GPUTPCGMPropagator.cxx)
 o2_gpu_kernel_file_list(O2PROPAGATOR TrackParametrization.cxx TrackParametrizationWithError.cxx Propagator.cxx TrackLTIntegral.cxx)
 o2_gpu_kernel_file_list(TPCCOMPRESSION GPUTPCCompressionTrackModel.cxx)
 o2_gpu_kernel_file_list(TPCDECOMPRESSION GPUTPCCompressionTrackModel.cxx ERRORS)
@@ -46,8 +46,8 @@ o2_gpu_add_kernel("GPUTPCSectorDebugSortKernels, startHits"               "= TPC
 o2_gpu_add_kernel("GPUTPCSectorDebugSortKernels, sectorTracks"            "= TPCTRACKER")
 o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, clearIds"                "= TPCMERGER"                                           NO int8_t parameter)
 o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, sectorTracks"            "= TPCMERGER"                                           NO int8_t parameter)
-o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, extrapolatedTracks1"     "= TPCMERGER"                                           NO int8_t parameter)
-o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, extrapolatedTracks2"     "= TPCMERGER"                                           NO int8_t parameter)
+o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, mergedTracks1"           "= TPCMERGER"                                           NO int8_t parameter)
+o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, mergedTracks2"           "= TPCMERGER"                                           NO int8_t parameter)
 o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, borderTracks"            "= TPCMERGER"                                           NO int8_t parameter)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fill"                        "= TPCOCCUPANCY"                                        LB GPUTPCClusterOccupancyMapBin* map)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fold"                        "= TPCOCCUPANCY"                                        LB GPUTPCClusterOccupancyMapBin* map uint32_t* output)
@@ -75,9 +75,9 @@ o2_gpu_add_kernel("GPUTPCGMMergerCollect"                                 "GPUTP
 o2_gpu_add_kernel("GPUTPCGMMergerSortTracks"                              "GPUTPCGMMergerGPU TPCMERGER")
 o2_gpu_add_kernel("GPUTPCGMMergerSortTracksQPt"                           "GPUTPCGMMergerGPU TPCMERGER")
 o2_gpu_add_kernel("GPUTPCGMMergerSortTracksPrepare"                       "GPUTPCGMMergerGPU TPCMERGER"                           LB)
-o2_gpu_add_kernel("GPUTPCGMMergerPrepareClusters, step0"                  "GPUTPCGMMergerGPU TPCMERGER"                           LB)
-o2_gpu_add_kernel("GPUTPCGMMergerPrepareClusters, step1"                  "GPUTPCGMMergerGPU TPCMERGER"                           LB)
-o2_gpu_add_kernel("GPUTPCGMMergerPrepareClusters, step2"                  "GPUTPCGMMergerGPU TPCMERGER"                           LB)
+o2_gpu_add_kernel("GPUTPCGMMergerPrepareForFit, step0"                    "GPUTPCGMMergerGPU TPCMERGER"                           LB)
+o2_gpu_add_kernel("GPUTPCGMMergerPrepareForFit, step1"                    "GPUTPCGMMergerGPU TPCMERGER"                           LB)
+o2_gpu_add_kernel("GPUTPCGMMergerPrepareForFit, step2"                    "GPUTPCGMMergerGPU TPCMERGER"                           LB)
 o2_gpu_add_kernel("GPUTPCGMMergerFinalize, step0"                         "GPUTPCGMMergerGPU TPCMERGER"                           LB)
 o2_gpu_add_kernel("GPUTPCGMMergerFinalize, step1"                         "GPUTPCGMMergerGPU TPCMERGER"                           LB)
 o2_gpu_add_kernel("GPUTPCGMMergerFinalize, step2"                         "GPUTPCGMMergerGPU TPCMERGER"                           LB)
@@ -90,7 +90,6 @@ o2_gpu_add_kernel("GPUTPCGMO2Output, output"                              "= TPC
 o2_gpu_add_kernel("GPUTPCGMO2Output, mc"                                  "= TPCMERGER")
 o2_gpu_add_kernel("GPUTRDTrackerKernels, gpuVersion"                      "= TRDTRACKER MATLUT TPCMERGER"                         LB GPUTRDTrackerGPU* externalInstance)
 o2_gpu_add_kernel("GPUTRDTrackerKernels, o2Version"                       "= TRDTRACKER MATLUT O2PROPAGATOR"                      LB GPUTRDTracker* externalInstance)
-o2_gpu_add_kernel("GPUTPCConvertKernel"                                   "="                                                     LB)
 o2_gpu_add_kernel("GPUTPCCompressionKernels, step0attached"               "= TPCCOMPRESSION"                                      LB)
 o2_gpu_add_kernel("GPUTPCCompressionKernels, step1unattached"             "= ERRORS"                                              LB)
 o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, unbuffered"            "GPUTPCCompressionKernels"                              LB)
@@ -136,18 +135,17 @@ o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishClass2Regression"   "= TPC
 o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishDeconvolutionFlags" "= TPCNNCLUSTERFINDER"                                  LB uint8_t sector int8_t dtype int8_t withMC uint32_t batchStart)
 endif()
 
-o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP
-                            NEIGHBOURS_FINDER_UNROLL_GLOBAL
-                            NEIGHBOURS_FINDER_UNROLL_SHARED
-                            TRACKLET_SELECTOR_HITS_REG_SIZE
-                            ALTERNATE_BORDER_SORT
-                            SORT_BEFORE_FIT
-                            MERGER_SPLIT_LOOP_INTERPOLATION
-                            NO_ATOMIC_PRECHECK
-                            COMP_GATHER_KERNEL
-                            COMP_GATHER_MODE
-                            SORT_STARTHITS
-                            CF_SCAN_WORKGROUP_SIZE)
+o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP  # Number of neighhbours finder hits to cache in shared memory
+                            NEIGHBOURS_FINDER_UNROLL_GLOBAL # Unroll factor for neighbours finder iterating hits in local memory
+                            NEIGHBOURS_FINDER_UNROLL_SHARED # Fully unroll iteration over neighbours finder hits in shared memory [0/1]
+                            TRACKLET_SELECTOR_HITS_REG_SIZE # Number of hits to cache in shared memory in tracklet selector
+                            ALTERNATE_BORDER_SORT           # Use alternative border sort approach [0/1]
+                            SORT_BEFORE_FIT                 # Sort tracks after length to reduce warp serialization [0/1]
+                            NO_ATOMIC_PRECHECK              # Skip atomic precheck to reduce posterior synchronization [0/1]
+                            COMP_GATHER_KERNEL              # Default kernel to use for Compression Gather Operation [0 - 4]
+                            COMP_GATHER_MODE                # TPC Compression Gather Mode [0 - 3]
+                            SORT_STARTHITS                  # Sort start hits to improve cache locality during tracklet construction [0/1]
+                            CF_SCAN_WORKGROUP_SIZE)         # Work group size to use in clusterizer scan operation
 
-o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE
-                                   MERGER_INTERPOLATION_ERROR_TYPE)
+o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE                # Data type to use for intermediate storage of dEdx truncated mean inputs
+                                   MERGER_INTERPOLATION_ERROR_TYPE) # Data type for storing intermediate track residuals for interpolation
