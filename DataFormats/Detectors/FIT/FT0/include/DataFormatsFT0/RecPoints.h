@@ -55,11 +55,11 @@ struct ChannelDataFloat {
 
   static void setFlag(fit::EEventDataBit bitFlag, int& chainQTC)
   {
-    ChainQTC = uint8_t(ChainQTC) | 1u << uint8_t(bitFlag);
+    chainQTC = uint8_t(chainQTC) | 1u << uint8_t(bitFlag);
   }
   static void clearFlag(fit::EEventDataBit bitFlag, int& chainQTC)
   {
-    ChainQTC = uint8_t(ChainQTC) & ~(1u << uint8_t(bitFlag));
+    chainQTC = uint8_t(chainQTC) & ~(1u << uint8_t(bitFlag));
   }
   void setFlag(int flag)
   {
