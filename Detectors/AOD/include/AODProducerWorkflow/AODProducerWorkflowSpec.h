@@ -217,7 +217,7 @@ enum struct AODProducerStreamerFlags : uint8_t {
 class AODProducerWorkflowDPL : public Task
 {
  public:
-   AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, bool useMC = true, bool enableFITextra = false, bool enableTRDextra = false) : mUseMC(useMC), mEnableSV(enableSV), mEnableFITextra(enableFITextra), mEnableTRDextra(enableTRDextra), mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, bool useMC = true, bool enableFITextra = false, bool enableTRDextra = false) : mUseMC(useMC), mEnableSV(enableSV), mEnableFITextra(enableFITextra), mEnableTRDextra(enableTRDextra), mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -527,7 +527,7 @@ class AODProducerWorkflowDPL : public Task
 
   template <typename TracksQACursorType>
   void addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAInfoHolder);
-  
+
   template <typename TRDsExtraCursorType>
   void addToTRDsExtra(const o2::globaltracking::RecoContainer& recoData, TRDsExtraCursorType& trdExtraCursor, const GIndex& trkIdx, int trkTableIdx);
 
