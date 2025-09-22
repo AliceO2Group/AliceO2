@@ -38,6 +38,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
     {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"disable filling strangeness tracking"}},
     {"enable-FIT-extra", o2::framework::VariantType::Bool, false, {"enable FIT extra output"}},
+    {"enable-TRD-extra", o2::framework::VariantType::Bool, false, {"enable TRD extra output"}},
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}},
@@ -56,6 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool enableST = !configcontext.options().get<bool>("disable-strangeness-tracker");
   bool ctpcfgperrun = !configcontext.options().get<bool>("ctpconfig-run-independent");
   bool enableFITextra = configcontext.options().get<bool>("enable-FIT-extra");
+  bool enableTRDextra = configcontext.options().get<bool>("enable-TRD-extra");
 
   GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS,CPV,HMP");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
@@ -66,7 +68,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, enableST, useMC, ctpcfgperrun, enableFITextra));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, enableST, useMC, ctpcfgperrun, enableFITextra, enableTRDextra));
 
   auto srcCls = src & ~(GID::getSourceMask(GID::MCH) | GID::getSourceMask(GID::MID)); // Don't read global MID and MCH clusters (those attached to tracks are always read)
   auto srcMtc = src;
