@@ -63,11 +63,11 @@ struct ChannelDataFloat {
   {
     adcId = uint8_t(adcId) | uint8_t(value) << uint8_t(bitFlag);
   }
-  bool getFlag(fit::EEventDataBit bitFlag) const
+  [[nodiscard]] bool getFlag(fit::EEventDataBit bitFlag) const
   {
     return bool(uint8_t(adcId) & (1u << uint8_t(bitFlag)));
   }
-  bool areAllFlagsGood() const
+  [[nodiscard]] bool areAllFlagsGood() const
   {
     return (!getFlag(fit::EEventDataBit::kIsDoubleEvent) &&
             !getFlag(fit::EEventDataBit::kIsTimeInfoNOTvalid) &&

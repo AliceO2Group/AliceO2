@@ -58,11 +58,11 @@ struct ChannelDataFloat {
   {
     adcId = flag;
   }
-  bool getFlag(fit::EEventDataBit bitFlag) const
+  [[nodiscard]] bool getFlag(fit::EEventDataBit bitFlag) const
   {
     return bool(uint8_t(adcId) & (1u << uint8_t(bitFlag)));
   }
-  bool areAllFlagsGood() const
+  [[nodiscard]] bool areAllFlagsGood() const
   {
     return (!getFlag(fit::EEventDataBit::kIsDoubleEvent) &&
             !getFlag(fit::EEventDataBit::kIsTimeInfoNOTvalid) &&
@@ -75,8 +75,8 @@ struct ChannelDataFloat {
 
   void print() const;
   [[nodiscard]] int getChannelId() const { return channel; }
-  [[nodiscard]] int getTime() const { return time; }
-  [[nodiscard]] int getAmp() const { return charge; }
+  [[nodiscard]] double getTime() const { return time; }
+  [[nodiscard]] double getAmp() const { return charge; }
   bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);
