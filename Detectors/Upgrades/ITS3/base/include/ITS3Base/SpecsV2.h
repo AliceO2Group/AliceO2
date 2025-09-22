@@ -28,9 +28,9 @@
 // color: for visulisation
 namespace o2::its3::constants
 {
-constexpr double cm{1e+2}; // This is the default unit of TGeo so we use this as scale
-constexpr double mu{1e-6 * cm};
-constexpr double mm{1e-3 * cm};
+constexpr double cm{1.0}; // This is the default unit of TGeo so we use this as scale
+constexpr double mu{1e-4 * cm};
+constexpr double mm{1e-1 * cm};
 namespace pixelarray
 {
 constexpr double width{9.197 * mm};
@@ -108,7 +108,8 @@ constexpr double HringLength{6.0 * mm};                                    // fr
 constexpr double edgeBetwChipAndFoam{1.0 * mm};                            // from blueprint but not used cause forms are already overlapping
 constexpr double gapBetwHringsLongerons{0.05 * mm};                        // from blueprint
 constexpr std::array<int, 3> nHoles{11, 11, 11};                           // how many holes for each layer?
-constexpr std::array<double, 3> radiusHoles{1.0 * mm, 1.0 * mm, 2.0 * mm}; // what is the radius of the holes for each layer?
+constexpr std::array<double, 3> radiusHoles{1.0 * mm, 1.0 * mm, 2.0 * mm}; // TODO what is the radius of the holes for each layer?
+constexpr double thicknessOuterFoam{7 * mm};                               // TODO: lack of carbon foam radius for layer 2, use 0.7 cm as a temporary value
 constexpr EColor color{kGray};
 } // namespace carbonfoam
 namespace metalstack
@@ -212,6 +213,18 @@ inline bool isDetITS3(T detID)
 }
 
 } // namespace detID
+
+// services
+namespace services
+{
+// FIXME these value are hallucinated since this not yet defined
+constexpr double thickness{2.2 * mm};                                         // thickness of structure
+constexpr double radiusInner{radiiOuter[2] + carbonfoam::thicknessOuterFoam}; // inner radius of services
+constexpr double radiusOuter{radiusInner + thickness};                        // outer radius of services
+constexpr double length{20 * cm};                                             // length
+constexpr EColor color{kBlue};
+} // namespace services
+
 } // namespace o2::its3::constants
 
 #endif

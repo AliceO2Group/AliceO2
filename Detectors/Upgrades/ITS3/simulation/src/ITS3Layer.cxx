@@ -293,7 +293,7 @@ void ITS3Layer::createCarbonForm()
   if (mNLayer < 2) {
     dRadius = constants::radii[mNLayer + 1] - constants::radii[mNLayer] - constants::totalThickness;
   } else {
-    dRadius = 0.7; // TODO: lack of carbon foam radius for layer 2, use 0.7mm as a temporary value
+    dRadius = constants::carbonfoam::thicknessOuterFoam; // TODO: lack of carbon foam radius for layer 2, use 0.7 cm as a temporary value
   }
   double phiSta = edgeBetwChipAndFoam / (0.5 * constants::radii[mNLayer + 1] + constants::radii[mNLayer]) * o2m::Rad2Deg;
   double phiEnd = (constants::nSegments[mNLayer] * constants::segment::width) / constants::radii[mNLayer] * o2m::Rad2Deg - phiSta;
