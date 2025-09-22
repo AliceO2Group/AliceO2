@@ -55,11 +55,11 @@ struct ChannelDataFloat {
 
   static void setFlag(fit::EEventDataBit bitFlag, int& chainQTC)
   {
-    ChainQTC = uint8_t(ChainQTC) | 1u << bitFlag;
+    ChainQTC = uint8_t(ChainQTC) | 1u << uint8_t(bitFlag);
   }
   static void clearFlag(fit::EEventDataBit bitFlag, int& chainQTC)
   {
-    ChainQTC = uint8_t(ChainQTC) & ~(1u << bitFlag);
+    ChainQTC = uint8_t(ChainQTC) & ~(1u << uint8_t(bitFlag));
   }
   void setFlag(int flag)
   {
@@ -67,11 +67,11 @@ struct ChannelDataFloat {
   }
   void setFlag(fit::EEventDataBit bitFlag, bool value)
   {
-    ChainQTC = uint8_t(ChainQTC) | uint8_t(value) << bitFlag;
+    ChainQTC = uint8_t(ChainQTC) | uint8_t(value) << uint8_t(bitFlag);
   }
   bool getFlag(fit::EEventDataBit bitFlag) const
   {
-    return bool(uint8_t(ChainQTC) & (1u << bitFlag));
+    return bool(uint8_t(ChainQTC) & (1u << uint8_t(bitFlag)));
   }
   bool areAllFlagsGood() const
   {
