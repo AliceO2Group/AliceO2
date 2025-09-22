@@ -18,7 +18,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFV0/Digit.h"
-#include "DataFormat/Detectors/FIT/common/EEvebtDataBit.h"
+#include "DataFormatsFIT/EEventDataBit.h"
 #include <array>
 #include <gsl/span>
 

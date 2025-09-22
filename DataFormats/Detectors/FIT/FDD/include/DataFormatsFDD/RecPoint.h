@@ -21,7 +21,7 @@
 #include "DataFormatsFDD/ChannelData.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFDD/Digit.h"
-#include "DataFormat/Detectors/FIT/common/EEvebtDataBit.h"
+#include "DataFormatsFIT/EEventDataBit.h"
 
 namespace o2
 {

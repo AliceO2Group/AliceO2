@@ -20,7 +20,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFT0/Digit.h"
-#include "DataFormat/Detectors/FIT/common/EEvebtDataBit.h"
+#include "DataFormatsFIT/EEventDataBit.h"
 #include <array>
 #include "Rtypes.h"
 #include <TObject.h>
