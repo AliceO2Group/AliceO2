@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace fv0
+namespace fit
 {
 enum class EEventDataBit { kNumberADC = 0,
                            kIsDoubleEvent,
