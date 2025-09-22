@@ -58,7 +58,7 @@ struct ChannelDataFloat {
   {
     adcId = flag;
   }
-  bool getFlag(fit::EEventDataBit bitFlag)
+  bool getFlag(fit::EEventDataBit bitFlag) const
   {
     return bool(uint8_t(adcId) & (1u << uint8_t(bitFlag)));
   }
