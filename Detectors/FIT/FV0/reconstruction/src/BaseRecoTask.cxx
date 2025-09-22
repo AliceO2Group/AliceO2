@@ -51,15 +51,15 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
                                                inChData[ich].ChainQTC};
 
     // Conditions for reconstructing collision time (3 variants: first, average-relaxed and average-tight)
-    if (outChData[ich].charge > FV0DigParam::Instance().chargeThrForMeanTime) {
-      sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), outChData[ich].time);
+    if (outChData[ich].getAmp() > FV0DigParam::Instance().chargeThrForMeanTime) {
+      sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), outChData[ich].getTime());
       if (inChData[ich].areAllFlagsGood()) {
-        if (std::abs(outChData[ich].time) < FV0DigParam::Instance().mTimeThresholdForReco) {
-          sideAtimeAvg += outChData[ich].time;
+        if (std::abs(outChData[ich].getTime()) < FV0DigParam::Instance().mTimeThresholdForReco) {
+          sideAtimeAvg += outChData[ich].getTime();
           ndigitsA++;
         }
-        if (outChData[ich].charge > FV0DigParam::Instance().mAmpThresholdForReco && std::abs(outChData[ich].time) < FV0DigParam::Instance().mTimeThresholdForReco) {
-          sideAtimeAvgSelected += outChData[ich].time;
+        if (outChData[ich].getAmp() > FV0DigParam::Instance().mAmpThresholdForReco && std::abs(outChData[ich].getTime()) < FV0DigParam::Instance().mTimeThresholdForReco) {
+          sideAtimeAvgSelected += outChData[ich].getTime();
           ndigitsASelected++;
         }
       }
