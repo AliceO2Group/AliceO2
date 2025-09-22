@@ -889,9 +889,9 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
 
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {
-      int firstLayer{mTrkParams[0].NLayers}, firstCluster{constants::its::UnusedIndex};
+      int firstLayer{mTrkParams[0].NLayers}, firstCluster{constants::UnusedIndex};
       for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
-        if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
           continue;
         }
         firstLayer = iLayer;
