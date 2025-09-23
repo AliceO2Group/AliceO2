@@ -139,11 +139,10 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-
-  gsl::span<itsmft::ROFRecord> trackROFspan(trackROFvec);
+  gsl::span<const itsmft::ROFRecord> trackROFspan(trackROFvec);
   loadROF(trackROFspan, compClusters, pattIt, labels);
   pattIt = patterns.begin();
-  std::vector<int> savedROF;
+
   auto logger = [&](const std::string& s) { LOG(info) << s; };
   auto fatalLogger = [&](const std::string& s) { LOG(fatal) << s; };
   auto errorLogger = [&](const std::string& s) { LOG(error) << s; };
@@ -406,7 +405,7 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits
   mVertexer->setMemoryPool(mMemoryPool);
 }
 
-void ITSTrackingInterface::loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+void ITSTrackingInterface::loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                                    gsl::span<const itsmft::CompClusterExt> clusters,
                                    gsl::span<const unsigned char>::iterator& pattIt,
                                    const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)

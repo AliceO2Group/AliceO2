@@ -58,22 +58,22 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
 }
 
 int loadROFrameDataITS3(its::TimeFrame<7>* tf,
-                        gsl::span<o2::itsmft::ROFRecord> rofs,
+                        gsl::span<const o2::itsmft::ROFRecord> rofs,
                         gsl::span<const itsmft::CompClusterExt> clusters,
                         gsl::span<const unsigned char>::iterator& pattIt,
                         const its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  tf->resetROFrameData(rofs.size());
-
   auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  tf->mNrof = 0;
+  tf->resetROFrameData(rofs.size());
+  tf->prepareROFrameData(rofs, clusters);
 
   its::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), tf->getMemoryPool().get());
 
-  for (auto& rof : rofs) {
+  for (size_t iRof{0}; iRof < rofs.size(); ++iRof) {
+    const auto& rof = rofs[iRof];
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
       auto sensorID = c.getSensorID();
@@ -108,9 +108,8 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
       tf->addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < tf->getUnsortedClusters().size(); ++iL) {
-      tf->mROFramesClusters[iL].push_back(tf->getUnsortedClusters()[iL].size());
+      tf->mROFramesClusters[iL][iRof + 1] = tf->getUnsortedClusters()[iL].size();
     }
-    tf->mNrof++;
   }
 
   tf->setClusterSize(clusterSizeVec);

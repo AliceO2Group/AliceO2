@@ -90,12 +90,14 @@ struct TimeFrame {
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
-  int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
+  int loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
                       gsl::span<const itsmft::CompClusterExt> clusters,
                       gsl::span<const unsigned char>::iterator& pattIt,
                       const itsmft::TopologyDictionary* dict,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
   void resetROFrameData(size_t nROFs);
+  void prepareROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
+                          gsl::span<const itsmft::CompClusterExt> clusters);
 
   int getTotalClusters() const;
   auto& getTotVertIteration() { return mTotVertPerIteration; }

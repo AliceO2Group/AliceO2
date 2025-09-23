@@ -78,7 +78,7 @@ class ITSTrackingInterface
   TimeFrameN* mTimeFrame = nullptr;
 
  protected:
-  virtual void loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+  virtual void loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                        gsl::span<const itsmft::CompClusterExt> clusters,
                        gsl::span<const unsigned char>::iterator& pattIt,
                        const dataformats::MCTruthContainer<MCCompLabel>* mcLabels);

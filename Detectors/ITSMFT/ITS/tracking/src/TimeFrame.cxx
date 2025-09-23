@@ -103,28 +103,17 @@ void TimeFrame<nLayers>::addPrimaryVerticesContributorLabelsInROF(const bounded_
 }
 
 template <int nLayers>
-int TimeFrame<nLayers>::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
+int TimeFrame<nLayers>::loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
                                         gsl::span<const itsmft::CompClusterExt> clusters,
                                         gsl::span<const unsigned char>::iterator& pattIt,
                                         const itsmft::TopologyDictionary* dict,
                                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  resetROFrameData(rofs.size());
-
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  mNrof = rofs.size();
-  clearResizeBoundedVector(mClusterSize, clusters.size(), mMemoryPool.get());
-  std::array<int, nLayers> clusterCountPerLayer{};
-  for (const auto& clus : clusters) {
-    ++clusterCountPerLayer[geom->getLayer(clus.getSensorID())];
-  }
-  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    mUnsortedClusters[iLayer].reserve(clusterCountPerLayer[iLayer]);
-    mTrackingFrameInfo[iLayer].reserve(clusterCountPerLayer[iLayer]);
-    mClusterExternalIndices[iLayer].reserve(clusterCountPerLayer[iLayer]);
-  }
+  resetROFrameData(rofs.size());
+  prepareROFrameData(rofs, clusters);
 
   for (size_t iRof{0}; iRof < rofs.size(); ++iRof) {
     const auto& rof = rofs[iRof];
@@ -182,7 +171,7 @@ int TimeFrame<nLayers>::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
   }
 
   return mNrof;
-} // namespace o2::its
+}
 
 template <int nLayers>
 void TimeFrame<nLayers>::resetROFrameData(size_t nRofs)
@@ -198,6 +187,24 @@ void TimeFrame<nLayers>::resetROFrameData(size_t nRofs)
       deepVectorClear(mNTrackletsPerCluster[iLayer], mMemoryPool.get());
       deepVectorClear(mNTrackletsPerClusterSum[iLayer], mMemoryPool.get());
     }
+  }
+}
+
+template <int nLayers>
+void TimeFrame<nLayers>::prepareROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
+                                            gsl::span<const itsmft::CompClusterExt> clusters)
+{
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  mNrof = rofs.size();
+  clearResizeBoundedVector(mClusterSize, clusters.size(), mMemoryPool.get());
+  std::array<int, nLayers> clusterCountPerLayer{};
+  for (const auto& clus : clusters) {
+    ++clusterCountPerLayer[geom->getLayer(clus.getSensorID())];
+  }
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    mUnsortedClusters[iLayer].reserve(clusterCountPerLayer[iLayer]);
+    mTrackingFrameInfo[iLayer].reserve(clusterCountPerLayer[iLayer]);
+    mClusterExternalIndices[iLayer].reserve(clusterCountPerLayer[iLayer]);
   }
 }
 
