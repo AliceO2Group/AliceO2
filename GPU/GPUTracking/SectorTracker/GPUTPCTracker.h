@@ -167,6 +167,7 @@ class GPUTPCTracker : public GPUProcessor
     }
     return ((int32_t)weight);
   }
+  GPUdi() float GetChiSeedFactor() const { return Param().rec.tpc.hitPickUpFactor * Param().rec.tpc.hitPickUpFactor * 3.5f * 3.5f; }
   GPUd() void MaximizeHitWeight(const GPUTPCRow& row, int32_t hitIndex, int32_t weight) { mData.MaximizeHitWeight(row, hitIndex, weight); }
   GPUd() void SetHitWeight(const GPUTPCRow& row, int32_t hitIndex, int32_t weight) { mData.SetHitWeight(row, hitIndex, weight); }
   GPUd() int32_t HitWeight(const GPUTPCRow& row, int32_t hitIndex) const { return mData.HitWeight(row, hitIndex); }
