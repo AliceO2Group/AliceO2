@@ -151,6 +151,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         const float rmax = (83.5f + param.rec.tpc.sysClusErrorMinDist);
         if (r2 < rmax * rmax) {
           MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectErr);
+          continue;
         }
       }
 
