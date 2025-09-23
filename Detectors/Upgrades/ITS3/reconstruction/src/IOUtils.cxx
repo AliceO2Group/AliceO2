@@ -33,6 +33,8 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             const its3::TopologyDictionary* dict)
 {
   auto geom = o2::its::GeometryTGeo::Instance();
+  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
+
   bool applyMisalignment = false;
   const auto& conf = o2::its::TrackerParamConfig::Instance();
   for (int il = 0; il < geom->getNumberOfLayers(); ++il) {
