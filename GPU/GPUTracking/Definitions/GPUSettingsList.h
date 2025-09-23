@@ -139,6 +139,7 @@ AddOptionRTC(cfNoiseSuppressionEpsilonRelative, uint8_t, 76, "", 0, "Cluster Fin
 AddOptionRTC(cfEdgeTwoPads, uint8_t, 0, "", 0, "Flag clusters with peak on the 2 pads closes to the sector edge as edge cluster")
 AddOptionRTC(nWays, uint8_t, 3, "", 0, "Do N fit passes in final fit of merger (must be odd to end with inward fit)")
 AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely during fit based on clusters closed to interpolated track positions")
+AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
 AddOptionRTC(trackFitRejectMode, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits")
 AddOptionRTC(rejectIFCLowRadiusCluster, uint8_t, 1, "", 0, "Reject clusters that get the IFC mask error during refit")
 AddOptionRTC(dEdxTruncLow, uint8_t, 2, "", 0, "Low truncation threshold, fraction of 128")
