@@ -78,10 +78,11 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(uint32_t) nLooperMatchCandidates;
   };
 
-  struct trackCluster {
+  struct trackCluster { // TODO: Reduce size of this struct!
     uint32_t id;
     uint8_t row;
     uint8_t sector;
+    float error;
   };
 
   struct tmpSort {
@@ -125,6 +126,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint32_t NMergedTrackClusters() const { return mMemory->nMergedTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
   GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return (mClusters); }
+  GPUhdi() trackCluster* ClusterCandidates() { return (mClusterCandidates); }
   GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhdi() uint32_t* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhdi() uint32_t* TrackOrderProcess() const { return mTrackOrderProcess; }
@@ -272,6 +274,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   int32_t mNClusters = 0;                           // Total number of incoming clusters (from sector tracks)
   GPUTPCGMMergedTrack* mMergedTracks = nullptr;     //* array of output merged tracks
+  trackCluster* mClusterCandidates = nullptr;
   GPUdEdxInfo* mMergedTracksdEdx = nullptr;         //* dEdx information
   GPUdEdxInfo* mMergedTracksdEdxAlt = nullptr;      //* dEdx alternative information
   GPUTPCGMSectorTrack* mSectorTrackInfos = nullptr; //* additional information for sector tracks
