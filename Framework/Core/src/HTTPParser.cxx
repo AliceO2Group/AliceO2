@@ -214,7 +214,7 @@ std::string HTTPParserHelpers::calculateAccept(const char* nonce)
   return fmt::format("{}", base);
 }
 
-std::string encode_websocket_handshake_reply(char const* nonce, char const* protocol = "")
+std::string encode_websocket_handshake_reply(char const* nonce)
 {
   constexpr auto res =
     "HTTP/1.1 101 Switching Protocols\r\n"
