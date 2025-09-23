@@ -199,7 +199,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
           const float sErr2 = tracker.Param().GetSystematicClusterErrorIFC2(x, tParam.GetY(), tParam.GetZ(), tracker.ISector() >= 18);
           err2Y += sErr2;
           err2Z += sErr2;
-          const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 3.5f * 3.5f;
+          const float kFactor = tracker.GetChiSeedFactor();
           float sy2 = kFactor * (tParam.Err2Y() + err2Y);
           float sz2 = kFactor * (tParam.Err2Z() + err2Z);
           if (sy2 > tracker.Param().rec.tpc.hitSearchArea2) {
@@ -307,7 +307,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
           const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 7.0f * 7.0f;
           const float maxWindow2 = tracker.Param().rec.tpc.hitSearchArea2;
           const float sy2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Y() + err2Y));
-          const float sz2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Z() + err2Z));
+          const float sz2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Z() + err2Z)); // TODO: Double check if the factors are enough, errors could be larger with flags
 
           int32_t bin, ny, nz;
           row.Grid().GetBinArea(yUncorrected, zUncorrected + tParam.ZOffset(), CAMath::Sqrt(sy2), CAMath::Sqrt(sz2), bin, ny, nz);

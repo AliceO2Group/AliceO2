@@ -403,6 +403,7 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
   computePointerWithAlignment(mem, mLoopData, mNMaxTracks);      // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers, Reducing mNMaxTracks for mLoopData does not save memory, other parts are larger anyway
+  computePointerWithAlignment(mem, mClusterCandidates, mNMaxTracks * GPUCA_ROW_COUNT * Param().rec.tpc.rebuildTrackInFitClusterCandidates);
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
   computePointerWithAlignment(mem, mLooperCandidates, mNMaxLooperMatches); // MergeLoopers 1-3
@@ -1666,7 +1667,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
           const GPUTPCTracker& trk = GetConstantMem()->tpcTrackers[t->Sector()];
           const GPUTPCHitId& ic = trk.TrackHits()[t->OrigTrack()->FirstHitID() + i];
           uint32_t id = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[t->Sector()][0];
-          *c2 = trackCluster{id, (uint8_t)ic.RowIndex(), t->Sector()};
+          *c2 = trackCluster{.id = id, .row = (uint8_t)ic.RowIndex(), .sector = t->Sector(), .error = 0.f};
         }
         nHits += nTrackHits;
       }
