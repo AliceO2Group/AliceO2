@@ -273,6 +273,10 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("Clusterizer and merger Sanity checks only supported when not running on GPU");
     return false;
   }
+  if (GetProcessingSettings().tpcWriteClustersAfterRejection && (mRec->IsGPU() || param().rec.tpc.compressionTypeMask || !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression))) {
+    GPUError("tpcWriteClustersAfterRejection requires compressionTypeMask = 0, no GPU usage, and compression enabled");
+    return false;
+  }
   if (GetProcessingSettings().doublePipeline) {
     if (!GetRecoStepsOutputs().isOnlySet(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters, GPUDataTypes::InOutType::TPCClusters)) {
       GPUError("Invalid outputs for double pipeline mode 0x%x", (uint32_t)GetRecoStepsOutputs());
@@ -543,6 +547,10 @@ void GPUChainTracking::ClearIOPointers()
   std::memset((void*)&mIOPtrs, 0, sizeof(mIOPtrs));
   mIOMem.~InOutMemory();
   new (&mIOMem) InOutMemory;
+  mClusterNativeAccessReduced.reset(nullptr);
+  if (mClusterNativeAccess.get()) {
+    memset((void*)mClusterNativeAccess.get(), 0, sizeof(*mClusterNativeAccess));
+  }
 }
 
 void GPUChainTracking::AllocateIOMemory()

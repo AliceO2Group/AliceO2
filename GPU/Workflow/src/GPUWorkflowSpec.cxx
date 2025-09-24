@@ -889,6 +889,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   // ------------------------------ Varios postprocessing steps ------------------------------
 
+  if (mConfig->configProcessing.tpcWriteClustersAfterRejection) {
+    ptrs.clustersNative = ptrs.clustersNativeReduced;
+  }
   bool createEmptyOutput = false;
   if (retVal != 0) {
     if (retVal == 3 && mConfig->configProcessing.ignoreNonFatalGPUErrors) {

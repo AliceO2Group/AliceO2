@@ -23,6 +23,8 @@
 #include "GPUConstantMem.h" // TODO: Try to get rid of as many GPUConstantMem includes as possible!
 #include "GPUTPCCompressionKernels.h"
 #include "GPUTPCDecompressionKernels.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "utils/strtag.h"
 
 #include <numeric>
@@ -52,6 +54,9 @@ int32_t GPUChainTracking::RunTPCCompression()
   TransferMemoryResourcesToGPU(myStep, &Compressor, 0);
   runKernel<GPUMemClean16>(GetGridAutoStep(0, RecoStep::TPCCompression), CompressorShadow.mClusterStatus, Compressor.mMaxClusters * sizeof(CompressorShadow.mClusterStatus[0]));
   runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step0attached>(GetGridAuto(0));
+  if (GetProcessingSettings().tpcWriteClustersAfterRejection) {
+    WriteReducedClusters();
+  }
   runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step1unattached>(GetGridAuto(0));
   TransferMemoryResourcesToHost(myStep, &Compressor, 0);
 #ifdef GPUCA_TPC_GEOMETRY_O2
@@ -433,4 +438,57 @@ int32_t GPUChainTracking::RunTPCDecompression()
   }
   DoDebugDump(GPUChainTrackingDebugFlags::TPCDecompressedClusters, &GPUChainTracking::DumpClusters, *mDebugFile, mIOPtrs.clustersNative);
   return 0;
+}
+
+void GPUChainTracking::WriteReducedClusters()
+{
+  GPUTPCCompression& Compressor = processors()->tpcCompressor;
+  mClusterNativeAccessReduced = std::make_unique<ClusterNativeAccess>();
+  uint32_t nOutput = 0;
+  for (uint32_t iSec = 0; iSec < GPUCA_NSECTORS; iSec++) {
+    for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+      mClusterNativeAccessReduced->nClusters[iSec][iRow] = 0;
+      for (uint32_t i = 0; i < mIOPtrs.clustersNative->nClusters[iSec][iRow]; i++) {
+        mClusterNativeAccessReduced->nClusters[iSec][iRow] += !Compressor.rejectCluster(mIOPtrs.clustersNative->clusterOffset[iSec][iRow] + i, param(), mIOPtrs);
+      }
+      nOutput += mClusterNativeAccessReduced->nClusters[iSec][iRow];
+    }
+  }
+
+  GPUOutputControl* clOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)];
+  if (!clOutput || !clOutput->allocator) {
+    throw std::runtime_error("No output allocator for clusterNative available");
+  }
+  auto* clBuffer = (ClusterNative*)clOutput->allocator(nOutput * sizeof(ClusterNative));
+  mClusterNativeAccessReduced->clustersLinear = clBuffer;
+  mClusterNativeAccessReduced->setOffsetPtrs();
+
+  std::pair<o2::dataformats::ConstMCLabelContainer*, o2::dataformats::ConstMCLabelContainerView*> labelBuffer;
+  if (mIOPtrs.clustersNative->clustersMCTruth) {
+    GPUOutputControl* labelOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)];
+    if (!labelOutput || !labelOutput->allocator) {
+      throw std::runtime_error("No output allocator for clusterNative labels available");
+    }
+    ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* labelContainer = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(labelOutput->allocator(0));
+    labelBuffer = {&labelContainer->first, &labelContainer->second};
+  }
+
+  nOutput = 0;
+  o2::dataformats::MCLabelContainer tmpContainer;
+  for (uint32_t i = 0; i < mIOPtrs.clustersNative->nClustersTotal; i++) {
+    if (!Compressor.rejectCluster(i, param(), mIOPtrs)) {
+      if (mIOPtrs.clustersNative->clustersMCTruth) {
+        for (const auto& element : mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)) {
+          tmpContainer.addElement(nOutput, element);
+        }
+      }
+      clBuffer[nOutput++] = mIOPtrs.clustersNative->clustersLinear[i];
+    }
+  }
+  mIOPtrs.clustersNativeReduced = mClusterNativeAccessReduced.get();
+  if (mIOPtrs.clustersNative->clustersMCTruth) {
+    tmpContainer.flatten_to(*labelBuffer.first);
+    *labelBuffer.second = *labelBuffer.first;
+    mClusterNativeAccessReduced->clustersMCTruth = labelBuffer.second;
+  }
 }
