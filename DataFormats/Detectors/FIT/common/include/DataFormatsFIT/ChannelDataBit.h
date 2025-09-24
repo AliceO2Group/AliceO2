@@ -21,13 +21,13 @@ namespace o2
 namespace fit
 {
 enum class ChannelDataBit { kNumberADC = 0,
-                           kIsDoubleEvent,
-                           kIsTimeInfoNOTvalid,
-                           kIsCFDinADCgate,
-                           kIsTimeInfoLate,
-                           kIsAmpHigh,
-                           kIsEventInTVDC,
-                           kIsTimeInfoLost
+                            kIsDoubleEvent,
+                            kIsTimeInfoNOTvalid,
+                            kIsCFDinADCgate,
+                            kIsTimeInfoLate,
+                            kIsAmpHigh,
+                            kIsEventInTVDC,
+                            kIsTimeInfoLost
 };
 }
 } // namespace o2
