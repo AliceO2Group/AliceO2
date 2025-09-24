@@ -39,10 +39,10 @@ struct ChannelDataFloat {
   static constexpr float DUMMY_CFD_TIME = -20000;
   static constexpr float DUMMY_QTC_AMPL = -20000;
 
-  int ChId = DUMMY_CHANNEL_ID;    // channel Id
-  int ChainQTC = DUMMY_CHAIN_QTC; // QTC chain
-  float CFDTime = DUMMY_CFD_TIME; // time in ps, 0 at the LHC clk center
-  float QTCAmpl = DUMMY_QTC_AMPL; // Amplitude mV
+  int ChId = DUMMY_CHANNEL_ID;    ///< Channel ID
+  int ChainQTC = DUMMY_CHAIN_QTC; ///< Channel data bits
+  float CFDTime = DUMMY_CFD_TIME; ///< Channel time (ns), 0 at the LHC clock center
+  float QTCAmpl = DUMMY_QTC_AMPL; ///< Channel charge (ADC channels)
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int iPmt, float time, float charge, int chainQTC)

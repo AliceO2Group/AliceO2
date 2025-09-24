@@ -9,12 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file EEventDataBit.h
-/// \brief Enum type describing bits in ChainQTC flag
+/// \file  ChannelDataBit.h
+/// \brief Enum type describing channel data bits
+///
 /// \author wiktor.pierozak@cern.ch
 
-#ifndef O2_FIT_EEVENT_DATA_BIT_
-#define O2_FIT_EEVENT_DATA_BIT_
+#ifndef O2_FIT_CHANNEL_DATA_BIT_
+#define O2_FIT_CHANNEL_DATA_BIT_
 
 namespace o2
 {
