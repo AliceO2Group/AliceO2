@@ -517,7 +517,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          TracksCovCursorType& tracksCovCursor,
                                                          TracksExtraCursorType& tracksExtraCursor,
                                                          TracksQACursorType& tracksQACursor,
-                                                          TRDsExtraCursor& trdsExtraCursor,
+                                                         TRDsExtraCursor& trdsExtraCursor,
                                                          AmbigTracksCursorType& ambigTracksCursor,
                                                          MFTTracksCursorType& mftTracksCursor,
                                                          MFTTracksCovCursorType& mftTracksCovCursor,
@@ -2000,7 +2000,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (mEnableTRDextra) {
     trdExtraCursor = createTableCursor<o2::aod::TRDsExtra>(pc);
   }
-  
+
   // Declare MC cursors type without adding the output for a table
   o2::framework::Produces<o2::aod::McCollisionLabels> mcColLabelsCursor;
   o2::framework::Produces<o2::aod::McCollisions> mcCollisionsCursor;
@@ -2343,7 +2343,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
   // fixme: interaction time is undefined for unassigned tracks (?)
-  fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor,trdExtraCursor,
+  fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor, trdExtraCursor,
                               ambigTracksCursor, mftTracksCursor, mftTracksCovCursor, ambigMFTTracksCursor,
                               fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
 
@@ -3356,18 +3356,18 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputSpec{"TFF", "TFFilename"},
     OutputSpec{"AMD", "AODMetadataKeys"},
     OutputSpec{"AMD", "AODMetadataVals"}};
-    /// Extra tables
-    if (enableFITextra) {
-      outputs.insert(outputs.end(),
-                     {OutputForTable<FDDsExtra>::spec(),
-                      OutputForTable<FT0sExtra>::spec(),
-                      OutputForTable<FV0AsExtra>::spec()});
-    }
-    if (enableTRDextra) {
-      outputs.push_back(OutputForTable<TRDsExtra>::spec());
-      dataRequest->inputs.emplace_back("trdlocalgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
-      dataRequest->inputs.emplace_back("trdnoisemap", "TRD", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
-    }
+  /// Extra tables
+  if (enableFITextra) {
+    outputs.insert(outputs.end(),
+                   {OutputForTable<FDDsExtra>::spec(),
+                    OutputForTable<FT0sExtra>::spec(),
+                    OutputForTable<FV0AsExtra>::spec()});
+  }
+  if (enableTRDextra) {
+    outputs.push_back(OutputForTable<TRDsExtra>::spec());
+    dataRequest->inputs.emplace_back("trdlocalgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
+    dataRequest->inputs.emplace_back("trdnoisemap", "TRD", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
+  }
 
   if (useMC) {
     outputs.insert(outputs.end(),
