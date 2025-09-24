@@ -20,7 +20,7 @@ namespace o2
 {
 namespace fit
 {
-enum class EEventDataBit { kNumberADC = 0,
+enum class ChannelDataBit { kNumberADC = 0,
                            kIsDoubleEvent,
                            kIsTimeInfoNOTvalid,
                            kIsCFDinADCgate,

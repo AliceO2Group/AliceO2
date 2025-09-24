@@ -21,7 +21,7 @@
 #include "DataFormatsFDD/ChannelData.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFDD/Digit.h"
-#include "DataFormatsFIT/EEventDataBit.h"
+#include "DataFormatsFIT/ChannelDataBit.h"
 
 namespace o2
 {
@@ -47,11 +47,11 @@ struct ChannelDataFloat {
     adcId = AdcId;
   }
 
-  static void setFlag(fit::EEventDataBit bitFlag, int& adcId)
+  static void setFlag(fit::ChannelDataBit bitFlag, int& adcId)
   {
     adcId = uint8_t(adcId) | 1u << uint8_t(bitFlag);
   }
-  static void clearFlag(fit::EEventDataBit bitFlag, int& adcId)
+  static void clearFlag(fit::ChannelDataBit bitFlag, int& adcId)
   {
     adcId = uint8_t(adcId) & ~(1u << uint8_t(bitFlag));
   }
@@ -59,23 +59,23 @@ struct ChannelDataFloat {
   {
     adcId = flag;
   }
-  void setFlag(fit::EEventDataBit bitFlag, bool value)
+  void setFlag(fit::ChannelDataBit bitFlag, bool value)
   {
     adcId = uint8_t(adcId) | uint8_t(value) << uint8_t(bitFlag);
   }
-  [[nodiscard]] bool getFlag(fit::EEventDataBit bitFlag) const
+  [[nodiscard]] bool getFlag(fit::ChannelDataBit bitFlag) const
   {
     return bool(uint8_t(adcId) & (1u << uint8_t(bitFlag)));
   }
   [[nodiscard]] bool areAllFlagsGood() const
   {
-    return (!getFlag(fit::EEventDataBit::kIsDoubleEvent) &&
-            !getFlag(fit::EEventDataBit::kIsTimeInfoNOTvalid) &&
-            getFlag(fit::EEventDataBit::kIsCFDinADCgate) &&
-            !getFlag(fit::EEventDataBit::kIsTimeInfoLate) &&
-            !getFlag(fit::EEventDataBit::kIsAmpHigh) &&
-            getFlag(fit::EEventDataBit::kIsEventInTVDC) &&
-            !getFlag(fit::EEventDataBit::kIsTimeInfoLost));
+    return (!getFlag(fit::ChannelDataBit::kIsDoubleEvent) &&
+            !getFlag(fit::ChannelDataBit::kIsTimeInfoNOTvalid) &&
+            getFlag(fit::ChannelDataBit::kIsCFDinADCgate) &&
+            !getFlag(fit::ChannelDataBit::kIsTimeInfoLate) &&
+            !getFlag(fit::ChannelDataBit::kIsAmpHigh) &&
+            getFlag(fit::ChannelDataBit::kIsEventInTVDC) &&
+            !getFlag(fit::ChannelDataBit::kIsTimeInfoLost));
   }
 
   void print() const;

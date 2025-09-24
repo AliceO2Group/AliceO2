@@ -20,7 +20,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFT0/Digit.h"
-#include "DataFormatsFIT/EEventDataBit.h"
+#include "DataFormatsFIT/ChannelDataBit.h"
 #include <array>
 #include "Rtypes.h"
 #include <TObject.h>
@@ -53,11 +53,11 @@ struct ChannelDataFloat {
     ChainQTC = chainQTC;
   }
 
-  static void setFlag(fit::EEventDataBit bitFlag, int& chainQTC)
+  static void setFlag(fit::ChannelDataBit bitFlag, int& chainQTC)
   {
     chainQTC = uint8_t(chainQTC) | 1u << uint8_t(bitFlag);
   }
-  static void clearFlag(fit::EEventDataBit bitFlag, int& chainQTC)
+  static void clearFlag(fit::ChannelDataBit bitFlag, int& chainQTC)
   {
     chainQTC = uint8_t(chainQTC) & ~(1u << uint8_t(bitFlag));
   }
@@ -65,23 +65,23 @@ struct ChannelDataFloat {
   {
     ChainQTC = flag;
   }
-  void setFlag(fit::EEventDataBit bitFlag, bool value)
+  void setFlag(fit::ChannelDataBit bitFlag, bool value)
   {
     ChainQTC = uint8_t(ChainQTC) | uint8_t(value) << uint8_t(bitFlag);
   }
-  [[nodiscard]] bool getFlag(fit::EEventDataBit bitFlag) const
+  [[nodiscard]] bool getFlag(fit::ChannelDataBit bitFlag) const
   {
     return bool(uint8_t(ChainQTC) & (1u << uint8_t(bitFlag)));
   }
   [[nodiscard]] bool areAllFlagsGood() const
   {
-    return (!getFlag(fit::EEventDataBit::kIsDoubleEvent) &&
-            !getFlag(fit::EEventDataBit::kIsTimeInfoNOTvalid) &&
-            getFlag(fit::EEventDataBit::kIsCFDinADCgate) &&
-            !getFlag(fit::EEventDataBit::kIsTimeInfoLate) &&
-            !getFlag(fit::EEventDataBit::kIsAmpHigh) &&
-            getFlag(fit::EEventDataBit::kIsEventInTVDC) &&
-            !getFlag(fit::EEventDataBit::kIsTimeInfoLost));
+    return (!getFlag(fit::ChannelDataBit::kIsDoubleEvent) &&
+            !getFlag(fit::ChannelDataBit::kIsTimeInfoNOTvalid) &&
+            getFlag(fit::ChannelDataBit::kIsCFDinADCgate) &&
+            !getFlag(fit::ChannelDataBit::kIsTimeInfoLate) &&
+            !getFlag(fit::ChannelDataBit::kIsAmpHigh) &&
+            getFlag(fit::ChannelDataBit::kIsEventInTVDC) &&
+            !getFlag(fit::ChannelDataBit::kIsTimeInfoLost));
   }
 
   void print() const;
