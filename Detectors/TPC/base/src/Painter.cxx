@@ -31,7 +31,9 @@
 #include "TPaveText.h"
 #include "TPaletteAxis.h"
 #include "TObjArray.h"
+#include "TMath.h"
 
+#include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/StringUtils.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
@@ -223,7 +225,77 @@ std::vector<painter::PadCoordinates> painter::getFECCoordinatesSector()
   return padCoords;
 }
 
-std::vector<o2::tpc::painter::PadCoordinates> painter::getCoordinates(const Type type)
+std::vector<painter::PadCoordinates> painter::getSCDY2XCoordinatesSector(std::string binningStr)
+{
+  const float deadZone = 1.5;
+  const float secPhi = 20.0 * TMath::DegToRad();
+  std::vector<painter::PadCoordinates> padCoords;
+  const Mapper& mapper = Mapper::instance();
+  const auto nPadRows = Mapper::PADROWS;
+  std::vector<float> maxY2X(nPadRows);
+  auto binCenters = o2::RangeTokenizer::tokenize<float>(binningStr);
+  size_t nY2XBins = 20;
+  std::vector<float> halfBinWidth;
+
+  auto setUniformBinning = [&binCenters, &halfBinWidth](int nY2XBins) {
+    binCenters.resize(nY2XBins);
+    halfBinWidth.resize(nY2XBins);
+    for (int i = 0; i < nY2XBins; ++i) {
+      const auto binWidth = 2.f / nY2XBins;
+      halfBinWidth[i] = binWidth / 2.f;
+      binCenters[i] = -1.f + (i + 0.5f) * binWidth;
+    }
+  };
+
+  if (binCenters.size() == 0) {
+    LOGP(info, "Empty binning provided, will use default uniform y/x binning with {} bins", nY2XBins);
+    setUniformBinning(nY2XBins);
+  } else if (binCenters.size() == 1) {
+    nY2XBins = static_cast<int>(binCenters.at(0));
+    LOGP(info, "Setting uniform binning for y/x with {} bins", nY2XBins);
+    setUniformBinning(nY2XBins);
+  } else {
+    nY2XBins = binCenters.size() - 1;
+    if (std::abs(binCenters[0] + 1.f) > 1e-6 || std::abs(binCenters[nY2XBins] - 1.f) > 1e-6) {
+      LOG(error) << "Provided binning for y/x not in range -1 to 1: " << binCenters[0] << " - " << binCenters[nY2XBins] << ". Using default uniform binning with " << nY2XBins << " bins";
+      setUniformBinning(nY2XBins);
+    } else {
+      LOGP(info, "Setting custom binning for y/x with {} bins", nY2XBins);
+      halfBinWidth.reserve(nY2XBins);
+      halfBinWidth.clear();
+      for (int i = 0; i < nY2XBins; ++i) {
+        halfBinWidth.push_back(.5f * (binCenters[i + 1] - binCenters[i]));
+        binCenters[i] = .5f * (binCenters[i] + binCenters[i + 1]);
+      }
+      binCenters.resize(nY2XBins);
+    }
+  }
+
+  for (int irow = 0; irow < nPadRows; ++irow) {
+    const auto x = mapper.getPadCentre(PadPos(irow, 0)).X();
+    maxY2X[irow] = std::tan(.5f * secPhi) - deadZone / x;
+    const auto region = Mapper::REGION[irow];
+    const auto ph = mapper.getPadRegionInfo(region).getPadHeight();
+    const auto xPadBottom = x - ph / 2;
+    const auto xPadTop = x + ph / 2;
+    for (int iy2x = 0; iy2x < nY2XBins; ++iy2x) {
+      auto& padCoord = padCoords.emplace_back();
+      float yPadRight = 0;
+      if (iy2x == 0) {
+        yPadRight = maxY2X[irow] * (binCenters[iy2x] - halfBinWidth[iy2x]);
+      } else {
+        yPadRight = maxY2X[irow] * (binCenters[iy2x - 1] + halfBinWidth[iy2x - 1]);
+      }
+      const auto yPadLeft = maxY2X[irow] * (binCenters[iy2x] + halfBinWidth[iy2x]);
+      padCoord.xVals = {xPadBottom, xPadTop, xPadTop, xPadBottom};
+      padCoord.yVals = {yPadRight * xPadBottom, yPadRight * xPadTop, yPadLeft * xPadTop, yPadLeft * xPadBottom};
+    }
+  }
+
+  return padCoords;
+}
+
+std::vector<o2::tpc::painter::PadCoordinates> painter::getCoordinates(const Type type, std::string binningStr)
 {
   if (type == Type::Pad) {
     return painter::getPadCoordinatesSector();
@@ -231,6 +303,8 @@ std::vector<o2::tpc::painter::PadCoordinates> painter::getCoordinates(const Type
     return painter::getStackCoordinatesSector();
   } else if (type == Type::FEC) {
     return painter::getFECCoordinatesSector();
+  } else if (type == Type::SCD) {
+    return painter::getSCDY2XCoordinatesSector(binningStr);
   } else {
     LOGP(warning, "Wrong Type provided!");
     return std::vector<o2::tpc::painter::PadCoordinates>();
@@ -805,11 +879,11 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax, const Type type)
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax, const Type type, std::string binningStr)
 {
   auto poly = new TH2Poly(name.data(), title.data(), xMin, xMax, yMin, yMax);
 
-  auto coords = painter::getCoordinates(type);
+  auto coords = painter::getCoordinates(type, binningStr);
   for (const auto& coord : coords) {
     poly->AddBin(coord.xVals.size(), coord.xVals.data(), coord.yVals.data());
   }
@@ -818,12 +892,12 @@ TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSideHist(Side side, const Type type)
+TH2Poly* painter::makeSideHist(Side side, const Type type, std::string binningStr)
 {
   const auto s = (side == Side::A) ? "A" : "C";
   auto poly = new TH2Poly(fmt::format("hSide_{}", s).data(), fmt::format("{}-Side;#it{{x}} (cm);#it{{y}} (cm)", s).data(), -270., 270., -270., 270.);
 
-  auto coords = painter::getCoordinates(type);
+  auto coords = painter::getCoordinates(type, binningStr);
   for (int isec = 0; isec < 18; ++isec) {
     const float angDeg = 10.f + isec * 20;
     for (auto coord : coords) {
