@@ -33,6 +33,7 @@ struct MCTrackInfo {
   int getLowestITSLayer() const;
   int getHighestITSLayer() const;
   std::vector<float> occTPCV{};
+  std::vector<o2::track::TrackPar> trackRefsTPC{};
   o2::track::TrackPar track{};
   o2::MCCompLabel label{};
   float occTPC = -1.f;
@@ -73,7 +74,7 @@ struct MCTrackInfo {
   float getTrackParTPCPar(int i, float b, float x = 90) const;
   float getTrackParTPCPhiSec(float b, float x = 90) const;
 
-  ClassDefNV(MCTrackInfo, 7);
+  ClassDefNV(MCTrackInfo, 8);
 };
 
 struct RecTrack {

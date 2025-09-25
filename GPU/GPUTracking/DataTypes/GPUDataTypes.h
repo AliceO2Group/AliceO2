@@ -101,7 +101,6 @@ class GPUTPCTrack;
 class GPUTPCHitId;
 class GPUTPCGMMergedTrack;
 struct GPUTPCGMMergedTrackHit;
-struct GPUTPCGMMergedTrackHitXYZ;
 class GPUTRDTrackletWord;
 class GPUTRDSpacePoint;
 struct GPUTPCMCInfo;
@@ -237,7 +236,6 @@ struct GPUTrackingInOutPointers {
   const GPUTPCGMMergedTrack* mergedTracks = nullptr;
   uint32_t nMergedTracks = 0;
   const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
-  const GPUTPCGMMergedTrackHitXYZ* mergedTrackHitsXYZ = nullptr;
   uint32_t nMergedTrackHits = 0;
   const uint32_t* mergedTrackHitAttachment = nullptr;
   const uint8_t* mergedTrackHitStates = nullptr;

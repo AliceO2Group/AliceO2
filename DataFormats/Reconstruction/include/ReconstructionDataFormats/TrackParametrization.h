@@ -277,6 +277,7 @@ GPUdi() TrackParametrization<value_T>::TrackParametrization(value_t x, value_t a
   : mX{x}, mAlpha{alpha}, mAbsCharge{char(gpu::CAMath::Abs(charge))}, mPID{pid}
 {
   // explicit constructor
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
   for (int i = 0; i < kNParams; i++) {
     mP[i] = par[i];
   }
@@ -295,6 +296,7 @@ GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const 
 {
   mX = x;
   mAlpha = alpha;
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
   mAbsCharge = char(gpu::CAMath::Abs(charge));
   for (int i = 0; i < kNParams; i++) {
     mP[i] = par[i];
@@ -430,6 +432,7 @@ template <typename value_T>
 GPUdi() void TrackParametrization<value_T>::setAlpha(value_t v)
 {
   mAlpha = v;
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
 }
 
 //____________________________________________________________

@@ -9,23 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUTPCConvertKernel.h
+/// \file GPUDisplayBackendNone.cxx
 /// \author David Rohr
 
-#ifndef GPUTPCCONVERTKERNEL_H
-#define GPUTPCCONVERTKERNEL_H
+#include "GPUCommonDef.h"
+#include "GPUDisplayBackendNone.h"
 
-#include "GPUGeneralKernels.h"
+using namespace o2::gpu;
 
-namespace o2::gpu
+GPUDisplayBackendNone::GPUDisplayBackendNone()
 {
-class GPUTPCConvertKernel : public GPUKernelTemplate
-{
- public:
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCConversion; }
-  template <int32_t iKernel = defaultKernel>
-  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
-};
-} // namespace o2::gpu
+  mBackendType = TYPE_NONE;
+  mBackendName = "NONE";
+}
 
-#endif
+int32_t GPUDisplayBackendNone::InitBackendA()
+{
+
+  return 0;
+}

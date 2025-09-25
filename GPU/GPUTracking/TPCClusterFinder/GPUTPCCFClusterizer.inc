@@ -27,7 +27,8 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
                                                        uint32_t maxClusterPerRow,
                                                        uint32_t* clusterInRow,
                                                        tpc::ClusterNative* clusterByRow,
-                                                       uint32_t* clusterPosInRow)
+                                                       uint32_t* clusterPosInRow,
+                                                       int8_t isAccepted)
 {
   uint32_t idx = get_global_id(0);
 
@@ -62,6 +63,9 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
   tpc::ClusterNative myCluster;
   pc.finalize(pos, charge, fragment.start);
   bool rejectCluster = !pc.toNative(pos, charge, myCluster, clusterer.Param(), chargeMap);
+  if (!isAccepted) {
+    rejectCluster = true;
+  }
 
   if (rejectCluster) {
     if (clusterPosInRow) {

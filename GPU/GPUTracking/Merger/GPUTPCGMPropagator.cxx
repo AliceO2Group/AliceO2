@@ -608,24 +608,16 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge GPUCA_DEBUG_STREAMER_CHECK(, DebugStreamerVals* debugVals))
+GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge)
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgInvCharge, invCharge);
-  GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->err2Y = err2Y; debugVals->err2Z = err2Z; });
 
-  if (rejectChi2 >= rejectInterFill) {
-    if (rejectChi2 == rejectInterReject && inter->errorY < (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
-      rejectChi2 = rejectDirect;
-    } else {
-      int32_t retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
-      GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->retVal = retVal; });
-      if (retVal) {
-        return retVal;
-      }
-    }
-  }
+  return Update(posY, posZ, iRow, param, clusterState, rejectChi2, refit, err2Y, err2Z);
+}
 
+GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, bool refit, float err2Y, float err2Z)
+{
   if (mT->NDF() == -5) { // first measurement: no need to filter, as the result is known in advance. just set it.
     mT->ResetCovariance();
     float* mC = mT->Cov();
@@ -643,23 +635,30 @@ GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, 
     return 0;
   }
 
-  return Update(posY, posZ, clusterState, rejectChi2 == rejectDirect || (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && rejectChi2 == rejectInterReject), err2Y, err2Z, &param);
+  return Update(posY, posZ, clusterState, rejectChi2 == rejectDirect, err2Y, err2Z, &param);
 }
 
-GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict() param, float posY, float posZ, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z)
+GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict() param, float posY, float posZ, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z, float deltaZ)
 {
   float* GPUrestrict() mC = mT->Cov();
   float* GPUrestrict() mP = mT->Par();
   if (rejectChi2 == rejectInterFill) {
     inter->posY = mP[0];
     inter->posZ = mP[1];
-    inter->errorY = mC[0];
-    inter->errorZ = mC[2];
+    if (mT->NDF() <= 0) {
+      inter->errorY = inter->errorZ = 100.f;
+    } else {
+      inter->errorY = mC[0];
+      inter->errorZ = mC[2];
+    }
   } else if (rejectChi2 == rejectInterReject) {
     float chi2Y, chi2Z;
-    if (mFitInProjections || mT->NDF() <= 0) {
+    if (mT->NDF() <= 0) {
+      chi2Y = CAMath::Square((float)inter->posY - posY) / ((float)inter->errorY + err2Y);
+      chi2Z = CAMath::Square((float)inter->posZ + deltaZ - posZ) / ((float)inter->errorZ + err2Z);
+    } else if (mFitInProjections) {
       const float Iz0 = inter->posY - mP[0];
-      const float Iz1 = inter->posZ - mP[1];
+      const float Iz1 = inter->posZ + deltaZ - mP[1];
       const float Iw0 = 1.f / (mC[0] + (float)inter->errorY);
       const float Iw2 = 1.f / (mC[2] + (float)inter->errorZ);
       const float Ik00 = mC[0] * Iw0;
@@ -677,7 +676,7 @@ GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict
       chi2Z = Jw2 * Jz1 * Jz1;
     } else {
       const float Iz0 = inter->posY - mP[0];
-      const float Iz1 = inter->posZ - mP[1];
+      const float Iz1 = inter->posZ + deltaZ - mP[1];
       float Iw0 = mC[2] + (float)inter->errorZ;
       float Iw2 = mC[0] + (float)inter->errorY;
       float Idet = CAMath::Max(1e-10f, Iw0 * Iw2 - mC[1] * mC[1]);
@@ -707,6 +706,7 @@ GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict
       chi2Z = CAMath::Abs((Jw1 * Jz0 + Jw2 * Jz1) * Jz1);
     }
     if (RejectCluster(chi2Y * param.rec.tpc.clusterRejectChi2TolleranceY, chi2Z * param.rec.tpc.clusterRejectChi2TolleranceZ, clusterState)) { // TODO: Relative Pt resolution decreases slightly, why?
+      // printf("Reject Cluster chiy2 %f chiz2 %f (Pos Y: %f - %f %f ; Pos Z: %f - %f %f)\n", chi2Y, chi2Z, posY, mP[0], (float)inter->posY, posZ, mP[1], (float)inter->posZ + deltaZ);
       return updateErrorClusterRejectedInInterpolation;
     }
   }

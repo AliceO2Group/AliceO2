@@ -62,14 +62,14 @@ int32_t GPUChainTracking::RunTRDTrackingInternal()
       if (!Tracker.PreCheckTrackTRDCandidate(trk)) {
         continue;
       }
-      const GPUTRDTrackGPU& trktrd = param().rec.tpc.nWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
+      const GPUTRDTrackGPU& trktrd = (GPUTRDTrackGPU)trk.OuterParam();
       if (!Tracker.CheckTrackTRDCandidate(trktrd)) {
         continue;
       }
       GPUTRDTrackerGPU::HelperTrackAttributes trkAttribs, *trkAttribsPtr{nullptr};
       if (!isTriggeredEvent) {
         const float tpcTBinMUS = 0.199606f;
-        trkAttribs.mTime = trk.GetParam().GetTZOffset() * tpcTBinMUS;
+        trkAttribs.mTime = trk.GetParam().GetTOffset() * tpcTBinMUS;
         trkAttribs.mTimeAddMax = 50.f; // half of a TPC drift time in us
         trkAttribs.mTimeSubMax = 50.f; // half of a TPC drift time in us
         if (!trk.CCE()) {

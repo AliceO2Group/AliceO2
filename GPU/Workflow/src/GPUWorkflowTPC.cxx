@@ -114,6 +114,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mCalibObjects.mFastTransformHelper->setLumiScaleType(mSpecConfig.lumiScaleType);
   mCalibObjects.mFastTransformHelper->setCorrMapMShape(mCalibObjects.mFastTransformMShape.get());
   mCalibObjects.mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
+  mCalibObjects.mFastTransformHelper->setCheckCTPIDCConsistency(mSpecConfig.checkCTPIDCconsistency);
   mCalibObjects.mFastTransformHelper->enableMShapeCorrection(mSpecConfig.enableMShape);
   if (mSpecConfig.outputTracks) {
     mCalibObjects.mFastTransformHelper->init(ic);

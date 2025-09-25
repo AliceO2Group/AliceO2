@@ -105,6 +105,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct Config {
     int32_t itsTriggerType = 0;
     int32_t lumiScaleMode = 0;
+    bool checkCTPIDCconsistency = true;
     bool enableMShape = false;
     bool enableCTPLumi = false;
     int32_t enableDoublePipeline = 0;

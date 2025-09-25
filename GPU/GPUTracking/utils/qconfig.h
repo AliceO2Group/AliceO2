@@ -97,12 +97,9 @@ enum qConfigRetVal { qcrOK = 0,
 
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) \
   {                                                                                     \
-    constexpr const char* preopt = preoptname;                                          \
-    (void)preopt;                                                                       \
-    constexpr const char preoptshort = preoptnameshort;                                 \
-    (void)preoptshort;                                                                  \
-    name& tmp = parent.instance;                                                        \
-    (void)tmp;                                                                          \
+    [[maybe_unused]] constexpr const char* preopt = preoptname;                         \
+    [[maybe_unused]] constexpr const char preoptshort = preoptnameshort;                \
+    [[maybe_unused]] name& tmp = parent.instance;                                       \
     bool tmpfound = true;                                                               \
     if (found) {                                                                        \
     }
@@ -174,10 +171,8 @@ enum qConfigRetVal { qcrOK = 0,
   const char* qon_mxcat(qConfig_subconfig_, name) = preoptnameshort == 0 ? (qon_mxstr(name) ": --" preoptname "\n\t\t" descr) : (qon_mxstr(name) ": -" qon_mxstr('a') " (--" preoptname ")\n\t\t" descr); \
   (void)qon_mxcat(qConfig_subconfig_, name);                                                                                                                                                              \
   if (subConfig == nullptr || strcmp(subConfig, followSub == 2 ? qon_mxstr(name) : preoptname) == 0) {                                                                                                    \
-    constexpr const char* preopt = preoptname;                                                                                                                                                            \
-    (void)preopt;                                                                                                                                                                                         \
-    constexpr const char preoptshort = preoptnameshort;                                                                                                                                                   \
-    (void)preoptshort;                                                                                                                                                                                    \
+    [[maybe_unused]] constexpr const char* preopt = preoptname;                                                                                                                                           \
+    [[maybe_unused]] constexpr const char preoptshort = preoptnameshort;                                                                                                                                  \
     char argBuffer[2] = {preoptnameshort, 0};                                                                                                                                                             \
     printf("\n  %s: (--%s%s%s)\n", descr, preoptname, preoptnameshort == 0 ? "" : " or -", argBuffer);
 #define BeginHiddenConfig(name, instance) {

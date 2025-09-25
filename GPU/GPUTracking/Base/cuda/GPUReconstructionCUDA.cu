@@ -97,7 +97,9 @@ void GPUReconstructionCUDA::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits<
     trackerTraits->reset(new o2::its::TrackerTraitsGPU);
   }
   if (vertexerTraits) {
-    vertexerTraits->reset(new o2::its::VertexerTraits<7>); // TODO gpu-code to be implemented
+    vertexerTraits->reset(new o2::its::VertexerTraits<7>);
+    // TODO gpu-code to be implemented then remove line above and uncomment line below
+    // vertexerTraits->reset(new o2::its::VertexerTraitsGPU<7>);
   }
   if (timeFrame) {
     timeFrame->reset(new o2::its::gpu::TimeFrameGPU);

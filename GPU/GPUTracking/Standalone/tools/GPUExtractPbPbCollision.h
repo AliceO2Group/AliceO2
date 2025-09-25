@@ -34,7 +34,7 @@ static void GPUExtractPbPbCollision(GPUParam& param, GPUTrackingInOutPointers& i
     if (ioPtrs.mergedTracks[i].NClusters() < 40) {
       continue;
     }
-    int32_t time = ioPtrs.mergedTracks[i].GetParam().GetTZOffset();
+    int32_t time = ioPtrs.mergedTracks[i].GetParam().GetTOffset();
     if (time < 0 || time > param.continuousMaxTimeBin) {
       continue;
     }

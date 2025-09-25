@@ -25,7 +25,6 @@ class GPUDisplayFrontendWindows : public GPUDisplayFrontend
   GPUDisplayFrontendWindows();
   ~GPUDisplayFrontendWindows() override = default;
 
-  int32_t StartDisplay() override;
   void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;

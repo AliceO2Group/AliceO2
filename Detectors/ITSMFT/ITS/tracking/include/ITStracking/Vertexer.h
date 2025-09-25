@@ -52,7 +52,7 @@ class Vertexer
   auto& getVertParameters() const { return mTraits->getVertexingParameters(); }
   void setParameters(const std::vector<VertexingParameters>& vertParams) { mVertParams = vertParams; }
   const auto& getParameters() const noexcept { return mVertParams; }
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource>& pool) { mMemoryPool = pool; }
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
   std::vector<Vertex> exportVertices();
   VertexerTraitsN* getTraits() const { return mTraits; };

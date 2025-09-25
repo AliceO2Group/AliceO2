@@ -17,7 +17,6 @@
 #include "GPUReconstructionThreading.h"
 #include "GPUChain.h"
 #include "GPUDefParametersRuntime.h"
-#include "GPUTPCClusterData.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTRDTrackletWord.h"

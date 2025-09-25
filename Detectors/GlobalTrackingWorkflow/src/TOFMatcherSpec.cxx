@@ -62,6 +62,7 @@ class TOFMatcherSpec : public Task
   {
     mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
     mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
   }
   ~TOFMatcherSpec() override = default;
   void init(InitContext& ic) final;

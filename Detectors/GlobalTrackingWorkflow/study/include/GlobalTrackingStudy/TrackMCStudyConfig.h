@@ -27,6 +27,7 @@ struct TrackMCStudyConfig : o2::conf::ConfigurableParamHelper<TrackMCStudyConfig
   float decayMotherMaxT = 1.0f; // max TOF in ns for mother particles to study
   bool requireITSorTPCTrackRefs = true;
   bool requireTopBottomRefs = false;
+  bool storeTPCTrackRefs = false;
   int minTPCRefsToExtractClRes = 2;
   int nOccBinsDrift = 10; // number of bins for TPC max drift time, where we integrate the occupancies
   int nTBPerOccBin = 48;  // number of TB per occ bin

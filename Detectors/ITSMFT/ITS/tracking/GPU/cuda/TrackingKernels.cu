@@ -46,76 +46,6 @@ namespace o2::its
 namespace gpu
 {
 
-template <typename T>
-struct TypedAllocator {
-  using value_type = T;
-  using pointer = thrust::device_ptr<T>;
-  using const_pointer = thrust::device_ptr<const T>;
-  using size_type = std::size_t;
-  using difference_type = std::ptrdiff_t;
-
-  TypedAllocator() noexcept : mInternalAllocator(nullptr) {}
-  explicit TypedAllocator(ExternalAllocator* a) noexcept : mInternalAllocator(a) {}
-
-  template <typename U>
-  TypedAllocator(const TypedAllocator<U>& o) noexcept : mInternalAllocator(o.mInternalAllocator)
-  {
-  }
-
-  pointer allocate(size_type n)
-  {
-    void* raw = mInternalAllocator->allocate(n * sizeof(T));
-    return thrust::device_pointer_cast(static_cast<T*>(raw));
-  }
-
-  void deallocate(pointer p, size_type n) noexcept
-  {
-    if (!p) {
-      return;
-    }
-    void* raw = thrust::raw_pointer_cast(p);
-    mInternalAllocator->deallocate(static_cast<char*>(raw), n * sizeof(T));
-  }
-
-  bool operator==(TypedAllocator const& o) const noexcept
-  {
-    return mInternalAllocator == o.mInternalAllocator;
-  }
-  bool operator!=(TypedAllocator const& o) const noexcept
-  {
-    return !(*this == o);
-  }
-
- private:
-  ExternalAllocator* mInternalAllocator;
-};
-
-GPUdii() int4 getEmptyBinsRect()
-{
-  return int4{0, 0, 0, 0};
-}
-
-template <int nLayers>
-GPUdii() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                const IndexTableUtils<nLayers>& utils,
-                                const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
-{
-  const float zRangeMin = o2::gpu::CAMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = (maxdeltaphi > o2::constants::math::PI) ? 0.f : currentCluster.phi - maxdeltaphi;
-  const float zRangeMax = o2::gpu::CAMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = (maxdeltaphi > o2::constants::math::PI) ? o2::constants::math::TwoPI : currentCluster.phi + maxdeltaphi;
-
-  if (zRangeMax < -utils.getLayerZ(layerIndex) ||
-      zRangeMin > utils.getLayerZ(layerIndex) || zRangeMin > zRangeMax) {
-    return getEmptyBinsRect();
-  }
-
-  return int4{o2::gpu::CAMath::Max(0, utils.getZBinIndex(layerIndex, zRangeMin)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
-              o2::gpu::CAMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex, zRangeMax)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
-}
-
 GPUdii() bool fitTrack(TrackITSExt& track,
                        int start,
                        int end,
@@ -271,44 +201,6 @@ struct compare_track_chi2 {
     return a.getChi2() < b.getChi2();
   }
 };
-
-GPUdii() gpuSpan<const Vertex> getPrimaryVertices(const int rof,
-                                                  const int* roframesPV,
-                                                  const int nROF,
-                                                  const uint8_t* mask,
-                                                  const Vertex* vertices)
-{
-  const int start_pv_id = roframesPV[rof];
-  const int stop_rof = rof >= nROF - 1 ? nROF : rof + 1;
-  const size_t delta = mask[rof] ? roframesPV[stop_rof] - start_pv_id : 0; // return empty span if ROF is excluded
-  return gpuSpan<const Vertex>(&vertices[start_pv_id], delta);
-};
-
-GPUdii() gpuSpan<const Vertex> getPrimaryVertices(const int romin,
-                                                  const int romax,
-                                                  const int* roframesPV,
-                                                  const int nROF,
-                                                  const Vertex* vertices)
-{
-  const int start_pv_id = roframesPV[romin];
-  const int stop_rof = romax >= nROF - 1 ? nROF : romax + 1;
-  return gpuSpan<const Vertex>(&vertices[start_pv_id], roframesPV[stop_rof] - roframesPV[romin]);
-};
-
-GPUdii() gpuSpan<const Cluster> getClustersOnLayer(const int rof,
-                                                   const int totROFs,
-                                                   const int layer,
-                                                   const int** roframesClus,
-                                                   const Cluster** clusters)
-{
-  if (rof < 0 || rof >= totROFs) {
-    return gpuSpan<const Cluster>();
-  }
-  const int start_clus_id{roframesClus[layer][rof]};
-  const int stop_rof = rof >= totROFs - 1 ? totROFs : rof + 1;
-  const unsigned int delta = roframesClus[layer][stop_rof] - start_clus_id;
-  return gpuSpan<const Cluster>(&(clusters[layer][start_clus_id]), delta);
-}
 
 template <int nLayers>
 GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
@@ -602,7 +494,7 @@ GPUg() void __launch_bounds__(256, 1) computeLayerTrackletsMultiROFKernel(
         const float zAtRmax{tanLambda * (maxR - currentCluster.radius) + currentCluster.zCoordinate};
         const float sqInverseDeltaZ0{1.f / (math_utils::Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + constants::Tolerance)}; /// protecting from overflows adding the detector resolution
         const float sigmaZ{o2::gpu::CAMath::Sqrt(math_utils::Sq(resolution) * math_utils::Sq(tanLambda) * ((math_utils::Sq(inverseR0) + sqInverseDeltaZ0) * math_utils::Sq(meanDeltaR) + 1.f) + math_utils::Sq(meanDeltaR * MSAngle))};
-        const int4 selectedBinsRect{getBinsRect<nLayers>(currentCluster, layerIndex + 1, *utils, zAtRmin, zAtRmax, sigmaZ * NSigmaCut, phiCut)};
+        const int4 selectedBinsRect{getBinsRect<nLayers>(currentCluster, layerIndex + 1, utils, zAtRmin, zAtRmax, sigmaZ * NSigmaCut, phiCut)};
         if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
           continue;
         }

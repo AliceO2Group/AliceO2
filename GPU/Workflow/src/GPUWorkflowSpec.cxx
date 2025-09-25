@@ -227,7 +227,6 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configProcessing.runQA = -mQATaskMask;
     }
   }
-  mConfig->configReconstruction.tpc.nWaysOuter = true;
   mConfig->configInterface.outputToExternalBuffers = true;
   if (mConfParam->synchronousProcessing) {
     mConfig->configReconstruction.useMatLUT = false;
@@ -900,7 +899,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
       createEmptyOutput = !mConfParam->partialOutputForNonFatalErrors;
     } else {
-      throw std::runtime_error("GPU Reconstruction error: error code " + std::to_string(retVal));
+      LOG(fatal) << "GPU Reconstruction aborted with error code " << retVal << " - errors are not ignored - terminating";
     }
   }
 

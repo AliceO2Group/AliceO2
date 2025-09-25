@@ -50,7 +50,7 @@ class GPUTPCNNClusterizer : public GPUProcessor
   int32_t mNnClusterizerUseCfRegression = 0;
   int32_t mNnClusterizerBatchedMode = 1;
   int32_t mNnClusterizerTotalClusters = 1;
-  int32_t mNnClusterizerVerbosity = 0;
+  int32_t mNnClusterizerVerbosity = 1;
   int32_t mNnClusterizerBoundaryFillValue = -1;
   int32_t mNnClusterizerModelClassNumOutputNodes = -1;
   int32_t mNnClusterizerModelReg1NumOutputNodes = -1;
@@ -59,6 +59,10 @@ class GPUTPCNNClusterizer : public GPUProcessor
   int32_t mNnInferenceOutputDType = 0; // 0: float16, 1: float32
   int32_t mISector = -1;
   int32_t mDeviceId = -1;
+
+  // charge array boundaries
+  int32_t maxFragmentLen = -1;
+  int32_t maxAllowedTimebin = -1; // == tpcMaxTimeBin
 
   // GPU optimizations
   uint32_t mNnClusterizerFullRowSize = 0;

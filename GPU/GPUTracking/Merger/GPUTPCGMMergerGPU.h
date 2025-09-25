@@ -138,7 +138,7 @@ class GPUTPCGMMergerCollect : public GPUTPCGMMergerGeneral
   GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
 };
 
-class GPUTPCGMMergerPrepareClusters : public GPUTPCGMMergerGeneral
+class GPUTPCGMMergerPrepareForFit : public GPUTPCGMMergerGeneral
 {
  public:
   template <int32_t iKernel = defaultKernel>

@@ -91,3 +91,6 @@ o2_add_executable(treemergertool
             COMPONENT_NAME CommonUtils
           SOURCES src/TreeMergerTool.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::program_options ROOT::Core)
+
+add_library(fpu_support OBJECT src/fpu.cxx)
+add_library(O2::fpu_support ALIAS fpu_support)

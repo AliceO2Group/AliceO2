@@ -74,6 +74,11 @@ class GPUCommonMath
   GPUhdni() constexpr static float Sqrt(float x);
   GPUd() static float InvSqrt(float x);
   template <class T>
+  GPUdi() constexpr static T Square(T x)
+  {
+    return x * x;
+  }
+  template <class T>
   GPUhd() constexpr static T Abs(T x);
   GPUd() constexpr static float ASin(float x);
   GPUd() constexpr static float ACos(float x);

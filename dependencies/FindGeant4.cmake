@@ -23,7 +23,6 @@ set_target_properties(geant4
                       PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                  "${Geant4_INCLUDE_DIRS}")
 
-list(GET Geant4_INCLUDE_DIRS 0 Geant4_INCLUDE_DIR)
 set(Geant4_LIBRARY_DIRS)
 foreach(gl4lib IN LISTS Geant4_LIBRARIES)
   find_library(gl4libpath NAMES ${gl4lib} PATHS "${Geant4_INCLUDE_DIR}/../.."
