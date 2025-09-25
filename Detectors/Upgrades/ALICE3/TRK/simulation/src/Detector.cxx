@@ -19,6 +19,8 @@
 #include "ITSMFTSimulation/Hit.h"
 #include "TRKSimulation/Detector.h"
 #include "TRKBase/TRKBaseParam.h"
+#include "TRKSimulation/VDGeometryBuilder.h"
+#include "TRKSimulation/VDSensorRegistry.h"
 
 using o2::itsmft::Hit;
 
@@ -26,6 +28,7 @@ namespace o2
 {
 namespace trk
 {
+
 float getDetLengthFromEta(const float eta, const float radius)
 {
   return 2. * (10. + radius * std::cos(2 * std::atan(std::exp(-eta))));
@@ -48,7 +51,7 @@ Detector::Detector(bool active)
   if (trkPars.configFile != "") {
     configFromFile(trkPars.configFile);
   } else {
-    buildTRKNewVacuumVessel();
+    buildTRKMiddleOuterLayers();
     configToFile();
     configServices();
   }
@@ -115,7 +118,7 @@ void Detector::configDefault()
   mLayers.emplace_back(7, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(7)}, 80.f, 258.f, 100.e-3);
 }
 
-void Detector::buildTRKNewVacuumVessel()
+void Detector::buildTRKMiddleOuterLayers()
 {
   // Build the TRK detector according to changes proposed during
   // https://indico.cern.ch/event/1407704/
@@ -125,9 +128,6 @@ void Detector::buildTRKNewVacuumVessel()
   mLayers.clear();
 
   LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-  // mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
-  // mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
-  // mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
   mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 7.f, 124.f, 100.e-3);
   LOGP(info, "TRKLayer created. Name: {}", std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)});
   mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 9.f, 124.f, 100.e-3);
@@ -260,13 +260,16 @@ void Detector::createGeometry()
 
   // Add service for inner tracker
   mServices.createServices(vTRK);
-  mPetalCases.clear();
-  // Add petal cases (the sensitive layers inside the petal cases get constructed here too)
-  auto& trkPars = TRKBaseParam::Instance();
-  for (Int_t petalCaseNumber = 0; petalCaseNumber < sNumberVDPetalCases; ++petalCaseNumber) {
-    mPetalCases.emplace_back(petalCaseNumber, vTRK, trkPars.irisOpen);
-    mServices.excavateFromVacuum(mPetalCases[petalCaseNumber].getFullName());
-  }
+
+  // Build the VD using the petal builder
+  o2::trk::clearVDSensorRegistry();
+
+  // Choose the VD design (here: IRIS4 by default).
+  // You can wire this to a parameter in TRKBaseParam if desired.
+  // Alternatives: createIRIS5Geometry(vVD); createIRIS4aGeometry(vVD);
+  o2::trk::createIRIS4Geometry(vTRK);
+
+  mServices.excavateFromVacuum("IRIS_CUTOUTsh");
   mServices.registerVacuum(vTRK);
 }
 
@@ -291,26 +294,18 @@ void Detector::defineSensitiveVolumes()
   TString volumeName;
   LOGP(info, "Adding TRK Sensitive Volumes");
 
-  // Add petal case sensitive volumes
-  for (int petalCase = 0; petalCase < sNumberVDPetalCases; ++petalCase) {
-    // Petal layers
-    for (int petalLayer = 0; petalLayer < mPetalCases[petalCase].mPetalLayers.size(); ++petalLayer) {
-      volumeName = mPetalCases[petalCase].mPetalLayers[petalLayer].getSensorName();
-      if (petalLayer == 0) {
-        mFirstOrLastLayers.push_back(volumeName.Data());
-      }
-      LOGP(info, "Trying {}", volumeName.Data());
-      v = geoManager->GetVolume(volumeName.Data());
-      LOGP(info, "Adding TRK Sensitive Volume {}", v->GetName());
-      AddSensitiveVolume(v);
+  // Register VD sensors created by VDGeometryBuilder
+  for (const auto& s : o2::trk::vdSensorRegistry()) {
+    TGeoVolume* v = gGeoManager->GetVolume(s.name.c_str());
+    if (!v) {
+      LOGP(warning, "VD sensor volume '{}' not found", s.name);
+      continue;
     }
-    // Petal disks
-    for (int petalDisk = 0; petalDisk < mPetalCases[petalCase].mPetalDisks.size(); ++petalDisk) {
-      volumeName = mPetalCases[petalCase].mPetalDisks[petalDisk].getSensorName();
-      LOGP(info, "Trying {}", volumeName.Data());
-      v = geoManager->GetVolume(volumeName.Data());
-      LOGP(info, "Adding TRK Sensitive Volume {}", v->GetName());
-      AddSensitiveVolume(v);
+    LOGP(info, "Adding VD Sensitive Volume {}", v->GetName());
+    AddSensitiveVolume(v);
+    // Optionally track first/last layers for TR references:
+    if (s.kind == o2::trk::VDSensorDesc::Kind::Barrel && (s.idx == 0 /*innermost*/)) {
+      mFirstOrLastLayers.push_back(s.name);
     }
   }
 

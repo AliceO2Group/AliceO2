@@ -43,12 +43,15 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   };
   static const char* getTRKVolPattern() { return sVolumeName.c_str(); }
   static const char* getTRKLayerPattern() { return sLayerName.c_str(); }
+  static const char* getVDLayerPattern() { return sVDLayerName.c_str(); }
+  static const char* getVDDiskPattern() { return sVDDiskName.c_str(); }
   static const char* getTRKPetalPattern() { return sPetalName.c_str(); }
   static const char* getTRKPetalDiskPattern() { return sPetalDiskName.c_str(); }
   static const char* getTRKPetalLayerPattern() { return sPetalLayerName.c_str(); }
   static const char* getTRKStavePattern() { return sStaveName.c_str(); }
   static const char* getTRKChipPattern() { return sChipName.c_str(); }
   static const char* getTRKSensorPattern() { return sSensorName.c_str(); }
+  static const char* getVDSensorPattern() { return sVDSensorName.c_str(); }
   static const char* getTRKWrapVolPattern() { return sWrapperVolumeName.c_str(); }
 
   int getNumberOfChips() const { return mSize; }
@@ -145,6 +148,9 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   static std::string sVolumeName;
   static std::string sLayerName;
+  static std::string sVDLayerName;
+  static std::string sVDDiskName;
+  static std::string sVDSensorName;
   static std::string sPetalName;
   static std::string sPetalDiskName;
   static std::string sPetalLayerName;
