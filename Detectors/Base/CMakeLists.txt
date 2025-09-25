@@ -87,6 +87,7 @@ endif()
 
 install(FILES test/buildMatBudLUT.C
               test/extractLUTLayers.C
+              test/rescaleLUT.C
               DESTINATION share/macro/)
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
@@ -94,5 +95,9 @@ o2_add_test_root_macro(test/buildMatBudLUT.C
                        LABELS detectorsbase)
 
 o2_add_test_root_macro(test/extractLUTLayers.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                       LABELS detectorsbase)
+
+o2_add_test_root_macro(test/rescaleLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                        LABELS detectorsbase)
