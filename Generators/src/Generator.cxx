@@ -17,11 +17,14 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "SimulationDataFormat/MCGenProperties.h"
+#include <SimConfig/SimConfig.h>
 #include "FairPrimaryGenerator.h"
 #include <fairlogger/Logger.h>
 #include <cmath>
 #include "TClonesArray.h"
 #include "TParticle.h"
+#include "TSystem.h"
+#include "TGrid.h"
 
 namespace o2
 {
@@ -39,6 +42,18 @@ Generator::Generator() : FairGenerator("ALICEo2", "ALICEo2 Generator"),
   /** default constructor **/
   mThisInstanceID = Generator::InstanceCounter;
   Generator::InstanceCounter++;
+  auto simConfig = o2::conf::SimConfig::Instance();
+  auto noLoops = simConfig.getLoopersVeto();
+  if (!noLoops) {
+    bool transport = (simConfig.getMCEngine() != "O2TrivialMCEngine");
+    if (transport) {
+      bool tpcActive = (std::find(simConfig.getReadoutDetectors().begin(), simConfig.getReadoutDetectors().end(), "TPC") != simConfig.getReadoutDetectors().end());
+      if (tpcActive) {
+        mAddLoopers = kTRUE;
+        initLoopersGen();
+      }
+    }
+  }
 }
 
 /*****************************************************************/
@@ -49,6 +64,102 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
   /** constructor **/
   mThisInstanceID = Generator::InstanceCounter;
   Generator::InstanceCounter++;
+  auto simConfig = o2::conf::SimConfig::Instance();
+  auto noLoops = simConfig.getLoopersVeto();
+  if (!noLoops) {
+    bool transport = (simConfig.getMCEngine() != "O2TrivialMCEngine");
+    if (transport) {
+      bool tpcActive = (std::find(simConfig.getReadoutDetectors().begin(), simConfig.getReadoutDetectors().end(), "TPC") != simConfig.getReadoutDetectors().end());
+      if (tpcActive) {
+        mAddLoopers = kTRUE;
+        initLoopersGen();
+      }
+    }
+  }
+}
+
+/*****************************************************************/
+
+void Generator::initLoopersGen()
+{
+#ifdef GENERATORS_WITH_ONNXRUNTIME
+  // Expand all environment paths
+  const auto& loopersParam = o2::eventgen::GenTPCLoopersParam::Instance();
+  std::string model_pairs = gSystem->ExpandPathName(loopersParam.model_pairs.c_str());
+  std::string model_compton = gSystem->ExpandPathName(loopersParam.model_compton.c_str());
+  const auto& scaler_pair = gSystem->ExpandPathName(loopersParam.scaler_pair.c_str());
+  const auto& scaler_compton = gSystem->ExpandPathName(loopersParam.scaler_compton.c_str());
+  const auto& poisson = gSystem->ExpandPathName(loopersParam.poisson.c_str());
+  const auto& gauss = gSystem->ExpandPathName(loopersParam.gauss.c_str());
+  auto flat_gas = loopersParam.flat_gas;
+  const auto& nFlatGasLoopers = loopersParam.nFlatGasLoopers;
+  auto fraction_pairs = loopersParam.fraction_pairs;
+  auto multiplier = loopersParam.multiplier;
+  auto fixedNLoopers = loopersParam.fixedNLoopers;
+  const std::array<std::string, 2> models = {model_pairs, model_compton};
+  const std::array<std::string, 2> local_names = {"WGANpair.onnx", "WGANcompton.onnx"};
+  const std::array<bool, 2> isAlien = {models[0].starts_with("alien://"), models[1].starts_with("alien://")};
+  const std::array<bool, 2> isCCDB = {models[0].starts_with("ccdb://"), models[1].starts_with("ccdb://")};
+  if (std::any_of(isAlien.begin(), isAlien.end(), [](bool v) { return v; })) {
+    if (!gGrid) {
+      TGrid::Connect("alien://");
+      if (!gGrid) {
+        LOG(fatal) << "AliEn connection failed, check token.";
+        exit(1);
+      }
+    }
+    for (size_t i = 0; i < models.size(); ++i) {
+      if (isAlien[i] && !TFile::Cp(models[i].c_str(), local_names[i].c_str())) {
+        LOG(fatal) << "Error: Model file " << models[i] << " does not exist!";
+        exit(1);
+      }
+    }
+  }
+  if (std::any_of(isCCDB.begin(), isCCDB.end(), [](bool v) { return v; })) {
+    o2::ccdb::CcdbApi ccdb_api;
+    ccdb_api.init("http://alice-ccdb.cern.ch");
+    for (size_t i = 0; i < models.size(); ++i) {
+      if (isCCDB[i]) {
+        auto model_path = models[i].substr(7); // Remove "ccdb://"
+        // Treat filename if provided in the CCDB path
+        auto extension = model_path.find(".onnx");
+        if (extension != std::string::npos) {
+          auto last_slash = model_path.find_last_of('/');
+          model_path = model_path.substr(0, last_slash);
+        }
+        std::map<std::string, std::string> filter;
+        if (!ccdb_api.retrieveBlob(model_path, "./", filter, o2::ccdb::getCurrentTimestamp(), false, local_names[i].c_str())) {
+          LOG(fatal) << "Error: issues in retrieving " << model_path << " from CCDB!";
+          exit(1);
+        }
+      }
+    }
+  }
+  model_pairs = isAlien[0] || isCCDB[0] ? local_names[0] : model_pairs;
+  model_compton = isAlien[1] || isCCDB[1] ? local_names[1] : model_compton;
+  try {
+    // Create the TPC loopers generator with the provided parameters
+    mLoopersGen = std::make_unique<o2::eventgen::GenTPCLoopers>(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
+
+    // Configure the generator with flat gas loopers if enabled (default)
+    if (flat_gas) {
+      mLoopersGen->setFlatGas(flat_gas, nFlatGasLoopers);
+      mLoopersGen->setFractionPairs(fraction_pairs);
+    } else {
+      // Otherwise, Poisson+Gauss sampling or fixed number of loopers will be used
+      // Multiplier is applied only with distribution sampling
+      // This configuration can be used for testing purposes, in all other cases flat gas is recommended
+      mLoopersGen->SetNLoopers(fixedNLoopers[0], fixedNLoopers[1]);
+      mLoopersGen->SetMultiplier(multiplier);
+    }
+    LOG(info) << "TPC Loopers generator initialized successfully";
+  } catch (const std::exception& e) {
+    LOG(error) << "Failed to initialize TPC Loopers generator: " << e.what();
+    mLoopersGen.reset();
+  }
+#else
+  LOG(warn) << "ONNX Runtime support not available, cannot initialize TPC loopers generator";
+#endif
 }
 
 /*****************************************************************/
@@ -65,191 +176,230 @@ Bool_t
 /*****************************************************************/
 
 Bool_t
-  Generator::ReadEvent(FairPrimaryGenerator* primGen)
+  Generator::loopers()
 {
-  /** read event **/
+#ifdef GENERATORS_WITH_ONNXRUNTIME
+  if (!mLoopersGen) {
+    LOG(error) << "Loopers generator not initialized";
+    return kFALSE;
+  }
 
-  /** endless generate-and-trigger loop **/
-  while (true) {
-    mReadEventCounter++;
+  // Generate loopers using the initialized TPC loopers generator
+  if (!mLoopersGen->generateEvent()) {
+    LOG(error) << "Failed to generate loopers event";
+    return kFALSE;
+  }
+  const auto& looperParticles = mLoopersGen->importParticles();
+  if (looperParticles.empty()) {
+    LOG(error) << "Failed to import loopers particles";
+    return kFALSE;
+  }
+  // Append the generated looper particles to the main particle list
+  mParticles.insert(mParticles.end(), looperParticles.begin(), looperParticles.end());
 
-    /** clear particle vector **/
-    mParticles.clear();
+  LOG(debug) << "Added " << looperParticles.size() << " looper particles";
+  return kTRUE;
+#else
+  LOG(warn) << "ONNX Runtime support not available, skipping TPC loopers generation";
+  return kTRUE;
+#endif
+}
+  /*****************************************************************/
 
-    /** reset the sub-generator ID **/
-    mSubGeneratorId = -1;
+  Bool_t
+    Generator::ReadEvent(FairPrimaryGenerator * primGen)
+  {
+    /** read event **/
 
-    /** generate event **/
-    if (!generateEvent()) {
-      LOG(error) << "ReadEvent failed in generateEvent";
+    /** endless generate-and-trigger loop **/
+    while (true) {
+      mReadEventCounter++;
+
+      /** clear particle vector **/
+      mParticles.clear();
+
+      /** reset the sub-generator ID **/
+      mSubGeneratorId = -1;
+
+      /** generate event **/
+      if (!generateEvent()) {
+        LOG(error) << "ReadEvent failed in generateEvent";
+        return kFALSE;
+      }
+
+      /** import particles **/
+      if (!importParticles()) {
+        LOG(error) << "ReadEvent failed in importParticles";
+        return kFALSE;
+      }
+
+      /** Add loopers **/
+      if(mAddLoopers){
+        if (!loopers()) {
+          LOG(error) << "ReadEvent failed in loopers";
+          return kFALSE;
+        }
+      }
+
+      if (mSubGeneratorsIdToDesc.empty() && mSubGeneratorId > -1) {
+        LOG(fatal) << "ReadEvent failed because no SubGenerator description given";
+      }
+
+      if (!mSubGeneratorsIdToDesc.empty() && mSubGeneratorId < 0) {
+        LOG(fatal) << "ReadEvent failed because SubGenerator description given but sub-generator not set";
+      }
+
+      /** trigger event **/
+      if (triggerEvent()) {
+        mTriggerOkHook(mParticles, mReadEventCounter);
+        break;
+      } else {
+        mTriggerFalseHook(mParticles, mReadEventCounter);
+      }
+    }
+
+    /** add tracks **/
+    if (!addTracks(primGen)) {
+      LOG(error) << "ReadEvent failed in addTracks";
       return kFALSE;
     }
 
-    /** import particles **/
-    if (!importParticles()) {
-      LOG(error) << "ReadEvent failed in importParticles";
+    /** update header **/
+    auto header = primGen->GetEvent();
+    auto o2header = dynamic_cast<o2::dataformats::MCEventHeader*>(header);
+    if (!header) {
+      LOG(fatal) << "MC event header is not a 'o2::dataformats::MCEventHeader' object";
+      return kFALSE;
+    }
+    updateHeader(o2header);
+    updateSubGeneratorInformation(o2header);
+
+    /** success **/
+    return kTRUE;
+  }
+
+  /*****************************************************************/
+
+  Bool_t
+    Generator::addTracks(FairPrimaryGenerator * primGen)
+  {
+    /** add tracks **/
+
+    auto o2primGen = dynamic_cast<PrimaryGenerator*>(primGen);
+    if (!o2primGen) {
+      LOG(fatal) << "PrimaryGenerator is not a o2::eventgen::PrimaryGenerator";
       return kFALSE;
     }
 
-    if (mSubGeneratorsIdToDesc.empty() && mSubGeneratorId > -1) {
-      LOG(fatal) << "ReadEvent failed because no SubGenerator description given";
+    /** loop over particles **/
+    for (const auto& particle : mParticles) {
+      o2primGen->AddTrack(particle.GetPdgCode(),
+                          particle.Px() * mMomentumUnit,
+                          particle.Py() * mMomentumUnit,
+                          particle.Pz() * mMomentumUnit,
+                          particle.Vx() * mPositionUnit,
+                          particle.Vy() * mPositionUnit,
+                          particle.Vz() * mPositionUnit,
+                          particle.GetMother(0),
+                          particle.GetMother(1),
+                          particle.GetDaughter(0),
+                          particle.GetDaughter(1),
+                          particle.TestBit(ParticleStatus::kToBeDone),
+                          particle.Energy() * mEnergyUnit,
+                          particle.T() * mTimeUnit,
+                          particle.GetWeight(),
+                          (TMCProcess)particle.GetUniqueID(),
+                          particle.GetStatusCode()); // generator status information passed as status code field
     }
 
-    if (!mSubGeneratorsIdToDesc.empty() && mSubGeneratorId < 0) {
-      LOG(fatal) << "ReadEvent failed because SubGenerator description given but sub-generator not set";
-    }
+    /** success **/
+    return kTRUE;
+  }
 
+  /*****************************************************************/
+
+  Bool_t
+    Generator::boostEvent()
+  {
+    /** boost event **/
+
+    /** success **/
+    return kTRUE;
+  }
+
+  /*****************************************************************/
+
+  Bool_t
+    Generator::triggerEvent()
+  {
     /** trigger event **/
-    if (triggerEvent()) {
-      mTriggerOkHook(mParticles, mReadEventCounter);
-      break;
+
+    /** check trigger presence **/
+    if (mTriggers.size() == 0 && mDeepTriggers.size() == 0) {
+      return kTRUE;
+    }
+
+    /** check trigger mode **/
+    Bool_t triggered;
+    if (mTriggerMode == kTriggerOFF) {
+      return kTRUE;
+    } else if (mTriggerMode == kTriggerOR) {
+      triggered = kFALSE;
+    } else if (mTriggerMode == kTriggerAND) {
+      triggered = kTRUE;
     } else {
-      mTriggerFalseHook(mParticles, mReadEventCounter);
+      return kTRUE;
     }
-  }
 
-  /** add tracks **/
-  if (!addTracks(primGen)) {
-    LOG(error) << "ReadEvent failed in addTracks";
-    return kFALSE;
-  }
-
-  /** update header **/
-  auto header = primGen->GetEvent();
-  auto o2header = dynamic_cast<o2::dataformats::MCEventHeader*>(header);
-  if (!header) {
-    LOG(fatal) << "MC event header is not a 'o2::dataformats::MCEventHeader' object";
-    return kFALSE;
-  }
-  updateHeader(o2header);
-  updateSubGeneratorInformation(o2header);
-
-  /** success **/
-  return kTRUE;
-}
-
-/*****************************************************************/
-
-Bool_t
-  Generator::addTracks(FairPrimaryGenerator* primGen)
-{
-  /** add tracks **/
-
-  auto o2primGen = dynamic_cast<PrimaryGenerator*>(primGen);
-  if (!o2primGen) {
-    LOG(fatal) << "PrimaryGenerator is not a o2::eventgen::PrimaryGenerator";
-    return kFALSE;
-  }
-
-  /** loop over particles **/
-  for (const auto& particle : mParticles) {
-    o2primGen->AddTrack(particle.GetPdgCode(),
-                        particle.Px() * mMomentumUnit,
-                        particle.Py() * mMomentumUnit,
-                        particle.Pz() * mMomentumUnit,
-                        particle.Vx() * mPositionUnit,
-                        particle.Vy() * mPositionUnit,
-                        particle.Vz() * mPositionUnit,
-                        particle.GetMother(0),
-                        particle.GetMother(1),
-                        particle.GetDaughter(0),
-                        particle.GetDaughter(1),
-                        particle.TestBit(ParticleStatus::kToBeDone),
-                        particle.Energy() * mEnergyUnit,
-                        particle.T() * mTimeUnit,
-                        particle.GetWeight(),
-                        (TMCProcess)particle.GetUniqueID(),
-                        particle.GetStatusCode()); // generator status information passed as status code field
-  }
-
-  /** success **/
-  return kTRUE;
-}
-
-/*****************************************************************/
-
-Bool_t
-  Generator::boostEvent()
-{
-  /** boost event **/
-
-  /** success **/
-  return kTRUE;
-}
-
-/*****************************************************************/
-
-Bool_t
-  Generator::triggerEvent()
-{
-  /** trigger event **/
-
-  /** check trigger presence **/
-  if (mTriggers.size() == 0 && mDeepTriggers.size() == 0) {
-    return kTRUE;
-  }
-
-  /** check trigger mode **/
-  Bool_t triggered;
-  if (mTriggerMode == kTriggerOFF) {
-    return kTRUE;
-  } else if (mTriggerMode == kTriggerOR) {
-    triggered = kFALSE;
-  } else if (mTriggerMode == kTriggerAND) {
-    triggered = kTRUE;
-  } else {
-    return kTRUE;
-  }
-
-  /** loop over triggers **/
-  for (const auto& trigger : mTriggers) {
-    auto retval = trigger(mParticles);
-    if (mTriggerMode == kTriggerOR) {
-      triggered |= retval;
+    /** loop over triggers **/
+    for (const auto& trigger : mTriggers) {
+      auto retval = trigger(mParticles);
+      if (mTriggerMode == kTriggerOR) {
+        triggered |= retval;
+      }
+      if (mTriggerMode == kTriggerAND) {
+        triggered &= retval;
+      }
     }
-    if (mTriggerMode == kTriggerAND) {
-      triggered &= retval;
+
+    /** loop over deep triggers **/
+    for (const auto& trigger : mDeepTriggers) {
+      auto retval = trigger(mInterface, mInterfaceName);
+      if (mTriggerMode == kTriggerOR) {
+        triggered |= retval;
+      }
+      if (mTriggerMode == kTriggerAND) {
+        triggered &= retval;
+      }
     }
+
+    /** return **/
+    return triggered;
   }
 
-  /** loop over deep triggers **/
-  for (const auto& trigger : mDeepTriggers) {
-    auto retval = trigger(mInterface, mInterfaceName);
-    if (mTriggerMode == kTriggerOR) {
-      triggered |= retval;
+  /*****************************************************************/
+
+  void Generator::addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription)
+  {
+    if (subGeneratorId < 0) {
+      LOG(fatal) << "Sub-generator IDs must be >= 0, instead, passed value is " << subGeneratorId;
     }
-    if (mTriggerMode == kTriggerAND) {
-      triggered &= retval;
+    mSubGeneratorsIdToDesc.insert({subGeneratorId, subGeneratorDescription});
+  }
+
+  /*****************************************************************/
+
+  void Generator::updateSubGeneratorInformation(o2::dataformats::MCEventHeader * header) const
+  {
+    if (mSubGeneratorId < 0) {
+      return;
     }
+    header->putInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, mSubGeneratorId);
+    header->putInfo<std::unordered_map<int, std::string>>(o2::mcgenid::GeneratorProperty::SUBGENERATORDESCRIPTIONMAP, mSubGeneratorsIdToDesc);
   }
 
-  /** return **/
-  return triggered;
-}
-
-/*****************************************************************/
-
-void Generator::addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription)
-{
-  if (subGeneratorId < 0) {
-    LOG(fatal) << "Sub-generator IDs must be >= 0, instead, passed value is " << subGeneratorId;
-  }
-  mSubGeneratorsIdToDesc.insert({subGeneratorId, subGeneratorDescription});
-}
-
-/*****************************************************************/
-
-void Generator::updateSubGeneratorInformation(o2::dataformats::MCEventHeader* header) const
-{
-  if (mSubGeneratorId < 0) {
-    return;
-  }
-  header->putInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, mSubGeneratorId);
-  header->putInfo<std::unordered_map<int, std::string>>(o2::mcgenid::GeneratorProperty::SUBGENERATORDESCRIPTIONMAP, mSubGeneratorsIdToDesc);
-}
-
-/*****************************************************************/
-/*****************************************************************/
+  /*****************************************************************/
+  /*****************************************************************/
 
 } /* namespace eventgen */
 } /* namespace o2 */

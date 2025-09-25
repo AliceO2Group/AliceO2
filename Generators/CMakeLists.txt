@@ -41,6 +41,8 @@ o2_add_library(Generators
                        src/GeneratorTParticleParam.cxx
                        src/GeneratorService.cxx
                        src/FlowMapper.cxx
+                       $<$<BOOL:${onnxruntime_FOUND}>:src/TPCLoopers.cxx>
+                       $<$<BOOL:${onnxruntime_FOUND}>:src/TPCLoopersParam.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
@@ -53,6 +55,7 @@ o2_add_library(Generators
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils O2::DetectorsBase O2::ZDCBase
                                      O2::SimulationDataFormat ${pythiaTarget} ${hepmcTarget}
                                      FairRoot::Gen
+                                     $<$<BOOL:${onnxruntime_FOUND}>:onnxruntime::onnxruntime>
                TARGETVARNAME targetName)
 
 if(pythia_FOUND)
@@ -61,6 +64,10 @@ endif()
 
 if(HepMC3_FOUND)
   target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_HEPMC3)
+endif()
+
+if(onnxruntime_FOUND)
+  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_ONNXRUNTIME)
 endif()
 
 set(headers
@@ -87,6 +94,12 @@ set(headers
     include/Generators/BoxGenerator.h
     include/Generators/FlowMapper.h
     )
+
+if(onnxruntime_FOUND)
+  list(APPEND headers 
+              include/Generators/TPCLoopers.h
+              include/Generators/TPCLoopersParam.h)
+endif()
 
 if(pythia_FOUND)
   list(APPEND headers
