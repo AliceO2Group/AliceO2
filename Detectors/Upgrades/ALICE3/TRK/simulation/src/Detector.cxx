@@ -266,7 +266,7 @@ void Detector::createGeometry()
 
   // Choose the VD design (here: IRIS4 by default).
   // You can wire this to a parameter in TRKBaseParam if desired.
-  // Alternatives: createIRIS5Geometry(vVD); createIRIS4aGeometry(vVD);
+  // Alternatives: createIRIS5Geometry(vTRK); createIRIS4aGeometry(vTRK);
   o2::trk::createIRIS4Geometry(vTRK);
 
   mServices.excavateFromVacuum("IRIS_CUTOUTsh");

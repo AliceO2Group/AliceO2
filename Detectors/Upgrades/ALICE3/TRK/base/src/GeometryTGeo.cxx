@@ -24,16 +24,13 @@ std::unique_ptr<o2::trk::GeometryTGeo> GeometryTGeo::sInstance;
 // Names
 std::string GeometryTGeo::sVolumeName = "TRKV";
 std::string GeometryTGeo::sLayerName = "TRKLayer";
+std::string GeometryTGeo::sPetalName = "PETALCASE";
 std::string GeometryTGeo::sPetalDiskName = "DISK";
 std::string GeometryTGeo::sPetalLayerName = "LAYER";
 std::string GeometryTGeo::sStaveName = "TRKStave";
 std::string GeometryTGeo::sChipName = "TRKChip";
 std::string GeometryTGeo::sSensorName = "TRKSensor";
 
-std::string GeometryTGeo::sPetalName = "Petal";
-std::string GeometryTGeo::sVDLayerName = "Layer";
-std::string GeometryTGeo::sVDDiskName = "Disk";
-std::string GeometryTGeo::sVDSensorName = "VDSensor";
 std::string GeometryTGeo::sWrapperVolumeName = "TRKUWrapVol"; ///< Wrapper volume name, not implemented at the moment
 
 o2::trk::GeometryTGeo::~GeometryTGeo()

@@ -42,7 +42,7 @@ void registerSensor(const std::string& volName, int petal, VDSensorDesc::Kind ki
 
 static inline std::string makeSensorName(const std::string& layerName, int layerNumber)
 {
-  return Form("%s_%s%d", layerName.c_str(), o2::trk::GeometryTGeo::getVDSensorPattern(), layerNumber);
+  return Form("%s_%s%d", layerName.c_str(), o2::trk::GeometryTGeo::getTRKSensorPattern(), layerNumber);
 }
 
 namespace
@@ -372,7 +372,7 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
   const double phiL2_deg = phiSpanFromGap(nPetals, gapL1L2_cm, rL2_cm); // L2 gap-defined
 
   const std::string nameL0 =
-    "Petal" + std::to_string(petalID) + "_" +
+    std::string(o2::trk::GeometryTGeo::getTRKPetalPattern()) + std::to_string(petalID) + "_" +
     std::string(o2::trk::GeometryTGeo::getTRKPetalLayerPattern()) + "0";
 
   if (rectangularL0) {
@@ -402,7 +402,7 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
   registerSensor(makeSensorName(nameL0, 0), petalID, VDSensorDesc::Kind::Barrel, /*idx*/ 0);
 
   const std::string nameL1 =
-    "Petal" + std::to_string(petalID) + "_" +
+    std::string(o2::trk::GeometryTGeo::getTRKPetalPattern()) + std::to_string(petalID) + "_" +
     std::string(o2::trk::GeometryTGeo::getTRKPetalLayerPattern()) + "1";
 
   VDCylindricalLayer L1(1,
@@ -412,7 +412,7 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
   registerSensor(makeSensorName(nameL1, 1), petalID, VDSensorDesc::Kind::Barrel, /*idx*/ 1);
 
   const std::string nameL2 =
-    "Petal" + std::to_string(petalID) + "_" +
+    std::string(o2::trk::GeometryTGeo::getTRKPetalPattern()) + std::to_string(petalID) + "_" +
     std::string(o2::trk::GeometryTGeo::getTRKPetalLayerPattern()) + "2";
 
   VDCylindricalLayer L2(2,
@@ -455,7 +455,7 @@ static void addColdPlate(TGeoVolume* petalAsm, int nPetals, int petalId)
   TString volName = TString::Format("Petal%d_Coldplate", petalId);
   auto* coldVol = new TGeoVolume(volName, shape, med);
   coldVol->SetLineColor(kAzure - 3);
-  coldVol->SetTransparency(70);
+  coldVol->SetTransparency(10);
 
   // Place in local petal coordinates (no extra transform); keep object alive by allocating shape/volume on heap.
   petalAsm->AddNode(coldVol, 1);
@@ -622,7 +622,7 @@ static void addDisks(TGeoVolume* petalAsm, int nPetals, int petalID)
 
   for (int i = 0; i < 6; ++i) {
     const std::string nameD =
-      "Petal" + std::to_string(petalID) + "_" +
+      std::string(o2::trk::GeometryTGeo::getTRKPetalPattern()) + std::to_string(petalID) + "_" +
       std::string(o2::trk::GeometryTGeo::getTRKPetalDiskPattern()) + std::to_string(i);
 
     VDDiskLayer disk(i,
