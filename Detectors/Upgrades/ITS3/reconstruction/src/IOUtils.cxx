@@ -48,8 +48,7 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
     float sigmaY2, sigmaZ2, sigmaYZ = 0;
     auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
     const auto detID = c.getSensorID();
-    auto& cl3d = output.emplace_back(detID,
-                                     (its3::constants::detID::isDetITS3(detID) ? geom->getT2LMatrixITS3(detID, geom->getSensorRefAlpha(detID)) : geom->getMatrixT2L(detID)) ^ locXYZ); // local --> tracking
+    auto& cl3d = output.emplace_back(detID, geom->getMatrixT2L(detID) ^ locXYZ); // local --> tracking
     if (applyMisalignment) {
       auto lrID = geom->getLayer(detID);
       sigmaY2 += conf.sysErrY2[lrID];
@@ -79,7 +78,6 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
       auto sensorID = c.getSensorID();
-      auto isITS3 = its3::constants::detID::isDetITS3(sensorID);
       auto layer = geom->getLayer(sensorID);
 
       float sigmaY2{0}, sigmaZ2{0}, sigmaYZ{0};
@@ -90,16 +88,11 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
       // Transformation to the local --> global
       auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
-      // for cylindrical layers we have a different alpha for each cluster, for regular silicon detectors instead a single alpha for the whole sensor
+      // Inverse transformation to the local --> tracking
+      o2::math_utils::Point3D<float> trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+
+      // Tracking alpha angle
       float alpha = geom->getSensorRefAlpha(sensorID);
-      o2::math_utils::Point3D<float> trkXYZ;
-      if (isITS3) {
-        // Inverse transformation to the local --> tracking
-        trkXYZ = geom->getT2LMatrixITS3(sensorID, alpha) ^ locXYZ;
-      } else {
-        // Inverse transformation to the local --> tracking
-        trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
-      }
 
       tf->addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), alpha,
                                       std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
