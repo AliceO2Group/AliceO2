@@ -54,8 +54,8 @@ O2SIMSEED=${O2SIMSEED:-0}
 SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
 NHBPERTF=${NHBPERTF:-128}
-RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
-FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
+RUNFIRSTORBIT=${RUNFIRSTORBIT:-256}
+FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-256}
 OBLIGATORYSOR=${OBLIGATORYSOR:-false}
 FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-4}
 TPC_SLOW_REALISITC_FULL_SIM=${TPC_SLOW_REALISITC_FULL_SIM:-0}
@@ -137,11 +137,40 @@ if [[ $TPC_SLOW_REALISITC_FULL_SIM == 1 ]]; then
   DIGITOPTKEY+="TPCEleParam.doCommonModePerPad=0;TPCEleParam.doIonTailPerPad=1;TPCEleParam.commonModeCoupling=0;TPCEleParam.doNoiseEmptyPads=1;TPCEleParam.doSaturationTail=0;TPCDetParam.TPCRecoWindowSim=10;"
 fi
 
-taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "\"$SIMOPTKEY\"" -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER} -o o2sim
+# Create collision context
+SIGNALSPEC="o2sim,${FST_COLRATE},1000000:1000000"
+QEDSPEC=""
+if [[ $FST_QED == 1 ]]; then
+  PbPbXSec="8."
+  QEDXSECRATIO=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qed/qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
+  QEDRATE=$(awk "BEGIN {printf \"%.2f\",${FST_COLRATE}*${QEDXSECRATIO}}")
+  QEDSPEC="--QEDinteraction qed,${QEDRATE},10000000:${NEventsQED}"
+fi
+
+taskwrapper collcontext.log o2-steer-colcontexttool \
+  -i ${SIGNALSPEC} \
+  --show-context \
+  --timeframeID 0 \
+  --orbitsPerTF ${NHBPERTF} \
+  --orbits $(( ${NTIMEFRAMES} * ${NHBPERTF} )) \
+  --seed ${O2SIMSEED} \
+  --noEmptyTF \
+  --first-orbit ${RUNFIRSTORBIT} \
+  --extract-per-timeframe tf:o2sim \
+  --with-vertices kCCDB \
+  --maxCollsPerTF ${NEvents} \
+  --orbitsEarly 1 \
+  --bcPatternFile ccdb \
+  ${QEDSPEC}
+
+# Include collision system for TPC loopers generation
+SIMOPTKEY+="GenTPCLoopers.colsys=${BEAMTYPE};"
+
+taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --vertexMode kCollContext --seed $O2SIMSEED -n $NEvents --configKeyValues "\"$SIMOPTKEY\"" -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER} -o o2sim --fromCollContext collisioncontext.root:o2sim
 if [[ $DO_EMBEDDING == 1 ]]; then
   taskwrapper embed.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} -j $NJOBS --run ${RUNNUMBER} -n $NEvents -g pythia8pp -e ${FST_MC_ENGINE} -o sig --configKeyValues ${FST_EMBEDDING_CONFIG} --embedIntoFile o2sim_Kine.root
 fi
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --sims ${SIM_SOURCES} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE --early-forward-policy always
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --sims ${SIM_SOURCES} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE --early-forward-policy always --incontext collisioncontext.root
 [[ $SPLITTRDDIGI == "1" ]] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --sims ${SIM_SOURCES} --onlyDet TRD --trd-digit-downscaling ${DIGITDOWNSCALINGTRD} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\"" --early-forward-policy always
 touch digiTRD.log_done
 
