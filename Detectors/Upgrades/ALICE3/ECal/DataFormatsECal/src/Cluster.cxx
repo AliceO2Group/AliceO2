@@ -14,7 +14,6 @@
 ///
 /// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
 
-
 #include <map>
 #include <vector>
 #include <DataFormatsECal/Cluster.h>
@@ -25,7 +24,8 @@ using namespace o2::ecal;
 ClassImp(Cluster);
 
 //==============================================================================
-void Cluster::addDigit(int digitIndex, int towerId, double energy){
+void Cluster::addDigit(int digitIndex, int towerId, double energy)
+{
   mE += energy;
   mDigitIndex.push_back(digitIndex);
   mDigitTowerId.push_back(towerId);
@@ -33,10 +33,11 @@ void Cluster::addDigit(int digitIndex, int towerId, double energy){
 }
 
 //==============================================================================
-int Cluster::getMcTrackID() const {
+int Cluster::getMcTrackID() const
+{
   float maxEnergy = 0;
   int maxID = 0;
-  for (const auto& [mcTrackID, energy] : mMcTrackEnergy){
+  for (const auto& [mcTrackID, energy] : mMcTrackEnergy) {
     if (energy > maxEnergy) {
       maxEnergy = energy;
       maxID = mcTrackID;
@@ -46,9 +47,10 @@ int Cluster::getMcTrackID() const {
 }
 
 //==============================================================================
-TLorentzVector Cluster::getMomentum() const {
-  double r = std::sqrt(mX*mX + mY*mY + mZ*mZ);
-  if (r==0) return TLorentzVector();
-  return TLorentzVector(mE*mX/r, mE*mY/r, mE*mZ/r, mE);
+TLorentzVector Cluster::getMomentum() const
+{
+  double r = std::sqrt(mX * mX + mY * mY + mZ * mZ);
+  if (r == 0)
+    return TLorentzVector();
+  return TLorentzVector(mE * mX / r, mE * mY / r, mE * mZ / r, mE);
 }
-

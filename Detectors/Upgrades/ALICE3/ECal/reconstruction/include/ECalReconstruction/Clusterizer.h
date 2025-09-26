@@ -22,8 +22,8 @@
 #include <DataFormatsECal/Digit.h>
 #include <DataFormatsECal/Cluster.h>
 
-using o2::ecal::Digit;
 using o2::ecal::Cluster;
+using o2::ecal::Digit;
 class TF1;
 
 namespace o2
@@ -32,29 +32,30 @@ namespace ecal
 {
 class Clusterizer
 {
-public:
+ public:
   Clusterizer(bool applyCorrectionZ = 1, bool applyCorrectionE = 1);
   ~Clusterizer() = default;
-  void initialize(){};
+  void initialize() {};
   void addDigitToCluster(Cluster& cluster, int row, int col, const gsl::span<const Digit>& digits);
   void findClusters(const gsl::span<const Digit>& digits, std::vector<Cluster>& foundClusters, std::vector<Cluster>& unfoldedClusters);
   void makeClusters(const gsl::span<const Digit>& digits, std::vector<Cluster>& clusters);
   void makeUnfoldings(std::vector<Cluster>& foundClusters, std::vector<Cluster>& unfoldedClusters);
-  void unfoldOneCluster(Cluster *iniClu, int nMax, int *digitId, float *maxAtEnergy, std::vector<Cluster>& unfoldedClusters);
+  void unfoldOneCluster(Cluster* iniClu, int nMax, int* digitId, float* maxAtEnergy, std::vector<Cluster>& unfoldedClusters);
   void evalClusters(std::vector<Cluster>& clusters);
-  int getNumberOfLocalMax(Cluster& clu, int *maxAt, float *maxAtEnergy);
+  int getNumberOfLocalMax(Cluster& clu, int* maxAt, float* maxAtEnergy);
   double showerShape(double dx, double dz, bool isCrystal);
   void setLogWeight(double logWeight) { mLogWeight = logWeight; }
   void setClusteringThreshold(double threshold) { mClusteringThreshold = threshold; }
   void setCrystalDigitThreshold(double threshold) { mCrystalDigitThreshold = threshold; }
   void setSamplingDigitThreshold(double threshold) { mSamplingDigitThreshold = threshold; }
-private:
+
+ private:
   std::vector<std::vector<int>> mDigitIndices; // 2D map of digit indices used for recursive cluster finding
   bool mUnfoldClusters = true;                 // to perform cluster unfolding
   double mCrystalDigitThreshold = 0.040;       // minimal energy of crystal digit
   double mSamplingDigitThreshold = 0.100;      // minimal energy of sampling digit
   double mClusteringThreshold = 0.050;         // minimal energy of digit to start clustering (GeV)
-  double mClusteringTimeGate  = 1e9;           // maximal time difference between digits to be accepted to clusters (in ns)
+  double mClusteringTimeGate = 1e9;            // maximal time difference between digits to be accepted to clusters (in ns)
   int mNLMMax = 30;                            // maximal number of local maxima in unfolding
   double mLogWeight = 4.;                      // cutoff used in log. weight calculation
   double mUnfogingEAccuracy = 1.e-4;           // accuracy of energy calculation in unfoding prosedure (GeV)

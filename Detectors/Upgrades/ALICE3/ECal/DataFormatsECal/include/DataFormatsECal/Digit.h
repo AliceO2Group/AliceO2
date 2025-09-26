@@ -30,7 +30,7 @@ class Digit : public o2::dataformats::TimeStamp<double>
   Digit() = default;
   Digit(int tower, double amplitudeGeV, double time);
   ~Digit() = default;
-  
+
   // setters
   void setTower(int tower) { mTower = tower; }
   void setAmplitude(double amplitude) { mAmplitudeGeV = amplitude; }
@@ -42,7 +42,7 @@ class Digit : public o2::dataformats::TimeStamp<double>
   double getAmplitude() const { return mAmplitudeGeV; }
   double getEnergy() const { return mAmplitudeGeV; }
   int getLabel() const { return mLabel; }
-  
+
  private:
   double mAmplitudeGeV = 0.; ///< Amplitude (GeV)
   int32_t mTower = -1;       ///< Tower index (absolute cell ID)
