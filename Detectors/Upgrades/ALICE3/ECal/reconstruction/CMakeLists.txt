@@ -9,15 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(ECalSimulation
-               SOURCES src/Detector.cxx
-                       src/Digitizer.cxx
+o2_add_library(ECalReconstruction
+               SOURCES src/Clusterizer.cxx
                PUBLIC_LINK_LIBRARIES O2::ECalBase
-                                     O2::DataFormatsECal)
+                                     O2::DataFormatsECal
+                                     AliceO2::InfoLogger)
 
-o2_target_root_dictionary(ECalSimulation
-                          HEADERS include/ECalSimulation/Detector.h
-                                  include/ECalSimulation/Digitizer.h
-                         )
-
-o2_data_file(COPY data DESTINATION Detectors/ECL/simulation)
+o2_target_root_dictionary(ECalReconstruction
+                          HEADERS include/ECalReconstruction/Clusterizer.h)

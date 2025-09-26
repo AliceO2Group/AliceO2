@@ -9,17 +9,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file Hit.cxx
+/// \brief MC hit class to store energy loss per cell and per superparent
+///
+/// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <ECalBase/Hit.h>
 
-#pragma link C++ class o2::ecal::Geometry + ;
-#pragma link C++ class o2::ecal::GeometryTGeo +
-#pragma link C++ class o2::ecal::ECalBaseParam + ;
-#pragma link C++ class o2::ecal::Hit + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ecal::ECalBaseParam> + ;
-#pragma link C++ class std::vector < o2::ecal::Hit> + ;
+ClassImp(o2::ecal::Hit);
 
-#endif
+using namespace o2::ecal;
+
+bool Hit::operator<(const Hit& rhs) const
+{
+  if (GetTrackID() != rhs.GetTrackID()) {
+    return GetTrackID() < rhs.GetTrackID();
+  }
+  return GetCellID() < rhs.GetCellID();
+}
+
+bool Hit::operator==(const Hit& rhs) const
+{
+  return (GetCellID() == rhs.GetCellID()) && (GetTrackID() == rhs.GetTrackID());
+}

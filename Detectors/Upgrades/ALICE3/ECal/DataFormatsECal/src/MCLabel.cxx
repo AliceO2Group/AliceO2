@@ -9,17 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file MCLabel.cxx
+/// \brief MCLabel class to store MC truth info for ECal
+///
+/// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <DataFormatsECal/MCLabel.h>
 
-#pragma link C++ class o2::ecal::Geometry + ;
-#pragma link C++ class o2::ecal::GeometryTGeo +
-#pragma link C++ class o2::ecal::ECalBaseParam + ;
-#pragma link C++ class o2::ecal::Hit + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ecal::ECalBaseParam> + ;
-#pragma link C++ class std::vector < o2::ecal::Hit> + ;
-
-#endif
+ClassImp(o2::ecal::MCLabel);

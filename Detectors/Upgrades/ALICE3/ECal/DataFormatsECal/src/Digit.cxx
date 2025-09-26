@@ -9,17 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file Digit.cxx
+/// \brief Implementation of ECal digit class
+///
+/// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <DataFormatsECal/Digit.h>
 
-#pragma link C++ class o2::ecal::Geometry + ;
-#pragma link C++ class o2::ecal::GeometryTGeo +
-#pragma link C++ class o2::ecal::ECalBaseParam + ;
-#pragma link C++ class o2::ecal::Hit + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ecal::ECalBaseParam> + ;
-#pragma link C++ class std::vector < o2::ecal::Hit> + ;
+using namespace o2::ecal;
 
-#endif
+Digit::Digit(int tower, double amplitudeGeV, double time)
+  : mTower(tower), mAmplitudeGeV(amplitudeGeV), o2::dataformats::TimeStamp<double>(time)
+{
+}

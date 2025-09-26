@@ -9,22 +9,45 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file ECalBaseParam.h
+/// \brief Geometry parameters configurable via o2-sim --configKeyValues
+///
+/// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
+
 #ifndef O2_ECAL_BASEPARAM_H
 #define O2_ECAL_BASEPARAM_H
 
-#include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/ConfigurableParamHelper.h"
+#include <CommonUtils/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParamHelper.h>
 
 namespace o2
 {
 namespace ecal
 {
 struct ECalBaseParam : public o2::conf::ConfigurableParamHelper<ECalBaseParam> {
-  float rMin = 125.0;    // cm
-  float rMax = 155.0;    // cm
-  float zLength = 350.0; // cm
-
-  bool enableFwdEndcap = true;
+  bool enableFwdEndcap = false;
+  // general ecal barrel settings
+  double rMin = 125;    // cm
+  double rMax = 155;    // cm
+  double zLength = 350; // cm
+  int nSuperModules = 4;
+  // crystal module specification
+  int nCrystalModulesZ = 31;
+  int nCrystalModulesPhi = 96;
+  double crystalAlphaDeg = 0.4;    // degrees
+  double crystalModuleWidth = 1.9; // cm
+  double crystalModuleLength = 18; // cm
+  // sampling module specification
+  int nSamplingModulesZ = 56;
+  int nSamplingModulesPhi = 67;
+  double samplingAlphaDeg = 0.4;    // degrees
+  double samplingModuleWidth = 2.7; // cm
+  double frontPlateThickness = 1.;  // cm
+  double pbLayerThickness = 0.12;   // cm
+  double scLayerThickness = 0.15;   // cm
+  int nSamplingLayers = 80;
+  // margin in z between crystal modules and sampling modules
+  double marginCrystalToSampling = 0.1; // cm
 
   O2ParamDef(ECalBaseParam, "ECalBase");
 };
@@ -32,4 +55,4 @@ struct ECalBaseParam : public o2::conf::ConfigurableParamHelper<ECalBaseParam> {
 } // namespace ecal
 } // end namespace o2
 
-#endif
+#endif // O2_ECAL_BASEPARAM_H
