@@ -1988,7 +1988,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   o2::framework::Produces<o2::aod::FT0sExtra> ft0ExtraCursor;
   o2::framework::Produces<o2::aod::FDDsExtra> fddExtraCursor;
   o2::framework::Produces<o2::aod::FV0AsExtra> fv0aExtraCursor;
-  
+
   if (mEnableFITextra) {
     ft0ExtraCursor = createTableCursor<o2::aod::FT0sExtra>(pc);
     fddExtraCursor = createTableCursor<o2::aod::FDDsExtra>(pc);
