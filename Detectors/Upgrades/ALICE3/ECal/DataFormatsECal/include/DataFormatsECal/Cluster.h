@@ -31,7 +31,7 @@ class Cluster
   Cluster() = default;
   Cluster(const Cluster& clu) = default;
   ~Cluster() = default;
-  
+
   // setters
   void addDigit(int digitIndex, int towerId, double energy);
   void setNLM(int nMax) { mNLM = nMax; }
@@ -42,7 +42,7 @@ class Cluster
   void setChi2(float chi2) { mChi2 = chi2; }
   void setEdgeFlag(bool isEdge) { mEdge = isEdge; }
   void addMcTrackID(int mcTrackID, float energy) { mMcTrackEnergy[mcTrackID] += energy; }
-  
+
   // getters
   const std::map<int, float>& getMcTrackEnergy() { return mMcTrackEnergy; }
   int getMultiplicity() const { return mDigitIndex.size(); }
@@ -55,9 +55,9 @@ class Cluster
   float getX() const { return mX; }
   float getY() const { return mY; }
   float getZ() const { return mZ; }
-  float getR() const { return std::sqrt(mX*mX + mY*mY); }
+  float getR() const { return std::sqrt(mX * mX + mY * mY); }
   float getTheta() const { return std::atan2(getR(), mZ); }
-  float getEta() const { return -std::log(std::tan(getTheta()/2.)); }
+  float getEta() const { return -std::log(std::tan(getTheta() / 2.)); }
   float getPhi() const { return std::atan2(mY, mX); }
   float getChi2() const { return mChi2; }
   bool isAtTheEdge() const { return mEdge; }
@@ -65,18 +65,18 @@ class Cluster
   TLorentzVector getMomentum() const;
 
  private:
-  std::vector<int> mDigitIndex;         // vector of digit indices in digits vector
-  std::vector<int> mDigitTowerId;       // vector of corresponding digit tower Ids
-  std::vector<float> mDigitEnergy;      // vector of corresponding digit energies
-  std::map<int, float> mMcTrackEnergy;  // MC track indices and corresponding energies
-  int mNLM = 0;                         // number of local maxima in the initial cluster
-  float mTime = 0;                      // cluster time
-  float mE = 0;                         // cluster energy
-  float mX = 0;                         // estimated x-coordinate
-  float mY = 0;                         // estimated y-ccordinate
-  float mZ = 0;                         // estimated z-ccordinate
-  float mChi2 = 0;                      // chi2 wrt EM shape
-  bool mEdge = 0;                       // set to true if one of cluster digits is at the chamber edge
+  std::vector<int> mDigitIndex;        // vector of digit indices in digits vector
+  std::vector<int> mDigitTowerId;      // vector of corresponding digit tower Ids
+  std::vector<float> mDigitEnergy;     // vector of corresponding digit energies
+  std::map<int, float> mMcTrackEnergy; // MC track indices and corresponding energies
+  int mNLM = 0;                        // number of local maxima in the initial cluster
+  float mTime = 0;                     // cluster time
+  float mE = 0;                        // cluster energy
+  float mX = 0;                        // estimated x-coordinate
+  float mY = 0;                        // estimated y-ccordinate
+  float mZ = 0;                        // estimated z-ccordinate
+  float mChi2 = 0;                     // chi2 wrt EM shape
+  bool mEdge = 0;                      // set to true if one of cluster digits is at the chamber edge
   ClassDefNV(Cluster, 1);
 };
 } // namespace ecal

@@ -21,8 +21,8 @@
 #include <ECalBase/ECalBaseParam.h>
 #include "CommonConstants/MathConstants.h"
 using namespace o2::ecal;
-using o2::constants::math::TwoPI;
 using o2::constants::math::PIHalf;
+using o2::constants::math::TwoPI;
 
 //==============================================================================
 Geometry::Geometry()

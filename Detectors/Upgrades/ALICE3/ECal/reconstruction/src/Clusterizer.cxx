@@ -25,56 +25,57 @@
 using namespace o2::ecal;
 
 //==============================================================================
-Clusterizer::Clusterizer(bool applyCorrectionZ, bool applyCorrectionE){
+Clusterizer::Clusterizer(bool applyCorrectionZ, bool applyCorrectionE)
+{
   auto& geo = Geometry::instance();
   mDigitIndices.resize(geo.getNrows(), std::vector<int>(geo.getNcols(), -1));
   mApplyCorrectionZ = applyCorrectionZ;
   mApplyCorrectionE = applyCorrectionE;
-  fCrystalShowerShape = new TF1("fCrystal","x<[1] ? [0]*exp([3]*x+[4]*x*x+[5]*x*x*x) : (x<[2] ? [0]*[6]*exp([7]*x+[8]*x*x) : [0]*[9]*exp([10]*x+[11]*x*x))",0,15);
+  fCrystalShowerShape = new TF1("fCrystal", "x<[1] ? [0]*exp([3]*x+[4]*x*x+[5]*x*x*x) : (x<[2] ? [0]*[6]*exp([7]*x+[8]*x*x) : [0]*[9]*exp([10]*x+[11]*x*x))", 0, 15);
   double pc[12];
-  pc[0]                        =     1./13.15;
-  pc[1]                        =          2.2;
-  pc[2]                        =            5;
-  pc[3]                        =      4.38969;
-  pc[4]                        =     -5.15975;
-  pc[5]                        =      1.18978;
-  pc[6]                        =      1.48726;
-  pc[7]                        =     -1.54621;
-  pc[8]                        =    0.0814617;
-  pc[9]                        =    0.0369055;
-  pc[10]                       =    -0.174372;
-  pc[11]                       =   -0.0455978;
+  pc[0] = 1. / 13.15;
+  pc[1] = 2.2;
+  pc[2] = 5;
+  pc[3] = 4.38969;
+  pc[4] = -5.15975;
+  pc[5] = 1.18978;
+  pc[6] = 1.48726;
+  pc[7] = -1.54621;
+  pc[8] = 0.0814617;
+  pc[9] = 0.0369055;
+  pc[10] = -0.174372;
+  pc[11] = -0.0455978;
 
   fCrystalShowerShape->SetParameters(pc);
 
-  fSamplingShowerShape = new TF1("fSampling","x<[1] ? [0]*exp([3]*x+[4]*x*x+[5]*x*x*x) : (x<[2] ? [0]*[6]*exp([7]*x+[8]*x*x) : [0]*[9]*exp([10]*x+[11]*x*x))",0,15);
+  fSamplingShowerShape = new TF1("fSampling", "x<[1] ? [0]*exp([3]*x+[4]*x*x+[5]*x*x*x) : (x<[2] ? [0]*[6]*exp([7]*x+[8]*x*x) : [0]*[9]*exp([10]*x+[11]*x*x))", 0, 15);
   double ps[12];
-  ps[0]                        =       1/35.6;
-  ps[1]                        =          3.2;
-  ps[2]                        =            6;
-  ps[3]                        =      3.06543;
-  ps[4]                        =     -2.23235;
-  ps[5]                        =     0.325344;
-  ps[6]                        =       6.0733;
-  ps[7]                        =     -1.62713;
-  ps[8]                        =    0.0965569;
-  ps[9]                        =    0.0765706;
-  ps[10]                       =    -0.217398;
-  ps[11]                      =    -0.0204646;
+  ps[0] = 1 / 35.6;
+  ps[1] = 3.2;
+  ps[2] = 6;
+  ps[3] = 3.06543;
+  ps[4] = -2.23235;
+  ps[5] = 0.325344;
+  ps[6] = 6.0733;
+  ps[7] = -1.62713;
+  ps[8] = 0.0965569;
+  ps[9] = 0.0765706;
+  ps[10] = -0.217398;
+  ps[11] = -0.0204646;
   fSamplingShowerShape->SetParameters(ps);
 
-  fCrystalRMS = new TF1("fCrystalRMS","[0]*x*exp([1]*x+[2]*x*x+[3]*x*x*x)",0,2.2);
+  fCrystalRMS = new TF1("fCrystalRMS", "[0]*x*exp([1]*x+[2]*x*x+[3]*x*x*x)", 0, 2.2);
   double p[4];
-  p[0] =  1.39814;
+  p[0] = 1.39814;
   p[1] = -6.05426;
-  p[2] =  6.26678;
+  p[2] = 6.26678;
   p[3] = -1.97092;
   fCrystalRMS->SetParameters(p);
-
 }
 
 //==============================================================================
-void Clusterizer::findClusters(const gsl::span<const Digit>& digits, std::vector<Cluster>& foundClusters, std::vector<Cluster>& unfoldedClusters){
+void Clusterizer::findClusters(const gsl::span<const Digit>& digits, std::vector<Cluster>& foundClusters, std::vector<Cluster>& unfoldedClusters)
+{
   foundClusters.clear();
   unfoldedClusters.clear();
 
@@ -83,28 +84,32 @@ void Clusterizer::findClusters(const gsl::span<const Digit>& digits, std::vector
 
   // Split clusters with several local maxima if necessary
   makeUnfoldings(foundClusters, unfoldedClusters);
-  
+
   // Evaluate cluster position, dispersion etc.
   evalClusters(foundClusters);
   evalClusters(unfoldedClusters);
 }
 
 //==============================================================================
-void Clusterizer::addDigitToCluster(Cluster& cluster, int row, int col, const gsl::span<const Digit>& digits){
+void Clusterizer::addDigitToCluster(Cluster& cluster, int row, int col, const gsl::span<const Digit>& digits)
+{
   auto& geo = Geometry::instance();
-  if (row<0 || row>=geo.getNrows() || col<0 || col>=geo.getNcols()) return;
+  if (row < 0 || row >= geo.getNrows() || col < 0 || col >= geo.getNcols())
+    return;
   int digitIndex = mDigitIndices[row][col];
   LOGP(debug, "    checking row={} and col={} digitIndex={}", row, col, digitIndex);
-  if (digitIndex < 0) return;
-  
+  if (digitIndex < 0)
+    return;
+
   const Digit& digit = digits[digitIndex];
-  if (cluster.getMultiplicity()>0) {
+  if (cluster.getMultiplicity() > 0) {
     // check if new digit is in the same chamber and sector
     const Digit& digit2 = digits[cluster.getDigitIndex(0)];
     auto [sector1, ch1] = geo.getSectorChamber(digit.getTower());
     auto [sector2, ch2] = geo.getSectorChamber(digit2.getTower());
     LOGP(debug, "    checking if sector and chamber are the same: ({},{}) ({},{})", sector1, ch1, sector2, ch2);
-    if (sector1 != sector2 || ch1 != ch2) return;
+    if (sector1 != sector2 || ch1 != ch2)
+      return;
   }
 
   mDigitIndices[row][col] = -1;
@@ -117,11 +122,12 @@ void Clusterizer::addDigitToCluster(Cluster& cluster, int row, int col, const gs
 }
 
 //==============================================================================
-void Clusterizer::makeClusters(const gsl::span<const Digit>& digits, std::vector<Cluster>& clusters){
-  // Combine digits into cluster 
-  
+void Clusterizer::makeClusters(const gsl::span<const Digit>& digits, std::vector<Cluster>& clusters)
+{
+  // Combine digits into cluster
+
   int nDigits = digits.size();
-  
+
   // reset mDigitIndices
   for (auto& rows : mDigitIndices) {
     rows.assign(rows.size(), -1);
@@ -134,9 +140,11 @@ void Clusterizer::makeClusters(const gsl::span<const Digit>& digits, std::vector
     auto [row, col] = geo.globalRowColFromIndex(digit.getTower());
     bool isCrystal = geo.isCrystal(digit.getTower());
     if (isCrystal) {
-      if (digit.getEnergy()<mCrystalDigitThreshold) continue;
+      if (digit.getEnergy() < mCrystalDigitThreshold)
+        continue;
     } else {
-      if (digit.getEnergy()<mSamplingDigitThreshold) continue;
+      if (digit.getEnergy() < mSamplingDigitThreshold)
+        continue;
     }
     mDigitIndices[row][col] = i;
   }
@@ -145,8 +153,10 @@ void Clusterizer::makeClusters(const gsl::span<const Digit>& digits, std::vector
   for (int i = 0; i < nDigits; i++) {
     const Digit& digitSeed = digits[i];
     auto [row, col] = geo.globalRowColFromIndex(digitSeed.getTower());
-    if (mDigitIndices[row][col] < 0) continue; // digit was already added in one of the clusters
-    if (digitSeed.getEnergy() < mClusteringThreshold) continue;
+    if (mDigitIndices[row][col] < 0)
+      continue; // digit was already added in one of the clusters
+    if (digitSeed.getEnergy() < mClusteringThreshold)
+      continue;
     LOGP(debug, "  starting new cluster at row={} and col={}", row, col);
     auto& cluster = clusters.emplace_back();
     addDigitToCluster(cluster, row, col, digits);
@@ -156,14 +166,15 @@ void Clusterizer::makeClusters(const gsl::span<const Digit>& digits, std::vector
 }
 
 //==============================================================================
-void Clusterizer::makeUnfoldings(std::vector<Cluster>& foundClusters, std::vector<Cluster>& unfoldedClusters){
+void Clusterizer::makeUnfoldings(std::vector<Cluster>& foundClusters, std::vector<Cluster>& unfoldedClusters)
+{
   // Split cluster if several local maxima are found
   if (!mUnfoldClusters) {
     return;
   }
-  
-  int *maxAt = new int[mNLMMax]; 
-  float *maxAtEnergy = new float[mNLMMax];
+
+  int* maxAt = new int[mNLMMax];
+  float* maxAtEnergy = new float[mNLMMax];
 
   for (auto& clu : foundClusters) {
     int nMax = getNumberOfLocalMax(clu, maxAt, maxAtEnergy);
@@ -179,7 +190,8 @@ void Clusterizer::makeUnfoldings(std::vector<Cluster>& foundClusters, std::vecto
 }
 
 //==============================================================================
-void Clusterizer::unfoldOneCluster(Cluster *iniClu, int nMax, int *digitId, float *maxAtEnergy, std::vector<Cluster>& unfoldedClusters){
+void Clusterizer::unfoldOneCluster(Cluster* iniClu, int nMax, int* digitId, float* maxAtEnergy, std::vector<Cluster>& unfoldedClusters)
+{
   // Based on MpdEmcClusterizerKI::UnfoldOneCluster by D. Peresunko
   // Performs the unfolding of a cluster with nMax overlapping showers
   // Parameters: iniClu cluster to be unfolded
@@ -220,7 +232,7 @@ void Clusterizer::unfoldOneCluster(Cluster *iniClu, int nMax, int *digitId, floa
   std::vector<double> prop(nMax); // proportion of clusters in the current digit
 
   // Try to decompose cluster to contributions
-  int  nIterations = 0;
+  int nIterations = 0;
   bool insuficientAccuracy = true;
 
   while (insuficientAccuracy && nIterations < mNMaxIterations) {
@@ -231,7 +243,7 @@ void Clusterizer::unfoldOneCluster(Cluster *iniClu, int nMax, int *digitId, floa
       for (int iclu = 0; iclu < nMax; iclu++) {
         prop[iclu] = eMax[iclu] * showerShape(std::sqrt((x[idig] - xMax[iclu]) * (x[idig] - xMax[iclu]) +
                                                         (y[idig] - yMax[iclu]) * (y[idig] - yMax[iclu])),
-                                                        z[idig] - zMax[iclu], isCrystal);
+                                              z[idig] - zMax[iclu], isCrystal);
         eEstimated += prop[iclu];
       }
       if (eEstimated == 0.) { // numerical accuracy
@@ -254,9 +266,9 @@ void Clusterizer::unfoldOneCluster(Cluster *iniClu, int nMax, int *digitId, floa
       for (int idig = 0; idig < mult; idig++) {
         eMax[iclu] += eInClusters[idig][iclu];
       }
-      xMax[iclu]  = 0;
-      yMax[iclu]  = 0;
-      zMax[iclu]  = 0;
+      xMax[iclu] = 0;
+      yMax[iclu] = 0;
+      zMax[iclu] = 0;
       double wtot = 0.;
       for (int idig = 0; idig < mult; idig++) {
         double w = std::max(std::log(eInClusters[idig][iclu] / eMax[iclu]) + mLogWeight, 0.);
@@ -292,7 +304,8 @@ void Clusterizer::unfoldOneCluster(Cluster *iniClu, int nMax, int *digitId, floa
 }
 
 //==============================================================================
-void Clusterizer::evalClusters(std::vector<Cluster>& clusters){
+void Clusterizer::evalClusters(std::vector<Cluster>& clusters)
+{
   auto& geo = Geometry::instance();
   for (auto& cluster : clusters) {
     double x = 0;
@@ -300,7 +313,7 @@ void Clusterizer::evalClusters(std::vector<Cluster>& clusters){
     double z = 0;
     double wtot = 0;
     double etot = cluster.getE();
-    for (size_t i = 0; i<cluster.getMultiplicity(); i++){
+    for (size_t i = 0; i < cluster.getMultiplicity(); i++) {
       float energy = cluster.getDigitEnergy(i);
       int towerId = cluster.getDigitTowerId(i);
       double xi, yi, zi;
@@ -312,78 +325,86 @@ void Clusterizer::evalClusters(std::vector<Cluster>& clusters){
       wtot += w;
     }
     if (wtot != 0) {
-      x/=wtot;
-      y/=wtot;
-      z/=wtot;
+      x /= wtot;
+      y /= wtot;
+      z /= wtot;
     }
     cluster.setX(x);
     cluster.setY(y);
     cluster.setZ(z);
-    
+
     // cluster shape
     float chi2 = 0;
     int ndf = 0;
     float ee = cluster.getE();
-    for (size_t i = 0; i<cluster.getMultiplicity(); i++){
+    for (size_t i = 0; i < cluster.getMultiplicity(); i++) {
       float energy = cluster.getDigitEnergy(i);
       int towerId = cluster.getDigitTowerId(i);
       double xi, yi, zi;
       geo.detIdToGlobalPosition(towerId, xi, yi, zi);
-      double r = std::sqrt((x - xi)*(x - xi) + (y - yi)*(y - yi) + (z - zi)*(z - zi));
-      if (r>2.2) continue;
+      double r = std::sqrt((x - xi) * (x - xi) + (y - yi) * (y - yi) + (z - zi) * (z - zi));
+      if (r > 2.2)
+        continue;
       double frac = fCrystalShowerShape->Eval(r);
       double rms = fCrystalRMS->Eval(r);
-      chi2+=std::pow((energy/ee-frac)/rms,2.);
+      chi2 += std::pow((energy / ee - frac) / rms, 2.);
       ndf++;
     }
-    cluster.setChi2(chi2/ndf);
+    cluster.setChi2(chi2 / ndf);
 
     // correct cluster energy and z position
     float eta = std::abs(cluster.getEta());
     float eCor = 1;
     float zCor = 0;
     bool isCrystal = geo.isCrystal(cluster.getDigitTowerId(0));
-    if (isCrystal){
-      eCor = 0.00444*std::pow(ee, -1.322) + (1.021+0.0018*eta);
-      if (mApplyCorrectionE) ee *= eCor;
-      if (mApplyCorrectionZ) zCor = (-0.00518682+0.730052*eta-0.73817*eta*eta);
+    if (isCrystal) {
+      eCor = 0.00444 * std::pow(ee, -1.322) + (1.021 + 0.0018 * eta);
+      if (mApplyCorrectionE)
+        ee *= eCor;
+      if (mApplyCorrectionZ)
+        zCor = (-0.00518682 + 0.730052 * eta - 0.73817 * eta * eta);
     } else {
-      eCor = 0.0033*std::pow(ee,-2.09)+(1.007+0.0667*eta-0.108*eta*eta+0.0566*eta*eta*eta);
-      if (mApplyCorrectionE) ee *= eCor;
-      if (mApplyCorrectionZ) zCor = (-2.13679+6.40009*eta-3.34233*eta*eta)+(-0.136425+0.401887*eta-0.196851*eta*eta)*ee+(0.00822276-0.0242512*eta+0.0118986*eta*eta)*ee*ee;
+      eCor = 0.0033 * std::pow(ee, -2.09) + (1.007 + 0.0667 * eta - 0.108 * eta * eta + 0.0566 * eta * eta * eta);
+      if (mApplyCorrectionE)
+        ee *= eCor;
+      if (mApplyCorrectionZ)
+        zCor = (-2.13679 + 6.40009 * eta - 3.34233 * eta * eta) + (-0.136425 + 0.401887 * eta - 0.196851 * eta * eta) * ee + (0.00822276 - 0.0242512 * eta + 0.0118986 * eta * eta) * ee * ee;
     }
 
     cluster.setE(ee);
-    cluster.setZ(cluster.getZ()-zCor);
+    cluster.setZ(cluster.getZ() - zCor);
 
     // check if cluster is at the edge of detector module
-    bool isEdge = 0; 
-    for (size_t i = 0; i<cluster.getMultiplicity(); i++){
+    bool isEdge = 0;
+    for (size_t i = 0; i < cluster.getMultiplicity(); i++) {
       int towerId = cluster.getDigitTowerId(i);
-      if (!geo.isAtTheEdge(towerId)) continue;
+      if (!geo.isAtTheEdge(towerId))
+        continue;
       isEdge = 1;
       break;
     }
     cluster.setEdgeFlag(isEdge);
 
-    LOGF(debug,"Cluster coordinates: (%6.2f,%6.2f,%6.2f), eCor=%6.2f zCor=%6.2f", cluster.getX(), cluster.getY(), cluster.getZ(), eCor, zCor);
+    LOGF(debug, "Cluster coordinates: (%6.2f,%6.2f,%6.2f), eCor=%6.2f zCor=%6.2f", cluster.getX(), cluster.getY(), cluster.getZ(), eCor, zCor);
   }
 }
 
 //==============================================================================
-int Clusterizer::getNumberOfLocalMax(Cluster& clu, int *maxAt, float *maxAtEnergy){
+int Clusterizer::getNumberOfLocalMax(Cluster& clu, int* maxAt, float* maxAtEnergy)
+{
   // Based on MpdEmcClusterizerKI::GetNumberOfLocalMax by D. Peresunko
   // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
   // energy difference between maximum and surrounding digits
   auto& geo = Geometry::instance();
   int n = clu.getMultiplicity();
   bool isCrystal = geo.isCrystal(clu.getDigitTowerId(0));
-  bool *isLocalMax = new bool[n];
+  bool* isLocalMax = new bool[n];
 
   for (int i = 0; i < n; i++) {
     isLocalMax[i] = false;
     float en1 = clu.getDigitEnergy(i);
-    if (en1 > mClusteringThreshold) isLocalMax[i] = true;
+    if (en1 > mClusteringThreshold)
+      isLocalMax[i] = true;
   }
 
   for (int i = 0; i < n; i++) {
@@ -421,14 +442,14 @@ int Clusterizer::getNumberOfLocalMax(Cluster& clu, int *maxAt, float *maxAtEnerg
         return 0;
       }
     }
-  } 
+  }
   delete[] isLocalMax;
   return iDigitN;
 }
 
 //==============================================================================
-double Clusterizer::showerShape(double dx, double dz, bool isCrystal){
+double Clusterizer::showerShape(double dx, double dz, bool isCrystal)
+{
   double x = std::sqrt(dx * dx + dz * dz);
   return isCrystal ? fCrystalShowerShape->Eval(x) : fSamplingShowerShape->Eval(x);
 }
-
