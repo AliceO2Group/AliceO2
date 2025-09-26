@@ -1962,11 +1962,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto trackedV0Cursor = createTableCursor<o2::aod::TrackedV0s>(pc);
   auto tracked3BodyCurs = createTableCursor<o2::aod::Tracked3Bodys>(pc);
   auto fddCursor = createTableCursor<o2::aod::FDDs>(pc);
-  auto fddExtraCursor = createTableCursor<o2::aod::FDDsExtra>(pc);
   auto ft0Cursor = createTableCursor<o2::aod::FT0s>(pc);
-  auto ft0ExtraCursor = createTableCursor<o2::aod::FT0sExtra>(pc);
   auto fv0aCursor = createTableCursor<o2::aod::FV0As>(pc);
-  auto fv0aExtraCursor = createTableCursor<o2::aod::FV0AsExtra>(pc);
   auto fwdTracksCursor = createTableCursor<o2::aod::StoredFwdTracks>(pc);
   auto fwdTracksCovCursor = createTableCursor<o2::aod::StoredFwdTracksCov>(pc);
   auto fwdTrkClsCursor = createTableCursor<o2::aod::FwdTrkCls>(pc);
@@ -1987,6 +1984,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto cpvClustersCursor = createTableCursor<o2::aod::CPVClusters>(pc);
   auto originCursor = createTableCursor<o2::aod::Origins>(pc);
 
+  /// Extra tables
+  o2::framework::Produces<o2::aod::FT0sExtra> ft0ExtraCursor;
+  o2::framework::Produces<o2::aod::FDDsExtra> fddExtraCursor;
+  o2::framework::Produces<o2::aod::FV0AsExtra> fv0aExtraCursor;
+  
   if (mEnableFITextra) {
     ft0ExtraCursor = createTableCursor<o2::aod::FT0sExtra>(pc);
     fddExtraCursor = createTableCursor<o2::aod::FDDsExtra>(pc);
