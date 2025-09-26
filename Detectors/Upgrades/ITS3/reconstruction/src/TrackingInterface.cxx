@@ -74,7 +74,7 @@ void ITS3TrackingInterface::finaliseCCDB(framework::ConcreteDataMatcher& matcher
   }
 }
 
-void ITS3TrackingInterface::loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+void ITS3TrackingInterface::loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                                     gsl::span<const itsmft::CompClusterExt> clusters,
                                     gsl::span<const unsigned char>::iterator& pattIt,
                                     const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)

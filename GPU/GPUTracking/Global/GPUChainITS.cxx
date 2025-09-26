@@ -17,7 +17,6 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "ITStracking/ExternalAllocator.h"
 #include "GPUReconstructionIncludesITS.h"
-#include <algorithm>
 
 using namespace o2::gpu;
 
@@ -26,15 +25,18 @@ namespace o2::its
 class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
 {
  public:
+  GPUFrameworkExternalAllocator(GPUMemoryResource::MemoryType type) : mType(type) {}
+
   void* allocate(size_t size) override
   {
-    return mFWReco->AllocateDirectMemory(size, GPUMemoryResource::MEMORY_GPU);
+    return mFWReco->AllocateDirectMemory(size, mType);
   }
-  void deallocate(char* ptr, size_t) override {}
+  void deallocate(char* ptr, size_t size) override {}
   void setReconstructionFramework(o2::gpu::GPUReconstruction* fwr) { mFWReco = fwr; }
 
  private:
   o2::gpu::GPUReconstruction* mFWReco;
+  GPUMemoryResource::MemoryType mType;
 };
 } // namespace o2::its
 
@@ -71,11 +73,12 @@ o2::its::TimeFrame<7>* GPUChainITS::GetITSTimeframe()
   }
 #if !defined(GPUCA_STANDALONE)
   if (mITSTimeFrame->isGPU()) {
-    auto doFWExtAlloc = [this](size_t size) -> void* { return rec()->AllocateDirectMemory(size, GPUMemoryResource::MEMORY_GPU); };
-
-    mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator);
-    mFrameworkAllocator->setReconstructionFramework(rec());
-    mITSTimeFrame->setExternalAllocator(mFrameworkAllocator.get());
+    mFrameworkDeviceAllocator.reset(new o2::its::GPUFrameworkExternalAllocator(GPUMemoryResource::MEMORY_GPU));
+    mFrameworkDeviceAllocator->setReconstructionFramework(rec());
+    mITSTimeFrame->setExternalDeviceAllocator(mFrameworkDeviceAllocator.get());
+    mFrameworkHostAllocator.reset(new o2::its::GPUFrameworkExternalAllocator(GPUMemoryResource::MEMORY_HOST));
+    mFrameworkHostAllocator->setReconstructionFramework(rec());
+    mITSTimeFrame->setExternalHostAllocator(mFrameworkHostAllocator.get());
   }
 #endif
   return mITSTimeFrame.get();

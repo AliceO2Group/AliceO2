@@ -69,8 +69,8 @@ struct TimeFrame {
   using CellSeedN = CellSeed<nLayers>;
   friend class gpu::TimeFrameGPU<nLayers>;
 
-  TimeFrame();
-  virtual ~TimeFrame();
+  TimeFrame() = default;
+  virtual ~TimeFrame() = default;
 
   const Vertex& getPrimaryVertex(const int ivtx) const { return mPrimaryVertices[ivtx]; }
   gsl::span<const Vertex> getPrimaryVertices(int rofId) const;
@@ -90,12 +90,14 @@ struct TimeFrame {
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
-  int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
+  int loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
                       gsl::span<const itsmft::CompClusterExt> clusters,
                       gsl::span<const unsigned char>::iterator& pattIt,
                       const itsmft::TopologyDictionary* dict,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
-  void resetROFrameData();
+  void resetROFrameData(size_t nROFs);
+  void prepareROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
+                          gsl::span<const itsmft::CompClusterExt> clusters);
 
   int getTotalClusters() const;
   auto& getTotVertIteration() { return mTotVertPerIteration; }
@@ -188,7 +190,7 @@ struct TimeFrame {
   auto getNumberOfUsedExtendedClusters() const { return mNExtendedUsedClusters; }
 
   /// memory management
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource>& pool);
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool);
   auto& getMemoryPool() const noexcept { return mMemoryPool; }
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory() const;
@@ -233,32 +235,32 @@ struct TimeFrame {
   void setBz(float bz) { mBz = bz; }
   float getBz() const { return mBz; }
 
-  void setExternalAllocator(ExternalAllocator* allocator)
+  /// State if memory will be externally managed.
+  // device
+  ExternalAllocator* mExtDeviceAllocator{nullptr};
+  void setExternalDeviceAllocator(ExternalAllocator* allocator) { mExtDeviceAllocator = allocator; }
+  ExternalAllocator* getExternalDeviceAllocator() { return mExtDeviceAllocator; }
+  bool hasExternalDeviceAllocator() const noexcept { return mExtDeviceAllocator != nullptr; }
+  // host
+  ExternalAllocator* mExtHostAllocator{nullptr};
+  void setExternalHostAllocator(ExternalAllocator* allocator)
   {
-    if (isGPU()) {
-      LOGP(debug, "Setting timeFrame allocator to external");
-      mAllocator = allocator;
-    } else {
-      LOGP(fatal, "External allocator is currently only supported for GPU");
-    }
+    mExtHostAllocator = allocator;
+    mExtMemoryPool = std::make_shared<BoundedMemoryResource>(mExtHostAllocator);
   }
-
-  ExternalAllocator* getExternalAllocator() { return mAllocator; }
-
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*)
-  {
-    return;
-  };
+  ExternalAllocator* getExternalHostAllocator() { return mExtHostAllocator; }
+  bool hasExternalHostAllocator() const noexcept { return mExtHostAllocator != nullptr; }
+  std::shared_ptr<BoundedMemoryResource> mExtMemoryPool;
+  std::pmr::memory_resource* getMaybeExternalHostResource(bool forceHost = false) { return (hasExternalHostAllocator() && !forceHost) ? mExtMemoryPool.get() : mMemoryPool.get(); }
+  // Propagator
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};
 
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterExternalIndexToLayer(int layer, const int idx) { mClusterExternalIndices[layer].push_back(idx); }
-
-  void resetVectors();
-  void resetTracklets();
 
   /// Debug and printing
   void checkTrackletLUTs();
@@ -289,10 +291,6 @@ struct TimeFrame {
   int mNExtendedUsedClusters{0};
   bounded_vector<int> mROFramesPV;
   bounded_vector<Vertex> mPrimaryVertices;
-
-  // State if memory will be externally managed.
-  ExternalAllocator* mAllocator = nullptr;
-  bool getExtAllocator() const noexcept { return mAllocator != nullptr; }
 
   std::array<bounded_vector<Cluster>, nLayers> mUnsortedClusters;
   std::vector<bounded_vector<Tracklet>> mTracklets;

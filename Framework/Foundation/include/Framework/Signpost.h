@@ -611,6 +611,16 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                 \
     _o2_signpost_interval_end(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }
+// Print out a message at error level in any case even if the signpost is not enable.
+// If it is enabled, behaves like O2_SIGNPOST_END.
+#define O2_SIGNPOST_END_WITH_ERROR(log, id, name, format, ...)                                                        \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                            \
+    O2_SIGNPOST_END_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                 \
+    _o2_signpost_interval_end(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  } else {                                                                                                            \
+    O2_LOG_MACRO_RAW(error, remove_engineering_type(format).data(), ##__VA_ARGS__);                                   \
+  }
 #else // This is the release implementation, it does nothing.
 #define O2_DECLARE_DYNAMIC_LOG(x)
 #define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(x)

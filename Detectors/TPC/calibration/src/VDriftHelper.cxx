@@ -164,6 +164,10 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
         mIsTPScalingPossible = (vd.refTP > 0) || extractTPForVDrift(vd);
       }
       if (mIsTPScalingPossible) {
+        // if no new VDrift object was loaded and if delta TP is small, do not rescale and return
+        if (!mUpdated && std::abs(tp - vd.refTP) < 1e-5) {
+          return;
+        }
         mUpdated = true;
         vd.normalize(0, tp);
         if (vd.creationTime == saveVD.creationTime) {
@@ -244,6 +248,15 @@ bool VDriftHelper::extractTPForVDrift(VDriftCorrFact& vdrift, int64_t tsStepMS)
 {
   const int64_t tsStart = vdrift.firstTime;
   const int64_t tsEnd = vdrift.lastTime;
+
+  if (tsStart == tsEnd) {
+    static bool warned = false;
+    if (!warned) {
+      warned = true;
+      LOGP(warn, "VDriftHelper: Cannot extract T/P for VDrift with identical start/end time {}!", tsStart);
+    }
+    return false;
+  }
 
   // make sanity check of the time range
   const auto [minValidTime, maxValidTime] = mPTHelper.getMinMaxTime();

@@ -22,6 +22,8 @@
 #include <new>
 #include <vector>
 
+#include "ITStracking/ExternalAllocator.h"
+
 #include "GPUCommonLogger.h"
 
 namespace o2::its
@@ -56,6 +58,7 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
 
   BoundedMemoryResource(size_t maxBytes = std::numeric_limits<size_t>::max(), std::pmr::memory_resource* upstream = std::pmr::get_default_resource())
     : mMaxMemory(maxBytes), mUpstream(upstream) {}
+  BoundedMemoryResource(ExternalAllocator* alloc) : mAdaptor(std::make_unique<ExternalAllocatorAdaptor>(alloc)), mUpstream(mAdaptor.get()) {}
 
   void* do_allocate(size_t bytes, size_t alignment) final
   {
@@ -69,7 +72,14 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
     } while (!mUsedMemory.compare_exchange_weak(current_used, new_used,
                                                 std::memory_order_acq_rel,
                                                 std::memory_order_relaxed));
-    return mUpstream->allocate(bytes, alignment);
+    void* p{nullptr};
+    try {
+      p = mUpstream->allocate(bytes, alignment);
+    } catch (...) {
+      mUsedMemory.fetch_sub(bytes, std::memory_order_relaxed);
+      throw;
+    }
+    return p;
   }
 
   void do_deallocate(void* p, size_t bytes, size_t alignment) final
@@ -87,11 +97,12 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
   size_t getMaxMemory() const noexcept { return mMaxMemory; }
   void setMaxMemory(size_t max)
   {
-    if (mUsedMemory > max) {
+    size_t used = mUsedMemory.load(std::memory_order_acquire);
+    if (used > max) {
       ++mCountThrow;
-      throw MemoryLimitExceeded(0, mUsedMemory, max);
+      throw MemoryLimitExceeded(0, used, max);
     }
-    mMaxMemory = max;
+    mMaxMemory.store(max, std::memory_order_release);
   }
 
   void print() const
@@ -106,76 +117,74 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
   }
 
  private:
-  size_t mMaxMemory{std::numeric_limits<size_t>::max()};
+  std::atomic<size_t> mMaxMemory{std::numeric_limits<size_t>::max()};
   std::atomic<size_t> mCountThrow{0};
   std::atomic<size_t> mUsedMemory{0};
-  std::pmr::memory_resource* mUpstream;
+  std::unique_ptr<ExternalAllocatorAdaptor> mAdaptor{nullptr};
+  std::pmr::memory_resource* mUpstream{nullptr};
 };
 
 template <typename T>
 using bounded_vector = std::pmr::vector<T>;
 
 template <typename T>
-void deepVectorClear(std::vector<T>& vec)
+inline void deepVectorClear(std::vector<T>& vec)
 {
   std::vector<T>().swap(vec);
 }
 
 template <typename T>
-inline void deepVectorClear(bounded_vector<T>& vec, BoundedMemoryResource* bmr = nullptr)
+inline void deepVectorClear(bounded_vector<T>& vec, std::pmr::memory_resource* mr = nullptr)
 {
+  std::pmr::memory_resource* tmr = (mr != nullptr) ? mr : vec.get_allocator().resource();
   vec.~bounded_vector<T>();
-  if (bmr == nullptr) {
-    auto alloc = vec.get_allocator().resource();
-    new (&vec) bounded_vector<T>(alloc);
-  } else {
-    new (&vec) bounded_vector<T>(bmr);
-  }
+  new (&vec) bounded_vector<T>(std::pmr::polymorphic_allocator<T>{tmr});
 }
 
 template <typename T>
-void deepVectorClear(std::vector<bounded_vector<T>>& vec, BoundedMemoryResource* bmr = nullptr)
+inline void deepVectorClear(std::vector<bounded_vector<T>>& vec, std::pmr::memory_resource* mr = nullptr)
 {
   for (auto& v : vec) {
-    deepVectorClear(v, bmr);
+    deepVectorClear(v, mr);
   }
 }
 
 template <typename T, size_t S>
-void deepVectorClear(std::array<bounded_vector<T>, S>& arr, BoundedMemoryResource* bmr = nullptr)
+inline void deepVectorClear(std::array<bounded_vector<T>, S>& arr, std::pmr::memory_resource* mr = nullptr)
 {
   for (size_t i{0}; i < S; ++i) {
-    deepVectorClear(arr[i], bmr);
+    deepVectorClear(arr[i], mr);
   }
 }
 
 template <typename T>
-void clearResizeBoundedVector(bounded_vector<T>& vec, size_t size, BoundedMemoryResource* bmr, T def = T())
+inline void clearResizeBoundedVector(bounded_vector<T>& vec, size_t sz, std::pmr::memory_resource* mr = nullptr, T def = T())
 {
+  std::pmr::memory_resource* tmr = (mr != nullptr) ? mr : vec.get_allocator().resource();
   vec.~bounded_vector<T>();
-  new (&vec) bounded_vector<T>(size, def, bmr);
+  new (&vec) bounded_vector<T>(sz, def, std::pmr::polymorphic_allocator<T>{tmr});
 }
 
 template <typename T>
-void clearResizeBoundedVector(std::vector<bounded_vector<T>>& vec, size_t size, BoundedMemoryResource* bmr)
+inline void clearResizeBoundedVector(std::vector<bounded_vector<T>>& vec, size_t size, std::pmr::memory_resource* mr)
 {
   vec.clear();
   vec.reserve(size);
-  for (size_t i{0}; i < size; ++i) {
-    vec.emplace_back(bmr);
+  for (size_t i = 0; i < size; ++i) {
+    vec.emplace_back(std::pmr::polymorphic_allocator<bounded_vector<T>>{mr});
   }
 }
 
 template <typename T, size_t S>
-void clearResizeBoundedArray(std::array<bounded_vector<T>, S>& arr, size_t size, BoundedMemoryResource* bmr, T def = T())
+inline void clearResizeBoundedArray(std::array<bounded_vector<T>, S>& arr, size_t size, std::pmr::memory_resource* mr = nullptr, T def = T())
 {
   for (size_t i{0}; i < S; ++i) {
-    clearResizeBoundedVector(arr[i], size, bmr, def);
+    clearResizeBoundedVector(arr[i], size, mr, def);
   }
 }
 
 template <typename T>
-std::vector<T> toSTDVector(const bounded_vector<T>& b)
+inline std::vector<T> toSTDVector(const bounded_vector<T>& b)
 {
   std::vector<T> t(b.size());
   std::copy(b.cbegin(), b.cend(), t.begin());

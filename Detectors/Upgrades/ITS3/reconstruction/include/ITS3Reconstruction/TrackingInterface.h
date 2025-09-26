@@ -28,7 +28,7 @@ class ITS3TrackingInterface final : public its::ITSTrackingInterface
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  protected:
-  void loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+  void loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                gsl::span<const itsmft::CompClusterExt> clusters,
                gsl::span<const unsigned char>::iterator& pattIt,
                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels) final;

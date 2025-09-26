@@ -104,6 +104,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   size_t maxMemory = std::numeric_limits<size_t>::max();
   bool dropTFUponFailure = false;
   bool fataliseUponFailure = true; // granular management of the fatalisation in async mode
+  bool allowSharingFirstCluster = false; // allow first cluster sharing among tracks
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
