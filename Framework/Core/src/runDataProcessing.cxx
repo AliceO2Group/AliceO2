@@ -2202,8 +2202,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
         }
         break;
-      case DriverState::QUIT_REQUESTED:
-        LOG(info) << "QUIT_REQUESTED";
+      case DriverState::QUIT_REQUESTED: {
+        std::time_t result = std::time(nullptr);
+        char buffer[32];
+        std::strncpy(buffer, std::ctime(&result), 26);
+        O2_SIGNPOST_EVENT_EMIT_INFO(driver, sid, "mainloop", "Quit requested at %{public}s", buffer);
         guiQuitRequested = true;
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
@@ -2215,6 +2218,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         uv_timer_start(&force_step_timer, single_step_callback, 0, 300);
         driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
         break;
+      }
       case DriverState::HANDLE_CHILDREN: {
         // Run any pending libUV event loop, block if
         // any, so that we do not consume CPU time when the driver is
