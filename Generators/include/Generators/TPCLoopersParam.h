@@ -28,6 +28,7 @@ namespace eventgen
  ** allow the user to modify them
  **/
 struct GenTPCLoopersParam : public o2::conf::ConfigurableParamHelper<GenTPCLoopersParam> {
+  bool loopersVeto = false; // if true, no loopers are generated
   std::string model_pairs = "ccdb://Users/m/mgiacalo/WGAN_ExtGenPair";  // ONNX model for e+e- pair production
   std::string model_compton = "ccdb://Users/m/mgiacalo/WGAN_ExtGenCompton"; // ONNX model for Compton scattering
   std::string poisson = "${O2_ROOT}/share/Generators/egconfig/poisson_params.csv"; // file with Poissonian parameters
@@ -37,8 +38,8 @@ struct GenTPCLoopersParam : public o2::conf::ConfigurableParamHelper<GenTPCLoope
   bool flat_gas = true; // if true, the gas density is considered flat in the TPC volume
   int nFlatGasLoopers = 500;  // number of loopers to be generated per event in case of flat gas
   float fraction_pairs = 0.08; // fraction of loopers
-  std::array<float, 2> multiplier = {1., 1.}; // multiplier for pairs and compton loopers for Poissonian and Gaussian sampling
-  std::array<unsigned int, 2> fixedNLoopers = {1, 1}; // fixed number of loopers coming from pairs and compton electrons - valid if flat gas is false and both Poisson and Gaussian params files are empty
+  float multiplier[2] = {1., 1.}; // multiplier for pairs and compton loopers for Poissonian and Gaussian sampling
+  unsigned int fixedNLoopers[2] = {1, 1}; // fixed number of loopers coming from pairs and compton electrons - valid if flat gas is false and both Poisson and Gaussian params files are empty
   O2ParamDef(GenTPCLoopersParam, "GenTPCLoopers");
 };
 

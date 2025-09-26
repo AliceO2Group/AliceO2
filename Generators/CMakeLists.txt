@@ -67,7 +67,7 @@ if(HepMC3_FOUND)
 endif()
 
 if(onnxruntime_FOUND)
-  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_ONNXRUNTIME)
+  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_TPCLOOPERS)
 endif()
 
 set(headers
@@ -96,7 +96,7 @@ set(headers
     )
 
 if(onnxruntime_FOUND)
-  list(APPEND headers 
+  list(APPEND headers
               include/Generators/TPCLoopers.h
               include/Generators/TPCLoopersParam.h)
 endif()
