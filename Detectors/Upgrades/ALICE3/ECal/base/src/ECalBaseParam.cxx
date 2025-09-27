@@ -9,6 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ECalBase/ECalBaseParam.h"
+/// \file ECalBaseParam.cxx
+/// \brief Geometry parameters configurable via o2-sim --configKeyValues
+///
+/// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
+
+#include <ECalBase/ECalBaseParam.h>
 
 O2ParamImpl(o2::ecal::ECalBaseParam);

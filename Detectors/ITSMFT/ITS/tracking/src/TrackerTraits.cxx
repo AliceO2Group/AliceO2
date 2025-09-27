@@ -212,14 +212,10 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
           }
         });
 
-      tbb::parallel_for(
-        tbb::blocked_range<int>(0, mTrkParams[iteration].TrackletsPerRoad()),
-        [&](auto const& Layers) {
-          for (int iLayer{Layers.begin()}; iLayer < Layers.end(); ++iLayer) {
-            std::exclusive_scan(perROFCount[iLayer].begin(), perROFCount[iLayer].end(), perROFCount[iLayer].begin(), 0);
-            mTimeFrame->getTracklets()[iLayer].resize(perROFCount[iLayer].back());
-          }
-        });
+      tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
+        std::exclusive_scan(perROFCount[iLayer].begin(), perROFCount[iLayer].end(), perROFCount[iLayer].begin(), 0);
+        mTimeFrame->getTracklets()[iLayer].resize(perROFCount[iLayer].back());
+      });
 
       tbb::parallel_for(
         tbb::blocked_range2d<int, int>(0, mTrkParams[iteration].TrackletsPerRoad(), 1,
@@ -241,61 +237,53 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
         });
     }
 
-    tbb::parallel_for(
-      tbb::blocked_range<int>(0, mTrkParams[iteration].TrackletsPerRoad()),
-      [&](const tbb::blocked_range<int>& Layers) {
-        for (int iLayer = Layers.begin(); iLayer < Layers.end(); ++iLayer) {
-          /// Sort tracklets
-          auto& trkl{mTimeFrame->getTracklets()[iLayer]};
-          tbb::parallel_sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
-            if (a.firstClusterIndex != b.firstClusterIndex) {
-              return a.firstClusterIndex < b.firstClusterIndex;
-            }
-            return a.secondClusterIndex < b.secondClusterIndex;
-          });
-          /// Remove duplicates
-          trkl.erase(std::unique(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
-                       return a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex == b.secondClusterIndex;
-                     }),
-                     trkl.end());
-          trkl.shrink_to_fit();
-          if (iLayer > 0) { /// recalculate lut
-            auto& lut{mTimeFrame->getTrackletsLookupTable()[iLayer - 1]};
-            if (!trkl.empty()) {
-              for (const auto& tkl : trkl) {
-                lut[tkl.firstClusterIndex + 1]++;
-              }
-              std::inclusive_scan(lut.begin(), lut.end(), lut.begin());
-            }
-          }
+    tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
+      /// Sort tracklets
+      auto& trkl{mTimeFrame->getTracklets()[iLayer]};
+      tbb::parallel_sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
+        if (a.firstClusterIndex != b.firstClusterIndex) {
+          return a.firstClusterIndex < b.firstClusterIndex;
         }
+        return a.secondClusterIndex < b.secondClusterIndex;
       });
+      /// Remove duplicates
+      trkl.erase(std::unique(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
+                   return a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex == b.secondClusterIndex;
+                 }),
+                 trkl.end());
+      trkl.shrink_to_fit();
+      if (iLayer > 0) { /// recalculate lut
+        auto& lut{mTimeFrame->getTrackletsLookupTable()[iLayer - 1]};
+        if (!trkl.empty()) {
+          for (const auto& tkl : trkl) {
+            lut[tkl.firstClusterIndex + 1]++;
+          }
+          std::inclusive_scan(lut.begin(), lut.end(), lut.begin());
+        }
+      }
+    });
 
     /// Create tracklets labels
     if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
-      tbb::parallel_for(
-        tbb::blocked_range<int>(0, mTrkParams[iteration].TrackletsPerRoad()),
-        [&](const tbb::blocked_range<int>& Layers) {
-          for (int iLayer = Layers.begin(); iLayer < Layers.end(); ++iLayer) {
-            for (auto& trk : mTimeFrame->getTracklets()[iLayer]) {
-              MCCompLabel label;
-              int currentId{mTimeFrame->getClusters()[iLayer][trk.firstClusterIndex].clusterId};
-              int nextId{mTimeFrame->getClusters()[iLayer + 1][trk.secondClusterIndex].clusterId};
-              for (const auto& lab1 : mTimeFrame->getClusterLabels(iLayer, currentId)) {
-                for (const auto& lab2 : mTimeFrame->getClusterLabels(iLayer + 1, nextId)) {
-                  if (lab1 == lab2 && lab1.isValid()) {
-                    label = lab1;
-                    break;
-                  }
-                }
-                if (label.isValid()) {
-                  break;
-                }
+      tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
+        for (auto& trk : mTimeFrame->getTracklets()[iLayer]) {
+          MCCompLabel label;
+          int currentId{mTimeFrame->getClusters()[iLayer][trk.firstClusterIndex].clusterId};
+          int nextId{mTimeFrame->getClusters()[iLayer + 1][trk.secondClusterIndex].clusterId};
+          for (const auto& lab1 : mTimeFrame->getClusterLabels(iLayer, currentId)) {
+            for (const auto& lab2 : mTimeFrame->getClusterLabels(iLayer + 1, nextId)) {
+              if (lab1 == lab2 && lab1.isValid()) {
+                label = lab1;
+                break;
               }
-              mTimeFrame->getTrackletsLabel(iLayer).emplace_back(label);
+            }
+            if (label.isValid()) {
+              break;
             }
           }
-        });
+          mTimeFrame->getTrackletsLabel(iLayer).emplace_back(label);
+        }
+      });
     }
   });
 } // namespace o2::its
@@ -402,76 +390,60 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
       return foundCells;
     };
 
-    tbb::parallel_for(
-      tbb::blocked_range<int>(0, mTrkParams[iteration].CellsPerRoad()),
-      [&](const tbb::blocked_range<int>& Layers) {
-        for (int iLayer = Layers.begin(); iLayer < Layers.end(); ++iLayer) {
-          if (mTimeFrame->getTracklets()[iLayer + 1].empty() ||
-              mTimeFrame->getTracklets()[iLayer].empty()) {
-            continue;
+    tbb::parallel_for(0, mTrkParams[iteration].CellsPerRoad(), [&](const int iLayer) {
+      if (mTimeFrame->getTracklets()[iLayer + 1].empty() ||
+          mTimeFrame->getTracklets()[iLayer].empty()) {
+        return;
+      }
+
+      auto& layerCells = mTimeFrame->getCells()[iLayer];
+      const int currentLayerTrackletsNum{static_cast<int>(mTimeFrame->getTracklets()[iLayer].size())};
+      bounded_vector<int> perTrackletCount(currentLayerTrackletsNum + 1, 0, mMemoryPool.get());
+      if (mTaskArena->max_concurrency() <= 1) {
+        for (int iTracklet{0}; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
+          perTrackletCount[iTracklet] = forTrackletCells(PassMode::OnePass{}, iLayer, layerCells, iTracklet);
+        }
+        std::exclusive_scan(perTrackletCount.begin(), perTrackletCount.end(), perTrackletCount.begin(), 0);
+      } else {
+        tbb::parallel_for(0, currentLayerTrackletsNum, [&](const int iTracklet) {
+          perTrackletCount[iTracklet] = forTrackletCells(PassMode::TwoPassCount{}, iLayer, layerCells, iTracklet);
+        });
+
+        std::exclusive_scan(perTrackletCount.begin(), perTrackletCount.end(), perTrackletCount.begin(), 0);
+        auto totalCells{perTrackletCount.back()};
+        if (totalCells == 0) {
+          return;
+        }
+        layerCells.resize(totalCells);
+
+        tbb::parallel_for(0, currentLayerTrackletsNum, [&](const int iTracklet) {
+          int offset = perTrackletCount[iTracklet];
+          if (offset == perTrackletCount[iTracklet + 1]) {
+            return;
           }
+          forTrackletCells(PassMode::TwoPassInsert{}, iLayer, layerCells, iTracklet, offset);
+        });
+      }
 
-          auto& layerCells = mTimeFrame->getCells()[iLayer];
-          const int currentLayerTrackletsNum{static_cast<int>(mTimeFrame->getTracklets()[iLayer].size())};
-          bounded_vector<int> perTrackletCount(currentLayerTrackletsNum + 1, 0, mMemoryPool.get());
-          if (mTaskArena->max_concurrency() <= 1) {
-            for (int iTracklet{0}; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
-              perTrackletCount[iTracklet] = forTrackletCells(PassMode::OnePass{}, iLayer, layerCells, iTracklet);
-            }
-            std::exclusive_scan(perTrackletCount.begin(), perTrackletCount.end(), perTrackletCount.begin(), 0);
-          } else {
-            tbb::parallel_for(
-              tbb::blocked_range<int>(0, currentLayerTrackletsNum),
-              [&](const tbb::blocked_range<int>& Tracklets) {
-                for (int iTracklet = Tracklets.begin(); iTracklet < Tracklets.end(); ++iTracklet) {
-                  perTrackletCount[iTracklet] = forTrackletCells(PassMode::TwoPassCount{}, iLayer, layerCells, iTracklet);
-                }
-              });
+      if (iLayer > 0) {
+        auto& lut = mTimeFrame->getCellsLookupTable()[iLayer - 1];
+        lut.resize(currentLayerTrackletsNum + 1);
+        std::copy_n(perTrackletCount.begin(), currentLayerTrackletsNum + 1, lut.begin());
+      }
+    });
 
-            std::exclusive_scan(perTrackletCount.begin(), perTrackletCount.end(), perTrackletCount.begin(), 0);
-            auto totalCells{perTrackletCount.back()};
-            if (totalCells == 0) {
-              continue;
-            }
-            layerCells.resize(totalCells);
-
-            tbb::parallel_for(
-              tbb::blocked_range<int>(0, currentLayerTrackletsNum),
-              [&](const tbb::blocked_range<int>& Tracklets) {
-                for (int iTracklet = Tracklets.begin(); iTracklet < Tracklets.end(); ++iTracklet) {
-                  int offset = perTrackletCount[iTracklet];
-                  if (offset == perTrackletCount[iTracklet + 1]) {
-                    continue;
-                  }
-                  forTrackletCells(PassMode::TwoPassInsert{}, iLayer, layerCells, iTracklet, offset);
-                }
-              });
-          }
-
-          if (iLayer > 0) {
-            auto& lut = mTimeFrame->getCellsLookupTable()[iLayer - 1];
-            lut.resize(currentLayerTrackletsNum + 1);
-            std::copy_n(perTrackletCount.begin(), currentLayerTrackletsNum + 1, lut.begin());
-          }
+    /// Create cells labels
+    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
+      tbb::parallel_for(0, mTrkParams[iteration].CellsPerRoad(), [&](const int iLayer) {
+        mTimeFrame->getCellsLabel(iLayer).reserve(mTimeFrame->getCells()[iLayer].size());
+        for (const auto& cell : mTimeFrame->getCells()[iLayer]) {
+          MCCompLabel currentLab{mTimeFrame->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
+          MCCompLabel nextLab{mTimeFrame->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
+          mTimeFrame->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
         }
       });
+    }
   });
-
-  /// Create cells labels
-  if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
-    tbb::parallel_for(
-      tbb::blocked_range<int>(0, mTrkParams[iteration].CellsPerRoad()),
-      [&](const tbb::blocked_range<int>& Layers) {
-        for (int iLayer = Layers.begin(); iLayer < Layers.end(); ++iLayer) {
-          mTimeFrame->getCellsLabel(iLayer).reserve(mTimeFrame->getCells()[iLayer].size());
-          for (const auto& cell : mTimeFrame->getCells()[iLayer]) {
-            MCCompLabel currentLab{mTimeFrame->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
-            MCCompLabel nextLab{mTimeFrame->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
-            mTimeFrame->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
-          }
-        }
-      });
-  }
 }
 
 template <int nLayers>
@@ -554,13 +526,9 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
         }
       } else {
         bounded_vector<int> perCellCount(nCells + 1, 0, mMemoryPool.get());
-        tbb::parallel_for(
-          tbb::blocked_range<int>(0, nCells),
-          [&](const tbb::blocked_range<int>& Cells) {
-            for (int iCell = Cells.begin(); iCell < Cells.end(); ++iCell) {
-              perCellCount[iCell] = forCellNeighbour(PassMode::TwoPassCount{}, iCell);
-            }
-          });
+        tbb::parallel_for(0, nCells, [&](const int iCell) {
+          perCellCount[iCell] = forCellNeighbour(PassMode::TwoPassCount{}, iCell);
+        });
 
         std::exclusive_scan(perCellCount.begin(), perCellCount.end(), perCellCount.begin(), 0);
         int totalCellNeighbours = perCellCount.back();
@@ -570,17 +538,13 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
         }
         cellsNeighbours.resize(totalCellNeighbours);
 
-        tbb::parallel_for(
-          tbb::blocked_range<int>(0, nCells),
-          [&](const tbb::blocked_range<int>& Cells) {
-            for (int iCell = Cells.begin(); iCell < Cells.end(); ++iCell) {
-              int offset = perCellCount[iCell];
-              if (offset == perCellCount[iCell + 1]) {
-                continue;
-              }
-              forCellNeighbour(PassMode::TwoPassInsert{}, iCell, offset);
-            }
-          });
+        tbb::parallel_for(0, nCells, [&](const int iCell) {
+          int offset = perCellCount[iCell];
+          if (offset == perCellCount[iCell + 1]) {
+            return;
+          }
+          forCellNeighbour(PassMode::TwoPassInsert{}, iCell, offset);
+        });
       }
 
       if (cellsNeighbours.empty()) {
@@ -607,7 +571,7 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
         while (++it != cellsNeighbours.end() && it->nextCell == cellIdx) {
           maxLvl = std::max(maxLvl, it->level);
         }
-        o2::gpu::CAMath::AtomicMax(mTimeFrame->getCells()[iLayer + 1][cellIdx].getLevelPtr(), maxLvl);
+        mTimeFrame->getCells()[iLayer + 1][cellIdx].setLevel(maxLvl);
       }
     }
   });
@@ -718,13 +682,9 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
       }
     } else {
       bounded_vector<int> perCellCount(nCells + 1, 0, mMemoryPool.get());
-      tbb::parallel_for(
-        tbb::blocked_range<int>(0, nCells),
-        [&](const tbb::blocked_range<int>& Cells) {
-          for (int iCell = Cells.begin(); iCell < Cells.end(); ++iCell) {
-            perCellCount[iCell] = forCellNeighbours(PassMode::TwoPassCount{}, iCell);
-          }
-        });
+      tbb::parallel_for(0, nCells, [&](const int iCell) {
+        perCellCount[iCell] = forCellNeighbours(PassMode::TwoPassCount{}, iCell);
+      });
 
       std::exclusive_scan(perCellCount.begin(), perCellCount.end(), perCellCount.begin(), 0);
       auto totalNeighbours{perCellCount.back()};
@@ -734,17 +694,13 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
       updatedCellSeeds.resize(totalNeighbours);
       updatedCellsIds.resize(totalNeighbours);
 
-      tbb::parallel_for(
-        tbb::blocked_range<int>(0, nCells),
-        [&](const tbb::blocked_range<int>& Cells) {
-          for (int iCell = Cells.begin(); iCell < Cells.end(); ++iCell) {
-            int offset = perCellCount[iCell];
-            if (offset == perCellCount[iCell + 1]) {
-              continue;
-            }
-            forCellNeighbours(PassMode::TwoPassInsert{}, iCell, offset);
-          }
-        });
+      tbb::parallel_for(0, nCells, [&](const int iCell) {
+        int offset = perCellCount[iCell];
+        if (offset == perCellCount[iCell + 1]) {
+          return;
+        }
+        forCellNeighbours(PassMode::TwoPassInsert{}, iCell, offset);
+      });
     }
   });
 
@@ -762,19 +718,22 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
 template <int nLayers>
 void TrackerTraits<nLayers>::findRoads(const int iteration)
 {
-  CA_DEBUGGER(std::cout << "Finding roads, iteration " << iteration << std::endl);
-
+  bounded_vector<bounded_vector<int>> firstClusters(mTrkParams[iteration].NLayers, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
+  bounded_vector<bounded_vector<int>> sharedFirstClusters(mTrkParams[iteration].NLayers, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
+  firstClusters.resize(mTrkParams[iteration].NLayers);
+  sharedFirstClusters.resize(mTrkParams[iteration].NLayers);
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
-    CA_DEBUGGER(std::cout << "\t > Processing level " << startLevel << std::endl);
+
     auto seedFilter = [&](const auto& seed) {
       return seed.getQ2Pt() <= 1.e3 && seed.getChi2() <= mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5);
     };
+
     bounded_vector<CellSeedN> trackSeeds(mMemoryPool.get());
-    for (int startLayer{mTrkParams[iteration].CellsPerRoad() - 1}; startLayer >= startLevel - 1; --startLayer) {
+    for (int startLayer{mTrkParams[iteration].NeighboursPerRoad()}; startLayer >= startLevel - 1; --startLayer) {
       if ((mTrkParams[iteration].StartLayerMask & (1 << (startLayer + 2))) == 0) {
         continue;
       }
-      CA_DEBUGGER(std::cout << "\t\t > Starting processing layer " << startLayer << std::endl);
+
       bounded_vector<int> lastCellId(mMemoryPool.get()), updatedCellId(mMemoryPool.get());
       bounded_vector<CellSeedN> lastCellSeed(mMemoryPool.get()), updatedCellSeed(mMemoryPool.get());
 
@@ -844,13 +803,9 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
         }
       } else {
         bounded_vector<int> perSeedCount(nSeeds + 1, 0, mMemoryPool.get());
-        tbb::parallel_for(
-          tbb::blocked_range<int>(0, nSeeds),
-          [&](const tbb::blocked_range<int>& Seeds) {
-            for (int iSeed = Seeds.begin(); iSeed < Seeds.end(); ++iSeed) {
-              perSeedCount[iSeed] = forSeed(PassMode::TwoPassCount{}, iSeed);
-            }
-          });
+        tbb::parallel_for(0, nSeeds, [&](const int iSeed) {
+          perSeedCount[iSeed] = forSeed(PassMode::TwoPassCount{}, iSeed);
+        });
 
         std::exclusive_scan(perSeedCount.begin(), perSeedCount.end(), perSeedCount.begin(), 0);
         auto totalTracks{perSeedCount.back()};
@@ -859,16 +814,12 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
         }
         tracks.resize(totalTracks);
 
-        tbb::parallel_for(
-          tbb::blocked_range<int>(0, nSeeds),
-          [&](const tbb::blocked_range<int>& Seeds) {
-            for (int iSeed = Seeds.begin(); iSeed < Seeds.end(); ++iSeed) {
-              if (perSeedCount[iSeed] == perSeedCount[iSeed + 1]) {
-                continue;
-              }
-              forSeed(PassMode::TwoPassInsert{}, iSeed, perSeedCount[iSeed]);
-            }
-          });
+        tbb::parallel_for(0, nSeeds, [&](const int iSeed) {
+          if (perSeedCount[iSeed] == perSeedCount[iSeed + 1]) {
+            return;
+          }
+          forSeed(PassMode::TwoPassInsert{}, iSeed, perSeedCount[iSeed]);
+        });
       }
 
       deepVectorClear(trackSeeds);
@@ -880,15 +831,22 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
     for (auto& track : tracks) {
       int nShared = 0;
       bool isFirstShared{false};
+      int firstLayer{-1}, firstCluster{-1};
       for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
         if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
           continue;
         }
-        nShared += int(mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
-        isFirstShared |= !iLayer && mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer));
+        bool isShared = mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer));
+        nShared += int(isShared);
+        if (firstLayer < 0) {
+          firstCluster = track.getClusterIndex(iLayer);
+          isFirstShared = isShared && mTrkParams[0].AllowSharingFirstCluster && std::find(firstClusters[iLayer].begin(), firstClusters[iLayer].end(), firstCluster) != firstClusters[iLayer].end();
+          firstLayer = iLayer;
+        }
       }
 
-      if (nShared > mTrkParams[0].ClusterSharing) {
+      /// do not account for the first cluster in the shared clusters number if it is allowed
+      if (nShared - int(isFirstShared && mTrkParams[0].AllowSharingFirstCluster) > mTrkParams[0].ClusterSharing) {
         continue;
       }
 
@@ -917,6 +875,33 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
         track.setNextROFbit();
       }
       mTimeFrame->getTracks(o2::gpu::CAMath::Min(rofs[0], rofs[1])).emplace_back(track);
+
+      firstClusters[firstLayer].push_back(firstCluster);
+      if (isFirstShared) {
+        sharedFirstClusters[firstLayer].push_back(firstCluster);
+      }
+    }
+  }
+
+  /// Now we have to set the shared cluster flag
+  for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+    std::sort(sharedFirstClusters[iLayer].begin(), sharedFirstClusters[iLayer].end());
+  }
+
+  for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
+    for (auto& track : mTimeFrame->getTracks(iROF)) {
+      int firstLayer{mTrkParams[0].NLayers}, firstCluster{constants::UnusedIndex};
+      for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+        if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
+          continue;
+        }
+        firstLayer = iLayer;
+        firstCluster = track.getClusterIndex(iLayer);
+        break;
+      }
+      if (std::binary_search(sharedFirstClusters[firstLayer].begin(), sharedFirstClusters[firstLayer].end(), firstCluster)) {
+        track.setSharedClusters();
+      }
     }
   }
 }

@@ -194,6 +194,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.DropTFUponFailure = tc.dropTFUponFailure;
     p.SaveTimeBenchmarks = tc.saveTimeBenchmarks;
     p.FataliseUponFailure = tc.fataliseUponFailure;
+    p.AllowSharingFirstCluster = tc.allowSharingFirstCluster;
 
     if (tc.useMatCorrTGeo) {
       p.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo;

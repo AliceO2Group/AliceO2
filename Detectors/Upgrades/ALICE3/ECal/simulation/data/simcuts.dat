@@ -1,0 +1,14 @@
+* ECAL
+* ====
+*
+*     Med   GAM   ELEC   NHAD   CHAD   MUON   EBREM  MUHAB   EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL STRA
+* Air
+ECL    0   5.e-5  1.e-4  1.e-5  1.e-5  1.e-5  1.e-5  1.e-5  1.e-5  1.e-5  -1.   1     1     1     1     1     1     1     1     1     1     1    -1
+* Lead
+ECL    1   1.e-4  1.e-4  1.e-3  1.e-3  1.e-3  1.e-4  1.e-4  1.e-4  1.e-4  -1.   1     1     1     1     1     1     3     1     1     1     1    -1
+* Scintillator
+ECL    2   1.e-4  1.e-4  1.e-3  1.e-3  1.e-3  1.e-4  1.e-4  1.e-4  1.e-4  -1.   1     1     1     1     1     1     3     1     1     1     1    -1
+* Aluminium
+ECL    3   1.e-4  1.e-4  1.e-3  1.e-3  1.e-3  1.e-4  1.e-4  1.e-4  1.e-4  -1.   1     1     1     1     1     1     3     1     1     1     1    -1
+* PWO
+ECL    4   5.e-5  1.e-4  1.e-5  1.e-5  1.e-5  1.e-5  1.e-5  1.e-5  1.e-5  -1.   1     1     1     1     1     1     1     1     1     1     1    -1

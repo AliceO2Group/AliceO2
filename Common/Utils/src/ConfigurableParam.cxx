@@ -77,6 +77,30 @@ bool keyInTree(boost::property_tree::ptree* pt, const std::string& key)
   return reply;
 }
 
+// Convert a type info to the appropiate literal suffix
+std::string getLiteralSuffixFromType(const std::type_info& type)
+{
+  if (type == typeid(float)) {
+    return "f";
+  }
+  if (type == typeid(long double)) {
+    return "l";
+  }
+  if (type == typeid(unsigned int)) {
+    return "u";
+  }
+  if (type == typeid(unsigned long)) {
+    return "ul";
+  }
+  if (type == typeid(long long)) {
+    return "ll";
+  }
+  if (type == typeid(unsigned long long)) {
+    return "ull";
+  }
+  return "";
+}
+
 // ------------------------------------------------------------------
 
 void EnumRegistry::add(const std::string& key, const TDataMember* dm)
@@ -204,12 +228,42 @@ void ConfigurableParam::setValue(std::string const& key, std::string const& valu
     initialize();
   }
   assert(sPtree);
+  auto setValueImpl = [&](std::string const& value) {
+    sPtree->put(key, value);
+    auto changed = updateThroughStorageMapWithConversion(key, value);
+    if (changed != EParamUpdateStatus::Failed) {
+      sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+    }
+  };
   try {
     if (sPtree->get_optional<std::string>(key).is_initialized()) {
-      sPtree->put(key, valuestring);
-      auto changed = updateThroughStorageMapWithConversion(key, valuestring);
-      if (changed != EParamUpdateStatus::Failed) {
-        sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+      try {
+        // try first setting value without stripping a literal suffix
+        setValueImpl(valuestring);
+      } catch (...) {
+        // try second stripping the expected literal suffix value for fundamental types
+        auto iter = sKeyToStorageMap->find(key);
+        if (iter == sKeyToStorageMap->end()) {
+          std::cerr << "Error in setValue (string) key is not known\n";
+          return;
+        }
+        const auto expectedSuffix = getLiteralSuffixFromType(iter->second.first);
+        if (!expectedSuffix.empty()) {
+          auto valuestringLower = valuestring;
+          std::transform(valuestring.cbegin(), valuestring.cend(), valuestringLower.begin(), tolower);
+          if (valuestringLower.ends_with(expectedSuffix)) {
+            std::string strippedValue = valuestringLower.substr(0, valuestringLower.length() - expectedSuffix.length());
+            setValueImpl(strippedValue);
+          } else {
+            // check if it has a different suffix and throw
+            for (const auto& suffix : {"f", "l", "u", "ul", "ll", "ull"}) {
+              if (valuestringLower.ends_with(suffix) && suffix != expectedSuffix) {
+                throw std::invalid_argument("Wrong type suffix: expected " + expectedSuffix + " but got " + suffix);
+              }
+            }
+            throw; // just rethrow the original exception
+          }
+        }
       }
     }
   } catch (std::exception const& e) {

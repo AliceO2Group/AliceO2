@@ -9,6 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file GeometryTGeo.cxx
+/// \brief Class containing ECal volume naming patterns
+///
+/// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
+
 #include <ECalBase/GeometryTGeo.h>
 #include <TGeoManager.h>
 
@@ -19,7 +24,8 @@ namespace ecal
 std::unique_ptr<o2::ecal::GeometryTGeo> GeometryTGeo::sInstance;
 
 std::string GeometryTGeo::sVolumeName = "ECALV";
-std::string GeometryTGeo::sSensorName = "ECALSensor";
+std::string GeometryTGeo::sSectorName = "ECALSector";
+std::string GeometryTGeo::sModuleName = "ECALModule";
 
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache()
 {
@@ -57,9 +63,14 @@ GeometryTGeo* GeometryTGeo::Instance()
   return sInstance.get();
 }
 
-const char* GeometryTGeo::composeSymNameSensor()
+const char* GeometryTGeo::composeSymNameSector(int s)
 {
-  return Form("%s/%d", composeSymNameECal(), 0);
+  return Form("%s/%s_%d", composeSymNameECal(), getECalSectorPattern(), s);
+}
+
+const char* GeometryTGeo::composeSymNameModule(int s, int m)
+{
+  return Form("%s/%s_%d", composeSymNameSector(s), getECalModulePattern(), m);
 }
 
 } // namespace ecal

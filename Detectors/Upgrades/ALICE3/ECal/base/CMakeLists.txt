@@ -10,10 +10,14 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(ECalBase
-               SOURCES src/GeometryTGeo.cxx
+               SOURCES src/Geometry.cxx
+                       src/GeometryTGeo.cxx
                        src/ECalBaseParam.cxx
+                       src/Hit.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase)
 
 o2_target_root_dictionary(ECalBase
-               HEADERS include/ECalBase/GeometryTGeo.h
-                       include/ECalBase/ECalBaseParam.h)
+               HEADERS include/ECalBase/Geometry.h
+                       include/ECalBase/GeometryTGeo.h
+                       include/ECalBase/ECalBaseParam.h
+                       include/ECalBase/Hit.h)

@@ -54,7 +54,6 @@ float Vertexer<nLayers>::clustersToVertices(LogFunc logger)
       throw err;
     } else {
       LOGP(error, "Dropping this TF!");
-      mTimeFrame->resetTracklets();
     }
   };
 
