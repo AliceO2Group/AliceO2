@@ -92,6 +92,9 @@ struct GPUTPCGMMergerSortTracks_comp {
   {
     const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
+    if (a.OK() != b.OK()) {
+      return a.OK();
+    }
     if (a.CCE() != b.CCE()) {
       return a.CCE() > b.CCE();
     }
