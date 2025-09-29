@@ -203,12 +203,8 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     Merger.CheckCollectedTracks();
   }
 
-  uint32_t maxId = Merger.NMaxClusters();
-  if (maxId > Merger.NMaxClusters()) {
-    throw std::runtime_error("mNMaxClusters too small");
-  }
-  runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.SharedCount(), maxId * sizeof(*MergerShadow.SharedCount()));
-  runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.ClusterAttachment(), maxId * sizeof(*MergerShadow.ClusterAttachment()));
+  runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.SharedCount(), Merger.NClusters() * sizeof(*MergerShadow.SharedCount()));
+  runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.ClusterAttachment(), Merger.NClusters() * sizeof(*MergerShadow.ClusterAttachment()));
   runKernel<GPUTPCGMMergerPrepareForFit, 0>(GetGridAuto(0, deviceType));
   CondWaitEvent(waitForTransfer, &mEvents->single);
   runKernel<GPUTPCGMMergerSortTracksQPt>(GetGridAuto(0, deviceType));
@@ -238,6 +234,16 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   runKernel<GPUTPCGMMergerTrackFit>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), mergerSortTracks ? 1 : 0, 0);
   if (param().rec.tpc.rebuildTrackInFit) {
+    runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.HitWeights(), Merger.NClusters() * sizeof(*MergerShadow.HitWeights()));
+    runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::prepare>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), 0);
+    for (int32_t i = 0; i < param().rec.tpc.rebuildTrackInFitClusterCandidates; i++) {
+      runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::compute>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), i);
+      if (i + 1 < param().rec.tpc.rebuildTrackInFitClusterCandidates) {
+        runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::resolve1>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), i);
+      }
+    }
+    runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::resolve2>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), 0);
+    runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::resolveShared>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), 0);
     runKernel<GPUTPCGMMergerTrackFit>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), mergerSortTracks ? 1 : 0, 1);
   }
   runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));
@@ -276,7 +282,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
         GPUMemCpy(RecoStep::TPCMerging, Merger.MergedTracksdEdx(), MergerShadow.MergedTracksdEdx(), Merger.NMergedTracks() * sizeof(*Merger.MergedTracksdEdx()), outputStream, 0);
       }
       GPUMemCpy(RecoStep::TPCMerging, Merger.Clusters(), MergerShadow.Clusters(), Merger.NMergedTrackClusters() * sizeof(*Merger.Clusters()), outputStream, 0);
-      GPUMemCpy(RecoStep::TPCMerging, Merger.ClusterAttachment(), MergerShadow.ClusterAttachment(), Merger.NMaxClusters() * sizeof(*Merger.ClusterAttachment()), outputStream, 0);
+      GPUMemCpy(RecoStep::TPCMerging, Merger.ClusterAttachment(), MergerShadow.ClusterAttachment(), Merger.NClusters() * sizeof(*Merger.ClusterAttachment()), outputStream, 0);
     }
     if (GetProcessingSettings().outputSharedClusterMap) {
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputState(), outputStream, nullptr, waitEvent);
@@ -366,7 +372,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
 
   if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NMergedTrackClusters(), Merger.NClusters());
+    GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NMergedTrackClusters(), Merger.NSectorHits());
   }
   return 0;
 }

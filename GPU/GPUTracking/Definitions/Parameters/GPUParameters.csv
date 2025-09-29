@@ -52,6 +52,11 @@ GPUTPCGMMergerPrepareForFit_step2,256,,256,256,,,,,,256,256,256,,,,256
 GPUTPCGMMergerFinalize_step0,256,,,256,,,,,,,,,,,,256
 GPUTPCGMMergerFinalize_step1,256,,,256,,,,,,,,,,,,256
 GPUTPCGMMergerFinalize_step2,256,,,256,,,,,,,,,,,,256
+GPUTPCGMMergerHitWeights_prepare,256,,256,256,,,,,,256,256,256,,,,256
+GPUTPCGMMergerHitWeights_compute,256,,256,256,,,,,,256,256,256,,,,256
+GPUTPCGMMergerHitWeights_resolve1,256,,256,256,,,,,,256,256,256,,,,256
+GPUTPCGMMergerHitWeights_resolve2,256,,256,256,,,,,,256,256,256,,,,256
+GPUTPCGMMergerHitWeights_resolveShared,256,,256,256,,,,,,256,256,256,,,,256
 GPUTPCGMMergerMergeLoopers_step0,256,,,,,,,,,,,,,,,256
 GPUTPCGMMergerMergeLoopers_step1,256,,,,,,,,,,,,,,,256
 GPUTPCGMMergerMergeLoopers_step2,256,,,,,,,,,,,,,,,256
