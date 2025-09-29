@@ -173,9 +173,8 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
     }
     out << "\n";
   }
-  uint32_t maxId = mNMaxClusters;
   uint32_t j = 0;
-  for (uint32_t i = 0; i < maxId; i++) {
+  for (uint32_t i = 0; i < mNClusters; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
       if (++j % 10 == 0) {
         out << "    Cluster attachment ";
@@ -237,9 +236,8 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
     }
     out << "\n";
   }
-  uint32_t maxId = mNMaxClusters;
   uint32_t j = 0;
-  for (uint32_t i = 0; i < maxId; i++) {
+  for (uint32_t i = 0; i < mNClusters; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
       if (++j % 10 == 0) {
         out << "    Cluster attachment ";

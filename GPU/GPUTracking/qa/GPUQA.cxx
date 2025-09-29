@@ -1822,7 +1822,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
   }
 
-  uint32_t nCl = clNative ? clNative->nClustersTotal : mTracking->GetProcessors()->tpcMerger.NMaxClusters();
+  uint32_t nCl = clNative ? clNative->nClustersTotal : mTracking->GetProcessors()->tpcMerger.NClusters();
   mClusterCounts.nTotal += nCl;
   if (mQATasks & (taskClusterCounts | taskClusterRejection)) {
     for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {

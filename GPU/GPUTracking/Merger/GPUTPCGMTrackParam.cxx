@@ -137,26 +137,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       // CADEBUG(if ((uint32_t)merger->GetTrackingChain()->mIOPtrs.nMCLabelsTPC > clusters[ihit].num))
       // CADEBUG({printf(" MC:"); for (int32_t i = 0; i < 3; i++) {int32_t mcId = merger->GetTrackingChain()->mIOPtrs.mcLabelsTPC[clusters[ihit].num].fClusterID[i].fMCID; if (mcId >= 0) printf(" %d", mcId); } } printf("\n"));
       // clang-format on
-      if (rebuilt && merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + clusters[ihit].row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + 0].id > 0) {
-        while (true) {
-          if (!(ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].row == clusters[ihit + wayDirection].row && clusters[ihit].sector == clusters[ihit + wayDirection].sector)) {
-            break;
-          }
-        }
-        const auto& interHit = merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + clusters[ihit].row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + 0];
-        if (interHit.id == 1) {
-          nMissed++;
-          nMissed2++;
-          continue;
-        }
-        const ClusterNative& GPUrestrict() cl = merger -> GetConstantMem()->ioPtrs.clustersNative->clustersLinear[interHit.id - 2];
-        merger->GetConstantMem()->calibObjects.fastTransformHelper->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);
-        if (interHit.id - 2 == clusters[ihit].num) {
-          clusterState = clusters[ihit].state;
-        } else {
-          clusterState = cl.getFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags;
-        }
-      } else if (MergeDoubleRowClusters(ihit, wayDirection, clusters, merger, prop, xx, yy, zz, maxN, clAlpha, clusterState, !param.rec.tpc.rebuildTrackInFit && allowChangeClusters) == -1) {
+      if (MergeDoubleRowClusters(ihit, wayDirection, clusters, merger, prop, xx, yy, zz, maxN, clAlpha, clusterState, !param.rec.tpc.rebuildTrackInFit && allowChangeClusters) == -1) {
         nMissed++;
         nMissed2++;
         continue;
@@ -228,7 +209,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         GPUglobalref() const cahit2* hits = tracker.HitData(row);
         GPUglobalref() const calink* firsthit = tracker.FirstHitInBin(row);
         if (row.NHits() && inter.errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
-          const float zOffset = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(cluster.sector, mTOffset, param.continuousMaxTimeBin);
+          const float zOffset = param.par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(cluster.sector, mTOffset, param.continuousMaxTimeBin) : 0;
           const float y0 = row.Grid().YMin();
           const float stepY = row.HstepY();
           const float z0 = row.Grid().ZMin() - zOffset; // We can use our own ZOffset, since this is only used temporarily anyway
@@ -304,13 +285,14 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
                       for (int32_t c = CAMath::Min(nCandidates, param.rec.tpc.rebuildTrackInFitClusterCandidates - 1); c > insert; c--) {
                         merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + c] = merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + c - 1];
                       }
-                      merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + insert] = {.id = (uint32_t)(idOffset + ids[ih] + 2), .row = cluster.row, .sector = cluster.sector, .error = err};
+                      merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + insert] = {.id = (uint32_t)(idOffset + ids[ih] + 2), .row = cluster.row, .sector = cluster.sector, .error = err, .weight = 0, .best = 0};
                       nCandidates += (nCandidates < param.rec.tpc.rebuildTrackInFitClusterCandidates);
                     }
                   }
                 }
               }
             }
+            CADEBUG(const auto* dbgCand = &merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates]; for (int dbgi = 0; dbgi < nCandidates; dbgi++) { if (dbgCand[dbgi].id > 1) printf("iTrk %d Row %d Hit %d Candidate %d hit %d err %f\n", iTrk, (int)cluster.row, cluster.num, dbgi, dbgCand[dbgi].id - 2, dbgCand[dbgi].error); else break; });
           }
           if (nCandidates == 0) {
             merger->ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + 0].id = 1;
@@ -1043,9 +1025,13 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
 
   CADEBUG(if (t.GetX() > 250) { printf("ERROR, Track %d at impossible X %f, Pt %f, Looper %d\n", iTrk, t.GetX(), CAMath::Abs(1.f / t.QPt()), (int32_t)merger->MergedTracks()[iTrk].Looper()); });
 
-  track.SetOK(ok);
-  track.Param() = t;
-  track.Alpha() = Alpha;
+  track.SetOK(ok); // TODO: Should we recover tracks who failed the fit in iWay0/1 for the rebuild?
+  if (t.GetNDF() <= 0 && !rebuilt && merger->Param().rec.tpc.rebuildTrackInFit) { // TODO: Better handling of NDF<0 tracks, how do we want to do cluster rejection?
+    track.Param().NDF() = 0;
+  } else {
+    track.Param() = t;
+    track.Alpha() = Alpha;
+  }
   if (!merger->Param().rec.tpc.rebuildTrackInFit || rebuilt) {
     track.SetNClustersFitted(nTrackHits);
   }

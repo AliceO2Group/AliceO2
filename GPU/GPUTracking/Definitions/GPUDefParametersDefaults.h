@@ -64,6 +64,11 @@
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_prepare 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_compute 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve1 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve2 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolveShared 256
     #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 128, 1
     #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512, 2
     #define GPUCA_LB_GPUTPCDecompressionKernels_step0attached 128, 2
@@ -193,6 +198,11 @@
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_prepare 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_compute 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve1 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve2 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolveShared 256
     #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 64, 2
     #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512, 3
     #define GPUCA_LB_GPUTPCDecompressionKernels_step0attached 32, 1
@@ -255,6 +265,11 @@
     #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
     #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_prepare 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_compute 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve1 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve2 256
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolveShared 256
     #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 128
     #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512, 2
     #define GPUCA_LB_GPUTPCDecompressionKernels_step0attached 32, 1
@@ -424,6 +439,21 @@
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step2
     #define GPUCA_LB_GPUTPCGMMergerFinalize_step2 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerHitWeights_prepare
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_prepare 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerHitWeights_compute
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_compute 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerHitWeights_resolve1
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve1 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerHitWeights_resolve2
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolve2 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerHitWeights_resolveShared
+    #define GPUCA_LB_GPUTPCGMMergerHitWeights_resolveShared 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers_step0
     #define GPUCA_LB_GPUTPCGMMergerMergeLoopers_step0 256
