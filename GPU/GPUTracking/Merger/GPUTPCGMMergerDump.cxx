@@ -192,7 +192,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
   out << "  Track Clusters";
   DumpTrackClusters(out);
   uint32_t j = 0;
-  for (uint32_t i = 0; i < mNMaxClusters; i++) {
+  for (uint32_t i = 0; i < mNClusters; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
       if (j++ % 10 == 0) {
         out << "\n    Cluster attachment ";
@@ -241,7 +241,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
   out << "Track Clusters\n";
   DumpTrackClusters(out, true);
   uint32_t j = 0;
-  for (uint32_t i = 0; i < mNMaxClusters; i++) {
+  for (uint32_t i = 0; i < mNClusters; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
       if (++j % 10 == 0) {
         out << "    Cluster attachment ";

@@ -180,6 +180,19 @@ class GPUTPCGMMergerMergeLoopers : public GPUTPCGMMergerGeneral
   GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
 };
 
+class GPUTPCGMMergerHitWeights : public GPUTPCGMMergerGeneral
+{
+ public:
+  enum K { defaultKernel = 0,
+           prepare = 0,
+           compute = 1,
+           resolve1 = 2,
+           resolve2 = 3,
+           resolveShared = 4 };
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger, int32_t iteration);
+};
+
 } // namespace o2::gpu
 
 #endif
