@@ -187,8 +187,8 @@ void GPUChainTracking::PrintMemoryRelations()
     GPUInfo("MEMREL SectorTrackHits NCl %d NTrkH %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTrackHits());
   }
   if (processors()->tpcMerger.Memory()) {
-    GPUInfo("MEMREL Tracks NCl %d NTrk %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NMergedTracks());
-    GPUInfo("MEMREL TrackHitss NCl %d NTrkH %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NMergedTrackClusters());
+    GPUInfo("MEMREL Tracks NCl %d NTrk %d", processors()->tpcMerger.NClusters(), processors()->tpcMerger.NMergedTracks());
+    GPUInfo("MEMREL TrackHitss NCl %d NTrkH %d", processors()->tpcMerger.NClusters(), processors()->tpcMerger.NMergedTrackClusters());
   }
 }
 
@@ -217,7 +217,7 @@ void GPUChainTracking::PrintKernelDebugOutput()
 void GPUChainTracking::PrintOutputStat()
 {
   int32_t nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
-  uint32_t nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : processors()->tpcMerger.NMaxClusters();
+  uint32_t nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : processors()->tpcMerger.NClusters();
   if (GetProcessingSettings().createO2Output > 1) {
     nTracks = mIOPtrs.nOutputTracksTPCO2;
     nAttachedClusters = mIOPtrs.nMergedTrackHits;
