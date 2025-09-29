@@ -2052,6 +2052,24 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     int totalNParts = 0;
     for (int iCol = 0; iCol < nMCCollisions; iCol++) {
       totalNParts += mcParts[iCol].size();
+
+      // if signal filtering enabled, let's check if there are more than one source; otherwise fatalise
+      if (mUseSigFiltMC) {
+        std::vector<int> sourceIDs{};
+        auto& colParts = mcParts[iCol];
+        for (auto colPart : colParts) {
+          int sourceID = colPart.sourceID;
+          if (std::find(sourceIDs.begin(), sourceIDs.end(), sourceID) == sourceIDs.end()) {
+            sourceIDs.push_back(sourceID);
+          }
+          if (sourceIDs.size() > 1) { // we found more than one, exit
+            break;
+          }
+        }
+        if (sourceIDs.size() <= 1) {
+          LOGP(fatal, "Signal filtering cannot be enabled without embedding. Please fix the configuration either enabling the embedding, or turning off the signal filtering.");
+        }
+      }
     }
     mcCollisionsCursor.reserve(totalNParts);
 
