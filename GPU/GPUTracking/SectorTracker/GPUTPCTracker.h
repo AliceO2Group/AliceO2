@@ -162,8 +162,11 @@ class GPUTPCTracker : public GPUProcessor
   GPUdi() static int32_t CalculateHitWeight(int32_t NHits, float chi2)
   {
     float weight = NHits * (NHits * 2 - 5) * 128 / chi2; // TODO: Add QPt to this formula
-    if (weight < 0.f || weight > 2e9f) {
+    if (weight < 0.f) {
       return 0;
+    }
+    if (weight > 2e9f) {
+      return 2e9f;
     }
     return ((int32_t)weight);
   }

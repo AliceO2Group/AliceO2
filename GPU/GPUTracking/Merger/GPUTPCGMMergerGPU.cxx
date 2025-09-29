@@ -214,3 +214,34 @@ GPUdii() void GPUTPCGMMergerMergeLoopers::Thread<2>(int32_t nBlocks, int32_t nTh
 {
   merger.MergeLoopersMain(nBlocks, nThreads, iBlock, iThread);
 }
+
+template <>
+GPUdii() void GPUTPCGMMergerHitWeights::Thread<GPUTPCGMMergerHitWeights::prepare>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iteration)
+{
+  merger.PrepareHitWeights(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerHitWeights::Thread<GPUTPCGMMergerHitWeights::compute>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iteration)
+{
+  merger.ComputeHitWeights(nBlocks, nThreads, iBlock, iThread, iteration);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerHitWeights::Thread<GPUTPCGMMergerHitWeights::resolve1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iteration)
+{
+  merger.ResolveHitWeights1(nBlocks, nThreads, iBlock, iThread, iteration);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerHitWeights::Thread<GPUTPCGMMergerHitWeights::resolve2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iteration)
+{
+  merger.ResolveHitWeights2(nBlocks, nThreads, iBlock, iThread);
+}
+
+
+template <>
+GPUdii() void GPUTPCGMMergerHitWeights::Thread<GPUTPCGMMergerHitWeights::resolveShared>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iteration)
+{
+  merger.ResolveHitWeightsShared(nBlocks, nThreads, iBlock, iThread);
+}
