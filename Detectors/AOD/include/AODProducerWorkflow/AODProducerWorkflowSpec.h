@@ -243,6 +243,7 @@ class AODProducerWorkflowDPL : public Task
 
   int mNThreads = 1;
   bool mUseMC = true;
+  bool mUseSigFiltMC = false; // enable signal filtering for MC with embedding
   bool mEnableSV = true; // enable secondary vertices
   bool mFieldON = false;
   const float cSpeed = 0.029979246f; // speed of light in TOF units
