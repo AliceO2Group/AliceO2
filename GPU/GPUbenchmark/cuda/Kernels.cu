@@ -304,6 +304,7 @@ void printDeviceProp(int32_t deviceId)
   int32_t clockRateKHz = 0;
   int32_t memoryClockRateKHz = 0;
   int32_t computeMode = 0;
+  int32_t cooperativeMultiDevice = 0;
 
 #if (CUDART_VERSION >= 13000)
   GPUCHECK(cudaDeviceGetAttribute(&clockRateKHz, cudaDevAttrClockRate, deviceId));
