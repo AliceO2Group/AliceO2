@@ -256,6 +256,7 @@ class AODProducerWorkflowDPL : public Task
 
   int mNThreads = 1;
   bool mUseMC = true;
+  bool mUseSigFiltMC = false; // enable signal filtering for MC with embedding
   bool mEnableSV = true; // enable secondary vertices
   bool mEnableFITextra = false;
   bool mFieldON = false;
