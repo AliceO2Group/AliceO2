@@ -55,13 +55,8 @@ function(o2_target_root_dictionary baseTargetName)
                         1
                         A
                         ""
-                        "LINKDEF"
+                        "LINKDEF;EXTRA_PATCH"
                         "HEADERS")
-
-  if(A_UNPARSED_ARGUMENTS)
-    message(
-      FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
-  endif()
 
   if(${ARGC} LESS 1)
     message(
@@ -96,6 +91,13 @@ function(o2_target_root_dictionary baseTargetName)
 
   # now that we have the O2 specific stuff computed, delegate the actual work to
   # the add_root_dictionary function
-  add_root_dictionary(${target} HEADERS ${A_HEADERS} LINKDEF ${A_LINKDEF})
+if(NOT A_EXTRA_PATCH)
+    add_root_dictionary(${target} HEADERS ${A_HEADERS} LINKDEF ${A_LINKDEF})
+else()
+    add_root_dictionary(${target}
+                        EXTRA_PATCH ${A_EXTRA_PATCH}
+                        HEADERS ${A_HEADERS}
+                        LINKDEF ${A_LINKDEF})
+endif()
 
 endfunction()
