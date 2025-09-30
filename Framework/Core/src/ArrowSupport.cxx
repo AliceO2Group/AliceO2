@@ -399,7 +399,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          }
                          if (forwarded) {
                            O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
-                                                  "Message %{public}.4s/%{public}16.s is forwarded so we are not returning its memory.",
+                                                  "Message %{public}.4s/%{public}.16s is forwarded so we are not returning its memory.",
                                                   dh->dataOrigin.str, dh->dataDescription.str);
                            continue;
                          }
