@@ -118,7 +118,7 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int32_t padRow, uint
   const float tanTheta = CAMath::Sqrt(tgl2 * sec2);
 
   // getting the topology correction
-  const uint32_t padPos = CAMath::Max<uint32_t>(GPUTPCGeometry::NPads(padRow) - 1, CAMath::Float2UIntRn(pad)); // position of the pad is shifted half a pad ( pad=3 -> centre position of third pad)
+  const uint32_t padPos = CAMath::Min<uint32_t>(GPUTPCGeometry::NPads(padRow) - 1, CAMath::Float2UIntRn(pad)); // position of the pad is shifted half a pad ( pad=3 -> centre position of third pad)
   const float absRelPad = CAMath::Abs(pad - padPos);
   const int32_t region = geo.GetRegion(padRow);
   z = CAMath::Abs(z);
