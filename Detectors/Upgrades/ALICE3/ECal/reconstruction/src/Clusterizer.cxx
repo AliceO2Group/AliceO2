@@ -133,13 +133,14 @@ void Clusterizer::findClusters(const gsl::span<const Digit>& digits, std::vector
 void Clusterizer::addDigitToCluster(Cluster& cluster, int row, int col, const gsl::span<const Digit>& digits)
 {
   auto& geo = Geometry::instance();
-  if (row < 0 || row >= geo.getNrows() || col < 0 || col >= geo.getNcols())
+  if (row < 0 || row >= geo.getNrows() || col < 0 || col >= geo.getNcols()) {
     return;
+  }
   int digitIndex = mDigitIndices[row][col];
   LOGP(debug, "    checking row={} and col={} digitIndex={}", row, col, digitIndex);
-  if (digitIndex < 0)
+  if (digitIndex < 0) {
     return;
-
+  }
   const Digit& digit = digits[digitIndex];
   if (cluster.getMultiplicity() > 0) {
     // check if new digit is in the same chamber and sector
@@ -147,8 +148,9 @@ void Clusterizer::addDigitToCluster(Cluster& cluster, int row, int col, const gs
     auto [sector1, ch1] = geo.getSectorChamber(digit.getTower());
     auto [sector2, ch2] = geo.getSectorChamber(digit2.getTower());
     LOGP(debug, "    checking if sector and chamber are the same: ({},{}) ({},{})", sector1, ch1, sector2, ch2);
-    if (sector1 != sector2 || ch1 != ch2)
+    if (sector1 != sector2 || ch1 != ch2) {
       return;
+    }
   }
 
   mDigitIndices[row][col] = -1;
@@ -179,11 +181,13 @@ void Clusterizer::makeClusters(const gsl::span<const Digit>& digits, std::vector
     auto [row, col] = geo.globalRowColFromIndex(digit.getTower());
     bool isCrystal = geo.isCrystal(digit.getTower());
     if (isCrystal) {
-      if (digit.getEnergy() < mCrystalDigitThreshold)
+      if (digit.getEnergy() < mCrystalDigitThreshold) {
         continue;
+      }
     } else {
-      if (digit.getEnergy() < mSamplingDigitThreshold)
+      if (digit.getEnergy() < mSamplingDigitThreshold) {
         continue;
+      }
     }
     mDigitIndices[row][col] = i;
   }
@@ -192,10 +196,12 @@ void Clusterizer::makeClusters(const gsl::span<const Digit>& digits, std::vector
   for (int i = 0; i < nDigits; i++) {
     const Digit& digitSeed = digits[i];
     auto [row, col] = geo.globalRowColFromIndex(digitSeed.getTower());
-    if (mDigitIndices[row][col] < 0)
+    if (mDigitIndices[row][col] < 0) {
       continue; // digit was already added in one of the clusters
-    if (digitSeed.getEnergy() < mClusteringThreshold)
+    }
+    if (digitSeed.getEnergy() < mClusteringThreshold) {
       continue;
+    }
     LOGP(debug, "  starting new cluster at row={} and col={}", row, col);
     auto& cluster = clusters.emplace_back();
     addDigitToCluster(cluster, row, col, digits);
@@ -382,8 +388,9 @@ void Clusterizer::evalClusters(std::vector<Cluster>& clusters)
       double xi, yi, zi;
       geo.detIdToGlobalPosition(towerId, xi, yi, zi);
       double r = std::sqrt((x - xi) * (x - xi) + (y - yi) * (y - yi) + (z - zi) * (z - zi));
-      if (r > 2.2)
+      if (r > 2.2) {
         continue;
+      }
       double frac = fCrystalShowerShape->Eval(r);
       double rms = fCrystalRMS->Eval(r);
       chi2 += std::pow((energy / ee - frac) / rms, 2.);
@@ -409,10 +416,10 @@ void Clusterizer::evalClusters(std::vector<Cluster>& clusters)
     bool isEdge = 0;
     for (size_t i = 0; i < cluster.getMultiplicity(); i++) {
       int towerId = cluster.getDigitTowerId(i);
-      if (!geo.isAtTheEdge(towerId))
-        continue;
-      isEdge = 1;
-      break;
+      if (geo.isAtTheEdge(towerId)) {
+        isEdge = 1;
+        break;
+      }
     }
     cluster.setEdgeFlag(isEdge);
 
@@ -434,8 +441,9 @@ int Clusterizer::getNumberOfLocalMax(Cluster& clu, int* maxAt, float* maxAtEnerg
   for (int i = 0; i < n; i++) {
     isLocalMax[i] = false;
     float en1 = clu.getDigitEnergy(i);
-    if (en1 > mClusteringThreshold)
+    if (en1 > mClusteringThreshold) {
       isLocalMax[i] = true;
+    }
   }
 
   for (int i = 0; i < n; i++) {

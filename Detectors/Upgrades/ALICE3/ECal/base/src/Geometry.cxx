@@ -82,8 +82,9 @@ double Geometry::getFrontFaceMaxEta(int i)
 //==============================================================================
 void Geometry::fillFrontFaceCenterCoordinates()
 {
-  if (mFrontFaceCenterR.size() > 0)
+  if (mFrontFaceCenterR.size() > 0) {
     return;
+  }
   mFrontFaceCenterTheta.resize(mNCrystalModulesZ + mNSamplingModulesZ);
   mFrontFaceZatMinR.resize(mNCrystalModulesZ + mNSamplingModulesZ);
   mFrontFaceCenterR.resize(mNCrystalModulesZ + mNSamplingModulesZ);
@@ -232,10 +233,12 @@ int Geometry::areNeighboursVertex(int detId1, int detId2) const
   int ch2, sector2, iphi2, iz2;
   detIdToRelIndex(detId1, ch1, sector1, iphi1, iz1);
   detIdToRelIndex(detId2, ch2, sector2, iphi2, iz2);
-  if (sector1 != sector2 || ch1 != ch2)
+  if (sector1 != sector2 || ch1 != ch2) {
     return 0;
-  if (std::abs(iphi1 - iphi2) <= 1 && std::abs(iz1 - iz2) <= 1)
+  }
+  if (std::abs(iphi1 - iphi2) <= 1 && std::abs(iz1 - iz2) <= 1) {
     return 1;
+  }
   return 0;
 }
 
@@ -243,29 +246,32 @@ int Geometry::areNeighboursVertex(int detId1, int detId2) const
 bool Geometry::isAtTheEdge(int cellId)
 {
   auto [row, col] = globalRowColFromIndex(cellId);
-  if (col == 0)
+  if (col == 0) {
     return 1;
-  if (col == mNSamplingModulesZ)
+  } else if (col == mNSamplingModulesZ) {
     return 1;
-  if (col == mNSamplingModulesZ - 1)
+  } else if (col == mNSamplingModulesZ - 1) {
     return 1;
-  if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ)
+  } else if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ) {
     return 1;
-  if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ - 1)
+  } else if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ - 1) {
     return 1;
-  if (col == mNModulesZ - 1)
+  } else if (col == mNModulesZ - 1) {
     return 1;
+  }
   for (int m = 0; m <= mNSuperModules; m++) {
     if (isCrystal(cellId)) {
-      if (row == m * mNCrystalModulesPhi)
+      if (row == m * mNCrystalModulesPhi) {
         return 1;
-      if (row == m * mNCrystalModulesPhi - 1)
+      } else if (row == m * mNCrystalModulesPhi - 1) {
         return 1;
+      }
     } else {
-      if (row == m * mNSamplingModulesPhi)
+      if (row == m * mNSamplingModulesPhi) {
         return 1;
-      if (row == m * mNSamplingModulesPhi - 1)
+      } else if (row == m * mNSamplingModulesPhi - 1) {
         return 1;
+      }
     }
   }
   return 0;
