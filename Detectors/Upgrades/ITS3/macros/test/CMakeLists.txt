@@ -12,7 +12,6 @@
 its3_add_macro(CheckDigitsITS3.C)
 its3_add_macro(CheckClustersITS3.C)
 its3_add_macro(CheckTracksITS3.C)
-its3_add_macro(CheckDCA.C)
 its3_add_macro(CreateDictionariesITS3.C)
 its3_add_macro(buildMatBudLUT.C)
 its3_add_macro(CheckHits.C)
