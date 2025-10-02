@@ -102,9 +102,9 @@ constexpr double lengthSensitive{nRSUs * rsu::length};
 namespace carbonfoam
 {
 // TODO: Waiting for the further information from WP5(Corrado)
-constexpr double longeronsWidth{2.0 * mm};                                 // what is the height of the longerons?
-constexpr double longeronsLength{263 * mm};                                // from blueprint
 constexpr double HringLength{6.0 * mm};                                    // from blueprint
+constexpr double longeronsWidth{2.0 * mm};                                 // what is the height of the longerons?
+constexpr double longeronsLength{segment::length - 2 * HringLength};       // 263mm from blueprint; overrriden to be consitent
 constexpr double edgeBetwChipAndFoam{1.0 * mm};                            // from blueprint but not used cause forms are already overlapping
 constexpr double gapBetwHringsLongerons{0.05 * mm};                        // from blueprint
 constexpr std::array<int, 3> nHoles{11, 11, 11};                           // how many holes for each layer?

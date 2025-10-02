@@ -312,8 +312,8 @@ void ITS3Layer::createCarbonForm()
   auto zMoveHringA = new TGeoTranslation(0, 0, -constants::segment::lec::length + HringLength / 2. + constants::segment::length - HringLength);
 
   // Longerons are made by same material
-  [[maybe_unused]] auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiSta, phiSta + phiLongeronsCover);
-  [[maybe_unused]] auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiEnd - phiLongeronsCover, phiEnd);
+  [[maybe_unused]] auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2., phiSta, phiSta + phiLongeronsCover);
+  [[maybe_unused]] auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2., phiEnd - phiLongeronsCover, phiEnd);
   TString nameLongerons = Form("longeronR%d + longeronL%d", mNLayer, mNLayer);
   auto longerons = new TGeoCompositeShape(nameLongerons);
   auto longeronsVol = new TGeoVolume(Form("longerons%d", mNLayer), longerons, mCarbon);
