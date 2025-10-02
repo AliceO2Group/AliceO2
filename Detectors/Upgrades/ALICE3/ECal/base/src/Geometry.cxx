@@ -73,6 +73,12 @@ double Geometry::getSamplingPhiMin()
   return (superModuleDeltaPhi - samplingDeltaPhi * mNSamplingModulesPhi) / 2.;
 }
 
+double Geometry::getFrontFaceMaxEta(int i)
+{
+  double theta = std::atan(mRMin / getFrontFaceZatMinR(i));
+  return -std::log(std::tan(theta / 2.));
+}
+
 //==============================================================================
 void Geometry::fillFrontFaceCenterCoordinates()
 {
@@ -153,7 +159,7 @@ int Geometry::getCellID(int moduleId, int sectorId, bool isCrystal)
     if (sectorId % 2 == 0) { // sampling at positive eta
       cellID = sectorId / 2 * mNModulesZ + moduleId + mNSamplingModulesZ + mNCrystalModulesZ * 2;
     } else { // sampling at negative eta
-      cellID = sectorId / 2 * mNModulesZ - moduleId + mNSamplingModulesZ;
+      cellID = sectorId / 2 * mNModulesZ - moduleId + mNSamplingModulesZ - 1;
     }
   }
   return cellID;
@@ -206,13 +212,15 @@ void Geometry::detIdToGlobalPosition(int detId, double& x, double& y, double& z)
 {
   int chamber, sector, iphi, iz;
   detIdToRelIndex(detId, chamber, sector, iphi, iz);
+  double r = 0;
   if (iz < mNSamplingModulesZ + mNCrystalModulesZ) {
     z = -mFrontFaceCenterZ[mNSamplingModulesZ + mNCrystalModulesZ - iz - 1];
+    r = mFrontFaceCenterR[mNSamplingModulesZ + mNCrystalModulesZ - iz - 1];
   } else {
-    z = +mFrontFaceCenterZ[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
+    z = mFrontFaceCenterZ[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
+    r = mFrontFaceCenterR[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
   }
   double phi = chamber == 1 ? mFrontFaceCenterCrystalPhi[iphi] : mFrontFaceCenterSamplingPhi[iphi];
-  double r = mFrontFaceCenterR[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
   x = r * std::cos(phi);
   y = r * std::sin(phi);
 }

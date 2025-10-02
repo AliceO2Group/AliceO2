@@ -61,6 +61,7 @@ class Geometry
   double getSamplingAlpha() { return mSamplingAlpha; }
   double getCrystalDeltaPhi() { return 2 * std::atan(mCrystalModW / 2 / mRMin); }
   double getSamplingDeltaPhi() { return 2 * std::atan(mSamplingModW / 2 / mRMin); }
+  double getFrontFaceMaxEta(int i);
   double getCrystalPhiMin();
   double getSamplingPhiMin();
   int getNModulesZ() { return mNModulesZ; }

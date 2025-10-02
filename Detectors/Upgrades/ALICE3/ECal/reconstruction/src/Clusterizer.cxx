@@ -31,6 +31,45 @@ Clusterizer::Clusterizer(bool applyCorrectionZ, bool applyCorrectionE)
   mDigitIndices.resize(geo.getNrows(), std::vector<int>(geo.getNcols(), -1));
   mApplyCorrectionZ = applyCorrectionZ;
   mApplyCorrectionE = applyCorrectionE;
+
+  mCrystalEnergyCorrectionPars.reserve(6);
+  mCrystalEnergyCorrectionPars[0] = 0.00444;
+  mCrystalEnergyCorrectionPars[1] = -1.322;
+  mCrystalEnergyCorrectionPars[2] = 1.021;
+  mCrystalEnergyCorrectionPars[3] = 0.0018;
+  mCrystalEnergyCorrectionPars[4] = 0.;
+  mCrystalEnergyCorrectionPars[5] = 0.;
+
+  mSamplingEnergyCorrectionPars.reserve(6);
+  mSamplingEnergyCorrectionPars[0] = 0.0033;
+  mSamplingEnergyCorrectionPars[1] = -2.09;
+  mSamplingEnergyCorrectionPars[2] = 1.007;
+  mSamplingEnergyCorrectionPars[3] = 0.0667;
+  mSamplingEnergyCorrectionPars[4] = -0.108;
+  mSamplingEnergyCorrectionPars[5] = 0.0566;
+
+  mCrystalZCorrectionPars.reserve(9);
+  mCrystalZCorrectionPars[0] = -0.005187;
+  mCrystalZCorrectionPars[1] = 0.7301;
+  mCrystalZCorrectionPars[2] = -0.7382;
+  mCrystalZCorrectionPars[3] = 0.;
+  mCrystalZCorrectionPars[4] = 0.;
+  mCrystalZCorrectionPars[5] = 0.;
+  mCrystalZCorrectionPars[6] = 0.;
+  mCrystalZCorrectionPars[7] = 0.;
+  mCrystalZCorrectionPars[8] = 0.;
+
+  mSamplingZCorrectionPars.reserve(9);
+  mSamplingZCorrectionPars[0] = -2.137;
+  mSamplingZCorrectionPars[1] = 6.400;
+  mSamplingZCorrectionPars[2] = -3.342;
+  mSamplingZCorrectionPars[3] = -0.1364;
+  mSamplingZCorrectionPars[4] = 0.4019;
+  mSamplingZCorrectionPars[5] = -0.1969;
+  mSamplingZCorrectionPars[6] = 0.008223;
+  mSamplingZCorrectionPars[7] = -0.02425;
+  mSamplingZCorrectionPars[8] = 0.01190;
+
   fCrystalShowerShape = new TF1("fCrystal", "x<[1] ? [0]*exp([3]*x+[4]*x*x+[5]*x*x*x) : (x<[2] ? [0]*[6]*exp([7]*x+[8]*x*x) : [0]*[9]*exp([10]*x+[11]*x*x))", 0, 15);
   double pc[12];
   pc[0] = 1. / 13.15;
@@ -354,25 +393,17 @@ void Clusterizer::evalClusters(std::vector<Cluster>& clusters)
 
     // correct cluster energy and z position
     float eta = std::abs(cluster.getEta());
-    float eCor = 1;
-    float zCor = 0;
     bool isCrystal = geo.isCrystal(cluster.getDigitTowerId(0));
-    if (isCrystal) {
-      eCor = 0.00444 * std::pow(ee, -1.322) + (1.021 + 0.0018 * eta);
-      if (mApplyCorrectionE)
-        ee *= eCor;
-      if (mApplyCorrectionZ)
-        zCor = (-0.00518682 + 0.730052 * eta - 0.73817 * eta * eta);
-    } else {
-      eCor = 0.0033 * std::pow(ee, -2.09) + (1.007 + 0.0667 * eta - 0.108 * eta * eta + 0.0566 * eta * eta * eta);
-      if (mApplyCorrectionE)
-        ee *= eCor;
-      if (mApplyCorrectionZ)
-        zCor = (-2.13679 + 6.40009 * eta - 3.34233 * eta * eta) + (-0.136425 + 0.401887 * eta - 0.196851 * eta * eta) * ee + (0.00822276 - 0.0242512 * eta + 0.0118986 * eta * eta) * ee * ee;
+    if (mApplyCorrectionE) {
+      std::vector<double>& pe = isCrystal ? mCrystalEnergyCorrectionPars : mSamplingEnergyCorrectionPars;
+      ee *= pe[0] * std::pow(ee, pe[1]) + pe[2] + pe[3] * eta + pe[4] * eta * eta + pe[5] * eta * eta * eta;
+      cluster.setE(ee);
     }
-
-    cluster.setE(ee);
-    cluster.setZ(cluster.getZ() - zCor);
+    if (mApplyCorrectionZ) {
+      std::vector<double>& pz = isCrystal ? mCrystalZCorrectionPars : mSamplingZCorrectionPars;
+      float zCor = (pz[0] + pz[1] * eta + pz[2] * eta * eta) + (pz[3] + pz[4] * eta + pz[5] * eta * eta) * ee + (pz[6] + pz[7] * eta + pz[8] * eta * eta) * ee * ee;
+      cluster.setZ(z > 0 ? z - zCor : z + zCor);
+    }
 
     // check if cluster is at the edge of detector module
     bool isEdge = 0;
@@ -385,7 +416,7 @@ void Clusterizer::evalClusters(std::vector<Cluster>& clusters)
     }
     cluster.setEdgeFlag(isEdge);
 
-    LOGF(debug, "Cluster coordinates: (%6.2f,%6.2f,%6.2f), eCor=%6.2f zCor=%6.2f", cluster.getX(), cluster.getY(), cluster.getZ(), eCor, zCor);
+    LOGF(debug, "Cluster coordinates: (%6.2f,%6.2f,%6.2f)", cluster.getX(), cluster.getY(), cluster.getZ());
   }
 }
 
