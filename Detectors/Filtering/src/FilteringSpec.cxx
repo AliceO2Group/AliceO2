@@ -38,7 +38,6 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/TableTreeHelpers.h"
 #include "Framework/CCDBParamSpec.h"
 #include "FDDBase/Constants.h"
 #include "FT0Base/Geometry.h"

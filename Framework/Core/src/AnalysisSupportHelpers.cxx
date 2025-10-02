@@ -15,7 +15,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/TableTreeHelpers.h"
 #include "Framework/PluginManager.h"
 #include "Framework/ConfigContext.h"
 #include "WorkflowHelpers.h"

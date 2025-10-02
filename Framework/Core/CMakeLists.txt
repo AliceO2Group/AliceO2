@@ -87,6 +87,7 @@ o2_add_library(Framework
                        src/FairMQDeviceProxy.cxx
                        src/FairMQResizableBuffer.cxx
                        src/FairOptionsRetriever.cxx
+                       src/FragmentToBatch.cxx
                        src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx

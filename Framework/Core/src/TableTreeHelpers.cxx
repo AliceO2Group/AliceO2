@@ -296,31 +296,4 @@ struct BranchInfo {
 };
 } // namespace
 
-FragmentToBatch::FragmentToBatch(StreamerCreator creator, std::shared_ptr<arrow::dataset::FileFragment> fragment, arrow::MemoryPool* pool)
-  : mFragment{std::move(fragment)},
-    mArrowMemoryPool{pool},
-    mCreator{std::move(creator)}
-{
-}
-
-void FragmentToBatch::setLabel(const char* label)
-{
-  mTableLabel = label;
-}
-
-void FragmentToBatch::fill(std::shared_ptr<arrow::Schema> schema, std::shared_ptr<arrow::dataset::FileFormat> format)
-{
-  auto options = std::make_shared<arrow::dataset::ScanOptions>();
-  options->dataset_schema = schema;
-  auto scanner = format->ScanBatchesAsync(options, mFragment);
-  auto batch = (*scanner)();
-  mRecordBatch = *batch.result();
-  // Notice that up to here the buffer was not yet filled.
-}
-
-std::shared_ptr<arrow::RecordBatch> FragmentToBatch::finalize()
-{
-  return mRecordBatch;
-}
-
 } // namespace o2::framework
