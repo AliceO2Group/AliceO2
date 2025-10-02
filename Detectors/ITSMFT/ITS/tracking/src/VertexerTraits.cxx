@@ -514,34 +514,34 @@ void VertexerTraits<nLayers>::addTruthSeedingVertices()
     bounded_vector<int> events;
   };
   std::map<int, VertInfo> vertices;
-  for (int iSrc{0}; iSrc < mcReader.getNSources(); ++iSrc) {
-    auto eveId2colId = dc->getCollisionIndicesForSource(iSrc);
-    for (int iEve{0}; iEve < mcReader.getNEvents(iSrc); ++iEve) {
-      const auto& ir = irs[eveId2colId[iEve]];
-      if (!ir.isDummy()) { // do we need this, is this for diffractive events?
-        const auto& eve = mcReader.getMCEventHeader(iSrc, iEve);
-        int rofId = ((ir - raw::HBFUtils::Instance().getFirstSampledTFIR()).toLong() - roFrameBiasInBC) / roFrameLengthInBC;
-        if (!vertices.contains(rofId)) {
-          vertices[rofId] = {
-            .vertices = bounded_vector<Vertex>(mMemoryPool.get()),
-            .srcs = bounded_vector<int>(mMemoryPool.get()),
-            .events = bounded_vector<int>(mMemoryPool.get()),
-          };
-        }
-        Vertex vert;
-        vert.setTimeStamp(rofId);
-        vert.setNContributors(std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
-          return trk.isPrimary() && trk.GetPt() > 0.2 && std::abs(trk.GetEta()) < 1.3;
-        }));
-        vert.setXYZ((float)eve.GetX(), (float)eve.GetY(), (float)eve.GetZ());
-        vert.setChi2(1);
-        constexpr float cov = 50e-9;
-        vert.setCov(cov, cov, cov, cov, cov, cov);
-        vertices[rofId].vertices.push_back(vert);
-        vertices[rofId].srcs.push_back(iSrc);
-        vertices[rofId].events.push_back(iEve);
+  const int iSrc = 0; // take only events from collision generator
+  auto eveId2colId = dc->getCollisionIndicesForSource(iSrc);
+  for (int iEve{0}; iEve < mcReader.getNEvents(iSrc); ++iEve) {
+    const auto& ir = irs[eveId2colId[iEve]];
+    if (!ir.isDummy()) { // do we need this, is this for diffractive events?
+      const auto& eve = mcReader.getMCEventHeader(iSrc, iEve);
+      int rofId = ((ir - raw::HBFUtils::Instance().getFirstSampledTFIR()).toLong() - roFrameBiasInBC) / roFrameLengthInBC;
+      if (!vertices.contains(rofId)) {
+        vertices[rofId] = {
+          .vertices = bounded_vector<Vertex>(mMemoryPool.get()),
+          .srcs = bounded_vector<int>(mMemoryPool.get()),
+          .events = bounded_vector<int>(mMemoryPool.get()),
+        };
       }
+      Vertex vert;
+      vert.setTimeStamp(rofId);
+      vert.setNContributors(std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
+        return trk.isPrimary() && trk.GetPt() > 0.2 && std::abs(trk.GetEta()) < 1.3;
+      }));
+      vert.setXYZ((float)eve.GetX(), (float)eve.GetY(), (float)eve.GetZ());
+      vert.setChi2(1);
+      constexpr float cov = 50e-9;
+      vert.setCov(cov, cov, cov, cov, cov, cov);
+      vertices[rofId].vertices.push_back(vert);
+      vertices[rofId].srcs.push_back(iSrc);
+      vertices[rofId].events.push_back(iEve);
     }
+    mcReader.releaseTracksForSourceAndEvent(iSrc, iEve);
   }
   size_t nVerts{0};
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
