@@ -30,13 +30,13 @@ namespace fdd
 struct ChannelDataFloat {
   static constexpr int DUMMY_CHANNEL_ID = -1;
   static constexpr int DUMMY_CHAIN_QTC = -1;
-  static constexpr double DUMMY_CFD_TIME = -20000;
-  static constexpr double DUMMY_QTC_AMPL = -20000;
+  static constexpr float DUMMY_CFD_TIME = -20000;
+  static constexpr float DUMMY_QTC_AMPL = -20000;
 
   int mPMNumber = DUMMY_CHANNEL_ID;   ///< Channel ID
   int adcId = DUMMY_CHAIN_QTC;        ///< Channel data bits
-  double mTime = DUMMY_CFD_TIME;      ///< Channel time (ns), 0 at the LHC clock center
-  double mChargeADC = DUMMY_QTC_AMPL; ///< Channel charge (ADC channels)
+  float mTime = DUMMY_CFD_TIME;       ///< Channel time (ns), 0 at the LHC clock center
+  float mChargeADC = DUMMY_QTC_AMPL;  ///< Channel charge (ADC channels)
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int Channel, double Time, double Charge, int AdcId)
@@ -49,25 +49,25 @@ struct ChannelDataFloat {
 
   static void setFlag(fit::ChannelDataBit bitFlag, int& adcId)
   {
-    adcId = uint8_t(adcId) | 1u << uint8_t(bitFlag);
+    adcId = adcId | (1 << bitFlag);
   }
   static void clearFlag(fit::ChannelDataBit bitFlag, int& adcId)
   {
     adcId = uint8_t(adcId) & ~(1u << uint8_t(bitFlag));
   }
-  void setFlag(int flag)
+  void setFlags(int flag)
   {
     adcId = flag;
   }
-  void setFlag(fit::ChannelDataBit bitFlag, bool value)
+  void setFlag(fit::ChannelDataBit bitFlag, bool value = true)
   {
-    adcId = uint8_t(adcId) | uint8_t(value) << uint8_t(bitFlag);
+    adcId = (adcId & (~(1 << bitFlag))) | (int(value) << bitFlag);
   }
-  [[nodiscard]] bool getFlag(fit::ChannelDataBit bitFlag) const
+  bool getFlag(fit::ChannelDataBit bitFlag) const
   {
-    return bool(uint8_t(adcId) & (1u << uint8_t(bitFlag)));
+    return bool(adcId & (1 << bitFlag));
   }
-  [[nodiscard]] bool areAllFlagsGood() const
+  bool areAllFlagsGood() const
   {
     return (!getFlag(fit::ChannelDataBit::kIsDoubleEvent) &&
             !getFlag(fit::ChannelDataBit::kIsTimeInfoNOTvalid) &&
@@ -79,9 +79,9 @@ struct ChannelDataFloat {
   }
 
   void print() const;
-  [[nodiscard]] int getChannelId() const { return mPMNumber; }
-  [[nodiscard]] double getTime() const { return mTime; }
-  [[nodiscard]] double getAmp() const { return mChargeADC; }
+  int getChannelId() const { return mPMNumber; }
+  float getTime() const { return mTime; }
+  float getAmp() const { return mChargeADC; }
   bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);

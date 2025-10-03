@@ -55,25 +55,25 @@ struct ChannelDataFloat {
 
   static void setFlag(fit::ChannelDataBit bitFlag, int& chainQTC)
   {
-    chainQTC = uint8_t(chainQTC) | 1u << uint8_t(bitFlag);
+    chainQTC = chainQTC | 1 << bitFlag;
   }
   static void clearFlag(fit::ChannelDataBit bitFlag, int& chainQTC)
   {
-    chainQTC = uint8_t(chainQTC) & ~(1u << uint8_t(bitFlag));
+    chainQTC = chainQTC & (~(1 << bitFlag));
   }
-  void setFlag(int flag)
+  void setFlags(int flag)
   {
     ChainQTC = flag;
   }
-  void setFlag(fit::ChannelDataBit bitFlag, bool value)
+  void setFlag(fit::ChannelDataBit bitFlag, bool value = true)
   {
-    ChainQTC = uint8_t(ChainQTC) | uint8_t(value) << uint8_t(bitFlag);
+    ChainQTC = (ChainQTC & (~(1 << bitFlag))) | (int(value) << bitFlag);
   }
-  [[nodiscard]] bool getFlag(fit::ChannelDataBit bitFlag) const
+  bool getFlag(fit::ChannelDataBit bitFlag) const
   {
-    return bool(uint8_t(ChainQTC) & (1u << uint8_t(bitFlag)));
+    return bool(ChainQTC & (1 << bitFlag));
   }
-  [[nodiscard]] bool areAllFlagsGood() const
+  bool areAllFlagsGood() const
   {
     return (!getFlag(fit::ChannelDataBit::kIsDoubleEvent) &&
             !getFlag(fit::ChannelDataBit::kIsTimeInfoNOTvalid) &&
@@ -85,9 +85,9 @@ struct ChannelDataFloat {
   }
 
   void print() const;
-  [[nodiscard]] int getChannelId() const { return ChId; }
-  [[nodiscard]] float getTime() const { return CFDTime; }
-  [[nodiscard]] float getAmp() const { return QTCAmpl; }
+  int getChannelId() const { return ChId; }
+  float getTime() const { return CFDTime; }
+  float getAmp() const { return QTCAmpl; }
 
   bool operator==(const ChannelDataFloat&) const = default;
 
