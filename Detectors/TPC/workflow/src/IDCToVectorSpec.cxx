@@ -405,7 +405,7 @@ class IDCToVectorDevice : public o2::framework::Task
 
       for (const auto& inf : infVec) {
         if (!inf.hasBothEPs()) {
-          LOGP(error, "IDC CRU {:3}: data missing at ({:8}, {:4}) for one or both end points {:02b} in TF {}", cru, inf.heartbeatOrbit, inf.heartbeatBC, inf.epSeen, tfCounter);
+          LOGP(warning, "IDC CRU {:3}: data missing at ({:8}, {:4}) for one or both end points {:02b} in TF {}", cru, inf.heartbeatOrbit, inf.heartbeatBC, inf.epSeen, tfCounter);
           hasErrors = true;
         }
       }
@@ -422,7 +422,7 @@ class IDCToVectorDevice : public o2::framework::Task
       }
 
       if (!std::equal(infVecComp->begin(), infVecComp->end(), infVec.begin())) {
-        LOGP(error, "IDC CRU {:3}: mismatch in orbit numbers", cru);
+        LOGP(warning, "IDC CRU {:3}: mismatch in orbit numbers", cru);
         hasErrors = true;
       }
     }

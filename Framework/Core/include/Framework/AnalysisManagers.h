@@ -11,6 +11,7 @@
 
 #ifndef FRAMEWORK_ANALYSISMANAGERS_H
 #define FRAMEWORK_ANALYSISMANAGERS_H
+#include "DataAllocator.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/GroupedCombinations.h"
@@ -247,7 +248,10 @@ template <is_histogram_registry T>
 bool postRunOutput(EndOfStreamContext& context, T& hr)
 {
   auto& deviceSpec = context.services().get<o2::framework::DeviceSpec const>();
-  context.outputs().snapshot(hr.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *(hr.getListOfHistograms()));
+  auto sendHistos = [deviceSpec, &context](HistogramRegistry const& self, TNamed* obj) mutable {
+    context.outputs().snapshot(self.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *obj);
+  };
+  hr.apply(sendHistos);
   hr.clean();
   return true;
 }

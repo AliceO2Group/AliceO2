@@ -233,7 +233,7 @@ void displayDataRelayer(DeviceMetricsInfo const& /*metrics*/,
         continue;
       }
       if (i == (size_t)row) {
-        ImGui::Text("%d %.*s (%s)", row, int(end - input), input, InspectorHelpers::getLifeTimeStr(spec.inputs[i].matcher.lifetime).c_str());
+        ImGui::Text("%d %.*s (%s)", row, int(end - input), input, InspectorHelpers::getLifeTimeStr(spec.inputs[i].matcher.lifetime));
         break;
       }
       ++i;

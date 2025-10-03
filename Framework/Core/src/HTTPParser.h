@@ -125,7 +125,8 @@ std::string encode_websocket_handshake_request(const char* path, const char* pro
 
 /// Encodes the server reply for a given websocket connection
 /// @a nonce the nonce of the request.
-std::string encode_websocket_handshake_reply(char const* nonce);
+/// @a protocol the websocket subprotocol to confirm (optional)
+std::string encode_websocket_handshake_reply(char const* nonce, char const* protocol = "");
 
 /// Encodes the buffer @a src which is @a size long to a number of buffers suitable to be sent via libuv.
 /// If @a binary is provided the binary bit is set.

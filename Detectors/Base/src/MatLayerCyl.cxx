@@ -319,9 +319,24 @@ void MatLayerCyl::flatten(char* newPtr)
   mConstructionMask = Constructed;
 }
 
+//________________________________________________________________________________
+void MatLayerCyl::scale(float factor, bool _x2x0, bool _rho)
+{
+  LOGP(info, "Scaling layer {:.3f}<r<{:.3f} by {:.3f}", getRMin(), getRMax(), factor);
+  for (int i = 0; i < mNPhiSlices * mNZBins; i++) {
+    if (_x2x0) {
+      mCells[i].meanX2X0 *= factor;
+    }
+    if (_rho) {
+      mCells[i].meanRho *= factor;
+    }
+  }
+}
+
 #endif // ! GPUCA_ALIGPUCODE
 
 #ifndef GPUCA_GPUCODE
+
 //________________________________________________________________________________
 void MatLayerCyl::fixPointers(char* oldPtr, char* newPtr)
 {

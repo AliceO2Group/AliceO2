@@ -44,6 +44,8 @@ struct OutputObjHeader : public BaseHeader {
   uint32_t mTaskHash;
   uint16_t mPipelineIndex = 0;
   uint16_t mPipelineSize = 1;
+  // Name of the actual container for the object, e.g. the HistogramRegistry name
+  char containerName[64] = {0};
 
   constexpr OutputObjHeader()
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),

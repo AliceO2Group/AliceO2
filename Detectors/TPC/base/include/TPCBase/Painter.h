@@ -53,7 +53,8 @@ struct painter {
   enum class Type : int {
     Pad,   ///< drawing pads
     Stack, ///< drawing stacks
-    FEC    ///< drawing of FECs
+    FEC,   ///< drawing of FECs
+    SCD,   ///< drawing of FECs
   };
 
   static std::array<int, 6> colors;
@@ -87,8 +88,10 @@ struct painter {
   /// create a vector of FEC corner coordinates for one full sector
   static std::vector<PadCoordinates> getFECCoordinatesSector();
 
+  static std::vector<painter::PadCoordinates> getSCDY2XCoordinatesSector(std::string binningStr);
+
   /// \return returns coordinates for given type
-  static std::vector<o2::tpc::painter::PadCoordinates> getCoordinates(const Type type);
+  static std::vector<o2::tpc::painter::PadCoordinates> getCoordinates(const Type type, std::string binningStr = "");
 
   /// binning vector with radial pad-row positions (in cm)
   /// \param roc roc number (0-35 IROC, 36-71 OROC, >=72 full sector)
@@ -143,11 +146,11 @@ struct painter {
   /// \param yMin minimum y coordinate of the histogram
   /// \param yMax maximum y coordinate of the histogram
   /// \param type granularity of the histogram (per pad or per stack)
-  static TH2Poly* makeSectorHist(const std::string_view name = "hSector", const std::string_view title = "Sector;local #it{x} (cm);local #it{y} (cm)", const float xMin = 83.65f, const float xMax = 247.7f, const float yMin = -43.7f, const float yMax = 43.7f, const Type type = Type::Pad);
+  static TH2Poly* makeSectorHist(const std::string_view name = "hSector", const std::string_view title = "Sector;local #it{x} (cm);local #it{y} (cm)", const float xMin = 83.65f, const float xMax = 247.7f, const float yMin = -43.7f, const float yMax = 43.7f, const Type type = Type::Pad, std::string binningStr = "");
 
   /// make a side-wise histogram with correct pad corners
   /// \param type granularity of the histogram (per pad or per stack)
-  static TH2Poly* makeSideHist(Side side, const Type type = Type::Pad);
+  static TH2Poly* makeSideHist(Side side, const Type type = Type::Pad, std::string binningStr = "");
 
   /// fill existing TH2Poly histogram for CalDet object
   /// \param h2D histogram to fill

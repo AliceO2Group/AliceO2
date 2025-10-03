@@ -649,6 +649,11 @@ class RawParser
     raw_parser::RawParserHelper::sCheckIncompleteHBF = v;
   }
 
+  static void setErrorMode(int v)
+  {
+    raw_parser::RawParserHelper::sErrorMode = v;
+  }
+
  private:
   raw_parser::ConcreteParserVariants<MAX_SIZE, BOUNDS_CHECKS> mParser;
 };

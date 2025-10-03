@@ -73,6 +73,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/BCRange.h
           include/ReconstructionDataFormats/TrackHMP.h
           include/ReconstructionDataFormats/MatchInfoHMP.h
+          include/ReconstructionDataFormats/HelixHelper.h
   )
 
 o2_add_test(Vertex

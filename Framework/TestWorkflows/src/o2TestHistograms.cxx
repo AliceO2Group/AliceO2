@@ -43,6 +43,16 @@ struct EtaAndClsHistogramsSimple {
   Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
   Filter trackFilter = o2::aod::track::pt < 10.f;
 
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"a/b/eta", "#Eta", {HistType::kTH1F, {{100, -2.0, 2.0}}}},                          //
+      {"a/phi", "#Phi", {HistType::kTH1D, {{102, 0, 2 * M_PI}}}},                          //
+      {"c/pt", "p_{T}", {HistType::kTH1D, {{1002, -0.01, 50.1}}}},                         //
+      {"ptToPt", "#ptToPt", {HistType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
+    } //
+  };
+
   void init(InitContext&)
   {
     if (!trackFilterString->empty()) {
@@ -56,6 +66,11 @@ struct EtaAndClsHistogramsSimple {
     for (auto& track : tracks) {
       etaClsH->Fill(track.eta(), track.pt());
       skimEx(track.pt(), track.eta());
+
+      registry.fill(HIST("a/b/eta"), track.eta());
+      registry.fill(HIST("a/phi"), track.phi());
+      registry.fill(HIST("c/pt"), track.pt());
+      registry.fill(HIST("ptToPt"), track.pt(), track.signed1Pt());
     }
   }
 };
@@ -65,6 +80,16 @@ struct EtaAndClsHistogramsIUSimple {
   Produces<o2::aod::SkimmedExampleTrack> skimEx;
   Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
   Filter trackFilter = o2::aod::track::pt < 10.f;
+
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"a/b/eta", "#Eta", {HistType::kTH1F, {{100, -2.0, 2.0}}}},                          //
+      {"a/phi", "#Phi", {HistType::kTH1D, {{102, 0, 2 * M_PI}}}},                          //
+      {"c/pt", "p_{T}", {HistType::kTH1D, {{1002, -0.01, 50.1}}}},                         //
+      {"ptToPt", "#ptToPt", {HistType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
+    } //
+  };
 
   void init(InitContext&)
   {
@@ -79,12 +104,28 @@ struct EtaAndClsHistogramsIUSimple {
     for (auto& track : tracks) {
       etaClsH->Fill(track.eta(), track.pt());
       skimEx(track.pt(), track.eta());
+
+      registry.fill(HIST("a/b/eta"), track.eta());
+      registry.fill(HIST("a/phi"), track.phi());
+      registry.fill(HIST("c/pt"), track.pt());
+      registry.fill(HIST("ptToPt"), track.pt(), track.signed1Pt());
     }
   }
 };
 
 struct EtaAndClsHistogramsFull {
   OutputObj<TH3F> etaClsH{TH3F("eta_vs_cls_vs_sigmapT", "#eta vs N_{cls} vs sigma_{1/pT}", 102, -2.01, 2.01, 160, -0.5, 159.5, 100, 0, 10)};
+
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"a/b/eta", "#Eta", {HistType::kTH1F, {{100, -2.0, 2.0}}}},                          //
+      {"a/phi", "#Phi", {HistType::kTH1D, {{102, 0, 2 * M_PI}}}},                          //
+      {"c/pt", "p_{T}", {HistType::kTH1D, {{1002, -0.01, 50.1}}}},                         //
+      {"ptToPt", "#ptToPt", {HistType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
+    } //
+  };
+
   Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
   Filter trackFilter = o2::aod::track::pt < 10.f;
 
@@ -100,6 +141,11 @@ struct EtaAndClsHistogramsFull {
     LOGP(info, "Invoking the run 3 one");
     for (auto& track : tracks) {
       etaClsH->Fill(track.eta(), track.tpcNClsFindable(), track.sigma1Pt());
+
+      registry.fill(HIST("a/b/eta"), track.eta());
+      registry.fill(HIST("a/phi"), track.phi());
+      registry.fill(HIST("c/pt"), track.pt());
+      registry.fill(HIST("ptToPt"), track.pt(), track.signed1Pt());
     }
   }
 };

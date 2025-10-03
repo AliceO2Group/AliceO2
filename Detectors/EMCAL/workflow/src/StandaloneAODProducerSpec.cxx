@@ -17,7 +17,6 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/TableTreeHelpers.h"
 #include "MathUtils/Utils.h"
 
 using namespace o2::framework;
@@ -105,7 +104,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
                       o2::math_utils::detail::truncateFloatFraction(cell.getTimeStamp(), mCaloTime),
                       cell.getType(),
                       1); // hard coded for emcal (-1 would be undefined, 0 phos)
-    }                     // end of cell loop
+    } // end of cell loop
 
     // filled only with BCID, rest dummy for no2
     caloCellsTRGTableCursor(0,
