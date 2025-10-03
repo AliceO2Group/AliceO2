@@ -53,7 +53,7 @@ struct ChannelDataFloat {
   }
   static void clearFlag(fit::ChannelDataBit bitFlag, int& adcId)
   {
-    adcId = uint8_t(adcId) & ~(1u << uint8_t(bitFlag));
+    adcId = adcId & ~(1 << bitFlag);
   }
   void setFlags(int flag)
   {

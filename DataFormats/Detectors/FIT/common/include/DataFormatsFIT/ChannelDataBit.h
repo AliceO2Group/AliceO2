@@ -17,6 +17,8 @@
 #ifndef O2_FIT_CHANNEL_DATA_BIT_
 #define O2_FIT_CHANNEL_DATA_BIT_
 
+#include <concepts>
+
 namespace o2
 {
 namespace fit
@@ -30,6 +32,13 @@ enum class ChannelDataBit { kNumberADC = 0,
                             kIsEventInTVDC,
                             kIsTimeInfoLost
 };
+
+template<typename IntegerType>
+requires std::integral<IntegerType>
+IntegerType operator<<(IntegerType n, ChannelDataBit bitFlag)
+{
+    return n << static_cast<int>(bitFlag);
+}
 }
 } // namespace o2
 
