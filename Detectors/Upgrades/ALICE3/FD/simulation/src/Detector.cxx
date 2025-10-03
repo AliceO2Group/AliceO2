@@ -310,7 +310,10 @@ TGeoVolumeAssembly* Detector::buildModuleA()
       float phimax = dphiDeg * (ic + 1);
       auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
       auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-      nod->SetLineColor(kRed);
+      if ((ir + ic) % 2 == 0) 
+	 nod->SetLineColor(kRed);
+      else
+	nod->SetLineColor(kRed - 7);
       ring->AddNode(nod, cellId);
     }
     mod->AddNode(ring, ir + 1);
@@ -354,7 +357,10 @@ TGeoVolumeAssembly* Detector::buildModuleC()
       float phimax = dphiDeg * (ic + 1);
       auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
       auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-      nod->SetLineColor(kBlue);
+      if ((ir + ic) % 2 == 0) 
+	 nod->SetLineColor(kBlue);
+      else
+	nod->SetLineColor(kBlue - 7);
       ring->AddNode(nod, cellId);
     }
     mod->AddNode(ring, ir + 1);
