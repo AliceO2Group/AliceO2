@@ -119,8 +119,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     return std::find(outputTypes.begin(), outputTypes.end(), type) != outputTypes.end();
   };
 
-  if (filteredInp && !(inputType == InputType::PassThrough && isEnabled(OutputType::Tracks) && isEnabled(OutputType::Clusters) && isEnabled(OutputType::SendClustersPerSector))) {
-    throw std::invalid_argument("filtered-input option must be provided only with pass-through input and clusters,tracks,send-clusters-per-sector output");
+  if (filteredInp && !(inputType == InputType::PassThrough)) {
+    throw std::invalid_argument("filtered-input option must be provided only with pass-through input");
   }
 
   bool decompressTPC = inputType == InputType::CompClustersFlat || inputType == InputType::CompClustersRoot;
