@@ -155,8 +155,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "DIGITS"};
   } else if (inputType == "clustershw") {
     gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERHW"};
-  } else if (inputType == "clustersnative") {
-    gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"};
   } else if (inputType == "zsraw") {
     gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "RAWDATA"};
   }
