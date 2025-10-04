@@ -51,8 +51,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, zsonthefly, clustersnative, compressed-clusters-root, compressed-clusters-ctf, trd-tracklets, its-clusters"}},
-    {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks, error-qa, tpc-triggers, its-tracks"}},
+    {"input-type", VariantType::String, "digits", {"digits, zsraw, zsonthefly, clusters, compressed-clusters-root, compressed-clusters-flat, trd-tracklets, its-clusters, its-mean-vertex"}},
+    {"output-type", VariantType::String, "tracks", {"cluster, tracks, compressed-clusters-root, compressed-clusters-flat, qa, error-qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks, tpc-triggers, its-tracks"}},
     {"corrmap-lumi-mode", VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}},
     {"disable-root-input", VariantType::Bool, true, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
@@ -98,7 +98,7 @@ enum struct ioType { Digits,
                      ZSRaw,
                      ZSRawOTF,
                      CompClustROOT,
-                     CompClustCTF,
+                     CompClustFlat,
                      Tracks,
                      QA,
                      ErrorQA,
@@ -117,7 +117,7 @@ static const std::unordered_map<std::string, ioType> InputMap{
   {"zsraw", ioType::ZSRaw},
   {"zsonthefly", ioType::ZSRawOTF},
   {"compressed-clusters-root", ioType::CompClustROOT},
-  {"compressed-clusters-ctf", ioType::CompClustCTF},
+  {"compressed-clusters-flat", ioType::CompClustFlat},
   {"trd-tracklets", ioType::TRDTracklets},
   {"its-clusters", ioType::ITSClusters},
   {"its-mean-vertex", ioType::MeanVertex},
@@ -126,7 +126,8 @@ static const std::unordered_map<std::string, ioType> InputMap{
 static const std::unordered_map<std::string, ioType> OutputMap{
   {"clusters", ioType::Clusters},
   {"tracks", ioType::Tracks},
-  {"compressed-clusters-ctf", ioType::CompClustCTF},
+  {"compressed-clusters-flat", ioType::CompClustFlat},
+  {"compressed-clusters-root", ioType::CompClustROOT},
   {"qa", ioType::QA},
   {"error-qa", ioType::ErrorQA},
   {"no-shared-cluster-map", ioType::NoSharedMap},
@@ -167,13 +168,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.enableMShape = sclOpt.enableMShapeCorrection;
   cfg.enableCTPLumi = sclOpt.requestCTPLumi;
   cfg.decompressTPCFromROOT = isEnabled(inputTypes, ioType::CompClustROOT);
-  cfg.decompressTPC = isEnabled(inputTypes, ioType::CompClustCTF) || cfg.decompressTPCFromROOT;
+  cfg.decompressTPC = isEnabled(inputTypes, ioType::CompClustFlat) || cfg.decompressTPCFromROOT;
   cfg.zsDecoder = isEnabled(inputTypes, ioType::ZSRaw);
   cfg.zsOnTheFly = isEnabled(inputTypes, ioType::ZSRawOTF);
   cfg.caClusterer = cfg.zsDecoder || cfg.zsOnTheFly || isEnabled(inputTypes, ioType::Digits);
   cfg.outputTracks = isEnabled(outputTypes, ioType::Tracks);
-  cfg.outputCompClusters = isEnabled(outputTypes, ioType::CompClustROOT);
-  cfg.outputCompClustersFlat = isEnabled(outputTypes, ioType::CompClustCTF);
+  cfg.outputCompClustersRoot = isEnabled(outputTypes, ioType::CompClustROOT);
+  cfg.outputCompClustersFlat = isEnabled(outputTypes, ioType::CompClustFlat);
   cfg.outputCAClusters = isEnabled(outputTypes, ioType::Clusters);
   cfg.outputQA = isEnabled(outputTypes, ioType::QA);
   cfg.outputErrorQA = isEnabled(outputTypes, ioType::ErrorQA);

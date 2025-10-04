@@ -236,14 +236,14 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   }
 
   // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
-  if (mSpecConfig.outputTracks || mSpecConfig.outputCompClusters || mSpecConfig.outputCompClustersFlat) {
+  if (mSpecConfig.outputTracks || mSpecConfig.outputCompClustersRoot || mSpecConfig.outputCompClustersFlat) {
     mConfig->configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
                                       GPUDataTypes::RecoStep::TPCSectorTracking,
                                       GPUDataTypes::RecoStep::TPCMerging);
     mConfig->configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
     mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, mConfParam->rundEdx == -1 ? !mConfParam->synchronousProcessing : mConfParam->rundEdx);
   }
-  if (mSpecConfig.outputCompClusters || mSpecConfig.outputCompClustersFlat) {
+  if (mSpecConfig.outputCompClustersRoot || mSpecConfig.outputCompClustersFlat) {
     mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, true);
     mConfig->configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
   }
@@ -966,7 +966,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     LOG(info) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
   }
 
-  if (mSpecConfig.outputCompClusters) {
+  if (mSpecConfig.outputCompClustersRoot) {
     o2::tpc::CompressedClustersROOT compressedClusters = *ptrs.tpcCompressedClusters;
     pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClustersROOT const>(compressedClusters));
   }
@@ -1259,7 +1259,7 @@ Outputs GPURecoWorkflowSpec::outputs()
   if (mSpecConfig.processMC && mSpecConfig.outputTracks) {
     outputSpecs.emplace_back(gDataOriginTPC, "TRACKSMCLBL", 0, Lifetime::Timeframe);
   }
-  if (mSpecConfig.outputCompClusters) {
+  if (mSpecConfig.outputCompClustersRoot) {
     outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERS", 0, Lifetime::Timeframe);
   }
   if (mSpecConfig.outputCompClustersFlat) {

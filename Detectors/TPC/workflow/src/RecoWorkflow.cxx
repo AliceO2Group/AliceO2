@@ -80,16 +80,17 @@ const std::unordered_map<std::string, InputType> InputMap{
   {"clustershardware", InputType::ClustersHardware},
   {"clusters", InputType::Clusters},
   {"zsraw", InputType::ZSRaw},
-  {"compressed-clusters", InputType::CompClusters},
-  {"compressed-clusters-ctf", InputType::CompClustersCTF},
-  {"compressed-clusters-flat", InputType::CompClustersFlat}};
+  {"compressed-clusters-root", InputType::CompClustersRoot},
+  {"compressed-clusters-flat", InputType::CompClustersFlat},
+  {"compressed-clusters-flat-for-encode", InputType::CompClustersFlatForEncode}};
 
 const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits},
   {"clustershardware", OutputType::ClustersHardware},
   {"clusters", OutputType::Clusters},
   {"tracks", OutputType::Tracks},
-  {"compressed-clusters", OutputType::CompClusters},
+  {"compressed-clusters-root", OutputType::CompClustersRoot},
+  {"compressed-clusters-flat", OutputType::CompClustersFlat},
   {"encoded-clusters", OutputType::EncodedClusters},
   {"disable-writer", OutputType::DisableWriter},
   {"send-clusters-per-sector", OutputType::SendClustersPerSector},
@@ -122,14 +123,19 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     throw std::invalid_argument("filtered-input option must be provided only with pass-through input and clusters,tracks,send-clusters-per-sector output");
   }
 
-  bool decompressTPC = inputType == InputType::CompClustersCTF || inputType == InputType::CompClusters;
+  bool decompressTPC = inputType == InputType::CompClustersFlat || inputType == InputType::CompClustersRoot;
   // Disable not applicable settings depending on TPC input, no need to disable manually
   if (decompressTPC && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Tracks))) {
     caClusterer = false;
     zsOnTheFly = false;
     propagateMC = false;
   }
-  if (inputType == InputType::ZSRaw || inputType == InputType::CompClustersFlat) {
+  if (inputType == InputType::CompClustersFlatForEncode || inputType == InputType::CompClustersRoot || inputType == InputType::CompClustersFlat) {
+    caClusterer = false;
+    zsOnTheFly = false;
+    propagateMC = false;
+  }
+  if (inputType == InputType::ZSRaw) {
     caClusterer = true;
     zsOnTheFly = false;
     propagateMC = false;
@@ -225,7 +231,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       if (sclOpts.requestCTPLumi) { // need CTP digits (lumi) reader
         specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
       }
-    } else if (inputType == InputType::CompClusters) {
+    } else if (inputType == InputType::CompClustersRoot) {
       // TODO: need to check if we want to store the MC labels alongside with compressed clusters
       // for the moment reading of labels is disabled (last parameter is false)
       // TODO: make a different publisher spec for only one output spec, for now using the
@@ -248,8 +254,9 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // output matrix
   // Note: the ClusterHardware format is probably a deprecated legacy format and also the
   // ClusterDecoderRawSpec
-  bool produceCompClusters = isEnabled(OutputType::CompClusters);
-  bool runGPUReco = (produceTracks || produceCompClusters || (isEnabled(OutputType::Clusters) && caClusterer) || inputType == InputType::CompClustersCTF) && inputType != InputType::CompClustersFlat;
+  bool produceCompClustersRoot = isEnabled(OutputType::CompClustersRoot);
+  bool produceCompClustersFlat = isEnabled(OutputType::CompClustersFlat);
+  bool runGPUReco = (produceTracks || produceCompClustersRoot || produceCompClustersFlat || (isEnabled(OutputType::Clusters) && caClusterer) || inputType == InputType::CompClustersFlat) && inputType != InputType::CompClustersFlatForEncode;
   bool runHWDecoder = !caClusterer && (runGPUReco || isEnabled(OutputType::Clusters));
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
@@ -460,13 +467,13 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.enableMShape = sclOpts.enableMShapeCorrection;
     cfg.enableCTPLumi = sclOpts.requestCTPLumi;
     cfg.decompressTPC = decompressTPC;
-    cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
+    cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClustersRoot;
     cfg.caClusterer = caClusterer;
     cfg.zsDecoder = zsDecoder;
     cfg.zsOnTheFly = zsOnTheFly;
     cfg.outputTracks = produceTracks;
-    cfg.outputCompClusters = produceCompClusters;
-    cfg.outputCompClustersFlat = runClusterEncoder;
+    cfg.outputCompClustersRoot = produceCompClustersRoot;
+    cfg.outputCompClustersFlat = produceCompClustersFlat || runClusterEncoder;
     cfg.outputCAClusters = isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC);
     cfg.outputQA = isEnabled(OutputType::QA);
     cfg.outputSharedClusterMap = (isEnabled(OutputType::Clusters) || inputType == InputType::Clusters) && isEnabled(OutputType::Tracks) && !isEnabled(OutputType::NoSharedClusterMap);
@@ -500,7 +507,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // selected by output type 'encoded-clusters'
   if (runClusterEncoder) {
-    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runGPUReco && inputType != InputType::CompClustersFlat, selIR));
+    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runGPUReco && inputType != InputType::CompClustersFlatForEncode, selIR));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -547,7 +554,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // a writer process for compressed clusters container
   //
   // selected by output type 'compressed-clusters'
-  if (produceCompClusters && !isEnabled(OutputType::DisableWriter)) {
+  if (produceCompClustersRoot && !isEnabled(OutputType::DisableWriter)) {
     // defining the track writer process using the generic RootTreeWriter and generator tool
     //
     // defaults

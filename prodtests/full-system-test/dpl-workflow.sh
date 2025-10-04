@@ -205,7 +205,7 @@ workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_D
 
 PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
 
-has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
+has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-flat"
 
 if [[ $SYNCMODE == 1 ]] && workflow_has_parameter QC && has_detector_qc TPC; then
   GPU_OUTPUT+=",qa,error-qa"
@@ -443,7 +443,7 @@ fi
 
 if [[ -n $INPUT_DETECTOR_LIST ]]; then
   if [[ $CTFINPUT == 1 ]]; then
-    GPU_INPUT=compressed-clusters-ctf
+    GPU_INPUT=compressed-clusters-flat
     TOF_INPUT=digits
     CTFName=`ls -t $RAWINPUTDIR/o2_ctf_*.root 2> /dev/null | head -n1`
     [[ -z $CTFName && $WORKFLOWMODE == "print" ]] && CTFName='$CTFName'
@@ -652,7 +652,7 @@ if has_processing_step ENTROPY_ENCODER && [[ -n "$WORKFLOW_DETECTORS_CTF" ]] && 
   has_detector_ctf TOF && add_W o2-tof-entropy-encoder-workflow "$RANS_OPT --mem-factor ${TOF_ENC_MEMFACT:-1.5} --pipeline $(get_N tof-entropy-encoder TOF CTF 1)"
   has_detector_ctf ITS && add_W o2-itsmft-entropy-encoder-workflow "$RANS_OPT --mem-factor ${ITS_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder ITS CTF 1)"
   has_detector_ctf TRD && add_W o2-trd-entropy-encoder-workflow "$RANS_OPT --mem-factor ${TRD_ENC_MEMFACT:-1.5} --pipeline $(get_N trd-entropy-encoder TRD CTF 1 TRDENT)"
-  has_detector_ctf TPC && add_W o2-tpc-reco-workflow " $RANS_OPT --mem-factor ${TPC_ENC_MEMFACT:-1.} --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline $(get_N tpc-entropy-encoder TPC CTF 1 TPCENT)"
+  has_detector_ctf TPC && add_W o2-tpc-reco-workflow " $RANS_OPT --mem-factor ${TPC_ENC_MEMFACT:-1.} --input-type compressed-clusters-flat-for-encode --output-type encoded-clusters,disable-writer --pipeline $(get_N tpc-entropy-encoder TPC CTF 1 TPCENT)"
   has_detector_ctf CTP && add_W o2-ctp-entropy-encoder-workflow "$RANS_OPT --mem-factor ${CTP_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder CTP CTF 1)"
 
   if [[ $CREATECTFDICT == 1 && $WORKFLOWMODE == "run" ]] ; then

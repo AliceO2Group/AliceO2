@@ -117,7 +117,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool zsDecoder = false;
     bool zsOnTheFly = false;
     bool outputTracks = false;
-    bool outputCompClusters = false;
+    bool outputCompClustersRoot = false;
     bool outputCompClustersFlat = false;
     bool outputCAClusters = false;
     bool outputQA = false;
