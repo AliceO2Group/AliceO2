@@ -35,8 +35,8 @@ struct ChannelDataFloat {
 
   int mPMNumber = DUMMY_CHANNEL_ID;   ///< Channel ID
   int adcId = DUMMY_CHAIN_QTC;        ///< Channel data bits
-  double mTime = DUMMY_CFD_TIME;       ///< Channel time (ns), 0 at the LHC clock center
-  double mChargeADC = DUMMY_QTC_AMPL;  ///< Channel charge (ADC channels)
+  double mTime = DUMMY_CFD_TIME;      ///< Channel time (ns), 0 at the LHC clock center
+  double mChargeADC = DUMMY_QTC_AMPL; ///< Channel charge (ADC channels)
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int Channel, double Time, double Charge, int AdcId)
