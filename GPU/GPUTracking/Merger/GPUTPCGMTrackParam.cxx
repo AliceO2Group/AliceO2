@@ -220,13 +220,13 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         }
       }
 
+      auto& inter = interpolation.hit[iWay & 1 ? ihit : ihitMergeFirst];
       float uncorrectedY = -1e6f;
       if (param.rec.tpc.rebuildTrackInFit && iWay == nWays - 2) {
         const GPUTPCTracker& GPUrestrict() tracker = *(merger -> GetConstantMem()->tpcTrackers + cluster.sector);
         const GPUTPCRow& GPUrestrict() row = tracker.Row(cluster.row);
         GPUglobalref() const cahit2* hits = tracker.HitData(row);
         GPUglobalref() const calink* firsthit = tracker.FirstHitInBin(row);
-        const auto& inter = interpolation.hit[ihit];
         if (row.NHits() && inter.errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
           const float zOffset = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(cluster.sector, mTOffset, param.continuousMaxTimeBin);
           const float y0 = row.Grid().YMin();
@@ -358,10 +358,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         prop.GetErr2(err2Y, err2Z, param, zz, cluster.row, clusterState, cluster.sector, time, invAvgCharge, invCharge);
 
         if (rejectChi2 >= GPUTPCGMPropagator::rejectInterFill) {
-          if (rejectChi2 == GPUTPCGMPropagator::rejectInterReject && interpolation.hit[ihit].errorY < (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
+          if (rejectChi2 == GPUTPCGMPropagator::rejectInterReject && inter.errorY < (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
             rejectChi2 = GPUTPCGMPropagator::rejectDirect;
           } else {
-            retValInt = prop.InterpolateReject(param, yy, zz, clusterState, rejectChi2, &interpolation.hit[ihit], err2Y, err2Z, deltaZ);
+            retValInt = prop.InterpolateReject(param, yy, zz, clusterState, rejectChi2, &inter, err2Y, err2Z, deltaZ);
           }
         }
 
@@ -371,7 +371,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
           retValUpd = prop.Update(yy, zz, cluster.row, param, clusterState, rejectChi2, refit, err2Y, err2Z);
         }
         GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
-          merger->DebugStreamerUpdate(iTrk, ihit, xx, yy, zz, cluster, merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num], *this, prop, interpolation.hit[ihit], rejectChi2, refit, retValUpd, sumInvSqrtCharge / nAvgCharge * sumInvSqrtCharge / nAvgCharge, yy, zz, clusterState, retValInt, err2Y, err2Z);
+          merger->DebugStreamerUpdate(iTrk, ihit, xx, yy, zz, cluster, merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num], *this, prop, inter, rejectChi2, refit, retValUpd, sumInvSqrtCharge / nAvgCharge * sumInvSqrtCharge / nAvgCharge, yy, zz, clusterState, retValInt, err2Y, err2Z);
         });
       }
       // clang-format off
