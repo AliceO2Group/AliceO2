@@ -2063,16 +2063,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
     const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
 
-    // count all parts
-    int totalNParts = 0;
-    for (int iCol = 0; iCol < nMCCollisions; iCol++) {
-      totalNParts += mcParts[iCol].size();
-
-      // if signal filtering enabled, let's check if there are more than one source; otherwise fatalise
-      if (mUseSigFiltMC) {
-        std::vector<int> sourceIDs{};
-        auto& colParts = mcParts[iCol];
-        for (auto colPart : colParts) {
+    // if signal filtering enabled, let's check if there are more than one source; otherwise fatalise
+    if (mUseSigFiltMC) {
+      std::vector<int> sourceIDs{};
+      for (int iCol = 0; iCol < nMCCollisions; iCol++) {
+        for (auto const& colPart : mcParts[iCol]) {
           int sourceID = colPart.sourceID;
           if (std::find(sourceIDs.begin(), sourceIDs.end(), sourceID) == sourceIDs.end()) {
             sourceIDs.push_back(sourceID);
@@ -2081,10 +2076,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             break;
           }
         }
-        if (sourceIDs.size() <= 1) {
-          LOGP(fatal, "Signal filtering cannot be enabled without embedding. Please fix the configuration either enabling the embedding, or turning off the signal filtering.");
+        if (sourceIDs.size() > 1) { // we found more than one, exit
+          break;
         }
       }
+      if (sourceIDs.size() <= 1) {
+        LOGP(fatal, "Signal filtering cannot be enabled without embedding. Please fix the configuration either enabling the embedding, or turning off the signal filtering.");
+      }
+    }
+
+    // count all parts
+    int totalNParts = 0;
+    for (int iCol = 0; iCol < nMCCollisions; iCol++) {
+      totalNParts += mcParts[iCol].size();
     }
     mcCollisionsCursor.reserve(totalNParts);
 
