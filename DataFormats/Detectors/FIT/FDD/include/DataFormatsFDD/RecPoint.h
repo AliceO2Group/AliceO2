@@ -30,13 +30,13 @@ namespace fdd
 struct ChannelDataFloat {
   static constexpr int DUMMY_CHANNEL_ID = -1;
   static constexpr int DUMMY_CHAIN_QTC = -1;
-  static constexpr float DUMMY_CFD_TIME = -20000;
-  static constexpr float DUMMY_QTC_AMPL = -20000;
+  static constexpr double DUMMY_CFD_TIME = -20000;
+  static constexpr double DUMMY_QTC_AMPL = -20000;
 
   int mPMNumber = DUMMY_CHANNEL_ID;   ///< Channel ID
   int adcId = DUMMY_CHAIN_QTC;        ///< Channel data bits
-  float mTime = DUMMY_CFD_TIME;       ///< Channel time (ns), 0 at the LHC clock center
-  float mChargeADC = DUMMY_QTC_AMPL;  ///< Channel charge (ADC channels)
+  double mTime = DUMMY_CFD_TIME;       ///< Channel time (ns), 0 at the LHC clock center
+  double mChargeADC = DUMMY_QTC_AMPL;  ///< Channel charge (ADC channels)
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int Channel, double Time, double Charge, int AdcId)
@@ -80,8 +80,8 @@ struct ChannelDataFloat {
 
   void print() const;
   int getChannelId() const { return mPMNumber; }
-  float getTime() const { return mTime; }
-  float getAmp() const { return mChargeADC; }
+  double getTime() const { return mTime; }
+  double getAmp() const { return mChargeADC; }
   bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);

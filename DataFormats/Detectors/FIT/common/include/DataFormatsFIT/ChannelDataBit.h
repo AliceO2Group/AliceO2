@@ -33,11 +33,11 @@ enum class ChannelDataBit { kNumberADC = 0,
                             kIsTimeInfoLost
 };
 
-template<typename IntegerType>
-requires std::integral<IntegerType>
+template <typename IntegerType>
+  requires std::integral<IntegerType>
 IntegerType operator<<(IntegerType n, ChannelDataBit bitFlag)
 {
-    return n << static_cast<int>(bitFlag);
+  return n << static_cast<int>(bitFlag);
 }
 }
 } // namespace o2

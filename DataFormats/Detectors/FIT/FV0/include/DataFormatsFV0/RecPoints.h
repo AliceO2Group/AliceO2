@@ -29,8 +29,8 @@ namespace fv0
 struct ChannelDataFloat {
   static constexpr int DUMMY_CHANNEL_ID = -1;
   static constexpr int DUMMY_CHAIN_QTC = -1;
-  static constexpr float DUMMY_CFD_TIME = -20000.0;
-  static constexpr float DUMMY_QTC_AMPL = -20000.0;
+  static constexpr double DUMMY_CFD_TIME = -20000.0;
+  static constexpr double DUMMY_QTC_AMPL = -20000.0;
 
   int channel = DUMMY_CHANNEL_ID; ///< Channel ID
   float time = DUMMY_CFD_TIME;    ///< Channel time (ns), 0 at the LHC clock center
@@ -79,8 +79,8 @@ struct ChannelDataFloat {
 
   void print() const;
   int getChannelId() const { return channel; }
-  float getTime() const { return time; }
-  float getAmp() const { return charge; }
+  double getTime() const { return time; }
+  double getAmp() const { return charge; }
   bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);
