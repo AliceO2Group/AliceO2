@@ -337,7 +337,7 @@ class TPCFastTransform : public FlatObject
 
   GPUd() void TransformLocal(int32_t sector, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const;
 
-  ClassDefNV(TPCFastTransform, 4);
+  ClassDefNV(TPCFastTransform, 5);
 };
 
 // =======================================================================

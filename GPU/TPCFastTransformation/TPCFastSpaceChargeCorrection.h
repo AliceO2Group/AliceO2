@@ -39,11 +39,9 @@ namespace gpu
 class TPCFastSpaceChargeCorrection : public FlatObject
 {
  public:
-  ///
-  /// \brief The struct contains necessary info for TPC padrow
-  ///
-  struct RowInfo {
-    ClassDefNV(RowInfo, 1);
+  // obsolete structure, declared here only for backward compatibility
+  struct SliceInfo {
+    ClassDefNV(SliceInfo, 2);
   };
 
   struct GridInfo {
@@ -144,11 +142,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     ClassDefNV(SectorRowInfo, 2);
   };
 
-  struct SectorInfo {
-    float vMax1{0.f}; ///< Max value of V coordinate
-    ClassDefNV(SectorInfo, 1);
-  };
-
   typedef Spline2D<float, 3> SplineTypeXYZ;
   typedef Spline2D<float, 1> SplineTypeInvX;
   typedef Spline2D<float, 2> SplineTypeInvYZ;
@@ -188,6 +181,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// Moving the class with its external buffer to another location
 
+  void setActualBufferAddressOld(char* actualFlatBufferPtr);
   void setActualBufferAddress(char* actualFlatBufferPtr);
   void setFutureBufferAddress(char* futureFlatBufferPtr);
 
@@ -215,10 +209,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Sets the time stamp of the current calibaration
   GPUd() void setTimeStamp(int64_t v) { mTimeStamp = v; }
 
-  /// Set safety marging for the interpolation around the TPC row.
-  /// Outside of this area the interpolation returns the boundary values.
-  GPUd() void setInterpolationSafetyMargin(float val) { fInterpolationSafetyMargin = val; }
-
   /// Gives const pointer to a spline
   GPUd() const SplineType& getSpline(int32_t sector, int32_t row) const;
 
@@ -226,10 +216,10 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() SplineType& getSpline(int32_t sector, int32_t row);
 
   /// Gives pointer to spline data
-  GPUd() float* getSplineData(int32_t sector, int32_t row, int32_t iSpline = 0);
+  GPUd() float* getCorrectionData(int32_t sector, int32_t row, int32_t iSpline = 0);
 
   /// Gives pointer to spline data
-  GPUd() const float* getSplineData(int32_t sector, int32_t row, int32_t iSpline = 0) const;
+  GPUd() const float* getCorrectionData(int32_t sector, int32_t row, int32_t iSpline = 0) const;
 
   /// Gives const pointer to a spline for the inverse X correction
   GPUd() const SplineTypeInvX& getSplineInvX(int32_t sector, int32_t row) const;
@@ -238,10 +228,10 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() SplineTypeInvX& getSplineInvX(int32_t sector, int32_t row);
 
   /// Gives pointer to spline data for the inverse X correction
-  GPUd() float* getSplineDataInvX(int32_t sector, int32_t row);
+  GPUd() float* getCorrectionDataInvX(int32_t sector, int32_t row);
 
   /// Gives pointer to spline data for the inverse X correction
-  GPUd() const float* getSplineDataInvX(int32_t sector, int32_t row) const;
+  GPUd() const float* getCorrectionDataInvX(int32_t sector, int32_t row) const;
 
   /// Gives const pointer to a spline for the inverse YZ correction
   GPUd() const SplineTypeInvYZ& getSplineInvYZ(int32_t sector, int32_t row) const;
@@ -250,10 +240,10 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() SplineTypeInvYZ& getSplineInvYZ(int32_t sector, int32_t row);
 
   /// Gives pointer to spline data for the inverse YZ correction
-  GPUd() float* getSplineDataInvYZ(int32_t sector, int32_t row);
+  GPUd() float* getCorrectionDataInvYZ(int32_t sector, int32_t row);
 
   /// Gives pointer to spline data for the inverse YZ correction
-  GPUd() const float* getSplineDataInvYZ(int32_t sector, int32_t row) const;
+  GPUd() const float* getCorrectionDataInvYZ(int32_t sector, int32_t row) const;
 
   /// _______________ The main method: cluster correction  _______________________
   ///
@@ -297,24 +287,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Gives the time stamp of the current calibaration parameters
   int64_t getTimeStamp() const { return mTimeStamp; }
 
-  /// Gives the interpolation safety marging  around the TPC row.
-  GPUd() float getInterpolationSafetyMargin() const { return fInterpolationSafetyMargin; }
-
-  /// Gives TPC row info
-  GPUd() const RowInfo& getRowInfo(int32_t row) const { return mRowInfos[row]; }
-
-  /// Gives TPC sector info
-  GPUd() const SectorInfo& getSectorInfo(int32_t sector) const
-  {
-    return mSectorInfo[sector];
-  }
-
-  /// Gives TPC sector info
-  GPUd() SectorInfo& getSectorInfo(int32_t sector)
-  {
-    return mSectorInfo[sector];
-  }
-
   /// Gives TPC sector & row info
   GPUd() const SectorRowInfo& getSectorRowInfo(int32_t sector, int32_t row) const
   {
@@ -351,30 +323,24 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   int32_t mNumberOfScenarios; ///< Number of approximation spline scenarios
 
-  SectorInfo mSectorInfo[TPCFastTransformGeo::getNumberOfSectors()]; ///< SectorInfo array
-
   SplineType* mScenarioPtr; //! (transient!!) pointer to spline scenarios
 
   /// _______________  Calibration data  _______________________________________________
 
   int64_t mTimeStamp; ///< time stamp of the current calibration
 
-  char* mSplineData[3]; //! (transient!!) pointer to the spline data in the flat buffer
+  char* mCorrectionData[3]; //! (transient!!) pointer to the spline data in the flat buffer
 
-  size_t mDataSizeBytes[3]; ///< size of the data for one sector in the flat buffer
-
-  float fInterpolationSafetyMargin{0.1f}; // 10% area around the TPC row. Outside of this area the interpolation returns the boundary values.
+  size_t mCorrectionDataSize[3]; ///< size of the data per transformation (direct, inverseX, inverse YZ) in the flat buffer
 
   /// Class version. It is used to read older versions from disc.
   /// The default version 3 is the one before this field was introduced.
   /// The actual version must be set in startConstruction().
   int32_t mClassVersion{3};
 
-  RowInfo mRowInfos[TPCFastTransformGeo::getMaxNumberOfRows()]; ///< RowInfo array
-
   SectorRowInfo mSectorRowInfos[TPCFastTransformGeo::getNumberOfSectors() * TPCFastTransformGeo::getMaxNumberOfRows()]; ///< SectorRowInfo array
 
-  ClassDefNV(TPCFastSpaceChargeCorrection, 5);
+  ClassDefNV(TPCFastSpaceChargeCorrection, 4);
 };
 
 /// ====================================================
@@ -393,16 +359,16 @@ GPUdi() TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::
   return mScenarioPtr[getSectorRowInfo(sector, row).splineScenarioID];
 }
 
-GPUdi() float* TPCFastSpaceChargeCorrection::getSplineData(int32_t sector, int32_t row, int32_t iSpline)
+GPUdi() float* TPCFastSpaceChargeCorrection::getCorrectionData(int32_t sector, int32_t row, int32_t iSpline)
 {
   /// Gives pointer to spline data
-  return reinterpret_cast<float*>(mSplineData[iSpline] + getSectorRowInfo(sector, row).dataOffsetBytes[iSpline]);
+  return reinterpret_cast<float*>(mCorrectionData[iSpline] + getSectorRowInfo(sector, row).dataOffsetBytes[iSpline]);
 }
 
-GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineData(int32_t sector, int32_t row, int32_t iSpline) const
+GPUdi() const float* TPCFastSpaceChargeCorrection::getCorrectionData(int32_t sector, int32_t row, int32_t iSpline) const
 {
   /// Gives pointer to spline data
-  return reinterpret_cast<const float*>(mSplineData[iSpline] + getSectorRowInfo(sector, row).dataOffsetBytes[iSpline]);
+  return reinterpret_cast<const float*>(mCorrectionData[iSpline] + getSectorRowInfo(sector, row).dataOffsetBytes[iSpline]);
 }
 
 GPUdi() TPCFastSpaceChargeCorrection::SplineTypeInvX& TPCFastSpaceChargeCorrection::getSplineInvX(int32_t sector, int32_t row)
@@ -417,16 +383,16 @@ GPUdi() const TPCFastSpaceChargeCorrection::SplineTypeInvX& TPCFastSpaceChargeCo
   return reinterpret_cast<const SplineTypeInvX&>(getSpline(sector, row));
 }
 
-GPUdi() float* TPCFastSpaceChargeCorrection::getSplineDataInvX(int32_t sector, int32_t row)
+GPUdi() float* TPCFastSpaceChargeCorrection::getCorrectionDataInvX(int32_t sector, int32_t row)
 {
   /// Gives pointer to spline data for the inverse X correction
-  return getSplineData(sector, row, 1);
+  return getCorrectionData(sector, row, 1);
 }
 
-GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineDataInvX(int32_t sector, int32_t row) const
+GPUdi() const float* TPCFastSpaceChargeCorrection::getCorrectionDataInvX(int32_t sector, int32_t row) const
 {
   /// Gives pointer to spline data for the inverse X correction
-  return getSplineData(sector, row, 1);
+  return getCorrectionData(sector, row, 1);
 }
 
 GPUdi() TPCFastSpaceChargeCorrection::SplineTypeInvYZ& TPCFastSpaceChargeCorrection::getSplineInvYZ(int32_t sector, int32_t row)
@@ -441,16 +407,16 @@ GPUdi() const TPCFastSpaceChargeCorrection::SplineTypeInvYZ& TPCFastSpaceChargeC
   return reinterpret_cast<const SplineTypeInvYZ&>(getSpline(sector, row));
 }
 
-GPUdi() float* TPCFastSpaceChargeCorrection::getSplineDataInvYZ(int32_t sector, int32_t row)
+GPUdi() float* TPCFastSpaceChargeCorrection::getCorrectionDataInvYZ(int32_t sector, int32_t row)
 {
   /// Gives pointer to spline data for the inverse YZ correction
-  return getSplineData(sector, row, 2);
+  return getCorrectionData(sector, row, 2);
 }
 
-GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineDataInvYZ(int32_t sector, int32_t row) const
+GPUdi() const float* TPCFastSpaceChargeCorrection::getCorrectionDataInvYZ(int32_t sector, int32_t row) const
 {
   /// Gives pointer to spline data for the inverse YZ correction
-  return getSplineData(sector, row, 2);
+  return getCorrectionData(sector, row, 2);
 }
 
 GPUdi() std::array<float, 3> TPCFastSpaceChargeCorrection::convLocalToGrid(int32_t sector, int32_t row, float y, float z) const
@@ -518,7 +484,7 @@ GPUdi() std::array<float, 3> TPCFastSpaceChargeCorrection::getCorrectionLocal(in
 {
   const auto& info = getSectorRowInfo(sector, row);
   const SplineType& spline = getSpline(sector, row);
-  const float* splineData = getSplineData(sector, row);
+  const float* splineData = getCorrectionData(sector, row);
 
   auto val = convLocalToGrid(sector, row, y, z);
 
@@ -536,7 +502,7 @@ GPUdi() float TPCFastSpaceChargeCorrection::getCorrectionXatRealYZ(int32_t secto
   const auto& info = getSectorRowInfo(sector, row);
   auto val = convRealLocalToGrid(sector, row, realY, realZ);
   float dx = 0;
-  getSplineInvX(sector, row).interpolateAtU(getSplineDataInvX(sector, row), val[0], val[1], &dx);
+  getSplineInvX(sector, row).interpolateAtU(getCorrectionDataInvX(sector, row), val[0], val[1], &dx);
   dx = val[2] * GPUCommonMath::Clamp(dx, info.minCorr[0], info.maxCorr[0]);
   return dx;
 }
@@ -546,7 +512,7 @@ GPUdi() std::array<float, 2> TPCFastSpaceChargeCorrection::getCorrectionYZatReal
   auto val = convRealLocalToGrid(sector, row, realY, realZ);
   const auto& info = getSectorRowInfo(sector, row);
   float dyz[2];
-  getSplineInvYZ(sector, row).interpolateAtU(getSplineDataInvYZ(sector, row), val[0], val[1], dyz);
+  getSplineInvYZ(sector, row).interpolateAtU(getCorrectionDataInvYZ(sector, row), val[0], val[1], dyz);
   dyz[0] = val[2] * GPUCommonMath::Clamp(dyz[0], info.minCorr[1], info.maxCorr[1]);
   dyz[1] = val[2] * GPUCommonMath::Clamp(dyz[1], info.minCorr[2], info.maxCorr[2]);
   return {dyz[0], dyz[1]};

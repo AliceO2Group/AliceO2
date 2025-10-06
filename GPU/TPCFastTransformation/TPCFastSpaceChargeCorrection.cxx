@@ -34,8 +34,8 @@ TPCFastSpaceChargeCorrection::TPCFastSpaceChargeCorrection()
     mNumberOfScenarios(0),
     mScenarioPtr(nullptr),
     mTimeStamp(-1),
-    mSplineData{nullptr, nullptr, nullptr},
-    mDataSizeBytes{0, 0, 0}
+    mCorrectionData{nullptr, nullptr, nullptr},
+    mCorrectionDataSize{0, 0, 0}
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -63,8 +63,8 @@ void TPCFastSpaceChargeCorrection::destroy()
   mScenarioPtr = nullptr;
   mTimeStamp = -1;
   for (int32_t is = 0; is < 3; is++) {
-    mSplineData[is] = nullptr;
-    mDataSizeBytes[is] = 0;
+    mCorrectionData[is] = nullptr;
+    mCorrectionDataSize[is] = 0;
   }
   FlatObject::destroy();
 }
@@ -78,9 +78,9 @@ void TPCFastSpaceChargeCorrection::relocateBufferPointers(const char* oldBuffer,
     char* newSplineBuf = relocatePointer(oldBuffer, newBuffer, sp.getFlatBufferPtr());
     sp.setActualBufferAddress(newSplineBuf);
   }
-  mSplineData[0] = relocatePointer(oldBuffer, newBuffer, mSplineData[0]);
-  mSplineData[1] = relocatePointer(oldBuffer, newBuffer, mSplineData[1]);
-  mSplineData[2] = relocatePointer(oldBuffer, newBuffer, mSplineData[2]);
+  mCorrectionData[0] = relocatePointer(oldBuffer, newBuffer, mCorrectionData[0]);
+  mCorrectionData[1] = relocatePointer(oldBuffer, newBuffer, mCorrectionData[1]);
+  mCorrectionData[2] = relocatePointer(oldBuffer, newBuffer, mCorrectionData[2]);
 }
 
 void TPCFastSpaceChargeCorrection::cloneFromObject(const TPCFastSpaceChargeCorrection& obj, char* newFlatBufferPtr)
@@ -101,25 +101,17 @@ void TPCFastSpaceChargeCorrection::cloneFromObject(const TPCFastSpaceChargeCorre
 
   mTimeStamp = obj.mTimeStamp;
 
-  for (int32_t i = 0; i < TPCFastTransformGeo::getNumberOfSectors(); ++i) {
-    mSectorInfo[i] = obj.mSectorInfo[i];
-  }
-
-  mDataSizeBytes[0] = obj.mDataSizeBytes[0];
-  mDataSizeBytes[1] = obj.mDataSizeBytes[1];
-  mDataSizeBytes[2] = obj.mDataSizeBytes[2];
+  mCorrectionDataSize[0] = obj.mCorrectionDataSize[0];
+  mCorrectionDataSize[1] = obj.mCorrectionDataSize[1];
+  mCorrectionDataSize[2] = obj.mCorrectionDataSize[2];
 
   // variable-size data
   mScenarioPtr = obj.mScenarioPtr;
-  mSplineData[0] = obj.mSplineData[0];
-  mSplineData[1] = obj.mSplineData[1];
-  mSplineData[2] = obj.mSplineData[2];
+  mCorrectionData[0] = obj.mCorrectionData[0];
+  mCorrectionData[1] = obj.mCorrectionData[1];
+  mCorrectionData[2] = obj.mCorrectionData[2];
 
   mClassVersion = obj.mClassVersion;
-
-  for (int32_t i = 0; i < TPCFastTransformGeo::getMaxNumberOfRows(); i++) {
-    mRowInfos[i] = obj.mRowInfos[i];
-  }
 
   for (int32_t i = 0; i < TPCFastTransformGeo::getNumberOfSectors() * TPCFastTransformGeo::getMaxNumberOfRows(); i++) {
     mSectorRowInfos[i] = obj.mSectorRowInfos[i];
@@ -137,7 +129,7 @@ void TPCFastSpaceChargeCorrection::moveBufferTo(char* newFlatBufferPtr)
   relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
 }
 
-void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBufferPtr)
+void TPCFastSpaceChargeCorrection::setActualBufferAddressOld(char* actualFlatBufferPtr)
 {
   /// Sets the actual location of the external flat buffer after it has been moved (e.g. to another maschine)
 
@@ -162,10 +154,264 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
   }
   size_t bufferSize = scBufferOffset + scBufferSize;
   for (int32_t is = 0; is < 3; is++) {
-    size_t splineDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
-    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + splineDataOffset);
-    bufferSize = splineDataOffset + mDataSizeBytes[is];
+    size_t correctionDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    mCorrectionData[is] = reinterpret_cast<char*>(mFlatBufferPtr + correctionDataOffset);
+    bufferSize = correctionDataOffset + mCorrectionDataSize[is];
   }
+}
+
+void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBufferPtr)
+{
+  /// Sets the actual location of the external flat buffer after it has been moved (e.g. to another maschine)
+
+  if (mClassVersion == 4) {
+    FlatObject::setActualBufferAddress(actualFlatBufferPtr);
+
+    size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
+
+    mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr);
+
+    size_t scBufferOffset = alignSize(scSize, SplineType::getBufferAlignmentBytes());
+    size_t scBufferSize = 0;
+
+    for (int32_t i = 0; i < mNumberOfScenarios; i++) {
+      SplineType& sp = mScenarioPtr[i];
+      sp.setActualBufferAddress(mFlatBufferPtr + scBufferOffset + scBufferSize);
+      scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
+    }
+    size_t bufferSize = scBufferOffset + scBufferSize;
+    for (int32_t is = 0; is < 3; is++) {
+      size_t correctionDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+      mCorrectionData[is] = reinterpret_cast<char*>(mFlatBufferPtr + correctionDataOffset);
+      bufferSize = correctionDataOffset + mCorrectionDataSize[is];
+    }
+    return;
+  }
+
+  if (mClassVersion != 3) {
+    LOG(fatal) << "TPCFastSpaceChargeCorrection::setActualBufferAddress() called with class version " << mClassVersion << ". This is not supported.";
+    return;
+  }
+
+  // Class version 3
+
+  struct RowInfoVersion3 {
+    int32_t splineScenarioID{0};  ///< scenario index (which of Spline2D splines to use)
+    size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing a TPC sector
+  };
+
+  struct RowActiveAreaVersion3 {
+    float maxDriftLengthCheb[5]{0.f};
+    float vMax{0.f};
+    float cuMin{0.f};
+    float cuMax{0.f};
+    float cvMax{0.f};
+  };
+
+  struct SectorRowInfoVersion3 {
+    float gridV0{0.f};           ///< V coordinate of the V-grid start
+    float gridCorrU0{0.f};       ///< U coordinate of the U-grid start for corrected U
+    float gridCorrV0{0.f};       ///< V coordinate of the V-grid start for corrected V
+    float scaleCorrUtoGrid{0.f}; ///< scale corrected U to U-grid coordinate
+    float scaleCorrVtoGrid{0.f}; ///< scale corrected V to V-grid coordinate
+    RowActiveAreaVersion3 activeArea;
+  };
+
+  FlatObject::setActualBufferAddress(actualFlatBufferPtr);
+
+  size_t oldRowsOffset = 0;
+  size_t oldRowsSize = sizeof(RowInfoVersion3) * mGeo.getNumberOfRows();
+
+  size_t oldSectorRowsOffset = oldRowsOffset + oldRowsSize;
+  size_t oldSectorRowsSize = sizeof(SectorRowInfoVersion3) * mGeo.getNumberOfRows() * mGeo.getNumberOfSectors();
+
+  size_t oldScenariosOffset = alignSize(oldSectorRowsOffset + oldSectorRowsSize, SplineType::getClassAlignmentBytes());
+  size_t scenariosSize = sizeof(SplineType) * mNumberOfScenarios;
+
+  SplineType* oldScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr + oldScenariosOffset);
+
+  { // copy old-format sector and row parameters from the buffer to the arrays
+
+    auto* oldRowInfos = reinterpret_cast<RowInfoVersion3*>(mFlatBufferPtr + oldRowsOffset);
+    auto* oldSectorRowInfos = reinterpret_cast<SectorRowInfoVersion3*>(mFlatBufferPtr + oldSectorRowsOffset);
+
+    size_t sectorDataSize[3];
+    for (int32_t is = 0; is < 3; is++) {
+      sectorDataSize[is] = mCorrectionDataSize[is] / mGeo.getNumberOfSectors();
+    }
+
+    for (int32_t iSector = 0; iSector < mGeo.getNumberOfSectors(); iSector++) {
+
+      for (int32_t iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
+        RowInfoVersion3& oldRowInfo = oldRowInfos[iRow];
+        SectorRowInfoVersion3& oldSectorRowInfo = oldSectorRowInfos[mGeo.getNumberOfRows() * iSector + iRow];
+
+        // the spline buffer is not yet initialised, don't try to access knot positions etc
+        const auto& spline = oldScenarioPtr[oldRowInfo.splineScenarioID];
+
+        SectorRowInfo& newSectorRow = getSectorRowInfo(iSector, iRow);
+
+        newSectorRow.splineScenarioID = oldRowInfo.splineScenarioID;
+        for (int32_t is = 0; is < 3; is++) {
+          newSectorRow.dataOffsetBytes[is] = sectorDataSize[is] * iSector + oldRowInfo.dataOffsetBytes[is];
+        }
+
+        { // grid for the measured coordinates
+          float y0 = mGeo.getRowInfo(iRow).yMin;
+          float yScale = spline.getGridX1().getUmax() / mGeo.getRowInfo(iRow).getYwidth();
+          float zReadout = mGeo.getZreadout(iSector);
+          float zOut = mGeo.getTPCzLength() - oldSectorRowInfo.gridV0;
+          float z0 = -3.;
+          float zScale = spline.getGridX2().getUmax() / (zOut - z0);
+          if (iSector >= mGeo.getNumberOfSectorsA()) {
+            zOut = -zOut;
+            z0 = zOut;
+          }
+          newSectorRow.gridMeasured.set(y0, yScale, z0, zScale, zOut, zReadout);
+        }
+
+        { // grid for the real coordinates
+          float y0 = oldSectorRowInfo.gridCorrU0;
+          float yScale = oldSectorRowInfo.scaleCorrUtoGrid;
+          float zReadout = mGeo.getZreadout(iSector);
+          float zOut = mGeo.getTPCzLength() - oldSectorRowInfo.gridCorrV0;
+          float zScale = oldSectorRowInfo.scaleCorrVtoGrid;
+          float z0 = zOut - spline.getGridX2().getUmax() / zScale;
+          if (iSector >= mGeo.getNumberOfSectorsA()) {
+            zOut = -zOut;
+            z0 = zOut;
+          }
+          newSectorRow.gridReal.set(y0, yScale, z0, zScale, zOut, zReadout);
+        }
+
+        newSectorRow.resetMaxValues();
+        newSectorRow.updateMaxValues(-50.f, -50.f, -50.f);
+        newSectorRow.updateMaxValues(50.f, 50.f, 50.f);
+      }
+    }
+  }
+
+  // move spline scenarios to the new place in the buffer
+
+  mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr);
+  memmove(mScenarioPtr, oldScenarioPtr, scenariosSize);
+
+  size_t oldScenariosBufferOffset = alignSize(oldScenariosOffset + scenariosSize, SplineType::getBufferAlignmentBytes());
+  size_t scenariosBufferOffset = alignSize(scenariosSize, SplineType::getBufferAlignmentBytes());
+
+  size_t oldScenariosBufferSize = 0;
+  size_t scenariosBufferSize = 0;
+  for (int32_t i = 0; i < mNumberOfScenarios; i++) {
+    SplineType& sp = mScenarioPtr[i];
+    char* oldAddress = mFlatBufferPtr + oldScenariosBufferOffset + oldScenariosBufferSize;
+    char* newAddress = mFlatBufferPtr + scenariosBufferOffset + scenariosBufferSize;
+    memmove(newAddress, oldAddress, sp.getFlatBufferSize());
+    sp.setActualBufferAddress(newAddress);
+    oldScenariosBufferSize = alignSize(oldScenariosBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
+    scenariosBufferSize = alignSize(scenariosBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
+  }
+
+  size_t oldBufferSize = oldScenariosBufferOffset + oldScenariosBufferSize;
+  size_t bufferSize = scenariosBufferOffset + scenariosBufferSize;
+
+  // move spline data to the new place in the buffer
+
+  for (int32_t is = 0; is < 3; is++) {
+    size_t oldCorrectionDataOffset = alignSize(oldBufferSize, SplineType::getParameterAlignmentBytes());
+    size_t correctionDataOffset = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    mCorrectionData[is] = reinterpret_cast<char*>(mFlatBufferPtr + correctionDataOffset);
+    memmove(mCorrectionData[is], mFlatBufferPtr + oldCorrectionDataOffset, mCorrectionDataSize[is]);
+    oldBufferSize = oldCorrectionDataOffset + mCorrectionDataSize[is];
+    bufferSize = correctionDataOffset + mCorrectionDataSize[is];
+  }
+
+  mFlatBufferSize = bufferSize;
+
+  // now convert the spline data to the new format
+  for (int32_t iSector = 0; iSector < mGeo.getNumberOfSectors(); iSector++) {
+    bool isAside = (iSector < mGeo.getNumberOfSectorsA());
+    for (int32_t iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
+
+      SectorRowInfo& sectorRow = getSectorRowInfo(iSector, iRow);
+      const auto& spline = mScenarioPtr[sectorRow.splineScenarioID];
+
+      int nSplineDimensions[3] = {3, 1, 2};
+
+      for (int iSpline = 0; iSpline < 3; iSpline++) {
+        int nDim = nSplineDimensions[iSpline];
+        int nKnotParameters = 4 * nDim;
+        auto* data = getCorrectionData(iSector, iRow, iSpline);
+
+        // lambda to swap parameters at two knots
+        auto swapKnots = [&](int i1, int j1, int i2, int j2) {
+          auto k1 = spline.getKnotIndex(i1, j1);
+          auto k2 = spline.getKnotIndex(i2, j2);
+          for (int ipar = 0; ipar < nKnotParameters; ipar++) {
+            std::swap(data[nKnotParameters * k1 + ipar], data[nKnotParameters * k2 + ipar]);
+          }
+        };
+
+        // reorder knots for the A side Y == old U, Z == - old V
+        if (isAside) {
+          for (int32_t i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
+            for (int32_t j = 0; j < spline.getGridX2().getNumberOfKnots() / 2; j++) {
+              swapKnots(i, j, i, spline.getGridX2().getNumberOfKnots() - 1 - j);
+            }
+          }
+        } else { // reorder knots for the C side Y == - old U, Z == old V
+          for (int32_t i = 0; i < spline.getGridX1().getNumberOfKnots() / 2; i++) {
+            for (int32_t j = 0; j < spline.getGridX2().getNumberOfKnots(); j++) {
+              swapKnots(i, j, spline.getGridX1().getNumberOfKnots() - 1 - i, j);
+            }
+          }
+        }
+
+        // correct sign of the parameters due to the coordinate swaps
+
+        for (int32_t iKnot = 0; iKnot < spline.getNumberOfKnots(); iKnot++) {
+          // new grid directions for all corrections
+          for (int iDim = 0; iDim < nDim; iDim++) {
+            if (isAside) {
+              data[nKnotParameters * iKnot + nDim * 1 + iDim] *= -1; // invert Z derivatives on A side
+            } else {
+              data[nKnotParameters * iKnot + nDim * 2 + iDim] *= -1; // invert Y derivatives on C side
+            }
+            data[nKnotParameters * iKnot + nDim * 3 + iDim] *= -1; // invert cross derivatives on both sides
+          }
+          // new correction directions
+          if (iSpline == 0) { // dX,dU,dV -> dX,dY,dZ
+            if (isAside) {
+              data[nKnotParameters * iKnot + nDim * 0 + 2] *= -1; // invert correction in Z
+              data[nKnotParameters * iKnot + nDim * 1 + 2] *= -1; // invert correction in Z Z-derivative
+              data[nKnotParameters * iKnot + nDim * 2 + 2] *= -1; // invert correction in Z Y-derivative
+              data[nKnotParameters * iKnot + nDim * 3 + 2] *= -1; // invert correction in Z cross derivative
+            } else {
+              data[nKnotParameters * iKnot + nDim * 0 + 1] *= -1; // invert correction in Y
+              data[nKnotParameters * iKnot + nDim * 1 + 1] *= -1; // invert correction in Y Z-derivative
+              data[nKnotParameters * iKnot + nDim * 2 + 1] *= -1; // invert correction in Y Y-derivative
+              data[nKnotParameters * iKnot + nDim * 3 + 1] *= -1; // invert correction in Y cross derivative
+            }
+          } else if (iSpline == 2) { // dU,dV at real U,V -> dY,dZ at real Y,Z
+            if (isAside) {
+              data[nKnotParameters * iKnot + nDim * 0 + 1] *= -1; // invert correction in Z
+              data[nKnotParameters * iKnot + nDim * 1 + 1] *= -1; // invert correction in Z Z-derivative
+              data[nKnotParameters * iKnot + nDim * 2 + 1] *= -1; // invert correction in Z Y-derivative
+              data[nKnotParameters * iKnot + nDim * 3 + 1] *= -1; // invert correction in Z cross derivative
+            } else {
+              data[nKnotParameters * iKnot + nDim * 0 + 0] *= -1; // invert correction in Y
+              data[nKnotParameters * iKnot + nDim * 1 + 0] *= -1; // invert correction in Y Z-derivative
+              data[nKnotParameters * iKnot + nDim * 2 + 0] *= -1; // invert correction in Y Y-derivative
+              data[nKnotParameters * iKnot + nDim * 3 + 0] *= -1; // invert correction in Y cross derivative
+            }
+          }
+        }
+
+      } // iSpline
+    } // iRow
+  } // iSector
+
+  // set the class version to the current one
+  mClassVersion = 4;
 }
 
 void TPCFastSpaceChargeCorrection::setFutureBufferAddress(char* futureFlatBufferPtr)
@@ -186,9 +432,9 @@ void TPCFastSpaceChargeCorrection::setFutureBufferAddress(char* futureFlatBuffer
     sp.setFutureBufferAddress(newSplineBuf);
   }
   mScenarioPtr = relocatePointer(oldBuffer, newBuffer, mScenarioPtr);
-  mSplineData[0] = relocatePointer(oldBuffer, newBuffer, mSplineData[0]);
-  mSplineData[1] = relocatePointer(oldBuffer, newBuffer, mSplineData[1]);
-  mSplineData[2] = relocatePointer(oldBuffer, newBuffer, mSplineData[2]);
+  mCorrectionData[0] = relocatePointer(oldBuffer, newBuffer, mCorrectionData[0]);
+  mCorrectionData[1] = relocatePointer(oldBuffer, newBuffer, mCorrectionData[1]);
+  mCorrectionData[2] = relocatePointer(oldBuffer, newBuffer, mCorrectionData[2]);
 
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
@@ -199,7 +445,7 @@ void TPCFastSpaceChargeCorrection::print() const
   mGeo.print();
   LOG(info) << "  mNumberOfScenarios = " << mNumberOfScenarios;
   LOG(info) << "  mTimeStamp = " << mTimeStamp;
-  LOG(info) << "  mDataSizeBytes = " << mDataSizeBytes[0] << " " << mDataSizeBytes[1] << " " << mDataSizeBytes[2];
+  LOG(info) << "  mCorrectionDataSize = " << mCorrectionDataSize[0] << " " << mCorrectionDataSize[1] << " " << mCorrectionDataSize[2];
 
   if (mScenarioPtr) {
     for (int32_t i = 0; i < mNumberOfScenarios; i++) {
@@ -213,7 +459,7 @@ void TPCFastSpaceChargeCorrection::print() const
       for (int32_t ir = 0; ir < mGeo.getNumberOfRows(); ir++) {
         LOG(info) << "sector " << is << " row " << ir << ": ";
         const SplineType& spline = getSpline(is, ir);
-        const float* d = getSplineData(is, ir);
+        const float* d = getCorrectionData(is, ir);
         int32_t k = 0;
         for (int32_t i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
           for (int32_t j = 0; j < spline.getGridX2().getNumberOfKnots(); j++, k++) {
@@ -250,7 +496,6 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
   assert(mConstructionScenarios != nullptr);
 
   for (int32_t i = 0; i < mGeo.getNumberOfSectors(); i++) {
-    mSectorInfo[i].vMax1 = 0.;
     for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
       auto& row = mSectorRowInfos[mGeo.getMaxNumberOfRows() * i + j];
       row.splineScenarioID = -1;
@@ -276,8 +521,8 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
 
   mScenarioPtr = nullptr;
   for (int32_t s = 0; s < 3; s++) {
-    mSplineData[s] = nullptr;
-    mDataSizeBytes[s] = 0;
+    mCorrectionData[s] = nullptr;
+    mCorrectionDataSize[s] = 0;
   }
   mClassVersion = 4;
 }
@@ -338,20 +583,20 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
   size_t bufferSize = scBufferOffsets[0] + scBufferSize;
-  size_t splineDataOffset[3];
+  size_t correctionDataOffset[3];
   for (int32_t is = 0; is < 3; is++) {
-    splineDataOffset[is] = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
-    mDataSizeBytes[is] = 0;
+    correctionDataOffset[is] = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    mCorrectionDataSize[is] = 0;
     for (int32_t i = 0; i < mGeo.getNumberOfSectors(); i++) {
       for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
         SectorRowInfo& row = getSectorRowInfo(i, j);
         SplineType& spline = mConstructionScenarios[row.splineScenarioID];
-        row.dataOffsetBytes[is] = alignSize(mDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
-        mDataSizeBytes[is] = row.dataOffsetBytes[is] + spline.getSizeOfParameters();
+        row.dataOffsetBytes[is] = alignSize(mCorrectionDataSize[is], SplineType::getParameterAlignmentBytes());
+        mCorrectionDataSize[is] = row.dataOffsetBytes[is] + spline.getSizeOfParameters();
       }
     }
-    mDataSizeBytes[is] = alignSize(mDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
-    bufferSize = splineDataOffset[is] + mDataSizeBytes[is];
+    mCorrectionDataSize[is] = alignSize(mCorrectionDataSize[is], SplineType::getParameterAlignmentBytes());
+    bufferSize = correctionDataOffset[is] + mCorrectionDataSize[is];
   }
 
   FlatObject::finishConstruction(bufferSize);
@@ -366,7 +611,7 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
   }
 
   for (int32_t is = 0; is < 3; is++) {
-    mSplineData[is] = reinterpret_cast<char*>(mFlatBufferPtr + splineDataOffset[is]);
+    mCorrectionData[is] = reinterpret_cast<char*>(mFlatBufferPtr + correctionDataOffset[is]);
   }
   releaseConstructionMemory();
 
@@ -380,13 +625,11 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
   // initialise all corrections to 0.
   for (int32_t sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
 
-    getSectorInfo(sector).vMax1 = mGeo.getTPCzLength();
-
     for (int32_t row = 0; row < mGeo.getNumberOfRows(); row++) {
       const SplineType& spline = getSpline(sector, row);
 
       for (int32_t is = 0; is < 3; is++) {
-        float* data = getSplineData(sector, row, is);
+        float* data = getCorrectionData(sector, row, is);
         int32_t nPar = spline.getNumberOfParameters();
         if (is == 1) {
           nPar = nPar / 3;

@@ -58,19 +58,36 @@
 #pragma link C++ class o2::gpu::SemiregularSpline2D3D + ;
 #pragma link C++ class o2::gpu::IrregularSpline2D3DCalibrator + ;
 
-#pragma link C++ class o2::gpu::TPCFastTransformGeo + ;
+#pragma link C++ class o2::gpu::TPCFastTransformGeo::SliceInfo + ;
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::SectorInfo + ;
+
+#pragma link C++ class o2::gpu::TPCFastTransformGeo + ;
+#pragma read \
+  sourceClass = "o2::gpu::TPCFastTransformGeo" targetClass = "o2::gpu::TPCFastTransformGeo" source = "float mTPCzLengthA; float mTPCzLengthC; float mTPCalignmentZ; float mScaleVtoSVsideA; float mScaleVtoSVsideC; float mScaleSVtoVsideA; float mScaleSVtoVsideC;" version = "[-1]" target = "mTPCzLength" code = "{ mTPCzLength = onfile.mTPCzLengthA; }";
+
+#pragma read \
+  sourceClass = "o2::gpu::TPCFastTransformGeo" targetClass = "o2::gpu::TPCFastTransformGeo" source = "o2::gpu::TPCFastTransformGeo::SliceInfo mSliceInfos[37]" version = "[1-]" target = "" code = "{}";
+
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::RowInfo + ;
+#pragma read \
+  sourceClass = "o2::gpu::TPCFastTransformGeo::RowInfo" targetClass = "o2::gpu::TPCFastTransformGeo::RowInfo" source = "float u0; float scaleUtoSU; float scaleSUtoU" version = "[-2]" target = "yMin" code = "{ yMin = onfile.u0; }"
 
 #pragma link C++ class o2::gpu::TPCFastTransform + ;
 
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrectionMap + ;
-#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::RowInfo + ;
 
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection + ;
-#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SectorInfo + ;
+#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SliceInfo + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SectorRowInfo + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::GridInfo + ;
+#pragma read \
+  sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "o2::gpu::TPCFastSpaceChargeCorrection::SliceInfo mSliceInfo[36]" version = "[-3]" target = "" code = "{}";
+
+#pragma read \
+  sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "size_t mSliceDataSizeBytes[3]" version = "[-3]" target = "mCorrectionDataSize" code = "{ for (int i=0; i<3; i++) mCorrectionDataSize[i] = onfile.mSliceDataSizeBytes[i] * 36; }";
+
+#pragma read \
+  sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "float fInterpolationSafetyMargin" version = "[-3]" target = "" code = "{}";
 
 #pragma link C++ class o2::gpu::CorrectionMapsHelper + ;
 #pragma link C++ struct o2::gpu::MultivariatePolynomialContainer + ;

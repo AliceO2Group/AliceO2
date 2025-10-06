@@ -180,15 +180,15 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
         }
 
         if (processingInverseCorrection) {
-          float* splineX = correction.getSplineDataInvX(sector, row);
-          float* splineYZ = correction.getSplineDataInvYZ(sector, row);
+          float* splineX = correction.getCorrectionDataInvX(sector, row);
+          float* splineYZ = correction.getCorrectionDataInvYZ(sector, row);
           for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
             splineX[i] = splineParameters[3 * i + 0];
             splineYZ[2 * i + 0] = splineParameters[3 * i + 1];
             splineYZ[2 * i + 1] = splineParameters[3 * i + 2];
           }
         } else {
-          float* splineXYZ = correction.getSplineData(sector, row);
+          float* splineXYZ = correction.getCorrectionData(sector, row);
           for (int i = 0; i < spline.getNumberOfParameters(); i++) {
             splineXYZ[i] = splineParameters[i];
           }
@@ -1000,8 +1000,8 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
                                      dataPointGridU.data(), dataPointGridV.data(),
                                      dataPointF.data(), dataPointWeight.data(), nDataPoints);
 
-        float* splineX = correction.getSplineDataInvX(sector, row);
-        float* splineUV = correction.getSplineDataInvYZ(sector, row);
+        float* splineX = correction.getCorrectionDataInvX(sector, row);
+        float* splineUV = correction.getCorrectionDataInvYZ(sector, row);
         for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
           splineX[i] = splineParameters[3 * i + 0];
           splineUV[2 * i + 0] = splineParameters[3 * i + 1];
@@ -1044,9 +1044,9 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
       for (int row = iThread; row < geo.getNumberOfRows(); row += mNthreads) {
         const auto& spline = mainCorrection.getSpline(sector, row);
 
-        float* splineParameters = mainCorrection.getSplineData(sector, row);
-        float* splineParametersInvX = mainCorrection.getSplineDataInvX(sector, row);
-        float* splineParametersInvYZ = mainCorrection.getSplineDataInvYZ(sector, row);
+        float* splineParameters = mainCorrection.getCorrectionData(sector, row);
+        float* splineParametersInvX = mainCorrection.getCorrectionDataInvX(sector, row);
+        float* splineParametersInvYZ = mainCorrection.getCorrectionDataInvYZ(sector, row);
 
         auto& secRowInfo = mainCorrection.getSectorRowInfo(sector, row);
 
@@ -1114,7 +1114,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
                 ls *= scale;
                 double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * ls * scaleU * scaleV};
                 const auto& spl = corr.getSpline(sector, row);
-                spl.interpolateParametersAtU(corr.getSplineData(sector, row), lu, lv, P);
+                spl.interpolateParametersAtU(corr.getCorrectionData(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
                   for (int idim = 0; idim < 3; idim++, ind++) {
                     splineParameters[knotIndex * nKnotPar3d + ind] += parscale[ipar] * P[ind];
@@ -1129,7 +1129,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
               double parscale[4] = {ls, ls * scaleRealU, ls * scaleRealV, ls * ls * scaleRealU * scaleRealV};
 
               { // inverse X correction
-                corr.getSplineInvX(sector, row).interpolateParametersAtU(corr.getSplineDataInvX(sector, row), lu, lv, P);
+                corr.getSplineInvX(sector, row).interpolateParametersAtU(corr.getCorrectionDataInvX(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
                   for (int idim = 0; idim < 1; idim++, ind++) {
                     splineParametersInvX[knotIndex * nKnotPar1d + ind] += parscale[ipar] * P[ind];
@@ -1138,7 +1138,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
               }
 
               { // inverse YZ correction
-                corr.getSplineInvYZ(sector, row).interpolateParametersAtU(corr.getSplineDataInvYZ(sector, row), lu, lv, P);
+                corr.getSplineInvYZ(sector, row).interpolateParametersAtU(corr.getCorrectionDataInvYZ(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
                   for (int idim = 0; idim < 2; idim++, ind++) {
                     splineParametersInvYZ[knotIndex * nKnotPar2d + ind] += parscale[ipar] * P[ind];

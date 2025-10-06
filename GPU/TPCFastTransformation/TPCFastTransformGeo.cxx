@@ -28,12 +28,10 @@ using namespace o2::gpu;
 TPCFastTransformGeo::TPCFastTransformGeo()
 {
   // Default Constructor: creates an empty uninitialized object
-  double dAlpha = 2. * M_PI / (NumberOfSectorsA);
   for (int32_t i = 0; i < NumberOfSectors; i++) {
-    SectorInfo& s = mSectorInfos[i];
-    double alpha = dAlpha * (i + 0.5);
-    s.sinAlpha = sin(alpha);
-    s.cosAlpha = cos(alpha);
+    double angle = (i + 0.5) * 2. * M_PI / NumberOfSectorsA;
+    mSectorInfos[i].sinAlpha = sin(angle);
+    mSectorInfos[i].cosAlpha = cos(angle);
   }
   mSectorInfos[NumberOfSectors] = SectorInfo{};
 
