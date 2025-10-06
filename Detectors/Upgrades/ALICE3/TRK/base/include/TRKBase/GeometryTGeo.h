@@ -147,9 +147,11 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sPetalDiskName;
   static std::string sPetalLayerName;
   static std::string sStaveName;
+  static std::string sModuleName;
   static std::string sChipName;
   static std::string sSensorName;
-  static std::string sWrapperVolumeName; ///< Wrapper volume name
+
+  static std::string sWrapperVolumeName; ///< Wrapper volume name, not implemented at the moment
 
   Int_t mNumberOfLayersMLOT;                   ///< number of layers
   Int_t mNumberOfActivePartsVD;                ///< number of layers
