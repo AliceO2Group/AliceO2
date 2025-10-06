@@ -52,7 +52,7 @@
 #endif
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <gsl/span>
+#include <span>
 #include <string>
 
 using namespace o2::framework::data_matcher;
@@ -191,7 +191,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         continue;
       }
 
-      auto getPartialRecord = [&cache = mCache, numInputTypes = mDistinctRoutesIndex.size()](int li) -> gsl::span<MessageSet const> {
+      auto getPartialRecord = [&cache = mCache, numInputTypes = mDistinctRoutesIndex.size()](int li) -> std::span<MessageSet const> {
         auto offset = li * numInputTypes;
         assert(cache.size() >= offset + numInputTypes);
         auto const start = cache.data() + offset;
@@ -710,7 +710,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   //
   // We use this to bail out early from the check as soon as we find something
   // which we know is not complete.
-  auto getPartialRecord = [&cache, &numInputTypes](int li) -> gsl::span<MessageSet const> {
+  auto getPartialRecord = [&cache, &numInputTypes](int li) -> std::span<MessageSet const> {
     auto offset = li * numInputTypes;
     assert(cache.size() >= offset + numInputTypes);
     auto const start = cache.data() + offset;
