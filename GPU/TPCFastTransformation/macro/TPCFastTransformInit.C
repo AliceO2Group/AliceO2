@@ -18,7 +18,7 @@
 
 /// how to run the macro:
 ///
-/// root -l TPCFastTransformInit.C'("debugVoxRes.root")'
+/// root -l TPCFastTransformInit.C'("VoxRes.root", "VoxResInv.root")'
 ///
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
@@ -45,7 +45,7 @@ using namespace o2::tpc;
 using namespace o2::gpu;
 
 void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char* fileNameInv = "debugVoxResInv.root",
-                          const char* outFileName = "TPCFastTransform_VoxRes.root", bool useSmoothed = false, bool invertSigns = false)
+                          const char* outFileName = "TPCFastTransform_VoxRes.root", bool useSmoothed = false, bool invertSigns = false, bool doDebug = true)
 {
 
   // Initialise TPCFastTransform object from "voxRes" tree of
@@ -56,9 +56,9 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
     To visiualise the results:
 
     root -l transformDebug.root
-    all->Draw("cx:y:z","sec==0&&iRow==10","")
-    grid->Draw("cx:y:z","sec==0&&iRow==10","same")
-    vox->Draw("vx:y:z","sec==0&&iRow==10","same")
+    all->Draw("cx:y:z","sec==0&&row==10","")
+    grid->Draw("cx:y:z","sec==0&&row==10","same")
+    vox->Draw("vx:y:z","sec==0&&row==10","same")
     points->Draw("px:y:z","sec==0&&row==10","same")
   */
 
@@ -112,6 +112,38 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
   trackResiduals.setZ2XBinning(z2xBins);
   trackResiduals.init();
 
+  std::cout << "create fast transformation ... " << std::endl;
+
+  auto* helper = o2::tpc::TPCFastTransformHelperO2::instance();
+
+  o2::tpc::TPCFastSpaceChargeCorrectionHelper* corrHelper = o2::tpc::TPCFastSpaceChargeCorrectionHelper::instance();
+
+  corrHelper->setNthreadsToMaximum();
+  // corrHelper->setNthreads(1);
+
+  if (debugMirrorAdata2C) {
+    corrHelper->setDebugMirrorAdata2C();
+  }
+  // corrHelper->setDebugUseVoxelCenters();
+
+  o2::gpu::TPCFastSpaceChargeCorrectionMap mapDirect(0, 0), mapInverse(0, 0);
+
+  auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree, voxResTreeInverse, useSmoothed, invertSigns,
+                                                      &mapDirect, &mapInverse);
+
+  std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(
+    helper->create(0, *corrPtr));
+
+  std::cout << "... create fast transformation completed " << std::endl;
+
+  if (*outFileName) {
+    fastTransform->writeToFile(outFileName, "ccdb_object");
+  }
+
+  if (!doDebug) {
+    return;
+  }
+
   { // debug output
 
     std::cout << " ===== input track residuals ==== " << std::endl;
@@ -144,39 +176,11 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
     std::cout << " ==================================== " << std::endl;
   }
 
-  std::cout << "create fast transformation ... " << std::endl;
-
-  auto* helper = o2::tpc::TPCFastTransformHelperO2::instance();
-
-  o2::tpc::TPCFastSpaceChargeCorrectionHelper* corrHelper = o2::tpc::TPCFastSpaceChargeCorrectionHelper::instance();
-
-  corrHelper->setNthreadsToMaximum();
-  corrHelper->setNthreads(1);
-
-  if (debugMirrorAdata2C) {
-    corrHelper->setDebugMirrorAdata2C();
-  }
-  // corrHelper->setDebugUseVoxelCenters();
-
-  o2::gpu::TPCFastSpaceChargeCorrectionMap mapDirect(0, 0), mapInverse(0, 0);
-
-  auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree, voxResTreeInverse, useSmoothed, invertSigns,
-                                                      &mapDirect, &mapInverse);
-
-  std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(
-    helper->create(0, *corrPtr));
-
-  std::cout << "... create fast transformation completed " << std::endl;
-
-  if (*outFileName) {
-    fastTransform->writeToFile(outFileName, "ccdb_object");
-  }
-
-  if (1) { // read transformation from the file
-
-    // const char* fileName = "master/out.root";
+  if (1) { // read transformation from the output file to verify the io
 
     const char* fileName = outFileName;
+
+    // fileName = "~/test/master/TPCFastTransform_VoxRes.root";
 
     std::cout << "load corrections from file " << fileName << std::endl;
 
@@ -488,11 +492,6 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
           auto [yMin, yMax] = geo.getRowInfo(iRow).getYrange();
           auto [zMin, zMax] = geo.getZrange(iSector);
 
-          points[0].push_back(yMin);
-          points[0].push_back(yMax);
-          points[1].push_back(zMin);
-          points[1].push_back(zMax);
-
           for (int32_t iu = 0; iu < gridY.getNumberOfKnots(); iu++) {
             auto [y, z] = corr.convGridToLocal(iSector, iRow, gridY.getKnot(iu).getU(), 0.);
             knots[0].push_back(y);
@@ -508,12 +507,19 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
             std::sort(knots[iyz].begin(), knots[iyz].end());
             std::sort(points[iyz].begin(), points[iyz].end());
             int32_t n = points[iyz].size();
+            int nsteps = (iyz == 0) ? 10 : 5;
             for (int32_t i = 0; i < n - 1; i++) {
-              double d = (points[iyz][i + 1] - points[iyz][i]) / 10.;
-              for (int32_t ii = 1; ii < 10; ii++) {
+              double d = (points[iyz][i + 1] - points[iyz][i]) / nsteps;
+              for (int32_t ii = 1; ii < nsteps; ii++) {
                 points[iyz].push_back(points[iyz][i] + d * ii);
               }
             }
+          }
+          points[0].push_back(yMin);
+          points[0].push_back(yMax);
+          points[1].push_back(zMin);
+          points[1].push_back(zMax);
+          for (int32_t iyz = 0; iyz <= 1; iyz++) {
             std::sort(points[iyz].begin(), points[iyz].end());
           }
 

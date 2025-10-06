@@ -19,6 +19,8 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonArray.h"
+#include "GPUCommonMath.h"
+
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
 #include "GPUCommonRtypes.h"
@@ -34,6 +36,7 @@ namespace gpu
 ///
 class TPCFastTransformGeo
 {
+
  public:
   /// The struct contains necessary info for TPC sector
   struct SectorInfo {
@@ -61,7 +64,7 @@ class TPCFastTransformGeo
     /// get width in Y
     GPUd() float getYwidth() const { return -2.f * yMin; }
 
-    ClassDefNV(RowInfo, 1);
+    ClassDefNV(RowInfo, 2);
   };
 
   /// _____________  Constructors / destructors __________________________
@@ -186,6 +189,11 @@ class TPCFastTransformGeo
 
   SectorInfo mSectorInfos[NumberOfSectors + 1]; ///< array of sector information [fixed size]
   RowInfo mRowInfos[MaxNumberOfRows + 1];       ///< array of row information [fixed size]
+
+ public:
+  struct SliceInfo { // legacy, needed only for schema evolution
+    ClassDefNV(SliceInfo, 2);
+  };
 
   ClassDefNV(TPCFastTransformGeo, 3);
 };
