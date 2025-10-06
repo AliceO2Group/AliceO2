@@ -229,9 +229,9 @@ void RecoGeomHelper::RecoLayer::print() const
 }
 
 //_____________________________________________________________________
-void RecoGeomHelper::init()
+void RecoGeomHelper::init(int minLayer, int maxLayer)
 {
-  for (int il = int(layers.size()); il--;) {
+  for (int il = maxLayer; --il >= minLayer;) {
     auto& lr = layers[il];
     lr.id = il;
     lr.init();
