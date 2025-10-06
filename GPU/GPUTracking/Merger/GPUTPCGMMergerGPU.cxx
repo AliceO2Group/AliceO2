@@ -23,7 +23,7 @@ GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int32_t nBlocks, int32_t nThread
 {
   GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), int32_t, ii, merger.NMergedTracks(), {
     const int32_t i = mode ? merger.TrackOrderProcess()[ii] : ii;
-    GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, &merger, rebuilt);
+    GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, merger, rebuilt);
   });
 }
 
@@ -31,7 +31,7 @@ template <>
 GPUdii() void GPUTPCGMMergerFollowLoopers::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
   GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), uint32_t, i, merger.Memory()->nLoopData, {
-    GPUTPCGMTrackParam::PropagateLooper(&merger, i);
+    GPUTPCGMTrackParam::PropagateLooper(merger, i);
   });
 }
 

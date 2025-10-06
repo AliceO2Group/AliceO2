@@ -571,7 +571,7 @@ GPUd() int32_t GPUTPCGMMerger::RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack
   trk.QPt() = inTrack->Param().GetQPt();
   trk.TOffset() = Param().par.continuousTracking ? GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, inTrack->Param().GetZOffset(), Param().continuousMaxTimeBin) : 0;
   const auto tmp = sectorTrack.ClusterTN() > sectorTrack.ClusterT0() ? std::array<float, 2>{sectorTrack.ClusterTN(), sectorTrack.ClusterT0()} : std::array<float, 2>{sectorTrack.ClusterT0(), sectorTrack.ClusterTN()};
-  trk.ShiftZ(this, sector, tmp[0], tmp[1], inTrack->Param().GetX()); // We do not store the inner / outer cluster X, so we just use the track X instead
+  trk.ShiftZ(*this, sector, tmp[0], tmp[1], inTrack->Param().GetX()); // We do not store the inner / outer cluster X, so we just use the track X instead
   sectorTrack.SetX2(0.f);
   for (int32_t way = 0; way < 2; way++) {
     if (way) {
@@ -1868,7 +1868,7 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
         const auto& GPUrestrict() cls = GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
         float z0 = cls[cl0.num].getTime(), zn = cls[cln.num].getTime();
         const auto tmp = zn > z0 ? std::array<float, 3>{zn, z0, GPUTPCGeometry::Row2X(cln.row)} : std::array<float, 3>{z0, zn, GPUTPCGeometry::Row2X(cl0.row)};
-        trk.Param().ShiftZ(this, cl0.sector, tmp[0], tmp[1], tmp[2]);
+        trk.Param().ShiftZ(*this, cl0.sector, tmp[0], tmp[1], tmp[2]);
         updTrk = &trk;
         while (updTrk->PrevSegment() >= 0) {
           auto next = &mMergedTracks[updTrk->PrevSegment()];
