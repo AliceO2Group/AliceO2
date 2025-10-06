@@ -46,8 +46,10 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getTRKPetalDiskPattern() { return sPetalDiskName.c_str(); }
   static const char* getTRKPetalLayerPattern() { return sPetalLayerName.c_str(); }
   static const char* getTRKStavePattern() { return sStaveName.c_str(); }
+  static const char* getTRKModulePattern() { return sModuleName.c_str(); }
   static const char* getTRKChipPattern() { return sChipName.c_str(); }
   static const char* getTRKSensorPattern() { return sSensorName.c_str(); }
+
   static const char* getTRKWrapVolPattern() { return sWrapperVolumeName.c_str(); }
 
   int getNumberOfChips() const { return mSize; }

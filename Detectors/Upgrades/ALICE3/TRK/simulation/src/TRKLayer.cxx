@@ -94,6 +94,10 @@ TGeoVolume* TRKLayer::createChip(std::string type, double width)
   return chipVol;
 }
 
+TGeoVolume* TRKLayer::createModule(std::string type, double width)
+{
+}
+
 TGeoVolume* TRKLayer::createStave(std::string type, double width)
 {
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
