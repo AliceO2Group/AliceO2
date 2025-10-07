@@ -153,14 +153,19 @@ TGeoVolume* TRKLayer::createModule(std::string type, double width)
     int nChips = 4;
 
     for (int iChip = 0; iChip < nChips; iChip++) {
-      TGeoVolume* chipVol = createChip("flat", mModuleWidth);
+      TGeoVolume* chipVolLeft = createChip("flat", mModuleWidth / 2);
+      TGeoVolume* chipVolRight = createChip("flat", mModuleWidth / 2); // TO BE CHECKED !!!
 
       // Put the chips in the correct position
-      TGeoCombiTrans* trans = new TGeoCombiTrans();
-      trans->SetTranslation(0, 0, iChip * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+      TGeoCombiTrans* transLeft = new TGeoCombiTrans();
+      transLeft->SetTranslation(-mModuleWidth / 2 + 0.05, 0, iChip * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+      LOGP(info, "Inserting {} in {} ", chipVolLeft->GetName(), moduleVol->GetName());
+      moduleVol->AddNode(chipVolLeft, iChip * 2, transLeft);
 
-      LOGP(info, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
-      moduleVol->AddNode(chipVol, iChip, trans);
+      TGeoCombiTrans* transRight = new TGeoCombiTrans();
+      transRight->SetTranslation(mModuleWidth / 2 - 0.05, 0, iChip * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+      LOGP(info, "Inserting {} in {} ", chipVolRight->GetName(), moduleVol->GetName());
+      moduleVol->AddNode(chipVolRight, iChip * 2 + 1, transRight);
     }
   } else {
     LOGP(fatal, "Chip of type '{}' is not implemented", type);
