@@ -265,7 +265,7 @@ class GPUChainTracking : public GPUChain
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;              // TRD Geometry
 
   // Ptrs to internal buffers
-  std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
+  std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess, mClusterNativeAccessReduced;
   std::array<GPUOutputControl*, GPUTrackingOutputs::count()> mSubOutputControls = {nullptr};
   std::unique_ptr<GPUTriggerOutputs> mTriggerBuffer;
 
@@ -305,6 +305,7 @@ class GPUChainTracking : public GPUChain
   void RunTPCTrackingMerger_Resolve(int8_t useOrigTrackParam, int8_t mergeAll, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* clusters, std::function<o2::tpc::ClusterNative*(size_t)> allocator, bool applyClusterCuts);
   bool NeedTPCClustersOnGPU();
+  void WriteReducedClusters();
   template <int32_t I>
   int32_t RunTRDTrackingInternal();
   uint32_t StreamForSector(uint32_t sector) const;

@@ -57,16 +57,18 @@ void Digitizer::processHits(const std::vector<Hit>* hits, std::vector<Digit>& di
     bool isCrystal = geo.isCrystal(cellID);
     if (isCrystal) { // crystal
       double elossSmearedNpe = gRandom->Poisson(eloss * mCrystalPePerGeV) / mCrystalPePerGeV;
-      if (mSmearCrystal)
+      if (mSmearCrystal) {
         elossSmeared = elossSmearedNpe * gRandom->Gaus(1, 0.007); // light attenuation in crystals
-    } else {                                                      // sampling
+      }
+    } else { // sampling
       elossSmeared *= mSamplingFraction;
     }
 
     Digit& digit = mArrayD[cellID];
     digit.setAmplitude(digit.getAmplitude() + elossSmeared);
-    if (t < digit.getTimeStamp())
+    if (t < digit.getTimeStamp()) {
       digit.setTimeStamp(t); // setting earliest time, TODO: add time smearing
+    }
     LOGF(debug, "  crystal: %d cellID = %5d, eloss = %8.5f elossSmeared = %8.5f time = %8.5f", isCrystal, cellID, eloss, elossSmeared, t);
 
     // Adding MC info

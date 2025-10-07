@@ -73,11 +73,18 @@ double Geometry::getSamplingPhiMin()
   return (superModuleDeltaPhi - samplingDeltaPhi * mNSamplingModulesPhi) / 2.;
 }
 
+double Geometry::getFrontFaceMaxEta(int i)
+{
+  double theta = std::atan(mRMin / getFrontFaceZatMinR(i));
+  return -std::log(std::tan(theta / 2.));
+}
+
 //==============================================================================
 void Geometry::fillFrontFaceCenterCoordinates()
 {
-  if (mFrontFaceCenterR.size() > 0)
+  if (mFrontFaceCenterR.size() > 0) {
     return;
+  }
   mFrontFaceCenterTheta.resize(mNCrystalModulesZ + mNSamplingModulesZ);
   mFrontFaceZatMinR.resize(mNCrystalModulesZ + mNSamplingModulesZ);
   mFrontFaceCenterR.resize(mNCrystalModulesZ + mNSamplingModulesZ);
@@ -153,7 +160,7 @@ int Geometry::getCellID(int moduleId, int sectorId, bool isCrystal)
     if (sectorId % 2 == 0) { // sampling at positive eta
       cellID = sectorId / 2 * mNModulesZ + moduleId + mNSamplingModulesZ + mNCrystalModulesZ * 2;
     } else { // sampling at negative eta
-      cellID = sectorId / 2 * mNModulesZ - moduleId + mNSamplingModulesZ;
+      cellID = sectorId / 2 * mNModulesZ - moduleId + mNSamplingModulesZ - 1;
     }
   }
   return cellID;
@@ -206,13 +213,15 @@ void Geometry::detIdToGlobalPosition(int detId, double& x, double& y, double& z)
 {
   int chamber, sector, iphi, iz;
   detIdToRelIndex(detId, chamber, sector, iphi, iz);
+  double r = 0;
   if (iz < mNSamplingModulesZ + mNCrystalModulesZ) {
     z = -mFrontFaceCenterZ[mNSamplingModulesZ + mNCrystalModulesZ - iz - 1];
+    r = mFrontFaceCenterR[mNSamplingModulesZ + mNCrystalModulesZ - iz - 1];
   } else {
-    z = +mFrontFaceCenterZ[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
+    z = mFrontFaceCenterZ[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
+    r = mFrontFaceCenterR[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
   }
   double phi = chamber == 1 ? mFrontFaceCenterCrystalPhi[iphi] : mFrontFaceCenterSamplingPhi[iphi];
-  double r = mFrontFaceCenterR[iz % (mNSamplingModulesZ + mNCrystalModulesZ)];
   x = r * std::cos(phi);
   y = r * std::sin(phi);
 }
@@ -224,10 +233,12 @@ int Geometry::areNeighboursVertex(int detId1, int detId2) const
   int ch2, sector2, iphi2, iz2;
   detIdToRelIndex(detId1, ch1, sector1, iphi1, iz1);
   detIdToRelIndex(detId2, ch2, sector2, iphi2, iz2);
-  if (sector1 != sector2 || ch1 != ch2)
+  if (sector1 != sector2 || ch1 != ch2) {
     return 0;
-  if (std::abs(iphi1 - iphi2) <= 1 && std::abs(iz1 - iz2) <= 1)
+  }
+  if (std::abs(iphi1 - iphi2) <= 1 && std::abs(iz1 - iz2) <= 1) {
     return 1;
+  }
   return 0;
 }
 
@@ -235,29 +246,32 @@ int Geometry::areNeighboursVertex(int detId1, int detId2) const
 bool Geometry::isAtTheEdge(int cellId)
 {
   auto [row, col] = globalRowColFromIndex(cellId);
-  if (col == 0)
+  if (col == 0) {
     return 1;
-  if (col == mNSamplingModulesZ)
+  } else if (col == mNSamplingModulesZ) {
     return 1;
-  if (col == mNSamplingModulesZ - 1)
+  } else if (col == mNSamplingModulesZ - 1) {
     return 1;
-  if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ)
+  } else if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ) {
     return 1;
-  if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ - 1)
+  } else if (col == mNSamplingModulesZ + 2 * mNCrystalModulesZ - 1) {
     return 1;
-  if (col == mNModulesZ - 1)
+  } else if (col == mNModulesZ - 1) {
     return 1;
+  }
   for (int m = 0; m <= mNSuperModules; m++) {
     if (isCrystal(cellId)) {
-      if (row == m * mNCrystalModulesPhi)
+      if (row == m * mNCrystalModulesPhi) {
         return 1;
-      if (row == m * mNCrystalModulesPhi - 1)
+      } else if (row == m * mNCrystalModulesPhi - 1) {
         return 1;
+      }
     } else {
-      if (row == m * mNSamplingModulesPhi)
+      if (row == m * mNSamplingModulesPhi) {
         return 1;
-      if (row == m * mNSamplingModulesPhi - 1)
+      } else if (row == m * mNSamplingModulesPhi - 1) {
         return 1;
+      }
     }
   }
   return 0;

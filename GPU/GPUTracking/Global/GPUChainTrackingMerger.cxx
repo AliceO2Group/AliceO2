@@ -293,7 +293,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     mRec->PushNonPersistentMemory(qStr2Tag("TPCMERG2"));
     AllocateRegisteredMemory(Merger.MemoryResOutputO2Scratch());
     WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
-    runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::prepare>(GetGridAuto(0, deviceType));
+    if (!GetProcessingSettings().tpcWriteClustersAfterRejection) {
+      runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::prepare>(GetGridAuto(0, deviceType));
+    }
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->single);
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::sort>(GetGridAuto(0, deviceType));
     mRec->ReturnVolatileDeviceMemory();

@@ -103,7 +103,7 @@ struct RecoGeomHelper {
   static constexpr float ladderWidth() { return o2::itsmft::SegmentationAlpide::SensorSizeRows; }
   static constexpr float ladderWidthInv() { return 1. / ladderWidth(); }
 
-  void init();
+  void init(int minLayer = 0, int maxLayer = getNLayers());
   void print() const;
 
   ClassDefNV(RecoGeomHelper, 0);

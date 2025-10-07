@@ -361,6 +361,7 @@ AddOption(tpcMaxAttachedClustersPerSectorRow, uint32_t, 51000, "", 0, "Maximum n
 AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
 AddOption(tpcApplyCFCutsAtDecoding, bool, false, "", 0, "Apply cluster cuts from clusterization during decoding of compressed clusters")
 AddOption(tpcApplyClusterFilterOnCPU, uint8_t, 0, "", 0, "Apply custom cluster filter of GPUTPCClusterFilter class, 0: off, 1: debug, 2: PbPb23")
+AddOption(tpcWriteClustersAfterRejection, bool, false, "", 0, "Apply TPC rejection strategy before writing clusters")
 AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))")
 AddOption(oclCompileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code")
 AddOption(oclOverrideSourceBuildFlags, std::string, "", "", 0, "Override OCL build flags for compilation from source, put a space for empty options")

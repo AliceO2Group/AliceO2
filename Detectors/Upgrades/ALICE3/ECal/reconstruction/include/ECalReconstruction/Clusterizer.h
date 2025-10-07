@@ -48,25 +48,33 @@ class Clusterizer
   void setClusteringThreshold(double threshold) { mClusteringThreshold = threshold; }
   void setCrystalDigitThreshold(double threshold) { mCrystalDigitThreshold = threshold; }
   void setSamplingDigitThreshold(double threshold) { mSamplingDigitThreshold = threshold; }
+  void setCrystalEnergyCorrectionPars(std::vector<double> pars) { mCrystalEnergyCorrectionPars = pars; }
+  void setSamplingEnergyCorrectionPars(std::vector<double> pars) { mSamplingEnergyCorrectionPars = pars; }
+  void setCrystalZCorrectionPars(std::vector<double> pars) { mCrystalZCorrectionPars = pars; }
+  void setSamplingZCorrectionPars(std::vector<double> pars) { mSamplingZCorrectionPars = pars; }
 
  private:
-  std::vector<std::vector<int>> mDigitIndices; // 2D map of digit indices used for recursive cluster finding
-  bool mUnfoldClusters = true;                 // to perform cluster unfolding
-  double mCrystalDigitThreshold = 0.040;       // minimal energy of crystal digit
-  double mSamplingDigitThreshold = 0.100;      // minimal energy of sampling digit
-  double mClusteringThreshold = 0.050;         // minimal energy of digit to start clustering (GeV)
-  double mClusteringTimeGate = 1e9;            // maximal time difference between digits to be accepted to clusters (in ns)
-  int mNLMMax = 30;                            // maximal number of local maxima in unfolding
-  double mLogWeight = 4.;                      // cutoff used in log. weight calculation
-  double mUnfogingEAccuracy = 1.e-4;           // accuracy of energy calculation in unfoding prosedure (GeV)
-  double mUnfogingXZAccuracy = 1.e-2;          // accuracy of position calculation in unfolding procedure (cm)
-  int mNMaxIterations = 100;                   // maximal number of iterations in unfolding procedure
-  double mLocalMaximumCut = 0.015;             // minimal height of local maximum over neighbours
-  bool mApplyCorrectionZ = 1;                  // z-correction
-  bool mApplyCorrectionE = 1;                  // energy-correction
-  TF1* fCrystalShowerShape;                    //! Crystal shower shape
-  TF1* fSamplingShowerShape;                   //! Sampling shower shape
-  TF1* fCrystalRMS;                            //! Crystal RMS
+  std::vector<std::vector<int>> mDigitIndices;       // 2D map of digit indices used for recursive cluster finding
+  bool mUnfoldClusters = true;                       // to perform cluster unfolding
+  double mCrystalDigitThreshold = 0.040;             // minimal energy of crystal digit
+  double mSamplingDigitThreshold = 0.100;            // minimal energy of sampling digit
+  double mClusteringThreshold = 0.050;               // minimal energy of digit to start clustering (GeV)
+  double mClusteringTimeGate = 1e9;                  // maximal time difference between digits to be accepted to clusters (in ns)
+  int mNLMMax = 30;                                  // maximal number of local maxima in unfolding
+  double mLogWeight = 4.;                            // cutoff used in log. weight calculation
+  double mUnfogingEAccuracy = 1.e-4;                 // accuracy of energy calculation in unfoding prosedure (GeV)
+  double mUnfogingXZAccuracy = 1.e-2;                // accuracy of position calculation in unfolding procedure (cm)
+  int mNMaxIterations = 100;                         // maximal number of iterations in unfolding procedure
+  double mLocalMaximumCut = 0.015;                   // minimal height of local maximum over neighbours
+  bool mApplyCorrectionZ = 1;                        // apply z-correction
+  bool mApplyCorrectionE = 1;                        // apply energy-correction
+  TF1* fCrystalShowerShape;                          //! Crystal shower shape
+  TF1* fSamplingShowerShape;                         //! Sampling shower shape
+  TF1* fCrystalRMS;                                  //! Crystal RMS
+  std::vector<double> mCrystalEnergyCorrectionPars;  // crystal energy-correction parameters
+  std::vector<double> mSamplingEnergyCorrectionPars; // sampling energy-correction parameters
+  std::vector<double> mCrystalZCorrectionPars;       // crystal z-correction parameters
+  std::vector<double> mSamplingZCorrectionPars;      // sampling z-correction parameters
 };
 
 } // namespace ecal

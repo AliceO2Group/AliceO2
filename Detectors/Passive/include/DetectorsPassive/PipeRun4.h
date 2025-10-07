@@ -46,7 +46,7 @@ class PipeRun4 : public PassiveBase
   TGeoPcon* makeMotherFromTemplate(const TGeoPcon* shape, int imin = -1, int imax = -1, float r0 = 0.,
                                    int nz = -1);
   TGeoPcon* makeInsulationFromTemplate(TGeoPcon* shape);
-  TGeoVolume* makeBellow(const char* ext, int nc, float rMin, float rMax, float dU, float rPlie,
+  TGeoVolume* makeBellow(const char* ext, int nc, float rMin, float rMax, float rPlie,
                          float dPlie);
   TGeoVolume* makeBellowCside(const char* ext, int nc, float rMin, float rMax, float rPlie, float dPlie);
 
