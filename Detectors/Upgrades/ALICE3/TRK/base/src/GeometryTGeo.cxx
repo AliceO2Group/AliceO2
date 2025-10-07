@@ -28,8 +28,8 @@ std::string GeometryTGeo::sPetalName = "PETALCASE";
 std::string GeometryTGeo::sPetalDiskName = "DISK";
 std::string GeometryTGeo::sPetalLayerName = "LAYER";
 std::string GeometryTGeo::sStaveName = "TRKStave";
-std::string GeometryTGeo::sChipName = "TRKChip";
 std::string GeometryTGeo::sModuleName = "TRKModule";
+std::string GeometryTGeo::sChipName = "TRKChip";
 std::string GeometryTGeo::sSensorName = "TRKSensor";
 
 std::string GeometryTGeo::sWrapperVolumeName = "TRKUWrapVol"; ///< Wrapper volume name, not implemented at the moment
