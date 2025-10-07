@@ -49,6 +49,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getTRKModulePattern() { return sModuleName.c_str(); }
   static const char* getTRKChipPattern() { return sChipName.c_str(); }
   static const char* getTRKSensorPattern() { return sSensorName.c_str(); }
+  static const char* getTRKDeadzonePattern() { return sDeadzoneName.c_str(); }
 
   static const char* getTRKWrapVolPattern() { return sWrapperVolumeName.c_str(); }
 
@@ -150,6 +151,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sModuleName;
   static std::string sChipName;
   static std::string sSensorName;
+  static std::string sDeadzoneName;
 
   static std::string sWrapperVolumeName; ///< Wrapper volume name, not implemented at the moment
 

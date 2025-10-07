@@ -49,12 +49,12 @@ TGeoVolume* TRKLayer::createSensor(std::string type, double width)
   TGeoShape* sensor;
 
   if (type == "cylinder") {
-    sensor = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
+    sensor = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2); // TO BE CHECKED !!!
   } else if (type == "flat") {
     if (width < 0) {
       LOGP(fatal, "Attempting to create sensor with invalid width");
     }
-    sensor = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2);
+    sensor = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
   } else {
     LOGP(fatal, "Sensor of type '{}' is not implemented", type);
   }
@@ -65,30 +65,63 @@ TGeoVolume* TRKLayer::createSensor(std::string type, double width)
   return sensVol;
 };
 
+TGeoVolume* TRKLayer::createDeadzone(std::string type, double width)
+{
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  std::string deadName = GeometryTGeo::getTRKDeadzonePattern() + std::to_string(mLayerNumber);
+
+  TGeoShape* deadzone;
+
+  if (type == "cylinder") {
+    deadzone = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2); // TO BE CHECKED !!!
+  } else if (type == "flat") {
+    if (width < 0) {
+      LOGP(fatal, "Attempting to create deadzone with invalid width");
+    }
+    deadzone = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
+  } else {
+    LOGP(fatal, "Deadzone of type '{}' is not implemented", type);
+  }
+
+  TGeoVolume* deadVol = new TGeoVolume(deadName.c_str(), deadzone, medSi);
+  deadVol->SetLineColor(kGray);
+
+  return deadVol;
+};
+
 TGeoVolume* TRKLayer::createChip(std::string type, double width)
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string chipName = GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber);
 
   TGeoShape* chip;
+
   TGeoVolume* sensVol;
+  TGeoVolume* deadVol;
 
   if (type == "cylinder") {
     chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
     sensVol = createSensor("cylinder");
+    deadVol = createDeadzone("cylinder");
   } else if (type == "flat") {
     if (width < 0) {
       LOGP(fatal, "Attempting to create chip with invalid width");
     }
-    chip = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2);
+    chip = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
     sensVol = createSensor("flat", width);
+    deadVol = createDeadzone("flat", width);
   } else {
     LOGP(fatal, "Sensor of type '{}' is not implemented", type);
   }
 
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
+
+  LOGP(info, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
+  chipVol->AddNode(deadVol, 1, nullptr);
+
   chipVol->SetLineColor(kYellow);
 
   return chipVol;
@@ -100,24 +133,39 @@ TGeoVolume* TRKLayer::createModule(std::string type, double width)
   std::string moduleName = GeometryTGeo::getTRKModulePattern() + std::to_string(mLayerNumber);
 
   TGeoShape* module;
-  TGeoVolume* chipVol;
+  TGeoVolume* moduleVol;
 
   if (type == "cylinder") {
     module = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
-    chipVol = createChip("cylinder");
+    moduleVol = new TGeoVolume(moduleName.c_str(), module, medAir);
+
+    TGeoVolume* chipVol = createChip("cylinder");
+    LOGP(info, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
+    moduleVol->AddNode(chipVol, 1, nullptr);
   } else if (type == "flat") {
     if (width < 0) {
       LOGP(fatal, "Attempting to create module with invalid width");
     }
-    module = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2);
-    chipVol = createChip("flat", width);
+
+    module = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
+    moduleVol = new TGeoVolume(moduleName.c_str(), module, medAir);
+
+    int nChips = 4;
+
+    for (int iChip = 0; iChip < nChips; iChip++) {
+      TGeoVolume* chipVol = createChip("flat", mModuleWidth);
+
+      // Put the chips in the correct position
+      TGeoCombiTrans* trans = new TGeoCombiTrans();
+      trans->SetTranslation(0, 0, iChip * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+
+      LOGP(info, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
+      moduleVol->AddNode(chipVol, iChip, trans);
+    }
   } else {
     LOGP(fatal, "Chip of type '{}' is not implemented", type);
   }
 
-  TGeoVolume* moduleVol = new TGeoVolume(moduleName.c_str(), module, medAir);
-  LOGP(info, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
-  moduleVol->AddNode(chipVol, 1, nullptr);
   moduleVol->SetLineColor(kYellow);
 
   return moduleVol;
@@ -130,39 +178,56 @@ TGeoVolume* TRKLayer::createStave(std::string type, double width)
 
   TGeoShape* stave;
   TGeoVolume* staveVol;
-  TGeoVolume* moduleVol;
 
   if (type == "cylinder") {
     stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
-    moduleVol = createModule("cylinder");
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
+
+    TGeoVolume* moduleVol = createModule("cylinder");
     LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
     staveVol->AddNode(moduleVol, 1, nullptr);
   } else if (type == "flat") {
     if (width < 0) {
       LOGP(fatal, "Attempting to create stave with invalid width");
     }
+
     stave = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2);
-    moduleVol = createModule("flat", width);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
-    LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
-    staveVol->AddNode(moduleVol, 1, nullptr);
+
+    int nModules = 10;
+
+    for (int iModule = 0; iModule < nModules; iModule++) {
+      TGeoVolume* moduleVol = createModule("flat", mModuleWidth);
+
+      // Put the modules in the correct position
+      TGeoCombiTrans* trans = new TGeoCombiTrans();
+      trans->SetTranslation(0, 0, iModule * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+
+      LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
+      staveVol->AddNode(moduleVol, iModule, trans);
+    }
   } else if (type == "staggered") {
     double width = mModuleWidth * 2; // Each stave has two modules (based on the LOI design)
     stave = new TGeoBBox(width / 2, mLogicalVolumeThickness / 2, mZ / 2);
-    TGeoVolume* moduleVolLeft = createModule("flat", mModuleWidth);
-    TGeoVolume* moduleVolRight = createModule("flat", mModuleWidth);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
-    TGeoCombiTrans* transLeft = new TGeoCombiTrans();
-    transLeft->SetTranslation(-mModuleWidth / 2 + 0.05, 0, 0); // 1mm overlap between the modules
-    LOGP(info, "Inserting {} in {} ", moduleVolLeft->GetName(), staveVol->GetName());
-    staveVol->AddNode(moduleVolLeft, 0, transLeft);
+    int nModules = 10;
 
-    TGeoCombiTrans* transRight = new TGeoCombiTrans();
-    transRight->SetTranslation(mModuleWidth / 2 - 0.05, 0.2, 0);
-    LOGP(info, "Inserting {} in {} ", moduleVolRight->GetName(), staveVol->GetName());
-    staveVol->AddNode(moduleVolRight, 1, transRight);
+    for (int iModule = 0; iModule < nModules; iModule++) {
+      TGeoVolume* moduleVolLeft = createModule("flat", mModuleWidth);
+      TGeoVolume* moduleVolRight = createModule("flat", mModuleWidth);
+
+      // Put the modules in the correct position
+      TGeoCombiTrans* transLeft = new TGeoCombiTrans();
+      transLeft->SetTranslation(-mModuleWidth / 2 + 0.05, 0, iModule * (mModuleWidth + 0.1)); // TO BE CHECKED !!! 1mm overlap between the modules
+      LOGP(info, "Inserting {} in {} ", moduleVolLeft->GetName(), staveVol->GetName());
+      staveVol->AddNode(moduleVolLeft, iModule * 2, transLeft);
+
+      TGeoCombiTrans* transRight = new TGeoCombiTrans();
+      transRight->SetTranslation(mModuleWidth / 2 - 0.05, 0, iModule * (mModuleWidth + 0.1)); // TO BE CHECKED !!! 1mm overlap between the modules
+      LOGP(info, "Inserting {} in {} ", moduleVolRight->GetName(), staveVol->GetName());
+      staveVol->AddNode(moduleVolRight, iModule * 2 + 1, transRight);
+    }
   } else {
     LOGP(fatal, "Chip of type '{}' is not implemented", type);
   }
@@ -191,7 +256,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   layerVol->SetLineColor(kYellow);
 
   if (mLayout == eLayout::kCylinder) {
-    auto staveVol = createStave("cylinder");
+    TGeoVolume* staveVol = createStave("cylinder");
     LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, 1, nullptr);
   } else if (mLayout == eLayout::kTurboStaves) {
@@ -200,7 +265,6 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
     if (mInnerRadius > 25) {
       width *= 2; // Outer layers have two modules per stave
     }
-
     int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / width);
     nStaves += nStaves % 2; // Require an even number of staves
 
