@@ -181,7 +181,7 @@ void Detector::configFromFile(std::string fileName)
     while (getline(ss, substr, '\t')) {
       tmpBuff.push_back(std::stof(substr));
     }
-    mLayers.emplace_back(layerCount, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount)}, tmpBuff[0], tmpBuff[1], tmpBuff[2]);
+    mLayers.emplace_back(layerCount, GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount), tmpBuff[0], tmpBuff[1], tmpBuff[2]);
     ++layerCount;
   }
 }
