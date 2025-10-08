@@ -39,11 +39,11 @@ class TRKLayer
   auto getNumber() const { return mLayerNumber; }
   auto getName() const { return mLayerName; }
 
-  TGeoVolume* createSensor(std::string type, double width = -1);
-  TGeoVolume* createDeadzone(std::string type, double width = -1);
-  TGeoVolume* createChip(std::string type, double width = -1);
-  TGeoVolume* createModule(std::string type, double width = -1);
-  TGeoVolume* createStave(std::string type, double width = -1);
+  TGeoVolume* createSensor(std::string type);
+  TGeoVolume* createDeadzone(std::string type);
+  TGeoVolume* createChip(std::string type);
+  TGeoVolume* createModule(std::string type);
+  TGeoVolume* createStave(std::string type);
   void createLayer(TGeoVolume* motherVolume);
 
  private:
@@ -51,14 +51,17 @@ class TRKLayer
   static constexpr float mLogicalVolumeThickness = 1;
 
   int mLayerNumber;
+  eLayout mLayout;
   std::string mLayerName;
   float mInnerRadius;
   float mOuterRadius;
   float mZ;
   float mX2X0;
-  float mChipThickness;
   float mModuleWidth; // u.m. = cm
-  eLayout mLayout;
+  float mChipWidth;
+  float mChipLength;
+  float mChipThickness;
+  float mDeadzoneWidth;
 
   ClassDef(TRKLayer, 1);
 };

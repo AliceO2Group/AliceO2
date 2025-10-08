@@ -11,6 +11,7 @@
 
 #include "TRKSimulation/TRKLayer.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/Specs.h"
 
 #include "Framework/Logger.h"
 
@@ -25,7 +26,7 @@ namespace o2
 namespace trk
 {
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, float zLength, float layerX2X0)
-  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mZ(zLength), mX2X0(layerX2X0), mModuleWidth(4.54), mLayout(kCylinder)
+  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mZ(zLength), mX2X0(layerX2X0), mModuleWidth(4.54), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1)
 {
   float Si_X0 = 9.5f;
   mChipThickness = mX2X0 * Si_X0;
@@ -33,7 +34,7 @@ TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOu
 }
 
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float zLength, float thick)
-  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mZ(zLength), mChipThickness(thick), mModuleWidth(4.54), mLayout(kCylinder)
+  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mZ(zLength), mChipThickness(thick), mModuleWidth(4.54), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1)
 {
   float Si_X0 = 9.5f;
   mOuterRadius = rInn + thick;
@@ -41,7 +42,7 @@ TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float zLe
   LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mZ, mX2X0);
 }
 
-TGeoVolume* TRKLayer::createSensor(std::string type, double width)
+TGeoVolume* TRKLayer::createSensor(std::string type)
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string sensName = GeometryTGeo::getTRKSensorPattern() + std::to_string(mLayerNumber);
@@ -51,10 +52,7 @@ TGeoVolume* TRKLayer::createSensor(std::string type, double width)
   if (type == "cylinder") {
     sensor = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2); // TO BE CHECKED !!!
   } else if (type == "flat") {
-    if (width < 0) {
-      LOGP(fatal, "Attempting to create sensor with invalid width");
-    }
-    sensor = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
+    sensor = new TGeoBBox((mChipWidth - mDeadzoneWidth) / 2, mChipThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
   } else {
     LOGP(fatal, "Sensor of type '{}' is not implemented", type);
   }
@@ -65,7 +63,7 @@ TGeoVolume* TRKLayer::createSensor(std::string type, double width)
   return sensVol;
 };
 
-TGeoVolume* TRKLayer::createDeadzone(std::string type, double width)
+TGeoVolume* TRKLayer::createDeadzone(std::string type)
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string deadName = GeometryTGeo::getTRKDeadzonePattern() + std::to_string(mLayerNumber);
@@ -75,10 +73,7 @@ TGeoVolume* TRKLayer::createDeadzone(std::string type, double width)
   if (type == "cylinder") {
     deadzone = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2); // TO BE CHECKED !!!
   } else if (type == "flat") {
-    if (width < 0) {
-      LOGP(fatal, "Attempting to create deadzone with invalid width");
-    }
-    deadzone = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
+    deadzone = new TGeoBBox(mDeadzoneWidth / 2, mChipThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
   } else {
     LOGP(fatal, "Deadzone of type '{}' is not implemented", type);
   }
@@ -89,45 +84,52 @@ TGeoVolume* TRKLayer::createDeadzone(std::string type, double width)
   return deadVol;
 };
 
-TGeoVolume* TRKLayer::createChip(std::string type, double width)
+TGeoVolume* TRKLayer::createChip(std::string type)
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string chipName = GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber);
 
   TGeoShape* chip;
+  TGeoVolume* chipVol;
 
   TGeoVolume* sensVol;
   TGeoVolume* deadVol;
 
   if (type == "cylinder") {
     chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
+    chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+
     sensVol = createSensor("cylinder");
-    deadVol = createDeadzone("cylinder");
+    LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(sensVol, 1, nullptr);
+
+    // deadVol = createDeadzone("cylinder");
   } else if (type == "flat") {
-    if (width < 0) {
-      LOGP(fatal, "Attempting to create chip with invalid width");
-    }
-    chip = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
-    sensVol = createSensor("flat", width);
-    deadVol = createDeadzone("flat", width);
+    chip = new TGeoBBox(mChipWidth / 2, mChipThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
+    chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+
+    sensVol = createSensor("flat");
+    deadVol = createDeadzone("flat");
+
+    TGeoCombiTrans* transSens = new TGeoCombiTrans();
+    transSens->SetTranslation(-mDeadzoneWidth / 2, 0, 0); // TO BE CHECKED !!!
+    LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(sensVol, 1, transSens);
+
+    TGeoCombiTrans* transDead = new TGeoCombiTrans();
+    transDead->SetTranslation((mChipWidth - mDeadzoneWidth) / 2, 0, 0); // TO BE CHECKED !!!
+    LOGP(info, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(deadVol, 1, transDead);
   } else {
     LOGP(fatal, "Sensor of type '{}' is not implemented", type);
   }
-
-  TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
-
-  LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
-  chipVol->AddNode(sensVol, 1, nullptr);
-
-  LOGP(info, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
-  chipVol->AddNode(deadVol, 1, nullptr);
 
   chipVol->SetLineColor(kYellow);
 
   return chipVol;
 }
 
-TGeoVolume* TRKLayer::createModule(std::string type, double width)
+TGeoVolume* TRKLayer::createModule(std::string type)
 {
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
   std::string moduleName = GeometryTGeo::getTRKModulePattern() + std::to_string(mLayerNumber);
@@ -143,27 +145,32 @@ TGeoVolume* TRKLayer::createModule(std::string type, double width)
     LOGP(info, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
     moduleVol->AddNode(chipVol, 1, nullptr);
   } else if (type == "flat") {
-    if (width < 0) {
-      LOGP(fatal, "Attempting to create module with invalid width");
-    }
+    double moduleWidth = constants::moduleMLOT::width;
+    double moduleLength = constants::moduleMLOT::length;
 
-    module = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2); // TO BE CHECKED !!!
+    module = new TGeoBBox(moduleWidth / 2, mChipThickness / 2, moduleLength / 2); // TO BE CHECKED !!!
     moduleVol = new TGeoVolume(moduleName.c_str(), module, medAir);
 
     int nChips = 4;
 
     for (int iChip = 0; iChip < nChips; iChip++) {
-      TGeoVolume* chipVolLeft = createChip("flat", mModuleWidth / 2);
-      TGeoVolume* chipVolRight = createChip("flat", mModuleWidth / 2); // TO BE CHECKED !!!
+      TGeoVolume* chipVolLeft = createChip("flat");
+      TGeoVolume* chipVolRight = createChip("flat");
 
       // Put the chips in the correct position
+      double xLeft = -moduleWidth / 2 + constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::width / 2;
+      double zLeft = -moduleLength / 2 + constants::moduleMLOT::gaps::outerEdgeShortSide + iChip * (constants::moduleMLOT::chip::length + constants::moduleMLOT::gaps::interChips) + constants::moduleMLOT::chip::length / 2;
+
       TGeoCombiTrans* transLeft = new TGeoCombiTrans();
-      transLeft->SetTranslation(-mModuleWidth / 2 + 0.05, 0, iChip * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+      transLeft->SetTranslation(xLeft, 0, zLeft); // TO BE CHECKED !!!
       LOGP(info, "Inserting {} in {} ", chipVolLeft->GetName(), moduleVol->GetName());
       moduleVol->AddNode(chipVolLeft, iChip * 2, transLeft);
 
+      double xRight = +moduleWidth / 2 - constants::moduleMLOT::gaps::outerEdgeLongSide - constants::moduleMLOT::chip::width / 2;
+      double zRight = -moduleLength / 2 + constants::moduleMLOT::gaps::outerEdgeShortSide + iChip * (constants::moduleMLOT::chip::length + constants::moduleMLOT::gaps::interChips) + constants::moduleMLOT::chip::length / 2;
+
       TGeoCombiTrans* transRight = new TGeoCombiTrans();
-      transRight->SetTranslation(mModuleWidth / 2 - 0.05, 0, iChip * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+      transRight->SetTranslation(xRight, 0, zRight); // TO BE CHECKED !!!
       LOGP(info, "Inserting {} in {} ", chipVolRight->GetName(), moduleVol->GetName());
       moduleVol->AddNode(chipVolRight, iChip * 2 + 1, transRight);
     }
@@ -176,7 +183,7 @@ TGeoVolume* TRKLayer::createModule(std::string type, double width)
   return moduleVol;
 }
 
-TGeoVolume* TRKLayer::createStave(std::string type, double width)
+TGeoVolume* TRKLayer::createStave(std::string type)
 {
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
   std::string staveName = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber);
@@ -192,44 +199,52 @@ TGeoVolume* TRKLayer::createStave(std::string type, double width)
     LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
     staveVol->AddNode(moduleVol, 1, nullptr);
   } else if (type == "flat") {
-    if (width < 0) {
-      LOGP(fatal, "Attempting to create stave with invalid width");
-    }
+    double moduleLength = constants::ML::length;
+    double staveWidth = constants::ML::width;
 
-    stave = new TGeoBBox(width / 2, mChipThickness / 2, mZ / 2);
+    stave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, mZ / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
     int nModules = 10;
 
     for (int iModule = 0; iModule < nModules; iModule++) {
-      TGeoVolume* moduleVol = createModule("flat", mModuleWidth);
+      TGeoVolume* moduleVol = createModule("flat");
 
       // Put the modules in the correct position
+      double zPos = -0.5 * (nModules - 1) * moduleLength + iModule * moduleLength;
+
       TGeoCombiTrans* trans = new TGeoCombiTrans();
-      trans->SetTranslation(0, 0, iModule * (mModuleWidth + 0.1)); // TO BE CHECKED !!!
+      trans->SetTranslation(0, 0, zPos); // TO BE CHECKED !!!
 
       LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
       staveVol->AddNode(moduleVol, iModule, trans);
     }
   } else if (type == "staggered") {
-    double width = mModuleWidth * 2; // Each stave has two modules (based on the LOI design)
-    stave = new TGeoBBox(width / 2, mLogicalVolumeThickness / 2, mZ / 2);
+    double moduleWidth = constants::ML::width;
+    double moduleLength = constants::ML::length;
+    double staveWidth = constants::OT::width; // Each stave has two modules (based on the LOI design)
+
+    stave = new TGeoBBox(staveWidth / 2, mLogicalVolumeThickness / 2, mZ / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
-    int nModules = 10;
+    int nModules = 20;
 
     for (int iModule = 0; iModule < nModules; iModule++) {
-      TGeoVolume* moduleVolLeft = createModule("flat", mModuleWidth);
-      TGeoVolume* moduleVolRight = createModule("flat", mModuleWidth);
+      TGeoVolume* moduleVolLeft = createModule("flat");
+      TGeoVolume* moduleVolRight = createModule("flat");
 
       // Put the modules in the correct position
+      double xLeft = -moduleWidth / 2 + 0.05;
+      double xRight = moduleWidth / 2 - 0.05;
+      double zPos = -0.5 * (nModules - 1) * moduleLength + iModule * moduleLength;
+
       TGeoCombiTrans* transLeft = new TGeoCombiTrans();
-      transLeft->SetTranslation(-mModuleWidth / 2 + 0.05, 0, iModule * (mModuleWidth + 0.1)); // TO BE CHECKED !!! 1mm overlap between the modules
+      transLeft->SetTranslation(xLeft, 0, zPos); // TO BE CHECKED !!! 1mm overlap between the modules
       LOGP(info, "Inserting {} in {} ", moduleVolLeft->GetName(), staveVol->GetName());
       staveVol->AddNode(moduleVolLeft, iModule * 2, transLeft);
 
       TGeoCombiTrans* transRight = new TGeoCombiTrans();
-      transRight->SetTranslation(mModuleWidth / 2 - 0.05, 0, iModule * (mModuleWidth + 0.1)); // TO BE CHECKED !!! 1mm overlap between the modules
+      transRight->SetTranslation(xRight, 0, zPos); // TO BE CHECKED !!! 1mm overlap between the modules
       LOGP(info, "Inserting {} in {} ", moduleVolRight->GetName(), staveVol->GetName());
       staveVol->AddNode(moduleVolRight, iModule * 2 + 1, transRight);
     }
@@ -283,7 +298,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
     LOGP(info, "Creating a layer with {} staves and {} mm overlap", nStaves, overlap * 10);
 
     for (int iStave = 0; iStave < nStaves; iStave++) {
-      TGeoVolume* staveVol = createStave("flat", width);
+      TGeoVolume* staveVol = createStave("flat");
 
       // Put the staves in the correct position and orientation
       TGeoCombiTrans* trans = new TGeoCombiTrans();

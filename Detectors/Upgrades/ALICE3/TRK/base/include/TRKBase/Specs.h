@@ -22,7 +22,7 @@
 // Each TGeoShape has the following properties
 // length: dimension in z-axis
 // width: dimension in xy-axes
-// color: for visulisation
+// color: for visualisation
 namespace o2::trk::constants
 {
 // Default unit of TGeo = cm
