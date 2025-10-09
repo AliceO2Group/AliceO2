@@ -339,6 +339,10 @@ std::string ChannelSpecHelpers::defaultIPCFolder()
   if (channelPrefix) {
     return fmt::format("@dpl_{}_", channelPrefix);
   }
+  channelPrefix = getenv("SLURM_JOB_ID");
+  if (channelPrefix) {
+    return fmt::format("@dpl_{}_", channelPrefix);
+  }
   return "@";
 #else
   /// Find out a place where we can write the sockets
