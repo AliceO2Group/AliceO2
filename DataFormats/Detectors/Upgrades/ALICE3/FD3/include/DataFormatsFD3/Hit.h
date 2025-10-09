@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file Hit.h
-/// \brief Definition of the FD Hit class (based on ITSMFT and FV0)
+/// \brief Definition of the FD3 Hit class (based on ITSMFT and FV0)
 
 #ifndef ALICEO2_FVD_HIT_H_
 #define ALICEO2_FVD_HIT_H_
@@ -23,7 +23,7 @@
 
 namespace o2
 {
-namespace fd
+namespace fd3
 {
 
 class Hit : public o2::BasicXYZEHit<float, float>
@@ -109,17 +109,17 @@ Hit::Hit(int trackID,
 {
 }
 
-} // namespace fd
+} // namespace fd3
 } // namespace o2
 
 #ifdef USESHM
 namespace std
 {
 template <>
-class allocator<o2::fd::Hit> : public o2::utils::ShmAllocator<o2::fd::Hit>
+class allocator<o2::fd3::Hit> : public o2::utils::ShmAllocator<o2::fd3::Hit>
 {
 };
 
 } // namespace std
 #endif /* USESHM */
-#endif /* ALICEO2_FD_HIT_H_ */
+#endif /* ALICEO2_FD3_HIT_H_ */

@@ -15,7 +15,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::fd::Hit + ;
-#pragma link C++ class vector < o2::fd::Hit> + ;
+#pragma link C++ class o2::fd3::Constants + ;
+#pragma link C++ class o2::fd3::GeometryTGeo + ;
+#pragma link C++ class o2::fd3::FD3BaseParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::fd3::FD3BaseParam> + ;
 
 #endif

@@ -12,14 +12,14 @@
 /// \file Detector.h
 /// \brief Definition of the Detector class
 
-#ifndef ALICEO2_FD_DETECTOR_H_
-#define ALICEO2_FD_DETECTOR_H_
+#ifndef ALICEO2_FD3_DETECTOR_H_
+#define ALICEO2_FD3_DETECTOR_H_
 
 #include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h"
-#include "FDBase/GeometryTGeo.h"
-#include "FDBase/FDBaseParam.h"
-#include "DataFormatsFD/Hit.h"
+#include "FD3Base/GeometryTGeo.h"
+#include "FD3Base/FD3BaseParam.h"
+#include "DataFormatsFD3/Hit.h"
 #include "Rtypes.h"
 #include "TGeoManager.h"
 #include "TLorentzVector.h"
@@ -31,7 +31,7 @@ class TGeoVolume;
 
 namespace o2
 {
-namespace fd
+namespace fd3
 {
 class GeometryTGeo;
 }
@@ -39,7 +39,7 @@ class GeometryTGeo;
 
 namespace o2
 {
-namespace fd
+namespace fd3
 {
 
 class Detector : public o2::base::DetImpl<Detector>
@@ -54,15 +54,15 @@ class Detector : public o2::base::DetImpl<Detector>
   void ConstructGeometry() override;
 
   /// This method is an example of how to add your own point of type Hit to the clones array
-  o2::fd::Hit* addHit(int trackId, unsigned int detId,
-                      const math_utils::Point3D<float>& startPos,
-                      const math_utils::Point3D<float>& endPos,
-                      const math_utils::Vector3D<float>& startMom, double startE,
-                      double endTime, double eLoss, int particlePdg);
+  o2::fd3::Hit* addHit(int trackId, unsigned int detId,
+                       const math_utils::Point3D<float>& startPos,
+                       const math_utils::Point3D<float>& endPos,
+                       const math_utils::Vector3D<float>& startMom, double startE,
+                       double endTime, double eLoss, int particlePdg);
   //   unsigned int startStatus,
   //   unsigned int endStatus);
 
-  std::vector<o2::fd::Hit>* getHits(Int_t iColl)
+  std::vector<o2::fd3::Hit>* getHits(Int_t iColl)
   {
     if (iColl == 0) {
       return mHits;
@@ -93,7 +93,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Detector(const Detector&);
   Detector& operator=(const Detector&);
 
-  std::vector<o2::fd::Hit>* mHits = nullptr;
+  std::vector<o2::fd3::Hit>* mHits = nullptr;
   GeometryTGeo* mGeometryTGeo = nullptr;
 
   TGeoVolumeAssembly* buildModuleA();
@@ -132,7 +132,7 @@ class Detector : public o2::base::DetImpl<Detector>
 std::ostream& operator<<(std::ostream& os, Detector& source);
 std::istream& operator>>(std::istream& os, Detector& source);
 
-} // namespace fd
+} // namespace fd3
 } // namespace o2
 
 #ifdef USESHM
@@ -141,7 +141,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::fd::Detector> {
+struct UseShm<o2::fd3::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base

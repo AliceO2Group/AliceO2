@@ -9,18 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_FD_FDBASEPARAM_
-#define ALICEO2_FD_FDBASEPARAM_
+#ifndef ALICEO2_FD3_FD3BASEPARAM_
+#define ALICEO2_FD3_FD3BASEPARAM_
 
-#include "FDBase/GeometryTGeo.h"
-#include "FDBase/Constants.h"
+#include "FD3Base/GeometryTGeo.h"
+#include "FD3Base/Constants.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {
-namespace fd
+namespace fd3
 {
-struct FDBaseParam : public o2::conf::ConfigurableParamHelper<FDBaseParam> {
+struct FD3BaseParam : public o2::conf::ConfigurableParamHelper<FD3BaseParam> {
 
   float zmodA = 1700.0f;
   float zmodC = -1850.0f;
@@ -32,10 +32,10 @@ struct FDBaseParam : public o2::conf::ConfigurableParamHelper<FDBaseParam> {
   bool fullContainer = false;
   float dzplate = 1.0f; // Aluminium plate width
 
-  O2ParamDef(FDBaseParam, "FDBase");
+  O2ParamDef(FD3BaseParam, "FD3Base");
 };
 
-} // namespace fd
+} // namespace fd3
 } // namespace o2
 
 #endif

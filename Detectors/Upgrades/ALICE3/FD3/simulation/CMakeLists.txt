@@ -9,11 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(FDSimulation
+o2_add_library(FD3Simulation
                SOURCES src/Detector.cxx
-               PUBLIC_LINK_LIBRARIES O2::FDBase
-	                             O2::DataFormatsFD
+               PUBLIC_LINK_LIBRARIES O2::FD3Base
+	                             O2::DataFormatsFD3
                                      ROOT::Physics)
 
-o2_target_root_dictionary(FDSimulation
-                          HEADERS include/FDSimulation/Detector.h)
+o2_target_root_dictionary(FD3Simulation
+                          HEADERS include/FD3Simulation/Detector.h)

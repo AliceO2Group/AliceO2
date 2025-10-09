@@ -9,6 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FDBase/FDBaseParam.h"
+#include "FD3Base/FD3BaseParam.h"
 
-O2ParamImpl(o2::fd::FDBaseParam);
+O2ParamImpl(o2::fd3::FD3BaseParam);

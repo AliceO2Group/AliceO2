@@ -14,12 +14,12 @@
 ///
 /// \author Maciej Slupecki, University of Jyvaskyla, Finland
 
-#ifndef ALICEO2_FD_CONSTANTS_
-#define ALICEO2_FD_CONSTANTS_
+#ifndef ALICEO2_FD3_CONSTANTS_
+#define ALICEO2_FD3_CONSTANTS_
 
 namespace o2
 {
-namespace fd
+namespace fd3
 {
 struct Constants {
   static constexpr unsigned int nsect = 8;
@@ -33,6 +33,6 @@ struct Constants {
   static constexpr float etaMinA_withMG = 5.0f;
 };
 
-} // namespace fd
+} // namespace fd3
 } // namespace o2
 #endif

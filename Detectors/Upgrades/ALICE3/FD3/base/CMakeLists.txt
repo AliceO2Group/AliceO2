@@ -1,4 +1,4 @@
-# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2025 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -9,15 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsFD
-  SOURCES src/Hit.cxx
-  PUBLIC_LINK_LIBRARIES O2::FDBase
-                        O2::SimulationDataFormat
-                        O2::CommonDataFormat
-                        Microsoft.GSL::GSL
-                        O2::DetectorsCommonDataFormats
-)
+o2_add_library(FD3Base
+        SOURCES src/GeometryTGeo.cxx
+                src/FD3BaseParam.cxx
+                PUBLIC_LINK_LIBRARIES  O2::DetectorsBase)
 
-o2_target_root_dictionary(DataFormatsFD
-  HEADERS include/DataFormatsFD/Hit.h
-)
+o2_target_root_dictionary(FD3Base
+        HEADERS include/FD3Base/GeometryTGeo.h
+                include/FD3Base/Constants.h
+                include/FD3Base/FD3BaseParam.h)

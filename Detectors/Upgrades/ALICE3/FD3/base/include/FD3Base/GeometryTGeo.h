@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef ALICEO2_FD_GEOMETRYTGEO_H_
-#define ALICEO2_FD_GEOMETRYTGEO_H_
+#ifndef ALICEO2_FD3_GEOMETRYTGEO_H_
+#define ALICEO2_FD3_GEOMETRYTGEO_H_
 
 #include <DetectorsCommonDataFormats/DetMatrixCache.h>
 
@@ -25,10 +25,10 @@
 
 namespace o2
 {
-namespace fd
+namespace fd3
 {
 
-/// FD Geometry type
+/// FD3 Geometry type
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
@@ -42,13 +42,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   void getGlobalPosition(float& x, float& y, float& z);
 
-  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FD; }
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FD3; }
 
  private:
-  static std::unique_ptr<o2::fd::GeometryTGeo> sInstance;
+  static std::unique_ptr<o2::fd3::GeometryTGeo> sInstance;
 
   ClassDefNV(GeometryTGeo, 1);
 };
-} // namespace fd
+} // namespace fd3
 } // namespace o2
 #endif
