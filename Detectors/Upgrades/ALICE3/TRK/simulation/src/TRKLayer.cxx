@@ -26,7 +26,7 @@ namespace o2
 namespace trk
 {
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, float zLength, float layerX2X0)
-  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mZ(zLength), mX2X0(layerX2X0), mModuleWidth(4.54), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1)
+  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mZ(zLength), mX2X0(layerX2X0), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1)
 {
   float Si_X0 = 9.5f;
   mChipThickness = mX2X0 * Si_X0;
@@ -34,7 +34,7 @@ TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOu
 }
 
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float zLength, float thick)
-  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mZ(zLength), mChipThickness(thick), mModuleWidth(4.54), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1)
+  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mZ(zLength), mChipThickness(thick), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1)
 {
   float Si_X0 = 9.5f;
   mOuterRadius = rInn + thick;
@@ -281,19 +281,19 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
     layerVol->AddNode(staveVol, 1, nullptr);
   } else if (mLayout == eLayout::kTurboStaves) {
     // Compute the number of staves
-    double width = mModuleWidth; // Each stave has two modules (based on the LOI design)
+    double staveWidth = constants::ML::width; // Each stave has two modules (based on the LOI design)
     if (mInnerRadius > 25) {
-      width *= 2; // Outer layers have two modules per stave
+      staveWidth = constants::OT::width; // Outer layers have two modules per stave
     }
-    int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / width);
+    int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / staveWidth);
     nStaves += nStaves % 2; // Require an even number of staves
 
     // Compute the size of the overlap region
     double theta = 2 * TMath::Pi() / nStaves;
-    double theta1 = std::atan(width / 2 / mInnerRadius);
+    double theta1 = std::atan(staveWidth / 2 / mInnerRadius);
     double st = std::sin(theta);
     double ct = std::cos(theta);
-    double theta2 = std::atan((mInnerRadius * st - width / 2 * ct) / (mInnerRadius * ct + width / 2 * st));
+    double theta2 = std::atan((mInnerRadius * st - staveWidth / 2 * ct) / (mInnerRadius * ct + staveWidth / 2 * st));
     double overlap = (theta1 - theta2) * mInnerRadius;
     LOGP(info, "Creating a layer with {} staves and {} mm overlap", nStaves, overlap * 10);
 
@@ -312,16 +312,16 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
     }
   } else if (mLayout == kStaggered) {
     // Compute the number of staves
-    double width = mModuleWidth * 2; // Each stave has two modules (based on the LOI design)
-    int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / width);
+    double staveWidth = constants::OT::width; // Each stave has two modules (based on the LOI design)
+    int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / staveWidth);
     nStaves += nStaves % 2; // Require an even number of staves
 
     // Compute the size of the overlap region
     double theta = 2 * TMath::Pi() / nStaves;
-    double theta1 = std::atan(width / 2 / mInnerRadius);
+    double theta1 = std::atan(staveWidth / 2 / mInnerRadius);
     double st = std::sin(theta);
     double ct = std::cos(theta);
-    double theta2 = std::atan((mInnerRadius * st - width / 2 * ct) / (mInnerRadius * ct + width / 2 * st));
+    double theta2 = std::atan((mInnerRadius * st - staveWidth / 2 * ct) / (mInnerRadius * ct + staveWidth / 2 * st));
     double overlap = (theta1 - theta2) * mInnerRadius;
     LOGP(info, "Creating a layer with {} staves and {} mm overlap", nStaves, overlap * 10);
 

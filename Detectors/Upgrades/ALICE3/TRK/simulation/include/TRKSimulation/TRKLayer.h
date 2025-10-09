@@ -57,7 +57,6 @@ class TRKLayer
   float mOuterRadius;
   float mZ;
   float mX2X0;
-  float mModuleWidth; // u.m. = cm
   float mChipWidth;
   float mChipLength;
   float mChipThickness;
