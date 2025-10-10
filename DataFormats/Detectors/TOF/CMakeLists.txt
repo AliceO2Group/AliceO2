@@ -9,6 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+o2_add_library(DataFormatsParamTOF
+               SOURCES src/ParameterContainers.cxx)
+
+
+o2_target_root_dictionary(DataFormatsParamTOF
+                          HEADERS include/DataFormatsTOF/ParameterContainers.h)
+
 o2_add_library(DataFormatsTOF
                SOURCES src/Cluster.cxx
                        src/CalibInfoTOFshort.cxx
@@ -16,13 +23,13 @@ o2_add_library(DataFormatsTOF
                        src/CalibLHCphaseTOF.cxx
                        src/CalibTimeSlewingParamTOF.cxx
                        src/CTF.cxx
-                       src/ParameterContainers.cxx
                        src/CalibInfoCluster.cxx
                        src/CosmicInfo.cxx
                        src/Diagnostic.cxx
                        src/TOFFEElightInfo.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      O2::GPUCommon
+                                     O2::DataFormatsParamTOF
                                      Boost::serialization)
 
 o2_target_root_dictionary(DataFormatsTOF
