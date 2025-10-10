@@ -216,6 +216,8 @@ int GeometryTGeo::getDisk(int index) const
 int GeometryTGeo::getModule(int index) const
 {
   int subDetID = getSubDetID(index);
+
+  return -1; /// not implemented yet
 }
 
 //__________________________________________________________________________
