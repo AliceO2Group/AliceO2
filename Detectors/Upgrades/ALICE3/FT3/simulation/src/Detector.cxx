@@ -353,22 +353,16 @@ void Detector::buildFT3Scoping()
 
   LOG(info) << "Building FT3 Detector: Scoping document version";
 
-  mNumberOfLayers = 12;
+  mNumberOfLayers = 6;
   float sensorThickness = 30.e-4;
   float layersx2X0 = 1.e-2;
   std::vector<std::array<float, 5>> layersConfig{
-    {26., .5, 2.5, 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
-    {30., .5, 2.5, 0.1f * layersx2X0},
-    {34., .5, 2.5, 0.1f * layersx2X0},
     {77., 5.0, 35., layersx2X0},
     {100., 5.0, 35., layersx2X0},
     {122., 5.0, 35., layersx2X0},
     {150., 5.0, 68.f, layersx2X0},
     {180., 5.0, 68.f, layersx2X0},
-    {220., 5.0, 68.f, layersx2X0},
-    {260., 5.0, 68.f, layersx2X0},
-    {300., 5.0, 68.f, layersx2X0},
-    {350., 5.0, 68.f, layersx2X0}};
+    {220., 5.0, 68.f, layersx2X0}};
 
   mLayerName.resize(2);
   mLayerName[0].resize(mNumberOfLayers);
@@ -407,14 +401,18 @@ Detector::Detector(bool active)
   if (ft3BaseParam.configFile != "") {
     LOG(info) << "FT3 Geometry configuration file provided. Overriding FT3Base.geoModel configuration.";
     buildFT3FromFile(ft3BaseParam.configFile);
-
+    
   } else {
+    LOG(info) << "FT3 Geometry configuration file not provided. Using FT3Base.geoModel " << ft3BaseParam.geoModel << " configuration.";
     switch (ft3BaseParam.geoModel) {
       case Default:
         buildFT3NewVacuumVessel(); // FT3 after Upgrade days March 2024
         break;
       case Telescope:
         buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)
+        break;
+        case ScopingV3b:
+        buildFT3Scoping(); // FT3 according to scoping document
         break;
       default:
         LOG(fatal) << "Invalid Geometry.\n";

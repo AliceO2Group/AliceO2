@@ -26,7 +26,8 @@ namespace ft3
 
 enum FT3Geometry {
   Default = 0,
-  Telescope = 1
+  Telescope = 1,
+  ScopingV3b = 2
 };
 
 struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
