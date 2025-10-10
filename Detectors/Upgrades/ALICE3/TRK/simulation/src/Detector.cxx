@@ -127,9 +127,6 @@ void Detector::buildTRKNewVacuumVessel()
   mLayers.clear();
 
   LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-  // mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 0.5f, 4, 100.e-4);
-  // mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 1.2f, 4, 100.e-4);
-  // mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 2.5f, 4, 100.e-4);
   mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
   LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
   mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
