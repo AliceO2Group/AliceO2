@@ -72,6 +72,7 @@ class IDCToVectorDevice : public o2::framework::Task
     mWriteDebugOnError = ic.options().get<bool>("write-debug-on-error");
     mWriteRawDataOnError = ic.options().get<bool>("write-raw-data-on-error");
     mRawDataType = ic.options().get<int>("raw-data-type");
+    o2::framework::RawParser<>::setCheckIncompleteHBF(ic.options().get<bool>("check-incomplete-hbf"));
 
     mDebugStreamFileName = ic.options().get<std::string>("debug-file-name").data();
     mRawOutputFileName = ic.options().get<std::string>("raw-file-name").data();
@@ -606,9 +607,10 @@ o2::framework::DataProcessorSpec getIDCToVectorSpec(const std::string inputSpec,
       {"write-raw-data-on-error", VariantType::Bool, false, {"dump raw data in case errors occurred"}},
       {"raw-file-name", VariantType::String, "/tmp/idc_debug.{run}.{raw_type}", {"name of the raw output file"}},
       {"raw-data-type", VariantType::Int, 0, {"Which raw data to dump: 0-full TPC with DH, 1-full TPC with DH skip empty, 2-full TPC no DH, 3-full TPC no DH skip empty, 4-IDC raw only"}},
+      {"check-incomplete-hbf", VariantType::Bool, false, {"false: don't chck; true: check and report"}},
       {"pedestal-url", VariantType::String, "ccdb-default", {"ccdb-default: load from NameConf::getCCDBServer() OR ccdb url (must contain 'ccdb' OR pedestal file name"}},
       {"swap-links", VariantType::Bool, false, {"swap links to circumvent bug in FW"}},
     } // end Options
-  };  // end DataProcessorSpec
+  }; // end DataProcessorSpec
 }
 } // namespace o2::tpc

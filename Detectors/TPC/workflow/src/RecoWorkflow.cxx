@@ -553,7 +553,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // a writer process for compressed clusters container
   //
-  // selected by output type 'compressed-clusters'
+  // selected by output type 'compressed-clusters-root'
   if (produceCompClustersRoot && !isEnabled(OutputType::DisableWriter)) {
     // defining the track writer process using the generic RootTreeWriter and generator tool
     //

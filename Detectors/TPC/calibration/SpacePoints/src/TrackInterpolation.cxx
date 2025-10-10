@@ -640,7 +640,6 @@ void TrackInterpolation::interpolateTrack(int iSeed)
         // skip masked cluster residual
         continue;
       }
-      ++nClValidated;
       const float tgPhi = clusterResiduals[iCl].snp / std::sqrt((1.f - clusterResiduals[iCl].snp) * (1.f + clusterResiduals[iCl].snp));
       const auto dy = clusterResiduals[iCl].dy;
       const auto dz = clusterResiduals[iCl].dz;
@@ -649,6 +648,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       const auto sec = clusterResiduals[iCl].sec;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
         mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec);
+        ++nClValidated;
       } else {
         ++mRejectedResiduals;
       }
@@ -875,7 +875,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
   if (clusterResiduals.size() > constants::MAXGLOBALPADROW) {
-    LOGP(warn, "Extrapolated ITS-TPC track and found more reesiduals than possible ({})", clusterResiduals.size());
+    LOGP(warn, "Extrapolated ITS-TPC track and found more residuals than possible ({})", clusterResiduals.size());
     return;
   }
 
@@ -899,7 +899,6 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       if (iRow < param::NPadRows && params.flagRej[iCl]) { // skip masked cluster residual
         continue;
       }
-      ++nClValidated;
       const float tgPhi = clusterResiduals[iCl].snp / std::sqrt((1.f - clusterResiduals[iCl].snp) * (1.f + clusterResiduals[iCl].snp));
       const auto dy = clusterResiduals[iCl].dy;
       const auto dz = clusterResiduals[iCl].dz;
@@ -907,6 +906,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto z = clusterResiduals[iCl].z;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
         mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec);
+        ++nClValidated;
       } else {
         ++mRejectedResiduals;
       }
