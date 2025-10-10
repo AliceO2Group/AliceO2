@@ -104,17 +104,17 @@ void Detector::configDefault()
   mLayers.clear();
 
   LOGP(warning, "Loading Scoping Document configuration for ALICE3 TRK");
-  // mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
-  // mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
-  // mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 3.78f, 124.f, 100.e-3);
-  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 7.f, 124.f, 100.e-3);
-  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 124.f, 100.e-3);
-  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 124.f, 100.e-3);
-  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 124.f, 100.e-3);
-  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 258.f, 100.e-3);
-  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 258.f, 100.e-3);
-  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 258.f, 100.e-3);
+  // mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 0.5f, 4, 100.e-4);
+  // mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 1.2f, 4, 100.e-4);
+  // mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 2.5f, 4, 100.e-4);
+  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 3.78f, 10, 100.e-3);
+  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 7.f, 10, 100.e-3);
+  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
+  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
+  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
+  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
+  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
+  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
 }
 
 void Detector::buildTRKNewVacuumVessel()
@@ -127,18 +127,18 @@ void Detector::buildTRKNewVacuumVessel()
   mLayers.clear();
 
   LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-  // mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 0.5f, 50.f, 100.e-4);
-  // mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 1.2f, 50.f, 100.e-4);
-  // mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 129.f, 100.e-3);
+  // mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 0.5f, 4, 100.e-4);
+  // mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 1.2f, 4, 100.e-4);
+  // mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 2.5f, 4, 100.e-4);
+  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
   LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
-  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 129.f, 100.e-3);
-  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 129.f, 100.e-3);
-  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 19.f, 129.f, 100.e-3);
-  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 129.f, 100.e-3);
-  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 258.f, 100.e-3);
-  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 258.f, 100.e-3);
-  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 258.f, 100.e-3);
+  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
+  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 10, 100.e-3);
+  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 19.f, 10, 100.e-3);
+  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
+  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
+  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
+  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
 
   auto& trkPars = TRKBaseParam::Instance();
 

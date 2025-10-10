@@ -25,15 +25,15 @@ class TRKLayer
 {
  public:
   TRKLayer() = default;
-  TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, float zLength, float layerX2X0);
-  TRKLayer(int layerNumber, std::string layerName, float rInn, float zLength, float thick);
+  TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, int numberOfModules, float layerX2X0);
+  TRKLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick);
   ~TRKLayer() = default;
 
   void setLayout(eLayout layout) { mLayout = layout; };
 
   auto getInnerRadius() const { return mInnerRadius; }
   auto getOuterRadius() const { return mOuterRadius; }
-  auto getZ() const { return mZ; }
+  auto getZ() const { return constants::moduleMLOT::length * mNumberOfModules; }
   auto getx2X0() const { return mX2X0; }
   auto getChipThickness() const { return mChipThickness; }
   auto getNumber() const { return mLayerNumber; }
@@ -55,12 +55,13 @@ class TRKLayer
   std::string mLayerName;
   float mInnerRadius;
   float mOuterRadius;
-  float mZ;
+  int mNumberOfModules;
   float mX2X0;
   float mChipWidth;
   float mChipLength;
   float mChipThickness;
   float mDeadzoneWidth;
+  int mHalfNumberOfChips;
 
   ClassDef(TRKLayer, 1);
 };
