@@ -78,12 +78,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   void Print(Option_t* opt = "") const;
   void PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const;
 
+  int getSubDetID(int index) const;
+  int getPetalCase(int index) const;
   int getLayer(int index) const;
   int getStave(int index) const;
   int getHalfStave(int index) const;
-  int getSubDetID(int index) const;
-  int getPetalCase(int index) const;
   int getDisk(int index) const;
+  int getModule(int index) const;
 
   /// This routine computes the chip index number from the subDetID, petal, disk, layer, stave /// TODO: retrieve also from chip when chips will be available
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
@@ -130,13 +131,11 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   TString getMatrixPath(int index) const;
 
-  static const char* composeSymNameTRK(int d)
-  {
-    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TRK).getName(), d);
-  }
+  static const char* composeSymNameTRK(int d);
   static const char* composeSymNameLayer(int d, int layer);
   static const char* composeSymNameStave(int d, int layer);
-  static const char* composeSymNameChip(int d, int lr);
+  static const char* composeSymNameModule(int d, int layer);
+  static const char* composeSymNameChip(int d, int layer);
   static const char* composeSymNameSensor(int d, int layer);
 
  protected:

@@ -133,9 +133,7 @@ int GeometryTGeo::getPetalCase(int index) const
   int subDetID = getSubDetID(index);
   if (subDetID == 1) {
     return -1;
-  }
-
-  else if (index <= mLastChipIndexVD[mNumberOfPetalsVD - 1]) {
+  } else if (index <= mLastChipIndexVD[mNumberOfPetalsVD - 1]) {
     while (index > mLastChipIndexVD[petalcase]) {
       petalcase++;
     }
@@ -159,7 +157,7 @@ int GeometryTGeo::getLayer(int index) const
     while (index > mLastChipIndex[lay]) {
       lay++;
     }
-    return lay - mNumberOfPetalsVD; /// numeration of MLOT layesrs  starting from 0
+    return lay - mNumberOfPetalsVD; /// numeration of MLOT layers starting from 0
   }
   return -1; /// -1 if not found
 }
@@ -212,6 +210,12 @@ int GeometryTGeo::getDisk(int index) const
   }
 
   return -1; /// not found or ML/OT
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::getModule(int index) const
+{
+  int subDetID = getSubDetID(index);
 }
 
 //__________________________________________________________________________
@@ -370,24 +374,34 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
 //__________________________________________________________________________
 
-const char* GeometryTGeo::composeSymNameLayer(int d, int lr)
+const char* GeometryTGeo::composeSymNameTRK(int d)
 {
-  return Form("%s/%s%d", composeSymNameTRK(d), getTRKLayerPattern(), lr);
+  return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TRK).getName(), d);
 }
 
-const char* GeometryTGeo::composeSymNameStave(int d, int lr)
+const char* GeometryTGeo::composeSymNameLayer(int d, int layer)
 {
-  return Form("%s/%s%d", composeSymNameLayer(d, lr), getTRKStavePattern(), lr);
+  return Form("%s/%s%d", composeSymNameTRK(d), getTRKLayerPattern(), layer);
 }
 
-const char* GeometryTGeo::composeSymNameChip(int d, int lr)
+const char* GeometryTGeo::composeSymNameStave(int d, int layer)
 {
-  return Form("%s/%s%d", composeSymNameStave(d, lr), getTRKChipPattern(), lr);
+  return Form("%s/%s%d", composeSymNameLayer(d, layer), getTRKStavePattern(), layer);
 }
 
-const char* GeometryTGeo::composeSymNameSensor(int d, int lr)
+const char* GeometryTGeo::composeSymNameModule(int d, int layer)
 {
-  return Form("%s/%s%d", composeSymNameChip(d, lr), getTRKSensorPattern(), lr);
+  return Form("%s/%s%d", composeSymNameStave(d, layer), getTRKModulePattern(), layer);
+}
+
+const char* GeometryTGeo::composeSymNameChip(int d, int layer)
+{
+  return Form("%s/%s%d", composeSymNameStave(d, layer), getTRKChipPattern(), layer);
+}
+
+const char* GeometryTGeo::composeSymNameSensor(int d, int layer)
+{
+  return Form("%s/%s%d", composeSymNameChip(d, layer), getTRKSensorPattern(), layer);
 }
 
 //__________________________________________________________________________

@@ -201,8 +201,9 @@ TGeoVolume* TRKLayer::createStave(std::string type)
   } else if (type == "flat") {
     double moduleLength = constants::ML::length;
     double staveWidth = constants::ML::width;
+    double staveLength = constants::ML::length;
 
-    stave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, mZ / 2);
+    stave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, staveLength / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
     int nModules = 10;
@@ -220,11 +221,12 @@ TGeoVolume* TRKLayer::createStave(std::string type)
       staveVol->AddNode(moduleVol, iModule, trans);
     }
   } else if (type == "staggered") {
-    double moduleWidth = constants::ML::width;
-    double moduleLength = constants::ML::length;
+    double moduleWidth = constants::moduleMLOT::width;
+    double moduleLength = constants::moduleMLOT::length;
     double staveWidth = constants::OT::width; // Each stave has two modules (based on the LOI design)
+    double staveLength = constants::OT::length;
 
-    stave = new TGeoBBox(staveWidth / 2, mLogicalVolumeThickness / 2, mZ / 2);
+    stave = new TGeoBBox(staveWidth / 2, mLogicalVolumeThickness / 2, staveLength / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
     int nModules = 20;
@@ -259,32 +261,36 @@ TGeoVolume* TRKLayer::createStave(std::string type)
 
 void TRKLayer::createLayer(TGeoVolume* motherVolume)
 {
-  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
-
-  std::string staveName = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber),
-              chipName = GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber),
-              sensName = GeometryTGeo::getTRKSensorPattern() + std::to_string(mLayerNumber);
 
   double layerThickness = mChipThickness;
   if (mLayout != eLayout::kCylinder) {
     layerThickness = mLogicalVolumeThickness;
   }
-  TGeoTube* layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, mZ / 2);
 
-  TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  layerVol->SetLineColor(kYellow);
+  TGeoTube* layer;
+  TGeoVolume* layerVol;
 
   if (mLayout == eLayout::kCylinder) {
+    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, mZ / 2);
+    layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+
     TGeoVolume* staveVol = createStave("cylinder");
     LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, 1, nullptr);
   } else if (mLayout == eLayout::kTurboStaves) {
-    // Compute the number of staves
+    double layerLength = constants::ML::length;
     double staveWidth = constants::ML::width; // Each stave has two modules (based on the LOI design)
+
     if (mInnerRadius > 25) {
+      layerLength = constants::OT::length;
       staveWidth = constants::OT::width; // Outer layers have two modules per stave
     }
+
+    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, layerLength / 2);
+    layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+
+    // Compute the number of staves
     int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / staveWidth);
     nStaves += nStaves % 2; // Require an even number of staves
 
@@ -311,6 +317,11 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       layerVol->AddNode(staveVol, iStave, trans);
     }
   } else if (mLayout == kStaggered) {
+    double layerLength = constants::OT::length;
+
+    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, layerLength / 2);
+    layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+
     // Compute the number of staves
     double staveWidth = constants::OT::width; // Each stave has two modules (based on the LOI design)
     int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / staveWidth);
@@ -341,6 +352,8 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   } else {
     LOGP(fatal, "Layout not implemented");
   }
+  layerVol->SetLineColor(kYellow);
+
   LOGP(info, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
   motherVolume->AddNode(layerVol, 1, nullptr);
 }
