@@ -642,7 +642,7 @@ void PipeRun4::ConstructGeometry()
   // Drawings from C. Gargiulo :
   // \\cern.ch\dfs\Workspaces\c\cgargiul\EXPERIMENT\ALICE\ALICE_MECHANICS\ALICE_DATA_PACKAGE\IN\DETECTORS\ITS_UPGRADE\1-DESIGN\0-IF_Control_Drawing\20140207_ICD_ITS_MFT_BP
   /////////////////////////////////////////////////////////////////////
-
+  TGeoVolumeAssembly* beamPipeAsideSection = new TGeoVolumeAssembly("BeamPipeAsideSection");
   float kConicalBerilliumMinThickness = 0.08;
   float kConicalBerilliumMaxThickness = 0.1;
   float kFlangeZ = 483.75;
@@ -656,33 +656,34 @@ void PipeRun4::ConstructGeometry()
   float kConicalBePipeEndOuterRadius = 3.0;
 
   TGeoPcon* tube0 = new TGeoPcon(0., 360., 5);
-  tube0->DefineSection(0, kFlangeZ - kFlangeWidth / 2, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius);
-  tube0->DefineSection(1, kConicalBerylliumEnd, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius);
+  tube0->DefineSection(0, kFlangeZ - kFlangeWidth / 2, kConicalBePipeEndOuterRadius - kConicalBerilliumMinThickness, kConicalBePipeEndOuterRadius);
+  tube0->DefineSection(1, kConicalBerylliumEnd, kConicalBePipeEndOuterRadius - kConicalBerilliumMinThickness, kConicalBePipeEndOuterRadius);
   tube0->DefineSection(2, kSupport1 + kSupportWidth, kPipeRadiusAtSupport1 - kConicalBerilliumMinThickness, kPipeRadiusAtSupport1);
   tube0->DefineSection(3, kSupport1, kPipeRadiusAtSupport1 - kConicalBerilliumMinThickness, kPipeRadiusAtSupport1);
   tube0->DefineSection(4, kBeryliumSectionZmax, kBeryliumSectionOuterRadius - kConicalBerilliumMinThickness, kBeryliumSectionOuterRadius); // need a transition to kConicalBerilliumMaxThickness
 
-  TGeoPcon* tube0vide = new TGeoPcon(0., 360., 5);
-  tube0vide->DefineSection(0, kFlangeZ - kFlangeWidth / 2, 0., kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness - 0.01);
-  tube0vide->DefineSection(1, kConicalBerylliumEnd, 0., kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness - 0.01);
-  tube0vide->DefineSection(2, kSupport1 + kSupportWidth, 0, kPipeRadiusAtSupport1 - kConicalBerilliumMinThickness - 0.01);
-  tube0vide->DefineSection(3, kSupport1, 0, kPipeRadiusAtSupport1 - kConicalBerilliumMinThickness - 0.01);
-  tube0vide->DefineSection(4, kBeryliumSectionZmax, 0., kBeryliumSectionOuterRadius - kConicalBerilliumMinThickness - 0.01);
+  TGeoPcon* tube0Mo = new TGeoPcon(0., 360., 5);
+  tube0Mo->DefineSection(0, kFlangeZ - kFlangeWidth / 2, 0., kConicalBePipeEndOuterRadius);
+  tube0Mo->DefineSection(1, kConicalBerylliumEnd, 0., kConicalBePipeEndOuterRadius);
+  tube0Mo->DefineSection(2, kSupport1 + kSupportWidth, 0, kPipeRadiusAtSupport1);
+  tube0Mo->DefineSection(3, kSupport1, 0, kPipeRadiusAtSupport1);
+  tube0Mo->DefineSection(4, kBeryliumSectionZmax, 0., kBeryliumSectionOuterRadius);
 
   TGeoVolume* votube0 = new TGeoVolume("votube0", tube0, kMedBe);
   votube0->SetLineColor(kRed);
-  TGeoVolume* votube0vide = new TGeoVolume("votube0vide", tube0vide, kMedVac);
-  votube0vide->SetLineColor(kGreen);
+  TGeoVolume* votube0Mo = new TGeoVolume("votube0Mo", tube0Mo, kMedVac);
+  votube0Mo->AddNode(votube0, 1, gGeoIdentity);
+  votube0Mo->SetLineColor(kGreen);
 
-  barrel->AddNode(votube0, 1, new TGeoTranslation(0., 30., 0.));
-  barrel->AddNode(votube0vide, 1, new TGeoTranslation(0., 30., 0.));
+  beamPipeAsideSection->AddNode(votube0Mo, 1, gGeoIdentity);
 
-  TGeoVolume* beampipeSupportA1 = makeSupportBar("A1", kPipeRadiusAtSupport1 + 0.01, kPipeRadiusAtSupport1 + 0.38, 20.67, 14.25);
-  barrel->AddNode(beampipeSupportA1, 1, new TGeoTranslation(0., 30, kSupport1 + kSupportWidth / 2.));
+  //  already defined in IT3
+  //  TGeoVolume* beampipeSupportA1 = makeSupportBar("A1", kPipeRadiusAtSupport1 + 0.01, kPipeRadiusAtSupport1 + 0.38, 20.67, 14.25);
+  //  beamPipeAsideSection->AddNode(beampipeSupportA1, 1, new TGeoTranslation(0., 0., kSupport1 + kSupportWidth / 2.));
 
   // Length is approximate
   TGeoVolume* beampipeSupportA2 = makeSupportBar("A2", kConicalBePipeEndOuterRadius, kConicalBePipeEndOuterRadius + 0.38, 44, 37.5);
-  barrel->AddNode(beampipeSupportA2, 1, new TGeoTranslation(0., 30, kConicalBerylliumEnd + kSupportWidth / 2.));
+  beamPipeAsideSection->AddNode(beampipeSupportA2, 1, new TGeoTranslation(0., 0., kConicalBerylliumEnd + kSupportWidth / 2.));
 
   TGeoPcon* Bolt1 = new TGeoPcon(0., 360, 8);
   Bolt1->DefineSection(0, 0, 0, 0.5);
@@ -734,7 +735,7 @@ void PipeRun4::ConstructGeometry()
   Bolts->AddNode(volBolt1, 7, t7);
   Bolts->AddNode(volBolt1, 8, t8);
 
-  barrel->AddNode(Bolts, 1, new TGeoTranslation(0., 30., 0.));
+  beamPipeAsideSection->AddNode(Bolts, 1, gGeoIdentity);
 
   TGeoTranslation* Tflange = new TGeoTranslation(0, 0, kFlangeZ);
   Tflange->SetName("Tflange");
@@ -753,53 +754,40 @@ void PipeRun4::ConstructGeometry()
   TGeoVolume* volflange = new TGeoVolume("voFlangeHoles", FlangeWithHoles, kMedAlBe);
   volflange->SetLineWidth(2);
   volflange->SetLineColor(kGray);
-
-  barrel->AddNode(volflange, 1, new TGeoTranslation(0., 30., 0.));
-
-  TGeoPcon* pipeSamell = new TGeoPcon(0., 360., 2);
-  pipeSamell->DefineSection(0, kFlangeZ + kFlangeWidth / 2, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius);
-  pipeSamell->DefineSection(1, kFlangeZ + 5.13 + 0.435 + 0.4 + 0.08, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius);
-  pipeSamell->SetName("pipeSamell");
-
-  TGeoVolume* VolpipeSmall = new TGeoVolume("voPipeSmallVac", pipeSamell, kMedAlu2219);
-  VolpipeSmall->SetLineWidth(2);
-  barrel->AddNode(VolpipeSmall, 1, new TGeoTranslation(0., 30., 0.));
-
-  TGeoPcon* pipeSmallVac = new TGeoPcon(0., 360., 2);
-  pipeSmallVac->DefineSection(0, kFlangeZ + kFlangeWidth / 2, 0, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness - 0.01);
-  pipeSmallVac->DefineSection(1, kFlangeZ + 5.13 + 0.435 + 0.4 + 0.08, 0, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness - 0.01);
-  TGeoVolume* vopipeSmallVac = new TGeoVolume("voPipeSmallVac", pipeSmallVac, kMedVac);
-  vopipeSmallVac->SetLineColor(kGreen);
-
-  barrel->AddNode(vopipeSmallVac, 1, new TGeoTranslation(0., 30., 0.));
+  beamPipeAsideSection->AddNode(volflange, 1, gGeoIdentity);
 
   //  -- Bellows on A side
-  // float plieradius = (3.72 + (2. *  7 - 2.) * 0.03) / (4. * 7);  // radius of bellows "plis"
   float plieradiusA = 0.2; // radius of bellow plies
-
   // ------------------ First Bellow  --------------------
   // Inner: 3.0 cm, outer 3.97 cm length 8.47 cm with 10 wiggles
-  // check meaning of dU ; it is probably the total length, see also below
-  TGeoVolume* vobellows1A = makeBellow("bellows1A", 10, 3.0, 3.97, 8.47, plieradiusA, 0.03);
-  // Z position is rough for now.
-  barrel->AddNode(vobellows1A, 1, new TGeoTranslation(0., 30., kFlangeZ + 10));
+  TGeoVolume* vobellows1A = makeBellow("bellows1A", 10, 3.0, 3.97, plieradiusA, 0.03);
+  Float_t dU = (static_cast<TGeoTube*>(vobellows1A->GetShape()))->GetDZ();
+  beamPipeAsideSection->AddNode(vobellows1A, 1, new TGeoTranslation(0., 0., kFlangeZ + 2. * dU));
   // Comments: removing 1/2 plie (see makeBellow):  0.31= 2*0.17-0.03    and   0.08: free space
+  Float_t pipeSmallDz = (dU - kFlangeWidth / 2.) / 2.;
+  TGeoTube* pipeSmall = new TGeoTube("pipeSmall", kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius, pipeSmallDz);
+  TGeoVolume* vopipeSmall = new TGeoVolume("voPipeSmall", pipeSmall, kMedAlu2219);
+  vopipeSmall->SetLineWidth(2);
+
+  TGeoTube* pipeSmallMo = new TGeoTube(0., kConicalBePipeEndOuterRadius, pipeSmallDz);
+  TGeoVolume* vopipeSmallMo = new TGeoVolume("voPipeSmallMo", pipeSmallMo, kMedVac);
+  vopipeSmallMo->SetLineColor(kGreen);
+  vopipeSmallMo->AddNode(vopipeSmall, 1, gGeoIdentity);
+
+  beamPipeAsideSection->AddNode(vopipeSmallMo, 1, new TGeoTranslation(0., 0., kFlangeZ + kFlangeWidth / 2. + pipeSmallDz));
 
   // ------------------ Outer pipe after flange  --------------------
-  TGeoPcon* pipeOut = new TGeoPcon(0., 360., 2);
-  pipeOut->DefineSection(0, kFlangeZ + 13.6 - 0.08, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius);
-  pipeOut->DefineSection(1, 714.6, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius);
-
+  // The end of the barrel volume is at 864.6 cm, after that we start with RB24 volume
+  Float_t pipeEndZ = 864.6;
+  Float_t pipeOutDz = (pipeEndZ - (kFlangeZ + 3. * dU)) / 2.;
+  TGeoTube* pipeOut = new TGeoTube(kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness, kConicalBePipeEndOuterRadius, pipeOutDz);
   TGeoVolume* OuterPIPE = new TGeoVolume("pipeOut", pipeOut, kMedAlu2219);
-  barrel->AddNode(OuterPIPE, 1, new TGeoTranslation(0., 30., 0.));
 
-  // The end of the barrel volume is at 714.6 cm, after that we start with RB24 volume
-  TGeoPcon* pipeOutVac = new TGeoPcon(0., 360., 2);
-  pipeOutVac->DefineSection(0, kFlangeZ + 13.6 - 0.08, 0, kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness);
-  pipeOutVac->DefineSection(1, 714.6, 0., kConicalBePipeEndOuterRadius - kConicalBerilliumMaxThickness);
-
-  TGeoVolume* OuterPIPEVac = new TGeoVolume("pipeOutVac", pipeOutVac, kMedAlu2219);
-  barrel->AddNode(OuterPIPEVac, 1, new TGeoTranslation(0., 30., 0.));
+  TGeoTube* pipeOutMo = new TGeoTube(0., kConicalBePipeEndOuterRadius, pipeOutDz);
+  TGeoVolume* OuterPIPEMo = new TGeoVolume("pipeOutMo", pipeOutMo, kMedVac);
+  OuterPIPEMo->AddNode(OuterPIPE, 1, gGeoIdentity);
+  beamPipeAsideSection->AddNode(OuterPIPEMo, 1, new TGeoTranslation(0., 0., pipeEndZ - pipeOutDz));
+  barrel->AddNode(beamPipeAsideSection, 1, new TGeoTranslation(0., 30., 0.));
 
   //-------------------------------------------------
 
@@ -822,19 +810,19 @@ void PipeRun4::ConstructGeometry()
 
   // Copper Tube RB24/1
   const float kRB24CuTubeL = 381.5;
-  const float kRB24cCuTubeL = 155.775 + (28.375 - 18.135);
+  const float kRB24cCuTubeL = 155.775 - 150.;
   const float kRB24bCuTubeL = kRB24CuTubeL - kRB24cCuTubeL;
   const float kRB24CuTubeRi = 5.8 / 2.;
   const float kRB24CuTubeRo = 6.0 / 2.;
   const float kRB24CuTubeFRo = 7.6;
   const float kRB24CuTubeFL = 1.86;
-  const float kRB24CL = 2. * 597.9;
+  const float kRB24CL = 2. * 597.9 - 150.;
 
   //
   // introduce cut at end of barrel 714.6m
   //
   // outside barrel
-  TGeoVolume* voRB24cCuTubeM = new TGeoVolume("voRB24cCuTubeM", new TGeoTube(0., kRB24CuTubeRi, kRB24cCuTubeL / 2.), kMedVacNFHC);
+  TGeoVolume* voRB24cCuTubeM = new TGeoVolume("voRB24cCuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB24cCuTubeL / 2.), kMedVacNFHC);
   TGeoVolume* voRB24cCuTube = new TGeoVolume("voRB24cCuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB24cCuTubeL / 2.), kMedAlu2219);
   voRB24cCuTubeM->AddNode(voRB24cCuTube, 1, gGeoIdentity);
 
@@ -876,7 +864,7 @@ void PipeRun4::ConstructGeometry()
   const float kRB24B1PlieThickness = 0.015; // Plie thickness
 
   const float kRB24B1PlieRadius =
-    (kRB24B1BellowUndL + (2. * kRB24B1NumberOfPlies - 2.) * kRB24B1PlieThickness) / (4. * kRB24B1NumberOfPlies);
+    (kRB24B1BellowUndL + 2. * kRB24B1NumberOfPlies * kRB24B1PlieThickness) / (4. * kRB24B1NumberOfPlies + 2.);
 
   const float kRB24B1ProtTubeThickness = 0.02; // Thickness of the protection tube
   const float kRB24B1ProtTubeLength = 4.2;     // Length of the protection tube
@@ -892,7 +880,7 @@ void PipeRun4::ConstructGeometry()
   //
   // Bellow Section
   TGeoVolume* voRB24B1Bellow = makeBellow("RB24B1", kRB24B1NumberOfPlies, kRB24B1BellowRi, kRB24B1BellowRo,
-                                          kRB24B1BellowUndL, kRB24B1PlieRadius, kRB24B1PlieThickness);
+                                          kRB24B1PlieRadius, kRB24B1PlieThickness);
   voRB24B1Bellow->SetVisibility(0);
   float newRB24B1BellowUndL = 2 * (static_cast<TGeoTube*>(voRB24B1Bellow->GetShape()))->GetDz();
 
@@ -2840,13 +2828,11 @@ TGeoPcon* PipeRun4::makeInsulationFromTemplate(TGeoPcon* shape)
   return insu;
 }
 
-TGeoVolume* PipeRun4::makeBellow(const char* ext, int nc, float rMin, float rMax, float dU, float rPlie,
-                                 float dPlie)
+TGeoVolume* PipeRun4::makeBellow(const char* ext, int nc, float rMin, float rMax, float rPlie, float dPlie)
 {
   // nc     Number of convolution
   // rMin   Inner radius of the bellow
   // rMax   Outer radius of the bellow
-  // dU     Undulation length
   // rPlie  Plie radius
   // dPlie  Plie thickness
   auto& matmgr = o2::base::MaterialManager::Instance();
@@ -2896,10 +2882,10 @@ TGeoVolume* PipeRun4::makeBellow(const char* ext, int nc, float rMin, float rMax
   asWiggle->AddNode(voWiggleL, 1, new TGeoTranslation(0., 0., z0));
   asWiggle->GetShape()->ComputeBBox(); // enforce recomputing of BBox
   //
-  float zBellowTot = nc * (static_cast<TGeoBBox*>(asWiggle->GetShape()))->GetDZ();
-  TGeoVolume* voBellow = new TGeoVolume(fmt::format("{:s}BellowUS", ext).c_str(), new TGeoTube(rMin, rMax, zBellowTot), kMedVac);
+  float zBellowTot = nc * (2. * (static_cast<TGeoBBox*>(asWiggle->GetShape()))->GetDZ() - dPlie) + 2. * rPlie;
+  TGeoVolume* voBellow = new TGeoVolume(fmt::format("{:s}BellowUS", ext).c_str(), new TGeoTube(rMin, rMax, zBellowTot / 2.), kMedVac);
   // Positioning of the volumes
-  z0 = -dU / 2. + rPlie;
+  z0 = -zBellowTot / 2. + rPlie;
   voBellow->AddNode(voWiggleL, 2, new TGeoTranslation(0., 0., z0));
   z0 += rPlie;
   float zsh = 4. * rPlie - 2. * dPlie;
@@ -2907,6 +2893,7 @@ TGeoVolume* PipeRun4::makeBellow(const char* ext, int nc, float rMin, float rMax
     float zpos = z0 + iw * zsh;
     voBellow->AddNode(asWiggle, iw + 1, new TGeoTranslation(0., 0., zpos - dPlie));
   }
+
   return voBellow;
 }
 

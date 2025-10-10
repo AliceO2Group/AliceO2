@@ -183,6 +183,31 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<4>::opera
   return mClsPtr[a].qTot < mClsPtr[b].qTot;
 }
 
+GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, GPUParam& GPUrestrict() param, const GPUTrackingInOutPointers& GPUrestrict() ioPtrs)
+{
+  if (mClusterStatus[idx]) {
+    return true;
+  }
+  int32_t attach = ioPtrs.mergedTrackHitAttachment[idx];
+  bool unattached = attach == 0;
+
+  if (unattached) {
+    if (param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
+      return true;
+    }
+  } else if (param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA) {
+    if (GPUTPCClusterRejection::GetIsRejected(attach)) {
+      return true;
+    }
+    int32_t id = attach & gputpcgmmergertypes::attachTrackMask;
+    auto& trk = ioPtrs.mergedTracks[id];
+    if (CAMath::Abs(trk.GetParam().GetQPt() * param.qptB5Scaler) > param.rec.tpc.rejectQPtB5 || trk.MergedLooper()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 template <>
 GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
@@ -208,33 +233,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     const uint32_t nn = CAMath::nextMultipleOf<GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)>(clusters->nClusters[iSector][iRow]);
     for (uint32_t i = iThread; i < nn + nThreads; i += nThreads) {
       const int32_t idx = idOffset + i;
-      int32_t storeCluster = 0;
-      do {
-        if (i >= clusters->nClusters[iSector][iRow]) {
-          break;
-        }
-        if (compressor.mClusterStatus[idx]) {
-          break;
-        }
-        int32_t attach = ioPtrs.mergedTrackHitAttachment[idx];
-        bool unattached = attach == 0;
-
-        if (unattached) {
-          if (processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
-            break;
-          }
-        } else if (processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA) {
-          if (GPUTPCClusterRejection::GetIsRejected(attach)) {
-            break;
-          }
-          int32_t id = attach & gputpcgmmergertypes::attachTrackMask;
-          auto& trk = ioPtrs.mergedTracks[id];
-          if (CAMath::Abs(trk.GetParam().GetQPt() * processors.param.qptB5Scaler) > processors.param.rec.tpc.rejectQPtB5 || trk.MergedLooper()) {
-            break;
-          }
-        }
-        storeCluster = 1;
-      } while (false);
+      int32_t storeCluster = i < clusters->nClusters[iSector][iRow] && !compressor.rejectCluster(idx, param, ioPtrs);
 
       GPUbarrier();
       int32_t myIndex = work_group_scan_inclusive_add(storeCluster);

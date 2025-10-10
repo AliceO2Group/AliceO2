@@ -91,30 +91,6 @@ class TableToTree
   std::vector<std::unique_ptr<ColumnToBranch>> mColumnReaders;
 };
 
-class FragmentToBatch
-{
- public:
-  // The function to be used to create the required stream.
-  using StreamerCreator = std::function<std::shared_ptr<arrow::io::OutputStream>(std::shared_ptr<arrow::dataset::FileFragment>, const std::shared_ptr<arrow::ResizableBuffer>& buffer)>;
-
-  FragmentToBatch(StreamerCreator, std::shared_ptr<arrow::dataset::FileFragment>, arrow::MemoryPool* pool = arrow::default_memory_pool());
-  void setLabel(const char* label);
-  void fill(std::shared_ptr<arrow::Schema> dataSetSchema, std::shared_ptr<arrow::dataset::FileFormat>);
-  std::shared_ptr<arrow::RecordBatch> finalize();
-
-  std::shared_ptr<arrow::io::OutputStream> streamer(std::shared_ptr<arrow::ResizableBuffer> buffer)
-  {
-    return mCreator(mFragment, buffer);
-  }
-
- private:
-  std::shared_ptr<arrow::dataset::FileFragment> mFragment;
-  arrow::MemoryPool* mArrowMemoryPool = nullptr;
-  std::string mTableLabel;
-  std::shared_ptr<arrow::RecordBatch> mRecordBatch;
-  StreamerCreator mCreator;
-};
-
 // -----------------------------------------------------------------------------
 } // namespace o2::framework
 

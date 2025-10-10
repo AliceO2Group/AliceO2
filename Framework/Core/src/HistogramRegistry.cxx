@@ -51,9 +51,12 @@ OutputSpec const HistogramRegistry::spec()
   return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0, Lifetime::QA};
 }
 
-OutputRef HistogramRegistry::ref(uint16_t pipelineIndex, uint16_t pipelineSize)
+OutputRef HistogramRegistry::ref(uint16_t pipelineIndex, uint16_t pipelineSize) const
 {
-  return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash, pipelineIndex, pipelineSize}}};
+  OutputObjHeader header{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash, pipelineIndex, pipelineSize};
+  // Copy the name of the registry to the haeder.
+  strncpy(header.containerName, mName.data(), 64);
+  return OutputRef{std::string{mName}, 0, o2::header::Stack{header}};
 }
 
 void HistogramRegistry::setHash(uint32_t hash)
@@ -282,87 +285,26 @@ void HistogramRegistry::print(bool showAxisDetails)
   LOGF(info, "");
 }
 
-// create output structure will be propagated to file-sink
-TList* HistogramRegistry::getListOfHistograms()
+void HistogramRegistry::apply(std::function<void(HistogramRegistry const&, TNamed* named)> callback) const
 {
-  TList* list = new TList();
-  list->SetName(mName.data());
-
+  // Keep the list sorted as originally done to avoid hidden dependency on the order, for now , for now.
+  auto finalList = mRegisteredNames;
+  auto caseInsensitiveCompare = [](const std::string& s1, const std::string& s2) {
+    return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                                        [](char c1, char c2) { return std::tolower(static_cast<unsigned char>(c1)) < std::tolower(static_cast<unsigned char>(c2)); });
+  };
   if (mSortHistos) {
-    auto caseInsensitiveCompare = [](const std::string& s1, const std::string& s2) {
-      return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
-                                          [](char c1, char c2) { return std::tolower(static_cast<unsigned char>(c1)) < std::tolower(static_cast<unsigned char>(c2)); });
-    };
-    std::sort(mRegisteredNames.begin(), mRegisteredNames.end(), caseInsensitiveCompare);
+    std::sort(finalList.begin(), finalList.end(), caseInsensitiveCompare);
   }
-
-  for (auto& curHistName : mRegisteredNames) {
+  for (auto& curHistName : finalList) {
     TNamed* rawPtr = nullptr;
     std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[getHistIndex(HistName{curHistName.data()})]);
-    if (rawPtr) {
-      std::deque<std::string> path = splitPath(rawPtr->GetName());
-      std::string name = path.back();
-      path.pop_back();
-      TList* targetList{getSubList(list, path)};
-      if (targetList) {
-        rawPtr->SetName(name.data());
-        targetList->Add(rawPtr);
-      } else {
-        LOGF(fatal, "Specified subfolder could not be created.");
-      }
+    if (!rawPtr) {
+      // Skipping empty histograms
+      continue;
     }
+    callback(*this, rawPtr);
   }
-
-  // place lists always at the top
-  std::function<void(TList*)> moveListsToTop;
-  moveListsToTop = [&](TList* list) {
-    TIter next(list);
-    TNamed* subList = nullptr;
-    std::vector<TObject*> subLists;
-    while ((subList = (TNamed*)next())) {
-      if (subList->InheritsFrom(TList::Class())) {
-        subLists.push_back(subList);
-        moveListsToTop((TList*)subList);
-      }
-    }
-    std::reverse(subLists.begin(), subLists.end());
-    for (auto curList : subLists) {
-      list->Remove(curList);
-      list->AddFirst(curList);
-    }
-  };
-  moveListsToTop(list);
-
-  // create dedicated directory containing all of the registrys histograms
-  if (mCreateRegistryDir) {
-    // propagate this to the writer by adding a 'flag' to the output list
-    list->AddLast(new TNamed("createFolder", ""));
-  }
-  return list;
-}
-
-// helper function to create resp. find the subList defined by path
-TList* HistogramRegistry::getSubList(TList* list, std::deque<std::string>& path)
-{
-  if (path.empty()) {
-    return list;
-  }
-  TList* targetList{nullptr};
-  std::string nextList = path[0];
-  path.pop_front();
-  if (auto subList = (TList*)list->FindObject(nextList.data())) {
-    if (subList->InheritsFrom(TList::Class())) {
-      targetList = getSubList((TList*)subList, path);
-    } else {
-      return nullptr;
-    }
-  } else {
-    subList = new TList();
-    subList->SetName(nextList.data());
-    list->Add(subList);
-    targetList = getSubList(subList, path);
-  }
-  return targetList;
 }
 
 // helper function to split user defined path/to/hist/name string

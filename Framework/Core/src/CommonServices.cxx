@@ -826,30 +826,34 @@ auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> vo
   auto& relayer = registry.get<DataRelayer>();
 
   // Send all the relevant metrics for the relayer to update the GUI
-  stats.flushChangedMetrics([&monitoring](DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) mutable -> void {
+  stats.flushChangedMetrics([&monitoring, sid](DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) mutable -> void {
     // convert timestamp to a time_point
     auto tp = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>(std::chrono::milliseconds(timestamp));
     auto metric = o2::monitoring::Metric{spec.name, Metric::DefaultVerbosity, tp};
     if (spec.kind == DataProcessingStats::Kind::UInt64) {
       if (value < 0) {
-        LOG(debug) << "Value for " << spec.name << " is negative, setting to 0";
+        O2_SIGNPOST_EVENT_EMIT(monitoring_service, sid, "flushChangedMetrics", "Value for %{public}s is negative, setting to 0",
+                               spec.name.c_str());
         value = 0;
       }
       metric.addValue((uint64_t)value, "value");
     } else {
       if (value > (int64_t)std::numeric_limits<int>::max()) {
-        LOG(warning) << "Value for " << spec.name << " is too large, setting to INT_MAX";
+        O2_SIGNPOST_EVENT_EMIT(monitoring_service, sid, "flushChangedMetrics", "Value for %{public}s is too large, setting to INT_MAX",
+                               spec.name.c_str());
         value = (int64_t)std::numeric_limits<int>::max();
       }
       if (value < (int64_t)std::numeric_limits<int>::min()) {
+        O2_SIGNPOST_EVENT_EMIT(monitoring_service, sid, "flushChangedMetrics", "Value for %{public}s is too small, setting to INT_MIN",
+                               spec.name.c_str());
         value = (int64_t)std::numeric_limits<int>::min();
-        LOG(warning) << "Value for " << spec.name << " is too small, setting to INT_MIN";
       }
       metric.addValue((int)value, "value");
     }
     if (spec.scope == DataProcessingStats::Scope::DPL) {
       metric.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL);
     }
+    O2_SIGNPOST_EVENT_EMIT(monitoring_service, sid, "flushChangedMetrics", "Flushing metric %{public}s", spec.name.c_str());
     monitoring.send(std::move(metric));
   });
   relayer.sendContextState();

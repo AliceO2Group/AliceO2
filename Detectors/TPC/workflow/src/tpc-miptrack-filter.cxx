@@ -13,6 +13,10 @@
 #include "TPCWorkflow/MIPTrackFilterSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+
+using GID = o2::dataformats::GlobalTrackID;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
@@ -21,6 +25,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"enable-writer", VariantType::Bool, false, {"selection string input specs"}},
+    {"use-global-tracks", VariantType::Bool, false, {"use global matched tracks instead of TPC only"}},
+    {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
   };
 
   std::swap(workflowOptions, options);
@@ -33,8 +39,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   using namespace o2::tpc;
 
+  const auto useGlobal = config.options().get<bool>("use-global-tracks");
   WorkflowSpec workflow;
-  workflow.emplace_back(getMIPTrackFilterSpec());
+
+  const auto useMC = false;
+  auto srcTracks = GID::getSourcesMask("TPC");
+  const auto srcCls = GID::getSourcesMask("");
+  if (useGlobal) {
+    srcTracks = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  }
+
+  workflow.emplace_back(getMIPTrackFilterSpec(srcTracks));
 
   if (config.options().get<bool>("enable-writer")) {
     const char* processName = "tpc-mips-writer";

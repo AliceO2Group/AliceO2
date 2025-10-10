@@ -772,7 +772,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       GPUFatal("Cannot use waitForFinalInput callback without delayed output");
     }
     if (!GetProcessingSettings().tpcApplyClusterFilterOnCPU) {
-      AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
+      AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, GetProcessingSettings().tpcWriteClustersAfterRejection ? nullptr : mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
       tmpNativeClusters = mInputsHost->mPclusterNativeOutput;
     } else {
       tmpNativeClusterBuffer = std::make_unique<ClusterNative[]>(mInputsHost->mNClusterNative);
@@ -1269,7 +1269,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     // TODO: write to buffer directly
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
     std::pair<ConstMCLabelContainer*, ConstMCLabelContainerView*> buffer;
-    if (mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)] && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->useExternal()) {
+    if (!GetProcessingSettings().tpcWriteClustersAfterRejection && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)] && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->useExternal()) {
       if (!mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator) {
         throw std::runtime_error("Cluster MC Label buffer missing");
       }
@@ -1293,7 +1293,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   if (buildNativeHost && buildNativeGPU && GetProcessingSettings().delayedOutput) {
     mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = nClsTotal;
-    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
+    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, GetProcessingSettings().tpcWriteClustersAfterRejection ? nullptr : mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
     tmpNativeClusters = mInputsHost->mPclusterNativeOutput;
     for (uint32_t i = outputQueueStart; i < mOutputQueue.size(); i++) {
       mOutputQueue[i].dst = (char*)tmpNativeClusters + (size_t)mOutputQueue[i].dst;
@@ -1308,7 +1308,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     if (GetProcessingSettings().tpcApplyClusterFilterOnCPU) {
       auto allocator = [this, &tmpNativeClusters](size_t size) {
         this->mInputsHost->mNClusterNative = size;
-        this->AllocateRegisteredMemory(this->mInputsHost->mResourceClusterNativeOutput, this->mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
+        this->AllocateRegisteredMemory(this->mInputsHost->mResourceClusterNativeOutput, this->GetProcessingSettings().tpcWriteClustersAfterRejection ? nullptr : this->mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
         return (tmpNativeClusters = this->mInputsHost->mPclusterNativeOutput);
       };
       RunTPCClusterFilter(tmpNativeAccess, allocator, false);

@@ -14,11 +14,14 @@
 #include "Framework/VariantPropertyTreeHelpers.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/VariantJSONHelpers.h"
+#include "Framework/Signpost.h"
 
 #include <boost/program_options/variables_map.hpp>
 
 #include <vector>
 #include <string>
+
+O2_DECLARE_DYNAMIC_LOG(configuration);
 
 namespace o2::framework
 {
@@ -37,6 +40,8 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
                                            boost::property_tree::ptree& pt,
                                            boost::property_tree::ptree& provenance)
 {
+  O2_SIGNPOST_ID_GENERATE(cid, configuration);
+  O2_SIGNPOST_START(configuration, cid, "populateDefaults", "Filling with defaults");
   for (auto const& spec : schema) {
     std::string key = spec.name.substr(0, spec.name.find(','));
     try {
@@ -77,9 +82,12 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::String:
           pt.put(key, spec.defaultValue.get<std::string>());
           break;
-        case VariantType::Bool:
-          pt.put(key, spec.defaultValue.get<bool>());
+        case VariantType::Bool: {
+          bool value = spec.defaultValue.get<bool>();
+          O2_SIGNPOST_EVENT_EMIT(configuration, cid, "populateDefaults", "Setting %{public}s: %{public}s", key.c_str(), value ? "true" : "false");
+          pt.put(key, value);
           break;
+        }
         case VariantType::Dict:
           pt.put_child(key, boost::property_tree::ptree{});
           break;
@@ -126,13 +134,17 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
       }
       provenance.put(key, "default");
     } catch (std::runtime_error& re) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populateDefaults", "Aborting because of runtime_error %{public}s", re.what());
       throw;
     } catch (std::exception& e) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populateDefaults", "Missing option %{public}s (%{public}s)", key.c_str(), e.what());
       throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
     } catch (...) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populateDefaults", "Aborting because of missing option %{public}s", key.c_str());
       throw std::invalid_argument(std::string("missing option: ") + key);
     }
   }
+  O2_SIGNPOST_END(configuration, cid, "populateDefaults", "Done");
 }
 
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
@@ -140,6 +152,8 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
                                    boost::program_options::variables_map const& vmap,
                                    boost::property_tree::ptree& provenance)
 {
+  O2_SIGNPOST_ID_GENERATE(cid, configuration);
+  O2_SIGNPOST_START(configuration, cid, "populate", "Filling parameters from variables_map");
   for (auto const& spec : schema) {
     // strip short version to get the correct key
     std::string key = spec.name.substr(0, spec.name.find(','));
@@ -183,9 +197,11 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
             pt.put(key, *v);
           }
           break;
-        case VariantType::Bool:
-          pt.put(key, vmap[key].as<bool>());
-          break;
+        case VariantType::Bool: {
+          auto v = vmap[key].as<bool>();
+          O2_SIGNPOST_EVENT_EMIT(configuration, cid, "populate", "Setting %{public}s: %{public}s", key.c_str(), v ? "true" : "false");
+          pt.put(key, v);
+        } break;
         case VariantType::ArrayInt: {
           auto v = fromString<VariantType::ArrayInt>(vmap[key].as<std::string>());
           pt.put_child(key, vectorToBranch<int>(v.get<int*>(), v.size()));
@@ -243,13 +259,17 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
       }
       provenance.put(key, "fairmq");
     } catch (std::runtime_error& re) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populate", "Aborting because of runtime_error %{public}s", re.what());
       throw;
     } catch (std::exception& e) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populate", "Missing option %{public}s (%{public}s)", key.c_str(), e.what());
       throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
     } catch (...) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populate", "Aborting because of missing option %{public}s", key.c_str());
       throw std::invalid_argument(std::string("missing option: ") + key);
     }
   }
+  O2_SIGNPOST_END(configuration, cid, "populate", "Done");
 }
 
 template <typename T>
@@ -273,6 +293,8 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
                                    boost::property_tree::ptree& provenance,
                                    std::string const& provenanceLabel)
 {
+  O2_SIGNPOST_ID_GENERATE(cid, configuration);
+  O2_SIGNPOST_START(configuration, cid, "populate", "Filling parameters from ptree");
   for (auto const& spec : schema) {
     // strip short version to get the correct key
     std::string key = spec.name.substr(0, spec.name.find(','));
@@ -318,9 +340,11 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::String:
           pt.put(key, (*it).get_value<std::string>());
           break;
-        case VariantType::Bool:
+        case VariantType::Bool: {
+          auto v = (*it).get_value<bool>();
+          O2_SIGNPOST_EVENT_EMIT(configuration, cid, "populate", "Setting %{public}s: %{public}s", key.c_str(), v ? "true" : "false");
           pt.put(key, (*it).get_value<bool>());
-          break;
+        } break;
         case VariantType::Dict:
         case VariantType::ArrayInt:
         case VariantType::ArrayFloat:
@@ -371,13 +395,18 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
       }
       provenance.put(key, provenanceLabel);
     } catch (std::runtime_error& re) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populate", "Aborting during processing of %{public}s because of runtime_error %{public}s",
+                                 key.c_str(), re.what());
       throw;
     } catch (std::exception& e) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populate", "Missing option %{public}s (%{public}s)", key.c_str(), e.what());
       throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
     } catch (...) {
+      O2_SIGNPOST_END_WITH_ERROR(configuration, cid, "populate", "Aborting because of missing option %{public}s", key.c_str());
       throw std::invalid_argument(std::string("missing option: ") + key);
     }
   }
+  O2_SIGNPOST_END(configuration, cid, "populate", "Done");
 }
 
 namespace

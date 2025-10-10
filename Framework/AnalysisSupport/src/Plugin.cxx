@@ -27,6 +27,12 @@
 
 O2_DECLARE_DYNAMIC_LOG(analysis_support);
 
+struct ROOTTypeInfo {
+  EDataType type;
+  char suffix[3];
+  int size;
+};
+
 struct ROOTFileReader : o2::framework::AlgorithmPlugin {
   o2::framework::AlgorithmSpec create(o2::framework::ConfigContext const& config) override
   {

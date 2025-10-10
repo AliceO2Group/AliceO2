@@ -301,6 +301,21 @@ void printDeviceProp(int32_t deviceId)
   cudaDeviceProp props;
   GPUCHECK(cudaGetDeviceProperties(&props, deviceId));
 
+  int32_t clockRateKHz = 0;
+  int32_t memoryClockRateKHz = 0;
+  int32_t computeMode = 0;
+  int32_t cooperativeMultiDevice = 0;
+
+#if (CUDART_VERSION >= 13000)
+  GPUCHECK(cudaDeviceGetAttribute(&clockRateKHz, cudaDevAttrClockRate, deviceId));
+  GPUCHECK(cudaDeviceGetAttribute(&memoryClockRateKHz, cudaDevAttrMemoryClockRate, deviceId));
+  GPUCHECK(cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, deviceId));
+#else
+  clockRateKHz = props.clockRate;
+  memoryClockRateKHz = props.memoryClockRate;
+  computeMode = props.computeMode;
+  cooperativeMultiDevice = props.cooperativeMultiDeviceLaunch;
+#endif
   std::cout << std::setw(w1) << "Name: " << props.name << std::endl;
   std::cout << std::setw(w1) << "pciBusID: " << props.pciBusID << std::endl;
   std::cout << std::setw(w1) << "pciDeviceID: " << props.pciDeviceID << std::endl;
@@ -309,11 +324,16 @@ void printDeviceProp(int32_t deviceId)
   std::cout << std::setw(w1) << "maxThreadsPerMultiProcessor: " << props.maxThreadsPerMultiProcessor
             << std::endl;
   std::cout << std::setw(w1) << "isMultiGpuBoard: " << props.isMultiGpuBoard << std::endl;
-  std::cout << std::setw(w1) << "clockRate: " << (float)props.clockRate / 1000.0 << " Mhz" << std::endl;
-  std::cout << std::setw(w1) << "memoryClockRate: " << (float)props.memoryClockRate / 1000.0 << " Mhz"
+
+  // Use the variables we populated above for the moved properties
+  std::cout << std::setw(w1) << "clockRate: " << (float)clockRateKHz / 1000.0 << " Mhz" << std::endl;
+  std::cout << std::setw(w1) << "memoryClockRate: " << (float)memoryClockRateKHz / 1000.0 << " Mhz"
             << std::endl;
+
   std::cout << std::setw(w1) << "memoryBusWidth: " << props.memoryBusWidth << std::endl;
-  std::cout << std::setw(w1) << "clockInstructionRate: " << (float)props.clockRate / 1000.0
+
+  // clockInstructionRate is just another name for clockRate in this context
+  std::cout << std::setw(w1) << "clockInstructionRate: " << (float)clockRateKHz / 1000.0
             << " Mhz" << std::endl;
   std::cout << std::setw(w1) << "totalGlobalMem: " << std::fixed << std::setprecision(2)
             << bytesToGB(props.totalGlobalMem) << " GB" << std::endl;
@@ -332,7 +352,10 @@ void printDeviceProp(int32_t deviceId)
   std::cout << std::setw(w1) << "regsPerBlock: " << props.regsPerBlock << std::endl;
   std::cout << std::setw(w1) << "warpSize: " << props.warpSize << std::endl;
   std::cout << std::setw(w1) << "l2CacheSize: " << props.l2CacheSize << std::endl;
-  std::cout << std::setw(w1) << "computeMode: " << props.computeMode << std::endl;
+
+  // Use the variable for computeMode
+  std::cout << std::setw(w1) << "computeMode: " << computeMode << std::endl;
+
   std::cout << std::setw(w1) << "maxThreadsPerBlock: " << props.maxThreadsPerBlock << std::endl;
   std::cout << std::setw(w1) << "maxThreadsDim.x: " << props.maxThreadsDim[0] << std::endl;
   std::cout << std::setw(w1) << "maxThreadsDim.y: " << props.maxThreadsDim[1] << std::endl;
@@ -343,8 +366,6 @@ void printDeviceProp(int32_t deviceId)
   std::cout << std::setw(w1) << "major: " << props.major << std::endl;
   std::cout << std::setw(w1) << "minor: " << props.minor << std::endl;
   std::cout << std::setw(w1) << "concurrentKernels: " << props.concurrentKernels << std::endl;
-  std::cout << std::setw(w1) << "cooperativeLaunch: " << props.cooperativeLaunch << std::endl;
-  std::cout << std::setw(w1) << "cooperativeMultiDeviceLaunch: " << props.cooperativeMultiDeviceLaunch << std::endl;
 #if defined(__HIPCC__)
   std::cout << std::setw(w1) << "arch.hasGlobalInt32Atomics: " << props.arch.hasGlobalInt32Atomics << std::endl;
   std::cout << std::setw(w1) << "arch.hasGlobalFloatAtomicExch: " << props.arch.hasGlobalFloatAtomicExch

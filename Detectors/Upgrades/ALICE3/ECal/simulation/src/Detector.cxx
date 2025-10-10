@@ -358,9 +358,9 @@ bool Detector::ProcessHits(FairVolume* vol)
     return false;
   }
 
-  if (isCrystal)
+  if (isCrystal) {
     LOGP(debug, "Processing crystal {}", volName.Data());
-  else {
+  } else {
     eloss *= mSamplingFactorTransportModel;
     LOGP(debug, "Processing scintillator {}", volName.Data());
   }

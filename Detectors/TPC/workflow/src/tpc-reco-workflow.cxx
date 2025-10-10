@@ -57,8 +57,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clusters, compressed-clusters, compressed-clusters-ctf, pass-through"}},
-    {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clusters, tracks, compressed-clusters, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map, tpc-triggers"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clusters, compressed-clusters-root, compressed-clusters-flat, compressed-clusters-flat-for-encode, pass-through"}},
+    {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clusters, tracks, compressed-clusters-root, compressed-clusters-flat, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map, tpc-triggers"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"no-ca-clusterer", VariantType::Bool, false, {"Use HardwareClusterer instead of clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
@@ -155,8 +155,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "DIGITS"};
   } else if (inputType == "clustershw") {
     gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERHW"};
-  } else if (inputType == "clustersnative") {
-    gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"};
   } else if (inputType == "zsraw") {
     gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "RAWDATA"};
   }
