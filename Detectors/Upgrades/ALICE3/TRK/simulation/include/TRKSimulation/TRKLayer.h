@@ -16,6 +16,7 @@
 #include <Rtypes.h>
 
 #include "TRKBase/TRKBaseParam.h"
+#include "TRKBase/Specs.h"
 
 namespace o2
 {
