@@ -18,10 +18,10 @@
 #ifndef O2_TOF_PARAMCONTAINER_H
 #define O2_TOF_PARAMCONTAINER_H
 
-#include "TNamed.h"
-#include "TFile.h"
-#include "Framework/Logger.h"
-#include "map"
+#include <TNamed.h>
+#include <TFile.h>
+#include <Framework/Logger.h>
+#include <map>
 
 namespace o2
 {
