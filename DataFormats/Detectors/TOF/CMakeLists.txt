@@ -10,7 +10,8 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsParamTOF
-               SOURCES src/ParameterContainers.cxx)
+               SOURCES src/ParameterContainers.cxx
+               PUBLIC_LINK_LIBRARIES O2::FrameworkLogger)
 
 
 o2_target_root_dictionary(DataFormatsParamTOF
@@ -41,7 +42,6 @@ o2_target_root_dictionary(DataFormatsTOF
                                   include/DataFormatsTOF/RawDataFormat.h
                                   include/DataFormatsTOF/CompressedDataFormat.h
                                   include/DataFormatsTOF/CTF.h
-                                  include/DataFormatsTOF/ParameterContainers.h
                                   include/DataFormatsTOF/CalibInfoCluster.h
                                   include/DataFormatsTOF/CosmicInfo.h
                                   include/DataFormatsTOF/TOFFEElightInfo.h
