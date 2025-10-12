@@ -173,7 +173,7 @@ class Generator : public FairGenerator
 #ifdef GENERATORS_WITH_TPCLOOPERS
   // Loopers generator instance
   std::unique_ptr<o2::eventgen::GenTPCLoopers> mLoopersGen = nullptr;
-  void initLoopersGen();
+  bool initLoopersGen();
 #endif
 
   ClassDefOverride(Generator, 2);
