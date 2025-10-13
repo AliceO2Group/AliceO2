@@ -124,13 +124,13 @@ class SegmentationChip
     } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
       pitchRow = PitchRowMLOT;
       pitchCol = PitchColMLOT;
-      maxWidth = constants::OT::width;
+      maxWidth = constants::OT::halfstave::width;
       maxLength = constants::ML::length;
     } else if (subDetID == 1 && layer > 4) { // OT
       pitchRow = PitchRowMLOT;
       pitchCol = PitchColMLOT;
-      maxWidth = constants::OT::width;
-      maxLength = constants::OT::length;
+      maxWidth = constants::OT::halfstave::width;
+      maxLength = constants::OT::halfstave::length;
     }
     // convert to row/col
     iRow = static_cast<int>(((maxWidth / 2 - xRow) / pitchRow));
@@ -149,11 +149,11 @@ class SegmentationChip
       maxWidth = constants::ML::width;
       maxLength = constants::ML::length;
     } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
-      maxWidth = constants::OT::width;
+      maxWidth = constants::OT::halfstave::width;
       maxLength = constants::ML::length;
     } else if (subDetID == 1 && layer > 4) { // OT
-      maxWidth = constants::OT::width;
-      maxLength = constants::OT::length;
+      maxWidth = constants::OT::halfstave::width;
+      maxLength = constants::OT::halfstave::length;
     }
     return (-maxWidth / 2 < x && x < maxWidth / 2 && -maxLength / 2 < z && z < maxLength / 2);
   }
@@ -171,11 +171,11 @@ class SegmentationChip
       nRows = constants::ML::nRows;
       nCols = constants::ML::nCols;
     } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
-      nRows = constants::OT::nRows;
+      nRows = constants::OT::halfstave::nRows;
       nCols = constants::ML::nCols;
     } else if (subDetID == 1 && layer > 4) { // OT
-      nRows = constants::OT::nRows;
-      nCols = constants::OT::nCols;
+      nRows = constants::OT::halfstave::nRows;
+      nCols = constants::OT::halfstave::nCols;
     }
     return (row >= 0 && row < static_cast<float>(nRows) && col >= 0 && col < static_cast<float>(nCols));
   }
@@ -222,11 +222,11 @@ class SegmentationChip
       xRow = 0.5 * (constants::ML::width - PitchRowMLOT) - (row * PitchRowMLOT);
       zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::ML::length);
     } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
-      xRow = 0.5 * (constants::OT::width - PitchRowMLOT) - (row * PitchRowMLOT);
+      xRow = 0.5 * (constants::OT::halfstave::width - PitchRowMLOT) - (row * PitchRowMLOT);
       zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::ML::length);
     } else if (subDetID == 1 && layer > 4) { // OT
-      xRow = 0.5 * (constants::OT::width - PitchRowMLOT) - (row * PitchRowMLOT);
-      zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::OT::length);
+      xRow = 0.5 * (constants::OT::halfstave::width - PitchRowMLOT) - (row * PitchRowMLOT);
+      zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::OT::halfstave::length);
     }
   }
 
@@ -283,11 +283,11 @@ class SegmentationChip
               << "\nVD L1: " << constants::VD::petal::layer::nRows[1]
               << "\nVD L2: " << constants::VD::petal::layer::nRows[2]
               << "\nML stave: " << constants::ML::nRows
-              << "\nOT stave: " << constants::OT::nRows;
+              << "\nOT half stave: " << constants::OT::halfstave::nRows;
 
     LOG(info) << "Number of cols:\nVD: " << constants::VD::petal::layer::nCols
               << "\nML stave: " << constants::ML::nCols
-              << "\nOT stave: " << constants::OT::nCols;
+              << "\nOT half stave: " << constants::OT::halfstave::nCols;
 
     LOG(info) << "Pitch rows [cm]:\nVD: " << PitchRowVD
               << "\nML stave: " << PitchRowMLOT
