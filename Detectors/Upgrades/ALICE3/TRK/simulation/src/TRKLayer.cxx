@@ -197,7 +197,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
     LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
     staveVol->AddNode(moduleVol, 1, nullptr);
   } else if (type == "flat") {
-    double moduleLength = constants::ML::length;
+    double moduleLength = constants::moduleMLOT::length;
     double staveWidth = constants::ML::width;
     double staveLength = constants::ML::length;
 
@@ -208,7 +208,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
       TGeoVolume* moduleVol = createModule("flat");
 
       // Put the modules in the correct position
-      double zPos = -0.5 * (mNumberOfModules - 1) * moduleLength + iModule * moduleLength;
+      double zPos = -0.5 * mNumberOfModules * moduleLength + (iModule + 0.5) * moduleLength;
 
       TGeoCombiTrans* trans = new TGeoCombiTrans();
       trans->SetTranslation(0, 0, zPos); // TO BE CHECKED !!!
@@ -232,7 +232,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
       // Put the modules in the correct position
       double xLeft = -moduleWidth / 2 + 0.05;
       double xRight = moduleWidth / 2 - 0.05;
-      double zPos = -0.5 * (mNumberOfModules - 1) * moduleLength + iModule * moduleLength;
+      double zPos = -0.5 * mNumberOfModules * moduleLength + (iModule + 0.5) * moduleLength;
 
       TGeoCombiTrans* transLeft = new TGeoCombiTrans();
       transLeft->SetTranslation(xLeft, 0, zPos); // TO BE CHECKED !!! 1mm overlap between the modules
@@ -277,7 +277,6 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
     double staveWidth = constants::ML::width; // Each stave has two modules (based on the LOI design)
 
     if (mInnerRadius > 25) {
-      layerLength = constants::OT::length;
       staveWidth = constants::OT::width; // Outer layers have two modules per stave
     }
 
