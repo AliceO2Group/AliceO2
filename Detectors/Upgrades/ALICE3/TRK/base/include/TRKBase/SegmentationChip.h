@@ -35,18 +35,18 @@ class SegmentationChip
   // The "detector coordinate system" refers to the hit position in row,col inside the sensor
   // This class provides the transformations from the local and detector coordinate systems
   // The conversion between global and local coordinate systems is operated by the transformation matrices
-  // For the curved VD layers there exist three coordinate systems and one is transient.
+  // For the curved VD layers there exist four coordinate systems.
   // 1. The global (curved) coordinate system. The chip's center of coordinate system is
   //    defined at the the mid-point of the detector.
-  // 2. The local (flat) coordinate system. This is the tube segment projected onto a flat
-  //    surface. In the projection we implicitly assume that the inner and outer
-  //    stretch does not depend on the radius.
-  // 3. The detector coordinate system. Defined by the row and column segmentation
-  //    defined at the upper edge in the flat coord.
+  // 2. The local (curved) coordinate system, centered in 0,0,0.
+  // 3. The local (flat) coordinate system. This is the tube segment projected onto a flat
+  //    surface, centered in the middle of the chip, with the y axis pointing towards the interaction point.
+  //    In the projection we implicitly assume that the inner and outer stretch does not depend on the radius.
+  // 4. The detector coordinate system. Defined by the row and column segmentation.
   // For the flat ML and OT layers, there exist two coordinate systems:
   // 1. The global (flat) coordinate system. The chip's center of coordinate system is
   //    defined at the the mid-point of the detector.
-  // 2. The detector coordinate system. Defined by the row and column segmentation
+  // 2. The detector coordinate system. Defined by the row and column segmentation.
   // TODO: add segmentation for VD disks
 
  public:
@@ -121,15 +121,20 @@ class SegmentationChip
       pitchCol = PitchColMLOT;
       maxWidth = constants::ML::width;
       maxLength = constants::ML::length;
-    } else if (subDetID == 1 && layer >= 4) { // OT
+    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
       pitchRow = PitchRowMLOT;
       pitchCol = PitchColMLOT;
-      maxWidth = constants::OT::width;
-      maxLength = constants::OT::length;
+      maxWidth = constants::OT::halfstave::width;
+      maxLength = constants::ML::length;
+    } else if (subDetID == 1 && layer > 4) { // OT
+      pitchRow = PitchRowMLOT;
+      pitchCol = PitchColMLOT;
+      maxWidth = constants::OT::halfstave::width;
+      maxLength = constants::OT::halfstave::length;
     }
     // convert to row/col
-    iRow = static_cast<int>(std::floor((maxWidth / 2 - xRow) / pitchRow));
-    iCol = static_cast<int>(std::floor((zCol + maxLength / 2) / pitchCol));
+    iRow = static_cast<int>(((maxWidth / 2 - xRow) / pitchRow));
+    iCol = static_cast<int>(((zCol + maxLength / 2) / pitchCol));
   };
 
   // Check local coordinates (cm) validity.
@@ -143,9 +148,12 @@ class SegmentationChip
     } else if (subDetID == 1 && layer <= 3) { // ML
       maxWidth = constants::ML::width;
       maxLength = constants::ML::length;
-    } else if (subDetID == 1 && layer >= 4) { // OT
-      maxWidth = constants::OT::width;
-      maxLength = constants::OT::length;
+    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
+      maxWidth = constants::OT::halfstave::width;
+      maxLength = constants::ML::length;
+    } else if (subDetID == 1 && layer > 4) { // OT
+      maxWidth = constants::OT::halfstave::width;
+      maxLength = constants::OT::halfstave::length;
     }
     return (-maxWidth / 2 < x && x < maxWidth / 2 && -maxLength / 2 < z && z < maxLength / 2);
   }
@@ -162,9 +170,12 @@ class SegmentationChip
     } else if (subDetID == 1 && layer <= 3) { // ML
       nRows = constants::ML::nRows;
       nCols = constants::ML::nCols;
-    } else if (subDetID == 1 && layer >= 4) { // OT
-      nRows = constants::OT::nRows;
-      nCols = constants::OT::nCols;
+    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
+      nRows = constants::OT::halfstave::nRows;
+      nCols = constants::ML::nCols;
+    } else if (subDetID == 1 && layer > 4) { // OT
+      nRows = constants::OT::halfstave::nRows;
+      nCols = constants::OT::halfstave::nCols;
     }
     return (row >= 0 && row < static_cast<float>(nRows) && col >= 0 && col < static_cast<float>(nCols));
   }
@@ -210,9 +221,12 @@ class SegmentationChip
     } else if (subDetID == 1 && layer <= 3) { // ML
       xRow = 0.5 * (constants::ML::width - PitchRowMLOT) - (row * PitchRowMLOT);
       zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::ML::length);
-    } else if (subDetID == 1 && layer >= 4) { // OT
-      xRow = 0.5 * (constants::OT::width - PitchRowMLOT) - (row * PitchRowMLOT);
-      zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::OT::length);
+    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
+      xRow = 0.5 * (constants::OT::halfstave::width - PitchRowMLOT) - (row * PitchRowMLOT);
+      zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::ML::length);
+    } else if (subDetID == 1 && layer > 4) { // OT
+      xRow = 0.5 * (constants::OT::halfstave::width - PitchRowMLOT) - (row * PitchRowMLOT);
+      zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::OT::halfstave::length);
     }
   }
 
@@ -263,17 +277,25 @@ class SegmentationChip
   }
 
   /// Print segmentation info
-  static const void Print() noexcept
+  static void Print() noexcept
   {
     LOG(info) << "Number of rows:\nVD L0: " << constants::VD::petal::layer::nRows[0]
               << "\nVD L1: " << constants::VD::petal::layer::nRows[1]
               << "\nVD L2: " << constants::VD::petal::layer::nRows[2]
               << "\nML stave: " << constants::ML::nRows
-              << "\nOT stave: " << constants::OT::nRows;
+              << "\nOT half stave: " << constants::OT::halfstave::nRows;
 
     LOG(info) << "Number of cols:\nVD: " << constants::VD::petal::layer::nCols
               << "\nML stave: " << constants::ML::nCols
-              << "\nOT stave: " << constants::OT::nCols;
+              << "\nOT half stave: " << constants::OT::halfstave::nCols;
+
+    LOG(info) << "Pitch rows [cm]:\nVD: " << PitchRowVD
+              << "\nML stave: " << PitchRowMLOT
+              << "\nOT stave: " << PitchRowMLOT;
+
+    LOG(info) << "Pitch cols [cm]:\nVD: " << PitchColVD
+              << "\nML stave: " << PitchColMLOT
+              << "\nOT stave: " << PitchColMLOT;
   }
 };
 

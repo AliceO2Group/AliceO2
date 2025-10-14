@@ -66,16 +66,11 @@ std::optional<Cluster> propagateTo(Track& trk, const o2::itsmft::CompClusterExt&
   ++cTotal;
   auto chipID = clus.getSensorID();
   float sigmaY2{0}, sigmaZ2{0}, sigmaYZ{0};
+  auto isITS3 = o2::its3::constants::detID::isDetITS3(chipID);
   const float alpha = o2::its::GeometryTGeo::Instance()->getSensorRefAlpha(clus.getSensorID());   // alpha for the tracking frame
   const auto locC = o2::its3::ioutils::extractClusterData(clus, pattIt, mDict, sigmaY2, sigmaZ2); // get cluster in sensor local frame with errors
-  Point3D trkC;
-  auto isITS3 = o2::its3::constants::detID::isDetITS3(chipID);
-  if (isITS3) {
-    trkC = o2::its::GeometryTGeo::Instance()->getT2LMatrixITS3(chipID, alpha) ^ (locC); // cluster position in the tracking frame
-  } else {
-    trkC = o2::its::GeometryTGeo::Instance()->getMatrixT2L(chipID) ^ (locC); // cluster position in the tracking frame
-  }
-  const auto gloC = o2::its::GeometryTGeo::Instance()->getMatrixL2G(chipID)(locC); // global cluster position
+  Point3D trkC = o2::its::GeometryTGeo::Instance()->getMatrixT2L(chipID) ^ (locC);                // cluster position in the tracking frame
+  const auto gloC = o2::its::GeometryTGeo::Instance()->getMatrixL2G(chipID)(locC);                // global cluster position
   const auto bz = o2::base::Propagator::Instance()->getNominalBz();
 
   // rotate the parameters to the tracking frame then propagate to the clusters'x
