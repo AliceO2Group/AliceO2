@@ -23,6 +23,8 @@ namespace o2
 namespace eventgen
 {
 
+std::vector<std::shared_ptr<o2::eventgen::Generator>> GeneratorHybrid::gens;
+
 GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
 {
   // This generator has trivial unit conversions

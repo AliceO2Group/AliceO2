@@ -66,10 +66,11 @@ class GeneratorHybrid : public Generator
   Bool_t confSetter(const auto& gen);
   template <typename T>
   std::string jsonValueToString(const T& value);
+  static std::vector<std::shared_ptr<o2::eventgen::Generator>> const& getGenerators() { return gens; }
 
  private:
   o2::eventgen::Generator* currentgen = nullptr;
-  std::vector<std::shared_ptr<o2::eventgen::Generator>> gens;
+  static std::vector<std::shared_ptr<o2::eventgen::Generator>> gens;
   const std::vector<std::string> generatorNames = {"extkinO2", "evtpool", "boxgen", "external", "hepmc", "pythia8", "pythia8pp", "pythia8hi", "pythia8hf", "pythia8powheg"};
   std::vector<std::string> mInputGens;
   std::vector<std::string> mGens;
