@@ -9,7 +9,4 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(macros)
-add_subdirectory(simulation)
-add_subdirectory(workflow)
+add_subdirectory(test)
