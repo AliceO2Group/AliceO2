@@ -39,7 +39,7 @@ IntegerType operator<<(IntegerType n, ChannelDataBit bitFlag)
 {
   return n << static_cast<int>(bitFlag);
 }
-}
+} // namespace fit
 } // namespace o2
 
 #endif
