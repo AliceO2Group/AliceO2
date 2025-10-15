@@ -45,6 +45,7 @@ class TRKLayer
   TGeoVolume* createChip(std::string type);
   TGeoVolume* createModule(std::string type);
   TGeoVolume* createStave(std::string type);
+  TGeoVolume* createHalfStave(std::string type);
   void createLayer(TGeoVolume* motherVolume);
 
  private:

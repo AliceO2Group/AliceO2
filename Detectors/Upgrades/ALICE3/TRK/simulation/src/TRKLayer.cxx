@@ -181,6 +181,45 @@ TGeoVolume* TRKLayer::createModule(std::string type)
   return moduleVol;
 }
 
+TGeoVolume* TRKLayer::createHalfStave(std::string type)
+{
+  TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
+  std::string halfStaveName = GeometryTGeo::getTRKHalfStavePattern() + std::to_string(mLayerNumber);
+
+  TGeoShape* halfStave;
+  TGeoVolume* halfStaveVol;
+
+  if (type == "cylinder") {
+    halfStave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mChipLength / 2);
+    halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medAir);
+
+    TGeoVolume* moduleVol = createModule("cylinder");
+    LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
+    halfStaveVol->AddNode(moduleVol, 1, nullptr);
+  } else if (type == "flat") {
+    double moduleLength = constants::moduleMLOT::length;
+    double staveWidth = constants::ML::width;
+    double staveLength = constants::ML::length;
+
+    halfStave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, staveLength / 2);
+    halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medAir);
+
+    for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
+      TGeoVolume* moduleVol = createModule("flat");
+
+      // Put the modules in the correct position
+      double zPos = -0.5 * mNumberOfModules * moduleLength + (iModule + 0.5) * moduleLength;
+
+      TGeoCombiTrans* trans = new TGeoCombiTrans();
+      trans->SetTranslation(0, 0, zPos); // TO BE CHECKED !!!
+
+      LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
+      halfStaveVol->AddNode(moduleVol, iModule, trans);
+    }
+  }
+  return halfStaveVol;
+}
+
 TGeoVolume* TRKLayer::createStave(std::string type)
 {
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
@@ -199,7 +238,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
   } else if (type == "flat") {
     double moduleLength = constants::moduleMLOT::length;
     double staveWidth = constants::ML::width;
-    double staveLength = constants::ML::length;
+    double staveLength = constants::moduleMLOT::length * mNumberOfModules;
 
     stave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, staveLength / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
@@ -217,15 +256,17 @@ TGeoVolume* TRKLayer::createStave(std::string type)
       staveVol->AddNode(moduleVol, iModule, trans);
     }
   } else if (type == "staggered") {
-    double moduleWidth = constants::moduleMLOT::width;
-    double moduleLength = constants::moduleMLOT::length;
+    /*double moduleWidth = constants::moduleMLOT::width;
+    double moduleLength = constants::moduleMLOT::length;*/
+
+    double halfstaveWidth = constants::ML::width;
     double staveWidth = constants::OT::width; // Each stave has two modules (based on the LOI design)
-    double staveLength = constants::OT::length;
+    double staveLength = constants::moduleMLOT::length * mNumberOfModules;
 
     stave = new TGeoBBox(staveWidth / 2, mLogicalVolumeThickness / 2, staveLength / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
-    for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
+    /*for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
       TGeoVolume* moduleVolLeft = createModule("flat");
       TGeoVolume* moduleVolRight = createModule("flat");
 
@@ -243,7 +284,21 @@ TGeoVolume* TRKLayer::createStave(std::string type)
       transRight->SetTranslation(xRight, 0.2, zPos); // TO BE CHECKED !!! 1mm overlap between the modules
       LOGP(info, "Inserting {} in {} ", moduleVolRight->GetName(), staveVol->GetName());
       staveVol->AddNode(moduleVolRight, iModule * 2 + 1, transRight);
-    }
+    }*/
+
+    // Put the half staves in the correct position
+    TGeoVolume* halfStaveVolLeft = createHalfStave("flat");
+    TGeoVolume* halfStaveVolRight = createHalfStave("flat");
+
+    TGeoCombiTrans* transLeft = new TGeoCombiTrans();
+    transLeft->SetTranslation(-halfstaveWidth / 2 + 0.05, 0, 0); // TO BE CHECKED !!! 1mm overlap between the modules
+    LOGP(info, "Inserting {} in {} ", halfStaveVolLeft->GetName(), staveVol->GetName());
+    staveVol->AddNode(halfStaveVolLeft, 0, transLeft);
+
+    TGeoCombiTrans* transRight = new TGeoCombiTrans();
+    transRight->SetTranslation(halfstaveWidth / 2 - 0.05, 0, 0); // TO BE CHECKED !!! 1mm overlap between the modules
+    LOGP(info, "Inserting {} in {} ", halfStaveVolRight->GetName(), staveVol->GetName());
+    staveVol->AddNode(halfStaveVolRight, 1, transRight);
   } else {
     LOGP(fatal, "Chip of type '{}' is not implemented", type);
   }
