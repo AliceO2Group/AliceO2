@@ -109,7 +109,7 @@ class Detector : public o2::base::DetImpl<Detector>
   int getNumberOfLayersVD() const { return mPetalCases[0].mPetalLayers.size(); }
   int getNumberOfDisksVD() const { return mPetalCases[0].mPetalDisks.size(); }
 
-  void Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int chipID) const;
+  void Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int mod, int chip, int chipID) const;
 
   template <typename Det>
   friend class o2::base::DetImpl;
