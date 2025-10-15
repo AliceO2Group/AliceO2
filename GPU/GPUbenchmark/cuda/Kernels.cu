@@ -304,7 +304,6 @@ void printDeviceProp(int32_t deviceId)
   int32_t clockRateKHz = 0;
   int32_t memoryClockRateKHz = 0;
   int32_t computeMode = 0;
-  int32_t cooperativeMultiDevice = 0;
 
 #if (CUDART_VERSION >= 13000)
   GPUCHECK(cudaDeviceGetAttribute(&clockRateKHz, cudaDevAttrClockRate, deviceId));
@@ -314,7 +313,6 @@ void printDeviceProp(int32_t deviceId)
   clockRateKHz = props.clockRate;
   memoryClockRateKHz = props.memoryClockRate;
   computeMode = props.computeMode;
-  cooperativeMultiDevice = props.cooperativeMultiDeviceLaunch;
 #endif
   std::cout << std::setw(w1) << "Name: " << props.name << std::endl;
   std::cout << std::setw(w1) << "pciBusID: " << props.pciBusID << std::endl;
