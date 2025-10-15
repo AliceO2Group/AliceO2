@@ -216,6 +216,7 @@ AddOption(optSpecialCode, int8_t, -1, "", 0, "Insert GPUCA_RTC_SPECIAL_CODE spec
 AddOption(deterministic, bool, false, "", 0, "Compile RTC in deterministic mode, with NO_FAST_MATH flags and GPUCA_DETERMINISTIC_MODE define")
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddOption(overrideWarpSize, int32_t, -1, "", 0, "Override the warp size to be used for RTC")
 AddHelp("help", 'h')
 EndConfig()
 
