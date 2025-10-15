@@ -46,6 +46,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getTRKPetalDiskPattern() { return sPetalDiskName.c_str(); }
   static const char* getTRKPetalLayerPattern() { return sPetalLayerName.c_str(); }
   static const char* getTRKStavePattern() { return sStaveName.c_str(); }
+  static const char* getTRKHalfStavePattern() { return sHalfStaveName.c_str(); }
   static const char* getTRKModulePattern() { return sModuleName.c_str(); }
   static const char* getTRKChipPattern() { return sChipName.c_str(); }
   static const char* getTRKSensorPattern() { return sSensorName.c_str(); }
@@ -64,6 +65,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int extractNumberOfChipsPerPetalVD() const;
   int extractNumberOfStavesMLOT(int lay) const;
   int extractNumberOfHalfStavesMLOT(int lay) const;
+  int extractNumberOfModulesMLOT(int lay) const;
+  int extractNumberOfChipsMLOT(int lay) const;
 
   /// Extract number following the prefix in the name string
   int extractVolumeCopy(const char* name, const char* prefix) const;
@@ -85,6 +88,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int getHalfStave(int index) const;
   int getDisk(int index) const;
   int getModule(int index) const;
+  int getChip(int index) const;
 
   /// This routine computes the chip index number from the subDetID, petal, disk, layer, stave /// TODO: retrieve also from chip when chips will be available
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
@@ -93,7 +97,9 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int lay The layer number. Starting from 0 both for VD and MLOT
   /// \param int stave The stave number for MLOT. Starting from 0
   /// \param int halfstave The half stave number for MLOT. Can be 0 or 1
-  int getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const;
+  /// \param int module The module number for MLOT, from 0 to 10 (or 20)
+  /// \param int chip The chip number for MLOT, from 0 to 8
+  int getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int module, int chip) const;
 
   /// This routine computes the chip index number from the subDetID, volume, layer, stave /// TODO: retrieve also from chip when chips will be available
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
@@ -101,7 +107,9 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int lay The layer number for the MLOT. In the current configuration for VD this is not needed. // TODO: when the geometry naming scheme will be changed, change this method
   /// \param int stave The stave number in each layer for MLOT. Starting from 0.
   /// \param int halfstave The half stave number for MLOT. Can be 0 or 1
-  int getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave) const;
+  /// \param int module The module number for MLOT, from 0 to 10 (or 20)
+  /// \param int chip The chip number for MLOT, from 0 to 8
+  int getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int module, int chip) const;
 
   /// This routine computes subDetID, petal, disk, layer, stave given the chip index number /// TODO: copute also from chip when chips will be available
   /// \param int index The chip index number, starting from 0
@@ -111,7 +119,9 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int lay The layer number. Starting from 0 both for VD and MLOT
   /// \param int stave The stave number for MLOT. Starting from 0
   /// \param int halfstave The half stave number for MLOT. Can be 0 or 1
-  bool getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave) const;
+  /// \param int module The module number for MLOT, from 0 to 10 (or 20)
+  /// \param int chip The chip number for MLOT, from 0 to 8
+  bool getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave, int& module, int& chip) const;
 
   int getLastChipIndex(int lay) const { return mLastChipIndex[lay]; }
   int getFirstChipIndex(int lay, int petalcase, int subDetID) const
@@ -147,6 +157,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sPetalDiskName;
   static std::string sPetalLayerName;
   static std::string sStaveName;
+  static std::string sHalfStaveName;
   static std::string sModuleName;
   static std::string sChipName;
   static std::string sSensorName;
@@ -159,16 +170,22 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   Int_t mNumberOfLayersVD;                     ///< number of layers
   Int_t mNumberOfPetalsVD;                     ///< number of Petals = chip in each VD layer
   Int_t mNumberOfDisksVD;                      ///< number of Disks = 6
-  std::vector<int> mLastChipIndex;             ///< max ID of the detctor in the petal(VD) or layer(MLOT)
-  std::vector<int> mLastChipIndexVD;           ///< max ID of the detctor in the layer for the VD
-  std::vector<int> mLastChipIndexMLOT;         ///< max ID of the detctor in the layer for the MLOT
+  std::vector<int> mNumberOfStaves;            ///< Number Of Staves per layer in ML/OT
+  std::vector<int> mNumberOfHalfStaves;        ///< Number Of Half staves in each stave of the layer in ML/OT
+  std::vector<int> mNumberOfModules;           ///< Number Of Modules per stave (half stave) in ML/OT
+  std::vector<int> mNumberOfChips;             ///< number of chips per module in ML/OT
   std::vector<int> mNumberOfChipsPerLayerVD;   ///< number of chips per layer VD ( =  number of petals)
-  std::vector<int> mNumberOfChipsPerLayerMLOT; ///< number of chips per layer MLOT ( = 1 for the moment)
+  std::vector<int> mNumberOfChipsPerLayerMLOT; ///< number of chips per layer MLOT
   std::vector<int> mNumbersOfChipPerDiskVD;    ///< numbersOfChipPerDiskVD
   std::vector<int> mNumberOfChipsPerPetalVD;   ///< numbersOfChipPerPetalVD
-  std::vector<int> mNumberOfStaves;            ///< Number Of Staves per layer in ML/OT
-  std::vector<int> mNumberOfHalfStaves;        ///< Number Of Staves in each stave of the layer in ML/OT
-  std::array<char, MAXLAYERS> mLayerToWrapper; ///< Layer to wrapper correspondence
+  // std::vector<int> mNumberOfChipsPerStave;     ///< number of chips per stave in ML/OT
+  // std::vector<int> mNumberOfChipsPerHalfStave; ///< number of chips per half stave in ML/OT
+  // std::vector<int> mNumberOfChipsPerModule; ///< number of chips per module in ML/OT
+  std::vector<int> mLastChipIndex;     ///< max ID of the detctor in the petal(VD) or layer(MLOT)
+  std::vector<int> mLastChipIndexVD;   ///< max ID of the detctor in the layer for the VD
+  std::vector<int> mLastChipIndexMLOT; ///< max ID of the detctor in the layer for the MLOT
+
+  std::array<char, MAXLAYERS> mLayerToWrapper; ///< Layer to wrapper correspondence, not implemented yet
 
   bool mOwner = true; //! is it owned by the singleton?
 
