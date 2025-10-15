@@ -90,6 +90,7 @@ void GPURecoWorkflowSpec::RunWorkerThread(int32_t id)
       context = workerContext.inputQueue.front();
       workerContext.inputQueue.pop();
     }
+    context->jobThreadIndex = id;
     context->jobReturnValue = runMain(nullptr, context->jobPtrs, context->jobOutputRegions, id, context->jobInputUpdateCallback.get());
     {
       std::lock_guard lk(context->jobFinishedMutex);
@@ -179,8 +180,7 @@ int32_t GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingIn
       }
       mPipeline->completionPolicyQueue.pop();
     }
-  }
-  if (mSpecConfig.enableDoublePipeline == 2) {
+  } else if (mSpecConfig.enableDoublePipeline == 2) {
     auto prepareDummyMessage = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0}, 0u);
 
     size_t ptrsTotal = 0;
