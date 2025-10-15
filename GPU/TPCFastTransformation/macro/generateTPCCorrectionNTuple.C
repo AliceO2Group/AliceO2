@@ -82,7 +82,7 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
   const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
   TFile* f = new TFile("tpcCorrection.root", "RECREATE");
-  TNtuple* nt = new TNtuple("dist", "dist", "sector:row:su:sv:dx:du:dv");
+  TNtuple* nt = new TNtuple("dist", "dist", "sector:row:x:y:z:dx:dy:dz");
 
   int32_t nSectors = 1; // fastTransform->getNumberOfSectors();
   // for( int32_t sector=0; sector<nSectors; sector++){
@@ -91,13 +91,11 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
 
     for (int32_t row = 0; row < geo.getNumberOfRows(); row++) {
 
-      float x = geo.getRowInfo(row).x;
+      const auto& rowInfo = geo.getRowInfo(row);
+      float x = rowInfo.x;
 
-      for (float su = 0.; su <= 1.; su += 0.01) {
-        for (float sv = 0.; sv <= 1.; sv += 0.01) {
-          float u, v, y = 0, z = 0;
-          geo.convScaledUVtoUV(sector, row, su, sv, u, v);
-          geo.convUVtoLocal(sector, u, v, y, z);
+      for (float y = rowInfo.getYmin(); y <= rowInfo.getYmax(); y += rowInfo.getYwidth() / 100.) {
+        for (float z = geo.getZmin(sector); z <= geo.getZmax(sector); z += geo.getTPCzLength() / 100.) {
 
           // local 2 global
           float gx, gy, gz;
@@ -112,14 +110,11 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
           // global to local
           float x1, y1, z1;
           geo.convGlobalToLocal(sector, gx, gy, gz, x1, y1, z1);
-          float u1 = 0, v1 = 0;
-          geo.convLocalToUV(sector, y1, z1, u1, v1);
 
           float dx = x1 - x;
-          float du = u1 - u;
-          float dv = v1 - v;
-          std::cout << sector << " " << row << " " << su << " " << sv << " " << dx << " " << du << " " << dv << std::endl;
-          nt->Fill(sector, row, su, sv, dx, du, dv);
+          float dy = y1 - y;
+          float dz = z1 - z;
+          nt->Fill(sector, row, x, y, z, dx, dy, dz);
         }
       }
     }

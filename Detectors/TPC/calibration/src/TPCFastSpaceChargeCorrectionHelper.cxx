@@ -690,9 +690,9 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
                       LOG(warning) << directionName << " correction: error N " << nErrors << "fitted voxel position is outside the voxel: "
                                    << " sector " << iSector << " row " << iRow << " bin y " << iy << " bin z " << iz
                                    << msg.str();
-                      maxError[0] = GPUCommonMath::Max(maxError[0], fabs(data.mX - x) / dx);
-                      maxError[1] = GPUCommonMath::Max(maxError[1], fabs(data.mY - vox.mY) / vox.mDy);
-                      maxError[2] = GPUCommonMath::Max(maxError[2], fabs(data.mZ - vox.mZ) / vox.mDz);
+                      maxError[0] = GPUCommonMath::Max<double>(maxError[0], fabs(data.mX - x) / dx);
+                      maxError[1] = GPUCommonMath::Max<double>(maxError[1], fabs(data.mY - vox.mY) / vox.mDy);
+                      maxError[2] = GPUCommonMath::Max<double>(maxError[2], fabs(data.mZ - vox.mZ) / vox.mDz);
                     }
                     mutex.unlock();
                   }
@@ -794,12 +794,15 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
           auto addEdge = [&](int iy1, int iz1, int iy2, int iz2, int nPoints) {
             // add n points on the edge between two voxels excluding the voxel points
-            if (nPoints < 1)
+            if (nPoints < 1) {
               return;
-            if (iy1 < 0 || iy1 >= nY2Xbins || iz1 < 0 || iz1 >= nZ2Xbins)
+            }
+            if (iy1 < 0 || iy1 >= nY2Xbins || iz1 < 0 || iz1 >= nZ2Xbins) {
               return;
-            if (iy2 < 0 || iy2 >= nY2Xbins || iz2 < 0 || iz2 >= nZ2Xbins)
+            }
+            if (iy2 < 0 || iy2 >= nY2Xbins || iz2 < 0 || iz2 >= nZ2Xbins) {
               return;
+            }
             auto& data1 = vSectorData[iSector * nRows + iRow][iy1 * nZ2Xbins + iz1];
             auto& vox1 = vRowVoxels[iy1 * nZ2Xbins + iz1];
             auto& data2 = vSectorData[iSector * nRows + iRow][iy2 * nZ2Xbins + iz2];
