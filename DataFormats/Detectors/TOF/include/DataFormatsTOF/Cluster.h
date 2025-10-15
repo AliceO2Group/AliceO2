@@ -49,9 +49,8 @@ class Cluster : public o2::BaseCluster<float>
          kDownRight = 4, // 2^4, 5th bit
          kDown = 5,      // 2^5, 6th bit
          kDownLeft = 6,  // 2^6, 7th bit
-         kLeft = 7,      // 2^7, 8th bit
-         //
-         FrameBit = 6 }; // this bit set means that the cluster is in the nominal (alpha=20*sector+10 deg.) sector frame rather than aligned
+         kLeft = 7       // 2^7, 8th bit
+  };
 
   Cluster() = default;
 
@@ -59,8 +58,8 @@ class Cluster : public o2::BaseCluster<float>
 
   ~Cluster() = default;
 
-  bool isInNominalSector() const { return isBitSet(FrameBit); }
-  void setInNominalSector() { setBit(FrameBit); }
+  bool isInNominalSector() const { return mInNominalSector; }
+  void setInNominalSector(bool v = true) { mInNominalSector = v; }
 
   std::int8_t getSector() const { return getCount(); }
   void setSector(std::int8_t value) { setCount(value); }
@@ -163,9 +162,10 @@ class Cluster : public o2::BaseCluster<float>
   double mDigitInfoT[6] = {0., 0., 0., 0., 0., 0.};
   float mDigitInfoTOT[6] = {0., 0., 0., 0., 0., 0.};
   float mTgeant = 0.0;
+  bool mInNominalSector = false;
   double mT0true = 0.0;
 
-  ClassDefNV(Cluster, 5);
+  ClassDefNV(Cluster, 6);
 };
 
 #ifndef GPUCA_GPUCODE
