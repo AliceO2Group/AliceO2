@@ -99,7 +99,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int halfstave The half stave number for MLOT. Can be 0 or 1
   /// \param int module The module number for MLOT, from 0 to 10 (or 20)
   /// \param int chip The chip number for MLOT, from 0 to 8
-  int getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int module, int chip) const;
+  int getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const;
 
   /// This routine computes the chip index number from the subDetID, volume, layer, stave /// TODO: retrieve also from chip when chips will be available
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
@@ -109,7 +109,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int halfstave The half stave number for MLOT. Can be 0 or 1
   /// \param int module The module number for MLOT, from 0 to 10 (or 20)
   /// \param int chip The chip number for MLOT, from 0 to 8
-  int getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int module, int chip) const;
+  int getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int mod, int chip) const;
 
   /// This routine computes subDetID, petal, disk, layer, stave given the chip index number /// TODO: copute also from chip when chips will be available
   /// \param int index The chip index number, starting from 0
@@ -121,7 +121,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int halfstave The half stave number for MLOT. Can be 0 or 1
   /// \param int module The module number for MLOT, from 0 to 10 (or 20)
   /// \param int chip The chip number for MLOT, from 0 to 8
-  bool getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave, int& module, int& chip) const;
+  bool getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave, int& mod, int& chip) const;
 
   int getLastChipIndex(int lay) const { return mLastChipIndex[lay]; }
   int getFirstChipIndex(int lay, int petalcase, int subDetID) const

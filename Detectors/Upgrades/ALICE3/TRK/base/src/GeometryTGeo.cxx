@@ -236,7 +236,7 @@ int GeometryTGeo::getChip(int index) const
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int module, int chip) const
+int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const
 {
   if (subDetID == 0) { // VD
     if (lay == -1) {   // disk
@@ -255,7 +255,7 @@ int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, i
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int module, int chip) const
+int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int mod, int chip) const
 {
   if (subDetID == 0) { // VD
     return volume;     /// In the current configuration for VD, each volume is the sensor element = chip. // TODO: when the geometry naming scheme will be changed, change this method
@@ -271,7 +271,7 @@ int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int
 }
 
 //__________________________________________________________________________
-bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave, int& module, int& chip) const
+bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave, int& mod, int& chip) const
 {
   subDetID = getSubDetID(index);
   petalcase = getPetalCase(index);
@@ -279,7 +279,7 @@ bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk
   lay = getLayer(index);
   stave = getStave(index);
   halfstave = getHalfStave(index);
-  module = getModule(index);
+  mod = getModule(index);
   chip = getChip(index);
 
   return kTRUE;
@@ -289,8 +289,8 @@ bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk
 TString GeometryTGeo::getMatrixPath(int index) const
 {
 
-  int subDetID, petalcase, disk, layer, stave, halfstave, module, chip; //// TODO: add chips in a second step
-  getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, module, chip);
+  int subDetID, petalcase, disk, layer, stave, halfstave, mod, chip; //// TODO: add chips in a second step
+  getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
 
   // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
 
