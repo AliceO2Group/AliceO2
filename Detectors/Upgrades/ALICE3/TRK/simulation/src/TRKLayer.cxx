@@ -198,10 +198,10 @@ TGeoVolume* TRKLayer::createHalfStave(std::string type)
     halfStaveVol->AddNode(moduleVol, 1, nullptr);
   } else if (type == "flat") {
     double moduleLength = constants::moduleMLOT::length;
-    double staveWidth = constants::ML::width;
-    double staveLength = constants::ML::length;
+    double halfStaveWidth = constants::OT::halfstave::width;
+    double halfStaveLength = constants::moduleMLOT::length * mNumberOfModules;
 
-    halfStave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, staveLength / 2);
+    halfStave = new TGeoBBox(halfStaveWidth / 2, mChipThickness / 2, halfStaveLength / 2);
     halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medAir);
 
     for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
