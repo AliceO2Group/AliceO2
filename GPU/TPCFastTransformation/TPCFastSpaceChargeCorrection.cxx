@@ -294,7 +294,7 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
   // move spline scenarios to the new place in the buffer
 
   mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr);
-  memmove(mScenarioPtr, oldScenarioPtr, scenariosSize);
+  memmove((void*)mScenarioPtr, (const void*)oldScenarioPtr, scenariosSize);
 
   size_t oldScenariosBufferOffset = alignSize(oldScenariosOffset + scenariosSize, SplineType::getBufferAlignmentBytes());
   size_t scenariosBufferOffset = alignSize(scenariosSize, SplineType::getBufferAlignmentBytes());
