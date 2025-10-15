@@ -239,7 +239,6 @@ GPUdii() void GPUTPCGMMergerHitWeights::Thread<GPUTPCGMMergerHitWeights::resolve
   merger.ResolveHitWeights2(nBlocks, nThreads, iBlock, iThread);
 }
 
-
 template <>
 GPUdii() void GPUTPCGMMergerHitWeights::Thread<GPUTPCGMMergerHitWeights::resolveShared>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iteration)
 {
