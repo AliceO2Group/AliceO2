@@ -690,9 +690,9 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
                       LOG(warning) << directionName << " correction: error N " << nErrors << "fitted voxel position is outside the voxel: "
                                    << " sector " << iSector << " row " << iRow << " bin y " << iy << " bin z " << iz
                                    << msg.str();
-                      maxError[0] = GPUCommonMath::Max(maxError[0], fabs(data.mX - x) / dx);
-                      maxError[1] = GPUCommonMath::Max(maxError[1], fabs(data.mY - vox.mY) / vox.mDy);
-                      maxError[2] = GPUCommonMath::Max(maxError[2], fabs(data.mZ - vox.mZ) / vox.mDz);
+                      maxError[0] = GPUCommonMath::Max<double>(maxError[0], fabs(data.mX - x) / dx);
+                      maxError[1] = GPUCommonMath::Max<double>(maxError[1], fabs(data.mY - vox.mY) / vox.mDy);
+                      maxError[2] = GPUCommonMath::Max<double>(maxError[2], fabs(data.mZ - vox.mZ) / vox.mDz);
                     }
                     mutex.unlock();
                   }
