@@ -293,7 +293,7 @@ void ITS3Layer::createCarbonForm()
   if (mNLayer < 2) {
     dRadius = constants::radii[mNLayer + 1] - constants::radii[mNLayer] - constants::totalThickness;
   } else {
-    dRadius = 0.7; // TODO: lack of carbon foam radius for layer 2, use 0.7mm as a temporary value
+    dRadius = constants::carbonfoam::thicknessOuterFoam; // TODO: lack of carbon foam radius for layer 2, use 0.7 cm as a temporary value
   }
   double phiSta = edgeBetwChipAndFoam / (0.5 * constants::radii[mNLayer + 1] + constants::radii[mNLayer]) * o2m::Rad2Deg;
   double phiEnd = (constants::nSegments[mNLayer] * constants::segment::width) / constants::radii[mNLayer] * o2m::Rad2Deg - phiSta;
@@ -312,8 +312,8 @@ void ITS3Layer::createCarbonForm()
   auto zMoveHringA = new TGeoTranslation(0, 0, -constants::segment::lec::length + HringLength / 2. + constants::segment::length - HringLength);
 
   // Longerons are made by same material
-  [[maybe_unused]] auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiSta, phiSta + phiLongeronsCover);
-  [[maybe_unused]] auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiEnd - phiLongeronsCover, phiEnd);
+  [[maybe_unused]] auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2., phiSta, phiSta + phiLongeronsCover);
+  [[maybe_unused]] auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2., phiEnd - phiLongeronsCover, phiEnd);
   TString nameLongerons = Form("longeronR%d + longeronL%d", mNLayer, mNLayer);
   auto longerons = new TGeoCompositeShape(nameLongerons);
   auto longeronsVol = new TGeoVolume(Form("longerons%d", mNLayer), longerons, mCarbon);

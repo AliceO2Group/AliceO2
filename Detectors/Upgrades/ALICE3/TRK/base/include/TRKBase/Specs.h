@@ -102,16 +102,25 @@ constexpr int nCols{static_cast<int>(length / chip::pitchZ)};                   
 
 namespace ML
 {
-constexpr double width{constants::moduleMLOT::width * 1};                            // width of the stave
-constexpr double length{constants::moduleMLOT::length * 10};                         // length of the stave
+constexpr double width{constants::moduleMLOT::width * 1}; // width of the stave
+// constexpr double length{constants::moduleMLOT::length * 10};                         // length of the stave
+constexpr double length{124 * cm};                                                   // length of the stave, hardcoded to fit the implemented geometry
 constexpr int nRows{static_cast<int>(width / constants::moduleMLOT::chip::pitchX)};  // number of rows in the stave
 constexpr int nCols{static_cast<int>(length / constants::moduleMLOT::chip::pitchZ)}; // number of columns in the stave
 } // namespace ML
 
 namespace OT
-{                                                                         //// TODO: add shorter lenght of the stave of L4
-constexpr double width{moduleMLOT::width * 2};                            // width of the stave
-constexpr double length{moduleMLOT::length * 20};                         // length of the stave
+{
+namespace halfstave
+{
+constexpr double width{moduleMLOT::width * 1}; // width of the half stave
+// constexpr double length{moduleMLOT::length * 20};                         // length of the halfstave
+constexpr double length{258 * cm};                                        // length of the halfstave, hardcoded to fit the implemented geometry
+constexpr int nRows{static_cast<int>(width / moduleMLOT::chip::pitchX)};  // number of rows in the halfstave
+constexpr int nCols{static_cast<int>(length / moduleMLOT::chip::pitchZ)}; // number of columns in the halfstave
+} // namespace halfstave
+constexpr double width{halfstave::width * 2};                             // width of the stave
+constexpr double length{halfstave::length};                               // length of the stave
 constexpr int nRows{static_cast<int>(width / moduleMLOT::chip::pitchX)};  // number of rows in the stave
 constexpr int nCols{static_cast<int>(length / moduleMLOT::chip::pitchZ)}; // number of columns in the stave
 } // namespace OT

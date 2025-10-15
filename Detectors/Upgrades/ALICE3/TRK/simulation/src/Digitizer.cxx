@@ -62,21 +62,21 @@ void Digitizer::init()
 
   /// setting scale factors to adapt to the APTS response function (adjusting pitch and Y shift)
   // TODO: adjust Y shift when the geometry is improved
-  LOG(debug) << " Depth max: " << mChipSimRespVD->getDepthMax();
-  LOG(debug) << " Depth min: " << mChipSimRespVD->getDepthMin();
+  LOG(info) << " Depth max VD: " << mChipSimRespVD->getDepthMax();
+  LOG(info) << " Depth min VD: " << mChipSimRespVD->getDepthMin();
+
+  LOG(info) << " Depth max MLOT: " << mChipSimRespMLOT->getDepthMax();
+  LOG(info) << " Depth min MLOT: " << mChipSimRespMLOT->getDepthMin();
 
   float thicknessVD = 0.0095; // cm --- hardcoded based on geometry currently present
   float thicknessMLOT = 0.1;  // cm --- hardcoded based on geometry currently present
 
   mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
   mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
-  mSimRespVDScaleDepth = o2::trk::constants::apts::thickness / (thicknessVD); /// introducing this scaling factor because the silicon thickness for the moment is 1 mm -> rescale to 45 um which is the depth of the APTS response
-  // mSimRespVDShift = mChipSimRespVD->getDepthMax() - thicknessVD * mSimRespVDScaleDepth / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
-  mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
+  mSimRespVDShift = -mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
   mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
   mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
-  mSimRespMLOTScaleDepth = o2::trk::constants::apts::thickness / (thicknessMLOT);                     /// introducing this scaling factor because the silicon thickness for the moment is 1 mm -> rescale to 45 um which is the depth of the APTS response
-  mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT * mSimRespMLOTScaleDepth / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
+  mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
   mSimRespOrientation = false;
 
   // importing the parameters from DPLDigitizerParam.h
@@ -84,7 +84,7 @@ void Digitizer::init()
 
   LOGP(info, "TRK Digitizer is initialised.");
   mParams.print();
-  LOGP(info, "VD shift = {}  ; ML/OT shift = {} = {} - {}", mSimRespVDShift, mSimRespMLOTShift, mChipSimRespMLOT->getDepthMax(), thicknessMLOT * mSimRespMLOTScaleDepth / 2.f);
+  LOGP(info, "VD shift = {}  ; ML/OT shift = {} = {} - {}", mSimRespVDShift, mSimRespMLOTShift, mChipSimRespMLOT->getDepthMax(), thicknessMLOT / 2.f);
   LOGP(info, "VD pixel scale on x = {} ; z = {}", mSimRespVDScaleX, mSimRespVDScaleZ);
   LOGP(info, "ML/OT pixel scale on x = {} ; z = {}", mSimRespMLOTScaleX, mSimRespMLOTScaleZ);
   LOGP(info, "Response orientation: {}", mSimRespOrientation ? "flipped" : "normal");
@@ -115,8 +115,8 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
             << " cont.mode: " << isContinuous()
             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
-  std::cout << "Printing segmentation info: " << std::endl;
-  SegmentationChip::Print();
+  // std::cout << "Printing segmentation info: " << std::endl;
+  // SegmentationChip::Print();
 
   // // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
@@ -335,13 +335,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   //// adapting the depth (Y) of the chip to the APTS response maximum depth
   LOG(debug) << "local original: startPos = " << xyzLocS << ", endPos = " << xyzLocE << std::endl;
-  if (subDetID == 0) {
-    xyzLocS.SetY(xyzLocS.Y() * mSimRespVDScaleDepth);
-    xyzLocE.SetY(xyzLocE.Y() * mSimRespVDScaleDepth);
-  } else {
-    xyzLocS.SetY(xyzLocS.Y() * mSimRespMLOTScaleDepth);
-    xyzLocE.SetY(xyzLocE.Y() * mSimRespMLOTScaleDepth);
-  }
+  xyzLocS.SetY(xyzLocS.Y());
+  xyzLocE.SetY(xyzLocE.Y());
+
   LOG(debug) << "rescaled Y: startPos = " << xyzLocS << ", endPos = " << xyzLocE << std::endl;
 
   math_utils::Vector3D<float> step(xyzLocE);
@@ -449,17 +445,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
       rspmat = resp->getResponse(mSimRespMLOTScaleX * (xyzLocS.X() - cRowPix), mSimRespMLOTScaleZ * (xyzLocS.Z() - cColPix), xyzLocS.Y(), flipRow, flipCol, rowMax, colMax);
     }
 
-    float tempPitchX = 0, tempPitchZ = 0;
-    if (subDetID == 0) {
-      tempPitchX = Segmentation::PitchRowVD;
-      tempPitchZ = Segmentation::PitchColVD;
-    } else {
-      tempPitchX = Segmentation::PitchRowMLOT;
-      tempPitchZ = Segmentation::PitchColMLOT;
-    }
-    LOG(debug) << "X and Z inside pixel at start = " << (xyzLocS.X() - cRowPix) << " , " << (xyzLocS.Z() - cColPix) << ", rescaled: " << mSimRespMLOTScaleX * (xyzLocS.X() - cRowPix) << " , " << mSimRespMLOTScaleZ * (xyzLocS.Z() - cColPix);
-    LOG(debug) << "Hit inside pitch? X: " << ((xyzLocS.X() - cRowPix) < tempPitchX) << "  Z: " << ((xyzLocS.Z() - cColPix) < tempPitchZ);
-
     xyzLocS += step;
 
     if (rspmat == nullptr) {
@@ -479,7 +464,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
         if (colDest < 0 || colDest >= colSpan) {
           continue;
         }
-        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, flipCol);
+        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, !flipCol);
       }
     }
   }
