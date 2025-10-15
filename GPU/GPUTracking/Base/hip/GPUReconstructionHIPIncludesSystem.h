@@ -22,11 +22,8 @@
 #include <hip/hip_runtime.h>
 #include <hip/hip_ext.h>
 #include <hipcub/hipcub.hpp>
-#pragma GCC diagnostic push
-// #pragma GCC diagnostic ignored "-Wshadow" // VS: This compiler directive for -Wshadow is not needed. 
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
-#pragma GCC diagnostic pop
 
 #endif // O2_GPU_RECONSTRUCTIONHIPINCLUDESSYSTEM_H
