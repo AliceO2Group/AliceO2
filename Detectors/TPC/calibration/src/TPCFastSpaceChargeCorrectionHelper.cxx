@@ -794,12 +794,15 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
           auto addEdge = [&](int iy1, int iz1, int iy2, int iz2, int nPoints) {
             // add n points on the edge between two voxels excluding the voxel points
-            if (nPoints < 1)
+            if (nPoints < 1) {
               return;
-            if (iy1 < 0 || iy1 >= nY2Xbins || iz1 < 0 || iz1 >= nZ2Xbins)
+            }
+            if (iy1 < 0 || iy1 >= nY2Xbins || iz1 < 0 || iz1 >= nZ2Xbins) {
               return;
-            if (iy2 < 0 || iy2 >= nY2Xbins || iz2 < 0 || iz2 >= nZ2Xbins)
+            }
+            if (iy2 < 0 || iy2 >= nY2Xbins || iz2 < 0 || iz2 >= nZ2Xbins) {
               return;
+            }
             auto& data1 = vSectorData[iSector * nRows + iRow][iy1 * nZ2Xbins + iz1];
             auto& vox1 = vRowVoxels[iy1 * nZ2Xbins + iz1];
             auto& data2 = vSectorData[iSector * nRows + iRow][iy2 * nZ2Xbins + iz2];
