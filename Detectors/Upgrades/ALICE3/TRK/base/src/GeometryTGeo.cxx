@@ -246,9 +246,9 @@ int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, i
     }
   } else if (subDetID == 1) {            // MLOT
     if (mNumberOfHalfStaves[lay] == 2) { // staggered geometry
-      return getFirstChipIndex(lay, petalcase, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave;
+      return getFirstChipIndex(lay, petalcase, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
     } else if (mNumberOfHalfStaves[lay] == 1) { // turbo geometry
-      return getFirstChipIndex(lay, petalcase, subDetID) + stave;
+      return getFirstChipIndex(lay, petalcase, subDetID) + stave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
     }
   }
   return -1; // not found
@@ -262,9 +262,9 @@ int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int
 
   } else if (subDetID == 1) {            // MLOT
     if (mNumberOfHalfStaves[lay] == 2) { // staggered geometry
-      return getFirstChipIndex(lay, -1, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave;
+      return getFirstChipIndex(lay, -1, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
     } else if (mNumberOfHalfStaves[lay] == 1) { // turbo geometry
-      return getFirstChipIndex(lay, -1, subDetID) + stave;
+      return getFirstChipIndex(lay, -1, subDetID) + stave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
     }
   }
   return -1; // not found
@@ -289,10 +289,10 @@ bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk
 TString GeometryTGeo::getMatrixPath(int index) const
 {
 
-  int subDetID, petalcase, disk, layer, stave, halfstave, mod, chip; //// TODO: add chips in a second step
+  int subDetID, petalcase, disk, layer, stave, halfstave, mod, chip;
   getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
 
-  // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
+  // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
 
   // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
@@ -308,15 +308,15 @@ TString GeometryTGeo::getMatrixPath(int index) const
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
     }
-  } else if (subDetID == 1) {                                          // MLOT
-    path += Form("%s%d_1/", getTRKLayerPattern(), layer);              // TRKLayerx_1
-    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);      // TRKStavex_y
-    if (mNumberOfHalfStaves[layer] == 2) {                             // staggered geometry
-      path += Form("%s%d_%d/", getTRKChipPattern(), layer, halfstave); // TRKChipx_0/1
-    } else if (mNumberOfHalfStaves[layer] == 1) {                      // turbo geometry
-      path += Form("%s%d_1/", getTRKChipPattern(), layer);             // TRKChipx_1
+  } else if (subDetID == 1) {                                               // MLOT
+    path += Form("%s%d_1/", getTRKLayerPattern(), layer);                   // TRKLayerx_1
+    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);           // TRKStavex_y
+    if (mNumberOfHalfStaves[layer] == 2) {                                  // staggered geometry
+      path += Form("%s%d_%d/", getTRKHalfStavePattern(), layer, halfstave); // TRKHalfStavex_y
     }
-    path += Form("%s%d_1/", getTRKSensorPattern(), layer); // TRKSensorx_1
+    path += Form("%s%d_%d/", getTRKModulePattern(), layer, mod); // TRKModulx_y
+    path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
+    path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
   }
   return path;
 }
@@ -743,7 +743,7 @@ int GeometryTGeo::extractNumberOfChipsMLOT(int lay) const
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const
+void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const
 {
   std::cout << "\nindex = " << index << std::endl;
   std::cout << "subDetID = " << subDetID << std::endl;
@@ -753,6 +753,8 @@ void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk,
   std::cout << "first chip index = " << getFirstChipIndex(lay, petalcase, subDetID) << std::endl;
   std::cout << "stave = " << stave << std::endl;
   std::cout << "halfstave = " << halfstave << std::endl;
+  std::cout << "module = " << mod << std::endl;
+  std::cout << "chip = " << chip << std::endl;
 }
 
 //__________________________________________________________________________
@@ -779,6 +781,18 @@ void GeometryTGeo::Print(Option_t*) const
     std::string mlot = "";
     mlot = (i < 4) ? "ML" : "OT";
     LOGF(info, "Layer: %d, %s, %d staves, %d half staves per stave", i, mlot.c_str(), mNumberOfStaves[i], mNumberOfHalfStaves[i]);
+  }
+  LOGF(info, "Number of modules per layer MLOT: ");
+  for (int i = 0; i < mNumberOfLayersMLOT; i++) {
+    LOGF(info, "%d", mNumberOfModules[i]);
+  }
+  LOGF(info, "Number of chips per module MLOT: ");
+  for (int i = 0; i < mNumberOfLayersMLOT; i++) {
+    LOGF(info, "%d", mNumberOfChips[i]);
+  }
+  LOGF(info, "Number of chips per layer MLOT: ");
+  for (int i = 0; i < mNumberOfLayersMLOT; i++) {
+    LOGF(info, "%d", mNumberOfChipsPerLayerMLOT[i]);
   }
   LOGF(info, "Total number of chips: %d", getNumberOfChips());
 
