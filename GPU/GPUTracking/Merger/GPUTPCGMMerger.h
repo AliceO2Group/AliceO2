@@ -199,6 +199,8 @@ class GPUTPCGMMerger : public GPUProcessor
   void DumpRefit(std::ostream& out) const;
   void DumpFinal(std::ostream& out) const;
   void DumpLoopers(std::ostream& out) const;
+  void DumpTrackParam(std::ostream& out) const;
+  void DumpTrackClusters(std::ostream& out, bool non0StateOnly = false, bool noNDF0 = false) const;
 
   template <int32_t mergeType>
   void MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, int32_t mergeMode, float weight, float frac) const;
