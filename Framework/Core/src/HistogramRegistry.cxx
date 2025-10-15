@@ -55,7 +55,8 @@ OutputRef HistogramRegistry::ref(uint16_t pipelineIndex, uint16_t pipelineSize) 
 {
   OutputObjHeader header{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash, pipelineIndex, pipelineSize};
   // Copy the name of the registry to the haeder.
-  strncpy(header.containerName, mName.data(), 64);
+  strncpy(header.containerName, mName.data(), OutputObjHeader::MAX_REGISTRY_NAME_SIZE);
+  header.createContainer = mCreateRegistryDir ? 1 : 0;
   return OutputRef{std::string{mName}, 0, o2::header::Stack{header}};
 }
 
