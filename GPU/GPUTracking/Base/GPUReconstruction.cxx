@@ -999,7 +999,7 @@ void GPUReconstruction::PrintMemoryStatistics()
   }
   printf("%59s CPU / %9s GPU\n", "", "");
   for (auto it = sizes.begin(); it != sizes.end(); it++) {
-    printf("Allocation %30s %s: Size %'14zu / %'14zu\n", it->first.c_str(), it->second[2] ? "P" : " ", it->second[0], it->second[1]);
+    printf("Allocation %50s %s: Size %'14zu / %'14zu\n", it->first.c_str(), it->second[2] ? "P" : " ", it->second[0], it->second[1]);
   }
   PrintMemoryOverview();
   for (uint32_t i = 0; i < mChains.size(); i++) {

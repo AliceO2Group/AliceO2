@@ -649,11 +649,6 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
 
     if (tmpRetVal == 0 || tmpRetVal == 2) {
       OutputStat(chainTrackingUse, iRun == 0 ? nTracksTotal : nullptr, iRun == 0 ? nClustersTotal : nullptr);
-      if (configStandalone.memoryStat) {
-        recUse->PrintMemoryStatistics();
-      } else if (configStandalone.proc.debugLevel >= 2) {
-        recUse->PrintMemoryOverview();
-      }
     }
 
     if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
@@ -685,9 +680,6 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       tmpRetVal = recAsync->RunChains();
       if (tmpRetVal == 0 || tmpRetVal == 2) {
         OutputStat(chainTrackingAsync, nullptr, nullptr);
-        if (configStandalone.memoryStat) {
-          recAsync->PrintMemoryStatistics();
-        }
       }
       recAsync->ClearAllocatedMemory();
     }
