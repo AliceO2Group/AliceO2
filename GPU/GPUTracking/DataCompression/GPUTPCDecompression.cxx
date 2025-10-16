@@ -18,6 +18,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPULogging.h"
+#include <algorithm>
 
 using namespace o2::gpu;
 
@@ -116,5 +117,8 @@ void GPUTPCDecompression::RegisterMemoryAllocation()
 
 void GPUTPCDecompression::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mMaxNativeClustersPerBuffer = mRec->GetProcessingSettings().tpcMaxAttachedClustersPerSectorRow;
+  mMaxNativeClustersPerBuffer = *std::max_element(mInputGPU.nSliceRowClusters, mInputGPU.nSliceRowClusters + mInputGPU.nSliceRows);
+  float clsRatio = mInputGPU.nUnattachedClusters > 0 ? float(mInputGPU.nAttachedClusters) / float(mInputGPU.nUnattachedClusters) : 1.0f;
+  mMaxNativeClustersPerBuffer *= clsRatio;
+  mMaxNativeClustersPerBuffer = std::min(mMaxNativeClustersPerBuffer, mRec->GetProcessingSettings().tpcMaxAttachedClustersPerSectorRow);
 }
