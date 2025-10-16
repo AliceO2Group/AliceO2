@@ -453,7 +453,6 @@ bool Detector::ProcessHits(FairVolume* vol)
       } else {
         LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
       }
-
     } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 
     int chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave, mod, chip);
