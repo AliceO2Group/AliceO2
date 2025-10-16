@@ -104,9 +104,6 @@ void Detector::configDefault()
   mLayers.clear();
 
   LOGP(warning, "Loading Scoping Document configuration for ALICE3 TRK");
-  // mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 0.5f, 4, 100.e-4);
-  // mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 1.2f, 4, 100.e-4);
-  // mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 2.5f, 4, 100.e-4);
   mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 3.78f, 10, 100.e-3);
   mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 7.f, 10, 100.e-3);
   mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);

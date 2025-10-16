@@ -149,6 +149,22 @@ int GeometryTGeo::getPetalCase(int index) const
 }
 
 //__________________________________________________________________________
+int GeometryTGeo::getDisk(int index) const
+{
+  int subDetID = getSubDetID(index);
+  int petalcase = getPetalCase(index);
+
+  if (subDetID == 0) { /// VD
+    if (index % mNumberOfChipsPerPetalVD[petalcase] < mNumberOfLayersVD) {
+      return -1; /// layers
+    }
+    return (index % mNumberOfChipsPerPetalVD[petalcase]) - mNumberOfLayersVD;
+  }
+
+  return -1; /// not found or ML/OT
+}
+
+//__________________________________________________________________________
 int GeometryTGeo::getLayer(int index) const
 {
   int subDetID = getSubDetID(index);
@@ -180,9 +196,23 @@ int GeometryTGeo::getStave(int index) const
   } else if (subDetID == 1) { /// MLOT
     int lay = getLayer(index);
     index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
-    return index / mNumberOfHalfStaves[lay];
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    if (Nhs == 2) {
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int chipsPerStave = Nhs * chipsPerHalfStave;
+      return index / chipsPerStave;
+    } else if (Nhs == 1) {
+      int chipsPerModule = Nchip;
+      int chipsPerStave = Nmod * chipsPerModule;
+      return index / chipsPerStave;
+    }
   }
-  return -1; /// not found
+  return -1;
 }
 
 //__________________________________________________________________________
@@ -191,48 +221,85 @@ int GeometryTGeo::getHalfStave(int index) const
   int subDetID = getSubDetID(index);
   int lay = getLayer(index);
   int petalcase = getPetalCase(index);
-  int stave = getStave(index);
 
   if (subDetID == 0) { /// VD
     return -1;
   } else if (subDetID == 1) { /// MLOT
     int lay = getLayer(index);
     index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
-    return index % 2;                                     /// 0 = half stave left, 1 = half stave right, as geometry is filled /// TODO: generalize once chips will be in place. Can it be working also with chips?
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    int chipsPerModule = Nchip;
+    int chipsPerHalfStave = Nmod * chipsPerModule;
+    int chipsPerStave = Nhs * chipsPerHalfStave;
+
+    int rem = index % chipsPerStave;
+    return rem / chipsPerHalfStave; // 0 = left, 1 = right
   }
-  return -1; /// not found
-}
-
-//__________________________________________________________________________
-int GeometryTGeo::getDisk(int index) const
-{
-  int subDetID = getSubDetID(index);
-  int petalcase = getPetalCase(index);
-
-  if (subDetID == 0) { /// VD
-    if (index % mNumberOfChipsPerPetalVD[petalcase] < mNumberOfLayersVD) {
-      return -1; /// layers
-    }
-    return (index % mNumberOfChipsPerPetalVD[petalcase]) - mNumberOfLayersVD;
-  }
-
-  return -1; /// not found or ML/OT
+  return -1;
 }
 
 //__________________________________________________________________________
 int GeometryTGeo::getModule(int index) const
 {
   int subDetID = getSubDetID(index);
+  int lay = getLayer(index);
+  int petalcase = getPetalCase(index);
 
-  return -1; /// not implemented yet
+  if (subDetID == 0) { /// VD
+    return -1;
+  } else if (subDetID == 1) { /// MLOT
+    int lay = getLayer(index);
+    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    if (Nhs == 2) {
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int rem = index % (Nhs * chipsPerHalfStave);
+      rem = rem % chipsPerHalfStave;
+      return rem / chipsPerModule;
+    } else if (Nhs == 1) {
+      int chipsPerModule = Nchip;
+      int rem = index % (Nmod * chipsPerModule);
+      return rem / chipsPerModule;
+    }
+  }
+  return -1;
 }
 
 //__________________________________________________________________________
 int GeometryTGeo::getChip(int index) const
 {
   int subDetID = getSubDetID(index);
+  int lay = getLayer(index);
+  int petalcase = getPetalCase(index);
 
-  return -1; /// not implemented yet
+  if (subDetID == 0) { /// VD
+    return -1;
+  } else if (subDetID == 1) { /// MLOT
+    int lay = getLayer(index);
+    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    if (Nhs == 2) {
+      int chipsPerModule = Nchip;
+      return index % chipsPerModule;
+    } else if (Nhs == 1) {
+      int chipsPerModule = Nchip;
+      return index % chipsPerModule;
+    }
+  }
+  return -1;
 }
 
 //__________________________________________________________________________
@@ -244,11 +311,20 @@ int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, i
     } else { // layer
       return getFirstChipIndex(lay, petalcase, subDetID) + lay;
     }
-  } else if (subDetID == 1) {            // MLOT
-    if (mNumberOfHalfStaves[lay] == 2) { // staggered geometry
-      return getFirstChipIndex(lay, petalcase, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
-    } else if (mNumberOfHalfStaves[lay] == 1) { // turbo geometry
-      return getFirstChipIndex(lay, petalcase, subDetID) + stave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
+  } else if (subDetID == 1) {                 // MLOT
+    const int Nhs = mNumberOfHalfStaves[lay]; // 1 or 2
+    const int Nmod = mNumberOfModules[lay];   // module per half-stave (per stave if Nhs==1)
+    const int Nchip = mNumberOfChips[lay];    // chips per module
+
+    if (Nhs == 2) { // staggered geometry: layer -> stave -> halfstave -> mod -> chip
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int chipsPerStave = Nhs * chipsPerHalfStave;
+      return getFirstChipIndex(lay, petalcase, subDetID) + stave * chipsPerStave + halfstave * chipsPerHalfStave + mod * chipsPerModule + chip;
+    } else if (Nhs == 1) { // turbo geometry: layer -> stave -> mod -> chip (no halfstave)
+      int chipsPerModule = Nchip;
+      int chipsPerStave = Nmod * chipsPerModule;
+      return getFirstChipIndex(lay, petalcase, subDetID) + stave * chipsPerStave + mod * chipsPerModule + chip;
     }
   }
   return -1; // not found
@@ -260,11 +336,20 @@ int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int
   if (subDetID == 0) { // VD
     return volume;     /// In the current configuration for VD, each volume is the sensor element = chip. // TODO: when the geometry naming scheme will be changed, change this method
 
-  } else if (subDetID == 1) {            // MLOT
-    if (mNumberOfHalfStaves[lay] == 2) { // staggered geometry
-      return getFirstChipIndex(lay, -1, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
-    } else if (mNumberOfHalfStaves[lay] == 1) { // turbo geometry
-      return getFirstChipIndex(lay, -1, subDetID) + stave * mNumberOfModules[lay] + mod * mNumberOfChips[lay] + chip;
+  } else if (subDetID == 1) {                 // MLOT
+    const int Nhs = mNumberOfHalfStaves[lay]; // 1 or 2
+    const int Nmod = mNumberOfModules[lay];   // module per half-stave (per stave if Nhs==1)
+    const int Nchip = mNumberOfChips[lay];    // chips per module
+
+    if (Nhs == 2) { // staggered geometry: layer -> stave -> halfstave -> mod -> chip
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int chipsPerStave = Nhs * chipsPerHalfStave;
+      return getFirstChipIndex(lay, -1, subDetID) + stave * chipsPerStave + halfstave * chipsPerHalfStave + mod * chipsPerModule + chip;
+    } else if (Nhs == 1) { // turbo geometry: layer -> stave -> mod -> chip (no halfstave)
+      int chipsPerModule = Nchip;
+      int chipsPerStave = Nmod * chipsPerModule;
+      return getFirstChipIndex(lay, -1, subDetID) + stave * chipsPerStave + mod * chipsPerModule + chip;
     }
   }
   return -1; // not found
@@ -278,6 +363,11 @@ bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk
   disk = getDisk(index);
   lay = getLayer(index);
   stave = getStave(index);
+  if (mNumberOfHalfStaves[lay] == 2) {
+    halfstave = getHalfStave(index);
+  } else {
+    halfstave = 0; // if not staggered geometry, return 0
+  }
   halfstave = getHalfStave(index);
   mod = getModule(index);
   chip = getChip(index);

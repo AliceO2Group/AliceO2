@@ -83,14 +83,14 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   int getSubDetID(int index) const;
   int getPetalCase(int index) const;
+  int getDisk(int index) const;
   int getLayer(int index) const;
   int getStave(int index) const;
   int getHalfStave(int index) const;
-  int getDisk(int index) const;
   int getModule(int index) const;
   int getChip(int index) const;
 
-  /// This routine computes the chip index number from the subDetID, petal, disk, layer, stave /// TODO: retrieve also from chip when chips will be available
+  /// This routine computes the chip index number from the subDetID, petal, disk, layer, stave, half stave, module, chip
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
   /// \param int petalcase The petal case number for VD, from 0 to 3
   /// \param int disk The disk number for VD, from 0 to 5
@@ -101,7 +101,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int chip The chip number for MLOT, from 0 to 8
   int getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const;
 
-  /// This routine computes the chip index number from the subDetID, volume, layer, stave /// TODO: retrieve also from chip when chips will be available
+  /// This routine computes the chip index number from the subDetID, volume, layer, stave, half stave, module, chip
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
   /// \param int volume is needed only with the current configuration for VD where each single element is a volume. // TODO: when the geometry naming scheme will be changed, change this method
   /// \param int lay The layer number for the MLOT. In the current configuration for VD this is not needed. // TODO: when the geometry naming scheme will be changed, change this method
@@ -111,7 +111,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// \param int chip The chip number for MLOT, from 0 to 8
   int getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int mod, int chip) const;
 
-  /// This routine computes subDetID, petal, disk, layer, stave given the chip index number /// TODO: copute also from chip when chips will be available
+  /// This routine computes subDetID, petal, disk, layer, stave, half stave, module, chip, given the chip index number
   /// \param int index The chip index number, starting from 0
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
   /// \param int petalcase The petal case number for VD, from 0 to 3
