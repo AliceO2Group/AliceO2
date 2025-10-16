@@ -296,7 +296,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
     staveVol->AddNode(halfStaveVolLeft, 0, transLeft);
 
     TGeoCombiTrans* transRight = new TGeoCombiTrans();
-    transRight->SetTranslation(halfstaveWidth / 2 - 0.05, 0, 0); // TO BE CHECKED !!! 1mm overlap between the modules
+    transRight->SetTranslation(halfstaveWidth / 2 - 0.05, 0.2, 0); // TO BE CHECKED !!! 1mm overlap between the modules
     LOGP(info, "Inserting {} in {} ", halfStaveVolRight->GetName(), staveVol->GetName());
     staveVol->AddNode(halfStaveVolRight, 1, transRight);
   } else {
