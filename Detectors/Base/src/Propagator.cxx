@@ -564,6 +564,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   value_type crv = track.getCurvature(bZ);
@@ -584,6 +588,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
 #elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   track = tmpT;
@@ -613,6 +621,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   value_type crv = track.getCurvature(mNominalBz);
@@ -633,6 +645,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
 #elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   track = tmpT;
@@ -662,6 +678,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   value_type crv = track.getCurvature(bZ);
@@ -683,6 +703,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
 #else
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex " << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z();
 #endif
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   track = tmpT;
@@ -710,6 +734,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   value_type crv = track.getCurvature(mNominalBz);
@@ -731,6 +759,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
 #else
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex " << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z();
 #endif
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   track = tmpT;

@@ -37,6 +37,7 @@ enum OutputObjSourceType : unsigned int {
 /// @brief O2 header for OutputObj metadata
 struct OutputObjHeader : public BaseHeader {
   constexpr static const uint32_t sVersion = 1;
+  constexpr static const uint32_t MAX_REGISTRY_NAME_SIZE = 128;
   constexpr static const o2::header::HeaderType sHeaderType = "OutObjMD";
   constexpr static const o2::header::SerializationMethod sSerializationMethod = o2::header::gSerializationMethodNone;
   OutputObjHandlingPolicy mPolicy;
@@ -45,7 +46,9 @@ struct OutputObjHeader : public BaseHeader {
   uint16_t mPipelineIndex = 0;
   uint16_t mPipelineSize = 1;
   // Name of the actual container for the object, e.g. the HistogramRegistry name
-  char containerName[64] = {0};
+  char containerName[MAX_REGISTRY_NAME_SIZE] = {0};
+  // Wether or not the container should have a name
+  char createContainer = false;
 
   constexpr OutputObjHeader()
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),

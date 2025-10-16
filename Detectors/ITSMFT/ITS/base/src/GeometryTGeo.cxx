@@ -900,19 +900,6 @@ TGeoHMatrix& GeometryTGeo::createT2LMatrix(int isn)
 }
 
 //__________________________________________________________________________
-const o2::math_utils::Transform3D GeometryTGeo::getT2LMatrixITS3(int isn, float alpha)
-{
-  // create for sensor isn the TGeo matrix for Tracking to Local frame transformations with correction for effective thickness
-  static TGeoHMatrix t2l;
-  t2l.Clear();
-  t2l.RotateZ(alpha * RadToDeg()); // rotate in direction of normal to the tangent to the cylinder
-  const TGeoHMatrix& matL2G = getMatrixL2G(isn);
-  const auto& matL2Gi = matL2G.Inverse();
-  t2l.MultiplyLeft(&matL2Gi);
-  return Mat3D(t2l);
-}
-
-//__________________________________________________________________________
 int GeometryTGeo::extractVolumeCopy(const char* name, const char* prefix) const
 {
   TString nms = name;

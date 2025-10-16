@@ -139,11 +139,11 @@ void on_transition_requested_expired(uv_timer_t* handle)
   // Check if this is a source device
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
   auto& spec = ref->get<DeviceSpec const>();
-  if (hasOnlyGenerated(spec)) {
-    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "DPL exit transition grace period for source expired. Exiting.");
+  std::string messageOnExpire = hasOnlyGenerated(spec) ? "DPL exit transition grace period for source expired. Exiting." : fmt::format("DPL exit transition grace period for {} expired. Exiting.", state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration").c_str();
+  if (!ref->get<RawDeviceService>().device()->GetConfig()->GetValue<bool>("error-on-exit-transition-timeout")) {
+    O2_SIGNPOST_EVENT_EMIT_WARN(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
   } else {
-    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "DPL exit transition grace period for %{public}s expired. Exiting.",
-                                 state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration");
+    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
   }
   state.transitionHandling = TransitionHandlingState::Expired;
 }

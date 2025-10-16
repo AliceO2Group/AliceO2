@@ -333,9 +333,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   /// Sym name of the chip in the given layer/halfbarrel/stave/substave/module
   static const char* composeSymNameChip(int lr, int hba, int sta, int ssta, int mod, int chip, bool isITS3 = false);
 
-  // create matrix for transformation from tracking frame to local one for ITS3
-  const Mat3D getT2LMatrixITS3(int isn, float alpha);
-
   TString getMatrixPath(int index) const;
 
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)

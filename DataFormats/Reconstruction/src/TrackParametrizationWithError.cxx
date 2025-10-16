@@ -227,6 +227,10 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   // Estimate the impact parameter neglecting the track curvature
   value_t d = gpu::CAMath::Abs(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   value_t crv = this->getCurvature(b);
@@ -245,6 +249,10 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
 #if !defined(GPUCA_ALIGPUCODE)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
 #endif
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   *this = tmpT;

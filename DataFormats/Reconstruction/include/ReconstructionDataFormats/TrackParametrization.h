@@ -119,6 +119,9 @@ constexpr float MaxPT = 100000.;                  // do not allow pTs exceeding 
 constexpr float MinPTInv = 1. / MaxPT;            // do not allow q/pTs less this value (to avoid NANs)
 constexpr float ELoss2EKinThreshInv = 1. / 0.025; // do not allow E.Loss correction step with dE/Ekin above the inverse of this value
 constexpr int MaxELossIter = 50;                  // max number of iteration for the ELoss to account for BB dependence on beta*gamma
+constexpr float DefaultDCA = 999.f;               // default DCA value
+constexpr float DefaultDCACov = 999.f;            // default DCA cov value
+
 // uncomment this to enable correction for BB dependence on beta*gamma via BB derivative
 // #define _BB_NONCONST_CORR_
 

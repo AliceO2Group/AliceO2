@@ -137,29 +137,30 @@ void GPUO2Interface::Deinitialize()
   mNContexts = 0;
 }
 
-void GPUO2Interface::DumpEvent(int32_t nEvent, GPUTrackingInOutPointers* data)
+void GPUO2Interface::DumpEvent(int32_t nEvent, GPUTrackingInOutPointers* data, uint32_t iThread, const char* dir)
 {
-  mCtx[0].mChain->ClearIOPointers();
-  mCtx[0].mChain->mIOPtrs = *data;
+  const auto oldPtrs = mCtx[iThread].mChain->mIOPtrs;
+  mCtx[iThread].mChain->mIOPtrs = *data;
   char fname[1024];
-  snprintf(fname, 1024, "event.%d.dump", nEvent);
-  mCtx[0].mChain->DumpData(fname);
+  snprintf(fname, 1024, "%sevent.%d.dump", dir, nEvent);
+  mCtx[iThread].mChain->DumpData(fname);
   if (nEvent == 0) {
 #ifdef GPUCA_BUILD_QA
     if (mConfig->configProcessing.runMC) {
-      mCtx[0].mChain->ForceInitQA();
+      mCtx[iThread].mChain->ForceInitQA();
       snprintf(fname, 1024, "mc.%d.dump", nEvent);
-      mCtx[0].mChain->GetQA()->UpdateChain(mCtx[0].mChain);
-      mCtx[0].mChain->GetQA()->DumpO2MCData(fname);
+      mCtx[iThread].mChain->GetQA()->UpdateChain(mCtx[iThread].mChain);
+      mCtx[iThread].mChain->GetQA()->DumpO2MCData(fname);
     }
 #endif
   }
+  mCtx[iThread].mChain->mIOPtrs = oldPtrs;
 }
 
-void GPUO2Interface::DumpSettings()
+void GPUO2Interface::DumpSettings(uint32_t iThread, const char* dir)
 {
-  mCtx[0].mChain->DoQueuedUpdates(-1);
-  mCtx[0].mRec->DumpSettings();
+  mCtx[iThread].mChain->DoQueuedUpdates(-1);
+  mCtx[iThread].mRec->DumpSettings(dir);
 }
 
 int32_t GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs, uint32_t iThread, GPUInterfaceInputUpdate* inputUpdateCallback)

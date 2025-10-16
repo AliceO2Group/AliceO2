@@ -45,9 +45,10 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
   int mNumLayers{constants::nLayers};
 
   // wrapper volume properties
-  static constexpr double mWrapperMinRadiusITS3{1.8};
-  static constexpr double mWrapperMaxRadiusITS3{4.};
-  static constexpr double mWrapperZSpanITS3{constants::segment::length + 5.};
+  static constexpr double mTolerance{1e-3};
+  static constexpr double mWrapperMinRadiusITS3{constants::radiiInner[0] - mTolerance};
+  static constexpr double mWrapperMaxRadiusITS3{constants::services::radiusOuter + mTolerance};
+  static constexpr double mWrapperZSpanITS3{constants::services::length + mTolerance};
 
  private:
   std::array<std::unique_ptr<ITS3Layer>, constants::nLayers> mIBLayers;

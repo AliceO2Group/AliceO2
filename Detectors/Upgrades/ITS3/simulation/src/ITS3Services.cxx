@@ -13,17 +13,30 @@
 /// \brief Definition of the ITS3Services class
 /// \author Fabrizio Grosa <fgrosa@cern.ch>
 
-#include "ITS3Simulation/ITS3Services.h"
+#include <TGeoManager.h>
+#include <TGeoVolume.h>
+#include <TGeoTube.h>
 
-#include <fairlogger/Logger.h> // for LOG
+#include "ITS3Simulation/ITS3Services.h"
+#include "ITS3Base/SpecsV2.h"
 
 namespace o2::its3
 {
 
 void ITS3Services::createCYSSAssembly(TGeoVolume* motherVolume)
 {
-  // Return the whole assembly
-  LOGP(info, "Creating CYSS Assembly and attaching to {}", motherVolume->GetName());
+  auto cyssVol = new TGeoVolumeAssembly("IBCYSSAssembly");
+  cyssVol->SetVisibility(kTRUE);
+  motherVolume->AddNode(cyssVol, 1., nullptr);
+
+  // Cylinder
+  auto cyssInnerCylSh = new TGeoTubeSeg(constants::services::radiusInner, constants::services::radiusOuter, constants::services::length, 180, 360);
+  auto medPrepreg = gGeoManager->GetMedium("IT3_AS4C200$");
+  auto cyssInnerCylShVol = new TGeoVolume("IBCYSSCylinder", cyssInnerCylSh, medPrepreg);
+  cyssVol->AddNode(cyssInnerCylShVol, 1, new TGeoTranslation(0, 0, 0));
+  cyssVol->AddNode(cyssInnerCylShVol, 2, new TGeoCombiTrans(0, 0, 0, new TGeoRotation("", 180, 0, 0)));
+
+  // TODO Cone
 }
 
 } // namespace o2::its3
