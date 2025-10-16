@@ -639,7 +639,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
       if (GetProcessingSettings().allocDebugLevel >= 2) {
-        std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
+        std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << " (individual" << ((res->mType & GPUMemoryResource::MEMORY_STACK) ? " stack" : "") << ")\n";
       }
       if (res->mType & GPUMemoryResource::MEMORY_STACK) {
         mNonPersistentIndividualAllocations.emplace_back(res);
@@ -896,8 +896,12 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag)
   }
   mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
   mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
+  std::cout << "FOOOO POP " << std::get<2>(mNonPersistentMemoryStack.back()) << " - " << mNonPersistentIndividualAllocations.size();
   for (uint32_t i = std::get<2>(mNonPersistentMemoryStack.back()); i < mNonPersistentIndividualAllocations.size(); i++) {
     GPUMemoryResource* res = mNonPersistentIndividualAllocations[i];
+    if (GetProcessingSettings().allocDebugLevel >= 2 && (res->mPtr || res->mPtrDevice)) {
+      std::cout << "Freeing NonPersistent " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
+    }
     if (res->mReuse < 0) {
       operator delete(res->mPtrDevice, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
     }

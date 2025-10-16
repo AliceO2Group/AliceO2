@@ -106,12 +106,12 @@ void GPUTPCDecompression::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
   mMemoryResInputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputGPU, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionInput");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersGPU, GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBuffersGPU");
-  mResourceTmpIndexes = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBuffersOutput");
-  mResourceTmpClustersOffsets = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBuffersInput");
-  mResourceTmpBufferBeforeFiltering = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpClusterNativeAccessForFiltering, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBufferForFiltering");
-  mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpClusterAccessForFiltering");
-  mResourceNClusterPerSectorRow = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersNClusterPerSectorRow, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpClusterCountForFiltering");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersGPU, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBuffersGPU");
+  mResourceTmpIndexes = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBuffersOutput");
+  mResourceTmpClustersOffsets = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBuffersInput");
+  mResourceTmpBufferBeforeFiltering = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpClusterNativeAccessForFiltering, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBufferForFiltering");
+  mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpClusterAccessForFiltering");
+  mResourceNClusterPerSectorRow = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersNClusterPerSectorRow, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpClusterCountForFiltering");
 }
 
 void GPUTPCDecompression::SetMaxData(const GPUTrackingInOutPointers& io)
