@@ -2006,9 +2006,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                          0,
                          sourceID);
         }
-        if (sourceID != 0 || !mUseSigFiltMC) {
-          mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
-        }
+        mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
       }
     }
   }
