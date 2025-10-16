@@ -367,10 +367,12 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
 //__________________________________________________________________________
 
+#ifdef ENABLE_UPGRADES
 const char* GeometryTGeo::composeSymNameLayer(int d, int lr)
 {
   return Form("%s/%s%d", composeSymNameTRK(d), getTRKLayerPattern(), lr);
 }
+#endif
 
 const char* GeometryTGeo::composeSymNameStave(int d, int lr)
 {

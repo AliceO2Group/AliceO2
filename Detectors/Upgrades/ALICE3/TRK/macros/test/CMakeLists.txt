@@ -10,10 +10,12 @@
 # or submit itself to any jurisdiction.
 
 o2_add_test_root_macro(CheckDigits.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
+                                             O2::ITSMFTSimulation
                                              O2::TRKBase
                                              O2::TRKSimulation
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its COMPILE_ONLY)
+                                             O2::Steer
+                       LABELS trk COMPILE_ONLY)

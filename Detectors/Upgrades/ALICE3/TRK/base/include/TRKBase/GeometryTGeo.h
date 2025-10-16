@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <DetectorsCommonDataFormats/DetMatrixCache.h>
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -127,10 +128,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   TString getMatrixPath(int index) const;
 
+#ifdef ENABLE_UPGRADES
   static const char* composeSymNameTRK(int d)
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TRK).getName(), d);
   }
+#endif
+
   static const char* composeSymNameLayer(int d, int layer);
   static const char* composeSymNameStave(int d, int layer);
   static const char* composeSymNameChip(int d, int lr);

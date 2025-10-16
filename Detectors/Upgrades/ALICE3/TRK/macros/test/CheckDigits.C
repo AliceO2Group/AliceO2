@@ -20,11 +20,9 @@
 #include <TString.h>
 #include <TTree.h>
 
-#include <vector>
-#define ENABLE_UPGRADES
+#include "TRKBase/SegmentationChip.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "TRKBase/SegmentationChip.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
@@ -35,6 +33,8 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 #endif
+
+#define ENABLE_UPGRADES
 
 void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = "o2sim_HitsTRK.root", std::string inputGeom = "", std::string paramfile = "o2sim_par.root")
 {
