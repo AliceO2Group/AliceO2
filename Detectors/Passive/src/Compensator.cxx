@@ -110,7 +110,7 @@ void Compensator::ConstructGeometry()
 void Compensator::createCompensator()
 {
   auto top = gGeoManager->GetVolume("caveRB24");
-  top->AddNode(createMagnetYoke(), 1, new TGeoTranslation(0., 0., 1075. - 1313.347));
+  top->AddNode(createMagnetYoke(), 1, new TGeoTranslation(0., 0., 1000. - 1313.347));
 }
 
 TGeoVolume* Compensator::createMagnetYoke()
