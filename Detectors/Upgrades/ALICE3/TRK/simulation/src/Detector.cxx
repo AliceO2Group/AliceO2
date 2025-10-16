@@ -445,8 +445,15 @@ bool Detector::ProcessHits(FairVolume* vol)
     if (subDetID == 1) {
       fMC->CurrentVolOffID(1, chip);
       fMC->CurrentVolOffID(2, mod);
-      fMC->CurrentVolOffID(3, halfstave);
-      fMC->CurrentVolOffID(4, stave);
+      if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
+        fMC->CurrentVolOffID(3, halfstave);
+        fMC->CurrentVolOffID(4, stave);
+      } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
+        fMC->CurrentVolOffID(3, stave);
+      } else {
+        LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+      }
+
     } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 
     int chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave, mod, chip);
@@ -486,7 +493,7 @@ void Detector::Print(FairVolume* vol, int volume, int subDetID, int layer, int s
     LOG(info) << "off volume name 4  " << fMC->CurrentVolOffName(4) << "  stave: " << stave;
     LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
   } else if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) { // turbo geometry
-    LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(3) << "  stave: " << stave;
+    LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  stave: " << stave;
     LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
   } else {
     LOG(info) << "SubDetector ID: " << subDetID << "  Chip ID: " << chipID;
