@@ -120,7 +120,7 @@ o2_gpu_add_kernel("GPUTPCCFStreamCompaction, scanDown"                    "= TPC
 o2_gpu_add_kernel("GPUTPCCFStreamCompaction, compactDigits"               "= TPCCLUSTERFINDER"                                    LB int32_t iBuf int32_t stage CfChargePos* in CfChargePos* out)
 o2_gpu_add_kernel("GPUTPCCFDecodeZS"                                      "= TPCCLUSTERFINDER"                                    LB int32_t firstHBF)
 o2_gpu_add_kernel("GPUTPCCFDecodeZSLink"                                  "GPUTPCCFDecodeZS"                                      LB int32_t firstHBF)
-o2_gpu_add_kernel("GPUTPCCFDecodeZSDenseLink"                             "GPUTPCCFDecodeZS"                                      LB int32_t firstHBF)
+o2_gpu_add_kernel("GPUTPCCFDecodeZSDenseLink"                             "GPUTPCCFDecodeZS ERRORS"                               LB int32_t firstHBF)
 o2_gpu_add_kernel("GPUTPCCFGather"                                        "="                                                     LB o2::tpc::ClusterNative* dest)
 o2_gpu_add_kernel("GPUTrackingRefitKernel, mode0asGPU"                    "= GLOBALREFIT "                                        LB)
 o2_gpu_add_kernel("GPUTrackingRefitKernel, mode1asTrackParCov"            "= GLOBALREFIT "                                        LB)
