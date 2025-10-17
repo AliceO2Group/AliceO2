@@ -116,25 +116,46 @@ void Detector::configDefault()
 
 void Detector::buildTRKNewVacuumVessel()
 {
-  // Build the TRK detector according to changes proposed during
-  // https://indico.cern.ch/event/1407704/
-  // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
-  // L3 -> 7 cm, L4 -> 9 cm
+  auto& trkPars = TRKBaseParam::Instance();
 
   mLayers.clear();
 
-  LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
-  LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
-  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
-  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 10, 100.e-3);
-  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 19.f, 10, 100.e-3);
-  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
-  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
-  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
-  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+  switch (trkPars.overallGeom) {
+    case kDefaultRadii:
+      // Build the TRK detector according to changes proposed during
+      // https://indico.cern.ch/event/1407704/
+      // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
+      // L3 -> 7 cm, L4 -> 9 cm, L5 -> 12 cm, L6 -> 20 cm
 
-  auto& trkPars = TRKBaseParam::Instance();
+      LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
+      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 9 cm, L5 at 12 cm, L6 at 20 cm");
+      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
+      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
+      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 9.f, 10, 100.e-3);
+      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
+      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
+      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
+      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
+      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
+      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+      break;
+    case kModRadii:
+      LOGP(warning, "Loading \"Alternative\" configuration for ALICE3 TRK");
+      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 11 cm, L5 at 15 cm, L6 at 19 cm");
+      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
+      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
+      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
+      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 10, 100.e-3);
+      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 19.f, 10, 100.e-3);
+      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
+      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
+      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
+      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+      break;
+    default:
+      LOGP(warning, "Unknown option {} for buildTRKNewVacuumVessel", trkPars.overallGeom);
+      break;
+  }
 
   // Middle layers
   mLayers[0].setLayout(trkPars.layoutML);
