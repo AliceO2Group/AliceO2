@@ -40,6 +40,7 @@
 
 #include "GPULogging.h"
 #include "utils/strtag.h"
+#include "utils/stdspinlock.h"
 
 #ifdef GPUCA_O2_LIB
 #include "GPUO2InterfaceConfiguration.h"
@@ -589,6 +590,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     throw std::bad_alloc();
   }
   size_t retVal;
+  stdspinlock spinlock(mMemoryMutex);
   if ((res->mType & GPUMemoryResource::MEMORY_STACK) && memorypoolend) {
     retVal = ptrDiff((res->*setPtr)((char*)1), (char*)(1));
     memorypoolend = (void*)((char*)memorypoolend - GPUProcessor::getAlignmentMod<GPUCA_MEMALIGN>(memorypoolend));
@@ -642,6 +644,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
         std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << " (individual" << ((res->mType & GPUMemoryResource::MEMORY_STACK) ? " stack" : "") << ")\n";
       }
       if (res->mType & GPUMemoryResource::MEMORY_STACK) {
+        stdspinlock spinlock(mMemoryMutex);
         mNonPersistentIndividualAllocations.emplace_back(res);
       }
       if ((size_t)res->mPtr % GPUCA_BUFFER_ALIGNMENT) {
@@ -722,6 +725,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(int16_t ires, GPUOutputContro
 
 void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
 {
+  stdspinlock spinlock(mMemoryMutex);
   if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     char* retVal = new (std::align_val_t(GPUCA_BUFFER_ALIGNMENT)) char[size];
     if ((type & GPUMemoryResource::MEMORY_STACK)) {
@@ -763,6 +767,7 @@ void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
 
 void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
 {
+  stdspinlock spinlock(mMemoryMutex);
   if (mVolatileMemoryStart == nullptr) {
     mVolatileMemoryStart = mDeviceMemoryPool;
   }
@@ -788,6 +793,7 @@ void* GPUReconstruction::AllocateVolatileMemory(size_t size, bool device)
     return AllocateVolatileDeviceMemory(size);
   }
   char* retVal = new (std::align_val_t(GPUCA_BUFFER_ALIGNMENT)) char[size];
+  stdspinlock spinlock(mMemoryMutex);
   mVolatileChunks.emplace_back(retVal, alignedDeleter());
   return retVal;
 }
@@ -912,6 +918,7 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag, cons
     res->mPtrDevice = nullptr;
   }
   if (!proc) {
+    stdspinlock spinlock(mMemoryMutex);
     mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
     mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
     mNonPersistentIndividualAllocations.resize(std::get<2>(mNonPersistentMemoryStack.back()));

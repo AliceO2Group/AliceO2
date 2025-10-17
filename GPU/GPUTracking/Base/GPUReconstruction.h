@@ -25,6 +25,7 @@
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
+#include <atomic>
 
 #include "GPUDataTypes.h"
 #include "GPUMemoryResource.h"
@@ -390,6 +391,7 @@ class GPUReconstruction
   std::vector<std::unique_ptr<char[], alignedDeleter>> mNonPersistentIndividualDirectAllocations;
   std::vector<std::unique_ptr<char[], alignedDeleter>> mDirectMemoryChunks;
   std::vector<std::unique_ptr<char[], alignedDeleter>> mVolatileChunks;
+  std::atomic_flag mMemoryMutex = ATOMIC_FLAG_INIT;
 
   std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;
 
