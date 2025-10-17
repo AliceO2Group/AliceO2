@@ -103,6 +103,7 @@ class GPUTPCTracker : public GPUProcessor
   void* SetPointersTracklets(void* mem);
   void* SetPointersOutput(void* mem);
   void RegisterMemoryAllocation();
+  bool MemoryReuseAllowed();
 
   int16_t MemoryResLinks() const { return mMemoryResLinks; }
   int16_t MemoryResScratchHost() const { return mMemoryResScratchHost; }
