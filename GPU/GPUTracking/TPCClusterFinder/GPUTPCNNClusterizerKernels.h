@@ -57,7 +57,7 @@ class GPUTPCNNClusterizerKernels : public GPUKernelTemplate
     determineClass2Labels = 4,
     publishClass1Regression = 5,
     publishClass2Regression = 6,
-    publishDeconvolutionFlags = 7,
+    publishDeconvolutionFlags = 7
   };
 
   template <int32_t iKernel = defaultKernel, typename... Args>
@@ -66,7 +66,7 @@ class GPUTPCNNClusterizerKernels : public GPUKernelTemplate
  private:
   static GPUd() int32_t padOffset(int32_t, int32_t);
   static GPUd() int32_t rowOffset(int32_t, int32_t);
-  static GPUd() bool isBoundary(int32_t, int32_t, int32_t);
+  static GPUd() bool isBoundary(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
   static GPUd() bool isBoundaryPublish(int32_t, int32_t, float&, float&);
 };
 
