@@ -216,6 +216,7 @@ AddOption(optSpecialCode, int8_t, -1, "", 0, "Insert GPUCA_RTC_SPECIAL_CODE spec
 AddOption(deterministic, bool, false, "", 0, "Compile RTC in deterministic mode, with NO_FAST_MATH flags and GPUCA_DETERMINISTIC_MODE define")
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddOption(overrideWarpSize, int32_t, -1, "", 0, "Override the warp size to be used for RTC")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -624,6 +625,9 @@ AddOption(deviceType, std::string, "CPU", "", 0, "Device type, CPU | CUDA | HIP 
 AddOption(forceDeviceType, bool, true, "", 0, "force device type, otherwise allows fall-back to CPU")
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
 AddOption(dump, int32_t, 0, "", 0, "Dump events for standalone benchmark: 1 = dump events, 2 = dump events and skip processing in workflow")
+AddOption(dumpFirst, int32_t, 0, "", 0, "First event to dump (referring to tfCounter)")
+AddOption(dumpLast, int32_t, -1, "", 0, "Last event to dump (-1 = all)")
+AddOption(dumpFolder, std::string, "", "", 0, "Folder to which to write dump files, [P] is replaced by process id")
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
 AddOption(rundEdx, int32_t, -1, "", 0, "Enable/disable dEdx processing (-1 for autoselect)")
 AddOption(dEdxSplineTopologyCorrFile, std::string, "", "", 0, "File name of the dE/dx spline track topology correction file")

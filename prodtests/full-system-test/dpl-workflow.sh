@@ -235,6 +235,9 @@ if [[ $EPNSYNCMODE == 1 ]]; then
     fi
   fi
 fi
+if [[ $GPUTYPE != "CPU" && $NGPUS > 1 ]]; then
+  GPU_CONFIG_KEY+="GPU_global.dumpFolder=gpu_dump_[P];"
+fi
 if [[ $SYNCRAWMODE == 1 ]]; then
   GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;GPU_proc.throttleAlarms=1;"
   if [[ $RUNTYPE == "PHYSICS" || $RUNTYPE == "COSMICS" || $RUNTYPE == "TECHNICAL" ]]; then

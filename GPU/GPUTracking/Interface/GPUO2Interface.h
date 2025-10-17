@@ -77,8 +77,8 @@ class GPUO2Interface
 
   int32_t RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, uint32_t iThread = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
   void Clear(bool clearOutputs, uint32_t iThread = 0);
-  void DumpEvent(int32_t nEvent, GPUTrackingInOutPointers* data);
-  void DumpSettings();
+  void DumpEvent(int32_t nEvent, GPUTrackingInOutPointers* data, uint32_t iThread, const char* dir = "");
+  void DumpSettings(uint32_t iThread, const char* dir = "");
 
   void GetITSTraits(o2::its::TrackerTraits<7>*& trackerTraits, o2::its::VertexerTraits<7>*& vertexerTraits, o2::its::TimeFrame<7>*& timeFrame);
   const o2::base::Propagator* GetDeviceO2Propagator(int32_t iThread = 0) const;

@@ -214,11 +214,11 @@ int32_t ReadConfiguration(int argc, char** argv)
     }
   }
   if (configStandalone.setO2Settings) {
-    if (!(configStandalone.inputcontrolmem && configStandalone.outputcontrolmem)) {
-      printf("setO2Settings requires the usage of --inputMemory and --outputMemory as in O2\n");
-      return 1;
-    }
-    if (configStandalone.runGPU) {
+    if (configStandalone.runGPU && configStandalone.proc.debugLevel <= 1) {
+      if (!(configStandalone.inputcontrolmem && configStandalone.outputcontrolmem)) {
+        printf("setO2Settings requires the usage of --inputMemory and --outputMemory as in O2\n");
+        return 1;
+      }
       configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
     }
     configStandalone.rec.tpc.trackReferenceX = 83;
