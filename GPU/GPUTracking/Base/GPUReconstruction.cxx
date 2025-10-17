@@ -877,8 +877,11 @@ void GPUReconstruction::PushNonPersistentMemory(uint64_t tag)
   mNonPersistentMemoryStack.emplace_back(mHostMemoryPoolEnd, mDeviceMemoryPoolEnd, mNonPersistentIndividualAllocations.size(), mNonPersistentIndividualDirectAllocations.size(), tag);
 }
 
-void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag)
+void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag, const GPUProcessor* proc)
 {
+  if (proc && GetProcessingSettings().memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+    GPUFatal("Processor-depending memory-free works only with allocation strategy ALLOCATION_INDIVIDUAL");
+  }
   if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().disableMemoryReuse) {
     return;
   }
@@ -888,17 +891,17 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag)
   if (tag != 0 && std::get<4>(mNonPersistentMemoryStack.back()) != tag) {
     GPUFatal("Tag mismatch when popping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<4>(mNonPersistentMemoryStack.back())).c_str());
   }
-  if ((GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) && (IsGPU() || GetProcessingSettings().forceHostMemoryPoolSize)) {
+  if (!proc && (GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) && (IsGPU() || GetProcessingSettings().forceHostMemoryPoolSize)) {
     printf("Allocated memory after %30s (%8s) (Stack %zu): ", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], qTag2Str(std::get<4>(mNonPersistentMemoryStack.back())).c_str(), mNonPersistentMemoryStack.size());
     PrintMemoryOverview();
     printf("%76s", "");
     PrintMemoryMax();
   }
-  mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
-  mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
-  std::cout << "FOOOO POP " << std::get<2>(mNonPersistentMemoryStack.back()) << " - " << mNonPersistentIndividualAllocations.size();
   for (uint32_t i = std::get<2>(mNonPersistentMemoryStack.back()); i < mNonPersistentIndividualAllocations.size(); i++) {
     GPUMemoryResource* res = mNonPersistentIndividualAllocations[i];
+    if (proc && res->mProcessor != proc) {
+      continue;
+    }
     if (GetProcessingSettings().allocDebugLevel >= 2 && (res->mPtr || res->mPtrDevice)) {
       std::cout << "Freeing NonPersistent " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
     }
@@ -908,9 +911,13 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag)
     res->mPtr = nullptr;
     res->mPtrDevice = nullptr;
   }
-  mNonPersistentIndividualAllocations.resize(std::get<2>(mNonPersistentMemoryStack.back()));
-  mNonPersistentIndividualDirectAllocations.resize(std::get<3>(mNonPersistentMemoryStack.back()));
-  mNonPersistentMemoryStack.pop_back();
+  if (!proc) {
+    mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
+    mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
+    mNonPersistentIndividualAllocations.resize(std::get<2>(mNonPersistentMemoryStack.back()));
+    mNonPersistentIndividualDirectAllocations.resize(std::get<3>(mNonPersistentMemoryStack.back()));
+    mNonPersistentMemoryStack.pop_back();
+  }
 }
 
 void GPUReconstruction::BlockStackedMemory(GPUReconstruction* rec)

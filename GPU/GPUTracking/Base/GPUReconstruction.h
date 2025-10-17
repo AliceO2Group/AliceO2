@@ -179,7 +179,7 @@ class GPUReconstruction
   void ReturnVolatileMemory();
   ThrustVolatileAllocator getThrustVolatileDeviceAllocator();
   void PushNonPersistentMemory(uint64_t tag);
-  void PopNonPersistentMemory(RecoStep step, uint64_t tag);
+  void PopNonPersistentMemory(RecoStep step, uint64_t tag, const GPUProcessor* proc = nullptr);
   void BlockStackedMemory(GPUReconstruction* rec);
   void UnblockStackedMemory();
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
