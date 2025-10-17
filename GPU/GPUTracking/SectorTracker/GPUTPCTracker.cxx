@@ -102,9 +102,9 @@ void GPUTPCTracker::RegisterMemoryAllocation()
   uint32_t type = GPUMemoryResource::MEMORY_SCRATCH;
   if (mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
     type |= GPUMemoryResource::MEMORY_CUSTOM;
-    mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type, "TPCTrackerTracklets");
+    mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type | GPUMemoryResource::MEMORY_STACK, "TPCTrackerTracklets");
   }
-  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersOutput, type, "TPCTrackerTracks");
+  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersOutput, type, "TPCTrackerTracks"); // TODO: Ideally this should eventually go on the stack, so that we can free it after the first phase of track merging
 }
 
 GPUhd() void* GPUTPCTracker::SetPointersTracklets(void* mem)
