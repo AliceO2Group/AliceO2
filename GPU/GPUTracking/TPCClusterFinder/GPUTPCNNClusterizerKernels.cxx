@@ -155,9 +155,9 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
   uint32_t transient_index = glo_idx - (base_idx * clustererNN.mNnClusterizerRowTimeSizeThreads);
 
   // Early exit for out-of-bounds threads
-  // if (base_idx + batchStart >= clusterer.mPmemory->counters.nClusters) {
-  //   return;
-  // }
+  if (base_idx + batchStart >= clusterer.mPmemory->counters.nClusters) {
+    return;
+  }
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CfArray2D<uint8_t> isPeakMap(clusterer.mPpeakMap);
 
