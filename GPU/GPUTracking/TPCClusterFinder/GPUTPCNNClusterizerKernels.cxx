@@ -72,8 +72,8 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
   int32_t time = static_cast<int>(peak.time());
   float central_charge = static_cast<float>(chargeMap[peak].unpack());
   int32_t row_offset = GPUTPCNNClusterizerKernels::rowOffset(row, clustererNN.mNnClusterizerSizeInputRow);
-  const int32_t iroc_row = 63 + row_offset;
-  const int32_t maxrow = o2::tpc::constants::MAXGLOBALPADROW + row_offset;
+  const int32_t iroc_row = 63 + clustererNN.mNnClusterizerSizeInputRow;
+  const int32_t maxrow = o2::tpc::constants::MAXGLOBALPADROW + clustererNN.mNnClusterizerSizeInputRow;
   const int32_t npads_row = GPUTPCGeometry::NPads(row);
 
   for (int32_t r = -clustererNN.mNnClusterizerSizeInputRow; r <= clustererNN.mNnClusterizerSizeInputRow; ++r) {
@@ -169,45 +169,18 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
   int32_t pad = static_cast<int>(peak.pad());
   int32_t time = static_cast<int>(peak.time());
 
-  const int32_t npads_row = GPUTPCGeometry::NPads(row);
-
   // Handle index data with fewer branches
   if (clustererNN.mNnClusterizerAddIndexData && transient_index >= clustererNN.mNnClusterizerRowTimeSize) {
-    // int32_t data_idx = transient_index - clustererNN.mNnClusterizerRowTimeSize;
-    // uint32_t write_idx = base_idx * clustererNN.mNnClusterizerElementSize + clustererNN.mNnClusterizerChargeArraySize + data_idx;
-//
-    // float index_values[3] = {
-    //   static_cast<float>(sector) / o2::tpc::constants::MAXSECTOR,
-    //   static_cast<float>(row) / o2::tpc::constants::MAXGLOBALPADROW,
-    //   static_cast<float>(pad) / GPUTPCGeometry::NPads(row)};
-//
-    // if (dtype == 0) {
-    //   clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)index_values[data_idx];
-    // } else {
-    //   clustererNN.mInputData_32[write_idx] = index_values[data_idx];
-    // }
-//
-    // // Handle deconvolution flags only once per cluster (last thread in element)
-    // if (!clustererNN.mNnClusterizerSetDeconvolutionFlags && data_idx == 2) {
-    //   uint8_t cluster_flags = 0;
-    //   for (uint16_t i = 0; i < 8; i++) {
-    //     Delta2 d = cfconsts::InnerNeighbors[i];
-    //     CfChargePos tmp_pos = peak.delta(d);
-    //     cluster_flags += CfUtils::isPeak(isPeakMap[tmp_pos]);
-    //   }
-    //   clustererNN.mClusterFlags[2 * base_idx] = cluster_flags;
-    //   clustererNN.mClusterFlags[2 * base_idx + 1] = cluster_flags;
-    // }
-    // return;
     uint32_t write_idx = base_idx * clustererNN.mNnClusterizerElementSize + clustererNN.mNnClusterizerChargeArraySize;
+    const int32_t npads = GPUTPCGeometry::NPads(row);
     if (dtype == 0) {
       clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)(static_cast<float>(sector) / o2::tpc::constants::MAXSECTOR);
       clustererNN.mInputData_16[write_idx + 1] = (OrtDataType::Float16_t)(static_cast<float>(row) / o2::tpc::constants::MAXGLOBALPADROW);
-      clustererNN.mInputData_16[write_idx + 2] = (OrtDataType::Float16_t)(static_cast<float>(pad) / npads_row);
+      clustererNN.mInputData_16[write_idx + 2] = (OrtDataType::Float16_t)(static_cast<float>(pad) / npads);
     } else {
       clustererNN.mInputData_32[write_idx] = static_cast<float>(sector) / o2::tpc::constants::MAXSECTOR;
       clustererNN.mInputData_32[write_idx + 1] = static_cast<float>(row) / o2::tpc::constants::MAXGLOBALPADROW;
-      clustererNN.mInputData_32[write_idx + 2] = static_cast<float>(pad) / npads_row;
+      clustererNN.mInputData_32[write_idx + 2] = static_cast<float>(pad) / npads;
     }
   }
 
@@ -220,46 +193,45 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
 
     // Early boundary check for row
     const int32_t target_row = row + row_idx - clustererNN.mNnClusterizerSizeInputRow;
-    const int8_t is_row_boundary = (target_row < 0) || (target_row > (o2::tpc::constants::MAXGLOBALPADROW - 1));
-    const int32_t target_time = time + time_idx - clustererNN.mNnClusterizerSizeInputTime;
-    const uint8_t is_time_boundary = (target_time < 0) || (target_time >= clustererNN.maxAllowedTimebin);
-    const float inverse_central_charge = 1.f / central_charge; // multiply by inverse is cheaper than divide
+    float output_value = clustererNN.mNnClusterizerBoundaryFillValue;
 
-    // Calculate offsets
-    // int32_t row_offset = GPUTPCNNClusterizerKernels::rowOffset(row, clustererNN.mNnClusterizerSizeInputRow);
-    // int32_t pad_offset = GPUTPCNNClusterizerKernels::padOffset(row, target_row);
-    const int32_t row_offset = GPUTPCNNClusterizerKernels::rowOffset(row, clustererNN.mNnClusterizerSizeInputRow);
-    const int32_t iroc_row = 63 + row_offset;
-    const int32_t maxrow = o2::tpc::constants::MAXGLOBALPADROW + row_offset;
-    const int32_t p_local = pad + GPUTPCNNClusterizerKernels::padOffset(row, target_row);
-    const int32_t boundary_row = target_row + row_offset;
-    const int32_t npads_reference = is_row_boundary ? 0 : GPUTPCGeometry::NPads(boundary_row - clustererNN.mNnClusterizerSizeInputRow);
-    const float boundary_val = clustererNN.mNnClusterizerBoundaryFillValue;
+    if ((row < 63 && target_row > 62) || (target_row < 0) || (row > 62 && target_row < 63) || (target_row >= o2::tpc::constants::MAXGLOBALPADROW)) {
+      for (int32_t target_pad = 0; target_pad < clustererNN.mNnClusterizerFullPadSize; ++target_pad) {
+        if (dtype == 0) {
+          clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)output_value;
+        } else {
+          clustererNN.mInputData_32[write_idx] = output_value;
+        }
+        write_idx += clustererNN.mNnClusterizerFullTimeSize;
+      }
+      return;
+    } else {
+      // Calculate offsets
+      const int32_t target_time = time + time_idx - clustererNN.mNnClusterizerSizeInputTime;
+      const uint8_t is_time_boundary = (target_time < 0) || (target_time >= clustererNN.maxAllowedTimebin);
+      const float inverse_central_charge = 1.f / central_charge; // multiply by inverse is cheaper than divide
+      const int32_t p_local = pad + GPUTPCNNClusterizerKernels::padOffset(row, target_row);
+      const int32_t npads = GPUTPCGeometry::NPads(target_row);
 
-    float output_value = boundary_val;
+      const int32_t start_pad = -clustererNN.mNnClusterizerSizeInputPad + p_local;
+      const int32_t end_pad = clustererNN.mNnClusterizerSizeInputPad + p_local;
 
-    const int32_t start_pad = -clustererNN.mNnClusterizerSizeInputPad + p_local;
-    const int32_t end_pad = clustererNN.mNnClusterizerSizeInputPad + p_local;
-
-    for (int32_t target_pad = start_pad; target_pad <= end_pad; ++target_pad) {
-      if (is_row_boundary) {
-        output_value = boundary_val;
-      } else {
-        const uint8_t is_boundary = is_time_boundary || GPUTPCNNClusterizerKernels::isBoundary(boundary_row, target_pad, maxrow, iroc_row, npads_row, npads_reference);
-        if (!is_boundary) {
+      for (int32_t target_pad = start_pad; target_pad <= end_pad; ++target_pad) {
+        if (target_pad >= npads || target_pad < 0 || is_time_boundary) {
+          output_value = clustererNN.mNnClusterizerBoundaryFillValue;
+        } else {
           CfChargePos pos(target_row, target_pad, target_time);
           // one load + one multiply
           output_value = chargeMap[pos].unpack() * inverse_central_charge;
-        } else {
-          output_value = boundary_val;
         }
+        if (dtype == 0) {
+          clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)output_value;
+        } else {
+          clustererNN.mInputData_32[write_idx] = output_value;
+        }
+        write_idx += clustererNN.mNnClusterizerFullTimeSize;
       }
-      if (dtype == 0) {
-        clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)output_value;
-      } else {
-        clustererNN.mInputData_32[write_idx] = output_value;
-      }
-      write_idx += clustererNN.mNnClusterizerFullTimeSize;
+      return;
     }
   }
 }

@@ -642,7 +642,6 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   // Maximum of 4 lanes supported
   HighResTimer* nnTimers[12];
-  int32_t countLoops = 0;
 
   if (GetProcessingSettings().nn.applyNNclusterizer) {
     int32_t deviceId = -1;
@@ -1036,10 +1035,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             // Filling the data
             if (mRec->IsGPU() || GetProcessingSettings().nn.nnClusterizerForceGpuInputFill) {
               // Fills element by element of each input matrix -> better parallelizability, but worse on CPU due to unnecessary computations
-              for(int throughput_counter = 0; throughput_counter < 16; throughput_counter++) { // Loop to increase throughput on GPU, at least for large batch sizes
-                runKernel<GPUTPCNNClusterizerKernels, GPUTPCNNClusterizerKernels::fillInputNNGPU>({GetGrid(clustererNNShadow.mNnClusterizerBatchedMode * clustererNNShadow.mNnClusterizerRowTimeSizeThreads , lane), krnlRunRangeNone}, iSector, clustererNNShadow.mNnInferenceInputDType, propagateMCLabels, batchStart);
-                countLoops++;
-              }
+              runKernel<GPUTPCNNClusterizerKernels, GPUTPCNNClusterizerKernels::fillInputNNGPU>({GetGrid(clustererNNShadow.mNnClusterizerBatchedMode * clustererNNShadow.mNnClusterizerRowTimeSizeThreads , lane), krnlRunRangeNone}, iSector, clustererNNShadow.mNnInferenceInputDType, propagateMCLabels, batchStart);
             } else {
               // Fills the whole input matrix at once -> better performance on CPU, but worse parallelizability
               runKernel<GPUTPCNNClusterizerKernels, GPUTPCNNClusterizerKernels::fillInputNNCPU>({GetGrid(iSize, lane), krnlRunRangeNone}, iSector, clustererNNShadow.mNnInferenceInputDType, propagateMCLabels, batchStart);
@@ -1142,7 +1138,6 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
               LOG(info) << "(NNCLUS, GPUChainTrackingClusterizer, this=" << this << ") Done with CF regression. (clustererNN=" << &clustererNN << ", clustererNNShadow=" << &clustererNNShadow << ")";
             }
           }
-          LOG(info) << "countLoops: " << countLoops;
 #else
           GPUFatal("Project not compiled with neural network clusterization. Aborting.");
 #endif
