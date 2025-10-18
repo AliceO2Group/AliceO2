@@ -785,11 +785,11 @@ int GeometryTGeo::extractNumberOfModulesMLOT(int lay) const
 {
   int numberOfModules = 0;
 
-  std::string staveName = Form("%s%d", getTRKStavePattern(), lay);
+  std::string staveName = Form("%s%d", (mNumberOfHalfStaves[lay] == 2 ? getTRKHalfStavePattern() : getTRKStavePattern()), lay);
   TGeoVolume* staveV = gGeoManager->GetVolume(staveName.c_str());
 
   if (staveV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKStavePattern() << " is not in the geometry";
+    LOG(fatal) << getName() << " volume " << (mNumberOfHalfStaves[lay] == 2 ? getTRKHalfStavePattern() : getTRKStavePattern()) << " is not in the geometry";
   }
 
   // Loop on all staveV nodes, count Module volumes by checking names

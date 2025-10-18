@@ -386,7 +386,6 @@ bool Detector::ProcessHits(FairVolume* vol)
   int subDetID = -1;
   int layer = -1;
   int volume = 0;
-  int stave = -1;
   int volID = vol->getMCid();
 
   bool notSens = false;
