@@ -244,10 +244,6 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::det
   if (glo_idx + batchStart >= clusterer.mPmemory->counters.nClusters || glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
     return;
   }
-  if (glo_idx + batchStart >= clustererNN.mNnClusterizerTotalClusters) {
-    printf("Error: Class output index out of bounds! %d >= %d (glo_idx: %d, batchStart: %d, mNnClusterizerBatchedMode: %d, mNnClusterizerModelClassNumOutputNodes: %d, clusterer.mPmemory->counters.nClusters %d)\n",
-           glo_idx + batchStart, clustererNN.mNnClusterizerTotalClusters, glo_idx, batchStart, clustererNN.mNnClusterizerBatchedMode, clustererNN.mNnClusterizerModelClassNumOutputNodes, clusterer.mPmemory->counters.nClusters);
-  }
   if (clustererNN.mNnClusterizerUseClassification) {
     if (dtype == 0) {
       clustererNN.mOutputDataClass[glo_idx + batchStart] = (int32_t)((clustererNN.mModelProbabilities_16[glo_idx]).ToFloat() > clustererNN.mNnClassThreshold);
@@ -335,11 +331,6 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
         labelAcc);
     }
     return;
-  }
-
-  if (full_glo_idx >=  clustererNN.mNnClusterizerBatchedMode * clustererNN.mNnClusterizerModelReg1NumOutputNodes) {
-    printf("Error: Global index out of bounds! %d >= %d (full_glo_idx: %d, maxClusterNum: %d, batchStart: %d)\n",
-           full_glo_idx, clustererNN.mNnClusterizerBatchedMode * clustererNN.mNnClusterizerModelReg1NumOutputNodes, full_glo_idx, maxClusterNum, batchStart);
   }
 
   tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow;
