@@ -573,6 +573,7 @@ AddOption(noEvents, bool, false, "", 0, "Run without data (e.g. for field visual
 AddOption(eventDisplay, int32_t, 0, "display", 'd', "Show standalone event display", def(1))
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data, even if input is triggered")
+AddOption(setMaxTimeBin, int32_t, -2, "", 0, "maximum time bin of continuous data, 0 for triggered events, -1 for automatic continuous mode, -2 for automatic continuous / triggered")
 AddOption(outputcontrolmem, uint64_t, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ul), message("Using %s bytes as output memory"))
 AddOption(inputcontrolmem, uint64_t, 0, "inputMemory", 0, "Use predefined input buffer of this size", min(0ul), message("Using %s bytes as input memory"))
 AddOption(cpuAffinity, int32_t, -1, "", 0, "Pin CPU affinity to this CPU core", min(-1))
