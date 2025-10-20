@@ -8,11 +8,15 @@ namespace o2::trk
 {
 
 struct VDSensorDesc {
-  enum class Kind { Barrel,
-                    Disk };
+  enum class Region { Barrel,
+                      Disk };
+  enum class Type { Curved,
+                    Plane,
+  };
   std::string name; // sensor volume name
   int petal = -1;
-  Kind kind = Kind::Barrel;
+  Region region = Region::Barrel;
+  Type type = Type::Curved;
   int idx = -1; // layer or disk index
 };
 
@@ -21,7 +25,7 @@ std::vector<VDSensorDesc>& vdSensorRegistry();
 
 // Utilities (defined in VDGeometryBuilder.cxx)
 void clearVDSensorRegistry();
-void registerSensor(const std::string& volName, int petal, VDSensorDesc::Kind kind, int idx);
+void registerSensor(const std::string& volName, int petal, VDSensorDesc::Region region, VDSensorDesc::Type type, int idx);
 
 } // namespace o2::trk
 #endif
