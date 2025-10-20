@@ -35,9 +35,9 @@ std::vector<VDSensorDesc>& vdSensorRegistry() { return gVDSensors; }
 
 void clearVDSensorRegistry() { gVDSensors.clear(); }
 
-void registerSensor(const std::string& volName, int petal, VDSensorDesc::Kind kind, int idx)
+void registerSensor(const std::string& volName, int petal, VDSensorDesc::Region region, VDSensorDesc::Type type, int idx)
 {
-  gVDSensors.push_back({volName, petal, kind, idx});
+  gVDSensors.push_back({volName, petal, region, type, idx});
 }
 
 static inline std::string makeSensorName(const std::string& layerName, int layerNumber)
@@ -208,7 +208,7 @@ inline void buildIrisCutoutFromPetalSolid(int nPetals)
 } // namespace
 
 // =================== Specs & constants (ROOT units: cm) ===================
-static constexpr double kX2X0 = 100.e-4f; // all silicon
+static constexpr double kX2X0 = 0.001f; // 0.1% X0 per layer
 static constexpr double kLenZ_cm = 50.0f; // L0/L1/L2 Z length
 
 // Radii (cm)
@@ -392,14 +392,14 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
 
     auto* tr = new TGeoCombiTrans(x, y, z, rot);
     L0.createLayer(petalAsm, tr);
+    registerSensor(makeSensorName(nameL0, 0), petalID, VDSensorDesc::Region::Barrel, VDSensorDesc::Type::Plane, /*idx*/ 0);
   } else {
     VDCylindricalLayer L0(0,
                           nameL0,
                           kX2X0, rL0_cm, phiL0_deg, kLenZ_cm, kLenZ_cm);
     L0.createLayer(petalAsm, nullptr);
+    registerSensor(makeSensorName(nameL0, 0), petalID, VDSensorDesc::Region::Barrel, VDSensorDesc::Type::Curved, /*idx*/ 0);
   }
-
-  registerSensor(makeSensorName(nameL0, 0), petalID, VDSensorDesc::Kind::Barrel, /*idx*/ 0);
 
   const std::string nameL1 =
     std::string(o2::trk::GeometryTGeo::getTRKPetalPattern()) + std::to_string(petalID) + "_" +
@@ -409,7 +409,7 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
                         nameL1,
                         kX2X0, rL1_cm, phiL1_deg, kLenZ_cm, kLenZ_cm);
   L1.createLayer(petalAsm, nullptr);
-  registerSensor(makeSensorName(nameL1, 1), petalID, VDSensorDesc::Kind::Barrel, /*idx*/ 1);
+  registerSensor(makeSensorName(nameL1, 1), petalID, VDSensorDesc::Region::Barrel, VDSensorDesc::Type::Curved, /*idx*/ 1);
 
   const std::string nameL2 =
     std::string(o2::trk::GeometryTGeo::getTRKPetalPattern()) + std::to_string(petalID) + "_" +
@@ -419,7 +419,7 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
                         nameL2,
                         kX2X0, rL2_cm, phiL2_deg, kLenZ_cm, kLenZ_cm);
   L2.createLayer(petalAsm, nullptr);
-  registerSensor(makeSensorName(nameL2, 2), petalID, VDSensorDesc::Kind::Barrel, /*idx*/ 2);
+  registerSensor(makeSensorName(nameL2, 2), petalID, VDSensorDesc::Region::Barrel, VDSensorDesc::Type::Curved, /*idx*/ 2);
 }
 
 // Build cold plate (cylindrical) in local coordinates, and add it to the petal assembly.
@@ -632,7 +632,7 @@ static void addDisks(TGeoVolume* petalAsm, int nPetals, int petalID)
     // Local Z placement only
     auto* tr = new TGeoTranslation(0.0, 0.0, static_cast<Double_t>(disk.getZPosition()));
     disk.createLayer(petalAsm, tr);
-    registerSensor(makeSensorName(nameD, i), petalID, VDSensorDesc::Kind::Disk, /*idx*/ i);
+    registerSensor(makeSensorName(nameD, i), petalID, VDSensorDesc::Region::Disk, VDSensorDesc::Type::Plane, /*idx*/ i);
   }
 }
 

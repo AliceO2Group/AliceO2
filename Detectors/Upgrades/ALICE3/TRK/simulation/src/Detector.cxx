@@ -56,28 +56,6 @@ Detector::Detector(bool active)
     configServices();
   }
 
-  mSensorName.resize(mNumberOfVolumes); // hardcoded. TODO: change size when a different naming scheme for VD is in place. Ideally could be 4 petals + 8 layers = 12
-  int VDvolume = 0;
-  for (int i = 0; i < 4; i++) { /// VD
-    for (int j = 0; j < 3; j++) {
-      mSensorName[VDvolume].Form("%s%d_%s%d_%s%d", GeometryTGeo::getTRKPetalPattern(), i, GeometryTGeo::getTRKPetalLayerPattern(), j, GeometryTGeo::getTRKSensorPattern(), j);
-      VDvolume++;
-    }
-    for (int j = 0; j < 6; j++) {
-      mSensorName[VDvolume].Form("%s%d_%s%d_%s%d", GeometryTGeo::getTRKPetalPattern(), i, GeometryTGeo::getTRKPetalDiskPattern(), j, GeometryTGeo::getTRKSensorPattern(), j);
-      VDvolume++;
-    }
-  }
-
-  for (int i = 0; i < 8; i++) { /// MLOT
-    mSensorName[VDvolume].Form("%s%d", GeometryTGeo::getTRKSensorPattern(), i);
-    VDvolume++;
-  }
-
-  for (auto vd : mSensorName) {
-    std::cout << "Volume name: " << vd << std::endl;
-  }
-
   LOGP(info, "Summary of TRK configuration:");
   for (auto& layer : mLayers) {
     LOGP(info, "Layer: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", layer.getNumber(), layer.getName(), layer.getInnerRadius(), layer.getZ(), layer.getChipThickness());
@@ -262,12 +240,34 @@ void Detector::createGeometry()
   mServices.createServices(vTRK);
 
   // Build the VD using the petal builder
-  o2::trk::clearVDSensorRegistry();
-
   // Choose the VD design (here: IRIS4 by default).
   // You can wire this to a parameter in TRKBaseParam if desired.
   // Alternatives: createIRIS5Geometry(vTRK); createIRIS4aGeometry(vTRK);
+
+  o2::trk::clearVDSensorRegistry();
   o2::trk::createIRIS4Geometry(vTRK);
+
+  // Fill sensor names from registry right after geometry creation
+  const auto& regs = o2::trk::vdSensorRegistry();
+  mNumberOfVolumesVD = static_cast<int>(regs.size());
+  mNumberOfVolumes = mNumberOfVolumesVD + mLayers.size();
+  mSensorName.resize(mNumberOfVolumes);
+
+  // Fill VD sensor names from registry
+  int VDvolume = 0;
+  for (const auto& sensor : regs) {
+    mSensorName[VDvolume] = sensor.name;
+    VDvolume++;
+  }
+
+  // Add MLOT sensor names
+  for (int i = 0; i < mLayers.size(); i++) {
+    mSensorName[VDvolume++].Form("%s%d", GeometryTGeo::getTRKSensorPattern(), i);
+  }
+
+  for (auto vd : mSensorName) {
+    std::cout << "Volume name: " << vd << std::endl;
+  }
 
   mServices.excavateFromVacuum("IRIS_CUTOUTsh");
   mServices.registerVacuum(vTRK);
@@ -304,7 +304,7 @@ void Detector::defineSensitiveVolumes()
     LOGP(info, "Adding VD Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
     // Optionally track first/last layers for TR references:
-    if (s.kind == o2::trk::VDSensorDesc::Kind::Barrel && (s.idx == 0 /*innermost*/)) {
+    if (s.region == o2::trk::VDSensorDesc::Region::Barrel && (s.idx == 0 /*innermost*/)) {
       mFirstOrLastLayers.push_back(s.name);
     }
   }
