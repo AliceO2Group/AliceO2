@@ -131,8 +131,10 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
       float x = row.X();
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;
-      if (iRow != r.mStartRow || !tracker.Param().par.continuousTracking) {
-        tParam.ConstrainZ(z, tracker.ISector(), z0, r.mLastZ);
+      if (iRow != r.mStartRow) {
+        if (tracker.Param().par.continuousTracking) {
+          tParam.ConstrainZ(z, tracker.ISector(), z0, r.mLastZ);
+        }
         tracker.GetConstantMem()->calibObjects.fastTransformHelper->TransformXYZ(tracker.ISector(), iRow, x, y, z);
       }
       if (iRow == r.mStartRow) {
@@ -262,7 +264,9 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
           rowHit = CALINK_INVAL;
           break;
         }
-        tParam.ConstrainZ(tmpZ, tracker.ISector(), z0, r.mLastZ);
+        if (tracker.Param().par.continuousTracking) {
+          tParam.ConstrainZ(tmpZ, tracker.ISector(), z0, r.mLastZ);
+        }
         tracker.GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoX(tracker.ISector(), iRow, tmpY, tmpZ, x);
       }
 
