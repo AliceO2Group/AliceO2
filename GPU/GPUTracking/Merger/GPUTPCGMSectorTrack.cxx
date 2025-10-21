@@ -37,7 +37,7 @@ GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCT
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSector = sector;
-  mTOffset = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
+  mTOffset = merger->Param().par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin) : 0;
   mNClusters = sectorTr->NHits();
 }
 
