@@ -226,25 +226,14 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       }
       CADEBUG(printf("\n"));
 
-      int32_t retValUpd = 0, retValInt = 0;
+      int32_t retValUpd;
       float threshold = 3.f + (lastUpdateX >= 0 ? (CAMath::Abs(mX - lastUpdateX) / 2) : 0.f);
       if (mNDF > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF && (CAMath::Abs(yy - mP[0]) > threshold || CAMath::Abs(zz - mP[1]) > threshold)) {
         retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedDistance;
       } else {
-        int8_t rejectChi2 = 0;
-        if (attempt == 0) {
-          if (param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) {
-            if (iWay == nWays - 3) {
-              rejectChi2 = GPUTPCGMPropagator::rejectInterFill;
-            } else if (iWay == nWays - 2) {
-              rejectChi2 = GPUTPCGMPropagator::rejectInterReject;
-            } else if (iWay == nWays - 1) {
-              rejectChi2 = (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && GetNDF() > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF) ? GPUTPCGMPropagator::rejectDirect : 0;
-            }
-          } else {
-            rejectChi2 = allowChangeClusters && goodRows > 5;
-          }
-        }
+        int8_t rejectChi2 = attempt                                                                              ? 0                                                                         // In second attempt, we do not reject
+                            : (param.rec.tpc.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) ? (finalOutInFit ? (GPUTPCGMPropagator::rejectInterFill + !(iWay & 1)) : 0) // reject via interpolation
+                                                                                                                 : (allowChangeClusters && goodRows > 5);                                    // normal rejection during the fit
 
         float err2Y, err2Z;
         const float time = merger->GetConstantMem()->ioPtrs.clustersNative ? merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].getTime() : -1.f;
@@ -255,6 +244,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
 
         prop.GetErr2(err2Y, err2Z, param, zz, cluster.row, clusterState, cluster.sector, time, invAvgCharge, invCharge);
 
+        int retValInt = 0;
         if (rejectChi2 >= GPUTPCGMPropagator::rejectInterFill) {
           if (rejectChi2 == GPUTPCGMPropagator::rejectInterReject && interpolation.hit[ihit].errorY < (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
             rejectChi2 = GPUTPCGMPropagator::rejectDirect;
@@ -263,7 +253,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
           }
         }
 
-        if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) { // uncorrectedY > -1e6f implies allowChangeClusters
+        if (retValInt) {
+          retValUpd = retValInt;
+        } else if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) { // uncorrectedY > -1e6f implies allowChangeClusters
           retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedEdge;
         } else {
           retValUpd = prop.Update(yy, zz, cluster.row, param, clusterState, rejectChi2, refit, err2Y, err2Z);
@@ -277,8 +269,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd, retValInt));
       // clang-format on
 
-      ConstrainSinPhi();            // TODO: Limit using ConstrainSinPhi everywhere!
-      if (!retValUpd && !retValInt) // track is updated
+      ConstrainSinPhi(); // TODO: Limit using ConstrainSinPhi everywhere!
+      if (!retValUpd)    // track is updated
       {
         lastUpdateX = mX;
         covYYUpd = mC[0];
@@ -320,16 +312,14 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
             }
           }
         }
-      } else if (retValInt || retValUpd >= GPUTPCGMPropagator::updateErrorClusterRejected) { // cluster far away form the track
-        if (retValInt || allowChangeClusters) {
+      } else if (retValUpd >= GPUTPCGMPropagator::updateErrorClusterRejected) { // cluster far away form the track
+        if (allowChangeClusters) {
           MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectDistance);
         } else if (finalFit) {
           MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectErr);
         }
-        if (!retValInt) {
-          nMissed++;
-          nMissed2++;
-        }
+        nMissed++;
+        nMissed2++;
       } else {
         break; // bad chi2 for the whole track, stop the fit
       }
