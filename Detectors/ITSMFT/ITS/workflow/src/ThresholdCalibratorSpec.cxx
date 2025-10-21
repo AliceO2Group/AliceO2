@@ -154,7 +154,7 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     } catch (std::exception const& e) {
       throw std::runtime_error("Number of scanned rows not found, mandatory in manual mode");
     }
-    
+
     try {
       manualMin = ic.options().get<short int>("manual-min");
     } catch (std::exception const& e) {
@@ -754,7 +754,7 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
 
     for (int scan_i = 0; scan_i < ((mScanType == 'r') ? N_RANGE : N_RANGE2); scan_i++) {
 #ifdef WITH_OPENMP
-    omp_set_num_threads(mNThreads);
+      omp_set_num_threads(mNThreads);
 #pragma omp parallel for schedule(dynamic)
 #endif
       // Loop over all columns (pixels) in the row
@@ -801,8 +801,8 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
 
   // Saves threshold information to internal memory
   if (mScanType != 'P' && mScanType != 'p' && mScanType != 't' && mScanType != 'R' && mScanType != 'r') {
-    if(mVerboseOutput) {
-      LOG(info)<<"Saving data of ChipID: "<<chipID<<" Row: "<<row;
+    if (mVerboseOutput) {
+      LOG(info) << "Saving data of ChipID: " << chipID << " Row: " << row;
     }
     this->saveThreshold();
   }
@@ -965,9 +965,9 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     mRowScan = 11;
     if (runtype == THR_SCAN_SHORT_33) {
       mRowScan = 33;
-    } else if(runtype == THR_SCAN_SHORT_2_10HZ){
+    } else if (runtype == THR_SCAN_SHORT_2_10HZ) {
       mRowScan = 2;
-    } 
+    }
   } else if (runtype == VCASN150 || runtype == VCASN100 || runtype == VCASN100_100HZ || runtype == VCASN130 || runtype == VCASNBB) {
     // VCASN tuning for different target thresholds
     // Store average VCASN for each chip into CCDB
@@ -979,7 +979,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mMax = inMaxVcasn; // 80 is the default
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = true;
-    mRowScan = 4; 
+    mRowScan = 4;
 
   } else if (runtype == ITHR150 || runtype == ITHR100 || runtype == ITHR100_100HZ || runtype == ITHR130) {
     // ITHR tuning  -- average ITHR per chip
@@ -991,7 +991,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mMax = inMaxIthr; // 100 is the default
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = true;
-    mRowScan = 4; 
+    mRowScan = 4;
 
   } else if (runtype == DIGITAL_SCAN || runtype == DIGITAL_SCAN_100HZ || runtype == DIGITAL_SCAN_NOMASK) {
     // Digital scan -- only storing one value per chip, no fit needed
@@ -1389,11 +1389,10 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         cwcnt = (short int)(calib.calibCounter);
 
         // count injections
-	short int loopPoint = (loopval - this->mMin) / mStep;
-	short int chgPoint = (realcharge - this->mMin2) / mStep2;
-	auto &arr = mCdwCntRU[iRU][row];
-	arr[chgPoint][loopPoint]++;
-
+        short int loopPoint = (loopval - this->mMin) / mStep;
+        short int chgPoint = (realcharge - this->mMin2) / mStep2;
+        auto& arr = mCdwCntRU[iRU][row];
+        arr[chgPoint][loopPoint]++;
 
         if (this->mVerboseOutput) {
           LOG(info) << "RU: " << iRU << " CDWcounter: " << cwcnt << " row: " << row << " Loopval: " << loopval << " realcharge: " << realcharge << " confDBv: " << mCdwVersion;
@@ -1489,7 +1488,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     if (ruIndex < 0) {
       continue;
     }
-    short int nL = ruIndex > 47 ? 2 : 3; // total number of links per RU 
+    short int nL = ruIndex > 47 ? 2 : 3;                                                    // total number of links per RU
     std::vector<short int> chipEnabled = getChipListFromRu(ruIndex, mActiveLinks[ruIndex]); // chip boundaries
     // Fill the chipDone info string
     if (mRunTypeRUCopy[ruIndex] == nInjScaled * nL) {
@@ -1502,27 +1501,27 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       mRunTypeRUCopy[ruIndex] = 0; // reset here is safer (the other counter is reset in finalize)
     }
     // Check if scan of a row is finished: only for specific scans!
-    bool passCondition = true; 
-    for(int j1=0; j1 < N_RANGE2; j1++) {
-      for(int j2=0; j2 < N_RANGE; j2++) {
-	if(mScanType == 't') { // ToT scan is done in specific ranges depending on charge (see ITSComm)
-	  if ((j1 == 0 && j2<((600-mMin)/mStep)) || (j2>=((600-mMin)/mStep) && j2<=((800-mMin)/mStep)) || (j1==1 && j2>((800-mMin)/mStep))) {
-	    if(mCdwCntRU[ruIndex][row][j1][j2] < nInjScaled * nL) {
-	      passCondition = false;
-	      break;
-	    }
-	  } 
-        } else if(mCdwCntRU[ruIndex][row][j1][j2] < nInjScaled * nL) {
+    bool passCondition = true;
+    for (int j1 = 0; j1 < N_RANGE2; j1++) {
+      for (int j2 = 0; j2 < N_RANGE; j2++) {
+        if (mScanType == 't') { // ToT scan is done in specific ranges depending on charge (see ITSComm)
+          if ((j1 == 0 && j2 < ((600 - mMin) / mStep)) || (j2 >= ((600 - mMin) / mStep) && j2 <= ((800 - mMin) / mStep)) || (j1 == 1 && j2 > ((800 - mMin) / mStep))) {
+            if (mCdwCntRU[ruIndex][row][j1][j2] < nInjScaled * nL) {
+              passCondition = false;
+              break;
+            }
+          }
+        } else if (mCdwCntRU[ruIndex][row][j1][j2] < nInjScaled * nL) {
           passCondition = false;
-	  break;
-	}
+          break;
+        }
       }
-      if(!passCondition){
+      if (!passCondition) {
         break;
       }
     }
     if (mVerboseOutput) {
-      LOG(info) << "PassCondition: " << passCondition << " - mCdwCntRU of RU" << ruIndex << " row " << row << " = " << mCdwCntRU[ruIndex][row][0][0] << "(Links: "<<mActiveLinks[ruIndex][0]<<", "<<mActiveLinks[ruIndex][1]<<","<<mActiveLinks[ruIndex][2]<<")";
+      LOG(info) << "PassCondition: " << passCondition << " - mCdwCntRU of RU" << ruIndex << " row " << row << " = " << mCdwCntRU[ruIndex][row][0][0] << "(Links: " << mActiveLinks[ruIndex][0] << ", " << mActiveLinks[ruIndex][1] << "," << mActiveLinks[ruIndex][2] << ")";
     }
 
     if (mScanType != 'D' && mScanType != 'A' && mScanType != 'P' && mScanType != 'R' && passCondition) {
@@ -1546,7 +1545,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       mCdwCntRU[ruIndex].erase(row); // row is gone
     }
 
-    if(mRunTypeRU[ruIndex] >= nInjScaled * nL && passCondition) {
+    if (mRunTypeRU[ruIndex] >= nInjScaled * nL && passCondition) {
       mFlagsRU[ruIndex] = true;
       finalize();
       LOG(info) << "Shipping all outputs to aggregator (before endOfStream arrival!)";
@@ -1834,7 +1833,7 @@ void ITSThresholdCalibrator::finalize()
       }
       if (mVerboseOutput) {
         LOG(info) << "Average or mpv " << name << " of chip " << it->first << " = " << outVal << " e-";
-      } 
+      }
       float status = ((float)it->second[4] / (float)(mRowScan * N_COL)) * 100.; // percentage of successful threshold extractions
       if (status < mPercentageCut && (mScanType == 'I' || mScanType == 'V')) {
         if (mScanType == 'I') { // default ITHR if percentage of success < mPercentageCut
@@ -2023,7 +2022,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"manual-step2", VariantType::Int, 1, {"Step2 value: defines the steps between manual-min2 and manual-max2. Default is 1. Use only in manual mode"}},
             {"manual-scantype", VariantType::String, "T", {"scan type, can be D, T, I, V, P, p: use only in manual mode"}},
             {"manual-strobewindow", VariantType::Int, 5, {"strobe duration in clock cycles, default is 5 = 125 ns: use only in manual mode"}},
-	    {"manual-rowscan", VariantType::Int, 512, {"Number of ALPIDE rows scanned in the run: use only in manual mode"}},
+            {"manual-rowscan", VariantType::Int, 512, {"Number of ALPIDE rows scanned in the run: use only in manual mode"}},
             {"save-tree", VariantType::Bool, false, {"Flag to save ROOT tree on disk: use only in manual mode"}},
             {"scale-ninj", VariantType::Bool, false, {"Flag to activate the scale of the number of injects to be used to count hits from specific MEBs: use only in manual mode and in combination with --meb-select"}},
             {"enable-mpv", VariantType::Bool, false, {"Flag to enable calculation of most-probable value in vcasn/ithr scans"}},

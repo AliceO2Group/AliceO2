@@ -233,8 +233,8 @@ class ITSThresholdCalibrator : public Task
   short int mRunTypeRU[N_RU] = {0};
   short int mRunTypeRUCopy[N_RU] = {0};
   bool mFlagsRU[N_RU] = {0};
-  //short int mCdwCntRU[N_RU][N_ROW] = {{0}};
-  std::map<short int,std::map<short int, std::array<std::array<int, 500>, 500>>> mCdwCntRU; // RU --> row --> 2D hit map 
+  // short int mCdwCntRU[N_RU][N_ROW] = {{0}};
+  std::map<short int, std::map<short int, std::array<std::array<int, 500>, 500>>> mCdwCntRU; // RU --> row --> 2D hit map
   short int mLoopVal[N_RU][N_ROW] = {{0}};
   bool mActiveLinks[N_RU][3] = {{false}};
   std::set<short int> mRuSet;
@@ -243,7 +243,7 @@ class ITSThresholdCalibrator : public Task
   short int mMin = -1, mMax = -1, mMin2 = 0, mMax2 = 0;
   short int mStep = 1, mStep2 = 1;
   short int mStrobeWindow = 5; // 5 means 5*25ns = 125 ns
-  short int mRowScan = 512; // number of scanned rows, used only to normalize % of success 
+  short int mRowScan = 512;    // number of scanned rows, used only to normalize % of success
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
