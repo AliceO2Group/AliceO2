@@ -55,7 +55,7 @@ class BasicXYZVHit : public BaseHit
   BasicXYZVHit() = default; // for ROOT IO
 
   // constructor
-  BasicXYZVHit(T x, T y, T z, E time, V val, int trackid, short did)
+  BasicXYZVHit(T x, T y, T z, E time, V val, int trackid, unsigned short did)
     : mPos(x, y, z), mTime(time), mHitValue(val), BaseHit(trackid), mDetectorID(did)
   {
   }
@@ -70,12 +70,12 @@ class BasicXYZVHit : public BaseHit
   // getting the time
   E GetTime() const { return mTime; }
   // get detector + track information
-  short GetDetectorID() const { return mDetectorID; }
+  unsigned short GetDetectorID() const { return mDetectorID; }
 
   // modifiers
   void SetTime(E time) { mTime = time; }
   void SetHitValue(V val) { mHitValue = val; }
-  void SetDetectorID(short detID) { mDetectorID = detID; }
+  void SetDetectorID(unsigned short detID) { mDetectorID = detID; }
   void SetX(T x) { mPos.SetX(x); }
   void SetY(T y) { mPos.SetY(y); }
   void SetZ(T z) { mPos.SetZ(z); }
@@ -87,7 +87,7 @@ class BasicXYZVHit : public BaseHit
   }
   void SetPos(math_utils::Point3D<T> const& p) { mPos = p; }
 
-  ClassDefNV(BasicXYZVHit, 1);
+  ClassDefNV(BasicXYZVHit, 2);
 };
 
 // Class for a hit containing energy loss as hit value
