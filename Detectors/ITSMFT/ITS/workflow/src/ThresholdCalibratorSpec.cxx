@@ -74,6 +74,8 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     LOG(warning) << "mColStep = " << mColStep << ": saving s-curves of only 1 pixel (pix 0) per row";
   }
 
+  isLocal = ic.options().get<bool>("local");
+
   std::string fittype = ic.options().get<std::string>("fittype");
   if (fittype == "derivative") {
     this->mFitType = DERIVATIVE;
@@ -1002,6 +1004,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mMax = 0;
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = false;
+    mRowStep = 1;
 
   } else if (runtype == ANALOGUE_SCAN) {
     // Analogue scan -- only storing one value per chip, no fit needed
@@ -1488,10 +1491,13 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     if (ruIndex < 0) {
       continue;
     }
-    short int nL = ruIndex > 47 ? 2 : 3;                                                    // total number of links per RU
+    short int nL = getNumberOfActiveLinks(mActiveLinks[ruIndex]);
+    if (isLocal) {
+      nL = ruIndex > 47 ? 2 : 3;
+    }
     std::vector<short int> chipEnabled = getChipListFromRu(ruIndex, mActiveLinks[ruIndex]); // chip boundaries
     // Fill the chipDone info string
-    if (mRunTypeRUCopy[ruIndex] == nInjScaled * nL) {
+    if (mRunTypeRUCopy[ruIndex] == nInjScaled * nL && nL > 0) {
       for (short int iChip = 0; iChip < chipEnabled.size(); iChip++) {
         if ((chipEnabled[iChip] % mChipModBase) != mChipModSel) {
           continue;
@@ -1501,10 +1507,20 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       mRunTypeRUCopy[ruIndex] = 0; // reset here is safer (the other counter is reset in finalize)
     }
     // Check if scan of a row is finished: only for specific scans!
-    bool passCondition = true;
+    bool passCondition = nL > 0 ? true : false;
     for (int j1 = 0; j1 < N_RANGE2; j1++) {
       for (int j2 = 0; j2 < N_RANGE; j2++) {
-        if (mScanType == 't') { // ToT scan is done in specific ranges depending on charge (see ITSComm)
+        if (mScanType == 'D' || mScanType == 'A') { // D and A are processed in finalize and include >1 rows: row data can be mixed in time!
+          for (int ir = 0; ir < mRowScan; ir += mRowStep) {
+            if (!mCdwCntRU[ruIndex].count(ir)) {
+              passCondition = false;
+              break;
+            } else if (mCdwCntRU[ruIndex][ir][j1][j2] < nInjScaled * nL) {
+              passCondition = false;
+              break;
+            }
+          }
+        } else if (mScanType == 't') { // ToT scan is done in specific ranges depending on charge (see ITSComm)
           if ((j1 == 0 && j2 < ((600 - mMin) / mStep)) || (j2 >= ((600 - mMin) / mStep) && j2 <= ((800 - mMin) / mStep)) || (j1 == 1 && j2 > ((800 - mMin) / mStep))) {
             if (mCdwCntRU[ruIndex][row][j1][j2] < nInjScaled * nL) {
               passCondition = false;
@@ -1548,6 +1564,19 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     if (mRunTypeRU[ruIndex] >= nInjScaled * nL && passCondition) {
       mFlagsRU[ruIndex] = true;
       finalize();
+      // Reset Active Links, mRunTypeRU, mFlagsRU (needed only for local data replay!)
+      if (mVerboseOutput) {
+        LOG(info) << "Resetting links of RU " << ruIndex;
+      }
+      if (!isLocal) {
+        mActiveLinks[ruIndex][0] = 0;
+        mActiveLinks[ruIndex][1] = 0;
+        mActiveLinks[ruIndex][2] = 0;
+        mRunTypeRU[ruIndex] = 0;
+        mFlagsRU[ruIndex] = false;
+        mCdwCntRU.erase(ruIndex); // for D,A,P,R (not entering the if above)
+      }
+
       LOG(info) << "Shipping all outputs to aggregator (before endOfStream arrival!)";
       pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning);
       pc.outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
@@ -1810,6 +1839,7 @@ void ITSThresholdCalibrator::finalize()
               }
               std::vector<float> data = {50, 0, 0, 0, 0};
               addDatabaseEntry(chipList[i], name, data, false);
+              isChipDB[chipList[i]] = true;
             }
           }
         }
@@ -1954,9 +1984,9 @@ void ITSThresholdCalibrator::endOfStream(EndOfStreamContext& ec)
 {
   if (!isEnded && !mRunStopRequested) {
     LOGF(info, "endOfStream report:", mSelfName);
-    if (isCRUITS) {
-      finalize();
-    }
+    LOG(info) << "Calling finalize(), doing nothing if scan has properly ended, otherwise save partial data in ROOT trees as backup";
+    finalize();
+
     this->finalizeOutput();
     isEnded = true;
   }
@@ -1969,6 +1999,8 @@ void ITSThresholdCalibrator::stop()
 {
   if (!isEnded) {
     LOGF(info, "stop() report:", mSelfName);
+    LOG(info) << "Calling finalize(), doing nothing if scan has properly ended, otherwise save partial data in ROOT trees as backup";
+    finalize();
     this->finalizeOutput();
     isEnded = true;
   }
@@ -2036,7 +2068,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"charge-b", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 2nd point used for the slope calculation"}},
             {"meb-select", VariantType::Int, -1, {"Select from which multi-event buffer consider the hits: 0,1 or 2"}},
             {"s-curve-col-step", VariantType::Int, 8, {"save s-curves points to tree every s-curve-col-step  pixels on 1 row"}},
-            {"percentage-cut", VariantType::Int, 25, {"discard chip in ITHR/VCASN scan if the percentage of success is less than this cut"}}}};
+            {"percentage-cut", VariantType::Int, 25, {"discard chip in ITHR/VCASN scan if the percentage of success is less than this cut"}},
+            {"local", VariantType::Bool, false, {"Enable in case of data replay of scans processed row by row or in 1 go in finalize() but with partial data in the raw TF (e.g. data dump stopped before the real end of run)"}}}};
 }
 } // namespace its
 } // namespace o2

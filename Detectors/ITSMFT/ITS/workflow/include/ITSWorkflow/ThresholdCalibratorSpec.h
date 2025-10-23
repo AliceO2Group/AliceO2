@@ -175,6 +175,7 @@ class ITSThresholdCalibrator : public Task
   unsigned char vCharge[N_COL];
   unsigned char vHits[N_COL];
   short int mColStep = 8; // save s-curves to tree every mColStep pixels on 1 row
+  short int mRowStep = 1;
 
   // Initialize pointers for doing error function fits
   TH1F* mFitHist = nullptr;
@@ -233,7 +234,6 @@ class ITSThresholdCalibrator : public Task
   short int mRunTypeRU[N_RU] = {0};
   short int mRunTypeRUCopy[N_RU] = {0};
   bool mFlagsRU[N_RU] = {0};
-  // short int mCdwCntRU[N_RU][N_ROW] = {{0}};
   std::map<short int, std::map<short int, std::array<std::array<int, 500>, 500>>> mCdwCntRU; // RU --> row --> 2D hit map
   short int mLoopVal[N_RU][N_ROW] = {{0}};
   bool mActiveLinks[N_RU][3] = {{false}};
@@ -328,6 +328,9 @@ class ITSThresholdCalibrator : public Task
 
   // Percentage cut for VCASN/ITHR scans
   short int mPercentageCut = 25; // default, at least 1 good row equivalent
+
+  // For data replay only
+  short int isLocal = false;
 };
 
 // Create a processor spec
