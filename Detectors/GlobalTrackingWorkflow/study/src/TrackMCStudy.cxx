@@ -570,10 +570,29 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
               tref.flags |= RecTrack::FakeITS;
             }
           }
-          if (msk[DetID::TPC] && trackFam.entITSTPC < 0) { // has both ITS and TPC contribution
-            trackFam.entITSTPC = tcnt;
+          if (msk[DetID::TPC]) {
+            if (trackFam.entITSTPC < 0) { // has both ITS and TPC contribution
+              trackFam.entITSTPC = tcnt;
+            }
             if (recoData.getTrackMCLabel(gidSet[GTrackID::ITSTPC]).isFake()) {
               tref.flags |= RecTrack::FakeITSTPC;
+            }
+
+            if (msk[DetID::TRD]) {
+              if (recoData.getTrackMCLabel(gidSet[GTrackID::ITSTPCTRD]).isFake()) {
+                tref.flags |= RecTrack::FakeTRD;
+              }
+              if (msk[DetID::TOF]) {
+                if (recoData.getTrackMCLabel(gidSet[GTrackID::ITSTPCTRDTOF]).isFake()) {
+                  tref.flags |= RecTrack::FakeTOF;
+                }
+              }
+            } else {
+              if (msk[DetID::TOF]) {
+                if (recoData.getTrackMCLabel(gidSet[GTrackID::ITSTPCTOF]).isFake()) {
+                  tref.flags |= RecTrack::FakeTOF;
+                }
+              }
             }
           }
         }
@@ -591,6 +610,24 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
           }
           if (recoData.getTrackMCLabel(gidSet[GTrackID::TPC]).isFake()) {
             tref.flags |= RecTrack::FakeTPC;
+          }
+          if (!msk[DetID::ITS]) {
+            if (msk[DetID::TRD]) {
+              if (recoData.getTrackMCLabel(gidSet[GTrackID::TPCTRD]).isFake()) {
+                tref.flags |= RecTrack::FakeTRD;
+              }
+              if (msk[DetID::TOF]) {
+                if (recoData.getTrackMCLabel(gidSet[GTrackID::TPCTRDTOF]).isFake()) {
+                  tref.flags |= RecTrack::FakeTOF;
+                }
+              }
+            } else {
+              if (msk[DetID::TOF]) {
+                if (recoData.getTrackMCLabel(gidSet[GTrackID::TPCTOF]).isFake()) {
+                  tref.flags |= RecTrack::FakeTOF;
+                }
+              }
+            }
           }
         }
         float ts = 0, terr = 0;
