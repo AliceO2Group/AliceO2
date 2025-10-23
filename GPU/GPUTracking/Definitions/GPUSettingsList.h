@@ -147,6 +147,7 @@ AddOptionRTC(dEdxTruncLow, uint8_t, 2, "", 0, "Low truncation threshold, fractio
 AddOptionRTC(dEdxTruncHigh, uint8_t, 77, "", 0, "High truncation threshold, fraction of 128")
 AddOptionRTC(extrapolationTracking, int8_t, 1, "", 0, "Enable Extrapolation Tracking (prolong tracks to adjacent sectors to find short segments)")
 AddOptionRTC(disableRefitAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during refit (1: attachment, 2: propagation, 4: loop following)")
+AddOptionRTC(looperFollowMode, uint8_t, 1, "", 0, "0 = simple, 1 = advances, for disabling use disableRefitAttachment = 4")
 AddOptionRTC(rejectionStrategy, uint8_t, o2::gpu::GPUSettings::RejectionStrategyA, "", 0, "Enable rejection of TPC clusters for compression (0 = no, 1 = strategy A, 2 = strategy B)")
 AddOptionRTC(mergeLoopersAfterburner, uint8_t, 1, "", 0, "Run afterburner for additional looper merging")
 AddOptionRTC(compressionTypeMask, uint8_t, o2::gpu::GPUSettings::CompressionFull, "", 0, "TPC Compression mode bits (1=truncate charge/width LSB, 2=differences, 4=track-model)")
