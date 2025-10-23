@@ -49,7 +49,7 @@ class BasicXYZVHit : public BaseHit
   math_utils::Point3D<T> mPos; // cartesian position of Hit
   E mTime;                     // time of flight
   V mHitValue;                 // hit value
-  short mDetectorID;           // the detector/sensor id
+  unsigned short mDetectorID;  // the detector/sensor id
 
  public:
   BasicXYZVHit() = default; // for ROOT IO
