@@ -23,7 +23,7 @@
 // GPU Run Configuration
 #if defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_NO_LAUNCH_BOUNDS) // Avoid including for RTC generation besides normal include protection.
   // GPU-architecture-dependent default settings
-  #if defined(GPUCA_GPUTYPE_MI2xx)
+  #if defined(GPUCA_GPUTYPE_MI100)
     #define GPUCA_WARP_SIZE 64
     #define GPUCA_PAR_AMD_EUS_PER_CU 4
     #define GPUCA_THREAD_COUNT_DEFAULT 256
