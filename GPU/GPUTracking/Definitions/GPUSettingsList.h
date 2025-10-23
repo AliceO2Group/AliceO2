@@ -141,7 +141,7 @@ AddOptionRTC(nWays, uint8_t, 3, "", 0, "Do N fit passes in final fit of merger (
 AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely during fit based on clusters closed to interpolated track positions")
 AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
 AddOptionRTC(rebuildTrackMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for rebuilt tracks")
-AddOptionRTC(trackFitRejectMode, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits")
+AddOptionRTC(trackFitRejectMode, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits")
 AddOptionRTC(rejectIFCLowRadiusCluster, uint8_t, 1, "", 0, "Reject clusters that get the IFC mask error during refit")
 AddOptionRTC(dEdxTruncLow, uint8_t, 2, "", 0, "Low truncation threshold, fraction of 128")
 AddOptionRTC(dEdxTruncHigh, uint8_t, 77, "", 0, "High truncation threshold, fraction of 128")
