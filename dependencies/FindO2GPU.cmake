@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 3
+# FindO2GPU.cmake Version 4
 
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
@@ -58,10 +58,10 @@ function(set_target_hip_arch target)
     target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_VEGA)
   elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx908")
     message(STATUS "Using optimized HIP settings for MI100 GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI2xx)
+    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI100)
   elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx90a")
     message(STATUS "Using optimized HIP settings for MI210 GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI2xx)
+    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI100)
   else()
     target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_VEGA)
   endif()
