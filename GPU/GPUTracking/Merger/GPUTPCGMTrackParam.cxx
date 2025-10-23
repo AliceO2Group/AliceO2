@@ -794,10 +794,10 @@ GPUdii() void GPUTPCGMTrackParam::PropagateLooper(const GPUTPCGMMerger& GPUrestr
 
   GPUTPCGMLoopData& data = merger.LoopData()[loopIdx];
   prop.SetTrack(&data.param, data.alpha);
-  if (false) {
-    data.param.AttachClustersLooper(merger, data.sector, data.row, data.track, data.outwards, prop);
-  } else {
+  if (merger.Param().rec.tpc.looperFollowMode == 1) {
     data.param.AttachClustersLooperFollow(merger, prop, data.sector, data.track, data.outwards);
+  } else {
+    data.param.AttachClustersLooper(merger, data.sector, data.row, data.track, data.outwards, prop);
   }
 }
 
