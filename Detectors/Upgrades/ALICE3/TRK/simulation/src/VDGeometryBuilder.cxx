@@ -208,7 +208,7 @@ inline void buildIrisCutoutFromPetalSolid(int nPetals)
 } // namespace
 
 // =================== Specs & constants (ROOT units: cm) ===================
-static constexpr double kX2X0 = 0.001f; // 0.1% X0 per layer
+static constexpr double kX2X0 = 0.001f;   // 0.1% X0 per layer
 static constexpr double kLenZ_cm = 50.0f; // L0/L1/L2 Z length
 
 // Radii (cm)
