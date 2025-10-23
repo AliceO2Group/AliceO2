@@ -108,16 +108,20 @@ class CCDBManagerInstance
 
   /// retrieve an object of type T from CCDB as stored under path, timestamp and metaData
   template <typename T>
-  T* getSpecific(std::string const& path, long timestamp = -1, MD metaData = MD())
+  T* getSpecific(std::string const& path, long timestamp = -1, MD metaData = MD(), std::map<std::string, std::string>* headers = nullptr)
   {
     // TODO: add some error info/handling when failing
     mMetaData = metaData;
-    return getForTimeStamp<T>(path, timestamp);
+    auto obj = getForTimeStamp<T>(path, timestamp);
+    if (headers) {
+      *headers = mHeaders;
+    }
+    return obj;
   }
 
   /// retrieve an object of type T from CCDB as stored under path and using the timestamp in the middle of the run + metadata. The run number is provided separately to conform to typical analysis use (in which case metadata does not include runNumber)
   template <typename T>
-  T* getSpecificForRun(std::string const& path, int runNumber, MD metaData = MD());
+  T* getSpecificForRun(std::string const& path, int runNumber, MD const& metaData = MD());
 
   /// detect online processing modes (i.e. CCDB objects may be updated in the lifetime of the manager)
   bool isOnline() const { return mDeplMode == o2::framework::DeploymentMode::OnlineAUX || mDeplMode == o2::framework::DeploymentMode::OnlineDDS || mDeplMode == o2::framework::DeploymentMode::OnlineECS; }
@@ -128,6 +132,9 @@ class CCDBManagerInstance
   {
     return getForTimeStamp<T>(path, mTimestamp);
   }
+
+  // gain access to underlaying CCDB layer (to allow for more complex queries without need to reinit another API)
+  CcdbApi& getCCDBAccessor() { return mCCDBAccessor; }
 
   bool isHostReachable() const { return mCCDBAccessor.isHostReachable(); }
 
@@ -230,11 +237,12 @@ class CCDBManagerInstance
 template <typename T>
 T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
 {
+  mHeaders.clear(); // we clear at the beginning; to allow to retrieve the header information in a subsequent call
   T* ptr = nullptr;
   mQueries++;
   auto start = std::chrono::system_clock::now();
   if (!isCachingEnabled()) {
-    ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "",
+    ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, "",
                                                 mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
                                                 mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
     if (!ptr) {
@@ -305,7 +313,6 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
     } else {
       cached.cacheValidUntil = -1;
     }
-    mHeaders.clear();
     mMetaData.clear();
     if (!ptr) {
       if (mFatalWhenNull) {
@@ -328,7 +335,7 @@ T* CCDBManagerInstance::getForRun(std::string const& path, int runNumber, bool s
 }
 
 template <typename T>
-T* CCDBManagerInstance::getSpecificForRun(std::string const& path, int runNumber, MD metaData)
+T* CCDBManagerInstance::getSpecificForRun(std::string const& path, int runNumber, MD const& metaData)
 {
   auto [start, stop] = getRunDuration(runNumber, mFatalWhenNull);
   if (start < 0 || stop < 0) {

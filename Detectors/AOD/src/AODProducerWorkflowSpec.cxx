@@ -102,6 +102,8 @@
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
+#include <filesystem>
+#include <nlohmann/json.hpp>
 
 using namespace o2::framework;
 using namespace o2::math_utils::detail;
@@ -538,7 +540,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           }
           const auto& trOrig = data.getTrackParam(trackIndex);
           bool isProp = false;
-          if (mPropTracks && trOrig.getX() < mMinPropR &&
+          if (mPropTracks && trOrig.getX() < mMaxPropXiu &&
               mGIDUsedBySVtx.find(trackIndex) == mGIDUsedBySVtx.end() &&
               mGIDUsedByStr.find(trackIndex) == mGIDUsedByStr.end()) { // Do not propagate track assoc. to V0s and str. tracking
             auto trackPar(trOrig);
@@ -945,13 +947,17 @@ void clearMCKeepStore(std::vector<std::vector<std::unordered_map<int, int>>>& st
 }
 
 // helper function to add a particle/track to the MC keep store
-void keepMCParticle(std::vector<std::vector<std::unordered_map<int, int>>>& store, int source, int event, int track, int value = 1)
+void keepMCParticle(std::vector<std::vector<std::unordered_map<int, int>>>& store, int source, int event, int track, int value = 1, bool useSigFilt = false)
 {
   if (track < 0) {
     LOG(warn) << "trackID is smaller than 0. Neglecting";
     return;
   }
-  store[source][event][track] = value;
+  if (useSigFilt && source == 0) {
+    store[source][event][track] = -1;
+  } else {
+    store[source][event][track] = value;
+  }
 }
 
 void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
@@ -980,7 +986,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     if (!mcLabel.isValid()) {
       return;
     }
-    keepMCParticle(mToStore, mcLabel.getSourceID(), mcLabel.getEventID(), mcLabel.getTrackID());
+    keepMCParticle(mToStore, mcLabel.getSourceID(), mcLabel.getEventID(), mcLabel.getTrackID(), 1, mUseSigFiltMC);
   };
 
   // mark reconstructed MC particles to store them into the table
@@ -995,7 +1001,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           if (!mcTruth.isValid()) {
             continue;
           }
-          keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+          keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID(), 1, mUseSigFiltMC);
           // treating contributors of global tracks
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
@@ -1010,7 +1016,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
               if (!mcLabel.isValid()) {
                 continue;
               }
-              keepMCParticle(mToStore, mcLabel.getSourceID(), mcLabel.getEventID(), mcLabel.getTrackID());
+              keepMCParticle(mToStore, mcLabel.getSourceID(), mcLabel.getEventID(), mcLabel.getTrackID(), 1, mUseSigFiltMC);
             }
           }
         }
@@ -1024,7 +1030,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (!mcTruth.isValid()) {
         continue;
       }
-      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID(), 1, mUseSigFiltMC);
     }
   }
   if (mInputSources[GIndex::PHS]) {
@@ -1033,7 +1039,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (!mcTruth.isValid()) {
         continue;
       }
-      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID(), 1, mUseSigFiltMC);
     }
   }
   using namespace aodmchelpers;
@@ -1124,7 +1130,7 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
           if (!needToStore(mGIDToTableID)) {
             continue;
           }
-          if (mcTruth.isValid()) { // if not set, -1 will be stored
+          if (mcTruth.isValid()) {                                                                               // if not set, -1 will be stored
             labelHolder.labelID = (mToStore[mcTruth.getSourceID()][mcTruth.getEventID()])[mcTruth.getTrackID()]; // defined by TPC if it contributes, otherwise: by ITS
             if (mcTruth.isFake()) {
               labelHolder.labelMask |= (0x1 << 15);
@@ -1137,6 +1143,21 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
                 }
               }
             }
+            if (trackIndex.includesDet(DetID::ITS)) {
+              auto itsGID = data.getITSContributorGID(trackIndex);
+              auto itsSource = itsGID.getSource();
+              if (itsSource == GIndex::ITS) {
+                auto& itsTrack = data.getITSTrack(itsGID);
+                for (unsigned int iL = 0; iL < 7; ++iL) {
+                  if (itsTrack.isFakeOnLayer(iL)) {
+                    labelHolder.labelMask |= (0x1 << iL);
+                  }
+                }
+              } else if (itsSource == GIndex::ITSAB) {
+                labelHolder.labelMask |= (data.getTrackMCLabel(itsGID).isFake() << 12);
+              }
+            }
+
           } else if (mcTruth.isNoise()) {
             labelHolder.labelMask |= (0x1 << 14);
           }
@@ -1672,11 +1693,11 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  mLPMProdTag = ic.options().get<string>("lpmp-prod-tag");
-  mAnchorPass = ic.options().get<string>("anchor-pass");
-  mAnchorProd = ic.options().get<string>("anchor-prod");
-  mUser = ic.options().get<string>("created-by");
-  mRecoPass = ic.options().get<string>("reco-pass");
+  mLPMProdTag = ic.options().get<std::string>("lpmp-prod-tag");
+  mAnchorPass = ic.options().get<std::string>("anchor-pass");
+  mAnchorProd = ic.options().get<std::string>("anchor-prod");
+  mUser = ic.options().get<std::string>("created-by");
+  mRecoPass = ic.options().get<std::string>("reco-pass");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -1686,6 +1707,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
   mThinTracks = ic.options().get<bool>("thin-tracks");
   mPropTracks = ic.options().get<bool>("propagate-tracks");
+  mMaxPropXiu = ic.options().get<float>("propagate-tracks-max-xiu");
   mPropMuons = ic.options().get<bool>("propagate-muons");
   if (auto s = ic.options().get<std::string>("with-streamers"); !s.empty()) {
     mStreamerFlags.set(s);
@@ -1724,6 +1746,8 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   if (mRunNumber == -1L) {
     LOG(info) << "The Run number will be obtained from DPL headers";
   }
+
+  mUseSigFiltMC = ic.options().get<bool>("mc-signal-filt");
 
   // set no truncation if selected by user
   if (mTruncate != 1) {
@@ -1792,6 +1816,38 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mStreamer = std::make_unique<o2::utils::TreeStreamRedirector>("AO2DStreamer.root", "RECREATE");
   }
 }
+
+namespace
+{
+void add_additional_meta_info(std::vector<TString>& keys, std::vector<TString>& values)
+{
+  // see if we should put additional meta info (e.g. from MC)
+  auto aod_external_meta_info_file = getenv("AOD_ADDITIONAL_METADATA_FILE");
+  if (aod_external_meta_info_file != nullptr) {
+    LOG(info) << "Trying to inject additional AOD meta-data from " << aod_external_meta_info_file;
+    if (std::filesystem::exists(aod_external_meta_info_file)) {
+      std::ifstream input_file(aod_external_meta_info_file);
+      if (input_file) {
+        nlohmann::json json_data;
+        try {
+          input_file >> json_data;
+        } catch (nlohmann::json::parse_error& e) {
+          std::cerr << "JSON Parse Error: " << e.what() << "\n";
+          std::cerr << "Exception ID: " << e.id << "\n";
+          std::cerr << "Byte position: " << e.byte << "\n";
+          return;
+        }
+        // If parsing succeeds, iterate over key-value pairs
+        for (const auto& [key, value] : json_data.items()) {
+          LOG(info) << "Adding AOD MetaData" << key << " : " << value;
+          keys.push_back(key.c_str());
+          values.push_back(value.get<std::string>());
+        }
+      }
+    }
+  }
+}
+} // namespace
 
 void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 {
@@ -2006,6 +2062,28 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
     const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
     const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
+
+    // if signal filtering enabled, let's check if there are more than one source; otherwise fatalise
+    if (mUseSigFiltMC) {
+      std::vector<int> sourceIDs{};
+      for (int iCol = 0; iCol < nMCCollisions; iCol++) {
+        for (auto const& colPart : mcParts[iCol]) {
+          int sourceID = colPart.sourceID;
+          if (std::find(sourceIDs.begin(), sourceIDs.end(), sourceID) == sourceIDs.end()) {
+            sourceIDs.push_back(sourceID);
+          }
+          if (sourceIDs.size() > 1) { // we found more than one, exit
+            break;
+          }
+        }
+        if (sourceIDs.size() > 1) { // we found more than one, exit
+          break;
+        }
+      }
+      if (sourceIDs.size() <= 1) {
+        LOGP(fatal, "Signal filtering cannot be enabled without embedding. Please fix the configuration either enabling the embedding, or turning off the signal filtering.");
+      }
+    }
 
     // count all parts
     int totalNParts = 0;
@@ -2401,6 +2479,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   TString ROOTVersion = ROOT_RELEASE;
   mMetaDataKeys = {"DataType", "Run", "O2Version", "ROOTVersion", "RecoPassName", "AnchorProduction", "AnchorPassName", "LPMProductionTag", "CreatedBy"};
   mMetaDataVals = {dataType, "3", O2Version, ROOTVersion, mRecoPass, mAnchorProd, mAnchorPass, mLPMProdTag, mUser};
+  add_additional_meta_info(mMetaDataKeys, mMetaDataVals);
+
   pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0}, mMetaDataKeys);
   pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0}, mMetaDataVals);
 
@@ -2681,7 +2761,7 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
     if (auto itsContGID = data.getITSContributorGID(trackIndex); itsContGID.isIndexSet() && itsContGID.getSource() != GIndex::ITSAB) {
       const auto& itsOrig = data.getITSTrack(itsContGID);
       o2::track::TrackPar gloCopy = trackPar;
-      o2::track::TrackPar itsCopy = itsOrig;
+      o2::track::TrackPar itsCopy = itsOrig.getParamOut();
       o2::track::TrackPar tpcCopy = tpcOrig;
       if (prop->propagateToX(gloCopy, o2::aod::track::trackQARefRadius, prop->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, mMatCorr) &&
           prop->propagateToAlphaX(tpcCopy, gloCopy.getAlpha(), o2::aod::track::trackQARefRadius, false, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, 1, mMatCorr) &&
@@ -3263,6 +3343,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"ctpreadout-create", VariantType::Int, 0, {"Create CTP digits from detector readout and CTP inputs. !=1 -- off, 1 -- on"}},
       ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
       ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
+      ConfigParamSpec{"propagate-tracks-max-xiu", VariantType::Float, 5.0f, {"Propagate tracks to IP if X_IU smaller than this value (and if propagate tracks enabled)"}},
       ConfigParamSpec{"hepmc-update", VariantType::String, "always", {"When to update HepMC Aux tables: always - force update, never - never update, all - if all keys are present, any - when any key is present (not valid yet)"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
       ConfigParamSpec{"thin-tracks", VariantType::Bool, false, {"Produce thinned track tables"}},
@@ -3273,7 +3354,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"trackqc-tpc-pt", VariantType::Float, 0.2f, {"Keep TPC standalone track with this pt"}},
       ConfigParamSpec{"with-streamers", VariantType::String, "", {"Bit-mask to steer writing of intermediate streamer files"}},
       ConfigParamSpec{"seed", VariantType::Int, 0, {"Set seed for random generator used for sampling (0 (default) means using a random_device)"}},
-    }};
+      ConfigParamSpec{"mc-signal-filt", VariantType::Bool, false, {"Enable usage of signal filtering (only for MC with embedding)"}}}};
 }
 
 } // namespace o2::aodproducer

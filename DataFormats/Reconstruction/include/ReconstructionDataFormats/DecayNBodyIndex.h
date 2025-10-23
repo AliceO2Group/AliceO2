@@ -55,14 +55,19 @@ class DecayNBodyIndex
 class V0Index : public DecayNBodyIndex<2>
 {
  public:
+  enum V0Type : uint8_t {
+    kStandaloneV0 = 0,
+    kPhotonOnly,
+    kCollinear,
+  };
   using DecayNBodyIndex<2>::DecayNBodyIndex;
   V0Index(int v, GIndex p, GIndex n) : DecayNBodyIndex<2>(v, {p, n}) {}
-  bool isStandaloneV0() const { return testBit(0); }
-  bool isPhotonOnly() const { return testBit(1); }
-  bool isCollinear() const { return testBit(2); }
-  void setStandaloneV0() { setBit(0); }
-  void setPhotonOnly() { setBit(1); }
-  void setCollinear() { setBit(2); }
+  bool isStandaloneV0() const { return testBit(kStandaloneV0); }
+  bool isPhotonOnly() const { return testBit(kPhotonOnly); }
+  bool isCollinear() const { return testBit(kCollinear); }
+  void setStandaloneV0() { setBit(kStandaloneV0); }
+  void setPhotonOnly() { setBit(kPhotonOnly); }
+  void setCollinear() { setBit(kCollinear); }
   ClassDefNV(V0Index, 1);
 };
 

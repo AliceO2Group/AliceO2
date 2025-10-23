@@ -33,6 +33,7 @@
 #define ENABLE_UPGRADES
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITS3Base/SpecsV2.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITS3Base/SegmentationMosaix.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -94,7 +95,7 @@ void CreateDictionariesITS3(bool saveDeltas = true,
   TNtuple* nt = nullptr;
   if (saveDeltas) {
     fout = TFile::Open("CreateDictionaries.root", "recreate");
-    nt = new TNtuple("nt", "hashes ntuple", "hash:layer:chipID:xhf:zhf:xcf:zcf:dx:dz:outlimDx:outlimDz");
+    nt = new TNtuple("nt", "hashes ntuple", "hash:layer:chipID:xhf:zhf:xcf:zcf:dx:dz:outlimDx:outlimDz:clusterSize:eta");
   }
 
   const o2::steer::DigitizationContext* digContext = nullptr;
@@ -270,16 +271,34 @@ void CreateDictionariesITS3(bool saveDeltas = true,
                 auto xyzLocE = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
                 auto xyzLocS = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
                 o2::math_utils::Vector3D<float> xyzLocM;
-                xyzLocM.SetCoordinates(0.5f * (xyzLocE.X() + xyzLocS.X()), 0.5f * (xyzLocE.Y() + xyzLocS.Y()), 0.5f * (xyzLocE.Z() + xyzLocS.Z()));
                 auto locC = o2::its3::TopologyDictionary::getClusterCoordinates(cluster, pattern, false);
                 int layer = gman->getLayer(chipID);
+                float x0, y0, z0, dltx, dlty, dltz, r;
                 if (ib) {
                   float xFlat{0.}, yFlat{0.};
-                  mMosaixSegmentations[layer].curvedToFlat(xyzLocM.X(), xyzLocM.Y(), xFlat, yFlat);
-                  xyzLocM.SetCoordinates(xFlat, yFlat, xyzLocM.Z());
                   mMosaixSegmentations[layer].curvedToFlat(locC.X(), locC.Y(), xFlat, yFlat);
                   locC.SetCoordinates(xFlat, yFlat, locC.Z());
+                  mMosaixSegmentations[layer].curvedToFlat(xyzLocE.X(), xyzLocE.Y(), xFlat, yFlat);
+                  xyzLocE.SetCoordinates(xFlat, yFlat, xyzLocE.Z());
+                  mMosaixSegmentations[layer].curvedToFlat(xyzLocS.X(), xyzLocS.Y(), xFlat, yFlat);
+                  xyzLocS.SetCoordinates(xFlat, yFlat, xyzLocS.Z());
+                  x0 = xyzLocS.X();
+                  dltx = xyzLocE.X() - x0;
+                  y0 = xyzLocS.Y();
+                  dlty = xyzLocE.Y() - y0;
+                  z0 = xyzLocS.Z();
+                  dltz = xyzLocE.Z() - z0;
+                  r = (o2::its3::constants::pixelarray::pixels::apts::responseYShift - y0) / dlty;
+                } else {
+                  x0 = xyzLocS.X();
+                  dltx = xyzLocE.X() - x0;
+                  y0 = xyzLocS.Y();
+                  dlty = xyzLocE.Y() - y0;
+                  z0 = xyzLocS.Z();
+                  dltz = xyzLocE.Z() - z0;
+                  r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
                 }
+                xyzLocM.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
 
                 auto pitchX = (ib) ? o2::its3::SegmentationMosaix::PitchRow : o2::itsmft::SegmentationAlpide::PitchRow;
                 auto pitchZ = (ib) ? o2::its3::SegmentationMosaix::PitchCol : o2::itsmft::SegmentationAlpide::PitchCol;
@@ -302,7 +321,13 @@ void CreateDictionariesITS3(bool saveDeltas = true,
                   }
                 }
                 if (saveDeltas) {
-                  nt->Fill(topology.getHash(), layer, chipID, xyzLocM.X(), xyzLocM.Z(), locC.X(), locC.Z(), dX, dZ, outLimitDx, outLimitDz);
+                  auto vectDiff = xyzLocE - xyzLocS;
+                  auto theta = std::acos(vectDiff.Z() / std::hypot(vectDiff.X(), vectDiff.Y(), vectDiff.Z()));
+                  auto eta = -std::log(std::tan(theta / 2));
+                  if (ib) {
+                    LOGP(info, "Yhit flat start: {}, end: {}, middle: {}", xyzLocS.Y(), xyzLocE.Y(), xyzLocM.Y());
+                  }
+                  nt->Fill(topology.getHash(), layer, chipID, xyzLocM.X(), xyzLocM.Z(), locC.X(), locC.Z(), dX, dZ, outLimitDx, outLimitDz, pattern.getNPixels(), eta);
                 }
               }
             } else {

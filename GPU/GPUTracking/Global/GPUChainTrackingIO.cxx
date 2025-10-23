@@ -15,7 +15,6 @@
 #include "GPUChainTracking.h"
 #include "GPUReconstructionIO.h"
 #include "GPUTPCClusterData.h"
-#include "GPUTPCSectorOutCluster.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTPCTrack.h"

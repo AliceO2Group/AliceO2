@@ -1581,6 +1581,8 @@ void MatchTOF::doMatchingForTPC(int sec)
 //______________________________________________
 int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, unsigned long firstOrbit)
 {
+  const auto& FT0Params = o2::ft0::InteractionTag::Instance();
+
   if ((!mHasFillScheme) && o2::tof::Utils::hasFillScheme()) {
     mHasFillScheme = true;
     for (int ibc = 0; ibc < o2::tof::Utils::getNinteractionBC(); ibc++) {
@@ -1598,6 +1600,10 @@ int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FI
   const int distThr = 8;
 
   for (unsigned int i = 0; i < FITRecPoints.size(); i++) {
+    const auto& ft = FITRecPoints[i];
+    if (!FT0Params.isSelected(ft)) {
+      continue;
+    }
     const o2::InteractionRecord ir = FITRecPoints[i].getInteractionRecord();
     if (mHasFillScheme && !mFillScheme[ir.bc]) {
       continue;
@@ -1702,8 +1708,8 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
     matchingPair.setT0true(TOFClusWork[matchingPair.getTOFClIndex()].getT0true());
 
     // let's check if cluster has multiple-hits (noferini)
-    if (TOFClusWork[matchingPair.getTOFClIndex()].getNumOfContributingChannels() > 1) {
-      const auto& tofcl = TOFClusWork[matchingPair.getTOFClIndex()];
+    const auto& tofcl = TOFClusWork[matchingPair.getTOFClIndex()];
+    if (tofcl.getNumOfContributingChannels() > 1) {
       // has an additional hit Up or Down (Z-dir)
       matchingPair.setHitPatternUpDown(tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUp) ||
                                        tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUpLeft) ||
@@ -1719,6 +1725,19 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
                                           tofcl.isAdditionalChannelSet(o2::tof::Cluster::kDownRight) ||
                                           tofcl.isAdditionalChannelSet(o2::tof::Cluster::kUpRight));
     }
+
+    // estimate collision time using FT0 info if available
+    ULong64_t bclongtofCal = (matchingPair.getSignal() - 10000) * o2::tof::Geo::BC_TIME_INPS_INV;
+    double t0Best = bclongtofCal * o2::tof::Geo::BC_TIME_INPS; // here just BC
+    float t0BestRes = 200;
+    if (FITRecPoints.size() > 0) {
+      int index = findFITIndex(bclongtofCal, FITRecPoints, mFirstTForbit);
+      if (index > -1 && FITRecPoints[index].isValidTime(1) && FITRecPoints[index].isValidTime(2)) { // require A and C
+        t0Best += FITRecPoints[index].getCollisionTime(0);
+        t0BestRes = 15;
+      }
+    }
+    matchingPair.setFT0Best(t0Best, t0BestRes);
     matchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
 
     // get fit info

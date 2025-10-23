@@ -69,7 +69,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
   auto useGPUWfx = configcontext.options().get<bool>("use-gpu-workflow");
-  std::transform(trmode.begin(), trmode.end(), trmode.begin(), [](unsigned char c) { return std::tolower(c); });
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   int trType = 0;
@@ -82,7 +81,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
-  auto wf = o2::its3::reco_workflow::getWorkflow(useMC, trmode, gpuDevice, useGPUWfx, extDigits, extClusters, disableRootOutput, useGeom, trType, beamPosOVerride);
+  auto wf = o2::its3::reco_workflow::getWorkflow(useMC, o2::its::TrackingMode::fromString(trmode), gpuDevice, useGPUWfx, extDigits, extClusters, disableRootOutput, useGeom, trType, beamPosOVerride);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

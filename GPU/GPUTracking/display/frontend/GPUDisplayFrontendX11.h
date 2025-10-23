@@ -16,9 +16,10 @@
 #define GPUDISPLAYFRONTENDX11_H
 
 #include "GPUDisplayFrontend.h"
-#include <GL/glx.h>
 #include <pthread.h>
-#include <unistd.h>
+#include <X11/Xlib.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
 #include <GL/glxext.h>
 
 namespace o2::gpu
@@ -29,7 +30,6 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   GPUDisplayFrontendX11();
   ~GPUDisplayFrontendX11() override = default;
 
-  int32_t StartDisplay() override;
   void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;

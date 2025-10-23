@@ -23,6 +23,8 @@
 #include <stdexcept>
 #include <chrono>
 
+#include <unistd.h>
+
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_xlib.h>
@@ -516,16 +518,6 @@ void GPUDisplayFrontendX11::SetVSync(bool enable)
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
     mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int32_t)enable);
   }
-}
-
-int32_t GPUDisplayFrontendX11::StartDisplay()
-{
-  static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
-    GPUError("Coult not Create frontend Thread...");
-    return (1);
-  }
-  return (0);
 }
 
 void GPUDisplayFrontendX11::getSize(int32_t& width, int32_t& height)

@@ -20,7 +20,7 @@ namespace o2
 namespace ctp
 {
 
-o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, bool mctruth = true);
+o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, float ctpLumiScaler = -1.f, bool mctruth = true);
 
 } // namespace ctp
 } // end namespace o2

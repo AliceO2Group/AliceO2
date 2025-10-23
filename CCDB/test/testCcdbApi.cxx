@@ -45,8 +45,8 @@ using namespace o2::ccdb;
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
 
-static string ccdbUrl;
-static string basePath;
+static std::string ccdbUrl;
+static std::string basePath;
 bool hostReachable = false;
 
 /**
@@ -63,7 +63,7 @@ struct Fixture {
     cout << "Is host reachable ? --> " << hostReachable << endl;
     char hostname[_POSIX_HOST_NAME_MAX];
     gethostname(hostname, _POSIX_HOST_NAME_MAX);
-    basePath = string("Test/TestCcdbApi/") + hostname + "/pid" + getpid() + "/";
+    basePath = std::string("Test/TestCcdbApi/") + hostname + "/pid" + getpid() + "/";
     // Replace dashes by underscores to avoid problems in the creation of local directories
     std::replace(basePath.begin(), basePath.end(), '-','_');
     cout << "Path we will use in this test suite : " + basePath << endl;
@@ -72,7 +72,7 @@ struct Fixture {
   {
     if (hostReachable) {
       CcdbApi api;
-      map<string, string> metadata;
+      std::map<std::string, std::string> metadata;
       api.init(ccdbUrl);
       api.truncate(basePath + "*");
       cout << "Test data truncated (" << basePath << ")" << endl;
@@ -104,7 +104,7 @@ struct test_fixture {
   ~test_fixture() = default;
 
   CcdbApi api;
-  map<string, string> metadata;
+  std::map<std::string, std::string> metadata;
 };
 
 BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   BOOST_CHECK(f.api.retrieveFromTFileAny<o2::utils::RootChain>(basePath + "CCDBPath", f.metadata) == nullptr);
 
   // try to get the headers back and to find the metadata
-  map<string, string> md;
+  std::map<std::string, std::string> md;
   path2 = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPath", f.metadata, -1, &md);
   BOOST_CHECK_EQUAL(md.count("Hello"), 1);
   BOOST_CHECK_EQUAL(md["Hello"], "World");
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
   BOOST_CHECK(h2 == nullptr);
 }
 
-void countItems(const string& s, int& countObjects, int& countSubfolders)
+void countItems(const std::string& s, int& countObjects, int& countSubfolders)
 {
   countObjects = 0;
   countSubfolders = 0;
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
   test_fixture f;
 
   // test non-empty top dir
-  string s = f.api.list("", "application/json"); // top dir
+  std::string s = f.api.list("", "application/json"); // top dir
   long nbLines = std::count(s.begin(), s.end(), '\n') + 1;
   BOOST_CHECK(nbLines > 5);
 
@@ -436,7 +436,7 @@ BOOST_AUTO_TEST_CASE(TestHeaderParsing)
 BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
 {
   // first store the object
-  string objectPath = basePath + "objectETag";
+  std::string objectPath = basePath + "objectETag";
   test_fixture f;
   TH1F h1("objectETag", "objectETag", 100, 0, 99);
   f.api.storeAsTFile(&h1, objectPath, f.metadata);
@@ -445,7 +445,7 @@ BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
   std::string etag;
   std::vector<std::string> headers;
   std::vector<std::string> pfns;
-  string path = objectPath + "/" + std::to_string(getCurrentTimestamp());
+  std::string path = objectPath + "/" + std::to_string(getCurrentTimestamp());
   auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, true);
   BOOST_REQUIRE(headers.size() != 0);
@@ -462,7 +462,7 @@ BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
 
   TH1F h1("object1", "object1", 100, 0, 99);
   cout << "storing object 1 in " << basePath << "Test" << endl;
-  map<string, string> metadata;
+  std::map<std::string, std::string> metadata;
   metadata["custom"] = "whatever";
   f.api.storeAsTFile(&h1, basePath + "Test", metadata);
 
@@ -498,7 +498,7 @@ BOOST_AUTO_TEST_CASE(TestUpdateMetadata, *utf::precondition(if_reachable()))
   // upload an object
   TH1F h1("object1", "object1", 100, 0, 99);
   cout << "storing object 1 in " << basePath << "Test" << endl;
-  map<string, string> metadata;
+  std::map<std::string, std::string> metadata;
   metadata["custom"] = "whatever";
   metadata["id"] = "first";
   f.api.storeAsTFile(&h1, basePath + "Test", metadata);
@@ -507,10 +507,10 @@ BOOST_AUTO_TEST_CASE(TestUpdateMetadata, *utf::precondition(if_reachable()))
   std::map<std::string, std::string> headers = f.api.retrieveHeaders(basePath + "Test", metadata);
   BOOST_CHECK(headers.count("custom") > 0);
   BOOST_CHECK(headers.at("custom") == "whatever");
-  string firstID = headers.at("ETag");
+  std::string firstID = headers.at("ETag");
   firstID.erase(std::remove(firstID.begin(), firstID.end(), '"'), firstID.end());
 
-  map<string, string> newMetadata;
+  std::map<std::string, std::string> newMetadata;
   newMetadata["custom"] = "somethingelse";
 
   // update the metadata and check
@@ -529,7 +529,7 @@ BOOST_AUTO_TEST_CASE(TestUpdateMetadata, *utf::precondition(if_reachable()))
   // get id
   cout << "get id" << endl;
   headers = f.api.retrieveHeaders(basePath + "Test", metadata);
-  string secondID = headers.at("ETag");
+  std::string secondID = headers.at("ETag");
   secondID.erase(std::remove(secondID.begin(), secondID.end(), '"'), secondID.end());
 
   // update the metadata by id

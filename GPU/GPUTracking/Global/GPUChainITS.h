@@ -29,32 +29,32 @@ class GPUFrameworkExternalAllocator;
 
 namespace o2::gpu
 {
-class GPUChainITS : public GPUChain
+class GPUChainITS final : public GPUChain
 {
   friend class GPUReconstruction;
 
  public:
   ~GPUChainITS() override;
-  void RegisterPermanentMemoryAndProcessors() override;
-  void RegisterGPUProcessors() override;
   int32_t Init() override;
   int32_t PrepareEvent() override;
   int32_t Finalize() override;
   int32_t RunChain() override;
-  void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
+
+  void RegisterPermanentMemoryAndProcessors() final {};
+  void RegisterGPUProcessors() final {};
+  void MemorySize(size_t&, size_t&) final {};
 
   o2::its::TrackerTraits<7>* GetITSTrackerTraits();
-  o2::its::VertexerTraits* GetITSVertexerTraits();
+  o2::its::VertexerTraits<7>* GetITSVertexerTraits();
   o2::its::TimeFrame<7>* GetITSTimeframe();
 
  protected:
-  GPUChainITS(GPUReconstruction* rec, uint32_t maxTracks = GPUCA_MAX_ITS_FIT_TRACKS);
+  GPUChainITS(GPUReconstruction* rec);
   std::unique_ptr<o2::its::TrackerTraits<7>> mITSTrackerTraits;
-  std::unique_ptr<o2::its::VertexerTraits> mITSVertexerTraits;
+  std::unique_ptr<o2::its::VertexerTraits<7>> mITSVertexerTraits;
   std::unique_ptr<o2::its::TimeFrame<7>> mITSTimeFrame;
-  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkAllocator;
-
-  uint32_t mMaxTracks;
+  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkDeviceAllocator;
+  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkHostAllocator;
 };
 } // namespace o2::gpu
 

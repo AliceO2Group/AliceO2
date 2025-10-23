@@ -786,13 +786,13 @@ void Pipe::ConstructGeometry()
 
   // Copper Tube RB24/1
   const Float_t kRB24CuTubeL = 381.5;
-  const Float_t kRB24cCuTubeL = 155.775;
+  const Float_t kRB24cCuTubeL = 155.775 - 150.;
   const Float_t kRB24bCuTubeL = kRB24CuTubeL - kRB24cCuTubeL;
   const Float_t kRB24CuTubeRi = 8.0 / 2.;
   const Float_t kRB24CuTubeRo = 8.4 / 2.;
   const Float_t kRB24CuTubeFRo = 7.6;
   const Float_t kRB24CuTubeFL = 1.86;
-  const Float_t kRB24CL = 2. * 597.9;
+  const Float_t kRB24CL = 2. * 597.9 - 150.;
   //
   // introduce cut at end of barrel 714.6m
   //
@@ -812,7 +812,7 @@ void Pipe::ConstructGeometry()
   voRB24cCuTubeM->AddNode(voRB24cCuTube, 1, gGeoIdentity);
 
   // Air outside tube with higher transport cuts
-  TGeoVolume* voRB24CuTubeA = new TGeoVolume("voRB24CuTubeA", new TGeoTube(80., 81., kRB24bCuTubeL / 2.), kMedAirHigh);
+  TGeoVolume* voRB24CuTubeA = new TGeoVolume("voRB24CuTubeA", new TGeoTube(79., 80., kRB24bCuTubeL / 2.), kMedAirHigh);
   voRB24CuTubeA->SetVisibility(0);
 
   // Simplified DN 100 Flange

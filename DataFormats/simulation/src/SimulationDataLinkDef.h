@@ -24,6 +24,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::steer::InteractionSampler + ;
+#pragma link C++ class o2::steer::FixedSkipBC_InteractionSampler + ;
 #pragma link C++ class o2::sim::StackParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::sim::StackParam> + ;
 #pragma link C++ class o2::MCTrackT < double> + ;

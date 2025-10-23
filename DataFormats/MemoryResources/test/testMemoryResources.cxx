@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(transportallocatormap_test)
   BOOST_CHECK(_tmp == allocZMQ);
 }
 
-using namespace boost::container::pmr;
+using namespace fair::mq::pmr;
 
 BOOST_AUTO_TEST_CASE(allocator_test)
 {
@@ -88,15 +88,6 @@ BOOST_AUTO_TEST_CASE(allocator_test)
   }
 
   testData::nconstructions = 0;
-  {
-    std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{allocZMQ});
-    v.reserve(3);
-    BOOST_CHECK(allocZMQ->getNumberOfMessages() == 1);
-    v.emplace_back(1);
-    v.emplace_back(2);
-    v.emplace_back(3);
-    BOOST_CHECK(testData::nconstructions == 3);
-  }
   BOOST_CHECK(allocZMQ->getNumberOfMessages() == 0);
 }
 
@@ -147,73 +138,6 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   messageArray = static_cast<int*>(message->GetData());
   BOOST_CHECK(messageArray[0] == 4 && messageArray[1] == 5 && messageArray[2] == 6);
 
-  {
-    std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{allocSHM});
-  }
-}
-
-BOOST_AUTO_TEST_CASE(adoptVector_test)
-{
-  size_t session{(size_t)getpid() * 1000 + 3};
-  fair::mq::ProgOptions config;
-  config.SetProperty<std::string>("session", std::to_string(session));
-
-  auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem", "adoptVector_test", &config);
-  auto allocZMQ = getTransportAllocator(factoryZMQ.get());
-  auto allocSHM = getTransportAllocator(factorySHM.get());
-
-  testData::nconstructions = 0;
-
-  // Create a bogus message
-  auto message = factoryZMQ->CreateMessage(3 * sizeof(testData));
-  auto messageAddr = message.get();
-  testData tmpBuf[3] = {3, 2, 1};
-  std::memcpy(message->GetData(), tmpBuf, 3 * sizeof(testData));
-
-  auto adoptedOwner = adoptVector<testData>(3, std::move(message));
-  BOOST_CHECK(adoptedOwner[0].i == 3);
-  BOOST_CHECK(adoptedOwner[1].i == 2);
-  BOOST_CHECK(adoptedOwner[2].i == 1);
-
-  auto reclaimedMessage = o2::pmr::getMessage(std::move(adoptedOwner));
-  BOOST_CHECK(reclaimedMessage.get() == messageAddr);
-  BOOST_CHECK(adoptedOwner.size() == 0);
-
-  auto modified = adoptVector<testData>(3, std::move(reclaimedMessage));
-  modified.emplace_back(9);
-  BOOST_CHECK(modified[3].i == 9);
-  BOOST_CHECK(modified.size() == 4);
-  BOOST_CHECK(testData::nconstructions == 7);
-  auto modifiedMessage = getMessage(std::move(modified));
-  BOOST_CHECK(modifiedMessage != nullptr);
-  BOOST_CHECK(modifiedMessage.get() != messageAddr);
-}
-
-BOOST_AUTO_TEST_CASE(test_SpectatorMemoryResource)
-{
-  constexpr int size = 5;
-  auto buffer = std::make_unique<int[]>(size);
-  auto const* bufferdata = buffer.get();
-  SpectatorMemoryResource<decltype(buffer)> resource(std::move(buffer), size * sizeof(int));
-  std::vector<int, o2::pmr::SpectatorAllocator<int>> bufferclone(size, o2::pmr::SpectatorAllocator<int>(&resource));
-  BOOST_CHECK(bufferclone.data() == bufferdata);
-  BOOST_CHECK(bufferclone.size() == size);
-  BOOST_CHECK_THROW(bufferclone.resize(2 * size), std::runtime_error);
-
-  auto vecbuf = std::make_unique<std::vector<int>>(size);
-  auto const* vectordata = vecbuf->data();
-  SpectatorMemoryResource<decltype(vecbuf)> vecresource(std::move(vecbuf));
-  std::vector<int, o2::pmr::SpectatorAllocator<int>> vecclone(size, o2::pmr::SpectatorAllocator<int>(&vecresource));
-  BOOST_CHECK(vecclone.data() == vectordata);
-  BOOST_CHECK(vecclone.size() == size);
-  BOOST_CHECK_THROW(vecclone.resize(2 * size), std::runtime_error);
-
-  std::vector<int, o2::pmr::SpectatorAllocator<int>> vecmove;
-  vecmove = std::move(vecclone);
-  BOOST_CHECK(vecclone.size() == 0);
-  BOOST_CHECK(vecmove.data() == vectordata);
-  BOOST_CHECK(vecmove.size() == size);
 }
 
 }; // namespace o2::pmr

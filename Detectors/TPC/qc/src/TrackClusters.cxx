@@ -35,16 +35,21 @@ struct binning {
   double max;
 };
 
+const binning binsClusters{160, 0., 160.};
 const binning binsSharedClusters{160, 0., 160.};
 const binning binsFoundClusters{160, 0., 160.};
 const binning binsCrossedRows{160, 0., 160.};
+const binning binsRatio{150, 0., 1.5};
 
 //______________________________________________________________________________
 void TrackClusters::initializeHistograms()
 {
   TH1::AddDirectory(false);
+  mMapHist["clusters"].emplace_back(std::make_unique<TH1F>("clusters", "Clusters;NClusters;Entries", binsClusters.bins, binsClusters.min, binsClusters.max));
   mMapHist["sharedClusters"].emplace_back(std::make_unique<TH1F>("sharedClusters", "sharedClusters;NSharedClusters;Entries", binsSharedClusters.bins, binsSharedClusters.min, binsSharedClusters.max));
-  mMapHist["crossedRows"].emplace_back(std::make_unique<TH1F>("crossedRows", "crossedRows;crossedRows;Entries", binsCrossedRows.bins, binsCrossedRows.min, binsCrossedRows.max));
+  mMapHist["crossedRows"].emplace_back(std::make_unique<TH1F>("crossedRows", "crossedRows;NCrossedRows;Entries", binsCrossedRows.bins, binsCrossedRows.min, binsCrossedRows.max));
+  mMapHist["sharedClustersOverClusters"].emplace_back(std::make_unique<TH1F>("sharedClustersOverClusters", "sharedClustersOverClusters;NSharedClusters/NClusters;Entries", binsRatio.bins, binsRatio.min, binsRatio.max));
+  mMapHist["clustersOverCrossedRow"].emplace_back(std::make_unique<TH1F>("clustersOverCrossedRow", "clustersOverCrossedRow;NClusters/NCrossedRows;Entries", binsRatio.bins, binsRatio.min, binsRatio.max));
 }
 
 //______________________________________________________________________________
@@ -71,7 +76,7 @@ bool TrackClusters::processTrackAndClusters(const std::vector<o2::tpc::TrackTPC>
     const auto nCls = uint8_t(track.getNClusters());
     const auto eta = track.getEta();
 
-    if (nCls < mCutMinNCls || dEdxTot < mCutMindEdxTot || abs(eta) > mCutAbsEta) {
+    if (nCls < mCutMinNCls || dEdxTot < mCutMindEdxTot || std::fabs(eta) > mCutAbsEta) {
       continue;
     }
 
@@ -79,8 +84,11 @@ bool TrackClusters::processTrackAndClusters(const std::vector<o2::tpc::TrackTPC>
 
     o2::TrackMethods::countTPCClusters(track, *clusRefs, mBufVec, *clusterIndex, shared, found, crossed);
 
+    mMapHist["clusters"][0]->Fill(found);
     mMapHist["sharedClusters"][0]->Fill(shared);
     mMapHist["crossedRows"][0]->Fill(crossed);
+    mMapHist["sharedClustersOverClusters"][0]->Fill(static_cast<float>(shared) / static_cast<float>(found));
+    mMapHist["clustersOverCrossedRow"][0]->Fill(static_cast<float>(found) / static_cast<float>(crossed));
   }
 
   return true;

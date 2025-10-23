@@ -15,25 +15,25 @@
 #include <array>
 #include <vector>
 #include "ITStracking/Cluster.h"
-#include "ITStracking/Definitions.h"
+#include "ITStracking/Constants.h"
 #include "ITStracking/Tracklet.h"
+#include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"
 
 namespace o2::its
 {
 struct Line final {
-  GPUhd() Line();
+  GPUhdDefault() Line() = default;
   GPUhd() Line(const Line&);
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
-  GPUhd() Line(const float firstPoint[3], const float secondPoint[3]);
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
 
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   GPUhd() static float getDistanceFromPoint(const Line& line, const float point[3]);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   GPUhd() static void getDCAComponents(const Line& line, const float point[3], float destArray[6]);
-  GPUhd() static float getDCA(const Line&, const Line&, const float precision = 1e-14);
-  static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
+  GPUhd() static float getDCA(const Line&, const Line&, const float precision = constants::Tolerance);
+  static bool areParallel(const Line&, const Line&, const float precision = constants::Tolerance);
   GPUhd() unsigned char isEmpty() const { return (originPoint[0] == 0.f && originPoint[1] == 0.f && originPoint[2] == 0.f) &&
                                                  (cosinesDirector[0] == 0.f && cosinesDirector[1] == 0.f && cosinesDirector[2] == 0.f); }
   GPUhdi() auto getDeltaROF() const { return rof[1] - rof[0]; }
@@ -42,8 +42,9 @@ struct Line final {
   bool operator!=(const Line&) const;
   short getMinROF() const { return rof[0] < rof[1] ? rof[0] : rof[1]; }
 
-  float originPoint[3], cosinesDirector[3];
-  float weightMatrix[6] = {1., 0., 0., 1., 0., 1.};
+  float originPoint[3] = {0, 0, 0};
+  float cosinesDirector[3] = {0, 0, 0};
+  // float weightMatrix[6] = {1., 0., 0., 1., 0., 1.};
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
   //    1 --> 0,1
@@ -51,14 +52,10 @@ struct Line final {
   //    3 --> 1,1
   //    4 --> 1,2
   //    5 --> 2,2
-  short rof[2];
-};
+  short rof[2] = {constants::UnusedIndex, constants::UnusedIndex};
 
-GPUhdi() Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
-{
-  rof[0] = -1;
-  rof[1] = -1;
-}
+  ClassDefNV(Line, 1);
+};
 
 GPUhdi() Line::Line(const Line& other)
 {
@@ -66,30 +63,12 @@ GPUhdi() Line::Line(const Line& other)
     originPoint[i] = other.originPoint[i];
     cosinesDirector[i] = other.cosinesDirector[i];
   }
-  for (int i{0}; i < 6; ++i) {
-    weightMatrix[i] = other.weightMatrix[i];
-  }
+  // for (int i{0}; i < 6; ++i) {
+  //   weightMatrix[i] = other.weightMatrix[i];
+  // }
   for (int i{0}; i < 2; ++i) {
     rof[i] = other.rof[i];
   }
-}
-
-GPUhdi() Line::Line(const float firstPoint[3], const float secondPoint[3])
-{
-  for (int i{0}; i < 3; ++i) {
-    originPoint[i] = firstPoint[i];
-    cosinesDirector[i] = secondPoint[i] - firstPoint[i];
-  }
-
-  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                                cosinesDirector[2] * cosinesDirector[2])};
-
-  for (int index{0}; index < 3; ++index) {
-    cosinesDirector[index] *= inverseNorm;
-  }
-
-  rof[0] = -1;
-  rof[1] = -1;
 }
 
 GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
@@ -102,12 +81,10 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
   cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
 
-  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                                cosinesDirector[2] * cosinesDirector[2])};
-
-  for (int index{0}; index < 3; ++index) {
-    cosinesDirector[index] *= inverseNorm;
-  }
+  float inverseNorm{1.f / o2::gpu::CAMath::Hypot(cosinesDirector[0], cosinesDirector[1], cosinesDirector[2])};
+  cosinesDirector[0] *= inverseNorm;
+  cosinesDirector[1] *= inverseNorm;
+  cosinesDirector[2] *= inverseNorm;
 
   rof[0] = tracklet.rof[0];
   rof[1] = tracklet.rof[1];
@@ -130,47 +107,38 @@ inline float Line::getDistanceFromPoint(const Line& line, const std::array<float
 
 GPUhdi() float Line::getDistanceFromPoint(const Line& line, const float point[3])
 {
-  float DCASquared{0};
-  float cdelta{0};
-  for (int i{0}; i < 3; ++i) {
-    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
-  }
-  for (int i{0}; i < 3; ++i) {
-    DCASquared += (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta) *
-                  (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta);
-  }
-  return o2::gpu::CAMath::Sqrt(DCASquared);
+  const float dx = point[0] - line.originPoint[0];
+  const float dy = point[1] - line.originPoint[1];
+  const float dz = point[2] - line.originPoint[2];
+  const float d = (dx * line.cosinesDirector[0]) + (dy * line.cosinesDirector[1]) + (dz * line.cosinesDirector[2]);
+
+  const float vx = dx - (d * line.cosinesDirector[0]);
+  const float vy = dy - (d * line.cosinesDirector[1]);
+  const float vz = dz - (d * line.cosinesDirector[2]);
+
+  return o2::gpu::CAMath::Hypot(vx, vy, vz);
 }
 
 GPUhdi() float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
 {
-  float normalVector[3];
-  normalVector[0] = firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
-                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1];
-  normalVector[1] = -firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
-                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0];
-  normalVector[2] = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
-                    firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
+  const float nx = (firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2]) -
+                   (firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1]);
+  const float ny = -(firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2]) +
+                   (firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0]);
+  const float nz = (firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1]) -
+                   (firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0]);
+  const float norm2 = (nx * nx) + (ny * ny) + (nz * nz);
 
-  float norm{0.f}, distance{0.f};
-  for (int i{0}; i < 3; ++i) {
-    norm += normalVector[i] * normalVector[i];
-    distance += (secondLine.originPoint[i] - firstLine.originPoint[i]) * normalVector[i];
+  if (norm2 <= precision * precision) {
+    return getDistanceFromPoint(firstLine, secondLine.originPoint);
   }
-  if (norm > precision) {
-    return o2::gpu::CAMath::Abs(distance / o2::gpu::CAMath::Sqrt(norm));
-  } else {
-#if defined(__CUDACC__) || defined(__HIPCC__)
-    float stdOriginPoint[3];
-    for (int i{0}; i < 3; ++i) {
-      stdOriginPoint[i] = secondLine.originPoint[1];
-    }
-#else
-    std::array<float, 3> stdOriginPoint = {};
-    std::copy_n(secondLine.originPoint, 3, stdOriginPoint.begin());
-#endif
-    return getDistanceFromPoint(firstLine, stdOriginPoint);
-  }
+
+  const float dx = secondLine.originPoint[0] - firstLine.originPoint[0];
+  const float dy = secondLine.originPoint[1] - firstLine.originPoint[1];
+  const float dz = secondLine.originPoint[2] - firstLine.originPoint[2];
+  const float triple = (dx * nx) + (dy * ny) + (dz * nz);
+
+  return o2::gpu::CAMath::Abs(triple) / o2::gpu::CAMath::Sqrt(norm2);
 }
 
 GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], float destArray[6])
@@ -199,11 +167,7 @@ inline bool Line::operator==(const Line& rhs) const
 
 inline bool Line::operator!=(const Line& rhs) const
 {
-  bool val;
-  for (int i{0}; i < 3; ++i) {
-    val &= this->originPoint[i] != rhs.originPoint[i];
-  }
-  return val;
+  return !(*this == rhs);
 }
 
 GPUhdi() void Line::print() const
@@ -243,7 +207,7 @@ class ClusterLines final
   std::array<float, 6> mRMS2 = {0.f};         // symmetric matrix: diagonal is RMS2
   float mAvgDistance2 = 0.f;                  // substitute for chi2
   int mROFWeight = 0;                         // rof weight for voting
-  short mROF = -1;                            // rof
+  short mROF = constants::UnusedIndex;        // rof
 };
 
 } // namespace o2::its

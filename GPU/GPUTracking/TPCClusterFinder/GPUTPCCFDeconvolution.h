@@ -51,7 +51,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
   GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() void deconvolutionImpl(int32_t, int32_t, int32_t, int32_t, GPUSharedMemory&, const CfArray2D<uint8_t>&, CfArray2D<PackedCharge>&, const CfChargePos*, const uint32_t);
+  static GPUd() void deconvolutionImpl(int32_t, int32_t, int32_t, int32_t, GPUSharedMemory&, const CfArray2D<uint8_t>&, CfArray2D<PackedCharge>&, const CfChargePos*, const uint32_t, uint8_t);
 
   static GPUdi() uint8_t countPeaksInner(uint16_t, const uint8_t*, uint8_t*);
   static GPUdi() uint8_t countPeaksOuter(uint16_t, uint8_t, const uint8_t*);

@@ -75,7 +75,7 @@ void CreateTowerCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
   }
 
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner

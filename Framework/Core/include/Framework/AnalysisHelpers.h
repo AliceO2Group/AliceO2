@@ -11,6 +11,7 @@
 #ifndef o2_framework_AnalysisHelpers_H_DEFINED
 #define o2_framework_AnalysisHelpers_H_DEFINED
 
+#include "ConfigParamSpec.h"
 #include "Framework/ASoA.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/IndexBuilderHelpers.h"
@@ -49,6 +50,19 @@ inline constexpr auto getSources()
   }.template operator()<T::sources.size(), T::sources>();
 }
 
+template <soa::with_ccdb_urls T>
+inline constexpr auto getCCDBUrls()
+{
+  std::vector<framework::ConfigParamSpec> result;
+  for (size_t i = 0; i < T::ccdb_urls.size(); ++i) {
+    result.push_back({std::string{"ccdb:"} + std::string{T::ccdb_bindings[i]},
+                      framework::VariantType::String,
+                      T::ccdb_urls[i],
+                      {"\"\""}});
+  }
+  return result;
+}
+
 template <soa::with_sources T>
 constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 {
@@ -67,18 +81,40 @@ constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }
+
+template <soa::with_ccdb_urls T>
+constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  std::vector<framework::ConfigParamSpec> results = getCCDBUrls<T>();
+  std::sort(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
+  auto last = std::unique(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
+  results.erase(last, results.end());
+  return results;
+}
+
+template <typename T>
+constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  return {};
+}
 }  // namespace
 
 template <TableRef R>
 constexpr auto tableRef2InputSpec()
 {
+  std::vector<framework::ConfigParamSpec> metadata;
+  auto m = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), m.begin(), m.end());
+  auto ccdbMetadata = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
+
   return framework::InputSpec{
     o2::aod::label<R>(),
     o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
     R.version,
     framework::Lifetime::Timeframe,
-    getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>()};
+    metadata};
 }
 
 template <TableRef R>
@@ -119,6 +155,9 @@ class TableConsumer;
 template <typename T>
 concept is_producable = soa::has_metadata<aod::MetadataTrait<T>> || soa::has_metadata<aod::MetadataTrait<typename T::parent_t>>;
 
+template <typename T>
+concept is_enumerated_iterator = requires(T t) { t.globalIndex(); };
+
 template <is_producable T>
 struct WritingCursor {
  public:
@@ -126,9 +165,9 @@ struct WritingCursor {
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
   template <typename... Ts>
-  void operator()(Ts... args)
+  void operator()(Ts&&... args)
+    requires(sizeof...(Ts) == framework::pack_size(typename persistent_table_t::persistent_columns_t{}))
   {
-    static_assert(sizeof...(Ts) == framework::pack_size(typename persistent_table_t::persistent_columns_t{}), "Argument number mismatch");
     ++mCount;
     cursor(0, extract(args)...);
   }
@@ -167,15 +206,14 @@ struct WritingCursor {
   decltype(FFL(std::declval<cursor_t>())) cursor;
 
  private:
-  template <typename A>
-    requires requires { &A::globalIndex; }
-  static decltype(auto) extract(A const& arg)
+  static decltype(auto) extract(is_enumerated_iterator auto const& arg)
   {
     return arg.globalIndex();
   }
 
   template <typename A>
-  static decltype(auto) extract(A const& arg)
+    requires(!is_enumerated_iterator<A>)
+  static decltype(auto) extract(A&& arg)
   {
     return arg;
   }
@@ -340,8 +378,9 @@ concept is_spawns = requires(T t) {
 /// The actual expressions have to be set in init() for the configurable expression
 /// columns, used to define the table
 
-template <is_dynamically_spawnable T>
+template <is_dynamically_spawnable T, bool DELAYED = false>
 struct Defines : decltype(transformBase<T>()) {
+  static constexpr bool delayed = DELAYED;
   using spawnable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
   using extension_t = typename metadata::extension_table_t;
@@ -373,13 +412,26 @@ struct Defines : decltype(transformBase<T>()) {
   std::array<o2::framework::expressions::Projector, N> projectors;
   std::shared_ptr<gandiva::Projector> projector = nullptr;
   std::shared_ptr<arrow::Schema> schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(placeholders_pack_t{}));
+  std::shared_ptr<arrow::Schema> inputSchema = nullptr;
+
+  bool needRecompilation = false;
+
+  void recompile()
+  {
+    projector = framework::expressions::createProjectorHelper(N, projectors.data(), inputSchema, schema->fields());
+  }
 };
+
+template <is_dynamically_spawnable T>
+using DefinesDelayed = Defines<T, true>;
 
 template <typename T>
 concept is_defines = requires(T t) {
   typename T::metadata;
   requires std::same_as<decltype(t.pack()), typename T::placeholders_pack_t>;
   requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
+  requires std::same_as<decltype(t.needRecompilation), bool>;
+  &T::recompile;
 };
 
 /// Policy to control index building

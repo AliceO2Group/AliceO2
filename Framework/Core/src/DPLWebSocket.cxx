@@ -276,7 +276,7 @@ void WSDPLHandler::endHeaders()
   }
   /// Create an appropriate reply
   LOG(debug) << "Got upgrade request with nonce " << mHeaders["sec-websocket-key"].c_str();
-  std::string reply = encode_websocket_handshake_reply(mHeaders["sec-websocket-key"].c_str());
+  std::string reply = encode_websocket_handshake_reply(mHeaders["sec-websocket-key"].c_str(), "dpl");
   mHandshaken = true;
 
   uv_buf_t bfr = uv_buf_init(strdup(reply.data()), reply.size());

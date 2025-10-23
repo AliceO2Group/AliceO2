@@ -82,7 +82,6 @@ class GPUTPCGMMerger : public GPUProcessor
     uint32_t id;
     uint8_t row;
     uint8_t sector;
-    uint8_t leg;
   };
 
   struct tmpSort {
@@ -117,8 +116,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint32_t NMergedTrackClusters() const { return mMemory->nMergedTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
   GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return (mClusters); }
-  GPUhdi() const GPUTPCGMMergedTrackHitXYZ* ClustersXYZ() const { return mClustersXYZ; }
-  GPUhdi() GPUTPCGMMergedTrackHitXYZ* ClustersXYZ() { return (mClustersXYZ); }
   GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhdi() uint32_t* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhdi() uint32_t* TrackOrderProcess() const { return mTrackOrderProcess; }
@@ -154,7 +151,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() uint16_t MemoryResOutputO2Scratch() const { return mMemoryResOutputO2Scratch; }
 
   GPUd() int32_t RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack, const GPUTPCTrack* inTrack, float alpha, int32_t sector);
-  GPUd() void SetTrackClusterZT(GPUTPCGMSectorTrack& track, int32_t iSector, const GPUTPCTrack* sectorTr);
+  GPUd() void SetTrackClusterT(GPUTPCGMSectorTrack& track, int32_t iSector, const GPUTPCTrack* sectorTr);
 
   int32_t CheckSectors();
   GPUd() void RefitSectorTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector);
@@ -173,9 +170,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void SortTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void SortTracksQPt(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void SortTracksPrepare(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
-  GPUd() void PrepareClustersForFit0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
-  GPUd() void PrepareClustersForFit1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
-  GPUd() void PrepareClustersForFit2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareForFit0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareForFit1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void PrepareForFit2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void LinkExtrapolatedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void CollectMergedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void Finalize0(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
@@ -221,14 +218,16 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUdi() int32_t SectorTrackInfoLocalTotal() const { return mSectorTrackInfoIndex[NSECTORS]; }
   GPUdi() int32_t SectorTrackInfoTotal() const { return mSectorTrackInfoIndex[2 * NSECTORS]; }
 
+  void CheckMergeGraph();
+  void CheckCollectedTracks();
+
  private:
   GPUd() void MergeSectorsPrepareStep2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(uint32_t) * nB, bool useOrigTrackParam = false);
   template <int32_t I>
   GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode = 0);
 
-  GPUd() void MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, const GPUTPCGMMergedTrackHitXYZ* clsXYZ, int32_t itr);
+  GPUd() void MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, int32_t itr);
 
-  void CheckMergedTracks();
 #ifndef GPUCA_GPUCODE
   void PrintMergeGraph(const GPUTPCGMSectorTrack* trk, std::ostream& out) const;
   template <class T, class S>
@@ -268,7 +267,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUTPCGMSectorTrack* mSectorTrackInfos = nullptr; //* additional information for sector tracks
   int32_t* mSectorTrackInfoIndex = nullptr;
   GPUTPCGMMergedTrackHit* mClusters = nullptr;
-  GPUTPCGMMergedTrackHitXYZ* mClustersXYZ = nullptr;
   GPUAtomic(uint32_t) * mClusterAttachment = nullptr;
   o2::tpc::TrackTPC* mOutputTracksTPCO2 = nullptr;
   uint32_t* mOutputClusRefsTPCO2 = nullptr;

@@ -35,7 +35,7 @@ struct GeneratorFileOrCmdParam : public o2::conf::ConfigurableParamHelper<Genera
   std::string seedSwitch = "-s";
   std::string bMaxSwitch = "-b";
   std::string nEventsSwitch = "-n";
-  std::string backgroundSwitch = "&";
+  std::string backgroundSwitch = ""; // SW: might not be relevant at all since we launch inside fork+exec
   O2ParamDef(GeneratorFileOrCmdParam, "GeneratorFileOrCmd");
 };
 

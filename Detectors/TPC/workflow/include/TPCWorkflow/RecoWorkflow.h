@@ -35,15 +35,15 @@ struct CorrectionMapsLoaderGloOpts;
 namespace reco_workflow
 {
 /// define input and output types of the workflow
-enum struct InputType { PassThrough,      // No processing, just pass through available inputs to the writers, defined by the OutputType
-                        Digitizer,        // directly read digits from channel {TPC:DIGITS}
-                        Digits,           // read digits from file
-                        ClustersHardware, // read hardware clusters in raw page format from file
-                        Clusters,         // read native clusters from file
-                        CompClusters,     // read compressed cluster container
-                        CompClustersCTF,  // compressed clusters from CTF, as flat format
-                        CompClustersFlat, // compressed clusters in flat format, used as input for the entropy encoder
-                        EncodedClusters,  // read encoded clusters
+enum struct InputType { PassThrough,               // No processing, just pass through available inputs to the writers, defined by the OutputType
+                        Digitizer,                 // directly read digits from channel {TPC:DIGITS}
+                        Digits,                    // read digits from file
+                        ClustersHardware,          // read hardware clusters in raw page format from file
+                        Clusters,                  // read native clusters from file
+                        CompClustersRoot,          // read compressed cluster in ROOT format
+                        CompClustersFlat,          // compressed clusters from flat format (e.g. from CTF)
+                        CompClustersFlatForEncode, // compressed clusters in flat format, used as input for the entropy encoder, no gpu-reco
+                        EncodedClusters,           // read encoded clusters
                         ZSRaw,
 };
 
@@ -59,7 +59,8 @@ enum struct OutputType { Digits,
                          ClustersHardware,
                          Clusters,
                          Tracks,
-                         CompClusters,
+                         CompClustersRoot,
+                         CompClustersFlat,
                          EncodedClusters,
                          DisableWriter,
                          SendClustersPerSector,

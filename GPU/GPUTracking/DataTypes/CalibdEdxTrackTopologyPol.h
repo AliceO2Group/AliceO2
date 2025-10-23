@@ -62,7 +62,10 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param region region of the TPC
   /// \param charge correction for maximum or total charge
   /// \param x coordinates where the correction is evaluated
-  GPUd() float getCorrection(const int32_t region, const ChargeType charge, float x[/*inpXdim*/]) const { return (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x); }
+  GPUd() float getCorrection(const int32_t region, const ChargeType charge, float x[/*inpXdim*/]) const
+  {
+    return (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x);
+  }
 
   /// \return returns the track topology correction
   /// \param region region of the TPC

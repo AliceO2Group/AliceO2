@@ -86,6 +86,9 @@ class PdgROOT(Enum):
 
 # Enum of additional particles
 class Pdg(Enum):
+    kEta = 221
+    kOmega = 223
+    kEtaPrime = 331
     kB0 = 511
     kB0Bar = -511
     kBPlus = 521
@@ -144,7 +147,7 @@ class Pdg(Enum):
     kHyperHelium4 = 1010020040
     kHyperHelium5 = 1010020050
     kHyperHelium4Sigma = 1110020040
-
+    kLambda1520_Py = 102134  # PYTHIA code different from PDG
 
 dbPdg = ROOT.o2.O2DatabasePDG
 

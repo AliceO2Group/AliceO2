@@ -8,6 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/DeviceState.h"
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingStats.h"
@@ -43,6 +44,7 @@
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
+#include <fairlogger/Logger.h>
 #include <fairmq/Channel.h>
 #include <functional>
 #if __has_include(<fairmq/shmem/Message.h>)
@@ -50,7 +52,7 @@
 #endif
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <gsl/span>
+#include <span>
 #include <string>
 
 using namespace o2::framework::data_matcher;
@@ -189,7 +191,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         continue;
       }
 
-      auto getPartialRecord = [&cache = mCache, numInputTypes = mDistinctRoutesIndex.size()](int li) -> gsl::span<MessageSet const> {
+      auto getPartialRecord = [&cache = mCache, numInputTypes = mDistinctRoutesIndex.size()](int li) -> std::span<MessageSet const> {
         auto offset = li * numInputTypes;
         assert(cache.size() >= offset + numInputTypes);
         auto const start = cache.data() + offset;
@@ -347,9 +349,21 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
         if (element.size() == 0) {
           auto& state = mContext.get<DeviceState>();
           if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
-            LOGP(warning, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+            if (state.allowedProcessing == DeviceState::CalibrationOnly) {
+              O2_SIGNPOST_ID_GENERATE(cid, calibration);
+              O2_SIGNPOST_EVENT_EMIT(calibration, cid, "expected_missing_data", "Expected missing %{public}s (lifetime:%d) while dropping non-calibration data in slot %zu with timestamp %zu < %zu.",
+                                     DataSpecUtils::describe(input).c_str(), (int)input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+            } else {
+              LOGP(info, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+            }
           } else {
-            LOGP(error, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+            if (state.allowedProcessing == DeviceState::CalibrationOnly) {
+              O2_SIGNPOST_ID_GENERATE(cid, calibration);
+              O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "expected_missing_data", "Not processing in calibration mode: missing %s (lifetime:%d) while dropping incomplete data in slot %zu with timestamp %zu < %zu.",
+                                          DataSpecUtils::describe(input).c_str(), (int)input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+            } else {
+              LOGP(error, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+            }
           }
         }
       }
@@ -678,7 +692,7 @@ DataRelayer::RelayChoice
       }
       index.publishSlot(slot);
       index.markAsDirty(slot, true);
-      return RelayChoice{.type = RelayChoice::Type::WillRelay};
+      return RelayChoice{.type = RelayChoice::Type::WillRelay, .timeslice = timeslice};
   }
   O2_BUILTIN_UNREACHABLE();
 }
@@ -696,7 +710,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   //
   // We use this to bail out early from the check as soon as we find something
   // which we know is not complete.
-  auto getPartialRecord = [&cache, &numInputTypes](int li) -> gsl::span<MessageSet const> {
+  auto getPartialRecord = [&cache, &numInputTypes](int li) -> std::span<MessageSet const> {
     auto offset = li * numInputTypes;
     assert(cache.size() >= offset + numInputTypes);
     auto const start = cache.data() + offset;

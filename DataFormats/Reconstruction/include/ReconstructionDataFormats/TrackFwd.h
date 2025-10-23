@@ -161,6 +161,7 @@ class TrackParCovFwd : public TrackParFwd
   void propagateToZquadratic(double zEnd, double zField);
   void propagateToZhelix(double zEnd, double zField);
   void propagateToZ(double zEnd, double zField); // Parameters: helix; errors: quadratic
+  void propagateToDCAhelix(double zField, const std::array<double, 3>& p, std::array<double, 3>& dca);
 
   // Add Multiple Coulomb Scattering effects
   void addMCSEffect(double x2X0);

@@ -11,6 +11,7 @@
 
 #ifndef FRAMEWORK_ANALYSISMANAGERS_H
 #define FRAMEWORK_ANALYSISMANAGERS_H
+#include "DataAllocator.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/GroupedCombinations.h"
@@ -159,7 +160,9 @@ const char* controlOption()
 }
 
 template <typename T>
-  requires(is_spawns<T> || is_builds<T> || is_defines<T>)
+concept with_base_table = requires(T const& t) { t.base_specs(); };
+
+template <with_base_table T>
 bool requestInputs(std::vector<InputSpec>& inputs, T const& entity)
 {
   auto base_specs = entity.base_specs();
@@ -245,7 +248,10 @@ template <is_histogram_registry T>
 bool postRunOutput(EndOfStreamContext& context, T& hr)
 {
   auto& deviceSpec = context.services().get<o2::framework::DeviceSpec const>();
-  context.outputs().snapshot(hr.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *(hr.getListOfHistograms()));
+  auto sendHistos = [deviceSpec, &context](HistogramRegistry const& self, TNamed* obj) mutable {
+    context.outputs().snapshot(self.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *obj);
+  };
+  hr.apply(sendHistos);
   hr.clean();
   return true;
 }
@@ -307,12 +313,49 @@ bool prepareOutput(ProcessingContext& context, T& builds)
 
 template <is_defines T>
 bool prepareOutput(ProcessingContext& context, T& defines)
+  requires(T::delayed == false)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
   auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::sources.size(), metadata::sources>(context), std::span{metadata::base_table_t::originalLabels});
   if (originalTable->schema()->fields().empty() == true) {
     using base_table_t = typename T::base_table_t::table_t;
     originalTable = makeEmptyTable<base_table_t>(o2::aod::label<metadata::extension_table_t::ref>());
+  }
+  if (defines.inputSchema == nullptr) {
+    defines.inputSchema = originalTable->schema();
+  }
+  using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
+
+  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable,
+                                                                                          o2::aod::label<metadata::extension_table_t::ref>(),
+                                                                                          defines.projectors.data(),
+                                                                                          defines.projector,
+                                                                                          defines.schema));
+  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTable(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
+  return true;
+}
+
+template <typename T>
+bool prepareDelayedOutput(ProcessingContext&, T&)
+{
+  return false;
+}
+
+template <is_defines T>
+  requires(T::delayed == true)
+bool prepareDelayedOutput(ProcessingContext& context, T& defines)
+{
+  if (defines.needRecompilation) {
+    defines.recompile();
+  }
+  using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
+  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::sources.size(), metadata::sources>(context), std::span{metadata::base_table_t::originalLabels});
+  if (originalTable->schema()->fields().empty() == true) {
+    using base_table_t = typename T::base_table_t::table_t;
+    originalTable = makeEmptyTable<base_table_t>(o2::aod::label<metadata::extension_table_t::ref>());
+  }
+  if (defines.inputSchema == nullptr) {
+    defines.inputSchema = originalTable->schema();
   }
   using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
 
@@ -543,7 +586,7 @@ static void setGroupedCombination(C& comb, TG& grouping, std::tuple<Ts...>& asso
 
 /// Preslice handling
 template <typename T>
-  requires(!is_preslice<T>)
+  requires(!is_preslice<T> && !is_preslice_group<T>)
 bool registerCache(T&, Cache&, Cache&)
 {
   return false;
@@ -585,8 +628,15 @@ bool registerCache(T& preslice, Cache&, Cache& bsksU)
   return true;
 }
 
+template <is_preslice_group T>
+bool registerCache(T& presliceGroup, Cache& bsks, Cache& bsksU)
+{
+  homogeneous_apply_refs<true>([&bsks, &bsksU](auto& preslice) { return registerCache(preslice, bsks, bsksU); }, presliceGroup);
+  return true;
+}
+
 template <typename T>
-  requires(!is_preslice<T>)
+  requires(!is_preslice<T> && !is_preslice_group<T>)
 bool updateSliceInfo(T&, ArrowTableSlicingCache&)
 {
   return false;
@@ -615,6 +665,13 @@ static bool updateSliceInfo(T& preslice, ArrowTableSlicingCache& cache)
     }
   }
   preslice.updateSliceInfo(cache.getCacheUnsortedFor(preslice.getBindingKey()));
+  return true;
+}
+
+template <is_preslice_group T>
+static bool updateSliceInfo(T& presliceGroup, ArrowTableSlicingCache& cache)
+{
+  homogeneous_apply_refs<true>([&cache](auto& preslice) { return updateSliceInfo(preslice, cache); }, presliceGroup);
   return true;
 }
 

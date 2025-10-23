@@ -13,6 +13,7 @@
 
 #include "ITS3Reconstruction/TopologyDictionary.h"
 #include "ITS3Base/SegmentationMosaix.h"
+#include "ITS3Base/SpecsV2.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "CommonUtils/StringUtils.h"
 #include <TFile.h>
@@ -202,6 +203,7 @@ math_utils::Point3D<T> TopologyDictionary::getClusterCoordinates(const itsmft::C
     auto layer = its3::constants::detID::getDetID2Layer(cl.getSensorID());
     mIBSegmentations[layer].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
     locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID(), true) * its3::SegmentationMosaix::PitchRow);
+    locCl.SetY(its3::constants::pixelarray::pixels::apts::responseYShift);
     locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID(), true) * its3::SegmentationMosaix::PitchCol);
     float xCurved{0.f}, yCurved{0.f};
     mIBSegmentations[layer].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);

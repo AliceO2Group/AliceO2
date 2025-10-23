@@ -121,7 +121,7 @@ class AlignRecordTask
     mImproveCutChi2 = 2. * trackerParam.sigmaCutForImprovement * trackerParam.sigmaCutForImprovement;
 
     // Configuration for chamber fixing
-    auto input_fixchambers = ic.options().get<string>("fix-chamber");
+    auto input_fixchambers = ic.options().get<std::string>("fix-chamber");
     std::stringstream string_chambers(input_fixchambers);
     string_chambers >> std::ws;
     while (string_chambers.good()) {
@@ -132,8 +132,8 @@ class AlignRecordTask
     }
 
     // Init for output saving
-    auto OutputRecFileName = ic.options().get<string>("output-record-data");
-    auto OutputConsFileName = ic.options().get<string>("output-record-constraint");
+    auto OutputRecFileName = ic.options().get<std::string>("output-record-data");
+    auto OutputConsFileName = ic.options().get<std::string>("output-record-constraint");
     mAlign.init(OutputRecFileName, OutputConsFileName);
 
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>([this]() {

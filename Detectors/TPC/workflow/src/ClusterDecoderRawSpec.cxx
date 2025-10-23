@@ -43,6 +43,7 @@ namespace o2
 {
 namespace tpc
 {
+
 /// create the processor spec for TPC raw cluster decoder converting TPC raw to native clusters
 /// Input: raw pages of TPC raw clusters
 /// Output: vector of containers with clusters in ClusterNative format, one container per
@@ -79,27 +80,18 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // init the stacks for forwarding the sector header
       // FIXME check if there is functionality in the DPL to forward the stack
       // FIXME make one function
-      o2::header::Stack rawHeaderStack;
-      o2::header::Stack mcHeaderStack;
       o2::tpc::TPCSectorHeader const* sectorHeaderMC = nullptr;
       if (DataRefUtils::isValid(mclabelref)) {
         sectorHeaderMC = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(mclabelref);
-        if (sectorHeaderMC) {
-          o2::header::Stack actual{*sectorHeaderMC};
-          std::swap(mcHeaderStack, actual);
-          if (sectorHeaderMC->sector() < 0) {
-            pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, std::move(mcHeaderStack)}, fanSpec);
-          }
-        }
+      }
+
+      if (sectorHeaderMC && sectorHeaderMC->sector() < 0) {
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, {*sectorHeaderMC}}, fanSpec);
       }
       auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
-      if (sectorHeader) {
-        o2::header::Stack actual{*sectorHeader};
-        std::swap(rawHeaderStack, actual);
-        if (sectorHeader->sector() < 0) {
-          pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, std::move(rawHeaderStack)}, fanSpec);
-          return;
-        }
+      if (sectorHeader && sectorHeader->sector() < 0) {
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, {*sectorHeader}}, fanSpec);
+        return;
       }
       assert(sectorHeaderMC == nullptr || sectorHeader->sector() == sectorHeaderMC->sector());
 
@@ -166,8 +158,8 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
       char* outputBuffer = nullptr;
-      auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](size_t size) -> char* {
-        outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, std::move(rawHeaderStack)}, size).data();
+      auto outputAllocator = [&pc, &fanSpec, &outputBuffer, sectorHeader](size_t size) -> char* {
+        outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, sectorHeader ? o2::header::Stack{*sectorHeader} : o2::header::Stack{}}, size).data();
         return outputBuffer;
       };
       MCLabelContainer mcout;
@@ -188,7 +180,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         // serialize the complete list of MC label containers
         ConstMCLabelContainer labelsFlat;
         mcout.flatten_to(labelsFlat);
-        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, std::move(mcHeaderStack)}, labelsFlat);
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, sectorHeaderMC ? o2::header::Stack{*sectorHeaderMC} : o2::header::Stack{}}, labelsFlat);
       }
     };
 

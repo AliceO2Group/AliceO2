@@ -12,6 +12,7 @@
 #include <DetectorsBase/Detector.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <Alice3DetectorsPassive/Magnet.h>
+#include <Alice3DetectorsPassive/PassiveBaseParam.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
@@ -54,10 +55,23 @@ void Alice3Magnet::createMaterials()
   // | Support cylinder |           20            |  8.896   | 0.225  |
   // | Al-strip         |            1            |  8.896   | 0.011  |
   // | NbTi/Cu          |            3            |  1.598   | 0.188  |
-  // | Insulation       |           11            | 17.64    | 0.062  |
+  // | Insulation       |           11            |  17.64   | 0.062  |
   // | Al-stabiliser    |           33            |  8.896   | 0.371  |
   // | Inner cryostat   |           10            |  8.896   | 0.112  |
   // | Outer cryostat   |           30            |  8.896   | 0.337  |
+  // +------------------+-------------------------+----------+--------+
+  // Update: 2025-06-16 enabledby setting Alice3PassiveBase.mLayout=1
+  // +------------------+-------------------------+----------+--------+
+  // |  layer           | effective thickness [mm]|  X0 [cm] | X0 [%] |
+  // +------------------+-------------------------+----------+--------+
+  // | Support cylinder |           20            | 8.896 | 0.225     |
+  // | Al-strip         |            1            | 8.896 | 0.011     |
+  // | NbTi/Cu          |            3            | 1.598 | 0.188     |
+  // | Insulation       |           11            | 17.64 | 0.062     |
+  // | Cu-stabiliser    |           22            | 1.436 | 1.532     |
+  // | Inner cryostat   |           10            | 8.896 | 0.112     |
+  // | Outer cryostat   |           30            | 8.896 | 0.337     |
+  // | total            |                         |       | 2.468     |
   // +------------------+-------------------------+----------+--------+
   // Geometry will be oversimplified in two wrapping cylindrical Al layers (symmetric for the time being) with a Copper layer in between.
 
@@ -90,6 +104,45 @@ void Alice3Magnet::ConstructGeometry()
 {
   createMaterials();
 
+  // Passive Base configuration parameters
+  auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
+
+  switch (passiveBaseParam.mDetLayout) {
+    case o2::passive::DetLayout::StandardRadius:
+      // Defined in the header file
+      break;
+    case o2::passive::DetLayout::ReducedRadius:
+      mInnerWrapInnerRadius = 125.f; // cm
+      mInnerWrapThickness = 1.f;     // cm
+      mCoilInnerRadius = 145.f;      // cm
+      mCoilThickness = 0.3f;         // cm
+      mRestMaterialRadius = 145.3f;  // cm
+      mRestMaterialThickness = 6.8f; // cm
+      mOuterWrapInnerRadius = 165.f; // cm
+      mOuterWrapThickness = 3.f;     // cm
+      mZLength = 800.f;              // cm
+      break;
+    default:
+      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
+      break;
+  }
+
+  bool doCopperStabilizer = false;
+  switch (passiveBaseParam.mLayout) {
+    case o2::passive::MagnetLayout::AluminiumStabilizer:
+      // Handled in the header file
+      break;
+    case o2::passive::MagnetLayout::CopperStabilizer:
+      doCopperStabilizer = true;
+      mRestMaterialThickness -= 3.3; // cm Remove the Aluminium stabiliser
+      mRestMaterialThickness += 2.2; // cm Add the Copper stabiliser
+      LOG(debug) << "Alice 3 magnet: using Copper Stabilizer with thickness " << mRestMaterialThickness << " cm";
+      break;
+    default:
+      LOG(fatal) << "Unknown magnet layout " << passiveBaseParam.mLayout;
+      break;
+  }
+
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* barrel = geoManager->GetVolume("barrel");
   if (!barrel) {
@@ -102,22 +155,22 @@ void Alice3Magnet::ConstructGeometry()
   auto kMedVac = matmgr.getTGeoMedium("ALICE3_MAGNET_VACUUM");
 
   // inner wrap
-  LOGP(debug, "Alice 3 magnet: creating inner wrap with inner radius {} and thickness {}", mInnerWrapInnerRadius, mInnerWrapThickness);
+  LOGP(debug, "Alice 3 magnet: creating inner wrap with inner radius {} cm and thickness {} cm", mInnerWrapInnerRadius, mInnerWrapThickness);
   TGeoTube* innerLayer = new TGeoTube(mInnerWrapInnerRadius, mInnerWrapInnerRadius + mInnerWrapThickness, mZLength / 2);
   TGeoTube* innerVacuum = new TGeoTube(mInnerWrapInnerRadius + mInnerWrapThickness, mCoilInnerRadius, mZLength / 2);
   // coils layer
-  LOGP(debug, "Alice 3 magnet: creating coils layer with inner radius {} and thickness {}", mCoilInnerRadius, mCoilThickness);
+  LOGP(debug, "Alice 3 magnet: creating coils layer with inner radius {} cm and thickness {} cm", mCoilInnerRadius, mCoilThickness);
   TGeoTube* coilsLayer = new TGeoTube(mCoilInnerRadius, mCoilInnerRadius + mCoilThickness, mZLength / 2);
   TGeoTube* restMaterial = new TGeoTube(mRestMaterialRadius, mRestMaterialRadius + mRestMaterialThickness, mZLength / 2);
   TGeoTube* outerVacuum = new TGeoTube(mRestMaterialRadius + mRestMaterialThickness, mOuterWrapInnerRadius, mZLength / 2);
   // outer wrap
-  LOGP(debug, "Alice 3 magnet: creating outer wrap with inner radius {} and thickness {}", mOuterWrapInnerRadius, mOuterWrapThickness);
+  LOGP(debug, "Alice 3 magnet: creating outer wrap with inner radius {} cm and thickness {} cm", mOuterWrapInnerRadius, mOuterWrapThickness);
   TGeoTube* outerLayer = new TGeoTube(mOuterWrapInnerRadius, mOuterWrapInnerRadius + mOuterWrapThickness, mZLength / 2);
 
   TGeoVolume* innerWrapVol = new TGeoVolume("innerWrap", innerLayer, kMedAl);
   TGeoVolume* innerVacuumVol = new TGeoVolume("innerVacuum", innerVacuum, kMedVac);
   TGeoVolume* coilsVol = new TGeoVolume("coils", coilsLayer, kMedCu);
-  TGeoVolume* restMaterialVol = new TGeoVolume("restMaterial", restMaterial, kMedAl);
+  TGeoVolume* restMaterialVol = new TGeoVolume("restMaterial", restMaterial, doCopperStabilizer ? kMedCu : kMedAl);
   TGeoVolume* outerVacuumVol = new TGeoVolume("outerVacuum", outerVacuum, kMedVac);
   TGeoVolume* outerWrapVol = new TGeoVolume("outerWrap", outerLayer, kMedAl);
 

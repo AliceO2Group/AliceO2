@@ -206,7 +206,7 @@ void OCDB2CCDBTrapConfig(TString ccdbPath = "http://localhost:8080", Int_t run =
   //Connect to CCDB
   //
   o2::ccdb::CcdbApi ccdb;
-  map<string, string> metadata;               // do we want to store any meta data?
+  std::map<std::string, std::string> metadata; // do we want to store any meta data?
   metadata.emplace(std::make_pair("UploadedBy", "marten"));
   metadata.emplace(std::make_pair("Description", "Default TRAP config for Run 3 simulations in LS2"));
   ccdb.init(ccdbPath.Data());

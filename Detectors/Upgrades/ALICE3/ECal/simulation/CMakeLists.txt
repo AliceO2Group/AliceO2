@@ -11,8 +11,13 @@
 
 o2_add_library(ECalSimulation
                SOURCES src/Detector.cxx
+                       src/Digitizer.cxx
                PUBLIC_LINK_LIBRARIES O2::ECalBase
-                                     O2::ITSMFTSimulation)
+                                     O2::DataFormatsECal)
 
 o2_target_root_dictionary(ECalSimulation
-                          HEADERS include/ECalSimulation/Detector.h)
+                          HEADERS include/ECalSimulation/Detector.h
+                                  include/ECalSimulation/Digitizer.h
+                         )
+
+o2_data_file(COPY data DESTINATION Detectors/ECL/simulation)

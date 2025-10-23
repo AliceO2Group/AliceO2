@@ -17,8 +17,6 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 
-#include <boost/algorithm/string.hpp>
-
 using namespace o2::framework;
 
 struct FakeCluster {

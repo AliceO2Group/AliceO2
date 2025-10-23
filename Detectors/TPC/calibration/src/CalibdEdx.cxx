@@ -754,17 +754,28 @@ void CalibdEdx::dumpToFile(const char* outFile)
 
 CalibdEdx CalibdEdx::readFromFile(const char* inFile)
 {
-  TFile f(inFile, "READ");
-  auto* obj = (CalibdEdx*)f.Get("calib");
-  if (!obj) {
+  std::unique_ptr<TFile> f(TFile::Open(inFile));
+  if (!f || f->IsZombie()) {
+    LOGP(error, "Could not open file: {}", inFile);
     CalibdEdx calTmp;
     return calTmp;
   }
-  CalibdEdx cal(*obj);
-  THnF* hTmp = (THnF*)f.Get("histogram_data");
-  if (!hTmp) {
+
+  auto obj = f->Get<CalibdEdx>("calib");
+  if (!obj) {
+    LOGP(error, "Could not read CalibdEdx object from file: {}", inFile);
     CalibdEdx calTmp;
     return calTmp;
+  }
+
+  THnF* hTmp = f->Get<THnF>("histogram_data");
+
+  CalibdEdx cal(*obj);
+  delete obj;
+
+  if (!hTmp) {
+    LOGP(warning, "Could not read histogram from file: {}. Returning empty histogram", inFile);
+    return cal;
   }
   cal.setFromRootHist(hTmp);
   return cal;

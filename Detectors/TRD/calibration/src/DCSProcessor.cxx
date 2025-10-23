@@ -120,7 +120,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
     } else if (type == DPVAL_INT) {
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
     } else if (type == DPVAL_STRING) {
-      LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<string>(dpcom);
+      LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<std::string>(dpcom);
     }
   }
   auto flags = dpcom.data.get_flags();
@@ -265,15 +265,15 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
         int chamberId = getChamberIdFromAlias(dpid.get_alias());
         auto& dpInfoFedCFGtag = mTRDDCSFedCFGtag[chamberId];
         if (etime != mLastDPTimeStamps[dpid]) {
-          if (dpInfoFedCFGtag != o2::dcs::getValue<string>(dpcom)) {
+          if (dpInfoFedCFGtag != o2::dcs::getValue<std::string>(dpcom)) {
             // If value changes after processing and DPs should not be updated, log change as warning (for now)
             if (mPids[dpid] && !(mFedCFGtagCompleteDPs && mFirstRunEntryForFedCFGtagUpdate)) {
               // Issue an alarm if counter is lower than maximum, warning otherwise
               if (mFedCFGtagAlarmCounter < mFedAlarmCounterMax) {
-                LOG(alarm) << "CFGtag change " << dpid.get_alias() << " : " << dpInfoFedCFGtag << " -> " << o2::dcs::getValue<string>(dpcom) << ", run = " << mCurrentRunNumber;
+                LOG(alarm) << "CFGtag change " << dpid.get_alias() << " : " << dpInfoFedCFGtag << " -> " << o2::dcs::getValue<std::string>(dpcom) << ", run = " << mCurrentRunNumber;
                 mFedCFGtagAlarmCounter++;
               } else if (mVerbosity > 0) {
-                LOG(warn) << "CFGtag change " << dpid.get_alias() << " : " << dpInfoFedCFGtag << " -> " << o2::dcs::getValue<string>(dpcom) << ", run = " << mCurrentRunNumber;
+                LOG(warn) << "CFGtag change " << dpid.get_alias() << " : " << dpInfoFedCFGtag << " -> " << o2::dcs::getValue<std::string>(dpcom) << ", run = " << mCurrentRunNumber;
               }
             }
           }

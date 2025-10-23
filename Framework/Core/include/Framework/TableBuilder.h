@@ -98,13 +98,14 @@ O2_ARROW_STL_CONVERSION(long unsigned, UInt64Type)
 O2_ARROW_STL_CONVERSION(float, FloatType)
 O2_ARROW_STL_CONVERSION(double, DoubleType)
 O2_ARROW_STL_CONVERSION(std::string, StringType)
+O2_ARROW_STL_CONVERSION(std::span<std::byte>, BinaryViewType)
 } // namespace detail
 
 void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label);
 
 struct BuilderUtils {
   template <typename T>
-  static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data, int size = 1)
+  static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, const T* data, int size = 1)
   {
     using ArrowType = typename detail::ConversionTraits<std::decay_t<T>>::ArrowType;
     using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
@@ -133,7 +134,7 @@ struct BuilderUtils {
   /// Assumes that the pointer actually points to a buffer
   /// which contains the correct number of elements.
   template <typename HolderType, typename T>
-  static arrow::Status append(HolderType& holder, T* data)
+  static arrow::Status append(HolderType& holder, const T* data)
   {
     if constexpr (std::is_same_v<decltype(holder.builder), std::unique_ptr<arrow::FixedSizeListBuilder>>) {
       return appendToList<T>(holder.builder, data);
@@ -143,21 +144,21 @@ struct BuilderUtils {
   }
   /// Appender for the array case.
   template <typename HolderType, typename T, int N>
-  static arrow::Status append(HolderType& holder, T (&data)[N])
+  static arrow::Status append(HolderType& holder, const T (&data)[N])
   {
     return holder.builder->Append(reinterpret_cast<const uint8_t*>(data));
   }
 
   /// Appender for the array case.
   template <typename HolderType, typename T, int N>
-  static arrow::Status append(HolderType& holder, std::array<T, N> const& data)
+  static arrow::Status append(HolderType& holder, std::array<const T, N> const& data)
   {
     return holder.builder->Append(reinterpret_cast<const uint8_t*>(data.data()));
   }
 
   /// Appender for the vector case.
   template <typename HolderType, typename T>
-  static arrow::Status append(HolderType& holder, std::vector<T> const& data)
+  static arrow::Status append(HolderType& holder, std::span<const T> data)
   {
     using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
     using ValueBuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
@@ -170,7 +171,7 @@ struct BuilderUtils {
   }
 
   template <typename HolderType, typename T>
-  static void unsafeAppend(HolderType& holder, std::vector<T> const& value)
+  static void unsafeAppend(HolderType& holder, std::span<const T> value)
   {
     auto status = append(holder, value);
     if (!status.ok()) {
@@ -274,9 +275,32 @@ struct BuilderMaker<bool> {
   }
 };
 
+template <>
+struct BuilderMaker<std::span<std::byte>> {
+  using FillType = std::span<std::byte>;
+  using STLValueType = std::span<std::byte>;
+  using ArrowType = typename detail::ConversionTraits<std::span<std::byte>>::ArrowType;
+  using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
+  {
+    return std::make_unique<BuilderType>(pool);
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::TypeTraits<ArrowType>::type_singleton();
+  }
+
+  static arrow::Status append(BuilderType& builder, std::span<std::byte> value)
+  {
+    return builder.Append((char*)value.data(), (int64_t)value.size());
+  }
+};
+
 template <typename ITERATOR>
 struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
-  using FillType = std::pair<ITERATOR, ITERATOR>;
+  using FillType = std::pair<ITERATOR, ITERATOR> const&;
   using STLValueType = typename ITERATOR::value_type;
   using ArrowType = arrow::ListType;
   using ValueType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
@@ -297,7 +321,7 @@ struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
 
 template <typename T, int N>
 struct BuilderMaker<T (&)[N]> {
-  using FillType = T*;
+  using FillType = const T*;
   using STLValueType = T;
   using BuilderType = arrow::FixedSizeListBuilder;
   using ArrowType = arrow::FixedSizeListType;
@@ -319,7 +343,7 @@ struct BuilderMaker<T (&)[N]> {
 
 template <typename T, int N>
 struct BuilderMaker<T[N]> {
-  using FillType = T*;
+  using FillType = const T*;
   using BuilderType = arrow::FixedSizeListBuilder;
   using ArrowType = arrow::FixedSizeListType;
   using ElementType = typename detail::ConversionTraits<T>::ArrowType;
@@ -340,7 +364,7 @@ struct BuilderMaker<T[N]> {
 
 template <typename T, int N>
 struct BuilderMaker<std::array<T, N>> {
-  using FillType = T*;
+  using FillType = const T*;
   using BuilderType = arrow::FixedSizeListBuilder;
   using ArrowType = arrow::FixedSizeListType;
   using ElementType = typename detail::ConversionTraits<T>::ArrowType;
@@ -361,7 +385,7 @@ struct BuilderMaker<std::array<T, N>> {
 
 template <typename T>
 struct BuilderMaker<std::vector<T>> {
-  using FillType = std::vector<T>;
+  using FillType = std::span<const T>;
   using BuilderType = arrow::ListBuilder;
   using ArrowType = arrow::ListType;
   using ElementType = typename detail::ConversionTraits<T>::ArrowType;
@@ -420,6 +444,13 @@ struct DirectInsertion {
   arrow::Status append(BUILDER& builder, T value)
   {
     return builder->Append(value);
+  }
+
+  template <typename BUILDER>
+    requires std::same_as<std::span<std::byte>, T>
+  arrow::Status append(BUILDER& builder, T value)
+  {
+    return builder->Append((char*)value.data(), (int64_t)value.size());
   }
 
   template <typename BUILDER>
@@ -569,7 +600,7 @@ template <typename... ARGS>
 using IndexedHoldersTuple = decltype(makeHolderTypes<ARGS...>());
 
 template <typename T>
-concept ShouldNotDeconstruct = std::is_bounded_array_v<T> || std::is_arithmetic_v<T> || framework::is_base_of_template_v<std::vector, T>;
+concept ShouldNotDeconstruct = std::is_bounded_array_v<T> || std::is_arithmetic_v<T> || framework::is_base_of_template_v<std::vector, T> || std::same_as<std::span<std::byte>, T>;
 
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
@@ -647,7 +678,7 @@ class TableBuilder
   {
     auto persister = persistTuple(framework::pack<ARG0, ARGS...>{}, columnNames);
     // Callback used to fill the builders
-    return [persister = persister](unsigned int slot, typename BuilderMaker<ARG0>::FillType const& arg, typename BuilderMaker<ARGS>::FillType... args) -> void {
+    return [persister = persister](unsigned int slot, typename BuilderMaker<ARG0>::FillType arg, typename BuilderMaker<ARGS>::FillType... args) -> void {
       persister(slot, std::forward_as_tuple(arg, args...));
     };
   }

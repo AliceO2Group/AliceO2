@@ -23,7 +23,7 @@ fi
 if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRKDATA_OUTPUT="--send-track-data"; else ENABLE_TRKDATA_OUTPUT=""; fi
 
 # specific calibration workflows
-if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "--vtx-sources $VERTEX_TRACK_MATCHING_SOURCES ${CALIB_TPC_SCDCALIB_SLOTLENGTH:+"--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"} $ENABLE_TRKDATA_OUTPUT $DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)"; fi
+if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "--vtx-sources $VERTEX_TRACK_MATCHING_SOURCES --tracking-sources $TRACK_SOURCES ${CALIB_TPC_SCDCALIB_SLOTLENGTH:+"--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"} $ENABLE_TRKDATA_OUTPUT $DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)"; fi
 if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
   : ${SCALEEVENTS_TPC_TIMEGAIN:=40}
   : ${SCALETRACKS_TPC_TIMEGAIN:=1000}
@@ -55,14 +55,14 @@ if [[ $CALIB_ASYNC_EXTRACTTPCCURRENTS == 1 ]]; then
 fi
 if [[ $CALIB_ASYNC_EXTRACTTIMESERIES == 1 ]] ; then
   : ${CALIB_ASYNC_SAMPLINGFACTORTIMESERIES:=0.001}
-  if [[ ! -z ${CALIB_ASYNC_ENABLEUNBINNEDTIMESERIES:-} ]]; then
+  if [[ -n ${CALIB_ASYNC_ENABLEUNBINNEDTIMESERIES:-} ]]; then
     CONFIG_TPCTIMESERIES+=" --enable-unbinned-root-output --sample-unbinned-tsallis --threads ${TPCTIMESERIES_THREADS:-1}"
   fi
-  if [[ $ON_SKIMMED_DATA == 1 ]] || [[ ! -z "$CALIB_ASYNC_SAMPLINGFACTORTIMESERIES" ]]; then
+  if [[ $ON_SKIMMED_DATA == 1 ]] || [[ -n "$CALIB_ASYNC_SAMPLINGFACTORTIMESERIES" ]]; then
     if [[ $ON_SKIMMED_DATA == 1 ]]; then
       SAMPLINGFACTORTIMESERIES=0.1
     fi
-    if [[ ! -z "$CALIB_ASYNC_SAMPLINGFACTORTIMESERIES" ]]; then # this takes priority, even if we were on skimmed data
+    if [[ -n "$CALIB_ASYNC_SAMPLINGFACTORTIMESERIES" ]]; then # this takes priority, even if we were on skimmed data
       SAMPLINGFACTORTIMESERIES=${CALIB_ASYNC_SAMPLINGFACTORTIMESERIES}
     fi
     CONFIG_TPCTIMESERIES+=" --sampling-factor ${SAMPLINGFACTORTIMESERIES}"
@@ -74,28 +74,28 @@ fi
 
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
-  if [[ ! -z ${CALIBDATASPEC_BARREL_TF:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_BARREL_TF:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf output timeframe)" "" 0
   fi
-  if [[ ! -z ${CALIBDATASPEC_BARREL_SPORADIC:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_BARREL_SPORADIC:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp output sporadic)" "" 0
   fi
-  if [[ ! -z ${CALIBDATASPEC_CALO_TF:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_CALO_TF:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf output timeframe)" "" 0
   fi
-  if [[ ! -z ${CALIBDATASPEC_CALO_SPORADIC:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_CALO_SPORADIC:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp output sporadic)" "" 0
   fi
-  if [[ ! -z ${CALIBDATASPEC_MUON_TF:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_MUON_TF:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf output timeframe)" "" 0
   fi
-  if [[ ! -z ${CALIBDATASPEC_MUON_SPORADIC:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_MUON_SPORADIC:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp output sporadic)" "" 0
   fi
-  if [[ ! -z ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf output timeframe)" "" 0
   fi
-  if [[ ! -z ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
+  if [[ -n ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_SPORADIC\" $(get_proxy_connection fwd_sp output sporadic)" "" 0
   fi
 fi

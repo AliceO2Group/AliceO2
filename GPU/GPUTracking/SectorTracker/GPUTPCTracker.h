@@ -69,10 +69,6 @@ class GPUTPCTracker : public GPUProcessor
     int32_t nLocalTrackHits = 0;        // see above
   };
 
-  GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const
-  {
-    return mData.ClusterData();
-  }
   GPUhdi() const GPUTPCRow& Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
   GPUhdni() GPUglobalref() commonMemoryStruct* CommonMemory() const
   {
@@ -164,13 +160,11 @@ class GPUTPCTracker : public GPUProcessor
    */
   GPUdi() static int32_t CalculateHitWeight(int32_t NHits, float chi2)
   {
-    const float chi2_suppress = 6.f;
-    float weight = (((float)NHits * (chi2_suppress - chi2 / 500.f)) * (1e9f / chi2_suppress / 160.f));
+    float weight = NHits * (NHits * 2 - 5) * 128 / chi2; // TODO: Add QPt to this formula
     if (weight < 0.f || weight > 2e9f) {
       return 0;
     }
     return ((int32_t)weight);
-    // return( (NHits << 16) + num);
   }
   GPUd() void MaximizeHitWeight(const GPUTPCRow& row, int32_t hitIndex, int32_t weight) { mData.MaximizeHitWeight(row, hitIndex, weight); }
   GPUd() void SetHitWeight(const GPUTPCRow& row, int32_t hitIndex, int32_t weight) { mData.SetHitWeight(row, hitIndex, weight); }

@@ -23,6 +23,8 @@ struct GeometryManagerParam : public o2::conf::ConfigurableParamHelper<GeometryM
   bool usePwGeoBVH = false;
   bool usePwCaching = false;
 
+  int printLevel = -1; // geometry level to print out (determined by the volume path)
+
   O2ParamDef(GeometryManagerParam, "GeometryManagerParam");
 };
 

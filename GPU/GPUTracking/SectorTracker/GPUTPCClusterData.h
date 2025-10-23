@@ -27,13 +27,6 @@ struct GPUTPCClusterData {
   float y;
   float z;
   float amp;
-#ifdef GPUCA_FULL_CLUSTERDATA
-  float pad;
-  float time;
-  float ampMax;
-  float sigmaPad2;
-  float sigmaTime2;
-#endif
 };
 } // namespace o2::gpu
 

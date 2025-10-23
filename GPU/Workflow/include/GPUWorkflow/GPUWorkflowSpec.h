@@ -105,6 +105,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct Config {
     int32_t itsTriggerType = 0;
     int32_t lumiScaleMode = 0;
+    bool checkCTPIDCconsistency = true;
     bool enableMShape = false;
     bool enableCTPLumi = false;
     int32_t enableDoublePipeline = 0;
@@ -116,7 +117,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool zsDecoder = false;
     bool zsOnTheFly = false;
     bool outputTracks = false;
-    bool outputCompClusters = false;
+    bool outputCompClustersRoot = false;
     bool outputCompClustersFlat = false;
     bool outputCAClusters = false;
     bool outputQA = false;
@@ -133,6 +134,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool itsOverrBeamEst = false;
     bool tpcTriggerHandling = false;
     bool isITS3 = false;
+    bool useFilteredOutputSpecs = false;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int32_t> const& tpcsectors, uint64_t tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** gPolicyOrder = nullptr);
@@ -223,6 +225,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   int64_t mCreationForCalib = -1; ///< creation time for calib manipulation
   int32_t mVerbosity = 0;
   uint32_t mNTFs = 0;
+  uint32_t mNTFDumps = 0;
   uint32_t mNDebugDumps = 0;
   uint32_t mNextThreadIndex = 0;
   bool mUpdateGainMapCCDB = true;

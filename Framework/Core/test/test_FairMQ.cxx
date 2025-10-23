@@ -174,7 +174,7 @@ TEST_CASE("addDataBlockForEach_test")
       int i;
       int j;
     };
-    using namespace boost::container::pmr;
+    using namespace fair::mq::pmr;
     fair::mq::Parts message;
     std::vector<elem, polymorphic_allocator<elem>> vec(polymorphic_allocator<elem>{allocZMQ});
     vec.reserve(100);

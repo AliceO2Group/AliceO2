@@ -16,6 +16,7 @@
 #define GENEVENTS_H
 
 #include "GPUCommonDef.h"
+#include <cmath>
 
 namespace o2::gpu
 {

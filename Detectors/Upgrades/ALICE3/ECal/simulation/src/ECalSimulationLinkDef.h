@@ -17,5 +17,6 @@
 
 #pragma link C++ class o2::ecal::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::ecal::Detector> + ;
+#pragma link C++ class o2::ecal::Digitizer + ;
 
 #endif

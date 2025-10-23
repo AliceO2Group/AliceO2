@@ -54,6 +54,8 @@ class Ring
 
   auto getDeltaPhiPos() const { return TMath::TwoPi() / mNTiles; }
   void createRing(TGeoVolume* motherVolume);
+  int getPosId() const { return mPosId; }
+  int getNTiles() const { return mNTiles; }
 
  private:
   int mPosId;           // id of the ring

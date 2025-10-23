@@ -89,6 +89,7 @@ class GPUTPCCompression : public GPUProcessor
   void SetPointersCompressedClusters(void*& mem, T& c, uint32_t nClA, uint32_t nTr, uint32_t nClU, bool reducedClA);
   template <class T>
   GPUd() static void truncateSignificantBits(T& val, uint32_t nBits, uint32_t max);
+  GPUd() bool rejectCluster(int32_t idx, GPUParam& param, const GPUTrackingInOutPointers& ioPtrs);
 
   int16_t mMemoryResOutputHost = -1;
   int16_t mMemoryResOutputGPU = -1;

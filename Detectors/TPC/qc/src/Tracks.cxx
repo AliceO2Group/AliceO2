@@ -38,7 +38,7 @@ struct binning {
 const std::vector<std::string_view> types{"A_Pos", "A_Neg", "C_Pos", "C_Neg"};
 const binning binsDCAr{200, -5., 5.};
 const binning binsDCArLargerRange{400, -10., 10.};
-const binning binsEta{200, -1., 1.};
+const binning binsEta{300, -1.5, 1.5};
 const binning binsClus{120, 60., 180.};
 const binning binsClusLargerRange{140, 60., 200.};
 //______________________________________________________________________________

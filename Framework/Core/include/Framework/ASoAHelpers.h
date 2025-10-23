@@ -76,76 +76,13 @@ void dataSizeVariesBetweenColumns();
 template <template <typename... Cs> typename BP, typename T, typename... Cs>
 std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPolicy, int minCatSize, int outsider)
 {
-  arrow::Table* arrowTable = table.asArrowTable().get();
-  auto rowIterator = table.begin();
-
-  uint64_t ind = 0;
-  uint64_t selInd = 0;
-  gsl::span<int64_t const> selectedRows;
   std::vector<BinningIndex> groupedIndices;
 
-  // Separate check to account for Filtered size different from arrow table
-  if (table.size() == 0) {
-    return groupedIndices;
-  }
-
-  if constexpr (soa::is_filtered_table<T>) {
-    selectedRows = table.getSelectedRows(); // vector<int64_t>
-  }
-
-  auto persistentColumns = typename BP<Cs...>::persistent_columns_t{};
-  constexpr auto persistentColumnsCount = pack_size(persistentColumns);
-  auto arrowColumns = o2::soa::row_helpers::getArrowColumns(arrowTable, persistentColumns);
-  auto chunksCount = arrowColumns[0]->num_chunks();
-  for (int i = 1; i < persistentColumnsCount; i++) {
-    if (arrowColumns[i]->num_chunks() != chunksCount) {
-      dataSizeVariesBetweenColumns();
-    }
-  }
-
-  for (uint64_t ci = 0; ci < chunksCount; ++ci) {
-    auto chunks = o2::soa::row_helpers::getChunks(arrowTable, persistentColumns, ci);
-    auto chunkLength = std::get<0>(chunks)->length();
-    for_<persistentColumnsCount - 1>([&chunks, &chunkLength](auto i) {
-      if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
-        dataSizeVariesBetweenColumns();
-      }
-    });
-
-    if constexpr (soa::is_filtered_table<T>) {
-      if (selectedRows[ind] >= selInd + chunkLength) {
-        selInd += chunkLength;
-        continue; // Go to the next chunk, no value selected in this chunk
-      }
-    }
-
-    uint64_t ai = 0;
-    while (ai < chunkLength) {
-      if constexpr (soa::is_filtered_table<T>) {
-        ai += selectedRows[ind] - selInd;
-        selInd = selectedRows[ind];
-      }
-
-      auto values = binningPolicy.getBinningValues(rowIterator, arrowTable, ci, ai, ind);
-      auto val = binningPolicy.getBin(values);
-      if (val != outsider) {
-        groupedIndices.emplace_back(val, ind);
-      }
-      ind++;
-
-      if constexpr (soa::is_filtered_table<T>) {
-        if (ind >= selectedRows.size()) {
-          break;
-        }
-      } else {
-        ai++;
-      }
-    }
-
-    if constexpr (soa::is_filtered_table<T>) {
-      if (ind == selectedRows.size()) {
-        break;
-      }
+  for (auto rowIterator : table) {
+    auto values = binningPolicy.getBinningValues(rowIterator);
+    auto val = binningPolicy.getBin(values);
+    if (val != outsider) {
+      groupedIndices.emplace_back(val, *std::get<1>(rowIterator.getIndices()));
     }
   }
 

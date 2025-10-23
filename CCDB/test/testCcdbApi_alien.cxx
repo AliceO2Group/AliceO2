@@ -29,7 +29,7 @@ using namespace o2::ccdb;
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
 
-static string ccdbUrl;
+static std::string ccdbUrl;
 bool hostReachable = false;
 
 /**
@@ -71,7 +71,7 @@ struct test_fixture {
   ~test_fixture() = default;
 
   CcdbApi api;
-  map<string, string> metadata;
+  std::map<std::string, std::string> metadata;
 };
 
 // handle the case where the object comes from alien and redirect does not work with curl

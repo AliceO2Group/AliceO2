@@ -38,4 +38,5 @@ set(CUDA_COMPUTETARGET "default")           # 86 89
 #set(GPUCA_RTC_NO_COMPILED_KERNELS 1)
 #set(GPUCA_KERNEL_RESOURCE_USAGE_VERBOSE 1)
 #set(GPUCA_CONFIG_COMPILER gcc)             # gcc / clang
+#set(GPUCA_CONFIG_WERROR 1)
 #add_definitions(-DGPUCA_GPU_DEBUG_PRINT)

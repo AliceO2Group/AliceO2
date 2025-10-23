@@ -26,7 +26,7 @@
 
 using namespace o2::ccdb;
 
-static string basePath;
+static std::string basePath;
 std::string ccdbUrl = "http://ccdb-test.cern.ch:8080";
 bool hostReachable = false;
 
@@ -43,7 +43,7 @@ struct Fixture {
     std::cout << "Is host reachable ? --> " << hostReachable << std::endl;
     char hostname[_POSIX_HOST_NAME_MAX];
     gethostname(hostname, _POSIX_HOST_NAME_MAX);
-    basePath = string("Test/") + hostname + "/pid" + getpid() + "/BasicCCDBManager/";
+    basePath = std::string("Test/") + hostname + "/pid" + getpid() + "/BasicCCDBManager/";
     std::cout << "Path we will use in this test suite : " + basePath << std::endl;
   }
   ~Fixture()

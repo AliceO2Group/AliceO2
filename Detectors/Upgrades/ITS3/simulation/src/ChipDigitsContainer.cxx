@@ -31,12 +31,12 @@ void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::its3:
   int nel = 0;
 
   if (isIB()) {
-    // Inner barrel: use ITS3-specific noise interface with OB segmentation.
-    mean = params->getIBNoisePerPixel() * SegmentationOB::NPixels;
+    // Inner barrel: use ITS3-specific noise interface with IB segmentation.
+    mean = params->getIBNoisePerPixel() * SegmentationIB::NPixels;
     nel = static_cast<int>(params->getIBChargeThreshold() * 1.1);
   } else {
-    // Outer barrel: use base class noise interface with IB segmentation.
-    mean = params->getNoisePerPixel() * SegmentationIB::NPixels;
+    // Outer barrel: use base class noise interface with OB segmentation.
+    mean = params->getNoisePerPixel() * SegmentationOB::NPixels;
     nel = static_cast<int>(params->getChargeThreshold() * 1.1);
   }
 

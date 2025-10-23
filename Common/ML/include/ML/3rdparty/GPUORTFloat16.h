@@ -568,9 +568,11 @@ GPUdi() uint16_t BFloat16Impl<Derived>::ToUint16Impl(float v) noexcept
 template <class Derived>
 GPUdi() float BFloat16Impl<Derived>::ToFloatImpl() const noexcept
 {
+#ifndef __FAST_MATH__
   if (IsNaN()) {
     return o2::gpu::CAMath::QuietNaN();
   }
+#endif
   float result;
   char* const first = reinterpret_cast<char*>(&result);
   char* const second = first + sizeof(uint16_t);

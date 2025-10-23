@@ -67,7 +67,7 @@ class InteractionSampler
   void print() const;
 
  protected:
-  int simulateInteractingBC();
+  virtual int simulateInteractingBC();
   void nextCollidingBC(int n);
 
   o2::math_utils::RandomRing<10000> mBCJumpGenerator;  // generator of random jumps in BC
@@ -89,7 +89,7 @@ class InteractionSampler
 
   static constexpr float DefIntRate = 50e3; ///< default interaction rate
 
-  ClassDefNV(InteractionSampler, 1);
+  ClassDef(InteractionSampler, 1);
 };
 
 //_________________________________________________
@@ -112,6 +112,23 @@ inline void InteractionSampler::nextCollidingBC(int n)
   }
   mIR.bc = mInteractingBCs[mCurrBCIdx];
 }
+
+// Special case of InteractionSampler without actual sampling.
+// Engineers interaction sequence by putting one in each N-th BC with multiplicity mult.
+class FixedSkipBC_InteractionSampler : public InteractionSampler
+{
+
+ public:
+  FixedSkipBC_InteractionSampler(int every_n, int mult) : mEveryN{every_n}, mMultiplicity{mult}, InteractionSampler() {}
+
+ protected:
+  int simulateInteractingBC() override;
+
+ private:
+  int mEveryN;       // the skip number ---> fills every N-th BC in the bunch filling scheme
+  int mMultiplicity; // how many events to put if bc is filled
+  ClassDef(FixedSkipBC_InteractionSampler, 1);
+};
 
 } // namespace steer
 } // namespace o2

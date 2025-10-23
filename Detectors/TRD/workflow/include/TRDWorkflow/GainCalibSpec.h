@@ -45,7 +45,7 @@ class GainCalibDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     auto slotL = ic.options().get<uint32_t>("sec-per-slot");
-    auto delay = ic.options().get<uint32_t>("max-delay");
+    auto delay = ic.options().get<float>("max-delay");
     mCalibrator = std::make_unique<o2::trd::CalibratorGain>();
     mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
@@ -155,7 +155,7 @@ DataProcessorSpec getTRDGainCalibSpec()
     AlgorithmSpec{adaptFromTask<o2::calibration::GainCalibDevice>(ccdbRequest)},
     Options{
       {"sec-per-slot", VariantType::UInt32, 900u, {"number of seconds per calibration time slot"}},
-      {"max-delay", VariantType::UInt32, 2u, {"number of slots in past to consider"}},
+      {"max-delay", VariantType::Float, 0.05f, {"number of slots in past to consider"}},
       {"enable-root-output", VariantType::Bool, false, {"output tprofiles and fits to root file"}},
     }};
 }

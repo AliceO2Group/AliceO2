@@ -28,9 +28,9 @@
 /DataFormats/Detectors/Common                  @shahor02
 /DataFormats/Detectors/CPV                     @peressounko @kharlov
 /DataFormats/Detectors/CTP                     @lietava
-/DataFormats/Detectors/EMCAL                   @mfasDa @jokonig
+/DataFormats/Detectors/EMCAL                   @nstrangm @jokonig
 /DataFormats/Detectors/FIT                     @jotwinow @afurs @andreasmolander @sahilupadhyaya92
-/DataFormats/Detectors/FOCAL                   @maxrauch @mfasDa @iarsene @matthiasrichter
+/DataFormats/Detectors/FOCAL                   @maxrauch @iarsene @matthiasrichter
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
@@ -58,9 +58,9 @@
 /Detectors/Base                    @sawenzel @shahor02
 /Detectors/Calibration             @chiarazampolli @shahor02
 /Detectors/CPV                     @peressounko @kharlov
-/Detectors/EMCAL                   @mfasDa @jokonig
+/Detectors/EMCAL                   @nstrangm @jokonig
 /Detectors/FIT                     @jotwinow @afurs @andreasmolander @sahilupadhyaya92
-/Detectors/FOCAL                   @maxrauch @mfasDa @iarsene @matthiasrichter
+/Detectors/FOCAL                   @maxrauch @iarsene @matthiasrichter
 /Detectors/Geometry                @sawenzel @shahor02
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02

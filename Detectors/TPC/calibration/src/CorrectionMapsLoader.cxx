@@ -138,6 +138,7 @@ void CorrectionMapsLoader::addGlobalOptions(std::vector<ConfigParamSpec>& option
   addOption(options, ConfigParamSpec{"corrmap-lumi-mode", o2::framework::VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative; 2 = full + scale * derivative (for MC)"}});
   addOption(options, ConfigParamSpec{"enable-M-shape-correction", o2::framework::VariantType::Bool, false, {"Enable M-shape distortion correction"}});
   addOption(options, ConfigParamSpec{"disable-ctp-lumi-request", o2::framework::VariantType::Bool, false, {"do not request CTP lumi (regardless what is used for corrections)"}});
+  addOption(options, ConfigParamSpec{"disable-lumi-type-consistency-check", o2::framework::VariantType::Bool, false, {"disable check of selected CTP or IDC scaling source being consistent with the map"}});
 }
 
 //________________________________________________________
@@ -148,6 +149,7 @@ CorrectionMapsLoaderGloOpts CorrectionMapsLoader::parseGlobalOptions(const o2::f
   tpcopt.lumiMode = opts.get<int>("corrmap-lumi-mode");
   tpcopt.enableMShapeCorrection = opts.get<bool>("enable-M-shape-correction");
   tpcopt.requestCTPLumi = !opts.get<bool>("disable-ctp-lumi-request");
+  tpcopt.checkCTPIDCconsistency = !opts.get<bool>("disable-lumi-type-consistency-check");
   if (!tpcopt.requestCTPLumi && tpcopt.lumiType == 1) {
     LOGP(fatal, "Scaling with CTP Lumi is requested but this input is disabled");
   }
@@ -176,20 +178,58 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
   if (matcher == ConcreteDataMatcher("TPC", "CorrMap", 0)) {
     setCorrMap((o2::gpu::TPCFastTransform*)obj);
     mCorrMap->rectifyAfterReadingFromFile();
-    if (getMeanLumiOverride() == 0 && mCorrMap->getLumi() > 0.) {
-      setMeanLumi(mCorrMap->getLumi(), false);
+    mCorrMap->setCTP2IDCFallBackThreshold(o2::tpc::CorrMapParam::Instance().CTP2IDCFallBackThreshold);
+    if (getMeanLumiOverride() != 0) {
+      if (getLumiScaleType() == 1) {
+        mCorrMap->setLumi(getMeanLumiOverride());
+        LOGP(info, "CorrMap mean lumi rate is overridden to {}", mCorrMap->getLumi());
+      } else if (getLumiScaleType() == 2) {
+        mCorrMap->setIDC(getMeanLumiOverride());
+        LOGP(info, "CorrMap mean IDC rate is overridden to {}", mCorrMap->getIDC());
+      }
     }
-    LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mCorrMap->getLumi(), getMeanLumi());
+    float mapMeanRate = 0;
+    if (getLumiScaleType() == 1) {
+      mapMeanRate = mCorrMap->getLumi();
+    } else if (getLumiScaleType() == 2) {
+      mapMeanRate = mCorrMap->getIDC();
+    }
+    if (mCheckCTPIDCConsistency) {
+      checkMeanScaleConsistency(mapMeanRate, mCorrMap->getCTP2IDCFallBackThreshold());
+    }
+    if (getMeanLumiOverride() == 0 && mapMeanRate > 0.) {
+      setMeanLumi(mapMeanRate, false);
+    }
+    LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mapMeanRate, getMeanLumi());
     setUpdatedMap();
     return true;
   }
   if (matcher == ConcreteDataMatcher("TPC", "CorrMapRef", 0)) {
     setCorrMapRef((o2::gpu::TPCFastTransform*)obj);
     mCorrMapRef->rectifyAfterReadingFromFile();
-    if (getMeanLumiRefOverride() == 0) {
-      setMeanLumiRef(mCorrMapRef->getLumi());
+    mCorrMapRef->setCTP2IDCFallBackThreshold(o2::tpc::CorrMapParam::Instance().CTP2IDCFallBackThreshold);
+    if (getMeanLumiRefOverride() != 0) {
+      if (getLumiScaleType() == 1) {
+        mCorrMapRef->setLumi(getMeanLumiRefOverride());
+        LOGP(info, "CorrMapRef mean lumi rate is overridden to {}", mCorrMapRef->getLumi());
+      } else if (getLumiScaleType() == 2) {
+        mCorrMapRef->setIDC(getMeanLumiRefOverride());
+        LOGP(info, "CorrMapRef mean IDC rate is overridden to {}", mCorrMapRef->getIDC());
+      }
     }
-    LOGP(debug, "MeanLumiRefOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiRefOverride(), mCorrMapRef->getLumi(), getMeanLumiRef());
+    float mapRefMeanRate = 0;
+    if (getLumiScaleType() == 1) {
+      mapRefMeanRate = mCorrMapRef->getLumi();
+    } else if (getLumiScaleType() == 2) {
+      mapRefMeanRate = mCorrMapRef->getIDC();
+    }
+    if (mCheckCTPIDCConsistency) {
+      checkMeanScaleConsistency(mapRefMeanRate, mCorrMapRef->getCTP2IDCFallBackThreshold());
+    }
+    if (getMeanLumiRefOverride() == 0) {
+      setMeanLumiRef(mapRefMeanRate);
+    }
+    LOGP(debug, "MeanLumiRefOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiRefOverride(), mapRefMeanRate, getMeanLumiRef());
     setUpdatedMapRef();
     return true;
   }
@@ -217,7 +257,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     int scaleType = getLumiScaleType();
     const std::array<std::string, 3> lumiS{"OFF", "CTP", "TPC scaler"};
     if (scaleType >= lumiS.size()) {
-      LOGP(fatal, "Wrong lumi-scale-type provided!");
+      LOGP(fatal, "Wrong corrmap-lumi-mode provided!");
     }
 
     LOGP(info, "TPC correction map params updated: SP corrections: {} (corr.map scaling type={}, override values: lumiMean={} lumiRefMean={} lumiScaleMode={}), CTP Lumi: source={} lumiInstOverride={} , LumiInst scale={} ",
@@ -293,6 +333,19 @@ void CorrectionMapsLoader::updateInverse()
     TPCFastSpaceChargeCorrectionHelper::instance()->initInverse(corr, scaling, false);
   } else {
     LOGP(info, "Reinitializing inverse correction with lumi scale mode {} not supported for now", mLumiScaleMode);
+  }
+}
+
+void CorrectionMapsLoader::checkMeanScaleConsistency(float meanLumi, float threshold) const
+{
+  if (getLumiScaleType() == 1) {
+    if (meanLumi < threshold) {
+      LOGP(fatal, "CTP Lumi scaling source is requested, but the map mean scale {} is below the threshold {}", meanLumi, threshold);
+    }
+  } else if (getLumiScaleType() == 2) {
+    if (meanLumi > threshold) {
+      LOGP(fatal, "IDC scaling source is requested, but the map mean scale {} is above the threshold {}", meanLumi, threshold);
+    }
   }
 }
 

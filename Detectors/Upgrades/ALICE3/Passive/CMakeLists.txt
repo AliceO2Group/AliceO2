@@ -12,6 +12,7 @@
 o2_add_library(Alice3DetectorsPassive
                SOURCES src/Pipe.cxx
                        src/PassiveBase.cxx
+                       src/PassiveBaseParam.cxx
                        src/Absorber.cxx
                        src/Magnet.cxx
                PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsBase O2::SimConfig)
@@ -19,6 +20,7 @@ o2_add_library(Alice3DetectorsPassive
 o2_target_root_dictionary(Alice3DetectorsPassive
                           HEADERS include/Alice3DetectorsPassive/Pipe.h
                                   include/Alice3DetectorsPassive/PassiveBase.h
+                                  include/Alice3DetectorsPassive/PassiveBaseParam.h
                                   include/Alice3DetectorsPassive/Absorber.h
                                   include/Alice3DetectorsPassive/Magnet.h
                           LINKDEF src/PassiveLinkDef.h)

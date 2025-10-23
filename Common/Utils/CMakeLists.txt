@@ -26,7 +26,7 @@ o2_add_library(CommonUtils
                        src/DebugStreamer.cxx
                        src/DLLoaderBase.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
-                                     FairLogger::FairLogger O2::MathUtils TBB::tbb)
+                                     FairLogger::FairLogger O2::MathUtils TBB::tbb O2::GPUCommon)
 
 o2_target_root_dictionary(CommonUtils
                           HEADERS include/CommonUtils/TreeStream.h
@@ -50,6 +50,15 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/NameConf.h
                                   include/CommonUtils/IRFrameSelector.h
                                   include/CommonUtils/DebugStreamer.h)
+
+# Extra dictionaries only needed if tests are built
+if(BUILD_TESTING)
+    o2_add_library(CommonUtilsTest
+               SOURCES src/ConfigurableParamTest.cxx
+                       PUBLIC_LINK_LIBRARIES O2::CommonUtils)
+    o2_target_root_dictionary(CommonUtilsTest
+                              HEADERS include/CommonUtils/ConfigurableParamTest.h)
+endif()
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils
@@ -87,7 +96,16 @@ o2_add_test(EnumFlags
             SOURCES test/testEnumFlags.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils)
 
+o2_add_test(ConfigurableParam
+            COMPONENT_NAME CommonUtils
+            LABELS utils
+            SOURCES test/testConfigurableParam.cxx
+            PUBLIC_LINK_LIBRARIES O2::CommonUtilsTest)
+
 o2_add_executable(treemergertool
             COMPONENT_NAME CommonUtils
           SOURCES src/TreeMergerTool.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::program_options ROOT::Core)
+
+add_library(fpu_support OBJECT src/fpu.cxx)
+add_library(O2::fpu_support ALIAS fpu_support)

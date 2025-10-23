@@ -225,28 +225,33 @@ void CheckClustersITS3(const std::string& clusfile = "o2clus_its.root",
       locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
       locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
 
-      float x0 = locHsta.X(), dltx = locH.X() - x0;
-      float y0 = locHsta.Y(), dlty = locH.Y() - y0;
-      float z0 = locHsta.Z(), dltz = locH.Z() - z0;
-      auto r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
-
-      if (!isIB) {
-        locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
+      float x0, y0, z0, dltx, dlty, dltz, r;
+      if (isIB) {
+        float xFlat{0.}, yFlat{0.};
+        mMosaixSegmentations[layer].curvedToFlat(locC.X(), locC.Y(), xFlat, yFlat);
+        locC.SetCoordinates(xFlat, yFlat, locC.Z());
+        mMosaixSegmentations[layer].curvedToFlat(locH.X(), locH.Y(), xFlat, yFlat);
+        locH.SetCoordinates(xFlat, yFlat, locH.Z());
+        mMosaixSegmentations[layer].curvedToFlat(locHsta.X(), locHsta.Y(), xFlat, yFlat);
+        locHsta.SetCoordinates(xFlat, yFlat, locHsta.Z());
+        x0 = locHsta.X();
+        dltx = locH.X() - x0;
+        y0 = locHsta.Y();
+        dlty = locH.Y() - y0;
+        z0 = locHsta.Z();
+        dltz = locH.Z() - z0;
+        r = (o2::its3::constants::pixelarray::pixels::apts::responseYShift - y0) / dlty;
       } else {
-        // compare in local flat coordinates
-        float xFlatEnd{0.}, yFlatEnd{0.};
-        mMosaixSegmentations[layer].curvedToFlat(locH.X(), locH.Y(), xFlatEnd, yFlatEnd);
-        locH.SetXYZ(xFlatEnd, yFlatEnd, locH.Z());
-        float xFlatSta{0.}, yFlatSta{0.};
-        mMosaixSegmentations[layer].curvedToFlat(locHsta.X(), locHsta.Y(), xFlatSta, yFlatSta);
-        locHsta.SetXYZ(xFlatSta, yFlatSta, locHsta.Z());
-
-        // not really precise, but okish
-        locH.SetXYZ(0.5f * (locH.X() + locHsta.X()), 0.5f * (locH.Y() + locHsta.Y()), 0.5f * (locH.Z() + locHsta.Z()));
-
-        mMosaixSegmentations[layer].curvedToFlat(locC.X(), locC.Y(), xFlatSta, yFlatSta);
-        locC.SetXYZ(xFlatSta, yFlatSta, locC.Z());
+        x0 = locHsta.X();
+        dltx = locH.X() - x0;
+        y0 = locHsta.Y();
+        dlty = locH.Y() - y0;
+        z0 = locHsta.Z();
+        dltz = locH.Z() - z0;
+        r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
       }
+      locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
+
       float theta = std::acos(gloC.Z() / gloC.Rho());
       float eta = -std::log(std::tan(theta / 2));
 

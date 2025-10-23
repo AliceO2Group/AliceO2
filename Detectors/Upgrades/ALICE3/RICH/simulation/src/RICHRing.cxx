@@ -106,7 +106,7 @@ Ring::Ring(int rPosId,
     photoTile->SetVertex(6, photThick / 2, photYmax / 2);
     photoTile->SetVertex(7, photThick / 2, -photYmax / 2);
 
-    TGeoVolume* photoTileVol = new TGeoVolume(Form("photoTile_%d_%d", rPosId, photTileCount), photoTile, medSi);
+    TGeoVolume* photoTileVol = new TGeoVolume(Form("%s_%d_%d", GeometryTGeo::getRICHSensorPattern(), rPosId, photTileCount), photoTile, medSi);
     photoTileVol->SetLineColor(kOrange - 8);
     photoTileVol->SetLineWidth(1);
 

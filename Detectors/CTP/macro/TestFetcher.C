@@ -27,7 +27,7 @@ void TestFetcher(int runNumber = 557251)
   fetcher.setupRun(runNumber, &ccdb, ts, 0);
   ccdb.setURL("http://ali-qcdb-gpn.cern.ch:8083/");
   std::string QCDBPathCTPScalers = "qc/CTP/Scalers";
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   std::string run = std::to_string(runNumber);
   metadata["runNumber"] = run;
   CTPRunScalers* ctpscalers = ccdb.getSpecific<CTPRunScalers>(QCDBPathCTPScalers, ts, metadata);

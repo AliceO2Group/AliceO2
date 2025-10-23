@@ -21,12 +21,12 @@
 #include "Rtypes.h"  // for Digitizer::Class
 #include "TObject.h" // for TObject
 
-#include "ITSMFTSimulation/ChipDigitsContainer.h"
-// #include "ITSMFTSimulation/AlpideSimResponse.h"
-#include "ITSMFTSimulation/DigiParams.h"
+#include "TRKSimulation/ChipSimResponse.h"
+#include "TRKSimulation/ChipDigitsContainer.h"
+
+#include "TRKSimulation/DigiParams.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "TRKBase/GeometryTGeo.h"
-// #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -37,7 +37,7 @@
 namespace o2::trk
 {
 
-class Digitizer : public TObject
+class Digitizer
 {
   using ExtraDig = std::vector<itsmft::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
 
@@ -46,10 +46,12 @@ class Digitizer : public TObject
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
   void setROFRecords(std::vector<o2::itsmft::ROFRecord>* rec) { mROFRecords = rec; }
 
-  o2::itsmft::DigiParams& getParams() { return (o2::itsmft::DigiParams&)mParams; }
-  const o2::itsmft::DigiParams& getParams() const { return mParams; }
+  o2::trk::DigiParams& getParams() { return (o2::trk::DigiParams&)mParams; }
+  const o2::trk::DigiParams& getParams() const { return mParams; }
 
   void init();
+
+  o2::trk::ChipSimResponse* getChipResponse(int chipID);
 
   /// Steer conversion of hits to digits
   void process(const std::vector<itsmft::Hit>* hits, int evID, int srcID);
@@ -64,10 +66,10 @@ class Digitizer : public TObject
   bool isContinuous() const { return mParams.isContinuous(); }
   void fillOutputContainer(uint32_t maxFrame = 0xffffffff);
 
-  void setDigiParams(const o2::itsmft::DigiParams& par) { mParams = par; }
-  const o2::itsmft::DigiParams& getDigitParams() const { return mParams; }
+  void setDigiParams(const o2::trk::DigiParams& par) { mParams = par; }
+  const o2::trk::DigiParams& getDigitParams() const { return mParams; }
 
-  // provide the common itsmft::GeometryTGeo to access matrices and segmentation
+  // provide the common trk::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::trk::GeometryTGeo* gm) { mGeometry = gm; }
 
   uint32_t getEventROFrameMin() const { return mEventROFrameMin; }
@@ -82,7 +84,7 @@ class Digitizer : public TObject
 
  private:
   void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID);
-  void registerDigits(o2::itsmft::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
+  void registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
                       uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
@@ -97,9 +99,41 @@ class Digitizer : public TObject
     return mExtraBuff[ind].get();
   }
 
+  /// Get the number of columns according to the subdetector
+  /// \param subDetID 0 for VD, 1 for ML/OT
+  /// \param layer 0 to 2 for VD, 0 to 7 for ML/OT
+  /// \return Number of columns (for the moment, in the entire layer(VD) or stave (ML/OT)
+  int getNCols(int subDetID, int layer)
+  {
+    if (subDetID == 0) { // VD
+      return constants::VD::petal::layer::nCols;
+    } else if (subDetID == 1 && layer <= 3) { // ML
+      return constants::ML::nCols;
+    } else if (subDetID == 1 && layer >= 4) { // OT
+      return constants::OT::nCols;
+    }
+    return 0;
+  }
+
+  /// Get the number of rows according to the subdetector
+  /// \param subDetID 0 for VD, 1 for ML/OT
+  /// \param layer 0 to 2 for VD, 0 to 7 for ML/OT
+  /// \return Number of rows (for the moment, in the entire layer(VD) or stave (ML/OT)
+  int getNRows(int subDetID, int layer)
+  {
+    if (subDetID == 0) { // VD
+      return constants::VD::petal::layer::nRows[layer];
+    } else if (subDetID == 1 && layer <= 3) { // ML
+      return constants::ML::nRows;
+    } else if (subDetID == 1 && layer >= 4) { // OT
+      return constants::OT::nRows;
+    }
+    return 0;
+  }
+
   static constexpr float sec2ns = 1e9;
 
-  o2::itsmft::DigiParams mParams;          ///< digitization parameters
+  o2::trk::DigiParams mParams;             ///< digitization parameters
   o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record
   o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
   double mCollisionTimeWrtROF{};
@@ -110,19 +144,35 @@ class Digitizer : public TObject
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
-  o2::itsmft::AlpideSimResponse* mAlpSimResp = nullptr; // simulated response
+  int mNumberOfChips = 0;
+
+  o2::trk::ChipSimResponse* mChipSimResp = nullptr;     // simulated response
+  o2::trk::ChipSimResponse* mChipSimRespVD = nullptr;   // simulated response for VD chips
+  o2::trk::ChipSimResponse* mChipSimRespMLOT = nullptr; // simulated response for ML/OT chips
+
+  // std::string mResponseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
+  std::string mResponseFile = "$(O2_ROOT)/share/Detectors/Upgrades/ITS3/data/ITS3ChipResponseData/APTSResponseData.root"; /// using temporarly the APTS response
+
+  bool mSimRespOrientation{false};   // wether the orientation in the response function is flipped
+  float mSimRespVDShift{0.f};        // adjusting the Y-shift in the APTS response function to match sensor local coord.
+  float mSimRespVDScaleX{1.f};       // scale x-local coordinate to response function x-coordinate
+  float mSimRespVDScaleZ{1.f};       // scale z-local coordinate to response function z-coordinate
+  float mSimRespMLOTShift{0.f};      // adjusting the Y-shift in the APTS response function to match sensor local coord.
+  float mSimRespMLOTScaleX{1.f};     // scale x-local coordinate to response function x-coordinate
+  float mSimRespMLOTScaleZ{1.f};     // scale z-local coordinate to response function z-coordinate
+  float mSimRespVDScaleDepth{1.f};   // scale depth-local coordinate to response function depth-coordinate
+  float mSimRespMLOTScaleDepth{1.f}; // scale depth-local coordinate to response function depth-coordinate
 
   const o2::trk::GeometryTGeo* mGeometry = nullptr; ///< TRK geometry
 
-  std::vector<o2::itsmft::ChipDigitsContainer> mChips; ///< Array of chips digits containers
-  std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
+  std::vector<o2::trk::ChipDigitsContainer> mChips; ///< Array of chips digits containers
+  std::deque<std::unique_ptr<ExtraDig>> mExtraBuff; ///< buffer (per roFrame) for extra digits
 
   std::vector<o2::itsmft::Digit>* mDigits = nullptr;                       //! output digits
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
 
   const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
-
-  ClassDef(Digitizer, 1);
+  const o2::itsmft::NoiseMap* mNoiseMap = nullptr;
 };
 } // namespace o2::trk

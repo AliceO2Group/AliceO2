@@ -327,6 +327,9 @@ void StepTHn::createTarget(Int_t step, Bool_t sparse)
   }
 
   THnBase* target = mTarget[step];
+  if (mSumw2[step]) {
+    target->Sumw2();
+  }
 
   Int_t* binIdx = new Int_t[mNVars];
   Int_t* nBins = new Int_t[mNVars];
@@ -441,7 +444,7 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
   if (weight != 1.) {
     // initialize with already filled entries (which have been filled with weight == 1), in this case mSumw2 := mValues
     if (!mSumw2[iStep]) {
-      mSumw2[iStep] = createArray();
+      mSumw2[iStep] = createArray(mValues[iStep]);
       LOGF(info, "Created sumw2 container for step %d", iStep);
     }
   }
@@ -449,7 +452,7 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
   // TODO probably slow; add StepTHnT::add ?
   mValues[iStep]->SetAt(mValues[iStep]->GetAt(bin) + weight, bin);
   if (mSumw2[iStep]) {
-    mSumw2[iStep]->SetAt(mSumw2[iStep]->GetAt(bin) + weight, bin);
+    mSumw2[iStep]->SetAt(mSumw2[iStep]->GetAt(bin) + weight * weight, bin);
   }
 }
 

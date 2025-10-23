@@ -22,8 +22,8 @@ int readChannelTimeOffsetFV0CalibObjectFromCCDB(const std::string url = "http://
 {
   o2::ccdb::CcdbApi api;
   api.init(url);
-  map<string, string> metadata;
-  map<string, string> headers;
+  std::map<std::string, std::string> metadata;
+  std::map<std::string, std::string> headers;
   auto retrieved = api.retrieveFromTFileAny<o2::fv0::FV0ChannelTimeCalibrationObject>("FV0/Calib/ChannelTimeOffset", metadata, -1, &headers);
 
   std::cout << "--- HEADERS ---" << std::endl;

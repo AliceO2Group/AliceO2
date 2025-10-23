@@ -12,7 +12,10 @@
 #include "CommonUtils/StringUtils.h"
 #include <cstdlib>
 #include <filesystem>
+#ifndef GPUCA_STANDALONE
 #include <TGrid.h>
+#include <fmt/format.h>
+#endif
 #include <unistd.h>
 
 using namespace o2::utils;
@@ -77,6 +80,7 @@ std::string Str::getFullPath(const std::string_view p)
   return std::filesystem::canonical(std::string{p}).string();
 }
 
+#ifndef GPUCA_STANDALONE
 std::string Str::rectifyDirectory(const std::string_view p)
 {
   std::string dir(p);
@@ -104,6 +108,7 @@ std::string Str::rectifyDirectory(const std::string_view p)
   }
   return dir;
 }
+#endif
 
 // Create unique non-existing path name starting with prefix. Loose equivalent of boost::filesystem::unique_path()
 // The prefix can be either existing directory or just a string to add in front of the random part

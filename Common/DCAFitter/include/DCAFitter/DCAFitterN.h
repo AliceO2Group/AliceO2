@@ -17,7 +17,7 @@
 #ifndef _ALICEO2_DCA_FITTERN_
 #define _ALICEO2_DCA_FITTERN_
 
-#include "DCAFitter/HelixHelper.h"
+#include "ReconstructionDataFormats/HelixHelper.h"
 #include "DetectorsBase/Propagator.h"
 #include "MathUtils/Cartesian.h"
 #include "ReconstructionDataFormats/Track.h"

@@ -18,7 +18,7 @@
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
-#include <climits>
+#include <limits>
 #include <vector>
 #include <cmath>
 #endif
@@ -26,41 +26,14 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Constants.h"
 
-namespace o2
+namespace o2::its
 {
-namespace its
-{
-
-enum class TrackingMode {
-  Sync,
-  Async,
-  Cosmics,
-  Unset, // Special value to leave a default in case we want to override via Configurable Params
-};
-
-std::string asString(TrackingMode mode);
-std::ostream& operator<<(std::ostream& os, TrackingMode v);
-
-template <typename Param>
-class Configuration : public Param
-{
- public:
-  static Configuration<Param>& getInstance()
-  {
-    static Configuration<Param> instance;
-    return instance;
-  }
-  Configuration(const Configuration<Param>&) = delete;
-  const Configuration<Param>& operator=(const Configuration<Param>&) = delete;
-
- private:
-  Configuration() = default;
-};
 
 struct TrackingParameters {
-  int CellMinimumLevel() { return MinTrackLength - constants::its::ClustersPerCell + 1; }
-  int CellsPerRoad() const { return NLayers - 2; }
-  int TrackletsPerRoad() const { return NLayers - 1; }
+  int CellMinimumLevel() const noexcept { return MinTrackLength - constants::ClustersPerCell + 1; }
+  int NeighboursPerRoad() const noexcept { return NLayers - 3; }
+  int CellsPerRoad() const noexcept { return NLayers - 2; }
+  int TrackletsPerRoad() const noexcept { return NLayers - 1; }
   std::string asString() const;
 
   int NLayers = 7;
@@ -78,6 +51,7 @@ struct TrackingParameters {
   float Diamond[3] = {0.f, 0.f, 0.f};
 
   /// General parameters
+  bool AllowSharingFirstCluster = false;
   int ClusterSharing = 0;
   int MinTrackLength = 7;
   float NSigmaCut = 5;
@@ -107,12 +81,16 @@ struct TrackingParameters {
   float TrackFollowerNSigmaCutZ = 1.f;
   float TrackFollowerNSigmaCutPhi = 1.f;
 
+  bool createArtefactLabels{false};
+
   bool PrintMemory = false; // print allocator usage in epilog report
-  size_t MaxMemory = 12000000000UL;
+  size_t MaxMemory = std::numeric_limits<size_t>::max();
   bool DropTFUponFailure = false;
 };
 
 struct VertexingParameters {
+  std::string asString() const;
+
   int nIterations = 1;         // Number of vertexing passes to perform
   int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a round
   bool allowSingleContribClusters = false;
@@ -138,13 +116,18 @@ struct VertexingParameters {
   int zSpan = -1;
   bool SaveTimeBenchmarks = false;
 
+  bool useTruthSeeding = false; // overwrite found vertices with MC events
+  bool outputContLabels = false;
+
   int nThreads = 1;
   bool PrintMemory = false; // print allocator usage in epilog report
-  size_t MaxMemory = 12000000000UL;
+  size_t MaxMemory = std::numeric_limits<size_t>::max();
   bool DropTFUponFailure = false;
 };
 
 struct TimeFrameGPUParameters {
+  std::string asString() const;
+
   size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 1e2;
   size_t clustersPerLayerCapacity = 2.5e5;
@@ -162,7 +145,24 @@ struct TimeFrameGPUParameters {
   int maxGPUMemoryGB = -1;
 };
 
-} // namespace its
-} // namespace o2
+namespace TrackingMode
+{
+enum Type : int8_t {
+  Unset = -1, // Special value to leave a default in case we want to override via Configurable Params
+  Sync = 0,
+  Async = 1,
+  Cosmics = 2,
+  Off = 3,
+};
+
+Type fromString(std::string_view str);
+std::string toString(Type mode);
+
+std::vector<TrackingParameters> getTrackingParameters(Type mode);
+std::vector<VertexingParameters> getVertexingParameters(Type mode);
+
+}; // namespace TrackingMode
+
+} // namespace o2::its
 
 #endif /* TRACKINGITSU_INCLUDE_CONFIGURATION_H_ */

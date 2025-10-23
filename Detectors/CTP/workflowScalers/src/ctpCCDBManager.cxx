@@ -28,7 +28,7 @@ int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart,
 {
   // data base
   if (mCCDBHost == "none") {
-    LOG(info) << "Scalers not written to CCDB none";
+    LOG(debug) << "Scalers not written to CCDB none";
     return 0;
   }
   // CTPActiveRun* run = mActiveRuns[i];
@@ -40,7 +40,7 @@ int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart,
   long tmin = timeStart - time10min;
   long tmax = timeStop + time3days;
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(scalers.getRunNumber());
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
@@ -56,7 +56,7 @@ int ctpCCDBManager::saveRunScalersToQCDB(CTPRunScalers& scalers, long timeStart,
 {
   // data base
   if (mQCDBHost == "none") {
-    LOG(info) << "Scalers not written to QCDB none";
+    LOG(debug) << "Scalers not written to QCDB none";
     return 0;
   }
   // CTPActiveRun* run = mActiveRuns[i];q
@@ -68,7 +68,7 @@ int ctpCCDBManager::saveRunScalersToQCDB(CTPRunScalers& scalers, long timeStart,
   long tmin = timeStart - time10min;
   long tmax = timeStop + time3days;
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(scalers.getRunNumber());
   api.init(mQCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
@@ -95,7 +95,7 @@ int ctpCCDBManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   long tmin = timeStart - time10min;
   long tmax = timeStart + time3days;
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(cfg->getRunNumber());
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
@@ -125,7 +125,7 @@ int ctpCCDBManager::saveSoxOrbit(uint32_t runNumber, uint32_t soxOrbit, long tim
   long tmin = timestamp / 1000;
   long tmax = tmin + 381928219;
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(runNumber);
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
 
@@ -155,11 +155,16 @@ int ctpCCDBManager::saveOrbitReset(long timeStamp)
   long tmin = timeStamp / 1000;
   long tmax = tmin + 381928219;
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   api.init(mCCDBHost.c_str());  // or http://localhost:8080 for a local installation
-
-  // store abitrary user object in strongly typed manner
-  int ret = api.storeAsTFileAny(&vect, mCCDBPathOrbitReset, metadata, tmin, tmax);
+  // int ret = api.storeAsTFileAny(&vect, mCCDBPathOrbitReset, metadata, tmin, tmax);
+  std::cout << "Storing:" << mCCDBPathOrbitReset << " tmin:" << tmin << " tmax:" << tmax << " ts:" << timeStamp << std::endl;
+  std::string filename = "orbitReset.root";
+  auto classname = "std::vector<int64_t>";
+  metadata["adjustableEOV"] = "true";
+  int ret = api.storeAsTFileAny(&(vect), mCCDBPathOrbitReset, metadata, tmin, tmax);
+  o2::ccdb::CcdbObjectInfo oi(mCCDBPathOrbitReset, classname, filename, metadata, tmin, tmax);
+  adjustOverriddenEOV(api, oi);
   if (ret == 0) {
     LOG(info) << "Orbit reset  saved in ccdb:" << mCCDBHost << " tmin:" << tmin << " tmax:" << tmax;
   } else {
@@ -184,7 +189,7 @@ int ctpCCDBManager::saveCtpCfg(uint32_t runNumber, long timeStart)
     long tmin = timeStart - time10min;
     long tmax = timeStart + time3days;
     o2::ccdb::CcdbApi api;
-    map<string, string> metadata; // can be empty
+    std::map<std::string, std::string> metadata; // can be empty
     metadata["runNumber"] = std::to_string(runNumber);
     api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
     // store abitrary user object in strongly typed manner
@@ -201,7 +206,7 @@ CTPConfiguration ctpCCDBManager::getConfigFromCCDB(long timestamp, std::string r
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = run;
   auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
   if (ctpconfigdb == nullptr) {
@@ -228,7 +233,7 @@ CTPRunScalers ctpCCDBManager::getScalersFromCCDB(long timestamp, std::string run
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = run;
   auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);
   if (ctpscalers == nullptr) {

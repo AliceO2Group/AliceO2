@@ -333,7 +333,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("FOC")) {
     // FOCAL
-    addReadoutDetector(new o2::focal::Detector(isReadout("FOC"), gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Spaghetti.txt")));
+    addReadoutDetector(new o2::focal::Detector(isReadout("FOC"), gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Sheets.txt")));
   }
 
   if (geomonly) {

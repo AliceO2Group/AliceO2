@@ -55,7 +55,7 @@ class AlignParam
   double getZ() const { return mZ; }
 
   /// apply object to geoemetry
-  bool applyToGeometry() const;
+  bool applyToGeometry(int printLevel = -1) const;
 
   /// extract global delta matrix
   TGeoHMatrix createMatrix() const;

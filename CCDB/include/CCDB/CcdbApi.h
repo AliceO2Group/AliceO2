@@ -556,7 +556,7 @@ class CcdbApi //: public DatabaseInterface
    * @param tcl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  void* downloadFilesystemContent(std::string const& fullUrl, std::type_info const& tinfo, std::map<string, string>* headers) const;
+  void* downloadFilesystemContent(std::string const& fullUrl, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   // initialize the TGrid (Alien connection)
   bool initTGrid() const;
@@ -575,9 +575,6 @@ class CcdbApi //: public DatabaseInterface
 
   // convert type_info to TClass, throw on failure
   static TClass* tinfo2TClass(std::type_info const& tinfo);
-
-  // split string on delimiters and return tokens as vector
-  std::vector<std::string> splitString(const std::string& str, const char* delimiters);
 
   typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
 

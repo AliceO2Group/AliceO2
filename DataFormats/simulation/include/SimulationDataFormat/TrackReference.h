@@ -171,7 +171,7 @@ class TrackReference
   float mTrackLength = 0; ///< track length from its origin in cm
   float mTof = 0;         ///< time of flight in cm
   Int_t mUserId = 0;      ///< optional Id defined by user
-  Int_t mDetectorId = 0;  ///< Detector Id
+  Int_t mDetectorId = -1; ///< sensitive Detector Id (-1 if unknown or in passive material)
   SimTrackStatus mStatus; ///< encoding the track status
 
   friend std::ostream& operator<<(std::ostream&, const TrackReference&);

@@ -21,66 +21,72 @@
 #include <iomanip>
 #include <array>
 #include <iosfwd>
+#include <memory>
 
-#include "ITStracking/ROframe.h"
+#include <oneapi/tbb/task_arena.h>
+
 #include "ITStracking/Constants.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/BoundedAllocator.h"
-#include "ReconstructionDataFormats/Vertex.h"
-
-#include "ITStracking/ClusterLines.h"
-#include "ITStracking/Tracklet.h"
-#include "ITStracking/Cluster.h"
-
-#include "GPUCommonLogger.h"
 
 namespace o2::its
 {
 
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
-
+template <int nLayers>
 class Vertexer
 {
-  static constexpr int NLayers{7};
-  using TimeFrame7 = TimeFrame<NLayers>;
+  using TimeFrameN = TimeFrame<nLayers>;
+  using VertexerTraitsN = VertexerTraits<nLayers>;
   using LogFunc = std::function<void(const std::string& s)>;
 
  public:
-  Vertexer(VertexerTraits* traits);
+  Vertexer(VertexerTraitsN* traits);
   virtual ~Vertexer() = default;
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
 
-  void adoptTimeFrame(TimeFrame7& tf);
+  void adoptTimeFrame(TimeFrameN& tf);
   auto& getVertParameters() const { return mTraits->getVertexingParameters(); }
   void setParameters(const std::vector<VertexingParameters>& vertParams) { mVertParams = vertParams; }
-  void getGlobalConfiguration();
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource>& pool) { mMemoryPool = pool; }
+  const auto& getParameters() const noexcept { return mVertParams; }
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
   std::vector<Vertex> exportVertices();
-  VertexerTraits* getTraits() const { return mTraits; };
+  VertexerTraitsN* getTraits() const { return mTraits; };
 
   float clustersToVertices(LogFunc = [](const std::string& s) { std::cout << s << '\n'; });
   void filterMCTracklets();
 
   template <typename... T>
-  void findTracklets(T&&... args);
-  void findTrivialMCTracklets();
+  void findTracklets(T&&... args)
+  {
+    mTraits->computeTracklets(std::forward<T>(args)...);
+  }
   template <typename... T>
-  void validateTracklets(T&&... args);
+  void validateTracklets(T&&... args)
+  {
+    mTraits->computeTrackletMatching(std::forward<T>(args)...);
+  }
   template <typename... T>
-  void findVertices(T&&... args);
-  void findHistVertices();
+  void findVertices(T&&... args)
+  {
+    mTraits->computeVertices(std::forward<T>(args)...);
+  }
+
+  void addTruthSeeds() { mTraits->addTruthSeedingVertices(); }
 
   template <typename... T>
-  void initialiseVertexer(T&&... args);
+  void initialiseVertexer(T&&... args)
+  {
+    mTraits->initialise(std::forward<T>(args)...);
+  }
   template <typename... T>
   void initialiseTimeFrame(T&&... args);
 
   // Utils
-  void dumpTraits() { mTraits->dumpVertexerTraits(); }
   template <typename... T>
   float evaluateTask(void (Vertexer::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args);
 
@@ -89,11 +95,13 @@ class Vertexer
                    const unsigned selectedN, const unsigned int vertexN, const float initT,
                    const float trackletT, const float selecT, const float vertexT);
 
+  void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
+
  private:
   std::uint32_t mTimeFrameCounter = 0;
 
-  VertexerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
-  TimeFrame7* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
+  VertexerTraitsN* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TimeFrameN* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
 
   std::vector<VertexingParameters> mVertParams;
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
@@ -103,38 +111,16 @@ class Vertexer
     Trackleting,
     Validating,
     Finding,
+    TruthSeeding,
     NStates,
   };
-  State mCurState;
-  static constexpr std::array<const char*, NStates> StateNames{"Initialisation", "Tracklet finding", "Tracklet validation", "Vertex finding"};
+  State mCurState{Init};
+  static constexpr std::array<const char*, NStates> StateNames{"Initialisation", "Tracklet finding", "Tracklet validation", "Vertex finding", "Truth seeding"};
 };
 
+template <int nLayers>
 template <typename... T>
-void Vertexer::initialiseVertexer(T&&... args)
-{
-  mTraits->initialise(std::forward<T>(args)...);
-}
-
-template <typename... T>
-void Vertexer::findTracklets(T&&... args)
-{
-  mTraits->computeTracklets(std::forward<T>(args)...);
-}
-
-template <typename... T>
-inline void Vertexer::validateTracklets(T&&... args)
-{
-  mTraits->computeTrackletMatching(std::forward<T>(args)...);
-}
-
-template <typename... T>
-inline void Vertexer::findVertices(T&&... args)
-{
-  mTraits->computeVertices(std::forward<T>(args)...);
-}
-
-template <typename... T>
-float Vertexer::evaluateTask(void (Vertexer::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args)
+float Vertexer<nLayers>::evaluateTask(void (Vertexer<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args)
 {
   float diff{0.f};
 

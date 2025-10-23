@@ -76,7 +76,7 @@ class GPUReconstructionCUDA : public GPUReconstructionProcessing::KernelInterfac
   void RecordMarker(deviceEvent* ev, int32_t stream) override;
   void SetONNXGPUStream(Ort::SessionOptions& session_options, int32_t stream, int32_t* deviceId) override;
 
-  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits<7>>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame<7>>* timeFrame) override;
+  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits<7>>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits<7>>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame<7>>* timeFrame) override;
 
 #ifndef __HIPCC__ // CUDA
   bool CanQueryMaxMemory() override { return true; }

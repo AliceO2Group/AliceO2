@@ -131,6 +131,24 @@ int InteractionSampler::simulateInteractingBC()
 }
 
 //_________________________________________________
+int FixedSkipBC_InteractionSampler::simulateInteractingBC()
+{
+  // Returns number of collisions assigned to selected BC
+
+  nextCollidingBC(mEveryN);  // we jump regular intervals
+  int ncoll = mMultiplicity; // well defined pileup
+
+  // assign random time withing a bunch
+  for (int i = ncoll; i--;) {
+    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
+  }
+  if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
+    std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
+  }
+  return ncoll;
+}
+
+//_________________________________________________
 void InteractionSampler::setBunchFilling(const std::string& bcFillingFile)
 {
   // load bunch filling from the file

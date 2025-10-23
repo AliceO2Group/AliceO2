@@ -141,7 +141,10 @@ class NDPiecewisePolynomials : public FlatObject
   /// evaluate specific polynomial at given index for given coordinate
   /// \param x coordinates where to interpolate
   /// \param index index of the polynomial
-  GPUd() float evalPol(const float x[/* Dim */], const int32_t index[/* Dim */]) const { return MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::evalPol(getParameters(index), x); }
+  GPUd() float evalPol(const float x[/* Dim */], const int32_t index[/* Dim */]) const
+  {
+    return MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::evalPol(getParameters(index), x);
+  }
 
   /// \return returns min range for given dimension
   GPUd() float getXMin(const uint32_t dim) const { return mMin[dim]; }
@@ -215,7 +218,7 @@ class NDPiecewisePolynomials : public FlatObject
 #endif // !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
   /// \return returns the total number of stored parameters
-  uint32_t getNParameters() const { return getNPolynomials() * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly); }
+  uint32_t getNParameters() const { return getNPolynomials() * MultivariatePolynomialParametersHelper::getNParameters<Degree, Dim, InteractionOnly>(); }
 
   /// \return returns number of dimensions of the polynomials
   GPUd() static constexpr uint32_t getDim() { return Dim; }
@@ -241,11 +244,19 @@ class NDPiecewisePolynomials : public FlatObject
 
   /// returns terms which are needed to calculate the index for the grid for given dimension
   /// \param dim dimension
-  GPUd() uint32_t getTerms(const uint32_t dim) const { return (dim == 0) ? 1 : (mN[dim - 1] - 1) * getTerms(dim - 1); }
+  template <uint32_t TermDim>
+  GPUd() uint32_t getTerms() const
+  {
+    if constexpr (TermDim == 0) {
+      return 1;
+    } else {
+      return (mN[TermDim - 1] - 1) * getTerms<TermDim - 1>();
+    }
+  }
 
   /// returns index for accessing the parameter on the grid
   /// \param ix index per dimension
-  GPUd() uint32_t getDataIndex(const int32_t ix[/* Dim */]) const { return getDataIndex<Dim - 1>(ix) * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly); }
+  GPUd() uint32_t getDataIndex(const int32_t ix[/* Dim */]) const { return getDataIndex<Dim - 1>(ix) * MultivariatePolynomialParametersHelper::getNParameters<Degree, Dim, InteractionOnly>(); }
 
   /// helper function to get the index
   template <uint32_t DimTmp>
@@ -325,7 +336,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFromContainer(cons
 template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setDefault()
 {
-  const auto nParamsPerPol = MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly);
+  const auto nParamsPerPol = MultivariatePolynomialParametersHelper::getNParameters<Degree, Dim, InteractionOnly>();
   const auto nPols = getNPolynomials();
   std::vector<float> params(nParamsPerPol);
   params.front() = 1;
@@ -429,10 +440,10 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFutureBufferAddres
 
 template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 template <uint32_t DimTmp>
-GPUdi() uint32_t NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDataIndex(const int32_t ix[/* Dim */]) const
+GPUd() uint32_t NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDataIndex(const int32_t ix[/* Dim */]) const
 {
   if constexpr (DimTmp > 0) {
-    return ix[DimTmp] * getTerms(DimTmp) + getDataIndex<DimTmp - 1>(ix);
+    return ix[DimTmp] * getTerms<DimTmp>() + getDataIndex<DimTmp - 1>(ix);
   }
   return ix[DimTmp];
 }

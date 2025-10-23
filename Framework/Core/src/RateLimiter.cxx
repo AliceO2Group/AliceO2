@@ -16,6 +16,8 @@
 #include "Framework/DataTakingContext.h"
 #include "Framework/DeviceState.h"
 #include "Framework/DeviceContext.h"
+#include "Framework/Signpost.h"
+
 #include <fairmq/Device.h>
 #include <uv.h>
 #include <fairmq/shmem/Monitor.h>
@@ -23,10 +25,13 @@
 #include <chrono>
 #include <thread>
 
+O2_DECLARE_DYNAMIC_LOG(rate_limiting);
+
 using namespace o2::framework;
 
 int RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
 {
+  O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
   if (!maxInFlight && !minSHM) {
     return 0;
   }
@@ -45,9 +50,13 @@ int RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     while ((mSentTimeframes - mConsumedTimeframes) >= maxInFlight) {
       if (recvTimeout != 0 && !waitMessage && (timeoutForMessage == false || std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::system_clock::now() - startTime).count() > MESSAGE_DELAY_TIME)) {
         if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS || dtc.deploymentMode == DeploymentMode::FST) {
-          LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+          O2_SIGNPOST_EVENT_EMIT_ALARM(rate_limiting, sid, "timeframe_ratelimit",
+                                       "Maximum number of TF in flight reached (%d: published %llu - finished %llu), waiting",
+                                       maxInFlight, mSentTimeframes, mConsumedTimeframes);
         } else {
-          LOG(info) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+          O2_SIGNPOST_EVENT_EMIT_INFO(rate_limiting, sid, "timeframe_ratelimit",
+                                       "Maximum number of TF in flight reached (%d: published %llu - finished %llu), waiting",
+                                       maxInFlight, mSentTimeframes, mConsumedTimeframes);
         }
         waitMessage = true;
         timeoutForMessage = false;
@@ -67,12 +76,19 @@ int RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
       }
       assert(msg->GetSize() == 8);
       mConsumedTimeframes = *(int64_t*)msg->GetData();
+      O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "timeframe_ratelimit",
+                             "Received %llu as consumed timeframes",
+                             mConsumedTimeframes);
     }
     if (waitMessage) {
       if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS || dtc.deploymentMode == DeploymentMode::FST) {
-        LOG(important) << (mSentTimeframes - mConsumedTimeframes) << " / " << maxInFlight << " TF in flight, continuing to publish";
+        O2_SIGNPOST_EVENT_EMIT_IMPORTANT(rate_limiting, sid, "timeframe_ratelimit",
+                                         "%lli / %d TF in flight, continue to publish",
+                                         (mSentTimeframes - mConsumedTimeframes), maxInFlight);
       } else {
-        LOG(info) << (mSentTimeframes - mConsumedTimeframes) << " / " << maxInFlight << " TF in flight, continuing to publish";
+        O2_SIGNPOST_EVENT_EMIT_INFO(rate_limiting, sid, "timeframe_ratelimit",
+                                         "%lli / %d TF in flight, continue to publish",
+                                         (mSentTimeframes - mConsumedTimeframes), maxInFlight);
       }
     }
 

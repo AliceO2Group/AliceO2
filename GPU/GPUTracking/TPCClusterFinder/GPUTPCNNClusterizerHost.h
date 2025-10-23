@@ -20,8 +20,6 @@
 #include <vector>
 #include "ML/OrtInterface.h"
 
-using namespace o2::ml;
-
 class OrtMemoryInfo;
 class OrtAllocator;
 struct MockedOrtAllocator;
@@ -47,10 +45,12 @@ class GPUTPCNNClusterizerHost
 {
  public:
   GPUTPCNNClusterizerHost() = default;
-  GPUTPCNNClusterizerHost(const GPUSettingsProcessingNNclusterizer& settings) { init(settings); }
+  GPUTPCNNClusterizerHost(const GPUSettingsProcessingNNclusterizer& settings, bool useDeterministicMode = false) { init(settings, useDeterministicMode); }
 
-  void init(const GPUSettingsProcessingNNclusterizer&);
-  void initClusterizer(const GPUSettingsProcessingNNclusterizer&, GPUTPCNNClusterizer&);
+  void init(const GPUSettingsProcessingNNclusterizer&, bool = false);
+  void initClusterizer(const GPUSettingsProcessingNNclusterizer&, GPUTPCNNClusterizer&, int32_t = -1, int32_t = -1);
+  void createBoundary(GPUTPCNNClusterizer&);
+  void createIndexLookup(GPUTPCNNClusterizer&);
 
   // ONNX
   void directOrtAllocator(Ort::Env*, Ort::MemoryInfo*, GPUReconstruction*, bool = false);

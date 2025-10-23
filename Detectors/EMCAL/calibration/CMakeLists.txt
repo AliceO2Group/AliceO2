@@ -20,6 +20,7 @@ o2_add_library(EMCALCalibration
                         src/PedestalCalibDevice.cxx
                         src/PedestalProcessorDevice.cxx
                         src/PedestalProcessorData.cxx
+                        src/EMCALTempCalibExtractor.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
                                      O2::EMCALCalib
                                      O2::EMCALReconstruction
@@ -46,6 +47,7 @@ o2_target_root_dictionary(EMCALCalibration
                                   include/EMCALCalibration/EMCDCSProcessor.h
                                   include/EMCALCalibration/EMCALPedestalHelper.h
                                   include/EMCALCalibration/PedestalProcessorData.h
+                                  include/EMCALCalibration/EMCALTempCalibExtractor.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
 
 o2_add_executable(emcal-channel-calib-workflow

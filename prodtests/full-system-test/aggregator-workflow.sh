@@ -14,6 +14,9 @@ source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && ex
 source $O2DPG_ROOT/DATA/common/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
 source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
+# print an error (instead of warning) when exit transition timer expires, only for tasks on aggregator nodes
+ARGS_ALL+=" --error-on-exit-transition-timeout"
+
 # if the populator for DCS CCDB is needed, set it to non-0
 : ${NEED_DCS_CCDB_POPULATOR:=0}
 
@@ -145,11 +148,11 @@ fi
 # adding input proxies
 if workflow_has_parameter CALIB_PROXIES; then
   if [[ $AGGREGATOR_TASKS == BARREL_TF ]]; then
-    if [[ ! -z ${CALIBDATASPEC_BARREL_TF:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_BARREL_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]]; then
-    if [[ ! -z ${CALIBDATASPEC_BARREL_SPORADIC:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_BARREL_SPORADIC:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
@@ -158,7 +161,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
     CHANNELS_LIST=
     [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:29950"
-    if [[ ! -z ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ ! -z ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
       # define port for FLP
       : ${TPC_IDC_FLP_PORT:=29950}
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
@@ -173,47 +176,47 @@ if workflow_has_parameter CALIB_PROXIES; then
         done
       fi
     fi
-    if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_TPCSAC:-} ]]; then
       # define port for FLP
       [[ -z ${TPC_SAC_FLP_PORT:-} ]] && TPC_SAC_FLP_PORT=29951
       [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
       CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
     fi
-    if [[ ! -z $CHANNELS_LIST ]]; then
+    if [[ -n $CHANNELS_LIST ]]; then
       DATASPEC_LIST=
-      if [[ ! -z ${CALIBDATASPEC_TPCIDC_A:-} ]]; then
+      if [[ -n ${CALIBDATASPEC_TPCIDC_A:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_A\""
       fi
-      if [[ ! -z ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
+      if [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_C\""
       fi
-      if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
+      if [[ -n ${CALIBDATASPEC_TPCSAC:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
       fi
       add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
-    if [[ ! -z ${CALIBDATASPEC_CALO_TF:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_CALO_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_SPORADIC ]]; then
-    if [[ ! -z ${CALIBDATASPEC_CALO_SPORADIC:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_CALO_SPORADIC:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == MUON_TF ]]; then
-    if [[ ! -z ${CALIBDATASPEC_MUON_TF:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_MUON_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == MUON_SPORADIC ]]; then
-    if [[ ! -z ${CALIBDATASPEC_MUON_SPORADIC:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_MUON_SPORADIC:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == FORWARD_TF ]]; then
-    if [[ ! -z ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == FORWARD_SPORADIC ]]; then
-    if [[ ! -z ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_SPORADIC\" $(get_proxy_connection fwd_sp input sporadic)" "" 0
     fi
   fi
@@ -243,13 +246,11 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
      add_W o2-itsmft-deadmap-builder-workflow  "--runmft --ccdb-url $CCDB_POPULATOR_UPLOAD_PATH ${CALIB_MFT_DEADMAP_TIME_OPT:---skip-static-map}"
   fi
   # TOF
-  if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
-    if [[ $CALIB_TOF_LHCPHASE == 1 ]]; then
-      add_W o2-calibration-tof-calib-workflow "--do-lhc-phase --tf-per-slot $LHCPHASE_TF_PER_SLOT --use-ccdb --max-delay 0 " "" 0
-    fi
-    if [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
-      add_W o2-calibration-tof-calib-workflow "--do-channel-offset --update-interval $TOF_CHANNELOFFSETS_UPDATE --delta-update-interval $TOF_CHANNELOFFSETS_DELTA_UPDATE --min-entries 100 --range 100000 --use-ccdb --condition-tf-per-query 2640 " "" 0
-    fi
+  if [[ $CALIB_TOF_LHCPHASE == 1 ]]; then
+    add_W o2-calibration-tof-calib-workflow "--do-lhc-phase --tf-per-slot $LHCPHASE_TF_PER_SLOT --use-ccdb --max-delay 0 " "" 0
+  fi
+  if [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
+    add_W o2-calibration-tof-calib-workflow "--do-channel-offset --update-interval $TOF_CHANNELOFFSETS_UPDATE --delta-update-interval $TOF_CHANNELOFFSETS_DELTA_UPDATE --min-entries 100 --range 100000 --use-ccdb --condition-tf-per-query 2640 " "" 0
   fi
   if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
     add_W o2-calibration-tof-diagnostic-workflow "--tf-per-slot $LHCPHASE_TF_PER_SLOT --max-delay 1" "" 0
@@ -273,7 +274,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   if [[ $CALIB_TRD_T0 == 1 ]]; then
     TRD_CALIB_CONFIG+=" --t0"
   fi
-  if [[ ! -z ${TRD_CALIB_CONFIG} ]]; then
+  if [[ -n ${TRD_CALIB_CONFIG} ]]; then
     add_W o2-calibration-trd-workflow "${TRD_CALIB_CONFIG}"
   fi
 fi
@@ -404,13 +405,13 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   fi
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBPRO_SUBSPEC_MIN --sspec-max $CCDBPRO_SUBSPEC_MAX"; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ -n $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBPRO_SUBSPEC_MIN --sspec-max $CCDBPRO_SUBSPEC_MAX"; fi
 
-if [[ $CCDB_DCS_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]] && [[ $NEED_DCS_CCDB_POPULATOR != 0 ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_DCS_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBDCS_SUBSPEC_MIN --sspec-max $CCDBDCS_SUBSPEC_MAX --name-extention dcs"; fi
+if [[ $CCDB_DCS_POPULATOR_UPLOAD_PATH != "none" ]] && [[ -n $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]] && [[ $NEED_DCS_CCDB_POPULATOR != 0 ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_DCS_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBDCS_SUBSPEC_MIN --sspec-max $CCDBDCS_SUBSPEC_MAX --name-extention dcs"; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
   [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE:-}"
   [[ $WORKFLOWMODE == "print" || "${PRINT_WORKFLOW:-}" == "1" ]] && echo "#Aggregator Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
-  if [[ $WORKFLOWMODE != "print" ]] && [[ ! -z $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]]; then eval $WORKFLOW; else true; fi
+  if [[ $WORKFLOWMODE != "print" ]] && [[ -n $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]]; then eval $WORKFLOW; else true; fi
 fi

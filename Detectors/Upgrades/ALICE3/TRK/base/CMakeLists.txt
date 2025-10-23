@@ -12,8 +12,10 @@
 o2_add_library(TRKBase
                SOURCES src/GeometryTGeo.cxx
                        src/TRKBaseParam.cxx
+                       src/SegmentationChip.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase)
 
 o2_target_root_dictionary(TRKBase
                HEADERS include/TRKBase/GeometryTGeo.h
-                       include/TRKBase/TRKBaseParam.h)
+                       include/TRKBase/TRKBaseParam.h
+                       include/TRKBase/SegmentationChip.h)

@@ -46,22 +46,14 @@ class DCSProcessor
   void fillTemperature(const DPCOM& dp);
   void fillHV(const DPCOM& dp);
   void fillGas(const DPCOM& dp);
+  void fillPressure(const DPCOM& dp);
   void finalizeSlot();
   void finalize();
 
   void finalizeTemperature();
   void finalizeHighVoltage();
   void finalizeGas();
-
-  void fitTemperature(Side side);
-
-  /// get minimum time over all sensors. Assumes data is sorted in time
-  template <typename T>
-  dcs::TimeStampType getMinTime(const std::vector<dcs::DataPointVector<T>>& data);
-
-  /// get maximum time over all sensors. Assumes data is sorted in time
-  template <typename T>
-  dcs::TimeStampType getMaxTime(const std::vector<dcs::DataPointVector<T>>& data);
+  void finalizePressure();
 
   /// name of the debug output tree
   void setDebugOutputName(std::string_view name) { mDebugOutputName = name; }
@@ -75,8 +67,16 @@ class DCSProcessor
   /// set the fit interval
   void setFitInterval(dcs::TimeStampType interval) { mFitInterval = interval; }
 
+  /// set the interval for averaging the pressure values
+  void setPressureInterval(dcs::TimeStampType interval) { mPressureInterval = interval; }
+
+  void setRefPressureInterval(dcs::TimeStampType interval) { mPressureIntervalRef = interval; }
+
   /// get fit interval
   auto getFitInterval() const { return mFitInterval; }
+
+  /// get fit interval
+  auto getPressureInterval() const { return mPressureInterval; }
 
   /// round to fit interval
   void setRoundToInterval(const bool round = true) { mRoundToInterval = round; }
@@ -87,6 +87,7 @@ class DCSProcessor
     mTemperature.clear();
     mHighVoltage.clear();
     mGas.clear();
+    mPressure.clear();
 
     mTimeTemperature = {};
     mTimeHighVoltage = {};
@@ -99,21 +100,27 @@ class DCSProcessor
   const auto& getTimeTemperature() const { return mTimeTemperature; }
   const auto& getTimeHighVoltage() const { return mTimeHighVoltage; }
   const auto& getTimeGas() const { return mTimeGas; }
+  const auto& getTimePressure() const { return mTimePressure; }
 
   auto& getTemperature() { return mTemperature; }
   auto& getHighVoltage() { return mHighVoltage; }
   auto& getGas() { return mGas; }
+  auto& getPressure() { return mPressure; }
 
  private:
   dcs::Temperature mTemperature; ///< temperature value store
   dcs::HV mHighVoltage;          ///< HV value store
   dcs::Gas mGas;                 ///< Gas value store
+  dcs::Pressure mPressure;       ///< Pressure value
 
   TimeRange mTimeTemperature; ///< Time range for temperature values
   TimeRange mTimeHighVoltage; ///< Time range for high voltage values
   TimeRange mTimeGas;         ///< Time range for gas values
+  TimeRange mTimePressure;    ///< Time range for pressure values
 
   dcs::TimeStampType mFitInterval{5 * 60 * 1000};                ///< fit interval (ms) e.g. for temparature data
+  dcs::TimeStampType mPressureInterval{200 * 1000};              ///< interval (ms) for averaging pressure values
+  dcs::TimeStampType mPressureIntervalRef{60 * 60 * 1000};       ///< interval (ms) for averaging pressure values for longer reference time interval
   bool mWriteDebug{false};                                       ///< switch to dump debug tree
   bool mRoundToInterval{false};                                  ///< round to full fit interval e.g. full minute
   bool mHasData{false};                                          ///< if there are data to process
@@ -122,45 +129,6 @@ class DCSProcessor
 
   ClassDefNV(DCSProcessor, 0);
 };
-
-template <typename T>
-dcs::TimeStampType DCSProcessor::getMinTime(const std::vector<dcs::DataPointVector<T>>& data)
-{
-  constexpr auto max = std::numeric_limits<dcs::TimeStampType>::max();
-  dcs::TimeStampType firstTime = std::numeric_limits<dcs::TimeStampType>::max();
-  for (const auto& sensor : data) {
-    const auto time = sensor.data.size() ? sensor.data.front().time : max;
-    firstTime = std::min(firstTime, time);
-  }
-
-  // mFitInterval is is seconds. Round to full amount.
-  // if e.g. mFitInterval = 5min, then round 10:07:20.510 to 10:05:00.000
-  if (mRoundToInterval) {
-    firstTime -= (firstTime % mFitInterval);
-  }
-
-  return firstTime;
-}
-
-template <typename T>
-dcs::TimeStampType DCSProcessor::getMaxTime(const std::vector<dcs::DataPointVector<T>>& data)
-{
-  constexpr auto min = 0;
-  dcs::TimeStampType lastTime = 0;
-  for (const auto& sensor : data) {
-    const auto time = sensor.data.size() ? sensor.data.back().time : 0;
-    lastTime = std::max(lastTime, time);
-  }
-
-  // mFitInterval is is seconds. Round to full amount.
-  // if e.g. mFitInterval = 5min, then round 10:07:20.510 to 10:05:00.000
-  // TODO: fix this
-  // if (mRoundToInterval) {
-  // lastTime -= (lastTime % mFitInterval);
-  //}
-
-  return lastTime;
-}
 
 } // namespace o2::tpc
 #endif

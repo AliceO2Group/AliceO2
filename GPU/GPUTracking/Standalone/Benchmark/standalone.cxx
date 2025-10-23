@@ -198,6 +198,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.QA.inputHistogramsOnly) {
     configStandalone.rundEdx = false;
+    configStandalone.noEvents = true;
   }
   if (configStandalone.QA.dumpToROOT) {
     configStandalone.proc.outputSharedClusterMap = true;
@@ -213,16 +214,23 @@ int32_t ReadConfiguration(int argc, char** argv)
     }
   }
   if (configStandalone.setO2Settings) {
-    if (!(configStandalone.inputcontrolmem && configStandalone.outputcontrolmem)) {
-      printf("setO2Settings requires the usage of --inputMemory and --outputMemory as in O2\n");
-      return 1;
-    }
-    if (configStandalone.runGPU) {
+    if (configStandalone.runGPU && configStandalone.proc.debugLevel <= 1) {
+      if (!(configStandalone.inputcontrolmem && configStandalone.outputcontrolmem)) {
+        printf("setO2Settings requires the usage of --inputMemory and --outputMemory as in O2\n");
+        return 1;
+      }
       configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
     }
-    configStandalone.rec.tpc.nWaysOuter = 1;
     configStandalone.rec.tpc.trackReferenceX = 83;
     configStandalone.proc.outputSharedClusterMap = 1;
+    configStandalone.proc.clearO2OutputFromGPU = 1;
+    configStandalone.QA.clusterRejectionHistograms = 1;
+    configStandalone.proc.tpcIncreasedMinClustersPerRow = 500000;
+    configStandalone.proc.ignoreNonFatalGPUErrors = 1;
+    // TODO: rundEdx=1
+    // GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
+    // [[ $CTFINPUT == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.tpcInputWithClusterRejection=1;"
+    // double pipeline / rtc
   }
 
   if (configStandalone.outputcontrolmem) {
@@ -407,9 +415,6 @@ int32_t SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCClusterFinding));
 
   if (steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking)) {
-    if (recSet.tpc.nWays > 1) {
-      recSet.tpc.nWaysOuter = 1;
-    }
     if (procSet.createO2Output && !procSet.trdTrackModelO2) {
       procSet.createO2Output = 1; // Must not be 2, to make sure TPC GPU tracks are still available for TRD
     }
@@ -452,7 +457,6 @@ int32_t SetupReconstruction()
       procSet.tpcInputWithClusterRejection = 1;
     }
     recSet.tpc.disableRefitAttachment = 0xFF;
-    recSet.tpc.looperInterpolationInExtraPass = 0;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
     recSet.useMatLUT = true;
     recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
@@ -514,10 +518,9 @@ int32_t ReadEvent(int32_t n)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     chainTracking->GetQA()->UpdateChain(chainTracking);
-    if (chainTracking->GetQA()->ReadO2MCData((eventsDir + "mc." + std::to_string(n) + ".dump").c_str())) {
-      if (chainTracking->GetQA()->ReadO2MCData((eventsDir + "mc.0.dump").c_str()) && configStandalone.proc.runQA) {
-        throw std::runtime_error("Error reading O2 MC dump");
-      }
+    if (chainTracking->GetQA()->ReadO2MCData((eventsDir + "mc." + std::to_string(n) + ".dump").c_str()) &&
+        chainTracking->GetQA()->ReadO2MCData((eventsDir + "mc.0.dump").c_str()) && configStandalone.proc.runQA) {
+      throw std::runtime_error("Error reading O2 MC dump");
     }
   }
 #endif
@@ -579,7 +582,7 @@ int32_t LoadEvent(int32_t iEvent, int32_t x)
     }
   }
 
-  if (!rec->GetParam().par.earlyTpcTransform && !chainTracking->mIOPtrs.clustersNative && !chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS && !chainTracking->mIOPtrs.tpcCompressedClusters) {
+  if (!chainTracking->mIOPtrs.clustersNative && !chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS && !chainTracking->mIOPtrs.tpcCompressedClusters) {
     printf("Need cluster native data for on-the-fly TPC transform\n");
     return 1;
   }
@@ -697,10 +700,10 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       configStandalone.noprompt = 1;
     }
     if (tmpRetVal == 3 && configStandalone.proc.ignoreNonFatalGPUErrors) {
-      printf("Non-FATAL GPU error occured, ignoring\n");
+      printf("GPU Standalone Benchmark: Non-FATAL GPU error occured, ignoring\n");
     } else if (tmpRetVal && !configStandalone.continueOnError) {
       if (tmpRetVal != 2) {
-        printf("Error occured\n");
+        printf("GPU Standalone Benchmark: Error occured\n");
       }
       return 1;
     }
@@ -758,9 +761,9 @@ int32_t main(int argc, char** argv)
     chainTrackingPipeline->SetQAFromForeignChain(chainTracking);
   }
   if (!configStandalone.proc.doublePipeline) {
-    chainITS = rec->AddChain<GPUChainITS>(0);
+    chainITS = rec->AddChain<GPUChainITS>();
     if (configStandalone.testSyncAsync) {
-      chainITSAsync = recAsync->AddChain<GPUChainITS>(0);
+      chainITSAsync = recAsync->AddChain<GPUChainITS>();
     }
   }
 
@@ -809,6 +812,9 @@ int32_t main(int argc, char** argv)
       }
       nEvents = nEventsInDirectory;
     }
+    if (nEvents == 0 && !configStandalone.noEvents) {
+      printf("No event data found in event folder\n");
+    }
     if (configStandalone.TF.nMerge > 1) {
       nEvents /= configStandalone.TF.nMerge;
     }
@@ -837,7 +843,7 @@ int32_t main(int argc, char** argv)
       break;
     }
     if (configStandalone.runs2 > 1) {
-      printf("RUN2: %d\n", iRunOuter);
+      printf("\nRUN2: %d\n", iRunOuter);
     }
     int64_t nTracksTotal = 0;
     int64_t nClustersTotal = 0;
@@ -893,7 +899,7 @@ int32_t main(int argc, char** argv)
       double pipelineWalltime = 1.;
       if (configStandalone.proc.doublePipeline) {
         HighResTimer timerPipeline;
-        if (RunBenchmark(rec, chainTracking, 1, iEvent, &nTracksTotal, &nClustersTotal) || RunBenchmark(recPipeline, chainTrackingPipeline, 2, iEvent, &nTracksTotal, &nClustersTotal)) {
+        if (configStandalone.proc.debugLevel < 2 && (RunBenchmark(rec, chainTracking, 1, iEvent, &nTracksTotal, &nClustersTotal) || RunBenchmark(recPipeline, chainTrackingPipeline, 2, iEvent, &nTracksTotal, &nClustersTotal))) {
           goto breakrun;
         }
         auto pipeline1 = std::async(std::launch::async, RunBenchmark, rec, chainTracking, configStandalone.runs, iEvent, &nTracksTotal, &nClustersTotal, 0, &timerPipeline);

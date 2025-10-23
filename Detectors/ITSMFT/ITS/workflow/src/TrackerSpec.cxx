@@ -15,18 +15,18 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
+#include "ITStracking/Definitions.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 namespace o2
 {
 using namespace framework;
 namespace its
 {
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
-
 TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        bool isMC,
                        int trgType,
-                       const TrackingMode& trMode,
+                       const TrackingMode::Type trMode,
                        const bool overrBeamEst,
                        o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr),
                                                                   mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
@@ -48,8 +48,7 @@ void TrackerDPL::init(InitContext& ic)
 
 void TrackerDPL::stop()
 {
-  mITSTrackingInterface.printSummary();
-  LOGF(info, "CPU Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  end();
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
@@ -60,7 +59,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   mITSTrackingInterface.updateTimeDependentParams(pc);
   mITSTrackingInterface.run(pc);
   mTimer.Stop();
-  LOGP(info, "CPU Reconstruction time for this TF {} s (cpu), {} s (wall)", mTimer.CpuTime() - cput, mTimer.RealTime() - realt);
+  LOGP(info, "CPU Reconstruction time for this TF {:.2f} s (cpu), {:.2f} s (wall)", mTimer.CpuTime() - cput, mTimer.RealTime() - realt);
 }
 
 void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -70,11 +69,16 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
+  end();
+}
+
+void TrackerDPL::end()
+{
   mITSTrackingInterface.printSummary();
   LOGF(info, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
 
@@ -118,6 +122,9 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, const st
     outputs.emplace_back("ITS", "VERTICESMCPUR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+    if (VertexerParamConfig::Instance().outputContLabels) {
+      outputs.emplace_back("ITS", "VERTICESMCTRCONT", 0, Lifetime::Timeframe);
+    }
   }
 
   return DataProcessorSpec{
@@ -127,8 +134,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, const st
     AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest,
                                             useMC,
                                             trgType,
-                                            trModeS == "sync" ? o2::its::TrackingMode::Sync : trModeS == "async" ? o2::its::TrackingMode::Async
-                                                                                                                 : o2::its::TrackingMode::Cosmics,
+                                            trMode,
                                             overrBeamEst,
                                             dType)},
     Options{}};

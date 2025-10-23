@@ -39,6 +39,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"disable-dummy-output", VariantType::Bool, false, {"Disable sending empty output if corresponding data is not found in the data"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
+  options.push_back(ConfigParamSpec{"run-time-span-file", VariantType::String, "", {"If non empty, inject selected IRFrames from this text file (run, min/max orbit or unix time)"}});
+  options.push_back(ConfigParamSpec{"invert-irframe-selection", VariantType::Bool, false, {"Select only frames mentioned in ir-frames-file (skip-skimmed-out-tf applied to TF not selected!)"}});
   options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
 
   // options for error-check suppression
@@ -80,7 +82,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
     rinp.metricChannel = fmt::format(fmt::runtime(chanFmt), o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
   }
-
+  rinp.fileRunTimeSpans = configcontext.options().get<std::string>("run-time-span-file");
+  rinp.invertIRFramesSelection = configcontext.options().get<bool>("invert-irframe-selection");
   WorkflowSpec specs;
   specs.emplace_back(o2::rawdd::getTFReaderSpec(rinp));
   return specs;

@@ -49,13 +49,17 @@ class Cluster : public o2::BaseCluster<float>
          kDownRight = 4, // 2^4, 5th bit
          kDown = 5,      // 2^5, 6th bit
          kDownLeft = 6,  // 2^6, 7th bit
-         kLeft = 7 };    // 2^7, 8th bit
+         kLeft = 7       // 2^7, 8th bit
+  };
 
   Cluster() = default;
 
   Cluster(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz, double timeRaw, double time, float tot, int L0L1latency, int deltaBC, float geanttime = 0.0, double t0 = 0.0);
 
   ~Cluster() = default;
+
+  bool isInNominalSector() const { return mInNominalSector; }
+  void setInNominalSector(bool v = true) { mInNominalSector = v; }
 
   std::int8_t getSector() const { return getCount(); }
   void setSector(std::int8_t value) { setCount(value); }
@@ -158,9 +162,10 @@ class Cluster : public o2::BaseCluster<float>
   double mDigitInfoT[6] = {0., 0., 0., 0., 0., 0.};
   float mDigitInfoTOT[6] = {0., 0., 0., 0., 0., 0.};
   float mTgeant = 0.0;
+  bool mInNominalSector = false;
   double mT0true = 0.0;
 
-  ClassDefNV(Cluster, 5);
+  ClassDefNV(Cluster, 6);
 };
 
 #ifndef GPUCA_GPUCODE

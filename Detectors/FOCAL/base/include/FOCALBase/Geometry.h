@@ -59,6 +59,12 @@ class VirtualSegment
 class Geometry
 {
  public:
+  enum HCALDesgin {
+    Sandwich = 0,  // Sandwich HCAL design
+    Spaghetti = 1, // Spaghetti design
+    Sheets = 2     // Sheets design
+  };
+
   Geometry() = default;
   Geometry(Geometry* geo);
   Geometry(const Geometry& geo) = default;
@@ -134,6 +140,8 @@ class Geometry
   float getMiddleTowerOffset() const { return mGlobal_Middle_Tower_Offset; }
   bool getInsertFrontPadLayers() const { return mInsertFrontPadLayers; }
   bool getInsertHCalReadoutMaterial() const { return mInsertFrontHCalReadoutMaterial; }
+  float getHCALPitchSize() const { return mGlobal_HCAL_Pitch_Size; }
+  float getHCALBeamPipeHoleSize() const { return mGlobal_HCAL_BeamPipeHole_Size; }
 
   float getDetectorOpeningRight() const { return mGlobal_DetectorOpening_Right; }
   float getDetectorOpeningLeft() const { return mGlobal_DetectorOpening_Left; }
@@ -158,7 +166,7 @@ class Geometry
   void setUpLayerSegmentMap();
   void setUpTowerWaferSize();
 
-  bool getUseHCALSandwich() { return mUseSandwichHCAL; }
+  HCALDesgin getHCALDesign() const { return mHCALDesign; }
 
  protected:
   std::vector<Composition> mGeometryComposition;
@@ -206,9 +214,11 @@ class Geometry
   std::string mGlobal_Gap_Material;         // gap filling material NOTE: currently not used
 
   float mGlobal_HCAL_Tower_Size = 0.0;
-  int mGlobal_HCAL_Tower_NX = 0; // Number of HCAL towers on X
-  int mGlobal_HCAL_Tower_NY = 0; // Number of HCAL towers on Y
-  bool mUseSandwichHCAL = false;
+  int mGlobal_HCAL_Tower_NX = 0;              // Number of HCAL towers on X
+  int mGlobal_HCAL_Tower_NY = 0;              // Number of HCAL towers on Y
+  float mGlobal_HCAL_Pitch_Size = 0.0;        // Distance between two fibers
+  float mGlobal_HCAL_BeamPipeHole_Size = 0.0; // beam pipe hole size in HCAL
+  HCALDesgin mHCALDesign = Sandwich;          // HCAL design type
 
   float mGlobal_FOCAL_Z0 = 0.0;
 

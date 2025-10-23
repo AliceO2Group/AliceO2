@@ -33,6 +33,8 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             const its3::TopologyDictionary* dict)
 {
   auto geom = o2::its::GeometryTGeo::Instance();
+  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
+
   bool applyMisalignment = false;
   const auto& conf = o2::its::TrackerParamConfig::Instance();
   for (int il = 0; il < geom->getNumberOfLayers(); ++il) {
@@ -46,8 +48,7 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
     float sigmaY2, sigmaZ2, sigmaYZ = 0;
     auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
     const auto detID = c.getSensorID();
-    auto& cl3d = output.emplace_back(detID,
-                                     (its3::constants::detID::isDetITS3(detID) ? geom->getT2LMatrixITS3(detID, geom->getSensorRefAlpha(detID)) : geom->getMatrixT2L(detID)) ^ locXYZ); // local --> tracking
+    auto& cl3d = output.emplace_back(detID, geom->getMatrixT2L(detID) ^ locXYZ); // local --> tracking
     if (applyMisalignment) {
       auto lrID = geom->getLayer(detID);
       sigmaY2 += conf.sysErrY2[lrID];
@@ -58,7 +59,7 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
 }
 
 int loadROFrameDataITS3(its::TimeFrame<7>* tf,
-                        gsl::span<o2::itsmft::ROFRecord> rofs,
+                        gsl::span<const o2::itsmft::ROFRecord> rofs,
                         gsl::span<const itsmft::CompClusterExt> clusters,
                         gsl::span<const unsigned char>::iterator& pattIt,
                         const its3::TopologyDictionary* dict,
@@ -67,15 +68,16 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
   auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  tf->mNrof = 0;
+  tf->resetROFrameData(rofs.size());
+  tf->prepareROFrameData(rofs, clusters);
 
   its::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), tf->getMemoryPool().get());
 
-  for (auto& rof : rofs) {
+  for (size_t iRof{0}; iRof < rofs.size(); ++iRof) {
+    const auto& rof = rofs[iRof];
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
       auto sensorID = c.getSensorID();
-      auto isITS3 = its3::constants::detID::isDetITS3(sensorID);
       auto layer = geom->getLayer(sensorID);
 
       float sigmaY2{0}, sigmaZ2{0}, sigmaYZ{0};
@@ -86,16 +88,11 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
       // Transformation to the local --> global
       auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
-      // for cylindrical layers we have a different alpha for each cluster, for regular silicon detectors instead a single alpha for the whole sensor
+      // Inverse transformation to the local --> tracking
+      o2::math_utils::Point3D<float> trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+
+      // Tracking alpha angle
       float alpha = geom->getSensorRefAlpha(sensorID);
-      o2::math_utils::Point3D<float> trkXYZ;
-      if (isITS3) {
-        // Inverse transformation to the local --> tracking
-        trkXYZ = geom->getT2LMatrixITS3(sensorID, alpha) ^ locXYZ;
-      } else {
-        // Inverse transformation to the local --> tracking
-        trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
-      }
 
       tf->addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), alpha,
                                       std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
@@ -106,9 +103,8 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
       tf->addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < tf->getUnsortedClusters().size(); ++iL) {
-      tf->mROFramesClusters[iL].push_back(tf->getUnsortedClusters()[iL].size());
+      tf->mROFramesClusters[iL][iRof + 1] = tf->getUnsortedClusters()[iL].size();
     }
-    tf->mNrof++;
   }
 
   tf->setClusterSize(clusterSizeVec);

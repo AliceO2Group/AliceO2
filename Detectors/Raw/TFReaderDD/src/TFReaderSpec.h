@@ -32,6 +32,7 @@ struct TFReaderInp {
   std::string tffileRegex{};
   std::string remoteRegex{};
   std::string metricChannel{};
+  std::string fileRunTimeSpans{};
   o2::detectors::DetID::mask_t detMask{};
   o2::detectors::DetID::mask_t detMaskRawOnly{};
   o2::detectors::DetID::mask_t detMaskNonRawOnly{};
@@ -46,6 +47,7 @@ struct TFReaderInp {
   int maxTFsPerFile = -1;
   bool sendDummyForMissing = true;
   bool sup0xccdb = false;
+  bool invertIRFramesSelection = false;
   std::vector<o2::header::DataHeader> hdVec;
   std::vector<int> tfIDs{};
 };

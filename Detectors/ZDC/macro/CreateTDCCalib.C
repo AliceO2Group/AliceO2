@@ -63,7 +63,7 @@ void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "", fl
   }
 
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   api.init(ccdb_host.c_str());
   LOG(info) << "Storing " << o2::zdc::CCDBPathTDCCalib << " on CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner

@@ -114,6 +114,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mCalibObjects.mFastTransformHelper->setLumiScaleType(mSpecConfig.lumiScaleType);
   mCalibObjects.mFastTransformHelper->setCorrMapMShape(mCalibObjects.mFastTransformMShape.get());
   mCalibObjects.mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
+  mCalibObjects.mFastTransformHelper->setCheckCTPIDCConsistency(mSpecConfig.checkCTPIDCconsistency);
   mCalibObjects.mFastTransformHelper->enableMShapeCorrection(mSpecConfig.enableMShape);
   if (mSpecConfig.outputTracks) {
     mCalibObjects.mFastTransformHelper->init(ic);
@@ -250,14 +251,14 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADGAINRESIDUAL", 0)) {
     LOGP(info, "Updating residual gain map from CCDB");
     copyCalibsToBuffer();
-    const auto* gainMapResidual = static_cast<std::unordered_map<string, o2::tpc::CalDet<float>>*>(obj);
+    const auto* gainMapResidual = static_cast<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>(obj);
     const float minResidualGain = 0.7f;
     const float maxResidualGain = 1.3f;
     mdEdxCalibContainerBufferNew.get()->setGainMapResidual(gainMapResidual->at("GainMap"), minResidualGain, maxResidualGain);
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADTHRESHOLD", 0)) {
     LOGP(info, "Updating threshold map from CCDB");
     copyCalibsToBuffer();
-    const auto* thresholdMap = static_cast<std::unordered_map<string, o2::tpc::CalDet<float>>*>(obj);
+    const auto* thresholdMap = static_cast<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>(obj);
     mdEdxCalibContainerBufferNew.get()->setZeroSupresssionThreshold(thresholdMap->at("ThresholdMap"));
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "TOPOLOGYGAIN", 0) && !(dEdxCalibContainer->isTopologyCorrectionSplinesSet())) {
     LOGP(info, "Updating Q topology correction from CCDB");

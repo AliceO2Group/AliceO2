@@ -13,6 +13,7 @@
 #include "TestClasses.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include <iostream>
 
 #include <catch_amalgamated.hpp>
 
@@ -185,6 +186,17 @@ struct LTask {
   void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
 };
 
+struct MTask {
+  SliceCache cache;
+  struct : public PresliceGroup {
+    Preslice<aod::Tracks> perCol = aod::track::collisionId;
+    PresliceOptional<aod::Tracks> perPart = aod::mctracklabel::mcParticleId;
+    PresliceUnsorted<aod::McCollisionLabels> perMcCol = aod::mccollisionlabel::mcCollisionId;
+    PresliceUnsortedOptional<aod::Collisions> perMcColopt = aod::mccollisionlabel::mcCollisionId;
+  } foo;
+  void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
+};
+
 TEST_CASE("AdaptorCompilation")
 {
   auto cfgc = makeEmptyConfigContext();
@@ -258,6 +270,9 @@ TEST_CASE("AdaptorCompilation")
 
   auto task12 = adaptAnalysisTask<LTask>(*cfgc, TaskName{"test12"});
   REQUIRE(task12.inputs.size() == 3);
+
+  auto task13 = adaptAnalysisTask<MTask>(*cfgc, TaskName{"test13"});
+  REQUIRE(task13.inputs.size() == 3);
 }
 
 TEST_CASE("TestPartitionIteration")

@@ -386,9 +386,9 @@ void ITSDCSParser::saveToOutput()
 void ITSDCSParser::saveMissingToOutput()
 {
   // Loop on the missing staves
-  std::vector<string> missingStaves;
-  std::vector<string> listStaves = this->listStaves();
-  std::vector<string> savedStaves = this->mSavedStaves;
+  std::vector<std::string> missingStaves;
+  std::vector<std::string> listStaves = this->listStaves();
+  std::vector<std::string> savedStaves = this->mSavedStaves;
   std::sort(savedStaves.begin(), savedStaves.end());
   std::set_difference(listStaves.begin(), listStaves.end(), savedStaves.begin(), savedStaves.end(),
                       std::inserter(missingStaves, missingStaves.begin()));
@@ -557,7 +557,7 @@ std::vector<std::string> ITSDCSParser::listStaves()
   std::string stavenum = "";
   for (int i = 0; i < 7; i++) {
     for (int j = 0; j < stavesPerLayer[i]; j++) {
-      string stavestring = std::to_string(j);
+      std::string stavestring = std::to_string(j);
       int precision = 2 - std::min(2, (int)(stavestring.size()));
       stavenum = std::string(precision, '0').append(std::to_string(j));
       std::string stave = "L" + std::to_string(i) + "_" + stavenum;

@@ -22,7 +22,7 @@
 #include "GPUCommonDef.h"
 #include "SplineUtil.h"
 
-#if !defined(__ROOTCLING__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
+#if !defined(__CLING__) && !defined(G__ROOT) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
 #include <Vc/Vc>
 #include <Vc/SimdArray>
 #endif

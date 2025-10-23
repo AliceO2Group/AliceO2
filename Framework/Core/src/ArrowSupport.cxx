@@ -13,31 +13,30 @@
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/ArrowTableSlicingCache.h"
-#include "Framework/SliceCache.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
-#include "Framework/CommonDataProcessors.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/DataSpecViews.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/EndOfStreamContext.h"
-#include "Framework/Tracing.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DevicesManager.h"
 #include "Framework/DeviceConfig.h"
+#include "Framework/PluginManager.h"
 #include "Framework/ServiceMetricsInfo.h"
 #include "WorkflowHelpers.h"
 #include "Framework/WorkflowSpecNode.h"
 #include "Framework/AnalysisSupportHelpers.h"
 #include "Framework/ServiceRegistryRef.h"
 #include "Framework/ServiceRegistryHelpers.h"
+#include "Framework/Signpost.h"
 
 #include "CommonMessageBackendsHelpers.h"
 #include <Monitoring/Monitoring.h>
 #include "Headers/DataHeader.h"
-#include "Headers/DataHeaderHelpers.h"
 
 #include <RtypesCore.h>
 #include <fairmq/ProgOptions.h>
@@ -45,6 +44,8 @@
 #include <uv.h>
 #include <boost/program_options/variables_map.hpp>
 #include <csignal>
+
+O2_DECLARE_DYNAMIC_LOG(rate_limiting);
 
 namespace o2::framework
 {
@@ -101,6 +102,135 @@ uint64_t calculateAvailableSharedMemory(ServiceRegistryRef registry)
 {
   return registry.get<RateLimitConfig>().maxMemory;
 }
+
+struct ResourceState {
+  int64_t available;
+  int64_t offered = 0;
+  int64_t lastDeviceOffered = 0;
+};
+struct ResourceStats {
+  int64_t enoughCount; /// How many times the resources were enough
+  int64_t lowCount;    /// How many times the resources were not enough
+};
+struct ResourceSpec {
+  char const* name;
+  char const* unit;
+  char const* api;                /// The callback to give resources to a device
+  int64_t maxAvailable;           /// Maximum available quantity for a resource
+  int64_t maxQuantum;             /// Largest offer which can be given
+  int64_t minQuantum;             /// Smallest offer which can be given
+  int64_t metricOfferScaleFactor; /// The scale factor between the metric accounting and offers accounting
+};
+
+auto offerResources(ResourceState& resourceState,
+                    ResourceSpec const& resourceSpec,
+                    ResourceStats& resourceStats,
+                    std::vector<DeviceSpec> const& specs,
+                    std::vector<DeviceInfo> const& infos,
+                    DevicesManager& manager,
+                    int64_t offerConsumedCurrentValue,
+                    int64_t offerExpiredCurrentValue,
+                    int64_t acquiredResourceCurrentValue,
+                    int64_t disposedResourceCurrentValue,
+                    size_t timestamp,
+                    DeviceMetricsInfo& driverMetrics,
+                    std::function<void(DeviceMetricsInfo&, int value, size_t timestamp)>& availableResourceMetric,
+                    std::function<void(DeviceMetricsInfo&, int value, size_t timestamp)>& unusedOfferedResourceMetric,
+                    std::function<void(DeviceMetricsInfo&, int value, size_t timestamp)>& offeredResourceMetric,
+                    void* signpostId) -> void
+{
+  O2_SIGNPOST_ID_FROM_POINTER(sid, rate_limiting, signpostId);
+  /// We loop over the devices, starting from where we stopped last time
+  /// offering the minimum offer to each one
+  int64_t lastCandidate = -1;
+  int64_t possibleOffer = resourceSpec.minQuantum;
+
+  for (size_t di = 0; di < specs.size(); di++) {
+    if (resourceState.available < possibleOffer) {
+      if (resourceStats.lowCount == 0) {
+        O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "not enough",
+                               "We do not have enough %{public}s (%llu %{public}s) to offer %llu %{public}s. Total offerings %{bytes}llu %{string}s.",
+                               resourceSpec.name, resourceState.available, resourceSpec.unit,
+                               possibleOffer, resourceSpec.unit,
+                               resourceState.offered, resourceSpec.unit);
+      }
+      resourceStats.lowCount++;
+      resourceStats.enoughCount = 0;
+      break;
+    } else {
+      if (resourceStats.enoughCount == 0) {
+        O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "enough",
+                               "We are back in a state where we enough %{public}s: %llu %{public}s",
+                               resourceSpec.name,
+                               resourceState.available,
+                               resourceSpec.unit);
+      }
+      resourceStats.lowCount = 0;
+      resourceStats.enoughCount++;
+    }
+    size_t candidate = (resourceState.lastDeviceOffered + di) % specs.size();
+
+    auto& info = infos[candidate];
+    // Do not bother for inactive devices
+    // FIXME: there is probably a race condition if the device died and we did not
+    //        took notice yet...
+    if (info.active == false || info.readyToQuit) {
+      O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                             "Device %s is inactive not offering %{public}s to it.",
+                             specs[candidate].name.c_str(), resourceSpec.name);
+      continue;
+    }
+    if (specs[candidate].name != "internal-dpl-aod-reader") {
+      O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                             "Device %s is not a reader. Not offering %{public}s to it.",
+                             specs[candidate].name.c_str(),
+                             resourceSpec.name);
+      continue;
+    }
+    possibleOffer = std::min(resourceSpec.maxQuantum, resourceState.available);
+    O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                           "Offering %llu %{public}s out of %llu to %{public}s",
+                           possibleOffer, resourceSpec.unit, resourceState.available, specs[candidate].id.c_str());
+    manager.queueMessage(specs[candidate].id.c_str(), fmt::format(fmt::runtime(resourceSpec.api), possibleOffer).data());
+    resourceState.available -= possibleOffer;
+    resourceState.offered += possibleOffer;
+    lastCandidate = candidate;
+  }
+  // We had at least a valid candidate, so
+  // next time we offer to the next device.
+  if (lastCandidate >= 0) {
+    resourceState.lastDeviceOffered = lastCandidate + 1;
+  }
+
+  // unusedOfferedSharedMemory is the amount of memory which was offered and which we know it was
+  // not used so far. So we need to account for the amount which got actually read (readerBytesCreated)
+  // and the amount which we know was given back.
+  static int64_t lastShmOfferConsumed = 0;
+  static int64_t lastUnusedOfferedMemory = 0;
+  if (offerConsumedCurrentValue != lastShmOfferConsumed) {
+    O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                           "Offer consumed so far %llu", offerConsumedCurrentValue);
+    lastShmOfferConsumed = offerConsumedCurrentValue;
+  }
+  int unusedOfferedMemory = (resourceState.offered - (offerExpiredCurrentValue + offerConsumedCurrentValue) / resourceSpec.metricOfferScaleFactor);
+  if (lastUnusedOfferedMemory != unusedOfferedMemory) {
+    O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                           "unusedOfferedMemory:%{bytes}d = offered:%{bytes}llu - (expired:%{bytes}llu + consumed:%{bytes}llu) / %lli",
+                           unusedOfferedMemory, resourceState.offered,
+                           offerExpiredCurrentValue / resourceSpec.metricOfferScaleFactor,
+                           offerConsumedCurrentValue / resourceSpec.metricOfferScaleFactor,
+                           resourceSpec.metricOfferScaleFactor);
+    lastUnusedOfferedMemory = unusedOfferedMemory;
+  }
+  // availableSharedMemory is the amount of memory which we know is available to be offered.
+  // We subtract the amount which we know was already offered but it's unused and we then balance how
+  // much was created with how much was destroyed.
+  resourceState.available = resourceSpec.maxAvailable + ((disposedResourceCurrentValue - acquiredResourceCurrentValue) / resourceSpec.metricOfferScaleFactor) - unusedOfferedMemory;
+  availableResourceMetric(driverMetrics, resourceState.available, timestamp);
+  unusedOfferedResourceMetric(driverMetrics, unusedOfferedMemory, timestamp);
+
+  offeredResourceMetric(driverMetrics, resourceState.offered, timestamp);
+};
 
 o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 {
@@ -281,87 +411,34 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        if (maxTimeframes && (totalTimeframesRead - totalTimeframesConsumed) > maxTimeframes) {
                          return;
                        }
+                       static const ResourceSpec shmResourceSpec{
+                         .name = "shared memory",
+                         .unit = "MB",
+                         .api = "/shm-offer {}",
+                         .maxAvailable = (int64_t)calculateAvailableSharedMemory(registry),
+                         .maxQuantum = 100,
+                         .minQuantum = 50,
+                         .metricOfferScaleFactor = 1000000,
+                       };
+                       static ResourceState shmResourceState{
+                         .available = shmResourceSpec.maxAvailable,
+                       };
+                       static ResourceStats shmResourceStats{
+                         .enoughCount = shmResourceState.available - shmResourceSpec.minQuantum > 0 ? 1 : 0,
+                         .lowCount = shmResourceState.available - shmResourceSpec.minQuantum > 0 ? 0 : 1
+                       };
 
-                       static int64_t MAX_SHARED_MEMORY = calculateAvailableSharedMemory(registry);
-                       constexpr int64_t MAX_QUANTUM_SHARED_MEMORY = 100;
-                       constexpr int64_t MIN_QUANTUM_SHARED_MEMORY = 50;
-
-                       static int64_t availableSharedMemory = MAX_SHARED_MEMORY;
-                       static int64_t offeredSharedMemory = 0;
-                       static int64_t lastDeviceOffered = 0;
-                       /// We loop over the devices, starting from where we stopped last time
-                       /// offering MIN_QUANTUM_SHARED_MEMORY of shared memory to each reader.
-                       int64_t lastCandidate = -1;
-                       static int enoughSharedMemoryCount = availableSharedMemory - MIN_QUANTUM_SHARED_MEMORY > 0 ? 1 : 0;
-                       static int lowSharedMemoryCount = availableSharedMemory - MIN_QUANTUM_SHARED_MEMORY > 0 ? 0 : 1;
-                       int64_t possibleOffer = MIN_QUANTUM_SHARED_MEMORY;
-                       for (size_t di = 0; di < specs.size(); di++) {
-                         if (availableSharedMemory < possibleOffer) {
-                           if (lowSharedMemoryCount == 0) {
-                             LOGP(detail, "We do not have enough shared memory ({}MB) to offer {}MB. Total offerings {}", availableSharedMemory, possibleOffer, offeredSharedMemory);
-                           }
-                           lowSharedMemoryCount++;
-                           enoughSharedMemoryCount = 0;
-                           break;
-                         } else {
-                           if (enoughSharedMemoryCount == 0) {
-                             LOGP(detail, "We are back in a state where we enough shared memory: {}MB", availableSharedMemory);
-                           }
-                           enoughSharedMemoryCount++;
-                           lowSharedMemoryCount = 0;
-                         }
-                         size_t candidate = (lastDeviceOffered + di) % specs.size();
-
-                         auto& info = infos[candidate];
-                         // Do not bother for inactive devices
-                         // FIXME: there is probably a race condition if the device died and we did not
-                         //        took notice yet...
-                         if (info.active == false || info.readyToQuit) {
-                           continue;
-                         }
-                         if (specs[candidate].name != "internal-dpl-aod-reader") {
-                           continue;
-                         }
-                         possibleOffer = std::min(MAX_QUANTUM_SHARED_MEMORY, availableSharedMemory);
-                         LOGP(detail, "Offering {}MB out of {} to {}", possibleOffer, availableSharedMemory, specs[candidate].id);
-                         manager.queueMessage(specs[candidate].id.c_str(), fmt::format("/shm-offer {}", possibleOffer).data());
-                         availableSharedMemory -= possibleOffer;
-                         offeredSharedMemory += possibleOffer;
-                         lastCandidate = candidate;
-                       }
-                       // We had at least a valid candidate, so
-                       // next time we offer to the next device.
-                       if (lastCandidate >= 0) {
-                         lastDeviceOffered = lastCandidate + 1;
-                       }
-
-                       // unusedOfferedSharedMemory is the amount of memory which was offered and which we know it was
-                       // not used so far. So we need to account for the amount which got actually read (readerBytesCreated)
-                       // and the amount which we know was given back.
-                       static int64_t lastShmOfferConsumed = 0;
-                       static int64_t lastUnusedOfferedMemory = 0;
-                       if (shmOfferBytesConsumed != lastShmOfferConsumed) {
-                         LOGP(detail, "Offer consumed so far {}", shmOfferBytesConsumed);
-                         lastShmOfferConsumed = shmOfferBytesConsumed;
-                       }
-                       int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + shmOfferBytesConsumed) / 1000000);
-                       if (lastUnusedOfferedMemory != unusedOfferedMemory) {
-                         LOGP(detail, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{}) / 1000000", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired / 1000000, shmOfferBytesConsumed / 1000000);
-                         lastUnusedOfferedMemory = unusedOfferedMemory;
-                       }
-                       // availableSharedMemory is the amount of memory which we know is available to be offered.
-                       // We subtract the amount which we know was already offered but it's unused and we then balance how
-                       // much was created with how much was destroyed.
-                       availableSharedMemory = MAX_SHARED_MEMORY + ((totalBytesDestroyed - totalBytesCreated) / 1000000) - unusedOfferedMemory;
-                       availableSharedMemoryMetric(driverMetrics, availableSharedMemory, timestamp);
-                       unusedOfferedSharedMemoryMetric(driverMetrics, unusedOfferedMemory, timestamp);
-
-                       offeredSharedMemoryMetric(driverMetrics, offeredSharedMemory, timestamp); },
+                       offerResources(shmResourceState, shmResourceSpec, shmResourceStats,
+                                      specs, infos, manager, shmOfferBytesConsumed, totalBytesExpired,
+                                      totalBytesCreated, totalBytesDestroyed, timestamp, driverMetrics,
+                                      availableSharedMemoryMetric, unusedOfferedSharedMemoryMetric, offeredSharedMemoryMetric,
+                                      (void*)&sm); },
     .postDispatching = [](ProcessingContext& ctx, void* service) {
                        using DataHeader = o2::header::DataHeader;
                        auto* arrow = reinterpret_cast<ArrowContext*>(service);
                        auto totalBytes = 0;
                        auto totalMessages = 0;
+                       O2_SIGNPOST_ID_FROM_POINTER(sid, rate_limiting, &arrow);
                        for (auto& input : ctx.inputs()) {
                          if (input.header == nullptr) {
                            continue;
@@ -369,7 +446,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          auto const* dh = DataRefUtils::getHeader<DataHeader*>(input);
                          auto payloadSize = DataRefUtils::getPayloadSize(input);
                          if (dh->serialization != o2::header::gSerializationMethodArrow) {
-                           LOGP(debug, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
+                           O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                                                  "Message %{public}.4s/%{public}.16s is not of kind arrow, therefore we are not accounting its shared memory.",
+                                                  dh->dataOrigin.str, dh->dataDescription.str);
                            continue;
                          }
                          bool forwarded = false;
@@ -380,15 +459,21 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            }
                          }
                          if (forwarded) {
-                           LOGP(debug, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
+                           O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                                                  "Message %{public}.4s/%{public}.16s is forwarded so we are not returning its memory.",
+                                                  dh->dataOrigin.str, dh->dataDescription.str);
                            continue;
                          }
-                         LOGP(debug, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, payloadSize / 1000000.);
+                         O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
+                                                "Message %{public}.4s/%{public}.16s is being deleted. We will return %{bytes}f MB.",
+                                                dh->dataOrigin.str, dh->dataDescription.str, payloadSize / 1000000.);
                          totalBytes += payloadSize;
                          totalMessages += 1;
                        }
                        arrow->updateBytesDestroyed(totalBytes);
-                       LOGP(debug, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
+                       O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "give back",
+                                              "%{bytes}f MB bytes being given back to reader, totaling %{bytes}f MB",
+                                              totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& stats = ctx.services().get<DataProcessingStats>();
                        stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->bytesDestroyed())});
@@ -410,13 +495,17 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static bool once = false;
                        // Until we guarantee this is called only once...
                        if (!once) {
-                         LOGP(info, "Rate limiting set up at {}MB distributed over {} readers", config->maxMemory, readers);
+                         O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
+                         O2_SIGNPOST_EVENT_EMIT_INFO(rate_limiting, sid, "setup",
+                                                     "Rate limiting set up at %{bytes}llu MB distributed over %d readers",
+                                                     config->maxMemory, readers);
                          registry.registerService(ServiceRegistryHelpers::handleForService<RateLimitConfig>(config));
                          once = true;
                        } },
     .adjustTopology = [](WorkflowSpecNode& node, ConfigContext const& ctx) {
       auto& workflow = node.specs;
       auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-spawner"; });
+      auto analysisCCDB = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-ccdb"; });
       auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
       auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-reader"; });
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-writer"; });
@@ -424,6 +513,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       ac.requestedAODs.clear();
       ac.requestedDYNs.clear();
       ac.providedDYNs.clear();
+      ac.providedTIMs.clear();
+      ac.requestedTIMs.clear();
 
 
       auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
@@ -487,6 +578,27 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
       }
 
+      if (analysisCCDB != workflow.end()) {
+        for (auto& d : workflow | views::exclude_by_name(analysisCCDB->name)) {
+          d.inputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::update_input_list{ac.requestedTIMs};
+          d.outputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::append_to{ac.providedTIMs};
+        }
+        std::sort(ac.requestedTIMs.begin(), ac.requestedTIMs.end(), inputSpecLessThan);
+        std::sort(ac.providedTIMs.begin(), ac.providedTIMs.end(), outputSpecLessThan);
+        // Use ranges::to<std::vector<>> in C++23...
+        ac.analysisCCDBInputs.clear();
+        ac.requestedTIMs | views::filter_not_matching(ac.providedTIMs) | sinks::append_to{ac.analysisCCDBInputs};
+
+        // recreate inputs and outputs
+        analysisCCDB->outputs.clear();
+        analysisCCDB->inputs.clear();
+        // replace AlgorithmSpec
+        // FIXME: it should be made more generic, so it does not need replacement...
+        // FIXME how can I make the lookup depend on DYN tables as well??
+        analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
+        AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher({}, ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedDYNs, *analysisCCDB);
+      }
+
       if (writer != workflow.end()) {
         workflow.erase(writer);
       }
@@ -513,6 +625,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           workflow.erase(reader);
         }
       }
+
+
 
       // replace writer as some outputs may have become dangling and some are now consumed
       auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);

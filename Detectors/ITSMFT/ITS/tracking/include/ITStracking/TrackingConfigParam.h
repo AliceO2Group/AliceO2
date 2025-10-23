@@ -12,6 +12,7 @@
 #ifndef ALICEO2_ITSDPLTRACKINGPARAM_H_
 #define ALICEO2_ITSDPLTRACKINGPARAM_H_
 
+#include <limits>
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 
@@ -47,9 +48,12 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   int ZBins = 1;     // z-phi index table configutation: number of z bins
   int PhiBins = 128; // z-phi index table configutation: number of phi bins
 
+  bool useTruthSeeding{false};  // overwrite seeding vertices with MC truth
+  bool outputContLabels{false}; // output additioanlly for each vertex its contributing line labels
+
   int nThreads = 1;
   bool printMemory = false;
-  size_t maxMemory = 12000000000UL;
+  size_t maxMemory = std::numeric_limits<size_t>::max();
   bool dropTFUponFailure = false;
 
   O2ParamDef(VertexerParamConfig, "ITSVertexerParam");
@@ -91,20 +95,53 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool overrideBeamEstimation = false;     // use beam position from meanVertex CCDB object
   int trackingMode = -1;                   // -1: unset, 0=sync, 1=async, 2=cosmics used by gpuwf only
   bool doUPCIteration = false;             // Perform an additional iteration for UPC events on tagged vertices. You want to combine this config with VertexerParamConfig.nIterations=2
+  int nIterations = MaxIter;               // overwrite the number of iterations
+
+  bool createArtefactLabels{false}; // create on-the-fly labels for the artefacts
 
   int nThreads = 1;
   bool printMemory = false;
-  size_t maxMemory = 12000000000UL;
+  size_t maxMemory = std::numeric_limits<size_t>::max();
   bool dropTFUponFailure = false;
   bool fataliseUponFailure = true; // granular management of the fatalisation in async mode
+  bool allowSharingFirstCluster = false; // allow first cluster sharing among tracks
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
 
 struct ITSGpuTrackingParamConfig : public o2::conf::ConfigurableParamHelper<ITSGpuTrackingParamConfig> {
-  // GPU-specific parameters
-  int nBlocks = 20;
-  int nThreads = 256;
+  static constexpr int MaxIter = TrackerParamConfig::MaxIter;
+
+  /// Set nBlocks/nThreads to summarily override all kernel launch parameters in each iteration.
+  /// Parameters must start with nBlocks/nThreads.
+  static constexpr int OverrideValue{-1};
+  static constexpr char const* BlocksName = "nBlocks";
+  static constexpr char const* ThreadsName = "nThreads";
+  int nBlocks = OverrideValue;
+  int nThreads = OverrideValue;
+  void maybeOverride() const;
+
+  /// Individual kernel launch parameter for each iteration
+  int nBlocksLayerTracklets[MaxIter] = {60, 60, 60, 60};
+  int nThreadsLayerTracklets[MaxIter] = {256, 256, 256, 256};
+
+  int nBlocksLayerCells[MaxIter] = {60, 60, 60, 60};
+  int nThreadsLayerCells[MaxIter] = {256, 256, 256, 256};
+
+  int nBlocksFindNeighbours[MaxIter] = {60, 60, 60, 60};
+  int nThreadsFindNeighbours[MaxIter] = {256, 256, 256, 256};
+
+  int nBlocksProcessNeighbours[MaxIter] = {60, 60, 60, 60};
+  int nThreadsProcessNeighbours[MaxIter] = {256, 256, 256, 256};
+
+  int nBlocksTracksSeeds[MaxIter] = {60, 60, 60, 60};
+  int nThreadsTracksSeeds[MaxIter] = {256, 256, 256, 256};
+
+  int nBlocksVtxComputeTracklets[2] = {60, 60};
+  int nThreadsVtxComputeTracklets[2] = {256, 256};
+
+  int nBlocksVtxComputeMatching[2] = {60, 60};
+  int nThreadsVtxComputeMatching[2] = {256, 256};
 
   O2ParamDef(ITSGpuTrackingParamConfig, "ITSGpuTrackingParam");
 };

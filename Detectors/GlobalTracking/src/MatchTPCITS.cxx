@@ -101,7 +101,7 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp,
       break;
     }
     if (mVDriftCalibOn) { // in the beginning of the output vector we send the full and reference VDrift used for this TF
-      calib.emplace_back(mTPCVDrift, mTPCDrift.refVDrift, -999.);
+      calib.emplace_back(mTPCVDrift, mTPCDrift.refVDrift, mTPCDrift.refTP);
       calib.emplace_back(mTPCDriftTimeOffset, mTPCDrift.refTimeOffset, -999.);
     }
 
@@ -245,8 +245,8 @@ void MatchTPCITS::init()
   }
 #endif
 
-  if (mParams->runAfterBurner) { // only used in AfterBurner
-    mRGHelper.init();            // prepare helper for TPC track / ITS clusters matching
+  if (mParams->runAfterBurner) {            // only used in AfterBurner
+    mRGHelper.init(mParams->lowestLayerAB); // prepare helper for TPC track / ITS clusters matching
   }
 
   clear();

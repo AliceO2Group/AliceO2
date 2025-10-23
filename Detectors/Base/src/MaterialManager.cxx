@@ -123,22 +123,51 @@ void MaterialManager::initDensityMap()
   mDensityMapInitialized = true;
 }
 
-float MaterialManager::getDensity(std::string const& modname)
+float MaterialManager::getDensity(std::string const& modname, std::string const& matname)
 {
+  // This function returns the final density for a material of name matname inside module modname.
+  // The priority is
+  // - return density for a specific module + material if it exists in the lookup
+  // - return density for the module if it exists in the the lookup
+  // - return global density factor
+
+  auto debug = getenv("O2SIM_MATMGR_LOCALDENSITY_DEBUG");
+
   if (!mDensityMapInitialized) {
     initDensityMap();
   }
-  if (mDensityMap.find(modname) != mDensityMap.end()) {
-    return mDensityMap[modname];
+  // density on final material level
+  // (this works by a name lookup of pair "modname/matname")
+  std::string lookupstring = modname + "/" + matname;
+  auto iter = mDensityMap.find(lookupstring);
+  if (iter != mDensityMap.end()) {
+    if (debug) {
+      LOG(info) << "MatManager - " << modname << "/" << matname << " : applying density " << iter->second << " from material match";
+    }
+    return iter->second;
   }
-  return o2::conf::SimMaterialParams::Instance().globalDensityFactor;
+  // density on module level
+  iter = mDensityMap.find(modname);
+  if (iter != mDensityMap.end()) {
+    if (debug) {
+      LOG(info) << "MatManager - " << modname << "/" << matname << " : applying density " << iter->second << " from module match";
+    }
+    return iter->second;
+  }
+  // global factor
+  const auto global = o2::conf::SimMaterialParams::Instance().globalDensityFactor;
+  if (debug && global != 1.0) {
+    LOG(info) << "MatManager - " << modname << "/" << matname << " : applying global density " << iter->second;
+  }
+  return global;
 }
 
 void MaterialManager::Material(const char* modname, Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens,
                                Float_t radl, Float_t absl, Float_t* buf, Int_t nwbuf)
 {
   TString uniquename = modname;
-  auto densityFactor = getDensity(modname);
+  auto densityFactor = getDensity(modname, name);
+
   uniquename.Append("_");
   uniquename.Append(name);
   if (TVirtualMC::GetMC()) {
@@ -173,7 +202,7 @@ void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name,
                               Int_t nlmat, Float_t* wmat)
 {
   TString uniquename = modname;
-  auto densityFactor = getDensity(modname);
+  auto densityFactor = getDensity(modname, name);
   uniquename.Append("_");
   uniquename.Append(name);
 

@@ -16,13 +16,11 @@
 #include "GPULogging.h"
 #include "GPUO2DataTypes.h"
 #include "GPUTrackingInputProvider.h"
-#include "GPUTPCClusterData.h"
 #include "GPUReconstructionConvert.h"
 #include "GPUMemorySizeScalers.h"
-#include "GPUTPCConvert.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUConstantMem.h"
-#include "GPUTPCConvertKernel.h"
+#include "GPUTPCClusterData.h"
 
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
@@ -41,9 +39,6 @@ int32_t GPUChainTracking::ConvertNativeToClusterData()
 {
   mRec->PushNonPersistentMemory(qStr2Tag("TPCTRANS"));
   const auto& threadContext = GetThreadContext();
-  bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
-  GPUTPCConvert& convert = processors()->tpcConverter;
-  GPUTPCConvert& convertShadow = doGPU ? processorsShadow()->tpcConverter : convert;
 
   bool transferClusters = false;
   if (mRec->IsGPU() && !(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) && NeedTPCClustersOnGPU()) {
@@ -58,31 +53,12 @@ int32_t GPUChainTracking::ConvertNativeToClusterData()
     TransferMemoryResourceLinkToGPU(RecoStep::TPCConversion, mInputsHost->mResourceClusterNativeAccess, 0);
     transferClusters = true;
   }
-  if (!param().par.earlyTpcTransform) {
-    if (GetProcessingSettings().debugLevel >= 3) {
-      GPUInfo("Early transform inactive, skipping TPC Early transformation kernel, transformed on the fly during sector data creation / refit");
-    }
-    if (transferClusters) {
-      SynchronizeStream(0); // TODO: Synchronize implicitly with next step
-    }
-    return 0;
+  if (GetProcessingSettings().debugLevel >= 3) {
+    GPUInfo("Early transform inactive, skipping TPC Early transformation kernel, transformed on the fly during sector data creation / refit");
   }
-  SetupGPUProcessor(&convert, true);
-  for (uint32_t i = 0; i < NSECTORS; i++) {
-    convert.mMemory->clusters[i] = convertShadow.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
+  if (transferClusters) {
+    SynchronizeStream(0); // TODO: Synchronize implicitly with next step
   }
-
-  WriteToConstantMemory(RecoStep::TPCConversion, (char*)&processors()->tpcConverter - (char*)processors(), &convertShadow, sizeof(convertShadow), 0);
-  TransferMemoryResourcesToGPU(RecoStep::TPCConversion, &convert, 0);
-  runKernel<GPUTPCConvertKernel>(GetGridBlk(NSECTORS * GPUCA_ROW_COUNT, 0));
-  TransferMemoryResourcesToHost(RecoStep::TPCConversion, &convert, 0);
-  SynchronizeStream(0);
-
-  for (uint32_t i = 0; i < NSECTORS; i++) {
-    mIOPtrs.nClusterData[i] = (i == NSECTORS - 1 ? mIOPtrs.clustersNative->nClustersTotal : mIOPtrs.clustersNative->clusterOffset[i + 1][0]) - mIOPtrs.clustersNative->clusterOffset[i][0];
-    mIOPtrs.clusterData[i] = convert.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
-  }
-  mRec->PopNonPersistentMemory(RecoStep::TPCConversion, qStr2Tag("TPCTRANS"));
   return 0;
 }
 

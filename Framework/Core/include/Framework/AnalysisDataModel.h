@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
-#include "Framework/ASoA.h"
+#include "Framework/ASoA.h" // IWYU pragma: export
 
 #include <cmath>
 #include <bitset>
@@ -621,6 +621,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "T
                                  track::HasITS<track::v001::DetectorMap>, track::HasTPC<track::v001::DetectorMap>,
                                  track::HasTRD<track::v001::DetectorMap>, track::HasTOF<track::v001::DetectorMap>,
                                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TPCNClsPID<track::TPCNClsFindable, track::TPCNClsFindableMinusPID>,
                                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
@@ -2016,7 +2017,7 @@ namespace aod
 namespace mctracklabel
 {
 DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
-DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 0-6: mismatch at ITS layer. Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64. Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 0-6: mismatch at ITS layer. Bit 12: ITSAB tracklet mismatch. Bit 13: ITS-TPC mismatch. Bit 14: isNoise == True (global track), Bit 15: isFake == True (global track)
 } // namespace mctracklabel
 
 DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL", //! Table joined to the track table containing the MC index

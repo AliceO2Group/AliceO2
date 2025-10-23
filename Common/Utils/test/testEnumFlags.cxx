@@ -14,6 +14,9 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+#include <boost/preprocessor/arithmetic/inc.hpp>
+#include <boost/preprocessor/repetition/repeat.hpp>
+
 #include <stdexcept>
 #include <string>
 
@@ -21,12 +24,24 @@
 
 // Example enum to use with EnumFlags
 enum class TestEnum : uint8_t {
-  Bit1,
+  Bit1 = 0,
   Bit2,
   Bit3,
   Bit4,
   Bit5VeryLongName,
 };
+
+// Very long enum
+// to test that it works beyond 32 bits upto 64 bits
+#define ENUM_BIT_NAME(n) Bit##n
+#define ENUM_BIT_NAME_EXPAND(n) ENUM_BIT_NAME(n)
+#define ENUM_BIT(z, n, _) ENUM_BIT_NAME_EXPAND(BOOST_PP_INC(n)) = (n),
+enum class TestEnumLong : uint64_t {
+  BOOST_PP_REPEAT(64, ENUM_BIT, _)
+};
+#undef ENUM_BIT
+#undef ENUM_BIT_NAME
+#undef ENUM_BIT_NAME_EXPAND
 
 BOOST_AUTO_TEST_CASE(Flags_test)
 {
@@ -141,8 +156,17 @@ BOOST_AUTO_TEST_CASE(Flags_test)
       BOOST_TEST(flags.test(TestEnum::Bit4));
     }
 
-    { // test with different delimiter
+    { // test with , delimiter
       std::string str = "Bit4,TestEnum::Bit2 , Bit1 ";
+      flags.set(str);
+      BOOST_TEST(flags.test(TestEnum::Bit1));
+      BOOST_TEST(flags.test(TestEnum::Bit2));
+      BOOST_TEST(!flags.test(TestEnum::Bit3));
+      BOOST_TEST(flags.test(TestEnum::Bit4));
+    }
+
+    { // test with ; delimiter
+      std::string str = "Bit4;TestEnum::Bit2 ; Bit1 ";
       flags.set(str);
       BOOST_TEST(flags.test(TestEnum::Bit1));
       BOOST_TEST(flags.test(TestEnum::Bit2));
@@ -235,6 +259,14 @@ BOOST_AUTO_TEST_CASE(Flags_test)
     EFlags flags3{TestEnum::Bit1, TestEnum::Bit2, TestEnum::Bit3};
     EFlags flags4{TestEnum::Bit2, TestEnum::Bit3, TestEnum::Bit4};
 
+    // test xor
+    auto flagsXOR = flags3 ^ flags4;
+    BOOST_CHECK(flagsXOR.test(TestEnum::Bit1, TestEnum::Bit4));
+
+    // test and
+    auto flagsAND = flags3 & flags4;
+    BOOST_CHECK(flagsAND.test(TestEnum::Bit2, TestEnum::Bit3));
+
     // Perform an intersection operation
     EFlags intersectionFlags = flags3.intersection_with(flags4);
     BOOST_CHECK(intersectionFlags.test(TestEnum::Bit2));
@@ -242,6 +274,14 @@ BOOST_AUTO_TEST_CASE(Flags_test)
     BOOST_CHECK(!intersectionFlags.test(TestEnum::Bit1));
     BOOST_CHECK(!intersectionFlags.test(TestEnum::Bit4));
     BOOST_CHECK_EQUAL(intersectionFlags.value(), 6); // 0110 in binary
+  }
+
+  {
+    // Check special flag names.
+    EFlags flag("all");
+    BOOST_CHECK(flag.all());
+    flag.set("none");
+    BOOST_CHECK(!flag.any());
   }
 
   {
@@ -256,5 +296,13 @@ BOOST_AUTO_TEST_CASE(Flags_test)
     // Test with disjoint sets
     EFlags flags3{TestEnum::Bit4};
     BOOST_CHECK(!flags1.contains(flags3)); // flags1 does not contain flags3
+  }
+
+  {
+    // Test compilation using an enum with more than 32 bits
+    // Also tests space delimiter and construction from string.
+    o2::utils::EnumFlags<TestEnumLong> test("Bit32 Bit34");
+    BOOST_CHECK(test.test(TestEnumLong::Bit32, TestEnumLong::Bit34));
+    BOOST_CHECK(!test.test(TestEnumLong::Bit1, TestEnumLong::Bit23));
   }
 }

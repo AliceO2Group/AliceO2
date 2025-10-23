@@ -37,7 +37,7 @@
 using namespace o2::gpu;
 
 TPCFastTransform::TPCFastTransform()
-  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mLumi(0.f), mLumiError(0.f), mLumiScaleFactor(1.0f)
+  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mLumi(TPCFastTransform::DEFLUMI), mLumiError(0.f), mLumiScaleFactor(1.0f), mIDC(TPCFastTransform::DEFIDC), mIDCError(0.f), mCTP2IDCFallBackThreshold(30.f)
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -60,6 +60,9 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
   mPrimVtxZ = obj.mPrimVtxZ;
   mLumi = obj.mLumi;
   mLumiError = obj.mLumiError;
+  mIDC = obj.mIDC;
+  mIDCError = obj.mIDCError;
+  mCTP2IDCFallBackThreshold = obj.mCTP2IDCFallBackThreshold;
   mLumiScaleFactor = obj.mLumiScaleFactor;
   // variable-size data
 
@@ -108,8 +111,11 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mLdriftCorr = 0.f;
   mTOFcorr = 0.f;
   mPrimVtxZ = 0.f;
-  mLumi = 0.f;
+  mLumi = DEFLUMI;
   mLumiError = 0.f;
+  mIDC = DEFIDC;
+  mIDCError = 0.f;
+  mCTP2IDCFallBackThreshold = 30.f;
   mLumiScaleFactor = 1.f;
 
   // variable-size data
@@ -160,6 +166,9 @@ void TPCFastTransform::print() const
   LOG(info) << "mPrimVtxZ = " << mPrimVtxZ;
   LOG(info) << "mLumi = " << mLumi;
   LOG(info) << "mLumiError = " << mLumiError;
+  LOG(info) << "mIDC = " << mIDC;
+  LOG(info) << "mIDCError = " << mIDCError;
+  LOG(info) << "mCTP2IDCFallBackThreshold = " << mCTP2IDCFallBackThreshold;
   LOG(info) << "mLumiScaleFactor = " << mLumiScaleFactor;
   mCorrection.print();
 #endif
@@ -251,3 +260,25 @@ void TPCFastTransform::setSlowTPCSCCorrection(TFile& inpf)
   mCorrectionSlow->mCorr->setGlobalCorrectionsFromFile<float>(inpf, o2::tpc::Side::C);
 }
 #endif
+
+float TPCFastTransform::getIDC() const
+{
+  auto val = mIDC;
+  if (!isIDCSet()) {
+    if (mLumi < mCTP2IDCFallBackThreshold) {
+#if !defined(GPUCA_GPUCODE)
+      bool static report = true;
+      if (report) {
+        report = false;
+        LOG(warn) << "IDC scaling is requested but map IDC record is empty. Since map Lumi " << mLumi << " is less than fall-back threshold " << mCTP2IDCFallBackThreshold << ", interpret Lumi record as IDC";
+      }
+#endif
+      val = mLumi;
+    } else {
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+      LOG(fatal) << "IDC scaling is requested but map IDC record is empty. The map Lumi " << mLumi << " exceeds Lumi->IDC fall-back threshold " << mCTP2IDCFallBackThreshold;
+#endif
+    }
+  }
+  return val;
+}

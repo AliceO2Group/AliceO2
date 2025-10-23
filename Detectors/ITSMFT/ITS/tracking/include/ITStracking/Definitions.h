@@ -15,9 +15,9 @@
 #ifndef TRACKINGITS_DEFINITIONS_H_
 #define TRACKINGITS_DEFINITIONS_H_
 
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <array>
-#endif
+#include <type_traits>
+
+#include "ReconstructionDataFormats/Vertex.h"
 
 #ifdef CA_DEBUG
 #define CA_DEBUGGER(x) x
@@ -26,4 +26,20 @@
   do {                 \
   } while (0)
 #endif
+
+namespace o2::its
+{
+
+enum class TrackletMode {
+  Layer0Layer1 = 0,
+  Layer1Layer2 = 2
+};
+
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+
+template <bool IsConst, typename T>
+using maybe_const = typename std::conditional<IsConst, const T, T>::type;
+
+} // namespace o2::its
+
 #endif

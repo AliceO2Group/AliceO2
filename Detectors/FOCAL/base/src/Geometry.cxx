@@ -366,6 +366,11 @@ void Geometry::setParameters(std::string geometryfile)
         LOG(debug) << "The size of the HCAL readout tower will be : " << mGlobal_HCAL_Tower_Size;
       }
 
+      if (command.find("HCAL_PITCH_SIZE") != std::string::npos) {
+        mGlobal_HCAL_Pitch_Size = std::stof(tokens[1]);
+        LOG(debug) << "The distance between fibers is : " << mGlobal_HCAL_Pitch_Size;
+      }
+
       if (command.find("HCAL_TOWER_NX") != std::string::npos) {
         mGlobal_HCAL_Tower_NX = std::stoi(tokens[1]);
         LOG(debug) << "The number of the HCAL readout towers in X will be : " << mGlobal_HCAL_Tower_NX;
@@ -374,6 +379,11 @@ void Geometry::setParameters(std::string geometryfile)
       if (command.find("HCAL_TOWER_NY") != std::string::npos) {
         mGlobal_HCAL_Tower_NY = std::stoi(tokens[1]);
         LOG(debug) << "The number of the HCAL readout towers in Y will be : " << mGlobal_HCAL_Tower_NY;
+      }
+
+      if (command.find("HCAL_BEAMPIPE") != std::string::npos) {
+        mGlobal_HCAL_BeamPipeHole_Size = std::stof(tokens[1]);
+        LOG(debug) << "The HCAL beam pipe openning : " << mGlobal_HCAL_BeamPipeHole_Size;
       }
 
       if (command.find("PIX_OffsetX") != std::string::npos) {
@@ -429,11 +439,6 @@ void Geometry::setParameters(std::string geometryfile)
       if (command.find("NUMBER_OF_HCAL_LAYERS") != std::string::npos) {
         mNHCalLayers = std::stoi(tokens[1]);
         LOG(debug) << "Number of HCAL layers " << mNHCalLayers;
-        if (mNHCalLayers == 1) {
-          mUseSandwichHCAL = false;
-        } else {
-          mUseSandwichHCAL = true;
-        }
       }
 
       if (command.find("NUMBER_OF_SEGMENTS") != std::string::npos) {
@@ -640,6 +645,14 @@ void Geometry::setParameters(std::string geometryfile)
   mHCalLayerThickness = center_z;
   center_z = 0;
 
+  if (mNHCalLayers == 1 && hHCal > 2) {
+    mHCALDesign = Geometry::HCALDesgin::Sheets;
+  } else if (mNHCalLayers == 1 && hHCal == 2) {
+    mHCALDesign = Geometry::HCALDesgin::Spaghetti;
+  } else {
+    mHCALDesign = Geometry::HCALDesgin::Sandwich;
+  }
+
   mFrontMatterLayerThickness = center_z;
   LOG(debug) << " end of SetParameters ";
 }
@@ -702,27 +715,34 @@ std::tuple<double, double, double> Geometry::getGeoTowerCenter(int tower, int se
     int ix = id % nCols;
     int iy = id / nRows;
 
-    if (mUseSandwichHCAL) {
-      float padSize = mVirtualSegmentComposition[segment].mPadSize;
-      double hCALsizeX = nCols * padSize;
-      double hCALsizeY = nRows * padSize;
-      x = ix * padSize + 0.5 * padSize - 0.5 * hCALsizeX;
-      y = iy * padSize + 0.5 * padSize - 0.5 * hCALsizeY;
-    } else {
-      nCols = std::floor(getFOCALSizeX() / getHCALTowerSize() + 0.001) + 1;
-      nRows = std::floor(getFOCALSizeY() / getHCALTowerSize() + 0.001);
-      ix = id % nCols;
-      iy = id / nRows;
-      double beamPipeRadius = 3.6;                                 // in cm   TODO: check if this is OK
-      double towerHalfDiag = std::sqrt(2) * 0.5 * getTowerSizeX(); // tower half diagonal
-      double minRadius = beamPipeRadius + towerHalfDiag;
+    switch (mHCALDesign) {
+      case HCALDesgin::Sandwich: {
+        float padSize = mVirtualSegmentComposition[segment].mPadSize;
+        double hCALsizeX = nCols * padSize;
+        double hCALsizeY = nRows * padSize;
 
-      float towerSize = getHCALTowerSize() / 7; // To be set from outside (number of channels on x & y)
-      y = iy * towerSize + 0.5 * towerSize - 0.5 * towerSize * nRows;
-      x = ix * towerSize + 0.5 * towerSize - 0.5 * towerSize * nCols;
-      if (y < minRadius && y > -minRadius) {
-        x = int(x) <= 0 ? x - (minRadius - towerSize) : x + (minRadius - towerSize);
+        x = ix * padSize + 0.5 * padSize - 0.5 * hCALsizeX;
+        y = iy * padSize + 0.5 * padSize - 0.5 * hCALsizeY;
+        break;
       }
+      case HCALDesgin::Spaghetti: {
+        float towerSize = getHCALTowerSize() / 7; // To be set from outside (number of channels on x & y)
+        y = iy * towerSize + 0.5 * towerSize - 0.5 * towerSize * nRows;
+        x = ix * towerSize + 0.5 * towerSize - 0.5 * towerSize * nCols;
+        break;
+      }
+      case HCALDesgin::Sheets: {
+        Composition comp1 = mHCalCompositionBase[0];
+        Composition comp2 = mHCalCompositionBase[2];
+        double hCALsizeX = comp1.sizeX() * 2;                                        // Size of two sheet in X
+        double hCALsizeY = getHCALTowersInY() * (comp1.sizeY() + comp2.sizeY()) * 2; // To be set in a better way
+
+        x = ix * hCALsizeX / getHCALTowersInX() + 0.5 * hCALsizeX / getHCALTowersInX() - 0.5 * hCALsizeX;
+        y = iy * hCALsizeY / getHCALTowersInY() + 0.5 * hCALsizeY / getHCALTowersInY() - 0.5 * hCALsizeY;
+        break;
+      }
+      default:
+        break;
     }
   }
 
@@ -1118,12 +1138,41 @@ std::tuple<bool, int, int, int, int> Geometry::getVirtualInfo(double x, double y
       x = x < 0 ? x - 0.001 : x + 0.001;
       y = y < 0 ? y - 0.001 : y + 0.001;
     }
-    if (!mUseSandwichHCAL) {
-      row = (int)((y + hCALsizeY / 2) / (towerSize / 7));
-      col = (int)((x + hCALsizeX / 2) / (towerSize / 7));
-    } else {
-      row = (int)((y + hCALsizeY / 2) / (towerSize));
-      col = (int)((x + hCALsizeX / 2) / (towerSize));
+
+    switch (mHCALDesign) {
+      case HCALDesgin::Sandwich: {
+        row = (int)((y + hCALsizeY / 2) / (towerSize));
+        col = (int)((x + hCALsizeX / 2) / (towerSize));
+        break;
+      }
+      case HCALDesgin::Spaghetti: {
+        row = (int)((y + hCALsizeY / 2) / (towerSize / 7));
+        col = (int)((x + hCALsizeX / 2) / (towerSize / 7));
+        break;
+      }
+      case HCALDesgin::Sheets: {
+        Composition comp1 = mHCalCompositionBase[0];
+        Composition comp2 = mHCalCompositionBase[2];
+        double hCALsizeX = comp1.sizeX() * 2;                                        // Size of two sheet in X
+        double hCALsizeY = getHCALTowersInY() * (comp1.sizeY() + comp2.sizeY()) * 2; // To be set in a better way
+
+        if (y < getHCALBeamPipeHoleSize() / 2 && y > -getHCALBeamPipeHoleSize() / 2) {
+          if (x < 0) {
+            x += 1.0; // remove the offset around the beam pipe
+          } else {
+            x -= 1.0; // remove the offset around the beam pipe
+          }
+        }
+
+        row = (int)((y + hCALsizeY / 2) / (hCALsizeY / getHCALTowersInY()));
+        if (x > 0) {
+          x = x - 0.15 - 0.06;
+        }
+        col = (int)((x - 0.15 + hCALsizeX / 2) / ((hCALsizeX - 0.15 * 2 - 0.06 * 2) / getHCALTowersInX()));
+        break;
+      }
+      default:
+        break;
     }
   } else {
     row = (int)((y + getFOCALSizeY() / 2) / mVirtualSegmentComposition[segment].mPadSize);
@@ -1150,12 +1199,29 @@ std::tuple<bool, double, double, double> Geometry::getXYZFromColRowSeg(int col, 
     double hCALsizeX = getHCALTowersInX() * towerSize;
     double hCALsizeY = getHCALTowersInY() * towerSize;
 
-    if (!mUseSandwichHCAL) {
-      y = -1 * hCALsizeY / 2 + ((float)row + 0.5) * (towerSize / 7);
-      x = -1 * hCALsizeX / 2 + ((float)col + 0.5) * (towerSize / 7);
-    } else {
-      y = -1 * hCALsizeY / 2 + ((float)row + 0.5) * (towerSize);
-      x = -1 * hCALsizeX / 2 + ((float)col + 0.5) * (towerSize);
+    switch (mHCALDesign) {
+      case HCALDesgin::Sandwich: {
+        y = -1 * hCALsizeY / 2 + ((float)row + 0.5) * (towerSize);
+        x = -1 * hCALsizeX / 2 + ((float)col + 0.5) * (towerSize);
+        break;
+      }
+      case HCALDesgin::Spaghetti: {
+        y = -1 * hCALsizeY / 2 + ((float)row + 0.5) * (towerSize / 7);
+        x = -1 * hCALsizeX / 2 + ((float)col + 0.5) * (towerSize / 7);
+        break;
+      }
+      case HCALDesgin::Sheets: {
+        Composition comp1 = mHCalCompositionBase[0];
+        Composition comp2 = mHCalCompositionBase[2];
+        double hCALsizeX = comp1.sizeX() * 2;                                        // Size of two sheet in X
+        double hCALsizeY = getHCALTowersInY() * (comp1.sizeY() + comp2.sizeY()) * 2; // To be set in a better way
+
+        y = -1 * hCALsizeY / 2 + ((float)row + 0.5) * (hCALsizeY / getHCALTowersInY());
+        x = -1 * hCALsizeX / 2 + ((float)col + 0.5) * (hCALsizeX / getHCALTowersInX());
+        break;
+      }
+      default:
+        break;
     }
   } else {
     y = -1 * getFOCALSizeY() / 2 + ((float)row + 0.5) * mVirtualSegmentComposition[segment].mPadSize;
@@ -1191,12 +1257,24 @@ std::tuple<bool, int, int> Geometry::getVirtualNColRow(int segment) const
   nCol = (int)(getFOCALSizeX() / mVirtualSegmentComposition[segment].mPadSize + 0.001);
   nRow = (int)(getFOCALSizeY() / mVirtualSegmentComposition[segment].mPadSize + 0.001);
   if (getVirtualIsHCal(segment)) {
-    if (!mUseSandwichHCAL) {
-      nCol = getHCALTowersInX() * 7; // To be set from outside (number of channels in each tower on x)
-      nRow = getHCALTowersInY() * 7; // To be set from outside (number of channels in each tower on y)
-    } else {
-      nCol = getHCALTowersInX();
-      nRow = getHCALTowersInY();
+    switch (mHCALDesign) {
+      case HCALDesgin::Sandwich: {
+        nCol = getHCALTowersInX();
+        nRow = getHCALTowersInY();
+        break;
+      }
+      case HCALDesgin::Spaghetti: {
+        nCol = getHCALTowersInX() * 7; // To be set from outside (number of channels in each tower on x)
+        nRow = getHCALTowersInY() * 7; // To be set from outside (number of channels in each tower on y)
+        break;
+      }
+      case HCALDesgin::Sheets: {
+        nCol = getHCALTowersInX();
+        nRow = getHCALTowersInY();
+        break;
+      }
+      default:
+        break;
     }
   }
   return {true, nCol, nRow};

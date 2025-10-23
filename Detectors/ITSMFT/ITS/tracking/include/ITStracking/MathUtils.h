@@ -13,92 +13,95 @@
 /// \brief
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_CAUTILS_H_
-#define TRACKINGITSU_INCLUDE_CAUTILS_H_
+#ifndef O2_ITS_TRACKING_MATHUTILS_H_
+#define O2_ITS_TRACKING_MATHUTILS_H_
 
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <array>
-#include <cmath>
-#include <cassert>
-#include <iostream>
-#endif
-
-#include "MathUtils/Utils.h"
+#include "CommonConstants/MathConstants.h"
 #include "ITStracking/Constants.h"
+#include "MathUtils/Utils.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its::math_utils
 {
 
-namespace math_utils
+GPUhdi() float computePhi(float x, float y)
 {
-GPUhdni() float computePhi(const float, const float);
-GPUhdni() float hypot(const float, const float);
-GPUhdni() constexpr float getNormalizedPhi(const float);
-GPUhdni() constexpr float3 crossProduct(const float3&, const float3&);
-GPUhdni() float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3);
-GPUhdni() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3);
-GPUhdni() float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2);
-
-} // namespace math_utils
-
-GPUhdi() float math_utils::computePhi(const float x, const float y)
-{
-  //return o2::gpu::CAMath::ATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
-  return o2::math_utils::fastATan2(-y, -x) + constants::math::Pi;
+  return o2::math_utils::fastATan2(-y, -x) + o2::constants::math::PI;
 }
 
-GPUhdi() float math_utils::hypot(const float x, const float y)
+GPUhdi() constexpr float hypot(float x, float y)
 {
-  return o2::gpu::CAMath::Sqrt(x * x + y * y);
+  return o2::gpu::CAMath::Hypot(x, y);
 }
 
-GPUhdi() constexpr float math_utils::getNormalizedPhi(const float phi)
+GPUhdi() constexpr float getNormalizedPhi(float phi)
 {
-  return (phi < 0) ? phi + constants::math::TwoPi : (phi > constants::math::TwoPi) ? phi - constants::math::TwoPi
-                                                                                   : phi;
+  phi -= o2::constants::math::TwoPI * o2::gpu::CAMath::Floor(phi * (1.f / o2::constants::math::TwoPI));
+  return phi;
 }
 
-GPUhdi() constexpr float3 math_utils::crossProduct(const float3& firstVector, const float3& secondVector)
+GPUhdi() float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3)
 {
-
-  return float3{(firstVector.y * secondVector.z) - (firstVector.z * secondVector.y),
-                (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z),
-                (firstVector.x * secondVector.y) - (firstVector.y * secondVector.x)};
-}
-
-GPUhdi() float math_utils::computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3)
-{
+  // in case the triangle is degenerate we return infinite curvature.
   const float d = (x2 - x1) * (y3 - y2) - (x3 - x2) * (y2 - y1);
+  if (o2::gpu::CAMath::Abs(d) < o2::its::constants::Tolerance) {
+    return 0.f;
+  }
   const float a =
     0.5f * ((y3 - y2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1) - (y2 - y1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2));
   const float b =
     0.5f * ((x2 - x1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2) - (x3 - x2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1));
-  const float den2 = (d * x1 - a) * (d * x1 - a) + (d * y1 - b) * (d * y1 - b);
-  return den2 > 0.f ? -1.f * d / o2::gpu::CAMath::Sqrt(den2) : 0.f;
+  const float den = o2::gpu::CAMath::Hypot(d * x1 - a, d * y1 - b);
+  if (den < o2::its::constants::Tolerance) {
+    return 0.f;
+  }
+  return -d / den;
 }
 
-GPUhdi() float math_utils::computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3)
+GPUhdi() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3)
 {
+  // in case the triangle is degenerate we return set the centre to infinity.
   float dx21 = x2 - x1, dx32 = x3 - x2;
-  if (dx21 == 0.f || dx32 == 0.f) { // add small offset
+  if (o2::gpu::CAMath::Abs(dx21) < o2::its::constants::Tolerance ||
+      o2::gpu::CAMath::Abs(dx32) < o2::its::constants::Tolerance) { // add small offset
     x2 += 1e-4;
     dx21 = x2 - x1;
     dx32 = x3 - x2;
   }
-  float k1 = (y2 - y1) / dx21, k2 = (y3 - y2) / dx32;
-  return (k1 != k2) ? 0.5f * (k1 * k2 * (y1 - y3) + k2 * (x1 + x2) - k1 * (x2 + x3)) / (k2 - k1) : 1e5;
+  const float k1 = (y2 - y1) / dx21, k2 = (y3 - y2) / dx32;
+  if (o2::gpu::CAMath::Abs(k2 - k1) < o2::its::constants::Tolerance) {
+    return o2::constants::math::VeryBig;
+  }
+  return 0.5f * (k1 * k2 * (y1 - y3) + k2 * (x1 + x2) - k1 * (x2 + x3)) / (k2 - k1);
 }
 
-GPUhdi() float math_utils::computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)
+GPUhdi() float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)
 {
-  return (z1 - z2) / o2::gpu::CAMath::Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+  // in case the points vertically align we go to pos/neg inifinity.
+  const float d = o2::gpu::CAMath::Hypot(x1 - x2, y1 - y2);
+  if (o2::gpu::CAMath::Abs(d) < o2::its::constants::Tolerance) {
+    return ((z1 > z2) ? -1.f : 1.f) * o2::constants::math::VeryBig;
+  }
+  return (z1 - z2) / d;
 }
 
-} // namespace its
-} // namespace o2
+GPUhdi() float smallestAngleDifference(float a, float b)
+{
+  return o2::gpu::CAMath::Remainderf(b - a, o2::constants::math::TwoPI);
+}
 
-#endif /* TRACKINGITSU_INCLUDE_CAUTILS_H_ */
+GPUhdi() float Sq(float v)
+{
+  return v * v;
+}
+
+GPUhdi() float MSangle(float mass, float p, float xX0)
+{
+  float beta = p / o2::gpu::CAMath::Hypot(mass, p);
+  return 0.0136f * o2::gpu::CAMath::Sqrt(xX0) * (1.f + 0.038f * o2::gpu::CAMath::Log(xX0)) / (beta * p);
+}
+
+} // namespace o2::its::math_utils
+
+#endif

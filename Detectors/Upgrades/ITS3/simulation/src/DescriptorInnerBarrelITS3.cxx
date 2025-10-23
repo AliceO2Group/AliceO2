@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "ITS3Simulation/DescriptorInnerBarrelITS3.h"
-#include "fairlogger/Logger.h"
 
 using namespace o2::its3;
 
@@ -18,14 +17,12 @@ ClassImp(DescriptorInnerBarrelITS3);
 
 void DescriptorInnerBarrelITS3::createLayer(int iLayer, TGeoVolume* dest)
 {
-  LOGP(debug, "ITS3-IB: Creating Layer {}", iLayer);
   mIBLayers[iLayer] = std::make_unique<ITS3Layer>(iLayer);
   mIBLayers[iLayer]->createLayer(dest);
 }
 
 void DescriptorInnerBarrelITS3::createServices(TGeoVolume* dest)
 {
-  LOGP(debug, "ITS3-IB: Creating Services");
   mServices = std::make_unique<ITS3Services>();
   mServices->createCYSSAssembly(dest);
 }

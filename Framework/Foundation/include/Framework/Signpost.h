@@ -246,6 +246,7 @@ inline _o2_signpost_id_t _o2_signpost_id_make_with_pointer(_o2_log_t* log, void 
 #include <execinfo.h>
 #include "Framework/RuntimeError.h"
 #include "Framework/BacktraceHelpers.h"
+void _o2_signpost_event_emit_v(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, va_list args);
 void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, va_list args);
 
 // returns true if the push was successful, false if the stack was full
@@ -358,11 +359,8 @@ void* _o2_log_create(char const* name, int defaultStacktrace)
 
 // This will look at the slot in the log associated to the ID.
 // If the slot is empty, it will return the id and increment the indentation level.
-void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...)
+void _o2_signpost_event_emit_v(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, va_list args)
 {
-  va_list args;
-  va_start(args, format);
-
   // Find the index of the activity
   int leading = 0;
 
@@ -386,7 +384,6 @@ void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* n
   char prebuffer[4096];
   int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16s*>%*c", id.value, name, leading, ' ');
   vsnprintf(prebuffer + s, 4096 - s, format, args);
-  va_end(args);
   O2_LOG_MACRO("%s", prebuffer);
   if (log->stacktrace > 1) {
     void* traces[o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE];
@@ -394,6 +391,15 @@ void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* n
     int maxBacktrace = backtrace(traces, (log->stacktrace + 1) < o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE ? (log->stacktrace + 1) : o2::framework::BacktraceHelpers::MAX_BACKTRACE_SIZE);
     o2::framework::BacktraceHelpers::demangled_backtrace_symbols(traces, maxBacktrace, STDERR_FILENO);
   }
+}
+
+// We separate this so that we can still emit the end signpost when the log is not enabled.
+void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  _o2_signpost_event_emit_v(log, id, name, format, args);
+  va_end(args);
 }
 
 // This will look at the slot in the log associated to the ID.
@@ -434,7 +440,7 @@ void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char cons
   // We should not make this an error because one could have enabled the log after the interval
   // was started.
   if (i == log->ids.size()) {
-    _o2_signpost_event_emit(log, id, name, format, args);
+    _o2_signpost_event_emit_v(log, id, name, format, args);
     return;
   }
   // i is the slot index
@@ -532,6 +538,17 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   }                                                                                                                 \
 })
 
+// Similar to the above, however it will print a normal info message if the signpost is not enabled.
+#define O2_SIGNPOST_EVENT_EMIT_DETAIL(log, id, name, format, ...) __extension__({                                   \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  } else {                                                                                                          \
+    O2_LOG_MACRO_RAW(detail, remove_engineering_type(format).data(), ##__VA_ARGS__);                                \
+  }                                                                                                                 \
+})
+
 // Similar to the above, however it will always print a normal error message regardless of the signpost being enabled or not.
 #define O2_SIGNPOST_EVENT_EMIT_ERROR(log, id, name, format, ...) __extension__({                                    \
   if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
@@ -562,6 +579,26 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   O2_LOG_MACRO_RAW(critical, remove_engineering_type(format).data(), ##__VA_ARGS__);                                \
 })
 
+// Similar to the above, however it will also print a normal alarm message regardless of the signpost being enabled or not.
+#define O2_SIGNPOST_EVENT_EMIT_ALARM(log, id, name, format, ...) __extension__({                                    \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }                                                                                                                 \
+  O2_LOG_MACRO_RAW(alarm, remove_engineering_type(format).data(), ##__VA_ARGS__);                                   \
+})
+
+// Similar to the above, however it will also print a normal alarm message regardless of the signpost being enabled or not.
+#define O2_SIGNPOST_EVENT_EMIT_IMPORTANT(log, id, name, format, ...) __extension__({                                \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }                                                                                                                 \
+  O2_LOG_MACRO_RAW(important, remove_engineering_type(format).data(), ##__VA_ARGS__);                               \
+})
+
 #define O2_SIGNPOST_START(log, id, name, format, ...)                                                                   \
   if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                              \
     O2_SIGNPOST_START_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
@@ -573,6 +610,16 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
     O2_SIGNPOST_END_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                 \
     _o2_signpost_interval_end(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }
+// Print out a message at error level in any case even if the signpost is not enable.
+// If it is enabled, behaves like O2_SIGNPOST_END.
+#define O2_SIGNPOST_END_WITH_ERROR(log, id, name, format, ...)                                                        \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                            \
+    O2_SIGNPOST_END_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                 \
+    _o2_signpost_interval_end(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  } else {                                                                                                            \
+    O2_LOG_MACRO_RAW(error, remove_engineering_type(format).data(), ##__VA_ARGS__);                                   \
   }
 #else // This is the release implementation, it does nothing.
 #define O2_DECLARE_DYNAMIC_LOG(x)

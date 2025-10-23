@@ -26,7 +26,7 @@ static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> gTask;
 namespace o2::its3::reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype, bool useGPUWorkflow,
+framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, o2::gpu::GPUDataTypes::DeviceType dtype, bool useGPUWorkflow,
                                     bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool useGeom, int useTrig, bool overrideBeamPosition)
 {
   framework::WorkflowSpec specs;
@@ -43,7 +43,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
   }
 
-  if (trmode != "off") {
+  if (trmode != its::TrackingMode::Off) {
     if (useGPUWorkflow) {
       o2::gpu::GPURecoWorkflowSpec::Config cfg;
       cfg.runITSTracking = true;

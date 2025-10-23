@@ -93,10 +93,12 @@ class MatLayerCyl : public o2::gpu::FlatObject
   GPUd() const MatCell& getCell(int iphiSlice, int iz) const { return mCells[getCellID(iphiSlice, iz)]; }
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
-  GPUd() MatCell& getCellPhiBin(int iphi, int iz)
+  MatCell& getCellPhiBin(int iphi, int iz)
   {
     return mCells[getCellIDPhiBin(iphi, iz)];
   }
+
+  void scale(float factor, bool _x2x0 = true, bool _rho = true);
 #endif
 
   // ---------------------- Z slice manipulation

@@ -119,6 +119,9 @@ constexpr float MaxPT = 100000.;                  // do not allow pTs exceeding 
 constexpr float MinPTInv = 1. / MaxPT;            // do not allow q/pTs less this value (to avoid NANs)
 constexpr float ELoss2EKinThreshInv = 1. / 0.025; // do not allow E.Loss correction step with dE/Ekin above the inverse of this value
 constexpr int MaxELossIter = 50;                  // max number of iteration for the ELoss to account for BB dependence on beta*gamma
+constexpr float DefaultDCA = 999.f;               // default DCA value
+constexpr float DefaultDCACov = 999.f;            // default DCA cov value
+
 // uncomment this to enable correction for BB dependence on beta*gamma via BB derivative
 // #define _BB_NONCONST_CORR_
 
@@ -248,6 +251,8 @@ class TrackParametrization
 #ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
   std::string asStringHexadecimal();
+  size_t hash() const { return hash(getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt()); }
+  static size_t hash(float x, float alp, float y, float z, float snp, float tgl, float q2pt);
 #endif
 
   GPUd() void updateParam(value_t delta, int i);
@@ -275,6 +280,7 @@ GPUdi() TrackParametrization<value_T>::TrackParametrization(value_t x, value_t a
   : mX{x}, mAlpha{alpha}, mAbsCharge{char(gpu::CAMath::Abs(charge))}, mPID{pid}
 {
   // explicit constructor
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
   for (int i = 0; i < kNParams; i++) {
     mP[i] = par[i];
   }
@@ -293,6 +299,7 @@ GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const 
 {
   mX = x;
   mAlpha = alpha;
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
   mAbsCharge = char(gpu::CAMath::Abs(charge));
   for (int i = 0; i < kNParams; i++) {
     mP[i] = par[i];
@@ -428,6 +435,7 @@ template <typename value_T>
 GPUdi() void TrackParametrization<value_T>::setAlpha(value_t v)
 {
   mAlpha = v;
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
 }
 
 //____________________________________________________________
@@ -751,6 +759,21 @@ GPUdi() void TrackParametrization<value_T>::updateParams(const value_t* delta)
     mP[kSnp] = -constants::math::Almost1;
   }
 }
+
+#ifndef GPUCA_ALIGPUCODE
+template <typename value_T>
+size_t TrackParametrization<value_T>::hash(float x, float alp, float y, float z, float snp, float tgl, float q2pt)
+{
+  size_t h = std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(x, 0xFFFFFFF0));
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(alp, 0xFFFFFFF0)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(y, 0xFFFFFFF0)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(z, 0xFFFFFFF0)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(snp, 0xFFFFFF00)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(tgl, 0xFFFFFF00)) << 1;
+  h ^= std::hash<float>{}(o2::math_utils::detail::truncateFloatFraction(q2pt, 0xFFFFFC00)) << 1;
+  return h;
+}
+#endif
 
 } // namespace track
 } // namespace o2

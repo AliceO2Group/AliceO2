@@ -183,7 +183,7 @@ class EveWorkflowHelper
   bool isInsideITSROF(float t);
   bool isInsideTimeBracket(float t);
 
-  void save(const std::string& jsonPath, const std::string& ext, int numberOfFiles);
+  void save(const std::string& jsonPath, const std::string& ext, int numberOfFiles, const std::string& receiverHostname, int receiverPort, int receiverTimeout, bool useOnlyFiles, bool useOnlySockets);
 
   bool mUseTimeBracket = false;
   bool mUseEtaBracketTPC = false;

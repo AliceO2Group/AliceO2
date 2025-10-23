@@ -12,19 +12,19 @@
 #ifndef ALICEO2_EMCAL_GEOMETRY_H_
 #define ALICEO2_EMCAL_GEOMETRY_H_
 
-#include <exception>
+#include <array>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
 #include <RStringView.h>
+#include <RtypesCore.h>
 #include <TGeoMatrix.h>
-#include <TNamed.h>
+#include <TMath.h>
 #include <TParticle.h>
 #include <TVector3.h>
-#include <TObjArray.h>
 
-#include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/GeometryBase.h"
 #include "MathUtils/Cartesian.h"
@@ -514,6 +514,14 @@ class Geometry
   /// \return row
   /// \return col
   std::tuple<int, int, int> getOnlineID(int towerID);
+
+  ///  \brief Check if 2 cells belong to the same T-Card
+  ///  \param absId1: Reference absId cell
+  ///  \param absId2: Cross checked cell absId
+  ///  \return true if belong to same TCard else false
+  ///  \return rowDiff: Distance in rows
+  ///  \return colDiff: Distance in columns
+  std::tuple<bool, int, int> areAbsIDsFromSameTCard(int absId1, int absId2) const;
 
   /// \brief Temporary link assignment (till final link assignment is known -
   /// \brief eventually taken from CCDB)

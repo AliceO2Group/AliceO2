@@ -14,7 +14,7 @@ void readAlpideCCDB(long timestamp = -1, float thresh = 0)
   o2::ccdb::CcdbApi api;
   // api.init("alice-ccdb.cern.ch");
   api.init("ccdb-test.cern.ch");
-  map<string, string> headers;
+  std::map<std::string, std::string> headers;
   map<std::string, std::string> filter;
   auto calib = api.retrieveFromTFileAny<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>>("MFT/Config/AlpideParam/", filter, timestamp, &headers);
   calib->printKeyValues();

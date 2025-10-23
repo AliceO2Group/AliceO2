@@ -74,8 +74,8 @@ struct AO2DConverter {
     mHelper->mEvent.setTfCounter(mTfCounter);
     mHelper->mEvent.setFirstTForbit(mTfOrbit);
     mHelper->mEvent.setCreationTime(collision.collisionTime());
-
-    mHelper->save(jsonPath, ".root", -1);
+    const std::string hostname("localhost");
+    mHelper->save(jsonPath, ".root", -1, hostname, -1, 100, true, true);
     mHelper->clear();
   }
 };

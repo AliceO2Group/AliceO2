@@ -44,6 +44,7 @@ o2_add_library(TPCWorkflow
                        src/TPCTimeSeriesSpec.cxx
                        src/TPCTimeSeriesWriterSpec.cxx
                        src/TPCScalerSpec.cxx
+                       src/TPCPressureTemperatureSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -69,17 +70,6 @@ o2_add_library(TPCWorkflowStudies
                                      O2::GlobalTrackingWorkflow
            )
 
-o2_add_executable(chunkeddigit-merger
-        COMPONENT_NAME tpc
-        TARGETVARNAME mergertargetName
-        SOURCES src/ChunkedDigitPublisher.cxx
-        PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
-
-if(OpenMP_CXX_FOUND)
-  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
-  target_compile_definitions(${mergertargetName} PRIVATE WITH_OPENMP)
-  target_link_libraries(${mergertargetName} PRIVATE OpenMP::OpenMP_CXX)
-endif()
 
 
 o2_add_executable(reco-workflow
@@ -210,7 +200,7 @@ o2_add_executable(idc-test-ft
 o2_add_executable(miptrack-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-miptrack-filter.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTrackingWorkflow)
 
 o2_add_executable(track-and-cluster-filter
                   COMPONENT_NAME tpc
@@ -292,5 +282,10 @@ o2_add_executable(refitter
                   SOURCES src/tpc-refitter-workflow.cxx
                   COMPONENT_NAME tpc
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflowStudies)
+
+o2_add_executable(pressure-temperature
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-pressure-temperature.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 add_subdirectory(readers)

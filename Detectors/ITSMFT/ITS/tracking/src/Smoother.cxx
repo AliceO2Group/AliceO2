@@ -25,92 +25,92 @@ constexpr std::array<double, 3> getInverseSymm2D(const std::array<double, 3>& ma
 }
 
 // Smoother
-template <unsigned int D>
-Smoother<D>::Smoother(TrackITSExt& track, size_t smoothingLayer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr) : mLayerToSmooth{smoothingLayer},
-                                                                                                                                            mBz(bZ),
-                                                                                                                                            mCorr(corr)
-{
-
-  auto propInstance = o2::base::Propagator::Instance();
-  const TrackingFrameInfo& originalTf = event.getTrackingFrameInfoOnLayer(mLayerToSmooth).at(track.getClusterIndex(mLayerToSmooth));
-
-  mOutwardsTrack = track;               // This track will be propagated outwards inside the smoother! (as last step of fitting did inward propagation)
-  mInwardsTrack = {track.getParamOut(), // This track will be propagated inwards inside the smoother!
-                   static_cast<short>(mOutwardsTrack.getNumberOfClusters()), -999, static_cast<std::uint32_t>(event.getROFrameId()),
-                   mOutwardsTrack.getParamOut(), mOutwardsTrack.getClusterIndexes()};
-
-  mOutwardsTrack.resetCovariance();
-  mOutwardsTrack.setChi2(0);
-  mInwardsTrack.resetCovariance();
-  mInwardsTrack.setChi2(0);
-
-  bool statusOutw{false};
-  bool statusInw{false};
-
-  //////////////////////
-  // Outward propagation
-  for (size_t iLayer{0}; iLayer < mLayerToSmooth; ++iLayer) {
-    if (mOutwardsTrack.getClusterIndex(iLayer) == constants::its::UnusedIndex) { // Shorter tracks
-      continue;
-    }
-    const TrackingFrameInfo& tF = event.getTrackingFrameInfoOnLayer(iLayer).at(mOutwardsTrack.getClusterIndex(iLayer));
-    statusOutw = mOutwardsTrack.rotate(tF.alphaTrackingFrame);
-    statusOutw &= propInstance->propagateToX(mOutwardsTrack,
-                                             tF.xTrackingFrame,
-                                             mBz,
-                                             o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                             o2::base::PropagatorImpl<float>::MAX_STEP,
-                                             mCorr);
-    mOutwardsTrack.setChi2(mOutwardsTrack.getChi2() + mOutwardsTrack.getPredictedChi2(tF.positionTrackingFrame, tF.covarianceTrackingFrame));
-    statusOutw &= mOutwardsTrack.o2::track::TrackParCov::update(tF.positionTrackingFrame, tF.covarianceTrackingFrame);
-    // LOG(info) << "Outwards loop on inwards track, layer: " << iLayer << " x: " << mOutwardsTrack.getX();
-  }
-
-  // Prediction on the previously outwards-propagated track is done on a copy, as the process seems to be not reversible
-  auto outwardsClone = mOutwardsTrack;
-  statusOutw = outwardsClone.rotate(originalTf.alphaTrackingFrame);
-  statusOutw &= propInstance->propagateToX(outwardsClone,
-                                           originalTf.xTrackingFrame,
-                                           mBz,
-                                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                           o2::base::PropagatorImpl<float>::MAX_STEP,
-                                           mCorr);
-  /////////////////////
-  // Inward propagation
-  for (size_t iLayer{D - 1}; iLayer > mLayerToSmooth; --iLayer) {
-    if (mInwardsTrack.getClusterIndex(iLayer) == constants::its::UnusedIndex) { // Shorter tracks
-      continue;
-    }
-    const TrackingFrameInfo& tF = event.getTrackingFrameInfoOnLayer(iLayer).at(mInwardsTrack.getClusterIndex(iLayer));
-    statusInw = mInwardsTrack.rotate(tF.alphaTrackingFrame);
-    statusInw &= propInstance->propagateToX(mInwardsTrack,
-                                            tF.xTrackingFrame,
-                                            mBz,
-                                            o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                            o2::base::PropagatorImpl<float>::MAX_STEP,
-                                            mCorr);
-    mInwardsTrack.setChi2(mInwardsTrack.getChi2() + mInwardsTrack.getPredictedChi2(tF.positionTrackingFrame, tF.covarianceTrackingFrame));
-    statusInw &= mInwardsTrack.o2::track::TrackParCov::update(tF.positionTrackingFrame, tF.covarianceTrackingFrame);
-    // LOG(info) << "Inwards loop on outwards track, layer: " << iLayer << " x: " << mInwardsTrack.getX();
-  }
-
-  // Prediction on the previously inwards-propagated track is done on a copy, as the process seems to be not revesible
-  auto inwardsClone = mInwardsTrack;
-  statusInw = inwardsClone.rotate(originalTf.alphaTrackingFrame);
-  statusInw &= propInstance->propagateToX(inwardsClone,
-                                          originalTf.xTrackingFrame,
-                                          mBz,
-                                          o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                          o2::base::PropagatorImpl<float>::MAX_STEP,
-                                          mCorr);
-  // Compute weighted local chi2
-  mInitStatus = statusInw && statusOutw;
-  if (mInitStatus) {
-    mBestChi2 = computeSmoothedPredictedChi2(inwardsClone, outwardsClone, originalTf.positionTrackingFrame, originalTf.covarianceTrackingFrame);
-    mLastChi2 = mBestChi2;
-    LOG(info) << "Smoothed chi2 on original cluster: " << mBestChi2;
-  }
-}
+// template <unsigned int D>
+// Smoother<D>::Smoother(TrackITSExt& track, size_t smoothingLayer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr) : mLayerToSmooth{smoothingLayer},
+//                                                                                                                                             mBz(bZ),
+//                                                                                                                                             mCorr(corr)
+// {
+//
+//   auto propInstance = o2::base::Propagator::Instance();
+//   const TrackingFrameInfo& originalTf = event.getTrackingFrameInfoOnLayer(mLayerToSmooth).at(track.getClusterIndex(mLayerToSmooth));
+//
+//   mOutwardsTrack = track;               // This track will be propagated outwards inside the smoother! (as last step of fitting did inward propagation)
+//   mInwardsTrack = {track.getParamOut(), // This track will be propagated inwards inside the smoother!
+//                    static_cast<short>(mOutwardsTrack.getNumberOfClusters()), -999, static_cast<std::uint32_t>(event.getROFrameId()),
+//                    mOutwardsTrack.getParamOut(), mOutwardsTrack.getClusterIndexes()};
+//
+//   mOutwardsTrack.resetCovariance();
+//   mOutwardsTrack.setChi2(0);
+//   mInwardsTrack.resetCovariance();
+//   mInwardsTrack.setChi2(0);
+//
+//   bool statusOutw{false};
+//   bool statusInw{false};
+//
+//   //////////////////////
+//   // Outward propagation
+//   for (size_t iLayer{0}; iLayer < mLayerToSmooth; ++iLayer) {
+//     if (mOutwardsTrack.getClusterIndex(iLayer) == constants::UnusedIndex) { // Shorter tracks
+//       continue;
+//     }
+//     const TrackingFrameInfo& tF = event.getTrackingFrameInfoOnLayer(iLayer).at(mOutwardsTrack.getClusterIndex(iLayer));
+//     statusOutw = mOutwardsTrack.rotate(tF.alphaTrackingFrame);
+//     statusOutw &= propInstance->propagateToX(mOutwardsTrack,
+//                                              tF.xTrackingFrame,
+//                                              mBz,
+//                                              o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+//                                              o2::base::PropagatorImpl<float>::MAX_STEP,
+//                                              mCorr);
+//     mOutwardsTrack.setChi2(mOutwardsTrack.getChi2() + mOutwardsTrack.getPredictedChi2(tF.positionTrackingFrame, tF.covarianceTrackingFrame));
+//     statusOutw &= mOutwardsTrack.o2::track::TrackParCov::update(tF.positionTrackingFrame, tF.covarianceTrackingFrame);
+//     // LOG(info) << "Outwards loop on inwards track, layer: " << iLayer << " x: " << mOutwardsTrack.getX();
+//   }
+//
+//   // Prediction on the previously outwards-propagated track is done on a copy, as the process seems to be not reversible
+//   auto outwardsClone = mOutwardsTrack;
+//   statusOutw = outwardsClone.rotate(originalTf.alphaTrackingFrame);
+//   statusOutw &= propInstance->propagateToX(outwardsClone,
+//                                            originalTf.xTrackingFrame,
+//                                            mBz,
+//                                            o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+//                                            o2::base::PropagatorImpl<float>::MAX_STEP,
+//                                            mCorr);
+//   /////////////////////
+//   // Inward propagation
+//   for (size_t iLayer{D - 1}; iLayer > mLayerToSmooth; --iLayer) {
+//     if (mInwardsTrack.getClusterIndex(iLayer) == constants::UnusedIndex) { // Shorter tracks
+//       continue;
+//     }
+//     const TrackingFrameInfo& tF = event.getTrackingFrameInfoOnLayer(iLayer).at(mInwardsTrack.getClusterIndex(iLayer));
+//     statusInw = mInwardsTrack.rotate(tF.alphaTrackingFrame);
+//     statusInw &= propInstance->propagateToX(mInwardsTrack,
+//                                             tF.xTrackingFrame,
+//                                             mBz,
+//                                             o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+//                                             o2::base::PropagatorImpl<float>::MAX_STEP,
+//                                             mCorr);
+//     mInwardsTrack.setChi2(mInwardsTrack.getChi2() + mInwardsTrack.getPredictedChi2(tF.positionTrackingFrame, tF.covarianceTrackingFrame));
+//     statusInw &= mInwardsTrack.o2::track::TrackParCov::update(tF.positionTrackingFrame, tF.covarianceTrackingFrame);
+//     // LOG(info) << "Inwards loop on outwards track, layer: " << iLayer << " x: " << mInwardsTrack.getX();
+//   }
+//
+//   // Prediction on the previously inwards-propagated track is done on a copy, as the process seems to be not revesible
+//   auto inwardsClone = mInwardsTrack;
+//   statusInw = inwardsClone.rotate(originalTf.alphaTrackingFrame);
+//   statusInw &= propInstance->propagateToX(inwardsClone,
+//                                           originalTf.xTrackingFrame,
+//                                           mBz,
+//                                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+//                                           o2::base::PropagatorImpl<float>::MAX_STEP,
+//                                           mCorr);
+//   // Compute weighted local chi2
+//   mInitStatus = statusInw && statusOutw;
+//   if (mInitStatus) {
+//     mBestChi2 = computeSmoothedPredictedChi2(inwardsClone, outwardsClone, originalTf.positionTrackingFrame, originalTf.covarianceTrackingFrame);
+//     mLastChi2 = mBestChi2;
+//     LOG(info) << "Smoothed chi2 on original cluster: " << mBestChi2;
+//   }
+// }
 
 template <unsigned int D>
 Smoother<D>::~Smoother() = default;
@@ -173,48 +173,48 @@ float Smoother<D>::computeSmoothedPredictedChi2(const o2::track::TrackParCov& fi
   return chi2;
 }
 
-template <unsigned int D>
-bool Smoother<D>::testCluster(const int clusterId, const ROframe& event)
-{
-  if (!mInitStatus) {
-    return false;
-  }
-  auto propInstance = o2::base::Propagator::Instance();
-  const TrackingFrameInfo& testTf = event.getTrackingFrameInfoOnLayer(mLayerToSmooth).at(clusterId);
-
-  bool statusOutw{false};
-  bool statusInw{false};
-
-  // Prediction on the previously outwards-propagated track is done on a copy, as the process seems to be not reversible
-  auto outwardsClone = mOutwardsTrack;
-  statusOutw = outwardsClone.rotate(testTf.alphaTrackingFrame);
-  statusOutw &= propInstance->propagateToX(outwardsClone,
-                                           testTf.xTrackingFrame,
-                                           mBz,
-                                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                           o2::base::PropagatorImpl<float>::MAX_STEP,
-                                           mCorr);
-
-  // Prediction on the previously inwards-propagated track is done on a copy, as the process seems to be not reversible
-  auto inwardsClone = mInwardsTrack;
-  statusInw = inwardsClone.rotate(testTf.alphaTrackingFrame);
-  statusInw &= propInstance->propagateToX(inwardsClone,
-                                          testTf.xTrackingFrame,
-                                          mBz,
-                                          o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                          o2::base::PropagatorImpl<float>::MAX_STEP,
-                                          mCorr);
-  if (!(statusOutw && statusInw)) {
-    LOG(warning) << "Failed propagation in smoother!";
-    return false;
-  }
-
-  // Compute weighted local chi2
-  mLastChi2 = computeSmoothedPredictedChi2(inwardsClone, outwardsClone, testTf.positionTrackingFrame, testTf.covarianceTrackingFrame);
-  LOG(info) << "Smoothed chi2 on tested cluster: " << mLastChi2;
-
-  return true;
-}
+// template <unsigned int D>
+// bool Smoother<D>::testCluster(const int clusterId, const ROframe& event)
+// {
+//   if (!mInitStatus) {
+//     return false;
+//   }
+//   auto propInstance = o2::base::Propagator::Instance();
+//   const TrackingFrameInfo& testTf = event.getTrackingFrameInfoOnLayer(mLayerToSmooth).at(clusterId);
+//
+//   bool statusOutw{false};
+//   bool statusInw{false};
+//
+//   // Prediction on the previously outwards-propagated track is done on a copy, as the process seems to be not reversible
+//   auto outwardsClone = mOutwardsTrack;
+//   statusOutw = outwardsClone.rotate(testTf.alphaTrackingFrame);
+//   statusOutw &= propInstance->propagateToX(outwardsClone,
+//                                            testTf.xTrackingFrame,
+//                                            mBz,
+//                                            o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+//                                            o2::base::PropagatorImpl<float>::MAX_STEP,
+//                                            mCorr);
+//
+//   // Prediction on the previously inwards-propagated track is done on a copy, as the process seems to be not reversible
+//   auto inwardsClone = mInwardsTrack;
+//   statusInw = inwardsClone.rotate(testTf.alphaTrackingFrame);
+//   statusInw &= propInstance->propagateToX(inwardsClone,
+//                                           testTf.xTrackingFrame,
+//                                           mBz,
+//                                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+//                                           o2::base::PropagatorImpl<float>::MAX_STEP,
+//                                           mCorr);
+//   if (!(statusOutw && statusInw)) {
+//     LOG(warning) << "Failed propagation in smoother!";
+//     return false;
+//   }
+//
+//   // Compute weighted local chi2
+//   mLastChi2 = computeSmoothedPredictedChi2(inwardsClone, outwardsClone, testTf.positionTrackingFrame, testTf.covarianceTrackingFrame);
+//   LOG(info) << "Smoothed chi2 on tested cluster: " << mLastChi2;
+//
+//   return true;
+// }
 
 template class Smoother<7>;
 

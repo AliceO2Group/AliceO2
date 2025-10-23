@@ -21,7 +21,7 @@
 
 using namespace o2::parameters;
 
-o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber)
+o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo_DATA(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber)
 {
   // TODO: could think about caching results per runnumber to
   // avoid going to CCDB multiple times ---> but should be done inside the CCDBManagerInstance
@@ -82,4 +82,68 @@ o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(int 
     }
   }
   return AggregatedRunInfo{runnumber, sorMS, eorMS, nOrbitsPerTF, orbitResetMUS, orbitSOR, orbitEOR, grpecs};
+}
+
+namespace
+{
+
+// get path where to find MC production info
+std::string getFullPath_MC(std::string const& username, std::string const& lpm_prod_tag)
+{
+  // construct the path where to lookup
+  std::string path = "/Users/" + std::string(1, username[0]) + "/" + username;
+  std::string fullpath = path + "/" + "MCProdInfo/" + lpm_prod_tag;
+  return fullpath;
+}
+
+} // namespace
+
+std::map<std::string, std::string> AggregatedRunInfo::getMCProdInfo(o2::ccdb::CCDBManagerInstance& ccdb,
+                                                                    int run_number,
+                                                                    std::string const& lpm_prod_tag,
+                                                                    std::string const& username)
+{
+  std::map<std::string, std::string> metaDataFilter;
+  metaDataFilter["LPMProductionTag"] = lpm_prod_tag;
+
+  // fetch the meta information for MC productions
+  auto header_data = ccdb.getCCDBAccessor().retrieveHeaders(getFullPath_MC(username, lpm_prod_tag), metaDataFilter, run_number);
+  return header_data;
+}
+
+void AggregatedRunInfo::adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb,
+                                       int run_number,
+                                       std::string const& lpm_prod_tag,
+                                       std::string const& username)
+{
+  auto header_data = AggregatedRunInfo::getMCProdInfo(ccdb, run_number, lpm_prod_tag, username);
+
+  // adjust timeframe length if we find entry for MC production
+  auto iter = header_data.find("OrbitsPerTF");
+  if (iter != header_data.end()) {
+    auto mc_orbitsPerTF = std::stoi(iter->second);
+    if (mc_orbitsPerTF != orbitsPerTF) {
+      LOG(info) << "Adjusting OrbitsPerTF from " << orbitsPerTF << " to " << mc_orbitsPerTF << " based on differing MC info";
+      orbitsPerTF = mc_orbitsPerTF;
+    }
+  } else {
+    LOG(warn) << "No OrbitsPerTF information found for MC production " << lpm_prod_tag << " and run number " << run_number;
+  }
+}
+
+AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int run_number, std::string const& lpm_prod_tag, std::string const& username)
+{
+  // (a) lookup the AggregatedRunInfo for the data run
+  // (b) modify/overwrite the info object with MC specific settings if lpm_prod_tag is given
+
+  auto original_info = buildAggregatedRunInfo_DATA(ccdb, run_number);
+
+  if (lpm_prod_tag.size() == 0) {
+    return original_info;
+  }
+
+  // in this case we adjust the info from MC
+  original_info.adjust_from_MC(ccdb, run_number, lpm_prod_tag, username);
+
+  return original_info;
 }

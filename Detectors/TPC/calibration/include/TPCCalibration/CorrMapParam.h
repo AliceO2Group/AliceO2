@@ -29,6 +29,7 @@ struct CorrMapParam : public o2::conf::ConfigurableParamHelper<CorrMapParam> {
   float lumiMean = 0.;       // override TPC corr.map mean lumi (if > 0), disable corrections if < 0
   float lumiMeanRef = 0.;    // override TPC corr.mapRef mean lumi (if > 0)"
   float lumiInstFactor = 1.; // scaling to apply to instantaneous lumi from CTP (but not to IDC scaler)
+  float CTP2IDCFallBackThreshold = 30.; // if needed, interpret map->getLumi() as map->getIDC(), provided map->getLumi() is below this threshold
   int ctpLumiSource = 0;     // CTP lumi source: 0 = LumiInfo.getLumi(), 1 = LumiInfo.getLumiAlt()
 
   O2ParamDef(CorrMapParam, "TPCCorrMap");

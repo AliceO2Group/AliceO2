@@ -10,9 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/Vertex.h"
-#include <iostream>
 #ifndef GPUCA_NO_FMT
-#include <fmt/printf.h>
+#include <iostream>
+#include <fmt/format.h>
 #endif
 
 namespace o2

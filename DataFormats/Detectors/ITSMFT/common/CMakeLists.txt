@@ -18,6 +18,7 @@ o2_add_library(DataFormatsITSMFT
                        src/ClusterPattern.cxx
                        src/ClusterTopology.cxx
                        src/TopologyDictionary.cxx
+                       src/TimeDeadMap.cxx
                        src/CTF.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                        O2::ReconstructionDataFormats
@@ -25,10 +26,10 @@ o2_add_library(DataFormatsITSMFT
 
 o2_target_root_dictionary(DataFormatsITSMFT
                           HEADERS include/DataFormatsITSMFT/ROFRecord.h
-                                 include/DataFormatsITSMFT/Digit.h
-                                 include/DataFormatsITSMFT/GBTCalibData.h
-                                 include/DataFormatsITSMFT/NoiseMap.h
-                                 include/DataFormatsITSMFT/TimeDeadMap.h
+                                  include/DataFormatsITSMFT/Digit.h
+                                  include/DataFormatsITSMFT/GBTCalibData.h
+                                  include/DataFormatsITSMFT/NoiseMap.h
+                                  include/DataFormatsITSMFT/TimeDeadMap.h
                                   include/DataFormatsITSMFT/Cluster.h
                                   include/DataFormatsITSMFT/CompCluster.h
                                   include/DataFormatsITSMFT/ClusterPattern.h

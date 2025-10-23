@@ -75,7 +75,7 @@ void makeBadMapFromPedestalRun(const char* ccdbURI = "http://ccdb-test.cern.ch:8
   }
 
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   api.init(ccdbURI);            // or http://localhost:8080 for a local installation
   api.storeAsTFileAny(&badMap, "CPV/Calib/BadChannelMap", metadata, timeStamp, timeStamp + 31536000000);
 }

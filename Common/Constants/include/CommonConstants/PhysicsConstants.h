@@ -31,6 +31,9 @@ namespace o2::constants::physics
 /// \note Follow kCamelCase naming convention
 /// \link https://root.cern/doc/master/TPDGCode_8h.html
 enum Pdg {
+  kEta = 221,
+  kOmega = 223,
+  kEtaPrime = 331,
   kB0 = 511,
   kB0Bar = -511,
   kBPlus = 521,
@@ -88,10 +91,14 @@ enum Pdg {
   kHyperHydrogen4 = 1010010040,
   kHyperHelium4 = 1010020040,
   kHyperHelium5 = 1010020050,
-  kHyperHelium4Sigma = 1110020040
+  kHyperHelium4Sigma = 1110020040,
+  kLambda1520_Py = 102134
 };
 
 /// \brief Declarations of masses for additional particles
+constexpr double MassEta = 0.547862;
+constexpr double MassOmega = 0.78266;
+constexpr double MassEtaPrime = 0.95778;
 constexpr double MassB0 = 5.27966;
 constexpr double MassB0Bar = 5.27966;
 constexpr double MassBPlus = 5.27934;
@@ -150,6 +157,7 @@ constexpr double MassHyperHydrogen4 = 3.922434;
 constexpr double MassHyperHelium4 = 3.921728;
 constexpr double MassHyperHelium5 = 4.839961;
 constexpr double MassHyperHelium4Sigma = 3.995;
+constexpr double MassLambda1520_Py = 1.5195;
 
 /// \brief Declarations of masses for particles in ROOT PDG_t
 constexpr double MassDown = 0.00467;

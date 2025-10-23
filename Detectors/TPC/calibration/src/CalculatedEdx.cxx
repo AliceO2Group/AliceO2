@@ -566,7 +566,7 @@ void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isM
   mCalibCont.setResidualCorrection(*residualCorr);
 
   // set the zero supression threshold map
-  std::unordered_map<string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = cm.getForTimeStamp<std::unordered_map<string, o2::tpc::CalDet<float>>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ConfigFEEPad), tRun);
+  std::unordered_map<std::string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = cm.getForTimeStamp<std::unordered_map<std::string, o2::tpc::CalDet<float>>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ConfigFEEPad), tRun);
   mCalibCont.setZeroSupresssionThreshold(zeroSupressionThresholdMap->at("ThresholdMap"));
 
   // set the magnetic field
@@ -624,7 +624,7 @@ void CalculatedEdx::setGainMapResidualFromFile(const char* folder, const char* f
   std::unique_ptr<TFile> gainMapResidualFile(TFile::Open(fmt::format("{}{}", folder, file).data()));
   if (!gainMapResidualFile->IsZombie()) {
     LOGP(info, "Using file: {}", gainMapResidualFile->GetName());
-    std::unordered_map<string, o2::tpc::CalDet<float>>* gainMapResidual = (std::unordered_map<string, o2::tpc::CalDet<float>>*)gainMapResidualFile->Get(object);
+    std::unordered_map<std::string, o2::tpc::CalDet<float>>* gainMapResidual = (std::unordered_map<std::string, o2::tpc::CalDet<float>>*)gainMapResidualFile->Get(object);
     mCalibCont.setGainMapResidual(gainMapResidual->at("GainMap"));
   }
 }
@@ -644,7 +644,7 @@ void CalculatedEdx::setZeroSuppressionThresholdFromFile(const char* folder, cons
   std::unique_ptr<TFile> zeroSuppressionFile(TFile::Open(fmt::format("{}{}", folder, file).data()));
   if (!zeroSuppressionFile->IsZombie()) {
     LOGP(info, "Using file: {}", zeroSuppressionFile->GetName());
-    std::unordered_map<string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = (std::unordered_map<string, o2::tpc::CalDet<float>>*)zeroSuppressionFile->Get(object);
+    std::unordered_map<std::string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = (std::unordered_map<std::string, o2::tpc::CalDet<float>>*)zeroSuppressionFile->Get(object);
     mCalibCont.setZeroSupresssionThreshold(zeroSupressionThresholdMap->at("ThresholdMap"));
   }
 }

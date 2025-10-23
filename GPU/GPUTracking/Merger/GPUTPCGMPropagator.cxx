@@ -22,11 +22,6 @@
 #include "GPUDebugStreamer.h"
 #include "GPUTPCGMMerger.h"
 
-#if defined(GPUCA_GM_USE_FULL_FIELD)
-#include "AliTracker.h"
-#include "AliMagF.h"
-#endif
-
 using namespace o2::gpu;
 
 GPUd() void GPUTPCGMPropagator::GetBxByBzBase(float cosAlpha, float sinAlpha, float X, float Y, float Z, float B[3]) const
@@ -36,24 +31,6 @@ GPUd() void GPUTPCGMPropagator::GetBxByBzBase(float cosAlpha, float sinAlpha, fl
   float gx = getGlobalX(cosAlpha, sinAlpha, X, Y);
   float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
-#if defined(GPUCA_GM_USE_FULL_FIELD)
-  const float kCLight = gpu_common_constants::kCLight;
-  double r[3] = {gx, gy, Z};
-  double bb[3];
-  AliTracker::GetBxByBz(r, bb);
-  bb[0] *= kCLight;
-  bb[1] *= kCLight;
-  bb[2] *= kCLight;
-/*
-  cout<<"AliTracker::GetBz()= "<<AliTracker::GetBz()<<endl;
-  cout<<"AliTracker::UniformField() "<<AliTracker::UniformField()<<endl;
-  AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
-  cout<<"Fast field = "<<(void*) fld->GetFastField()<<endl;
-  AliMagF::BMap_t  type = fld->GetMapType() ;
-  cout<<"Field type: "<<type<<endl;
-  //  fMapType==k2BMap_t
-*/
-#else
   float bb[3];
   switch (mFieldRegion) {
     case ITS:
@@ -67,8 +44,6 @@ GPUd() void GPUTPCGMPropagator::GetBxByBzBase(float cosAlpha, float sinAlpha, fl
       mField->GetField(gx, gy, Z, bb);
   }
 
-#endif
-
   // rotate field to local coordinates
 
   B[0] = bb[0] * cosAlpha + bb[1] * sinAlpha;
@@ -81,13 +56,6 @@ GPUd() float GPUTPCGMPropagator::GetBzBase(float cosAlpha, float sinAlpha, float
   float gx = getGlobalX(cosAlpha, sinAlpha, X, Y);
   float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
-#if defined(GPUCA_GM_USE_FULL_FIELD)
-  const float kCLight = gpu_common_constants::kCLight;
-  double r[3] = {gx, gy, Z};
-  double bb[3];
-  AliTracker::GetBxByBz(r, bb);
-  return bb[2] * kCLight;
-#else
   switch (mFieldRegion) {
     case ITS:
       return mField->GetFieldItsBz(gx, gy, Z);
@@ -97,7 +65,6 @@ GPUd() float GPUTPCGMPropagator::GetBzBase(float cosAlpha, float sinAlpha, float
     default:
       return mField->GetFieldBz(gx, gy, Z);
   }
-#endif
 }
 
 GPUd() int32_t GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
@@ -641,24 +608,16 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge GPUCA_DEBUG_STREAMER_CHECK(, DebugStreamerVals* debugVals))
+GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge)
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgInvCharge, invCharge);
-  GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->err2Y = err2Y; debugVals->err2Z = err2Z; });
 
-  if (rejectChi2 >= rejectInterFill) {
-    if (rejectChi2 == rejectInterReject && inter->errorY < (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
-      rejectChi2 = rejectDirect;
-    } else {
-      int32_t retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
-      GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->retVal = retVal; });
-      if (retVal) {
-        return retVal;
-      }
-    }
-  }
+  return Update(posY, posZ, iRow, param, clusterState, rejectChi2, refit, err2Y, err2Z);
+}
 
+GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t rejectChi2, bool refit, float err2Y, float err2Z)
+{
   if (mT->NDF() == -5) { // first measurement: no need to filter, as the result is known in advance. just set it.
     mT->ResetCovariance();
     float* mC = mT->Cov();
@@ -676,23 +635,30 @@ GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, 
     return 0;
   }
 
-  return Update(posY, posZ, clusterState, rejectChi2 == rejectDirect || (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && rejectChi2 == rejectInterReject), err2Y, err2Z, &param);
+  return Update(posY, posZ, clusterState, rejectChi2 == rejectDirect, err2Y, err2Z, &param);
 }
 
-GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict() param, float posY, float posZ, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z)
+GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict() param, float posY, float posZ, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z, float deltaZ)
 {
   float* GPUrestrict() mC = mT->Cov();
   float* GPUrestrict() mP = mT->Par();
   if (rejectChi2 == rejectInterFill) {
     inter->posY = mP[0];
     inter->posZ = mP[1];
-    inter->errorY = mC[0];
-    inter->errorZ = mC[2];
+    if (mT->NDF() <= 0) {
+      inter->errorY = inter->errorZ = 100.f;
+    } else {
+      inter->errorY = mC[0];
+      inter->errorZ = mC[2];
+    }
   } else if (rejectChi2 == rejectInterReject) {
     float chi2Y, chi2Z;
-    if (mFitInProjections || mT->NDF() <= 0) {
+    if (mT->NDF() <= 0) {
+      chi2Y = CAMath::Square((float)inter->posY - posY) / ((float)inter->errorY + err2Y);
+      chi2Z = CAMath::Square((float)inter->posZ + deltaZ - posZ) / ((float)inter->errorZ + err2Z);
+    } else if (mFitInProjections) {
       const float Iz0 = inter->posY - mP[0];
-      const float Iz1 = inter->posZ - mP[1];
+      const float Iz1 = inter->posZ + deltaZ - mP[1];
       const float Iw0 = 1.f / (mC[0] + (float)inter->errorY);
       const float Iw2 = 1.f / (mC[2] + (float)inter->errorZ);
       const float Ik00 = mC[0] * Iw0;
@@ -710,7 +676,7 @@ GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict
       chi2Z = Jw2 * Jz1 * Jz1;
     } else {
       const float Iz0 = inter->posY - mP[0];
-      const float Iz1 = inter->posZ - mP[1];
+      const float Iz1 = inter->posZ + deltaZ - mP[1];
       float Iw0 = mC[2] + (float)inter->errorZ;
       float Iw2 = mC[0] + (float)inter->errorY;
       float Idet = CAMath::Max(1e-10f, Iw0 * Iw2 - mC[1] * mC[1]);
@@ -740,6 +706,7 @@ GPUd() int32_t GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict
       chi2Z = CAMath::Abs((Jw1 * Jz0 + Jw2 * Jz1) * Jz1);
     }
     if (RejectCluster(chi2Y * param.rec.tpc.clusterRejectChi2TolleranceY, chi2Z * param.rec.tpc.clusterRejectChi2TolleranceZ, clusterState)) { // TODO: Relative Pt resolution decreases slightly, why?
+      // printf("Reject Cluster chiy2 %f chiz2 %f (Pos Y: %f - %f %f ; Pos Z: %f - %f %f)\n", chi2Y, chi2Z, posY, mP[0], (float)inter->posY, posZ, mP[1], (float)inter->posZ + deltaZ);
       return updateErrorClusterRejectedInInterpolation;
     }
   }

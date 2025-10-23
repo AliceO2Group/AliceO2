@@ -17,7 +17,6 @@
 
 #include "GPUTPCBaseTrackParam.h"
 #include "GPUTPCDef.h"
-#include "GPUTPCSectorOutCluster.h"
 
 namespace o2::gpu
 {
@@ -48,11 +47,6 @@ class GPUTPCTrack
   GPUhd() void SetFirstHitID(int32_t v) { mFirstHitID = v; }
 
   GPUhd() void SetParam(const GPUTPCBaseTrackParam& v) { mParam = v; }
-
-  // Only if used as replacement for SectorOutTrack
-  GPUhd() static int32_t GetSize(int32_t nClust) { return sizeof(GPUTPCTrack) + nClust * sizeof(GPUTPCSectorOutCluster); }
-  GPUhd() const GPUTPCTrack* GetNextTrack() const { return (const GPUTPCTrack*)(((char*)this) + GetSize(mNHits)); }
-  GPUhd() GPUTPCTrack* NextTrack() { return (GPUTPCTrack*)(((char*)this) + GetSize(mNHits)); }
 
  private:
   int32_t mFirstHitID;         // index of the first track cell in the track->cell pointer array

@@ -96,6 +96,9 @@ struct TPCSlowSpaceChargeCorrection {
 class TPCFastTransform : public FlatObject
 {
  public:
+  static constexpr float DEFLUMI = -1e6f; // default value to check if member was set
+  static constexpr float DEFIDC = -1e6f;  // default value to check if member was set
+
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor: creates an empty uninitialized object
@@ -162,7 +165,9 @@ class TPCFastTransform : public FlatObject
   void setLumi(float l) { mLumi = l; }
   void setLumiError(float e) { mLumiError = e; }
   void setLumiScaleFactor(float s) { mLumiScaleFactor = s; }
-
+  void setIDC(float l) { mIDC = l; }
+  void setIDCError(float e) { mIDCError = e; }
+  void setCTP2IDCFallBackThreshold(float v) { mCTP2IDCFallBackThreshold = v; }
   /// Sets the time stamp of the current calibaration
   void setTimeStamp(int64_t v) { mTimeStamp = v; }
 
@@ -251,8 +256,20 @@ class TPCFastTransform : public FlatObject
   /// Return map lumi
   GPUd() float getLumi() const { return mLumi; }
 
+  GPUd() float isLumiSet() const { return mLumi != DEFLUMI; }
+
   /// Return map lumi error
   GPUd() float getLumiError() const { return mLumiError; }
+
+  /// Return map lumi
+  GPUd() float getIDC() const;
+
+  GPUd() bool isIDCSet() const { return mIDC != DEFIDC; }
+
+  /// Return map lumi error
+  GPUd() float getIDCError() const { return mIDCError; }
+
+  GPUd() float getCTP2IDCFallBackThreshold() const { return mCTP2IDCFallBackThreshold; }
 
   /// Return map user defined lumi scale factor
   GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
@@ -334,12 +351,16 @@ class TPCFastTransform : public FlatObject
   float mLumiError;       ///< error on luminosity
   float mLumiScaleFactor; ///< user correction factor for lumi (e.g. normalization, efficiency correction etc.)
 
+  float mIDC;                      ///< IDC estimator
+  float mIDCError;                 ///< error on IDC
+  float mCTP2IDCFallBackThreshold; ///< if IDC is not set but requested, use Lumi if it does not exceed this threshold
+
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
   GPUd() void TransformInternal(int32_t slice, int32_t row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const;
 
-  ClassDefNV(TPCFastTransform, 3);
+  ClassDefNV(TPCFastTransform, 4);
 };
 
 // =======================================================================

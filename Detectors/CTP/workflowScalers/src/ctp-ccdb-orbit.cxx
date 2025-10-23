@@ -124,7 +124,12 @@ int main(int argc, char** argv)
       ret = api.storeAsTFileAny(&(vect), ccdbPath, metadata, tmin, tmax);
     } else {
       std::cout << "Storing:" << ccdbPath << " tmin:" << tmin << " tmax:" << tmax << " ts:" << tt << std::endl;
+      std::string filename = "orbitReset.root";
+      auto classname = "std::vector<int64_t>";
+      metadata["adjustableEOV"] = "true";
       ret = api.storeAsTFileAny(&(vect), ccdbPath, metadata, tmin, tmax);
+      o2::ccdb::CcdbObjectInfo oi(ccdbPath, classname, filename, metadata, tmin, tmax);
+      adjustOverriddenEOV(api, oi);
     }
   }
   //

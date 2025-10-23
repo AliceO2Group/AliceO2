@@ -63,7 +63,7 @@ class ParamExample : public Parameters<5>
  public:
   ParamExample() : Parameters(std::array<std::string, 5>{"p0", "p1", "p2", "p3", "p4"},
                               "ParamExample") { setParameters(std::array<paramvar_t, 5>{0, 1, 2, 3, 4}); }; // Default constructor with default parameters
-  ~ParamExample() = default;
+  ~ParamExample() override = default;
 };
 
 int main(int argc, char* argv[])

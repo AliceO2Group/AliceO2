@@ -114,7 +114,6 @@ class GPUChainTracking : public GPUChain
     std::unique_ptr<GPUTPCMCInfoCol[]> mcInfosTPCCol;
     std::unique_ptr<GPUTPCGMMergedTrack[]> mergedTracks;
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
-    std::unique_ptr<GPUTPCGMMergedTrackHitXYZ[]> mergedTrackHitsXYZ;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDSpacePoint[]> trdSpacePoints;
     std::unique_ptr<float[]> trdTriggerTimes;
@@ -266,7 +265,7 @@ class GPUChainTracking : public GPUChain
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;              // TRD Geometry
 
   // Ptrs to internal buffers
-  std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
+  std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess, mClusterNativeAccessReduced;
   std::array<GPUOutputControl*, GPUTrackingOutputs::count()> mSubOutputControls = {nullptr};
   std::unique_ptr<GPUTriggerOutputs> mTriggerBuffer;
 
@@ -292,7 +291,7 @@ class GPUChainTracking : public GPUChain
 
  private:
   int32_t RunChainFinalize();
-  void SanityCheck();
+  void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
   int32_t RunTPCClusterizer_prepare(bool restorePointers);
 #ifdef GPUCA_TPC_GEOMETRY_O2
@@ -306,6 +305,7 @@ class GPUChainTracking : public GPUChain
   void RunTPCTrackingMerger_Resolve(int8_t useOrigTrackParam, int8_t mergeAll, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* clusters, std::function<o2::tpc::ClusterNative*(size_t)> allocator, bool applyClusterCuts);
   bool NeedTPCClustersOnGPU();
+  void WriteReducedClusters();
   template <int32_t I>
   int32_t RunTRDTrackingInternal();
   uint32_t StreamForSector(uint32_t sector) const;

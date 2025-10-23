@@ -30,7 +30,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <set>
 #include <string>
 #include <cinttypes>
 #include <numeric>
@@ -210,8 +209,8 @@ enum MetricTypes {
 // so that we can display driver and device metrics in the same plot
 // without an if.
 struct AllMetricsStore {
-  gsl::span<DeviceMetricsInfo const> metrics[TOTAL_TYPES_OF_METRICS];
-  gsl::span<TopologyNodeInfo const> specs[TOTAL_TYPES_OF_METRICS];
+  std::span<DeviceMetricsInfo const> metrics[TOTAL_TYPES_OF_METRICS];
+  std::span<TopologyNodeInfo const> specs[TOTAL_TYPES_OF_METRICS];
 };
 
 void displaySparks(
@@ -376,8 +375,8 @@ void displayDeviceMetrics(const char* label,
   ImPlotAxisFlags axisFlags = 0;
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-    gsl::span<DeviceMetricsInfo const> metricsInfos = metricStore.metrics[si];
-    gsl::span<TopologyNodeInfo const> specs = metricStore.specs[si];
+    std::span<DeviceMetricsInfo const> metricsInfos = metricStore.metrics[si];
+    std::span<TopologyNodeInfo const> specs = metricStore.specs[si];
     for (int di = 0; di < metricsInfos.size(); ++di) {
       for (size_t mi = 0; mi < metricsInfos[di].metrics.size(); ++mi) {
         if (state[gmi].visible == false) {
@@ -1175,10 +1174,10 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
 
     AllMetricsStore metricsStore;
 
-    metricsStore.metrics[DEVICE_METRICS] = gsl::span(metricsInfos);
-    metricsStore.metrics[DRIVER_METRICS] = gsl::span(&driverInfo.metrics, 1);
-    metricsStore.specs[DEVICE_METRICS] = gsl::span(deviceNodesInfos);
-    metricsStore.specs[DRIVER_METRICS] = gsl::span(driverNodesInfos);
+    metricsStore.metrics[DEVICE_METRICS] = std::span(metricsInfos);
+    metricsStore.metrics[DRIVER_METRICS] = std::span(&driverInfo.metrics, 1);
+    metricsStore.specs[DEVICE_METRICS] = std::span(deviceNodesInfos);
+    metricsStore.specs[DRIVER_METRICS] = std::span(driverNodesInfos);
     displayMetrics(guiState, driverInfo, infos, metadata, controls, metricsStore);
     displayDriverInfo(driverInfo, driverControl);
 

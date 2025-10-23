@@ -9,16 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef GPUCA_NO_VC
+#ifndef GPUCA_STANDALONE
 #include "Rtypes.h"
+#include "TFile.h"
 #endif
 #include "CalibdEdxTrackTopologyPol.h"
 
 #include <cstddef>
 #include <string_view>
-#if !defined(GPUCA_STANDALONE)
-#include "TFile.h"
-#endif
 
 using namespace o2::tpc;
 

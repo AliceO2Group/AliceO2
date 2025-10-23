@@ -214,15 +214,16 @@ std::string HTTPParserHelpers::calculateAccept(const char* nonce)
   return fmt::format("{}", base);
 }
 
-std::string encode_websocket_handshake_reply(char const* nonce)
+std::string encode_websocket_handshake_reply(char const* nonce, const char* protocol)
 {
   constexpr auto res =
     "HTTP/1.1 101 Switching Protocols\r\n"
     "Upgrade: websocket\r\n"
     "Connection: Upgrade\r\n"
     "Access-Control-Allow-Origin: \"*\"\r\n"
+    "{}"
     "Sec-WebSocket-Accept: {}\r\n\r\n";
-  return fmt::format(res, HTTPParserHelpers::calculateAccept(nonce));
+  return fmt::format(res, protocol && protocol[0] ? fmt::format("Sec-WebSocket-Protocol: {}\r\n", protocol) : "", HTTPParserHelpers::calculateAccept(nonce));
 }
 
 void parse_http_request(char* start, size_t size, HTTPParser* parser)

@@ -44,7 +44,7 @@ class VisualisationEventROOTSerializer : public VisualisationEventSerializer
  public:
   [[nodiscard]] const std::string serializerName() const override { return std::string("VisualisationEventROOTSerializer"); }
   bool fromFile(VisualisationEvent& event, std::string fileName) override;
-  void toFile(const VisualisationEvent& event, std::string fileName) override;
+  void toFile(const VisualisationEvent& event, Location& location) override;
   ~VisualisationEventROOTSerializer() override = default;
 };
 

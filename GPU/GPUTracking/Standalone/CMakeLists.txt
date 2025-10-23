@@ -65,7 +65,12 @@ if (GPUCA_BUILD_DEBUG_SANITIZE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -shared-libasan")
   endif()
 endif()
-string(APPEND CMAKE_CXX_FLAGS " -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
+if(GPUCA_CONFIG_WERROR)
+  string(APPEND CMAKE_CXX_FLAGS " -Werror -Wno-unknown-warning-option")
+else()
+  string(APPEND CMAKE_CXX_FLAGS " -Wno-error")
+endif()
+string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
 string(APPEND CMAKE_SHARED_LINKER_FLAGS " -rdynamic -Wl,--no-undefined")
 if(CMAKE_CXX_COMPILER MATCHES "clang\\+\\+")
   string(APPEND CMAKE_CXX_FLAGS " -Wno-vla-cxx-extension")
@@ -151,8 +156,7 @@ add_library(standalone_support SHARED
             ${O2_DIR}/Detectors/Base/src/MatLayerCylSet.cxx
             ${O2_DIR}/Detectors/Base/src/MatLayerCyl.cxx
             ${O2_DIR}/Detectors/Base/src/Ray.cxx
-            ${O2_DIR}/Detectors/Base/src/Propagator.cxx
-            ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
+            ${O2_DIR}/Detectors/Base/src/Propagator.cxx)
 
 target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 target_include_directories(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>)

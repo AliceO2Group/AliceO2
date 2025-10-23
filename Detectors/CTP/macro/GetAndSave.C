@@ -44,7 +44,7 @@ void GetAndSave(std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
   for (auto const& run : runs) {
     CTPConfiguration ctpcfg;
     CTPRunScalers scl;
-    map<string, string> metadata; // can be empty
+    std::map<std::string, std::string> metadata; // can be empty
     metadata["runNumber"] = run;
     CTPRunScalers* ctpscalers = mgr.getSpecific<CTPRunScalers>(CCDBPathCTPScalers, timestamps[i], metadata);
     if (ctpscalers == nullptr) {

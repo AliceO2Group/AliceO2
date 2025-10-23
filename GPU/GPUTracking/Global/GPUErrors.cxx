@@ -48,15 +48,20 @@ void GPUErrors::clear()
   memset(mErrors, 0, GPUCA_MAX_ERRORS * sizeof(*mErrors));
 }
 
-static std::unordered_map<uint32_t, const char*> errorNames = {
+const std::unordered_map<uint32_t, const char*>& GPUErrors::getErrorNames()
+{
+  static std::unordered_map<uint32_t, const char*> errorNames = {
 #define GPUCA_ERROR_CODE(num, name, ...) {num, GPUCA_M_STR(name)},
 #include "GPUErrorCodes.h"
 #undef GPUCA_ERROR_CODE
-};
+  };
+  return errorNames;
+}
 
 bool GPUErrors::printErrors(bool silent, uint64_t mask)
 {
   bool retVal = 0;
+  const auto& errorNames = getErrorNames();
   for (uint32_t i = 0; i < std::min(*mErrors, GPUCA_MAX_ERRORS); i++) {
     uint32_t errorCode = mErrors[4 * i + 1];
     const auto& it = errorNames.find(errorCode);

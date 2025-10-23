@@ -47,7 +47,7 @@ class FITDCSConfigProcessor : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     initDCSConfigReader();
-    mDCSConfigReader->setFileNameDChM(ic.options().get<string>("filename-dchm"));
+    mDCSConfigReader->setFileNameDChM(ic.options().get<std::string>("filename-dchm"));
     mDCSConfigReader->setValidDaysDChM(ic.options().get<uint>("valid-days-dchm"));
     mDCSConfigReader->setCcdbPathDChM(mDetectorName + "/Calib/DeadChannelMap");
     mVerbose = ic.options().get<bool>("use-verbose-mode");

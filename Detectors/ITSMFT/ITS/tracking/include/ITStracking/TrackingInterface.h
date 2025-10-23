@@ -28,13 +28,18 @@
 #include "GPUO2Interface.h"
 #include "GPUChainITS.h"
 
+#include <oneapi/tbb/task_arena.h>
+
 namespace o2::its
 {
 class ITSTrackingInterface
 {
   static constexpr int NLayers{7};
-  using TrackerTraits7 = TrackerTraits<NLayers>;
-  using TimeFrame7 = TimeFrame<NLayers>;
+  using VertexerN = Vertexer<NLayers>;
+  using VertexerTraitsN = VertexerTraits<NLayers>;
+  using TrackerN = Tracker<NLayers>;
+  using TrackerTraitsN = TrackerTraits<NLayers>;
+  using TimeFrameN = TimeFrame<NLayers>;
 
  public:
   ITSTrackingInterface(bool isMC,
@@ -64,39 +69,33 @@ class ITSTrackingInterface
   virtual void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj);
 
   // Custom
-  void setTraitsFromProvider(VertexerTraits*, TrackerTraits7*, TimeFrame7*);
-  void setTrackingMode(TrackingMode mode = TrackingMode::Unset)
-  {
-    if (mode == TrackingMode::Unset) {
-      LOGP(fatal, "ITS Tracking mode Unset is meant to be a default. Specify the mode");
-    }
-    mMode = mode;
-  }
+  void setTraitsFromProvider(VertexerTraitsN*, TrackerTraitsN*, TimeFrameN*);
+  void setTrackingMode(TrackingMode::Type mode = TrackingMode::Unset) { mMode = mode; }
 
   auto getTracker() const { return mTracker.get(); }
   auto getVertexer() const { return mVertexer.get(); }
 
-  TimeFrame7* mTimeFrame = nullptr;
+  TimeFrameN* mTimeFrame = nullptr;
 
  protected:
-  virtual void loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+  virtual void loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                        gsl::span<const itsmft::CompClusterExt> clusters,
                        gsl::span<const unsigned char>::iterator& pattIt,
                        const dataformats::MCTruthContainer<MCCompLabel>* mcLabels);
-  void getConfiguration(framework::ProcessingContext& pc);
 
  private:
   bool mIsMC = false;
   bool mRunVertexer = true;
   bool mCosmicsProcessing = false;
   int mUseTriggers = 0;
-  TrackingMode mMode = TrackingMode::Unset;
+  TrackingMode::Type mMode = TrackingMode::Unset;
   bool mOverrideBeamEstimation = false;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
-  std::unique_ptr<Tracker> mTracker = nullptr;
-  std::unique_ptr<Vertexer> mVertexer = nullptr;
+  std::unique_ptr<TrackerN> mTracker = nullptr;
+  std::unique_ptr<VertexerN> mVertexer = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<tbb::task_arena> mTaskArena;
 };
 
 } // namespace o2::its

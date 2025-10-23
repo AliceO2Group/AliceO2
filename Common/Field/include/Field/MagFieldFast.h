@@ -57,7 +57,7 @@ class MagFieldFast
   bool Field(const math_utils::Point3D<double> xyz, double bxyz[3]) const;
   bool GetBcomp(EDim comp, const double xyz[3], double& b) const;
   bool GetBcomp(EDim comp, const float xyz[3], float& b) const;
-  bool GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, double& b) const;
+  bool GetBcomp(EDim comp, const math_utils::Point3D<double> xyz, double& b) const;
   bool GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, float& b) const;
 
   bool GetBx(const double xyz[3], double& bx) const { return GetBcomp(kX, xyz, bx); }
@@ -66,6 +66,8 @@ class MagFieldFast
   bool GetBy(const float xyz[3], float& by) const { return GetBcomp(kY, xyz, by); }
   bool GetBz(const double xyz[3], double& bz) const { return GetBcomp(kZ, xyz, bz); }
   bool GetBz(const float xyz[3], float& bz) const { return GetBcomp(kZ, xyz, bz); }
+  bool GetBz(const math_utils::Point3D<double> xyz, double& bz) const { return GetBcomp(kZ, xyz, bz); }
+  bool GetBz(const math_utils::Point3D<float> xyz, float& bz) const { return GetBcomp(kZ, xyz, bz); }
   void setFactorSol(float v = 1.f) { mFactorSol = v; }
   float getFactorSol() const { return mFactorSol; }
 

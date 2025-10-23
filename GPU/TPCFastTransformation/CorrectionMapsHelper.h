@@ -106,6 +106,9 @@ class CorrectionMapsHelper
     }
   }
 
+  void setCheckCTPIDCConsistency(bool v) { mCheckCTPIDCConsistency = v; }
+  bool getCheckCTPIDCConsistency() const { return mCheckCTPIDCConsistency; }
+
   GPUd() float getInstLumiCTP() const { return mInstLumiCTP; }
   GPUd() float getInstLumi() const { return mInstLumi; }
   GPUd() float getMeanLumi() const { return mMeanLumi; }
@@ -181,6 +184,7 @@ class CorrectionMapsHelper
   float mInstCTPLumiOverride = -1.f;                  // optional value to override inst lumi from CTP
   bool mEnableMShape = false;                         ///< use v shape correction
   bool mScaleInverse{false};                          // if set to false the inverse correction is already scaled and will not scaled again
+  bool mCheckCTPIDCConsistency{true};                 // check of selected CTP or IDC scaling source being consistent with the map
   o2::gpu::TPCFastTransform* mCorrMap{nullptr};       // current transform
   o2::gpu::TPCFastTransform* mCorrMapRef{nullptr};    // reference transform
   o2::gpu::TPCFastTransform* mCorrMapMShape{nullptr}; // correction map for v-shape distortions on A-side

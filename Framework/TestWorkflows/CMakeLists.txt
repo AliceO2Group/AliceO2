@@ -41,6 +41,11 @@ o2_add_dpl_workflow(analysis-histograms
                   SOURCES src/o2TestHistograms.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(analysis-ccdb
+                    SOURCES src/o2TestAnalysisCCDB.cxx
+                    PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
+                    COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(two-timers
                   SOURCES src/o2TwoTimers.cxx
                   COMPONENT_NAME TestWorkflows)

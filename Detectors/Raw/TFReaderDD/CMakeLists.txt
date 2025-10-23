@@ -16,6 +16,7 @@ o2_add_library(TFReaderDD
                                      O2::Headers
                                      O2::Framework
                                      O2::DetectorsRaw
+                                     O2::DataFormatsParameters
                                      O2::CommonUtils
                                      O2::Algorithm
                                      FairMQ::FairMQ)

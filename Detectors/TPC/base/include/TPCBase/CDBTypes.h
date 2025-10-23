@@ -38,6 +38,7 @@ enum class CDBType {
   CalGas,               ///< DCS gas measurements
   CalTemperature,       ///< DCS temperature measurements
   CalHV,                ///< DCS HV measurements
+  CalPressure,          ///< DCS pressure measurements
   CalTopologyGain,      ///< Q cluster topology correction
                         ///
   ConfigFEEPad,         ///< FEE pad-by-pad configuration map
@@ -106,6 +107,7 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalGas, "TPC/Calib/Gas"},
   {CDBType::CalTemperature, "TPC/Calib/Temperature"},
   {CDBType::CalHV, "TPC/Calib/HV"},
+  {CDBType::CalPressure, "TPC/Calib/Pressure"},
   {CDBType::CalTopologyGain, "TPC/Calib/TopologyGainPiecewise"},
   {CDBType::CalVDriftTgl, "TPC/Calib/VDriftTgl"},
   //

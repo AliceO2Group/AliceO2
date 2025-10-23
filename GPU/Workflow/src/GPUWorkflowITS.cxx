@@ -37,7 +37,7 @@ int32_t GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc
 
 void GPURecoWorkflowSpec::initFunctionITS(o2::framework::InitContext& ic)
 {
-  o2::its::VertexerTraits* vtxTraits = nullptr;
+  o2::its::VertexerTraits<7>* vtxTraits = nullptr;
   o2::its::TrackerTraits<7>* trkTraits = nullptr;
 #ifdef ENABLE_UPGRADES
   if (mSpecConfig.isITS3) {

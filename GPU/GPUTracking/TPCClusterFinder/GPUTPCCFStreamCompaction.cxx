@@ -55,8 +55,9 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanUp>
   int32_t iThreadGlobal = get_global_id(0);
   int32_t offsetInBlock = work_group_scan_inclusive_add((iThreadGlobal < nElems) ? scanOffset[iThreadGlobal] : 0);
 
-  // TODO: This write isn't needed??
-  scanOffset[iThreadGlobal] = offsetInBlock;
+  if (iThreadGlobal < nElems) {
+    scanOffset[iThreadGlobal] = offsetInBlock;
+  }
 
   int32_t lastThread = nThreads - 1;
   if (iThread == lastThread) {

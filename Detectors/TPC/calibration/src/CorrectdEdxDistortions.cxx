@@ -70,8 +70,8 @@ void o2::tpc::CorrectdEdxDistortions::setLumi(float lumi)
     LOGP(warn, "Nullptr detected in accessing the correction maps");
     return;
   }
-  const float lumiAvg = mCorrAvg->getLumi();
-  const float lumiDer = mCorrDer->getLumi();
+  const float lumiAvg = mCorrAvg->getIDC();
+  const float lumiDer = mCorrDer->getIDC();
   mScaleDer = (lumi - lumiAvg) / lumiDer;
   LOGP(info, "Setting mScaleDer: {} for inst lumi: {}  avg lumi: {}  deriv. lumi: {}", mScaleDer, lumi, lumiAvg, lumiDer);
 }

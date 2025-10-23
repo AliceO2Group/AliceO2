@@ -16,6 +16,8 @@
 #include <cassert>
 #include <utility>
 
+using arrow::Status;
+
 namespace arrow::io::internal
 {
 void CloseFromDestructor(FileInterface* file);
@@ -28,15 +30,15 @@ static constexpr int64_t kBufferMinimumSize = 256;
 FairMQOutputStream::FairMQOutputStream()
   : is_open_(false), capacity_(0), position_(0), mutable_data_(nullptr) {}
 
-FairMQOutputStream::FairMQOutputStream(const std::shared_ptr<ResizableBuffer>& buffer)
+FairMQOutputStream::FairMQOutputStream(const std::shared_ptr<arrow::ResizableBuffer>& buffer)
   : buffer_(buffer),
     is_open_(true),
     capacity_(buffer->size()),
     position_(0),
     mutable_data_(buffer->mutable_data()) {}
 
-Result<std::shared_ptr<FairMQOutputStream>> FairMQOutputStream::Create(
-  int64_t initial_capacity, MemoryPool* pool)
+arrow::Result<std::shared_ptr<FairMQOutputStream>> FairMQOutputStream::Create(
+  int64_t initial_capacity, arrow::MemoryPool* pool)
 {
   // ctor is private, so cannot use make_shared
   auto ptr = std::shared_ptr<FairMQOutputStream>(new FairMQOutputStream);
@@ -44,7 +46,7 @@ Result<std::shared_ptr<FairMQOutputStream>> FairMQOutputStream::Create(
   return ptr;
 }
 
-Status FairMQOutputStream::Reset(int64_t initial_capacity, MemoryPool* pool)
+Status FairMQOutputStream::Reset(int64_t initial_capacity, arrow::MemoryPool* pool)
 {
   ARROW_ASSIGN_OR_RAISE(buffer_, AllocateResizableBuffer(initial_capacity, pool));
   is_open_ = true;
@@ -67,7 +69,7 @@ Status FairMQOutputStream::Close()
 
 bool FairMQOutputStream::closed() const { return !is_open_; }
 
-Result<std::shared_ptr<Buffer>> FairMQOutputStream::Finish()
+arrow::Result<std::shared_ptr<arrow::Buffer>> FairMQOutputStream::Finish()
 {
   RETURN_NOT_OK(Close());
   buffer_->ZeroPadding();
@@ -75,7 +77,7 @@ Result<std::shared_ptr<Buffer>> FairMQOutputStream::Finish()
   return std::move(buffer_);
 }
 
-Result<int64_t> FairMQOutputStream::Tell() const { return position_; }
+arrow::Result<int64_t> FairMQOutputStream::Tell() const { return position_; }
 
 Status FairMQOutputStream::Write(const void* data, int64_t nbytes)
 {

@@ -13,4 +13,23 @@
 /// \author David Rohr
 
 #include "GPUDisplayFrontendNone.h"
+#include "GPUDisplayGUIWrapper.h"
 using namespace o2::gpu;
+
+GPUDisplayFrontendNone::GPUDisplayFrontendNone()
+{
+  mFrontendType = TYPE_NONE;
+  mFrontendName = "NONE";
+}
+
+int32_t GPUDisplayFrontendNone::FrontendMain()
+{
+  if (InitDisplay()) {
+    return 1;
+  }
+  do {
+    DrawGLScene();
+    HandleSendKey();
+  } while (mDisplayControl != 2);
+  return 0;
+}

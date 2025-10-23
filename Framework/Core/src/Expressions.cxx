@@ -19,6 +19,7 @@
 #include <set>
 #include <stack>
 #include <unordered_map>
+#include "CommonConstants/MathConstants.h"
 
 using namespace o2::framework;
 
@@ -29,9 +30,78 @@ void unknownParameterUsed(const char* name)
   runtime_error_f("Unknown parameter used in expression: %s", name);
 }
 
+/// a map between BasicOp and tokens in string expressions
+constexpr std::array<std::string_view, BasicOp::Conditional + 1> mapping{
+  "&&",
+  "||",
+  "+",
+  "-",
+  "/",
+  "*",
+  "&",
+  "|",
+  "^",
+  "<",
+  "<=",
+  ">",
+  ">=",
+  "==",
+  "!=",
+  "natan2",
+  "npow",
+  "nsqrt",
+  "nexp",
+  "nlog",
+  "nlog10",
+  "nsin",
+  "ncos",
+  "ntan",
+  "nasin",
+  "nacos",
+  "natan",
+  "nabs",
+  "nround",
+  "nbitwise_not",
+  "ifnode"};
+
+constexpr std::array<std::string_view, 8> cfgtypes{
+  "uint16_t", // 0
+  "int16_t",  // 1
+  "uint32_t", // 2
+  "int32_t",  // 3
+  "uint64_t", // 4
+  "int64_t",  // 5
+  "float",    // 6
+  "double"    // 7
+};
+
+/// math constants to recognize in string expressions
+constexpr std::array<std::string_view, 9> mathConstants{
+  "Almost0",
+  "Epsilon",
+  "Almost1",
+  "VeryBig",
+  "PI",
+  "TwoPI",
+  "PIHalf",
+  "PIThird",
+  "PIQuarter"};
+
+/// values of math constants to substiture
+constexpr std::array<float, 9> mathConstantsValues{
+  o2::constants::math::Almost0,
+  o2::constants::math::Epsilon,
+  o2::constants::math::Almost1,
+  o2::constants::math::VeryBig,
+  o2::constants::math::PI,
+  o2::constants::math::TwoPI,
+  o2::constants::math::PIHalf,
+  o2::constants::math::PIThird,
+  o2::constants::math::PIQuarter};
+
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static const std::array<std::string, BasicOp::Conditional + 1> basicOperationsMap = {
+constexpr std::array<const char*, BasicOp::Conditional + 1> basicOperationsMap = {
   "and",
   "or",
   "add",
@@ -91,6 +161,12 @@ size_t Filter::designateSubtrees(Node* node, size_t index)
   }
 
   return index;
+}
+
+void Filter::parse()
+{
+  node = std::make_unique<Node>(Parser::parse(input));
+  (void)designateSubtrees(node.get());
 }
 
 template <typename T>
@@ -175,11 +251,6 @@ std::string upcastTo(atype::type f)
   }
 }
 
-bool operator==(DatumSpec const& lhs, DatumSpec const& rhs)
-{
-  return (lhs.datum == rhs.datum) && (lhs.type == rhs.type);
-}
-
 std::ostream& operator<<(std::ostream& os, DatumSpec const& spec)
 {
   std::visit(
@@ -198,6 +269,9 @@ std::ostream& operator<<(std::ostream& os, DatumSpec const& spec)
 
 void updatePlaceholders(Filter& filter, InitContext& context)
 {
+  if (filter.node == nullptr && !filter.input.empty()) {
+    filter.parse();
+  }
   expressions::walk(filter.node.get(), [&](Node* node) {
     if (node->self.index() == 3) {
       std::get_if<3>(&node->self)->reset(context);
@@ -332,7 +406,7 @@ Operations createOperations(Filter const& expression)
   std::vector<atype::type> resultTypes;
   resultTypes.resize(OperationSpecs.size());
 
-  auto inferResultType = [&resultTypes](DatumSpec& left, DatumSpec& right) {
+  auto inferResultType = [&resultTypes](BasicOp op, DatumSpec& left, DatumSpec& right) {
     // if the left datum is monostate (error)
     if (left.datum.index() == 0) {
       throw runtime_error("Malformed operation spec: empty left datum");
@@ -365,11 +439,15 @@ Operations createOperations(Filter const& expression)
       return (t == atype::UINT8) || (t == atype::INT8) || (t == atype::UINT16) || (t == atype::INT16) || (t == atype::UINT32) || (t == atype::INT32) || (t == atype::UINT64) || (t == atype::INT64);
     };
 
+    auto isBitwiseOp = [](auto o) {
+      return ((o == BasicOp::BitwiseAnd) || (o == BasicOp::BitwiseNot) || (o == BasicOp::BitwiseOr) || (o == BasicOp::BitwiseXor));
+    };
+
     if (isIntType(t1)) {
-      if (t2 == atype::FLOAT) {
+      if (t2 == atype::FLOAT && !isBitwiseOp(op)) {
         return atype::FLOAT;
       }
-      if (t2 == atype::DOUBLE) {
+      if (t2 == atype::DOUBLE && !isBitwiseOp(op)) {
         return atype::DOUBLE;
       }
       if (isIntType(t2)) {
@@ -380,7 +458,7 @@ Operations createOperations(Filter const& expression)
       }
     }
     if (t1 == atype::FLOAT) {
-      if (isIntType(t2)) {
+      if (isIntType(t2) && !isBitwiseOp(op)) {
         return atype::FLOAT;
       }
       if (t2 == atype::DOUBLE) {
@@ -390,11 +468,19 @@ Operations createOperations(Filter const& expression)
     if (t1 == atype::DOUBLE) {
       return atype::DOUBLE;
     }
+
+    if (isIntType(t1) && isBitwiseOp(op)) {
+      return t1;
+    }
+    if (isIntType(t2) && isBitwiseOp(op)) {
+      return t2;
+    }
+
     throw runtime_error_f("Invalid combination of argument types %s and %s", stringType(t1), stringType(t2));
   };
 
   for (auto it = OperationSpecs.rbegin(); it != OperationSpecs.rend(); ++it) {
-    auto type = inferResultType(it->left, it->right);
+    auto type = inferResultType(it->op, it->left, it->right);
     if (it->type == atype::NA) {
       it->type = type;
     }
@@ -609,29 +695,33 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
     throw runtime_error("Malformed DatumSpec");
   };
 
+  auto insertUpcastNode = [](gandiva::NodePtr node, atype::type t0, atype::type t) {
+    if (t != t0) {
+      auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t0), {node}, concreteArrowType(t0));
+      node = upcast;
+    }
+    return node;
+  };
+
+  auto insertEqualizeUpcastNode = [](gandiva::NodePtr& node1, gandiva::NodePtr& node2, atype::type t1, atype::type t2) {
+    if (t2 > t1) {
+      auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t2), {node1}, concreteArrowType(t2));
+      node1 = upcast;
+    } else if (t1 > t2) {
+      auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t1), {node2}, concreteArrowType(t1));
+      node2 = upcast;
+    }
+  };
+
+  auto isBitwiseOp = [](auto o) {
+    return ((o == BasicOp::BitwiseAnd) || (o == BasicOp::BitwiseNot) || (o == BasicOp::BitwiseOr) || (o == BasicOp::BitwiseXor));
+  };
+
   gandiva::NodePtr tree = nullptr;
   for (auto it = opSpecs.rbegin(); it != opSpecs.rend(); ++it) {
     auto leftNode = datumNode(it->left);
     auto rightNode = datumNode(it->right);
     auto condNode = datumNode(it->condition);
-
-    auto insertUpcastNode = [](gandiva::NodePtr node, atype::type t0, atype::type t) {
-      if (t != t0) {
-        auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t0), {node}, concreteArrowType(t0));
-        node = upcast;
-      }
-      return node;
-    };
-
-    auto insertEqualizeUpcastNode = [](gandiva::NodePtr& node1, gandiva::NodePtr& node2, atype::type t1, atype::type t2) {
-      if (t2 > t1) {
-        auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t2), {node1}, concreteArrowType(t2));
-        node1 = upcast;
-      } else if (t1 > t2) {
-        auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t1), {node2}, concreteArrowType(t1));
-        node2 = upcast;
-      }
-    };
 
     gandiva::NodePtr temp_node;
 
@@ -647,7 +737,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
         break;
       default:
         if (it->op < BasicOp::Sqrt) {
-          if (it->type != atype::BOOL) {
+          if (it->type != atype::BOOL && !isBitwiseOp(it->op)) {
             leftNode = insertUpcastNode(leftNode, it->type, it->left.type);
             rightNode = insertUpcastNode(rightNode, it->type, it->right.type);
           } else if (it->op == BasicOp::Equal || it->op == BasicOp::NotEqual) {
@@ -655,7 +745,9 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
           }
           temp_node = gandiva::TreeExprBuilder::MakeFunction(basicOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
         } else {
-          leftNode = insertUpcastNode(leftNode, it->type, it->left.type);
+          if (!isBitwiseOp(it->op)) {
+            leftNode = insertUpcastNode(leftNode, it->type, it->left.type);
+          }
           temp_node = gandiva::TreeExprBuilder::MakeFunction(basicOperationsMap[it->op], {leftNode}, concreteArrowType(it->type));
         }
         break;
@@ -720,6 +812,540 @@ void updateFilterInfo(ExpressionInfo& info, std::shared_ptr<arrow::Table>& table
     info.selection = framework::expressions::createSelection(table, info.filter);
     info.resetSelection = false;
   }
+}
+
+/// String parsing
+Tokenizer::Tokenizer(std::string const& input)
+  : source{input},
+    IdentifierStr{""},
+    StrValue{""},
+    IntegerValue{0},
+    FloatValue{0.f}
+{
+  LastChar = ' ';
+  if (!source.empty()) {
+    source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end()); // strip whitespaces
+    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end());         // strip quotes
+  }
+  current = source.begin();
+}
+
+void Tokenizer::reset(std::string const& input)
+{
+  LastChar = ' ';
+  IdentifierStr = "";
+  StrValue = "";
+  IntegerValue = 0;
+  FloatValue = 0.f;
+  source = input;
+  if (!source.empty()) {
+    source.erase(std::remove_if(source.begin(), source.end(), ::isspace), source.end()); // strip whitespaces
+    source.erase(std::remove(source.begin(), source.end(), '\"'), source.end());         // strip quotes
+  }
+  current = source.begin();
+  currentToken = Token::Unexpected;
+}
+
+int Tokenizer::nextToken()
+{
+  // skip initial space
+  if (isspace(LastChar)) {
+    pop();
+  }
+  // logical or bitwise OR
+  if (LastChar == '|') {
+    BinaryOpStr = LastChar;
+    if (peek() == '|') {
+      pop();
+      BinaryOpStr += LastChar;
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    } else {
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    }
+  }
+  // logical or bitwise AND
+  if (LastChar == '&') {
+    BinaryOpStr = LastChar;
+    if (peek() == '&') {
+      pop();
+      BinaryOpStr += LastChar;
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    } else {
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    }
+  }
+  // less than or less or equal than
+  if (LastChar == '<') {
+    BinaryOpStr = LastChar;
+    if (peek() == '=') {
+      pop();
+      BinaryOpStr += LastChar;
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    } else {
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    }
+  }
+  // greater than or greater or equal than
+  if (LastChar == '>') {
+    BinaryOpStr = LastChar;
+    if (peek() == '=') {
+      pop();
+      BinaryOpStr += LastChar;
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    } else {
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    }
+  }
+  // equal or error
+  if (LastChar == '=') {
+    BinaryOpStr = LastChar;
+    if (peek() == '=') {
+      pop();
+      BinaryOpStr += LastChar;
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    } else {
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::Unexpected;
+      return currentToken;
+    }
+  }
+  // not equal or error
+  if (LastChar == '!') {
+    BinaryOpStr = LastChar;
+    if (peek() == '=') {
+      pop();
+      BinaryOpStr += LastChar;
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    } else {
+      pop();
+      TokenStr = BinaryOpStr;
+      currentToken = Token::BinaryOp;
+      return currentToken;
+    }
+  }
+  // unambiguous single-character binary operations: addition, multiplication, subtraction, division, bitwise XOR
+  if (LastChar == '+' || LastChar == '*' || (LastChar == '-' && (currentToken != Token::BinaryOp && currentToken != '(' && currentToken != Token::Unexpected)) || LastChar == '/' || LastChar == '^') {
+    BinaryOpStr = LastChar;
+    pop();
+    TokenStr = BinaryOpStr;
+    currentToken = Token::BinaryOp;
+    return currentToken;
+  }
+  // identifier: column, function, constant
+  if (isalpha(LastChar)) {
+    // identifier
+    IdentifierStr = LastChar;
+    pop();
+    while (isalnum(LastChar) || (LastChar == '_') || (LastChar == ':')) {
+      IdentifierStr += LastChar;
+      pop();
+    }
+    TokenStr = IdentifierStr;
+    currentToken = Token::Identifier;
+    return currentToken;
+  }
+  // number: integer, unsigned integer or float
+  if (isdigit(LastChar) || LastChar == '.' || (LastChar == '-' && isdigit(peek()))) {
+    // number
+    StrValue = "";
+    bool isFloat = false;
+    bool isUnsigned = false;
+    do {
+      StrValue += LastChar;
+      pop();
+    } while (isdigit(LastChar) || LastChar == '.');
+    if (LastChar == 'f') {
+      isFloat = true;
+      pop();
+    }
+    if (LastChar == 'u') {
+      isUnsigned = true;
+      pop();
+    }
+    if (std::find(StrValue.begin(), StrValue.end(), '.') == StrValue.end() && !isFloat) {
+      if (!isUnsigned) {
+        IntegerValue = atoi(StrValue.c_str());
+      } else {
+        IntegerValue = static_cast<unsigned int>(atoi(StrValue.c_str()));
+      }
+      TokenStr = StrValue;
+      currentToken = Token::IntegerNumber;
+      return currentToken;
+    }
+    if (isFloat) {
+      FloatValue = strtof(StrValue.c_str(), nullptr);
+    } else {
+      FloatValue = strtod(StrValue.c_str(), nullptr);
+    }
+    TokenStr = StrValue;
+    currentToken = Token::FloatNumber;
+    return currentToken;
+  }
+  // end-of-line
+  if (LastChar == '\0') {
+    TokenStr = LastChar;
+    currentToken = Token::EoL;
+    return currentToken;
+  }
+  // generic character
+  currentToken = LastChar;
+  TokenStr = LastChar;
+  pop();
+  return currentToken;
+}
+
+void Tokenizer::pop()
+{
+  if (current != source.end()) {
+    LastChar = *current;
+    ++current;
+  } else {
+    LastChar = '\0';
+  }
+}
+
+char Tokenizer::peek()
+{
+  if (current != source.end()) {
+    return *current;
+  } else {
+    return '\0';
+  }
+}
+
+Node Parser::parse(std::string const& input)
+{
+  auto tk = Tokenizer(input);
+  tk.nextToken();
+  auto node = parsePrimary(tk);
+  if (tk.currentToken != Token::EoL) {
+    throw runtime_error_f("Unexpected token after expression: %s", tk.TokenStr.c_str());
+  }
+  return *node.get();
+}
+
+std::unique_ptr<Node> Parser::parsePrimary(Tokenizer& tk)
+{
+  auto root = parseTier1(tk);
+  while (tk.TokenStr == "||") {
+    auto opnode = std::make_unique<Node>(OpNode{BasicOp::LogicalOr}, std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier1(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier1(Tokenizer& tk)
+{
+  auto root = parseTier2(tk);
+  while (tk.TokenStr == "&&") {
+    auto opnode = std::make_unique<Node>(OpNode{BasicOp::LogicalAnd}, std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier2(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier2(Tokenizer& tk)
+{
+  auto root = parseTier3(tk);
+  while (tk.TokenStr == "|") {
+    auto opnode = std::make_unique<Node>(OpNode{BasicOp::BitwiseOr}, std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier3(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier3(Tokenizer& tk)
+{
+  auto root = parseTier4(tk);
+  while (tk.TokenStr == "^") {
+    auto opnode = std::make_unique<Node>(OpNode{BasicOp::BitwiseXor}, std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier4(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier4(Tokenizer& tk)
+{
+  auto root = parseTier5(tk);
+  while (tk.TokenStr == "&") {
+    auto opnode = std::make_unique<Node>(OpNode{BasicOp::BitwiseAnd}, std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier5(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier5(Tokenizer& tk)
+{
+  auto root = parseTier6(tk);
+  while (tk.TokenStr == "==" || tk.TokenStr == "!=") {
+    auto opnode = std::make_unique<Node>(opFromToken(tk.TokenStr), std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier6(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier6(Tokenizer& tk)
+{
+  auto root = parseTier7(tk);
+  while (tk.TokenStr == "<" || tk.TokenStr == "<=" || tk.TokenStr == "=>" || tk.TokenStr == ">") {
+    auto opnode = std::make_unique<Node>(opFromToken(tk.TokenStr), std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier7(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier7(Tokenizer& tk)
+{
+  auto root = parseTier8(tk);
+  while (tk.TokenStr == "+" || tk.TokenStr == "-") {
+    auto opnode = std::make_unique<Node>(opFromToken(tk.TokenStr), std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseTier8(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseTier8(Tokenizer& tk)
+{
+  auto root = parseBase(tk);
+  while (tk.TokenStr == "*" || tk.TokenStr == "/") {
+    auto opnode = std::make_unique<Node>(opFromToken(tk.TokenStr), std::move(root), LiteralNode{-1});
+    root.swap(opnode);
+    tk.nextToken();
+    root->right = parseBase(tk);
+  }
+  return root;
+}
+
+std::unique_ptr<Node> Parser::parseBase(Tokenizer& tk)
+{
+  // parentheses
+  if (tk.currentToken == '(') {
+    tk.nextToken();
+    auto node = parsePrimary(tk);
+    if (tk.currentToken != ')') {
+      throw runtime_error_f("Expected \")\" got %s", tk.TokenStr.c_str());
+    }
+    tk.nextToken();
+    return node;
+  }
+
+  // identifier or function call
+  if (tk.currentToken == Token::Identifier) {
+    std::string id = tk.IdentifierStr;
+    tk.nextToken();
+    if (tk.currentToken != '(') { // binding node or a constant
+      std::string binding = id;
+      auto posc = std::find(mathConstants.begin(), mathConstants.end(), id);
+      if (posc != mathConstants.end()) { // constant
+        return std::make_unique<Node>(LiteralNode{mathConstantsValues[std::distance(mathConstants.begin(), posc)]});
+      }
+      // binding node
+      auto pos = binding.rfind(':');
+      binding.erase(0, pos + 1);
+      binding[0] = std::toupper(binding[0]);
+      binding.insert(binding.begin(), 'f');
+      return std::make_unique<Node>(BindingNode{runtime_hash(id.c_str()), atype::FLOAT}, binding);
+    }
+
+    // function call
+    if (id == "ifnode") { // conditional, 3 args
+      auto node = std::make_unique<Node>(ConditionalNode{}, LiteralNode{-1}, LiteralNode{-1}, LiteralNode{-1});
+      int args = 0;
+      while (tk.currentToken != ')') {
+        do {
+          tk.nextToken();
+          if (args == 0) {
+            node->condition = parsePrimary(tk);
+          } else if (args == 1) {
+            node->left = parsePrimary(tk);
+          } else if (args == 2) {
+            node->right = parsePrimary(tk);
+          } else {
+            throw runtime_error_f("Extra argument in a conditional: %s", tk.TokenStr.c_str());
+          }
+          ++args;
+        } while (tk.currentToken == ',');
+      }
+      tk.nextToken();
+      return node;
+    } else if (id == "ncfg") { // configurable placeholder, 3 args none of them can be expressions
+      int args = 0;
+      std::string type;
+      std::string value;
+      std::string path;
+      while (tk.currentToken != ')') {
+        do {
+          tk.nextToken();
+          if (args == 0) { // type
+            type = tk.TokenStr;
+            tk.nextToken();
+          } else if (args == 1) { // value
+            value = tk.TokenStr;
+            tk.nextToken();
+          } else if (args == 2) { // path
+            path = tk.TokenStr;
+            tk.nextToken();
+          } else {
+            throw runtime_error_f("Extra argument in configurable: %s", tk.TokenStr.c_str());
+          }
+          ++args;
+        } while (tk.currentToken == ',');
+      }
+      tk.nextToken();
+      auto locate = std::find(cfgtypes.begin(), cfgtypes.end(), type);
+      if (locate == cfgtypes.end()) {
+        throw runtime_error_f("Unsupported type in configurable: %s", type.c_str());
+      }
+      switch (std::distance(cfgtypes.begin(), locate)) {
+        case 0:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<uint16_t>(std::stoi(value)),
+              std::move(path)));
+        case 1:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<int16_t>(std::stoi(value)),
+              std::move(path)));
+        case 2:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<uint32_t>(std::stoi(value)),
+              std::move(path)));
+        case 3:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<int32_t>(std::stoi(value)),
+              std::move(path)));
+        case 4:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<uint64_t>(std::stoll(value)),
+              std::move(path)));
+        case 5:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              static_cast<int64_t>(std::stol(value)),
+              std::move(path)));
+        case 6:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              std::stof(value),
+              std::move(path)));
+        case 7:
+          return std::make_unique<Node>(
+            PlaceholderNode(
+              std::stod(value),
+              std::move(path)));
+        default:
+          throw runtime_error_f("Unsupported type in configurable: %s", type.c_str());
+      }
+    } else { // normal function
+      auto node = std::make_unique<Node>(opFromToken(id), LiteralNode{-1}, LiteralNode{-1});
+      int args = 0;
+      while (tk.currentToken != ')') {
+        do {
+          tk.nextToken();
+          if (args == 0) {
+            node->left = parsePrimary(tk);
+          } else if (args == 1) {
+            node->right = parsePrimary(tk);
+          } else {
+            throw runtime_error_f("Extra argument in a function call: %s", tk.TokenStr.c_str());
+          }
+          ++args;
+        } while (tk.currentToken == ',');
+      }
+      if (args == 1) {
+        node->right = nullptr;
+      }
+      tk.nextToken();
+      return node;
+    }
+  }
+
+  // number
+  if (tk.currentToken == Token::FloatNumber) {
+    tk.nextToken();
+    switch (tk.FloatValue.index()) {
+      case 0:
+        return std::make_unique<Node>(LiteralNode{get<0>(tk.FloatValue)});
+      case 1:
+        return std::make_unique<Node>(LiteralNode{get<1>(tk.FloatValue)});
+    }
+  }
+  if (tk.currentToken == Token::IntegerNumber) {
+    tk.nextToken();
+    switch (tk.IntegerValue.index()) {
+      case 0:
+        return std::make_unique<Node>(LiteralNode{get<0>(tk.IntegerValue)});
+      case 1:
+        return std::make_unique<Node>(LiteralNode{get<1>(tk.IntegerValue)});
+      case 2:
+        return std::make_unique<Node>(LiteralNode{get<2>(tk.IntegerValue)});
+      case 3:
+        return std::make_unique<Node>(LiteralNode{get<3>(tk.IntegerValue)});
+    }
+  }
+
+  // error
+  throw runtime_error_f("Unexpected token %s in operand", tk.TokenStr.c_str());
+}
+
+OpNode Parser::opFromToken(std::string const& token)
+{
+  auto locate = std::find(mapping.begin(), mapping.end(), token);
+  if (locate == mapping.end()) {
+    throw runtime_error_f("No operation \"%s\" defined", token.c_str());
+  }
+  return OpNode{static_cast<BasicOp>(std::distance(mapping.begin(), locate))};
 }
 
 } // namespace o2::framework::expressions

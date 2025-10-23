@@ -224,7 +224,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorT
     return pageDigitOffset;
   }
 
-  int32_t nDecoded = 0;
+  [[maybe_unused]] int32_t nDecoded = 0;
   const auto* decHdr = ConsumeHeader<TPCZSHDRV2>(page);
   ConsumeBytes(page, decHdr->firstZSDataOffset * 16);
 
@@ -275,7 +275,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorT
 #endif
     pageDigitOffset += nAdc;
   } // for (uint32_t t = 0; t < decHdr->nTimebinHeaders; t++)
-  (void)nDecoded;
+
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (iThread == 0 && nDecoded != decHdr->nADCsamples) {
     clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISector * 1000 + decHdr->cruID, decHdr->nADCsamples, nDecoded);
@@ -566,6 +566,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
   positions[positionOffset] = pos;
 
   charge *= clusterer.GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(sector, padAndRow.getRow(), padAndRow.getPad());
+
   chargeMap[pos] = PackedCharge(charge);
 }
 
@@ -615,6 +616,7 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
   ConsumeBytes(page, decHeader->firstZSDataOffset - sizeof(o2::header::RAWDataHeader));
 
   for (uint16_t i = 0; i < decHeader->nTimebinHeaders; i++) {
+
     [[maybe_unused]] ptrdiff_t sizeLeftInPage = payloadEnd - page;
     assert(sizeLeftInPage > 0);
 
@@ -728,8 +730,6 @@ GPUd() uint16_t GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
 
   uint16_t nSamplesInTB = 0;
 
-  GPUbarrier();
-
   // Read timebin link headers
   for (uint8_t iLink = 0; iLink < nLinksInTimebin; iLink++) {
     uint8_t timebinLinkHeaderStart = ConsumeByte(page);
@@ -777,14 +777,14 @@ GPUd() uint16_t GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
 
   } // for (uint8_t iLink = 0; iLink < nLinksInTimebin; iLink++)
 
+  GPUbarrierWarp(); // Ensure all writes to shared memory are finished, before reading it
+
   const uint8_t* adcData = ConsumeBytes(page, (nSamplesInTB * DECODE_BITS + 7) / 8);
   MAYBE_PAGE_OVERFLOW(page); // TODO: We don't need this check?
 
   if (not fragment.contains(timeBin)) {
     return FillWithInvalid(clusterer, iThread, NTHREADS, pageDigitOffset, nSamplesInTB);
   }
-
-  GPUbarrier();
 
   // Unpack ADC
   int32_t iLink = 0;
@@ -818,6 +818,8 @@ GPUd() uint16_t GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
     WriteCharge(clusterer, charge, padAndRow, fragment.toLocal(timeBin), pageDigitOffset + sample);
 
   } // for (uint16_t sample = iThread; sample < nSamplesInTB; sample += NTHREADS)
+
+  GPUbarrierWarp(); // Ensure all reads to shared memory are finished, before decoding next header into shmem
 
   assert(PayloadExtendsToNextPage || adcData <= page);
   assert(PayloadExtendsToNextPage || page <= payloadEnd);

@@ -32,6 +32,7 @@ struct TPCVDTglContainer {
   double driftVFullMean = 0.;
   static float tOffsetRef;
   static float driftVRef;
+  float tp = 0;
 
   TPCVDTglContainer(int ntgl, float tglMax, int ndtgl, float dtglMax)
   {
@@ -42,9 +43,12 @@ struct TPCVDTglContainer {
   {
     histo = std::make_unique<o2::dataformats::FlatHisto2D_f>(*(src.histo.get()));
     entries = src.entries;
+    tp = src.tp;
+    driftVFullMean = src.driftVFullMean;
   }
 
-  void fill(const gsl::span<const o2::dataformats::Triplet<float, float, float>> data)
+  /// \param tp ratio of temperature over pressure
+  void fill(const gsl::span<const o2::dataformats::Triplet<float, float, float>> data, float currentTemperaturePressure = 0)
   {
     if (data.size() < 3) { // first 2 entres always contains the {full and reference VDrift} and {full and reference DriftTimeOffset} used for the TF
       return;
@@ -59,12 +63,14 @@ struct TPCVDTglContainer {
     }
     //
     float vfull = data[0].first, vref = data[0].second;
+    const float temperaturePressure = (data[0].third == 0) ? currentTemperaturePressure : data[0].third;
     if (driftVRef == 0.f) {
       driftVRef = vref;
     } else if (driftVRef != vref) {
       LOGP(warn, "data with VDriftRef={} were received while initially was set to {}, keep old one", vref, driftVRef);
     }
     driftVFullMean = (driftVFullMean * nTFProc + vfull) / (nTFProc + 1);
+    tp = (tp * nTFProc + temperaturePressure) / (nTFProc + 1);
     if (tOffsetRef == 0.f) {
       tOffsetRef = data[1].first; // assign 1st full toffset as a reference
     }
@@ -73,6 +79,11 @@ struct TPCVDTglContainer {
 
   void merge(const TPCVDTglContainer* other)
   {
+    const int norm = nTFProc + other->nTFProc;
+    if (norm > 0) {
+      tp = (tp * nTFProc + other->tp * other->nTFProc) / norm;
+      driftVFullMean = (driftVFullMean * nTFProc + other->driftVFullMean * other->nTFProc) / norm;
+    }
     entries += other->entries;
     histo->add(*(other->histo));
     LOGP(debug, "Old entries:{} New entries:{} oldSum: {} newSum: {}", other->entries, entries, other->histo->getSum(), histo->getSum());
@@ -82,7 +93,7 @@ struct TPCVDTglContainer {
   {
     LOG(info) << "Nentries = " << entries;
   }
-  ClassDefNV(TPCVDTglContainer, 1);
+  ClassDefNV(TPCVDTglContainer, 2);
 };
 
 class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<TPCVDTglContainer>

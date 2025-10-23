@@ -51,7 +51,7 @@ function(add_root_dictionary target)
                         1
                         A
                         ""
-                        "LINKDEF"
+                        "LINKDEF;EXTRA_PATCH"
                         "HEADERS;BASENAME")
   if(A_UNPARSED_ARGUMENTS)
     message(
@@ -112,7 +112,7 @@ function(add_root_dictionary target)
   set(pcmBase ${dictionary}_rdict.pcm)
   set(pcmFile ${lib_output_dir}/${pcmBase})
   set(rootmapFile ${lib_output_dir}/lib${basename}.rootmap)
-  
+
   set(O2_TARGETPCMMAP_TARGET "${O2_TARGETPCMMAP_TARGET};${target}" CACHE INTERNAL "target/PCM map (target)")
   set(O2_TARGETPCMMAP_PCM "${O2_TARGETPCMMAP_PCM};${pcmFile}" CACHE INTERNAL "target/PCM map (pcm)")
 
@@ -132,6 +132,7 @@ function(add_root_dictionary target)
   set(includeDirs $<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>)
   set(includeDirs $<REMOVE_DUPLICATES:${includeDirs}>)
 
+  list(LENGTH A_EXTRA_PATCH hasExtraPatch)
   # add a custom command to generate the dictionary using rootcling
   # cmake-format: off
   add_custom_command(
@@ -146,11 +147,13 @@ function(add_root_dictionary target)
       --include_dirs -I$<JOIN:${includeDirs},$<SEMICOLON>-I>
       $<$<BOOL:${prop}>:--compile_defs>
       $<$<BOOL:${prop}>:-D$<JOIN:${prop},$<SEMICOLON>-D>>
+      $<$<BOOL:${hasExtraPatch}>:--extra-patch>
+      $<$<BOOL:${hasExtraPatch}>:${CMAKE_CURRENT_LIST_DIR}/${A_EXTRA_PATCH}>
       --pcmdeps "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>"
       --headers "${headers}"
     COMMAND
     ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${pcmBase} ${pcmFile}
-    DEPENDS ${headers} "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>")
+    DEPENDS ${headers} "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>" ${A_EXTRA_PATCH})
   # cmake-format: on
 
   # add dictionary source to the target sources

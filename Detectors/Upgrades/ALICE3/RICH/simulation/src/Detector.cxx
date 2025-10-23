@@ -145,29 +145,29 @@ void Detector::createGeometry()
   vRICH->SetTitle(vstrng);
   auto& richPars = RICHBaseParam::Instance();
 
-  prepareLayout();
+  prepareLayout(); // Preparing the positions of the rings and tiles
 
   for (int iRing{0}; iRing < richPars.nRings; ++iRing) {
     if (!richPars.oddGeom && iRing == (richPars.nRings / 2)) {
       continue;
     }
-    mRings[iRing] = Ring{iRing,
-                         richPars.nTiles,
-                         richPars.rMin,
-                         richPars.rMax,
-                         richPars.radiatorThickness,
-                         (float)mVTile1[iRing],
-                         (float)mVTile2[iRing],
-                         (float)mLAerogelZ[iRing],
-                         richPars.detectorThickness,
-                         (float)mVMirror1[iRing],
-                         (float)mVMirror2[iRing],
-                         richPars.zBaseSize,
-                         (float)mR0Radiator[iRing],
-                         (float)mR0PhotoDet[iRing],
-                         (float)mTRplusG[iRing],
-                         (float)mThetaBi[iRing],
-                         GeometryTGeo::getRICHVolPattern()};
+    mRings[iRing] = o2::rich::Ring{iRing,
+                                   richPars.nTiles,
+                                   richPars.rMin,
+                                   richPars.rMax,
+                                   richPars.radiatorThickness,
+                                   (float)mVTile1[iRing],
+                                   (float)mVTile2[iRing],
+                                   (float)mLAerogelZ[iRing],
+                                   richPars.detectorThickness,
+                                   (float)mVMirror1[iRing],
+                                   (float)mVMirror2[iRing],
+                                   richPars.zBaseSize,
+                                   (float)mR0Radiator[iRing],
+                                   (float)mR0PhotoDet[iRing],
+                                   (float)mTRplusG[iRing],
+                                   (float)mThetaBi[iRing],
+                                   GeometryTGeo::getRICHVolPattern()};
   }
 
   if (richPars.enableFWDRich) {
@@ -182,7 +182,7 @@ void Detector::InitializeO2Detector()
 {
   LOG(info) << "Initialize RICH O2Detector";
   mGeometryTGeo = GeometryTGeo::Instance();
-  // defineSensitiveVolumes();
+  defineSensitiveVolumes();
 }
 
 void Detector::defineSensitiveVolumes()
@@ -194,12 +194,19 @@ void Detector::defineSensitiveVolumes()
   LOGP(info, "Adding RICH Sensitive Volumes");
 
   // The names of the RICH sensitive volumes have the format: Ring(0...mRings.size()-1)
-  for (int j{0}; j < mRings.size(); j++) {
-    volumeName = GeometryTGeo::getRICHSensorPattern() + TString::Itoa(j, 10);
-    LOGP(info, "Trying {}", volumeName.Data());
-    v = geoManager->GetVolume(volumeName.Data());
-    LOGP(info, "Adding RICH Sensitive Volume {}", v->GetName());
-    AddSensitiveVolume(v);
+  for (auto ring : mRings) {
+    for (int j = 0; j < ring.getNTiles(); j++) {
+      volumeName = Form("%s_%d_%d", GeometryTGeo::getRICHSensorPattern(), ring.getPosId(), j);
+      LOGP(info, "Trying {}", volumeName.Data());
+      v = geoManager->GetVolume(volumeName.Data());
+      if (!v) {
+        LOG(error) << "Geometry does not contain volume " << volumeName.Data();
+        geoManager->GetListOfVolumes()->Print();
+        LOG(fatal) << "Could not find volume " << volumeName.Data() << " in the geometry";
+      }
+      LOGP(info, "Adding RICH Sensitive Volume {}", v->GetName());
+      AddSensitiveVolume(v);
+    }
   }
 }
 

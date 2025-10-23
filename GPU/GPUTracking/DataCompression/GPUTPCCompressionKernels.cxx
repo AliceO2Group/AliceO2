@@ -32,7 +32,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   const GPUParam& GPUrestrict() param = processors.param;
 
-  uint8_t lastLeg = 0;
   int32_t myTrack = 0;
   for (uint32_t i = get_global_id(0); i < ioPtrs.nMergedTracks; i += get_global_size(0)) {
     GPUbarrierWarp();
@@ -75,9 +74,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
         if ((hit.sector < GPUCA_NSECTORS) ^ (lastSector < GPUCA_NSECTORS)) {
           break;
         }
-        if (lastLeg != hit.leg && track.Mirror()) {
-          break;
-        }
         if (track.Propagate(geo.Row2X(hit.row), param.SectorParam[hit.sector].Alpha)) {
           break;
         }
@@ -93,7 +89,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
 
         myTrack = CAMath::AtomicAdd(&compressor.mMemory->nStoredTracks, 1u);
         compressor.mAttachedClusterFirstIndex[myTrack] = trk.FirstClusterRef();
-        lastLeg = hit.leg;
         c.qPtA[myTrack] = qpt;
         c.rowA[myTrack] = hit.row;
         c.sliceA[myTrack] = hit.sector;
@@ -114,12 +109,11 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
           sector -= lastSector;
         }
         c.rowDiffA[cidx] = row;
-        c.sliceLegDiffA[cidx] = (hit.leg == lastLeg ? 0 : compressor.NSECTORS) + sector;
+        c.sliceLegDiffA[cidx] = sector;
         float pad = CAMath::Max(0.f, CAMath::Min((float)geo.NPads(GPUCA_ROW_COUNT - 1), track.LinearY2Pad(hit.sector, track.Y(), geo.PadWidth(hit.row), geo.NPads(hit.row))));
         c.padResA[cidx] = orgCl.padPacked - orgCl.packPad(pad);
         float time = CAMath::Max(0.f, geo.LinearZ2Time(hit.sector, track.Z() + zOffset));
         c.timeResA[cidx] = (orgCl.getTimePacked() - orgCl.packTime(time)) & 0xFFFFFF;
-        lastLeg = hit.leg;
       }
       uint16_t qtot = orgCl.qTot, qmax = orgCl.qMax;
       uint8_t sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
@@ -189,6 +183,31 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<4>::opera
   return mClsPtr[a].qTot < mClsPtr[b].qTot;
 }
 
+GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, GPUParam& GPUrestrict() param, const GPUTrackingInOutPointers& GPUrestrict() ioPtrs)
+{
+  if (mClusterStatus[idx]) {
+    return true;
+  }
+  int32_t attach = ioPtrs.mergedTrackHitAttachment[idx];
+  bool unattached = attach == 0;
+
+  if (unattached) {
+    if (param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
+      return true;
+    }
+  } else if (param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA) {
+    if (GPUTPCClusterRejection::GetIsRejected(attach)) {
+      return true;
+    }
+    int32_t id = attach & gputpcgmmergertypes::attachTrackMask;
+    auto& trk = ioPtrs.mergedTracks[id];
+    if (CAMath::Abs(trk.GetParam().GetQPt() * param.qptB5Scaler) > param.rec.tpc.rejectQPtB5 || trk.MergedLooper()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 template <>
 GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
@@ -214,33 +233,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     const uint32_t nn = CAMath::nextMultipleOf<GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)>(clusters->nClusters[iSector][iRow]);
     for (uint32_t i = iThread; i < nn + nThreads; i += nThreads) {
       const int32_t idx = idOffset + i;
-      int32_t storeCluster = 0;
-      do {
-        if (i >= clusters->nClusters[iSector][iRow]) {
-          break;
-        }
-        if (compressor.mClusterStatus[idx]) {
-          break;
-        }
-        int32_t attach = ioPtrs.mergedTrackHitAttachment[idx];
-        bool unattached = attach == 0;
-
-        if (unattached) {
-          if (processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
-            break;
-          }
-        } else if (processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA) {
-          if (GPUTPCClusterRejection::GetIsRejected(attach)) {
-            break;
-          }
-          int32_t id = attach & gputpcgmmergertypes::attachTrackMask;
-          auto& trk = ioPtrs.mergedTracks[id];
-          if (CAMath::Abs(trk.GetParam().GetQPt() * processors.param.qptB5Scaler) > processors.param.rec.tpc.rejectQPtB5 || trk.MergedLooper()) {
-            break;
-          }
-        }
-        storeCluster = 1;
-      } while (false);
+      int32_t storeCluster = i < clusters->nClusters[iSector][iRow] && !compressor.rejectCluster(idx, param, ioPtrs);
 
       GPUbarrier();
       int32_t myIndex = work_group_scan_inclusive_add(storeCluster);

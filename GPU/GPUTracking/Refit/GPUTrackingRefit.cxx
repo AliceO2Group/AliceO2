@@ -223,16 +223,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
   float tOffset;
   if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
     count = trkX.NClusters();
-    if (trkX.Looper()) {
-      int32_t leg = mPtrackHits[trkX.FirstClusterRef() + trkX.NClusters() - 1].leg;
-      for (int32_t i = trkX.NClusters() - 2; i > 0; i--) {
-        if (mPtrackHits[trkX.FirstClusterRef() + i].leg != leg) {
-          begin = i + 1;
-          break;
-        }
-      }
-    }
-    tOffset = trkX.GetParam().GetTZOffset();
+    tOffset = trkX.GetParam().GetTOffset();
   } else if constexpr (std::is_same_v<T, TrackTPC>) {
     count = trkX.getNClusters();
     tOffset = trkX.getTime0();
@@ -355,7 +346,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
       }
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", prop.GetAlpha(), x, trk.Par()[0], trk.Par()[1], trk.Par()[4], prop.GetQPt0(), trk.Par()[2], prop.GetSinPhi0(), trk.Par()[0] - y, trk.Par()[1] - z, sqrtf(trk.Cov()[0]), sqrtf(trk.Cov()[2]), sqrtf(trk.Cov()[5]), sqrtf(trk.Cov()[14]), trk.Cov()[10]));
       lastSector = sector;
-      if (prop.Update(y, z, row, *mPparam, clusterState, 0, nullptr, true, sector, time, invAvgCharge, invCharge)) {
+      if (prop.Update(y, z, row, *mPparam, clusterState, 0, true, sector, time, invAvgCharge, invCharge)) {
         IgnoreErrors(trk.GetSinPhi());
         return -3;
       }

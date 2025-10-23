@@ -16,8 +16,9 @@
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/Cluster.h"
-#include "ITStracking/ROframe.h"
+
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/TrackingConfigParam.h"
@@ -25,7 +26,8 @@
 namespace o2::its
 {
 
-Vertexer::Vertexer(VertexerTraits* traits) : mTraits(traits)
+template <int nLayers>
+Vertexer<nLayers>::Vertexer(VertexerTraitsN* traits) : mTraits(traits)
 {
   if (!mTraits) {
     LOG(fatal) << "nullptr passed to ITS vertexer construction.";
@@ -33,9 +35,15 @@ Vertexer::Vertexer(VertexerTraits* traits) : mTraits(traits)
   mVertParams.resize(1);
 }
 
-float Vertexer::clustersToVertices(LogFunc logger)
+template <int nLayers>
+float Vertexer<nLayers>::clustersToVertices(LogFunc logger)
 {
   LogFunc evalLog = [](const std::string&) {};
+
+  if (mTimeFrame->hasMCinformation() && mVertParams[0].useTruthSeeding) {
+    return evaluateTask(&Vertexer::addTruthSeeds, StateNames[mCurState = TruthSeeding], 0, evalLog);
+  }
+
   TrackingParameters trkPars;
   TimeFrameGPUParameters tfGPUpar;
   mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
@@ -46,7 +54,6 @@ float Vertexer::clustersToVertices(LogFunc logger)
       throw err;
     } else {
       LOGP(error, "Dropping this TF!");
-      mTimeFrame->resetTracklets();
     }
   };
 
@@ -58,14 +65,11 @@ float Vertexer::clustersToVertices(LogFunc logger)
       logger(fmt::format("=== ITS {} Seeding vertexer iteration {} summary:", mTraits->getName(), iteration));
       trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
       trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
-      auto timeInitIteration = evaluateTask(
-        &Vertexer::initialiseVertexer, StateNames[mCurState = Init], iteration, evalLog, trkPars, iteration);
-      auto timeTrackletIteration = evaluateTask(
-        &Vertexer::findTracklets, StateNames[mCurState = Trackleting], iteration, evalLog, iteration);
+      auto timeInitIteration = evaluateTask(&Vertexer::initialiseVertexer, StateNames[mCurState = Init], iteration, evalLog, trkPars, iteration);
+      auto timeTrackletIteration = evaluateTask(&Vertexer::findTracklets, StateNames[mCurState = Trackleting], iteration, evalLog, iteration);
       nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
       nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
-      auto timeSelectionIteration = evaluateTask(
-        &Vertexer::validateTracklets, StateNames[mCurState = Validating], iteration, evalLog, iteration);
+      auto timeSelectionIteration = evaluateTask(&Vertexer::validateTracklets, StateNames[mCurState = Validating], iteration, evalLog, iteration);
       auto timeVertexingIteration = evaluateTask(&Vertexer::findVertices, StateNames[mCurState = Finding], iteration, evalLog, iteration);
       printEpilog(logger, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration()[iteration], timeInitIteration, timeTrackletIteration, timeSelectionIteration, timeVertexingIteration);
       timeInit += timeInitIteration;
@@ -84,48 +88,19 @@ float Vertexer::clustersToVertices(LogFunc logger)
   return timeInit + timeTracklet + timeSelection + timeVertexing;
 }
 
-void Vertexer::getGlobalConfiguration()
-{
-  auto& vc = o2::its::VertexerParamConfig::Instance();
-  auto& grc = o2::its::ITSGpuTrackingParamConfig::Instance();
-
-  // This is odd: we override only the parameters for the first iteration.
-  // Variations for the next iterations are set in the trackingInterfrace.
-  mVertParams[0].nIterations = vc.nIterations;
-  mVertParams[0].deltaRof = vc.deltaRof;
-  mVertParams[0].allowSingleContribClusters = vc.allowSingleContribClusters;
-  mVertParams[0].zCut = vc.zCut;
-  mVertParams[0].phiCut = vc.phiCut;
-  mVertParams[0].pairCut = vc.pairCut;
-  mVertParams[0].clusterCut = vc.clusterCut;
-  mVertParams[0].histPairCut = vc.histPairCut;
-  mVertParams[0].tanLambdaCut = vc.tanLambdaCut;
-  mVertParams[0].lowMultBeamDistCut = vc.lowMultBeamDistCut;
-  mVertParams[0].vertNsigmaCut = vc.vertNsigmaCut;
-  mVertParams[0].vertRadiusSigma = vc.vertRadiusSigma;
-  mVertParams[0].trackletSigma = vc.trackletSigma;
-  mVertParams[0].maxZPositionAllowed = vc.maxZPositionAllowed;
-  mVertParams[0].clusterContributorsCut = vc.clusterContributorsCut;
-  mVertParams[0].maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
-  mVertParams[0].phiSpan = vc.phiSpan;
-  mVertParams[0].nThreads = vc.nThreads;
-  mVertParams[0].ZBins = vc.ZBins;
-  mVertParams[0].PhiBins = vc.PhiBins;
-  mVertParams[0].SaveTimeBenchmarks = vc.saveTimeBenchmarks;
-}
-
-void Vertexer::adoptTimeFrame(TimeFrame7& tf)
+template <int nLayers>
+void Vertexer<nLayers>::adoptTimeFrame(TimeFrameN& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
 }
 
-void Vertexer::printEpilog(LogFunc& logger,
-                           const unsigned int trackletN01, const unsigned int trackletN12,
-                           const unsigned selectedN, const unsigned int vertexN, const float initT,
-                           const float trackletT, const float selecT, const float vertexT)
+template <int nLayers>
+void Vertexer<nLayers>::printEpilog(LogFunc& logger,
+                                    const unsigned int trackletN01, const unsigned int trackletN12,
+                                    const unsigned selectedN, const unsigned int vertexN, const float initT,
+                                    const float trackletT, const float selecT, const float vertexT)
 {
-  float total = initT + trackletT + selecT + vertexT;
   logger(fmt::format(" - {} Vertexer: found {} | {} tracklets in: {} ms", mTraits->getName(), trackletN01, trackletN12, trackletT));
   logger(fmt::format(" - {} Vertexer: selected {} tracklets in: {} ms", mTraits->getName(), selectedN, selecT));
   logger(fmt::format(" - {} Vertexer: found {} vertices in: {} ms", mTraits->getName(), vertexN, vertexT));
@@ -134,5 +109,7 @@ void Vertexer::printEpilog(LogFunc& logger,
     mMemoryPool->print();
   }
 }
+
+template class Vertexer<7>;
 
 } // namespace o2::its

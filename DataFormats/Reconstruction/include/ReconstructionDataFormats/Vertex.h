@@ -18,10 +18,13 @@
 
 #include "CommonDataFormat/TimeStamp.h"
 #ifndef GPUCA_GPUCODE_DEVICE
-#include <iosfwd>
-#include <string>
 #include <type_traits>
 #include <array>
+#ifndef GPUCA_NO_FMT
+#include <sstream>
+#include <string>
+#include <fmt/format.h>
+#endif
 #endif
 
 namespace o2
@@ -135,6 +138,11 @@ class Vertex : public VertexBase
   {
   }
 
+#if !defined(GPUCA_NO_FMT) && !defined(GPUCA_GPUCODE_DEVICE)
+  void print() const;
+  std::string asString() const;
+#endif
+
   GPUd() ushort getNContributors() const { return mNContributors; }
   GPUd() void setNContributors(ushort v) { mNContributors = v; }
   GPUd() void addContributor() { mNContributors++; }
@@ -162,6 +170,49 @@ class Vertex : public VertexBase
 
 #if !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT)
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v);
+
+namespace detail
+{
+template <typename T>
+concept Streamable = requires(std::ostream& os, const T& a) {
+  { os << a } -> std::same_as<std::ostream&>;
+};
+
+template <typename T>
+concept HasFormattableTimeStamp = requires(const T& t) {
+  { fmt::format("{}", t.getTimeStamp()) } -> std::convertible_to<std::string>;
+};
+} // namespace detail
+
+template <typename Stamp>
+inline std::string Vertex<Stamp>::asString() const
+{
+  const std::string stamp = [&]() -> std::string {
+    if constexpr (detail::Streamable<Stamp>) {
+      std::ostringstream oss;
+      oss << mTimeStamp;
+      return oss.str();
+    } else if constexpr (detail::HasFormattableTimeStamp<Stamp>) {
+      return fmt::format("{}", mTimeStamp.getTimeStamp());
+    } else {
+      return "X";
+    }
+  }();
+  return fmt::format("{} NContrib:{} Chi2:{:.2f} Flags:{:b} Stamp:{}", VertexBase::asString(), mNContributors, mChi2, mBits, stamp);
+}
+
+template <typename Stamp>
+inline std::ostream& operator<<(std::ostream& os, const o2::dataformats::Vertex<Stamp>& v)
+{
+  os << v.asString();
+  return os;
+}
+
+template <typename Stamp>
+inline void Vertex<Stamp>::print() const
+{
+  std::cout << *this << '\n';
+}
 #endif
 
 } // namespace dataformats

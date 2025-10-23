@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_LOGGER_H_
 #define O2_FRAMEWORK_LOGGER_H_
 
-#include <fairlogger/Logger.h>
+#include <fairlogger/Logger.h> // IWYU pragma: export
 
 #define O2DEBUG(...) LOGF(debug, __VA_ARGS__)
 #define O2INFO(...) LOGF(info, __VA_ARGS__)

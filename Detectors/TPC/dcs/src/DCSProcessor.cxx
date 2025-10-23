@@ -15,10 +15,6 @@
 
 #include <string_view>
 
-// ROOT includes
-#include "TLinearFitter.h"
-#include "TVectorD.h"
-
 // O2 includes
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
@@ -43,6 +39,8 @@ void DCSProcessor::process(const gsl::span<const DPCOM> dps)
   constexpr auto HV_ID{"TPC_HV"sv};
   constexpr auto GAS_ID1{"TPC_GC"sv};
   constexpr auto GAS_ID2{"TPC_An"sv};
+  constexpr auto PRESS_ID1{"Cavern"sv};
+  constexpr auto PRESS_ID2{"Surfac"sv};
 
   for (const auto& dp : dps) {
     const std::string_view alias(dp.id.get_alias());
@@ -56,8 +54,11 @@ void DCSProcessor::process(const gsl::span<const DPCOM> dps)
     } else if (id == GAS_ID1 || id == GAS_ID2) {
       LOGP(debug, "Gas DP: {}", alias);
       fillGas(dp);
+    } else if (id == PRESS_ID1 || id == PRESS_ID2) {
+      LOGP(debug, "Pressure DP: {}", alias);
+      fillPressure(dp);
     } else {
-      LOGP(warning, "Unknown data point: {}", alias);
+      LOGP(warning, "Unknown data point: {} with id {}", alias, id);
     }
   }
 }
@@ -125,84 +126,38 @@ void DCSProcessor::fillGas(const DPCOM& dp)
   mGas.fill(alias, time, value);
 }
 
+void DCSProcessor::fillPressure(const DPCOM& dp)
+{
+  const std::string_view alias(dp.id.get_alias());
+  const auto value = getValueF(dp);
+  const auto time = dp.data.get_epoch_time();
+  mPressure.fill(alias, time, value);
+}
+
 void DCSProcessor::finalizeSlot()
 {
   finalizeTemperature();
   finalizeHighVoltage();
   finalizeGas();
+  finalizePressure();
   mHasData = false;
-}
-
-void DCSProcessor::fitTemperature(Side side)
-{
-  //// temperature fits in x-y
-  TLinearFitter fitter(3, "x0 ++ x1 ++ x2");
-  bool nextInterval = true;
-  std::array<size_t, dcs::Temperature::SensorsPerSide> startPos{};
-  const size_t sensorOffset = (side == Side::C) ? dcs::Temperature::SensorsPerSide : 0;
-  dcs::TimeStampType refTime = getMinTime(mTemperature.raw);
-
-  while (nextInterval) {
-    // TODO: check if we should use refTime
-    dcs::TimeStampType firstTime = std::numeric_limits<dcs::TimeStampType>::max();
-
-    nextInterval = false;
-    for (size_t iSensor = 0; iSensor < dcs::Temperature::SensorsPerSide; ++iSensor) {
-      const auto& sensor = mTemperature.raw[iSensor + sensorOffset];
-
-      LOGP(debug, "sensor {}, start {}, size {}", sensor.sensorNumber, startPos[iSensor], sensor.data.size());
-      while (startPos[iSensor] < sensor.data.size()) {
-        const auto& dataPoint = sensor.data[startPos[iSensor]];
-        if ((dataPoint.time - refTime) >= mFitInterval) {
-          LOGP(debug, "sensor {}, {} - {} >= {}", sensor.sensorNumber, dataPoint.time, refTime, mFitInterval);
-          break;
-        }
-        nextInterval = true;
-        firstTime = std::min(firstTime, dataPoint.time);
-        const auto temperature = dataPoint.value;
-        // sanity check
-        if (temperature < 15 || temperature > 25) {
-          ++startPos[iSensor];
-          continue;
-        }
-        const auto& pos = dcs::Temperature::SensorPosition[iSensor + sensorOffset];
-        double x[] = {1., double(pos.x), double(pos.y)};
-        fitter.AddPoint(x, temperature, 1);
-        ++startPos[iSensor];
-      }
-    }
-    if (firstTime < std::numeric_limits<dcs::TimeStampType>::max()) {
-      fitter.Eval();
-      LOGP(info, "Side {}, fit interval {} - {} with {} points", int(side), refTime, refTime + mFitInterval - 1, fitter.GetNpoints());
-
-      auto& stats = (side == Side::A) ? mTemperature.statsA : mTemperature.statsC;
-      auto& stat = stats.data.emplace_back();
-      stat.time = firstTime;
-      stat.value.mean = fitter.GetParameter(0);
-      stat.value.gradX = fitter.GetParameter(1);
-      stat.value.gradY = fitter.GetParameter(2);
-
-      fitter.ClearPoints();
-      refTime += mFitInterval;
-    }
-  }
 }
 
 void DCSProcessor::finalizeTemperature()
 {
   mTemperature.sortAndClean();
-  fitTemperature(Side::A);
-  fitTemperature(Side::C);
-  mTimeTemperature = {getMinTime(mTemperature.raw), getMaxTime(mTemperature.raw)};
+  mTemperature.fitTemperature(Side::A, mFitInterval, mRoundToInterval);
+  mTemperature.fitTemperature(Side::C, mFitInterval, mRoundToInterval);
+  mTimeTemperature = {getMinTime(mTemperature.raw, mRoundToInterval, mFitInterval), getMaxTime(mTemperature.raw)};
 }
 
 void DCSProcessor::finalizeHighVoltage()
 {
   mHighVoltage.sortAndClean();
 
-  auto minTime = getMinTime(mHighVoltage.currents);
-  minTime = std::min(minTime, getMinTime(mHighVoltage.voltages));
-  minTime = std::min(minTime, getMinTime(mHighVoltage.states));
+  auto minTime = getMinTime(mHighVoltage.currents, mRoundToInterval, mFitInterval);
+  minTime = std::min(minTime, getMinTime(mHighVoltage.voltages, mRoundToInterval, mFitInterval));
+  minTime = std::min(minTime, getMinTime(mHighVoltage.states, mRoundToInterval, mFitInterval));
 
   auto maxTime = getMaxTime(mHighVoltage.currents);
   maxTime = std::max(maxTime, getMaxTime(mHighVoltage.voltages));
@@ -217,6 +172,16 @@ void DCSProcessor::finalizeGas()
   mTimeGas = {mGas.getMinTime(), mGas.getMaxTime()};
 }
 
+void DCSProcessor::finalizePressure()
+{
+  mPressure.sortAndClean();
+  mTimePressure = {mPressure.getMinTime(), mPressure.getMaxTime()};
+  // if there is data perform the processing
+  if (mTimePressure.last > 0) {
+    mPressure.makeRobustPressure(mPressureInterval, mPressureIntervalRef, mTimePressure.first, mTimePressure.last);
+  }
+}
+
 void DCSProcessor::writeDebug()
 {
   if (!mDebugStream) {
@@ -227,6 +192,7 @@ void DCSProcessor::writeDebug()
                 << "Temperature=" << mTemperature
                 << "HV=" << mHighVoltage
                 << "Gas=" << mGas
+                << "Pressure=" << mPressure
                 << "\n";
 }
 

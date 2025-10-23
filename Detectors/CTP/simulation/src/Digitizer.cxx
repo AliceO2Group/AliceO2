@@ -194,7 +194,7 @@ o2::ctp::CTPConfiguration* Digitizer::getDefaultCTPConfiguration()
   }
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBServer);
-  map<string, string> metadata = {};
+  std::map<std::string, std::string> metadata = {};
   long timestamp = 1546300800000;
 
   auto config = mgr.getSpecific<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig, timestamp, metadata);

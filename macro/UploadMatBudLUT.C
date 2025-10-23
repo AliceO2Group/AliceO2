@@ -21,7 +21,7 @@ bool UploadMatBudLUT(const std::string& matLUTFile, long tmin = 0, long tmax = -
 
   o2::ccdb::CcdbApi api;
   api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["comment"] = "Material lookup table";
   api.storeAsTFileAny(lut, url, metadata, tmin, tmax);
   return true;

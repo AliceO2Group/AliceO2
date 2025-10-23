@@ -167,7 +167,7 @@ class AlignmentTask
 
       LOG(info) << "Loading magnetic field and reference geometry from input files";
 
-      auto grpFile = ic.options().get<string>("grp-file");
+      auto grpFile = ic.options().get<std::string>("grp-file");
       if (std::filesystem::exists(grpFile)) {
         const auto grp = parameters::GRPObject::loadFrom(grpFile);
         base::Propagator::initFieldFromGRP(grp);
@@ -178,7 +178,7 @@ class AlignmentTask
         LOG(fatal) << "No GRP file";
       }
 
-      IdealGeoFileName = ic.options().get<string>("geo-file-ideal");
+      IdealGeoFileName = ic.options().get<std::string>("geo-file-ideal");
       if (std::filesystem::exists(IdealGeoFileName)) {
         base::GeometryManager::loadGeometry(IdealGeoFileName.c_str());
         transformation = geo::transformationFromTGeoManager(*gGeoManager);
@@ -190,7 +190,7 @@ class AlignmentTask
         LOG(fatal) << "No ideal geometry";
       }
 
-      RefGeoFileName = ic.options().get<string>("geo-file-ref");
+      RefGeoFileName = ic.options().get<std::string>("geo-file-ref");
       if (std::filesystem::exists(RefGeoFileName)) {
         base::GeometryManager::loadGeometry(RefGeoFileName.c_str());
         transformation = geo::transformationFromTGeoManager(*gGeoManager);
@@ -205,7 +205,7 @@ class AlignmentTask
       if (doReAlign) {
         LOG(info) << "Re-alignment mode";
         LOG(info) << "Loading re-alignment geometry";
-        NewGeoFileName = ic.options().get<string>("geo-file-new");
+        NewGeoFileName = ic.options().get<std::string>("geo-file-new");
         if (std::filesystem::exists(NewGeoFileName)) {
           base::GeometryManager::loadGeometry(NewGeoFileName.c_str());
           transformation = geo::transformationFromTGeoManager(*gGeoManager);
@@ -246,7 +246,7 @@ class AlignmentTask
     mImproveCutChi2 = 2. * trackerParam.sigmaCutForImprovement * trackerParam.sigmaCutForImprovement;
 
     // Fix chambers
-    TString chambersString = ic.options().get<string>("fix-chamber");
+    TString chambersString = ic.options().get<std::string>("fix-chamber");
     std::unique_ptr<TObjArray> objArray(chambersString.Tokenize(","));
     if (objArray->GetEntries() > 0) {
       for (int iVar = 0; iVar < objArray->GetEntries(); ++iVar) {
@@ -256,8 +256,8 @@ class AlignmentTask
     }
 
     // Fix DEs
-    TString DEString = ic.options().get<string>("fix-de");
-    TString MaskDEString = ic.options().get<string>("mask-fix-de");
+    TString DEString = ic.options().get<std::string>("fix-de");
+    TString MaskDEString = ic.options().get<std::string>("mask-fix-de");
     std::unique_ptr<TObjArray> objArrayDE(DEString.Tokenize(","));
     std::unique_ptr<TObjArray> objArrayMask(MaskDEString.Tokenize(","));
     if (objArrayDE->GetEntries() > 0) {
@@ -271,7 +271,7 @@ class AlignmentTask
     }
 
     doMatched = ic.options().get<bool>("matched");
-    outFileName = ic.options().get<string>("output");
+    outFileName = ic.options().get<std::string>("output");
     readFromRec = ic.options().get<bool>("use-record");
 
     if (readFromRec) {

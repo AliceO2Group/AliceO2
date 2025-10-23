@@ -12,7 +12,7 @@
 #define O2_FRAMEWORK_WORKFLOWSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/AlgorithmSpec.h"
+#include "Framework/AlgorithmSpec.h" // IWYU pragma: export
 
 #include <vector>
 #include <functional>

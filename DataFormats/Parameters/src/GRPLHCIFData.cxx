@@ -28,6 +28,8 @@ using namespace o2::constants::lhc;
 const std::unordered_map<unsigned int, unsigned int> GRPLHCIFData::mZtoA =
   {
     {1, 1},
+    {8, 16},
+    {10, 20},
     {82, 208}};
 
 //_______________________________________________

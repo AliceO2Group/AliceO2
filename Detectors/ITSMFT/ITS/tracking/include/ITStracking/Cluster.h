@@ -16,72 +16,67 @@
 #ifndef TRACKINGITSU_INCLUDE_CACLUSTER_H_
 #define TRACKINGITSU_INCLUDE_CACLUSTER_H_
 
-#include "GPUCommonRtypes.h"
-#include "ITStracking/Definitions.h"
-#include "ITStracking/MathUtils.h"
-
-#ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
-#endif
+#include "ITStracking/Constants.h"
+#include "GPUCommonRtypes.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 
+template <int>
 class IndexTableUtils;
 
 struct Cluster final {
-  Cluster() = default;
-  Cluster(const float x, const float y, const float z, const int idx);
-  Cluster(const int, const IndexTableUtils& utils, const Cluster&);
-  Cluster(const int, const float3&, const IndexTableUtils& utils, const Cluster&);
-  void Init(const int, const float3&, const IndexTableUtils& utils, const Cluster&);
-  bool operator==(const Cluster&) const;
+  GPUhdDefault() Cluster() = default;
+  GPUhd() Cluster(const float x, const float y, const float z, const int idx);
+  template <int nLayers>
+  GPUhd() Cluster(const int, const IndexTableUtils<nLayers>& utils, const Cluster&);
+  template <int nLayers>
+  GPUhd() Cluster(const int, const float3&, const IndexTableUtils<nLayers>& utils, const Cluster&);
+  GPUhdDefault() Cluster(const Cluster&) = default;
+  GPUhdDefault() Cluster(Cluster&&) noexcept = default;
+  GPUhdDefault() ~Cluster() = default;
+
+  GPUhdDefault() Cluster& operator=(const Cluster&) = default;
+  GPUhdDefault() Cluster& operator=(Cluster&&) noexcept = default;
+  GPUhdDefault() bool operator==(const Cluster&) const = default;
+
   GPUhd() void print() const;
 
-  float xCoordinate;      // = -999.f;
-  float yCoordinate;      // = -999.f;
-  float zCoordinate;      // = -999.f;
-  float phi;              // = -999.f;
-  float radius;           // = -999.f;
-  int clusterId;          // = -1;
-  int indexTableBinIndex; // = -1;
+  float xCoordinate{-999.f};
+  float yCoordinate{-999.f};
+  float zCoordinate{-999.f};
+  float phi{-999.f};
+  float radius{-999.f};
+  int clusterId{constants::UnusedIndex};
+  int indexTableBinIndex{constants::UnusedIndex};
 
   ClassDefNV(Cluster, 1);
 };
 
-GPUhdi() void Cluster::print() const
-{
-#if !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
-  printf("Cluster: %f %f %f %f %f %d %d\n", xCoordinate, yCoordinate, zCoordinate, phi, radius, clusterId, indexTableBinIndex);
-#endif
-}
+struct TrackingFrameInfo final {
+  GPUhdDefault() TrackingFrameInfo() = default;
+  GPUhd() TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
+  GPUhdDefault() TrackingFrameInfo(const TrackingFrameInfo&) = default;
+  GPUhdDefault() TrackingFrameInfo(TrackingFrameInfo&&) noexcept = default;
+  GPUhdDefault() ~TrackingFrameInfo() = default;
 
-struct TrackingFrameInfo {
-  TrackingFrameInfo() = default;
-  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
+  GPUhdDefault() TrackingFrameInfo& operator=(const TrackingFrameInfo&) = default;
+  GPUhdDefault() TrackingFrameInfo& operator=(TrackingFrameInfo&&) = default;
 
-  float xCoordinate;
-  float yCoordinate;
-  float zCoordinate;
-  float xTrackingFrame;
-  float alphaTrackingFrame;
-  std::array<float, 2> positionTrackingFrame = {-1., -1.};
+  GPUhd() void print() const;
+
+  float xCoordinate{-999.f};
+  float yCoordinate{-999.f};
+  float zCoordinate{-999.f};
+  float xTrackingFrame{-999.f};
+  float alphaTrackingFrame{-999.f};
+  std::array<float, 2> positionTrackingFrame = {constants::UnusedIndex, constants::UnusedIndex};
   std::array<float, 3> covarianceTrackingFrame = {999., 999., 999.};
-  GPUdi() void print() const
-  {
-#if !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
-    printf("x: %f y: %f z: %f xTF: %f alphaTF: %f posTF: %f %f covTF: %f %f %f\n",
-           xCoordinate, yCoordinate, zCoordinate, xTrackingFrame, alphaTrackingFrame,
-           positionTrackingFrame[0], positionTrackingFrame[1],
-           covarianceTrackingFrame[0], covarianceTrackingFrame[1], covarianceTrackingFrame[2]);
-#endif
-  }
 
   ClassDefNV(TrackingFrameInfo, 1);
 };
-} // namespace its
-} // namespace o2
+
+} // namespace o2::its
 
 #endif /* TRACKINGITSU_INCLUDE_CACLUSTER_H_ */

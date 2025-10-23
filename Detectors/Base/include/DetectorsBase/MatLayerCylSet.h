@@ -98,6 +98,10 @@ class MatLayerCylSet : public o2::gpu::FlatObject
     // get material budget traversed on the line between point0 and point1
     return getMatBudget(point0.X(), point0.Y(), point0.Z(), point1.X(), point1.Y(), point1.Z());
   }
+
+  void scaleLayersByID(int lrFrom, int lrTo, float factor, bool _x2x0 = true, bool _rho = true);
+  void scaleLayersByR(float rFrom, float rTo, float factor, bool _x2x0 = true, bool _rho = true);
+
 #endif // !GPUCA_ALIGPUCODE
   GPUd() MatBudget getMatBudget(float x0, float y0, float z0, float x1, float y1, float z1) const;
 

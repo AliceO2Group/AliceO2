@@ -14,17 +14,20 @@
 #ifndef ALICEO2_ITSMFT_TIMEDEADMAP_H
 #define ALICEO2_ITSMFT_TIMEDEADMAP_H
 
-#include "Rtypes.h"
-#include "DetectorsCommonDataFormats/DetID.h"
-#include <iostream>
-#include <vector>
+#include <Rtypes.h>
+
+#include <cstdint>
 #include <map>
+#include <string>
+#include <vector>
 
 namespace o2
 {
 
 namespace itsmft
 {
+
+class NoiseMap;
 
 class TimeDeadMap
 {
@@ -56,96 +59,17 @@ class TimeDeadMap
     mStaticDeadMap.clear();
   }
 
-  void decodeMap(o2::itsmft::NoiseMap& noisemap)
-  { // for static part only
-    if (mMAP_VERSION == "3") {
-      LOG(error) << "Trying to decode static part of deadmap version " << mMAP_VERSION << ". Not implemented, doing nothing.";
-      return;
-    }
-    for (int iel = 0; iel < mStaticDeadMap.size(); iel++) {
-      uint16_t w = mStaticDeadMap[iel];
-      noisemap.maskFullChip(w & 0x7FFF);
-      if (w & 0x8000) {
-        for (int w2 = (w & 0x7FFF) + 1; w2 < mStaticDeadMap.at(iel + 1); w2++) {
-          noisemap.maskFullChip(w2);
-        }
-      }
-    }
-  }
-
-  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap& noisemap, bool includeStaticMap = true, long orbitGapAllowed = 330000)
-  { // for time-dependent and (optionally) static part. Use orbitGapAllowed = -1 to ignore check on orbit difference
-
-    if (mMAP_VERSION != "3" && mMAP_VERSION != "4") {
-      LOG(error) << "Trying to decode time-dependent deadmap version " << mMAP_VERSION << ". Not implemented, doing nothing.";
-      return;
-    }
-
-    if (mEvolvingDeadMap.empty()) {
-      LOG(warning) << "Time-dependent dead map is empty. Doing nothing.";
-      return;
-    }
-
-    std::vector<uint16_t> closestVec;
-    long dT = getMapAtOrbit(orbit, closestVec);
-
-    if (orbitGapAllowed >= 0 && std::abs(dT) > orbitGapAllowed) {
-      LOG(warning) << "Requested orbit " << orbit << ", found " << orbit - dT << ". Orbit gap is too high, skipping time-dependent map.";
-      closestVec.clear();
-    }
-
-    // add static part if requested. something may be masked twice
-    if (includeStaticMap && mMAP_VERSION != "3") {
-      closestVec.insert(closestVec.end(), mStaticDeadMap.begin(), mStaticDeadMap.end());
-    }
-
-    // vector encoding: if 1<<15 = 0x8000 is set, the word encodes the first element of a range, with mask (1<<15)-1 = 0x7FFF. The last element of the range is the next in the vector.
-
-    for (int iel = 0; iel < closestVec.size(); iel++) {
-      uint16_t w = closestVec.at(iel);
-      noisemap.maskFullChip(w & 0x7FFF);
-      if (w & 0x8000) {
-        for (int w2 = (w & 0x7FFF) + 1; w2 < closestVec.at(iel + 1); w2++) {
-          noisemap.maskFullChip(w2);
-        }
-      }
-    }
-  };
-
+  void decodeMap(NoiseMap& noisemap) const;
+  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap& noisemap, bool includeStaticMap = true, long orbitGapAllowed = 330000) const;
   std::string getMapVersion() const { return mMAP_VERSION; };
 
   unsigned long getEvolvingMapSize() const { return mEvolvingDeadMap.size(); };
-
-  std::vector<unsigned long> getEvolvingMapKeys()
-  {
-    std::vector<unsigned long> keys;
-    std::transform(mEvolvingDeadMap.begin(), mEvolvingDeadMap.end(), std::back_inserter(keys),
-                   [](const auto& O) { return O.first; });
-    return keys;
-  }
-
-  void getStaticMap(std::vector<uint16_t>& mmap) { mmap = mStaticDeadMap; };
-
-  long getMapAtOrbit(unsigned long orbit, std::vector<uint16_t>& mmap)
-  { // fills mmap and returns requested_orbit - found_orbit. Found orbit is the highest key lower or equal to the requested one
-    if (mEvolvingDeadMap.empty()) {
-      LOG(warning) << "Requested orbit " << orbit << "from an empty time-dependent map. Doing nothing";
-      return (long)orbit;
-    }
-    auto closest = mEvolvingDeadMap.upper_bound(orbit);
-    if (closest != mEvolvingDeadMap.begin()) {
-      --closest;
-      mmap = closest->second;
-      return (long)orbit - closest->first;
-    } else {
-      mmap = mEvolvingDeadMap.begin()->second;
-      return (long)(orbit)-mEvolvingDeadMap.begin()->first;
-    }
-  }
-
+  std::vector<unsigned long> getEvolvingMapKeys() const;
+  void getStaticMap(std::vector<uint16_t>& mmap) const { mmap = mStaticDeadMap; };
+  long getMapAtOrbit(unsigned long orbit, std::vector<uint16_t>& mmap) const;
   void setMapVersion(std::string version) { mMAP_VERSION = version; };
 
-  bool isDefault() { return mIsDefaultObject; };
+  bool isDefault() const { return mIsDefaultObject; };
   void setAsDefault(bool isdef = true) { mIsDefaultObject = isdef; };
 
  private:

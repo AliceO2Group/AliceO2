@@ -398,12 +398,12 @@ void EventManagerFrame::createOutreachScreenshot()
   if (skipCounter > 0) {
     skipCounter--;
   } else {
-    string fileName = this->mEventManager->getInstance().getDataSource()->getEventName();
+    std::string fileName = this->mEventManager->getInstance().getDataSource()->getEventName();
     if (fileName.size() < 5) {
       return;
     }
 
-    string imageFolder = ConfigurationManager::getScreenshotPath("outreach");
+    std::string imageFolder = ConfigurationManager::getScreenshotPath("outreach");
     if (!std::filesystem::is_directory(imageFolder)) {
       std::filesystem::create_directory(imageFolder);
     }

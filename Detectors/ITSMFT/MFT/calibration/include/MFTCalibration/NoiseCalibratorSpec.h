@@ -56,17 +56,17 @@ class NoiseCalibratorSpec : public Task
   void sendOutputCcdbMerge(DataAllocator& output);
   void sendOutputCcdbDcs(DataAllocator& output);
   void sendOutputDcs(DataAllocator& output);
+  void sendOutputDcsMerge(DataAllocator& output);
   void setOutputDcs(const o2::itsmft::NoiseMap& payload);
   o2::itsmft::NoiseMap mNoiseMap{936};
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::string mPath;
-  std::string mPathMerge;
+  std::string mPathSingle;
   std::string mMeta;
 
   std::vector<std::array<int, 3>> mNoiseMapForDcs;
   std::string mPathDcs;
-  std::string mPathDcsMerge;
   std::string mOutputType;
 
   double mThresh;

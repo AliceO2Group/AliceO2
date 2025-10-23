@@ -75,10 +75,9 @@ struct TypeIdHelpers {
   constexpr static uint32_t uniqueId()
   {
 #ifdef __CLING__
-    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
-    return r;
+    return crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
 #else
-    return compile_time_hash(type_name<T>().data());
+    return crc32(type_name<T>().data(), type_name<T>().size());
 #endif
   }
 };

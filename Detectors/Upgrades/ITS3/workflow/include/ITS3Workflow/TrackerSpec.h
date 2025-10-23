@@ -37,7 +37,7 @@ class TrackerDPL : public framework::Task
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
              bool isMC,
              int trgType,
-             const its::TrackingMode& trMode = its::TrackingMode::Unset,
+             its::TrackingMode::Type trmode = its::TrackingMode::Unset,
              const bool overrBeamEst = false,
              gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
   ~TrackerDPL() override = default;
@@ -63,7 +63,7 @@ class TrackerDPL : public framework::Task
 
 /// create a processor spec
 /// run ITS CA tracker
-framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trMode, const bool overrBeamEst = false, gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, its::TrackingMode::Type trMode, const bool overrBeamEst = false, gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
 
 } // namespace o2::its3
 

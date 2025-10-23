@@ -21,7 +21,7 @@ std::unique_ptr<o2::rich::GeometryTGeo> GeometryTGeo::sInstance;
 std::string GeometryTGeo::sVolumeName = "RICHV";
 std::string GeometryTGeo::sRingName = "RICHRing";
 std::string GeometryTGeo::sChipName = "RICHChip";
-std::string GeometryTGeo::sSensorName = "RICHSensor";
+std::string GeometryTGeo::sSensorName = "RICHPhotoTile";
 std::string GeometryTGeo::sSensorFWDName = "FWDRICHSensor"; // only one big sensor for now
 std::string GeometryTGeo::sSensorBWDName = "BWDRICHSensor"; // only one big sensor for now
 

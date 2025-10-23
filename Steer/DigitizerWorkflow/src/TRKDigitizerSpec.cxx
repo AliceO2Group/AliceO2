@@ -93,7 +93,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     timer.Start();
     LOG(info) << " CALLING TRK DIGITIZATION ";
 
-    // mDigitizer.setDigits(&mDigits);
+    mDigitizer.setDigits(&mDigits);
     mDigitizer.setROFRecords(&mROFRecords);
     mDigitizer.setMCLabels(&mLabels);
 
@@ -104,8 +104,10 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       // accumulate result of single event processing, called after processing every event supplied
       // AND after the final flushing via digitizer::fillOutputContainer
       if (mDigits.empty()) {
+        LOG(debug) << "No digits to accumulate";
         return; // no digits were flushed, nothing to accumulate
       }
+      LOG(debug) << "Accumulating " << mDigits.size() << " digits ";
       auto ndigAcc = digitsAccum.size();
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
 
@@ -139,7 +141,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       mLabels.clear();
       mDigits.clear();
       mROFRecords.clear();
-    }; // and accumulate lambda
+    }; // end accumulate lambda
 
     auto& eventParts = context->getEventParts(withQED);
     // loop over all composite collisions given from context (aka loop over all the interaction records)
@@ -172,6 +174,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       accumulate();
     }
     mDigitizer.fillOutputContainer();
+    LOG(debug) << "mDigits size after fill: " << mDigits.size();
     accumulate();
 
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)

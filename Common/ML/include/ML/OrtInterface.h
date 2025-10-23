@@ -34,10 +34,7 @@ struct MemoryInfo;
 struct Env;
 } // namespace Ort
 
-namespace o2
-{
-
-namespace ml
+namespace o2::ml
 {
 
 class OrtModel
@@ -119,7 +116,7 @@ class OrtModel
   int32_t mInputsTotal = 0, mOutputsTotal = 0;                                                        // Total number of inputs and outputs
 
   // Environment settings
-  bool mInitialized = false;
+  bool mInitialized = false, mDeterministicMode = false;
   std::string mModelPath, mEnvName = "", mDeviceType = "CPU", mThreadAffinity = ""; // device options should be cpu, rocm, migraphx, cuda
   int32_t mIntraOpNumThreads = 1, mInterOpNumThreads = 1, mDeviceId = -1, mEnableProfiling = 0, mLoggingLevel = 0, mAllocateDeviceMemory = 0, mEnableOptimizations = 0;
 
@@ -127,8 +124,6 @@ class OrtModel
   std::string printShape(const std::vector<std::vector<int64_t>>&, std::vector<std::string>&);
 };
 
-} // namespace ml
-
-} // namespace o2
+} // namespace o2::ml
 
 #endif // O2_ML_ORTINTERFACE_H

@@ -136,7 +136,7 @@ class ITSDCSParser : public Task
   std::string mCcdbUrl = "";
 
   // Vector containing all the staves listed in the EOR file
-  std::vector<string> mSavedStaves = {};
+  std::vector<std::string> mSavedStaves = {};
 
   // Disabled chip map
   o2::itsmft::NoiseMap mDeadMap;

@@ -112,7 +112,7 @@ class CTFReaderSpec : public o2::framework::Task
   int mCTFCounterAcc = 0;
   int mNFailedFiles = 0;
   int mFilesRead = 0;
-  int mTFLength = 128;
+  int mTFLength = 32;
   int mNWaits = 0;
   int mRunNumberPrev = -1;
   long mTotalWaitTime = 0;
@@ -234,7 +234,7 @@ void CTFReaderSpec::loadRunTimeSpans(const std::string& flname)
 {
   std::ifstream inputFile(flname);
   if (!inputFile) {
-    LOGP(fatal, "Failed to open selected run/timespans file {}", mInput.fileRunTimeSpans);
+    LOGP(fatal, "Failed to open selected run/timespans file {}", flname);
   }
   std::string line;
   size_t cntl = 0, cntr = 0;
@@ -286,7 +286,7 @@ void CTFReaderSpec::loadRunTimeSpans(const std::string& flname)
       logError();
     }
   }
-  LOGP(info, "Read {} time-spans for {} runs from {}", cntr, mRunTimeRanges.size(), mInput.fileRunTimeSpans);
+  LOGP(info, "Read {} time-spans for {} runs from {}", cntr, mRunTimeRanges.size(), flname);
   inputFile.close();
 }
 

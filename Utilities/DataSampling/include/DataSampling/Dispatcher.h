@@ -65,7 +65,6 @@ class Dispatcher : public framework::Task
 
  private:
   DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, header::DataHeader const& original);
-  header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
   void reportStats(monitoring::Monitoring& monitoring) const;
   void send(framework::DataAllocator& dataAllocator, const framework::DataRef& inputData, const framework::Output& output) const;
 

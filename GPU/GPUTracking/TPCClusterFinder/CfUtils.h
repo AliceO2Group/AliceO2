@@ -58,10 +58,9 @@ class CfUtils
     *sum = __popc(waveMask);
     return myOffset;
 #else // CPU / OpenCL fallback
-    int32_t myOffset = warp_scan_inclusive_add(pred ? 1 : 0);
+    int32_t myOffset = warp_scan_inclusive_add(!!pred);
     *sum = warp_broadcast(myOffset, GPUCA_WARP_SIZE - 1);
-    myOffset--;
-    return myOffset;
+    return myOffset - !!pred;
 #endif
   }
 
@@ -111,8 +110,7 @@ class CfUtils
     if (sum != nullptr) {
       *sum = work_group_broadcast(lpos, BlockSize - 1);
     }
-    lpos--;
-    return lpos;
+    return lpos - !!pred;
 #endif
   }
 
@@ -149,7 +147,7 @@ class CfUtils
 
     return sum;
 #else // CPU / OpenCL fallback
-    return work_group_reduce_add(pred ? 1 : 0);
+    return work_group_reduce_add(!!pred);
 #endif
   }
 

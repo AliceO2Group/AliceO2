@@ -34,11 +34,7 @@
   #define GPUPtr2(a, b) b
 #endif
 
-#ifdef GPUCA_FULL_CLUSTERDATA
-  #define GPUCA_EVDUMP_FILE "event_full"
-#else
-  #define GPUCA_EVDUMP_FILE "event"
-#endif
+#define GPUCA_EVDUMP_FILE "event"
 
 #ifdef GPUCA_GPUCODE
   #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() vartype& __restrict__ varname = varshared;
@@ -63,9 +59,6 @@
 #ifdef GPUCA_CADEBUG
   #ifdef CADEBUG
     #undef CADEBUG
-  #endif
-  #ifdef GPUCA_CADEBUG_ENABLED
-    #undef GPUCA_CADEBUG_ENABLED
   #endif
   #if GPUCA_CADEBUG == 1 && !defined(GPUCA_GPUCODE)
     #define CADEBUG(...) __VA_ARGS__

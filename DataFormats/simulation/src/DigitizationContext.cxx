@@ -151,6 +151,19 @@ bool DigitizationContext::initSimKinematicsChains(std::vector<TChain*>& simkinem
     // add signal files
     simkinematicschains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(mSimPrefixes[source].data()).c_str());
   }
+
+  // we add QED, if used in the digitization context
+  if (mEventRecordsWithQED.size() > 0) {
+    if (mSimPrefixes.size() >= QEDSOURCEID) {
+      LOG(fatal) << "Too many signal chains; crashes with QED source ID";
+    }
+
+    // it might be better to use an unordered_map for the simchains but this requires interface changes
+    simkinematicschains.resize(QEDSOURCEID + 1, nullptr);
+    simkinematicschains[QEDSOURCEID] = new TChain("o2sim");
+    simkinematicschains[QEDSOURCEID]->AddFile(o2::base::DetectorNameConf::getMCKinematicsFileName(mQEDSimPrefix).c_str());
+  }
+
   return true;
 }
 
@@ -439,18 +452,18 @@ std::vector<std::tuple<int, int, int>> getTimeFrameBoundaries(std::vector<o2::In
       // in this range search the smallest index which precedes
       // timeframe ti by not more than "orbitsEarly" orbits
       // (could probably use binary search, in case optimization becomes necessary)
-      int earlyOrbitIndex = prev_tf_range.second;
+      int earlyOrbitIndex = -1; // init to start of this timeframe ... there may not be early orbits
 
       // this is the orbit of the ti-th timeframe start
       auto orbit_timeframe_start = startOrbit + ti * orbitsPerTF;
 
-      auto orbit_timeframe_early_fractional = orbit_timeframe_start - orbitsEarly;
-      auto orbit_timeframe_early_integral = (uint32_t)(orbit_timeframe_early_fractional);
+      auto orbit_timeframe_early_fractional = 1. * orbit_timeframe_start - orbitsEarly;
+      auto orbit_timeframe_early_integral = static_cast<long>(std::floor(orbit_timeframe_early_fractional));
 
       auto bc_early = (uint32_t)((orbit_timeframe_early_fractional - orbit_timeframe_early_integral) * o2::constants::lhc::LHCMaxBunches);
 
       // this is the interaction record of the ti-th timeframe start
-      o2::InteractionRecord timeframe_start_record(0, orbit_timeframe_early_integral);
+      o2::InteractionRecord timeframe_start_record(0, orbit_timeframe_start);
       // this is the interaction record in some previous timeframe after which interactions could still
       // influence the ti-th timeframe according to orbitsEarly
       o2::InteractionRecord timeframe_early_record(bc_early, orbit_timeframe_early_integral);
@@ -692,7 +705,7 @@ DigitizationContext DigitizationContext::extractSingleTimeframe(int timeframeid,
     }
     std::copy(mEventRecords.begin() + startindex, mEventRecords.begin() + endindex, std::back_inserter(r.mEventRecords));
     std::copy(mEventParts.begin() + startindex, mEventParts.begin() + endindex, std::back_inserter(r.mEventParts));
-    if (mInteractionVertices.size() > endindex) {
+    if (mInteractionVertices.size() >= endindex) {
       std::copy(mInteractionVertices.begin() + startindex, mInteractionVertices.begin() + endindex, std::back_inserter(r.mInteractionVertices));
     }
 

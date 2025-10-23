@@ -16,7 +16,6 @@ o2_add_library(DataFormatsTOF
                        src/CalibLHCphaseTOF.cxx
                        src/CalibTimeSlewingParamTOF.cxx
                        src/CTF.cxx
-                       src/ParameterContainers.cxx
                        src/CalibInfoCluster.cxx
                        src/CosmicInfo.cxx
                        src/Diagnostic.cxx

@@ -23,10 +23,8 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUTRDTracker.h"
 
-#include "GPUTPCConvert.h"
 #include "GPUTPCCompression.h"
 #include "GPUTPCDecompression.h"
-#include "GPUITSFitter.h"
 #include "GPUTPCClusterFinder.h"
 #include "GPUTrackingRefit.h"
 
@@ -43,14 +41,12 @@ namespace o2::gpu
 struct GPUConstantMem {
   GPUParam param;
   GPUTPCTracker tpcTrackers[GPUCA_NSECTORS];
-  GPUTPCConvert tpcConverter;
   GPUTPCCompression tpcCompressor;
   GPUTPCDecompression tpcDecompressor;
   GPUTPCGMMerger tpcMerger;
   GPUTRDTrackerGPU trdTrackerGPU;
   GPUTRDTracker trdTrackerO2;
   GPUTPCClusterFinder tpcClusterer[GPUCA_NSECTORS];
-  GPUITSFitter itsFitter;
   GPUTrackingRefitProcessor trackingRefit;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;

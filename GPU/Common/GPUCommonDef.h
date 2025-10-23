@@ -30,7 +30,7 @@
 //Some GPU configuration settings, must be included first
 #include "GPUCommonDefSettings.h"
 
-#if !(defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT)) // No GPU code for ROOT
+#if !defined(__CLING__) && !defined(G__ROOT) // No GPU code for ROOT
   #if defined(__CUDACC__) || defined(__OPENCL__) || defined(__HIPCC__) || defined(__OPENCL_HOST__)
     #define GPUCA_GPUCODE // Compiled by GPU compiler
   #endif

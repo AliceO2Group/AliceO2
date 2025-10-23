@@ -60,6 +60,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"jsons-folder", VariantType::String, "jsons", {"name of the folder to store json files"}},
+    {"receiver-hostname", VariantType::String, "arcbs04.cern.ch", {"name of the host where visualisation data is transmitted (only eve format)"}},
+    {"receiver-port", VariantType::Int, 8001, {"port number of the host where visualisation data is transmitted (only eve format)"}},
+    {"receiver-timeout", VariantType::Int, 300, {"socket connection timeout (ms)"}},
+    {"use-only-files", VariantType::Bool, false, {"do not transmit visualisation data using sockets (only eve format)"}},
+    {"use-only-sockets", VariantType::Bool, false, {"do not store visualisation data using filesystem"}},
     {"use-json-format", VariantType::Bool, false, {"instead of eve format (default) use json format"}},
     {"use-root-format", VariantType::Bool, false, {"instead of eve format (default) use root format"}},
     {"eve-hostname", VariantType::String, "", {"name of the host allowed to produce files (empty means no limit)"}},
@@ -186,7 +191,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
         helper.mEvent.setRunType(this->mRunType);
         helper.mEvent.setPrimaryVertex(pv);
         helper.mEvent.setCreationTime(tinfo.creation);
-        helper.save(this->mJsonPath, this->mExt, conf.maxFiles);
+        helper.save(this->mJsonPath, this->mExt, conf.maxFiles, this->mReceiverHostname, this->mReceiverPort, this->mReceiverTimeout, this->mUseOnlyFiles, this->mUseOnlySockets);
         filesSaved++;
         currentTime = std::chrono::high_resolution_clock::now(); // time AFTER save
         this->mTimeStamp = currentTime;                          // next run AFTER period counted from last save
@@ -302,6 +307,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool useMC = !cfgc.options().get<bool>("disable-mc");
   bool disableWrite = cfgc.options().get<bool>("disable-write");
 
+  auto receiverHostname = cfgc.options().get<std::string>("receiver-hostname");
+  auto receiverPort = cfgc.options().get<int>("receiver-port");
+  auto receiverTimeout = cfgc.options().get<int>("receiver-timeout");
+  auto useOnlyFiles = cfgc.options().get<bool>("use-only-files");
+  auto useOnlySockets = cfgc.options().get<bool>("use-only-sockets");
+
   char hostname[_POSIX_HOST_NAME_MAX];
   gethostname(hostname, _POSIX_HOST_NAME_MAX);
   bool eveHostNameMatch = eveHostName.empty() || eveHostName == hostname;
@@ -398,7 +409,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(disableWrite, useMC, srcTrk, srcCl, dataRequest, ggRequest, emcalCalibLoader, jsonFolder, ext, timeInterval, eveHostNameMatch)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(disableWrite, useMC, srcTrk, srcCl, dataRequest, ggRequest,
+                                                  emcalCalibLoader, jsonFolder, ext, timeInterval, eveHostNameMatch,
+                                                  receiverHostname, receiverPort, receiverTimeout, useOnlyFiles, useOnlySockets)}});
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

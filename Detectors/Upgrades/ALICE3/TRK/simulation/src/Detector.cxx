@@ -53,6 +53,28 @@ Detector::Detector(bool active)
     configServices();
   }
 
+  mSensorName.resize(mNumberOfVolumes); // hardcoded. TODO: change size when a different naming scheme for VD is in place. Ideally could be 4 petals + 8 layers = 12
+  int VDvolume = 0;
+  for (int i = 0; i < 4; i++) { /// VD
+    for (int j = 0; j < 3; j++) {
+      mSensorName[VDvolume].Form("%s%d_%s%d_%s%d", GeometryTGeo::getTRKPetalPattern(), i, GeometryTGeo::getTRKPetalLayerPattern(), j, GeometryTGeo::getTRKSensorPattern(), j);
+      VDvolume++;
+    }
+    for (int j = 0; j < 6; j++) {
+      mSensorName[VDvolume].Form("%s%d_%s%d_%s%d", GeometryTGeo::getTRKPetalPattern(), i, GeometryTGeo::getTRKPetalDiskPattern(), j, GeometryTGeo::getTRKSensorPattern(), j);
+      VDvolume++;
+    }
+  }
+
+  for (int i = 0; i < 8; i++) { /// MLOT
+    mSensorName[VDvolume].Form("%s%d", GeometryTGeo::getTRKSensorPattern(), i);
+    VDvolume++;
+  }
+
+  for (auto vd : mSensorName) {
+    std::cout << "Volume name: " << vd << std::endl;
+  }
+
   LOGP(info, "Summary of TRK configuration:");
   for (auto& layer : mLayers) {
     LOGP(info, "Layer: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", layer.getNumber(), layer.getName(), layer.getInnerRadius(), layer.getZ(), layer.getChipThickness());
@@ -241,7 +263,7 @@ void Detector::createGeometry()
   mPetalCases.clear();
   // Add petal cases (the sensitive layers inside the petal cases get constructed here too)
   auto& trkPars = TRKBaseParam::Instance();
-  for (Int_t petalCaseNumber = 0; petalCaseNumber < 4; ++petalCaseNumber) {
+  for (Int_t petalCaseNumber = 0; petalCaseNumber < sNumberVDPetalCases; ++petalCaseNumber) {
     mPetalCases.emplace_back(petalCaseNumber, vTRK, trkPars.irisOpen);
     mServices.excavateFromVacuum(mPetalCases[petalCaseNumber].getFullName());
   }
@@ -253,6 +275,12 @@ void Detector::InitializeO2Detector()
   LOG(info) << "Initialize TRK O2Detector";
   mGeometryTGeo = GeometryTGeo::Instance();
   defineSensitiveVolumes();
+
+  mSensorID.resize(mNumberOfVolumes); // hardcoded. TODO: change size when a different namingh scheme for VD is in place. Ideally could be 4 petals + 8 layers = 12
+  for (int i = 0; i < mNumberOfVolumes; i++) {
+    mSensorID[i] = gMC ? TVirtualMC::GetMC()->VolId(mSensorName[i]) : 0; // Volume ID from the Geant geometry
+    LOGP(info, "{}: mSensorID={}", i, mSensorID[i]);
+  }
 }
 
 void Detector::defineSensitiveVolumes()
@@ -264,7 +292,7 @@ void Detector::defineSensitiveVolumes()
   LOGP(info, "Adding TRK Sensitive Volumes");
 
   // Add petal case sensitive volumes
-  for (int petalCase = 0; petalCase < 4; ++petalCase) {
+  for (int petalCase = 0; petalCase < sNumberVDPetalCases; ++petalCase) {
     // Petal layers
     for (int petalLayer = 0; petalLayer < mPetalCases[petalCase].mPetalLayers.size(); ++petalLayer) {
       volumeName = mPetalCases[petalCase].mPetalLayers[petalLayer].getSensorName();
@@ -338,8 +366,27 @@ bool Detector::ProcessHits(FairVolume* vol)
     return false;
   }
 
-  int lay = vol->getVolumeId();
+  int subDetID = -1;
+  int layer = -1;
+  int volume = 0;
+  int stave = -1;
   int volID = vol->getMCid();
+
+  bool notSens = false;
+  while ((volume < mNumberOfVolumes) && (notSens = (volID != mSensorID[volume]))) {
+    ++volume; /// there are 44 volumes, 36 for the VD (1 for each sensing element) and 8 for the MLOT (1 for each layer)
+  }
+
+  if (notSens) {
+    return kFALSE; // RS: can this happen? This method must be called for sensors only?
+  }
+
+  if (volume < mNumberOfVolumesVD) {
+    subDetID = 0; // VD. For the moment each "chip" is a volume./// TODO: change this logic once the naming scheme is changed
+  } else {
+    subDetID = 1; // MLOT
+    layer = volume - mNumberOfVolumesVD;
+  }
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
@@ -348,7 +395,7 @@ bool Detector::ProcessHits(FairVolume* vol)
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
-    tr.setUserId(lay);
+    tr.setUserId(volume);
     stack->addTrackReference(tr);
   }
   bool startHit = false, stopHit = false;
@@ -398,13 +445,17 @@ bool Detector::ProcessHits(FairVolume* vol)
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
-    int stave(0), halfstave(0), chipinmodule(0), module;
-    fMC->CurrentVolOffID(1, chipinmodule);
-    fMC->CurrentVolOffID(2, module);
-    fMC->CurrentVolOffID(3, halfstave);
-    fMC->CurrentVolOffID(4, stave);
+    int stave(0), halfstave(0);
+    if (subDetID == 1) {
+      fMC->CurrentVolOffID(1, halfstave);
+      fMC->CurrentVolOffID(2, stave);
+    } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 
-    Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+    int chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave);
+
+    Print(vol, volume, subDetID, layer, stave, halfstave, chipID);
+
+    Hit* p = addHit(stack->GetCurrentTrackNumber(), chipID, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                     mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
     // p->SetTotalEnergy(vmc->Etot());
@@ -424,6 +475,25 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
   mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
 }
+
+void Detector::Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int chipID) const
+{
+  int currentVol(0);
+  LOG(info) << "Current volume name: " << fMC->CurrentVolName() << " and ID " << fMC->CurrentVolID(currentVol);
+  LOG(info) << "volume: " << volume << "/" << mNumberOfVolumes - 1;
+  if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) { // staggered geometry
+    LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  halfstave: " << halfstave;
+    LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  stave: " << stave;
+    LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+  } else if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) { // turbo geometry
+    LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  stave: " << stave;
+    LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+  } else {
+    LOG(info) << "SubDetector ID: " << subDetID << "  Chip ID: " << chipID;
+  }
+  LOG(info);
+}
+
 } // namespace trk
 } // namespace o2
 

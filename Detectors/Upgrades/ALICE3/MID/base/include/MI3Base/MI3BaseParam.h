@@ -19,7 +19,19 @@ namespace o2
 {
 namespace mi3
 {
+
+// **
+// ** Parameters for MID base configuration
+// **
+
+enum MIDLayout : int {
+  StandardRadius = 0,
+  ReducedRadius = 1
+};
+
 struct MIDBaseParam : public o2::conf::ConfigurableParamHelper<MIDBaseParam> {
+  int mLayout = MIDLayout::StandardRadius;
+
   O2ParamDef(MIDBaseParam, "MIDBase");
 };
 

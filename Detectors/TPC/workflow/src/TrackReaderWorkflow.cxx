@@ -36,7 +36,7 @@
 
 // we need a global variable to propagate the type the message dispatching of the
 // publisher will trigger on. This is dependent on the input type
-o2::framework::Output gDispatchTrigger{"", ""};
+o2::framework::ConcreteDataTypeMatcher gDispatchTrigger{"", ""};
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
@@ -96,7 +96,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     // nothing to do we leave the matcher empty which will suppress the dispatch
     // trigger and all messages will be sent out together at end of computation
   } else if (inputType == "tracks") {
-    gDispatchTrigger = o2::framework::Output{"TPC", "TRACKS"};
+    gDispatchTrigger = o2::framework::ConcreteDataTypeMatcher{"TPC", "TRACKS"};
   }
 
   bool doMC = not cfgc.options().get<bool>("disable-mc");

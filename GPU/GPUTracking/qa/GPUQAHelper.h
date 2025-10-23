@@ -105,10 +105,6 @@ class GPUTPCTrkLbl
         *labelWeight = bestLabel.fWeight;
         *totalWeight = mTotalWeight;
         *maxCount = bestLabelCount;
-      } else {
-        (void)labelWeight;
-        (void)totalWeight;
-        (void)maxCount;
       }
       U retVal = bestLabel;
       if (bestLabelCount < (1.f - mTrackMCMaxFake) * mNCl) {

@@ -38,7 +38,8 @@ namespace tpc
 class TPCInterpolationDPL : public Task
 {
  public:
-  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput) : mDataRequest(dr), mSources(src), mSourcesMap(srcMap), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mSendTrackData(sendTrackData), mDebugOutput(debugOutput) {}
+  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC,
+                      bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid) : mDataRequest(dr), mSources(src), mSourcesMap(srcMap), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mSendTrackData(sendTrackData), mDebugOutput(debugOutput), mExtDetResid(extDetResid) {}
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -58,6 +59,7 @@ class TPCInterpolationDPL : public Task
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
   bool mProcessSeeds{false};      ///< process not only most complete track, but also its shorter parts
   bool mDebugOutput{false};       ///< add more information to the output (track points of ITS, TRD and TOF)
+  bool mExtDetResid{true};        ///< produce unbinned residuals for external detectors
   bool mSendTrackData{false};     ///< if true, not only the clusters but also corresponding track data will be sent
   uint32_t mSlotLength{600u};     ///< the length of one calibration slot required to calculate max number of tracks per TF
   int mMatCorr{2};                ///< the material correction to be used for track interpolation
@@ -65,7 +67,8 @@ class TPCInterpolationDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t srcCls, o2::dataformats::GlobalTrackID::mask_t srcVtx, o2::dataformats::GlobalTrackID::mask_t srcTrk, o2::dataformats::GlobalTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput);
+framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t srcCls, o2::dataformats::GlobalTrackID::mask_t srcVtx, o2::dataformats::GlobalTrackID::mask_t srcTrk,
+                                                     o2::dataformats::GlobalTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid);
 
 } // namespace tpc
 } // namespace o2

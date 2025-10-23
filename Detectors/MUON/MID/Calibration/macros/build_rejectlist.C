@@ -316,25 +316,52 @@ RejectListStruct load_from_json(const o2::ccdb::CcdbApi& ccdbApi, const char* fi
 {
   // Open the JSON file
   std::cout << "Reading reject list from file " << filename << std::endl;
-  RejectListStruct rl;
   std::ifstream inFile(filename);
   if (!inFile.is_open()) {
     std::cerr << "Could not open the file!" << std::endl;
-    return rl;
+    return {};
   }
 
   // Create an IStreamWrapper for file input stream
   rapidjson::IStreamWrapper isw(inFile);
-
   rapidjson::Document doc;
   if (doc.ParseStream(isw).HasParseError()) {
     std::cerr << "Problem parsing " << filename << std::endl;
-    return rl;
+    return {};
   }
-  auto startRange = o2::ccdb::BasicCCDBManager::getRunDuration(ccdbApi, doc["startRun"].GetInt());
-  auto endRange = o2::ccdb::BasicCCDBManager::getRunDuration(ccdbApi, doc["endRun"].GetInt());
-  rl.start = startRange.first;
-  rl.end = endRange.second;
+
+  // manual-validity interval in ms:
+  int64_t startTSms = 0;
+  int64_t endTSms = 0;
+
+  // run numbers from the json
+  int startRun = doc["startRun"].GetInt();
+  int endRun = doc["endRun"].GetInt();
+
+  // check if there are non-zero timestamps in the json
+  bool hasStartTT = doc.HasMember("startTT") && doc["startTT"].IsInt64() && doc["startTT"].GetInt64() != 0;
+  bool hasEndTT = doc.HasMember("endTT") && doc["endTT"].IsInt64() && doc["endTT"].GetInt64() != 0;
+  if (hasStartTT && hasEndTT) {
+    startTSms = doc["startTT"].GetInt64();
+    endTSms = doc["endTT"].GetInt64();
+
+    // sanity check against the run boundaries
+    auto runStart = o2::ccdb::BasicCCDBManager::getRunDuration(ccdbApi, startRun).first;
+    auto runEnd = o2::ccdb::BasicCCDBManager::getRunDuration(ccdbApi, endRun).second;
+    if (startTSms < runStart || endTSms > runEnd) {
+      std::cout
+        << "\n\nWarning: manual timestamps [" << startTSms << " - " << endTSms
+        << "] lie outside run interval [" << runStart << " - " << runEnd << "]\n\n\n";
+    }
+  } else {
+    // use run start/end if there are no timestamps in the json
+    startTSms = o2::ccdb::BasicCCDBManager::getRunDuration(ccdbApi, startRun).first;
+    endTSms = o2::ccdb::BasicCCDBManager::getRunDuration(ccdbApi, endRun).second;
+  }
+
+  RejectListStruct rl;
+  rl.start = startTSms;
+  rl.end = endTSms;
   std::cout << "Manual RL validity: " << timeRangeToString(rl.start, rl.end) << std::endl;
   auto rlArray = doc["rejectList"].GetArray();
   for (auto& ar : rlArray) {

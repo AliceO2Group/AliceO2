@@ -36,7 +36,7 @@ inline void GPUReconstructionCPU::runKernelInterface(krnlSetup&& setup, Args con
   const uint32_t stream = setup.x.stream;
   auto prop = getKernelProperties<S, I>();
   const int32_t autoThreads = cpuFallback ? 1 : prop.nThreads;
-  const int32_t autoBlocks = cpuFallback ? 1 : (prop.forceBlocks ? prop.forceBlocks : (prop.minBlocks * mBlockCount));
+  const int32_t autoBlocks = cpuFallback ? 1 : (prop.forceBlocks ? prop.forceBlocks : (prop.minBlocks * mMultiprocessorCount));
   if (nBlocks == (uint32_t)-1) {
     nBlocks = (nThreads + autoThreads - 1) / autoThreads;
     nThreads = autoThreads;

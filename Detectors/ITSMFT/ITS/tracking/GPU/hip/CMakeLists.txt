@@ -12,6 +12,7 @@
 if(HIP_ENABLED)
   message(STATUS "Building ITS HIP tracker")
   set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fgpu-rdc")
+  # set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -O0 -g -ggdb -fno-inline -fno-omit-frame-pointer -D__HIP_ENABLE_DEVICE_ASSERT__")
   o2_add_hipified_library(ITStrackingHIP
                  SOURCES ../cuda/ClusterLinesGPU.cu
                          ../cuda/TimeFrameGPU.cu

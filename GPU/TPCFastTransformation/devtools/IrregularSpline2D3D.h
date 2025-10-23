@@ -21,7 +21,7 @@
 #include "FlatObject.h"
 #include "GPUCommonDef.h"
 
-#if !defined(__ROOTCLING__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
+#if !defined(__CLING__) && !defined(G__ROOT) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
 #include <Vc/Vc>
 #include <Vc/SimdArray>
 #endif
@@ -329,7 +329,7 @@ GPUdi() void IrregularSpline2D3D::getSplineVec(const float* correctedData, float
   // Same as getSpline, but using vectorized calculation.
   // \param correctedData should be at least 128-bit aligned
 
-#if !defined(__ROOTCLING__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
+#if !defined(__CLING__) && !defined(G__ROOT) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
   const IrregularSpline1D& gridU = getGridU();
   const IrregularSpline1D& gridV = getGridV();
   int32_t nu = gridU.getNumberOfKnots();

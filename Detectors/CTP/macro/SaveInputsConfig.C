@@ -41,7 +41,7 @@ void SaveInputsConfig(std::string filename = "inputs.cfg", std::string ccdbHost 
   long tmax = timeStamp + time365days;
   o2::ccdb::CcdbApi api;
   api.init(ccdbHost);           // or http://localhost:8080 for a local installation
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&ctpcfginps, "CTP/Calib/Inputs", metadata, tmin, tmax);
 }

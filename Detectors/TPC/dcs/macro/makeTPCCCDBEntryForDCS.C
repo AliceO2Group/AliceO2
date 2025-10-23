@@ -14,6 +14,7 @@
 #include <string>
 #include "TFile.h"
 #include "CCDB/CcdbApi.h"
+#include "CommonUtils/StringUtils.h"
 #include "DetectorsDCS/AliasExpander.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -24,9 +25,10 @@
 #include <chrono>
 
 using DPID = o2::dcs::DataPointIdentifier;
+using namespace o2::utils;
 
 /// macro to populate CCDB for TPC with the configuration for DCS
-int makeTPCCCDBEntryForDCS(const std::string url = "http://localhost:8080")
+int makeTPCCCDBEntryForDCS(const std::string url = "http://localhost:8080", std::string comment = "")
 {
 
   std::unordered_map<DPID, std::string> dpid2DataDesc;
@@ -64,9 +66,23 @@ int makeTPCCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 
   o2::ccdb::CcdbApi api;
   api.init(url); // or http://localhost:8080 for a local installation
-  std::map<std::string, std::string> md;
+  std::map<std::string, std::string> meta;
+
+  auto toKeyValPairs = [&meta](std::vector<std::string> const& tokens) {
+    for (auto& token : tokens) {
+      auto keyval = Str::tokenize(token, '=', false);
+      if (keyval.size() != 2) {
+        LOG(error) << "Illegal command-line key/value string: " << token;
+        continue;
+      }
+      Str::trim(keyval[1]);
+      meta[keyval[0]] = keyval[1];
+    }
+  };
+  toKeyValPairs(Str::tokenize(comment, ';', true));
+
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc, "TPC/Config/DCSDPconfig", md, ts, 99999999999999);
+  api.storeAsTFileAny(&dpid2DataDesc, "TPC/Config/DCSDPconfig", meta, ts, 99999999999999);
 
   return 0;
 }

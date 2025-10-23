@@ -16,65 +16,26 @@
 #ifndef TRACKINGITSU_INCLUDE_EVENTLOADER_H_
 #define TRACKINGITSU_INCLUDE_EVENTLOADER_H_
 
-#include <iosfwd>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
-#include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITStracking/Configuration.h"
-#include "ITStracking/ROframe.h"
-#include "ITStracking/Label.h"
-#include "ITStracking/Road.h"
-#include "ITStracking/TrackingConfigParam.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
-#include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ROFRecord.h" // TODO this is just included since the alignment code include it now
 
-namespace o2
+namespace o2::its::ioutils
 {
 
-class MCCompLabel;
-
-namespace dataformats
-{
-template <typename T>
-class MCTruthContainer;
-}
-
-namespace its
-{
-
-namespace ioutils
-{
 constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
-void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
-                   gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict,
-                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
-int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
-                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict,
-                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
-
 void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,
                             std::vector<o2::BaseCluster<float>>& output,
                             const itsmft::TopologyDictionary* dict);
-
-inline static const o2::itsmft::ChipMappingITS& getChipMappingITS()
-{
-  static const o2::itsmft::ChipMappingITS MP;
-  return MP;
-}
-
-std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
-void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road<5>>>&,
-                      const std::unordered_map<int, Label>&);
 
 template <class iterator, typename T>
 o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator& iter, const itsmft::TopologyDictionary* dict, T& sig2y, T& sig2z)
@@ -119,8 +80,6 @@ std::array<T, 3> extractClusterDataA(const itsmft::CompClusterExt& c, iterator& 
   }
 }
 
-} // namespace ioutils
-} // namespace its
-} // namespace o2
+} // namespace o2::its::ioutils
 
 #endif /* TRACKINGITSU_INCLUDE_EVENTLOADER_H_ */

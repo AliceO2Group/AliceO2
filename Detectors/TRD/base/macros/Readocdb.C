@@ -251,7 +251,7 @@ void Readocdb(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/
   //Connect to CCDB
   //
   o2::ccdb::CcdbApi ccdb;
-  map<string, string> metadata;               // do we want to store any meta data?
+  std::map<std::string, std::string> metadata; // do we want to store any meta data?
   ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
 
   AliTRDCalChamberStatus* chamberStatus = 0;

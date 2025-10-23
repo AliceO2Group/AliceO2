@@ -17,6 +17,7 @@
 #include "DetectorsBase/Detector.h"
 #include "FOCALBase/Hit.h"
 #include "FOCALBase/Geometry.h"
+#include "TGeoManager.h"
 
 class FairVolume;
 
@@ -157,6 +158,17 @@ class Detector : public o2::base::DetImpl<Detector>
 
   virtual void CreateHCALSpaghetti();
   virtual void CreateHCALSandwich();
+  virtual void CreateHCALSheets();
+
+  TGeoVolumeAssembly* CreatePitchAssembly(double Lx = 498.1,
+                                          double Ly1 = 2.0,
+                                          double Ly2 = 1.5,
+                                          double Lz = 1100.0,
+                                          double hole_diameter = 1.1,
+                                          double hole_spacing = 4.0,
+                                          int nholes = 124,
+                                          double fiber_radius = 0.5,
+                                          std::string suffix = "");
 
   /// \brief Generate ECAL geometry
   void CreateECALGeometry();

@@ -48,7 +48,7 @@ const std::unordered_map<CDBType, o2::header::DataDescription> CDBDescMap{
   {CDBType::CalTemperature, o2::header::DataDescription{"TPC_Temperature"}},
   {CDBType::CalHV, o2::header::DataDescription{"TPC_HighVoltage"}},
   {CDBType::CalGas, o2::header::DataDescription{"TPC_Gas"}},
-};
+  {CDBType::CalPressure, o2::header::DataDescription{"TPC_Pressure"}}};
 
 class DCSDevice : public o2::framework::Task
 {
@@ -105,6 +105,7 @@ class DCSDevice : public o2::framework::Task
   bool mDebugWritten{false};
   bool mWriteDebug{false};
   bool mReportTiming{false};
+  int mUpdateIntervalnTFs{-1};
 };
 
 void DCSDevice::init(o2::framework::InitContext& ic)
@@ -112,6 +113,8 @@ void DCSDevice::init(o2::framework::InitContext& ic)
   mWriteDebug = ic.options().get<bool>("write-debug");
   mCCDBupdateInterval = ic.options().get<int>("update-interval");
   mFitInterval = ic.options().get<int>("fit-interval");
+  const int pressureInterval = ic.options().get<int>("pressure-interval");
+  const int pressureIntervalRef = ic.options().get<int>("pressure-ref-interval");
   if (mCCDBupdateInterval < 0) {
     mCCDBupdateInterval = 0;
   }
@@ -119,15 +122,18 @@ void DCSDevice::init(o2::framework::InitContext& ic)
     LOGP(info, "fit interval {} >= ccdb update interval {}, making them identical", mFitInterval, mCCDBupdateInterval);
     mFitInterval = mCCDBupdateInterval;
   }
+  mUpdateIntervalnTFs = ic.options().get<int>("update-interval-nTFs");
 
   mDCS.setFitInterval(mFitInterval * 1000); // in ms in mDCS
+  mDCS.setPressureInterval(pressureInterval * 1000);
+  mDCS.setRefPressureInterval(pressureIntervalRef * 1000);
   mDCS.setRoundToInterval(ic.options().get<bool>("round-to-interval"));
 
   // set default meta data
   mCDBStorage.setResponsible("Jens Wiechula (jens.wiechula@cern.ch)");
   mCDBStorage.setIntervention(CDBIntervention::Automatic);
   mCDBStorage.setReason("DCS workflow upload");
-  mReportTiming = ic.options().get<bool>("report-timing") || mWriteDebug;
+  mReportTiming = ic.options().get<bool>("report-timing");
 }
 
 void DCSDevice::run(o2::framework::ProcessingContext& pc)
@@ -137,10 +143,16 @@ void DCSDevice::run(o2::framework::ProcessingContext& pc)
   if (mUpdateIntervalStart == 0) {
     mUpdateIntervalStart = mLastCreationTime;
   }
-  if (mLastCreationTime - mUpdateIntervalStart >= uint64_t(mCCDBupdateInterval * 1000)) {
+  if (mUpdateIntervalnTFs > 0 && (pc.services().get<o2::framework::TimingInfo>().tfCounter % mUpdateIntervalnTFs == 0)) {
+    // finalize DCS for every n-TFs (useful for testing purpose when reading in data from local file)
     finalizeDCS(pc.outputs());
-    mUpdateIntervalStart = mLastCreationTime;
+  } else {
+    if (mLastCreationTime - mUpdateIntervalStart >= uint64_t(mCCDBupdateInterval * 1000)) {
+      finalizeDCS(pc.outputs());
+      mUpdateIntervalStart = mLastCreationTime;
+    }
   }
+
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   mDCS.process(dps);
   sw.Stop();
@@ -170,6 +182,7 @@ void DCSDevice::updateCCDB(DataAllocator& output)
   sendObject(output, mDCS.getTemperature(), CDBType::CalTemperature);
   sendObject(output, mDCS.getHighVoltage(), CDBType::CalHV);
   sendObject(output, mDCS.getGas(), CDBType::CalGas);
+  sendObject(output, mDCS.getPressure(), CDBType::CalPressure);
 }
 
 /// ===| create DCS processor |=================================================
@@ -188,6 +201,9 @@ DataProcessorSpec getDCSSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{CDBPayload, CDBDescMap.at(CDBType::CalGas)}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{CDBWrapper, CDBDescMap.at(CDBType::CalGas)}, Lifetime::Sporadic);
 
+  outputs.emplace_back(ConcreteDataTypeMatcher{CDBPayload, CDBDescMap.at(CDBType::CalPressure)}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{CDBWrapper, CDBDescMap.at(CDBType::CalPressure)}, Lifetime::Sporadic);
+
   return DataProcessorSpec{
     "tpc-dcs",
     Inputs{{"input", "DCS", "TPCDATAPOINTS"}},
@@ -199,7 +215,9 @@ DataProcessorSpec getDCSSpec()
       {"update-interval", VariantType::Int, 60 * 15, {"update interval in seconds for which ccdb entries are written"}},
       {"fit-interval", VariantType::Int, 60 * 5, {"interval in seconds for which to e.g. perform fits of the temperature sensors"}},
       {"round-to-interval", VariantType::Bool, false, {"round fit interval to fixed times e.g. to every 5min in the hour"}},
-    } // end Options
+      {"pressure-interval", VariantType::Int, 100, {"interval in seconds for which to average the pressure values"}},
+      {"pressure-ref-interval", VariantType::Int, 24 * 60 * 60, {"interval in seconds for which to calculate the reference pressure values"}},
+      {"update-interval-nTFs", VariantType::Int, -1, {"only used when larger than 0: update interval in nTFs for which ccdb entries are written "}}} // end Options
   }; // end DataProcessorSpec
 }
 

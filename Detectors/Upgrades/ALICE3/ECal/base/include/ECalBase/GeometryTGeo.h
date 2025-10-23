@@ -9,6 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file GeometryTGeo.h
+/// \brief Class containing ECal volume naming patterns
+///
+/// \author Evgeny Kryshen <evgeny.kryshen@cern.ch>
+
 #ifndef ALICEO2_ECAL_GEOMETRYTGEO_H
 #define ALICEO2_ECAL_GEOMETRYTGEO_H
 
@@ -27,21 +32,25 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static GeometryTGeo* Instance();
 
   static const char* getECalVolPattern() { return sVolumeName.c_str(); }
-  static const char* getECalSensorPattern() { return sSensorName.c_str(); }
+  static const char* getECalSectorPattern() { return sSectorName.c_str(); }
+  static const char* getECalModulePattern() { return sModuleName.c_str(); }
 
   static const char* composeSymNameECal()
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::ECL).getName(), 0);
   }
-  static const char* composeSymNameSensor(); // A single sensor for the moment
+  static const char* composeSymNameSector(int s);
+  static const char* composeSymNameModule(int s, int m);
 
  protected:
   static std::string sVolumeName;
-  static std::string sSensorName;
+  static std::string sSectorName;
+  static std::string sModuleName;
 
  private:
   static std::unique_ptr<o2::ecal::GeometryTGeo> sInstance;
 };
 } // namespace ecal
 } // namespace o2
-#endif
+
+#endif // ALICEO2_ECAL_GEOMETRYTGEO_H

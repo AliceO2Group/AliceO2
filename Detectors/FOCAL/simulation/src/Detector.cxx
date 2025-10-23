@@ -480,11 +480,23 @@ void Detector::ConstructGeometry()
   CreateECALGeometry();
 
   // HCAL part
-  if (mGeometry->getUseHCALSandwich()) {
-    CreateHCALSandwich();
-  } else {
-    CreateHCALSpaghetti();
+  switch (mGeometry->getHCALDesign()) {
+    case Geometry::HCALDesgin::Sandwich:
+      CreateHCALSandwich();
+      break;
+
+    case Geometry::HCALDesgin::Spaghetti:
+      CreateHCALSpaghetti();
+      break;
+
+    case Geometry::HCALDesgin::Sheets:
+      CreateHCALSheets();
+      break;
+
+    default:
+      break;
   }
+
   // const float z0 = 1312.5; // center of barrel mother volume
   TVirtualMC::GetMC()->Gspos("FOCAL", 1, "barrel", 0, 30., mGeometry->getFOCALZ0() - (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) + (mGeometry->getInsertHCalReadoutMaterial() ? 1.5 : 0.0), 0, "ONLY");
 }
@@ -682,6 +694,219 @@ void Detector::CreateHCALSpaghetti()
 }
 
 //_____________________________________________________________________________
+TGeoVolumeAssembly* Detector::CreatePitchAssembly(double Lx,
+                                                  double Ly1,
+                                                  double Ly2,
+                                                  double Lz,
+                                                  double hole_diameter,
+                                                  double hole_spacing,
+                                                  int nholes,
+                                                  double fiber_radius,
+                                                  std::string suffix)
+{
+
+  // Z-alignment doesn't change
+  double zpos = 0;
+
+  TGeoMedium* copper = gGeoManager->GetMedium(getMediumID(ID_COPPER));
+  TGeoMedium* scint = gGeoManager->GetMedium(getMediumID(ID_SC));
+
+  TGeoVolumeAssembly* pitchAssembly = new TGeoVolumeAssembly("pitchAssembly");
+
+  // Hardcoded values for hole placement, to be set from outside
+  float holeStart = 0.15; // cm
+  float holeEnd = 0.35;   // cm
+
+  TGeoVolumeAssembly* volLowerSheetwHoles = new TGeoVolumeAssembly(Form("volLowerSheetwHoles_%s", suffix.c_str()));
+  TGeoVolume* cuSheet = gGeoManager->MakeBox("cuSheet", copper, Lx / 2, (Ly1 - fiber_radius * 2) / 2, Lz / 2);
+  cuSheet->SetLineColor(kOrange + 2);
+  mSensitive.push_back(cuSheet->GetName());
+  TGeoVolume* boxbegin = gGeoManager->MakeBox("BoxBegin", copper, holeStart / 2, fiber_radius, Lz / 2);
+  boxbegin->SetLineColor(kOrange + 2);
+  mSensitive.push_back(boxbegin->GetName());
+  TGeoVolume* boxMiddle = gGeoManager->MakeBox("BoxMiddle", copper, (hole_spacing - hole_diameter) / 2, fiber_radius, Lz / 2);
+  boxMiddle->SetLineColor(kOrange + 2);
+  mSensitive.push_back(boxMiddle->GetName());
+  TGeoVolume* boxEnd = gGeoManager->MakeBox("BoxEnd", copper, holeEnd / 2, fiber_radius, Lz / 2);
+  boxEnd->SetLineColor(kOrange + 2);
+  mSensitive.push_back(boxEnd->GetName());
+
+  double yPlacement = Ly1 / 2 - fiber_radius;
+
+  // -----------------
+  // Layer 1: Lower sheet with holes (y = 0)
+  // -----------------
+
+  volLowerSheetwHoles->AddNode(cuSheet, 0, new TGeoTranslation(0, -Ly1 / 2 + (Ly1 - fiber_radius * 2) / 2, zpos));
+
+  // Add holes starting at x = 1.5 mm
+  float start_x = -Lx / 2 + holeStart;
+
+  for (int ihole = 0; ihole < nholes; ++ihole) {
+    float holePlacement = start_x + ihole * hole_spacing + hole_diameter / 2;
+    if (ihole == 0) {
+      volLowerSheetwHoles->AddNode(boxbegin, ihole, new TGeoTranslation(holePlacement - holeStart / 2 - hole_diameter / 2, yPlacement, zpos));
+      volLowerSheetwHoles->AddNode(boxMiddle, ihole, new TGeoTranslation(holePlacement + hole_diameter / 2 + (hole_spacing - hole_diameter) / 2, yPlacement, zpos));
+    } else if (ihole == nholes - 1) {
+      if ((holePlacement + hole_diameter / 2 + holeStart) < Lx / 2 - 0.005) {
+        volLowerSheetwHoles->AddNode(boxEnd, ihole, new TGeoTranslation(holePlacement + hole_diameter / 2 + holeEnd / 2, yPlacement, zpos));
+      } else {
+        volLowerSheetwHoles->AddNode(boxbegin, ihole, new TGeoTranslation(holePlacement + hole_diameter / 2 + holeStart / 2, yPlacement, zpos));
+      }
+    } else {
+      volLowerSheetwHoles->AddNode(boxMiddle, ihole, new TGeoTranslation(holePlacement + hole_diameter / 2 + (hole_spacing - hole_diameter) / 2, yPlacement, zpos));
+    }
+  }
+
+  pitchAssembly->AddNode(volLowerSheetwHoles, 0, new TGeoTranslation(0, Ly1 / 2, zpos)); // Add Ly1 / 2 so the lower edge of the sheets start y=0
+
+  // -----------------
+  // Layer 2: Full copper sheet
+  // -----------------
+  TGeoVolume* fullSheet1 = gGeoManager->MakeBox("FullSheet1", copper, Lx / 2, Ly2 / 2, Lz / 2);
+  fullSheet1->SetLineColor(kOrange + 2);
+  mSensitive.push_back(fullSheet1->GetName());
+  pitchAssembly->AddNode(fullSheet1, 0, new TGeoTranslation(0, Ly1 / 2 + Ly2 / 2 + Ly1 / 2, zpos)); // Add Ly1 / 2 so the lower edge of the sheets start y=0
+
+  // -----------------
+  // Layer 3: Upper sheet with holes (shifted)
+  // -----------------
+
+  TGeoVolumeAssembly* volUpperSheetwHoles = new TGeoVolumeAssembly(Form("volUpperSheetwHoles_%s", suffix.c_str()));
+
+  volUpperSheetwHoles->AddNode(cuSheet, 0, new TGeoTranslation(0, -Ly1 / 2 + (Ly1 - fiber_radius * 2) / 2, zpos));
+
+  // Add holes starting at x = 3.5 mm
+  float start_x2 = -Lx / 2 + holeEnd;
+
+  for (int ihole = 0; ihole < nholes; ++ihole) {
+    float holePlacement = start_x2 + ihole * hole_spacing + hole_diameter / 2;
+    if (ihole == 0) {
+      volUpperSheetwHoles->AddNode(boxEnd, ihole, new TGeoTranslation(holePlacement - hole_diameter / 2 - holeEnd / 2, yPlacement, zpos));
+      volUpperSheetwHoles->AddNode(boxMiddle, ihole, new TGeoTranslation(holePlacement + hole_diameter / 2 + (hole_spacing - hole_diameter) / 2, yPlacement, zpos));
+    } else if (ihole == nholes - 1) {
+      volUpperSheetwHoles->AddNode(boxbegin, ihole, new TGeoTranslation(holePlacement + holeStart / 2 + hole_diameter / 2, yPlacement, zpos));
+    } else {
+      if ((holePlacement + hole_spacing + hole_diameter / 2) < Lx / 2 - 0.005) {
+        volUpperSheetwHoles->AddNode(boxMiddle, ihole, new TGeoTranslation(holePlacement + hole_diameter / 2 + (hole_spacing - hole_diameter) / 2, yPlacement, zpos));
+      } else {
+        volUpperSheetwHoles->AddNode(boxEnd, ihole, new TGeoTranslation(holePlacement + hole_diameter / 2 + holeEnd / 2, yPlacement, zpos));
+        break;
+      }
+    }
+  }
+
+  pitchAssembly->AddNode(volUpperSheetwHoles, 0, new TGeoTranslation(0, Ly1 / 2 + Ly2 + Ly1 / 2 + Ly1 / 2, zpos)); // Add Ly1 / 2 so the lower edge of the sheets start y=0
+
+  // -----------------
+  // Layer 4: Full copper sheet
+  // -----------------
+  pitchAssembly->AddNode(fullSheet1, 1, new TGeoTranslation(0, Ly1 / 2 + Ly2 + Ly1 + Ly2 / 2 + Ly1 / 2, zpos)); // Add Ly1 / 2 so the lower edge of the sheets start y=0
+
+  // -----------------
+  // Scintillator Fibers
+  // -----------------
+  // Lower set of fibers
+  TGeoVolume* fiber = gGeoManager->MakeTube("Fiber", scint, 0, fiber_radius, Lz / 2);
+  fiber->SetLineColor(kBlue);
+  mSensitive.push_back(fiber->GetName());
+  for (int i = 0; i < nholes; ++i) {
+    float x_fiber = start_x + i * hole_spacing + hole_diameter / 2;
+    pitchAssembly->AddNode(fiber, i, new TGeoTranslation(x_fiber, Ly1 / 2 - fiber_radius + Ly1 / 2, zpos));
+  }
+
+  // Upper set of fibers
+  for (int i = 0; i < nholes; ++i) {
+    float x_fiber = start_x2 + i * hole_spacing + hole_diameter / 2;
+    if (x_fiber > Lx / 2 - 0.05) {
+      break;
+    }
+    pitchAssembly->AddNode(fiber, i + nholes, new TGeoTranslation(x_fiber, Ly1 / 2 + Ly2 + Ly1 / 2 + Ly1 / 2 - fiber_radius + Ly1 / 2, zpos));
+  }
+
+  return pitchAssembly;
+}
+
+//_____________________________________________________________________________
+void Detector::CreateHCALSheets()
+{
+  TGeoVolumeAssembly* volHCAL = new TGeoVolumeAssembly("HCAL");
+
+  // Dimensions
+  double Lx = 49.81; // cm
+  double Ly1 = 0.20; // cm (sheets with holes)
+  double Ly2 = 0.15; // cm (full sheets)
+  double Lz = 110.0; // cm
+
+  double fiber_radius = 0.05;
+
+  // HCal materials
+  int icomp = 0;
+  for (auto& comp : mGeoCompositions) {
+    Lz = comp->sizeZ();
+
+    if (comp->material() == "Scint") {
+      fiber_radius = comp->sizeX() / 2;
+    }
+    if (comp->material() == "CuHCAL" && icomp == 0) {
+      Lx = comp->sizeX();
+      Ly1 = comp->sizeY();
+    }
+    if (comp->material() == "CuHCAL" && icomp == 2) {
+      Ly2 = comp->sizeY();
+    }
+    icomp++;
+  }
+
+  double hole_diameter = fiber_radius * 2 + 0.01; // hole radius
+  double hole_spacing = mGeometry->getHCALPitchSize();
+  int nholes = (int)(Lx / hole_spacing); // Number of holes in one HCAL sheet
+
+  double beamPipeHole = mGeometry->getHCALBeamPipeHoleSize();         // cm The size of the beam pipe opening
+  int nBeamPipeHoles = (int)((Lx - beamPipeHole / 2) / hole_spacing); // Number of beam pipe holes
+
+  // Compute module height (two sheets with holes + two full sheets)
+  float pitch_height = Ly1 + Ly2 + Ly1 + Ly2;
+
+  int totalNumberOfPitches = mGeometry->getHCALTowersInY() * 2;                  // Number of pitches in the whole HCAL
+  int numberOfPitchesBeamPipe = (int)((beamPipeHole + 0.001) / pitch_height);    // Number of pitches in the beam pipe region
+  int numberofPitchesOnYaxis = (totalNumberOfPitches - numberOfPitchesBeamPipe); // Number of pitches in the HCAL ouside the beam pipe region
+
+  TGeoVolumeAssembly* pitchAssembly = CreatePitchAssembly(Lx, Ly1, Ly2, Lz, hole_diameter, hole_spacing, nholes, fiber_radius, "Main");
+  pitchAssembly->SetVisibility(true);
+  TGeoVolumeAssembly* beamPipeAssembly = CreatePitchAssembly(Lx - beamPipeHole / 2, Ly1, Ly2, Lz, hole_diameter, hole_spacing, nBeamPipeHoles, fiber_radius, "BeamPipe");
+  beamPipeAssembly->SetVisibility(true);
+
+  TGeoVolumeAssembly* HalfHCAL = new TGeoVolumeAssembly("HalfHCAL");
+
+  for (int iPitch = 0; iPitch < numberofPitchesOnYaxis; iPitch++) {
+    float placement = iPitch * pitch_height - pitch_height * (totalNumberOfPitches) / 2.0;
+    if (placement < -beamPipeHole / 2.0) {
+      HalfHCAL->AddNode(pitchAssembly, iPitch, new TGeoTranslation(0, placement, 0.));
+    } else {
+      placement += beamPipeHole;
+      HalfHCAL->AddNode(pitchAssembly, iPitch, new TGeoTranslation(0, placement, 0.));
+    }
+  }
+
+  for (int iPitch = 0; iPitch < numberOfPitchesBeamPipe; iPitch++) {
+    float placement = iPitch * pitch_height - beamPipeHole / 2.0;
+    HalfHCAL->AddNode(beamPipeAssembly, iPitch, new TGeoTranslation(-beamPipeHole / 4, placement, 0.));
+  }
+
+  HalfHCAL->SetVisibility(true);
+  HalfHCAL->SetVisDaughters(true);
+
+  volHCAL->AddNode(HalfHCAL, 0, new TGeoTranslation(-Lx / 2, 0, 0.));
+  TGeoRotation* rotFlipZ = new TGeoRotation();
+  rotFlipZ->RotateY(180); // Flip around Y to reverse Z
+  TGeoCombiTrans* combHalf = new TGeoCombiTrans(Lx / 2, 0., 0., rotFlipZ);
+  volHCAL->AddNode(HalfHCAL, 1, combHalf);
+
+  gMC->Gspos("HCAL", 1, "FOCAL", 0, 0, mGeometry->getHCALCenterZ() - mGeometry->getFOCALSizeZ() / 2 + 0.01 + (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) - (mGeometry->getInsertHCalReadoutMaterial() ? 1.5 : 0.0), 0, "ONLY");
+}
+
+//_____________________________________________________________________________
 void Detector::CreateHCALSandwich()
 {
   TGeoVolumeAssembly* volHCAL = new TGeoVolumeAssembly("HCAL");
@@ -819,7 +1044,7 @@ void Detector::CreateECALGeometry()
   double pars[4]; // this is EMSC Assembly
   pars[0] = geom->getTowerSizeX() / 2. + geom->getTowerGapSizeX() / 2.;
   pars[1] = geom->getTowerSizeY() / 2. + geom->getTowerGapSizeY() / 2.;
-  // pars[2] = fGeom->GetFOCALSizeZ() / 2;
+  // pars[2] = mGeometry->GetFOCALSizeZ() / 2;
   pars[2] = geom->getECALSizeZ() / 2;
   pars[3] = 0;
   // this shifts all the pixel layers to the center near the beampipe

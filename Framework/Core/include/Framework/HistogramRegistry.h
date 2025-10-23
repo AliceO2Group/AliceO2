@@ -173,15 +173,14 @@ class HistogramRegistry
   template <typename T>
   std::shared_ptr<T> operator()(const HistName& histName);
 
+  // Apply @a callback on every single entry in the registry
+  void apply(std::function<void(HistogramRegistry const&, TNamed* named)> callback) const;
   // return the OutputSpec associated to the HistogramRegistry
   OutputSpec const spec();
 
-  OutputRef ref(uint16_t idx, uint16_t pipelineSize);
+  OutputRef ref(uint16_t idx, uint16_t pipelineSize) const;
 
   void setHash(uint32_t hash);
-
-  /// returns the list of histograms, properly sorted for writing.
-  TList* getListOfHistograms();
 
   /// deletes all the histograms from the registry
   void clean();
@@ -220,15 +219,12 @@ class HistogramRegistry
 
   // helper function to find the histogram position in the registry
   template <typename T>
-  uint32_t getHistIndex(const T& histName);
+  uint32_t getHistIndex(const T& histName) const;
 
   constexpr uint32_t imask(uint32_t i) const
   {
     return i & REGISTRY_BITMASK;
   }
-
-  // helper function to create resp. find the subList defined by path
-  TList* getSubList(TList* list, std::deque<std::string>& path);
 
   // helper function to split user defined path/to/hist/name string
   std::deque<std::string> splitPath(const std::string& pathAndNameUser);
@@ -431,7 +427,7 @@ std::shared_ptr<T> HistogramRegistry::operator()(const HistName& histName)
 }
 
 template <typename T>
-uint32_t HistogramRegistry::getHistIndex(const T& histName)
+uint32_t HistogramRegistry::getHistIndex(const T& histName) const
 {
   if (O2_BUILTIN_LIKELY(histName.hash == mRegistryKey[histName.idx])) {
     return histName.idx;

@@ -18,6 +18,7 @@
 #include "DetectorsBase/GlobalParams.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/Vertex.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/TriggerRecord.h"

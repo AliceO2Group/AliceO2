@@ -64,6 +64,10 @@ class CalibLaserTracksDevice : public o2::framework::Task
       return;
     }
     mTPCVDriftHelper.extractCCDBInputs(pc);
+    const auto timestamp = pc.services().get<o2::framework::TimingInfo>().creation;
+
+    // if reference temperature / pressure of VDrift object is zero then it was not corrected
+    const float tp = (mTPCVDriftHelper.getVDriftObject().refTP == 0) ? mTPCVDriftHelper.getPTHelper().getTP(timestamp) : mTPCVDriftHelper.getVDriftObject().refTP;
     if (mTPCVDriftHelper.isUpdated()) {
       mTPCVDriftHelper.acknowledgeUpdate();
       mCalib.setVDriftRef(mTPCVDriftHelper.getVDriftObject().getVDrift());
@@ -75,7 +79,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
     auto data = pc.inputs().get<gsl::span<TrackTPC>>("input");
     mCalib.setTFtimes(startTime, endTime);
-    mCalib.fill(data);
+    mCalib.fill(data, tp);
 
     if (!mOnlyPublishOnEOS && mCalib.hasEnoughData(mMinNumberTFs) && !mPublished) {
       sendOutput(pc.outputs());

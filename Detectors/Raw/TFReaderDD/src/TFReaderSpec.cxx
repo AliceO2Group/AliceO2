@@ -31,8 +31,14 @@
 #include "TFReaderSpec.h"
 #include "TFReaderDD/SubTimeFrameFileReader.h"
 #include "TFReaderDD/SubTimeFrameFile.h"
+#include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileFetcher.h"
 #include "CommonUtils/FIFO.h"
+#include "CommonUtils/IRFrameSelector.h"
+#include "DataFormatsParameters/AggregatedRunInfo.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CommonConstants/LHCConstants.h"
+#include "Algorithm/RangeTokenizer.h"
 #include <unistd.h>
 #include <algorithm>
 #include <unordered_map>
@@ -66,6 +72,8 @@ class TFReaderSpec : public o2f::Task
   void endOfStream(o2f::EndOfStreamContext& ec) final;
 
  private:
+  void loadRunTimeSpans(const std::string& flname);
+  void runTimeRangesToIRFrameSelector(int runNumber);
   void stopProcessing(o2f::ProcessingContext& ctx);
   void TFBuilder();
 
@@ -76,9 +84,14 @@ class TFReaderSpec : public o2f::Task
   o2::utils::FIFO<std::unique_ptr<TFMap>> mTFQueue{}; // queued TFs
   //  std::unordered_map<o2h::DataIdentifier, SubSpecCount, std::hash<o2h::DataIdentifier>> mSeenOutputMap;
   std::unordered_map<o2h::DataIdentifier, SubSpecCount> mSeenOutputMap;
-  int mTFCounter = 0;
+  std::map<int, std::vector<std::pair<long, long>>> mRunTimeRanges;
+  o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
+  int mConvRunTimeRangesToOrbits = -1;         // not defined yet
+  int mSentTFCounter = 0;
+  int mAccTFCounter = 0;
   int mTFBuilderCounter = 0;
   int mNWaits = 0;
+  int mTFLength = 32;
   long mTotalWaitTime = 0;
   size_t mSelIDEntry = 0; // next TFID to select from the mInput.tfIDs (if non-empty)
   bool mRunning = false;
@@ -105,6 +118,9 @@ void TFReaderSpec::init(o2f::InitContext& ic)
   mInput.maxTFsPerFile = mInput.maxTFsPerFile > 0 ? mInput.maxTFsPerFile : 0x7fffffff;
   mInput.maxTFCache = std::max(1, ic.options().get<int>("max-cached-tf"));
   mInput.maxFileCache = std::max(1, ic.options().get<int>("max-cached-files"));
+  if (!mInput.fileRunTimeSpans.empty()) {
+    loadRunTimeSpans(mInput.fileRunTimeSpans);
+  }
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
   mFileFetcher->setMaxLoops(mInput.maxLoops);
@@ -142,21 +158,17 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       if (verbose && mInput.verbosity > 0) {
         LOGP(info, "Acknowledge: part {}/{} {}/{}/{:#x} size:{} split {}/{}", ip, np, hd->dataOrigin.as<std::string>(), hd->dataDescription.as<std::string>(), hd->subSpecification, msgh.GetSize() + parts[ip + 1].GetSize(), hd->splitPayloadIndex, hd->splitPayloadParts);
       }
-      if (dph->startTime != this->mTFCounter) {
-        LOGP(fatal, "Local tf counter {} != TF timeslice {} for {}", this->mTFCounter, dph->startTime,
-             o2::framework::DataSpecUtils::describe(o2::framework::OutputSpec{hd->dataOrigin, hd->dataDescription, hd->subSpecification}));
-      }
       if (hd->splitPayloadIndex == 0) { // check the 1st one only
         auto& entry = this->mSeenOutputMap[{hd->dataDescription.str, hd->dataOrigin.str}];
-        if (entry.count != this->mTFCounter) {
+        if (entry.count != this->mSentTFCounter) {
           if (verbose && hdPrev) { // report previous partition size
             LOGP(info, "Block:{} {}/{} with size {}", nblocks, hdPrev->dataOrigin.as<std::string>(), hdPrev->dataDescription.as<std::string>(), dsize);
           }
           dsizeTot += dsize;
           dsize = 0;
-          entry.count = this->mTFCounter; // acknowledge identifier seen in the data
+          entry.count = this->mSentTFCounter; // acknowledge identifier seen in the data
           LOG(debug) << "Found a part " << ip << " of " << np << " | " << hd->dataOrigin.as<std::string>() << "/" << hd->dataDescription.as<std::string>()
-                     << "/" << hd->subSpecification << " part " << hd->splitPayloadIndex << " of " << hd->splitPayloadParts << " for TF " << this->mTFCounter;
+                     << "/" << hd->subSpecification << " part " << hd->splitPayloadIndex << " of " << hd->splitPayloadParts << " for TF " << this->mSentTFCounter;
           nblocks++;
         }
       }
@@ -208,11 +220,11 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
     const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
     for (auto& out : this->mSeenOutputMap) {
-      if (out.second.count == this->mTFCounter) { // was seen in the data
+      if (out.second.count == this->mSentTFCounter) { // was seen in the data
         continue;
       }
       LOG(debug) << "Adding dummy output for " << out.first.dataOrigin.as<std::string>() << "/" << out.first.dataDescription.as<std::string>()
-                 << "/" << out.second.defSubSpec << " for TF " << this->mTFCounter;
+                 << "/" << out.second.defSubSpec << " for TF " << this->mSentTFCounter;
       o2h::DataHeader outHeader(out.first.dataDescription, out.first.dataOrigin, out.second.defSubSpec, 0);
       outHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
       outHeader.firstTForbit = hd0->firstTForbit;
@@ -259,7 +271,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
 
       auto tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       auto tDiff = tNow - tLastTF;
-      if (mTFCounter && tDiff < mInput.delay_us) {
+      if (mSentTFCounter && tDiff < mInput.delay_us) {
         std::this_thread::sleep_for(std::chrono::microseconds((size_t)(mInput.delay_us - tDiff))); // respect requested delay before sending
       }
       for (auto& msgIt : *tfPtr.get()) {
@@ -274,9 +286,9 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       //        however this is a small enough hack for now.
       ctx.services().get<o2f::MessageContext>().fakeDispatch();
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-      LOGP(info, "Sent TF {} of size {} with {} parts, {:.4f} s elapsed from previous TF., WaitSending={}", mTFCounter, dataSize, nparts, mTFCounter ? double(tNow - tLastTF) * 1e-6 : 0., mWaitSendingLast);
+      LOGP(info, "Sent TF {} of size {} with {} parts, {:.4f} s elapsed from previous TF., WaitSending={}", mSentTFCounter, dataSize, nparts, mSentTFCounter ? double(tNow - tLastTF) * 1e-6 : 0., mWaitSendingLast);
       tLastTF = tNow;
-      ++mTFCounter;
+      ++mSentTFCounter;
 
       while (mTFQueue.size() == 0 && mWaitSendingLast) {
         usleep(10000);
@@ -289,7 +301,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     }
     //    usleep(5000); // wait 5ms for new TF to be built
   }
-  if (mTFCounter >= mInput.maxTFs || (!mTFQueue.size() && !mRunning)) { // done
+  if (mSentTFCounter >= mInput.maxTFs || (!mTFQueue.size() && !mRunning)) { // done
     stopProcessing(ctx);
   }
 }
@@ -314,7 +326,7 @@ void TFReaderSpec::stopProcessing(o2f::ProcessingContext& ctx)
     return;
   }
   stopDone = true;
-  LOGP(info, "{} TFs in {}  loops were sent, spent {:.2} s in {} data waiting states", mTFCounter, mFileFetcher->getNLoops(), 1e-6 * mTotalWaitTime, mNWaits);
+  LOGP(info, "{} TFs in {}  loops were sent, spent {:.2} s in {} data waiting states", mSentTFCounter, mFileFetcher->getNLoops(), 1e-6 * mTotalWaitTime, mNWaits);
   mRunning = false;
   if (mFileFetcher) {
     mFileFetcher->stop();
@@ -409,27 +421,46 @@ void TFReaderSpec::TFBuilder()
           std::this_thread::sleep_for(sleepTime);
           continue;
         }
-        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mSelIDEntry, mInput.sup0xccdb, mInput.verbosity);
+        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mAccTFCounter, mInput.sup0xccdb, mInput.verbosity);
         bool acceptTF = true;
         if (tf) {
+          if (mRunTimeRanges.size()) {
+            const auto* dataptr = (*tf->begin()->second.get())[0].GetData();
+            const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
+            static int runNumberPrev = -1;
+            if (runNumberPrev != hd0->runNumber) {
+              runNumberPrev = hd0->runNumber;
+              runTimeRangesToIRFrameSelector(runNumberPrev);
+            }
+            if (mIRFrameSelector.isSet()) {
+              o2::InteractionRecord ir0(0, hd0->firstTForbit);
+              o2::InteractionRecord ir1(o2::constants::lhc::LHCMaxBunches - 1, hd0->firstTForbit < 0xffffffff - (mTFLength - 1) ? hd0->firstTForbit + (mTFLength - 1) : 0xffffffff);
+              auto irSpan = mIRFrameSelector.getMatchingFrames({ir0, ir1});
+              acceptTF = (irSpan.size() > 0) ? !mInput.invertIRFramesSelection : mInput.invertIRFramesSelection;
+              LOGP(info, "IRFrame selection contains {} frames for TF [{}] : [{}]: {}use this TF (selection inversion mode is {})",
+                   irSpan.size(), ir0.asString(), ir1.asString(), acceptTF ? "" : "do not ", mInput.invertIRFramesSelection ? "ON" : "OFF");
+            }
+          }
           locID++;
-          if (!mInput.tfIDs.empty()) {
+          if (!mInput.tfIDs.empty() && acceptTF) {
             acceptTF = false;
+            while ((mInput.tfIDs[mSelIDEntry] < mTFBuilderCounter) && (mSelIDEntry + 1) < mInput.tfIDs.size()) {
+              mSelIDEntry++;
+            }
+            LOGP(info, "chec if mInput.tfIDs[{}]({}) == {}", mSelIDEntry, mInput.tfIDs[mSelIDEntry], mTFBuilderCounter);
             if (mInput.tfIDs[mSelIDEntry] == mTFBuilderCounter) {
               mWaitSendingLast = false;
               acceptTF = true;
               LOGP(info, "Retrieved TF#{} will be pushed as slice {} following user request", mTFBuilderCounter, mSelIDEntry);
-              mSelIDEntry++;
             } else {
               LOGP(info, "Retrieved TF#{} will be discared following user request", mTFBuilderCounter);
             }
-          } else {
-            mSelIDEntry++;
           }
           mTFBuilderCounter++;
         }
         if (mRunning && tf) {
           if (acceptTF) {
+            mAccTFCounter++;
             mWaitSendingLast = true;
             mTFQueue.push(std::move(tf));
           }
@@ -446,6 +477,110 @@ void TFReaderSpec::TFBuilder()
       }
     }
   }
+}
+
+//_________________________________________________________
+void TFReaderSpec::loadRunTimeSpans(const std::string& flname)
+{
+  std::ifstream inputFile(flname);
+  if (!inputFile) {
+    LOGP(fatal, "Failed to open selected run/timespans file {}", flname);
+  }
+  std::string line;
+  size_t cntl = 0, cntr = 0;
+  while (std::getline(inputFile, line)) {
+    cntl++;
+    for (char& ch : line) { // Replace semicolons and tabs with spaces for uniform processing
+      if (ch == ';' || ch == '\t' || ch == ',') {
+        ch = ' ';
+      }
+    }
+    o2::utils::Str::trim(line);
+    if (line.size() < 1 || line[0] == '#') {
+      continue;
+    }
+    auto tokens = o2::utils::Str::tokenize(line, ' ');
+    auto logError = [&cntl, &line]() { LOGP(error, "Expected format for selection is tripplet <run> <range_min> <range_max>, failed on line#{}: {}", cntl, line); };
+    if (tokens.size() >= 3) {
+      int run = 0;
+      long rmin, rmax;
+      try {
+        run = std::stoi(tokens[0]);
+        rmin = std::stol(tokens[1]);
+        rmax = std::stol(tokens[2]);
+      } catch (...) {
+        logError();
+        continue;
+      }
+
+      constexpr long ISTimeStamp = 1514761200000L;
+      int convmn = rmin > ISTimeStamp ? 1 : 0, convmx = rmax > ISTimeStamp ? 1 : 0; // values above ISTimeStamp are timestamps (need to be converted to orbits)
+      if (rmin > rmax) {
+        LOGP(fatal, "Provided range limits are not in increasing order, entry is {}", line);
+      }
+      if (mConvRunTimeRangesToOrbits == -1) {
+        if (convmn != convmx) {
+          LOGP(fatal, "Provided range limits should be both consistent either with orbit number or with unix timestamp in ms, entry is {}", line);
+        }
+        mConvRunTimeRangesToOrbits = convmn; // need to convert to orbit if time
+        LOGP(info, "Interpret selected time-spans input as {}", mConvRunTimeRangesToOrbits == 1 ? "timstamps(ms)" : "orbits");
+      } else {
+        if (mConvRunTimeRangesToOrbits != convmn || mConvRunTimeRangesToOrbits != convmx) {
+          LOGP(fatal, "Provided range limits should are not consistent with previously determined {} input, entry is {}", mConvRunTimeRangesToOrbits == 1 ? "timestamps" : "orbits", line);
+        }
+      }
+
+      mRunTimeRanges[run].emplace_back(rmin, rmax);
+      cntr++;
+    } else {
+      logError();
+    }
+  }
+  LOGP(info, "Read {} time-spans for {} runs from {}", cntr, mRunTimeRanges.size(), flname);
+  inputFile.close();
+}
+
+//_________________________________________________________
+void TFReaderSpec::runTimeRangesToIRFrameSelector(int runNumber)
+{
+  // convert entries in the runTimeRanges to IRFrameSelector, if needed, convert time to orbit
+  mIRFrameSelector.clear();
+  auto ent = mRunTimeRanges.find(runNumber);
+  if (ent == mRunTimeRanges.end()) {
+    LOGP(info, "RunTimeRanges selection was provided but run {} has no entries, all TFs will be processed", runNumber);
+    return;
+  }
+  o2::parameters::AggregatedRunInfo rinfo;
+  auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
+  rinfo = o2::parameters::AggregatedRunInfo::buildAggregatedRunInfo(ccdb, runNumber);
+  if (rinfo.runNumber != runNumber || rinfo.orbitsPerTF < 1) {
+    LOGP(fatal, "failed to extract AggregatedRunInfo for run {}", runNumber);
+  }
+  mTFLength = rinfo.orbitsPerTF;
+  std::vector<o2::dataformats::IRFrame> frames;
+  for (const auto& rng : ent->second) {
+    long orbMin = 0, orbMax = 0;
+    if (mConvRunTimeRangesToOrbits > 0) {
+      orbMin = rinfo.orbitSOR + (rng.first - rinfo.sor) / (o2::constants::lhc::LHCOrbitMUS * 0.001);
+      orbMax = rinfo.orbitSOR + (rng.second - rinfo.sor) / (o2::constants::lhc::LHCOrbitMUS * 0.001);
+    } else {
+      orbMin = rng.first;
+      orbMax = rng.second;
+    }
+    if (orbMin < 0) {
+      orbMin = 0;
+    }
+    if (orbMax < 0) {
+      orbMax = 0;
+    }
+    if (runNumber > 523897) {
+      orbMin = (orbMin / rinfo.orbitsPerTF) * rinfo.orbitsPerTF;
+      orbMax = (orbMax / rinfo.orbitsPerTF + 1) * rinfo.orbitsPerTF - 1;
+    }
+    LOGP(info, "TFs overlapping with orbits {}:{} will be {}", orbMin, orbMax, mInput.invertIRFramesSelection ? "rejected" : "selected");
+    frames.emplace_back(o2::InteractionRecord{0, uint32_t(orbMin)}, o2::InteractionRecord{o2::constants::lhc::LHCMaxBunches, uint32_t(orbMax)});
+  }
+  mIRFrameSelector.setOwnList(frames, true);
 }
 
 //_________________________________________________________

@@ -24,7 +24,7 @@ void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.c
     if (!dets[id]) {
       continue;
     }
-    map<string, string> metadata; // can be empty
+    std::map<std::string, std::string> metadata; // can be empty
     DetID det(id);
     metadata["comment"] = fmt::format("Empty alignment object for {}", det.getName());
     metadata["default"] = "true"; // tag default objects

@@ -66,11 +66,7 @@ void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
     mPolicyOrder = [this](o2::framework::DataProcessingHeader::StartTime timeslice) {
       std::unique_lock lk(mPipeline->completionPolicyMutex);
       mPipeline->completionPolicyNotify.wait(lk, [pipeline = mPipeline.get()] { return pipeline->pipelineSenderTerminating || !pipeline->completionPolicyQueue.empty(); });
-      if (mPipeline->completionPolicyQueue.front() == timeslice) {
-        mPipeline->completionPolicyQueue.pop();
-        return true;
-      }
-      return false;
+      return !mPipeline->completionPolicyQueue.empty() && mPipeline->completionPolicyQueue.front() == timeslice;
     };
     mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
     for (uint32_t i = 0; i < mPipeline->workers.size(); i++) {
@@ -94,6 +90,7 @@ void GPURecoWorkflowSpec::RunWorkerThread(int32_t id)
       context = workerContext.inputQueue.front();
       workerContext.inputQueue.pop();
     }
+    context->jobThreadIndex = id;
     context->jobReturnValue = runMain(nullptr, context->jobPtrs, context->jobOutputRegions, id, context->jobInputUpdateCallback.get());
     {
       std::lock_guard lk(context->jobFinishedMutex);
@@ -175,9 +172,16 @@ int32_t GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingIn
     tpcZSmeta = std::move(context->tpcZSmeta);
     tpcZS = context->tpcZS;
     ptrs.tpcZS = &tpcZS;
-  }
-  if (mSpecConfig.enableDoublePipeline == 2) {
-    auto prepareBuffer = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0}, 0u);
+
+    {
+      std::lock_guard lk(mPipeline->completionPolicyMutex);
+      if (mPipeline->completionPolicyQueue.empty() || mPipeline->completionPolicyQueue.front() != tinfo.timeslice) {
+        LOG(fatal) << "Time frame processed does not equal the timeframe at the top of the queue, time frames seem out of sync";
+      }
+      mPipeline->completionPolicyQueue.pop();
+    }
+  } else if (mSpecConfig.enableDoublePipeline == 2) {
+    auto prepareDummyMessage = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0}, 0u);
 
     size_t ptrsTotal = 0;
     const void* firstPtr = nullptr;

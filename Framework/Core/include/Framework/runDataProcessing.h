@@ -21,12 +21,12 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/SendingPolicy.h"
-#include "Framework/WorkflowSpec.h"
+#include "Framework/WorkflowSpec.h" // IWYU pragma: export
 #include "Framework/ConfigContext.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
 #include "Framework/CommonServices.h"
 #include "Framework/WorkflowCustomizationHelpers.h"
-#include "Framework/Logger.h"
+#include "Framework/Logger.h" // IWYU pragma: export
 #include "Framework/CheckTypes.h"
 #include "Framework/StructToTuple.h"
 #include "ResourcePolicy.h"

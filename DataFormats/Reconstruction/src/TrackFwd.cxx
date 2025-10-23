@@ -11,6 +11,7 @@
 
 #include "ReconstructionDataFormats/TrackFwd.h"
 #include "Math/MatrixFunctions.h"
+#include <GPUCommonLogger.h>
 
 namespace o2
 {
@@ -501,6 +502,74 @@ bool TrackParCovFwd::getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const
   cv[20] = -2 * mCovariances(3, 4) * pz * q * pt * pt + mCovariances(3, 3) * pt * pt + mCovariances(4, 4) * pz * pz * pt * pt;
 
   return true;
+}
+
+//________________________________________________________________
+
+void TrackParCovFwd::propagateToDCAhelix(double zField, const std::array<double, 3>& p, std::array<double, 3>& dca)
+{
+  // Computing DCA of fwd track w.r.t vertex in helix track model, using Newton-Raphson minimization
+
+  auto x0 = mParameters(0);
+  auto y0 = mParameters(1);
+  auto z0 = mZ;
+  auto phi0 = mParameters(2);
+  auto tanl = mParameters(3);
+  auto qOverPt = mParameters(4);
+  auto k = TMath::Abs(o2::constants::math::B2C * zField);
+  auto qpt = 1.0 / qOverPt;
+  auto qR = qpt / std::fabs(k);
+  auto invtanl = 1.0 / tanl;
+  auto Hz = std::copysign(1, zField);
+
+  auto xPV = p[0];
+  auto yPV = p[1];
+  auto zPV = p[2];
+
+  auto qRtanl = qR * tanl;
+  auto invqRtanl = 1.0 / qRtanl;
+  auto [sinp, cosp] = o2::math_utils::sincosd(phi0);
+
+  auto z = zPV;
+  double tol = 1e-4;
+  int max_iter = 10;
+  int iter = 0;
+
+  while (iter++ < max_iter) {
+    double theta = (z0 - z) * invqRtanl;
+    double phi_theta = phi0 + Hz * theta;
+    double sin_phi_theta = sin(phi_theta);
+    double cos_phi_theta = cos(phi_theta);
+
+    double DX = x0 - Hz * qR * (sin_phi_theta - sinp) - xPV;
+    double DY = y0 + Hz * qR * (cos_phi_theta - cosp) - yPV;
+    double DZ = z - zPV;
+
+    double dD2_dZ =
+      2 * DX * cos_phi_theta * invtanl +
+      2 * DY * sin_phi_theta * invtanl +
+      2 * DZ;
+
+    double d2D2_dZ2 =
+      2 * invtanl * invtanl +
+      2 * invtanl * (DX * Hz * sin_phi_theta - DY * Hz * cos_phi_theta) * invqRtanl +
+      2;
+
+    double z_new = z - dD2_dZ / d2D2_dZ2;
+
+    if (std::abs(z_new - z) < tol) {
+      z = z_new;
+      this->propagateToZhelix(z, zField);
+      dca[0] = this->getX() - xPV;
+      dca[1] = this->getY() - yPV;
+      dca[2] = this->getZ() - zPV;
+      LOG(debug) << "Converged after " << iter << " iterations for vertex X=" << p[0] << ", Y=" << p[1] << ", Z = " << p[2];
+      return;
+    }
+    z = z_new;
+  }
+  LOG(debug) << "Failed to converge after " << iter << " iterations for vertex X=" << p[0] << ", Y=" << p[1] << ", Z = " << p[2];
+  return;
 }
 
 } // namespace track

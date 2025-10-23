@@ -32,7 +32,7 @@ struct AggregatedRunInfo {
   int runNumber = 0;       // run number
   int64_t sor = 0;         // best known timestamp for the start of run
   int64_t eor = 0;         // best known timestamp for end of run
-  int64_t orbitsPerTF = 0; // number of orbits per TF
+  int64_t orbitsPerTF = 0; // number of orbits per TF (takes precedence over that in GRPECS)
   int64_t orbitReset = 0;  // timestamp of orbit reset before run
   int64_t orbitSOR = 0;    // orbit when run starts after orbit reset
   int64_t orbitEOR = 0;    // orbit when run ends after orbit reset
@@ -40,9 +40,27 @@ struct AggregatedRunInfo {
   // we may have pointers to actual data source objects GRPECS, ...
   const o2::parameters::GRPECSObject* grpECS = nullptr; // pointer to GRPECSobject (fetched during struct building)
 
-  // fills and returns AggregatedRunInfo for a given run number.
-  static AggregatedRunInfo buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber);
   static AggregatedRunInfo buildAggregatedRunInfo(int runnumber, long sorMS, long eorMS, long orbitResetMUS, const o2::parameters::GRPECSObject* grpecs, const std::vector<Long64_t>* ctfFirstRunOrbitVec);
+
+  // fills and returns AggregatedRunInfo for a given data run number.
+  static AggregatedRunInfo buildAggregatedRunInfo_DATA(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber);
+
+  // Returns the meta-data (MCProdInfo) associated to production lpm_prod_tag (performed by username)
+  static std::map<std::string, std::string> getMCProdInfo(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber,
+                                                          std::string const& lpm_prod_tag, std::string const& username = "aliprod");
+
+  // function that adjusts with values from MC
+  void adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb, int run_number, std::string const& lpm_prod_tag, std::string const& username = "aliprod");
+
+  // Fills and returns AggregatedRunInfo for a given run number.
+  // If a non-empty lpm_prod_tag is given, it will potentially override values with specifics from a
+  // MC production identified by that tag and username.
+  static AggregatedRunInfo buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb,
+                                                  int runnumber,
+                                                  std::string const& lpm_prod_tag = "",
+                                                  std::string const& username = "aliprod");
+
+  ClassDefNV(AggregatedRunInfo, 1);
 };
 
 } // namespace o2::parameters

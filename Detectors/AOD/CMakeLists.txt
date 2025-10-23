@@ -42,14 +42,14 @@ o2_add_executable(
   COMPONENT_NAME aod-producer
   TARGETVARNAME targetName
   SOURCES src/aod-producer-workflow.cxx src/AODProducerWorkflowSpec.cxx src/AODMcProducerHelpers.cxx
-  PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
+  PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version nlohmann_json::nlohmann_json
 )
 
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-mc-producer
   SOURCES src/aod-mc-producer-workflow.cxx src/AODMcProducerWorkflowSpec.cxx src/AODMcProducerHelpers.cxx
-  PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
+  PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version nlohmann_json::nlohmann_json
 )
 
 o2_add_executable(
@@ -75,7 +75,8 @@ o2_add_executable(
         O2::DataFormatsFT0
         O2::Steer
         O2::ZDCBase
-)
+        nlohmann_json::nlohmann_json
+        )
 
 if (OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

@@ -277,13 +277,13 @@ bool GRPDCSDPsProcessor::processLHCIFDPs(const DPCOM& dpcom)
   }
 
   for (int ibeam = 0; ibeam < GRPLHCInfo::BeamAliases::NBeamAliases; ++ibeam) {
-    if (aliasStr.find(static_cast<std::string>(GRPLHCInfo::beamAliases[ibeam])) != string::npos) {
+    if (aliasStr.find(static_cast<std::string>(GRPLHCInfo::beamAliases[ibeam])) != std::string::npos) {
       updateVector(dpid, mLHCInfo.mIntensityBeam[ibeam], aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
   }
 
-  if (aliasStr.find("BPTX") != string::npos) {
+  if (aliasStr.find("BPTX") != std::string::npos) {
     if (aliasStr == static_cast<std::string>(GRPLHCInfo::bptxAliases[GRPLHCInfo::BPTXAliases::BPTX_deltaT_B1_B2])) {
       updateVector(dpid, mLHCInfo.mBPTXdeltaT, aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
@@ -318,7 +318,7 @@ bool GRPDCSDPsProcessor::processLHCIFDPs(const DPCOM& dpcom)
   }
 
   for (int ibkg = 0; ibkg < 3; ++ibkg) {
-    if (aliasStr.find(static_cast<std::string>(GRPLHCInfo::bkgAliases[ibkg])) != string::npos) {
+    if (aliasStr.find(static_cast<std::string>(GRPLHCInfo::bkgAliases[ibkg])) != std::string::npos) {
       updateVector(dpid, mLHCInfo.mBackground[ibkg], aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }

@@ -37,7 +37,7 @@ class TrackerDPL : public framework::Task
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
              bool isMC,
              int trgType,
-             const TrackingMode& trMode = TrackingMode::Unset,
+             const TrackingMode::Type trMode = TrackingMode::Unset,
              const bool overrBeamEst = false,
              o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
   ~TrackerDPL() override = default;
@@ -48,6 +48,7 @@ class TrackerDPL : public framework::Task
   void stop() final;
 
  private:
+  void end();
   void updateTimeDependentParams(framework::ProcessingContext& pc);
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
@@ -56,8 +57,7 @@ class TrackerDPL : public framework::Task
   TStopwatch mTimer;
 };
 
-using o2::its::TrackingMode;
-framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trMode, const bool overrBeamEst = false, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, TrackingMode::Type trMode, const bool overrBeamEst = false, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
 
 } // namespace o2::its
 

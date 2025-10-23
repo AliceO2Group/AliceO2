@@ -15,6 +15,7 @@
 #include "GPUCommonMath.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "MathUtils/Utils.h"
+#include "ReconstructionDataFormats/HelixHelper.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 using namespace o2::base;
@@ -421,6 +422,101 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackPar_t& track, value_type 
 //_______________________________________________________________________
 template <typename value_T>
 template <typename track_T>
+GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, bool bzOnly, value_type maxSnp, value_type maxStep,
+                                                  MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
+{
+  const value_T MaxPhiLoc = math_utils::detail::asin<value_T>(maxSnp), MaxPhiLocSafe = 0.95 * MaxPhiLoc;
+  auto bz = getNominalBz();
+  if (math_utils::detail::abs(bz) > constants::math::Almost0) {
+    o2::track::TrackAuxPar traux(track, bz);
+    o2::track::TrackAuxPar crad;
+    value_type r0 = math_utils::detail::sqrt<value_T>(track.getX() * track.getX() + track.getY() * track.getY());
+    value_type dr = (r - r0);
+    value_type rTmp = r - (math_utils::detail::abs<value_T>(dr) > 1. ? (dr > 0 ? 0.5 : -0.5) : 0.5 * dr); // 1st propagate a few mm short of the targer R
+    crad.rC = rTmp;
+    crad.c = crad.cc = 1.f;
+    crad.s = crad.ss = crad.cs = 0.f;
+    o2::track::CrossInfo cross;
+    cross.circlesCrossInfo(crad, traux, 0.);
+    if (cross.nDCA < 1) {
+      return false;
+    }
+    double phiCross[2] = {}, dphi[2] = {};
+    auto curv = track.getCurvature(bz);
+    bool clockwise = curv < 0; // q+ in B+ or q- in B- goes clockwise
+    auto phiLoc = math_utils::detail::asin<double>(track.getSnp());
+    auto phi0 = phiLoc + track.getAlpha();
+    o2::math_utils::detail::bringTo02Pi(phi0);
+    for (int i = 0; i < cross.nDCA; i++) {
+      // track pT direction angle at crossing points:
+      // == angle of the tangential to track circle at the crossing point X,Y
+      // == normal to the radial vector from the track circle center {X-cX, Y-cY}
+      // i.e. the angle of the vector {Y-cY, -(X-cx)}
+      auto normX = double(cross.yDCA[i]) - double(traux.yC), normY = -(double(cross.xDCA[i]) - double(traux.xC));
+      if (!clockwise) {
+        normX = -normX;
+        normY = -normY;
+      }
+      phiCross[i] = math_utils::detail::atan2<double>(normY, normX);
+      o2::math_utils::detail::bringTo02Pi(phiCross[i]);
+      dphi[i] = phiCross[i] - phi0;
+      if (dphi[i] > o2::constants::math::PI) {
+        dphi[i] -= o2::constants::math::TwoPI;
+      } else if (dphi[i] < -o2::constants::math::PI) {
+        dphi[i] += o2::constants::math::TwoPI;
+      }
+    }
+    int sel = cross.nDCA == 1 ? 0 : (clockwise ? (dphi[0] < dphi[1] ? 0 : 1) : (dphi[1] < dphi[0] ? 0 : 1));
+    auto deltaPhi = dphi[sel];
+
+    while (1) {
+      auto phiLocFin = phiLoc + deltaPhi;
+      // case1
+      if (math_utils::detail::abs<value_type>(phiLocFin) < MaxPhiLocSafe) { // just 1 step propagation
+        auto deltaX = (math_utils::detail::sin<double>(phiLocFin) - track.getSnp()) / track.getCurvature(bz);
+        if (!track.propagateTo(track.getX() + deltaX, bz)) {
+          return false;
+        }
+        break;
+      }
+      if (math_utils::detail::abs<value_type>(deltaPhi) < (2 * MaxPhiLocSafe)) { // still can go in 1 step with one extra rotation
+        auto rot = phiLoc + 0.5 * deltaPhi;
+        if (!track.rotate(track.getAlpha() + rot)) {
+          return false;
+        }
+        phiLoc -= rot;
+        continue; // should be ok for the case 1 now.
+      }
+
+      auto rot = phiLoc + (deltaPhi > 0 ? MaxPhiLocSafe : -MaxPhiLocSafe);
+      if (!track.rotate(track.getAlpha() + rot)) {
+        return false;
+      }
+      phiLoc -= rot; // = +- MaxPhiLocSafe
+
+      // propagate to phiLoc = +-MaxPhiLocSafe
+      auto tgtPhiLoc = deltaPhi > 0 ? MaxPhiLocSafe : -MaxPhiLocSafe;
+      auto deltaX = (math_utils::detail::sin<double>(tgtPhiLoc) - track.getSnp()) / track.getCurvature(bz);
+      if (!track.propagateTo(track.getX() + deltaX, bz)) {
+        return false;
+      }
+      deltaPhi -= tgtPhiLoc - phiLoc;
+      phiLoc = deltaPhi > 0 ? MaxPhiLocSafe : -MaxPhiLocSafe;
+      continue; // should be of for the case 1 now.
+    }
+    bz = getBz(math_utils::Point3D<value_type>{value_type(cross.xDCA[sel]), value_type(cross.yDCA[sel]), value_type(track.getZ())});
+  }
+  // do final step till target R, also covers Bz = 0;
+  value_type xfin;
+  if (!track.getXatLabR(r, xfin, bz)) {
+    return false;
+  }
+  return propagateToX(track, xfin, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr);
+}
+
+//_______________________________________________________________________
+template <typename value_T>
+template <typename track_T>
 GPUd() bool PropagatorImpl<value_T>::propagateToAlphaX(track_T& track, value_type alpha, value_type x, bool bzOnly, value_type maxSnp, value_type maxStep, int minSteps,
                                                        MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
 {
@@ -468,6 +564,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   value_type crv = track.getCurvature(bZ);
@@ -488,6 +588,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
 #elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   track = tmpT;
@@ -517,6 +621,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   value_type crv = track.getCurvature(mNominalBz);
@@ -537,6 +645,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
 #elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
+    if (dca) { // provide default DCA for failed propag
+      dca->set(o2::track::DefaultDCA, o2::track::DefaultDCA,
+               o2::track::DefaultDCACov, o2::track::DefaultDCACov, o2::track::DefaultDCACov);
+    }
     return false;
   }
   track = tmpT;
@@ -566,6 +678,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   value_type crv = track.getCurvature(bZ);
@@ -587,6 +703,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
 #else
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex " << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z();
 #endif
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   track = tmpT;
@@ -614,6 +734,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
   // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   value_type crv = track.getCurvature(mNominalBz);
@@ -635,6 +759,10 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
 #else
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex " << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z();
 #endif
+    if (dca) { // provide default DCA for failed propag
+      (*dca)[0] = o2::track::DefaultDCA;
+      (*dca)[1] = o2::track::DefaultDCA;
+    }
     return false;
   }
   track = tmpT;
@@ -773,6 +901,35 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
 }
 
 template <typename value_T>
+template <typename T>
+GPUd() T PropagatorImpl<value_T>::getBzImpl(const math_utils::Point3D<T> xyz) const
+{
+  T bz = 0;
+  if (mGPUField) {
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+    const auto* f = &GPUCA_CONSMEM.param.polynomialField; // Access directly from constant memory on GPU (copied here to avoid complicated header dependencies)
+#else
+    const auto* f = mGPUField;
+#endif
+    constexpr value_type kCLight1 = 1. / o2::gpu::gpu_common_constants::kCLight;
+    bz = f->GetFieldBz(xyz.X(), xyz.Y(), xyz.Z()) * kCLight1;
+  } else {
+#ifndef GPUCA_GPUCODE
+    if (mFieldFast) {
+      mFieldFast->GetBz(xyz, bz); // Must not call the host-only function in GPU compilation
+    } else {
+#ifdef GPUCA_STANDALONE
+      LOG(fatal) << "Normal field cannot be used in standalone benchmark";
+#else
+      bz = mField->GetBz(xyz.X(), xyz.Y(), xyz.Z());
+#endif
+    }
+#endif
+  }
+  return bz;
+}
+
+template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::getFieldXYZ(const math_utils::Point3D<float> xyz, float* bxyz) const
 {
   getFieldXYZImpl<float>(xyz, bxyz);
@@ -784,12 +941,26 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZ(const math_utils::Point3D<doubl
   getFieldXYZImpl<double>(xyz, bxyz);
 }
 
+template <typename value_T>
+GPUd() float PropagatorImpl<value_T>::getBz(const math_utils::Point3D<float> xyz) const
+{
+  return getBzImpl<float>(xyz);
+}
+
+template <typename value_T>
+GPUd() double PropagatorImpl<value_T>::getBz(const math_utils::Point3D<double> xyz) const
+{
+  return getBzImpl<double>(xyz);
+}
+
 namespace o2::base
 {
 #if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
 template class PropagatorImpl<float>;
 template bool GPUdni() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 template bool GPUdni() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool GPUdni() PropagatorImpl<float>::propagateToR<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool GPUdni() PropagatorImpl<float>::propagateToR<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 #endif
 #ifndef GPUCA_GPUCODE
 template class PropagatorImpl<double>;

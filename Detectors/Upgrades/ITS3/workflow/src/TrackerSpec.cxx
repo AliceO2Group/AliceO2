@@ -49,7 +49,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        bool isMC,
                        int trgType,
-                       const its::TrackingMode& trMode,
+                       its::TrackingMode::Type trMode,
                        const bool overrBeamEst,
                        o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr),
                                                                   mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
@@ -95,7 +95,7 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
   LOGF(info, "ITS3 CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, its::TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -145,10 +145,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, const st
     "its3-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest, useMC, trgType,
-                                            trModeS == "sync" ? o2::its::TrackingMode::Sync : trModeS == "async" ? o2::its::TrackingMode::Async
-                                                                                                                 : o2::its::TrackingMode::Cosmics,
-                                            overrBeamEst, dType)},
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest, useMC, trgType, trMode, overrBeamEst, dType)},
     Options{}};
 }
 

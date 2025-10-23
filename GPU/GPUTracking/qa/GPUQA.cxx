@@ -45,7 +45,6 @@
 #include "GPUTPCGMPropagator.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCMCInfo.h"
-#include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
 #include "GPUTPCClusterRejection.h"
@@ -99,14 +98,16 @@ using namespace o2::gpu;
   bool unattached = attach == 0;                                                                 \
   float qpt = 0;                                                                                 \
   bool lowPt = false;                                                                            \
-  bool mev200 = false;                                                                           \
-  bool mergedLooper = false;                                                                     \
+  [[maybe_unused]] bool mev200 = false;                                                          \
+  bool mergedLooperUnconnected = false;                                                          \
+  bool mergedLooperConnected = false;                                                            \
   int32_t id = attach & gputpcgmmergertypes::attachTrackMask;                                    \
   if (!unattached) {                                                                             \
     qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt());                        \
     lowPt = qpt * mTracking->GetParam().qptB5Scaler > mTracking->GetParam().rec.tpc.rejectQPtB5; \
     mev200 = qpt > 5;                                                                            \
-    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();                           \
+    mergedLooperUnconnected = mTracking->mIOPtrs.mergedTracks[id].MergedLooperUnconnected();     \
+    mergedLooperConnected = mTracking->mIOPtrs.mergedTracks[id].MergedLooperConnected();         \
   }                                                                                              \
   bool physics = false, protect = false;                                                         \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
@@ -118,16 +119,17 @@ using namespace o2::gpu;
   }                                                                                                        \
   if (lowPt) {                                                                                             \
     mClusterCounts.nLowPt++;                                                                               \
-  } else if (mergedLooper) {                                                                               \
-    mClusterCounts.nMergedLooper++;                                                                        \
+  } else if (mergedLooperUnconnected) {                                                                    \
+    mClusterCounts.nMergedLooperUnconnected++;                                                             \
+  } else if (mergedLooperConnected) {                                                                      \
+    mClusterCounts.nMergedLooperConnected++;                                                               \
   } else {                                                                                                 \
     GPUTPCClusterRejection::GetProtectionStatus<true>(attach, physics, protect, &mClusterCounts, &mev200); \
   }
 
 #define CHECK_CLUSTER_STATE_NOCOUNT()                                             \
   CHECK_CLUSTER_STATE_INIT()                                                      \
-  (void)mev200; /* silence unused variable warning*/                              \
-  if (!lowPt && !mergedLooper) {                                                  \
+  if (!lowPt && !mergedLooperUnconnected && !mergedLooperConnected) {             \
     GPUTPCClusterRejection::GetProtectionStatus<false>(attach, physics, protect); \
   }
 
@@ -158,15 +160,12 @@ static constexpr float PT_MAX = 20;
 static constexpr float ETA_MAX = 1.5;
 static constexpr float ETA_MAX2 = 0.9;
 
-static constexpr float MIN_WEIGHT_CLS = 40;
-static constexpr float FINDABLE_WEIGHT_CLS = 70;
-
 static constexpr bool CLUST_HIST_INT_SUM = false;
 
 static constexpr const int32_t COLORCOUNT = 12;
 
-static const constexpr char* EFF_TYPES[4] = {"Rec", "Clone", "Fake", "All"};
-static const constexpr char* FINDABLE_NAMES[2] = {"", "Findable"};
+static const constexpr char* EFF_TYPES[5] = {"Rec", "Clone", "Fake", "All", "RecAndClone"};
+static const constexpr char* FINDABLE_NAMES[2] = {"All", "Findable"};
 static const constexpr char* PRIM_NAMES[2] = {"Prim", "Sec"};
 static const constexpr char* PARAMETER_NAMES[5] = {"Y", "Z", "#Phi", "#lambda", "Relative #it{p}_{T}"};
 static const constexpr char* PARAMETER_NAMES_NATIVE[5] = {"Y", "Z", "sin(#Phi)", "tan(#lambda)", "q/#it{p}_{T} (curvature)"};
@@ -234,6 +233,7 @@ inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return 1; }
 inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && mClNative && mClNative->clustersMCTruth && mMCInfos.size(); }
 uint32_t GPUQA::GetMCLabelCol(const mcLabel_t& label) const { return !label.isValid() ? 0 : (mMCEventOffset[label.getSourceID()] + label.getEventID()); }
 GPUQA::mcLabelI_t GPUQA::GetMCTrackLabel(uint32_t trackId) const { return trackId >= mTrackMCLabels.size() ? MCCompLabel() : mTrackMCLabels[trackId]; }
+bool GPUQA::CompareIgnoreFake(const mcLabelI_t& l1, const mcLabelI_t& l2) { return l1.compare(l2) >= 0; }
 #define TRACK_EXPECTED_REFERENCE_X 78
 #else
 inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID) {}
@@ -263,6 +263,7 @@ inline int32_t GPUQA::AbsLabelID(int32_t id) { return id >= 0 ? id : (-id - 2); 
 inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && GetNMCLabels() && GetNMCTracks(0); }
 uint32_t GPUQA::GetMCLabelCol(const mcLabel_t& label) const { return 0; }
 GPUQA::mcLabelI_t GPUQA::GetMCTrackLabel(uint32_t trackId) const { return trackId >= mTrackMCLabels.size() ? mcLabelI_t() : mTrackMCLabels[trackId]; }
+bool GPUQA::CompareIgnoreFake(const mcLabelI_t& l1, const mcLabelI_t& l2) { return AbsLabelID(l1) == AbsLabelID(l2); }
 #define TRACK_EXPECTED_REFERENCE_X TRACK_EXPECTED_REFERENCE_X_DEFAULT
 #endif
 template <class T>
@@ -439,7 +440,7 @@ int32_t GPUQA::InitQACreateHistograms()
   char name[2048], fname[1024];
   if (mQATasks & taskTrackingEff) {
     // Create Efficiency Histograms
-    for (int32_t i = 0; i < 4; i++) {
+    for (int32_t i = 0; i < 5; i++) {
       for (int32_t j = 0; j < 2; j++) {
         for (int32_t k = 0; k < 2; k++) {
           for (int32_t l = 0; l < 5; l++) {
@@ -454,7 +455,9 @@ int32_t GPUQA::InitQACreateHistograms()
               mEff[i][j][k][l]->Sumw2();
             }
             strcat(name, "_eff");
-            createHist(mEffResult[i][j][k][l], name);
+            if (i < 4) {
+              createHist(mEffResult[i][j][k][l], name);
+            }
           }
         }
       }
@@ -530,10 +533,12 @@ int32_t GPUQA::InitQACreateHistograms()
       snprintf(name, 2048, i ? "nrows_with_cluster" : "nclusters");
       createHist(mNCl[i], name, name, 160, 0, 159);
     }
-    snprintf(name, 2048, "tracks");
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
-    createHist(mTracks, name, name, AXIS_BINS[4], binsPt.get());
-    createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250);
+    createHist(mTracks, "tracks_pt", "tracks_pt", AXIS_BINS[4], binsPt.get());
+    const uint32_t maxTime = (mTracking && mTracking->GetParam().continuousMaxTimeBin > 0) ? mTracking->GetParam().continuousMaxTimeBin : TPC_MAX_TIME_BIN_TRIGGERED;
+    createHist(mT0[0], "tracks_t0", "tracks_t0", (maxTime + 1) / 10, 0, maxTime);
+    createHist(mT0[1], "tracks_t0_res", "tracks_t0_res", 1000, -100, 100);
+    createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250); // TODO: Pass name only once
   }
 
   if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
@@ -661,10 +666,9 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
 {
 #ifdef GPUCA_O2_LIB
   if (!mO2MCDataLoaded) {
-    HighResTimer timer;
+    HighResTimer timer(mTracking && mTracking->GetProcessingSettings().debugLevel);
     if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
       GPUInfo("Start reading O2 Track MC information");
-      timer.Start();
     }
     static constexpr float PRIM_MAX_T = 0.01f;
 
@@ -672,7 +676,27 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
     std::vector<int32_t> refId;
 
     auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
-    auto evrec = dc->getEventRecords();
+    const auto& evrec = dc->getEventRecords();
+    const auto& evparts = dc->getEventParts();
+    std::vector<std::vector<float>> evTimeBins(mcReader.getNSources());
+    for (uint32_t i = 0; i < evTimeBins.size(); i++) {
+      evTimeBins[i].resize(mcReader.getNEvents(i), -100.f);
+    }
+    for (uint32_t i = 0; i < evrec.size(); i++) {
+      const auto& ir = evrec[i];
+      for (uint32_t j = 0; j < evparts[i].size(); j++) {
+        const int iSim = evparts[i][j].sourceID;
+        const int iEv = evparts[i][j].entryID;
+        if (iSim == o2::steer::QEDSOURCEID || ir.differenceInBC(o2::raw::HBFUtils::Instance().getFirstIR()) >= 0) {
+          auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
+          float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
+          if (evTimeBins[iSim][iEv] >= 0) {
+            throw std::runtime_error("Multiple time bins for same MC collision found");
+          }
+          evTimeBins[iSim][iEv] = timebin;
+        }
+      }
+    }
 
     uint32_t nSimSources = mcReader.getNSources();
     mMCEventOffset.resize(nSimSources);
@@ -686,9 +710,7 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
     mMCInfosCol.resize(nSimTotalEvents);
     for (int32_t iSim = 0; iSim < mcReader.getNSources(); iSim++) {
       for (int32_t i = 0; i < mcReader.getNEvents(iSim); i++) {
-        auto ir = evrec[i];
-        auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
-        float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
+        const float timebin = evTimeBins[iSim][i];
 
         const std::vector<o2::MCTrack>& tracks = mcReader.getTracks(iSim, i);
         const std::vector<o2::TrackReference>& trackRefs = mcReader.getTrackRefsByEvent(iSim, i);
@@ -756,7 +778,7 @@ void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
         }
       }
     }
-    if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
+    if (timer.IsRunning()) {
       GPUInfo("Finished reading O2 Track MC information (%f seconds)", timer.GetCurrentElapsedTime());
     }
     mO2MCDataLoaded = true;
@@ -902,7 +924,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     mClusterParam.resize(GetNMCLabels());
     memset(mClusterParam.data(), 0, mClusterParam.size() * sizeof(mClusterParam[0]));
   }
-  HighResTimer timer;
+  HighResTimer timer(QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 2));
 
   mNEvents++;
   if (mConfig.writeMCLabels) {
@@ -914,9 +936,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
   bool mcAvail = mcPresent() || tracksExtMC;
 
-  if (mcAvail) {
-    // Assign Track MC Labels
-    timer.Start();
+  if (mcAvail) { // Assign Track MC Labels
     if (tracksExternal) {
 #ifdef GPUCA_O2_LIB
       for (uint32_t i = 0; i < tracksExternal->size(); i++) {
@@ -967,7 +987,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       });
     }
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Assign Track Labels:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1027,11 +1047,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             bool comp;
             if (revLabel == -1) {
               comp = true;
-            } else if (mTracking->GetParam().par.earlyTpcTransform) {
-              comp = fabsf(trks[i].GetParam().GetZ() + trks[i].GetParam().GetTZOffset()) < fabsf(trks[revLabel].GetParam().GetZ() + trks[revLabel].GetParam().GetTZOffset());
             } else {
-              float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSECTORS / 2, trks[i].GetParam().GetTZOffset());
-              float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSECTORS / 2, trks[revLabel].GetParam().GetTZOffset());
+              float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSECTORS / 2, trks[i].GetParam().GetTOffset());
+              float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSECTORS / 2, trks[revLabel].GetParam().GetTOffset());
               comp = fabsf(trks[i].GetParam().GetZ() + shift1) < fabsf(trks[revLabel].GetParam().GetZ() + shift2);
             }
             if (revLabel == -1 || !trks[revLabel].OK() || (trks[i].OK() && comp)) {
@@ -1107,7 +1125,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Cluster attach status:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1134,7 +1152,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Compute cluster label weights:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1158,7 +1176,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       } // clang-format off
     }, tbb::simple_partitioner()); // clang-format on
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Compute track mc parameters:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1181,10 +1199,10 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (info.primDaughters) {
             continue;
           }
-          if (mc2.nWeightCls < MIN_WEIGHT_CLS) {
+          if (mc2.nWeightCls < mConfig.minNClEff) {
             continue;
           }
-          int32_t findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
+          int32_t findable = mc2.nWeightCls >= mConfig.minNClFindable;
           if (info.pid < 0) {
             continue;
           }
@@ -1213,9 +1231,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           float localY = -info.x * s + info.y * c;
 
           if (mConfig.dumpToROOT) {
-            static auto effdump = GPUROOTDump<TNtuple>::getNew("eff", "alpha:x:y:z:mcphi:mceta:mcpt:rec:fake:findable:prim");
+            static auto effdump = GPUROOTDump<TNtuple>::getNew("eff", "alpha:x:y:z:mcphi:mceta:mcpt:rec:fake:findable:prim:ncls");
             float localX = info.x * c + info.y * s;
-            effdump.Fill(alpha, localX, localY, info.z, mcphi, mceta, mcpt, mRecTracks[iCol][i], mFakeTracks[iCol][i], findable, info.prim);
+            effdump.Fill(alpha, localX, localY, info.z, mcphi, mceta, mcpt, mRecTracks[iCol][i], mFakeTracks[iCol][i], findable, info.prim, mc2.nWeightCls);
           }
 
           for (int32_t j = 0; j < 4; j++) {
@@ -1248,7 +1266,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
         }
       }
-      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+      if (timer.IsRunning()) {
         GPUInfo("QA Time: Fill efficiency histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1294,13 +1312,16 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         if (mc1.pid < 0) {
           continue;
         }
+        if (mc1.t0 == -100.f) {
+          continue;
+        }
         if (mConfig.filterCharge && mc1.charge * mConfig.filterCharge < 0) {
           continue;
         }
         if (mConfig.filterPID >= 0 && mc1.pid != mConfig.filterPID) {
           continue;
         }
-        if (mc2.nWeightCls < MIN_WEIGHT_CLS) {
+        if (mc2.nWeightCls < mConfig.minNClRes) {
           continue;
         }
         if (mConfig.resPrimaries == 1 && !mc1.prim) {
@@ -1324,7 +1345,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             param.Cov()[k] = (*tracksExternal)[i].getCov()[k];
           }
           param.X() = (*tracksExternal)[i].getX();
-          param.TZOffset() = (*tracksExternal)[i].getTime0();
+          param.TOffset() = (*tracksExternal)[i].getTime0();
           alpha = (*tracksExternal)[i].getAlpha();
           side = (*tracksExternal)[i].hasBothSidesClusters() ? 2 : ((*tracksExternal)[i].hasCSideClusters() ? 1 : 0);
 #endif
@@ -1363,13 +1384,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (!mParam->continuousMaxTimeBin) {
             return param.GetZ() - mc1.z;
           }
-#ifdef GPUCA_TPC_GEOMETRY_O2
-          if (!mParam->par.earlyTpcTransform) {
-            float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTZOffset() - mc1.t0);
-            return param.GetZ() + shift - mc1.z;
-          }
-#endif
-          return param.Z() + param.TZOffset() - mc1.z;
+          float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTOffset() - mc1.t0);
+          return param.GetZ() + shift - mc1.z;
         };
 
         prop.SetTrack(&param, alpha);
@@ -1421,7 +1437,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
         }
       }
-      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+      if (timer.IsRunning()) {
         GPUInfo("QA Time: Fill resolution histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1648,7 +1664,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
 
-      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+      if (timer.IsRunning()) {
         GPUInfo("QA Time: Fill cluster histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1658,6 +1674,10 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
   if (mQATasks & taskTrackStatistics) {
     // Fill track statistic histograms
+    std::vector<std::array<float, 3>> clusterAttachCounts;
+    if (mcAvail) {
+      clusterAttachCounts.resize(GetNMCLabels(), {0.f, 0.f});
+    }
     for (uint32_t i = 0; i < nReconstructedTracks; i++) {
       const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
       if (!track.OK()) {
@@ -1666,23 +1686,53 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       mTracks->Fill(1.f / fabsf(track.GetParam().GetQPt()));
       mNCl[0]->Fill(track.NClustersFitted());
       uint32_t nClCorrected = 0;
-      int32_t lastSector = -1, lastRow = -1;
       const auto& trackClusters = mTracking->mIOPtrs.mergedTrackHits;
-      for (uint32_t j = 0; j < track.NClusters(); j++) {
-        if (trackClusters[track.FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject) {
-          continue;
+      uint32_t jNext = 0;
+      for (uint32_t j = 0; j < track.NClusters(); j = jNext) {
+        uint32_t rowClCount = !(trackClusters[track.FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject);
+        for (jNext = j + 1; j < track.NClusters(); jNext++) {
+          if (trackClusters[track.FirstClusterRef() + j].sector != trackClusters[track.FirstClusterRef() + jNext].sector || trackClusters[track.FirstClusterRef() + j].row != trackClusters[track.FirstClusterRef() + jNext].row) {
+            break;
+          }
+          rowClCount += !(trackClusters[track.FirstClusterRef() + jNext].state & GPUTPCGMMergedTrackHit::flagReject);
         }
-        if (trackClusters[track.FirstClusterRef() + j].sector == lastSector && trackClusters[track.FirstClusterRef() + j].row == lastRow) {
-          continue;
+        if (!track.MergedLooper() && rowClCount) {
+          nClCorrected++;
         }
-        if (trackClusters[track.FirstClusterRef() + j].leg != trackClusters[track.FirstClusterRef() + track.NClusters() - 1].leg) {
-          continue;
+        if (mcAvail && rowClCount) {
+          for (uint32_t k = j; k < jNext; k++) {
+            const auto& cl = trackClusters[track.FirstClusterRef() + k];
+            if (cl.state & GPUTPCGMMergedTrackHit::flagReject) {
+              continue;
+            }
+            bool labelOk = false, labelOkNonFake = false;
+            const mcLabelI_t& trkLabel = mTrackMCLabels[i];
+            if (trkLabel.isValid() && !trkLabel.isNoise()) {
+              for (int32_t l = 0; l < GetMCLabelNID(cl.num); l++) {
+                const mcLabelI_t& clLabel = GetMCLabel(cl.num, l);
+                if (clLabel.isValid() && !clLabel.isNoise() && CompareIgnoreFake(trkLabel, clLabel)) {
+                  labelOk = true;
+                  if (!trkLabel.isFake()) {
+                    labelOkNonFake = true;
+                  }
+                  break;
+                }
+              }
+            }
+            clusterAttachCounts[cl.num][0] += 1.0f;
+            clusterAttachCounts[cl.num][1] += (float)labelOk / rowClCount;
+            clusterAttachCounts[cl.num][2] += (float)labelOkNonFake / rowClCount;
+          }
         }
-        nClCorrected++;
-        lastSector = trackClusters[track.FirstClusterRef() + j].sector;
-        lastRow = trackClusters[track.FirstClusterRef() + j].sector;
       }
       mNCl[1]->Fill(nClCorrected);
+      mT0[0]->Fill(track.GetParam().GetTOffset());
+      if (mTrackMCLabels.size() && !mTrackMCLabels[i].isFake() && !track.MergedLooper() && !track.CCE()) {
+        const auto& info = GetMCTrack(mTrackMCLabels[i]);
+        if (info.t0 != -100.f) {
+          mT0[1]->Fill(track.GetParam().GetTOffset() - info.t0);
+        }
+      }
     }
     if (mClNative && mTracking && mTracking->GetTPCTransformHelper()) {
       for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
@@ -1697,8 +1747,20 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
+    if (mcAvail) {
+      double clusterAttachNormalizedCount = 0, clusterAttachNormalizedCountNonFake = 0;
+      for (uint32_t i = 0; i < clusterAttachCounts.size(); i++) {
+        if (clusterAttachCounts[i][0]) {
+          clusterAttachNormalizedCount += clusterAttachCounts[i][1] / clusterAttachCounts[i][0];
+          clusterAttachNormalizedCountNonFake += clusterAttachCounts[i][2] / clusterAttachCounts[i][0];
+        }
+      }
+      mClusterCounts.nCorrectlyAttachedNormalized = clusterAttachNormalizedCount;
+      mClusterCounts.nCorrectlyAttachedNormalizedNonFake = clusterAttachNormalizedCountNonFake;
+      clusterAttachCounts.clear();
+    }
 
-    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+    if (timer.IsRunning()) {
       GPUInfo("QA Time: Fill track statistics:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
   }
@@ -1771,7 +1833,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     mClusterCounts = counts_t();
   }
 
-  if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
+  if (timer.IsRunning()) {
     GPUInfo("QA Time: Cluster Counts:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 
@@ -1789,7 +1851,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (attach & gputpcgmmergertypes::attachFlagMask) {
             uint32_t track = attach & gputpcgmmergertypes::attachTrackMask;
             const auto& trk = mTracking->mIOPtrs.mergedTracks[track];
-            mTracking->GetTPCTransformHelper()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTZOffset());
+            mTracking->GetTPCTransformHelper()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTOffset());
             mTracking->GetParam().Sector2Global(i, x, y, z, &x, &y, &z);
           }
           uint32_t extState = mTracking->mIOPtrs.mergedTrackHitStates ? mTracking->mIOPtrs.mergedTrackHitStates[clid] : 0;
@@ -1913,8 +1975,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
 
   std::vector<Color_t> colorNums(COLORCOUNT);
   if (!qcout) {
-    static int32_t initColorsInitialized = initColors();
-    (void)initColorsInitialized;
+    [[maybe_unused]] static int32_t initColorsInitialized = initColors();
   }
   for (int32_t i = 0; i < COLORCOUNT; i++) {
     colorNums[i] = qcout ? defaultColorNums[i] : mColors[i]->GetNumber();
@@ -2069,7 +2130,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
 
     // Create Canvas for track statistic histos
     if (mQATasks & taskTrackStatistics) {
-      mCTracks = createGarbageCollected<TCanvas>("ctracks", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
+      mCTracks = createGarbageCollected<TCanvas>("ctrackspt", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
       mCTracks->cd();
       mPTracks = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPTracks->Draw();
@@ -2077,7 +2138,15 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       SetLegend(mLTracks);
 
       for (int32_t i = 0; i < 2; i++) {
-        snprintf(name, 2048, "cncl%d Pull", i);
+        snprintf(name, 2048, "ctrackst0%d", i);
+        mCT0[i] = createGarbageCollected<TCanvas>(name, "Track T0", 0, 0, 700, 700. * 2. / 3.);
+        mCT0[i]->cd();
+        mPT0[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
+        mPT0[i]->Draw();
+        mLT0[i] = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+        SetLegend(mLT0[i]);
+
+        snprintf(name, 2048, "cncl%d", i);
         mCNCl[i] = createGarbageCollected<TCanvas>(name, i ? "Number of clusters (corrected for multiple per row)" : "Number of clusters per track", 0, 0, 700, 700. * 2. / 3.);
         mCNCl[i]->cd();
         mPNCl[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
@@ -2122,15 +2191,18 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
                 gErrorIgnoreLevel = kError;
                 mEffResult[0][j / 2][j % 2][i]->Divide(mEff[l][j / 2][j % 2][i], mEff[3][j / 2][j % 2][i], "cl=0.683 b(1,1) mode");
                 gErrorIgnoreLevel = oldLevel;
-                mEff[3][j / 2][j % 2][i]->Reset(); // Sum up rec + clone + fake for clone/fake rate
+                mEff[3][j / 2][j % 2][i]->Reset(); // Sum up rec + clone + fake for fake rate
                 mEff[3][j / 2][j % 2][i]->Add(mEff[0][j / 2][j % 2][i]);
                 mEff[3][j / 2][j % 2][i]->Add(mEff[1][j / 2][j % 2][i]);
                 mEff[3][j / 2][j % 2][i]->Add(mEff[2][j / 2][j % 2][i]);
+                mEff[4][j / 2][j % 2][i]->Reset(); // Sum up rec + clone for clone rate
+                mEff[4][j / 2][j % 2][i]->Add(mEff[0][j / 2][j % 2][i]);
+                mEff[4][j / 2][j % 2][i]->Add(mEff[1][j / 2][j % 2][i]);
               } else {
                 // Divide fake/clone
                 auto oldLevel = gErrorIgnoreLevel;
                 gErrorIgnoreLevel = kError;
-                mEffResult[l][j / 2][j % 2][i]->Divide(mEff[l][j / 2][j % 2][i], mEff[3][j / 2][j % 2][i], "cl=0.683 b(1,1) mode");
+                mEffResult[l][j / 2][j % 2][i]->Divide(mEff[l][j / 2][j % 2][i], mEff[l == 1 ? 4 : 3][j / 2][j % 2][i], "cl=0.683 b(1,1) mode");
                 gErrorIgnoreLevel = oldLevel;
               }
             }
@@ -2143,6 +2215,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
                 e->Write();
                 if (l == 2) {
                   mEff[3][j / 2][j % 2][i]->Write(); // Store also all histogram!
+                  mEff[4][j / 2][j % 2][i]->Write(); // Store also all histogram!
                 }
               }
             } else if (GetHist(e, tin, k, nNewInput) == nullptr) {
@@ -2677,7 +2750,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
   if (mQATasks & taskTrackStatistics) {
     // Process track statistic histograms
     float tmpMax = 0.;
-    for (int32_t k = 0; k < ConfigNumInputs; k++) {
+    for (int32_t k = 0; k < ConfigNumInputs; k++) { // TODO: Simplify this drawing, avoid copy&paste
       TH1F* e = mTracks;
       if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
@@ -2721,6 +2794,51 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
 
     for (int32_t i = 0; i < 2; i++) {
+      tmpMax = 0.;
+      for (int32_t k = 0; k < ConfigNumInputs; k++) {
+        TH1F* e = mT0[i];
+        if (GetHist(e, tin, k, nNewInput) == nullptr) {
+          continue;
+        }
+        e->SetMaximum(-1111);
+        if (e->GetMaximum() > tmpMax) {
+          tmpMax = e->GetMaximum();
+        }
+      }
+      mPT0[i]->cd();
+      for (int32_t k = 0; k < ConfigNumInputs; k++) {
+        TH1F* e = mT0[i];
+        if (GetHist(e, tin, k, nNewInput) == nullptr) {
+          continue;
+        }
+        if (tout && !mConfig.inputHistogramsOnly && k == 0) {
+          e->Write();
+        }
+        e->SetMaximum(tmpMax * 1.02);
+        e->SetMinimum(tmpMax * -0.02);
+        e->SetStats(kFALSE);
+        e->SetLineWidth(1);
+        e->GetYaxis()->SetTitle("a.u.");
+        e->GetXaxis()->SetTitle(i ? "to vs t0_{mc}" : "t0");
+        if (qcout) {
+          qcout->Add(e);
+        }
+        e->SetMarkerColor(kBlack);
+        e->SetLineColor(colorNums[k % COLORCOUNT]);
+        e->Draw(k == 0 ? "" : "same");
+        GetName(fname, k);
+        snprintf(name, 2048, "%sTrack T0 %s", fname, i ? "" : "resolution");
+        mLT0[i]->AddEntry(e, name, "l");
+      }
+      mLT0[i]->Draw();
+      mCT0[i]->cd();
+      snprintf(name, 2048, "plots/t0%s.pdf", i ? "_res" : "");
+      mCT0[i]->Print(name);
+      if (mConfig.writeRootFiles) {
+        snprintf(name, 2048, "plots/t0%s.root", i ? "_res" : "");
+        mCT0[i]->Print(name);
+      }
+
       tmpMax = 0.;
       for (int32_t k = 0; k < ConfigNumInputs; k++) {
         TH1F* e = mNCl[i];
@@ -2818,7 +2936,7 @@ void GPUQA::PrintClusterCount(int32_t mode, int32_t& num, const char* name, uint
     createHist(mHistClusterCount[num], name2, name, 1000, 0, mConfig.histMaxNClusters, 1000, 0, 100);
   } else if (mode == 0) {
     if (normalization && mConfig.enableLocalOutput) {
-      printf("\t%35s: %'12" PRIu64 " (%6.2f%%)\n", name, n, 100.f * n / normalization);
+      printf("\t%40s: %'12" PRIu64 " (%6.2f%%)\n", name, n, 100.f * n / normalization);
     }
     if (mConfig.clusterRejectionHistograms) {
       float ratio = 100.f * n / std::max<uint64_t>(normalization, 1);
@@ -2847,12 +2965,13 @@ int32_t GPUQA::DoClusterCounts(uint64_t* attachClusterCounts, int32_t mode)
     PrintClusterCount(mode, num, "Removed (Strategy B)", mClusterCounts.nTotal - mClusterCounts.nProt, mClusterCounts.nTotal);
   }
 
-  PrintClusterCount(mode, num, "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooper, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Merged Loopers (Track Merging)", mClusterCounts.nMergedLooperConnected, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooperUnconnected, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Looping Legs (other)", mClusterCounts.nLoopers, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "High Inclination Angle", mClusterCounts.nHighIncl, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Rejected", mClusterCounts.nRejected, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Tube (> 200 MeV)", mClusterCounts.nTube, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Tube (< 200 MeV)", mClusterCounts.nTube200, mClusterCounts.nTotal);
-  PrintClusterCount(mode, num, "Looping Legs", mClusterCounts.nLoopers, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Low Pt < 50 MeV", mClusterCounts.nLowPt, mClusterCounts.nTotal);
   PrintClusterCount(mode, num, "Low Pt < 200 MeV", mClusterCounts.n200MeV, mClusterCounts.nTotal);
 
@@ -2862,6 +2981,10 @@ int32_t GPUQA::DoClusterCounts(uint64_t* attachClusterCounts, int32_t mode)
     PrintClusterCount(mode, num, "Full Fake Removed (> 400 MeV)", mClusterCounts.nFullFakeRemove400, mClusterCounts.nAbove400);
     PrintClusterCount(mode, num, "Tracks < 40 MeV", mClusterCounts.nBelow40, mClusterCounts.nTotal);
     PrintClusterCount(mode, num, "Fake Protect (< 40 MeV)", mClusterCounts.nFakeProtect40, mClusterCounts.nBelow40);
+  }
+  if (mcPresent() && (mQATasks & taskTrackStatistics)) {
+    PrintClusterCount(mode, num, "Correctly Attached all-trk normalized", mClusterCounts.nCorrectlyAttachedNormalized, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Correctly Attached non-fake normalized", mClusterCounts.nCorrectlyAttachedNormalizedNonFake, mClusterCounts.nTotal);
   }
   return num;
 }

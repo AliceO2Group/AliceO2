@@ -165,7 +165,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std
     // check if data points are in the grid
     if (index == indexClamped) {
       // index of the polyniomial
-      const uint32_t idx = getDataIndex(index.data()) / MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly);
+      const uint32_t idx = getDataIndex(index.data()) / MultivariatePolynomialParametersHelper::getNParameters<Degree, Dim, InteractionOnly>();
 
       // store index to data point
       dataPointsIndices[idx].emplace_back(i);
@@ -216,7 +216,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std
     const auto params = MultivariatePolynomialHelper<0, 0, false>::fit(fitter, xCords, response, error, true);
 
     // store parameters
-    std::copy(params.begin(), params.end(), &mParams[i * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly)]);
+    std::copy(params.begin(), params.end(), &mParams[i * MultivariatePolynomialParametersHelper::getNParameters<Degree, Dim, InteractionOnly>()]);
   }
 }
 

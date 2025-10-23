@@ -75,6 +75,7 @@ class TPCITSMatchingDPL : public Task
   {
     mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
     mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
   }
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;

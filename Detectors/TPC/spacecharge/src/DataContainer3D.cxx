@@ -17,6 +17,8 @@
 #include "Framework/Logger.h"
 #include "TFile.h"
 #include "ROOT/RDataFrame.hxx"
+#include "TStopwatch.h"
+#include "TTree.h"
 
 #include <memory>
 #include <iomanip>

@@ -210,7 +210,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
     size_t pos = mNowFolderNames[i].find_last_of("/");
 
-    if (pos != string::npos) {
+    if (pos != std::string::npos) {
       mRunID = mNowFolderNames[i].substr(pos + 1);
     }
 
@@ -232,7 +232,7 @@ void TestDataReader::run(ProcessingContext& pc)
       // Getting the FileID
       string FileIDS;
       pos = mDiffFileNames[i][0].find_last_of("/");
-      if (pos != string::npos) {
+      if (pos != std::string::npos) {
         FileIDS = mDiffFileNames[i][0].substr(pos + 1);
       }
 

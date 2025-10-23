@@ -56,7 +56,7 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
 
   /// constructor for compile time evaluation of polynomial formula
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (Dim != 0 && Degree != 0)), int32_t>::type = 0>
-  MultivariatePolynomial() : mNParams{this->getNParameters(Degree, Dim, InteractionOnly)}
+  MultivariatePolynomial() : mNParams{this->template getNParameters<Degree, Dim, InteractionOnly>()}
   {
     construct();
   }

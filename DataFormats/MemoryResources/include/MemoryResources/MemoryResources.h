@@ -111,172 +111,16 @@ class MessageResource : public FairMQMemoryResource
   }
 };
 
-//__________________________________________________________________________________________________
-// A spectator pmr memory resource which only watches the memory of the underlying buffer, does not
-// carry out real allocation. It owns the underlying buffer which is destroyed on deallocation.
-template <typename BufferType>
-class SpectatorMemoryResource : public boost::container::pmr::memory_resource
-{
- public:
-  using buffer_type = BufferType;
-
-  SpectatorMemoryResource() noexcept = delete;
-  SpectatorMemoryResource(const SpectatorMemoryResource&) noexcept = delete;
-  SpectatorMemoryResource(SpectatorMemoryResource&&) noexcept = default;
-  SpectatorMemoryResource& operator=(const SpectatorMemoryResource&) = delete;
-  SpectatorMemoryResource& operator=(SpectatorMemoryResource&&) = default;
-  ~SpectatorMemoryResource() noexcept override = default;
-
-  // the resource is the pointer managed by unique_ptr
-  template <typename T>
-  SpectatorMemoryResource(std::unique_ptr<T, typename buffer_type::deleter_type>&& buffer, size_t size)
-    : mBuffer{std::move(buffer)}, mPointer{mBuffer.get()}, mSize{size}
-  {
-  }
-
-  // the resource is the data of the vector managed by unique ptr
-  template <typename T>
-  SpectatorMemoryResource(std::unique_ptr<std::vector<T>, typename buffer_type::deleter_type>&& buffer)
-    : mBuffer{std::move(buffer)}, mPointer{mBuffer->data()}, mSize{mBuffer->size() * sizeof(T)}
-  {
-  }
-
-  // TODO: the underlying resource can be directly the vector or the read only buffer
- protected:
-  void* do_allocate(std::size_t bytes, std::size_t /*alignment*/) override
-  {
-    if (mSize > 0) {
-      if (bytes > mSize) {
-        throw std::bad_alloc();
-      }
-      mSize = 0;
-      return mPointer;
-    }
-    throw std::runtime_error("Can not allocate: this memory resource is only supposed to provide spectator access to external buffer");
-  }
-
-  void do_deallocate(void* p, std::size_t /*bytes*/, std::size_t /*alignment*/) override
-  {
-    if (p == mPointer) {
-      mBuffer.reset();
-      mPointer = nullptr;
-    } else if (mPointer == nullptr) {
-      // there is an error in the logic flow, this should never be called more than once
-      throw std::logic_error("underlying controlled resource has been released already");
-    } else {
-      throw std::logic_error("this resource can only deallocate the controlled resource pointer");
-    }
-  }
-  bool do_is_equal(const memory_resource& /*other*/) const noexcept override
-  {
-    // uniquely owns the underlying resource, can never be equal to any other instance
-    return false;
-  }
-
- private:
-  buffer_type mBuffer;
-  void* mPointer = nullptr;
-  size_t mSize = 0;
-};
-
-//__________________________________________________________________________________________________
-// This in general (as in STL) is a bad idea, but here it is safe to inherit from an allocator since we
-// have no additional data and only override some methods so we don't get into slicing and other problems.
-template <typename T>
-class SpectatorAllocator : public boost::container::pmr::polymorphic_allocator<T>
-{
- public:
-  using boost::container::pmr::polymorphic_allocator<T>::polymorphic_allocator;
-  using propagate_on_container_move_assignment = std::true_type;
-
-  // skip default construction of empty elements
-  // this is important for two reasons: one: it allows us to adopt an existing buffer (e.g. incoming message) and
-  // quickly construct large vectors while skipping the element initialization.
-  template <class U>
-  void construct(U*)
-  {
-  }
-
-  // dont try to call destructors, makes no sense since resource is managed externally AND allowed
-  // types cannot have side effects
-  template <typename U>
-  void destroy(U*)
-  {
-  }
-
-  T* allocate(size_t size) { return reinterpret_cast<T*>(this->resource()->allocate(size * sizeof(T), 64)); }
-  void deallocate(T* ptr, size_t size)
-  {
-    this->resource()->deallocate(const_cast<typename std::remove_cv<T>::type*>(ptr), size);
-  }
-};
-
-//__________________________________________________________________________________________________
-/// This allocator has a pmr-like interface, but keeps the unique MessageResource as internal state,
-/// allowing full resource (associated message) management internally without any global state.
-template <typename T>
-class OwningMessageSpectatorAllocator
-{
- public:
-  using value_type = T;
-
-  MessageResource mResource;
-
-  OwningMessageSpectatorAllocator() noexcept = default;
-  OwningMessageSpectatorAllocator(const OwningMessageSpectatorAllocator&) noexcept = default;
-  OwningMessageSpectatorAllocator(OwningMessageSpectatorAllocator&&) noexcept = default;
-  OwningMessageSpectatorAllocator(MessageResource&& resource) noexcept : mResource{resource} {}
-
-  template <class U>
-  OwningMessageSpectatorAllocator(const OwningMessageSpectatorAllocator<U>& other) noexcept : mResource(other.mResource)
-  {
-  }
-
-  OwningMessageSpectatorAllocator& operator=(const OwningMessageSpectatorAllocator& other)
-  {
-    mResource = other.mResource;
-    return *this;
-  }
-
-  OwningMessageSpectatorAllocator select_on_container_copy_construction() const
-  {
-    return OwningMessageSpectatorAllocator();
-  }
-
-  boost::container::pmr::memory_resource* resource() { return &mResource; }
-
-  // skip default construction of empty elements
-  // this is important for two reasons: one: it allows us to adopt an existing buffer (e.g. incoming message) and
-  // quickly construct large vectors while skipping the element initialization.
-  template <class U>
-  void construct(U*)
-  {
-  }
-
-  // dont try to call destructors, makes no sense since resource is managed externally AND allowed
-  // types cannot have side effects
-  template <typename U>
-  void destroy(U*)
-  {
-  }
-
-  T* allocate(size_t size) { return reinterpret_cast<T*>(mResource.allocate(size * sizeof(T), 64)); }
-  void deallocate(T* ptr, size_t size)
-  {
-    mResource.deallocate(const_cast<typename std::remove_cv<T>::type*>(ptr), size);
-  }
-};
-
 // The NoConstructAllocator behaves like the normal pmr vector but does not call constructors / destructors
 template <typename T>
-class NoConstructAllocator : public boost::container::pmr::polymorphic_allocator<T>
+class NoConstructAllocator : public fair::mq::pmr::polymorphic_allocator<T>
 {
  public:
-  using boost::container::pmr::polymorphic_allocator<T>::polymorphic_allocator;
+  using fair::mq::pmr::polymorphic_allocator<T>::polymorphic_allocator;
   using propagate_on_container_move_assignment = std::true_type;
 
   template <typename... Args>
-  NoConstructAllocator(Args&&... args) : boost::container::pmr::polymorphic_allocator<T>(std::forward<Args>(args)...)
+  NoConstructAllocator(Args&&... args) : fair::mq::pmr::polymorphic_allocator<T>(std::forward<Args>(args)...)
   {
   }
 
@@ -301,20 +145,9 @@ class NoConstructAllocator : public boost::container::pmr::polymorphic_allocator
 //__________________________________________________________________________________________________
 //__________________________________________________________________________________________________
 
-using ByteSpectatorAllocator = SpectatorAllocator<std::byte>;
-using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<std::byte>;
+using BytePmrAllocator = fair::mq::pmr::polymorphic_allocator<std::byte>;
 template <class T>
-using vector = std::vector<T, o2::pmr::polymorphic_allocator<T>>;
-
-//__________________________________________________________________________________________________
-/// Return a std::vector spanned over the contents of the message, takes ownership of the message
-template <typename ElemT>
-auto adoptVector(size_t nelem, fair::mq::MessagePtr message)
-{
-  static_assert(std::is_trivially_destructible<ElemT>::value);
-  return std::vector<ElemT, OwningMessageSpectatorAllocator<ElemT>>(
-    nelem, OwningMessageSpectatorAllocator<ElemT>(MessageResource{std::move(message)}));
-};
+using vector = std::vector<T, fair::mq::pmr::polymorphic_allocator<T>>;
 
 //__________________________________________________________________________________________________
 /// Get the allocator associated to a transport factory

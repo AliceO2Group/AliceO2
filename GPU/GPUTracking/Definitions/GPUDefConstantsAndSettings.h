@@ -32,7 +32,7 @@
 
 #define GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(QPTB5) (CAMath::Abs(QPTB5) > 10 ? 10 : (CAMath::Abs(QPTB5) > 5 ? 15 : 29)) // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
 
-#define GPUCA_MERGER_MAX_TRACK_CLUSTERS 1000          // Maximum number of clusters a track may have after merging
+#define GPUCA_MERGER_MAX_TRACK_CLUSTERS 1024          // Maximum number of clusters a track may have after merging
 
 #define GPUCA_MAXN 40                                 // Maximum number of neighbor hits to consider in one row in neightbors finder
 #define GPUCA_MIN_TRACK_PTB5_DEFAULT 0.010f           // Default setting for minimum track Pt at some places (at B=0.5T)
@@ -67,9 +67,6 @@
 #endif
 
 //#define GPUCA_MERGER_BY_MC_LABEL                    // Use MC labels for TPC track merging - for performance studies // TODO: Cleanup unneeded options
-//#define GPUCA_FULL_CLUSTERDATA                      // Store all cluster information in the cluster data, also those not needed for tracking.
-//#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME        // Propagate Pad, Row, Time cluster information to GM
-//#define GPUCA_GM_USE_FULL_FIELD                     // Use offline magnetic field during GMPropagator prolongation
 
 // clang-format on
 

@@ -54,7 +54,7 @@ void OrtModel::initOptions(std::unordered_map<std::string, std::string> optionsM
 
   // Load from options map
   if (!optionsMap.contains("model-path")) {
-    LOG(fatal) << "(ORT) Model path cannot be empty!";
+    LOG(fatal) << "(ORT) Model path must be contained in options map!";
   }
 
   if (!optionsMap["model-path"].empty()) {
@@ -68,6 +68,7 @@ void OrtModel::initOptions(std::unordered_map<std::string, std::string> optionsM
     mEnableProfiling = (optionsMap.contains("enable-profiling") ? std::stoi(optionsMap["enable-profiling"]) : 0);
     mEnableOptimizations = (optionsMap.contains("enable-optimizations") ? std::stoi(optionsMap["enable-optimizations"]) : 0);
     mEnvName = (optionsMap.contains("onnx-environment-name") ? optionsMap["onnx-environment-name"] : "onnx_model_inference");
+    mDeterministicMode = (optionsMap.contains("deterministic-compute") ? std::stoi(optionsMap["deterministic-compute"]) : 0);
 
     if (mDeviceType == "CPU") {
       (mPImplOrt->sessionOptions).SetIntraOpNumThreads(mIntraOpNumThreads);
@@ -97,6 +98,10 @@ void OrtModel::initOptions(std::unordered_map<std::string, std::string> optionsM
       }
     } else {
       (mPImplOrt->sessionOptions).DisableProfiling();
+    }
+
+    if (mDeterministicMode > 0) {
+      (mPImplOrt->sessionOptions).AddConfigEntry("session_options.use_deterministic_compute", "1");
     }
 
     (mPImplOrt->sessionOptions).SetGraphOptimizationLevel(GraphOptimizationLevel(mEnableOptimizations));
@@ -287,9 +292,9 @@ std::vector<O> OrtModel::inference(std::vector<I>& input)
   return outputValuesVec;
 }
 
-template std::vector<float> OrtModel::inference<float, float>(std::vector<float>&);
-template std::vector<float> OrtModel::inference<OrtDataType::Float16_t, float>(std::vector<OrtDataType::Float16_t>&);
-template std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<OrtDataType::Float16_t>&);
+template std::vector<float> o2::ml::OrtModel::inference<float, float>(std::vector<float>&);
+template std::vector<float> o2::ml::OrtModel::inference<OrtDataType::Float16_t, float>(std::vector<OrtDataType::Float16_t>&);
+template std::vector<OrtDataType::Float16_t> o2::ml::OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<OrtDataType::Float16_t>&);
 
 template <class I, class O>
 void OrtModel::inference(I* input, int64_t input_size, O* output)

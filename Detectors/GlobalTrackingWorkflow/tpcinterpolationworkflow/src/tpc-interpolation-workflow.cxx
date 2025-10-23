@@ -42,6 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tracking-sources-map-extraction", VariantType::String, std::string{GID::ALL}, {"can be subset of \"tracking-sources\""}},
     {"send-track-data", VariantType::Bool, false, {"Send also the track information to the aggregator"}},
     {"debug-output", VariantType::Bool, false, {"Dump extended tracking information for debugging"}},
+    {"skip-ext-det-residuals", VariantType::Bool, false, {"Do not produce residuals for external detectors"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -104,8 +105,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   useMC = false; // force disabling MC as long as it is not implemented
   auto sendTrackData = configcontext.options().get<bool>("send-track-data");
   auto debugOutput = configcontext.options().get<bool>("debug-output");
+  auto extDetResid = !configcontext.options().get<bool>("skip-ext-det-residuals");
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid));
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput));
   }

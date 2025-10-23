@@ -86,6 +86,8 @@ struct formatter<o2::framework::CompletionPolicy::CompletionOp> : ostream_format
 
 // A log to use for general device logging
 O2_DECLARE_DYNAMIC_LOG(device);
+// A log to use for general device logging
+O2_DECLARE_DYNAMIC_LOG(sockets);
 // Special log to keep track of the lifetime of the parts
 O2_DECLARE_DYNAMIC_LOG(parts);
 // Stream which keeps track of the calibration lifetime logic
@@ -94,6 +96,8 @@ O2_DECLARE_DYNAMIC_LOG(calibration);
 O2_DECLARE_DYNAMIC_LOG(async_queue);
 // Special log to track the forwarding requests
 O2_DECLARE_DYNAMIC_LOG(forwarding);
+// Special log to track CCDB related requests
+O2_DECLARE_DYNAMIC_LOG(ccdb);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
@@ -135,11 +139,11 @@ void on_transition_requested_expired(uv_timer_t* handle)
   // Check if this is a source device
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
   auto& spec = ref->get<DeviceSpec const>();
-  if (hasOnlyGenerated(spec)) {
-    O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "callback", "Grace period for source expired. Exiting.");
+  std::string messageOnExpire = hasOnlyGenerated(spec) ? "DPL exit transition grace period for source expired. Exiting." : fmt::format("DPL exit transition grace period for {} expired. Exiting.", state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration").c_str();
+  if (!ref->get<RawDeviceService>().device()->GetConfig()->GetValue<bool>("error-on-exit-transition-timeout")) {
+    O2_SIGNPOST_EVENT_EMIT_WARN(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
   } else {
-    O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "callback", "Grace period for %{public}s expired. Exiting.",
-                                state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration");
+    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
   }
   state.transitionHandling = TransitionHandlingState::Expired;
 }
@@ -339,21 +343,21 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
 {
   auto* context = (PollerContext*)poller->data;
   assert(context);
-  O2_SIGNPOST_ID_FROM_POINTER(sid, device, poller);
+  O2_SIGNPOST_ID_FROM_POINTER(sid, sockets, poller);
   context->state->loopReason |= DeviceState::DATA_SOCKET_POLLED;
   switch (events) {
     case UV_READABLE: {
-      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "Data pending on socket for channel %{public}s", context->name);
+      O2_SIGNPOST_EVENT_EMIT(sockets, sid, "socket_state", "Data pending on socket for channel %{public}s", context->name);
       context->state->loopReason |= DeviceState::DATA_INCOMING;
     } break;
     case UV_WRITABLE: {
-      O2_SIGNPOST_END(device, sid, "socket_state", "Socket connected for channel %{public}s", context->name);
+      O2_SIGNPOST_END(sockets, sid, "socket_state", "Socket connected for channel %{public}s", context->name);
       if (context->read) {
-        O2_SIGNPOST_START(device, sid, "socket_state", "Socket connected for read in context %{public}s", context->name);
+        O2_SIGNPOST_START(sockets, sid, "socket_state", "Socket connected for read in context %{public}s", context->name);
         uv_poll_start(poller, UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
         context->state->loopReason |= DeviceState::DATA_CONNECTED;
       } else {
-        O2_SIGNPOST_START(device, sid, "socket_state", "Socket connected for write for channel %{public}s", context->name);
+        O2_SIGNPOST_START(sockets, sid, "socket_state", "Socket connected for write for channel %{public}s", context->name);
         context->state->loopReason |= DeviceState::DATA_OUTGOING;
         // If the socket is writable, fairmq will handle the rest, so we can stop polling and
         // just wait for the disconnect.
@@ -362,10 +366,10 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
       context->pollerState = PollerContext::PollerState::Connected;
     } break;
     case UV_DISCONNECT: {
-      O2_SIGNPOST_END(device, sid, "socket_state", "Socket disconnected in context %{public}s", context->name);
+      O2_SIGNPOST_END(sockets, sid, "socket_state", "Socket disconnected in context %{public}s", context->name);
     } break;
     case UV_PRIORITIZED: {
-      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "Socket prioritized for context %{public}s", context->name);
+      O2_SIGNPOST_EVENT_EMIT(sockets, sid, "socket_state", "Socket prioritized for context %{public}s", context->name);
     } break;
   }
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
@@ -373,7 +377,7 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
 
 void on_out_of_band_polled(uv_poll_t* poller, int status, int events)
 {
-  O2_SIGNPOST_ID_FROM_POINTER(sid, device, poller);
+  O2_SIGNPOST_ID_FROM_POINTER(sid, sockets, poller);
   auto* context = (PollerContext*)poller->data;
   context->state->loopReason |= DeviceState::OOB_ACTIVITY;
   if (status < 0) {
@@ -382,27 +386,27 @@ void on_out_of_band_polled(uv_poll_t* poller, int status, int events)
   }
   switch (events) {
     case UV_READABLE: {
-      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "Data pending on socket for channel %{public}s", context->name);
+      O2_SIGNPOST_EVENT_EMIT(sockets, sid, "socket_state", "Data pending on socket for channel %{public}s", context->name);
       context->state->loopReason |= DeviceState::DATA_INCOMING;
       assert(context->channelInfo);
       context->channelInfo->readPolled = true;
     } break;
     case UV_WRITABLE: {
-      O2_SIGNPOST_END(device, sid, "socket_state", "OOB socket connected for channel %{public}s", context->name);
+      O2_SIGNPOST_END(sockets, sid, "socket_state", "OOB socket connected for channel %{public}s", context->name);
       if (context->read) {
-        O2_SIGNPOST_START(device, sid, "socket_state", "OOB socket connected for read in context %{public}s", context->name);
+        O2_SIGNPOST_START(sockets, sid, "socket_state", "OOB socket connected for read in context %{public}s", context->name);
         uv_poll_start(poller, UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED, &on_out_of_band_polled);
       } else {
-        O2_SIGNPOST_START(device, sid, "socket_state", "OOB socket connected for write for channel %{public}s", context->name);
+        O2_SIGNPOST_START(sockets, sid, "socket_state", "OOB socket connected for write for channel %{public}s", context->name);
         context->state->loopReason |= DeviceState::DATA_OUTGOING;
       }
     } break;
     case UV_DISCONNECT: {
-      O2_SIGNPOST_END(device, sid, "socket_state", "OOB socket disconnected in context %{public}s", context->name);
+      O2_SIGNPOST_END(sockets, sid, "socket_state", "OOB socket disconnected in context %{public}s", context->name);
       uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
     } break;
     case UV_PRIORITIZED: {
-      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "OOB socket prioritized for context %{public}s", context->name);
+      O2_SIGNPOST_EVENT_EMIT(sockets, sid, "socket_state", "OOB socket prioritized for context %{public}s", context->name);
     } break;
   }
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
@@ -1400,10 +1404,15 @@ void DataProcessingDevice::Run()
           O2_SIGNPOST_EVENT_EMIT(calibration, lid, "timer_setup", "Starting %d s timer for exitTransitionTimeout.",
                                  deviceContext.exitTransitionTimeout);
           uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, deviceContext.exitTransitionTimeout * 1000, 0);
-          if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before quitting.", (int)deviceContext.exitTransitionTimeout);
+          bool onlyGenerated = hasOnlyGenerated(spec);
+          int timeout = onlyGenerated ? deviceContext.dataProcessingTimeout : deviceContext.exitTransitionTimeout;
+          if (mProcessingPolicies.termination == TerminationPolicy::QUIT && DefaultsHelpers::onlineDeploymentMode() == false) {
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before quitting.", timeout);
           } else {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before switching to READY state.", (int)deviceContext.exitTransitionTimeout);
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop",
+                                        "New state requested. Waiting for %d seconds before %{public}s",
+                                        timeout,
+                                        onlyGenerated ? "dropping remaining input and switching to READY state." : "switching to READY state.");
           }
         } else {
           state.transitionHandling = TransitionHandlingState::Expired;

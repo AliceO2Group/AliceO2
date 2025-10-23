@@ -280,8 +280,8 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   Stack s2{s1, meta};
   BOOST_CHECK(s2.size() == s1.size() + sizeof(decltype(meta)));
 
-  //check dynamic construction - where we don't have the type information and need to
-  //work with BaseHeader pointers
+  // check dynamic construction - where we don't have the type information and need to
+  // work with BaseHeader pointers
   const test::MetaHeader thead{2};
   o2::header::BaseHeader const* bname = reinterpret_cast<BaseHeader const*>(&thead);
   Stack ds2(s1, *bname);
@@ -313,8 +313,8 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   BOOST_REQUIRE(h3 != nullptr);
   BOOST_CHECK(h3->secret == 42);
 
-  //test constructing from a buffer and an additional header
-  using namespace boost::container::pmr;
+  // test constructing from a buffer and an additional header
+  using namespace fair::mq::pmr;
   Stack s5(new_delete_resource(), s1.data(), Stack{}, meta);
   BOOST_CHECK(s5.size() == s1.size() + sizeof(meta));
   // check if we can find the header even though there was an empty stack in the middle

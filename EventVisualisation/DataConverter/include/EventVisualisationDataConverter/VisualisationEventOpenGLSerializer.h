@@ -38,7 +38,7 @@ class VisualisationEventOpenGLSerializer : public VisualisationEventSerializer
  public:
   const std::string serializerName() const override { return std::string("VisualisationEventOpenGLSerializer"); }
   bool fromFile(VisualisationEvent& event, std::string fileName) override;
-  void toFile(const VisualisationEvent& event, std::string fileName) override;
+  void toFile(const VisualisationEvent& event, Location& location) override;
   ~VisualisationEventOpenGLSerializer() override = default;
 };
 

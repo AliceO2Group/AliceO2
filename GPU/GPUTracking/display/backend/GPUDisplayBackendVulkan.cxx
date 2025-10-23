@@ -340,7 +340,7 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
 
 void GPUDisplayBackendVulkan::createDevice()
 {
-  VULKAN_HPP_DEFAULT_DISPATCHER.init();
+  VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
   vk::ApplicationInfo appInfo{};
   appInfo.pApplicationName = "GPU CA Standalone display";
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -355,8 +355,7 @@ void GPUDisplayBackendVulkan::createDevice()
   uint32_t frontendExtensionCount = mDisplay->frontend()->getReqVulkanExtensions(frontendExtensions);
   std::vector<const char*> reqInstanceExtensions(frontendExtensions, frontendExtensions + frontendExtensionCount);
 
-  const std::vector<const char*> reqValidationLayers = {
-    "VK_LAYER_KHRONOS_validation"};
+  const std::vector<const char*> reqValidationLayers = {"VK_LAYER_KHRONOS_validation"};
   auto debugCallback = [](vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity, vk::DebugUtilsMessageTypeFlagsEXT messageType, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
     static int32_t throwOnError = getenv("GPUCA_VULKAN_VALIDATION_THROW") ? atoi(getenv("GPUCA_VULKAN_VALIDATION_THROW")) : 0;
     static bool showVulkanValidationInfo = getenv("GPUCA_VULKAN_VALIDATION_INFO") && atoi(getenv("GPUCA_VULKAN_VALIDATION_INFO"));

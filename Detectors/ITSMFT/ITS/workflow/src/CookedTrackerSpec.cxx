@@ -34,7 +34,6 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonDataFormat/IRFrame.h"
-#include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "CommonUtils/StringUtils.h"
@@ -52,10 +51,10 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const TrackingMode& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
+CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, TrackingMode::Type trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
 {
-  mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
-  mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
+  mVertexerTraitsPtr = std::make_unique<VertexerTraits<7>>();
+  mVertexerPtr = std::make_unique<Vertexer<7>>(mVertexerTraitsPtr.get());
 }
 
 void CookedTrackerDPL::init(InitContext& ic)
@@ -65,6 +64,11 @@ void CookedTrackerDPL::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
+  mTaskArena = std::make_shared<tbb::task_arena>(nthreads);
+  mMemoryPool = std::make_unique<BoundedMemoryResource>();
+  mVertexerPtr->setMemoryPool(mMemoryPool);
+  mVertexerPtr->setNThreads(nthreads, mTaskArena);
+  mVertexerTraitsPtr->setMemoryPool(mMemoryPool);
 }
 
 void CookedTrackerDPL::run(ProcessingContext& pc)
@@ -105,6 +109,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
   }
   TimeFrame mTimeFrame;
+  mTimeFrame.setMemoryPool(mMemoryPool);
 
   LOG(info) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
 
@@ -113,7 +118,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     mTracker.setMCTruthContainers(labels.get(), &trackLabels);
   }
 
-  o2::its::ROframe event(0, 7);
   mVertexerPtr->adoptTimeFrame(mTimeFrame);
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0});
@@ -225,13 +229,13 @@ void CookedTrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     if (pc.inputs().getPos("itsTGeo") >= 0) {
       pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
     }
-    mVertexerPtr->getGlobalConfiguration();
+    mVertexerPtr->setParameters(TrackingMode::getVertexingParameters(mMode));
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));
     mTracker.setGeometry(geom);
     mTracker.setConfigParams();
-    LOG(info) << "Tracking mode " << mMode;
+    LOG(info) << "Tracking mode " << TrackingMode::toString(mMode);
     if (mMode == TrackingMode::Cosmics) {
       LOG(info) << "Setting cosmics parameters...";
       mTracker.setParametersCosmics();
@@ -269,7 +273,7 @@ void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int trgType, const std::string& trModeS)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int trgType, TrackingMode::Type trmode)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -315,8 +319,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int trgType, co
     AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest,
                                                   useMC,
                                                   trgType,
-                                                  trModeS == "sync" ? o2::its::TrackingMode::Sync : trModeS == "async" ? o2::its::TrackingMode::Async
-                                                                                                                       : o2::its::TrackingMode::Cosmics)},
+                                                  trmode)},
     Options{{"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 

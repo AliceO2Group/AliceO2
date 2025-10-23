@@ -28,7 +28,12 @@
   #define GPUFatal(...)
 #elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT)
   #include <cstdio>
+  #pragma GCC diagnostic push
+  #if defined(__FAST_MATH__) && defined(__clang__)
+  #pragma GCC diagnostic ignored "-Wnan-infinity-disabled"
+  #endif
   #include <fmt/printf.h>
+  #pragma GCC diagnostic pop
   #define GPUInfo(string, ...)                 \
     {                                          \
       fmt::printf(string "\n", ##__VA_ARGS__); \

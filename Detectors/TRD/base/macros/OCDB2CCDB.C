@@ -266,7 +266,7 @@ void OCDB2CCDB(long timeStamp = -1, TString ccdbPath = "http://localhost:8080", 
   //Connect to CCDB
   //
   o2::ccdb::CcdbApi ccdb;
-  map<string, string> metadata;               // do we want to store any meta data?
+  std::map<std::string, std::string> metadata; // do we want to store any meta data?
   ccdb.init(ccdbPath.Data());
 
   AliTRDCalChamberStatus* chamberStatus = 0;

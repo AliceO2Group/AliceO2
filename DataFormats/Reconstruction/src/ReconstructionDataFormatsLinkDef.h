@@ -117,4 +117,7 @@
 #pragma link C++ class o2::dataformats::StrangeTrack + ;
 #pragma link C++ class std::vector < o2::dataformats::StrangeTrack> + ;
 
+#pragma link C++ class o2::track::TrackAuxPar + ;
+#pragma link C++ class o2::track::CrossInfo + ;
+
 #endif

@@ -98,5 +98,10 @@ std::vector<o2::dcs::test::HintType> o2::tpc::dcs::getTPCDCSDPHints(const int ma
   dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{fmt::format("TPC_HV_C[00..{:02}]_I_STATUS", maxSectors), 0, 29});
   dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{fmt::format("TPC_HV_C[00..{:02}]_O[1..3]_STATUS", maxSectors), 0, 29});
 
+  // ===| pressure values |=======================================================
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"CavernAtmosPressure", 850., 1050.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"CavernAtmosPressure2", 850., 1050.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"SurfaceAtmosPressure", 850., 1050.});
+
   return dphints;
 }

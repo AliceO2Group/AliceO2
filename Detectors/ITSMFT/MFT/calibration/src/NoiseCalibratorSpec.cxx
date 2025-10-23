@@ -48,7 +48,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   LOGP(info, "Setting the probability threshold to {} with relative error {}", probT, probTRelErr);
   mStopMeOnly = ic.options().get<bool>("stop-me-only");
   mPath = ic.options().get<std::string>("path-CCDB");
-  mPathMerge = ic.options().get<std::string>("path-CCDB-merge");
+  mPathSingle = ic.options().get<std::string>("path-CCDB-single");
 
   mMeta = ic.options().get<std::string>("meta");
   mStart = ic.options().get<int64_t>("tstart");
@@ -78,12 +78,12 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
         LOG(info) << "Sending an object to Production-CCDBMerge";
         sendOutputCcdbMerge(pc.outputs());
       } else if (mOutputType.compare("DCS") == 0) {
-        LOG(info) << "Sending an object to DCS-CCDB";
-        sendOutputDcs(pc.outputs());
+        LOG(info) << "Sending an object to DCS-Merge";
+        sendOutputDcsMerge(pc.outputs());
       } else {
-        LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
-        sendOutputCcdbDcs(pc.outputs());
-        LOG(info) << "Sending an object to Production-CCDBMerge";
+        LOG(info) << "Sending an object to Production-CCDB, Production-CCDB-Merge and DCS-Merge";
+        sendOutputCcdb(pc.outputs());
+        sendOutputDcsMerge(pc.outputs());
         sendOutputCcdbMerge(pc.outputs());
       }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
@@ -102,12 +102,12 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
         LOG(info) << "Sending an object to Production-CCDBMerge";
         sendOutputCcdbMerge(pc.outputs());
       } else if (mOutputType.compare("DCS") == 0) {
-        LOG(info) << "Sending an object to DCS-CCDB";
-        sendOutputDcs(pc.outputs());
+        LOG(info) << "Sending an object to DCS-Merge";
+        sendOutputDcsMerge(pc.outputs());
       } else {
-        LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
-        sendOutputCcdbDcs(pc.outputs());
-        LOG(info) << "Sending an object to Production-CCDBMerge";
+        LOG(info) << "Sending an object to Production-CCDB, Production-CCDB-Merge and DCS-Merge";
+        sendOutputCcdb(pc.outputs());
+        sendOutputDcsMerge(pc.outputs());
         sendOutputCcdbMerge(pc.outputs());
       }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
@@ -173,7 +173,7 @@ void NoiseCalibratorSpec::sendOutputCcdbDcs(DataAllocator& output)
   const auto& payload = mCalibrator->getNoiseMap();
   //  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
 
-  o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info(mPathSingle, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
   info.setFileName(flName);
@@ -244,7 +244,7 @@ void NoiseCalibratorSpec::sendOutputCcdb(DataAllocator& output)
   const auto& payload = mCalibrator->getNoiseMap();
   //  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
 
-  o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info(mPathSingle, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
   info.setFileName(flName);
@@ -299,18 +299,18 @@ void NoiseCalibratorSpec::sendOutputCcdbMerge(DataAllocator& output)
 
   auto payload = mCalibrator->getNoiseMap();
   //  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
-  map<string, string> headers;
-  map<std::string, std::string> filter;
-  auto* payloadPrev1 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPath, filter, -1, &headers);
+  std::map<std::string, std::string> headers;
+  std::map<std::string, std::string> filter;
+  auto* payloadPrev1 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPathSingle, filter, -1, &headers);
   long validtime = std::stol(headers["Valid-From"]);
   auto mergedPL = payload;
   if (validtime > 0) {
     validtime = validtime - 1;
-    auto* payloadPrev2 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPath, filter, validtime, &headers);
+    auto* payloadPrev2 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPathSingle, filter, validtime, &headers);
     auto bufferPL = payloadPrev2->merge(payloadPrev1);
     mergedPL = payload.merge(&bufferPL);
   }
-  o2::ccdb::CcdbObjectInfo info(mPathMerge, "NoiseMap", "noise.root", meta, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mergedPL, &info);
   info.setFileName(flName);
@@ -378,8 +378,77 @@ void NoiseCalibratorSpec::sendOutputDcs(DataAllocator& output)
             << " : " << infoDcs.getEndValidityTimestamp();
 
   using clbUtilsDcs = o2::calibration::Utils;
-  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 0}, *imageDcs.get());
-  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 0}, infoDcs);
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 1}, *imageDcs.get());
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 1}, infoDcs);
+}
+
+void NoiseCalibratorSpec::sendOutputDcsMerge(DataAllocator& output)
+{
+
+  LOG(info) << "DCS-Merge mode";
+
+  static bool done = false;
+  if (done) {
+    return;
+  }
+  done = true;
+
+  mCalibrator->finalize();
+
+  long tstart = mStart;
+  if (tstart == -1) {
+    tstart = o2::ccdb::getCurrentTimestamp();
+  }
+  long tend = mEnd;
+  if (tend == -1) {
+    constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
+    tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+  }
+
+  std::map<std::string, std::string> meta;
+  auto toKeyValPairs = [&meta](std::vector<std::string> const& tokens) {
+    for (auto& token : tokens) {
+      auto keyval = Str::tokenize(token, '=', false);
+      if (keyval.size() != 2) {
+        LOG(error) << "Illegal command-line key/value string: " << token;
+        continue;
+      }
+      Str::trim(keyval[1]);
+      meta[keyval[0]] = keyval[1];
+    }
+  };
+  toKeyValPairs(Str::tokenize(mMeta, ';', true));
+
+  long startTF, endTF;
+
+  auto payload = mCalibrator->getNoiseMap();
+  //  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
+
+  std::map<std::string, std::string> headers;
+  std::map<std::string, std::string> filter;
+  auto* payloadPrev1 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPathSingle, filter, -1, &headers);
+  long validtime = std::stol(headers["Valid-From"]);
+  auto mergedPL = payload;
+  if (validtime > 0) {
+    validtime = validtime - 1;
+    auto* payloadPrev2 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPathSingle, filter, validtime, &headers);
+    auto bufferPL = payloadPrev2->merge(payloadPrev1);
+    mergedPL = payload.merge(&bufferPL);
+  }
+
+  setOutputDcs(mergedPL);
+  o2::ccdb::CcdbObjectInfo infoDcs(mPathDcs, "NoiseMap", "noise.root", meta, tstart, tend);
+  auto flNameDcs = o2::ccdb::CcdbApi::generateFileName("noise");
+  auto imageDcs = o2::ccdb::CcdbApi::createObjectImage(&mNoiseMapForDcs, &infoDcs);
+  infoDcs.setFileName(flNameDcs);
+  LOG(info) << "Sending object " << infoDcs.getPath() << "/" << infoDcs.getFileName()
+            << " of size " << imageDcs->size()
+            << " bytes, valid for " << infoDcs.getStartValidityTimestamp()
+            << " : " << infoDcs.getEndValidityTimestamp();
+
+  using clbUtilsDcs = o2::calibration::Utils;
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 1}, *imageDcs.get());
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 1}, infoDcs);
 }
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -390,11 +459,12 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
     LOG(info) << "Sending an object to Production-CCDB-Merge";
     sendOutputCcdbMerge(ec.outputs());
   } else if (mOutputType.compare("DCS") == 0) {
-    LOG(info) << "Sending an object to DCS-CCDB";
-    sendOutputDcs(ec.outputs());
+    LOG(info) << "Sending an object to DCS-Merge";
+    sendOutputDcsMerge(ec.outputs());
   } else {
-    LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
-    sendOutputCcdbDcs(ec.outputs());
+    LOG(info) << "Sending an object to Production-CCDB, Production-CCDB-Merge and DCS-Merge";
+    sendOutputCcdb(ec.outputs());
+    sendOutputDcsMerge(ec.outputs());
     sendOutputCcdbMerge(ec.outputs());
   }
 }
@@ -454,7 +524,7 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
       {"path-CCDB", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
-      {"path-CCDB-merge", VariantType::String, "/MFT/Calib/NoiseMapMerged", {"Path to write merged file to in CCDB"}},
+      {"path-CCDB-single", VariantType::String, "/MFT/Calib/NoiseMapSingle", {"Path to write merged file to in CCDB"}},
       {"path-DCS", VariantType::String, "/MFT/Config/NoiseMap", {"Path to write to in DCS"}},
       {"meta", VariantType::String, "", {"meta data to write in CCDB"}},
       {"send-to-server", VariantType::String, "CCDB-DCS", {"meta data to write in DCS-CCDB"}},

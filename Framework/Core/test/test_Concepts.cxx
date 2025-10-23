@@ -32,6 +32,15 @@ struct P {
   PROCESS_SWITCH(P, process1, "", true);
 };
 
+namespace o2::aod
+{
+namespace ct
+{
+DECLARE_SOA_CONFIGURABLE_EXPRESSION_COLUMN(Test, test, float, "test");
+}
+DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE(TracksMore, TracksIU, "TRKMORE", ct::Test);
+} // namespace o2::aod
+
 TEST_CASE("IdentificationConcepts")
 {
   // ASoA
@@ -87,6 +96,14 @@ TEST_CASE("IdentificationConcepts")
   Preslice<o2::aod::Tracks> ps = o2::aod::track::collisionId;
   REQUIRE(is_preslice<decltype(ps)>);
 
+  struct : PresliceGroup {
+    Preslice<o2::aod::Tracks> pc = o2::aod::track::collisionId;
+    Preslice<o2::aod::McParticles> pmcc = o2::aod::mcparticle::mcCollisionId;
+  } preslices;
+  REQUIRE(is_preslice_group<decltype(preslices)>);
+  REQUIRE(is_preslice<decltype(preslices.pc)>);
+  REQUIRE(is_preslice<decltype(preslices.pmcc)>);
+
   REQUIRE(has_filtered_policy<soa::Filtered<o2::aod::Tracks>::iterator>);
 
   REQUIRE(is_filtered_iterator<soa::Filtered<o2::aod::Tracks>::iterator>);
@@ -121,6 +138,11 @@ TEST_CASE("IdentificationConcepts")
 
   Builds<o2::aod::Run3MatchedSparse> bld;
   REQUIRE(is_builds<decltype(bld)>);
+
+  Defines<o2::aod::TracksMore> def;
+  DefinesDelayed<o2::aod::TracksMore> ddef;
+  REQUIRE(is_defines<decltype(def)>);
+  REQUIRE(is_defines<decltype(ddef)>);
 
   OutputObj<TH1F> oo{"test"};
   REQUIRE(is_outputobj<decltype(oo)>);
@@ -162,6 +184,7 @@ TEST_CASE("IdentificationConcepts")
   expressions::Filter f = o2::aod::track::pt > 1.0f;
   REQUIRE(expressions::is_filter<decltype(f)>);
 
+  // Combinations
   using C = SameKindPair<aod::Collisions, aod::Tracks, ColumnBinningPolicy<aod::collision::PosZ>>;
   REQUIRE(is_combinations_generator<C>);
 }

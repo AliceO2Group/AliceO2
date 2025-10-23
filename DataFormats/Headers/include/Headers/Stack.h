@@ -14,10 +14,7 @@
 #include "MemoryResources/MemoryResources.h"
 #include "Headers/DataHeader.h"
 
-namespace o2
-{
-
-namespace header
+namespace o2::header
 {
 //__________________________________________________________________________________________________
 /// @struct Stack
@@ -39,26 +36,27 @@ struct Stack {
 
  private:
   struct freeobj {
-    freeobj(memory_resource* mr) : resource(mr) {}
+    freeobj(memory_resource* mr, size_t s) : resource(mr), size(s) {}
     memory_resource* resource{nullptr};
-    void operator()(std::byte* ptr) { resource->deallocate(ptr, 0, 0); }
+    size_t           size{0};
+    void operator()(std::byte* ptr) { resource->deallocate(ptr, size, alignof(std::max_align_t)); }
   };
 
  public:
-  using allocator_type = boost::container::pmr::polymorphic_allocator<std::byte>;
+  using allocator_type = fair::mq::pmr::polymorphic_allocator<std::byte>;
   using value_type = std::byte;
-  using BufferType = std::unique_ptr<value_type[], freeobj>; //this gives us proper default move semantics for free
+  using BufferType = std::unique_ptr<value_type[], freeobj>; // this gives us proper default move semantics for free
 
   Stack() = default;
   Stack(Stack&&) = default;
   Stack(Stack&) = delete;
   Stack& operator=(Stack&) = delete;
-  Stack& operator=(Stack&&) = default;
+  Stack& operator=(Stack&&) = delete;
 
-  value_type* data() const { return buffer.get(); }
-  size_t size() const { return bufferSize; }
+  [[nodiscard]] value_type* data() const { return buffer.get(); }
+  [[nodiscard]] size_t size() const { return bufferSize; }
   allocator_type get_allocator() const { return allocator; }
-  const BaseHeader* first() const { return reinterpret_cast<const BaseHeader*>(this->data()); }
+  [[nodiscard]] const BaseHeader* first() const { return reinterpret_cast<const BaseHeader*>(this->data()); }
   static const BaseHeader* firstHeader(std::byte const* buf) { return BaseHeader::get(buf); }
   static const BaseHeader* lastHeader(std::byte const* buf)
   {
@@ -90,9 +88,9 @@ struct Stack {
   /// all headers must derive from BaseHeader, in addition also other stacks can be passed to ctor.
   template <typename FirstArgType, typename... Headers,
             typename std::enable_if_t<
-              !std::is_convertible<FirstArgType, boost::container::pmr::polymorphic_allocator<std::byte>>::value, int> = 0>
+              !std::is_convertible<FirstArgType, fair::mq::pmr::polymorphic_allocator<std::byte>>::value, int> = 0>
   Stack(FirstArgType&& firstHeader, Headers&&... headers)
-    : Stack(boost::container::pmr::new_delete_resource(), std::forward<FirstArgType>(firstHeader),
+    : Stack(fair::mq::pmr::new_delete_resource(), std::forward<FirstArgType>(firstHeader),
             std::forward<Headers>(headers)...)
   {
   }
@@ -102,7 +100,7 @@ struct Stack {
   Stack(const allocator_type allocatorArg, Headers&&... headers)
     : allocator{allocatorArg},
       bufferSize{calculateSize(std::forward<Headers>(headers)...)},
-      buffer{static_cast<std::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource()}}
+      buffer{static_cast<std::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource(), bufferSize}}
   {
     if constexpr (sizeof...(headers) > 1) {
       injectAll(buffer.get(), std::forward<Headers>(headers)...);
@@ -122,7 +120,7 @@ struct Stack {
   template <typename T>
   constexpr static size_t calculateSize(T&& h) noexcept
   {
-    //if it's a pointer (to a stack) traverse it
+    // if it's a pointer (to a stack) traverse it
     if constexpr (std::is_convertible_v<T, std::byte*>) {
       const BaseHeader* next = BaseHeader::get(std::forward<T>(h));
       if (!next) {
@@ -133,19 +131,19 @@ struct Stack {
         size += next->size();
       }
       return size;
-      //otherwise get the size directly
+      // otherwise get the size directly
     } else {
       return h.size();
     }
   }
 
-  //recursion terminator
+  // recursion terminator
   constexpr static size_t calculateSize() { return 0; }
 
  private:
-  allocator_type allocator{boost::container::pmr::new_delete_resource()};
+  allocator_type allocator{fair::mq::pmr::new_delete_resource()};
   size_t bufferSize{0};
-  BufferType buffer{nullptr, freeobj{allocator.resource()}};
+  BufferType buffer{nullptr, freeobj{allocator.resource(), 0}};
 
   //______________________________________________________________________________________________
   template <typename T>
@@ -231,7 +229,6 @@ struct Stack {
   }
 };
 
-} // namespace header
-} // namespace o2
+} // namespace o2::header
 
 #endif // HEADERS_STACK_H

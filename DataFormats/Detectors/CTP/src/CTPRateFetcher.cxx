@@ -254,7 +254,7 @@ void CTPRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, u
     return;
   }
   mLHCIFdata = *ptrLHCIFdata;
-  std::map<string, string> metadata;
+  std::map<std::string, std::string> metadata;
   metadata["runNumber"] = std::to_string(mRunNumber);
   auto ptrConfig = ccdb->getSpecific<ctp::CTPConfiguration>("CTP/Config/Config", timeStamp, metadata);
   if (ptrConfig == nullptr) {

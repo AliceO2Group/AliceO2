@@ -24,8 +24,8 @@ using namespace o2::ccdb;
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
 
-static string ccdbUrl;
-static string basePath;
+static std::string ccdbUrl;
+static std::string basePath;
 bool hostReachable = false;
 
 /**
@@ -40,14 +40,14 @@ struct Fixture {
     cout << "ccdb url: " << ccdbUrl << endl;
     hostReachable = api.isHostReachable();
     cout << "Is host reachable ? --> " << hostReachable << endl;
-    basePath = string("Test/pid") + getpid() + "/";
+    basePath = std::string("Test/pid") + getpid() + "/";
     cout << "Path we will use in this test suite : " + basePath << endl;
   }
   ~Fixture()
   {
     if (hostReachable) {
       CcdbApi api;
-      map<string, string> metadata;
+      std::map<std::string, std::string> metadata;
       api.init(ccdbUrl);
       api.truncate(basePath + "*");
       cout << "Test data truncated (" << basePath << ")" << endl;
@@ -79,7 +79,7 @@ struct test_fixture {
   ~test_fixture() = default;
 
   CcdbApi api;
-  map<string, string> metadata;
+  std::map<std::string, std::string> metadata;
 };
 
 BOOST_AUTO_TEST_CASE(storeAndRetrieve, *utf::precondition(if_reachable()))

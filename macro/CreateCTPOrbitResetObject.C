@@ -17,7 +17,7 @@ void CreateCTPOrbitResetObject(const std::string& ccdbHost = "http://ccdb-test.c
   const std::string objName{"CTP/Calib/OrbitReset"};
   o2::ccdb::CcdbApi api;
   api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   metadata["comment"] = "CTP Orbit reset";
   api.storeAsTFileAny(&rt, objName, metadata, tmin, tmax);
   LOGP(info, "Uploaded CTP Oribt reset time {} to {}", t, objName);

@@ -72,6 +72,8 @@ This can be done with a json file in the form:
 {
     "startRun": 557251,
     "endRun": 557926,
+    "startTT": 1726300235000,
+    "endTT": 1726324000000,
     "rejectList": [
         {
             "deId": 4,
@@ -98,6 +100,8 @@ This can be done with a json file in the form:
     ]
 }
 ```
+
+Where `startTT` and `endTT` are the timestamps in which the manual reject list will be built. To use the timestamps of start/end of the specified runs set `startTT` and `endTT` to 0 (or do not include them in the json).
 
 The path to the file is then given to the macro with:
 

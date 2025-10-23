@@ -256,6 +256,33 @@ void MatLayerCylSet::print(bool data) const
          float(getFlatBufferSize()) / 1024 / 1024);
 }
 
+//________________________________________________________________________________
+void MatLayerCylSet::scaleLayersByID(int lrFrom, int lrTo, float factor, bool _x2x0, bool _rho)
+{
+  lrFrom = std::max(0, std::min(lrFrom, get()->mNLayers - 1));
+  lrTo = std::max(0, std::min(lrTo, get()->mNLayers - 1));
+  int dir = lrFrom >= lrTo ? -1 : 1;
+  lrTo += dir;
+  for (int i = lrFrom; i != lrTo; i += dir) {
+    get()->mLayers[i].scale(factor, _x2x0, _rho);
+  }
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::scaleLayersByR(float rFrom, float rTo, float factor, bool _x2x0, bool _rho)
+{
+  if (rFrom > rTo) {
+    std::swap(rFrom, rTo);
+  }
+  Ray ray(std::max(getRMin(), rFrom), 0., 0., std::min(getRMax(), rTo), 0., 0.);
+  short lmin, lmax;
+  if (!getLayersRange(ray, lmin, lmax)) {
+    LOGP(warn, "No layers found for {} < r < {}", rFrom, rTo);
+    return;
+  }
+  scaleLayersByID(lmin, lmax, factor, _x2x0, _rho);
+}
+
 #endif //!GPUCA_ALIGPUCODE
 
 #ifndef GPUCA_GPUCODE

@@ -40,14 +40,15 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
     TYPE_X11 = 1,
     TYPE_GLUT = 2,
     TYPE_GLFW = 3,
-    TYPE_WAYLAND = 4
+    TYPE_WAYLAND = 4,
+    TYPE_NONE = 5
   };
 
   // Compile time minimum version defined in GPUDisplay.h, keep in sync!
   static constexpr int32_t GL_MIN_VERSION_MAJOR = 4;
   static constexpr int32_t GL_MIN_VERSION_MINOR = 5;
 
-  virtual int32_t StartDisplay() = 0;                                                                                        // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
+  int32_t StartDisplay();                                                                                                    // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
   void DisplayExit() override = 0;                                                                                           // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window

@@ -27,7 +27,7 @@ set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_T
 
 include(cmake/helpers.cmake)
 
-if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND GPUCA_BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND OPENGL_FOUND AND GLFW_FOUND))
+if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND GPUCA_BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND OPENGL_FOUND AND GLFW_FOUND AND (NOT DEFINED GPUCA_BUILD_EVENT_DISPLAY OR NOT GPUCA_BUILD_EVENT_DISPLAY)))
   set(GPUCA_EVENT_DISPLAY ON)
 endif()
 if(ROOT_FOUND)
@@ -155,7 +155,6 @@ set(HDRS_INSTALL
     SectorTracker/GPUTPCHit.h
     SectorTracker/GPUTPCHitId.h
     SectorTracker/GPUTPCMCInfo.h
-    SectorTracker/GPUTPCSectorOutCluster.h
     SectorTracker/GPUTPCTracklet.h
     SectorTracker/GPUTPCTrackLinearisation.h
     TPCConvert/GPUTPCConvertImpl.h
@@ -174,11 +173,7 @@ set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayInterface.cxx)
 
 set(SRCS_NO_CINT ${SRCS_NO_CINT}
     Global/GPUChainITS.cxx
-    ITS/GPUITSFitter.cxx
-    ITS/GPUITSFitterKernels.cxx
     dEdx/GPUdEdx.cxx
-    TPCConvert/GPUTPCConvert.cxx
-    TPCConvert/GPUTPCConvertKernel.cxx
     DataCompression/GPUTPCCompression.cxx
     DataCompression/GPUTPCCompressionTrackModel.cxx
     DataCompression/GPUTPCCompressionKernels.cxx
@@ -221,7 +216,6 @@ set(SRCS_NO_H ${SRCS_NO_H}
     TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
 
 set(HDRS_INSTALL ${HDRS_INSTALL}
-                  ITS/GPUITSTrack.h
                   TPCClusterFinder/CfArray2D.h
                   TPCClusterFinder/CfConsts.h
                   TPCClusterFinder/CfFragment.h
@@ -299,7 +293,6 @@ set(INCDIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/SectorTracker
     ${CMAKE_CURRENT_SOURCE_DIR}/TPCConvert
     ${CMAKE_CURRENT_SOURCE_DIR}/dEdx
-    ${CMAKE_CURRENT_SOURCE_DIR}/ITS
     ${CMAKE_CURRENT_SOURCE_DIR}/TRDTracking
     ${CMAKE_CURRENT_SOURCE_DIR}/qa
     ${CMAKE_CURRENT_SOURCE_DIR}/Global

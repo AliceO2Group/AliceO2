@@ -309,13 +309,3 @@ void GPUDisplayFrontendGlut::SwitchFullscreen(bool set)
 
 void GPUDisplayFrontendGlut::ToggleMaximized(bool set) {}
 void GPUDisplayFrontendGlut::SetVSync(bool enable) {}
-
-int32_t GPUDisplayFrontendGlut::StartDisplay()
-{
-  static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
-    GPUError("Coult not Create GL Thread...");
-    return (1);
-  }
-  return (0);
-}

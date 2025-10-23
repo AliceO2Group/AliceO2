@@ -8,7 +8,7 @@ o2::steer::O2MCApplicationBase::TrackRefFcn trackRefHook() {
     if (vmc->IsTrackStop() && stack->currentTrackLeftTrackRef()) {
        // we add a stopping TrackRef when the current track already
        // registered previous TrackRefs
-       stack->addTrackReference(o2::TrackReference(*vmc, 0));
+       stack->addTrackReference(o2::TrackReference(*vmc, -1));
     }
   };
 }

@@ -17,7 +17,6 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DetectorsBase/Propagator.h"
-#include "ITStracking/ROframe.h"
 
 namespace o2
 {
@@ -28,14 +27,14 @@ template <unsigned int D>
 class Smoother
 {
  public:
-  Smoother(TrackITSExt& track, size_t layer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr);
+  // Smoother(TrackITSExt& track, size_t layer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr);
   ~Smoother();
 
   bool isValidInit() const
   {
     return mInitStatus;
   }
-  bool testCluster(const int clusterId, const ROframe& event);
+  // bool testCluster(const int clusterId, const ROframe& event);
   bool getSmoothedTrack();
   float getChi2() const { return mBestChi2; }
   float getLastChi2() const { return mLastChi2; }

@@ -328,9 +328,14 @@ EOF
   # ?? should directly exit here?
   wait $PID || QUERY_RC_FROM_LOG="ON"
 
-  # query return code from log (seems to be safer as sometimes the wait issues "PID" not a child of this shell)
-  RC=$(awk '/TASK-EXIT-CODE:/{print $2}' ${logfile})
-  if [ ! "${RC}" ]; then
+  # query return code from log and sanitize (seems to be safer as sometimes the wait issues "PID" not a child of this shell)
+  RC=$(awk '/TASK-EXIT-CODE:/{print $2; exit}' "${logfile}" | tr -d '[:space:]' | tr -d '\r')
+  if [ -z "${RC}" ]; then
+    RC=1
+  fi
+  # check that RC is an integer
+  if ! [[ "$RC" =~ ^[0-9]+$ ]]; then
+    echo "Malformed TASK-EXIT-CODE: '${RC}'"
     RC=1
   fi
   if [ "${RC}" -eq "0" ]; then

@@ -17,26 +17,20 @@
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/CookedTrackerSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
+#include "ITStracking/TrackingConfigParam.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "GlobalTrackingWorkflowWriters/IRFrameWriterSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "Framework/CCDBParamSpec.h"
 
 // Dummy TPC completion policy data
-using CompletionPolicyData = std::vector<InputSpec>;
-static CompletionPolicyData gPolicyData;
-static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> gTask;
 
-namespace o2
-{
-namespace its
-{
-namespace reco_workflow
+namespace o2::its::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC,
-                                    bool useCAtracker,
-                                    const std::string& trmode,
+                                    bool useCMtracker,
+                                    TrackingMode::Type trmode,
                                     const bool overrideBeamPosition,
                                     bool upstreamDigits,
                                     bool upstreamClusters,
@@ -56,13 +50,17 @@ framework::WorkflowSpec getWorkflow(bool useMC,
   if (!disableRootOutput) {
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
   }
-  if (!trmode.empty()) {
-    if (useCAtracker) {
+  if ((trmode != TrackingMode::Off) && (TrackerParamConfig::Instance().trackingMode != TrackingMode::Off)) {
+    if (useCMtracker) {
+      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useGeom, useTrig, trmode));
+    } else {
       if (useGPUWF) {
-        o2::gpu::GPURecoWorkflowSpec::Config cfg;
-        cfg.runITSTracking = true;
-        cfg.itsTriggerType = useTrig;
-        cfg.itsOverrBeamEst = overrideBeamPosition;
+        o2::gpu::GPURecoWorkflowSpec::Config cfg{
+          .itsTriggerType = useTrig,
+          .processMC = useMC,
+          .runITSTracking = true,
+          .itsOverrBeamEst = overrideBeamPosition,
+        };
 
         Inputs ggInputs;
         auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true,
@@ -72,23 +70,21 @@ framework::WorkflowSpec getWorkflow(bool useMC,
           ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("ITS/Config/Geometry")}, ggInputs);
         }
 
-        auto task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(&gPolicyData, cfg, std::vector<int>(), 0, ggRequest);
-        gTask = task;
+        static std::vector<InputSpec> policyData;
+        static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(&policyData, cfg, std::vector<int>(), 0, ggRequest);
         Inputs taskInputs = task->inputs();
         Options taskOptions = task->options();
         std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
 
         specs.emplace_back(DataProcessorSpec{
-          "its-gpu-tracker",
-          taskInputs,
-          task->outputs(),
-          AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
-          taskOptions});
+          .name = "its-gpu-tracker",
+          .inputs = taskInputs,
+          .outputs = task->outputs(),
+          .algorithm = AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
+          .options = taskOptions});
       } else {
         specs.emplace_back(o2::its::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
       }
-    } else {
-      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useGeom, useTrig, trmode));
     }
     if (!disableRootOutput) {
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
@@ -98,6 +94,4 @@ framework::WorkflowSpec getWorkflow(bool useMC,
   return specs;
 }
 
-} // namespace reco_workflow
-} // namespace its
-} // namespace o2
+} // namespace o2::its::reco_workflow

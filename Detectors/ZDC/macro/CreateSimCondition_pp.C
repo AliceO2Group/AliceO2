@@ -101,7 +101,7 @@ void CreateSimCondition_pp(long tmin = 0, long tmax = -1, std::string ccdbHost =
   conf.print();
 
   o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
+  std::map<std::string, std::string> metadata; // can be empty
   if (ccdbHost.size() == 0 || ccdbHost == "external") {
     ccdbHost = "http://alice-ccdb.cern.ch:8080";
   } else if (ccdbHost == "internal") {

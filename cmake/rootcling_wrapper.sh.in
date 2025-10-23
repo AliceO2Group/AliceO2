@@ -41,6 +41,10 @@ while [[ $# -gt 0 ]]; do
     PCMDEPS="$2"
     shift 2
     ;;
+  --extra-patch)
+    EXTRA_PATCH="$2"
+    shift 2
+    ;;
   *)
     if [[ -z "$1" ]]; then
       shift
@@ -82,6 +86,18 @@ esac
 
 LOGFILE=${DICTIONARY_FILE}.log
 
+echo @CMAKE_COMMAND@ -E env "LD_LIBRARY_PATH=$libpath" @ROOT_rootcling_CMD@ \
+  -f $DICTIONARY_FILE \
+  -inlineInputHeader \
+  -noGlobalUsingStd \
+  -rmf ${ROOTMAP_FILE} \
+  -rml ${ROOTMAP_LIBRARY_NAME} \
+  ${INCLUDE_DIRS//;/ } \
+  ${COMPILE_DEFINITIONS//;/ } \
+  ${PCMDEPS:+-m }${PCMDEPS//;/ -m } \
+  ${HEADERS//;/ } \
+  > ${LOGFILE} 2>&1 || ROOTCLINGRETVAL=$?
+
 @CMAKE_COMMAND@ -E env "LD_LIBRARY_PATH=$libpath" @ROOT_rootcling_CMD@ \
   -f $DICTIONARY_FILE \
   -inlineInputHeader \
@@ -93,6 +109,13 @@ LOGFILE=${DICTIONARY_FILE}.log
   ${PCMDEPS:+-m }${PCMDEPS//;/ -m } \
   ${HEADERS//;/ } \
   > ${LOGFILE} 2>&1 || ROOTCLINGRETVAL=$?
+
+# Add the extra patch file at the end of the generated dictionary.
+# This is needed to inject custom streamers (e.g. for std::vector<PadFlags>)
+# to our dictionary.
+if [ ! X"${EXTRA_PATCH}" = X ]; then
+  cat $EXTRA_PATCH >> ${DICTIONARY_FILE}
+fi
 
 if [[ ${ROOTCLINGRETVAL:-0} != "0" ]]; then
   cat ${LOGFILE} >&2

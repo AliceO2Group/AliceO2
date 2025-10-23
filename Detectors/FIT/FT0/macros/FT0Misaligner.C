@@ -55,7 +55,7 @@ void FT0Misaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
     std::string path = objectPath.empty() ? o2::base::DetectorNameConf::getAlignmentPath(detFT0) : objectPath;
     LOGP(info, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
-    map<string, string> metadata; // can be empty
+    std::map<std::string, std::string> metadata; // can be empty
     api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
     // store abitrary user object in strongly typed manner
     api.storeAsTFileAny(&params, path, metadata, tmin, tmax);

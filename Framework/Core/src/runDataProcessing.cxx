@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <memory>
+#include "Framework/TopologyPolicyHelpers.h"
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <stdexcept>
 #include "Framework/BoostOptionsRetriever.h"
@@ -1037,7 +1038,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       defaultDataProcessingTimeout = "20";
       defaultInfologgerMode = "infoLoggerD";
     } else if (deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
-      defaultExitTransitionTimeout = "25";
+      defaultExitTransitionTimeout = "40";
       defaultDataProcessingTimeout = "20";
     }
     boost::program_options::options_description optsDesc;
@@ -1051,6 +1052,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("signposts", bpo::value<std::string>()->default_value(defaultSignposts ? defaultSignposts : ""), "comma separated list of signposts to enable")                                             //
       ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                                   //
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                            //
+      ("error-on-exit-transition-timeout", bpo::value<bool>()->zero_tokens()->default_value(false), "print error instead of warning when exit transition timer expires")                           //
       ("data-processing-timeout", bpo::value<std::string>()->default_value(defaultDataProcessingTimeout), "how many second to wait before stopping data processing and allowing data calibration") //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                                 //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                                     //
@@ -1232,6 +1234,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^aod-bytes-read-uncompressed$");
   dumpableMetrics.emplace_back("^aod-bytes-read-compressed$");
   dumpableMetrics.emplace_back("^aod-file-read-info$");
+  dumpableMetrics.emplace_back("^aod-largest-object-written$");
   dumpableMetrics.emplace_back("^table-bytes-.*");
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");
@@ -2200,8 +2203,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
         }
         break;
-      case DriverState::QUIT_REQUESTED:
-        LOG(info) << "QUIT_REQUESTED";
+      case DriverState::QUIT_REQUESTED: {
+        std::time_t result = std::time(nullptr);
+        char buffer[32];
+        std::strncpy(buffer, std::ctime(&result), 26);
+        O2_SIGNPOST_EVENT_EMIT_INFO(driver, sid, "mainloop", "Quit requested at %{public}s", buffer);
         guiQuitRequested = true;
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
@@ -2213,6 +2219,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         uv_timer_start(&force_step_timer, single_step_callback, 0, 300);
         driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
         break;
+      }
       case DriverState::HANDLE_CHILDREN: {
         // Run any pending libUV event loop, block if
         // any, so that we do not consume CPU time when the driver is
@@ -3020,61 +3027,12 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                      [](OutputSpec const& a, OutputSpec const& b) { return DataSpecUtils::describe(a) < DataSpecUtils::describe(b); });
   }
 
-  std::vector<TopologyPolicy> topologyPolicies = TopologyPolicy::createDefaultPolicies();
-  std::vector<TopologyPolicy::DependencyChecker> dependencyCheckers;
-  dependencyCheckers.reserve(physicalWorkflow.size());
-
-  for (auto& spec : physicalWorkflow) {
-    for (auto& policy : topologyPolicies) {
-      if (policy.matcher(spec)) {
-        dependencyCheckers.push_back(policy.checkDependency);
-        break;
-      }
-    }
-  }
-  assert(dependencyCheckers.size() == physicalWorkflow.size());
-  // check if DataProcessorSpec at i depends on j
-  auto checkDependencies = [&workflow = physicalWorkflow,
-                            &dependencyCheckers](int i, int j) {
-    TopologyPolicy::DependencyChecker& checker = dependencyCheckers[i];
-    return checker(workflow[i], workflow[j]);
-  };
-
   // Create a list of all the edges, so that we can do a topological sort
   // before we create the graph.
   std::vector<std::pair<int, int>> edges;
 
   if (physicalWorkflow.size() > 1) {
-    for (size_t i = 0; i < physicalWorkflow.size() - 1; ++i) {
-      for (size_t j = i; j < physicalWorkflow.size(); ++j) {
-        if (i == j && checkDependencies(i, j)) {
-          throw std::runtime_error(physicalWorkflow[i].name + " depends on itself");
-        }
-        bool both = false;
-        if (checkDependencies(i, j)) {
-          edges.emplace_back(j, i);
-          both = true;
-        }
-        if (checkDependencies(j, i)) {
-          edges.emplace_back(i, j);
-          if (both) {
-            std::ostringstream str;
-            for (auto x : {i, j}) {
-              str << physicalWorkflow[x].name << ":\n";
-              str << "inputs:\n";
-              for (auto& input : physicalWorkflow[x].inputs) {
-                str << "- " << input << "\n";
-              }
-              str << "outputs:\n";
-              for (auto& output : physicalWorkflow[x].outputs) {
-                str << "- " << output << "\n";
-              }
-            }
-            throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name + ":\n" + str.str());
-          }
-        }
-      }
-    }
+    edges = TopologyPolicyHelpers::buildEdges(physicalWorkflow);
 
     auto topoInfos = WorkflowHelpers::topologicalSort(physicalWorkflow.size(), &edges[0].first, &edges[0].second, sizeof(std::pair<int, int>), edges.size());
     if (topoInfos.size() != physicalWorkflow.size()) {

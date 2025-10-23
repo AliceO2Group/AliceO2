@@ -24,6 +24,7 @@
 #include "Framework/DataTakingContext.h"
 #include <chrono>
 #include <memory>
+#include <ranges>
 #include <sstream>
 #include <TFile.h>
 #include <TGrid.h>
@@ -297,7 +298,7 @@ void CcdbApi::updateMetaInformationInLocalFile(std::string const& filename, std:
  */
 std::string sanitizeObjectName(const std::string& objectName)
 {
-  string tmpObjectName = objectName;
+  std::string tmpObjectName = objectName;
   tmpObjectName.erase(std::remove_if(tmpObjectName.begin(), tmpObjectName.end(),
                                      [](auto const& c) -> bool { return (!std::isalnum(c) && c != '_' && c != '/' && c != '.'); }),
                       tmpObjectName.end());
@@ -431,7 +432,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     CURLcode res = CURL_LAST;
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res > 0; hostIndex++) {
-      string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
+      std::string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
       LOG(debug3) << "Full URL Encoded: " << fullUrl;
       /* what URL that receives this POST */
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
@@ -476,30 +477,30 @@ int CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, st
   return storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
 }
 
-string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const string& objtype,
-                                     const map<string, string>& metadata,
-                                     long startValidityTimestamp, long endValidityTimestamp, int hostIndex) const
+std::string CcdbApi::getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,
+                                          const std::map<std::string, std::string>& metadata,
+                                          long startValidityTimestamp, long endValidityTimestamp, int hostIndex) const
 {
   // Prepare timestamps
-  string startValidityString = getTimestampString(startValidityTimestamp < 0 ? getCurrentTimestamp() : startValidityTimestamp);
-  string endValidityString = getTimestampString(endValidityTimestamp < 0 ? getFutureTimestamp(60 * 60 * 24 * 1) : endValidityTimestamp);
+  std::string startValidityString = getTimestampString(startValidityTimestamp < 0 ? getCurrentTimestamp() : startValidityTimestamp);
+  std::string endValidityString = getTimestampString(endValidityTimestamp < 0 ? getFutureTimestamp(60 * 60 * 24 * 1) : endValidityTimestamp);
   // Get url
-  string url = getHostUrl(hostIndex);
+  std::string url = getHostUrl(hostIndex);
   // Build URL
-  string fullUrl = url + "/" + path + "/" + startValidityString + "/" + endValidityString + "/";
+  std::string fullUrl = url + "/" + path + "/" + startValidityString + "/" + endValidityString + "/";
   // Add type as part of metadata
   // we need to URL encode the object type, since in case it has special characters (like the "<", ">" for templated classes) it won't work otherwise
   char* objtypeEncoded = curl_easy_escape(curl, objtype.c_str(), objtype.size());
-  fullUrl += "ObjectType=" + string(objtypeEncoded) + "/";
+  fullUrl += "ObjectType=" + std::string(objtypeEncoded) + "/";
   curl_free(objtypeEncoded);
   // Add general metadata
   for (auto& kv : metadata) {
-    string mfirst = kv.first;
-    string msecond = kv.second;
+    std::string mfirst = kv.first;
+    std::string msecond = kv.second;
     // same trick for the metadata as for the object type
     char* mfirstEncoded = curl_easy_escape(curl, mfirst.c_str(), mfirst.size());
     char* msecondEncoded = curl_easy_escape(curl, msecond.c_str(), msecond.size());
-    fullUrl += string(mfirstEncoded) + "=" + string(msecondEncoded) + "/";
+    fullUrl += std::string(mfirstEncoded) + "=" + std::string(msecondEncoded) + "/";
     curl_free(mfirstEncoded);
     curl_free(msecondEncoded);
   }
@@ -507,26 +508,26 @@ string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const strin
 }
 
 // todo make a single method of the one above and below
-string CcdbApi::getFullUrlForRetrieval(CURL* curl, const string& path, const map<string, string>& metadata, long timestamp, int hostIndex) const
+std::string CcdbApi::getFullUrlForRetrieval(CURL* curl, const std::string& path, const std::map<std::string, std::string>& metadata, long timestamp, int hostIndex) const
 {
   if (mInSnapshotMode) {
     return getSnapshotFile(mSnapshotTopPath, path);
   }
 
   // Prepare timestamps
-  string validityString = getTimestampString(timestamp < 0 ? getCurrentTimestamp() : timestamp);
+  std::string validityString = getTimestampString(timestamp < 0 ? getCurrentTimestamp() : timestamp);
   // Get host url
-  string hostUrl = getHostUrl(hostIndex);
+  std::string hostUrl = getHostUrl(hostIndex);
   // Build URL
-  string fullUrl = hostUrl + "/" + path + "/" + validityString + "/";
+  std::string fullUrl = hostUrl + "/" + path + "/" + validityString + "/";
   // Add metadata
   for (auto& kv : metadata) {
-    string mfirst = kv.first;
-    string msecond = kv.second;
+    std::string mfirst = kv.first;
+    std::string msecond = kv.second;
     // trick for the metadata in case it contains special characters
     char* mfirstEncoded = curl_easy_escape(curl, mfirst.c_str(), mfirst.size());
     char* msecondEncoded = curl_easy_escape(curl, msecond.c_str(), msecond.size());
-    fullUrl += string(mfirstEncoded) + "=" + string(msecondEncoded) + "/";
+    fullUrl += std::string(mfirstEncoded) + "=" + std::string(msecondEncoded) + "/";
     curl_free(mfirstEncoded);
     curl_free(msecondEncoded);
   }
@@ -755,7 +756,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
     CURLcode curlResultCode = CURL_LAST;
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (responseCode >= 400 || curlResultCode > 0); hostIndex++) {
-      string fullUrl = getFullUrlForRetrieval(curlHandle, path, metadata, timestamp, hostIndex);
+      std::string fullUrl = getFullUrlForRetrieval(curlHandle, path, metadata, timestamp, hostIndex);
       curl_easy_setopt(curlHandle, CURLOPT_URL, fullUrl.c_str());
 
       curlResultCode = CURL_perform(curlHandle);
@@ -885,7 +886,7 @@ void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& local
 {
   // query all subpaths to ccdbrootpath
   const auto allfolders = getAllFolders(ccdbrootpath);
-  std::map<string, string> metadata;
+  std::map<std::string, std::string> metadata;
   for (auto& folder : allfolders) {
     retrieveBlob(folder, localDir, metadata, timestamp);
   }
@@ -977,7 +978,7 @@ bool CcdbApi::initTGrid() const
   return gGrid != nullptr;
 }
 
-void* CcdbApi::downloadFilesystemContent(std::string const& url, std::type_info const& tinfo, std::map<string, string>* headers) const
+void* CcdbApi::downloadFilesystemContent(std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const
 {
   if ((url.find("alien:/", 0) != std::string::npos) && !initTGrid()) {
     return nullptr;
@@ -1016,7 +1017,7 @@ void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsiz
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
-void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, std::type_info const& tinfo, std::map<string, string>* headers) const
+void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const
 {
   // a global internal data structure that can be filled with HTTP header information
   // static --> to avoid frequent alloc/dealloc as optimization
@@ -1164,7 +1165,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
 
   CURL* curl_handle = curl_easy_init();
   curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
-  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp); // todo check if function still works correctly in case mInSnapshotMode
+  std::string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp); // todo check if function still works correctly in case mInSnapshotMode
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
     auto res = extractFromLocalFile(fullUrl, tinfo, headers);
@@ -1218,8 +1219,8 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, (string("Accept: ") + returnFormat).c_str());
-    headers = curl_slist_append(headers, (string("Content-Type: ") + returnFormat).c_str());
+    headers = curl_slist_append(headers, (std::string("Accept: ") + returnFormat).c_str());
+    headers = curl_slist_append(headers, (std::string("Content-Type: ") + returnFormat).c_str());
     if (createdNotAfter >= 0) {
       headers = curl_slist_append(headers, ("If-Not-After: " + std::to_string(createdNotAfter)).c_str());
     }
@@ -1230,7 +1231,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
 
     curlSetSSLOptions(curl);
 
-    string fullUrl;
+    std::string fullUrl;
     // Perform the request, res will get the return code
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       fullUrl = getHostUrl(hostIndex);
@@ -1290,7 +1291,7 @@ void CcdbApi::truncate(std::string const& path) const
   CURLcode res;
   stringstream fullUrl;
   for (size_t i = 0; i < hostsPool.size(); i++) {
-    string url = getHostUrl(i);
+    std::string url = getHostUrl(i);
     fullUrl << url << "/truncate/" << path;
 
     curl = curl_easy_init();
@@ -1436,7 +1437,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
   auto do_remote_header_call = [this, &path, &metadata, timestamp]() -> std::map<std::string, std::string> {
     CURL* curl = curl_easy_init();
     CURLcode res = CURL_LAST;
-    string fullUrl = getFullUrlForRetrieval(curl, path, metadata, timestamp);
+    std::string fullUrl = getFullUrlForRetrieval(curl, path, metadata, timestamp);
     std::map<std::string, std::string> headers;
 
     if (curl != nullptr) {
@@ -1632,12 +1633,12 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
       fullUrl << "?";
 
       for (auto& kv : metadata) {
-        string mfirst = kv.first;
-        string msecond = kv.second;
+        std::string mfirst = kv.first;
+        std::string msecond = kv.second;
         // same trick for the metadata as for the object type
         char* mfirstEncoded = curl_easy_escape(curl, mfirst.c_str(), mfirst.size());
         char* msecondEncoded = curl_easy_escape(curl, msecond.c_str(), msecond.size());
-        fullUrl << string(mfirstEncoded) + "=" + string(msecondEncoded) + "&";
+        fullUrl << std::string(mfirstEncoded) + "=" + std::string(msecondEncoded) + "&";
         curl_free(mfirstEncoded);
         curl_free(msecondEncoded);
       }
@@ -1665,22 +1666,13 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
   return ret;
 }
 
-std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)
-{
-  std::vector<std::string> tokens;
-  char stringForStrTok[str.length() + 1];
-  strcpy(stringForStrTok, str.c_str());
-  char* token = strtok(stringForStrTok, delimiters);
-  while (token != nullptr) {
-    tokens.emplace_back(token);
-    token = strtok(nullptr, delimiters);
-  }
-  return tokens;
-}
-
 void CcdbApi::initHostsPool(std::string hosts)
 {
-  hostsPool = splitString(hosts, ",;");
+  hostsPool.clear();
+  auto splitted = hosts | std::views::transform([](char c) { return (c == ';') ? ',' : c; }) | std::views::split(',');
+  for (auto&& part : splitted) {
+    hostsPool.emplace_back(part.begin(), part.end());
+  }
 }
 
 std::string CcdbApi::getHostUrl(int hostIndex) const
@@ -1728,7 +1720,7 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
 
   CURL* curl_handle = curl_easy_init();
   curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
-  string fullUrl = getFullUrlForRetrieval(curl_handle, requestContext.path, requestContext.metadata, requestContext.timestamp);
+  std::string fullUrl = getFullUrlForRetrieval(curl_handle, requestContext.path, requestContext.metadata, requestContext.timestamp);
   curl_slist* options_list = nullptr;
   initCurlHTTPHeaderOptionsForRetrieve(curl_handle, options_list, requestContext.timestamp, &requestContext.headers,
                                        requestContext.etag, requestContext.createdNotAfter, requestContext.createdNotBefore);

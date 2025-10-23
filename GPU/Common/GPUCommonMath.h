@@ -74,6 +74,11 @@ class GPUCommonMath
   GPUhdni() constexpr static float Sqrt(float x);
   GPUd() static float InvSqrt(float x);
   template <class T>
+  GPUdi() constexpr static T Square(T x)
+  {
+    return x * x;
+  }
+  template <class T>
   GPUhd() constexpr static T Abs(T x);
   GPUd() constexpr static float ASin(float x);
   GPUd() constexpr static float ACos(float x);
@@ -99,7 +104,9 @@ class GPUCommonMath
   GPUhdi() static float Remainderf(float x, float y);
   GPUd() constexpr static bool Finite(float x);
   GPUd() constexpr static bool IsNaN(float x);
+#ifndef __FAST_MATH__
   GPUd() constexpr static float QuietNaN() { return GPUCA_CHOICE(std::numeric_limits<float>::quiet_NaN(), __builtin_nanf(""), nan(0u)); }
+#endif
   GPUd() constexpr static uint32_t Clz(uint32_t val);
   GPUd() constexpr static uint32_t Popcount(uint32_t val);
 
@@ -516,7 +523,7 @@ GPUdi() void GPUCommonMath::AtomicMinInternal(S* addr, T val)
 #endif // GPUCA_GPUCODE
 }
 
-#if (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(G__ROOT)
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(G__ROOT) && !defined(__CLING__)
 #define GPUCA_HAVE_ATOMIC_MINMAX_FLOAT
 template <>
 GPUdii() void GPUCommonMath::AtomicMaxInternal(GPUglobalref() GPUgeneric() GPUAtomic(float) * addr, float val)

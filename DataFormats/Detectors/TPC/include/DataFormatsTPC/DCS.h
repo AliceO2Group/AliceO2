@@ -30,8 +30,12 @@
 
 #include "Framework/Logger.h"
 #include "DataFormatsTPC/Defs.h"
+#include "MathUtils/fit.h"
 
 using namespace o2::tpc;
+
+class TLinearFitter;
+class TTree;
 
 namespace o2::tpc::dcs
 {
@@ -65,6 +69,19 @@ struct DataPointVector {
   using DPType = DataPoint<T>;
   uint32_t sensorNumber{};
   std::vector<DPType> data;
+
+  /// \brief convert data points to a vector of pairs: pair.first -> data and pair.second -> time
+  auto getPairOfVector() const
+  {
+    std::pair<std::vector<T>, std::vector<TimeStampType>> pairs;
+    pairs.first.reserve(data.size());
+    pairs.second.reserve(data.size());
+    for (const auto& dp : data) {
+      pairs.first.emplace_back(dp.value);
+      pairs.second.emplace_back(dp.time);
+    }
+    return pairs;
+  }
 
   void fill(const TimeStampType time, const T& value) { data.emplace_back(DPType{time, value}); }
 
@@ -169,6 +186,45 @@ const T getAverageValueForTime(const std::vector<dcs::DataPointVector<T>>& dpVec
   return (nPoints > 0) ? ret / static_cast<float>(nPoints) : T{};
 }
 
+template <typename T>
+dcs::TimeStampType getMinTime(const std::vector<dcs::DataPointVector<T>>& data, const bool roundToInterval, dcs::TimeStampType fitInterval)
+{
+  constexpr auto max = std::numeric_limits<dcs::TimeStampType>::max();
+  dcs::TimeStampType firstTime = std::numeric_limits<dcs::TimeStampType>::max();
+  for (const auto& sensor : data) {
+    const auto time = sensor.data.size() ? sensor.data.front().time : max;
+    firstTime = std::min(firstTime, time);
+  }
+
+  // mFitInterval is is seconds. Round to full amount.
+  // if e.g. mFitInterval = 5min, then round 10:07:20.510 to 10:05:00.000
+  if (roundToInterval) {
+    firstTime -= (firstTime % fitInterval);
+  }
+
+  return firstTime;
+}
+
+template <typename T>
+dcs::TimeStampType getMaxTime(const std::vector<dcs::DataPointVector<T>>& data)
+{
+  constexpr auto min = 0;
+  dcs::TimeStampType lastTime = 0;
+  for (const auto& sensor : data) {
+    const auto time = sensor.data.size() ? sensor.data.back().time : 0;
+    lastTime = std::max(lastTime, time);
+  }
+
+  // mFitInterval is is seconds. Round to full amount.
+  // if e.g. mFitInterval = 5min, then round 10:07:20.510 to 10:05:00.000
+  // TODO: fix this
+  // if (mRoundToInterval) {
+  // lastTime -= (lastTime % mFitInterval);
+  //}
+
+  return lastTime;
+}
+
 using RawDPsF = DataPointVector<float>;
 // using RawDPsI = DataPointVector<int>;
 
@@ -209,6 +265,12 @@ struct Temperature {
   }};
 
   static constexpr auto& getSensorPosition(const size_t sensor) { return SensorPosition[sensor]; }
+
+  /// \brief make fit of the mean temperature and gradients in time intervals
+  /// \param Side TPC side for which to make the fit
+  /// \param fitInterval time interval for the fits
+  /// \param roundToInterval round min time
+  void fitTemperature(Side side, dcs::TimeStampType fitInterval = 5 * 60 * 1000, const bool roundToInterval = false);
 
   struct Stats {
     DataType mean{};  ///< average temperature in K
@@ -262,6 +324,9 @@ struct Temperature {
     doAppend(raw, other.raw);
   }
 
+ private:
+  bool makeFit(TLinearFitter& fitter, const int nDim, std::vector<double>& xVals, std::vector<double>& temperatures);
+
   ClassDefNV(Temperature, 1);
 };
 
@@ -270,8 +335,7 @@ struct Temperature {
 ///
 struct HV {
 
-  HV()
-  noexcept;
+  HV() noexcept;
 
   // Exmple strings
   // TPC_HV_A03_I_G1B_I
@@ -481,6 +545,78 @@ struct Gas {
   TimeStampType getMaxTime() const;
 
   ClassDefNV(Gas, 1);
+};
+
+struct RobustPressure {
+  using Stats = o2::math_utils::RollingStats;
+  Stats surfaceAtmosPressure;        ///< rolling statistics of surface sensor
+  Stats cavernAtmosPressure;         ///< rolling statistics of cavern sensor 1
+  Stats cavernAtmosPressure2;        ///< rolling statistics of cavern sensor 2
+  Stats cavernAtmosPressure12;       ///< rolling statistics of cavernAtmosPressure/cavernAtmosPressure2
+  Stats cavernAtmosPressure1S;       ///< rolling statistics of cavernAtmosPressure/surfaceAtmosPressure
+  Stats cavernAtmosPressure2S;       ///< rolling statistics of cavernAtmosPressure2/surfaceAtmosPressure
+  std::vector<uint8_t> isOk;         ///< bit mask of valid sensors: cavernBit 0, cavern2Bit = 1, surfaceBit = 2
+  std::vector<float> robustPressure; ///< combined robust pressure value that should be used
+  std::vector<ULong64_t> time;       ///< time stamps of all pressure values
+  TimeStampType timeInterval;        ///< time interval used for rolling statistics
+  TimeStampType timeIntervalRef;     ///< reference time interval used for normalization of pressure sensors
+  float maxDist{};                   ///< maximum allowed time distance between sensors to be accepted for robust pressure calculation
+  float maxDiff{0.2f};               ///< maximum allowed pressure difference between sensors to be accepted for robust pressure calculation
+
+  ClassDefNV(RobustPressure, 2);
+};
+
+struct Pressure {
+
+  /// \brief fill pressure data
+  /// \param sensor name of the sensor from DCS data stream
+  /// \param time measurement time
+  /// \param value pressure value
+  void fill(std::string_view sensor, const TimeStampType time, const DataType value);
+
+  /// sort pressure values and remove obvious outliers
+  /// \param pMin min accepted pressure
+  /// \param pMax max accepted pressure
+  void sortAndClean(float pMin = 800, float pMax = 1100);
+
+  /// \clear all stored data except the buffer
+  void clear();
+
+  /// append other pressure values
+  void append(const Pressure& other);
+
+  /// \return get minimum time of stored data
+  TimeStampType getMinTime() const;
+
+  /// \return get maximum time of stored data
+  TimeStampType getMaxTime() const;
+
+  /// \brief average pressure values for given time interval
+  /// \param timeInterval time interval for which the pressure values are averaged
+  /// \param timeIntervalRef time interval used to calculate the normalization values for the pressure
+  /// \param tStart min time of the data
+  /// \param tEnd max time of the data
+  /// \param nthreads numbe rof threads used for some calculations
+  void makeRobustPressure(TimeStampType timeInterval = 100 * 1000, TimeStampType timeIntervalRef = 24 * 60 * 1000, TimeStampType tStart = 1, TimeStampType tEnd = 0, const int nthreads = 1);
+
+  /// set aliases for the cuts used in the calculation of the robust pressure
+  static void setAliases(TTree* tree);
+
+  RawDPsF cavernAtmosPressure{};   ///< raw pressure in the cavern from sensor 1
+  RawDPsF cavernAtmosPressure2{};  ///< raw pressure in the cavern from sensor 2
+  RawDPsF surfaceAtmosPressure{};  ///< raw pressure at the surface
+  RobustPressure robustPressure{}; ///< combined robust pressure estimator from all three sensors
+
+  std::pair<std::vector<float>, std::vector<TimeStampType>> mCavernAtmosPressure1Buff{}; ///<! buffer for the pressure cavern 1 sensor
+  std::pair<std::vector<float>, std::vector<TimeStampType>> mCavernAtmosPressure2Buff{}; ///<! buffer for the pressure cavern 2 sensor
+  std::pair<std::vector<float>, std::vector<TimeStampType>> mSurfaceAtmosPressureBuff{}; ///<! buffer for the pressure surface sensort
+
+  std::pair<std::vector<float>, std::vector<TimeStampType>> mPressure12Buff{}; ///<! buffer for normalizing the pressure cavern 1 / cavern 2
+  std::pair<std::vector<float>, std::vector<TimeStampType>> mPressure1SBuff{}; ///<! buffer for normalizing the pressure cavern 1 / surface
+  std::pair<std::vector<float>, std::vector<TimeStampType>> mPressure2SBuff{}; ///<! buffer for normalizing the pressure cavern 2 / surface
+
+  std::pair<std::vector<float>, std::vector<TimeStampType>> mRobPressureBuff{}; ///<! buffer for the robust pressure
+  ClassDefNV(Pressure, 1);
 };
 
 } // namespace o2::tpc::dcs

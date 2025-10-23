@@ -79,7 +79,7 @@
   #define GPUdDefault()
   #define GPUhdDefault()
   #define GPUdi() inline
-  #define GPUdii() inline
+  #define GPUdii() __attribute__((always_inline)) inline
   #define GPUdni()
   #define GPUdnii()
   #define GPUh() INVALID_TRIGGER_ERROR_NO_HOST_CODE
@@ -96,13 +96,13 @@
   #define GPUgeneric() __generic
   #define GPUconstexprref() GPUconstexpr()
   #if defined(__OPENCL__) && !defined(__clang__)
-    #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
-    #define GPUbarrierWarp()
+    #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local)
+    #define GPUbarrierWarp() sub_group_barrier(mem_fence::global | mem_fence::local)
     #define GPUAtomic(type) atomic<type>
     static_assert(sizeof(atomic<uint32_t>) == sizeof(uint32_t), "Invalid size of atomic type");
   #else
     #define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
-    #define GPUbarrierWarp()
+    #define GPUbarrierWarp() sub_group_barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
     #if defined(__OPENCL__) && defined(GPUCA_OPENCL_CLANG_C11_ATOMICS)
       namespace o2 { namespace gpu {
       template <class T> struct oclAtomic;

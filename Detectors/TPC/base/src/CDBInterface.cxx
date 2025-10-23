@@ -722,6 +722,8 @@ void CDBStorage::printObjectSummary(std::string_view name, CDBType const type, M
 {
   std::time_t tstart(start / 1000);
   std::time_t tend(end / 1000);
+  std::tm ttstart = *std::localtime(&tstart);
+  std::tm ttend = *std::localtime(&tend);
   auto tstartms = start % 1000;
   auto tendms = end % 1000;
 
@@ -729,7 +731,7 @@ void CDBStorage::printObjectSummary(std::string_view name, CDBType const type, M
                         fmt::format("          to storage '{}'\n", mCCDB.getURL()) +
                         fmt::format("          into path '{}'\n", CDBTypeMap.at(type)) +
                         fmt::format("          with validity [{}, {}] :", start, end) +
-                        fmt::format("          [{:%d.%m.%Y %H:%M:%S}.{:03d}, {:%d.%m.%Y %H:%M:%S}.{:03d}]\n", fmt::localtime(tstart), tstartms, fmt::localtime(tend), tendms) +
+                        fmt::format("          [{:%d.%m.%Y %H:%M:%S}.{:03d}, {:%d.%m.%Y %H:%M:%S}.{:03d}]\n", ttstart, tstartms, ttend, tendms) +
                         std::string("          Meta data:\n");
 
   for (const auto& [key, value] : metadata) {

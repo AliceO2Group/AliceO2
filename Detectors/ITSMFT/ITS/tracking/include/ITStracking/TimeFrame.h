@@ -62,35 +62,42 @@ namespace gpu
 template <int>
 class TimeFrameGPU;
 }
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 template <int nLayers = 7>
 struct TimeFrame {
+  using IndexTableUtilsN = IndexTableUtils<nLayers>;
+  using CellSeedN = CellSeed<nLayers>;
   friend class gpu::TimeFrameGPU<nLayers>;
-  TimeFrame();
-  virtual ~TimeFrame();
+
+  TimeFrame() = default;
+  virtual ~TimeFrame() = default;
+
   const Vertex& getPrimaryVertex(const int ivtx) const { return mPrimaryVertices[ivtx]; }
   gsl::span<const Vertex> getPrimaryVertices(int rofId) const;
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
   gsl::span<const std::pair<MCCompLabel, float>> getPrimaryVerticesMCRecInfo(const int rofId) const;
+  gsl::span<const MCCompLabel> getPrimaryVerticesContributors(const int rofId) const;
   gsl::span<const std::array<float, 2>> getPrimaryVerticesXAlpha(int rofId) const;
   void fillPrimaryVerticesXandAlpha();
   int getPrimaryVerticesNum(int rofId = -1) const;
-  void addPrimaryVertices(const bounded_vector<Vertex>& vertices);
   void addPrimaryVerticesLabels(bounded_vector<std::pair<MCCompLabel, float>>& labels);
-  void addPrimaryVertices(const bounded_vector<Vertex>& vertices, const int rofId, const int iteration);
-  void addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId, const int iteration);
+  void addPrimaryVerticesContributorLabels(bounded_vector<MCCompLabel>& labels);
+  void addPrimaryVertices(const bounded_vector<Vertex>& vertices, const int iteration);
   void addPrimaryVerticesInROF(const bounded_vector<Vertex>& vertices, const int rofId, const int iteration);
   void addPrimaryVerticesLabelsInROF(const bounded_vector<std::pair<MCCompLabel, float>>& labels, const int rofId);
+  void addPrimaryVerticesContributorLabelsInROF(const bounded_vector<MCCompLabel>& labels, const int rofId);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
-  int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
+  int loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
                       gsl::span<const itsmft::CompClusterExt> clusters,
                       gsl::span<const unsigned char>::iterator& pattIt,
                       const itsmft::TopologyDictionary* dict,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
+  void resetROFrameData(size_t nROFs);
+  void prepareROFrameData(gsl::span<const o2::itsmft::ROFRecord> rofs,
+                          gsl::span<const itsmft::CompClusterExt> clusters);
 
   int getTotalClusters() const;
   auto& getTotVertIteration() { return mTotVertPerIteration; }
@@ -138,7 +145,7 @@ struct TimeFrame {
   gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const { return mClusterLabels->getLabels(mClusterExternalIndices[layerId][clId]); }
   int getClusterExternalIndex(int layerId, const int clId) const { return mClusterExternalIndices[layerId][clId]; }
   int getClusterSize(int clusterId) const { return mClusterSize[clusterId]; }
-  void setClusterSize(const bounded_vector<uint8_t>& v) { mClusterSize = v; }
+  void setClusterSize(bounded_vector<uint8_t>& v) { mClusterSize = std::move(v); }
 
   auto& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
   auto& getCellsLabel(int layer) { return mCellLabels[layer]; }
@@ -174,16 +181,16 @@ struct TimeFrame {
   auto& getVerticesMCRecInfo() { return mVerticesMCRecInfo; }
 
   int getNumberOfClusters() const;
-  int getNumberOfCells() const;
-  int getNumberOfTracklets() const;
-  int getNumberOfNeighbours() const;
+  virtual int getNumberOfCells() const;
+  virtual int getNumberOfTracklets() const;
+  virtual int getNumberOfNeighbours() const;
   size_t getNumberOfTracks() const;
   size_t getNumberOfUsedClusters() const;
   auto getNumberOfExtendedTracks() const { return mNExtendedTracks; }
   auto getNumberOfUsedExtendedClusters() const { return mNExtendedUsedClusters; }
 
   /// memory management
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource>& pool);
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool);
   auto& getMemoryPool() const noexcept { return mMemoryPool; }
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory() const;
@@ -199,10 +206,8 @@ struct TimeFrame {
   void computeTracletsPerClusterScans();
   int& getNTrackletsROF(int rofId, int combId) { return mNTrackletsPerROF[combId][rofId]; }
   auto& getLines(int rofId) { return mLines[rofId]; }
-  int getNLinesTotal() const
-  {
-    return std::accumulate(mLines.begin(), mLines.end(), 0, [](int sum, const auto& l) { return sum + l.size(); });
-  }
+  int getNLinesTotal() const noexcept { return mTotalLines; }
+  void setNLinesTotal(uint32_t a) noexcept { mTotalLines = a; }
   auto& getTrackletClusters(int rofId) { return mTrackletClusters[rofId]; }
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
   gsl::span<Tracklet> getFoundTracklets(int rofId, int combId);
@@ -230,17 +235,32 @@ struct TimeFrame {
   void setBz(float bz) { mBz = bz; }
   float getBz() const { return mBz; }
 
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) { return; }
+  /// State if memory will be externally managed.
+  // device
+  ExternalAllocator* mExtDeviceAllocator{nullptr};
+  void setExternalDeviceAllocator(ExternalAllocator* allocator) { mExtDeviceAllocator = allocator; }
+  ExternalAllocator* getExternalDeviceAllocator() { return mExtDeviceAllocator; }
+  bool hasExternalDeviceAllocator() const noexcept { return mExtDeviceAllocator != nullptr; }
+  // host
+  ExternalAllocator* mExtHostAllocator{nullptr};
+  void setExternalHostAllocator(ExternalAllocator* allocator)
+  {
+    mExtHostAllocator = allocator;
+    mExtMemoryPool = std::make_shared<BoundedMemoryResource>(mExtHostAllocator);
+  }
+  ExternalAllocator* getExternalHostAllocator() { return mExtHostAllocator; }
+  bool hasExternalHostAllocator() const noexcept { return mExtHostAllocator != nullptr; }
+  std::shared_ptr<BoundedMemoryResource> mExtMemoryPool;
+  std::pmr::memory_resource* getMaybeExternalHostResource(bool forceHost = false) { return (hasExternalHostAllocator() && !forceHost) ? mExtMemoryPool.get() : mMemoryPool.get(); }
+  // Propagator
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};
 
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterExternalIndexToLayer(int layer, const int idx) { mClusterExternalIndices[layer].push_back(idx); }
-
-  void resetVectors();
-  void resetTracklets();
 
   /// Debug and printing
   void checkTrackletLUTs();
@@ -253,9 +273,7 @@ struct TimeFrame {
   void printCellLUTs();
   void printSliceInfo(const int, const int);
 
-  IndexTableUtils mIndexTableUtils;
-
-  bool mIsGPU = false;
+  IndexTableUtilsN mIndexTableUtils;
 
   std::array<bounded_vector<Cluster>, nLayers> mClusters;
   std::array<bounded_vector<TrackingFrameInfo>, nLayers> mTrackingFrameInfo;
@@ -274,27 +292,9 @@ struct TimeFrame {
   bounded_vector<int> mROFramesPV;
   bounded_vector<Vertex> mPrimaryVertices;
 
-  // State if memory will be externally managed.
-  bool mExtAllocator = false;
-  ExternalAllocator* mAllocator = nullptr;
-  void setExternalAllocator(ExternalAllocator* allocator)
-  {
-    if (mIsGPU) {
-      LOGP(debug, "Setting timeFrame allocator to external");
-      mAllocator = allocator;
-      mExtAllocator = true; // to be removed
-    } else {
-      LOGP(fatal, "External allocator is currently only supported for GPU");
-    }
-  }
-  void setExtAllocator(bool ext) { mExtAllocator = ext; }
-  bool getExtAllocator() const { return mExtAllocator; }
-
   std::array<bounded_vector<Cluster>, nLayers> mUnsortedClusters;
   std::vector<bounded_vector<Tracklet>> mTracklets;
-  std::vector<bounded_vector<CellSeed>> mCells;
-  std::vector<bounded_vector<o2::track::TrackParCovF>> mCellSeeds;
-  std::vector<bounded_vector<float>> mCellSeedsChi2;
+  std::vector<bounded_vector<CellSeedN>> mCells;
   bounded_vector<Road<nLayers - 2>> mRoads;
   std::vector<bounded_vector<TrackITSExt>> mTracks;
   std::vector<bounded_vector<int>> mCellsNeighbours;
@@ -303,10 +303,14 @@ struct TimeFrame {
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
 
-  void wipe();
+  virtual void wipe();
+
+  // interface
+  virtual bool isGPU() const noexcept { return false; }
+  virtual const char* getName() const noexcept { return "CPU"; }
 
  private:
-  void prepareClusters(const TrackingParameters& trkParam, const int maxLayers);
+  void prepareClusters(const TrackingParameters& trkParam, const int maxLayers = nLayers);
   float mBz = 5.;
   unsigned int mNTotalLowPtVertices = 0;
   int mBeamPosWeight = 0;
@@ -328,8 +332,8 @@ struct TimeFrame {
   bounded_vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   bounded_vector<std::pair<unsigned long long, bool>> mRoadLabels;
-  int mCutClusterMult;
-  int mCutVertexMult;
+  int mCutClusterMult{-999};
+  int mCutVertexMult{-999};
 
   // Vertexer
   std::vector<bounded_vector<int>> mNTrackletsPerROF;
@@ -338,7 +342,9 @@ struct TimeFrame {
   std::array<bounded_vector<int>, 2> mTrackletsIndexROF;
   std::vector<bounded_vector<MCCompLabel>> mLinesLabels;
   std::vector<std::pair<MCCompLabel, float>> mVerticesMCRecInfo;
+  bounded_vector<MCCompLabel> mVerticesContributorLabels;
   std::array<uint32_t, 2> mTotalTracklets = {0, 0};
+  uint32_t mTotalLines = 0;
   unsigned int mNoVertexROF = 0;
   bounded_vector<int> mTotVertPerIteration;
   // \Vertexer
@@ -368,12 +374,29 @@ inline gsl::span<const std::pair<MCCompLabel, float>> TimeFrame<nLayers>::getPri
 }
 
 template <int nLayers>
+inline gsl::span<const MCCompLabel> TimeFrame<nLayers>::getPrimaryVerticesContributors(const int rofId) const
+{
+  // count the number of cont. in rofs before target rof
+  unsigned int start{0}, delta{0};
+  const auto& pvsBefore = getPrimaryVertices(0, rofId - 1);
+  for (const auto& pv : pvsBefore) {
+    start += pv.getNContributors();
+  }
+  const auto& pvsIn = getPrimaryVertices(rofId);
+  for (const auto& pv : pvsIn) {
+    delta += pv.getNContributors();
+  }
+  return {&(mVerticesContributorLabels[start]), static_cast<gsl::span<const MCCompLabel>::size_type>(delta)};
+}
+
+template <int nLayers>
 inline gsl::span<const Vertex> TimeFrame<nLayers>::getPrimaryVertices(int romin, int romax) const
 {
   if (mPrimaryVertices.empty()) {
     return {};
   }
-  return {&mPrimaryVertices[mROFramesPV[romin]], static_cast<gsl::span<const Vertex>::size_type>(mROFramesPV[romax + 1] - mROFramesPV[romin])};
+  const int stop_idx = romax >= mNrof - 1 ? mNrof : romax + 1;
+  return {&mPrimaryVertices[mROFramesPV[romin]], static_cast<gsl::span<const Vertex>::size_type>(mROFramesPV[stop_idx] - mROFramesPV[romin])};
 }
 
 template <int nLayers>
@@ -508,8 +531,8 @@ inline gsl::span<int> TimeFrame<nLayers>::getIndexTable(int rofId, int layer)
   if (rofId < 0 || rofId >= mNrof) {
     return {};
   }
-  return {&mIndexTables[layer][rofId * (mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)],
-          static_cast<gsl::span<int>::size_type>(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)};
+  const int tableSize = mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1;
+  return {&mIndexTables[layer][rofId * tableSize], static_cast<gsl::span<int>::size_type>(tableSize)};
 }
 
 template <int nLayers>
@@ -570,7 +593,7 @@ inline gsl::span<int> TimeFrame<nLayers>::getExclusiveNTrackletsCluster(int rofI
 template <int nLayers>
 inline gsl::span<Tracklet> TimeFrame<nLayers>::getFoundTracklets(int rofId, int combId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
+  if (rofId < 0 || rofId >= mNrof || mTracklets[combId].empty()) {
     return {};
   }
   auto startIdx{mNTrackletsPerROF[combId][rofId]};

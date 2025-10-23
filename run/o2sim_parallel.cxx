@@ -732,7 +732,12 @@ int main(int argc, char* argv[])
   int status, cpid;
   // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
   bool errored = false;
-  while ((cpid = wait(&status)) != mergerpid) {
+  // wait at least until mergerpid is reaped
+  while ((cpid = wait(&status)) != -1) {
+    if (cpid == mergerpid) {
+      break; // Defer handling of mergerpid exit status until after the loop
+    }
+
     if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
       if (!shutdown_initiated) {
         LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
@@ -753,6 +758,25 @@ int main(int argc, char* argv[])
       }
     }
   }
+
+  // Handle mergerpid status separately
+  if (cpid == mergerpid) {
+    if (WIFEXITED(status)) {
+      if (WEXITSTATUS(status) != 0 || WEXITSTATUS(status) != 128) {
+        LOG(error) << "Merger process exited with abnormal exit status " << WEXITSTATUS(status);
+        errored = true;
+      }
+    } else if (WIFSIGNALED(status)) {
+      auto sig = WTERMSIG(status);
+      if (sig == SIGKILL || sig == SIGBUS || sig == SIGSEGV || sig == SIGABRT) {
+        LOG(error) << "Merger process terminated through abnormal signal " << WTERMSIG(status);
+        errored = true;
+      }
+    } else {
+      LOG(warning) << "Merger process exited with unexpected status.";
+    }
+  }
+
   // This marks the actual end of the computation (since results are available)
   LOG(info) << "Merger process " << mergerpid << " returned";
   LOG(info) << "Simulation process took " << timer.RealTime() << " s";

@@ -24,13 +24,10 @@
 namespace o2::framework
 {
 
-using namespace arrow;
-using namespace arrow::io;
-
-class FairMQOutputStream : public OutputStream
+class FairMQOutputStream : public arrow::io::OutputStream
 {
  public:
-  explicit FairMQOutputStream(const std::shared_ptr<ResizableBuffer>& buffer);
+  explicit FairMQOutputStream(const std::shared_ptr<arrow::ResizableBuffer>& buffer);
 
   /// \brief Create in-memory output stream with indicated capacity using a
   /// memory pool
@@ -38,8 +35,8 @@ class FairMQOutputStream : public OutputStream
   /// the OutputStream
   /// \param[in,out] pool a MemoryPool to use for allocations
   /// \return the created stream
-  static Result<std::shared_ptr<FairMQOutputStream>> Create(
-    int64_t initial_capacity = 4096, MemoryPool* pool = default_memory_pool());
+  static arrow::Result<std::shared_ptr<FairMQOutputStream>> Create(
+    int64_t initial_capacity = 4096, arrow::MemoryPool* pool = arrow::default_memory_pool());
 
   // By the time we call the destructor, the contents
   // of the buffer are already moved to fairmq
@@ -49,24 +46,24 @@ class FairMQOutputStream : public OutputStream
   // Implement the OutputStream interface
 
   /// Close the stream, preserving the buffer (retrieve it with Finish()).
-  Status Close() override;
+  arrow::Status Close() override;
   [[nodiscard]] bool closed() const override;
-  [[nodiscard]] Result<int64_t> Tell() const override;
-  Status Write(const void* data, int64_t nbytes) override;
+  [[nodiscard]] arrow::Result<int64_t> Tell() const override;
+  arrow::Status Write(const void* data, int64_t nbytes) override;
 
   /// \cond FALSE
   using OutputStream::Write;
   /// \endcond
 
   /// Close the stream and return the buffer
-  Result<std::shared_ptr<Buffer>> Finish();
+  arrow::Result<std::shared_ptr<arrow::Buffer>> Finish();
 
   /// \brief Initialize state of OutputStream with newly allocated memory and
   /// set position to 0
   /// \param[in] initial_capacity the starting allocated capacity
   /// \param[in,out] pool the memory pool to use for allocations
   /// \return Status
-  Status Reset(int64_t initial_capacity = 1024, MemoryPool* pool = default_memory_pool());
+  arrow::Status Reset(int64_t initial_capacity = 1024, arrow::MemoryPool* pool = arrow::default_memory_pool());
 
   [[nodiscard]] int64_t capacity() const { return capacity_; }
 
@@ -74,9 +71,9 @@ class FairMQOutputStream : public OutputStream
   FairMQOutputStream();
 
   // Ensures there is sufficient space available to write nbytes
-  Status Reserve(int64_t nbytes);
+  arrow::Status Reserve(int64_t nbytes);
 
-  std::shared_ptr<ResizableBuffer> buffer_;
+  std::shared_ptr<arrow::ResizableBuffer> buffer_;
   bool is_open_;
   int64_t capacity_;
   int64_t position_;

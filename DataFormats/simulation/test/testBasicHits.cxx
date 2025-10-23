@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(BasicXYZHit_ROOTIO)
   }
 
   // same for double valued hits
-  using HitTypeD = BasicXYZEHit<double, double>;
+  using HitTypeD = BasicXYZEHit<double, double, double>;
   HitTypeD hitD(1., 2., 3., 0.01, -1.1, -1, 1);
 
   // try writing hit to a TBuffer

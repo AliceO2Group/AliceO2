@@ -302,17 +302,34 @@ int main(int argc, char* argv[])
   for (int id = 0; id < ispecs.size(); ++id) {
     auto mode = ispecs[id].syncmode;
     if (mode == InteractionLockMode::NOLOCK) {
-      o2::steer::InteractionSampler sampler;
-      sampler.setInteractionRate(ispecs[id].interactionRate);
+      auto sampler = std::make_unique<o2::steer::InteractionSampler>();
+
+      // for debug purposes: allows to instantiate trivial sampler
+      if (const char* env = getenv("ALICEO2_ENFORCE_TRIVIAL_BC_SAMPLER")) {
+        std::string spec(env);
+        std::regex re(R"((\d+):(\d+))");
+        std::smatch match;
+        int every_n = 1, mult = 1;
+        if (std::regex_match(spec, match, re)) {
+          every_n = std::stoi(match[1]);
+          mult = std::stoi(match[2]);
+        } else {
+          LOG(error) << "ALICEO2_ENFORCE_TRIVIAL_BC_SAMPLER format invalid, expected NUMBER_1:NUMBER_2";
+          exit(1);
+        }
+        sampler.reset(new o2::steer::FixedSkipBC_InteractionSampler(every_n, mult));
+      }
+
+      sampler->setInteractionRate(ispecs[id].interactionRate);
       if (!options.bcpatternfile.empty()) {
-        setBCFillingHelper(sampler, options.bcpatternfile);
+        setBCFillingHelper(*sampler, options.bcpatternfile);
       }
       o2::InteractionTimeRecord record;
       // this loop makes sure that the first collision is within the range of orbits asked (if noEmptyTF is enabled)
       do {
-        sampler.setFirstIR(o2::InteractionRecord(options.firstBC, orbitstart));
-        sampler.init();
-        record = sampler.generateCollisionTime();
+        sampler->setFirstIR(o2::InteractionRecord(options.firstBC, orbitstart));
+        sampler->init();
+        record = sampler->generateCollisionTime();
       } while (options.noEmptyTF && usetimeframelength && record.orbit >= orbitstart + orbits_total);
       int count = 0;
       do {
@@ -325,7 +342,7 @@ int main(int argc, char* argv[])
         std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> insertvalue(record, parts);
         auto iter = std::lower_bound(collisions.begin(), collisions.end(), insertvalue, [](std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& a, std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& b) { return a.first < b.first; });
         collisions.insert(iter, insertvalue);
-        record = sampler.generateCollisionTime();
+        record = sampler->generateCollisionTime();
         count++;
       } while ((ispecs[id].mcnumberasked > 0 && count < ispecs[id].mcnumberasked)); // TODO: this loop should probably be replaced by a condition with usetimeframelength and number of orbits
 
@@ -360,7 +377,7 @@ int main(int argc, char* argv[])
       }
 
       // keep bunch filling information produced by these samplers
-      bunchFillings.push_back(sampler.getBunchFilling());
+      bunchFillings.push_back(sampler->getBunchFilling());
 
     } else {
       // we are in some lock/sync mode and modify existing collisions
@@ -577,7 +594,7 @@ int main(int argc, char* argv[])
         std::stringstream str;
         str << path_prefix << tf_output_counter++ << "/collisioncontext.root";
         copy.saveToFile(str.str());
-        LOG(info) << "----";
+        LOG(info) << "---- CollisionContext for timeframe " << tf_id << " -----";
         copy.printCollisionSummary();
       }
     }

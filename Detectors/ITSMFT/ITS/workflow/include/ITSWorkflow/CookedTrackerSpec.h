@@ -19,11 +19,14 @@
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/BoundedAllocator.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "Framework/Task.h"
 #include "TStopwatch.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+
+#include <oneapi/tbb/task_arena.h>
 
 using namespace o2::framework;
 
@@ -35,7 +38,7 @@ namespace its
 class CookedTrackerDPL : public Task
 {
  public:
-  CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const TrackingMode& trMode);
+  CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, TrackingMode::Type trMode);
   ~CookedTrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -51,18 +54,20 @@ class CookedTrackerDPL : public Task
   bool mUseMC = true;
   bool mRunVertexer = true;
   int mUseTriggers = 0;
-  TrackingMode mMode = TrackingMode::Sync;
+  TrackingMode::Type mMode = TrackingMode::Sync;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;
-  std::unique_ptr<VertexerTraits> mVertexerTraitsPtr = nullptr;
-  std::unique_ptr<Vertexer> mVertexerPtr = nullptr;
+  std::unique_ptr<VertexerTraits<7>> mVertexerTraitsPtr = nullptr;
+  std::unique_ptr<Vertexer<7>> mVertexerPtr = nullptr;
+  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<tbb::task_arena> mTaskArena;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
 /// run ITS CookedMatrix tracker
-framework::DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trMode);
+framework::DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int useTrig, TrackingMode::Type trMode);
 
 } // namespace its
 } // namespace o2

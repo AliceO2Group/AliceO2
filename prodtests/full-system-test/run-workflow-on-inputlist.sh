@@ -18,7 +18,7 @@ if [[ $2 != "LOCAL" && ! -f $2 ]]; then
 fi
 
 for i in EXTINPUT CTFINPUT RAWTFINPUT DIGITINPUT; do
-  [[ ! -z ${!i} ]] && { echo "$i must not be set!"; exit 1; }
+  [[ -n ${!i} ]] && { echo "$i must not be set!"; exit 1; }
 done
 
 NUM_PROCS=0
@@ -87,7 +87,7 @@ fi
 TIMEOUT_PHASE=0
 while [[ `jobs -rl | grep -v " $PID_LOG Running" | wc -l` -ne 0 ]]; do
   sleep 1
-  if [[ ! -z $3 && $(date +%s) -ge $(($START_TIME + $TIMEOUT_PHASE * 20 + $3)) ]]; then
+  if [[ -n $3 && $(date +%s) -ge $(($START_TIME + $TIMEOUT_PHASE * 20 + $3)) ]]; then
     RETVAL=1
     let TIMEOUT_PHASE=$TIMEOUT_PHASE+1
     echo "Timeout reached ($3 seconds) - Sending SIGINT signal"

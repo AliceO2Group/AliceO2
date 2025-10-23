@@ -96,7 +96,7 @@ class DCSProcessor
   const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDCurrentsDPsInfo() const { return mTRDDCSCurrents; }
   const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDEnvDPsInfo() const { return mTRDDCSEnv; }
   const std::array<int, constants::MAXCHAMBER>& getTRDFedChamberStatusDPsInfo() const { return mTRDDCSFedChamberStatus; }
-  const std::array<string, constants::MAXCHAMBER>& getTRDFedCFGtagDPsInfo() const { return mTRDDCSFedCFGtag; }
+  const std::array<std::string, constants::MAXCHAMBER>& getTRDFedCFGtagDPsInfo() const { return mTRDDCSFedCFGtag; }
 
   // settings
   void setCurrentTS(TFType tf) { mCurrentTS = tf; }
@@ -124,7 +124,7 @@ class DCSProcessor
   std::unordered_map<DPID, float> mTRDDCSVoltages;                ///< anode and drift voltages
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSEnv;      ///< environment parameters (temperatures, pressures, humidity)
   std::array<int, constants::MAXCHAMBER> mTRDDCSFedChamberStatus; ///< fed chamber status
-  std::array<string, constants::MAXCHAMBER> mTRDDCSFedCFGtag;     ///< fed config tag
+  std::array<std::string, constants::MAXCHAMBER> mTRDDCSFedCFGtag; ///< fed config tag
 
   // helper variables
   std::unordered_map<DPID, bool> mPids;                 ///< flag for each DP whether it has been processed at least once

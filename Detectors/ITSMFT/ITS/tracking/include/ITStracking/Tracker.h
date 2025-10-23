@@ -27,10 +27,11 @@
 #include <utility>
 #include <sstream>
 
+#include <oneapi/tbb/task_arena.h>
+
 #include "ITStracking/Configuration.h"
 #include "CommonConstants/MathConstants.h"
 #include "ITStracking/Definitions.h"
-#include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/TrackerTraits.h"
@@ -50,31 +51,26 @@ class GPUChainITS;
 namespace its
 {
 
+template <int nLayers>
 class Tracker
 {
-  static constexpr int NLayers{7};
-  using TrackerTraits7 = TrackerTraits<NLayers>;
-  using TimeFrame7 = TimeFrame<NLayers>;
   using LogFunc = std::function<void(const std::string& s)>;
 
  public:
-  Tracker(TrackerTraits<NLayers>* traits);
+  Tracker(TrackerTraits<nLayers>* traits);
 
-  void adoptTimeFrame(TimeFrame<NLayers>& tf);
+  void adoptTimeFrame(TimeFrame<nLayers>& tf);
 
   void clustersToTracks(
-    LogFunc = [](const std::string& s) { std::cout << s << '\n'; },
-    LogFunc = [](const std::string& s) { std::cerr << s << '\n'; });
+    const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; },
+    const LogFunc& = [](const std::string& s) { std::cerr << s << '\n'; });
 
   void setParameters(const std::vector<TrackingParameters>& p) { mTrkParams = p; }
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource>& pool) { mMemoryPool = pool; }
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
   std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
-  void getGlobalConfiguration();
   void setBz(float bz) { mTraits->setBz(bz); }
-  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type) { mTraits->setCorrType(type); }
   bool isMatLUT() const { return mTraits->isMatLUT(); }
-  void setNThreads(int n) { mTraits->setNThreads(n); }
-  int getNThreads() const { return mTraits->getNThreads(); }
+  void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
   void printSummary() const;
 
  private:
@@ -94,8 +90,8 @@ class Tracker
   template <typename... T, typename... F>
   float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args);
 
-  TrackerTraits7* mTraits = nullptr; /// Observer pointer, not owned by this class
-  TimeFrame7* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
+  TrackerTraits<nLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame<nLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<TrackingParameters> mTrkParams;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
@@ -113,12 +109,13 @@ class Tracker
     Roading,
     NStates,
   };
-  State mCurState;
+  State mCurState{TFInit};
   static constexpr std::array<const char*, NStates> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
 };
 
+template <int nLayers>
 template <typename... T, typename... F>
-float Tracker::evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
+float Tracker<nLayers>::evaluateTask(void (Tracker<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
 {
   float diff{0.f};
 

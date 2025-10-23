@@ -19,7 +19,6 @@ namespace its
 {
 
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
-  : weightMatrix{1., 0., 0., 1., 0., 1.} // dummy, ATM
 {
   for (int index{0}; index < 3; ++index) {
     originPoint[index] = firstPoint.data()[index];
@@ -95,9 +94,9 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   std::array<float, 3> covarianceFirst{1., 1., 1.};
   std::array<float, 3> covarianceSecond{1., 1., 1.};
 
-  for (int i{0}; i < 6; ++i) {
-    mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
-  }
+  // for (int i{0}; i < 6; ++i) {
+  //   mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
+  // }
 
   float determinantFirst =
     firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] * covarianceFirst[1] +
@@ -193,9 +192,9 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
   std::array<float, 3> covarianceSecond{1., 1., 1.};
   updateROFPoll(firstLine);
   updateROFPoll(secondLine);
-  for (int i{0}; i < 6; ++i) {
-    mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
-  }
+  // for (int i{0}; i < 6; ++i) {
+  //   mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
+  // }
 
   float determinantFirst =
     firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] * covarianceFirst[1] +
@@ -281,9 +280,9 @@ void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weigh
   updateROFPoll(line);
   std::array<float, 3> covariance{1., 1., 1.};
 
-  for (int i{0}; i < 6; ++i) {
-    mWeightMatrix[i] += line.weightMatrix[i];
-  }
+  // for (int i{0}; i < 6; ++i) {
+  //   mWeightMatrix[i] += line.weightMatrix[i];
+  // }
   // if(weight) line->GetSigma2P0(covariance);
 
   double determinant{line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[0] * covariance[1] +
@@ -370,25 +369,25 @@ bool ClusterLines::operator==(const ClusterLines& rhs) const
 GPUhdi() void ClusterLines::updateROFPoll(const Line& line)
 {
   // option 1: Boyer-Moore voting for rof label
-  // if (mROFWeight == 0) {
-  //   mROF = line.getMinROF();
-  //   mROFWeight = 1;
-  // } else {
-  //   if (mROF == line.getMinROF()) {
-  //     mROFWeight++;
-  //   } else {
-  //     mROFWeight--;
-  //   }
-  // }
-
-  // option 2
-  if (mROF == -1) {
+  if (mROFWeight == 0) {
     mROF = line.getMinROF();
+    mROFWeight = 1;
   } else {
-    if (line.getMinROF() < mROF) {
-      mROF = line.getMinROF();
+    if (mROF == line.getMinROF()) {
+      mROFWeight++;
+    } else {
+      mROFWeight--;
     }
   }
+
+  // option 2
+  // if (mROF == -1) {
+  //   mROF = line.getMinROF();
+  // } else {
+  //   if (line.getMinROF() < mROF) {
+  //     mROF = line.getMinROF();
+  //   }
+  // }
 }
 
 } // namespace its
