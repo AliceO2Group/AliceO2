@@ -282,7 +282,7 @@ void Detector::InitializeO2Detector()
   mSensorID.resize(mNumberOfVolumes); // hardcoded. TODO: change size when a different namingh scheme for VD is in place. Ideally could be 4 petals + 8 layers = 12
   for (int i = 0; i < mNumberOfVolumes; i++) {
     mSensorID[i] = gMC ? TVirtualMC::GetMC()->VolId(mSensorName[i]) : 0; // Volume ID from the Geant geometry
-    LOGP(info, "{}: mSensorID={}", i, mSensorID[i]);
+    LOGP(info, "{}: mSensorID={}, mSensorName={}", i, mSensorID[i], mSensorName[i].Data());
   }
 }
 
@@ -449,6 +449,8 @@ bool Detector::ProcessHits(FairVolume* vol)
     int chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave);
 
     Print(vol, volume, subDetID, layer, stave, halfstave, chipID);
+
+    mGeometryTGeo->Print();
 
     Hit* p = addHit(stack->GetCurrentTrackNumber(), chipID, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),

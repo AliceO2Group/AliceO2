@@ -639,7 +639,7 @@ static void addDisks(TGeoVolume* petalAsm, int nPetals, int petalID)
 // Build one complete petal assembly (walls + L0..L2 + disks) in LOCAL coords.
 static TGeoVolume* buildPetalAssembly(int nPetals, int petalID, bool rectangularL0)
 {
-  auto* petalAsm = new TGeoVolumeAssembly(Form("Petal%d", petalID));
+  auto* petalAsm = new TGeoVolumeAssembly(Form("PETAL_%d", petalID));
   addPetalWalls(petalAsm, nPetals, kOuterWallRadius_cm);
 
   // Pass petalID to layers/disks for naming

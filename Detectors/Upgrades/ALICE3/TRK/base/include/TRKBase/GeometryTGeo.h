@@ -43,6 +43,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   };
   static const char* getTRKVolPattern() { return sVolumeName.c_str(); }
   static const char* getTRKLayerPattern() { return sLayerName.c_str(); }
+  static const char* getTRKPetalAssemblyPattern() { return sPetalAssemblyName.c_str(); }
   static const char* getTRKPetalPattern() { return sPetalName.c_str(); }
   static const char* getTRKPetalDiskPattern() { return sPetalDiskName.c_str(); }
   static const char* getTRKPetalLayerPattern() { return sPetalLayerName.c_str(); }
@@ -145,6 +146,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   static std::string sVolumeName;
   static std::string sLayerName;
+  static std::string sPetalAssemblyName;
   static std::string sPetalName;
   static std::string sPetalDiskName;
   static std::string sPetalLayerName;

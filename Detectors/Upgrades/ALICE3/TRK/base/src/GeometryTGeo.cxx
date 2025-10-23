@@ -24,6 +24,7 @@ std::unique_ptr<o2::trk::GeometryTGeo> GeometryTGeo::sInstance;
 // Names
 std::string GeometryTGeo::sVolumeName = "TRKV";
 std::string GeometryTGeo::sLayerName = "TRKLayer";
+std::string GeometryTGeo::sPetalAssemblyName = "PETAL";
 std::string GeometryTGeo::sPetalName = "PETALCASE";
 std::string GeometryTGeo::sPetalDiskName = "DISK";
 std::string GeometryTGeo::sPetalLayerName = "LAYER";
@@ -69,9 +70,9 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
+  mNumberOfPetalsVD = extractNumberOfPetalsVD();
   mNumberOfActivePartsVD = extractNumberOfActivePartsVD();
   mNumberOfLayersVD = extractNumberOfLayersVD();
-  mNumberOfPetalsVD = extractNumberOfPetalsVD();
   mNumberOfDisksVD = extractNumberOfDisksVD();
 
   mNumberOfStaves.resize(mNumberOfLayersMLOT);
@@ -452,118 +453,261 @@ int GeometryTGeo::extractNumberOfLayersMLOT()
 }
 
 //__________________________________________________________________________
+int GeometryTGeo::extractNumberOfPetalsVD() const
+{
+  int numberOfPetals = 0;
+  TGeoVolume* trkV = gGeoManager->GetVolume(getTRKVolPattern());
+  if (!trkV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
+  }
+
+  // Loop on all TRKV nodes, count PETAL assemblies and their contents
+  TObjArray* nodes = trkV->GetNodes();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
+
+  LOGP(info, "Searching for petal assemblies in {} (pattern: {})",
+       getTRKVolPattern(), getTRKPetalAssemblyPattern());
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    const char* name = nd->GetName();
+
+    if (strstr(name, getTRKPetalAssemblyPattern()) != nullptr) {
+      numberOfPetals++;
+      LOGP(info, "Found petal assembly: {}", name);
+
+      // Get petal volume and its nodes for debugging
+      TGeoVolume* petalVol = nd->GetVolume();
+      if (petalVol) {
+        TObjArray* petalNodes = petalVol->GetNodes();
+        if (petalNodes) {
+          LOGP(debug, "Petal {} contains {} child nodes", name, petalNodes->GetEntriesFast());
+          // Print all nodes in this petal
+          for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+            auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+            LOGP(debug, "  Node {}: {}", k, petalNode->GetName());
+          }
+        } else {
+          LOGP(warning, "Petal {} has no child nodes", name);
+        }
+      } else {
+        LOGP(warning, "Petal {} has no volume", name);
+      }
+    }
+  }
+
+  if (numberOfPetals == 0) {
+    LOGP(warning, "No petal assemblies found in geometry");
+  } else {
+    LOGP(info, "Found {} petal assemblies", numberOfPetals);
+  }
+
+  return numberOfPetals;
+}
+
+//__________________________________________________________________________
 int GeometryTGeo::extractNumberOfActivePartsVD() const
 {
   // The number of active parts returned here is 36 = 4 petals * (3 layers + 6 disks)
   int numberOfParts = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal to count its active parts
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, getTRKPetalPattern()) != nullptr && (strstr(name, getTRKPetalLayerPattern()) != nullptr || strstr(name, getTRKPetalDiskPattern()) != nullptr)) {
-      numberOfParts++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    const char* name = nd->GetName();
+    if (strstr(name, getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting active parts in petal: {}", name);
+
+    // Found a petal, count its layers and disks
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", name);
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", name);
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      const char* nodeName = petalNode->GetName();
+
+      if (strstr(nodeName, getTRKPetalLayerPattern()) != nullptr ||
+          strstr(nodeName, getTRKPetalDiskPattern()) != nullptr) {
+        numberOfParts++;
+        LOGP(debug, "Found active part in {}: {}", name, nodeName);
       }
     }
+    // We only need to check one petal as they're identical
+    break;
   }
-  return numberOfParts;
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+    return 0;
+  }
+
+  if (numberOfParts == 0) {
+    LOGP(warning, "No active parts (layers/disks) found in petal");
+    return 0;
+  }
+
+  // Multiply by number of petals since all petals are identical
+  int totalParts = numberOfParts * mNumberOfPetalsVD;
+  LOGP(info, "Total number of active parts: {} ({}*{})",
+       totalParts, numberOfParts, mNumberOfPetalsVD);
+  return totalParts;
 }
 
 //__________________________________________________________________________
 int GeometryTGeo::extractNumberOfDisksVD() const
 {
-  // The number of disks returned here is 6
+  // Count disks in the first petal (all petals are identical)
   int numberOfDisks = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, Form("%s%s", getTRKPetalPattern(), "0")) != nullptr && (strstr(name, getTRKPetalDiskPattern()) != nullptr)) {
-      numberOfDisks++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    if (strstr(nd->GetName(), getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting disks in petal: {}", nd->GetName());
+
+    // Count disks in this petal
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", nd->GetName());
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", nd->GetName());
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      if (strstr(petalNode->GetName(), getTRKPetalDiskPattern()) != nullptr) {
+        numberOfDisks++;
+        LOGP(info, "Found disk in {} : {}", nd->GetName(), petalNode->GetName());
       }
     }
+    // One petal is enough
+    break;
   }
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+  }
+
+  if (numberOfDisks == 0) {
+    LOGP(warning, "No disks found in VD geometry");
+  }
+
   return numberOfDisks;
-}
-
-//__________________________________________________________________________
-int GeometryTGeo::extractNumberOfPetalsVD() const
-{
-  // The number of petals returned here is 4 = number of petals
-  int numberOfChips = 0;
-
-  TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
-  }
-
-  // Loop on all TRKV nodes, count Layer volumes by checking names
-  TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
-
-    if (strstr(name, getTRKPetalPattern()) != nullptr && (strstr(name, Form("%s%s", getTRKPetalLayerPattern(), "0")) != nullptr)) {
-      numberOfChips++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
-      }
-    }
-  }
-  return numberOfChips;
 }
 
 //__________________________________________________________________________
 int GeometryTGeo::extractNumberOfLayersVD() const
 {
-  // The number of layers returned here is 3
+  // Count layers in the first petal (all petals are identical)
   int numberOfLayers = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, Form("%s%s", getTRKPetalPattern(), "0")) != nullptr && strstr(name, getTRKPetalLayerPattern()) != nullptr) {
-      numberOfLayers++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    if (strstr(nd->GetName(), getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting layers in petal: {}", nd->GetName());
+
+    // Count layers in this petal
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", nd->GetName());
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", nd->GetName());
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      if (strstr(petalNode->GetName(), getTRKPetalLayerPattern()) != nullptr) {
+        numberOfLayers++;
+        LOGP(info, "Found layer in {} : {}", nd->GetName(), petalNode->GetName());
       }
     }
+    // One petal is enough
+    break;
   }
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+  }
+
+  if (numberOfLayers == 0) {
+    LOGP(warning, "No layers found in VD geometry");
+  }
+
   return numberOfLayers;
 }
 
@@ -572,27 +716,82 @@ int GeometryTGeo::extractNumberOfChipsPerPetalVD() const
 {
   // The number of chips per petal returned here is 9 for each layer = number of layers + number of quarters of disks per petal
   int numberOfChips = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal assembly
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, Form("%s%s", getTRKPetalPattern(), "0")) != nullptr && (strstr(name, getTRKPetalLayerPattern()) != nullptr || strstr(name, getTRKPetalDiskPattern()) != nullptr)) {
-      numberOfChips++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    const char* name = nd->GetName();
+    if (strstr(name, getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting chips in petal: {}", name);
+
+    // Found a petal, count sensors in its layers and disks
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", name);
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", name);
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      const char* nodeName = petalNode->GetName();
+      TGeoVolume* vol = petalNode->GetVolume();
+
+      if (!vol) {
+        LOGP(debug, "Node {} has no volume", nodeName);
+        continue;
+      }
+
+      // Look for sensors in this volume
+      TObjArray* subNodes = vol->GetNodes();
+      if (!subNodes) {
+        LOGP(debug, "Node {} has no sub-nodes", nodeName);
+        continue;
+      }
+
+      for (int i = 0; i < subNodes->GetEntriesFast(); i++) {
+        auto* subNode = dynamic_cast<TGeoNode*>(subNodes->At(i));
+        if (strstr(subNode->GetName(), getTRKSensorPattern()) != nullptr) {
+          numberOfChips++;
+          LOGP(debug, "Found sensor in {}: {}", nodeName, subNode->GetName());
+        }
       }
     }
+    // We only need one petal
+    break;
   }
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+  }
+
+  if (numberOfChips == 0) {
+    LOGP(warning, "No chips/sensors found in VD petal");
+  }
+
+  LOGP(info, "Number of chips per petal: {}", numberOfChips);
   return numberOfChips;
 }
 
