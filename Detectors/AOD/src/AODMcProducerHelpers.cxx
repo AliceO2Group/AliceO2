@@ -305,7 +305,8 @@ uint32_t updateParticles(const ParticleCursor& cursor,
                          bool background,
                          uint32_t weightMask,
                          uint32_t momentumMask,
-                         uint32_t positionMask)
+                         uint32_t positionMask,
+                         bool signalFilter)
 {
   using o2::mcutils::MCTrackNavigator;
   using namespace o2::aod::mcparticle::enums;
@@ -353,6 +354,9 @@ uint32_t updateParticles(const ParticleCursor& cursor,
                        << MCTrackNavigator::isKeepPhysics(track, tracks);
         continue;
       }
+    }
+    if (background && signalFilter) {
+      continue;
     }
 
     // Store this particle.  We mark that putting a 1 in the
