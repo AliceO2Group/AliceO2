@@ -22,7 +22,11 @@ import sys
 from ctypes import c_bool
 from enum import Enum
 
-import ROOT  # pylint: disable=import-error
+try:
+    import ROOT  # pylint: disable=import-error
+    from ROOT import o2
+except (ModuleNotFoundError, ImportError) as exc:
+    raise Exception("O2 environment is not loaded.") from exc
 
 
 # Enum of PDG_t particles
@@ -150,7 +154,7 @@ class Pdg(Enum):
     kLambda1520_Py = 102134  # PYTHIA code different from PDG
 
 
-dbPdg = ROOT.o2.O2DatabasePDG
+dbPdg = o2.O2DatabasePDG
 
 
 def mass(code):
