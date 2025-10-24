@@ -46,6 +46,7 @@
 #include <chrono>
 #include <CCDB/BasicCCDBManager.h>
 #include <TRandom3.h>
+#include <regex>
 
 namespace o2
 {
@@ -135,6 +136,17 @@ class O2PrimaryServerDevice final : public fair::mq::Device
 
       auto embedinto_filename = conf.getEmbedIntoFileName();
       if (!embedinto_filename.empty()) {
+        // determine the sim prefix from the embedding filename
+        // the filename should be an MCHeader file ... so it should match SOME_PATH/prefix_MCHeader.root
+        std::regex re(R"((.*/)?([^/]+)_MCHeader\.root$)");
+        std::smatch match;
+
+        if (std::regex_search(embedinto_filename, match, re)) {
+          std::cout << "Extracted embedding prefix : " << match[2] << '\n';
+          mEmbeddIntoPrefix = match[2];
+        } else {
+          LOG(fatal) << "Embedding asked but no suitable embedding prefix extractable from " << embedinto_filename;
+        }
         mPrimGen->embedInto(embedinto_filename);
       }
 
@@ -197,6 +209,19 @@ class O2PrimaryServerDevice final : public fair::mq::Device
             auto& vertex = vertices.at(collisionindex);
             LOG(info) << "Setting vertex " << vertex << " for event " << mEventCounter << " for prefix " << mSimConfig.getOutPrefix() << " from CollContext";
             mPrimGen->setExternalVertexForNextEvent(vertex.X(), vertex.Y(), vertex.Z());
+
+            // set correct embedding index for PrimaryGenerator ... based on collision context for embedding
+            auto& collisionParts = mCollissionContext->getEventParts()[collisionindex];
+            int background_index = -1; // -1 means no embedding taking place for this signal
+
+            // find the part that corresponds to the event embeded into
+            for (auto& part : collisionParts) {
+              if (mCollissionContext->getSimPrefixes()[part.sourceID] == mEmbeddIntoPrefix) {
+                background_index = part.entryID;
+                LOG(info) << "Setting embedding index to " << background_index;
+              }
+            }
+            mPrimGen->setEmbedIndex(background_index);
           }
         }
         mPrimGen->GenerateEvent(mStack);
@@ -696,6 +721,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
   // some information specific to use case when we have a collision context
   o2::steer::DigitizationContext* mCollissionContext = nullptr; //!
   std::unordered_map<int, int> mEventID_to_CollID;              //!
+  std::string mEmbeddIntoPrefix;                                //! sim prefix of background events
 
   TRandom3 mSeedGenerator; //! specific random generator for seed generation for work chunks
 };

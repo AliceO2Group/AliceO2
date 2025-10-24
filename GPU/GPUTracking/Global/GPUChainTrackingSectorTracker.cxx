@@ -224,6 +224,9 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
       GPUInfo("Sector %u, Number of tracks: %d", iSector, *trk.NTracks());
     }
     DoDebugAndDump(RecoStep::TPCSectorTracking, GPUChainTrackingDebugFlags::TPCSectorTracks, trk, &GPUTPCTracker::DumpTrackHits, *mDebugFile);
+    if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && !trk.MemoryReuseAllowed()) {
+      mRec->PopNonPersistentMemory(RecoStep::TPCSectorTracking, qStr2Tag("TPCSLTRK"), &trk);
+    }
   });
   mRec->SetNActiveThreadsOuterLoop(1);
   if (error) {

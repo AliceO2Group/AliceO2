@@ -331,8 +331,14 @@ int32_t SetupReconstruction()
       grp.grpContinuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransformHelper()->getCorrMap()->getVDrift();
     }
   }
-  if (configStandalone.cont && grp.grpContinuousMaxTimeBin == 0) {
+  if (configStandalone.setMaxTimeBin != -2) {
+    grp.grpContinuousMaxTimeBin = configStandalone.setMaxTimeBin;
+  } else if (configStandalone.cont && grp.grpContinuousMaxTimeBin == 0) {
     grp.grpContinuousMaxTimeBin = -1;
+  }
+  if (grp.grpContinuousMaxTimeBin < -1 && !configStandalone.noEvents) {
+    printf("Invalid maxTimeBin %d\n", grp.grpContinuousMaxTimeBin);
+    return 1;
   }
   if (rec->GetDeviceType() == GPUReconstruction::DeviceType::CPU) {
     printf("Standalone Test Framework for CA Tracker - Using CPU\n");
@@ -649,11 +655,6 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
 
     if (tmpRetVal == 0 || tmpRetVal == 2) {
       OutputStat(chainTrackingUse, iRun == 0 ? nTracksTotal : nullptr, iRun == 0 ? nClustersTotal : nullptr);
-      if (configStandalone.memoryStat) {
-        recUse->PrintMemoryStatistics();
-      } else if (configStandalone.proc.debugLevel >= 2) {
-        recUse->PrintMemoryOverview();
-      }
     }
 
     if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
@@ -685,9 +686,6 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       tmpRetVal = recAsync->RunChains();
       if (tmpRetVal == 0 || tmpRetVal == 2) {
         OutputStat(chainTrackingAsync, nullptr, nullptr);
-        if (configStandalone.memoryStat) {
-          recAsync->PrintMemoryStatistics();
-        }
       }
       recAsync->ClearAllocatedMemory();
     }

@@ -483,10 +483,12 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
 //__________________________________________________________________________
 
-const char* GeometryTGeo::composeSymNameTRK(int d)
+#ifdef ENABLE_UPGRADES
+const char* GeometryTGeo::composeSymNameLayer(int d, int lr)
 {
   return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TRK).getName(), d);
 }
+#endif
 
 const char* GeometryTGeo::composeSymNameLayer(int d, int layer)
 {

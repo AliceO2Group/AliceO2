@@ -29,18 +29,11 @@
 #include "CommonDataFormat/IRFrame.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "ITS3Reconstruction/IOUtils.h"
-#include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITS3Base/SpecsV2.h"
 
 namespace o2
 {
 using namespace framework;
-using its::FastMultEstConfig;
-using its::TimeFrame;
-using its::Tracker;
-using its::TrackingParameters;
-using its::TrackITSExt;
-using its::Vertexer;
 
 namespace its3
 {

@@ -221,7 +221,7 @@ namespace services
 constexpr double thickness{2.2 * mm};                                         // thickness of structure
 constexpr double radiusInner{radiiOuter[2] + carbonfoam::thicknessOuterFoam}; // inner radius of services
 constexpr double radiusOuter{radiusInner + thickness};                        // outer radius of services
-constexpr double length{20 * cm};                                             // length
+constexpr double length{segment::length + (1 * cm)};                          // length
 constexpr EColor color{kBlue};
 } // namespace services
 

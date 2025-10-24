@@ -278,6 +278,10 @@ bool GPUChainTracking::ValidateSettings()
     return false;
   }
   if (GetProcessingSettings().doublePipeline) {
+    if (GetProcessingSettings().tpcFreeAllocatedMemoryAfterProcessing) {
+      GPUError("Cannot use double pipeline with tpcFreeAllocatedMemoryAfterProcessing");
+      return false;
+    }
     if (!GetRecoStepsOutputs().isOnlySet(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters, GPUDataTypes::InOutType::TPCClusters)) {
       GPUError("Invalid outputs for double pipeline mode 0x%x", (uint32_t)GetRecoStepsOutputs());
       return false;

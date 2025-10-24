@@ -165,6 +165,10 @@ void CcdbApi::curlInit()
 
 void CcdbApi::init(std::string const& host)
 {
+  if (host.empty()) {
+    throw std::invalid_argument("Empty url passed CcdbApi, cannot initialize. Aborting.");
+  }
+
   // if host is prefixed with "file://" this is a local snapshot
   // in this case we init the API in snapshot (readonly) mode
   constexpr const char* SNAPSHOTPREFIX = "file://";

@@ -40,6 +40,7 @@
 
 #include "GPULogging.h"
 #include "utils/strtag.h"
+#include "utils/stdspinlock.h"
 
 #ifdef GPUCA_O2_LIB
 #include "GPUO2InterfaceConfiguration.h"
@@ -589,6 +590,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     throw std::bad_alloc();
   }
   size_t retVal;
+  stdspinlock spinlock(mMemoryMutex);
   if ((res->mType & GPUMemoryResource::MEMORY_STACK) && memorypoolend) {
     retVal = ptrDiff((res->*setPtr)((char*)1), (char*)(1));
     memorypoolend = (void*)((char*)memorypoolend - GPUProcessor::getAlignmentMod<GPUCA_MEMALIGN>(memorypoolend));
@@ -639,9 +641,10 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
       if (GetProcessingSettings().allocDebugLevel >= 2) {
-        std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
+        std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << " (individual" << ((res->mType & GPUMemoryResource::MEMORY_STACK) ? " stack" : "") << ")\n";
       }
       if (res->mType & GPUMemoryResource::MEMORY_STACK) {
+        stdspinlock spinlock(mMemoryMutex);
         mNonPersistentIndividualAllocations.emplace_back(res);
       }
       if ((size_t)res->mPtr % GPUCA_BUFFER_ALIGNMENT) {
@@ -722,6 +725,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(int16_t ires, GPUOutputContro
 
 void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
 {
+  stdspinlock spinlock(mMemoryMutex);
   if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     char* retVal = new (std::align_val_t(GPUCA_BUFFER_ALIGNMENT)) char[size];
     if ((type & GPUMemoryResource::MEMORY_STACK)) {
@@ -763,6 +767,7 @@ void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
 
 void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
 {
+  stdspinlock spinlock(mMemoryMutex);
   if (mVolatileMemoryStart == nullptr) {
     mVolatileMemoryStart = mDeviceMemoryPool;
   }
@@ -788,6 +793,7 @@ void* GPUReconstruction::AllocateVolatileMemory(size_t size, bool device)
     return AllocateVolatileDeviceMemory(size);
   }
   char* retVal = new (std::align_val_t(GPUCA_BUFFER_ALIGNMENT)) char[size];
+  stdspinlock spinlock(mMemoryMutex);
   mVolatileChunks.emplace_back(retVal, alignedDeleter());
   return retVal;
 }
@@ -877,8 +883,11 @@ void GPUReconstruction::PushNonPersistentMemory(uint64_t tag)
   mNonPersistentMemoryStack.emplace_back(mHostMemoryPoolEnd, mDeviceMemoryPoolEnd, mNonPersistentIndividualAllocations.size(), mNonPersistentIndividualDirectAllocations.size(), tag);
 }
 
-void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag)
+void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag, const GPUProcessor* proc)
 {
+  if (proc && GetProcessingSettings().memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+    GPUFatal("Processor-depending memory-free works only with allocation strategy ALLOCATION_INDIVIDUAL");
+  }
   if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().disableMemoryReuse) {
     return;
   }
@@ -888,25 +897,34 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag)
   if (tag != 0 && std::get<4>(mNonPersistentMemoryStack.back()) != tag) {
     GPUFatal("Tag mismatch when popping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<4>(mNonPersistentMemoryStack.back())).c_str());
   }
-  if ((GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) && (IsGPU() || GetProcessingSettings().forceHostMemoryPoolSize)) {
+  if (!proc && (GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) && (IsGPU() || GetProcessingSettings().forceHostMemoryPoolSize)) {
     printf("Allocated memory after %30s (%8s) (Stack %zu): ", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], qTag2Str(std::get<4>(mNonPersistentMemoryStack.back())).c_str(), mNonPersistentMemoryStack.size());
     PrintMemoryOverview();
     printf("%76s", "");
     PrintMemoryMax();
   }
-  mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
-  mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
   for (uint32_t i = std::get<2>(mNonPersistentMemoryStack.back()); i < mNonPersistentIndividualAllocations.size(); i++) {
     GPUMemoryResource* res = mNonPersistentIndividualAllocations[i];
+    if (proc && res->mProcessor != proc) {
+      continue;
+    }
+    if (GetProcessingSettings().allocDebugLevel >= 2 && (res->mPtr || res->mPtrDevice)) {
+      std::cout << "Freeing NonPersistent " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
+    }
     if (res->mReuse < 0) {
       operator delete(res->mPtrDevice, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
     }
     res->mPtr = nullptr;
     res->mPtrDevice = nullptr;
   }
-  mNonPersistentIndividualAllocations.resize(std::get<2>(mNonPersistentMemoryStack.back()));
-  mNonPersistentIndividualDirectAllocations.resize(std::get<3>(mNonPersistentMemoryStack.back()));
-  mNonPersistentMemoryStack.pop_back();
+  if (!proc) {
+    stdspinlock spinlock(mMemoryMutex);
+    mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
+    mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
+    mNonPersistentIndividualAllocations.resize(std::get<2>(mNonPersistentMemoryStack.back()));
+    mNonPersistentIndividualDirectAllocations.resize(std::get<3>(mNonPersistentMemoryStack.back()));
+    mNonPersistentMemoryStack.pop_back();
+  }
 }
 
 void GPUReconstruction::BlockStackedMemory(GPUReconstruction* rec)
@@ -999,7 +1017,7 @@ void GPUReconstruction::PrintMemoryStatistics()
   }
   printf("%59s CPU / %9s GPU\n", "", "");
   for (auto it = sizes.begin(); it != sizes.end(); it++) {
-    printf("Allocation %30s %s: Size %'14zu / %'14zu\n", it->first.c_str(), it->second[2] ? "P" : " ", it->second[0], it->second[1]);
+    printf("Allocation %50s %s: Size %'14zu / %'14zu\n", it->first.c_str(), it->second[2] ? "P" : " ", it->second[0], it->second[1]);
   }
   PrintMemoryOverview();
   for (uint32_t i = 0; i < mChains.size(); i++) {

@@ -18,6 +18,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPULogging.h"
+#include <algorithm>
 
 using namespace o2::gpu;
 
@@ -106,15 +107,20 @@ void GPUTPCDecompression::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
   mMemoryResInputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputGPU, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionInput");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersGPU, GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBuffersGPU");
-  mResourceTmpIndexes = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBuffersOutput");
-  mResourceTmpClustersOffsets = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBuffersInput");
-  mResourceTmpBufferBeforeFiltering = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpClusterNativeAccessForFiltering, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBufferForFiltering");
-  mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpClusterAccessForFiltering");
-  mResourceNClusterPerSectorRow = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersNClusterPerSectorRow, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpClusterCountForFiltering");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersGPU, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBuffersGPU");
+  mResourceTmpIndexes = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBuffersOutput");
+  mResourceTmpClustersOffsets = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBuffersInput");
+  mResourceTmpBufferBeforeFiltering = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpClusterNativeAccessForFiltering, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpBufferForFiltering");
+  mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpClusterAccessForFiltering");
+  mResourceNClusterPerSectorRow = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersNClusterPerSectorRow, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCDecompressionTmpClusterCountForFiltering");
 }
 
 void GPUTPCDecompression::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mMaxNativeClustersPerBuffer = mRec->GetProcessingSettings().tpcMaxAttachedClustersPerSectorRow;
+  uint32_t maxAttachedClsMargin1 = *std::max_element(mInputGPU.nSliceRowClusters, mInputGPU.nSliceRowClusters + mInputGPU.nSliceRows);
+  float clsRatio1 = (mInputGPU.nUnattachedClusters > 0 ? float(mInputGPU.nAttachedClusters) / float(mInputGPU.nUnattachedClusters) : 1.0f) * 1.5f;
+  maxAttachedClsMargin1 *= clsRatio1;
+  uint32_t maxAttachedClsMargin2 = mInputGPU.nAttachedClusters / mInputGPU.nSliceRows * 3.5;                                             // mean #attached cls per SectorRow multiplied by 3.5 (tuned)
+  mMaxNativeClustersPerBuffer = std::max({maxAttachedClsMargin1, maxAttachedClsMargin2, 1000u});                                         // take biggest margin, 1000 clusters minimum
+  mMaxNativeClustersPerBuffer = std::min(mMaxNativeClustersPerBuffer, mRec->GetProcessingSettings().tpcMaxAttachedClustersPerSectorRow); // upperbound given by configurable param
 }

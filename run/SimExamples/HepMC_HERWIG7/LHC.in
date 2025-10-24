@@ -1,0 +1,49 @@
+# -*- ThePEG-repository -*-
+################################################################################
+# This file contains our best tune to UE data from ATLAS at 7 TeV. More recent
+# tunes and tunes for other centre-of-mass energies as well as more usage
+# instructions can be obtained from this Herwig wiki page:
+# http://projects.hepforge.org/herwig/trac/wiki/MB_UE_tunes
+# The model for soft interactions and diffractions is explained in
+# [S. Gieseke, P. Kirchgaesser, F. Loshaj, arXiv:1612.04701]
+################################################################################
+
+read snippets/PPCollider.in
+
+##################################################
+# Technical parameters for this run
+##################################################
+cd /Herwig/Generators
+##################################################
+# LHC physics parameters (override defaults here)
+##################################################
+set EventGenerator:EventHandler:LuminosityFunction:Energy 13600.0
+
+# Minimum Bias
+read snippets/MB.in
+
+# Recommended set of parameters for MB/UE runs
+
+set /Herwig/Hadronization/ColourReconnector:ReconnectionProbability 0.5
+set /Herwig/UnderlyingEvent/MPIHandler:pTmin0 3.502683
+set /Herwig/UnderlyingEvent/MPIHandler:InvRadius 1.402055
+set /Herwig/UnderlyingEvent/MPIHandler:Power 0.416852
+set /Herwig/Partons/RemnantDecayer:ladderPower -0.08
+set /Herwig/Partons/RemnantDecayer:ladderNorm 0.95
+
+##################################################
+# Analyses
+##################################################
+## Hepmc file creation
+create ThePEG::HepMCFile /Herwig/Analysis/HepMC HepMCAnalysis.so
+set /Herwig/Analysis/HepMC:PrintEvent 10
+set /Herwig/Analysis/HepMC:Format GenEvent
+set /Herwig/Analysis/HepMC:Units GeV_mm
+set /Herwig/Analysis/HepMC:Filename herwig.hepmc
+insert /Herwig/Generators/EventGenerator:AnalysisHandlers 0 /Herwig/Analysis/HepMC
+
+
+##################################################
+# Save run for later usage with 'Herwig run'
+##################################################
+saverun LHC EventGenerator
