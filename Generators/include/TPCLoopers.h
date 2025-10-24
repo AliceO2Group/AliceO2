@@ -17,6 +17,7 @@
 #include <SimulationDataFormat/ParticleStatus.h>
 #include "SimulationDataFormat/MCGenProperties.h"
 #include "TParticle.h"
+#include "TF1.h"
 #include <filesystem>
 
 #ifdef GENERATORS_WITH_TPCLOOPERS
@@ -82,9 +83,13 @@ class GenTPCLoopers
 
         void SetMultiplier(std::array<float, 2> &mult);
 
-        void setFlatGas(Bool_t &flat, const Int_t &number = -1);
+        void setFlatGas(Bool_t& flat, const Int_t& number, const Int_t& nloopers_orbit);
 
         void setFractionPairs(float &fractionPairs);
+
+        void SetRate(const std::string &rateFile, const bool &isPbPb, const int &intRate);
+
+        void SetAdjust(const float &adjust);
 
     private:
         std::unique_ptr<ONNXGenerator> mONNX_pair = nullptr;
@@ -111,6 +116,7 @@ class GenTPCLoopers
         o2::steer::DigitizationContext *mCollisionContext = nullptr;    // Pointer to the digitization context
         std::vector<o2::InteractionTimeRecord> mInteractionTimeRecords; // Interaction time records from collision context
         Bool_t mFlatGas = false;                                        // Flag to indicate if flat gas loopers are used
+        Bool_t mFlatGasOrbit = false;                                   // Flag to indicate if flat gas loopers are per orbit
         Int_t mFlatGasNumber = -1;                                      // Number of flat gas loopers per event
         double mIntTimeRecMean = 1.0;                                   // Average interaction time record used for the reference
         double mTimeLimit = 0.0;                                        // Time limit for the current event

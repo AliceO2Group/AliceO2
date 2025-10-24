@@ -92,6 +92,7 @@ bool Generator::initLoopersGen()
   const auto& loopersParam = o2::eventgen::GenTPCLoopersParam::Instance();
   std::string model_pairs = gSystem->ExpandPathName(loopersParam.model_pairs.c_str());
   std::string model_compton = gSystem->ExpandPathName(loopersParam.model_compton.c_str());
+  std::string nclxrate = gSystem->ExpandPathName(loopersParam.nclxrate.c_str());
   const auto& scaler_pair = gSystem->ExpandPathName(loopersParam.scaler_pair.c_str());
   const auto& scaler_compton = gSystem->ExpandPathName(loopersParam.scaler_compton.c_str());
   const auto& poisson = gSystem->ExpandPathName(loopersParam.poisson.c_str());
@@ -110,10 +111,10 @@ bool Generator::initLoopersGen()
   std::array<float, 2> multiplier = {loopersParam.multiplier[0], loopersParam.multiplier[1]};
   unsigned int nLoopersPairs = loopersParam.fixedNLoopers[0];
   unsigned int nLoopersCompton = loopersParam.fixedNLoopers[1];
-  const std::array<std::string, 2> models = {model_pairs, model_compton};
-  const std::array<std::string, 2> local_names = {"WGANpair.onnx", "WGANcompton.onnx"};
-  const std::array<bool, 2> isAlien = {models[0].starts_with("alien://"), models[1].starts_with("alien://")};
-  const std::array<bool, 2> isCCDB = {models[0].starts_with("ccdb://"), models[1].starts_with("ccdb://")};
+  const std::array<std::string, 3> models = {model_pairs, model_compton, nclxrate};
+  const std::array<std::string, 3> local_names = {"WGANpair.onnx", "WGANcompton.onnx", "nclxrate.root"};
+  const std::array<bool, 3> isAlien = {models[0].starts_with("alien://"), models[1].starts_with("alien://"), models[2].starts_with("alien://")};
+  const std::array<bool, 3> isCCDB = {models[0].starts_with("ccdb://"), models[1].starts_with("ccdb://"), models[2].starts_with("ccdb://")};
   if (std::any_of(isAlien.begin(), isAlien.end(), [](bool v) { return v; })) {
     if (!gGrid) {
       TGrid::Connect("alien://");
@@ -153,14 +154,25 @@ bool Generator::initLoopersGen()
   }
   model_pairs = isAlien[0] || isCCDB[0] ? local_names[0] : model_pairs;
   model_compton = isAlien[1] || isCCDB[1] ? local_names[1] : model_compton;
+  nclxrate = isAlien[2] || isCCDB[2] ? local_names[2] : nclxrate;
   try {
     // Create the TPC loopers generator with the provided parameters
     mLoopersGen = std::make_unique<o2::eventgen::GenTPCLoopers>(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
-
-    // Configure the generator with flat gas loopers if enabled (default)
+    auto& colsys = loopersParam.colsys;
+    auto &intrate = loopersParam.intrate;
+    // Configure the generator with flat gas loopers defined per orbit with clusters/track info
     if (flat_gas) {
-      mLoopersGen->setFlatGas(flat_gas, nFlatGasLoopers);
-      mLoopersGen->setFractionPairs(fraction_pairs);
+      if (colsys != "PbPb" && colsys != "pp") {
+        LOG(fatal) << "Error: collision system must be either 'PbPb' or 'pp'";
+        exit(1);
+      } else {
+        if (intrate <= 0) {
+          LOG(fatal) << "Error: interaction rate must be positive!";
+          exit(1);
+        }
+        mLoopersGen->SetRate(nclxrate, (colsys == "PbPb") ? true : false, intrate);
+        mLoopersGen->SetAdjust(loopersParam.adjust_flatgas);
+      }
     } else {
       // Otherwise, Poisson+Gauss sampling or fixed number of loopers will be used
       // Multiplier is applied only with distribution sampling
