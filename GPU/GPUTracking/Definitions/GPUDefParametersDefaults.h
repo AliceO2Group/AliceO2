@@ -105,7 +105,7 @@
     #define GPUCA_LB_GPUTPCCFDecodeZSDenseLink GPUCA_WARP_SIZE, 14
     #define GPUCA_LB_GPUTPCCFGather 1024, 1
     #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 7
-    #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 5
+    #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 4
     #define GPUCA_LB_GPUTPCGMMergerSectorRefit 256, 2
     #define GPUCA_LB_GPUTPCGMMergerUnpackResetIds 256
     #define GPUCA_LB_GPUTPCGMMergerUnpackGlobal 256
