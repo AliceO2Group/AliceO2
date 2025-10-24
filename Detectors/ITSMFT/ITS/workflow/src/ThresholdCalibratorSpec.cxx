@@ -1307,7 +1307,7 @@ void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID, const sho
   return;
 }
 
-//////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 // Main running function
 // Get info from previous stf decoder workflow, then loop over readout frames
 //     (ROFs) to count hits and extract thresholds
