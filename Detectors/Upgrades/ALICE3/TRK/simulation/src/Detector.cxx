@@ -101,25 +101,12 @@ void Detector::buildTRKMiddleOuterLayers()
 
   mLayers.clear();
 
-<<<<<<< HEAD
   switch (trkPars.overallGeom) {
     case kDefaultRadii:
       // Build the TRK detector according to changes proposed during
       // https://indico.cern.ch/event/1407704/
       // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
       // L3 -> 7 cm, L4 -> 9 cm, L5 -> 12 cm, L6 -> 20 cm
-=======
-  LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 7.f, 124.f, 100.e-3);
-  LOGP(info, "TRKLayer created. Name: {}", std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)});
-  mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 9.f, 124.f, 100.e-3);
-  mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 12.f, 124.f, 100.e-3);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 20.f, 124.f, 100.e-3);
-  mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 30.f, 124.f, 100.e-3);
-  mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 45.f, 258.f, 100.e-3);
-  mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 60.f, 258.f, 100.e-3);
-  mLayers.emplace_back(7, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(7)}, 80.f, 258.f, 100.e-3);
->>>>>>> upstream/dev
 
       LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
       LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 9 cm, L5 at 12 cm, L6 at 20 cm");
