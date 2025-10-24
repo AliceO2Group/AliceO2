@@ -196,6 +196,7 @@ def main():
 
     # Get header content before and after the generated block.
     path_header = "PhysicsConstants.h"
+    print(f"File {path_header} will be updated.")
     try:
         with open(path_header, encoding="utf-8") as file:
             content_old = file.readlines()
@@ -252,7 +253,15 @@ def main():
             *lines_header_after,
         )
     )
-    print(content_new)
+    # print(content_new)
+
+    try:
+        with open(path_header, "w", encoding="utf-8") as file:
+            file.write(content_new)
+            print(f"File {path_header} has been overwritten.")
+    except OSError:
+        print(f'Failed to write to file "{path_header}".')
+        sys.exit(1)
 
 
 if __name__ == "__main__":
