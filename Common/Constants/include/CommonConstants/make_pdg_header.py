@@ -160,14 +160,15 @@ def mass(code):
     return dbPdg.Mass(code, success)
 
 
-def declare_mass(pdg, val_type="double") -> str:
+def declare_mass(pdg, mass_type="double") -> str:
     """Returns a C++ declaration of a particle mass constant."""
-    return f"constexpr {val_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
+    return f"constexpr {mass_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
 
 
 def main():
     """Main function"""
 
+    path_header = "PhysicsConstants.h"
     name_script = os.path.basename(__file__)
 
     # Comment at the beginning of the output
@@ -195,7 +196,6 @@ def main():
     mass_root_head = "/// \\brief Declarations of masses for particles in ROOT PDG_t"
 
     # Get header content before and after the generated block.
-    path_header = "PhysicsConstants.h"
     print(f"File {path_header} will be updated.")
     try:
         with open(path_header, encoding="utf-8") as file:
