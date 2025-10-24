@@ -399,11 +399,10 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
     prop.SetAlpha(alpha);
   } else if constexpr (std::is_same_v<S, TrackParCov>) {
     static constexpr float kDeg2Rad = M_PI / 180.f;
-    static constexpr float kSectAngle = 2 * M_PI / 18.f;
     if (mPparam->rec.tpc.trackReferenceX <= 500) {
       if (prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX)) {
-        if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(kSectAngle / 2.f)) {
-          float newAlpha = trk.getAlpha() + CAMath::Round(CAMath::ATan2(trk.getY(), trk.getX()) / kDeg2Rad / 20.f) * kSectAngle;
+        if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(GPUTPCGeometry::kSectAngle() / 2.f)) {
+          float newAlpha = trk.getAlpha() + CAMath::Round(CAMath::ATan2(trk.getY(), trk.getX()) / kDeg2Rad / 20.f) * GPUTPCGeometry::kSectAngle();
           GPUTPCGMTrackParam::NormalizeAlpha(newAlpha);
           trk.rotate(newAlpha) && prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX);
         }

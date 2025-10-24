@@ -144,6 +144,8 @@ class GPUTPCGeometry // TODO: Make values constexpr
     const float v = (sector >= GPUCA_NSECTORS / 2) ? -z : z;
     return (250.f - v) * FACTOR_Z2T; // Used in compression, must remain constant at 250cm
   }
+
+  GPUd() static constexpr float kSectAngle() { return 2 * M_PI / 18.f; }
 };
 
 } // namespace o2::gpu

@@ -38,6 +38,7 @@ struct InterpolationErrorHit {
 
 struct InterpolationErrors {
   InterpolationErrorHit hit[GPUCA_MERGER_MAX_TRACK_CLUSTERS];
+  static constexpr size_t size = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 };
 
 struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)> {

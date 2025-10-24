@@ -155,12 +155,13 @@ class GPUTPCGMTrackParam
   GPUd() bool CheckCov() const;
 
   GPUd() bool Fit(GPUTPCGMMerger& merger, int32_t iTrk, int32_t& N, int32_t& NTolerated, float& Alpha, GPUTPCGMMergedTrack& track, bool rebuilt);
-  GPUd() void FitdEdx(GPUdEdx& dEdx, GPUdEdx& dEdxAlt, const GPUParam& param, bool finalFit, const GPUCalibObjectsConst& calib, int ihit, int ihitMergeFirst, int wayDirection, const o2::tpc::ClusterNative* clustersArray, const GPUTPCGMMergedTrackHit* clusters, uint8_t clusterState, float zz);
+  GPUd() void DodEdx(GPUdEdx& dEdx, GPUdEdx& dEdxAlt, GPUTPCGMMerger& merger, bool finalFit, int ihit, int ihitMergeFirst, int wayDirection, const GPUTPCGMMergedTrackHit* clusters, uint8_t clusterState, float zz, uint8_t dEdxSubThresholdRow);
   GPUd() int32_t FitHit(GPUTPCGMMerger& merger, const int32_t iTrk, const GPUTPCGMMergedTrack& track, const float xx, const float yy, const float zz, const uint8_t clusterState, const float clAlpha, const int32_t iWay, const bool inFlyDirection, const bool crossCE, float& deltaZ, float& lastUpdateX, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMPropagator& prop, gputpcgmmergertypes::InterpolationErrorHit& inter, GPUdEdx& dEdx, GPUdEdx& dEdxAlt, float& sumInvSqrtCharge, int32_t& nAvgCharge, const int32_t ihit, const int32_t ihitMergeFirst, const bool allowChangeClusters, const bool refit, const bool finalFit, int32_t& nMissed, int32_t& nMissed2, int32_t& resetT0);
+  GPUd() void FitAddRow(const int32_t iRow, const uint8_t sector, const int32_t iTrk, const GPUTPCGMMergedTrack& track, const float tmpX, GPUTPCGMPropagator& prop, const bool inFlyDirection, GPUTPCGMMerger& merger, uint8_t* dEdxSubThresholdRow, const bool dodEdx, const bool doAttach, const bool doInterpolate);
   GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger& merger, bool rebuilt);
   GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, uint8_t row, uint8_t clusterState, bool mirrorParameters, int8_t sector);
-  GPUd() int32_t MergeDoubleRowClusters(int32_t& ihit, int32_t wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger& merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int32_t maxN, float clAlpha, uint8_t& clusterState, bool rejectChi2);
+  GPUd() int32_t MergeDoubleRowClusters(int32_t& ihit, int32_t wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger& merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int32_t maxN, float clAlpha, uint8_t& clusterState, const bool markReject);
   GPUd() float FindBestInterpolatedHit(GPUTPCGMMerger& merger, gputpcgmmergertypes::InterpolationErrorHit& inter, const uint8_t sector, const uint8_t row, const float deltaZ, const float sumInvSqrtCharge, const int nAvgCharge, const GPUTPCGMPropagator& prop, const int32_t iTrk);
 
   GPUd() float AttachClusters(const GPUTPCGMMerger& merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use

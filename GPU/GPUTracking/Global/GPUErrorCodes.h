@@ -35,22 +35,23 @@ GPUCA_ERROR_CODE(15, ERROR_SECTORDATA_Z_OVERFLOW, Sector, Value)
 GPUCA_ERROR_CODE(16, ERROR_MERGER_HIT_OVERFLOW, Value, Max)
 GPUCA_ERROR_CODE(17, ERROR_MERGER_REBUILD_HIT_OVERFLOW, Value, Max)
 GPUCA_ERROR_CODE(18, ERROR_MERGER_TRACK_OVERFLOW, Value, Max)
-GPUCA_ERROR_CODE(19, ERROR_COMPRESSION_ROW_HIT_OVERFLOW, SectorRow, Value, Max)
-GPUCA_ERROR_CODE(20, ERROR_LOOPER_MATCH_OVERFLOW, Value, Max)
-GPUCA_ERROR_CODE(21, ERROR_CF_PEAK_OVERFLOW, Sector, Value, Max)
-GPUCA_ERROR_CODE(22, ERROR_CF_CLUSTER_OVERFLOW, Sector, Value, Max)
-GPUCA_ERROR_CODE(23, ERROR_CF_ROW_CLUSTER_OVERFLOW, SectorRow, Value, Max)
-GPUCA_ERROR_CODE(24, ERROR_CF_GLOBAL_CLUSTER_OVERFLOW, SectorRow, Value, Max)
-GPUCA_ERROR_CODE(25, ERROR_DECOMPRESSION_ATTACHED_CLUSTER_OVERFLOW, SectorRow, Value, Max)
-GPUCA_ERROR_CODE(25, MAX_OVERFLOW_ERROR_NUMBER)                                           // Overflow errors are detected as errno <= MAX_OVERFLOW_ERROR_NUMBER
-GPUCA_ERROR_CODE(26, ERROR_TPCZS_INVALID_ROW, SectorRow)                                  // Data from invalid row is skipped
-GPUCA_ERROR_CODE(27, ERROR_TPCZS_INVALID_NADC, SectorCRU, SamplesInPage, SamplesWritten)  // Invalid number of ADC samples in header, existing samples were decoded
-GPUCA_ERROR_CODE(28, ERROR_TPCZS_INCOMPLETE_HBF, SectorCRU, PacketCount, NextPacketCount) // Part of HBF is missing, decoding incomplete
-GPUCA_ERROR_CODE(29, ERROR_TPCZS_INVALID_OFFSET, SectorEndpoint, Value, Expected)         // Raw page is skipped since it contains invalid payload offset
-GPUCA_ERROR_CODE(30, ERROR_TPCZS_INVALID_MAGIC_WORD, Value)                               // ZS header contains wrong magic word
-GPUCA_ERROR_CODE(31, ERROR_TPCZS_PAGE_OVERFLOW, Position, PageEnd)                        // Ran out of page to decode
-GPUCA_ERROR_CODE(32, ERROR_TPCZS_VERSION_MISMATCH, Value, Expected)                       // ZS decoder received page with wrong version
-GPUCA_ERROR_CODE(33, ERROR_TPCZS_UNKNOWN, ErrorCode)                                      // Unkown or invalid error code raised in decoder
-GPUCA_ERROR_CODE(33, MAX_GPUCA_ERROR_NUMBER)
+GPUCA_ERROR_CODE(19, ERROR_MERGER_INTERPOLATION_OVERFLOW, Value, Max)
+GPUCA_ERROR_CODE(20, ERROR_COMPRESSION_ROW_HIT_OVERFLOW, SectorRow, Value, Max)
+GPUCA_ERROR_CODE(21, ERROR_LOOPER_MATCH_OVERFLOW, Value, Max)
+GPUCA_ERROR_CODE(22, ERROR_CF_PEAK_OVERFLOW, Sector, Value, Max)
+GPUCA_ERROR_CODE(23, ERROR_CF_CLUSTER_OVERFLOW, Sector, Value, Max)
+GPUCA_ERROR_CODE(24, ERROR_CF_ROW_CLUSTER_OVERFLOW, SectorRow, Value, Max)
+GPUCA_ERROR_CODE(25, ERROR_CF_GLOBAL_CLUSTER_OVERFLOW, SectorRow, Value, Max)
+GPUCA_ERROR_CODE(26, ERROR_DECOMPRESSION_ATTACHED_CLUSTER_OVERFLOW, SectorRow, Value, Max)
+GPUCA_ERROR_CODE(26, MAX_OVERFLOW_ERROR_NUMBER)                                           // Overflow errors are detected as errno <= MAX_OVERFLOW_ERROR_NUMBER
+GPUCA_ERROR_CODE(27, ERROR_TPCZS_INVALID_ROW, SectorRow)                                  // Data from invalid row is skipped
+GPUCA_ERROR_CODE(28, ERROR_TPCZS_INVALID_NADC, SectorCRU, SamplesInPage, SamplesWritten)  // Invalid number of ADC samples in header, existing samples were decoded
+GPUCA_ERROR_CODE(29, ERROR_TPCZS_INCOMPLETE_HBF, SectorCRU, PacketCount, NextPacketCount) // Part of HBF is missing, decoding incomplete
+GPUCA_ERROR_CODE(30, ERROR_TPCZS_INVALID_OFFSET, SectorEndpoint, Value, Expected)         // Raw page is skipped since it contains invalid payload offset
+GPUCA_ERROR_CODE(31, ERROR_TPCZS_INVALID_MAGIC_WORD, Value)                               // ZS header contains wrong magic word
+GPUCA_ERROR_CODE(32, ERROR_TPCZS_PAGE_OVERFLOW, Position, PageEnd)                        // Ran out of page to decode
+GPUCA_ERROR_CODE(33, ERROR_TPCZS_VERSION_MISMATCH, Value, Expected)                       // ZS decoder received page with wrong version
+GPUCA_ERROR_CODE(34, ERROR_TPCZS_UNKNOWN, ErrorCode)                                      // Unkown or invalid error code raised in decoder
+GPUCA_ERROR_CODE(34, MAX_GPUCA_ERROR_NUMBER)
 
 // #define GPUCA_CHECK_TPCZS_CORRUPTION
