@@ -401,13 +401,11 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
     prop.SetAlpha(alpha);
   } else if constexpr (std::is_same_v<S, TrackParCov>) {
     constexpr float kDeg2Rad = M_PI / 180.f;
-    constexpr float kSectAngle = 2 * M_PI / 18.f;
     if (mPparam->rec.tpc.trackReferenceX <= 500) {
-      // a forced energy-loss sign holds along the refit direction: the way to the reference X can run against it
-      const int32_t eLossSignRef = (mPparam->rec.tpc.trackReferenceX > trk.getX()) == outward ? eLossSign : -eLossSign;
+      const int32_t eLossSignRef = (mPparam->rec.tpc.trackReferenceX > trk.getX()) == outward ? eLossSign : -eLossSign; // a forced energy-loss sign holds along the refit direction: the way to the reference X can run against it
       if (prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX, Propagator::MAX_SIN_PHI, Propagator::MAX_STEP, Propagator::MatCorrType::USEMatCorrLUT, nullptr, eLossSignRef)) {
-        if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(kSectAngle / 2.f)) {
-          float newAlpha = trk.getAlpha() + CAMath::Round(CAMath::ATan2(trk.getY(), trk.getX()) / kDeg2Rad / 20.f) * kSectAngle;
+        if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(GPUTPCGeometry::kSectAngle() / 2.f)) {
+          float newAlpha = trk.getAlpha() + CAMath::Round(CAMath::ATan2(trk.getY(), trk.getX()) / kDeg2Rad / 20.f) * GPUTPCGeometry::kSectAngle();
           GPUTPCGMTrackParam::NormalizeAlpha(newAlpha);
           trk.rotate(newAlpha) && prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX, Propagator::MAX_SIN_PHI, Propagator::MAX_STEP, Propagator::MatCorrType::USEMatCorrLUT, nullptr, eLossSignRef);
         }
