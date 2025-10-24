@@ -251,6 +251,7 @@ def main():
             "",
             block_end,
             *lines_header_after,
+            "",
         )
     )
     # print(content_new)
