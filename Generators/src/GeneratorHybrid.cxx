@@ -23,7 +23,11 @@ namespace o2
 namespace eventgen
 {
 
-std::vector<std::shared_ptr<o2::eventgen::Generator>> GeneratorHybrid::gens;
+GeneratorHybrid& GeneratorHybrid::Instance(const std::string& inputgens)
+{
+  static GeneratorHybrid instance(inputgens);
+  return instance;
+}
 
 GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
 {
