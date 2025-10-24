@@ -17,7 +17,6 @@
 
 #include "TRKSimulation/TRKLayer.h"
 #include "TRKSimulation/TRKServices.h"
-#include "TRKSimulation/TRKPetalCase.h"
 #include "TRKBase/GeometryTGeo.h"
 
 #include <TLorentzVector.h>
@@ -31,9 +30,6 @@ namespace trk
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
-  static constexpr Int_t mNumberOfVolumes = 44;   /// hardcoded for the current geometry = 8 MLOT layers + 36 volumes in the VD. TODO: automatize or change according to the current geometry
-  static constexpr Int_t mNumberOfVolumesVD = 36; /// hardcoded for the current geometry = 36 volumes in the VD. TODO: automatize or change according to the current geometry
-
   Detector(bool active);
   Detector();
   ~Detector();
@@ -71,7 +67,7 @@ class Detector : public o2::base::DetImpl<Detector>
   }
 
   void configDefault();
-  void buildTRKNewVacuumVessel();
+  void buildTRKMiddleOuterLayers();
   void configFromFile(std::string fileName = "alice3_TRK_layout.txt");
   void configToFile(std::string fileName = "alice3_TRK_layout.txt");
 
@@ -80,6 +76,9 @@ class Detector : public o2::base::DetImpl<Detector>
   void createGeometry();
 
  private:
+  int mNumberOfVolumes;
+  int mNumberOfVolumesVD;
+
   // Transient data about track passing the sensor
   struct TrackData {
     bool mHitStarted;                  // hit creation started
@@ -91,8 +90,7 @@ class Detector : public o2::base::DetImpl<Detector>
   GeometryTGeo* mGeometryTGeo;         //!
   std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
   std::vector<TRKLayer> mLayers;
-  TRKServices mServices;                 // Houses the services of the TRK, but not the Iris tracker
-  std::vector<TRKPetalCase> mPetalCases; // Houses the Iris tracker and its services. Created fully in the beam pipe
+  TRKServices mServices; // Houses the services of the TRK, but not the Iris tracker
 
   std::vector<std::string> mFirstOrLastLayers; // Names of the first or last layers
   bool InsideFirstOrLastLayer(std::string layerName);
@@ -106,8 +104,6 @@ class Detector : public o2::base::DetImpl<Detector>
  public:
   static constexpr Int_t sNumberVDPetalCases = 4;          //! Number of VD petals
   int getNumberOfLayers() const { return mLayers.size(); } //! Number of TRK layers
-  int getNumberOfLayersVD() const { return mPetalCases[0].mPetalLayers.size(); }
-  int getNumberOfDisksVD() const { return mPetalCases[0].mPetalDisks.size(); }
 
   void Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int mod, int chip, int chipID) const;
 

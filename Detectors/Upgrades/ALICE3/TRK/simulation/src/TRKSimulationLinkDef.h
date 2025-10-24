@@ -15,10 +15,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::trk::TRKPetalCase + ;
 #pragma link C++ class o2::trk::TRKLayer + ;
-#pragma link C++ class o2::trk::TRKPetalLayer + ;
-#pragma link C++ class o2::trk::TRKPetalDisk + ;
+#pragma link C++ class o2::trk::VDLayer + ;
 #pragma link C++ class o2::trk::TRKServices + ;
 #pragma link C++ class o2::trk::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::trk::Detector> + ;
