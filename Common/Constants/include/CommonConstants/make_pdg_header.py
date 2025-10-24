@@ -18,7 +18,6 @@
 """
 
 import os
-import sys
 from ctypes import c_bool
 from enum import Enum
 
@@ -26,7 +25,7 @@ try:
     import ROOT  # pylint: disable=import-error
     from ROOT import o2
 except (ModuleNotFoundError, ImportError) as exc:
-    raise Exception("O2 environment is not loaded.") from exc
+    raise OSError("O2 environment is not loaded.") from exc
 
 
 # Enum of PDG_t particles
@@ -200,13 +199,12 @@ def main():
     mass_root_head = "/// \\brief Declarations of masses for particles in ROOT PDG_t"
 
     # Get header content before and after the generated block.
-    print(f"File {path_header} will be updated.")
+    print(f'File "{path_header}" will be updated.')
     try:
         with open(path_header, encoding="utf-8") as file:
             content_old = file.readlines()
-    except OSError:
-        print(f'Failed to open file "{path_header}".')
-        sys.exit(1)
+    except OSError as exc:
+        raise OSError(f'Failed to open file "{path_header}".') from exc
     lines_header_before: list[str] = []
     lines_header_after: list[str] = []
     got_block_begin = False
@@ -264,10 +262,9 @@ def main():
     try:
         with open(path_header, "w", encoding="utf-8") as file:
             file.write(content_new)
-            print(f"File {path_header} has been overwritten.")
-    except OSError:
-        print(f'Failed to write to file "{path_header}".')
-        sys.exit(1)
+            print(f'File "{path_header}" has been overwritten.')
+    except OSError as exc:
+        raise OSError(f'Failed to write to file "{path_header}".') from exc
 
 
 if __name__ == "__main__":
