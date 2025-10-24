@@ -12,7 +12,7 @@
 # or submit itself to any jurisdiction.
 
 """!
-@brief  Generates the body of a C++ header with PDG codes and particle masses.
+@brief  Generates and updates the body of a C++ header with PDG codes and particle masses.
 @author Vít Kučera <vit.kucera@cern.ch>, Inha University
 @date   2023-09-21
 """
