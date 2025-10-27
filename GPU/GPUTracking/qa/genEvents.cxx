@@ -199,8 +199,8 @@ int32_t genEvents::GenerateEvent(const GPUParam& param, const char* filename)
     double eta = gRandom->Uniform(-1.5, 1.5);
 
     double theta = 2 * std::atan(1. / exp(eta));
-    double lambda = theta - M_PI / 2;
-    // double theta = gRandom->Uniform(-60,60)*M_PI/180.;
+    double lambda = theta - CAMath::Pi() / 2;
+    // double theta = gRandom->Uniform(-60,60)*CAMath::Pi()/180.;
     double pt = .08 * std::pow(10, gRandom->Uniform(0, 2.2));
 
     double q = 1.;
