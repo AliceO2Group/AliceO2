@@ -53,12 +53,9 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #endif
 
+#include "utils/VcShim.h"
 #include "utils/strtag.h"
 #include <fstream>
-
-#ifndef GPUCA_NO_VC
-#include <Vc/Vc>
-#endif
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -173,7 +170,7 @@ std::pair<uint32_t, uint32_t> GPUChainTracking::TPCClusterizerDecodeZSCount(uint
   int32_t firstHBF = (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasTfStartOrbit) ? mIOPtrs.settingsTF->tfStartOrbit : ((mIOPtrs.tpcZS->sector[iSector].count[0] && mIOPtrs.tpcZS->sector[iSector].nZSPtr[0][0]) ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->sector[iSector].zsPtr[0][0]) : 0);
 
   for (uint16_t j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-#ifndef GPUCA_NO_VC
+
     if (GetProcessingSettings().prefetchTPCpageScan >= 3 && j < GPUTrackingInOutZS::NENDPOINTS - 1) {
       for (uint32_t k = 0; k < mIOPtrs.tpcZS->sector[iSector].count[j + 1]; k++) {
         for (uint32_t l = 0; l < mIOPtrs.tpcZS->sector[iSector].nZSPtr[j + 1][k]; l++) {
@@ -182,7 +179,6 @@ std::pair<uint32_t, uint32_t> GPUChainTracking::TPCClusterizerDecodeZSCount(uint
         }
       }
     }
-#endif
 
     std::vector<std::pair<CfFragment, TPCCFDecodeScanTmp>> fragments;
     fragments.reserve(mCFContext->nFragments);
@@ -201,12 +197,12 @@ std::pair<uint32_t, uint32_t> GPUChainTracking::TPCClusterizerDecodeZSCount(uint
       }
       nPages += mIOPtrs.tpcZS->sector[iSector].nZSPtr[j][k];
       for (uint32_t l = 0; l < mIOPtrs.tpcZS->sector[iSector].nZSPtr[j][k]; l++) {
-#ifndef GPUCA_NO_VC
+
         if (GetProcessingSettings().prefetchTPCpageScan >= 2 && l + 1 < mIOPtrs.tpcZS->sector[iSector].nZSPtr[j][k]) {
           Vc::Common::prefetchForOneRead(((const uint8_t*)mIOPtrs.tpcZS->sector[iSector].zsPtr[j][k]) + (l + 1) * TPCZSHDR::TPC_ZS_PAGE_SIZE);
           Vc::Common::prefetchForOneRead(((const uint8_t*)mIOPtrs.tpcZS->sector[iSector].zsPtr[j][k]) + (l + 1) * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
         }
-#endif
+
         const uint8_t* const page = ((const uint8_t*)mIOPtrs.tpcZS->sector[iSector].zsPtr[j][k]) + l * TPCZSHDR::TPC_ZS_PAGE_SIZE;
         const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
         if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
@@ -510,7 +506,7 @@ int32_t GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
           return 1;
         }
       }
-#ifndef GPUCA_NO_VC
+
       if (GetProcessingSettings().prefetchTPCpageScan >= 1 && iSector < NSECTORS - 1) {
         for (uint32_t j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
           for (uint32_t k = 0; k < mIOPtrs.tpcZS->sector[iSector].count[j]; k++) {
@@ -521,7 +517,7 @@ int32_t GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
           }
         }
       }
-#endif
+
       const auto& x = TPCClusterizerDecodeZSCount(iSector, fragmentMax);
       nDigitsFragmentMax[iSector] = x.first;
       processors()->tpcClusterer[iSector].mPmemory->counters.nDigits = x.first;

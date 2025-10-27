@@ -175,6 +175,7 @@ class ITSThresholdCalibrator : public Task
   unsigned char vCharge[N_COL];
   unsigned char vHits[N_COL];
   short int mColStep = 8; // save s-curves to tree every mColStep pixels on 1 row
+  short int mRowStep = 1;
 
   // Initialize pointers for doing error function fits
   TH1F* mFitHist = nullptr;
@@ -232,7 +233,8 @@ class ITSThresholdCalibrator : public Task
   short int mRunTypeUp = -1;
   short int mRunTypeRU[N_RU] = {0};
   short int mRunTypeRUCopy[N_RU] = {0};
-  short int mCdwCntRU[N_RU][N_ROW] = {{0}};
+  bool mFlagsRU[N_RU] = {0};
+  std::map<short int, std::map<short int, std::array<std::array<int, 500>, 500>>> mCdwCntRU; // RU --> row --> 2D hit map
   short int mLoopVal[N_RU][N_ROW] = {{0}};
   bool mActiveLinks[N_RU][3] = {{false}};
   std::set<short int> mRuSet;
@@ -241,6 +243,7 @@ class ITSThresholdCalibrator : public Task
   short int mMin = -1, mMax = -1, mMin2 = 0, mMax2 = 0;
   short int mStep = 1, mStep2 = 1;
   short int mStrobeWindow = 5; // 5 means 5*25ns = 125 ns
+  short int mRowScan = 512;    // number of scanned rows, used only to normalize % of success
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
@@ -293,6 +296,7 @@ class ITSThresholdCalibrator : public Task
   short int manualStep = 1, manualStep2 = 1;
   std::string manualScanType;
   short int manualStrobeWindow = 5;
+  short int manualRowScan = 512; // used only to normalize % of success in thr/ithr/vcasn scans
 
   // for CRU_ITS data processing
   bool isCRUITS = false;
@@ -306,7 +310,7 @@ class ITSThresholdCalibrator : public Task
   int maxDumpS = -1;                   // maximum number of s-curves to be dumped, default -1 = dump all
   std::string chipDumpS = "";          // list of comma-separated O2 chipIDs to be dumped, default is empty = dump all
   int dumpCounterS[24120] = {0};       // count dumps for every chip
-  int countCdw[24120] = {0};           // count how many CDWs have been processed with the maximum charge injected: usefull for s-curve dump when hits do not arrive in order
+  bool isChipDB[24120] = {0};          // check whether a chip has been already added to DB entry
   TFile* fileDumpS;                    // file where to store the s-curves on disk
   std::vector<short int> chipDumpList; // vector of chips to dump
 
@@ -324,6 +328,9 @@ class ITSThresholdCalibrator : public Task
 
   // Percentage cut for VCASN/ITHR scans
   short int mPercentageCut = 25; // default, at least 1 good row equivalent
+
+  // For data replay only
+  short int isLocal = false;
 };
 
 // Create a processor spec

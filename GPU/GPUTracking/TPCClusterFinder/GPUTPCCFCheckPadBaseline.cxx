@@ -19,11 +19,7 @@
 #include "clusterFinderDefs.h"
 
 #ifndef GPUCA_GPUCODE
-#ifndef GPUCA_NO_VC
-#include <Vc/Vc>
-#else
-#include <array>
-#endif
+#include "utils/VcShim.h"
 #endif
 
 using namespace o2::gpu;
@@ -80,7 +76,6 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThread
 
   constexpr size_t ElemsInTileRow = (size_t)TilingLayout<GridSize<2>>::WidthInTiles * TimebinsPerCacheline * PadsPerCacheline;
 
-#ifndef GPUCA_NO_VC
   using UShort8 = Vc::fixed_size_simd<uint16_t, PadsPerCacheline>;
   using Charge8 = Vc::fixed_size_simd<float, PadsPerCacheline>;
 
@@ -88,12 +83,6 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThread
   UShort8 consecCharges{Vc::Zero};
   UShort8 maxConsecCharges{Vc::Zero};
   Charge8 maxCharge{Vc::Zero};
-#else
-  std::array<uint16_t, PadsPerCacheline> totalCharges{0};
-  std::array<uint16_t, PadsPerCacheline> consecCharges{0};
-  std::array<uint16_t, PadsPerCacheline> maxConsecCharges{0};
-  std::array<Charge, PadsPerCacheline> maxCharge{0};
-#endif
 
   tpccf::TPCFragmentTime t = fragment.firstNonOverlapTimeBin();
 
@@ -102,7 +91,6 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThread
 
   for (; t < fragment.lastNonOverlapTimeBin(); t += TimebinsPerCacheline) {
     for (tpccf::TPCFragmentTime localtime = 0; localtime < TimebinsPerCacheline; localtime++) {
-#ifndef GPUCA_NO_VC
       const UShort8 packedCharges{packedChargeStart + PadsPerCacheline * localtime, Vc::Aligned};
       const UShort8::mask_type isCharge = packedCharges != 0;
 
@@ -123,22 +111,6 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThread
       } else {
         consecCharges = 0;
       }
-#else // Vc not available
-      for (tpccf::Pad localpad = 0; localpad < PadsPerCacheline; localpad++) {
-        const uint16_t packedCharge = packedChargeStart[PadsPerCacheline * localtime + localpad];
-        const bool isCharge = packedCharge != 0;
-        if (isCharge) {
-          totalCharges[localpad]++;
-          consecCharges[localpad]++;
-          maxConsecCharges[localpad] = CAMath::Max(maxConsecCharges[localpad], consecCharges[localpad]);
-
-          const Charge unpackedCharge = Charge(packedCharge) / Charge(1 << PackedCharge::DecimalBits);
-          maxCharge[localpad] = CAMath::Max<Charge>(maxCharge[localpad], unpackedCharge);
-        } else {
-          consecCharges[localpad] = 0;
-        }
-      }
-#endif
     }
 
     packedChargeStart += ElemsInTileRow;

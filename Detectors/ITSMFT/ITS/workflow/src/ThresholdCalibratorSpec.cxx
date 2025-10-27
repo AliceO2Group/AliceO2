@@ -74,6 +74,8 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     LOG(warning) << "mColStep = " << mColStep << ": saving s-curves of only 1 pixel (pix 0) per row";
   }
 
+  isLocal = ic.options().get<bool>("local");
+
   std::string fittype = ic.options().get<std::string>("fittype");
   if (fittype == "derivative") {
     this->mFitType = DERIVATIVE;
@@ -149,6 +151,12 @@ void ITSThresholdCalibrator::init(InitContext& ic)
   // Parameters to operate in manual mode (when run type is not recognized automatically)
   isManualMode = ic.options().get<bool>("manual-mode");
   if (isManualMode) {
+    try {
+      manualRowScan = ic.options().get<short int>("manual-rowscan");
+    } catch (std::exception const& e) {
+      throw std::runtime_error("Number of scanned rows not found, mandatory in manual mode");
+    }
+
     try {
       manualMin = ic.options().get<short int>("manual-min");
     } catch (std::exception const& e) {
@@ -746,38 +754,39 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
 
   } else { // threshold, vcasn, ithr, vresetd_2d
 
-    short int iRU = getRUID(chipID);
+    for (int scan_i = 0; scan_i < ((mScanType == 'r') ? N_RANGE : N_RANGE2); scan_i++) {
 #ifdef WITH_OPENMP
-    omp_set_num_threads(mNThreads);
+      omp_set_num_threads(mNThreads);
 #pragma omp parallel for schedule(dynamic)
 #endif
-    // Loop over all columns (pixels) in the row
-    for (short int col_i = 0; col_i < this->N_COL; col_i++) {
-      // Do the threshold fit
-      float thresh = 0., noise = 0.;
-      bool success = false;
-      int spoints = 0;
-      int scan_i = mScanType == 'r' ? (mLoopVal[iRU][row] - mMin) / mStep : 0;
-      if (isDumpS) { // already protected for multi-thread in the init
-        mFitHist->SetName(Form("scurve_chip%d_row%d_col%d_scani%d", chipID, row, col_i, scan_i));
+      // Loop over all columns (pixels) in the row
+      for (short int col_i = 0; col_i < this->N_COL; col_i++) {
+        // Do the threshold fit
+        float thresh = 0., noise = 0.;
+        bool success = false;
+        int spoints = 0;
+
+        if (isDumpS) { // already protected for multi-thread in the init
+          mFitHist->SetName(Form("scurve_chip%d_row%d_col%d_scani%d", chipID, row, col_i, scan_i));
+        }
+
+        success = this->findThreshold(chipID, mPixelHits[chipID][row][col_i],
+                                      this->mX, mScanType == 'r' ? N_RANGE2 : N_RANGE, thresh, noise, spoints, scan_i);
+
+        vChipid[col_i] = chipID;
+        vRow[col_i] = row;
+        vThreshold[col_i] = (mScanType == 'T' || mScanType == 'r') ? (short int)(thresh * 10.) : (short int)(thresh);
+        vNoise[col_i] = (float)(noise * 10.); // always factor 10 also for ITHR/VCASN to not have all zeros
+        vSuccess[col_i] = success;
+        vPoints[col_i] = spoints > 0 ? (unsigned char)(spoints) : 0;
+
+        if (mScanType == 'r') {
+          vMixData[col_i] = (scan_i * mStep) + mMin;
+        }
       }
-
-      success = this->findThreshold(chipID, mPixelHits[chipID][row][col_i],
-                                    this->mX, mScanType == 'r' ? N_RANGE2 : N_RANGE, thresh, noise, spoints, scan_i);
-
-      vChipid[col_i] = chipID;
-      vRow[col_i] = row;
-      vThreshold[col_i] = (mScanType == 'T' || mScanType == 'r') ? (short int)(thresh * 10.) : (short int)(thresh);
-      vNoise[col_i] = (float)(noise * 10.); // always factor 10 also for ITHR/VCASN to not have all zeros
-      vSuccess[col_i] = success;
-      vPoints[col_i] = spoints > 0 ? (unsigned char)(spoints) : 0;
-
       if (mScanType == 'r') {
-        vMixData[col_i] = mLoopVal[iRU][row];
+        this->saveThreshold(); // save before moving to the next vresetd
       }
-    }
-    if (mScanType == 'r') {
-      this->saveThreshold(); // save before moving to the next vresetd
     }
 
     // Fill the ScTree tree
@@ -794,6 +803,9 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
 
   // Saves threshold information to internal memory
   if (mScanType != 'P' && mScanType != 'p' && mScanType != 't' && mScanType != 'R' && mScanType != 'r') {
+    if (mVerboseOutput) {
+      LOG(info) << "Saving data of ChipID: " << chipID << " Row: " << row;
+    }
     this->saveThreshold();
   }
 }
@@ -934,6 +946,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mMax = 50;
     this->N_RANGE = 51;
     this->mCheckExactRow = true;
+    mRowScan = 512;
 
   } else if (runtype == THR_SCAN_SHORT || runtype == THR_SCAN_SHORT_100HZ ||
              runtype == THR_SCAN_SHORT_200HZ || runtype == THR_SCAN_SHORT_33 || runtype == THR_SCAN_SHORT_2_10HZ || runtype == THR_SCAN_SHORT_150INJ) {
@@ -951,6 +964,12 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
         nInjScaled = nInj / 3;
       }
     }
+    mRowScan = 11;
+    if (runtype == THR_SCAN_SHORT_33) {
+      mRowScan = 33;
+    } else if (runtype == THR_SCAN_SHORT_2_10HZ) {
+      mRowScan = 2;
+    }
   } else if (runtype == VCASN150 || runtype == VCASN100 || runtype == VCASN100_100HZ || runtype == VCASN130 || runtype == VCASNBB) {
     // VCASN tuning for different target thresholds
     // Store average VCASN for each chip into CCDB
@@ -962,6 +981,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mMax = inMaxVcasn; // 80 is the default
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = true;
+    mRowScan = 4;
 
   } else if (runtype == ITHR150 || runtype == ITHR100 || runtype == ITHR100_100HZ || runtype == ITHR130) {
     // ITHR tuning  -- average ITHR per chip
@@ -973,6 +993,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mMax = inMaxIthr; // 100 is the default
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = true;
+    mRowScan = 4;
 
   } else if (runtype == DIGITAL_SCAN || runtype == DIGITAL_SCAN_100HZ || runtype == DIGITAL_SCAN_NOMASK) {
     // Digital scan -- only storing one value per chip, no fit needed
@@ -983,6 +1004,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mMax = 0;
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = false;
+    mRowStep = 1;
 
   } else if (runtype == ANALOGUE_SCAN) {
     // Analogue scan -- only storing one value per chip, no fit needed
@@ -1078,6 +1100,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
       if (scaleNinj) {
         nInjScaled = nInj / 3;
       }
+      mRowScan = manualRowScan;
     } else {
       throw runtype;
     }
@@ -1284,7 +1307,7 @@ void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID, const sho
   return;
 }
 
-//////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 // Main running function
 // Get info from previous stf decoder workflow, then loop over readout frames
 //     (ROFs) to count hits and extract thresholds
@@ -1367,15 +1390,13 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         row = !mCdwVersion ? (short int)(calib.calibUserField & 0xffff) : (short int)(calib.calibUserField & 0x1ff);
         // cw counter
         cwcnt = (short int)(calib.calibCounter);
-        // count the last N injections
-        short int checkVal = (mScanType == 'I') ? mMin : mMax;
-        if ((mScanType != 'r' && mScanType != 'p' && mScanType != 't' && loopval == checkVal) ||
-            (mScanType == 'r' && realcharge == mMax2) ||
-            (mScanType == 'p' && realcharge == mMin2) ||
-            (mScanType == 't' && loopval == checkVal && realcharge == mMax2)) {
-          mCdwCntRU[iRU][row]++;
-          mLoopVal[iRU][row] = loopval; // keep loop val (relevant for VRESET2D and TOT_1ROW scan only)
-        }
+
+        // count injections
+        short int loopPoint = (loopval - this->mMin) / mStep;
+        short int chgPoint = (realcharge - this->mMin2) / mStep2;
+        auto& arr = mCdwCntRU[iRU][row];
+        arr[chgPoint][loopPoint]++;
+
         if (this->mVerboseOutput) {
           LOG(info) << "RU: " << iRU << " CDWcounter: " << cwcnt << " row: " << row << " Loopval: " << loopval << " realcharge: " << realcharge << " confDBv: " << mCdwVersion;
           LOG(info) << "NDIGITS: " << digits.size();
@@ -1470,15 +1491,13 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     if (ruIndex < 0) {
       continue;
     }
-    short int nL = 0;
-    for (int iL = 0; iL < 3; iL++) {
-      if (mActiveLinks[ruIndex][iL]) {
-        nL++; // count active links
-      }
+    short int nL = getNumberOfActiveLinks(mActiveLinks[ruIndex]);
+    if (isLocal) {
+      nL = ruIndex > 47 ? 2 : 3;
     }
     std::vector<short int> chipEnabled = getChipListFromRu(ruIndex, mActiveLinks[ruIndex]); // chip boundaries
     // Fill the chipDone info string
-    if (mRunTypeRUCopy[ruIndex] == nInjScaled * nL) {
+    if (mRunTypeRUCopy[ruIndex] == nInjScaled * nL && nL > 0) {
       for (short int iChip = 0; iChip < chipEnabled.size(); iChip++) {
         if ((chipEnabled[iChip] % mChipModBase) != mChipModSel) {
           continue;
@@ -1488,14 +1507,37 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       mRunTypeRUCopy[ruIndex] = 0; // reset here is safer (the other counter is reset in finalize)
     }
     // Check if scan of a row is finished: only for specific scans!
-    bool passCondition = (mCdwCntRU[ruIndex][row] >= nInjScaled * nL);
-    if (mScanType == 'p' || mScanType == 't') {
-      passCondition = passCondition && (mLoopVal[ruIndex][row] == mMax);
-      if (mVerboseOutput) {
-        LOG(info) << "PassCondition: " << passCondition << " - (mCdwCntRU,mLoopVal) of RU" << ruIndex << " row " << row << " = (" << mCdwCntRU[ruIndex][row] << ", " << mLoopVal[ruIndex][row] << ")";
+    bool passCondition = nL > 0 ? true : false;
+    for (int j1 = 0; j1 < N_RANGE2; j1++) {
+      for (int j2 = 0; j2 < N_RANGE; j2++) {
+        if (mScanType == 'D' || mScanType == 'A') { // D and A are processed in finalize and include >1 rows: row data can be mixed in time!
+          for (int ir = 0; ir < mRowScan; ir += mRowStep) {
+            if (!mCdwCntRU[ruIndex].count(ir)) {
+              passCondition = false;
+              break;
+            } else if (mCdwCntRU[ruIndex][ir][j1][j2] < nInjScaled * nL) {
+              passCondition = false;
+              break;
+            }
+          }
+        } else if (mScanType == 't') { // ToT scan is done in specific ranges depending on charge (see ITSComm)
+          if ((j1 == 0 && j2 < ((600 - mMin) / mStep)) || (j2 >= ((600 - mMin) / mStep) && j2 <= ((800 - mMin) / mStep)) || (j1 == 1 && j2 > ((800 - mMin) / mStep))) {
+            if (mCdwCntRU[ruIndex][row][j1][j2] < nInjScaled * nL) {
+              passCondition = false;
+              break;
+            }
+          }
+        } else if (mCdwCntRU[ruIndex][row][j1][j2] < nInjScaled * nL) {
+          passCondition = false;
+          break;
+        }
       }
-    } else if (mVerboseOutput) {
-      LOG(info) << "PassCondition: " << passCondition << " - mCdwCntRU of RU" << ruIndex << " row " << row << " = " << mCdwCntRU[ruIndex][row];
+      if (!passCondition) {
+        break;
+      }
+    }
+    if (mVerboseOutput) {
+      LOG(info) << "PassCondition: " << passCondition << " - mCdwCntRU of RU" << ruIndex << " row " << row << " = " << mCdwCntRU[ruIndex][row][0][0] << "(Links: " << mActiveLinks[ruIndex][0] << ", " << mActiveLinks[ruIndex][1] << "," << mActiveLinks[ruIndex][2] << ")";
     }
 
     if (mScanType != 'D' && mScanType != 'A' && mScanType != 'P' && mScanType != 'R' && passCondition) {
@@ -1509,32 +1551,48 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           if (mPixelHits.count(chipID)) {
             if (mPixelHits[chipID].count(row)) { // make sure the row exists
               extractAndUpdate(chipID, row);
-              if (mScanType != 'p' && (mScanType != 'r' || mLoopVal[ruIndex][row] == mMax)) { // do not erase for scantype = p because in finalize() we have calculate2Dparams
+              if (mScanType != 'p') { // do not erase for scantype = p because in finalize() we have calculate2Dparams
                 mPixelHits[chipID].erase(row);
               }
             }
           }
         }
       }
-      mCdwCntRU[ruIndex][row] = 0; // reset
+      mCdwCntRU[ruIndex].erase(row); // row is gone
+    }
+
+    if (mRunTypeRU[ruIndex] >= nInjScaled * nL && passCondition) {
+      mFlagsRU[ruIndex] = true;
+      finalize();
+      // Reset Active Links, mRunTypeRU, mFlagsRU (needed only for local data replay!)
+      if (mVerboseOutput) {
+        LOG(info) << "Resetting links of RU " << ruIndex;
+      }
+      if (!isLocal) {
+        mActiveLinks[ruIndex][0] = 0;
+        mActiveLinks[ruIndex][1] = 0;
+        mActiveLinks[ruIndex][2] = 0;
+        mRunTypeRU[ruIndex] = 0;
+        mFlagsRU[ruIndex] = false;
+        mCdwCntRU.erase(ruIndex); // for D,A,P,R (not entering the if above)
+      }
+
+      LOG(info) << "Shipping all outputs to aggregator (before endOfStream arrival!)";
+      pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning);
+      pc.outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
+      pc.outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
+      pc.outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
+      pc.outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
+      pc.outputs().snapshot(Output{"ITS", "CONFDBV", (unsigned int)mChipModSel}, this->mConfDBv);
+      pc.outputs().snapshot(Output{"ITS", "QCSTR", (unsigned int)mChipModSel}, this->mChipDoneQc);
+      // reset the DCSconfigObject_t before next ship out
+      mTuning.clear();
+      mPixStat.clear();
+      mChipDoneQc.clear();
     }
   } // for (ROFs)
 
-  if (!(this->mRunTypeUp)) {
-    finalize();
-    LOG(info) << "Shipping all outputs to aggregator (before endOfStream arrival!)";
-    pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning);
-    pc.outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
-    pc.outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
-    pc.outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
-    pc.outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
-    pc.outputs().snapshot(Output{"ITS", "CONFDBV", (unsigned int)mChipModSel}, this->mConfDBv);
-    pc.outputs().snapshot(Output{"ITS", "QCSTR", (unsigned int)mChipModSel}, this->mChipDoneQc);
-    // reset the DCSconfigObject_t before next ship out
-    mTuning.clear();
-    mPixStat.clear();
-    mChipDoneQc.clear();
-  } else if (pc.transitionState() == TransitionHandlingState::Requested) {
+  if (pc.transitionState() == TransitionHandlingState::Requested) {
     LOG(info) << "Run stop requested during the scan, sending output to aggregator and then stopping to process new data";
     mRunStopRequested = true;
     finalize();                                                                             // calculating average thresholds based on what's collected up to this moment
@@ -1769,18 +1827,19 @@ void ITSThresholdCalibrator::finalize()
     if (mScanType == 'I') {
       // Only ITHR scan: assign default ITHR = 50 if chip has no avg ITHR
       for (auto& iRU : mRuSet) {
-        if (mRunTypeRU[iRU] >= nInjScaled * getNumberOfActiveLinks(mActiveLinks[iRU]) || mRunStopRequested) {
+        if (mFlagsRU[iRU] || mRunStopRequested) {
           std::vector<short int> chipList = getChipListFromRu(iRU, mActiveLinks[iRU]);
           for (size_t i = 0; i < chipList.size(); i++) {
             if ((chipList[i] % mChipModBase) != mChipModSel) {
               continue;
             }
-            if (!mThresholds.count(chipList[i])) {
+            if (!mThresholds.count(chipList[i]) && !isChipDB[chipList[i]]) {
               if (mVerboseOutput) {
                 LOG(info) << "Setting ITHR = 50 for chip " << chipList[i];
               }
               std::vector<float> data = {50, 0, 0, 0, 0};
               addDatabaseEntry(chipList[i], name, data, false);
+              isChipDB[chipList[i]] = true;
             }
           }
         }
@@ -1790,7 +1849,7 @@ void ITSThresholdCalibrator::finalize()
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
       short int iRU = getRUID(it->first);
-      if (!isCRUITS && (mRunTypeRU[iRU] < nInjScaled * getNumberOfActiveLinks(mActiveLinks[iRU]) && !mRunStopRequested)) {
+      if (!isCRUITS && (!mFlagsRU[iRU]) && !mRunStopRequested) {
         ++it;
         continue;
       }
@@ -1805,7 +1864,7 @@ void ITSThresholdCalibrator::finalize()
       if (mVerboseOutput) {
         LOG(info) << "Average or mpv " << name << " of chip " << it->first << " = " << outVal << " e-";
       }
-      float status = ((float)it->second[4] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of successful threshold extractions
+      float status = ((float)it->second[4] / (float)(mRowScan * N_COL)) * 100.; // percentage of successful threshold extractions
       if (status < mPercentageCut && (mScanType == 'I' || mScanType == 'V')) {
         if (mScanType == 'I') { // default ITHR if percentage of success < mPercentageCut
           outVal = 50.;
@@ -1822,6 +1881,7 @@ void ITSThresholdCalibrator::finalize()
       }
       std::vector<float> data = {outVal, rmsT, avgN, rmsN, status};
       this->addDatabaseEntry(it->first, name, data, false);
+      isChipDB[it->first] = true;
       it = this->mThresholds.erase(it);
     }
   } else if (this->mScanType == 'D' || this->mScanType == 'A') {
@@ -1831,7 +1891,7 @@ void ITSThresholdCalibrator::finalize()
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != this->mPixelHits.cend()) { // loop over chips collected
       short int iRU = getRUID(itchip->first);
-      if (!isCRUITS && (mRunTypeRU[iRU] < nInjScaled * getNumberOfActiveLinks(mActiveLinks[iRU]) && !mRunStopRequested)) {
+      if (!isCRUITS && !mFlagsRU[iRU] && !mRunStopRequested) {
         ++itchip;
         continue;
       }
@@ -1845,7 +1905,7 @@ void ITSThresholdCalibrator::finalize()
       if (this->mVerboseOutput) {
         LOG(info) << "Chip " << itchip->first << " hits extracted";
       }
-      ++itchip;
+      itchip = mPixelHits.erase(itchip);
     }
 
     auto it = this->mNoisyPixID.cbegin();
@@ -1886,7 +1946,7 @@ void ITSThresholdCalibrator::finalize()
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != mPixelHits.cend()) {
       int iRU = getRUID(itchip->first);
-      if (!mRunStopRequested && mRunTypeRU[iRU] < nInjScaled * getNumberOfActiveLinks(mActiveLinks[iRU])) {
+      if (!mRunStopRequested && !mFlagsRU[iRU]) {
         ++itchip;
         continue;
       }
@@ -1909,13 +1969,9 @@ void ITSThresholdCalibrator::finalize()
       if (this->mVerboseOutput) {
         LOG(info) << "Chip " << itchip->first << " hits extracted";
       }
-      ++itchip;
+      itchip = mPixelHits.erase(itchip);
     }
     // reset RU counters so that the chips which are done will not appear again in the DCSConfigObject
-  }
-
-  for (auto& ru : thisRUs) {
-    mRunTypeRU[ru] = 0; // reset
   }
 
   return;
@@ -1928,9 +1984,9 @@ void ITSThresholdCalibrator::endOfStream(EndOfStreamContext& ec)
 {
   if (!isEnded && !mRunStopRequested) {
     LOGF(info, "endOfStream report:", mSelfName);
-    if (isCRUITS) {
-      finalize();
-    }
+    LOG(info) << "Calling finalize(), doing nothing if scan has properly ended, otherwise save partial data in ROOT trees as backup";
+    finalize();
+
     this->finalizeOutput();
     isEnded = true;
   }
@@ -1943,6 +1999,8 @@ void ITSThresholdCalibrator::stop()
 {
   if (!isEnded) {
     LOGF(info, "stop() report:", mSelfName);
+    LOG(info) << "Calling finalize(), doing nothing if scan has properly ended, otherwise save partial data in ROOT trees as backup";
+    finalize();
     this->finalizeOutput();
     isEnded = true;
   }
@@ -1996,6 +2054,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"manual-step2", VariantType::Int, 1, {"Step2 value: defines the steps between manual-min2 and manual-max2. Default is 1. Use only in manual mode"}},
             {"manual-scantype", VariantType::String, "T", {"scan type, can be D, T, I, V, P, p: use only in manual mode"}},
             {"manual-strobewindow", VariantType::Int, 5, {"strobe duration in clock cycles, default is 5 = 125 ns: use only in manual mode"}},
+            {"manual-rowscan", VariantType::Int, 512, {"Number of ALPIDE rows scanned in the run: use only in manual mode"}},
             {"save-tree", VariantType::Bool, false, {"Flag to save ROOT tree on disk: use only in manual mode"}},
             {"scale-ninj", VariantType::Bool, false, {"Flag to activate the scale of the number of injects to be used to count hits from specific MEBs: use only in manual mode and in combination with --meb-select"}},
             {"enable-mpv", VariantType::Bool, false, {"Flag to enable calculation of most-probable value in vcasn/ithr scans"}},
@@ -2009,7 +2068,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"charge-b", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 2nd point used for the slope calculation"}},
             {"meb-select", VariantType::Int, -1, {"Select from which multi-event buffer consider the hits: 0,1 or 2"}},
             {"s-curve-col-step", VariantType::Int, 8, {"save s-curves points to tree every s-curve-col-step  pixels on 1 row"}},
-            {"percentage-cut", VariantType::Int, 25, {"discard chip in ITHR/VCASN scan if the percentage of success is less than this cut"}}}};
+            {"percentage-cut", VariantType::Int, 25, {"discard chip in ITHR/VCASN scan if the percentage of success is less than this cut"}},
+            {"local", VariantType::Bool, false, {"Enable in case of data replay of scans processed row by row or in 1 go in finalize() but with partial data in the raw TF (e.g. data dump stopped before the real end of run)"}}}};
 }
 } // namespace its
 } // namespace o2
