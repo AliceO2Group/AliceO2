@@ -16,6 +16,7 @@
 #define GPUTPCGEOMETRY_H
 
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 #if !defined(GPUCA_NSECTORS) && !defined(GPUCA_ROW_COUNT)
 #include "DataFormatsTPC/Constants.h"
@@ -145,7 +146,7 @@ class GPUTPCGeometry // TODO: Make values constexpr
     return (250.f - v) * FACTOR_Z2T; // Used in compression, must remain constant at 250cm
   }
 
-  GPUd() static constexpr float kSectAngle() { return 2 * M_PI / 18.f; }
+  GPUd() static constexpr float kSectAngle() { return 2 * CAMath::Pi() / 18.f; }
 };
 
 } // namespace o2::gpu
