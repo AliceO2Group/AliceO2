@@ -17,19 +17,21 @@
 #include "DetectorsBase/MatLayerCyl.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "ITS3Simulation/DescriptorInnerBarrelITS3.h"
+#include "ITS3Base/SpecsV2.h"
 #include "CommonUtils/NameConf.h"
 #include <TFile.h>
 #include <TSystem.h>
 #include <TStopwatch.h>
 #endif
 
-#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is invisible on GPU version
 
 o2::base::MatLayerCylSet mbLUT;
 
 bool testMBLUT(const std::string& lutFile = "matbud.root");
 
-bool buildMatBudLUT(int nTst = 30, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomNamePrefix = "o2sim", const std::string& opts = "");
+bool buildMatBudLUT(int nTst = 60, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomName = "o2sim_geometry-aligned.root");
 
 struct LrData {
   float rMin = 0.f;
@@ -44,17 +46,14 @@ struct LrData {
 std::vector<LrData> lrData;
 void configLayers();
 
-bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNamePrefix, const std::string& opts)
+bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNameInput)
 {
-  auto geomName = o2::base::NameConf::getGeomFileName(geomNamePrefix);
+  auto geomName = o2::base::NameConf::getGeomFileName(geomNameInput);
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
-    std::cout << geomName << " does not exist. Will create it on the fly\n";
-    std::stringstream str;
-    // constructing an **unaligned** geom (Geant3 used since faster initialization) --> can be avoided by passing an existing geometry
-    str << "${O2_ROOT}/bin/o2-sim-serial -n 0 -e TGeant3 --configKeyValues \"" << opts << "\" --field 0  -o " << geomNamePrefix;
-    gSystem->Exec(str.str().c_str());
+    std::cout << geomName << " does not exist. Will create it\n";
+    gSystem->Exec("$O2_ROOT/bin/o2-sim -n 0 --detectorList ALICE2.1");
   }
-  o2::base::GeometryManager::loadGeometry(geomNamePrefix);
+  o2::base::GeometryManager::loadGeometry(geomNameInput);
   configLayers();
 
   if (maxLr < 1) {
@@ -64,7 +63,7 @@ bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::
   }
   for (int i = 0; i < maxLr; i++) {
     auto& l = lrData[i];
-    printf("L:%3d %6.2f<R<%6.2f ZH=%5.1f | dz = %6.2f drph = %6.2f\n", i, l.rMin, l.rMax, l.zHalf, l.dZMin, l.dRPhiMin);
+    printf("L:%3d %6.4f<R<%6.4f ZH=%5.4f | dz = %6.4f drph = %6.4f\n", i, l.rMin, l.rMax, l.zHalf, l.dZMin, l.dRPhiMin);
     mbLUT.addLayer(l.rMin, l.rMax, l.zHalf, l.dZMin, l.dRPhiMin);
   }
 
@@ -249,7 +248,9 @@ void configLayers()
 
   // air space between Middle and Outer Barrels
   zSpanH = 80.f;
-  lrData.emplace_back(LrData(lrData.back().rMax, 33.5, zSpanH));
+  zBin = 10.;
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 33.5, zSpanH, zBin, rphiBin));
 
   //===================================================================================
   // ITS Outer barrel
@@ -259,14 +260,14 @@ void configLayers()
   zBin = 1.;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 36. - kToler);
 
   drStep = 1.;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 38.5 - kToler);
 
@@ -274,14 +275,14 @@ void configLayers()
   drStep = 0.25;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 41. - kToler);
 
   drStep = 1.;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 44. - kToler);
 
@@ -301,15 +302,20 @@ void configLayers()
   } while (lrData.back().rMax < 55. - kToler);
 
   zSpanH = 120.f;
-  lrData.emplace_back(LrData(lrData.back().rMax, 56.5, zSpanH));
-  lrData.emplace_back(LrData(lrData.back().rMax, 60.5, zSpanH));
-  lrData.emplace_back(LrData(lrData.back().rMax, 61.5, zSpanH));
+  zBin = 10.;
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 56.5, zSpanH, zBin, rphiBin));
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 60.5, zSpanH, zBin, rphiBin));
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 61.5, zSpanH, zBin, rphiBin));
 
   zSpanH = 150.f;
   drStep = 3.5;
   zBin = 15.;
-  rphiBin = 10;
   do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 2);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 68.5 - kToler);
 
@@ -335,7 +341,7 @@ void configLayers()
   zBin = 2;
   {
     auto rmean = (lrData.back().rMax + 78.5) / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 24);
     lrData.emplace_back(LrData(lrData.back().rMax, 84.5, zSpanH, zBin, rphiBin));
   }
 
