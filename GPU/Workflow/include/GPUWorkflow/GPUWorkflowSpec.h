@@ -78,7 +78,7 @@ namespace gpu
 struct GPUO2InterfaceConfiguration;
 class GPUDisplayFrontendInterface;
 class CorrectionMapsHelper;
-class TPCFastTransform;
+class TPCFastTransformPOD;
 struct GPUSettingsTF;
 class GPUO2Interface;
 struct TPCPadGainCalib;
@@ -105,10 +105,6 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
   struct Config {
     int32_t itsTriggerType = 0;
-    int32_t lumiScaleMode = 0;
-    bool checkCTPIDCconsistency = true;
-    bool enableMShape = false;
-    bool enableCTPLumi = false;
     int32_t enableDoublePipeline = 0;
     int32_t tpcDeadMapSources = -1;
     bool tpcUseMCTimeGain = false; // use time gain calibration for MC (true) or from data (false)
@@ -129,7 +125,6 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool runTPCTracking = false;
     bool runTRDTracking = false;
     bool readTRDtracklets = false;
-    int32_t lumiScaleType = 0; // 0=off, 1=CTP, 2=TPC scalers
     bool outputErrorQA = false;
     bool runITSTracking = false;
     bool itsStaggered = false;
@@ -159,9 +154,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
  private:
   struct calibObjectStruct {
-    std::unique_ptr<TPCFastTransform> mFastTransform;
-    std::unique_ptr<TPCFastTransform> mFastTransformRef;
-    std::unique_ptr<TPCFastTransform> mFastTransformMShape;
+    std::vector<char> mUpdatedTransformBuffer;
+    std::unique_ptr<TPCFastTransformPOD> mFastTransform;
     std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
     std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
     std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;

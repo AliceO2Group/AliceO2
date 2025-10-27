@@ -49,7 +49,7 @@
 #include "GPUParam.inc"
 #include "GPUTPCClusterRejection.h"
 #include "GPUTPCConvertImpl.h"
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "CorrectionMapsHelper.h"
 #include "GPUROOTDump.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"

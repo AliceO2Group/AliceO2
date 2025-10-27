@@ -31,7 +31,7 @@ namespace align
 
 /// create a processor spec
 framework::DataProcessorSpec getBarrelAlignmentSpec(o2::dataformats::GlobalTrackID::mask_t srcMP, o2::dataformats::GlobalTrackID::mask_t src,
-                                                    o2::detectors::DetID::mask_t dets, o2::detectors::DetID::mask_t skipDetClusters, bool enableCosmic, int postproc, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
+                                                    o2::detectors::DetID::mask_t dets, o2::detectors::DetID::mask_t skipDetClusters, bool enableCosmic, int postproc, bool useMC);
 
 } // namespace align
 } // namespace o2

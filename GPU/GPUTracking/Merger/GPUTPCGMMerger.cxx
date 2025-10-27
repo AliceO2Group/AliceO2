@@ -34,7 +34,7 @@
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCGMMerger.h"
 #include "GPUO2DataTypes.h"
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTPCGeometry.h"
 #include "GPUDefParametersRuntime.h"

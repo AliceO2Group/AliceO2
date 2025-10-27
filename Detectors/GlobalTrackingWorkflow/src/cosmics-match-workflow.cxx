@@ -104,10 +104,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   GID::mask_t srcCl = src;
   GID::mask_t dummy;
-  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
   }
-  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC, sclOpt));
+  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, dummy); // clusters MC is not needed
 

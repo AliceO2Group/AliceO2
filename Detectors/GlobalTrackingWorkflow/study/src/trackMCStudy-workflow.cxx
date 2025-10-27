@@ -82,11 +82,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (checkSV) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
   }
-  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
   }
 
-  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls, sclOpt, checkSV));
+  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls, checkSV));
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 

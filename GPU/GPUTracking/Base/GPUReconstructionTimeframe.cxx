@@ -22,7 +22,7 @@
 #include "GPUTPCMCInfo.h"
 #include "GPUTPCClusterData.h"
 #include "AliHLTTPCRawCluster.h"
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "CorrectionMapsHelper.h"
 #include "GPUO2DataTypes.h"
 #include "GPUSettings.h"

@@ -8,15 +8,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
+//
+/// \author  ruben.shahoayn@cern.ch
 /// \file  TPCFastTransformPOD.cxx
 /// \brief Implementation of POD correction map
 ///
-/// \author  ruben.shahoayn@cern.ch
-
-/// \brief Implementation of POD correction map
-///
-/// \author  ruben.shahoayn@cern.ch
 
 #if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_STANDALONE)
 #include <TRandom.h>
@@ -37,10 +33,12 @@ size_t TPCFastTransformPOD::estimateSize(const TPCFastSpaceChargeCorrection& ori
   const size_t selfSizeFix = sizeof(TPCFastTransformPOD);
   size_t nextDynOffs = alignOffset(selfSizeFix);
   nextDynOffs = alignOffset(nextDynOffs + origCorr.mNumberOfScenarios * sizeof(size_t)); // spline scenarios start here
+  nextDynOffs = alignOffset(nextDynOffs + origCorr.mNumberOfScenarios * sizeof(size_t)); // flatBufOffs array
   // space for splines
   for (int isc = 0; isc < origCorr.mNumberOfScenarios; isc++) {
     const auto& spline = origCorr.mScenarioPtr[isc];
     nextDynOffs = alignOffset(nextDynOffs + sizeof(spline));
+    nextDynOffs = alignOffset(nextDynOffs + spline.getFlatBufferSize());
   }
   // space for splines data
   for (int is = 0; is < 3; is++) {
@@ -60,6 +58,32 @@ size_t TPCFastTransformPOD::estimateSize(const TPCFastSpaceChargeCorrection& ori
   }
   nextDynOffs = alignOffset(nextDynOffs);
   return nextDynOffs;
+}
+
+void TPCFastTransformPOD::print() const
+{
+  LOGP(info, "TPCFastTransformPOD: this={:p} sizeof={} mApplyCorrection={} mNumberOfScenarios={} mTotalSize={} mOffsScenariosOffsets={} mT0={} mVdrift={} mLumi={} mIDC={}",
+       (void*)this, sizeof(*this), mApplyCorrection, mNumberOfScenarios, mTotalSize, mOffsScenariosOffsets, mT0, mVdrift, mLumi, mIDC);
+
+  for (int s = 0; s < TPCFastTransformGeo::getNumberOfSectors(); s++) {
+    for (int i = 0; i < NSplineIDs; i++) {
+      LOGP(info, "mSplineDataOffsets[{}][{}]={}", s, i, mSplineDataOffsets[s][i]);
+    }
+  }
+  const size_t scenOffset = getScenarioOffset(0);
+  const auto& spline = getSpline(0, 0);
+  LOGP(info, "scenOffset={} spline_addr={:p} expected={:p}", scenOffset, (void*)&spline, (void*)(getThis() + scenOffset));
+
+  const float* splineData = getCorrectionData(0, 0);
+  LOGP(info, "spline internal check: &spline={:p} splineData={:p} buf_start={:p} buf_end={:p}",
+       (void*)&spline, (void*)splineData,
+       (void*)getThis(), (void*)(getThis() + mTotalSize));
+
+  // check if splineData is within buffer
+  bool dataInBuf = (splineData >= (float*)getThis()) && (splineData < (float*)(getThis() + mTotalSize));
+  LOGP(info, "splineData in buffer: {}", dataInBuf);
+
+  LOGP(info, "splineData offset from buf_start = {}", (size_t)((const char*)splineData - getThis()));
 }
 
 TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, const TPCFastSpaceChargeCorrection& origCorr)
@@ -91,17 +115,34 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
   LOGP(debug, "Set mOffsScenariosOffsets = {}", podMap.mOffsScenariosOffsets);
   nextDynOffs = alignOffset(nextDynOffs + podMap.mNumberOfScenarios * sizeof(size_t)); // spline scenarios start here
 
+  podMap.mOffsFlatBufferOffsets = nextDynOffs; // <-- add this
+  nextDynOffs = alignOffset(nextDynOffs + podMap.mNumberOfScenarios * sizeof(size_t));
+
   // copy spline objects
   size_t* scenOffs = reinterpret_cast<size_t*>(buff + podMap.mOffsScenariosOffsets);
+  size_t* flatBufOffs = reinterpret_cast<size_t*>(buff + podMap.mOffsFlatBufferOffsets);
+
   for (int isc = 0; isc < origCorr.mNumberOfScenarios; isc++) {
     scenOffs[isc] = nextDynOffs;
     const auto& spline = origCorr.mScenarioPtr[isc];
     if (buffSize < nextDynOffs + sizeof(spline)) {
       throw std::runtime_error(fmt::format("attempt to copy {} bytes for spline for scenario {} to {}, overflowing the buffer of size {}", sizeof(spline), isc, nextDynOffs + sizeof(spline), buffSize));
     }
+
+    // copy spline object
     std::memcpy(buff + scenOffs[isc], &spline, sizeof(spline));
     nextDynOffs = alignOffset(nextDynOffs + sizeof(spline));
     LOGP(debug, "Copy {} bytes for spline scenario {} (ptr:{}) to offsset {}", sizeof(spline), isc, (void*)&spline, scenOffs[isc]);
+
+    // copy spline flat buffer
+    flatBufOffs[isc] = nextDynOffs; // store flat buffer offset
+    std::memcpy(buff + nextDynOffs, spline.getFlatBufferPtr(), spline.getFlatBufferSize());
+
+    // fix up internal pointer
+    auto* splineInBuf = reinterpret_cast<SplineType*>(buff + scenOffs[isc]);
+    splineInBuf->setActualBufferAddress(buff + nextDynOffs);
+
+    nextDynOffs = alignOffset(nextDynOffs + spline.getFlatBufferSize());
   }
 
   // copy splines data

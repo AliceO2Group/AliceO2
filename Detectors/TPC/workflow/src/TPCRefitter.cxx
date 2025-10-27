@@ -63,13 +63,8 @@ class TPCRefitterSpec final : public Task
     Streamer = 0x1,  ///< Write per track streamer information
     TFVectors = 0x2, ///< Writer vectors per TF
   };
-  TPCRefitterSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, GTrackID::mask_t src, bool useMC)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC)
-  {
-    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
-  }
+  TPCRefitterSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC) {}
   ~TPCRefitterSpec() final = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -184,7 +179,6 @@ void TPCRefitterSpec::init(InitContext& ic)
     mXRef = 0.;
   }
   mGenerator = std::mt19937(std::random_device{}());
-  mTPCCorrMapsLoader.init(ic);
 }
 
 void TPCRefitterSpec::run(ProcessingContext& pc)
@@ -219,21 +213,8 @@ void TPCRefitterSpec::updateTimeDependentParams(ProcessingContext& pc)
     // none at the moment
   }
   // we may have other params which need to be queried regularly
-  bool updateMaps = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
     mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
-         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
-         mTPCVDriftHelper.getSourceName());
-    mTPCVDriftHelper.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 
@@ -411,9 +392,6 @@ void TPCRefitterSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    return;
-  }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
 }
@@ -740,7 +718,7 @@ void TPCRefitterSpec::processCosmics(o2::globaltracking::RecoContainer& recoData
   }
 }
 
-DataProcessorSpec getTPCRefitterSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool requestCosmics)
+DataProcessorSpec getTPCRefitterSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, bool requestCosmics)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -778,13 +756,13 @@ DataProcessorSpec getTPCRefitterSpec(GTrackID::mask_t srcTracks, GTrackID::mask_
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
+  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
 
   return DataProcessorSpec{
     "tpc-refitter",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCRefitterSpec>(dataRequest, ggRequest, sclOpts, srcTracks, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCRefitterSpec>(dataRequest, ggRequest, srcTracks, useMC)},
     opts};
 }
 

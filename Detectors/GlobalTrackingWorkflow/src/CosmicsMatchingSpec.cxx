@@ -62,12 +62,7 @@ namespace globaltracking
 class CosmicsMatchingSpec : public Task
 {
  public:
-  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC)
-  {
-    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
-  }
+  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC) {}
   ~CosmicsMatchingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -92,7 +87,6 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setDebugFlag(ic.options().get<int>("debug-tree-flags"));
   mMatching.setUseMC(mUseMC);
-  mTPCCorrMapsLoader.init(ic);
   //
 }
 
@@ -132,10 +126,8 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
     mMatching.init();
   }
-  bool updateMaps = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
     mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
   }
   mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
   if (mTPCVDriftHelper.isUpdated()) {
@@ -145,10 +137,6 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
          mTPCVDriftHelper.getSourceName());
     mMatching.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 
@@ -158,9 +146,6 @@ void CosmicsMatchingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    return;
-  }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -177,7 +162,7 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -203,13 +188,13 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC, const
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
+  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
 
   return DataProcessorSpec{
     "cosmics-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, sclOpts, useMC)},
+    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, useMC)},
     opts};
 }
 

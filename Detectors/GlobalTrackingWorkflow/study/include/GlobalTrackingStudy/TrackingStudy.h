@@ -23,7 +23,7 @@
 namespace o2::trackstudy
 {
 /// create a processor spec
-o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
+o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC);
 
 } // namespace o2::trackstudy
 

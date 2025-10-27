@@ -82,7 +82,6 @@ using TrackTunePar = o2::globaltracking::TrackTuneParams;
 void TRDGlobalTracking::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  mTPCCorrMapsLoader.init(ic);
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -175,10 +174,6 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     mTPCVDriftHelper.acknowledgeUpdate();
     updateCalib = true;
   }
-  if (updateCalib) {
-    auto& vd = mTPCVDriftHelper.getVDriftObject();
-    mTPCCorrMapsLoader.updateVDrift(vd.corrFact, vd.refVDrift, vd.getTimeOffset());
-  }
 }
 
 void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -187,9 +182,6 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    return;
-  }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -862,7 +854,7 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy)
 {
   std::vector<OutputSpec> outputs;
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
@@ -899,7 +891,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   Options opts;
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, sclOpts);
+  o2::tpc::CorrectionMapsLoader::requestInputs(inputs, opts);
 
   // Request PID policy data
   if (withPID) {
@@ -962,7 +954,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, sclOpts, src, trigRecFilterActive, strict)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
     opts};
 }
 

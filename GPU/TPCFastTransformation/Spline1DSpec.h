@@ -145,6 +145,43 @@ class Spline1DContainer : public FlatObject
   /// Get a map (integer U -> corresponding knot index)
   GPUd() const int32_t* getUtoKnotMap() const { return mUtoKnotMap; }
 
+  /// Get the knot array from an explicit flat buffer pointer.
+  /// Use this instead of getKnots() when the object was copied across process
+  /// boundaries and mFlatBufferPtr has not been fixed up (zero-copy path).
+  GPUd() const Knot* getKnotsFromBuffer(const char* flatBuf) const
+  {
+    return reinterpret_cast<const Knot*>(flatBuf);
+  }
+
+  /// Get i-th knot from an explicit flat buffer pointer.
+  /// Use this instead of getKnot() on the zero-copy path.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() const Knot& getKnotFromBuffer(const char* flatBuf, int32_t i) const
+  {
+    if (SafeT == SafetyLevel::kSafe) {
+      i = (i < 0) ? 0 : (i >= mNumberOfKnots ? mNumberOfKnots - 1 : i);
+    }
+    return getKnotsFromBuffer(flatBuf)[i];
+  }
+
+  /// Get the U->knot-index map from an explicit flat buffer pointer.
+  GPUd() const int32_t* getUtoKnotMapFromBuffer(const char* flatBuf) const
+  {
+    return reinterpret_cast<const int32_t*>(flatBuf + mNumberOfKnots * sizeof(Knot));
+  }
+
+  /// Map a U coordinate to its left knot index, using an explicit flat buffer pointer.
+  /// Use this instead of getLeftKnotIndexForU() on the zero-copy path.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() int32_t getLeftKnotIndexForUFromBuffer(const char* flatBuf, DataT u) const
+  {
+    int32_t iu = u < 0 ? 0 : (u > (float)mUmax ? mUmax : (int32_t)u);
+    if (SafeT == SafetyLevel::kSafe) {
+      iu = (iu < 0) ? 0 : (iu > mUmax ? mUmax : iu);
+    }
+    return getUtoKnotMapFromBuffer(flatBuf)[iu];
+  }
+
   /// Convert X coordinate to U
   GPUd() DataT convXtoU(DataT x) const { return (x - mXmin) * mXtoUscale; }
 

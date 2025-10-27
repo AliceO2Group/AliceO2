@@ -27,6 +27,8 @@
 #include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "TPCCalibration/CorrectionMapsLoaderFull.h"
+#include "TPCCalibration/VDriftHelper.h"
 
 using namespace o2::framework;
 
@@ -38,7 +40,12 @@ namespace tpc
 class TPCScalerSpec : public Task
 {
  public:
-  TPCScalerSpec(std::shared_ptr<o2::base::GRPGeomRequest> req, bool enableIDCs, bool enableMShape) : mCCDBRequest(req), mEnableIDCs(enableIDCs), mEnableMShape(enableMShape){};
+  TPCScalerSpec(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool enableIDCs, bool enableMShape) : mCCDBRequest(req), mEnableIDCs(enableIDCs), mEnableMShape(enableMShape), mGlobOpts(sclOpts)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
+  };
 
   void init(framework::InitContext& ic) final
   {
@@ -57,6 +64,7 @@ class TPCScalerSpec : public Task
     if (enableStreamer) {
       mStreamer = std::make_unique<o2::utils::TreeStreamRedirector>("M_Shape.root", "recreate");
     }
+    mTPCCorrMapsLoader.init(ic, mEnableIDCs);
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -69,6 +77,11 @@ class TPCScalerSpec : public Task
   void run(ProcessingContext& pc) final
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    mTPCVDriftHelper.extractCCDBInputs(pc);
+    if (mTPCVDriftHelper.isUpdated()) {
+      mTPCVDriftHelper.acknowledgeUpdate();
+    }
+
     if (mEnableIDCs && pc.inputs().isValid("tpcscaler")) {
       pc.inputs().get<TTree*>("tpcscaler");
     }
@@ -122,12 +135,7 @@ class TPCScalerSpec : public Task
 
         std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->createFromGlobalCorrection(getCorrections, mKnotsYMshape, mKnotsZMshape);
         std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
-        pc.outputs().snapshot(Output{header::gDataOriginTPC, "TPCMSHAPE"}, *fastTransform);
-      } else {
-        // send empty dummy object
-        LOGP(info, "Sending default (no) M-shape correction");
-        auto fastTransform = o2::tpc::TPCFastTransformHelperO2::instance()->create(0);
-        pc.outputs().snapshot(Output{header::gDataOriginTPC, "TPCMSHAPE"}, *fastTransform);
+        mTPCCorrMapsLoader.setCorrMapMShape(std::move(fastTransform));
       }
 
       if (mStreamer) {
@@ -140,6 +148,7 @@ class TPCScalerSpec : public Task
       }
     }
 
+    float tpcScaler = -1.f;
     if (mEnableIDCs) {
       static int runWarningIDC = -1;
       if (pc.services().get<o2::framework::TimingInfo>().runNumber != mTPCScaler.getRun() && runWarningIDC != currRun) {
@@ -149,8 +158,7 @@ class TPCScalerSpec : public Task
       float scalerA = mTPCScaler.getMeanScaler(timestamp, o2::tpc::Side::A);
       float scalerC = mTPCScaler.getMeanScaler(timestamp, o2::tpc::Side::C);
       float meanScaler = (scalerA + scalerC) / 2;
-      LOGP(info, "Publishing TPC scaler: {} for timestamp: {}, firstTFOrbit: {}", meanScaler, timestamp, firstTFOrbit);
-      pc.outputs().snapshot(Output{header::gDataOriginTPC, "TPCSCALER"}, meanScaler);
+      tpcScaler = meanScaler;
       if (mStreamer) {
         (*mStreamer) << "treeIDC"
                      << "scalerA=" << scalerA
@@ -160,11 +168,67 @@ class TPCScalerSpec : public Task
                      << "\n";
       }
     }
+    // check for Maps update
+    mTPCCorrMapsLoader.extractCCDBInputs(pc, tpcScaler);
+
+    const float lumiCTP = mTPCCorrMapsLoader.getInstLumiCTP();
+    // if CTP lumi was notrequest - defualt of 0 is published, otherwise the value is scaled with the provided factor
+    LOGP(info, "Publishing CTP Lumi: {} for timestamp: {}, firstTFOrbit: {}", lumiCTP, timestamp, firstTFOrbit);
+    pc.outputs().snapshot(Output{header::gDataOriginCTP, "LUMICTP"}, lumiCTP);
+
+    buildMap(pc);
+  }
+
+  void buildMap(ProcessingContext& pc)
+  {
+    // reference map
+    auto* corrMap = mTPCCorrMapsLoader.getCorrMap();
+
+    // // new correction map
+    o2::gpu::TPCFastTransform finalMap;
+    finalMap.cloneFromObject(*corrMap, nullptr);
+    finalMap.setApplyCorrectionOn();
+
+    const auto* corrMapRef = mTPCCorrMapsLoader.getCorrMapRef();
+    const float lumiScale = mTPCCorrMapsLoader.getLumiScale();
+    std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> additionalCorrections;
+
+    // if standard scaling is used: map(lumi) = (mean_map - ref_map) * lumiScale + ref_map
+    if (mTPCCorrMapsLoader.getLumiScaleMode() == LumiScaleMode::Linear) {
+      const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step0{{&(corrMapRef->getCorrection()), -1.f}};
+      // finalMap = (mean_map - finalMap)
+      TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, step0, true);
+
+      // finalMap = finalMap * lumiScale + ref_map
+      const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step1{{&(corrMapRef->getCorrection()), 1.f}};
+      TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), lumiScale, step1, true);
+
+    } else if (mTPCCorrMapsLoader.getLumiScaleMode() == LumiScaleMode::DerivativeMap || mTPCCorrMapsLoader.getLumiScaleMode() == LumiScaleMode::DerivativeMapMC) {
+      additionalCorrections.emplace_back(&(corrMapRef->getCorrection()), lumiScale);
+    }
+
+    // if mshape map valid
+    if (!mTPCCorrMapsLoader.isCorrMapMShapeDummy()) {
+      LOGP(info, "Adding M-shape correction to the final map with scaling factor {}", mMShapeScalingFac);
+      additionalCorrections.emplace_back(&(mTPCCorrMapsLoader.getCorrMapMShape()->getCorrection()), 1.f);
+    }
+
+    if (!additionalCorrections.empty()) {
+      TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, additionalCorrections, true);
+    }
+
+    Output corrMapOutput{header::gDataOriginTPC, "TPCCORRMAP", 0};
+    auto outputBuffer = o2::pmr::vector<char>(pc.outputs().getMemoryResource(corrMapOutput));
+    auto* pod = TPCFastTransformPOD::create(outputBuffer, finalMap.getCorrection());
+    const auto& vd = mTPCVDriftHelper.getVDriftObject();
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*pod, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
+    pc.outputs().adoptContainer(corrMapOutput, std::move(outputBuffer));
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    mTPCVDriftHelper.accountCCDBInputs(matcher, obj);
     if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCSCALERCCDB", 0)) {
       LOGP(info, "Updating TPC scaler");
       mTPCScaler.setFromTree(*((TTree*)obj));
@@ -198,12 +262,16 @@ class TPCScalerSpec : public Task
         LOGP(info, "Loaded default M-Shape correction object from CCDB");
       }
     }
+    if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
+      return;
+    }
   }
 
  private:
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;     ///< info for CCDB request
   const bool mEnableIDCs{true};                               ///< enable IDCs
   const bool mEnableMShape{false};                            ///< enable v shape scalers
+  const o2::tpc::CorrectionMapsLoaderGloOpts mGlobOpts;       ///< global options for the correction map loader, needed to decide which maps to load from CCDB
   bool mEnableWeights{false};                                 ///< use weights for TPC scalers
   TPCScalerWeights mScalerWeights{};                          ///< scaler weights
   float mIonDriftTimeMS{-1};                                  ///< ion drift time
@@ -214,6 +282,8 @@ class TPCScalerSpec : public Task
   int mKnotsYMshape{4};                                       ///< number of knots used for the spline object for M-Shape distortions
   int mKnotsZMshape{4};                                       ///< number of knots used for the spline object for M-Shape distortions
   std::unique_ptr<o2::utils::TreeStreamRedirector> mStreamer; ///< streamer
+  o2::tpc::CorrectionMapsLoaderFull mTPCCorrMapsLoader{};
+  o2::tpc::VDriftHelper mTPCVDriftHelper{}; ///< helper for v-drift
 
   void overWriteIntegrationTime()
   {
@@ -229,7 +299,7 @@ class TPCScalerSpec : public Task
   }
 };
 
-o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape)
+o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<InputSpec> inputs;
   if (enableIDCs) {
@@ -251,18 +321,16 @@ o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMS
                                                                 inputs);
 
   std::vector<OutputSpec> outputs;
-  if (enableIDCs) {
-    outputs.emplace_back(o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe);
-  }
-  if (enableMShape) {
-    outputs.emplace_back(o2::header::gDataOriginTPC, "TPCMSHAPE", 0, Lifetime::Timeframe);
-  }
+  outputs.emplace_back(o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
+  o2::tpc::CorrectionMapsLoaderFull::requestCCDBInputs(inputs, sclOpts);
 
   return DataProcessorSpec{
     "tpc-scaler",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCScalerSpec>(ccdbRequest, enableIDCs, enableMShape)},
+    AlgorithmSpec{adaptFromTask<TPCScalerSpec>(ccdbRequest, sclOpts, enableIDCs, enableMShape)},
     Options{
       {"ion-drift-time", VariantType::Float, -1.f, {"Overwrite ion drift time if a value >0 is provided"}},
       {"max-time-for-weights", VariantType::Float, 500.f, {"Maximum possible integration time in ms when weights are used"}},

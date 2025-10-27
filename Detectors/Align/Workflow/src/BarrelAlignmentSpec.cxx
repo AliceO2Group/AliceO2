@@ -86,14 +86,9 @@ class BarrelAlignmentSpec : public Task
                   CheckConstaints = 0x1 << 1,
                   GenPedeFiles = 0x1 << 2,
                   LabelPedeResults = 0x1 << 3 };
-  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, const o2::tpc::CorrectionMapsLoaderGloOpts& tpcOpt,
+  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec,
                       DetID::mask_t detmask, bool cosmic, int postprocess, bool useMC, bool loadTPCCalib)
-    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC), mLoadTPCCalib(loadTPCCalib)
-  {
-    mTPCCorrMapsLoader.setLumiScaleType(tpcOpt.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(tpcOpt.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(tpcOpt.checkCTPIDCconsistency);
-  }
+    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC), mLoadTPCCalib(loadTPCCalib) {}
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -184,9 +179,6 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   }
   mIgnoreCCDBAlignment = ic.options().get<bool>("ignore-ccdb-alignment");
   if (!mPostProcessing) {
-    if (mLoadTPCCalib) {
-      mTPCCorrMapsLoader.init(ic);
-    }
     if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
       mTRDTransformer.reset(new o2::trd::TrackletTransformer);
       if (ic.options().get<bool>("apply-xor")) {
@@ -278,7 +270,7 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
       mTPCCorrMapsLoader.acknowledgeUpdate();
       updateMaps = true;
     }
-    mController->setTPCCorrMaps(&mTPCCorrMapsLoader);
+    // mController->setTPCCorrMaps(&mTPCCorrMapsLoader);
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
            mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -287,9 +279,6 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
       mController->setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
       mTPCVDriftHelper.acknowledgeUpdate();
       updateMaps = true;
-    }
-    if (updateMaps) {
-      mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
     }
   }
 }
@@ -312,9 +301,6 @@ void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
 
-    return;
-  }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
 }
@@ -374,7 +360,7 @@ void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
   mDBGOut.reset();
 }
 
-DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, bool enableCosmic, int postprocess, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, bool enableCosmic, int postprocess, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -399,7 +385,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     }
     if (src[DetID::TPC] && !skipDetClusters[DetID::TPC]) {
       o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-      o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
+      o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
       loadTPCCalib = true;
     }
   }
@@ -417,7 +403,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     "barrel-alignment",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, sclOpts, dets, enableCosmic, postprocess, useMC, loadTPCCalib)},
+    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, enableCosmic, postprocess, useMC, loadTPCCalib)},
     opts};
 }
 

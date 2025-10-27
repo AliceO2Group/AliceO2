@@ -201,9 +201,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                            laneConfiguration,
                                                            &hook},
                                                          propagateMC));
-      if (sclOpts.needTPCScalersWorkflow()) { // for standalone tpc-reco workflow
-        specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == 2, sclOpts.enableMShapeCorrection));
-      }
+      specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpts.enableMShapeCorrection, sclOpts));
       if (produceTracks && sclOpts.requestCTPLumi) { // need CTP digits (lumi) reader
         specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
       }
@@ -225,9 +223,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
         specs.emplace_back(o2::tpc::getTPCTriggerReaderSpec());
       }
-      if (sclOpts.needTPCScalersWorkflow()) { // for standalone tpc-reco workflow
-        specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == 2, sclOpts.enableMShapeCorrection));
-      }
+      specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpts.enableMShapeCorrection, sclOpts));
       if (sclOpts.requestCTPLumi) { // need CTP digits (lumi) reader
         specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
       }
@@ -461,11 +457,6 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   if (runGPUReco) {
     o2::gpu::GPURecoWorkflowSpec::Config cfg;
     cfg.runTPCTracking = true;
-    cfg.lumiScaleType = sclOpts.lumiType;
-    cfg.lumiScaleMode = sclOpts.lumiMode;
-    cfg.checkCTPIDCconsistency = sclOpts.checkCTPIDCconsistency;
-    cfg.enableMShape = sclOpts.enableMShapeCorrection;
-    cfg.enableCTPLumi = sclOpts.requestCTPLumi;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClustersRoot;
     cfg.caClusterer = caClusterer;

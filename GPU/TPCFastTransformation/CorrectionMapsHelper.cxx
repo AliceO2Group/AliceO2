@@ -10,113 +10,45 @@
 // or submit itself to any jurisdiction.
 
 #include "CorrectionMapsHelper.h"
-#include "GPUCommonLogger.h"
-
+#include "Framework/ConfigParamRegistry.h"
 using namespace o2::gpu;
+using namespace o2::tpc;
 
-//________________________________________________________
-void CorrectionMapsHelper::clear()
+void CorrectionMapsHelper::setCorrMap(const TPCFastTransformPOD* m)
 {
-  if (mOwner) {
-    delete mCorrMap;
-    delete mCorrMapRef;
-    delete mCorrMapMShape;
-  }
-  mLumiCTPAvailable = false;
-  mCorrMap = nullptr;
-  mCorrMapRef = nullptr;
-  mCorrMapMShape = nullptr;
-  mUpdatedFlags = 0;
-  mInstLumiCTP = 0.f;
-  mInstLumi = 0.f;
-  mMeanLumi = 0.f;
-  mMeanLumiRef = 0.f;
-  mScaleInverse = false;
-}
-
-void CorrectionMapsHelper::setOwner(bool v)
-{
-  if (mCorrMap || mCorrMapRef) {
-    throw std::runtime_error("Must not change ownership while we contain objects");
-  }
-  mOwner = v;
-}
-
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMap(TPCFastTransform* m)
-{
-  if (mOwner) {
-    delete mCorrMap;
-  }
+  // non-owning: just store the pointer, clear any previously owned buffer
+#if !defined(GPUCA_GPUCODE_DEVICE)
+  mCorrMapBuffer.clear();
+#endif
   mCorrMap = m;
 }
 
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMapRef(TPCFastTransform* m)
+void CorrectionMapsHelper::setCorrMap(std::vector<char>&& buffer)
 {
-  if (mOwner) {
-    delete mCorrMapRef;
-  }
-  mCorrMapRef = m;
+  mCorrMapBuffer = std::move(buffer);
+  mCorrMap = &TPCFastTransformPOD::get(mCorrMapBuffer.data());
 }
 
-void CorrectionMapsHelper::setCorrMapMShape(TPCFastTransform* m)
+CorrectionMapsLoaderGloOpts CorrectionMapsHelper::parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts)
 {
-  if (mOwner) {
-    delete mCorrMapMShape;
+  CorrectionMapsLoaderGloOpts tpcopt;
+  auto lumiTypeVal = opts.get<int>("lumi-type");
+  if (lumiTypeVal < -1 || lumiTypeVal > 2) {
+    LOGP(fatal, "Invalid lumi-type value: {}", lumiTypeVal);
   }
-  mCorrMapMShape = m;
-}
+  tpcopt.lumiType = static_cast<LumiScaleType>(lumiTypeVal);
 
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMap(std::unique_ptr<TPCFastTransform>&& m)
-{
-  if (!mOwner) {
-    throw std::runtime_error("we must not take the ownership from a unique ptr if mOwner is not set");
+  auto lumiModeVal = opts.get<int>("corrmap-lumi-mode");
+  if (lumiModeVal < -1 || lumiModeVal > 2) {
+    LOGP(fatal, "Invalid corrmap-lumi-mode value: {}", lumiModeVal);
   }
-  delete mCorrMap;
-  mCorrMap = m.release();
-}
+  tpcopt.lumiMode = static_cast<LumiScaleMode>(lumiModeVal);
 
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMapRef(std::unique_ptr<TPCFastTransform>&& m)
-{
-  if (!mOwner) {
-    throw std::runtime_error("we must not take the ownership from a unique ptr if mOwner is not set");
+  tpcopt.enableMShapeCorrection = opts.get<bool>("enable-M-shape-correction");
+  tpcopt.requestCTPLumi = !opts.get<bool>("disable-ctp-lumi-request");
+  tpcopt.checkCTPIDCconsistency = !opts.get<bool>("disable-lumi-type-consistency-check");
+  if (!tpcopt.requestCTPLumi && tpcopt.lumiType == LumiScaleType::CTPLumi) {
+    LOGP(fatal, "Scaling with CTP Lumi is requested but this input is disabled");
   }
-  delete mCorrMapRef;
-  mCorrMapRef = m.release();
-}
-
-void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& m)
-{
-  if (!mOwner) {
-    throw std::runtime_error("we must not take the ownership from a unique ptr if mOwnerMShape is not set");
-  }
-  delete mCorrMapMShape;
-  mCorrMapMShape = m.release();
-}
-
-void CorrectionMapsHelper::updateLumiScale(bool report)
-{
-  if (!canUseCorrections()) {
-    mLumiScale = -1.f;
-  } else if ((mLumiScaleMode == 1) || (mLumiScaleMode == 2)) {
-    mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
-    LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
-  } else {
-    mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
-  }
-  setUpdatedLumi();
-  if (report) {
-    reportScaling();
-  }
-}
-
-//________________________________________________________
-void CorrectionMapsHelper::reportScaling()
-{
-  LOGP(info, "Map scaling update: LumiScaleType={} instLumi(CTP)={} instLumi(scaling)={} meanLumiRef={}, meanLumi={} -> LumiScale={} lumiScaleMode={}, M-Shape map valid: {}, M-Shape default: {}",
-       mLumiScaleType == 0 ? "NoScaling" : (mLumiScaleType == 1 ? "LumiCTP" : "TPCScaler"), getInstLumiCTP(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(),
-       mLumiScaleMode == 0 ? "Linear" : "Derivative", (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
+  return tpcopt;
 }

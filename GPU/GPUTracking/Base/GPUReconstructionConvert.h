@@ -41,7 +41,7 @@ namespace o2::gpu
 {
 struct GPUParam;
 struct GPUTPCClusterData;
-class TPCFastTransform;
+class TPCFastTransformPOD;
 struct GPUTrackingInOutDigits;
 struct GPUTrackingInOutZS;
 
@@ -49,7 +49,7 @@ class GPUReconstructionConvert
 {
  public:
   constexpr static uint32_t NSECTORS = GPUCA_NSECTORS;
-  static void ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, uint32_t* nClusters, const TPCFastTransform* transform, int32_t continuousMaxTimeBin = 0);
+  static void ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, uint32_t* nClusters, const TPCFastTransformPOD* transform, int32_t continuousMaxTimeBin = 0);
   static void ConvertRun2RawToNative(o2::tpc::ClusterNativeAccess& native, std::unique_ptr<o2::tpc::ClusterNative[]>& nativeBuffer, const AliHLTTPCRawCluster** rawClusters, uint32_t* nRawClusters);
   template <class S>
   static void RunZSEncoder(const S& in, std::unique_ptr<uint64_t[]>* outBuffer, uint32_t* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, int32_t version, bool verify, float threshold = 0.f, bool padding = false, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter = nullptr);

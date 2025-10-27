@@ -86,13 +86,8 @@ using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 class TrackMCStudy final : public Task
 {
  public:
-  TrackMCStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool checkSV)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mCheckSV(checkSV)
-  {
-    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
-  }
+  TrackMCStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool checkSV)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mCheckSV(checkSV) {}
   ~TrackMCStudy() final = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -179,7 +174,6 @@ void TrackMCStudy::init(InitContext& ic)
     mNCheckDecays++;
   }
   mDecaysMaps.resize(mNCheckDecays);
-  mTPCCorrMapsLoader.init(ic);
 }
 
 void TrackMCStudy::run(ProcessingContext& pc)
@@ -207,17 +201,6 @@ void TrackMCStudy::updateTimeDependentParams(ProcessingContext& pc)
   if (mTPCCorrMapsLoader.isUpdated()) {
     mTPCCorrMapsLoader.acknowledgeUpdate();
     updateMaps = true;
-  }
-  if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
-         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
-         mTPCVDriftHelper.getSourceName());
-    mTPCVDriftHelper.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -1023,9 +1006,6 @@ void TrackMCStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     return;
   }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
-    return;
-  }
   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
     LOG(info) << "ITS Alpide param updated";
     const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
@@ -1371,7 +1351,7 @@ void TrackMCStudy::processITSTracks(const o2::globaltracking::RecoContainer& rec
   }
 }
 
-DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool checkSV)
+DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool checkSV)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -1390,7 +1370,7 @@ DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask
     dataRequest->requestSecondaryVertices(useMC);
   }
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
+  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
                                                               true,                              // GRPLHCIF
@@ -1404,7 +1384,7 @@ DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask
     "track-mc-study",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackMCStudy>(dataRequest, ggRequest, srcTracks, sclOpts, checkSV)},
+    AlgorithmSpec{adaptFromTask<TrackMCStudy>(dataRequest, ggRequest, srcTracks, checkSV)},
     opts};
 }
 

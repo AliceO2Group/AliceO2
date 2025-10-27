@@ -487,6 +487,88 @@ class Spline2DSpec<DataT, YdimT, 0>
     }
   }
 
+  /// Zero-copy-safe interpolation.
+  ///
+  /// Identical to interpolateAtU() but takes explicit flat buffer pointers for
+  /// the two 1-D grids instead of relying on the internal (potentially stale)
+  /// mFlatBufferPtr inside mGridX1 / mGridX2.
+  ///
+  /// Use this overload when the spline object was transported across DPL/FairMQ
+  /// process boundaries via shared memory
+  /// called (zero-copy, read-only buffer).
+  ///
+  /// How to obtain the buffer pointers from TPCFastTransformPOD:
+  ///
+  ///   const char* splineFlatBuf = podBuf + pod.getFlatBufferOffset(scenarioID);
+  ///   // gridX1 is always at offset 0 of the spline flat buffer:
+  ///   const char* gridX1FlatBuf = splineFlatBuf;
+  ///   // gridX2 comes after gridX1 (use the offset stored in the spline object):
+  ///   const char* gridX2FlatBuf = splineFlatBuf + spline.getGridX2Offset();
+  ///
+  /// \param gridX1FlatBuf  Pointer to the flat buffer of mGridX1
+  /// \param gridX2FlatBuf  Pointer to the flat buffer of mGridX2
+  /// \param inpYdim        Number of Y dimensions
+  /// \param Parameters     Spline correction data for this (sector, row, splineID)
+  /// \param u1, u2         Interpolation coordinates
+  /// \param S              Output array of length inpYdim
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() void interpolateAtUZeroCopy(const char* gridX1FlatBuf,
+                                     const char* gridX2FlatBuf,
+                                     int32_t inpYdim,
+                                     GPUgeneric() const DataT Parameters[],
+                                     DataT u1, DataT u2,
+                                     GPUgeneric() DataT S[/*inpYdim*/]) const
+  {
+    const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
+    const int32_t nYdim = nYdimTmp.get();
+    const auto nYdim4 = nYdim * 4;
+
+    const DataT& u = u1;
+    const DataT& v = u2;
+
+    // getNumberOfKnots() is safe: mNumberOfKnots is a plain int stored directly
+    // in the Spline1DContainer struct, not behind mFlatBufferPtr.
+    int32_t nu = mGridX1.getNumberOfKnots();
+
+    // Use buffer-aware accessors instead of mGridX1.getLeftKnotIndexForU() and
+    // mGridX1.getKnot(). Both of the standard versions dereference mFlatBufferPtr
+    // (via mUtoKnotMap and the knot array), which is stale after cross-process copy.
+    int32_t iu = mGridX1.template getLeftKnotIndexForUFromBuffer<SafeT>(gridX1FlatBuf, u);
+    int32_t iv = mGridX2.template getLeftKnotIndexForUFromBuffer<SafeT>(gridX2FlatBuf, v);
+
+    const typename TBase::Knot& knotU = mGridX1.template getKnotFromBuffer<SafetyLevel::kNotSafe>(gridX1FlatBuf, iu);
+    const typename TBase::Knot& knotV = mGridX2.template getKnotFromBuffer<SafetyLevel::kNotSafe>(gridX2FlatBuf, iv);
+
+    const DataT* A = Parameters + (nu * iv + iu) * nYdim4;
+    const DataT* B = A + nYdim4 * nu;
+
+    // getSderivativesOverParsAtU() is pure math on the Knot struct fields {u, Li}.
+    // It does NOT touch mFlatBufferPtr, so it is safe on the zero-copy path.
+    auto val1 = mGridX1.template getSderivativesOverParsAtU<DataT>(knotU, u);
+    auto val2 = mGridX2.template getSderivativesOverParsAtU<DataT>(knotV, v);
+
+    const auto& dSl = val1[0];
+    const auto& dDl = val1[1];
+    const auto& dSr = val1[2];
+    const auto& dDr = val1[3];
+    const auto& dSd = val2[0];
+    const auto& dDd = val2[1];
+    const auto& dSu = val2[2];
+    const auto& dDu = val2[3];
+
+    DataT a[8] = {dSl * dSd, dSl * dDd, dDl * dSd, dDl * dDd,
+                  dSr * dSd, dSr * dDd, dDr * dSd, dDr * dDd};
+    DataT b[8] = {dSl * dSu, dSl * dDu, dDl * dSu, dDl * dDu,
+                  dSr * dSu, dSr * dDu, dDr * dSu, dDr * dDu};
+
+    for (int32_t dim = 0; dim < nYdim; dim++) {
+      S[dim] = 0;
+      for (int32_t i = 0; i < 8; i++) {
+        S[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
+      }
+    }
+  }
+
  protected:
   using TBase::mGridX1;
   using TBase::mGridX2;
@@ -561,6 +643,19 @@ class Spline2DSpec<DataT, YdimT, 1>
                              DataT u1, DataT u2, GPUgeneric() DataT S[/*YdimT*/]) const
   {
     TBase::template interpolateAtU<SafeT>(YdimT, Parameters, u1, u2, S);
+  }
+
+  /// Forwarding overload for Spec 1 (compile-time YdimT).
+  /// Passes YdimT as inpYdim directly to the Spec 0 implementation.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() void interpolateAtUZeroCopy(const char* gridX1FlatBuf,
+                                     const char* gridX2FlatBuf,
+                                     GPUgeneric() const DataT Parameters[],
+                                     DataT u1, DataT u2,
+                                     GPUgeneric() DataT S[/*YdimT*/]) const
+  {
+    TBase::template interpolateAtUZeroCopy<SafeT>(gridX1FlatBuf, gridX2FlatBuf,
+                                                  YdimT, Parameters, u1, u2, S);
   }
 
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
@@ -642,6 +737,7 @@ class Spline2DSpec<DataT, YdimT, 2>
   ///  _______  Expert tools: interpolation with given nYdim and external Parameters _______
 
   using TBase::interpolateAtU;
+  using TBase::interpolateAtUZeroCopy;
 };
 
 /// ==================================================================================================

@@ -18,7 +18,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/PIDResponse.h"
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "CorrectionMapsHelper.h"
 #include "GPUGetConstexpr.h"
 

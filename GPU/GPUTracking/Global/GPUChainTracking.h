@@ -60,7 +60,7 @@ class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
 class GPUTRDRecoParam;
-class TPCFastTransform;
+class TPCFastTransformPOD;
 class GPUTrackingInputProvider;
 struct GPUChainTrackingFinalContext;
 struct GPUTPCCFChainContext;
@@ -182,7 +182,7 @@ class GPUChainTracking : public GPUChain
   const GPUTRDRecoParam* GetTRDRecoParam() const;
   const o2::base::Propagator* GetO2Propagator() const;
   const o2::base::Propagator* GetDeviceO2Propagator();
-  void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper);
+  void SetTPCFastTransform(std::unique_ptr<TPCFastTransformPOD>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
   void SetTRDRecoParam(std::unique_ptr<GPUTRDRecoParam>&& par);
@@ -205,8 +205,6 @@ class GPUChainTracking : public GPUChain
     GPUChainTracking* mChainTracking = nullptr;
     GPUCalibObjects mCalibObjects;
     char* mTpcTransformBuffer = nullptr;
-    char* mTpcTransformRefBuffer = nullptr;
-    char* mTpcTransformMShapeBuffer = nullptr;
     char* mdEdxSplinesBuffer = nullptr;
     char* mMatLUTBuffer = nullptr;
     int16_t mMemoryResFlat = -1;
@@ -262,9 +260,7 @@ class GPUChainTracking : public GPUChain
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
   // Ptr to detector / calibration objects
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformRefU;           // Global TPC fast transformation ref object
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformMShapeU;        // Global TPC fast transformation for M-shape object
+  std::unique_ptr<TPCFastTransformPOD> mTPCFastTransformU;              // Global TPC fast transformation object
   std::unique_ptr<CorrectionMapsHelper> mTPCFastTransformHelperU;    // Global TPC fast transformation helper object
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMappingU;              // TPC Mapping data required by ZS Link decoder

@@ -2087,6 +2087,7 @@ void MatchTOF::updateTimeDependentParams()
   const auto& trackTune = TrackTuneParams::Instance();
   float scale = mTPCCorrMapsHelper->getInstLumiCTP();
   if (scale < 0.f) {
+    LOGP(warning, "Negative scale factor for TPC covariance correction, setting it to zero");
     scale = 0.f;
   }
   mCovDiagInner = trackTune.getCovInnerTotal(scale);

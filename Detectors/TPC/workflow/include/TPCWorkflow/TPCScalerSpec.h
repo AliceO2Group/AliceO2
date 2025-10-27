@@ -13,13 +13,14 @@
 #define O2_TPC_TPCSCALER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 namespace o2
 {
 namespace tpc
 {
 
-o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape);
+o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
 
 } // end namespace tpc
 } // end namespace o2

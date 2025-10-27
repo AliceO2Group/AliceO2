@@ -23,7 +23,7 @@ struct CorrectionMapsLoaderGloOpts;
 namespace o2::trackstudy
 {
 /// create a processor spec
-o2::framework::DataProcessorSpec getTPCRefitterSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool requestCosmics = false);
+o2::framework::DataProcessorSpec getTPCRefitterSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, bool requestCosmics = false);
 
 } // namespace o2::trackstudy
 

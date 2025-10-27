@@ -22,8 +22,6 @@
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCFastTransform.h"
-#include "Spline2DHelper.h"
-#include "Riostream.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::gpu;
@@ -136,7 +134,8 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   return create(TimeStamp, correction);
 }
 
-int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
+template <typename T>
+int TPCFastTransformHelperO2::updateCalibrationImpl(T& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
 {
   // Update the calibration with the new time stamp
   LOGP(debug, "Updating calibration: timestamp:{} vdriftFactor:{} vdriftRef:{}", TimeStamp, vDriftFactor, vDriftRef);
@@ -150,7 +149,6 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // search for the calibration database ...
 
-  auto& detParam = ParameterDetector::Instance();
   auto& gasParam = ParameterGas::Instance();
   auto& elParam = ParameterElectronics::Instance();
   // start the initialization
@@ -228,5 +226,9 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
                << " max Dx " << maxDx << " max Dy " << maxDy << std::endl;
   }
 }
+
+template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransform&, Long_t, float, float, float);
+template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransformPOD&, Long_t, float, float, float);
+
 } // namespace tpc
 } // namespace o2

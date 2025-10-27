@@ -160,6 +160,8 @@ class TPCFastTransformPOD
   /// Sets CTP Lumi estimator
   GPUd() void setLumi(float v) { mLumi = v; }
 
+  GPUd() void setCalibration1(int64_t timeStamp, float t0, float vDrift);
+
   /// Gives a reference to a spline
   GPUd() const SplineType& getSpline(int32_t sector, int32_t row) const { return *reinterpret_cast<const SplineType*>(getThis() + getScenarioOffset(getSectorRowInfo(sector, row).splineScenarioID)); }
 
@@ -221,6 +223,13 @@ class TPCFastTransformPOD
   template <typename V>
   static TPCFastTransformPOD* create(V& destVector, const TPCFastSpaceChargeCorrection& src);
 
+  static TPCFastTransformPOD* create(std::vector<char>& buf, const TPCFastTransformPOD& src)
+  {
+    buf.resize(src.size());
+    std::memcpy(buf.data(), &src, src.size());
+    return reinterpret_cast<TPCFastTransformPOD*>(buf.data());
+  }
+
   bool test(const TPCFastTransform& src, int32_t npoints = 100000) const { return test(src.getCorrection(), npoints); }
   bool test(const TPCFastSpaceChargeCorrection& origCorr, int32_t npoints = 100000) const;
 #endif
@@ -246,18 +255,40 @@ class TPCFastTransformPOD
   static size_t estimateSize(const TPCFastSpaceChargeCorrection& origCorr);
   static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastTransform& src);
   static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastSpaceChargeCorrection& src);
-  ///< get address to which the offset in bytes must be added to arrive to particular dynamic part
-  GPUd() const char* getThis() const { return reinterpret_cast<const char*>(this); }
-  GPUd() static TPCFastTransformPOD& getNonConst(char* head) { return *reinterpret_cast<TPCFastTransformPOD*>(head); }
+  static TPCFastTransformPOD& getNonConst(char* head) { return *reinterpret_cast<TPCFastTransformPOD*>(head); }
 #endif
+
+  GPUd() const char* getThis() const { return reinterpret_cast<const char*>(this); }
 
   ///< return offset of the spline object start (equivalent of mScenarioPtr in the TPCFastSpaceChargeCorrection)
   GPUd() size_t getScenarioOffset(int s) const { return (reinterpret_cast<const size_t*>(getThis() + mOffsScenariosOffsets))[s]; }
+
+  GPUd() size_t getFlatBufferOffset(int s) const { return (reinterpret_cast<const size_t*>(getThis() + mOffsFlatBufferOffsets))[s]; }
+
+  // Returns a pointer to the flat buffer of scenario isc, using only the
+  // stored offset array (mOffsFlatBufferOffsets). No stale pointer involved.
+  GPUd() const char* getSplineFlatBuffer(int32_t isc) const
+  {
+    const size_t* offs = reinterpret_cast<const size_t*>(getThis() + mOffsFlatBufferOffsets);
+    return getThis() + offs[isc];
+  }
+
+  // Returns a pointer to mGridX2's flat buffer inside the spline flat buffer.
+  // Reproduces the layout from Spline2DContainer::setActualBufferAddress using
+  // only safe values: getFlatBufferSize() reads mNumberOfKnots/mUmax (plain ints).
+  template <typename SplineT>
+  GPUd() const char* getGridX2FlatBuffer(const SplineT& spline, int32_t isc) const
+  {
+    const size_t g1sz = spline.getGridX1().getFlatBufferSize();
+    const size_t g2align = spline.getGridX2().getBufferAlignmentBytes();
+    return getSplineFlatBuffer(isc) + FlatObject::alignSize(g1sz, g2align);
+  }
 
   bool mApplyCorrection{};                                                          ///< flag to apply corrections
   int mNumberOfScenarios{};                                                         ///< Number of approximation spline scenarios
   size_t mTotalSize{};                                                              ///< total size of the buffer
   size_t mOffsScenariosOffsets{};                                                   ///< start of the array of mNumberOfScenarios offsets for each type of spline
+  size_t mOffsFlatBufferOffsets{};                                                  ///< offset to array of mNumberOfScenarios flat buffer offsets
   size_t mSplineDataOffsets[TPCFastTransformGeo::getNumberOfSectors()][NSplineIDs]; ///< start of data for each sector and iSpline data
   long int mTimeStamp{};                                                            ///< time stamp of the current calibration
   float mT0;                                                                        ///< T0 in [time bin]
@@ -274,14 +305,18 @@ class TPCFastTransformPOD
 GPUdi() void TPCFastTransformPOD::getCorrectionLocal(int32_t sector, int32_t row, float y, float z, float& dx, float& dy, float& dz) const
 {
   const auto& info = getSectorRowInfo(sector, row);
+  const int32_t isc = info.splineScenarioID;
   const SplineType& spline = getSpline(sector, row);
   const float* splineData = getCorrectionData(sector, row);
 
   float u, v, s;
   convLocalToGrid(sector, row, y, z, u, v, s);
 
+  const char* g1buf = getSplineFlatBuffer(isc);
+  const char* g2buf = getGridX2FlatBuffer(spline, isc);
+
   float dxyz[3];
-  spline.interpolateAtU(splineData, u, v, dxyz);
+  spline.interpolateAtUZeroCopy(g1buf, g2buf, splineData, val[0], val[1], dxyz);
 
   if (CAMath::Abs(dxyz[0]) > 100.f || CAMath::Abs(dxyz[1]) > 100.f || CAMath::Abs(dxyz[2]) > 100.f) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
@@ -297,8 +332,14 @@ GPUdi() float TPCFastTransformPOD::getCorrectionXatRealYZ(int32_t sector, int32_
   const auto& info = getSectorRowInfo(sector, row);
   float u, v, s;
   convRealLocalToGrid(sector, row, realY, realZ, u, v, s);
+
+  const int32_t isc = info.splineScenarioID;
+  const auto& spline = getSplineInvX(sector, row);
+  const char* g1buf = getSplineFlatBuffer(isc);
+  const char* g2buf = getGridX2FlatBuffer(spline, isc);
+
   float dx = 0;
-  getSplineInvX(sector, row).interpolateAtU(getCorrectionDataInvX(sector, row), u, v, &dx);
+  spline.interpolateAtUZeroCopy(g1buf, g2buf, getCorrectionDataInvX(sector, row), u, v, &dx);
   if (CAMath::Abs(dx) > 100.f) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
@@ -311,8 +352,13 @@ GPUdi() void TPCFastTransformPOD::getCorrectionYZatRealYZ(int32_t sector, int32_
   float u, v, s;
   convRealLocalToGrid(sector, row, realY, realZ, u, v, s);
   const auto& info = getSectorRowInfo(sector, row);
+  const int32_t isc = info.splineScenarioID;
+  const auto& spline = getSplineInvYZ(sector, row);
+  const char* g1buf = getSplineFlatBuffer(isc);
+  const char* g2buf = getGridX2FlatBuffer(spline, isc);
+
   float dyz[2];
-  getSplineInvYZ(sector, row).interpolateAtU(getCorrectionDataInvYZ(sector, row), u, v, dyz);
+  spline.interpolateAtUZeroCopy(g1buf, g2buf, getCorrectionDataInvYZ(sector, row), u, v, dyz);
   if (CAMath::Abs(dyz[0]) > 100.f || CAMath::Abs(dyz[1]) > 100.f) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
@@ -908,6 +954,59 @@ GPUdi() void TPCFastTransformPOD::InverseTransformXYZtoNominalXYZ_new(int32_t se
   nx = x;
   ny = (ny1 * c1 + ny2 * c2);
   nz = (nz1 * c1 + nz2 * c2);
+}
+
+GPUdi() void TPCFastTransformPOD::convPadTimeToLocal(int32_t sector, int32_t row, float pad, float time, float& y, float& z, float vertexTime) const
+{
+  float l = (time - mT0 - vertexTime) * mVdrift;
+  const auto localval = getGeometry().convPadDriftLengthToLocal(sector, row, pad, l);
+  y = localval[0];
+  z = localval[1];
+}
+
+GPUdi() void TPCFastTransformPOD::convPadTimeToLocalInTimeFrame(int32_t sector, int32_t row, float pad, float time, float& y, float& z, float maxTimeBin) const
+{
+  float l = getGeometry().getTPCzLength() + (time - mT0 - maxTimeBin) * mVdrift;
+  const auto localval = getGeometry().convPadDriftLengthToLocal(sector, row, pad, l);
+  y = localval[0];
+  z = localval[1];
+}
+
+GPUdi() void TPCFastTransformPOD::convLocalToPadTimeInTimeFrame(int32_t sector, int32_t row, float y, float z, float& pad, float& time, float maxTimeBin) const
+{
+  const auto padLength = getGeometry().convLocalToPadDriftLength(sector, row, y, z);
+  pad = padLength[0];
+  time = convDriftLengthToTime(padLength[1], maxTimeBin);
+}
+
+GPUdi() float TPCFastTransformPOD::convDriftLengthToTime(float driftLength, float vertexTime) const
+{
+  return (mT0 + vertexTime + driftLength / mVdrift);
+}
+
+GPUdi() float TPCFastTransformPOD::convZOffsetToVertexTime(int32_t sector, float zOffset, float maxTimeBin) const
+{
+  if (sector < getGeometry().getNumberOfSectorsA()) {
+    return maxTimeBin - (getGeometry().getTPCzLength() + zOffset) / mVdrift;
+  } else {
+    return maxTimeBin - (getGeometry().getTPCzLength() - zOffset) / mVdrift;
+  }
+}
+
+GPUdi() float TPCFastTransformPOD::convVertexTimeToZOffset(int32_t sector, float vertexTime, float maxTimeBin) const
+{
+  if (sector < getGeometry().getNumberOfSectorsA()) {
+    return (maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLength();
+  } else {
+    return -((maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLength());
+  }
+}
+
+GPUdi() void TPCFastTransformPOD::setCalibration1(int64_t timeStamp, float t0, float vDrift)
+{
+  mTimeStamp = timeStamp;
+  mT0 = t0;
+  mVdrift = vDrift;
 }
 
 } // namespace gpu

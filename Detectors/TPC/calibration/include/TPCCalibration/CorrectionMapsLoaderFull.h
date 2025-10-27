@@ -9,17 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CorrectionMapsLoader.h
+/// \file CorrectionMapsLoaderFull.h
 /// \brief Helper class to access load maps from CCDB
-/// \author ruben.shahoian@cern.ch
+/// \author matthias.kleiner@cern.ch
 
-#ifndef TPC_CORRECTION_MAPS_LOADER_H_
-#define TPC_CORRECTION_MAPS_LOADER_H_
+#ifndef TPC_CORRECTION_MAPS_LOADERFULL_H_
+#define TPC_CORRECTION_MAPS_LOADERFULL_H_
 
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <memory>
 #include <vector>
-#endif
+#include "CorrectionMapsHelperFull.h"
 #include "CorrectionMapsHelper.h"
 
 namespace o2
@@ -27,32 +25,36 @@ namespace o2
 namespace framework
 {
 class ProcessingContext;
+class ConcreteDataMatcher;
 class InputSpec;
 class ConfigParamSpec;
+class InitContext;
 } // namespace framework
 
 namespace tpc
 {
 
-class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
+class CorrectionMapsLoaderFull : public o2::gpu::CorrectionMapsHelperFull
 {
  public:
-  CorrectionMapsLoader() = default;
-  ~CorrectionMapsLoader() = default;
-  CorrectionMapsLoader(const CorrectionMapsLoader&) = delete;
+  CorrectionMapsLoaderFull() = default;
+  ~CorrectionMapsLoaderFull() = default;
+  CorrectionMapsLoaderFull(const CorrectionMapsLoaderFull&) = delete;
 
-#ifndef GPUCA_GPUCODE_DEVICE
-  void extractCCDBInputs(o2::framework::ProcessingContext& pc);
+  bool accountCCDBInputs(const o2::framework::ConcreteDataMatcher& matcher, void* obj);
+  void extractCCDBInputs(o2::framework::ProcessingContext& pc, float tpcScaler = -1.f);
+  void init(o2::framework::InitContext& ic, bool idcsAvailable);
+  void checkMeanScaleConsistency(float meanLumi, float threshold) const;
 
-  static void requestInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options);
-  // static CorrectionMapsLoaderGloOpts parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts);
-  static void addGlobalOptions(std::vector<o2::framework::ConfigParamSpec>& options);
+  static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, const o2::tpc::CorrectionMapsLoaderGloOpts& gloOpts);
 
  protected:
   static void addOption(std::vector<o2::framework::ConfigParamSpec>& options, o2::framework::ConfigParamSpec&& osp);
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
+
+  float mInstLumiCTPFactor = 1.0; // multiplicative factor for inst. lumi
+  int mLumiCTPSource = 0;         // 0: main, 1: alternative CTP lumi source
   bool mIDC2CTPFallbackActive = false; // flag indicating that fallback from IDC to CTP scaling is active
-#endif
 };
 
 } // namespace tpc

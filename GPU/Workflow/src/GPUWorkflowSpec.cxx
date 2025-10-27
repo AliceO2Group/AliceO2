@@ -254,8 +254,6 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     initFunctionTPCCalib(ic);
 
     mConfig->configCalib.fastTransform = mCalibObjects.mFastTransformHelper->getCorrMap();
-    mConfig->configCalib.fastTransformRef = mCalibObjects.mFastTransformHelper->getCorrMapRef();
-    mConfig->configCalib.fastTransformMShape = mCalibObjects.mFastTransformHelper->getCorrMapMShape();
     mConfig->configCalib.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
@@ -1137,9 +1135,6 @@ Options GPURecoWorkflowSpec::options()
   if (mSpecConfig.enableDoublePipeline == 2) {
     return opts;
   }
-  if (mSpecConfig.outputTracks) {
-    o2::tpc::CorrectionMapsLoader::addOptions(opts);
-  }
   return opts;
 }
 
@@ -1190,8 +1185,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
     Options optsDummy;
-    o2::tpc::CorrectionMapsLoaderGloOpts gloOpts{mSpecConfig.lumiScaleType, mSpecConfig.lumiScaleMode, mSpecConfig.enableMShape, mSpecConfig.enableCTPLumi};
-    mCalibObjects.mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, gloOpts); // option filled here is lost
+    mCalibObjects.mFastTransformHelper->requestInputs(inputs, optsDummy); // option filled here is lost
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});

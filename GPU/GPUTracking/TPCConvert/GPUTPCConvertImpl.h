@@ -17,7 +17,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUConstantMem.h"
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "CorrectionMapsHelper.h"
 
 namespace o2::gpu
@@ -34,7 +34,7 @@ class GPUTPCConvertImpl
       cm.calibObjects.fastTransformHelper->Transform(sector, row, pad, time, x, y, z);
     }
   }
-  GPUd() static void convert(const TPCFastTransform& GPUrestrict() transform, const GPUParam& GPUrestrict() param, int32_t sector, int32_t row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)
+  GPUd() static void convert(const TPCFastTransformPOD& GPUrestrict() transform, const GPUParam& GPUrestrict() param, int32_t sector, int32_t row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)
   {
     if (param.par.continuousTracking) {
       transform.TransformInTimeFrame(sector, row, pad, time, x, y, z, param.continuousMaxTimeBin);

@@ -91,7 +91,7 @@ class ORTRootSerializer;
 namespace o2::gpu
 {
 class CorrectionMapsHelper;
-class TPCFastTransform;
+class TPCFastTransformPOD;
 struct TPCPadGainCalib;
 struct TPCZSLinkMapping;
 
@@ -125,9 +125,7 @@ struct ConstPtr {
 
 template <template <typename T> class S>
 struct GPUCalibObjectsTemplate { // use only pointers on PODs or flat objects here
-  typename S<TPCFastTransform>::type* fastTransform = nullptr;
-  typename S<TPCFastTransform>::type* fastTransformRef = nullptr;
-  typename S<TPCFastTransform>::type* fastTransformMShape = nullptr;
+  typename S<TPCFastTransformPOD>::type* fastTransform = nullptr;
   typename S<CorrectionMapsHelper>::type* fastTransformHelper = nullptr;
   typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;

@@ -68,9 +68,6 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUSettingsO2> mConfParam;
-  std::unique_ptr<TPCFastTransform> mFastTransform;
-  std::unique_ptr<TPCFastTransform> mFastTransformRef;
-  std::unique_ptr<TPCFastTransform> mFastTransformMShape;
   std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict;

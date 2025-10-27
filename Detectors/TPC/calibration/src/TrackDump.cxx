@@ -237,9 +237,8 @@ float TrackDump::ClusterNativeAdd::zc(float vertexTime) const
 
 void TrackDump::ClusterNativeAdd::loadCorrMaps(std::string_view corrMapFile, std::string_view corrMapFileRef)
 {
-  sCorrHelper.setOwner(true);
-  sCorrHelper.setCorrMap(gpu::TPCFastTransform::loadFromFile(corrMapFile.data()));
-  if (!corrMapFileRef.empty()) {
-    sCorrHelper.setCorrMapRef(gpu::TPCFastTransform::loadFromFile(corrMapFileRef.data()));
-  }
+  auto fastTransformTmp = gpu::TPCFastTransform::loadFromFile(corrMapFile.data());
+  std::vector<char> buffer;
+  gpu::TPCFastTransformPOD::create(buffer, *fastTransformTmp);
+  sCorrHelper.setCorrMap(std::move(buffer));
 }

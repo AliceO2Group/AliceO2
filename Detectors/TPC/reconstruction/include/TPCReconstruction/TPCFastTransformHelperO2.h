@@ -21,9 +21,8 @@
 #ifndef ALICEO2_TPC_TPCFASTTRANSFORMHELPERO2_H_
 #define ALICEO2_TPC_TPCFASTTRANSFORMHELPERO2_H_
 
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "Rtypes.h"
-#include <functional>
 
 namespace o2
 {
@@ -61,7 +60,15 @@ class TPCFastTransformHelperO2
   std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp, const TPCFastSpaceChargeCorrection& correction);
 
   /// Updates the transformation with the new time stamp
-  int updateCalibration(TPCFastTransform& transform, Long_t TimeStamp, float vDriftFactor = 1.f, float vDriftRef = 0.f, float driftTimeOffset = 0.f);
+  int updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor = 1.f, float vDriftRef = 0.f, float driftTimeOffset = 0.f)
+  {
+    return updateCalibrationImpl(fastTransform, TimeStamp, vDriftFactor, vDriftRef, driftTimeOffset);
+  }
+
+  int updateCalibration(TPCFastTransformPOD& fastTransform, Long_t TimeStamp, float vDriftFactor = 1.f, float vDriftRef = 0.f, float driftTimeOffset = 0.f)
+  {
+    return updateCalibrationImpl(fastTransform, TimeStamp, vDriftFactor, vDriftRef, driftTimeOffset);
+  }
 
   /// _______________  Utilities   ________________________
 
@@ -72,6 +79,9 @@ class TPCFastTransformHelperO2
  private:
   /// initialization
   void init();
+
+  template <typename T>
+  int updateCalibrationImpl(T& transform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset);
 
   static TPCFastTransformHelperO2* sInstance; ///< singleton instance
   bool mIsInitialized = 0;                    ///< initialization flag

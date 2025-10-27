@@ -44,7 +44,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "CalibdEdxContainer.h"
 
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "CorrectionMapsHelper.h"
 
 using namespace o2::gpu;
@@ -296,17 +296,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (processors()->calibObjects.fastTransform != nullptr) {
     f = dir;
     f += "tpctransform.dump";
-    DumpFlatObjectToFile(processors()->calibObjects.fastTransform, f.c_str());
-  }
-  if (processors()->calibObjects.fastTransformRef != nullptr) {
-    f = dir;
-    f += "tpctransformref.dump";
-    DumpFlatObjectToFile(processors()->calibObjects.fastTransformRef, f.c_str());
-  }
-  if (processors()->calibObjects.fastTransformMShape != nullptr) {
-    f = dir;
-    f += "tpctransformmshape.dump";
-    DumpFlatObjectToFile(processors()->calibObjects.fastTransformMShape, f.c_str());
+    DumpStructToFile(processors()->calibObjects.fastTransform, f.c_str());
   }
   if (processors()->calibObjects.fastTransformHelper != nullptr) {
     f = dir;
@@ -350,23 +340,13 @@ void GPUChainTracking::ReadSettings(const char* dir)
   std::string f;
   f = dir;
   f += "tpctransform.dump";
-  mTPCFastTransformU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+  mTPCFastTransformU = ReadStructFromFile<TPCFastTransformPOD>(f.c_str());
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
-  f = dir;
-  f += "tpctransformref.dump";
-  mTPCFastTransformRefU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
-  processors()->calibObjects.fastTransformRef = mTPCFastTransformRefU.get();
-  f = dir;
-  f += "tpctransformmshape.dump";
-  mTPCFastTransformMShapeU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
-  processors()->calibObjects.fastTransformMShape = mTPCFastTransformMShapeU.get();
   f = dir;
   f += "tpctransformhelper.dump";
   mTPCFastTransformHelperU = ReadStructFromFile<CorrectionMapsHelper>(f.c_str());
   if ((processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get())) {
     mTPCFastTransformHelperU->setCorrMap(mTPCFastTransformU.get());
-    mTPCFastTransformHelperU->setCorrMapRef(mTPCFastTransformRefU.get());
-    mTPCFastTransformHelperU->setCorrMapMShape(mTPCFastTransformMShapeU.get());
   }
   f = dir;
   f += "tpcpadgaincalib.dump";

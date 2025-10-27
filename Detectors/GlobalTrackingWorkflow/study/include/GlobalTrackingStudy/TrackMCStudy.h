@@ -21,7 +21,7 @@ namespace o2::trackstudy
 {
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getTrackMCStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool checkSV);
+o2::framework::DataProcessorSpec getTrackMCStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool checkSV);
 
 } // namespace o2::trackstudy
 

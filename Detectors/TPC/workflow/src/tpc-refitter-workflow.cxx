@@ -79,18 +79,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcCls = srcCls | GID::getSourcesMask("CTP");
   }
 
-  if (sclOpt.lumiType == 2) {
-    const auto enableMShape = configcontext.options().get<bool>("enable-M-shape-correction");
-    const auto enableIDCs = !configcontext.options().get<bool>("disable-IDC-scalers");
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(enableIDCs, enableMShape));
-  }
+  const auto enableMShape = configcontext.options().get<bool>("enable-M-shape-correction");
+  const auto enableIDCs = !configcontext.options().get<bool>("disable-IDC-scalers");
+  specs.emplace_back(o2::tpc::getTPCScalerSpec(enableIDCs, enableMShape, sclOpt));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   if (enableCosmics) {
     o2::globaltracking::InputHelper::addInputSpecsCosmics(configcontext, specs, useMC);
   }
-  specs.emplace_back(o2::trackstudy::getTPCRefitterSpec(srcTrc, srcCls, useMC, sclOpt, enableCosmics));
+  specs.emplace_back(o2::trackstudy::getTPCRefitterSpec(srcTrc, srcCls, useMC, enableCosmics));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

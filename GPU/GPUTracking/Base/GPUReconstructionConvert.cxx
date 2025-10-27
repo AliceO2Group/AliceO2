@@ -20,7 +20,7 @@
 #endif
 
 #include "GPUReconstructionConvert.h"
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
 #include "GPUDataTypesIO.h"
@@ -48,7 +48,7 @@ using namespace o2::tpc;
 using namespace o2::tpc::constants;
 using namespace std::string_literals;
 
-void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, uint32_t* nClusters, const TPCFastTransform* transform, int32_t continuousMaxTimeBin)
+void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, uint32_t* nClusters, const TPCFastTransformPOD* transform, int32_t continuousMaxTimeBin)
 {
   memset(nClusters, 0, NSECTORS * sizeof(nClusters[0]));
   uint32_t offset = 0;
