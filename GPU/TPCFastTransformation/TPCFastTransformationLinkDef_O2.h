@@ -66,11 +66,11 @@
   sourceClass = "o2::gpu::TPCFastTransformGeo" targetClass = "o2::gpu::TPCFastTransformGeo" source = "float mTPCzLengthA; float mTPCzLengthC; float mTPCalignmentZ; float mScaleVtoSVsideA; float mScaleVtoSVsideC; float mScaleSVtoVsideA; float mScaleSVtoVsideC;" version = "[-1]" target = "mTPCzLength" code = "{ mTPCzLength = onfile.mTPCzLengthA; }";
 
 #pragma read \
-  sourceClass = "o2::gpu::TPCFastTransformGeo" targetClass = "o2::gpu::TPCFastTransformGeo" source = "o2::gpu::TPCFastTransformGeo::SliceInfo mSliceInfos[37]" version = "[1-]" target = "" code = "{}";
+  sourceClass = "o2::gpu::TPCFastTransformGeo" targetClass = "o2::gpu::TPCFastTransformGeo" source = "o2::gpu::TPCFastTransformGeo::SliceInfo mSliceInfos[37]" version = "[-2]" target = "" code = "{}";
 
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::RowInfo + ;
 #pragma read \
-  sourceClass = "o2::gpu::TPCFastTransformGeo::RowInfo" targetClass = "o2::gpu::TPCFastTransformGeo::RowInfo" source = "float u0; float scaleUtoSU; float scaleSUtoU" version = "[-2]" target = "yMin" code = "{ yMin = onfile.u0; }"
+  sourceClass = "o2::gpu::TPCFastTransformGeo::RowInfo" targetClass = "o2::gpu::TPCFastTransformGeo::RowInfo" source = "float u0; float scaleUtoSU; float scaleSUtoU" version = "[-1]" target = "yMin" code = "{ yMin = onfile.u0; }"
 
 #pragma link C++ class o2::gpu::TPCFastTransform + ;
 
