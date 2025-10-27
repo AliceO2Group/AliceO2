@@ -166,7 +166,7 @@ class GPUTPCGMTrackParam
   GPUd() float AttachClusters(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use
   GPUd() float AttachClusters(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z);
   GPUd() void AttachClustersLooper(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, const int32_t iTrack, const bool up, const GPUTPCGMPropagator& prop);
-  GPUd() void AttachClustersLooperFollow(const GPUTPCGMMerger& GPUrestrict() merger, GPUTPCGMPropagator& prop, int32_t sector, int32_t iRow, const int32_t iTrack, const bool up);
+  GPUd() void AttachClustersLooperFollow(const GPUTPCGMMerger& GPUrestrict() merger, GPUTPCGMPropagator& prop, int32_t sector, const int32_t iTrack, const bool up);
   GPUd() void StoreLoopPropagation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha);
   GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha);
   GPUd() static void PropagateLooper(const GPUTPCGMMerger& merger, int32_t loopIdx);
