@@ -182,7 +182,7 @@ static const constexpr int32_t COLORS_HEX[COLORCOUNT] = {0xB03030, 0x00A000, 0x0
 static const constexpr int32_t CONFIG_DASHED_MARKERS = 0;
 
 static const constexpr float AXES_MIN[5] = {-Y_MAX, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
-static const constexpr float AXES_MAX[5] = {Y_MAX, Z_MAX, 2.f * M_PI, ETA_MAX, PT_MAX};
+static const constexpr float AXES_MAX[5] = {Y_MAX, Z_MAX, 2.f * CAMath::Pi(), ETA_MAX, PT_MAX};
 static const constexpr int32_t AXIS_BINS[5] = {51, 51, 144, 31, 50};
 static const constexpr int32_t RES_AXIS_BINS[] = {1017, 113}; // Consecutive bin sizes, histograms are binned down until the maximum entry is 50, each bin size should evenly divide its predecessor.
 static const constexpr float RES_AXES[5] = {1., 1., 0.03, 0.03, 1.0};
@@ -1213,12 +1213,12 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         const mcInfo_t& info = GetMCTrack(i, iCol);
         additionalMCParameters& mc2 = mMCParam[iCol][i];
         mc2.pt = std::sqrt(info.pX * info.pX + info.pY * info.pY);
-        mc2.phi = M_PI + std::atan2(-info.pY, -info.pX);
+        mc2.phi = CAMath::Pi() + std::atan2(-info.pY, -info.pX);
         float p = info.pX * info.pX + info.pY * info.pY + info.pZ * info.pZ;
         if (p < 1e-18) {
           mc2.theta = mc2.eta = 0.f;
         } else {
-          mc2.theta = info.pZ == 0 ? (M_PI / 2) : (std::acos(info.pZ / std::sqrt(p)));
+          mc2.theta = info.pZ == 0 ? (CAMath::Pi() / 2) : (std::acos(info.pZ / std::sqrt(p)));
           mc2.eta = -std::log(std::tan(0.5 * mc2.theta));
         }
         if (mConfig.writeMCLabels) {
@@ -1272,10 +1272,10 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
 
           float alpha = std::atan2(info.y, info.x);
-          alpha /= M_PI / 9.f;
+          alpha /= CAMath::Pi() / 9.f;
           alpha = std::floor(alpha);
-          alpha *= M_PI / 9.f;
-          alpha += M_PI / 18.f;
+          alpha *= CAMath::Pi() / 9.f;
+          alpha += CAMath::Pi() / 18.f;
 
           float c = std::cos(alpha);
           float s = std::sin(alpha);

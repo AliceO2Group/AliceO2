@@ -95,6 +95,7 @@ class GPUCommonMath
   GPUhdni() constexpr static float Copysign(float x, float y) { return GPUCA_CHOICE(std::copysignf(x, y), copysignf(x, y), copysign(x, y)); }
   GPUd() constexpr static float TwoPi() { return 6.2831853f; }
   GPUd() constexpr static float Pi() { return 3.1415927f; }
+  GPUd() constexpr static float Deg2Rad() { return Pi() / 180.f; }
   GPUd() constexpr static float Round(float x);
   GPUd() constexpr static float Floor(float x) { return GPUCA_CHOICE(floorf(x), floorf(x), floor(x)); }
   GPUd() static uint32_t Float2UIntReint(const float& x);

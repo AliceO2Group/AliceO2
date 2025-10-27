@@ -278,8 +278,7 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
     uncorrectedY = AttachClusters(merger, cluster.sector, cluster.row, iTrk, track.Leg() == 0, prop);
   }
 
-  static constexpr float kDeg2Rad = M_PI / 180.f;
-  const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
+  const float maxSinForUpdate = CAMath::Sin(70.f * CAMath::Deg2Rad());
   const bool sinPhiErr = mNDF > 0 && CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate;
   if (mNDF >= 0 && (mC[0] > param.rec.tpc.trackFitCovLimit || mC[2] > param.rec.tpc.trackFitCovLimit)) {
     return 1; // bad chi2 for the whole track, stop the fit
@@ -527,13 +526,11 @@ GPUdii() void GPUTPCGMTrackParam::DodEdx(GPUdEdx& GPUrestrict() dEdx, GPUdEdx& G
 
 GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& GPUrestrict() prop, const GPUParam& GPUrestrict() param, float& GPUrestrict() Alpha)
 {
-  static constexpr float kDeg2Rad = M_PI / 180.f;
-
   if (param.rec.tpc.trackReferenceX <= 500) {
     GPUTPCGMTrackParam save = *this;
     float saveAlpha = Alpha;
     for (int32_t attempt = 0; attempt < 3; attempt++) {
-      float dAngle = CAMath::Round(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f) * GPUTPCGeometry::kSectAngle();
+      float dAngle = CAMath::Round(CAMath::ATan2(mP[0], mX) / CAMath::Deg2Rad() / 20.f) * GPUTPCGeometry::kSectAngle();
       Alpha += dAngle;
       if (prop.PropagateToXAlpha(param.rec.tpc.trackReferenceX, Alpha, 0)) {
         break;
@@ -547,7 +544,7 @@ GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& GPUrestric
     Alpha = saveAlpha;
   }
   if (CAMath::Abs(mP[0]) > mX * CAMath::Tan(GPUTPCGeometry::kSectAngle() / 2.f)) {
-    float dAngle = CAMath::Round(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f) * GPUTPCGeometry::kSectAngle();
+    float dAngle = CAMath::Round(CAMath::ATan2(mP[0], mX) / CAMath::Deg2Rad() / 20.f) * GPUTPCGeometry::kSectAngle();
     Rotate(dAngle);
     ConstrainSinPhi();
     Alpha += dAngle;
