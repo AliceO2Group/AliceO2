@@ -12,6 +12,7 @@
 #include <TRKBase/GeometryTGeo.h>
 #include <TGeoManager.h>
 #include "TRKBase/SegmentationChip.h"
+#include <TMath.h>
 
 using Segmentation = o2::trk::SegmentationChip;
 
@@ -94,7 +95,7 @@ void GeometryTGeo::Build(int loadTrans)
   int numberOfChipsTotal = 0;
 
   /// filling the information for the VD
-  for (int i = 0; i < mNumberOfPetalsVD; i++) {
+  for (int i = 0; i < mNumberOfPetalsVD; i++) { 
     mNumberOfChipsPerPetalVD[i] = extractNumberOfChipsPerPetalVD();
     numberOfChipsTotal += mNumberOfChipsPerPetalVD[i];
     mLastChipIndex[i] = numberOfChipsTotal - 1;
@@ -111,6 +112,8 @@ void GeometryTGeo::Build(int loadTrans)
 
   setSize(numberOfChipsTotal); /// temporary, number of chips = number of staves and active parts
   fillMatrixCache(loadTrans);
+  defineMLOTSensors();
+  fillTrackingFramesCacheMLOT();
 }
 
 //__________________________________________________________________________
@@ -343,6 +346,32 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 }
 
 //__________________________________________________________________________
+void GeometryTGeo::defineMLOTSensors()
+{
+  for(int i=0; i<mSize; i++){
+    if (getSubDetID(i) == 0) {
+      continue;
+    }
+    sensorsMLOT.push_back(i);
+  }
+}
+
+//__________________________________________________________________________
+void GeometryTGeo::fillTrackingFramesCacheMLOT()
+{
+  //fill for every sensor of ML & OT its tracking frame parameters
+  if(!isTrackingFrameCachedMLOT() && !sensorsMLOT.empty()){
+    size_t newSize = sensorsMLOT.size();
+    mCacheRefXMLOT.resize(newSize);
+    mCacheRefAlphaMLOT.resize(newSize);
+    for(int i=0; i< newSize; i++){
+      int sensorId = sensorsMLOT[i];
+      extractSensorXAlphaMLOT(sensorId, mCacheRefXMLOT[i], mCacheRefAlphaMLOT[i]);
+    }
+  }
+}
+
+//__________________________________________________________________________
 void GeometryTGeo::fillMatrixCache(int mask)
 {
   if (mSize < 1) {
@@ -361,6 +390,21 @@ void GeometryTGeo::fillMatrixCache(int mask)
     for (int i = 0; i < mSize; i++) { /// here get the matrices for det ID between 0 and 257 (mSize = 258 at the moment)
       TGeoHMatrix* hm = extractMatrixSensor(i);
       cacheL2G.setMatrix(Mat3D(*hm), i);
+    }
+  }
+
+   //build T2L matrices for ML & OT !! VD is yet to be implemented once its geometry will be more refined
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
+    LOGP(info, "Loading {} T2L matrices from TGeo for ML & OT", getName());
+    if(sensorsMLOT.size()){
+      int m_Size = sensorsMLOT.size();
+      auto& cacheT2L = getCacheT2L();
+      cacheT2L.setSize(m_Size);
+      for(int i=0; i<m_Size; i++) {
+        int sensorID = sensorsMLOT[i];
+        TGeoHMatrix& hm = createT2LMatrixMLOT(sensorID);
+        cacheT2L.setMatrix(Mat3D(hm), i); //here, sensorIDs from 0 to 374, sensorIDs shifted to 36 ! 
+      } 
     }
   }
 
@@ -910,5 +954,88 @@ void GeometryTGeo::Print(Option_t*) const
   std::cout << "]" << std::endl;
 }
 
+//__________________________________________________________________________
+int GeometryTGeo::getBarrelLayer(int chipID) const
+{
+  //for barrel layers only, 
+  //so it would be consistent with number of layers i.e. from 0 to 10,
+  //starting from VD0 to OT10;
+  //skip the disks;
+
+  int subDetID = getSubDetID(chipID);
+  int subLayerID = getLayer(chipID);
+ 
+  if (subDetID < 0 || subDetID > 1) {
+    LOG(error) << "getBarrelLayer(): Invalid subDetID for barrel: " << subDetID 
+               << ". Expected values are 0 or 1.";
+    return -1; 
+  }
+
+  if (subLayerID < 0 || subLayerID > 7) {
+    LOG(error) << "getBarrelLayer(): Invalid subLayerID for barrel: " << subDetID 
+               << ". Expected values are between 0 and 7.";
+    return -1; 
+  }
+
+  const int baseOffsets[] = {0, 3};
+
+  return baseOffsets[subDetID] + subLayerID; 
+ 
+}
+
+//__________________________________________________________________________
+void GeometryTGeo::extractSensorXAlphaMLOT(int chipID, float& x, float& alp) 
+{
+  //works for ML and OT only, a.k.a flat sensors !!! 
+  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
+  double xp{0}, yp{0};
+
+  if(getSubDetID(chipID) == 0){ 
+    
+    LOG(error) << "extractSensorXAlphaMLOT(): VD layers are not supported yet! chipID = " << chipID;
+    return;
+
+  } else { //flat sensors, ML and OT
+    const TGeoHMatrix* matL2G = extractMatrixSensor(chipID);
+    matL2G->LocalToMaster(locA, gloA);
+    matL2G->LocalToMaster(locB, gloB);
+    double dx = gloB[0] - gloA[0], dy = gloB[1] - gloA[1];
+    double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy);
+    xp = gloB[0] - dx * t;
+    yp = gloB[1] - dy * t;
+  }
+
+  alp = std::atan2(yp, xp);
+  x = std::hypot(xp, yp); 
+  o2::math_utils::bringTo02Pi(alp);
+
+  ///TODO:
+  //once the VD segmentation is done, VD should be added 
+}
+
+//__________________________________________________________________________
+TGeoHMatrix& GeometryTGeo::createT2LMatrixMLOT(int chipID)
+{
+  //works only for ML & OT
+  //for VD is yet to be implemented once we have more refined geometry
+  if(getSubDetID(chipID) == 0){ 
+    
+    LOG(error) << "createT2LMatrixMLOT(): VD layers are not supported yet! chipID = " << chipID
+               << "returning dummy values! ";
+    static TGeoHMatrix dummy;
+    return dummy;
+
+  } else {
+    static TGeoHMatrix t2l;
+    t2l.Clear();
+    float alpha = getSensorRefAlphaMLOT(chipID);
+    t2l.RotateZ(alpha * TMath::RadToDeg()); 
+    const TGeoHMatrix* matL2G = extractMatrixSensor(chipID);
+    const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+    t2l.MultiplyLeft(&matL2Gi);
+    return t2l;
+  }
+}
+ 
 } // namespace trk
 } // namespace o2
