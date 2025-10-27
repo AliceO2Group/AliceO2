@@ -195,7 +195,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::fil
     float output_value = clustererNN.mNnClusterizerBoundaryFillValue;
 
     if ((row < 63 && target_row > 62) || (target_row < 0) || (row > 62 && target_row < 63) || (target_row >= o2::tpc::constants::MAXGLOBALPADROW)) {
-      for (int32_t target_pad = 0; target_pad < clustererNN.mNnClusterizerFullPadSize; ++target_pad) {
+      for (uint32_t target_pad = 0; target_pad < clustererNN.mNnClusterizerFullPadSize; ++target_pad) {
         if (dtype == 0) {
           clustererNN.mInputData_16[write_idx] = (OrtDataType::Float16_t)output_value;
         } else {
