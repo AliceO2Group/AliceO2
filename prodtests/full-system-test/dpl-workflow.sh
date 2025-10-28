@@ -127,8 +127,8 @@ if [[ $SYNCMODE == 1 ]]; then
   fi
   [[ -n ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   ITS_CONFIG_KEY+="ITSCATrackerParam.trackletsPerClusterLimit=${CUT_TRACKLETSPERCLUSTER_MAX_ITS:--1};ITSCATrackerParam.cellsPerClusterLimit=${CUT_CELLSPERCLUSTER_MAX_ITS:--1};"
-  if has_detector_reco ITS; then
-    [[ $RUNTYPE != "COSMICS" ]] && MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
+  if has_detector_reco ITS [[ $RUNTYPE != "COSMICS" && x"${MFT_DISABLE_ITS_IRFRAMES_SELECTION:-}" != "x1" ]]; then
+    MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
   fi
 
   PVERTEXING_CONFIG_KEY+="pvertexer.meanVertexExtraErrConstraint=0.3;" # for calibration relax the constraint
