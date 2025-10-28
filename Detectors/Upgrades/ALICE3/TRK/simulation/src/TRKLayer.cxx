@@ -26,7 +26,7 @@ namespace o2
 namespace trk
 {
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, int numberOfModules, float layerX2X0)
-  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mNumberOfModules(numberOfModules), mX2X0(layerX2X0), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1), mSensorThickness(100.e-4), mHalfNumberOfChips(4)
+  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mNumberOfModules(numberOfModules), mX2X0(layerX2X0), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(constants::moduleMLOT::chip::passiveEdgeReadOut), mSensorThickness(constants::moduleMLOT::silicon::thickness), mHalfNumberOfChips(4)
 {
   float Si_X0 = 9.5f;
   mChipThickness = mX2X0 * Si_X0;
@@ -34,7 +34,7 @@ TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOu
 }
 
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick)
-  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mNumberOfModules(numberOfModules), mChipThickness(thick), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(1.5 * 1e-1), mSensorThickness(100.e-4), mHalfNumberOfChips(4)
+  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mNumberOfModules(numberOfModules), mChipThickness(thick), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(constants::moduleMLOT::chip::passiveEdgeReadOut), mSensorThickness(constants::moduleMLOT::silicon::thickness), mHalfNumberOfChips(4)
 {
   float Si_X0 = 9.5f;
   mOuterRadius = rInn + thick;
