@@ -15,7 +15,6 @@
 #include <memory>
 #include <DetectorsCommonDataFormats/DetMatrixCache.h>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include <iostream>
 
 namespace o2
 {
