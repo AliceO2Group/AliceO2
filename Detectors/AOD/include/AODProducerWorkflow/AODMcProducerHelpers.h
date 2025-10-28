@@ -315,7 +315,8 @@ uint32_t updateParticles(const ParticleCursor& cursor,
                          bool background = false,
                          uint32_t weightMask = 0xFFFFFFF0,
                          uint32_t momentumMask = 0xFFFFFFF0,
-                         uint32_t positionMask = 0xFFFFFFF0);
+                         uint32_t positionMask = 0xFFFFFFF0,
+                         bool signalFilter = false);
 } // namespace o2::aodmchelpers
 
 #endif /* O2_AODMCPRODUCER_HELPERS */
