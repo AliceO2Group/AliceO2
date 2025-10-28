@@ -15,6 +15,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::trk::Hit + ;
+#pragma link C++ class std::vector < o2::trk::Hit> + ;
+
 #pragma link C++ class o2::trk::TRKLayer + ;
 #pragma link C++ class o2::trk::VDLayer + ;
 #pragma link C++ class o2::trk::TRKServices + ;

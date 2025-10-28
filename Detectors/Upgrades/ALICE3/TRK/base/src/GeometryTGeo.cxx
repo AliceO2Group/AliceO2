@@ -13,6 +13,8 @@
 #include <TGeoManager.h>
 #include "TRKBase/SegmentationChip.h"
 
+#include <limits>
+
 using Segmentation = o2::trk::SegmentationChip;
 
 namespace o2
@@ -304,7 +306,7 @@ int GeometryTGeo::getChip(int index) const
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const
+unsigned short GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const
 {
   if (subDetID == 0) { // VD
     if (lay == -1) {   // disk
@@ -328,11 +330,13 @@ int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, i
       return getFirstChipIndex(lay, petalcase, subDetID) + stave * chipsPerStave + mod * chipsPerModule + chip;
     }
   }
-  return -1; // not found
+
+  LOGP(warning, "Chip index not found for subDetID %d, petalcase %d, disk %d, layer %d, stave %d, halfstave %d, module %d, chip %d, returning numeric limit", subDetID, petalcase, disk, lay, stave, halfstave, mod, chip);
+  return std::numeric_limits<unsigned short>::max(); // not found
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int mod, int chip) const
+unsigned short GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int mod, int chip) const
 {
   if (subDetID == 0) { // VD
     return volume;     /// In the current configuration for VD, each volume is the sensor element = chip. // TODO: when the geometry naming scheme will be changed, change this method
@@ -353,7 +357,9 @@ int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int
       return getFirstChipIndex(lay, -1, subDetID) + stave * chipsPerStave + mod * chipsPerModule + chip;
     }
   }
-  return -1; // not found
+
+  LOGP(warning, "Chip index not found for subDetID %d, volume %d, layer %d, stave %d, halfstave %d, module %d, chip %d, returning numeric limit", subDetID, volume, lay, stave, halfstave, mod, chip);
+  return std::numeric_limits<unsigned short>::max(); // not found
 }
 
 //__________________________________________________________________________

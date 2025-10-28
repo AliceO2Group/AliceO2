@@ -16,7 +16,7 @@
 #include <TGeoVolume.h>
 
 #include "DetectorsBase/Stack.h"
-#include "ITSMFTSimulation/Hit.h"
+#include "TRKSimulation/Hit.h"
 #include "TRKSimulation/Detector.h"
 #include "TRKBase/TRKBaseParam.h"
 #include "TRKSimulation/VDGeometryBuilder.h"
@@ -24,7 +24,7 @@
 
 #include <string>
 
-using o2::itsmft::Hit;
+using o2::trk::Hit;
 
 namespace o2
 {
@@ -39,14 +39,14 @@ float getDetLengthFromEta(const float eta, const float radius)
 Detector::Detector()
   : o2::base::DetImpl<Detector>("TRK", true),
     mTrackData(),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
+    mHits(o2::utils::createSimVector<o2::trk::Hit>())
 {
 }
 
 Detector::Detector(bool active)
   : o2::base::DetImpl<Detector>("TRK", true),
     mTrackData(),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
+    mHits(o2::utils::createSimVector<o2::trk::Hit>())
 {
   auto& trkPars = TRKBaseParam::Instance();
 
@@ -473,7 +473,7 @@ bool Detector::ProcessHits(FairVolume* vol)
       }
     } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 
-    int chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave, mod, chip);
+    unsigned short chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave, mod, chip);
 
     Print(vol, volume, subDetID, layer, stave, halfstave, mod, chip, chipID);
 
@@ -492,9 +492,9 @@ bool Detector::ProcessHits(FairVolume* vol)
   return true;
 }
 
-o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
-                                  const TVector3& startMom, double startE, double endTime, double eLoss, unsigned char startStatus,
-                                  unsigned char endStatus)
+o2::trk::Hit* Detector::addHit(int trackID, unsigned short detID, const TVector3& startPos, const TVector3& endPos,
+                               const TVector3& startMom, double startE, double endTime, double eLoss, unsigned char startStatus,
+                               unsigned char endStatus)
 {
   mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
