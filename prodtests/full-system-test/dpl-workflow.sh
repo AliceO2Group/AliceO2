@@ -379,7 +379,12 @@ if has_processing_step MUON_SYNC_RECO; then
   elif [[ $RUNTYPE == "PHYSICS" && $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]] || [[ $RUNTYPE == "COSMICS" ]]; then
     MCH_CONFIG_KEY+="MCHTracking.chamberResolutionX=0.4;MCHTracking.chamberResolutionY=0.4;MCHTracking.sigmaCutForTracking=7.;MCHTracking.sigmaCutForImprovement=6.;"
   fi
-  has_detector_reco ITS && [[ $RUNTYPE != "COSMICS" ]] && MCH_CONFIG_KEY+="MCHTimeClusterizer.irFramesOnly=true;"
+  if has_detector_reco ITS && [[ $RUNTYPE != "COSMICS" && x"${MCH_DISABLE_ITS_IRFRAMES_SELECTION:-}" != "x1" ]]; then
+    MCH_CONFIG_KEY+="MCHTimeClusterizer.irFramesOnly=true;"
+    [[ -z ${CUT_RANDOM_FRACTION_MCH:-} && -n ${CUT_RANDOM_FRACTION_MCH_WITH_ITS:-} ]] && CUT_RANDOM_FRACTION_MCH=${CUT_RANDOM_FRACTION_MCH_WITH_ITS:-}
+  else
+    [[ -z ${CUT_RANDOM_FRACTION_MCH:-} && -n ${CUT_RANDOM_FRACTION_MCH_NO_ITS:-} ]] && CUT_RANDOM_FRACTION_MCH=${CUT_RANDOM_FRACTION_MCH_NO_ITS:-}
+  fi
   [[ -n ${CUT_RANDOM_FRACTION_MCH:-} ]] && MCH_CONFIG_KEY+="MCHTimeClusterizer.rofRejectionFraction=$CUT_RANDOM_FRACTION_MCH;"
   MCH_CONFIG_KEY+="MCHStatusMap.useHV=false;MCHDigitFilter.statusMask=3;"
   [[ $RUNTYPE == "COSMICS" ]] && [[ -z ${CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow:-} ]] && CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow="MFTTracking.FullClusterScan=true"
