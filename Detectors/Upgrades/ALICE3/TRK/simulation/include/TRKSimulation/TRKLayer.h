@@ -42,6 +42,7 @@ class TRKLayer
 
   TGeoVolume* createSensor(std::string type);
   TGeoVolume* createDeadzone(std::string type);
+  TGeoVolume* createMetalStack(std::string type);
   TGeoVolume* createChip(std::string type);
   TGeoVolume* createModule(std::string type);
   TGeoVolume* createStave(std::string type);
@@ -63,9 +64,10 @@ class TRKLayer
   float mChipLength;
   float mChipThickness;
   float mDeadzoneWidth;
+  float mSensorThickness;
   int mHalfNumberOfChips;
 
-  ClassDef(TRKLayer, 1);
+  ClassDef(TRKLayer, 2);
 };
 
 } // namespace trk

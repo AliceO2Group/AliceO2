@@ -36,6 +36,7 @@ std::string GeometryTGeo::sModuleName = "TRKModule";
 std::string GeometryTGeo::sChipName = "TRKChip";
 std::string GeometryTGeo::sSensorName = "TRKSensor";
 std::string GeometryTGeo::sDeadzoneName = "TRKDeadzone";
+std::string GeometryTGeo::sMetalStackName = "TRKMetalStack";
 
 std::string GeometryTGeo::sWrapperVolumeName = "TRKUWrapVol"; ///< Wrapper volume name, not implemented at the moment
 
