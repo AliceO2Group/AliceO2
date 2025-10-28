@@ -59,7 +59,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int extractNumberOfLayersMLOT();
   int extractNumberOfLayersVD() const;
   int extractNumberOfPetalsVD() const;
-  int extractNumberOfActivePartsVD() const; 
+  int extractNumberOfActivePartsVD() const;
   int extractNumberOfDisksVD() const;
   int extractNumberOfChipsPerPetalVD() const;
   int extractNumberOfStavesMLOT(int lay) const;
@@ -85,20 +85,20 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int getPetalCase(int index) const;
   int getDisk(int index) const;
 
-  void defineMLOTSensors(); 
+  void defineMLOTSensors();
   int getBarrelLayer(int) const;
 
-  //sensor ref X and alpha for ML & OT
-  void extractSensorXAlphaMLOT(int, float&, float&); 
+  // sensor ref X and alpha for ML & OT
+  void extractSensorXAlphaMLOT(int, float&, float&);
 
-  //cache for tracking frames (ML & OT)
-  bool isTrackingFrameCachedMLOT() const {return !mCacheRefXMLOT.empty();}
+  // cache for tracking frames (ML & OT)
+  bool isTrackingFrameCachedMLOT() const { return !mCacheRefXMLOT.empty(); }
   void fillTrackingFramesCacheMLOT();
 
-  float getSensorRefAlphaMLOT(int index) const {return mCacheRefAlphaMLOT[index];}
-  float getSensorXMLOT(int index) const {return mCacheRefXMLOT[index];}
+  float getSensorRefAlphaMLOT(int index) const { return mCacheRefAlphaMLOT[index]; }
+  float getSensorXMLOT(int index) const { return mCacheRefXMLOT[index]; }
 
-  //create matrix for tracking to local frame for MLOT 
+  // create matrix for tracking to local frame for MLOT
   TGeoHMatrix& createT2LMatrixMLOT(int);
 
   /// This routine computes the chip index number from the subDetID, petal, disk, layer, stave /// TODO: retrieve also from chip when chips will be available
@@ -190,9 +190,9 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   bool mOwner = true; //! is it owned by the singleton?
 
-  std::vector<int> sensorsMLOT; 
-  std::vector<float> mCacheRefXMLOT;            ///cache for X of ML and OT
-  std::vector<float> mCacheRefAlphaMLOT;        ///cache for sensor ref alpha ML and OT
+  std::vector<int> sensorsMLOT;
+  std::vector<float> mCacheRefXMLOT;     /// cache for X of ML and OT
+  std::vector<float> mCacheRefAlphaMLOT; /// cache for sensor ref alpha ML and OT
 
  private:
   static std::unique_ptr<o2::trk::GeometryTGeo> sInstance;
