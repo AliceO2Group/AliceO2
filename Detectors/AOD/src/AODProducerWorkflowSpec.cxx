@@ -1008,7 +1008,8 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                              source == 0, // background
                              mMcParticleW,
                              mMcParticleMom,
-                             mMcParticlePos);
+                             mMcParticlePos,
+                             mUseSigFiltMC);
 
     mcReader.releaseTracksForSourceAndEvent(source, event);
   }
