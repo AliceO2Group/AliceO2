@@ -73,6 +73,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cinttypes>
+#include <fstream>
 
 #include "utils/timer.h"
 
@@ -1899,6 +1900,56 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       }
     }
   }
+
+  if (mConfig.compareTrackStatus) {
+#ifdef GPUCA_DETERMINISTIC_MODE
+    if (!mTracking || !mTracking->GetProcessingSettings().deterministicGPUReconstruction)
+#endif
+    {
+      throw std::runtime_error("Need deterministic processing to compare track status");
+    }
+    std::vector<uint8_t> status(mTracking->mIOPtrs.nMergedTracks);
+    for (uint32_t i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
+      const auto& trk = mTracking->mIOPtrs.mergedTracks[i];
+      status[i] = trk.OK() && trk.NClusters() && trk.GetParam().GetNDF() > 0 && (mConfig.noMC || (mTrackMCLabels[i].isValid() && !mTrackMCLabels[i].isFake()));
+    }
+    if (mConfig.compareTrackStatus == 1) {
+      std::ofstream("track.status", std::ios::binary).write((char*)status.data(), status.size() * sizeof(status[0]));
+    } else if (mConfig.compareTrackStatus == 2) {
+      std::ifstream f("track.status", std::ios::binary | std::ios::ate);
+      std::vector<uint8_t> comp(f.tellg());
+      f.seekg(0);
+      f.read((char*)comp.data(), comp.size());
+
+      if (comp.size() != status.size()) {
+        throw std::runtime_error("Number of tracks candidates in track fit in track.status and in current reconstruction differ");
+      }
+      std::vector<uint32_t> missing, missingComp;
+      for (uint32_t i = 0; i < status.size(); i++) {
+        if (status[i] && !comp[i]) {
+          missingComp.emplace_back(i);
+        }
+        if (comp[i] && !status[i]) {
+          missing.emplace_back(i);
+        }
+      }
+      auto printer = [](std::vector<uint32_t> m, const char* name) {
+        if (m.size()) {
+          printf("Missing in %s reconstruction: (%zu)\n", name, m.size());
+          for (uint32_t i = 0; i < m.size(); i++) {
+            if (i) {
+              printf(", ");
+            }
+            printf("%d", m[i]);
+          }
+          printf("\n");
+        }
+      };
+      printer(missing, "current");
+      printer(missingComp, "comparison");
+    }
+  }
+
   mTrackingScratchBuffer.clear();
   mTrackingScratchBuffer.shrink_to_fit();
 }
