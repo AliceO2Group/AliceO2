@@ -171,6 +171,21 @@ class Clusterer
       curr[row] = lastIndex; // store index of the new precluster in the current column buffer
     }
 
+    ///< find canoncial root by path-halving, compresses lookup for idx otf
+    int findRoot(int idx)
+    {
+      int root = idx;
+      while (preClusterIndices[root] != root) { // root finding
+        root = preClusterIndices[root];
+      }
+      while (preClusterIndices[idx] != root) { // path compression
+        int parent = preClusterIndices[idx];
+        preClusterIndices[idx] = root;
+        idx = parent;
+      }
+      return root;
+    }
+
     void fetchMCLabels(int digID, const ConstMCTruth* labelsDig, int& nfilled);
     void initChip(const ChipPixelData* curChipData, uint32_t first);
     void updateChip(const ChipPixelData* curChipData, uint32_t ip);

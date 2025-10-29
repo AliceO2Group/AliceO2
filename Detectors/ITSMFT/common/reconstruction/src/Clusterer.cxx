@@ -133,15 +133,17 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
           if (stat.firstChip == chid) {
             thrStatIdx[ith]++;
             chid += stat.nChips; // next chip to look
-            const auto clbeg = mThreads[ith]->compClusters.begin() + stat.firstClus;
-            auto szold = compClus->size();
-            compClus->insert(compClus->end(), clbeg, clbeg + stat.nClus);
-            if (patterns) {
-              const auto ptbeg = mThreads[ith]->patterns.begin() + stat.firstPatt;
-              patterns->insert(patterns->end(), ptbeg, ptbeg + stat.nPatt);
-            }
-            if (labelsCl) {
-              labelsCl->mergeAtBack(mThreads[ith]->labels, stat.firstClus, stat.nClus);
+            if (stat.nClus > 0) {
+              const auto clbeg = mThreads[ith]->compClusters.begin() + stat.firstClus;
+              auto szold = compClus->size();
+              compClus->insert(compClus->end(), clbeg, clbeg + stat.nClus);
+              if (patterns) {
+                const auto ptbeg = mThreads[ith]->patterns.begin() + stat.firstPatt;
+                patterns->insert(patterns->end(), ptbeg, ptbeg + stat.nPatt);
+              }
+              if (labelsCl) {
+                labelsCl->mergeAtBack(mThreads[ith]->labels, stat.firstClus, stat.nClus);
+              }
             }
           }
         }
@@ -214,6 +216,14 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
                                             PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
   const auto& pixData = curChipData->getData();
+
+  // normalize all precluster indices to their roots
+  for (int i = 0; i < preClusterIndices.size(); ++i) {
+    if (preClusterIndices[i] >= 0) {
+      preClusterIndices[i] = findRoot(i);
+    }
+  }
+
   for (int i1 = 0; i1 < preClusterHeads.size(); ++i1) {
     auto ci = preClusterIndices[i1];
     if (ci < 0) {
@@ -379,11 +389,13 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
   }
 
   Bool_t orphan = true;
+  int currPreClusterIdx = -1;
 
   if (noLeftCol) { // check only the row above
     if (curr[row - 1] >= 0) {
       expandPreCluster(ip, row, curr[row - 1]); // attach to the precluster of the previous row
-      return;
+      currPreClusterIdx = curr[row - 1];
+      orphan = false;
     }
   } else {
 #ifdef _ALLOW_DIAGONAL_ALPIDE_CLUSTERS_
@@ -397,14 +409,20 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
       }
       if (orphan) {
         expandPreCluster(ip, row, pci); // attach to the adjascent precluster
+        currPreClusterIdx = pci;
         orphan = false;
         continue;
       }
-      // reassign precluster index to smallest one
-      if (preClusterIndices[pci] < preClusterIndices[curr[row]]) {
-        preClusterIndices[curr[row]] = preClusterIndices[pci];
-      } else {
-        preClusterIndices[pci] = preClusterIndices[curr[row]];
+      // merge the roots of both preclusters
+      int root1 = findRoot(pci);
+      int root2 = findRoot(currPreClusterIdx);
+      if (root1 != root2) {
+        // point to higher index to lower index for consistency
+        if (root1 < root2) {
+          preClusterIndices[root2] = root1;
+        } else {
+          preClusterIndices[root1] = root2;
+        }
       }
     }
   }
