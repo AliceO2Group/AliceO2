@@ -102,7 +102,7 @@ class GPUTPCGMPropagator
   GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, bool rejectChi2, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge);
   GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, bool rejectChi2, bool refit, float err2Y, float err2Z);
   GPUd() int32_t Update(float posY, float posZ, int16_t clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* param = nullptr);
-  GPUd() void InterpolateFill(float posY, float posZ, gputpcgmmergertypes::InterpolationErrorHit* inter);
+  GPUd() void InterpolateFill(gputpcgmmergertypes::InterpolationErrorHit* inter);
   GPUd() int32_t InterpolateReject(const GPUParam& param, float posY, float posZ, int16_t clusterState, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z, float deltaZ);
   GPUd() float PredictChi2(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge) const;
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;

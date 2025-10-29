@@ -638,7 +638,7 @@ GPUd() int32_t GPUTPCGMPropagator::Update(float posY, float posZ, int32_t iRow, 
   return Update(posY, posZ, clusterState, rejectChi2, err2Y, err2Z, &param);
 }
 
-GPUd() void GPUTPCGMPropagator::InterpolateFill(float posY, float posZ, gputpcgmmergertypes::InterpolationErrorHit* inter)
+GPUd() void GPUTPCGMPropagator::InterpolateFill(gputpcgmmergertypes::InterpolationErrorHit* inter)
 {
   float* GPUrestrict() mC = mT->Cov();
   float* GPUrestrict() mP = mT->Par();
