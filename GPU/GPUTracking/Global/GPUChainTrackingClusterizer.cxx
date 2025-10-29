@@ -57,6 +57,8 @@
 #include "utils/VcShim.h"
 #include "utils/strtag.h"
 #include <fstream>
+#include <numeric>
+#include <vector>
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -762,13 +764,12 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   ClusterNative* tmpNativeClusters = nullptr;
   std::unique_ptr<ClusterNative[]> tmpNativeClusterBuffer;
 
-  // setup MC Labels
-  bool propagateMCLabels = GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
+  const bool buildNativeGPU = doGPU && NeedTPCClustersOnGPU();
+  const bool buildNativeHost = (mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters) || GetProcessingSettings().deterministicGPUReconstruction; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
+  const bool propagateMCLabels = buildNativeHost && GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
+  const bool sortClusters = buildNativeHost && (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4);
 
   auto* digitsMC = propagateMCLabels ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
-
-  bool buildNativeGPU = doGPU && NeedTPCClustersOnGPU();
-  bool buildNativeHost = (mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters) || GetProcessingSettings().deterministicGPUReconstruction; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
 
   mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mRec->MemoryScalers()->nTPCHits * tpcHitLowOccupancyScalingFactor;
   if (buildNativeGPU) {
@@ -1281,21 +1282,20 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
 
   ClusterNativeAccess::ConstMCLabelContainerView* mcLabelsConstView = nullptr;
-  if (propagateMCLabels) {
-    // TODO: write to buffer directly
+  if (propagateMCLabels) { // TODO: write to buffer directly
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
     std::pair<ConstMCLabelContainer*, ConstMCLabelContainerView*> buffer;
-    if (!GetProcessingSettings().tpcWriteClustersAfterRejection && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)] && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->useExternal()) {
-      if (!mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator) {
+    auto& labelOutputControl = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)];
+    if (!GetProcessingSettings().tpcWriteClustersAfterRejection && !sortClusters && labelOutputControl && labelOutputControl->useExternal()) {
+      if (!labelOutputControl->allocator) {
         throw std::runtime_error("Cluster MC Label buffer missing");
       }
-      ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator(0));
+      ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(labelOutputControl->allocator(0));
       buffer = {&container->first, &container->second};
     } else {
       mIOMem.clusterNativeMCView = std::make_unique<ConstMCLabelContainerView>();
       mIOMem.clusterNativeMCBuffer = std::make_unique<ConstMCLabelContainer>();
-      buffer.first = mIOMem.clusterNativeMCBuffer.get();
-      buffer.second = mIOMem.clusterNativeMCView.get();
+      buffer = {mIOMem.clusterNativeMCBuffer.get(), mIOMem.clusterNativeMCView.get()};
     }
 
     assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
@@ -1350,15 +1350,8 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (doGPU && synchronizeCalibUpdate) {
     SynchronizeStream(0);
   }
-  if (buildNativeHost && (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4)) {
-    for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
-        std::sort(&tmpNativeClusters[tmpNativeAccess->clusterOffset[i][j]], &tmpNativeClusters[tmpNativeAccess->clusterOffset[i][j] + tmpNativeAccess->nClusters[i][j]]);
-      }
-    }
-    if (buildNativeGPU) {
-      GPUMemCpy(RecoStep::TPCClusterFinding, (void*)mInputsShadow->mPclusterNativeBuffer, (const void*)tmpNativeClusters, nClsTotal * sizeof(tmpNativeClusters[0]), -1, true);
-    }
+  if (sortClusters) {
+    SortClusters(buildNativeGPU, propagateMCLabels, tmpNativeAccess, tmpNativeClusters);
   }
   mRec->MemoryScalers()->nTPCHits = nClsTotal;
   mRec->PopNonPersistentMemory(RecoStep::TPCClusterFinding, qStr2Tag("TPCCLUST"));
@@ -1373,4 +1366,61 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
 #endif
   return 0;
+}
+
+void GPUChainTracking::SortClusters(bool buildNativeGPU, bool propagateMCLabels, ClusterNativeAccess* clusterAccess, ClusterNative* clusters)
+{
+  if (propagateMCLabels) {
+    std::vector<uint32_t> clsOrder(clusterAccess->nClustersTotal);
+    std::iota(clsOrder.begin(), clsOrder.end(), 0);
+    std::vector<ClusterNative> tmpClusters;
+    for (uint32_t i = 0; i < NSECTORS; i++) {
+      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+        const uint32_t offset = clusterAccess->clusterOffset[i][j];
+        std::sort(&clsOrder[offset], &clsOrder[offset + clusterAccess->nClusters[i][j]], [&clusters](const uint32_t a, const uint32_t b) {
+          return clusters[a] < clusters[b];
+        });
+        tmpClusters.resize(clusterAccess->nClusters[i][j]);
+        memcpy(tmpClusters.data(), &clusters[offset], clusterAccess->nClusters[i][j] * sizeof(tmpClusters[0]));
+        for (uint32_t k = 0; k < tmpClusters.size(); k++) {
+          clusters[offset + k] = tmpClusters[clsOrder[offset + k] - offset];
+        }
+      }
+    }
+    tmpClusters.clear();
+
+    std::pair<o2::dataformats::ConstMCLabelContainer*, o2::dataformats::ConstMCLabelContainerView*> labelBuffer;
+    GPUOutputControl* labelOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)];
+    std::unique_ptr<ConstMCLabelContainerView> tmpUniqueContainerView;
+    std::unique_ptr<ConstMCLabelContainer> tmpUniqueContainerBuffer;
+    if (labelOutput && labelOutput->allocator) {
+      ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* labelContainer = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(labelOutput->allocator(0));
+      labelBuffer = {&labelContainer->first, &labelContainer->second};
+    } else {
+      tmpUniqueContainerView = std::move(mIOMem.clusterNativeMCView);
+      tmpUniqueContainerBuffer = std::move(mIOMem.clusterNativeMCBuffer);
+      mIOMem.clusterNativeMCView = std::make_unique<ConstMCLabelContainerView>();
+      mIOMem.clusterNativeMCBuffer = std::make_unique<ConstMCLabelContainer>();
+      labelBuffer = {mIOMem.clusterNativeMCBuffer.get(), mIOMem.clusterNativeMCView.get()};
+    }
+
+    o2::dataformats::MCLabelContainer tmpContainer;
+    for (uint32_t i = 0; i < clusterAccess->nClustersTotal; i++) {
+      for (const auto& element : clusterAccess->clustersMCTruth->getLabels(clsOrder[i])) {
+        tmpContainer.addElement(i, element);
+      }
+    }
+    tmpContainer.flatten_to(*labelBuffer.first);
+    *labelBuffer.second = *labelBuffer.first;
+    clusterAccess->clustersMCTruth = labelBuffer.second;
+  } else {
+    for (uint32_t i = 0; i < NSECTORS; i++) {
+      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+        std::sort(&clusters[clusterAccess->clusterOffset[i][j]], &clusters[clusterAccess->clusterOffset[i][j] + clusterAccess->nClusters[i][j]]);
+      }
+    }
+  }
+  if (buildNativeGPU) {
+    GPUMemCpy(RecoStep::TPCClusterFinding, (void*)mInputsShadow->mPclusterNativeBuffer, (const void*)clusters, clusterAccess->nClustersTotal * sizeof(clusters[0]), -1, true);
+  }
 }
