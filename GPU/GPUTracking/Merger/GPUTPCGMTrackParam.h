@@ -163,7 +163,8 @@ class GPUTPCGMTrackParam
   GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, uint8_t row, uint8_t clusterState, bool mirrorParameters, int8_t sector);
   GPUd() int32_t MergeDoubleRowClusters(int32_t& ihit, int32_t wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger& merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int32_t maxN, float clAlpha, uint8_t& clusterState, const bool markReject);
-  GPUd() float FindBestInterpolatedHit(GPUTPCGMMerger& merger, gputpcgmmergertypes::InterpolationErrorHit& inter, const uint8_t sector, const uint8_t row, const float deltaZ, const float sumInvSqrtCharge, const int nAvgCharge, const GPUTPCGMPropagator& prop, const int32_t iTrk);
+  GPUd() float FindBestInterpolatedHit(GPUTPCGMMerger& merger, gputpcgmmergertypes::InterpolationErrorHit& inter, const uint8_t sector, const uint8_t row, const float deltaZ, const float sumInvSqrtCharge, const int nAvgCharge, const GPUTPCGMPropagator& prop, const int32_t iTrk, bool interOnly);
+  GPUd() void InterpolateMissingRows(GPUTPCGMMerger& merger, gputpcgmmergertypes::InterpolationErrors& interpolation, GPUTPCGMMergedTrackHit* clusters, int32_t ihit, int32_t interpolationIndex, int32_t lastRow, const float deltaZ, const float sumInvSqrtCharge, const int32_t nAvgCharge, const GPUTPCGMPropagator& prop, const int32_t iTrk);
 
   GPUd() float AttachClusters(const GPUTPCGMMerger& merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use
   GPUd() float AttachClusters(const GPUTPCGMMerger& merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z);
