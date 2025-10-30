@@ -268,3 +268,8 @@ void GPUO2Interface::UseGPUPolynomialFieldInPropagator(o2::base::Propagator* pro
 {
   prop->setGPUField(&mCtx[0].mRec->GetParam().polynomialField);
 }
+
+void GPUO2Interface::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, GPUDataTypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode)
+{
+  GPUChainTracking::ApplySyncSettings(proc, rec, steps, syncMode, dEdxMode);
+}

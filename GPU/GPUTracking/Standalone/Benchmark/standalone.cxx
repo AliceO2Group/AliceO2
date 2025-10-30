@@ -377,9 +377,6 @@ int32_t SetupReconstruction()
   } else if (chainTracking->GetTRDGeometry() == nullptr) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }
-  if (configStandalone.rundEdx != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, configStandalone.rundEdx > 0);
-  }
   if (configStandalone.runCompression != -1) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, configStandalone.runCompression > 0);
   }
@@ -434,22 +431,14 @@ int32_t SetupReconstruction()
     }
   }
 
-  bool runAsyncQA = procSet.runQA && !configStandalone.testSyncAsyncQcInSync;
-  if (configStandalone.testSyncAsync || configStandalone.testSync) {
-    // Set settings for synchronous
-    if (configStandalone.rundEdx == -1) {
-      steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+  // Set settings for synchronous
+  GPUChainTracking::ApplySyncSettings(procSet, recSet, steps.steps, configStandalone.testSyncAsync || configStandalone.testSync, configStandalone.rundEdx);
+  int32_t runAsyncQA = procSet.runQA && !configStandalone.testSyncAsyncQcInSync ? procSet.runQA : 0;
+  if (configStandalone.testSyncAsync) {
+    procSet.eventDisplay = nullptr;
+    if (!configStandalone.testSyncAsyncQcInSync) {
+      procSet.runQA = false;
     }
-    recSet.useMatLUT = false;
-    if (configStandalone.testSyncAsync) {
-      procSet.eventDisplay = nullptr;
-      if (!configStandalone.testSyncAsyncQcInSync) {
-        procSet.runQA = false;
-      }
-    }
-  }
-  if (configStandalone.proc.rtc.optSpecialCode == -1) {
-    configStandalone.proc.rtc.optSpecialCode = configStandalone.testSyncAsync || configStandalone.testSync;
   }
 
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
@@ -470,13 +459,12 @@ int32_t SetupReconstruction()
     procSet.runQA = runAsyncQA;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
-    procSet.rtc.optSpecialCode = 0;
     if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
       procSet.tpcInputWithClusterRejection = 1;
     }
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
-    recSet.useMatLUT = true;
+    GPUChainTracking::ApplySyncSettings(procSet, recSet, steps.steps, false, configStandalone.rundEdx);
     recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
   }
 

@@ -1007,3 +1007,17 @@ void GPUChainTracking::SetO2Propagator(const o2::base::Propagator* prop)
     GPUFatal("GPU magnetic field for propagator requested, but received an O2 propagator without GPU field");
   }
 }
+
+void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, GPUDataTypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode)
+{
+  if (syncMode) {
+    rec.useMatLUT = false;
+    rec.tpc.rebuildTrackMaxNonIntCov = 0.f;
+  }
+  if (proc.rtc.optSpecialCode == -1) {
+    proc.rtc.optSpecialCode = syncMode;
+  }
+  if (dEdxMode != -2) {
+    steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, dEdxMode == -1 ? !syncMode : dEdxMode > 0);
+  }
+}

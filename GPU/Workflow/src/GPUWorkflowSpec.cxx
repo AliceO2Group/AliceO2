@@ -185,20 +185,15 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
   }
   mConfig->configInterface.outputToExternalBuffers = true;
-  if (mConfParam->synchronousProcessing) {
-    mConfig->configReconstruction.useMatLUT = false;
-  }
-  if (mConfig->configProcessing.rtc.optSpecialCode == -1) {
-    mConfig->configProcessing.rtc.optSpecialCode = mConfParam->synchronousProcessing;
-  }
+  const bool runTracking = mSpecConfig.outputTracks || mSpecConfig.outputCompClustersRoot || mSpecConfig.outputCompClustersFlat;
+  GPUO2Interface::ApplySyncSettings(mConfig->configProcessing, mConfig->configReconstruction, mConfig->configWorkflow.steps, mConfParam->synchronousProcessing, runTracking ? mConfParam->rundEdx : -2);
 
   // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
-  if (mSpecConfig.outputTracks || mSpecConfig.outputCompClustersRoot || mSpecConfig.outputCompClustersFlat) {
+  if (runTracking) {
     mConfig->configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
                                       GPUDataTypes::RecoStep::TPCSectorTracking,
                                       GPUDataTypes::RecoStep::TPCMerging);
     mConfig->configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
-    mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, mConfParam->rundEdx == -1 ? !mConfParam->synchronousProcessing : mConfParam->rundEdx);
   }
   if (mSpecConfig.outputCompClustersRoot || mSpecConfig.outputCompClustersFlat) {
     mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, true);
