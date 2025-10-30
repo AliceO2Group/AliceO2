@@ -1331,6 +1331,58 @@ void DataProcessingDevice::Reset()
   ref.get<CallbackService>().call<CallbackService::Id::Reset>();
 }
 
+TransitionHandlingState updateStateTransition(ServiceRegistryRef& ref, ProcessingPolicies const& policies)
+{
+  auto& state = ref.get<DeviceState>();
+  auto& deviceProxy = ref.get<FairMQDeviceProxy>();
+  if (state.transitionHandling != TransitionHandlingState::NoTransition || deviceProxy.newStateRequested() == false) {
+    return state.transitionHandling;
+  }
+  O2_SIGNPOST_ID_FROM_POINTER(lid, device, state.loop);
+  auto& deviceContext = ref.get<DeviceContext>();
+  // Check if we only have timers
+  auto& spec = ref.get<DeviceSpec const>();
+  if (hasOnlyTimers(spec)) {
+    switchState(ref, StreamingState::EndOfStreaming);
+  }
+
+  // We do not do anything in particular if the data processing timeout would go past the exitTransitionTimeout
+  if (deviceContext.dataProcessingTimeout > 0 && deviceContext.dataProcessingTimeout < deviceContext.exitTransitionTimeout) {
+    uv_update_time(state.loop);
+    O2_SIGNPOST_EVENT_EMIT(calibration, lid, "timer_setup", "Starting %d s timer for dataProcessingTimeout.", deviceContext.dataProcessingTimeout);
+    uv_timer_start(deviceContext.dataProcessingGracePeriodTimer, on_data_processing_expired, deviceContext.dataProcessingTimeout * 1000, 0);
+  }
+  if (deviceContext.exitTransitionTimeout != 0 && state.streaming != StreamingState::Idle) {
+    ref.get<CallbackService>().call<CallbackService::Id::ExitRequested>(ServiceRegistryRef{ref});
+    uv_update_time(state.loop);
+    O2_SIGNPOST_EVENT_EMIT(calibration, lid, "timer_setup", "Starting %d s timer for exitTransitionTimeout.",
+                           deviceContext.exitTransitionTimeout);
+    uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, deviceContext.exitTransitionTimeout * 1000, 0);
+    bool onlyGenerated = hasOnlyGenerated(spec);
+    int timeout = onlyGenerated ? deviceContext.dataProcessingTimeout : deviceContext.exitTransitionTimeout;
+    if (policies.termination == TerminationPolicy::QUIT && DefaultsHelpers::onlineDeploymentMode() == false) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before quitting.", timeout);
+    } else {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop",
+                                  "New state requested. Waiting for %d seconds before %{public}s",
+                                  timeout,
+                                  onlyGenerated ? "dropping remaining input and switching to READY state." : "switching to READY state.");
+    }
+    return TransitionHandlingState::Requested;
+  } else {
+    if (deviceContext.exitTransitionTimeout == 0 && policies.termination == TerminationPolicy::QUIT) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, quitting immediately as per --completion-policy");
+    } else if (deviceContext.exitTransitionTimeout == 0 && policies.termination != TerminationPolicy::QUIT) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, switching to READY state immediately");
+    } else if (policies.termination == TerminationPolicy::QUIT) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, quitting immediately as per --completion-policy");
+    } else {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, switching to READY immediately.");
+    }
+    return TransitionHandlingState::Expired;
+  }
+}
+
 void DataProcessingDevice::Run()
 {
   ServiceRegistryRef ref{mServiceRegistry};
@@ -1383,51 +1435,7 @@ void DataProcessingDevice::Run()
         shouldNotWait = true;
         state.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
       }
-      if (state.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
-        state.transitionHandling = TransitionHandlingState::Requested;
-        auto& deviceContext = ref.get<DeviceContext>();
-        // Check if we only have timers
-        auto& spec = ref.get<DeviceSpec const>();
-        if (hasOnlyTimers(spec)) {
-          switchState(ref, StreamingState::EndOfStreaming);
-        }
-
-        // We do not do anything in particular if the data processing timeout would go past the exitTransitionTimeout
-        if (deviceContext.dataProcessingTimeout > 0 && deviceContext.dataProcessingTimeout < deviceContext.exitTransitionTimeout) {
-          uv_update_time(state.loop);
-          O2_SIGNPOST_EVENT_EMIT(calibration, lid, "timer_setup", "Starting %d s timer for dataProcessingTimeout.", deviceContext.dataProcessingTimeout);
-          uv_timer_start(deviceContext.dataProcessingGracePeriodTimer, on_data_processing_expired, deviceContext.dataProcessingTimeout * 1000, 0);
-        }
-        if (deviceContext.exitTransitionTimeout != 0 && state.streaming != StreamingState::Idle) {
-          state.transitionHandling = TransitionHandlingState::Requested;
-          ref.get<CallbackService>().call<CallbackService::Id::ExitRequested>(ServiceRegistryRef{ref});
-          uv_update_time(state.loop);
-          O2_SIGNPOST_EVENT_EMIT(calibration, lid, "timer_setup", "Starting %d s timer for exitTransitionTimeout.",
-                                 deviceContext.exitTransitionTimeout);
-          uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, deviceContext.exitTransitionTimeout * 1000, 0);
-          bool onlyGenerated = hasOnlyGenerated(spec);
-          int timeout = onlyGenerated ? deviceContext.dataProcessingTimeout : deviceContext.exitTransitionTimeout;
-          if (mProcessingPolicies.termination == TerminationPolicy::QUIT && DefaultsHelpers::onlineDeploymentMode() == false) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before quitting.", timeout);
-          } else {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop",
-                                        "New state requested. Waiting for %d seconds before %{public}s",
-                                        timeout,
-                                        onlyGenerated ? "dropping remaining input and switching to READY state." : "switching to READY state.");
-          }
-        } else {
-          state.transitionHandling = TransitionHandlingState::Expired;
-          if (deviceContext.exitTransitionTimeout == 0 && mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, quitting immediately as per --completion-policy");
-          } else if (deviceContext.exitTransitionTimeout == 0 && mProcessingPolicies.termination != TerminationPolicy::QUIT) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, switching to READY state immediately");
-          } else if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, quitting immediately as per --completion-policy");
-          } else {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, switching to READY immediately.");
-          }
-        }
-      }
+      state.transitionHandling = updateStateTransition(ref, ref.get<DeviceContext>().processingPolicies);
       // If we are Idle, we can then consider the transition to be expired.
       if (state.transitionHandling == TransitionHandlingState::Requested && state.streaming == StreamingState::Idle) {
         O2_SIGNPOST_EVENT_EMIT(device, lid, "run_loop", "State transition requested and we are now in Idle. We can consider it to be completed.");
