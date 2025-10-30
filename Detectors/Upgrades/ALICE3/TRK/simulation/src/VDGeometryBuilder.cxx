@@ -90,8 +90,9 @@ inline const char* ensureShapeName(TGeoVolume* v)
     int k = 0;
     TString cand = wanted;
     auto* shapes = gGeoManager ? gGeoManager->GetListOfShapes() : nullptr;
-    while (shapes && shapes->FindObject(cand))
+    while (shapes && shapes->FindObject(cand)) {
       cand = Form("%s_%d", wanted.Data(), ++k);
+    }
     sh->SetName(cand);
     if (shapes && !shapes->FindObject(cand)) {
       shapes->Add(sh);
