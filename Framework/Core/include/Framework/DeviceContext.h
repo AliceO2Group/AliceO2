@@ -21,6 +21,7 @@ typedef struct uv_signal_s uv_signal_t;
 namespace o2::framework
 {
 struct ComputingQuotaStats;
+struct ProcessingPolicies;
 
 /// Stucture which holds the whole runtime context
 /// of a running device which is not stored as
@@ -33,6 +34,7 @@ struct DeviceContext {
   int expectedRegionCallbacks = 0;
   int exitTransitionTimeout = 0;
   int dataProcessingTimeout = 0;
+  ProcessingPolicies& processingPolicies;
 };
 
 } // namespace o2::framework

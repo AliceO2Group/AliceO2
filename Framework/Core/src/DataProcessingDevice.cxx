@@ -17,6 +17,7 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DeviceStateEnums.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DispatchControl.h"
 #include "Framework/DanglingContext.h"
@@ -196,11 +197,10 @@ struct locked_execution {
   ~locked_execution() { ref.unlock(); }
 };
 
-DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
+DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry)
   : mRunningDevice{running},
     mConfigRegistry{nullptr},
-    mServiceRegistry{registry},
-    mProcessingPolicies{policies}
+    mServiceRegistry{registry}
 {
   GetConfig()->Subscribe<std::string>("dpl", [&registry = mServiceRegistry](const std::string& key, std::string value) {
     if (key == "cleanup") {
@@ -247,6 +247,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
   mHandles.resize(1);
 
   ServiceRegistryRef ref{mServiceRegistry};
+
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
   auto& state = ref.get<DeviceState>();
   assert(state.loop);
@@ -1189,18 +1190,18 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       errorCallback(errorContext);
     };
   } else {
-    context.errorHandling = [&errorPolicy = mProcessingPolicies.error,
-                             &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+    context.errorHandling = [&serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       auto& err = error_from_ref(e);
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
       auto& context = ref.get<DataProcessorContext>();
+      auto& deviceContext = ref.get<DeviceContext>();
       O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
       BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
-      switch (errorPolicy) {
+      switch (deviceContext.processingPolicies.error) {
         case TerminationPolicy::QUIT:
           O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Rethrowing.", err.what);
           throw e;
@@ -1211,10 +1212,10 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     };
   }
 
-  auto decideEarlyForward = [&context, &spec, this]() -> bool {
+  auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> bool {
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding
-    bool canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+    bool canForwardEarly = (spec.forwards.empty() == false) && deviceContext.processingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
     bool onlyConditions = true;
     bool overriddenEarlyForward = false;
     for (auto& forwarded : spec.forwards) {
@@ -1229,7 +1230,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
         break;
       }
 #endif
-      if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
+      if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && deviceContext.processingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
         context.canForwardEarly = false;
         overriddenEarlyForward = true;
         LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
@@ -1560,7 +1561,7 @@ void DataProcessingDevice::Run()
     }
   }
 
-  O2_SIGNPOST_END(device, lid, "run_loop", "Run loop completed. Transition handling state %d.", state.transitionHandling);
+  O2_SIGNPOST_END(device, lid, "run_loop", "Run loop completed. Transition handling state %d.", (int)state.transitionHandling);
   auto& spec = ref.get<DeviceSpec const>();
   /// Cleanup messages which are still pending on exit.
   for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
