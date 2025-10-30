@@ -87,7 +87,9 @@ class GPUTPCGMMerger : public GPUProcessor
   };
 
   struct trackRebuildHelper {
-    bool reverse;
+    uint8_t reverse;
+    uint8_t highInclRowLow;
+    uint8_t highInclRowHigh;
   };
 
   struct tmpSort {
@@ -123,6 +125,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
   GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return mClusters; }
   GPUhdi() trackCluster* ClusterCandidates() { return mClusterCandidates; }
+  GPUhdi() trackRebuildHelper* TrackRebuildHelper() { return mTrackRebuildHelper; }
   GPUhdi() int32_t* HitWeights() { return mHitWeights; }
   GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhdi() uint32_t* TrackOrderAttach() const { return mTrackOrderAttach; }

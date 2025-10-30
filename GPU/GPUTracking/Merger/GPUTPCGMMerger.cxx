@@ -2277,7 +2277,11 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
         }
         const auto& best = candidates[candidates[0].best - 1];
         const ClusterNative& GPUrestrict() cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[best.id - 2];
-        outCl = {.num = best.id - 2, .sector = best.sector, .row = (uint8_t)j, .state = (uint8_t)(cl.getFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags)};
+        uint8_t flags = (uint8_t)(cl.getFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags);
+        if ((mTrackRebuildHelper[i].highInclRowLow != 255 && j <= mTrackRebuildHelper[i].highInclRowLow) || (mTrackRebuildHelper[i].highInclRowHigh != 255 && j >= mTrackRebuildHelper[i].highInclRowHigh)) {
+          flags |= GPUTPCGMMergedTrackHit::flagHighIncl;
+        }
+        outCl = {.num = best.id - 2, .sector = best.sector, .row = (uint8_t)j, .state = flags};
         written++;
         CADEBUG(printf("REBUILD: iTrk %d Assigned Cluster Row %d Hit %d\n", i, j, best.id - 2));
       }
