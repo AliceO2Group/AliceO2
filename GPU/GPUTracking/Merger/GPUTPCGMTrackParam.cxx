@@ -64,6 +64,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
     for (uint32_t i = 0; i < interpolation.size; i++) { // TODO: Tune the zeroing size
       interpolation.hit[i].errorY = -1;
     }
+    if (param.rec.tpc.rebuildTrackInFit) {
+      merger.TrackRebuildHelper()[iTrk].highInclRowLow = 255;
+      merger.TrackRebuildHelper()[iTrk].highInclRowHigh = 255;
+    }
   }
 
   const int32_t nWays = param.rec.tpc.nWays;
@@ -206,6 +210,28 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         continue;
       }
 
+      const float maxSinForUpdate = CAMath::Sin(70.f * CAMath::Deg2Rad());
+      if (mNDF > 0 && CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate) {
+        MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagHighIncl);
+        nMissed2++;
+        CADEBUG(printf(" --- break-sinphi\n"));
+        NTolerated++;
+        const bool inward = clusters[0].row > clusters[maxN - 1].row;
+        const bool markHighIncl = (mP[2] > 0) ^ (mP[4] < 0) ^ inward ^ (iWay & 1);
+        if (param.rec.tpc.rebuildTrackInFit && markHighIncl) {
+          if (inward ^ (iWay & 1)) {
+            if (merger.TrackRebuildHelper()[iTrk].highInclRowLow == 255) {
+              merger.TrackRebuildHelper()[iTrk].highInclRowLow = cluster.row;
+            }
+          } else {
+            if (merger.TrackRebuildHelper()[iTrk].highInclRowHigh == 255) {
+              merger.TrackRebuildHelper()[iTrk].highInclRowHigh = cluster.row;
+            }
+          }
+        }
+        continue;
+      }
+
       int32_t retValHit = FitHit(merger, iTrk, track, xx, yy, zz, clusterState, clAlpha, iWay, inFlyDirection, deltaZ, lastUpdateX, clusters, prop, inter, dEdx, dEdxAlt, sumInvSqrtCharge, nAvgCharge, ihit, ihitMergeFirst, allowChangeClusters, refit, finalFit, nMissed, nMissed2, resetT0, uncorrectedY);
       if (retValHit == 0) {
         DodEdx(dEdx, dEdxAlt, merger, finalFit, ihit, ihitMergeFirst, wayDirection, clusters, clusterState, zz, dEdxSubThresholdRow);
@@ -215,9 +241,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         covYYUpd = mC[0];
       } else if (retValHit == 1) {
         break;
-      } else if (retValHit == 2) {
-        NTolerated++;
-        continue;
       }
 
       lastUpdateRow = cluster.row;
@@ -310,14 +333,6 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
   const int32_t nWays = param.rec.tpc.nWays;
   const int32_t wayDirection = (iWay & 1) ? -1 : 1;
   const auto& cluster = clusters[ihit];
-
-  const float maxSinForUpdate = CAMath::Sin(70.f * CAMath::Deg2Rad());
-  if (mNDF > 0 && CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate) {
-    MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagHighIncl);
-    nMissed2++;
-    CADEBUG(printf(" --- break-sinphi\n"));
-    return 2; // Propagate failed or high incl angle
-  }
 
   int32_t retValUpd = 0, retValInt = 0;
   float threshold = 3.f + (lastUpdateX >= 0 ? (CAMath::Abs(mX - lastUpdateX) / 2) : 0.f);
