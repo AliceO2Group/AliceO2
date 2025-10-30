@@ -135,7 +135,7 @@ void Detector::buildTRKMiddleOuterLayers()
       mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
       break;
     default:
-      LOGP(fatal, "Unknown option {} for buildTRKMiddleOuterLayers", static_cast<std::underlying_type_t<o2::trk::eOverallGeom>>(trkPars.overallGeom));
+      LOGP(fatal, "Unknown option {} for buildTRKMiddleOuterLayers", static_cast<int>(trkPars.overallGeom));
       break;
   }
 
