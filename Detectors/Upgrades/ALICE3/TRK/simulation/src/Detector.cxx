@@ -23,6 +23,7 @@
 #include "TRKSimulation/VDSensorRegistry.h"
 
 #include <string>
+#include <type_traits>
 
 using o2::trk::Hit;
 
@@ -134,7 +135,7 @@ void Detector::buildTRKMiddleOuterLayers()
       mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
       break;
     default:
-      LOGP(warning, "Unknown option {} for buildTRKNewVacuumVessel", trkPars.overallGeom);
+      LOGP(fatal, "Unknown option {} for buildTRKMiddleOuterLayers", static_cast<std::underlying_type_t<o2::trk::eOverallGeom>>(trkPars.overallGeom));
       break;
   }
 
