@@ -406,7 +406,7 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
   GPUglobalref() const cahit2* hits = tracker.HitData(rowData);
   GPUglobalref() const calink* firsthit = tracker.FirstHitInBin(rowData);
   float uncorrectedY = -1e6f, uncorrectedZ;
-  if (rowData.NHits() && inter.errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
+  if (rowData.NHits() && (inter.errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0 || (param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && mC[0] < param.rec.tpc.rebuildTrackMaxNonIntCov && mC[2] < param.rec.tpc.rebuildTrackMaxNonIntCov))) {
     const float zOffset = param.par.continuousTracking ? merger.GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0;
     const float y0 = rowData.Grid().YMin();
     const float stepY = rowData.HstepY();
@@ -414,19 +414,24 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
     const float stepZ = rowData.HstepZ();
     int32_t bin, ny, nz;
 
-    float err2Y, err2Z;
-    param.GetClusterErrors2(sector, row, mP[1], mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Use correct time/avgCharge
-
-    const float Iz0 = inter.posY - mP[0];
-    const float Iz1 = inter.posZ + deltaZ - mP[1];
-    const float Iw0 = 1.f / (mC[0] + (float)inter.errorY);
-    const float Iw2 = 1.f / (mC[2] + (float)inter.errorZ);
-    const float Ik00 = mC[0] * Iw0;
-    const float Ik11 = mC[2] * Iw2;
-    const float ImP0 = mP[0] + Ik00 * Iz0;
-    const float ImP1 = mP[1] + Ik11 * Iz1;
-    const float ImC0 = mC[0] - Ik00 * mC[0];
-    const float ImC2 = mC[2] - Ik11 * mC[2];
+    float ImP0, ImP1, ImC0, ImC2;
+    if (inter.errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0) {
+      const float Iz0 = inter.posY - mP[0];
+      const float Iz1 = inter.posZ + deltaZ - mP[1];
+      const float Iw0 = 1.f / (mC[0] + (float)inter.errorY);
+      const float Iw2 = 1.f / (mC[2] + (float)inter.errorZ);
+      const float Ik00 = mC[0] * Iw0;
+      const float Ik11 = mC[2] * Iw2;
+      ImP0 = mP[0] + Ik00 * Iz0;
+      ImP1 = mP[1] + Ik11 * Iz1;
+      ImC0 = mC[0] - Ik00 * mC[0];
+      ImC2 = mC[2] - Ik11 * mC[2];
+    } else {
+      ImP0 = mP[0];
+      ImP1 = mP[1];
+      ImC0 = mC[0];
+      ImC2 = mC[2];
+    }
 
     merger.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(sector, row, ImP0, ImP1, uncorrectedY, uncorrectedZ);
 
@@ -435,6 +440,9 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
       nCandidates++;
     }
     if (CAMath::Abs(uncorrectedY) <= rowData.getTPCMaxY()) {
+      float err2Y, err2Z;
+      param.GetClusterErrors2(sector, row, mP[1], mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Use correct time/avgCharge
+
       const float kFactor = tracker.GetChiSeedFactor();
       const float sy2 = 4 * CAMath::Min(param.rec.tpc.hitSearchArea2, kFactor * (err2Y + CAMath::Abs(mC[0]))); // TODO: is 4 a good factor??
       const float sz2 = 4 * CAMath::Min(param.rec.tpc.hitSearchArea2, kFactor * (err2Z + CAMath::Abs(mC[2])));

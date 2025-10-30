@@ -1002,6 +1002,7 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
 {
   if (syncMode) {
     rec.useMatLUT = false;
+    rec.tpc.rebuildTrackMaxNonIntCov = 0.f;
   }
   if (proc.rtc.optSpecialCode == -1) {
     proc.rtc.optSpecialCode = syncMode;
