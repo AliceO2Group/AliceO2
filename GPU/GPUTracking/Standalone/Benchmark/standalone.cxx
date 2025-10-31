@@ -304,6 +304,10 @@ int32_t SetupReconstruction()
 
   chainTracking->mConfigQA = &configStandalone.QA;
   chainTracking->mConfigDisplay = &configStandalone.display;
+  if (configStandalone.testSyncAsync) {
+    chainTrackingAsync->mConfigQA = &configStandalone.QA;
+    chainTrackingAsync->mConfigDisplay = &configStandalone.display;
+  }
 
   GPUSettingsGRP grp = rec->GetGRPSettings();
   GPUSettingsRec recSet;
@@ -426,6 +430,7 @@ int32_t SetupReconstruction()
     }
   }
 
+  bool runAsyncQA = procSet.runQA;
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
     if (configStandalone.rundEdx == -1) {
@@ -434,6 +439,7 @@ int32_t SetupReconstruction()
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       procSet.eventDisplay = nullptr;
+      procSet.runQA = false;
     }
   }
   if (configStandalone.proc.rtc.optSpecialCode == -1) {
@@ -455,7 +461,7 @@ int32_t SetupReconstruction()
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
     steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
     procSet.runMC = false;
-    procSet.runQA = false;
+    procSet.runQA = runAsyncQA;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
     procSet.rtc.optSpecialCode = 0;
@@ -749,7 +755,6 @@ int32_t main(int argc, char** argv)
       recAsync->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingAsync = recAsync->AddChain<GPUChainTracking>();
-    chainTrackingAsync->SetQAFromForeignChain(chainTracking);
   }
   if (configStandalone.proc.doublePipeline) {
     if (configStandalone.proc.debugLevel >= 3) {
@@ -959,6 +964,9 @@ breakrun:
   }
 
   rec->Finalize();
+  if (configStandalone.testSyncAsync) {
+    recAsync->Finalize();
+  }
   if (configStandalone.outputcontrolmem && rec->IsGPU()) {
     if (rec->unregisterMemoryForGPU(outputmemory.get()) || (configStandalone.proc.doublePipeline && recPipeline->unregisterMemoryForGPU(outputmemoryPipeline.get()))) {
       printf("Error unregistering memory\n");
