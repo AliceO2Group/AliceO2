@@ -34,6 +34,8 @@ enum attachTypes { attachProtect = 0x80000000,
 struct InterpolationErrorHit {
   float posY, posZ;
   GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A errorY, errorZ;
+  GPUdi() bool isValid() const { return errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0; }
+  GPUdi() void markInvalid() { errorY = (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-1; }
 };
 
 struct InterpolationErrors {
