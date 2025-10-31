@@ -47,7 +47,7 @@
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_t iTrk, int32_t& GPUrestrict() N, int32_t& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, GPUTPCGMMergedTrack& GPUrestrict() track, bool rebuilt)
+GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_t iTrk, int32_t& GPUrestrict() N, int32_t& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, GPUTPCGMMergedTrack& GPUrestrict() track, bool rebuilt, bool retryAttempt)
 {
   static constexpr float maxSinPhi = constants::MAX_SIN_PHI;
 
@@ -91,7 +91,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
     const bool finalFit = iWay == nWays - 1;
 
     ResetCovariance();
-    prop.SetSeedingErrors(!(refit));
+    prop.SetSeedingErrors(!(refit && !retryAttempt));
     prop.SetFitInProjections(true); // param.rec.fitInProjections == -1 ? (iWay == 0) : param.rec.fitInProjections); // TODO: Reenable once fixed
     prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly == -1 ? !finalFit : param.rec.fitPropagateBzOnly);
     prop.SetMatLUT((param.rec.useMatLUT && finalFit) ? merger.GetConstantMem()->calibObjects.matLUT : nullptr);
@@ -239,7 +239,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         continue;
       }
 
-      int32_t retValHit = FitHit(merger, iTrk, track, xx, yy, zz, clusterState, clAlpha, iWay, inFlyDirection, deltaZ, lastUpdateX, clusters, prop, inter, dEdx, dEdxAlt, sumInvSqrtCharge, nAvgCharge, ihit, ihitMergeFirst, allowChangeClusters, refit, finalFit, nMissed, nMissed2, resetT0, uncorrectedY);
+      int32_t retValHit = FitHit(merger, iTrk, track, xx, yy, zz, clusterState, clAlpha, iWay, inFlyDirection, deltaZ, lastUpdateX, clusters, prop, inter, dEdx, dEdxAlt, sumInvSqrtCharge, nAvgCharge, ihit, ihitMergeFirst, allowChangeClusters, refit, finalFit, nMissed, nMissed2, resetT0, uncorrectedY, retryAttempt);
       if (retValHit == 0) {
         DodEdx(dEdx, dEdxAlt, merger, finalFit, ihit, ihitMergeFirst, wayDirection, clusters, clusterState, zz, dEdxSubThresholdRow);
         ihitStart = ihit;
@@ -256,7 +256,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       lastUpdateRow = cluster.row;
       assert(!param.rec.tpc.mergerInterpolateErrors || rebuilt || iWay != nWays - 2 || ihit || interpolationIndex == 0);
     }
-    if (finalOutInFit && !(param.rec.tpc.disableRefitAttachment & 4) && lastUpdateRow != 255) {
+    if (finalOutInFit && !(param.rec.tpc.disableRefitAttachment & 4) && lastUpdateRow != 255 && !retryAttempt) {
       StoreLoopPropagation(merger, lastSector, lastUpdateRow, iTrk, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row, prop.GetAlpha());
       CADEBUG(printf("\t\tSTORING %d lastUpdateRow %d row %d out %d\n", iTrk, (int)lastUpdateRow, (int)clusters[(iWay & 1) ? (maxN - 1) : 0].row, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row));
     }
@@ -347,7 +347,7 @@ GPUdii() void GPUTPCGMTrackParam::HandleCrossCE(const GPUParam& GPUrestrict() pa
   }
 }
 
-GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger, const int32_t iTrk, const GPUTPCGMMergedTrack& GPUrestrict() track, const float xx, const float yy, const float zz, const uint8_t clusterState, const float clAlpha, const int32_t iWay, const bool inFlyDirection, float& GPUrestrict() deltaZ, float& GPUrestrict() lastUpdateX, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, GPUTPCGMPropagator& GPUrestrict() prop, gputpcgmmergertypes::InterpolationErrorHit& GPUrestrict() inter, GPUdEdx& GPUrestrict() dEdx, GPUdEdx& GPUrestrict() dEdxAlt, float& GPUrestrict() sumInvSqrtCharge, int32_t& GPUrestrict() nAvgCharge, const int32_t ihit, const int32_t ihitMergeFirst, const bool allowChangeClusters, const bool refit, const bool finalFit, int32_t& GPUrestrict() nMissed, int32_t& GPUrestrict() nMissed2, int32_t& GPUrestrict() resetT0, float uncorrectedY)
+GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger, const int32_t iTrk, const GPUTPCGMMergedTrack& GPUrestrict() track, const float xx, const float yy, const float zz, const uint8_t clusterState, const float clAlpha, const int32_t iWay, const bool inFlyDirection, float& GPUrestrict() deltaZ, float& GPUrestrict() lastUpdateX, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, GPUTPCGMPropagator& GPUrestrict() prop, gputpcgmmergertypes::InterpolationErrorHit& GPUrestrict() inter, GPUdEdx& GPUrestrict() dEdx, GPUdEdx& GPUrestrict() dEdxAlt, float& GPUrestrict() sumInvSqrtCharge, int32_t& GPUrestrict() nAvgCharge, const int32_t ihit, const int32_t ihitMergeFirst, const bool allowChangeClusters, const bool refit, const bool finalFit, int32_t& GPUrestrict() nMissed, int32_t& GPUrestrict() nMissed2, int32_t& GPUrestrict() resetT0, float uncorrectedY, bool retryAttempt)
 {
   const GPUParam& GPUrestrict() param = merger.Param();
   const int32_t nWays = param.rec.tpc.nWays;
@@ -371,23 +371,25 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
 
     prop.GetErr2(err2Y, err2Z, param, zz, cluster.row, clusterState, cluster.sector, time, invAvgCharge, invCharge);
 
-    bool rejectChi2 = (clusterState & GPUTPCGMMergedTrackHit::flagReject);
-    if (param.rec.tpc.mergerInterpolateErrors) {
-      if (iWay == nWays - 2) {
-        if (!param.rec.tpc.rebuildTrackInFit) {
-          if (inter.isValid()) {
-            retValInt = prop.InterpolateReject(param, yy, zz, clusterState, &inter, err2Y, err2Z, deltaZ);
-          } else {
+    bool rejectChi2 = !retryAttempt && (clusterState & GPUTPCGMMergedTrackHit::flagReject);
+    if (!retryAttempt) {
+      if (param.rec.tpc.mergerInterpolateErrors) {
+        if (iWay == nWays - 2) {
+          if (!param.rec.tpc.rebuildTrackInFit) {
+            if (inter.isValid()) {
+              retValInt = prop.InterpolateReject(param, yy, zz, clusterState, &inter, err2Y, err2Z, deltaZ);
+            } else {
+              rejectChi2 = true;
+            }
+          }
+        } else if (iWay == nWays - 1) {
+          if (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && GetNDF() > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF) {
             rejectChi2 = true;
           }
         }
-      } else if (iWay == nWays - 1) {
-        if (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && GetNDF() > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF) {
-          rejectChi2 = true;
-        }
+      } else {
+        rejectChi2 = allowChangeClusters;
       }
-    } else {
-      rejectChi2 = allowChangeClusters;
     }
 
     if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && param.rejectEdgeClusterByY(uncorrectedY, cluster.row, CAMath::Sqrt(mC[0]))) {
@@ -893,6 +895,10 @@ GPUdic(0, 1) void GPUTPCGMTrackParam::StoreLoopPropagation(const GPUTPCGMMerger&
 
 GPUdii() void GPUTPCGMTrackParam::PropagateLooper(const GPUTPCGMMerger& GPUrestrict() merger, int32_t loopIdx)
 {
+  GPUTPCGMLoopData& data = merger.LoopData()[loopIdx];
+  if (!merger.MergedTracks()[data.track].OK()) {
+    return;
+  }
   GPUTPCGMPropagator prop;
   prop.SetMaterialTPC();
   prop.SetPolynomialField(&merger.Param().polynomialField);
@@ -902,7 +908,6 @@ GPUdii() void GPUTPCGMTrackParam::PropagateLooper(const GPUTPCGMMerger& GPUrestr
   prop.SetFitInProjections(true);
   prop.SetPropagateBzOnly(false);
 
-  GPUTPCGMLoopData& data = merger.LoopData()[loopIdx];
   prop.SetTrack(&data.param, data.alpha);
   if (merger.Param().rec.tpc.looperFollowMode == 1) {
     data.param.AttachClustersLooperFollow(merger, prop, data.sector, data.track, data.outwards);
@@ -1141,7 +1146,7 @@ GPUd() bool GPUTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
   return ok;
 }
 
-GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int32_t iTrk, GPUTPCGMMerger& GPUrestrict() merger, bool rebuilt) // VS: GPUd changed to GPUdii. No change in output and no performance penalty.
+GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int32_t iTrk, GPUTPCGMMerger& GPUrestrict() merger, bool rebuilt, bool retryAttempt)
 {
   if (!track.OK()) {
     return;
@@ -1153,8 +1158,21 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
   int32_t NTolerated = 0; // Clusters not fit but tollerated for track length cut
   GPUTPCGMTrackParam t = track.Param();
   float Alpha = track.Alpha();
-  bool ok = t.Fit(merger, iTrk, nTrackHits, NTolerated, Alpha, track, rebuilt);
+  bool ok = t.Fit(merger, iTrk, nTrackHits, NTolerated, Alpha, track, rebuilt, retryAttempt);
   CADEBUG(if (!merger.Param().rec.tpc.rebuildTrackInFit || rebuilt) printf("Finished Fit Track %7d --- OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, OK %d chi2 %f chi2ndf %f\n", iTrk, track.NClusters(), nTrackHits, NTolerated, nTrackHits + NTolerated, track.GetParam().GetQPt(), t.QPt(), t.SinPhi(), (int32_t)ok, t.Chi2(), t.Chi2() / CAMath::Max(1, nTrackHits)));
+
+  if (!ok && (!merger.Param().rec.tpc.rebuildTrackInFit || rebuilt) && !retryAttempt && merger.Param().rec.tpc.retryRefit) {
+    for (uint32_t i = 0; i < track.NClusters(); i++) {
+      merger.Clusters()[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::clustererAndSharedFlags;
+    }
+    CADEBUG(printf("Track rejected, marking for retry\n"));
+    uint32_t nRefit = CAMath::AtomicAdd(&merger.Memory()->nRetryRefit, 1u);
+    merger.RetryRefitIds()[nRefit] = iTrk;
+    return;
+  }
+  if (retryAttempt && (t.mNDF < 10 || t.mChi2 / t.mNDF >= 6.f)) {
+    ok = false;
+  }
 
   if (CAMath::Abs(t.QPt()) < 1.e-4f) {
     t.QPt() = CAMath::Copysign(1.e-4f, t.QPt());
@@ -1162,7 +1180,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
 
   CADEBUG(if (t.GetX() > 250) { printf("ERROR, Track %d at impossible X %f, Pt %f, Looper %d\n", iTrk, t.GetX(), CAMath::Abs(1.f / t.QPt()), (int32_t)merger.MergedTracks()[iTrk].Looper()); });
 
-  track.SetOK(ok);                                                               // TODO: Should we recover tracks who failed the fit in iWay0/1 for the rebuild?
+  track.SetOK(ok);
   if (t.GetNDF() <= 0 && !rebuilt && merger.Param().rec.tpc.rebuildTrackInFit) { // TODO: Better handling of NDF<0 tracks, how do we want to do cluster rejection?
     track.Param().NDF() = 0;
   } else {

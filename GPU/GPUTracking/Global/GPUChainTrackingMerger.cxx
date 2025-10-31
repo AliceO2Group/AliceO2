@@ -248,6 +248,10 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpRebuiltTracks, *mDebugFile);
     runKernel<GPUTPCGMMergerTrackFit>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), mergerSortTracks ? 1 : 0, 1);
   }
+  if (param().rec.tpc.retryRefit) {
+    runKernel<GPUTPCGMMergerTrackFit>(GetGridAuto(0), -1, param().rec.tpc.rebuildTrackInFit);
+  }
+
   runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));
 
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpRefit, *mDebugFile);

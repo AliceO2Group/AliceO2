@@ -2914,7 +2914,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
   }
 
-  if (mQATasks & taskTrackStatistics) {
+  if (mQATasks & taskTrackStatistics) { // TODO: Add plot for Chi2/NDF, and NCl correct and fake MC histograms
     // Process track statistic histograms
     float tmpMax = 0.;
     for (int32_t k = 0; k < ConfigNumInputs; k++) { // TODO: Simplify this drawing, avoid copy&paste
