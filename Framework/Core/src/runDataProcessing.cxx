@@ -1092,13 +1092,13 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRef);
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
-    deviceContext = std::make_unique<DeviceContext>();
+    deviceContext = std::make_unique<DeviceContext>(DeviceContext{.processingPolicies = processingPolicies});
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
 
-    auto device = std::make_unique<DataProcessingDevice>(ref, serviceRegistry, processingPolicies);
+    auto device = std::make_unique<DataProcessingDevice>(ref, serviceRegistry);
 
     serviceRef.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);

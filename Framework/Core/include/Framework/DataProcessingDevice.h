@@ -77,7 +77,7 @@ struct DeviceConfigurationHelpers {
 class DataProcessingDevice : public fair::mq::Device
 {
  public:
-  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&, ProcessingPolicies& policies);
+  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
@@ -112,7 +112,6 @@ class DataProcessingDevice : public fair::mq::Device
   uint64_t mBeginIterationTimestamp = 0;                 /// The timestamp of when the current ConditionalRun was started
   std::vector<fair::mq::RegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   std::mutex mRegionInfoMutex;
-  ProcessingPolicies mProcessingPolicies; /// User policies related to data processing
   std::vector<uv_work_t> mHandles;        /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;   /// Information about the task running in the associated mHandle.
   /// Handle to wake up the main loop from other threads

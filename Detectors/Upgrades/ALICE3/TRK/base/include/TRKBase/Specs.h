@@ -22,7 +22,7 @@
 // Each TGeoShape has the following properties
 // length: dimension in z-axis
 // width: dimension in xy-axes
-// color: for visulisation
+// color: for visualisation
 namespace o2::trk::constants
 {
 // Default unit of TGeo = cm
@@ -84,13 +84,11 @@ constexpr int nRows{static_cast<int>(width / pitchX)};                       // 
 constexpr int nCols{static_cast<int>(length / pitchZ)};                      // number of rows in the chip
 constexpr double totalThickness{silicon::thickness + metalstack::thickness}; // total thickness of the chip
 /// Set to 0 for the moment, to be adjusted with the actual design of the chip if needed
-static constexpr float PassiveEdgeReadOut = 0.f; // width of the readout edge (Passive bottom)
-static constexpr float PassiveEdgeTop = 0.f;     // Passive area on top
-static constexpr float PassiveEdgeSide = 0.f;    // width of Passive area on left/right of the sensor
+static constexpr float passiveEdgeReadOut{1.5 * mm}; // width of the readout edge
 } // namespace chip
 namespace gaps
 {
-constexpr double interChips{0.2 * mm};         // gap between the chips
+constexpr double interChips{50 * mu};          // gap between the chips
 constexpr double outerEdgeLongSide{1 * mm};    // gap between the chips and the outer edges (long side)
 constexpr double outerEdgeShortSide{0.1 * mm}; // gap between the chips and the outer edges (short side)
 } // namespace gaps

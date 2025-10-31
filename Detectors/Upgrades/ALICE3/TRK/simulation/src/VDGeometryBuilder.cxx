@@ -54,21 +54,28 @@ inline bool isSolidToCut(const TGeoVolume* v)
   const char* nm = v->GetName();
   const char* med = v->GetMedium() ? v->GetMedium()->GetName() : "";
   // silicon sensors (barrel + disks)
-  if (med && strcmp(med, "TRK_SILICON$") == 0)
+  if (med && strcmp(med, "TRK_SILICON$") == 0) {
     return true;
+  }
   // walls, sidewalls, cold-plate, service rings (names from your builders)
-  if (TString(nm).BeginsWith("VD_InnerWallArc"))
+  if (TString(nm).BeginsWith("VD_InnerWallArc")) {
     return true;
-  if (TString(nm).BeginsWith("VD_OuterWallArc"))
+  }
+  if (TString(nm).BeginsWith("VD_OuterWallArc")) {
     return true;
-  if (TString(nm).BeginsWith("VD_SideWall"))
+  }
+  if (TString(nm).BeginsWith("VD_SideWall")) {
     return true;
-  if (TString(nm).Contains("_Coldplate"))
+  }
+  if (TString(nm).Contains("_Coldplate")) {
     return true;
-  if (TString(nm).BeginsWith("IRIS_Service_Neg"))
+  }
+  if (TString(nm).BeginsWith("IRIS_Service_Neg")) {
     return true;
-  if (TString(nm).BeginsWith("IRIS_Service_Pos_InVac"))
+  }
+  if (TString(nm).BeginsWith("IRIS_Service_Pos_InVac")) {
     return true;
+  }
   return false;
 }
 
@@ -83,11 +90,13 @@ inline const char* ensureShapeName(TGeoVolume* v)
     int k = 0;
     TString cand = wanted;
     auto* shapes = gGeoManager ? gGeoManager->GetListOfShapes() : nullptr;
-    while (shapes && shapes->FindObject(cand))
+    while (shapes && shapes->FindObject(cand)) {
       cand = Form("%s_%d", wanted.Data(), ++k);
+    }
     sh->SetName(cand);
-    if (shapes && !shapes->FindObject(cand))
+    if (shapes && !shapes->FindObject(cand)) {
       shapes->Add(sh);
+    }
   }
   return sh->GetName();
 }
@@ -102,8 +111,9 @@ inline void appendLocalTerm(const char* shapeName, const TGeoHMatrix& H)
   auto* ct = new TGeoCombiTrans(H);
   ct->SetName(Form("IRIS_LOC_TR_%d", gLocalTrIdx++));
   ct->RegisterYourself();
-  if (!gPetalSolidsFormula.IsNull())
+  if (!gPetalSolidsFormula.IsNull()) {
     gPetalSolidsFormula += "+";
+  }
   gPetalSolidsFormula += TString::Format("%s:%s", shapeName, ct->GetName());
 }
 
@@ -111,14 +121,16 @@ inline void appendLocalTerm(const char* shapeName, const TGeoHMatrix& H)
 void traversePetalLocal(TGeoVolume* vol, const TGeoHMatrix& prefix)
 {
   auto* nodes = vol->GetNodes();
-  if (!nodes)
+  if (!nodes) {
     return;
+  }
   for (int i = 0; i < nodes->GetEntriesFast(); ++i) {
     auto* node = (TGeoNode*)nodes->At(i);
     auto* childV = node->GetVolume();
     TGeoHMatrix H(prefix);
-    if (auto* m = node->GetMatrix())
+    if (auto* m = node->GetMatrix()) {
       H.Multiply(m);
+    }
 
     if (isSolidToCut(childV)) {
       const char* shapeName = ensureShapeName(childV);
@@ -132,8 +144,9 @@ void traversePetalLocal(TGeoVolume* vol, const TGeoHMatrix& prefix)
 inline void buildPetalSolidsComposite(TGeoVolume* petalAsm)
 {
   // If it already exists, skip
-  if (gGeoManager && gGeoManager->GetListOfShapes() && gGeoManager->GetListOfShapes()->FindObject("IRIS_PETAL_SOLIDSsh"))
+  if (gGeoManager && gGeoManager->GetListOfShapes() && gGeoManager->GetListOfShapes()->FindObject("IRIS_PETAL_SOLIDSsh")) {
     return;
+  }
 
   gPetalSolidsFormula.Clear();
   gLocalTrIdx = 0;
@@ -162,8 +175,9 @@ inline void buildIrisCutoutFromPetalSolid(int nPetals)
     auto* RT = new TGeoCombiTrans(0, 0, 0, R);
     RT->SetName(Form("IRIS_PETAL_ROT_%d", p));
     RT->RegisterYourself();
-    if (p)
+    if (p) {
       cutFormula += "+";
+    }
     cutFormula += Form("IRIS_PETAL_SOLIDSsh:%s", RT->GetName());
   }
   LOGP(info, "IRIS_CUTOUTsh formula: {}", cutFormula.Data());
@@ -257,8 +271,9 @@ inline double degFromArc(double arc, double radius)
  */
 inline double phiSpanFromGap(int nPetals, double gap, double radius)
 {
-  if (nPetals <= 0 || radius <= 0.f)
+  if (nPetals <= 0 || radius <= 0.f) {
     return 0.f;
+  }
   const double petalPhiDeg = 360.f / nPetals;
   const double phi = petalPhiDeg - degFromArc(gap, radius);
   return phi > 0.f ? phi : 0.f;

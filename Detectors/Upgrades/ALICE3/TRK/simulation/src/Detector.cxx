@@ -16,13 +16,16 @@
 #include <TGeoVolume.h>
 
 #include "DetectorsBase/Stack.h"
-#include "ITSMFTSimulation/Hit.h"
+#include "TRKSimulation/Hit.h"
 #include "TRKSimulation/Detector.h"
 #include "TRKBase/TRKBaseParam.h"
 #include "TRKSimulation/VDGeometryBuilder.h"
 #include "TRKSimulation/VDSensorRegistry.h"
 
-using o2::itsmft::Hit;
+#include <string>
+#include <type_traits>
+
+using o2::trk::Hit;
 
 namespace o2
 {
@@ -37,14 +40,14 @@ float getDetLengthFromEta(const float eta, const float radius)
 Detector::Detector()
   : o2::base::DetImpl<Detector>("TRK", true),
     mTrackData(),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
+    mHits(o2::utils::createSimVector<o2::trk::Hit>())
 {
 }
 
 Detector::Detector(bool active)
   : o2::base::DetImpl<Detector>("TRK", true),
     mTrackData(),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
+    mHits(o2::utils::createSimVector<o2::trk::Hit>())
 {
   auto& trkPars = TRKBaseParam::Instance();
 
@@ -83,40 +86,58 @@ void Detector::configDefault()
   mLayers.clear();
 
   LOGP(warning, "Loading Scoping Document configuration for ALICE3 TRK");
-  // mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
-  // mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
-  // mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 3.78f, 124.f, 100.e-3);
-  mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 7.f, 124.f, 100.e-3);
-  mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 12.f, 124.f, 100.e-3);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 20.f, 124.f, 100.e-3);
-  mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 30.f, 124.f, 100.e-3);
-  mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 45.f, 258.f, 100.e-3);
-  mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 60.f, 258.f, 100.e-3);
-  mLayers.emplace_back(7, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(7)}, 80.f, 258.f, 100.e-3);
+  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 3.78f, 10, 100.e-3);
+  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 7.f, 10, 100.e-3);
+  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
+  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
+  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
+  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
+  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
+  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
 }
 
 void Detector::buildTRKMiddleOuterLayers()
 {
-  // Build the TRK detector according to changes proposed during
-  // https://indico.cern.ch/event/1407704/
-  // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
-  // L3 -> 7 cm, L4 -> 9 cm
+  auto& trkPars = TRKBaseParam::Instance();
 
   mLayers.clear();
 
-  LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 7.f, 124.f, 100.e-3);
-  LOGP(info, "TRKLayer created. Name: {}", std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)});
-  mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 9.f, 124.f, 100.e-3);
-  mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 12.f, 124.f, 100.e-3);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 20.f, 124.f, 100.e-3);
-  mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 30.f, 124.f, 100.e-3);
-  mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 45.f, 258.f, 100.e-3);
-  mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 60.f, 258.f, 100.e-3);
-  mLayers.emplace_back(7, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(7)}, 80.f, 258.f, 100.e-3);
+  switch (trkPars.overallGeom) {
+    case kDefaultRadii:
+      // Build the TRK detector according to changes proposed during
+      // https://indico.cern.ch/event/1407704/
+      // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
+      // L3 -> 7 cm, L4 -> 9 cm, L5 -> 12 cm, L6 -> 20 cm
 
-  auto& trkPars = TRKBaseParam::Instance();
+      LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
+      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 9 cm, L5 at 12 cm, L6 at 20 cm");
+      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
+      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
+      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 9.f, 10, 100.e-3);
+      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
+      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
+      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
+      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
+      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
+      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+      break;
+    case kModRadii:
+      LOGP(warning, "Loading \"Alternative\" configuration for ALICE3 TRK");
+      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 11 cm, L5 at 15 cm, L6 at 19 cm");
+      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
+      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
+      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
+      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 10, 100.e-3);
+      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 19.f, 10, 100.e-3);
+      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
+      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
+      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
+      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+      break;
+    default:
+      LOGP(fatal, "Unknown option {} for buildTRKMiddleOuterLayers", static_cast<int>(trkPars.overallGeom));
+      break;
+  }
 
   // Middle layers
   mLayers[0].setLayout(trkPars.layoutML);
@@ -157,7 +178,7 @@ void Detector::configFromFile(std::string fileName)
     while (getline(ss, substr, '\t')) {
       tmpBuff.push_back(std::stof(substr));
     }
-    mLayers.emplace_back(layerCount, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount)}, tmpBuff[0], tmpBuff[1], tmpBuff[2]);
+    mLayers.emplace_back(layerCount, GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount), tmpBuff[0], tmpBuff[1], tmpBuff[2]);
     ++layerCount;
   }
 }
@@ -364,7 +385,6 @@ bool Detector::ProcessHits(FairVolume* vol)
   int subDetID = -1;
   int layer = -1;
   int volume = 0;
-  int stave = -1;
   int volID = vol->getMCid();
 
   bool notSens = false;
@@ -440,15 +460,23 @@ bool Detector::ProcessHits(FairVolume* vol)
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
-    int stave(0), halfstave(0);
+    int stave(0), halfstave(0), mod(0), chip(0);
     if (subDetID == 1) {
-      fMC->CurrentVolOffID(1, halfstave);
-      fMC->CurrentVolOffID(2, stave);
+      fMC->CurrentVolOffID(1, chip);
+      fMC->CurrentVolOffID(2, mod);
+      if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
+        fMC->CurrentVolOffID(3, halfstave);
+        fMC->CurrentVolOffID(4, stave);
+      } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
+        fMC->CurrentVolOffID(3, stave);
+      } else {
+        LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+      }
     } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 
-    int chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave);
+    unsigned short chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave, mod, chip);
 
-    Print(vol, volume, subDetID, layer, stave, halfstave, chipID);
+    Print(vol, volume, subDetID, layer, stave, halfstave, mod, chip, chipID);
 
     mGeometryTGeo->Print();
 
@@ -465,25 +493,27 @@ bool Detector::ProcessHits(FairVolume* vol)
   return true;
 }
 
-o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
-                                  const TVector3& startMom, double startE, double endTime, double eLoss, unsigned char startStatus,
-                                  unsigned char endStatus)
+o2::trk::Hit* Detector::addHit(int trackID, unsigned short detID, const TVector3& startPos, const TVector3& endPos,
+                               const TVector3& startMom, double startE, double endTime, double eLoss, unsigned char startStatus,
+                               unsigned char endStatus)
 {
   mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
 }
 
-void Detector::Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int chipID) const
+void Detector::Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int mod, int chip, int chipID) const
 {
   int currentVol(0);
   LOG(info) << "Current volume name: " << fMC->CurrentVolName() << " and ID " << fMC->CurrentVolID(currentVol);
   LOG(info) << "volume: " << volume << "/" << mNumberOfVolumes - 1;
+  LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  chip: " << chip;
+  LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  module: " << mod;
   if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) { // staggered geometry
-    LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  halfstave: " << halfstave;
-    LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  stave: " << stave;
+    LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  halfstave: " << halfstave;
+    LOG(info) << "off volume name 4  " << fMC->CurrentVolOffName(4) << "  stave: " << stave;
     LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
   } else if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) { // turbo geometry
-    LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  stave: " << stave;
+    LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  stave: " << stave;
     LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
   } else {
     LOG(info) << "SubDetector ID: " << subDetID << "  Chip ID: " << chipID;

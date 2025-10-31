@@ -835,7 +835,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
 }
 
 bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata,
-                           long timestamp, bool preservePath, std::string const& localFileName, std::string const& createdNotAfter, std::string const& createdNotBefore) const
+                           long timestamp, bool preservePath, std::string const& localFileName, std::string const& createdNotAfter, std::string const& createdNotBefore, std::map<std::string, std::string>* outHeaders) const
 {
 
   // we setup the target path for this blob
@@ -883,6 +883,9 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   CCDBQuery querysummary(path, metadata, timestamp);
 
   updateMetaInformationInLocalFile(targetpath.c_str(), &headers, &querysummary);
+  if (outHeaders) {
+    *outHeaders = std::move(headers);
+  }
   return true;
 }
 

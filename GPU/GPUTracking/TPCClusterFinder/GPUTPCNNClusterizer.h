@@ -71,6 +71,7 @@ class GPUTPCNNClusterizer : public GPUProcessor
   uint32_t mNnClusterizerPadTimeSize = 0;
   uint32_t mNnClusterizerRowTimeSize = 0;
   uint32_t mNnClusterizerRowTimeSizeFull = 0;
+  uint32_t mNnClusterizerRowTimeSizeThreads = 0;
 
   // Boundary lookup table
   // int32_t mBoundaryMapSizeRow = 0;

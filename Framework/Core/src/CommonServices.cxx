@@ -1237,17 +1237,6 @@ o2::framework::ServiceSpec CommonServices::dataProcessorContextSpec()
     .kind = ServiceKind::Serial};
 }
 
-o2::framework::ServiceSpec CommonServices::deviceContextSpec()
-{
-  return ServiceSpec{
-    .name = "device-context",
-    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<DeviceContext>(), new DeviceContext()};
-    },
-    .configure = noConfiguration(),
-    .kind = ServiceKind::Serial};
-}
-
 o2::framework::ServiceSpec CommonServices::dataAllocatorSpec()
 {
   return ServiceSpec{
