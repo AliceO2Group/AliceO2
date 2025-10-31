@@ -402,12 +402,15 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mTrackSort, mNMaxTracks);
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
-  computePointerWithAlignment(mem, mLoopData, mNMaxTracks); // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers, Reducing mNMaxTracks for mLoopData does not save memory, other parts are larger anyway
+  computePointerWithAlignment(mem, mLoopData, mNMaxTracks); // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers, Reducing mNMaxTracks does not save memory, other parts are larger anyway
   if (mRec->GetParam().rec.tpc.rebuildTrackInFit) {
     computePointerWithAlignment(mem, mSharedCount2, mNClusters);
     computePointerWithAlignment(mem, mClusterCandidates, mNMaxTracks * mNMaxTracks * GPUTPCGeometry::NROWS * Param().rec.tpc.rebuildTrackInFitClusterCandidates);
     computePointerWithAlignment(mem, mTrackRebuildHelper, mNMaxTracks);
     computePointerWithAlignment(mem, mHitWeights, mNClusters);
+  }
+  if (mRec->GetParam().rec.tpc.retryRefit) {
+    computePointerWithAlignment(mem, mRetryRefitIds, mNMaxTracks);
   }
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
