@@ -34,11 +34,13 @@ enum attachTypes { attachProtect = 0x80000000,
 struct InterpolationErrorHit {
   float posY, posZ;
   GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A errorY, errorZ;
+  GPUdi() bool isValid() const { return errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0; }
+  GPUdi() void markInvalid() { errorY = (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-1; }
 };
 
 struct InterpolationErrors {
-  InterpolationErrorHit hit[GPUCA_MERGER_MAX_TRACK_CLUSTERS];
   static constexpr size_t size = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
+  InterpolationErrorHit hit[size];
 };
 
 struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)> {
