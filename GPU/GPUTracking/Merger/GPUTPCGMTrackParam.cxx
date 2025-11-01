@@ -514,6 +514,8 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
   const float stepZ = row.HstepZ();
   int32_t bin, ny, nz;
 
+  bool protect = CAMath::Abs(GetQPt() * Merger->Param().qptB5Scaler) <= Merger->Param().rec.tpc.rejectQPtB5 && goodLeg;
+
   float err2Y, err2Z;
   Merger->Param().GetClusterErrors2(sector, iRow, Z, mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z);                                       // TODO: Use correct time/avgCharge
   const float sy2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Y + CAMath::Abs(mC[0]))); // Cov can be bogus when following circle
@@ -538,6 +540,10 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
   if (goodLeg) {
     myWeight |= gputpcgmmergertypes::attachGoodLeg;
   }
+  if (protect) {
+    myWeight |= gputpcgmmergertypes::attachProtect;
+  }
+
   for (int32_t k = 0; k <= nz; k++) {
     const int32_t mybin = bin + k * nBinsY;
     const uint32_t hitFst = firsthit[mybin];
