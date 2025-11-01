@@ -518,8 +518,11 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
 
   float err2Y, err2Z;
   Merger->Param().GetClusterErrors2(sector, iRow, Z, mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z);                                       // TODO: Use correct time/avgCharge
-  const float sy2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Y + CAMath::Abs(mC[0]))); // Cov can be bogus when following circle
-  const float sz2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Z + CAMath::Abs(mC[2]))); // In that case we should provide the track error externally
+  const float tubeMaxSize2 = protect ? Merger->Param().rec.tpc.tubeProtectMaxSize2 : Merger->Param().rec.tpc.tubeRemoveMaxSize2;
+  const float tubeMinSize2 = protect ? Merger->Param().rec.tpc.tubeProtectMinSize2 : 0.f;
+  const float tubeSigma2 = protect ? Merger->Param().rec.tpc.tubeProtectSigma2 : Merger->Param().rec.tpc.tubeRemoveSigma2;
+  const float sy2 = CAMath::Max(tubeMinSize2, CAMath::Min(tubeMaxSize2, tubeSigma2 * (err2Y + CAMath::Abs(mC[0])))); // Cov can be bogus when following circle
+  const float sz2 = CAMath::Max(tubeMinSize2, CAMath::Min(tubeMaxSize2, tubeSigma2 * (err2Z + CAMath::Abs(mC[2])))); // In that case we should provide the track error externally
   const float tubeY = CAMath::Sqrt(sy2);
   const float tubeZ = CAMath::Sqrt(sz2);
   const float sy21 = 1.f / sy2;
