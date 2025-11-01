@@ -56,9 +56,11 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if ((attach & gputpcgmmergertypes::attachTrackMask) != i) {
         continue; // Main attachment to different track
       }
-      bool rejectCluster = processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
+      bool rejectCluster = processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && !(attach & gputpcgmmergertypes::attachProtect) && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
       if (rejectCluster) {
         compressor.mClusterStatus[hitId] = 1; // Cluster rejected, do not store
+        continue;
+      } else if (processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && rejectTrk) {
         continue;
       }
 
@@ -198,6 +200,9 @@ GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, GPUParam& GPUrestrict(
   } else if (param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA) {
     if (GPUTPCClusterRejection::GetIsRejected(attach)) {
       return true;
+    }
+    if (attach & gputpcgmmergertypes::attachProtect) {
+      return false;
     }
     int32_t id = attach & gputpcgmmergertypes::attachTrackMask;
     auto& trk = ioPtrs.mergedTracks[id];

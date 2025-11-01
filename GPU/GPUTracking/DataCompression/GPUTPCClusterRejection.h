@@ -25,18 +25,19 @@ struct GPUTPCClusterRejection {
   {
     (void)counts; // FIXME: Avoid incorrect -Wunused-but-set-parameter warning
     (void)mev200;
+    bool retVal = false;
     if (attach == 0) {
-      return false;
+      retVal = false;
     } else if ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
       if constexpr (C) {
         counts->nLoopers++;
       }
-      return true;
+      retVal = true;
     } else if (attach & gputpcgmmergertypes::attachHighIncl) {
       if constexpr (C) {
         counts->nHighIncl++;
       }
-      return true;
+      retVal = true;
     } else if (attach & gputpcgmmergertypes::attachTube) {
       protect = true;
       if constexpr (C) {
@@ -46,17 +47,23 @@ struct GPUTPCClusterRejection {
           counts->nTube++;
         }
       }
-      return false;
+      retVal = false;
     } else if ((attach & gputpcgmmergertypes::attachGood) == 0) {
       protect = true;
       if constexpr (C) {
         counts->nRejected++;
       }
-      return false;
+      retVal = false;
     } else {
       physics = true;
-      return false;
+      retVal = false;
     }
+
+    if (attach & gputpcgmmergertypes::attachProtect) {
+      protect = true;
+      retVal = false;
+    }
+    return retVal;
   }
 
   static constexpr inline bool GetIsRejected(int32_t attach)
