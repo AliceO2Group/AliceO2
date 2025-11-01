@@ -94,7 +94,7 @@ TGeoVolume* TRKLayer::createMetalStack(std::string type)
   if (type == "cylinder") {
     metalStack = new TGeoTube(mInnerRadius + mSensorThickness, mInnerRadius + mChipThickness, mChipLength / 2); // TO BE CHECKED !!!
   } else if (type == "flat") {
-    metalStack = new TGeoBBox(mChipWidth / 2, mChipThickness - mSensorThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
+    metalStack = new TGeoBBox(mChipWidth / 2, (mChipThickness - mSensorThickness) / 2, mChipLength / 2); // TO BE CHECKED !!!
   } else {
     LOGP(fatal, "Metal stack of type '{}' is not implemented", type);
   }
@@ -198,6 +198,9 @@ TGeoVolume* TRKLayer::createModule(std::string type)
 
       TGeoCombiTrans* transLeft = new TGeoCombiTrans();
       transLeft->SetTranslation(xLeft, 0, zLeft); // TO BE CHECKED !!!
+      TGeoRotation* rot = new TGeoRotation();
+      rot->RotateY(180);
+      transLeft->SetRotation(rot);
       LOGP(info, "Inserting {} in {} ", chipVolLeft->GetName(), moduleVol->GetName());
       moduleVol->AddNode(chipVolLeft, iChip * 2, transLeft);
 
@@ -206,9 +209,6 @@ TGeoVolume* TRKLayer::createModule(std::string type)
 
       TGeoCombiTrans* transRight = new TGeoCombiTrans();
       transRight->SetTranslation(xRight, 0, zRight); // TO BE CHECKED !!!
-      TGeoRotation* rot = new TGeoRotation();
-      rot->RotateY(180);
-      transRight->SetRotation(rot);
       LOGP(info, "Inserting {} in {} ", chipVolRight->GetName(), moduleVol->GetName());
       moduleVol->AddNode(chipVolRight, iChip * 2 + 1, transRight);
     }
