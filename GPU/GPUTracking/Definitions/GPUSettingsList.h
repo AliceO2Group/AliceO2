@@ -142,7 +142,7 @@ AddOptionRTC(cfEdgeTwoPads, uint8_t, 0, "", 0, "Flag clusters with peak on the 2
 AddOptionRTC(nWays, uint8_t, 3, "", 0, "Do N fit passes in final fit of merger (must be odd to end with inward fit)")
 AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely during fit based on clusters closed to interpolated track positions")
 AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
-AddOptionRTC(disableRebuildAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during track rebuid (1: current row, 2: interpolate missing row, 4: one sided interpolation, 8: original hit)")
+AddOptionRTC(disableRebuildAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during track rebuid (1: current row, 2: interpolate missing row, 4: one sided interpolation, 8: original hit, 16: extrapolation)")
 AddOptionRTC(disableMarkAdjacent, uint8_t, 0, "", 0, "Bitmask to disable certain steps during refit to mark adjacenrt clusters (1: current row, 2: extrapolate missing rows, 4: loop following)") // TODO: Add history
 AddOptionRTC(trackFitRejectMode, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits")
 AddOptionRTC(rejectIFCLowRadiusCluster, uint8_t, 1, "", 0, "Reject clusters that get the IFC mask error during refit")
@@ -171,7 +171,9 @@ AddOptionRTC(rejectEdgeClustersInSeeding, int8_t, 0, "", 0, "Reject edge cluster
 AddOptionRTC(rejectEdgeClustersInTrackFit, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during track fit")
 AddOptionRTC(tubeExtraProtectMinRow, uint8_t, 20, "", 0, "Increase Protection, decrease removal by factor 2, when below this row")
 AddOptionRTC(tubeExtraProtectEdgePads, uint8_t, 2, "", 0, "Increase Protection, decrease removal by factor 2, when on this number of pads from the edge")
-
+AddOptionRTC(rebuildTrackExtrMaxMissingRows, uint8_t, 15, "", 0, "Maximum total number of rows allowed to be missing during track extrapolation")
+AddOptionRTC(rebuildTrackExtrMinConsecGoodRows, uint8_t, 6, "", 0, "Minimum number of consecutive rows required to accept extrapolated segment")
+AddOptionRTC(rebuildTrackExtrConsecGoodRowsMaxGap, uint8_t, 1, "", 0, "Max row gap size to consider the segment as consecutive rows")
 AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet handle AddOptionArrayRTC
 AddHelp("help", 'h')
 EndConfig()
