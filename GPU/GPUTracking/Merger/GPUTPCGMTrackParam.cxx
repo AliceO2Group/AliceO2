@@ -219,26 +219,31 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       }
 
       const float maxSinForUpdate = CAMath::Sin(70.f * CAMath::Deg2Rad());
-      if (mNDF > 0 && CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate) {
-        MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagHighIncl);
-        nMissed2++;
-        CADEBUG(printf(" --- break-sinphi\n"));
-        NTolerated++;
+      if (mNDF > 0 && CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate) { // TODO: If NDF is large enough, and mP[2] is not yet out of range, reinit linearization
         const bool inward = clusters[0].row > clusters[maxN - 1].row;
         const bool markHighIncl = (mP[2] > 0) ^ (mP[4] < 0) ^ inward ^ (iWay & 1);
-        if (param.rec.tpc.rebuildTrackInFit && markHighIncl) {
-          if (inward ^ (iWay & 1)) {
-            if (merger.TrackRebuildHelper()[iTrk].highInclRowLow == 255) {
-              merger.TrackRebuildHelper()[iTrk].highInclRowLow = cluster.row;
+        if (mNDF > 10 && CAMath::Abs(mP[2]) < maxSinForUpdate && markHighIncl) {
+          CADEBUG(printf("Reinit linearization\n"));
+          prop.SetTrack(this, prop.GetAlpha());
+        } else {
+          MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagHighIncl);
+          nMissed2++;
+          CADEBUG(printf(" --- break-sinphi\n"));
+          NTolerated++;
+          if (param.rec.tpc.rebuildTrackInFit && markHighIncl) {
+            if (inward ^ (iWay & 1)) {
+              if (merger.TrackRebuildHelper()[iTrk].highInclRowLow == 255) {
+                merger.TrackRebuildHelper()[iTrk].highInclRowLow = cluster.row;
+              }
+            } else {
+              if (merger.TrackRebuildHelper()[iTrk].highInclRowHigh == 255) {
+                merger.TrackRebuildHelper()[iTrk].highInclRowHigh = cluster.row;
+              }
             }
-          } else {
-            if (merger.TrackRebuildHelper()[iTrk].highInclRowHigh == 255) {
-              merger.TrackRebuildHelper()[iTrk].highInclRowHigh = cluster.row;
-            }
+            // TODO: We can perhaps break here, if we pick up remaining rows
           }
-          // TODO: We can perhaps break here, if we pick up remaining rows
+          continue;
         }
-        continue;
       }
 
       int32_t retValHit = FitHit(merger, iTrk, track, xx, yy, zz, clusterState, clAlpha, iWay, inFlyDirection, deltaZ, lastUpdateX, clusters, prop, inter, dEdx, dEdxAlt, sumInvSqrtCharge, nAvgCharge, ihit, ihitMergeFirst, allowChangeClusters, refit, finalFit, nMissed, nMissed2, uncorrectedY, retryAttempt);
