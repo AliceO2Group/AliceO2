@@ -14,11 +14,6 @@
 
 #define GPUCA_CADEBUG 0
 #define DEBUG_SINGLE_TRACK -1
-#define EXTRACT_RESIDUALS 0
-
-#if EXTRACT_RESIDUALS == 1
-#include "GPUROOTDump.h"
-#endif
 
 #include "GPUTPCDef.h"
 #include "GPUTPCGMTrackParam.h"
