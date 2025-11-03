@@ -120,7 +120,7 @@ void GPUTPCDecompression::SetMaxData(const GPUTrackingInOutPointers& io)
   uint32_t maxAttachedClsMargin1 = *std::max_element(mInputGPU.nSliceRowClusters, mInputGPU.nSliceRowClusters + mInputGPU.nSliceRows);
   float clsRatio1 = (mInputGPU.nUnattachedClusters > 0 ? float(mInputGPU.nAttachedClusters) / float(mInputGPU.nUnattachedClusters) : 1.0f) * 1.5f;
   maxAttachedClsMargin1 *= clsRatio1;
-  uint32_t maxAttachedClsMargin2 = mInputGPU.nAttachedClusters / mInputGPU.nSliceRows * 3.5;                                             // mean #attached cls per SectorRow multiplied by 3.5 (tuned)
+  uint32_t maxAttachedClsMargin2 = mInputGPU.nSliceRows > 0 ? (mInputGPU.nAttachedClusters / mInputGPU.nSliceRows * 3.5) : 0;            // mean #attached cls per SectorRow multiplied by 3.5 (tuned)
   mMaxNativeClustersPerBuffer = std::max({maxAttachedClsMargin1, maxAttachedClsMargin2, 1000u});                                         // take biggest margin, 1000 clusters minimum
   mMaxNativeClustersPerBuffer = std::min(mMaxNativeClustersPerBuffer, mRec->GetProcessingSettings().tpcMaxAttachedClustersPerSectorRow); // upperbound given by configurable param
 }
