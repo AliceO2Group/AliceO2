@@ -12,6 +12,7 @@
 #include "Framework/Configurable.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/ExpressionJSONHelpers.h"
 #include <catch_amalgamated.hpp>
 #include <arrow/util/config.h>
 #include <iostream>
@@ -390,4 +391,25 @@ TEST_CASE("TestStringExpressionsParsing")
   auto tree2c = createExpressionTree(pcfg2specs, schema);
 
   REQUIRE(tree1c->ToString() == tree2c->ToString());
+}
+
+TEST_CASE("TestExpressionSerialization")
+{
+  Filter f = o2::aod::track::signed1Pt > 0.f && ifnode(nabs(o2::aod::track::eta) < 1.0f, nabs(o2::aod::track::x) > 2.0f, nabs(o2::aod::track::y) > 3.0f);
+  auto ops = createOperations(f);
+  auto schema = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Eta::asArrowField(), o2::aod::track::Signed1Pt::asArrowField(), o2::aod::track::X::asArrowField(), o2::aod::track::Y::asArrowField()});
+  auto tree = createExpressionTree(ops, schema);
+
+  std::stringstream osm;
+  ExpressionJSONHelpers::write(osm, f.node.get());
+
+  std::stringstream ism;
+  ism.str(osm.str());
+  Filter fr = ExpressionJSONHelpers::read(ism);
+
+  auto s1 = createOperations(f);
+  auto s2 = createOperations(fr);
+  auto t1 = createExpressionTree(s1, schema);
+  auto t2 = createExpressionTree(s2, schema);
+  REQUIRE(t1->ToString() == t2->ToString());
 }
