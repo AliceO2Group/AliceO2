@@ -107,7 +107,6 @@ class BunchFilling
 
   ClassDefNV(BunchFilling, 2);
 };
-} // namespace o2
 
 namespace framework
 {
@@ -118,5 +117,6 @@ struct is_messageable<o2::BunchFilling> : std::true_type {
 };
 
 } // namespace framework
+} // namespace o2
 
 #endif
