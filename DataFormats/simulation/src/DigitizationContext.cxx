@@ -577,7 +577,7 @@ void DigitizationContext::applyMaxCollisionFilter(std::vector<std::tuple<int, in
     if (indices_old_to_new.find(lastindex) != indices_old_to_new.end()) {
       std::get<1>(tf_indices) = indices_old_to_new[lastindex]; // end;
     } else {
-      std::get<1>(tf_indices) = newrecords.size(); // end;
+      std::get<1>(tf_indices) = newrecords.size() - 1; // end; -1 since index inclusif
     }
     if (indices_old_to_new.find(previndex) != indices_old_to_new.end()) {
       std::get<2>(tf_indices) = indices_old_to_new[previndex]; // previous or "early" index
@@ -591,11 +591,6 @@ void DigitizationContext::applyMaxCollisionFilter(std::vector<std::tuple<int, in
 std::vector<std::tuple<int, int, int>> DigitizationContext::calcTimeframeIndices(long startOrbit, long orbitsPerTF, double orbitsEarly) const
 {
   auto timeframeindices = getTimeFrameBoundaries(mEventRecords, startOrbit, orbitsPerTF, orbitsEarly);
-  LOG(info) << "Fixed " << timeframeindices.size() << " timeframes ";
-  for (auto p : timeframeindices) {
-    LOG(info) << std::get<0>(p) << " " << std::get<1>(p) << " " << std::get<2>(p);
-  }
-
   return timeframeindices;
 }
 
@@ -708,7 +703,7 @@ DigitizationContext DigitizationContext::extractSingleTimeframe(int timeframeid,
     auto tf_ranges = timeframeindices.at(timeframeid);
 
     auto startindex = std::get<0>(tf_ranges);
-    auto endindex = std::get<1>(tf_ranges);
+    auto endindex = std::get<1>(tf_ranges) + 1;
     auto earlyindex = std::get<2>(tf_ranges);
 
     if (earlyindex >= 0) {
