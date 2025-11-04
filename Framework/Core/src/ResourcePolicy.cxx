@@ -18,8 +18,9 @@ namespace o2::framework
 
 std::vector<ResourcePolicy> ResourcePolicy::createDefaultPolicies()
 {
+  // FIXME: we should have better logic to decide if we can process something.
   return {
-    ResourcePolicyHelpers::sharedMemoryBoundTask("internal-dpl-aod-reader.*", 100000000),
+    ResourcePolicyHelpers::rateLimitedSharedMemoryBoundTask("internal-dpl-aod-reader.*", 100000000, 1),
     ResourcePolicyHelpers::trivialTask(".*")};
 }
 

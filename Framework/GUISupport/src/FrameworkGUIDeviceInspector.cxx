@@ -329,6 +329,10 @@ void displayDeviceInspector(DeviceSpec const& spec,
       control.controller->write("/shm-offer 1000", strlen("/shm-offer 1000"));
     }
 
+    if (ImGui::Button("Offer timeslices")) {
+      control.controller->write("/timeslice-offer 1", strlen("/timeslice-offer 1"));
+    }
+
     if (control.requestedState > info.providedState) {
       ImGui::Text(ICON_FA_CLOCK_O);
     } else {

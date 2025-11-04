@@ -26,6 +26,7 @@ O2_DECLARE_DYNAMIC_LOG(completion);
 O2_DECLARE_DYNAMIC_LOG(monitoring_service);
 O2_DECLARE_DYNAMIC_LOG(data_processor_context);
 O2_DECLARE_DYNAMIC_LOG(stream_context);
+O2_DECLARE_DYNAMIC_LOG(ws_client);
 
 namespace o2::framework
 {
@@ -49,8 +50,8 @@ struct ClientWebSocketHandler : public WebSocketHandler {
     mClient.dispatch(std::string_view(frame, s));
   }
 
-  void endFragmentation() override{};
-  void control(char const* frame, size_t s) override{};
+  void endFragmentation() override {};
+  void control(char const* frame, size_t s) override {};
 
   /// Invoked at the beginning of some incoming data. We simply
   /// reset actions which need to happen on a per chunk basis.
@@ -118,6 +119,34 @@ void on_connect(uv_connect_t* connection, int status)
     offer.valid = true;
 
     state.pendingOffers.push_back(offer);
+  });
+  client->observe("/timeslice-offer", [ref = context->ref](std::string_view cmd) {
+    O2_SIGNPOST_ID_GENERATE(wid, ws_client);
+    O2_SIGNPOST_START(ws_client, wid, "timeslice-offer", "Received timeslice offer.");
+    auto& state = ref.get<DeviceState>();
+    static constexpr int prefixSize = std::string_view{"/timeslice-offer "}.size();
+    if (prefixSize > cmd.size()) {
+      O2_SIGNPOST_END_WITH_ERROR(ws_client, wid, "timeslice-offer", "Malformed timeslice offer");
+      return;
+    }
+    cmd.remove_prefix(prefixSize);
+    int64_t offerSize;
+    auto offerSizeError = std::from_chars(cmd.data(), cmd.data() + cmd.size(), offerSize);
+    if (offerSizeError.ec != std::errc()) {
+      O2_SIGNPOST_END_WITH_ERROR(ws_client, wid, "timeslice-offer", "Unexpected timeslice offer size");
+      return;
+    }
+    ComputingQuotaOffer offer{
+      .cpu = 0,
+      .memory = 0,
+      .sharedMemory = 0,
+      .timeslices = offerSize,
+      .runtime = 10000,
+      .user = -1,
+      .valid = true};
+    state.pendingOffers.push_back(offer);
+    O2_SIGNPOST_END(ws_client, wid, "timeslice-offer", "Received %lli timeslices offer. Total pending offers %zu.",
+                    offerSize, state.pendingOffers.size());
   });
 
   client->observe("/quit", [ref = context->ref](std::string_view) {

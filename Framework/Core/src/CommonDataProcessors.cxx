@@ -44,6 +44,7 @@ using namespace o2::framework::data_matcher;
 
 // Special log to track callbacks we know about
 O2_DECLARE_DYNAMIC_LOG(callbacks);
+O2_DECLARE_DYNAMIC_LOG(rate_limiting);
 
 namespace o2::framework
 {
@@ -211,6 +212,8 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
         auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
         auto& stats = services.get<DataProcessingStats>();
         stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.processCommandQueue();
       };
       callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
 
@@ -221,6 +224,42 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
                                                                                   rateLimitingChannelConfig,
                                                                                   {"Out-of-band channel config"}}}
                                                   : std::vector<ConfigParamSpec>(),
+    .labels = {{"resilient"}}};
+}
+
+// For the cases were the driver is guaranteed to be there (e.g. in analysis) we can use a
+// more sophisticated controller which can get offers for timeslices so that we can rate limit
+// across multiple input devices and rate limit shared memory usage without race conditions
+DataProcessorSpec CommonDataProcessors::getScheduledDummySink(std::vector<InputSpec> const& danglingOutputInputs)
+{
+  return DataProcessorSpec{
+    .name = "internal-dpl-injected-dummy-sink",
+    .inputs = danglingOutputInputs,
+    .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks, DeviceState& deviceState, InitContext& ic) {
+      // We update the number of consumed timeframes based on the oldestPossingTimeslice
+      // this information will be aggregated in the driver which will then decide wether or not a new offer for
+      // a timeslice should be done and to which device
+      auto domainInfoUpdated = [](ServiceRegistryRef services, size_t timeslice, ChannelIndex channelIndex) {
+        LOGP(info, "Domain info updated with timeslice {}", timeslice);
+        auto& timesliceIndex = services.get<TimesliceIndex>();
+        auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+        auto& stats = services.get<DataProcessingStats>();
+        O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
+        O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "run", "Consumed timeframes (domain info updated) to be set to %zu.", oldestPossingTimeslice);
+        stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.processCommandQueue();
+      };
+      callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
+
+      return adaptStateless([](DataProcessingStats& stats, TimesliceIndex& timesliceIndex) {
+        O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
+        auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+        O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "run", "Consumed timeframes (processing) to be set to %zu.", oldestPossingTimeslice);
+        stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+      });
+    })},
     .labels = {{"resilient"}}};
 }
 

@@ -37,6 +37,9 @@ struct CommonDataProcessors {
   /// and simply discards them. @a rateLimitingChannelConfig is the configuration
   /// for the rate limiting channel, if any required.
   static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs, std::string rateLimitingChannelConfig);
+  /// @return a dummy DataProcessorSpec which requires all the passed @a InputSpec
+  /// and simply discards them. Rate limiting goes through the DPL driver
+  static DataProcessorSpec getScheduledDummySink(std::vector<InputSpec> const& danglingInputs);
   static AlgorithmSpec wrapWithRateLimiting(AlgorithmSpec spec);
 };
 

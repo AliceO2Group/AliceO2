@@ -65,7 +65,7 @@ enum struct RateLimitingState {
 
 struct RateLimitConfig {
   int64_t maxMemory = 2000;
-  int64_t maxTimeframes = 0;
+  int64_t maxTimeframes = 1;
 };
 
 struct MetricIndices {
@@ -77,6 +77,7 @@ struct MetricIndices {
   size_t shmOfferBytesConsumed = -1;
   size_t timeframesRead = -1;
   size_t timeframesConsumed = -1;
+  size_t timeframesExpired = -1;
 };
 
 std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& allDevicesMetrics)
@@ -84,23 +85,18 @@ std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& 
   std::vector<MetricIndices> results;
 
   for (auto& info : allDevicesMetrics) {
-    MetricIndices indices;
-    indices.arrowBytesCreated = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-created");
-    indices.arrowBytesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-destroyed");
-    indices.arrowMessagesCreated = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-created");
-    indices.arrowMessagesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-destroyed");
-    indices.arrowBytesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-expired");
-    indices.shmOfferBytesConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "shm-offer-bytes-consumed");
-    indices.timeframesRead = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "df-sent");
-    indices.timeframesConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "consumed-timeframes");
-    results.push_back(indices);
+    results.emplace_back(MetricIndices{
+      .arrowBytesCreated = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-created"),
+      .arrowBytesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-destroyed"),
+      .arrowMessagesCreated = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-created"),
+      .arrowMessagesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-destroyed"),
+      .arrowBytesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-expired"),
+      .shmOfferBytesConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "shm-offer-bytes-consumed"),
+      .timeframesRead = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "df-sent"),
+      .timeframesConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "consumed-timeframes"),
+      .timeframesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "expired-timeframes")});
   }
   return results;
-}
-
-uint64_t calculateAvailableSharedMemory(ServiceRegistryRef registry)
-{
-  return registry.get<RateLimitConfig>().maxMemory;
 }
 
 struct ResourceState {
@@ -205,29 +201,30 @@ auto offerResources(ResourceState& resourceState,
   // unusedOfferedSharedMemory is the amount of memory which was offered and which we know it was
   // not used so far. So we need to account for the amount which got actually read (readerBytesCreated)
   // and the amount which we know was given back.
-  static int64_t lastShmOfferConsumed = 0;
-  static int64_t lastUnusedOfferedMemory = 0;
-  if (offerConsumedCurrentValue != lastShmOfferConsumed) {
+  static int64_t lastResourceOfferConsumed = 0;
+  static int64_t lastUnusedOfferedResource = 0;
+  if (offerConsumedCurrentValue != lastResourceOfferConsumed) {
     O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
                            "Offer consumed so far %llu", offerConsumedCurrentValue);
-    lastShmOfferConsumed = offerConsumedCurrentValue;
+    lastResourceOfferConsumed = offerConsumedCurrentValue;
   }
-  int unusedOfferedMemory = (resourceState.offered - (offerExpiredCurrentValue + offerConsumedCurrentValue) / resourceSpec.metricOfferScaleFactor);
-  if (lastUnusedOfferedMemory != unusedOfferedMemory) {
+  int unusedOfferedResource = (resourceState.offered - (offerExpiredCurrentValue + offerConsumedCurrentValue) / resourceSpec.metricOfferScaleFactor);
+  if (lastUnusedOfferedResource != unusedOfferedResource) {
     O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
-                           "unusedOfferedMemory:%{bytes}d = offered:%{bytes}llu - (expired:%{bytes}llu + consumed:%{bytes}llu) / %lli",
-                           unusedOfferedMemory, resourceState.offered,
+                           "unusedOfferedResource(%{public}s):%{bytes}d = offered:%{bytes}llu - (expired:%{bytes}llu + consumed:%{bytes}llu) / %lli",
+                           resourceSpec.name,
+                           unusedOfferedResource, resourceState.offered,
                            offerExpiredCurrentValue / resourceSpec.metricOfferScaleFactor,
                            offerConsumedCurrentValue / resourceSpec.metricOfferScaleFactor,
                            resourceSpec.metricOfferScaleFactor);
-    lastUnusedOfferedMemory = unusedOfferedMemory;
+    lastUnusedOfferedResource = unusedOfferedResource;
   }
   // availableSharedMemory is the amount of memory which we know is available to be offered.
   // We subtract the amount which we know was already offered but it's unused and we then balance how
   // much was created with how much was destroyed.
-  resourceState.available = resourceSpec.maxAvailable + ((disposedResourceCurrentValue - acquiredResourceCurrentValue) / resourceSpec.metricOfferScaleFactor) - unusedOfferedMemory;
+  resourceState.available = resourceSpec.maxAvailable + ((disposedResourceCurrentValue - acquiredResourceCurrentValue) / resourceSpec.metricOfferScaleFactor) - unusedOfferedResource;
   availableResourceMetric(driverMetrics, resourceState.available, timestamp);
-  unusedOfferedResourceMetric(driverMetrics, unusedOfferedMemory, timestamp);
+  unusedOfferedResourceMetric(driverMetrics, unusedOfferedResource, timestamp);
 
   offeredResourceMetric(driverMetrics, resourceState.offered, timestamp);
 };
@@ -258,6 +255,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        int64_t totalMessagesDestroyed = 0;
                        int64_t totalTimeframesRead = 0;
                        int64_t totalTimeframesConsumed = 0;
+                       int64_t totalTimeframesExpired = 0;
                        auto &driverMetrics = sm.driverMetricsInfo;
                        auto &allDeviceMetrics = sm.deviceMetricsInfos;
                        auto &specs = sm.deviceSpecs;
@@ -266,9 +264,14 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
                        static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-shm-offer-bytes-consumed");
+                       // These are really to monitor the rate limiting
                        static auto unusedOfferedSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-unused-offered-shared-memory");
+                       static auto unusedOfferedTimeslicesMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-unused-offered-timeslices");
                        static auto availableSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-available-shared-memory");
+                       static auto availableTimeslicesMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-available-timeslices");
                        static auto offeredSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-offered-shared-memory");
+                       static auto offeredTimeslicesMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-offered-timeslices");
+
                        static auto totalBytesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-destroyed");
                        static auto totalBytesExpiredMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-expired");
                        static auto totalMessagesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-created");
@@ -390,6 +393,18 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
                            lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                          }
+                         {
+                           size_t index = indices.timeframesExpired;
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           auto value = (int64_t)data[(info.pos - 1) % data.size()];
+                           totalTimeframesExpired += value;
+                           auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
+                           lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
+                         }
                        }
                        static uint64_t unchangedCount = 0;
                        if (changed) {
@@ -407,26 +422,45 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          unchangedCount++;
                        }
                        changedCountMetric(driverMetrics, unchangedCount, timestamp);
-                       auto maxTimeframes = registry.get<RateLimitConfig>().maxTimeframes;
-                       if (maxTimeframes && (totalTimeframesRead - totalTimeframesConsumed) > maxTimeframes) {
-                         return;
-                       }
+
                        static const ResourceSpec shmResourceSpec{
                          .name = "shared memory",
                          .unit = "MB",
                          .api = "/shm-offer {}",
-                         .maxAvailable = (int64_t)calculateAvailableSharedMemory(registry),
+                         .maxAvailable = (int64_t)registry.get<RateLimitConfig>().maxMemory,
                          .maxQuantum = 100,
                          .minQuantum = 50,
                          .metricOfferScaleFactor = 1000000,
                        };
+                       static const ResourceSpec timesliceResourceSpec{
+                         .name = "timeslice",
+                         .unit = "timeslices",
+                         .api = "/timeslice-offer {}",
+                         .maxAvailable = (int64_t)registry.get<RateLimitConfig>().maxTimeframes,
+                         .maxQuantum = 1,
+                         .minQuantum = 1,
+                         .metricOfferScaleFactor = 1,
+                       };
                        static ResourceState shmResourceState{
                          .available = shmResourceSpec.maxAvailable,
+                       };
+                       static ResourceState timesliceResourceState{
+                         .available = timesliceResourceSpec.maxAvailable,
                        };
                        static ResourceStats shmResourceStats{
                          .enoughCount = shmResourceState.available - shmResourceSpec.minQuantum > 0 ? 1 : 0,
                          .lowCount = shmResourceState.available - shmResourceSpec.minQuantum > 0 ? 0 : 1
                        };
+                       static ResourceStats timesliceResourceStats{
+                         .enoughCount = shmResourceState.available - shmResourceSpec.minQuantum > 0 ? 1 : 0,
+                         .lowCount = shmResourceState.available - shmResourceSpec.minQuantum > 0 ? 0 : 1
+                       };
+
+                       offerResources(timesliceResourceState, timesliceResourceSpec, timesliceResourceStats,
+                                      specs, infos, manager, totalTimeframesConsumed, totalTimeframesExpired,
+                                      totalTimeframesRead, totalTimeframesConsumed, timestamp, driverMetrics,
+                                      availableTimeslicesMetric, unusedOfferedTimeslicesMetric, offeredTimeslicesMetric,
+                                      (void*)&sm);
 
                        offerResources(shmResourceState, shmResourceSpec, shmResourceStats,
                                       specs, infos, manager, shmOfferBytesConsumed, totalBytesExpired,
@@ -487,18 +521,18 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        } else {
                          config->maxMemory = readers * 500;
                        }
-                       if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].as<std::string>() == "readers") {
-                         config->maxTimeframes = readers;
-                       } else {
+                       if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].defaulted() == false) {
                          config->maxTimeframes = std::stoll(dc.options["timeframes-rate-limit"].as<std::string>());
+                       } else {
+                         config->maxTimeframes = readers;
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...
                        if (!once) {
                          O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
                          O2_SIGNPOST_EVENT_EMIT_INFO(rate_limiting, sid, "setup",
-                                                     "Rate limiting set up at %{bytes}llu MB distributed over %d readers",
-                                                     config->maxMemory, readers);
+                                                     "Rate limiting set up at %{bytes}llu MB and %llu timeframes distributed over %d readers",
+                                                     config->maxMemory, config->maxTimeframes, readers);
                          registry.registerService(ServiceRegistryHelpers::handleForService<RateLimitConfig>(config));
                          once = true;
                        } },
