@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/AsyncQueue.h"
 #include "Framework/DataProcessingDevice.h"
+#include <atomic>
 #include "Framework/ControlService.h"
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/DataProcessingHeader.h"
@@ -99,6 +100,8 @@ O2_DECLARE_DYNAMIC_LOG(async_queue);
 O2_DECLARE_DYNAMIC_LOG(forwarding);
 // Special log to track CCDB related requests
 O2_DECLARE_DYNAMIC_LOG(ccdb);
+// Special log to track task scheduling
+O2_DECLARE_DYNAMIC_LOG(scheduling);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
@@ -1551,10 +1554,22 @@ void DataProcessingDevice::Run()
       auto& spec = ref.get<DeviceSpec const>();
       bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
 
+      struct SchedulingStats {
+        std::atomic<size_t> lastScheduled = 0;
+        std::atomic<size_t> numberOfUnscheduledSinceLastScheduled = 0;
+        std::atomic<size_t> numberOfUnscheduled = 0;
+        std::atomic<size_t> numberOfScheduled = 0;
+      };
+      static SchedulingStats schedulingStats;
+      O2_SIGNPOST_ID_GENERATE(sid, scheduling);
       if (enough) {
         stream.id = streamRef;
         stream.running = true;
         stream.registry = &mServiceRegistry;
+        schedulingStats.lastScheduled = uv_now(state.loop);
+        schedulingStats.numberOfScheduled++;
+        schedulingStats.numberOfUnscheduledSinceLastScheduled = 0;
+        O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run", "Enough resources to schedule computation on stream %d", streamRef.index);
         if (dplEnableMultithreding) [[unlikely]] {
           stream.task = &handle;
           uv_queue_work(state.loop, stream.task, run_callback, run_completion);
@@ -1563,6 +1578,20 @@ void DataProcessingDevice::Run()
           run_completion(&handle, 0);
         }
       } else {
+        if (schedulingStats.numberOfUnscheduledSinceLastScheduled > 100 ||
+            (uv_now(state.loop) - schedulingStats.lastScheduled) > 30000) {
+          O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
+                                      "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                      schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
+                                      schedulingStats.lastScheduled.load());
+        } else {
+          O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
+                                 "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                 schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
+                                 schedulingStats.lastScheduled.load());
+        }
+        schedulingStats.numberOfUnscheduled++;
+        schedulingStats.numberOfUnscheduledSinceLastScheduled++;
         auto ref = ServiceRegistryRef{mServiceRegistry};
         ref.get<ComputingQuotaEvaluator>().handleExpired(reportExpiredOffer);
       }
