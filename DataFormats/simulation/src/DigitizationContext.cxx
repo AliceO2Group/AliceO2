@@ -708,7 +708,7 @@ DigitizationContext DigitizationContext::extractSingleTimeframe(int timeframeid,
     auto tf_ranges = timeframeindices.at(timeframeid);
 
     auto startindex = std::get<0>(tf_ranges);
-    auto endindex = std::get<1>(tf_ranges) + 1; // +1 due to endindex being "including"
+    auto endindex = std::get<1>(tf_ranges);
     auto earlyindex = std::get<2>(tf_ranges);
 
     if (earlyindex >= 0) {
