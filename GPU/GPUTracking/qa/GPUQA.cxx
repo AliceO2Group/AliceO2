@@ -2027,11 +2027,11 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
   }
 
   std::vector<Color_t> colorNums(COLORCOUNT);
-  if (!qcout) {
+  if (!(qcout || mConfig.writeRootFiles)) {
     [[maybe_unused]] static int32_t initColorsInitialized = initColors();
   }
   for (int32_t i = 0; i < COLORCOUNT; i++) {
-    colorNums[i] = qcout ? defaultColorNums[i] : mColors[i]->GetNumber();
+    colorNums[i] = (qcout || mConfig.writeRootFiles) ? defaultColorNums[i] : mColors[i]->GetNumber();
   }
 
   bool mcAvail = mcPresent();
@@ -2288,7 +2288,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
               continue;
             }
             e->SetMarkerColor(kBlack);
-            e->SetLineColor(colorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % COLORCOUNT]);
+            e->SetLineColor(colorNums[(k * 3 + l) % COLORCOUNT]);
             e->GetHistogram()->GetYaxis()->SetRangeUser(-0.02, 1.02);
             e->Draw(k || l ? "same P" : "AP");
             if (j == 0) {
