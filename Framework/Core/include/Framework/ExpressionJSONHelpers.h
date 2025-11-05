@@ -13,11 +13,12 @@
 
 #include "Framework/Expressions.h"
 
-namespace o2::framework {
+namespace o2::framework
+{
 struct ExpressionJSONHelpers {
   static std::unique_ptr<expressions::Node> read(std::istream& s);
   static void write(std::ostream& o, expressions::Node* n);
 };
-}
+} // namespace o2::framework
 
 #endif // FRAMEWORK_EXPRESSIONJSONHELPERS_H

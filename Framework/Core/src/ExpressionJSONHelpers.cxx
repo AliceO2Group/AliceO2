@@ -20,7 +20,8 @@
 #include <iostream>
 #include "Framework/VariantHelpers.h"
 
-namespace o2::framework {
+namespace o2::framework
+{
 
 using nodes = expressions::Node::self_t;
 enum struct Nodes : int {
@@ -550,7 +551,7 @@ void writeExpression(std::ostream& o, expressions::Node* n)
     }
   }
 }
-}
+} // namespace o2::framework
 
 void o2::framework::ExpressionJSONHelpers::write(std::ostream& o, expressions::Node* n)
 {
