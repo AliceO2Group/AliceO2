@@ -19,6 +19,7 @@ endif()
 o2_add_library(FrameworkAnalysisSupport
                SOURCES src/Plugin.cxx
                        src/DataInputDirector.cxx
+                       src/TableTreeHelpers.cxx
                        src/AODJAlienReaderHelpers.cxx
                        src/AODWriterHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
@@ -39,3 +40,9 @@ o2_add_test(DataInputDirector NAME test_Framework_test_DataInputDirector
                COMPONENT_NAME Framework
                LABELS framework
                PUBLIC_LINK_LIBRARIES O2::FrameworkAnalysisSupport)
+
+o2_add_test(TableToTree NAME benchmark_TableToTree
+               SOURCES test/benchmark_TableToTree.cxx
+               COMPONENT_NAME Framework
+               LABELS framework
+               PUBLIC_LINK_LIBRARIES O2::FrameworkAnalysisSupport benchmark::benchmark)

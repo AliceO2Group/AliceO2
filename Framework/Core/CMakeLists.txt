@@ -132,7 +132,6 @@ o2_add_library(Framework
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
-                       src/TableTreeHelpers.cxx
                        src/TopologyPolicy.cxx
                        src/TopologyPolicyHelpers.cxx
                        src/TextDriverClient.cxx
@@ -349,7 +348,6 @@ foreach(b
         ASoAHelpers
         EventMixing
         HistogramRegistry
-        TableToTree
         ExternalFairMQDeviceProxies
         )
   o2_add_executable(benchmark-${b}
