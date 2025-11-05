@@ -210,7 +210,13 @@ class ParameterCollection : public TNamed
   }
 
   /// @brief getter for the parameters stored in the container matching to a pass
-  const auto& getPars(const std::string& pass) const { return mParameters.at(pass); }
+  const std::unordered_map<std::string, paramvar_t>& getPars(const std::string& pass) const
+  {
+    if (!hasKey(pass)) {
+      LOG(fatal) << "Parameters for pass " << pass << " not found!";
+    }
+    return mParameters.at(pass);
+  }
 
   /// @brief printing function for the content of the pass
   /// @param pass pass to print
@@ -221,7 +227,7 @@ class ParameterCollection : public TNamed
 
   /// @brief Getter of the full map of parameters stored in the container
   /// @return returns the full map of parameters
-  const auto& getFullMap() { return mParameters; }
+  const std::unordered_map<std::string, std::unordered_map<std::string, paramvar_t>>& getFullMap() const { return mParameters; }
 
   /// Loader from file
   /// \param FileName name of the input file
