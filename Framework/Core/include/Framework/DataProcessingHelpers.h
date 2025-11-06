@@ -21,6 +21,10 @@ struct ForwardChannelState;
 struct OutputChannelInfo;
 struct OutputChannelSpec;
 struct OutputChannelState;
+struct ProcessingPolicies;
+struct DeviceSpec;
+enum struct StreamingState;
+enum struct TransitionHandlingState;
 
 /// Generic helpers for DataProcessing releated functions.
 struct DataProcessingHelpers {
@@ -35,6 +39,12 @@ struct DataProcessingHelpers {
   static bool sendOldestPossibleTimeframe(ServiceRegistryRef const& ref, OutputChannelInfo const& info, OutputChannelState& state, size_t timeslice);
   /// Broadcast the oldest possible timeslice to all channels in output
   static void broadcastOldestPossibleTimeslice(ServiceRegistryRef const& ref, size_t timeslice);
+  /// change the device StreamingState to newState
+  static void switchState(ServiceRegistryRef const& ref, StreamingState newState);
+  /// check if spec is a source devide
+  static bool hasOnlyGenerated(DeviceSpec const& spec);
+  /// starts the EoS timers and returns the new TransitionHandlingState in case as new state is requested
+  static TransitionHandlingState updateStateTransition(ServiceRegistryRef const& ref, ProcessingPolicies const& policies);
 };
 
 } // namespace o2::framework

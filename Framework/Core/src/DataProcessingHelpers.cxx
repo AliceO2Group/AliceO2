@@ -20,9 +20,27 @@
 #include "Framework/Logger.h"
 #include "Framework/SendingPolicy.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/DeviceState.h"
+#include "Framework/DeviceContext.h"
+#include "Framework/ProcessingPolicies.h"
+#include "Framework/Signpost.h"
+#include "Framework/CallbackService.h"
+#include "Framework/DefaultsHelpers.h"
+#include "Framework/ServiceRegistryRef.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/ControlService.h"
+#include "Framework/DataProcessingContext.h"
+#include "Framework/DeviceStateEnums.h"
 
 #include <fairmq/Device.h>
 #include <fairmq/Channel.h>
+
+#include <uv.h>
+
+// A log to use for general device logging
+O2_DECLARE_DYNAMIC_LOG(device);
+// Stream which keeps track of the calibration lifetime logic
+O2_DECLARE_DYNAMIC_LOG(calibration);
 
 namespace o2::framework
 {
@@ -86,6 +104,116 @@ void DataProcessingHelpers::broadcastOldestPossibleTimeslice(ServiceRegistryRef 
     auto& info = proxy.getOutputChannelInfo({ci});
     auto& state = proxy.getOutputChannelState({ci});
     sendOldestPossibleTimeframe(ref, info, state, timeslice);
+  }
+}
+
+void DataProcessingHelpers::switchState(ServiceRegistryRef const& ref, StreamingState newState)
+{
+  auto& state = ref.get<DeviceState>();
+  auto& context = ref.get<DataProcessorContext>();
+  O2_SIGNPOST_ID_FROM_POINTER(dpid, device, &context);
+  O2_SIGNPOST_END(device, dpid, "state", "End of processing state %d", (int)state.streaming);
+  O2_SIGNPOST_START(device, dpid, "state", "Starting processing state %d", (int)newState);
+  state.streaming = newState;
+  ref.get<ControlService>().notifyStreamingState(state.streaming);
+};
+
+bool hasOnlyTimers(DeviceSpec const& spec)
+{
+  return std::all_of(spec.inputs.cbegin(), spec.inputs.cend(), [](InputRoute const& route) -> bool { return route.matcher.lifetime == Lifetime::Timer; });
+}
+
+bool DataProcessingHelpers::hasOnlyGenerated(DeviceSpec const& spec)
+{
+  return (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
+}
+
+void on_data_processing_expired(uv_timer_t* handle)
+{
+  auto* ref = (ServiceRegistryRef*)handle->data;
+  auto& state = ref->get<DeviceState>();
+  auto& spec = ref->get<DeviceSpec const>();
+  state.loopReason |= DeviceState::TIMER_EXPIRED;
+
+  // Check if this is a source device
+  O2_SIGNPOST_ID_FROM_POINTER(cid, calibration, handle);
+
+  if (DataProcessingHelpers::hasOnlyGenerated(spec)) {
+    O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "callback", "Grace period for data processing expired. Switching to EndOfStreaming.");
+    DataProcessingHelpers::switchState(*ref, StreamingState::EndOfStreaming);
+  } else {
+    O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "callback", "Grace period for data processing expired. Only calibrations from this point onwards.");
+    state.allowedProcessing = DeviceState::CalibrationOnly;
+  }
+}
+
+void on_transition_requested_expired(uv_timer_t* handle)
+{
+  auto* ref = (ServiceRegistryRef*)handle->data;
+  auto& state = ref->get<DeviceState>();
+  state.loopReason |= DeviceState::TIMER_EXPIRED;
+  // Check if this is a source device
+  O2_SIGNPOST_ID_FROM_POINTER(cid, calibration, handle);
+  auto& spec = ref->get<DeviceSpec const>();
+  std::string messageOnExpire = DataProcessingHelpers::hasOnlyGenerated(spec) ? "DPL exit transition grace period for source expired. Exiting." : fmt::format("DPL exit transition grace period for {} expired. Exiting.", state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration").c_str();
+  if (!ref->get<RawDeviceService>().device()->GetConfig()->GetValue<bool>("error-on-exit-transition-timeout")) {
+    O2_SIGNPOST_EVENT_EMIT_WARN(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
+  } else {
+    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
+  }
+  state.transitionHandling = TransitionHandlingState::Expired;
+}
+
+TransitionHandlingState DataProcessingHelpers::updateStateTransition(ServiceRegistryRef const& ref, ProcessingPolicies const& policies)
+{
+  auto& state = ref.get<DeviceState>();
+  auto& deviceProxy = ref.get<FairMQDeviceProxy>();
+  if (state.transitionHandling != TransitionHandlingState::NoTransition || deviceProxy.newStateRequested() == false) {
+    return state.transitionHandling;
+  }
+  O2_SIGNPOST_ID_FROM_POINTER(lid, device, state.loop);
+  O2_SIGNPOST_ID_FROM_POINTER(cid, calibration, state.loop);
+  auto& deviceContext = ref.get<DeviceContext>();
+  // Check if we only have timers
+  auto& spec = ref.get<DeviceSpec const>();
+  if (hasOnlyTimers(spec)) {
+    DataProcessingHelpers::switchState(ref, StreamingState::EndOfStreaming);
+  }
+
+  // We do not do anything in particular if the data processing timeout would go past the exitTransitionTimeout
+  if (deviceContext.dataProcessingTimeout > 0 && deviceContext.dataProcessingTimeout < deviceContext.exitTransitionTimeout) {
+    uv_update_time(state.loop);
+    O2_SIGNPOST_EVENT_EMIT(calibration, cid, "timer_setup", "Starting %d s timer for dataProcessingTimeout.", deviceContext.dataProcessingTimeout);
+    uv_timer_start(deviceContext.dataProcessingGracePeriodTimer, on_data_processing_expired, deviceContext.dataProcessingTimeout * 1000, 0);
+  }
+  if (deviceContext.exitTransitionTimeout != 0 && state.streaming != StreamingState::Idle) {
+    ref.get<CallbackService>().call<CallbackService::Id::ExitRequested>(ServiceRegistryRef{ref});
+    uv_update_time(state.loop);
+    O2_SIGNPOST_EVENT_EMIT(calibration, cid, "timer_setup", "Starting %d s timer for exitTransitionTimeout.",
+                           deviceContext.exitTransitionTimeout);
+    uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, deviceContext.exitTransitionTimeout * 1000, 0);
+    bool onlyGenerated = DataProcessingHelpers::hasOnlyGenerated(spec);
+    int timeout = onlyGenerated ? deviceContext.dataProcessingTimeout : deviceContext.exitTransitionTimeout;
+    if (policies.termination == TerminationPolicy::QUIT && DefaultsHelpers::onlineDeploymentMode() == false) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before quitting.", timeout);
+    } else {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop",
+                                  "New state requested. Waiting for %d seconds before %{public}s",
+                                  timeout,
+                                  onlyGenerated ? "dropping remaining input and switching to READY state." : "switching to READY state.");
+    }
+    return TransitionHandlingState::Requested;
+  } else {
+    if (deviceContext.exitTransitionTimeout == 0 && policies.termination == TerminationPolicy::QUIT) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, quitting immediately as per --completion-policy");
+    } else if (deviceContext.exitTransitionTimeout == 0 && policies.termination != TerminationPolicy::QUIT) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, switching to READY state immediately");
+    } else if (policies.termination == TerminationPolicy::QUIT) {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, quitting immediately as per --completion-policy");
+    } else {
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, switching to READY immediately.");
+    }
+    return TransitionHandlingState::Expired;
   }
 }
 
