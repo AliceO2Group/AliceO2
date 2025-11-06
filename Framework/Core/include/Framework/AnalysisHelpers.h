@@ -38,6 +38,8 @@ constexpr auto tableRef2ConfigParamSpec()
     {"\"\""}};
 }
 
+std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
+
 namespace
 {
 template <soa::with_sources T>
@@ -97,6 +99,26 @@ constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }
+
+template <soa::with_expression_pack T>
+constexpr auto getExpressionMetadata() -> std::optional<framework::ConfigParamSpec>
+{
+  using expression_pack_t = T::expression_pack_t;
+
+  auto projectors = []<typename... C>(framework::pack<C...>) -> std::vector<framework::expressions::Projector> {
+    return {C::Projector()...};
+  }(expression_pack_t{});
+
+  auto json = serializeProjectors(projectors);
+  return framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}};
+}
+
+template <typename T>
+constexpr auto getExpressionMetadata() -> std::optional<framework::ConfigParamSpec>
+{
+  return {};
+}
+
 }  // namespace
 
 template <TableRef R>
@@ -107,6 +129,10 @@ constexpr auto tableRef2InputSpec()
   metadata.insert(metadata.end(), m.begin(), m.end());
   auto ccdbMetadata = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
+  auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  if (p) {
+    metadata.insert(metadata.end(), p.value());
+  }
 
   return framework::InputSpec{
     o2::aod::label<R>(),
