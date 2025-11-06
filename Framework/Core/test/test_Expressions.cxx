@@ -396,20 +396,30 @@ TEST_CASE("TestStringExpressionsParsing")
 TEST_CASE("TestExpressionSerialization")
 {
   Filter f = o2::aod::track::signed1Pt > 0.f && ifnode(nabs(o2::aod::track::eta) < 1.0f, nabs(o2::aod::track::x) > 2.0f, nabs(o2::aod::track::y) > 3.0f);
-  auto ops = createOperations(f);
-  auto schema = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Eta::asArrowField(), o2::aod::track::Signed1Pt::asArrowField(), o2::aod::track::X::asArrowField(), o2::aod::track::Y::asArrowField()});
-  auto tree = createExpressionTree(ops, schema);
+  Projector p = -1.f * nlog(ntan(o2::constants::math::PIQuarter - 0.5f * natan(o2::aod::fwdtrack::tgl)));
+
+  std::vector<Projector> projectors;
+  projectors.emplace_back(std::move(f));
+  projectors.emplace_back(std::move(p));
 
   std::stringstream osm;
-  ExpressionJSONHelpers::write(osm, f.node.get());
+  ExpressionJSONHelpers::write(osm, projectors);
 
   std::stringstream ism;
   ism.str(osm.str());
-  Filter fr = ExpressionJSONHelpers::read(ism);
+  auto ps = ExpressionJSONHelpers::read(ism);
 
-  auto s1 = createOperations(f);
-  auto s2 = createOperations(fr);
-  auto t1 = createExpressionTree(s1, schema);
-  auto t2 = createExpressionTree(s2, schema);
+  auto s1 = createOperations(projectors[0]);
+  auto s2 = createOperations(ps[0]);
+  auto schemaf = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Eta::asArrowField(), o2::aod::track::Signed1Pt::asArrowField(), o2::aod::track::X::asArrowField(), o2::aod::track::Y::asArrowField()});
+  auto t1 = createExpressionTree(s1, schemaf);
+  auto t2 = createExpressionTree(s2, schemaf);
   REQUIRE(t1->ToString() == t2->ToString());
+
+  auto s12 = createOperations(projectors[1]);
+  auto s22 = createOperations(ps[1]);
+  auto schemap = std::make_shared<arrow::Schema>(std::vector{o2::aod::fwdtrack::Tgl::asArrowField()});
+  auto t12 = createExpressionTree(s12, schemap);
+  auto t22 = createExpressionTree(s22, schemap);
+  REQUIRE(t12->ToString() == t22->ToString());
 }
