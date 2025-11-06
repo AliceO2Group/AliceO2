@@ -44,28 +44,6 @@ auto setEOSCallback(InitContext& ic)
     });
 }
 
-template <typename... Ts>
-static inline auto doExtractOriginal(framework::pack<Ts...>, ProcessingContext& pc)
-{
-  if constexpr (sizeof...(Ts) == 1) {
-    return pc.inputs().get<TableConsumer>(aod::MetadataTrait<framework::pack_element_t<0, framework::pack<Ts...>>>::metadata::tableLabel())->asArrowTable();
-  } else {
-    return std::vector{pc.inputs().get<TableConsumer>(aod::MetadataTrait<Ts>::metadata::tableLabel())->asArrowTable()...};
-  }
-}
-
-template <typename... Os>
-static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
-{
-  return std::make_tuple(extractTypedOriginal<Os>(pc)...);
-}
-
-template <typename... Os>
-static inline auto extractOriginalsVector(framework::pack<Os...>, ProcessingContext& pc)
-{
-  return std::vector{extractOriginal<Os>(pc)...};
-}
-
 template <size_t N, std::array<soa::TableRef, N> refs>
 static inline auto extractOriginals(ProcessingContext& pc)
 {

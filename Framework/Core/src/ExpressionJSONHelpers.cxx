@@ -22,7 +22,8 @@
 
 namespace o2::framework
 {
-
+namespace
+{
 using nodes = expressions::Node::self_t;
 enum struct Nodes : int {
   NLITERAL = 0,
@@ -46,7 +47,8 @@ struct Entry {
   ToWrite toWrite = ToWrite::FULL;
 };
 
-std::array<std::string_view, 10> validKeys{
+std::array<std::string_view, 11> validKeys{
+  "projectors",
   "kind",
   "binding",
   "index",
@@ -58,29 +60,29 @@ std::array<std::string_view, 10> validKeys{
   "right",
   "condition"};
 
-namespace
-{
 struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, ExpressionReader> {
   using Ch = rapidjson::UTF8<>::Ch;
   using SizeType = rapidjson::SizeType;
 
   enum struct State {
-    IN_START,
-    IN_STOP,
-    IN_NODE_LITERAL,
-    IN_NODE_BINDING,
-    IN_NODE_OP,
-    IN_NODE_CONDITIONAL,
-    IN_ROOT,
-    IN_LEFT,
-    IN_RIGHT,
-    IN_COND,
-    IN_ERROR
+    IN_START,            // global start
+    IN_LIST,             // opening brace of the list
+    IN_ROOT,             // after encountering the opening of the expression object
+    IN_LEFT,             // in "left" key - subexpression
+    IN_RIGHT,            // in "right" key - subexpression
+    IN_COND,             // in "condition" key - subexpression
+    IN_NODE_LITERAL,     // in literal node
+    IN_NODE_BINDING,     // in binding node
+    IN_NODE_OP,          // in operation node
+    IN_NODE_CONDITIONAL, // in conditional node
+    IN_ERROR             // generic error state
   };
 
   std::stack<State> states;
   std::stack<Entry> path;
   std::ostringstream debug;
+
+  std::vector<expressions::Projector> result;
 
   std::unique_ptr<expressions::Node> rootNode = nullptr;
   std::unique_ptr<expressions::Node> node = nullptr;
@@ -101,6 +103,28 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     states.push(State::IN_START);
   }
 
+  bool StartArray()
+  {
+    debug << "Starting array" << std::endl;
+    if (states.top() == State::IN_START) {
+      states.push(State::IN_LIST);
+      return true;
+    }
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool EndArray(SizeType)
+  {
+    debug << "Ending array" << std::endl;
+    if (states.top() == State::IN_LIST) {
+      states.pop();
+      return true;
+    }
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
   bool Key(const Ch* str, SizeType, bool)
   {
     debug << "Key(" << str << ")" << std::endl;
@@ -112,8 +136,13 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     }
 
     if (states.top() == State::IN_START) {
+      if (currentKey.compare("projectors") == 0) {
+        return true;
+      }
+    }
+
+    if (states.top() == State::IN_ROOT) {
       if (currentKey.compare("kind") == 0) {
-        states.push(State::IN_ROOT);
         return true;
       } else {
         states.push(State::IN_ERROR); // should start from root node
@@ -228,38 +257,62 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 
   bool StartObject()
   {
+    // opening brace encountered
     debug << "StartObject()" << std::endl;
-    if (states.top() == State::IN_LEFT || states.top() == State::IN_RIGHT || states.top() == State::IN_COND) { // ready to start a new node
-      return true;
-    }
+    // the first opening brace in the input
     if (states.top() == State::IN_START) {
       return true;
     }
+    // the opening of an expression
+    if (states.top() == State::IN_LIST) {
+      states.push(State::IN_ROOT);
+      return true;
+    }
+    // if we are looking at subexpression
+    if (states.top() == State::IN_LEFT || states.top() == State::IN_RIGHT || states.top() == State::IN_COND) { // ready to start a new node
+      return true;
+    }
+    // no other object starts are expected
     states.push(State::IN_ERROR);
     return false;
   }
 
   bool EndObject(SizeType)
   {
+    // closing brace encountered
     debug << "EndObject()" << std::endl;
+    // we are closing up an expression
     if (states.top() == State::IN_NODE_LITERAL || states.top() == State::IN_NODE_OP || states.top() == State::IN_NODE_BINDING || states.top() == State::IN_NODE_CONDITIONAL) { // finalize node
       // finalize the current node and pop it from the stack (the pointers should be already set
       states.pop();
+      // subexpression
       if (states.top() == State::IN_LEFT || states.top() == State::IN_RIGHT || states.top() == State::IN_COND) {
         states.pop();
+        return true;
       }
+
+      // expression
+      if (states.top() == State::IN_ROOT) {
+        result.emplace_back(std::move(rootNode));
+        states.pop();
+        return true;
+      }
+    }
+
+    // we are closing the list
+    if (states.top() == State::IN_START) {
       return true;
     }
-    if (states.top() == State::IN_ROOT) {
-      return true;
-    }
+    // no other object ends are expectedd
     states.push(State::IN_ERROR);
     return false;
   }
 
   bool Null()
   {
+    // null value
     debug << "Null()" << std::endl;
+    // the subexpression can be empty
     if (states.top() == State::IN_LEFT || states.top() == State::IN_RIGHT || states.top() == State::IN_COND) {
       // empty node, nothing to do
       // move the path state to the next
@@ -281,6 +334,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool Bool(bool b)
   {
     debug << "Bool(" << b << ")" << std::endl;
+    // can be a value in a literal node
     if (states.top() == State::IN_NODE_LITERAL && currentKey.compare("value") == 0) {
       value = b;
       return true;
@@ -292,6 +346,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool Int(int i)
   {
     debug << "Int(" << i << ")" << std::endl;
+    // can be a value in a literal node
     if (states.top() == State::IN_NODE_LITERAL && currentKey.compare("value") == 0) { // literal
       switch (type) {
         case atype::INT8:
@@ -312,12 +367,19 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         case atype::UINT32:
           value = i;
           break;
+        case atype::UINT64:
+          value = (uint64_t)i;
+          break;
+        case atype::INT64:
+          value = (int64_t)i;
+          break;
         default:
           states.push(State::IN_ERROR);
           return false;
       }
       return true;
     }
+    // can be a node kind designator
     if (states.top() == State::IN_ROOT || states.top() == State::IN_LEFT || states.top() == State::IN_RIGHT || states.top() == State::IN_COND) {
       if (currentKey.compare("kind") == 0) {
         kind = (Nodes)i;
@@ -347,18 +409,21 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         }
       }
     }
+    // can be node index
     if (states.top() == State::IN_NODE_BINDING || states.top() == State::IN_NODE_CONDITIONAL || states.top() == State::IN_NODE_LITERAL || states.top() == State::IN_NODE_OP) {
       if (currentKey.compare("index") == 0) {
         index = (size_t)i;
         return true;
       }
     }
+    // can be a node type designator
     if (states.top() == State::IN_NODE_LITERAL || states.top() == State::IN_NODE_BINDING) {
       if (currentKey.compare("arrow_type") == 0) {
         type = (atype::type)i;
         return true;
       }
     }
+    // can be a node operation designato
     if (states.top() == State::IN_NODE_OP && currentKey.compare("operation") == 0) {
       operation = (BasicOp)i;
       return true;
@@ -370,10 +435,12 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool Uint(unsigned i)
   {
     debug << "Uint(" << i << ")" << std::endl;
+    // can be node hash
     if (states.top() == State::IN_NODE_BINDING && currentKey.compare("hash") == 0) {
       hash = i;
       return true;
     }
+    // any positive value will be first read as unsigned, however the actual type is determined by node's arrow_type
     debug << ">> falling back to Int" << std::endl;
     return Int(i);
   }
@@ -381,6 +448,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool Int64(int64_t i)
   {
     debug << "Int64(" << i << ")" << std::endl;
+    // can only be a literal node value
     if (states.top() == State::IN_NODE_LITERAL && currentKey.compare("value") == 0) {
       value = i;
       return true;
@@ -392,6 +460,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool Uint64(uint64_t i)
   {
     debug << "Uint64(" << i << ")" << std::endl;
+    // can only be a literal node value
     if (states.top() == State::IN_NODE_LITERAL && currentKey.compare("value") == 0) {
       value = i;
       return true;
@@ -403,6 +472,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool Double(double d)
   {
     debug << "Double(" << d << ")" << std::endl;
+    // can only be a literal node value
     if (states.top() == State::IN_NODE_LITERAL) {
       switch (type) {
         case atype::FLOAT:
@@ -424,6 +494,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool String(const Ch* str, SizeType, bool)
   {
     debug << "String(" << str << ")" << std::endl;
+    // can only be a binding node
     if (states.top() == State::IN_NODE_BINDING && currentKey.compare("binding") == 0) {
       binding = str;
       return true;
@@ -434,7 +505,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 };
 } // namespace
 
-std::unique_ptr<expressions::Node> o2::framework::ExpressionJSONHelpers::read(std::istream& s)
+std::vector<expressions::Projector> o2::framework::ExpressionJSONHelpers::read(std::istream& s)
 {
   rapidjson::Reader reader;
   rapidjson::IStreamWrapper isw(s);
@@ -446,9 +517,11 @@ std::unique_ptr<expressions::Node> o2::framework::ExpressionJSONHelpers::read(st
     error << "Cannot parse serialized Expression, error: " << rapidjson::GetParseError_En(reader.GetParseErrorCode()) << " at offset: " << reader.GetErrorOffset();
     throw std::runtime_error(error.str());
   }
-  return std::move(ereader.rootNode);
+  return std::move(ereader.result);
 }
 
+namespace
+{
 void writeNodeHeader(rapidjson::Writer<rapidjson::OStreamWrapper>& w, expressions::Node const* node)
 {
   w.Key("kind");
@@ -491,11 +564,8 @@ void writeNodeHeader(rapidjson::Writer<rapidjson::OStreamWrapper>& w, expression
              node->self);
 }
 
-void writeExpression(std::ostream& o, expressions::Node* n)
+void writeExpression(rapidjson::Writer<rapidjson::OStreamWrapper>& w, expressions::Node* n)
 {
-  rapidjson::OStreamWrapper osw(o);
-  rapidjson::Writer<rapidjson::OStreamWrapper> w(osw);
-
   std::stack<Entry> path;
   path.emplace(n, ToWrite::FULL);
   while (!path.empty()) {
@@ -551,9 +621,20 @@ void writeExpression(std::ostream& o, expressions::Node* n)
     }
   }
 }
-} // namespace o2::framework
+} // namespace
 
-void o2::framework::ExpressionJSONHelpers::write(std::ostream& o, expressions::Node* n)
+void o2::framework::ExpressionJSONHelpers::write(std::ostream& o, std::vector<o2::framework::expressions::Projector>& projectors)
 {
-  writeExpression(o, n);
+  rapidjson::OStreamWrapper osw(o);
+  rapidjson::Writer<rapidjson::OStreamWrapper> w(osw);
+  w.StartObject();
+  w.Key("projectors");
+  w.StartArray();
+  for (auto& p : projectors) {
+    writeExpression(w, p.node.get());
+  }
+  w.EndArray();
+  w.EndObject();
 }
+
+} // namespace o2::framework
