@@ -149,6 +149,8 @@ struct DriverInfo {
   std::string uniqueWorkflowId = "";
   /// Metrics gathering interval
   unsigned short resourcesMonitoringInterval = 0;
+  /// Where to dump the metrics
+  std::string resourcesMonitoringFilename = "performanceMetrics.json";
   /// Metrics gathering dump to disk interval
   unsigned short resourcesMonitoringDumpInterval = 0;
   /// Port used by the websocket control. 0 means not initialised.

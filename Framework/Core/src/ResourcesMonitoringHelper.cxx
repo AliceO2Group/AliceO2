@@ -55,7 +55,8 @@ boost::property_tree::ptree fillNodeWithValue(const DeviceMetricsInfo& deviceMet
 bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics,
                                                   const DeviceMetricsInfo& driverMetrics,
                                                   const std::vector<DeviceSpec>& specs,
-                                                  std::vector<std::regex> const& performanceMetricsRegex) noexcept
+                                                  std::vector<std::regex> const& performanceMetricsRegex,
+                                                  std::ostream& out) noexcept
 {
 
   assert(metrics.size() == specs.size());
@@ -76,7 +77,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
       auto same = [metricLabel](std::regex const& matcher) -> bool {
         return std::regex_match(metricLabel.begin(), metricLabel.end(), matcher);
       };
-      //check if we are interested
+      // check if we are interested
       if (std::find_if(std::begin(performanceMetricsRegex), std::end(performanceMetricsRegex), same) == performanceMetricsRegex.end()) {
         continue;
       }
@@ -85,7 +86,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
       if (deviceMetrics.metrics[mi].filledMetrics == 0) {
         continue;
       }
-      //if so
+      // if so
 
       boost::property_tree::ptree metricNode;
 
@@ -122,7 +123,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
       return std::regex_match(metricLabel.begin(), metricLabel.end(), matcher);
     };
 
-    //check if we are interested
+    // check if we are interested
     if (std::find_if(std::begin(performanceMetricsRegex), std::end(performanceMetricsRegex), same) == performanceMetricsRegex.end()) {
       continue;
     }
@@ -133,7 +134,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
       continue;
     }
 
-    //if so
+    // if so
     boost::property_tree::ptree metricNode;
 
     switch (driverMetrics.metrics[mi].type) {
@@ -161,14 +162,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
 
   root.add_child("driver", driverRoot);
 
-  std::ofstream file("performanceMetrics.json", std::ios::out);
-  if (file.is_open()) {
-    boost::property_tree::json_parser::write_json(file, root);
-  } else {
-    return false;
-  }
-
-  file.close();
+  boost::property_tree::json_parser::write_json(out, root);
 
   return true;
 }

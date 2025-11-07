@@ -1247,8 +1247,10 @@ void dumpMetricsCallback(uv_timer_t* handle)
   auto* context = (DriverServerContext*)handle->data;
 
   static auto performanceMetrics = getDumpableMetrics();
+  std::ofstream file(context->driver->resourcesMonitoringFilename, std::ios::out);
   ResourcesMonitoringHelper::dumpMetricsToJSON(*(context->metrics),
-                                               context->driver->metrics, *(context->specs), performanceMetrics);
+                                               context->driver->metrics, *(context->specs), performanceMetrics,
+                                               file);
 }
 
 void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, DeviceInfos const& infos, DeviceSpecs const& specs)
@@ -2035,6 +2037,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--fairmq-ipc-prefix",
             "--readers",
             "--resources-monitoring",
+            "--resources-monitoring-file",
             "--resources-monitoring-dump-interval",
             "--time-limit",
           };
@@ -2268,7 +2271,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.resourcesMonitoringDumpInterval) {
             uv_timer_stop(&metricDumpTimer);
           }
-          LOG(info) << "Dumping performance metrics to performanceMetrics.json file";
+          LOGP(info, "Dumping performance metrics to {}.json file", driverInfo.resourcesMonitoringFilename);
           dumpMetricsCallback(&metricDumpTimer);
         }
         dumpRunSummary(serverContext, driverInfo, infos, runningWorkflow.devices);
@@ -2916,6 +2919,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("no-IPC", bpo::value<bool>()->zero_tokens()->default_value(false), "disable IPC topology optimization")                                                           //                                                                                                                                        //
     ("o2-control,o2", bpo::value<std::string>()->default_value(""), "dump O2 Control workflow configuration under the specified name")                                 //
     ("resources-monitoring", bpo::value<unsigned short>()->default_value(0), "enable cpu/memory monitoring for provided interval in seconds")                          //
+    ("resources-monitoring-file", bpo::value<std::string>()->default_value("performanceMetrics.json"), "file where to dump the metrics")                               //
     ("resources-monitoring-dump-interval", bpo::value<unsigned short>()->default_value(0), "dump monitoring information to disk every provided seconds");              //
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
@@ -3186,6 +3190,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();
   driverInfo.resourcesMonitoringInterval = varmap["resources-monitoring"].as<unsigned short>();
+  driverInfo.resourcesMonitoringFilename = varmap["resources-monitoring-file"].as<std::string>();
   driverInfo.resourcesMonitoringDumpInterval = varmap["resources-monitoring-dump-interval"].as<unsigned short>();
 
   // FIXME: should use the whole dataProcessorInfos, actually...

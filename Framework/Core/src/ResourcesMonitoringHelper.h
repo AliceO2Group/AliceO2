@@ -13,26 +13,24 @@
 #define O2_FRAMEWORK_RESOURCESMONITORINGHELPER_H_
 
 #include "Framework/DeviceMetricsInfo.h"
-#include "Monitoring/ProcessMonitor.h"
 #include "Framework/DeviceSpec.h"
 
 #include <vector>
-#include <type_traits>
 #include <regex>
+#include <iosfwd>
 
 namespace o2::framework
 {
-
 struct ResourcesMonitoringHelper {
   /// Dump the metrics in @a metrics which match the names specified in @a metricsToDump
   /// @a specs are the DeviceSpecs associated to the metrics.
   static bool dumpMetricsToJSON(std::vector<DeviceMetricsInfo> const& metrics,
                                 DeviceMetricsInfo const& driverMetrics,
                                 std::vector<DeviceSpec> const& specs,
-                                std::vector<std::regex> const& metricsToDump) noexcept;
+                                std::vector<std::regex> const& metricsToDump,
+                                std::ostream& out) noexcept;
   static bool isResourcesMonitoringEnabled(unsigned short interval) noexcept { return interval > 0; }
 };
-
 
 } // namespace o2::framework
 
