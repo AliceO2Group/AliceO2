@@ -172,12 +172,12 @@ class GPUQA
   void CopyO2MCtoIOPtr(GPUTrackingInOutPointers* ptr);
   template <class T>
   void SetAxisSize(T* e);
-  void SetLegend(TLegend* l);
+  void SetLegend(TLegend* l, bool bigText = false);
   double* CreateLogAxis(int32_t nbins, float xmin, float xmax);
   void ChangePadTitleSize(TPad* p, float size);
   void DrawHisto(TH1* histo, char* filename, char* options);
   void doPerfFigure(float x, float y, float size);
-  void GetName(char* fname, int32_t k);
+  void GetName(char* fname, int32_t k, bool noDash = false);
   template <class T>
   T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int32_t k, int32_t nNewInput);
 
@@ -234,9 +234,6 @@ class GPUQA
   const GPUSettingsQA& mConfig;
   const GPUParam* mParam;
 
-  const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
-  // const char* str_perf_figure_2 = "2015, MC pp, #sqrt{s} = 5.02 TeV";
-  const char* str_perf_figure_2 = "2015, MC Pb-Pb, #sqrt{s_{NN}} = 5.02 TeV";
   //-------------------------
 
   std::vector<mcLabelI_t> mTrackMCLabels;

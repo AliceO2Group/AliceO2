@@ -525,6 +525,7 @@ AddOption(histMaxNClusters, uint32_t, 500000000, "", 0, "Maximum number of clust
 AddOption(minNClFindable, uint32_t, 70, "", 0, "Minimum number of (weighted) MC clusters for a track to count as findable")
 AddOption(minNClEff, uint32_t, 10, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to all-tracks efficiency histogramm")
 AddOption(minNClRes, uint32_t, 40, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to resolution histogram")
+AddOption(perfFigure, int32_t, 0, "", 0, "Show as performance figure, positive value for MC, negative value for data")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAinputHistogramsOnly")
 AddHelp("help", 'h')
 EndConfig()

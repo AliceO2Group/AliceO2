@@ -144,17 +144,11 @@ static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* chain)
   }
 }
 
-// static const constexpr bool PLOT_ROOT = 0;
-// static const constexpr bool FIX_SCALES = 0;
-static const constexpr bool PERF_FIGURE = 0;
-// static const constexpr float FIXED_SCALES_MIN[5] = {-0.05, -0.05, -0.2, -0.2, -0.5};
-// static const constexpr float FIXED_SCALES_MAX[5] = {0.4, 0.7, 5, 3, 6.5};
 static const constexpr float LOG_PT_MIN = -1.;
 
 static constexpr float Y_MAX = 40;
 static constexpr float Z_MAX = 100;
 static constexpr float PT_MIN = GPUCA_MIN_TRACK_PTB5_DEFAULT;
-// static constexpr float PT_MIN2 = 0.1;
 static constexpr float PT_MIN_PRIM = 0.1;
 static constexpr float PT_MIN_CLUST = GPUCA_MIN_TRACK_PTB5_DEFAULT;
 static constexpr float PT_MAX = 20;
@@ -375,10 +369,10 @@ void GPUQA::SetAxisSize(T* e)
   e->GetXaxis()->SetLabelSize(0.045);
 }
 
-void GPUQA::SetLegend(TLegend* l)
+void GPUQA::SetLegend(TLegend* l, bool bigText)
 {
   l->SetTextFont(72);
-  l->SetTextSize(0.016);
+  l->SetTextSize(bigText ? 0.03 : 0.016);
   l->SetFillColor(0);
 }
 
@@ -419,15 +413,20 @@ void GPUQA::DrawHisto(TH1* histo, char* filename, char* options)
 
 void GPUQA::doPerfFigure(float x, float y, float size)
 {
-  if (!PERF_FIGURE) {
+  const char* str_perf_figure_1 = "ALICE Performance";
+  const char* str_perf_figure_2_mc = "MC, Pb#minusPb, #sqrt{s_{NN}} = 5.36 TeV";
+  const char* str_perf_figure_2_data = "Pb#minusPb, #sqrt{s_{NN}} = 5.36 TeV";
+
+  if (mConfig.perfFigure == 0) {
     return;
   }
-  TLatex* t = createGarbageCollected<TLatex>();
+  TLatex* t = createGarbageCollected<TLatex>(); // TODO: We could perhaps put everything in a legend, to get a white background if there is a grid
   t->SetNDC(kTRUE);
   t->SetTextColor(1);
   t->SetTextSize(size);
   t->DrawLatex(x, y, str_perf_figure_1);
-  t->DrawLatex(x, y - 0.01 - size, str_perf_figure_2);
+  t->SetTextSize(size * 0.8);
+  t->DrawLatex(x, y - 0.01 - size, mConfig.perfFigure > 0 ? str_perf_figure_2_mc : str_perf_figure_2_data);
 }
 
 void GPUQA::SetMCTrackRange(int32_t min, int32_t max)
@@ -1954,20 +1953,22 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
   mTrackingScratchBuffer.shrink_to_fit();
 }
 
-void GPUQA::GetName(char* fname, int32_t k)
+void GPUQA::GetName(char* fname, int32_t k, bool noDash)
 {
   const int32_t nNewInput = mConfig.inputHistogramsOnly ? 0 : 1;
   if (k || mConfig.inputHistogramsOnly || mConfig.name.size()) {
     if (!(mConfig.inputHistogramsOnly || k)) {
-      snprintf(fname, 1024, "%s - ", mConfig.name.c_str());
+      snprintf(fname, 1024, "%s%s", mConfig.name.c_str(), noDash ? "" : " - ");
     } else if (mConfig.compareInputNames.size() > (unsigned)(k - nNewInput)) {
-      snprintf(fname, 1024, "%s - ", mConfig.compareInputNames[k - nNewInput].c_str());
+      snprintf(fname, 1024, "%s%s", mConfig.compareInputNames[k - nNewInput].c_str(), noDash ? "" : " - ");
     } else {
       strcpy(fname, mConfig.compareInputs[k - nNewInput].c_str());
       if (strlen(fname) > 5 && strcmp(fname + strlen(fname) - 5, ".root") == 0) {
         fname[strlen(fname) - 5] = 0;
       }
-      strcat(fname, " - ");
+      if (!noDash) {
+        strcat(fname, " - ");
+      }
     }
   } else {
     fname[0] = 0;
@@ -2187,8 +2188,8 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       mCTracks->cd();
       mPTracks = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPTracks->Draw();
-      mLTracks = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-      SetLegend(mLTracks);
+      mLTracks = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.5, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+      SetLegend(mLTracks, true);
 
       for (int32_t i = 0; i < 2; i++) {
         snprintf(name, 2048, "ctrackst0%d", i);
@@ -2204,8 +2205,8 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         mCNCl[i]->cd();
         mPNCl[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
         mPNCl[i]->Draw();
-        mLNCl[i] = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-        SetLegend(mLNCl[i]);
+        mLNCl[i] = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949); // TODO: Fix sizing of legend, and also fix font size
+        SetLegend(mLNCl[i], true);
       }
 
       mCClXY = createGarbageCollected<TCanvas>("clxy", "Number of clusters per X / Y", 0, 0, 700, 700. * 2. / 3.);
@@ -2288,7 +2289,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
               continue;
             }
             e->SetMarkerColor(kBlack);
-            e->SetLineColor(colorNums[(k * 3 + l) % COLORCOUNT]);
+            e->SetLineColor(colorNums[(k < 3 ? (l * 3 + k) : (k * 3 + l)) % COLORCOUNT]);
             e->GetHistogram()->GetYaxis()->SetRangeUser(-0.02, 1.02);
             e->Draw(k || l ? "same P" : "AP");
             if (j == 0) {
@@ -2776,7 +2777,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       if (!mConfig.enableLocalOutput) {
         continue;
       }
-      doPerfFigure(i != 2 ? 0.37 : 0.6, 0.295, 0.030);
+      doPerfFigure(i == 0 ? 0.37 : (i == 1 ? 0.34 : 0.6), 0.295, 0.030);
       mCClust[i]->cd();
       mCClust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
       if (mConfig.writeRootFiles) {
@@ -2827,19 +2828,21 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       e->SetMinimum(tmpMax * -0.02);
       e->SetStats(kFALSE);
       e->SetLineWidth(1);
-      e->GetYaxis()->SetTitle("a.u.");
-      e->GetXaxis()->SetTitle("#it{p}_{Tmc} (GeV/#it{c})");
+      e->SetTitle("Number of Tracks vs #it{p}_{T}");
+      e->GetYaxis()->SetTitle("Number of Tracks");
+      e->GetXaxis()->SetTitle("#it{p}_{T} (GeV/#it{c})");
       if (qcout) {
         qcout->Add(e);
       }
       e->SetMarkerColor(kBlack);
       e->SetLineColor(colorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
-      GetName(fname, k);
-      snprintf(name, 2048, "%sTrack Pt", fname);
+      GetName(fname, k, mConfig.inputHistogramsOnly);
+      snprintf(name, 2048, mConfig.inputHistogramsOnly ? "%s" : "%sTrack #it{p}_{T}", fname);
       mLTracks->AddEntry(e, name, "l");
     }
     mLTracks->Draw();
+    doPerfFigure(0.63, 0.7, 0.030);
     mCTracks->cd();
     mCTracks->Print("plots/tracks.pdf");
     if (mConfig.writeRootFiles) {
@@ -2871,19 +2874,21 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         e->SetMinimum(tmpMax * -0.02);
         e->SetStats(kFALSE);
         e->SetLineWidth(1);
+        e->SetTitle(i ? "Track t_{0} resolution" : "Track t_{0} distribution");
         e->GetYaxis()->SetTitle("a.u.");
-        e->GetXaxis()->SetTitle(i ? "to vs t0_{mc}" : "t0");
+        e->GetXaxis()->SetTitle(i ? "t_{0} - t_{0, mc}" : "t_{0}");
         if (qcout) {
           qcout->Add(e);
         }
         e->SetMarkerColor(kBlack);
         e->SetLineColor(colorNums[k % COLORCOUNT]);
         e->Draw(k == 0 ? "" : "same");
-        GetName(fname, k);
-        snprintf(name, 2048, "%sTrack T0 %s", fname, i ? "" : "resolution");
+        GetName(fname, k, mConfig.inputHistogramsOnly);
+        snprintf(name, 2048, mConfig.inputHistogramsOnly ? "%s (%s)" : "%sTrack t_{0} %s", fname, i ? "" : "resolution");
         mLT0[i]->AddEntry(e, name, "l");
       }
       mLT0[i]->Draw();
+      doPerfFigure(0.63, 0.7, 0.030);
       mCT0[i]->cd();
       snprintf(name, 2048, "plots/t0%s.pdf", i ? "_res" : "");
       mCT0[i]->Print(name);
@@ -2916,19 +2921,21 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         e->SetMinimum(tmpMax * -0.02);
         e->SetStats(kFALSE);
         e->SetLineWidth(1);
+        e->SetTitle(i ? "Number of Rows with attached Cluster" : "Number of Clusters");
         e->GetYaxis()->SetTitle("a.u.");
-        e->GetXaxis()->SetTitle("NClusters");
+        e->GetXaxis()->SetTitle(i ? "N_{Rows with Clusters}" : "N_{Clusters}");
         if (qcout) {
           qcout->Add(e);
         }
         e->SetMarkerColor(kBlack);
         e->SetLineColor(colorNums[k % COLORCOUNT]);
         e->Draw(k == 0 ? "" : "same");
-        GetName(fname, k);
-        snprintf(name, 2048, "%sNClusters%d", fname, i);
+        GetName(fname, k, mConfig.inputHistogramsOnly);
+        snprintf(name, 2048, mConfig.inputHistogramsOnly ? "%s" : (i ? "%sN_{Clusters}" : "%sN_{Rows with Clusters}"), fname);
         mLNCl[i]->AddEntry(e, name, "l");
       }
       mLNCl[i]->Draw();
+      doPerfFigure(0.6, 0.7, 0.030);
       mCNCl[i]->cd();
       snprintf(name, 2048, "plots/nClusters%s.pdf", i ? "_corrected" : "");
       mCNCl[i]->Print(name);
