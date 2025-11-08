@@ -596,6 +596,7 @@ AddOption(stripDumpedEvents, bool, false, "", 0, "Remove redundant inputs (e.g. 
 AddOption(printSettings, int32_t, 0, "", 0, "Print all settings", def(1))
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddOption(testSync, bool, false, "sync", 0, "Test settings for synchronous phase")
+AddOption(testSyncAsyncQcInSync, bool, false, "syncAsyncSyncQC", 0, "Run QC in sync phase of testSyncAsync")
 AddOption(timeFrameTime, bool, false, "tfTime", 0, "Print some debug information about time frame processing time")
 AddOption(controlProfiler, bool, false, "", 0, "Issues GPU profiler stop and start commands to profile only the relevant processing part")
 AddOption(preloadEvents, bool, false, "", 0, "Preload events into host memory before start processing")
