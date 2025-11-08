@@ -16,12 +16,19 @@
 #define GPUTPCCLUSTERREJECTION_H
 
 #include "GPUTPCGMMergerTypes.h"
+#include "GPUCommonMath.h"
 
 namespace o2::gpu
 {
 struct GPUTPCClusterRejection {
+  template <class T, class S>
+  GPUdi() static bool IsTrackRejected(const T& trk, const S& param)
+  {
+    return CAMath::Abs(trk.GetParam().GetQPt() * param.qptB5Scaler) > param.rec.tpc.rejectQPtB5 || trk.MergedLooper();
+  }
+
   template <bool C, class T = void, class S = void>
-  static constexpr inline bool GetProtectionStatus(int32_t attach, bool& physics, bool& protect, T* counts = nullptr, S* mev200 = nullptr)
+  GPUdi() static constexpr bool GetRejectionStatus(int32_t attach, bool& physics, T* counts = nullptr, S* mev200 = nullptr)
   {
     (void)counts; // FIXME: Avoid incorrect -Wunused-but-set-parameter warning
     (void)mev200;
@@ -39,7 +46,6 @@ struct GPUTPCClusterRejection {
       }
       retVal = true;
     } else if (attach & gputpcgmmergertypes::attachTube) {
-      protect = true;
       if constexpr (C) {
         if (*mev200) {
           counts->nTube200++;
@@ -49,7 +55,6 @@ struct GPUTPCClusterRejection {
       }
       retVal = false;
     } else if ((attach & gputpcgmmergertypes::attachGood) == 0) {
-      protect = true;
       if constexpr (C) {
         counts->nRejected++;
       }
@@ -60,16 +65,15 @@ struct GPUTPCClusterRejection {
     }
 
     if (attach & gputpcgmmergertypes::attachProtect) {
-      protect = true;
       retVal = false;
     }
     return retVal;
   }
 
-  static constexpr inline bool GetIsRejected(int32_t attach)
+  GPUdi() static constexpr bool GetIsRejected(int32_t attach)
   {
-    bool physics = false, protect = false;
-    return GetProtectionStatus<false>(attach, physics, protect);
+    bool physics = false;
+    return GetRejectionStatus<false>(attach, physics);
   }
 };
 } // namespace o2::gpu

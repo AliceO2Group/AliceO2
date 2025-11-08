@@ -86,6 +86,7 @@ namespace o2::gpu
 class GPUChainTracking;
 struct GPUParam;
 struct GPUTPCMCInfo;
+struct checkClusterStateResult;
 namespace internal
 {
 struct GPUQAGarbageCollection;
@@ -229,6 +230,9 @@ class GPUQA
   static bool CompareIgnoreFake(const mcLabelI_t& l1, const mcLabelI_t& l2);
   const auto& GetClusterLabels();
   bool mcPresent();
+
+  template <bool COUNT = false, class T = void>
+  checkClusterStateResult checkClusterState(uint32_t attach, T* counts = nullptr) const;
 
   GPUChainTracking* mTracking;
   const GPUSettingsQA& mConfig;

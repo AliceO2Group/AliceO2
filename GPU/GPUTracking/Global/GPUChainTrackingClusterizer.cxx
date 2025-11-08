@@ -587,7 +587,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     return ForwardTPCDigits();
   }
 #ifdef GPUCA_TPC_GEOMETRY_O2
-  [[maybe_unused]] int32_t tpcTimeBinCut = mUpdateNewCalibObjects && mNewCalibValues->newTPCTimeBinCut ? mNewCalibValues->tpcTimeBinCut : param().tpcCutTimeBin;
+  [[maybe_unused]] int32_t tpcTimeBinCut = (mUpdateNewCalibObjects && mNewCalibValues->newTPCTimeBinCut) ? mNewCalibValues->tpcTimeBinCut : param().tpcCutTimeBin; // TODO: Implement time bin cut fultering
   mRec->PushNonPersistentMemory(qStr2Tag("TPCCLUST"));
   const auto& threadContext = GetThreadContext();
   const bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
