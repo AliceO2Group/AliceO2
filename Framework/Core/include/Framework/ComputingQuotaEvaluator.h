@@ -32,7 +32,7 @@ class ComputingQuotaEvaluator
 {
  public:
   // Maximum number of offers this evaluator can hold
-  static constexpr int MAX_INFLIGHT_OFFERS = 16;
+  static constexpr int MAX_INFLIGHT_OFFERS = 32;
   ComputingQuotaEvaluator(ServiceRegistryRef ref);
   /// @a task the task which needs some quota
   /// @a request the resource request the @a task needs

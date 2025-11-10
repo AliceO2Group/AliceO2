@@ -84,7 +84,7 @@ using ComputingQuotaRequest = std::function<OfferScore(ComputingQuotaOffer const
 
 /// A consumer is a function which updates a given function removing the
 /// amount of resources which are considered as consumed.
-using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&, ComputingQuotaStats&, std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats& stats)>)>;
+using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 32>&, ComputingQuotaStats&, std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats& stats)>)>;
 
 } // namespace o2::framework
 
