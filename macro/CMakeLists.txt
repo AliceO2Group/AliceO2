@@ -35,7 +35,6 @@ install(FILES CheckDigits_mft.C
               runTPCRefit.C
               run_CRUDataSkimming_its.C
               run_calib_tof.C
-              run_clus_itsSA.C
               run_clus_tof.C
               run_clus_tpc.C
               run_clus_emcal.C
@@ -242,14 +241,6 @@ o2_add_test_root_macro(run_calib_tof.C
                        PUBLIC_LINK_LIBRARIES O2::Field O2::DataFormatsParameters
                                              O2::DetectorsBase
                                              O2::GlobalTracking)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_clus_itsSA.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsBase
-                                             O2::ITSReconstruction
-                                             O2::ITSMFTReconstruction
-                                             O2::ITSMFTBase
-                       LABELS its)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_clus_tof.C
