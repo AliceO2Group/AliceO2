@@ -240,7 +240,7 @@ DataProcessorSpec CommonDataProcessors::getScheduledDummySink(std::vector<InputS
       // this information will be aggregated in the driver which will then decide wether or not a new offer for
       // a timeslice should be done and to which device
       auto domainInfoUpdated = [](ServiceRegistryRef services, size_t timeslice, ChannelIndex channelIndex) {
-        LOGP(info, "Domain info updated with timeslice {}", timeslice);
+        LOGP(debug, "Domain info updated with timeslice {}", timeslice);
         auto& timesliceIndex = services.get<TimesliceIndex>();
         auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
         auto& stats = services.get<DataProcessingStats>();
