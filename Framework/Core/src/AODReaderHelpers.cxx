@@ -19,6 +19,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/ExpressionJSONHelpers.h"
 
 #include <Monitoring/Monitoring.h>
 
@@ -134,12 +135,32 @@ auto make_spawn(InputSpec const& input, ProcessingContext& pc)
   (typename metadata_t::expression_pack_t{});
   return o2::framework::spawner<D>(extractOriginals<sources.size(), sources>(pc), input.binding.c_str(), projectors.data(), projector, schema);
 }
+
+struct Spawnable {
+  std::vector<expressions::Projector> projectors;
+  std::vector<std::string> labels;
+  std::shared_ptr<arrow::Schema> schema;
+
+  Spawnable(InputSpec const& spec)
+  {
+    auto loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& spc){ return spc.name.compare("projectors") == 0; });
+    std::stringstream iws(loc->defaultValue.get<std::string>());
+    projectors = ExpressionJSONHelpers::read(iws);
+    for (auto& i : spec.metadata) {
+      if (i.name.starts_with("input:")) {
+        labels.emplace_back(i.name.substr(6));
+      }
+    }
+  }
+};
 } // namespace
 
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& /*ic*/) {
-    return [requested](ProcessingContext& pc) {
+    std::vector<Spawnable> spawnables;
+
+    return [requested, spawnables](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
       for (auto& input : requested) {

@@ -26,6 +26,10 @@
 #include "Framework/Traits.h"
 
 #include <string>
+namespace o2::framework {
+std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
+}
+
 namespace o2::soa
 {
 template <TableRef R>
@@ -37,8 +41,6 @@ constexpr auto tableRef2ConfigParamSpec()
     aod::sourceSpec<R>(),
     {"\"\""}};
 }
-
-std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
 
 namespace
 {
@@ -101,20 +103,23 @@ constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
 }
 
 template <soa::with_expression_pack T>
-constexpr auto getExpressionMetadata() -> std::optional<framework::ConfigParamSpec>
+constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   using expression_pack_t = T::expression_pack_t;
 
   auto projectors = []<typename... C>(framework::pack<C...>) -> std::vector<framework::expressions::Projector> {
-    return {C::Projector()...};
+    std::vector<framework::expressions::Projector> result;
+    (result.emplace_back(std::move(C::Projector())), ...);
+    return result;
   }(expression_pack_t{});
 
-  auto json = serializeProjectors(projectors);
-  return framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}};
+  auto json = framework::serializeProjectors(projectors);
+  return {framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}}};
 }
 
 template <typename T>
-constexpr auto getExpressionMetadata() -> std::optional<framework::ConfigParamSpec>
+  requires(!soa::with_expression_pack<T>)
+constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }
@@ -130,9 +135,7 @@ constexpr auto tableRef2InputSpec()
   auto ccdbMetadata = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
   auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  if (p) {
-    metadata.insert(metadata.end(), p.value());
-  }
+  metadata.insert(metadata.end(), p.begin(), p.end());
 
   return framework::InputSpec{
     o2::aod::label<R>(),
