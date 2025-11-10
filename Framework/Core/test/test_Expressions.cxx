@@ -422,4 +422,7 @@ TEST_CASE("TestExpressionSerialization")
   auto t12 = createExpressionTree(s12, schemap);
   auto t22 = createExpressionTree(s22, schemap);
   REQUIRE(t12->ToString() == t22->ToString());
+
+  std::cout << schemaf->ToString() << std::endl;
+  std::cout << schemap->ToString() << std::endl;
 }
