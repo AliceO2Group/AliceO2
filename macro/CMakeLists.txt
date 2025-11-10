@@ -48,7 +48,6 @@ install(FILES CheckDigits_mft.C
               compareTOFClusters.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
-              run_trac_its.C
               CreateBCPattern.C
               UploadDummyAlignment.C
               UploadMatBudLUT.C
@@ -336,20 +335,6 @@ o2_add_test_root_macro(CreateCTPOrbitResetObject.C
 # O2::DataFormatsITSMFT O2::DataFormatsParameters O2::DetectorsBase O2::Field
 # O2::ITSBase O2::ITStracking O2::MathUtils O2::SimulationDataFormat)
 
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_trac_its.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
-                                             O2::DataFormatsITSMFT
-                                             O2::DataFormatsParameters
-                                             O2::DetectorsBase
-                                             O2::Field
-                                             O2::ITSBase
-                                             O2::ITSReconstruction
-                                             O2::ITStracking
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                        LABELS its)
-
 o2_add_test_root_macro(CreateGRPECSObject.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters
                                              O2::DetectorsCommonDataFormats
@@ -463,18 +448,6 @@ o2_add_test_root_macro(getTimeStamp.C
 # finished succesfully) set_tests_properties(run_clus_its_G3 PROPERTIES DEPENDS
 # run_digi_its_G3)
 
-# configure_file(${CMAKE_SOURCE_DIR}/macro/run_trac_its.sh
-# ${CMAKE_BINARY_DIR}/macro/run_trac_its.sh)
-# configure_file(${CMAKE_SOURCE_DIR}/macro/run_trac_its.C
-# ${CMAKE_BINARY_DIR}/macro/run_trac_its.C)
-
-# add_test_wrap(NAME run_trac_its_G3 COMMAND
-# ${CMAKE_BINARY_DIR}/macro/run_trac_its.sh 10 TGeant3)
-# set_tests_properties(run_trac_its_G3 PROPERTIES TIMEOUT 30)
-# set_tests_properties(run_trac_its_G3 PROPERTIES PASS_REGULAR_EXPRESSION Macro
-# finished succesfully) set_tests_properties(run_trac_its_G3 PROPERTIES DEPENDS
-# run_clus_its_G3)
-
 # #ITS tests with G4
 
 # add_test_wrap(NAME run_sim_its_G4 COMMAND
@@ -496,13 +469,6 @@ o2_add_test_root_macro(getTimeStamp.C
 # set_tests_properties(run_clus_its_G4 PROPERTIES PASS_REGULAR_EXPRESSION Macro
 # finished succesfully) set_tests_properties(run_clus_its_G4 PROPERTIES DEPENDS
 # run_digi_its_G4)
-
-# add_test_wrap(NAME run_trac_its_G4 COMMAND
-# ${CMAKE_BINARY_DIR}/macro/run_trac_its.sh 10 TGeant4)
-# set_tests_properties(run_trac_its_G4 PROPERTIES TIMEOUT 30)
-# set_tests_properties(run_trac_its_G4 PROPERTIES PASS_REGULAR_EXPRESSION Macro
-# finished succesfully) set_tests_properties(run_trac_its_G4 PROPERTIES DEPENDS
-# run_clus_its_G4)
 
 # GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/load_all_libs.C)
 # add_test_wrap(load_all_libs ${CMAKE_BINARY_DIR}/macro/load_all_libs.sh)

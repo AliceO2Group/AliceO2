@@ -16,7 +16,6 @@ o2_add_library(ITSWorkflow
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
                        src/TrackerSpec.cxx
-                       src/CookedTrackerSpec.cxx
                        src/TrackWriterSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/VertexReaderSpec.cxx
