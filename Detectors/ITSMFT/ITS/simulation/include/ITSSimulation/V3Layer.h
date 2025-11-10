@@ -362,9 +362,15 @@ class V3Layer : public V11Geometry
   static const Double_t sIBFPCAlAnodeWidth2;   ///< Width of FPC Al Anode
   static const Double_t sIBFlexCableKapThick;  ///< Thickness of FPC Kapton
   static const Double_t sIBFlexCablePolyThick; ///< Thickness of FPC Coverlay
-  static const Double_t sIBFlexCapacitorXWid;  ///< IB capaictor X width
-  static const Double_t sIBFlexCapacitorYHi;   ///< IB capaictor Y height
-  static const Double_t sIBFlexCapacitorZLen;  ///< IB capaictor Z length
+  static const Double_t sIBFlexCapacitor1XWid; ///< IB small capacitor X width
+  static const Double_t sIBFlexCapacitor1YHi;  ///< IB small capacitor Y height
+  static const Double_t sIBFlexCapacitor1ZLen; ///< IB small capacitor Z length
+  static const Double_t sIBFlexCapacitor22XWid; ///< IB large capacitor X width
+  static const Double_t sIBFlexCapacitor22YHi; ///< IB large capacitor Y height
+  static const Double_t sIBFlexCapacitor22ZLen; ///< IB large capacitor Z length
+  static const Double_t sIBFlexResistorXWid;   ///< IB FPC resistor X width
+  static const Double_t sIBFlexResistorYHi;    ///< IB FPC resistor Y height
+  static const Double_t sIBFlexResistorZLen;   ///< IB FPC resistor Z length
   static const Double_t sIBColdPlateWidth;     ///< IB cold plate X width
   static const Double_t sIBColdPlateZLen;      ///< IB cold plate Z length
   static const Double_t sIBGlueThick;          ///< IB glue thickness

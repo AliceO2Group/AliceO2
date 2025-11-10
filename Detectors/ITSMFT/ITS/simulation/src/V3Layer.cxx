@@ -61,9 +61,15 @@ const Double_t V3Layer::sIBFPCAlAnodeWidth1 = 13.0 * sMm;
 const Double_t V3Layer::sIBFPCAlAnodeWidth2 = 14.7 * sMm;
 const Double_t V3Layer::sIBFlexCableKapThick = 75.0 * sMicron;
 const Double_t V3Layer::sIBFlexCablePolyThick = 20.0 * sMicron;
-const Double_t V3Layer::sIBFlexCapacitorXWid = 0.2 * sMm;
-const Double_t V3Layer::sIBFlexCapacitorYHi = 0.2 * sMm;
-const Double_t V3Layer::sIBFlexCapacitorZLen = 0.4 * sMm;
+const Double_t V3Layer::sIBFlexCapacitor1XWid = 0.5 * sMm;
+const Double_t V3Layer::sIBFlexCapacitor1YHi = 0.5 * sMm;
+const Double_t V3Layer::sIBFlexCapacitor1ZLen = 1.0 * sMm;
+const Double_t V3Layer::sIBFlexCapacitor22XWid = 0.7 * sMm;
+const Double_t V3Layer::sIBFlexCapacitor22YHi = 0.6 * sMm;
+const Double_t V3Layer::sIBFlexCapacitor22ZLen = 1.1 * sMm;
+const Double_t V3Layer::sIBFlexResistorXWid = 0.2 * sMm;
+const Double_t V3Layer::sIBFlexResistorYHi = 0.2 * sMm;
+const Double_t V3Layer::sIBFlexResistorZLen = 0.4 * sMm;
 const Double_t V3Layer::sIBColdPlateWidth = 15.4 * sMm;
 const Double_t V3Layer::sIBColdPlateZLen = 290.0 * sMm;
 const Double_t V3Layer::sIBGlueThick = 50.0 * sMicron;
@@ -599,8 +605,11 @@ TGeoVolume* V3Layer::createModuleInnerB(const Double_t xchip, const Double_t zch
   //         the module as a TGeoVolume
   //
   // Updated:      03 Apr 2021
+  // Updated:      03 Nov 2025  Change volume from BBox to Xtru to avoid fake overlaps
 
   Double_t xtot, ytot, ztot;
+  Double_t ymid, shrinkFactor = 0.73;
+  Double_t xv[5], yv[5];
   Double_t xpos, ypos, zpos;
   const Int_t nameLen = 30;
   char volumeName[nameLen];
@@ -619,9 +628,25 @@ TGeoVolume* V3Layer::createModuleInnerB(const Double_t xchip, const Double_t zch
   Double_t ygnd = (static_cast<TGeoBBox*>(aluGndCableVol->GetShape()))->GetDY();
   Double_t yano = (static_cast<TGeoBBox*>(aluAnodeCableVol->GetShape()))->GetDY();
 
-  ytot = sIBGlueThick / 2 + ygnd + sIBFlexCableKapThick / 2 + yano + sIBFlexCapacitorYHi / 2;
+  ytot = sIBGlueThick / 2 + ygnd + sIBFlexCableKapThick / 2 + yano + sIBFlexCapacitor22YHi / 2;
+  ymid = sIBGlueThick / 2 + ygnd + sIBFlexCableKapThick / 2 + yano;
 
-  TGeoBBox* module = new TGeoBBox(xtot, ytot, ztot);
+  xv[0] = xtot;
+  yv[0] = -ytot;
+  xv[1] = xv[0];
+  yv[1] = yv[0] + 6 * ymid;
+  xv[2] = xtot * shrinkFactor;
+  yv[2] = ytot;
+  xv[3] = -xtot;
+  yv[3] = yv[2];
+  xv[4] = xv[3];
+  yv[4] = yv[0];
+
+  TGeoXtru* module = new TGeoXtru(2);
+  module->DefinePolygon(6, xv, yv);
+  module->DefinePolygon(5, xv, yv);
+  module->DefineSection(0, -ztot);
+  module->DefineSection(1, ztot);
 
   // Now the volumes
   TGeoMedium* medAir = mgr->GetMedium(Form("%s_AIR$", GetDetName()));
@@ -674,6 +699,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   //
   // Created:      13 Feb 2018  Mario Sitta
   // Updated:      03 Apr 2019  Mario Sitta  Fix positions (180' rotation)
+  // Updated:      31 Oct 2025  Mario Sitta  Fix dimensions and weight
   //
 
   // Position of the various capacitors (A.Junique private communication
@@ -705,63 +731,72 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   Double_t xpos, ypos, zpos;
   Int_t nCapacitors;
 
-  TGeoVolume *capacitor, *resistor;
+  TGeoVolume *capacitorSmall, *capacitorLarge, *resistor;
 
-  // Check whether we already have the volume, otherwise create it
-  // (so as to avoid creating multiple copies of the very same volume
+  // Check whether we already have the volumes, otherwise create them
+  // (so as to avoid creating multiple copies of the very same volumes
   // for each layer)
-  capacitor = mgr->GetVolume("IBFPCCapacitor");
+  // The "small" capacitor is the 1 uF substrate capacitor
+  // The "large" capacitor is the 22 uF analog/digital PS capacitor
+  capacitorSmall = mgr->GetVolume("IBFPCCapacitorSmall");
 
-  if (!capacitor) {
-    TGeoBBox* capsh = new TGeoBBox(sIBFlexCapacitorXWid / 2, sIBFlexCapacitorYHi / 2, sIBFlexCapacitorZLen / 2);
+  if (!capacitorSmall) {
+    TGeoBBox* capSmsh = new TGeoBBox(sIBFlexCapacitor1XWid / 2, sIBFlexCapacitor1YHi / 2, sIBFlexCapacitor1ZLen / 2);
+    TGeoBBox* capLgsh = new TGeoBBox(sIBFlexCapacitor22XWid / 2, sIBFlexCapacitor22YHi / 2, sIBFlexCapacitor22ZLen / 2);
 
     TGeoMedium* medCeramic = mgr->GetMedium(Form("%s_CERAMIC$", GetDetName()));
 
-    capacitor = new TGeoVolume("IBFPCCapacitor", capsh, medCeramic);
-    capacitor->SetLineColor(kBlack);
-    capacitor->SetFillColor(kBlack);
+    capacitorSmall = new TGeoVolume("IBFPCCapacitorSmall", capSmsh, medCeramic);
+    capacitorSmall->SetLineColor(kBlack);
+    capacitorSmall->SetFillColor(kBlack);
 
-    TGeoBBox* ressh = new TGeoBBox(sIBFlexCapacitorXWid / 2,  // Resistors have
-                                   sIBFlexCapacitorYHi / 2,   // the same dim's
-                                   sIBFlexCapacitorZLen / 2); // as capacitors
+    capacitorLarge = new TGeoVolume("IBFPCCapacitorLarge", capLgsh, medCeramic);
+    capacitorLarge->SetLineColor(kBlack);
+    capacitorLarge->SetFillColor(kBlack);
+
+    TGeoBBox* ressh = new TGeoBBox(sIBFlexResistorXWid / 2,
+                                   sIBFlexResistorYHi / 2,
+                                   sIBFlexResistorZLen / 2);
 
     resistor = new TGeoVolume("IBFPCResistor", ressh, medCeramic);
     resistor->SetLineColor(kBlack);
     resistor->SetFillColor(kBlack);
   } else { // Volumes already defined, get them
+    capacitorLarge = mgr->GetVolume("IBFPCCapacitorLarge");
     resistor = mgr->GetVolume("IBFPCResistor");
   }
 
   // Place all the capacitors (they are really a lot...)
-  ypos = yzero + sIBFlexCapacitorYHi / 2;
+  ypos = yzero + sIBFlexCapacitor22YHi / 2;
 
   xpos = xGroup1A;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1A[0];
-    modvol->AddNode(capacitor, 2 * j + 1, new TGeoTranslation(-xpos, ypos, -zpos));
+    modvol->AddNode(capacitorLarge, 2 * j + 1, new TGeoTranslation(-xpos, ypos, -zpos));
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1A[1];
-    modvol->AddNode(capacitor, 2 * j + 2, new TGeoTranslation(-xpos, ypos, -zpos));
+    modvol->AddNode(capacitorLarge, 2 * j + 2, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors = 2 * sIBChipsPerRow;
   xpos = xGroup1B;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1B;
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
+    modvol->AddNode(capacitorLarge, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += sIBChipsPerRow;
+  ypos = yzero + sIBFlexCapacitor1YHi / 2;
   xpos = xGroup2;
   // We have only 8 in these group, missing the central one
   for (Int_t j = 0; j < sIBChipsPerRow - 1; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup2;
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
+    modvol->AddNode(capacitorSmall, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += (sIBChipsPerRow - 1);
   xpos = xGroup3;
   zpos = zGroup3;
-  modvol->AddNode(capacitor, 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
+  modvol->AddNode(capacitorSmall, 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
 
   nCapacitors++;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
@@ -771,10 +806,11 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
       xpos = xGroup4[0];
     }
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup4[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
+    modvol->AddNode(capacitorSmall, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += sIBChipsPerRow;
+  ypos = yzero + sIBFlexCapacitor22YHi / 2;
   for (Int_t j = 0; j < nGroup5A; j++) {
     if (j == 0) {
       xpos = xGroup5A[0];
@@ -782,14 +818,14 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
       xpos = xGroup5A[1];
     }
     zpos = zGroup5A[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
+    modvol->AddNode(capacitorLarge, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += nGroup5A;
   xpos = xGroup5B;
   for (Int_t j = 0; j < nGroup5B; j++) {
     zpos = zGroup5B[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
+    modvol->AddNode(capacitorLarge, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   // Place the resistors
@@ -1061,7 +1097,7 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
   yv[1] = layerHeight + sIBSideVertexHeight + topfil->GetDZ();
   ;
   xv[2] = sIBEndSupportXUp / 2;
-  yv[2] = sIBStaveHeight + sIBTopFilamentSide / sinD(-theta); // theta is neg
+  yv[2] = sIBStaveHeight + sIBTopFilamentSide / sinD(-theta) - 0.01; // theta is neg
   for (Int_t i = 0; i < 3; i++) {
     xv[3 + i] = -xv[2 - i];
     yv[3 + i] = yv[2 - i];
