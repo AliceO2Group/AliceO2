@@ -26,10 +26,11 @@
 #include "Framework/Traits.h"
 
 #include <string>
-namespace o2::framework {
+namespace o2::framework
+{
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
 std::string serializeSchema(std::shared_ptr<arrow::Schema>& schema);
-}
+}  // namespace o2::framework
 
 namespace o2::soa
 {

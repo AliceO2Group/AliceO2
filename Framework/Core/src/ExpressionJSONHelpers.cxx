@@ -635,7 +635,8 @@ void o2::framework::ExpressionJSONHelpers::write(std::ostream& o, std::vector<o2
   w.EndObject();
 }
 
-namespace {
+namespace
+{
 struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SchemaReader> {
   using Ch = rapidjson::UTF8<>::Ch;
   using SizeType = rapidjson::SizeType;
@@ -679,7 +680,7 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
   {
     debug << "Ending array" << std::endl;
     if (states.top() == State::IN_LIST) {
-      //finalize schema
+      // finalize schema
       schema = std::make_shared<arrow::Schema>(fields);
       states.pop();
       return true;
@@ -773,13 +774,13 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
     return false;
   }
 
-  bool Int(int i) {
+  bool Int(int i)
+  {
     debug << "Int(" << i << ")" << std::endl;
     return Uint(i);
   }
-
 };
-}
+} // namespace
 
 std::shared_ptr<arrow::Schema> o2::framework::ArrowJSONHelpers::read(std::istream& s)
 {
@@ -789,13 +790,14 @@ std::shared_ptr<arrow::Schema> o2::framework::ArrowJSONHelpers::read(std::istrea
 
   bool ok = reader.Parse(isw, sreader);
 
-  if(!ok) {
+  if (!ok) {
     throw framework::runtime_error_f("Cannot parse serialized Expression, error: %s at offset: %d", rapidjson::GetParseError_En(reader.GetParseErrorCode()), reader.GetErrorOffset());
   }
   return sreader.schema;
 }
 
-namespace {
+namespace
+{
 void writeSchema(rapidjson::Writer<rapidjson::OStreamWrapper>& w, arrow::Schema* schema)
 {
   for (auto& f : schema->fields()) {
@@ -807,7 +809,7 @@ void writeSchema(rapidjson::Writer<rapidjson::OStreamWrapper>& w, arrow::Schema*
     w.EndObject();
   }
 }
-}
+} // namespace
 
 void o2::framework::ArrowJSONHelpers::write(std::ostream& o, std::shared_ptr<arrow::Schema>& schema)
 {
