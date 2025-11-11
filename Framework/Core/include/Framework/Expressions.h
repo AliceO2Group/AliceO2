@@ -627,6 +627,7 @@ struct Filter {
   Filter(std::unique_ptr<Node>&& ptr)
   {
     node = std::move(ptr);
+    (void)designateSubtrees(node.get());
   }
 
   Filter(Node&& node_) : node{std::make_unique<Node>(std::forward<Node>(node_))}
@@ -636,7 +637,6 @@ struct Filter {
 
   Filter(Filter&& other) : node{std::forward<std::unique_ptr<Node>>(other.node)}
   {
-    (void)designateSubtrees(node.get());
   }
 
   Filter(std::string const& input_) : input{input_} {}

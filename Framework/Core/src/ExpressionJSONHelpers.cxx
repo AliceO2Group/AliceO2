@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/ExpressionJSONHelpers.h"
+#include "ExpressionJSONHelpers.h"
 
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
@@ -105,7 +105,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 
   bool StartArray()
   {
-    debug << "Starting array" << std::endl;
+    debug << "StartArray()" << std::endl;
     if (states.top() == State::IN_START) {
       states.push(State::IN_LIST);
       return true;
@@ -116,7 +116,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 
   bool EndArray(SizeType)
   {
-    debug << "Ending array" << std::endl;
+    debug << "EndArray()" << std::endl;
     if (states.top() == State::IN_LIST) {
       states.pop();
       return true;
@@ -513,9 +513,7 @@ std::vector<expressions::Projector> o2::framework::ExpressionJSONHelpers::read(s
   bool ok = reader.Parse(isw, ereader);
 
   if (!ok) {
-    std::stringstream error;
-    error << "Cannot parse serialized Expression, error: " << rapidjson::GetParseError_En(reader.GetParseErrorCode()) << " at offset: " << reader.GetErrorOffset();
-    throw std::runtime_error(error.str());
+    throw framework::runtime_error_f("Cannot parse serialized Expression, error: %s at offset: %d", rapidjson::GetParseError_En(reader.GetParseErrorCode()), reader.GetErrorOffset());
   }
   return std::move(ereader.result);
 }
@@ -633,6 +631,192 @@ void o2::framework::ExpressionJSONHelpers::write(std::ostream& o, std::vector<o2
   for (auto& p : projectors) {
     writeExpression(w, p.node.get());
   }
+  w.EndArray();
+  w.EndObject();
+}
+
+namespace {
+struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SchemaReader> {
+  using Ch = rapidjson::UTF8<>::Ch;
+  using SizeType = rapidjson::SizeType;
+
+  enum struct State {
+    IN_START,
+    IN_LIST,
+    IN_FIELD,
+    IN_ERROR
+  };
+
+  std::stack<State> states;
+  std::ostringstream debug;
+
+  std::shared_ptr<arrow::Schema> schema = nullptr;
+  std::vector<std::shared_ptr<arrow::Field>> fields;
+
+  std::string currentKey;
+
+  std::string name;
+  atype::type type;
+
+  SchemaReader()
+  {
+    debug << ">>> Start" << std::endl;
+    states.push(State::IN_START);
+  }
+
+  bool StartArray()
+  {
+    debug << "Starting array" << std::endl;
+    if (states.top() == State::IN_START && currentKey.compare("fields") == 0) {
+      states.push(State::IN_LIST);
+      return true;
+    }
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool EndArray(SizeType)
+  {
+    debug << "Ending array" << std::endl;
+    if (states.top() == State::IN_LIST) {
+      //finalize schema
+      schema = std::make_shared<arrow::Schema>(fields);
+      states.pop();
+      return true;
+    }
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool Key(const Ch* str, SizeType, bool)
+  {
+    debug << "Key(" << str << ")" << std::endl;
+    currentKey = str;
+    if (states.top() == State::IN_START) {
+      if (currentKey.compare("fields") == 0) {
+        return true;
+      }
+    }
+
+    if (states.top() == State::IN_FIELD) {
+      if (currentKey.compare("name") == 0) {
+        return true;
+      }
+      if (currentKey.compare("type") == 0) {
+        return true;
+      }
+    }
+
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool StartObject()
+  {
+    debug << "StartObject()" << std::endl;
+    if (states.top() == State::IN_START) {
+      return true;
+    }
+
+    if (states.top() == State::IN_LIST) {
+      states.push(State::IN_FIELD);
+      return true;
+    }
+
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool EndObject(SizeType)
+  {
+    debug << "EndObject()" << std::endl;
+    if (states.top() == State::IN_FIELD) {
+      states.pop();
+      // add a field
+      fields.emplace_back(std::make_shared<arrow::Field>(name, expressions::concreteArrowType(type)));
+      return true;
+    }
+
+    if (states.top() == State::IN_START) {
+      return true;
+    }
+
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool Uint(unsigned i)
+  {
+    debug << "Uint(" << i << ")" << std::endl;
+    if (states.top() == State::IN_FIELD) {
+      if (currentKey.compare("type") == 0) {
+        type = (atype::type)i;
+        return true;
+      }
+    }
+
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool String(const Ch* str, SizeType, bool)
+  {
+    debug << "String(" << str << ")" << std::endl;
+    if (states.top() == State::IN_FIELD) {
+      if (currentKey.compare("name") == 0) {
+        name = str;
+        return true;
+      }
+    }
+
+    states.push(State::IN_ERROR);
+    return false;
+  }
+
+  bool Int(int i) {
+    debug << "Int(" << i << ")" << std::endl;
+    return Uint(i);
+  }
+
+};
+}
+
+std::shared_ptr<arrow::Schema> o2::framework::ArrowJSONHelpers::read(std::istream& s)
+{
+  rapidjson::Reader reader;
+  rapidjson::IStreamWrapper isw(s);
+  SchemaReader sreader;
+
+  bool ok = reader.Parse(isw, sreader);
+
+  if(!ok) {
+    throw framework::runtime_error_f("Cannot parse serialized Expression, error: %s at offset: %d", rapidjson::GetParseError_En(reader.GetParseErrorCode()), reader.GetErrorOffset());
+  }
+  return sreader.schema;
+}
+
+namespace {
+void writeSchema(rapidjson::Writer<rapidjson::OStreamWrapper>& w, arrow::Schema* schema)
+{
+  for (auto& f : schema->fields()) {
+    w.StartObject();
+    w.Key("name");
+    w.String(f->name().c_str());
+    w.Key("type");
+    w.Int(f->type()->id());
+    w.EndObject();
+  }
+}
+}
+
+void o2::framework::ArrowJSONHelpers::write(std::ostream& o, std::shared_ptr<arrow::Schema>& schema)
+{
+  rapidjson::OStreamWrapper osw(o);
+  rapidjson::Writer<rapidjson::OStreamWrapper> w(osw);
+  w.StartObject();
+  w.Key("fields");
+  w.StartArray();
+  writeSchema(w, schema.get());
   w.EndArray();
   w.EndObject();
 }
