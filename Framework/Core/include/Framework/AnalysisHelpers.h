@@ -28,6 +28,7 @@
 #include <string>
 namespace o2::framework {
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
+std::string serializeSchema(std::shared_ptr<arrow::Schema>& schema);
 }
 
 namespace o2::soa
@@ -113,8 +114,11 @@ constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec
     return result;
   }(expression_pack_t{});
 
+  auto schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(expression_pack_t{}));
+
   auto json = framework::serializeProjectors(projectors);
-  return {framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}}};
+  return {framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}},
+          framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(schema), {"\"\""}}};
 }
 
 template <typename T>
