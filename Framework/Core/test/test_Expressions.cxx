@@ -12,7 +12,7 @@
 #include "Framework/Configurable.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/ExpressionJSONHelpers.h"
+#include "../src/ExpressionJSONHelpers.h"
 #include <catch_amalgamated.hpp>
 #include <arrow/util/config.h>
 #include <iostream>
@@ -423,6 +423,21 @@ TEST_CASE("TestExpressionSerialization")
   auto t22 = createExpressionTree(s22, schemap);
   REQUIRE(t12->ToString() == t22->ToString());
 
-  std::cout << schemaf->ToString() << std::endl;
-  std::cout << schemap->ToString() << std::endl;
+  osm.clear();
+  osm.str("");
+  ArrowJSONHelpers::write(osm, schemaf);
+
+  ism.clear();
+  ism.str(osm.str());
+  auto newSchemaf = ArrowJSONHelpers::read(ism);
+  REQUIRE(schemaf->ToString() == newSchemaf->ToString());
+
+  osm.clear();
+  osm.str("");
+  ArrowJSONHelpers::write(osm, schemap);
+
+  ism.clear();
+  ism.str(osm.str());
+  auto newSchemap = ArrowJSONHelpers::read(ism);
+  REQUIRE(schemap->ToString() == newSchemap->ToString());
 }

@@ -16,9 +16,13 @@
 namespace o2::framework
 {
 struct ExpressionJSONHelpers {
-  // static std::unique_ptr<expressions::Node> read(std::istream& s);
   static std::vector<expressions::Projector> read(std::istream& s);
   static void write(std::ostream& o, std::vector<expressions::Projector>& projectors);
+};
+
+struct ArrowJSONHelpers {
+  static std::shared_ptr<arrow::Schema> read(std::istream& s);
+  static void write(std::ostream& o, std::shared_ptr<arrow::Schema>& schema);
 };
 } // namespace o2::framework
 

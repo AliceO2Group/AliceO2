@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/ExpressionHelpers.h"
-#include "Framework/ExpressionJSONHelpers.h"
+#include "ExpressionJSONHelpers.h"
 
 namespace o2::framework
 {
@@ -32,6 +32,13 @@ std::string serializeProjectors(std::vector<framework::expressions::Projector>& 
 {
   std::stringstream osm;
   ExpressionJSONHelpers::write(osm, projectors);
+  return osm.str();
+}
+
+std::string serializeSchema(std::shared_ptr<arrow::Schema>& schema)
+{
+  std::stringstream osm;
+  ArrowJSONHelpers::write(osm, schema);
   return osm.str();
 }
 } // namespace o2::framework
