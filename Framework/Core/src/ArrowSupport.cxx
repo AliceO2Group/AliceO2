@@ -608,7 +608,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         spawner->inputs.clear();
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
-        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(ac.spawnerInputs);
+        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(ctx);
         AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
       }
 

@@ -130,6 +130,48 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const&
   return arrow::Table::Make(newSchema, arrays);
 }
 
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema,
+                                            const char* name, size_t nColumns,
+                                            std::shared_ptr<gandiva::Projector> const& projector)
+{
+  arrow::TableBatchReader reader(*fullTable);
+  std::shared_ptr<arrow::RecordBatch> batch;
+  arrow::ArrayVector v;
+  std::vector<arrow::ArrayVector> chunks;
+  chunks.resize(nColumns);
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
+
+  while (true) {
+    auto s = reader.ReadNext(&batch);
+    if (!s.ok()) {
+      throw runtime_error_f("Cannot read batches from source table to spawn %s: %s", name, s.ToString().c_str());
+    }
+    if (batch == nullptr) {
+      break;
+    }
+    try {
+      s = projector->Evaluate(*batch, arrow::default_memory_pool(), &v);
+      if (!s.ok()) {
+        throw runtime_error_f("Cannot apply projector to source table of %s: %s", name, s.ToString().c_str());
+      }
+    } catch (std::exception& e) {
+      throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
+    }
+
+    for (auto i = 0U; i < nColumns; ++i) {
+      chunks[i].emplace_back(v.at(i));
+    }
+  }
+
+  arrays.reserve(nColumns);
+  for (auto i = 0U; i < nColumns; ++i) {
+    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
+  }
+
+  addLabelToSchema(newSchema, name);
+  return arrow::Table::Make(newSchema, arrays);
+}
+
 } // namespace o2::framework
 
 template class arrow::NumericBuilder<arrow::UInt8Type>;

@@ -38,6 +38,7 @@
 #include <utility>
 #include <vector>
 #include <climits>
+#include <numeric>
 
 O2_DECLARE_DYNAMIC_LOG(workflow_helpers);
 
@@ -435,7 +436,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-aod-spawner",
     {},
     {},
-    readers::AODReaderHelpers::aodSpawnerCallback(ac.spawnerInputs),
+    readers::AODReaderHelpers::aodSpawnerCallback(ctx),
     {}};
   AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, aodSpawner);
 
