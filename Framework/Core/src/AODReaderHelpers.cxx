@@ -138,8 +138,7 @@ auto make_spawn(InputSpec const& input, ProcessingContext& pc)
   return o2::framework::spawner<D>(extractOriginals<sources.size(), sources>(pc), input.binding.c_str(), projectors.data(), projector, schema);
 }
 
-struct Maker
-{
+struct Maker {
   std::string binding;
   std::vector<std::string> labels;
   std::vector<std::shared_ptr<gandiva::Expression>> expressions;
@@ -169,7 +168,6 @@ struct Maker
 
     return spawnerHelper(fullTable, schema, binding.c_str(), schema->num_fields(), projector);
   }
-
 };
 
 struct Spawnable {
@@ -185,17 +183,17 @@ struct Spawnable {
   header::DataHeader::SubSpecificationType version;
 
   Spawnable(InputSpec const& spec)
-  : binding{spec.binding}
+    : binding{spec.binding}
   {
     auto&& [origin_, description_, version_] = DataSpecUtils::asConcreteDataMatcher(spec);
     origin = origin_;
     description = description_;
     version = version_;
-    auto loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps){ return cps.name.compare("projectors") == 0; });
+    auto loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps) { return cps.name.compare("projectors") == 0; });
     std::stringstream iws(loc->defaultValue.get<std::string>());
     projectors = ExpressionJSONHelpers::read(iws);
 
-    loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps){ return cps.name.compare("schema") == 0; });
+    loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps) { return cps.name.compare("schema") == 0; });
     iws.clear();
     iws.str(loc->defaultValue.get<std::string>());
     outputSchema = ArrowJSONHelpers::read(iws);
@@ -209,14 +207,14 @@ struct Spawnable {
     std::vector<std::shared_ptr<arrow::Field>> fields;
     for (auto& p : projectors) {
       expressions::walk(p.node.get(),
-      [&fields](expressions::Node* n) mutable {
-        if (n->self.index() == 1) {
-          auto& b = std::get<expressions::BindingNode>(n->self);
-          if ( std::find_if(fields.begin(), fields.end(), [&b](std::shared_ptr<arrow::Field> const& field){ return field->name() == b.name; }) == fields.end() ) {
-            fields.emplace_back(std::make_shared<arrow::Field>(b.name, expressions::concreteArrowType(b.type)));
-          }
-        }
-      });
+                        [&fields](expressions::Node* n) mutable {
+                          if (n->self.index() == 1) {
+                            auto& b = std::get<expressions::BindingNode>(n->self);
+                            if (std::find_if(fields.begin(), fields.end(), [&b](std::shared_ptr<arrow::Field> const& field) { return field->name() == b.name; }) == fields.end()) {
+                              fields.emplace_back(std::make_shared<arrow::Field>(b.name, expressions::concreteArrowType(b.type)));
+                            }
+                          }
+                        });
     }
     inputSchema = std::make_shared<arrow::Schema>(fields);
 
@@ -227,8 +225,7 @@ struct Spawnable {
           expressions::createExpressionTree(
             expressions::createOperations(p),
             inputSchema),
-          outputSchema->field(i))
-        );
+          outputSchema->field(i)));
       ++i;
     }
   }
@@ -248,10 +245,8 @@ struct Spawnable {
       outputSchema,
       origin,
       description,
-      version
-    };
+      version};
   }
-
 };
 
 } // namespace
