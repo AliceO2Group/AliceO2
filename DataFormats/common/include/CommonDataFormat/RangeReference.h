@@ -29,23 +29,23 @@ template <typename FirstEntry = int, typename NElem = int>
 class RangeReference
 {
  public:
-  GPUd() RangeReference(FirstEntry ent, NElem n) { set(ent, n); }
-  GPUdDefault() RangeReference(const RangeReference<FirstEntry, NElem>& src) = default;
-  GPUdDefault() RangeReference() = default;
-  GPUdDefault() ~RangeReference() = default;
-  GPUd() void set(FirstEntry ent, NElem n)
+  GPUhd() RangeReference(FirstEntry ent, NElem n) { set(ent, n); }
+  GPUhdDefault() RangeReference(const RangeReference<FirstEntry, NElem>& src) = default;
+  GPUhdDefault() RangeReference() = default;
+  GPUhdDefault() ~RangeReference() = default;
+  GPUhd() void set(FirstEntry ent, NElem n)
   {
     mFirstEntry = ent;
     mEntries = n;
   }
-  GPUd() void clear() { set(0, 0); }
-  GPUd() FirstEntry getFirstEntry() const { return mFirstEntry; }
-  GPUd() FirstEntry getEntriesBound() const { return mFirstEntry + mEntries; }
-  GPUd() NElem getEntries() const { return mEntries; }
-  GPUd() void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }
-  GPUd() void setEntries(NElem n) { mEntries = n; }
-  GPUd() void changeEntriesBy(NElem inc) { mEntries += inc; }
-  GPUd() bool operator==(const RangeReference& other) const
+  GPUhd() void clear() { set(0, 0); }
+  GPUhd() FirstEntry getFirstEntry() const { return mFirstEntry; }
+  GPUhd() FirstEntry getEntriesBound() const { return mFirstEntry + mEntries; }
+  GPUhd() NElem getEntries() const { return mEntries; }
+  GPUhd() void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }
+  GPUhd() void setEntries(NElem n) { mEntries = n; }
+  GPUhd() void changeEntriesBy(NElem inc) { mEntries += inc; }
+  GPUhd() bool operator==(const RangeReference& other) const
   {
     return mFirstEntry == other.mFirstEntry && mEntries == other.mEntries;
   }
@@ -68,21 +68,21 @@ class RangeRefComp
   static constexpr Base MaskN = ((0x1 << NBitsN) - 1);
   static constexpr Base MaskR = (~Base(0)) & (~MaskN);
   Base mData = 0; ///< packed 1st entry reference + N entries
-  GPUd() void sanityCheck()
+  GPUhd() void sanityCheck()
   {
     static_assert(NBitsN < NBitsTotal, "NBitsN too large");
   }
 
  public:
-  GPUd() RangeRefComp(int ent, int n) { set(ent, n); }
-  GPUdDefault() RangeRefComp() = default;
-  GPUdDefault() RangeRefComp(const RangeRefComp& src) = default;
+  GPUhd() RangeRefComp(int ent, int n) { set(ent, n); }
+  GPUhdDefault() RangeRefComp() = default;
+  GPUhdDefault() RangeRefComp(const RangeRefComp& src) = default;
   GPUhd() void set(int ent, int n)
   {
     mData = (Base(ent) << NBitsN) + (Base(n) & MaskN);
   }
-  GPUd() static constexpr Base getMaxFirstEntry() { return MaskR >> NBitsN; }
-  GPUd() static constexpr Base getMaxEntries() { return MaskN; }
+  GPUhd() static constexpr Base getMaxFirstEntry() { return MaskR >> NBitsN; }
+  GPUhd() static constexpr Base getMaxEntries() { return MaskN; }
   GPUhd() int getFirstEntry() const { return mData >> NBitsN; }
   GPUhd() int getEntries() const { return mData & ((0x1 << NBitsN) - 1); }
   GPUhd() int getEntriesBound() const { return getFirstEntry() + getEntries(); }
