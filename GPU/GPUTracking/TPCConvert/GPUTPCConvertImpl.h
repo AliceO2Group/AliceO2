@@ -28,7 +28,7 @@ class GPUTPCConvertImpl
  public:
   GPUd() static void convert(const GPUConstantMem& GPUrestrict() cm, int32_t sector, int32_t row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)
   {
-    if (cm.param.par.continuousTracking) {
+    if (cm.param.par.continuousTracking) { // TODO: This might be wrong, don't we just need to do TransformInTimeframe always
       cm.calibObjects.fastTransformHelper->getCorrMap()->TransformInTimeFrame(sector, row, pad, time, x, y, z, cm.param.continuousMaxTimeBin);
     } else {
       cm.calibObjects.fastTransformHelper->Transform(sector, row, pad, time, x, y, z);
