@@ -35,6 +35,8 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   ~TimeFrameGPU() = default;
 
   /// Most relevant operations
+  void pushMemoryStack(const int);
+  void popMemoryStack(const int);
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
   void initialise(const int, const TrackingParameters&, const int, IndexTableUtilsN* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
@@ -177,8 +179,8 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   int getNumberOfNeighbours() const final;
 
  private:
-  void allocMemAsync(void**, size_t, Stream&, bool); // Abstract owned and unowned memory allocations on specific stream
-  void allocMem(void**, size_t, bool);               // Abstract owned and unowned memory allocations on default stream
+  void allocMemAsync(void**, size_t, Stream&, bool, int32_t = o2::gpu::GPUMemoryResource::MEMORY_GPU); // Abstract owned and unowned memory allocations on specific stream
+  void allocMem(void**, size_t, bool, int32_t = o2::gpu::GPUMemoryResource::MEMORY_GPU);               // Abstract owned and unowned memory allocations on default stream
   TimeFrameGPUParameters mGpuParams;
 
   // Host-available device buffer sizes
