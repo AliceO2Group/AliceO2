@@ -33,6 +33,7 @@
 #include "Framework/ServiceRegistryRef.h"
 #include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/Signpost.h"
+#include "Framework/DefaultsHelpers.h"
 
 #include "CommonMessageBackendsHelpers.h"
 #include <Monitoring/Monitoring.h>
@@ -65,7 +66,7 @@ enum struct RateLimitingState {
 
 struct RateLimitConfig {
   int64_t maxMemory = 2000;
-  int64_t maxTimeframes = 1;
+  int64_t maxTimeframes = 1000;
 };
 
 struct MetricIndices {
@@ -524,7 +525,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].defaulted() == false) {
                          config->maxTimeframes = std::stoll(dc.options["timeframes-rate-limit"].as<std::string>());
                        } else {
-                         config->maxTimeframes = readers;
+                         config->maxTimeframes = readers * DefaultsHelpers::pipelineLength();
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...
