@@ -628,6 +628,12 @@ has_detector_reco ITS && has_detector_gpu ITS TPC && [[ -z "$DISABLE_ROOT_OUTPUT
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"
 has_detector_matching PRIMVTX && [[ -n "$VERTEXING_SOURCES" ]] && [[ $GLOBAL_READER_NEEDS_PV != 1 ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC $DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1 PRIMVTX),$(get_N pvertex-track-matching MATCH REST 1 PRIMVTXMATCH)" "${PVERTEXING_CONFIG_KEY};${INTERACTION_TAG_CONFIG_KEY};"
 
+if [[ -z ${SVERTEXING_SOURCES:-} ]]; then
+  [[ $SYNCMODE == 1 ]] && [[ -n $TRACK_SOURCES_GLO ]] && SVERTEXING_SOURCES="$TRACK_SOURCES_GLO" || SVERTEXING_SOURCES="$VERTEXING_SOURCES"
+elif [[ "${SVERTEXING_SOURCES^^}" == "NONE" ]]; then
+  SVERTEXING_SOURCES=
+fi
+
 if [[ $BEAMTYPE != "cosmic" ]] && has_detectors_reco ITS && has_detector_matching SECVTX && [[ -n "$SVERTEXING_SOURCES" ]]; then
   : ${REDUCESV_OPT:=}
   : ${REDUCESV_CONF:=}
