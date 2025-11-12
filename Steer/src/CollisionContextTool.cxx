@@ -28,6 +28,7 @@
 #include <CCDB/BasicCCDBManager.h>
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "SimConfig/SimConfig.h"
+#include <filesystem>
 
 //
 // Created by Sandro Wenzel on 13.07.21.
@@ -59,6 +60,10 @@ struct Options {
                                            // format is path prefix
   std::string vertexModeString{"kNoVertex"}; // Vertex Mode; vertices will be assigned to collisions of mode != kNoVertex
   o2::conf::VertexMode vertexMode = o2::conf::VertexMode::kNoVertex;
+  std::string external_path = ""; // optional external path where we can directly take the collision contexts
+                                  // This is useful when someone else is creating the contexts (MC-data embedding) and we
+                                  // merely want to pass these through. If this is given, we simply take the timeframe ID, number of orbits
+                                  // and copy the right amount of timeframes into the destination folder (implies individualTFextraction)
 };
 
 enum class InteractionLockMode {
@@ -210,7 +215,9 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "with-vertices", bpo::value<std::string>(&optvalues.vertexModeString)->default_value("kNoVertex"), "Assign vertices to collisions. Argument is the vertex mode. Defaults to no vertexing applied")(
     "timestamp", bpo::value<long>(&optvalues.timestamp)->default_value(-1L), "Timestamp for CCDB queries / anchoring")(
     "extract-per-timeframe", bpo::value<std::string>(&optvalues.individualTFextraction)->default_value(""),
-    "Extract individual timeframe contexts. Format required: time_frame_prefix[:comma_separated_list_of_signals_to_offset]");
+    "Extract individual timeframe contexts. Format required: time_frame_prefix[:comma_separated_list_of_signals_to_offset]")(
+    "import-external", bpo::value<std::string>(&optvalues.external_path)->default_value(""),
+    "Take collision contexts (per timeframe) from external files for instance for data-anchoring use-case. Needs timeframeID and number of orbits to be given as well.");
 
   options.add_options()("help,h", "Produce help message.");
 
@@ -249,6 +256,47 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
   return true;
 }
 
+bool copy_collision_context(const std::string& external_path, int this_tf_id, int target_tf_id)
+{
+  namespace fs = std::filesystem;
+  try {
+    // Construct source file path
+    fs::path filename = fs::path(external_path) / ("collission_context_" + std::to_string(this_tf_id) + ".root");
+
+    LOG(info) << "Checking existence of file: " << filename;
+
+    if (fs::exists(filename)) {
+      // Build destination path
+      std::string path_prefix = "tf"; // Can be made configurable
+      std::stringstream destination_path_stream;
+      destination_path_stream << path_prefix << (target_tf_id) << "/collisioncontext.root";
+      fs::path destination_path = destination_path_stream.str();
+
+      // Ensure parent directory exists
+      fs::path destination_dir = destination_path.parent_path();
+      if (!fs::exists(destination_dir)) {
+        fs::create_directories(destination_dir);
+        LOG(info) << "Created directory: " << destination_dir;
+      }
+
+      // Copy file
+      fs::copy_file(filename, destination_path, fs::copy_options::overwrite_existing);
+      LOG(info) << "Copied file to: " << destination_path;
+      return true;
+    } else {
+      LOG(warning) << "Source file does not exist: " << filename;
+      return false;
+    }
+  } catch (const fs::filesystem_error& e) {
+    LOG(error) << "Filesystem error: " << e.what();
+    return false;
+  } catch (const std::exception& e) {
+    LOG(error) << "Unexpected error: " << e.what();
+    return false;
+  }
+  return true;
+}
+
 int main(int argc, char* argv[])
 {
   Options options;
@@ -258,6 +306,45 @@ int main(int argc, char* argv[])
 
   // init params
   o2::conf::ConfigurableParam::updateFromString(options.configKeyValues);
+
+  // See if this is external mode, which simplifies things
+  if (options.external_path.size() > 0) {
+    // in this mode, we don't actually have to do much work.
+    // all we do is to
+    // - determine how many timeframes are asked
+    // - check if the right files are present in the external path (someone else needs to create/put them there)
+    // - check if the given contexts are consistent with options given (orbitsPerTF, ...)
+    // - copy the files into the MC destination folder (this implies timeframeextraction mode)
+    // - return
+
+    if (options.orbits < 0) {
+      LOG(error) << "External mode; orbits need to be given";
+      return 1;
+    }
+
+    if (options.orbitsPerTF == 0) {
+      LOG(error) << "External mode; need to have orbitsPerTF";
+      return 1;
+    }
+
+    if (options.individualTFextraction.size() == 0) {
+      LOG(error) << "External mode: This requires --extract-per-timeframe";
+      return 1;
+    }
+
+    // calculate number of timeframes
+    auto num_timeframes = options.orbits / options.orbitsPerTF;
+    LOG(info) << "External mode for " << num_timeframes << " consecutive timeframes; starting from " << options.tfid;
+
+    // loop over all timeframe ids - check if file is present - (check consistency) - copy to final destination
+    for (int i = 0; i < num_timeframes; ++i) {
+      auto this_tf_id = options.tfid + i;
+      if (!copy_collision_context(options.external_path, this_tf_id, i + 1)) {
+        return 1;
+      }
+    }
+    return 0;
+  }
 
   // init random generator
   gRandom->SetSeed(options.seed);

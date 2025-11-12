@@ -339,7 +339,9 @@ AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& ctx)
         O2_SIGNPOST_END(histogram_registry, did, "deserialization", "Done deserialization.");
         // If we have a folder, we assume the first element of the path
         // to be the name of the registry.
+        bool folderForContainer = false;
         if (sourceType == HistogramRegistrySource) {
+          folderForContainer = objh->createContainer != 0;
           obj.container = objh->containerName;
         } else {
           obj.container = obj.name;
@@ -423,6 +425,16 @@ AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& ctx)
         // FIXME: handle folders
         f[route.policy]->cd("/");
         auto* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
+
+        // In case we need a folder for the registry, let's create it.
+        if (folderForContainer) {
+          auto* histogramRegistryFolder = currentDir->GetDirectory(obj.container.data());
+          if (!histogramRegistryFolder) {
+            histogramRegistryFolder = currentDir->mkdir(obj.container.c_str(), "", kTRUE);
+          }
+          currentDir = histogramRegistryFolder;
+        }
+
         // The name contains a path...
         int objSize = 0;
         if (sourceType == HistogramRegistrySource) {

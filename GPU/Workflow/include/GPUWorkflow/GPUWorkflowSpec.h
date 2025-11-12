@@ -225,6 +225,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   int64_t mCreationForCalib = -1; ///< creation time for calib manipulation
   int32_t mVerbosity = 0;
   uint32_t mNTFs = 0;
+  uint32_t mNTFDumps = 0;
   uint32_t mNDebugDumps = 0;
   uint32_t mNextThreadIndex = 0;
   bool mUpdateGainMapCCDB = true;

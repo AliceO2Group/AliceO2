@@ -53,6 +53,18 @@ struct EtaAndClsHistogramsSimple {
     } //
   };
 
+  HistogramRegistry registry2{
+    "registry2",
+    {
+      {"a/foo/b/eta", "#Eta", {HistType::kTH1F, {{100, -2.0, 2.0}}}},                           //
+      {"fii/c/hpt", "p_{T}", {HistType::kTH1D, {{1002, -0.01, 50.1}}}},                         //
+      {"a/foobar/phi", "#Phi", {HistType::kTH1D, {{102, 0, 2 * M_PI}}}},                        //
+      {"fifi/ptToPt", "#ptToPt", {HistType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
+    },
+    OutputObjHandlingPolicy::AnalysisObject,
+    false,
+    true};
+
   void init(InitContext&)
   {
     if (!trackFilterString->empty()) {

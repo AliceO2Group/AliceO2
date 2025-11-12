@@ -1541,6 +1541,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("exit-transition-timeout", bpo::value<std::string>());
+        realOdesc.add_options()("error-on-exit-transition-timeout", bpo::value<bool>()->zero_tokens());
         realOdesc.add_options()("data-processing-timeout", bpo::value<std::string>());
         realOdesc.add_options()("expected-region-callbacks", bpo::value<std::string>());
         realOdesc.add_options()("timeframes-rate-limit", bpo::value<std::string>());
@@ -1728,6 +1729,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                                                                             //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                                                                        //
     ("exit-transition-timeout", bpo::value<std::string>(), "timeout before switching to READY state")                                                                //
+    ("error-on-exit-transition-timeout", bpo::value<bool>()->zero_tokens(), "print error instead of warning when exit transition timer expires")                     //
     ("data-processing-timeout", bpo::value<std::string>(), "timeout after which only calibration can happen")                                                        //
     ("expected-region-callbacks", bpo::value<std::string>(), "region callbacks to expect before starting")                                                           //
     ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframes can be in fly")                                                    //

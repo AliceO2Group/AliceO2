@@ -9,14 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITS3Reconstruction/FastMultEstConfig.h"
-#include "TRandom.h"
+#ifdef __CLING__
 
-O2ParamImpl(o2::its::FastMultEstConfig);
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-using namespace o2::its;
+#pragma link C++ class o2::fd3::Hit + ;
+#pragma link C++ class vector < o2::fd3::Hit> + ;
 
-bool FastMultEstConfig::isPassingRandomRejection() const
-{
-  return (cutRandomFraction <= 0. || gRandom->Rndm() > cutRandomFraction) ? true : false;
-}
+#endif

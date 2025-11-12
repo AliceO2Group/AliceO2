@@ -18,10 +18,10 @@
 #ifndef O2_TOF_PARAMCONTAINER_H
 #define O2_TOF_PARAMCONTAINER_H
 
-#include "TNamed.h"
-#include "TFile.h"
-#include "Framework/Logger.h"
-#include "map"
+#include <TNamed.h>
+#include <TFile.h>
+#include <Framework/Logger.h>
+#include <map>
 
 namespace o2
 {
@@ -37,7 +37,7 @@ class Parameters
   Parameters(std::array<std::string, nPar> parNames, std::string name) : mName{name}, mPar{}, mParNames{parNames} {};
 
   /// Default destructor
-  virtual ~Parameters() = default; // Ensure proper cleanup in derived classes
+  ~Parameters() = default;
 
   /// Setter for the parameter at position iparam
   /// \param iparam index in the array of the parameters
@@ -183,27 +183,10 @@ class ParameterCollection : public TNamed
   /// @param value parameter to add to the stored information
   /// @param pass key to look for in the stored information e.g. pass
   /// @return true if found and configured false if not fully configured
-  bool addParameter(const std::string& pass, const std::string& parName, float value)
-  {
-    const bool alreadyPresent = hasKey(pass);
-    if (alreadyPresent) {
-      LOG(debug) << "Changing parametrization corresponding to key " << pass << " from size " << mParameters[pass].size() << " to " << parName;
-    } else {
-      mParameters[pass] = std::unordered_map<std::string, paramvar_t>{};
-      LOG(debug) << "Adding new parametrization corresponding to key " << pass << ": " << parName;
-    }
-    mParameters[pass][parName] = value;
-    return true;
-  }
+  bool addParameter(const std::string& pass, const std::string& parName, float value);
 
   /// @return the size of the container i.e. the number of stored keys (or passes)
-  int getSize(const std::string& pass) const
-  {
-    if (!hasKey(pass)) {
-      return -1;
-    }
-    return mParameters.at(pass).size();
-  }
+  int getSize(const std::string& pass) const;
 
   /// @brief Function to push the parameters from the sub container into the collection and store it under a given key
   /// @tparam ParType type of the parameter container
@@ -231,26 +214,10 @@ class ParameterCollection : public TNamed
 
   /// @brief printing function for the content of the pass
   /// @param pass pass to print
-  void print(const std::string& pass) const
-  {
-    const auto& size = getSize(pass);
-    if (size < 0) {
-      LOG(info) << "empty pass: " << pass;
-      return;
-    }
-    LOG(info) << "Pass \"" << pass << "\" with size " << size;
-    for (const auto& [par, value] : mParameters.at(pass)) {
-      LOG(info) << "par name = " << par << ", value = " << value;
-    }
-  }
+  void print(const std::string& pass) const;
 
   /// @brief printing function for the full content of the container
-  void print() const
-  {
-    for (const auto& [pass, pars] : mParameters) {
-      print(pass);
-    }
-  }
+  void print() const;
 
   /// @brief Getter of the full map of parameters stored in the container
   /// @return returns the full map of parameters

@@ -167,14 +167,17 @@ class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
 
   GPUd() static bool ChannelIsActive(const uint8_t* chan, uint16_t chanIndex);
 
+  // Decode a single timebin within an 8kb page.
+  // Returns the number of samples decoded from the page
+  // or negative value to indicate an error (no samples are written in this case)
   template <bool DecodeInParallel, bool PayloadExtendsToNextPage>
-  GPUd() static uint16_t DecodeTB(processorType& clusterer, GPUSharedMemory& smem, int32_t iThread, const uint8_t*& page, uint32_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int32_t firstHBF, int32_t cru, const uint8_t* payloadEnd, const uint8_t* nextPage);
+  GPUd() static int16_t DecodeTB(processorType& clusterer, GPUSharedMemory& smem, int32_t iThread, const uint8_t*& page, uint32_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int32_t firstHBF, int32_t cru, uint16_t nSamplesLeftInPage, const uint8_t* payloadEnd, const uint8_t* nextPage);
 
   template <bool PayloadExtendsToNextPage>
-  GPUd() static uint16_t DecodeTBSingleThread(processorType& clusterer, const uint8_t*& page, uint32_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int32_t firstHBF, int32_t cru, const uint8_t* payloadEnd, const uint8_t* nextPage);
+  GPUd() static int16_t DecodeTBSingleThread(processorType& clusterer, const uint8_t*& page, uint32_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int32_t firstHBF, int32_t cru, uint16_t nSamplesLeftInPage, const uint8_t* payloadEnd, const uint8_t* nextPage);
 
   template <bool PayloadExtendsToNextPage>
-  GPUd() static uint16_t DecodeTBMultiThread(processorType& clusterer, GPUSharedMemory& smem, const int32_t iThread, const uint8_t*& page, uint32_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int32_t firstHBF, int32_t cru, const uint8_t* payloadEnd, const uint8_t* nextPage);
+  GPUd() static int16_t DecodeTBMultiThread(processorType& clusterer, GPUSharedMemory& smem, const int32_t iThread, const uint8_t*& page, uint32_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int32_t firstHBF, int32_t cru, uint16_t nSamplesLeftInPage, const uint8_t* payloadEnd, const uint8_t* nextPage);
 };
 
 } // namespace o2::gpu

@@ -81,7 +81,7 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
   /** generate event **/
 
   /** normal generation if no embedding **/
-  if (!mEmbedTree) {
+  if (!mEmbedTree || mEmbedIndex < 0) {
     fixInteractionVertex(); // <-- always fixes vertex outside of FairROOT
     auto ret = FairPrimaryGenerator::GenerateEvent(pStack);
     if (ret) {
@@ -91,17 +91,18 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
   }
 
   /** this is for embedding **/
+  if (mEmbedIndex >= 0) {
+    /** setup interaction vertex **/
+    mEmbedTree->GetEntry(mEmbedIndex);
+    setInteractionVertex(mEmbedEvent);
 
-  /** setup interaction vertex **/
-  mEmbedTree->GetEntry(mEmbedIndex);
-  setInteractionVertex(mEmbedEvent);
-
-  /** notify event generators **/
-  auto genList = GetListOfGenerators();
-  for (int igen = 0; igen < genList->GetEntries(); ++igen) {
-    auto o2gen = dynamic_cast<Generator*>(genList->At(igen));
-    if (o2gen) {
-      o2gen->notifyEmbedding(mEmbedEvent);
+    /** notify event generators **/
+    auto genList = GetListOfGenerators();
+    for (int igen = 0; igen < genList->GetEntries(); ++igen) {
+      auto o2gen = dynamic_cast<Generator*>(genList->At(igen));
+      if (o2gen) {
+        o2gen->notifyEmbedding(mEmbedEvent);
+      }
     }
   }
 

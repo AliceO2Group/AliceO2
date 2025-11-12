@@ -77,19 +77,19 @@ class GPUTPCTracker : public GPUProcessor
 
   GPUdi() static void GetErrors2Seeding(const GPUParam& param, char sector, int32_t iRow, const GPUTPCTrackParam& t, float time, float& ErrY2, float& ErrZ2)
   {
-    // param.GetClusterErrors2(sector, iRow, param.GetContinuousTracking() != 0. ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, 0.f, 0.f, ErrY2, ErrZ2);
-    param.GetClusterErrorsSeeding2(sector, iRow, param.par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, ErrY2, ErrZ2);
+    // param.GetClusterErrors2(sector, iRow, param.continuousTracking ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, 0.f, 0.f, ErrY2, ErrZ2);
+    param.GetClusterErrorsSeeding2(sector, iRow, param.par.continuousTracking ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, ErrY2, ErrZ2);
   }
 
   GPUdi() void GetErrors2Seeding(int32_t iRow, const GPUTPCTrackParam& t, float time, float& ErrY2, float& ErrZ2) const
   {
-    // Param().GetClusterErrors2(mISector, iRow, Param().GetContinuousTracking() != 0. ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, 0.f, 0.f, ErrY2, ErrZ2);
-    Param().GetClusterErrorsSeeding2(mISector, iRow, Param().par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, ErrY2, ErrZ2);
+    // Param().GetClusterErrors2(mISector, iRow, Param().continuousTracking ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, 0.f, 0.f, ErrY2, ErrZ2);
+    Param().GetClusterErrorsSeeding2(mISector, iRow, Param().par.continuousTracking ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, ErrY2, ErrZ2);
   }
   GPUdi() void GetErrors2Seeding(int32_t iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
   {
-    // Param().GetClusterErrors2(mISector, iRow, Param().GetContinuousTracking() != 0. ? 125.f : z, sinPhi, DzDs, time, 0.f, 0.f, ErrY2, ErrZ2);
-    Param().GetClusterErrorsSeeding2(mISector, iRow, Param().par.continuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, time, ErrY2, ErrZ2);
+    // Param().GetClusterErrors2(mISector, iRow, Param().continuousTracking ? 125.f : z, sinPhi, DzDs, time, 0.f, 0.f, ErrY2, ErrZ2);
+    Param().GetClusterErrorsSeeding2(mISector, iRow, Param().par.continuousTracking ? 125.f : z, sinPhi, DzDs, time, ErrY2, ErrZ2);
   }
 
   void SetupCommonMemory();
@@ -103,6 +103,7 @@ class GPUTPCTracker : public GPUProcessor
   void* SetPointersTracklets(void* mem);
   void* SetPointersOutput(void* mem);
   void RegisterMemoryAllocation();
+  bool MemoryReuseAllowed();
 
   int16_t MemoryResLinks() const { return mMemoryResLinks; }
   int16_t MemoryResScratchHost() const { return mMemoryResScratchHost; }

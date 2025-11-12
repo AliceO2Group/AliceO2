@@ -231,26 +231,24 @@ int32_t GPUReconstructionCPU::RunChains()
   }
   mTimerTotal.Start();
   const std::clock_t cpuTimerStart = std::clock();
+  int32_t retVal = 0;
   if (GetProcessingSettings().doublePipeline) {
-    int32_t retVal = EnqueuePipeline();
-    if (retVal) {
-      return retVal;
-    }
+    retVal = EnqueuePipeline();
   } else {
     if (mSlaves.size() || mMaster) {
       WriteConstantParams(); // Reinitialize // TODO: Get this in sync with GPUChainTracking::DoQueuedUpdates, and consider the doublePipeline
     }
     for (uint32_t i = 0; i < mChains.size(); i++) {
-      int32_t retVal = mChains[i]->RunChain();
-      if (retVal) {
-        return retVal;
-      }
-    }
-    if (GetProcessingSettings().tpcFreeAllocatedMemoryAfterProcessing) {
-      ClearAllocatedMemory();
+      retVal = mChains[i]->RunChain();
     }
   }
+  if (retVal != 0 && retVal != 2) {
+    return retVal;
+  }
   mTimerTotal.Stop();
+  if (GetProcessingSettings().tpcFreeAllocatedMemoryAfterProcessing) {
+    ClearAllocatedMemory();
+  }
   mStatCPUTime += (double)(std::clock() - cpuTimerStart) / CLOCKS_PER_SEC;
   if (GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) {
     GPUInfo("Allocated memory when ending processing %36s", "");
@@ -339,7 +337,13 @@ int32_t GPUReconstructionCPU::RunChains()
     mTimerTotal.Reset();
   }
 
-  return 0;
+  if (GetProcessingSettings().memoryStat) {
+    PrintMemoryStatistics();
+  } else if (GetProcessingSettings().debugLevel >= 2) {
+    PrintMemoryOverview();
+  }
+
+  return retVal;
 }
 
 void GPUReconstructionCPU::ResetDeviceProcessorTypes()

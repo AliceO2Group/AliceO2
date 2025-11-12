@@ -14,6 +14,9 @@ source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && ex
 source $O2DPG_ROOT/DATA/common/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
 source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
+# print an error (instead of warning) when exit transition timer expires, only for tasks on aggregator nodes
+ARGS_ALL+=" --error-on-exit-transition-timeout"
+
 # if the populator for DCS CCDB is needed, set it to non-0
 : ${NEED_DCS_CCDB_POPULATOR:=0}
 

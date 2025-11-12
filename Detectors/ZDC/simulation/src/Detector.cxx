@@ -2355,7 +2355,7 @@ void Detector::createDetectors()
 
   // --- Positioning the ZEM into the ZDC - rotation for 90 degrees
   // NB -> ZEM is positioned in cave volume
-  const float z0 = 1313.3475; // center of caveRB24 mother volume
+  const float z0 = 1313.3475 + 75.; // center of caveRB24 mother volume
   TVirtualMC::GetMC()->Gspos("ZEM ", 1, "caveRB24", -Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + Geometry::ZEMDIMENSION[0] - z0, irotzem1, "ONLY");
 
   // Second EM ZDC (same side w.r.t. IP, just on the other side w.r.t. beam pipe)

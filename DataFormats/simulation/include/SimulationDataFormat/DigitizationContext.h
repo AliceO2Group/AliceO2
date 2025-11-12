@@ -141,6 +141,12 @@ class DigitizationContext
   // have to have same vertex, as well as event ids associated to same collision.
   void sampleInteractionVertices(o2::dataformats::MeanVertexObject const& v);
 
+  // Function allowing to inject interaction vertixes from the outside.
+  // Useful when this is given from data for instance. The vertex vector needs to be of same
+  // size as the interaction record.
+  // Returns 0 if success. 1 if there is a problem.
+  int setInteractionVertices(std::vector<math_utils::Point3D<float>> const& vertices);
+
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 

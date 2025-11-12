@@ -825,11 +825,31 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   lockDecodeInput.reset();
 
+  uint32_t threadIndex;
   if (mConfParam->dump) {
-    if (mNTFs == 1) {
-      mGPUReco->DumpSettings();
+    if (mSpecConfig.enableDoublePipeline && pipelineContext->jobSubmitted) {
+      while (pipelineContext->jobThreadIndex == -1) {
+      }
+      threadIndex = pipelineContext->jobThreadIndex;
+    } else {
+      threadIndex = 0; // TODO: Not sure if this is safe, but it is not yet known which threadIndex will pick up the enqueued job
     }
-    mGPUReco->DumpEvent(mNTFs - 1, &ptrs);
+
+    std::string dir = "";
+    if (mConfParam->dumpFolder != "") {
+      dir = std::regex_replace(mConfParam->dumpFolder, std::regex("\\[P\\]"), std::to_string(getpid()));
+      if (mNTFs == 1) {
+        mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+      }
+      dir += "/";
+    }
+    if (mNTFs == 1) { // Must dump with first TF, since will enforce enqueued calib updates
+      mGPUReco->DumpSettings(threadIndex, dir.c_str());
+    }
+    if (tinfo.tfCounter >= mConfParam->dumpFirst && (mConfParam->dumpLast == -1 || tinfo.tfCounter <= mConfParam->dumpLast)) {
+      mGPUReco->DumpEvent(mNTFDumps, &ptrs, threadIndex, dir.c_str());
+      mNTFDumps++;
+    }
   }
   std::unique_ptr<GPUTrackingInOutPointers> ptrsDump;
   if (mConfParam->dumpBadTFMode == 2) {
@@ -847,9 +867,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     std::unique_lock lk(pipelineContext->jobFinishedMutex);
     pipelineContext->jobFinishedNotify.wait(lk, [context = pipelineContext.get()]() { return context->jobFinished; });
     retVal = pipelineContext->jobReturnValue;
+    threadIndex = pipelineContext->jobThreadIndex;
   } else {
     // uint32_t threadIndex = pc.services().get<ThreadPool>().threadIndex;
-    uint32_t threadIndex = mNextThreadIndex;
+    threadIndex = mNextThreadIndex;
     if (mConfig->configProcessing.doublePipeline) {
       mNextThreadIndex = (mNextThreadIndex + 1) % 2;
     }
@@ -879,7 +900,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
       fclose(fp);
     } else if (mConfParam->dumpBadTFMode == 2) {
-      mGPUReco->DumpEvent(mNDebugDumps - 1, ptrsDump.get());
+      mGPUReco->DumpEvent(mNDebugDumps - 1, ptrsDump.get(), threadIndex);
     }
   }
 

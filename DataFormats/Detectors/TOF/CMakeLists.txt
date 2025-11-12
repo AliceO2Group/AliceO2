@@ -9,6 +9,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+o2_add_library(DataFormatsParamTOF
+               SOURCES src/ParameterContainers.cxx
+               PUBLIC_LINK_LIBRARIES O2::FrameworkLogger)
+
+
+o2_target_root_dictionary(DataFormatsParamTOF
+                          HEADERS include/DataFormatsTOF/ParameterContainers.h)
+
 o2_add_library(DataFormatsTOF
                SOURCES src/Cluster.cxx
                        src/CalibInfoTOFshort.cxx
@@ -22,6 +30,7 @@ o2_add_library(DataFormatsTOF
                        src/TOFFEElightInfo.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      O2::GPUCommon
+                                     O2::DataFormatsParamTOF
                                      Boost::serialization)
 
 o2_target_root_dictionary(DataFormatsTOF
@@ -33,7 +42,6 @@ o2_target_root_dictionary(DataFormatsTOF
                                   include/DataFormatsTOF/RawDataFormat.h
                                   include/DataFormatsTOF/CompressedDataFormat.h
                                   include/DataFormatsTOF/CTF.h
-                                  include/DataFormatsTOF/ParameterContainers.h
                                   include/DataFormatsTOF/CalibInfoCluster.h
                                   include/DataFormatsTOF/CosmicInfo.h
                                   include/DataFormatsTOF/TOFFEElightInfo.h

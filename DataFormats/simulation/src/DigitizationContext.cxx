@@ -635,6 +635,17 @@ struct pair_hash {
 };
 } // namespace
 
+int DigitizationContext::setInteractionVertices(std::vector<math_utils::Point3D<float>> const& external_vertices)
+{
+  if (external_vertices.size() != mEventRecords.size()) {
+    LOG(error) << "Size mismatch with event record";
+    return 1;
+  }
+  mInteractionVertices.clear();
+  std::copy(external_vertices.begin(), external_vertices.end(), std::back_inserter(mInteractionVertices));
+  return 0;
+}
+
 void DigitizationContext::sampleInteractionVertices(o2::dataformats::MeanVertexObject const& meanv)
 {
   // mapping of source x event --> index into mInteractionVertices
