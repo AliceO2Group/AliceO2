@@ -194,6 +194,7 @@ class TPCFastTransform : public FlatObject
 
   /// Inverse transformation
   GPUd() void InverseTransformInTimeFrame(int32_t slice, int32_t row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
+  GPUd() float InverseTransformInTimeFrame(int32_t slice, float z, float maxTimeBin) const;
 
   /// Inverse transformation: Transformed Y and Z -> transformed X
   GPUd() void InverseTransformYZtoX(int32_t slice, int32_t row, float y, float z, float& x, const TPCFastTransform* ref = nullptr, const TPCFastTransform* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
@@ -665,6 +666,13 @@ GPUdi() void TPCFastTransform::InverseTransformInTimeFrame(int32_t slice, int32_
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
   convUVtoPadTimeInTimeFrame(slice, row, u, v, pad, time, maxTimeBin);
+}
+
+GPUdi() float TPCFastTransform::InverseTransformInTimeFrame(int32_t slice, float z, float maxTimeBin) const
+{
+  float pad, time;
+  InverseTransformInTimeFrame(slice, 0, 0, 0, z, pad, time, maxTimeBin);
+  return time;
 }
 
 GPUdi() void TPCFastTransform::TransformIdealZ(int32_t slice, float time, float& z, float vertexTime) const
