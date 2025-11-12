@@ -397,10 +397,15 @@ TEST_CASE("TestExpressionSerialization")
 {
   Filter f = o2::aod::track::signed1Pt > 0.f && ifnode(nabs(o2::aod::track::eta) < 1.0f, nabs(o2::aod::track::x) > 2.0f, nabs(o2::aod::track::y) > 3.0f);
   Projector p = -1.f * nlog(ntan(o2::constants::math::PIQuarter - 0.5f * natan(o2::aod::fwdtrack::tgl)));
+  Projector p1 = ifnode(o2::aod::track::itsClusterSizes > (uint32_t)0, static_cast<uint8_t>(o2::aod::track::ITS), (uint8_t)0x0) |
+                 ifnode(o2::aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
+                 ifnode(o2::aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
+                 ifnode((o2::aod::track::tofChi2 >= 0.f) && (o2::aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0);
 
   std::vector<Projector> projectors;
   projectors.emplace_back(std::move(f));
   projectors.emplace_back(std::move(p));
+  projectors.emplace_back(std::move(p1));
 
   std::stringstream osm;
   ExpressionJSONHelpers::write(osm, projectors);
@@ -422,6 +427,15 @@ TEST_CASE("TestExpressionSerialization")
   auto t12 = createExpressionTree(s12, schemap);
   auto t22 = createExpressionTree(s22, schemap);
   REQUIRE(t12->ToString() == t22->ToString());
+
+  auto s13 = createOperations(projectors[2]);
+  auto s23 = createOperations(ps[2]);
+  auto schemap1 = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::ITSClusterSizes::asArrowField(), o2::aod::track::TPCNClsFindable::asArrowField(),
+                                                              o2::aod::track::TRDPattern::asArrowField(), o2::aod::track::TOFChi2::asArrowField(),
+                                                              o2::aod::track::TOFExpMom::asArrowField()});
+  auto t13 = createExpressionTree(s13, schemap1);
+  auto t23 = createExpressionTree(s23, schemap1);
+  REQUIRE(t13->ToString() == t23->ToString());
 
   osm.clear();
   osm.str("");

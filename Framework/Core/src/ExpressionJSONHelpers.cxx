@@ -365,13 +365,7 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
           value = (uint16_t)i;
           break;
         case atype::UINT32:
-          value = i;
-          break;
-        case atype::UINT64:
-          value = (uint64_t)i;
-          break;
-        case atype::INT64:
-          value = (int64_t)i;
+          value = (uint32_t)i;
           break;
         default:
           states.push(State::IN_ERROR);
@@ -450,7 +444,17 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     debug << "Int64(" << i << ")" << std::endl;
     // can only be a literal node value
     if (states.top() == State::IN_NODE_LITERAL && currentKey.compare("value") == 0) {
-      value = i;
+      switch (type) {
+        case atype::UINT64:
+          value = (uint64_t)i;
+          break;
+        case atype::INT64:
+          value = (int64_t)i;
+          break;
+        default:
+          states.push(State::IN_ERROR);
+          return false;
+      }
       return true;
     }
     states.push(State::IN_ERROR); // no other contexts allow int64s
@@ -460,13 +464,9 @@ struct ExpressionReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool Uint64(uint64_t i)
   {
     debug << "Uint64(" << i << ")" << std::endl;
-    // can only be a literal node value
-    if (states.top() == State::IN_NODE_LITERAL && currentKey.compare("value") == 0) {
-      value = i;
-      return true;
-    }
-    states.push(State::IN_ERROR); // no other contexts allow uints
-    return false;
+    // any positive value will be first read as unsigned, however the actual type is determined by node's arrow_type
+    debug << ">> falling back to Int64" << std::endl;
+    return Int64(i);
   }
 
   bool Double(double d)
