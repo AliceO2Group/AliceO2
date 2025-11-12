@@ -268,12 +268,16 @@ AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)
   return PluginManager::wrapAlgorithm(spec, [](AlgorithmSpec::ProcessCallback& original, ProcessingContext& pcx) -> void {
     auto& raw = pcx.services().get<RawDeviceService>();
     static RateLimiter limiter;
+    O2_SIGNPOST_ID_FROM_POINTER(sid, rate_limiting, &pcx);
     auto limit = std::stoi(raw.device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
-    LOG(detail) << "Rate limiting to " << limit << " timeframes in flight";
+    O2_SIGNPOST_EVENT_EMIT_DETAIL(rate_limiting, sid, "rate limiting callback",
+                                  "Rate limiting to %d timeframes in flight", limit);
     limiter.check(pcx, limit, 2000);
-    LOG(detail) << "Rate limiting passed. Invoking old callback";
+    O2_SIGNPOST_EVENT_EMIT_DETAIL(rate_limiting, sid, "rate limiting callback",
+                                  "Rate limiting passed. Invoking old callback.");
     original(pcx);
-    LOG(detail) << "Rate limited callback done";
+    O2_SIGNPOST_EVENT_EMIT_DETAIL(rate_limiting, sid, "rate limiting callback",
+                                  "Rate limited callback done.");
   });
 }
 
