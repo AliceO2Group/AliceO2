@@ -619,7 +619,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         builder->outputs.clear();
         // replace AlgorithmSpec
         //  FIXME: it should be made more generic, so it does not need replacement...
-        builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(ac.requestedIDXs);
+        builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(ctx);
         AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, *builder);
       }
 

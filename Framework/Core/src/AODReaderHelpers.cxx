@@ -15,38 +15,14 @@
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/AlgorithmSpec.h"
-#include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
-#include "Framework/EndOfStreamContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "ExpressionJSONHelpers.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/AnalysisContext.h"
 
-#include <Monitoring/Monitoring.h>
-
-#include <TGrid.h>
-#include <TFile.h>
-#include <TTreeCache.h>
-
-#include <arrow/ipc/reader.h>
-#include <arrow/ipc/writer.h>
-#include <arrow/io/interfaces.h>
-#include <arrow/table.h>
-#include <arrow/util/key_value_metadata.h>
-
 namespace o2::framework::readers
 {
-auto setEOSCallback(InitContext& ic)
-{
-  ic.services().get<CallbackService>().set<CallbackService::Id::EndOfStream>(
-    [](EndOfStreamContext& eosc) {
-      auto& control = eosc.services().get<ControlService>();
-      control.endOfStream();
-      control.readyToQuit(QuitRequest::Me);
-    });
-}
-
 template <size_t N, std::array<soa::TableRef, N> refs>
 static inline auto extractOriginals(ProcessingContext& pc)
 {
@@ -83,9 +59,10 @@ auto make_build(D metadata, InputSpec const& input, ProcessingContext& pc)
 }
 } // namespace
 
-AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& requested)
+AlgorithmSpec AODReaderHelpers::indexBuilderCallback(ConfigContext const& ctx)
 {
-  return AlgorithmSpec::InitCallback{[requested](InitContext& /*ic*/) {
+  auto& ac = ctx.services().get<AnalysisContext>();
+  return AlgorithmSpec::InitCallback{[requested = ac.requestedIDXs](InitContext& /*ic*/) {
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -252,7 +229,7 @@ struct Spawnable {
 
 } // namespace
 
-AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(/*std::vector<InputSpec>& requested*/ ConfigContext const& ctx)
+AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(ConfigContext const& ctx)
 {
   auto& ac = ctx.services().get<AnalysisContext>();
   return AlgorithmSpec::InitCallback{[requested = ac.spawnerInputs](InitContext& /*ic*/) {
@@ -268,6 +245,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(/*std::vector<InputSpec>& req
     return [makers](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
       for (auto& maker : makers) {
+        LOGP(info, ">>> Spawning: {}", maker.binding);
         outputs.adopt(Output{maker.origin, maker.description, maker.version}, maker.make(pc));
       }
     };

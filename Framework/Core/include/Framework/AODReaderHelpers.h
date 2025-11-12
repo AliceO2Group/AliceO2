@@ -22,7 +22,7 @@ namespace o2::framework::readers
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
   static AlgorithmSpec aodSpawnerCallback(ConfigContext const& ctx);
-  static AlgorithmSpec indexBuilderCallback(std::vector<InputSpec>& requested);
+  static AlgorithmSpec indexBuilderCallback(ConfigContext const& ctx);
 };
 
 } // namespace o2::framework::readers
