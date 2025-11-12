@@ -552,8 +552,16 @@ int main(int argc, char* argv[])
   }
   digicontext.setBunchFilling(bunchFillings[0]);
   std::vector<std::string> prefixes;
+  // Signal interaction rate
+  float sgnIRate = -1.;
   for (auto& p : ispecs) {
     prefixes.push_back(p.name);
+    if (p.name == "sgn") {
+      // Setting interaction rate in the digitizer context as provided by the O2DPG workflow
+      LOG(debug) << "Setting signal interaction rate to " << p.interactionRate << " Hz in the digitization context.";
+      sgnIRate = p.interactionRate;
+      digicontext.setDigitizerInteractionRate(p.interactionRate);
+    }
   }
   digicontext.setSimPrefixes(prefixes);
 
