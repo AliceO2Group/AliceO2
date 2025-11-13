@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 #include "ArrowSupport.h"
 
-#include "Framework/AODReaderHelpers.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/DataProcessor.h"
@@ -619,7 +618,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         builder->outputs.clear();
         // replace AlgorithmSpec
         //  FIXME: it should be made more generic, so it does not need replacement...
-        builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(ctx);
+        builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTablesBuilder", ctx);//readers::AODReaderHelpers::indexBuilderCallback(ctx);
         AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, *builder);
       }
 
@@ -654,7 +653,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         spawner->inputs.clear();
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
-        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(ctx);
+        spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
         AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
       }
 

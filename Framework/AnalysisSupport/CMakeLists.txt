@@ -16,6 +16,12 @@ if(TARGET JAliEn::JAliEn)
   set(EXTRA_TARGETS XRootD::Client JAliEn::JAliEn)
 endif()
 
+o2_add_library(FrameworkOnDemandTablesSupport
+               SOURCES src/OnDemandPlugin.cxx
+                       src/AODReaderHelpers.cxx
+               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
+               PUBLIC_LINK_LIBRARIES O2::Framework ${EXTRA_TARGETS})
+
 o2_add_library(FrameworkAnalysisSupport
                SOURCES src/Plugin.cxx
                        src/DataInputDirector.cxx

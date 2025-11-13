@@ -11,7 +11,6 @@
 #include "WorkflowHelpers.h"
 #include "Framework/AnalysisSupportHelpers.h"
 #include "Framework/AlgorithmSpec.h"
-#include "Framework/AODReaderHelpers.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/CommonDataProcessors.h"
@@ -416,7 +415,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-aod-index-builder",
     {},
     {},
-    readers::AODReaderHelpers::indexBuilderCallback(ctx),
+    PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx),//readers::AODReaderHelpers::indexBuilderCallback(ctx),
     {}};
   AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, indexBuilder);
 
@@ -436,7 +435,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-aod-spawner",
     {},
     {},
-    readers::AODReaderHelpers::aodSpawnerCallback(ctx),
+    PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx),//readers::AODReaderHelpers::aodSpawnerCallback(ctx),
     {}};
   AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, aodSpawner);
 
