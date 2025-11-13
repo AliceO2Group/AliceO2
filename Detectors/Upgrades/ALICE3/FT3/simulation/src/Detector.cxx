@@ -40,6 +40,8 @@
 
 #include <cstdio> // for NULL, snprintf
 
+#define MAX_SENSORS 2000
+
 class FairModule;
 
 class TGeoMedium;
@@ -729,9 +731,23 @@ void Detector::defineSensitiveVolumes()
     for (int direction : {0, 1}) {
       for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
         volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
-        v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer));
-        LOG(info) << "Adding FT3 Sensitive Volume => " << v->GetName();
-        AddSensitiveVolume(v);
+        if (iLayer < 3) { // ML disks
+          v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer));
+          AddSensitiveVolume(v);
+        } else { // OT disks
+          for (int sensor_count = 0; sensor_count < MAX_SENSORS; ++sensor_count) {
+            std::string sensor_name_front = "FT3sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+            std::string sensor_name_back = "FT3sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+            v = geoManager->GetVolume(sensor_name_front.c_str());
+            if (v) {
+              AddSensitiveVolume(v);
+            }
+            v = geoManager->GetVolume(sensor_name_back.c_str());
+            if (v) {
+              AddSensitiveVolume(v);
+            }
+          }
+        }
       }
     }
   }

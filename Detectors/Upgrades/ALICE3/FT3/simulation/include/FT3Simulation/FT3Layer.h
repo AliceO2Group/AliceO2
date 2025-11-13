@@ -18,6 +18,7 @@
 #include <TGeoManager.h>            // for gGeoManager
 #include "Rtypes.h"                 // for Double_t, Int_t, Bool_t, etc
 #include "FT3Simulation/Detector.h" // for Detector, Detector::Model
+#include "FT3Simulation/FT3Module.h"
 
 class TGeoVolume;
 
@@ -56,6 +57,24 @@ class FT3Layer : public TObject
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure
   virtual void createLayer(TGeoVolume* motherVolume);
+
+  static void initialize_mat();
+
+  // create layer for disk support
+  void createSeparationLayer(TGeoVolume* motherVolume, const std::string& separationLayerName);
+  void createSeparationLayer_waterCooling(TGeoVolume* motherVolume, const std::string& separationLayerName);
+
+  static TGeoMaterial* carbonFiberMat;
+  static TGeoMedium* medCarbonFiber;
+
+  static TGeoMaterial* kaptonMat;
+  static TGeoMedium* kaptonMed;
+
+  static TGeoMaterial* waterMat;
+  static TGeoMedium* waterMed;
+
+  static TGeoMaterial* foamMat;
+  static TGeoMedium* medFoam;
 
  private:
   Int_t mLayerNumber = -1; ///< Current layer number
