@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/AODReaderHelpers.h"
+#include "AODReaderHelpers.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/AnalysisDataModelHelpers.h"
 #include "Framework/ExpressionHelpers.h"
@@ -17,7 +17,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/DataSpecUtils.h"
-#include "ExpressionJSONHelpers.h"
+#include "../src/ExpressionJSONHelpers.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/AnalysisContext.h"
 
@@ -245,7 +245,6 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(ConfigContext const& ctx)
     return [makers](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
       for (auto& maker : makers) {
-        LOGP(info, ">>> Spawning: {}", maker.binding);
         outputs.adopt(Output{maker.origin, maker.description, maker.version}, maker.make(pc));
       }
     };
