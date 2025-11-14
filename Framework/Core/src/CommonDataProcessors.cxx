@@ -45,6 +45,7 @@ using namespace o2::framework::data_matcher;
 // Special log to track callbacks we know about
 O2_DECLARE_DYNAMIC_LOG(callbacks);
 O2_DECLARE_DYNAMIC_LOG(rate_limiting);
+O2_DECLARE_DYNAMIC_LOG(quota);
 
 namespace o2::framework
 {
@@ -212,7 +213,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
         auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
         auto& stats = services.get<DataProcessingStats>();
         stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
-        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_NUMBER_DONE, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
         stats.processCommandQueue();
       };
       callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
@@ -247,7 +248,7 @@ DataProcessorSpec CommonDataProcessors::getScheduledDummySink(std::vector<InputS
         O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
         O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "run", "Consumed timeframes (domain info updated) to be set to %zu.", oldestPossingTimeslice);
         stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
-        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_NUMBER_DONE, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
         stats.processCommandQueue();
       };
       callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
@@ -257,7 +258,8 @@ DataProcessorSpec CommonDataProcessors::getScheduledDummySink(std::vector<InputS
         auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
         O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "run", "Consumed timeframes (processing) to be set to %zu.", oldestPossingTimeslice);
         stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
-        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.updateStats({(int)ProcessingStatsId::TIMESLICE_NUMBER_DONE, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
+        stats.processCommandQueue();
       });
     })},
     .labels = {{"resilient"}}};
@@ -278,6 +280,38 @@ AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)
     original(pcx);
     O2_SIGNPOST_EVENT_EMIT_DETAIL(rate_limiting, sid, "rate limiting callback",
                                   "Rate limited callback done.");
+  });
+}
+
+// The wrapped algorithm consumes 1 timeslice every time is invoked
+AlgorithmSpec CommonDataProcessors::wrapWithTimesliceConsumption(AlgorithmSpec spec)
+{
+  return PluginManager::wrapAlgorithm(spec, [](AlgorithmSpec::ProcessCallback& original, ProcessingContext& pcx) -> void {
+    original(pcx);
+
+    auto disposeResources = [](int taskId,
+                               std::array<ComputingQuotaOffer, 32>& offers,
+                               ComputingQuotaStats& stats,
+                               std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> accountDisposed) {
+      ComputingQuotaOffer disposed;
+      disposed.sharedMemory = 0;
+      // When invoked, we have processed one timeslice by construction.
+      int64_t timeslicesProcessed = 1;
+      for (auto& offer : offers) {
+        if (offer.user != taskId) {
+          continue;
+        }
+        int64_t toRemove = std::min((int64_t)timeslicesProcessed, offer.timeslices);
+        offer.timeslices -= toRemove;
+        timeslicesProcessed -= toRemove;
+        disposed.timeslices += toRemove;
+        if (timeslicesProcessed <= 0) {
+          break;
+        }
+      }
+      return accountDisposed(disposed, stats);
+    };
+    pcx.services().get<DeviceState>().offerConsumers.emplace_back(disposeResources);
   });
 }
 

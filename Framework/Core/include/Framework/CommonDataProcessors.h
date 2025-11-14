@@ -41,6 +41,7 @@ struct CommonDataProcessors {
   /// and simply discards them. Rate limiting goes through the DPL driver
   static DataProcessorSpec getScheduledDummySink(std::vector<InputSpec> const& danglingInputs);
   static AlgorithmSpec wrapWithRateLimiting(AlgorithmSpec spec);
+  static AlgorithmSpec wrapWithTimesliceConsumption(AlgorithmSpec spec);
 };
 
 } // namespace o2::framework

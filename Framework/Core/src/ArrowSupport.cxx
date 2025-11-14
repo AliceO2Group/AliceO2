@@ -79,6 +79,10 @@ struct MetricIndices {
   size_t timeframesRead = -1;
   size_t timeframesConsumed = -1;
   size_t timeframesExpired = -1;
+  // Timeslices counting
+  size_t timeslicesStarted = -1;
+  size_t timeslicesExpired = -1;
+  size_t timeslicesDone = -1;
 };
 
 std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& allDevicesMetrics)
@@ -95,7 +99,11 @@ std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& 
       .shmOfferBytesConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "shm-offer-bytes-consumed"),
       .timeframesRead = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "df-sent"),
       .timeframesConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "consumed-timeframes"),
-      .timeframesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "expired-timeframes")});
+      .timeframesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "expired-timeframes"),
+      .timeslicesStarted = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "timeslices-started"),
+      .timeslicesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "timeslices-expired"),
+      .timeslicesDone = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "timeslices-done"),
+    });
   }
   return results;
 }
@@ -230,6 +238,19 @@ auto offerResources(ResourceState& resourceState,
   offeredResourceMetric(driverMetrics, resourceState.offered, timestamp);
 };
 
+auto processTimeslices = [](size_t index, DeviceMetricsInfo& deviceMetrics, bool& changed,
+                            int64_t& totalMetricValue, size_t& lastTimestamp) {
+  assert(index < deviceMetrics.metrics.size());
+  changed |= deviceMetrics.changed[index];
+  MetricInfo info = deviceMetrics.metrics[index];
+  assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+  auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+  auto value = (int64_t)data[(info.pos - 1) % data.size()];
+  totalMetricValue += value;
+  auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
+  lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
+};
+
 o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 {
   using o2::monitoring::Metric;
@@ -257,10 +278,21 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        int64_t totalTimeframesRead = 0;
                        int64_t totalTimeframesConsumed = 0;
                        int64_t totalTimeframesExpired = 0;
+                       int64_t totalTimeslicesStarted = 0;
+                       int64_t totalTimeslicesDone = 0;
+                       int64_t totalTimeslicesExpired = 0;
                        auto &driverMetrics = sm.driverMetricsInfo;
                        auto &allDeviceMetrics = sm.deviceMetricsInfos;
                        auto &specs = sm.deviceSpecs;
                        auto &infos = sm.deviceInfos;
+
+                       // Aggregated driver metrics for timeslice rate limiting
+                       auto createUint64DriverMetric = [&driverMetrics](char const*name) -> auto {
+                          return DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, name);
+                       };
+                       auto createIntDriverMetric = [&driverMetrics](char const*name) -> auto {
+                          return DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, name);
+                       };
 
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
@@ -280,6 +312,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto totalTimeframesReadMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-timeframes-read");
                        static auto totalTimeframesConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-timeframes-consumed");
                        static auto totalTimeframesInFlyMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-timeframes-in-fly");
+
+                       static auto totalTimeslicesStartedMetric = createUint64DriverMetric("total-timeslices-started");
+                       static auto totalTimeslicesExpiredMetric = createUint64DriverMetric("total-timeslices-expired");
+                       static auto totalTimeslicesDoneMetric = createUint64DriverMetric("total-timeslices-done");
+                       static auto totalTimeslicesInFlyMetric = createIntDriverMetric("total-timeslices-in-fly");
+
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "arrow-bytes-delta");
                        static auto changedCountMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "changed-metrics-count");
                        static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-reader-signals");
@@ -406,6 +444,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
                            lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                          }
+                         processTimeslices(indices.timeslicesStarted, deviceMetrics, changed, totalTimeslicesStarted, lastTimestamp);
+                         processTimeslices(indices.timeslicesExpired, deviceMetrics, changed, totalTimeslicesExpired, lastTimestamp);
+                         processTimeslices(indices.timeslicesDone, deviceMetrics, changed, totalTimeslicesDone, lastTimestamp);
                        }
                        static uint64_t unchangedCount = 0;
                        if (changed) {
@@ -418,6 +459,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          totalTimeframesReadMetric(driverMetrics, totalTimeframesRead, timestamp);
                          totalTimeframesConsumedMetric(driverMetrics, totalTimeframesConsumed, timestamp);
                          totalTimeframesInFlyMetric(driverMetrics, (int)(totalTimeframesRead - totalTimeframesConsumed), timestamp);
+                         totalTimeslicesStartedMetric(driverMetrics, totalTimeslicesStarted, timestamp);
+                         totalTimeslicesExpiredMetric(driverMetrics, totalTimeslicesExpired, timestamp);
+                         totalTimeslicesDoneMetric(driverMetrics, totalTimeslicesDone, timestamp);
+                         totalTimeslicesInFlyMetric(driverMetrics, (int)(totalTimeslicesStarted - totalTimeslicesDone), timestamp);
                          totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesExpired - totalBytesDestroyed, timestamp);
                        } else {
                          unchangedCount++;
@@ -458,8 +503,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        };
 
                        offerResources(timesliceResourceState, timesliceResourceSpec, timesliceResourceStats,
-                                      specs, infos, manager, totalTimeframesConsumed, totalTimeframesExpired,
-                                      totalTimeframesRead, totalTimeframesConsumed, timestamp, driverMetrics,
+                                      specs, infos, manager, totalTimeframesConsumed, totalTimeslicesExpired,
+                                      totalTimeslicesStarted, totalTimeslicesDone, timestamp, driverMetrics,
                                       availableTimeslicesMetric, unusedOfferedTimeslicesMetric, offeredTimeslicesMetric,
                                       (void*)&sm);
 

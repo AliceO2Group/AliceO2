@@ -246,7 +246,7 @@ void ComputingQuotaEvaluator::dispose(int taskId)
 void ComputingQuotaEvaluator::updateOffers(std::vector<ComputingQuotaOffer>& pending, uint64_t now)
 {
   O2_SIGNPOST_ID_GENERATE(oid, quota);
-  O2_SIGNPOST_START(quota, oid, "updateOffers", "Starting to processe received offers");
+  O2_SIGNPOST_START(quota, oid, "updateOffers", "Starting to process %zu received offers", pending.size());
   int lastValid = -1;
   for (size_t oi = 0; oi < mOffers.size(); oi++) {
     auto& storeOffer = mOffers[oi];
@@ -283,7 +283,9 @@ void ComputingQuotaEvaluator::updateOffers(std::vector<ComputingQuotaOffer>& pen
     lastValidOffer.runtime = std::max(lastValidOffer.runtime, stillPending.runtime);
   }
   pending.clear();
-  O2_SIGNPOST_END(quota, oid, "updateOffers", "Remaining offers cohalesced to %d", lastValid);
+  auto& updatedOffer = mOffers[lastValid];
+  O2_SIGNPOST_END(quota, oid, "updateOffers", "Remaining offers cohalesced to %d. New values: Cpu%d, Shared Memory %lli, Timeslices %lli",
+                  lastValid, updatedOffer.cpu, updatedOffer.sharedMemory, updatedOffer.timeslices);
 }
 
 void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> expirator)
@@ -304,8 +306,8 @@ void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOff
   for (auto& ref : mExpiredOffers) {
     auto& offer = mOffers[ref.index];
     O2_SIGNPOST_ID_FROM_POINTER(oid, quota, (void*)(int64_t)(ref.index * 8));
-    if (offer.sharedMemory < 0) {
-      O2_SIGNPOST_END(quota, oid, "handleExpired", "Offer %d does not have any more memory. Marking it as invalid.", ref.index);
+    if (offer.sharedMemory < 0 && offer.timeslices < 0) {
+      O2_SIGNPOST_END(quota, oid, "handleExpired", "Offer %d does not have any more resources. Marking it as invalid.", ref.index);
       offer.valid = false;
       offer.score = OfferScore::Unneeded;
       continue;
@@ -314,13 +316,14 @@ void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOff
     // api.
     O2_SIGNPOST_END(quota, oid, "handleExpired", "Offer %d expired. Giving back %llu MB, %d cores and %llu timeslices",
                     ref.index, offer.sharedMemory / 1000000, offer.cpu, offer.timeslices);
-    assert(offer.sharedMemory >= 0);
-    mStats.totalExpiredBytes += offer.sharedMemory;
+    mStats.totalExpiredBytes += std::max<int64_t>(offer.sharedMemory, 0);
+    mStats.totalExpiredTimeslices += std::max<int64_t>(offer.timeslices, 0);
     mStats.totalExpiredOffers++;
     expirator(offer, mStats);
     // driverClient.tell("expired shmem {}", offer.sharedMemory);
     // driverClient.tell("expired cpu {}", offer.cpu);
     offer.sharedMemory = -1;
+    offer.timeslices = -1;
     offer.valid = false;
     offer.score = OfferScore::Unneeded;
   }
