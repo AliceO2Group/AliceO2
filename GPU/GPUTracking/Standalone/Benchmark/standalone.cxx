@@ -453,7 +453,7 @@ int32_t SetupReconstruction()
   if (configStandalone.proc.doublePipeline) {
     recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);
   }
-  if (configStandalone.testSyncAsync) {
+  if (configStandalone.testSyncAsync) { // TODO: Add --async mode / flag
     // Set settings for asynchronous
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, true);

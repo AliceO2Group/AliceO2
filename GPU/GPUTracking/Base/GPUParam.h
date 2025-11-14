@@ -63,6 +63,7 @@ struct GPUParam_t {
   GPUTPCGMPolynomialField polynomialField; // Polynomial approx. of magnetic field for TPC GM
   const uint32_t* occupancyMap;            // Ptr to TPC occupancy map
   uint32_t occupancyTotal;                 // Total occupancy in the TPC (nCl / nHbf)
+  uint32_t occupancyMapSize;               // Size of occupancy map
 
   GPUParamSector SectorParam[GPUCA_NSECTORS];
 

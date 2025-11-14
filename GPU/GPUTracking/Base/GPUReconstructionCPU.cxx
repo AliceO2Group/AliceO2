@@ -31,6 +31,7 @@
 #include "GPULogging.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUReconstructionProcessingKernels.inc"
+#include "GPUTPCClusterOccupancyMap.h"
 
 #include <atomic>
 #include <ctime>
@@ -355,17 +356,25 @@ void GPUReconstructionCPU::ResetDeviceProcessorTypes()
   }
 }
 
-void GPUReconstructionCPU::UpdateParamOccupancyMap(const uint32_t* mapHost, const uint32_t* mapGPU, uint32_t occupancyTotal, int32_t stream)
+void GPUReconstructionCPU::UpdateParamOccupancyMap(const uint32_t* mapHost, const uint32_t* mapGPU, uint32_t occupancyTotal, uint32_t mapSize, int32_t stream)
 {
+  if (mapHost && mapSize != GPUTPCClusterOccupancyMapBin::getNBins(param())) {
+    throw std::runtime_error("Updating occupancy map with object of invalid size");
+  }
   param().occupancyMap = mapHost;
+  param().occupancyMapSize = mapSize;
   param().occupancyTotal = occupancyTotal;
   if (IsGPU()) {
-    if (!((size_t)&param().occupancyTotal - (size_t)&param().occupancyMap == sizeof(param().occupancyMap) && sizeof(param().occupancyMap) == sizeof(size_t) && sizeof(param().occupancyTotal) < sizeof(size_t))) {
+    if (!((size_t)&param().occupancyMapSize - (size_t)&param().occupancyMap == sizeof(param().occupancyMap) + sizeof(param().occupancyTotal) && sizeof(param().occupancyMap) == sizeof(void*) && sizeof(param().occupancyTotal) == sizeof(uint32_t))) { // TODO: Make static assert, and check alignment
       throw std::runtime_error("occupancy data not consecutive in GPUParam");
     }
+    struct tmpOccuapncyParam {
+      const void* ptr;
+      uint32_t total;
+      uint32_t size;
+    };
+    tmpOccuapncyParam tmp = {mapGPU, occupancyTotal, mapSize};
     const auto holdContext = GetThreadContext();
-    size_t tmp[2] = {(size_t)mapGPU, 0};
-    memcpy(&tmp[1], &occupancyTotal, sizeof(occupancyTotal));
-    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &tmp, sizeof(param().occupancyMap) + sizeof(param().occupancyTotal), stream);
+    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &tmp, sizeof(tmp), stream);
   }
 }
