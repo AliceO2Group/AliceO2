@@ -26,6 +26,7 @@
 #include "TPCBase/CRU.h"
 #include "TPCBase/RDHUtils.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
+#include "GPUTPCClusterOccupancyMap.h"
 #include <gsl/span>
 
 using namespace o2::gpu;
@@ -132,6 +133,7 @@ void GPUO2InterfaceUtils::paramUseExternalOccupancyMap(GPUParam* param, uint32_t
     param->occupancyTotal = *occupancymap;
     if (param->rec.tpc.occupancyMapTimeBins) {
       param->occupancyMap = occupancymap + 2;
+      param->occupancyMapSize = GPUTPCClusterOccupancyMapBin::getNBins(*param);
     }
   }
 }
