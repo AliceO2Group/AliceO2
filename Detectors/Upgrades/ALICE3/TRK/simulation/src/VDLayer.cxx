@@ -190,7 +190,7 @@ void VDCylindricalLayer::createLayer(TGeoVolume* motherVolume, TGeoMatrix* combi
     LOGP(error, "VDCylindricalLayer::createSensor() returned null");
     return;
   }
-  LOGP(info, "Inserting {} in {} ", sensorVol->GetName(), layerVol->GetName());
+  LOGP(debug, "Inserting {} in {} ", sensorVol->GetName(), layerVol->GetName());
   layerVol->AddNode(sensorVol, 1, nullptr);
 
   // Tiling: edge-to-edge if sensor shorter than layer; else single centered
@@ -244,7 +244,7 @@ void VDRectangularLayer::createLayer(TGeoVolume* motherVolume, TGeoMatrix* combi
     return;
   }
 
-  LOGP(info, "Inserting {} in {} ", sensorVol->GetName(), layerVol->GetName());
+  LOGP(debug, "Inserting {} in {} ", sensorVol->GetName(), layerVol->GetName());
   layerVol->AddNode(sensorVol, 1, nullptr);
 
   // Tiling along Z, edge - to - edge if needed

@@ -1121,7 +1121,7 @@ void GeometryTGeo::Print(Option_t*) const
     mlot = (i < 4) ? "ML" : "OT";
     LOGF(info, "Layer: %d, %s, %d staves, %d half staves per stave", i, mlot.c_str(), mNumberOfStaves[i], mNumberOfHalfStaves[i]);
   }
-  LOGF(info, "Number of modules per layer MLOT: ");
+  LOGF(info, "Number of modules per stave (half stave) in each ML(OT) layer: ");
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
     LOGF(info, "%d", mNumberOfModules[i]);
   }

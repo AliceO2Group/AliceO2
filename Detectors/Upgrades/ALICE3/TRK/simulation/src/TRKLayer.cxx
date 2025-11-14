@@ -126,12 +126,12 @@ TGeoVolume* TRKLayer::createChip(std::string type)
 
     TGeoCombiTrans* transSens = new TGeoCombiTrans();
     transSens->SetTranslation(0, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
-    LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
     chipVol->AddNode(sensVol, 1, transSens);
 
     TGeoCombiTrans* transMetal = new TGeoCombiTrans();
     transMetal->SetTranslation(0, mSensorThickness / 2, 0); // TO BE CHECKED !!!
-    LOGP(info, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
     chipVol->AddNode(metalVol, 1, transMetal);
 
     // deadVol = createDeadzone("cylinder");
@@ -145,17 +145,17 @@ TGeoVolume* TRKLayer::createChip(std::string type)
 
     TGeoCombiTrans* transSens = new TGeoCombiTrans();
     transSens->SetTranslation(-mDeadzoneWidth / 2, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
-    LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
     chipVol->AddNode(sensVol, 1, transSens);
 
     TGeoCombiTrans* transDead = new TGeoCombiTrans();
     transDead->SetTranslation((mChipWidth - mDeadzoneWidth) / 2, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
-    LOGP(info, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
     chipVol->AddNode(deadVol, 1, transDead);
 
     TGeoCombiTrans* transMetal = new TGeoCombiTrans();
     transMetal->SetTranslation(0, mSensorThickness / 2, 0); // TO BE CHECKED !!!
-    LOGP(info, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
     chipVol->AddNode(metalVol, 1, transMetal);
   } else {
     LOGP(fatal, "Sensor of type '{}' is not implemented", type);
@@ -179,7 +179,7 @@ TGeoVolume* TRKLayer::createModule(std::string type)
     moduleVol = new TGeoVolume(moduleName.c_str(), module, medAir);
 
     TGeoVolume* chipVol = createChip("cylinder");
-    LOGP(info, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
     moduleVol->AddNode(chipVol, 1, nullptr);
   } else if (type == "flat") {
     double moduleWidth = constants::moduleMLOT::width;
@@ -201,7 +201,7 @@ TGeoVolume* TRKLayer::createModule(std::string type)
       TGeoRotation* rot = new TGeoRotation();
       rot->RotateY(180);
       transLeft->SetRotation(rot);
-      LOGP(info, "Inserting {} in {} ", chipVolLeft->GetName(), moduleVol->GetName());
+      LOGP(debug, "Inserting {} in {} ", chipVolLeft->GetName(), moduleVol->GetName());
       moduleVol->AddNode(chipVolLeft, iChip * 2, transLeft);
 
       double xRight = +moduleWidth / 2 - constants::moduleMLOT::gaps::outerEdgeLongSide - constants::moduleMLOT::chip::width / 2;
@@ -209,7 +209,7 @@ TGeoVolume* TRKLayer::createModule(std::string type)
 
       TGeoCombiTrans* transRight = new TGeoCombiTrans();
       transRight->SetTranslation(xRight, 0, zRight); // TO BE CHECKED !!!
-      LOGP(info, "Inserting {} in {} ", chipVolRight->GetName(), moduleVol->GetName());
+      LOGP(debug, "Inserting {} in {} ", chipVolRight->GetName(), moduleVol->GetName());
       moduleVol->AddNode(chipVolRight, iChip * 2 + 1, transRight);
     }
   } else {
@@ -234,7 +234,7 @@ TGeoVolume* TRKLayer::createHalfStave(std::string type)
     halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medAir);
 
     TGeoVolume* moduleVol = createModule("cylinder");
-    LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
     halfStaveVol->AddNode(moduleVol, 1, nullptr);
   } else if (type == "flat") {
     double moduleLength = constants::moduleMLOT::length;
@@ -253,7 +253,7 @@ TGeoVolume* TRKLayer::createHalfStave(std::string type)
       TGeoCombiTrans* trans = new TGeoCombiTrans();
       trans->SetTranslation(0, 0, zPos); // TO BE CHECKED !!!
 
-      LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
+      LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
       halfStaveVol->AddNode(moduleVol, iModule, trans);
     }
   }
@@ -273,7 +273,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
     TGeoVolume* moduleVol = createModule("cylinder");
-    LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
     staveVol->AddNode(moduleVol, 1, nullptr);
   } else if (type == "flat") {
     double moduleLength = constants::moduleMLOT::length;
@@ -292,7 +292,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
       TGeoCombiTrans* trans = new TGeoCombiTrans();
       trans->SetTranslation(0, 0, zPos); // TO BE CHECKED !!!
 
-      LOGP(info, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
+      LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
       staveVol->AddNode(moduleVol, iModule, trans);
     }
   } else if (type == "staggered") {
@@ -312,12 +312,12 @@ TGeoVolume* TRKLayer::createStave(std::string type)
 
     TGeoCombiTrans* transLeft = new TGeoCombiTrans();
     transLeft->SetTranslation(-halfstaveWidth / 2 + 0.05, 0, 0); // TO BE CHECKED !!! 1mm overlap between the modules
-    LOGP(info, "Inserting {} in {} ", halfStaveVolLeft->GetName(), staveVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", halfStaveVolLeft->GetName(), staveVol->GetName());
     staveVol->AddNode(halfStaveVolLeft, 0, transLeft);
 
     TGeoCombiTrans* transRight = new TGeoCombiTrans();
     transRight->SetTranslation(halfstaveWidth / 2 - 0.05, 0.2, 0); // TO BE CHECKED !!! 1mm overlap between the modules
-    LOGP(info, "Inserting {} in {} ", halfStaveVolRight->GetName(), staveVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", halfStaveVolRight->GetName(), staveVol->GetName());
     staveVol->AddNode(halfStaveVolRight, 1, transRight);
   } else {
     LOGP(fatal, "Chip of type '{}' is not implemented", type);
@@ -345,7 +345,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     TGeoVolume* staveVol = createStave("cylinder");
-    LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
+    LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, 1, nullptr);
   } else if (mLayout == eLayout::kTurboStaves) {
     double layerLength = constants::moduleMLOT::length * mNumberOfModules;
@@ -381,7 +381,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       trans->SetRotation(rot);
       trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
 
-      LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
+      LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
       layerVol->AddNode(staveVol, iStave, trans);
     }
   } else if (mLayout == kStaggered) {
@@ -414,7 +414,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       trans->SetRotation(rot);
       trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
 
-      LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
+      LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
       layerVol->AddNode(staveVol, iStave, trans);
     }
   } else {
@@ -422,7 +422,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   }
   layerVol->SetLineColor(kYellow);
 
-  LOGP(info, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
+  LOGP(debug, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
   motherVolume->AddNode(layerVol, 1, nullptr);
 }
 // ClassImp(TRKLayer);

@@ -476,9 +476,9 @@ bool Detector::ProcessHits(FairVolume* vol)
 
     unsigned short chipID = mGeometryTGeo->getChipIndex(subDetID, volume, layer, stave, halfstave, mod, chip);
 
-    Print(vol, volume, subDetID, layer, stave, halfstave, mod, chip, chipID);
+    // Print(vol, volume, subDetID, layer, stave, halfstave, mod, chip, chipID);
 
-    mGeometryTGeo->Print();
+    // mGeometryTGeo->Print();
 
     Hit* p = addHit(stack->GetCurrentTrackNumber(), chipID, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
