@@ -132,6 +132,7 @@ void GPUO2InterfaceUtils::paramUseExternalOccupancyMap(GPUParam* param, uint32_t
     param->occupancyTotal = *occupancymap;
     if (param->rec.tpc.occupancyMapTimeBins) {
       param->occupancyMap = occupancymap + 2;
+      param->occupancyMapSize = GPUTPCClusterOccupancyMapBin::getNBins(*param);
     }
   }
 }

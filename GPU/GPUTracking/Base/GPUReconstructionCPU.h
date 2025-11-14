@@ -48,7 +48,7 @@ class GPUReconstructionCPU : public GPUReconstructionProcessing::KernelInterface
 
   int32_t RunChains() override;
 
-  void UpdateParamOccupancyMap(const uint32_t* mapHost, const uint32_t* mapGPU, uint32_t occupancyTotal, int32_t stream = -1);
+  void UpdateParamOccupancyMap(const uint32_t* mapHost, const uint32_t* mapGPU, uint32_t occupancyTotal, uint32_t mapSize, int32_t stream = -1);
 
  protected:
   struct GPUProcessorProcessors : public GPUProcessor {
