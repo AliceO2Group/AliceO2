@@ -468,6 +468,9 @@ class EncodedBlocks
   /// total allocated size in bytes
   size_t size() const { return mRegistry.size; }
 
+  /// used part of total allocated size in bytes (output size)
+  size_t outputsize() const { return mRegistry.offsFreeStart; }
+
   /// size remaining for additional data
   size_t getFreeSize() const { return mRegistry.getFreeSize(); }
 
@@ -899,7 +902,7 @@ void EncodedBlocks<H, N, W>::print(const std::string& prefix, int verbosity) con
       ndata += mBlocks[i].getNData();
       nlit += mBlocks[i].getNLiterals();
     }
-    LOG(info) << prefix << N << " blocks, input size: " << inpSize << ", output size: " << size()
+    LOG(info) << prefix << N << " blocks, input size: " << inpSize << ", output size: " << outputsize()
               << " NDictWords: " << ndict << " NDataWords: " << ndata << " NLiteralWords: " << nlit;
   }
 }
