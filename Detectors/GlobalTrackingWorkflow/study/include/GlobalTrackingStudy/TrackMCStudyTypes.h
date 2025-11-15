@@ -19,6 +19,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "SimulationDataFormat/TrackReference.h"
 #include <array>
 #include <vector>
 
@@ -287,6 +288,16 @@ struct ClResTPC {
   }
 
   ClassDefNV(ClResTPC, 2);
+};
+
+struct ITSHitInfo {
+  o2::BaseCluster<float> clus{};
+  o2::TrackReference tref{};
+  float trefXT = 0; // track ref tracking frame coordinates
+  float trefYT = 0;
+  float chipX = 0;
+  float chipAlpha = 0;
+  ClassDefNV(ITSHitInfo, 1);
 };
 
 struct RecPV {

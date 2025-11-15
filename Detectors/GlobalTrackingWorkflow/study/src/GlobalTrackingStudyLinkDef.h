@@ -40,4 +40,7 @@
 #pragma link C++ class std::vector < o2::trackstudy::TrackPairInfo> + ;
 #pragma ling C++ class o2::tpc::TPCClusSelector + ;
 
+#pragma link C++ class o2::trackstudy::ITSHitInfo + ;
+#pragma link C++ class std::vector < o2::trackstudy::ITSHitInfo> + ;
+
 #endif

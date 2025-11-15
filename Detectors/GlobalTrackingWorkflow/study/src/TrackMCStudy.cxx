@@ -19,11 +19,14 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "ITStracking/IOUtils.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
+#include "SimulationDataFormat/TrackReference.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsFT0/RecPoints.h"
@@ -99,6 +102,7 @@ class TrackMCStudy : public Task
 
  private:
   void processTPCTrackRefs();
+  void processITSTracks(const o2::globaltracking::RecoContainer& recoData);
   void loadTPCOccMap(const o2::globaltracking::RecoContainer& recoData);
   void fillMCClusterInfo(const o2::globaltracking::RecoContainer& recoData);
   void prepareITSData(const o2::globaltracking::RecoContainer& recoData);
@@ -122,6 +126,9 @@ class TrackMCStudy : public Task
   std::vector<long> mIntBC;      ///< interaction global BC wrt TF start
   std::vector<float> mTPCOcc;    ///< TPC occupancy for this interaction time
   std::vector<int> mITSOcc;      //< N ITS clusters in the ROF containing collision
+  std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
+
   bool mCheckSV = false;         //< check SV binding (apart from prongs availability)
   bool mRecProcStage = false;    //< flag that the MC particle was added only at the stage of reco tracks processing
   int mNTPCOccBinLength = 0;     ///< TPC occ. histo bin length in TBs
@@ -221,7 +228,7 @@ void TrackMCStudy::updateTimeDependentParams(ProcessingContext& pc)
 
     auto& elParam = o2::tpc::ParameterElectronics::Instance();
     mTPCTBinMUS = elParam.ZbinWidth;
-
+    o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
     if (mCheckSV) {
       const auto& svparam = o2::vertexing::SVertexerParams::Instance();
       mFitterV0.setBz(o2::base::Propagator::Instance()->getNominalBz());
@@ -751,6 +758,10 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
     });
     (*mDBGOut) << "mcVtxTree" << "mcVtx=" << mcVtx << "\n";
   }
+
+  if (params.storeITSInfo) {
+    processITSTracks(recoData);
+  }
 }
 
 void TrackMCStudy::processTPCTrackRefs()
@@ -1023,6 +1034,11 @@ void TrackMCStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     mITSROFrameLengthMUS = par.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
+    return;
+  }
 }
 
 //_____________________________________________________
@@ -1273,6 +1289,84 @@ void TrackMCStudy::loadTPCOccMap(const o2::globaltracking::RecoContainer& recoDa
   } else {
     mTBinClOcc.resize(1);
     mTBinClOccHist.resize(1);
+  }
+}
+
+void TrackMCStudy::processITSTracks(const o2::globaltracking::RecoContainer& recoData)
+{
+  if (!mITSDict) {
+    LOGP(warn, "ITS data is not loaded");
+    return;
+  }
+  const auto itsTracks = recoData.getITSTracks();
+  const auto itsLbls = recoData.getITSTracksMCLabels();
+  const auto itsClRefs = recoData.getITSTracksClusterRefs();
+  const auto clusITS = recoData.getITSClusters();
+  const auto patterns = recoData.getITSClustersPatterns();
+  auto pattIt = patterns.begin();
+  mITSClustersArray.clear();
+  mITSClustersArray.reserve(clusITS.size());
+
+  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+  auto geom = o2::its::GeometryTGeo::Instance();
+  int ntr = itsLbls.size();
+  LOGP(info, "We have {} ITS clusters and the number of patterns is {}, ITSdict:{} NMCLabels: {}", clusITS.size(), patterns.size(), mITSDict != nullptr, itsLbls.size());
+
+  std::vector<int> evord(ntr);
+  std::iota(evord.begin(), evord.end(), 0);
+  std::sort(evord.begin(), evord.end(), [&](int i, int j) { return itsLbls[i] < itsLbls[j]; });
+  std::vector<ITSHitInfo> outHitInfo;
+  std::array<int, 7> cl2arr{};
+
+  for (int itr0 = 0; itr0 < ntr; itr0++) {
+    auto itr = evord[itr0];
+    const auto& itsTr = itsTracks[itr];
+    const auto& itsLb = itsLbls[itr];
+    //    LOGP(info,"proc {} {} {}",itr0, itr, itsLb.asString());
+    int nCl = itsTr.getNClusters();
+    if (itsLb.isFake() || nCl != 7) {
+      continue;
+    }
+    auto entrySel = mSelMCTracks.find(itsLb);
+    if (entrySel == mSelMCTracks.end()) {
+      continue;
+    }
+    outHitInfo.clear();
+    cl2arr.fill(-1);
+    auto clEntry = itsTr.getFirstClusterEntry();
+    for (int iCl = nCl; iCl--;) { // clusters are stored from outer to inner layers
+      const auto& cls = mITSClustersArray[itsClRefs[clEntry + iCl]];
+      int hpos = outHitInfo.size();
+      auto& hinf = outHitInfo.emplace_back();
+      hinf.clus = cls;
+      hinf.clus.setCount(geom->getLayer(cls.getSensorID()));
+      geom->getSensorXAlphaRefPlane(cls.getSensorID(), hinf.chipX, hinf.chipAlpha);
+      cl2arr[hinf.clus.getCount()] = hpos; // to facilitate finding the cluster of the layer
+    }
+    auto trspan = mcReader.getTrackRefs(itsLb.getSourceID(), itsLb.getEventID(), itsLb.getTrackID());
+    int ilrc = -1, nrefAcc = 0;
+    for (const auto& trf : trspan) {
+      if (trf.getDetectorId() != 0) { // process ITS only
+        continue;
+      }
+      int lrt = trf.getUserId(); // layer of the reference, but there might be multiple hits on the same layer
+      int clEnt = cl2arr[lrt];
+      if (clEnt < 0) {
+        continue;
+      }
+      auto& hinf = outHitInfo[clEnt];
+      float traX, traY;
+      o2::math_utils::rotateZInv(trf.X(), trf.Y(), traX, traY, std::sin(hinf.chipAlpha), std::cos(hinf.chipAlpha)); // tracking coordinates of the reference
+      if (hinf.trefXT < 1 || std::abs(traX - hinf.chipX) < std::abs(hinf.trefXT - hinf.chipX)) {
+        if (hinf.trefXT < 1) {
+          nrefAcc++;
+        }
+        hinf.tref = trf;
+        hinf.trefXT = traX;
+        hinf.trefYT = traY;
+      }
+    }
+    (*mDBGOut) << "itsTree" << "hits=" << outHitInfo << "trIn=" << ((o2::track::TrackParCov&)itsTr) << "trOut=" << itsTr.getParamOut() << "mcTr=" << entrySel->second.mcTrackInfo.track << "nTrefs=" << nrefAcc << "\n";
   }
 }
 
