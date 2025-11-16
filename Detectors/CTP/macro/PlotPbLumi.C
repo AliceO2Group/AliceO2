@@ -30,6 +30,11 @@
 #include <iostream>
 #endif
 using namespace o2::ctp;
+//
+// sum = 0: TCE and TSC separatelly otherwise TCE and (TCE+TSC)
+// qc = 0: takes scalers from CCDB (available only for finished runs) otherwise from QCCDB (available for active runs)
+// t0-tlast: window in seconds counted from beginning of run
+//
 void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 = 0., Double_t tlast = 0.)
 { //
   // PLots in one canvas
@@ -221,7 +226,6 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
   gr2->SetMarkerStyle(21);
   gr3->SetMarkerStyle(23);
   gr4->SetMarkerStyle(23);
-  gr11->SetTitle("R=ZNC/28 rate [Hz] (red=PilUp Corrected); time[sec]; R");
   if (sum) {
     gr2->SetTitle("R=(TSC+TCE)*TVTX*B*28/ZNC; time[sec]; R");
   } else {
@@ -235,14 +239,17 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
   gr4->SetTitle("R=(VCH)*TVTX*B*28/ZNC; time[sec]; R");
   // gr4->GetHistogram()->SetMaximum(0.6);
   // gr4->GetHistogram()->SetMinimum(0.4);
+  TMultiGraph* mg1 = new TMultiGraph();
+  mg1->SetTitle("R=ZNC/28 rate [Hz] (red=PilUp Corrected); time[sec]; R");
+  mg1->Add(gr1);
+  mg1->Add(gr11);
+  mg1->Add(gr12);
   TCanvas* c1 = new TCanvas("c1", srun.c_str(), 200, 10, 800, 500);
   std::string title = "RUN " + std::to_string(runNumber);
   c1->SetTitle(title.c_str());
   c1->Divide(2, 2);
   c1->cd(1);
-  gr11->Draw("AP");
-  gr1->Draw("P");
-  gr12->Draw("P");
+  mg1->Draw("AP");
   c1->cd(2);
   gr2->Draw("AP");
   c1->cd(3);
