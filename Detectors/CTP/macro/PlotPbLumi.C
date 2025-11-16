@@ -141,13 +141,13 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
   //
   int i0 = 0;
   int ilast = 0;
-  if(t0 != 0. || tlast != 0.) {
-    for(int i = 0; i < n; i++){
+  if (t0 != 0. || tlast != 0.) {
+    for (int i = 0; i < n; i++) {
       double_t ttime = recs[i].epochTime - time0;
-      if(!i0 && t0 < ttime) {
+      if (!i0 && t0 < ttime) {
         i0 = i;
       }
-      if(!ilast && tlast < ttime) {
+      if (!ilast && tlast < ttime) {
         ilast = i;
       }
     }
@@ -183,7 +183,7 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
     znc[iv] = znci / 28. / tt;
     // znc class
     znci = recs[i + 1].scalers[zncclsi].l1Before - recs[i].scalers[zncclsi].l1Before;
-    zncclass[iv] = znci / 28. /tt;
+    zncclass[iv] = znci / 28. / tt;
     //std::cout << znc[i]/zncclass[i] << std::endl;
     //
     double_t had = 0;
@@ -203,7 +203,7 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
 
     // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
     vchtoznc[iv] = (double_t)(had) / zncpp[iv] / tt;
-    //std::cout << "muzdc:" << mu << " mu tce:" << mutce << " muvch:" << muvch << std::endl; 
+    //std::cout << "muzdc:" << mu << " mu tce:" << mutce << " muvch:" << muvch << std::endl;
   }
   //
   gStyle->SetMarkerSize(0.5);
