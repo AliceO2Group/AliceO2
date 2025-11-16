@@ -16,11 +16,14 @@
 #define GPUMEMORYRESOURCE_H
 
 #include "GPUCommonDef.h"
-#include "GPUProcessor.h"
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cstddef>
+#endif
 
 namespace o2::gpu
 {
 
+class GPUProcessor;
 struct GPUMemoryReuse {
   enum Type : int32_t {
     NONE = 0,
@@ -80,13 +83,10 @@ class GPUMemoryResource
   }
   GPUMemoryResource(const GPUMemoryResource&) = default;
 
-  void* SetPointers(void* ptr)
-  {
-    return (mProcessor->*mSetPointers)(ptr);
-  }
-  void* SetDevicePointers(void* ptr) { return (mProcessor->mLinkedProcessor->*mSetPointers)(ptr); }
-  void* Ptr() { return mPtr; }
-  void* PtrDevice() { return mPtrDevice; }
+  void* SetPointers(void* ptr) const;
+  void* SetDevicePointers(void* ptr) const;
+  void* Ptr() const { return mPtr; }
+  void* PtrDevice() const { return mPtrDevice; }
   size_t Size() const { return mSize; }
   const char* Name() const { return mName; }
   MemoryType Type() const { return mType; }
