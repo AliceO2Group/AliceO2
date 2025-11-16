@@ -48,7 +48,7 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
   std::cout << "Timestamp:" << timeStamp << std::endl;
   // Filling
   auto lhcifdata = ccdbMgr.getForRun<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", runNumber);
-  //auto lhcifdata = ccdbMgr.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
+  // auto lhcifdata = ccdbMgr.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
   if (!lhcifdata) {
     throw std::runtime_error("No GRPLHCIFData for run " + std::to_string(runNumber));
   }
@@ -61,7 +61,7 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
   std::map<string, string> metadata;
   metadata["runNumber"] = srun;
   CTPRunScalers* scl = nullptr;
-  if(qc) {
+  if (qc) {
     ccdbMgr.setURL("http://ali-qcdb-gpn.cern.ch:8083");
     scl = ccdbMgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalersQC, timeStamp, metadata);
   } else {
@@ -156,17 +156,17 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
   }
   n = ilast - i0;
   std::cout << "i0:" << i0 << " ilast:" << ilast << std::endl;
-  //Double_t x[n], znc[n], zncpp[n];
+  // Double_t x[n], znc[n], zncpp[n];
   std::vector<Double_t> xvec(n), zncvec(n), zncppvec(n), zncclassvec(n);
-  Double_t *x = xvec.data();
-  Double_t *znc = zncvec.data();
-  Double_t *zncpp = zncppvec.data();
-  Double_t *zncclass = zncclassvec.data();
-  //Double_t tcetsctoznc[n], tcetoznc[n], vchtoznc[n];
+  Double_t* x = xvec.data();
+  Double_t* znc = zncvec.data();
+  Double_t* zncpp = zncppvec.data();
+  Double_t* zncclass = zncclassvec.data();
+  // Double_t tcetsctoznc[n], tcetoznc[n], vchtoznc[n];
   std::vector<Double_t> tcetsctozncvec(n), tcetozncvec(n), vchtozncvec(n);
-  Double_t *tcetsctoznc = tcetsctozncvec.data();
-  Double_t *tcetoznc = tcetozncvec.data();
-  Double_t *vchtoznc = vchtozncvec.data();
+  Double_t* tcetsctoznc = tcetsctozncvec.data();
+  Double_t* tcetoznc = tcetozncvec.data();
+  Double_t* vchtoznc = vchtozncvec.data();
   for (int i = i0; i < ilast; i++) {
     int iv = i - i0;
     x[iv] = (double_t)(recs[i + 1].intRecord.orbit + recs[i].intRecord.orbit) / 2. - orbit0;
@@ -184,10 +184,10 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
     // znc class
     znci = recs[i + 1].scalers[zncclsi].l1Before - recs[i].scalers[zncclsi].l1Before;
     zncclass[iv] = znci / 28. / tt;
-    //std::cout << znc[i]/zncclass[i] << std::endl;
+    // std::cout << znc[i]/zncclass[i] << std::endl;
     //
     double_t had = 0;
-    if(sum) {
+    if (sum) {
       had += recs[i + 1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
     }
     double_t mutce = -TMath::Log(1. - had / tt / nbc / frev);
@@ -203,13 +203,13 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
 
     // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
     vchtoznc[iv] = (double_t)(had) / zncpp[iv] / tt;
-    //std::cout << "muzdc:" << mu << " mu tce:" << mutce << " muvch:" << muvch << std::endl;
+    // std::cout << "muzdc:" << mu << " mu tce:" << mutce << " muvch:" << muvch << std::endl;
   }
   //
   gStyle->SetMarkerSize(0.5);
   TGraph* gr1 = new TGraph(n, x, znc);
-  TGraph* gr11 = new TGraph(n, x, zncpp);   // PileuP corrected
-  TGraph* gr12 = new TGraph(n, x, zncclass);   // NOT PileuP corrected
+  TGraph* gr11 = new TGraph(n, x, zncpp);    // PileuP corrected
+  TGraph* gr12 = new TGraph(n, x, zncclass); // NOT PileuP corrected
   TGraph* gr2 = new TGraph(n, x, tcetsctoznc);
   TGraph* gr3 = new TGraph(n, x, tcetoznc);
   TGraph* gr4 = new TGraph(n, x, vchtoznc);
@@ -222,7 +222,7 @@ void PlotPbLumi(int runNumber = 567905, bool sum = 0, bool qc = 0, Double_t t0 =
   gr3->SetMarkerStyle(23);
   gr4->SetMarkerStyle(23);
   gr11->SetTitle("R=ZNC/28 rate [Hz] (red=PilUp Corrected); time[sec]; R");
-  if(sum) {
+  if (sum) {
     gr2->SetTitle("R=(TSC+TCE)*TVTX*B*28/ZNC; time[sec]; R");
   } else {
     gr2->SetTitle("R=(TSC)*TVTX*B*28/ZNC; time[sec]; R");
