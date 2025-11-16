@@ -19,7 +19,7 @@
 // Create plain-C struct for GPU code.
 // Create static constexpr with default values for GPU run time compilation
 
-#include "GPUDefConstantsAndSettings.h"
+#include "GPUCommonDef.h"
 #ifndef GPUSETTINGS_H
 #error Please include GPUSettings.h!
 #endif

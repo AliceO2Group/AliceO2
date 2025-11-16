@@ -22,12 +22,8 @@
 #ifndef GPUO2INTERFACECONFIGURABLEPARAM_H
 #define GPUO2INTERFACECONFIGURABLEPARAM_H
 
-// Some defines denoting that we are compiling for O2
-#ifndef GPUCA_TPC_GEOMETRY_O2
-#define GPUCA_TPC_GEOMETRY_O2
-#endif
-#ifndef GPUCA_O2_INTERFACE
-#define GPUCA_O2_INTERFACE
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_O2_LIB)
+#include "GPUO2ExternalUser.h"
 #endif
 
 #include "CommonUtils/ConfigurableParam.h"

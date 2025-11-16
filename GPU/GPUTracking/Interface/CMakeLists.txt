@@ -23,7 +23,7 @@ if(OPENGL_FOUND
 endif()
 
 string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS}")
-set(HDRS ${HDRS_TMP})
+set(HDRS ${HDRS_TMP} GPUO2ExternalUser.h)
 
 o2_add_library(${MODULE}
                SOURCES ${SRCS}

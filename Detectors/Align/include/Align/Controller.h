@@ -54,7 +54,7 @@
 #include <TTree.h>
 #include <TFile.h>
 #include "Align/Mille.h"
-// #include "GPUO2Interface.h"
+// #include "GPUO2ExternalUser.h"
 // #include "DataFormatsTPC/WorkflowHelper.h"
 
 namespace o2

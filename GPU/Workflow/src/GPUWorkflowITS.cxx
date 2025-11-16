@@ -13,6 +13,7 @@
 /// @author David Rohr, Matteo Concas
 
 #include "GPUWorkflow/GPUWorkflowSpec.h"
+#include "GPUO2Interface.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
