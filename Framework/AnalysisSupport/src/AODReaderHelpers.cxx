@@ -57,6 +57,38 @@ auto make_build(D metadata, InputSpec const& input, ProcessingContext& pc)
                                                                                                         extractOriginals<sources.size(), sources>(pc),
                                                                                                         index_pack_t{});
 }
+
+struct Builder {
+
+};
+
+struct Buildable {
+  std::string binding;
+
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType version;
+
+  Buildable(InputSpec const& spec)
+    : binding{spec.binding}
+  {
+    auto&& [origin_, description_, version_] = DataSpecUtils::asConcreteDataMatcher(spec);
+    origin = origin_;
+    description = description_;
+    version = version_;
+
+    // The following components are needed to build an index table
+    // 1. the labels of the source tables to extract from inputRecord -> extracted from input metadata
+    // 2. the mapping, in the order of the definition of columns, of the
+    //    position in each source table of an index column pointing to the Key
+    //    and the types of index to write (self, single-valued, slice or array)
+    // the mapping has to be created at the point where the type information is available and
+    // put into the input spec metadata as a vector of (type, label, pos)
+
+  }
+
+};
+
 } // namespace
 
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(ConfigContext const& ctx)

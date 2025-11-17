@@ -54,6 +54,19 @@ constexpr auto tableRef2Schema()
     {"\"\""}};
 }
 
+enum struct IndexKind : unsigned {
+  IdxSelf = 0,
+  IdxSingle = 1,
+  IdxSlice = 2,
+  IdxArray = 3
+};
+
+struct IndexRecord {
+  std::string label;
+  IndexKind kind;
+  size_t pos;
+};
+
 namespace
 {
 template <soa::with_sources T>
@@ -150,6 +163,20 @@ constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec
 template <typename T>
   requires(!soa::with_expression_pack<T>)
 constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  return {};
+}
+
+template <soa::with_index_pack T>
+constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+
+  return {};
+}
+
+template <typename T>
+  requires(!soa::with_index_pack<T>)
+constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }

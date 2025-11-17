@@ -1307,6 +1307,11 @@ concept with_expression_pack = requires {
   typename T::expression_pack_t{};
 };
 
+template <typename T>
+concept with_index_pack = requires {
+  typename T::index_pack_t{};
+};
+
 template <size_t N1, std::array<TableRef, N1> os1, size_t N2, std::array<TableRef, N2> os2>
 consteval bool is_compatible()
 {

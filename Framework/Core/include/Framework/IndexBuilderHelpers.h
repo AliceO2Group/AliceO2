@@ -11,13 +11,11 @@
 
 #ifndef O2_FRAMEWORK_INDEXBUILDERHELPERS_H_
 #define O2_FRAMEWORK_INDEXBUILDERHELPERS_H_
-#include "arrow/array.h"
 #include <arrow/chunked_array.h>
 #include <arrow/builder.h>
 #include <arrow/memory_pool.h>
 #include <string>
 #include <memory>
-#include <type_traits>
 
 namespace o2::framework
 {
