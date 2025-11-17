@@ -26,7 +26,6 @@
 #include "TPCBase/CRU.h"
 #include "TPCBase/RDHUtils.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "GPUTPCClusterOccupancyMap.h" 
 #include <gsl/span>
 
 using namespace o2::gpu;
