@@ -34,7 +34,6 @@
 #include <concepts>
 #include <cstring>
 #include <gsl/span> // IWYU pragma: export
-#include <limits>
 
 namespace o2::framework
 {
@@ -53,6 +52,12 @@ void dereferenceWithWrongType(const char* getter, const char* target);
 void missingFilterDeclaration(int hash, int ai);
 void notBoundTable(const char* tableName);
 void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const char* what);
+
+template <typename... C>
+auto createFieldsFromColumns(framework::pack<C...>)
+{
+  return std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...};
+}
 } // namespace o2::soa
 
 namespace o2::soa
@@ -248,6 +253,11 @@ struct TableMetadata {
       return -1;
     }
   }
+
+  static std::shared_ptr<arrow::Schema> getSchema()
+  {
+    return std::make_shared<arrow::Schema>([]<typename... C>(framework::pack<C...>&& p){ return o2::soa::createFieldsFromColumns(p); }(columns{}));
+  }
 };
 
 template <typename D>
@@ -405,12 +415,6 @@ struct Binding {
     return nullptr;
   }
 };
-
-template <typename... C>
-auto createFieldsFromColumns(framework::pack<C...>)
-{
-  return std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...};
-}
 
 using SelectionVector = std::vector<int64_t>;
 
