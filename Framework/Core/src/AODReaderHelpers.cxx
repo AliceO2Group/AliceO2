@@ -143,13 +143,14 @@ struct Maker {
   std::vector<std::string> labels;
   std::vector<std::shared_ptr<gandiva::Expression>> expressions;
   std::shared_ptr<gandiva::Projector> projector = nullptr;
-  std::shared_ptr<arrow::Schema> schema;
+  std::shared_ptr<arrow::Schema> schema = nullptr;
+  std::shared_ptr<arrow::Schema> inputSchema = nullptr;
 
   header::DataOrigin origin;
   header::DataDescription description;
   header::DataHeader::SubSpecificationType version;
 
-  std::shared_ptr<arrow::Table> make(ProcessingContext& pc)
+  std::shared_ptr<arrow::Table> make(ProcessingContext& pc) const
   {
     std::vector<std::shared_ptr<arrow::Table>> originals;
     for (auto const& label : labels) {
@@ -158,15 +159,6 @@ struct Maker {
     auto fullTable = soa::ArrowHelpers::joinTables(std::move(originals), std::span{labels.begin(), labels.size()});
     if (fullTable->num_rows() == 0) {
       return arrow::Table::MakeEmpty(schema).ValueOrDie();
-    }
-    if (projector == nullptr) {
-      auto s = gandiva::Projector::Make(
-        fullTable->schema(),
-        expressions,
-        &projector);
-      if (!s.ok()) {
-        throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
-      }
     }
 
     return spawnerHelper(fullTable, schema, binding.c_str(), schema->num_fields(), projector);
@@ -201,23 +193,18 @@ struct Spawnable {
     iws.str(loc->defaultValue.get<std::string>());
     outputSchema = ArrowJSONHelpers::read(iws);
 
+    std::vector<std::shared_ptr<arrow::Schema>> schemas;
     for (auto& i : spec.metadata) {
       if (i.name.starts_with("input:")) {
         labels.emplace_back(i.name.substr(6));
+        iws.clear();
+        iws.str(i.defaultValue.get<std::string>());
+        schemas.emplace_back(ArrowJSONHelpers::read(iws));
       }
     }
-
     std::vector<std::shared_ptr<arrow::Field>> fields;
-    for (auto& p : projectors) {
-      expressions::walk(p.node.get(),
-                        [&fields](expressions::Node* n) mutable {
-                          if (n->self.index() == 1) {
-                            auto& b = std::get<expressions::BindingNode>(n->self);
-                            if (std::find_if(fields.begin(), fields.end(), [&b](std::shared_ptr<arrow::Field> const& field) { return field->name() == b.name; }) == fields.end()) {
-                              fields.emplace_back(std::make_shared<arrow::Field>(b.name, expressions::concreteArrowType(b.type)));
-                            }
-                          }
-                        });
+    for (auto& s : schemas) {
+      std::copy(s->fields().begin(), s->fields().end(), std::back_inserter(fields));
     }
     inputSchema = std::make_shared<arrow::Schema>(fields);
 
@@ -233,20 +220,29 @@ struct Spawnable {
     }
   }
 
-  std::shared_ptr<gandiva::Projector> makeProjector()
+  std::shared_ptr<gandiva::Projector> makeProjector() const
   {
-    return expressions::createProjectorHelper(projectors.size(), projectors.data(), inputSchema, outputSchema->fields());
+    std::shared_ptr<gandiva::Projector> p = nullptr;
+    auto s = gandiva::Projector::Make(
+      inputSchema,
+      expressions,
+      &p);
+    if (!s.ok()) {
+      throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
+    }
+    return p;
   }
 
-  Maker createMaker()
+  Maker createMaker() const
   {
     o2::framework::addLabelToSchema(outputSchema, binding.c_str());
     return {
       binding,
       labels,
       expressions,
-      nullptr,
+      makeProjector(),
       outputSchema,
+      inputSchema,
       origin,
       description,
       version};
