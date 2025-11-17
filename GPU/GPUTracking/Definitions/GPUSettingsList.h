@@ -39,7 +39,7 @@ BeginNamespace(gpu)
 
 // Reconstruction parameters for TPC, no bool in here !!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
-AddOptionRTC(rejectQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_REJECT_DEFAULT, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
+AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
 AddOptionRTC(hitPickUpFactor, float, 1.f, "", 0, "multiplier for the combined cluster+track error during track following")
 AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road of hits during seeding")
 AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, for z only used if searchWindowDZDR = 0")
@@ -195,7 +195,7 @@ EndConfig()
 
 // Global reconstruction parameters, no bool in here !!!
 BeginSubConfig(GPUSettingsRec, rec, configStandalone, "REC", 0, "Reconstruction settings", rec)
-AddOptionRTC(maxTrackQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT, "", 0, "required max Q/Pt (==min Pt) of tracks")
+AddOptionRTC(maxTrackQPtB5, float, 1.f / 0.010f, "", 0, "required max Q/Pt (==min Pt) of tracks")
 AddOptionRTC(fwdTPCDigitsAsClusters, uint8_t, 0, "", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddOptionRTC(bz0Pt10MeV, uint8_t, 60, "", 0, "Nominal Pt to set when bz = 0 (in 10 MeV)")
 AddOptionRTC(fitInProjections, int8_t, -1, "", 0, "Fit in projection, -1 to enable full fit for all but passes but the first one")
