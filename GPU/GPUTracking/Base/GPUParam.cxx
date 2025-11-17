@@ -35,7 +35,6 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
   memset((void*)this, 0, sizeof(*this));
   new (&rec) GPUSettingsRec;
   occupancyMap = nullptr;
-  occupancyMap = 0;
   occupancyTotal = 0;
 
 #ifdef GPUCA_TPC_GEOMETRY_O2
