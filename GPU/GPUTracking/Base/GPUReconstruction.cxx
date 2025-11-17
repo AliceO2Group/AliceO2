@@ -264,7 +264,11 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings->recoTaskTiming = true;
   }
   if (GetProcessingSettings().deterministicGPUReconstruction == -1) {
+#ifdef GPUCA_DETERMINISTIC_MODE
+    mProcessingSettings->deterministicGPUReconstruction = 1;
+#else
     mProcessingSettings->deterministicGPUReconstruction = GetProcessingSettings().debugLevel >= 6;
+#endif
   }
   if (GetProcessingSettings().deterministicGPUReconstruction) {
 #ifndef GPUCA_DETERMINISTIC_MODE
