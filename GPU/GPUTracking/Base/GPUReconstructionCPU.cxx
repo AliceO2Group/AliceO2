@@ -356,7 +356,7 @@ void GPUReconstructionCPU::ResetDeviceProcessorTypes()
   }
 }
 
-void GPUReconstructionCPU::UpdateParamOccupancyMap(const uint32_t* mapHost, const uint32_t* mapGPU, uint32_t occupancyTotal, uint32_t mapSize, int32_t stream)
+void GPUReconstructionCPU::UpdateParamOccupancyMap(const uint32_t* mapHost, const uint32_t* mapGPU, uint32_t occupancyTotal, uint32_t mapSize, int32_t stream, deviceEvent* ev)
 {
   if (mapHost && mapSize != GPUTPCClusterOccupancyMapBin::getNBins(param())) {
     throw std::runtime_error("Updating occupancy map with object of invalid size");
@@ -375,6 +375,6 @@ void GPUReconstructionCPU::UpdateParamOccupancyMap(const uint32_t* mapHost, cons
     };
     tmpOccuapncyParam tmp = {mapGPU, occupancyTotal, mapSize};
     const auto holdContext = GetThreadContext();
-    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &tmp, sizeof(tmp), stream);
+    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &tmp, sizeof(tmp), stream, ev);
   }
 }
