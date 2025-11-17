@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUO2InterfaceConfigurableParam.h
+/// \file GPUO2ConfigurableParam.h
 /// \author David Rohr
 
 // This file auto-generates a ConfigurableParam object from the GPU parameter macros.
@@ -19,13 +19,10 @@
 // --configKeyValues "GPU_proc.[x]=[y]" : for processing options steering GPU reconstruction like GPU device ID, debug output level, number of CPU threads.
 // Check GPUSettingsList.h for all options
 
-#ifndef GPUO2INTERFACECONFIGURABLEPARAM_H
-#define GPUO2INTERFACECONFIGURABLEPARAM_H
+#ifndef GPUO2CONFIGURABLEPARAM_H
+#define GPUO2CONFIGURABLEPARAM_H
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_O2_LIB)
 #include "GPUO2ExternalUser.h"
-#endif
-
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "GPUSettings.h"
@@ -46,7 +43,7 @@
 #define AddSubConfig(name, instance)
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix)                                           \
   struct GPUCA_M_CAT(GPUConfigurableParam, name) : public o2::conf::ConfigurableParamHelper<GPUCA_M_CAT(GPUConfigurableParam, name)> { \
-   O2ParamDef(GPUCA_M_CAT(GPUConfigurableParam, name), GPUCA_M_STR(GPUCA_M_CAT(GPU_, o2prefix))) public:
+    O2ParamDef(GPUCA_M_CAT(GPUConfigurableParam, name), GPUCA_M_STR(GPUCA_M_CAT(GPU_, o2prefix))) public:
 #define BeginHiddenConfig(name, instance) struct GPUCA_M_CAT(GPUConfigurableParam, name) {
 #define EndConfig() \
   }                 \
