@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 5
+# FindO2GPU.cmake Version 6
 
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
@@ -71,6 +71,9 @@ endfunction()
 STRING(REGEX REPLACE "\-std=[^ ]*" "" O2_GPU_CMAKE_CXX_FLAGS_NOSTD "${CMAKE_CXX_FLAGS}")
 
 # ================================== Fast Math / Deterministic Mode ==================================
+if(DEFINED ENV{O2_OVERRIDE_GPUCA_DETERMINISTIC_MODE})
+  set(GPUCA_DETERMINISTIC_MODE $ENV{O2_OVERRIDE_GPUCA_DETERMINISTIC_MODE})
+endif()
 # set(GPUCA_DETERMINISTIC_MODE WHOLEO2)          # Override
 set(GPUCA_DETERMINISTIC_MODE_MAP_OFF 0)
 set(GPUCA_DETERMINISTIC_MODE_MAP_NO_FAST_MATH 1) # No -ffast-math and similar compile flags for GPU folder
