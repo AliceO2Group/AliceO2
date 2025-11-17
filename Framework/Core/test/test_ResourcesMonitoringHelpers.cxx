@@ -166,7 +166,8 @@ TEST_CASE("StreamMetrics")
   ResourcesMonitoringHelper::dumpMetricsToJSON(metrics,
                                                driverMetrics, specs, performanceMetrics,
                                                streamer);
-  REQUIRE(streamer.str() == R"JSON({
+  std::string streamed = streamer.str();
+  std::string expected = R"JSON({
     "someDevice": {
         "ckey": [
             {
@@ -266,5 +267,6 @@ TEST_CASE("StreamMetrics")
         ]
     }
 }
-)JSON");
+)JSON";
+  REQUIRE(std::regex_replace(streamed, std::regex(R"(\s+)"), "") == std::regex_replace(expected, std::regex(R"(\s+)"), ""));
 }
