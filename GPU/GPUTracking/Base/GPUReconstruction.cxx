@@ -744,7 +744,7 @@ void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
   void*& poolend = (type & GPUMemoryResource::MEMORY_GPU) ? mDeviceMemoryPoolEnd : mHostMemoryPoolEnd;
   char* retVal;
   if ((type & GPUMemoryResource::MEMORY_STACK)) {
-    poolend = (char*)poolend - size; // TODO: Implement overflow check
+    poolend = (char*)poolend - size;
     poolend = (char*)poolend - GPUProcessor::getAlignmentMod<GPUCA_MEMALIGN>(poolend);
     retVal = (char*)poolend;
   } else {
