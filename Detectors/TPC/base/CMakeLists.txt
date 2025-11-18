@@ -43,6 +43,7 @@ o2_add_library(TPCBase
                                      O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
 o2_target_root_dictionary(TPCBase
+                          EXTRA_PATCH src/TPCFlagsMemberCustomStreamer.cxx
                           HEADERS include/TPCBase/CalArray.h
                                   include/TPCBase/CalDet.h
                                   include/TPCBase/CDBInterface.h
