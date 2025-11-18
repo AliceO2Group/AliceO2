@@ -195,10 +195,11 @@ struct Spawnable {
 
     std::vector<std::shared_ptr<arrow::Schema>> schemas;
     for (auto& i : spec.metadata) {
-      if (i.name.starts_with("input:")) {
-        labels.emplace_back(i.name.substr(6));
+      if (i.name.starts_with("input-schema:")) {
+        labels.emplace_back(i.name.substr(13));
         iws.clear();
-        iws.str(i.defaultValue.get<std::string>());
+        auto json = i.defaultValue.get<std::string>();
+        iws.str(json);
         schemas.emplace_back(ArrowJSONHelpers::read(iws));
       }
     }

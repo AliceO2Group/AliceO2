@@ -35,7 +35,7 @@ std::string serializeProjectors(std::vector<framework::expressions::Projector>& 
   return osm.str();
 }
 
-std::string serializeSchema(std::shared_ptr<arrow::Schema>& schema)
+std::string serializeSchema(std::shared_ptr<arrow::Schema> schema)
 {
   std::stringstream osm;
   ArrowJSONHelpers::write(osm, schema);

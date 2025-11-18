@@ -637,6 +637,18 @@ void o2::framework::ExpressionJSONHelpers::write(std::ostream& o, std::vector<o2
 
 namespace
 {
+std::shared_ptr<arrow::DataType> arrowDataTypeFromId(atype::type type, int list_size = 1, atype::type element = atype::NA)
+{
+  switch (list_size) {
+    case -1:
+      return arrow::list(expressions::concreteArrowType(element));
+    case 1:
+      return expressions::concreteArrowType(type);
+    default:
+      return arrow::fixed_size_list(expressions::concreteArrowType(element), list_size);
+  }
+}
+
 struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SchemaReader> {
   using Ch = rapidjson::UTF8<>::Ch;
   using SizeType = rapidjson::SizeType;
@@ -658,6 +670,8 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
 
   std::string name;
   atype::type type;
+  atype::type element;
+  int list_size = 1;
 
   SchemaReader()
   {
@@ -706,6 +720,12 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
       if (currentKey.compare("type") == 0) {
         return true;
       }
+      if (currentKey.compare("size") == 0) {
+        return true;
+      }
+      if (currentKey.compare("element") == 0) {
+        return true;
+      }
     }
 
     states.push(State::IN_ERROR);
@@ -721,6 +741,9 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
 
     if (states.top() == State::IN_LIST) {
       states.push(State::IN_FIELD);
+      list_size = 1;
+      element = atype::NA;
+      type = atype::NA;
       return true;
     }
 
@@ -734,7 +757,7 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
     if (states.top() == State::IN_FIELD) {
       states.pop();
       // add a field
-      fields.emplace_back(std::make_shared<arrow::Field>(name, expressions::concreteArrowType(type)));
+      fields.emplace_back(std::make_shared<arrow::Field>(name, arrowDataTypeFromId(type, list_size, element)));
       return true;
     }
 
@@ -752,6 +775,14 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
     if (states.top() == State::IN_FIELD) {
       if (currentKey.compare("type") == 0) {
         type = (atype::type)i;
+        return true;
+      }
+      if (currentKey.compare("element") == 0) {
+        element = (atype::type)i;
+        return true;
+      }
+      if (currentKey.compare("size") == 0) {
+        list_size = i;
         return true;
       }
     }
@@ -777,6 +808,10 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
   bool Int(int i)
   {
     debug << "Int(" << i << ")" << std::endl;
+    if (states.top() == State::IN_FIELD && currentKey.compare("size") == 0) {
+      list_size = i;
+      return true;
+    }
     return Uint(i);
   }
 };
@@ -791,7 +826,7 @@ std::shared_ptr<arrow::Schema> o2::framework::ArrowJSONHelpers::read(std::istrea
   bool ok = reader.Parse(isw, sreader);
 
   if (!ok) {
-    throw framework::runtime_error_f("Cannot parse serialized Expression, error: %s at offset: %d", rapidjson::GetParseError_En(reader.GetParseErrorCode()), reader.GetErrorOffset());
+    throw framework::runtime_error_f("Cannot parse serialized Schema, error: %s at offset: %d", rapidjson::GetParseError_En(reader.GetParseErrorCode()), reader.GetErrorOffset());
   }
   return sreader.schema;
 }
@@ -804,6 +839,20 @@ void writeSchema(rapidjson::Writer<rapidjson::OStreamWrapper>& w, arrow::Schema*
     w.StartObject();
     w.Key("name");
     w.String(f->name().c_str());
+    auto fixedList = dynamic_cast<arrow::FixedSizeListType*>(f->type().get());
+    if (fixedList != nullptr) {
+      w.Key("size");
+      w.Int(fixedList->list_size());
+      w.Key("element");
+      w.Int(fixedList->field(0)->type()->id());
+    }
+    auto varList = dynamic_cast<arrow::ListType*>(f->type().get());
+    if (varList != nullptr) {
+      w.Key("size");
+      w.Int(-1);
+      w.Key("element");
+      w.Int(varList->field(0)->type()->id());
+    }
     w.Key("type");
     w.Int(f->type()->id());
     w.EndObject();

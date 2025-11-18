@@ -454,4 +454,34 @@ TEST_CASE("TestExpressionSerialization")
   ism.str(osm.str());
   auto newSchemap = ArrowJSONHelpers::read(ism);
   REQUIRE(schemap->ToString() == newSchemap->ToString());
+
+  osm.clear();
+  osm.str("");
+  ArrowJSONHelpers::write(osm, schemap1);
+
+  ism.clear();
+  ism.str(osm.str());
+  auto newSchemap1 = ArrowJSONHelpers::read(ism);
+  REQUIRE(schemap1->ToString() == newSchemap1->ToString());
+
+  osm.clear();
+  osm.str("");
+  auto realisticSchema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(o2::aod::MetadataTrait<o2::aod::Hash<"HMPID/1"_h>>::metadata::persistent_columns_t{}));
+  ArrowJSONHelpers::write(osm, realisticSchema);
+
+  ism.clear();
+  ism.str(osm.str());
+  auto restoredSchema = ArrowJSONHelpers::read(ism);
+  REQUIRE(realisticSchema->ToString() == restoredSchema->ToString());
+
+  osm.clear();
+  osm.str("");
+  auto realisticSchema1 = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(o2::aod::MetadataTrait<o2::aod::Hash<"ZDC/1"_h>>::metadata::persistent_columns_t{}));
+  ArrowJSONHelpers::write(osm, realisticSchema1);
+
+  ism.clear();
+  ism.str(osm.str());
+  auto restoredSchema1 = ArrowJSONHelpers::read(ism);
+  REQUIRE(realisticSchema1->ToString() == restoredSchema1->ToString());
+
 }

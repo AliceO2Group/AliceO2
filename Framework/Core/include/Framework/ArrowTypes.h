@@ -11,6 +11,7 @@
 
 #ifndef O2_FRAMEWORK_ARROWTYPES_H
 #define O2_FRAMEWORK_ARROWTYPES_H
+#include "Framework/Traits.h"
 #include "arrow/type_fwd.h"
 #include <span>
 
@@ -117,5 +118,54 @@ template <typename T>
 using arrow_array_for_t = typename arrow_array_for<T>::type;
 template <typename T>
 using value_for_t = typename arrow_array_for<T>::value_type;
+
+template <class Array>
+using array_element_t = std::decay_t<decltype(std::declval<Array>()[0])>;
+
+template <typename T>
+std::shared_ptr<arrow::DataType> asArrowDataType(int list_size = 1)
+{
+  auto typeGenerator = [](std::shared_ptr<arrow::DataType> const& type, int list_size) -> std::shared_ptr<arrow::DataType> {
+    switch (list_size) {
+      case -1:
+        return arrow::list(type);
+      case 1:
+        return std::move(type);
+      default:
+        return arrow::fixed_size_list(type, list_size);
+    }
+  };
+
+  if constexpr (std::is_arithmetic_v<T>) {
+    if constexpr (std::same_as<T, bool>) {
+      return typeGenerator(arrow::boolean(), list_size);
+    } else if constexpr (std::same_as<T, uint8_t>) {
+      return typeGenerator(arrow::uint8(), list_size);
+    } else if constexpr (std::same_as<T, uint16_t>) {
+      return typeGenerator(arrow::uint16(), list_size);
+    } else if constexpr (std::same_as<T, uint32_t>) {
+      return typeGenerator(arrow::uint32(), list_size);
+    } else if constexpr (std::same_as<T, uint64_t>) {
+      return typeGenerator(arrow::uint64(), list_size);
+    } else if constexpr (std::same_as<T, int8_t>) {
+      return typeGenerator(arrow::int8(), list_size);
+    } else if constexpr (std::same_as<T, int16_t>) {
+      return typeGenerator(arrow::int16(), list_size);
+    } else if constexpr (std::same_as<T, int32_t>) {
+      return typeGenerator(arrow::int32(), list_size);
+    } else if constexpr (std::same_as<T, int64_t>) {
+      return typeGenerator(arrow::int64(), list_size);
+    } else if constexpr (std::same_as<T, float>) {
+      return typeGenerator(arrow::float32(), list_size);
+    } else if constexpr (std::same_as<T, double>) {
+      return typeGenerator(arrow::float64(), list_size);
+    }
+  } else if constexpr (std::is_bounded_array_v<T>) {
+    return asArrowDataType<array_element_t<T>>(std::extent_v<T>);
+  } else if constexpr (o2::framework::is_specialization_v<T, std::vector>) {
+    return asArrowDataType<typename T::value_type>(-1);
+  }
+  return nullptr;
+}
 } // namespace o2::soa
 #endif // O2_FRAMEWORK_ARROWTYPES_H

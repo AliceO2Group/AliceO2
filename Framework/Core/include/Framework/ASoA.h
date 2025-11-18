@@ -256,7 +256,7 @@ struct TableMetadata {
 
   static std::shared_ptr<arrow::Schema> getSchema()
   {
-    return std::make_shared<arrow::Schema>([]<typename... C>(framework::pack<C...>&& p){ return o2::soa::createFieldsFromColumns(p); }(columns{}));
+    return std::make_shared<arrow::Schema>([]<typename... C>(framework::pack<C...>&& p){ return o2::soa::createFieldsFromColumns(p); }(persistent_columns_t{}));
   }
 };
 
@@ -690,7 +690,7 @@ struct Column {
 
   static auto asArrowField()
   {
-    return std::make_shared<arrow::Field>(inherited_t::mLabel, framework::expressions::concreteArrowType(framework::expressions::selectArrowType<type>()));
+    return std::make_shared<arrow::Field>(inherited_t::mLabel, soa::asArrowDataType<type>());
   }
 
   /// FIXME: rather than keeping this public we should have a protected
