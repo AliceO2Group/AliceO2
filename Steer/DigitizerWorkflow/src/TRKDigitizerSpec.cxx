@@ -276,8 +276,8 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
   std::vector<o2::itsmft::Digit> mDigits{};
   std::vector<o2::itsmft::ROFRecord> mROFRecords{};
   std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum{};
-  std::vector<o2::itsmft::Hit> mHits{};
-  std::vector<o2::itsmft::Hit>* mHitsP{&mHits};
+  std::vector<o2::trk::Hit> mHits{};
+  std::vector<o2::trk::Hit>* mHitsP{&mHits};
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels{};
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum{};
   std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum{};
