@@ -2144,16 +2144,18 @@ GPUd() void GPUTPCGMMerger::PrepareHitWeights(int32_t nBlocks, int32_t nThreads,
       continue;
     }
     mTrackRebuildHelper[i].reverse = mClusters[trk.FirstClusterRef()].row < mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].row;
-    int lastRow = -1;
-    for (uint32_t j = 0; j < trk.NClusters(); j++) {
-      const auto& cl = mClusters[trk.FirstClusterRef() + j];
-      auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + cl.row) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-      if (cl.row != lastRow && candidates[0].id == 0 && (!(cl.state & GPUTPCGMMergedTrackHit::flagReject) || trk.GetParam().GetNDF() <= 0)) {
-        candidates[0].id = cl.num + 2;
-        candidates[0].best = 128;
-        candidates[0].weight = cl.state;
-        candidates[0].sector = cl.sector;
-        lastRow = cl.row;
+    if (!(Param().rec.tpc.disableRebuildAttachment & 8)) {
+      int lastRow = -1;
+      for (uint32_t j = 0; j < trk.NClusters(); j++) {
+        const auto& cl = mClusters[trk.FirstClusterRef() + j];
+        auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + cl.row) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
+        if (cl.row != lastRow && candidates[0].id == 0 && (!(cl.state & GPUTPCGMMergedTrackHit::flagReject) || trk.GetParam().GetNDF() <= 0)) {
+          candidates[0].id = cl.num + 2;
+          candidates[0].best = 128;
+          candidates[0].weight = cl.state;
+          candidates[0].sector = cl.sector;
+          lastRow = cl.row;
+        }
       }
     }
   }
