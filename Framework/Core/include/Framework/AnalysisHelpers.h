@@ -29,7 +29,7 @@
 namespace o2::framework
 {
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
-std::string serializeSchema(std::shared_ptr<arrow::Schema>& schema);
+std::string serializeSchema(std::shared_ptr<arrow::Schema> schema);
 }  // namespace o2::framework
 
 namespace o2::soa
@@ -44,6 +44,16 @@ constexpr auto tableRef2ConfigParamSpec()
     {"\"\""}};
 }
 
+template <TableRef R>
+constexpr auto tableRef2Schema()
+{
+    return o2::framework::ConfigParamSpec{
+      std::string{"input-schema:"} + o2::aod::label<R>(),
+      framework::VariantType::String,
+      framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
+      {"\"\""}};
+}
+
 namespace
 {
 template <soa::with_sources T>
@@ -54,6 +64,16 @@ inline constexpr auto getSources()
       return std::vector{soa::tableRef2ConfigParamSpec<refs[Is]>()...};
     }(std::make_index_sequence<N>());
   }.template operator()<T::sources.size(), T::sources>();
+}
+
+template <soa::with_sources T>
+inline constexpr auto getSourceSchemas()
+{
+    return []<size_t N, std::array<soa::TableRef, N> refs>() {
+        return []<size_t... Is>(std::index_sequence<Is...>) {
+            return std::vector{soa::tableRef2Schema<refs[Is]>()...};
+        }(std::make_index_sequence<N>());
+    }.template operator()<T::sources.size(), T::sources>();
 }
 
 template <soa::with_ccdb_urls T>
@@ -73,11 +93,19 @@ template <soa::with_sources T>
 constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   std::vector<framework::ConfigParamSpec> inputMetadata;
+
   auto inputSources = getSources<T>();
   std::sort(inputSources.begin(), inputSources.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
   auto last = std::unique(inputSources.begin(), inputSources.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
   inputSources.erase(last, inputSources.end());
   inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+
+  auto inputSchemas = getSourceSchemas<T>();
+  std::sort(inputSchemas.begin(), inputSchemas.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
+  last = std::unique(inputSchemas.begin(), inputSchemas.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
+  inputSchemas.erase(last, inputSchemas.end());
+  inputMetadata.insert(inputMetadata.end(), inputSchemas.begin(), inputSchemas.end());
+
   return inputMetadata;
 }
 
@@ -115,11 +143,8 @@ constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec
     return result;
   }(expression_pack_t{});
 
-  auto schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(expression_pack_t{}));
-
   auto json = framework::serializeProjectors(projectors);
-  return {framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}},
-          framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(schema), {"\"\""}}};
+  return {framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}}};
 }
 
 template <typename T>
@@ -141,6 +166,9 @@ constexpr auto tableRef2InputSpec()
   metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
   auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), p.begin(), p.end());
+  if constexpr(!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
+    metadata.emplace_back(framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()), {"\"\""}});
+  }
 
   return framework::InputSpec{
     o2::aod::label<R>(),
