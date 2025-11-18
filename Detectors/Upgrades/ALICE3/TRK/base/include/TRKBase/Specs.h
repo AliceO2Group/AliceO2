@@ -76,15 +76,14 @@ constexpr double thickness{0 * mu}; // thickness of the copper metal stack - for
 } // namespace metalstack
 namespace chip
 {
-constexpr double width{25 * mm};                                             // width of the chip
-constexpr double length{32 * mm};                                            // length of the chip
-constexpr double pitchX{50 * mu};                                            // pitch of the row
-constexpr double pitchZ{50 * mu};                                            // pitch of the column
-constexpr int nRows{static_cast<int>(width / pitchX)};                       // number of columns in the chip
-constexpr int nCols{static_cast<int>(length / pitchZ)};                      // number of rows in the chip
-constexpr double totalThickness{silicon::thickness + metalstack::thickness}; // total thickness of the chip
-/// Set to 0 for the moment, to be adjusted with the actual design of the chip if needed
-static constexpr float passiveEdgeReadOut{1.5 * mm}; // width of the readout edge
+constexpr double width{25 * mm};                                              // width of the chip
+constexpr double length{32 * mm};                                             // length of the chip
+constexpr double pitchX{50 * mu};                                             // pitch of the row
+constexpr double pitchZ{50 * mu};                                             // pitch of the column
+constexpr double totalThickness{silicon::thickness + metalstack::thickness};  // total thickness of the chip
+static constexpr double passiveEdgeReadOut{1.5 * mm};                         // width of the readout edge -> dead zone
+constexpr int nRows{static_cast<int>((width - passiveEdgeReadOut) / pitchX)}; // number of rows in the chip
+constexpr int nCols{static_cast<int>(length / pitchZ)};                       // number of columns in the chip
 } // namespace chip
 namespace gaps
 {

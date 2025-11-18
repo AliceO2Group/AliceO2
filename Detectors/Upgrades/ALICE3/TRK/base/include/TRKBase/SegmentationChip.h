@@ -88,7 +88,7 @@ class SegmentationChip
   /// \param int disk Disk number (0 to 5 for VD)
   static bool localToDetector(float xRow, float zCol, int& iRow, int& iCol, int subDetID, int layer, int disk) noexcept
   {
-    if (!isValidGlob(xRow, zCol, subDetID, layer)) {
+    if (!isValidLoc(xRow, zCol, subDetID, layer)) {
       LOGP(debug, "Local coordinates not valid: row = {} cm, col = {} cm", xRow, zCol);
       return false;
     }
@@ -116,50 +116,34 @@ class SegmentationChip
       maxWidth = constants::VD::petal::layer::width[layer];
       maxLength = constants::VD::petal::layer::length;
       // TODO: change this to use the layer and disk
-    } else if (subDetID == 1 && layer <= 3) { // ML
+    } else if (subDetID == 1) {
       pitchRow = PitchRowMLOT;
       pitchCol = PitchColMLOT;
-      maxWidth = constants::ML::width;
-      maxLength = constants::ML::length;
-    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
-      pitchRow = PitchRowMLOT;
-      pitchCol = PitchColMLOT;
-      maxWidth = constants::OT::halfstave::width;
-      maxLength = constants::ML::length;
-    } else if (subDetID == 1 && layer > 4) { // OT
-      pitchRow = PitchRowMLOT;
-      pitchCol = PitchColMLOT;
-      maxWidth = constants::OT::halfstave::width;
-      maxLength = constants::OT::halfstave::length;
+      maxWidth = constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut;
+      maxLength = constants::moduleMLOT::chip::length;
     }
     // convert to row/col
-    iRow = static_cast<int>(((maxWidth / 2 - xRow) / pitchRow));
-    iCol = static_cast<int>(((zCol + maxLength / 2) / pitchCol));
+    iRow = static_cast<int>(std::floor((maxWidth / 2 - xRow) / pitchRow));
+    iCol = static_cast<int>(std::floor((zCol + maxLength / 2) / pitchCol));
   };
 
   // Check local coordinates (cm) validity.
-  static constexpr bool isValidGlob(float x, float z, int subDetID, int layer) noexcept
+  static constexpr bool isValidLoc(float x, float z, int subDetID, int layer) noexcept
   {
     float maxWidth(0), maxLength(0);
     if (subDetID == 0) {
       maxWidth = constants::VD::petal::layer::width[layer];
       maxLength = constants::VD::petal::layer::length;
       // TODO: change this to use the layer and disk
-    } else if (subDetID == 1 && layer <= 3) { // ML
-      maxWidth = constants::ML::width;
-      maxLength = constants::ML::length;
-    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
-      maxWidth = constants::OT::halfstave::width;
-      maxLength = constants::ML::length;
-    } else if (subDetID == 1 && layer > 4) { // OT
-      maxWidth = constants::OT::halfstave::width;
-      maxLength = constants::OT::halfstave::length;
+    } else if (subDetID == 1) { // ML/OT
+      maxWidth = constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut;
+      maxLength = constants::moduleMLOT::chip::length;
     }
     return (-maxWidth / 2 < x && x < maxWidth / 2 && -maxLength / 2 < z && z < maxLength / 2);
   }
 
   // Check detector coordinates validity.
-  static constexpr bool isValidDet(float row, float col, int subDetID, int layer) noexcept
+  static constexpr bool isValidDet(int row, int col, int subDetID, int layer) noexcept
   {
     // Check if the row and column are within the valid range
     int nRows(0), nCols(0);
@@ -167,17 +151,11 @@ class SegmentationChip
       nRows = constants::VD::petal::layer::nRows[layer];
       nCols = constants::VD::petal::layer::nCols;
       // TODO: change this to use the layer and disk
-    } else if (subDetID == 1 && layer <= 3) { // ML
-      nRows = constants::ML::nRows;
-      nCols = constants::ML::nCols;
-    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
-      nRows = constants::OT::halfstave::nRows;
-      nCols = constants::ML::nCols;
-    } else if (subDetID == 1 && layer > 4) { // OT
-      nRows = constants::OT::halfstave::nRows;
-      nCols = constants::OT::halfstave::nCols;
+    } else if (subDetID == 1) {
+      nRows = constants::moduleMLOT::chip::nRows;
+      nCols = constants::moduleMLOT::chip::nCols;
     }
-    return (row >= 0 && row < static_cast<float>(nRows) && col >= 0 && col < static_cast<float>(nCols));
+    return (row >= 0 && row < nRows && col >= 0 && col < nCols);
   }
 
   /// Transformation from Detector cell coordinates to Geant detector centered
@@ -202,7 +180,7 @@ class SegmentationChip
     detectorToLocalUnchecked(iRow, iCol, xRow, zCol, subDetID, layer, disk);
     LOG(debug) << "Result from detectorToLocalUnchecked: iRow " << iRow << " -> xRow " << xRow << ", iCol " << iCol << " -> zCol " << zCol << " on subDetID, layer, disk: " << subDetID << " " << layer << " " << disk;
 
-    if (!isValidGlob(xRow, zCol, subDetID, layer)) {
+    if (!isValidLoc(xRow, zCol, subDetID, layer)) {
       LOGP(debug, "Local coordinates not valid: row = {} cm, col = {} cm", xRow, zCol);
       return false;
     }
@@ -218,15 +196,9 @@ class SegmentationChip
     if (subDetID == 0) {
       xRow = 0.5 * (constants::VD::petal::layer::width[layer] - PitchRowVD) - (row * PitchRowVD);
       zCol = col * PitchColVD + 0.5 * (PitchColVD - constants::VD::petal::layer::length);
-    } else if (subDetID == 1 && layer <= 3) { // ML
-      xRow = 0.5 * (constants::ML::width - PitchRowMLOT) - (row * PitchRowMLOT);
-      zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::ML::length);
-    } else if (subDetID == 1 && layer == 4) { // ML/OT (mixed layer, length = ML but staggered as OT)
-      xRow = 0.5 * (constants::OT::halfstave::width - PitchRowMLOT) - (row * PitchRowMLOT);
-      zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::ML::length);
-    } else if (subDetID == 1 && layer > 4) { // OT
-      xRow = 0.5 * (constants::OT::halfstave::width - PitchRowMLOT) - (row * PitchRowMLOT);
-      zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::OT::halfstave::length);
+    } else if (subDetID == 1) { // ML/OT
+      xRow = 0.5 * (constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut - PitchRowMLOT) - (row * PitchRowMLOT);
+      zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::moduleMLOT::chip::length);
     }
   }
 
@@ -282,20 +254,13 @@ class SegmentationChip
     LOG(info) << "Number of rows:\nVD L0: " << constants::VD::petal::layer::nRows[0]
               << "\nVD L1: " << constants::VD::petal::layer::nRows[1]
               << "\nVD L2: " << constants::VD::petal::layer::nRows[2]
-              << "\nML stave: " << constants::ML::nRows
-              << "\nOT half stave: " << constants::OT::halfstave::nRows;
+              << "\nML/OT chip: " << constants::moduleMLOT::chip::nRows;
 
     LOG(info) << "Number of cols:\nVD: " << constants::VD::petal::layer::nCols
-              << "\nML stave: " << constants::ML::nCols
-              << "\nOT half stave: " << constants::OT::halfstave::nCols;
+              << "\nML/OT chip: " << constants::moduleMLOT::chip::nCols;
 
-    LOG(info) << "Pitch rows [cm]:\nVD: " << PitchRowVD
-              << "\nML stave: " << PitchRowMLOT
-              << "\nOT stave: " << PitchRowMLOT;
-
-    LOG(info) << "Pitch cols [cm]:\nVD: " << PitchColVD
-              << "\nML stave: " << PitchColMLOT
-              << "\nOT stave: " << PitchColMLOT;
+    LOG(info) << "Pitch rows x cols [um]:\nVD: " << PitchRowVD * 1e4 << "x" << PitchColVD * 1e4
+              << "\nML/OT chip: " << PitchRowMLOT * 1e4 << "x" << PitchColMLOT * 1e4;
   }
 };
 
