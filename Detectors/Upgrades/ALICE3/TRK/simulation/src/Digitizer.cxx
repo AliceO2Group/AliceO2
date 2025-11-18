@@ -73,7 +73,7 @@ void Digitizer::init()
 
   mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
   mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
-  mSimRespVDShift = -mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
+  mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
   mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
   mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
   mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response

@@ -107,7 +107,7 @@ class Digitizer
   {
     if (subDetID == 0) { // VD
       return constants::VD::petal::layer::nCols;
-    } else if (subDetID == 1) { // ML/OT: the smallest element is a chip of 500 rows and 640 cols
+    } else if (subDetID == 1) { // ML/OT: the smallest element is a chip of 470 rows and 640 cols
       return constants::moduleMLOT::chip::nCols;
     }
     return 0;
