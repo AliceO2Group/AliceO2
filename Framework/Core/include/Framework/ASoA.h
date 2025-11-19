@@ -256,7 +256,7 @@ struct TableMetadata {
 
   static std::shared_ptr<arrow::Schema> getSchema()
   {
-    return std::make_shared<arrow::Schema>([]<typename... C>(framework::pack<C...>&& p){ return o2::soa::createFieldsFromColumns(p); }(persistent_columns_t{}));
+    return std::make_shared<arrow::Schema>([]<typename... C>(framework::pack<C...>&& p) { return o2::soa::createFieldsFromColumns(p); }(persistent_columns_t{}));
   }
 };
 
