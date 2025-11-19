@@ -47,11 +47,11 @@ constexpr auto tableRef2ConfigParamSpec()
 template <TableRef R>
 constexpr auto tableRef2Schema()
 {
-    return o2::framework::ConfigParamSpec{
-      std::string{"input-schema:"} + o2::aod::label<R>(),
-      framework::VariantType::String,
-      framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
-      {"\"\""}};
+  return o2::framework::ConfigParamSpec{
+    std::string{"input-schema:"} + o2::aod::label<R>(),
+    framework::VariantType::String,
+    framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
+    {"\"\""}};
 }
 
 namespace
@@ -69,11 +69,11 @@ inline constexpr auto getSources()
 template <soa::with_sources T>
 inline constexpr auto getSourceSchemas()
 {
-    return []<size_t N, std::array<soa::TableRef, N> refs>() {
-        return []<size_t... Is>(std::index_sequence<Is...>) {
-            return std::vector{soa::tableRef2Schema<refs[Is]>()...};
-        }(std::make_index_sequence<N>());
-    }.template operator()<T::sources.size(), T::sources>();
+  return []<size_t N, std::array<soa::TableRef, N> refs>() {
+    return []<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{soa::tableRef2Schema<refs[Is]>()...};
+    }(std::make_index_sequence<N>());
+  }.template operator()<T::sources.size(), T::sources>();
 }
 
 template <soa::with_ccdb_urls T>
@@ -166,7 +166,7 @@ constexpr auto tableRef2InputSpec()
   metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
   auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), p.begin(), p.end());
-  if constexpr(!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
+  if constexpr (!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     metadata.emplace_back(framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()), {"\"\""}});
   }
 

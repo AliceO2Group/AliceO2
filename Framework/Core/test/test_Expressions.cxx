@@ -483,5 +483,4 @@ TEST_CASE("TestExpressionSerialization")
   ism.str(osm.str());
   auto restoredSchema1 = ArrowJSONHelpers::read(ism);
   REQUIRE(realisticSchema1->ToString() == restoredSchema1->ToString());
-
 }
