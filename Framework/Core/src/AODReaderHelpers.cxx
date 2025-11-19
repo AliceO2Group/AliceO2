@@ -240,6 +240,7 @@ struct Spawnable {
 
   Maker createMaker()
   {
+    o2::framework::addLabelToSchema(outputSchema, binding.c_str());
     return {
       binding,
       labels,

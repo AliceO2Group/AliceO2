@@ -144,7 +144,7 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const&
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from source table to spawn %s: %s", name, s.ToString().c_str());
+      throw runtime_error_f("Cannot read batches from the source table to spawn %s: %s", name, s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
@@ -152,10 +152,10 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const&
     try {
       s = projector->Evaluate(*batch, arrow::default_memory_pool(), &v);
       if (!s.ok()) {
-        throw runtime_error_f("Cannot apply projector to source table of %s: %s", name, s.ToString().c_str());
+        throw runtime_error_f("Cannot apply projector to the source table of %s: %s", name, s.ToString().c_str());
       }
     } catch (std::exception& e) {
-      throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
+      throw runtime_error_f("Cannot apply projector to the source table of %s: exception caught: %s", name, e.what());
     }
 
     for (auto i = 0U; i < nColumns; ++i) {
@@ -168,7 +168,6 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const&
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
 
-  addLabelToSchema(newSchema, name);
   return arrow::Table::Make(newSchema, arrays);
 }
 
