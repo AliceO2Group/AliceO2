@@ -10,8 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisTask.h"
+#include "../src/IndexJSONHelpers.h"
 #include <catch_amalgamated.hpp>
+#include <iostream>
 
 using namespace o2::framework;
 using namespace arrow;
@@ -234,4 +235,40 @@ TEST_CASE("AdvancedIndexTables")
     }
     ++count;
   }
+}
+
+
+TEST_CASE("IndexRecordsSerialization")
+{
+  auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata>();
+
+  std::stringstream osm;
+  IndexJSONHelpers::write(osm, map);
+
+  std::stringstream ism;
+  ism.str(osm.str());
+  auto rmap = IndexJSONHelpers::read(ism);
+  REQUIRE(map == rmap);
+
+  map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata>();
+
+  osm.clear();
+  osm.str("");
+  IndexJSONHelpers::write(osm, map);
+
+  ism.clear();
+  ism.str(osm.str());
+  rmap = IndexJSONHelpers::read(ism);
+  REQUIRE(map == rmap);
+
+  map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata>();
+
+  osm.clear();
+  osm.str("");
+  IndexJSONHelpers::write(osm, map);
+
+  ism.clear();
+  ism.str(osm.str());
+  rmap = IndexJSONHelpers::read(ism);
+  REQUIRE(map == rmap);
 }

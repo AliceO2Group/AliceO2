@@ -8,8 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/AnalysisHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "ExpressionJSONHelpers.h"
+#include "IndexJSONHelpers.h"
 
 namespace o2::framework
 {
@@ -39,6 +41,13 @@ std::string serializeSchema(std::shared_ptr<arrow::Schema> schema)
 {
   std::stringstream osm;
   ArrowJSONHelpers::write(osm, schema);
+  return osm.str();
+}
+
+std::string serializeIndexRecords(std::vector<o2::soa::IndexRecord>& irs)
+{
+  std::stringstream osm;
+  IndexJSONHelpers::write(osm, irs);
   return osm.str();
 }
 } // namespace o2::framework

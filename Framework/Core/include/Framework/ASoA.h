@@ -217,6 +217,19 @@ using is_self_index_t = typename std::conditional_t<is_self_index_column<C>, std
 
 namespace o2::aod
 {
+namespace {
+template <typename Key, size_t N, std::array<bool, N> map>
+static consteval int getIndexPosToKey_impl()
+{
+  constexpr const auto pos = std::find(map.begin(), map.end(), true);
+  if constexpr (pos != map.end()) {
+    return std::distance(map.begin(), pos);
+  } else {
+    return -1;
+  }
+}
+}
+
 /// Base type for table metadata
 template <typename D, typename... Cs>
 struct TableMetadata {
@@ -241,17 +254,6 @@ struct TableMetadata {
   static consteval int getIndexPosToKey()
   {
     return getIndexPosToKey_impl<Key, framework::pack_size(persistent_columns_t{}), getMap<Key>(persistent_columns_t{})>();
-  }
-
-  template <typename Key, size_t N, std::array<bool, N> map>
-  static consteval int getIndexPosToKey_impl()
-  {
-    constexpr const auto pos = std::find(map.begin(), map.end(), true);
-    if constexpr (pos != map.end()) {
-      return std::distance(map.begin(), pos);
-    } else {
-      return -1;
-    }
   }
 
   static std::shared_ptr<arrow::Schema> getSchema()

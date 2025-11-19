@@ -25,11 +25,30 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Traits.h"
 
+#include <cstdio>
 #include <string>
+namespace o2::soa {
+enum struct IndexKind : int {
+  IdxInvalid = -1,
+  IdxSelf = 0,
+  IdxSingle = 1,
+  IdxSlice = 2,
+  IdxArray = 3
+};
+
+struct IndexRecord {
+  std::string label;
+  IndexKind kind;
+  int pos;
+  auto operator<=>(const IndexRecord&) const = default;
+};
+} // namespace o2::soa
+
 namespace o2::framework
 {
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
 std::string serializeSchema(std::shared_ptr<arrow::Schema> schema);
+std::string serializeIndexRecords(std::vector<o2::soa::IndexRecord>& irs);
 }  // namespace o2::framework
 
 namespace o2::soa
@@ -53,19 +72,6 @@ constexpr auto tableRef2Schema()
     framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
     {"\"\""}};
 }
-
-enum struct IndexKind : unsigned {
-  IdxSelf = 0,
-  IdxSingle = 1,
-  IdxSlice = 2,
-  IdxArray = 3
-};
-
-struct IndexRecord {
-  std::string label;
-  IndexKind kind;
-  size_t pos;
-};
 
 namespace
 {
@@ -100,6 +106,47 @@ inline constexpr auto getCCDBUrls()
                       {"\"\""}});
   }
   return result;
+}
+
+template <typename T>
+  requires(std::same_as<T, int>)
+consteval IndexKind getIndexKind()
+{
+  return IndexKind::IdxSingle;
+}
+
+template <typename T>
+  requires(std::is_bounded_array_v<T>)
+consteval IndexKind getIndexKind()
+{
+  return IndexKind::IdxSlice;
+}
+
+template <typename T>
+  requires(framework::is_specialization_v<T, std::vector>)
+consteval IndexKind getIndexKind()
+{
+  return IndexKind::IdxArray;
+}
+
+template <soa::with_index_pack T>
+inline constexpr auto getIndexMapping()
+{
+  std::vector<IndexRecord> idx;
+  using indices = T::index_pack_t;
+  using Key = T::Key;
+  [&idx]<size_t... Is>(std::index_sequence<Is...>) mutable {
+    constexpr auto refs = T::sources;
+    ([&idx]<TableRef ref, typename CT>() mutable {
+      constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
+      if constexpr (pos == -1) {
+        idx.emplace_back(o2::aod::label<ref>(), IndexKind::IdxSelf, pos);
+      } else {
+        idx.emplace_back(o2::aod::label<ref>(), getIndexKind<CT>(), pos);
+      }
+    }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>::type>(), ...);
+  }(std::make_index_sequence<framework::pack_size(indices{})>());;
+  return idx;
 }
 
 template <soa::with_sources T>
@@ -170,8 +217,8 @@ constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec
 template <soa::with_index_pack T>
 constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
 {
-
-  return {};
+  auto map = getIndexMapping<T>();
+  return {framework::ConfigParamSpec{"index-records", framework::VariantType::String, framework::serializeIndexRecords(map), {"\"\""}}};
 }
 
 template <typename T>
@@ -193,6 +240,8 @@ constexpr auto tableRef2InputSpec()
   metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
   auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), p.begin(), p.end());
+  auto idx = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), idx.begin(), idx.end());
   if constexpr (!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     metadata.emplace_back(framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()), {"\"\""}});
   }

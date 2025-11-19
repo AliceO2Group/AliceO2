@@ -142,6 +142,7 @@ o2_add_library(Framework
                        src/Variant.cxx
                        src/VariantJSONHelpers.cxx
                        src/ExpressionJSONHelpers.cxx
+		       src/IndexJSONHelpers.cxx
                        src/VariantPropertyTreeHelpers.cxx
                        src/WorkflowCustomizationHelpers.cxx
                        src/WorkflowHelpers.cxx

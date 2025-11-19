@@ -18,10 +18,13 @@
 #include "Framework/CallbackService.h"
 #include "Framework/DataSpecUtils.h"
 #include "../src/ExpressionJSONHelpers.h"
+#include "../src/IndexJSONHelpers.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/AnalysisContext.h"
 
 namespace o2::framework::readers
+{
+namespace
 {
 template <size_t N, std::array<soa::TableRef, N> refs>
 static inline auto extractOriginals(ProcessingContext& pc)
@@ -30,8 +33,7 @@ static inline auto extractOriginals(ProcessingContext& pc)
     return {pc.inputs().get<TableConsumer>(o2::aod::label<refs[Is]>())->asArrowTable()...};
   }(std::make_index_sequence<refs.size()>());
 }
-namespace
-{
+
 template <typename D>
   requires(D::exclusive)
 auto make_build(D metadata, InputSpec const& input, ProcessingContext& pc)
@@ -58,16 +60,39 @@ auto make_build(D metadata, InputSpec const& input, ProcessingContext& pc)
                                                                                                         index_pack_t{});
 }
 
+static inline auto extractSources(ProcessingContext& pc, std::vector<std::string> const& labels)
+{
+  std::vector<std::shared_ptr<arrow::Table>> tables;
+  for (auto const& label : labels) {
+    tables.emplace_back(pc.inputs().get<TableConsumer>(label.c_str())->asArrowTable());
+  }
+  return tables;
+}
+
 struct Builder {
+  std::string binding;
+  std::vector<std::string> labels;
+  std::vector<o2::soa::IndexRecord> records;
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType version;
+
+  std::shared_ptr<arrow::Table> build(ProcessingContext& pc) const
+  {
+    std::shared_ptr<arrow::Table> result;
+    auto tables = extractSources(pc, labels);
+    return result;
+  }
 
 };
 
 struct Buildable {
   std::string binding;
-
+  std::vector<std::string> labels;
   header::DataOrigin origin;
   header::DataDescription description;
   header::DataHeader::SubSpecificationType version;
+  std::vector<o2::soa::IndexRecord> records;
 
   Buildable(InputSpec const& spec)
     : binding{spec.binding}
@@ -77,14 +102,25 @@ struct Buildable {
     description = description_;
     version = version_;
 
-    // The following components are needed to build an index table
-    // 1. the labels of the source tables to extract from inputRecord -> extracted from input metadata
-    // 2. the mapping, in the order of the definition of columns, of the
-    //    position in each source table of an index column pointing to the Key
-    //    and the types of index to write (self, single-valued, slice or array)
-    // the mapping has to be created at the point where the type information is available and
-    // put into the input spec metadata as a vector of (type, label, pos)
+    auto loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps) { return cps.name.compare("index-records") == 0; });
+    std::stringstream iws(loc->defaultValue.get<std::string>());
+    records = IndexJSONHelpers::read(iws);
 
+    for (auto const& r : records) {
+      labels.emplace_back(r.label);
+    }
+  }
+
+  Builder createBuilder() const
+  {
+    return Builder{
+      binding,
+      labels,
+      records,
+      origin,
+      description,
+      version
+    };
   }
 
 };
@@ -132,21 +168,6 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(ConfigContext const& ctx)
 
 namespace
 {
-template <o2::aod::is_aod_hash D>
-auto make_spawn(InputSpec const& input, ProcessingContext& pc)
-{
-  using metadata_t = o2::aod::MetadataTrait<D>::metadata;
-  constexpr auto sources = metadata_t::sources;
-  static std::shared_ptr<gandiva::Projector> projector = nullptr;
-  static std::shared_ptr<arrow::Schema> schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(typename metadata_t::expression_pack_t{}));
-  static auto projectors = []<typename... C>(framework::pack<C...>) -> std::array<expressions::Projector, sizeof...(C)>
-  {
-    return {{std::move(C::Projector())...}};
-  }
-  (typename metadata_t::expression_pack_t{});
-  return o2::framework::spawner<D>(extractOriginals<sources.size(), sources>(pc), input.binding.c_str(), projectors.data(), projector, schema);
-}
-
 struct Maker {
   std::string binding;
   std::vector<std::string> labels;
