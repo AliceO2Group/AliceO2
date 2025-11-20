@@ -147,7 +147,7 @@ struct StaticSequenceAllocator {
   StaticSequenceAllocator() = delete;
 
   template <typename... Targs>
-  StaticSequenceAllocator(Targs... args)
+  explicit StaticSequenceAllocator(Targs... args)
   {
     bufferSize = sequenceLength(args...);
     buffer = std::make_unique<value_type[]>(bufferSize);

@@ -29,7 +29,7 @@ struct Header {
   unsigned identifier = 0xdeadbeef;
   size_t payloadSize = 0;
 
-  Header(size_t ps) : payloadSize(ps) {}
+  explicit Header(size_t ps) : payloadSize(ps) {}
 };
 
 // trailer test class
@@ -37,7 +37,7 @@ struct Trailer {
   unsigned identifier = 0xaaffee00;
   unsigned char flags = 0xaa;
 
-  Trailer(unsigned char f) : flags(f) {}
+  explicit Trailer(unsigned char f) : flags(f) {}
 };
 
 // trailer test class including payload size

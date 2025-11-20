@@ -31,7 +31,7 @@ struct PageHeader {
   uint32_t magic = 0x45474150;
   uint32_t pageid;
 
-  PageHeader(uint32_t id) : pageid(id) {}
+  explicit PageHeader(uint32_t id) : pageid(id) {}
 };
 
 struct ClusterData {
