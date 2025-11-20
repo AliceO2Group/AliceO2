@@ -44,7 +44,6 @@ struct SelfIndexColumnBuilder {
   SelfIndexColumnBuilder(const char* name, arrow::MemoryPool* pool);
   virtual ~SelfIndexColumnBuilder() = default;
 
-  template <typename C>
   inline std::shared_ptr<arrow::ChunkedArray> result() const
   {
     std::shared_ptr<arrow::Array> array;
@@ -56,13 +55,12 @@ struct SelfIndexColumnBuilder {
     return std::make_shared<arrow::ChunkedArray>(array);
   }
   std::shared_ptr<arrow::Field> field() const;
-  template <typename C>
+
   inline bool find(int)
   {
     return true;
   }
 
-  template <typename C>
   inline void fill(int idx)
   {
     (void)static_cast<arrow::Int32Builder*>(mBuilder.get())->Append(idx);
@@ -79,37 +77,34 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> source, const char* name, int listSize, arrow::MemoryPool* pool);
   ~IndexColumnBuilder() override = default;
 
-  template <typename C>
   inline std::shared_ptr<arrow::ChunkedArray> result() const
   {
-    if constexpr (std::same_as<typename C::type, std::vector<int>>) {
+    if (mListSize == -1) {
       return resultMulti();
-    } else if constexpr (std::same_as<typename C::type, int[2]>) {
+    } else if (mListSize == 2) {
       return resultSlice();
     } else {
       return resultSingle();
     }
   }
 
-  template <typename C>
   inline bool find(int idx)
   {
-    if constexpr (std::same_as<typename C::type, std::vector<int>>) {
+    if (mListSize == -1) {
       return findMulti(idx);
-    } else if constexpr (std::same_as<typename C::type, int[2]>) {
+    } else if (mListSize == 2) {
       return findSlice(idx);
     } else {
       return findSingle(idx);
     }
   }
 
-  template <typename C>
   inline void fill(int idx)
   {
     ++mResultSize;
-    if constexpr (std::same_as<typename C::type, std::vector<int>>) {
+    if (mListSize == -1) {
       fillMulti(idx);
-    } else if constexpr (std::same_as<typename C::type, int[2]>) {
+    } else if (mListSize == 2) {
       fillSlice(idx);
     } else {
       fillSingle(idx);

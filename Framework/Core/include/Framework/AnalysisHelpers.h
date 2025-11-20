@@ -38,9 +38,110 @@ enum struct IndexKind : int {
 
 struct IndexRecord {
   std::string label;
+  std::string columnLabel;
   IndexKind kind;
   int pos;
   auto operator<=>(const IndexRecord&) const = default;
+};
+
+namespace
+{
+inline constexpr int listSize(soa::IndexKind kind)
+{
+  switch (kind) {
+    case soa::IndexKind::IdxSingle:
+      return 1;
+      break;
+    case soa::IndexKind::IdxSlice:
+      return 2;
+      break;
+    case soa::IndexKind::IdxArray:
+      return -1;
+      break;
+    default:
+      return -2;
+      break;
+  }
+}
+}  // namespace
+
+struct IndexBuilder {
+  template <bool Exclusive>
+  static auto materialize(const char* label, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records)
+  {
+    auto pool = arrow::default_memory_pool();
+    std::vector<std::shared_ptr<framework::SelfIndexColumnBuilder>> builders;
+    framework::SelfIndexColumnBuilder self{records[0].columnLabel.c_str(), pool};
+    std::unique_ptr<framework::ChunkedArrayIterator> keyIndex = nullptr;
+    if (records[0].kind != soa::IndexKind::IdxSelf) {
+      keyIndex = std::make_unique<framework::ChunkedArrayIterator>(tables[0]->column(records[0].pos));
+    }
+
+    for (auto i = 1U; i < records.size(); ++i) {
+      if (records[i].kind == soa::IndexKind::IdxSelf) {
+        builders.emplace_back(std::make_shared<framework::SelfIndexColumnBuilder>(records[i].columnLabel.c_str(), pool));
+      } else {
+        builders.emplace_back(std::make_shared<framework::IndexColumnBuilder>(tables[i]->column(records[i].pos), records[i].columnLabel.c_str(), listSize(records[i].kind), pool));
+      }
+    }
+
+    std::vector<bool> finds;
+    finds.resize(builders.size());
+    for (int64_t counter = 0; counter < tables[0]->num_rows(); ++counter) {
+      int64_t idx = -1;
+      if (keyIndex == nullptr) {
+        idx = counter;
+      } else {
+        idx = keyIndex->valueAt(counter);
+      }
+      for (auto i = 0U; i < builders.size(); ++i) {
+        if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+          finds[i] = builders[i]->find(idx);
+        } else {
+          finds[i] = std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->find(idx);
+        }
+      }
+      if constexpr (Exclusive) {
+        if (std::none_of(finds.begin(), finds.end(), [](bool const x) { return x == false; })) {
+          for (auto i = 0U; i < builders.size(); ++i) {
+            if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+              builders[i]->fill(idx);
+            } else {
+              std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->fill(idx);
+            }
+          }
+          self.fill(counter);
+        }
+      } else {
+        for (auto i = 0U; i < builders.size(); ++i) {
+          if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+            builders[i]->fill(idx);
+          } else {
+            std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->fill(idx);
+          }
+        }
+        self.fill(counter);
+      }
+    }
+
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
+    arrays.reserve(records.size());
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    fields.reserve(records.size());
+    arrays.push_back(self.result());
+    fields.push_back(self.field());
+    for (auto i = 0U; i < builders.size(); ++i) {
+      if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+        arrays.push_back(builders[i]->result());
+        fields.push_back(builders[i]->field());
+      } else {
+        arrays.push_back(std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->result());
+        fields.push_back(std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->field());
+      }
+    }
+
+    return framework::makeArrowTable(label, std::move(arrays), std::move(fields));
+  }
 };
 } // namespace o2::soa
 
@@ -49,6 +150,66 @@ namespace o2::framework
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
 std::string serializeSchema(std::shared_ptr<arrow::Schema> schema);
 std::string serializeIndexRecords(std::vector<o2::soa::IndexRecord>& irs);
+
+struct Spawner {
+  std::string binding;
+  std::vector<std::string> labels;
+  std::vector<std::shared_ptr<gandiva::Expression>> expressions;
+  std::shared_ptr<gandiva::Projector> projector = nullptr;
+  std::shared_ptr<arrow::Schema> schema = nullptr;
+  std::shared_ptr<arrow::Schema> inputSchema = nullptr;
+
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType version;
+
+  std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc) const
+  {
+    std::vector<std::shared_ptr<arrow::Table>> originals;
+    for (auto const& label : labels) {
+      originals.push_back(pc.inputs().get<TableConsumer>(label)->asArrowTable());
+    }
+    auto fullTable = soa::ArrowHelpers::joinTables(std::move(originals), std::span{labels.begin(), labels.size()});
+    if (fullTable->num_rows() == 0) {
+      return arrow::Table::MakeEmpty(schema).ValueOrDie();
+    }
+
+    return spawnerHelper(fullTable, schema, binding.c_str(), schema->num_fields(), projector);
+  }
+};
+
+namespace {
+static inline auto extractSources(ProcessingContext& pc, std::vector<std::string> const& labels)
+{
+  std::vector<std::shared_ptr<arrow::Table>> tables;
+  for (auto const& label : labels) {
+    tables.emplace_back(pc.inputs().get<TableConsumer>(label.c_str())->asArrowTable());
+  }
+  return tables;
+}
+}
+
+struct Builder {
+  bool exclusive;
+  std::string binding;
+  std::vector<std::string> labels;
+  std::vector<o2::soa::IndexRecord> records;
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType version;
+
+  std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc) const
+  {
+    std::shared_ptr<arrow::Table> result;
+    auto tables = extractSources(pc, labels);
+    if (exclusive) {
+      result = o2::soa::IndexBuilder::materialize<true>(binding.c_str(), std::move(tables), records);
+    } else {
+      result = o2::soa::IndexBuilder::materialize<false>(binding.c_str(), std::move(tables), records);
+    }
+    return result;
+  }
+};
 }  // namespace o2::framework
 
 namespace o2::soa
@@ -137,14 +298,14 @@ inline constexpr auto getIndexMapping()
   using Key = T::Key;
   [&idx]<size_t... Is>(std::index_sequence<Is...>) mutable {
     constexpr auto refs = T::sources;
-    ([&idx]<TableRef ref, typename CT>() mutable {
+    ([&idx]<TableRef ref, typename C>() mutable {
       constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
       if constexpr (pos == -1) {
-        idx.emplace_back(o2::aod::label<ref>(), IndexKind::IdxSelf, pos);
+        idx.emplace_back(o2::aod::label<ref>(), C::columnLabel(), IndexKind::IdxSelf, pos);
       } else {
-        idx.emplace_back(o2::aod::label<ref>(), getIndexKind<CT>(), pos);
+        idx.emplace_back(o2::aod::label<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
       }
-    }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>::type>(), ...);
+    }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>>(), ...);
   }(std::make_index_sequence<framework::pack_size(indices{})>());;
   return idx;
 }
@@ -218,7 +379,8 @@ template <soa::with_index_pack T>
 constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   auto map = getIndexMapping<T>();
-  return {framework::ConfigParamSpec{"index-records", framework::VariantType::String, framework::serializeIndexRecords(map), {"\"\""}}};
+  return {framework::ConfigParamSpec{"index-records", framework::VariantType::String, framework::serializeIndexRecords(map), {"\"\""}},
+          {framework::ConfigParamSpec{"index-exclusive", framework::VariantType::Bool, T::exclusive, {"\"\""}}}};
 }
 
 template <typename T>
@@ -581,129 +743,6 @@ struct Exclusive {
 struct Sparse {
 };
 
-namespace
-{
-template <typename T, typename Key>
-inline std::shared_ptr<arrow::ChunkedArray> getIndexToKey(arrow::Table* table)
-{
-  using IC = framework::pack_element_t<framework::has_type_at_conditional_v<soa::is_binding_compatible, Key>(typename T::external_index_columns_t{}), typename T::external_index_columns_t>;
-  return table->column(framework::has_type_at_v<IC>(typename T::persistent_columns_t{}));
-}
-
-template <soa::is_column C>
-struct ColumnTrait {
-  using column_t = C;
-
-  static consteval auto listSize()
-  {
-    if constexpr (std::same_as<typename C::type, std::vector<int>>) {
-      return -1;
-    } else if constexpr (std::same_as<int[2], typename C::type>) {
-      return 2;
-    } else {
-      return 1;
-    }
-  }
-
-  template <typename T, typename Key>
-  static std::shared_ptr<SelfIndexColumnBuilder> makeColumnBuilder(arrow::Table* table, arrow::MemoryPool* pool)
-  {
-    if constexpr (!std::same_as<T, Key>) {
-      return std::make_shared<IndexColumnBuilder>(getIndexToKey<T, Key>(table), C::columnLabel(), listSize(), pool);
-    } else {
-      return std::make_shared<SelfIndexColumnBuilder>(C::columnLabel(), pool);
-    }
-  }
-};
-
-template <typename Key, typename C>
-struct Reduction {
-  using type = typename std::conditional<soa::is_binding_compatible_v<Key, typename C::binding_t>(), SelfIndexColumnBuilder, IndexColumnBuilder>::type;
-};
-
-template <typename Key, typename C>
-using reduced_t = Reduction<Key, C>::type;
-}  // namespace
-
-template <typename Kind>
-struct IndexBuilder {
-  template <typename Key, size_t N, std::array<soa::TableRef, N> refs, typename C1, typename... Cs>
-  static auto indexBuilder(const char* label, std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::pack<C1, Cs...>)
-  {
-    auto pool = arrow::default_memory_pool();
-    SelfIndexColumnBuilder self{C1::columnLabel(), pool};
-    std::unique_ptr<ChunkedArrayIterator> keyIndex = nullptr;
-    if constexpr (!Key::template hasOriginal<refs[0]>()) {
-      keyIndex = std::make_unique<ChunkedArrayIterator>(tables[0]->column(o2::aod::MetadataTrait<o2::aod::Hash<refs[0].desc_hash>>::metadata::template getIndexPosToKey<Key>()));
-    }
-
-    auto sq = std::make_index_sequence<sizeof...(Cs)>();
-
-    auto columnBuilders = [&tables, &pool ]<size_t... Is>(std::index_sequence<Is...>) -> std::array<std::shared_ptr<framework::SelfIndexColumnBuilder>, sizeof...(Cs)>
-    {
-      return {[](arrow::Table* table, arrow::MemoryPool* pool) {
-        using T = framework::pack_element_t<Is, framework::pack<Cs...>>;
-        if constexpr (!Key::template hasOriginal<refs[Is + 1]>()) {
-          constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<refs[Is + 1].desc_hash>>::metadata::template getIndexPosToKey<Key>();
-          return std::make_shared<IndexColumnBuilder>(table->column(pos), T::columnLabel(), ColumnTrait<T>::listSize(), pool);
-        } else {
-          return std::make_shared<SelfIndexColumnBuilder>(T::columnLabel(), pool);
-        }
-      }(tables[Is + 1].get(), pool)...};
-    }
-    (sq);
-
-    std::array<bool, sizeof...(Cs)> finds;
-
-    for (int64_t counter = 0; counter < tables[0]->num_rows(); ++counter) {
-      int64_t idx = -1;
-      if constexpr (Key::template hasOriginal<refs[0]>()) {
-        idx = counter;
-      } else {
-        idx = keyIndex->valueAt(counter);
-      }
-      finds = [&idx, &columnBuilders]<size_t... Is>(std::index_sequence<Is...>) {
-        return std::array{
-          [&idx, &columnBuilders]() {
-            using T = typename framework::pack_element_t<Is, framework::pack<Cs...>>;
-            return std::static_pointer_cast<reduced_t<Key, T>>(columnBuilders[Is])->template find<T>(idx);
-          }()...};
-      }(sq);
-      if constexpr (std::same_as<Kind, Sparse>) {
-        [&idx, &columnBuilders]<size_t... Is>(std::index_sequence<Is...>) {
-          ([&idx, &columnBuilders]() {
-            using T = typename framework::pack_element_t<Is, framework::pack<Cs...>>;
-            return std::static_pointer_cast<reduced_t<Key, T>>(columnBuilders[Is])->template fill<T>(idx); }(), ...);
-        }(sq);
-        self.fill<C1>(counter);
-      } else if constexpr (std::same_as<Kind, Exclusive>) {
-        if (std::none_of(finds.begin(), finds.end(), [](bool const x) { return x == false; })) {
-          [&idx, &columnBuilders]<size_t... Is>(std::index_sequence<Is...>) {
-            ([&idx, &columnBuilders]() {
-              using T = typename framework::pack_element_t<Is, framework::pack<Cs...>>;
-              return std::static_pointer_cast<reduced_t<Key, T>>(columnBuilders[Is])->template fill<T>(idx);
-            }(),
-             ...);
-          }(sq);
-          self.fill<C1>(counter);
-        }
-      }
-    }
-
-    return [&label, &columnBuilders, &self]<size_t... Is>(std::index_sequence<Is...>) {
-      return makeArrowTable(label,
-                            {self.template result<C1>(), [&columnBuilders]() {
-                               using T = typename framework::pack_element_t<Is, framework::pack<Cs...>>;
-                               return std::static_pointer_cast<reduced_t<Key, T>>(columnBuilders[Is])->template result<T>();
-                             }()...},
-                            {self.field(), [&columnBuilders]() {
-                               using T = typename framework::pack_element_t<Is, framework::pack<Cs...>>;
-                               return std::static_pointer_cast<reduced_t<Key, T>>(columnBuilders[Is])->field();
-                             }()...});
-    }(sq);
-  }
-};
-
 /// This helper struct allows you to declare index tables to be created in a task
 
 template <soa::is_index_table T>
@@ -717,11 +756,12 @@ template <soa::is_index_table T>
 struct Builds : decltype(transformBase<T>()) {
   using buildable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
-  using IP = std::conditional_t<metadata::exclusive, IndexBuilder<Exclusive>, IndexBuilder<Sparse>>;
   using Key = metadata::Key;
   using H = typename T::first_t;
   using Ts = typename T::rest_t;
   using index_pack_t = metadata::index_pack_t;
+
+  std::vector<soa::IndexRecord> map;
 
   T* operator->()
   {
@@ -743,10 +783,12 @@ struct Builds : decltype(transformBase<T>()) {
     return index_pack_t{};
   }
 
-  template <typename Key, typename... Cs>
-  auto build(framework::pack<Cs...>, std::vector<std::shared_ptr<arrow::Table>>&& tables)
+  auto build(std::vector<std::shared_ptr<arrow::Table>>&& tables)
   {
-    this->table = std::make_shared<T>(IP::template indexBuilder<Key, metadata::sources.size(), metadata::sources>(o2::aod::label<T::ref>(), std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables), framework::pack<Cs...>{}));
+    if (map.empty()) {
+      map = soa::getIndexMapping<metadata>();
+    }
+    this->table = std::make_shared<T>(soa::IndexBuilder::materialize<metadata::exclusive>(o2::aod::label<T::ref>(), std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables), map));
     return (this->table != nullptr);
   }
 };

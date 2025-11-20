@@ -12,7 +12,6 @@
 #include "Framework/AnalysisDataModel.h"
 #include "../src/IndexJSONHelpers.h"
 #include <catch_amalgamated.hpp>
-#include <iostream>
 
 using namespace o2::framework;
 using namespace arrow;
@@ -103,8 +102,8 @@ TEST_CASE("TestIndexBuilder")
   auto t4 = b4.finalize();
   Categorys st4{t4};
 
-  using m1 = MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata;
-  auto t5 = IndexBuilder<Exclusive>::indexBuilder<Points, m1::sources.size(), m1::sources>("test1a", {t1, t2, t3, t4}, typename IDXs::persistent_columns_t{});
+  auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata>();
+  auto t5 = IndexBuilder::materialize<true>("test1a", {t1, t2, t3, t4}, map);
   REQUIRE(t5->num_rows() == 4);
   IDXs idxt{t5};
   idxt.bindExternalIndices(&st1, &st2, &st3, &st4);
@@ -114,8 +113,8 @@ TEST_CASE("TestIndexBuilder")
     REQUIRE(row.category().pointId() == row.pointId());
   }
 
-  using m2 = MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata;
-  auto t6 = IndexBuilder<Sparse>::indexBuilder<Points, m2::sources.size(), m2::sources>("test3", {t2, t1, t3, t4}, typename IDX2s::persistent_columns_t{});
+  map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata>();
+  auto t6 = IndexBuilder::materialize<false>("test2", {t2, t1, t3, t4}, map);
   REQUIRE(t6->num_rows() == st2.size());
   IDX2s idxs{t6};
   std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
@@ -213,8 +212,8 @@ TEST_CASE("AdvancedIndexTables")
                                                    {14, 34},
                                                    {8, 31, 42, 46, 58}}};
 
-  using m3 = MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata;
-  auto t3 = IndexBuilder<Sparse>::indexBuilder<Points, m3::sources.size(), m3::sources>("test4", {t1, t2, tc}, typename IDX3s::persistent_columns_t{});
+  auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata>();
+  auto t3 = IndexBuilder::materialize<false>("test3", {t1, t2, tc}, map);
   REQUIRE(t3->num_rows() == st1.size());
   IDX3s idxs{t3};
   idxs.bindExternalIndices(&st1, &st2, &st3);

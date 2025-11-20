@@ -1348,4 +1348,20 @@ OpNode Parser::opFromToken(std::string const& token)
   return OpNode{static_cast<BasicOp>(std::distance(mapping.begin(), locate))};
 }
 
+std::vector<std::shared_ptr<gandiva::Expression>> materializeProjectors(std::vector<expressions::Projector> const& projectors, std::shared_ptr<arrow::Schema> const& inputSchema, std::vector<std::shared_ptr<arrow::Field>> outputFields)
+{
+  std::vector<std::shared_ptr<gandiva::Expression>> expressions;
+  int i = 0;
+  for (auto& p : projectors) {
+    expressions.push_back(
+      expressions::makeExpression(
+        expressions::createExpressionTree(
+          expressions::createOperations(p),
+          inputSchema),
+        outputFields[i]));
+    ++i;
+  }
+  return expressions;
+}
+
 } // namespace o2::framework::expressions

@@ -308,7 +308,7 @@ template <is_builds T>
 bool prepareOutput(ProcessingContext& context, T& builds)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::buildable_t::ref.desc_hash>>::metadata;
-  return builds.template build<typename T::buildable_t::indexing_t>(builds.pack(), extractOriginals<metadata::sources.size(), metadata::sources>(context));
+  return builds.build(extractOriginals<metadata::sources.size(), metadata::sources>(context));
 }
 
 template <is_defines T>
