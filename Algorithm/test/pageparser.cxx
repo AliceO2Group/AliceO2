@@ -21,6 +21,8 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <memory>
+#include <utility>
 #include "Headers/DataHeader.h" // hexdump
 #include "../include/Algorithm/PageParser.h"
 #include "StaticSequenceAllocator.h"

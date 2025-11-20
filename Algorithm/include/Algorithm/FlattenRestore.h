@@ -18,6 +18,7 @@
 /// @brief  Utilities to copy complex objects to flat buffer and restore
 
 #include <type_traits>
+#include <utility>
 
 namespace o2::algorithm
 {

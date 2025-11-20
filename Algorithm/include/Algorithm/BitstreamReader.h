@@ -19,6 +19,8 @@
 
 #include <type_traits>
 #include <bitset>
+#include <utility>
+#include <string>
 
 namespace o2
 {

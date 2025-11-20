@@ -23,6 +23,7 @@
 #include <array>
 #include <vector>
 #include <bitset>
+#include <string>
 #include "../include/Algorithm/BitstreamReader.h"
 
 namespace o2

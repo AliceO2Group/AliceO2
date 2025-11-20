@@ -21,6 +21,7 @@
 #include "../include/Algorithm/FlattenRestore.h"
 #include <vector>
 #include <algorithm>
+#include <cstdlib>
 
 namespace flatten = o2::algorithm::flatten;
 

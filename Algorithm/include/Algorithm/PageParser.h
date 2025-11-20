@@ -22,6 +22,8 @@
 #include <cassert>
 #include <type_traits>
 #include <stdexcept>
+#include <set>
+#include <algorithm>
 
 namespace o2
 {

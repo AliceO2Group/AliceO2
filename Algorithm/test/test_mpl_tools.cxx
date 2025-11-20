@@ -33,6 +33,7 @@
 #include <iomanip>
 #include <vector>
 #include <type_traits>
+#include <cstdint>
 
 // FIXME: mpl/string.hpp required to be included to avoid compilation error
 // error: no matching function for call to ‘assertion_failed ...' in the mpl::for_each
@@ -42,7 +43,7 @@
 namespace bmpl = boost::mpl;
 
 // defining a list of known data types
-using knowntypes = bmpl::vector<float, double, long double, short, long>;
+using knowntypes = bmpl::vector<float, double, long double, int16_t, int64_t>;
 
 // get the index of an element in a type sequence
 template <typename Iterator, typename End, typename Element, typename T, int Count = 0>
@@ -132,7 +133,7 @@ struct checktype {
 
 BOOST_AUTO_TEST_CASE(test_mpl_fold)
 {
-  using types = bmpl::vector<long, float, short, double, float, long, long double>;
+  using types = bmpl::vector<int64_t, float, int16_t, double, float, int64_t, long double>;
   std::cout << std::endl
             << "checking types:" << std::endl;
   bmpl::for_each<types>(checktype());

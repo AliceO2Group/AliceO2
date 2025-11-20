@@ -14,6 +14,8 @@
 /// @since  2017-09-21
 /// @brief  An allocator for static sequences of object types
 
+#include <memory>
+
 namespace o2
 {
 namespace algorithm

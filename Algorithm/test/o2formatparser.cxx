@@ -21,6 +21,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cstring>              // memcmp
+#include <vector>
 #include "Headers/DataHeader.h" // hexdump, DataHeader
 #include "../include/Algorithm/O2FormatParser.h"
 

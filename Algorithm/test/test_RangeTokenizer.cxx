@@ -21,6 +21,8 @@
 #include "../include/Algorithm/RangeTokenizer.h"
 #include <vector>
 #include <map>
+#include <string>
+#include <utility>
 
 using RangeTokenizer = o2::RangeTokenizer;
 
