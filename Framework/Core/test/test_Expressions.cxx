@@ -12,6 +12,7 @@
 #include "Framework/Configurable.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/AnalysisDataModel.h"
+#include "../src/ExpressionJSONHelpers.h"
 #include <catch_amalgamated.hpp>
 #include <arrow/util/config.h>
 #include <iostream>
@@ -390,4 +391,67 @@ TEST_CASE("TestStringExpressionsParsing")
   auto tree2c = createExpressionTree(pcfg2specs, schema);
 
   REQUIRE(tree1c->ToString() == tree2c->ToString());
+}
+
+TEST_CASE("TestExpressionSerialization")
+{
+  Filter f = o2::aod::track::signed1Pt > 0.f && ifnode(nabs(o2::aod::track::eta) < 1.0f, nabs(o2::aod::track::x) > 2.0f, nabs(o2::aod::track::y) > 3.0f);
+  Projector p = -1.f * nlog(ntan(o2::constants::math::PIQuarter - 0.5f * natan(o2::aod::fwdtrack::tgl)));
+  Projector p1 = ifnode(o2::aod::track::itsClusterSizes > (uint32_t)0, static_cast<uint8_t>(o2::aod::track::ITS), (uint8_t)0x0) |
+                 ifnode(o2::aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
+                 ifnode(o2::aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
+                 ifnode((o2::aod::track::tofChi2 >= 0.f) && (o2::aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0);
+
+  std::vector<Projector> projectors;
+  projectors.emplace_back(std::move(f));
+  projectors.emplace_back(std::move(p));
+  projectors.emplace_back(std::move(p1));
+
+  std::stringstream osm;
+  ExpressionJSONHelpers::write(osm, projectors);
+
+  std::stringstream ism;
+  ism.str(osm.str());
+  auto ps = ExpressionJSONHelpers::read(ism);
+
+  auto s1 = createOperations(projectors[0]);
+  auto s2 = createOperations(ps[0]);
+  auto schemaf = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::Eta::asArrowField(), o2::aod::track::Signed1Pt::asArrowField(), o2::aod::track::X::asArrowField(), o2::aod::track::Y::asArrowField()});
+  auto t1 = createExpressionTree(s1, schemaf);
+  auto t2 = createExpressionTree(s2, schemaf);
+  REQUIRE(t1->ToString() == t2->ToString());
+
+  auto s12 = createOperations(projectors[1]);
+  auto s22 = createOperations(ps[1]);
+  auto schemap = std::make_shared<arrow::Schema>(std::vector{o2::aod::fwdtrack::Tgl::asArrowField()});
+  auto t12 = createExpressionTree(s12, schemap);
+  auto t22 = createExpressionTree(s22, schemap);
+  REQUIRE(t12->ToString() == t22->ToString());
+
+  auto s13 = createOperations(projectors[2]);
+  auto s23 = createOperations(ps[2]);
+  auto schemap1 = std::make_shared<arrow::Schema>(std::vector{o2::aod::track::ITSClusterSizes::asArrowField(), o2::aod::track::TPCNClsFindable::asArrowField(),
+                                                              o2::aod::track::TRDPattern::asArrowField(), o2::aod::track::TOFChi2::asArrowField(),
+                                                              o2::aod::track::TOFExpMom::asArrowField()});
+  auto t13 = createExpressionTree(s13, schemap1);
+  auto t23 = createExpressionTree(s23, schemap1);
+  REQUIRE(t13->ToString() == t23->ToString());
+
+  osm.clear();
+  osm.str("");
+  ArrowJSONHelpers::write(osm, schemaf);
+
+  ism.clear();
+  ism.str(osm.str());
+  auto newSchemaf = ArrowJSONHelpers::read(ism);
+  REQUIRE(schemaf->ToString() == newSchemaf->ToString());
+
+  osm.clear();
+  osm.str("");
+  ArrowJSONHelpers::write(osm, schemap);
+
+  ism.clear();
+  ism.str(osm.str());
+  auto newSchemap = ArrowJSONHelpers::read(ism);
+  REQUIRE(schemap->ToString() == newSchemap->ToString());
 }

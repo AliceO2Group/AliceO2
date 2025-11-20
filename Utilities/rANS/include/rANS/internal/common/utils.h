@@ -152,11 +152,11 @@ inline uint32_t safeadd(uint32_t a, uint32_t b)
 
 } // namespace internal
 
-inline constexpr std::uint8_t operator"" _u8(unsigned long long int value) { return static_cast<uint8_t>(value); };
-inline constexpr std::int8_t operator"" _i8(unsigned long long int value) { return static_cast<int8_t>(value); };
+inline constexpr std::uint8_t operator""_u8(unsigned long long int value) { return static_cast<uint8_t>(value); };
+inline constexpr std::int8_t operator""_i8(unsigned long long int value) { return static_cast<int8_t>(value); };
 
-inline constexpr std::uint16_t operator"" _u16(unsigned long long int value) { return static_cast<uint16_t>(value); };
-inline constexpr std::int16_t operator"" _i16(unsigned long long int value) { return static_cast<int16_t>(value); };
+inline constexpr std::uint16_t operator""_u16(unsigned long long int value) { return static_cast<uint16_t>(value); };
+inline constexpr std::int16_t operator""_i16(unsigned long long int value) { return static_cast<int16_t>(value); };
 
 namespace utils
 {

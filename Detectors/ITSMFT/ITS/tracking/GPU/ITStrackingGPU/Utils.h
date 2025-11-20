@@ -313,7 +313,7 @@ struct TypedAllocator {
 
   pointer allocate(size_type n)
   {
-    void* raw = mInternalAllocator->allocate(n * sizeof(T));
+    void* raw = mInternalAllocator->allocateStack(n * sizeof(T));
     return thrust::device_pointer_cast(static_cast<T*>(raw));
   }
 

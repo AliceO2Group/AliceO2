@@ -15,23 +15,17 @@
 #ifndef GPUO2INTERFACECONFIGURATION_H
 #define GPUO2INTERFACECONFIGURATION_H
 
-#ifndef GPUCA_TPC_GEOMETRY_O2
-#define GPUCA_TPC_GEOMETRY_O2
-#endif
-#ifndef GPUCA_O2_INTERFACE
-#define GPUCA_O2_INTERFACE
-#endif
-
-#include <memory>
-#include <array>
-#include <vector>
-#include <functional>
-#include <gsl/gsl>
+#include "GPUO2ExternalUser.h"
 #include "GPUSettings.h"
 #include "GPUDataTypes.h"
 #include "GPUHostDataTypes.h"
 #include "GPUOutputControl.h"
 #include "DataFormatsTPC/Constants.h"
+#include <memory>
+#include <array>
+#include <vector>
+#include <functional>
+#include <gsl/gsl> // TODO: Get rid of gsl
 
 class TH1F;
 class TH1D;

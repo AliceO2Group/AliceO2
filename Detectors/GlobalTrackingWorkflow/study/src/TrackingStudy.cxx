@@ -44,7 +44,7 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "GPUO2InterfaceRefit.h"
-#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#include "GPUO2ExternalUser.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.h"
 #include "GPUParam.inc"
 #include "GPUTPCGeometry.h"

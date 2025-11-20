@@ -74,7 +74,7 @@ inline void GPUReconstructionCUDA::runKernelBackend(const krnlSetupTime& _xyz, c
 }
 
 #undef GPUCA_KRNL_REG
-#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
+#define GPUCA_KRNL_REG(...) GPUCA_KRNL_REG_DEFAULT(__VA_ARGS__)
 
 // clang-format off
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE != 1 // ---------- COMPILE_MODE = perkernel ----------

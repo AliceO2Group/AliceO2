@@ -12,13 +12,16 @@
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/AnalysisDataModelHelpers.h"
-#include "Framework/DataProcessingHelpers.h"
 #include "Framework/ExpressionHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/DataSpecUtils.h"
+#include "ExpressionJSONHelpers.h"
+#include "Framework/ConfigContext.h"
+#include "Framework/AnalysisContext.h"
 
 #include <Monitoring/Monitoring.h>
 
@@ -42,28 +45,6 @@ auto setEOSCallback(InitContext& ic)
       control.endOfStream();
       control.readyToQuit(QuitRequest::Me);
     });
-}
-
-template <typename... Ts>
-static inline auto doExtractOriginal(framework::pack<Ts...>, ProcessingContext& pc)
-{
-  if constexpr (sizeof...(Ts) == 1) {
-    return pc.inputs().get<TableConsumer>(aod::MetadataTrait<framework::pack_element_t<0, framework::pack<Ts...>>>::metadata::tableLabel())->asArrowTable();
-  } else {
-    return std::vector{pc.inputs().get<TableConsumer>(aod::MetadataTrait<Ts>::metadata::tableLabel())->asArrowTable()...};
-  }
-}
-
-template <typename... Os>
-static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
-{
-  return std::make_tuple(extractTypedOriginal<Os>(pc)...);
-}
-
-template <typename... Os>
-static inline auto extractOriginalsVector(framework::pack<Os...>, ProcessingContext& pc)
-{
-  return std::vector{extractOriginal<Os>(pc)...};
 }
 
 template <size_t N, std::array<soa::TableRef, N> refs>
@@ -156,53 +137,141 @@ auto make_spawn(InputSpec const& input, ProcessingContext& pc)
   (typename metadata_t::expression_pack_t{});
   return o2::framework::spawner<D>(extractOriginals<sources.size(), sources>(pc), input.binding.c_str(), projectors.data(), projector, schema);
 }
+
+struct Maker {
+  std::string binding;
+  std::vector<std::string> labels;
+  std::vector<std::shared_ptr<gandiva::Expression>> expressions;
+  std::shared_ptr<gandiva::Projector> projector = nullptr;
+  std::shared_ptr<arrow::Schema> schema;
+
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType version;
+
+  std::shared_ptr<arrow::Table> make(ProcessingContext& pc)
+  {
+    std::vector<std::shared_ptr<arrow::Table>> originals;
+    for (auto const& label : labels) {
+      originals.push_back(pc.inputs().get<TableConsumer>(label)->asArrowTable());
+    }
+    auto fullTable = soa::ArrowHelpers::joinTables(std::move(originals), std::span{labels.begin(), labels.size()});
+    if (fullTable->num_rows() == 0) {
+      return arrow::Table::MakeEmpty(schema).ValueOrDie();
+    }
+    if (projector == nullptr) {
+      auto s = gandiva::Projector::Make(
+        fullTable->schema(),
+        expressions,
+        &projector);
+      if (!s.ok()) {
+        throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
+      }
+    }
+
+    return spawnerHelper(fullTable, schema, binding.c_str(), schema->num_fields(), projector);
+  }
+};
+
+struct Spawnable {
+  std::string binding;
+  std::vector<std::string> labels;
+  std::vector<expressions::Projector> projectors;
+  std::vector<std::shared_ptr<gandiva::Expression>> expressions;
+  std::shared_ptr<arrow::Schema> outputSchema;
+  std::shared_ptr<arrow::Schema> inputSchema;
+
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType version;
+
+  Spawnable(InputSpec const& spec)
+    : binding{spec.binding}
+  {
+    auto&& [origin_, description_, version_] = DataSpecUtils::asConcreteDataMatcher(spec);
+    origin = origin_;
+    description = description_;
+    version = version_;
+    auto loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps) { return cps.name.compare("projectors") == 0; });
+    std::stringstream iws(loc->defaultValue.get<std::string>());
+    projectors = ExpressionJSONHelpers::read(iws);
+
+    loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps) { return cps.name.compare("schema") == 0; });
+    iws.clear();
+    iws.str(loc->defaultValue.get<std::string>());
+    outputSchema = ArrowJSONHelpers::read(iws);
+
+    for (auto& i : spec.metadata) {
+      if (i.name.starts_with("input:")) {
+        labels.emplace_back(i.name.substr(6));
+      }
+    }
+
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    for (auto& p : projectors) {
+      expressions::walk(p.node.get(),
+                        [&fields](expressions::Node* n) mutable {
+                          if (n->self.index() == 1) {
+                            auto& b = std::get<expressions::BindingNode>(n->self);
+                            if (std::find_if(fields.begin(), fields.end(), [&b](std::shared_ptr<arrow::Field> const& field) { return field->name() == b.name; }) == fields.end()) {
+                              fields.emplace_back(std::make_shared<arrow::Field>(b.name, expressions::concreteArrowType(b.type)));
+                            }
+                          }
+                        });
+    }
+    inputSchema = std::make_shared<arrow::Schema>(fields);
+
+    int i = 0;
+    for (auto& p : projectors) {
+      expressions.push_back(
+        expressions::makeExpression(
+          expressions::createExpressionTree(
+            expressions::createOperations(p),
+            inputSchema),
+          outputSchema->field(i)));
+      ++i;
+    }
+  }
+
+  std::shared_ptr<gandiva::Projector> makeProjector()
+  {
+    return expressions::createProjectorHelper(projectors.size(), projectors.data(), inputSchema, outputSchema->fields());
+  }
+
+  Maker createMaker()
+  {
+    o2::framework::addLabelToSchema(outputSchema, binding.c_str());
+    return {
+      binding,
+      labels,
+      expressions,
+      nullptr,
+      outputSchema,
+      origin,
+      description,
+      version};
+  }
+};
+
 } // namespace
 
-AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& requested)
+AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(/*std::vector<InputSpec>& requested*/ ConfigContext const& ctx)
 {
-  return AlgorithmSpec::InitCallback{[requested](InitContext& /*ic*/) {
-    return [requested](ProcessingContext& pc) {
+  auto& ac = ctx.services().get<AnalysisContext>();
+  return AlgorithmSpec::InitCallback{[requested = ac.spawnerInputs](InitContext& /*ic*/) {
+    std::vector<Spawnable> spawnables;
+    for (auto& i : requested) {
+      spawnables.emplace_back(i);
+    }
+    std::vector<Maker> makers;
+    for (auto& s : spawnables) {
+      makers.push_back(s.createMaker());
+    }
+
+    return [makers](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
-      // spawn tables
-      for (auto& input : requested) {
-        auto&& [origin, description, version] = DataSpecUtils::asConcreteDataMatcher(input);
-        if (description == header::DataDescription{"EXTRACK"}) {
-          outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXTRACK/0"_h>>(input, pc));
-        } else if (description == header::DataDescription{"EXTRACK_IU"}) {
-          outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXTRACK_IU/0"_h>>(input, pc));
-        } else if (description == header::DataDescription{"EXTRACKCOV"}) {
-          outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXTRACKCOV/0"_h>>(input, pc));
-        } else if (description == header::DataDescription{"EXTRACKCOV_IU"}) {
-          outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXTRACKCOV_IU/0"_h>>(input, pc));
-        } else if (description == header::DataDescription{"EXTRACKEXTRA"}) {
-          if (version == 0U) {
-            outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXTRACKEXTRA/0"_h>>(input, pc));
-          } else if (version == 1U) {
-            outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXTRACKEXTRA/1"_h>>(input, pc));
-          } else if (version == 2U) {
-            outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXTRACKEXTRA/2"_h>>(input, pc));
-          }
-        } else if (description == header::DataDescription{"EXMFTTRACK"}) {
-          if (version == 0U) {
-            outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXMFTTRACK/0"_h>>(input, pc));
-          } else if (version == 1U) {
-            outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXMFTTRACK/1"_h>>(input, pc));
-          }
-        } else if (description == header::DataDescription{"EXMFTTRACKCOV"}) {
-          outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXMFTTRACKCOV/0"_h>>(input, pc));
-        } else if (description == header::DataDescription{"EXFWDTRACK"}) {
-          outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXFWDTRACK/0"_h>>(input, pc));
-        } else if (description == header::DataDescription{"EXFWDTRACKCOV"}) {
-          outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXFWDTRACKCOV/0"_h>>(input, pc));
-        } else if (description == header::DataDescription{"EXMCPARTICLE"}) {
-          if (version == 0U) {
-            outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXMCPARTICLE/0"_h>>(input, pc));
-          } else if (version == 1U) {
-            outputs.adopt(Output{origin, description, version}, make_spawn<o2::aod::Hash<"EXMCPARTICLE/1"_h>>(input, pc));
-          }
-        } else {
-          throw runtime_error("Not an extended table");
-        }
+      for (auto& maker : makers) {
+        outputs.adopt(Output{maker.origin, maker.description, maker.version}, maker.make(pc));
       }
     };
   }};

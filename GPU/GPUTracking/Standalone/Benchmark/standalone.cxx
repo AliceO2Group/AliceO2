@@ -72,6 +72,7 @@ extern GPUSettingsStandalone configStandalone;
 }
 
 GPUReconstruction *rec, *recAsync, *recPipeline;
+uint32_t syncAsyncDecodedClusters = 0;
 GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
 GPUChainITS *chainITS, *chainITSAsync, *chainITSPipeline;
 std::string eventsDir;
@@ -304,6 +305,10 @@ int32_t SetupReconstruction()
 
   chainTracking->mConfigQA = &configStandalone.QA;
   chainTracking->mConfigDisplay = &configStandalone.display;
+  if (configStandalone.testSyncAsync) {
+    chainTrackingAsync->mConfigQA = &configStandalone.QA;
+    chainTrackingAsync->mConfigDisplay = &configStandalone.display;
+  }
 
   GPUSettingsGRP grp = rec->GetGRPSettings();
   GPUSettingsRec recSet;
@@ -426,6 +431,7 @@ int32_t SetupReconstruction()
     }
   }
 
+  bool runAsyncQA = procSet.runQA && !configStandalone.testSyncAsyncQcInSync;
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
     if (configStandalone.rundEdx == -1) {
@@ -434,6 +440,9 @@ int32_t SetupReconstruction()
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       procSet.eventDisplay = nullptr;
+      if (!configStandalone.testSyncAsyncQcInSync) {
+        procSet.runQA = false;
+      }
     }
   }
   if (configStandalone.proc.rtc.optSpecialCode == -1) {
@@ -444,7 +453,7 @@ int32_t SetupReconstruction()
   if (configStandalone.proc.doublePipeline) {
     recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);
   }
-  if (configStandalone.testSyncAsync) {
+  if (configStandalone.testSyncAsync) { // TODO: Add --async mode / flag
     // Set settings for asynchronous
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, true);
@@ -455,7 +464,7 @@ int32_t SetupReconstruction()
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
     steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
     procSet.runMC = false;
-    procSet.runQA = false;
+    procSet.runQA = runAsyncQA;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
     procSet.rtc.optSpecialCode = 0;
@@ -658,12 +667,12 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
     }
 
     if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
-      if (configStandalone.testSyncAsync) {
-        printf("Running asynchronous phase\n");
-      }
 
       vecpod<char> compressedTmpMem(chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
       memcpy(compressedTmpMem.data(), (const void*)chainTracking->mIOPtrs.tpcCompressedClusters, chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
+      o2::tpc::CompressedClusters tmp(*chainTracking->mIOPtrs.tpcCompressedClusters);
+      syncAsyncDecodedClusters = tmp.nAttachedClusters + tmp.nUnattachedClusters;
+      printf("Running asynchronous phase from %'u compressed clusters\n", syncAsyncDecodedClusters);
 
       chainTrackingAsync->mIOPtrs = ioPtrs;
       chainTrackingAsync->mIOPtrs.tpcCompressedClusters = (o2::tpc::CompressedClustersFlat*)compressedTmpMem.data();
@@ -749,7 +758,6 @@ int32_t main(int argc, char** argv)
       recAsync->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingAsync = recAsync->AddChain<GPUChainTracking>();
-    chainTrackingAsync->SetQAFromForeignChain(chainTracking);
   }
   if (configStandalone.proc.doublePipeline) {
     if (configStandalone.proc.debugLevel >= 3) {
@@ -932,6 +940,11 @@ int32_t main(int argc, char** argv)
           printf("%s (Measured %s time - Extrapolated from %d clusters to %d)\n", stat, configStandalone.proc.debugLevel ? "kernel" : "wall", (int32_t)nClusters, (int32_t)nClsPerTF);
         }
       }
+      if (configStandalone.testSyncAsync && chainTracking->mIOPtrs.clustersNative && chainTrackingAsync->mIOPtrs.clustersNative) {
+        uint32_t rejected = chainTracking->mIOPtrs.clustersNative->nClustersTotal - syncAsyncDecodedClusters;
+        float rejectionPercentage = (rejected) * 100.f / chainTracking->mIOPtrs.clustersNative->nClustersTotal;
+        printf("Cluster Rejection: Sync: %'u, Compressed %'u, Async %'u, Rejected %'u (%7.2f%%)\n", chainTracking->mIOPtrs.clustersNative->nClustersTotal, syncAsyncDecodedClusters, chainTrackingAsync->mIOPtrs.clustersNative->nClustersTotal, rejected, rejectionPercentage);
+      }
 
       if (configStandalone.preloadEvents && configStandalone.proc.doublePipeline) {
         break;
@@ -959,6 +972,9 @@ breakrun:
   }
 
   rec->Finalize();
+  if (configStandalone.testSyncAsync) {
+    recAsync->Finalize();
+  }
   if (configStandalone.outputcontrolmem && rec->IsGPU()) {
     if (rec->unregisterMemoryForGPU(outputmemory.get()) || (configStandalone.proc.doublePipeline && recPipeline->unregisterMemoryForGPU(outputmemoryPipeline.get()))) {
       printf("Error unregistering memory\n");

@@ -1730,7 +1730,7 @@
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/Interface/GPUO2InterfaceConfigurableParam.cxx"
+                    "path": "GPU/GPUTracking/Interface/GPUO2ConfigurableParam.cxx"
                   }
                 },
                 {

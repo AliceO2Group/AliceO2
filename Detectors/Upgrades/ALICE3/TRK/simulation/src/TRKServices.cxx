@@ -173,7 +173,9 @@ void TRKServices::registerVacuum(TGeoVolume* motherVolume)
   TGeoVolume* vacuumVolume = new TGeoVolume("A3IP_VACUUM", vacuumComposite, kMedVac);
 
   // Add the vacuum to the barrel
-  vacuumVolume->SetLineColor(kGreen - 3);
+  vacuumVolume->SetLineColor(kAzure + 7);
+  vacuumVolume->SetTransparency(80);
+
   motherVolume->AddNode(vacuumVolume, 1, new TGeoTranslation(0, 0, 0));
 }
 

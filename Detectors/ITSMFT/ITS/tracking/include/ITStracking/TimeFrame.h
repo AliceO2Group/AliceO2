@@ -33,7 +33,6 @@
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/ExternalAllocator.h"
 #include "ITStracking/BoundedAllocator.h"
-
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -235,23 +234,14 @@ struct TimeFrame {
   void setBz(float bz) { mBz = bz; }
   float getBz() const { return mBz; }
 
-  /// State if memory will be externally managed.
-  // device
-  ExternalAllocator* mExtDeviceAllocator{nullptr};
-  void setExternalDeviceAllocator(ExternalAllocator* allocator) { mExtDeviceAllocator = allocator; }
-  ExternalAllocator* getExternalDeviceAllocator() { return mExtDeviceAllocator; }
-  bool hasExternalDeviceAllocator() const noexcept { return mExtDeviceAllocator != nullptr; }
-  // host
-  ExternalAllocator* mExtHostAllocator{nullptr};
-  void setExternalHostAllocator(ExternalAllocator* allocator)
-  {
-    mExtHostAllocator = allocator;
-    mExtMemoryPool = std::make_shared<BoundedMemoryResource>(mExtHostAllocator);
-  }
-  ExternalAllocator* getExternalHostAllocator() { return mExtHostAllocator; }
-  bool hasExternalHostAllocator() const noexcept { return mExtHostAllocator != nullptr; }
-  std::shared_ptr<BoundedMemoryResource> mExtMemoryPool;
-  std::pmr::memory_resource* getMaybeExternalHostResource(bool forceHost = false) { return (hasExternalHostAllocator() && !forceHost) ? mExtMemoryPool.get() : mMemoryPool.get(); }
+  /// State if memory will be externally managed by the GPU framework
+  ExternalAllocator* mExternalAllocator{nullptr};
+  std::shared_ptr<BoundedMemoryResource> mExtMemoryPool; // host memory pool managed by the framework
+  auto getFrameworkAllocator() { return mExternalAllocator; };
+  void setFrameworkAllocator(ExternalAllocator* ext);
+  bool hasFrameworkAllocator() const noexcept { return mExternalAllocator != nullptr; }
+  std::pmr::memory_resource* getMaybeFrameworkHostResource(bool forceHost = false) { return (hasFrameworkAllocator() && !forceHost) ? mExtMemoryPool.get() : mMemoryPool.get(); }
+
   // Propagator
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
   virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};

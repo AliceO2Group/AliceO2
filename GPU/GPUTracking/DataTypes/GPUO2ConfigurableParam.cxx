@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUO2InterfaceConfigurableParam.cxx
+/// \file GPUO2ConfigurableParam.cxx
 /// \author David Rohr
 
-#include "GPUO2InterfaceConfigurableParam.h"
-#include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2ConfigurableParam.h"
+#include "Interface/GPUO2InterfaceConfiguration.h"
 #include "GPUDataTypes.h"
 #include "GPUConfigDump.h"
 

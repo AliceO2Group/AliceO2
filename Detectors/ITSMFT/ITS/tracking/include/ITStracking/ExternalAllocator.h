@@ -17,15 +17,39 @@
 #define TRACKINGITSU_INCLUDE_EXTERNALALLOCATOR_H_
 
 #include <memory_resource>
+#include "GPUO2ExternalUser.h"
+#include "Base/GPUMemoryResource.h"
 
 namespace o2::its
 {
 
 class ExternalAllocator
 {
+  using Type = std::underlying_type_t<o2::gpu::GPUMemoryResource::MemoryType>;
+
  public:
-  virtual void* allocate(size_t) = 0;
   virtual void deallocate(char*, size_t) = 0;
+  virtual void* allocate(size_t) = 0;
+  void* allocate(size_t s, Type type)
+  {
+    auto old = mType;
+    mType = type;
+    void* p = allocate(s);
+    mType = old;
+    return p;
+  }
+  void* allocateStack(size_t s)
+  {
+    return allocate(s, (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  }
+  virtual void pushTagOnStack(uint64_t) = 0;
+  virtual void popTagOffStack(uint64_t) = 0;
+
+  void setType(Type t) noexcept { mType = t; }
+  Type getType() const noexcept { return mType; }
+
+ protected:
+  Type mType;
 };
 
 class ExternalAllocatorAdaptor final : public std::pmr::memory_resource
@@ -36,7 +60,7 @@ class ExternalAllocatorAdaptor final : public std::pmr::memory_resource
  protected:
   void* do_allocate(size_t bytes, size_t alignment) override
   {
-    void* p = mAlloc->allocate(bytes);
+    void* p = mAlloc->allocate(bytes, o2::gpu::GPUMemoryResource::MemoryType::MEMORY_HOST);
     if (!p) {
       throw std::bad_alloc();
     }

@@ -10,7 +10,8 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(TRKSimulation
-               SOURCES src/TRKLayer.cxx
+               SOURCES src/Hit.cxx
+                       src/TRKLayer.cxx
                        src/ChipDigitsContainer.cxx
                        src/ChipSimResponse.cxx
                        src/Detector.cxx
@@ -18,9 +19,8 @@ o2_add_library(TRKSimulation
                        src/Digitizer.cxx
                        src/TRKServices.cxx
                        src/DPLDigitizerParam.cxx
-                       src/TRKPetalCase.cxx
-                       src/TRKPetalLayer.cxx
-                       src/TRKPetalDisk.cxx
+                       src/VDLayer.cxx
+                       src/VDGeometryBuilder.cxx
                PUBLIC_LINK_LIBRARIES O2::TRKBase
                                      O2::FT3Simulation
                                      O2::ITSMFTSimulation
@@ -28,14 +28,15 @@ o2_add_library(TRKSimulation
                                      O2::SimulationDataFormat)
 
 o2_target_root_dictionary(TRKSimulation
-                          HEADERS include/TRKSimulation/ChipDigitsContainer.h
+                          HEADERS include/TRKSimulation/Hit.h
+                                  include/TRKSimulation/ChipDigitsContainer.h
                                   include/TRKSimulation/ChipSimResponse.h
                                   include/TRKSimulation/DigiParams.h
                                   include/TRKSimulation/Digitizer.h
                                   include/TRKSimulation/Detector.h
                                   include/TRKSimulation/TRKLayer.h
                                   include/TRKSimulation/TRKServices.h
-                                  include/TRKSimulation/TRKPetalCase.h
-                                  include/TRKSimulation/TRKPetalLayer.h
-                                  include/TRKSimulation/TRKPetalDisk.h
+                                  include/TRKSimulation/VDLayer.h
+                                  include/TRKSimulation/VDGeometryBuilder.h
+                                  include/TRKSimulation/VDSensorRegistry.h
                                   include/TRKSimulation/DPLDigitizerParam.h)

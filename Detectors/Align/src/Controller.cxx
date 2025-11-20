@@ -44,7 +44,7 @@
 #include <TH1F.h>
 #include <TList.h>
 #include <cstdio>
-#include "GPUO2Interface.h"
+#include "GPUO2ExternalUser.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include <TGeoGlobalMagField.h>
 #include "CommonUtils/NameConf.h"

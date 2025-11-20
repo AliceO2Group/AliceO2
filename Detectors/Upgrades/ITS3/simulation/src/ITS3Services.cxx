@@ -30,13 +30,16 @@ void ITS3Services::createCYSSAssembly(TGeoVolume* motherVolume)
   motherVolume->AddNode(cyssVol, 1., nullptr);
 
   // Cylinder
-  auto cyssInnerCylSh = new TGeoTubeSeg(constants::services::radiusInner, constants::services::radiusOuter, constants::services::length, 180, 360);
-  auto medPrepreg = gGeoManager->GetMedium("IT3_AS4C200$");
-  auto cyssInnerCylShVol = new TGeoVolume("IBCYSSCylinder", cyssInnerCylSh, medPrepreg);
+  auto cyssInnerCylSh = new TGeoTubeSeg(constants::services::radiusInner, constants::services::radiusOuter, constants::services::length / 2, 180, 360);
+  auto medRohacell = gGeoManager->GetMedium("IT3_RIST110$");
+  auto cyssInnerCylShVol = new TGeoVolume("IBCYSSCylinder", cyssInnerCylSh, medRohacell);
+  cyssInnerCylShVol->SetLineColor(constants::services::color);
   cyssVol->AddNode(cyssInnerCylShVol, 1, new TGeoTranslation(0, 0, 0));
   cyssVol->AddNode(cyssInnerCylShVol, 2, new TGeoCombiTrans(0, 0, 0, new TGeoRotation("", 180, 0, 0)));
 
   // TODO Cone
+  // For now the wrapping volume just extends beyond the cylinder if something is added beyond that this volume has to
+  // be exteneded.
 }
 
 } // namespace o2::its3

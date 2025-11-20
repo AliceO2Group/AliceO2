@@ -39,7 +39,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
     if (!trk.OK()) {
       continue;
     }
-    bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt() * processors.param.qptB5Scaler) > processors.param.rec.tpc.rejectQPtB5 || trk.MergedLooper();
+    bool rejectTrk = GPUTPCClusterRejection::IsTrackRejected(trk, param);
     uint32_t nClustersStored = 0;
     CompressedClustersPtrs& GPUrestrict() c = compressor.mPtrs;
     uint8_t lastRow = 0, lastSector = 0;
@@ -56,9 +56,11 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if ((attach & gputpcgmmergertypes::attachTrackMask) != i) {
         continue; // Main attachment to different track
       }
-      bool rejectCluster = processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
+      bool rejectCluster = processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && !(attach & gputpcgmmergertypes::attachProtect) && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
       if (rejectCluster) {
         compressor.mClusterStatus[hitId] = 1; // Cluster rejected, do not store
+        continue;
+      } else if (processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && rejectTrk) {
         continue;
       }
 
@@ -183,7 +185,7 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<4>::opera
   return mClsPtr[a].qTot < mClsPtr[b].qTot;
 }
 
-GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, GPUParam& GPUrestrict() param, const GPUTrackingInOutPointers& GPUrestrict() ioPtrs)
+GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, const GPUParam& GPUrestrict() param, const GPUTrackingInOutPointers& GPUrestrict() ioPtrs) const
 {
   if (mClusterStatus[idx]) {
     return true;
@@ -199,9 +201,12 @@ GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, GPUParam& GPUrestrict(
     if (GPUTPCClusterRejection::GetIsRejected(attach)) {
       return true;
     }
+    if (attach & gputpcgmmergertypes::attachProtect) {
+      return false;
+    }
     int32_t id = attach & gputpcgmmergertypes::attachTrackMask;
     auto& trk = ioPtrs.mergedTracks[id];
-    if (CAMath::Abs(trk.GetParam().GetQPt() * param.qptB5Scaler) > param.rec.tpc.rejectQPtB5 || trk.MergedLooper()) {
+    if (GPUTPCClusterRejection::IsTrackRejected(trk, param)) {
       return true;
     }
   }

@@ -19,6 +19,8 @@
 
 using namespace o2::gpu;
 
+static_assert(GPUdEdx::MAX_NCL <= 255); // Must fit in mNClsROC (uint8_t)!
+
 #ifndef GPUCA_GPUCODE_DEVICE
 GPUd() void GPUdEdx::clear()
 {

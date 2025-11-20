@@ -22,6 +22,7 @@ namespace o2::framework
 struct ResourcePolicyHelpers {
   static ResourcePolicy trivialTask(char const* taskMatcher);
   static ResourcePolicy cpuBoundTask(char const* taskMatcher, int maxCPUs = 1);
+  static ResourcePolicy rateLimitedSharedMemoryBoundTask(char const* taskMatcher, int maxMemory, int maxTimeslices);
   static ResourcePolicy sharedMemoryBoundTask(char const* taskMatcher, int maxMemory);
 };
 

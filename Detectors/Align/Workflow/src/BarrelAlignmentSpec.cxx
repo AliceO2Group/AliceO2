@@ -37,7 +37,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
-#include "GPUO2Interface.h"
+#include "GPUO2ExternalUser.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUParam.h"
 #include "Headers/DataHeader.h"

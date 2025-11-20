@@ -213,7 +213,7 @@ GPUdi() float GPUParam::GetUnscaledMult(float time) const
   if (!occupancyMap) {
     return 0.f;
   }
-  const uint32_t bin = CAMath::Max(0.f, time / rec.tpc.occupancyMapTimeBins);
+  const uint32_t bin = CAMath::Min<uint32_t>(occupancyMapSize - 1, CAMath::Max(0.f, time / rec.tpc.occupancyMapTimeBins));
   return occupancyMap[bin];
 }
 

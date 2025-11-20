@@ -13,4 +13,15 @@
 /// \author David Rohr
 
 #include "GPUMemoryResource.h"
+#include "GPUProcessor.h"
 using namespace o2::gpu;
+
+void* GPUMemoryResource::SetPointers(void* ptr) const
+{
+  return (mProcessor->*mSetPointers)(ptr);
+}
+
+void* GPUMemoryResource::SetDevicePointers(void* ptr) const
+{
+  return (mProcessor->mLinkedProcessor->*mSetPointers)(ptr);
+}

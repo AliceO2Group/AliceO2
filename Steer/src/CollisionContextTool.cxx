@@ -552,8 +552,16 @@ int main(int argc, char* argv[])
   }
   digicontext.setBunchFilling(bunchFillings[0]);
   std::vector<std::string> prefixes;
+  // Signal interaction rate
+  float sgnIRate = -1.;
   for (auto& p : ispecs) {
     prefixes.push_back(p.name);
+    if (p.name == "sgn") {
+      // Setting interaction rate in the digitizer context as provided by the O2DPG workflow
+      LOG(debug) << "Setting signal interaction rate to " << p.interactionRate << " Hz in the digitization context.";
+      sgnIRate = p.interactionRate;
+      digicontext.setDigitizerInteractionRate(p.interactionRate);
+    }
   }
   digicontext.setSimPrefixes(prefixes);
 
@@ -565,8 +573,19 @@ int main(int argc, char* argv[])
   LOG(info) << "-------- DENSE CONTEXT ------->>";
 
   auto timeframeindices = digicontext.calcTimeframeIndices(orbitstart, options.orbitsPerTF, options.orbitsEarly);
+  LOG(info) << "Fixed " << timeframeindices.size() << " timeframes ";
+  for (auto p : timeframeindices) {
+    LOG(info) << std::get<0>(p) << " " << std::get<1>(p) << " " << std::get<2>(p);
+  }
+
   // apply max collision per timeframe filters + reindexing of event id (linearisation and compactification)
   digicontext.applyMaxCollisionFilter(timeframeindices, orbitstart, options.orbitsPerTF, options.maxCollsPerTF, options.orbitsEarly);
+
+  LOG(info) << "Timeframe indices after collision filter";
+  LOG(info) << "Fixed " << timeframeindices.size() << " timeframes ";
+  for (auto p : timeframeindices) {
+    LOG(info) << std::get<0>(p) << " " << std::get<1>(p) << " " << std::get<2>(p);
+  }
 
   // <---- at this moment we have a dense collision context (not representing the final output we want)
   LOG(info) << "<<------ FILTERED CONTEXT ---------";

@@ -92,6 +92,12 @@ o2_add_test(CcdbDownloader
             PUBLIC_LINK_LIBRARIES O2::CCDB
             LABELS ccdb)
 
+o2_add_test(CcdbApi-Headers
+            SOURCES test/testCcdbApiHeaders.cxx
+            COMPONENT_NAME ccdb
+            PUBLIC_LINK_LIBRARIES O2::CCDB
+            LABELS ccdb)
+
 # extra CcdbApi test which dispatches to CCDBDownloader (tmp until full move done)
 #o2_add_test_command(NAME CcdbApi-MultiHandle
 #                    WORKING_DIRECTORY ${SIMTESTDIR}

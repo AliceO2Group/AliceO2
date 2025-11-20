@@ -18,7 +18,6 @@
 #include "arrow/type_traits.h"
 
 // Apparently needs to be on top of the arrow includes.
-#include <sstream>
 
 #include <arrow/chunked_array.h>
 #include <arrow/status.h>
@@ -795,6 +794,10 @@ auto makeEmptyTable(const char* name, framework::pack<Cs...> p)
 
 std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
                                             expressions::Projector* projectors, const char* name, std::shared_ptr<gandiva::Projector>& projector);
+
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema,
+                                            const char* name, size_t nColumns,
+                                            const std::shared_ptr<gandiva::Projector>& projector);
 
 /// Expression-based column generator to materialize columns
 template <aod::is_aod_hash D>

@@ -50,5 +50,7 @@
 #define GPUCA_UNROLL(...)
 #endif
 
+#define GPUCA_CEIL_INT_DIV(a, b) (((a) + (b) - 1) / (b))
+
 #endif
 // clang-format on

@@ -48,7 +48,7 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
   static constexpr double mTolerance{1e-3};
   static constexpr double mWrapperMinRadiusITS3{constants::radiiInner[0] - mTolerance};
   static constexpr double mWrapperMaxRadiusITS3{constants::services::radiusOuter + mTolerance};
-  static constexpr double mWrapperZSpanITS3{constants::services::length + mTolerance};
+  static constexpr double mWrapperZSpanITS3{constants::services::length * 2 + mTolerance}; // z length is divided in half
 
  private:
   std::array<std::unique_ptr<ITS3Layer>, constants::nLayers> mIBLayers;

@@ -23,7 +23,7 @@
 #include <TStopwatch.h>
 #endif
 
-#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is invisible on GPU version
 
 o2::base::MatLayerCylSet mbLUT;
 
@@ -249,7 +249,9 @@ void configLayers()
 
   // air space between Middle and Outer Barrels
   zSpanH = 80.f;
-  lrData.emplace_back(LrData(lrData.back().rMax, 33.5, zSpanH));
+  zBin = 10.;
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 33.5, zSpanH, zBin, rphiBin));
 
   //===================================================================================
   // ITS Outer barrel
@@ -259,14 +261,14 @@ void configLayers()
   zBin = 1.;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 36. - kToler);
 
   drStep = 1.;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 38.5 - kToler);
 
@@ -274,14 +276,14 @@ void configLayers()
   drStep = 0.25;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 41. - kToler);
 
   drStep = 1.;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 15);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 44. - kToler);
 
@@ -301,15 +303,20 @@ void configLayers()
   } while (lrData.back().rMax < 55. - kToler);
 
   zSpanH = 120.f;
-  lrData.emplace_back(LrData(lrData.back().rMax, 56.5, zSpanH));
-  lrData.emplace_back(LrData(lrData.back().rMax, 60.5, zSpanH));
-  lrData.emplace_back(LrData(lrData.back().rMax, 61.5, zSpanH));
+  zBin = 10.;
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 56.5, zSpanH, zBin, rphiBin));
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 60.5, zSpanH, zBin, rphiBin));
+  rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
+  lrData.emplace_back(LrData(lrData.back().rMax, 61.5, zSpanH, zBin, rphiBin));
 
   zSpanH = 150.f;
   drStep = 3.5;
   zBin = 15.;
-  rphiBin = 10;
   do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 2);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 68.5 - kToler);
 
@@ -335,7 +342,7 @@ void configLayers()
   zBin = 2;
   {
     auto rmean = (lrData.back().rMax + 78.5) / 2;
-    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 24);
     lrData.emplace_back(LrData(lrData.back().rMax, 84.5, zSpanH, zBin, rphiBin));
   }
 

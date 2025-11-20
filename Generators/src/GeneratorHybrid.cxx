@@ -23,6 +23,12 @@ namespace o2
 namespace eventgen
 {
 
+GeneratorHybrid& GeneratorHybrid::Instance(const std::string& inputgens)
+{
+  static GeneratorHybrid instance(inputgens);
+  return instance;
+}
+
 GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
 {
   // This generator has trivial unit conversions

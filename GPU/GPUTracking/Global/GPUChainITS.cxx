@@ -25,18 +25,23 @@ namespace o2::its
 class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
 {
  public:
-  GPUFrameworkExternalAllocator(GPUMemoryResource::MemoryType type) : mType(type) {}
-
-  void* allocate(size_t size) override
+  void* allocate(size_t size) final
   {
     return mFWReco->AllocateDirectMemory(size, mType);
   }
-  void deallocate(char* ptr, size_t size) override {}
+  void deallocate(char* ptr, size_t size) final {} // this is a simple no-op
+  void pushTagOnStack(uint64_t tag)
+  {
+    mFWReco->PushNonPersistentMemory(tag);
+  }
+  void popTagOffStack(uint64_t tag)
+  {
+    mFWReco->PopNonPersistentMemory(GPUDataTypes::RecoStep::ITSTracking, tag);
+  }
   void setReconstructionFramework(o2::gpu::GPUReconstruction* fwr) { mFWReco = fwr; }
 
  private:
   o2::gpu::GPUReconstruction* mFWReco;
-  GPUMemoryResource::MemoryType mType;
 };
 } // namespace o2::its
 
@@ -73,12 +78,9 @@ o2::its::TimeFrame<7>* GPUChainITS::GetITSTimeframe()
   }
 #if !defined(GPUCA_STANDALONE)
   if (mITSTimeFrame->isGPU()) {
-    mFrameworkDeviceAllocator.reset(new o2::its::GPUFrameworkExternalAllocator(GPUMemoryResource::MEMORY_GPU));
-    mFrameworkDeviceAllocator->setReconstructionFramework(rec());
-    mITSTimeFrame->setExternalDeviceAllocator(mFrameworkDeviceAllocator.get());
-    mFrameworkHostAllocator.reset(new o2::its::GPUFrameworkExternalAllocator(GPUMemoryResource::MEMORY_HOST));
-    mFrameworkHostAllocator->setReconstructionFramework(rec());
-    mITSTimeFrame->setExternalHostAllocator(mFrameworkHostAllocator.get());
+    mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator());
+    mFrameworkAllocator->setReconstructionFramework(rec());
+    mITSTimeFrame->setFrameworkAllocator(mFrameworkAllocator.get());
   }
 #endif
   return mITSTimeFrame.get();

@@ -234,7 +234,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
-  int chipID = hit.GetDetectorID();
+  auto chipID = hit.GetDetectorID();
   auto& chip = mChips[chipID];
   if (chip.isDisabled()) {
     return;

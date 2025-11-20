@@ -40,7 +40,6 @@ o2_add_library(
 
 o2_target_root_dictionary(
   DataFormatsTPC
-  EXTRA_PATCH src/VectorPadflagsCustomStreamer.cxx
   HEADERS include/DataFormatsTPC/ClusterGroupAttribute.h
           include/DataFormatsTPC/ClusterNative.h
           include/DataFormatsTPC/ClusterNativeHelper.h

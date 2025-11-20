@@ -30,10 +30,9 @@
 #include "GPUDataTypes.h"
 #include "GPUMemoryResource.h"
 #include "GPUOutputControl.h"
-
-/*#include "GPUParam.h"
-#include "GPUSettings.h"
-#include "GPULogging.h"*/
+#include "GPUParam.h"
+#include "GPUConstantMem.h"
+#include "GPUDef.h"
 
 namespace o2::its
 {
@@ -280,7 +279,7 @@ class GPUReconstruction
   static std::string getBackendVersions();
 
   // Private helper functions for memory management
-  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend, const char* device);
+  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*) const, void*& memorypoolend, const char* device);
   size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file

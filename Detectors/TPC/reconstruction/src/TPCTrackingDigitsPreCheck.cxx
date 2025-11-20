@@ -19,7 +19,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "DataFormatsTPC/ClusterNative.h"
 
-#include "GPUO2Interface.h"
+#include "GPUO2ExternalUser.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCBase/Sector.h"
 #include "Framework/Logger.h"

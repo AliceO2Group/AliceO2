@@ -127,8 +127,8 @@ if [[ $SYNCMODE == 1 ]]; then
   fi
   [[ -n ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   ITS_CONFIG_KEY+="ITSCATrackerParam.trackletsPerClusterLimit=${CUT_TRACKLETSPERCLUSTER_MAX_ITS:--1};ITSCATrackerParam.cellsPerClusterLimit=${CUT_CELLSPERCLUSTER_MAX_ITS:--1};"
-  if has_detector_reco ITS; then
-    [[ $RUNTYPE != "COSMICS" ]] && MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
+  if has_detector_reco ITS && [[ $RUNTYPE != "COSMICS" && x"${MFT_DISABLE_ITS_IRFRAMES_SELECTION:-}" != "x1" ]]; then
+    MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
   fi
 
   PVERTEXING_CONFIG_KEY+="pvertexer.meanVertexExtraErrConstraint=0.3;" # for calibration relax the constraint
@@ -379,7 +379,12 @@ if has_processing_step MUON_SYNC_RECO; then
   elif [[ $RUNTYPE == "PHYSICS" && $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]] || [[ $RUNTYPE == "COSMICS" ]]; then
     MCH_CONFIG_KEY+="MCHTracking.chamberResolutionX=0.4;MCHTracking.chamberResolutionY=0.4;MCHTracking.sigmaCutForTracking=7.;MCHTracking.sigmaCutForImprovement=6.;"
   fi
-  has_detector_reco ITS && [[ $RUNTYPE != "COSMICS" ]] && MCH_CONFIG_KEY+="MCHTimeClusterizer.irFramesOnly=true;"
+  if has_detector_reco ITS && [[ $RUNTYPE != "COSMICS" && x"${MCH_DISABLE_ITS_IRFRAMES_SELECTION:-}" != "x1" ]]; then
+    MCH_CONFIG_KEY+="MCHTimeClusterizer.irFramesOnly=true;"
+    [[ -z ${CUT_RANDOM_FRACTION_MCH:-} && -n ${CUT_RANDOM_FRACTION_MCH_WITH_ITS:-} ]] && CUT_RANDOM_FRACTION_MCH=${CUT_RANDOM_FRACTION_MCH_WITH_ITS:-}
+  else
+    [[ -z ${CUT_RANDOM_FRACTION_MCH:-} && -n ${CUT_RANDOM_FRACTION_MCH_NO_ITS:-} ]] && CUT_RANDOM_FRACTION_MCH=${CUT_RANDOM_FRACTION_MCH_NO_ITS:-}
+  fi
   [[ -n ${CUT_RANDOM_FRACTION_MCH:-} ]] && MCH_CONFIG_KEY+="MCHTimeClusterizer.rofRejectionFraction=$CUT_RANDOM_FRACTION_MCH;"
   MCH_CONFIG_KEY+="MCHStatusMap.useHV=false;MCHDigitFilter.statusMask=3;"
   [[ $RUNTYPE == "COSMICS" ]] && [[ -z ${CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow:-} ]] && CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow="MFTTracking.FullClusterScan=true"
@@ -622,6 +627,12 @@ has_detector_reco ITS && has_detector_gpu ITS TPC && [[ -z "$DISABLE_ROOT_OUTPUT
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"
 has_detector_matching PRIMVTX && [[ -n "$VERTEXING_SOURCES" ]] && [[ $GLOBAL_READER_NEEDS_PV != 1 ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC $DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1 PRIMVTX),$(get_N pvertex-track-matching MATCH REST 1 PRIMVTXMATCH)" "${PVERTEXING_CONFIG_KEY};${INTERACTION_TAG_CONFIG_KEY};"
+
+if [[ -z ${SVERTEXING_SOURCES:-} ]]; then
+  [[ $SYNCMODE == 1 ]] && [[ -n $TRACK_SOURCES_GLO ]] && SVERTEXING_SOURCES="$TRACK_SOURCES_GLO" || SVERTEXING_SOURCES="$VERTEXING_SOURCES"
+elif [[ "${SVERTEXING_SOURCES^^}" == "NONE" ]]; then
+  SVERTEXING_SOURCES=
+fi
 
 if [[ $BEAMTYPE != "cosmic" ]] && has_detectors_reco ITS && has_detector_matching SECVTX && [[ -n "$SVERTEXING_SOURCES" ]]; then
   : ${REDUCESV_OPT:=}

@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/AsyncQueue.h"
 #include "Framework/DataProcessingDevice.h"
+#include <atomic>
 #include "Framework/ControlService.h"
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/DataProcessingHeader.h"
@@ -17,6 +18,7 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DeviceStateEnums.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DispatchControl.h"
 #include "Framework/DanglingContext.h"
@@ -98,6 +100,8 @@ O2_DECLARE_DYNAMIC_LOG(async_queue);
 O2_DECLARE_DYNAMIC_LOG(forwarding);
 // Special log to track CCDB related requests
 O2_DECLARE_DYNAMIC_LOG(ccdb);
+// Special log to track task scheduling
+O2_DECLARE_DYNAMIC_LOG(scheduling);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
@@ -121,63 +125,6 @@ void on_idle_timer(uv_timer_t* handle)
   state->loopReason |= DeviceState::TIMER_EXPIRED;
 }
 
-bool hasOnlyTimers(DeviceSpec const& spec)
-{
-  return std::all_of(spec.inputs.cbegin(), spec.inputs.cend(), [](InputRoute const& route) -> bool { return route.matcher.lifetime == Lifetime::Timer; });
-}
-
-bool hasOnlyGenerated(DeviceSpec const& spec)
-{
-  return (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
-}
-
-void on_transition_requested_expired(uv_timer_t* handle)
-{
-  auto* ref = (ServiceRegistryRef*)handle->data;
-  auto& state = ref->get<DeviceState>();
-  state.loopReason |= DeviceState::TIMER_EXPIRED;
-  // Check if this is a source device
-  O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
-  auto& spec = ref->get<DeviceSpec const>();
-  std::string messageOnExpire = hasOnlyGenerated(spec) ? "DPL exit transition grace period for source expired. Exiting." : fmt::format("DPL exit transition grace period for {} expired. Exiting.", state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration").c_str();
-  if (!ref->get<RawDeviceService>().device()->GetConfig()->GetValue<bool>("error-on-exit-transition-timeout")) {
-    O2_SIGNPOST_EVENT_EMIT_WARN(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
-  } else {
-    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
-  }
-  state.transitionHandling = TransitionHandlingState::Expired;
-}
-
-auto switchState(ServiceRegistryRef& ref, StreamingState newState) -> void
-{
-  auto& state = ref.get<DeviceState>();
-  auto& context = ref.get<DataProcessorContext>();
-  O2_SIGNPOST_ID_FROM_POINTER(dpid, device, &context);
-  O2_SIGNPOST_END(device, dpid, "state", "End of processing state %d", (int)state.streaming);
-  O2_SIGNPOST_START(device, dpid, "state", "Starting processing state %d", (int)newState);
-  state.streaming = newState;
-  ref.get<ControlService>().notifyStreamingState(state.streaming);
-};
-
-void on_data_processing_expired(uv_timer_t* handle)
-{
-  auto* ref = (ServiceRegistryRef*)handle->data;
-  auto& state = ref->get<DeviceState>();
-  auto& spec = ref->get<DeviceSpec const>();
-  state.loopReason |= DeviceState::TIMER_EXPIRED;
-
-  // Check if this is a source device
-  O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
-
-  if (hasOnlyGenerated(spec)) {
-    O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "callback", "Grace period for data processing expired. Switching to EndOfStreaming.");
-    switchState(*ref, StreamingState::EndOfStreaming);
-  } else {
-    O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "callback", "Grace period for data processing expired. Only calibrations from this point onwards.");
-    state.allowedProcessing = DeviceState::CalibrationOnly;
-  }
-}
-
 void on_communication_requested(uv_async_t* s)
 {
   auto* state = (DeviceState*)s->data;
@@ -196,11 +143,10 @@ struct locked_execution {
   ~locked_execution() { ref.unlock(); }
 };
 
-DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
+DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry)
   : mRunningDevice{running},
     mConfigRegistry{nullptr},
-    mServiceRegistry{registry},
-    mProcessingPolicies{policies}
+    mServiceRegistry{registry}
 {
   GetConfig()->Subscribe<std::string>("dpl", [&registry = mServiceRegistry](const std::string& key, std::string value) {
     if (key == "cleanup") {
@@ -247,6 +193,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
   mHandles.resize(1);
 
   ServiceRegistryRef ref{mServiceRegistry};
+
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
   auto& state = ref.get<DeviceState>();
   assert(state.loop);
@@ -300,16 +247,22 @@ void run_completion(uv_work_t* handle, int status)
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [ref](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
     auto& dpStats = ref.get<DataProcessingStats>();
     stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
+    // For now we give back the offer if we did not use it completely.
+    // In principle we should try to run until the offer is fully consumed.
+    stats.totalConsumedTimeslices += std::min<int64_t>(accumulatedConsumed.timeslices, 1);
 
     dpStats.updateStats({static_cast<short>(ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED), DataProcessingStats::Op::Set, stats.totalConsumedBytes});
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED), DataProcessingStats::Op::Set, stats.totalConsumedTimeslices});
     dpStats.processCommandQueue();
     assert(stats.totalConsumedBytes == dpStats.metrics[(short)ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED]);
+    assert(stats.totalConsumedTimeslices == dpStats.metrics[(short)ProcessingStatsId::TIMESLICE_OFFER_NUMBER_CONSUMED]);
   };
 
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [ref](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
     auto& dpStats = ref.get<DataProcessingStats>();
     dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
     dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::TIMESLICE_NUMBER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredTimeslices});
     dpStats.processCommandQueue();
   };
 
@@ -1189,18 +1142,18 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       errorCallback(errorContext);
     };
   } else {
-    context.errorHandling = [&errorPolicy = mProcessingPolicies.error,
-                             &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+    context.errorHandling = [&serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       auto& err = error_from_ref(e);
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
       auto& context = ref.get<DataProcessorContext>();
+      auto& deviceContext = ref.get<DeviceContext>();
       O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
       BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
-      switch (errorPolicy) {
+      switch (deviceContext.processingPolicies.error) {
         case TerminationPolicy::QUIT:
           O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Rethrowing.", err.what);
           throw e;
@@ -1211,10 +1164,10 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     };
   }
 
-  auto decideEarlyForward = [&context, &spec, this]() -> bool {
+  auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> bool {
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding
-    bool canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+    bool canForwardEarly = (spec.forwards.empty() == false) && deviceContext.processingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
     bool onlyConditions = true;
     bool overriddenEarlyForward = false;
     for (auto& forwarded : spec.forwards) {
@@ -1229,7 +1182,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
         break;
       }
 #endif
-      if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
+      if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && deviceContext.processingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
         context.canForwardEarly = false;
         overriddenEarlyForward = true;
         LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
@@ -1259,7 +1212,7 @@ void DataProcessingDevice::PreRun()
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, state.loop);
   O2_SIGNPOST_START(device, cid, "PreRun", "Entering PreRun callback.");
   state.quitRequested = false;
-  switchState(ref, StreamingState::Streaming);
+  DataProcessingHelpers::switchState(ref, StreamingState::Streaming);
   state.allowedProcessing = DeviceState::Any;
   for (auto& info : state.inputChannelInfos) {
     if (info.state != InputChannelState::Pull) {
@@ -1382,51 +1335,7 @@ void DataProcessingDevice::Run()
         shouldNotWait = true;
         state.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
       }
-      if (state.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
-        state.transitionHandling = TransitionHandlingState::Requested;
-        auto& deviceContext = ref.get<DeviceContext>();
-        // Check if we only have timers
-        auto& spec = ref.get<DeviceSpec const>();
-        if (hasOnlyTimers(spec)) {
-          switchState(ref, StreamingState::EndOfStreaming);
-        }
-
-        // We do not do anything in particular if the data processing timeout would go past the exitTransitionTimeout
-        if (deviceContext.dataProcessingTimeout > 0 && deviceContext.dataProcessingTimeout < deviceContext.exitTransitionTimeout) {
-          uv_update_time(state.loop);
-          O2_SIGNPOST_EVENT_EMIT(calibration, lid, "timer_setup", "Starting %d s timer for dataProcessingTimeout.", deviceContext.dataProcessingTimeout);
-          uv_timer_start(deviceContext.dataProcessingGracePeriodTimer, on_data_processing_expired, deviceContext.dataProcessingTimeout * 1000, 0);
-        }
-        if (deviceContext.exitTransitionTimeout != 0 && state.streaming != StreamingState::Idle) {
-          state.transitionHandling = TransitionHandlingState::Requested;
-          ref.get<CallbackService>().call<CallbackService::Id::ExitRequested>(ServiceRegistryRef{ref});
-          uv_update_time(state.loop);
-          O2_SIGNPOST_EVENT_EMIT(calibration, lid, "timer_setup", "Starting %d s timer for exitTransitionTimeout.",
-                                 deviceContext.exitTransitionTimeout);
-          uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, deviceContext.exitTransitionTimeout * 1000, 0);
-          bool onlyGenerated = hasOnlyGenerated(spec);
-          int timeout = onlyGenerated ? deviceContext.dataProcessingTimeout : deviceContext.exitTransitionTimeout;
-          if (mProcessingPolicies.termination == TerminationPolicy::QUIT && DefaultsHelpers::onlineDeploymentMode() == false) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before quitting.", timeout);
-          } else {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop",
-                                        "New state requested. Waiting for %d seconds before %{public}s",
-                                        timeout,
-                                        onlyGenerated ? "dropping remaining input and switching to READY state." : "switching to READY state.");
-          }
-        } else {
-          state.transitionHandling = TransitionHandlingState::Expired;
-          if (deviceContext.exitTransitionTimeout == 0 && mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, quitting immediately as per --completion-policy");
-          } else if (deviceContext.exitTransitionTimeout == 0 && mProcessingPolicies.termination != TerminationPolicy::QUIT) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, switching to READY state immediately");
-          } else if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, quitting immediately as per --completion-policy");
-          } else {
-            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, switching to READY immediately.");
-          }
-        }
-      }
+      state.transitionHandling = DataProcessingHelpers::updateStateTransition(ref, ref.get<DeviceContext>().processingPolicies);
       // If we are Idle, we can then consider the transition to be expired.
       if (state.transitionHandling == TransitionHandlingState::Requested && state.streaming == StreamingState::Idle) {
         O2_SIGNPOST_EVENT_EMIT(device, lid, "run_loop", "State transition requested and we are now in Idle. We can consider it to be completed.");
@@ -1532,6 +1441,7 @@ void DataProcessingDevice::Run()
         auto& dpStats = ref.get<DataProcessingStats>();
         dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
         dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::TIMESLICE_NUMBER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredTimeslices});
         dpStats.processCommandQueue();
       };
       auto ref = ServiceRegistryRef{mServiceRegistry};
@@ -1542,10 +1452,22 @@ void DataProcessingDevice::Run()
       auto& spec = ref.get<DeviceSpec const>();
       bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
 
+      struct SchedulingStats {
+        std::atomic<size_t> lastScheduled = 0;
+        std::atomic<size_t> numberOfUnscheduledSinceLastScheduled = 0;
+        std::atomic<size_t> numberOfUnscheduled = 0;
+        std::atomic<size_t> numberOfScheduled = 0;
+      };
+      static SchedulingStats schedulingStats;
+      O2_SIGNPOST_ID_GENERATE(sid, scheduling);
       if (enough) {
         stream.id = streamRef;
         stream.running = true;
         stream.registry = &mServiceRegistry;
+        schedulingStats.lastScheduled = uv_now(state.loop);
+        schedulingStats.numberOfScheduled++;
+        schedulingStats.numberOfUnscheduledSinceLastScheduled = 0;
+        O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run", "Enough resources to schedule computation on stream %d", streamRef.index);
         if (dplEnableMultithreding) [[unlikely]] {
           stream.task = &handle;
           uv_queue_work(state.loop, stream.task, run_callback, run_completion);
@@ -1554,13 +1476,27 @@ void DataProcessingDevice::Run()
           run_completion(&handle, 0);
         }
       } else {
+        if (schedulingStats.numberOfUnscheduledSinceLastScheduled > 100 ||
+            (uv_now(state.loop) - schedulingStats.lastScheduled) > 30000) {
+          O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
+                                      "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                      schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
+                                      schedulingStats.lastScheduled.load());
+        } else {
+          O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
+                                 "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                 schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
+                                 schedulingStats.lastScheduled.load());
+        }
+        schedulingStats.numberOfUnscheduled++;
+        schedulingStats.numberOfUnscheduledSinceLastScheduled++;
         auto ref = ServiceRegistryRef{mServiceRegistry};
         ref.get<ComputingQuotaEvaluator>().handleExpired(reportExpiredOffer);
       }
     }
   }
 
-  O2_SIGNPOST_END(device, lid, "run_loop", "Run loop completed. Transition handling state %d.", state.transitionHandling);
+  O2_SIGNPOST_END(device, lid, "run_loop", "Run loop completed. Transition handling state %d.", (int)state.transitionHandling);
   auto& spec = ref.get<DeviceSpec const>();
   /// Cleanup messages which are still pending on exit.
   for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
@@ -1785,7 +1721,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
   // dependent on the callback, not something which is controlled by the
   // framework itself.
   if (context.allDone == true && state.streaming == StreamingState::Streaming) {
-    switchState(ref, StreamingState::EndOfStreaming);
+    DataProcessingHelpers::switchState(ref, StreamingState::EndOfStreaming);
     state.lastActiveDataProcessor = &context;
   }
 
@@ -1798,7 +1734,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     /// timers as they do not need to be further processed.
     auto& relayer = ref.get<DataRelayer>();
 
-    bool shouldProcess = hasOnlyGenerated(spec) == false;
+    bool shouldProcess = DataProcessingHelpers::hasOnlyGenerated(spec) == false;
 
     while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && shouldProcess) {
       relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
@@ -1831,7 +1767,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     }
     // This is needed because the transport is deleted before the device.
     relayer.clear();
-    switchState(ref, StreamingState::Idle);
+    DataProcessingHelpers::switchState(ref, StreamingState::Idle);
     // In case  we should process, note the data processor responsible for it
     if (shouldProcess) {
       state.lastActiveDataProcessor = &context;
@@ -2524,7 +2460,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
           O2_SIGNPOST_EVENT_EMIT(device, pcid, "device", "Skipping processing because we are discarding.");
         } else {
           O2_SIGNPOST_EVENT_EMIT(device, pcid, "device", "No processing callback provided. Switching to %{public}s.", "Idle");
-          switchState(ref, StreamingState::Idle);
+          DataProcessingHelpers::switchState(ref, StreamingState::Idle);
         }
         if (shouldProcess(action)) {
           auto& timingInfo = ref.get<TimingInfo>();
@@ -2612,7 +2548,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     for (auto& channel : spec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(ref, channel);
     }
-    switchState(ref, StreamingState::Idle);
+    DataProcessingHelpers::switchState(ref, StreamingState::Idle);
   }
 
   return true;

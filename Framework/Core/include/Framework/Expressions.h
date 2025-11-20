@@ -110,6 +110,8 @@ std::string upcastTo(atype::type f);
 
 /// An expression tree node corresponding to a literal value
 struct LiteralNode {
+  using var_t = LiteralValue::stored_type;
+
   LiteralNode()
     : value{-1},
       type{atype::INT32}
@@ -120,7 +122,12 @@ struct LiteralNode {
   {
   }
 
-  using var_t = LiteralValue::stored_type;
+  LiteralNode(var_t v, atype::type t)
+    : value{v},
+      type{t}
+  {
+  }
+
   var_t value;
   atype::type type = atype::NA;
 };
@@ -617,6 +624,12 @@ inline Node ncfg(T defaultValue, std::string path)
 struct Filter {
   Filter() = default;
 
+  Filter(std::unique_ptr<Node>&& ptr)
+  {
+    node = std::move(ptr);
+    (void)designateSubtrees(node.get());
+  }
+
   Filter(Node&& node_) : node{std::make_unique<Node>(std::forward<Node>(node_))}
   {
     (void)designateSubtrees(node.get());
@@ -624,7 +637,6 @@ struct Filter {
 
   Filter(Filter&& other) : node{std::forward<std::unique_ptr<Node>>(other.node)}
   {
-    (void)designateSubtrees(node.get());
   }
 
   Filter(std::string const& input_) : input{input_} {}

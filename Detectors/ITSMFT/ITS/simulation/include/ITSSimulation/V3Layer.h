@@ -353,43 +353,49 @@ class V3Layer : public V11Geometry
   static const Int_t sIBNChipRows;   ///< IB chip rows in module
   static const Double_t sIBChipZGap; ///< Gap between IB chips on Z
 
-  static const Double_t sIBModuleZLength;      ///< IB Module Length along Z
-  static const Double_t sIBFPCWiderXPlus;      ///< FPC protrusion at X>0
-  static const Double_t sIBFPCWiderXNeg;       ///< FPC protrusion at X<0
-  static const Double_t sIBFlexCableAlThick;   ///< Thickness of FPC Aluminum
-  static const Double_t sIBFPCAlGNDWidth;      ///< Width of total FPC Al Gnd
-  static const Double_t sIBFPCAlAnodeWidth1;   ///< Width of FPC Al Anode
-  static const Double_t sIBFPCAlAnodeWidth2;   ///< Width of FPC Al Anode
-  static const Double_t sIBFlexCableKapThick;  ///< Thickness of FPC Kapton
-  static const Double_t sIBFlexCablePolyThick; ///< Thickness of FPC Coverlay
-  static const Double_t sIBFlexCapacitorXWid;  ///< IB capaictor X width
-  static const Double_t sIBFlexCapacitorYHi;   ///< IB capaictor Y height
-  static const Double_t sIBFlexCapacitorZLen;  ///< IB capaictor Z length
-  static const Double_t sIBColdPlateWidth;     ///< IB cold plate X width
-  static const Double_t sIBColdPlateZLen;      ///< IB cold plate Z length
-  static const Double_t sIBGlueThick;          ///< IB glue thickness
-  static const Double_t sIBCarbonFleeceThick;  ///< IB carbon fleece thickness
-  static const Double_t sIBCarbonPaperThick;   ///< IB Carbon Paper Thickness
-  static const Double_t sIBCarbonPaperWidth;   ///< IB Carbon Paper X Width
-  static const Double_t sIBCarbonPaperZLen;    ///< IB Carbon Paper Z Length
-  static const Double_t sIBK13D2UThick;        ///< IB k13d2u prepreg thickness
-  static const Double_t sIBCoolPipeInnerD;     ///< IB cooling inner diameter
-  static const Double_t sIBCoolPipeThick;      ///< IB cooling pipe thickness
-  static const Double_t sIBCoolPipeXDist;      ///< IB cooling pipe separation
-  static const Double_t sIBCoolPipeZLen;       ///< IB cooling pipe length
-  static const Double_t sIBTopVertexWidth1;    ///< IB TopVertex width
-  static const Double_t sIBTopVertexWidth2;    ///< IB TopVertex width
-  static const Double_t sIBTopVertexHeight;    ///< IB TopVertex height
-  static const Double_t sIBTopVertexAngle;     ///< IB TopVertex aperture angle
-  static const Double_t sIBSideVertexWidth;    ///< IB SideVertex width
-  static const Double_t sIBSideVertexHeight;   ///< IB SideVertex height
-  static const Double_t sIBTopFilamentSide;    ///< IB TopFilament side
-  static const Double_t sIBTopFilamentAlpha;   ///< IB TopFilament angle
-  static const Double_t sIBTopFilamentInterZ;  ///< IB TopFilament Z interdist
-  static const Double_t sIBEndSupportThick;    ///< IB end support thickness
-  static const Double_t sIBEndSupportZLen;     ///< IB end support length
-  static const Double_t sIBEndSupportXUp;      ///< IB end support X up wide
-  static const Double_t sIBEndSupportOpenPhi;  ///< IB end support opening phi
+  static const Double_t sIBModuleZLength;       ///< IB Module Length along Z
+  static const Double_t sIBFPCWiderXPlus;       ///< FPC protrusion at X>0
+  static const Double_t sIBFPCWiderXNeg;        ///< FPC protrusion at X<0
+  static const Double_t sIBFlexCableAlThick;    ///< Thickness of FPC Aluminum
+  static const Double_t sIBFPCAlGNDWidth;       ///< Width of total FPC Al Gnd
+  static const Double_t sIBFPCAlAnodeWidth1;    ///< Width of FPC Al Anode
+  static const Double_t sIBFPCAlAnodeWidth2;    ///< Width of FPC Al Anode
+  static const Double_t sIBFlexCableKapThick;   ///< Thickness of FPC Kapton
+  static const Double_t sIBFlexCablePolyThick;  ///< Thickness of FPC Coverlay
+  static const Double_t sIBFlexCapacitor1XWid;  ///< IB small capacitor X width
+  static const Double_t sIBFlexCapacitor1YHi;   ///< IB small capacitor Y height
+  static const Double_t sIBFlexCapacitor1ZLen;  ///< IB small capacitor Z length
+  static const Double_t sIBFlexCapacitor22XWid; ///< IB large capacitor X width
+  static const Double_t sIBFlexCapacitor22YHi;  ///< IB large capacitor Y height
+  static const Double_t sIBFlexCapacitor22ZLen; ///< IB large capacitor Z length
+  static const Double_t sIBFlexResistorXWid;    ///< IB FPC resistor X width
+  static const Double_t sIBFlexResistorYHi;     ///< IB FPC resistor Y height
+  static const Double_t sIBFlexResistorZLen;    ///< IB FPC resistor Z length
+  static const Double_t sIBColdPlateWidth;      ///< IB cold plate X width
+  static const Double_t sIBColdPlateZLen;       ///< IB cold plate Z length
+  static const Double_t sIBGlueThick;           ///< IB glue thickness
+  static const Double_t sIBCarbonFleeceThick;   ///< IB carbon fleece thickness
+  static const Double_t sIBCarbonPaperThick;    ///< IB Carbon Paper Thickness
+  static const Double_t sIBCarbonPaperWidth;    ///< IB Carbon Paper X Width
+  static const Double_t sIBCarbonPaperZLen;     ///< IB Carbon Paper Z Length
+  static const Double_t sIBK13D2UThick;         ///< IB k13d2u prepreg thickness
+  static const Double_t sIBCoolPipeInnerD;      ///< IB cooling inner diameter
+  static const Double_t sIBCoolPipeThick;       ///< IB cooling pipe thickness
+  static const Double_t sIBCoolPipeXDist;       ///< IB cooling pipe separation
+  static const Double_t sIBCoolPipeZLen;        ///< IB cooling pipe length
+  static const Double_t sIBTopVertexWidth1;     ///< IB TopVertex width
+  static const Double_t sIBTopVertexWidth2;     ///< IB TopVertex width
+  static const Double_t sIBTopVertexHeight;     ///< IB TopVertex height
+  static const Double_t sIBTopVertexAngle;      ///< IB TopVertex aperture angle
+  static const Double_t sIBSideVertexWidth;     ///< IB SideVertex width
+  static const Double_t sIBSideVertexHeight;    ///< IB SideVertex height
+  static const Double_t sIBTopFilamentSide;     ///< IB TopFilament side
+  static const Double_t sIBTopFilamentAlpha;    ///< IB TopFilament angle
+  static const Double_t sIBTopFilamentInterZ;   ///< IB TopFilament Z interdist
+  static const Double_t sIBEndSupportThick;     ///< IB end support thickness
+  static const Double_t sIBEndSupportZLen;      ///< IB end support length
+  static const Double_t sIBEndSupportXUp;       ///< IB end support X up wide
+  static const Double_t sIBEndSupportOpenPhi;   ///< IB end support opening phi
 
   static const Double_t sIBConnectorXWidth;    ///< IB Connectors Width
   static const Double_t sIBConnectorYTot;      ///< IB Connectors total height

@@ -54,8 +54,11 @@ class GeneratorHybrid : public Generator
 {
 
  public:
-  GeneratorHybrid(const std::string& inputgens);
-  ~GeneratorHybrid();
+  GeneratorHybrid& operator=(const GeneratorHybrid&) = delete;
+  GeneratorHybrid(const GeneratorHybrid&) = delete;
+
+  // Singleton access method
+  static GeneratorHybrid& Instance(const std::string& inputgens = "");
 
   Bool_t Init() override;
   Bool_t generateEvent() override;
@@ -66,8 +69,11 @@ class GeneratorHybrid : public Generator
   Bool_t confSetter(const auto& gen);
   template <typename T>
   std::string jsonValueToString(const T& value);
+  std::vector<std::shared_ptr<o2::eventgen::Generator>> const& getGenerators() { return gens; }
 
  private:
+  GeneratorHybrid(const std::string& inputgens);
+  ~GeneratorHybrid();
   o2::eventgen::Generator* currentgen = nullptr;
   std::vector<std::shared_ptr<o2::eventgen::Generator>> gens;
   const std::vector<std::string> generatorNames = {"extkinO2", "evtpool", "boxgen", "external", "hepmc", "pythia8", "pythia8pp", "pythia8hi", "pythia8hf", "pythia8powheg"};

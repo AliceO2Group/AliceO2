@@ -15,7 +15,7 @@
 #define GPUCA_GPUCODE_HOSTONLY
 #define GPUCA_GPUCODE_NO_LAUNCH_BOUNDS
 
-#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
 
 #include "GPUReconstructionCUDAIncludesSystem.h"
 #include "GPUReconstructionCUDADef.h"

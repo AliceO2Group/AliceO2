@@ -18,7 +18,7 @@
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
 #include "TTreeReaderArray.h"
-#include "TableBuilder.h"
+#include "Framework/TableBuilder.h"
 #include <arrow/dataset/file_base.h>
 #include <memory>
 

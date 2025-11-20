@@ -19,6 +19,7 @@
 #include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayInterface.h"
 #include "GPUSettings.h"
+#include "GPUDefConstantsAndSettings.h"
 
 #include <array>
 #include <mutex>

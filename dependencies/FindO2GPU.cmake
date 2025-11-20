@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 3
+# FindO2GPU.cmake Version 6
 
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
@@ -58,10 +58,10 @@ function(set_target_hip_arch target)
     target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_VEGA)
   elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx908")
     message(STATUS "Using optimized HIP settings for MI100 GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI2xx)
+    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI100)
   elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx90a")
     message(STATUS "Using optimized HIP settings for MI210 GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI2xx)
+    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI100)
   else()
     target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_VEGA)
   endif()
@@ -71,6 +71,9 @@ endfunction()
 STRING(REGEX REPLACE "\-std=[^ ]*" "" O2_GPU_CMAKE_CXX_FLAGS_NOSTD "${CMAKE_CXX_FLAGS}")
 
 # ================================== Fast Math / Deterministic Mode ==================================
+if(DEFINED ENV{O2_OVERRIDE_GPUCA_DETERMINISTIC_MODE})
+  set(GPUCA_DETERMINISTIC_MODE $ENV{O2_OVERRIDE_GPUCA_DETERMINISTIC_MODE})
+endif()
 # set(GPUCA_DETERMINISTIC_MODE WHOLEO2)          # Override
 set(GPUCA_DETERMINISTIC_MODE_MAP_OFF 0)
 set(GPUCA_DETERMINISTIC_MODE_MAP_NO_FAST_MATH 1) # No -ffast-math and similar compile flags for GPU folder
@@ -139,10 +142,14 @@ if(ENABLE_CUDA)
       message(${FAILURE_SEVERITY} "CUDA was found but cannot be enabled")
       set(CMAKE_CUDA_COMPILER OFF)
     endif()
-    find_path(THRUST_INCLUDE_DIR thrust/version.h PATHS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} NO_DEFAULT_PATH)
+    find_path(THRUST_INCLUDE_DIR thrust/version.h PATHS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+	    PATH_SUFFIXES "" cccl
+	    NO_DEFAULT_PATH)
     if(THRUST_INCLUDE_DIR STREQUAL "THRUST_INCLUDE_DIR-NOTFOUND")
-      message(${FAILURE_SEVERITY} "CUDA found but thrust not available")
+      message(${FAILURE_SEVERITY} "CUDA found but thrust not available, looked under: ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
       set(CMAKE_CUDA_COMPILER OFF)
+    else()
+      message(STATUS "Thrust found in the path: ${THRUST_INCLUDE_DIR}")
     endif()
     if (NOT CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "12.8")
       message(${FAILURE_SEVERITY} "CUDA Version too old: ${CMAKE_CUDA_COMPILER_VERSION}, 12.8 required")

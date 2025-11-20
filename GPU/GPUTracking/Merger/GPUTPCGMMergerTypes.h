@@ -21,7 +21,8 @@
 namespace o2::gpu::gputpcgmmergertypes
 {
 
-enum attachTypes { attachAttached = 0x40000000,
+enum attachTypes { attachProtect = 0x80000000,
+                   attachAttached = 0x40000000,
                    attachGood = 0x20000000,
                    attachGoodLeg = 0x10000000,
                    attachTube = 0x08000000,

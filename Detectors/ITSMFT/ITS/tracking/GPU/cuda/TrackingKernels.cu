@@ -644,23 +644,6 @@ GPUg() void __launch_bounds__(256, 1) processNeighboursKernel(
   }
 }
 
-GPUhi() void allocateMemory(void** p, size_t bytes, cudaStream_t stream = nullptr, ExternalAllocator* alloc = nullptr)
-{
-  if (alloc) {
-    *p = alloc->allocate(bytes);
-  } else {
-    GPUChkErrS(cudaMallocAsync(p, bytes, stream));
-  }
-}
-
-GPUhi() void deallocateMemory(void* p, size_t bytes, cudaStream_t stream = nullptr, ExternalAllocator* alloc = nullptr)
-{
-  if (alloc) {
-    alloc->deallocate(reinterpret_cast<char*>(p), bytes);
-  } else {
-    GPUChkErrS(cudaFreeAsync(p, stream));
-  }
-}
 } // namespace gpu
 
 template <int nLayers>

@@ -14,11 +14,6 @@
 
 #define GPUCA_CADEBUG 0
 #define DEBUG_SINGLE_TRACK -1
-#define EXTRACT_RESIDUALS 0
-
-#if EXTRACT_RESIDUALS == 1
-#include "GPUROOTDump.h"
-#endif
 
 #include "GPUTPCDef.h"
 #include "GPUTPCGMTrackParam.h"
@@ -151,6 +146,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         const float rmax = (83.5f + param.rec.tpc.sysClusErrorMinDist);
         if (r2 < rmax * rmax) {
           MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectErr);
+          continue;
         }
       }
 
@@ -252,7 +248,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
         const float invCharge = merger->GetConstantMem()->ioPtrs.clustersNative ? (1.f / merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
         float invAvgCharge = (sumInvSqrtCharge += invSqrtCharge) / ++nAvgCharge;
         invAvgCharge *= invAvgCharge;
-
         prop.GetErr2(err2Y, err2Z, param, zz, cluster.row, clusterState, cluster.sector, time, invAvgCharge, invCharge);
 
         if (rejectChi2 >= GPUTPCGMPropagator::rejectInterFill) {
@@ -495,7 +490,8 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
 
 GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z)
 {
-  if (Merger->Param().rec.tpc.disableRefitAttachment & 1) {
+  const auto& param = Merger->Param();
+  if (param.rec.tpc.disableRefitAttachment & 1) {
     return -1e6f;
   }
   const GPUTPCTracker& GPUrestrict() tracker = *(Merger->GetConstantMem()->tpcTrackers + sector);
@@ -506,29 +502,40 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
     return -1e6f;
   }
 
-  const float zOffset = Merger->Param().par.continuousTracking ? Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, mTOffset, Merger->Param().continuousMaxTimeBin) : 0;
+  const float zOffset = param.par.continuousTracking ? Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0; // TODO: do some validatiomns for the transform conv functions...
   const float y0 = row.Grid().YMin();
   const float stepY = row.HstepY();
   const float z0 = row.Grid().ZMin() - zOffset; // We can use our own ZOffset, since this is only used temporarily anyway
   const float stepZ = row.HstepZ();
   int32_t bin, ny, nz;
 
+  float uncorrectedY, uncorrectedZ;
+  Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(sector, iRow, Y, Z, uncorrectedY, uncorrectedZ);
+  if (CAMath::Abs(uncorrectedY) > row.getTPCMaxY()) {
+    return uncorrectedY;
+  }
+
+  bool protect = CAMath::Abs(GetQPt() * param.qptB5Scaler) <= param.rec.tpc.rejectQPtB5 && goodLeg;
   float err2Y, err2Z;
-  Merger->Param().GetClusterErrors2(sector, iRow, Z, mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z);                                       // TODO: Use correct time/avgCharge
-  const float sy2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Y + CAMath::Abs(mC[0]))); // Cov can be bogus when following circle
-  const float sz2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Z + CAMath::Abs(mC[2]))); // In that case we should provide the track error externally
+  param.GetClusterErrors2(sector, iRow, Z, mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Use correct time/avgCharge
+  const float tubeMaxSize2 = protect ? param.rec.tpc.tubeProtectMaxSize2 : param.rec.tpc.tubeRemoveMaxSize2;
+  const float tubeMinSize2 = protect ? param.rec.tpc.tubeProtectMinSize2 : 0.f;
+  float tubeSigma2 = protect ? param.rec.tpc.tubeProtectSigma2 : param.rec.tpc.tubeRemoveSigma2;
+  uint32_t pad = CAMath::Float2UIntRn(GPUTPCGeometry::LinearY2Pad(sector, iRow, uncorrectedY));
+  float time = Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->InverseTransformInTimeFrame(sector, uncorrectedZ + (param.par.continuousTracking ? Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0), param.continuousMaxTimeBin); // TODO: Simplify this call in TPCFastTransform
+  if (iRow < param.rec.tpc.tubeExtraProtectMinRow ||
+      pad < param.rec.tpc.tubeExtraProtectEdgePads || pad >= (uint32_t)(GPUTPCGeometry::NPads(iRow) - param.rec.tpc.tubeExtraProtectEdgePads) ||
+      param.GetUnscaledMult(time) / GPUTPCGeometry::Row2X(iRow) > param.rec.tpc.tubeExtraProtectMinOccupancy) {
+    tubeSigma2 *= protect ? 2 : 0.5;
+  }
+  const float sy2 = CAMath::Max(tubeMinSize2, CAMath::Min(tubeMaxSize2, tubeSigma2 * (err2Y + CAMath::Abs(mC[0])))); // Cov can be bogus when following circle
+  const float sz2 = CAMath::Max(tubeMinSize2, CAMath::Min(tubeMaxSize2, tubeSigma2 * (err2Z + CAMath::Abs(mC[2])))); // In that case we should provide the track error externally
   const float tubeY = CAMath::Sqrt(sy2);
   const float tubeZ = CAMath::Sqrt(sz2);
   const float sy21 = 1.f / sy2;
   const float sz21 = 1.f / sz2;
-  float uncorrectedY, uncorrectedZ;
-  Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(sector, iRow, Y, Z, uncorrectedY, uncorrectedZ);
 
-  if (CAMath::Abs(uncorrectedY) > row.getTPCMaxY()) {
-    return uncorrectedY;
-  }
   row.Grid().GetBinArea(uncorrectedY, uncorrectedZ + zOffset, tubeY, tubeZ, bin, ny, nz);
-
   const int32_t nBinsY = row.Grid().Ny();
   const int32_t idOffset = tracker.Data().ClusterIdOffset();
   const int32_t* ids = &(tracker.Data().ClusterDataIndex()[row.HitNumberOffset()]);
@@ -537,6 +544,10 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
   if (goodLeg) {
     myWeight |= gputpcgmmergertypes::attachGoodLeg;
   }
+  if (protect) {
+    myWeight |= gputpcgmmergertypes::attachProtect;
+  }
+
   for (int32_t k = 0; k <= nz; k++) {
     const int32_t mybin = bin + k * nBinsY;
     const uint32_t hitFst = firsthit[mybin];
@@ -901,7 +912,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
   }
 
   // clang-format off
-  CADEBUG(if (DEBUG_SINGLE_TRACK >= 0 && iTrk != DEBUG_SINGLE_TRACK) { track.SetNClusters(0); track.SetOK(0); return; } );
+  CADEBUG(if (DEBUG_SINGLE_TRACK != -1 && iTrk != ((DEBUG_SINGLE_TRACK == -2 && getenv("DEBUG_TRACK")) ? atoi(getenv("DEBUG_TRACK")) :  DEBUG_SINGLE_TRACK)) { track.SetNClusters(0); track.SetOK(0); return; } );
   // clang-format on
 
   int32_t nTrackHits = track.NClusters();

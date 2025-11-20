@@ -19,7 +19,7 @@
 // Create plain-C struct for GPU code.
 // Create static constexpr with default values for GPU run time compilation
 
-#include "GPUDefConstantsAndSettings.h"
+#include "GPUCommonDef.h"
 #ifndef GPUSETTINGS_H
 #error Please include GPUSettings.h!
 #endif
@@ -39,7 +39,7 @@ BeginNamespace(gpu)
 
 // Reconstruction parameters for TPC, no bool in here !!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
-AddOptionRTC(rejectQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_REJECT_DEFAULT, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
+AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
 AddOptionRTC(hitPickUpFactor, float, 1.f, "", 0, "multiplier for the combined cluster+track error during track following")
 AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road of hits during seeding")
 AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, for z only used if searchWindowDZDR = 0")
@@ -68,8 +68,12 @@ AddOptionRTC(minNClustersFinalTrack, int32_t, -1, "", 0, "required min number of
 AddOptionRTC(searchWindowDZDR, float, 2.5f, "", 0, "Use DZDR window for seeding instead of neighboursSearchArea")
 AddOptionRTC(trackReferenceX, float, 1000.f, "", 0, "Transport all tracks to this X after tracking (disabled if > 500, auto = 1000)")
 AddOptionRTC(zsThreshold, float, 2.0f, "", 0, "Zero-Suppression threshold")
-AddOptionRTC(tubeChi2, float, 5.f * 5.f, "", 0, "Max chi2 to mark cluster adjacent to track")
-AddOptionRTC(tubeMaxSize2, float, 2.5f * 2.5f, "", 0, "Square of max tube size (normally derrived from tpcTubeChi2)")
+AddOptionRTC(tubeProtectSigma2, float, 4.f * 4.f, "", 0, "Max sigma2 to mark adjacent cluster for protection")
+AddOptionRTC(tubeProtectMaxSize2, float, 2.f * 2.f, "", 0, "Square of max tube size (if smaller than tubeProtectChi2)")
+AddOptionRTC(tubeProtectMinSize2, float, 0.5f * 0.5f, "", 0, "Square of min tube size (if larger than tubeProtectChi2)")
+AddOptionRTC(tubeRemoveSigma2, float, 1.25f * 1.25f, "", 0, "Max sigma2 to mark adjacent cluster for removal")
+AddOptionRTC(tubeRemoveMaxSize2, float, 2.5f * 2.5f, "", 0, "Square of max tube size (if smaller than tubeRejectChi2)")
+AddOptionRTC(tubeExtraProtectMinOccupancy, uint32_t, 1500, "", 0, "Increase Protection, decrease removal by factor 2, when above this lokal occupancy / rowx")
 AddOptionRTC(clustersShiftTimebins, float, 0, "", 0, "Shift of TPC clusters (applied during CTF cluster decoding)")
 AddOptionRTC(clustersShiftTimebinsClusterizer, float, 0, "", 0, "Shift of TPC clusters (applied during CTF clusterization)")
 AddOptionRTC(clustersEdgeFixDistance, float, 0.f, "", 0, "If >0, revert cluster.flag edge bit distance to edge exceeds this parameter (fixed during CTF decoding)")
@@ -159,6 +163,9 @@ AddOptionRTC(dEdxClusterRejectionFlagMask, int8_t, o2::gpu::GPUTPCGMMergedTrackH
 AddOptionRTC(dEdxClusterRejectionFlagMaskAlt, int8_t, o2::gpu::GPUTPCGMMergedTrackHit::flagEdge, "", 0, "OR mask of TPC flags that will reject the cluster in alternative dEdx")
 AddOptionRTC(rejectEdgeClustersInSeeding, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during seeding")
 AddOptionRTC(rejectEdgeClustersInTrackFit, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during track fit")
+AddOptionRTC(tubeExtraProtectMinRow, uint8_t, 20, "", 0, "Increase Protection, decrease removal by factor 2, when below this row")
+AddOptionRTC(tubeExtraProtectEdgePads, uint8_t, 2, "", 0, "Increase Protection, decrease removal by factor 2, when on this number of pads from the edge")
+
 AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet hand AddOptionArrayRTC
 AddHelp("help", 'h')
 EndConfig()
@@ -192,7 +199,7 @@ EndConfig()
 
 // Global reconstruction parameters, no bool in here !!!
 BeginSubConfig(GPUSettingsRec, rec, configStandalone, "REC", 0, "Reconstruction settings", rec)
-AddOptionRTC(maxTrackQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT, "", 0, "required max Q/Pt (==min Pt) of tracks")
+AddOptionRTC(maxTrackQPtB5, float, 1.f / 0.010f, "", 0, "required max Q/Pt (==min Pt) of tracks")
 AddOptionRTC(fwdTPCDigitsAsClusters, uint8_t, 0, "", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddOptionRTC(bz0Pt10MeV, uint8_t, 60, "", 0, "Nominal Pt to set when bz = 0 (in 10 MeV)")
 AddOptionRTC(fitInProjections, int8_t, -1, "", 0, "Fit in projection, -1 to enable full fit for all but passes but the first one")
@@ -303,7 +310,7 @@ AddOption(debugMask, uint32_t, (1 << 18) - 1, "debugMask", 0, "Mask for debug ou
 AddOption(debugLogSuffix, std::string, "", "debugSuffix", 0, "Suffix for debug log files with --debug 6")
 AddOption(serializeGPU, int8_t, 0, "", 0, "Synchronize after each kernel call (bit 1) and DMA transfer (bit 2) and identify failures")
 AddOption(recoTaskTiming, bool, 0, "", 0, "Perform summary timing after whole reconstruction tasks")
-AddOption(deterministicGPUReconstruction, int32_t, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6", def(1))
+AddOption(deterministicGPUReconstruction, int32_t, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6 or deterministic compile flag set", def(1))
 AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
 AddOption(runCompressionStatistics, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
 AddOption(resetTimers, int8_t, 1, "", 0, "Reset timers every event")
@@ -509,9 +516,10 @@ AddOption(filterPID, int32_t, -1, "", 0, "Filter for Particle Type (0 Electron, 
 AddOption(nativeFitResolutions, bool, false, "", 0, "Create resolution histograms in the native fit units (sin(phi), tan(lambda), Q/Pt)")
 AddOption(enableLocalOutput, bool, true, "", 0, "Enable normal output to local PDF files / console")
 AddOption(dumpToROOT, int32_t, 0, "", 0, "Dump all clusters and tracks to a ROOT file, 1 = combined TNTUple dump, 2 = also individual cluster / track branch dump")
-AddOption(writeMCLabels, bool, false, "", 0, "Store mc labels to file for later matching")
 AddOption(writeRootFiles, bool, false, "", 0, "Create ROOT canvas files")
+AddOption(writeMCLabels, bool, false, "", 0, "Store mc labels to file for later matching")
 AddOptionVec(matchMCLabels, std::string, "", 0, "Read labels from files and match them, only process tracks where labels differ")
+AddOption(compareTrackStatus, uint32_t, 0, "", 0, "0 = disabled, 1 = write status file, 2 = read status file and compare with current tracks")
 AddOption(matchDisplayMinPt, float, 0, "", 0, "Minimum Pt of a matched track to be displayed")
 AddOption(noMC, bool, false, "", 0, "Force running QA without MC labels even if present")
 AddOption(shipToQC, bool, false, "", 0, "Do not write output files but ship histograms for QC")
@@ -521,6 +529,7 @@ AddOption(histMaxNClusters, uint32_t, 500000000, "", 0, "Maximum number of clust
 AddOption(minNClFindable, uint32_t, 70, "", 0, "Minimum number of (weighted) MC clusters for a track to count as findable")
 AddOption(minNClEff, uint32_t, 10, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to all-tracks efficiency histogramm")
 AddOption(minNClRes, uint32_t, 40, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to resolution histogram")
+AddOption(perfFigure, int32_t, 0, "", 0, "Show as performance figure, positive value for MC, negative value for data")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAinputHistogramsOnly")
 AddHelp("help", 'h')
 EndConfig()
@@ -591,6 +600,7 @@ AddOption(stripDumpedEvents, bool, false, "", 0, "Remove redundant inputs (e.g. 
 AddOption(printSettings, int32_t, 0, "", 0, "Print all settings", def(1))
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddOption(testSync, bool, false, "sync", 0, "Test settings for synchronous phase")
+AddOption(testSyncAsyncQcInSync, bool, false, "syncAsyncSyncQC", 0, "Run QC in sync phase of testSyncAsync")
 AddOption(timeFrameTime, bool, false, "tfTime", 0, "Print some debug information about time frame processing time")
 AddOption(controlProfiler, bool, false, "", 0, "Issues GPU profiler stop and start commands to profile only the relevant processing part")
 AddOption(preloadEvents, bool, false, "", 0, "Preload events into host memory before start processing")

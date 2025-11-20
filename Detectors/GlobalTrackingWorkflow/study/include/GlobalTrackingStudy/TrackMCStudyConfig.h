@@ -28,6 +28,7 @@ struct TrackMCStudyConfig : o2::conf::ConfigurableParamHelper<TrackMCStudyConfig
   bool requireITSorTPCTrackRefs = true;
   bool requireTopBottomRefs = false;
   bool storeTPCTrackRefs = false;
+  bool storeITSInfo = true;
   int minTPCRefsToExtractClRes = 2;
   int nOccBinsDrift = 10; // number of bins for TPC max drift time, where we integrate the occupancies
   int nTBPerOccBin = 48;  // number of TB per occ bin

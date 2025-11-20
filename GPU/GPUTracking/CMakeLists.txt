@@ -130,6 +130,7 @@ set(HDRS_INSTALL
     DataTypes/GPUTRDInterfaceO2Track.h
     DataTypes/GPUTriggerOutputs.h
     DataTypes/GPUKernelClassesFwd.h
+    DataTypes/GPUO2ExternalUser.h
     Debug/GPUROOTDump.h
     Definitions/GPUDefConstantsAndSettings.h
     Definitions/GPUDefParametersWrapper.h
@@ -228,7 +229,7 @@ set(HDRS_INSTALL ${HDRS_INSTALL}
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS_DATATYPES
       ${SRCS_DATATYPES}
-      Interface/GPUO2InterfaceConfigurableParam.cxx)
+      DataTypes/GPUO2ConfigurableParam.cxx)
 endif()
 
 set(TEMPLATE_HEADER_LIST Base/GPUReconstructionKernelList.template.h
@@ -405,7 +406,7 @@ target_sources(${targetName}
                BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR})
 
 make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
-set(GPU_CONST_PARAM_ARCHITECTUES AMPERE TURING VEGA MI2xx)
+set(GPU_CONST_PARAM_ARCHITECTUES AMPERE TURING VEGA MI100)
 set(GPU_CONST_PARAM_FILES "")
 foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
   set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)

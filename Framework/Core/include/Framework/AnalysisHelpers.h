@@ -26,6 +26,12 @@
 #include "Framework/Traits.h"
 
 #include <string>
+namespace o2::framework
+{
+std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
+std::string serializeSchema(std::shared_ptr<arrow::Schema>& schema);
+}  // namespace o2::framework
+
 namespace o2::soa
 {
 template <TableRef R>
@@ -97,6 +103,32 @@ constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }
+
+template <soa::with_expression_pack T>
+constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  using expression_pack_t = T::expression_pack_t;
+
+  auto projectors = []<typename... C>(framework::pack<C...>) -> std::vector<framework::expressions::Projector> {
+    std::vector<framework::expressions::Projector> result;
+    (result.emplace_back(std::move(C::Projector())), ...);
+    return result;
+  }(expression_pack_t{});
+
+  auto schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(expression_pack_t{}));
+
+  auto json = framework::serializeProjectors(projectors);
+  return {framework::ConfigParamSpec{"projectors", framework::VariantType::String, json, {"\"\""}},
+          framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(schema), {"\"\""}}};
+}
+
+template <typename T>
+  requires(!soa::with_expression_pack<T>)
+constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  return {};
+}
+
 }  // namespace
 
 template <TableRef R>
@@ -107,6 +139,8 @@ constexpr auto tableRef2InputSpec()
   metadata.insert(metadata.end(), m.begin(), m.end());
   auto ccdbMetadata = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
+  auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), p.begin(), p.end());
 
   return framework::InputSpec{
     o2::aod::label<R>(),

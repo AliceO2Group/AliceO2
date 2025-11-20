@@ -86,6 +86,7 @@ namespace o2::gpu
 class GPUChainTracking;
 struct GPUParam;
 struct GPUTPCMCInfo;
+struct checkClusterStateResult;
 namespace internal
 {
 struct GPUQAGarbageCollection;
@@ -172,12 +173,12 @@ class GPUQA
   void CopyO2MCtoIOPtr(GPUTrackingInOutPointers* ptr);
   template <class T>
   void SetAxisSize(T* e);
-  void SetLegend(TLegend* l);
+  void SetLegend(TLegend* l, bool bigText = false);
   double* CreateLogAxis(int32_t nbins, float xmin, float xmax);
   void ChangePadTitleSize(TPad* p, float size);
   void DrawHisto(TH1* histo, char* filename, char* options);
   void doPerfFigure(float x, float y, float size);
-  void GetName(char* fname, int32_t k);
+  void GetName(char* fname, int32_t k, bool noDash = false);
   template <class T>
   T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int32_t k, int32_t nNewInput);
 
@@ -230,13 +231,13 @@ class GPUQA
   const auto& GetClusterLabels();
   bool mcPresent();
 
+  template <bool COUNT = false, class T = void>
+  checkClusterStateResult checkClusterState(uint32_t attach, T* counts = nullptr) const;
+
   GPUChainTracking* mTracking;
   const GPUSettingsQA& mConfig;
   const GPUParam* mParam;
 
-  const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
-  // const char* str_perf_figure_2 = "2015, MC pp, #sqrt{s} = 5.02 TeV";
-  const char* str_perf_figure_2 = "2015, MC Pb-Pb, #sqrt{s_{NN}} = 5.02 TeV";
   //-------------------------
 
   std::vector<mcLabelI_t> mTrackMCLabels;
@@ -259,7 +260,7 @@ class GPUQA
   std::vector<additionalClusterParameters> mClusterParam;
   int32_t mNTotalFakes = 0;
 
-  TH1F* mEff[5][2][2][5]; // eff,clone,fake,all,all-fake - findable - secondaries - y,z,phi,eta,pt - work,result
+  TH1F* mEff[6][2][2][5]; // eff,clone,fake,all,all-fake - findable - secondaries - y,z,phi,eta,pt - work,result
   TGraphAsymmErrors* mEffResult[4][2][2][5];
   TCanvas* mCEff[6];
   TPad* mPEff[6][4];
@@ -314,6 +315,17 @@ class GPUQA
   TH2F* mClXY;
   TCanvas* mCClXY;
   TPad* mPClXY;
+
+  TH2F* mClRej[3];
+  TH1D* mClRejP;
+  TCanvas* mCClRej[3];
+  TCanvas* mCClRejP;
+  TPad* mPClRej[3];
+  TPad* mPClRejP;
+
+  TH2F* mPadRow[2];
+  TCanvas* mCPadRow[2];
+  TPad* mPPadRow[2];
 
   std::vector<TH2F*> mHistClusterCount;
 

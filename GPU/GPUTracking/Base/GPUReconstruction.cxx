@@ -264,7 +264,11 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings->recoTaskTiming = true;
   }
   if (GetProcessingSettings().deterministicGPUReconstruction == -1) {
+#ifdef GPUCA_DETERMINISTIC_MODE
+    mProcessingSettings->deterministicGPUReconstruction = 1;
+#else
     mProcessingSettings->deterministicGPUReconstruction = GetProcessingSettings().debugLevel >= 6;
+#endif
   }
   if (GetProcessingSettings().deterministicGPUReconstruction) {
 #ifndef GPUCA_DETERMINISTIC_MODE
@@ -567,7 +571,7 @@ size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
   return total;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*setPtr)(void*), void*& memorypoolend, const char* device)
+size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*setPtr)(void*) const, void*& memorypoolend, const char* device)
 {
   if (res->mReuse >= 0) {
     ptr = (&ptr == &res->mPtrDevice) ? mMemoryResources[res->mReuse].mPtrDevice : mMemoryResources[res->mReuse].mPtr;
@@ -748,7 +752,7 @@ void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
   void*& poolend = (type & GPUMemoryResource::MEMORY_GPU) ? mDeviceMemoryPoolEnd : mHostMemoryPoolEnd;
   char* retVal;
   if ((type & GPUMemoryResource::MEMORY_STACK)) {
-    poolend = (char*)poolend - size;
+    poolend = (char*)poolend - size; // TODO: Implement overflow check
     poolend = (char*)poolend - GPUProcessor::getAlignmentMod<GPUCA_MEMALIGN>(poolend);
     retVal = (char*)poolend;
   } else {

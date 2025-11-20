@@ -97,6 +97,10 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, L
 {
   std::string fileName = location.fileName();
   TFile f(fileName.c_str(), "recreate");
+  if (f.IsZombie()) {
+    LOGF(error, "Could not create output file %s", fileName.c_str());
+    return;
+  }
 
   saveInt("runNumber", event.mRunNumber);
   saveInt("runType", event.mRunType);

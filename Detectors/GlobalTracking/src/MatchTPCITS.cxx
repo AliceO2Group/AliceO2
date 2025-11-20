@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#include "GPUO2ExternalUser.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.h"
 #include "GPUParam.inc"
 #ifdef WITH_OPENMP

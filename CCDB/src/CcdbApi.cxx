@@ -165,6 +165,10 @@ void CcdbApi::curlInit()
 
 void CcdbApi::init(std::string const& host)
 {
+  if (host.empty()) {
+    throw std::invalid_argument("Empty url passed CcdbApi, cannot initialize. Aborting.");
+  }
+
   // if host is prefixed with "file://" this is a local snapshot
   // in this case we init the API in snapshot (readonly) mode
   constexpr const char* SNAPSHOTPREFIX = "file://";
@@ -831,7 +835,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
 }
 
 bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata,
-                           long timestamp, bool preservePath, std::string const& localFileName, std::string const& createdNotAfter, std::string const& createdNotBefore) const
+                           long timestamp, bool preservePath, std::string const& localFileName, std::string const& createdNotAfter, std::string const& createdNotBefore, std::map<std::string, std::string>* outHeaders) const
 {
 
   // we setup the target path for this blob
@@ -879,6 +883,9 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   CCDBQuery querysummary(path, metadata, timestamp);
 
   updateMetaInformationInLocalFile(targetpath.c_str(), &headers, &querysummary);
+  if (outHeaders) {
+    *outHeaders = std::move(headers);
+  }
   return true;
 }
 

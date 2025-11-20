@@ -18,7 +18,7 @@
 #include "Framework/Task.h"
 #include "TStopwatch.h"
 #include "TRDBase/GeometryFlat.h"
-#include "GPUO2Interface.h"
+#include "GPUO2ExternalUser.h"
 #include "GPUTRDTracker.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"

@@ -26,7 +26,7 @@
 #include <fairlogger/Logger.h> // for LOG
 
 using o2::itsmft::Digit;
-using o2::itsmft::Hit;
+using o2::trk::Hit;
 using Segmentation = o2::trk::SegmentationChip;
 
 using namespace o2::trk;
@@ -68,12 +68,12 @@ void Digitizer::init()
   LOG(info) << " Depth max MLOT: " << mChipSimRespMLOT->getDepthMax();
   LOG(info) << " Depth min MLOT: " << mChipSimRespMLOT->getDepthMin();
 
-  float thicknessVD = 0.0095; // cm --- hardcoded based on geometry currently present
-  float thicknessMLOT = 0.1;  // cm --- hardcoded based on geometry currently present
+  float thicknessVD = 0.0095;                                            // cm --- hardcoded based on geometry currently present
+  float thicknessMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT; // 0.01 cm = 100 um --- based on geometry currently present
 
   mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
   mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
-  mSimRespVDShift = -mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
+  mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
   mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
   mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
   mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
@@ -115,8 +115,8 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
             << " cont.mode: " << isContinuous()
             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
-  // std::cout << "Printing segmentation info: " << std::endl;
-  // SegmentationChip::Print();
+  std::cout << "Printing segmentation info: " << std::endl;
+  SegmentationChip::Print();
 
   // // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
@@ -252,7 +252,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 }
 
 //_______________________________________________________________________
-void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID)
+void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID)
 {
   int chipID = hit.GetDetectorID(); //// the chip ID at the moment is not referred to the chip but to a wider detector element (e.g. quarter of layer or disk in VD, stave in ML, half stave in OT)
   int subDetID = mGeometry->getSubDetID(chipID);
@@ -333,13 +333,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // std::cout<< "Example hit in local frame: " << exampleLoc << std::endl;
   // std::cout<<"Going back to glob coordinates: " << (matrix * exampleLoc) << std::endl;
 
-  //// adapting the depth (Y) of the chip to the APTS response maximum depth
-  LOG(debug) << "local original: startPos = " << xyzLocS << ", endPos = " << xyzLocE << std::endl;
-  xyzLocS.SetY(xyzLocS.Y());
-  xyzLocE.SetY(xyzLocE.Y());
-
-  LOG(debug) << "rescaled Y: startPos = " << xyzLocS << ", endPos = " << xyzLocE << std::endl;
-
   math_utils::Vector3D<float> step(xyzLocE);
   step -= xyzLocS;
   step *= nStepsInv; // position increment at each step
@@ -418,7 +411,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // take into account that the ChipSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
   // local coordinates has Y = +SensorLayerThickness/2
+  // LOG(info)<<"SubdetID = " << subDetID<< " shift: "<<mSimRespVDShift<<" or "<<mSimRespMLOTShift;
+  // LOG(info)<< " Before shift: S = " << xyzLocS.Y()*1e4 << "  E = " << xyzLocE.Y()*1e4;
   xyzLocS.SetY(xyzLocS.Y() + ((subDetID == 0) ? mSimRespVDShift : mSimRespMLOTShift));
+  // LOG(info)<< " After shift: S = " << xyzLocS.Y()*1e4 << "  E = " << xyzLocE.Y()*1e4;
 
   // collect charge in every pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {
@@ -451,7 +447,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
       LOG(debug) << "Error in rspmat for step " << iStep << " / " << nSteps;
       continue;
     }
-    LOG(debug) << "rspmat valid! for step " << iStep << " / " << nSteps << ", (row,col) = (" << row << "," << col << ")";
+    // LOG(info) << "rspmat valid! for step " << iStep << " / " << nSteps << ", (row,col) = (" << row << "," << col << ")";
+    // LOG(info) << "rspmat valid! for step " << iStep << " / " << nSteps << " Y= " << xyzLocS.Y()*1e4 << " , (row,col) = (" << row << "," << col << ")";
     // rspmat->print(); // print the response matrix for debugging
 
     for (int irow = AlpideRespSimMat::NPix; irow--;) {
@@ -472,7 +469,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto roFrameAbs = mNewROFrame + roFrameRel;
-  LOG(debug) << "Spanning through rows and columns; rowspan = " << rowSpan << " colspan = " << colSpan << " = " << colE << " - " << colS << " +1 " << std::endl;
+  LOG(debug) << "\nSpanning through rows and columns; rowspan = " << rowSpan << " colspan = " << colSpan << " = " << colE << " - " << colS << " +1 ";
   for (int irow = rowSpan; irow--;) {          // irow ranging from 4 to 0
     uint16_t rowIS = irow + rowS;              // row distant irow from the row of the hit start
     for (int icol = colSpan; icol--;) {        // icol ranging from 4 to 0
@@ -480,9 +477,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
       if (nEleResp <= 1.e-36) {
         continue;
       }
-      LOG(debug) << "nEleResp: value " << nEleResp << " for pixel " << irow << " " << icol << std::endl;
+      LOG(debug) << "nEleResp: value " << nEleResp << " for pixel " << irow << " " << icol;
       int nEle = gRandom->Poisson(nElectrons * nEleResp); // total charge in given pixel = number of electrons generated in the hit multiplied by the probability of being detected in their position
-      LOG(debug) << "Charge detected in the pixel: " << nEle << " for pixel " << irow << " " << icol << std::endl;
+      LOG(debug) << "Charge detected in the pixel: " << nEle << " for pixel " << irow << " " << icol;
       // ignore charge which have no chance to fire the pixel
       if (nEle < mParams.getMinChargeToAccount()) { /// TODO: substitute with the threshold?
         LOG(debug) << "Ignoring pixel with nEle = " << nEle << " < min charge to account "

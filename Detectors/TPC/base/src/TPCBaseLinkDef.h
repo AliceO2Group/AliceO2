@@ -21,6 +21,7 @@
 #pragma link C++ class o2::tpc::CalArray < unsigned> + ;
 #pragma link C++ class o2::tpc::CalArray < short> + ;
 #pragma link C++ class o2::tpc::CalArray < bool> + ;
+#pragma link C++ class o2::tpc::CalArray < o2::tpc::PadFlags> + ;
 #pragma link C++ class o2::tpc::CalDet < float> + ;
 #pragma link C++ class o2::tpc::CalDet < double> + ;
 #pragma link C++ class o2::tpc::CalDet < int> + ;

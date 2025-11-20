@@ -53,8 +53,7 @@ class GPUChainITS final : public GPUChain
   std::unique_ptr<o2::its::TrackerTraits<7>> mITSTrackerTraits;
   std::unique_ptr<o2::its::VertexerTraits<7>> mITSVertexerTraits;
   std::unique_ptr<o2::its::TimeFrame<7>> mITSTimeFrame;
-  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkDeviceAllocator;
-  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkHostAllocator;
+  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkAllocator;
 };
 } // namespace o2::gpu
 
