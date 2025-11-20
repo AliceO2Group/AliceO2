@@ -36,13 +36,14 @@ struct DataAccess {
 } // namespace o2::test
 BOOST_AUTO_TEST_CASE(test_flattenrestore)
 {
-  o2::test::DataAccess access{static_cast<size_t>(rand() % 32)};
+  unsigned int seed = 1;
+  o2::test::DataAccess access{static_cast<size_t>(rand_r(&seed) % 32)};
   std::vector<char> chars(access.count);
-  std::generate(chars.begin(), chars.end(), []() { return rand() % 256; });
+  std::generate(chars.begin(), chars.end(), [&seed]() { return rand_r(&seed) % 256; });
   std::vector<int> ints(access.count);
-  std::generate(ints.begin(), ints.end(), []() { return rand() % 256; });
+  std::generate(ints.begin(), ints.end(), [&seed]() { return rand_r(&seed) % 256; });
   std::vector<float> floats(access.count);
-  std::generate(floats.begin(), floats.end(), []() { return rand() % 256; });
+  std::generate(floats.begin(), floats.end(), [&seed]() { return rand_r(&seed) % 256; });
   access.chars = chars.data();
   access.ints = ints.data();
   access.floats = floats.data();
