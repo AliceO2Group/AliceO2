@@ -98,7 +98,7 @@ class O2SimDevice final : public fair::mq::Device
     // auto text = new std::string("configrequest");
     // std::unique_ptr<fair::mq::Message> request(channel.NewMessage(const_cast<char*>(text->c_str()),
     //                                                           text->length(), CustomCleanup, text));
-    std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage(O2PrimaryServerInfoRequest::Config));
+    std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage((int)O2PrimaryServerInfoRequest::Config));
     std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
 
     int timeoutinMS = 60000; // wait for 60s max --> should be fast reply
@@ -164,7 +164,7 @@ class O2SimDevice final : public fair::mq::Device
     while (reprobe) {
       reprobe = false;
       int i = -1;
-      fair::mq::MessagePtr request(statuschannel.NewSimpleMessage(O2PrimaryServerInfoRequest::Status));
+      fair::mq::MessagePtr request(statuschannel.NewSimpleMessage((int)O2PrimaryServerInfoRequest::Status));
       fair::mq::MessagePtr reply(statuschannel.NewSimpleMessage(i));
       auto sendcode = statuschannel.Send(request, timeoutinMS);
       if (sendcode > 0) {
