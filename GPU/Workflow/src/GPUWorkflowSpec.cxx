@@ -779,17 +779,17 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
       // Compute the actual number of bytes to write
       std::size_t writeSize = (pos != buffer + size)
-                                  ? static_cast<std::size_t>(pos - buffer)
-                                  : size;
+                                ? static_cast<std::size_t>(pos - buffer)
+                                : size;
 
       std::ofstream out(path, std::ios::binary | std::ios::trunc);
       if (!out.is_open()) {
-          throw std::runtime_error("Failed to open ONNX output file: " + path);
+        throw std::runtime_error("Failed to open ONNX output file: " + path);
       }
 
       out.write(buffer, static_cast<std::streamsize>(writeSize));
       if (!out) {
-          throw std::runtime_error("Failed while writing ONNX data to: " + path);
+        throw std::runtime_error("Failed while writing ONNX data to: " + path);
       }
     };
 
@@ -1285,12 +1285,12 @@ Inputs GPURecoWorkflowSpec::inputs()
     GPUSettingsProcessingNNclusterizer& nnClusterizerSettings = mConfig->configProcessing.nn;
 
     std::map<std::string, std::string> metadata;
-    metadata["inputDType"] = nnClusterizerSettings.nnInferenceInputDType;                               // FP16 or FP32
-    metadata["outputDType"] = nnClusterizerSettings.nnInferenceOutputDType;                             // FP16 or FP32
-    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum;                          // 0, 1 -> Only for regression model
-    metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBClassificationLayerType;                  // FC, CNN
-    metadata["nnCCDBInteractionRate"] = nnClusterizerSettings.nnCCDBInteractionRate;                    // in kHz
-    metadata["nnCCDBBeamType"] = nnClusterizerSettings.nnCCDBBeamType;                                  // pp, pPb, PbPb
+    metadata["inputDType"] = nnClusterizerSettings.nnInferenceInputDType;              // FP16 or FP32
+    metadata["outputDType"] = nnClusterizerSettings.nnInferenceOutputDType;            // FP16 or FP32
+    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum;         // 0, 1 -> Only for regression model
+    metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBClassificationLayerType; // FC, CNN
+    metadata["nnCCDBInteractionRate"] = nnClusterizerSettings.nnCCDBInteractionRate;   // in kHz
+    metadata["nnCCDBBeamType"] = nnClusterizerSettings.nnCCDBBeamType;                 // pp, pPb, PbPb
 
     auto convert_map_to_metadata = [](const std::map<std::string, std::string>& inputMap, std::vector<o2::framework::CCDBMetadata>& outputMetadata) {
       for (const auto& [key, value] : inputMap) {
