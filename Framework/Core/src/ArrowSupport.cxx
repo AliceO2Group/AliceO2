@@ -565,7 +565,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        if (dc.options.count("aod-memory-rate-limit") && dc.options["aod-memory-rate-limit"].defaulted() == false) {
                          config->maxMemory = std::stoll(dc.options["aod-memory-rate-limit"].as<std::string>()) / 1000000;
                        } else {
-                         config->maxMemory = readers * 500;
+                         config->maxMemory = readers * 2000;
                        }
                        if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].defaulted() == false) {
                          config->maxTimeframes = std::stoll(dc.options["timeframes-rate-limit"].as<std::string>());
