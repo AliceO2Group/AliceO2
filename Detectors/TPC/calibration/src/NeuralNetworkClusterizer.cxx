@@ -37,6 +37,8 @@ void NeuralNetworkClusterizer::loadIndividualFromCCDB(std::map<std::string, std:
     metadata["nnCCDBBeamType"] = settings["nnCCDBBeamType"];
   }
 
+  LOG(info) << "(NN CLUS) Retrieving network " << settings["nnCCDBPath"] << " from CCDB (NeuralNetworkClusterizer.cxx)";
+
   bool retrieveSuccess = ccdbApi.retrieveBlob(settings["nnCCDBPath"], settings["outputFolder"], metadata, 1, false, settings["outputFile"]);
   // headers = ccdbApi.retrieveHeaders(settings["nnPathCCDB"], metadata, 1); // potentially needed to init some local variables
 
