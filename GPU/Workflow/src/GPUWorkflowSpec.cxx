@@ -78,7 +78,6 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITStracking/TrackingInterface.h"
 #include "GPUWorkflowInternal.h"
-#include "TPCCalibration/NeuralNetworkClusterizer.h"
 // #include "Framework/ThreadPool.h"
 
 #include <TStopwatch.h>
@@ -804,7 +803,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       size_t size = DataRefUtils::getPayloadSize(m);
       if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
         dumpOnnxToFile(buffer, size, "net_classification_c1.onnx");
-        LOG(info) << "(NN CLUS) Dumped nn_classification_c1 from CCDB to net_classification_c1.onnx";
       }
     } else if (evalMode[0] == "c2") {
       m = pc.inputs().get("nn_classification_c2");
@@ -812,7 +810,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       size_t size = DataRefUtils::getPayloadSize(m);
       if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
         dumpOnnxToFile(buffer, size, "net_classification_c2.onnx");
-        LOG(info) << "(NN CLUS) Dumped nn_classification_c2 from CCDB to net_classification_c2.onnx";
       }
     }
 
@@ -821,7 +818,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     size_t size = DataRefUtils::getPayloadSize(m);
     if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
       dumpOnnxToFile(buffer, size, "net_regression_c1.onnx");
-      LOG(info) << "(NN CLUS) Dumped nn_regression_c1 from CCDB to net_regression_c1.onnx";
     }
     if (evalMode[1] == "r2") {
       m = pc.inputs().get("nn_regression_c2");
@@ -829,7 +825,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       size_t size = DataRefUtils::getPayloadSize(m);
       if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
         dumpOnnxToFile(buffer, size, "net_regression_c2.onnx");
-        LOG(info) << "(NN CLUS) Dumped nn_regression_c2 from CCDB to net_regression_c2.onnx";
       }
     }
   }
@@ -1292,9 +1287,9 @@ Inputs GPURecoWorkflowSpec::inputs()
     std::map<std::string, std::string> metadata;
     metadata["inputDType"] = nnClusterizerSettings.nnInferenceInputDType;                               // FP16 or FP32
     metadata["outputDType"] = nnClusterizerSettings.nnInferenceOutputDType;                             // FP16 or FP32
-    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum;          // 0, 1 -> Only for regression model
+    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum;                          // 0, 1 -> Only for regression model
     metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBClassificationLayerType;                  // FC, CNN
-    metadata["nnCCDBInteractionRate"] = nnClusterizerSettings.nnCCDBInteractionRate;    // in kHz
+    metadata["nnCCDBInteractionRate"] = nnClusterizerSettings.nnCCDBInteractionRate;                    // in kHz
     metadata["nnCCDBBeamType"] = nnClusterizerSettings.nnCCDBBeamType;                                  // pp, pPb, PbPb
 
     auto convert_map_to_metadata = [](const std::map<std::string, std::string>& inputMap, std::vector<o2::framework::CCDBMetadata>& outputMetadata) {
@@ -1308,13 +1303,15 @@ Inputs GPURecoWorkflowSpec::inputs()
     std::vector<std::string> evalMode = o2::utils::Str::tokenize(nnClusterizerSettings.nnEvalMode, ':');
     std::vector<o2::framework::CCDBMetadata> ccdb_metadata;
 
-    auto printSettings = [](const std::map<std::string, std::string>& settings) {
-      LOG(info) << "(NN CLUS) NN Clusterizer CCDB settings:";
-      for (const auto& [key, value] : settings) {
-        LOG(info) << "  " << key << " : " << value;
-      }
-    };
-    printSettings(metadata);
+    if (mConfParam->printSettings) {
+      auto printSettings = [](const std::map<std::string, std::string>& settings) {
+        LOG(info) << "(NN CLUS) NN Clusterizer CCDB settings:";
+        for (const auto& [key, value] : settings) {
+          LOG(info) << "  " << key << " : " << value;
+        }
+      };
+      printSettings(metadata);
+    }
 
     if (evalMode[0] == "c1") {
       metadata["nnCCDBEvalType"] = "classification_c1";
