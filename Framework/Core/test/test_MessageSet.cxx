@@ -93,3 +93,43 @@ TEST_CASE("MessageSetAddPartRef") {
   REQUIRE(msgSet.pairMap[0].partIndex == 0);
   REQUIRE(msgSet.pairMap[0].payloadIndex == 0);
 }
+
+TEST_CASE("MessageSetAddMultiple")
+{
+  std::vector<fair::mq::MessagePtr> ptrs;
+  std::unique_ptr<fair::mq::Message> msg(nullptr);
+  std::unique_ptr<fair::mq::Message> msg2(nullptr);
+  ptrs.emplace_back(std::move(msg));
+  ptrs.emplace_back(std::move(msg2));
+  PartRef ref{std::move(msg), std::move(msg2)};
+  o2::framework::MessageSet msgSet;
+  msgSet.add(std::move(ref));
+  PartRef ref2{std::move(msg), std::move(msg2)};
+  msgSet.add(std::move(ref2));
+  std::vector<fair::mq::MessagePtr> msgs;
+  msgs.push_back(std::unique_ptr<fair::mq::Message>(nullptr));
+  msgs.push_back(std::unique_ptr<fair::mq::Message>(nullptr));
+  msgs.push_back(std::unique_ptr<fair::mq::Message>(nullptr));
+  msgSet.add([&msgs](size_t i) {
+    return std::move(msgs[i]);
+  }, 3);
+
+  REQUIRE(msgSet.messages.size() == 7);
+  REQUIRE(msgSet.messageMap.size() == 3);
+  REQUIRE(msgSet.pairMap.size() == 4);
+  REQUIRE(msgSet.messageMap[0].position == 0);
+  REQUIRE(msgSet.messageMap[0].size == 1);
+  REQUIRE(msgSet.messageMap[1].position == 2);
+  REQUIRE(msgSet.messageMap[1].size == 1);
+  REQUIRE(msgSet.messageMap[2].position == 4);
+  REQUIRE(msgSet.messageMap[2].size == 2);
+
+  REQUIRE(msgSet.pairMap[0].partIndex == 0);
+  REQUIRE(msgSet.pairMap[0].payloadIndex == 0);
+  REQUIRE(msgSet.pairMap[1].partIndex == 1);
+  REQUIRE(msgSet.pairMap[1].payloadIndex == 0);
+  REQUIRE(msgSet.pairMap[2].partIndex == 2);
+  REQUIRE(msgSet.pairMap[2].payloadIndex == 0);
+  REQUIRE(msgSet.pairMap[3].partIndex == 2);
+  REQUIRE(msgSet.pairMap[3].payloadIndex == 1);
+}
