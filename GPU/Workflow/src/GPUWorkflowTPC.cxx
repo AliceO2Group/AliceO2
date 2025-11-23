@@ -459,19 +459,19 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
       }
 
       m = pc.inputs().get("nn_regression_c1");
-      mConfig->configCalib.nnClusterizerNetworks[2] = const_cast<char*>(m.payload);
+      mConfig->configCalib.nnClusterizerNetworks[1] = const_cast<char*>(m.payload);
       size_t size = DataRefUtils::getPayloadSize(m);
-      mConfig->configCalib.nnClusterizerNetworkSizes[2] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[2], size);
+      mConfig->configCalib.nnClusterizerNetworkSizes[1] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[2], size);
       if (mSpecConfig.nnDumpToFile) {
-        dumpToFile(mConfig->configCalib.nnClusterizerNetworks[2], mConfig->configCalib.nnClusterizerNetworkSizes[2], "net_regression_c1.onnx");
+        dumpToFile(mConfig->configCalib.nnClusterizerNetworks[1], mConfig->configCalib.nnClusterizerNetworkSizes[2], "net_regression_c1.onnx");
       }
       if (mSpecConfig.nnEvalMode[1] == "r2") {
         m = pc.inputs().get("nn_regression_c2");
-        mConfig->configCalib.nnClusterizerNetworks[3] = const_cast<char*>(m.payload);
+        mConfig->configCalib.nnClusterizerNetworks[2] = const_cast<char*>(m.payload);
         size_t size = DataRefUtils::getPayloadSize(m);
-        mConfig->configCalib.nnClusterizerNetworkSizes[3] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[3], size);
+        mConfig->configCalib.nnClusterizerNetworkSizes[3] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[2], size);
         if (mSpecConfig.nnDumpToFile) {
-          dumpToFile(mConfig->configCalib.nnClusterizerNetworks[3], mConfig->configCalib.nnClusterizerNetworkSizes[3], "net_regression_c2.onnx");
+          dumpToFile(mConfig->configCalib.nnClusterizerNetworks[2], mConfig->configCalib.nnClusterizerNetworkSizes[3], "net_regression_c2.onnx");
         }
       }
     }
