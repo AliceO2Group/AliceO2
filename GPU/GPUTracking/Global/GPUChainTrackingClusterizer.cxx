@@ -677,7 +677,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         //   nnApplications[lane].directOrtAllocator((nnApplications[lane].mModelClass).getEnv(), (nnApplications[lane].mModelClass).getMemoryInfo(), mRec, recreateMemoryAllocator);
         // }
         // recreateMemoryAllocator = true;
-        if (!nn_settings.nnLoadFromCCDB){
+        if (!nn_settings.nnLoadFromCCDB) {
           (nnApplications[lane].mModelClass).initSession(); // loads from file
         } else {
           (nnApplications[lane].mModelClass).initSessionFromBuffer(processors()->calibObjects.nnClusterizerNetworks[0], processors()->calibObjects.nnClusterizerNetworkSizes[0]); // loads from CCDB
@@ -692,7 +692,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         // (nnApplications[lane].mModelReg1).setEnv((nnApplications[lane].mModelClass).getEnv());
         (nnApplications[lane].mModelReg1).initEnvironment();
         // nnApplications[lane].directOrtAllocator((nnApplications[lane].mModelReg1).getEnv(), (nnApplications[lane].mModelReg1).getMemoryInfo(), mRec, recreateMemoryAllocator);
-        if (!nn_settings.nnLoadFromCCDB){
+        if (!nn_settings.nnLoadFromCCDB) {
           (nnApplications[lane].mModelReg1).initSession(); // loads from file
         } else {
           (nnApplications[lane].mModelReg1).initSessionFromBuffer(processors()->calibObjects.nnClusterizerNetworks[1], processors()->calibObjects.nnClusterizerNetworkSizes[1]); // loads from CCDB
@@ -707,7 +707,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         // (nnApplications[lane].mModelReg2).setEnv((nnApplications[lane].mModelClass).getEnv());
         (nnApplications[lane].mModelReg2).initEnvironment();
         // nnApplications[lane].directOrtAllocator((nnApplications[lane].mModelClass).getEnv(), (nnApplications[lane].mModelClass).getMemoryInfo(), mRec, recreateMemoryAllocator);
-        if (!nn_settings.nnLoadFromCCDB){
+        if (!nn_settings.nnLoadFromCCDB) {
           (nnApplications[lane].mModelReg2).initSession(); // loads from file
         } else {
           (nnApplications[lane].mModelReg2).initSessionFromBuffer(processors()->calibObjects.nnClusterizerNetworks[2], processors()->calibObjects.nnClusterizerNetworkSizes[2]); // loads from CCDB
