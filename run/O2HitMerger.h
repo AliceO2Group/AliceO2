@@ -88,6 +88,29 @@ namespace o2
 namespace devices
 {
 
+// Function communicating to primary particle server that it is now safe to shutdown.
+// From the perspective of o2-sim, this is the case when all configs have been propagated and the system
+// is running ok: For instance after the HitMerger is initialized and got it's first data from Geant workers.
+bool primaryServer_sendShutdownPermission(fair::mq::Channel& channel)
+{
+  std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage((int)o2::O2PrimaryServerInfoRequest::AllowShutdown));
+  std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
+
+  int timeoutinMS = 100;
+  if (channel.Send(request, timeoutinMS) > 0) {
+    LOG(info) << "Sending Shutdown permission to particle server";
+    if (channel.Receive(reply, timeoutinMS) > 0) {
+      // the answer is a simple ack with a status code
+      LOG(info) << "Shutdown permission was acknowledged";
+    } else {
+      LOG(error) << "No answer received within " << timeoutinMS << "ms\n";
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 class O2HitMerger : public fair::mq::Device
 {
 
@@ -129,6 +152,9 @@ class O2HitMerger : public fair::mq::Device
     if (o2::devices::O2SimDevice::querySimConfig(GetChannels().at("o2sim-primserv-info").at(0))) {
       outfilename = o2::base::NameConf::getMCKinematicsFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str());
       mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
+    } else {
+      // we didn't manage to get a configuration --> better to fail
+      LOG(fatal) << "No configuration received. Aborting";
     }
     mAsService = o2::conf::SimConfig::Instance().asService();
     mForwardKine = o2::conf::SimConfig::Instance().forwardKine();
@@ -354,6 +380,13 @@ class O2HitMerger : public fair::mq::Device
       // for the next batch
       return waitForControlInput();
     }
+
+    static bool initAcknowledged = false;
+    if (!initAcknowledged) {
+      primaryServer_sendShutdownPermission(GetChannels().at("o2sim-primserv-info").at(0));
+      initAcknowledged = true;
+    }
+
     return more;
   }
 
@@ -412,10 +445,6 @@ class O2HitMerger : public fair::mq::Device
           LOG(error) << "FAILED WRITING TO PIPE";
         };
       }
-    }
-    if (!expectmore) {
-      // somehow FairMQ has difficulties shutting down; helping manually
-      // raise(SIGINT);
     }
     return expectmore;
   }

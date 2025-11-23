@@ -95,9 +95,6 @@ class O2SimDevice final : public fair::mq::Device
   // returns true if successful / false if not
   static bool querySimConfig(fair::mq::Channel& channel)
   {
-    // auto text = new std::string("configrequest");
-    // std::unique_ptr<fair::mq::Message> request(channel.NewMessage(const_cast<char*>(text->c_str()),
-    //                                                           text->length(), CustomCleanup, text));
     std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage((int)O2PrimaryServerInfoRequest::Config));
     std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
 
