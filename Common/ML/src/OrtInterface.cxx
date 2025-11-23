@@ -138,10 +138,13 @@ void OrtModel::initEnvironment()
   (mPImplOrt->env)->DisableTelemetryEvents(); // Disable telemetry events
 }
 
-void OrtModel::initSessionFromBuffer(const void* buffer, size_t bufferSize)
+void OrtModel::initSessionFromBuffer(const char* buffer, size_t bufferSize)
 {
+  mPImplOrt->sessionOptions.AddConfigEntry("session.load_model_format", "ONNX");
+  mPImplOrt->sessionOptions.AddConfigEntry("session.use_ort_model_bytes_directly", "1");
+
   mPImplOrt->session = std::make_unique<Ort::Session>(*mPImplOrt->env,
-                                                      static_cast<const uint8_t*>(buffer),
+                                                      buffer,
                                                       bufferSize,
                                                       mPImplOrt->sessionOptions);
   mPImplOrt->ioBinding = std::make_unique<Ort::IoBinding>(*mPImplOrt->session);

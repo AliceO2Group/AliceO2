@@ -770,64 +770,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   // ------------------------------ Actual processing ------------------------------
 
-  if (mSpecConfig.nnLoadFromCCDB) {
-    LOG(info) << "(NN CLUS) Fetching CCDB calib objects";
-
-    auto dumpOnnxToFile = [](const char* buffer, std::size_t size, const std::string& path) {
-      const char* marker = "Accept-Ranges";
-      const char* pos = std::search(buffer, buffer + size, marker, marker + std::strlen(marker));
-
-      // Compute the actual number of bytes to write
-      std::size_t writeSize = (pos != buffer + size)
-                                ? static_cast<std::size_t>(pos - buffer)
-                                : size;
-
-      std::ofstream out(path, std::ios::binary | std::ios::trunc);
-      if (!out.is_open()) {
-        throw std::runtime_error("Failed to open ONNX output file: " + path);
-      }
-
-      out.write(buffer, static_cast<std::streamsize>(writeSize));
-      if (!out) {
-        throw std::runtime_error("Failed while writing ONNX data to: " + path);
-      }
-    };
-
-    GPUSettingsProcessingNNclusterizer& nnClusterizerSettings = mConfig->configProcessing.nn;
-    std::vector<std::string> evalMode = o2::utils::Str::tokenize(nnClusterizerSettings.nnEvalMode, ':');
-
-    DataRef m;
-    if (evalMode[0] == "c1") {
-      m = pc.inputs().get("nn_classification_c1");
-      const char* buffer = const_cast<char*>(m.payload);
-      size_t size = DataRefUtils::getPayloadSize(m);
-      if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
-        dumpOnnxToFile(buffer, size, "net_classification_c1.onnx");
-      }
-    } else if (evalMode[0] == "c2") {
-      m = pc.inputs().get("nn_classification_c2");
-      const char* buffer = const_cast<char*>(m.payload);
-      size_t size = DataRefUtils::getPayloadSize(m);
-      if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
-        dumpOnnxToFile(buffer, size, "net_classification_c2.onnx");
-      }
-    }
-
-    m = pc.inputs().get("nn_regression_c1");
-    const char* buffer = const_cast<char*>(m.payload);
-    size_t size = DataRefUtils::getPayloadSize(m);
-    if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
-      dumpOnnxToFile(buffer, size, "net_regression_c1.onnx");
-    }
-    if (evalMode[1] == "r2") {
-      m = pc.inputs().get("nn_regression_c2");
-      const char* buffer = const_cast<char*>(m.payload);
-      size_t size = DataRefUtils::getPayloadSize(m);
-      if (nnClusterizerSettings.nnCCDBDumpToFile == 1) {
-        dumpOnnxToFile(buffer, size, "net_regression_c2.onnx");
-      }
-    }
-  }
   if ((int32_t)(ptrs.tpcZS != nullptr) + (int32_t)(ptrs.tpcPackedDigits != nullptr && (ptrs.tpcZS == nullptr || ptrs.tpcPackedDigits->tpcDigitsMC == nullptr)) + (int32_t)(ptrs.clustersNative != nullptr) + (int32_t)(ptrs.tpcCompressedClusters != nullptr) != 1) {
     throw std::runtime_error("Invalid input for gpu tracking");
   }
@@ -1138,6 +1080,12 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
     newCalibValues.tpcTimeBinCut = mConfig->configGRP.tpcCutTimeBin = mTPCCutAtTimeBin;
     needCalibUpdate = true;
   }
+  if (mSpecConfig.nnLoadFromCCDB) {
+    for (int i = 0; i < 3; i++) {
+      newCalibObjects.nnClusterizerNetworks[i] = mConfig->configCalib.nnClusterizerNetworks[i];
+      newCalibObjects.nnClusterizerNetworkSizes[i] = mConfig->configCalib.nnClusterizerNetworkSizes[i];
+    }
+  }
   if (needCalibUpdate) {
     LOG(info) << "Updating GPUReconstruction calibration objects";
     mGPUReco->UpdateCalibration(newCalibObjects, newCalibValues);
@@ -1282,6 +1230,7 @@ Inputs GPURecoWorkflowSpec::inputs()
 
     LOG(info) << "(NN CLUS) Enabling fetching of TPC NN clusterizer from CCDB";
     mSpecConfig.nnLoadFromCCDB = true;
+    mSpecConfig.nnDumpToFile = mConfig->configProcessing.nn.nnCCDBDumpToFile;
     GPUSettingsProcessingNNclusterizer& nnClusterizerSettings = mConfig->configProcessing.nn;
 
     std::map<std::string, std::string> metadata;
@@ -1300,7 +1249,7 @@ Inputs GPURecoWorkflowSpec::inputs()
       }
     };
 
-    std::vector<std::string> evalMode = o2::utils::Str::tokenize(nnClusterizerSettings.nnEvalMode, ':');
+    mSpecConfig.nnEvalMode = o2::utils::Str::tokenize(nnClusterizerSettings.nnEvalMode, ':');
     std::vector<o2::framework::CCDBMetadata> ccdb_metadata;
 
     if (mConfParam->printSettings) {
@@ -1313,29 +1262,25 @@ Inputs GPURecoWorkflowSpec::inputs()
       printSettings(metadata);
     }
 
-    if (evalMode[0] == "c1") {
+    if (mSpecConfig.nnEvalMode[0] == "c1") {
       metadata["nnCCDBEvalType"] = "classification_c1";
       convert_map_to_metadata(metadata, ccdb_metadata);
       inputs.emplace_back("nn_classification_c1", "TPC", "NNCLUSTERIZER_C1", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath, ccdb_metadata, 0));
-      LOG(info) << "(NN CLUS) Loading NN clusterizer classification (c1) from CCDB";
-    } else if (evalMode[0] == "c2") {
+    } else if (mSpecConfig.nnEvalMode[0] == "c2") {
       metadata["nnCCDBEvalType"] = "classification_c2";
       convert_map_to_metadata(metadata, ccdb_metadata);
       inputs.emplace_back("nn_classification_c2", "TPC", "NNCLUSTERIZER_C2", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath, ccdb_metadata, 0));
-      LOG(info) << "(NN CLUS) Loading NN clusterizer classification (c2) from CCDB";
     }
 
     metadata["nnCCDBEvalType"] = "regression_c1";
     metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBRegressionLayerType;
     convert_map_to_metadata(metadata, ccdb_metadata);
     inputs.emplace_back("nn_regression_c1", "TPC", "NNCLUSTERIZER_R1", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath, ccdb_metadata, 0));
-    LOG(info) << "(NN CLUS) Loading NN clusterizer regression (r1) from CCDB";
 
-    if (evalMode[1] == "r2") {
+    if (mSpecConfig.nnEvalMode[1] == "r2") {
       metadata["nnCCDBEvalType"] = "regression_c2";
       convert_map_to_metadata(metadata, ccdb_metadata);
       inputs.emplace_back("nn_regression_c2", "TPC", "NNCLUSTERIZER_R2", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath, ccdb_metadata, 0));
-      LOG(info) << "(NN CLUS) Loading NN clusterizer regression (r2) from CCDB";
     }
   }
 

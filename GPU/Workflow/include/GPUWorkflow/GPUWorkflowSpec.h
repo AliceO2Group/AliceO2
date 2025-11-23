@@ -138,6 +138,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
     // NN clusterizer
     bool nnLoadFromCCDB = false;
+    bool nnDumpToFile = false;
+    std::vector<std::string> nnEvalMode;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int32_t> const& tpcsectors, uint64_t tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** gPolicyOrder = nullptr);

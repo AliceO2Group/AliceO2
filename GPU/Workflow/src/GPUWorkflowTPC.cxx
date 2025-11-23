@@ -405,6 +405,76 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
       newCalibObjects.tpcPadGain = mCalibObjects.mTPCPadGainCalib.get();
       mustUpdate = true;
     }
+
+    // NN clusterizer networks
+    if (mSpecConfig.nnLoadFromCCDB) {
+
+      auto findValidObjectEnd = [](const char* buffer, std::size_t size) {
+        const char* marker = "Accept-Ranges";
+        std::size_t markerLen = std::strlen(marker);
+
+        auto rpos = std::search(
+          std::make_reverse_iterator(buffer + size),
+          std::make_reverse_iterator(buffer),
+          std::make_reverse_iterator(marker + markerLen),
+          std::make_reverse_iterator(marker));
+
+        if (rpos == std::make_reverse_iterator(buffer)) {
+          return size; // Marker not found: keep full buffer
+        }
+
+        const char* pos = rpos.base() - markerLen; // Convert reverse iterator back
+        return static_cast<std::size_t>(pos - buffer);
+      };
+
+      auto dumpToFile = [](const char* buffer, std::size_t validSize, const std::string& path) {
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (!out.is_open()) {
+          throw std::runtime_error("Failed to open output file: " + path);
+        }
+
+        out.write(buffer, static_cast<std::streamsize>(validSize));
+        if (!out) {
+          throw std::runtime_error("Failed while writing data to: " + path);
+        }
+      };
+
+      DataRef m;
+      if (mSpecConfig.nnEvalMode[0] == "c1") {
+        m = pc.inputs().get("nn_classification_c1");
+        mConfig->configCalib.nnClusterizerNetworks[0] = const_cast<char*>(m.payload);
+        size_t size = DataRefUtils::getPayloadSize(m);
+        mConfig->configCalib.nnClusterizerNetworkSizes[0] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[0], size);
+        if (mSpecConfig.nnDumpToFile) {
+          dumpToFile(mConfig->configCalib.nnClusterizerNetworks[0], mConfig->configCalib.nnClusterizerNetworkSizes[0], "net_classification_c1.onnx");
+        }
+      } else if (mSpecConfig.nnEvalMode[0] == "c2") {
+        m = pc.inputs().get("nn_classification_c2");
+        mConfig->configCalib.nnClusterizerNetworks[0] = const_cast<char*>(m.payload);
+        size_t size = DataRefUtils::getPayloadSize(m);
+        mConfig->configCalib.nnClusterizerNetworkSizes[0] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[0], size);
+        if (mSpecConfig.nnDumpToFile) {
+          dumpToFile(mConfig->configCalib.nnClusterizerNetworks[0], mConfig->configCalib.nnClusterizerNetworkSizes[0], "net_classification_c2.onnx");
+        }
+      }
+
+      m = pc.inputs().get("nn_regression_c1");
+      mConfig->configCalib.nnClusterizerNetworks[2] = const_cast<char*>(m.payload);
+      size_t size = DataRefUtils::getPayloadSize(m);
+      mConfig->configCalib.nnClusterizerNetworkSizes[2] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[2], size);
+      if (mSpecConfig.nnDumpToFile) {
+        dumpToFile(mConfig->configCalib.nnClusterizerNetworks[2], mConfig->configCalib.nnClusterizerNetworkSizes[2], "net_regression_c1.onnx");
+      }
+      if (mSpecConfig.nnEvalMode[1] == "r2") {
+        m = pc.inputs().get("nn_regression_c2");
+        mConfig->configCalib.nnClusterizerNetworks[3] = const_cast<char*>(m.payload);
+        size_t size = DataRefUtils::getPayloadSize(m);
+        mConfig->configCalib.nnClusterizerNetworkSizes[3] = findValidObjectEnd(mConfig->configCalib.nnClusterizerNetworks[3], size);
+        if (mSpecConfig.nnDumpToFile) {
+          dumpToFile(mConfig->configCalib.nnClusterizerNetworks[3], mConfig->configCalib.nnClusterizerNetworkSizes[3], "net_regression_c2.onnx");
+        }
+      }
+    }
   }
   return mustUpdate;
 }
