@@ -200,7 +200,11 @@ bool SimConfig::determineActiveModulesList(const std::string& version, std::vect
       return false;
     }
     modules = map[version];
-    LOGP(info, "Running with official detector version '{}'", version);
+    static std::string last_version{}; // prevent multiple printouts of same message
+    if (last_version != version) {
+      LOGP(info, "Running with official detector version '{}'", version);
+      last_version = version;
+    }
   }
   // check if specified modules are in list
   if (inputargs.size() != 1 || inputargs[0] != "all") {
