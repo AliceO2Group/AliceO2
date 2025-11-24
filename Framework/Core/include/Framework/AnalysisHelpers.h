@@ -27,51 +27,111 @@
 
 #include <cstdio>
 #include <string>
-namespace o2::soa {
-enum struct IndexKind : int {
-  IdxInvalid = -1,
-  IdxSelf = 0,
-  IdxSingle = 1,
-  IdxSlice = 2,
-  IdxArray = 3
-};
-
+namespace o2::soa
+{
 struct IndexRecord {
   std::string label;
   std::string columnLabel;
   IndexKind kind;
   int pos;
-  auto operator<=>(const IndexRecord&) const = default;
+  std::shared_ptr<arrow::DataType> type = [](IndexKind kind) -> std::shared_ptr<arrow::DataType> {
+    switch (kind) {
+      case IndexKind::IdxSingle:
+      case IndexKind::IdxSelf:
+        return arrow::int32();
+      case IndexKind::IdxSlice:
+        return arrow::fixed_size_list(arrow::int32(), 2);
+      case IndexKind::IdxArray:
+        return arrow::list(arrow::int32());
+      default:
+        return {nullptr};
+    }
+  }(kind);
+
+  auto operator==(IndexRecord const& other) const
+  {
+    return (this->label == other.label) && (this->columnLabel == other.columnLabel) && (this->kind == other.kind) && (this->pos == other.pos);
+  }
+
+  std::shared_ptr<arrow::Field> field() const
+  {
+    return std::make_shared<arrow::Field>(columnLabel, type);
+  }
 };
 
-namespace
-{
-inline constexpr int listSize(soa::IndexKind kind)
-{
-  switch (kind) {
-    case soa::IndexKind::IdxSingle:
-      return 1;
-      break;
-    case soa::IndexKind::IdxSlice:
-      return 2;
-      break;
-    case soa::IndexKind::IdxArray:
-      return -1;
-      break;
-    default:
-      return -2;
-      break;
-  }
-}
-}  // namespace
-
 struct IndexBuilder {
-  static std::shared_ptr<arrow::Table> materialize(const char* label, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, bool exclusive);
+  static std::shared_ptr<arrow::Table> materialize(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive);
 };
 } // namespace o2::soa
 
 namespace o2::framework
 {
+std::shared_ptr<arrow::Table> makeEmptyTableImpl(const char* name, std::shared_ptr<arrow::Schema>& schema);
+
+template <soa::is_table T>
+auto makeEmptyTable(const char* name)
+{
+  auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(typename T::table_t::persistent_columns_t{}));
+  return makeEmptyTableImpl(name, schema);
+}
+
+template <soa::TableRef R>
+auto makeEmptyTable()
+{
+  auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(typename aod::MetadataTrait<aod::Hash<R.desc_hash>>::metadata::persistent_columns_t{}));
+  return makeEmptyTableImpl(o2::aod::label<R>(), schema);
+}
+
+template <typename... Cs>
+auto makeEmptyTable(const char* name, framework::pack<Cs...> p)
+{
+  auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(p));
+  return makeEmptyTableImpl(name, schema);
+}
+
+template <aod::is_aod_hash D>
+auto makeEmptyTable(const char* name)
+{
+  auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(typename aod::MetadataTrait<D>::metadata::persistent_columns_t{}));
+  return makeEmptyTableImpl(name, schema);
+}
+
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+                                            expressions::Projector* projectors, const char* name, std::shared_ptr<gandiva::Projector>& projector);
+
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema,
+                                            const char* name, size_t nColumns,
+                                            const std::shared_ptr<gandiva::Projector>& projector);
+
+/// Expression-based column generator to materialize columns
+template <aod::is_aod_hash D>
+  requires(soa::has_extension<typename o2::aod::MetadataTrait<D>::metadata>)
+auto spawner(std::shared_ptr<arrow::Table> const& fullTable, const char* name, o2::framework::expressions::Projector* projectors, std::shared_ptr<gandiva::Projector>& projector, std::shared_ptr<arrow::Schema> const& schema)
+{
+  if (fullTable->num_rows() == 0) {
+    return makeEmptyTable<D>(name);
+  }
+  constexpr auto Ncol = []<typename M>() {
+    if constexpr (soa::has_configurable_extension<M>) {
+      return framework::pack_size(typename M::placeholders_pack_t{});
+    } else {
+      return framework::pack_size(typename M::expression_pack_t{});
+    }
+  }.template operator()<typename o2::aod::MetadataTrait<D>::metadata>();
+  return spawnerHelper(fullTable, schema, Ncol, projectors, name, projector);
+}
+
+template <typename... C>
+auto spawner(framework::pack<C...>, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name, expressions::Projector* projectors, std::shared_ptr<gandiva::Projector>& projector, std::shared_ptr<arrow::Schema> const& schema)
+{
+  std::array<const char*, 1> labels{"original"};
+  auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables), std::span<const char* const>{labels});
+  if (fullTable->num_rows() == 0) {
+    return makeEmptyTable(name, framework::pack<C...>{});
+  }
+  return spawnerHelper(fullTable, schema, sizeof...(C), projectors, name, projector);
+}
+
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
 std::string serializeSchema(std::shared_ptr<arrow::Schema> schema);
 std::string serializeIndexRecords(std::vector<o2::soa::IndexRecord>& irs);
@@ -94,9 +154,9 @@ struct Spawner {
 
 struct Builder {
   bool exclusive;
-  std::string binding;
   std::vector<std::string> labels;
   std::vector<o2::soa::IndexRecord> records;
+  std::shared_ptr<arrow::Schema> outputSchema;
   header::DataOrigin origin;
   header::DataDescription description;
   header::DataHeader::SubSpecificationType version;
@@ -478,29 +538,29 @@ struct TableTransform {
   constexpr static auto sources = M::sources;
 
   template <soa::TableRef R>
-  static constexpr auto base_spec()
+  static auto base_spec()
   {
     return soa::tableRef2InputSpec<R>();
   }
 
   static auto base_specs()
   {
-    return []<size_t... Is>(std::index_sequence<Is...>) -> std::vector<InputSpec> {
-      return {base_spec<sources[Is]>()...};
+    return []<size_t... Is>(std::index_sequence<Is...>) {
+      return std::array{base_spec<sources[Is]>()...};
     }(std::make_index_sequence<sources.size()>{});
   }
 
-  constexpr auto spec() const
+  static constexpr auto spec()
   {
     return soa::tableRef2OutputSpec<Ref>();
   }
 
-  constexpr auto output() const
+  static constexpr auto output()
   {
     return soa::tableRef2Output<Ref>();
   }
 
-  constexpr auto ref() const
+  static constexpr auto ref()
   {
     return soa::tableRef2OutputRef<Ref>();
   }
@@ -526,11 +586,10 @@ struct Spawns : decltype(transformBase<T>()) {
   using spawnable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
   using extension_t = typename metadata::extension_table_t;
-  using base_table_t = typename metadata::base_table_t;
   using expression_pack_t = typename metadata::expression_pack_t;
   static constexpr size_t N = framework::pack_size(expression_pack_t{});
 
-  constexpr auto pack()
+  static consteval auto pack()
   {
     return expression_pack_t{};
   }
@@ -548,6 +607,7 @@ struct Spawns : decltype(transformBase<T>()) {
   {
     return extension->asArrowTable();
   }
+
   std::shared_ptr<typename T::table_t> table = nullptr;
   std::shared_ptr<extension_t> extension = nullptr;
   std::array<o2::framework::expressions::Projector, N> projectors = []<typename... C>(framework::pack<C...>) -> std::array<expressions::Projector, sizeof...(C)>
@@ -556,7 +616,11 @@ struct Spawns : decltype(transformBase<T>()) {
   }
   (expression_pack_t{});
   std::shared_ptr<gandiva::Projector> projector = nullptr;
-  std::shared_ptr<arrow::Schema> schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(expression_pack_t{}));
+  std::shared_ptr<arrow::Schema> schema = []() {
+    auto s = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(expression_pack_t{}));
+    s->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{o2::aod::label<T::ref>()}}));
+    return s;
+  }();
 };
 
 template <typename T>
@@ -654,6 +718,8 @@ struct Builds : decltype(transformBase<T>()) {
   using Ts = typename T::rest_t;
   using index_pack_t = metadata::index_pack_t;
 
+  std::shared_ptr<arrow::Schema> outputSchema = []() { return std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(index_pack_t{}))->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{o2::aod::label<T::ref>()}})); }();
+
   std::vector<soa::IndexRecord> map = soa::getIndexMapping<metadata>();
 
   T* operator->()
@@ -678,7 +744,7 @@ struct Builds : decltype(transformBase<T>()) {
 
   auto build(std::vector<std::shared_ptr<arrow::Table>>&& tables)
   {
-    this->table = std::make_shared<T>(soa::IndexBuilder::materialize(o2::aod::label<T::ref>(), std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables), map, metadata::exclusive));
+    this->table = std::make_shared<T>(soa::IndexBuilder::materialize(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables), map, outputSchema, metadata::exclusive));
     return (this->table != nullptr);
   }
 };

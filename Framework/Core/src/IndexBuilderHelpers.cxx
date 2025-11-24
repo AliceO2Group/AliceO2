@@ -22,7 +22,12 @@ namespace o2::framework
 {
 void cannotBuildAnArray()
 {
-  throw runtime_error("Cannot build an array");
+  throw framework::runtime_error("Cannot build an array");
+}
+
+void cannotCreateIndexBuilder()
+{
+  throw framework::runtime_error("Cannot create index column builder: invalid kind of index column");
 }
 
 ChunkedArrayIterator::ChunkedArrayIterator(std::shared_ptr<arrow::ChunkedArray> source)
@@ -33,19 +38,73 @@ ChunkedArrayIterator::ChunkedArrayIterator(std::shared_ptr<arrow::ChunkedArray> 
   mLast = mCurrent + mCurrentArray->length();
 }
 
-SelfIndexColumnBuilder::SelfIndexColumnBuilder(const char* name, arrow::MemoryPool* pool)
-  : mColumnName{name},
-    mArrowType{arrow::int32()}
+SelfBuilder::SelfBuilder(arrow::MemoryPool* pool)
 {
   auto status = arrow::MakeBuilder(pool, arrow::int32(), &mBuilder);
   if (!status.ok()) {
-    throw runtime_error("Cannot create array builder!");
+    throw framework::runtime_error("Cannot create array builder for the self-index!");
   }
 }
 
-std::shared_ptr<arrow::Field> SelfIndexColumnBuilder::field() const
+SingleBuilder::SingleBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool)
+  : arrayIterator{source}
 {
-  return std::make_shared<arrow::Field>(mColumnName, mArrowType);
+  auto status = arrow::MakeBuilder(pool, arrow::int32(), &mBuilder);
+  if (!status.ok()) {
+    throw framework::runtime_error("Cannot create array builder for the single-valued index!");
+  }
+}
+
+SliceBuilder::SliceBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool)
+  : arrayIterator{source}
+{
+  if (!preSlice().ok()) {
+    throw framework::runtime_error("Cannot pre-slice the source for slice-index building");
+  }
+
+  std::unique_ptr<arrow::ArrayBuilder> builder;
+  auto status = arrow::MakeBuilder(pool, arrow::int32(), &builder);
+  if (!status.ok()) {
+    throw framework::runtime_error("Cannot create array for the slice-index builder!");
+  }
+  mListBuilder = std::make_unique<arrow::FixedSizeListBuilder>(pool, std::move(builder), 2);
+  mValueBuilder = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->value_builder();
+}
+
+arrow::Status SliceBuilder::SliceBuilder::preSlice()
+{
+  arrow::Datum value_counts;
+  auto options = arrow::compute::ScalarAggregateOptions::Defaults();
+  ARROW_ASSIGN_OR_RAISE(value_counts, arrow::compute::CallFunction("value_counts", {arrayIterator.mSource}, &options));
+  auto pair = static_cast<arrow::StructArray>(value_counts.array());
+  mValues = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
+  mCounts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+  return arrow::Status::OK();
+}
+
+ArrayBuilder::ArrayBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool)
+  : arrayIterator{source}
+{
+  if (!preFind().ok()) {
+    throw framework::runtime_error("Cannot pre-find in a source for array-index building");
+  }
+
+  std::unique_ptr<arrow::ArrayBuilder> builder;
+  auto status = arrow::MakeBuilder(pool, arrow::int32(), &builder);
+  if (!status.ok()) {
+    throw framework::runtime_error("Cannot create array for the array-index builder!");
+  }
+  mListBuilder = std::make_unique<arrow::ListBuilder>(pool, std::move(builder));
+  mValueBuilder = static_cast<arrow::ListBuilder*>(mListBuilder.get())->value_builder();
+}
+
+SelfIndexColumnBuilder::SelfIndexColumnBuilder(const char* name, arrow::MemoryPool* pool)
+  : mColumnName{name}
+{
+  auto status = arrow::MakeBuilder(pool, arrow::int32(), &mBuilder);
+  if (!status.ok()) {
+    throw framework::runtime_error("Cannot create array builder!");
+  }
 }
 
 IndexColumnBuilder::IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> source, const char* name, int listSize, arrow::MemoryPool* pool)
@@ -57,13 +116,11 @@ IndexColumnBuilder::IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> sour
   switch (mListSize) {
     case 1: {
       mValueBuilder = mBuilder.get();
-      mArrowType = arrow::int32();
     }; break;
     case 2: {
       if (preSlice().ok()) {
         mListBuilder = std::make_unique<arrow::FixedSizeListBuilder>(pool, std::move(mBuilder), mListSize);
         mValueBuilder = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->value_builder();
-        mArrowType = arrow::fixed_size_list(arrow::int32(), 2);
       } else {
         throw runtime_error("Cannot pre-slice an array");
       }
@@ -72,7 +129,6 @@ IndexColumnBuilder::IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> sour
       if (preFind().ok()) {
         mListBuilder = std::make_unique<arrow::ListBuilder>(pool, std::move(mBuilder));
         mValueBuilder = static_cast<arrow::ListBuilder*>(mListBuilder.get())->value_builder();
-        mArrowType = arrow::list(arrow::int32());
       } else {
         throw runtime_error("Cannot pre-find array groups");
       }
@@ -264,15 +320,5 @@ int ChunkedArrayIterator::valueAt(size_t pos)
     prevChunk();
   }
   return *(mCurrent + pos);
-}
-
-std::shared_ptr<arrow::Table> makeArrowTable(const char* label, std::vector<std::shared_ptr<arrow::ChunkedArray>>&& columns, std::vector<std::shared_ptr<arrow::Field>>&& fields)
-{
-  auto schema = std::make_shared<arrow::Schema>(fields);
-  schema->WithMetadata(
-    std::make_shared<arrow::KeyValueMetadata>(
-      std::vector{std::string{"label"}},
-      std::vector{std::string{label}}));
-  return arrow::Table::Make(schema, columns);
 }
 } // namespace o2::framework

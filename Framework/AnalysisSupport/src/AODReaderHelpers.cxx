@@ -33,6 +33,7 @@ struct Buildable {
   header::DataDescription description;
   header::DataHeader::SubSpecificationType version;
   std::vector<o2::soa::IndexRecord> records;
+  std::shared_ptr<arrow::Schema> outputSchema;
 
   Buildable(InputSpec const& spec)
     : binding{spec.binding}
@@ -52,19 +53,26 @@ struct Buildable {
     for (auto const& r : records) {
       labels.emplace_back(r.label);
     }
+    outputSchema = std::make_shared<arrow::Schema>([](std::vector<o2::soa::IndexRecord> const& recs) {
+                     std::vector<std::shared_ptr<arrow::Field>> fields;
+                     for (auto& r : recs) {
+                       fields.push_back(r.field());
+                     }
+                     return fields;
+                   }(records))
+                     ->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{binding}}));
   }
 
   framework::Builder createBuilder() const
   {
     return {
       exclusive,
-      binding,
       labels,
       records,
+      outputSchema,
       origin,
       description,
-      version
-    };
+      version};
   }
 
 };

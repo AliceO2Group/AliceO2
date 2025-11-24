@@ -17,15 +17,26 @@
 #include <string>
 #include <memory>
 
+namespace o2::soa
+{
+enum struct IndexKind : int {
+  IdxInvalid = -1,
+  IdxSelf = 0,
+  IdxSingle = 1,
+  IdxSlice = 2,
+  IdxArray = 3
+};
+} // namespace o2::soa
+
 namespace o2::framework
 {
 void cannotBuildAnArray();
+void cannotCreateIndexBuilder();
 
 struct ChunkedArrayIterator {
   ChunkedArrayIterator(std::shared_ptr<arrow::ChunkedArray> source);
-  virtual ~ChunkedArrayIterator() = default;
 
-  std::shared_ptr<arrow::ChunkedArray> mSource;
+  std::shared_ptr<arrow::ChunkedArray> mSource = nullptr;
   size_t mPosition = 0;
   int mChunk = 0;
   size_t mOffset = 0;
@@ -38,6 +49,63 @@ struct ChunkedArrayIterator {
   void nextChunk();
   void prevChunk();
   int valueAt(size_t pos);
+};
+
+struct SelfBuilder {
+  std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
+  SelfBuilder(arrow::MemoryPool* pool);
+};
+
+struct SingleBuilder {
+  ChunkedArrayIterator arrayIterator;
+  std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
+  SingleBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool);
+};
+
+struct SliceBuilder {
+  ChunkedArrayIterator arrayIterator;
+  arrow::ArrayBuilder* mValueBuilder = nullptr;
+  std::unique_ptr<arrow::ArrayBuilder> mListBuilder = nullptr;
+  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
+  std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
+  SliceBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool);
+
+  arrow::Status preSlice();
+};
+
+struct ArrayBuilder {
+  ChunkedArrayIterator arrayIterator;
+  arrow::ArrayBuilder* mValueBuilder = nullptr;
+  std::vector<int> mValues;
+  std::vector<std::vector<int>> mIndices;
+  std::unique_ptr<arrow::ArrayBuilder> mListBuilder = nullptr;
+  ArrayBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool);
+
+  arrow::Status preFind();
+};
+
+struct IndexColumnBuilderNG {
+  std::variant<std::monostate, SelfBuilder, SingleBuilder, SliceBuilder, ArrayBuilder> builder;
+
+  IndexColumnBuilderNG(soa::IndexKind kind, arrow::MemoryPool* pool, std::shared_ptr<arrow::ChunkedArray> source = nullptr)
+  {
+    switch (kind) {
+      case soa::IndexKind::IdxSelf:
+        builder = SelfBuilder{pool};
+        break;
+      case soa::IndexKind::IdxSingle:
+        builder = SingleBuilder{source, pool};
+        break;
+      case soa::IndexKind::IdxSlice:
+        builder = SliceBuilder{source, pool};
+        break;
+      case soa::IndexKind::IdxArray:
+        builder = ArrayBuilder{source, pool};
+        break;
+      default:
+        cannotCreateIndexBuilder();
+    }
+  }
 };
 
 struct SelfIndexColumnBuilder {
@@ -54,7 +122,6 @@ struct SelfIndexColumnBuilder {
 
     return std::make_shared<arrow::ChunkedArray>(array);
   }
-  std::shared_ptr<arrow::Field> field() const;
 
   inline bool find(int)
   {
@@ -67,7 +134,6 @@ struct SelfIndexColumnBuilder {
   }
 
   std::string mColumnName;
-  std::shared_ptr<arrow::DataType> mArrowType;
   std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
 };
 
@@ -141,8 +207,6 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   int mFillOffset = 0;
   int mValuePos = 0;
 };
-
-std::shared_ptr<arrow::Table> makeArrowTable(const char* label, std::vector<std::shared_ptr<arrow::ChunkedArray>>&& columns, std::vector<std::shared_ptr<arrow::Field>>&& fields);
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_INDEXBUILDERHELPERS_H_

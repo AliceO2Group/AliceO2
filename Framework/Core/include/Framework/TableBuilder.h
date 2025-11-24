@@ -15,7 +15,6 @@
 #include "Framework/ASoA.h"
 #include "Framework/StructToTuple.h"
 #include "Framework/RuntimeError.h"
-#include "arrow/type_traits.h"
 
 // Apparently needs to be on top of the arrow includes.
 
@@ -26,6 +25,7 @@
 #include <arrow/type_traits.h>
 #include <arrow/table.h>
 #include <arrow/builder.h>
+#include <arrow/util/key_value_metadata.h>
 
 #include <vector>
 #include <string>
@@ -764,92 +764,5 @@ class TableBuilder
   std::shared_ptr<arrow::Schema> mSchema;
   std::vector<std::shared_ptr<arrow::Array>> mArrays;
 };
-
-template <typename T>
-auto makeEmptyTable(const char* name)
-{
-  TableBuilder b;
-  [[maybe_unused]] auto writer = b.cursor<T>();
-  b.setLabel(name);
-  return b.finalize();
-}
-
-template <soa::TableRef R>
-auto makeEmptyTable()
-{
-  TableBuilder b;
-  [[maybe_unused]] auto writer = b.cursor(typename aod::MetadataTrait<aod::Hash<R.desc_hash>>::metadata::persistent_columns_t{});
-  b.setLabel(aod::label<R>());
-  return b.finalize();
-}
-
-template <typename... Cs>
-auto makeEmptyTable(const char* name, framework::pack<Cs...> p)
-{
-  TableBuilder b;
-  [[maybe_unused]] auto writer = b.cursor(p);
-  b.setLabel(name);
-  return b.finalize();
-}
-
-std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
-                                            expressions::Projector* projectors, const char* name, std::shared_ptr<gandiva::Projector>& projector);
-
-std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema,
-                                            const char* name, size_t nColumns,
-                                            const std::shared_ptr<gandiva::Projector>& projector);
-
-/// Expression-based column generator to materialize columns
-template <aod::is_aod_hash D>
-  requires(soa::has_configurable_extension<typename o2::aod::MetadataTrait<D>::metadata>)
-auto spawner(std::shared_ptr<arrow::Table> const& fullTable, const char* name, o2::framework::expressions::Projector* projectors, std::shared_ptr<gandiva::Projector>& projector, std::shared_ptr<arrow::Schema> const& schema)
-{
-  using placeholders_pack_t = typename o2::aod::MetadataTrait<D>::metadata::placeholders_pack_t;
-  if (fullTable->num_rows() == 0) {
-    return makeEmptyTable(name, placeholders_pack_t{});
-  }
-  return spawnerHelper(fullTable, schema, framework::pack_size(placeholders_pack_t{}), projectors, name, projector);
-}
-
-template <aod::is_aod_hash D>
-  requires(soa::has_configurable_extension<typename o2::aod::MetadataTrait<D>::metadata>)
-auto spawner(std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name, o2::framework::expressions::Projector* projectors, std::shared_ptr<gandiva::Projector>& projector, std::shared_ptr<arrow::Schema> const& schema)
-{
-  auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables), std::span{o2::aod::MetadataTrait<D>::metadata::base_table_t::originalLabels});
-  return spawner<D>(fullTable, name, projectors, projector, schema);
-}
-
-template <aod::is_aod_hash D>
-  requires(soa::has_extension<typename o2::aod::MetadataTrait<D>::metadata> && !soa::has_configurable_extension<typename o2::aod::MetadataTrait<D>::metadata>)
-auto spawner(std::shared_ptr<arrow::Table> const& fullTable, const char* name, expressions::Projector* projectors, std::shared_ptr<gandiva::Projector>& projector, std::shared_ptr<arrow::Schema> const& schema)
-{
-  using expression_pack_t = typename o2::aod::MetadataTrait<D>::metadata::expression_pack_t;
-  if (fullTable->num_rows() == 0) {
-    return makeEmptyTable(name, expression_pack_t{});
-  }
-  return spawnerHelper(fullTable, schema, framework::pack_size(expression_pack_t{}), projectors, name, projector);
-}
-
-template <aod::is_aod_hash D>
-  requires(soa::has_extension<typename o2::aod::MetadataTrait<D>::metadata> && !soa::has_configurable_extension<typename o2::aod::MetadataTrait<D>::metadata>)
-auto spawner(std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name, expressions::Projector* projectors, std::shared_ptr<gandiva::Projector>& projector, std::shared_ptr<arrow::Schema> const& schema)
-{
-  auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables), std::span{o2::aod::MetadataTrait<D>::metadata::base_table_t::originalLabels});
-  return spawner<D>(fullTable, name, projectors, projector, schema);
-}
-
-template <typename... C>
-auto spawner(framework::pack<C...>, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name, expressions::Projector* projectors, std::shared_ptr<gandiva::Projector>& projector, std::shared_ptr<arrow::Schema> const& schema)
-{
-  std::array<const char*, 1> labels{"original"};
-  auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables), std::span<const char* const>{labels});
-  if (fullTable->num_rows() == 0) {
-    return makeEmptyTable(name, framework::pack<C...>{});
-  }
-  return spawnerHelper(fullTable, schema, sizeof...(C), projectors, name, projector);
-}
-
-template <typename... T>
-using iterator_tuple_t = std::tuple<typename T::iterator...>;
 } // namespace o2::framework
 #endif // FRAMEWORK_TABLEBUILDER_H

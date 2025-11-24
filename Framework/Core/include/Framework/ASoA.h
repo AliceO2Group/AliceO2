@@ -3274,6 +3274,7 @@ consteval auto getIndexTargets()
       constexpr auto a = o2::soa::mergeOriginals<typename Cs::binding_t...>();                                                             \
       return o2::aod::filterForKey<a.size(), a, Key>();                                                                                    \
     }(framework::pack<__VA_ARGS__>{});                                                                                                     \
+    static_assert(sources.size() == framework::pack_size(index_pack_t{}), "One of the referred tables does not have index to Key");        \
   };                                                                                                                                       \
   using _Name_##Metadata = _Name_##MetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                             \
                                                                                                                                            \

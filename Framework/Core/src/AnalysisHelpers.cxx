@@ -14,10 +14,11 @@
 #include "IndexJSONHelpers.h"
 
 namespace o2::soa {
-std::shared_ptr<arrow::Table> IndexBuilder::materialize(const char* label, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, bool exclusive)
+std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive)
 {
   auto pool = arrow::default_memory_pool();
-  std::vector<std::shared_ptr<framework::SelfIndexColumnBuilder>> builders;
+  std::vector<std::shared_ptr<framework::SelfIndexColumnBuilder>> builders; // this needs to become a state to avoid reallocations
+  // can builders be reset and re-used?
   framework::SelfIndexColumnBuilder self{records[0].columnLabel.c_str(), pool};
   std::unique_ptr<framework::ChunkedArrayIterator> keyIndex = nullptr;
   if (records[0].kind != soa::IndexKind::IdxSelf) {
@@ -28,7 +29,23 @@ std::shared_ptr<arrow::Table> IndexBuilder::materialize(const char* label, std::
     if (records[i].kind == soa::IndexKind::IdxSelf) {
       builders.emplace_back(std::make_shared<framework::SelfIndexColumnBuilder>(records[i].columnLabel.c_str(), pool));
     } else {
-      builders.emplace_back(std::make_shared<framework::IndexColumnBuilder>(tables[i]->column(records[i].pos), records[i].columnLabel.c_str(), listSize(records[i].kind), pool));
+      builders.emplace_back(
+        std::make_shared<framework::IndexColumnBuilder>(
+          tables[i]->column(records[i].pos),
+          records[i].columnLabel.c_str(),
+          [](IndexKind kind) {
+            switch (kind) {
+              case IndexKind::IdxSingle:
+                return 1;
+              case IndexKind::IdxSlice:
+                return 2;
+              case IndexKind::IdxArray:
+                return -1;
+              default:
+                return -2;
+            }
+          }(records[i].kind),
+          pool));
     }
   }
 
@@ -71,28 +88,81 @@ std::shared_ptr<arrow::Table> IndexBuilder::materialize(const char* label, std::
     }
   }
 
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays; // same
   arrays.reserve(records.size());
-  std::vector<std::shared_ptr<arrow::Field>> fields;
-  fields.reserve(records.size());
   arrays.push_back(self.result());
-  fields.push_back(self.field());
   for (auto i = 0U; i < builders.size(); ++i) {
     if (records[i+1].kind == soa::IndexKind::IdxSelf) {
       arrays.push_back(builders[i]->result());
-      fields.push_back(builders[i]->field());
     } else {
       arrays.push_back(std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->result());
-      fields.push_back(std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->field());
     }
   }
 
-  return framework::makeArrowTable(label, std::move(arrays), std::move(fields));
+  return arrow::Table::Make(schema, arrays);
 }
 } // namespace o2::soa
 
 namespace o2::framework
 {
+std::shared_ptr<arrow::Table> makeEmptyTableImpl(const char* name, std::shared_ptr<arrow::Schema>& schema)
+{
+  schema = schema->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{name}}));
+  return arrow::Table::MakeEmpty(schema).ValueOrDie();
+}
+
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+                                            expressions::Projector* projectors, const char* name,
+                                            std::shared_ptr<gandiva::Projector>& projector)
+{
+  if (projector == nullptr) {
+    projector = framework::expressions::createProjectorHelper(nColumns, projectors, fullTable->schema(), newSchema->fields());
+  }
+
+  return spawnerHelper(fullTable, newSchema, name, nColumns, projector);
+}
+
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const& fullTable, std::shared_ptr<arrow::Schema> newSchema,
+                                            const char* name, size_t nColumns,
+                                            std::shared_ptr<gandiva::Projector> const& projector)
+{
+  arrow::TableBatchReader reader(*fullTable);
+  std::shared_ptr<arrow::RecordBatch> batch;
+  arrow::ArrayVector v;
+  std::vector<arrow::ArrayVector> chunks;
+  chunks.resize(nColumns);
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
+
+  while (true) {
+    auto s = reader.ReadNext(&batch);
+    if (!s.ok()) {
+      throw runtime_error_f("Cannot read batches from the source table to spawn %s: %s", name, s.ToString().c_str());
+    }
+    if (batch == nullptr) {
+      break;
+    }
+    try {
+      s = projector->Evaluate(*batch, arrow::default_memory_pool(), &v);
+      if (!s.ok()) {
+        throw runtime_error_f("Cannot apply projector to the source table of %s: %s", name, s.ToString().c_str());
+      }
+    } catch (std::exception& e) {
+      throw runtime_error_f("Cannot apply projector to the source table of %s: exception caught: %s", name, e.what());
+    }
+
+    for (auto i = 0U; i < nColumns; ++i) {
+      chunks[i].emplace_back(v.at(i));
+    }
+  }
+
+  arrays.reserve(nColumns);
+  for (auto i = 0U; i < nColumns; ++i) {
+    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
+  }
+
+  return arrow::Table::Make(newSchema, arrays);
+}
+
 void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter)
 {
   if (tree == nullptr) {
@@ -153,7 +223,7 @@ std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc) const
 {
   std::shared_ptr<arrow::Table> result;
   auto tables = extractSources(pc, labels);
-  result = o2::soa::IndexBuilder::materialize(binding.c_str(), std::move(tables), records, exclusive);
+  result = o2::soa::IndexBuilder::materialize(std::move(tables), records, outputSchema, exclusive);
   return result;
 }
 } // namespace o2::framework
