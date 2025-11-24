@@ -3262,29 +3262,29 @@ consteval auto getIndexTargets()
   O2HASH(#_Name_ "CfgExtension");                                                    \
   DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE_FULL(_Name_, #_Name_ "CfgExtension", _Table_, "AOD", "EX" _Description_, 0, __VA_ARGS__)
 
-#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Version_, _Desc_, _Exclusive_, ...)                                         \
-  O2HASH(#_Name_);                                                                                                                         \
-  O2HASH(_Desc_ "/" #_Version_);                                                                                                           \
-  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                                     \
-  struct _Name_##MetadataFrom : o2::aod::TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, soa::Index<>, __VA_ARGS__> {             \
-    static constexpr bool exclusive = _Exclusive_;                                                                                         \
-    using Key = _Key_;                                                                                                                     \
-    using index_pack_t = framework::pack<__VA_ARGS__>;                                                                                     \
-    static constexpr const auto sources = []<typename... Cs>(framework::pack<Cs...>) {                                                     \
-      constexpr auto a = o2::soa::mergeOriginals<typename Cs::binding_t...>();                                                             \
-      return o2::aod::filterForKey<a.size(), a, Key>();                                                                                    \
-    }(framework::pack<__VA_ARGS__>{});                                                                                                     \
-    static_assert(sources.size() == framework::pack_size(index_pack_t{}), "One of the referred tables does not have index to Key");        \
-  };                                                                                                                                       \
-  using _Name_##Metadata = _Name_##MetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                             \
-                                                                                                                                           \
-  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                                     \
-  using _Name_##From = o2::soa::IndexTable<o2::aod::Hash<#_Name_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O, _Key_, __VA_ARGS__>; \
-  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;                                                                               \
-                                                                                                                                           \
-  template <>                                                                                                                              \
-  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                        \
-    using metadata = _Name_##Metadata;                                                                                                     \
+#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Version_, _Desc_, _Exclusive_, ...)                                                              \
+  O2HASH(#_Name_);                                                                                                                                              \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                                                                \
+  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                                                          \
+  struct _Name_##MetadataFrom : o2::aod::TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, soa::Index<>, __VA_ARGS__> {                                  \
+    static constexpr bool exclusive = _Exclusive_;                                                                                                              \
+    using Key = _Key_;                                                                                                                                          \
+    using index_pack_t = framework::pack<__VA_ARGS__>;                                                                                                          \
+    static constexpr const auto sources = []<typename... Cs>(framework::pack<Cs...>) {                                                                          \
+      constexpr auto a = o2::soa::mergeOriginals<typename Cs::binding_t...>();                                                                                  \
+      return o2::aod::filterForKey<a.size(), a, Key>();                                                                                                         \
+    }(framework::pack<__VA_ARGS__>{});                                                                                                                          \
+    static_assert(sources.size() - Key::originals.size() + 1 == framework::pack_size(index_pack_t{}), "One of the referred tables does not have index to Key"); \
+  };                                                                                                                                                            \
+  using _Name_##Metadata = _Name_##MetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                                                  \
+                                                                                                                                                                \
+  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                                                          \
+  using _Name_##From = o2::soa::IndexTable<o2::aod::Hash<#_Name_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O, _Key_, __VA_ARGS__>;                      \
+  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;                                                                                                    \
+                                                                                                                                                                \
+  template <>                                                                                                                                                   \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                             \
+    using metadata = _Name_##Metadata;                                                                                                                          \
   };
 
 // Declare were each row is associated to a timestamp column of an _TimestampSource_

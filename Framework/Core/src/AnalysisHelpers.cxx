@@ -19,7 +19,7 @@ std::vector<framework::IndexColumnBuilderNG> IndexBuilder::makeBuilders(std::vec
   std::vector<framework::IndexColumnBuilderNG> builders;
   auto pool = arrow::default_memory_pool();
   builders.emplace_back(IndexKind::IdxSelf, records[0].pos, pool);
-  if (records[0].kind != soa::IndexKind::IdxSelf) {
+  if (records[0].pos >= 0) {
     std::get<framework::SelfBuilder>(builders[0].builder).keyIndex = std::make_unique<framework::ChunkedArrayIterator>(tables[0]->column(records[0].pos));
   }
 
@@ -33,10 +33,10 @@ std::vector<framework::IndexColumnBuilderNG> IndexBuilder::makeBuilders(std::vec
 void IndexBuilder::resetBuilders(std::vector<framework::IndexColumnBuilderNG>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables)
 {
   for (auto i = 0U; i < builders.size(); ++i) {
-    builders[i].reset(tables[i]->column(builders[i].mColumnPos));
+    builders[i].reset(builders[i].mColumnPos >= 0 ? tables[i]->column(builders[i].mColumnPos) : nullptr);
   }
 
-  if (std::get<framework::SelfBuilder>(builders[0].builder).keyIndex != nullptr) {
+  if (builders[0].mColumnPos >= 0) {
     std::get<framework::SelfBuilder>(builders[0].builder).keyIndex = std::make_unique<framework::ChunkedArrayIterator>(tables[0]->column(builders[0].mColumnPos));
   }
 }
