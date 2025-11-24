@@ -103,7 +103,10 @@ TEST_CASE("TestIndexBuilder")
   Categorys st4{t4};
 
   auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata>();
-  auto t5 = IndexBuilder::materialize("test1a", {t1, t2, t3, t4}, map, true);
+  auto schema1 = o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata::getSchema();
+  std::vector<o2::framework::IndexColumnBuilderNG> builders1;
+  auto t5 = IndexBuilder::materializeNG(builders1, {t1, t2, t3, t4}, map, schema1, true);
+  // auto t5 = IndexBuilder::materialize({t1, t2, t3, t4}, map, schema1, true);
   REQUIRE(t5->num_rows() == 4);
   IDXs idxt{t5};
   idxt.bindExternalIndices(&st1, &st2, &st3, &st4);
@@ -114,7 +117,9 @@ TEST_CASE("TestIndexBuilder")
   }
 
   map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata>();
-  auto t6 = IndexBuilder::materialize("test2", {t2, t1, t3, t4}, map, false);
+  auto schema2 = o2::aod::MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata::getSchema();
+  std::vector<o2::framework::IndexColumnBuilderNG> builders2;
+  auto t6 = IndexBuilder::materializeNG(builders2, {t2, t1, t3, t4}, map, schema2, false);
   REQUIRE(t6->num_rows() == st2.size());
   IDX2s idxs{t6};
   std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
@@ -213,7 +218,9 @@ TEST_CASE("AdvancedIndexTables")
                                                    {8, 31, 42, 46, 58}}};
 
   auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata>();
-  auto t3 = IndexBuilder::materialize("test3", {t1, t2, tc}, map, false);
+  auto schema3 = o2::aod::MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata::getSchema();
+  std::vector<o2::framework::IndexColumnBuilderNG> builders3;
+  auto t3 = IndexBuilder::materializeNG(builders3, {t1, t2, tc}, map, schema3, false);
   REQUIRE(t3->num_rows() == st1.size());
   IDX3s idxs{t3};
   idxs.bindExternalIndices(&st1, &st2, &st3);

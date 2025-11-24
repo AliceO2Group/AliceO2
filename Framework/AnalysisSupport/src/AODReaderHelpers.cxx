@@ -72,7 +72,7 @@ struct Buildable {
       outputSchema,
       origin,
       description,
-      version};
+      version, nullptr};
   }
 
 };
@@ -91,7 +91,7 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(ConfigContext const& ctx)
     for (auto& b : buildables) {
       builders.push_back(b.createBuilder());
     }
-    return [builders](ProcessingContext& pc) {
+    return [builders](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
       for (auto& builder : builders) {
         outputs.adopt(Output{builder.origin, builder.description, builder.version}, builder.materialize(pc));

@@ -14,93 +14,165 @@
 #include "IndexJSONHelpers.h"
 
 namespace o2::soa {
-std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive)
+std::vector<framework::IndexColumnBuilderNG> IndexBuilder::makeBuilders(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records)
 {
+  std::vector<framework::IndexColumnBuilderNG> builders;
   auto pool = arrow::default_memory_pool();
-  std::vector<std::shared_ptr<framework::SelfIndexColumnBuilder>> builders; // this needs to become a state to avoid reallocations
-  // can builders be reset and re-used?
-  framework::SelfIndexColumnBuilder self{records[0].columnLabel.c_str(), pool};
-  std::unique_ptr<framework::ChunkedArrayIterator> keyIndex = nullptr;
+  builders.emplace_back(IndexKind::IdxSelf, records[0].pos, pool);
   if (records[0].kind != soa::IndexKind::IdxSelf) {
-    keyIndex = std::make_unique<framework::ChunkedArrayIterator>(tables[0]->column(records[0].pos));
+    std::get<framework::SelfBuilder>(builders[0].builder).keyIndex = std::make_unique<framework::ChunkedArrayIterator>(tables[0]->column(records[0].pos));
   }
 
   for (auto i = 1U; i < records.size(); ++i) {
-    if (records[i].kind == soa::IndexKind::IdxSelf) {
-      builders.emplace_back(std::make_shared<framework::SelfIndexColumnBuilder>(records[i].columnLabel.c_str(), pool));
-    } else {
-      builders.emplace_back(
-        std::make_shared<framework::IndexColumnBuilder>(
-          tables[i]->column(records[i].pos),
-          records[i].columnLabel.c_str(),
-          [](IndexKind kind) {
-            switch (kind) {
-              case IndexKind::IdxSingle:
-                return 1;
-              case IndexKind::IdxSlice:
-                return 2;
-              case IndexKind::IdxArray:
-                return -1;
-              default:
-                return -2;
-            }
-          }(records[i].kind),
-          pool));
-    }
+    builders.emplace_back(records[i].kind, records[i].pos, pool, records[i].pos >= 0 ? tables[i]->column(records[i].pos) : nullptr);
+  }
+
+  return builders;
+}
+
+void IndexBuilder::resetBuilders(std::vector<framework::IndexColumnBuilderNG>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables)
+{
+  for (auto i = 0U; i < builders.size(); ++i) {
+    builders[i].reset(tables[i]->column(builders[i].mColumnPos));
+  }
+
+  if (std::get<framework::SelfBuilder>(builders[0].builder).keyIndex != nullptr) {
+    std::get<framework::SelfBuilder>(builders[0].builder).keyIndex = std::make_unique<framework::ChunkedArrayIterator>(tables[0]->column(builders[0].mColumnPos));
+  }
+}
+
+std::shared_ptr<arrow::Table> IndexBuilder::materializeNG(std::vector<framework::IndexColumnBuilderNG>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive)
+{
+  auto size = tables[0]->num_rows();
+  if (builders.empty()) {
+    builders = makeBuilders(std::move(tables), records);
+  } else {
+    resetBuilders(builders, std::move(tables));
   }
 
   std::vector<bool> finds;
   finds.resize(builders.size());
-  for (int64_t counter = 0; counter < tables[0]->num_rows(); ++counter) {
+  for (int64_t counter = 0; counter < size; ++counter) {
     int64_t idx = -1;
-    if (keyIndex == nullptr) {
+    if (std::get<framework::SelfBuilder>(builders[0].builder).keyIndex == nullptr) {
       idx = counter;
     } else {
-      idx = keyIndex->valueAt(counter);
+      idx = std::get<framework::SelfBuilder>(builders[0].builder).keyIndex->valueAt(counter);
     }
     for (auto i = 0U; i < builders.size(); ++i) {
-      if (records[i+1].kind == soa::IndexKind::IdxSelf) {
-        finds[i] = builders[i]->find(idx);
-      } else {
-        finds[i] = std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->find(idx);
-      }
+      finds[i] = builders[i].find(idx);
     }
     if (exclusive) {
       if (std::none_of(finds.begin(), finds.end(), [](bool const x) { return x == false; })) {
-        for (auto i = 0U; i < builders.size(); ++i) {
-          if (records[i+1].kind == soa::IndexKind::IdxSelf) {
-            builders[i]->fill(idx);
-          } else {
-            std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->fill(idx);
-          }
+        builders[0].fill(counter);
+        for (auto i = 1U; i < builders.size(); ++i) {
+          builders[i].fill(idx);
         }
-        self.fill(counter);
       }
     } else {
-      for (auto i = 0U; i < builders.size(); ++i) {
-        if (records[i+1].kind == soa::IndexKind::IdxSelf) {
-          builders[i]->fill(idx);
-        } else {
-          std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->fill(idx);
-        }
+      builders[0].fill(counter);
+      for (auto i = 1U; i < builders.size(); ++i) {
+        builders[i].fill(idx);
       }
-      self.fill(counter);
     }
   }
 
   std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays; // same
-  arrays.reserve(records.size());
-  arrays.push_back(self.result());
-  for (auto i = 0U; i < builders.size(); ++i) {
-    if (records[i+1].kind == soa::IndexKind::IdxSelf) {
-      arrays.push_back(builders[i]->result());
-    } else {
-      arrays.push_back(std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->result());
-    }
+  arrays.reserve(builders.size());
+  for (auto& builder : builders) {
+    arrays.push_back(builder.result());
   }
 
   return arrow::Table::Make(schema, arrays);
 }
+
+// std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive)
+// {
+//   auto pool = arrow::default_memory_pool();
+//   std::vector<std::shared_ptr<framework::SelfIndexColumnBuilder>> builders; // this needs to become a state to avoid reallocations
+//   // can builders be reset and re-used?
+//   framework::SelfIndexColumnBuilder self{records[0].columnLabel.c_str(), pool};
+//   std::unique_ptr<framework::ChunkedArrayIterator> keyIndex = nullptr;
+//   if (records[0].kind != soa::IndexKind::IdxSelf) {
+//     keyIndex = std::make_unique<framework::ChunkedArrayIterator>(tables[0]->column(records[0].pos));
+//   }
+
+//   for (auto i = 1U; i < records.size(); ++i) {
+//     if (records[i].kind == soa::IndexKind::IdxSelf) {
+//       builders.emplace_back(std::make_shared<framework::SelfIndexColumnBuilder>(records[i].columnLabel.c_str(), pool));
+//     } else {
+//       builders.emplace_back(
+//         std::make_shared<framework::IndexColumnBuilder>(
+//           tables[i]->column(records[i].pos),
+//           records[i].columnLabel.c_str(),
+//           [](IndexKind kind) {
+//             switch (kind) {
+//               case IndexKind::IdxSingle:
+//                 return 1;
+//               case IndexKind::IdxSlice:
+//                 return 2;
+//               case IndexKind::IdxArray:
+//                 return -1;
+//               default:
+//                 return -2;
+//             }
+//           }(records[i].kind),
+//           pool));
+//     }
+//   }
+
+//   std::vector<bool> finds;
+//   finds.resize(builders.size());
+//   for (int64_t counter = 0; counter < tables[0]->num_rows(); ++counter) {
+//     int64_t idx = -1;
+//     if (keyIndex == nullptr) {
+//       idx = counter;
+//     } else {
+//       idx = keyIndex->valueAt(counter);
+//     }
+//     for (auto i = 0U; i < builders.size(); ++i) {
+//       if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+//         finds[i] = builders[i]->find(idx);
+//       } else {
+//         finds[i] = std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->find(idx);
+//       }
+//     }
+//     if (exclusive) {
+//       if (std::none_of(finds.begin(), finds.end(), [](bool const x) { return x == false; })) {
+//         for (auto i = 0U; i < builders.size(); ++i) {
+//           if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+//             builders[i]->fill(idx);
+//           } else {
+//             std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->fill(idx);
+//           }
+//         }
+//         self.fill(counter);
+//       }
+//     } else {
+//       for (auto i = 0U; i < builders.size(); ++i) {
+//         if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+//           builders[i]->fill(idx);
+//         } else {
+//           std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->fill(idx);
+//         }
+//       }
+//       self.fill(counter);
+//     }
+//   }
+
+//   std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays; // same
+//   arrays.reserve(records.size());
+//   arrays.push_back(self.result());
+//   for (auto i = 0U; i < builders.size(); ++i) {
+//     if (records[i+1].kind == soa::IndexKind::IdxSelf) {
+//       arrays.push_back(builders[i]->result());
+//     } else {
+//       arrays.push_back(std::static_pointer_cast<framework::IndexColumnBuilder>(builders[i])->result());
+//     }
+//   }
+
+//   return arrow::Table::Make(schema, arrays);
+// }
 } // namespace o2::soa
 
 namespace o2::framework
@@ -219,11 +291,14 @@ std::shared_ptr<arrow::Table> Spawner::materialize(ProcessingContext& pc) const
   return spawnerHelper(fullTable, schema, binding.c_str(), schema->num_fields(), projector);
 }
 
-std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc) const
+std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc)
 {
+  if (builders == nullptr) {
+    builders = std::make_shared<std::vector<framework::IndexColumnBuilderNG>>();
+  }
   std::shared_ptr<arrow::Table> result;
   auto tables = extractSources(pc, labels);
-  result = o2::soa::IndexBuilder::materialize(std::move(tables), records, outputSchema, exclusive);
+  result = o2::soa::IndexBuilder::materializeNG(*builders.get(), std::move(tables), records, outputSchema, exclusive);
   return result;
 }
 } // namespace o2::framework

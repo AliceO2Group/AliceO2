@@ -60,7 +60,11 @@ struct IndexRecord {
 };
 
 struct IndexBuilder {
-  static std::shared_ptr<arrow::Table> materialize(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive);
+  static std::vector<framework::IndexColumnBuilderNG> makeBuilders(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records);
+  static void resetBuilders(std::vector<framework::IndexColumnBuilderNG>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables);
+
+  // static std::shared_ptr<arrow::Table> materialize(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive);
+  static std::shared_ptr<arrow::Table> materializeNG(std::vector<framework::IndexColumnBuilderNG>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive);
 };
 } // namespace o2::soa
 
@@ -161,7 +165,9 @@ struct Builder {
   header::DataDescription description;
   header::DataHeader::SubSpecificationType version;
 
-  std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc) const;
+  std::shared_ptr<std::vector<framework::IndexColumnBuilderNG>> builders = nullptr;
+
+  std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc);
 };
 }  // namespace o2::framework
 
@@ -722,6 +728,8 @@ struct Builds : decltype(transformBase<T>()) {
 
   std::vector<soa::IndexRecord> map = soa::getIndexMapping<metadata>();
 
+  std::vector<framework::IndexColumnBuilderNG> builders;
+
   T* operator->()
   {
     return table.get();
@@ -744,7 +752,7 @@ struct Builds : decltype(transformBase<T>()) {
 
   auto build(std::vector<std::shared_ptr<arrow::Table>>&& tables)
   {
-    this->table = std::make_shared<T>(soa::IndexBuilder::materialize(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables), map, outputSchema, metadata::exclusive));
+    this->table = std::make_shared<T>(soa::IndexBuilder::materializeNG(builders, std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables), map, outputSchema, metadata::exclusive));
     return (this->table != nullptr);
   }
 };
