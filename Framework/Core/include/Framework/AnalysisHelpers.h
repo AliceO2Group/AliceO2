@@ -595,11 +595,6 @@ struct Spawns : decltype(transformBase<T>()) {
   using expression_pack_t = typename metadata::expression_pack_t;
   static constexpr size_t N = framework::pack_size(expression_pack_t{});
 
-  static consteval auto pack()
-  {
-    return expression_pack_t{};
-  }
-
   typename T::table_t* operator->()
   {
     return table.get();
@@ -651,11 +646,6 @@ struct Defines : decltype(transformBase<T>()) {
   using placeholders_pack_t = typename metadata::placeholders_pack_t;
   static constexpr size_t N = framework::pack_size(placeholders_pack_t{});
 
-  constexpr auto pack()
-  {
-    return placeholders_pack_t{};
-  }
-
   typename T::table_t* operator->()
   {
     return table.get();
@@ -674,7 +664,11 @@ struct Defines : decltype(transformBase<T>()) {
 
   std::array<o2::framework::expressions::Projector, N> projectors;
   std::shared_ptr<gandiva::Projector> projector = nullptr;
-  std::shared_ptr<arrow::Schema> schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(placeholders_pack_t{}));
+  std::shared_ptr<arrow::Schema> schema = []() {
+    auto s = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(placeholders_pack_t{}));
+    s->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{o2::aod::label<T::ref>()}}));
+    return s;
+  }();
   std::shared_ptr<arrow::Schema> inputSchema = nullptr;
 
   bool needRecompilation = false;

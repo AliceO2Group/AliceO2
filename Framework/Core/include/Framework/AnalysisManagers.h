@@ -304,9 +304,8 @@ bool prepareOutput(ProcessingContext& context, T& defines)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
   auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::sources.size(), metadata::sources>(context), std::span{metadata::base_table_t::originalLabels});
-  if (originalTable->schema()->fields().empty() == true) {
-    using base_table_t = typename T::base_table_t::table_t;
-    originalTable = makeEmptyTable<base_table_t>(o2::aod::label<metadata::extension_table_t::ref>());
+  if (originalTable->num_rows() == 0) {
+    originalTable = makeEmptyTable<metadata::base_table_t::ref>();
   }
   if (defines.inputSchema == nullptr) {
     defines.inputSchema = originalTable->schema();
@@ -337,9 +336,8 @@ bool prepareDelayedOutput(ProcessingContext& context, T& defines)
   }
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
   auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::sources.size(), metadata::sources>(context), std::span{metadata::base_table_t::originalLabels});
-  if (originalTable->schema()->fields().empty() == true) {
-    using base_table_t = typename T::base_table_t::table_t;
-    originalTable = makeEmptyTable<base_table_t>(o2::aod::label<metadata::extension_table_t::ref>());
+  if (originalTable->num_rows() == 0) {
+    originalTable = makeEmptyTable<metadata::base_table_t::ref>();
   }
   if (defines.inputSchema == nullptr) {
     defines.inputSchema = originalTable->schema();
