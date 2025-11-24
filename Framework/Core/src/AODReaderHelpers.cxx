@@ -192,6 +192,7 @@ struct Spawnable {
     iws.clear();
     iws.str(loc->defaultValue.get<std::string>());
     outputSchema = ArrowJSONHelpers::read(iws);
+    o2::framework::addLabelToSchema(outputSchema, binding.c_str());
 
     std::vector<std::shared_ptr<arrow::Schema>> schemas;
     for (auto& i : spec.metadata) {
@@ -236,7 +237,6 @@ struct Spawnable {
 
   Maker createMaker() const
   {
-    o2::framework::addLabelToSchema(outputSchema, binding.c_str());
     return {
       binding,
       labels,
