@@ -24,6 +24,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/WorkflowSpec.h"
+#include <Message.h>
 #include <Monitoring/Monitoring.h>
 #include <fairmq/TransportFactory.h>
 #include <array>
@@ -116,6 +117,7 @@ TEST_CASE("DataRelayer")
     // one MessageSet with one PartRef with header and payload
     REQUIRE(result.size() == 1);
     REQUIRE(result.at(0).size() == 1);
+    result.at(0).clear(MessageSet::noop);
   }
 
   //
@@ -166,6 +168,7 @@ TEST_CASE("DataRelayer")
     // one MessageSet with one PartRef with header and payload
     REQUIRE(result.size() == 1);
     REQUIRE(result.at(0).size() == 1);
+    result.at(0).clear(MessageSet::noop);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -247,6 +250,8 @@ TEST_CASE("DataRelayer")
     REQUIRE(result.size() == 2);
     REQUIRE(result.at(0).size() == 1);
     REQUIRE(result.at(1).size() == 1);
+    result.at(0).clear(MessageSet::noop);
+    result.at(1).clear(MessageSet::noop);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -341,7 +346,13 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready.size() == 1);
     REQUIRE(ready[0].slot.index == 1);
     REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+    REQUIRE(result.size() == 2);
+    result.at(0).clear(MessageSet::noop);
+    result.at(1).clear(MessageSet::noop);
     result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE(result.size() == 2);
+    result.at(0).clear(MessageSet::noop);
+    result.at(1).clear(MessageSet::noop);
   }
 
   // This tests a simple cache pruning, where a single input is shifted out of
@@ -401,6 +412,9 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready[1].op == CompletionPolicy::CompletionOp::Consume);
     for (size_t i = 0; i < ready.size(); ++i) {
       auto result = relayer.consumeAllInputsForTimeslice(ready[i].slot);
+      for (auto& s : result) {
+        s.clear(MessageSet::noop);
+      }
     }
 
     // This fills the cache and makes 2 obsolete.
@@ -416,6 +430,8 @@ TEST_CASE("DataRelayer")
     // One for the header, one for the payload
     REQUIRE(result1.size() == 1);
     REQUIRE(result2.size() == 1);
+    result1.at(0).clear(MessageSet::noop);
+    result2.at(0).clear(MessageSet::noop);
   }
 
   // This the any policy. Even when there are two inputs, given the any policy
@@ -489,6 +505,7 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready3.size() == 1);
     REQUIRE(ready3[0].slot.index == 1);
     REQUIRE(ready3[0].op == CompletionPolicy::CompletionOp::Consume);
+    relayer.clear();
   }
 
   /// Test that the clear method actually works.
@@ -610,6 +627,7 @@ TEST_CASE("DataRelayer")
     REQUIRE(action.type == DataRelayer::RelayChoice::Type::Backpressured);
     REQUIRE(header2.get() != nullptr);
     REQUIRE(payload2.get() != nullptr);
+    relayer.clear();
   }
 
   SECTION("SplitParts")
@@ -681,6 +699,7 @@ TEST_CASE("DataRelayer")
     CHECK(action.timeslice.value == 1);
     REQUIRE(header2.get() != nullptr);
     REQUIRE(payload2.get() != nullptr);
+    relayer.clear();
   }
 
   SECTION("SplitPayloadPairs")
@@ -735,6 +754,7 @@ TEST_CASE("DataRelayer")
     REQUIRE(messageSet.size() == 1);
     REQUIRE(messageSet[0].size() == nSplitParts);
     REQUIRE(messageSet[0].getNumberOfPayloads(0) == 1);
+    messageSet[0].clear(MessageSet::noop);
   }
 
   SECTION("SplitPayloadSequence")
@@ -801,11 +821,13 @@ TEST_CASE("DataRelayer")
     for (auto seqid = 0; seqid < sequenceSize.size(); ++seqid) {
       REQUIRE(messageSet[0].getNumberOfPayloads(seqid) == sequenceSize[seqid]);
       for (auto pi = 0; pi < messageSet[0].getNumberOfPayloads(seqid); ++pi) {
-        REQUIRE(messageSet[0].payload(seqid, pi));
-        auto const* data = messageSet[0].payload(seqid, pi)->GetData();
+        auto const& c = messageSet[0].payload(seqid, pi);
+        REQUIRE(c.get());
+        auto const* data = c->GetData();
         REQUIRE(*(reinterpret_cast<size_t const*>(data)) == counter);
         ++counter;
       }
     }
+    messageSet[0].clear(MessageSet::noop);
   }
 }

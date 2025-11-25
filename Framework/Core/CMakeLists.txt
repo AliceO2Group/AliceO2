@@ -105,6 +105,7 @@ o2_add_library(Framework
                        src/StringContext.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
+                       src/MessageSet.cxx
                        src/Metric2DViewIndex.cxx
                        src/SimpleOptionsRetriever.cxx
                        src/O2ControlHelpers.cxx

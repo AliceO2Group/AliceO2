@@ -581,8 +581,8 @@ static auto toBeForwardedHeader = [](void* header) -> bool {
 
 static auto toBeforwardedMessageSet = [](std::vector<ChannelIndex>& cachedForwardingChoices,
                                          FairMQDeviceProxy& proxy,
-                                         std::unique_ptr<fair::mq::Message>& header,
-                                         std::unique_ptr<fair::mq::Message>& payload,
+                                         std::unique_ptr<fair::mq::Message> const& header,
+                                         std::unique_ptr<fair::mq::Message> const& payload,
                                          size_t total,
                                          bool consume) {
   if (header.get() == nullptr) {
@@ -596,7 +596,6 @@ static auto toBeforwardedMessageSet = [](std::vector<ChannelIndex>& cachedForwar
     // If the payload is not there, it means we already
     // processed it with ConsumeExisiting. Therefore we
     // need to do something only if this is the last consume.
-    header.reset(nullptr);
     return false;
   }
 
@@ -681,16 +680,20 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
 
     for (size_t pi = 0; pi < currentSetOfInputs[ii].size(); ++pi) {
       auto& messageSet = currentSetOfInputs[ii];
-      auto& header = messageSet.header(pi);
-      auto& payload = messageSet.payload(pi);
+      auto const& header = messageSet.header(pi);
+      auto const& payload = messageSet.payload(pi);
       auto total = messageSet.getNumberOfPayloads(pi);
+      // Already forwarded. Skip the rest.
 
       if (!toBeforwardedMessageSet(cachedForwardingChoices, proxy, header, payload, total, consume)) {
+        if (payload->GetData() == nullptr && consume) {
+          std::unique_ptr<fair::mq::Message> header{messageSet.extractHeader(pi)};
+        }
         continue;
       }
 
       // In case of more than one forward route, we need to copy the message.
-      // This will eventually use the same mamory if running with the same backend.
+      // This will eventually use the same memory if running with the same backend.
       if (cachedForwardingChoices.size() > 1) {
         copy = true;
       }
@@ -714,10 +717,11 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       } else {
         O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding %{public}s to route %d.",
                                fmt::format("{}/{}/{}@timeslice:{} tfCounter:{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dph->startTime, dh->tfCounter).c_str(), cachedForwardingChoices.back().value);
-        forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.header(pi)));
+        forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.extractHeader(pi)));
         for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
-          forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.payload(pi, payloadIndex)));
+          forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.extractPayload(pi, payloadIndex)));
         }
+        messageSet.clear(MessageSet::assert_empty);
       }
     }
   }
@@ -1829,7 +1833,6 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
   // This is the same id as the upper level function, so we get the events
   // associated with the same interval. We will simply use "handle_data" as
   // the category.
-  O2_SIGNPOST_ID_FROM_POINTER(cid, device, &info);
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
@@ -2182,8 +2185,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     };
 #if __has_include(<fairmq/shmem/Message.h>)
     auto refCountGetter = [&currentSetOfInputs](size_t idx) -> int {
-      auto& header = static_cast<const fair::mq::shmem::Message&>(*currentSetOfInputs[idx].header(0));
-      return header.GetRefCount();
+      return static_cast<const fair::mq::shmem::Message&>(*currentSetOfInputs[idx].header(0)).GetRefCount();
     };
 #else
     std::function<int(size_t)> refCountGetter = nullptr;
@@ -2244,7 +2246,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         continue;
       }
       // This will hopefully delete the message.
-      currentSetOfInputs[ii].clear();
+      currentSetOfInputs[ii].clear(MessageSet::destroy_message);
     }
   };
 
@@ -2367,6 +2369,10 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     O2_SIGNPOST_START(device, aid, "device", "Processing action on slot %lu for action %{public}s", action.slot.index, fmt::format("{}", action.op).c_str());
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
       O2_SIGNPOST_END(device, aid, "device", "Waiting for more data.");
+      if (spec.forwards.empty() == false && context.canForwardEarly) {
+        auto& timesliceIndex = ref.get<TimesliceIndex>();
+        forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, false);
+      }
       continue;
     }
 
@@ -2551,6 +2557,11 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     DataProcessingHelpers::switchState(ref, StreamingState::Idle);
   }
 
+  // If messages got up to here, it means they are transient ones which need to be
+  // destroyed. Cleaning them up.
+  for (auto &set : currentSetOfInputs) {
+    set.clear(MessageSet::destroy_message);
+  }
   return true;
 }
 

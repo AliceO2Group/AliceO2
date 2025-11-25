@@ -9,10 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DeviceState.h"
-#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DriverConfig.h"
+#include "Headers/DataHeaderHelpers.h"
+#include "Framework/Formatters.h"
 
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
@@ -29,22 +30,18 @@
 #include "Framework/RoutingIndices.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/FairMQDeviceProxy.h"
-#include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/LifetimeHelpers.h"
-#include "Framework/CommonServices.h"
 #include "Framework/DataProcessingStates.h"
-#include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
-
-#include "Headers/DataHeaderHelpers.h"
-#include "Framework/Formatters.h"
+#include "Framework/Signpost.h"
 
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
 #include <fairlogger/Logger.h>
+#include <fairmq/Message.h>
 #include <fairmq/Channel.h>
 #include <functional>
 #if __has_include(<fairmq/shmem/Message.h>)
@@ -106,6 +103,16 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   states.registerState({.name = "data_queries", .stateId = stateId, .sendInitialValue = true, .defaultEnabled = true});
   states.updateState(DataProcessingStates::CommandSpec{.id = stateId, .size = (int)queries.size(), .data = queries.data()});
   states.processCommandQueue();
+}
+
+DataRelayer::~DataRelayer()
+{
+  // Clear everything in the cache, checking that there is no
+  // pending messages. If there is, then there is most likely
+  // an issue on the onDrop.
+  for (auto& set : mCache) {
+    set.clear(MessageSet::enforce_empty);
+  }
 }
 
 TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
@@ -172,7 +179,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       auto& expirator = expirationHandlers[ei];
       // We check that no data is already there for the given cell
       // it is enough to check the first element
-      auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
+      MessageSet& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
       if (part.size() > 0 && part.header(0) != nullptr) {
         headerPresent++;
         continue;
@@ -232,15 +239,19 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       }
 
       assert(ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value < mCache.size());
-      assert(expirator.handler);
-      PartRef newRef;
-      expirator.handler(services, newRef, variables);
-      part.reset(std::move(newRef));
+      // We use MessageSet::passthrough because internal messages should never be forwarded.
+      PartRefFiller auto filler = [&expirator, &services, &variables](size_t n) -> PartRef {
+        assert(expirator.handler);
+        PartRef newRef;
+        expirator.handler(services, newRef, variables);
+        return newRef;
+      };
+      part = MessageSet(filler, 1, MessageSet::passthrough_partref);
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
-      assert(part.header(0) != nullptr);
-      assert(part.payload(0) != nullptr);
+      assert(part.header(0).get() != nullptr);
+      assert(part.payload(0).get() != nullptr);
     }
   }
   LOGP(debug, "DataRelayer::processDanglingInputs headerPresent:{}, payloadPresent:{}, noCheckers:{}, badSlot:{}, checkerDenied:{}",
@@ -422,7 +433,7 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
     // will be ignored.
     assert(numInputTypes * slot.index < cache.size());
     for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      cache[ai].clear();
+      cache[ai].clear(MessageSet::destroy_message);
       cachedStateMetrics[ai] = CacheEntryStatus::EMPTY;
     }
   };
@@ -490,7 +501,7 @@ DataRelayer::RelayChoice
                      &nPayloads,
                      &cache = mCache,
                      &services = mContext,
-                     numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot, InputInfo const& info) -> size_t {
+                     numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot, InputInfo const& info) mutable -> size_t {
     O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
     O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "saveInSlot", "saving %{public}s@%zu in slot %zu from %{public}s",
                            fmt::format("{:x}", *o2::header::get<DataHeader*>(messages[0]->GetData())).c_str(),
@@ -518,7 +529,11 @@ DataRelayer::RelayChoice
         mi += nPayloads;
         continue;
       }
-      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      auto filler = [&messages, &mi](size_t i) mutable -> fair::mq::MessagePtr {
+        return std::move(messages[mi + i]);
+      };
+      MessageSet inputs(filler, nPayloads + 1, MessageSet::passthrough);
+      target.merge(std::move(inputs));
       mi += nPayloads;
       saved += nPayloads;
     }
@@ -867,11 +882,6 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
 
-  // Nothing to see here, this is just to make the outer loop more understandable.
-  auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
-    return;
-  };
-
   // We move ownership so that the cache can be reused once the computation is
   // finished. We mark the given cache slot invalid, so that it can be reused
   // This means we can still handle old messages if there is still space in the
@@ -895,14 +905,12 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
   auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      assert(std::accumulate(cache[ai].messages.begin(), cache[ai].messages.end(), true, [](bool result, auto const& element) { return result && element.get() == nullptr; }));
-      cache[ai].clear();
+      cache[ai].clear(MessageSet::enforce_empty);
     }
     index.markAsInvalid(s);
   };
 
   // Outer loop here.
-  jumpToCacheEntryAssociatedWith(slot);
   for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
     moveHeaderPayloadToOutput(slot, ai);
   }
@@ -919,36 +927,23 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
   // State of the computation
   std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
-  auto& index = mTimesliceIndex;
-
-  // Nothing to see here, this is just to make the outer loop more understandable.
-  auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
-    return;
-  };
 
   // We move ownership so that the cache can be reused once the computation is
   // finished. We mark the given cache slot invalid, so that it can be reused
   // This means we can still handle old messages if there is still space in the
   // cache where to put them.
-  auto copyHeaderPayloadToOutput = [&messages,
-                                    &cachedStateMetrics = mCachedStateMetrics,
-                                    &cache, &index, &numInputTypes](TimesliceSlot s, size_t arg) {
-    auto cacheId = s.index * numInputTypes + arg;
-    cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
-    // TODO: in the original implementation of the cache, there have been only two messages per entry,
-    // check if the 2 above corresponds to the number of messages.
-    for (size_t pi = 0; pi < cache[cacheId].size(); pi++) {
-      auto& header = cache[cacheId].header(pi);
+  for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
+    auto cacheId = slot.index * numInputTypes + ai;
+    auto size = 2 * cache[cacheId].size();
+    mCachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
+
+    auto extractFromSlot = [s = slot, arg = ai, &cachedStateMetrics = mCachedStateMetrics, &cache, cacheId](size_t pi) -> PartRef {
+      auto const& header = cache[cacheId].header(pi);
       auto&& newHeader = header->GetTransport()->CreateMessage();
       newHeader->Copy(*header);
-      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].payload(pi))});
-    }
-  };
-
-  // Outer loop here.
-  jumpToCacheEntryAssociatedWith(slot);
-  for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
-    copyHeaderPayloadToOutput(slot, ai);
+      return std::move(PartRef{std::move(newHeader), cache[cacheId].extractPayload(pi)});
+    };
+    messages[ai] = std::move(MessageSet(extractFromSlot, size, MessageSet::passthrough_partref));
   }
 
   return std::move(messages);
@@ -959,7 +954,7 @@ void DataRelayer::clear()
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
 
   for (auto& cache : mCache) {
-    cache.clear();
+    cache.clear(MessageSet::destroy_message);
   }
   for (size_t s = 0; s < mTimesliceIndex.size(); ++s) {
     mTimesliceIndex.markAsInvalid(TimesliceSlot{s});

@@ -15,14 +15,14 @@
 
 using namespace o2::framework;
 
-TEST_CASE("MessageSet") {
-  o2::framework::MessageSet msgSet;
+TEST_CASE("MessageSet")
+{
   std::vector<fair::mq::MessagePtr> ptrs;
   std::unique_ptr<fair::mq::Message> msg(nullptr);
   std::unique_ptr<fair::mq::Message> msg2(nullptr);
   ptrs.emplace_back(std::move(msg));
   ptrs.emplace_back(std::move(msg2));
-  msgSet.add([&ptrs](size_t i) -> fair::mq::MessagePtr& { return ptrs[i]; }, 2);
+  o2::framework::MessageSet msgSet([&ptrs](size_t i) -> fair::mq::MessagePtr { return std::move(ptrs[i]); }, 2, MessageSet::passthrough);
 
   REQUIRE(msgSet.messages.size() == 2);
   REQUIRE(msgSet.messageMap.size() == 1);
@@ -32,15 +32,17 @@ TEST_CASE("MessageSet") {
 
   REQUIRE(msgSet.pairMap[0].partIndex == 0);
   REQUIRE(msgSet.pairMap[0].payloadIndex == 0);
+  msgSet.clear(MessageSet::noop);
 }
 
-TEST_CASE("MessageSetWithFunction") {
+TEST_CASE("MessageSetWithFunction")
+{
   std::vector<fair::mq::MessagePtr> ptrs;
   std::unique_ptr<fair::mq::Message> msg(nullptr);
   std::unique_ptr<fair::mq::Message> msg2(nullptr);
   ptrs.emplace_back(std::move(msg));
   ptrs.emplace_back(std::move(msg2));
-  o2::framework::MessageSet msgSet([&ptrs](size_t i) -> fair::mq::MessagePtr& { return ptrs[i]; }, 2);
+  o2::framework::MessageSet msgSet([&ptrs](size_t i) -> fair::mq::MessagePtr { return std::move(ptrs[i]); }, 2, MessageSet::passthrough);
 
   REQUIRE(msgSet.messages.size() == 2);
   REQUIRE(msgSet.messageMap.size() == 1);
@@ -50,9 +52,11 @@ TEST_CASE("MessageSetWithFunction") {
 
   REQUIRE(msgSet.pairMap[0].partIndex == 0);
   REQUIRE(msgSet.pairMap[0].payloadIndex == 0);
+  msgSet.clear(MessageSet::noop);
 }
 
-TEST_CASE("MessageSetWithMultipart") {
+TEST_CASE("MessageSetWithMultipart")
+{
   std::vector<fair::mq::MessagePtr> ptrs;
   std::unique_ptr<fair::mq::Message> msg(nullptr);
   std::unique_ptr<fair::mq::Message> msg2(nullptr);
@@ -60,7 +64,7 @@ TEST_CASE("MessageSetWithMultipart") {
   ptrs.emplace_back(std::move(msg));
   ptrs.emplace_back(std::move(msg2));
   ptrs.emplace_back(std::move(msg3));
-  o2::framework::MessageSet msgSet([&ptrs](size_t i) -> fair::mq::MessagePtr& { return ptrs[i]; }, 3);
+  o2::framework::MessageSet msgSet([&ptrs](size_t i) -> fair::mq::MessagePtr { return std::move(ptrs[i]); }, 3, MessageSet::passthrough);
 
   REQUIRE(msgSet.messages.size() == 3);
   REQUIRE(msgSet.messageMap.size() == 1);
@@ -72,17 +76,19 @@ TEST_CASE("MessageSetWithMultipart") {
   REQUIRE(msgSet.pairMap[0].payloadIndex == 0);
   REQUIRE(msgSet.pairMap[1].partIndex == 0);
   REQUIRE(msgSet.pairMap[1].payloadIndex == 1);
+  msgSet.clear(MessageSet::noop);
 }
 
-TEST_CASE("MessageSetAddPartRef") {
+TEST_CASE("MessageSetAddPartRef")
+{
   std::vector<fair::mq::MessagePtr> ptrs;
   std::unique_ptr<fair::mq::Message> msg(nullptr);
   std::unique_ptr<fair::mq::Message> msg2(nullptr);
-  ptrs.emplace_back(std::move(msg));
-  ptrs.emplace_back(std::move(msg2));
-  PartRef ref {std::move(msg), std::move(msg2)};
+  PartRef ref{std::move(msg), std::move(msg2)};
+  o2::framework::MessageSet refSet([&ref](size_t i) -> PartRef { return std::move(ref); }, 1, MessageSet::passthrough_partref);
+  REQUIRE(refSet.messages.size() == 2);
   o2::framework::MessageSet msgSet;
-  msgSet.add(std::move(ref));
+  msgSet.merge(std::move(refSet));
 
   REQUIRE(msgSet.messages.size() == 2);
   REQUIRE(msgSet.messageMap.size() == 1);
@@ -92,6 +98,8 @@ TEST_CASE("MessageSetAddPartRef") {
 
   REQUIRE(msgSet.pairMap[0].partIndex == 0);
   REQUIRE(msgSet.pairMap[0].payloadIndex == 0);
+  msgSet.clear(MessageSet::noop);
+  refSet.clear(MessageSet::noop);
 }
 
 TEST_CASE("MessageSetAddMultiple")
@@ -103,16 +111,17 @@ TEST_CASE("MessageSetAddMultiple")
   ptrs.emplace_back(std::move(msg2));
   PartRef ref{std::move(msg), std::move(msg2)};
   o2::framework::MessageSet msgSet;
-  msgSet.add(std::move(ref));
+  o2::framework::MessageSet refSet([&ref](size_t) { return std::move(ref); }, 1, MessageSet::passthrough_partref);
+  msgSet.merge(std::move(refSet));
   PartRef ref2{std::move(msg), std::move(msg2)};
-  msgSet.add(std::move(ref2));
+  o2::framework::MessageSet refSet2([&ref](size_t) { return std::move(ref); }, 1, MessageSet::passthrough_partref);
+  msgSet.merge(std::move(refSet2));
   std::vector<fair::mq::MessagePtr> msgs;
   msgs.push_back(std::unique_ptr<fair::mq::Message>(nullptr));
   msgs.push_back(std::unique_ptr<fair::mq::Message>(nullptr));
   msgs.push_back(std::unique_ptr<fair::mq::Message>(nullptr));
-  msgSet.add([&msgs](size_t i) {
-    return std::move(msgs[i]);
-  }, 3);
+  o2::framework::MessageSet refSet3([&msgs](size_t i) { return std::move(msgs[i]); }, 3, MessageSet::passthrough);
+  msgSet.merge(std::move(refSet3));
 
   REQUIRE(msgSet.messages.size() == 7);
   REQUIRE(msgSet.messageMap.size() == 3);
@@ -132,4 +141,8 @@ TEST_CASE("MessageSetAddMultiple")
   REQUIRE(msgSet.pairMap[2].payloadIndex == 0);
   REQUIRE(msgSet.pairMap[3].partIndex == 2);
   REQUIRE(msgSet.pairMap[3].payloadIndex == 1);
+  msgSet.clear(MessageSet::noop);
+  refSet.clear(MessageSet::noop);
+  refSet2.clear(MessageSet::noop);
+  refSet3.clear(MessageSet::noop);
 }

@@ -26,11 +26,15 @@ o2_add_dpl_workflow(basic-arrow-workflow
                   COMPONENT_NAME TestWorkflows)
 
 o2_add_dpl_workflow(o2rootmessage-workflow
-                  SOURCES "src/test_o2RootMessageWorkflow.cxx"
+                  SOURCES src/test_o2RootMessageWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
 
 o2_add_dpl_workflow(diamond-workflow
                   SOURCES src/o2DiamondWorkflow.cxx
+                  COMPONENT_NAME TestWorkflows)
+
+o2_add_dpl_workflow(early-forwarding
+                  SOURCES src/o2EarlyForwarding.cxx
                   COMPONENT_NAME TestWorkflows)
 
 o2_add_dpl_workflow(dummy-populator-workflow

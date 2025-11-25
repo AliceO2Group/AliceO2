@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2025 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -8,21 +8,24 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_PARTREF_H_
-#define O2_FRAMEWORK_PARTREF_H_
-
-#include <memory>
-#include <fairmq/FwdDecls.h>
+//
+#include "Framework/MessageSet.h"
+#include "Framework/Logger.h"
+#include "Framework/RuntimeError.h"
 
 namespace o2::framework
 {
-
-/// Reference to an inflight part.
-struct PartRef {
-  std::unique_ptr<fair::mq::Message> header;
-  std::unique_ptr<fair::mq::Message> payload;
-};
-
+MessageSet::~MessageSet()
+{
+  assert(messages.empty());
+  if (!messages.empty()) {
+    LOGP(fatal, "MessageSet should be cleared before being destroyed.");
+  }
+}
+auto MessageSet::enforce_empty(fair::mq::MessagePtr&& ref) -> void
+{
+  if (ref.get() != nullptr) {
+    throw o2::framework::runtime_error("MessageSet not empty");
+  }
+}
 } // namespace o2::framework
-
-#endif // FRAMEWORK_PARTREF_H

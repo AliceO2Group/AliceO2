@@ -104,6 +104,8 @@ class DataRelayer
               TimesliceIndex&,
               ServiceRegistryRef);
 
+  ~DataRelayer();
+
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
