@@ -19,8 +19,10 @@
 #include <stack>
 #include <iostream>
 
-namespace o2::framework {
-namespace {
+namespace o2::framework
+{
+namespace
+{
 struct IndexRecordsReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, IndexRecordsReader> {
   using Ch = rapidjson::UTF8<>::Ch;
   using SizeType = rapidjson::SizeType;
@@ -179,7 +181,7 @@ struct IndexRecordsReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
     return false;
   }
 };
-}
+} // namespace
 
 std::vector<o2::soa::IndexRecord> IndexJSONHelpers::read(std::istream& s)
 {
@@ -195,7 +197,8 @@ std::vector<o2::soa::IndexRecord> IndexJSONHelpers::read(std::istream& s)
   return irreader.records;
 }
 
-namespace {
+namespace
+{
 void writeRecords(rapidjson::Writer<rapidjson::OStreamWrapper>& w, std::vector<o2::soa::IndexRecord>& records)
 {
   for (auto& r : records) {
@@ -211,7 +214,7 @@ void writeRecords(rapidjson::Writer<rapidjson::OStreamWrapper>& w, std::vector<o
     w.EndObject();
   }
 }
-}
+} // namespace
 
 void IndexJSONHelpers::write(std::ostream& o, std::vector<o2::soa::IndexRecord>& irs)
 {
@@ -224,4 +227,4 @@ void IndexJSONHelpers::write(std::ostream& o, std::vector<o2::soa::IndexRecord>&
   w.EndArray();
   w.EndObject();
 }
-}
+} // namespace o2::framework

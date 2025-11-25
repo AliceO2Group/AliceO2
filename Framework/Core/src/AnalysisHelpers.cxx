@@ -13,7 +13,8 @@
 #include "ExpressionJSONHelpers.h"
 #include "IndexJSONHelpers.h"
 
-namespace o2::soa {
+namespace o2::soa
+{
 std::vector<framework::IndexColumnBuilder> IndexBuilder::makeBuilders(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records)
 {
   std::vector<framework::IndexColumnBuilder> builders;

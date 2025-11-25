@@ -618,7 +618,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         builder->outputs.clear();
         // replace AlgorithmSpec
         //  FIXME: it should be made more generic, so it does not need replacement...
-        builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx);//readers::AODReaderHelpers::indexBuilderCallback(ctx);
+        builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx); // readers::AODReaderHelpers::indexBuilderCallback(ctx);
         AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, *builder);
       }
 

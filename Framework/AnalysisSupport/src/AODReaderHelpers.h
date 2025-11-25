@@ -18,7 +18,6 @@
 namespace o2::framework::readers
 {
 
-
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
   static AlgorithmSpec aodSpawnerCallback(ConfigContext const& ctx);

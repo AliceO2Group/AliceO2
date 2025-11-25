@@ -243,7 +243,6 @@ TEST_CASE("AdvancedIndexTables")
   }
 }
 
-
 TEST_CASE("IndexRecordsSerialization")
 {
   auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata>();
