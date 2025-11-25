@@ -640,7 +640,6 @@ struct Defines : decltype(transformBase<T>()) {
   using spawnable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
   using extension_t = typename metadata::extension_table_t;
-  using base_table_t = typename metadata::base_table_t;
   using placeholders_pack_t = typename metadata::placeholders_pack_t;
   static constexpr size_t N = framework::pack_size(placeholders_pack_t{});
 
@@ -682,8 +681,6 @@ using DefinesDelayed = Defines<T, true>;
 
 template <typename T>
 concept is_defines = requires(T t) {
-  typename T::metadata;
-  requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
   requires std::same_as<decltype(t.needRecompilation), bool>;
   &T::recompile;
 };
