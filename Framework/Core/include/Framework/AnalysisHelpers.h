@@ -626,7 +626,6 @@ struct Spawns : decltype(transformBase<T>()) {
 template <typename T>
 concept is_spawns = requires(T t) {
   typename T::metadata;
-  requires std::same_as<decltype(t.pack()), typename T::expression_pack_t>;
   requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
 };
 
@@ -684,7 +683,6 @@ using DefinesDelayed = Defines<T, true>;
 template <typename T>
 concept is_defines = requires(T t) {
   typename T::metadata;
-  requires std::same_as<decltype(t.pack()), typename T::placeholders_pack_t>;
   requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
   requires std::same_as<decltype(t.needRecompilation), bool>;
   &T::recompile;
@@ -754,7 +752,7 @@ template <typename T>
 concept is_builds = requires(T t) {
   typename T::metadata;
   typename T::Key;
-  requires std::same_as<decltype(t.pack()), typename T::index_pack_t>;
+  requires std::same_as<decltype(t.map), std::vector<soa::IndexRecord>>;
 };
 
 /// This helper class allows you to declare things which will be created by a
