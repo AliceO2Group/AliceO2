@@ -161,7 +161,7 @@ class Generator : public FairGenerator
   void updateSubGeneratorInformation(o2::dataformats::MCEventHeader* header) const;
 
   // loopers flag
-  Bool_t mAddTPCLoopers = kFALSE;  // Flag is automatically set to true if TPC is in readout detectors, loopers are not vetoed and transport is enabled
+  Bool_t mAddTPCLoopers = kFALSE; // Flag is automatically set to true if TPC is in readout detectors, loopers are not vetoed and transport is enabled
   // collect an ID and a short description of sub-generator entities
   std::unordered_map<int, std::string> mSubGeneratorsIdToDesc;
   // the current ID of the sub-generator used in the current event (if applicable)
