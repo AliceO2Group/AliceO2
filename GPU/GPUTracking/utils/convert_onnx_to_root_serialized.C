@@ -111,23 +111,23 @@ void rootToOnnx(std::string infile, std::string outfile, std::string key)
 /// Upload the ONNX model to CCDB from an ONNX file
 /// !!! Adjust the metadata, path and validity !!!
 void uploadToCCDBFromONNX(std::string onnxFile,
-  const std::map<std::string, std::string>& metadata,
-  // { // some example metadata entries
-  //   "nnCCDBLayerType": "FC",
-  //   "nnCCDBWithMomentum": "0",
-  //   "inputDType": "FP16",
-  //   "nnCCDBInteractionRate": "500",
-  //   "outputDType": "FP16",
-  //   "nnCCDBEvalType": "regression_c1",
-  //   "nnCCDBBeamType": "pp",
-  //   "partName": "blob",
-  //   "quality": "3"
-  // }
-  long tsMin /* = 1 */,
-  long tsMax /* = 4108971600000 */,
-  std::string ccdbPath /* = "Users/c/csonnabe/TPC/Clusterization" */,
-  std::string objname /* = "net_regression_r1.root" */,
-  std::string ccdbUrl /* = "http://alice-ccdb.cern.ch" */)
+                          const std::map<std::string, std::string>& metadata,
+                          // { // some example metadata entries
+                          //   "nnCCDBLayerType": "FC",
+                          //   "nnCCDBWithMomentum": "0",
+                          //   "inputDType": "FP16",
+                          //   "nnCCDBInteractionRate": "500",
+                          //   "outputDType": "FP16",
+                          //   "nnCCDBEvalType": "regression_c1",
+                          //   "nnCCDBBeamType": "pp",
+                          //   "partName": "blob",
+                          //   "quality": "3"
+                          // }
+                          long tsMin /* = 1 */,
+                          long tsMax /* = 4108971600000 */,
+                          std::string ccdbPath /* = "Users/c/csonnabe/TPC/Clusterization" */,
+                          std::string objname /* = "net_regression_r1.root" */,
+                          std::string ccdbUrl /* = "http://alice-ccdb.cern.ch" */)
 {
   readOnnxModelFromFile(onnxFile);
 
@@ -135,7 +135,7 @@ void uploadToCCDBFromONNX(std::string onnxFile,
   api.init(ccdbUrl);
 
   // build full CCDB path including filename
-  const std::string fullPath = ccdbPath;//.back() == '/' ? (ccdbPath + objname) : (ccdbPath + "/" + objname);
+  const std::string fullPath = ccdbPath; //.back() == '/' ? (ccdbPath + objname) : (ccdbPath + "/" + objname);
 
   api.storeAsTFileAny(&serializer, fullPath, metadata, tsMin, tsMax);
 }
@@ -143,12 +143,12 @@ void uploadToCCDBFromONNX(std::string onnxFile,
 /// Upload the ONNX model to CCDB from a ROOT file
 /// !!! Adjust the metadata, path and validity !!!
 void uploadToCCDBFromROOT(std::string rootFile,
-  const std::map<std::string, std::string>& metadata,
-  long tsMin /* = 1 */,
-  long tsMax /* = 4108971600000 */,
-  std::string ccdbPath /* = "Users/c/csonnabe/TPC/Clusterization" */,
-  std::string objname /* = "net_regression_r1.root" */,
-  std::string ccdbUrl /* = "http://alice-ccdb.cern.ch" */)
+                          const std::map<std::string, std::string>& metadata,
+                          long tsMin /* = 1 */,
+                          long tsMax /* = 4108971600000 */,
+                          std::string ccdbPath /* = "Users/c/csonnabe/TPC/Clusterization" */,
+                          std::string objname /* = "net_regression_r1.root" */,
+                          std::string ccdbUrl /* = "http://alice-ccdb.cern.ch" */)
 {
   // read ROOT file, extract ORTRootSerializer object and upload via storeAsTFileAny
   TFile inRootFile(rootFile.c_str());
@@ -170,7 +170,7 @@ void uploadToCCDBFromROOT(std::string rootFile,
   api.init(ccdbUrl);
 
   // build full CCDB path including filename
-  const std::string fullPath = ccdbPath;//.back() == '/' ? (ccdbPath + objname) : (ccdbPath + "/" + objname);
+  const std::string fullPath = ccdbPath; //.back() == '/' ? (ccdbPath + objname) : (ccdbPath + "/" + objname);
 
   api.storeAsTFileAny(&serializer, fullPath, metadata, tsMin, tsMax);
 
@@ -178,15 +178,15 @@ void uploadToCCDBFromROOT(std::string rootFile,
 }
 
 void convert_onnx_to_root_serialized(const std::string& onnxFile,
-  const std::string& rootFile,
-  int mode = 0,
-  int ccdbUpload = 0,
-  const std::string& metadataStr = "nnCCDBLayerType=FC/nnCCDBWithMomentum=0/inputDType=FP16/nnCCDBInteractionRate=500/outputDType=FP16/nnCCDBEvalType=regression_c1/nnCCDBBeamType=pp/partName=blob/quality=3",
-  long tsMin = 1,
-  long tsMax = 4108971600000,
-  std::string ccdbPath = "Users/c/csonnabe/TPC/Clusterization",
-  std::string objname = "net_regression_r1.root",
-  std::string ccdbUrl = "http://alice-ccdb.cern.ch")
+                                     const std::string& rootFile,
+                                     int mode = 0,
+                                     int ccdbUpload = 0,
+                                     const std::string& metadataStr = "nnCCDBLayerType=FC/nnCCDBWithMomentum=0/inputDType=FP16/nnCCDBInteractionRate=500/outputDType=FP16/nnCCDBEvalType=regression_c1/nnCCDBBeamType=pp/partName=blob/quality=3",
+                                     long tsMin = 1,
+                                     long tsMax = 4108971600000,
+                                     std::string ccdbPath = "Users/c/csonnabe/TPC/Clusterization",
+                                     std::string objname = "net_regression_r1.root",
+                                     std::string ccdbUrl = "http://alice-ccdb.cern.ch")
 {
   // parse metadataStr of the form key=value/key2=value2/...
   std::map<std::string, std::string> metadata;
@@ -206,12 +206,12 @@ void convert_onnx_to_root_serialized(const std::string& onnxFile,
     start = sep + 1;
   }
 
-  if (ccdbUpload == 0){
+  if (ccdbUpload == 0) {
     if (mode == 0)
       onnxToRoot(onnxFile, rootFile, o2::ccdb::CcdbApi::CCDBOBJECT_ENTRY);
     else if (mode == 1)
       rootToOnnx(rootFile, onnxFile, o2::ccdb::CcdbApi::CCDBOBJECT_ENTRY);
-  } else if (ccdbUpload == 1){
+  } else if (ccdbUpload == 1) {
     if (mode == 0)
       uploadToCCDBFromROOT(rootFile, metadata, tsMin, tsMax, ccdbPath, objname, ccdbUrl);
     else if (mode == 1)

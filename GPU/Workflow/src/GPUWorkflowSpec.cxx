@@ -1278,11 +1278,11 @@ Inputs GPURecoWorkflowSpec::inputs()
       printSettings(metadata);
     }
 
-    if(mSpecConfig.nnEvalMode[0] == "c1") {
+    if (mSpecConfig.nnEvalMode[0] == "c1") {
       metadata["nnCCDBEvalType"] = "classification_c1";
       convert_map_to_metadata(metadata, ccdb_metadata);
       inputs.emplace_back("nn_classification_c1", gDataOriginTPC, "NNCLUSTERIZER_C1", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath + "/" + metadata["nnCCDBEvalType"], ccdb_metadata, 0));
-    } else if(mSpecConfig.nnEvalMode[0] == "c2") {
+    } else if (mSpecConfig.nnEvalMode[0] == "c2") {
       metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBRegressionLayerType;
       metadata["nnCCDBEvalType"] = "classification_c2";
       convert_map_to_metadata(metadata, ccdb_metadata);
@@ -1294,7 +1294,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     convert_map_to_metadata(metadata, ccdb_metadata);
     inputs.emplace_back("nn_regression_c1", gDataOriginTPC, "NNCLUSTERIZER_R1", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath + "/" + metadata["nnCCDBEvalType"], ccdb_metadata, 0));
 
-    if(mSpecConfig.nnEvalMode[1] == "r2") {
+    if (mSpecConfig.nnEvalMode[1] == "r2") {
       metadata["nnCCDBEvalType"] = "regression_c2";
       convert_map_to_metadata(metadata, ccdb_metadata);
       inputs.emplace_back("nn_regression_c2", gDataOriginTPC, "NNCLUSTERIZER_R2", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath + "/" + metadata["nnCCDBEvalType"], ccdb_metadata, 0));
