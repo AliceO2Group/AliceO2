@@ -1366,7 +1366,7 @@ void TrackMCStudy::processITSTracks(const o2::globaltracking::RecoContainer& rec
         hinf.trefYT = traY;
       }
     }
-    (*mDBGOut) << "itsTree" << "hits=" << outHitInfo << "trIn=" << ((o2::track::TrackParCov&)itsTr) << "trOut=" << itsTr.getParamOut() << "mcTr=" << entrySel->second.mcTrackInfo.track << "nTrefs=" << nrefAcc << "\n";
+    (*mDBGOut) << "itsTree" << "hits=" << outHitInfo << "trIn=" << ((o2::track::TrackParCov&)itsTr) << "trOut=" << itsTr.getParamOut() << "mcTr=" << entrySel->second.mcTrackInfo.track << "mcPDG=" << entrySel->second.mcTrackInfo.pdg << "nTrefs=" << nrefAcc << "\n";
   }
 }
 

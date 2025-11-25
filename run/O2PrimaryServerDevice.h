@@ -247,34 +247,52 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     }
   }
 
-  // launches a thread that listens for status requests from outside asynchronously
+  // launches a thread that listens for status/config/shutdown requests from outside asynchronously
   void launchInfoThread()
   {
     static std::vector<std::thread> threads;
+    auto sendErrorReply = [](fair::mq::Channel& channel) {
+      LOG(error) << "UNKNOWN REQUEST";
+      std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage((int)(404)));
+      channel.Send(reply);
+    };
+
     LOG(info) << "LAUNCHING STATUS THREAD";
-    auto lambda = [this]() {
-      while (mState != O2PrimaryServerState::Stopped) {
+    auto lambda = [this, sendErrorReply]() {
+      bool canShutdown{false};
+      // Exit only when both: serving stopped and allowed from outside.
+      while (!(mState == O2PrimaryServerState::Stopped && canShutdown)) {
         auto& channel = GetChannels().at("o2sim-primserv-info").at(0);
         if (!channel.IsValid()) {
           LOG(error) << "channel primserv-info not valid";
         }
-        std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage(-1));
+        std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage((int)(-1)));
         int timeout = 100; // 100ms --> so as not to block and allow for proper termination of this thread
         if (channel.Receive(request, timeout) > 0) {
-          LOG(info) << "INFO REQUEST RECEIVED";
-          if (*(int*)(request->GetData()) == (int)O2PrimaryServerInfoRequest::Status) {
+          int request_payload; // we expect an (int) ~ to type O2PrimaryServerInfoRequest
+          if (request->GetSize() != sizeof(request_payload)) {
+            LOG(error) << "Obtained request with unexpected payload size";
+            sendErrorReply(channel); // ALWAYS reply
+          }
+
+          memcpy(&request_payload, request->GetData(), sizeof(request_payload));
+
+          if (request_payload == (int)O2PrimaryServerInfoRequest::Status) {
             LOG(info) << "Received status request";
             // request needs to be a simple enum of type O2PrimaryServerInfoRequest
             std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage((int)mState.load()));
             if (channel.Send(reply) > 0) {
               LOG(info) << "Send status successful";
             }
-          } else if (*(int*)request->GetData() == (int)O2PrimaryServerInfoRequest::Config) {
+          } else if (request_payload == (int)O2PrimaryServerInfoRequest::Config) {
             HandleConfigRequest(channel);
+          } else if (request_payload == (int)O2PrimaryServerInfoRequest::AllowShutdown) {
+            LOG(info) << "Got info that we may shutdown";
+            std::unique_ptr<fair::mq::Message> ack(channel.NewSimpleMessage(200));
+            channel.Send(ack);
+            canShutdown = true;
           } else {
-            LOG(fatal) << "UNKNOWN REQUEST";
-            std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage(404));
-            channel.Send(reply);
+            sendErrorReply(channel);
           }
         }
       }
@@ -450,6 +468,8 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     if (channel.Send(message) > 0) {
       LOG(info) << "config reply send ";
       return true;
+    } else {
+      LOG(error) << "Failure sending config reply ";
     }
     return true;
   }
@@ -504,10 +524,13 @@ class O2PrimaryServerDevice final : public fair::mq::Device
 
   void PostRun() override
   {
+    // We shouldn't shut down immediately when all events have been served
+    // Instead we also need to wait until the info thread running some communication server
+    // with other processes is finished.
     while (!mInfoThreadStopped) {
       LOG(info) << "Waiting info thread";
       using namespace std::chrono_literals;
-      std::this_thread::sleep_for(100ms);
+      std::this_thread::sleep_for(1000ms);
     }
   }
 
@@ -520,7 +543,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     if (mEventCounter >= mMaxEvents && mNeedNewEvent) {
       workavailable = false;
     }
-    if (!(mState == O2PrimaryServerState::ReadyToServe || mState == O2PrimaryServerState::WaitingEvent)) {
+    if (!(mState.load() == O2PrimaryServerState::ReadyToServe || mState.load() == O2PrimaryServerState::WaitingEvent)) {
       // send a zero answer
       workavailable = false;
     }

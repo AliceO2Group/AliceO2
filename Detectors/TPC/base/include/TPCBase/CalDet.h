@@ -30,6 +30,12 @@
 #include "Rtypes.h"
 #endif
 
+#ifndef NDEBUG
+#undef NDEBUG
+// always enable assert
+#include <cassert>
+#endif
+
 namespace o2
 {
 namespace tpc
@@ -211,7 +217,26 @@ inline const T CalDet<T>::getValue(const ROC roc, const size_t row, const size_t
     }
     case PadSubset::Region: {
       const auto globalRow = roc.isOROC() ? mappedRow + mapper.getNumberOfRowsROC(ROC(0)) : mappedRow;
-      return mData[Mapper::REGION[globalRow] + roc.getSector() * Mapper::NREGIONS].getValue(Mapper::OFFSETCRUGLOBAL[globalRow] + mappedPad);
+      const auto dataRow = Mapper::REGION[globalRow] + roc.getSector() * Mapper::NREGIONS;
+      const auto index = Mapper::OFFSETCRUGLOBAL[globalRow] + mappedPad;
+      assert(dataRow < mData.size());
+      if (index >= mData[dataRow].getData().size()) {
+        // S. Wenzel: We shouldn't come here but we do. For instance for CalDet calibrations loaded from
+        // creator.loadIDCPadFlags(1731274461770);
+
+        // In this case there is an index overflow, leading to invalid reads and potentially a segfault.
+        // To increase stability, for now returning a trivial answer. This can be removed once either the algorithm
+        // or the calibration data has been fixed.
+#ifndef GPUCA_ALIGPUCODE // hide from GPU standalone compilation
+        static bool printMsg = true;
+        if (printMsg) {
+          LOG(error) << "Out of bound access in TPC CalDet ROC " << roc << " row " << row << " pad " << pad << " (no more messages printed)";
+        }
+        printMsg = false;
+#endif
+        return T{};
+      }
+      return mData[dataRow].getValue(index);
       break;
     }
   }

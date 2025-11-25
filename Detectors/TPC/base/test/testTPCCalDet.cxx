@@ -24,6 +24,7 @@
 #include "TPCBase/CalDet.h"
 #include "TFile.h"
 #include "Framework/TypeTraits.h"
+#include "TPCBase/DeadChannelMapCreator.h"
 
 namespace o2::tpc
 {
@@ -342,6 +343,14 @@ BOOST_AUTO_TEST_CASE(CalDetTypeTest)
   BOOST_CHECK_EQUAL(has_root_dictionary<o2::tpc::CalDet<float>>::value, true);
   auto testDict = has_root_dictionary_mapped_type<std::unordered_map<std::string, o2::tpc::CalDet<float>>>::value;
   BOOST_CHECK(testDict == true);
+}
+
+BOOST_AUTO_TEST_CASE(CalDetStreamerTest)
+{
+  // simple code executing the TPC IDCPadFlags loading in a standalone env --> easy to valgrind
+  o2::tpc::DeadChannelMapCreator creator{};
+  creator.init("https://alice-ccdb.cern.ch");
+  creator.loadIDCPadFlags(1731274461770);
 }
 
 } // namespace o2::tpc

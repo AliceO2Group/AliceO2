@@ -60,8 +60,11 @@ RuntimeError& error_from_ref(RuntimeErrorRef ref)
 RuntimeErrorRef runtime_error_f(const char* format, ...)
 {
   int i = 0;
-  bool expected = false;
-  while (gErrorBooking[i].compare_exchange_strong(expected, true) == false) {
+  while (true) {
+    bool expected = false;
+    if (gErrorBooking[i].compare_exchange_strong(expected, true) == true) {
+      break;
+    }
     ++i;
     if (i >= RuntimeError::MAX_RUNTIME_ERRORS) {
       throw std::runtime_error("Too many o2::framework::runtime_error thrown without proper cleanup.");
@@ -78,11 +81,18 @@ RuntimeErrorRef runtime_error_f(const char* format, ...)
 RuntimeErrorRef runtime_error(const char* s)
 {
   int i = 0;
-  bool expected = false;
-  while (gErrorBooking[i].compare_exchange_strong(expected, true) == false) {
+  while (true) {
+    bool expected = false;
+    if (gErrorBooking[i].compare_exchange_strong(expected, true) == true) {
+      break;
+    }
     ++i;
+    if (i >= RuntimeError::MAX_RUNTIME_ERRORS) {
+      throw std::runtime_error("Too many o2::framework::runtime_error thrown without proper cleanup.");
+    }
   }
-  strncpy(gError[i].what, s, RuntimeError::MAX_RUNTIME_ERROR_SIZE);
+  strncpy(gError[i].what, s, RuntimeError::MAX_RUNTIME_ERROR_SIZE - 1);
+  gError[i].what[RuntimeError::MAX_RUNTIME_ERROR_SIZE - 1] = 0;
   gError[i].maxBacktrace = canDumpBacktrace() ? backtrace(gError[i].backtrace, BacktraceHelpers::MAX_BACKTRACE_SIZE) : 0;
   return RuntimeErrorRef{i};
 }
