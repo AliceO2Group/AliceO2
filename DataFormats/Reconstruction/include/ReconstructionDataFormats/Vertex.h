@@ -45,9 +45,17 @@ class VertexBase
   static constexpr int kNCov = 6;
   GPUhdDefault() VertexBase() = default;
   GPUhdDefault() ~VertexBase() = default;
-  GPUhd() VertexBase(const math_utils::Point3D<float>& pos, const std::array<float, kNCov>& cov) : mPos(pos), mCov(cov)
+  GPUhd() VertexBase(const float* pos, const float* cov)
   {
+    mPos = math_utils::Point3D<float>(pos[0], pos[1], pos[2]);
+    mCov[kCovXX] = cov[kCovXX];
+    mCov[kCovXY] = cov[kCovXY];
+    mCov[kCovXZ] = cov[kCovXZ];
+    mCov[kCovYY] = cov[kCovYY];
+    mCov[kCovYZ] = cov[kCovYZ];
+    mCov[kCovZZ] = cov[kCovZZ];
   }
+  GPUhd() VertexBase(const math_utils::Point3D<float>& pos, const std::array<float, kNCov>& cov) : mPos(pos), mCov(cov) {}
 
 #if !defined(GPUCA_NO_FMT) && !defined(GPUCA_GPUCODE_DEVICE)
   void print() const;
@@ -58,6 +66,7 @@ class VertexBase
   GPUhd() float getX() const { return mPos.X(); }
   GPUhd() float getY() const { return mPos.Y(); }
   GPUhd() float getZ() const { return mPos.Z(); }
+  GPUhd() float getR() const { return gpu::CAMath::Hypot(mPos.X(), mPos.Y()); }
   GPUd() float getSigmaX2() const { return mCov[kCovXX]; }
   GPUd() float getSigmaY2() const { return mCov[kCovYY]; }
   GPUd() float getSigmaZ2() const { return mCov[kCovZZ]; }
@@ -69,6 +78,7 @@ class VertexBase
   GPUd() float getSigmaZ() const { return gpu::CAMath::Sqrt(getSigmaZ2()); }
 
   GPUd() const std::array<float, kNCov>& getCov() const { return mCov; }
+  GPUd() float getCov(int e) const { return mCov[e]; }
 
   GPUd() math_utils::Point3D<float> getXYZ() const { return mPos; }
   GPUd() math_utils::Point3D<float>& getXYZ() { return mPos; }
@@ -105,6 +115,7 @@ class VertexBase
     setSigmaYZ(syz);
   }
   GPUd() void setCov(const std::array<float, kNCov>& cov) { mCov = cov; }
+  GPUd() void setCov(float c, int e) { mCov[e] = c; }
 
   bool operator==(const VertexBase& other) const;
   bool operator!=(const VertexBase& other) const { return !(*this == other); }
@@ -133,10 +144,8 @@ class Vertex : public VertexBase
 
   GPUhdDefault() Vertex() = default;
   GPUhdDefault() ~Vertex() = default;
-  GPUhd() Vertex(const math_utils::Point3D<float>& pos, const std::array<float, kNCov>& cov, ushort nCont, float chi2)
-    : VertexBase(pos, cov), mChi2(chi2), mNContributors(nCont)
-  {
-  }
+  GPUhd() Vertex(const float* pos, const float* cov, ushort nCont, float chi2) : VertexBase(pos, cov), mChi2(chi2), mNContributors(nCont) {}
+  GPUhd() Vertex(const math_utils::Point3D<float>& pos, const std::array<float, kNCov>& cov, ushort nCont, float chi2) : VertexBase(pos, cov), mChi2(chi2), mNContributors(nCont) {}
 
 #if !defined(GPUCA_NO_FMT) && !defined(GPUCA_GPUCODE_DEVICE)
   void print() const;
