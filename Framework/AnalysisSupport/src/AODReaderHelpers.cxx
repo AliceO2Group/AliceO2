@@ -47,7 +47,7 @@ struct Buildable {
     std::stringstream iws(loc->defaultValue.get<std::string>());
     records = IndexJSONHelpers::read(iws);
 
-    loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps){ return cps.name.compare("index-exclusive") == 0; });
+    loc = std::find_if(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& cps) { return cps.name.compare("index-exclusive") == 0; });
     exclusive = loc->defaultValue.get<bool>();
 
     for (auto const& r : records) {
@@ -75,7 +75,6 @@ struct Buildable {
       version,
       nullptr};
   }
-
 };
 
 } // namespace

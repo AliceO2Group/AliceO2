@@ -217,7 +217,8 @@ using is_self_index_t = typename std::conditional_t<is_self_index_column<C>, std
 
 namespace o2::aod
 {
-namespace {
+namespace
+{
 template <typename Key, size_t N, std::array<bool, N> map>
 static consteval int getIndexPosToKey_impl()
 {
@@ -228,7 +229,7 @@ static consteval int getIndexPosToKey_impl()
     return -1;
   }
 }
-}
+} // namespace
 
 /// Base type for table metadata
 template <typename D, typename... Cs>

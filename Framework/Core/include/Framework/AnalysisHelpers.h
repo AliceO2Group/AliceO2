@@ -263,8 +263,10 @@ inline constexpr auto getIndexMapping()
       } else {
         idx.emplace_back(o2::aod::label<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
       }
-    }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>>(), ...);
-  }(std::make_index_sequence<framework::pack_size(indices{})>());;
+    }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>>(),
+     ...);
+  }(std::make_index_sequence<framework::pack_size(indices{})>());
+  ;
   return idx;
 }
 
