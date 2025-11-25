@@ -291,7 +291,7 @@ AddOption(nnCCDBPath, std::string, "Users/c/csonnabe/TPC/Clusterization", "", 0,
 AddOption(nnCCDBWithMomentum, std::string, "", "", 0, "Distinguishes between the network with and without momentum output for the regression")
 AddOption(nnCCDBClassificationLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
 AddOption(nnCCDBRegressionLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
-AddOption(nnCCDBBeamType, std::string, "PbPb", "", 0, "Distinguishes between networks trained for different beam types. Options: PbPb, pp, pPb")
+AddOption(nnCCDBBeamType, std::string, "pp", "", 0, "Distinguishes between networks trained for different beam types. Options: pp, pPb, PbPb")
 AddOption(nnCCDBInteractionRate, std::string, "500", "", 0, "Distinguishes between networks for different interaction rates [kHz].")
 AddHelp("help", 'h')
 EndConfig()
