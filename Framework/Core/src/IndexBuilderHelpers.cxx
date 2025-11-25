@@ -23,7 +23,7 @@ namespace o2::framework
 {
 void cannotBuildAnArray()
 {
-  throw framework::runtime_error("Cannot build an array");
+  throw framework::runtime_error("Cannot finish an array");
 }
 
 void cannotCreateIndexBuilder()
@@ -138,7 +138,7 @@ std::shared_ptr<arrow::ChunkedArray> SingleBuilder::result() const
   std::shared_ptr<arrow::Array> array;
   auto status = static_cast<arrow::Int32Builder*>(mBuilder.get())->Finish(&array);
   if (!status.ok()) {
-    throw runtime_error("Cannot build an array");
+    cannotBuildAnArray();
   }
   return std::make_shared<arrow::ChunkedArray>(array);
 }
@@ -211,7 +211,7 @@ std::shared_ptr<arrow::ChunkedArray> SliceBuilder::result() const
   std::shared_ptr<arrow::Array> array;
   auto status = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->Finish(&array);
   if (!status.ok()) {
-    throw runtime_error("Cannot build an array");
+    cannotBuildAnArray();
   }
   return std::make_shared<arrow::ChunkedArray>(array);
 }
@@ -274,7 +274,7 @@ std::shared_ptr<arrow::ChunkedArray> ArrayBuilder::result() const
   std::shared_ptr<arrow::Array> array;
   auto status = static_cast<arrow::ListBuilder*>(mListBuilder.get())->Finish(&array);
   if (!status.ok()) {
-    throw runtime_error("Cannot build an array");
+    cannotBuildAnArray();
   }
   return std::make_shared<arrow::ChunkedArray>(array);
 }
@@ -301,7 +301,7 @@ arrow::Status ArrayBuilder::preFind()
   return arrow::Status::OK();
 }
 
-IndexColumnBuilderNG::IndexColumnBuilderNG(soa::IndexKind kind, int pos, arrow::MemoryPool* pool, std::shared_ptr<arrow::ChunkedArray> source)
+IndexColumnBuilder::IndexColumnBuilder(soa::IndexKind kind, int pos, arrow::MemoryPool* pool, std::shared_ptr<arrow::ChunkedArray> source)
   : mColumnPos{pos}
 {
   switch (kind) {
@@ -322,7 +322,7 @@ IndexColumnBuilderNG::IndexColumnBuilderNG(soa::IndexKind kind, int pos, arrow::
   }
 }
 
-void IndexColumnBuilderNG::reset(std::shared_ptr<arrow::ChunkedArray> source)
+void IndexColumnBuilder::reset(std::shared_ptr<arrow::ChunkedArray> source)
 {
   std::visit(
     overloaded{
@@ -331,7 +331,7 @@ void IndexColumnBuilderNG::reset(std::shared_ptr<arrow::ChunkedArray> source)
     builder);
 }
 
-bool IndexColumnBuilderNG::find(int idx)
+bool IndexColumnBuilder::find(int idx)
 {
   return std::visit(
     overloaded{
@@ -341,7 +341,7 @@ bool IndexColumnBuilderNG::find(int idx)
     builder);
 }
 
-void IndexColumnBuilderNG::fill(int idx)
+void IndexColumnBuilder::fill(int idx)
 {
   std::visit(
     overloaded{
@@ -350,7 +350,7 @@ void IndexColumnBuilderNG::fill(int idx)
     builder);
 }
 
-std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilderNG::result() const
+std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::result() const
 {
   return std::visit(
     overloaded{

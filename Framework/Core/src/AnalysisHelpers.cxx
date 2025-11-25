@@ -14,9 +14,10 @@
 #include "IndexJSONHelpers.h"
 
 namespace o2::soa {
-std::vector<framework::IndexColumnBuilderNG> IndexBuilder::makeBuilders(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records)
+std::vector<framework::IndexColumnBuilder> IndexBuilder::makeBuilders(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records)
 {
-  std::vector<framework::IndexColumnBuilderNG> builders;
+  std::vector<framework::IndexColumnBuilder> builders;
+  builders.reserve(records.size());
   auto pool = arrow::default_memory_pool();
   builders.emplace_back(IndexKind::IdxSelf, records[0].pos, pool);
   if (records[0].pos >= 0) {
@@ -30,7 +31,7 @@ std::vector<framework::IndexColumnBuilderNG> IndexBuilder::makeBuilders(std::vec
   return builders;
 }
 
-void IndexBuilder::resetBuilders(std::vector<framework::IndexColumnBuilderNG>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables)
+void IndexBuilder::resetBuilders(std::vector<framework::IndexColumnBuilder>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables)
 {
   for (auto i = 0U; i < builders.size(); ++i) {
     builders[i].reset(builders[i].mColumnPos >= 0 ? tables[i]->column(builders[i].mColumnPos) : nullptr);
@@ -41,7 +42,7 @@ void IndexBuilder::resetBuilders(std::vector<framework::IndexColumnBuilderNG>& b
   }
 }
 
-std::shared_ptr<arrow::Table> IndexBuilder::materializeNG(std::vector<framework::IndexColumnBuilderNG>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive)
+std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<framework::IndexColumnBuilder>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive)
 {
   auto size = tables[0]->num_rows();
   if (builders.empty()) {
@@ -77,7 +78,7 @@ std::shared_ptr<arrow::Table> IndexBuilder::materializeNG(std::vector<framework:
     }
   }
 
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays; // same
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
   arrays.reserve(builders.size());
   for (auto& builder : builders) {
     arrays.push_back(builder.result());
@@ -206,11 +207,12 @@ std::shared_ptr<arrow::Table> Spawner::materialize(ProcessingContext& pc) const
 std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc)
 {
   if (builders == nullptr) {
-    builders = std::make_shared<std::vector<framework::IndexColumnBuilderNG>>();
+    builders = std::make_shared<std::vector<framework::IndexColumnBuilder>>();
+    builders->reserve(records.size());
   }
   std::shared_ptr<arrow::Table> result;
   auto tables = extractSources(pc, labels);
-  result = o2::soa::IndexBuilder::materializeNG(*builders.get(), std::move(tables), records, outputSchema, exclusive);
+  result = o2::soa::IndexBuilder::materialize(*builders.get(), std::move(tables), records, outputSchema, exclusive);
   return result;
 }
 } // namespace o2::framework

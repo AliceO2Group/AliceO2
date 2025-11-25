@@ -681,7 +681,7 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
 
   bool StartArray()
   {
-    debug << "Starting array" << std::endl;
+    debug << "StartArray()" << std::endl;
     if (states.top() == State::IN_START && currentKey.compare("fields") == 0) {
       states.push(State::IN_LIST);
       return true;
@@ -692,7 +692,7 @@ struct SchemaReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Sch
 
   bool EndArray(SizeType)
   {
-    debug << "Ending array" << std::endl;
+    debug << "EndArray()" << std::endl;
     if (states.top() == State::IN_LIST) {
       // finalize schema
       schema = std::make_shared<arrow::Schema>(fields);

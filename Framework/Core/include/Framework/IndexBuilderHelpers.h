@@ -107,11 +107,11 @@ struct ArrayBuilder : public ChunkedArrayIterator {
   arrow::Status preFind();
 };
 
-struct IndexColumnBuilderNG {
+struct IndexColumnBuilder {
   std::variant<std::monostate, SelfBuilder, SingleBuilder, SliceBuilder, ArrayBuilder> builder;
   size_t mResultSize = 0;
   int mColumnPos = -1;
-  IndexColumnBuilderNG(soa::IndexKind kind, int pos, arrow::MemoryPool* pool, std::shared_ptr<arrow::ChunkedArray> source = nullptr);
+  IndexColumnBuilder(soa::IndexKind kind, int pos, arrow::MemoryPool* pool, std::shared_ptr<arrow::ChunkedArray> source = nullptr);
   void reset(std::shared_ptr<arrow::ChunkedArray> source = nullptr);
 
   bool find(int idx);

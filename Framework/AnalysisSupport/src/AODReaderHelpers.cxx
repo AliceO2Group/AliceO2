@@ -72,7 +72,8 @@ struct Buildable {
       outputSchema,
       origin,
       description,
-      version, nullptr};
+      version,
+      nullptr};
   }
 
 };
