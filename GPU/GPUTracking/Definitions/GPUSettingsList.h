@@ -285,7 +285,7 @@ AddOption(nnClusterizerUseClassification, int, 1, "", 0, "If 1, the classificati
 AddOption(nnClusterizerForceGpuInputFill, int, 0, "", 0, "Forces to use the fillInputNNGPU function")
 // CCDB
 AddOption(nnLoadFromCCDB, int, 0, "", 0, "If 1 networks are fetched from ccdb, else locally")
-AddOption(nnCCDBDumpToFile, int, 1, "", 0, "If 1, additionally dump fetched CCDB networks to nnLocalFolder")
+AddOption(nnCCDBDumpToFile, int, 0, "", 0, "If 1, additionally dump fetched CCDB networks to nnLocalFolder")
 AddOption(nnLocalFolder, std::string, ".", "", 0, "Local folder in which the networks will be fetched")
 AddOption(nnCCDBPath, std::string, "Users/c/csonnabe/TPC/Clusterization", "", 0, "Folder path containing the networks")
 AddOption(nnCCDBWithMomentum, std::string, "", "", 0, "Distinguishes between the network with and without momentum output for the regression")
