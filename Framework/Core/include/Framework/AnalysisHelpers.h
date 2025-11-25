@@ -626,6 +626,7 @@ struct Spawns : decltype(transformBase<T>()) {
 template <typename T>
 concept is_spawns = requires(T t) {
   typename T::metadata;
+  typename T::expression_pack_t;
   requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
 };
 
@@ -681,6 +682,9 @@ using DefinesDelayed = Defines<T, true>;
 
 template <typename T>
 concept is_defines = requires(T t) {
+  typename T::metadata;
+  typename T::placeholders_pack_t;
+  requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
   requires std::same_as<decltype(t.needRecompilation), bool>;
   &T::recompile;
 };
