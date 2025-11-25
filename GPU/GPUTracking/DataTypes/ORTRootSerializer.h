@@ -25,17 +25,17 @@ namespace o2::tpc
 
 class ORTRootSerializer
 {
-  public:
-    ORTRootSerializer() = default;
-    ~ORTRootSerializer() = default;
+ public:
+  ORTRootSerializer() = default;
+  ~ORTRootSerializer() = default;
 
-    void setOnnxModel(const char* onnxModel, uint32_t size);
-    const char* getONNXModel() const { return mModelBuffer.data(); }
-    uint32_t getONNXModelSize() const { return static_cast<uint32_t>(mModelBuffer.size()); }
+  void setOnnxModel(const char* onnxModel, uint32_t size);
+  const char* getONNXModel() const { return mModelBuffer.data(); }
+  uint32_t getONNXModelSize() const { return static_cast<uint32_t>(mModelBuffer.size()); }
 
-  private:
-    std::vector<char> mModelBuffer; ///< buffer for serialization
-    ClassDefNV(ORTRootSerializer, 1);
+ private:
+  std::vector<char> mModelBuffer; ///< buffer for serialization
+  ClassDefNV(ORTRootSerializer, 1);
 };
 
 } // namespace o2::tpc

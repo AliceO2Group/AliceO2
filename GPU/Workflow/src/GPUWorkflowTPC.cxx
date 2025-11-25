@@ -300,7 +300,7 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "NNCLUSTERIZER_C2", 0)) {
     mConfig->configCalib.nnClusterizerNetworks[0] = static_cast<o2::tpc::ORTRootSerializer*>(obj);
     LOG(info) << "(NN CLUS) " << (mConfig->configCalib.nnClusterizerNetworks[0])->getONNXModelSize() << " bytes loaded for NN clusterizer: classification_c2";
-  } else if(matcher == ConcreteDataMatcher(gDataOriginTPC, "NNCLUSTERIZER_R1", 0)){
+  } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "NNCLUSTERIZER_R1", 0)) {
     mConfig->configCalib.nnClusterizerNetworks[1] = static_cast<o2::tpc::ORTRootSerializer*>(obj);
     LOG(info) << "(NN CLUS) " << (mConfig->configCalib.nnClusterizerNetworks[1])->getONNXModelSize() << " bytes loaded for NN clusterizer: regression_c1";
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "NNCLUSTERIZER_R2", 0)) {
