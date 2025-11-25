@@ -25,6 +25,8 @@
 #include "TParticle.h"
 #include "TSystem.h"
 #include "TGrid.h"
+#include "CCDB/BasicCCDBManager.h"
+#include <filesystem>
 
 namespace o2
 {
@@ -50,7 +52,7 @@ Generator::Generator() : FairGenerator("ALICEo2", "ALICEo2 Generator"),
     if (transport) {
       bool tpcActive = (std::find(simConfig.getReadoutDetectors().begin(), simConfig.getReadoutDetectors().end(), "TPC") != simConfig.getReadoutDetectors().end());
       if (tpcActive) {
-        if (initLoopersGen()) {
+        if (initTPCLoopersGen()) {
           mAddTPCLoopers = kTRUE;
         }
       } else {
@@ -79,7 +81,7 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
     if (transport) {
       bool tpcActive = (std::find(simConfig.getReadoutDetectors().begin(), simConfig.getReadoutDetectors().end(), "TPC") != simConfig.getReadoutDetectors().end());
       if (tpcActive) {
-        if (initLoopersGen()) {
+        if (initTPCLoopersGen()) {
           mAddTPCLoopers = kTRUE;
         }
       } else {
@@ -94,7 +96,7 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
 
 /*****************************************************************/
 #ifdef GENERATORS_WITH_TPCLOOPERS
-bool Generator::initLoopersGen()
+bool Generator::initTPCLoopersGen()
 {
   // Expand all environment paths
   const auto& loopersParam = o2::eventgen::GenTPCLoopersParam::Instance();
@@ -169,24 +171,24 @@ bool Generator::initLoopersGen()
   nclxrate = isAlien[2] || isCCDB[2] ? local_names[2] : nclxrate;
   try {
     // Create the TPC loopers generator with the provided parameters
-    mLoopersGen = std::make_unique<o2::eventgen::GenTPCLoopers>(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
+    mTPCLoopersGen = std::make_unique<o2::eventgen::GenTPCLoopers>(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
     const auto& intrate = loopersParam.intrate;
     // Configure the generator with flat gas loopers defined per orbit with clusters/track info
     // If intrate is negative (default), automatic IR from collisioncontext.root will be used
     if (flat_gas) {
-      mLoopersGen->SetRate(nclxrate, (colsys == "PbPb") ? true : false, intrate);
-      mLoopersGen->SetAdjust(loopersParam.adjust_flatgas);
+      mTPCLoopersGen->SetRate(nclxrate, (colsys == "PbPb") ? true : false, intrate);
+      mTPCLoopersGen->SetAdjust(loopersParam.adjust_flatgas);
     } else {
       // Otherwise, Poisson+Gauss sampling or fixed number of loopers per event will be used
       // Multiplier is applied only with distribution sampling
       // This configuration can be used for testing purposes, in all other cases flat gas is recommended
-      mLoopersGen->SetNLoopers(nLoopersPairs, nLoopersCompton);
-      mLoopersGen->SetMultiplier(multiplier);
+      mTPCLoopersGen->SetNLoopers(nLoopersPairs, nLoopersCompton);
+      mTPCLoopersGen->SetMultiplier(multiplier);
     }
     LOG(info) << "TPC Loopers generator initialized successfully";
   } catch (const std::exception& e) {
     LOG(error) << "Failed to initialize TPC Loopers generator: " << e.what();
-    mLoopersGen.reset();
+    mTPCLoopersGen.reset();
   }
   return kTRUE;
 }
@@ -210,21 +212,21 @@ Bool_t
 {
 #ifdef GENERATORS_WITH_TPCLOOPERS
   if (mAddTPCLoopers) {
-    if (!mLoopersGen) {
+    if (!mTPCLoopersGen) {
       LOG(error) << "Loopers generator not initialized";
       return kFALSE;
     }
 
     // Generate loopers using the initialized TPC loopers generator
-    if (!mLoopersGen->generateEvent()) {
+    if (!mTPCLoopersGen->generateEvent()) {
       LOG(error) << "Failed to generate loopers event";
       return kFALSE;
     }
-    if (mLoopersGen->getNLoopers() == 0) {
+    if (mTPCLoopersGen->getNLoopers() == 0) {
       LOG(warning) << "No loopers generated for this event";
       return kTRUE;
     }
-    const auto& looperParticles = mLoopersGen->importParticles();
+    const auto& looperParticles = mTPCLoopersGen->importParticles();
     if (looperParticles.empty()) {
       LOG(error) << "Failed to import loopers particles";
       return kFALSE;
