@@ -209,6 +209,7 @@ set(SRCS_DATATYPES
     DataTypes/TPCPadBitMap.cxx
     DataTypes/TPCZSLinkMapping.cxx
     DataTypes/CalibdEdxContainer.cxx
+    DataTypes/ORTRootSerializer.cxx
     DataTypes/CalibdEdxTrackTopologyPol.cxx
     DataTypes/CalibdEdxTrackTopologySpline.cxx
     DataTypes/GPUTRDTrackO2.cxx)

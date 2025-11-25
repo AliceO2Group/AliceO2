@@ -47,6 +47,7 @@
 #ifdef GPUCA_HAS_ONNX
 #include "GPUTPCNNClusterizerKernels.h"
 #include "GPUTPCNNClusterizerHost.h"
+#include "ORTRootSerializer.h"
 #endif
 
 #ifdef GPUCA_O2_LIB
@@ -680,7 +681,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (!nn_settings.nnLoadFromCCDB) {
           (nnApplications[lane].mModelClass).initSession(); // loads from file
         } else {
-          (nnApplications[lane].mModelClass).initSessionFromBuffer(processors()->calibObjects.nnClusterizerNetworks[0], processors()->calibObjects.nnClusterizerNetworkSizes[0]); // loads from CCDB
+          (nnApplications[lane].mModelClass).initSessionFromBuffer((processors()->calibObjects.nnClusterizerNetworks[0])->getONNXModel(), (processors()->calibObjects.nnClusterizerNetworks[0])->getONNXModelSize()); // loads from CCDB
         }
       }
       if (nnApplications[lane].mModelsUsed[1]) {
@@ -695,7 +696,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (!nn_settings.nnLoadFromCCDB) {
           (nnApplications[lane].mModelReg1).initSession(); // loads from file
         } else {
-          (nnApplications[lane].mModelReg1).initSessionFromBuffer(processors()->calibObjects.nnClusterizerNetworks[1], processors()->calibObjects.nnClusterizerNetworkSizes[1]); // loads from CCDB
+          (nnApplications[lane].mModelReg1).initSessionFromBuffer((processors()->calibObjects.nnClusterizerNetworks[1])->getONNXModel(), (processors()->calibObjects.nnClusterizerNetworks[1])->getONNXModelSize()); // loads from CCDB
         }
       }
       if (nnApplications[lane].mModelsUsed[2]) {
@@ -710,7 +711,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (!nn_settings.nnLoadFromCCDB) {
           (nnApplications[lane].mModelReg2).initSession(); // loads from file
         } else {
-          (nnApplications[lane].mModelReg2).initSessionFromBuffer(processors()->calibObjects.nnClusterizerNetworks[2], processors()->calibObjects.nnClusterizerNetworkSizes[2]); // loads from CCDB
+          (nnApplications[lane].mModelReg2).initSessionFromBuffer((processors()->calibObjects.nnClusterizerNetworks[2])->getONNXModel(), (processors()->calibObjects.nnClusterizerNetworks[2])->getONNXModelSize()); // loads from CCDB
         }
       }
       if (nn_settings.nnClusterizerVerbosity > 0) {
