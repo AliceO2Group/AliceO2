@@ -748,7 +748,11 @@ void spawnDevice(uv_loop_t* loop,
     for (auto& env : execution.environ) {
       putenv(strdup(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec).data()));
     }
-    execvp(execution.args[0], execution.args.data());
+    int err = execvp(execution.args[0], execution.args.data());
+    if (err) {
+      perror("Unable to start child process");
+      exit(1);
+    }
   } else {
     O2_SIGNPOST_ID_GENERATE(sid, driver);
     O2_SIGNPOST_EVENT_EMIT(driver, sid, "spawnDevice", "New child at %{pid}d", id);
