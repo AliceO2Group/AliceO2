@@ -39,6 +39,7 @@ void MemberVectorPadFlagsStreamer(TBuffer& R__b, void* objp, int n)
   }
   std::vector<o2::tpc::PadFlags>* obj = static_cast<std::vector<o2::tpc::PadFlags>*>(objp);
   if (R__b.IsReading()) {
+    obj->clear();
     std::vector<int> R__stl;
     R__stl.clear();
     int R__n;
@@ -50,7 +51,8 @@ void MemberVectorPadFlagsStreamer(TBuffer& R__b, void* objp, int n)
       R__stl.push_back(readtemp);
     }
     auto data = reinterpret_cast<unsigned short*>(R__stl.data());
-    for (int i = 0; i < R__n; ++i) {
+    constexpr size_t bloatfactor = sizeof(int) / sizeof(o2::tpc::PadFlags);
+    for (int i = 0; i < bloatfactor * R__n; ++i) {
       obj->push_back(static_cast<o2::tpc::PadFlags>(data[i]));
     }
   } else {
@@ -63,6 +65,8 @@ void MemberVectorPadFlagsStreamer(TBuffer& R__b, void* objp, int n)
 }
 
 // register the streamer via static global initialization (on library load)
+// the streamer is only correct in combination with new ROOT
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6, 33, 00)
 namespace ROOT
 {
 static __attribute__((used)) int _R__dummyStreamer_3 =
@@ -79,3 +83,4 @@ static __attribute__((used)) int _R__dummyStreamer_3 =
     return 0;
   })();
 } // namespace ROOT
+#endif
