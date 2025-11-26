@@ -25,7 +25,6 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Traits.h"
 
-#include <cstdio>
 #include <string>
 namespace o2::soa
 {
