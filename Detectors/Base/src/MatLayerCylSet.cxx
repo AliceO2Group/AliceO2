@@ -608,8 +608,12 @@ void MatLayerCylSet::fixPointers(char* oldPtr, char* newPtr, bool newPtrValid)
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
-MatLayerCylSet* MatLayerCylSet::extractCopy(float rmin, float rmax, float tolerance) const
+MatLayerCylSet* MatLayerCylSet::extractCopy(float rmin, float rmax, float tolerance, const MatLayerCylSet* addTo) const
 {
+  // extract layers in the covering rmin-rmax range. If addTo is provided, simply substitute its layers by those from this
+  if (addTo && addTo->getNLayers() != getNLayers()) {
+    LOGP(fatal, "addTo has {} layers, this has {}", addTo->getNLayers(), getNLayers());
+  }
   Ray ray(std::max(getRMin(), rmin), 0., 0., std::min(getRMax(), rmax), 0., 0.);
   short lmin, lmax;
   if (!getLayersRange(ray, lmin, lmax)) {
@@ -618,23 +622,37 @@ MatLayerCylSet* MatLayerCylSet::extractCopy(float rmin, float rmax, float tolera
   }
   LOGP(info, "Will extract layers {}:{} (out of {} layers) for {} < r < {}", lmin, lmax, getNLayers(), rmin, rmax);
   MatLayerCylSet* copy = new MatLayerCylSet();
-  int lrCount = 0;
-  for (int il = lmin; il <= lmax; il++) {
-    const auto& lr = getLayer(il);
+  int lrCount = 0, lrCounOld = 0, lrCountTot = 0;
+  auto addLr = [copy, &lrCountTot](const MatLayerCyl& lr) {
     float drphi = lr.getDPhi() * (lr.getRMin() + lr.getRMax()) / 2. * 0.999;
     copy->addLayer(lr.getRMin(), lr.getRMax(), lr.getZMax(), lr.getDZ(), drphi);
-    auto& lrNew = copy->getLayer(lrCount);
+    auto& lrNew = copy->getLayer(lrCountTot++);
     for (int iz = 0; iz < lrNew.getNZBins(); iz++) {
       for (int ip = 0; ip < lrNew.getNPhiBins(); ip++) {
         lrNew.getCellPhiBin(ip, iz).set(lr.getCellPhiBin(ip, iz));
       }
     }
+  };
+  if (addTo) {
+    for (int il = 0; il < lmin; il++) {
+      addLr(addTo->getLayer(il));
+      lrCounOld++;
+    }
+  }
+  for (int il = lmin; il <= lmax; il++) {
+    addLr(getLayer(il));
     lrCount++;
   }
-
+  if (addTo) {
+    for (int il = lmax + 1; il < getNLayers(); il++) {
+      addLr(addTo->getLayer(il));
+      lrCounOld++;
+    }
+  }
   copy->finalizeStructures();
   copy->optimizePhiSlices(tolerance);
   copy->flatten();
+  LOGP(info, "Added layers {}:{} for {}<r<{} {}", lmin, lmax, rmin, rmax, fmt::format(", {} layers were transferred from additional set", lrCounOld));
   return copy;
 }
 
