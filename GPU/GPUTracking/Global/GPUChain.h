@@ -297,6 +297,7 @@ inline int32_t GPUChain::runRecoStep(RecoStep step, S T::*func, Args... args)
     }
     int32_t retVal = (reinterpret_cast<T*>(this)->*func)(args...);
     if (timer) {
+      SynchronizeGPU();
       timer->timerTotal.Stop();
       timer->timerCPU += (double)(std::clock() - c) / CLOCKS_PER_SEC;
     }
