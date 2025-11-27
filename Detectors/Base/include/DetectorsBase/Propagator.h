@@ -84,6 +84,10 @@ class PropagatorImpl
                            value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrLUT,
                            track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
+  GPUd() bool propagateToX(TrackParCov_t& track, TrackPar_t& linRef, value_type x, value_type bZ,
+                           value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrLUT,
+                           track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+
   GPUd() bool propagateToX(TrackPar_t& track, value_type x, value_type bZ,
                            value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrLUT,
                            track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
