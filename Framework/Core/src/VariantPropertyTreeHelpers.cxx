@@ -19,17 +19,17 @@ template boost::property_tree::ptree o2::framework::basicVectorToBranch(float*, 
 template boost::property_tree::ptree o2::framework::basicVectorToBranch(int*, size_t);
 template boost::property_tree::ptree o2::framework::basicVectorToBranch(double*, size_t);
 template boost::property_tree::ptree o2::framework::basicVectorToBranch(bool*, size_t);
-template boost::property_tree::ptree o2::framework::basicVectorToBranch(std::basic_string<char>*, size_t);
+template boost::property_tree::ptree o2::framework::basicVectorToBranch(std::basic_string<char> const*, size_t);
 
 template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<float>&& values);
 template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<int>&& values);
 template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<double>&& values);
 template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<std::string>&& values);
-template boost::property_tree::ptree o2::framework::vectorToBranch(float*, size_t);
-template boost::property_tree::ptree o2::framework::vectorToBranch(int*, size_t);
-template boost::property_tree::ptree o2::framework::vectorToBranch(double*, size_t);
-template boost::property_tree::ptree o2::framework::vectorToBranch(bool*, size_t);
-template boost::property_tree::ptree o2::framework::vectorToBranch(std::basic_string<char>*, size_t);
+template boost::property_tree::ptree o2::framework::vectorToBranch(float const*, size_t);
+template boost::property_tree::ptree o2::framework::vectorToBranch(int const*, size_t);
+template boost::property_tree::ptree o2::framework::vectorToBranch(double const*, size_t);
+template boost::property_tree::ptree o2::framework::vectorToBranch(bool const*, size_t);
+template boost::property_tree::ptree o2::framework::vectorToBranch(std::basic_string<char> const*, size_t);
 
 template boost::property_tree::ptree o2::framework::labeledArrayToBranch(o2::framework::LabeledArray<float>&& array);
 template boost::property_tree::ptree o2::framework::labeledArrayToBranch(o2::framework::LabeledArray<int>&& array);

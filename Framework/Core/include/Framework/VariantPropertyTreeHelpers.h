@@ -36,7 +36,7 @@ boost::property_tree::ptree basicVectorToBranch(std::vector<T>&& values)
 }
 
 template <typename T>
-boost::property_tree::ptree vectorToBranch(T* values, size_t size)
+boost::property_tree::ptree vectorToBranch(T const* values, size_t size)
 {
   boost::property_tree::ptree branch;
   branch.put_child("values", basicVectorToBranch(values, size));
@@ -150,17 +150,17 @@ extern template boost::property_tree::ptree o2::framework::basicVectorToBranch(f
 extern template boost::property_tree::ptree o2::framework::basicVectorToBranch(int*, size_t);
 extern template boost::property_tree::ptree o2::framework::basicVectorToBranch(double*, size_t);
 extern template boost::property_tree::ptree o2::framework::basicVectorToBranch(bool*, size_t);
-extern template boost::property_tree::ptree o2::framework::basicVectorToBranch(std::basic_string<char>*, size_t);
+extern template boost::property_tree::ptree o2::framework::basicVectorToBranch(std::basic_string<char> const*, size_t);
 
 extern template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<float>&& values);
 extern template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<int>&& values);
 extern template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<double>&& values);
 extern template boost::property_tree::ptree o2::framework::vectorToBranch(std::vector<std::string>&& values);
-extern template boost::property_tree::ptree o2::framework::vectorToBranch(float*, size_t);
-extern template boost::property_tree::ptree o2::framework::vectorToBranch(int*, size_t);
-extern template boost::property_tree::ptree o2::framework::vectorToBranch(double*, size_t);
-extern template boost::property_tree::ptree o2::framework::vectorToBranch(bool*, size_t);
-extern template boost::property_tree::ptree o2::framework::vectorToBranch(std::basic_string<char>*, size_t);
+extern template boost::property_tree::ptree o2::framework::vectorToBranch(float const*, size_t);
+extern template boost::property_tree::ptree o2::framework::vectorToBranch(int const*, size_t);
+extern template boost::property_tree::ptree o2::framework::vectorToBranch(double const*, size_t);
+extern template boost::property_tree::ptree o2::framework::vectorToBranch(bool const*, size_t);
+extern template boost::property_tree::ptree o2::framework::vectorToBranch(std::basic_string<char> const*, size_t);
 
 extern template boost::property_tree::ptree o2::framework::labeledArrayToBranch(o2::framework::LabeledArray<float>&& array);
 extern template boost::property_tree::ptree o2::framework::labeledArrayToBranch(o2::framework::LabeledArray<int>&& array);
