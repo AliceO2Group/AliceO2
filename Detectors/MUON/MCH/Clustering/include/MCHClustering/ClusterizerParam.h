@@ -37,6 +37,8 @@ struct ClusterizerParam : public o2::conf::ConfigurableParamHelper<ClusterizerPa
 
   bool legacy = true; ///< use original (run2) clustering
 
+  bool onlyTrackable = true; ///< clusterize only ROFs that match the trackable condition @see MCHROFFiltering/TrackableFilter
+
   O2ParamDef(ClusterizerParam, "MCHClustering");
 };
 
