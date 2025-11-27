@@ -188,6 +188,38 @@ GPUd() bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   return true;
 }
 
+//______________________________________________________________
+template <typename value_T>
+GPUd() bool TrackParametrization<value_T>::rotateParam(value_t& alpha, value_t& ca, value_t& sa)
+{
+  // rotate to alpha frame
+  if (gpu::CAMath::Abs(getSnp()) > constants::math::Almost1) {
+    LOGP(debug, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
+    return false;
+  }
+  //
+  math_utils::detail::bringToPMPi<value_t>(alpha);
+  math_utils::detail::sincos(alpha - getAlpha(), sa, ca);
+  value_t snp = getSnp(), csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp)); // Improve precision
+  // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle direction in local frame is along the X axis
+  if ((csp * ca + snp * sa) < 0) {
+    // LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    return false;
+  }
+  //
+  value_t tmp = snp * ca - csp * sa;
+  if (gpu::CAMath::Abs(tmp) > constants::math::Almost1) {
+    LOGP(debug, "Rotation failed: new snp {:.2f}", tmp);
+    return false;
+  }
+  value_t xold = getX(), yold = getY();
+  mAlpha = alpha;
+  mX = xold * ca + yold * sa;
+  mP[kY] = -xold * sa + yold * ca;
+  mP[kSnp] = tmp;
+  return true;
+}
+
 //____________________________________________________________
 template <typename value_T>
 GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const dim3_t& b)

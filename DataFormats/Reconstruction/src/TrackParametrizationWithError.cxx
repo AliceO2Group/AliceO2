@@ -43,7 +43,7 @@ GPUd() void TrackParametrizationWithError<value_T>::invert()
 
 //______________________________________________________________
 template <typename value_T>
-GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, value_t b)
+GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, value_t bz)
 {
   //----------------------------------------------------------------
   // propagate this track to the plane X=xk (cm) in the field "b" (kG)
@@ -52,7 +52,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   if (gpu::CAMath::Abs(dx) < constants::math::Almost0) {
     return true;
   }
-  value_t crv = this->getCurvature(b);
+  value_t crv = this->getCurvature(bz);
   value_t x2r = crv * dx;
   value_t f1 = this->getSnp(), f2 = f1 + x2r;
   if ((gpu::CAMath::Abs(f1) > constants::math::Almost1) || (gpu::CAMath::Abs(f2) > constants::math::Almost1)) {
@@ -66,7 +66,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  double dy2dx = (f1 + f2) / (r1 + r2);
+  double r1pr2Inv = 1. / (r1 + r2);
+  double dy2dx = (f1 + f2) * r1pr2Inv;
   bool arcz = gpu::CAMath::Abs(x2r) > 0.05f;
   params_t dP{0.f};
   if (arcz) {
@@ -106,14 +107,110 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
           &c44 = mC[kSigQ2Pt2];
 
   // evaluate matrix in double prec.
-  double rinv = 1. / r1;
-  double r3inv = rinv * rinv * rinv;
-  double f24 = dx * b * constants::math::B2C; // x2r/mP[kQ2Pt];
-  double f02 = dx * r3inv;
-  double f04 = 0.5 * f24 * f02;
-  double f12 = f02 * this->getTgl() * f1;
-  double f14 = 0.5 * f24 * f12; // 0.5*f24*f02*getTgl()*f1;
-  double f13 = dx * rinv;
+  value_t kb = bz * constants::math::B2C;
+  double r2inv = 1. / r2, r1inv = 1. / r1;
+  double dx2r1pr2 = dx * r1pr2Inv;
+
+  double hh = dx2r1pr2 * r2inv * (1. + r1 * r2 + f1 * f2), jj = dx * (dy2dx - f2 * r2inv);
+  double f02 = hh * r1inv;
+  double f04 = hh * dx2r1pr2 * kb;
+  double f24 = dx * kb; // x2r/mP[kQ2Pt];
+  double f12 = this->getTgl() * (f02 * f2 + jj);
+  double f13 = dx * (r2 + f2 * dy2dx);
+  double f14 = this->getTgl() * (f04 * f2 + jj * f24);
+
+  // b = C*ft
+  double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
+  double b02 = f24 * c40;
+  double b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
+  double b12 = f24 * c41;
+  double b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
+  double b22 = f24 * c42;
+  double b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
+  double b42 = f24 * c44;
+  double b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
+  double b32 = f24 * c43;
+
+  // a = f*b = f*C*ft
+  double a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
+  double a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
+  double a22 = f24 * b42;
+
+  // F*C*Ft = C + (b + bt + a)
+  c00 += b00 + b00 + a00;
+  c10 += b10 + b01 + a01;
+  c20 += b20 + b02 + a02;
+  c30 += b30;
+  c40 += b40;
+  c11 += b11 + b11 + a11;
+  c21 += b21 + b12 + a12;
+  c31 += b31;
+  c41 += b41;
+  c22 += b22 + b22 + a22;
+  c32 += b32;
+  c42 += b42;
+
+  checkCovariance();
+
+  return true;
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, TrackParametrization<value_T>& linRef0, value_t bz)
+{
+  //----------------------------------------------------------------
+  // propagate this track to the plane X=xk (cm) in the field "b" (kG), using linRef as linearization point
+  //----------------------------------------------------------------
+  if (this->getAbsCharge() == 0) {
+    bz = 0;
+  }
+  value_t dx = xk - this->getX();
+  if (gpu::CAMath::Abs(dx) < constants::math::Almost0) {
+    this->setX(xk);
+    linRef0.setX(xk);
+    return true;
+  }
+  // propagate reference track
+  TrackParametrization<value_T> linRef1 = linRef0;
+  if (!linRef1.propagateTo(xk, bz)) {
+    return false;
+  }
+  value_t kb = bz * constants::math::B2C;
+  // evaluate in double prec.
+  double snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((1 - snpRef0) * (1 + snpRef0));
+  double snpRef1 = linRef1.getSnp(), cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
+  double cspRef0Inv = 1 / cspRef0, cspRef1Inv = 1 / cspRef1, cc = cspRef0 + cspRef1, ccInv = 1 / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
+  double dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1 + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
+
+  double f02 = hh * cspRef0Inv;
+  double f04 = hh * dxccInv * kb;
+  double f24 = dx * kb;
+  double f12 = linRef0.getTgl() * (f02 * snpRef1 + jj);
+  double f13 = dx * (cspRef1 + snpRef1 * dy2dx); // dS
+  double f14 = linRef0.getTgl() * (f04 * snpRef1 + jj * f24);
+
+  // difference between the current and reference state
+  value_t diff[5];
+  for (int i = 0; i < 5; i++) {
+    diff[i] = this->getParam(i) - linRef0.getParam(i);
+  }
+  value_t snpUpd = snpRef1 + diff[kSnp] + f24 * diff[kQ2Pt];
+  if (gpu::CAMath::Abs(snpUpd) > constants::math::Almost1) {
+    return false;
+  }
+  linRef0 = linRef1; // update reference track
+  this->setX(xk);
+  this->setY(linRef1.getY() + diff[kY] + f02 * diff[kSnp] + f04 * diff[kQ2Pt]);
+  this->setZ(linRef1.getZ() + diff[kZ] + f13 * diff[kTgl] + f14 * diff[kQ2Pt]);
+  this->setSnp(snpUpd);
+  this->setTgl(linRef1.getTgl() + diff[kTgl]);
+  this->setQ2Pt(linRef1.getQ2Pt() + diff[kQ2Pt]);
+
+  value_t &c00 = mC[kSigY2], &c10 = mC[kSigZY], &c11 = mC[kSigZ2], &c20 = mC[kSigSnpY], &c21 = mC[kSigSnpZ],
+          &c22 = mC[kSigSnp2], &c30 = mC[kSigTglY], &c31 = mC[kSigTglZ], &c32 = mC[kSigTglSnp], &c33 = mC[kSigTgl2],
+          &c40 = mC[kSigQ2PtY], &c41 = mC[kSigQ2PtZ], &c42 = mC[kSigQ2PtSnp], &c43 = mC[kSigQ2PtTgl],
+          &c44 = mC[kSigQ2Pt2];
 
   // b = C*ft
   double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
@@ -158,6 +255,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::testRotate(value_t) const
   // no ops
   return true;
 }
+
 //______________________________________________________________
 template <typename value_T>
 GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
@@ -210,6 +308,101 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   mC[kSigQ2PtSnp] *= rr;
 
   checkCovariance();
+  return true;
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha, TrackParametrization<value_T>& linRef0, value_t bz)
+{
+  // RS: similar to int32_t GPUTPCGMPropagator::RotateToAlpha(float newAlpha), i.e. rotate the track to new frame alpha, using linRef as linearization point
+  // rotate to alpha frame the reference (linearization point) trackParam, then align the current track to it
+  if (gpu::CAMath::Abs(this->getSnp()) > constants::math::Almost1) {
+    LOGP(debug, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", this->getSnp());
+    return false;
+  }
+  //
+  math_utils::detail::bringToPMPi<value_t>(alpha);
+  //
+  value_t ca = 0, sa = 0;
+  TrackParametrization<value_T> linRef1 = linRef0;
+  // rotate the reference, adjusting alpha to +-pi, return precalculated cos and sin of alpha - alphaOld
+  if (!linRef1.rotateParam(alpha, ca, sa)) {
+    return false;
+  }
+
+  value_t trackX = this->getX() * ca + this->getY() * sa; // X of the rotated current track
+  if (!linRef1.propagateParamTo(trackX, bz)) {
+    return false;
+  }
+
+  // now rotate the current track
+  value_t snp = this->getSnp(), csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp)), updSnp = snp * ca - csp * sa;
+  if ((csp * ca + snp * sa) < 0 || gpu::CAMath::Abs(updSnp) > constants::math::Almost1) {
+    // LOGP(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    return false;
+  }
+  this->setY(-sa * this->getX() + ca * this->getY());
+  this->setX(trackX);
+  this->setSnp(updSnp);
+  this->setAlpha(alpha);
+
+  // rotate covariance, accounting for the extra error from the rotated X
+  value_t snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((value_t(1) - snpRef0) * (value_t(1) + snpRef0)); // original reference
+  value_t snpRef1 = linRef1.getSnp(), cspRef1 = ca * cspRef0 + sa * snpRef0;                                        // rotated reference
+  value_t rr = cspRef1 / cspRef0;                                                                                   // cos1_ref / cos0_ref
+
+  // "extra row" of the lower triangle of cov. matrix
+  value_t cXSigY = mC[kSigY2] * ca * sa;
+  value_t cXSigZ = mC[kSigZY] * sa;
+  value_t cXSigSnp = mC[kSigSnpY] * rr * sa;
+  value_t cXSigTgl = mC[kSigTglY] * sa;
+  value_t cXSigQ2Pt = mC[kSigQ2PtY] * sa;
+  value_t cSigX2 = mC[kSigY2] * sa * sa;
+
+  // plane rotation of existing cov matrix
+  mC[kSigY2] *= ca * ca;
+  mC[kSigZY] *= ca;
+  mC[kSigSnpY] *= ca * rr;
+  mC[kSigSnpZ] *= rr;
+  mC[kSigSnp2] *= rr * rr;
+  mC[kSigTglY] *= ca;
+  mC[kSigTglSnp] *= rr;
+  mC[kSigQ2PtY] *= ca;
+  mC[kSigQ2PtSnp] *= rr;
+
+  // transport covariance from pseudo 6x6 matrix to usual 5x5, Jacobian (trust to Sergey):
+  auto cspRef1Inv = value_t(1) / cspRef1;
+  auto j3 = -snpRef1 * cspRef1Inv;          // -pYmod/pXmod = -tg_pho = -sin_phi_mod / cos_phi_mod
+  auto j4 = -linRef1.getTgl() * cspRef1Inv; // -pZmod/pXmod = -tgl_mod / cos_phi_mod
+  auto j5 = linRef1.getCurvature(bz);
+  //       Y  Z Sin DzDs q/p  X
+  //  { {  1, 0, 0,  0,  0,  j3 }, // Y
+  //    {  0, 1, 0,  0,  0,  j4 }, // Z
+  //    {  0, 0, 1,  0,  0,  j5 }, // snp
+  //    {  0, 0, 0,  1,  0,   0 }, // tgl
+  //    {  0, 0, 0,  0,  1,   0 } }; // q/pt
+  auto hXSigY = cXSigY + cSigX2 * j3;
+  auto hXSigZ = cXSigZ + cSigX2 * j4;
+  auto hXSigSnp = cXSigSnp + cSigX2 * j5;
+
+  mC[kSigY2] += j3 * (cXSigY + hXSigY);
+  mC[kSigZ2] += j4 * (cXSigZ + hXSigZ);
+  mC[kSigSnpY] += cXSigSnp * j3 + hXSigY * j5;
+  mC[kSigSnp2] += j5 * (cXSigSnp + hXSigSnp);
+  mC[kSigTglZ] += cXSigTgl * j4;
+  mC[kSigQ2PtY] += cXSigQ2Pt * j3;
+  mC[kSigQ2PtSnp] += cXSigQ2Pt * j5;
+
+  mC[kSigZY] += cXSigZ * j3 + hXSigY * j4;
+  mC[kSigSnpZ] += cXSigSnp * j4 + hXSigZ * j5;
+  mC[kSigTglY] += cXSigTgl * j3;
+  mC[kSigTglSnp] += cXSigTgl * j5;
+  mC[kSigQ2PtZ] += cXSigQ2Pt * j4;
+
+  checkCovariance();
+  linRef0 = linRef1;
+
   return true;
 }
 
@@ -476,8 +669,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-
-  value_t dy2dx = (f1 + f2) / (r1 + r2);
+  double r1pr2Inv = 1. / (r1 + r2), r2inv = 1. / r2, r1inv = 1. / r1;
+  double dy2dx = (f1 + f2) * r1pr2Inv, dx2r1pr2 = dx * r1pr2Inv;
   value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? dx * gpu::CAMath::Abs(r2 + f2 * dy2dx)                                                   // chord
                                                  : 2.f * gpu::CAMath::ASin(0.5f * dx * gpu::CAMath::Sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
   step *= gpu::CAMath::Sqrt(1.f + this->getTgl() * this->getTgl());
@@ -493,15 +686,16 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
           &c22 = mC[kSigSnp2], &c30 = mC[kSigTglY], &c31 = mC[kSigTglZ], &c32 = mC[kSigTglSnp], &c33 = mC[kSigTgl2],
           &c40 = mC[kSigQ2PtY], &c41 = mC[kSigQ2PtZ], &c42 = mC[kSigQ2PtSnp], &c43 = mC[kSigQ2PtTgl],
           &c44 = mC[kSigQ2Pt2];
+
   // evaluate matrix in double prec.
-  double rinv = 1. / r1;
-  double r3inv = rinv * rinv * rinv;
-  double f24 = dx * b[2] * constants::math::B2C; // x2r/track[kQ2Pt];
-  double f02 = dx * r3inv;
-  double f04 = 0.5 * f24 * f02;
-  double f12 = f02 * this->getTgl() * f1;
-  double f14 = 0.5 * f24 * f12; // 0.5*f24*f02*getTgl()*f1;
-  double f13 = dx * rinv;
+  value_t kb = b[2] * constants::math::B2C;
+  double hh = dx2r1pr2 * r2inv * (1. + r1 * r2 + f1 * f2), jj = dx * (dy2dx - f2 * r2inv);
+  double f02 = hh * r1inv;
+  double f04 = hh * dx2r1pr2 * kb;
+  double f24 = dx * kb; // x2r/mP[kQ2Pt];
+  double f12 = this->getTgl() * (f02 * f2 + jj);
+  double f13 = dx * (r2 + f2 * dy2dx);
+  double f14 = this->getTgl() * (f04 * f2 + jj * f24);
 
   // b = C*ft
   double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
@@ -600,6 +794,198 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   this->setSnp(vecLab[4] * t);
   this->setTgl(vecLab[5] * t);
   this->setQ2Pt(q * t / vecLab[6]);
+
+  return true;
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, TrackParametrization<value_T>& linRef0, const dim3_t& b)
+{
+  //----------------------------------------------------------------
+  // Extrapolate this track to the plane X=xk in the field b[].
+  //
+  // X [cm] is in the "tracking coordinate system" of this track.
+  // b[]={Bx,By,Bz} [kG] is in the Global coordidate system.
+  //----------------------------------------------------------------
+
+  value_t dx = xk - this->getX();
+  if (gpu::CAMath::Abs(dx) < constants::math::Almost0) {
+    return true;
+  }
+  // Do not propagate tracks outside the ALICE detector
+  if (gpu::CAMath::Abs(dx) > 1e5 || gpu::CAMath::Abs(this->getY()) > 1e5 || gpu::CAMath::Abs(this->getZ()) > 1e5) {
+    LOG(warning) << "Anomalous track, target X:" << xk;
+    //    print();
+    return false;
+  }
+  if (gpu::CAMath::Abs(dx) < constants::math::Almost0) {
+    this->setX(xk);
+    linRef0.setX(xk);
+    return true;
+  }
+  // preliminary calculations to find the step size
+  value_t crv = (gpu::CAMath::Abs(b[2]) < constants::math::Almost0) ? 0.f : linRef0.getCurvature(b[2]);
+  if (gpu::CAMath::Abs(crv) < constants::math::Almost0) {
+    return propagateTo(xk, linRef0, 0.);
+  }
+  value_t kb = b[2] * constants::math::B2C, x2r = crv * dx;
+  // evaluate in double prec.
+  value_t snpRef0 = linRef0.getSnp(), snpRef1 = snpRef0 + x2r;
+  if ((gpu::CAMath::Abs(snpRef0) > constants::math::Almost1) || (gpu::CAMath::Abs(snpRef1) > constants::math::Almost1)) {
+    return false;
+  }
+  value_t cspRef0 = gpu::CAMath::Sqrt((1 - snpRef0) * (1 + snpRef0)), cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
+  if (gpu::CAMath::Abs(cspRef0) < constants::math::Almost0 || gpu::CAMath::Abs(cspRef1) < constants::math::Almost0) {
+    return false;
+  }
+  value_t cspRef0Inv = value_t(1) / cspRef0, cspRef1Inv = value_t(1) / cspRef1, cc = cspRef0 + cspRef1, ccInv = value_t(1) / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
+  value_t step = (gpu::CAMath::Abs(crv * dx) < 0.05f) ? dx * (cspRef1 + snpRef1 * dy2dx) : 2. * gpu::CAMath::ASin(0.5 * dx * gpu::CAMath::Sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
+  step *= gpu::CAMath::Sqrt(1.f + linRef0.getTgl() * linRef0.getTgl());
+
+  //
+  // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
+  std::array<value_t, 9> vecLab{0.f};
+  if (!linRef0.getPosDirGlo(vecLab)) {
+    return false;
+  }
+  //
+  // Rotate to the system where Bx=By=0.
+  value_t bxy2 = b[0] * b[0] + b[1] * b[1];
+  value_t bt = gpu::CAMath::Sqrt(bxy2);
+  value_t cosphi = 1.f, sinphi = 0.f;
+  if (bt > constants::math::Almost0) {
+    cosphi = b[0] / bt;
+    sinphi = b[1] / bt;
+  }
+  value_t bb = gpu::CAMath::Sqrt(bxy2 + b[2] * b[2]);
+  value_t costet = 1., sintet = 0.;
+  if (bb > constants::math::Almost0) {
+    costet = b[2] / bb;
+    sintet = bt / bb;
+  }
+  std::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
+                              -sinphi * vecLab[0] + cosphi * vecLab[1],
+                              sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                              costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                              -sinphi * vecLab[3] + cosphi * vecLab[4],
+                              sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                              vecLab[6]};
+
+  // Do the helix step
+  value_t q = this->getCharge();
+  g3helx3(q * bb, step, vect);
+
+  // Rotate back to the Global System
+  vecLab[0] = cosphi * costet * vect[0] - sinphi * vect[1] + cosphi * sintet * vect[2];
+  vecLab[1] = sinphi * costet * vect[0] + cosphi * vect[1] + sinphi * sintet * vect[2];
+  vecLab[2] = -sintet * vect[0] + costet * vect[2];
+
+  vecLab[3] = cosphi * costet * vect[3] - sinphi * vect[4] + cosphi * sintet * vect[5];
+  vecLab[4] = sinphi * costet * vect[3] + cosphi * vect[4] + sinphi * sintet * vect[5];
+  vecLab[5] = -sintet * vect[3] + costet * vect[5];
+
+  // Rotate back to the Tracking System
+  value_t sinalp = -vecLab[7], cosalp = vecLab[8];
+  value_t t = cosalp * vecLab[0] - sinalp * vecLab[1];
+  vecLab[1] = sinalp * vecLab[0] + cosalp * vecLab[1];
+  vecLab[0] = t;
+  t = cosalp * vecLab[3] - sinalp * vecLab[4];
+  vecLab[4] = sinalp * vecLab[3] + cosalp * vecLab[4];
+  vecLab[3] = t;
+
+  // Do the final correcting step to the target plane (linear approximation)
+  value_t x = vecLab[0], y = vecLab[1], z = vecLab[2];
+  if (gpu::CAMath::Abs(dx) > constants::math::Almost0) {
+    if (gpu::CAMath::Abs(vecLab[3]) < constants::math::Almost0) {
+      return false;
+    }
+    auto dxFin = xk - vecLab[0];
+    x += dxFin;
+    y += vecLab[4] / vecLab[3] * dxFin;
+    z += vecLab[5] / vecLab[3] * dxFin;
+  }
+
+  // Calculate the track parameters
+  auto linRef1 = linRef0;
+  t = 1.f / gpu::CAMath::Sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
+  linRef1.setX(xk);
+  linRef1.setY(y);
+  linRef1.setZ(z);
+  linRef1.setSnp(snpRef1 = vecLab[4] * t); // reassign snpRef1
+  linRef1.setTgl(vecLab[5] * t);
+  linRef1.setQ2Pt(q * t / vecLab[6]);
+
+  // recalculate parameters of the transported ref track needed for transport of this:
+  cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
+  cspRef1Inv = value_t(1) / cspRef1;
+  cc = cspRef0 + cspRef1;
+  ccInv = value_t(1) / cc;
+  dy2dx = (snpRef0 + snpRef1) * ccInv;
+  double dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1 + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
+  double f02 = hh * cspRef0Inv;
+  double f04 = hh * dxccInv * kb;
+  double f24 = dx * kb;
+  double f12 = linRef0.getTgl() * (f02 * snpRef1 + jj);
+  double f13 = dx * (cspRef1 + snpRef1 * dy2dx); // dS
+  double f14 = linRef0.getTgl() * (f04 * snpRef1 + jj * f24);
+
+  // difference between the current and reference state
+  value_t diff[5];
+  for (int i = 0; i < 5; i++) {
+    diff[i] = this->getParam(i) - linRef0.getParam(i);
+  }
+  value_t snpUpd = snpRef1 + diff[kSnp] + f24 * diff[kQ2Pt];
+  if (gpu::CAMath::Abs(snpUpd) > constants::math::Almost1) {
+    return false;
+  }
+  this->setX(xk);
+  this->setY(linRef1.getY() + diff[kY] + f02 * diff[kSnp] + f04 * diff[kQ2Pt]);
+  this->setZ(linRef1.getZ() + diff[kZ] + f13 * diff[kTgl] + f14 * diff[kQ2Pt]);
+  this->setSnp(snpUpd);
+  this->setTgl(linRef1.getTgl() + diff[kTgl]);
+  this->setQ2Pt(linRef1.getQ2Pt() + diff[kQ2Pt]);
+
+  linRef0 = linRef1; // update reference track
+
+  // matrix transformed with Bz component only
+  value_t &c00 = mC[kSigY2], &c10 = mC[kSigZY], &c11 = mC[kSigZ2], &c20 = mC[kSigSnpY], &c21 = mC[kSigSnpZ],
+          &c22 = mC[kSigSnp2], &c30 = mC[kSigTglY], &c31 = mC[kSigTglZ], &c32 = mC[kSigTglSnp], &c33 = mC[kSigTgl2],
+          &c40 = mC[kSigQ2PtY], &c41 = mC[kSigQ2PtZ], &c42 = mC[kSigQ2PtSnp], &c43 = mC[kSigQ2PtTgl],
+          &c44 = mC[kSigQ2Pt2];
+
+  // b = C*ft
+  double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
+  double b02 = f24 * c40;
+  double b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
+  double b12 = f24 * c41;
+  double b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
+  double b22 = f24 * c42;
+  double b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
+  double b42 = f24 * c44;
+  double b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
+  double b32 = f24 * c43;
+
+  // a = f*b = f*C*ft
+  double a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
+  double a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
+  double a22 = f24 * b42;
+
+  // F*C*Ft = C + (b + bt + a)
+  c00 += b00 + b00 + a00;
+  c10 += b10 + b01 + a01;
+  c20 += b20 + b02 + a02;
+  c30 += b30;
+  c40 += b40;
+  c11 += b11 + b11 + a11;
+  c21 += b21 + b12 + a12;
+  c31 += b31;
+  c41 += b41;
+  c22 += b22 + b22 + a22;
+  c32 += b32;
+  c42 += b42;
+
+  checkCovariance();
 
   return true;
 }
@@ -1115,6 +1501,143 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   fC43 += cC43;
   fC44 += cC44;
   this->setQ2Pt(this->getQ2Pt() * p0 / p);
+
+  checkCovariance();
+
+  return true;
+}
+
+//______________________________________________
+template <typename value_T>
+GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackParametrization<value_T>& linRef, value_t x2x0, value_t xrho, bool anglecorr)
+{
+  //------------------------------------------------------------------
+  // This function corrects the reference and current track parameters for the crossed material
+  // "x2x0"   - X/X0, the thickness in units of the radiation length.
+  // "xrho" - is the product length*density (g/cm^2).
+  //     It should be passed as negative when propagating tracks
+  //     from the intreaction point to the outside of the central barrel.
+  // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
+  // "anglecorr" - switch for the angular correction
+  //------------------------------------------------------------------
+  constexpr value_t kMSConst2 = 0.0136f * 0.0136f;
+  constexpr value_t kMinP = 0.01f; // kill below this momentum
+
+  value_t csp2 = (1.f - linRef.getSnp()) * (1.f + linRef.getSnp()); // cos(phi)^2
+  value_t cst2I = (1.f + linRef.getTgl() * linRef.getTgl());        // 1/cos(lambda)^2
+  if (anglecorr) {                                                  // Apply angle correction, if requested
+    value_t angle = gpu::CAMath::Sqrt(cst2I / csp2);
+    x2x0 *= angle;
+    xrho *= angle;
+  }
+  auto pid = linRef.getPID();
+  auto m = pid.getMass();
+  int charge2 = linRef.getAbsCharge() * linRef.getAbsCharge();
+  value_t p = linRef.getP(), p0 = p, p02 = p * p, e2 = p02 + pid.getMass2(), massInv = 1. / m, bg = p * massInv, dETot = 0.;
+  value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
+  if (m > 0 && xrho != 0.f) {
+    value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
+#ifdef _BB_NONCONST_CORR_
+    value_t dedxDer = 0., dedx1 = dedx;
+#endif
+    if (charge2 != 1) {
+      dedx *= charge2;
+    }
+    value_t dE = dedx * xrho;
+    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
+    if (na > MaxELossIter) {
+      na = MaxELossIter;
+    }
+    if (na > 1) {
+      dE /= na;
+      xrho /= na;
+#ifdef _BB_NONCONST_CORR_
+      dedxDer = this->getBetheBlochSolidDerivativeApprox(dedx1, bg); // require correction for non-constantness of dedx vs betagamma
+      if (charge2 != 1) {
+        dedxDer *= charge2;
+      }
+#endif
+    }
+    while (na--) {
+#ifdef _BB_NONCONST_CORR_
+      if (dedxDer != 0.) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
+        if (xrho < 0) {
+          dedxDer = -dedxDer; // E.loss ( -> positive derivative)
+        }
+        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.) / dedxDer;
+        dE *= corrC;
+      }
+#endif
+      e += dE;
+      if (e > m) { // stopped
+        p = gpu::CAMath::Sqrt(e * e - pid.getMass2());
+      } else {
+        return false;
+      }
+      if (na) {
+        bg = p * massInv;
+        dedx = this->getdEdxBBOpt(bg);
+#ifdef _BB_NONCONST_CORR_
+        dedxDer = this->getBetheBlochSolidDerivativeApprox(dedx, bg);
+#endif
+        if (charge2 != 1) {
+          dedx *= charge2;
+#ifdef _BB_NONCONST_CORR_
+          dedxDer *= charge2;
+#endif
+        }
+        dE = dedx * xrho;
+      }
+    }
+
+    if (p < kMinP) {
+      return false;
+    }
+    dETot = e - e0;
+  } // end of e.loss correction
+
+  // Calculating the multiple scattering corrections******************
+  value_t& fC22 = mC[kSigSnp2];
+  value_t& fC33 = mC[kSigTgl2];
+  value_t& fC43 = mC[kSigQ2PtTgl];
+  value_t& fC44 = mC[kSigQ2Pt2];
+  //
+  value_t cC22(0.f), cC33(0.f), cC43(0.f), cC44(0.f);
+  if (x2x0 != 0.f) {
+    value_t beta2 = p02 / e2, theta2 = kMSConst2 / (beta2 * p02) * gpu::CAMath::Abs(x2x0);
+    value_t fp34 = linRef.getTgl();
+    if (charge2 != 1) {
+      theta2 *= charge2;
+      fp34 *= linRef.getCharge2Pt();
+    }
+    if (theta2 > constants::math::PI * constants::math::PI) {
+      return false;
+    }
+    value_t t2c2I = theta2 * cst2I;
+    cC22 = t2c2I * csp2;
+    cC33 = t2c2I * cst2I;
+    cC43 = t2c2I * fp34;
+    cC44 = theta2 * fp34 * fp34;
+    // optimize this
+    //    cC22 = theta2*((1.-getSnp())*(1.+getSnp()))*(1. + this->getTgl()*getTgl());
+    //    cC33 = theta2*(1. + this->getTgl()*getTgl())*(1. + this->getTgl()*getTgl());
+    //    cC43 = theta2*getTgl()*this->getQ2Pt()*(1. + this->getTgl()*getTgl());
+    //    cC44 = theta2*getTgl()*this->getQ2Pt()*getTgl()*this->getQ2Pt();
+  }
+
+  // the energy loss correction contribution to cov.matrix: approximate energy loss fluctuation (M.Ivanov)
+  constexpr value_t knst = 0.0007f; // To be tuned.
+  value_t sigmadE = knst * gpu::CAMath::Sqrt(gpu::CAMath::Abs(dETot)) * e0 / p02 * linRef.getCharge2Pt();
+  cC44 += sigmadE * sigmadE;
+
+  // Applying the corrections*****************************
+  fC22 += cC22;
+  fC33 += cC33;
+  fC43 += cC43;
+  fC44 += cC44;
+  auto pscale = p0 / p;
+  linRef.setQ2Pt(linRef.getQ2Pt() * pscale);
+  this->setQ2Pt(this->getQ2Pt() * pscale);
 
   checkCovariance();
 

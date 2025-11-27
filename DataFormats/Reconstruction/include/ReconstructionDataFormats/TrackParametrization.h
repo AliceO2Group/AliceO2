@@ -229,6 +229,7 @@ class TrackParametrization
   // parameters manipulation
   GPUd() bool correctForELoss(value_t xrho, bool anglecorr = false);
   GPUd() bool rotateParam(value_t alpha);
+  GPUd() bool rotateParam(value_t& alpha, value_t& ca, value_t& sa);
   GPUd() bool propagateParamTo(value_t xk, value_t b);
   GPUd() bool propagateParamTo(value_t xk, const dim3_t& b);
   GPUd() void invertParam();
