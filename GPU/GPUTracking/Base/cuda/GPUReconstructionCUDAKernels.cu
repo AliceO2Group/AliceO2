@@ -12,6 +12,7 @@
 /// \file GPUReconstructionCUDAKernels.cu
 /// \author David Rohr
 
+#define GPUCA_COMPILEKERNELS
 #include "GPUReconstructionCUDAIncludesSystem.h"
 #include "GPUReconstructionCUDADef.h"
 
