@@ -1376,7 +1376,15 @@ static constexpr std::string getLabelFromType()
 template <typename... C>
 static constexpr auto hasColumnForKey(framework::pack<C...>, std::string const& key)
 {
-  return ((C::inherited_t::mLabel == key) || ...);
+  auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string& str2) {
+    return std::ranges::equal(
+      str1, str2,
+      [](char c1, char c2) {
+        return std::tolower(static_cast<unsigned char>(c1)) ==
+               std::tolower(static_cast<unsigned char>(c2));
+      });
+  };
+  return (caseInsensitiveCompare(C::inherited_t::mLabel, key) || ...);
 }
 
 template <TableRef ref>
@@ -2866,7 +2874,7 @@ consteval auto getIndexTargets()
     o2::soa::Binding getCurrentRaw() const { return mBinding; }                                                                 \
     o2::soa::Binding mBinding;                                                                                                  \
   };                                                                                                                            \
-  [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" #_Table_ _Suffix_, _Name_##Id::hash, o2::framework::expressions::selectArrowType<_Type_>() }
+  [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" _Label_ _Suffix_, _Name_##Id::hash, o2::framework::expressions::selectArrowType<_Type_>() }
 
 #define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Table_, _Suffix_)
 #define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
