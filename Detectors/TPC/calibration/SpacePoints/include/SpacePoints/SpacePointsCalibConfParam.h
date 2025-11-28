@@ -41,6 +41,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   int minTOFTRDPVContributors = 2;      ///< min contributors from TRD or TOF (fast detectors) to consider tracks of this PV
   bool ignoreNonPVContrib = true;       ///< flag if tracks which did not contribute to the PV should be ignored or not
   bool enableTrackDownsampling = false; ///< flag if track sampling shall be enabled or not
+  bool refitITS = true;                 ///< refit ITS tracks with PID attached to the seed
   float tsalisThreshold = 1.f;          ///< in case the sampling functions returns a value smaller than this the track is discarded (1. means no downsampling)
 
   // other settings for track interpolation

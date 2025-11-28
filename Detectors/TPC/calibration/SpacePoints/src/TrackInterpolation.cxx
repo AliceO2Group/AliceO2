@@ -221,6 +221,9 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
   int nv = vtxRefs.size() - 1;
   GTrackID::mask_t allowedSources = GTrackID::getSourcesMask("ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF") & mSourcesConfigured;
   constexpr std::array<int, 3> SrcFast = {int(GTrackID::ITSTPCTRD), int(GTrackID::ITSTPCTOF), int(GTrackID::ITSTPCTRDTOF)};
+  if (mParams->refitITS) {
+    mITSRefitSeedID.resize(mRecoCont->getITSTracks().size(), -1);
+  }
 
   for (int iv = 0; iv < nv; iv++) {
     LOGP(debug, "processing PV {} of {}", iv, nv);
@@ -281,6 +284,7 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
         mGIDtables.push_back(gidTable);
         mTrackTimes.push_back(pv.getTimeStamp().getTimeStamp());
         mTrackIndices[mTrackTypes[vid.getSource()]].push_back(nTrackSeeds++);
+        mTrackPVID.push_back(iv);
       }
     }
   }
@@ -360,13 +364,13 @@ void TrackInterpolation::process()
     if (mParams->enableTrackDownsampling && !isTrackSelected(mSeeds[seedIndex])) {
       continue;
     }
-
     auto addPart = [this, seedIndex](GTrackID::Source src) {
       this->mGIDs.push_back(this->mGIDtables[seedIndex][src]);
       this->mGIDtables.push_back(this->mRecoCont->getSingleDetectorRefs(this->mGIDs.back()));
       this->mTrackTimes.push_back(this->mTrackTimes[seedIndex]);
       this->mSeeds.push_back(this->mSeeds[seedIndex]);
       this->mParentID.push_back(seedIndex); // store parent seed id
+      this->mTrackPVID.push_back(this->mTrackPVID[seedIndex]);
     };
 
     GTrackID::mask_t partsAdded;
@@ -450,9 +454,12 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       (*trackDataExtended).clsITS.push_back(clsITS);
     }
   }
+  if (mParams->refitITS && !refITSTrack(gidTable[GTrackID::ITS], iSeed)) {
+    return;
+  }
   trackData.gid = mGIDs[iSeed];
   trackData.par = mSeeds[iSeed];
-  auto& trkWork = mSeeds[iSeed];
+  auto trkWork = mSeeds[iSeed];
   o2::track::TrackPar trkInner{trkWork};
   // reset the cache array (sufficient to set cluster available to zero)
   for (auto& elem : mCache) {
@@ -734,6 +741,27 @@ void TrackInterpolation::interpolateTrack(int iSeed)
             trackData.nExtDetResid++;
           }
         }
+        if (!stopPropagation) { // add residual to PV
+          const auto& pv = mRecoCont->getPrimaryVertices()[mTrackPVID[iSeed]];
+          o2::math_utils::Point3D<float> vtx{pv.getX(), pv.getY(), pv.getZ()};
+          if (!propagator->propagateToDCA(vtx, trkWorkITS, mBz, mParams->maxStep, mMatCorr)) {
+            LOGP(debug, "Failed propagation to DCA to PV ({} {} {}), {}", pv.getX(), pv.getY(), pv.getZ(), trkWorkITS.asString());
+            stopPropagation = true;
+            break;
+          }
+          // rotate PV to the track frame
+          float sn, cs, alpha = trkWorkITS.getAlpha();
+          math_utils::detail::bringToPMPi(alpha);
+          math_utils::detail::sincos<float>(alpha, sn, cs);
+          float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
+          auto dy = yv - trkWorkITS.getY();
+          auto dz = zv - trkWorkITS.getZ();
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && abs(xv) < param::MaxVtxX) {
+            short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
+            mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
+            trackData.nExtDetResid++;
+          }
+        }
         break;
       }
     }
@@ -825,6 +853,9 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto& clsITS = mITSClustersArray[mITSTrackClusIdx[clEntry + iCl]];
       (*trackDataExtended).clsITS.push_back(clsITS);
     }
+  }
+  if (mParams->refitITS && !refITSTrack(gidTable[GTrackID::ITS], iSeed)) {
+    return;
   }
   trackData.gid = mGIDs[iSeed];
   trackData.par = mSeeds[iSeed];
@@ -987,7 +1018,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           int chip = cls.getSensorID();
           float chipX, chipAlpha;
           geom->getSensorXAlphaRefPlane(cls.getSensorID(), chipX, chipAlpha);
-          if (!trkWorkITS.rotate(chipAlpha) || !propagator->PropagateToXBxByBz(trkWorkITS, chipX, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+          if (!trkWorkITS.rotate(chipAlpha) || !propagator->propagateToX(trkWorkITS, chipX, mBz, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
             LOGP(debug, "Failed final propagation to ITS X={} alpha={}", chipX, chipAlpha);
             stopPropagation = true;
             break;
@@ -997,6 +1028,27 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           auto dz = cls.getZ() - trkWorkITS.getZ();
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
             mClRes.emplace_back(dy, dz, tgPhi, trkWorkITS.getY(), trkWorkITS.getZ(), 180 + geom->getLayer(cls.getSensorID()), -1, cls.getSensorID());
+            trackData.nExtDetResid++;
+          }
+        }
+        if (!stopPropagation) { // add residual to PV
+          const auto& pv = mRecoCont->getPrimaryVertices()[mTrackPVID[iSeed]];
+          o2::math_utils::Point3D<float> vtx{pv.getX(), pv.getY(), pv.getZ()};
+          if (!propagator->propagateToDCA(vtx, trkWorkITS, mBz, mParams->maxStep, mMatCorr)) {
+            LOGP(debug, "Failed propagation to DCA to PV ({} {} {}), {}", pv.getX(), pv.getY(), pv.getZ(), trkWorkITS.asString());
+            stopPropagation = true;
+            break;
+          }
+          // rotate PV to the track frame
+          float sn, cs, alpha = trkWorkITS.getAlpha();
+          math_utils::detail::bringToPMPi(alpha);
+          math_utils::detail::sincos<float>(alpha, sn, cs);
+          float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
+          auto dy = yv - trkWorkITS.getY();
+          auto dz = zv - trkWorkITS.getZ();
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && abs(xv) < param::MaxVtxX) {
+            short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
+            mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
             trackData.nExtDetResid++;
           }
         }
@@ -1403,6 +1455,8 @@ void TrackInterpolation::reset()
   mGIDtables.clear();
   mTrackTimes.clear();
   mSeeds.clear();
+  mITSRefitSeedID.clear();
+  mTrackPVID.clear();
 }
 
 //______________________________________________
@@ -1415,4 +1469,51 @@ void TrackInterpolation::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
     LOGP(info, "Imposing reference VDrift={}/TDrift={} for TPC residuals extraction", mTPCVDriftRef, mTPCDriftTimeOffsetRef);
     o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, 1.0, mTPCVDriftRef, mTPCDriftTimeOffsetRef);
   }
+}
+
+//______________________________________________
+bool TrackInterpolation::refITSTrack(o2::dataformats::GlobalTrackID gid, int seedID)
+{
+  // refit ITS track outwards taking PID (unless already refitted) from the seed and reassign to the seed
+  auto& seed = mSeeds[seedID];
+  int refitID = mITSRefitSeedID[gid.getIndex()];
+  if (refitID >= 0) { // track was already refitted
+    if (mSeeds[refitID].getPID() == seed.getPID()) {
+      seed = mSeeds[refitID];
+    }
+    return true;
+  }
+  const auto& trkITS = mRecoCont->getITSTrack(gid);
+  // fetch clusters
+  auto nCl = trkITS.getNumberOfClusters();
+  auto clEntry = trkITS.getFirstClusterEntry();
+  o2::track::TrackParCov track(trkITS); // start from the inner param
+  track.setPID(seed.getPID());
+  o2::track::TrackPar refLin(track); // and use it also as linearization reference
+  auto geom = o2::its::GeometryTGeo::Instance();
+  auto prop = o2::base::Propagator::Instance();
+  for (int iCl = nCl - 1; iCl >= 0; iCl--) { // clusters are stored from outer to inner layers
+    const auto& cls = mITSClustersArray[mITSTrackClusIdx[clEntry + iCl]];
+    int chip = cls.getSensorID();
+    float chipX, chipAlpha;
+    geom->getSensorXAlphaRefPlane(cls.getSensorID(), chipX, chipAlpha);
+    if (!track.rotate(chipAlpha, refLin, mBz)) {
+      LOGP(debug, "failed to rotate ITS tracks to alpha={} for the refit: {}", chipAlpha, track.asString());
+      return false;
+    }
+    if (!prop->propagateToX(track, refLin, cls.getX(), mBz, o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, o2::base::PropagatorF::MatCorrType::USEMatCorrLUT)) {
+      LOGP(debug, "failed to propagate ITS tracks to X={}: {}", cls.getX(), track.asString());
+      return false;
+    }
+    std::array<float, 2> posTF{cls.getY(), cls.getZ()};
+    std::array<float, 3> covTF{cls.getSigmaY2(), cls.getSigmaYZ(), cls.getSigmaZ2()};
+    if (!track.update(posTF, covTF)) {
+      LOGP(debug, "failed to update ITS tracks by cluster ({},{})/({},{},{})", track.asString(), cls.getY(), cls.getZ(), cls.getSigmaY2(), cls.getSigmaYZ(), cls.getSigmaZ2());
+      return false;
+    }
+  }
+  seed = track;
+  // memorize that this ITS track was already refitted
+  mITSRefitSeedID[gid.getIndex()] = seedID;
+  return true;
 }
