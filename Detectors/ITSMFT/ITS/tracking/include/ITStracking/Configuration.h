@@ -66,6 +66,7 @@ struct TrackingParameters {
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   float MaxChi2ClusterAttachment = 60.f;
   float MaxChi2NDF = 30.f;
+  int reseedIfShorter = 7; // reseed for the final track with this and shorter length
   std::vector<float> MinPt = {0.f, 0.f, 0.f, 0.f};
   unsigned char StartLayerMask = 0x7F;
   bool FindShortTracks = false;

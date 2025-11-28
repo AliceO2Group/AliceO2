@@ -765,21 +765,57 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
       auto forSeed = [&](auto Tag, int iSeed, int offset = 0) {
         const auto& seed{trackSeeds[iSeed]};
         TrackITSExt temporaryTrack{seed};
-        temporaryTrack.resetCovariance();
         temporaryTrack.setChi2(0);
         for (int iL{0}; iL < nLayers; ++iL) {
           temporaryTrack.setExternalClusterIndex(iL, seed.getCluster(iL), seed.getCluster(iL) != constants::UnusedIndex);
         }
-
-        bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+        o2::track::TrackPar linRef{seed};
+        // do we want to reseed the track to get a stable reference?
+        /*{
+          int ncl = temporaryTrack.getNClusters();
+          if (ncl <= mTrkParams[0].reseedIfShorter) {
+            int lrMin = 999, lrMax = 0, lrMid = 0; // find midpoint
+            if (ncl == mTrkParams[0].NLayers) {
+              lrMin = 0;
+              lrMax = mTrkParams[0].NLayers - 1;
+              lrMid = (lrMin + lrMax) / 2;
+            } else {
+              for (int iL{0}; iL < nLayers; ++iL) {
+          if (seed.getCluster(iL) != constants::UnusedIndex) {
+            if (iL<lrMin) {
+              lrMin  = iL;
+            }
+            if (iL>lrMax) {
+              lrMax  = iL;
+            }
+          }
+              }
+              lrMid = lrMin+1;
+              float midR = 0.5*(mTrkParams[0].LayerRadii[lrMax] + mTrkParams[0].LayerRadii[lrMin]), dstMidR = o2::gpu::GPUCommonMath::Abs(midR - mTrkParams[0].LayerRadii[lrMid]);
+              // find the midpoint as closest to the midR
+              for (int iL{lrMid+1}; iL < lrMax-1; ++iL) {
+          auto dst = o2::gpu::GPUCommonMath::Abs(midR - mTrkParams[0].LayerRadii[iL]);
+          if (dst < dstMidR) {
+            lrMid = iL;
+            dstMidR = dst;
+          }
+              }
+            }
+          }
+          // RS TODO build seed: at the moment skip this: not sure how it will affect the GPU part)
+              }*/
+        temporaryTrack.resetCovariance();
+        temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[14], 14);
+        bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, o2::constants::math::VeryBig, 0, &linRef);
         if (!fitSuccess) {
           return 0;
         }
 
         temporaryTrack.getParamOut() = temporaryTrack.getParamIn();
         temporaryTrack.resetCovariance();
+        temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[14], 14);
         temporaryTrack.setChi2(0);
-        fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f);
+        fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f, 0, &linRef);
         if (!fitSuccess || temporaryTrack.getPt() < mTrkParams[iteration].MinPt[mTrkParams[iteration].NLayers - temporaryTrack.getNClusters()]) {
           return 0;
         }
@@ -1045,7 +1081,7 @@ void TrackerTraits<nLayers>::findShortPrimaries()
 }
 
 template <int nLayers>
-bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl)
+bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl, o2::track::TrackPar* linRef)
 {
   auto propInstance = o2::base::Propagator::Instance();
 
@@ -1054,21 +1090,31 @@ bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, in
       continue;
     }
     const TrackingFrameInfo& trackingHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer)[track.getClusterIndex(iLayer)];
-
-    if (!track.rotate(trackingHit.alphaTrackingFrame)) {
-      return false;
-    }
-
-    if (!propInstance->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mTrkParams[0].CorrType)) {
-      return false;
-    }
-
-    if (mTrkParams[0].CorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-      if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
-        continue;
+    if (linRef) {
+      if (!track.rotate(trackingHit.alphaTrackingFrame, *linRef, getBz())) {
+        return false;
+      }
+      if (!propInstance->propagateToX(track, *linRef, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mTrkParams[0].CorrType)) {
+        return false;
+      }
+      if (mTrkParams[0].CorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        if (!track.correctForMaterial(*linRef, mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+          continue;
+        }
+      }
+    } else {
+      if (!track.rotate(trackingHit.alphaTrackingFrame)) {
+        return false;
+      }
+      if (!propInstance->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mTrkParams[0].CorrType)) {
+        return false;
+      }
+      if (mTrkParams[0].CorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+          continue;
+        }
       }
     }
-
     auto predChi2{track.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
