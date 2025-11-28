@@ -62,8 +62,9 @@ int32_t GPUChainTracking::RunTPCCompression()
 #ifdef GPUCA_TPC_GEOMETRY_O2
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
     SynchronizeEventAndRelease(mEvents->single);
-    ((GPUChainTracking*)GetNextChainInQueue())->RunTPCClusterizer_prepare(false);
-    ((GPUChainTracking*)GetNextChainInQueue())->mCFContext->ptrClusterNativeSave = processorsShadow()->ioPtrs.clustersNative;
+    auto* foreignChain = (GPUChainTracking*)GetNextChainInQueue();
+    foreignChain->RunTPCClusterizer_prepare(false);
+    foreignChain->mCFContext->ptrClusterNativeSave = processorsShadow()->ioPtrs.clustersNative;
   }
 #endif
   SynchronizeStream(0);

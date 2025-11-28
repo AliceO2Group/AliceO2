@@ -63,7 +63,7 @@ struct GPUReconstructionPipelineQueue {
 } // namespace
 
 struct GPUReconstructionPipelineContext {
-  std::queue<GPUReconstructionPipelineQueue*> queue;
+  std::queue<GPUReconstructionPipelineQueue*> pipelineQueue;
   std::mutex mutex;
   std::condition_variable cond;
   bool terminate = false;
@@ -1089,13 +1089,13 @@ void GPUReconstruction::RunPipelineWorker()
   while (!terminate) {
     {
       std::unique_lock<std::mutex> lk(mPipelineContext->mutex);
-      mPipelineContext->cond.wait(lk, [this] { return this->mPipelineContext->queue.size() > 0; });
+      mPipelineContext->cond.wait(lk, [this] { return this->mPipelineContext->pipelineQueue.size() > 0; });
     }
     GPUReconstructionPipelineQueue* q;
     {
       std::lock_guard<std::mutex> lk(mPipelineContext->mutex);
-      q = mPipelineContext->queue.front();
-      mPipelineContext->queue.pop();
+      q = mPipelineContext->pipelineQueue.front();
+      mPipelineContext->pipelineQueue.pop();
     }
     if (q->op == 1) {
       terminate = 1;
@@ -1132,26 +1132,23 @@ int32_t GPUReconstruction::EnqueuePipeline(bool terminate)
     if (rec->mPipelineContext->terminate) {
       throw std::runtime_error("Must not enqueue work after termination request");
     }
-    rec->mPipelineContext->queue.push(q);
+    rec->mPipelineContext->pipelineQueue.push(q);
     rec->mPipelineContext->terminate = terminate;
     rec->mPipelineContext->cond.notify_one();
   }
   q->c.wait(lkdone, [&q]() { return q->done; });
-  if (q->retVal) {
+  if (terminate || (q->retVal && (q->retVal != 3 || !GetProcessingSettings().ignoreNonFatalGPUErrors))) {
     return q->retVal;
   }
-  if (terminate) {
-    return 0;
-  } else {
-    return mChains[0]->FinalizePipelinedProcessing();
-  }
+  int32_t retVal2 = mChains[0]->FinalizePipelinedProcessing();
+  return retVal2 ? retVal2 : q->retVal;
 }
 
 GPUChain* GPUReconstruction::GetNextChainInQueue()
 {
   GPUReconstruction* rec = mMaster ? mMaster : this;
   std::lock_guard<std::mutex> lk(rec->mPipelineContext->mutex);
-  return rec->mPipelineContext->queue.size() && rec->mPipelineContext->queue.front()->op == 0 ? rec->mPipelineContext->queue.front()->chain : nullptr;
+  return rec->mPipelineContext->pipelineQueue.size() && rec->mPipelineContext->pipelineQueue.front()->op == 0 ? rec->mPipelineContext->pipelineQueue.front()->chain : nullptr;
 }
 
 void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not be called from chainTracking but before
