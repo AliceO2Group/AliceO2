@@ -31,7 +31,7 @@ fi
 # --> the taskwrapper as a simple control and monitoring tool
 #     (look inside the jobutils.sh file for documentation)
 # --> utilities to query CPU count
-. ${O2_ROOT}/share/scripts/jobutils.sh
+. ${O2_ROOT}/share/scripts/jobutils2.sh
 
 # make sure that correct format will be used irrespecive of the locale
 export LC_NUMERIC=C
