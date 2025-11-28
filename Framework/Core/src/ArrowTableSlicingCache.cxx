@@ -19,23 +19,23 @@
 namespace o2::framework
 {
 
-namespace {
+namespace
+{
 std::shared_ptr<arrow::ChunkedArray> GetColumnByNameCI(std::shared_ptr<arrow::Table> const& table, std::string const& key)
 {
   auto const& fields = table->schema()->fields();
-  auto target = std::find_if(fields.begin(), fields.end(), [&key](std::shared_ptr<arrow::Field> const& field){
-    return [](std::string_view const& s1, std::string_view const& s2){
+  auto target = std::find_if(fields.begin(), fields.end(), [&key](std::shared_ptr<arrow::Field> const& field) {
+    return [](std::string_view const& s1, std::string_view const& s2) {
       return std::ranges::equal(
         s1, s2,
-        [](char c1, char c2){
+        [](char c1, char c2) {
           return std::tolower(static_cast<unsigned char>(c1)) == std::tolower(static_cast<unsigned char>(c2));
-        }
-        );
+        });
     }(field->name(), key);
   });
   return table->column(std::distance(fields.begin(), target));
 }
-}
+} // namespace
 
 void updatePairList(Cache& list, std::string const& binding, std::string const& key, bool enabled = true)
 {
