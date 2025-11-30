@@ -1754,21 +1754,21 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2
   auto geom = o2::its::GeometryTGeo::Instance();
   auto propagator = o2::base::Propagator::Instance();
   tracOut.resetCovariance();
+  o2::track::TrackPar refLin(tracOut);
   propagator->estimateLTFast(tofL, winLink); // guess about initial value for the track integral from the origin
   // refit track outward in the ITS
   const auto& itsClRefs = ABTrackletRefs[iITSAB];
   int nclRefit = 0, ncl = itsClRefs.getNClusters();
-
   float chi2 = 0.f;
   // NOTE: the ITS cluster absolute indices are stored from inner to outer layers
   for (int icl = itsClRefs.getFirstEntry(); icl < itsClRefs.getEntriesBound(); icl++) {
     const auto& clus = mITSClustersArray[ABTrackletClusterIDs[icl]];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
-    if (!tracOut.rotate(alpha) ||
+    if (!tracOut.rotate(alpha, refLin, propagator->getNominalBz()) ||
         // note: here we also calculate the L,T integral
         // note: we should eventually use TPC pid in the refit (TODO)
         // note: since we are at small R, we can use field BZ component at origin rather than 3D field
-        !propagator->propagateToX(tracOut, x, propagator->getNominalBz(), MaxSnp, maxStep, mUseMatCorrFlag, &tofL)) {
+        !propagator->propagateToX(tracOut, refLin, x, propagator->getNominalBz(), MaxSnp, maxStep, mUseMatCorrFlag, &tofL)) {
       break;
     }
     chi2 += tracOut.getPredictedChi2(clus);
@@ -1789,7 +1789,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2
   {
     float xtogo = 0;
     if (!tracOut.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
-        !propagator->PropagateToXBxByBz(tracOut, xtogo, MaxSnp, 10., mUseMatCorrFlag, &tofL)) {
+        !propagator->PropagateToXBxByBz(tracOut, refLin, xtogo, MaxSnp, 10., mUseMatCorrFlag, &tofL)) {
       LOG(debug) << "Propagation to inner TPC boundary X=" << xtogo << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
       matchedTracks.pop_back(); // destroy failed track
       return false;
