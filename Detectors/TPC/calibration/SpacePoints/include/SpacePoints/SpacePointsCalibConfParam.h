@@ -42,6 +42,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   bool ignoreNonPVContrib = true;       ///< flag if tracks which did not contribute to the PV should be ignored or not
   bool enableTrackDownsampling = false; ///< flag if track sampling shall be enabled or not
   bool refitITS = true;                 ///< refit ITS tracks with PID attached to the seed
+  bool shiftRefToCluster = true;        ///< when reftting the ITS track, shift the lin.reference to cluster after every update (better material matching)
   float tsalisThreshold = 1.f;          ///< in case the sampling functions returns a value smaller than this the track is discarded (1. means no downsampling)
 
   // other settings for track interpolation

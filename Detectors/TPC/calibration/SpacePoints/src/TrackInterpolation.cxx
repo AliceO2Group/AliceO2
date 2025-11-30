@@ -1511,6 +1511,10 @@ bool TrackInterpolation::refITSTrack(o2::dataformats::GlobalTrackID gid, int see
       LOGP(debug, "failed to update ITS tracks by cluster ({},{})/({},{},{})", track.asString(), cls.getY(), cls.getZ(), cls.getSigmaY2(), cls.getSigmaYZ(), cls.getSigmaZ2());
       return false;
     }
+    if (mParams->shiftRefToCluster) {
+      refLin.setY(posTF[0]);
+      refLin.setZ(posTF[1]);
+    }
   }
   seed = track;
   // memorize that this ITS track was already refitted
