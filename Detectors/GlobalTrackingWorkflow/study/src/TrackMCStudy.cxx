@@ -1303,6 +1303,7 @@ void TrackMCStudy::processITSTracks(const o2::globaltracking::RecoContainer& rec
   const auto itsClRefs = recoData.getITSTracksClusterRefs();
   const auto clusITS = recoData.getITSClusters();
   const auto patterns = recoData.getITSClustersPatterns();
+  const auto& params = o2::trackstudy::TrackMCStudyConfig::Instance();
   auto pattIt = patterns.begin();
   mITSClustersArray.clear();
   mITSClustersArray.reserve(clusITS.size());
@@ -1324,7 +1325,7 @@ void TrackMCStudy::processITSTracks(const o2::globaltracking::RecoContainer& rec
     const auto& itsLb = itsLbls[itr];
     //    LOGP(info,"proc {} {} {}",itr0, itr, itsLb.asString());
     int nCl = itsTr.getNClusters();
-    if (itsLb.isFake() || nCl != 7) {
+    if (itsLb.isFake() || nCl < params.minITSClForITSoutput) {
       continue;
     }
     auto entrySel = mSelMCTracks.find(itsLb);

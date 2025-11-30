@@ -34,6 +34,7 @@ struct TrackMCStudyConfig : o2::conf::ConfigurableParamHelper<TrackMCStudyConfig
   int nTBPerOccBin = 48;  // number of TB per occ bin
   float rejectClustersResStat = 0.1;
   float maxTPCRefExtrap = 2;                   // max dX to extrapolate the track ref when extrapolating track true posions
+  int minITSClForITSoutput = 7;                // create special ITS otput only for long enough tracks
   int decayPDG[5] = {310, 3122, 411, 421, -1}; // decays to study, must end by -1
   O2ParamDef(TrackMCStudyConfig, "trmcconf");
 };
