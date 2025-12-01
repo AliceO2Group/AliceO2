@@ -588,23 +588,23 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
       auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-reader"; });
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-writer"; });
-      auto &ac = ctx.services().get<AnalysisContext>();
-      ac.requestedAODs.clear();
-      ac.requestedDYNs.clear();
-      ac.providedDYNs.clear();
-      ac.providedTIMs.clear();
-      ac.requestedTIMs.clear();
+      auto& dec = ctx.services().get<DanglingEdgesContext>();
+      dec.requestedAODs.clear();
+      dec.requestedDYNs.clear();
+      dec.providedDYNs.clear();
+      dec.providedTIMs.clear();
+      dec.requestedTIMs.clear();
 
       auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
       auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
-        ac.requestedIDXs.clear();
+        dec.requestedIDXs.clear();
         for (auto& d : workflow | views::exclude_by_name(builder->name)) {
           d.inputs |
             views::partial_match_filter(header::DataOrigin{"IDX"}) |
-            sinks::update_input_list{ac.requestedIDXs};
+            sinks::update_input_list{dec.requestedIDXs};
         }
         // recreate inputs and outputs
         builder->inputs.clear();
@@ -612,7 +612,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // replace AlgorithmSpec
         //  FIXME: it should be made more generic, so it does not need replacement...
         builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx); // readers::AODReaderHelpers::indexBuilderCallback(ctx);
-        AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, *builder);
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.requestedIDXs, dec.requestedAODs, dec.requestedDYNs, *builder);
       }
 
       if (spawner != workflow.end()) {
@@ -620,21 +620,21 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         for (auto& d : workflow | views::exclude_by_name(spawner->name)) {
           d.inputs |
             views::partial_match_filter(header::DataOrigin{"DYN"}) |
-            sinks::update_input_list{ac.requestedDYNs};
+            sinks::update_input_list{dec.requestedDYNs};
           d.outputs |
             views::partial_match_filter(header::DataOrigin{"DYN"}) |
-            sinks::append_to{ac.providedDYNs};
+            sinks::append_to{dec.providedDYNs};
         }
-        std::sort(ac.requestedDYNs.begin(), ac.requestedDYNs.end(), inputSpecLessThan);
-        std::sort(ac.providedDYNs.begin(), ac.providedDYNs.end(), outputSpecLessThan);
-        ac.spawnerInputs.clear();
-        ac.requestedDYNs |
-          views::filter_not_matching(ac.providedDYNs) |
-          sinks::append_to{ac.spawnerInputs};
+        std::sort(dec.requestedDYNs.begin(), dec.requestedDYNs.end(), inputSpecLessThan);
+        std::sort(dec.providedDYNs.begin(), dec.providedDYNs.end(), outputSpecLessThan);
+        dec.spawnerInputs.clear();
+        dec.requestedDYNs |
+          views::filter_not_matching(dec.providedDYNs) |
+          sinks::append_to{dec.spawnerInputs};
         // recreate inputs and outputs
         spawner->outputs.clear();
         spawner->inputs.clear();
-        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
+        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, dec.spawnerInputs, dec.requestedAODs, *spawner);
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
         spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
@@ -642,14 +642,14 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
       if (analysisCCDB != workflow.end()) {
         for (auto& d : workflow | views::exclude_by_name(analysisCCDB->name)) {
-          d.inputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::update_input_list{ac.requestedTIMs};
-          d.outputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::append_to{ac.providedTIMs};
+          d.inputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::update_input_list{dec.requestedTIMs};
+          d.outputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::append_to{dec.providedTIMs};
         }
-        std::sort(ac.requestedTIMs.begin(), ac.requestedTIMs.end(), inputSpecLessThan);
-        std::sort(ac.providedTIMs.begin(), ac.providedTIMs.end(), outputSpecLessThan);
+        std::sort(dec.requestedTIMs.begin(), dec.requestedTIMs.end(), inputSpecLessThan);
+        std::sort(dec.providedTIMs.begin(), dec.providedTIMs.end(), outputSpecLessThan);
         // Use ranges::to<std::vector<>> in C++23...
-        ac.analysisCCDBInputs.clear();
-        ac.requestedTIMs | views::filter_not_matching(ac.providedTIMs) | sinks::append_to{ac.analysisCCDBInputs};
+        dec.analysisCCDBInputs.clear();
+        dec.requestedTIMs | views::filter_not_matching(dec.providedTIMs) | sinks::append_to{dec.analysisCCDBInputs};
 
         // recreate inputs and outputs
         analysisCCDB->outputs.clear();
@@ -658,7 +658,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // FIXME: it should be made more generic, so it does not need replacement...
         // FIXME how can I make the lookup depend on DYN tables as well??
         analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
-        AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedDYNs, *analysisCCDB);
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.analysisCCDBInputs, dec.requestedAODs, dec.requestedDYNs, *analysisCCDB);
       }
 
       if (writer != workflow.end()) {
@@ -671,12 +671,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         for (auto& d : workflow) {
           d.inputs |
             views::partial_match_filter(AODOrigins) |
-            sinks::update_input_list{ac.requestedAODs};
+            sinks::update_input_list{dec.requestedAODs};
         }
 
         // remove unmatched outputs
         auto o_end = std::remove_if(reader->outputs.begin(), reader->outputs.end(), [&](OutputSpec const& o) {
-          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(ac.requestedAODs.begin(), ac.requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
+          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(dec.requestedAODs.begin(), dec.requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
         });
         reader->outputs.erase(o_end, reader->outputs.end());
         if (reader->outputs.empty()) {
@@ -694,22 +694,22 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       // select outputs of type AOD which need to be saved
       // ATTENTION: if there are dangling outputs the getGlobalAODSink
       // has to be created in any case!
-      ac.outputsInputsAOD.clear();
+      dec.outputsInputsAOD.clear();
 
       for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
         if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
           auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
           if (!ds.empty() || isDangling[ii]) {
-            ac.outputsInputsAOD.emplace_back(outputsInputs[ii]);
+            dec.outputsInputsAOD.emplace_back(outputsInputs[ii]);
           }
         }
       }
 
       // file sink for any AOD output
-      if (!ac.outputsInputsAOD.empty()) {
+      if (!dec.outputsInputsAOD.empty()) {
         // add TFNumber and TFFilename as input to the writer
-        ac.outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
-        ac.outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
+        dec.outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
+        dec.outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
         workflow.push_back(AnalysisSupportHelpers::getGlobalAODSink(ctx));
       }
       // Move the dummy sink at the end, if needed

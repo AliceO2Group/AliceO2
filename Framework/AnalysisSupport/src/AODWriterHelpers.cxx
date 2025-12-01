@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/AnalysisContext.h"
+#include "Framework/DanglingEdgesContext.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ControlService.h"
 #include "AODWriterHelpers.h"
@@ -62,7 +62,7 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
 
 AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
 {
-  auto& ac = ctx.services().get<AnalysisContext>();
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
   auto dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
   int compressionLevel = 505;
   if (ctx.options().hasOption("aod-writer-compression")) {
@@ -245,7 +245,7 @@ AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
 AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& ctx)
 {
   using namespace monitoring;
-  auto& ac = ctx.services().get<AnalysisContext>();
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
   auto tskmap = ac.outTskMap;
   auto objmap = ac.outObjHistMap;
 

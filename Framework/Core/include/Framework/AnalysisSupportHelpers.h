@@ -14,7 +14,7 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/AnalysisContext.h"
+#include "Framework/DanglingEdgesContext.h"
 #include "Headers/DataHeader.h"
 #include <array>
 

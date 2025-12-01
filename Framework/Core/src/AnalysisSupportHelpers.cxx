@@ -25,8 +25,8 @@ namespace o2::framework
 std::shared_ptr<DataOutputDirector> AnalysisSupportHelpers::getDataOutputDirector(ConfigContext const& ctx)
 {
   auto const& options = ctx.options();
-  auto const& OutputsInputs = ctx.services().get<AnalysisContext>().outputsInputs;
-  auto const& isDangling = ctx.services().get<AnalysisContext>().isDangling;
+  auto const& OutputsInputs = ctx.services().get<DanglingEdgesContext>().outputsInputs;
+  auto const& isDangling = ctx.services().get<DanglingEdgesContext>().isDangling;
 
   std::shared_ptr<DataOutputDirector> dod = std::make_shared<DataOutputDirector>();
 
@@ -200,7 +200,7 @@ DataProcessorSpec AnalysisSupportHelpers::getOutputObjHistSink(ConfigContext con
 DataProcessorSpec
   AnalysisSupportHelpers::getGlobalAODSink(ConfigContext const& ctx)
 {
-  auto& ac = ctx.services().get<AnalysisContext>();
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
 
   // the command line options relevant for the writer are global
   // see runDataProcessing.h

@@ -19,7 +19,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ConfigContext.h"
-#include "Framework/AnalysisContext.h"
+#include "Framework/DanglingEdgesContext.h"
 
 namespace o2::framework::readers
 {
@@ -81,7 +81,7 @@ struct Buildable {
 
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(ConfigContext const& ctx)
 {
-  auto& ac = ctx.services().get<AnalysisContext>();
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
   return AlgorithmSpec::InitCallback{[requested = ac.requestedIDXs](InitContext& /*ic*/) {
     std::vector<Buildable> buildables;
     for (auto& i : requested) {
@@ -183,7 +183,7 @@ struct Spawnable {
 
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(ConfigContext const& ctx)
 {
-  auto& ac = ctx.services().get<AnalysisContext>();
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
   return AlgorithmSpec::InitCallback{[requested = ac.spawnerInputs](InitContext& /*ic*/) {
     std::vector<Spawnable> spawnables;
     for (auto& i : requested) {

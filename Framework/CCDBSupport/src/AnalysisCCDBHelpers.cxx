@@ -18,7 +18,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/Output.h"
 #include "Framework/Signpost.h"
-#include "Framework/AnalysisContext.h"
+#include "Framework/DanglingEdgesContext.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigContext.h"
 #include <arrow/array/builder_binary.h>
@@ -69,7 +69,7 @@ void fillValidRoutes(CCDBFetcherHelper& helper, std::vector<o2::framework::Outpu
 
 AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& ctx)
 {
-  auto& ac = ctx.services().get<AnalysisContext>();
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
   std::vector<std::shared_ptr<arrow::Schema>> schemas;
   auto schemaMetadata = std::make_shared<arrow::KeyValueMetadata>();
 

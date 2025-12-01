@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_ANALYSISCONTEXT_H_
-#define O2_FRAMEWORK_ANALYSISCONTEXT_H_
+#ifndef O2_FRAMEWORK_DANGLINGEDGESCONTEXT_H_
+#define O2_FRAMEWORK_DANGLINGEDGESCONTEXT_H_
 
 #include <vector>
 #include "Framework/InputSpec.h"
@@ -32,7 +32,7 @@ struct OutputObjectInfo {
 // This will keep track of the inputs which have
 // been requested and for which we will need to inject
 // some source device.
-struct AnalysisContext {
+struct DanglingEdgesContext {
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
   std::vector<InputSpec> requestedDYNs;
@@ -63,4 +63,4 @@ struct AnalysisContext {
 extern template class std::vector<o2::framework::OutputObjectInfo>;
 extern template class std::vector<o2::framework::OutputTaskInfo>;
 
-#endif // O2_FRAMEWORK_ANALYSISCONTEXT_H_
+#endif // O2_FRAMEWORK_DANGLINGEDGESCONTEXT_H_
