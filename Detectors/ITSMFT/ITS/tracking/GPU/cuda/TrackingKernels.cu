@@ -129,34 +129,36 @@ GPUdii() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
                                                const float bz,
                                                const bool reverse = false)
 {
-  const float ca = o2::gpu::CAMath::Cos(tf3.alphaTrackingFrame), sa = o2::gpu::CAMath::Sin(tf3.alphaTrackingFrame);
+  const float sign = reverse ? -1.f : 1.f;
+
+  float ca, sa;
+  o2::gpu::CAMath::SinCos(tf3.alphaTrackingFrame, sa, ca);
+
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
   const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
-  const float z1 = cluster1.zCoordinate;
   const float x2 = cluster2.xCoordinate * ca + cluster2.yCoordinate * sa;
   const float y2 = -cluster2.xCoordinate * sa + cluster2.yCoordinate * ca;
-  const float z2 = cluster2.zCoordinate;
   const float x3 = tf3.xTrackingFrame;
   const float y3 = tf3.positionTrackingFrame[0];
-  const float z3 = tf3.positionTrackingFrame[1];
 
-  const bool zeroField{o2::gpu::CAMath::Abs(bz) < o2::constants::math::Almost0};
-  const float sign = (reverse) ? -1.f : 1.f;
-  const float tgp = zeroField ? sign * o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1) : 1.f;
-  const float crv = sign * (zeroField ? 1.f : math_utils::computeCurvature(x3, y3, x2, y2, x1, y1));
-  const float snp = (zeroField ? tgp / o2::gpu::CAMath::Sqrt(1.f + tgp * tgp) : crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1)));
-  const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-  const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
-  const float q2pt = zeroField ? sign / o2::track::kMostProbablePt : crv / (bz * o2::constants::math::B2C);
-  const float q2pt2 = crv * crv;
-  const float sg2q2pt = o2::track::kC1Pt2max * (q2pt2 > 0.0005 ? (q2pt2 < 1 ? q2pt2 : 1) : 0.0005);
-  return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
-                            {y3, z3, snp, 0.5f * (tgl12 + tgl23), q2pt},
-                            {tf3.covarianceTrackingFrame[0],
-                             tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2],
-                             0.f, 0.f, track::kCSnp2max,
-                             0.f, 0.f, 0.f, track::kCTgl2max,
-                             0.f, 0.f, 0.f, 0.f, sg2q2pt});
+  float snp, q2pt, q2pt2;
+  if (o2::gpu::CAMath::Abs(bz) < 0.01f) {
+    const float tgp = o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1);
+    snp = sign * tgp / o2::gpu::CAMath::Sqrt(1.f + tgp * tgp);
+    q2pt = sign / track::kMostProbablePt;
+    q2pt2 = 1.f;
+  } else {
+    const float crv = math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
+    snp = sign * crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1));
+    q2pt = sign * crv / (bz * o2::constants::math::B2C);
+    q2pt2 = crv * crv;
+  }
+
+  const float tgl = 0.5f * (math_utils::computeTanDipAngle(x1, y1, x2, y2, cluster1.zCoordinate, cluster2.zCoordinate) +
+                            math_utils::computeTanDipAngle(x2, y2, x3, y3, cluster2.zCoordinate, tf3.positionTrackingFrame[1]));
+  const float sg2q2pt = track::kC1Pt2max * (q2pt2 > 0.0005f ? (q2pt2 < 1.f ? q2pt2 : 1.f) : 0.0005f);
+
+  return {x3, tf3.alphaTrackingFrame, {y3, tf3.positionTrackingFrame[1], snp, tgl, q2pt}, {tf3.covarianceTrackingFrame[0], tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2], 0.f, 0.f, track::kCSnp2max, 0.f, 0.f, 0.f, track::kCTgl2max, 0.f, 0.f, 0.f, 0.f, sg2q2pt}};
 }
 
 template <int nLayers>
