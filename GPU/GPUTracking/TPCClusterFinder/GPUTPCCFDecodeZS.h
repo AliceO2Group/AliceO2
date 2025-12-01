@@ -21,7 +21,7 @@
 #include "TPCBase/PadPos.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
-#include "DetectorsRaw/RDHUtils.h"
+#include "Headers/RAWDataHeader.h"
 
 namespace o2::gpu
 {

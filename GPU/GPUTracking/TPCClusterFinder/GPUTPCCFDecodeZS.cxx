@@ -23,6 +23,7 @@
 #include "TPCPadGainCalib.h"
 #include "TPCZSLinkMapping.h"
 #include "GPUTPCGeometry.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::gpu;
 using namespace o2::gpu::tpccf;
@@ -302,26 +303,6 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTB(
     uint8_t myOffset = warp_scan_inclusive_add(myChannelActive) - 1 + blockOffset;
     blockOffset = warp_broadcast(myOffset, NTHREADS - 1) + 1;
 
-    // Decode entire timebin at once if we have enough threads
-    // This should further improve performance, but code below is buggy...
-    // if (nAdc <= NThreads) {
-    //   for (int32_t j = 1; blockOffset < nAdc; j++) {
-    //     rawFECChannel = myChannelActive ? rawFECChannel : (iThread + j*NThreads - myOffset);
-
-    //     bool iAmIdle = not myChannelActive;
-
-    //     myChannelActive =
-    //       rawFECChannel < zerosupp_link_based::CommonHeaderlPerTBHeader
-    //         ? BitIsSet(channelMask, rawFECChannel)
-    //         : false;
-
-    //     uint8_t newOffset = warp_scan_inclusive_add(static_cast<uint8_t>(myChannelActive && iAmIdle)) - 1 + blockOffset;
-    //     blockOffset = warp_broadcast(newOffset, NThreads - 1) + 1;
-
-    //     myOffset = iAmIdle ? newOffset : myOffset;
-    //   }
-    // }
-
     if (not myChannelActive) {
       continue;
     }
@@ -331,28 +312,16 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTB(
 
     if constexpr (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
 
-      // Try to access adcData with 4 byte reads instead of 1 byte.
-      // You'd think this would improve performace, but it's actually slower...
-      // const uint32_t* adcDataU32 = reinterpret_cast<const uint32_t*>(adcData);
-
       uint32_t adcBitOffset = myOffset * DECODE_BITS;
       uint32_t adcByteOffset = adcBitOffset / CHAR_BIT;
       uint32_t adcOffsetInByte = adcBitOffset - adcByteOffset * CHAR_BIT;
-      // uint32_t adcByteOffset = adcBitOffset / 32;
-      // uint32_t adcOffsetInByte = adcBitOffset - adcByteOffset * 32;
 
       uint32_t byte = 0, bits = 0;
 
-      // uint32_t byte = adcDataU32[adcByteOffset] >> adcOffsetInByte;
-      // uint32_t bits = 32 - adcOffsetInByte;
-      // adcByteOffset++;
-
       while (bits < DECODE_BITS) {
         byte |= ((uint32_t)adcData[adcByteOffset]) << bits;
-        // byte |= adcDataU32[adcByteOffset] << bits;
         adcByteOffset++;
         bits += CHAR_BIT;
-        // bits += 32;
       }
       adc = byte >> adcOffsetInByte;
 
