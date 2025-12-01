@@ -148,8 +148,7 @@ class GPUTPCCFDecodeZSLink : public GPUTPCCFDecodeZSLinkBase
   GPUd() static void GetChannelBitmask(const tpc::zerosupp_link_based::CommonHeader& tbHdr, uint32_t* chan);
   GPUd() static bool ChannelIsActive(const uint32_t* chan, uint8_t chanIndex);
 
-  GPUd() static void DecodeTBSingleThread(DecodeCtx& ctx, const uint8_t* adcData, uint32_t nAdc, const uint32_t* channelMask, int32_t timeBin, int32_t cru, int32_t fecInPartition);
-  GPUd() static void DecodeTBMultiThread(GPUSharedMemory& smem, DecodeCtx& ctx, const uint8_t* adcData, uint32_t nAdc, const uint32_t* channelMask, int32_t timeBin, int32_t cru, int32_t fecInPartition);
+  GPUd() static void DecodeTB(GPUSharedMemory& smem, DecodeCtx& ctx, const uint8_t* adcData, uint32_t nAdc, const uint32_t* channelMask, int32_t timeBin, int32_t cru, int32_t fecInPartition);
 };
 
 class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
@@ -179,14 +178,8 @@ class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
   // Decode a single timebin within an 8kb page.
   // Returns the number of samples decoded from the page
   // or negative value to indicate an error (no samples are written in this case)
-  template <bool DecodeInParallel, bool PayloadExtendsToNextPage>
+  template <bool PayloadExtendsToNextPage>
   GPUd() static int16_t DecodeTB(GPUSharedMemory& smem, DecodeCtx& ctx, const header::RAWDataHeader* rawDataHeader, int32_t cru, uint16_t nSamplesLeftInPage, const uint8_t* payloadEnd, const uint8_t* nextPage);
-
-  template <bool PayloadExtendsToNextPage>
-  GPUd() static int16_t DecodeTBSingleThread(DecodeCtx& ctx, const header::RAWDataHeader* rawDataHeader, int32_t cru, uint16_t nSamplesLeftInPage, const uint8_t* payloadEnd, const uint8_t* nextPage);
-
-  template <bool PayloadExtendsToNextPage>
-  GPUd() static int16_t DecodeTBMultiThread(GPUSharedMemory& smem, DecodeCtx& ctx, const header::RAWDataHeader* rawDataHeader, int32_t cru, uint16_t nSamplesLeftInPage, const uint8_t* payloadEnd, const uint8_t* nextPage);
 };
 
 } // namespace o2::gpu

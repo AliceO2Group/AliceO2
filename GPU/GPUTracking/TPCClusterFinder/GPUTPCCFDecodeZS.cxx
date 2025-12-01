@@ -251,8 +251,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, DecodeCtx&
     if (discardTimeBin) {
       FillWithInvalid(ctx.clusterer, ctx.iThread, ctx.nThreads, ctx.pageDigitOffset, nAdc);
     } else {
-#ifdef GPUCA_GPUCODE
-      DecodeTBMultiThread(
+      DecodeTB(
         smem,
         ctx,
         adcData,
@@ -261,16 +260,6 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, DecodeCtx&
         timeBin,
         decHdr->cruID,
         tbHdr->fecInPartition);
-#else // CPU
-      DecodeTBSingleThread(
-        ctx,
-        adcData,
-        nAdc,
-        channelMask,
-        timeBin,
-        decHdr->cruID,
-        tbHdr->fecInPartition);
-#endif
     }
 
     ctx.pageDigitOffset += nAdc;
@@ -290,62 +279,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, DecodeCtx&
   return ctx.pageDigitOffset;
 }
 
-GPUd() void GPUTPCCFDecodeZSLink::DecodeTBSingleThread(
-  DecodeCtx& ctx,
-  const uint8_t* adcData,
-  uint32_t nAdc,
-  const uint32_t* channelMask,
-  int32_t timeBin,
-  int32_t cru,
-  int32_t fecInPartition)
-{
-  const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
-
-  if constexpr (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
-
-    uint32_t byte = 0, bits = 0, nSamplesWritten = 0, rawFECChannel = 0;
-
-    // unpack adc values, assume tightly packed data
-    while (nSamplesWritten < nAdc) {
-      byte |= adcData[0] << bits;
-      adcData++;
-      bits += CHAR_BIT;
-      while (bits >= DECODE_BITS) {
-
-        // Find next channel with data
-        for (; !ChannelIsActive(channelMask, rawFECChannel); rawFECChannel++) {
-        }
-
-        // Unpack data for cluster finder
-        o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(ctx.clusterer, cru, rawFECChannel, fecInPartition);
-
-        WriteCharge(ctx.clusterer, byte, padAndRow, fragment.toLocal(timeBin), ctx.pageDigitOffset + nSamplesWritten);
-
-        byte = byte >> DECODE_BITS;
-        bits -= DECODE_BITS;
-        nSamplesWritten++;
-        rawFECChannel++; // Ensure we don't decode same channel twice
-      } // while (bits >= DECODE_BITS)
-    } // while (nSamplesWritten < nAdc)
-
-  } else { // ! TPCZSHDRV2::TIGHTLY_PACKED_V3
-    uint32_t rawFECChannel = 0;
-    const uint64_t* adcData64 = (const uint64_t*)adcData;
-    for (uint32_t j = 0; j < nAdc; j++) {
-      for (; !ChannelIsActive(channelMask, rawFECChannel); rawFECChannel++) {
-      }
-
-      uint32_t adc = (adcData64[j / TPCZSHDRV2::SAMPLESPER64BIT] >> ((j % TPCZSHDRV2::SAMPLESPER64BIT) * DECODE_BITS)) & DECODE_MASK;
-
-      o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(ctx.clusterer, cru, rawFECChannel, fecInPartition);
-      float charge = ADCToFloat(adc, DECODE_MASK, DECODE_BITS_FACTOR);
-      WriteCharge(ctx.clusterer, charge, padAndRow, fragment.toLocal(timeBin), ctx.pageDigitOffset + j);
-      rawFECChannel++;
-    }
-  }
-}
-
-GPUd() void GPUTPCCFDecodeZSLink::DecodeTBMultiThread(
+GPUd() void GPUTPCCFDecodeZSLink::DecodeTB(
   GPUSharedMemory& smem,
   DecodeCtx& ctx,
   const uint8_t* adcData,
@@ -601,12 +535,6 @@ GPUd() void GPUTPCCFDecodeZSDenseLink::Thread<0>(int32_t nBlocks, int32_t nThrea
 
 GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, DecodeCtx& ctx)
 {
-#ifdef GPUCA_GPUCODE
-  constexpr bool DecodeInParallel = true;
-#else
-  constexpr bool DecodeInParallel = false;
-#endif
-
   const uint8_t* const pageStart = ctx.page;
 
   const auto* rawDataHeader = Peek<header::RAWDataHeader>(ctx.page);
@@ -651,13 +579,13 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, Dec
       }
 
       if ((uint16_t)(raw::RDHUtils::getPageCounter(rawDataHeader) + 1) == raw::RDHUtils::getPageCounter(nextPage)) {
-        nSamplesWrittenTB = DecodeTB<DecodeInParallel, true>(smem, ctx, rawDataHeader, decHeader->cruID, nSamplesLeftInPage, payloadEnd, nextPage);
+        nSamplesWrittenTB = DecodeTB<true>(smem, ctx, rawDataHeader, decHeader->cruID, nSamplesLeftInPage, payloadEnd, nextPage);
       } else {
         err = GPUErrors::ERROR_TPCZS_INCOMPLETE_HBF;
         break;
       }
     } else {
-      nSamplesWrittenTB = DecodeTB<DecodeInParallel, false>(smem, ctx, rawDataHeader, decHeader->cruID, nSamplesLeftInPage, payloadEnd, nextPage);
+      nSamplesWrittenTB = DecodeTB<false>(smem, ctx, rawDataHeader, decHeader->cruID, nSamplesLeftInPage, payloadEnd, nextPage);
     }
 
     // Abort decoding the page if an error was detected.
@@ -712,30 +640,8 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, Dec
   return ctx.pageDigitOffset;
 }
 
-template <bool DecodeInParallel, bool PayloadExtendsToNextPage>
-GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
-  [[maybe_unused]] GPUSharedMemory& smem,
-  DecodeCtx& ctx,
-  const header::RAWDataHeader* rawDataHeader,
-  int32_t cru,
-  uint16_t nSamplesLeftInPage,
-  const uint8_t* payloadEnd,
-  const uint8_t* nextPage)
-{
-
-  if constexpr (DecodeInParallel) {
-    return DecodeTBMultiThread<PayloadExtendsToNextPage>(smem, ctx, rawDataHeader, cru, nSamplesLeftInPage, payloadEnd, nextPage);
-  } else {
-    int16_t nSamplesWritten = 0;
-    if (ctx.iThread == 0) {
-      nSamplesWritten = DecodeTBSingleThread<PayloadExtendsToNextPage>(ctx, rawDataHeader, cru, nSamplesLeftInPage, payloadEnd, nextPage);
-    }
-    return warp_broadcast(nSamplesWritten, 0);
-  }
-}
-
 template <bool PayloadExtendsToNextPage>
-GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
+GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
   GPUSharedMemory& smem,
   DecodeCtx& ctx,
   const header::RAWDataHeader* rawDataHeader,
@@ -880,123 +786,6 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
 
 #undef TEST_BIT
 #undef PEEK_OVERFLOW
-#undef MAYBE_PAGE_OVERFLOW
-}
-
-template <bool PayloadExtendsToNextPage>
-GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
-  DecodeCtx& ctx,
-  const header::RAWDataHeader* rawDataHeader,
-  int32_t cru,
-  uint16_t nSamplesLeftInPage,
-  const uint8_t* payloadEnd,
-  const uint8_t* nextPage)
-{
-#define MAYBE_PAGE_OVERFLOW(pagePtr)                               \
-  if constexpr (PayloadExtendsToNextPage) {                        \
-    if (pagePtr >= payloadEnd && pagePtr < nextPage) {             \
-      ptrdiff_t diff = pagePtr - payloadEnd;                       \
-      pagePtr = nextPage;                                          \
-      ConsumeBytes(pagePtr, sizeof(header::RAWDataHeader) + diff); \
-    }                                                              \
-  } else {                                                         \
-    if (pagePtr > payloadEnd) {                                    \
-      return -GPUErrors::ERROR_TPCZS_PAGE_OVERFLOW;                \
-    }                                                              \
-  }
-
-  using zerosupp_link_based::ChannelPerTBHeader;
-
-  const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
-
-  uint8_t linkIds[MaxNLinksPerTimebin];
-  uint8_t channelMasks[MaxNLinksPerTimebin * 10] = {0};
-  uint16_t nSamplesWritten = 0;
-
-  // Read timebin block header
-  uint16_t tbbHdr = ConsumeByte(ctx.page);
-  MAYBE_PAGE_OVERFLOW(ctx.page);
-  tbbHdr |= static_cast<uint16_t>(ConsumeByte(ctx.page)) << CHAR_BIT;
-  MAYBE_PAGE_OVERFLOW(ctx.page);
-
-  uint8_t nLinksInTimebin = tbbHdr & 0x000F;
-  uint16_t linkBC = (tbbHdr & 0xFFF0) >> 4;
-  int32_t timeBin = (linkBC + (uint64_t)(raw::RDHUtils::getHeartBeatOrbit(*rawDataHeader) - ctx.firstHBF) * constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
-
-  uint16_t nSamplesInTB = 0;
-
-  // Read timebin link headers
-  for (uint8_t iLink = 0; iLink < nLinksInTimebin; iLink++) {
-    uint8_t timebinLinkHeaderStart = ConsumeByte(ctx.page);
-    MAYBE_PAGE_OVERFLOW(ctx.page);
-
-    linkIds[iLink] = timebinLinkHeaderStart & 0b00011111;
-
-    bool bitmaskIsFlat = timebinLinkHeaderStart & 0b00100000;
-
-    uint16_t bitmaskL2 = 0x0FFF;
-    if (not bitmaskIsFlat) {
-      bitmaskL2 = static_cast<uint16_t>(timebinLinkHeaderStart & 0b11000000) << 2 | static_cast<uint16_t>(ConsumeByte(ctx.page));
-      MAYBE_PAGE_OVERFLOW(ctx.page);
-    }
-
-    for (int32_t i = 0; i < 10; i++) {
-      if (bitmaskL2 & 1 << i) {
-        nSamplesInTB += CAMath::Popcount(*Peek(ctx.page));
-        channelMasks[10 * iLink + i] = ConsumeByte(ctx.page);
-        MAYBE_PAGE_OVERFLOW(ctx.page);
-      }
-    }
-
-  } // for (uint8_t iLink = 0; iLink < nLinksInTimebin; iLink++)
-
-  if (nSamplesInTB > nSamplesLeftInPage) {
-    return -GPUErrors::ERROR_TPCZS_INVALID_NADC;
-  }
-
-  const uint8_t* adcData = ConsumeBytes(ctx.page, (nSamplesInTB * DECODE_BITS + 7) / 8);
-  MAYBE_PAGE_OVERFLOW(ctx.page);
-
-  bool discardTimeBin = not fragment.contains(timeBin);
-  discardTimeBin |= (ctx.tpcTimeBinCut > 0 && timeBin > ctx.tpcTimeBinCut);
-
-  if (discardTimeBin) {
-    return FillWithInvalid(ctx.clusterer, 0, 1, ctx.pageDigitOffset, nSamplesInTB);
-  }
-
-  // Unpack ADC
-  uint32_t byte = 0, bits = 0;
-  uint16_t rawFECChannel = 0;
-
-  // unpack adc values, assume tightly packed data
-  while (nSamplesWritten < nSamplesInTB) {
-    byte |= static_cast<uint32_t>(ConsumeByte(adcData)) << bits;
-    MAYBE_PAGE_OVERFLOW(adcData);
-    bits += CHAR_BIT;
-    while (bits >= DECODE_BITS) {
-
-      // Find next channel with data
-      for (; !ChannelIsActive(channelMasks, rawFECChannel); rawFECChannel++) {
-      }
-
-      int32_t iLink = rawFECChannel / ChannelPerTBHeader;
-      int32_t rawFECChannelLink = rawFECChannel % ChannelPerTBHeader;
-
-      // Unpack data for cluster finder
-      o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(ctx.clusterer, cru, rawFECChannelLink, linkIds[iLink]);
-
-      float charge = ADCToFloat(byte, DECODE_MASK, DECODE_BITS_FACTOR);
-      WriteCharge(ctx.clusterer, charge, padAndRow, fragment.toLocal(timeBin), ctx.pageDigitOffset + nSamplesWritten);
-
-      byte >>= DECODE_BITS;
-      bits -= DECODE_BITS;
-      nSamplesWritten++;
-      rawFECChannel++; // Ensure we don't decode same channel twice
-    } // while (bits >= DECODE_BITS)
-  } // while (nSamplesWritten < nAdc)
-
-  return nSamplesWritten;
-
 #undef MAYBE_PAGE_OVERFLOW
 }
 
