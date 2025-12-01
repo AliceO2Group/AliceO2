@@ -33,7 +33,6 @@ using namespace o2::tpc;
 using namespace o2::tpc::constants;
 
 GPUdi() static constexpr uint8_t getFlagsReject() { return GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagHighIncl; }
-GPUdi() static uint32_t getFlagsRequired(const GPUSettingsRec& rec) { return gputpcgmmergertypes::attachGoodLeg; }
 
 namespace o2::gpu::internal
 {
@@ -56,7 +55,6 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
   const GPUdEdxInfo* tracksdEdx = merger.MergedTracksdEdx();
 
   constexpr uint8_t flagsReject = getFlagsReject();
-  const uint32_t flagsRequired = getFlagsRequired(merger.Param().rec);
   bool cutOnTrackdEdx = merger.Param().par.dodEdx && merger.Param().dodEdxEnabled && merger.Param().rec.tpc.minTrackdEdxMax2Tot > 0.f;
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
@@ -71,7 +69,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
 
     uint32_t nCl = 0;
     for (uint32_t j = 0; j < tracks[i].NClusters(); j++) {
-      if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
+      if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject)) {
         continue;
       }
       nCl++;
@@ -115,7 +113,6 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
   const int32_t nTracks = merger.NOutputTracksTPCO2();
   const GPUTPCGMMergedTrackHit* trackClusters = merger.Clusters();
   constexpr uint8_t flagsReject = getFlagsReject();
-  const uint32_t flagsRequired = getFlagsRequired(merger.Param().rec);
   TrackTPC* outputTracks = merger.OutputTracksTPCO2();
   uint32_t* clusRefs = merger.OutputClusRefsTPCO2();
   const auto& param = merger.Param();
@@ -191,7 +188,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
     int32_t sector1 = 0, sector2 = 0;
     const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem()->ioPtrs.clustersNative;
     for (uint32_t j = 0; j < track.NClusters(); j++) {
-      if ((trackClusters[track.FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[track.FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
+      if ((trackClusters[track.FirstClusterRef() + j].state & flagsReject)) {
         continue;
       }
       int32_t clusterIdGlobal = trackClusters[track.FirstClusterRef() + j].num;
