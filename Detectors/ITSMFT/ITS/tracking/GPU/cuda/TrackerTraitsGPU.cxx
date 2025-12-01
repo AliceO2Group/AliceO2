@@ -325,17 +325,21 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds);
     mTimeFrameGPU->loadTrackSeedsDevice(trackSeeds);
 
-    trackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),             // CellSeed* trackSeeds
-                     mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo
-                     mTimeFrameGPU->getDeviceTrackITSExt(),            // o2::its::TrackITSExt* tracks
-                     this->mTrkParams[iteration].MinPt,                // std::vector<float>& minPtsHost,
+    trackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),             // CellSeed*
+                     mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo**
+                     mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster**
+                     mTimeFrameGPU->getDeviceTrackITSExt(),            // o2::its::TrackITSExt*
+                     this->mTrkParams[iteration].LayerRadii,           // const std::vector<float>&
+                     this->mTrkParams[iteration].MinPt,                // const std::vector<float>&
                      trackSeeds.size(),                                // const size_t nSeeds
                      this->mBz,                                        // const float Bz
                      startLevel,                                       // const int startLevel,
                      this->mTrkParams[0].MaxChi2ClusterAttachment,     // float maxChi2ClusterAttachment
                      this->mTrkParams[0].MaxChi2NDF,                   // float maxChi2NDF
-                     mTimeFrameGPU->getDevicePropagator(),             // const o2::base::Propagator* propagator
-                     this->mTrkParams[0].CorrType,                     // o2::base::PropagatorImpl<float>::MatCorrType
+                     this->mTrkParams[0].ReseedIfShorter,
+                     this->mTrkParams[0].ShiftRefToCluster,
+                     mTimeFrameGPU->getDevicePropagator(), // const o2::base::Propagator* propagator
+                     this->mTrkParams[0].CorrType,         // o2::base::PropagatorImpl<float>::MatCorrType
                      conf.nBlocksTracksSeeds[iteration],
                      conf.nThreadsTracksSeeds[iteration]);
 

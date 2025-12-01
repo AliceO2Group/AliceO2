@@ -57,41 +57,66 @@ GPUdii() bool fitTrack(TrackITSExt& track,
                        float bz,
                        const TrackingFrameInfo** tfInfos,
                        const o2::base::Propagator* prop,
-                       o2::base::PropagatorF::MatCorrType matCorrType)
+                       o2::base::PropagatorF::MatCorrType matCorrType,
+                       o2::track::TrackPar* linRef,
+                       const bool shiftRefToCluster)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
       continue;
     }
     const TrackingFrameInfo& trackingHit = tfInfos[iLayer][track.getClusterIndex(iLayer)];
-    if (!track.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame)) {
-      return false;
-    }
-
-    if (!prop->propagateToX(track,
-                            trackingHit.xTrackingFrame,
-                            bz,
-                            o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                            o2::base::PropagatorImpl<float>::MAX_STEP,
-                            matCorrType)) {
-      return false;
-    }
-
-    if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-      const float xx0 = (iLayer > 2) ? 1.e-2f : 5.e-3f; // Rough layer thickness
-      if (!track.correctForMaterial(xx0, xx0 * constants::Radl * constants::Rho, true)) {
+    if (linRef) {
+      if (!track.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame, *linRef, bz)) {
         return false;
+      }
+      if (!prop->propagateToX(track,
+                              *linRef,
+                              trackingHit.xTrackingFrame,
+                              bz,
+                              o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+                              o2::base::PropagatorImpl<float>::MAX_STEP,
+                              matCorrType)) {
+
+        return false;
+      }
+      if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        const float xx0 = (iLayer > 2) ? 1.e-2f : 5.e-3f; // Rough layer thickness
+        if (!track.correctForMaterial(*linRef, xx0, xx0 * constants::Radl * constants::Rho, true)) {
+          return false;
+        }
+      }
+    } else {
+      if (!track.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame)) {
+        return false;
+      }
+      if (!prop->propagateToX(track,
+                              trackingHit.xTrackingFrame,
+                              bz,
+                              o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+                              o2::base::PropagatorImpl<float>::MAX_STEP,
+                              matCorrType)) {
+        return false;
+      }
+      if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        const float xx0 = (iLayer > 2) ? 1.e-2f : 5.e-3f; // Rough layer thickness
+        if (!track.correctForMaterial(xx0, xx0 * constants::Radl * constants::Rho, true)) {
+          return false;
+        }
       }
     }
 
     auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
-
     if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
     }
     track.setChi2(track.getChi2() + predChi2);
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
+    }
+    if (linRef && shiftRefToCluster) { // displace the reference to the last updated cluster
+      linRef->setY(trackingHit.positionTrackingFrame[0]);
+      linRef->setZ(trackingHit.positionTrackingFrame[1]);
     }
     nCl++;
   }
@@ -101,7 +126,8 @@ GPUdii() bool fitTrack(TrackITSExt& track,
 GPUdii() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
                                                const Cluster& cluster2,
                                                const TrackingFrameInfo& tf3,
-                                               const float bz)
+                                               const float bz,
+                                               const bool reverse = false)
 {
   const float ca = o2::gpu::CAMath::Cos(tf3.alphaTrackingFrame), sa = o2::gpu::CAMath::Sin(tf3.alphaTrackingFrame);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
@@ -115,12 +141,13 @@ GPUdii() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
   const float z3 = tf3.positionTrackingFrame[1];
 
   const bool zeroField{o2::gpu::CAMath::Abs(bz) < o2::constants::math::Almost0};
-  const float tgp = zeroField ? o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1) : 1.f;
-  const float crv = zeroField ? 1.f : math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
-  const float snp = zeroField ? tgp / o2::gpu::CAMath::Sqrt(1.f + tgp * tgp) : crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1));
+  const float sign = (reverse) ? -1.f : 1.f;
+  const float tgp = zeroField ? sign * o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1) : 1.f;
+  const float crv = sign * (zeroField ? 1.f : math_utils::computeCurvature(x3, y3, x2, y2, x1, y1));
+  const float snp = (zeroField ? tgp / o2::gpu::CAMath::Sqrt(1.f + tgp * tgp) : crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1)));
   const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
   const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
-  const float q2pt = zeroField ? 1.f / o2::track::kMostProbablePt : crv / (bz * o2::constants::math::B2C);
+  const float q2pt = zeroField ? sign / o2::track::kMostProbablePt : crv / (bz * o2::constants::math::B2C);
   const float q2pt2 = crv * crv;
   const float sg2q2pt = o2::track::kC1Pt2max * (q2pt2 > 0.0005 ? (q2pt2 < 1 ? q2pt2 : 1) : 0.0005);
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
@@ -130,6 +157,52 @@ GPUdii() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
                              0.f, 0.f, track::kCSnp2max,
                              0.f, 0.f, 0.f, track::kCTgl2max,
                              0.f, 0.f, 0.f, 0.f, sg2q2pt});
+}
+
+template <int nLayers>
+GPUdii() TrackITSExt seedTrackForRefit(const CellSeed<nLayers>& seed,
+                                       const TrackingFrameInfo** foundTrackingFrameInfo,
+                                       const Cluster** unsortedClusters,
+                                       const float* layerRadii,
+                                       const float bz,
+                                       const int reseedIfShorter)
+{
+  TrackITSExt temporaryTrack(seed);
+  int lrMin = nLayers, lrMax = 0, lrMid = 0;
+  for (int iL{0}; iL < nLayers; ++iL) {
+    const int idx = seed.getCluster(iL);
+    temporaryTrack.setExternalClusterIndex(iL, idx, idx != constants::UnusedIndex);
+    if (idx != constants::UnusedIndex) {
+      // TODO only works if does not have holes
+      lrMin = o2::gpu::CAMath::Min(lrMin, iL);
+      lrMax = o2::gpu::CAMath::Max(lrMax, iL);
+    }
+  }
+  const int ncl = temporaryTrack.getNClusters();
+  if (ncl < reseedIfShorter && ncl > 0) { // need to check if there are any clusters since we keep invalidate seeeds around
+    if (ncl == nLayers) {
+      lrMin = 0;
+      lrMax = nLayers - 1;
+      lrMid = (lrMin + lrMax) / 2;
+    } else {
+      lrMid = lrMin + 1;
+      float midR = 0.5f * (layerRadii[lrMax] + layerRadii[lrMin]), dstMidR = o2::gpu::CAMath::Abs(midR - layerRadii[lrMid]);
+      for (int iL = lrMid + 1; iL < lrMax; ++iL) { // find the midpoint as closest to the midR
+        auto dst = o2::gpu::GPUCommonMath::Abs(midR - layerRadii[iL]);
+        if (dst < dstMidR) {
+          lrMid = iL;
+          dstMidR = dst;
+        }
+      }
+    }
+    const auto& cluster0_tf = foundTrackingFrameInfo[lrMin][seed.getCluster(lrMin)];
+    const auto& cluster1_gl = unsortedClusters[lrMid][seed.getCluster(lrMid)];
+    const auto& cluster2_gl = unsortedClusters[lrMax][seed.getCluster(lrMax)];
+    temporaryTrack.getParamIn() = buildTrackSeed(cluster2_gl, cluster1_gl, cluster0_tf, bz, true);
+  }
+  temporaryTrack.resetCovariance();
+  temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
+  return temporaryTrack;
 }
 
 struct sort_tracklets {
@@ -206,27 +279,23 @@ template <int nLayers>
 GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
   CellSeed<nLayers>* trackSeeds,
   const TrackingFrameInfo** foundTrackingFrameInfo,
+  const Cluster** unsortedClusters,
   o2::its::TrackITSExt* tracks,
+  const float* layerRadii,
   const float* minPts,
   const unsigned int nSeeds,
   const float bz,
   const int startLevel,
-  float maxChi2ClusterAttachment,
-  float maxChi2NDF,
+  const float maxChi2ClusterAttachment,
+  const float maxChi2NDF,
+  const int reseedIfShorter,
+  const bool shifRefToCluster,
   const o2::base::Propagator* propagator,
   const o2::base::PropagatorF::MatCorrType matCorrType)
 {
   for (int iCurrentTrackSeedIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackSeedIndex < nSeeds; iCurrentTrackSeedIndex += blockDim.x * gridDim.x) {
-    auto& seed = trackSeeds[iCurrentTrackSeedIndex];
-
-    TrackITSExt temporaryTrack{seed};
-
-    temporaryTrack.resetCovariance();
-    temporaryTrack.setChi2(0);
-    auto& clusters = seed.getClusters();
-    for (int iL{0}; iL < nLayers; ++iL) {
-      temporaryTrack.setExternalClusterIndex(iL, clusters[iL], clusters[iL] != constants::UnusedIndex);
-    }
+    TrackITSExt temporaryTrack = seedTrackForRefit<nLayers>(trackSeeds[iCurrentTrackSeedIndex], foundTrackingFrameInfo, unsortedClusters, layerRadii, bz, reseedIfShorter);
+    o2::track::TrackPar linRef{temporaryTrack};
     bool fitSuccess = fitTrack(temporaryTrack,               // TrackITSExt& track,
                                0,                            // int lastLayer,
                                nLayers,                      // int firstLayer,
@@ -238,14 +307,17 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                                bz,                           // float bz,
                                foundTrackingFrameInfo,       // TrackingFrameInfo** trackingFrameInfo,
                                propagator,                   // const o2::base::Propagator* propagator,
-                               matCorrType);                 // o2::base::PropagatorF::MatCorrType matCorrType
+                               matCorrType,                  // o2::base::PropagatorF::MatCorrType matCorrType
+                               &linRef,
+                               shifRefToCluster);
     if (!fitSuccess) {
       continue;
     }
     temporaryTrack.getParamOut() = temporaryTrack.getParamIn();
+    linRef = temporaryTrack.getParamOut(); // use refitted track as lin.reference
     temporaryTrack.resetCovariance();
+    temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
     temporaryTrack.setChi2(0);
-
     fitSuccess = fitTrack(temporaryTrack,           // TrackITSExt& track,
                           nLayers - 1,              // int lastLayer,
                           -1,                       // int firstLayer,
@@ -257,7 +329,9 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                           bz,                       // float bz,
                           foundTrackingFrameInfo,   // TrackingFrameInfo** trackingFrameInfo,
                           propagator,               // const o2::base::Propagator* propagator,
-                          matCorrType);             // o2::base::PropagatorF::MatCorrType matCorrType
+                          matCorrType,              // o2::base::PropagatorF::MatCorrType matCorrType
+                          &linRef,
+                          shifRefToCluster);
     if (!fitSuccess || temporaryTrack.getPt() < minPts[nLayers - temporaryTrack.getNClusters()]) {
       continue;
     }
@@ -1088,34 +1162,42 @@ void processNeighboursHandler(const int startLayer,
 template <int nLayers>
 void trackSeedHandler(CellSeed<nLayers>* trackSeeds,
                       const TrackingFrameInfo** foundTrackingFrameInfo,
+                      const Cluster** unsortedClusters,
                       o2::its::TrackITSExt* tracks,
-                      std::vector<float>& minPtsHost,
+                      const std::vector<float>& layerRadiiHost,
+                      const std::vector<float>& minPtsHost,
                       const unsigned int nSeeds,
                       const float bz,
                       const int startLevel,
-                      float maxChi2ClusterAttachment,
-                      float maxChi2NDF,
+                      const float maxChi2ClusterAttachment,
+                      const float maxChi2NDF,
+                      const int reseedIfShorter,
+                      const bool shiftRefToCluster,
                       const o2::base::Propagator* propagator,
                       const o2::base::PropagatorF::MatCorrType matCorrType,
                       const int nBlocks,
                       const int nThreads)
 {
   thrust::device_vector<float> minPts(minPtsHost);
+  thrust::device_vector<float> layerRadii(layerRadiiHost);
   gpu::fitTrackSeedsKernel<<<nBlocks, nThreads>>>(
-    trackSeeds,                           // CellSeed*
-    foundTrackingFrameInfo,               // TrackingFrameInfo**
-    tracks,                               // TrackITSExt*
-    thrust::raw_pointer_cast(&minPts[0]), // const float* minPts,
-    nSeeds,                               // const unsigned int
-    bz,                                   // const float
-    startLevel,                           // const int
-    maxChi2ClusterAttachment,             // float
-    maxChi2NDF,                           // float
-    propagator,                           // const o2::base::Propagator*
-    matCorrType);                         // o2::base::PropagatorF::MatCorrType
+    trackSeeds,                               // CellSeed*
+    foundTrackingFrameInfo,                   // TrackingFrameInfo**
+    unsortedClusters,                         // Cluster**
+    tracks,                                   // TrackITSExt*
+    thrust::raw_pointer_cast(&layerRadii[0]), // const float*
+    thrust::raw_pointer_cast(&minPts[0]),     // const float*
+    nSeeds,                                   // const unsigned int
+    bz,                                       // const float
+    startLevel,                               // const int
+    maxChi2ClusterAttachment,                 // float
+    maxChi2NDF,                               // float
+    reseedIfShorter,                          // int
+    shiftRefToCluster,                        // bool
+    propagator,                               // const o2::base::Propagator*
+    matCorrType);                             // o2::base::PropagatorF::MatCorrType
   thrust::device_ptr<o2::its::TrackITSExt> tr_ptr(tracks);
   thrust::sort(tr_ptr, tr_ptr + nSeeds, gpu::compare_track_chi2());
-  GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
 }
 
 /// Explicit instantiation of ITS2 handlers
@@ -1281,13 +1363,17 @@ template void processNeighboursHandler<7>(const int startLayer,
 
 template void trackSeedHandler(CellSeed<7>* trackSeeds,
                                const TrackingFrameInfo** foundTrackingFrameInfo,
+                               const Cluster** unsortedClusters,
                                o2::its::TrackITSExt* tracks,
-                               std::vector<float>& minPtsHost,
+                               const std::vector<float>& layerRadiiHost,
+                               const std::vector<float>& minPtsHost,
                                const unsigned int nSeeds,
                                const float bz,
                                const int startLevel,
-                               float maxChi2ClusterAttachment,
-                               float maxChi2NDF,
+                               const float maxChi2ClusterAttachment,
+                               const float maxChi2NDF,
+                               const int reseedIfShorter,
+                               const bool shiftRefToCluster,
                                const o2::base::Propagator* propagator,
                                const o2::base::PropagatorF::MatCorrType matCorrType,
                                const int nBlocks,

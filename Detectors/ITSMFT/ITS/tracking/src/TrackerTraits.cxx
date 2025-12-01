@@ -765,7 +765,6 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
       auto forSeed = [&](auto Tag, int iSeed, int offset = 0) {
         TrackITSExt temporaryTrack = seedTrackForRefit(trackSeeds[iSeed]);
         o2::track::TrackPar linRef{temporaryTrack};
-        o2::track::TrackParCov savTr = temporaryTrack; // REMOVE
         bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, o2::constants::math::VeryBig, 0, &linRef);
         if (!fitSuccess) {
           return 0;
@@ -773,7 +772,7 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
         temporaryTrack.getParamOut() = temporaryTrack.getParamIn();
         linRef = temporaryTrack.getParamOut(); // use refitted track as lin.reference
         temporaryTrack.resetCovariance();
-        temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[14], 14);
+        temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
         temporaryTrack.setChi2(0);
         fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f, 0, &linRef);
         if (!fitSuccess || temporaryTrack.getPt() < mTrkParams[iteration].MinPt[mTrkParams[iteration].NLayers - temporaryTrack.getNClusters()]) {
@@ -1082,7 +1081,7 @@ bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, in
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
-    if (linRef && mTrkParams[0].shiftRefToCluster) { // displace the reference to the last updated cluster
+    if (linRef && mTrkParams[0].ShiftRefToCluster) { // displace the reference to the last updated cluster
       linRef->setY(trackingHit.positionTrackingFrame[0]);
       linRef->setZ(trackingHit.positionTrackingFrame[1]);
     }
@@ -1208,27 +1207,22 @@ template <int nLayers>
 TrackITSExt TrackerTraits<nLayers>::seedTrackForRefit(const CellSeedN& seed)
 {
   TrackITSExt temporaryTrack(seed);
+  int lrMin = nLayers, lrMax = 0, lrMid = 0;
   for (int iL = 0; iL < nLayers; ++iL) {
-    temporaryTrack.setExternalClusterIndex(iL, seed.getCluster(iL), seed.getCluster(iL) != constants::UnusedIndex);
+    const int idx = seed.getCluster(iL);
+    temporaryTrack.setExternalClusterIndex(iL, idx, idx != constants::UnusedIndex);
+    if (idx != constants::UnusedIndex) {
+      lrMin = o2::gpu::CAMath::Min(lrMin, iL);
+      lrMax = o2::gpu::CAMath::Max(lrMax, iL);
+    }
   }
   int ncl = temporaryTrack.getNClusters();
-  if (ncl < mTrkParams[0].reseedIfShorter) { // reseed with circle passing via edges and the midpoint
-    int lrMin = 999, lrMax = 0, lrMid = 0;
+  if (ncl < mTrkParams[0].ReseedIfShorter) { // reseed with circle passing via edges and the midpoint
     if (ncl == mTrkParams[0].NLayers) {
       lrMin = 0;
       lrMax = mTrkParams[0].NLayers - 1;
       lrMid = (lrMin + lrMax) / 2;
     } else {
-      for (int iL = 0; iL < nLayers; ++iL) {
-        if (seed.getCluster(iL) != constants::UnusedIndex) {
-          if (iL < lrMin) {
-            lrMin = iL;
-          }
-          if (iL > lrMax) {
-            lrMax = iL;
-          }
-        }
-      }
       lrMid = lrMin + 1;
       float midR = 0.5 * (mTrkParams[0].LayerRadii[lrMax] + mTrkParams[0].LayerRadii[lrMin]), dstMidR = o2::gpu::GPUCommonMath::Abs(midR - mTrkParams[0].LayerRadii[lrMid]);
       for (int iL = lrMid + 1; iL < lrMax; ++iL) { // find the midpoint as closest to the midR
@@ -1242,19 +1236,17 @@ TrackITSExt TrackerTraits<nLayers>::seedTrackForRefit(const CellSeedN& seed)
     const auto& cluster0_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lrMin)[seed.getCluster(lrMin)]; // if the sensor frame!
     const auto& cluster1_gl = mTimeFrame->getUnsortedClusters()[lrMid][seed.getCluster(lrMid)];       // global frame
     const auto& cluster2_gl = mTimeFrame->getUnsortedClusters()[lrMax][seed.getCluster(lrMax)];       // global frame
-    temporaryTrack.getParamIn() = buildTrackSeed(cluster2_gl, cluster1_gl, cluster0_tf);
-    temporaryTrack.setQ2Pt(-temporaryTrack.getQ2Pt()); // we are calling buildTrackSeed with the clusters order opposite to what it expects
-    temporaryTrack.setSnp(-temporaryTrack.getSnp());   // we are calling buildTrackSeed with the clusters order opposite to what it expects
+    temporaryTrack.getParamIn() = buildTrackSeed(cluster2_gl, cluster1_gl, cluster0_tf, true);
   }
   temporaryTrack.resetCovariance();
-  temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[14], 14);
+  temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
   return temporaryTrack;
 }
 
 /// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
 /// frame coordinates whereas the others are referred to the global frame.
 template <int nLayers>
-track::TrackParCov TrackerTraits<nLayers>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3)
+track::TrackParCov TrackerTraits<nLayers>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3, bool reverse)
 {
   float ca{-999.f}, sa{-999.f};
   o2::gpu::CAMath::SinCos(tf3.alphaTrackingFrame, sa, ca);
@@ -1267,12 +1259,14 @@ track::TrackParCov TrackerTraits<nLayers>::buildTrackSeed(const Cluster& cluster
   const float x3 = tf3.xTrackingFrame;
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
+  const float sign = (reverse) ? -1.f : 1.f;
   float tgp{1.f}, crv{1.f}, snp{-999.f}, tgl12{-999.f}, tgl23{-999.f}, q2pt{1.f / track::kMostProbablePt}, q2pt2{1.f}, sg2q2pt{-999.f};
   if (mIsZeroField) {
-    tgp = o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1);
+    tgp = sign * o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1);
     snp = tgp / o2::gpu::CAMath::Sqrt(1.f + tgp * tgp);
+    q2pt *= sign;
   } else {
-    crv = math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
+    crv = sign * math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
     snp = crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1));
     q2pt = crv / (mBz * o2::constants::math::B2C);
     q2pt2 = crv * crv;
