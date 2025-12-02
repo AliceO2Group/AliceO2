@@ -516,7 +516,7 @@ AddOption(filterPID, int32_t, -1, "", 0, "Filter for Particle Type (0 Electron, 
 AddOption(nativeFitResolutions, bool, false, "", 0, "Create resolution histograms in the native fit units (sin(phi), tan(lambda), Q/Pt)")
 AddOption(enableLocalOutput, bool, true, "", 0, "Enable normal output to local PDF files / console")
 AddOption(dumpToROOT, int32_t, 0, "", 0, "Dump all clusters and tracks to a ROOT file, 1 = combined TNTUple dump, 2 = also individual cluster / track branch dump")
-AddOption(writeRootFiles, bool, false, "", 0, "Create ROOT canvas files")
+AddOption(writeFileExt, std::string, "", "", 0, "Write extra output file with given extension (default ROOT Canvas)", def("root"))
 AddOption(writeMCLabels, bool, false, "", 0, "Store mc labels to file for later matching")
 AddOptionVec(matchMCLabels, std::string, "", 0, "Read labels from files and match them, only process tracks where labels differ")
 AddOption(compareTrackStatus, uint32_t, 0, "", 0, "0 = disabled, 1 = write status file, 2 = read status file and compare with current tracks")
