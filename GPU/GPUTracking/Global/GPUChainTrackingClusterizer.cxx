@@ -964,6 +964,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           int32_t nBlocks = TPC_PADS_IN_SECTOR / GPUTPCCFCheckPadBaseline::PadsPerCacheline;
 
           runKernel<GPUTPCCFCheckPadBaseline>({GetGridBlk(nBlocks, lane), {iSector}});
+          getKernelTimer<GPUTPCCFCheckPadBaseline>(RecoStep::TPCClusterFinding, iSector, TPC_PADS_IN_SECTOR * fragment.lengthWithoutOverlap() * sizeof(PackedCharge), false);
         }
 
         runKernel<GPUTPCCFPeakFinder>({GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSector}});
