@@ -323,9 +323,9 @@ class GPUQA
   TPad* mPClRej[3];
   TPad* mPClRejP;
 
-  TH2F* mPadRow[2];
-  TCanvas* mCPadRow[2];
-  TPad* mPPadRow[2];
+  TH2F* mPadRow[3];
+  TCanvas* mCPadRow[3];
+  TPad* mPPadRow[3];
 
   std::vector<TH2F*> mHistClusterCount;
 

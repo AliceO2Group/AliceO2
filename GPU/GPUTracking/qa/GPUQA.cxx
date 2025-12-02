@@ -527,6 +527,7 @@ int32_t GPUQA::InitQACreateHistograms()
 
     createHist(mPadRow[0], "padrow0", "padrow0", GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1, GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
     createHist(mPadRow[1], "padrow1", "padrow1", 100.f, -0.2f, 0.2f, GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
+    createHist(mPadRow[2], "padrow2", "padrow2", 100.f, -0.2f, 0.2f, GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
   }
 
   if (mQATasks & taskTrackStatistics) {
@@ -1114,8 +1115,11 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           const auto& trk = mTracking->mIOPtrs.mergedTracks[i];
           if (trk.OK() && lowestPadRow[i] != 255 && trk.NClustersFitted() > 70 && CAMath::Abs(trk.GetParam().GetQPt()) < 0.5) {
             int32_t lowestRow = CAMath::Min(mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef()].row, mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef() + trk.NClusters() - 1].row);
-            mPadRow[0]->Fill((float)lowestPadRow[i], (float)lowestRow, 1.f);
+            mPadRow[0]->Fill(lowestPadRow[i], lowestRow, 1.f);
             mPadRow[1]->Fill(CAMath::ATan2(trk.GetParam().GetY(), trk.GetParam().GetX()), lowestRow, 1.f);
+            if (lowestPadRow[i] == 0 && lowestRow != 0) {
+              mPadRow[2]->Fill(CAMath::ATan2(trk.GetParam().GetY(), trk.GetParam().GetX()), lowestRow, 1.f);
+            }
           }
         }
       }
@@ -2278,7 +2282,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       mPClRejP = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPClRejP->Draw();
 
-      for (int32_t i = 0; i < 2; i++) {
+      for (int32_t i = 0; i < 3; i++) {
         snprintf(name, 2048, "cpadrow%d", i);
         mCPadRow[i] = createGarbageCollected<TCanvas>(name, "First Track Pad Row", 0, 0, 700, 700. * 2. / 3.);
         mCPadRow[i]->cd();
@@ -2857,19 +2861,19 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
     }
 
-    for (int32_t i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < 3; i++) {
       auto* e = mPadRow[i];
       if (tout && !mConfig.inputHistogramsOnly) {
         e->Write();
       }
       mPPadRow[i]->cd();
       e->SetOption("colz");
-      e->SetTitle("First Track Pad Row");
+      e->SetTitle(i == 2 ? "First Track Pad Row (row_{MC} = 0, row_{trk} #ne 0)" : "First Track Pad Row");
       e->GetXaxis()->SetTitle(i ? "Phi (sector)" : "First MC Pad Row");
       e->GetYaxis()->SetTitle("First Pad Row");
       e->Draw();
       mCPadRow[i]->cd();
-      static const constexpr char* PADROW_NAMES[2] = {"MC", "Phi"};
+      static const constexpr char* PADROW_NAMES[3] = {"MC", "Phi", "Phi1"};
       snprintf(name, 2048, "plots/padRow%s.pdf", PADROW_NAMES[i]);
       mCPadRow[i]->Print(name);
       if (mConfig.writeRootFiles) {
