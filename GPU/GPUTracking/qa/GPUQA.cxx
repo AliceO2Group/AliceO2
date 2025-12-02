@@ -830,7 +830,7 @@ int32_t GPUQA::InitQA(int32_t tasks)
   }
 
   if (mConfig.enableLocalOutput) {
-    mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir(mConfig.plotsDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
 
 #ifdef GPUCA_O2_LIB
@@ -2394,9 +2394,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         continue;
       }
       doPerfFigure(0.2, 0.295, 0.025);
-      mCEff[ii]->Print(Form("plots/eff_vs_%s.pdf", VSPARAMETER_NAMES[ii]));
+      mCEff[ii]->Print(Form("%s/eff_vs_%s.pdf", mConfig.plotsDir.c_str(), VSPARAMETER_NAMES[ii]));
       if (mConfig.writeRootFiles) {
-        mCEff[ii]->Print(Form("plots/eff_vs_%s.root", VSPARAMETER_NAMES[ii]));
+        mCEff[ii]->Print(Form("%s/eff_vs_%s.root", mConfig.plotsDir.c_str(), VSPARAMETER_NAMES[ii]));
       }
     }
   }
@@ -2632,9 +2632,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
           continue;
         }
         doPerfFigure(0.2, 0.295, 0.025);
-        can->Print(Form(p ? "plots/pull_vs_%s.pdf" : "plots/res_vs_%s.pdf", VSPARAMETER_NAMES[ii]));
+        can->Print(Form(p ? "%s/pull_vs_%s.pdf" : "%s/res_vs_%s.pdf", mConfig.plotsDir.c_str(), VSPARAMETER_NAMES[ii]));
         if (mConfig.writeRootFiles) {
-          can->Print(Form(p ? "plots/pull_vs_%s.root" : "plots/res_vs_%s.root", VSPARAMETER_NAMES[ii]));
+          can->Print(Form(p ? "%s/pull_vs_%s.root" : "%s/res_vs_%s.root", mConfig.plotsDir.c_str(), VSPARAMETER_NAMES[ii]));
         }
       }
     }
@@ -2703,9 +2703,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         continue;
       }
 
-      can->Print(p ? "plots/pull_integral.pdf" : "plots/res_integral.pdf");
+      can->Print(Form(p ? "%s/pull_integral.pdf" : "%s/res_integral.pdf", mConfig.plotsDir.c_str()));
       if (mConfig.writeRootFiles) {
-        can->Print(p ? "plots/pull_integral.root" : "plots/res_integral.root");
+        can->Print(Form(p ? "%s/pull_integral.root" : "%s/res_integral.root", mConfig.plotsDir.c_str()));
       }
     }
   }
@@ -2855,9 +2855,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
       doPerfFigure(i == 0 ? 0.37 : (i == 1 ? 0.34 : 0.6), 0.295, 0.030);
       mCClust[i]->cd();
-      mCClust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
+      mCClust[i]->Print(Form(i == 2 ? "%s/clusters_integral.pdf" : i == 1 ? "%s/clusters_relative.pdf" : "%s/clusters.pdf", mConfig.plotsDir.c_str()));
       if (mConfig.writeRootFiles) {
-        mCClust[i]->Print(i == 2 ? "plots/clusters_integral.root" : i == 1 ? "plots/clusters_relative.root" : "plots/clusters.root");
+        mCClust[i]->Print(Form(i == 2 ? "%s/clusters_integral.root" : i == 1 ? "%s/clusters_relative.root" : "%s/clusters.root", mConfig.plotsDir.c_str()));
       }
     }
 
@@ -2874,10 +2874,10 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       e->Draw();
       mCPadRow[i]->cd();
       static const constexpr char* PADROW_NAMES[3] = {"MC", "Phi", "Phi1"};
-      snprintf(name, 2048, "plots/padRow%s.pdf", PADROW_NAMES[i]);
+      snprintf(name, 2048, "%s/padRow%s.pdf", mConfig.plotsDir.c_str(), PADROW_NAMES[i]);
       mCPadRow[i]->Print(name);
       if (mConfig.writeRootFiles) {
-        snprintf(name, 2048, "plots/padRow%s.root", PADROW_NAMES[i]);
+        snprintf(name, 2048, "%s/padRow%s.root", mConfig.plotsDir.c_str(), PADROW_NAMES[i]);
         mCPadRow[i]->Print(name);
       }
     }
@@ -2941,9 +2941,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     mLTracks->Draw();
     doPerfFigure(0.63, 0.7, 0.030);
     mCTracks->cd();
-    mCTracks->Print("plots/tracks.pdf");
+    mCTracks->Print(Form("%s/tracks.pdf", mConfig.plotsDir.c_str()));
     if (mConfig.writeRootFiles) {
-      mCTracks->Print("plots/tracks.root");
+      mCTracks->Print(Form("%s/tracks.root", mConfig.plotsDir.c_str()));
     }
 
     for (int32_t i = 0; i < 2; i++) {
@@ -2987,10 +2987,10 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       mLT0[i]->Draw();
       doPerfFigure(0.63, 0.7, 0.030);
       mCT0[i]->cd();
-      snprintf(name, 2048, "plots/t0%s.pdf", i ? "_res" : "");
+      snprintf(name, 2048, "%s/t0%s.pdf", mConfig.plotsDir.c_str(), i ? "_res" : "");
       mCT0[i]->Print(name);
       if (mConfig.writeRootFiles) {
-        snprintf(name, 2048, "plots/t0%s.root", i ? "_res" : "");
+        snprintf(name, 2048, "%s/t0%s.root", mConfig.plotsDir.c_str(), i ? "_res" : "");
         mCT0[i]->Print(name);
       }
 
@@ -3034,10 +3034,10 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       mLNCl[i]->Draw();
       doPerfFigure(0.6, 0.7, 0.030);
       mCNCl[i]->cd();
-      snprintf(name, 2048, "plots/nClusters%s.pdf", i ? "_corrected" : "");
+      snprintf(name, 2048, "%s/nClusters%s.pdf", mConfig.plotsDir.c_str(), i ? "_corrected" : "");
       mCNCl[i]->Print(name);
       if (mConfig.writeRootFiles) {
-        snprintf(name, 2048, "plots/nClusters%s.root", i ? "_corrected" : "");
+        snprintf(name, 2048, "%s/nClusters%s.root", mConfig.plotsDir.c_str(), i ? "_corrected" : "");
         mCNCl[i]->Print(name);
       }
     }
@@ -3046,9 +3046,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     mClXY->SetOption("colz");
     mClXY->Draw();
     mCClXY->cd();
-    mCClXY->Print("plots/clustersXY.pdf");
+    mCClXY->Print(Form("%s/clustersXY.pdf", mConfig.plotsDir.c_str()));
     if (mConfig.writeRootFiles) {
-      mCClXY->Print("plots/clustersXY.root");
+      mCClXY->Print(Form("%s/clustersXY.root", mConfig.plotsDir.c_str()));
     }
 
     if (mQATasks & taskClusterCounts) {
@@ -3063,10 +3063,10 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         mClRej[i]->SetOption("colz");
         mClRej[i]->Draw();
         mCClRej[i]->cd();
-        snprintf(name, 2048, "plots/clustersRej%d%s.pdf", i, REJECTED_NAMES[i]);
+        snprintf(name, 2048, "%s/clustersRej%d%s.pdf", mConfig.plotsDir.c_str(), i, REJECTED_NAMES[i]);
         mCClRej[i]->Print(name);
         if (mConfig.writeRootFiles) {
-          snprintf(name, 2048, "plots/clustersRej%d%s.root", i, REJECTED_NAMES[i]);
+          snprintf(name, 2048, "%s/clustersRej%d%s.root", mConfig.plotsDir.c_str(), i, REJECTED_NAMES[i]);
           mCClRej[i]->Print(name);
         }
       }
@@ -3105,9 +3105,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         e->GetYaxis()->SetTitle("Rejected Clusters (fraction)");
         e->Draw(k == 0 ? "" : "same");
       }
-      mPClRejP->Print("plots/clustersRejProjected.pdf"); // TODO: Add option to write pngs
+      mPClRejP->Print(Form("%s/clustersRejProjected.pdf", mConfig.plotsDir.c_str())); // TODO: Add option to write pngs
       if (mConfig.writeRootFiles) {
-        mPClRejP->Print("plots/clustersRejProjected.root");
+        mPClRejP->Print(Form("%s/clustersRejProjected.root", mConfig.plotsDir.c_str()));
       }
     }
   }

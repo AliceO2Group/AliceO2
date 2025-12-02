@@ -530,6 +530,7 @@ AddOption(minNClFindable, uint32_t, 70, "", 0, "Minimum number of (weighted) MC 
 AddOption(minNClEff, uint32_t, 10, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to all-tracks efficiency histogramm")
 AddOption(minNClRes, uint32_t, 40, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to resolution histogram")
 AddOption(perfFigure, int32_t, 0, "", 0, "Show as performance figure, positive value for MC, negative value for data")
+AddOption(plotsDir, std::string, "plots", "", 0, "Directory to write plots to")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAinputHistogramsOnly")
 AddHelp("help", 'h')
 EndConfig()
