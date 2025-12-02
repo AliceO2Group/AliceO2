@@ -176,6 +176,7 @@ static const constexpr char* CLUSTER_NAMES[GPUQA::N_CLS_HIST] = {"Correctly atta
 static const constexpr char* CLUSTER_TITLES[GPUQA::N_CLS_TYPE] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
 static const constexpr char* CLUSTER_NAMES_SHORT[GPUQA::N_CLS_HIST] = {"Attached", "Fake", "AttachAdjacent", "FakeAdjacent", "FoundTracks", "Physics", "Protected", "All"};
 static const constexpr char* CLUSTER_TYPES[GPUQA::N_CLS_TYPE] = {"", "Ratio", "Integral"};
+static const constexpr char* REJECTED_NAMES[3] = {"All", "Rejected", "Fraction"};
 static const constexpr int32_t COLORS_HEX[COLORCOUNT] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
 static const constexpr int32_t CONFIG_DASHED_MARKERS = 0;
@@ -525,7 +526,7 @@ int32_t GPUQA::InitQACreateHistograms()
     }
 
     createHist(mPadRow[0], "padrow0", "padrow0", GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1, GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
-    createHist(mPadRow[1], "padrow0", "padrow0", 100.f, -0.2f, 0.2f, GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
+    createHist(mPadRow[1], "padrow1", "padrow1", 100.f, -0.2f, 0.2f, GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
   }
 
   if (mQATasks & taskTrackStatistics) {
@@ -2863,14 +2864,16 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
       mPPadRow[i]->cd();
       e->SetOption("colz");
-      e->GetXaxis()->SetTitle("First MC Pad Row");
+      e->SetTitle("First Track Pad Row");
+      e->GetXaxis()->SetTitle(i ? "Phi (sector)" : "First MC Pad Row");
       e->GetYaxis()->SetTitle("First Pad Row");
       e->Draw();
       mCPadRow[i]->cd();
-      snprintf(name, 2048, "plots/padrow%d.pdf", i);
+      static const constexpr char* PADROW_NAMES[2] = {"MC", "Phi"};
+      snprintf(name, 2048, "plots/padRow%s.pdf", PADROW_NAMES[i]);
       mCPadRow[i]->Print(name);
       if (mConfig.writeRootFiles) {
-        snprintf(name, 2048, "plots/padrow%d.root", i);
+        snprintf(name, 2048, "plots/padRow%s.root", PADROW_NAMES[i]);
         mCPadRow[i]->Print(name);
       }
     }
@@ -3052,13 +3055,14 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
           mClRej[i]->Write();
         }
         mPClRej[i]->cd();
+        mClRej[i]->SetTitle(REJECTED_NAMES[i]);
         mClRej[i]->SetOption("colz");
         mClRej[i]->Draw();
         mCClRej[i]->cd();
-        snprintf(name, 2048, "plots/clustersRej%d.pdf", i);
+        snprintf(name, 2048, "plots/clustersRej%d%s.pdf", i, REJECTED_NAMES[i]);
         mCClRej[i]->Print(name);
         if (mConfig.writeRootFiles) {
-          snprintf(name, 2048, "plots/clustersRej%d.root", i);
+          snprintf(name, 2048, "plots/clustersRej%d%s.root", i, REJECTED_NAMES[i]);
           mCClRej[i]->Print(name);
         }
       }
@@ -3092,11 +3096,14 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         delete proj2;
         e->SetMinimum(-0.02);
         e->SetMaximum(0.22);
+        e->SetTitle("Rejected Clusters");
+        e->GetXaxis()->SetTitle("Pad Row");
+        e->GetYaxis()->SetTitle("Rejected Clusters (fraction)");
         e->Draw(k == 0 ? "" : "same");
       }
-      mPClRejP->Print("plots/clustersRejP.pdf"); // TODO: Add option to write pngs
+      mPClRejP->Print("plots/clustersRejProjected.pdf"); // TODO: Add option to write pngs
       if (mConfig.writeRootFiles) {
-        mPClRejP->Print("plots/clustersRejP.root");
+        mPClRejP->Print("plots/clustersRejProjected.root");
       }
     }
   }
