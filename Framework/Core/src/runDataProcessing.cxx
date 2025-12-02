@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <memory>
+#include "Framework/DanglingEdgesContext.h"
 #include "Framework/TopologyPolicyHelpers.h"
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <stdexcept>
@@ -1016,6 +1017,7 @@ void doDefaultWorkflowTerminationHook()
 }
 
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
+            DanglingEdgesContext& danglingEdgesContext,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
             DriverConfig const& driverConfig,
@@ -1078,6 +1080,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &spec,
                                      &quotaEvaluator,
                                      &serviceRegistry,
+                                     &danglingEdgesContext,
                                      &deviceState,
                                      &deviceProxy,
                                      &processingPolicies,
@@ -1101,6 +1104,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<DanglingEdgesContext>(&danglingEdgesContext));
 
     auto device = std::make_unique<DataProcessingDevice>(ref, serviceRegistry);
 
@@ -1953,6 +1957,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (runningWorkflow.devices[di].id == frameworkId) {
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry,
+                           driverInfo.configContext->services().get<DanglingEdgesContext>(),
                            runningWorkflow, ref,
                            driverConfig,
                            driverInfo.processingPolicies,

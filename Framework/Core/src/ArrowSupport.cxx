@@ -13,6 +13,7 @@
 #include "Framework/ArrowContext.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/DataProcessor.h"
+#include "Framework/CommonDataProcessors.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
@@ -609,9 +610,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // recreate inputs and outputs
         builder->inputs.clear();
         builder->outputs.clear();
-        // replace AlgorithmSpec
-        //  FIXME: it should be made more generic, so it does not need replacement...
-        builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx); // readers::AODReaderHelpers::indexBuilderCallback(ctx);
+
+        // load real AlgorithmSpec before deployment
+        builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx);
         AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.requestedIDXs, dec.requestedAODs, dec.requestedDYNs, *builder);
       }
 
@@ -634,10 +635,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // recreate inputs and outputs
         spawner->outputs.clear();
         spawner->inputs.clear();
-        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, dec.spawnerInputs, dec.requestedAODs, *spawner);
-        // replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
+
+        // load real AlgorithmSpec before deployment
         spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
+        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, dec.spawnerInputs, dec.requestedAODs, *spawner);
       }
 
       if (analysisCCDB != workflow.end()) {
@@ -654,8 +655,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // recreate inputs and outputs
         analysisCCDB->outputs.clear();
         analysisCCDB->inputs.clear();
-        // replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
+        // load real AlgorithmSpec before deployment
         // FIXME how can I make the lookup depend on DYN tables as well??
         analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
         AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.analysisCCDBInputs, dec.requestedAODs, dec.requestedDYNs, *analysisCCDB);
@@ -682,6 +682,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         if (reader->outputs.empty()) {
           // nothing to read
           workflow.erase(reader);
+        } else {
+          // load reader algorithm before deployment
+          auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader", ctx);
+          reader->algorithm = CommonDataProcessors::wrapWithTimesliceConsumption(algo);
         }
       }
 
