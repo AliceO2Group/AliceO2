@@ -38,7 +38,9 @@ class FairMQDeviceProxy
   FairMQDeviceProxy() = default;
   FairMQDeviceProxy(FairMQDeviceProxy const&) = delete;
   void bind(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs,
-            std::vector<ForwardRoute> const& forwards, fair::mq::Device& device);
+            std::vector<ForwardRoute> const& forwards,
+            std::function<fair::mq::Channel&(std::string const&)> bindChannelByName,
+            std::function<bool(void)> newStateRequestedCallback);
 
   /// Retrieve the transport associated to a given route.
   [[nodiscard]] OutputRoute const& getOutputRoute(RouteIndex routeIndex) const { return mOutputs.at(routeIndex.value); }

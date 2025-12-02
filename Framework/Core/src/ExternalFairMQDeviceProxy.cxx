@@ -1090,7 +1090,18 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
 
         channelNames->emplace_back(std::move(channel));
       }
-      proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, *device);
+      std::function<fair::mq::Channel&(std::string const&)> bindByName = [device](std::string const& channelName) -> fair::mq::Channel& {
+        auto channel = device->GetChannels().find(channelName);
+        if (channel == device->GetChannels().end()) {
+          LOGP(fatal, "Expected channel {} not configured.", channelName);
+        }
+        return channel->second.at(0);
+      };
+
+      std::function<bool()> newStateCallback = [device]() -> bool {
+        return device->NewStatePending();
+      };
+      proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, bindByName, newStateCallback);
     };
     // We need to clear the channels on stop, because we will check and add them
     auto channelConfigurationDisposer = [&deviceSpec]() {

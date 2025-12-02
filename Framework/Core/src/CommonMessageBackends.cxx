@@ -57,7 +57,18 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQDeviceProxy()
       /// some of the channels are added only later on to the party,
       /// (e.g. by ECS) and Init might not be late enough to
       /// account for them.
-      proxy->bind(outputs, inputs, forwards, *device); },
+      std::function<fair::mq::Channel&(std::string const&)> bindByName = [device](std::string const& channelName) -> fair::mq::Channel& {
+        auto channel = device->GetChannels().find(channelName);
+        if (channel == device->GetChannels().end()) {
+          LOGP(fatal, "Expected channel {} not configured.", channelName);
+        }
+         return channel->second.at(0);
+      };
+
+      std::function<bool()> newStateCallback = [device]() -> bool {
+        return device->NewStatePending();
+      };
+      proxy->bind(outputs, inputs, forwards, bindByName, newStateCallback); },
   };
 }
 
