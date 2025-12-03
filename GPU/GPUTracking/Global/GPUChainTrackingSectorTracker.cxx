@@ -149,9 +149,6 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
     GPUTPCTracker& trk = processors()->tpcTrackers[iSector];
     GPUTPCTracker& trkShadow = doGPU ? processorsShadow()->tpcTrackers[iSector] : trk;
     int32_t useStream = StreamForSector(iSector);
-    if (GetProcessingSettings().amdMI100SerializationWorkaround) {
-      SynchronizeStream(useStream); // TODO: Remove this workaround once fixed on MI100
-    }
 
     if (GetProcessingSettings().debugLevel >= 3) {
       GPUInfo("Creating Sector Data (Sector %d)", iSector);

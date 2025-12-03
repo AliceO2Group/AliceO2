@@ -43,7 +43,6 @@ class GPUReconstructionOCL : public GPUReconstructionProcessing::KernelInterface
   virtual int32_t GPUChkErrInternal(const int64_t error, const char* file, int32_t line) const override;
 
   void SynchronizeGPU() override;
-  int32_t DoStuckProtection(int32_t stream, deviceEvent event) override;
   int32_t GPUDebug(const char* state = "UNKNOWN", int32_t stream = -1, bool force = false) override;
   void SynchronizeStream(int32_t stream) override;
   void SynchronizeEvents(deviceEvent* evList, int32_t nEvents = 1) override;

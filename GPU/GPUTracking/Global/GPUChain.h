@@ -224,8 +224,6 @@ class GPUChain
 
   inline GPUChain* GetNextChainInQueue() { return mRec->GetNextChainInQueue(); }
 
-  virtual int32_t DoStuckProtection(int32_t stream, deviceEvent event) { return 0; }
-
   template <class T, class S, typename... Args>
   bool DoDebugAndDump(RecoStep step, uint32_t mask, T& processor, S T::*func, Args&&... args)
   {

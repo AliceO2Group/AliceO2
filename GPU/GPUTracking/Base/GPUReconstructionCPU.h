@@ -88,8 +88,6 @@ class GPUReconstructionCPU : public GPUReconstructionProcessing::KernelInterface
   int32_t ExitDevice() override;
   int32_t GetThread();
 
-  virtual int32_t DoStuckProtection(int32_t stream, deviceEvent event) { return 0; }
-
   // Pointers to tracker classes
   GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU
   GPUConstantMem*& mProcessorsShadow = mProcShadow.mProcessorsProc;

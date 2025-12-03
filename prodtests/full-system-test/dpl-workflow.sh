@@ -284,8 +284,6 @@ if [[ $GPUTYPE == "HIP" ]]; then
   if [[ ${EPN_NODE_MI100:-} == "1" && ${DISABLE_MI100_SERIALIZATION:-0} != 1 ]]; then
     if [[ -n ${OPTIMIZED_PARALLEL_ASYNC:-} ]] || [[ $EPNSYNCMODE == 1 && ${FULL_MI100_SERIALIZATION:-0} == 1 ]]; then
       GPU_CONFIG_KEY+="GPU_proc.serializeGPU=3;"
-    elif [[ $EPNSYNCMODE == 1 ]]; then
-      GPU_CONFIG_KEY+="GPU_proc.amdMI100SerializationWorkaround=1;"
     fi
   fi
   #export HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2
