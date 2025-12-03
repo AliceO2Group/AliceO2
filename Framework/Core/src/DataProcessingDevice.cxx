@@ -558,25 +558,18 @@ static auto toBeForwardedHeader = [](void* header) -> bool {
   if (header == nullptr) {
     return false;
   }
-  auto sih = o2::header::get<SourceInfoHeader*>(header);
-  if (sih) {
-    return false;
-  }
-
-  auto dih = o2::header::get<DomainInfoHeader*>(header);
-  if (dih) {
-    return false;
-  }
-
   auto dh = o2::header::get<DataHeader*>(header);
   if (!dh) {
     return false;
   }
-  auto dph = o2::header::get<DataProcessingHeader*>(header);
-  if (!dph) {
-    return false;
+  bool retval = !o2::header::get<SourceInfoHeader*>(header) &&
+                !o2::header::get<DomainInfoHeader*>(header) &&
+                o2::header::get<DataProcessingHeader*>(header);
+  // DataHeader is there. Complain if we have unexpected headers present / missing
+  if (!retval) {
+    LOGP(error, "Dropping data because of malformed header structure");
   }
-  return true;
+  return retval;
 };
 
 static auto toBeforwardedMessageSet = [](std::vector<ChannelIndex>& cachedForwardingChoices,
@@ -1858,11 +1851,15 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     for (size_t pi = 0; pi < parts.Size(); pi += 2) {
       auto* headerData = parts.At(pi)->GetData();
       auto sih = o2::header::get<SourceInfoHeader*>(headerData);
+      auto dh = o2::header::get<DataHeader*>(headerData);
       if (sih) {
         O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got SourceInfoHeader with state %d", (int)sih->state);
         info.state = sih->state;
         insertInputInfo(pi, 2, InputType::SourceInfo, info.id);
         state.lastActiveDataProcessor = &context;
+        if (dh) {
+          LOGP(error, "Found data attached to a SourceInfoHeader");
+        }
         continue;
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
@@ -1870,9 +1867,11 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got DomainInfoHeader with oldestPossibleTimeslice %d", (int)dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo, info.id);
         state.lastActiveDataProcessor = &context;
+        if (dh) {
+          LOGP(error, "Found data attached to a DomainInfoHeader");
+        }
         continue;
       }
-      auto dh = o2::header::get<DataHeader*>(headerData);
       if (!dh) {
         insertInputInfo(pi, 0, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header is not a DataHeader?");
