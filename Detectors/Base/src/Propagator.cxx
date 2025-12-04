@@ -648,6 +648,23 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
   return propagateToX(track, xfin, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr);
 }
 
+template <typename value_T>
+GPUd() bool PropagatorImpl<value_T>::propagateToAlphaX(TrackParCov_t& track, TrackPar_t* linRef, value_type alpha, value_type x, bool bzOnly, value_type maxSnp, value_type maxStep, int minSteps,
+                                                       MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
+{
+  // propagate to alpha,X, if needed in a few steps
+  auto snp = track.getSnpAt(alpha, x, getNominalBz());
+  // apply safety factor 0.9 for crude rotation estimate
+  if (math_utils::detail::abs<value_type>(snp) < maxSnp * 0.9 && (linRef ? track.rotate(alpha, *linRef, getNominalBz()) : track.rotate(alpha))) {
+    auto dx = math_utils::detail::abs<value_type>(x - track.getX());
+    if (dx < Epsilon) {
+      return true;
+    }
+    return propagateTo(track, linRef, x, bzOnly, maxSnp, math_utils::detail::min<value_type>(dx / minSteps, maxStep), matCorr, tofInfo, signCorr);
+  }
+  return false;
+}
+
 //_______________________________________________________________________
 template <typename value_T>
 template <typename track_T>

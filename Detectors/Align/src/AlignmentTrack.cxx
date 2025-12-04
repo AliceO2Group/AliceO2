@@ -168,7 +168,7 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
   // (like http://root.cern.ch/root/html/ROOT__Math__RichardsonDerivator.html)
   //
   const auto& algConf = AlignConfig::Instance();
-  trackParam_t probD[kNRDClones]; // use this to vary supplied param for derivative calculation
+  trackPar_t probD[kNRDClones]; // use this to vary supplied param for derivative calculation
   double varDelta[kRichardsonN];
   const int kInvElem[kNKinParBON] = {-1, 1, 1, -1, -1};
   //
@@ -511,7 +511,7 @@ bool AlignmentTrack::calcResiduals(const double* extendedParams, bool invert, in
 }
 
 //______________________________________________________
-bool AlignmentTrack::propagateParamToPoint(trackParam_t* tr, int nTr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, int signCorr)
+bool AlignmentTrack::propagateParamToPoint(trackPar_t* tr, int nTr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, int signCorr)
 {
   // Propagate set of tracks to the point  (only parameters, no error matrix)
   // VECTORIZE this
@@ -521,7 +521,7 @@ bool AlignmentTrack::propagateParamToPoint(trackParam_t* tr, int nTr, const Alig
     if (!propagateParamToPoint(tr[itr], pnt, maxStep, maxSnp, mt, signCorr)) {
       if (algConf.verbose > 2) {
         LOG(error) << "Failed on clone " << itr << " propagation ";
-        tr[itr].print();
+        tr[itr].printParam();
         pnt->print(AlignmentPoint::kMeasurementBit | AlignmentPoint::kMaterialBit);
       }
       return false;
@@ -531,21 +531,33 @@ bool AlignmentTrack::propagateParamToPoint(trackParam_t* tr, int nTr, const Alig
 }
 
 //______________________________________________________
-bool AlignmentTrack::propagateParamToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, int signCorr)
+bool AlignmentTrack::propagateParamToPoint(trackPar_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, int signCorr)
 {
   // propagate tracks to the point (only parameters, no error matrix)
   return propagate(tr, pnt, maxStep, maxSnp, mt, nullptr, signCorr);
 }
 
 //______________________________________________________
-bool AlignmentTrack::propagateToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr)
+bool AlignmentTrack::propagateToPoint(trackParam_t& tr, trackPar_t* linRef, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr)
 {
   // propagate tracks to the point. If matCor is true, then material corrections will be applied.
   // if matPar pointer is provided, it will be filled by total x2x0 and signed xrho
-  return propagate(tr, pnt, maxStep, maxSnp, mt, tLT, signCorr);
+  return propagate(tr, linRef, pnt, maxStep, maxSnp, mt, tLT, signCorr);
 }
 
-bool AlignmentTrack::propagate(trackParam_t& track, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr)
+bool AlignmentTrack::propagate(trackParam_t& track, trackPar_t* linRef, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr)
+{
+  if (signCorr == 0) { // auto
+    // calculate the sign of the energy loss correction and ensure the upper leg of cosmics is calculated correctly.
+    double dx = pnt->getXTracking() - track.getX();
+    int dir = dx > 0.f ? 1 : -1;
+    signCorr = pnt->isInvDir() ? dir : -dir; // propagation along the track direction should have signCorr=-1
+  }
+  // do propagation in at least 2 step to reveal eventual effect of MS on the position
+  return PropagatorD::Instance()->propagateToAlphaX(track, linRef, pnt->getAlphaSens(), pnt->getXTracking(), pnt->getUseBzOnly(), maxSnp, maxStep, 2, mt, tLT, signCorr);
+}
+
+bool AlignmentTrack::propagate(trackPar_t& track, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr)
 {
   if (signCorr == 0) { // auto
     // calculate the sign of the energy loss correction and ensure the upper leg of cosmics is calculated correctly.
@@ -603,7 +615,7 @@ bool AlignmentTrack::ApplyMS(trackParam_t& trPar, double tms,double pms)
 */
 
 //______________________________________________________
-bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corrPar, const AlignmentPoint* pnt)
+bool AlignmentTrack::applyMatCorr(trackPar_t& trPar, const double* corrPar, const AlignmentPoint* pnt)
 {
   // Modify track param (e.g. trackParam_t) in the tracking frame
   // by delta accounting for material effects
@@ -630,7 +642,7 @@ bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corrPar, co
 }
 
 //______________________________________________________
-bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corr)
+bool AlignmentTrack::applyMatCorr(trackPar_t& trPar, const double* corr)
 {
   // Modify track param (e.g. trackParam_t) in the tracking frame
   // by delta accounting for material effects
@@ -645,7 +657,7 @@ bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corr)
         printf("%+.3e ", corr[i]);
       }
       printf("\n");
-      trPar.print();
+      trPar.printParam();
     }
     return false;
   }
@@ -656,7 +668,7 @@ bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corr)
 }
 
 //______________________________________________________
-bool AlignmentTrack::applyMatCorr(trackParam_t* trSet, int ntr, const double* corrDiag, const AlignmentPoint* pnt)
+bool AlignmentTrack::applyMatCorr(trackPar_t* trSet, int ntr, const double* corrDiag, const AlignmentPoint* pnt)
 {
   // Modify set of track params (e.g. trackParam_t) in the tracking frame
   // by delta accounting for material effects
@@ -683,7 +695,7 @@ bool AlignmentTrack::applyMatCorr(trackParam_t* trSet, int ntr, const double* co
     if (!applyMatCorr(trSet[itr], corr)) {
       if (algConf.verbose > 2) {
         LOGP(error, "Failed on clone {} materials", itr);
-        trSet[itr].print();
+        trSet[itr].printParam();
       }
       return false;
     }
@@ -732,7 +744,7 @@ double AlignmentTrack::richardsonExtrap(const double* val, int ord)
 }
 
 //______________________________________________
-void AlignmentTrack::richardsonDeriv(const trackParam_t* trSet, const double* delta, const AlignmentPoint* pnt, double& derY, double& derZ)
+void AlignmentTrack::richardsonDeriv(const trackPar_t* trSet, const double* delta, const AlignmentPoint* pnt, double& derY, double& derZ)
 {
   // Calculate Richardson derivatives for diagonalized Y and Z from a set of kRichardsonN pairs
   // of tracks with same parameter of i-th pair varied by +-delta[i]
@@ -882,7 +894,7 @@ bool AlignmentTrack::iniFit()
     //
     // propagate to reference point, which is the inner point of lower leg
     const AlignmentPoint* refP = getPoint(getInnerPointID());
-    if (!propagateToPoint(trcU, refP, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, -1)) { // moving along the track: energy is lost
+    if (!propagateToPoint(trcU, nullptr, refP, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, -1)) { // moving along the track: energy is lost
       return false;
     }
     //
@@ -1024,6 +1036,7 @@ bool AlignmentTrack::fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
     }
     return false;
   }
+  trackPar_t linRef(trc), *linRefP = algConf.useLinRef ? &linRef : nullptr;
   trc.setCov(kIniErr);
   trc.setCov(16 * trc.getQ2Pt() * trc.getQ2Pt(), 4, 4); // lowest diagonal element (Q2Pt2)
   //
@@ -1042,7 +1055,7 @@ bool AlignmentTrack::fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
   int pntCnt = 0;
   for (int ip = pFrom; ip != pTo; ip += pinc) { // inward fit from outer point
     AlignmentPoint* pnt = getPoint(ip);
-    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) { // against track direction : e.loss is compensated
+    if (!propagateToPoint(trc, linRefP, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) { // against track direction : e.loss is compensated
       if (algConf.verbose > 2) {
         LOGF(warn, "Failed on propagateToPoint %d (%d : %d) %f", ip, pFrom, pTo, pnt->getXTracking());
         trc.print();
@@ -1139,7 +1152,7 @@ bool AlignmentTrack::residKalman()
       trc.invert();
       inv = !inv;
     }
-    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) {
+    if (!propagateToPoint(trc, nullptr, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) {
       return false;
     }
     if (!pnt->containsMeasurement()) {
@@ -1178,7 +1191,7 @@ bool AlignmentTrack::residKalman()
       trc.invert();
       inv = !inv;
     }
-    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) { // we are going along track direction, e.loss is applied
+    if (!propagateToPoint(trc, nullptr, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) { // we are going along track direction, e.loss is applied
       return false;
     }
     if (!pnt->containsMeasurement()) {
@@ -1335,7 +1348,7 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
     //
     matTL.clearFast();
     //    printf("-> ProcMat %d (%d->%d)\n",ip,pFrom,pTo);
-    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), &matTL, signELoss)) { // with material corrections
+    if (!propagateToPoint(trc, nullptr, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), &matTL, signELoss)) { // with material corrections
       if (algConf.verbose > 2) {
         LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" << pTo << ") with mat.corr.";
         trc.print();
@@ -1346,7 +1359,7 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
     //
     // is there enough material to consider the point as a scatterer?
     bool hasMaterial = matTL.getX2X0() > minX2X0;
-    if (!propagateToPoint(tr0, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, nullptr, signELoss)) { // no material corrections
+    if (!propagateToPoint(tr0, nullptr, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, nullptr, signELoss)) { // no material corrections
       if (algConf.verbose > 2) {
         LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" << pTo << ") with mat.corr.";
         tr0.print();

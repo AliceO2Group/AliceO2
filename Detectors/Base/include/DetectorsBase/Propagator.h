@@ -127,6 +127,9 @@ class PropagatorImpl
   GPUd() bool propagateToAlphaX(track_T& track, value_type alpha, value_type x, bool bzOnly = false, value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, int minSteps = 1,
                                 MatCorrType matCorr = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
+  GPUd() bool propagateToAlphaX(TrackParCov_t& track, TrackPar_t* linRef, value_type alpha, value_type x, bool bzOnly = false, value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, int minSteps = 1,
+                                MatCorrType matCorr = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+
   template <typename track_T>
   GPUd() bool propagateToR(track_T& track, value_type r, bool bzOnly = false, value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP,
                            MatCorrType matCorr = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
