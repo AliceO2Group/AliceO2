@@ -197,6 +197,9 @@ int32_t ReadConfiguration(int argc, char** argv)
     printf("Can only produce QA pdf output when input files are specified!\n");
     return 1;
   }
+  if (configStandalone.QA.enableLocalOutput && !configStandalone.QA.inputHistogramsOnly && configStandalone.QA.output == "" && configStandalone.QA.plotsDir != "") {
+    configStandalone.QA.output = configStandalone.QA.plotsDir + "/output.root";
+  }
   if (configStandalone.QA.inputHistogramsOnly) {
     configStandalone.rundEdx = false;
     configStandalone.noEvents = true;
