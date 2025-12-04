@@ -176,6 +176,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::mergedTracks1>({{1, -WarpSize(), 0, deviceType}}, 1);
     runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::mergedTracks2>({{1, -WarpSize(), 0, deviceType}}, 1);
   }
+  if (!doGPU && GetProcessingSettings().debug.mergerMCLabels) {
+    Merger.CreateMCLabels(1, 1, 0, 0);
+  }
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingCollectedTracks, doGPU, Merger, &GPUTPCGMMerger::DumpCollected, *mDebugFile);
 
   if (param().rec.tpc.mergeCE) {
