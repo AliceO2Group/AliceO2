@@ -14,6 +14,7 @@
 
 #define GPUCA_CADEBUG 0
 #define DEBUG_SINGLE_TRACK -1
+// #define DEBUG_REBUILD_MC
 
 #include "GPUTPCDef.h"
 #include "GPUTPCGMTrackParam.h"
@@ -38,6 +39,11 @@
 #ifdef GPUCA_CADEBUG_ENABLED
 #include "GPUSettings.h"
 #include "AliHLTTPCClusterMCData.h"
+#endif
+
+#ifndef GPUCA_GPUCODE
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
@@ -279,6 +285,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
     if (param.rec.tpc.rebuildTrackInFit && !rebuilt && !(param.rec.tpc.disableRebuildAttachment & 16) && iWay >= nWays - 3 && CAMath::Abs(mP[2]) < maxSinForUpdate && lastUpdateRow != 255) {
       const int32_t up = ((clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1)) ? 1 : -1;
       int32_t sector = lastSector;
+      CADEBUG(merger.MergedTrackMC() printf("Extrapolate Start Track %d - sector %2d row %3d %s - fake %d\n", iTrk, sector, (int32_t)lastPropagateRow, up == 1 ? "upwards" : "downwards", (int)merger.MergedTrackMC()[iTrk].isFake()));
       uint8_t rowGapActive = 0, rowGapTotal = 0, missingRowsTotal = 0;
       uint8_t lastGoodRow = lastPropagateRow, lastExtrapolateRow = lastPropagateRow;
       uint8_t consecGoodRows = param.rec.tpc.rebuildTrackExtrMinConsecGoodRows, consecGoodRowsMissing = 0;
@@ -327,6 +334,12 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         auto& candidate = merger.ClusterCandidates()[(iTrk * GPUCA_ROW_COUNT + iRow) * param.rec.tpc.rebuildTrackInFitClusterCandidates + 0];
         if (candidate.id >= 2) {
           lastExtrapolateRow = iRow;
+#if defined(DEBUG_REBUILD_MC) && !defined(GPUCA_GPUCODE)
+          if (merger.MergedTrackMC() && merger.GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth) {
+            int32_t labelCorrect = GPUTPCTrkLblSearch(merger.GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth->getLabels(candidate.id - 2), merger.MergedTrackMC()[iTrk]);
+            CADEBUG(printf("\t%21sLabel correct: %d\n", "", labelCorrect));
+          }
+#endif
           float err2Y, err2Z, xx, yy, zz;
           const ClusterNative& GPUrestrict() cl = merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[candidate.id - 2];
           merger.GetConstantMem()->calibObjects.fastTransformHelper->Transform(sector, iRow, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);

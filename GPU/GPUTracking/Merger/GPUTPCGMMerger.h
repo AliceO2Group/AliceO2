@@ -113,6 +113,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   GPUhdi() int32_t NMergedTracks() const { return mMemory->nMergedTracks; }
   GPUhdi() const GPUTPCGMMergedTrack* MergedTracks() const { return mMergedTracks; }
+  GPUhdi() const o2::MCCompLabel* MergedTrackMC() const { return mMergedTrackMC; }
   GPUhdi() GPUTPCGMMergedTrack* MergedTracks() { return mMergedTracks; }
   GPUhdi() const GPUdEdxInfo* MergedTracksdEdx() const { return mMergedTracksdEdx; }
   GPUhdi() GPUdEdxInfo* MergedTracksdEdx() { return mMergedTracksdEdx; }
@@ -204,6 +205,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void ResolveHitWeights1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iteration);
   GPUd() void ResolveHitWeights2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void ResolveHitWeightsShared(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void CreateMCLabels(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
 
 #ifndef GPUCA_GPUCODE
   void DumpSectorTracks(std::ostream& out) const;
@@ -284,6 +286,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   int32_t mNSectorHits = 0;                         // Total number of incoming clusters (from sector tracks)
   GPUTPCGMMergedTrack* mMergedTracks = nullptr;     //* array of output merged tracks
+  o2::MCCompLabel* mMergedTrackMC = nullptr;
   trackCluster* mClusterCandidates = nullptr;
   trackRebuildHelper* mTrackRebuildHelper = nullptr;
   int32_t* mHitWeights = nullptr;

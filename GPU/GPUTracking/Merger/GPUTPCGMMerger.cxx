@@ -148,6 +148,7 @@ using namespace o2::gpu::internal;
 
 #include "GPUQA.h"
 #include "GPUMemorySizeScalers.h"
+#include "GPUQAHelper.h"
 
 GPUTPCGMMerger::GPUTPCGMMerger()
 {
@@ -164,7 +165,7 @@ GPUTPCGMMerger::GPUTPCGMMerger()
 }
 
 // DEBUG CODE
-#if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
+#if defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC
 #include "GPUQAHelper.h"
 
 template <class T>
@@ -438,6 +439,9 @@ void* GPUTPCGMMerger::SetPointersRefitScratch(void* mem)
 void* GPUTPCGMMerger::SetPointersOutput(void* mem)
 {
   computePointerWithAlignment(mem, mMergedTracks, mNMaxTracks);
+  if (mRec->GetProcessingSettings().debug.mergerMCLabels) {
+    computePointerWithAlignment(mem, mMergedTrackMC, mNMaxTracks);
+  }
   if (mRec->GetParam().dodEdxEnabled) {
     computePointerWithAlignment(mem, mMergedTracksdEdx, mNMaxTracks);
     if (mRec->GetParam().rec.tpc.dEdxClusterRejectionFlagMask != mRec->GetParam().rec.tpc.dEdxClusterRejectionFlagMaskAlt) {
@@ -545,6 +549,34 @@ int32_t GPUTPCGMMerger::CheckSectors()
     throw std::runtime_error("Must run also sector tracking");
   }
   return 0;
+}
+
+void GPUTPCGMMerger::CreateMCLabels(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
+{
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = GetConstantMem()->ioPtrs.clustersNative;
+  if (clusters == nullptr || clusters->clustersMCTruth == nullptr) {
+    return;
+  }
+  if (mMergedTrackMC == nullptr) {
+    return;
+  }
+
+  auto labelAssigner = GPUTPCTrkLbl(clusters->clustersMCTruth, 0.1f);
+  for (int32_t i = get_global_id(0); i < NMergedTracks(); i += get_global_size(0)) {
+    const auto& trk = mMergedTracks[i];
+    if (!trk.OK()) {
+      continue;
+    }
+    labelAssigner.reset();
+    for (uint32_t j = 0; j < trk.NClusters(); j++) {
+      const auto& cl = mClusters[trk.FirstClusterRef() + j];
+      if (cl.state & GPUTPCGMMergedTrackHit::flagReject) {
+        continue;
+      }
+      labelAssigner.addLabel(cl.num);
+    }
+    mMergedTrackMC[i] = labelAssigner.computeLabel();
+  }
 }
 
 #endif // GPUCA_GPUCODE

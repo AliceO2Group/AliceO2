@@ -39,7 +39,7 @@ BeginNamespace(gpu)
 
 // Reconstruction parameters for TPC, no bool in here !!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
-AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
+AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)") // TODO: Sort these options automatically for parameter size
 AddOptionRTC(hitPickUpFactor, float, 1.f, "", 0, "multiplier for the combined cluster+track error during track following")
 AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road of hits during seeding")
 AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, for z only used if searchWindowDZDR = 0")
@@ -304,6 +304,14 @@ AddOption(nnCCDBInteractionRate, std::string, "500", "", 0, "Distinguishes betwe
 AddHelp("help", 'h')
 EndConfig()
 
+// Debug Settings
+BeginSubConfig(GPUSettingsProcessingDebug, debug, configStandalone.proc, "DEBUG", 0, "Debugging Settings", proc_debug)
+AddOption(memoryScalingFuzz, uint64_t, 0, "", 0, "Fuzz the memoryScalingFactor (0 disable, 1 enable, >1 set seed", def(1))
+AddOption(mergerMCLabels, bool, false, "", 0, "Create MC labels for merged tracks before refit for debugging")
+AddHelp("help", 'h')
+EndConfig()
+
+
 // Settings steering the processing once the device was selected, only available on the host
 BeginSubConfig(GPUSettingsProcessing, proc, configStandalone, "PROC", 0, "Processing settings", proc)
 AddOption(deviceNum, int32_t, -1, "gpuDevice", 0, "Set GPU device to use (-1: automatic, -2: for round-robin usage in timeslice-pipeline)")
@@ -329,7 +337,6 @@ AddOption(memoryAllocationStrategy, int8_t, 0, "", 0, "Memory Allocation Strageg
 AddOption(forceMemoryPoolSize, uint64_t, 1, "memSize", 0, "Force size of allocated GPU / page locked host memory", min(0ul))
 AddOption(forceHostMemoryPoolSize, uint64_t, 0, "hostMemSize", 0, "Force size of allocated host page locked host memory (overriding memSize)", min(0ul))
 AddOption(memoryScalingFactor, float, 1.f, "", 0, "Factor to apply to all memory scalers")
-AddOption(memoryScalingFuzz, uint64_t, 0, "", 0, "Fuzz the memoryScalingFactor (0 disable, 1 enable, >1 set seed", def(1))
 AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conservative defaults for larger buffers during TPC processing")
 AddOption(tpcInputWithClusterRejection, uint8_t, 0, "", 0, "Indicate whether the TPC input is CTF data with cluster rejection, to tune buffer estimations")
 AddOption(forceMaxMemScalers, uint64_t, 0, "", 0, "Force using the maximum values for all buffers, Set a value n > 1 to rescale all maximums to a memory size of n")
@@ -377,7 +384,7 @@ AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC de
 AddOption(tpcApplyCFCutsAtDecoding, bool, false, "", 0, "Apply cluster cuts from clusterization during decoding of compressed clusters")
 AddOption(tpcApplyClusterFilterOnCPU, uint8_t, 0, "", 0, "Apply custom cluster filter of GPUTPCClusterFilter class, 0: off, 1: debug, 2: PbPb23")
 AddOption(tpcWriteClustersAfterRejection, bool, false, "", 0, "Apply TPC rejection strategy before writing clusters")
-AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))")
+AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))") // TODO: Create some backend-specific options
 AddOption(oclCompileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code")
 AddOption(oclOverrideSourceBuildFlags, std::string, "", "", 0, "Override OCL build flags for compilation from source, put a space for empty options")
 AddOption(printSettings, bool, false, "", 0, "Print all settings when initializing")
@@ -396,6 +403,7 @@ AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddSubConfig(GPUSettingsProcessingRTCtechnical, rtctech)
 AddSubConfig(GPUSettingsProcessingParam, param)
 AddSubConfig(GPUSettingsProcessingNNclusterizer, nn)
+AddSubConfig(GPUSettingsProcessingDebug, debug)
 AddHelp("help", 'h')
 EndConfig()
 #endif // __OPENCL__
