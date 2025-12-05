@@ -115,8 +115,8 @@ const o2::InteractionTimeRecord& InteractionSampler::generateCollisionTime()
 int InteractionSampler::simulateInteractingBC()
 {
   // Returns number of collisions assigned to selected BC
-
   nextCollidingBC(mBCJumpGenerator.getNextValue());
+
   // once BC is decided, enforce at least one interaction
   int ncoll = mNCollBCGenerator.getNextValue();
 
@@ -161,4 +161,99 @@ void InteractionSampler::setBunchFilling(const std::string& bcFillingFile)
   }
   mBCFilling = *bc;
   delete bc;
+}
+
+// ________________________________________________
+bool NonUniformMuInteractionSampler::setBCIntensityScales(const std::vector<float>& scales_from_vector)
+{
+  // Sets the intensity scales per bunch crossing index
+  // The length of this vector needs to be compatible with the bunch filling chosen
+  mBCIntensityScales = scales_from_vector;
+
+  if (scales_from_vector.size() != mInteractingBCs.size()) {
+    LOG(error) << "Scaling factors and bunch filling scheme are not compatible. Not doing anything";
+    return false;
+  }
+
+  float sum = 0.;
+  for (auto v : mBCIntensityScales) {
+    sum += std::abs(v);
+  }
+  if (sum == 0) {
+    LOGP(warn, "total intensity is 0, assuming uniform");
+    for (auto& v : mBCIntensityScales) {
+      v = 1.f;
+    }
+  } else { // normalize
+    float norm = mBCIntensityScales.size() / sum;
+    for (auto& v : mBCIntensityScales) {
+      v = std::abs(v) * norm;
+    }
+  }
+  return false;
+}
+
+// ________________________________________________
+
+bool NonUniformMuInteractionSampler::setBCIntensityScales(const TH1F& hist)
+{
+  return setBCIntensityScales(determineBCIntensityScalesFromHistogram(hist));
+}
+
+std::vector<float> NonUniformMuInteractionSampler::determineBCIntensityScalesFromHistogram(const TH1F& hist)
+{
+  std::vector<float> scales;
+  // we go through the BCs and query the count from histogram
+  for (auto bc : mInteractingBCs) {
+    scales.push_back(hist.GetBinContent(bc + 1));
+  }
+  return scales;
+}
+
+int NonUniformMuInteractionSampler::getBCJump() const
+{
+  auto muFunc = [this](int bc_position) {
+    return mBCIntensityScales[bc_position % mInteractingBCs.size()] * mMuBC;
+  };
+
+  double U = gRandom->Rndm();    // uniform (0,1)
+  double T = -std::log(1.0 - U); // threshold
+  double sumMu = 0.0;
+  int offset = 0;
+  auto bcStart = mCurrBCIdx; // the current bc
+
+  while (sumMu < T) {
+    auto mu_here = muFunc(bcStart + offset); // mu at next BC
+    sumMu += mu_here;
+    if (sumMu >= T) {
+      break; // found BC with at least one collision
+    }
+    ++offset;
+  }
+  return offset;
+}
+
+int NonUniformMuInteractionSampler::simulateInteractingBC()
+{
+  nextCollidingBC(getBCJump());
+
+  auto muFunc = [this](int bc_position) {
+    return mBCIntensityScales[bc_position % mInteractingBCs.size()] * mMuBC;
+  };
+
+  // now sample number of collisions in chosenBC, conditioned >=1:
+  double mu_chosen = muFunc(mCurrBCIdx); // or does it need to be mCurrBCIdx
+  int ncoll = 0;
+  do {
+    ncoll = gRandom->Poisson(mu_chosen);
+  } while (ncoll == 0);
+
+  // assign random time withing a bunch
+  for (int i = ncoll; i--;) {
+    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
+  }
+  if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
+    std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
+  }
+  return ncoll;
 }

@@ -22,6 +22,7 @@
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonConstants/LHCConstants.h"
 #include "MathUtils/RandomRing.h"
+#include <TH1F.h>
 
 namespace o2
 {
@@ -128,6 +129,30 @@ class FixedSkipBC_InteractionSampler : public InteractionSampler
   int mEveryN;       // the skip number ---> fills every N-th BC in the bunch filling scheme
   int mMultiplicity; // how many events to put if bc is filled
   ClassDef(FixedSkipBC_InteractionSampler, 1);
+};
+
+// A version of the interaction sampler which can sample according to non-uniform mu(bc) as
+// observed during data taking.
+class NonUniformMuInteractionSampler : public InteractionSampler
+{
+ public:
+  NonUniformMuInteractionSampler() : InteractionSampler() { mBCIntensityScales.resize(o2::constants::lhc::LHCMaxBunches, 1); }
+  bool setBCIntensityScales(const std::vector<float>& scales_from_vector);
+  bool setBCIntensityScales(const TH1F& scales_from_histo); // initialize scales
+
+  // helper function to determine the scales from a histogram (count from event selection analysis)
+  std::vector<float> determineBCIntensityScalesFromHistogram(const TH1F& scales_from_histo);
+
+  const std::vector<float>& getBCIntensityScales() const { return mBCIntensityScales; }
+
+ protected:
+  int simulateInteractingBC() override;
+  int getBCJump() const;
+
+ private:
+  // non-uniformity
+  std::vector<float> mBCIntensityScales;
+  ClassDef(NonUniformMuInteractionSampler, 1);
 };
 
 } // namespace steer
