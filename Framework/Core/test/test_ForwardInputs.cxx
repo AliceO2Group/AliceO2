@@ -107,6 +107,60 @@ TEST_CASE("ForwardInputsSingleMessageSingleRoute")
   REQUIRE(result[0].Size() == 2); // Two messages for that route
 }
 
+TEST_CASE("ForwardInputsSingleMessageSingleRouteNoConsume")
+{
+  o2::header::DataHeader dh;
+  dh.dataOrigin = "TST";
+  dh.dataDescription = "A";
+  dh.subSpecification = 0;
+  dh.splitPayloadIndex = 0;
+  dh.splitPayloadParts = 1;
+
+  o2::framework::DataProcessingHeader dph{0, 1};
+  std::vector<fair::mq::Channel> channels{
+    fair::mq::Channel("from_A_to_B")};
+
+  bool copyByDefault = false;
+  FairMQDeviceProxy proxy;
+  std::vector<ForwardRoute> routes{ForwardRoute{
+    .timeslice = 0,
+    .maxTimeslices = 1,
+    .matcher = {"binding", ConcreteDataMatcher{"TST", "A", 0}},
+    .channel = "from_A_to_B",
+    .policy = nullptr,
+  }};
+
+  auto findChannelByName = [&channels](std::string const& channelName) -> fair::mq::Channel& {
+    for (auto& channel : channels) {
+      if (channel.GetName() == channelName) {
+        return channel;
+      }
+    }
+    throw std::runtime_error("Channel not found");
+  };
+
+  proxy.bind({}, {}, routes, findChannelByName, nullptr);
+
+  TimesliceIndex::OldestOutputInfo oldestTimeslice{.timeslice = {0}};
+  std::vector<MessageSet> currentSetOfInputs;
+  MessageSet messageSet;
+
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  fair::mq::MessagePtr payload(nullptr);
+  REQUIRE(payload.get() == nullptr);
+  auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+  auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
+  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  REQUIRE(messageSet.size() == 1);
+  currentSetOfInputs.emplace_back(std::move(messageSet));
+
+  TimesliceSlot slot{0};
+
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, slot, currentSetOfInputs, oldestTimeslice, copyByDefault, true);
+  REQUIRE(result.size() == 1);
+  REQUIRE(result[0].Size() == 0); // Because there is a nullptr, we do not forward this as it was already consumed.
+}
+
 TEST_CASE("ForwardInputsSingleMessageSingleRouteAtEOS")
 {
   o2::header::DataHeader dh;
