@@ -351,6 +351,7 @@ BOOST_AUTO_TEST_CASE(CalDetStreamerTest)
   o2::tpc::DeadChannelMapCreator creator{};
   creator.init("https://alice-ccdb.cern.ch");
   creator.loadIDCPadFlags(1731274461770);
+  creator.loadFEEConfig(1731274461770);
 }
 
 } // namespace o2::tpc
