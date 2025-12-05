@@ -12,6 +12,10 @@
 #define O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
 
 #include <cstddef>
+#include "Framework/TimesliceSlot.h"
+#include "Framework/TimesliceIndex.h"
+#include <fairmq/FwdDecls.h>
+#include <vector>
 
 namespace o2::framework
 {
@@ -23,6 +27,9 @@ struct OutputChannelSpec;
 struct OutputChannelState;
 struct ProcessingPolicies;
 struct DeviceSpec;
+struct FairMQDeviceProxy;
+struct MessageSet;
+struct ChannelIndex;
 enum struct StreamingState;
 enum struct TransitionHandlingState;
 
@@ -45,7 +52,9 @@ struct DataProcessingHelpers {
   static bool hasOnlyGenerated(DeviceSpec const& spec);
   /// starts the EoS timers and returns the new TransitionHandlingState in case as new state is requested
   static TransitionHandlingState updateStateTransition(ServiceRegistryRef const& ref, ProcessingPolicies const& policies);
+  /// Helper to route messages for forwarding
+  static std::vector<fair::mq::Parts> routeForwardedMessages(FairMQDeviceProxy& proxy, TimesliceSlot slot, std::vector<MessageSet>& currentSetOfInputs,
+                                                             TimesliceIndex::OldestOutputInfo oldestTimeslice, bool copy, bool consume);
 };
-
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_

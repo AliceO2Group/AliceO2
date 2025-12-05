@@ -224,6 +224,7 @@ add_executable(o2-test-framework-core
               test/test_FairMQOptionsRetriever.cxx
               test/test_FairMQResizableBuffer.cxx
               test/test_FairMQ.cxx
+              test/test_ForwardInputs.cxx
               test/test_FrameworkDataFlowToDDS.cxx
               test/test_FrameworkDataFlowToO2Control.cxx
               test/test_Graphviz.cxx
