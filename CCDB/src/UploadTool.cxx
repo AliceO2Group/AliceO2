@@ -148,6 +148,9 @@ int main(int argc, char* argv[])
   }
 
   if (filename == "headersOnly") {
+    auto ent = meta.find("Redirect");
+    std::cout << " Uploading a headers-only object to path " << path << " with timestamp validity from " << starttimestamp << " to " << endtimestamp
+              << " Redirection to: " << ((ent != meta.end()) ? ent->second : std::string{"none"}) << "\n";
     api.storeAsBinaryFile(nullptr, 0, "ignored", "", path, meta, starttimestamp, endtimestamp);
     if (!api.isSnapshotMode() && meta.find("adjustableEOV") != meta.end() && meta.find("default") == meta.end()) {
       o2::ccdb::CcdbObjectInfo oi(path, "", "", meta, starttimestamp, endtimestamp);
