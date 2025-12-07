@@ -101,10 +101,11 @@ struct TableRef {
     return this->desc_hash == _desc_hash;
   }
 
+  constexpr ~TableRef() = default;
   constexpr TableRef(TableRef const&) = default;
+  constexpr TableRef(TableRef&&) noexcept = default;
   constexpr TableRef& operator=(TableRef const&) = default;
-  constexpr TableRef(TableRef&&) = default;
-  constexpr TableRef& operator=(TableRef&&) = default;
+  constexpr TableRef& operator=(TableRef&&) noexcept = default;
 };
 
 /// Helpers to manipulate TableRef arrays
@@ -519,11 +520,11 @@ class ColumnIterator : ChunkingPolicy
   }
 
   ColumnIterator() = default;
+  ~ColumnIterator() = default;
   ColumnIterator(ColumnIterator<T, ChunkingPolicy> const&) = default;
+  ColumnIterator(ColumnIterator<T, ChunkingPolicy>&&) noexcept = default;
   ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy> const&) = default;
-
-  ColumnIterator(ColumnIterator<T, ChunkingPolicy>&&) = default;
-  ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy>&&) = default;
+  ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy>&&) noexcept = default;
 
   /// Move the iterator to the next chunk.
   void nextChunk() const
@@ -678,11 +679,11 @@ struct Column {
   }
 
   Column() = default;
+  ~Column() = default;
   Column(Column const&) = default;
+  Column(Column&&) noexcept = default;
   Column& operator=(Column const&) = default;
-
-  Column(Column&&) = default;
-  Column& operator=(Column&&) = default;
+  Column& operator=(Column&&) noexcept = default;
 
   using type = T;
   static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
@@ -733,11 +734,11 @@ struct Marker : o2::soa::MarkerColumn<Marker<M>> {
   constexpr inline static auto value = M;
 
   Marker() = default;
+  ~Marker() = default;
   Marker(Marker const&) = default;
-  Marker(Marker&&) = default;
-
+  Marker(Marker&&) noexcept = default;
   Marker& operator=(Marker const&) = default;
-  Marker& operator=(Marker&&) = default;
+  Marker& operator=(Marker&&) noexcept = default;
 
   Marker(arrow::ChunkedArray const*) {}
   constexpr inline auto mark()
@@ -755,11 +756,11 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
   constexpr inline static int64_t end = END;
 
   Index() = default;
+  ~Index() = default;
   Index(Index const&) = default;
-  Index(Index&&) = default;
-
+  Index(Index&&) noexcept = default;
   Index& operator=(Index const&) = default;
-  Index& operator=(Index&&) = default;
+  Index& operator=(Index&&) noexcept = default;
 
   Index(arrow::ChunkedArray const*)
   {
@@ -878,10 +879,11 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   }
 
   FilteredIndexPolicy() = default;
-  FilteredIndexPolicy(FilteredIndexPolicy&&) = default;
+  ~FilteredIndexPolicy() = default;
   FilteredIndexPolicy(FilteredIndexPolicy const&) = default;
+  FilteredIndexPolicy(FilteredIndexPolicy&&) noexcept = default;
   FilteredIndexPolicy& operator=(FilteredIndexPolicy const&) = default;
-  FilteredIndexPolicy& operator=(FilteredIndexPolicy&&) = default;
+  FilteredIndexPolicy& operator=(FilteredIndexPolicy&&) noexcept = default;
 
   [[nodiscard]] std::tuple<int64_t const*, int64_t const*>
     getIndices() const
@@ -963,10 +965,11 @@ struct FilteredIndexPolicy : IndexPolicyBase {
 struct DefaultIndexPolicy : IndexPolicyBase {
   /// Needed to be able to copy the policy
   DefaultIndexPolicy() = default;
-  DefaultIndexPolicy(DefaultIndexPolicy&&) = default;
+  ~DefaultIndexPolicy() = default;
   DefaultIndexPolicy(DefaultIndexPolicy const&) = default;
+  DefaultIndexPolicy(DefaultIndexPolicy&&) noexcept = default;
   DefaultIndexPolicy& operator=(DefaultIndexPolicy const&) = default;
-  DefaultIndexPolicy& operator=(DefaultIndexPolicy&&) = default;
+  DefaultIndexPolicy& operator=(DefaultIndexPolicy&&) noexcept = default;
 
   /// mMaxRow is one behind the last row, so effectively equal to the number of
   /// rows @a nRows. Offset indicates that the index is actually part of
@@ -1096,6 +1099,10 @@ struct TableIterator : IP, C... {
   }
 
   TableIterator() = default;
+  ~TableIterator() = default;
+  TableIterator(TableIterator&&) noexcept = default;
+  // TableIterator& operator=(TableIterator&&) noexcept = default; // FIXME
+
   TableIterator(self_t const& other)
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
@@ -2363,8 +2370,11 @@ consteval static std::string_view namespace_prefix()
     }                                                                                                                                                                             \
                                                                                                                                                                                   \
     _Name_() = default;                                                                                                                                                           \
-    _Name_(_Name_ const& other) = default;                                                                                                                                        \
-    _Name_& operator=(_Name_ const& other) = default;                                                                                                                             \
+    ~_Name_() = default;                                                                                                                                                          \
+    _Name_(_Name_ const&) = default;                                                                                                                                              \
+    _Name_(_Name_&&) noexcept = default;                                                                                                                                          \
+    _Name_& operator=(_Name_ const&) = default;                                                                                                                                   \
+    _Name_& operator=(_Name_&&) noexcept = default;                                                                                                                               \
                                                                                                                                                                                   \
     decltype(auto) _Getter_() const                                                                                                                                               \
     {                                                                                                                                                                             \
@@ -2392,8 +2402,11 @@ consteval static std::string_view namespace_prefix()
     }                                                                                                           \
                                                                                                                 \
     _Name_() = default;                                                                                         \
-    _Name_(_Name_ const& other) = default;                                                                      \
-    _Name_& operator=(_Name_ const& other) = default;                                                           \
+    ~_Name_() = default;                                                                                        \
+    _Name_(_Name_ const&) = default;                                                                            \
+    _Name_(_Name_&&) noexcept = default;                                                                        \
+    _Name_& operator=(_Name_ const&) = default;                                                                 \
+    _Name_& operator=(_Name_&&) noexcept = default;                                                             \
                                                                                                                 \
     decltype(auto) _Getter_() const                                                                             \
     {                                                                                                           \
@@ -2440,8 +2453,11 @@ consteval static std::string_view namespace_prefix()
     }                                                                                                                                                                             \
                                                                                                                                                                                   \
     _Name_() = default;                                                                                                                                                           \
-    _Name_(_Name_ const& other) = default;                                                                                                                                        \
-    _Name_& operator=(_Name_ const& other) = default;                                                                                                                             \
+    ~_Name_() = default;                                                                                                                                                          \
+    _Name_(_Name_ const&) = default;                                                                                                                                              \
+    _Name_(_Name_&&) noexcept = default;                                                                                                                                          \
+    _Name_& operator=(_Name_ const&) = default;                                                                                                                                   \
+    _Name_& operator=(_Name_&&) noexcept = default;                                                                                                                               \
                                                                                                                                                                                   \
     decltype(auto) _Getter_##_raw() const                                                                                                                                         \
     {                                                                                                                                                                             \
@@ -2474,8 +2490,11 @@ consteval static std::string_view namespace_prefix()
     }                                                                                                                  \
                                                                                                                        \
     _Name_() = default;                                                                                                \
-    _Name_(_Name_ const& other) = default;                                                                             \
-    _Name_& operator=(_Name_ const& other) = default;                                                                  \
+    ~_Name_() = default;                                                                                               \
+    _Name_(_Name_ const&) = default;                                                                                   \
+    _Name_(_Name_&&) noexcept = default;                                                                               \
+    _Name_& operator=(_Name_ const&) = default;                                                                        \
+    _Name_& operator=(_Name_&&) noexcept = default;                                                                    \
                                                                                                                        \
     decltype(auto) _Getter_() const                                                                                    \
     {                                                                                                                  \
@@ -2514,8 +2533,11 @@ consteval static std::string_view namespace_prefix()
     }                                                                                                                  \
                                                                                                                        \
     _Name_() = default;                                                                                                \
-    _Name_(_Name_ const& other) = default;                                                                             \
-    _Name_& operator=(_Name_ const& other) = default;                                                                  \
+    ~_Name_() = default;                                                                                               \
+    _Name_(_Name_ const&) = default;                                                                                   \
+    _Name_(_Name_&&) noexcept = default;                                                                               \
+    _Name_& operator=(_Name_ const&) = default;                                                                        \
+    _Name_& operator=(_Name_&&) noexcept = default;                                                                    \
                                                                                                                        \
     decltype(auto) _Getter_() const                                                                                    \
     {                                                                                                                  \
@@ -2573,8 +2595,11 @@ consteval auto getIndexTargets()
     }                                                                                                    \
                                                                                                          \
     _Name_##IdSlice() = default;                                                                         \
-    _Name_##IdSlice(_Name_##IdSlice const& other) = default;                                             \
-    _Name_##IdSlice& operator=(_Name_##IdSlice const& other) = default;                                  \
+    ~_Name_##IdSlice() = default;                                                                        \
+    _Name_##IdSlice(_Name_##IdSlice const&) = default;                                                   \
+    _Name_##IdSlice(_Name_##IdSlice&&) noexcept = default;                                               \
+    _Name_##IdSlice& operator=(_Name_##IdSlice const&) = default;                                        \
+    _Name_##IdSlice& operator=(_Name_##IdSlice&&) noexcept = default;                                    \
     std::array<_Type_, 2> inline getIds() const                                                          \
     {                                                                                                    \
       return _Getter_##Ids();                                                                            \
@@ -2660,8 +2685,11 @@ consteval auto getIndexTargets()
     }                                                                                                    \
                                                                                                          \
     _Name_##Ids() = default;                                                                             \
-    _Name_##Ids(_Name_##Ids const& other) = default;                                                     \
-    _Name_##Ids& operator=(_Name_##Ids const& other) = default;                                          \
+    ~_Name_##Ids() = default;                                                                            \
+    _Name_##Ids(_Name_##Ids const&) = default;                                                           \
+    _Name_##Ids(_Name_##Ids&&) noexcept = default;                                                       \
+    _Name_##Ids& operator=(_Name_##Ids const&) = default;                                                \
+    _Name_##Ids& operator=(_Name_##Ids&&) noexcept = default;                                            \
                                                                                                          \
     gsl::span<const _Type_> inline getIds() const                                                        \
     {                                                                                                    \
@@ -2816,8 +2844,11 @@ consteval auto getIndexTargets()
     }                                                                                                                           \
                                                                                                                                 \
     _Name_##Id() = default;                                                                                                     \
-    _Name_##Id(_Name_##Id const& other) = default;                                                                              \
-    _Name_##Id& operator=(_Name_##Id const& other) = default;                                                                   \
+    ~_Name_##Id() = default;                                                                                                    \
+    _Name_##Id(_Name_##Id const&) = default;                                                                                    \
+    _Name_##Id(_Name_##Id&&) noexcept = default;                                                                                \
+    _Name_##Id& operator=(_Name_##Id const&) = default;                                                                         \
+    _Name_##Id& operator=(_Name_##Id&&) noexcept = default;                                                                     \
     type inline getId() const                                                                                                   \
     {                                                                                                                           \
       return _Getter_##Id();                                                                                                    \
@@ -2897,8 +2928,11 @@ consteval auto getIndexTargets()
     }                                                                                                                           \
                                                                                                                                 \
     _Name_##Id() = default;                                                                                                     \
-    _Name_##Id(_Name_##Id const& other) = default;                                                                              \
-    _Name_##Id& operator=(_Name_##Id const& other) = default;                                                                   \
+    ~_Name_##Id() = default;                                                                                                    \
+    _Name_##Id(_Name_##Id const&) = default;                                                                                    \
+    _Name_##Id(_Name_##Id&&) noexcept = default;                                                                                \
+    _Name_##Id& operator=(_Name_##Id const&) = default;                                                                         \
+    _Name_##Id& operator=(_Name_##Id&&) noexcept = default;                                                                     \
     type inline getId() const                                                                                                   \
     {                                                                                                                           \
       return _Getter_##Id();                                                                                                    \
@@ -2956,8 +2990,11 @@ consteval auto getIndexTargets()
     }                                                                                                    \
                                                                                                          \
     _Name_##IdSlice() = default;                                                                         \
-    _Name_##IdSlice(_Name_##IdSlice const& other) = default;                                             \
-    _Name_##IdSlice& operator=(_Name_##IdSlice const& other) = default;                                  \
+    ~_Name_##IdSlice() = default;                                                                        \
+    _Name_##IdSlice(_Name_##IdSlice const&) = default;                                                   \
+    _Name_##IdSlice(_Name_##IdSlice&&) noexcept = default;                                               \
+    _Name_##IdSlice& operator=(_Name_##IdSlice const&) = default;                                        \
+    _Name_##IdSlice& operator=(_Name_##IdSlice&&) noexcept = default;                                    \
     std::array<_Type_, 2> inline getIds() const                                                          \
     {                                                                                                    \
       return _Getter_##Ids();                                                                            \
@@ -3020,8 +3057,11 @@ consteval auto getIndexTargets()
     }                                                                                                    \
                                                                                                          \
     _Name_##Ids() = default;                                                                             \
-    _Name_##Ids(_Name_##Ids const& other) = default;                                                     \
-    _Name_##Ids& operator=(_Name_##Ids const& other) = default;                                          \
+    ~_Name_##Ids() = default;                                                                            \
+    _Name_##Ids(_Name_##Ids const&) = default;                                                           \
+    _Name_##Ids(_Name_##Ids&&) noexcept = default;                                                       \
+    _Name_##Ids& operator=(_Name_##Ids const&) = default;                                                \
+    _Name_##Ids& operator=(_Name_##Ids&&) noexcept = default;                                            \
     gsl::span<const _Type_> inline getIds() const                                                        \
     {                                                                                                    \
       return _Getter_##Ids();                                                                            \
@@ -3131,8 +3171,11 @@ consteval auto getIndexTargets()
     {                                                                                                                      \
     }                                                                                                                      \
     _Name_() = default;                                                                                                    \
-    _Name_(_Name_ const& other) = default;                                                                                 \
-    _Name_& operator=(_Name_ const& other) = default;                                                                      \
+    ~_Name_() = default;                                                                                                   \
+    _Name_(_Name_ const&) = default;                                                                                       \
+    _Name_(_Name_&&) noexcept = default;                                                                                   \
+    _Name_& operator=(_Name_ const&) = default;                                                                            \
+    _Name_& operator=(_Name_&&) noexcept = default;                                                                        \
     static constexpr const char* mLabel = #_Name_;                                                                         \
     using type = typename callable_t::return_type;                                                                         \
                                                                                                                            \
@@ -4116,10 +4159,11 @@ struct IndexTable : Table<L, D, O> {
   {
   }
 
+  ~IndexTable() = default;
   IndexTable(IndexTable const&) = default;
-  IndexTable(IndexTable&&) = default;
+  IndexTable(IndexTable&&) noexcept = default;
   IndexTable& operator=(IndexTable const&) = default;
-  IndexTable& operator=(IndexTable&&) = default;
+  IndexTable& operator=(IndexTable&&) noexcept = default;
 
   using iterator = typename base_t::template iterator_template_o<DefaultIndexPolicy, self_t>;
   using const_iterator = iterator;
