@@ -1488,6 +1488,8 @@ bool TrackInterpolation::refITSTrack(o2::dataformats::GlobalTrackID gid, int see
   auto nCl = trkITS.getNumberOfClusters();
   auto clEntry = trkITS.getFirstClusterEntry();
   o2::track::TrackParCov track(trkITS); // start from the inner param
+  track.resetCovariance();
+  track.setCov(track.getQ2Pt() * track.getQ2Pt() * track.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
   track.setPID(seed.getPID());
   o2::track::TrackPar refLin(track); // and use it also as linearization reference
   auto geom = o2::its::GeometryTGeo::Instance();
