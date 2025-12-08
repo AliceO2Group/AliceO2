@@ -25,6 +25,8 @@ o2_add_library(GlobalTrackingStudy
                        src/TrackMCStudyConfig.cxx
                        src/TrackMCStudyTypes.cxx
                        src/TPCClusSelector.cxx
+                       src/CheckResid.cxx
+                       src/CheckResidConfig.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
@@ -38,6 +40,8 @@ o2_target_root_dictionary(GlobalTrackingStudy
                                   include/GlobalTrackingStudy/TrackInfoExt.h
                                   include/GlobalTrackingStudy/TrackMCStudyConfig.h
                                   include/GlobalTrackingStudy/TrackMCStudyTypes.h
+                                  include/GlobalTrackingStudy/CheckResidTypes.h
+                                  include/GlobalTrackingStudy/CheckResidConfig.h
                           LINKDEF src/GlobalTrackingStudyLinkDef.h
 )
 
@@ -74,6 +78,11 @@ o2_add_executable(study-workflow
 o2_add_executable(dump-workfow
                   COMPONENT_NAME bc-tracks
                   SOURCES src/track-dump-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
+
+o2_add_executable(resid-workfow
+                  COMPONENT_NAME check
+                  SOURCES src/check-resid-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
 
 if (OpenMP_CXX_FOUND)
