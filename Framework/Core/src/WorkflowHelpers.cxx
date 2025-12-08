@@ -494,7 +494,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // Check if any of the requested inputs is for a 0xccdb message
   bool providesDISTSTF = std::any_of(workflow.begin(), workflow.end(),
                                      [&matcher](auto const& dp) {
-                                       return std::any_of(dp.outputs.begin(), dp.outputs.end(), [&matcher](auto const& output){
+                                       return std::any_of(dp.outputs.begin(), dp.outputs.end(), [&matcher](auto const& output) {
                                          return DataSpecUtils::match(matcher, output);
                                        });
                                      });
@@ -503,8 +503,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // we add to the first data processor which has no inputs (apart from
   // enumerations / timers) the responsibility to provide the DISTSUBTIMEFRAME
   bool requiresDISTSUBTIMEFRAME = std::any_of(workflow.begin(), workflow.end(),
-                                                [&dstf](auto const& dp) {
-                                                return std::any_of(dp.inputs.begin(), dp.inputs.end(), [&dstf](auto const& input){
+                                              [&dstf](auto const& dp) {
+                                                return std::any_of(dp.inputs.begin(), dp.inputs.end(), [&dstf](auto const& input) {
                                                   return DataSpecUtils::match(input, dstf);
                                                 });
                                               });
@@ -522,7 +522,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
     auto lifetime = dp.inputs[0].lifetime;
     if (lifetime == Lifetime::Enumeration && (enumCandidate == -1 || workflow[enumCandidate].name > dp.name)) {
-        enumCandidate = wi;
+      enumCandidate = wi;
     }
     if (lifetime == Lifetime::Timer && (timerCandidate == -1 || workflow[timerCandidate].name > dp.name)) {
       timerCandidate = wi;
