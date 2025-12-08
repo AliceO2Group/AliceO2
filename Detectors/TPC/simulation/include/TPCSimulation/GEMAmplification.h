@@ -55,9 +55,10 @@ class GEMAmplification
   int getStackAmplification(int nElectrons = 1);
 
   /// Compute the number of electrons after amplification in an effective single-stage amplification
+  /// \param region Readout region (0:IROC, 1:OROC1, 2:OROC2, 3:OROC3)
   /// \param nElectrons Number of electrons arriving at the first amplification stage (GEM1)
   /// \return Number of electrons after amplification in an  effective single-stage amplification
-  int getEffectiveStackAmplification(int nElectrons = 1);
+  int getEffectiveStackAmplification(int region, int nElectrons = 1);
 
   /// Compute the number of electrons after amplification in a full stack of four GEM foils
   /// taking into account local variations of the electron amplification
@@ -99,8 +100,8 @@ class GEMAmplification
   math_utils::RandomRing<> mRandomFlat;
   /// Container with random Polya distributions, one for each GEM in the stack
   std::array<math_utils::RandomRing<>, 4> mGain;
-  /// Container with random Polya distributions for the full stack amplification
-  math_utils::RandomRing<> mGainFullStack;
+  /// Container with random Polya distributions for the full stack amplification per region (IROC, OROC1, OROC2, OROC3)
+  std::array<math_utils::RandomRing<>, 4> mGainFullStack;
 
   const ParameterGEM* mGEMParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterGas* mGasParam; ///< Caching of the parameter class to avoid multiple CDB calls
@@ -118,7 +119,7 @@ inline int GEMAmplification::getStackAmplification(const CRU& cru, const PadPos&
       break;
     }
     case AmplificationMode::EffectiveMode: {
-      return static_cast<int>(static_cast<float>(getEffectiveStackAmplification(nElectrons)) *
+      return static_cast<int>(static_cast<float>(getEffectiveStackAmplification(static_cast<int>(cru.gemStack()), nElectrons)) *
                               mGainMap->getValue(cru, pos.getRow(), pos.getPad()));
       break;
     }

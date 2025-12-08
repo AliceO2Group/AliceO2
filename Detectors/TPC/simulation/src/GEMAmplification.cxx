@@ -73,28 +73,31 @@ GEMAmplification::GEMAmplification()
     delete polyaDistribution;
   }
 
-  /// Set the polya distribution for the full stack
+  /// Set the polya distribution for the full stack per region (IROC, OROC1, OROC2, OROC3)
   const float gainStack = mGEMParam->TotalGainStack;
   const float kappaStack = mGEMParam->KappaStack;
   const float effStack = mGEMParam->EfficiencyStack;
   // Correct for electron losses occurring when changing kappa and the efficiency
-  const float sStack = gainStack / (kappaStack * effStack);
-  polya % kappaStack % sStack % sStack % (kappaStack - 1) % sStack;
-  std::string name = polya.str();
-  o2::math_utils::CachingTF1* polyaDistribution = nullptr;
-  if (!cacheexists) {
-    polyaDistribution = new o2::math_utils::CachingTF1("polya", name.c_str(), 0, 25.f * gainStack);
-    polyaDistribution->SetNpx(50000);
-  } else {
-    polyaDistribution = (o2::math_utils::CachingTF1*)outfile->Get("polyaStack");
-  }
-  mGainFullStack.initialize(*polyaDistribution);
+  for (int i = 0; i < 4; ++i) {
+    const float gainStackPerRegion = mGEMParam->RelativeGainStack[i] * gainStack;
+    LOG(info) << "TPC: Region: " << i << " Gain: " << gainStackPerRegion;
+    const float sStack = gainStackPerRegion / (kappaStack * effStack);
+    polya % kappaStack % sStack % sStack % (kappaStack - 1) % sStack;
+    std::string name = polya.str();
+    o2::math_utils::CachingTF1* polyaDistribution = nullptr;
+    if (!cacheexists) {
+      polyaDistribution = new o2::math_utils::CachingTF1("polya", name.c_str(), 0, 25.f * gainStackPerRegion);
+      polyaDistribution->SetNpx(50000);
+    } else {
+      polyaDistribution = (o2::math_utils::CachingTF1*)outfile->Get(TString::Format("polyaStack%d", i).Data());
+    }
+    mGainFullStack[i].initialize(*polyaDistribution);
 
-  if (!cacheexists) {
-    outfile->WriteTObject(polyaDistribution, "polyaStack");
+    if (!cacheexists) {
+      outfile->WriteTObject(polyaDistribution, TString::Format("polyaStack%d", i).Data());
+    }
+    delete polyaDistribution;
   }
-  delete polyaDistribution;
-
   if (outfile) {
     outfile->Close();
   }
@@ -122,17 +125,17 @@ int GEMAmplification::getStackAmplification(int nElectrons)
   return nElectronsGEM4;
 }
 
-int GEMAmplification::getEffectiveStackAmplification(int nElectrons)
+int GEMAmplification::getEffectiveStackAmplification(int region, int nElectrons)
 {
   /// We start with an arbitrary number of electrons given to the first amplification stage
   /// The amplification in the GEM stack is handled for each electron individually and the amplification
-  /// in the stack is handled in an effective manner
+  /// in the stack is handled in an effective manner for different regions (IROC, OROC1, OROC2, OROC3)
   int nElectronsGEM = 0;
   for (int i = 0; i < nElectrons; ++i) {
     if (mRandomFlat.getNextValue() > mGEMParam->EfficiencyStack) {
       continue;
     }
-    nElectronsGEM += mGainFullStack.getNextValue();
+    nElectronsGEM += mGainFullStack[region].getNextValue();
   }
   return nElectronsGEM;
 }

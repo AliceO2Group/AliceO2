@@ -446,7 +446,7 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
 
             // convert electrons to ADC signal
             const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
-            const float adcsignal = sampaProcessing.getADCvalue(static_cast<float>((nEleGEM == -1) ? static_cast<int>(gemAmplification.getEffectiveStackAmplification()) : nEleGEM));
+            const float adcsignal = sampaProcessing.getADCvalue(static_cast<float>((nEleGEM == -1) ? static_cast<int>(gemAmplification.getEffectiveStackAmplification(static_cast<int>(cru.gemStack()))) : nEleGEM));
             sampaProcessing.getShapedSignal(adcsignal, driftTime, signalArray);
 
             // set up MC label

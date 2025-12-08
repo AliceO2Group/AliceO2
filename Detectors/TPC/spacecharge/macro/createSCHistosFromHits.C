@@ -366,7 +366,7 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
             const auto pad = static_cast<size_t>(padPos.getPad());
             const CRU cru = digiPadPos.getCRU();
 
-            const int gain = static_cast<int>(gemAmplification.getEffectiveStackAmplification() * gainMap.getValue(cru, row, pad));
+            const int gain = static_cast<int>(gemAmplification.getEffectiveStackAmplification(static_cast<int>(cru.gemStack())) * gainMap.getValue(cru, row, pad));
             if (gain == 0) {
               continue;
             }
@@ -399,9 +399,9 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
             const float chargeEpsilon = vecCalCharge[zbinIDC].getValue(cru, row, pad) + epsilon;
             ((CalPadArr&)(vecCalCharge[zbinIDC].getCalArray(static_cast<size_t>(cru.roc().getRoc())))).setValue(rowRoc, pad, chargeEpsilon);
           } // electron loop
-        }   // hit loop
-      }     // track loop
-    }       // sector loop
+        } // hit loop
+      } // track loop
+    } // sector loop
 
     for (int isec = 0; isec < ::Sector::MAXSECTOR; ++isec) {
       delete arrSectors[isec];

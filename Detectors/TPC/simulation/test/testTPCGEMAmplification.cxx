@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(GEMamplification_effective_test)
   const int nEleIn = 158; /// Number of electrons liberated in Ne-CO2-N2 by an incident Fe-55 photon
 
   for (int i = 0; i < 500000; ++i) {
-    hTest.Fill(gemStack.getEffectiveStackAmplification(nEleIn));
+    hTest.Fill(gemStack.getEffectiveStackAmplification(0, nEleIn));
   }
 
   hTest.Fit("gaus", "Q0");
