@@ -488,7 +488,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
   }
 
-  // ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};
   InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME", 0xccdb};
   auto& dstf = std::get<ConcreteDataMatcher>(matcher.matcher);
   // Check if any of the provided outputs is a DISTSTF
