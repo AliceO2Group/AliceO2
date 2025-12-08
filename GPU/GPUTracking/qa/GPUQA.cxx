@@ -3141,7 +3141,9 @@ void GPUQA::PrintClusterCount(int32_t mode, int32_t& num, const char* name, uint
     createHist(mHistClusterCount[num], name2, name, 1000, 0, mConfig.histMaxNClusters, 1000, 0, 100);
   } else if (mode == 0) {
     if (normalization && mConfig.enableLocalOutput) {
-      printf("\t%40s: %'12" PRIu64 " (%6.2f%%)\n", name, n, 100.f * n / normalization);
+      for (uint32_t i = 0; i < 1 + (mTextDump != nullptr); i++) {
+        fprintf(i ? mTextDump : stdout, "\t%40s: %'12" PRIu64 " (%6.2f%%)\n", name, n, 100.f * n / normalization);
+      }
     }
     if (mConfig.clusterRejectionHistograms) {
       float ratio = 100.f * n / std::max<uint64_t>(normalization, 1);
@@ -3153,6 +3155,9 @@ void GPUQA::PrintClusterCount(int32_t mode, int32_t& num, const char* name, uint
 
 int32_t GPUQA::DoClusterCounts(uint64_t* attachClusterCounts, int32_t mode)
 {
+  if (mConfig.enableLocalOutput && !mConfig.inputHistogramsOnly && mConfig.plotsDir != "") {
+    mTextDump = fopen((mConfig.plotsDir + "/clusterCounts.txt").c_str(), "w+");
+  }
   int32_t num = 0;
   if (mcPresent() && (mQATasks & taskClusterAttach) && attachClusterCounts) {
     for (int32_t i = 0; i < N_CLS_HIST; i++) { // TODO: Check that these counts are still printed correctly!
@@ -3190,6 +3195,10 @@ int32_t GPUQA::DoClusterCounts(uint64_t* attachClusterCounts, int32_t mode)
   if (mcPresent() && (mQATasks & taskTrackStatistics)) {
     PrintClusterCount(mode, num, "Correctly Attached all-trk normalized", mClusterCounts.nCorrectlyAttachedNormalized, mClusterCounts.nTotal);
     PrintClusterCount(mode, num, "Correctly Attached non-fake normalized", mClusterCounts.nCorrectlyAttachedNormalizedNonFake, mClusterCounts.nTotal);
+  }
+  if (mTextDump) {
+    fclose(mTextDump);
+    mTextDump = nullptr;
   }
   return num;
 }

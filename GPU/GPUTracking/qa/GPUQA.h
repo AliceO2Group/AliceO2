@@ -62,6 +62,7 @@ class GPUQA
 #else
 
 #include "GPUTPCDef.h"
+#include <cstdio>
 #include <cmath>
 #include <vector>
 #include <memory>
@@ -365,6 +366,7 @@ class GPUQA
   int32_t mMCTrackMin = -1, mMCTrackMax = -1;
 
   const o2::tpc::ClusterNativeAccess* mClNative = nullptr;
+  FILE* mTextDump = nullptr;
 };
 
 inline bool GPUQA::SuppressTrack(int32_t iTrack) const { return (mConfig.matchMCLabels.size() && !mGoodTracks[mNEvents][iTrack]); }
