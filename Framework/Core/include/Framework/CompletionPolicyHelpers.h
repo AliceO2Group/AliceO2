@@ -44,10 +44,9 @@ struct CompletionPolicyHelpers {
   /// When any of the parts of the record have been received, consume them.
   static CompletionPolicy consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher);
 
-#if __has_include(<fairmq/shmem/Message.h>)
   /// When any of the parts which has arrived has a refcount of 1.
   static CompletionPolicy consumeWhenAnyZeroCount(const char* name, CompletionPolicy::Matcher matcher);
-#endif
+
   /// Default matcher applies for all devices
   static CompletionPolicy consumeWhenAny(CompletionPolicy::Matcher matcher = [](auto const&) -> bool { return true; })
   {

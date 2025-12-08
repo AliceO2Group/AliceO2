@@ -19,9 +19,7 @@
 #include "Framework/TimingInfo.h"
 #include "DecongestionService.h"
 #include "Framework/Signpost.h"
-#if __has_include(<fairmq/shmem/Message.h>)
 #include <fairmq/shmem/Message.h>
-#endif
 
 #include <cassert>
 #include <regex>
@@ -252,7 +250,6 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
     }};
 }
 
-#if __has_include(<fairmq/shmem/Message.h>)
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyZeroCount(const char* name, CompletionPolicy::Matcher matcher)
 {
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
@@ -265,7 +262,6 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyZeroCount(const char* na
   };
   return CompletionPolicy{name, matcher, callback, false};
 }
-#endif
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {

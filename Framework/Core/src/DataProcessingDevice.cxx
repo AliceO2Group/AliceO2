@@ -59,9 +59,7 @@
 #include <fairmq/Parts.h>
 #include <fairmq/Socket.h>
 #include <fairmq/ProgOptions.h>
-#if __has_include(<fairmq/shmem/Message.h>)
 #include <fairmq/shmem/Message.h>
-#endif
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/Monitoring.h>
@@ -1046,14 +1044,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       if (forwarded.matcher.lifetime != Lifetime::Condition) {
         onlyConditions = false;
       }
-#if !__has_include(<fairmq/shmem/Message.h>)
-      if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
-        context.canForwardEarly = false;
-        overriddenEarlyForward = true;
-        LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
-        break;
-      }
-#endif
       if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && deviceContext.processingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
         context.canForwardEarly = false;
         overriddenEarlyForward = true;
@@ -2058,14 +2048,10 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
       return currentSetOfInputs[i].getNumberOfPairs();
     };
-#if __has_include(<fairmq/shmem/Message.h>)
     auto refCountGetter = [&currentSetOfInputs](size_t idx) -> int {
       auto& header = static_cast<const fair::mq::shmem::Message&>(*currentSetOfInputs[idx].header(0));
       return header.GetRefCount();
     };
-#else
-    std::function<int(size_t)> refCountGetter = nullptr;
-#endif
     return InputSpan{getter, nofPartsGetter, refCountGetter, currentSetOfInputs.size()};
   };
 
