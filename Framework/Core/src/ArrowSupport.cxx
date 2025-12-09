@@ -617,37 +617,27 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
       if (spawner != workflow.end()) {
         // collect currently requested DYNs
-        for (auto& d : workflow) {
-          if (d.name == spawner->name) {
-            continue;
-          }
-          for (auto const& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
-              auto copy = i;
-              DataSpecUtils::updateInputList(ac.requestedDYNs, std::move(copy));
-            }
-          }
-          for (auto const& o : d.outputs) {
-            if (DataSpecUtils::partialMatch(o, header::DataOrigin{"DYN"})) {
-              ac.providedDYNs.emplace_back(o);
-            }
-          }
+        for (auto& d : workflow | views::exclude_by_name(spawner->name)) {
+          d.inputs |
+            views::partial_match_filter(header::DataOrigin{"DYN"}) |
+            sinks::update_input_list{ac.requestedDYNs};
+          d.outputs |
+            views::partial_match_filter(header::DataOrigin{"DYN"}) |
+            sinks::append_to{ac.providedDYNs};
         }
         std::sort(ac.requestedDYNs.begin(), ac.requestedDYNs.end(), inputSpecLessThan);
         std::sort(ac.providedDYNs.begin(), ac.providedDYNs.end(), outputSpecLessThan);
         ac.spawnerInputs.clear();
-        for (auto& input : ac.requestedDYNs) {
-          if (std::none_of(ac.providedDYNs.begin(), ac.providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
-            ac.spawnerInputs.emplace_back(input);
-          }
-        }
+        ac.requestedDYNs |
+          views::filter_not_matching(ac.providedDYNs) |
+          sinks::append_to{ac.spawnerInputs};
         // recreate inputs and outputs
         spawner->outputs.clear();
         spawner->inputs.clear();
+        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
         spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
-        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
       }
 
       if (analysisCCDB != workflow.end()) {
