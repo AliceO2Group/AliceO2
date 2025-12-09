@@ -269,20 +269,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
     }
-    bool hasTimeframeInputs = false;
-    for (auto& input : processor.inputs) {
-      if (input.lifetime == Lifetime::Timeframe) {
-        hasTimeframeInputs = true;
-        break;
-      }
-    }
-    bool hasTimeframeOutputs = false;
-    for (auto& output : processor.outputs) {
-      if (output.lifetime == Lifetime::Timeframe) {
-        hasTimeframeOutputs = true;
-        break;
-      }
-    }
+    bool hasTimeframeInputs = std::any_of(processor.inputs.begin(), processor.inputs.end(), [](auto const& input){ return input.lifetime == Lifetime::Timeframe; });
+    bool hasTimeframeOutputs = std::any_of(processor.outputs.begin(), processor.outputs.end(), [](auto const& output){ return output.lifetime == Lifetime::Timeframe; });
+
     // A timeframeSink consumes timeframes without creating new
     // timeframe data.
     bool timeframeSink = hasTimeframeInputs && !hasTimeframeOutputs;
