@@ -205,25 +205,32 @@ void AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher(
   std::vector<InputSpec>& requestedDYNs,
   DataProcessorSpec& publisher)
 {
+  requestedSpecials |
+    std::views::transform([](auto const& req){ // create outputspecs for inputs
+      return DataSpecUtils::asOutputSpec(req);
+    }) |
+    sinks::append_to{publisher.outputs};       // append them to the publisher outputs
+
+  std::vector<InputSpec> additionalInputs;
   for (auto& input : requestedSpecials) {
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    publisher.outputs.emplace_back(concrete.origin, concrete.description, concrete.subSpec);
-    // FIXME: good enough for now...
-    for (auto& i : input.metadata) {
-      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
-        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
-        if (j == publisher.inputs.end()) {
-          publisher.inputs.push_back(spec);
-        }
-        if (DataSpecUtils::partialMatch(spec, AODOrigins)) {
-          DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
-        } else if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"DYN"})) {
-          DataSpecUtils::updateInputList(requestedDYNs, std::move(spec));
-        }
-      }
-    }
+    input.metadata |
+      std::views::filter([](auto const& param){    // filter config params that are strings starting with "input:"
+        return (param.type == VariantType::String) && (param.name.find("input:") != std::string::npos);
+      }) |
+      std::views::transform([](auto const& param){ // parse them into InputSpecs
+        return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
+      }) |
+      sinks::update_input_list{additionalInputs};  // store into a temporary
   }
+
+  additionalInputs | sinks::update_input_list(publisher.inputs); // update publisher inputs
+  // FIXME: until we have a single list of pairs
+  additionalInputs |
+    views::partial_match_filter(AODOrigins) |
+    sinks::update_input_list{requestedAODs};                     // update requestedAODs
+  additionalInputs |
+    views::partial_match_filter(header::DataOrigin{"DYN"}) |
+    sinks::update_input_list{requestedDYNs};                     // update requestedDYNs
 }
 
 // =============================================================================
