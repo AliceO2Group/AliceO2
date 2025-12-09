@@ -281,14 +281,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         uint32_t hash = runtime_hash(processor.name.c_str());
         bool hasMatch = false;
         ConcreteDataMatcher summaryMatcher = ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(hash)};
-        for (auto& output : processor.outputs) {
-          if (DataSpecUtils::match(output, summaryMatcher)) {
-            O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "%{public}s already there in %{public}s",
-                                   DataSpecUtils::describe(output).c_str(), processor.name.c_str());
-            hasMatch = true;
-            break;
-          }
+        auto summaryOutput = std::find_if(processor.outputs.begin(), processor.outputs.end(), [&summaryMatcher](auto const& output){ return DataSpecUtils::match(output, summaryMatcher); });
+        if (summaryOutput != processor.outputs.end()) {
+          O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "%{public}s already there in %{public}s",
+                                 DataSpecUtils::describe(*summaryOutput).c_str(), processor.name.c_str());
+          hasMatch = true;
         }
+
         if (!hasMatch) {
           O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "Adding DPL/SUMMARY/%d to %{public}s", hash, processor.name.c_str());
           processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(hash)}});
