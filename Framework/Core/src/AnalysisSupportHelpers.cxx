@@ -11,6 +11,7 @@
 
 #include "Framework/AnalysisSupportHelpers.h"
 #include "Framework/DataOutputDirector.h"
+#include "Framework/DataSpecViews.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/ControlService.h"
 #include "Framework/EndOfStreamContext.h"
@@ -129,30 +130,12 @@ void AnalysisSupportHelpers::addMissingOutputsToReader(std::vector<OutputSpec> c
                                                        std::vector<InputSpec> const& requestedInputs,
                                                        DataProcessorSpec& publisher)
 {
-  auto matchingOutputFor = [](InputSpec const& requested) {
-    return [&requested](OutputSpec const& provided) {
-      return DataSpecUtils::match(requested, provided);
-    };
-  };
-  for (InputSpec const& requested : requestedInputs) {
-    auto provided = std::find_if(providedOutputs.begin(),
-                                 providedOutputs.end(),
-                                 matchingOutputFor(requested));
-
-    if (provided != providedOutputs.end()) {
-      continue;
-    }
-
-    auto inList = std::find_if(publisher.outputs.begin(),
-                               publisher.outputs.end(),
-                               matchingOutputFor(requested));
-    if (inList != publisher.outputs.end()) {
-      continue;
-    }
-
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
-    publisher.outputs.emplace_back(concrete.origin, concrete.description, concrete.subSpec, requested.lifetime, requested.metadata);
-  }
+  requestedInputs |
+    views::filter_not_matching(providedOutputs) |     // filter the inputs that are already provided
+    std::views::transform([](auto const& req){    // create outputspecs for unmatched inputs
+      return DataSpecUtils::asOutputSpec(req);
+    }) |
+    sinks::update_output_list{publisher.outputs}; // append them to the publisher outputs
 }
 
 void AnalysisSupportHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> const& providedSpecials,

@@ -31,6 +31,10 @@ static auto filter_not_matching(auto const& provided)
   return std::views::filter([&provided](auto const& input) { return std::none_of(provided.begin(), provided.end(), [&input](auto const& output) { return DataSpecUtils::match(input, output); }); });
 }
 
+static auto filter_matching(auto const& provided)
+{
+  return std::views::filter([&provided](auto const& input){ return std::any_of(provided.begin(), provided.end(), [&input](auto const& output){ return DataSpecUtils::match(input, output); }); });
+}
 } // namespace o2::framework::views
 //
 namespace o2::framework::sinks
@@ -57,6 +61,21 @@ struct update_input_list {
     for (auto& item : r) {
       auto copy = item;
       DataSpecUtils::updateInputList(self.c, std::move(copy));
+    }
+    return self.c;
+  }
+};
+
+template <class Container>
+struct update_output_list {
+  Container& c;
+  // ends the pipeline, returns the container
+  template <std::ranges::input_range R>
+  friend Container& operator|(R&& r, update_output_list self)
+  {
+    for (auto& item : r) {
+      auto copy = item;
+      DataSpecUtils::updateOutputList(self.c, std::move(copy));
     }
     return self.c;
   }
