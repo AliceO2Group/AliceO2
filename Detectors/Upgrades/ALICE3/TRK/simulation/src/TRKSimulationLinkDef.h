@@ -24,6 +24,7 @@
 #pragma link C++ class o2::trk::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::trk::Detector> + ;
 #pragma link C++ class o2::trk::Digitizer + ;
+#pragma link C++ class o2::trk::ChipSimResponse + ;
 
 #pragma link C++ class o2::trk::DPLDigitizerParam < o2::detectors::DetID::TRK> + ;
 #pragma link C++ class o2::trk::DPLDigitizerParam < o2::detectors::DetID::FT3> + ;

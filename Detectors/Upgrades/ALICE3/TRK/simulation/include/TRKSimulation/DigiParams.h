@@ -16,7 +16,8 @@
 #define ALICEO2_TRK_DIGIPARAMS_H
 
 #include <Rtypes.h>
-#include <ITSMFTSimulation/AlpideSignalTrapezoid.h>
+#include "ITSMFTSimulation/AlpideSignalTrapezoid.h"
+#include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "TRKBase/TRKBaseParam.h"
 #include "TRKBase/GeometryTGeo.h"
 
@@ -91,8 +92,8 @@ class DigiParams
 
   bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
-  const o2::trk::ChipSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
-  void setAlpSimResponse(const o2::trk::ChipSimResponse* par) { mAlpSimResponse = par; }
+  const o2::trk::ChipSimResponse* getAlpSimResponse() const { return mAlpSimResponse.get(); }
+  void setAlpSimResponse(const o2::itsmft::AlpideSimResponse*);
 
   const SignalShape& getSignalShape() const { return mSignalShape; }
   SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
@@ -122,7 +123,7 @@ class DigiParams
 
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 
-  const o2::trk::ChipSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
+  std::unique_ptr<o2::trk::ChipSimResponse> mAlpSimResponse; //!< pointer on external response
 
   // auxiliary precalculated parameters
   float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns

@@ -48,15 +48,9 @@ void Digitizer::init()
       mChips[i].setDeadChanMap(mDeadChanMap);
     }
   }
-  // importing the charge collection tables
-  // (initialized while building O2)
-  auto file = TFile::Open(mResponseFile.data());
-  if (!file) {
-    LOG(fatal) << "Cannot open response file " << mResponseFile;
-  }
 
   // setting the correct response function (for the moment, for both VD and MLOT the APTS response function is udes)
-  mChipSimResp = (o2::trk::ChipSimResponse*)file->Get("response1");
+  mChipSimResp = mParams.getAlpSimResponse();
   mChipSimRespVD = mChipSimResp;   /// for the moment considering the same response
   mChipSimRespMLOT = mChipSimResp; /// for the moment considering the same response
 
@@ -92,7 +86,7 @@ void Digitizer::init()
   mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
 }
 
-o2::trk::ChipSimResponse* Digitizer::getChipResponse(int chipID)
+const o2::trk::ChipSimResponse* Digitizer::getChipResponse(int chipID)
 {
   if (mGeometry->getSubDetID(chipID) == 0) { /// VD
     return mChipSimRespVD;

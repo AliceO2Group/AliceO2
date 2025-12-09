@@ -244,6 +244,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       // if (oTRKParams::Instance().useDeadChannelMap) {
       //   pc.inputs().get<o2::itsmft::NoiseMap*>("TRK_dead"); // trigger final ccdb update
       // }
+      pc.inputs().get<o2::itsmft::AlpideSimResponse*>("TRK_aptsresp");
 
       // init digitizer
       mDigitizer.init();
@@ -264,6 +265,10 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     //   mDigitizer.setDeadChannelsMap((o2::itsmft::NoiseMap*)obj);
     //   return;
     // }
+    if (matcher == ConcreteDataMatcher(mOrigin, "APTSRESP", 0)) {
+      LOG(info) << mID.getName() << " loaded APTSResponseData";
+      mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)obj);
+    }
   }
 
  private:
@@ -297,6 +302,7 @@ DataProcessorSpec getTRKDigitizerSpec(int channel, bool mctruth)
   // if (oTRKParams::Instance().useDeadChannelMap) {
   //   inputs.emplace_back("TRK_dead", "TRK", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("TRK/Calib/DeadMap"));
   // }
+  inputs.emplace_back("TRK_aptsresp", "TRK", "APTSRESP", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/APTSResponse"));
 
   return DataProcessorSpec{detStr + "Digitizer",
                            inputs, makeOutChannels(detOrig, mctruth),

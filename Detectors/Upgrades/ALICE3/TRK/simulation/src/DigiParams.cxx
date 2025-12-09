@@ -12,9 +12,10 @@
 /// \file DigiParams.cxx
 /// \brief Implementation of the TRK digitization steering params. Based on the ITS2 code.
 
-#include <fairlogger/Logger.h> // for LOG
-#include "TRKSimulation/DigiParams.h"
 #include <cassert>
+#include "Framework/Logger.h"
+#include "TRKSimulation/DigiParams.h"
+#include "TRKSimulation/ChipSimResponse.h"
 
 using namespace o2::trk;
 
@@ -69,4 +70,12 @@ void DigiParams::print() const
   printf("Noise level per pixel          : %e\n", mNoisePerPixel);
   printf("Charge time-response:\n");
   mSignalShape.print();
+}
+
+void DigiParams::setAlpSimResponse(const o2::itsmft::AlpideSimResponse* resp)
+{
+  if (!resp) {
+    LOGP(fatal, "cannot set response function from null");
+  }
+  mAlpSimResponse = std::make_unique<o2::trk::ChipSimResponse>(resp);
 }

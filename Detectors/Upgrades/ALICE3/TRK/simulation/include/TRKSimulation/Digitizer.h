@@ -51,7 +51,7 @@ class Digitizer
 
   void init();
 
-  o2::trk::ChipSimResponse* getChipResponse(int chipID);
+  const o2::trk::ChipSimResponse* getChipResponse(int chipID);
 
   /// Steer conversion of hits to digits
   void process(const std::vector<o2::trk::Hit>* hits, int evID, int srcID);
@@ -66,7 +66,6 @@ class Digitizer
   bool isContinuous() const { return mParams.isContinuous(); }
   void fillOutputContainer(uint32_t maxFrame = 0xffffffff);
 
-  void setDigiParams(const o2::trk::DigiParams& par) { mParams = par; }
   const o2::trk::DigiParams& getDigitParams() const { return mParams; }
 
   // provide the common trk::GeometryTGeo to access matrices and segmentation
@@ -142,12 +141,9 @@ class Digitizer
 
   int mNumberOfChips = 0;
 
-  o2::trk::ChipSimResponse* mChipSimResp = nullptr;     // simulated response
-  o2::trk::ChipSimResponse* mChipSimRespVD = nullptr;   // simulated response for VD chips
-  o2::trk::ChipSimResponse* mChipSimRespMLOT = nullptr; // simulated response for ML/OT chips
-
-  // std::string mResponseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
-  std::string mResponseFile = "$(O2_ROOT)/share/Detectors/Upgrades/ITS3/data/ITS3ChipResponseData/APTSResponseData.root"; /// using temporarly the APTS response
+  const o2::trk::ChipSimResponse* mChipSimResp = nullptr;     // simulated response
+  const o2::trk::ChipSimResponse* mChipSimRespVD = nullptr;   // simulated response for VD chips
+  const o2::trk::ChipSimResponse* mChipSimRespMLOT = nullptr; // simulated response for ML/OT chips
 
   bool mSimRespOrientation{false};   // wether the orientation in the response function is flipped
   float mSimRespVDShift{0.f};        // adjusting the Y-shift in the APTS response function to match sensor local coord.
