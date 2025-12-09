@@ -143,25 +143,26 @@ void AnalysisSupportHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> 
                                                         std::vector<InputSpec>& requestedAODs,
                                                         DataProcessorSpec& publisher)
 {
-  for (auto& input : requestedSpecials) {
-    if (std::any_of(providedSpecials.begin(), providedSpecials.end(), [&input](auto const& x) {
-          return DataSpecUtils::match(input, x);
-        })) {
-      continue;
-    }
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    publisher.outputs.emplace_back(concrete.origin, concrete.description, concrete.subSpec);
-    for (auto& i : input.metadata) {
-      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
-        auto j = std::find(publisher.inputs.begin(), publisher.inputs.end(), spec);
-        if (j == publisher.inputs.end()) {
-          publisher.inputs.push_back(spec);
-        }
-        DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
-      }
-    }
+  requestedSpecials |
+    views::filter_not_matching(providedSpecials) | // filter the inputs that are already provided
+    std::views::transform([](auto const& req){ // create outputspecs for unmatched inputs
+      return DataSpecUtils::asOutputSpec(req);
+    }) |
+    sinks::append_to(publisher.outputs);       // append them to the publisher outputs
+
+  std::vector<InputSpec> additionalInputs;
+  for (auto& input : requestedSpecials | views::filter_not_matching(providedSpecials)) {
+    input.metadata |
+      std::views::filter([](auto const& param){    // filter config params that are strings starting with "input:"
+        return (param.type == VariantType::String) && (param.name.find("input:") != std::string::npos);
+      }) |
+      std::views::transform([](auto const& param){ // parse them into InputSpecs
+        return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
+      }) |
+      sinks::update_input_list{additionalInputs};  // store into a temporary
   }
+  additionalInputs | sinks::update_input_list{requestedAODs};    // update requestedAODs
+  additionalInputs | sinks::update_input_list{publisher.inputs}; // update publisher inputs
 }
 
 void AnalysisSupportHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& requestedSpecials,
