@@ -42,7 +42,7 @@ class Digitizer : public TObject
   using ExtraDig = std::vector<itsmft::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
 
  public:
-  ~Digitizer();
+  ~Digitizer() = default;
 
   void setDigits(std::vector<o2::itsmft::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
@@ -111,18 +111,18 @@ class Digitizer : public TObject
 
   static constexpr std::array<o2::its3::SegmentationMosaix, 3> mIBSegmentations{0, 1, 2};
 
-  o2::its3::ChipSimResponse* mSimRespIB = nullptr;     // simulated response for IB
-  o2::itsmft::AlpideSimResponse* mSimRespOB = nullptr; // simulated response for OB
-  bool mSimRespIBOrientation{false};                   // wether the orientation in the IB response function is flipped
-  float mSimRespIBShift{0.f};                          // adjusting the Y-shift in the IB response function to match sensor local coord.
-  float mSimRespIBScaleX{1.f};                         // scale x-local coordinate to response function x-coordinate
-  float mSimRespIBScaleZ{1.f};                         // scale z-local coordinate to response function z-coordinate
-  float mSimRespOBShift{0.f};                          // adjusting the Y-shift in the OB response function to match sensor local coord.
+  const o2::its3::ChipSimResponse* mSimRespIB = nullptr;     // simulated response for IB
+  const o2::itsmft::AlpideSimResponse* mSimRespOB = nullptr; // simulated response for OB
+  bool mSimRespIBOrientation{false};                         // wether the orientation in the IB response function is flipped
+  float mSimRespIBShift{0.f};                                // adjusting the Y-shift in the IB response function to match sensor local coord.
+  float mSimRespIBScaleX{1.f};                               // scale x-local coordinate to response function x-coordinate
+  float mSimRespIBScaleZ{1.f};                               // scale z-local coordinate to response function z-coordinate
+  float mSimRespOBShift{0.f};                                // adjusting the Y-shift in the OB response function to match sensor local coord.
 
   const o2::its::GeometryTGeo* mGeometry = nullptr; ///< ITS3 geometry
 
-  std::vector<o2::its3::ChipDigitsContainer> mChips;   ///< Array of chips digits containers
-  std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
+  std::vector<o2::its3::ChipDigitsContainer> mChips; ///< Array of chips digits containers
+  std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;  ///< burrer (per roFrame) for extra digits
 
   std::vector<o2::itsmft::Digit>* mDigits = nullptr;                       //! output digits
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records

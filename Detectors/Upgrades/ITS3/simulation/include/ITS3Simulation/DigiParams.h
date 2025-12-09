@@ -48,16 +48,17 @@ class DigiParams final : public o2::itsmft::DigiParams
   const o2::itsmft::AlpideSimResponse* getOBSimResponse() const { return mOBSimResponse; }
   void setOBSimResponse(const o2::itsmft::AlpideSimResponse* response) { mOBSimResponse = response; }
 
-  o2::its3::ChipSimResponse* getIBSimResponse() const { return mIBSimResponse; }
-  void setIBSimResponse(o2::its3::ChipSimResponse* response);
+  o2::its3::ChipSimResponse* getIBSimResponse() const { return mIBSimResponse.get(); }
+  void setIBSimResponse(const o2::itsmft::AlpideSimResponse* resp);
 
   bool hasResponseFunctions() const { return mIBSimResponse != nullptr && mOBSimResponse != nullptr; }
 
   void print() const final;
 
  private:
-  const o2::itsmft::AlpideSimResponse* mOBSimResponse = nullptr; //!< pointer to external response
-  o2::its3::ChipSimResponse* mIBSimResponse = nullptr;           //!< pointer to external response
+  const o2::itsmft::AlpideSimResponse* mOBSimResponse = nullptr;       //!< pointer to external response
+  const o2::itsmft::AlpideSimResponse* mIBSimResponseExt = nullptr;    //!< pointer to external response
+  std::unique_ptr<o2::its3::ChipSimResponse> mIBSimResponse = nullptr; //!< pointer to external response
 
   ClassDef(DigiParams, 1);
 };

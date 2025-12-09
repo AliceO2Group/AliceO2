@@ -254,6 +254,11 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
         pc.inputs().get<o2::itsmft::NoiseMap*>("IT3_dead"); // trigger final ccdb update
       }
 
+      pc.inputs().get<o2::itsmft::AlpideSimResponse*>("IT3_alpiderespvbb0");
+      if (o2::its3::ITS3Params::Instance().chipResponseFunction != "Alpide") {
+        pc.inputs().get<o2::itsmft::AlpideSimResponse*>("IT3_aptsresp");
+      }
+
       // init digitizer
       mDigitizer.init();
     }
@@ -272,6 +277,14 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
       LOG(info) << mID.getName() << " static dead map updated";
       mDigitizer.setDeadChannelsMap((o2::itsmft::NoiseMap*)obj);
       return;
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDERESPVbb0", 0)) {
+      LOG(info) << mID.getName() << " loaded AlpideResponseData for Vbb=0V";
+      mDigitizer.getParams().setOBSimResponse((o2::itsmft::AlpideSimResponse*)obj);
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "APTSRESP", 0)) {
+      LOG(info) << mID.getName() << " loaded APTSResponseData";
+      mDigitizer.getParams().setIBSimResponse((o2::itsmft::AlpideSimResponse*)obj);
     }
   }
 
@@ -306,6 +319,8 @@ DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth)
   if (o2::its3::ITS3Params::Instance().useDeadChannelMap) {
     inputs.emplace_back("IT3_dead", "IT3", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/DeadMap"));
   }
+  inputs.emplace_back("IT3_alpiderespvbb0", "IT3", "ALPIDERESPVbb0", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbb0"));
+  inputs.emplace_back("IT3_aptsresp", "IT3", "APTSRESP", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/APTSResponse"));
 
   return DataProcessorSpec{detStr + "Digitizer",
                            inputs, makeOutChannels(detOrig, mctruth),

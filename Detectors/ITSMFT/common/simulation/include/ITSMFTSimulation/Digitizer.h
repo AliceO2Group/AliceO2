@@ -62,6 +62,7 @@ class Digitizer : public TObject
   void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
   void init();
+  void setAlpideResponse(const o2::itsmft::AlpideSimResponse* resp, int i) { mAlpSimResp[i] = resp; }
 
   auto getChipResponse(int chipID);
 
@@ -124,11 +125,10 @@ class Digitizer : public TObject
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
   int mNumberOfChips = 0;
-  o2::itsmft::AlpideSimResponse* mAlpSimRespMFT = nullptr;
-  o2::itsmft::AlpideSimResponse* mAlpSimRespIB = nullptr;
-  o2::itsmft::AlpideSimResponse* mAlpSimRespOB = nullptr;
-  o2::itsmft::AlpideSimResponse mAlpSimResp[2]; // simulated response
-  std::string mResponseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
+  const o2::itsmft::AlpideSimResponse* mAlpSimRespMFT = nullptr;
+  const o2::itsmft::AlpideSimResponse* mAlpSimRespIB = nullptr;
+  const o2::itsmft::AlpideSimResponse* mAlpSimRespOB = nullptr;
+  const o2::itsmft::AlpideSimResponse* mAlpSimResp[2]; // simulated response
   const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
 
   std::vector<o2::itsmft::ChipDigitsContainer> mChips; ///< Array of chips digits containers

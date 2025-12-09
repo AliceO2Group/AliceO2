@@ -35,11 +35,6 @@ using o2::itsmft::PreDigit;
 
 using namespace o2::its3;
 
-Digitizer::~Digitizer()
-{
-  delete mSimRespIB;
-}
-
 void Digitizer::init()
 {
   const int numOfChips = mGeometry->getNumberOfChips();
@@ -53,46 +48,22 @@ void Digitizer::init()
   }
 
   if (!mParams.hasResponseFunctions()) {
-    auto loadSetResponseFunc = [&](const char* fileIB, const char* nameIB, const char* fileOB, const char* nameOB) {
-      LOGP(info, "Loading response function IB={}:{} ; OB={}:{}", nameIB, fileIB, nameOB, fileOB);
-      auto fIB = TFile::Open(fileIB, "READ");
-      if (!fIB || fIB->IsZombie() || !fIB->IsOpen()) {
-        LOGP(fatal, "Cannot open file {}", fileIB);
-      }
-      auto fOB = TFile::Open(fileOB, "READ");
-      if (!fOB || fOB->IsZombie() || !fOB->IsOpen()) {
-        LOGP(fatal, "Cannot open file {}", fileOB);
-      }
-      if ((mSimRespIB = new o2::its3::ChipSimResponse(fIB->Get<o2::itsmft::AlpideSimResponse>(nameIB))) == nullptr) {
-        LOGP(fatal, "Cannot create response function for IB");
-      }
-      if ((mSimRespOB = fOB->Get<o2::itsmft::AlpideSimResponse>(nameOB)) == nullptr) {
-        LOGP(fatal, "Cannot create response function for OB");
-      }
-      mParams.setIBSimResponse(mSimRespIB);
-      mParams.setOBSimResponse(mSimRespOB);
-      fIB->Close();
-      fOB->Close();
-    };
-
-    if (const auto& func = ITS3Params::Instance().chipResponseFunction; func == "Alpide") {
-      constexpr const char* responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
-      loadSetResponseFunc(responseFile, "response0", responseFile, "response0");
-      mSimRespIBScaleX = o2::itsmft::SegmentationAlpide::PitchRow / SegmentationIB::PitchRow;
-      mSimRespIBScaleZ = o2::itsmft::SegmentationAlpide::PitchCol / SegmentationIB::PitchCol;
-    } else if (func == "APTS") {
-      constexpr const char* responseFileIB = "$(O2_ROOT)/share/Detectors/Upgrades/ITS3/data/ITS3ChipResponseData/APTSResponseData.root";
-      constexpr const char* responseFileOB = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
-      loadSetResponseFunc(responseFileIB, "response1", responseFileOB, "response0");
-      mSimRespIBScaleX = constants::pixelarray::pixels::apts::pitchX / SegmentationIB::PitchRow;
-      mSimRespIBScaleZ = constants::pixelarray::pixels::apts::pitchZ / SegmentationIB::PitchCol;
-      mSimRespIBOrientation = true;
-    } else {
-      LOGP(fatal, "ResponseFunction '{}' not implemented!", func);
-    }
-    mSimRespIBShift = mSimRespIB->getDepthMax() - constants::silicon::thickness / 2.f;
-    mSimRespOBShift = mSimRespOB->getDepthMax() - SegmentationOB::SensorLayerThickness / 2.f;
+    LOGP(fatal, "No response functions set!");
   }
+  if (const auto& func = ITS3Params::Instance().chipResponseFunction; func == "Alpide") {
+    mSimRespIBScaleX = o2::itsmft::SegmentationAlpide::PitchRow / SegmentationIB::PitchRow;
+    mSimRespIBScaleZ = o2::itsmft::SegmentationAlpide::PitchCol / SegmentationIB::PitchCol;
+  } else if (func == "APTS") {
+    mSimRespIBScaleX = constants::pixelarray::pixels::apts::pitchX / SegmentationIB::PitchRow;
+    mSimRespIBScaleZ = constants::pixelarray::pixels::apts::pitchZ / SegmentationIB::PitchCol;
+    mSimRespIBOrientation = true;
+  } else {
+    LOGP(fatal, "ResponseFunction '{}' not implemented!", func);
+  }
+  mSimRespIB = mParams.getIBSimResponse();
+  mSimRespOB = mParams.getOBSimResponse();
+  mSimRespIBShift = mSimRespIB->getDepthMax() - constants::silicon::thickness / 2.f;
+  mSimRespOBShift = mSimRespOB->getDepthMax() - SegmentationOB::SensorLayerThickness / 2.f;
 
   mParams.print();
   LOGP(info, "IB shift = {} ; OB shift = {}", mSimRespIBShift, mSimRespOBShift);

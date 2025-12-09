@@ -222,6 +222,14 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       }
       return;
     }
+    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDERESPVbb0", 0)) {
+      LOG(info) << mID.getName() << " loaded AlpideResponseData for Vbb=0V";
+      mDigitizer.setAlpideResponse((o2::itsmft::AlpideSimResponse*)obj, 0);
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDERESPVbbM3", 0)) {
+      LOG(info) << mID.getName() << " loaded AlpideResponseData for Vbb=-3V";
+      mDigitizer.setAlpideResponse((o2::itsmft::AlpideSimResponse*)obj, 1);
+    }
   }
 
  protected:
@@ -236,6 +244,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     // TODO: the code should run even if this object does not exist. Or: create default object
     pc.inputs().get<o2::itsmft::TimeDeadMap*>(detstr + "_time_dead");
     pc.inputs().get<o2::itsmft::DPLAlpideParam<DETID>*>(detstr + "_alppar");
+    pc.inputs().get<o2::itsmft::AlpideSimResponse*>(detstr + "_alpiderespvbb0");
+    pc.inputs().get<o2::itsmft::AlpideSimResponse*>(detstr + "_alpiderespvbbm3");
 
     auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
     auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
@@ -365,6 +375,8 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("ITS_dead", "ITS", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/DeadMap"));
   inputs.emplace_back("ITS_time_dead", "ITS", "TimeDeadMap", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/TimeDeadMap"));
   inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  inputs.emplace_back("ITS_alpiderespvbb0", "ITS", "ALPIDERESPVbb0", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbb0"));
+  inputs.emplace_back("ITS_alpiderespvbbm3", "ITS", "ALPIDERESPVbbM3", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbbM3"));
 
   return DataProcessorSpec{(detStr + "Digitizer").c_str(),
                            inputs, makeOutChannels(detOrig, mctruth),
@@ -384,6 +396,8 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("MFT_dead", "MFT", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/DeadMap"));
   inputs.emplace_back("MFT_time_dead", "MFT", "TimeDeadMap", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/TimeDeadMap"));
   inputs.emplace_back("MFT_alppar", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam"));
+  inputs.emplace_back("MFT_alpiderespvbb0", "MFT", "ALPIDERESPVbb0", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbb0"));
+  inputs.emplace_back("MFT_alpiderespvbbm3", "MFT", "ALPIDERESPVbbM3", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbbM3"));
   parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
             << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"

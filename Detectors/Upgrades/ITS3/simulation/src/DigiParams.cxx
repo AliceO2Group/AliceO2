@@ -69,12 +69,14 @@ void DigiParams::print() const
   getSignalShape().print();
 }
 
-void DigiParams::setIBSimResponse(o2::its3::ChipSimResponse* response)
+void DigiParams::setIBSimResponse(const o2::itsmft::AlpideSimResponse* resp)
 {
-  mIBSimResponse = response;
-  if (mIBSimResponse) {
-    mIBSimResponse->computeCentreFromData();
+  if (!resp) {
+    LOGP(fatal, "cannot set response from nullptr");
   }
+  mIBSimResponseExt = resp;
+  mIBSimResponse = std::make_unique<o2::its3::ChipSimResponse>(mIBSimResponseExt);
+  mIBSimResponse->computeCentreFromData();
 }
 
 } // namespace o2::its3

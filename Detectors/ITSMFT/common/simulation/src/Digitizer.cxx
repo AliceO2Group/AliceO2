@@ -48,24 +48,6 @@ void Digitizer::init()
       mChips[i].setDeadChanMap(mDeadChanMap);
     }
   }
-  // initializing for both collection tables
-  /*for (int i = 0; i < 2; i++) {
-    mAlpSimResp[i].initData(i);
-  }*/
-
-  // importing the charge collection tables
-  // (initialized while building O2)
-  auto file = TFile::Open(mResponseFile.data());
-  if (!file) {
-    LOG(fatal) << "Cannot open response file " << mResponseFile;
-  }
-  /*std::string response = "response";
-  for (int i=0; i<2; i++) {
-    response.append(std::to_string(i));
-    mAlpSimResp[i] = *(o2::itsmft::AlpideSimResponse*)file->Get(response.data());
-  }*/
-  mAlpSimResp[0] = *(o2::itsmft::AlpideSimResponse*)file->Get("response0");
-  mAlpSimResp[1] = *(o2::itsmft::AlpideSimResponse*)file->Get("response1");
 
   // importing the parameters from DPLDigitizerParam.h
   auto& doptMFT = DPLDigitizerParam<o2::detectors::DetID::MFT>::Instance();
@@ -73,29 +55,29 @@ void Digitizer::init()
 
   // initializing response according to detector and back-bias value
   if (doptMFT.Vbb == 0.0) { // for MFT
-    mAlpSimRespMFT = mAlpSimResp;
+    mAlpSimRespMFT = mAlpSimResp[0];
     LOG(info) << "Choosing Vbb=0V for MFT";
   } else if (doptMFT.Vbb == 3.0) {
-    mAlpSimRespMFT = mAlpSimResp + 1;
+    mAlpSimRespMFT = mAlpSimResp[1];
     LOG(info) << "Choosing Vbb=-3V for MFT";
   } else {
     LOG(fatal) << "Invalid MFT back-bias value";
   }
 
   if (doptITS.IBVbb == 0.0) { // for ITS Inner Barrel
-    mAlpSimRespIB = mAlpSimResp;
+    mAlpSimRespIB = mAlpSimResp[0];
     LOG(info) << "Choosing Vbb=0V for ITS IB";
   } else if (doptITS.IBVbb == 3.0) {
-    mAlpSimRespIB = mAlpSimResp + 1;
+    mAlpSimRespIB = mAlpSimResp[1];
     LOG(info) << "Choosing Vbb=-3V for ITS IB";
   } else {
     LOG(fatal) << "Invalid ITS Inner Barrel back-bias value";
   }
   if (doptITS.OBVbb == 0.0) { // for ITS Outter Barrel
-    mAlpSimRespOB = mAlpSimResp;
+    mAlpSimRespOB = mAlpSimResp[0];
     LOG(info) << "Choosing Vbb=0V for ITS OB";
   } else if (doptITS.OBVbb == 3.0) {
-    mAlpSimRespOB = mAlpSimResp + 1;
+    mAlpSimRespOB = mAlpSimResp[1];
     LOG(info) << "Choosing Vbb=-3V for ITS OB";
   } else {
     LOG(fatal) << "Invalid ITS Outter Barrel back-bias value";
