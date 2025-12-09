@@ -29,6 +29,9 @@
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "SimConfig/SimConfig.h"
 #include <filesystem>
+#include <sstream>
+#include <vector>
+#include <numeric>
 
 //
 // Created by Sandro Wenzel on 13.07.21.
@@ -64,6 +67,8 @@ struct Options {
                                   // This is useful when someone else is creating the contexts (MC-data embedding) and we
                                   // merely want to pass these through. If this is given, we simply take the timeframe ID, number of orbits
                                   // and copy the right amount of timeframes into the destination folder (implies individualTFextraction)
+  std::string nontrivial_mu_distribution = ""; // path to fetch a non-uniform MC(BC) distribution for the interaction sampler
+                                               // can be: (a) ccdb, (b) a ROOT file with the histogram included
 };
 
 enum class InteractionLockMode {
@@ -71,6 +76,28 @@ enum class InteractionLockMode {
   EVERYN,
   MINTIMEDISTANCE
 };
+
+struct CcdbUrl {
+  std::string server;   // may include http:// or https://
+  std::string port;     // empty if none
+  std::string fullPath; // everything after server[:port]/
+};
+
+std::optional<CcdbUrl> parseCcdbRegex(const std::string& url)
+{
+  static const std::regex re(
+    R"(^(?:ccdb://)(https?://[^/:]+|[^/:]+)(?::(\d+))?/(.+)$)");
+  std::smatch m;
+  if (!std::regex_match(url, m, re)) {
+    return std::nullopt;
+  }
+
+  CcdbUrl out;
+  out.server = m[1].str();   // server (may include http:// or https://)
+  out.port = m[2].str();     // optional port
+  out.fullPath = m[3].str(); // remainder
+  return out;
+}
 
 struct InteractionSpec {
   std::string name; // name (prefix for transport simulation); may also serve as unique identifier
@@ -216,8 +243,8 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "timestamp", bpo::value<long>(&optvalues.timestamp)->default_value(-1L), "Timestamp for CCDB queries / anchoring")(
     "extract-per-timeframe", bpo::value<std::string>(&optvalues.individualTFextraction)->default_value(""),
     "Extract individual timeframe contexts. Format required: time_frame_prefix[:comma_separated_list_of_signals_to_offset]")(
-    "import-external", bpo::value<std::string>(&optvalues.external_path)->default_value(""),
-    "Take collision contexts (per timeframe) from external files for instance for data-anchoring use-case. Needs timeframeID and number of orbits to be given as well.");
+    "import-external", bpo::value<std::string>(&optvalues.external_path)->default_value(""), "Take collision contexts (per timeframe) from external files for instance for data-anchoring use-case. Needs timeframeID and number of orbits to be given as well.")(
+    "nontrivial-mu-distribution", bpo::value<std::string>(&optvalues.nontrivial_mu_distribution)->default_value(""), "Distribution for MU(BC)");
 
   options.add_options()("help,h", "Produce help message.");
 
@@ -397,6 +424,46 @@ int main(int argc, char* argv[])
     auto mode = ispecs[id].syncmode;
     if (mode == InteractionLockMode::NOLOCK) {
       auto sampler = std::make_unique<o2::steer::InteractionSampler>();
+      TH1F* mu_hist = nullptr;
+
+      // we check if there is a realistic bunch crossing distribution available
+      const auto& mu_distr_source = options.nontrivial_mu_distribution;
+      if (mu_distr_source.size() > 0) {
+        if (mu_distr_source.find("ccdb") == 0) {
+          auto ccdb_info_wrapper = parseCcdbRegex(mu_distr_source);
+          if (!ccdb_info_wrapper.has_value()) {
+            LOG(error) << "Could not parse CCDB path for mu(bc) distribution";
+          } else {
+            auto& ccdb_info = ccdb_info_wrapper.value();
+
+            // for now construct a specific CCDBManager for this query
+            o2::ccdb::CCDBManagerInstance ccdb_inst(ccdb_info.server + std::string(":") + ccdb_info.port);
+            ccdb_inst.setFatalWhenNull(false);
+            auto local_hist = ccdb_inst.getForTimeStamp<TH1F>(ccdb_info.fullPath, options.timestamp);
+            if (local_hist) {
+              mu_hist = (TH1F*)(local_hist->Clone("h2")); // we need to clone since ownership of local_hist is with TFile
+            } else {
+              LOG(warn) << "No mu(bc) distribution found on CCDB. Using uniform one";
+            }
+          }
+        } else {
+          // we interpret the file as a ROOT file and open it to extract the wanted histogram
+          auto mudistr_file = TFile::Open(mu_distr_source.c_str(), "OPEN");
+          if (mudistr_file && !mudistr_file->IsZombie()) {
+            auto local_hist = mudistr_file->Get<TH1F>("hBcTVX");
+            mu_hist = (TH1F*)(local_hist->Clone("h2")); // we need to clone since ownership of local_hist is with TFile
+            mudistr_file->Close();
+          }
+        }
+        if (mu_hist) {
+          LOG(info) << "Found an external mu distribution with mean BC value " << mu_hist->GetMean();
+
+          // do some checks
+
+          // reset to correct interaction Sampler type
+          sampler.reset(new o2::steer::NonUniformMuInteractionSampler());
+        }
+      }
 
       // for debug purposes: allows to instantiate trivial sampler
       if (const char* env = getenv("ALICEO2_ENFORCE_TRIVIAL_BC_SAMPLER")) {
@@ -418,11 +485,17 @@ int main(int argc, char* argv[])
       if (!options.bcpatternfile.empty()) {
         setBCFillingHelper(*sampler, options.bcpatternfile);
       }
+      sampler->init();
+      if (auto sampler_cast = dynamic_cast<o2::steer::NonUniformMuInteractionSampler*>(sampler.get())) {
+        if (mu_hist) {
+          sampler_cast->setBCIntensityScales(*mu_hist);
+        }
+      }
+
       o2::InteractionTimeRecord record;
       // this loop makes sure that the first collision is within the range of orbits asked (if noEmptyTF is enabled)
       do {
         sampler->setFirstIR(o2::InteractionRecord(options.firstBC, orbitstart));
-        sampler->init();
         record = sampler->generateCollisionTime();
       } while (options.noEmptyTF && usetimeframelength && record.orbit >= orbitstart + orbits_total);
       int count = 0;

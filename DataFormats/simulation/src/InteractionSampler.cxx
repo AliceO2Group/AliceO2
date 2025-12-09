@@ -202,6 +202,9 @@ bool NonUniformMuInteractionSampler::setBCIntensityScales(const TH1F& hist)
 
 std::vector<float> NonUniformMuInteractionSampler::determineBCIntensityScalesFromHistogram(const TH1F& hist)
 {
+  if (mInteractingBCs.size() == 0) {
+    LOG(error) << " Initialize bunch crossing scheme before assigning scales";
+  }
   std::vector<float> scales;
   // we go through the BCs and query the count from histogram
   for (auto bc : mInteractingBCs) {
