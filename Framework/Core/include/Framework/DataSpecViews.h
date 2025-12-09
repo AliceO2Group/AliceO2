@@ -58,7 +58,7 @@ struct update_input_list {
   template <std::ranges::input_range R>
   friend Container& operator|(R&& r, update_input_list self)
   {
-    for (auto& item : r) {
+    for (auto const& item : r) {
       auto copy = item;
       DataSpecUtils::updateInputList(self.c, std::move(copy));
     }
@@ -73,7 +73,7 @@ struct update_output_list {
   template <std::ranges::input_range R>
   friend Container& operator|(R&& r, update_output_list self)
   {
-    for (auto& item : r) {
+    for (auto const& item : r) {
       auto copy = item;
       DataSpecUtils::updateOutputList(self.c, std::move(copy));
     }
