@@ -49,8 +49,9 @@ namespace layer
 constexpr double pitchX{10 * mu};                                                                                                                        // pitch of the row
 constexpr double pitchZ{10 * mu};                                                                                                                        // pitch of the column
 constexpr double totalThickness{silicon::thickness + metalstack::thickness};                                                                             // total thickness of the chip
+constexpr std::array<double, nLayers> gaps{1.63 * mm, 1.2 * mm, 1.2 * mm};                                                                               // gaps between two consecutive petals
 constexpr std::array<double, nLayers> radii{0.5 * cm, 1.2 * cm, 2.5 * cm};                                                                               // radius of layer in cm
-constexpr std::array<double, nLayers> width{radii[0] * 2 * M_PI / 4, radii[1] * 2 * M_PI / 4, radii[2] * 2 * M_PI / 4};                                  // width of the quarter of layer in cm
+constexpr std::array<double, nLayers> width{radii[0] * 2 * M_PI / 4 - gaps[0], radii[1] * 2 * M_PI / 4 - gaps[1], radii[2] * 2 * M_PI / 4 - gaps[2]};    // width of the quarter of layer in cm
 constexpr double length{50 * cm};                                                                                                                        // length of the layer
 constexpr int nCols{static_cast<int>(length / pitchZ)};                                                                                                  // number of columns in the chip
 constexpr std::array<int, nLayers> nRows{static_cast<int>(width[0] / pitchX), static_cast<int>(width[1] / pitchX), static_cast<int>(width[2] / pitchX)}; // number of rows in the chip. For the moment is different for each layer since a siner segmentation in repetitive units is stil to be implemented
