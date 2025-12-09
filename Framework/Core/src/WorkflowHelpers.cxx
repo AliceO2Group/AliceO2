@@ -401,11 +401,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher({}, ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedTIMs, analysisCCDBBackend);
   }
 
-  for (auto& input : ac.requestedDYNs) {
-    if (std::none_of(ac.providedDYNs.begin(), ac.providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
-      ac.spawnerInputs.emplace_back(input);
-    }
-  }
+  ac.requestedDYNs | views::filter_not_matching(ac.providedDYNs) | sinks::append_to{ac.spawnerInputs};
 
   DataProcessorSpec aodSpawner{
     "internal-dpl-aod-spawner",
