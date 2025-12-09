@@ -157,18 +157,6 @@ int defaultConditionQueryRateMultiplier()
 
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext& ctx)
 {
-  auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
-    LOG(info) << "This is not a real device, merely a placeholder for external inputs";
-    LOG(info) << "To be hidden / removed at some point.";
-    // mark this dummy process as ready-to-quit
-    ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-
-    return [](ProcessingContext& pc) {
-      // this callback is never called since there is no expiring input
-      pc.services().get<RawDeviceService>().waitFor(2000);
-    };
-  }};
-
   DataProcessorSpec ccdbBackend{
     .name = "internal-dpl-ccdb-backend",
     .outputs = {},
