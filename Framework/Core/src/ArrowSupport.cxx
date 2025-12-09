@@ -669,12 +669,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // If reader and/or builder were adjusted, remove unneeded outputs
         // update currently requested AODs
         for (auto& d : workflow) {
-          for (auto const& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, AODOrigins)) {
-              auto copy = i;
-              DataSpecUtils::updateInputList(ac.requestedAODs, std::move(copy));
-            }
-          }
+          d.inputs |
+            views::partial_match_filter(AODOrigins) |
+            sinks::update_input_list{ac.requestedAODs};
         }
 
         // remove unmatched outputs
@@ -687,8 +684,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           workflow.erase(reader);
         }
       }
-
-
 
       // replace writer as some outputs may have become dangling and some are now consumed
       auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);
