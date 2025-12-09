@@ -595,23 +595,16 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       ac.providedTIMs.clear();
       ac.requestedTIMs.clear();
 
-
       auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
       auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
         ac.requestedIDXs.clear();
-        for (auto& d : workflow) {
-          if (d.name == builder->name) {
-            continue;
-          }
-          for (auto& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"IDX"})) {
-              auto copy = i;
-              DataSpecUtils::updateInputList(ac.requestedIDXs, std::move(copy));
-            }
-          }
+        for (auto& d : workflow | views::exclude_by_name(builder->name)) {
+          d.inputs |
+            views::partial_match_filter(header::DataOrigin{"IDX"}) |
+            sinks::update_input_list{ac.requestedIDXs};
         }
         // recreate inputs and outputs
         builder->inputs.clear();
