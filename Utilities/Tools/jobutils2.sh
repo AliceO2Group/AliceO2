@@ -395,10 +395,13 @@ getNumberOfPhysicalCPUCores() {
     fi
   else
     # Do something under GNU/Linux platform
-    CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`
-    SOCKETS=`lscpu | grep "Socket(s)" | awk '{print $2}'`
+    #
+    # Notice the human readable output of lscpu depends on the version and wether or not you
+    # are inside a container. The following should be more stable.
+    CORESPERSOCKET=$(lscpu -p=cpu,socket | grep ,0 | sort | uniq | wc -l)
+    SOCKETS=$(lscpu -p=socket | grep -e "^[0-9]" | sort | uniq | wc -l)
   fi
-  N=`bc <<< "${CORESPERSOCKET}*${SOCKETS}"`
+  N=$((${CORESPERSOCKET}*${SOCKETS}))
   echo "${N}"
 }
 
