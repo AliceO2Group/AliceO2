@@ -45,7 +45,7 @@ static auto filter_string_params_with(std::string match)
 
 static auto input_to_output_specs()
 {
-  return std::views::transform([](auto const& input){ return DataSpecUtils::asOutputSpec(input); });
+  return std::views::transform([](auto const& input) { return DataSpecUtils::asOutputSpec(input); });
 }
 
 static auto params_to_input_specs()
