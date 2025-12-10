@@ -36,7 +36,7 @@ PHOSTurnonSlot::PHOSTurnonSlot(bool useCCDB) : mUseCCDB(useCCDB)
 PHOSTurnonSlot::PHOSTurnonSlot(const PHOSTurnonSlot& other)
 {
   mUseCCDB = other.mUseCCDB;
-  mRunStartTime = other.mUseCCDB;
+  mRunStartTime = other.mRunStartTime;
   mFiredTiles.reset();
   mNoisyTiles.reset();
   mTurnOnHistos = std::make_unique<TurnOnHistos>();
@@ -91,15 +91,17 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
   for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
     const Cell& c = cells[i];
     if (c.getTRU()) {
-      mNoisyTiles.set(c.getTRUId() - Geometry::getTotalNCells() - 1);
+      auto channel = c.getTRUId() - Geometry::getTotalNCells() - 1;
+      if (channel >= 0) {
+        mNoisyTiles.set(channel);
+      }
     }
   }
 
   // Copy to have good and noisy map
   mFiredTiles.reset();
-  char mod;
-  float x, z;
-  short ddl;
+  float x{0}, z{0};
+  short ddl{0};
   int firstCluInEvent = clutr.getFirstEntry();
   int lastCluInEvent = firstCluInEvent + clutr.getNumberOfObjects();
   for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
@@ -107,7 +109,7 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
     if (clu.getEnergy() < 1.e-4) {
       continue;
     }
-    mod = clu.module();
+    char mod = clu.module();
     clu.getLocalPosition(x, z);
     // TODO: do we need separate 2x2 and 4x4 spectra? Switch?
     //  short truId2x2 = Geometry::relPosToTruId(mod, x, z, 0);
@@ -123,7 +125,7 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
   // Fill final good and noisy maps
   mTurnOnHistos->fillFiredMap(mFiredTiles);
   mNoisyTiles ^= mFiredTiles;
-  mTurnOnHistos->fillNoisyMap(mFiredTiles);
+  mTurnOnHistos->fillNoisyMap(mNoisyTiles);
 }
 //==============================================
 
