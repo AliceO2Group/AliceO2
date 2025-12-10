@@ -233,7 +233,6 @@ auto DataProcessingHelpers::routeForwardedMessages(FairMQDeviceProxy& proxy,
 
   for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
     auto& messageSet = currentSetOfInputs[ii];
-    forwardingChoices.clear();
 
     for (size_t pi = 0; pi < messageSet.size(); ++pi) {
       auto& header = messageSet.header(pi);
@@ -284,6 +283,7 @@ auto DataProcessingHelpers::routeForwardedMessages(FairMQDeviceProxy& proxy,
       // - If it's a message of the kind [header0][payload1][payload2][payload3]... and therefore
       //   we will already use the same choice in the for loop below.
       if (dh->splitPayloadIndex == 0 || dh->splitPayloadParts <= 1 || messageSet.getNumberOfPayloads(pi) > 0) {
+        forwardingChoices.clear();
         proxy.getMatchingForwardChannelIndexes(forwardingChoices, *dh, dph->startTime);
       }
 
