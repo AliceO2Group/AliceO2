@@ -33,7 +33,7 @@ static auto filter_not_matching(auto const& provided)
 
 static auto filter_matching(auto const& provided)
 {
-  return std::views::filter([&provided](auto const& input){ return std::any_of(provided.begin(), provided.end(), [&input](auto const& output){ return DataSpecUtils::match(input, output); }); });
+  return std::views::filter([&provided](auto const& input) { return std::any_of(provided.begin(), provided.end(), [&input](auto const& output) { return DataSpecUtils::match(input, output); }); });
 }
 } // namespace o2::framework::views
 //
