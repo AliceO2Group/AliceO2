@@ -180,7 +180,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     mConfig->configQA.shipToQC = true;
     if (!mConfig->configProcessing.runQA) {
       mConfig->configQA.enableLocalOutput = false;
-      mQATaskMask = (mSpecConfig.processMC ? 15 : 0) | (mConfig->configQA.clusterRejectionHistograms ? 32 : 0);
+      mQATaskMask = (mSpecConfig.processMC ? 15 : 0) | (mConfig->configQA.clusterRejectionHistograms ? 32 : 0); // TODO: Clean up using numeric flags!
       mConfig->configProcessing.runQA = -mQATaskMask;
     }
   }

@@ -544,7 +544,8 @@ int32_t GPUQA::InitQACreateHistograms()
     createHist(mT0[0], "tracks_t0", "tracks_t0", (maxTime + 1) / 10, 0, maxTime);
     createHist(mT0[1], "tracks_t0_res", "tracks_t0_res", 1000, -100, 100);
     createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250); // TODO: Pass name only once
-
+  }
+  if (mQATasks & taskClusterRejection) {
     const int padCount = GPUTPCGeometry::NPads(GPUCA_ROW_COUNT - 1);
     for (int32_t i = 0; i < 3; i++) {
       snprintf(name, 2048, "clrej_%d", i);
@@ -577,8 +578,8 @@ int32_t GPUQA::InitQACreateHistograms()
 
 int32_t GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3, std::vector<TGraphAsymmErrors>& i4, int32_t tasks)
 {
-  if (tasks == -1) {
-    tasks = taskDefaultPostprocess;
+  if (tasks == tasksAutomatic) {
+    tasks = tasksDefaultPostprocess;
   }
   if (mQAInitialized && (!mHaveExternalHists || tasks != mQATasks)) {
     throw std::runtime_error("QA not initialized or initialized with different task array");
@@ -593,7 +594,7 @@ int32_t GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std:
   mHistGraph_pos.clear();
   mHaveExternalHists = true;
   if (mConfig.noMC) {
-    tasks &= tasksNoQC;
+    tasks &= tasksAllNoQC;
   }
   mQATasks = tasks;
   if (InitQACreateHistograms()) {
@@ -806,8 +807,8 @@ int32_t GPUQA::InitQA(int32_t tasks)
   if (mQAInitialized) {
     throw std::runtime_error("QA already initialized");
   }
-  if (tasks == -1) {
-    tasks = taskDefault;
+  if (tasks == tasksAutomatic) {
+    tasks = tasksDefault;
   }
 
   mHist1D = new std::vector<TH1F>;
@@ -815,7 +816,7 @@ int32_t GPUQA::InitQA(int32_t tasks)
   mHist1Dd = new std::vector<TH1D>;
   mHistGraph = new std::vector<TGraphAsymmErrors>;
   if (mConfig.noMC) {
-    tasks &= tasksNoQC;
+    tasks &= tasksAllNoQC;
   }
   mQATasks = tasks;
 
@@ -1823,7 +1824,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
   uint32_t nCl = clNative ? clNative->nClustersTotal : mTracking->GetProcessors()->tpcMerger.NMaxClusters();
   mClusterCounts.nTotal += nCl;
-  if (mQATasks & taskClusterCounts) {
+  if (mQATasks & (taskClusterCounts | taskClusterRejection)) {
     for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {
       for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
         for (uint32_t iCl = 0; iCl < clNative->nClusters[iSector][iRow]; iCl++) {
@@ -1831,64 +1832,68 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           int32_t attach = mTracking->mIOPtrs.mergedTrackHitAttachment[i];
           const auto& r = checkClusterState<true>(attach, &mClusterCounts);
 
-          if (mcAvail) {
-            float totalWeight = 0, weight400 = 0, weight40 = 0;
-            for (int32_t j = 0; j < GetMCLabelNID(i); j++) {
-              const auto& label = GetMCLabel(i, j);
-              if (GetMCLabelID(label) >= 0) {
-                totalWeight += GetMCLabelWeight(label);
-                if (GetMCTrackObj(mMCParam, label).pt >= 0.4) {
-                  weight400 += GetMCLabelWeight(label);
+          if (mQATasks & taskClusterRejection) {
+            if (mcAvail) {
+              float totalWeight = 0, weight400 = 0, weight40 = 0;
+              for (int32_t j = 0; j < GetMCLabelNID(i); j++) {
+                const auto& label = GetMCLabel(i, j);
+                if (GetMCLabelID(label) >= 0) {
+                  totalWeight += GetMCLabelWeight(label);
+                  if (GetMCTrackObj(mMCParam, label).pt >= 0.4) {
+                    weight400 += GetMCLabelWeight(label);
+                  }
+                  if (GetMCTrackObj(mMCParam, label).pt <= 0.04) {
+                    weight40 += GetMCLabelWeight(label);
+                  }
                 }
-                if (GetMCTrackObj(mMCParam, label).pt <= 0.04) {
-                  weight40 += GetMCLabelWeight(label);
+              }
+              if (totalWeight > 0 && 10.f * weight400 >= totalWeight) {
+                if (!r.unattached && !r.protect && !r.physics) {
+                  mClusterCounts.nFakeRemove400++;
+                  int32_t totalFake = weight400 < 0.9f * totalWeight;
+                  if (totalFake) {
+                    mClusterCounts.nFullFakeRemove400++;
+                  }
+                  /*printf("Fake removal (%d): Hit %7d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d recPt %7.2f recLabel %6d", totalFake, i, (int32_t) (mClusterParam[i].attached || mClusterParam[i].fakeAttached),
+                      (int32_t) lowPt, (int32_t) ((attach & gputpcgmmergertypes::attachGoodLeg) == 0), (int32_t) ((attach & gputpcgmmergertypes::attachTube) && mev200),
+                      (int32_t) ((attach & gputpcgmmergertypes::attachHighIncl) != 0), (int32_t) ((attach & gputpcgmmergertypes::attachTube) != 0), (int32_t) ((attach & gputpcgmmergertypes::attachGood) == 0),
+                      fabsf(qpt) > 0 ? 1.f / qpt : 0.f, id);
+                  for (int32_t j = 0;j < GetMCLabelNID(i);j++)
+                  {
+                      //if (GetMCLabelID(i, j) < 0) break;
+                      printf(" - label%d %6d weight %5d", j, GetMCLabelID(i, j), (int32_t) GetMCLabelWeight(i, j));
+                      if (GetMCLabelID(i, j) >= 0) printf(" - pt %7.2f", mMCParam[GetMCLabelID(i, j)].pt);
+                      else printf("             ");
+                  }
+                  printf("\n");*/
+                }
+                mClusterCounts.nAbove400++;
+              }
+              if (totalWeight > 0 && weight40 >= 0.9 * totalWeight) {
+                mClusterCounts.nBelow40++;
+                if (r.protect || r.physics) {
+                  mClusterCounts.nFakeProtect40++;
                 }
               }
             }
-            if (totalWeight > 0 && 10.f * weight400 >= totalWeight) {
-              if (!r.unattached && !r.protect && !r.physics) {
-                mClusterCounts.nFakeRemove400++;
-                int32_t totalFake = weight400 < 0.9f * totalWeight;
-                if (totalFake) {
-                  mClusterCounts.nFullFakeRemove400++;
-                }
-                /*printf("Fake removal (%d): Hit %7d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d recPt %7.2f recLabel %6d", totalFake, i, (int32_t) (mClusterParam[i].attached || mClusterParam[i].fakeAttached),
-                    (int32_t) lowPt, (int32_t) ((attach & gputpcgmmergertypes::attachGoodLeg) == 0), (int32_t) ((attach & gputpcgmmergertypes::attachTube) && mev200),
-                    (int32_t) ((attach & gputpcgmmergertypes::attachHighIncl) != 0), (int32_t) ((attach & gputpcgmmergertypes::attachTube) != 0), (int32_t) ((attach & gputpcgmmergertypes::attachGood) == 0),
-                    fabsf(qpt) > 0 ? 1.f / qpt : 0.f, id);
-                for (int32_t j = 0;j < GetMCLabelNID(i);j++)
-                {
-                    //if (GetMCLabelID(i, j) < 0) break;
-                    printf(" - label%d %6d weight %5d", j, GetMCLabelID(i, j), (int32_t) GetMCLabelWeight(i, j));
-                    if (GetMCLabelID(i, j) >= 0) printf(" - pt %7.2f", mMCParam[GetMCLabelID(i, j)].pt);
-                    else printf("             ");
-                }
-                printf("\n");*/
-              }
-              mClusterCounts.nAbove400++;
-            }
-            if (totalWeight > 0 && weight40 >= 0.9 * totalWeight) {
-              mClusterCounts.nBelow40++;
-              if (r.protect || r.physics) {
-                mClusterCounts.nFakeProtect40++;
-              }
-            }
-          }
 
-          if (r.physics) {
-            mClusterCounts.nPhysics++;
+            if (r.physics) {
+              mClusterCounts.nPhysics++;
+            }
+            if (r.protect) {
+              mClusterCounts.nProt++;
+            }
+            if (r.unattached) {
+              mClusterCounts.nUnattached++;
+            }
           }
-          if (r.protect) {
-            mClusterCounts.nProt++;
-          }
-          if (r.unattached) {
-            mClusterCounts.nUnattached++;
-          }
-          if (mTracking && clNative) {
-            const auto& cl = clNative->clustersLinear[i];
-            mClRej[0]->Fill(cl.getPad() - GPUTPCGeometry::NPads(iRow) / 2 + 0.5, iRow, 1.f);
-            if (!r.unattached && !r.protect) {
-              mClRej[1]->Fill(cl.getPad() - GPUTPCGeometry::NPads(iRow) / 2 + 0.5, iRow, 1.f);
+          if (mQATasks & taskClusterRejection) {
+            if (mTracking && clNative) {
+              const auto& cl = clNative->clustersLinear[i];
+              mClRej[0]->Fill(cl.getPad() - GPUTPCGeometry::NPads(iRow) / 2 + 0.5, iRow, 1.f);
+              if (!r.unattached && !r.protect) {
+                mClRej[1]->Fill(cl.getPad() - GPUTPCGeometry::NPads(iRow) / 2 + 0.5, iRow, 1.f);
+              }
             }
           }
         }
@@ -2271,7 +2276,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       mCClXY->cd();
       mPClXY = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPClXY->Draw();
+    }
 
+    if (mQATasks & taskClusterRejection) {
       for (int32_t i = 0; i < 3; i++) {
         snprintf(name, 2048, "cnclrej%d", i);
         mCClRej[i] = createGarbageCollected<TCanvas>(name, name, 0, 0, 700, 700. * 2. / 3.);
@@ -2283,7 +2290,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       mCClRejP->cd();
       mPClRejP = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPClRejP->Draw();
+    }
 
+    if (mQATasks & taskClusterAttach) {
       for (int32_t i = 0; i < 4; i++) {
         snprintf(name, 2048, "cpadrow%d", i);
         mCPadRow[i] = createGarbageCollected<TCanvas>(name, name, 0, 0, 700, 700. * 2. / 3.);
@@ -3034,7 +3043,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
     }
 
-    mPClXY->cd();
+    mPClXY->cd(); // TODO: This should become a separate task category
     mClXY->SetOption("colz");
     mClXY->Draw();
     mCClXY->cd();
@@ -3042,61 +3051,61 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     if (mConfig.writeFileExt != "") {
       mCClXY->Print(Form("%s/clustersXY.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
     }
+  }
 
-    if (mQATasks & taskClusterCounts) {
-      mClRej[2]->Divide(mClRej[1], mClRej[0]);
+  if (mQATasks & taskClusterRejection) {
+    mClRej[2]->Divide(mClRej[1], mClRej[0]);
 
-      for (int32_t i = 0; i < 3; i++) {
-        if (tout && !mConfig.inputHistogramsOnly) {
-          mClRej[i]->Write();
-        }
-        mPClRej[i]->cd();
-        mClRej[i]->SetTitle(REJECTED_NAMES[i]);
-        mClRej[i]->SetOption("colz");
-        mClRej[i]->Draw();
-        mCClRej[i]->cd();
-        mCClRej[i]->Print(Form("%s/clustersRej%d%s.pdf", mConfig.plotsDir.c_str(), i, REJECTED_NAMES[i]));
-        if (mConfig.writeFileExt != "") {
-          mCClRej[i]->Print(Form("%s/clustersRej%d%s.%s", mConfig.plotsDir.c_str(), i, REJECTED_NAMES[i], mConfig.writeFileExt.c_str()));
-        }
+    for (int32_t i = 0; i < 3; i++) {
+      if (tout && !mConfig.inputHistogramsOnly) {
+        mClRej[i]->Write();
       }
-
-      mPClRejP->cd();
-      for (int32_t k = 0; k < ConfigNumInputs; k++) {
-        auto* tmp = mClRej[0];
-        if (GetHist(tmp, tin, k, nNewInput) == nullptr) {
-          continue;
-        }
-        TH1D* proj1 = tmp->ProjectionY(Form("clrejptmp1%d", k)); // TODO: Clean up names
-        proj1->SetDirectory(nullptr);
-        tmp = mClRej[1];
-        if (GetHist(tmp, tin, k, nNewInput) == nullptr) {
-          continue;
-        }
-        TH1D* proj2 = tmp->ProjectionY(Form("clrejptmp2%d", k));
-        proj2->SetDirectory(nullptr);
-
-        auto* e = mClRejP;
-        if (GetHist(e, tin, k, nNewInput) == nullptr) {
-          continue;
-        }
-        e->Divide(proj2, proj1);
-        if (tout && !mConfig.inputHistogramsOnly && k == 0) {
-          e->Write();
-        }
-        delete proj1;
-        delete proj2;
-        e->SetMinimum(-0.02);
-        e->SetMaximum(0.22);
-        e->SetTitle("Rejected Clusters");
-        e->GetXaxis()->SetTitle("Pad Row");
-        e->GetYaxis()->SetTitle("Rejected Clusters (fraction)");
-        e->Draw(k == 0 ? "" : "same");
-      }
-      mPClRejP->Print(Form("%s/clustersRejProjected.pdf", mConfig.plotsDir.c_str()));
+      mPClRej[i]->cd();
+      mClRej[i]->SetTitle(REJECTED_NAMES[i]);
+      mClRej[i]->SetOption("colz");
+      mClRej[i]->Draw();
+      mCClRej[i]->cd();
+      mCClRej[i]->Print(Form("%s/clustersRej%d%s.pdf", mConfig.plotsDir.c_str(), i, REJECTED_NAMES[i]));
       if (mConfig.writeFileExt != "") {
-        mPClRejP->Print(Form("%s/clustersRejProjected.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
+        mCClRej[i]->Print(Form("%s/clustersRej%d%s.%s", mConfig.plotsDir.c_str(), i, REJECTED_NAMES[i], mConfig.writeFileExt.c_str()));
       }
+    }
+
+    mPClRejP->cd();
+    for (int32_t k = 0; k < ConfigNumInputs; k++) {
+      auto* tmp = mClRej[0];
+      if (GetHist(tmp, tin, k, nNewInput) == nullptr) {
+        continue;
+      }
+      TH1D* proj1 = tmp->ProjectionY(Form("clrejptmp1%d", k)); // TODO: Clean up names
+      proj1->SetDirectory(nullptr);
+      tmp = mClRej[1];
+      if (GetHist(tmp, tin, k, nNewInput) == nullptr) {
+        continue;
+      }
+      TH1D* proj2 = tmp->ProjectionY(Form("clrejptmp2%d", k));
+      proj2->SetDirectory(nullptr);
+
+      auto* e = mClRejP;
+      if (GetHist(e, tin, k, nNewInput) == nullptr) {
+        continue;
+      }
+      e->Divide(proj2, proj1);
+      if (tout && !mConfig.inputHistogramsOnly && k == 0) {
+        e->Write();
+      }
+      delete proj1;
+      delete proj2;
+      e->SetMinimum(-0.02);
+      e->SetMaximum(0.22);
+      e->SetTitle("Rejected Clusters");
+      e->GetXaxis()->SetTitle("Pad Row");
+      e->GetYaxis()->SetTitle("Rejected Clusters (fraction)");
+      e->Draw(k == 0 ? "" : "same");
+    }
+    mPClRejP->Print(Form("%s/clustersRejProjected.pdf", mConfig.plotsDir.c_str()));
+    if (mConfig.writeFileExt != "") {
+      mPClRejP->Print(Form("%s/clustersRejProjected.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
     }
   }
 

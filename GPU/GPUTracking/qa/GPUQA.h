@@ -56,6 +56,10 @@ class GPUQA
   static bool QAAvailable() { return false; }
   static bool IsInitialized() { return false; }
   void UpdateChain(GPUChainTracking* chain) {}
+
+  enum QA_TASKS {
+    tasksAutomatic = 0
+  };
 };
 } // namespace o2::gpu
 
@@ -146,16 +150,20 @@ class GPUQA
 
   static constexpr int32_t MC_LABEL_INVALID = -1e9;
 
-  enum QA_TASKS {
+  enum QA_TASKS { // TODO: make this in32_t typed
     taskTrackingEff = 1,
     taskTrackingRes = 2,
     taskTrackingResPull = 4,
+    tasksAllMC = 8 - 1,
     taskClusterAttach = 8,
     taskTrackStatistics = 16,
     taskClusterCounts = 32,
-    taskDefault = 63,
-    taskDefaultPostprocess = 31,
-    tasksNoQC = 56
+    taskClusterRejection = 64,
+    tasksAll = 128 - 1,
+    tasksDefault = tasksAll,
+    tasksDefaultPostprocess = tasksDefault & ~taskClusterCounts,
+    tasksAllNoQC = tasksAll & ~tasksAllMC,
+    tasksAutomatic = -1
   };
 
  private:

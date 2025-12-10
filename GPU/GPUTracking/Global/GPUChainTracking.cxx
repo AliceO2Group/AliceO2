@@ -475,7 +475,7 @@ int32_t GPUChainTracking::ForceInitQA()
     qa.reset(new GPUQA(this));
   }
   if (!GetQA()->IsInitialized()) {
-    return GetQA()->InitQA();
+    return GetQA()->InitQA(GetProcessingSettings().runQA <= 0 ? -GetProcessingSettings().runQA : GPUQA::tasksAutomatic);
   }
   return 0;
 }
@@ -690,7 +690,7 @@ int32_t GPUChainTracking::RunChain()
   }
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && (mIOPtrs.nMCInfosTPC || GetProcessingSettings().runMC)));
   if (needQA && GetQA()->IsInitialized() == false) {
-    if (GetQA()->InitQA(GetProcessingSettings().runQA ? -GetProcessingSettings().runQA : -1)) {
+    if (GetQA()->InitQA(GetProcessingSettings().runQA <= 0 ? -GetProcessingSettings().runQA : GPUQA::tasksAutomatic)) {
       return 1;
     }
   }
