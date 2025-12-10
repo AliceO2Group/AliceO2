@@ -140,7 +140,7 @@ void AnalysisSupportHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> 
   requestedSpecials |
     views::filter_not_matching(providedSpecials) | // filter the inputs that are already provided
     views::input_to_output_specs() |
-    sinks::append_to(publisher.outputs); // append them to the publisher outputs
+    sinks::append_to{publisher.outputs}; // append them to the publisher outputs
 
   std::vector<InputSpec> additionalInputs;
   for (auto& input : requestedSpecials | views::filter_not_matching(providedSpecials)) {
@@ -170,7 +170,7 @@ void AnalysisSupportHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> c
       sinks::update_input_list{additionalInputs}; // store into a temporary
   }
 
-  additionalInputs | sinks::update_input_list(publisher.inputs); // update publisher inputs
+  additionalInputs | sinks::update_input_list{publisher.inputs}; // update publisher inputs
   // FIXME: until we have a single list of pairs
   additionalInputs |
     views::partial_match_filter(AODOrigins) |
