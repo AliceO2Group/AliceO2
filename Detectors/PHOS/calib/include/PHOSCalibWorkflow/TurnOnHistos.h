@@ -21,7 +21,7 @@
 
 #include <bitset>
 #include <array>
-#include "TObject.h" // # RTYpe ?
+#include "TObject.h"
 
 namespace o2
 {
