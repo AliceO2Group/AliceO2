@@ -128,9 +128,7 @@ void AnalysisSupportHelpers::addMissingOutputsToReader(std::vector<OutputSpec> c
 {
   requestedInputs |
     views::filter_not_matching(providedOutputs) | // filter the inputs that are already provided
-    std::views::transform([](auto const& req) {   // create outputspecs for unmatched inputs
-      return DataSpecUtils::asOutputSpec(req);
-    }) |
+    views::input_to_output_specs() |
     sinks::update_output_list{publisher.outputs}; // append them to the publisher outputs
 }
 
@@ -141,20 +139,14 @@ void AnalysisSupportHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> 
 {
   requestedSpecials |
     views::filter_not_matching(providedSpecials) | // filter the inputs that are already provided
-    std::views::transform([](auto const& req) {    // create outputspecs for unmatched inputs
-      return DataSpecUtils::asOutputSpec(req);
-    }) |
+    views::input_to_output_specs() |
     sinks::append_to(publisher.outputs); // append them to the publisher outputs
 
   std::vector<InputSpec> additionalInputs;
   for (auto& input : requestedSpecials | views::filter_not_matching(providedSpecials)) {
     input.metadata |
-      std::views::filter([](auto const& param) { // filter config params that are strings starting with "input:"
-        return (param.type == VariantType::String) && (param.name.find("input:") != std::string::npos);
-      }) |
-      std::views::transform([](auto const& param) { // parse them into InputSpecs
-        return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
-      }) |
+      views::filter_string_params_with("input:") |
+      views::params_to_input_specs() |
       sinks::update_input_list{additionalInputs}; // store into a temporary
   }
   additionalInputs | sinks::update_input_list{requestedAODs};    // update requestedAODs
@@ -167,55 +159,14 @@ void AnalysisSupportHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> c
                                                         DataProcessorSpec& publisher)
 {
   requestedSpecials |
-    std::views::transform([](auto const& req) { // create outputspecs for inputs
-      return DataSpecUtils::asOutputSpec(req);
-    }) |
+    views::input_to_output_specs() |
     sinks::append_to{publisher.outputs}; // append them to the publisher outputs
 
   std::vector<InputSpec> additionalInputs;
   for (auto const& input : requestedSpecials) {
     input.metadata |
-      std::views::filter([](auto const& param) { // filter config params that are strings starting with "input:"
-        return (param.type == VariantType::String) && (param.name.find("input:") != std::string::npos);
-      }) |
-      std::views::transform([](auto const& param) { // parse them into InputSpecs
-        return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
-      }) |
-      sinks::update_input_list{additionalInputs}; // store into a temporary
-  }
-
-  additionalInputs | sinks::update_input_list(publisher.inputs); // update publisher inputs
-  // FIXME: until we have a single list of pairs
-  additionalInputs |
-    views::partial_match_filter(AODOrigins) |
-    sinks::update_input_list{requestedAODs}; // update requestedAODs
-  additionalInputs |
-    views::partial_match_filter(header::DataOrigin{"DYN"}) |
-    sinks::update_input_list{requestedDYNs}; // update requestedDYNs
-}
-
-void AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher(
-  std::vector<OutputSpec> const& providedSpecials,
-  std::vector<InputSpec> const& requestedSpecials,
-  std::vector<InputSpec>& requestedAODs,
-  std::vector<InputSpec>& requestedDYNs,
-  DataProcessorSpec& publisher)
-{
-  requestedSpecials |
-    std::views::transform([](auto const& req) { // create outputspecs for inputs
-      return DataSpecUtils::asOutputSpec(req);
-    }) |
-    sinks::append_to{publisher.outputs}; // append them to the publisher outputs
-
-  std::vector<InputSpec> additionalInputs;
-  for (auto& input : requestedSpecials) {
-    input.metadata |
-      std::views::filter([](auto const& param) { // filter config params that are strings starting with "input:"
-        return (param.type == VariantType::String) && (param.name.find("input:") != std::string::npos);
-      }) |
-      std::views::transform([](auto const& param) { // parse them into InputSpecs
-        return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
-      }) |
+      views::filter_string_params_with("input:") |
+      views::params_to_input_specs() |
       sinks::update_input_list{additionalInputs}; // store into a temporary
   }
 

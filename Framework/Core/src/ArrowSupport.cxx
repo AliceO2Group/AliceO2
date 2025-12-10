@@ -658,7 +658,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // FIXME: it should be made more generic, so it does not need replacement...
         // FIXME how can I make the lookup depend on DYN tables as well??
         analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
-        AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher({}, ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedDYNs, *analysisCCDB);
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedDYNs, *analysisCCDB);
       }
 
       if (writer != workflow.end()) {

@@ -39,11 +39,6 @@ struct AnalysisSupportHelpers {
                                          std::vector<InputSpec> const& requestedSpecials,
                                          std::vector<InputSpec>& requestedAODs,
                                          DataProcessorSpec& publisher);
-  static void addMissingOutputsToAnalysisCCDBFetcher(std::vector<OutputSpec> const& providedSpecials,
-                                                     std::vector<InputSpec> const& requestedSpecials,
-                                                     std::vector<InputSpec>& requestedAODs,
-                                                     std::vector<InputSpec>& requestedDYNs,
-                                                     DataProcessorSpec& publisher);
   static void addMissingOutputsToBuilder(std::vector<InputSpec> const& requestedSpecials,
                                          std::vector<InputSpec>& requestedAODs,
                                          std::vector<InputSpec>& requestedDYNs,

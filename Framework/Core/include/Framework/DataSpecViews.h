@@ -35,6 +35,25 @@ static auto filter_matching(auto const& provided)
 {
   return std::views::filter([&provided](auto const& input) { return std::any_of(provided.begin(), provided.end(), [&input](auto const& output) { return DataSpecUtils::match(input, output); }); });
 }
+
+static auto filter_string_params_with(std::string match)
+{
+  return std::views::filter([match](auto const& param) {
+    return (param.type == VariantType::String) && (param.name.find(match) != std::string::npos);
+  });
+}
+
+static auto input_to_output_specs()
+{
+  return std::views::transform([](auto const& input){ return DataSpecUtils::asOutputSpec(input); });
+}
+
+static auto params_to_input_specs()
+{
+  return std::views::transform([](auto const& param) {
+    return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
+  });
+}
 } // namespace o2::framework::views
 //
 namespace o2::framework::sinks
