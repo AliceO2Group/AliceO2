@@ -45,7 +45,7 @@ TEST_CASE("ForwardInputsEmpty")
 
   std::vector<MessageSet> currentSetOfInputs;
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.empty());
 }
 
@@ -95,7 +95,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRoute")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 1);    // One route
   REQUIRE(result[0].Size() == 2); // Two messages for that route
 }
@@ -146,7 +146,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteNoConsume")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, true);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, true);
   REQUIRE(result.size() == 1);
   REQUIRE(result[0].Size() == 0); // Because there is a nullptr, we do not forward this as it was already consumed.
 }
@@ -201,8 +201,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteAtEOS")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 1);    // One route
   REQUIRE(result[0].Size() == 0); // FIXME: this is an actual error. It should be 2. However it cannot really happen.
   // Correct behavior below:
@@ -260,7 +259,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteWithOldestPossible")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 1);    // One route
   REQUIRE(result[0].Size() == 0); // FIXME: this is actually wrong
   // FIXME: actually correct behavior below
@@ -325,7 +324,7 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutes")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 2);    // Two routes
   REQUIRE(result[0].Size() == 2); // Two messages per route
   REQUIRE(result[1].Size() == 0); // Only the first DPL matched channel matters
@@ -388,7 +387,7 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesExternals")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 2);    // Two routes
   REQUIRE(result[0].Size() == 2); // With external matching channels, we need to copy and then forward
   REQUIRE(result[1].Size() == 2); //
@@ -466,7 +465,7 @@ TEST_CASE("ForwardInputsMultiMessageMultipleRoutes")
   currentSetOfInputs.emplace_back(std::move(messageSet2));
   REQUIRE(currentSetOfInputs.size() == 2);
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 2);    // Two routes
   REQUIRE(result[0].Size() == 2); //
   REQUIRE(result[1].Size() == 2); //
@@ -529,7 +528,7 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesOnlyOneMatches")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 2);    // Two routes
   REQUIRE(result[0].Size() == 0); // Two messages per route
   REQUIRE(result[1].Size() == 2); // Two messages per route
@@ -541,7 +540,7 @@ TEST_CASE("ForwardInputsSplitPayload")
   dh.dataOrigin = "TST";
   dh.dataDescription = "A";
   dh.subSpecification = 0;
-  dh.splitPayloadIndex = 0;
+  dh.splitPayloadIndex = 2;
   dh.splitPayloadParts = 2;
 
   o2::header::DataHeader dh2;
@@ -611,7 +610,7 @@ TEST_CASE("ForwardInputsSplitPayload")
   REQUIRE(messageSet.size() == 2);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 2);  // Two routes
   CHECK(result[0].Size() == 2); // No messages on this route
   CHECK(result[1].Size() == 3);
@@ -657,7 +656,7 @@ TEST_CASE("ForwardInputEOSSingleRoute")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 1);    // One route
   REQUIRE(result[0].Size() == 0); // Oldest possible timeframe should not be forwarded
 }
@@ -702,7 +701,7 @@ TEST_CASE("ForwardInputOldestPossibleSingleRoute")
   REQUIRE(messageSet.size() == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
-  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
+  auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 1);    // One route
   REQUIRE(result[0].Size() == 0); // Oldest possible timeframe should not be forwarded
 }
