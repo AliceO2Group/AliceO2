@@ -404,7 +404,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
           innerDone = true;
         }
       } else {
-        LOGP(warn, "No cluster on lr {}", i);
+        LOGP(debug, "No cluster on lr {}", i);
       }
     }
   }
