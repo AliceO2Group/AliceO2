@@ -23,7 +23,7 @@
 #include "TPCFastTransform.h"
 #include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUTPCGeometry.h"
 #include "AliHLTTPCRawCluster.h" // VS: It can not be removed. Used in line 93.
 #include "GPUParam.h"

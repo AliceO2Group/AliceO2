@@ -69,7 +69,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto trmode = configcontext.options().get<std::string>("tracking-mode");
   auto selTrig = configcontext.options().get<std::string>("select-with-triggers");
   auto useGpuWF = configcontext.options().get<bool>("use-gpu-workflow");
-  auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
+  auto gpuDevice = static_cast<o2::gpu::gpudatatypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");

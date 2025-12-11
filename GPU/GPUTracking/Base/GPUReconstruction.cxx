@@ -296,7 +296,7 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (!GetProcessingSettings().createO2Output || !IsGPU()) {
     mProcessingSettings->clearO2OutputFromGPU = false;
   }
-  if (!(mRecoSteps.stepsGPUMask & GPUDataTypes::RecoStep::TPCMerging)) {
+  if (!(mRecoSteps.stepsGPUMask & gpudatatypes::RecoStep::TPCMerging)) {
     mProcessingSettings->mergerSortTracks = false;
   }
   if (GetProcessingSettings().debugLevel > 3 || !IsGPU() || GetProcessingSettings().deterministicGPUReconstruction) {
@@ -902,7 +902,7 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag, cons
     GPUFatal("Tag mismatch when popping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<4>(mNonPersistentMemoryStack.back())).c_str());
   }
   if (!proc && (GetProcessingSettings().debugLevel >= 3 || GetProcessingSettings().allocDebugLevel) && (IsGPU() || GetProcessingSettings().forceHostMemoryPoolSize)) {
-    printf("Allocated memory after %30s (%8s) (Stack %zu): ", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], qTag2Str(std::get<4>(mNonPersistentMemoryStack.back())).c_str(), mNonPersistentMemoryStack.size());
+    printf("Allocated memory after %30s (%8s) (Stack %zu): ", gpudatatypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], qTag2Str(std::get<4>(mNonPersistentMemoryStack.back())).c_str(), mNonPersistentMemoryStack.size());
     PrintMemoryOverview();
     printf("%76s", "");
     PrintMemoryMax();
@@ -1074,8 +1074,8 @@ constexpr static inline int32_t getStepNum(T step, bool validCheck, int32_t N, c
 } // anonymous namespace
 } // namespace o2::gpu::internal
 
-int32_t GPUReconstruction::getRecoStepNum(RecoStep step, bool validCheck) { return internal::getStepNum(step, validCheck, GPUDataTypes::N_RECO_STEPS, "Invalid Reco Step"); }
-int32_t GPUReconstruction::getGeneralStepNum(GeneralStep step, bool validCheck) { return internal::getStepNum(step, validCheck, GPUDataTypes::N_GENERAL_STEPS, "Invalid General Step"); }
+int32_t GPUReconstruction::getRecoStepNum(RecoStep step, bool validCheck) { return internal::getStepNum(step, validCheck, gpudatatypes::N_RECO_STEPS, "Invalid Reco Step"); }
+int32_t GPUReconstruction::getGeneralStepNum(GeneralStep step, bool validCheck) { return internal::getStepNum(step, validCheck, gpudatatypes::N_GENERAL_STEPS, "Invalid General Step"); }
 
 void GPUReconstruction::RunPipelineWorker()
 {
@@ -1222,7 +1222,7 @@ void GPUReconstruction::UpdateSettings(const GPUSettingsGRP* g, const GPUSetting
     mProcessingSettings->resetTimers = p->resetTimers;
   }
   GPURecoStepConfiguration* w = nullptr;
-  if (mRecoSteps.steps.isSet(GPUDataTypes::RecoStep::TPCdEdx)) {
+  if (mRecoSteps.steps.isSet(gpudatatypes::RecoStep::TPCdEdx)) {
     w = &mRecoSteps;
   }
   param().UpdateSettings(g, p, w, d);

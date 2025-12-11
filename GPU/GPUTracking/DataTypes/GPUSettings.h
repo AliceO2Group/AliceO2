@@ -16,7 +16,7 @@
 #define GPUSETTINGS_H
 
 #include "GPUCommonDef.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesConfig.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <vector>
@@ -73,7 +73,7 @@ struct GPUSettingsTF {
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)
 struct GPUSettingsDeviceBackend {
-  uint32_t deviceType = GPUDataTypes::DeviceType::CPU; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
+  uint32_t deviceType = gpudatatypes::DeviceType::CPU; // Device type, shall use gpudatatypes::DEVICE_TYPE constants, e.g. CPU / CUDA
   uint8_t forceDeviceType = 1;                         // Fail if device initialization fails, otherwise falls back to CPU
   GPUReconstruction* master = nullptr;                 // GPUReconstruction master object
 };

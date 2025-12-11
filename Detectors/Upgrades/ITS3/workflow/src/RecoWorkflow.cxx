@@ -26,7 +26,7 @@ static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> gTask;
 namespace o2::its3::reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, o2::gpu::GPUDataTypes::DeviceType dtype, bool useGPUWorkflow,
+framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, o2::gpu::gpudatatypes::DeviceType dtype, bool useGPUWorkflow,
                                     bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool useGeom, int useTrig, bool overrideBeamPosition)
 {
   framework::WorkflowSpec specs;

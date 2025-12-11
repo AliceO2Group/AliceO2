@@ -20,7 +20,7 @@
 #include "Framework/Task.h"
 
 #include "ITStracking/TrackingInterface.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesConfig.h"
 
 #include "DetectorsBase/GRPGeomHelper.h"
 
@@ -33,7 +33,7 @@ class TrackerDPL : public framework::Task
  public:
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
              bool isMC,
-             gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
+             gpu::gpudatatypes::DeviceType dType = gpu::gpudatatypes::DeviceType::CPU);
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -50,7 +50,7 @@ class TrackerDPL : public framework::Task
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getTrackerSpec(bool useMC, gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, gpu::gpudatatypes::DeviceType dType = gpu::gpudatatypes::DeviceType::CPU);
 
 } // namespace o2::trk
 #endif /* O2_TRK_TRACKERDPL */

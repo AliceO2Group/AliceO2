@@ -60,10 +60,10 @@ int32_t GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mConfig.reset(new GPUO2InterfaceConfiguration(config));
   mNContexts = mConfig->configProcessing.doublePipeline ? 2 : 1;
   mCtx.reset(new GPUO2Interface_processingContext[mNContexts]);
-  if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
+  if (mConfig->configWorkflow.inputs.isSet(gpudatatypes::InOutType::TPCRaw)) {
     mConfig->configGRP.needsClusterer = 1;
   }
-  if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCCompressedClusters)) {
+  if (mConfig->configWorkflow.inputs.isSet(gpudatatypes::InOutType::TPCCompressedClusters)) {
     mConfig->configGRP.doCompClusterDecode = 1;
   }
   for (uint32_t i = 0; i < mNContexts; i++) {
@@ -89,7 +89,7 @@ int32_t GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mCtx[i].mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
     mCtx[i].mChain->SetCalibObjects(mConfig->configCalib);
 
-    if (i == 0 && mConfig->configWorkflow.steps.isSet(GPUDataTypes::RecoStep::ITSTracking)) {
+    if (i == 0 && mConfig->configWorkflow.steps.isSet(gpudatatypes::RecoStep::ITSTracking)) {
       mChainITS = mCtx[i].mRec->AddChain<GPUChainITS>();
     }
 
@@ -269,7 +269,7 @@ void GPUO2Interface::UseGPUPolynomialFieldInPropagator(o2::base::Propagator* pro
   prop->setGPUField(&mCtx[0].mRec->GetParam().polynomialField);
 }
 
-void GPUO2Interface::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, GPUDataTypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode)
+void GPUO2Interface::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, gpudatatypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode)
 {
   GPUChainTracking::ApplySyncSettings(proc, rec, steps, syncMode, dEdxMode);
 }

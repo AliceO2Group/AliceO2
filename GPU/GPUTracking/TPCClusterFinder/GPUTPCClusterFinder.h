@@ -17,7 +17,7 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "CfFragment.h"
 
 namespace o2

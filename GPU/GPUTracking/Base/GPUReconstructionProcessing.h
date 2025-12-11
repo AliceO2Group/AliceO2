@@ -92,14 +92,14 @@ class GPUReconstructionProcessing : public GPUReconstruction
   };
 
   struct krnlExec {
-    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(GPUDataTypes::RecoStep::NoRecoStep) {}
-    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUDataTypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(GPUReconstruction::krnlDeviceType::Auto), step(st) {}
-    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d, GPUDataTypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(d), step(st) {}
+    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(gpudatatypes::RecoStep::NoRecoStep) {}
+    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, gpudatatypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(GPUReconstruction::krnlDeviceType::Auto), step(st) {}
+    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d, gpudatatypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(d), step(st) {}
     uint32_t nBlocks;
     uint32_t nThreads;
     int32_t stream;
     GPUReconstruction::krnlDeviceType device;
-    GPUDataTypes::RecoStep step;
+    gpudatatypes::RecoStep step;
   };
   struct krnlRunRange {
     constexpr krnlRunRange() = default;
@@ -198,10 +198,10 @@ class GPUReconstructionProcessing : public GPUReconstruction
     size_t memSize; // Memory size for memory bandwidth computation
   };
 
-  HighResTimer mTimersGeneralSteps[GPUDataTypes::N_GENERAL_STEPS];
+  HighResTimer mTimersGeneralSteps[gpudatatypes::N_GENERAL_STEPS];
 
   std::vector<std::unique_ptr<timerMeta>> mTimers;
-  RecoStepTimerMeta mTimersRecoSteps[GPUDataTypes::N_RECO_STEPS];
+  RecoStepTimerMeta mTimersRecoSteps[gpudatatypes::N_RECO_STEPS];
   HighResTimer mTimerTotal;
   template <class T, int32_t I = 0>
   HighResTimer& getKernelTimer(RecoStep step, int32_t num = 0, size_t addMemorySize = 0, bool increment = true);

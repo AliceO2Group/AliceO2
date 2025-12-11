@@ -420,7 +420,7 @@ void* GPUTPCGMMerger::SetPointersMemory(void* mem)
 void* GPUTPCGMMerger::SetPointersRefitScratch(void* mem)
 {
   computePointerWithAlignment(mem, mTrackOrderAttach, mNMaxTracks);
-  const bool mergerSortTracks = mRec->GetProcessingSettings().mergerSortTracks == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging).par_SORT_BEFORE_FIT : mRec->GetProcessingSettings().mergerSortTracks;
+  const bool mergerSortTracks = mRec->GetProcessingSettings().mergerSortTracks == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging).par_SORT_BEFORE_FIT : mRec->GetProcessingSettings().mergerSortTracks;
   if (mergerSortTracks) {
     computePointerWithAlignment(mem, mTrackOrderProcess, mNMaxTracks);
   }
@@ -443,7 +443,7 @@ void* GPUTPCGMMerger::SetPointersOutput(void* mem)
 
 void* GPUTPCGMMerger::SetPointersOutputState(void* mem)
 {
-  if ((mRec->GetRecoSteps() & GPUDataTypes::RecoStep::Refit) || mRec->GetProcessingSettings().outputSharedClusterMap) {
+  if ((mRec->GetRecoSteps() & gpudatatypes::RecoStep::Refit) || mRec->GetProcessingSettings().outputSharedClusterMap) {
     computePointerWithAlignment(mem, mClusterStateExt, mNMaxClusters);
   } else {
     mClusterStateExt = nullptr;
@@ -515,7 +515,7 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   }
   if (io.clustersNative) {
     mNMaxClusters = io.clustersNative->nClustersTotal;
-  } else if (mRec->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking) {
+  } else if (mRec->GetRecoSteps() & gpudatatypes::RecoStep::TPCSectorTracking) {
     mNMaxClusters = 0;
     for (int32_t i = 0; i < NSECTORS; i++) {
       mNMaxClusters += mRec->GetConstantMem().tpcTrackers[i].NHitsTotal();
@@ -533,7 +533,7 @@ int32_t GPUTPCGMMerger::CheckSectors()
       throw std::runtime_error("mNMaxSingleSectorTracks too small");
     }
   }
-  if (!(mRec->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking)) {
+  if (!(mRec->GetRecoSteps() & gpudatatypes::RecoStep::TPCSectorTracking)) {
     throw std::runtime_error("Must run also sector tracking");
   }
   return 0;

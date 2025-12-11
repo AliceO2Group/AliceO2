@@ -817,7 +817,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
 
   int32_t numThreads = getNumThreads();
   tbb::task_arena(numThreads).execute([&] {
-    if (mChain && (mChain->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking)) {
+    if (mChain && (mChain->GetRecoSteps() & gpudatatypes::RecoStep::TPCSectorTracking)) {
       tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
         GPUTPCTracker& tracker = (GPUTPCTracker&)sectorTracker(iSector);
         tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
@@ -964,7 +964,6 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     if (timer.IsRunning()) {
       GPUInfo("Display Time: Vertex Clusters:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
-
   });
   // End omp parallel
 

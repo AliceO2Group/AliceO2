@@ -85,7 +85,7 @@ class GPUTPCTrackletConstructor : public GPUKernelTemplate
   GPUd() static int32_t GPUTPCTrackletConstructorExtrapolationTracking(GPUconstantref() GPUTPCTracker& tracker, GPUsharedref() T& sMem, GPUTPCTrackParam& tParam, int32_t startrow, int32_t increment, int32_t iTracklet, calink* rowHits);
 
   typedef GPUconstantref() GPUTPCTracker processorType;
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCSectorTracking; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCSectorTracking; }
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
     return processors.tpcTrackers;

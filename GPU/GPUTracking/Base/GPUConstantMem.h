@@ -17,7 +17,7 @@
 
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUErrors.h"
 
 #include "GPUTPCGMMerger.h"

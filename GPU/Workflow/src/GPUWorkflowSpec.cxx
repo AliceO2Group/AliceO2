@@ -79,6 +79,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITStracking/TrackingInterface.h"
 #include "GPUWorkflowInternal.h"
+#include "GPUDataTypesQA.h"
 // #include "Framework/ThreadPool.h"
 
 #include <TStopwatch.h>
@@ -180,7 +181,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     mConfig->configQA.shipToQC = true;
     if (!mConfig->configProcessing.runQA) {
       mConfig->configQA.enableLocalOutput = false;
-      mQATaskMask = (mSpecConfig.processMC ? 15 : 0) | (mConfig->configQA.clusterRejectionHistograms ? 32 : 0); // TODO: Clean up using numeric flags!
+      mQATaskMask = (mSpecConfig.processMC ? gpudatatypes::gpuqa::tasksAllMC : gpudatatypes::gpuqa::tasksNone) | (mConfig->configQA.clusterRejectionHistograms ? gpudatatypes::gpuqa::taskClusterCounts : gpudatatypes::gpuqa::tasksNone);
       mConfig->configProcessing.runQA = -mQATaskMask;
     }
   }
@@ -190,39 +191,39 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 
   // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
   if (runTracking) {
-    mConfig->configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
-                                      GPUDataTypes::RecoStep::TPCSectorTracking,
-                                      GPUDataTypes::RecoStep::TPCMerging);
-    mConfig->configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
+    mConfig->configWorkflow.steps.set(gpudatatypes::RecoStep::TPCConversion,
+                                      gpudatatypes::RecoStep::TPCSectorTracking,
+                                      gpudatatypes::RecoStep::TPCMerging);
+    mConfig->configWorkflow.outputs.set(gpudatatypes::InOutType::TPCMergedTracks);
   }
   if (mSpecConfig.outputCompClustersRoot || mSpecConfig.outputCompClustersFlat) {
-    mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, true);
-    mConfig->configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
+    mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::TPCCompression, true);
+    mConfig->configWorkflow.outputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, true);
   }
-  mConfig->configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
+  mConfig->configWorkflow.inputs.set(gpudatatypes::InOutType::TPCClusters);
   if (mSpecConfig.caClusterer) { // Override some settings if we have raw data as input
-    mConfig->configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCRaw);
-    mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, true);
-    mConfig->configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
+    mConfig->configWorkflow.inputs.set(gpudatatypes::InOutType::TPCRaw);
+    mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::TPCClusterFinding, true);
+    mConfig->configWorkflow.outputs.setBits(gpudatatypes::InOutType::TPCClusters, true);
   }
   if (mSpecConfig.decompressTPC) {
-    mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
-    mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
-    mConfig->configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCCompressedClusters);
-    mConfig->configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
-    mConfig->configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+    mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::TPCCompression, false);
+    mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::TPCDecompression, true);
+    mConfig->configWorkflow.inputs.set(gpudatatypes::InOutType::TPCCompressedClusters);
+    mConfig->configWorkflow.outputs.setBits(gpudatatypes::InOutType::TPCClusters, true);
+    mConfig->configWorkflow.outputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, false);
     if (mTPCSectorMask != 0xFFFFFFFFF) {
       throw std::invalid_argument("Cannot run TPC decompression with a sector mask");
     }
   }
   if (mSpecConfig.runTRDTracking) {
-    mConfig->configWorkflow.inputs.setBits(GPUDataTypes::InOutType::TRDTracklets, true);
-    mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, true);
+    mConfig->configWorkflow.inputs.setBits(gpudatatypes::InOutType::TRDTracklets, true);
+    mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::TRDTracking, true);
   }
   if (mSpecConfig.runITSTracking) {
-    mConfig->configWorkflow.inputs.setBits(GPUDataTypes::InOutType::ITSClusters, true);
-    mConfig->configWorkflow.outputs.setBits(GPUDataTypes::InOutType::ITSTracks, true);
-    mConfig->configWorkflow.steps.setBits(GPUDataTypes::RecoStep::ITSTracking, true);
+    mConfig->configWorkflow.inputs.setBits(gpudatatypes::InOutType::ITSClusters, true);
+    mConfig->configWorkflow.outputs.setBits(gpudatatypes::InOutType::ITSTracks, true);
+    mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::ITSTracking, true);
   }
   if (mSpecConfig.outputSharedClusterMap) {
     mConfig->configProcessing.outputSharedClusterMap = true;
@@ -935,7 +936,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     }
   }
 
-  if (mConfig->configWorkflow.outputs.isSet(GPUDataTypes::InOutType::TPCMergedTracks)) {
+  if (mConfig->configWorkflow.outputs.isSet(gpudatatypes::InOutType::TPCMergedTracks)) {
     LOG(info) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
   }
 

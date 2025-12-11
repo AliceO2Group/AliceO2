@@ -32,7 +32,7 @@ using namespace o2::tpc;
 
 bool GPUChainTracking::NeedTPCClustersOnGPU()
 {
-  return (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSectorTracking) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression);
+  return (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking) || (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCCompression);
 }
 
 int32_t GPUChainTracking::ConvertNativeToClusterData()
@@ -41,7 +41,7 @@ int32_t GPUChainTracking::ConvertNativeToClusterData()
   const auto& threadContext = GetThreadContext();
 
   bool transferClusters = false;
-  if (mRec->IsGPU() && !(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) && NeedTPCClustersOnGPU()) {
+  if (mRec->IsGPU() && !(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding) && NeedTPCClustersOnGPU()) {
     mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mIOPtrs.clustersNative->nClustersTotal;
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
     processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;

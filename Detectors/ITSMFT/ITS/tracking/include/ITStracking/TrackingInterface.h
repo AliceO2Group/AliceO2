@@ -24,7 +24,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUO2ExternalUser.h"
 #include "GPUChainITS.h"
 

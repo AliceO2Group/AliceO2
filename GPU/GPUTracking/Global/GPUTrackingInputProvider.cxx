@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 #include "GPUTrackingInputProvider.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUReconstruction.h"
 #include "GPUTPCClusterOccupancyMap.h"
@@ -28,7 +28,7 @@ using namespace o2::tpc;
 void GPUTrackingInputProvider::InitializeProcessor() {}
 void* GPUTrackingInputProvider::SetPointersInputZS(void* mem)
 {
-  if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) {
+  if (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding) {
     computePointerWithAlignment(mem, mPzsMeta);
     computePointerWithAlignment(mem, mPzsSizes, GPUTrackingInOutZS::NSECTORS * GPUTrackingInOutZS::NENDPOINTS);
     computePointerWithAlignment(mem, mPzsPtrs, GPUTrackingInOutZS::NSECTORS * GPUTrackingInOutZS::NENDPOINTS);
@@ -101,7 +101,7 @@ void GPUTrackingInputProvider::RegisterMemoryAllocation()
 
 void GPUTrackingInputProvider::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mHoldTPCZS = io.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding);
+  mHoldTPCZS = io.tpcZS && (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding);
   mHoldTPCClusterNative = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && (mRec->IsGPU() || io.tpcCompressedClusters);
   mHoldTPCOccupancyMap = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && (mRec->GetParam().rec.tpc.occupancyMapTimeBins || mRec->GetParam().rec.tpc.sysClusErrorC12Norm);
   mHoldTPCClusterNativeOutput = io.tpcZS || io.tpcPackedDigits || io.tpcCompressedClusters;

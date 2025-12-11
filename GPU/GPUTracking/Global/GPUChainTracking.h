@@ -16,7 +16,8 @@
 #define GPUCHAINTRACKING_H
 
 #include "GPUChain.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
+#include "GPUDataTypesConfig.h"
 #include <atomic>
 #include <mutex>
 #include <functional>
@@ -88,7 +89,7 @@ class GPUChainTracking : public GPUChain
   void ClearErrorCodes(bool cpuOnly = false);
   int32_t DoQueuedUpdates(int32_t stream, bool updateSlave = true); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
   bool QARanForTF() const { return mFractionalQAEnabled; }
-  static void ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, GPUDataTypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode = -2);
+  static void ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, gpudatatypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode = -2);
 
   // Structures for input and output data
   GPUTrackingInOutPointers& mIOPtrs;

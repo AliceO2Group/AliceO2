@@ -32,7 +32,7 @@ class GPUTPCGlobalDebugSortKernels : public GPUKernelTemplate
            mergedTracks1 = 2,
            mergedTracks2 = 3,
            borderTracks = 4 };
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCMerging; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCMerging; }
   typedef GPUTPCGMMerger processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors) { return &processors.tpcMerger; }
 

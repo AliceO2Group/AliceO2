@@ -23,6 +23,7 @@
 #include "CalibdEdxContainer.h"
 #include "GPUTPCGeometry.h"
 #include "GPUDebugStreamer.h"
+#include "GPUDataTypesIO.h"
 
 namespace o2::gpu
 {

@@ -27,7 +27,7 @@
 #include <unordered_set>
 #include <atomic>
 
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUMemoryResource.h"
 #include "GPUOutputControl.h"
 #include "GPUParam.h"
@@ -83,12 +83,12 @@ class GPUReconstruction
   // General definitions
   constexpr static uint32_t NSECTORS = GPUCA_NSECTORS;
 
-  using GeometryType = GPUDataTypes::GeometryType;
-  using DeviceType = GPUDataTypes::DeviceType;
-  using RecoStep = GPUDataTypes::RecoStep;
-  using GeneralStep = GPUDataTypes::GeneralStep;
-  using RecoStepField = GPUDataTypes::RecoStepField;
-  using InOutTypeField = GPUDataTypes::InOutTypeField;
+  using GeometryType = gpudatatypes::GeometryType;
+  using DeviceType = gpudatatypes::DeviceType;
+  using RecoStep = gpudatatypes::RecoStep;
+  using GeneralStep = gpudatatypes::GeneralStep;
+  using RecoStepField = gpudatatypes::RecoStepField;
+  using InOutTypeField = gpudatatypes::InOutTypeField;
 
   static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
 #ifdef GPUCA_TPC_GEOMETRY_O2

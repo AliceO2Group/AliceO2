@@ -9,18 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDataTypes.h
+/// \file GPUDataTypesIO.h
 /// \author David Rohr
 
-#ifndef GPUDATATYPES_H
-#define GPUDATATYPES_H
+#ifndef GPUDATATYPESIO_H
+#define GPUDATATYPESIO_H
 
 #include "GPUCommonDef.h"
 
 // These are basic and non-complex data types, which will also be visible on the GPU.
 // Please add complex data types required on the host but not GPU to GPUHostDataTypes.h and forward-declare!
 #ifndef GPUCA_GPUCODE_DEVICE
-#include <type_traits> // for bitfield below
 #include <cstddef>
 #endif
 #include "GPUTRDDef.h"
@@ -96,8 +95,6 @@ class TPCFastTransform;
 struct TPCPadGainCalib;
 struct TPCZSLinkMapping;
 
-#include "utils/bitfield.h"
-
 class GPUTPCTrack;
 class GPUTPCHitId;
 class GPUTPCGMMergedTrack;
@@ -111,55 +108,10 @@ struct GPUTRDTrackletLabels;
 struct GPUTPCDigitsMCInput;
 struct GPUSettingsTF;
 
-class GPUDataTypes
+namespace gpudatatypes
 {
- public:
-  // clang-format off
-  enum class GeometryType : uint32_t { RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2 };
-  enum DeviceType : uint32_t { INVALID_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4 };
-  enum class GeneralStep { Prepare = 1, QA = 2 };
-  // clang-format on
-
-  enum class RecoStep { TPCConversion = 1,
-                        TPCSectorTracking = 2,
-                        TPCMerging = 4,
-                        TPCCompression = 8,
-                        TRDTracking = 16,
-                        ITSTracking = 32,
-                        TPCdEdx = 64,
-                        TPCClusterFinding = 128,
-                        TPCDecompression = 256,
-                        Refit = 512,
-                        AllRecoSteps = 0x7FFFFFFF,
-                        NoRecoStep = 0 };
-  enum class InOutType { TPCClusters = 1,
-                         OBSOLETE = 2,
-                         TPCMergedTracks = 4,
-                         TPCCompressedClusters = 8,
-                         TRDTracklets = 16,
-                         TRDTracks = 32,
-                         TPCRaw = 64,
-                         ITSClusters = 128,
-                         ITSTracks = 256 };
-#ifndef __OPENCL__
-  static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
-  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression", "Global Refit"};
-  static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
-  constexpr static int32_t N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
-  constexpr static int32_t N_GENERAL_STEPS = sizeof(GPUDataTypes::GENERAL_STEP_NAMES) / sizeof(GPUDataTypes::GENERAL_STEP_NAMES[0]);
-#endif
-  typedef bitfield<RecoStep, uint32_t> RecoStepField;
-  typedef bitfield<InOutType, uint32_t> InOutTypeField;
-  static constexpr uint32_t NSECTORS = 36;
-  static DeviceType GetDeviceType(const char* type);
-};
-
-struct GPURecoStepConfiguration {
-  GPUDataTypes::RecoStepField steps = 0;
-  GPUDataTypes::RecoStepField stepsGPUMask = GPUDataTypes::RecoStep::AllRecoSteps;
-  GPUDataTypes::InOutTypeField inputs = 0;
-  GPUDataTypes::InOutTypeField outputs = 0;
-};
+static constexpr uint32_t NSECTORS = 36;
+} // namespace gpudatatypes
 
 template <class T>
 struct DefaultPtr {
@@ -191,7 +143,7 @@ typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 mu
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
 
 struct GPUTrackingInOutZS {
-  static constexpr uint32_t NSECTORS = GPUDataTypes::NSECTORS;
+  static constexpr uint32_t NSECTORS = gpudatatypes::NSECTORS;
   static constexpr uint32_t NENDPOINTS = 20;
   struct GPUTrackingInOutZSSector {
     const void* const* zsPtr[NENDPOINTS];
@@ -209,7 +161,7 @@ struct GPUTrackingInOutZS {
 };
 
 struct GPUTrackingInOutDigits {
-  static constexpr uint32_t NSECTORS = GPUDataTypes::NSECTORS;
+  static constexpr uint32_t NSECTORS = gpudatatypes::NSECTORS;
   const o2::tpc::Digit* tpcDigits[NSECTORS] = {nullptr};
   size_t nTPCDigits[NSECTORS] = {0};
   const GPUTPCDigitsMCInput* tpcDigitsMC = nullptr;
@@ -219,7 +171,7 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
 
   // TPC
-  static constexpr uint32_t NSECTORS = GPUDataTypes::NSECTORS;
+  static constexpr uint32_t NSECTORS = gpudatatypes::NSECTORS;
   const GPUTrackingInOutZS* tpcZS = nullptr;
   const GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSECTORS] = {nullptr};

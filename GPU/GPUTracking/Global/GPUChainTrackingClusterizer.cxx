@@ -68,7 +68,7 @@ using namespace o2::dataformats;
 #ifdef GPUCA_TPC_GEOMETRY_O2
 std::pair<uint32_t, uint32_t> GPUChainTracking::TPCClusterizerDecodeZSCountUpdate(uint32_t iSector, const CfFragment& fragment)
 {
-  bool doGPU = mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding;
+  bool doGPU = mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding;
   GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSector];
   GPUTPCClusterFinder::ZSOffset* o = processors()->tpcClusterer[iSector].mPzsOffsets;
   uint32_t digits = 0;
@@ -169,7 +169,7 @@ std::pair<uint32_t, uint32_t> GPUChainTracking::TPCClusterizerDecodeZSCount(uint
   uint32_t nPages = 0;
   uint32_t endpointAdcSamples[GPUTrackingInOutZS::NENDPOINTS];
   memset(endpointAdcSamples, 0, sizeof(endpointAdcSamples));
-  bool doGPU = mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding;
+  bool doGPU = mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding;
   int32_t firstHBF = (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasTfStartOrbit) ? mIOPtrs.settingsTF->tfStartOrbit : ((mIOPtrs.tpcZS->sector[iSector].count[0] && mIOPtrs.tpcZS->sector[iSector].nZSPtr[0][0]) ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->sector[iSector].zsPtr[0][0]) : 0);
 
   for (uint16_t j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
@@ -475,7 +475,7 @@ std::pair<uint32_t, uint32_t> GPUChainTracking::RunTPCClusterizer_transferZS(int
 
 int32_t GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
 {
-  bool doGPU = mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding;
+  bool doGPU = mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding;
   if (restorePointers) {
     for (uint32_t iSector = 0; iSector < NSECTORS; iSector++) {
       processors()->tpcClusterer[iSector].mPzsOffsets = mCFContext->ptrSave[iSector].zsOffsetHost;
@@ -765,7 +765,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   std::unique_ptr<ClusterNative[]> tmpNativeClusterBuffer;
 
   const bool buildNativeGPU = doGPU && NeedTPCClustersOnGPU();
-  const bool buildNativeHost = (mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters) || GetProcessingSettings().deterministicGPUReconstruction; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
+  const bool buildNativeHost = (mRec->GetRecoStepsOutputs() & gpudatatypes::InOutType::TPCClusters) || GetProcessingSettings().deterministicGPUReconstruction; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
   const bool propagateMCLabels = buildNativeHost && GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
   const bool sortClusters = buildNativeHost && (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4);
 
@@ -1277,7 +1277,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
 
   // Number of clusters is logged by tracking. This ensures clusters are still printed if it's not running
-  if (!(GetRecoSteps() & GPUDataTypes::RecoStep::TPCSectorTracking)) {
+  if (!(GetRecoSteps() & gpudatatypes::RecoStep::TPCSectorTracking)) {
     GPUInfo("Event has %zu TPC Clusters", nClsTotal);
   }
 

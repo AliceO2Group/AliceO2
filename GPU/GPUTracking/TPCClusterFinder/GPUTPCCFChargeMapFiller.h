@@ -47,9 +47,9 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
     return processors.tpcClusterer;
   }
 
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep()
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep()
   {
-    return GPUDataTypes::RecoStep::TPCClusterFinding;
+    return gpudatatypes::RecoStep::TPCClusterFinding;
   }
 
   template <int32_t iKernel = defaultKernel, typename... Args>

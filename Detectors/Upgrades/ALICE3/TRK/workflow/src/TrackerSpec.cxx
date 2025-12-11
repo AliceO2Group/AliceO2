@@ -25,7 +25,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        bool isMC,
-                       o2::gpu::GPUDataTypes::DeviceType dType)
+                       o2::gpu::gpudatatypes::DeviceType dType)
 {
   // mITSTrackingInterface.setTrackingMode(trMode);
 }
@@ -67,7 +67,7 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
   LOGF(info, "TRK CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::gpudatatypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
 

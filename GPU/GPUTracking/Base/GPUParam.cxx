@@ -18,7 +18,7 @@
 #include "GPUCommonMath.h"
 #include "GPUCommonConstants.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUConstantMem.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUTPCGeometry.h"
@@ -127,7 +127,7 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
     UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);
   }
   if (w) {
-    par.dodEdx = dodEdxEnabled = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
+    par.dodEdx = dodEdxEnabled = w->steps.isSet(gpudatatypes::RecoStep::TPCdEdx);
     if (dodEdxEnabled && p && p->tpcDownscaledEdx != 0) {
       dodEdxEnabled = (rand() % 100) < p->tpcDownscaledEdx;
     }

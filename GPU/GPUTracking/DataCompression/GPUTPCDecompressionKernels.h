@@ -27,7 +27,7 @@ namespace o2::gpu
 class GPUTPCDecompressionKernels : public GPUKernelTemplate
 {
  public:
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCDecompression; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCDecompression; }
 
   enum K : int32_t {
     step0attached = 0,

@@ -895,7 +895,7 @@
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/Base/GPUDataTypes.h"
+                    "path": "GPU/GPUTracking/Base/GPUDataTypesIO.h"
                   }
                 },
                 {
@@ -2445,7 +2445,7 @@
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/DataTypes/GPUDataTypes.h"
+                    "path": "GPU/GPUTracking/DataTypes/GPUDataTypesIO.h"
                   }
                 },
                 {

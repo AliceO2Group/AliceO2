@@ -23,10 +23,16 @@
 
 #include "ITStracking/TrackingInterface.h"
 
-#include "GPUDataTypes.h"
+#include "GPUDataTypesConfig.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 
 #include "TStopwatch.h"
+
+namespace o2::gpu
+{
+class GPUReconstruction;
+class GPUChainITS;
+} // namespace o2::gpu
 
 namespace o2::its
 {
@@ -39,7 +45,7 @@ class TrackerDPL : public framework::Task
              int trgType,
              const TrackingMode::Type trMode = TrackingMode::Unset,
              const bool overrBeamEst = false,
-             o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
+             o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -57,7 +63,7 @@ class TrackerDPL : public framework::Task
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, TrackingMode::Type trMode, const bool overrBeamEst = false, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, TrackingMode::Type trMode, const bool overrBeamEst = false, o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
 
 } // namespace o2::its
 

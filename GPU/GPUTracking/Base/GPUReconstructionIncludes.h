@@ -24,7 +24,7 @@
 
 #include "GPUDef.h"
 #include "GPULogging.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 
 #include <iostream>
 #include <fstream>

@@ -262,7 +262,7 @@ int32_t GPUReconstructionCPU::RunChains()
     nEventReport += "   (avergage of " + std::to_string(mStatNEvents) + " runs)";
   }
   double kernelTotal = 0;
-  std::vector<double> kernelStepTimes(GPUDataTypes::N_RECO_STEPS, 0.);
+  std::vector<double> kernelStepTimes(gpudatatypes::N_RECO_STEPS, 0.);
 
   if (GetProcessingSettings().debugLevel >= 1) {
     for (uint32_t i = 0; i < mTimers.size(); i++) {
@@ -296,17 +296,17 @@ int32_t GPUReconstructionCPU::RunChains()
     }
   }
   if (GetProcessingSettings().recoTaskTiming) {
-    for (int32_t i = 0; i < GPUDataTypes::N_RECO_STEPS; i++) {
+    for (int32_t i = 0; i < gpudatatypes::N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0. || mTimersRecoSteps[i].timerTotal.GetElapsedTime() != 0.) {
         printf("Execution Time: Step              : %11s %38s Time: %'10.0f us %64s ( Total Time : %'14.0f us, CPU Time : %'14.0f us, %'7.2fx )\n", "Tasks",
-               GPUDataTypes::RECO_STEP_NAMES[i], kernelStepTimes[i] * 1000000 / mStatNEvents, "", mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU / mTimersRecoSteps[i].timerTotal.GetElapsedTime());
+               gpudatatypes::RECO_STEP_NAMES[i], kernelStepTimes[i] * 1000000 / mStatNEvents, "", mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU / mTimersRecoSteps[i].timerTotal.GetElapsedTime());
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents,
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", gpudatatypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents,
                mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToGPU / mStatNEvents, mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].countToGPU);
       }
       if (mTimersRecoSteps[i].bytesToHost) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents,
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", gpudatatypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents,
                mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToHost / mStatNEvents, mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].countToHost);
       }
       if (GetProcessingSettings().resetTimers) {
@@ -319,9 +319,9 @@ int32_t GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].countToHost = 0;
       }
     }
-    for (int32_t i = 0; i < GPUDataTypes::N_GENERAL_STEPS; i++) {
+    for (int32_t i = 0; i < gpudatatypes::N_GENERAL_STEPS; i++) {
       if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
-        printf("Execution Time: General Step      : %50s Time: %'10.0f us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents);
+        printf("Execution Time: General Step      : %50s Time: %'10.0f us\n", gpudatatypes::GENERAL_STEP_NAMES[i], mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents);
       }
     }
     if (GetProcessingSettings().debugLevel >= 1) {

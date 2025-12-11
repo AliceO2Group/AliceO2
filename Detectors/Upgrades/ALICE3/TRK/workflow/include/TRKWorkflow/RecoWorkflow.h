@@ -13,7 +13,7 @@
 #define O2_TRK_RECOWORKFLOW_H
 
 #include "Framework/WorkflowSpec.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesConfig.h"
 
 namespace o2::trk
 {
@@ -25,7 +25,7 @@ o2::framework::WorkflowSpec getWorkflow(bool useMC,
                                         bool upstreamClusters = false,
                                         bool disableRootOutput = false,
                                         bool useGPUWF = false,
-                                        o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
+                                        o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
 }
 
 } // namespace o2::trk

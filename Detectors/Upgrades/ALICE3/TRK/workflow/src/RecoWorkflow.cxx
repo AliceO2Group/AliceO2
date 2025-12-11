@@ -21,7 +21,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     bool upstreamClusters,
                                     bool disableRootOutput,
                                     bool useGPUWF,
-                                    o2::gpu::GPUDataTypes::DeviceType dtype)
+                                    o2::gpu::gpudatatypes::DeviceType dtype)
 {
   framework::WorkflowSpec specs;
   specs.emplace_back(o2::trk::getTrackerSpec(useMC, dtype));

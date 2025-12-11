@@ -16,7 +16,7 @@
 #define O2_GPU_TPCCFCHAINCONTEXT_H
 
 #include "clusterFinderDefs.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUTPCClusterFinder.h"
 #include "CfFragment.h"
 #include <vector>

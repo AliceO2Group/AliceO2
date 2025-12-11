@@ -24,7 +24,7 @@ namespace o2::gpu
 class GPUTrackingRefitKernel : public GPUKernelTemplate
 {
  public:
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCCompression; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCCompression; }
 
   enum K : int32_t {
     mode0asGPU = 0,

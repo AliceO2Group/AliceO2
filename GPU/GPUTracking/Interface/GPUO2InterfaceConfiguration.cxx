@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 #include "GPUO2InterfaceConfiguration.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 
 using namespace o2::gpu;
 

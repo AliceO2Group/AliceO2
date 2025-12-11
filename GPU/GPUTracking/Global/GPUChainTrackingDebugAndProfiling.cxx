@@ -240,7 +240,7 @@ void GPUChainTracking::PrintOutputStat()
   }
 
   char trdText[1024] = "";
-  if (GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) {
+  if (GetRecoSteps() & gpudatatypes::RecoStep::TRDTracking) {
     int32_t nTRDTracks = 0;
     int32_t nTRDTracklets = 0;
     for (uint32_t k = 0; k < mIOPtrs.nTRDTracks; k++) {

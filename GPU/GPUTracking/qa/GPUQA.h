@@ -16,6 +16,7 @@
 #define GPUQA_H
 
 #include "GPUSettings.h"
+#include "GPUDataTypesQA.h"
 struct AliHLTTPCClusterMCWeight;
 class TH1F;
 class TH2F;
@@ -56,16 +57,13 @@ class GPUQA
   static bool QAAvailable() { return false; }
   static bool IsInitialized() { return false; }
   void UpdateChain(GPUChainTracking* chain) {}
-
-  enum QA_TASKS {
-    tasksAutomatic = 0
-  };
 };
 } // namespace o2::gpu
 
 #else
 
 #include "GPUTPCDef.h"
+#include "GPUDataTypesIO.h"
 #include <cstdio>
 #include <cmath>
 #include <vector>
@@ -150,21 +148,7 @@ class GPUQA
 
   static constexpr int32_t MC_LABEL_INVALID = -1e9;
 
-  enum QA_TASKS { // TODO: make this in32_t typed
-    taskTrackingEff = 1,
-    taskTrackingRes = 2,
-    taskTrackingResPull = 4,
-    tasksAllMC = 8 - 1,
-    taskClusterAttach = 8,
-    taskTrackStatistics = 16,
-    taskClusterCounts = 32,
-    taskClusterRejection = 64,
-    tasksAll = 128 - 1,
-    tasksDefault = tasksAll,
-    tasksDefaultPostprocess = tasksDefault & ~taskClusterCounts,
-    tasksAllNoQC = tasksAll & ~tasksAllMC,
-    tasksAutomatic = -1
-  };
+  using enum gpudatatypes::gpuqa::gpuQATaskIds;
 
  private:
   struct additionalMCParameters {

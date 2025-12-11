@@ -53,7 +53,7 @@ void GPUTPCTracker::InitializeProcessor()
 
 void* GPUTPCTracker::SetPointersDataLinks(void* mem) { return mData.SetPointersLinks(mem); }
 void* GPUTPCTracker::SetPointersDataWeights(void* mem) { return mData.SetPointersWeights(mem); }
-void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging); }
+void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem, mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging); }
 void* GPUTPCTracker::SetPointersDataRows(void* mem) { return mData.SetPointersRows(mem); }
 
 void* GPUTPCTracker::SetPointersScratch(void* mem)
@@ -62,7 +62,7 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
   if (mRec->GetProcessingSettings().memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mem = SetPointersTracklets(mem);
   }
-  if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSectorTracking) {
+  if (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking) {
     computePointerWithAlignment(mem, mTrackletTmpStartHits, GPUCA_ROW_COUNT * mNMaxRowStartHits);
     computePointerWithAlignment(mem, mRowStartHitCountOffset, GPUCA_ROW_COUNT);
   }
@@ -74,7 +74,7 @@ void* GPUTPCTracker::SetPointersScratchHost(void* mem)
   if (mRec->GetProcessingSettings().keepDisplayMemory) {
     computePointerWithAlignment(mem, mLinkTmpMemory, mRec->Res(mMemoryResLinks).Size());
   }
-  mem = mData.SetPointersClusterIds(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging);
+  mem = mData.SetPointersClusterIds(mem, mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging);
   return mem;
 }
 
@@ -86,7 +86,7 @@ void* GPUTPCTracker::SetPointersCommon(void* mem)
 
 bool GPUTPCTracker::MemoryReuseAllowed()
 {
-  return !mRec->GetProcessingSettings().keepDisplayMemory && ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSectorTracking) || mRec->GetProcessingSettings().inKernelParallel == 1 || mRec->GetProcessingSettings().nHostThreads == 1);
+  return !mRec->GetProcessingSettings().keepDisplayMemory && ((mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking) || mRec->GetProcessingSettings().inKernelParallel == 1 || mRec->GetProcessingSettings().nHostThreads == 1);
 }
 
 void GPUTPCTracker::RegisterMemoryAllocation()
@@ -158,7 +158,7 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   }
   mNMaxTrackHits = mRec->MemoryScalers()->NTPCSectorTrackHits(mData.NumberOfHits(), mRec->GetProcessingSettings().tpcInputWithClusterRejection);
 
-  if (mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSectorTracking).par_SORT_STARTHITS) {
+  if (mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking).par_SORT_STARTHITS) {
     if (mNMaxStartHits > mNMaxRowStartHits * GPUCA_ROW_COUNT) {
       mNMaxStartHits = mNMaxRowStartHits * GPUCA_ROW_COUNT;
     }

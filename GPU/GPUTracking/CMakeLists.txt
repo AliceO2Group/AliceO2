@@ -64,11 +64,11 @@ set(SRCS
     TRDTracking/GPUTRDTrackerKernels.cxx
     Base/GPUParam.cxx)
 
-set(SRCS_DATATYPES DataTypes/GPUDataTypes.cxx DataTypes/GPUConfigDump.cxx DataTypes/GPUTPCGMPolynomialField.cxx)
+set(SRCS_DATATYPES DataTypes/GPUDataTypesConfig.cxx DataTypes/GPUConfigDump.cxx DataTypes/GPUTPCGMPolynomialField.cxx)
 
 set(HDRS_CINT_O2 Merger/GPUTPCGMTrackParam.h Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSectorTrack.h Merger/GPUTPCGMBorderTrack.h TRDTracking/GPUTRDInterfaces.h)
 set(HDRS_CINT_DATATYPES DataTypes/GPUTPCGMMergedTrackHit.h)
-set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
+set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypesIO.h DataTypes/GPUDataTypesConfig.h DataTypes/GPUDataTypesQA.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx
@@ -107,6 +107,9 @@ set(SRCS_NO_H SectorTracker/GPUTPCTrackerDump.cxx
               Global/GPUChainTrackingIO.cxx)
 
 set(HDRS_INSTALL
+    ${HDRS_CINT_O2}
+    ${HDRS_CINT_DATATYPES}
+    ${HDRS_CINT_O2_ADDITIONAL}
     Base/GPUConstantMem.h
     Base/GPUParam.inc
     Base/GPUParamRTC.h
@@ -123,9 +126,7 @@ set(HDRS_INSTALL
     DataTypes/GPUHostDataTypes.h
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUOutputControl.h
-    DataTypes/GPUSettings.h
     DataTypes/GPUTPCGeometry.h
-    DataTypes/GPUTPCGMMergedTrackHit.h
     DataTypes/GPUTRDDef.h
     DataTypes/GPUTRDInterfaceO2Track.h
     DataTypes/GPUTriggerOutputs.h
@@ -139,13 +140,10 @@ set(HDRS_INSTALL
     Definitions/GPUDef.h
     Definitions/GPUDefMacros.h
     Definitions/GPULogging.h
-    Definitions/GPUSettingsList.h
     Global/GPUChainTrackingDefs.h
     Global/GPUChainTrackingDebug.h
     Global/GPUChainTrackingGetters.inc
     Global/GPUErrorCodes.h
-    Merger/GPUTPCGMBorderTrack.h
-    Merger/GPUTPCGMMergedTrack.h
     Merger/GPUTPCGMMergerTypes.h
     qa/GPUQAHelper.h
     qconfigoptions.h
@@ -160,7 +158,6 @@ set(HDRS_INSTALL
     SectorTracker/GPUTPCTrackLinearisation.h
     TPCConvert/GPUTPCConvertImpl.h
     TRDTracking/GPUTRDGeometry.h
-    TRDTracking/GPUTRDInterfaces.h
     TRDTracking/GPUTRDSpacePoint.h
     TRDTracking/GPUTRDTrackData.h
     TRDTracking/GPUTRDTrackerDebug.h

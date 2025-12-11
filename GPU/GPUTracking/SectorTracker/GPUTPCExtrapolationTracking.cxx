@@ -167,11 +167,11 @@ GPUdii() void GPUTPCExtrapolationTracking::Thread<0>(int32_t nBlocks, int32_t nT
     return;
   }
   const int32_t iSector = tracker.ISector();
-  int32_t sectorLeft = (iSector + (GPUDataTypes::NSECTORS / 2 - 1)) % (GPUDataTypes::NSECTORS / 2);
-  int32_t sectorRight = (iSector + 1) % (GPUDataTypes::NSECTORS / 2);
-  if (iSector >= (int32_t)GPUDataTypes::NSECTORS / 2) {
-    sectorLeft += GPUDataTypes::NSECTORS / 2;
-    sectorRight += GPUDataTypes::NSECTORS / 2;
+  int32_t sectorLeft = (iSector + (gpudatatypes::NSECTORS / 2 - 1)) % (gpudatatypes::NSECTORS / 2);
+  int32_t sectorRight = (iSector + 1) % (gpudatatypes::NSECTORS / 2);
+  if (iSector >= (int32_t)gpudatatypes::NSECTORS / 2) {
+    sectorLeft += gpudatatypes::NSECTORS / 2;
+    sectorRight += gpudatatypes::NSECTORS / 2;
   }
   PerformExtrapolationTracking(nBlocks, nThreads, iBlock, iThread, tracker.GetConstantMem()->tpcTrackers[sectorLeft], smem, tracker, true);
   PerformExtrapolationTracking(nBlocks, nThreads, iBlock, iThread, tracker.GetConstantMem()->tpcTrackers[sectorRight], smem, tracker, false);
@@ -180,22 +180,22 @@ GPUdii() void GPUTPCExtrapolationTracking::Thread<0>(int32_t nBlocks, int32_t nT
 GPUd() int32_t GPUTPCExtrapolationTracking::ExtrapolationTrackingSectorOrder(int32_t iSector)
 {
   iSector++;
-  if (iSector == GPUDataTypes::NSECTORS / 2) {
+  if (iSector == gpudatatypes::NSECTORS / 2) {
     iSector = 0;
   }
-  if (iSector == GPUDataTypes::NSECTORS) {
-    iSector = GPUDataTypes::NSECTORS / 2;
+  if (iSector == gpudatatypes::NSECTORS) {
+    iSector = gpudatatypes::NSECTORS / 2;
   }
   return iSector;
 }
 
 GPUd() void GPUTPCExtrapolationTracking::ExtrapolationTrackingSectorLeftRight(uint32_t iSector, uint32_t& left, uint32_t& right)
 {
-  left = (iSector + (GPUDataTypes::NSECTORS / 2 - 1)) % (GPUDataTypes::NSECTORS / 2);
-  right = (iSector + 1) % (GPUDataTypes::NSECTORS / 2);
-  if (iSector >= (int32_t)GPUDataTypes::NSECTORS / 2) {
-    left += GPUDataTypes::NSECTORS / 2;
-    right += GPUDataTypes::NSECTORS / 2;
+  left = (iSector + (gpudatatypes::NSECTORS / 2 - 1)) % (gpudatatypes::NSECTORS / 2);
+  right = (iSector + 1) % (gpudatatypes::NSECTORS / 2);
+  if (iSector >= (int32_t)gpudatatypes::NSECTORS / 2) {
+    left += gpudatatypes::NSECTORS / 2;
+    right += gpudatatypes::NSECTORS / 2;
   }
 }
 

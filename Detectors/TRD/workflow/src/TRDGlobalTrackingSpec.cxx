@@ -46,7 +46,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUSettings.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUTRDDef.h"
 #include "GPUTRDTrack.h"
 #include "GPUTRDTrackletWord.h"
@@ -103,7 +103,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     mFlatGeo = std::make_unique<GeometryFlat>(*geo);
 
     GPURecoStepConfiguration cfgRecoStep;
-    cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
+    cfgRecoStep.steps = gpudatatypes::RecoStep::NoRecoStep;
     cfgRecoStep.inputs.clear();
     cfgRecoStep.outputs.clear();
     mRec = GPUReconstruction::CreateInstance("CPU", true);

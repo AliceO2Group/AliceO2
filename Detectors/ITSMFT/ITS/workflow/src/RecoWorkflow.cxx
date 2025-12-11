@@ -38,7 +38,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     bool useGeom,
                                     int useTrig,
                                     bool useGPUWF,
-                                    o2::gpu::GPUDataTypes::DeviceType dtype)
+                                    o2::gpu::gpudatatypes::DeviceType dtype)
 {
   framework::WorkflowSpec specs;
   if (!(upstreamDigits || upstreamClusters)) {

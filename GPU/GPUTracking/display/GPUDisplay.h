@@ -37,6 +37,7 @@ class GPUTPCTracker;
 struct GPUParam;
 class GPUQA;
 class GPUTRDGeometry;
+class GPUTPCGMPropagator;
 
 class GPUDisplay : public GPUDisplayInterface
 {
