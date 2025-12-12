@@ -1055,7 +1055,7 @@ void DataRelayer::sendContextState()
   char* buffer = relayerSlotState + written;
   for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
     for (size_t si = 0; si < mDistinctRoutesIndex.size(); ++si) {
-      int index = si * mTimesliceIndex.size() + ci;
+      int index = ci * mDistinctRoutesIndex.size() + si;
       int value = static_cast<int>(mCachedStateMetrics[index]);
       buffer[si] = value + '0';
       // Anything which is done is actually already empty,
