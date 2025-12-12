@@ -43,7 +43,7 @@ struct HeatMapHelper {
   {
     float padding = 1;
     // add slider to scroll between the grid display windows
-    size_t nw = getNumRecords() < WND? 1 : getNumRecords() / WND;
+    size_t nw = getNumRecords() < WND ? 1 : getNumRecords() / WND;
     ImGui::PushItemWidth(sizeHint.x);
     ImGui::SliderInt("##window", &v, 1, nw, "wnd: %d", ImGuiSliderFlags_AlwaysClamp);
     ImVec2 sliderMin = ImGui::GetItemRectMin();
@@ -125,7 +125,7 @@ struct HeatMapHelper {
     // heatmap
     size_t totalPrims = WND * getNumInputs();
     drawList->PrimReserve(totalPrims * 6, totalPrims * 4);
-    for (size_t ri = (v - 1) * WND; ri < (((size_t)(v) * WND > getNumRecords()) ? getNumRecords() : v * WND); ++ri) {
+    for (size_t ri = (v - 1) * WND; ri < (((size_t)(v)*WND > getNumRecords()) ? getNumRecords() : v * WND); ++ri) {
       auto record = getRecord(ri);
       ImVec2 xOffset{((float)(ri - (v - 1) * WND) * boxSizeX) + padding, 0};
       ImVec2 xSize{boxSizeX - 2 * padding, 0};
