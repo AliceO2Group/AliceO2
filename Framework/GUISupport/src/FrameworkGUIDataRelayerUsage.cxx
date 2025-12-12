@@ -88,6 +88,9 @@ struct HeatMapHelper {
             break;
           }
         }
+        if (active) {
+          break;
+        }
       }
       drawList->PrimRect(
         xOffset + yOffset + winPos,
