@@ -127,9 +127,10 @@ void AnalysisSupportHelpers::addMissingOutputsToReader(std::vector<OutputSpec> c
                                                        DataProcessorSpec& publisher)
 {
   requestedInputs |
-    views::filter_not_matching(providedOutputs) | // filter the inputs that are already provided
+    views::filter_not_matching(providedOutputs) |  // filter the inputs that are already provided
+    views::filter_not_matching(publisher.outpus) | // filter the inputs that are already covered
     views::input_to_output_specs() |
-    sinks::update_output_list{publisher.outputs}; // append them to the publisher outputs
+    sinks::append_to{publisher.outputs};           // append them to the publisher outputs
 }
 
 void AnalysisSupportHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> const& providedSpecials,
