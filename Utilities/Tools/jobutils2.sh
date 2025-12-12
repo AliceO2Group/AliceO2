@@ -398,7 +398,7 @@ getNumberOfPhysicalCPUCores() {
     #
     # Notice the human readable output of lscpu depends on the version and wether or not you
     # are inside a container. The following should be more stable.
-    CORESPERSOCKET=$(lscpu -p=cpu,socket | grep ,0 | sort | uniq | wc -l)
+    CORESPERSOCKET=$(lscpu -p=cpu,socket | grep "^[0-9]\+,0" | sort | uniq | wc -l)
     SOCKETS=$(lscpu -p=socket | grep -e "^[0-9]" | sort | uniq | wc -l)
   fi
   N=$((${CORESPERSOCKET}*${SOCKETS}))
