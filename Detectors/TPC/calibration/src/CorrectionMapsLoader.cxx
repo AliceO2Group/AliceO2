@@ -61,16 +61,8 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
       if (canUseCTPScaling) {
         LOGP(info, "Invalid TPC scaler value {} received for IDC-based scaling! Using CTP fallback", tpcScaler);
         mIDC2CTPFallbackActive = true;
-        if (std::abs(getMeanLumi() - mCorrMap->getLumi()) > 1e-6f) {
-          // update only mean lumi if changed
-          setMeanLumi(mCorrMap->getLumi(), false);
-          setUpdatedMap();
-        }
-        if (std::abs(getMeanLumiRef() - mCorrMapRef->getLumi()) > 1e-6f) {
-          // update only mean lumi ref if changed
-          setMeanLumiRef(mCorrMapRef->getLumi());
-          setUpdatedMapRef();
-        }
+        setMeanLumi(mCorrMap->getLumi(), false);
+        setMeanLumiRef(mCorrMapRef->getLumi());
         setLumiScaleType(1);
       } else if (mCorrMap) {
         // CTP scaling is not possible, dont do any scaling to avoid applying wrong corrections
@@ -84,9 +76,7 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
         LOGP(info, "Valid TPC scaler value {} received, switching back to IDC-based scaling", tpcScaler);
         mIDC2CTPFallbackActive = false;
         setMeanLumi(mCorrMap->getIDC(), false);
-        setUpdatedMap();
         setMeanLumiRef(mCorrMapRef->getIDC());
-        setUpdatedMapRef();
         setLumiScaleType(2);
       }
       // correct IDC received
