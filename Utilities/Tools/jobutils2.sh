@@ -397,7 +397,7 @@ getNumberOfPhysicalCPUCores() {
     # Do something under GNU/Linux platform
     #
     # Gets the cores per socket by counting unique cores on socket 0.
-    # Gets sockets by counting unique socket ids. The grepping is done in any case  to avoid matching comments. 
+    # Gets sockets by counting unique socket ids. The grepping is done in any case  to avoid matching comments.
     CORESPERSOCKET=$(lscpu -p=cpu,socket | grep "^[0-9]\+,0" | sort | uniq | wc -l)
     SOCKETS=$(lscpu -p=socket | grep -e "^[0-9]" | sort | uniq | wc -l)
   fi
