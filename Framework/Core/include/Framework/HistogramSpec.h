@@ -115,7 +115,10 @@ struct AxisSpec {
     }
     if (binEdges[0] != VARIABLE_WIDTH) {
       nBins = static_cast<int>(binEdges[0]);
-      binEdges.resize(3); // nBins, lowerBound, upperBound, disregard whatever else is stored in vecotr
+      if (binEdges.size() < 3 || binEdges[1] > binEdges[2]) {
+        LOG(fatal) << "Defined ill-defined axis";
+      }
+      binEdges.resize(3); // nBins, lowerBound, upperBound, disregard whatever else is stored in vector
     }
     binEdges.erase(binEdges.begin()); // remove first entry that we assume to be number of bins
   }
