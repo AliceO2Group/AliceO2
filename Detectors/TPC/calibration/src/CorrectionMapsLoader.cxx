@@ -53,6 +53,37 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
   o2::ctp::LumiInfo lumiObj;
   static o2::ctp::LumiInfo lumiPrev;
 
+  if (getLumiScaleType() == 2 || mIDC2CTPFallbackActive) {
+    float tpcScaler = pc.inputs().get<float>("tpcscaler");
+    // check if tpcScaler is valid and CTP fallback is allowed
+    if (tpcScaler == -1.f) {
+      const bool canUseCTPScaling = mCorrMap && mCorrMapRef && mCorrMap->isIDCSet() && mCorrMapRef->isIDCSet() && mCorrMap->isLumiSet() && mCorrMapRef->isLumiSet();
+      if (canUseCTPScaling) {
+        LOGP(info, "Invalid TPC scaler value {} received for IDC-based scaling! Using CTP fallback", tpcScaler);
+        mIDC2CTPFallbackActive = true;
+        setMeanLumi(mCorrMap->getLumi(), false);
+        setMeanLumiRef(mCorrMapRef->getLumi());
+        setLumiScaleType(1);
+      } else if (mCorrMap) {
+        // CTP scaling is not possible, dont do any scaling to avoid applying wrong corrections
+        const float storedIDC = mCorrMap->getIDC();
+        LOGP(warning, "Invalid TPC scaler value {} received for IDC-based scaling! CTP fallback not possible, using stored IDC of {} from the map to avoid applying wrong corrections", tpcScaler, storedIDC);
+        setInstLumi(storedIDC);
+      }
+    } else {
+      if (mIDC2CTPFallbackActive) {
+        // reset back to normal operation
+        LOGP(info, "Valid TPC scaler value {} received, switching back to IDC-based scaling", tpcScaler);
+        mIDC2CTPFallbackActive = false;
+        setMeanLumi(mCorrMap->getIDC(), false);
+        setMeanLumiRef(mCorrMapRef->getIDC());
+        setLumiScaleType(2);
+      }
+      // correct IDC received
+      setInstLumi(tpcScaler);
+    }
+  }
+
   if (getLumiCTPAvailable() && mInstCTPLumiOverride <= 0.) {
     if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(o2::ctp::LumiInfo)) {
       lumiPrev = lumiObj = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
@@ -67,10 +98,7 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
       setInstLumi(getInstLumiCTP());
     }
   }
-  if (getLumiScaleType() == 2) {
-    float tpcScaler = pc.inputs().get<float>("tpcscaler");
-    setInstLumi(tpcScaler);
-  }
+
   if (getUseMShapeCorrection()) {
     LOGP(info, "Setting M-Shape map");
     const auto mapMShape = pc.inputs().get<o2::gpu::TPCFastTransform*>("mshape");
@@ -317,6 +345,7 @@ void CorrectionMapsLoader::copySettings(const CorrectionMapsLoader& src)
   mLumiCTPSource = src.mLumiCTPSource;
   mLumiScaleMode = src.mLumiScaleMode;
   mScaleInverse = src.getScaleInverse();
+  mIDC2CTPFallbackActive = src.mIDC2CTPFallbackActive;
 }
 
 void CorrectionMapsLoader::updateInverse()
