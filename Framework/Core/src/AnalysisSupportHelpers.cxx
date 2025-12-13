@@ -128,7 +128,7 @@ void AnalysisSupportHelpers::addMissingOutputsToReader(std::vector<OutputSpec> c
 {
   requestedInputs |
     views::filter_not_matching(providedOutputs) |  // filter the inputs that are already provided
-    views::filter_not_matching(publisher.outpus) | // filter the inputs that are already covered
+    views::filter_not_matching(publisher.outputs) | // filter the inputs that are already covered
     views::input_to_output_specs() |
     sinks::append_to{publisher.outputs};           // append them to the publisher outputs
 }
