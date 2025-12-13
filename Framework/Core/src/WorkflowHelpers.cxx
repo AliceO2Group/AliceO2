@@ -314,18 +314,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
         } break;
         case Lifetime::Condition: {
-          for (auto& option : processor.options) {
-            if (option.name == "condition-backend") {
-              hasConditionOption = true;
-              break;
-            }
-          }
-          if (hasConditionOption == false) {
+          requestedCCDBs.emplace_back(input);
+          if ((hasConditionOption == false) && std::none_of(processor.options.begin(), processor.options.end(), [](auto const& option){ return (option.name.compare("condition-backend") == 0); })) {
             processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}});
             processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}});
             hasConditionOption = true;
           }
-          requestedCCDBs.emplace_back(input);
         } break;
         case Lifetime::OutOfBand: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
@@ -411,6 +405,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, aodSpawner);
 
   AnalysisSupportHelpers::addMissingOutputsToReader(ac.providedAODs, ac.requestedAODs, aodReader);
+
+  std::sort(requestedCCDBs.begin(), requestedCCDBs.end(), inputSpecLessThan);
+  std::sort(providedCCDBs.begin(), providedCCDBs.end(), outputSpecLessThan);
   AnalysisSupportHelpers::addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
   std::vector<DataProcessorSpec> extraSpecs;
