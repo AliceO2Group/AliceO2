@@ -315,7 +315,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         } break;
         case Lifetime::Condition: {
           requestedCCDBs.emplace_back(input);
-          if ((hasConditionOption == false) && std::none_of(processor.options.begin(), processor.options.end(), [](auto const& option){ return (option.name.compare("condition-backend") == 0); })) {
+          if ((hasConditionOption == false) && std::none_of(processor.options.begin(), processor.options.end(), [](auto const& option) { return (option.name.compare("condition-backend") == 0); })) {
             processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}});
             processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}});
             hasConditionOption = true;
