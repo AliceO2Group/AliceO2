@@ -56,7 +56,6 @@ struct CommonServices {
     return [](InitContext&, void* service) -> void* { return service; };
   }
 
-  static ServiceSpec deviceContextSpec();
   static ServiceSpec dataProcessorContextSpec();
   static ServiceSpec driverClientSpec();
   static ServiceSpec monitoringSpec();

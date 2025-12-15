@@ -18,13 +18,15 @@
 namespace o2::framework
 {
 
-/// Helper to understand if a given type is complete (declared fully) or not (forward declared).
-/// See also: https://devblogs.microsoft.com/oldnewthing/20190710-00/?p=102678
-template <typename, typename = void>
-constexpr bool is_type_complete_v = false;
+template <typename T>
+concept TypeComplete = requires(T) {
+  {
+    sizeof(T)
+  };
+};
 
 template <typename T>
-constexpr bool is_type_complete_v<T, std::void_t<decltype(sizeof(T))>> = true;
+constexpr bool is_type_complete_v = TypeComplete<T>;
 
 /// Helper which will invoke @a onDefined if the type T is actually available
 /// or @a onUndefined if the type T is a forward declaration.
@@ -39,29 +41,10 @@ void call_if_defined_full(TDefined&& onDefined, TUndefined&& onUndefined)
   }
 }
 
-/// Helper which will invoke @a onDefined if the type T is actually available
-/// or @a onUndefined if the type T is a forward declaration.
-/// Can be used to check for existence or not of a given type.
-template <typename T, typename TDefined, typename TUndefined>
-T call_if_defined_full_forward(TDefined&& onDefined, TUndefined&& onUndefined)
-{
-  if constexpr (is_type_complete_v<T>) {
-    return std::move(onDefined(static_cast<T*>(nullptr)));
-  } else {
-    return onUndefined();
-  }
-}
-
 template <typename T, typename TDefined>
 void call_if_defined(TDefined&& onDefined)
 {
   call_if_defined_full<T>(onDefined, []() -> void {});
-}
-
-template <typename T, typename TDefined>
-T call_if_defined_forward(TDefined&& onDefined)
-{
-  return std::move(call_if_defined_full_forward<T>(onDefined, []() -> T&& { O2_BUILTIN_UNREACHABLE(); }));
 }
 
 } // namespace o2::framework

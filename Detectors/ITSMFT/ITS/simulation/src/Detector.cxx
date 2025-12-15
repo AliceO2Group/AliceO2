@@ -477,10 +477,11 @@ void Detector::createMaterials()
   Float_t dInox304 = 7.85;
 
   // Ceramic (for IB capacitors) (BaTiO3)
+  // Density includes soldering
   Float_t aCeramic[3] = {137.327, 47.867, 15.999};
   Float_t zCeramic[3] = {56, 22, 8}; // Ba, Ti, O
   Float_t wCeramic[3] = {1, 1, 3};   // Molecular composition
-  Float_t dCeramic = 6.02;
+  Float_t dCeramic = 8.28;
 
   // Rohacell (C9 H13 N1 O2)
   Float_t aRohac[4] = {12.01, 1.01, 14.010, 16.};

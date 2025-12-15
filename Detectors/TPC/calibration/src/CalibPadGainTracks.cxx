@@ -22,7 +22,7 @@
 #include "CorrectionMapsHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GPUO2InterfaceRefit.h"
-#include "GPUO2Interface.h"
+#include "GPUO2ExternalUser.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "DetectorsBase/Propagator.h"

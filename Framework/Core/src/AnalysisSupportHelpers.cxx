@@ -219,7 +219,6 @@ void AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher(
     // FIXME: good enough for now...
     for (auto& i : input.metadata) {
       if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto value = i.defaultValue.get<std::string>();
         auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
         auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
         if (j == publisher.inputs.end()) {

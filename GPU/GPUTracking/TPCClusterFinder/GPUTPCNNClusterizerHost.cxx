@@ -36,7 +36,7 @@ void GPUTPCNNClusterizerHost::init(const GPUSettingsProcessingNNclusterizer& set
   std::vector<std::string> evalMode = o2::utils::Str::tokenize(settings.nnEvalMode, ':');
 
   if (settings.nnLoadFromCCDB) {
-    reg_model_path = settings.nnLocalFolder + "/net_regression_c1.onnx"; // Needs to be set identical to NeuralNetworkClusterizer.cxx, otherwise the networks might be loaded from the wrong place
+    reg_model_path = settings.nnLocalFolder + "/net_regression_c1.onnx"; // Needs to be set identical to GPUWorkflowSpec.cxx, otherwise the networks might be loaded from the wrong place
     if (evalMode[0] == "c1") {
       class_model_path = settings.nnLocalFolder + "/net_classification_c1.onnx";
     } else if (evalMode[0] == "c2") {
@@ -98,6 +98,7 @@ void GPUTPCNNClusterizerHost::initClusterizer(const GPUSettingsProcessingNNclust
   clustererNN.mNnClusterizerPadTimeSize = clustererNN.mNnClusterizerFullPadSize * clustererNN.mNnClusterizerFullTimeSize;
   clustererNN.mNnClusterizerRowTimeSize = clustererNN.mNnClusterizerFullRowSize * clustererNN.mNnClusterizerFullTimeSize;
   clustererNN.mNnClusterizerRowTimeSizeFull = clustererNN.mNnClusterizerRowTimeSize + (settings.nnClusterizerAddIndexData ? 3 : 0);
+  clustererNN.mNnClusterizerRowTimeSizeThreads = clustererNN.mNnClusterizerRowTimeSize + (settings.nnClusterizerAddIndexData ? 1 : 0);
   clustererNN.mNnClusterizerElementSize = clustererNN.mNnClusterizerChargeArraySize + (settings.nnClusterizerAddIndexData ? 3 : 0);
   // clustererNN.mBoundaryMapSizeRow = 3 * clustererNN.mNnClusterizerSizeInputRow + o2::tpc::constants::MAXGLOBALPADROW;
   // clustererNN.mBoundaryPadding = 11; // padding on each side to account for pad_offset. N=11 since then mIsBoundary = 24320 ~< (1.5 x 2^14 = 24576) && N must be bigger than (NPads[row(end_iroc + 1)] - NPads[row(end_iroc)])/2 (=6) for pad_offset to work

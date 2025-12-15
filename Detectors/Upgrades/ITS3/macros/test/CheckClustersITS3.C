@@ -283,7 +283,7 @@ void CheckClustersITS3(const std::string& clusfile = "o2clus_its.root",
   nt.Draw("cgy:cgx>>h_cgy_vs_cgx_OB(1000, -50, 50, 1000, -50, 50)", "id >= 3456", "colz");
   canvCgXCgY->cd(4);
   nt.Draw("cgy:cgz>>h_cgy_vs_cgz_OB(1000, -100, 100, 1000, -50, 50)", "id >= 3456", "colz");
-  canvCgXCgY->SaveAs("it3clusters_y_vs_x_vs_z.pdf");
+  canvCgXCgY->SaveAs("it3clusters_y_vs_x_vs_z.png");
 
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 2);
@@ -295,7 +295,7 @@ void CheckClustersITS3(const std::string& clusfile = "o2clus_its.root",
   nt.Draw("dx:dz>>h_dx_vs_dz_IB_z(1000, -0.01, 0.01, 1000, -0.01, 0.01)", "id < 3456 && abs(cgz) < 2", "colz");
   canvdXdZ->cd(4)->SetLogz();
   nt.Draw("dx:dz>>h_dx_vs_dz_OB_z(1000, -0.01, 0.01, 1000, -0.01, 0.01)", "id >= 3456 && abs(cgz) < 2", "colz");
-  canvdXdZ->SaveAs("it3clusters_dx_vs_dz.pdf");
+  canvdXdZ->SaveAs("it3clusters_dx_vs_dz.png");
 
   auto canvCHXZ = new TCanvas("canvCHXZ", "", 1600, 1600);
   canvCHXZ->Divide(2, 2);
@@ -307,7 +307,7 @@ void CheckClustersITS3(const std::string& clusfile = "o2clus_its.root",
   nt.Draw("(cgz-hgz)*10000:eta>>h_chz_IB(101,-1.4,1.4,101,-50,50)", "id<3456", "prof");
   canvCHXZ->cd(4);
   nt.Draw("(cgz-hgz)*10000:eta>>h_chz_OB(101,-1.4,1.4,101,-50,50)", "id>=3456", "prof");
-  canvCgXCgY->SaveAs("it3clusters_xz_eta.pdf");
+  canvCgXCgY->SaveAs("it3clusters_xz_eta.png");
 
   auto c1 = new TCanvas("p1", "pullX");
   c1->cd();

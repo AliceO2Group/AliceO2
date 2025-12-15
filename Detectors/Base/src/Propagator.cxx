@@ -220,6 +220,75 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackParCov_t& track, va
 
 //_______________________________________________________________________
 template <typename value_T>
+GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackParCov_t& track, TrackPar_t& linRef, value_type xToGo, value_type maxSnp, value_type maxStep,
+                                                        PropagatorImpl<value_T>::MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
+{
+  //----------------------------------------------------------------
+  //
+  // Propagates the track to the plane X=xk (cm), using linRef as a Kalman linearisation point.
+  // taking into account all the three components of the magnetic field
+  // and correcting for the crossed material.
+  //
+  // maxStep  - maximal step for propagation
+  // tofInfo  - optional container for track length and PID-dependent TOF integration
+  //
+  // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
+  //----------------------------------------------------------------
+  auto dx = xToGo - track.getX();
+  int dir = dx > 0.f ? 1 : -1;
+  if (!signCorr) {
+    signCorr = -dir; // sign of eloss correction is not imposed
+  }
+
+  std::array<value_type, 3> b{};
+  while (math_utils::detail::abs<value_type>(dx) > Epsilon) {
+    auto step = math_utils::detail::min<value_type>(math_utils::detail::abs<value_type>(dx), maxStep);
+    if (dir < 0) {
+      step = -step;
+    }
+    auto x = track.getX() + step;
+    auto xyz0 = linRef.getXYZGlo();
+    getFieldXYZ(xyz0, &b[0]);
+
+    auto correct = [&track, &linRef, &xyz0, tofInfo, matCorr, signCorr, this]() {
+      bool res = true;
+      if (matCorr != MatCorrType::USEMatCorrNONE) {
+        auto xyz1 = linRef.getXYZGlo();
+        auto mb = this->getMatBudget(matCorr, xyz0, xyz1);
+        if (!track.correctForMaterial(linRef, mb.meanX2X0, mb.getXRho(signCorr))) {
+          res = false;
+        }
+        if (tofInfo) {
+          tofInfo->addStep(mb.length, linRef.getQ2P2()); // fill L,ToF info using already calculated step length
+          tofInfo->addX2X0(mb.meanX2X0);
+          tofInfo->addXRho(mb.getXRho(signCorr));
+        }
+      } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
+        auto xyz1 = linRef.getXYZGlo();
+        math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+        tofInfo->addStep(stepV.R(), linRef.getQ2P2());
+      }
+      return res;
+    };
+
+    if (!track.propagateTo(x, linRef, b)) {
+      return false;
+    }
+    if (maxSnp > 0 && math_utils::detail::abs<value_type>(track.getSnp()) >= maxSnp) {
+      correct();
+      return false;
+    }
+    if (!correct()) {
+      return false;
+    }
+    dx = xToGo - track.getX();
+  }
+  track.setX(xToGo);
+  return true;
+}
+
+//_______________________________________________________________________
+template <typename value_T>
 GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackPar_t& track, value_type xToGo, value_type maxSnp, value_type maxStep,
                                                         PropagatorImpl<value_T>::MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
 {
@@ -295,8 +364,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackParCov_t& track, value_ty
   //----------------------------------------------------------------
   //
   // Propagates the track to the plane X=xk (cm)
-  // taking into account all the three components of the magnetic field
-  // and correcting for the crossed material.
+  // Use bz only and correct for the crossed material.
   //
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
@@ -337,6 +405,72 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackParCov_t& track, value_ty
       return res;
     };
     if (!track.propagateTo(x, bZ)) {
+      return false;
+    }
+    if (maxSnp > 0 && math_utils::detail::abs<value_type>(track.getSnp()) >= maxSnp) {
+      correct();
+      return false;
+    }
+    if (!correct()) {
+      return false;
+    }
+    dx = xToGo - track.getX();
+  }
+  track.setX(xToGo);
+  return true;
+}
+
+//_______________________________________________________________________
+template <typename value_T>
+GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackParCov_t& track, TrackPar_t& linRef, value_type xToGo, value_type bZ, value_type maxSnp, value_type maxStep,
+                                                  PropagatorImpl<value_T>::MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
+{
+  //----------------------------------------------------------------
+  //
+  // Propagates the track to the plane X=xk (cm), using linRef as a Kalman linearisation point.
+  // Use bz only and correct for the crossed material if requested.
+  //
+  // maxStep  - maximal step for propagation
+  // tofInfo  - optional container for track length and PID-dependent TOF integration
+  //
+  // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
+  //----------------------------------------------------------------
+  auto dx = xToGo - track.getX();
+  int dir = dx > 0.f ? 1 : -1;
+  if (!signCorr) {
+    signCorr = -dir; // sign of eloss correction is not imposed
+  }
+
+  while (math_utils::detail::abs<value_type>(dx) > Epsilon) {
+    auto step = math_utils::detail::min<value_type>(math_utils::detail::abs<value_type>(dx), maxStep);
+    if (dir < 0) {
+      step = -step;
+    }
+    auto x = track.getX() + step;
+    auto xyz0 = linRef.getXYZGlo();
+
+    auto correct = [&track, &linRef, &xyz0, tofInfo, matCorr, signCorr, this]() {
+      bool res = true;
+      if (matCorr != MatCorrType::USEMatCorrNONE) {
+        auto xyz1 = linRef.getXYZGlo();
+        auto mb = this->getMatBudget(matCorr, xyz0, xyz1);
+        if (!track.correctForMaterial(linRef, mb.meanX2X0, mb.getXRho(signCorr))) {
+          res = false;
+        }
+        if (tofInfo) {
+          tofInfo->addStep(mb.length, linRef.getQ2P2()); // fill L,ToF info using already calculated step length
+          tofInfo->addX2X0(mb.meanX2X0);
+          tofInfo->addXRho(mb.getXRho(signCorr));
+        }
+      } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
+        auto xyz1 = linRef.getXYZGlo();
+        math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+        tofInfo->addStep(stepV.R(), linRef.getQ2P2());
+      }
+      return res;
+    };
+
+    if (!track.propagateTo(x, linRef, bZ)) { // linRef also updated
       return false;
     }
     if (maxSnp > 0 && math_utils::detail::abs<value_type>(track.getSnp()) >= maxSnp) {

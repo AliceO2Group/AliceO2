@@ -89,9 +89,14 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   // parameters + covmat manipulation
   GPUd() bool testRotate(value_t alpha) const;
   GPUd() bool rotate(value_t alpha);
-  GPUd() bool propagateTo(value_t xk, value_t b);
+  GPUd() bool rotate(value_t alpha, TrackParametrization<value_T>& linRef, value_t bz);
+  GPUd() bool propagateTo(value_t xk, value_t bz);
+  GPUd() bool propagateTo(value_t xk, TrackParametrization<value_T>& linRef, value_t bz);
+  GPUd() bool propagateTo(value_t xk, value_t bz, TrackParametrization<value_T>* linRef) { return linRef ? propagateTo(xk, *linRef, bz) : propagateTo(xk, bz); }
   GPUd() bool propagateTo(value_t xk, const dim3_t& b);
-  GPUd() bool propagateToDCA(const o2::dataformats::VertexBase& vtx, value_t b, o2::dataformats::DCA* dca = nullptr, value_t maxD = 999.f);
+  GPUd() bool propagateTo(value_t xk, TrackParametrization<value_T>& linRef, const dim3_t& b);
+  GPUd() bool propagateTo(value_t xk, const dim3_t& b, TrackParametrization<value_T>* linRef) { return linRef ? propagateTo(xk, *linRef, b) : propagateTo(xk, b); }
+  GPUd() bool propagateToDCA(const o2::dataformats::VertexBase& vtx, value_t bz, o2::dataformats::DCA* dca = nullptr, value_t maxD = 999.f);
   GPUd() void invert();
   GPUd() value_t getPredictedChi2(const dim2_t& p, const dim3_t& cov) const;
   GPUd() value_t getPredictedChi2Quiet(const dim2_t& p, const dim3_t& cov) const;
@@ -118,7 +123,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() bool update(const BaseCluster<T>& p);
 
   GPUd() bool correctForMaterial(value_t x2x0, value_t xrho, bool anglecorr = false);
-
+  GPUd() bool correctForMaterial(TrackParametrization<value_T>& linRef, value_t x2x0, value_t xrho, bool anglecorr = false);
   GPUd() void resetCovariance(value_t s2 = 0);
   GPUd() void checkCovariance();
   GPUd() void checkCorrelations();

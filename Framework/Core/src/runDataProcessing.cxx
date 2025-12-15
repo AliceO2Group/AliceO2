@@ -748,7 +748,11 @@ void spawnDevice(uv_loop_t* loop,
     for (auto& env : execution.environ) {
       putenv(strdup(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec).data()));
     }
-    execvp(execution.args[0], execution.args.data());
+    int err = execvp(execution.args[0], execution.args.data());
+    if (err) {
+      perror("Unable to start child process");
+      exit(1);
+    }
   } else {
     O2_SIGNPOST_ID_GENERATE(sid, driver);
     O2_SIGNPOST_EVENT_EMIT(driver, sid, "spawnDevice", "New child at %{pid}d", id);
@@ -1022,7 +1026,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   fair::Logger::SetConsoleColor(false);
   fair::Logger::OnFatal([]() { throw runtime_error("Fatal error"); });
   DeviceSpec const& spec = runningWorkflow.devices[ref.index];
-  LOG(info) << "Spawing new device " << spec.id << " in process with pid " << getpid();
+  LOG(info) << "Spawning new device " << spec.id << " in process with pid " << getpid();
 
   fair::mq::DeviceRunner runner{argc, argv};
 
@@ -1092,13 +1096,13 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRef);
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
-    deviceContext = std::make_unique<DeviceContext>();
+    deviceContext = std::make_unique<DeviceContext>(DeviceContext{.processingPolicies = processingPolicies});
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
 
-    auto device = std::make_unique<DataProcessingDevice>(ref, serviceRegistry, processingPolicies);
+    auto device = std::make_unique<DataProcessingDevice>(ref, serviceRegistry);
 
     serviceRef.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);
@@ -1247,8 +1251,10 @@ void dumpMetricsCallback(uv_timer_t* handle)
   auto* context = (DriverServerContext*)handle->data;
 
   static auto performanceMetrics = getDumpableMetrics();
+  std::ofstream file(context->driver->resourcesMonitoringFilename, std::ios::out);
   ResourcesMonitoringHelper::dumpMetricsToJSON(*(context->metrics),
-                                               context->driver->metrics, *(context->specs), performanceMetrics);
+                                               context->driver->metrics, *(context->specs), performanceMetrics,
+                                               file);
 }
 
 void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, DeviceInfos const& infos, DeviceSpecs const& specs)
@@ -2035,6 +2041,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--fairmq-ipc-prefix",
             "--readers",
             "--resources-monitoring",
+            "--resources-monitoring-file",
             "--resources-monitoring-dump-interval",
             "--time-limit",
           };
@@ -2268,7 +2275,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.resourcesMonitoringDumpInterval) {
             uv_timer_stop(&metricDumpTimer);
           }
-          LOG(info) << "Dumping performance metrics to performanceMetrics.json file";
+          LOGP(info, "Dumping performance metrics to {}.json file", driverInfo.resourcesMonitoringFilename);
           dumpMetricsCallback(&metricDumpTimer);
         }
         dumpRunSummary(serverContext, driverInfo, infos, runningWorkflow.devices);
@@ -2916,6 +2923,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("no-IPC", bpo::value<bool>()->zero_tokens()->default_value(false), "disable IPC topology optimization")                                                           //                                                                                                                                        //
     ("o2-control,o2", bpo::value<std::string>()->default_value(""), "dump O2 Control workflow configuration under the specified name")                                 //
     ("resources-monitoring", bpo::value<unsigned short>()->default_value(0), "enable cpu/memory monitoring for provided interval in seconds")                          //
+    ("resources-monitoring-file", bpo::value<std::string>()->default_value("performanceMetrics.json"), "file where to dump the metrics")                               //
     ("resources-monitoring-dump-interval", bpo::value<unsigned short>()->default_value(0), "dump monitoring information to disk every provided seconds");              //
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
@@ -3186,6 +3194,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();
   driverInfo.resourcesMonitoringInterval = varmap["resources-monitoring"].as<unsigned short>();
+  driverInfo.resourcesMonitoringFilename = varmap["resources-monitoring-file"].as<std::string>();
   driverInfo.resourcesMonitoringDumpInterval = varmap["resources-monitoring-dump-interval"].as<unsigned short>();
 
   // FIXME: should use the whole dataProcessorInfos, actually...

@@ -274,11 +274,22 @@ struct variant_helper<std::vector<std::string>> {
   // Allocates a new store and copies into it.
   static void set(void* store, std::vector<std::string> value)
   {
-    new (reinterpret_cast<std::vector<std::string>*>(store)) std::vector<std::string>{};
-    *(reinterpret_cast<std::vector<std::string>*>(store)) = value;
+    auto ptr = reinterpret_cast<std::vector<std::string>*>(store);
+    new (ptr) std::vector<std::string>{value};
   }
 
   static std::vector<std::string> const& get(const void* store) { return *(reinterpret_cast<std::vector<std::string> const*>(store)); }
+};
+
+template <>
+struct variant_helper<std::string*> {
+  static void set(void* store, std::string* values, size_t size)
+  {
+    auto ptr = reinterpret_cast<std::vector<std::string>*>(store);
+    new (ptr) std::vector<std::string>{values, values + size};
+  }
+
+  static std::string const* get(const void* store) { return (*(reinterpret_cast<std::vector<std::string> const*>(store))).data(); }
 };
 
 template <>
@@ -356,6 +367,16 @@ class Variant
   {
     if (mType != variant_trait_v<T>) {
       throw runtime_error_f("Variant::get: Mismatch between types %d %d.", mType, variant_trait_v<T>);
+    }
+    return variant_helper<T>::get(&mStore);
+  }
+
+  template <typename T>
+  [[nodiscard]] std::string const* get() const
+    requires(std::same_as<std::string*, T>)
+  {
+    if (mType != VariantType::ArrayString) {
+      throw runtime_error_f("Variant::get: Mismatch between types %d %d.", mType, VariantType::ArrayString);
     }
     return variant_helper<T>::get(&mStore);
   }

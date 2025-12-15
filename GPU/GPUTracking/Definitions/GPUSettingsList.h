@@ -19,7 +19,7 @@
 // Create plain-C struct for GPU code.
 // Create static constexpr with default values for GPU run time compilation
 
-#include "GPUDefConstantsAndSettings.h"
+#include "GPUCommonDef.h"
 #ifndef GPUSETTINGS_H
 #error Please include GPUSettings.h!
 #endif
@@ -39,7 +39,7 @@ BeginNamespace(gpu)
 
 // Reconstruction parameters for TPC, no bool in here !!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
-AddOptionRTC(rejectQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_REJECT_DEFAULT, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
+AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
 AddOptionRTC(hitPickUpFactor, float, 1.f, "", 0, "multiplier for the combined cluster+track error during track following")
 AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road of hits during seeding")
 AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, for z only used if searchWindowDZDR = 0")
@@ -199,7 +199,7 @@ EndConfig()
 
 // Global reconstruction parameters, no bool in here !!!
 BeginSubConfig(GPUSettingsRec, rec, configStandalone, "REC", 0, "Reconstruction settings", rec)
-AddOptionRTC(maxTrackQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT, "", 0, "required max Q/Pt (==min Pt) of tracks")
+AddOptionRTC(maxTrackQPtB5, float, 1.f / 0.010f, "", 0, "required max Q/Pt (==min Pt) of tracks")
 AddOptionRTC(fwdTPCDigitsAsClusters, uint8_t, 0, "", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddOptionRTC(bz0Pt10MeV, uint8_t, 60, "", 0, "Nominal Pt to set when bz = 0 (in 10 MeV)")
 AddOptionRTC(fitInProjections, int8_t, -1, "", 0, "Fit in projection, -1 to enable full fit for all but passes but the first one")
@@ -277,22 +277,22 @@ AddOption(nnClusterizerBoundaryFillValue, int, -1, "", 0, "Fill value for the bo
 AddOption(nnClusterizerApplyNoiseSuppression, int, 1, "", 0, "Applies the NoiseSuppression kernel before the digits to the network are filled")
 AddOption(nnClusterizerSetDeconvolutionFlags, int, 1, "", 0, "Runs the deconvolution kernel without overwriting the charge in order to make cluster-to-track attachment identical to heuristic CF")
 AddOption(nnClassificationPath, std::string, "network_class.onnx", "", 0, "The classification network path")
-AddOption(nnClassThreshold, float, 0.5, "", 0, "The cutoff at which clusters will be accepted / rejected.")
 AddOption(nnRegressionPath, std::string, "network_reg.onnx", "", 0, "The regression network path")
+AddOption(nnClassThreshold, float, 0.5, "", 0, "The cutoff at which clusters will be accepted / rejected.")
 AddOption(nnSigmoidTrafoClassThreshold, int, 1, "", 0, "If true (default), then the classification threshold is transformed by an inverse sigmoid function. This depends on how the network was trained (with a sigmoid as acitvation function in the last layer or not).")
 AddOption(nnEvalMode, std::string, "c1:r1", "", 0, "Concatention of modes, e.g. c1:r1 (classification class 1, regression class 1)")
 AddOption(nnClusterizerUseClassification, int, 1, "", 0, "If 1, the classification output of the network is used to select clusters, else only the regression output is used and no clusters are rejected by classification")
 AddOption(nnClusterizerForceGpuInputFill, int, 0, "", 0, "Forces to use the fillInputNNGPU function")
 // CCDB
 AddOption(nnLoadFromCCDB, int, 0, "", 0, "If 1 networks are fetched from ccdb, else locally")
+AddOption(nnCCDBDumpToFile, int, 0, "", 0, "If 1, additionally dump fetched CCDB networks to nnLocalFolder")
 AddOption(nnLocalFolder, std::string, ".", "", 0, "Local folder in which the networks will be fetched")
-AddOption(nnCCDBURL, std::string, "http://ccdb-test.cern.ch:8080", "", 0, "The CCDB URL from where the network files are fetched")
 AddOption(nnCCDBPath, std::string, "Users/c/csonnabe/TPC/Clusterization", "", 0, "Folder path containing the networks")
-AddOption(nnCCDBWithMomentum, int, 1, "", 0, "Distinguishes between the network with and without momentum output for the regression")
+AddOption(nnCCDBWithMomentum, std::string, "", "", 0, "Distinguishes between the network with and without momentum output for the regression")
 AddOption(nnCCDBClassificationLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
-AddOption(nnCCDBRegressionLayerType, std::string, "CNN", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
-AddOption(nnCCDBBeamType, std::string, "PbPb", "", 0, "Distinguishes between networks trained for different beam types. Options: PbPb, pp")
-AddOption(nnCCDBInteractionRate, int, 50, "", 0, "Distinguishes between networks for different interaction rates [kHz].")
+AddOption(nnCCDBRegressionLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
+AddOption(nnCCDBBeamType, std::string, "pp", "", 0, "Distinguishes between networks trained for different beam types. Options: pp, pPb, PbPb")
+AddOption(nnCCDBInteractionRate, std::string, "500", "", 0, "Distinguishes between networks for different interaction rates [kHz].")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -310,7 +310,7 @@ AddOption(debugMask, uint32_t, (1 << 18) - 1, "debugMask", 0, "Mask for debug ou
 AddOption(debugLogSuffix, std::string, "", "debugSuffix", 0, "Suffix for debug log files with --debug 6")
 AddOption(serializeGPU, int8_t, 0, "", 0, "Synchronize after each kernel call (bit 1) and DMA transfer (bit 2) and identify failures")
 AddOption(recoTaskTiming, bool, 0, "", 0, "Perform summary timing after whole reconstruction tasks")
-AddOption(deterministicGPUReconstruction, int32_t, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6", def(1))
+AddOption(deterministicGPUReconstruction, int32_t, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6 or deterministic compile flag set", def(1))
 AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
 AddOption(runCompressionStatistics, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
 AddOption(resetTimers, int8_t, 1, "", 0, "Reset timers every event")
@@ -384,6 +384,7 @@ AddOption(debugOnFailureMaxFiles, uint32_t, 0, "", 0, "Max number of files to ha
 AddOption(debugOnFailureMaxSize, uint32_t, 0, "", 0, "Max size of existing dumps in the target folder in GB")
 AddOption(debugOnFailureDirectory, std::string, ".", "", 0, "Target folder for debug / dump")
 AddOption(amdMI100SerializationWorkaround, bool, false, "", 0, "Enable workaround that mitigates MI100 serialization bug")
+AddOption(memoryStat, bool, false, "", 0, "Print memory statistics")
 AddVariable(eventDisplay, o2::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddSubConfig(GPUSettingsProcessingRTCtechnical, rtctech)
@@ -515,9 +516,10 @@ AddOption(filterPID, int32_t, -1, "", 0, "Filter for Particle Type (0 Electron, 
 AddOption(nativeFitResolutions, bool, false, "", 0, "Create resolution histograms in the native fit units (sin(phi), tan(lambda), Q/Pt)")
 AddOption(enableLocalOutput, bool, true, "", 0, "Enable normal output to local PDF files / console")
 AddOption(dumpToROOT, int32_t, 0, "", 0, "Dump all clusters and tracks to a ROOT file, 1 = combined TNTUple dump, 2 = also individual cluster / track branch dump")
+AddOption(writeFileExt, std::string, "", "", 0, "Write extra output file with given extension (default ROOT Canvas)", def("root"))
 AddOption(writeMCLabels, bool, false, "", 0, "Store mc labels to file for later matching")
-AddOption(writeRootFiles, bool, false, "", 0, "Create ROOT canvas files")
 AddOptionVec(matchMCLabels, std::string, "", 0, "Read labels from files and match them, only process tracks where labels differ")
+AddOption(compareTrackStatus, uint32_t, 0, "", 0, "0 = disabled, 1 = write status file, 2 = read status file and compare with current tracks")
 AddOption(matchDisplayMinPt, float, 0, "", 0, "Minimum Pt of a matched track to be displayed")
 AddOption(noMC, bool, false, "", 0, "Force running QA without MC labels even if present")
 AddOption(shipToQC, bool, false, "", 0, "Do not write output files but ship histograms for QC")
@@ -527,6 +529,8 @@ AddOption(histMaxNClusters, uint32_t, 500000000, "", 0, "Maximum number of clust
 AddOption(minNClFindable, uint32_t, 70, "", 0, "Minimum number of (weighted) MC clusters for a track to count as findable")
 AddOption(minNClEff, uint32_t, 10, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to all-tracks efficiency histogramm")
 AddOption(minNClRes, uint32_t, 40, "", 0, "Minimum number of (weighted) MC clusters for a track to contribute to resolution histogram")
+AddOption(perfFigure, int32_t, 0, "", 0, "Show as performance figure, positive value for MC, negative value for data")
+AddOption(plotsDir, std::string, "plots", "", 0, "Directory to write plots to")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAinputHistogramsOnly")
 AddHelp("help", 'h')
 EndConfig()
@@ -579,6 +583,7 @@ AddOption(noEvents, bool, false, "", 0, "Run without data (e.g. for field visual
 AddOption(eventDisplay, int32_t, 0, "display", 'd', "Show standalone event display", def(1))
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data, even if input is triggered")
+AddOption(setMaxTimeBin, int32_t, -2, "", 0, "maximum time bin of continuous data, 0 for triggered events, -1 for automatic continuous mode, -2 for automatic continuous / triggered")
 AddOption(outputcontrolmem, uint64_t, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ul), message("Using %s bytes as output memory"))
 AddOption(inputcontrolmem, uint64_t, 0, "inputMemory", 0, "Use predefined input buffer of this size", min(0ul), message("Using %s bytes as input memory"))
 AddOption(cpuAffinity, int32_t, -1, "", 0, "Pin CPU affinity to this CPU core", min(-1))
@@ -594,9 +599,9 @@ AddOption(zsVersion, int32_t, 2, "", 0, "ZS Version: 1 = 10-bit ADC row based, 2
 AddOption(dumpEvents, bool, false, "", 0, "Dump events (after transformation such as encodeZS")
 AddOption(stripDumpedEvents, bool, false, "", 0, "Remove redundant inputs (e.g. digits and ZS) before dumping")
 AddOption(printSettings, int32_t, 0, "", 0, "Print all settings", def(1))
-AddOption(memoryStat, bool, false, "", 0, "Print memory statistics")
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddOption(testSync, bool, false, "sync", 0, "Test settings for synchronous phase")
+AddOption(testSyncAsyncQcInSync, bool, false, "syncAsyncSyncQC", 0, "Run QC in sync phase of testSyncAsync")
 AddOption(timeFrameTime, bool, false, "tfTime", 0, "Print some debug information about time frame processing time")
 AddOption(controlProfiler, bool, false, "", 0, "Issues GPU profiler stop and start commands to profile only the relevant processing part")
 AddOption(preloadEvents, bool, false, "", 0, "Preload events into host memory before start processing")

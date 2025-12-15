@@ -130,6 +130,7 @@ set(HDRS_INSTALL
     DataTypes/GPUTRDInterfaceO2Track.h
     DataTypes/GPUTriggerOutputs.h
     DataTypes/GPUKernelClassesFwd.h
+    DataTypes/GPUO2ExternalUser.h
     Debug/GPUROOTDump.h
     Definitions/GPUDefConstantsAndSettings.h
     Definitions/GPUDefParametersWrapper.h
@@ -208,6 +209,7 @@ set(SRCS_DATATYPES
     DataTypes/TPCPadBitMap.cxx
     DataTypes/TPCZSLinkMapping.cxx
     DataTypes/CalibdEdxContainer.cxx
+    DataTypes/ORTRootSerializer.cxx
     DataTypes/CalibdEdxTrackTopologyPol.cxx
     DataTypes/CalibdEdxTrackTopologySpline.cxx
     DataTypes/GPUTRDTrackO2.cxx)
@@ -228,7 +230,7 @@ set(HDRS_INSTALL ${HDRS_INSTALL}
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS_DATATYPES
       ${SRCS_DATATYPES}
-      Interface/GPUO2InterfaceConfigurableParam.cxx)
+      DataTypes/GPUO2ConfigurableParam.cxx)
 endif()
 
 set(TEMPLATE_HEADER_LIST Base/GPUReconstructionKernelList.template.h

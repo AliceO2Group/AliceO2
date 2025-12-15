@@ -43,6 +43,7 @@ o2_add_library(TPCBase
                                      O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
 o2_target_root_dictionary(TPCBase
+                          EXTRA_PATCH src/TPCFlagsMemberCustomStreamer.cxx
                           HEADERS include/TPCBase/CalArray.h
                                   include/TPCBase/CalDet.h
                                   include/TPCBase/CDBInterface.h
@@ -79,12 +80,16 @@ o2_add_test(Base
             SOURCES test/testTPCBase.cxx
             LABELS tpc)
 
-o2_add_test(CalDet
+if(BUILD_SIMULATION)
+  # this test needs CCDB/XROOTD which is for sure
+  # available in the default-o2 software stack
+  o2_add_test(CalDet
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCBase
             SOURCES test/testTPCCalDet.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS tpc)
+endif()
 
 o2_add_test(Mapper
             COMPONENT_NAME tpc

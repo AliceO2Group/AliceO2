@@ -13,7 +13,7 @@ in circumstances of reduced or no network connectivity.
 
 There are currently 2 different kinds of store/retrieve functions, which we expect to unify in the immediate future:
 2. `storeAsTFile/retrieveFromTFile` API serializing a `TObject` in a ROOT `TFile`.
-3. A strongly-typed `storeAsTFileAny<T>/retrieveFromTFileAny<T>` API allowing to handle any type T 
+3. A strongly-typed `storeAsTFileAny<T>/retrieveFromTFileAny<T>` API allowing to handle any type T
    having a ROOT dictionary. We encourage to use this API by default.
 
 ## Central and local instances of the CCDB
@@ -37,12 +37,12 @@ api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a loc
 auto deadpixels = new o2::FOO::DeadPixelMap();
 api.storeAsTFileAny(deadpixels, "FOO/DeadPixels", metadata);
 // read like this (you have to specify the type)
-auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata); 
-// read like this to get the headers as well, and thus the metadata attached to the object 
+auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
+// read like this to get the headers as well, and thus the metadata attached to the object
 std::map<std::string, std::string> headers;
-auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata /* constraint the objects retrieved to those matching the metadata */, -1 /* timestamp */, &headers /* the headers attached to the returned object */); 
+auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata /* constraint the objects retrieved to those matching the metadata */, -1 /* timestamp */, &headers /* the headers attached to the returned object */);
 // finally, use this method to retrieve only the headers (and thus the metadata)
-std::map<std::string, std::string> headers = f.api.retrieveHeaders("FOO/DeadPixels", f.metadata); 
+std::map<std::string, std::string> headers = api.retrieveHeaders("FOO/DeadPixels", metadata);
 ```
 
 * creating a local snapshot and fetching objects therefrom
@@ -85,7 +85,7 @@ user code. This class
 The class was written for the use-case of transport MC simulation. Typical usage should be like
 
 ```c++
-// setup manager once (at start of processing) 
+// setup manager once (at start of processing)
 auto& mgr = o2::ccdb::BasicCCDBManager::instance();
 mgr.setURL("http://ourccdbserverver.cern.ch");
 mgr.setTimestamp(timestamp_which_we_want_to_anchor_to);
@@ -111,6 +111,12 @@ This feature is useful to avoid using newer objects if the CCDB is updated in pa
 
 In cached mode, the manager can check that local objects are still valid by requiring `mgr.setLocalObjectValidityChecking(true)`, in this case a CCDB query is performed only if the cached object is no longer valid.
 
+If you want the headers/metadata for the object retrieved from the CCDB there is an optional paramater to `BasicCCDBManager::getForTimeStamp`. These headers are also cached (when caching is enabled) and is updated when a CCDB query is sent.
+```c++
+std::map<std::string,std::string> headers;
+mgr.getForTimeStamp(path, timstamp, metadata, &headers);
+```
+
 ## Future ideas / todo:
 
 - [ ] offer improved error handling / exceptions
@@ -129,26 +135,26 @@ A few prototypic command line tools are offered. These can be used in scriptable
 and facilitate the following tasks:
 
   1. Upload and annotate a generic C++ object serialized in a ROOT file
-  
+
      ```bash
      o2-ccdb-upload -f myRootFile.root --key histogram1 --path /Detector1/QA/ --meta "Description=Foo;Author=Person1;Uploader=Person2"
      ```
      This will upload the object serialized in `myRootFile.root` under the key `histogram1`. Object will be put to the CCDB path `/Detector1/QA`.
      For full list of options see `o2-ccdb-upload --help`.
-  
+
   2. Download a CCDB object to a local ROOT file (including its meta information)
-  
+
      ```bash
      o2-ccdb-downloadccdbfile --path /Detector1/QA/ --dest /tmp/CCDB --timestamp xxx
      ```
      This will download the CCDB object under path given by `--path` to a directory given by `--dest` on the disc.
      (The final filename will be `/tmp/CCDB/Detector1/QA/snapshot.root` for the moment).
      All meta-information as well as the information associated to this query will be appended to the file.
-     
+
      For full list of options see `o2-ccdb-downloadccdbfile --help`.
-  
+
   3. Inspect the content of a ROOT file and print summary about type of contained (CCDB) objects and its meta information
-  
+
      ```bash
      o2-ccdb-inspectccdbfile filename
      ```

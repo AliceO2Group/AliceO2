@@ -51,6 +51,7 @@ class OrtModel
   void initOptions(std::unordered_map<std::string, std::string> optionsMap);
   void initEnvironment();
   void initSession();
+  void initSessionFromBuffer(const char* buffer, size_t bufferSize);
   void memoryOnDevice(int32_t = 0);
   bool isInitialized() { return mInitialized; }
   void resetSession();

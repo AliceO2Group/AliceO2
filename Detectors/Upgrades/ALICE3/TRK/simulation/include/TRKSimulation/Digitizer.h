@@ -25,7 +25,7 @@
 #include "TRKSimulation/ChipDigitsContainer.h"
 
 #include "TRKSimulation/DigiParams.h"
-#include "ITSMFTSimulation/Hit.h"
+#include "TRKSimulation/Hit.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -54,7 +54,7 @@ class Digitizer
   o2::trk::ChipSimResponse* getChipResponse(int chipID);
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<itsmft::Hit>* hits, int evID, int srcID);
+  void process(const std::vector<o2::trk::Hit>* hits, int evID, int srcID);
   void setEventTime(const o2::InteractionTimeRecord& irt);
   double getEndTimeOfROFMax() const
   {
@@ -83,7 +83,7 @@ class Digitizer
   void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
  private:
-  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID);
+  void processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID);
   void registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
                       uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl);
 
@@ -102,15 +102,13 @@ class Digitizer
   /// Get the number of columns according to the subdetector
   /// \param subDetID 0 for VD, 1 for ML/OT
   /// \param layer 0 to 2 for VD, 0 to 7 for ML/OT
-  /// \return Number of columns (for the moment, in the entire layer(VD) or stave (ML/OT)
+  /// \return Number of columns (In the entire layer(VD) or chip (ML/OT)
   int getNCols(int subDetID, int layer)
   {
     if (subDetID == 0) { // VD
       return constants::VD::petal::layer::nCols;
-    } else if (subDetID == 1 && layer <= 3) { // ML
-      return constants::ML::nCols;
-    } else if (subDetID == 1 && layer >= 4) { // OT
-      return constants::OT::nCols;
+    } else if (subDetID == 1) { // ML/OT: the smallest element is a chip of 470 rows and 640 cols
+      return constants::moduleMLOT::chip::nCols;
     }
     return 0;
   }
@@ -118,15 +116,13 @@ class Digitizer
   /// Get the number of rows according to the subdetector
   /// \param subDetID 0 for VD, 1 for ML/OT
   /// \param layer 0 to 2 for VD, 0 to 7 for ML/OT
-  /// \return Number of rows (for the moment, in the entire layer(VD) or stave (ML/OT)
+  /// \return Number of rows (In the entire layer(VD) or chip (ML/OT)
   int getNRows(int subDetID, int layer)
   {
     if (subDetID == 0) { // VD
       return constants::VD::petal::layer::nRows[layer];
-    } else if (subDetID == 1 && layer <= 3) { // ML
-      return constants::ML::nRows;
-    } else if (subDetID == 1 && layer >= 4) { // OT
-      return constants::OT::nRows;
+    } else if (subDetID == 1) { // ML/OT
+      return constants::moduleMLOT::chip::nRows;
     }
     return 0;
   }

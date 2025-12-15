@@ -11,7 +11,6 @@
 #include "WorkflowHelpers.h"
 #include "Framework/AnalysisSupportHelpers.h"
 #include "Framework/AlgorithmSpec.h"
-#include "Framework/AODReaderHelpers.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/CommonDataProcessors.h"
@@ -38,6 +37,7 @@
 #include <utility>
 #include <vector>
 #include <climits>
+#include <numeric>
 
 O2_DECLARE_DYNAMIC_LOG(workflow_helpers);
 
@@ -415,7 +415,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-aod-index-builder",
     {},
     {},
-    readers::AODReaderHelpers::indexBuilderCallback(ac.requestedIDXs),
+    PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx), // readers::AODReaderHelpers::indexBuilderCallback(ctx),
     {}};
   AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, indexBuilder);
 
@@ -435,7 +435,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-aod-spawner",
     {},
     {},
-    readers::AODReaderHelpers::aodSpawnerCallback(ac.spawnerInputs),
+    PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx), // readers::AODReaderHelpers::aodSpawnerCallback(ctx),
     {}};
   AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, aodSpawner);
 
@@ -465,16 +465,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     if (mctracks2aod == workflow.end()) {
       // add normal reader
       auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader", ctx);
-      if (internalRateLimiting) {
-        aodReader.algorithm = CommonDataProcessors::wrapWithRateLimiting(algo);
-      } else {
-        aodReader.algorithm = algo;
-      }
+      aodReader.algorithm = CommonDataProcessors::wrapWithTimesliceConsumption(algo);
       aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
       aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     } else {
       // AODs are being injected on-the-fly, add dummy reader
-      aodReader.algorithm = AlgorithmSpec{
+      auto algo = AlgorithmSpec{
         adaptStateful(
           [outputs = aodReader.outputs](DeviceSpec const&) {
             LOGP(warn, "Workflow with injected AODs has unsatisfied inputs:");
@@ -485,6 +481,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
             // to ensure the output type for adaptStateful
             return adaptStateless([](DataAllocator&) {});
           })};
+      aodReader.algorithm = CommonDataProcessors::wrapWithTimesliceConsumption(algo);
     }
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration);
@@ -699,7 +696,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       ignoredInput.lifetime = Lifetime::Sporadic;
     }
 
-    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingChannelConfigOutput));
+    // Use the new dummy sink when the AOD reader is there
+    O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
+    if (aodReader.outputs.empty() == false) {
+      O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "injectServiceDevices", "Injecting scheduled dummy sink");
+      extraSpecs.push_back(CommonDataProcessors::getScheduledDummySink(ignored));
+    } else {
+      O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "injectServiceDevices", "Injecting rate limited dummy sink");
+      extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingChannelConfigOutput));
+    }
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());

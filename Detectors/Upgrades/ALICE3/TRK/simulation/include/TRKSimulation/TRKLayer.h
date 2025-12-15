@@ -16,6 +16,7 @@
 #include <Rtypes.h>
 
 #include "TRKBase/TRKBaseParam.h"
+#include "TRKBase/Specs.h"
 
 namespace o2
 {
@@ -25,23 +26,27 @@ class TRKLayer
 {
  public:
   TRKLayer() = default;
-  TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, float zLength, float layerX2X0);
-  TRKLayer(int layerNumber, std::string layerName, float rInn, float zLength, float thick);
+  TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, int numberOfModules, float layerX2X0);
+  TRKLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick);
   ~TRKLayer() = default;
 
   void setLayout(eLayout layout) { mLayout = layout; };
 
   auto getInnerRadius() const { return mInnerRadius; }
   auto getOuterRadius() const { return mOuterRadius; }
-  auto getZ() const { return mZ; }
+  auto getZ() const { return constants::moduleMLOT::length * mNumberOfModules; }
   auto getx2X0() const { return mX2X0; }
   auto getChipThickness() const { return mChipThickness; }
   auto getNumber() const { return mLayerNumber; }
   auto getName() const { return mLayerName; }
 
-  TGeoVolume* createSensor(std::string type, double width = -1);
-  TGeoVolume* createChip(std::string type, double width = -1);
-  TGeoVolume* createStave(std::string type, double width = -1);
+  TGeoVolume* createSensor(std::string type);
+  TGeoVolume* createDeadzone(std::string type);
+  TGeoVolume* createMetalStack(std::string type);
+  TGeoVolume* createChip(std::string type);
+  TGeoVolume* createModule(std::string type);
+  TGeoVolume* createStave(std::string type);
+  TGeoVolume* createHalfStave(std::string type);
   void createLayer(TGeoVolume* motherVolume);
 
  private:
@@ -49,16 +54,20 @@ class TRKLayer
   static constexpr float mLogicalVolumeThickness = 1;
 
   int mLayerNumber;
+  eLayout mLayout;
   std::string mLayerName;
   float mInnerRadius;
   float mOuterRadius;
-  float mZ;
+  int mNumberOfModules;
   float mX2X0;
+  float mChipWidth;
+  float mChipLength;
   float mChipThickness;
-  float mModuleWidth; // u.m. = cm
-  eLayout mLayout;
+  float mDeadzoneWidth;
+  float mSensorThickness;
+  int mHalfNumberOfChips;
 
-  ClassDef(TRKLayer, 1);
+  ClassDef(TRKLayer, 2);
 };
 
 } // namespace trk

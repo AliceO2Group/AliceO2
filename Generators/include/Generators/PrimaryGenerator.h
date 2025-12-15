@@ -80,6 +80,9 @@ class PrimaryGenerator : public FairPrimaryGenerator
   /** Public embedding methods **/
   Bool_t embedInto(TString fname);
 
+  /// sets the embedding index
+  void setEmbedIndex(int idx) { mEmbedIndex = idx; }
+
   void setExternalVertexForNextEvent(double x, double y, double z);
 
   // sets the vertex mode; if mode is kCCDB, a valid MeanVertexObject pointer must be given at the same time

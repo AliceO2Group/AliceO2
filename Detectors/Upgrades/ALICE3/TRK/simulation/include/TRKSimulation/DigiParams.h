@@ -101,18 +101,18 @@ class DigiParams
 
  private:
   static constexpr double infTime = 1e99;
-  bool mIsContinuous = false;        ///< flag for continuous simulation
-  float mNoisePerPixel = 1.e-8;      ///< ALPIDE Noise per chip
-  int mROFrameLengthInBC = 0;        ///< ROF length in BC for continuos mode
-  float mROFrameLength = 0;          ///< length of RO frame in ns
-  float mStrobeDelay = 0.;           ///< strobe start (in ns) wrt ROF start
-  float mStrobeLength = 0;           ///< length of the strobe in ns (sig. over threshold checked in this window only)
-  double mTimeOffset = -2 * infTime; ///< time offset (in seconds!) to calculate ROFrame from hit time
-  int mROFrameBiasInBC = 0;          ///< misalignment of the ROF start in BC
-  int mChargeThreshold = 1;          ///< charge threshold in Nelectrons
-  int mMinChargeToAccount = 1;       ///< minimum charge contribution to account
-  int mNSimSteps = 25;               ///< number of steps in response simulation
-  float mNSimStepsInv = 0;           ///< its inverse
+  bool mIsContinuous = false;            ///< flag for continuous simulation
+  float mNoisePerPixel = 1.e-8;          ///< ALPIDE Noise per chip
+  int mROFrameLengthInBC = 0;            ///< ROF length in BC for continuos mode
+  float mROFrameLength = 0;              ///< length of RO frame in ns
+  float mStrobeDelay = 0.;               ///< strobe start (in ns) wrt ROF start
+  float mStrobeLength = 0;               ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  double mTimeOffset = -2 * infTime;     ///< time offset (in seconds!) to calculate ROFrame from hit time
+  int mROFrameBiasInBC = 0;              ///< misalignment of the ROF start in BC
+  int mChargeThreshold = 1;              ///< charge threshold in Nelectrons
+  int mMinChargeToAccount = 1;           ///< minimum charge contribution to account
+  int mNSimSteps = 475;                  ///< number of steps in response simulation
+  float mNSimStepsInv = 1. / mNSimSteps; ///< its inverse
 
   float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 

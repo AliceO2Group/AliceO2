@@ -15,19 +15,13 @@
 #ifndef GPUO2INTERFACE_H
 #define GPUO2INTERFACE_H
 
-// Some defines denoting that we are compiling for O2
-#ifndef GPUCA_TPC_GEOMETRY_O2
-#define GPUCA_TPC_GEOMETRY_O2
-#endif
-#ifndef GPUCA_O2_INTERFACE
-#define GPUCA_O2_INTERFACE
-#endif
+#include "GPUO2ExternalUser.h"
+#include "GPUCommonDef.h"
+#include "GPUDataTypes.h"
 
 #include <memory>
 #include <array>
 #include <vector>
-#include "GPUCommonDef.h"
-#include "GPUDataTypes.h"
 
 namespace o2::base
 {

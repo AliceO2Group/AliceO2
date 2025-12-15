@@ -24,7 +24,7 @@
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include <TMath.h>
 #include <TGeoManager.h>
-#include "GPUO2Interface.h"
+#include "GPUO2ExternalUser.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "GPUParam.inc"
 

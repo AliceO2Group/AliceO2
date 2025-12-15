@@ -530,11 +530,12 @@ void VertexerTraits<nLayers>::addTruthSeedingVertices()
       }
       Vertex vert;
       vert.setTimeStamp(rofId);
-      vert.setNContributors(std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
-        return trk.isPrimary() && trk.GetPt() > 0.2 && std::abs(trk.GetEta()) < 1.3;
-      }));
+      // set minimum to 1 sometimes for diffractive events there is nothing acceptance
+      vert.setNContributors(std::max(1L, std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
+                                       return trk.isPrimary() && trk.GetPt() > 0.05 && std::abs(trk.GetEta()) < 1.1;
+                                     })));
       vert.setXYZ((float)eve.GetX(), (float)eve.GetY(), (float)eve.GetZ());
-      vert.setChi2(1);
+      vert.setChi2(1); // not used as constraint
       constexpr float cov = 50e-9;
       vert.setCov(cov, cov, cov, cov, cov, cov);
       vertices[rofId].vertices.push_back(vert);

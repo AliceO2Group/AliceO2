@@ -11,6 +11,12 @@
 
 set(MODULE GPUTrackingHIP)
 
+if(GPUCA_BUILD_DEBUG AND GPUCA_BUILD_DEBUG_HOSTONLY)
+  set(CMAKE_BUILD_TYPE RELEASE)
+  set(CMAKE_HIP_FLAGS_RELEASE "${CMAKE_HIP_FLAGS_RELEASE} -O3 -march=native -ggdb -fno-sanitize=all -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -ggdb -fno-sanitize=all -DNDEBUG")
+endif()
+
 # -------------------------------- Options -------------------------------------------------------
 # set(GPUCA_HIP_HIPIFY_FROM_CUDA 0) # Use local HIP source files
 

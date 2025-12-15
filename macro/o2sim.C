@@ -69,6 +69,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   // fix the timestamp early
   uint64_t timestamp = confref.getTimestamp();
+  uint64_t runEnd = timestamp + 3600000;
   // see if we have a run number but not a timestamp
   auto run_number = confref.getRunNumber();
   if (run_number != -1) {
@@ -77,6 +78,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
       auto [sor, eor] = ccdbmgr.getRunDuration(run_number);
       LOG(info) << "Have run number. Fixing timestamp to " << sor;
       timestamp = sor;
+      runEnd = eor;
     }
   }
 
@@ -189,7 +191,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
     }
     uint64_t runStart = timestamp;
     grp.setTimeStart(runStart);
-    grp.setTimeEnd(runStart + 3600000);
+    grp.setTimeEnd(runEnd);
     grp.setDetsReadOut(readoutDetMask);
     // CTP is not a physical detector, just flag in the GRP if requested
     if (isReadout("CTP")) {
@@ -216,7 +218,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
     o2::parameters::GRPECSObject grp;
     grp.setRun(run->GetRunId());
     grp.setTimeStart(runStart);
-    grp.setTimeEnd(runStart + 3600000);
+    grp.setTimeEnd(runEnd);
     grp.setNHBFPerTF(128); // might be overridden later
     grp.setDetsReadOut(readoutDetMask);
     if (isReadout("CTP")) {

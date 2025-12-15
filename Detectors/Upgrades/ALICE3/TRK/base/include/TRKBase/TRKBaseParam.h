@@ -20,6 +20,11 @@ namespace o2
 namespace trk
 {
 
+enum eOverallGeom {
+  kDefaultRadii = 0, // After Upgrade Days March 2024
+  kModRadii,
+};
+
 enum eLayout {
   kCylinder = 0,
   kTurboStaves,
@@ -30,6 +35,8 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   std::string configFile = "";
   float serviceTubeX0 = 0.02f; // X0 Al2O3
   Bool_t irisOpen = false;
+
+  eOverallGeom overallGeom = kDefaultRadii; // Overall geometry option, to be used in Detector::buildTRKMiddleOuterLayers
 
   eLayout layoutML = kCylinder; // Type of segmentation for the middle layers
   eLayout layoutOL = kCylinder; // Type of segmentation for the outer layers

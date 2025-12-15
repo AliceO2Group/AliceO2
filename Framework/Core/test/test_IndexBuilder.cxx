@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisTask.h"
+#include "../src/IndexJSONHelpers.h"
 #include <catch_amalgamated.hpp>
 
 using namespace o2::framework;
@@ -102,8 +102,11 @@ TEST_CASE("TestIndexBuilder")
   auto t4 = b4.finalize();
   Categorys st4{t4};
 
-  using m1 = MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata;
-  auto t5 = IndexBuilder<Exclusive>::indexBuilder<Points, m1::sources.size(), m1::sources>("test1a", {t1, t2, t3, t4}, typename IDXs::persistent_columns_t{});
+  auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata>();
+  auto schema1 = o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata::getSchema();
+  std::vector<o2::framework::IndexColumnBuilder> builders1;
+  auto t5 = IndexBuilder::materialize(builders1, {t1, t2, t3, t4}, map, schema1, true);
+  // auto t5 = IndexBuilder::materialize({t1, t2, t3, t4}, map, schema1, true);
   REQUIRE(t5->num_rows() == 4);
   IDXs idxt{t5};
   idxt.bindExternalIndices(&st1, &st2, &st3, &st4);
@@ -113,8 +116,10 @@ TEST_CASE("TestIndexBuilder")
     REQUIRE(row.category().pointId() == row.pointId());
   }
 
-  using m2 = MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata;
-  auto t6 = IndexBuilder<Sparse>::indexBuilder<Points, m2::sources.size(), m2::sources>("test3", {t2, t1, t3, t4}, typename IDX2s::persistent_columns_t{});
+  map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata>();
+  auto schema2 = o2::aod::MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata::getSchema();
+  std::vector<o2::framework::IndexColumnBuilder> builders2;
+  auto t6 = IndexBuilder::materialize(builders2, {t2, t1, t3, t4}, map, schema2, false);
   REQUIRE(t6->num_rows() == st2.size());
   IDX2s idxs{t6};
   std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
@@ -212,8 +217,10 @@ TEST_CASE("AdvancedIndexTables")
                                                    {14, 34},
                                                    {8, 31, 42, 46, 58}}};
 
-  using m3 = MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata;
-  auto t3 = IndexBuilder<Sparse>::indexBuilder<Points, m3::sources.size(), m3::sources>("test4", {t1, t2, tc}, typename IDX3s::persistent_columns_t{});
+  auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata>();
+  auto schema3 = o2::aod::MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata::getSchema();
+  std::vector<o2::framework::IndexColumnBuilder> builders3;
+  auto t3 = IndexBuilder::materialize(builders3, {t1, t2, tc}, map, schema3, false);
   REQUIRE(t3->num_rows() == st1.size());
   IDX3s idxs{t3};
   idxs.bindExternalIndices(&st1, &st2, &st3);
@@ -234,4 +241,39 @@ TEST_CASE("AdvancedIndexTables")
     }
     ++count;
   }
+}
+
+TEST_CASE("IndexRecordsSerialization")
+{
+  auto map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index1/0"_h>>::metadata>();
+
+  std::stringstream osm;
+  IndexJSONHelpers::write(osm, map);
+
+  std::stringstream ism;
+  ism.str(osm.str());
+  auto rmap = IndexJSONHelpers::read(ism);
+  REQUIRE(map == rmap);
+
+  map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index2/0"_h>>::metadata>();
+
+  osm.clear();
+  osm.str("");
+  IndexJSONHelpers::write(osm, map);
+
+  ism.clear();
+  ism.str(osm.str());
+  rmap = IndexJSONHelpers::read(ism);
+  REQUIRE(map == rmap);
+
+  map = getIndexMapping<o2::aod::MetadataTrait<o2::aod::Hash<"Index3/0"_h>>::metadata>();
+
+  osm.clear();
+  osm.str("");
+  IndexJSONHelpers::write(osm, map);
+
+  ism.clear();
+  ism.str(osm.str());
+  rmap = IndexJSONHelpers::read(ism);
+  REQUIRE(map == rmap);
 }

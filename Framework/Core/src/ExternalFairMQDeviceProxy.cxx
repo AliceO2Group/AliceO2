@@ -32,6 +32,7 @@
 #include "Framework/DeviceState.h"
 #include "Framework/Monitoring.h"
 #include "Framework/SendingPolicy.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "DecongestionService.h"
@@ -864,6 +865,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
       bool didSendParts = false;
       for (size_t ci = 0; ci < channels.size(); ++ci) {
+        // check for state transition request every 10th input channel to avoid large delays of EoS timers
+        if (ci > 0 && ci % 10 == 0) {
+          ctx.services().get<DeviceState>().transitionHandling = DataProcessingHelpers::updateStateTransition(ctx.services(), ctx.services().get<DeviceContext>().processingPolicies);
+        }
         std::string const& channel = channels[ci];
         int waitTime = channels.size() == 1 ? -1 : 1;
         int maxRead = 1000;
@@ -1085,7 +1090,18 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
 
         channelNames->emplace_back(std::move(channel));
       }
-      proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, *device);
+      std::function<fair::mq::Channel&(std::string const&)> bindByName = [device](std::string const& channelName) -> fair::mq::Channel& {
+        auto channel = device->GetChannels().find(channelName);
+        if (channel == device->GetChannels().end()) {
+          LOGP(fatal, "Expected channel {} not configured.", channelName);
+        }
+        return channel->second.at(0);
+      };
+
+      std::function<bool()> newStateCallback = [device]() -> bool {
+        return device->NewStatePending();
+      };
+      proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, bindByName, newStateCallback);
     };
     // We need to clear the channels on stop, because we will check and add them
     auto channelConfigurationDisposer = [&deviceSpec]() {

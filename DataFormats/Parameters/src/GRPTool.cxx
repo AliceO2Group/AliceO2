@@ -312,7 +312,7 @@ bool create_GRPs(Options const& opts)
     auto soreor = ccdbmgr.getRunDuration(opts.run);
     runStart = soreor.first;
     grp.setTimeStart(runStart);
-    grp.setTimeEnd(runStart + 3600000);
+    grp.setTimeEnd(soreor.second);
     grp.setNHBFPerTF(opts.orbitsPerTF);
     std::vector<std::string> modules{};
     if (!o2::conf::SimConfig::determineActiveModulesList(opts.detectorList, opts.readout, std::vector<std::string>(), modules)) {

@@ -37,7 +37,7 @@ struct Metadata {
   size_t nLiterals = 0;              // Number of samples that were stored as literals.
   uint8_t messageWordSize = 0;       // size in Bytes of a symbol in the encoded message.
   uint8_t coderType = 0;             // what type of CTF Coder is used? (32 vs 64 bit coders).
-  uint8_t streamSize = 0;            // how many Bytes is the rANS encoder emmiting during a stream-out step.
+  uint8_t streamSize = 0;            // number of Bytes emmitted during rANS stream out (ransCompat) or lower renorming bound (ransV1).
   uint8_t probabilityBits = 0;       // The encoder renormed the distribution of source symbols to sum up to 2^probabilityBits.
   OptStore opt = OptStore::EENCODE;  // The type of storage operation that was conducted.
   int32_t min = 0;                   // min symbol of the source dataset.
@@ -48,8 +48,21 @@ struct Metadata {
   int nDataWords = 0;                // Amount of words used to store the actual data.
   int nLiteralWords = 0;             // Amount of words used to store literal (incompressible) samples.
 
+  /**
+   * @brief Uncompressed size of stored data in bytes
+   *
+   * @return size_t Uncompressed size in bytes
+   */
   size_t getUncompressedSize() const { return messageLength * messageWordSize; }
-  size_t getCompressedSize() const { return (nDictWords + nDataWords + nLiteralWords) * streamSize; }
+
+  /**
+   * @brief Size of the stored, compressed data in multiples of the underlying buffer word size
+   *
+   * @return size_t The size in multiples of the underlying buffer word size
+   * @warning This size is in number of words of the underlying storage buffer.
+   * Multiply with the size of the storage buffer type to get the correct size in bytes.
+   */
+  size_t getCompressedSize() const { return nDictWords + nDataWords + nLiteralWords; }
   void clear()
   {
     nStreams = 0;

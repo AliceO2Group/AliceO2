@@ -122,7 +122,8 @@ void Alice3Pipe::ConstructGeometry()
   // Add everything to the barrel
   barrel->AddNode(pipeVolume, 1, new TGeoTranslation(0, 30.f, 0));
 
-  pipeVolume->SetLineColor(kGreen + 3);
+  pipeVolume->SetLineColor(37);
+  pipeVolume->SetTransparency(0);
 }
 
 void Alice3Pipe::createMaterials()

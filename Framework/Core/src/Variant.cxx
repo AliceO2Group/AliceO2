@@ -89,29 +89,29 @@ Variant::Variant(const Variant& other) : mType(other.mType)
   // In case this is an array we need to duplicate it to avoid
   // double deletion.
   switch (mType) {
-    case variant_trait_v<const char*>:
+    case VariantType::String:
       mSize = other.mSize;
       variant_helper<const char*>::set(&mStore, other.get<const char*>());
       return;
-    case variant_trait_v<int*>:
+    case VariantType::ArrayInt:
       mSize = other.mSize;
       variant_helper<int*>::set(&mStore, other.get<int*>(), mSize);
       return;
-    case variant_trait_v<float*>:
+    case VariantType::ArrayFloat:
       mSize = other.mSize;
       variant_helper<float*>::set(&mStore, other.get<float*>(), mSize);
       return;
-    case variant_trait_v<double*>:
+    case VariantType::ArrayDouble:
       mSize = other.mSize;
       variant_helper<double*>::set(&mStore, other.get<double*>(), mSize);
       return;
-    case variant_trait_v<bool*>:
+    case VariantType::ArrayBool:
       mSize = other.mSize;
       variant_helper<bool*>::set(&mStore, other.get<bool*>(), mSize);
       return;
-    case variant_trait_v<std::string*>:
+    case VariantType::ArrayString:
       mSize = other.mSize;
-      variant_helper<std::string*>::set(&mStore, other.get<std::string*>(), mSize);
+      variant_helper<std::vector<std::string>>::set(&mStore, other.get<std::vector<std::string>>());
       return;
     default:
       mStore = other.mStore;
@@ -124,23 +124,14 @@ Variant::Variant(Variant&& other) noexcept : mType(other.mType)
   mStore = other.mStore;
   mSize = other.mSize;
   switch (mType) {
-    case variant_trait_v<const char*>:
-      *reinterpret_cast<char**>(&(other.mStore)) = nullptr;
+    case VariantType::String:
+    case VariantType::ArrayInt:
+    case VariantType::ArrayFloat:
+    case VariantType::ArrayDouble:
+    case VariantType::ArrayBool:
+    case VariantType::ArrayString:
+      *reinterpret_cast<void**>(&(other.mStore)) = nullptr;
       return;
-    case variant_trait_v<int*>:
-      *reinterpret_cast<int**>(&(other.mStore)) = nullptr;
-      return;
-    case variant_trait_v<float*>:
-      *reinterpret_cast<float**>(&(other.mStore)) = nullptr;
-      return;
-    case variant_trait_v<double*>:
-      *reinterpret_cast<double**>(&(other.mStore)) = nullptr;
-      return;
-    case variant_trait_v<bool*>:
-      *reinterpret_cast<bool**>(&(other.mStore)) = nullptr;
-      return;
-    case variant_trait_v<std::string*>:
-      *reinterpret_cast<std::string**>(&(other.mStore)) = nullptr;
     default:
       return;
   }
@@ -151,16 +142,20 @@ Variant::~Variant()
   // In case we allocated an array, we
   // should delete it.
   switch (mType) {
-    case variant_trait_v<const char*>:
-    case variant_trait_v<int*>:
-    case variant_trait_v<float*>:
-    case variant_trait_v<double*>:
-    case variant_trait_v<bool*>:
-    case variant_trait_v<std::string*>:
+    case VariantType::String:
+    case VariantType::ArrayInt:
+    case VariantType::ArrayFloat:
+    case VariantType::ArrayDouble:
+    case VariantType::ArrayBool: {
       if (reinterpret_cast<void**>(&mStore) != nullptr) {
         free(*reinterpret_cast<void**>(&mStore));
       }
       return;
+    }
+    case VariantType::ArrayString: {
+      // Allocated with placement new. Nothing to delete.
+      return;
+    }
     default:
       return;
   }
@@ -171,23 +166,23 @@ Variant& Variant::operator=(const Variant& other)
   mSize = other.mSize;
   mType = other.mType;
   switch (mType) {
-    case variant_trait_v<const char*>:
+    case VariantType::String:
       variant_helper<const char*>::set(&mStore, other.get<const char*>());
       return *this;
-    case variant_trait_v<int*>:
+    case VariantType::ArrayInt:
       variant_helper<int*>::set(&mStore, other.get<int*>(), mSize);
       return *this;
-    case variant_trait_v<float*>:
+    case VariantType::ArrayFloat:
       variant_helper<float*>::set(&mStore, other.get<float*>(), mSize);
       return *this;
-    case variant_trait_v<double*>:
+    case VariantType::ArrayDouble:
       variant_helper<double*>::set(&mStore, other.get<double*>(), mSize);
       return *this;
-    case variant_trait_v<bool*>:
+    case VariantType::ArrayBool:
       variant_helper<bool*>::set(&mStore, other.get<bool*>(), mSize);
       return *this;
-    case variant_trait_v<std::string*>:
-      variant_helper<std::string*>::set(&mStore, other.get<std::string*>(), mSize);
+    case VariantType::ArrayString:
+      variant_helper<std::vector<std::string>>::set(&mStore, other.get<std::vector<std::string>>());
       return *this;
     default:
       mStore = other.mStore;
@@ -200,29 +195,29 @@ Variant& Variant::operator=(Variant&& other) noexcept
   mSize = other.mSize;
   mType = other.mType;
   switch (mType) {
-    case variant_trait_v<const char*>:
+    case VariantType::String:
       variant_helper<const char*>::set(&mStore, other.get<const char*>());
       *reinterpret_cast<char**>(&(other.mStore)) = nullptr;
       return *this;
-    case variant_trait_v<int*>:
+    case VariantType::ArrayInt:
       variant_helper<int*>::set(&mStore, other.get<int*>(), mSize);
       *reinterpret_cast<int**>(&(other.mStore)) = nullptr;
       return *this;
-    case variant_trait_v<float*>:
+    case VariantType::ArrayFloat:
       variant_helper<float*>::set(&mStore, other.get<float*>(), mSize);
       *reinterpret_cast<float**>(&(other.mStore)) = nullptr;
       return *this;
-    case variant_trait_v<double*>:
+    case VariantType::ArrayDouble:
       variant_helper<double*>::set(&mStore, other.get<double*>(), mSize);
       *reinterpret_cast<double**>(&(other.mStore)) = nullptr;
       return *this;
-    case variant_trait_v<bool*>:
+    case VariantType::ArrayBool:
       variant_helper<bool*>::set(&mStore, other.get<bool*>(), mSize);
       *reinterpret_cast<bool**>(&(other.mStore)) = nullptr;
       return *this;
-    case variant_trait_v<std::string*>:
-      variant_helper<std::string*>::set(&mStore, other.get<std::string*>(), mSize);
-      *reinterpret_cast<std::string**>(&(other.mStore)) = nullptr;
+    case VariantType::ArrayString:
+      variant_helper<std::vector<std::string>>::set(&mStore, other.get<std::vector<std::string>>());
+      *reinterpret_cast<std::vector<std::string>**>(&(other.mStore)) = nullptr;
       return *this;
     default:
       mStore = other.mStore;

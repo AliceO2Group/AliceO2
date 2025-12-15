@@ -13,11 +13,10 @@
 #define ALICEO2_TRK_DETECTOR_H
 
 #include "DetectorsBase/Detector.h"
-#include "ITSMFTSimulation/Hit.h"
+#include "TRKSimulation/Hit.h"
 
 #include "TRKSimulation/TRKLayer.h"
 #include "TRKSimulation/TRKServices.h"
-#include "TRKSimulation/TRKPetalCase.h"
 #include "TRKBase/GeometryTGeo.h"
 
 #include <TLorentzVector.h>
@@ -31,9 +30,6 @@ namespace trk
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
-  static constexpr Int_t mNumberOfVolumes = 44;   /// hardcoded for the current geometry = 8 MLOT layers + 36 volumes in the VD. TODO: automatize or change according to the current geometry
-  static constexpr Int_t mNumberOfVolumesVD = 36; /// hardcoded for the current geometry = 36 volumes in the VD. TODO: automatize or change according to the current geometry
-
   Detector(bool active);
   Detector();
   ~Detector();
@@ -46,9 +42,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void ConstructGeometry() override;
 
-  o2::itsmft::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
-                          const TVector3& startMom, double startE, double endTime, double eLoss,
-                          unsigned char startStatus, unsigned char endStatus);
+  o2::trk::Hit* addHit(int trackID, unsigned short detID, const TVector3& startPos, const TVector3& endPos,
+                       const TVector3& startMom, double startE, double endTime, double eLoss,
+                       unsigned char startStatus, unsigned char endStatus);
 
   // Mandatory overrides
   void BeginPrimary() override { ; }
@@ -61,8 +57,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
   void Reset() override;
 
-  // Custom memer functions
-  std::vector<o2::itsmft::Hit>* getHits(int iColl) const
+  // Custom member functions
+  std::vector<o2::trk::Hit>* getHits(int iColl) const
   {
     if (!iColl) {
       return mHits;
@@ -71,7 +67,7 @@ class Detector : public o2::base::DetImpl<Detector>
   }
 
   void configDefault();
-  void buildTRKNewVacuumVessel();
+  void buildTRKMiddleOuterLayers();
   void configFromFile(std::string fileName = "alice3_TRK_layout.txt");
   void configToFile(std::string fileName = "alice3_TRK_layout.txt");
 
@@ -80,19 +76,21 @@ class Detector : public o2::base::DetImpl<Detector>
   void createGeometry();
 
  private:
+  int mNumberOfVolumes;
+  int mNumberOfVolumesVD;
+
   // Transient data about track passing the sensor
   struct TrackData {
-    bool mHitStarted;                  // hit creation started
-    unsigned char mTrkStatusStart;     // track status flag
-    TLorentzVector mPositionStart;     // position at entrance
-    TLorentzVector mMomentumStart;     // momentum
-    double mEnergyLoss;                // energy loss
-  } mTrackData;                        //! transient data
-  GeometryTGeo* mGeometryTGeo;         //!
-  std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
+    bool mHitStarted;               // hit creation started
+    unsigned char mTrkStatusStart;  // track status flag
+    TLorentzVector mPositionStart;  // position at entrance
+    TLorentzVector mMomentumStart;  // momentum
+    double mEnergyLoss;             // energy loss
+  } mTrackData;                     //! transient data
+  GeometryTGeo* mGeometryTGeo;      //!
+  std::vector<o2::trk::Hit>* mHits; // ITSMFT ones for the moment
   std::vector<TRKLayer> mLayers;
-  TRKServices mServices;                 // Houses the services of the TRK, but not the Iris tracker
-  std::vector<TRKPetalCase> mPetalCases; // Houses the Iris tracker and its services. Created fully in the beam pipe
+  TRKServices mServices; // Houses the services of the TRK, but not the Iris tracker
 
   std::vector<std::string> mFirstOrLastLayers; // Names of the first or last layers
   bool InsideFirstOrLastLayer(std::string layerName);
@@ -106,14 +104,12 @@ class Detector : public o2::base::DetImpl<Detector>
  public:
   static constexpr Int_t sNumberVDPetalCases = 4;          //! Number of VD petals
   int getNumberOfLayers() const { return mLayers.size(); } //! Number of TRK layers
-  int getNumberOfLayersVD() const { return mPetalCases[0].mPetalLayers.size(); }
-  int getNumberOfDisksVD() const { return mPetalCases[0].mPetalDisks.size(); }
 
-  void Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int chipID) const;
+  void Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int mod, int chip, int chipID) const;
 
   template <typename Det>
   friend class o2::base::DetImpl;
-  ClassDefOverride(Detector, 1);
+  ClassDefOverride(Detector, 2);
 };
 } // namespace trk
 } // namespace o2

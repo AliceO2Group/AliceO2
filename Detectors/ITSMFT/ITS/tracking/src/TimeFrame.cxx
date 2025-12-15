@@ -177,9 +177,9 @@ template <int nLayers>
 void TimeFrame<nLayers>::resetROFrameData(size_t nRofs)
 {
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    deepVectorClear(mUnsortedClusters[iLayer], getMaybeExternalHostResource());
-    deepVectorClear(mTrackingFrameInfo[iLayer], getMaybeExternalHostResource());
-    clearResizeBoundedVector(mROFramesClusters[iLayer], nRofs + 1, getMaybeExternalHostResource());
+    deepVectorClear(mUnsortedClusters[iLayer], getMaybeFrameworkHostResource());
+    deepVectorClear(mTrackingFrameInfo[iLayer], getMaybeFrameworkHostResource());
+    clearResizeBoundedVector(mROFramesClusters[iLayer], nRofs + 1, getMaybeFrameworkHostResource());
     deepVectorClear(mClusterExternalIndices[iLayer], mMemoryPool.get());
 
     if (iLayer < 2) {
@@ -302,11 +302,11 @@ void TimeFrame<nLayers>::initialise(const int iteration, const TrackingParameter
     clearResizeBoundedVector(mBogusClusters, trkParam.NLayers, mMemoryPool.get());
     deepVectorClear(mTrackletClusters);
     for (unsigned int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
-      clearResizeBoundedVector(mClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeExternalHostResource(maxLayers != nLayers));
-      clearResizeBoundedVector(mUsedClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeExternalHostResource(maxLayers != nLayers));
+      clearResizeBoundedVector(mClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != nLayers));
+      clearResizeBoundedVector(mUsedClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != nLayers));
       mPositionResolution[iLayer] = o2::gpu::CAMath::Sqrt(0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
     }
-    clearResizeBoundedArray(mIndexTables, mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), getMaybeExternalHostResource(maxLayers != nLayers));
+    clearResizeBoundedArray(mIndexTables, mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), getMaybeFrameworkHostResource(maxLayers != nLayers));
     clearResizeBoundedVector(mLines, mNrof, mMemoryPool.get());
     clearResizeBoundedVector(mTrackletClusters, mNrof, mMemoryPool.get());
 
@@ -574,6 +574,7 @@ void TimeFrame<nLayers>::setMemoryPool(std::shared_ptr<BoundedMemoryResource> po
       initVector(v, useExternal);
     }
   };
+
   // these will only reside on the host for the cpu part
   initVector(mTotVertPerIteration);
   initContainers(mClusterExternalIndices);
@@ -603,12 +604,19 @@ void TimeFrame<nLayers>::setMemoryPool(std::shared_ptr<BoundedMemoryResource> po
   initVector(mRoadLabels);
   initContainers(mTracksLabel);
   // these will use possibly an externally provided allocator
-  initContainers(mClusters, hasExternalHostAllocator());
-  initContainers(mUsedClusters, hasExternalHostAllocator());
-  initContainers(mUnsortedClusters, hasExternalHostAllocator());
-  initContainers(mIndexTables, hasExternalHostAllocator());
-  initContainers(mTrackingFrameInfo, hasExternalHostAllocator());
-  initContainers(mROFramesClusters, hasExternalHostAllocator());
+  initContainers(mClusters, hasFrameworkAllocator());
+  initContainers(mUsedClusters, hasFrameworkAllocator());
+  initContainers(mUnsortedClusters, hasFrameworkAllocator());
+  initContainers(mIndexTables, hasFrameworkAllocator());
+  initContainers(mTrackingFrameInfo, hasFrameworkAllocator());
+  initContainers(mROFramesClusters, hasFrameworkAllocator());
+}
+
+template <int nLayers>
+void TimeFrame<nLayers>::setFrameworkAllocator(ExternalAllocator* ext)
+{
+  mExternalAllocator = ext;
+  mExtMemoryPool = std::make_shared<BoundedMemoryResource>(mExternalAllocator);
 }
 
 template <int nLayers>
@@ -639,7 +647,7 @@ void TimeFrame<nLayers>::wipe()
   deepVectorClear(mLines);
   // if we use the external host allocator then the assumption is that we
   // don't clear the memory ourself
-  if (!hasExternalHostAllocator()) {
+  if (!hasFrameworkAllocator()) {
     deepVectorClear(mClusters);
     deepVectorClear(mUsedClusters);
     deepVectorClear(mUnsortedClusters);

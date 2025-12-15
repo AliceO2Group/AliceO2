@@ -85,6 +85,7 @@ class Cluster;
 namespace tpc
 {
 class CalibdEdxContainer;
+class ORTRootSerializer;
 } // namespace tpc
 } // namespace o2
 
@@ -182,6 +183,9 @@ struct GPUCalibObjectsTemplate { // use only pointers on PODs or flat objects he
   typename S<o2::tpc::CalibdEdxContainer>::type* dEdxCalibContainer = nullptr;
   typename S<o2::base::PropagatorImpl<float>>::type* o2Propagator = nullptr;
   typename S<o2::itsmft::TopologyDictionary>::type* itsPatternDict = nullptr;
+
+  // NN clusterizer objects
+  typename S<o2::tpc::ORTRootSerializer>::type* nnClusterizerNetworks[3] = {nullptr, nullptr, nullptr};
 };
 typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 must have identical layout since they are memcopied
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;

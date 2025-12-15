@@ -123,7 +123,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   }
   static int64_t previousBytesSent = 0;
   auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId,
-                                                                         std::array<ComputingQuotaOffer, 16>& offers,
+                                                                         std::array<ComputingQuotaOffer, 32>& offers,
                                                                          ComputingQuotaStats& stats,
                                                                          std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> accountDisposed) {
     ComputingQuotaOffer disposed;

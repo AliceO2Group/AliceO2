@@ -29,6 +29,16 @@ DataProcessingStats::DataProcessingStats(std::function<void(int64_t& base, int64
   getRealtimeBase(realTimeBase, initialTimeOffset);
 }
 
+char const* DataProcessingStats::findMetricNameById(ProcessingStatsId id) const
+{
+  for (auto& spec : metricSpecs) {
+    if (spec.metricId == (int)id) {
+      return spec.name.c_str();
+    }
+  }
+  return nullptr;
+}
+
 void DataProcessingStats::updateStats(CommandSpec cmd)
 {
   if (metricSpecs[cmd.id].name.empty()) {

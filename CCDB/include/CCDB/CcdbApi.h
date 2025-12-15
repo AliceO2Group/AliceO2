@@ -281,7 +281,7 @@ class CcdbApi //: public DatabaseInterface
    *  @return: True in case operation successful or false if there was a failure/problem.
    */
   bool retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp,
-                    bool preservePathStructure = true, std::string const& localFileName = "snapshot.root", std::string const& createdNotAfter = "", std::string const& createdNotBefore = "") const;
+                    bool preservePathStructure = true, std::string const& localFileName = "snapshot.root", std::string const& createdNotAfter = "", std::string const& createdNotBefore = "", std::map<std::string, std::string>* headers = nullptr) const;
 
   /**
    * Retrieve the headers of a CCDB entry, if it exists.

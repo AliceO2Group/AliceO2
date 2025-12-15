@@ -1,4 +1,4 @@
-# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2025 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -10,3 +10,4 @@
 # or submit itself to any jurisdiction.
 
 message(STATUS "Building dataformats for upgrades")
+add_subdirectory(ALICE3)

@@ -44,6 +44,8 @@ struct ComputingQuotaOffer {
   int64_t memory = 0;
   /// How much shared memory it can allocate
   int64_t sharedMemory = 0;
+  /// How many timeslices it can process without giving back control
+  int64_t timeslices = 0;
   /// How much runtime it can use before giving back the resource
   /// in milliseconds.
   int64_t runtime = 0;
@@ -68,8 +70,10 @@ struct ComputingQuotaInfo {
 /// Statistics on the offers consumed, expired
 struct ComputingQuotaStats {
   int64_t totalConsumedBytes = 0;
+  int64_t totalConsumedTimeslices = 0;
   int64_t totalConsumedOffers = 0;
   int64_t totalExpiredBytes = 0;
+  int64_t totalExpiredTimeslices = 0;
   int64_t totalExpiredOffers = 0;
 };
 
@@ -80,7 +84,7 @@ using ComputingQuotaRequest = std::function<OfferScore(ComputingQuotaOffer const
 
 /// A consumer is a function which updates a given function removing the
 /// amount of resources which are considered as consumed.
-using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&, ComputingQuotaStats&, std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats& stats)>)>;
+using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 32>&, ComputingQuotaStats&, std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats& stats)>)>;
 
 } // namespace o2::framework
 

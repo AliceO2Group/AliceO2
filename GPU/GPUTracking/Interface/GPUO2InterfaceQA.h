@@ -15,14 +15,7 @@
 #ifndef GPUO2INTERFACEQA_H
 #define GPUO2INTERFACEQA_H
 
-// Some defines denoting that we are compiling for O2
-#ifndef GPUCA_TPC_GEOMETRY_O2
-#define GPUCA_TPC_GEOMETRY_O2
-#endif
-#ifndef GPUCA_O2_INTERFACE
-#define GPUCA_O2_INTERFACE
-#endif
-
+#include "GPUO2ExternalUser.h"
 #include <memory>
 #include <vector>
 

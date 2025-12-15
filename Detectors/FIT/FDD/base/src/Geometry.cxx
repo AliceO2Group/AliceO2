@@ -152,7 +152,7 @@ void Geometry::buildGeometry()
   if (!vCaveRB24) {
     LOG(fatal) << "Could not find the top volume for A-side";
   }
-  const Float_t kPosFDA = 1696.67 - 1313.347; // z-center of assembly (cm)
+  const Float_t kPosFDA = 1696.67 - 1313.347 - 75.; // z-center of assembly (cm)
   vCaveRB24->AddNode(vFDAarray, 1, new TGeoTranslation(0., 0., kPosFDA - kFDACelldz / 2. - 0.1));
   vCaveRB24->AddNode(vFDAarray, 2, new TGeoTranslation(0., 0., kPosFDA + kFDACelldz / 2. + 0.1));
 

@@ -11,9 +11,7 @@
 
 #include "Framework/ResourcePolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
-#include "ResourcesMonitoringHelper.h"
 
-#include <string>
 #include <regex>
 
 namespace o2::framework
@@ -41,6 +39,36 @@ ResourcePolicy ResourcePolicyHelpers::cpuBoundTask(char const* s, int requestedC
     [requestedCPUs](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { return accumulated.cpu >= requestedCPUs ? OfferScore::Enough : OfferScore::More; }};
 }
 
+ResourcePolicy ResourcePolicyHelpers::rateLimitedSharedMemoryBoundTask(char const* s, int requestedSharedMemory, int requestedTimeslices)
+{
+  return ResourcePolicy{
+    "ratelimited-shm-bound",
+    [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
+      return std::regex_match(spec.name, matcher);
+    },
+    [requestedSharedMemory, requestedTimeslices](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { 
+      // If we have enough memory and not enough timeslices,
+      // ignore further shared memory.
+      if (accumulated.sharedMemory >= requestedSharedMemory && offer.timeslices == 0) {
+        return OfferScore::Unneeded;
+      }
+      // If we have enough timeslices and not enough shared memory
+      // ignore further timeslices.
+      if (accumulated.timeslices >= requestedTimeslices && offer.sharedMemory == 0) {
+        return OfferScore::Unneeded;
+      }
+      // If it does not offer neither shared memory nor timeslices, mark it as unneeded.
+      if (offer.sharedMemory == 0 && offer.timeslices == 0) {
+        return OfferScore::Unneeded;
+      }
+      // We have enough to process.
+      if ((accumulated.sharedMemory + offer.sharedMemory) >= requestedSharedMemory && (accumulated.timeslices + offer.timeslices) >= requestedTimeslices) {
+        return OfferScore::Enough;
+      }
+      // We need more resources
+      return OfferScore::More; }};
+}
+
 ResourcePolicy ResourcePolicyHelpers::sharedMemoryBoundTask(char const* s, int requestedSharedMemory)
 {
   return ResourcePolicy{
@@ -52,7 +80,7 @@ ResourcePolicy ResourcePolicyHelpers::sharedMemoryBoundTask(char const* s, int r
       if (offer.sharedMemory == 0) {
         return OfferScore::Unneeded;
       }
-      return accumulated.sharedMemory >= requestedSharedMemory ? OfferScore::Enough : OfferScore::More; }};
+      return (accumulated.sharedMemory + offer.sharedMemory)>= requestedSharedMemory ? OfferScore::Enough : OfferScore::More; }};
 }
 
 } // namespace o2::framework

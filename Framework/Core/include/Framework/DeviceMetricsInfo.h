@@ -154,11 +154,11 @@ struct DeviceMetricsInfo {
   std::vector<MetricsStorage<StringMetric>> stringMetrics; // We do not keep so many strings as metrics as history is less relevant.
   std::vector<MetricsStorage<float>> floatMetrics;
   std::vector<MetricsStorage<int8_t>> enumMetrics;
-  std::vector<std::array<size_t, metricStorageSize<int>()>> intTimestamps;
-  std::vector<std::array<size_t, metricStorageSize<uint64_t>()>> uint64Timestamps;
-  std::vector<std::array<size_t, metricStorageSize<float>()>> floatTimestamps;
-  std::vector<std::array<size_t, metricStorageSize<StringMetric>()>> stringTimestamps;
-  std::vector<std::array<size_t, metricStorageSize<int8_t>()>> enumTimestamps;
+  std::vector<TimestampsStorage<int>> intTimestamps;
+  std::vector<TimestampsStorage<uint64_t>> uint64Timestamps;
+  std::vector<TimestampsStorage<float>> floatTimestamps;
+  std::vector<TimestampsStorage<StringMetric>> stringTimestamps;
+  std::vector<TimestampsStorage<int8_t>> enumTimestamps;
   std::vector<float> max;
   std::vector<float> min;
   std::vector<float> average;

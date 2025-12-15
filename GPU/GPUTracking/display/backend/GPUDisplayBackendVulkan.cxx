@@ -481,8 +481,6 @@ void GPUDisplayBackendVulkan::createDevice()
   deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
   deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(reqDeviceExtensions.size());
   deviceCreateInfo.ppEnabledExtensionNames = reqDeviceExtensions.data();
-  deviceCreateInfo.enabledLayerCount = instanceCreateInfo.enabledLayerCount;
-  deviceCreateInfo.ppEnabledLayerNames = instanceCreateInfo.ppEnabledLayerNames;
   mDevice = mPhysicalDevice.createDevice(deviceCreateInfo, nullptr);
   VULKAN_HPP_DEFAULT_DISPATCHER.init(mDevice);
   mGraphicsQueue = mDevice.getQueue(mGraphicsFamily, 0);

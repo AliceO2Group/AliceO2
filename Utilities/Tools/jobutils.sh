@@ -107,6 +107,7 @@ taskwrapper() {
 
   STARTTIME=$SECONDS
 
+  rm -f encountered_exceptions_list_${logfile}
   # launch the actual command in the background
   echo "Launching task: ${command} &> $logfile &"
   # the command might be a complex block: For the timing measurement below
@@ -191,10 +192,10 @@ taskwrapper() {
 
     exclude_pattern="-e \"To change the tolerance or the exception severity\""
 
-    grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} | grep -a -v ${exclude_pattern} >> encountered_exceptions_list 2>/dev/null"
+    grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} | grep -a -v ${exclude_pattern} >> encountered_exceptions_list_${logfile} 2>/dev/null"
     eval ${grepcommand}
 
-    grepcommand="cat encountered_exceptions_list 2>/dev/null | wc -l"
+    grepcommand="cat encountered_exceptions_list_${logfile} 2>/dev/null | wc -l"
     # using eval here since otherwise the pattern is translated to a
     # a weirdly quoted stringlist
     RC=$(eval ${grepcommand})

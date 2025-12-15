@@ -12,6 +12,9 @@
 #include <TRKBase/GeometryTGeo.h>
 #include <TGeoManager.h>
 #include "TRKBase/SegmentationChip.h"
+#include <TMath.h>
+
+#include <limits>
 
 using Segmentation = o2::trk::SegmentationChip;
 
@@ -24,12 +27,18 @@ std::unique_ptr<o2::trk::GeometryTGeo> GeometryTGeo::sInstance;
 // Names
 std::string GeometryTGeo::sVolumeName = "TRKV";
 std::string GeometryTGeo::sLayerName = "TRKLayer";
+std::string GeometryTGeo::sPetalAssemblyName = "PETAL";
 std::string GeometryTGeo::sPetalName = "PETALCASE";
 std::string GeometryTGeo::sPetalDiskName = "DISK";
 std::string GeometryTGeo::sPetalLayerName = "LAYER";
 std::string GeometryTGeo::sStaveName = "TRKStave";
+std::string GeometryTGeo::sHalfStaveName = "TRKHalfStave";
+std::string GeometryTGeo::sModuleName = "TRKModule";
 std::string GeometryTGeo::sChipName = "TRKChip";
 std::string GeometryTGeo::sSensorName = "TRKSensor";
+std::string GeometryTGeo::sDeadzoneName = "TRKDeadzone";
+std::string GeometryTGeo::sMetalStackName = "TRKMetalStack";
+
 std::string GeometryTGeo::sWrapperVolumeName = "TRKUWrapVol"; ///< Wrapper volume name, not implemented at the moment
 
 o2::trk::GeometryTGeo::~GeometryTGeo()
@@ -68,25 +77,31 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
+  mNumberOfPetalsVD = extractNumberOfPetalsVD();
   mNumberOfActivePartsVD = extractNumberOfActivePartsVD();
   mNumberOfLayersVD = extractNumberOfLayersVD();
-  mNumberOfPetalsVD = extractNumberOfPetalsVD();
   mNumberOfDisksVD = extractNumberOfDisksVD();
 
   mNumberOfStaves.resize(mNumberOfLayersMLOT);
   mNumberOfHalfStaves.resize(mNumberOfLayersMLOT);
-  mLastChipIndex.resize(mNumberOfPetalsVD + mNumberOfLayersMLOT);
-  mLastChipIndexVD.resize(mNumberOfPetalsVD);
-  mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
+  mNumberOfModules.resize(mNumberOfLayersMLOT);
+  mNumberOfChips.resize(mNumberOfLayersMLOT);
+
   mNumberOfChipsPerLayerVD.resize(mNumberOfLayersVD);
   mNumberOfChipsPerLayerMLOT.resize(mNumberOfLayersMLOT);
   mNumbersOfChipPerDiskVD.resize(mNumberOfDisksVD);
   mNumberOfChipsPerPetalVD.resize(mNumberOfPetalsVD);
 
+  mLastChipIndex.resize(mNumberOfPetalsVD + mNumberOfLayersMLOT);
+  mLastChipIndexVD.resize(mNumberOfPetalsVD);
+  mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
+
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
     std::cout << "Layer MLOT: " << i << std::endl;
     mNumberOfStaves[i] = extractNumberOfStavesMLOT(i);
     mNumberOfHalfStaves[i] = extractNumberOfHalfStavesMLOT(i);
+    mNumberOfModules[i] = extractNumberOfModulesMLOT(i);
+    mNumberOfChips[i] = extractNumberOfChipsMLOT(i);
   }
 
   int numberOfChipsTotal = 0;
@@ -101,14 +116,16 @@ void GeometryTGeo::Build(int loadTrans)
 
   /// filling the information for the MLOT
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
-    mNumberOfChipsPerLayerMLOT[i] = extractNumberOfStavesMLOT(i) * extractNumberOfHalfStavesMLOT(i); // for the moment, considering 1 half stave = 1 chip. TODO: add the final segmentation in chips
+    mNumberOfChipsPerLayerMLOT[i] = mNumberOfStaves[i] * mNumberOfHalfStaves[i] * mNumberOfModules[i] * mNumberOfChips[i];
     numberOfChipsTotal += mNumberOfChipsPerLayerMLOT[i];
     mLastChipIndex[i + mNumberOfPetalsVD] = numberOfChipsTotal - 1;
     mLastChipIndexMLOT[i] = numberOfChipsTotal - 1;
   }
 
-  setSize(numberOfChipsTotal); /// temporary, number of chips = number of staves and active parts
+  setSize(numberOfChipsTotal);
   fillMatrixCache(loadTrans);
+  defineMLOTSensors();
+  fillTrackingFramesCacheMLOT();
 }
 
 //__________________________________________________________________________
@@ -130,69 +147,12 @@ int GeometryTGeo::getPetalCase(int index) const
   int subDetID = getSubDetID(index);
   if (subDetID == 1) {
     return -1;
-  }
-
-  else if (index <= mLastChipIndexVD[mNumberOfPetalsVD - 1]) {
+  } else if (index <= mLastChipIndexVD[mNumberOfPetalsVD - 1]) {
     while (index > mLastChipIndexVD[petalcase]) {
       petalcase++;
     }
   }
   return petalcase;
-}
-
-//__________________________________________________________________________
-int GeometryTGeo::getLayer(int index) const
-{
-  int subDetID = getSubDetID(index);
-  int petalcase = getPetalCase(index);
-  int lay = 0;
-
-  if (subDetID == 0) { /// VD
-    if (index % mNumberOfChipsPerPetalVD[petalcase] >= mNumberOfLayersVD) {
-      return -1; /// disks
-    }
-    return index % mNumberOfChipsPerPetalVD[petalcase];
-  } else if (subDetID == 1) { /// MLOT
-    while (index > mLastChipIndex[lay]) {
-      lay++;
-    }
-    return lay - mNumberOfPetalsVD; /// numeration of MLOT layesrs  starting from 0
-  }
-  return -1; /// -1 if not found
-}
-//__________________________________________________________________________
-int GeometryTGeo::getStave(int index) const
-{
-  int subDetID = getSubDetID(index);
-  int lay = getLayer(index);
-  int petalcase = getPetalCase(index);
-
-  if (subDetID == 0) { /// VD
-    return -1;
-  } else if (subDetID == 1) { /// MLOT
-    int lay = getLayer(index);
-    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
-    return index / mNumberOfHalfStaves[lay];
-  }
-  return -1; /// not found
-}
-
-//__________________________________________________________________________
-int GeometryTGeo::getHalfStave(int index) const
-{
-  int subDetID = getSubDetID(index);
-  int lay = getLayer(index);
-  int petalcase = getPetalCase(index);
-  int stave = getStave(index);
-
-  if (subDetID == 0) { /// VD
-    return -1;
-  } else if (subDetID == 1) { /// MLOT
-    int lay = getLayer(index);
-    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
-    return index % 2;                                     /// 0 = half stave left, 1 = half stave right, as geometry is filled /// TODO: generalize once chips will be in place. Can it be working also with chips?
-  }
-  return -1; /// not found
 }
 
 //__________________________________________________________________________
@@ -212,7 +172,145 @@ int GeometryTGeo::getDisk(int index) const
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const
+int GeometryTGeo::getLayer(int index) const
+{
+  int subDetID = getSubDetID(index);
+  int petalcase = getPetalCase(index);
+  int lay = 0;
+
+  if (subDetID == 0) { /// VD
+    if (index % mNumberOfChipsPerPetalVD[petalcase] >= mNumberOfLayersVD) {
+      return -1; /// disks
+    }
+    return index % mNumberOfChipsPerPetalVD[petalcase];
+  } else if (subDetID == 1) { /// MLOT
+    while (index > mLastChipIndex[lay]) {
+      lay++;
+    }
+    return lay - mNumberOfPetalsVD; /// numeration of MLOT layers starting from 0
+  }
+  return -1; /// -1 if not found
+}
+//__________________________________________________________________________
+int GeometryTGeo::getStave(int index) const
+{
+  int subDetID = getSubDetID(index);
+  int lay = getLayer(index);
+  int petalcase = getPetalCase(index);
+
+  if (subDetID == 0) { /// VD
+    return -1;
+  } else if (subDetID == 1) { /// MLOT
+    int lay = getLayer(index);
+    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    if (Nhs == 2) {
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int chipsPerStave = Nhs * chipsPerHalfStave;
+      return index / chipsPerStave;
+    } else if (Nhs == 1) {
+      int chipsPerModule = Nchip;
+      int chipsPerStave = Nmod * chipsPerModule;
+      return index / chipsPerStave;
+    }
+  }
+  return -1;
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::getHalfStave(int index) const
+{
+  int subDetID = getSubDetID(index);
+  int lay = getLayer(index);
+  int petalcase = getPetalCase(index);
+
+  if (subDetID == 0) { /// VD
+    return -1;
+  } else if (subDetID == 1) { /// MLOT
+    int lay = getLayer(index);
+    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    int chipsPerModule = Nchip;
+    int chipsPerHalfStave = Nmod * chipsPerModule;
+    int chipsPerStave = Nhs * chipsPerHalfStave;
+
+    int rem = index % chipsPerStave;
+    return rem / chipsPerHalfStave; // 0 = left, 1 = right
+  }
+  return -1;
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::getModule(int index) const
+{
+  int subDetID = getSubDetID(index);
+  int lay = getLayer(index);
+  int petalcase = getPetalCase(index);
+
+  if (subDetID == 0) { /// VD
+    return -1;
+  } else if (subDetID == 1) { /// MLOT
+    int lay = getLayer(index);
+    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    if (Nhs == 2) {
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int rem = index % (Nhs * chipsPerHalfStave);
+      rem = rem % chipsPerHalfStave;
+      return rem / chipsPerModule;
+    } else if (Nhs == 1) {
+      int chipsPerModule = Nchip;
+      int rem = index % (Nmod * chipsPerModule);
+      return rem / chipsPerModule;
+    }
+  }
+  return -1;
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::getChip(int index) const
+{
+  int subDetID = getSubDetID(index);
+  int lay = getLayer(index);
+  int petalcase = getPetalCase(index);
+
+  if (subDetID == 0) { /// VD
+    return -1;
+  } else if (subDetID == 1) { /// MLOT
+    int lay = getLayer(index);
+    index -= getFirstChipIndex(lay, petalcase, subDetID); // get the index of the sensing element in the layer
+
+    const int Nhs = mNumberOfHalfStaves[lay];
+    const int Nmod = mNumberOfModules[lay];
+    const int Nchip = mNumberOfChips[lay];
+
+    if (Nhs == 2) {
+      int chipsPerModule = Nchip;
+      return index % chipsPerModule;
+    } else if (Nhs == 1) {
+      int chipsPerModule = Nchip;
+      return index % chipsPerModule;
+    }
+  }
+  return -1;
+}
+
+//__________________________________________________________________________
+unsigned short GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const
 {
   if (subDetID == 0) { // VD
     if (lay == -1) {   // disk
@@ -220,41 +318,70 @@ int GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk, int lay, i
     } else { // layer
       return getFirstChipIndex(lay, petalcase, subDetID) + lay;
     }
-  } else if (subDetID == 1) {            // MLOT
-    if (mNumberOfHalfStaves[lay] == 2) { // staggered geometry
-      return getFirstChipIndex(lay, petalcase, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave;
-    } else if (mNumberOfHalfStaves[lay] == 1) { // turbo geometry
-      return getFirstChipIndex(lay, petalcase, subDetID) + stave;
+  } else if (subDetID == 1) {                 // MLOT
+    const int Nhs = mNumberOfHalfStaves[lay]; // 1 or 2
+    const int Nmod = mNumberOfModules[lay];   // module per half-stave (per stave if Nhs==1)
+    const int Nchip = mNumberOfChips[lay];    // chips per module
+
+    if (Nhs == 2) { // staggered geometry: layer -> stave -> halfstave -> mod -> chip
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int chipsPerStave = Nhs * chipsPerHalfStave;
+      return getFirstChipIndex(lay, petalcase, subDetID) + stave * chipsPerStave + halfstave * chipsPerHalfStave + mod * chipsPerModule + chip;
+    } else if (Nhs == 1) { // turbo geometry: layer -> stave -> mod -> chip (no halfstave)
+      int chipsPerModule = Nchip;
+      int chipsPerStave = Nmod * chipsPerModule;
+      return getFirstChipIndex(lay, petalcase, subDetID) + stave * chipsPerStave + mod * chipsPerModule + chip;
     }
   }
-  return -1; // not found
+
+  LOGP(warning, "Chip index not found for subDetID %d, petalcase %d, disk %d, layer %d, stave %d, halfstave %d, module %d, chip %d, returning numeric limit", subDetID, petalcase, disk, lay, stave, halfstave, mod, chip);
+  return std::numeric_limits<unsigned short>::max(); // not found
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave) const
+unsigned short GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int stave, int halfstave, int mod, int chip) const
 {
   if (subDetID == 0) { // VD
     return volume;     /// In the current configuration for VD, each volume is the sensor element = chip. // TODO: when the geometry naming scheme will be changed, change this method
 
-  } else if (subDetID == 1) {            // MLOT
-    if (mNumberOfHalfStaves[lay] == 2) { // staggered geometry
-      return getFirstChipIndex(lay, -1, subDetID) + stave * mNumberOfHalfStaves[lay] + halfstave;
-    } else if (mNumberOfHalfStaves[lay] == 1) { // turbo geometry
-      return getFirstChipIndex(lay, -1, subDetID) + stave;
+  } else if (subDetID == 1) {                 // MLOT
+    const int Nhs = mNumberOfHalfStaves[lay]; // 1 or 2
+    const int Nmod = mNumberOfModules[lay];   // module per half-stave (per stave if Nhs==1)
+    const int Nchip = mNumberOfChips[lay];    // chips per module
+
+    if (Nhs == 2) { // staggered geometry: layer -> stave -> halfstave -> mod -> chip
+      int chipsPerModule = Nchip;
+      int chipsPerHalfStave = Nmod * chipsPerModule;
+      int chipsPerStave = Nhs * chipsPerHalfStave;
+      return getFirstChipIndex(lay, -1, subDetID) + stave * chipsPerStave + halfstave * chipsPerHalfStave + mod * chipsPerModule + chip;
+    } else if (Nhs == 1) { // turbo geometry: layer -> stave -> mod -> chip (no halfstave)
+      int chipsPerModule = Nchip;
+      int chipsPerStave = Nmod * chipsPerModule;
+      return getFirstChipIndex(lay, -1, subDetID) + stave * chipsPerStave + mod * chipsPerModule + chip;
     }
   }
-  return -1; // not found
+
+  LOGP(warning, "Chip index not found for subDetID %d, volume %d, layer %d, stave %d, halfstave %d, module %d, chip %d, returning numeric limit", subDetID, volume, lay, stave, halfstave, mod, chip);
+  return std::numeric_limits<unsigned short>::max(); // not found
 }
 
 //__________________________________________________________________________
-bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave) const
+bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk, int& lay, int& stave, int& halfstave, int& mod, int& chip) const
 {
   subDetID = getSubDetID(index);
   petalcase = getPetalCase(index);
   disk = getDisk(index);
   lay = getLayer(index);
   stave = getStave(index);
+  if (mNumberOfHalfStaves[lay] == 2) {
+    halfstave = getHalfStave(index);
+  } else {
+    halfstave = 0; // if not staggered geometry, return 0
+  }
   halfstave = getHalfStave(index);
+  mod = getModule(index);
+  chip = getChip(index);
 
   return kTRUE;
 }
@@ -263,34 +390,36 @@ bool GeometryTGeo::getChipID(int index, int& subDetID, int& petalcase, int& disk
 TString GeometryTGeo::getMatrixPath(int index) const
 {
 
-  int subDetID, petalcase, disk, layer, stave, halfstave; //// TODO: add chips in a second step
-  getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
+  int subDetID, petalcase, disk, layer, stave, halfstave, mod, chip;
+  getChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
 
-  // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave);
+  // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
 
   // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
 
   if (subDetID == 0) { // VD
     if (disk >= 0) {
-      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk);                                   // PETALCASEx_DISKy_1
-      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
+      path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);             // PETAL_n
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk); // PETALCASEx_DISKy_1
+      // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKSensorPattern(), disk); // PETALCASEx_DISKy_TRKSensory_1
     } else if (layer >= 0) {
-      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer);                                    // PETALCASEx_LAYERy_1
-      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKStavePattern(), layer);  // PETALCASEx_LAYERy_TRKStavey_1
-      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
+      path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);               // PETAL_n
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer); // PETALCASEx_LAYERy_1
+      // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKStavePattern(), layer);  // PETALCASEx_LAYERy_TRKStavey_1
+      // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
     }
-  } else if (subDetID == 1) {                                          // MLOT
-    path += Form("%s%d_1/", getTRKLayerPattern(), layer);              // TRKLayerx_1
-    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);      // TRKStavex_y
-    if (mNumberOfHalfStaves[layer] == 2) {                             // staggered geometry
-      path += Form("%s%d_%d/", getTRKChipPattern(), layer, halfstave); // TRKChipx_0/1
-    } else if (mNumberOfHalfStaves[layer] == 1) {                      // turbo geometry
-      path += Form("%s%d_1/", getTRKChipPattern(), layer);             // TRKChipx_1
+  } else if (subDetID == 1) {                                               // MLOT
+    path += Form("%s%d_1/", getTRKLayerPattern(), layer);                   // TRKLayerx_1
+    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);           // TRKStavex_y
+    if (mNumberOfHalfStaves[layer] == 2) {                                  // staggered geometry
+      path += Form("%s%d_%d/", getTRKHalfStavePattern(), layer, halfstave); // TRKHalfStavex_y
     }
-    path += Form("%s%d_1/", getTRKSensorPattern(), layer); // TRKSensorx_1
+    path += Form("%s%d_%d/", getTRKModulePattern(), layer, mod); // TRKModulx_y
+    path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
+    path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
   }
   return path;
 }
@@ -341,6 +470,32 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 }
 
 //__________________________________________________________________________
+void GeometryTGeo::defineMLOTSensors()
+{
+  for (int i = 0; i < mSize; i++) {
+    if (getSubDetID(i) == 0) {
+      continue;
+    }
+    sensorsMLOT.push_back(i);
+  }
+}
+
+//__________________________________________________________________________
+void GeometryTGeo::fillTrackingFramesCacheMLOT()
+{
+  // fill for every sensor of ML & OT its tracking frame parameters
+  if (!isTrackingFrameCachedMLOT() && !sensorsMLOT.empty()) {
+    size_t newSize = sensorsMLOT.size();
+    mCacheRefXMLOT.resize(newSize);
+    mCacheRefAlphaMLOT.resize(newSize);
+    for (int i = 0; i < newSize; i++) {
+      int sensorId = sensorsMLOT[i];
+      extractSensorXAlphaMLOT(sensorId, mCacheRefXMLOT[i], mCacheRefAlphaMLOT[i]);
+    }
+  }
+}
+
+//__________________________________________________________________________
 void GeometryTGeo::fillMatrixCache(int mask)
 {
   if (mSize < 1) {
@@ -362,29 +517,51 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }
   }
 
+  // build T2L matrices for ML & OT !! VD is yet to be implemented once its geometry will be more refined
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
+    LOGP(info, "Loading {} T2L matrices from TGeo for ML & OT", getName());
+    if (sensorsMLOT.size()) {
+      int m_Size = sensorsMLOT.size();
+      auto& cacheT2L = getCacheT2L();
+      cacheT2L.setSize(m_Size);
+      for (int i = 0; i < m_Size; i++) {
+        int sensorID = sensorsMLOT[i];
+        TGeoHMatrix& hm = createT2LMatrixMLOT(sensorID);
+        cacheT2L.setMatrix(Mat3D(hm), i); // here, sensorIDs from 0 to 374, sensorIDs shifted to 36 !
+      }
+    }
+  }
+
   // TODO: build matrices for the cases T2L, T2G and T2GRot when needed
 }
 
 //__________________________________________________________________________
 
-const char* GeometryTGeo::composeSymNameLayer(int d, int lr)
+#ifdef ENABLE_UPGRADES
+const char* GeometryTGeo::composeSymNameLayer(int d, int layer)
 {
-  return Form("%s/%s%d", composeSymNameTRK(d), getTRKLayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameTRK(d), getTRKLayerPattern(), layer);
+}
+#endif
+
+const char* GeometryTGeo::composeSymNameStave(int d, int layer)
+{
+  return Form("%s/%s%d", composeSymNameLayer(d, layer), getTRKStavePattern(), layer);
 }
 
-const char* GeometryTGeo::composeSymNameStave(int d, int lr)
+const char* GeometryTGeo::composeSymNameModule(int d, int layer)
 {
-  return Form("%s/%s%d", composeSymNameLayer(d, lr), getTRKStavePattern(), lr);
+  return Form("%s/%s%d", composeSymNameStave(d, layer), getTRKModulePattern(), layer);
 }
 
-const char* GeometryTGeo::composeSymNameChip(int d, int lr)
+const char* GeometryTGeo::composeSymNameChip(int d, int layer)
 {
-  return Form("%s/%s%d", composeSymNameStave(d, lr), getTRKChipPattern(), lr);
+  return Form("%s/%s%d", composeSymNameStave(d, layer), getTRKChipPattern(), layer);
 }
 
-const char* GeometryTGeo::composeSymNameSensor(int d, int lr)
+const char* GeometryTGeo::composeSymNameSensor(int d, int layer)
 {
-  return Form("%s/%s%d", composeSymNameChip(d, lr), getTRKSensorPattern(), lr);
+  return Form("%s/%s%d", composeSymNameChip(d, layer), getTRKSensorPattern(), layer);
 }
 
 //__________________________________________________________________________
@@ -449,118 +626,261 @@ int GeometryTGeo::extractNumberOfLayersMLOT()
 }
 
 //__________________________________________________________________________
+int GeometryTGeo::extractNumberOfPetalsVD() const
+{
+  int numberOfPetals = 0;
+  TGeoVolume* trkV = gGeoManager->GetVolume(getTRKVolPattern());
+  if (!trkV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
+  }
+
+  // Loop on all TRKV nodes, count PETAL assemblies and their contents
+  TObjArray* nodes = trkV->GetNodes();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
+
+  LOGP(info, "Searching for petal assemblies in {} (pattern: {})",
+       getTRKVolPattern(), getTRKPetalAssemblyPattern());
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    const char* name = nd->GetName();
+
+    if (strstr(name, getTRKPetalAssemblyPattern()) != nullptr) {
+      numberOfPetals++;
+      LOGP(info, "Found petal assembly: {}", name);
+
+      // Get petal volume and its nodes for debugging
+      TGeoVolume* petalVol = nd->GetVolume();
+      if (petalVol) {
+        TObjArray* petalNodes = petalVol->GetNodes();
+        if (petalNodes) {
+          LOGP(debug, "Petal {} contains {} child nodes", name, petalNodes->GetEntriesFast());
+          // Print all nodes in this petal
+          for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+            auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+            LOGP(debug, "  Node {}: {}", k, petalNode->GetName());
+          }
+        } else {
+          LOGP(warning, "Petal {} has no child nodes", name);
+        }
+      } else {
+        LOGP(warning, "Petal {} has no volume", name);
+      }
+    }
+  }
+
+  if (numberOfPetals == 0) {
+    LOGP(warning, "No petal assemblies found in geometry");
+  } else {
+    LOGP(info, "Found {} petal assemblies", numberOfPetals);
+  }
+
+  return numberOfPetals;
+}
+
+//__________________________________________________________________________
 int GeometryTGeo::extractNumberOfActivePartsVD() const
 {
   // The number of active parts returned here is 36 = 4 petals * (3 layers + 6 disks)
   int numberOfParts = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal to count its active parts
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, getTRKPetalPattern()) != nullptr && (strstr(name, getTRKPetalLayerPattern()) != nullptr || strstr(name, getTRKPetalDiskPattern()) != nullptr)) {
-      numberOfParts++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    const char* name = nd->GetName();
+    if (strstr(name, getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting active parts in petal: {}", name);
+
+    // Found a petal, count its layers and disks
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", name);
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", name);
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      const char* nodeName = petalNode->GetName();
+
+      if (strstr(nodeName, getTRKPetalLayerPattern()) != nullptr ||
+          strstr(nodeName, getTRKPetalDiskPattern()) != nullptr) {
+        numberOfParts++;
+        LOGP(debug, "Found active part in {}: {}", name, nodeName);
       }
     }
+    // We only need to check one petal as they're identical
+    break;
   }
-  return numberOfParts;
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+    return 0;
+  }
+
+  if (numberOfParts == 0) {
+    LOGP(warning, "No active parts (layers/disks) found in petal");
+    return 0;
+  }
+
+  // Multiply by number of petals since all petals are identical
+  int totalParts = numberOfParts * mNumberOfPetalsVD;
+  LOGP(info, "Total number of active parts: {} ({}*{})",
+       totalParts, numberOfParts, mNumberOfPetalsVD);
+  return totalParts;
 }
 
 //__________________________________________________________________________
 int GeometryTGeo::extractNumberOfDisksVD() const
 {
-  // The number of disks returned here is 6
+  // Count disks in the first petal (all petals are identical)
   int numberOfDisks = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, Form("%s%s", getTRKPetalPattern(), "0")) != nullptr && (strstr(name, getTRKPetalDiskPattern()) != nullptr)) {
-      numberOfDisks++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    if (strstr(nd->GetName(), getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting disks in petal: {}", nd->GetName());
+
+    // Count disks in this petal
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", nd->GetName());
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", nd->GetName());
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      if (strstr(petalNode->GetName(), getTRKPetalDiskPattern()) != nullptr) {
+        numberOfDisks++;
+        LOGP(info, "Found disk in {} : {}", nd->GetName(), petalNode->GetName());
       }
     }
+    // One petal is enough
+    break;
   }
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+  }
+
+  if (numberOfDisks == 0) {
+    LOGP(warning, "No disks found in VD geometry");
+  }
+
   return numberOfDisks;
-}
-
-//__________________________________________________________________________
-int GeometryTGeo::extractNumberOfPetalsVD() const
-{
-  // The number of petals returned here is 4 = number of petals
-  int numberOfChips = 0;
-
-  TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
-  }
-
-  // Loop on all TRKV nodes, count Layer volumes by checking names
-  TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
-
-    if (strstr(name, getTRKPetalPattern()) != nullptr && (strstr(name, Form("%s%s", getTRKPetalLayerPattern(), "0")) != nullptr)) {
-      numberOfChips++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
-      }
-    }
-  }
-  return numberOfChips;
 }
 
 //__________________________________________________________________________
 int GeometryTGeo::extractNumberOfLayersVD() const
 {
-  // The number of layers returned here is 3
+  // Count layers in the first petal (all petals are identical)
   int numberOfLayers = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, Form("%s%s", getTRKPetalPattern(), "0")) != nullptr && strstr(name, getTRKPetalLayerPattern()) != nullptr) {
-      numberOfLayers++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    if (strstr(nd->GetName(), getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting layers in petal: {}", nd->GetName());
+
+    // Count layers in this petal
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", nd->GetName());
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", nd->GetName());
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      if (strstr(petalNode->GetName(), getTRKPetalLayerPattern()) != nullptr) {
+        numberOfLayers++;
+        LOGP(info, "Found layer in {} : {}", nd->GetName(), petalNode->GetName());
       }
     }
+    // One petal is enough
+    break;
   }
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+  }
+
+  if (numberOfLayers == 0) {
+    LOGP(warning, "No layers found in VD geometry");
+  }
+
   return numberOfLayers;
 }
 
@@ -569,27 +889,82 @@ int GeometryTGeo::extractNumberOfChipsPerPetalVD() const
 {
   // The number of chips per petal returned here is 9 for each layer = number of layers + number of quarters of disks per petal
   int numberOfChips = 0;
-
   TGeoVolume* vdV = gGeoManager->GetVolume(getTRKVolPattern());
-  if (vdV == nullptr) {
-    LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+  if (!vdV) {
+    LOGP(fatal, "{} volume {} is not in the geometry", getName(), getTRKVolPattern());
+    return 0;
   }
 
-  // Loop on all TRKV nodes, count Layer volumes by checking names
+  // Find first petal assembly
   TObjArray* nodes = vdV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
-    const char* name = nd->GetName();
+  if (!nodes) {
+    LOGP(warning, "{} volume has no child nodes", getTRKVolPattern());
+    return 0;
+  }
 
-    if (strstr(name, Form("%s%s", getTRKPetalPattern(), "0")) != nullptr && (strstr(name, getTRKPetalLayerPattern()) != nullptr || strstr(name, getTRKPetalDiskPattern()) != nullptr)) {
-      numberOfChips++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getTRKPetalPattern())) < 0) {
-        LOG(fatal) << "Failed to extract layer ID from the " << name;
+  bool petalFound = false;
+
+  for (int j = 0; j < nodes->GetEntriesFast(); j++) {
+    auto* nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    const char* name = nd->GetName();
+    if (strstr(name, getTRKPetalAssemblyPattern()) == nullptr) {
+      continue;
+    }
+
+    petalFound = true;
+    LOGP(info, "Counting chips in petal: {}", name);
+
+    // Found a petal, count sensors in its layers and disks
+    TGeoVolume* petalVol = nd->GetVolume();
+    if (!petalVol) {
+      LOGP(warning, "Petal {} has no volume", name);
+      break;
+    }
+
+    TObjArray* petalNodes = petalVol->GetNodes();
+    if (!petalNodes) {
+      LOGP(warning, "Petal {} has no child nodes", name);
+      break;
+    }
+
+    for (int k = 0; k < petalNodes->GetEntriesFast(); k++) {
+      auto* petalNode = dynamic_cast<TGeoNode*>(petalNodes->At(k));
+      const char* nodeName = petalNode->GetName();
+      TGeoVolume* vol = petalNode->GetVolume();
+
+      if (!vol) {
+        LOGP(debug, "Node {} has no volume", nodeName);
+        continue;
+      }
+
+      // Look for sensors in this volume
+      TObjArray* subNodes = vol->GetNodes();
+      if (!subNodes) {
+        LOGP(debug, "Node {} has no sub-nodes", nodeName);
+        continue;
+      }
+
+      for (int i = 0; i < subNodes->GetEntriesFast(); i++) {
+        auto* subNode = dynamic_cast<TGeoNode*>(subNodes->At(i));
+        if (strstr(subNode->GetName(), getTRKSensorPattern()) != nullptr) {
+          numberOfChips++;
+          LOGP(debug, "Found sensor in {}: {}", nodeName, subNode->GetName());
+        }
       }
     }
+    // We only need one petal
+    break;
   }
+
+  if (!petalFound) {
+    LOGP(warning, "No petal assembly found matching pattern '{}'", getTRKPetalAssemblyPattern());
+  }
+
+  if (numberOfChips == 0) {
+    LOGP(warning, "No chips/sensors found in VD petal");
+  }
+
+  LOGP(info, "Number of chips per petal: {}", numberOfChips);
   return numberOfChips;
 }
 
@@ -643,15 +1018,71 @@ int GeometryTGeo::extractNumberOfHalfStavesMLOT(int lay) const
   for (int j = 0; j < nNodes; j++) {
     auto nd = dynamic_cast<TGeoNode*>(nodes->At(j)); /// layer node
     const char* name = nd->GetName();
-    if (strstr(name, getTRKChipPattern()) != nullptr) {
+    if (strstr(name, getTRKHalfStavePattern()) != nullptr) {
       numberOfHalfStaves++;
     }
+  }
+
+  if (numberOfHalfStaves == 0) {
+    numberOfHalfStaves = 1; /// in case of turbo geometry, there is no half stave volume, but only stave volume
   }
   return numberOfHalfStaves;
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave) const
+int GeometryTGeo::extractNumberOfModulesMLOT(int lay) const
+{
+  int numberOfModules = 0;
+
+  std::string staveName = Form("%s%d", (mNumberOfHalfStaves[lay] == 2 ? getTRKHalfStavePattern() : getTRKStavePattern()), lay);
+  TGeoVolume* staveV = gGeoManager->GetVolume(staveName.c_str());
+
+  if (staveV == nullptr) {
+    LOG(fatal) << getName() << " volume " << (mNumberOfHalfStaves[lay] == 2 ? getTRKHalfStavePattern() : getTRKStavePattern()) << " is not in the geometry";
+  }
+
+  // Loop on all staveV nodes, count Module volumes by checking names
+  TObjArray* nodes = staveV->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+
+  for (int j = 0; j < nNodes; j++) {
+    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j)); /// stave node
+    const char* name = nd->GetName();
+    if (strstr(name, getTRKModulePattern()) != nullptr) {
+      numberOfModules++;
+    }
+  }
+  return numberOfModules;
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::extractNumberOfChipsMLOT(int lay) const
+{
+  int numberOfChips = 0;
+
+  std::string moduleName = Form("%s%d", getTRKModulePattern(), lay);
+  TGeoVolume* moduleV = gGeoManager->GetVolume(moduleName.c_str());
+
+  if (moduleV == nullptr) {
+    LOG(fatal) << getName() << " volume " << getTRKModulePattern() << " is not in the geometry";
+  }
+
+  // Loop on all moduleV nodes, count Chip volumes by checking names
+  TObjArray* nodes = moduleV->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+
+  for (int j = 0; j < nNodes; j++) {
+    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j)); /// module node
+    const char* name = nd->GetName();
+    if (strstr(name, getTRKChipPattern()) != nullptr) {
+      numberOfChips++;
+    }
+  }
+  return numberOfChips;
+}
+
+//__________________________________________________________________________
+void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk, int lay, int stave, int halfstave, int mod, int chip) const
 {
   std::cout << "\nindex = " << index << std::endl;
   std::cout << "subDetID = " << subDetID << std::endl;
@@ -661,6 +1092,8 @@ void GeometryTGeo::PrintChipID(int index, int subDetID, int petalcase, int disk,
   std::cout << "first chip index = " << getFirstChipIndex(lay, petalcase, subDetID) << std::endl;
   std::cout << "stave = " << stave << std::endl;
   std::cout << "halfstave = " << halfstave << std::endl;
+  std::cout << "module = " << mod << std::endl;
+  std::cout << "chip = " << chip << std::endl;
 }
 
 //__________________________________________________________________________
@@ -688,6 +1121,18 @@ void GeometryTGeo::Print(Option_t*) const
     mlot = (i < 4) ? "ML" : "OT";
     LOGF(info, "Layer: %d, %s, %d staves, %d half staves per stave", i, mlot.c_str(), mNumberOfStaves[i], mNumberOfHalfStaves[i]);
   }
+  LOGF(info, "Number of modules per stave (half stave) in each ML(OT) layer: ");
+  for (int i = 0; i < mNumberOfLayersMLOT; i++) {
+    LOGF(info, "%d", mNumberOfModules[i]);
+  }
+  LOGF(info, "Number of chips per module MLOT: ");
+  for (int i = 0; i < mNumberOfLayersMLOT; i++) {
+    LOGF(info, "%d", mNumberOfChips[i]);
+  }
+  LOGF(info, "Number of chips per layer MLOT: ");
+  for (int i = 0; i < mNumberOfLayersMLOT; i++) {
+    LOGF(info, "%d", mNumberOfChipsPerLayerMLOT[i]);
+  }
   LOGF(info, "Total number of chips: %d", getNumberOfChips());
 
   std::cout << "mLastChipIndex = [";
@@ -706,6 +1151,88 @@ void GeometryTGeo::Print(Option_t*) const
     }
   }
   std::cout << "]" << std::endl;
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::getBarrelLayer(int chipID) const
+{
+  // for barrel layers only,
+  // so it would be consistent with number of layers i.e. from 0 to 10,
+  // starting from VD0 to OT10;
+  // skip the disks;
+
+  int subDetID = getSubDetID(chipID);
+  int subLayerID = getLayer(chipID);
+
+  if (subDetID < 0 || subDetID > 1) {
+    LOG(error) << "getBarrelLayer(): Invalid subDetID for barrel: " << subDetID
+               << ". Expected values are 0 or 1.";
+    return -1;
+  }
+
+  if (subLayerID < 0 || subLayerID > 7) {
+    LOG(error) << "getBarrelLayer(): Invalid subLayerID for barrel: " << subDetID
+               << ". Expected values are between 0 and 7.";
+    return -1;
+  }
+
+  const int baseOffsets[] = {0, 3};
+
+  return baseOffsets[subDetID] + subLayerID;
+}
+
+//__________________________________________________________________________
+void GeometryTGeo::extractSensorXAlphaMLOT(int chipID, float& x, float& alp)
+{
+  // works for ML and OT only, a.k.a flat sensors !!!
+  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
+  double xp{0}, yp{0};
+
+  if (getSubDetID(chipID) == 0) {
+
+    LOG(error) << "extractSensorXAlphaMLOT(): VD layers are not supported yet! chipID = " << chipID;
+    return;
+
+  } else { // flat sensors, ML and OT
+    const TGeoHMatrix* matL2G = extractMatrixSensor(chipID);
+    matL2G->LocalToMaster(locA, gloA);
+    matL2G->LocalToMaster(locB, gloB);
+    double dx = gloB[0] - gloA[0], dy = gloB[1] - gloA[1];
+    double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy);
+    xp = gloB[0] - dx * t;
+    yp = gloB[1] - dy * t;
+  }
+
+  alp = std::atan2(yp, xp);
+  x = std::hypot(xp, yp);
+  o2::math_utils::bringTo02Pi(alp);
+
+  /// TODO:
+  // once the VD segmentation is done, VD should be added
+}
+
+//__________________________________________________________________________
+TGeoHMatrix& GeometryTGeo::createT2LMatrixMLOT(int chipID)
+{
+  // works only for ML & OT
+  // for VD is yet to be implemented once we have more refined geometry
+  if (getSubDetID(chipID) == 0) {
+
+    LOG(error) << "createT2LMatrixMLOT(): VD layers are not supported yet! chipID = " << chipID
+               << "returning dummy values! ";
+    static TGeoHMatrix dummy;
+    return dummy;
+
+  } else {
+    static TGeoHMatrix t2l;
+    t2l.Clear();
+    float alpha = getSensorRefAlphaMLOT(chipID);
+    t2l.RotateZ(alpha * TMath::RadToDeg());
+    const TGeoHMatrix* matL2G = extractMatrixSensor(chipID);
+    const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+    t2l.MultiplyLeft(&matL2Gi);
+    return t2l;
+  }
 }
 
 } // namespace trk

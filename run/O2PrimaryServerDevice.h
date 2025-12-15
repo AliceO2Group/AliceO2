@@ -46,6 +46,7 @@
 #include <chrono>
 #include <CCDB/BasicCCDBManager.h>
 #include <TRandom3.h>
+#include <regex>
 
 namespace o2
 {
@@ -135,6 +136,17 @@ class O2PrimaryServerDevice final : public fair::mq::Device
 
       auto embedinto_filename = conf.getEmbedIntoFileName();
       if (!embedinto_filename.empty()) {
+        // determine the sim prefix from the embedding filename
+        // the filename should be an MCHeader file ... so it should match SOME_PATH/prefix_MCHeader.root
+        std::regex re(R"((.*/)?([^/]+)_MCHeader\.root$)");
+        std::smatch match;
+
+        if (std::regex_search(embedinto_filename, match, re)) {
+          std::cout << "Extracted embedding prefix : " << match[2] << '\n';
+          mEmbeddIntoPrefix = match[2];
+        } else {
+          LOG(fatal) << "Embedding asked but no suitable embedding prefix extractable from " << embedinto_filename;
+        }
         mPrimGen->embedInto(embedinto_filename);
       }
 
@@ -197,6 +209,19 @@ class O2PrimaryServerDevice final : public fair::mq::Device
             auto& vertex = vertices.at(collisionindex);
             LOG(info) << "Setting vertex " << vertex << " for event " << mEventCounter << " for prefix " << mSimConfig.getOutPrefix() << " from CollContext";
             mPrimGen->setExternalVertexForNextEvent(vertex.X(), vertex.Y(), vertex.Z());
+
+            // set correct embedding index for PrimaryGenerator ... based on collision context for embedding
+            auto& collisionParts = mCollissionContext->getEventParts()[collisionindex];
+            int background_index = -1; // -1 means no embedding taking place for this signal
+
+            // find the part that corresponds to the event embeded into
+            for (auto& part : collisionParts) {
+              if (mCollissionContext->getSimPrefixes()[part.sourceID] == mEmbeddIntoPrefix) {
+                background_index = part.entryID;
+                LOG(info) << "Setting embedding index to " << background_index;
+              }
+            }
+            mPrimGen->setEmbedIndex(background_index);
           }
         }
         mPrimGen->GenerateEvent(mStack);
@@ -222,34 +247,52 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     }
   }
 
-  // launches a thread that listens for status requests from outside asynchronously
+  // launches a thread that listens for status/config/shutdown requests from outside asynchronously
   void launchInfoThread()
   {
     static std::vector<std::thread> threads;
+    auto sendErrorReply = [](fair::mq::Channel& channel) {
+      LOG(error) << "UNKNOWN REQUEST";
+      std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage((int)(404)));
+      channel.Send(reply);
+    };
+
     LOG(info) << "LAUNCHING STATUS THREAD";
-    auto lambda = [this]() {
-      while (mState != O2PrimaryServerState::Stopped) {
+    auto lambda = [this, sendErrorReply]() {
+      bool canShutdown{false};
+      // Exit only when both: serving stopped and allowed from outside.
+      while (!(mState == O2PrimaryServerState::Stopped && canShutdown)) {
         auto& channel = GetChannels().at("o2sim-primserv-info").at(0);
         if (!channel.IsValid()) {
           LOG(error) << "channel primserv-info not valid";
         }
-        std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage(-1));
+        std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage((int)(-1)));
         int timeout = 100; // 100ms --> so as not to block and allow for proper termination of this thread
         if (channel.Receive(request, timeout) > 0) {
-          LOG(info) << "INFO REQUEST RECEIVED";
-          if (*(int*)(request->GetData()) == (int)O2PrimaryServerInfoRequest::Status) {
+          int request_payload; // we expect an (int) ~ to type O2PrimaryServerInfoRequest
+          if (request->GetSize() != sizeof(request_payload)) {
+            LOG(error) << "Obtained request with unexpected payload size";
+            sendErrorReply(channel); // ALWAYS reply
+          }
+
+          memcpy(&request_payload, request->GetData(), sizeof(request_payload));
+
+          if (request_payload == (int)O2PrimaryServerInfoRequest::Status) {
             LOG(info) << "Received status request";
             // request needs to be a simple enum of type O2PrimaryServerInfoRequest
             std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage((int)mState.load()));
             if (channel.Send(reply) > 0) {
               LOG(info) << "Send status successful";
             }
-          } else if (*(int*)request->GetData() == (int)O2PrimaryServerInfoRequest::Config) {
+          } else if (request_payload == (int)O2PrimaryServerInfoRequest::Config) {
             HandleConfigRequest(channel);
+          } else if (request_payload == (int)O2PrimaryServerInfoRequest::AllowShutdown) {
+            LOG(info) << "Got info that we may shutdown";
+            std::unique_ptr<fair::mq::Message> ack(channel.NewSimpleMessage(200));
+            channel.Send(ack);
+            canShutdown = true;
           } else {
-            LOG(fatal) << "UNKNOWN REQUEST";
-            std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage(404));
-            channel.Send(reply);
+            sendErrorReply(channel);
           }
         }
       }
@@ -425,6 +468,8 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     if (channel.Send(message) > 0) {
       LOG(info) << "config reply send ";
       return true;
+    } else {
+      LOG(error) << "Failure sending config reply ";
     }
     return true;
   }
@@ -479,10 +524,13 @@ class O2PrimaryServerDevice final : public fair::mq::Device
 
   void PostRun() override
   {
+    // We shouldn't shut down immediately when all events have been served
+    // Instead we also need to wait until the info thread running some communication server
+    // with other processes is finished.
     while (!mInfoThreadStopped) {
       LOG(info) << "Waiting info thread";
       using namespace std::chrono_literals;
-      std::this_thread::sleep_for(100ms);
+      std::this_thread::sleep_for(1000ms);
     }
   }
 
@@ -495,7 +543,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     if (mEventCounter >= mMaxEvents && mNeedNewEvent) {
       workavailable = false;
     }
-    if (!(mState == O2PrimaryServerState::ReadyToServe || mState == O2PrimaryServerState::WaitingEvent)) {
+    if (!(mState.load() == O2PrimaryServerState::ReadyToServe || mState.load() == O2PrimaryServerState::WaitingEvent)) {
       // send a zero answer
       workavailable = false;
     }
@@ -696,6 +744,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
   // some information specific to use case when we have a collision context
   o2::steer::DigitizationContext* mCollissionContext = nullptr; //!
   std::unordered_map<int, int> mEventID_to_CollID;              //!
+  std::string mEmbeddIntoPrefix;                                //! sim prefix of background events
 
   TRandom3 mSeedGenerator; //! specific random generator for seed generation for work chunks
 };

@@ -239,6 +239,8 @@ class TrackInterpolation
   /// Reset cache and output vectors
   void reset();
 
+  // refit ITS track taking PID (unless already refitted) from the seed and reassign to the seed
+  bool refITSTrack(o2::dataformats::GlobalTrackID, int iSeed);
   // -------------------------------------- outlier rejection --------------------------------------------------
 
   /// Validates the given input track and its residuals
@@ -328,6 +330,7 @@ class TrackInterpolation
   std::vector<o2::dataformats::GlobalTrackID> mGIDs{};                      ///< GIDs of input tracks
   std::vector<o2::globaltracking::RecoContainer::GlobalIDSet> mGIDtables{}; ///< GIDs of contributors from single detectors for each seed
   std::vector<float> mTrackTimes{};                                         ///< time estimates for all input tracks in micro seconds
+  std::vector<int> mTrackPVID{};                                            ///< track vertex index (if any)
   std::vector<o2::track::TrackParCov> mSeeds{};                             ///< seeding track parameters (ITS tracks)
   std::vector<int> mParentID{};                                             ///< entry of more global parent track for skimmed seeds (-1: no parent)
   std::map<int, int> mTrackTypes;                                           ///< mapping of track source to array index in mTrackIndices
@@ -337,6 +340,7 @@ class TrackInterpolation
   // ITS specific input only needed for debugging
   gsl::span<const int> mITSTrackClusIdx;                    ///< input ITS track cluster indices span
   std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
+  std::vector<int> mITSRefitSeedID;                         ///< seed ID first using refitted ITS track
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
 
   // output

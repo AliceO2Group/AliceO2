@@ -186,7 +186,8 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
       int lslot = tc.MaxTrackLength - ilg;
       p.MinPt[lslot] *= bFactor;
     }
-
+    p.ReseedIfShorter = tc.reseedIfShorter;
+    p.ShiftRefToCluster = tc.shiftRefToCluster;
     p.createArtefactLabels = tc.createArtefactLabels;
 
     p.PrintMemory = tc.printMemory;

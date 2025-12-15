@@ -763,27 +763,21 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
     bounded_vector<TrackITSExt> tracks(mMemoryPool.get());
     mTaskArena->execute([&] {
       auto forSeed = [&](auto Tag, int iSeed, int offset = 0) {
-        const auto& seed{trackSeeds[iSeed]};
-        TrackITSExt temporaryTrack{seed};
-        temporaryTrack.resetCovariance();
-        temporaryTrack.setChi2(0);
-        for (int iL{0}; iL < nLayers; ++iL) {
-          temporaryTrack.setExternalClusterIndex(iL, seed.getCluster(iL), seed.getCluster(iL) != constants::UnusedIndex);
-        }
-
-        bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+        TrackITSExt temporaryTrack = seedTrackForRefit(trackSeeds[iSeed]);
+        o2::track::TrackPar linRef{temporaryTrack};
+        bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, o2::constants::math::VeryBig, 0, &linRef);
         if (!fitSuccess) {
           return 0;
         }
-
         temporaryTrack.getParamOut() = temporaryTrack.getParamIn();
+        linRef = temporaryTrack.getParamOut(); // use refitted track as lin.reference
         temporaryTrack.resetCovariance();
+        temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
         temporaryTrack.setChi2(0);
-        fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f);
+        fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f, 0, &linRef);
         if (!fitSuccess || temporaryTrack.getPt() < mTrkParams[iteration].MinPt[mTrkParams[iteration].NLayers - temporaryTrack.getNClusters()]) {
           return 0;
         }
-
         if constexpr (decltype(Tag)::value == PassMode::OnePass::value) {
           tracks.push_back(temporaryTrack);
         } else if constexpr (decltype(Tag)::value == PassMode::TwoPassCount::value) {
@@ -1045,7 +1039,7 @@ void TrackerTraits<nLayers>::findShortPrimaries()
 }
 
 template <int nLayers>
-bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl)
+bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl, o2::track::TrackPar* linRef)
 {
   auto propInstance = o2::base::Propagator::Instance();
 
@@ -1054,21 +1048,31 @@ bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, in
       continue;
     }
     const TrackingFrameInfo& trackingHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer)[track.getClusterIndex(iLayer)];
-
-    if (!track.rotate(trackingHit.alphaTrackingFrame)) {
-      return false;
-    }
-
-    if (!propInstance->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mTrkParams[0].CorrType)) {
-      return false;
-    }
-
-    if (mTrkParams[0].CorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-      if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
-        continue;
+    if (linRef) {
+      if (!track.rotate(trackingHit.alphaTrackingFrame, *linRef, getBz())) {
+        return false;
+      }
+      if (!propInstance->propagateToX(track, *linRef, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mTrkParams[0].CorrType)) {
+        return false;
+      }
+      if (mTrkParams[0].CorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        if (!track.correctForMaterial(*linRef, mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+          continue;
+        }
+      }
+    } else {
+      if (!track.rotate(trackingHit.alphaTrackingFrame)) {
+        return false;
+      }
+      if (!propInstance->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mTrkParams[0].CorrType)) {
+        return false;
+      }
+      if (mTrkParams[0].CorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+          continue;
+        }
       }
     }
-
     auto predChi2{track.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
@@ -1076,6 +1080,10 @@ bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, in
     track.setChi2(track.getChi2() + predChi2);
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
+    }
+    if (linRef && mTrkParams[0].ShiftRefToCluster) { // displace the reference to the last updated cluster
+      linRef->setY(trackingHit.positionTrackingFrame[0]);
+      linRef->setZ(trackingHit.positionTrackingFrame[1]);
     }
     nCl++;
   }
@@ -1194,36 +1202,82 @@ bool TrackerTraits<nLayers>::trackFollowing(TrackITSExt* track, int rof, bool ou
   return swapped;
 }
 
+// create a new seed either from the existing track inner param or reseed from the edgepointd and cluster in the middle
+template <int nLayers>
+TrackITSExt TrackerTraits<nLayers>::seedTrackForRefit(const CellSeedN& seed)
+{
+  TrackITSExt temporaryTrack(seed);
+  int lrMin = nLayers, lrMax = 0, lrMid = 0;
+  for (int iL = 0; iL < nLayers; ++iL) {
+    const int idx = seed.getCluster(iL);
+    temporaryTrack.setExternalClusterIndex(iL, idx, idx != constants::UnusedIndex);
+    if (idx != constants::UnusedIndex) {
+      lrMin = o2::gpu::CAMath::Min(lrMin, iL);
+      lrMax = o2::gpu::CAMath::Max(lrMax, iL);
+    }
+  }
+  int ncl = temporaryTrack.getNClusters();
+  if (ncl < mTrkParams[0].ReseedIfShorter) { // reseed with circle passing via edges and the midpoint
+    if (ncl == mTrkParams[0].NLayers) {
+      lrMin = 0;
+      lrMax = mTrkParams[0].NLayers - 1;
+      lrMid = (lrMin + lrMax) / 2;
+    } else {
+      lrMid = lrMin + 1;
+      float midR = 0.5 * (mTrkParams[0].LayerRadii[lrMax] + mTrkParams[0].LayerRadii[lrMin]), dstMidR = o2::gpu::GPUCommonMath::Abs(midR - mTrkParams[0].LayerRadii[lrMid]);
+      for (int iL = lrMid + 1; iL < lrMax; ++iL) { // find the midpoint as closest to the midR
+        auto dst = o2::gpu::GPUCommonMath::Abs(midR - mTrkParams[0].LayerRadii[iL]);
+        if (dst < dstMidR) {
+          lrMid = iL;
+          dstMidR = dst;
+        }
+      }
+    }
+    const auto& cluster0_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lrMin)[seed.getCluster(lrMin)]; // if the sensor frame!
+    const auto& cluster1_gl = mTimeFrame->getUnsortedClusters()[lrMid][seed.getCluster(lrMid)];       // global frame
+    const auto& cluster2_gl = mTimeFrame->getUnsortedClusters()[lrMax][seed.getCluster(lrMax)];       // global frame
+    temporaryTrack.getParamIn() = buildTrackSeed(cluster2_gl, cluster1_gl, cluster0_tf, true);
+  }
+  temporaryTrack.resetCovariance();
+  temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
+  return temporaryTrack;
+}
+
 /// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
 /// frame coordinates whereas the others are referred to the global frame.
 template <int nLayers>
-track::TrackParCov TrackerTraits<nLayers>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3)
+track::TrackParCov TrackerTraits<nLayers>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3, bool reverse)
 {
-  float ca{-999.f}, sa{-999.f};
+  const float sign = reverse ? -1.f : 1.f;
+
+  float ca, sa;
   o2::gpu::CAMath::SinCos(tf3.alphaTrackingFrame, sa, ca);
+
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
   const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
-  const float z1 = cluster1.zCoordinate;
   const float x2 = cluster2.xCoordinate * ca + cluster2.yCoordinate * sa;
   const float y2 = -cluster2.xCoordinate * sa + cluster2.yCoordinate * ca;
-  const float z2 = cluster2.zCoordinate;
   const float x3 = tf3.xTrackingFrame;
   const float y3 = tf3.positionTrackingFrame[0];
-  const float z3 = tf3.positionTrackingFrame[1];
-  float tgp{1.f}, crv{1.f}, snp{-999.f}, tgl12{-999.f}, tgl23{-999.f}, q2pt{1.f / track::kMostProbablePt}, q2pt2{1.f}, sg2q2pt{-999.f};
+
+  float snp, q2pt, q2pt2;
   if (mIsZeroField) {
-    tgp = o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1);
-    snp = tgp / o2::gpu::CAMath::Sqrt(1.f + tgp * tgp);
+    const float tgp = o2::gpu::CAMath::ATan2(y3 - y1, x3 - x1);
+    snp = sign * tgp / o2::gpu::CAMath::Sqrt(1.f + tgp * tgp);
+    q2pt = sign / track::kMostProbablePt;
+    q2pt2 = 1.f;
   } else {
-    crv = math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
-    snp = crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1));
-    q2pt = crv / (mBz * o2::constants::math::B2C);
+    const float crv = math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
+    snp = sign * crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1));
+    q2pt = sign * crv / (mBz * o2::constants::math::B2C);
     q2pt2 = crv * crv;
   }
-  tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-  tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
-  sg2q2pt = track::kC1Pt2max * (q2pt2 > 0.0005f ? (q2pt2 < 1.f ? q2pt2 : 1.f) : 0.0005f);
-  return {tf3.xTrackingFrame, tf3.alphaTrackingFrame, {y3, z3, snp, 0.5f * (tgl12 + tgl23), q2pt}, {tf3.covarianceTrackingFrame[0], tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2], 0.f, 0.f, track::kCSnp2max, 0.f, 0.f, 0.f, track::kCTgl2max, 0.f, 0.f, 0.f, 0.f, sg2q2pt}};
+
+  const float tgl = 0.5f * (math_utils::computeTanDipAngle(x1, y1, x2, y2, cluster1.zCoordinate, cluster2.zCoordinate) +
+                            math_utils::computeTanDipAngle(x2, y2, x3, y3, cluster2.zCoordinate, tf3.positionTrackingFrame[1]));
+  const float sg2q2pt = track::kC1Pt2max * (q2pt2 > 0.0005f ? (q2pt2 < 1.f ? q2pt2 : 1.f) : 0.0005f);
+
+  return {x3, tf3.alphaTrackingFrame, {y3, tf3.positionTrackingFrame[1], snp, tgl, q2pt}, {tf3.covarianceTrackingFrame[0], tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2], 0.f, 0.f, track::kCSnp2max, 0.f, 0.f, 0.f, track::kCTgl2max, 0.f, 0.f, 0.f, 0.f, sg2q2pt}};
 }
 
 template <int nLayers>

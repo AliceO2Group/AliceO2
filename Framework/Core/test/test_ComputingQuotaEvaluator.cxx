@@ -28,7 +28,7 @@ TEST_CASE("TestComputingQuotaEvaluator")
   };
 
   ComputingQuotaConsumer dispose2MB = [bs = 2000000](int taskId,
-                                                     std::array<ComputingQuotaOffer, 16>& offers,
+                                                     std::array<ComputingQuotaOffer, 32>& offers,
                                                      ComputingQuotaStats& stats,
                                                      std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> accountDisposed) {
     ComputingQuotaOffer disposed;
@@ -51,7 +51,7 @@ TEST_CASE("TestComputingQuotaEvaluator")
   };
 
   ComputingQuotaConsumer dispose10MB = [bs = 10000000](int taskId,
-                                                       std::array<ComputingQuotaOffer, 16>& offers,
+                                                       std::array<ComputingQuotaOffer, 32>& offers,
                                                        ComputingQuotaStats& stats,
                                                        std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> accountDisposed) {
     ComputingQuotaOffer disposed;

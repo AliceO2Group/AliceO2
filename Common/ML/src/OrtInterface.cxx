@@ -138,6 +138,24 @@ void OrtModel::initEnvironment()
   (mPImplOrt->env)->DisableTelemetryEvents(); // Disable telemetry events
 }
 
+void OrtModel::initSessionFromBuffer(const char* buffer, size_t bufferSize)
+{
+  mPImplOrt->sessionOptions.AddConfigEntry("session.load_model_format", "ONNX");
+  mPImplOrt->sessionOptions.AddConfigEntry("session.use_ort_model_bytes_directly", "1");
+
+  mPImplOrt->session = std::make_unique<Ort::Session>(*mPImplOrt->env,
+                                                      buffer,
+                                                      bufferSize,
+                                                      mPImplOrt->sessionOptions);
+  mPImplOrt->ioBinding = std::make_unique<Ort::IoBinding>(*mPImplOrt->session);
+
+  setIO();
+
+  if (mLoggingLevel < 2) {
+    LOG(info) << "(ORT) Model loaded successfully from buffer! (inputs: " << printShape(mInputShapes, mInputNames) << ", outputs: " << printShape(mOutputShapes, mInputNames) << ")";
+  }
+}
+
 void OrtModel::initSession()
 {
   if (mAllocateDeviceMemory) {

@@ -1,0 +1,75 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file GPUO2ConfigurableParam.h
+/// \author David Rohr
+
+// This file auto-generates a ConfigurableParam object from the GPU parameter macros.
+// Set via:
+// --configKeyValues "GPU_global.[x]=[y]" : for global GPU run configurations, like solenoidBz, gpuType, configuration object files.
+// --configKeyValues "GPU_rec.[x]=[y]" : for GPU reconstruction related settings used on the GPU, like pt threshold for track rejection.
+// --configKeyValues "GPU_proc.[x]=[y]" : for processing options steering GPU reconstruction like GPU device ID, debug output level, number of CPU threads.
+// Check GPUSettingsList.h for all options
+
+#ifndef GPUO2CONFIGURABLEPARAM_H
+#define GPUO2CONFIGURABLEPARAM_H
+
+#include "GPUO2ExternalUser.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
+#include "GPUSettings.h"
+#include "GPUDefMacros.h"
+#include <vector>
+
+#define BeginNamespace(name) \
+  namespace name             \
+  {
+#define EndNamespace() }
+#define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
+#define AddOptionRTC(...) AddOption(__VA_ARGS__)
+#define AddVariable(name, type, default)
+#define AddVariableRTC(...) AddVariable(__VA_ARGS__)
+#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
+#define AddOptionVec(name, type, optname, optnameshort, help, ...)
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {GPUCA_M_STRIP(default)};
+#define AddSubConfig(name, instance)
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix)                                           \
+  struct GPUCA_M_CAT(GPUConfigurableParam, name) : public o2::conf::ConfigurableParamHelper<GPUCA_M_CAT(GPUConfigurableParam, name)> { \
+    O2ParamDef(GPUCA_M_CAT(GPUConfigurableParam, name), GPUCA_M_STR(GPUCA_M_CAT(GPU_, o2prefix))) public:
+#define BeginHiddenConfig(name, instance) struct GPUCA_M_CAT(GPUConfigurableParam, name) {
+#define EndConfig() \
+  }                 \
+  ;
+#define AddCustomCPP(...) __VA_ARGS__
+#define AddHelp(...)
+#define AddShortcut(...)
+#define AddOptionRTC(...) AddOption(__VA_ARGS__)
+#define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)
+#include "GPUSettingsList.h"
+#undef BeginNamespace
+#undef EndNamespace
+#undef AddOption
+#undef AddOptionRTC
+#undef AddVariable
+#undef AddVariableRTC
+#undef AddOptionSet
+#undef AddOptionVec
+#undef AddOptionArray
+#undef AddOptionArrayRTC
+#undef AddSubConfig
+#undef BeginSubConfig
+#undef BeginHiddenConfig
+#undef EndConfig
+#undef AddCustomCPP
+#undef AddHelp
+#undef AddShortcut
+
+#endif

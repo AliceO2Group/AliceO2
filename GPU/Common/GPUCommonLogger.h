@@ -45,7 +45,7 @@ struct DummyLogger {
 #define LOGP(...)
 // #define LOGP(...) static_assert(false, "LOGP(...) unsupported in GPU code");
 
-#elif defined(GPUCA_STANDALONE)
+#elif defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE_COMPILEKERNELS) || defined(GPUCA_COMPILEKERNELS)
 #include <iostream>
 #include <cstdio>
 #define LOG(type) std::cout

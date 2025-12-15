@@ -19,6 +19,7 @@ target_link_libraries(
           O2::FDDWorkflow
           O2::FV0Workflow
           O2::Framework
+          O2::FrameworkAnalysisSupport
           O2::GlobalTracking
           O2::GlobalTrackingWorkflow
           O2::ITSMFTWorkflow
@@ -75,6 +76,7 @@ o2_add_executable(
         O2::DataFormatsFT0
         O2::Steer
         O2::ZDCBase
+        O2::FrameworkAnalysisSupport
         nlohmann_json::nlohmann_json
         )
 

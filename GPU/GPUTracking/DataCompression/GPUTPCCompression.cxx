@@ -111,7 +111,7 @@ void GPUTPCCompression::RegisterMemoryAllocation()
   if (gatherMode == 3) {
     mMemoryResOutputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutputGPU, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCCompressionOutputGPU");
   }
-  uint32_t stackScratch = (gatherMode != 3) ? GPUMemoryResource::MEMORY_STACK : 0;
+  uint32_t stackScratch = (gatherMode != 3) ? GPUMemoryResource::MEMORY_STACK : 0; // TODO: Can we use stacked memory also with gather mode 3?
   if (gatherMode < 2) {
     mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT | stackScratch, "TPCCompressionOutput");
   }

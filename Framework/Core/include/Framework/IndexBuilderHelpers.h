@@ -11,23 +11,32 @@
 
 #ifndef O2_FRAMEWORK_INDEXBUILDERHELPERS_H_
 #define O2_FRAMEWORK_INDEXBUILDERHELPERS_H_
-#include "arrow/array.h"
 #include <arrow/chunked_array.h>
 #include <arrow/builder.h>
 #include <arrow/memory_pool.h>
-#include <string>
 #include <memory>
-#include <type_traits>
+
+namespace o2::soa
+{
+enum struct IndexKind : int {
+  IdxInvalid = -1,
+  IdxSelf = 0,
+  IdxSingle = 1,
+  IdxSlice = 2,
+  IdxArray = 3
+};
+} // namespace o2::soa
 
 namespace o2::framework
 {
 void cannotBuildAnArray();
+void cannotCreateIndexBuilder();
 
 struct ChunkedArrayIterator {
   ChunkedArrayIterator(std::shared_ptr<arrow::ChunkedArray> source);
-  virtual ~ChunkedArrayIterator() = default;
+  void reset(std::shared_ptr<arrow::ChunkedArray>& source);
 
-  std::shared_ptr<arrow::ChunkedArray> mSource;
+  std::shared_ptr<arrow::ChunkedArray> mSource = nullptr;
   size_t mPosition = 0;
   int mChunk = 0;
   size_t mOffset = 0;
@@ -35,6 +44,7 @@ struct ChunkedArrayIterator {
   int const* mCurrent = nullptr;
   int const* mLast = nullptr;
   size_t mFirstIndex = 0;
+  size_t mSourceSize = 0;
 
   std::shared_ptr<arrow::Int32Array> getCurrentArray();
   void nextChunk();
@@ -42,114 +52,72 @@ struct ChunkedArrayIterator {
   int valueAt(size_t pos);
 };
 
-struct SelfIndexColumnBuilder {
-  SelfIndexColumnBuilder(const char* name, arrow::MemoryPool* pool);
-  virtual ~SelfIndexColumnBuilder() = default;
+struct SelfBuilder {
+  std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
+  std::unique_ptr<framework::ChunkedArrayIterator> keyIndex = nullptr;
+  SelfBuilder(arrow::MemoryPool* pool);
+  void reset(std::shared_ptr<arrow::ChunkedArray>);
 
-  template <typename C>
-  inline std::shared_ptr<arrow::ChunkedArray> result() const
-  {
-    std::shared_ptr<arrow::Array> array;
-    auto status = static_cast<arrow::Int32Builder*>(mBuilder.get())->Finish(&array);
-    if (!status.ok()) {
-      cannotBuildAnArray();
-    }
-
-    return std::make_shared<arrow::ChunkedArray>(array);
-  }
-  std::shared_ptr<arrow::Field> field() const;
-  template <typename C>
-  inline bool find(int)
+  inline bool find(int) const
   {
     return true;
   }
-
-  template <typename C>
-  inline void fill(int idx)
-  {
-    (void)static_cast<arrow::Int32Builder*>(mBuilder.get())->Append(idx);
-  }
-
-  std::string mColumnName;
-  std::shared_ptr<arrow::DataType> mArrowType;
-  std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
+  void fill(int idx);
+  std::shared_ptr<arrow::ChunkedArray> result() const;
 };
 
-class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIterator
-{
- public:
-  IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> source, const char* name, int listSize, arrow::MemoryPool* pool);
-  ~IndexColumnBuilder() override = default;
+struct SingleBuilder : public ChunkedArrayIterator {
+  std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
+  SingleBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool);
+  void reset(std::shared_ptr<arrow::ChunkedArray> source);
 
-  template <typename C>
-  inline std::shared_ptr<arrow::ChunkedArray> result() const
-  {
-    if constexpr (std::same_as<typename C::type, std::vector<int>>) {
-      return resultMulti();
-    } else if constexpr (std::same_as<typename C::type, int[2]>) {
-      return resultSlice();
-    } else {
-      return resultSingle();
-    }
-  }
+  bool find(int idx);
+  void fill(int idx);
+  std::shared_ptr<arrow::ChunkedArray> result() const;
+};
 
-  template <typename C>
-  inline bool find(int idx)
-  {
-    if constexpr (std::same_as<typename C::type, std::vector<int>>) {
-      return findMulti(idx);
-    } else if constexpr (std::same_as<typename C::type, int[2]>) {
-      return findSlice(idx);
-    } else {
-      return findSingle(idx);
-    }
-  }
-
-  template <typename C>
-  inline void fill(int idx)
-  {
-    ++mResultSize;
-    if constexpr (std::same_as<typename C::type, std::vector<int>>) {
-      fillMulti(idx);
-    } else if constexpr (std::same_as<typename C::type, int[2]>) {
-      fillSlice(idx);
-    } else {
-      fillSingle(idx);
-    }
-  }
-
- private:
-  arrow::Status preSlice();
-  arrow::Status preFind();
-
-  bool findSingle(int idx);
-  bool findSlice(int idx);
-  bool findMulti(int idx);
-
-  void fillSingle(int idx);
-  void fillSlice(int idx);
-  void fillMulti(int idx);
-
-  std::shared_ptr<arrow::ChunkedArray> resultSingle() const;
-  std::shared_ptr<arrow::ChunkedArray> resultSlice() const;
-  std::shared_ptr<arrow::ChunkedArray> resultMulti() const;
-
-  int mListSize = 1;
+struct SliceBuilder : public ChunkedArrayIterator {
   arrow::ArrayBuilder* mValueBuilder = nullptr;
   std::unique_ptr<arrow::ArrayBuilder> mListBuilder = nullptr;
-
-  size_t mSourceSize = 0;
-  size_t mResultSize = 0;
-
-  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValuesArrow = nullptr;
+  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
   std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
-  std::vector<int> mValues;
-  std::vector<std::vector<int>> mIndices;
-  int mFillOffset = 0;
   int mValuePos = 0;
+  SliceBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool);
+  void reset(std::shared_ptr<arrow::ChunkedArray> source);
+
+  bool find(int idx);
+  void fill(int idx);
+  std::shared_ptr<arrow::ChunkedArray> result() const;
+
+  arrow::Status preSlice();
 };
 
-std::shared_ptr<arrow::Table> makeArrowTable(const char* label, std::vector<std::shared_ptr<arrow::ChunkedArray>>&& columns, std::vector<std::shared_ptr<arrow::Field>>&& fields);
+struct ArrayBuilder : public ChunkedArrayIterator {
+  arrow::ArrayBuilder* mValueBuilder = nullptr;
+  std::vector<int> mValues;
+  std::vector<std::vector<int>> mIndices;
+  std::unique_ptr<arrow::ArrayBuilder> mListBuilder = nullptr;
+  ArrayBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool);
+  void reset(std::shared_ptr<arrow::ChunkedArray> source);
+
+  bool find(int idx);
+  void fill(int idx);
+  std::shared_ptr<arrow::ChunkedArray> result() const;
+
+  arrow::Status preFind();
+};
+
+struct IndexColumnBuilder {
+  std::variant<std::monostate, SelfBuilder, SingleBuilder, SliceBuilder, ArrayBuilder> builder;
+  size_t mResultSize = 0;
+  int mColumnPos = -1;
+  IndexColumnBuilder(soa::IndexKind kind, int pos, arrow::MemoryPool* pool, std::shared_ptr<arrow::ChunkedArray> source = nullptr);
+  void reset(std::shared_ptr<arrow::ChunkedArray> source = nullptr);
+
+  bool find(int idx);
+  void fill(int idx);
+  std::shared_ptr<arrow::ChunkedArray> result() const;
+};
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_INDEXBUILDERHELPERS_H_

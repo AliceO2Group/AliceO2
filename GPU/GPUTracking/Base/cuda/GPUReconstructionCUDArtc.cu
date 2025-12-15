@@ -20,7 +20,7 @@
 #define GPUCA_DETERMINISTIC_CODE(...) GPUCA_DETERMINISTIC_CODE(__VA_ARGS__)
 #define GPUCA_RTC_CONSTEXPR GPUCA_RTC_CONSTEXPR
 
-// GPUReconstructionCUDAIncludesSystem.h prependended by CMakewithout preprocessor running
+// GPUReconstructionCUDAIncludesSystem.h prependended by CMake without preprocessor running
 #include "GPUReconstructionCUDADef.h"
 #include "GPUReconstructionIncludesDeviceAll.h"
 

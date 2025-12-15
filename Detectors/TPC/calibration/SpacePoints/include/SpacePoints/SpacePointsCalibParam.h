@@ -58,6 +58,7 @@ static constexpr float MaxY = 50.f;      ///< max value for y position (sector c
 static constexpr float MaxZ = 300.f;     ///< max value for z position
 static constexpr float MaxTgSlp = 1.f;   ///< max value for phi (from snp, converted to tangens)
 static constexpr float MaxTRDSlope = 5.; ///< max value for the TRD tracklet getDy
+static constexpr float MaxVtxX = 0.5;    ///< max X value of the PV rotated to the frame of track at its DCA to PV
 // miscellaneous
 static constexpr float sEps = 1e-6f; ///< small number for float comparisons
 

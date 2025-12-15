@@ -135,6 +135,11 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool tpcTriggerHandling = false;
     bool isITS3 = false;
     bool useFilteredOutputSpecs = false;
+
+    // NN clusterizer
+    bool nnLoadFromCCDB = false;
+    bool nnDumpToFile = false;
+    std::vector<std::string> nnEvalMode;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int32_t> const& tpcsectors, uint64_t tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** gPolicyOrder = nullptr);
@@ -230,7 +235,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   uint32_t mNextThreadIndex = 0;
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
-  std::unique_ptr<o2::gpu::GPUSettingsProcessingNNclusterizer> mNNClusterizerSettings;
+  std::map<std::string, std::string> nnCCDBSettings;
 
   Config mSpecConfig;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGR;

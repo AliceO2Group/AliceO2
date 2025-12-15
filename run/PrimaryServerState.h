@@ -25,10 +25,11 @@ enum class O2PrimaryServerState {
 };
 static const char* PrimStateToString[5] = {"INIT", "SERVING", "WAITEVENT", "IDLE", "STOPPED"};
 
-/// enum class for type of info request
+/// enum class for request to o2sim-primserv-info channel of the O2PrimaryServerDevice
 enum class O2PrimaryServerInfoRequest {
-  Status = 1,
-  Config = 2
+  Status = 1,       // asks to retrieve current status of O2PrimaryServerDevice --> will send O2PrimaryServerState
+  Config = 2,       // asks for o2-sim config reply
+  AllowShutdown = 3 // can be used to let particle server know that shutdown is now safe (once all components initialized)
 };
 
 /// Struct to be used as payload when making a request

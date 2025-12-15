@@ -58,6 +58,7 @@ install(FILES CheckDigits_mft.C
               CreateGRPLHCIFObject.C
               getTimeStamp.C
               CreateSampleIRFrames.C
+              convert_onnx_to_root_serialized.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -148,6 +149,9 @@ o2_add_test_root_macro(checkTOFMatching.C
                                              O2::ReconstructionDataFormats
                                              O2::SimulationDataFormat
                                              O2::DataFormatsTOF)
+
+o2_add_test_root_macro(convert_onnx_to_root_serialized.C
+                       PUBLIC_LINK_LIBRARIES O2::GlobalTracking)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(compareTopologyDistributions.C

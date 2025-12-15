@@ -468,6 +468,9 @@ class EncodedBlocks
   /// total allocated size in bytes
   size_t size() const { return mRegistry.size; }
 
+  /// used part of total allocated size in bytes (output size)
+  size_t outputsize() const { return mRegistry.offsFreeStart; }
+
   /// size remaining for additional data
   size_t getFreeSize() const { return mRegistry.getFreeSize(); }
 
@@ -899,7 +902,7 @@ void EncodedBlocks<H, N, W>::print(const std::string& prefix, int verbosity) con
       ndata += mBlocks[i].getNData();
       nlit += mBlocks[i].getNLiterals();
     }
-    LOG(info) << prefix << N << " blocks, input size: " << inpSize << ", output size: " << size()
+    LOG(info) << prefix << N << " blocks, input size: " << inpSize << ", output size: " << outputsize()
               << " NDictWords: " << ndict << " NDataWords: " << ndata << " NLiteralWords: " << nlit;
   }
 }
@@ -929,9 +932,11 @@ CTFIOSize EncodedBlocks<H, N, W>::decode(D_IT dest,                        // it
   const auto& md = mMetadata[slot];
   LOGP(debug, "Slot{} | NStored={} Ndict={} nData={}, MD: messageLength:{} opt:{} min:{} max:{} offs:{} width:{} ", slot, block.getNStored(), block.getNDict(), block.getNData(), md.messageLength, (int)md.opt, md.min, md.max, md.literalsPackingOffset, md.literalsPackingWidth);
 
+  constexpr size_t word_size = sizeof(W);
+
   if (ansVersion == ANSVersionCompat) {
     if (!block.getNStored()) {
-      return {0, md.getUncompressedSize(), md.getCompressedSize()};
+      return {0, md.getUncompressedSize(), md.getCompressedSize() * word_size};
     }
     if (md.opt == Metadata::OptStore::EENCODE) {
       return decodeCompatImpl(dest, slot, decoderExt);
@@ -943,7 +948,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decode(D_IT dest,                        // it
       return decodeUnpackImpl(dest, slot);
     }
     if (!block.getNStored()) {
-      return {0, md.getUncompressedSize(), md.getCompressedSize()};
+      return {0, md.getUncompressedSize(), md.getCompressedSize() * word_size};
     }
     if (md.opt == Metadata::OptStore::EENCODE) {
       return decodeRansV1Impl(dest, slot, decoderExt);
@@ -991,7 +996,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeCompatImpl(dst_IT dstBegin, int slot, co
   } else {
     getDecoder().process(block.getData() + block.getNData(), dstBegin, md.messageLength, NDecoderStreams);
   }
-  return {0, md.getUncompressedSize(), md.getCompressedSize()};
+  return {0, md.getUncompressedSize(), md.getCompressedSize() * sizeof(W)};
 };
 
 template <typename H, int N, typename W>
@@ -1045,7 +1050,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeRansV1Impl(dst_IT dstBegin, int slot, co
   } else {
     getDecoder().process(block.getData() + block.getNData(), dstBegin, md.messageLength, md.nStreams);
   }
-  return {0, md.getUncompressedSize(), md.getCompressedSize()};
+  return {0, md.getUncompressedSize(), md.getCompressedSize() * sizeof(W)};
 };
 
 template <typename H, int N, typename W>
@@ -1079,7 +1084,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeUnpackImpl(dst_IT dest, int slot) const
   } else {
     rans::unpack(srcIt, messageLength, dest, packingWidth, offset);
   }
-  return {0, md.getUncompressedSize(), md.getCompressedSize()};
+  return {0, md.getUncompressedSize(), md.getCompressedSize() * sizeof(W)};
 };
 
 template <typename H, int N, typename W>
@@ -1098,7 +1103,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeCopyImpl(dst_IT dest, int slot) const
   destPtr_t srcEnd = srcBegin + md.messageLength * sizeof(dest_t);
   std::copy(srcBegin, srcEnd, dest);
 
-  return {0, md.getUncompressedSize(), md.getCompressedSize()};
+  return {0, md.getUncompressedSize(), md.getCompressedSize() * sizeof(W)};
 };
 
 ///_____________________________________________________________________________
@@ -1268,7 +1273,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::entropyCodeRANSCompat(const input_IT 
                                                                                      dataSize,
                                                                                      nLiteralWords);
 
-  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
+  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize() * sizeof(W)};
 }
 
 template <typename H, int N, typename W>
@@ -1349,7 +1354,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1External(const input_IT srcBegin, 
                                                                                  dataSize,
                                                                                  literalsSize);
 
-  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
+  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize() * sizeof(W)};
 };
 
 template <typename H, int N, typename W>
@@ -1458,7 +1463,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
                                                                                  dataSize,
                                                                                  literalsSize);
 
-  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
+  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize() * sizeof(W)};
 }; // namespace ctf
 
 template <typename H, int N, typename W>
@@ -1491,7 +1496,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::pack(const input_IT srcBegin, const i
   }
 
   LOGP(debug, "StoreData {} bytes, offs: {}:{}", packedSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + packedSize * sizeof(storageBuffer_t));
-  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
+  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize() * sizeof(W)};
 };
 
 template <typename H, int N, typename W>
@@ -1513,7 +1518,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::store(const input_IT srcBegin, const 
 
   *thisMetadata = detail::makeMetadataStore<input_t, storageBuffer_t>(messageLength, opt, nBufferElems);
 
-  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
+  return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize() * sizeof(W)};
 };
 
 /// create a special EncodedBlocks containing only dictionaries made from provided vector of frequency tables
