@@ -91,7 +91,7 @@ class PIDStudy : public Task
            std::shared_ptr<o2::base::GRPGeomRequest> gr,
            bool isMC,
            std::shared_ptr<o2::steer::MCKinematicsReader> kineReader) : mDataRequest{dr}, mGGCCDBRequest(gr), mUseMC(isMC), mKineReader(kineReader){};
-  ~PIDStudy() final = default;
+  ~PIDStudy() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext&) final;
   void endOfStream(EndOfStreamContext&) final;
