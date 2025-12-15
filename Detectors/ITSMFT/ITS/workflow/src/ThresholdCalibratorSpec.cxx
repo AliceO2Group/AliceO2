@@ -74,7 +74,7 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     LOG(warning) << "mColStep = " << mColStep << ": saving s-curves of only 1 pixel (pix 0) per row";
   }
 
-  isLocal = ic.options().get<bool>("local");
+  isLocal = ic.options().get<bool>("local-processing");
 
   std::string fittype = ic.options().get<std::string>("fittype");
   if (fittype == "derivative") {
@@ -2069,7 +2069,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"meb-select", VariantType::Int, -1, {"Select from which multi-event buffer consider the hits: 0,1 or 2"}},
             {"s-curve-col-step", VariantType::Int, 8, {"save s-curves points to tree every s-curve-col-step  pixels on 1 row"}},
             {"percentage-cut", VariantType::Int, 25, {"discard chip in ITHR/VCASN scan if the percentage of success is less than this cut"}},
-            {"local", VariantType::Bool, false, {"Enable in case of data replay of scans processed row by row or in 1 go in finalize() but with partial data in the raw TF (e.g. data dump stopped before the real end of run)"}}}};
+            {"local-processing", VariantType::Bool, false, {"Enable in case of data replay of scans processed row by row or in 1 go in finalize() but with partial data in the raw TF (e.g. data dump stopped before the real end of run)"}}}};
 }
 } // namespace its
 } // namespace o2
