@@ -109,11 +109,11 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 {
   // digitize single event, the time must have been set beforehand
 
-  LOG(info) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
-            << ") hits of entry " << evID << " from source " << srcID
-            << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
-            << " cont.mode: " << isContinuous()
-            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
+  LOG(debug) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
+             << ") hits of entry " << evID << " from source " << srcID
+             << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
+             << " cont.mode: " << isContinuous()
+             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
   std::cout << "Printing segmentation info: " << std::endl;
   SegmentationChip::Print();
@@ -165,7 +165,7 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
 
     mNewROFrame = nbc / mParams.getROFrameLengthInBC();
 
-    LOG(info) << " NewROFrame " << mNewROFrame << " = " << nbc << "/" << mParams.getROFrameLengthInBC() << " (nbc/mParams.getROFrameLengthInBC()";
+    LOG(debug) << " NewROFrame " << mNewROFrame << " = " << nbc << "/" << mParams.getROFrameLengthInBC() << " (nbc/mParams.getROFrameLengthInBC()";
 
     // in continuous mode depends on starts of periodic readout frame
     mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC()) * o2::constants::lhc::LHCBunchSpacingNS;

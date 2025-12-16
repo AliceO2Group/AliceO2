@@ -126,10 +126,10 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 {
   // digitize single event, the time must have been set beforehand
 
-  LOG(info) << "Digitizing " << mGeometry->getName() << " hits of entry " << evID << " from source "
-            << srcID << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
-            << " cont.mode: " << isContinuous()
-            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
+  LOG(debug) << "Digitizing " << mGeometry->getName() << " hits of entry " << evID << " from source "
+             << srcID << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
+             << " cont.mode: " << isContinuous()
+             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
   // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
@@ -182,7 +182,7 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
       mNewROFrame = nbc / mParams.getROFrameLengthInBC();
       mIsBeforeFirstRO = false;
     }
-    LOG(info) << " NewROFrame " << mNewROFrame << " nbc " << nbc;
+    LOG(debug) << " NewROFrame " << mNewROFrame << " nbc " << nbc;
 
     // in continuous mode depends on starts of periodic readout frame
     mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC()) * o2::constants::lhc::LHCBunchSpacingNS;
