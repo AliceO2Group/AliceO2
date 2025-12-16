@@ -45,6 +45,7 @@
 #include "Framework/DefaultsHelpers.h"
 #include "Framework/Signpost.h"
 #include "Framework/DriverConfig.h"
+#include "Framework/CommonLabels.h"
 
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
@@ -601,6 +602,12 @@ o2::framework::ServiceSpec
         if (input.matcher.lifetime == Lifetime::Timeframe || input.matcher.lifetime == Lifetime::QA || input.matcher.lifetime == Lifetime::Sporadic || input.matcher.lifetime == Lifetime::Optional) {
           LOGP(detail, "Found a real data input, we cannot update the oldest possible timeslice when sending messages");
           decongestion->isFirstInTopology = false;
+          break;
+        }
+      }
+      for (const auto& label : services.get<DeviceSpec const>().labels) {
+        if (label == suppressDomainInfoLabel) {
+          decongestion->suppressDomainInfo = true;
           break;
         }
       }

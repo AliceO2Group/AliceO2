@@ -34,6 +34,7 @@
 #include "Framework/DeviceStateEnums.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataProcessingHeader.h"
+#include "DecongestionService.h"
 
 #include <fairmq/Device.h>
 #include <fairmq/Channel.h>
@@ -83,6 +84,9 @@ void doSendOldestPossibleTimeframe(ServiceRegistryRef ref, fair::mq::TransportFa
 
 bool DataProcessingHelpers::sendOldestPossibleTimeframe(ServiceRegistryRef const& ref, ForwardChannelInfo const& info, ForwardChannelState& state, size_t timeslice)
 {
+  if (ref.get<DecongestionService>().suppressDomainInfo) {
+    return false;
+  }
   if (state.oldestForChannel.value >= timeslice) {
     return false;
   }
@@ -93,6 +97,9 @@ bool DataProcessingHelpers::sendOldestPossibleTimeframe(ServiceRegistryRef const
 
 bool DataProcessingHelpers::sendOldestPossibleTimeframe(ServiceRegistryRef const& ref, OutputChannelInfo const& info, OutputChannelState& state, size_t timeslice)
 {
+  if (ref.get<DecongestionService>().suppressDomainInfo) {
+    return false;
+  }
   if (state.oldestForChannel.value >= timeslice) {
     return false;
   }
