@@ -1,0 +1,582 @@
+{
+  "CORE": {
+    "WARP_SIZE": {
+      "default":  32,
+      "MI100":    64,
+      "VEGA":     64,
+      "AMPERE":   32,
+      "TURING":   32
+    },
+    "THREAD_COUNT_DEFAULT": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   512,
+      "TURING":   512
+    }
+  },
+  "LB": {
+    "GPUTPCCreateTrackingData": {
+      "default":  256,
+      "MI100":    [256, 7],
+      "VEGA":     [192, 2],
+      "AMPERE":   384,
+      "TURING":   256
+    },
+    "GPUTPCTrackletConstructor": {
+      "default":  256,
+      "MI100":    [768, 8],
+      "VEGA":     [512, 10],
+      "AMPERE":   [256, 2],
+      "TURING":   [256, 2]
+    },
+    "GPUTPCTrackletSelector": {
+      "default":  256,
+      "MI100":    [384, 5],
+      "VEGA":     [192, 10],
+      "AMPERE":   [192, 3],
+      "TURING":   [192, 3]
+    },
+    "GPUTPCNeighboursFinder": {
+      "default":  256,
+      "MI100":    [192, 8],
+      "VEGA":     [960, 8],
+      "AMPERE":   [640, 1],
+      "TURING":   [640, 1]
+    },
+    "GPUTPCNeighboursCleaner": {
+      "default":  256,
+      "MI100":    [128, 5],
+      "VEGA":     [384, 9],
+      "AMPERE":   512,
+      "TURING":   512
+    },
+    "GPUTPCExtrapolationTracking": {
+      "default":  256,
+      "MI100":    [256, 7],
+      "VEGA":     [256, 2],
+      "AMPERE":   [128, 4],
+      "TURING":   [192, 2]
+    },
+    "GPUTRDTrackerKernels_gpuVersion": {
+      "default": 512
+    },
+    "GPUTPCCreateOccupancyMap_fill": {
+      "default": 256
+    },
+    "GPUTPCCreateOccupancyMap_fold": {
+      "default": 256
+    },
+    "GPUTRDTrackerKernels_o2Version": {
+      "default": 512
+    },
+    "GPUTPCCompressionKernels_step0attached": {
+      "default":  256,
+      "MI100":    [128, 1],
+      "VEGA":     [64, 2],
+      "AMPERE":   [64, 2],
+      "TURING":   128
+    },
+    "GPUTPCCompressionKernels_step1unattached": {
+      "default":  256,
+      "MI100":    [512, 2],
+      "VEGA":     [512, 2],
+      "AMPERE":   [512, 3],
+      "TURING":   [512, 2]
+    },
+    "GPUTPCDecompressionKernels_step0attached": {
+      "default":  256,
+      "MI100":    [128, 2],
+      "VEGA":     [128, 2],
+      "AMPERE":   [32, 1],
+      "TURING":   [32, 1]
+    },
+    "GPUTPCDecompressionKernels_step1unattached": {
+      "default":  256,
+      "MI100":    [64, 2],
+      "VEGA":     [64, 2],
+      "AMPERE":   [32, 1],
+      "TURING":   [32, 1]
+    },
+    "GPUTPCDecompressionUtilKernels_sortPerSectorRow": {
+      "default": 256
+    },
+    "GPUTPCDecompressionUtilKernels_countFilteredClusters": {
+      "default": 256
+    },
+    "GPUTPCDecompressionUtilKernels_storeFilteredClusters": {
+      "default": 256
+    },
+    "GPUTPCCFDecodeZS": {
+      "default":  [128, 4],
+      "MI100":    [64, 4],
+      "VEGA":     [64, 1],
+      "AMPERE":   [64, 10],
+      "TURING":   [64, 8]
+    },
+    "GPUTPCCFDecodeZSLink": {
+      "default":  "GPUCA_WARP_SIZE",
+      "MI100":    "GPUCA_WARP_SIZE",
+      "VEGA":     "GPUCA_WARP_SIZE",
+      "AMPERE":   "GPUCA_WARP_SIZE",
+      "TURING":   "GPUCA_WARP_SIZE"
+    },
+    "GPUTPCCFDecodeZSDenseLink": {
+      "default":  "GPUCA_WARP_SIZE",
+      "MI100":    ["GPUCA_WARP_SIZE", 4],
+      "VEGA":     ["GPUCA_WARP_SIZE", 14],
+      "AMPERE":   "GPUCA_WARP_SIZE",
+      "TURING":   "GPUCA_WARP_SIZE"
+    },
+    "GPUTPCCFGather": {
+      "default":  [1024, 1],
+      "MI100":    [1024, 5],
+      "VEGA":     [1024, 1],
+      "AMPERE":   [1024, 1],
+      "TURING":   [1024, 1]
+    },
+    "COMPRESSION_GATHER": {
+      "default":  1024,
+      "MI100":    1024,
+      "VEGA":     1024,
+      "AMPERE":   1024,
+      "TURING":   1024
+    },
+    "GPUTPCGMMergerTrackFit": {
+      "default":  256,
+      "MI100":    [192, 2],
+      "VEGA":     [64, 7],
+      "AMPERE":   [64, 4],
+      "TURING":   [32, 8]
+    },
+    "GPUTPCGMMergerFollowLoopers": {
+      "default":  256,
+      "MI100":    [256, 5],
+      "VEGA":     [256, 4],
+      "AMPERE":   [64, 12],
+      "TURING":   [128, 4]
+    },
+    "GPUTPCGMMergerSectorRefit": {
+      "default":  256,
+      "MI100":    [64, 4],
+      "VEGA":     [256, 2],
+      "AMPERE":   [32, 6],
+      "TURING":   [64, 5]
+    },
+    "GPUTPCGMMergerUnpackResetIds": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerUnpackGlobal": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerResolve_step0": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerResolve_step1": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerResolve_step2": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerResolve_step3": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerResolve_step4": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   [256, 4],
+      "TURING":   [256, 4]
+    },
+    "GPUTPCGMMergerClearLinks": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerMergeWithinPrepare": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerMergeSectorsPrepare": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   [256, 2],
+      "TURING":   [256, 2]
+    },
+    "GPUTPCGMMergerMergeBorders_step0": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   192,
+      "TURING":   192
+    },
+    "GPUTPCGMMergerMergeBorders_step2": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   [64, 2],
+      "TURING":   256
+    },
+    "GPUTPCGMMergerMergeCE": {
+      "default":  256,
+      "MI100":    512,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerLinkExtrapolatedTracks": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerCollect": {
+      "default":  256,
+      "MI100":    [768, 1],
+      "VEGA":     [1024, 1],
+      "AMPERE":   [256, 2],
+      "TURING":   [128, 2]
+    },
+    "GPUTPCGMMergerSortTracksPrepare": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerPrepareForFit_step0": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerPrepareForFit_step1": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerPrepareForFit_step2": {
+      "default":  256,
+      "MI100":    256,
+      "VEGA":     256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerFinalize_step0": {
+      "default":  256,
+      "VEGA":     256
+    },
+    "GPUTPCGMMergerFinalize_step1": {
+      "default":  256,
+      "VEGA":     256
+    },
+    "GPUTPCGMMergerFinalize_step2": {
+      "default":  256,
+      "VEGA":     256
+    },
+    "GPUTPCGMMergerMergeLoopers_step0": {
+      "default": 256
+    },
+    "GPUTPCGMMergerMergeLoopers_step1": {
+      "default": 256
+    },
+    "GPUTPCGMMergerMergeLoopers_step2": {
+      "default": 256
+    },
+    "GPUTPCGMO2Output_prepare": {
+      "default": 256
+    },
+    "GPUTPCGMO2Output_output": {
+      "default": 256
+    },
+    "GPUTPCStartHitsFinder": {
+      "default":  256,
+      "MI100":    [1024, 2],
+      "VEGA":     [1024, 7],
+      "AMPERE":   512,
+      "TURING":   512
+    },
+    "GPUTPCStartHitsSorter": {
+      "default":  256,
+      "MI100":    [1024, 5],
+      "VEGA":     [512, 7],
+      "AMPERE":   [512, 1],
+      "TURING":   [512, 1]
+    },
+    "GPUTPCCFCheckPadBaseline": {
+      "default":  64,
+      "MI100":    [64, 10],
+      "VEGA":     [64, 2],
+      "AMPERE":   [64, 8]
+    },
+    "GPUTPCCFChargeMapFiller_fillIndexMap": {
+      "default":  512,
+      "MI100":    512,
+      "VEGA":     512,
+      "AMPERE":   448
+    },
+    "GPUTPCCFChargeMapFiller_fillFromDigits": {
+      "default":  512,
+      "MI100":    512,
+      "VEGA":     512,
+      "AMPERE":   448
+    },
+    "GPUTPCCFChargeMapFiller_findFragmentStart": {
+      "default":  512,
+      "MI100":    512,
+      "VEGA":     512,
+      "AMPERE":   448
+    },
+    "GPUTPCCFPeakFinder": {
+      "default":  512,
+      "MI100":    [512, 9],
+      "VEGA":     [512, 4],
+      "AMPERE":   128
+    },
+    "GPUTPCCFNoiseSuppression": {
+      "default":  512,
+      "MI100":    512,
+      "VEGA":     512,
+      "AMPERE":   448
+    },
+    "GPUTPCCFDeconvolution": {
+      "default":  512,
+      "MI100":    [512, 5],
+      "VEGA":     [512, 5],
+      "AMPERE":   384
+    },
+    "GPUTPCCFClusterizer": {
+      "default":  512,
+      "MI100":    [448, 3],
+      "VEGA":     [512, 2],
+      "AMPERE":   448
+    },
+    "GPUTPCNNClusterizerKernels": {
+      "default": 512
+    },
+    "GPUTrackingRefitKernel_mode0asGPU": {
+      "default": 256
+    },
+    "GPUTrackingRefitKernel_mode1asTrackParCov": {
+      "default": 256
+    },
+    "GPUMemClean16": {
+      "default": ["GPUCA_THREAD_COUNT_DEFAULT", 1]
+    },
+    "GPUitoa": {
+      "default": ["GPUCA_THREAD_COUNT_DEFAULT", 1]
+    },
+    "GPUTPCCFNoiseSuppression_noiseSuppression": {
+      "default": "GPUCA_LB_GPUTPCCFNoiseSuppression"
+    },
+    "GPUTPCCFNoiseSuppression_updatePeaks": {
+      "default": "GPUCA_LB_GPUTPCCFNoiseSuppression"
+    },
+    "GPUTPCNNClusterizerKernels_runCfClusterizer": {
+      "default": "GPUCA_LB_GPUTPCNNClusterizerKernels"
+    },
+    "GPUTPCNNClusterizerKernels_fillInputNNCPU": {
+      "default": "GPUCA_LB_GPUTPCNNClusterizerKernels"
+    },
+    "GPUTPCNNClusterizerKernels_fillInputNNGPU": {
+      "default": 1024
+    },
+    "GPUTPCNNClusterizerKernels_determineClass1Labels": {
+      "default": "GPUCA_LB_GPUTPCNNClusterizerKernels"
+    },
+    "GPUTPCNNClusterizerKernels_determineClass2Labels": {
+      "default": "GPUCA_LB_GPUTPCNNClusterizerKernels"
+    },
+    "GPUTPCNNClusterizerKernels_publishClass1Regression": {
+      "default": "GPUCA_LB_GPUTPCNNClusterizerKernels"
+    },
+    "GPUTPCNNClusterizerKernels_publishClass2Regression": {
+      "default": "GPUCA_LB_GPUTPCNNClusterizerKernels"
+    },
+    "GPUTPCNNClusterizerKernels_publishDeconvolutionFlags": {
+      "default": "GPUCA_LB_GPUTPCNNClusterizerKernels"
+    },
+    "GPUTPCCFStreamCompaction_scanStart": {
+      "default": "GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"
+    },
+    "GPUTPCCFStreamCompaction_scanUp": {
+      "default": "GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"
+    },
+    "GPUTPCCFStreamCompaction_scanTop": {
+      "default": "GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"
+    },
+    "GPUTPCCFStreamCompaction_scanDown": {
+      "default": "GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"
+    },
+    "GPUTPCCFStreamCompaction_compactDigits": {
+      "default": "GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"
+    },
+    "GPUTPCCompressionGatherKernels_unbuffered": {
+      "default": "GPUCA_LB_COMPRESSION_GATHER"
+    },
+    "GPUTPCCompressionGatherKernels_buffered32": {
+      "default": "GPUCA_LB_COMPRESSION_GATHER"
+    },
+    "GPUTPCCompressionGatherKernels_buffered64": {
+      "default": "GPUCA_LB_COMPRESSION_GATHER"
+    },
+    "GPUTPCCompressionGatherKernels_buffered128": {
+      "default": "GPUCA_LB_COMPRESSION_GATHER"
+    },
+    "GPUTPCCompressionGatherKernels_multiBlock": {
+      "default": "GPUCA_LB_COMPRESSION_GATHER"
+    },
+    "GPUTPCGMMergerFinalize_0": {
+      "default":  256,
+      "MI100":    256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerFinalize_1": {
+      "default":  256,
+      "MI100":    256,
+      "AMPERE":   256,
+      "TURING":   256
+    },
+    "GPUTPCGMMergerFinalize_2": {
+      "default":  256,
+      "MI100":    256,
+      "AMPERE":   256,
+      "TURING":   256
+    }
+  },
+  "PAR": {
+    "AMD_EUS_PER_CU": {
+      "default":      0,
+      "default_cpu":  0,
+      "MI100":        4,
+      "VEGA":         4
+    },
+    "SORT_STARTHITS": {
+      "default":      1,
+      "default_cpu":  0
+    },
+    "NEIGHBOURS_FINDER_MAX_NNEIGHUP": {
+      "default":      6,
+      "default_cpu":  0,
+      "MI100":        10,
+      "VEGA":         4,
+      "AMPERE":       4,
+      "TURING":       4
+    },
+    "NEIGHBOURS_FINDER_UNROLL_GLOBAL": {
+      "default":      4,
+      "default_cpu":  0,
+      "MI100":        4,
+      "VEGA":         2
+    },
+    "NEIGHBOURS_FINDER_UNROLL_SHARED": {
+      "default":      1,
+      "default_cpu":  0,
+      "MI100":        0,
+      "VEGA":         0
+    },
+    "TRACKLET_SELECTOR_HITS_REG_SIZE": {
+      "default":      12,
+      "default_cpu":  0,
+      "MI100":        9,
+      "VEGA":         27,
+      "AMPERE":       20,
+      "TURING":       20
+    },
+    "ALTERNATE_BORDER_SORT": {
+      "default":      0,
+      "default_cpu":  0,
+      "MI100":        1,
+      "VEGA":         1,
+      "AMPERE":       1,
+      "TURING":       1
+    },
+    "SORT_BEFORE_FIT": {
+      "default":      0,
+      "default_cpu":  0,
+      "MI100":        1,
+      "VEGA":         1,
+      "AMPERE":       1,
+      "TURING":       1
+    },
+    "NO_ATOMIC_PRECHECK": {
+      "default":      0,
+      "default_cpu":  0,
+      "MI100":        1,
+      "VEGA":         1,
+      "AMPERE":       1,
+      "TURING":       1
+    },
+    "DEDX_STORAGE_TYPE": {
+      "default":      "float",
+      "default_cpu":  "float",
+      "MI100":        "uint16_t",
+      "VEGA":         "uint16_t",
+      "AMPERE":       "uint16_t",
+      "TURING":       "uint16_t"
+    },
+    "MERGER_INTERPOLATION_ERROR_TYPE": {
+      "default":      "float",
+      "default_cpu":  "float",
+      "MI100":        "half",
+      "VEGA":         "half",
+      "AMPERE":       "half",
+      "TURING":       "half"
+    },
+    "COMP_GATHER_KERNEL": {
+      "default":      0,
+      "default_cpu":  0,
+      "MI100":        4,
+      "VEGA":         4,
+      "AMPERE":       4,
+      "TURING":       4
+    },
+    "COMP_GATHER_MODE": {
+      "default":      2,
+      "default_cpu":  0,
+      "MI100":        3,
+      "VEGA":         3,
+      "AMPERE":       3,
+      "TURING":       3
+    },
+    "CF_SCAN_WORKGROUP_SIZE": {
+      "default":      512,
+      "default_cpu":  0
+    }
+  }
+}

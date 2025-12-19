@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 9
+# FindO2GPU.cmake Version 10
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -44,32 +44,51 @@ if(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET STREQUAL "default")
   set(HIP_AMDGPUTARGET ${HIP_AMDGPUTARGET_DEFAULT_FULL})
 endif()
 
-function(set_target_cuda_arch target)
-  if(CUDA_COMPUTETARGET AND (CUDA_COMPUTETARGET MATCHES "86" OR CUDA_COMPUTETARGET MATCHES "89"))
+function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterring by backend
+  set(TARGET_ARCH "")
+  set(CUDA_TARGET "")
+  set(HIP_TARGET "")
+
+  if(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET MATCHES "86|89")
+    set(CUDA_TARGET AMPERE)
     message(STATUS "Using optimized CUDA settings for Ampere GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_AMPERE)
   elseif(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET MATCHES "75")
+    set(CUDA_TARGET TURING)
     message(STATUS "Using optimized CUDA settings for Turing GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_TURING)
   else()
+    set(CUDA_TARGET AMPERE)
     message(STATUS "Defaulting optimized CUDA settings for Ampere GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_AMPERE)
+  endif()
+
+  if(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx906")
+    set(HIP_TARGET VEGA)
+    message(STATUS "Using optimized HIP settings for MI50 GPU")
+  elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx908")
+    set(HIP_TARGET MI100)
+    message(STATUS "Using optimized HIP settings for MI100 GPU")
+  elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx90a")
+    set(HIP_TARGET MI100)
+    message(STATUS "Using optimized HIP settings for MI210 GPU")
+  else()
+    set(HIP_TARGET VEGA)
+    message(STATUS "Defaulting optimized HIP settings for VEGA GPU")
+  endif()
+
+  if(backend STREQUAL "CUDA") # CUDA filter
+    set(TARGET_ARCH "${CUDA_TARGET}" PARENT_SCOPE)
+    return()
+  elseif(backend STREQUAL "HIP") # HIP filter
+    set(TARGET_ARCH "${HIP_TARGET}" PARENT_SCOPE)
+    return()
+  else() # Return both
+    set(TARGET_ARCH "${CUDA_TARGET},${HIP_TARGET}" PARENT_SCOPE)
   endif()
 endfunction()
 
-function(set_target_hip_arch target)
-  if(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx906")
-    message(STATUS "Using optimized HIP settings for MI50 GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_VEGA)
-  elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx908")
-    message(STATUS "Using optimized HIP settings for MI100 GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI100)
-  elseif(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET MATCHES "gfx90a")
-    message(STATUS "Using optimized HIP settings for MI210 GPU")
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_MI100)
-  else()
-    target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_VEGA)
-  endif()
+function(set_target_gpu_arch backend target)
+  detect_gpu_arch("${backend}")
+  message(STATUS "Compiling for ${TARGET_ARCH}")
+  target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_${TARGET_ARCH})
 endfunction()
 
 # Need to strip c++17 imposed by alidist defaults

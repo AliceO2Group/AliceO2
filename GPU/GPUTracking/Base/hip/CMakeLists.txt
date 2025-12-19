@@ -125,7 +125,7 @@ add_custom_command(
     COMMAND cat ${GPUDIR}/Base/hip/GPUReconstructionHIPIncludesSystem.h | grep -v GPUStdSystemHeaders.h >> ${GPU_RTC_BIN}.src
     COMMAND cat ${GPUDIR}/Base/GPUStdSystemHeaders.h >> ${GPU_RTC_BIN}.src
     COMMAND ${CMAKE_HIP_COMPILER} ${GPU_RTC_DEFINES} ${GPU_RTC_INCLUDES} -std=c++${CMAKE_HIP_STANDARD} -D__HIPCC__ -D__HIP_DEVICE_COMPILE__ -x c++ -nostdinc -E -P ${GPU_RTC_SRC} -MD -MT ${GPU_RTC_BIN}.src -MF ${GPU_RTC_BIN}.src.d >> ${GPU_RTC_BIN}.src
-    DEPENDS ${GPU_RTC_SRC} ${GPUDIR}/Base/GPUStdSystemHeaders.h ${GPUDIR}/Base/hip/GPUReconstructionHIPIncludesSystem.h ${GPUDIR}/Base/GPUStdSystemHeaders.h ${MODULE}_HIPIFIED
+    DEPENDS ${GPU_RTC_SRC} ${GPUDIR}/Base/GPUStdSystemHeaders.h ${GPUDIR}/Base/hip/GPUReconstructionHIPIncludesSystem.h ${GPUDIR}/Base/GPUStdSystemHeaders.h ${MODULE}_HIPIFIED GPU_PARAM_HEADER_AUTO_ALL
     DEPFILE ${GPU_RTC_BIN}.src.d
     COMMAND_EXPAND_LISTS
     COMMENT "Preparing HIP RTC source file ${GPU_RTC_BIN}.src"
@@ -219,7 +219,7 @@ endif()
 
 # Setting target architecture and adding GPU libraries
 target_link_libraries(${targetName} PRIVATE hip::host hip::device hip::hipcub roc::rocthrust)
-set_target_hip_arch(${targetName})
+set_target_gpu_arch("HIP" ${targetName})
 
 target_link_libraries(${MODULE}_CXX PRIVATE TBB::tbb)
 

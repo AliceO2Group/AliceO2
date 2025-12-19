@@ -624,7 +624,7 @@ AddSubConfig(GPUSettingsEG, EG)
 EndConfig()
 #endif // BeginConfig
 
-//Settings for the O2 workfllow
+//Settings for the O2 workflow
 #if !defined(QCONFIG_PARSER_CXX) && (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE))
 BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings", global)
 AddOption(solenoidBzNominalGPU, float, -1e6f, "", 0, "Field strength of solenoid Bz in kGaus")

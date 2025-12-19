@@ -74,7 +74,7 @@ add_custom_command(
     COMMAND cat ${GPUDIR}/Base/GPUStdSystemHeaders.h >> ${GPU_RTC_BIN}.src
     COMMAND ${CMAKE_CUDA_COMPILER} ${GPU_RTC_DEFINES} ${GPU_RTC_INCLUDES} -std=c++${CMAKE_CUDA_STANDARD} -D__CUDA_ARCH__=${RTC_CUDA_ARCH} -Wno-deprecated-gpu-targets -D__CUDACC__ -x c++ -M -MD -MT ${GPU_RTC_BIN}.src -MF ${GPU_RTC_BIN}.src.d ${GPU_RTC_SRC}
     COMMAND ${CMAKE_CUDA_COMPILER} ${GPU_RTC_DEFINES} ${GPU_RTC_INCLUDES} -std=c++${CMAKE_CUDA_STANDARD} -D__CUDA_ARCH__=${RTC_CUDA_ARCH} -Wno-deprecated-gpu-targets -D__CUDACC__ -x c++ -E -Xcompiler "-nostdinc -P" ${GPU_RTC_SRC} >> ${GPU_RTC_BIN}.src
-    DEPENDS ${GPU_RTC_SRC} ${GPUDIR}/Base/GPUStdSystemHeaders.h ${GPUDIR}/Base/cuda/GPUReconstructionCUDAIncludesSystem.h ${GPUDIR}/Base/GPUStdSystemHeaders.h
+    DEPENDS ${GPU_RTC_SRC} ${GPUDIR}/Base/GPUStdSystemHeaders.h ${GPUDIR}/Base/cuda/GPUReconstructionCUDAIncludesSystem.h ${GPUDIR}/Base/GPUStdSystemHeaders.h GPU_PARAM_HEADER_AUTO_ALL
     DEPFILE ${GPU_RTC_BIN}.src.d
     COMMAND_EXPAND_LISTS
     COMMENT "Preparing CUDA RTC source file ${GPU_RTC_BIN}.src"
@@ -149,7 +149,7 @@ endif()
 
 # Setting target architecture and adding GPU libraries
 target_link_libraries(${targetName} PRIVATE cuda cudart)
-set_target_cuda_arch(${targetName})
+set_target_gpu_arch("CUDA" ${targetName})
 #target_link_options(${targetName} PRIVATE "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld")
 #set_target_properties(${targetName} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld)
 
