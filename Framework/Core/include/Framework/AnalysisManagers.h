@@ -38,7 +38,7 @@ template <size_t N, std::array<soa::TableRef, N> refs>
 static inline auto extractOriginals(ProcessingContext& pc)
 {
   return [&]<size_t... Is>(std::index_sequence<Is...>) -> std::vector<std::shared_ptr<arrow::Table>> {
-    return {pc.inputs().get<TableConsumer>(o2::aod::label<refs[Is]>())->asArrowTable()...};
+    return {pc.inputs().get<TableConsumer>(o2::aod::binding<refs[Is]>())->asArrowTable()...};
   }(std::make_index_sequence<refs.size()>());
 }
 } // namespace

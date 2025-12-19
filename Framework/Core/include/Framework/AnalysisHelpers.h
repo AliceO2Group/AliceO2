@@ -185,7 +185,7 @@ template <TableRef R>
 constexpr auto tableRef2Schema()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input-schema:"} + o2::aod::label<R>(),
+    std::string{"input-schema:"} + o2::aod::binding<R>(),
     framework::VariantType::String,
     framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
     {"\"\""}};
@@ -258,9 +258,9 @@ inline constexpr auto getIndexMapping()
     ([&idx]<TableRef ref, typename C>() mutable {
       constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
       if constexpr (pos == -1) {
-        idx.emplace_back(o2::aod::label<ref>(), C::columnLabel(), IndexKind::IdxSelf, pos);
+        idx.emplace_back(o2::aod::binding<ref>(), C::columnLabel(), IndexKind::IdxSelf, pos);
       } else {
-        idx.emplace_back(o2::aod::label<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
+        idx.emplace_back(o2::aod::binding<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
       }
     }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>>(),
      ...);
@@ -368,7 +368,7 @@ constexpr auto tableRef2InputSpec()
   }
 
   return framework::InputSpec{
-    o2::aod::label<R>(),
+    o2::aod::binding<R>(),
     o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
     R.version,

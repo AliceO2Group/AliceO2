@@ -375,6 +375,12 @@ consteval const char* signature()
   return o2::aod::Hash<R.desc_hash>::str;
 }
 
+template <soa::TableRef R>
+constexpr std::string binding()
+{
+  return std::string{label<R>()} + "/" + origin_str<R>();
+}
+
 /// hash identification concepts
 template <typename T>
 concept is_aod_hash = requires(T t) { t.hash; t.str; };
