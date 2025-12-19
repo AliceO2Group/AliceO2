@@ -195,7 +195,7 @@ struct MTask {
     PresliceUnsortedOptional<aod::Collisions> perMcColopt = aod::mccollisionlabel::mcCollisionId;
   } foo;
   void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
-};
+};\
 
 TEST_CASE("AdaptorCompilation")
 {
@@ -205,55 +205,55 @@ TEST_CASE("AdaptorCompilation")
   auto task1ng = adaptAnalysisTask<ATask>(*cfgc, TaskName{"test1"});
   REQUIRE(task1ng.inputs.size() == 2);
   REQUIRE(task1ng.outputs.size() == 1);
-  REQUIRE(task1ng.inputs[1].binding == std::string("TracksExtension"));
-  REQUIRE(task1ng.inputs[0].binding == std::string("Tracks"));
-  REQUIRE(task1ng.outputs[0].binding.value == std::string("FooBars"));
+  REQUIRE(task1ng.inputs[1].binding == std::string("TracksExtension/DYN"));
+  REQUIRE(task1ng.inputs[0].binding == std::string("Tracks/AOD"));
+  REQUIRE(task1ng.outputs[0].binding.value == std::string("FooBars/AOD"));
 
   auto task1ngc = adaptAnalysisTask<ATaskconsumer>(*cfgc);
   REQUIRE(task1ngc.inputs.size() == 5);
-  REQUIRE(task1ngc.inputs[0].binding == "Foos");
-  REQUIRE(task1ngc.inputs[1].binding == "Roots");
-  REQUIRE(task1ngc.inputs[2].binding == "B1s");
-  REQUIRE(task1ngc.inputs[3].binding == "B2s");
-  REQUIRE(task1ngc.inputs[4].binding == "B3s");
+  REQUIRE(task1ngc.inputs[0].binding == "Foos/AOD");
+  REQUIRE(task1ngc.inputs[1].binding == "Roots/AOD");
+  REQUIRE(task1ngc.inputs[2].binding == "B1s/AOD");
+  REQUIRE(task1ngc.inputs[3].binding == "B2s/AOD");
+  REQUIRE(task1ngc.inputs[4].binding == "B3s/AOD");
 
   auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
   REQUIRE(task2.inputs.size() == 10);
-  REQUIRE(task2.inputs[2].binding == "TracksExtension");
-  REQUIRE(task2.inputs[1].binding == "Tracks");
-  REQUIRE(task2.inputs[4].binding == "TracksExtra_002Extension");
-  REQUIRE(task2.inputs[3].binding == "TracksExtra");
-  REQUIRE(task2.inputs[6].binding == "TracksCovExtension");
-  REQUIRE(task2.inputs[5].binding == "TracksCov");
-  REQUIRE(task2.inputs[7].binding == "AmbiguousTracks");
-  REQUIRE(task2.inputs[8].binding == "Calos");
-  REQUIRE(task2.inputs[9].binding == "CaloTriggers");
-  REQUIRE(task2.inputs[0].binding == "Collisions_001");
+  REQUIRE(task2.inputs[2].binding == "TracksExtension/DYN");
+  REQUIRE(task2.inputs[1].binding == "Tracks/AOD");
+  REQUIRE(task2.inputs[4].binding == "TracksExtra_002Extension/DYN");
+  REQUIRE(task2.inputs[3].binding == "TracksExtra/AOD");
+  REQUIRE(task2.inputs[6].binding == "TracksCovExtension/DYN");
+  REQUIRE(task2.inputs[5].binding == "TracksCov/AOD");
+  REQUIRE(task2.inputs[7].binding == "AmbiguousTracks/AOD");
+  REQUIRE(task2.inputs[8].binding == "Calos/AOD");
+  REQUIRE(task2.inputs[9].binding == "CaloTriggers/AOD");
+  REQUIRE(task2.inputs[0].binding == "Collisions_001/AOD");
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
   REQUIRE(task3.inputs.size() == 3);
-  REQUIRE(task3.inputs[0].binding == "Collisions_001");
-  REQUIRE(task3.inputs[1].binding == "Tracks");
-  REQUIRE(task3.inputs[2].binding == "TracksExtension");
+  REQUIRE(task3.inputs[0].binding == "Collisions_001/AOD");
+  REQUIRE(task3.inputs[1].binding == "Tracks/AOD");
+  REQUIRE(task3.inputs[2].binding == "TracksExtension/DYN");
 
   auto task4 = adaptAnalysisTask<DTask>(*cfgc, TaskName{"test4"});
   REQUIRE(task4.inputs.size() == 2);
-  REQUIRE(task4.inputs[0].binding == "Tracks");
-  REQUIRE(task4.inputs[1].binding == "TracksExtension");
+  REQUIRE(task4.inputs[0].binding == "Tracks/AOD");
+  REQUIRE(task4.inputs[1].binding == "TracksExtension/DYN");
 
   auto task5 = adaptAnalysisTask<ETask>(*cfgc, TaskName{"test5"});
   REQUIRE(task5.inputs.size() == 1);
-  REQUIRE(task5.inputs[0].binding == "FooBars");
+  REQUIRE(task5.inputs[0].binding == "FooBars/AOD");
 
   auto task6ng = adaptAnalysisTask<FTask>(*cfgc, TaskName{"test6"});
   REQUIRE(task6ng.inputs.size() == 1);
-  REQUIRE(task6ng.inputs[0].binding == "FooBars");
+  REQUIRE(task6ng.inputs[0].binding == "FooBars/AOD");
 
   auto task7ng = adaptAnalysisTask<GTask>(*cfgc, TaskName{"test7"});
   REQUIRE(task7ng.inputs.size() == 3);
-  REQUIRE(task7ng.inputs[0].binding == "Foos");
-  REQUIRE(task7ng.inputs[1].binding == "Bars");
-  REQUIRE(task7ng.inputs[2].binding == "XYZ");
+  REQUIRE(task7ng.inputs[0].binding == "Foos/AOD");
+  REQUIRE(task7ng.inputs[1].binding == "Bars/AOD");
+  REQUIRE(task7ng.inputs[2].binding == "XYZ/AOD");
 
   auto task8ng = adaptAnalysisTask<HTask>(*cfgc, TaskName{"test8"});
   REQUIRE(task8ng.inputs.size() == 3);

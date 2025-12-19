@@ -380,7 +380,7 @@ template <TableRef R>
 constexpr auto tableRef2OutputSpec()
 {
   return framework::OutputSpec{
-    framework::OutputLabel{o2::aod::label<R>()},
+    framework::OutputLabel{o2::aod::binding<R>()},
     o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
     R.version};
@@ -399,7 +399,7 @@ template <TableRef R>
 constexpr auto tableRef2OutputRef()
 {
   return framework::OutputRef{
-    o2::aod::label<R>(),
+    o2::aod::binding<R>(),
     R.version};
 }
 }  // namespace o2::soa
@@ -503,12 +503,12 @@ struct OutputForTable {
 
   static OutputSpec const spec()
   {
-    return OutputSpec{OutputLabel{aod::label<table_t::ref>()}, o2::aod::origin<table_t::ref>(), o2::aod::description(o2::aod::signature<table_t::ref>()), table_t::ref.version};
+    return OutputSpec{OutputLabel{aod::binding<table_t::ref>()}, o2::aod::origin<table_t::ref>(), o2::aod::description(o2::aod::signature<table_t::ref>()), table_t::ref.version};
   }
 
   static OutputRef ref()
   {
-    return OutputRef{aod::label<table_t::ref>(), table_t::ref.version};
+    return OutputRef{aod::binding<table_t::ref>(), table_t::ref.version};
   }
 };
 
