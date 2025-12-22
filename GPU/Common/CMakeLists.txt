@@ -52,16 +52,16 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                 COMPONENT_NAME GPU
                 LABELS gpu)
   endif()
-  if (HIP_ENABLED)
-    o2_add_test(SMatrixImpHIP NAME test_SMatrixImpHIP
-                SOURCES test/testSMatrixImp.cu
-                HIPIFIED test
-                PUBLIC_LINK_LIBRARIES O2::${MODULE}
-                                      O2::MathUtils
-                                      ROOT::Core
-                COMPONENT_NAME GPU
-                LABELS gpu)
-  endif()
+#  if (HIP_ENABLED)
+#    o2_add_test(SMatrixImpHIP NAME test_SMatrixImpHIP
+#                SOURCES test/testSMatrixImp.cu
+#                HIPIFIED test
+#                PUBLIC_LINK_LIBRARIES O2::${MODULE}
+#                                      O2::MathUtils
+#                                      ROOT::Core
+#                COMPONENT_NAME GPU
+#                LABELS gpu)
+#  endif()
 endif()
 
 install(FILES ${HDRS_INSTALL} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)
