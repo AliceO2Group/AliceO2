@@ -39,7 +39,7 @@ namespace o2
 namespace itsmft
 {
 
-class CTFCoder : public o2::ctf::CTFCoderBase
+class CTFCoder final : public o2::ctf::CTFCoderBase
 {
  public:
   using PMatrix = std::array<std::array<bool, ClusterPattern::MaxRowSpan + 2>, ClusterPattern::MaxColSpan + 2>;

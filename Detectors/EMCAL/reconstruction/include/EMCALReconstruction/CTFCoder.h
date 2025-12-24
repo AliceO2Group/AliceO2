@@ -32,7 +32,7 @@ namespace o2
 namespace emcal
 {
 
-class CTFCoder : public o2::ctf::CTFCoderBase
+class CTFCoder final : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::EMC) {}

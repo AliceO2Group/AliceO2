@@ -509,7 +509,6 @@ void TestDataReader::run(ProcessingContext& pc)
 
 std::vector<string> TestDataReader::GetFName(std::string folder)
 {
-
   DIR* dirp;
 
   char cstr[folder.size() + 1];

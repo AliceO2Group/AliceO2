@@ -83,7 +83,7 @@ using TBracket = o2::math_utils::Bracketf_t;
 
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class TrackMCStudy : public Task
+class TrackMCStudy final : public Task
 {
  public:
   TrackMCStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool checkSV)

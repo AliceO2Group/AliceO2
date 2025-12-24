@@ -47,7 +47,7 @@ using TBracket = o2::math_utils::Bracketf_t;
 
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class TPCTrackStudySpec : public Task
+class TPCTrackStudySpec final : public Task
 {
  public:
   TPCTrackStudySpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, GTrackID::mask_t src, bool useMC)
