@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 7
+# FindO2GPU.cmake Version 8
 
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
@@ -32,7 +32,7 @@ if(CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
 endif()
 
 if(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET STREQUAL "default")
-  set(CUDA_COMPUTETARGET 86 89)
+  set(CUDA_COMPUTETARGET 80-real 86-real 89-real 120-real 75-virtual)
 endif()
 
 if(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET STREQUAL "default")
