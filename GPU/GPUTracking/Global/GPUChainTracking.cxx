@@ -1017,6 +1017,6 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
     proc.rtc.optSpecialCode = syncMode;
   }
   if (dEdxMode != -2) {
-    steps.setBits(gpudatatypes::RecoStep::TPCdEdx, dEdxMode == -1 ? !syncMode : dEdxMode > 0);
+    steps.setBits(gpudatatypes::RecoStep::TPCdEdx, dEdxMode == -1 ? !syncMode : (dEdxMode > 0));
   }
 }
