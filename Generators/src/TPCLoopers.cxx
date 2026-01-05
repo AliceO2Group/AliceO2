@@ -12,16 +12,6 @@
 /// \author M+Giacalone - September 2025
 
 #include "Generators/TPCLoopers.h"
-#include "CCDB/CCDBTimeStampUtils.h"
-#include "CCDB/CcdbApi.h"
-#include "DetectorsRaw/HBFUtils.h"
-#include "TF1.h"
-#include <filesystem>
-#include <SimulationDataFormat/ParticleStatus.h>
-#include "SimulationDataFormat/MCGenProperties.h"
-#include <iostream>
-#include <fstream>
-#include "TDatabasePDG.h"
 
 // Static Ort::Env instance for multiple onnx model loading
 Ort::Env global_env(ORT_LOGGING_LEVEL_WARNING, "GlobalEnv");
@@ -56,11 +46,10 @@ std::vector<double> Scaler::inverse_transform(const std::vector<double>& input)
 {
   std::vector<double> output;
   for (int i = 0; i < input.size(); ++i) {
-    if (i < input.size() - 2) {
+    if (i < input.size() - 2)
       output.push_back(input[i] * (normal_max[i] - normal_min[i]) + normal_min[i]);
-    } else {
+    else
       output.push_back(input[i] * outlier_scale[i - (input.size() - 2)] + outlier_center[i - (input.size() - 2)]);
-    }
   }
 
   return output;
@@ -91,9 +80,8 @@ std::vector<double> ONNXGenerator::generate_sample()
 
   // Generate a latent vector (z)
   std::vector<float> z(100);
-  for (auto& v : z) {
+  for (auto& v : z)
     v = rand_gen.Gaus(0.0, 1.0);
-  }
 
   // Prepare input tensor
   std::vector<int64_t> input_shape = {1, 100};
@@ -239,7 +227,7 @@ Bool_t GenTPCLoopers::generateEvent()
   return true;
 }
 
-Bool_t GenTPCLoopers::generateEvent(double time_limit)
+Bool_t GenTPCLoopers::generateEvent(double& time_limit)
 {
   LOG(info) << "Time constraint for loopers: " << time_limit << " ns";
   // Generate pairs
@@ -265,8 +253,6 @@ Bool_t GenTPCLoopers::generateEvent(double time_limit)
 std::vector<TParticle> GenTPCLoopers::importParticles()
 {
   std::vector<TParticle> particles;
-  const double mass_e = TDatabasePDG::Instance()->GetParticle(11)->Mass();
-  const double mass_p = TDatabasePDG::Instance()->GetParticle(-11)->Mass();
   // Get looper pairs from the event
   for (auto& pair : mGenPairs) {
     double px_e, py_e, pz_e, px_p, py_p, pz_p;
@@ -282,8 +268,8 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     vy = pair[7];
     vz = pair[8];
     time = pair[9];
-    e_etot = TMath::Sqrt(px_e * px_e + py_e * py_e + pz_e * pz_e + mass_e * mass_e);
-    p_etot = TMath::Sqrt(px_p * px_p + py_p * py_p + pz_p * pz_p + mass_p * mass_p);
+    e_etot = TMath::Sqrt(px_e * px_e + py_e * py_e + pz_e * pz_e + mMass_e * mMass_e);
+    p_etot = TMath::Sqrt(px_p * px_p + py_p * py_p + pz_p * pz_p + mMass_p * mMass_p);
     // Push the electron
     TParticle electron(11, 1, -1, -1, -1, -1, px_e, py_e, pz_e, e_etot, vx, vy, vz, time / 1e9);
     electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(electron.GetStatusCode(), 0).fullEncoding);
@@ -309,7 +295,7 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     vy = compton[4];
     vz = compton[5];
     time = compton[6];
-    etot = TMath::Sqrt(px * px + py * py + pz * pz + mass_e * mass_e);
+    etot = TMath::Sqrt(px * px + py * py + pz * pz + mMass_e * mMass_e);
     // Push the electron
     TParticle electron(11, 1, -1, -1, -1, -1, px, py, pz, etot, vx, vy, vz, time / 1e9);
     electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(electron.GetStatusCode(), 0).fullEncoding);
@@ -343,7 +329,7 @@ unsigned int GenTPCLoopers::GaussianElectrons()
   return gaussValue;
 }
 
-void GenTPCLoopers::SetNLoopers(unsigned int nsig_pair, unsigned int nsig_compton)
+void GenTPCLoopers::SetNLoopers(unsigned int& nsig_pair, unsigned int& nsig_compton)
 {
   if (mFlatGas) {
     mNLoopersPairs = nsig_pair;
@@ -362,7 +348,7 @@ void GenTPCLoopers::SetNLoopers(unsigned int nsig_pair, unsigned int nsig_compto
   }
 }
 
-void GenTPCLoopers::SetMultiplier(const std::array<float, 2>& mult)
+void GenTPCLoopers::SetMultiplier(std::array<float, 2>& mult)
 {
   // Multipliers will work only if the poissonian and gaussian parameters are set
   // otherwise they will be ignored
@@ -376,7 +362,7 @@ void GenTPCLoopers::SetMultiplier(const std::array<float, 2>& mult)
   }
 }
 
-void GenTPCLoopers::setFlatGas(Bool_t flat, Int_t number, Int_t nloopers_orbit)
+void GenTPCLoopers::setFlatGas(Bool_t& flat, const Int_t& number = -1, const Int_t& nloopers_orbit = -1)
 {
   mFlatGas = flat;
   if (mFlatGas) {
@@ -422,7 +408,7 @@ void GenTPCLoopers::setFlatGas(Bool_t flat, Int_t number, Int_t nloopers_orbit)
   LOG(info) << "Flat gas loopers: " << (mFlatGas ? "ON" : "OFF") << ", Reference loopers number per " << (mFlatGasOrbit ? "orbit " : "event ") << mFlatGasNumber;
 }
 
-void GenTPCLoopers::setFractionPairs(float fractionPairs)
+void GenTPCLoopers::setFractionPairs(float& fractionPairs)
 {
   if (fractionPairs < 0 || fractionPairs > 1) {
     LOG(fatal) << "Error: Loops fraction for pairs must be in the range [0, 1].";
@@ -432,7 +418,7 @@ void GenTPCLoopers::setFractionPairs(float fractionPairs)
   LOG(info) << "Pairs fraction set to: " << mLoopsFractionPairs;
 }
 
-void GenTPCLoopers::SetRate(const std::string& rateFile, bool isPbPb = true, int intRate)
+void GenTPCLoopers::SetRate(const std::string& rateFile, const bool& isPbPb = true, const int& intRate = 50000)
 {
   // Checking if the rate file exists and is not empty
   TFile rate_file(rateFile.c_str(), "READ");
@@ -473,7 +459,7 @@ void GenTPCLoopers::SetRate(const std::string& rateFile, bool isPbPb = true, int
   }
 }
 
-void GenTPCLoopers::SetAdjust(float adjust)
+void GenTPCLoopers::SetAdjust(const float& adjust = 0.f)
 {
   if (mFlatGas && mFlatGasOrbit && adjust >= -1.f && adjust != 0.f) {
     LOG(info) << "Adjusting flat gas number per orbit by " << adjust * 100.f << "%";

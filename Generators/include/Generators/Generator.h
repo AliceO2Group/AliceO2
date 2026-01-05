@@ -17,6 +17,7 @@
 #include "FairGenerator.h"
 #include "TParticle.h"
 #include "Generators/Trigger.h"
+#include "CCDB/BasicCCDBManager.h"
 #ifdef GENERATORS_WITH_TPCLOOPERS
 #include "Generators/TPCLoopers.h"
 #include "Generators/TPCLoopersParam.h"
@@ -171,8 +172,8 @@ class Generator : public FairGenerator
 
 #ifdef GENERATORS_WITH_TPCLOOPERS
   // Loopers generator instance
-  std::unique_ptr<o2::eventgen::GenTPCLoopers> mTPCLoopersGen = nullptr;
-  bool initTPCLoopersGen();
+  std::unique_ptr<o2::eventgen::GenTPCLoopers> mLoopersGen = nullptr;
+  bool initLoopersGen();
 #endif
 
   ClassDefOverride(Generator, 2);

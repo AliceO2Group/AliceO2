@@ -17,11 +17,21 @@
 #ifdef GENERATORS_WITH_TPCLOOPERS
 #include <onnxruntime_cxx_api.h>
 #endif
+#include <iostream>
 #include <vector>
+#include <fstream>
 #include <rapidjson/document.h>
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbApi.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "TRandom3.h"
+#include "TDatabasePDG.h"
 #include <SimulationDataFormat/DigitizationContext.h>
+#include <SimulationDataFormat/ParticleStatus.h>
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "TParticle.h"
+#include "TF1.h"
+#include <filesystem>
 
 #ifdef GENERATORS_WITH_TPCLOOPERS
 // Static Ort::Env instance for multiple onnx model loading
@@ -29,8 +39,6 @@ extern Ort::Env global_env;
 
 // This class is responsible for loading the scaler parameters from a JSON file
 // and applying the inverse transformation to the generated data.
-// Inferenced output is scaled (min-max normalization or robust scaling for outlier features) during training,
-// so we need to revert this transformation to get physical values.
 struct Scaler {
   std::vector<double> normal_min;
   std::vector<double> normal_max;
@@ -66,20 +74,6 @@ namespace eventgen
 {
 
 #ifdef GENERATORS_WITH_TPCLOOPERS
-/**
- * Generator for TPC Loopers based on pre-trained ONNX models.
- * Currently it generates loopers as electron-positron pairs and Compton electrons
- * according to specified distributions and parameters.
- * This can be extended to other types of background processes in the future (e.g. slow neutron spallation products, saturation tail).
- * Multiple configuration options are available:
- * - Flat gas: loopers are generated uniformly per event taking a reference value which can be either the LHC orbit time or the average interaction time record interval from the collision context.
- *   ==> Current automatic setup (default) sets the interaction rate automatically from the collision context and the reference value per orbit is calculated from an external file.
- *   ==> Number of loopers per orbit can be adjusted via a specific parameter.
- * - Poisson + Gaussian sampling: number of loopers are sampled from Poissonian (for pairs) and Gaussian (for Compton electrons) distributions based on provided parameters.
- *   ==> flat gas must be disabled to use this option.
- * - Fixed number of loopers per event
- *   ==> flat gas must be disabled to use this option and Poissonian/Gaussian parameters file should be set to None
- */
 class GenTPCLoopers
 {
  public:
@@ -89,7 +83,7 @@ class GenTPCLoopers
 
   Bool_t generateEvent();
 
-  Bool_t generateEvent(double time_limit);
+  Bool_t generateEvent(double& time_limit);
 
   std::vector<TParticle> importParticles();
 
@@ -97,17 +91,17 @@ class GenTPCLoopers
 
   unsigned int GaussianElectrons();
 
-  void SetNLoopers(unsigned int nsig_pair, unsigned int nsig_compton);
+  void SetNLoopers(unsigned int& nsig_pair, unsigned int& nsig_compton);
 
-  void SetMultiplier(const std::array<float, 2>& mult);
+  void SetMultiplier(std::array<float, 2>& mult);
 
-  void setFlatGas(Bool_t flat, Int_t number = -1, Int_t nloopers_orbit = -1);
+  void setFlatGas(Bool_t& flat, const Int_t& number, const Int_t& nloopers_orbit);
 
-  void setFractionPairs(float fractionPairs);
+  void setFractionPairs(float& fractionPairs);
 
-  void SetRate(const std::string& rateFile, bool isPbPb, int intRate = 50000);
+  void SetRate(const std::string& rateFile, const bool& isPbPb, const int& intRate);
 
-  void SetAdjust(float adjust = 0.f);
+  void SetAdjust(const float& adjust);
 
   unsigned int getNLoopers() const { return (mNLoopersPairs + mNLoopersCompton); }
 
@@ -127,6 +121,10 @@ class GenTPCLoopers
   bool mGaussSet = false;
   // Random number generator
   TRandom3 mRandGen;
+  // Masses of the electrons and positrons
+  TDatabasePDG* mPDG = TDatabasePDG::Instance();
+  double mMass_e = mPDG->GetParticle(11)->Mass();
+  double mMass_p = mPDG->GetParticle(-11)->Mass();
   int mCurrentEvent = 0;                                          // Current event number, used for adaptive loopers
   TFile* mContextFile = nullptr;                                  // Input collision context file
   o2::steer::DigitizationContext* mCollisionContext = nullptr;    // Pointer to the digitization context
