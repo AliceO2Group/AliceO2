@@ -35,10 +35,6 @@
 #pragma link C++ class o2::eventgen::GeneratorFromEventPool + ;
 #pragma link C++ class o2::eventgen::GeneratorEventPoolParam + ;
 #pragma link C++ class o2::eventgen::EventPoolGenConfig + ;
-#ifdef GENERATORS_WITH_ONNXRUNTIME
-#pragma link C++ class o2::eventgen::GenTPCLoopers + ;
-#pragma link C++ class o2::eventgen::GenTPCLoopersParam + ;
-#endif
 #pragma link C++ class o2::conf::ConfigurableParamPromoter < o2::eventgen::GeneratorEventPoolParam, o2::eventgen::EventPoolGenConfig> + ;
 #ifdef GENERATORS_WITH_HEPMC3
 #pragma link C++ class o2::eventgen::GeneratorHepMC + ;

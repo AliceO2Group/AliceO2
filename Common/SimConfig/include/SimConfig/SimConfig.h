@@ -52,7 +52,6 @@ struct SimConfigData {
   std::vector<std::string> mActiveModules;            // list of active modules
   std::vector<std::string> mReadoutDetectors;         // list of readout detectors
   std::string mMCEngine;                              // chosen VMC engine
-  bool mNoLoopers = false;                            // Disable automatic TPC loopers
   std::string mGenerator;                             // chosen VMC generator
   std::string mTrigger;                               // chosen VMC generator trigger
   unsigned int mNEvents;                              // number of events to be simulated
@@ -139,8 +138,6 @@ class SimConfig
   // get selected active detectors
   std::vector<std::string> const& getActiveModules() const { return mConfigData.mActiveModules; }
   std::vector<std::string> const& getReadoutDetectors() const { return mConfigData.mReadoutDetectors; }
-  // get loopers veto
-  bool getLoopersVeto() const { return mConfigData.mNoLoopers; }
 
   // static helper functions to determine list of active / readout modules
   // can also be used from outside
