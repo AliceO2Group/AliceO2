@@ -27,6 +27,10 @@ void Scaler::load(const std::string &filename)
   normal_max = jsonArrayToVector(doc["normal"]["max"]);
   outlier_center = jsonArrayToVector(doc["outlier"]["center"]);
   outlier_scale = jsonArrayToVector(doc["outlier"]["scale"]);
+  std::vector<double> normal_min;
+  std::vector<double> normal_max;
+  std::vector<double> outlier_center;
+  std::vector<double> outlier_scale;
 }  
 
 std::vector<double> Scaler::inverse_transform(const std::vector<double> &input)

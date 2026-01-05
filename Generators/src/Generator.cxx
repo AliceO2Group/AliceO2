@@ -106,6 +106,8 @@ bool Generator::initLoopersGen()
       return kFALSE;
     }
   }
+  const auto& nFlatGasLoopers = loopersParam.nFlatGasLoopers;
+  const auto& fraction_pairs = loopersParam.fraction_pairs;
   std::array<float, 2> multiplier = {loopersParam.multiplier[0], loopersParam.multiplier[1]};
   unsigned int nLoopersPairs = loopersParam.fixedNLoopers[0];
   unsigned int nLoopersCompton = loopersParam.fixedNLoopers[1];
@@ -168,7 +170,7 @@ bool Generator::initLoopersGen()
         mLoopersGen->SetAdjust(loopersParam.adjust_flatgas);
       }
     } else {
-      // Otherwise, Poisson+Gauss sampling or fixed number of loopers per event will be used
+      // Otherwise, Poisson+Gauss sampling or fixed number of loopers will be used
       // Multiplier is applied only with distribution sampling
       // This configuration can be used for testing purposes, in all other cases flat gas is recommended
       mLoopersGen->SetNLoopers(nLoopersPairs, nLoopersCompton);
