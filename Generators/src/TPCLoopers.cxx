@@ -141,7 +141,7 @@ GenTPCLoopers::GenTPCLoopers(std::string model_pairs, std::string model_compton,
     scaler_file[0].close();
     scaler_file[1].close();
     // Checking if the poisson file exists and it's not empty
-    if (poisson != "" && poisson != "None" && poisson != "none")
+    if (poisson != "")
     {
         std::ifstream poisson_file(poisson);
         if (!poisson_file.is_open() || poisson_file.peek() == std::ifstream::traits_type::eof())
@@ -157,7 +157,7 @@ GenTPCLoopers::GenTPCLoopers(std::string model_pairs, std::string model_compton,
         }
     }
     // Checking if the gauss file exists and it's not empty
-    if (gauss != "" && gauss != "None" && gauss != "none")
+    if (gauss != "")
     {
         std::ifstream gauss_file(gauss);
         if (!gauss_file.is_open() || gauss_file.peek() == std::ifstream::traits_type::eof())
@@ -205,11 +205,9 @@ Bool_t GenTPCLoopers::generateEvent()
     // Set number of loopers if poissonian params are available
     if (mPoissonSet) {
       mNLoopersPairs = static_cast<unsigned int>(std::round(mMultiplier[0] * PoissonPairs()));
-      LOG(debug) << "Generated loopers pairs (Poisson): " << mNLoopersPairs;
     }
     if (mGaussSet) {
       mNLoopersCompton = static_cast<unsigned int>(std::round(mMultiplier[1] * GaussianElectrons()));
-      LOG(debug) << "Generated compton electrons (Gauss): " << mNLoopersCompton;
     }
     // Generate pairs
     for (int i = 0; i < mNLoopersPairs; ++i) {

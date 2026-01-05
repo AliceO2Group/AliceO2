@@ -50,15 +50,11 @@ Generator::Generator() : FairGenerator("ALICEo2", "ALICEo2 Generator"),
     if (transport) {
       bool tpcActive = (std::find(simConfig.getReadoutDetectors().begin(), simConfig.getReadoutDetectors().end(), "TPC") != simConfig.getReadoutDetectors().end());
       if (tpcActive) {
-        if (initLoopersGen()) {
+        if(initLoopersGen()){
           mAddTPCLoopers = kTRUE;
         }
-      } else {
-        LOG(info) << "TPC not active in readout detectors: loopers fast generator disabled.";
       }
     }
-  } else {
-    LOG(info) << "Loopers fast generator turned OFF with veto flag.";
   }
 #endif
 }
@@ -82,12 +78,8 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
         if (initLoopersGen()) {
           mAddTPCLoopers = kTRUE;
         }
-      } else {
-        LOG(info) << "TPC not active in readout detectors: loopers fast generator disabled.";
       }
     }
-  } else {
-    LOG(info) << "Loopers fast generator turned OFF with veto flag.";
   }
 #endif
 }
@@ -105,14 +97,8 @@ bool Generator::initLoopersGen()
   const auto& scaler_compton = gSystem->ExpandPathName(loopersParam.scaler_compton.c_str());
   const auto& poisson = gSystem->ExpandPathName(loopersParam.poisson.c_str());
   const auto& gauss = gSystem->ExpandPathName(loopersParam.gauss.c_str());
-  const auto& flat_gas = loopersParam.flat_gas;
-  const auto& colsys = loopersParam.colsys;
+  auto flat_gas = loopersParam.flat_gas;
   if (flat_gas) {
-    if (colsys != "PbPb" && colsys != "pp") {
-      LOG(warning) << "Automatic background loopers configuration supports only 'pp' and 'PbPb' systems.";
-      LOG(warning) << "Fast loopers generator will remain OFF.";
-      return kFALSE;
-    }
     bool isContext = std::filesystem::exists("collisioncontext.root");
     if (!isContext) {
       LOG(warning) << "Warning: No collisioncontext.root file found!";
@@ -170,12 +156,17 @@ bool Generator::initLoopersGen()
   try {
     // Create the TPC loopers generator with the provided parameters
     mLoopersGen = std::make_unique<o2::eventgen::GenTPCLoopers>(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
-    const auto &intrate = loopersParam.intrate;
+    auto& colsys = loopersParam.colsys;
+    auto &intrate = loopersParam.intrate;
     // Configure the generator with flat gas loopers defined per orbit with clusters/track info
-    // If intrate is negative (default), automatic IR from collisioncontext.root will be used
     if (flat_gas) {
-      mLoopersGen->SetRate(nclxrate, (colsys == "PbPb") ? true : false, intrate);
-      mLoopersGen->SetAdjust(loopersParam.adjust_flatgas);
+      if (colsys != "PbPb" && colsys != "pp") {
+        LOG(fatal) << "Error: collision system must be either 'PbPb' or 'pp'";
+        exit(1);
+      } else {
+        mLoopersGen->SetRate(nclxrate, (colsys == "PbPb") ? true : false, intrate);
+        mLoopersGen->SetAdjust(loopersParam.adjust_flatgas);
+      }
     } else {
       // Otherwise, Poisson+Gauss sampling or fixed number of loopers per event will be used
       // Multiplier is applied only with distribution sampling
