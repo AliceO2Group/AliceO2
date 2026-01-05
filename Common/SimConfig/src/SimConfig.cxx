@@ -74,6 +74,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)")(
+    "noLoopers", bpo::bool_switch(), "disable automatic TPC loopers")(
     "forwardKine", bpo::bool_switch(), "forward kinematics on a FairMQ channel")(
     "noDiscOutput", bpo::bool_switch(), "switch off writing sim results to disc (useful in combination with forwardKine)");
   options.add_options()("fromCollContext", bpo::value<std::string>()->default_value(""), "Use a pregenerated collision context to infer number of events to simulate, how to embedd them, the vertex position etc. Takes precedence of other options such as \"--nEvents\". The format is COLLISIONCONTEXTFILE.root[:SIGNALNAME] where SIGNALNAME is the event part in the context which is relevant.");
@@ -297,6 +298,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   using o2::detectors::DetID;
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
   mConfigData.mNoGeant = vm["noGeant"].as<bool>();
+  mConfigData.mNoLoopers = vm["noLoopers"].as<bool>();
 
   // Reset modules and detectors as they are anyway re-parsed
   mConfigData.mReadoutDetectors.clear();

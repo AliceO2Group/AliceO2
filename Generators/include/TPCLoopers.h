@@ -1,7 +1,7 @@
 #ifndef ALICEO2_EVENTGEN_TPCLOOPERS_H_
 #define ALICEO2_EVENTGEN_TPCLOOPERS_H_
 
-#ifdef GENERATORS_WITH_TPCLOOPERS
+#ifdef GENERATORS_WITH_ONNXRUNTIME
 #include <onnxruntime_cxx_api.h>
 #endif
 #include <iostream>
@@ -19,10 +19,12 @@
 #include "TParticle.h"
 #include <filesystem>
 
-#ifdef GENERATORS_WITH_TPCLOOPERS
+#ifdef GENERATORS_WITH_ONNXRUNTIME
 // Static Ort::Env instance for multiple onnx model loading
 extern Ort::Env global_env;
+#endif
 
+#ifdef GENERATORS_WITH_ONNXRUNTIME
 // This class is responsible for loading the scaler parameters from a JSON file
 // and applying the inverse transformation to the generated data.
 struct Scaler
@@ -53,14 +55,14 @@ private:
     Ort::Session session;
     TRandom3 rand_gen;
 };
-#endif // GENERATORS_WITH_TPCLOOPERS
+#endif // GENERATORS_WITH_ONNXRUNTIME
 
 namespace o2
 {
 namespace eventgen
 {
 
-#ifdef GENERATORS_WITH_TPCLOOPERS
+#ifdef GENERATORS_WITH_ONNXRUNTIME
 class GenTPCLoopers
 {
     public:
@@ -117,7 +119,7 @@ class GenTPCLoopers
         double mTimeEnd = 0.0;                                          // Time limit for the last event
         float mLoopsFractionPairs = 0.08;                               // Fraction of loopers from Pairs
 };
-#endif // GENERATORS_WITH_TPCLOOPERS
+#endif // GENERATORS_WITH_ONNXRUNTIME
 
 } // namespace eventgen
 } // namespace o2

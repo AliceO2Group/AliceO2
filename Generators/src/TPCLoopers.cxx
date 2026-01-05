@@ -382,6 +382,9 @@ void GenTPCLoopers::setFlatGas(Bool_t& flat, const Int_t& number)
       if (mInteractionTimeRecords.empty()) {
         LOG(error) << "Error: No interaction time records found in the collision context!";
         exit(1);
+      } else {
+        LOG(info) << "Interaction Time records has " << mInteractionTimeRecords.size() << " entries.";
+        mCollisionContext->printCollisionSummary();
       }
       for (int c = 0; c < mInteractionTimeRecords.size() - 1; c++) {
         mIntTimeRecMean += mInteractionTimeRecords[c + 1].bc2ns() - mInteractionTimeRecords[c].bc2ns();
