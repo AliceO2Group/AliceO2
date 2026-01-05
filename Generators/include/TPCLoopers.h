@@ -91,8 +91,6 @@ class GenTPCLoopers
 
         void SetAdjust(const float &adjust);
 
-        unsigned int getNLoopers() const { return (mNLoopersPairs + mNLoopersCompton); }
-
     private:
         std::unique_ptr<ONNXGenerator> mONNX_pair = nullptr;
         std::unique_ptr<ONNXGenerator> mONNX_compton = nullptr;
@@ -124,7 +122,6 @@ class GenTPCLoopers
         double mTimeLimit = 0.0;                                        // Time limit for the current event
         double mTimeEnd = 0.0;                                          // Time limit for the last event
         float mLoopsFractionPairs = 0.08;                               // Fraction of loopers from Pairs
-        int mInteractionRate = 50000;                                   // Interaction rate in Hz
 };
 #endif // GENERATORS_WITH_TPCLOOPERS
 

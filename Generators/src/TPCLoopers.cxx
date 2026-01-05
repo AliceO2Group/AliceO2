@@ -437,28 +437,13 @@ void GenTPCLoopers::SetRate(const std::string &rateFile, const bool &isPbPb = tr
     LOG(fatal) << "Error: Could not find fit function '" << fitName << "' in rate file!";
     exit(1);
   }
-  mInteractionRate = intRate;
-  if (mInteractionRate < 0) {
-    mContextFile = std::filesystem::exists("collisioncontext.root") ? TFile::Open("collisioncontext.root") : nullptr;
-    if (!mContextFile || mContextFile->IsZombie()) {
-      LOG(fatal) << "Error: Interaction rate not provided and collision context file not found!";
-      exit(1);
-    }
-    mCollisionContext = (o2::steer::DigitizationContext*)mContextFile->Get("DigitizationContext");
-    mInteractionRate = std::floor(mCollisionContext->getDigitizerInteractionRate());
-    LOG(info) << "Interaction rate retrieved from collision context: " << mInteractionRate << " Hz";
-    if (mInteractionRate < 0) {
-      LOG(fatal) << "Error: Invalid interaction rate retrieved from collision context!";
-      exit(1);
-    }
-  }
-  auto ref = static_cast<int>(std::floor(fit->Eval(mInteractionRate / 1000.))); // fit expects rate in kHz
+  auto ref = static_cast<int>(std::floor(fit->Eval(intRate / 1000.))); // fit expects rate in kHz
   rate_file.Close();
   if (ref <= 0) {
     LOG(fatal) << "Computed flat gas number reference per orbit is <=0";
     exit(1);
   } else {
-    LOG(info) << "Set flat gas number to " << ref << " loopers per orbit using " << fitName << " from " << mInteractionRate << " Hz interaction rate.";
+    LOG(info) << "Set flat gas number to " << ref << " loopers per orbit using " << fitName << " from " << intRate << " Hz interaction rate.";
     auto flat = true;
     setFlatGas(flat, -1, ref);
   }

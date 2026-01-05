@@ -107,7 +107,7 @@ bool Generator::initLoopersGen()
     }
   }
   const auto& nFlatGasLoopers = loopersParam.nFlatGasLoopers;
-  const auto& fraction_pairs = loopersParam.fraction_pairs;
+  auto fraction_pairs = loopersParam.fraction_pairs;
   std::array<float, 2> multiplier = {loopersParam.multiplier[0], loopersParam.multiplier[1]};
   unsigned int nLoopersPairs = loopersParam.fixedNLoopers[0];
   unsigned int nLoopersCompton = loopersParam.fixedNLoopers[1];
@@ -166,6 +166,10 @@ bool Generator::initLoopersGen()
         LOG(fatal) << "Error: collision system must be either 'PbPb' or 'pp'";
         exit(1);
       } else {
+        if (intrate <= 0) {
+          LOG(fatal) << "Error: interaction rate must be positive!";
+          exit(1);
+        }
         mLoopersGen->SetRate(nclxrate, (colsys == "PbPb") ? true : false, intrate);
         mLoopersGen->SetAdjust(loopersParam.adjust_flatgas);
       }
@@ -212,10 +216,6 @@ Bool_t
     if (!mLoopersGen->generateEvent()) {
       LOG(error) << "Failed to generate loopers event";
       return kFALSE;
-    }
-    if (mLoopersGen->getNLoopers() == 0) {
-      LOG(warning) << "No loopers generated for this event";
-      return kTRUE;
     }
     const auto& looperParticles = mLoopersGen->importParticles();
     if (looperParticles.empty()) {
