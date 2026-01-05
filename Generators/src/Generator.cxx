@@ -50,9 +50,8 @@ Generator::Generator() : FairGenerator("ALICEo2", "ALICEo2 Generator"),
     if (transport) {
       bool tpcActive = (std::find(simConfig.getReadoutDetectors().begin(), simConfig.getReadoutDetectors().end(), "TPC") != simConfig.getReadoutDetectors().end());
       if (tpcActive) {
-        if(initLoopersGen()){
-          mAddTPCLoopers = kTRUE;
-        }
+        mAddTPCLoopers = kTRUE;
+        initLoopersGen();
       }
     }
   }
@@ -75,9 +74,8 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
     if (transport) {
       bool tpcActive = (std::find(simConfig.getReadoutDetectors().begin(), simConfig.getReadoutDetectors().end(), "TPC") != simConfig.getReadoutDetectors().end());
       if (tpcActive) {
-        if (initLoopersGen()) {
-          mAddTPCLoopers = kTRUE;
-        }
+        mAddTPCLoopers = kTRUE;
+        initLoopersGen();
       }
     }
   }
@@ -86,7 +84,7 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
 
 /*****************************************************************/
 #ifdef GENERATORS_WITH_TPCLOOPERS
-bool Generator::initLoopersGen()
+void Generator::initLoopersGen()
 {
   // Expand all environment paths
   const auto& loopersParam = o2::eventgen::GenTPCLoopersParam::Instance();
@@ -97,14 +95,6 @@ bool Generator::initLoopersGen()
   const auto& poisson = gSystem->ExpandPathName(loopersParam.poisson.c_str());
   const auto& gauss = gSystem->ExpandPathName(loopersParam.gauss.c_str());
   auto flat_gas = loopersParam.flat_gas;
-  if (flat_gas) {
-    bool isContext = std::filesystem::exists("collisioncontext.root");
-    if (!isContext) {
-      LOG(warning) << "Warning: No collisioncontext.root file found!";
-      LOG(warning) << "Loopers will be kept OFF.";
-      return kFALSE;
-    }
-  }
   const auto& nFlatGasLoopers = loopersParam.nFlatGasLoopers;
   auto fraction_pairs = loopersParam.fraction_pairs;
   std::array<float, 2> multiplier = {loopersParam.multiplier[0], loopersParam.multiplier[1]};
@@ -173,7 +163,6 @@ bool Generator::initLoopersGen()
     LOG(error) << "Failed to initialize TPC Loopers generator: " << e.what();
     mLoopersGen.reset();
   }
-  return kTRUE;
 }
 #endif
 
