@@ -6,7 +6,7 @@ Ort::Env global_env(ORT_LOGGING_LEVEL_WARNING, "GlobalEnv");
 // This class is responsible for loading the scaler parameters from a JSON file
 // and applying the inverse transformation to the generated data.
 
-void Scaler::load(const std::string& filename)
+void Scaler::load(const std::string &filename)
 {
   std::ifstream file(filename);
   if (!file.is_open()) {
@@ -27,73 +27,76 @@ void Scaler::load(const std::string& filename)
   normal_max = jsonArrayToVector(doc["normal"]["max"]);
   outlier_center = jsonArrayToVector(doc["outlier"]["center"]);
   outlier_scale = jsonArrayToVector(doc["outlier"]["scale"]);
+}  
+
+std::vector<double> Scaler::inverse_transform(const std::vector<double> &input)
+{
+    std::vector<double> output;
+    for (int i = 0; i < input.size(); ++i)
+    {
+        if (i < input.size() - 2)
+            output.push_back(input[i] * (normal_max[i] - normal_min[i]) + normal_min[i]);
+        else
+            output.push_back(input[i] * outlier_scale[i - (input.size() - 2)] + outlier_center[i - (input.size() - 2)]);
+    }
+
+    return output;
 }
 
-std::vector<double> Scaler::inverse_transform(const std::vector<double>& input)
+std::vector<double> Scaler::jsonArrayToVector(const rapidjson::Value &jsonArray)
 {
-  std::vector<double> output;
-  for (int i = 0; i < input.size(); ++i) {
-    if (i < input.size() - 2)
-      output.push_back(input[i] * (normal_max[i] - normal_min[i]) + normal_min[i]);
-    else
-      output.push_back(input[i] * outlier_scale[i - (input.size() - 2)] + outlier_center[i - (input.size() - 2)]);
-  }
-
-  return output;
-}
-
-std::vector<double> Scaler::jsonArrayToVector(const rapidjson::Value& jsonArray)
-{
-  std::vector<double> vec;
-  for (int i = 0; i < jsonArray.Size(); ++i) {
-    vec.push_back(jsonArray[i].GetDouble());
-  }
-  return vec;
+    std::vector<double> vec;
+    for (int i = 0; i < jsonArray.Size(); ++i)
+    {
+        vec.push_back(jsonArray[i].GetDouble());
+    }
+    return vec;
 }
 
 // This class loads the ONNX model and generates samples using it.
 
 ONNXGenerator::ONNXGenerator(Ort::Env& shared_env, const std::string& model_path)
-  : env(shared_env), session(env, model_path.c_str(), Ort::SessionOptions{})
+: env(shared_env), session(env, model_path.c_str(), Ort::SessionOptions{})
 {
-  // Create session options
-  Ort::SessionOptions session_options;
-  session = Ort::Session(env, model_path.c_str(), session_options);
+    // Create session options
+    Ort::SessionOptions session_options;
+    session = Ort::Session(env, model_path.c_str(), session_options);
 }
 
 std::vector<double> ONNXGenerator::generate_sample()
 {
-  Ort::AllocatorWithDefaultOptions allocator;
+    Ort::AllocatorWithDefaultOptions allocator;
 
-  // Generate a latent vector (z)
-  std::vector<float> z(100);
-  for (auto& v : z)
-    v = rand_gen.Gaus(0.0, 1.0);
+    // Generate a latent vector (z)
+    std::vector<float> z(100);
+    for (auto &v : z)
+        v = rand_gen.Gaus(0.0, 1.0);
 
-  // Prepare input tensor
-  std::vector<int64_t> input_shape = {1, 100};
-  // Get memory information
-  Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    // Prepare input tensor
+    std::vector<int64_t> input_shape = {1, 100};
+    // Get memory information
+    Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
-  // Create input tensor correctly
-  Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-    memory_info, z.data(), z.size(), input_shape.data(), input_shape.size());
-  // Run inference
-  const char* input_names[] = {"z"};
-  const char* output_names[] = {"output"};
-  auto output_tensors = session.Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+    // Create input tensor correctly
+    Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
+        memory_info, z.data(), z.size(), input_shape.data(), input_shape.size());
+    // Run inference
+    const char *input_names[] = {"z"};
+    const char *output_names[] = {"output"};
+    auto output_tensors = session.Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
 
-  // Extract output
-  float* output_data = output_tensors.front().GetTensorMutableData<float>();
-  // Get the size of the output tensor
-  auto output_tensor_info = output_tensors.front().GetTensorTypeAndShapeInfo();
-  size_t output_data_size = output_tensor_info.GetElementCount(); // Total number of elements in the tensor
-  std::vector<double> output;
-  for (int i = 0; i < output_data_size; ++i) {
-    output.push_back(output_data[i]);
-  }
+    // Extract output
+    float *output_data = output_tensors.front().GetTensorMutableData<float>();
+    // Get the size of the output tensor
+    auto output_tensor_info = output_tensors.front().GetTensorTypeAndShapeInfo();
+    size_t output_data_size = output_tensor_info.GetElementCount(); // Total number of elements in the tensor
+    std::vector<double> output;
+    for (int i = 0; i < output_data_size; ++i)
+    {
+        output.push_back(output_data[i]);
+    }
 
-  return output;
+    return output;
 }
 
 namespace o2
@@ -102,67 +105,79 @@ namespace eventgen
 {
 
 GenTPCLoopers::GenTPCLoopers(std::string model_pairs, std::string model_compton,
-                             std::string poisson, std::string gauss, std::string scaler_pair,
-                             std::string scaler_compton)
+                std::string poisson, std::string gauss, std::string scaler_pair,
+                std::string scaler_compton)
 {
-  // Checking if the model files exist and are not empty
-  std::ifstream model_file[2];
-  model_file[0].open(model_pairs);
-  model_file[1].open(model_compton);
-  if (!model_file[0].is_open() || model_file[0].peek() == std::ifstream::traits_type::eof()) {
-    LOG(fatal) << "Error: Pairs model file is empty or does not exist!";
-    exit(1);
-  }
-  if (!model_file[1].is_open() || model_file[1].peek() == std::ifstream::traits_type::eof()) {
-    LOG(fatal) << "Error: Compton model file is empty or does not exist!";
-    exit(1);
-  }
-  model_file[0].close();
-  model_file[1].close();
-  // Checking if the scaler files exist and are not empty
-  std::ifstream scaler_file[2];
-  scaler_file[0].open(scaler_pair);
-  scaler_file[1].open(scaler_compton);
-  if (!scaler_file[0].is_open() || scaler_file[0].peek() == std::ifstream::traits_type::eof()) {
-    LOG(fatal) << "Error: Pairs scaler file is empty or does not exist!";
-    exit(1);
-  }
-  if (!scaler_file[1].is_open() || scaler_file[1].peek() == std::ifstream::traits_type::eof()) {
-    LOG(fatal) << "Error: Compton scaler file is empty or does not exist!";
-    exit(1);
-  }
-  scaler_file[0].close();
-  scaler_file[1].close();
-  // Checking if the poisson file exists and it's not empty
-  if (poisson != "" && poisson != "None" && poisson != "none") {
-    std::ifstream poisson_file(poisson);
-    if (!poisson_file.is_open() || poisson_file.peek() == std::ifstream::traits_type::eof()) {
-      LOG(fatal) << "Error: Poisson file is empty or does not exist!";
-      exit(1);
-    } else {
-      poisson_file >> mPoisson[0] >> mPoisson[1] >> mPoisson[2];
-      poisson_file.close();
-      mPoissonSet = true;
+    // Checking if the model files exist and are not empty
+    std::ifstream model_file[2];
+    model_file[0].open(model_pairs);
+    model_file[1].open(model_compton);
+    if (!model_file[0].is_open() || model_file[0].peek() == std::ifstream::traits_type::eof())
+    {
+        LOG(fatal) << "Error: Pairs model file is empty or does not exist!";
+        exit(1);
     }
-  }
-  // Checking if the gauss file exists and it's not empty
-  if (gauss != "" && gauss != "None" && gauss != "none") {
-    std::ifstream gauss_file(gauss);
-    if (!gauss_file.is_open() || gauss_file.peek() == std::ifstream::traits_type::eof()) {
-      LOG(fatal) << "Error: Gauss file is empty or does not exist!";
-      exit(1);
-    } else {
-      gauss_file >> mGauss[0] >> mGauss[1] >> mGauss[2] >> mGauss[3];
-      gauss_file.close();
-      mGaussSet = true;
+    if (!model_file[1].is_open() || model_file[1].peek() == std::ifstream::traits_type::eof())
+    {
+        LOG(fatal) << "Error: Compton model file is empty or does not exist!";
+        exit(1);
     }
-  }
-  mONNX_pair = std::make_unique<ONNXGenerator>(global_env, model_pairs);
-  mScaler_pair = std::make_unique<Scaler>();
-  mScaler_pair->load(scaler_pair);
-  mONNX_compton = std::make_unique<ONNXGenerator>(global_env, model_compton);
-  mScaler_compton = std::make_unique<Scaler>();
-  mScaler_compton->load(scaler_compton);
+    model_file[0].close();
+    model_file[1].close();
+    // Checking if the scaler files exist and are not empty
+    std::ifstream scaler_file[2];
+    scaler_file[0].open(scaler_pair);
+    scaler_file[1].open(scaler_compton);
+    if (!scaler_file[0].is_open() || scaler_file[0].peek() == std::ifstream::traits_type::eof())
+    {
+        LOG(fatal) << "Error: Pairs scaler file is empty or does not exist!";
+        exit(1);
+    }
+    if (!scaler_file[1].is_open() || scaler_file[1].peek() == std::ifstream::traits_type::eof())
+    {
+        LOG(fatal) << "Error: Compton scaler file is empty or does not exist!";
+        exit(1);
+    }
+    scaler_file[0].close();
+    scaler_file[1].close();
+    // Checking if the poisson file exists and it's not empty
+    if (poisson != "" && poisson != "None" && poisson != "none")
+    {
+        std::ifstream poisson_file(poisson);
+        if (!poisson_file.is_open() || poisson_file.peek() == std::ifstream::traits_type::eof())
+        {
+            LOG(fatal) << "Error: Poisson file is empty or does not exist!";
+            exit(1);
+        }
+        else
+        {
+            poisson_file >> mPoisson[0] >> mPoisson[1] >> mPoisson[2];
+            poisson_file.close();
+            mPoissonSet = true;
+        }
+    }
+    // Checking if the gauss file exists and it's not empty
+    if (gauss != "" && gauss != "None" && gauss != "none")
+    {
+        std::ifstream gauss_file(gauss);
+        if (!gauss_file.is_open() || gauss_file.peek() == std::ifstream::traits_type::eof())
+        {
+            LOG(fatal) << "Error: Gauss file is empty or does not exist!";
+            exit(1);
+        }
+        else
+        {
+            gauss_file >> mGauss[0] >> mGauss[1] >> mGauss[2] >> mGauss[3];
+            gauss_file.close();
+            mGaussSet = true;
+        }
+    }
+    mONNX_pair = std::make_unique<ONNXGenerator>(global_env, model_pairs);
+    mScaler_pair = std::make_unique<Scaler>();
+    mScaler_pair->load(scaler_pair);
+    mONNX_compton = std::make_unique<ONNXGenerator>(global_env, model_compton);
+    mScaler_compton = std::make_unique<Scaler>();
+    mScaler_compton->load(scaler_compton);
 }
 
 Bool_t GenTPCLoopers::generateEvent()
@@ -337,16 +352,17 @@ void GenTPCLoopers::SetNLoopers(unsigned int& nsig_pair, unsigned int& nsig_comp
 
 void GenTPCLoopers::SetMultiplier(std::array<float, 2>& mult)
 {
-  // Multipliers will work only if the poissonian and gaussian parameters are set
-  // otherwise they will be ignored
-  if (mult[0] < 0 || mult[1] < 0) {
-    LOG(fatal) << "Error: Multiplier values must be non-negative!";
-    exit(1);
-  } else {
-    LOG(info) << "Multiplier values set to: Pair = " << mult[0] << ", Compton = " << mult[1];
-    mMultiplier[0] = mult[0];
-    mMultiplier[1] = mult[1];
-  }
+    // Multipliers will work only if the poissonian and gaussian parameters are set
+    // otherwise they will be ignored
+    if (mult[0] < 0 || mult[1] < 0)
+    {
+        LOG(fatal) << "Error: Multiplier values must be non-negative!";
+        exit(1);
+    } else {
+        LOG(info) << "Multiplier values set to: Pair = " << mult[0] << ", Compton = " << mult[1];
+        mMultiplier[0] = mult[0];
+        mMultiplier[1] = mult[1];
+    }
 }
 
 void GenTPCLoopers::setFlatGas(Bool_t& flat, const Int_t& number = -1, const Int_t& nloopers_orbit = -1)
@@ -405,7 +421,7 @@ void GenTPCLoopers::setFractionPairs(float& fractionPairs)
   LOG(info) << "Pairs fraction set to: " << mLoopsFractionPairs;
 }
 
-void GenTPCLoopers::SetRate(const std::string& rateFile, const bool& isPbPb = true, const int& intRate = 50000)
+void GenTPCLoopers::SetRate(const std::string &rateFile, const bool &isPbPb = true, const int &intRate = 50000)
 {
   // Checking if the rate file exists and is not empty
   TFile rate_file(rateFile.c_str(), "READ");

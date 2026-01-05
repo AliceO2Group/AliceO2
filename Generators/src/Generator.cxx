@@ -170,7 +170,7 @@ bool Generator::initLoopersGen()
   try {
     // Create the TPC loopers generator with the provided parameters
     mLoopersGen = std::make_unique<o2::eventgen::GenTPCLoopers>(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
-    const auto& intrate = loopersParam.intrate;
+    const auto &intrate = loopersParam.intrate;
     // Configure the generator with flat gas loopers defined per orbit with clusters/track info
     // If intrate is negative (default), automatic IR from collisioncontext.root will be used
     if (flat_gas) {
@@ -209,7 +209,7 @@ Bool_t
   Generator::finalizeEvent()
 {
 #ifdef GENERATORS_WITH_TPCLOOPERS
-  if (mAddTPCLoopers) {
+  if(mAddTPCLoopers) {
     if (!mLoopersGen) {
       LOG(error) << "Loopers generator not initialized";
       return kFALSE;
@@ -268,7 +268,7 @@ Bool_t
     }
 
     /** Event finalization**/
-    if (!finalizeEvent()) {
+    if(!finalizeEvent()) {
       LOG(error) << "ReadEvent failed in finalizeEvent";
       return kFALSE;
     }
