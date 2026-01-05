@@ -197,8 +197,7 @@ Bool_t GenTPCLoopers::generateEvent()
     LOG(debug) << "Current time offset wrt BC: " << mInteractionTimeRecords[mCurrentEvent].getTimeOffsetWrtBC() << " ns";
     mTimeLimit = (mCurrentEvent < mInteractionTimeRecords.size() - 1) ? mInteractionTimeRecords[mCurrentEvent + 1].bc2ns() - mInteractionTimeRecords[mCurrentEvent].bc2ns() : mTimeEnd - mInteractionTimeRecords[mCurrentEvent].bc2ns();
     // With flat gas the number of loopers are adapted based on time interval widths
-    // The denominator is either the LHC orbit (if mFlatGasOrbit is true) or the mean interaction time record interval
-    nLoopers = mFlatGasOrbit ? (mFlatGasNumber * (mTimeLimit / o2::constants::lhc::LHCOrbitNS)) : (mFlatGasNumber * (mTimeLimit / mIntTimeRecMean));
+    nLoopers = mFlatGasNumber * (mTimeLimit / mIntTimeRecMean);
     nLoopersPairs = static_cast<unsigned int>(std::round(nLoopers * mLoopsFractionPairs));
     nLoopersCompton = nLoopers - nLoopersPairs;
     SetNLoopers(nLoopersPairs, nLoopersCompton);
@@ -367,34 +366,22 @@ void GenTPCLoopers::SetMultiplier(std::array<float, 2>& mult)
     }
 }
 
-void GenTPCLoopers::setFlatGas(Bool_t& flat, const Int_t& number = -1, const Int_t& nloopers_orbit = -1)
+void GenTPCLoopers::setFlatGas(Bool_t& flat, const Int_t& number)
 {
   mFlatGas = flat;
   if (mFlatGas) {
-    if (nloopers_orbit > 0) {
-      mFlatGasOrbit = true;
-      mFlatGasNumber = nloopers_orbit;
-      LOG(info) << "Flat gas loopers will be generated using orbit reference.";
+    if (number < 0) {
+      LOG(warn) << "Warning: Number of loopers per event must be non-negative! Switching option off.";
+      mFlatGas = false;
+      mFlatGasNumber = -1;
     } else {
-      mFlatGasOrbit = false;
-      if (number < 0) {
-        LOG(warn) << "Warning: Number of loopers per event must be non-negative! Switching option off.";
-        mFlatGas = false;
-        mFlatGasNumber = -1;
-      } else {
-        mFlatGasNumber = number;
-      }
-    }
-    if (mFlatGas) {
+      mFlatGasNumber = number;
       mContextFile = std::filesystem::exists("collisioncontext.root") ? TFile::Open("collisioncontext.root") : nullptr;
       mCollisionContext = mContextFile ? (o2::steer::DigitizationContext*)mContextFile->Get("DigitizationContext") : nullptr;
       mInteractionTimeRecords = mCollisionContext ? mCollisionContext->getEventRecords() : std::vector<o2::InteractionTimeRecord>{};
       if (mInteractionTimeRecords.empty()) {
         LOG(error) << "Error: No interaction time records found in the collision context!";
         exit(1);
-      } else {
-        LOG(info) << "Interaction Time records has " << mInteractionTimeRecords.size() << " entries.";
-        mCollisionContext->printCollisionSummary();
       }
       for (int c = 0; c < mInteractionTimeRecords.size() - 1; c++) {
         mIntTimeRecMean += mInteractionTimeRecords[c + 1].bc2ns() - mInteractionTimeRecords[c].bc2ns();
@@ -410,7 +397,7 @@ void GenTPCLoopers::setFlatGas(Bool_t& flat, const Int_t& number = -1, const Int
   } else {
     mFlatGasNumber = -1;
   }
-  LOG(info) << "Flat gas loopers: " << (mFlatGas ? "ON" : "OFF") << ", Reference loopers number per " << (mFlatGasOrbit ? "orbit " : "event ") << mFlatGasNumber;
+  LOG(info) << "Flat gas loopers: " << (mFlatGas ? "ON" : "OFF") << ", Reference loopers number per event: " << mFlatGasNumber;
 }
 
 void GenTPCLoopers::setFractionPairs(float& fractionPairs)
@@ -421,41 +408,6 @@ void GenTPCLoopers::setFractionPairs(float& fractionPairs)
   }
   mLoopsFractionPairs = fractionPairs;
   LOG(info) << "Pairs fraction set to: " << mLoopsFractionPairs;
-}
-
-void GenTPCLoopers::SetRate(const std::string &rateFile, const bool &isPbPb = true, const int &intRate = 50000)
-{
-  // Checking if the rate file exists and is not empty
-  TFile rate_file(rateFile.c_str(), "READ");
-  if (!rate_file.IsOpen() || rate_file.IsZombie()) {
-    LOG(fatal) << "Error: Rate file is empty or does not exist!";
-    exit(1);
-  }
-  const char* fitName = isPbPb ? "fitPbPb" : "fitpp";
-  auto fit = (TF1*)rate_file.Get(fitName);
-  if (!fit) {
-    LOG(fatal) << "Error: Could not find fit function '" << fitName << "' in rate file!";
-    exit(1);
-  }
-  auto ref = static_cast<int>(std::floor(fit->Eval(intRate / 1000.))); // fit expects rate in kHz
-  rate_file.Close();
-  if (ref <= 0) {
-    LOG(fatal) << "Computed flat gas number reference per orbit is <=0";
-    exit(1);
-  } else {
-    LOG(info) << "Set flat gas number to " << ref << " loopers per orbit using " << fitName << " from " << intRate << " Hz interaction rate.";
-    auto flat = true;
-    setFlatGas(flat, -1, ref);
-  }
-}
-
-void GenTPCLoopers::SetAdjust(const float& adjust = 0.f)
-{
-  if (mFlatGas && mFlatGasOrbit && adjust >= -1.f && adjust != 0.f) {
-    LOG(info) << "Adjusting flat gas number per orbit by " << adjust * 100.f << "%";
-    mFlatGasNumber = static_cast<int>(std::round(mFlatGasNumber * (1.f + adjust)));
-    LOG(info) << "New flat gas number per orbit: " << mFlatGasNumber;
-  }
 }
 
 } // namespace eventgen
