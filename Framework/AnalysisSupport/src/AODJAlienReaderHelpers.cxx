@@ -98,29 +98,6 @@ using o2::monitoring::tags::Value;
 
 namespace o2::framework::readers
 {
-auto setEOSCallback(InitContext& ic)
-{
-  ic.services().get<CallbackService>().set<CallbackService::Id::EndOfStream>(
-    [](EndOfStreamContext& eosc) {
-      auto& control = eosc.services().get<ControlService>();
-      control.endOfStream();
-      control.readyToQuit(QuitRequest::Me);
-    });
-}
-
-template <typename O>
-static inline auto extractTypedOriginal(ProcessingContext& pc)
-{
-  /// FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
-  return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
-}
-
-template <typename... Os>
-static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
-{
-  return std::make_tuple(extractTypedOriginal<Os>(pc)...);
-}
-
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const& ctx)
 {
   // aod-parent-base-path-replacement is now a workflow option, so it needs to be
