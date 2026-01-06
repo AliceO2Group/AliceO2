@@ -12,6 +12,7 @@
 #ifndef O2_FRAMEWORK_ASOA_H_
 #define O2_FRAMEWORK_ASOA_H_
 
+#include "Framework/ConcreteDataMatcher.h"
 #include "Framework/Pack.h"                   // IWYU pragma: export
 #include "Framework/FunctionalHelpers.h"      // IWYU pragma: export
 #include "Headers/DataHeader.h"               // IWYU pragma: export
@@ -373,6 +374,12 @@ template <soa::TableRef R>
 consteval const char* signature()
 {
   return o2::aod::Hash<R.desc_hash>::str;
+}
+
+template <soa::TableRef R>
+constexpr framework::ConcreteDataMatcher matcher()
+{
+  return {origin<R>(), header::DataDescription{description_str(signature<R>())}, R.version};
 }
 
 /// hash identification concepts

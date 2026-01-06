@@ -89,6 +89,11 @@ std::string DataSpecUtils::describe(OutputSpec const& spec)
                     spec.matcher);
 }
 
+static std::string describe(ConcreteDataMatcher const& matcher)
+{
+  return join(matcher, "/");
+}
+
 template <HasMatcher T>
 size_t DataSpecUtils::describe(char* buffer, size_t size, T const& spec)
 {

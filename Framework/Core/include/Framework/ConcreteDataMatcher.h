@@ -56,7 +56,7 @@ struct ConcreteDataMatcher {
   header::DataDescription description;
   header::DataHeader::SubSpecificationType subSpec;
 
-  ConcreteDataMatcher(header::DataOrigin origin_,
+  constexpr ConcreteDataMatcher(header::DataOrigin origin_,
                       header::DataDescription description_,
                       header::DataHeader::SubSpecificationType subSpec_)
     : origin(origin_),

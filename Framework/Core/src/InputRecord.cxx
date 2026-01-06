@@ -58,6 +58,11 @@ int InputRecord::getPos(const char* binding) const
   return -1;
 }
 
+int InputRecord::getPos(ConcreteDataMatcher matcher) const
+{
+  return getPos(mInputsSchema, matcher).index;
+}
+
 InputRecord::InputPos InputRecord::getPos(std::vector<InputRoute> const& schema, ConcreteDataMatcher concrete)
 {
   size_t inputIndex = 0;

@@ -214,7 +214,7 @@ struct AnalysisDataProcessorBuilder {
   template <soa::TableRef R>
   static auto extractTableFromRecord(InputRecord& record)
   {
-    auto table = record.get<TableConsumer>(o2::aod::label<R>())->asArrowTable();
+    auto table = record.get<TableConsumer>(o2::aod::matcher<R>())->asArrowTable();
     if (table->num_rows() == 0) {
       table = makeEmptyTable<R>();
     }
