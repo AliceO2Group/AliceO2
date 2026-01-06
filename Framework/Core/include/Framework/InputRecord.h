@@ -513,15 +513,22 @@ class InputRecord
   }
 
   template <typename T>
-    requires(std::same_as<T, TableConsumer>)
+    requires(std::same_as<T, DataRef>)
   decltype(auto) get(ConcreteDataMatcher matcher, int part = 0)
   {
     auto pos = getPos(matcher);
     if (pos < 0) {
       auto msg = describeAvailableInputs();
-      throw runtime_error_f("InputRecord::get: no input with binding %s found. %s", DataSpecUtils::describe(matcher), msg.c_str());
+      throw runtime_error_f("InputRecord::get: no input with binding %s found. %s", DataSpecUtils::describe(matcher).c_str(), msg.c_str());
     }
-    auto ref = getByPos(pos, part);
+    return getByPos(pos, part);
+  }
+
+  template <typename T>
+    requires(std::same_as<T, TableConsumer>)
+  decltype(auto) get(ConcreteDataMatcher matcher, int part = 0)
+  {
+    auto ref = get<DataRef>(matcher, part);
     auto data = reinterpret_cast<uint8_t const*>(ref.payload);
     return std::make_unique<TableConsumer>(data, DataRefUtils::getPayloadSize(ref));
   }

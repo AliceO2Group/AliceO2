@@ -214,6 +214,9 @@ struct DataSpecUtils {
   /// Create an InputSpec from metadata string
   static InputSpec fromMetadataString(std::string s);
 
+  /// Create a concrete data matcher from serialized string
+  static ConcreteDataMatcher fromString(std::string s);
+
   /// Get the origin, if available
   static std::optional<header::DataOrigin> getOptionalOrigin(InputSpec const& spec);
 
