@@ -83,6 +83,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& ctx)
       if (m.name.starts_with("input:")) {
         auto name = m.name.substr(6);
         schemaMetadata->Append("sourceTable", name);
+        schemaMetadata->Append("sourceMatcher", DataSpecUtils::describe(std::get<ConcreteDataMatcher>(DataSpecUtils::fromMetadataString(m.defaultValue.get<std::string>()).matcher)));
         continue;
       }
       // Ignore the non ccdb: entries
@@ -109,13 +110,13 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& ctx)
       for (auto& schema : schemas) {
         std::vector<CCDBFetcherHelper::FetchOp> ops;
         auto inputBinding = *schema->metadata()->Get("sourceTable");
+        auto inputMatcher = DataSpecUtils::fromString(*schema->metadata()->Get("sourceMatcher"));
         auto outRouteDesc = *schema->metadata()->Get("outputRoute");
         std::string outBinding = *schema->metadata()->Get("outputBinding");
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                     "Fetching CCDB objects for %{public}s's columns with timestamps from %{public}s and putting them in route %{public}s",
                                     outBinding.c_str(), inputBinding.c_str(), outRouteDesc.c_str());
-        auto ref = inputs.get<TableConsumer>(inputBinding);
-        auto table = ref->asArrowTable();
+        auto table = inputs.get<TableConsumer>(inputMatcher)->asArrowTable();
         // FIXME: make the fTimestamp column configurable.
         auto timestampColumn = table->GetColumnByName("fTimestamp");
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",

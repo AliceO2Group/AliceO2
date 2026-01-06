@@ -78,7 +78,8 @@ static void BM_EventMixingTraditional(benchmark::State& state)
   auto tableTrack = trackBuilder.finalize();
   o2::aod::StoredTracks tracks{tableTrack};
 
-  ArrowTableSlicingCache atscache({{getLabelFromType<o2::aod::StoredTracks>(), "fIndex" + cutString(getLabelFromType<o2::aod::Collisions>())}});
+  std::string key = "fIndex" + cutString(getLabelFromType<o2::aod::Collisions>());
+  ArrowTableSlicingCache atscache({{getLabelFromType<o2::aod::StoredTracks>(), getMatcherFromTypeForKey<o2::aod::StoredTracks>(key), key}});
   auto s = atscache.updateCacheEntry(0, tableTrack);
   SliceCache cache{&atscache};
 
@@ -171,7 +172,8 @@ static void BM_EventMixingCombinations(benchmark::State& state)
 
   int64_t count = 0;
   int64_t colCount = 0;
-  ArrowTableSlicingCache atscache{{{getLabelFromType<o2::aod::StoredTracks>(), "fIndex" + getLabelFromType<o2::aod::Collisions>()}}};
+  std::string key = "fIndex" + getLabelFromType<o2::aod::Collisions>();
+  ArrowTableSlicingCache atscache{{{getLabelFromType<o2::aod::StoredTracks>(), getMatcherFromTypeForKey<o2::aod::StoredTracks>(key), key}}};
   auto s = atscache.updateCacheEntry(0, tableTrack);
   SliceCache cache{&atscache};
 

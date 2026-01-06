@@ -89,7 +89,7 @@ std::string DataSpecUtils::describe(OutputSpec const& spec)
                     spec.matcher);
 }
 
-static std::string describe(ConcreteDataMatcher const& matcher)
+std::string DataSpecUtils::describe(ConcreteDataMatcher const& matcher)
 {
   return join(matcher, "/");
 }

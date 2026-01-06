@@ -379,7 +379,7 @@ consteval const char* signature()
 template <soa::TableRef R>
 constexpr framework::ConcreteDataMatcher matcher()
 {
-  return {origin<R>(), header::DataDescription{description_str(signature<R>())}, R.version};
+  return {origin<R>(), description(signature<R>()), R.version};
 }
 
 /// hash identification concepts
@@ -1400,6 +1400,12 @@ static constexpr std::pair<bool, std::string> hasKey(std::string const& key)
   return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::label<ref>()};
 }
 
+template <TableRef ref>
+static constexpr std::pair<bool, framework::ConcreteDataMatcher> hasKeyM(std::string const& key)
+{
+  return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::matcher<ref>()};
+}
+
 template <typename... C>
 static constexpr auto haveKey(framework::pack<C...>, std::string const& key)
 {
@@ -1430,6 +1436,31 @@ static constexpr std::string getLabelFromTypeForKey(std::string const& key)
     notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
   } else {
     return "[MISSING]";
+  }
+  O2_BUILTIN_UNREACHABLE();
+}
+
+template <with_originals T, bool OPT = false>
+static constexpr framework::ConcreteDataMatcher getMatcherFromTypeForKey(std::string const& key)
+{
+  if constexpr (T::originals.size() == 1) {
+    auto locate = hasKeyM<T::originals[0]>(key);
+    if (locate.first) {
+      return locate.second;
+    }
+  } else {
+    auto locate = [&]<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{hasKeyM<T::originals[Is]>(key)...};
+    }(std::make_index_sequence<T::originals.size()>{});
+    auto it = std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; });
+    if (it != locate.end()) {
+      return it->second;
+    }
+  }
+  if constexpr (!OPT) {
+    notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
+  } else {
+    return framework::ConcreteDataMatcher{header::DataOrigin{"AOD"}, header::DataDescription{"[MISSING]"}, 0};
   }
   O2_BUILTIN_UNREACHABLE();
 }
@@ -1484,7 +1515,10 @@ struct PreslicePolicyGeneral : public PreslicePolicyBase {
   std::span<const int64_t> getSliceFor(int value) const;
 };
 
-template <typename T, typename Policy, bool OPT = false>
+template <typename T>
+concept is_preslice_policy = std::derived_from<T, PreslicePolicyBase>;
+
+template <typename T, is_preslice_policy Policy, bool OPT = false>
 struct PresliceBase : public Policy {
   constexpr static bool optional = OPT;
   using target_t = T;
@@ -1492,7 +1526,7 @@ struct PresliceBase : public Policy {
   const std::string binding;
 
   PresliceBase(expressions::BindingNode index_)
-    : Policy{PreslicePolicyBase{{o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name})}, Entry(o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name}), std::string{index_.name})}, {}}
+    : Policy{PreslicePolicyBase{{o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name})}, Entry(o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name}), o2::soa::getMatcherFromTypeForKey<T, OPT>(std::string{index_.name}), std::string{index_.name})}, {}}
   {
   }
 
@@ -1527,7 +1561,7 @@ template <typename T>
 using PresliceOptional = PresliceBase<T, PreslicePolicySorted, true>;
 
 template <typename T>
-concept is_preslice = std::derived_from<T, PreslicePolicyBase>;
+concept is_preslice = std::derived_from<T, PreslicePolicyBase> && requires(T) { T::optional; };
 
 /// Can be user to group together a number of Preslice declaration
 /// to avoid the limit of 100 data members per task
@@ -1674,10 +1708,10 @@ auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework:
   return prepareFilteredSlice(table, slice, offset);
 }
 
-template <typename T>
+template <soa::is_table T>
 auto doSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto t = typename T::self_t({table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
   if (t.tableSize() != 0) {
@@ -1686,19 +1720,19 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
   return t;
 }
 
-template <typename T>
+template <soa::is_filtered_table T>
 auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto slice = table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
   return prepareFilteredSlice(table, slice, offset);
 }
 
-template <typename T>
+template <soa::is_table T>
 auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheUnsortedFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
   if constexpr (soa::is_filtered_table<T>) {
     auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
     if (t.tableSize() != 0) {
