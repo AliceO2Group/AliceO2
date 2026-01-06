@@ -36,7 +36,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRUCalibHelpers.h"
 #include "TPCWorkflow/CalibRawPartInfo.h"

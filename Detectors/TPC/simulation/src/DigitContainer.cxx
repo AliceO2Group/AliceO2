@@ -17,7 +17,7 @@
 #include <memory>
 #include <fairlogger/Logger.h>
 #include "TPCBase/Mapper.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/IonTailSettings.h"
 #include "SimConfig/DigiParams.h"

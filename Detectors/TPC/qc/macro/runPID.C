@@ -25,7 +25,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/TrackCuts.h"
 #include "TPCBase/CalDet.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "TPCBase/Utils.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "TPCQC/PID.h"

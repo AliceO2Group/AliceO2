@@ -33,7 +33,7 @@
 #include "TPCCalibration/CalibratordEdx.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
-#include "TPCBase/CDBTypes.h"
+#include "TPCBaseRecSim/CDBTypes.h"
 #include "TPCBase/Utils.h"
 
 using namespace o2::framework;

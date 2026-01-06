@@ -25,7 +25,7 @@
 #include "TPCCalibration/SACFactorization.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Mapper.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 
 TCanvas* o2::tpc::qc::IDCsVsSACs::drawComparisionSACandIDCZero(TCanvas* outputCanvas, int nbins1D, float xMin1D, float xMax1D, int nbins1DSAC, float xMin1DSAC, float xMax1DSAC) const
 {

@@ -21,20 +21,15 @@
 #pragma link C++ class o2::tpc::CalArray < unsigned> + ;
 #pragma link C++ class o2::tpc::CalArray < short> + ;
 #pragma link C++ class o2::tpc::CalArray < bool> + ;
-#pragma link C++ class o2::tpc::CalArray < o2::tpc::PadFlags> + ;
 #pragma link C++ class o2::tpc::CalDet < float> + ;
 #pragma link C++ class o2::tpc::CalDet < double> + ;
 #pragma link C++ class o2::tpc::CalDet < int> + ;
 #pragma link C++ class o2::tpc::CalDet < unsigned> + ;
 #pragma link C++ class o2::tpc::CalDet < short> + ;
 #pragma link C++ class o2::tpc::CalDet < bool> + ;
-#pragma link C++ class o2::tpc::CalDet < o2::tpc::PadFlags> + ;
 #pragma link C++ class std::vector < o2::tpc::CalDet < float>> + ;
 #pragma link C++ class std::vector < o2::tpc::CalDet < float>*> + ;
 #pragma link C++ class std::unordered_map < std::string, o2::tpc::CalDet < float>> + ;
-#pragma link C++ enum o2::tpc::CDBType;
-#pragma link C++ class o2::tpc::CDBInterface;
-#pragma link C++ class o2::tpc::CDBStorage;
 #pragma link C++ class o2::tpc::ContainerFactory;
 #pragma link C++ class o2::tpc::CRU;
 #pragma link C++ class o2::tpc::DigitPos;
@@ -49,8 +44,6 @@
 #pragma link C++ class o2::tpc::PartitionInfo;
 #pragma link C++ class o2::tpc::ROC;
 #pragma link C++ class o2::tpc::Sector;
-
-#pragma link C++ class o2::tpc::painter + ;
 
 // #pragma link C++ class std::vector <TCanvas*> + ;
 #pragma link C++ class o2::tpc::ParameterDetector;
@@ -90,5 +83,4 @@
 #pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 2>(const std::string_view, const std::string_view, std::string_view)
 #pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 6>(const std::string_view, const std::string_view, std::string_view)
 
-#pragma link C++ class o2::tpc::DeadChannelMapCreator + ;
 #endif

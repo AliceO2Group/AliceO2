@@ -18,7 +18,7 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Mapper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 
 #include "TStyle.h"
 #include "TLine.h"

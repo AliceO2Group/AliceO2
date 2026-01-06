@@ -31,7 +31,7 @@
 #include "TPCCalibration/IDCFactorization.h"
 #include "Framework/CCDBParamSpec.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;

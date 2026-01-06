@@ -12,7 +12,6 @@
 o2_add_library(TPCBase
                SOURCES src/CalArray.cxx
                        src/CalDet.cxx
-                       src/CDBInterface.cxx
                        src/ContainerFactory.cxx
                        src/CRU.cxx
                        src/DigitPos.cxx
@@ -24,7 +23,6 @@ o2_add_library(TPCBase
                        src/PadRegionInfo.cxx
                        src/PadROCPos.cxx
                        src/PadSecPos.cxx
-                       src/Painter.cxx
                        src/ParameterDetector.cxx
                        src/ParameterElectronics.cxx
                        src/ParameterGas.cxx
@@ -37,16 +35,13 @@ o2_add_library(TPCBase
                        src/CRUCalibHelpers.cxx
                        src/IonTailSettings.cxx
                        src/FEEConfig.cxx
-                       src/DeadChannelMapCreator.cxx
                        src/CommonModeCorrection.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
                                      O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
 o2_target_root_dictionary(TPCBase
-                          EXTRA_PATCH src/TPCFlagsMemberCustomStreamer.cxx
                           HEADERS include/TPCBase/CalArray.h
                                   include/TPCBase/CalDet.h
-                                  include/TPCBase/CDBInterface.h
                                   include/TPCBase/ContainerFactory.h
                                   include/TPCBase/CRU.h
                                   include/TPCBase/DigitPos.h
@@ -58,7 +53,6 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/PadRegionInfo.h
                                   include/TPCBase/PadROCPos.h
                                   include/TPCBase/PadSecPos.h
-                                  include/TPCBase/Painter.h
                                   include/TPCBase/ParameterDetector.h
                                   include/TPCBase/ParameterElectronics.h
                                   include/TPCBase/ParameterGas.h
@@ -71,25 +65,12 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/CRUCalibHelpers.h
                                   include/TPCBase/IonTailSettings.h
                                   include/TPCBase/FEEConfig.h
-                                  include/TPCBase/DeadChannelMapCreator.h
-                                  include/TPCBase/CommonModeCorrection.h
-                                  include/TPCBase/CDBTypes.h)
+                                  include/TPCBase/CommonModeCorrection.h)
 o2_add_test(Base
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCBase
             SOURCES test/testTPCBase.cxx
             LABELS tpc)
-
-if(BUILD_SIMULATION)
-  # this test needs CCDB/XROOTD which is for sure
-  # available in the default-o2 software stack
-  o2_add_test(CalDet
-            COMPONENT_NAME tpc
-            PUBLIC_LINK_LIBRARIES O2::TPCBase
-            SOURCES test/testTPCCalDet.cxx
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            LABELS tpc)
-endif()
 
 o2_add_test(Mapper
             COMPONENT_NAME tpc

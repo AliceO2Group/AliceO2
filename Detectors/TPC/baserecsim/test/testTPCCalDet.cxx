@@ -24,7 +24,7 @@
 #include "TPCBase/CalDet.h"
 #include "TFile.h"
 #include "Framework/TypeTraits.h"
-#include "TPCBase/DeadChannelMapCreator.h"
+#include "TPCBaseRecSim/DeadChannelMapCreator.h"
 
 namespace o2::tpc
 {

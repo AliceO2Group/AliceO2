@@ -20,7 +20,7 @@
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterDetector.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 
 #include "TH1D.h"
 #include "TF1.h"

@@ -24,7 +24,7 @@
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/CorrMapParam.h"

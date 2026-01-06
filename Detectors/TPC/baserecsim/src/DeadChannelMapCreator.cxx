@@ -14,8 +14,8 @@
 #include <type_traits>
 #include "CommonUtils/NameConf.h"
 #include "Framework/Logger.h"
-#include "TPCBase/DeadChannelMapCreator.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/DeadChannelMapCreator.h"
+#include "TPCBaseRecSim/Painter.h"
 
 using namespace o2::tpc;
 

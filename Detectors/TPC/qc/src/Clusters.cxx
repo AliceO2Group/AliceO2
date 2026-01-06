@@ -18,7 +18,7 @@
 
 // o2 includes
 #include "TPCQC/Clusters.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"

@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCCalibration/IDCDrawHelper.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "TPCBase/Mapper.h"
 #include "TH2Poly.h"
 #include "TCanvas.h"

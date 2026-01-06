@@ -25,7 +25,7 @@
 #include "Field/MagneticField.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCBase/CalDet.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "MathUtils/Utils.h"
 #include "DataFormatsParameters/GRPMagField.h"
 #include "GPUDebugStreamer.h"

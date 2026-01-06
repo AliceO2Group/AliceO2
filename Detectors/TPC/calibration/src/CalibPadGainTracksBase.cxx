@@ -15,7 +15,7 @@
 #include "TPCCalibration/CalibPadGainTracksBase.h"
 #include "TPCCalibration/IDCDrawHelper.h"
 #include "TPCBase/ROC.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "TPCCalibration/CalibTreeDump.h"
 #include "TPCBase/Mapper.h"
 

@@ -21,7 +21,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DetectorsBase/Propagator.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "CalibdEdxTrackTopologyPol.h"
 #include "DataFormatsParameters/GRPMagField.h"

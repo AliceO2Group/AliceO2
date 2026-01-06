@@ -58,7 +58,7 @@ o2_add_library(TPCCalibration
                        src/DigitAdd.cxx
                        src/CorrectdEdxDistortions.cxx
                        src/PressureTemperatureHelper.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBaseRecSim
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
                                      O2::DetectorsCalibration
@@ -118,16 +118,16 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/PressureTemperatureHelper.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
+                       PUBLIC_LINK_LIBRARIES O2::TPCBaseRecSim
                        LABELS tpc)
 o2_add_test_root_macro(macro/drawNoiseAndPedestal.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
+                       PUBLIC_LINK_LIBRARIES O2::TPCBaseRecSim
                        LABELS tpc)
 o2_add_test_root_macro(macro/drawPulser.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
+                       PUBLIC_LINK_LIBRARIES O2::TPCBaseRecSim
                        LABELS tpc)
 o2_add_test_root_macro(macro/mergeNoiseAndPedestal.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
+                       PUBLIC_LINK_LIBRARIES O2::TPCBaseRecSim
                        LABELS tpc)
 o2_add_test_root_macro(macro/runPedestal.C
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration

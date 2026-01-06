@@ -45,7 +45,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CalArray.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "DataFormatsTPC/Constants.h"
 
 #include "TPCMonitor/SimpleEventDisplayGUI.h"

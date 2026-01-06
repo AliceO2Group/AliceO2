@@ -19,7 +19,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/TPCScaler.h"
 #include "TPCCalibration/TPCMShapeCorrection.h"

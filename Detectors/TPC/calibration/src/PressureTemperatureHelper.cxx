@@ -14,7 +14,7 @@
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
 #include "TPCCalibration/PressureTemperatureHelper.h"
-#include "TPCBase/CDBTypes.h"
+#include "TPCBaseRecSim/CDBTypes.h"
 #include "Framework/ProcessingContext.h"
 #include "DataFormatsTPC/DCS.h"
 #include "Framework/InputRecord.h"

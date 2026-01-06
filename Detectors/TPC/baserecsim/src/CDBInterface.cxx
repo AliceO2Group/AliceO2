@@ -28,7 +28,7 @@
 
 // o2 includes
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGEM.h"

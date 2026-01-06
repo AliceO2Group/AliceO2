@@ -12,7 +12,7 @@
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TPCCalibration/CorrMapParam.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "Framework/Logger.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/CCDBParamSpec.h"

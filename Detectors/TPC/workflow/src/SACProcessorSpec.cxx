@@ -25,7 +25,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/CCDBParamSpec.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 
 #include "DataFormatsTPC/RawDataTypes.h"
 #include "TPCBase/RDHUtils.h"

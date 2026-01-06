@@ -21,8 +21,8 @@
 
 #include "CCDB/CcdbApi.h"
 
-#include "DataFormatsTPC/Defs.h"
-#include "TPCBase/CDBTypes.h"
+#include "TPCBaseRecSim/PadFlags.h"
+#include "TPCBaseRecSim/CDBTypes.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/FEEConfig.h"
 

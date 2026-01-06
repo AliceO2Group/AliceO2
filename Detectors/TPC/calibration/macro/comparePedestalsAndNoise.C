@@ -12,11 +12,11 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TROOT.h"
 #include "TFile.h"
-#include "TPCBase/CalDet.h"
+#include "TPCBaseRecSim/CalDet.h"
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TCanvas.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #endif
 
 std::tuple<TH1*, TH1*, TH1*, TH1*> getNoiseAndPedestalHistogram(const TString pedestalFile, int roc)
