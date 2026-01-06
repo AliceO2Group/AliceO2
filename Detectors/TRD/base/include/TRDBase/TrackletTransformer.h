@@ -30,10 +30,13 @@ class TrackletTransformer
 
   void init();
 
-  void setCalVdriftExB(const CalVdriftExB* cal) { mCalVdriftExB = cal; };
+  void setVdrift(int iDet, float vd) {mVdrift[iDet] = vd;}
+  void setExB(int iDet, float exb) {mExB[iDet] = exb;}
   void setApplyXOR() { mApplyXOR = true; }
   void setApplyShift(bool f) { mApplyShift = f; }
   bool isShiftApplied() const { return mApplyShift; }
+  
+  
 
   float calculateZ(int padrow, const PadPlane* padPlane) const;
 
@@ -54,7 +57,8 @@ class TrackletTransformer
 
   float mXAnode;
 
-  const CalVdriftExB* mCalVdriftExB{nullptr};
+  std::array<float, constants::MAXCHAMBER> mVdrift{};
+  std::array<float, constants::MAXCHAMBER> mExB{};
 };
 
 } // namespace trd

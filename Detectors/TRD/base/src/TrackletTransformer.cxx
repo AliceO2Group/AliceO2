@@ -40,8 +40,10 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 {
   double padWidth = padPlane->getWidthIPad();
 
-  float vDrift = mCalVdriftExB->getVdrift(detector);
-  float exb = mCalVdriftExB->getExB(detector);
+  //float vDrift = mCalVdriftExB->getVdrift(detector, true);
+  //float exb = mCalVdriftExB->getExB(detector, true);
+  float vDrift = mVdrift[detector];
+  float exb = mExB[detector];
 
   // dy = slope * nTimeBins * padWidth * GRANULARITYTRKLSLOPE;
   // nTimeBins should be number of timebins in drift region. 1 timebin is 100 nanosecond
@@ -50,11 +52,12 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
   // NOTE: check what drift height is used in calibration code to ensure consistency
   // NOTE: check sign convention of Lorentz angle
   // NOTE: confirm the direction in which vDrift is measured/determined. Is it in x or in direction of drift?
-  double lorentzCorrection = TMath::Tan(exb) * mXAnode;
+  // The Lorentz correction have to be applied both at the point of entrance and at the end of the drift region
+  double lorentzCorrection = TMath::Tan(exb) * mGeo->cdrHght();
 
   // assuming angle in Bailhache, fig. 4.17 would be positive in our calibration code
   double calibratedDy = rawDy - lorentzCorrection;
-
+  
   return calibratedDy;
 }
 
@@ -96,7 +99,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
     position = tracklet.getPositionBinSigned();
     slope = tracklet.getSlopeBinSigned();
   }
-
+  
   // calculate raw local chamber space point
   const auto padPlane = mGeo->getPadPlane(detector);
 
@@ -124,7 +127,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
 double TrackletTransformer::getTimebin(int detector, double x) const
 {
   // calculate timebin from x position within chamber
-  float vDrift = mCalVdriftExB->getVdrift(detector);
+  float vDrift = mVdrift[detector];
   double t0 = 4.0; // time (in timebins) of start of drift region
 
   double timebin;

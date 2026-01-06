@@ -30,18 +30,19 @@
 
 // O2 header
 #include <TRDCalibration/CalibratorVdExB.h>
+#include "DetectorsBase/Propagator.h"
 
 #endif
 
 // This root macro reads in 'trdangreshistos.root' and
 // performs the calibration fits manually as in CalibratorVdExB.cxx
 // This can be used for checking if the calibration fits make sense.
-void manualCalibFit()
+void manualCalibFit(int runNumber = 563336, bool usePreCorrFromCCDB = true)
 {
   //----------------------------------------------------
   // TTree and File
   //----------------------------------------------------
-  std::unique_ptr<TFile> inFilePtr(TFile::Open("trdangreshistos.root"));
+  std::unique_ptr<TFile> inFilePtr(TFile::Open("trdcaliboutput.root"));
   if (inFilePtr == nullptr) {
     printf("Input File could not be read!\n'");
     return;
@@ -59,19 +60,49 @@ void manualCalibFit()
   mNEntriesPerBinSum.fill(0);
   tree->SetBranchAddress("mHistogramEntries[13500]", &mHistogramEntries);
   tree->SetBranchAddress("mNEntriesPerBin[13500]", &mNEntriesPerBin);
+  
+  // use precorr values from ccdb 
+  // necessary when the angular residuals were calculated already using ccdb calibration (e.g. in a local run)
+  
+  o2::trd::CalVdriftExB* calObject;
+  if (usePreCorrFromCCDB) {
+    auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+
+    o2::ccdb::CcdbApi ccdb;
+    ccdb.init("http://alice-ccdb.cern.ch");
+    auto runDuration = ccdbmgr.getRunDuration(runNumber);
+  
+    std::map<std::string, std::string> metadata;
+    std::map<std::string, std::string> headers;
+  
+    calObject = ccdb.retrieveFromTFileAny<o2::trd::CalVdriftExB>("TRD/Calib/CalVdriftExB", metadata, runDuration.first + 60000, &headers, "", "", "1689478811721");
+  }
+  
 
   //----------------------------------------------------
   // Configure Fitter
   //----------------------------------------------------
   o2::trd::FitFunctor mFitFunctor;
   std::array<std::unique_ptr<TProfile>, 540> profiles; ///< profile histograms for each TRD chamber
+  int counter = 0;
   for (int iDet = 0; iDet < 540; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), 25, -25.f, 25.f);
+    if (usePreCorrFromCCDB) {
+    std::cout<<iDet<<"   "<<calObject->getVdrift(iDet)<<"   "<<calObject->getExB(iDet)<<"  ";
+    if (calObject->isGoodExB(iDet)) counter++;
+    if (iDet%6==5)std::cout<<std::endl;
+      mFitFunctor.vdPreCorr[iDet] = calObject->getVdriftDefaultAvg(iDet);
+      mFitFunctor.laPreCorr[iDet] = calObject->getExBDefaultAvg(iDet);
+    }
   }
-  mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
-  mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
-  mFitFunctor.vdPreCorr.fill(1.546);
-  mFitFunctor.laPreCorr.fill(0.0);
+  std::cout << counter << " good entries in the CCDB " << std::endl;
+  mFitFunctor.mAnodePlane = 3.35; // don't really care as long as it's not zero, this parameter could  be removed
+  mFitFunctor.lowerBoundAngleFit = 85 * TMath::DegToRad();
+  mFitFunctor.upperBoundAngleFit = 105 * TMath::DegToRad();
+  if (!usePreCorrFromCCDB) {
+    mFitFunctor.vdPreCorr.fill(1.546);
+    mFitFunctor.laPreCorr.fill(0.0);
+  }
 
   //----------------------------------------------------
   // Loop
@@ -88,15 +119,18 @@ void manualCalibFit()
   //----------------------------------------------------
   // Fill profiles
   //----------------------------------------------------
+  int nEntriesDetTotal[540] = {};
   for (int iDet = 0; iDet < 540; ++iDet) {
     for (int iBin = 0; iBin < 25; ++iBin) {
       auto angleDiffSum = mHistogramEntriesSum[iDet * 25 + iBin];
       auto nEntries = mNEntriesPerBinSum[iDet * 25 + iBin];
+      nEntriesDetTotal[iDet] += nEntries;
       if (nEntries > 0) { // skip entries which have no entries; ?
         // add to the respective profile for fitting later on
         mFitFunctor.profiles[iDet]->Fill(2 * iBin - 25.f, angleDiffSum / nEntries, nEntries);
       }
     }
+    printf("Det %d: nEntries=%d \n", iDet, nEntriesDetTotal[iDet]);
   }
 
   //----------------------------------------------------
@@ -105,16 +139,21 @@ void manualCalibFit()
   printf("-------- Started fits\n");
   std::array<float, 540> laFitResults{};
   std::array<float, 540> vdFitResults{};
+  
+  TH1F* hVd = new TH1F("hVd", "v drift", 150, 0.5, 2.);
+  TH1F* hLa = new TH1F("hLa", "lorentz angle", 200, -25., 25.);
+  
   for (int iDet = 0; iDet < 540; ++iDet) {
+    if (nEntriesDetTotal[iDet] < 75) continue;
     mFitFunctor.currDet = iDet;
     ROOT::Fit::Fitter fitter;
     double paramsStart[2];
-    paramsStart[0] = 0. * TMath::DegToRad();
+    paramsStart[0] = 0.;
     paramsStart[1] = 1.;
     fitter.SetFCN<o2::trd::FitFunctor>(2, mFitFunctor, paramsStart);
     fitter.Config().ParSettings(0).SetLimits(-0.7, 0.7);
     fitter.Config().ParSettings(0).SetStepSize(.01);
-    fitter.Config().ParSettings(1).SetLimits(0., 3.);
+    fitter.Config().ParSettings(1).SetLimits(0.01, 3.);
     fitter.Config().ParSettings(1).SetStepSize(.01);
     ROOT::Math::MinimizerOptions opt;
     opt.SetMinimizerType("Minuit2");
@@ -127,9 +166,26 @@ void manualCalibFit()
     auto fitResult = fitter.Result();
     laFitResults[iDet] = fitResult.Parameter(0);
     vdFitResults[iDet] = fitResult.Parameter(1);
-    printf("Det %d: la=%f\tvd=%f\n", iDet, laFitResults[iDet] * TMath::RadToDeg(), vdFitResults[iDet]);
+    printf("Det %d: la=%.3f +/- %.3f (precorr=:%.3f) \tvd=%.3f +/- %.3f (precorr=:%.3f) \t100*minValue=%f\n", iDet, laFitResults[iDet] * TMath::RadToDeg(), fitResult.LowerError(0)  * TMath::RadToDeg(), mFitFunctor.laPreCorr[iDet] * TMath::RadToDeg(), vdFitResults[iDet], fitResult.LowerError(1), mFitFunctor.vdPreCorr[iDet], 100*fitResult.MinFcnValue());
+    hVd->Fill(vdFitResults[iDet]);
+    hLa->Fill(laFitResults[iDet]* TMath::RadToDeg());
   }
   printf("-------- Finished fits\n");
+  
+  std::cout<<"number of chambers with enough entries: "<<hVd->GetEntries()<<std::endl;;
+  std::cout<<"vdrift mean: "<<hVd->GetMean()<<" sigma: "<<hVd->GetStdDev()<<std::endl;
+  std::cout<<"lorentz angle mean: "<<hLa->GetMean()<<" sigma: "<<hLa->GetStdDev()<<std::endl;
+  
+  TCanvas* c = new TCanvas("c", "c", 1200, 700);
+  c->Divide(2,1);
+  c->cd(1);
+  hVd->SetLineColor(kBlue); hVd->SetLineWidth(2);
+  hVd->Draw();
+  c->cd(2);
+  hLa->SetLineColor(kBlue); hLa->SetLineWidth(2);
+  hLa->Draw();
+  c->SaveAs("VdExBValues.pdf");
+  
 
   //----------------------------------------------------
   // Write

@@ -307,7 +307,12 @@ void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   }
   if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
     LOG(info) << "CalVdriftExB object has been updated";
-    mTRDTransformer->setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
+    for (int iDet = 0; iDet < o2::trd::constants::MAXCHAMBER; iDet++) {
+      // set to average value if the calibration is not correct
+      mTRDTransformer->setVdrift(iDet, ((const o2::trd::CalVdriftExB*)obj)->getVdrift(iDet, true));
+      mTRDTransformer->setExB(iDet, ((const o2::trd::CalVdriftExB*)obj)->getExB(iDet, true));
+    }
+    //mTRDTransformer->setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
