@@ -1103,7 +1103,7 @@ std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(int supermoduleID, in
   return std::make_tuple(phiInSupermodule, etaInSupermodule);
 }
 
-std::tuple<int, int> Geometry::GetTopologicalRowColumn(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const
+std::tuple<short, short> Geometry::GetTopologicalRowColumn(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const
 {
   auto [iphi, ieta] = GetCellPhiEtaIndexInSModule(supermoduleID, moduleID, phiInModule, etaInModule);
   int row = iphi;
@@ -1124,7 +1124,7 @@ std::tuple<int, int> Geometry::GetTopologicalRowColumn(int supermoduleID, int mo
     column += supermoduleID % 2 * (48 + 1);
   }
 
-  return std::make_tuple(row, column);
+  return std::make_tuple(static_cast<short>(row), static_cast<short>(column));
 }
 
 std::tuple<int, int> Geometry::ShiftOnlineToOfflineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const

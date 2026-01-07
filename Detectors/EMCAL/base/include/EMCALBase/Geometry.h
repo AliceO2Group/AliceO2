@@ -435,7 +435,7 @@ class Geometry
   /// \param phiInModule index in phi direction in module
   /// \param etaInModule index in phi direction in module
   /// \return tuple with (row, column) of the cell, which is global numbering scheme
-  std::tuple<int, int> GetTopologicalRowColumn(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const;
+  std::tuple<short, short> GetTopologicalRowColumn(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const;
 
   /// \brief Adapt cell indices in supermodule to online indexing
   /// \param supermoduleID super module number of the channel/cell
