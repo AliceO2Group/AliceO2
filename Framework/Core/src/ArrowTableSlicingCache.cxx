@@ -210,7 +210,7 @@ std::pair<int, bool> ArrowTableSlicingCache::getCachePos(const Entry& bindingKey
 
 int ArrowTableSlicingCache::getCachePosSortedFor(Entry const& bindingKey) const
 {
-  auto locate = std::find(bindingsKeys.begin(), bindingsKeys.end(), bindingKey);//std::find_if(bindingsKeys.begin(), bindingsKeys.end(), [&](Entry const& bk) { return (bindingKey.binding == bk.binding) && (bindingKey.key == bk.key); });
+  auto locate = std::find(bindingsKeys.begin(), bindingsKeys.end(), bindingKey); // std::find_if(bindingsKeys.begin(), bindingsKeys.end(), [&](Entry const& bk) { return (bindingKey.binding == bk.binding) && (bindingKey.key == bk.key); });
   if (locate != bindingsKeys.end()) {
     return std::distance(bindingsKeys.begin(), locate);
   }
@@ -219,7 +219,7 @@ int ArrowTableSlicingCache::getCachePosSortedFor(Entry const& bindingKey) const
 
 int ArrowTableSlicingCache::getCachePosUnsortedFor(Entry const& bindingKey) const
 {
-  auto locate_unsorted = std::find(bindingsKeysUnsorted.begin(), bindingsKeysUnsorted.end(), bindingKey);//std::find_if(bindingsKeysUnsorted.begin(), bindingsKeysUnsorted.end(), [&](Entry const& bk) { return (bindingKey.binding == bk.binding) && (bindingKey.key == bk.key); });
+  auto locate_unsorted = std::find(bindingsKeysUnsorted.begin(), bindingsKeysUnsorted.end(), bindingKey); // std::find_if(bindingsKeysUnsorted.begin(), bindingsKeysUnsorted.end(), [&](Entry const& bk) { return (bindingKey.binding == bk.binding) && (bindingKey.key == bk.key); });
   if (locate_unsorted != bindingsKeysUnsorted.end()) {
     return std::distance(bindingsKeysUnsorted.begin(), locate_unsorted);
   }
