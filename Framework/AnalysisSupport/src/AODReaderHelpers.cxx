@@ -144,7 +144,7 @@ struct Spawnable {
       iws.str(json);
       schemas.emplace_back(ArrowJSONHelpers::read(iws));
     }
-    for (auto const& i : spec.metadata | views::filter_string_params_starts_with("input:") | std::ranges::views::transform([](auto const& param){
+    for (auto const& i : spec.metadata | views::filter_string_params_starts_with("input:") | std::ranges::views::transform([](auto const& param) {
                            return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
                          })) {
       matchers.emplace_back(std::get<ConcreteDataMatcher>(i.matcher));

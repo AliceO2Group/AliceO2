@@ -1561,7 +1561,11 @@ template <typename T>
 using PresliceOptional = PresliceBase<T, PreslicePolicySorted, true>;
 
 template <typename T>
-concept is_preslice = std::derived_from<T, PreslicePolicyBase> && requires(T) { T::optional; };
+concept is_preslice = std::derived_from<T, PreslicePolicyBase>&&
+  requires(T)
+{
+  T::optional;
+};
 
 /// Can be user to group together a number of Preslice declaration
 /// to avoid the limit of 100 data members per task
