@@ -53,8 +53,9 @@ struct DataProcessingHelpers {
   /// starts the EoS timers and returns the new TransitionHandlingState in case as new state is requested
   static TransitionHandlingState updateStateTransition(ServiceRegistryRef const& ref, ProcessingPolicies const& policies);
   /// Helper to route messages for forwarding
-  static std::vector<fair::mq::Parts> routeForwardedMessages(FairMQDeviceProxy& proxy, TimesliceSlot slot, std::vector<MessageSet>& currentSetOfInputs,
-                                                             TimesliceIndex::OldestOutputInfo oldestTimeslice, bool copy, bool consume);
+  static std::vector<fair::mq::Parts> routeForwardedMessages(FairMQDeviceProxy& proxy,
+                                                   std::vector<MessageSet>& currentSetOfInputs,
+                                                   const bool copyByDefault, bool consume);
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
