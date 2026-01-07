@@ -503,7 +503,7 @@ void ClusterFactory<InputType>::evalNExMax(gsl::span<const int> inputsIndices, A
   std::vector<short> rows;
   std::vector<short> columns;
   std::vector<double> energies;
-  
+
   rows.reserve(n);
   columns.reserve(n);
   energies.reserve(n);
@@ -514,7 +514,7 @@ void ClusterFactory<InputType>::evalNExMax(gsl::span<const int> inputsIndices, A
     // get a nice topological indexing that is done in exactly the same way as used by the clusterizer
     // this way we can handle the shared cluster cases correctly
     const auto [row, column] = mGeomPtr->GetTopologicalRowColumn(nSupMod, nModule, nIphi, nIeta);
-    
+
     rows.push_back(row);
     columns.push_back(column);
     energies.push_back(mInputsContainer[iInput].getEnergy());
@@ -522,7 +522,7 @@ void ClusterFactory<InputType>::evalNExMax(gsl::span<const int> inputsIndices, A
 
   // Now find local maxima using pre-computed data
   int nExMax = 0;
-  for (size_t i = 0; i < n; i++) {    
+  for (size_t i = 0; i < n; i++) {
     // this cell is assumed to be local maximum unless we find a higher energy cell in the neighborhood
     bool isExMax = true;
 
