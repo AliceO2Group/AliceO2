@@ -614,8 +614,7 @@ TEST_CASE("ForwardInputsSplitPayload")
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.size() == 2);  // Two routes
   CHECK(result[0].Size() == 2); // No messages on this route
-  CHECK(result[1].Size() == 5); // FIXME: Multipart matching has side effects also for the elements
-  // CHECK(result[1].Size() == 3); // FIXME: the correct forwarding is that only the multipart goes to the same route
+  CHECK(result[1].Size() == 3);
 }
 
 TEST_CASE("ForwardInputEOSSingleRoute")
