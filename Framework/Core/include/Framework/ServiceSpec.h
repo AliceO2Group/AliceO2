@@ -31,7 +31,7 @@ struct DeviceSpec;
 struct ServiceRegistry;
 struct ServiceRegistryRef;
 struct DeviceState;
-struct ProcessingContext;
+class ProcessingContext;
 class EndOfStreamContext;
 struct ConfigContext;
 struct WorkflowSpecNode;
