@@ -592,7 +592,7 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
   O2_SIGNPOST_ID_GENERATE(sid, forwarding);
   O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Starting forwarding for slot %zu with oldestTimeslice %zu %{public}s%{public}s%{public}s",
                     slot.index, oldestTimeslice.timeslice.value, copy ? "with copy" : "", copy && consume ? " and " : "", consume ? "with consume" : "");
-  auto forwardedParts = DataProcessingHelpers::routeForwardedMessages(proxy, currentSetOfInputs, copy, consume);
+  auto forwardedParts = DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copy, consume);
 
   for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
     if (forwardedParts[fi].Size() == 0) {
