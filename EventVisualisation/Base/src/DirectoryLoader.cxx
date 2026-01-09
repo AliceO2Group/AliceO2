@@ -37,7 +37,6 @@ deque<string> DirectoryLoader::load(const std::string& path, const std::string& 
     }
   } catch (std::filesystem::filesystem_error const& ex) {
     LOGF(error, "filesystem problem during DirectoryLoader::load: %s", ex.what());
-    return result;
   }
   // comparison with safety if marker not in the filename (-1+1 gives 0)
   std::sort(result.begin(), result.end(),
@@ -62,7 +61,6 @@ bool DirectoryLoader::canCreateNextFile(const std::vector<std::string>& paths, c
       }
     } catch (std::filesystem::filesystem_error const& ex) {
       LOGF(error, "filesystem problem during DirectoryLoader::canCreateNextFile: %s", ex.what());
-      return false;
     }
   }
 
@@ -103,7 +101,6 @@ deque<string> DirectoryLoader::load(const std::vector<std::string>& paths, const
     }
   } catch (std::filesystem::filesystem_error const& ex) {
     LOGF(error, "filesystem problem during DirectoryLoader::load: %s", ex.what());
-    return result;
   }
   // comparison with safety if marker not in the filename (-1+1 gives 0)
   std::sort(result.begin(), result.end(),
