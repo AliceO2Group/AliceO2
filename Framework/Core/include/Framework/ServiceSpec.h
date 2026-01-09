@@ -26,12 +26,12 @@ struct ProgOptions;
 namespace o2::framework
 {
 
-struct InitContext;
+class InitContext;
 struct DeviceSpec;
 struct ServiceRegistry;
-struct ServiceRegistryRef;
+class ServiceRegistryRef;
 struct DeviceState;
-struct ProcessingContext;
+class ProcessingContext;
 class EndOfStreamContext;
 struct ConfigContext;
 struct WorkflowSpecNode;

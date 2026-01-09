@@ -171,7 +171,7 @@ constexpr auto get_str(const char (&str)[N])
 }
 
 template <int N>
-constexpr auto get_size(const char (&str)[N])
+constexpr auto get_size(const char (&)[N])
 {
   return N;
 }

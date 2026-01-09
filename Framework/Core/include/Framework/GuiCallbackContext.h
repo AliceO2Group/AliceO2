@@ -23,7 +23,7 @@ namespace o2::framework
 {
 
 struct GuiCallbackContext;
-class WSDPLHandler;
+struct WSDPLHandler;
 
 struct GuiRenderer {
   uv_timer_t drawTimer;

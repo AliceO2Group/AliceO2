@@ -16,7 +16,7 @@
 namespace o2::framework
 {
 
-class ServiceRegistry;
+struct ServiceRegistry;
 class ConfigParamRegistry;
 
 // This is a utility class to reduce the amount of boilerplate when defining
