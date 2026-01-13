@@ -1,0 +1,35 @@
+{
+  "generators": [
+    {
+      "name": "boxgen",
+      "config": {
+        "pdg": 443,
+        "number": 10,
+        "eta": [
+          -0.8,
+          0.8
+        ],
+        "prange": [
+          0.1,
+          5
+        ],
+        "phirange": [
+          0,
+          360
+        ]
+      }
+    },
+    {
+      "name": "external",
+      "config": {
+        "fileName": "",
+        "funcName": "",
+        "iniFile": "${O2DPG_MC_CONFIG_ROOT}/MC/config/examples/ini/GeneratorEPOS4_pp13TeV.ini"
+      }
+    }
+  ],
+  "fractions": [
+    1,
+    1
+  ]
+}
