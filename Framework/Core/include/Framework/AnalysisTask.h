@@ -521,7 +521,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ExpressionInfo> expressionInfos;
 
   /// make sure options and configurables are set before expression infos are created
-  homogeneous_apply_refs([&options, &hash](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
+  homogeneous_apply_refs([&options](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
   /// extract conditions and append them as inputs
   homogeneous_apply_refs([&inputs](auto& element) { return analysis_task_parsers::appendCondition(inputs, element); }, *task.get());
 
@@ -620,7 +620,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       }
       // reset pre-slice for the next dataframe
       auto slices = pc.services().get<ArrowTableSlicingCache>();
-      homogeneous_apply_refs([&pc, &slices](auto& element) {
+      homogeneous_apply_refs([&slices](auto& element) {
         return analysis_task_parsers::updateSliceInfo(element, slices);
       },
                              *(task.get()));
