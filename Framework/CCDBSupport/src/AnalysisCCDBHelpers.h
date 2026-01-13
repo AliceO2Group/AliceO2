@@ -17,7 +17,7 @@ namespace o2::framework
 {
 
 struct AnalysisCCDBHelpers {
-  static AlgorithmSpec fetchFromCCDB(ConfigContext const& ctx);
+  static AlgorithmSpec fetchFromCCDB(ConfigContext const&);
 };
 
 } // namespace o2::framework
