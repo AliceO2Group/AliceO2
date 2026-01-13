@@ -3010,8 +3010,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   ServiceSpecs driverServices = ServiceSpecHelpers::filterDisabled(CommonDriverServices::defaultServices(), driverServicesOverride);
   // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
-  auto reader = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
-  if (reader != physicalWorkflow.end()) {
+  auto& dec = configContext.services().get<DanglingEdgesContext>();
+  if (!(dec.requestedAODs.empty() && dec.requestedDYNs.empty() && dec.requestedIDXs.empty() && dec.requestedTIMs.empty())) {
     driverServices.push_back(ArrowSupport::arrowBackendSpec());
   }
   for (auto& service : driverServices) {
