@@ -129,11 +129,11 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         int outputRouteIndex = bindings.at(outRouteDesc);
         auto& spec = helper->routes[outputRouteIndex].matcher;
         std::vector<std::shared_ptr<arrow::BinaryViewBuilder>> builders;
-        for (auto& _ : schema->fields()) {
+        for (auto const& _ : schema->fields()) {
           builders.emplace_back(std::make_shared<arrow::BinaryViewBuilder>());
         }
 
-        for (size_t ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
+        for (auto ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
           std::shared_ptr<arrow::Array> chunk = timestampColumn->chunk(ci);
           auto const* timestamps = chunk->data()->GetValuesSafe<size_t>(1);
 
