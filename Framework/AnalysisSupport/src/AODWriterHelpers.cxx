@@ -62,13 +62,13 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
 
 AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
 {
-  auto& ac = ctx.services().get<DanglingEdgesContext>();
   auto dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
   int compressionLevel = 505;
   if (ctx.options().hasOption("aod-writer-compression")) {
     compressionLevel = ctx.options().get<int>("aod-writer-compression");
   }
-  return AlgorithmSpec{[dod, outputInputs = ac.outputsInputsAOD, compressionLevel](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+  return AlgorithmSpec{[dod, compressionLevel](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+    auto outputInputs = ic.services().get<DanglingEdgesContext>().outputsInputsAOD;
     LOGP(debug, "======== getGlobalAODSink::Init ==========");
 
     // find out if any table needs to be saved
