@@ -133,15 +133,17 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
           if (stat.firstChip == chid) {
             thrStatIdx[ith]++;
             chid += stat.nChips; // next chip to look
-            const auto clbeg = mThreads[ith]->compClusters.begin() + stat.firstClus;
-            auto szold = compClus->size();
-            compClus->insert(compClus->end(), clbeg, clbeg + stat.nClus);
-            if (patterns) {
-              const auto ptbeg = mThreads[ith]->patterns.begin() + stat.firstPatt;
-              patterns->insert(patterns->end(), ptbeg, ptbeg + stat.nPatt);
-            }
-            if (labelsCl) {
-              labelsCl->mergeAtBack(mThreads[ith]->labels, stat.firstClus, stat.nClus);
+            if (stat.nClus > 0) {
+              const auto clbeg = mThreads[ith]->compClusters.begin() + stat.firstClus;
+              auto szold = compClus->size();
+              compClus->insert(compClus->end(), clbeg, clbeg + stat.nClus);
+              if (patterns) {
+                const auto ptbeg = mThreads[ith]->patterns.begin() + stat.firstPatt;
+                patterns->insert(patterns->end(), ptbeg, ptbeg + stat.nPatt);
+              }
+              if (labelsCl) {
+                labelsCl->mergeAtBack(mThreads[ith]->labels, stat.firstClus, stat.nClus);
+              }
             }
           }
         }
@@ -214,14 +216,22 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
                                             PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
   const auto& pixData = curChipData->getData();
-  for (int i1 = 0; i1 < preClusterHeads.size(); ++i1) {
-    auto ci = preClusterIndices[i1];
+  int nPreclusters = preClusters.size();
+  // account for the eventual reindexing of preClusters: Id2 might have been reindexed to Id1, which later was reindexed to Id0
+  for (int i = 1; i < nPreclusters; i++) {
+    if (preClusters[i].index != i) { // reindexing is always done towards smallest index
+      preClusters[i].index = preClusters[preClusters[i].index].index;
+    }
+  }
+  for (int i1 = 0; i1 < nPreclusters; ++i1) {
+    auto& preCluster = preClusters[i1];
+    auto ci = preCluster.index;
     if (ci < 0) {
       continue;
     }
     BBox bbox(curChipData->getChipID());
     int nlab = 0;
-    int next = preClusterHeads[i1];
+    int next = preCluster.head;
     pixArrBuff.clear();
     while (next >= 0) {
       const auto& pixEntry = pixels[next];
@@ -237,12 +247,13 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       }
       next = pixEntry.first;
     }
-    preClusterIndices[i1] = -1;
-    for (int i2 = i1 + 1; i2 < preClusterHeads.size(); ++i2) {
-      if (preClusterIndices[i2] != ci) {
+    preCluster.index = -1;
+    for (int i2 = i1 + 1; i2 < nPreclusters; ++i2) {
+      auto& preCluster2 = preClusters[i2];
+      if (preCluster2.index != ci) {
         continue;
       }
-      next = preClusterHeads[i2];
+      next = preCluster2.head;
       while (next >= 0) {
         const auto& pixEntry = pixels[next];
         const auto pix = pixData[pixEntry.second]; // PixelData
@@ -257,7 +268,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         }
         next = pixEntry.first;
       }
-      preClusterIndices[i2] = -1;
+      preCluster2.index = -1;
     }
     if (bbox.isAcceptableSize()) {
       parent->streamCluster(pixArrBuff, &labelsBuff, bbox, parent->mPattIdConverter, compClusPtr, patternsPtr, labelsClusPtr, nlab);
@@ -344,18 +355,15 @@ void Clusterer::ClustererThread::initChip(const ChipPixelData* curChipData, uint
   prev = column1 + 1;
   curr = column2 + 1;
   resetColumn(curr);
-
   pixels.clear();
-  preClusterHeads.clear();
-  preClusterIndices.clear();
+  preClusters.clear();
   auto pix = curChipData->getData()[first];
   currCol = pix.getCol();
   curr[pix.getRowDirect()] = 0; // can use getRowDirect since the pixel is not masked
   // start the first pre-cluster
-  preClusterHeads.push_back(0);
-  preClusterIndices.push_back(0);
+  preClusters.emplace_back();
   pixels.emplace_back(-1, first); // id of current pixel
-  noLeftCol = true;               // flag that there is no column on the left to check yet
+  noLeftCol = true;
 }
 
 //__________________________________________________
@@ -378,38 +386,57 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
     currCol = pix.getCol();
   }
 
-  Bool_t orphan = true;
-
   if (noLeftCol) { // check only the row above
     if (curr[row - 1] >= 0) {
       expandPreCluster(ip, row, curr[row - 1]); // attach to the precluster of the previous row
-      return;
+    } else {
+      addNewPrecluster(ip, row); // start new precluster
     }
   } else {
+    // row above should be always checked
+    int nnb = 0, lowestIndex = curr[row - 1], lowestNb = 0, *nbrCol[4], nbrRow[4];
+    if (lowestIndex >= 0) {
+      nbrCol[nnb] = curr;
+      nbrRow[nnb++] = row - 1;
+    } else {
+      lowestIndex = 0x7ffff;
+      lowestNb = -1;
+    }
 #ifdef _ALLOW_DIAGONAL_ALPIDE_CLUSTERS_
-    int neighbours[]{curr[row - 1], prev[row], prev[row + 1], prev[row - 1]};
-#else
-    int neighbours[]{curr[row - 1], prev[row]};
-#endif
-    for (auto pci : neighbours) {
-      if (pci < 0) {
-        continue;
-      }
-      if (orphan) {
-        expandPreCluster(ip, row, pci); // attach to the adjascent precluster
-        orphan = false;
-        continue;
-      }
-      // reassign precluster index to smallest one
-      if (preClusterIndices[pci] < preClusterIndices[curr[row]]) {
-        preClusterIndices[curr[row]] = preClusterIndices[pci];
-      } else {
-        preClusterIndices[pci] = preClusterIndices[curr[row]];
+    for (int i : {-1, 0, 1}) {
+      auto v = prev[row + i];
+      if (v >= 0) {
+        nbrCol[nnb] = prev;
+        nbrRow[nnb] = row + i;
+        if (v < lowestIndex) {
+          lowestIndex = v;
+          lowestNb = nnb;
+        }
+        nnb++;
       }
     }
-  }
-  if (orphan) {
-    addNewPrecluster(ip, row); // start new precluster
+#else
+    if (prev[row] >= 0) {
+      nbrCol[nnb] = prev;
+      nbrRow[nnb] = row;
+      if (prev[row] < lowestIndex) {
+        lowestIndex = v;
+        lowestNb = nnb;
+      }
+      nnb++;
+    }
+#endif
+    if (!nnb) {                  // no neighbours, create new precluster
+      addNewPrecluster(ip, row); // start new precluster
+    } else {
+      expandPreCluster(ip, row, lowestIndex); // attach to the adjascent precluster with smallest index
+      if (nnb > 1) {
+        for (int inb = 0; inb < nnb; inb++) { // reassign precluster index to smallest one, replicating updated values to columns caches
+          auto& prevIndex = (nbrCol[inb])[nbrRow[inb]];
+          prevIndex = preClusters[prevIndex].index = lowestIndex;
+        }
+      }
+    }
   }
 }
 
