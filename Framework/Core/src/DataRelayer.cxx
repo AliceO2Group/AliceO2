@@ -436,7 +436,8 @@ DataRelayer::RelayChoice
                      InputInfo const& info,
                      size_t nMessages,
                      size_t nPayloads,
-                     std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo)> onDrop)
+                     OnInsertionCallback onInsertion,
+                     OnDropCallback onDrop)
 {
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
   DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(rawHeader);
@@ -482,6 +483,7 @@ DataRelayer::RelayChoice
                      &messages,
                      &nMessages,
                      &nPayloads,
+                     &onInsertion,
                      &cache = mCache,
                      &services = mContext,
                      numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot, InputInfo const& info) -> size_t {
@@ -512,7 +514,11 @@ DataRelayer::RelayChoice
         mi += nPayloads;
         continue;
       }
-      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      auto span = std::span<fair::mq::MessagePtr>(messages + mi, messages + mi + nPayloads + 1);
+      if (onInsertion) {
+        onInsertion(services, span);
+      }
+      target.add([&span](size_t i) -> fair::mq::MessagePtr& { return span[i]; }, nPayloads + 1);
       mi += nPayloads;
       saved += nPayloads;
     }
