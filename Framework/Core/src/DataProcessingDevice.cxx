@@ -1680,6 +1680,33 @@ struct WaitBackpressurePolicy {
   }
 };
 
+auto forwardOnInsertion(ServiceRegistryRef& ref, std::span<fair::mq::MessagePtr>& messages) -> void
+{
+  O2_LOG_ENABLE(forwarding);
+  O2_SIGNPOST_ID_GENERATE(sid, forwarding);
+  auto& timesliceIndex = ref.get<TimesliceIndex>();
+  auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+  O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Starting forwarding for incoming data with oldestTimeslice %zu with copy.",
+                    oldestTimeslice.timeslice.value);
+  auto& proxy = ref.get<FairMQDeviceProxy>();
+  std::vector<fair::mq::Parts> forwardedParts;
+  DataProcessingHelpers::routeForwardedMessages(proxy, messages, forwardedParts, true, false);
+
+  for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+    if (forwardedParts[fi].Size() == 0) {
+      continue;
+    }
+    ForwardChannelInfo info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+    auto& parts = forwardedParts[fi];
+    if (info.policy == nullptr) {
+      O2_SIGNPOST_EVENT_EMIT_ERROR(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d has no policy.", info.name.c_str(), fi);
+      continue;
+    }
+    O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d", info.name.c_str(), fi);
+    info.policy->forward(parts, ChannelIndex{fi}, ref);
+  }
+};
+
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
@@ -1859,7 +1886,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
                                        input,
                                        nMessages,
                                        nPayloadsPerHeader,
-                                       nullptr,
+                                       forwardOnInsertion,
                                        onDrop);
           switch (relayed.type) {
             case DataRelayer::RelayChoice::Type::Backpressured:
@@ -2274,34 +2301,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     bool consumeSomething = action.op == CompletionPolicy::CompletionOp::Consume || action.op == CompletionPolicy::CompletionOp::ConsumeExisting;
 
     if (context.canForwardEarly && hasForwards && consumeSomething) {
-      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Early forwainding: %{public}s.", fmt::format("{}", action.op).c_str());
       auto& timesliceIndex = ref.get<TimesliceIndex>();
       auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-      O2_SIGNPOST_ID_GENERATE(sid, forwarding);
-      bool consume = action.op == CompletionPolicy::CompletionOp::Consume;
-      O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Starting forwarding for slot %zu with oldestTimeslice %zu %{public}s%{public}s%{public}s",
-                        action.slot.index, oldestTimeslice.timeslice.value, "with copy", consume ? " and " : "", consume ? "with consume" : "");
-      auto& proxy = ref.get<FairMQDeviceProxy>();
-      for (auto &messageSet : currentSetOfInputs) {
-        std::vector<fair::mq::Parts> forwardedParts;
-        auto span = std::span(messageSet.messages);
-        DataProcessingHelpers::routeForwardedMessages(proxy, span, forwardedParts, true, consume);
-
-        for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
-          if (forwardedParts[fi].Size() == 0) {
-            continue;
-          }
-          ForwardChannelInfo info = proxy.getForwardChannelInfo(ChannelIndex{fi});
-          auto& parts = forwardedParts[fi];
-          if (info.policy == nullptr) {
-            O2_SIGNPOST_EVENT_EMIT_ERROR(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d has no policy.", info.name.c_str(), fi);
-            continue;
-          }
-          O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d", info.name.c_str(), fi);
-          info.policy->forward(parts, ChannelIndex{fi}, ref);
-        }
-      }
-
       auto& asyncQueue = ref.get<AsyncQueue>();
       auto& decongestion = ref.get<DecongestionService>();
       O2_SIGNPOST_ID_GENERATE(aid, async_queue);
