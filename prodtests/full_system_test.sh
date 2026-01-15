@@ -71,7 +71,7 @@ else
 fi
 FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 FST_EMBEDDING_CONFIG=${FST_EMBEDDING_CONFIG:-GeneratorPythia8.config=$O2_ROOT/prodtests/full-system-test/pythia8.cfg}
-DO_EMBEDDING=${DO_EMBEDDING:-1}
+DO_EMBEDDING=${DO_EMBEDDING:-0}
 if [[ $DO_EMBEDDING == 0 ]]; then
   SIM_SOURCES="o2sim"
 else
