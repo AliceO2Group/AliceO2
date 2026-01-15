@@ -291,6 +291,7 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
   const float maxChi2ClusterAttachment,
   const float maxChi2NDF,
   const int reseedIfShorter,
+  const bool repeatRefitOut,
   const bool shifRefToCluster,
   const o2::base::Propagator* propagator,
   const o2::base::PropagatorF::MatCorrType matCorrType)
@@ -336,6 +337,34 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                           shifRefToCluster);
     if (!fitSuccess || temporaryTrack.getPt() < minPts[nLayers - temporaryTrack.getNClusters()]) {
       continue;
+    }
+    if (repeatRefitOut) { // repeat outward refit seeding and linearizing with the stable inward fit result
+      o2::track::TrackParCov saveInw{temporaryTrack};
+      linRef = saveInw; // use refitted track as lin.reference
+      float saveChi2 = temporaryTrack.getChi2();
+      temporaryTrack.resetCovariance();
+      temporaryTrack.setCov(temporaryTrack.getQ2Pt() * temporaryTrack.getQ2Pt() * temporaryTrack.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
+      temporaryTrack.setChi2(0);
+      fitSuccess = fitTrack(temporaryTrack,               // TrackITSExt& track,
+                            0,                            // int lastLayer,
+                            nLayers,                      // int firstLayer,
+                            1,                            // int firstCluster,
+                            maxChi2ClusterAttachment,     // float maxChi2ClusterAttachment,
+                            maxChi2NDF,                   // float maxChi2NDF,
+                            o2::constants::math::VeryBig, // float maxQoverPt,
+                            0,                            // nCl,
+                            bz,                           // float bz,
+                            foundTrackingFrameInfo,       // TrackingFrameInfo** trackingFrameInfo,
+                            propagator,                   // const o2::base::Propagator* propagator,
+                            matCorrType,                  // o2::base::PropagatorF::MatCorrType matCorrType
+                            &linRef,
+                            shifRefToCluster);
+      if (!fitSuccess) {
+        continue;
+      }
+      temporaryTrack.getParamOut() = temporaryTrack.getParamIn();
+      temporaryTrack.getParamIn() = saveInw;
+      temporaryTrack.setChi2(saveChi2);
     }
     tracks[iCurrentTrackSeedIndex] = temporaryTrack;
   }
@@ -1174,6 +1203,7 @@ void trackSeedHandler(CellSeed<nLayers>* trackSeeds,
                       const float maxChi2ClusterAttachment,
                       const float maxChi2NDF,
                       const int reseedIfShorter,
+                      const bool repeatRefitOut,
                       const bool shiftRefToCluster,
                       const o2::base::Propagator* propagator,
                       const o2::base::PropagatorF::MatCorrType matCorrType,
@@ -1195,6 +1225,7 @@ void trackSeedHandler(CellSeed<nLayers>* trackSeeds,
     maxChi2ClusterAttachment,                 // float
     maxChi2NDF,                               // float
     reseedIfShorter,                          // int
+    repeatRefitOut,                           // bool
     shiftRefToCluster,                        // bool
     propagator,                               // const o2::base::Propagator*
     matCorrType);                             // o2::base::PropagatorF::MatCorrType
@@ -1375,6 +1406,7 @@ template void trackSeedHandler(CellSeed<7>* trackSeeds,
                                const float maxChi2ClusterAttachment,
                                const float maxChi2NDF,
                                const int reseedIfShorter,
+                               const bool repeatRefitOut,
                                const bool shiftRefToCluster,
                                const o2::base::Propagator* propagator,
                                const o2::base::PropagatorF::MatCorrType matCorrType,

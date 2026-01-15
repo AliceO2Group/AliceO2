@@ -336,6 +336,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
                      startLevel,                                       // const int startLevel,
                      this->mTrkParams[0].MaxChi2ClusterAttachment,     // float maxChi2ClusterAttachment
                      this->mTrkParams[0].MaxChi2NDF,                   // float maxChi2NDF
+                     this->mTrkParams[0].RepeatRefitOut,
                      this->mTrkParams[0].ReseedIfShorter,
                      this->mTrkParams[0].ShiftRefToCluster,
                      mTimeFrameGPU->getDevicePropagator(), // const o2::base::Propagator* propagator

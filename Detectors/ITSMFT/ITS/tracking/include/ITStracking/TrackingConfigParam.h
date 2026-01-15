@@ -98,6 +98,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   int nIterations = MaxIter;               // overwrite the number of iterations
   int reseedIfShorter = 6;                 // for the final refit reseed the track with circle if they are shorter than this value
   bool shiftRefToCluster{true};            // TrackFit: after update shift the linearization reference to cluster
+  bool repeatRefitOut{false};              // repeat outward refit using inward refit as a seed
   bool createArtefactLabels{false}; // create on-the-fly labels for the artefacts
 
   int nThreads = 1;
