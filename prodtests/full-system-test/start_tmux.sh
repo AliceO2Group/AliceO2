@@ -91,6 +91,7 @@ export DATADIST_NEW_DPL_CHAN=1
 
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
+mkdir -p $EDJSONS_DIR  # create event display directory to avoid filesystem error messages
 
 workflow_has_parameter QC && export QC_REDIRECT_MERGER_TO_LOCALHOST=1
 
