@@ -2276,7 +2276,39 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     if (context.canForwardEarly && hasForwards && consumeSomething) {
       O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Early forwainding: %{public}s.", fmt::format("{}", action.op).c_str());
       auto& timesliceIndex = ref.get<TimesliceIndex>();
-      forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
+      auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+      O2_SIGNPOST_ID_GENERATE(sid, forwarding);
+      bool consume = action.op == CompletionPolicy::CompletionOp::Consume;
+      O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Starting forwarding for slot %zu with oldestTimeslice %zu %{public}s%{public}s%{public}s",
+                        action.slot.index, oldestTimeslice.timeslice.value, "with copy", consume ? " and " : "", consume ? "with consume" : "");
+      auto& proxy = ref.get<FairMQDeviceProxy>();
+      for (auto &messageSet : currentSetOfInputs) {
+        std::vector<fair::mq::Parts> forwardedParts;
+        auto span = std::span(messageSet.messages);
+        DataProcessingHelpers::routeForwardedMessages(proxy, span, forwardedParts, true, consume);
+
+        for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+          if (forwardedParts[fi].Size() == 0) {
+            continue;
+          }
+          ForwardChannelInfo info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+          auto& parts = forwardedParts[fi];
+          if (info.policy == nullptr) {
+            O2_SIGNPOST_EVENT_EMIT_ERROR(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d has no policy.", info.name.c_str(), fi);
+            continue;
+          }
+          O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d", info.name.c_str(), fi);
+          info.policy->forward(parts, ChannelIndex{fi}, ref);
+        }
+      }
+
+      auto& asyncQueue = ref.get<AsyncQueue>();
+      auto& decongestion = ref.get<DecongestionService>();
+      O2_SIGNPOST_ID_GENERATE(aid, async_queue);
+      O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputs", "Queuing forwarding oldestPossible %zu", oldestTimeslice.timeslice.value);
+      AsyncQueueHelpers::post(asyncQueue, AsyncTask{.timeslice = oldestTimeslice.timeslice, .id = decongestion.oldestPossibleTimesliceTask, .debounce = -1, .callback = decongestionCallbackLate}
+                                            .user<DecongestionContext>({.ref = ref, .oldestTimeslice = oldestTimeslice}));
+      O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
     }
     markInputsAsDone(action.slot);
 
