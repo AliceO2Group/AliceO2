@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \brief Tests that the same tables from different origins are routed correctly.
-///        Required two input files, <name>.root and <name>_EMB.root, that contain
+///        Requires two input files, <name>.root and <name>_EMB.root, that contain
 ///        same number of DFs with the same names.
 /// \author
 /// \since
