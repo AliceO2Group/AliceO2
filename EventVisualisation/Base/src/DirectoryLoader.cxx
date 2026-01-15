@@ -14,6 +14,8 @@
 /// \author julian.myrcha@cern.ch
 
 #include "EventVisualisationBase/DirectoryLoader.h"
+#include "Framework/DefaultsHelpers.h"
+#include "Framework/DataTakingContext.h"
 #include <filesystem>
 #include <algorithm>
 #include <climits>
@@ -65,10 +67,13 @@ bool DirectoryLoader::canCreateNextFile(const std::vector<std::string>& paths, c
   }
 
   // comparison with safety if marker not in the filename (-1+1 gives 0)
-  std::ranges::sort(result.begin(), result.end(),
-                    [marker](const std::string& a, const std::string& b) {
-                      return a.substr(a.find_first_of(marker) + 1) > b.substr(b.find_first_of(marker) + 1);
-                    });
+  if (result.size() > 1) {
+    std::ranges::sort(result.begin(), result.end(),
+                      [marker](const std::string& a, const std::string& b) {
+                        return a.substr(a.find_first_of(marker) + 1) > b.substr(b.find_first_of(marker) + 1);
+                      });
+  }
+
   unsigned long accumulatedSize = 0L;
   const std::regex delimiter{"_"};
   for (auto const& file : result) {
@@ -113,11 +118,15 @@ deque<string> DirectoryLoader::load(const std::vector<std::string>& paths, const
 
 std::vector<std::string> DirectoryLoader::allFolders(const std::string& location)
 {
-  auto const pos = location.find_last_of('_');
   std::vector<std::string> folders;
-  folders.push_back(location.substr(0, pos) + "_PHYSICS");
-  folders.push_back(location.substr(0, pos) + "_COSMICS");
-  folders.push_back(location.substr(0, pos) + "_SYNTHETIC");
+  if (o2::framework::DefaultsHelpers::deploymentMode() == o2::framework::DeploymentMode::OnlineDDS) {
+    auto const pos = location.find_last_of('_');
+    folders.push_back(location.substr(0, pos) + "_PHYSICS");
+    folders.push_back(location.substr(0, pos) + "_COSMICS");
+    folders.push_back(location.substr(0, pos) + "_SYNTHETIC");
+  } else {
+    folders.push_back(location);
+  }
   return folders;
 }
 
