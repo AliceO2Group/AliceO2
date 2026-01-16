@@ -18,6 +18,7 @@
 #include <TGeoMedium.h>
 #include <TGeoBBox.h>
 #include <TGeoMatrix.h>
+#include <Framework/Logger.h>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -41,12 +42,12 @@ TGeoMedium* FT3Module::AluminumMed = nullptr;
 
 void FT3Module::initialize_materials()
 {
-
+  LOG(debug) << "FT3Module: initialize_materials";
   if (siliconMat) {
     return;
   }
 
-  TGeoManager* gGeoManager = gGeoManager;
+  TGeoManager* geoManager = gGeoManager;
 
   auto* itsH = new TGeoElement("FT3_H", "Hydrogen", 1, 1.00794);
   auto* itsC = new TGeoElement("FT3_C", "Carbon", 6, 12.0107);
@@ -58,7 +59,7 @@ void FT3Module::initialize_materials()
   copperMat = new TGeoMaterial("FT3_Copper", 63.546, 29, 8.96);
   copperMed = new TGeoMedium("FT3_Copper", 2, copperMat);
 
-  kaptonMat = new TGeoMaterial("FT3_Kapton", 13.84, 6.88, 1.346);
+  kaptonMat = new TGeoMaterial("FT3_Kapton", 13.84, 7, 1.346);
   kaptonMed = new TGeoMedium("FT3_Kapton", 3, kaptonMat);
 
   // Epoxy: C18 H19 O3
@@ -73,6 +74,7 @@ void FT3Module::initialize_materials()
 
   AluminumMat = new TGeoMaterial("Aluminum", 26.98, 13, 2.7);
   AluminumMed = new TGeoMedium("Aluminum", 5, AluminumMat);
+  LOG(debug) << "FT3Module: done initialize_materials";
 }
 
 double calculate_y_circle(double x, double radius)
@@ -83,7 +85,8 @@ double calculate_y_circle(double x, double radius)
 void FT3Module::create_layout(double mZ, int layerNumber, int direction, double Rin, double Rout, double overlap, const std::string& face, const std::string& layout_type, TGeoVolume* motherVolume)
 {
 
-  TGeoManager* gGeoManager = gGeoManager;
+  LOG(debug) << "FT3Module: create_layout - Layer " << layerNumber << ", Direction " << direction << ", Face " << face;
+  TGeoManager* geoManager = gGeoManager;
 
   FT3Module::initialize_materials();
 
@@ -479,13 +482,13 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
               if (sensor_width == 2.5) {
                 // silicon
                 std::string sensor_name = "FT3sensor_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, active_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, active_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift_sensor + x_offset, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness - epoxy_thickness - silicon_thickness / 2));
 
                 std::string inactive_name = "FT3inactive_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(inactive_name.c_str(), siliconMed, (sensor_width - active_width) / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(inactive_name.c_str(), siliconMed, (sensor_width - active_width) / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(kRed);
                 sensor->SetFillColorAlpha(kRed, 1.0);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + inactive_x_shift, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness - epoxy_thickness - silicon_thickness / 2));
@@ -493,19 +496,19 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
               } else {
 
                 std::string sensor_name = "FT3sensor_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + x + inactive_width / 2, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness - epoxy_thickness - silicon_thickness / 2));
 
                 std::string inactive_name_left = "FT3inactive_left_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(inactive_name_left.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(inactive_name_left.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(kRed);
                 sensor->SetFillColorAlpha(kRed, 1.0);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + inactive_x_shift_left, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness - epoxy_thickness - silicon_thickness / 2));
 
                 std::string inactive_name_right = "FT3inactive_right_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(inactive_name_right.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(inactive_name_right.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(kRed);
                 sensor->SetFillColorAlpha(kRed, 1.0);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + inactive_x_shift_right, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness - epoxy_thickness - silicon_thickness / 2));
@@ -513,21 +516,21 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               // silicon-to-FPC epoxy glue
               std::string glue_up_name = "FT3glue_up_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-              sensor = gGeoManager->MakeBox(glue_up_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
+              sensor = geoManager->MakeBox(glue_up_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
               sensor->SetLineColor(kBlue);
               sensor->SetFillColorAlpha(kBlue, 1.0);
               motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + active_x_shift, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness - epoxy_thickness / 2));
 
               if (r_squared < R_material_threshold * R_material_threshold) {
                 std::string alu_name = "FT3aluminum_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(alu_name.c_str(), AluminumMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
+                sensor = geoManager->MakeBox(alu_name.c_str(), AluminumMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
                 sensor->SetLineColor(kBlack);
                 sensor->SetFillColorAlpha(kBlack, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift + x_offset, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness / 2));
 
               } else {
                 std::string copper_name = "FT3copper_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(copper_name.c_str(), copperMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
+                sensor = geoManager->MakeBox(copper_name.c_str(), copperMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
                 sensor->SetLineColor(kBlack);
                 sensor->SetFillColorAlpha(kBlack, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift + x_offset, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness - copper_thickness / 2));
@@ -535,14 +538,14 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               // kapton
               std::string fpc_name = "FT3fpc_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-              sensor = gGeoManager->MakeBox(fpc_name.c_str(), kaptonMed, sensor_width / 2, sensor_height / 2, kapton_thickness / 2);
+              sensor = geoManager->MakeBox(fpc_name.c_str(), kaptonMed, sensor_width / 2, sensor_height / 2, kapton_thickness / 2);
               sensor->SetLineColor(kGreen);
               sensor->SetFillColorAlpha(kGreen, 0.4);
               motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift + x_offset, y + y_offset, mZ + z_offset - epoxy_thickness - kapton_thickness / 2));
 
               // FPC-to-support epoxy glue
               std::string glue_down_name = "FT3glue_down_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-              sensor = gGeoManager->MakeBox(glue_down_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
+              sensor = geoManager->MakeBox(glue_down_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
               sensor->SetLineColor(kBlue);
               sensor->SetFillColorAlpha(kBlue, 1.0);
               motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + active_x_shift, y + y_offset, mZ + z_offset - epoxy_thickness / 2));
@@ -612,14 +615,14 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               // FPC-to-support epoxy glue
               std::string glue_down_name = "FT3glue_down_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-              sensor = gGeoManager->MakeBox(glue_down_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
+              sensor = geoManager->MakeBox(glue_down_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
               sensor->SetLineColor(kBlue);
               sensor->SetFillColorAlpha(kBlue, 1.0);
               motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + active_x_shift, y + y_offset, mZ + z_offset + epoxy_thickness / 2));
 
               // Kapton
               std::string fpc_name = "FT3fpc_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-              sensor = gGeoManager->MakeBox(fpc_name.c_str(), kaptonMed, sensor_width / 2, sensor_height / 2, kapton_thickness / 2);
+              sensor = geoManager->MakeBox(fpc_name.c_str(), kaptonMed, sensor_width / 2, sensor_height / 2, kapton_thickness / 2);
               sensor->SetLineColor(kGreen);
               sensor->SetFillColorAlpha(kGreen, 0.4);
               motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift + x_offset, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness / 2));
@@ -627,14 +630,14 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
               if (r_squared < R_material_threshold * R_material_threshold) {
                 // replace copper with alu
                 std::string alu_name = "FT3aluminum_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(alu_name.c_str(), AluminumMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
+                sensor = geoManager->MakeBox(alu_name.c_str(), AluminumMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
                 sensor->SetLineColor(kBlack);
                 sensor->SetFillColorAlpha(kBlack, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift + x_offset, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness / 2));
 
               } else {
                 std::string copper_name = "FT3copper_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(copper_name.c_str(), copperMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
+                sensor = geoManager->MakeBox(copper_name.c_str(), copperMed, sensor_width / 2, sensor_height / 2, copper_thickness / 2);
                 sensor->SetLineColor(kBlack);
                 sensor->SetFillColorAlpha(kBlack, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift + x_offset, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness / 2));
@@ -642,7 +645,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               // silicon-to-FPC epoxy glue
               std::string glue_up_name = "FT3glue_up_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-              sensor = gGeoManager->MakeBox(glue_up_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
+              sensor = geoManager->MakeBox(glue_up_name.c_str(), epoxyMed, sensor_width / 2, sensor_height / 2, epoxy_thickness / 2);
               sensor->SetLineColor(kBlue);
               sensor->SetFillColorAlpha(kBlue, 1.0);
               motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + active_x_shift, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness + epoxy_thickness / 2));
@@ -650,13 +653,13 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
               if (sensor_width == 2.5) {
 
                 std::string sensor_name = "FT3sensor_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, active_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, active_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(active_x_shift_sensor + x_offset, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness + epoxy_thickness + silicon_thickness / 2));
 
                 std::string inactive_name = "FT3inactive_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(inactive_name.c_str(), siliconMed, (sensor_width - active_width) / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(inactive_name.c_str(), siliconMed, (sensor_width - active_width) / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(kRed);
                 sensor->SetFillColorAlpha(kRed, 1.0);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + inactive_x_shift, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness + epoxy_thickness + silicon_thickness / 2));
@@ -664,21 +667,21 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
               } else {
                 // active (4.6 cm centered)
                 std::string sensor_name = "FT3sensor_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + x_shifted + inactive_width / 2, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness + epoxy_thickness + silicon_thickness / 2));
 
                 // left inactive strip
                 std::string inactive_name_left = "FT3inactive_left_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(inactive_name_left.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(inactive_name_left.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(kRed);
                 sensor->SetFillColorAlpha(kRed, 1.0);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + inactive_x_shift_left, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness + epoxy_thickness + silicon_thickness / 2));
 
                 // right inactive strip
                 std::string inactive_name_right = "FT3inactive_right_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-                sensor = gGeoManager->MakeBox(inactive_name_right.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
+                sensor = geoManager->MakeBox(inactive_name_right.c_str(), siliconMed, inactive_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(kRed);
                 sensor->SetFillColorAlpha(kRed, 1.0);
                 motherVolume->AddNode(sensor, sensor_count++, new TGeoTranslation(x_offset + inactive_x_shift_right, y + y_offset, mZ + z_offset + epoxy_thickness + kapton_thickness + copper_thickness + epoxy_thickness + silicon_thickness / 2));
@@ -691,9 +694,13 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
       rowCounter++;
     }
   }
+  LOG(debug) << "FT3Module: done create_layout";
 }
 
 void FT3Module::createModule(double mZ, int layerNumber, int direction, double Rin, double Rout, double overlap, const std::string& face, const std::string& layout_type, TGeoVolume* motherVolume)
 {
+
+  LOG(debug) << "FT3Module: createModule - Layer " << layerNumber << ", Direction " << direction << ", Face " << face;
   create_layout(mZ, layerNumber, direction, Rin, Rout, overlap, face, layout_type, motherVolume);
+  LOG(debug) << "FT3Module: done createModule";
 }
