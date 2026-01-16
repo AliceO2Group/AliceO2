@@ -50,7 +50,7 @@ TGeoVolume* TRKLayer::createSensor(std::string type)
   TGeoShape* sensor;
 
   if (type == "cylinder") {
-    sensor = new TGeoTube(mInnerRadius, mInnerRadius + mSensorThickness, mChipLength / 2); // TO BE CHECKED !!!
+    sensor = new TGeoTube(mInnerRadius, mInnerRadius + mSensorThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2); // TO BE CHECKED !!!
   } else if (type == "flat") {
     sensor = new TGeoBBox((mChipWidth - mDeadzoneWidth) / 2, mSensorThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
   } else {
@@ -71,7 +71,7 @@ TGeoVolume* TRKLayer::createDeadzone(std::string type)
   TGeoShape* deadzone;
 
   if (type == "cylinder") {
-    deadzone = new TGeoTube(mInnerRadius, mInnerRadius + mSensorThickness, mChipLength / 2); // TO BE CHECKED !!!
+    deadzone = new TGeoTube(mInnerRadius, mInnerRadius + mSensorThickness, 0); // TO BE CHECKED !!!
   } else if (type == "flat") {
     deadzone = new TGeoBBox(mDeadzoneWidth / 2, mSensorThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
   } else {
@@ -92,7 +92,7 @@ TGeoVolume* TRKLayer::createMetalStack(std::string type)
   TGeoShape* metalStack;
 
   if (type == "cylinder") {
-    metalStack = new TGeoTube(mInnerRadius + mSensorThickness, mInnerRadius + mChipThickness, mChipLength / 2); // TO BE CHECKED !!!
+    metalStack = new TGeoTube(mInnerRadius + mSensorThickness, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2); // TO BE CHECKED !!!
   } else if (type == "flat") {
     metalStack = new TGeoBBox(mChipWidth / 2, (mChipThickness - mSensorThickness) / 2, mChipLength / 2); // TO BE CHECKED !!!
   } else {
@@ -118,7 +118,7 @@ TGeoVolume* TRKLayer::createChip(std::string type)
   TGeoVolume* metalVol;
 
   if (type == "cylinder") {
-    chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mChipLength / 2);
+    chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
     chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
 
     sensVol = createSensor("cylinder");
@@ -175,7 +175,7 @@ TGeoVolume* TRKLayer::createModule(std::string type)
   TGeoVolume* moduleVol;
 
   if (type == "cylinder") {
-    module = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mChipLength / 2);
+    module = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
     moduleVol = new TGeoVolume(moduleName.c_str(), module, medAir);
 
     TGeoVolume* chipVol = createChip("cylinder");
@@ -269,7 +269,7 @@ TGeoVolume* TRKLayer::createStave(std::string type)
   TGeoVolume* staveVol;
 
   if (type == "cylinder") {
-    stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mChipLength / 2);
+    stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
     TGeoVolume* moduleVol = createModule("cylinder");
@@ -341,7 +341,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* layerVol;
 
   if (mLayout == eLayout::kCylinder) {
-    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, mChipLength / 2);
+    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     TGeoVolume* staveVol = createStave("cylinder");
