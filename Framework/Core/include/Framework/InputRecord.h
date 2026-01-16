@@ -189,6 +189,7 @@ class InputRecord
   };
 
   int getPos(const char* name) const;
+  int getPos(ConcreteDataMatcher matcher) const;
   [[nodiscard]] static InputPos getPos(std::vector<InputRoute> const& routes, ConcreteDataMatcher matcher);
   [[nodiscard]] static DataRef getByPos(std::vector<InputRoute> const& routes, InputSpan const& span, int pos, int part = 0);
 
@@ -509,6 +510,27 @@ class InputRecord
     cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
     oldId.value = id.value;
     return cache.idToMetadata[id];
+  }
+
+  template <typename T>
+    requires(std::same_as<T, DataRef>)
+  decltype(auto) get(ConcreteDataMatcher matcher, int part = 0)
+  {
+    auto pos = getPos(matcher);
+    if (pos < 0) {
+      auto msg = describeAvailableInputs();
+      throw runtime_error_f("InputRecord::get: no input with binding %s found. %s", DataSpecUtils::describe(matcher).c_str(), msg.c_str());
+    }
+    return getByPos(pos, part);
+  }
+
+  template <typename T>
+    requires(std::same_as<T, TableConsumer>)
+  decltype(auto) get(ConcreteDataMatcher matcher, int part = 0)
+  {
+    auto ref = get<DataRef>(matcher, part);
+    auto data = reinterpret_cast<uint8_t const*>(ref.payload);
+    return std::make_unique<TableConsumer>(data, DataRefUtils::getPayloadSize(ref));
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.

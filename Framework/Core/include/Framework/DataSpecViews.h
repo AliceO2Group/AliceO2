@@ -43,6 +43,13 @@ static auto filter_string_params_with(std::string match)
   });
 }
 
+static auto filter_string_params_starts_with(std::string match)
+{
+  return std::views::filter([match](auto const& param) {
+    return (param.type == VariantType::String) && (param.name.starts_with(match));
+  });
+}
+
 static auto input_to_output_specs()
 {
   return std::views::transform([](auto const& input) {

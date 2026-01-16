@@ -18,6 +18,7 @@
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DataSpecViews.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/DanglingEdgesContext.h"
 
@@ -29,6 +30,7 @@ struct Buildable {
   bool exclusive = false;
   std::string binding;
   std::vector<std::string> labels;
+  std::vector<framework::ConcreteDataMatcher> matchers;
   header::DataOrigin origin;
   header::DataDescription description;
   header::DataHeader::SubSpecificationType version;
@@ -52,6 +54,7 @@ struct Buildable {
 
     for (auto const& r : records) {
       labels.emplace_back(r.label);
+      matchers.emplace_back(r.matcher);
     }
     outputSchema = std::make_shared<arrow::Schema>([](std::vector<o2::soa::IndexRecord> const& recs) {
                      std::vector<std::shared_ptr<arrow::Field>> fields;
@@ -68,6 +71,7 @@ struct Buildable {
     return {
       exclusive,
       labels,
+      matchers,
       records,
       outputSchema,
       origin,
@@ -105,6 +109,7 @@ namespace
 struct Spawnable {
   std::string binding;
   std::vector<std::string> labels;
+  std::vector<framework::ConcreteDataMatcher> matchers;
   std::vector<expressions::Projector> projectors;
   std::vector<std::shared_ptr<gandiva::Expression>> expressions;
   std::shared_ptr<arrow::Schema> outputSchema;
@@ -132,14 +137,17 @@ struct Spawnable {
     o2::framework::addLabelToSchema(outputSchema, binding.c_str());
 
     std::vector<std::shared_ptr<arrow::Schema>> schemas;
-    for (auto& i : spec.metadata) {
-      if (i.name.starts_with("input-schema:")) {
-        labels.emplace_back(i.name.substr(13));
-        iws.clear();
-        auto json = i.defaultValue.get<std::string>();
-        iws.str(json);
-        schemas.emplace_back(ArrowJSONHelpers::read(iws));
-      }
+    for (auto const& i : spec.metadata | views::filter_string_params_starts_with("input-schema:")) {
+      labels.emplace_back(i.name.substr(13));
+      iws.clear();
+      auto json = i.defaultValue.get<std::string>();
+      iws.str(json);
+      schemas.emplace_back(ArrowJSONHelpers::read(iws));
+    }
+    for (auto const& i : spec.metadata | views::filter_string_params_starts_with("input:") | std::ranges::views::transform([](auto const& param) {
+                           return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
+                         })) {
+      matchers.emplace_back(std::get<ConcreteDataMatcher>(i.matcher));
     }
 
     std::vector<std::shared_ptr<arrow::Field>> fields;
@@ -169,6 +177,7 @@ struct Spawnable {
     return {
       binding,
       labels,
+      matchers,
       expressions,
       makeProjector(),
       outputSchema,

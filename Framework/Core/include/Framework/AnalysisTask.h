@@ -75,11 +75,11 @@ struct AnalysisDataProcessorBuilder {
       auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
       ([&bk, &bku, &key, enabled]() mutable {
         if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<As>>()) {
-          auto binding = soa::getLabelFromTypeForKey<std::decay_t<As>>(key);
+          Entry e{soa::getLabelFromTypeForKey<std::decay_t<As>>(key), soa::getMatcherFromTypeForKey<std::decay_t<As>>(key), key, enabled};
           if constexpr (o2::soa::is_smallgroups<std::decay_t<As>>) {
-            framework::updatePairList(bku, binding, key, enabled);
+            framework::updatePairList(bku, e);
           } else {
-            framework::updatePairList(bk, binding, key, enabled);
+            framework::updatePairList(bk, e);
           }
         }
       }(),
@@ -214,7 +214,7 @@ struct AnalysisDataProcessorBuilder {
   template <soa::TableRef R>
   static auto extractTableFromRecord(InputRecord& record)
   {
-    auto table = record.get<TableConsumer>(o2::aod::label<R>())->asArrowTable();
+    auto table = record.get<TableConsumer>(o2::aod::matcher<R>())->asArrowTable();
     if (table->num_rows() == 0) {
       table = makeEmptyTable<R>();
     }

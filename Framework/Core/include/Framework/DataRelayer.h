@@ -114,6 +114,9 @@ class DataRelayer
 
   using OnDropCallback = std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo info)>;
 
+  // Callback for when some messages are about to be owned by the the DataRelayer
+  using OnInsertionCallback = std::function<void(ServiceRegistryRef&, std::span<fair::mq::MessagePtr>&)>;
+
   /// Prune all the pending entries in the cache.
   void prunePending(OnDropCallback);
   /// Prune the cache for a given slot
@@ -135,6 +138,7 @@ class DataRelayer
                     InputInfo const& info,
                     size_t nMessages,
                     size_t nPayloads = 1,
+                    OnInsertionCallback onInsertion = nullptr,
                     OnDropCallback onDrop = nullptr);
 
   /// This is to set the oldest possible @a timeslice this relayer can

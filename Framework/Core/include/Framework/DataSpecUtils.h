@@ -127,6 +127,9 @@ struct DataSpecUtils {
   /// unique way a description should be done, so we keep this outside.
   static std::string describe(OutputSpec const& spec);
 
+  /// Describes a ConcreteDataMatcher
+  static std::string describe(ConcreteDataMatcher const& matcher);
+
   /// Provide a unique label for the input spec. Again this is outside because there
   /// is no standard way of doing it, so better not to pollute the API.
   static std::string label(InputSpec const& spec);
@@ -210,6 +213,9 @@ struct DataSpecUtils {
 
   /// Create an InputSpec from metadata string
   static InputSpec fromMetadataString(std::string s);
+
+  /// Create a concrete data matcher from serialized string
+  static ConcreteDataMatcher fromString(std::string s);
 
   /// Get the origin, if available
   static std::optional<header::DataOrigin> getOptionalOrigin(InputSpec const& spec);

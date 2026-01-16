@@ -1859,6 +1859,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
                                        input,
                                        nMessages,
                                        nPayloadsPerHeader,
+                                       nullptr,
                                        onDrop);
           switch (relayed.type) {
             case DataRelayer::RelayChoice::Type::Backpressured:

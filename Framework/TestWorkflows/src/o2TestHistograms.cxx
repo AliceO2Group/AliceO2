@@ -16,8 +16,6 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include <TH2F.h>
-#include <cmath>
-#include <iostream>
 
 using namespace o2;
 using namespace o2::framework;
@@ -72,7 +70,7 @@ struct EtaAndClsHistogramsSimple {
     }
   }
 
-  void process(soa::Filtered<aod::Tracks> const& tracks, aod::FT0s const&, aod::StoredTracksFrom<o2::aod::Hash<"EMB"_h>> const& ortherTracks)
+  void process(soa::Filtered<aod::Tracks> const& tracks, aod::FT0s const&)
   {
     LOGP(info, "Invoking the simple one");
     for (auto& track : tracks) {
@@ -110,7 +108,7 @@ struct EtaAndClsHistogramsIUSimple {
     }
   }
 
-  void process(soa::Filtered<aod::TracksIU> const& tracks, aod::FT0s const&, aod::TracksIUFrom<o2::aod::Hash<"EMB"_h>> const& otherTracks)
+  void process(soa::Filtered<aod::TracksIU> const& tracks, aod::FT0s const&)
   {
     LOGP(info, "Invoking the simple one IU");
     for (auto& track : tracks) {

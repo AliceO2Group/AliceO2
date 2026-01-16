@@ -14,6 +14,7 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFV0/Digit.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/MCLabel.h"
 #include "FV0Simulation/Detector.h"
@@ -51,6 +52,7 @@ class Digitizer
   void setEventId(Int_t id) { mEventId = id; }
   void setSrcId(Int_t id) { mSrcId = id; }
   void setInteractionRecord(const InteractionTimeRecord& ir) { mIntRecord = ir; }
+  void setDeadChannelMap(o2::fit::DeadChannelMap const* deadChannelMap) { mDeadChannelMap = deadChannelMap; };
 
   void process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::fv0::Digit>& digitsBC,
                std::vector<o2::fv0::ChannelData>& digitsCh, std::vector<o2::fv0::DetTrigInput>& digitsTrig,
@@ -131,6 +133,8 @@ class Digitizer
   /// for CFD
   BCCache mLastBCCache;                                    // buffer for the last BC
   std::array<int, Constants::nFv0Channels> mCfdStartIndex; // start indices for the CFD detector
+
+  o2::fit::DeadChannelMap const* mDeadChannelMap = nullptr;
 
   /// Internal helper methods related to conversion of energy-deposition into el. signal
   Int_t SimulateLightYield(Int_t pmt, Int_t nPhot) const;

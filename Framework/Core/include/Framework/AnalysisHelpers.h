@@ -30,6 +30,7 @@ namespace o2::soa
 {
 struct IndexRecord {
   std::string label;
+  framework::ConcreteDataMatcher matcher;
   std::string columnLabel;
   IndexKind kind;
   int pos;
@@ -142,6 +143,7 @@ std::vector<std::shared_ptr<arrow::Table>> extractSources(ProcessingContext& pc,
 struct Spawner {
   std::string binding;
   std::vector<std::string> labels;
+  std::vector<framework::ConcreteDataMatcher> matchers;
   std::vector<std::shared_ptr<gandiva::Expression>> expressions;
   std::shared_ptr<gandiva::Projector> projector = nullptr;
   std::shared_ptr<arrow::Schema> schema = nullptr;
@@ -157,6 +159,7 @@ struct Spawner {
 struct Builder {
   bool exclusive;
   std::vector<std::string> labels;
+  std::vector<framework::ConcreteDataMatcher> matchers;
   std::vector<o2::soa::IndexRecord> records;
   std::shared_ptr<arrow::Schema> outputSchema;
   header::DataOrigin origin;
@@ -258,9 +261,9 @@ inline constexpr auto getIndexMapping()
     ([&idx]<TableRef ref, typename C>() mutable {
       constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
       if constexpr (pos == -1) {
-        idx.emplace_back(o2::aod::label<ref>(), C::columnLabel(), IndexKind::IdxSelf, pos);
+        idx.emplace_back(o2::aod::label<ref>(), o2::aod::matcher<ref>(), C::columnLabel(), IndexKind::IdxSelf, pos);
       } else {
-        idx.emplace_back(o2::aod::label<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
+        idx.emplace_back(o2::aod::label<ref>(), o2::aod::matcher<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
       }
     }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>>(),
      ...);

@@ -161,14 +161,14 @@ SliceBuilder::SliceBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::M
 
 void SliceBuilder::reset(std::shared_ptr<arrow::ChunkedArray> source)
 {
+  mValues = nullptr;
+  mCounts = nullptr;
+  mListBuilder->Reset();
+  mValuePos = 0;
   static_cast<ChunkedArrayIterator*>(this)->reset(source);
   if (!preSlice().ok()) {
     throw framework::runtime_error("Cannot pre-slice the source for slice-index building");
   }
-  mListBuilder->Reset();
-  mValues = nullptr;
-  mCounts = nullptr;
-  mValuePos = 0;
 }
 
 bool SliceBuilder::find(int idx)

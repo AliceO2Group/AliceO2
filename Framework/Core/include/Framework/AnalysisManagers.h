@@ -38,7 +38,7 @@ template <size_t N, std::array<soa::TableRef, N> refs>
 static inline auto extractOriginals(ProcessingContext& pc)
 {
   return [&]<size_t... Is>(std::index_sequence<Is...>) -> std::vector<std::shared_ptr<arrow::Table>> {
-    return {pc.inputs().get<TableConsumer>(o2::aod::label<refs[Is]>())->asArrowTable()...};
+    return {pc.inputs().get<TableConsumer>(o2::aod::matcher<refs[Is]>())->asArrowTable()...};
   }(std::make_index_sequence<refs.size()>());
 }
 } // namespace
@@ -151,7 +151,7 @@ template <typename T>
 concept with_base_table = requires { T::base_specs(); };
 
 template <with_base_table T>
-bool requestInputs(std::vector<InputSpec>& inputs, T const& entity)
+bool requestInputs(std::vector<InputSpec>& inputs, T const& /*entity*/)
 {
   auto base_specs = T::base_specs();
   for (auto base_spec : base_specs) {
@@ -586,7 +586,7 @@ bool registerCache(T& preslice, Cache& bsks, Cache&)
       return true;
     }
   }
-  auto locate = std::find_if(bsks.begin(), bsks.end(), [&](auto const& entry) { return (entry.binding == preslice.bindingKey.binding) && (entry.key == preslice.bindingKey.key); });
+  auto locate = std::find(bsks.begin(), bsks.end(), preslice.getBindingKey());
   if (locate == bsks.end()) {
     bsks.emplace_back(preslice.getBindingKey());
   } else if (locate->enabled == false) {
@@ -604,7 +604,7 @@ bool registerCache(T& preslice, Cache&, Cache& bsksU)
       return true;
     }
   }
-  auto locate = std::find_if(bsksU.begin(), bsksU.end(), [&](auto const& entry) { return (entry.binding == preslice.bindingKey.binding) && (entry.key == preslice.bindingKey.key); });
+  auto locate = std::find(bsksU.begin(), bsksU.end(), preslice.getBindingKey());
   if (locate == bsksU.end()) {
     bsksU.emplace_back(preslice.getBindingKey());
   } else if (locate->enabled == false) {

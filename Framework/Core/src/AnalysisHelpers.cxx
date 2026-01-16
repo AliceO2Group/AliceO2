@@ -185,18 +185,18 @@ std::string serializeIndexRecords(std::vector<o2::soa::IndexRecord>& irs)
   return osm.str();
 }
 
-std::vector<std::shared_ptr<arrow::Table>> extractSources(ProcessingContext& pc, std::vector<std::string> const& labels)
+std::vector<std::shared_ptr<arrow::Table>> extractSources(ProcessingContext& pc, std::vector<ConcreteDataMatcher> const& matchers)
 {
   std::vector<std::shared_ptr<arrow::Table>> tables;
-  for (auto const& label : labels) {
-    tables.emplace_back(pc.inputs().get<TableConsumer>(label.c_str())->asArrowTable());
+  for (auto const& matcher : matchers) {
+    tables.emplace_back(pc.inputs().get<TableConsumer>(matcher)->asArrowTable());
   }
   return tables;
 }
 
 std::shared_ptr<arrow::Table> Spawner::materialize(ProcessingContext& pc) const
 {
-  auto tables = extractSources(pc, labels);
+  auto tables = extractSources(pc, matchers);
   auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables), std::span{labels.begin(), labels.size()});
   if (fullTable->num_rows() == 0) {
     return arrow::Table::MakeEmpty(schema).ValueOrDie();
@@ -212,7 +212,7 @@ std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc)
     builders->reserve(records.size());
   }
   std::shared_ptr<arrow::Table> result;
-  auto tables = extractSources(pc, labels);
+  auto tables = extractSources(pc, matchers);
   result = o2::soa::IndexBuilder::materialize(*builders.get(), std::move(tables), records, outputSchema, exclusive);
   return result;
 }

@@ -616,6 +616,80 @@ TEST_CASE("ForwardInputsSplitPayload")
   CHECK(result[1].Size() == 3);
 }
 
+TEST_CASE("ForwardInputsSplitPayloadNoMessageSet")
+{
+  o2::header::DataHeader dh;
+  dh.dataOrigin = "TST";
+  dh.dataDescription = "A";
+  dh.subSpecification = 0;
+  dh.splitPayloadIndex = 2;
+  dh.splitPayloadParts = 2;
+
+  o2::header::DataHeader dh2;
+  dh2.dataOrigin = "TST";
+  dh2.dataDescription = "B";
+  dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 1;
+
+  o2::framework::DataProcessingHeader dph{0, 1};
+
+  std::vector<fair::mq::Channel> channels{
+    fair::mq::Channel("from_A_to_B"),
+    fair::mq::Channel("from_A_to_C"),
+  };
+
+  bool consume = true;
+  bool copyByDefault = true;
+  FairMQDeviceProxy proxy;
+  std::vector<ForwardRoute> routes{
+    ForwardRoute{
+      .timeslice = 0,
+      .maxTimeslices = 1,
+      .matcher = {"binding", ConcreteDataMatcher{"TST", "B", 0}},
+      .channel = "from_A_to_B",
+      .policy = nullptr,
+    },
+    ForwardRoute{
+      .timeslice = 0,
+      .maxTimeslices = 1,
+      .matcher = {"binding", ConcreteDataMatcher{"TST", "A", 0}},
+      .channel = "from_A_to_C",
+      .policy = nullptr,
+    }};
+
+  auto findChannelByName = [&channels](std::string const& channelName) -> fair::mq::Channel& {
+    for (auto& channel : channels) {
+      if (channel.GetName() == channelName) {
+        return channel;
+      }
+    }
+    throw std::runtime_error("Channel not found");
+  };
+
+  proxy.bind({}, {}, routes, findChannelByName, nullptr);
+
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  fair::mq::MessagePtr payload1(transport->CreateMessage());
+  fair::mq::MessagePtr payload2(transport->CreateMessage());
+  auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+  auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
+  std::vector<std::unique_ptr<fair::mq::Message>> messages;
+  messages.push_back(std::move(header));
+  messages.push_back(std::move(payload1));
+  messages.push_back(std::move(payload2));
+  auto header2 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph});
+  messages.push_back(std::move(header2));
+  messages.push_back(transport->CreateMessage());
+
+  std::vector<fair::mq::Parts> result(2);
+  auto span = std::span(messages);
+  o2::framework::DataProcessingHelpers::routeForwardedMessages(proxy, span, result, copyByDefault, consume);
+  REQUIRE(result.size() == 2);  // Two routes
+  CHECK(result[0].Size() == 2); // No messages on this route
+  CHECK(result[1].Size() == 3);
+}
+
 TEST_CASE("ForwardInputEOSSingleRoute")
 {
   o2::framework::SourceInfoHeader sih{};

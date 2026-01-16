@@ -98,6 +98,11 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
   for (auto ids : hitIdx) {
     const auto& hit = hits[ids];
     Int_t detId = hit.GetDetectorID();
+
+    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(detId)) {
+      continue;
+    }
+
     Double_t hitEdep = hit.GetHitValue() * 1e3;  // convert to MeV
     Float_t const hitTime = hit.GetTime() * 1e9; // convert to ns
     // TODO: check how big is inaccuracy if more than 1 'below-threshold' particles hit the same detector cell

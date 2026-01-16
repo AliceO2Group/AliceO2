@@ -121,6 +121,10 @@ class Clusterer
   };
 
   struct ClustererThread {
+    struct PreCluster {
+      int head = 0; // index of precluster head in the pixels
+      int index = 0;
+    };
     int id = -1;
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
@@ -132,12 +136,11 @@ class Clusterer
     // pixels[].first is the index of the next pixel of the same precluster in the pixels
     // pixels[].second is the index of the referred pixel in the ChipPixelData (element of mChips)
     std::vector<std::pair<int, uint32_t>> pixels;
-    std::vector<int> preClusterHeads; // index of precluster head in the pixels
-    std::vector<int> preClusterIndices;
     uint16_t currCol = 0xffff;               ///< Column being processed
     bool noLeftCol = true;                   ///< flag that there is no column on the left to check
     std::array<Label, MaxLabels> labelsBuff; //! temporary buffer for building cluster labels
     std::vector<PixelData> pixArrBuff;       //! temporary buffer for pattern calc.
+    std::vector<PreCluster> preClusters;     //! preclusters info
     //
     /// temporary storage for the thread output
     CompClusCont compClusters;
@@ -154,7 +157,7 @@ class Clusterer
     ///< add cluster at row (entry ip in the ChipPixeData) to the precluster with given index
     void expandPreCluster(uint32_t ip, uint16_t row, int preClusIndex)
     {
-      auto& firstIndex = preClusterHeads[preClusterIndices[preClusIndex]];
+      auto& firstIndex = preClusters[preClusters[preClusIndex].index].head;
       pixels.emplace_back(firstIndex, ip);
       firstIndex = pixels.size() - 1;
       curr[row] = preClusIndex;
@@ -163,11 +166,10 @@ class Clusterer
     ///< add new precluster at given row of current column for the fired pixel with index ip in the ChipPixelData
     void addNewPrecluster(uint32_t ip, uint16_t row)
     {
-      preClusterHeads.push_back(pixels.size());
+      int lastIndex = preClusters.size();
+      preClusters.emplace_back(pixels.size(), lastIndex);
       // new head does not point yet (-1) on other pixels, store just the entry of the pixel in the ChipPixelData
       pixels.emplace_back(-1, ip);
-      int lastIndex = preClusterIndices.size();
-      preClusterIndices.push_back(lastIndex);
       curr[row] = lastIndex; // store index of the new precluster in the current column buffer
     }
 

@@ -185,13 +185,12 @@ AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
         }
 
         // get the TableConsumer and corresponding arrow table
-        auto msg = pc.inputs().get(ref.spec->binding);
-        if (msg.header == nullptr) {
+        if (ref.header == nullptr) {
           LOGP(error, "No header for message {}:{}", ref.spec->binding, DataSpecUtils::describe(*ref.spec));
           continue;
         }
-        auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
-        auto table = s->asArrowTable();
+
+        auto table = pc.inputs().get<TableConsumer>(std::get<ConcreteDataMatcher>(ref.spec->matcher))->asArrowTable();
         if (!table->Validate().ok()) {
           LOGP(warning, "The table \"{}\" is not valid and will not be saved!", tableName);
           continue;
