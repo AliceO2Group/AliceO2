@@ -38,8 +38,8 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
 
   eOverallGeom overallGeom = kDefaultRadii; // Overall geometry option, to be used in Detector::buildTRKMiddleOuterLayers
 
-  eLayout layoutML = kCylinder; // Type of segmentation for the middle layers
-  eLayout layoutOL = kCylinder; // Type of segmentation for the outer layers
+  eLayout layoutML = kTurboStaves; // Type of segmentation for the middle layers
+  eLayout layoutOL = kStaggered;   // Type of segmentation for the outer layers
 
   eLayout getLayoutML() const { return layoutML; }
   eLayout getLayoutOL() const { return layoutOL; }
