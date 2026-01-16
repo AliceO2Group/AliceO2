@@ -173,7 +173,7 @@ int32_t ReadConfiguration(int argc, char** argv)
     return 1;
   }
   if (configStandalone.proc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
-    printf("Double pipeline mode needs at least 3 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
+    printf("Double pipeline mode needs at least 4 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
     return 1;
   }
   if (configStandalone.TF.bunchSim && configStandalone.TF.nMerge) {
@@ -297,7 +297,8 @@ int32_t SetupReconstruction()
       printf("Error reading event config file\n");
       return 1;
     }
-    printf("Read event settings from dir %s (solenoidBz: %f, constBz %d, maxTimeBin %d)\n", eventsDir.c_str(), rec->GetGRPSettings().solenoidBzNominalGPU, (int32_t)rec->GetGRPSettings().constBz, rec->GetGRPSettings().grpContinuousMaxTimeBin);
+    const char* tmptext = configStandalone.noEvents ? "Using default event settings, no event dir loaded" : "Read event settings from dir ";
+    printf("%s%s (solenoidBz: %f, constBz %d, maxTimeBin %d)\n", tmptext, configStandalone.noEvents ? "" : eventsDir.c_str(), rec->GetGRPSettings().solenoidBzNominalGPU, (int32_t)rec->GetGRPSettings().constBz, rec->GetGRPSettings().grpContinuousMaxTimeBin);
     if (configStandalone.testSyncAsync) {
       recAsync->ReadSettings(eventsDir.c_str());
     }
@@ -781,13 +782,17 @@ int32_t main(int argc, char** argv)
 
   srand(configStandalone.seed);
 
-  for (nEventsInDirectory = 0; true; nEventsInDirectory++) {
-    std::ifstream in;
-    in.open((eventsDir + GPUCA_EVDUMP_FILE "." + std::to_string(nEventsInDirectory) + ".dump").c_str(), std::ifstream::binary);
-    if (in.fail()) {
-      break;
+  nEventsInDirectory = 0;
+  if (!configStandalone.noEvents) {
+    while (true) {
+      std::ifstream in;
+      in.open((eventsDir + GPUCA_EVDUMP_FILE "." + std::to_string(nEventsInDirectory) + ".dump").c_str(), std::ifstream::binary);
+      if (in.fail()) {
+        break;
+      }
+      in.close();
+      nEventsInDirectory++;
     }
-    in.close();
   }
 
   if (configStandalone.TF.bunchSim || configStandalone.TF.nMerge) {
@@ -824,11 +829,7 @@ int32_t main(int argc, char** argv)
     fflush(stdout);
     for (int32_t i = 0; i < nEvents - configStandalone.StartEvent; i++) {
       LoadEvent(configStandalone.StartEvent + i, i);
-      if (configStandalone.proc.debugLevel >= 2) {
-        printf("Loading event %d\n", i);
-      } else {
-        printf(" %d", i);
-      }
+      printf(configStandalone.proc.debugLevel >= 2 ? "Loading event %d\n" : " %d", i + configStandalone.StartEvent);
       fflush(stdout);
     }
     printf("\n");
@@ -856,7 +857,7 @@ int32_t main(int argc, char** argv)
       if (iEvent != configStandalone.StartEvent) {
         printf("\n");
       }
-      if (configStandalone.noEvents == false && !configStandalone.preloadEvents) {
+      if (!configStandalone.noEvents && !configStandalone.preloadEvents) {
         HighResTimer timerLoad;
         timerLoad.Start();
         if (LoadEvent(iEvent, 0)) {
@@ -889,12 +890,14 @@ int32_t main(int argc, char** argv)
         }
         printf("Loading time: %'d us\n", (int32_t)(1000000 * timerLoad.GetCurrentElapsedTime()));
       }
-      printf("Processing Event %d\n", iEvent);
 
       nIteration.store(0);
       nIterationEnd.store(0);
       double pipelineWalltime = 1.;
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.noEvents) {
+        printf("No processing, no events loaded\n");
+      } else if (configStandalone.proc.doublePipeline) {
+        printf(configStandalone.preloadEvents ? "Processing Events %d to %d in Pipeline\n" : "Processing Event %d in Pipeline %d times\n", iEvent, configStandalone.preloadEvents ? std::min(iEvent + configStandalone.runs - 1, nEvents - 1) : configStandalone.runs);
         HighResTimer timerPipeline;
         if (configStandalone.proc.debugLevel < 2 && (RunBenchmark(rec, chainTracking, 1, iEvent, &nTracksTotal, &nClustersTotal) || RunBenchmark(recPipeline, chainTrackingPipeline, 2, iEvent, &nTracksTotal, &nClustersTotal))) {
           goto breakrun;
@@ -907,6 +910,7 @@ int32_t main(int argc, char** argv)
         pipelineWalltime = timerPipeline.GetElapsedTime() / (configStandalone.runs - 2);
         printf("Pipeline wall time: %f, %d iterations, %f per event\n", timerPipeline.GetElapsedTime(), configStandalone.runs - 2, pipelineWalltime);
       } else {
+        printf("Processing Event %d\n", iEvent);
         if (RunBenchmark(rec, chainTracking, configStandalone.runs, iEvent, &nTracksTotal, &nClustersTotal)) {
           goto breakrun;
         }
