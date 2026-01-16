@@ -170,7 +170,7 @@ bool newDataframeCondition(InputRecord&, C&)
 template <is_condition C>
 bool newDataframeCondition(InputRecord& record, C& condition)
 {
-  condition.instance = (typename C::type*)record.get<typename C::type*>(condition.path).get();
+  condition.instance = (typename C::type*)record.get<typename C::type*>(condition.path).release();
   return true;
 }
 
