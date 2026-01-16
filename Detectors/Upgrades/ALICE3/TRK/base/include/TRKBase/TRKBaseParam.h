@@ -41,6 +41,9 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   eLayout layoutML = kCylinder; // Type of segmentation for the middle layers
   eLayout layoutOL = kCylinder; // Type of segmentation for the outer layers
 
+  eLayout getLayoutML() const { return layoutML; }
+  eLayout getLayoutOL() const { return layoutOL; }
+
   O2ParamDef(TRKBaseParam, "TRKBase");
 };
 

@@ -15,6 +15,7 @@
 #include <memory>
 #include <DetectorsCommonDataFormats/DetMatrixCache.h>
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "TRKBase/TRKBaseParam.h"
 
 namespace o2
 {
@@ -220,6 +221,9 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   std::vector<int> sensorsMLOT;
   std::vector<float> mCacheRefXMLOT;     /// cache for X of ML and OT
   std::vector<float> mCacheRefAlphaMLOT; /// cache for sensor ref alpha ML and OT
+
+  eLayout mLayoutML; // Type of segmentation for the middle layers
+  eLayout mLayoutOL; // Type of segmentation for the outer layers
 
  private:
   static std::unique_ptr<o2::trk::GeometryTGeo> sInstance;

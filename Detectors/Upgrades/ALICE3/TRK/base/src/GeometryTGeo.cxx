@@ -76,6 +76,11 @@ void GeometryTGeo::Build(int loadTrans)
     LOGP(fatal, "Geometry is not loaded");
   }
 
+  mLayoutML = o2::trk::TRKBaseParam::Instance().getLayoutML();
+  mLayoutOL = o2::trk::TRKBaseParam::Instance().getLayoutOL();
+
+  LOG(debug) << "Layout ML: " << mLayoutML << ", Layout OL: " << mLayoutOL;
+
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
   mNumberOfPetalsVD = extractNumberOfPetalsVD();
   mNumberOfActivePartsVD = extractNumberOfActivePartsVD();
@@ -398,6 +403,17 @@ TString GeometryTGeo::getMatrixPath(int index) const
   // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
 
+  // handling cylindrical configuration for ML and/or OT
+  // needed bercause of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
+  if (subDetID == 1) {
+    if ((layer < 4 && mLayoutML == eLayout::kCylinder) || (layer > 3 && mLayoutOL == eLayout::kCylinder)) {
+      stave = 1;
+      mod = 1;
+      chip = 1;
+    }
+  }
+
+  // build the path
   if (subDetID == 0) { // VD
     if (disk >= 0) {
       path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);             // PETAL_n
