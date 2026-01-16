@@ -148,7 +148,7 @@ if (onnxruntime_FOUND)
 endif()
 
 # Setting target architecture and adding GPU libraries
-target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
+target_link_libraries(${targetName} PRIVATE cuda cudart)
 set_target_cuda_arch(${targetName})
 #target_link_options(${targetName} PRIVATE "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld")
 #set_target_properties(${targetName} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld)
