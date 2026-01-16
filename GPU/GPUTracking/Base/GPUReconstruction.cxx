@@ -764,7 +764,7 @@ void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
   }
   UpdateMaxMemoryUsed();
   if (GetProcessingSettings().allocDebugLevel >= 2) {
-    std::cout << "Allocated (unmanaged " << (type == GPUMemoryResource::MEMORY_GPU ? "gpu" : "host") << "): " << size << " - available: " << ptrDiff(poolend, pool) << "\n";
+    std::cout << "Allocated (unmanaged " << ((type & GPUMemoryResource::MEMORY_GPU) ? "gpu" : "host") << "): " << size << " - available: " << ptrDiff(poolend, pool) << "\n";
   }
   return retVal;
 }
