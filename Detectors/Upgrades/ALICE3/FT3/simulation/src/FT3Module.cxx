@@ -59,7 +59,7 @@ void FT3Module::initialize_materials()
   copperMat = new TGeoMaterial("FT3_Copper", 63.546, 29, 8.96);
   copperMed = new TGeoMedium("FT3_Copper", 2, copperMat);
 
-  kaptonMat = new TGeoMaterial("FT3_Kapton", 13.84, 7, 1.346);
+  kaptonMat = new TGeoMaterial("FT3_Kapton", 13.84, 6.88, 1.346);
   kaptonMed = new TGeoMedium("FT3_Kapton", 3, kaptonMat);
 
   // Epoxy: C18 H19 O3
