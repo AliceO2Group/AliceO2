@@ -49,7 +49,7 @@ struct ResidualsContainer {
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const DetInfoResid> detInfoRes, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
   void merge(ResidualsContainer* prev);
   void print();
   void writeToFile(bool closeFileAfterwards);
@@ -64,6 +64,7 @@ struct ResidualsContainer {
   std::vector<uint32_t> sumUnbinnedResid, *sumUnbinnedResidPtr{&sumUnbinnedResid}; ///< sum of unbinned residuals for each TF
   std::vector<o2::ctp::LumiInfo> lumi, *lumiPtr{&lumi};                      ///< luminosity information from CTP per TF
   std::vector<UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes};     ///< unbinned residuals which are sent to the aggregator
+  std::vector<DetInfoResid> detInfoUnbRes, *detInfoUnbResPtr{&detInfoUnbRes}; ///< detector info associated to unbinned residuals which are sent to the aggregator
   std::vector<TrackData> trkData, *trkDataPtr{&trkData};                     ///< track data and cluster ranges
   std::vector<TrackDataCompact> trackInfo, *trackInfoPtr{&trackInfo};        ///< allows to obtain track type for each unbinned residual downstream
   o2::ctp::LumiInfo lumiTF;                                                  ///< for each processed TF we store the lumi information in the tree of unbinned residuals

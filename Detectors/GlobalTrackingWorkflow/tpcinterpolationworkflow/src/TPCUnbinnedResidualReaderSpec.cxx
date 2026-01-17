@@ -44,6 +44,11 @@ void TPCUnbinnedResidualReader::connectTree()
   assert(mTreeIn);
   mTreeIn->SetBranchAddress("residuals", &mUnbinnedResidPtr);
   mTreeIn->SetBranchAddress("trackRefs", &mTrackDataCompactPtr);
+  if (mTreeIn->GetBranch("detInfo")) {
+    mTreeIn->SetBranchAddress("detInfo", &mDetInfoUnbResPtr);
+  } else {
+    LOGP(warn, "No detInfo branch found in the unbinned residuals tree, empty vector will be sent");
+  }
   if (mTrackInput) {
     mTreeIn->SetBranchAddress("tracks", &mTrackDataPtr);
   }
@@ -58,6 +63,7 @@ void TPCUnbinnedResidualReader::run(ProcessingContext& pc)
   LOG(info) << "Pushing " << mUnbinnedResid.size() << " unbinned residuals at entry " << currEntry;
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0}, mUnbinnedResid);
   pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0}, mTrackDataCompact);
+  pc.outputs().snapshot(Output{"GLO", "DETINFORES", 0}, mDetInfoUnbRes);
   if (mTrackInput) {
     LOG(info) << "Pushing " << mTrackData.size() << " reference tracks for these residuals";
     pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0}, mTrackData);
@@ -73,6 +79,7 @@ DataProcessorSpec getUnbinnedTPCResidualsReaderSpec(bool trkInput)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "DETINFORES", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "TRKREFS", 0, Lifetime::Timeframe);
   if (trkInput) {
     outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);

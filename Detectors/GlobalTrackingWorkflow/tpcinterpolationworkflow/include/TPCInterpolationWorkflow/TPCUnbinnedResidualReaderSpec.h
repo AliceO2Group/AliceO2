@@ -43,6 +43,7 @@ class TPCUnbinnedResidualReader : public o2::framework::Task
   std::string mInFileName;
   std::string mInTreeName;
   std::vector<UnbinnedResid> mUnbinnedResid, *mUnbinnedResidPtr = &mUnbinnedResid;
+  std::vector<DetInfoResid> mDetInfoUnbRes, *mDetInfoUnbResPtr = &mDetInfoUnbRes;
   std::vector<TrackData> mTrackData, *mTrackDataPtr = &mTrackData;
   std::vector<TrackDataCompact> mTrackDataCompact, *mTrackDataCompactPtr = &mTrackDataCompact;
 };

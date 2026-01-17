@@ -124,6 +124,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
     treeOutResidualsUnbinned->Branch("trackInfo", &trackInfoPtr);
     treeOutResidualsUnbinned->Branch("CTPLumi", &lumiTF);
     treeOutResidualsUnbinned->Branch("timeMS", &timeMS);
+    treeOutResidualsUnbinned->Branch("detInfo", &detInfoUnbResPtr);
   }
   if (writeTrackData) {
     treeOutTrackData = std::make_unique<TTree>("trackData", "Track information incl cluster range ref");
@@ -170,7 +171,7 @@ void ResidualsContainer::fillStatisticsBranches()
   }
 }
 
-void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput)
+void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const DetInfoResid> detInfoRes, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput)
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
@@ -185,13 +186,14 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     firstSeenTF = ti.tfCounter;
   }
   for (const auto& residIn : resid) {
-    ++nUnbinnedResidualsInTF;
     bool counterIncremented = false;
     if (writeUnbinnedResiduals) {
       unbinnedRes.push_back(residIn);
+      detInfoUnbRes.push_back(detInfoRes.size() ? detInfoRes[nUnbinnedResidualsInTF] : DetInfoResid{});
       ++nResidualsTotal;
       counterIncremented = true;
     }
+    ++nUnbinnedResidualsInTF;
     if (!writeBinnedResid) {
       continue;
     }
@@ -247,6 +249,7 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     timeMS = orbitReset + ti.tfCounter * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
     treeOutResidualsUnbinned->Fill();
     unbinnedRes.clear();
+    detInfoUnbRes.clear();
     trackInfo.clear();
   }
   tfOrbits.push_back(ti.firstTForbit);
@@ -338,6 +341,9 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
   if (writeUnbinnedResiduals) {
     prev->treeOutResidualsUnbinned->SetBranchAddress("res", &unbinnedResPtr);
     prev->treeOutResidualsUnbinned->SetBranchAddress("trackInfo", &trackInfoPtr);
+    prev->treeOutResidualsUnbinned->SetBranchAddress("CTPLumi", &lumiTF);
+    prev->treeOutResidualsUnbinned->SetBranchAddress("timeMS", &timeMS);
+    prev->treeOutResidualsUnbinned->SetBranchAddress("detInfo", &detInfoUnbResPtr);
     for (int i = 0; i < treeOutResidualsUnbinned->GetEntries(); ++i) {
       treeOutResidualsUnbinned->GetEntry(i);
       prev->treeOutResidualsUnbinned->Fill();

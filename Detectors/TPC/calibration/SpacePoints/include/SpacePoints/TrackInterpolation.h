@@ -101,6 +101,50 @@ struct UnbinnedResid {
   ClassDefNV(UnbinnedResid, 2);
 };
 
+struct DetInfoResid { // detector info associated with residual
+  uint32_t word = 0;  // container interpreted in a different way depending on the detector type
+  //
+  // TPC view: qTot and qMax of the cluster
+  uint16_t qTotTPC() const { return static_cast<uint16_t>(word & 0xFFFFu); }
+  uint16_t qMaxTPC() const { return static_cast<uint16_t>((word >> 16) & 0xFFFFu); }
+  void setTPC(uint16_t qTot, uint16_t qMax) { word = (static_cast<uint32_t>(qMax) << 16) | static_cast<uint32_t>(qTot); }
+  //
+  // TRD view: q0, q1, q2 + calibrated slope (truncated to in +-3.5 range)
+  static constexpr uint32_t TRDQ0NB = 7, TRDQ1NB = 7, TRDQ2NB = 6, TRDSlpNB = 12;
+  static constexpr uint32_t TRDQ0Msk = (1 << TRDQ0NB) - 1, TRDQ1Msk = (1 << TRDQ1NB) - 1, TRDQ2Msk = ((1 << TRDQ2NB) - 1), TRDSlpMsk = (1 << TRDSlpNB) - 1;
+  static constexpr float TRDMaxSlope = 3.5, TRDSlope2Int = ((1 << TRDSlpNB) - 1) / (2 * TRDMaxSlope), TRDInt2Slope = 1.f / TRDSlope2Int;
+  uint16_t q0TRD() const { return static_cast<uint16_t>(word & TRDQ0Msk); }
+  uint16_t q1TRD() const { return static_cast<uint16_t>((word >> TRDQ0NB) & TRDQ1Msk); }
+  uint16_t q2TRD() const { return static_cast<uint16_t>((word >> (TRDQ0NB + TRDQ1NB)) & TRDQ2Msk); }
+  float slopeTRD() const { return ((word >> (TRDQ0NB + TRDQ1NB + TRDQ2NB)) & TRDSlpMsk) * TRDInt2Slope - TRDMaxSlope; }
+  void setTRD(uint8_t q0, uint8_t q1, uint8_t q2, float slope)
+  {
+    float rslope = (slope + TRDMaxSlope) * TRDSlope2Int;
+    if (rslope < 0.f) {
+      rslope = 0;
+    } else if (rslope > TRDSlpMsk) {
+      rslope = TRDSlpMsk;
+    }
+    uint32_t slpI = std::round(rslope);
+    word = (static_cast<uint32_t>(slpI << (TRDQ0NB + TRDQ1NB + TRDQ2NB)) |
+            static_cast<uint32_t>((q2 & TRDQ2Msk) << (TRDQ0NB + TRDQ1NB)) |
+            static_cast<uint32_t>((q1 & TRDQ1Msk) << TRDQ0NB) |
+            static_cast<uint32_t>(q0 & TRDQ0Msk));
+  }
+  //
+  // TOF view (time difference in \mus wrt seeding ITS-TPC track)
+  float timeTOF() const { return std::bit_cast<float>(word); }
+  void setTOF(float t) { word = std::bit_cast<uint32_t>(t); }
+  //
+  // No info for ITS is stored
+  //
+  // PV view (time difference in \mus wrt contributing ITS-TPC track)
+  float timePV() const { return std::bit_cast<float>(word); }
+  void setPV(float t) { word = std::bit_cast<uint32_t>(t); }
+
+  ClassDefNV(DetInfoResid, 1);
+};
+
 /// Structure for the information required to associate each residual with a given track type (ITS-TPC-TRD-TOF, etc)
 struct TrackDataCompact {
   TrackDataCompact() = default;
@@ -296,10 +340,13 @@ class TrackInterpolation
 
   void setExtDetResid(bool v) { mExtDetResid = v; }
 
-  int processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLayer, o2::track::TrackParCov& trkWork, std::array<float, 2>* trkltTRDYZ = nullptr, std::array<float, 3>* trkltTRDCov = nullptr, TrackData* trkData = nullptr);
+  int processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLayer, o2::track::TrackParCov& trkWork, std::array<float, 2>* trkltTRDYZ = nullptr,
+                      std::array<float, 3>* trkltTRDCov = nullptr, TrackData* trkData = nullptr,
+                      o2::trd::Tracklet64* trk64 = nullptr, o2::trd::CalibratedTracklet* trkCalib = nullptr);
 
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
+  std::vector<DetInfoResid>& getClusterResidualsDetInfo() { return mDetInfoRes; }
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
   std::vector<TrackDataExtended>& getTrackDataExtended() { return mTrackDataExtended; }
   std::vector<TrackData>& getReferenceTracks() { return mTrackData; }
@@ -348,6 +395,7 @@ class TrackInterpolation
   std::vector<TrackDataCompact> mTrackDataCompact{};   ///< required to connect each residual to a global track
   std::vector<TrackDataExtended> mTrackDataExtended{}; ///< full tracking information for debugging
   std::vector<UnbinnedResid> mClRes{};                 ///< residuals for each available TPC cluster of all tracks
+  std::vector<DetInfoResid> mDetInfoRes{};             ///< packed detector info associated with each residual
   std::vector<TrackData> mTrackDataUnfiltered{};       ///< same as mTrackData, but for all tracks before outlier filtering
   std::vector<TPCClusterResiduals> mClResUnfiltered{}; ///< same as mClRes, but for all residuals before outlier filtering
 

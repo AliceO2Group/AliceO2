@@ -143,6 +143,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     }
   }
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0}, mInterpolation.getClusterResiduals());
+  pc.outputs().snapshot(Output{"GLO", "DETINFORES", 0}, mInterpolation.getClusterResidualsDetInfo());
   pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0}, mInterpolation.getTrackDataCompact());
   if (mSendTrackData) {
     pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0}, mInterpolation.getReferenceTracks());
@@ -188,6 +189,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
     }
   }
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "DETINFORES", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "TRKREFS", 0, Lifetime::Timeframe);
   if (sendTrackData) {
     outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
