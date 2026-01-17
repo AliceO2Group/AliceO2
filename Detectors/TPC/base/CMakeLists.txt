@@ -39,6 +39,7 @@ o2_add_library(TPCBase
                        src/FEEConfig.cxx
                        src/DeadChannelMapCreator.cxx
                        src/CommonModeCorrection.cxx
+                       src/TPCFlagsMemberCustomStreamer.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
                                      O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
