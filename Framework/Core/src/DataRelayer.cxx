@@ -499,6 +499,12 @@ DataRelayer::RelayChoice
     // DataRelayer::relay
     assert(nPayloads > 0);
     size_t saved = 0;
+    // It's guaranteed we will see all these messages only once, so we can
+    // do the forwarding here.
+    auto allMessages = std::span<fair::mq::MessagePtr>(messages, messages + nMessages);
+    if (onInsertion) {
+      onInsertion(services, allMessages);
+    }
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
       // We are in calibration mode and the data does not have the calibration bit set.
@@ -515,9 +521,6 @@ DataRelayer::RelayChoice
         continue;
       }
       auto span = std::span<fair::mq::MessagePtr>(messages + mi, messages + mi + nPayloads + 1);
-      if (onInsertion) {
-        onInsertion(services, span);
-      }
       target.add([&span](size_t i) -> fair::mq::MessagePtr& { return span[i]; }, nPayloads + 1);
       mi += nPayloads;
       saved += nPayloads;
