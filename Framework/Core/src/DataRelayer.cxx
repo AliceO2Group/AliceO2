@@ -521,6 +521,8 @@ DataRelayer::RelayChoice
         continue;
       }
       auto span = std::span<fair::mq::MessagePtr>(messages + mi, messages + mi + nPayloads + 1);
+      // Notice this will split [(header, payload), (header, payload)] multiparts
+      // in N different subParts for the message spec.
       target.add([&span](size_t i) -> fair::mq::MessagePtr& { return span[i]; }, nPayloads + 1);
       mi += nPayloads;
       saved += nPayloads;

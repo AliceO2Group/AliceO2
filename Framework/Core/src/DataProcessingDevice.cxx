@@ -1050,10 +1050,25 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     };
   }
 
-  auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> bool {
+  auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> ForwardPolicy {
+    ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_OLD_EARLY_FORWARD") ? ForwardPolicy::AtCompletionPolicySatisified : ForwardPolicy::AtInjection;
+
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding
-    bool canForwardEarly = (spec.forwards.empty() == false) && deviceContext.processingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+    ForwardPolicy forwardPolicy = defaultEarlyForwardPolicy;
+    if (spec.forwards.empty() == false) {
+      switch (deviceContext.processingPolicies.earlyForward) {
+        case o2::framework::EarlyForwardPolicy::NEVER:
+          forwardPolicy = ForwardPolicy::AfterProcessing;
+          break;
+        case o2::framework::EarlyForwardPolicy::ALWAYS:
+          forwardPolicy = defaultEarlyForwardPolicy;
+          break;
+        case o2::framework::EarlyForwardPolicy::NORAW:
+          forwardPolicy = defaultEarlyForwardPolicy;
+          break;
+      }
+    }
     bool onlyConditions = true;
     bool overriddenEarlyForward = false;
     for (auto& forwarded : spec.forwards) {
@@ -1061,25 +1076,25 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
         onlyConditions = false;
       }
       if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && deviceContext.processingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
-        context.canForwardEarly = false;
+        forwardPolicy = ForwardPolicy::AfterProcessing;
         overriddenEarlyForward = true;
         LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
         break;
       }
       if (forwarded.matcher.lifetime == Lifetime::Optional) {
-        context.canForwardEarly = false;
+        forwardPolicy = ForwardPolicy::AfterProcessing;
         overriddenEarlyForward = true;
         LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
         break;
       }
     }
     if (!overriddenEarlyForward && onlyConditions) {
-      context.canForwardEarly = true;
+      forwardPolicy = defaultEarlyForwardPolicy;
       LOG(detail) << "Enabling early forwarding because only conditions to be forwarded";
     }
-    return canForwardEarly;
+    return forwardPolicy;
   };
-  context.canForwardEarly = decideEarlyForward();
+  context.forwardPolicy = decideEarlyForward();
 }
 
 void DataProcessingDevice::PreRun()
@@ -1700,7 +1715,7 @@ auto forwardOnInsertion(ServiceRegistryRef& ref, std::span<fair::mq::MessagePtr>
 
   auto& spec = ref.get<DeviceSpec const>();
   auto& context = ref.get<DataProcessorContext>();
-  if (!context.canForwardEarly || spec.forwards.empty()) {
+  if (context.forwardPolicy == ForwardPolicy::AfterProcessing || spec.forwards.empty()) {
     O2_SIGNPOST_EVENT_EMIT(device, sid, "device", "Early forwardinding not enabled / needed.");
     return;
   }
@@ -1858,7 +1873,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     stats.updateStats({(int)ProcessingStatsId::ERROR_COUNT, DataProcessingStats::Op::Add, 1});
   };
 
-  auto handleValidMessages = [&info, ref, &reportError](std::vector<InputInfo> const& inputInfos) {
+  auto handleValidMessages = [&info, ref, &reportError, &context](std::vector<InputInfo> const& inputInfos) {
     auto& relayer = ref.get<DataRelayer>();
     auto& state = ref.get<DeviceState>();
     static WaitBackpressurePolicy policy;
@@ -1919,7 +1934,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
                                        input,
                                        nMessages,
                                        nPayloadsPerHeader,
-                                       nullptr,
+                                       context.forwardPolicy == ForwardPolicy::AtInjection ? forwardOnInsertion : nullptr,
                                        onDrop);
           switch (relayed.type) {
             case DataRelayer::RelayChoice::Type::Backpressured:
@@ -2333,11 +2348,23 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     bool hasForwards = spec.forwards.empty() == false;
     bool consumeSomething = action.op == CompletionPolicy::CompletionOp::Consume || action.op == CompletionPolicy::CompletionOp::ConsumeExisting;
 
-    if (context.canForwardEarly && hasForwards && consumeSomething) {
-      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Early forwainding: %{public}s.", fmt::format("{}", action.op).c_str());
+    if (context.forwardPolicy == ForwardPolicy::AtCompletionPolicySatisified && hasForwards && consumeSomething) {
+      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Early forwarding: %{public}s.", fmt::format("{}", action.op).c_str());
       auto& timesliceIndex = ref.get<TimesliceIndex>();
       forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
+    } else if (context.forwardPolicy == ForwardPolicy::AtInjection && hasForwards && consumeSomething) {
+      // We used to do fowarding here, however we now do it much earlier.
+      // We still need to clean the inputs which were already consumed
+      // via ConsumeExisting and which still have an header to hold the slot.
+      // FIXME: do we? This should really happen when we do the forwarding on
+      // insertion, because otherwise we lose the relevant information on how to
+      // navigate the set of headers. We could actually rely on the messageset index,
+      // is that the right thing to do though?
+      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "cleaning early forwarding: %{public}s.", fmt::format("{}", action.op).c_str());
+      auto& timesliceIndex = ref.get<TimesliceIndex>();
+      cleanEarlyForward(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
     }
+
     markInputsAsDone(action.slot);
 
     uint64_t tStart = uv_hrtime();
@@ -2456,7 +2483,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       context.postDispatchingCallbacks(processContext);
       ref.get<CallbackService>().call<CallbackService::Id::DataConsumed>(o2::framework::ServiceRegistryRef{ref});
     }
-    if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
+    if ((context.forwardPolicy == ForwardPolicy::AfterProcessing) && hasForwards && consumeSomething) {
       O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Late forwarding");
       auto& timesliceIndex = ref.get<TimesliceIndex>();
       forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false, action.op == CompletionPolicy::CompletionOp::Consume);
