@@ -49,7 +49,7 @@ void Digitizer::init()
     }
   }
 
-  // setting the correct response function (for the moment, for both VD and MLOT the APTS response function is udes)
+  // setting the correct response function (for the moment, for both VD and MLOT the same response function is used)
   mChipSimResp = mParams.getAlpSimResponse();
   mChipSimRespVD = mChipSimResp;   /// for the moment considering the same response
   mChipSimRespMLOT = mChipSimResp; /// for the moment considering the same response
@@ -65,11 +65,24 @@ void Digitizer::init()
   float thicknessVD = 0.0095;                                            // cm --- hardcoded based on geometry currently present
   float thicknessMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT; // 0.01 cm = 100 um --- based on geometry currently present
 
-  mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
-  mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
-  mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
-  mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
-  mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
+  LOG(info) << "Using response name: " << mRespName;
+
+  if (mRespName == "APTS") { // default
+    mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
+    mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
+    mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add ~10 um (= max depth) to match the APTS response.
+    mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
+    mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
+  } else if (mRespName == "ALICE3") {
+    mSimRespVDScaleX = o2::trk::constants::alice3resp::pitchX / o2::trk::SegmentationChip::PitchRowVD;
+    mSimRespVDScaleZ = o2::trk::constants::alice3resp::pitchZ / o2::trk::SegmentationChip::PitchColVD;
+    mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -95 um. Must align the start of epi layer with the response function.
+    mSimRespMLOTScaleX = o2::trk::constants::alice3resp::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
+    mSimRespMLOTScaleZ = o2::trk::constants::alice3resp::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
+  } else {
+    LOG(fatal) << "Unknown response name: " << mRespName;
+  }
+
   mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
   mSimRespOrientation = false;
 

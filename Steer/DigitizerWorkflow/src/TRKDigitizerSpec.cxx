@@ -34,6 +34,7 @@
 #include <TChain.h>
 #include <TStopwatch.h>
 
+#include <memory>
 #include <string>
 
 using namespace o2::framework;
@@ -68,6 +69,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDisableQED = ic.options().get<bool>("disable-qed");
+    mLocalRespFile = ic.options().get<std::string>("local-response-file");
   }
 
   void run(framework::ProcessingContext& pc)
@@ -200,6 +202,15 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     mFinished = true;
   }
 
+  void setLocalResponseFunction()
+  {
+    std::unique_ptr<TFile> file(TFile::Open(mLocalRespFile.data(), "READ"));
+    if (!file) {
+      LOG(fatal) << "Cannot open response file " << mLocalRespFile;
+    }
+    mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)file->Get("response1"));
+  }
+
   void updateTimeDependentParams(ProcessingContext& pc)
   {
     static bool initOnce{false};
@@ -267,7 +278,15 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     // }
     if (matcher == ConcreteDataMatcher(mOrigin, "APTSRESP", 0)) {
       LOG(info) << mID.getName() << " loaded APTSResponseData";
-      mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)obj);
+      if (mLocalRespFile.empty()) {
+        LOG(info) << "Using CCDB/APTS response file";
+        mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)obj);
+        mDigitizer.setResponseName("APTS");
+      } else {
+        LOG(info) << "Response function will be loaded from local file: " << mLocalRespFile;
+        setLocalResponseFunction();
+        mDigitizer.setResponseName("ALICE3");
+      }
     }
   }
 
@@ -275,6 +294,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
   bool mWithMCTruth{true};
   bool mFinished{false};
   bool mDisableQED{false};
+  std::string mLocalRespFile{""};
   const o2::detectors::DetID mID{o2::detectors::DetID::TRK};
   const o2::header::DataOrigin mOrigin{o2::header::gDataOriginTRK};
   o2::trk::Digitizer mDigitizer{};
@@ -307,7 +327,9 @@ DataProcessorSpec getTRKDigitizerSpec(int channel, bool mctruth)
   return DataProcessorSpec{detStr + "Digitizer",
                            inputs, makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<TRKDPLDigitizerTask>(mctruth)},
-                           Options{{"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
+                           Options{
+                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
+                             {"local-response-file", o2::framework::VariantType::String, "", {"use response file saved locally at this path/filename"}}}};
 }
 
 } // namespace o2::trk

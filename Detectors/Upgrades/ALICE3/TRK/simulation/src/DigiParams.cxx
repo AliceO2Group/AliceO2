@@ -74,6 +74,9 @@ void DigiParams::print() const
 
 void DigiParams::setAlpSimResponse(const o2::itsmft::AlpideSimResponse* resp)
 {
+  LOG(debug) << "Response function data path: " << resp->getDataPath();
+  LOG(debug) << "Response function info: ";
+  // resp->print();
   if (!resp) {
     LOGP(fatal, "cannot set response function from null");
   }

@@ -45,6 +45,7 @@ class Digitizer
   void setDigits(std::vector<o2::itsmft::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
   void setROFRecords(std::vector<o2::itsmft::ROFRecord>* rec) { mROFRecords = rec; }
+  void setResponseName(const std::string& name) { mRespName = name; }
 
   o2::trk::DigiParams& getParams() { return (o2::trk::DigiParams&)mParams; }
   const o2::trk::DigiParams& getParams() const { return mParams; }
@@ -136,6 +137,8 @@ class Digitizer
   uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
   uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
 
+  bool mIsBeforeFirstRO = false;
+
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
@@ -144,6 +147,8 @@ class Digitizer
   const o2::trk::ChipSimResponse* mChipSimResp = nullptr;     // simulated response
   const o2::trk::ChipSimResponse* mChipSimRespVD = nullptr;   // simulated response for VD chips
   const o2::trk::ChipSimResponse* mChipSimRespMLOT = nullptr; // simulated response for ML/OT chips
+
+  std::string mRespName; /// APTS or ALICE3, depending on the response to be used
 
   bool mSimRespOrientation{false};   // wether the orientation in the response function is flipped
   float mSimRespVDShift{0.f};        // adjusting the Y-shift in the APTS response function to match sensor local coord.
