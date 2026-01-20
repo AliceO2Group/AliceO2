@@ -531,7 +531,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                                                   dh->dataOrigin.str, dh->dataDescription.str);
                            continue;
                          }
-                         bool forwarded = std::ranges::any_of(ctx.services().get<DeviceSpec const>().forwards, [&dh](auto const& forward){ return DataSpecUtils::match(forward.matcher, *dh); });
+                         bool forwarded = std::ranges::any_of(ctx.services().get<DeviceSpec const>().forwards, [&dh](auto const& forward) { return DataSpecUtils::match(forward.matcher, *dh); });
                          if (forwarded) {
                            O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
                                                   "Message %{public}.4s/%{public}.16s is forwarded so we are not returning its memory.",
