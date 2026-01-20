@@ -626,9 +626,12 @@ static auto cleanEarlyForward = [](ServiceRegistryRef registry, TimesliceSlot sl
                     slot.index, oldestTimeslice.timeslice.value, copy ? "with copy" : "", copy && consume ? " and " : "", consume ? "with consume" : "");
   // Always copy them, because we do not want to actually send them.
   // We merely need the side effect of the consume, if applicable.
-  auto forwardedParts = DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, true, consume);
+  for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
+    auto span = std::span<fair::mq::MessagePtr>(currentSetOfInputs[ii].messages);
+    DataProcessingHelpers::cleanForwardedMessages(span, consume);
+  }
 
-  O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
+  O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Cleaning done");
 };
 
 extern volatile int region_read_global_dummy_variable;

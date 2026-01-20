@@ -59,6 +59,8 @@ struct DataProcessingHelpers {
   /// Helper to route messages for forwarding
   static void routeForwardedMessages(FairMQDeviceProxy& proxy, std::span<fair::mq::MessagePtr>& currentSetOfInputs, std::vector<fair::mq::Parts>& forwardedParts,
                                      bool copy, bool consume);
+
+  static void cleanForwardedMessages(std::span<fair::mq::MessagePtr>& currentSetOfInputs, bool consume);
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_

@@ -338,6 +338,60 @@ void DataProcessingHelpers::routeForwardedMessages(FairMQDeviceProxy& proxy, std
   }
 }
 
+void DataProcessingHelpers::cleanForwardedMessages(std::span<fair::mq::MessagePtr>& messages, bool consume)
+{
+  size_t pi = 0;
+  while (pi < messages.size()) {
+    auto& header = messages[pi];
+
+    // If is now possible that the record is not complete when
+    // we forward it, because of a custom completion policy.
+    // this means that we need to skip the empty entries in the
+    // record for being forwarded.
+    if (header->GetData() == nullptr ||
+        o2::header::get<DomainInfoHeader*>(header->GetData()) ||
+        o2::header::get<SourceInfoHeader*>(header->GetData())) {
+      pi += 2;
+      continue;
+    }
+
+    auto dph = o2::header::get<DataProcessingHeader*>(header->GetData());
+    auto dh = o2::header::get<o2::header::DataHeader*>(header->GetData());
+
+    if (dph == nullptr || dh == nullptr) {
+      // Complain only if this is not an out-of-band message
+      LOGP(error, "Data is missing {}{}{}",
+           dph ? "DataProcessingHeader" : "", dph || dh ? "and" : "", dh ? "DataHeader" : "");
+      pi += 2;
+      continue;
+    }
+
+    // At least one payload.
+    auto& payload = messages[pi + 1];
+    // Calculate the number of messages which should be handled together
+    // all in one go.
+    size_t numberOfMessages = 0;
+    if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
+      // Sequence of (header, payload[0], ... , payload[splitPayloadParts - 1]) pairs belonging together.
+      numberOfMessages = dh->splitPayloadParts + 1; // one is for the header
+    } else {
+      // Sequence of splitPayloadParts (header, payload) pairs belonging together.
+      // In case splitPayloadParts = 0, we consider this as a single message pair
+      numberOfMessages = (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
+    }
+
+    if (payload.get() == nullptr && consume == true) {
+      // If the payload is not there, it means we already
+      // processed it with ConsumeExisiting. Therefore we
+      // need to do something only if this is the last consume.
+      header.reset(nullptr);
+    }
+
+    // Nothing to forward go to the next messageset
+    pi += numberOfMessages;
+  }
+}
+
 auto DataProcessingHelpers::routeForwardedMessageSet(FairMQDeviceProxy& proxy,
                                                      std::vector<MessageSet>& currentSetOfInputs,
                                                      const bool copyByDefault, bool consume) -> std::vector<fair::mq::Parts>
