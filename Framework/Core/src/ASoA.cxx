@@ -63,9 +63,9 @@ SelectionVector sliceSelection(std::span<int64_t const> const& mSelectedRows, in
   auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
   SelectionVector slicedSelection{start_iterator, stop_iterator};
   std::ranges::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                 [&start](int64_t idx) {
-                   return idx - static_cast<int64_t>(start);
-                 });
+                         [&start](int64_t idx) {
+                           return idx - static_cast<int64_t>(start);
+                         });
   return slicedSelection;
 }
 
@@ -74,7 +74,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
   std::vector<std::shared_ptr<arrow::Field>> fields;
   std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
   bool notEmpty = (tables[0]->num_rows() != 0);
-  std::ranges::for_each(tables, [&fields, &columns, notEmpty](auto const& t){
+  std::ranges::for_each(tables, [&fields, &columns, notEmpty](auto const& t) {
     std::ranges::copy(t->fields(), std::back_inserter(fields));
     if (notEmpty) {
       std::ranges::copy(t->columns(), std::back_inserter(columns));
@@ -84,7 +84,8 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
   return arrow::Table::Make(schema, columns);
 }
 
-namespace {
+namespace
+{
 template <typename T>
   requires(std::same_as<T, std::string>)
 auto makeString(T const& str)
@@ -108,7 +109,7 @@ void canNotJoin(std::vector<std::shared_ptr<arrow::Table>> const& tables, std::s
     }
   }
 }
-}
+} // namespace
 
 std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels)
 {

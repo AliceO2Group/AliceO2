@@ -65,13 +65,13 @@ std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<framework::I
 
     if (!exclusive || found) {
       builders[0].fill(counter);
-      std::ranges::for_each(builders.begin() + 1, builders.end(), [&idx](auto& builder){ builder.fill(idx); });
+      std::ranges::for_each(builders.begin() + 1, builders.end(), [&idx](auto& builder) { builder.fill(idx); });
     }
   }
 
   std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
   arrays.reserve(builders.size());
-  std::ranges::transform(builders, std::back_inserter(arrays), [](auto& builder){ return builder.result(); });
+  std::ranges::transform(builders, std::back_inserter(arrays), [](auto& builder) { return builder.result(); });
 
   return arrow::Table::Make(schema, arrays);
 }
@@ -130,7 +130,7 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const&
   }
 
   arrays.reserve(nColumns);
-  std::ranges::transform(chunks, std::back_inserter(arrays), [](auto&& chunk){ return std::make_shared<arrow::ChunkedArray>(chunk); });
+  std::ranges::transform(chunks, std::back_inserter(arrays), [](auto&& chunk) { return std::make_shared<arrow::ChunkedArray>(chunk); });
 
   return arrow::Table::Make(newSchema, arrays);
 }
@@ -175,7 +175,7 @@ std::vector<std::shared_ptr<arrow::Table>> extractSources(ProcessingContext& pc,
 {
   std::vector<std::shared_ptr<arrow::Table>> tables;
   tables.reserve(matchers.size());
-  std::ranges::transform(matchers, std::back_inserter(tables), [&pc](auto const& matcher){ return pc.inputs().get<TableConsumer>(matcher)->asArrowTable(); });
+  std::ranges::transform(matchers, std::back_inserter(tables), [&pc](auto const& matcher) { return pc.inputs().get<TableConsumer>(matcher)->asArrowTable(); });
   return tables;
 }
 

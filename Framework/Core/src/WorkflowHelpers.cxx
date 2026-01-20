@@ -440,21 +440,21 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // Check if any of the provided outputs is a DISTSTF
   // Check if any of the requested inputs is for a 0xccdb message
   bool providesDISTSTF = std::ranges::any_of(workflow,
-                                     [&matcher](auto const& dp) {
-                                       return std::any_of(dp.outputs.begin(), dp.outputs.end(), [&matcher](auto const& output) {
-                                         return DataSpecUtils::match(matcher, output);
-                                       });
-                                     });
+                                             [&matcher](auto const& dp) {
+                                               return std::any_of(dp.outputs.begin(), dp.outputs.end(), [&matcher](auto const& output) {
+                                                 return DataSpecUtils::match(matcher, output);
+                                               });
+                                             });
 
   // If there is no CCDB requested, but we still ask for a FLP/DISTSUBTIMEFRAME/0xccdb
   // we add to the first data processor which has no inputs (apart from
   // enumerations / timers) the responsibility to provide the DISTSUBTIMEFRAME
   bool requiresDISTSUBTIMEFRAME = std::ranges::any_of(workflow,
-                                              [&dstf](auto const& dp) {
-                                                return std::any_of(dp.inputs.begin(), dp.inputs.end(), [&dstf](auto const& input) {
-                                                  return DataSpecUtils::match(input, dstf);
-                                                });
-                                              });
+                                                      [&dstf](auto const& dp) {
+                                                        return std::any_of(dp.inputs.begin(), dp.inputs.end(), [&dstf](auto const& input) {
+                                                          return DataSpecUtils::match(input, dstf);
+                                                        });
+                                                      });
 
   // We find the first device which has either just enumerations or
   // just timers, and we will add the DISTSUBTIMEFRAME to it.
@@ -694,7 +694,7 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
 
   if (distSTFCount > 0) {
     for (auto& spec : workflow) {
-      if (std::ranges::any_of(spec.outputs, [](auto const& output){ return DataSpecUtils::match(output, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0}); })) {
+      if (std::ranges::any_of(spec.outputs, [](auto const& output) { return DataSpecUtils::match(output, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0}); })) {
         for (unsigned int i = 1; i < distSTFCount; ++i) {
           spec.outputs.emplace_back(OutputSpec{ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", i}, Lifetime::Timeframe});
         }

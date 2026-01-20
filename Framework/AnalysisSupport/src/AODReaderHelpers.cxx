@@ -59,7 +59,7 @@ struct Buildable {
     outputSchema = std::make_shared<arrow::Schema>([](std::vector<o2::soa::IndexRecord> const& recs) {
                      std::vector<std::shared_ptr<arrow::Field>> fields;
                      fields.reserve(recs.size());
-                     std::ranges::transform(recs, std::back_inserter(fields), [](auto& r){ return r.field(); });
+                     std::ranges::transform(recs, std::back_inserter(fields), [](auto& r) { return r.field(); });
                      return fields;
                    }(records))
                      ->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{binding}}));
@@ -88,10 +88,10 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(ConfigContext const& /*ctx*
     auto const& requested = ic.services().get<DanglingEdgesContext>().requestedIDXs;
     std::vector<Builder> builders;
     builders.reserve(requested.size());
-    std::ranges::transform(requested, std::back_inserter(builders), [](auto const& i){ return Buildable{i}.createBuilder(); });
+    std::ranges::transform(requested, std::back_inserter(builders), [](auto const& i) { return Buildable{i}.createBuilder(); });
     return [builders](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
-      std::ranges::for_each(builders, [&pc, &outputs](auto& builder){ outputs.adopt(Output{builder.origin, builder.description, builder.version}, builder.materialize(pc)); });
+      std::ranges::for_each(builders, [&pc, &outputs](auto& builder) { outputs.adopt(Output{builder.origin, builder.description, builder.version}, builder.materialize(pc)); });
     };
   }};
 }
@@ -140,14 +140,13 @@ struct Spawnable {
                              views::filter_string_params_starts_with("input:") |
                              std::ranges::views::transform(
                                [](auto const& param) {
-                                return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
-                                }),
-                           std::back_inserter(matchers), [](auto const& i){ return std::get<ConcreteDataMatcher>(i.matcher); });
-
+                                 return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
+                               }),
+                           std::back_inserter(matchers), [](auto const& i) { return std::get<ConcreteDataMatcher>(i.matcher); });
 
     std::vector<std::shared_ptr<arrow::Field>> fields;
     std::ranges::for_each(schemas,
-                          [&fields](auto const& s){
+                          [&fields](auto const& s) {
                             std::ranges::copy(s->fields(), std::back_inserter(fields));
                           });
 
@@ -192,10 +191,10 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(ConfigContext const& /*ctx*/)
     auto const& requested = ic.services().get<DanglingEdgesContext>().spawnerInputs;
     std::vector<Spawner> spawners;
     spawners.reserve(requested.size());
-    std::ranges::transform(requested, std::back_inserter(spawners), [](auto const& i){ return Spawnable{i}.createMaker(); });
+    std::ranges::transform(requested, std::back_inserter(spawners), [](auto const& i) { return Spawnable{i}.createMaker(); });
     return [spawners](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
-      std::ranges::for_each(spawners, [&pc, &outputs](auto& spawner){ outputs.adopt(Output{spawner.origin, spawner.description, spawner.version}, spawner.materialize(pc)); });
+      std::ranges::for_each(spawners, [&pc, &outputs](auto& spawner) { outputs.adopt(Output{spawner.origin, spawner.description, spawner.version}, spawner.materialize(pc)); });
     };
   }};
 }
