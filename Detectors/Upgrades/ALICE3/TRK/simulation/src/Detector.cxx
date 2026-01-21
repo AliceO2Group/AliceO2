@@ -266,7 +266,7 @@ void Detector::createGeometry()
   // Alternatives: createIRIS5Geometry(vTRK); createIRIS4aGeometry(vTRK);
 
   o2::trk::clearVDSensorRegistry();
-  o2::trk::createIRIS4Geometry(vTRK);
+  o2::trk::createIRISGeometryFullCyl(vTRK);
 
   // Fill sensor names from registry right after geometry creation
   const auto& regs = o2::trk::vdSensorRegistry();
