@@ -416,7 +416,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     auto mime = curl_mime_init(curl);
     auto field = curl_mime_addpart(mime);
     curl_mime_name(field, "send");
-    if (filename.empty()) {
+    if (!filename.empty()) {
       curl_mime_filedata(field, filename.c_str());
     }
     if (buffer != nullptr && size > 0) {
