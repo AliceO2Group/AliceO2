@@ -11,6 +11,7 @@
 
 #include "TRKSimulation/VDLayer.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/Specs.h"
 
 #include "Framework/Logger.h"
 
@@ -32,6 +33,8 @@ VDLayer::VDLayer(int layerNumber, const std::string& layerName, double layerX2X0
 {
   constexpr double kSiX0_cm = 9.5; // Radiation length of Silicon in cm
   mChipThickness = mX2X0 * kSiX0_cm;
+
+  mSensorThickness = o2::trk::constants::VD::silicon::thickness; // cm
 }
 
 // VDCylindricalLayer constructor
@@ -83,7 +86,7 @@ TGeoVolume* VDCylindricalLayer::createSensor() const
   }
   std::string sensName = Form("%s_%s%d", this->mLayerName.c_str(), GeometryTGeo::getTRKSensorPattern(), this->mLayerNumber);
   const double rIn = mRadius;
-  const double rOut = mRadius + mChipThickness;
+  const double rOut = mRadius + mSensorThickness;
   const double halfZ = 0.5 * mLengthSensZ;
   const double halfPhi = 0.5 * mPhiSpanDeg; // degrees
   auto* shape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
@@ -106,8 +109,8 @@ TGeoVolume* VDRectangularLayer::createSensor() const
   }
   std::string sensName = Form("%s_%s%d", this->mLayerName.c_str(), GeometryTGeo::getTRKSensorPattern(), this->mLayerNumber);
   const double hx = 0.5 * mWidth;
-  const double hy = 0.5 * mChipThickness; // thickness in Y
-  const double hz = 0.5 * mLengthSensZ;   // <-- use sensor Z length, not full layer
+  const double hy = 0.5 * mSensorThickness;
+  const double hz = 0.5 * mLengthSensZ; // <-- use sensor Z length, not full layer
 
   auto* shape = new TGeoBBox(hx, hy, hz);
   auto* vol = new TGeoVolume(sensName.c_str(), shape, medSi);
@@ -134,8 +137,8 @@ TGeoVolume* VDDiskLayer::createSensor() const
     return nullptr;
   }
   std::string sensName = Form("%s_%s%d", this->mLayerName.c_str(), GeometryTGeo::getTRKSensorPattern(), this->mLayerNumber);
-  const double halfThickness = 0.5 * mChipThickness; // disk thickness is along Z
-  const double halfPhi = 0.5 * mPhiSpanDeg;          // degrees
+  const double halfThickness = 0.5 * mSensorThickness; // active sensor thickness along Z
+  const double halfPhi = 0.5 * mPhiSpanDeg;            // degrees
 
   // Same geometry as the layer (identical radii + phi span + thickness)
   auto* shape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
@@ -145,6 +148,243 @@ TGeoVolume* VDDiskLayer::createSensor() const
   sensVol->SetTransparency(30);
 
   return sensVol;
+}
+
+/*
+** Create metal stack
+*/
+
+TGeoVolume* VDCylindricalLayer::createMetalStack() const
+{
+  if (!gGeoManager) {
+    LOGP(error, "gGeoManager is null");
+    return nullptr;
+  }
+  auto* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  if (!medSi) {
+    LOGP(error, "Missing medium TRK_SILICON$");
+    return nullptr;
+  }
+
+  const double metalT = mChipThickness - mSensorThickness;
+  if (metalT <= 0) {
+    return nullptr; // nothing to add
+  }
+
+  std::string name = Form("%s_%s%d", mLayerName.c_str(),
+                          GeometryTGeo::getTRKMetalStackPattern(), mLayerNumber);
+
+  const double rIn = mRadius + mSensorThickness;
+  const double rOut = mRadius + mChipThickness;
+  const double halfZ = 0.5 * mLengthSensZ;
+  const double halfPhi = 0.5 * mPhiSpanDeg;
+
+  auto* shape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  auto* vol = new TGeoVolume(name.c_str(), shape, medSi);
+  vol->SetLineColor(kGray);
+  vol->SetTransparency(30);
+  return vol;
+}
+
+TGeoVolume* VDRectangularLayer::createMetalStack() const
+{
+  if (!gGeoManager) {
+    LOGP(error, "gGeoManager is null");
+    return nullptr;
+  }
+  auto* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  if (!medSi) {
+    LOGP(error, "Missing medium TRK_SILICON$");
+    return nullptr;
+  }
+
+  const double metalT = mChipThickness - mSensorThickness;
+  if (metalT <= 0) {
+    return nullptr;
+  }
+
+  std::string name = Form("%s_%s%d", mLayerName.c_str(),
+                          GeometryTGeo::getTRKMetalStackPattern(), mLayerNumber);
+
+  const double hx = 0.5 * mWidth;
+  const double hy = 0.5 * metalT;
+  const double hz = 0.5 * mLengthSensZ;
+
+  auto* shape = new TGeoBBox(hx, hy, hz);
+  auto* vol = new TGeoVolume(name.c_str(), shape, medSi);
+  vol->SetLineColor(kGray);
+  vol->SetTransparency(30);
+  return vol;
+}
+
+TGeoVolume* VDDiskLayer::createMetalStack() const
+{
+  if (!gGeoManager) {
+    LOGP(error, "gGeoManager is null");
+    return nullptr;
+  }
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  if (!medSi) {
+    LOGP(error, "Missing medium TRK_SILICON$");
+    return nullptr;
+  }
+
+  const double metalT = mChipThickness - mSensorThickness;
+  if (metalT <= 0) {
+    return nullptr;
+  }
+
+  if (mRMin < 0 || mRMax <= mRMin || mPhiSpanDeg <= 0 || mPhiSpanDeg > 360.0) {
+    LOGP(error, "Invalid disk metal dims: rMin={}, rMax={}, metalT={}, phiSpanDeg={}",
+         mRMin, mRMax, metalT, mPhiSpanDeg);
+    return nullptr;
+  }
+
+  std::string name = Form("%s_%s%d", mLayerName.c_str(),
+                          GeometryTGeo::getTRKMetalStackPattern(), mLayerNumber);
+
+  const double halfThickness = 0.5 * metalT;
+  const double halfPhi = 0.5 * mPhiSpanDeg;
+
+  auto* shape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  auto* vol = new TGeoVolume(name.c_str(), shape, medSi);
+  vol->SetLineColor(kGray);
+  vol->SetTransparency(30);
+  return vol;
+}
+
+/*
+** Create chip
+*/
+
+TGeoVolume* VDCylindricalLayer::createChip() const
+{
+  if (!gGeoManager) {
+    LOGP(error, "gGeoManager is null");
+    return nullptr;
+  }
+  auto* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  if (!medSi) {
+    LOGP(error, "Missing medium TRK_SILICON$");
+    return nullptr;
+  }
+
+  std::string chipName = Form("%s_%s%d", mLayerName.c_str(),
+                              GeometryTGeo::getTRKChipPattern(), mLayerNumber);
+
+  const double rIn = mRadius;
+  const double rOut = mRadius + mChipThickness;
+  const double halfZ = 0.5 * mLengthSensZ;
+  const double halfPhi = 0.5 * mPhiSpanDeg;
+
+  auto* chipShape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  auto* chipVol = new TGeoVolume(chipName.c_str(), chipShape, medSi);
+
+  // sensor
+  if (auto* sensVol = createSensor()) {
+    LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(sensVol, 1, nullptr);
+  }
+
+  // metal stack
+  if (auto* metalVol = createMetalStack()) {
+    LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(metalVol, 1, nullptr); // concentric, no translation needed
+  }
+
+  chipVol->SetLineColor(kYellow);
+  chipVol->SetTransparency(30);
+  return chipVol;
+}
+
+TGeoVolume* VDRectangularLayer::createChip() const
+{
+  if (!gGeoManager) {
+    LOGP(error, "gGeoManager is null");
+    return nullptr;
+  }
+  auto* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  if (!medSi) {
+    LOGP(error, "Missing medium TRK_SILICON$");
+    return nullptr;
+  }
+
+  std::string chipName = Form("%s_%s%d", mLayerName.c_str(),
+                              GeometryTGeo::getTRKChipPattern(), mLayerNumber);
+
+  const double hx = 0.5 * mWidth;
+  const double hy = 0.5 * mChipThickness;
+  const double hz = 0.5 * mLengthSensZ;
+
+  auto* chipShape = new TGeoBBox(hx, hy, hz);
+  auto* chipVol = new TGeoVolume(chipName.c_str(), chipShape, medSi);
+
+  // sensor (place it on the "bottom" side, like TRK)
+  if (auto* sensVol = createSensor()) {
+    auto* transSens = new TGeoTranslation(0.0, -(mChipThickness - mSensorThickness) / 2, 0.0);
+    LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(sensVol, 1, transSens);
+  }
+
+  // metal stack (remaining thickness on top)
+  if (auto* metalVol = createMetalStack()) {
+    auto* transMetal = new TGeoTranslation(0.0, +mSensorThickness / 2, 0.0);
+    LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(metalVol, 1, transMetal);
+  }
+
+  chipVol->SetLineColor(kYellow);
+  chipVol->SetTransparency(30);
+  return chipVol;
+}
+
+TGeoVolume* VDDiskLayer::createChip() const
+{
+  if (!gGeoManager) {
+    LOGP(error, "gGeoManager is null");
+    return nullptr;
+  }
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  if (!medSi) {
+    LOGP(error, "Missing medium TRK_SILICON$");
+    return nullptr;
+  }
+
+  if (mRMin < 0 || mRMax <= mRMin || mChipThickness <= 0 ||
+      mPhiSpanDeg <= 0 || mPhiSpanDeg > 360.0) {
+    LOGP(error, "Invalid disk chip dims: rMin={}, rMax={}, t={}, phi={}",
+         mRMin, mRMax, mChipThickness, mPhiSpanDeg);
+    return nullptr;
+  }
+
+  std::string chipName = Form("%s_%s%d", mLayerName.c_str(),
+                              GeometryTGeo::getTRKChipPattern(), mLayerNumber);
+
+  const double halfThickness = 0.5 * mChipThickness;
+  const double halfPhi = 0.5 * mPhiSpanDeg;
+
+  auto* chipShape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  auto* chipVol = new TGeoVolume(chipName.c_str(), chipShape, medSi);
+  chipVol->SetLineColor(kYellow);
+  chipVol->SetTransparency(30);
+
+  // Sensor slab (sensitive) placed on one side in Z (TRK-like stacking convention)
+  if (auto* sensVol = createSensor()) {
+    const double zSens = -(mChipThickness - mSensorThickness) / 2.0;
+    auto* tSens = new TGeoTranslation(0.0, 0.0, zSens);
+    LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(sensVol, 1, tSens);
+  }
+
+  // Metal stack slab (non-sensitive), remaining thickness, also silicon
+  if (auto* metalVol = createMetalStack()) {
+    const double zMetal = +mSensorThickness / 2.0;
+    auto* tMetal = new TGeoTranslation(0.0, 0.0, zMetal);
+    LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
+    chipVol->AddNode(metalVol, 1, tMetal);
+  }
+
+  return chipVol;
 }
 
 /*
@@ -184,14 +424,14 @@ void VDCylindricalLayer::createLayer(TGeoVolume* motherVolume, TGeoMatrix* combi
   layerVol->SetLineColor(kYellow);
   layerVol->SetTransparency(30);
 
-  // Sensor volume (must use mLengthSensZ internally)
-  TGeoVolume* sensorVol = VDCylindricalLayer::createSensor();
-  if (!sensorVol) {
-    LOGP(error, "VDCylindricalLayer::createSensor() returned null");
+  // Chip volume (must use mLengthSensZ internally)
+  TGeoVolume* chipVol = VDCylindricalLayer::createChip();
+  if (!chipVol) {
+    LOGP(error, "VDCylindricalLayer::createChip() returned null");
     return;
   }
-  LOGP(debug, "Inserting {} in {} ", sensorVol->GetName(), layerVol->GetName());
-  layerVol->AddNode(sensorVol, 1, nullptr);
+  LOGP(debug, "Inserting {} in {} ", chipVol->GetName(), layerVol->GetName());
+  layerVol->AddNode(chipVol, 1, nullptr);
 
   // Tiling: edge-to-edge if sensor shorter than layer; else single centered
   // const auto zCenters = (mLengthSensZ < mLengthZ)
@@ -238,14 +478,14 @@ void VDRectangularLayer::createLayer(TGeoVolume* motherVolume, TGeoMatrix* combi
   layerVol->SetTransparency(30);
 
   // Sensor volume (uses mLengthSensZ internally)
-  TGeoVolume* sensorVol = VDRectangularLayer::createSensor();
-  if (!sensorVol) {
-    LOGP(error, "VDRectangularLayer::createSensor() returned null");
+  TGeoVolume* chipVol = VDRectangularLayer::createChip();
+  if (!chipVol) {
+    LOGP(error, "VDRectangularLayer::chipVol() returned null");
     return;
   }
 
-  LOGP(debug, "Inserting {} in {} ", sensorVol->GetName(), layerVol->GetName());
-  layerVol->AddNode(sensorVol, 1, nullptr);
+  LOGP(debug, "Inserting {} in {} ", chipVol->GetName(), layerVol->GetName());
+  layerVol->AddNode(chipVol, 1, nullptr);
 
   // Tiling along Z, edge - to - edge if needed
   // const auto zCenters = (mLengthSensZ < mLengthZ)
@@ -292,14 +532,14 @@ void VDDiskLayer::createLayer(TGeoVolume* motherVolume, TGeoMatrix* combiTrans) 
   layerVol->SetTransparency(30);
 
   // Sensor (same size & shape as the layer for disks)
-  TGeoVolume* sensorVol = VDDiskLayer::createSensor();
-  if (!sensorVol) {
-    LOGP(error, "VDDiskLayer::createSensor() returned null");
+  TGeoVolume* chipVol = VDDiskLayer::createChip();
+  if (!chipVol) {
+    LOGP(error, "VDDiskLayer::createChip() returned null");
     return;
   }
 
   // Insert single sensor (no Z-segmentation for disks)
-  layerVol->AddNode(sensorVol, 1, nullptr);
+  layerVol->AddNode(chipVol, 1, nullptr);
 
   TGeoTranslation tz(0.0, 0.0, mZPos);
   motherVolume->AddNode(layerVol, 1, combiTrans ? combiTrans : &tz);

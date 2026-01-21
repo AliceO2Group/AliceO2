@@ -24,9 +24,11 @@ namespace o2::trk
 // Each function builds one local petal assembly (walls + layers + disks)
 // and then places/rotates the petal once into the mother volume.
 
-void createIRIS4Geometry(TGeoVolume* motherVolume);  // 4 petals, cylindrical L0
-void createIRIS4aGeometry(TGeoVolume* motherVolume); // 3 petals, cylindrical L0
-void createIRIS5Geometry(TGeoVolume* motherVolume);  // 4 petals, rectangular L0
+void createIRISGeometryFullCyl(TGeoVolume* motherVolume);          // Full-cylinder IRIS geometry (no petals, no gaps, no side walls)
+void createIRISGeometryFullCylwithDisks(TGeoVolume* motherVolume); // Full-cylinder IRIS geometry (no petals, no gaps, no side walls) incl. disks
+void createIRIS4Geometry(TGeoVolume* motherVolume);                // 4 petals, cylindrical L0
+void createIRIS4aGeometry(TGeoVolume* motherVolume);               // 3 petals, cylindrical L0
+void createIRIS5Geometry(TGeoVolume* motherVolume);                // 4 petals, rectangular L0
 
 void createSinglePetalDebug(TGeoVolume* motherVolume, int petalID = 0, int nPetals = 4, bool rectangularL0 = false);
 

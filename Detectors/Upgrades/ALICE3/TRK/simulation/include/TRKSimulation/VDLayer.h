@@ -39,9 +39,10 @@ class VDLayer
  protected:
   int mLayerNumber{0};
   std::string mLayerName;
-  double mX2X0{0.f};          // Radiation length in units of X0
-  double mChipThickness{0.f}; // thickness derived from X/X0
-  double mModuleWidth{4.54f}; // cm
+  double mX2X0{0.f};            // Radiation length in units of X0
+  double mChipThickness{0.f};   // thickness derived from X/X0
+  double mSensorThickness{0.f}; //
+  double mModuleWidth{4.54f};   // cm
 
   // ClassDef(VDLayer, 1)
 };
@@ -54,6 +55,8 @@ class VDCylindricalLayer : public VDLayer
                      double radius, double phiSpanDeg, double lengthZ, double lengthSensZ);
 
   TGeoVolume* createSensor() const; // builds the sensor volume
+  TGeoVolume* createChip() const;
+  TGeoVolume* createMetalStack() const;
   void createLayer(TGeoVolume* motherVolume, TGeoMatrix* combiTrans = nullptr) const override;
 
  private:
@@ -73,6 +76,8 @@ class VDRectangularLayer : public VDLayer
                      double width, double lengthZ, double lengthSensZ);
 
   TGeoVolume* createSensor() const;
+  TGeoVolume* createChip() const;
+  TGeoVolume* createMetalStack() const;
   void createLayer(TGeoVolume* motherVolume, TGeoMatrix* combiTrans = nullptr) const override;
 
  private:
@@ -91,6 +96,8 @@ class VDDiskLayer : public VDLayer
               double rMin, double rMax, double phiSpanDeg, double zPos);
 
   TGeoVolume* createSensor() const;
+  TGeoVolume* createChip() const;
+  TGeoVolume* createMetalStack() const;
   void createLayer(TGeoVolume* motherVolume, TGeoMatrix* combiTrans = nullptr) const override;
 
   double getZPosition() const { return mZPos; }

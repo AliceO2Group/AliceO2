@@ -67,6 +67,12 @@ inline bool isSolidToCut(const TGeoVolume* v)
   if (TString(nm).BeginsWith("VD_SideWall")) {
     return true;
   }
+  if (TString(nm).BeginsWith("VD_InnerWallCyl")) {
+    return true;
+  }
+  if (TString(nm).BeginsWith("VD_OuterWallCyl")) {
+    return true;
+  }
   if (TString(nm).Contains("_Coldplate")) {
     return true;
   }
@@ -166,7 +172,34 @@ inline void buildPetalSolidsComposite(TGeoVolume* petalAsm)
 // Build the global cutout by rotating the petal-local composite n times with (p+0.5) phase
 inline void buildIrisCutoutFromPetalSolid(int nPetals)
 {
-  // Create n rotation transforms
+  auto* shps = gGeoManager->GetListOfShapes();
+  auto* base = shps ? dynamic_cast<TGeoShape*>(shps->FindObject("IRIS_PETAL_SOLIDSsh")) : nullptr;
+  if (!base) {
+    LOGP(error, "IRIS cutout: shape 'IRIS_PETAL_SOLIDSsh' not found.");
+    return;
+  }
+
+  // IMPORTANT: for nPetals==1, a composite expression like "A:tr" is invalid.
+  // Just clone the petal solids shape as the global cutout.
+  if (nPetals == 1) {
+    // Remove any previous shape with same name if it exists (optional but keeps things clean)
+    if (shps->FindObject("IRIS_CUTOUTsh")) {
+      // ROOT shape lists are owned by gGeoManager; removing is not always necessary.
+      // Keeping it simple: just create a unique name if it already exists.
+      LOGP(warning, "IRIS cutout: 'IRIS_CUTOUTsh' already exists; overwriting by clone name reuse may be unsafe.");
+    }
+
+    auto* cut = dynamic_cast<TGeoShape*>(base->Clone("IRIS_CUTOUTsh"));
+    if (!cut) {
+      LOGP(error, "IRIS cutout: failed to clone 'IRIS_PETAL_SOLIDSsh' to 'IRIS_CUTOUTsh'.");
+      return;
+    }
+
+    LOGP(info, "IRIS_CUTOUTsh created as clone of IRIS_PETAL_SOLIDSsh (nPetals=1).");
+    return;
+  }
+
+  // nPetals > 1: build union of rotated copies
   TString cutFormula;
   for (int p = 0; p < nPetals; ++p) {
     const double phi = (360.0 / nPetals) * (p + 0.5);
@@ -175,47 +208,23 @@ inline void buildIrisCutoutFromPetalSolid(int nPetals)
     auto* RT = new TGeoCombiTrans(0, 0, 0, R);
     RT->SetName(Form("IRIS_PETAL_ROT_%d", p));
     RT->RegisterYourself();
+
     if (p) {
       cutFormula += "+";
     }
     cutFormula += Form("IRIS_PETAL_SOLIDSsh:%s", RT->GetName());
   }
+
   LOGP(info, "IRIS_CUTOUTsh formula: {}", cutFormula.Data());
-  new TGeoCompositeShape("IRIS_CUTOUTsh", cutFormula.Data());
+  auto* cut = new TGeoCompositeShape("IRIS_CUTOUTsh", cutFormula.Data());
+  (void)cut;
 
-  // --- Sanity check: required matrices & shapes exist
-  auto* mats = gGeoManager ? gGeoManager->GetListOfMatrices() : nullptr;
-  auto* shps = gGeoManager ? gGeoManager->GetListOfShapes() : nullptr;
-
-  if (!mats || !shps) {
-    LOGP(error, "IRIS cutout sanity: gGeoManager not initialized properly (mats/shapes missing).");
+  // Stronger sanity: ensure it parsed into a boolean node
+  auto* cutCheck = dynamic_cast<TGeoCompositeShape*>(shps->FindObject("IRIS_CUTOUTsh"));
+  if (!cutCheck || !cutCheck->GetBoolNode()) {
+    LOGP(error, "IRIS cutout sanity: IRIS_CUTOUTsh exists but parsing failed (no BoolNode).");
   } else {
-    bool ok = true;
-
-    // Check the petal rotations were registered and referenced
-    for (int p = 0; p < nPetals; ++p) {
-      const TString name = Form("IRIS_PETAL_ROT_%d", p);
-      if (!mats->FindObject(name)) {
-        LOGP(error, "IRIS cutout sanity: missing matrix {}", name.Data());
-        ok = false;
-      }
-    }
-
-    // Check that the local petal composite exists
-    if (!shps->FindObject("IRIS_PETAL_SOLIDSsh")) {
-      LOGP(error, "IRIS cutout sanity: shape 'IRIS_PETAL_SOLIDSsh' not found.");
-      ok = false;
-    }
-
-    // Check that the global cutout shape was created
-    if (!shps->FindObject("IRIS_CUTOUTsh")) {
-      LOGP(error, "IRIS cutout sanity: shape 'IRIS_CUTOUTsh' not found.");
-      ok = false;
-    }
-
-    if (ok) {
-      LOGP(info, "IRIS cutout sanity: OK ({} petals).", nPetals);
-    }
+    LOGP(info, "IRIS cutout sanity: OK ({} petals).", nPetals);
   }
 }
 
@@ -299,7 +308,11 @@ inline TGeoCombiTrans rotZ(double phiDeg)
 // ============ Petal sub-builders (LOCAL coords only, no rotation) =========
 
 // Walls: inner cylindrical arc at r=4.8 mm (always), outer arc wall, and two side plates.
-static void addPetalWalls(TGeoVolume* petalAsm, int nPetals, double outerRadius_cm = kOuterWallRadius_cm)
+static void addPetalWalls(TGeoVolume* petalAsm,
+                          int nPetals,
+                          double outerRadius_cm = kOuterWallRadius_cm,
+                          bool withSideWalls = true,
+                          bool fullCylindricalRadialWalls = false)
 {
   if (!petalAsm) {
     LOGP(error, "addPetalWalls: petalAsm is null");
@@ -314,11 +327,21 @@ static void addPetalWalls(TGeoVolume* petalAsm, int nPetals, double outerRadius_
     return;
   }
 
-  const double halfPhi = 0.5f * (360.f / static_cast<double>(nPetals));
-  const double halfZ = 0.5f * kPetalZ_cm;
+  const double halfZ = 0.5 * kPetalZ_cm;
 
-  // ---- Inner cylindrical wall (always at r=4.8 mm) ----
-  {
+  // In full-cylinder radial-wall mode we ignore nPetals for the radial walls.
+  const double halfPhi = fullCylindricalRadialWalls ? 180.0 : 0.5 * (360.0 / static_cast<double>(nPetals));
+
+  // ---- Inner radial wall ----
+  if (fullCylindricalRadialWalls) {
+    auto* s = new TGeoTube(static_cast<Double_t>(kInnerWallRadius_cm),
+                           static_cast<Double_t>(kInnerWallRadius_cm + kWallThick_cm),
+                           static_cast<Double_t>(halfZ));
+    auto* v = new TGeoVolume("VD_InnerWallCyl", s, med);
+    v->SetLineColor(kGray + 2);
+    v->SetTransparency(70);
+    petalAsm->AddNode(v, 1);
+  } else {
     auto* s = new TGeoTubeSeg(static_cast<Double_t>(kInnerWallRadius_cm),
                               static_cast<Double_t>(kInnerWallRadius_cm + kWallThick_cm),
                               static_cast<Double_t>(halfZ),
@@ -330,8 +353,16 @@ static void addPetalWalls(TGeoVolume* petalAsm, int nPetals, double outerRadius_
     petalAsm->AddNode(v, 1);
   }
 
-  // ---- Outer arc wall ----
-  {
+  // ---- Outer radial wall ----
+  if (fullCylindricalRadialWalls) {
+    auto* s = new TGeoTube(static_cast<Double_t>(outerRadius_cm),
+                           static_cast<Double_t>(outerRadius_cm + kWallThick_cm),
+                           static_cast<Double_t>(halfZ));
+    auto* v = new TGeoVolume("VD_OuterWallCyl", s, med);
+    v->SetLineColor(kGray + 2);
+    v->SetTransparency(70);
+    petalAsm->AddNode(v, 1);
+  } else {
     auto* s = new TGeoTubeSeg(static_cast<Double_t>(outerRadius_cm),
                               static_cast<Double_t>(outerRadius_cm + kWallThick_cm),
                               static_cast<Double_t>(halfZ),
@@ -341,6 +372,11 @@ static void addPetalWalls(TGeoVolume* petalAsm, int nPetals, double outerRadius_
     v->SetLineColor(kGray + 2);
     v->SetTransparency(70);
     petalAsm->AddNode(v, 1);
+  }
+
+  // ---- Side plates (skip in "single petal full cylinders" mode) ----
+  if (!withSideWalls) {
+    return;
   }
 
   // ---- Side walls (boxes) at ±halfPhi ----
@@ -369,7 +405,7 @@ static void addPetalWalls(TGeoVolume* petalAsm, int nPetals, double outerRadius_
 
 // Build inner layers (L0..L2). L0 may be rectangular (IRIS5) or cylindrical.
 // φ-spans derive from spec gaps/arc; all local placement (no rotation).
-static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool rectangularL0)
+static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool rectangularL0, bool fullCylinders)
 {
   if (!petalAsm) {
     LOGP(error, "addBarrelLayers: petalAsm is null");
@@ -382,15 +418,15 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
   constexpr double arcL0_cm = 0.6247f; // 6.247 mm
 
   // φ spans
-  const double phiL0_deg = phiSpanFromGap(nPetals, gapL0_cm, rL0_cm);   // L0 gap-defined
-  const double phiL1_deg = phiSpanFromGap(nPetals, gapL1L2_cm, rL1_cm); // L1 gap-defined
-  const double phiL2_deg = phiSpanFromGap(nPetals, gapL1L2_cm, rL2_cm); // L2 gap-defined
+  const double phiL0_deg = fullCylinders ? 360.0 : phiSpanFromGap(nPetals, gapL0_cm, rL0_cm);
+  const double phiL1_deg = fullCylinders ? 360.0 : phiSpanFromGap(nPetals, gapL1L2_cm, rL1_cm);
+  const double phiL2_deg = fullCylinders ? 360.0 : phiSpanFromGap(nPetals, gapL1L2_cm, rL2_cm);
 
   const std::string nameL0 =
     std::string(o2::trk::GeometryTGeo::getTRKPetalPattern()) + std::to_string(petalID) + "_" +
     std::string(o2::trk::GeometryTGeo::getTRKPetalLayerPattern()) + "0";
 
-  if (rectangularL0) {
+  if (!fullCylinders && rectangularL0) {
     VDRectangularLayer L0(0,
                           nameL0,
                           kX2X0, kL0RectWidth_cm, kLenZ_cm, kLenZ_cm);
@@ -438,7 +474,7 @@ static void addBarrelLayers(TGeoVolume* petalAsm, int nPetals, int petalID, bool
 }
 
 // Build cold plate (cylindrical) in local coordinates, and add it to the petal assembly.
-static void addColdPlate(TGeoVolume* petalAsm, int nPetals, int petalId)
+static void addColdPlate(TGeoVolume* petalAsm, int nPetals, int petalId, bool fullCylinders = false)
 {
   if (!petalAsm) {
     LOGP(error, "addColdPlate: petalAsm is null");
@@ -455,8 +491,9 @@ static void addColdPlate(TGeoVolume* petalAsm, int nPetals, int petalId)
   constexpr double gapL1L2_cm = 0.12f; // 1.2 mm
 
   // φ spans
-  const double phiSpanColdplate_deg = phiSpanFromGap(nPetals, gapL1L2_cm, rL2_cm); // L2 gap-defined
-  const double halfPhiDeg = 0.5f * phiSpanColdplate_deg;
+  const double phiSpanColdplate_deg =
+    fullCylinders ? 360.0 : phiSpanFromGap(nPetals, gapL1L2_cm, rL2_cm); // L2 gap-defined in normal mode
+  const double halfPhiDeg = 0.5 * phiSpanColdplate_deg;
   const double startPhi = -halfPhiDeg;
   const double endPhi = +halfPhiDeg;
 
@@ -625,7 +662,7 @@ static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals)
 
 // Build disks in local coords: each disk gets only a local Z translation.
 // φ span from gap at rOut.
-static void addDisks(TGeoVolume* petalAsm, int nPetals, int petalID)
+static void addDisks(TGeoVolume* petalAsm, int nPetals, int petalID, bool fullCylinders)
 {
 
   if (!petalAsm) {
@@ -633,7 +670,7 @@ static void addDisks(TGeoVolume* petalAsm, int nPetals, int petalID)
     return;
   }
 
-  const double phiDisk_deg = phiSpanFromGap(nPetals, 2 * kWallThick_cm, diskRin_cm);
+  const double phiDisk_deg = fullCylinders ? 360.0 : phiSpanFromGap(nPetals, 2 * kWallThick_cm, diskRin_cm);
 
   for (int i = 0; i < 6; ++i) {
     const std::string nameD =
@@ -651,17 +688,120 @@ static void addDisks(TGeoVolume* petalAsm, int nPetals, int petalID)
   }
 }
 
+// Add Z end-cap walls to "close" the petal/cylinder volume at zMin and zMax.
+// Implemented as thin rings (TGeoTube) with thickness 'capThick_cm' in Z,
+// spanning radii [rIn_cm, rOut_cm].
+static void addPetalEndCaps(TGeoVolume* petalAsm,
+                            int petalId,
+                            double rIn_cm,
+                            double rOut_cm,
+                            double zMin_cm,
+                            double zMax_cm,
+                            double capThick_cm)
+{
+  if (!petalAsm) {
+    LOGP(error, "addPetalEndCaps: petalAsm is null");
+    return;
+  }
+
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  const TGeoMedium* med =
+    matmgr.getTGeoMedium("ALICE3_TRKSERVICES_ALUMINIUM5083");
+
+  if (!med) {
+    LOGP(warning,
+         "addPetalEndCaps: ALICE3_TRKSERVICES_ALUMINIUM5083 not found, caps not created.");
+    return;
+  }
+
+  const double halfT = 0.5 * capThick_cm;
+
+  auto* sh = new TGeoTube(static_cast<Double_t>(rIn_cm),
+                          static_cast<Double_t>(rOut_cm),
+                          static_cast<Double_t>(halfT));
+
+  TString vname = Form("Petal%d_ZCap", petalId);
+  auto* v = new TGeoVolume(vname, sh, med);
+  v->SetLineColor(kGray + 2);
+  v->SetTransparency(70);
+
+  auto* trMin = new TGeoTranslation(0.0, 0.0,
+                                    static_cast<Double_t>(zMin_cm + halfT));
+  auto* trMax = new TGeoTranslation(0.0, 0.0,
+                                    static_cast<Double_t>(zMax_cm - halfT));
+
+  petalAsm->AddNode(v, 1, trMin);
+  petalAsm->AddNode(v, 2, trMax);
+}
+
 // Build one complete petal assembly (walls + L0..L2 + disks) in LOCAL coords.
-static TGeoVolume* buildPetalAssembly(int nPetals, int petalID, bool rectangularL0)
+static TGeoVolume* buildPetalAssembly(int nPetals,
+                                      int petalID,
+                                      bool rectangularL0,
+                                      bool fullCylinders,
+                                      bool withSideWalls)
 {
   auto* petalAsm = new TGeoVolumeAssembly(Form("PETAL_%d", petalID));
-  addPetalWalls(petalAsm, nPetals, kOuterWallRadius_cm);
 
-  // Pass petalID to layers/disks for naming
-  addBarrelLayers(petalAsm, nPetals, petalID, rectangularL0);
-  addColdPlate(petalAsm, nPetals, petalID);
-  addDisks(petalAsm, nPetals, petalID);
+  // In the special mode: no side walls, but keep radial walls as FULL cylinders.
+  addPetalWalls(petalAsm, nPetals, kOuterWallRadius_cm,
+                /*withSideWalls=*/withSideWalls,
+                /*fullCylindricalRadialWalls=*/fullCylinders);
+
+  addBarrelLayers(petalAsm, nPetals, petalID, rectangularL0, fullCylinders);
+  addDisks(petalAsm, nPetals, petalID, fullCylinders);
+
+  addColdPlate(petalAsm, nPetals, petalID, /*fullCylinders=*/false);
   addIRISServiceModulesSegmented(petalAsm, nPetals);
+
+  return petalAsm;
+}
+
+static TGeoVolume* buildFullCylAssembly(int petalID, bool withDisks)
+{
+  // IMPORTANT: keep naming consistent with createIRIS4/5 (PETAL_%d)
+  auto* petalAsm = new TGeoVolumeAssembly(Form("PETAL_%d", petalID));
+
+  // Radial walls only: full 360° cylinders, no side plates
+  addPetalWalls(petalAsm,
+                /*nPetals=*/1,
+                /*outerRadius_cm=*/kOuterWallRadius_cm,
+                /*withSideWalls=*/false,
+                /*fullCylindricalRadialWalls=*/true);
+
+  // --- Z end-cap walls to close the petal in Z ---
+  {
+    const double zMin = -0.5 * kLenZ_cm;
+    const double zMax = +0.5 * kLenZ_cm;
+    const double rIn = kInnerWallRadius_cm;
+    const double rOut = kOuterWallRadius_cm + kWallThick_cm;
+
+    addPetalEndCaps(petalAsm,
+                    petalID,
+                    rIn,
+                    rOut,
+                    zMin,
+                    zMax,
+                    kWallThick_cm);
+  }
+
+  // Full 360° barrel cylinders
+  addBarrelLayers(petalAsm,
+                  /*nPetals=*/1,
+                  /*petalID=*/petalID,
+                  /*rectangularL0=*/false,
+                  /*fullCylinders=*/true);
+
+  addColdPlate(petalAsm, 1, petalID, /*fullCylinders=*/true);
+  addIRISServiceModulesSegmented(petalAsm, /*nPetals=*/1);
+
+  // Optionally add full 360° disks
+  if (withDisks) {
+    addDisks(petalAsm,
+             /*nPetals=*/1,
+             /*petalID=*/petalID,
+             /*fullCylinders=*/true);
+  }
 
   return petalAsm;
 }
@@ -679,7 +819,9 @@ void createIRIS4Geometry(TGeoVolume* motherVolume)
 
   constexpr int nPetals = 4;
   for (int p = 0; p < nPetals; ++p) {
-    auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ false);
+    auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ false,
+                                     /*fullCylinders=*/false,
+                                     /*withSideWalls=*/true);
     // Build the petal-local solids composite once from the FIRST petal
     if (p == 0) {
       buildPetalSolidsComposite(petal); // <-- captures only SOLIDS in local coords
@@ -704,7 +846,9 @@ void createIRIS5Geometry(TGeoVolume* motherVolume)
 
   constexpr int nPetals = 4;
   for (int p = 0; p < nPetals; ++p) {
-    auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ true);
+    auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ true,
+                                     /*fullCylinders=*/false,
+                                     /*withSideWalls=*/true);
     // Build the petal-local solids composite once from the FIRST petal
     if (p == 0) {
       buildPetalSolidsComposite(petal); // <-- captures only SOLIDS in local coords
@@ -729,7 +873,9 @@ void createIRIS4aGeometry(TGeoVolume* motherVolume)
 
   constexpr int nPetals = 3;
   for (int p = 0; p < nPetals; ++p) {
-    auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ false);
+    auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ false,
+                                     /*fullCylinders=*/false,
+                                     /*withSideWalls=*/true);
     // Build the petal-local solids composite once from the FIRST petal
     if (p == 0) {
       buildPetalSolidsComposite(petal); // <-- captures only SOLIDS in local coords
@@ -743,9 +889,48 @@ void createIRIS4aGeometry(TGeoVolume* motherVolume)
   buildIrisCutoutFromPetalSolid(nPetals);
 }
 
+void createIRISGeometryFullCyl(TGeoVolume* motherVolume)
+{
+  if (!motherVolume) {
+    LOGP(error, "createIRISGeometryFullCyl: motherVolume is null");
+    return;
+  }
+
+  clearVDSensorRegistry();
+
+  constexpr int nPetals = 1;
+  constexpr int petalID = 0;
+
+  auto* petal = buildFullCylAssembly(petalID, /*withDisks=*/false);
+  motherVolume->AddNode(petal, 1, nullptr);
+
+  buildPetalSolidsComposite(petal);
+  buildIrisCutoutFromPetalSolid(nPetals);
+}
+
+void createIRISGeometryFullCylwithDisks(TGeoVolume* motherVolume)
+{
+  if (!motherVolume) {
+    LOGP(error, "createIRISGeometryFullCylDisks: motherVolume is null");
+    return;
+  }
+
+  clearVDSensorRegistry();
+
+  constexpr int nPetals = 1;
+  constexpr int petalID = 0;
+
+  auto* petal = buildFullCylAssembly(petalID, /*withDisks=*/true);
+  motherVolume->AddNode(petal, 1, nullptr);
+
+  // Same cutout pipeline as createIRIS4/5:
+  buildPetalSolidsComposite(petal);
+  buildIrisCutoutFromPetalSolid(nPetals);
+}
+
 void createSinglePetalDebug(TGeoVolume* motherVolume, int petalID, int nPetals, bool rectangularL0)
 {
-  auto* petal = buildPetalAssembly(nPetals, petalID, rectangularL0);
+  auto* petal = buildPetalAssembly(nPetals, petalID, rectangularL0, false, true);
 
   // Optionally rotate the petal for display
   const double phiDeg = (360.f / static_cast<double>(nPetals)) * (static_cast<double>(petalID) + 0.5f);
