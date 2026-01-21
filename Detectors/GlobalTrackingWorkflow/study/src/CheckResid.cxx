@@ -252,6 +252,7 @@ void CheckResidSpec::process()
         auto& accum = slots[0];
 #endif
         auto& resTrack = accum.emplace_back();
+        resTrack.gid = vid;
         if (!processITSTrack(itsTrack, pve, resTrack)) {
           accum.pop_back();
           continue;
