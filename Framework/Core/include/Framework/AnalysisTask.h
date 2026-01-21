@@ -22,7 +22,6 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/GroupSlicer.h"
 #include "Framework/StructToTuple.h"
-#include "Framework/Traits.h"
 #include "Framework/TypeIdHelpers.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/AnalysisDataModel.h"
@@ -596,18 +595,13 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       AnalysisDataProcessorBuilder::cacheFromArgs(&T::process, true, bindingsKeys, bindingsKeysUnsorted);
     }
     homogeneous_apply_refs(
-      [&bindingsKeys, &bindingsKeysUnsorted](auto& x) mutable {
+      [&bindingsKeys, &bindingsKeysUnsorted](auto& x) {
         return AnalysisDataProcessorBuilder::requestCacheFromArgs(x, bindingsKeys, bindingsKeysUnsorted);
       },
       *task.get());
 
     ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
     ic.services().get<ArrowTableSlicingCacheDef>().setCachesUnsorted(std::move(bindingsKeysUnsorted));
-    // initialize global caches
-    homogeneous_apply_refs([&ic](auto& element) {
-      return analysis_task_parsers::preInitializeCache(ic, element);
-    },
-                           *(task.get()));
 
     return [task, expressionInfos](ProcessingContext& pc) mutable {
       // load the ccdb object from their cache
@@ -615,9 +609,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       // reset partitions once per dataframe
       homogeneous_apply_refs([](auto& element) { return analysis_task_parsers::newDataframePartition(element); }, *task.get());
       // reset selections for the next dataframe
-      for (auto& info : expressionInfos) {
-        info.resetSelection = true;
-      }
+      std::ranges::for_each(expressionInfos, [](auto& info){ info.resetSelection = true; });
       // reset pre-slice for the next dataframe
       auto slices = pc.services().get<ArrowTableSlicingCache>();
       homogeneous_apply_refs([&pc, &slices](auto& element) {
@@ -633,17 +625,18 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         task->run(pc);
       }
       // execute process()
-      if constexpr (requires { AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices); }) {
+      if constexpr (requires { &T::process; }) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);
       }
       // execute optional process()
       homogeneous_apply_refs(
-        [&pc, &expressionInfos, &task, &slices](auto& x) mutable {
-          if constexpr (base_of_template<ProcessConfigurable, std::decay_t<decltype(x)>>) {
+        [&pc, &expressionInfos, &task, &slices](auto& x) {
+          if constexpr (is_process_configurable<decltype(x)>) {
             if (x.value == true) {
               AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), x.process, expressionInfos, slices);
               return true;
             }
+            return false;
           }
           return false;
         },
@@ -657,9 +650,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   return {
     name,
-    // FIXME: For the moment we hardcode this. We could build
-    // this list from the list of methods actually implemented in the
-    // task itself.
     inputs,
     outputs,
     algo,
