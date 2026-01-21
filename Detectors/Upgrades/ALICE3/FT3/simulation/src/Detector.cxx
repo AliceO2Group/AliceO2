@@ -401,7 +401,7 @@ Detector::Detector(bool active)
   if (ft3BaseParam.configFile != "") {
     LOG(info) << "FT3 Geometry configuration file provided. Overriding FT3Base.geoModel configuration.";
     buildFT3FromFile(ft3BaseParam.configFile);
-    
+
   } else {
     LOG(info) << "FT3 Geometry configuration file not provided. Using FT3Base.geoModel " << ft3BaseParam.geoModel << " configuration.";
     switch (ft3BaseParam.geoModel) {
@@ -411,7 +411,7 @@ Detector::Detector(bool active)
       case Telescope:
         buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)
         break;
-        case ScopingV3b:
+      case ScopingV3b:
         buildFT3Scoping(); // FT3 according to scoping document
         break;
       default:
