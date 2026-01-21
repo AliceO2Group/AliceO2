@@ -1054,7 +1054,11 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   }
 
   auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> ForwardPolicy {
-    ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_OLD_EARLY_FORWARD") ? ForwardPolicy::AtCompletionPolicySatisified : ForwardPolicy::AtInjection;
+    //ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_OLD_EARLY_FORWARD") ? ForwardPolicy::AtCompletionPolicySatisified : ForwardPolicy::AtInjection;
+    // Make the new policy optional until we handle some of the corner cases
+    // with custom policies which expect the early forward to happen only when
+    // all the data is available, like in the TPC case.
+    ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_NEW_EARLY_FORWARD") ? ForwardPolicy::AtInjection : ForwardPolicy::AtCompletionPolicySatisified;
 
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding
