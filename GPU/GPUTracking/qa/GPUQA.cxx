@@ -413,20 +413,21 @@ void GPUQA::DrawHisto(TH1* histo, char* filename, char* options)
 
 void GPUQA::doPerfFigure(float x, float y, float size)
 {
-  const char* str_perf_figure_1 = "ALICE Performance";
-  const char* str_perf_figure_2_mc = "MC, Pb#minusPb, #sqrt{s_{NN}} = 5.36 TeV";
-  const char* str_perf_figure_2_data = "Pb#minusPb, #sqrt{s_{NN}} = 5.36 TeV";
-
-  if (mConfig.perfFigure == 0) {
+  if (mConfig.perfFigure == "") {
     return;
   }
+  static constexpr const char* str_perf_figure_1 = "ALICE Performance";
+  static constexpr const char* str_perf_figure_2_mc = "MC, Pb#minusPb, #sqrt{s_{NN}} = 5.36 TeV";
+  static constexpr const char* str_perf_figure_2_data = "Pb#minusPb, #sqrt{s_{NN}} = 5.36 TeV";
+  const char* str_perf_figure_2 = (mConfig.perfFigure == "mc" || mConfig.perfFigure == "MC") ? str_perf_figure_2_mc : (mConfig.perfFigure == "data" ? str_perf_figure_2_data : mConfig.perfFigure.c_str());
+
   TLatex* t = createGarbageCollected<TLatex>(); // TODO: We could perhaps put everything in a legend, to get a white background if there is a grid
   t->SetNDC(kTRUE);
   t->SetTextColor(1);
   t->SetTextSize(size);
   t->DrawLatex(x, y, str_perf_figure_1);
   t->SetTextSize(size * 0.8);
-  t->DrawLatex(x, y - 0.01 - size, mConfig.perfFigure > 0 ? str_perf_figure_2_mc : str_perf_figure_2_data);
+  t->DrawLatex(x, y - 0.01 - size, str_perf_figure_2);
 }
 
 void GPUQA::SetMCTrackRange(int32_t min, int32_t max)
@@ -539,7 +540,7 @@ int32_t GPUQA::InitQACreateHistograms()
       createHist(mNCl[i], name, name, 160, 0, 159);
     }
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
-    createHist(mTracks, "tracks_pt", "tracks_pt", AXIS_BINS[4], binsPt.get());
+    createHist(mTrackPt, "tracks_pt", "tracks_pt", AXIS_BINS[4], binsPt.get());
     const uint32_t maxTime = (mTracking && mTracking->GetParam().continuousMaxTimeBin > 0) ? mTracking->GetParam().continuousMaxTimeBin : TPC_MAX_TIME_BIN_TRIGGERED;
     createHist(mT0[0], "tracks_t0", "tracks_t0", (maxTime + 1) / 10, 0, maxTime);
     createHist(mT0[1], "tracks_t0_res", "tracks_t0_res", 1000, -100, 100);
@@ -1738,7 +1739,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       if (!track.OK()) {
         continue;
       }
-      mTracks->Fill(1.f / fabsf(track.GetParam().GetQPt()));
+      mTrackPt->Fill(1.f / fabsf(track.GetParam().GetQPt()));
       mNCl[0]->Fill(track.NClustersFitted());
       uint32_t nClCorrected = 0;
       const auto& trackClusters = mTracking->mIOPtrs.mergedTrackHits;
@@ -2247,12 +2248,12 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
 
     // Create Canvas for track statistic histos
     if (mQATasks & taskTrackStatistics) {
-      mCTracks = createGarbageCollected<TCanvas>("ctrackspt", "ctrackspt", 0, 0, 700, 700. * 2. / 3.);
-      mCTracks->cd();
-      mPTracks = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
-      mPTracks->Draw();
-      mLTracks = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.5, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-      SetLegend(mLTracks, true);
+      mCTrackPt = createGarbageCollected<TCanvas>("ctrackspt", "ctrackspt", 0, 0, 700, 700. * 2. / 3.);
+      mCTrackPt->cd();
+      mPTrackPt = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPTrackPt->Draw();
+      mLTrackPt = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.5, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+      SetLegend(mLTrackPt, true);
 
       for (int32_t i = 0; i < 2; i++) {
         snprintf(name, 2048, "ctrackst0%d", i);
@@ -2800,7 +2801,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
             continue;
           }
 
-          e->SetTitle(CLUSTER_TITLES[i]);
+          e->SetTitle(mConfig.plotsNoTitle ? "" : CLUSTER_TITLES[i]);
           e->GetYaxis()->SetTitle(i == 0 ? "Number of TPC clusters" : i == 1 ? "Fraction of TPC clusters" : CLUST_HIST_INT_SUM ? "Total TPC clusters (integrated)" : "Fraction of TPC clusters (integrated)");
           e->GetXaxis()->SetTitle("#it{p}_{Tmc} (GeV/#it{c})");
           e->GetXaxis()->SetTitleOffset(1.1);
@@ -2878,7 +2879,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
       title += ")";
 
-      e->SetTitle(title.c_str());
+      e->SetTitle(mConfig.plotsNoTitle ? "" : title.c_str());
       e->GetXaxis()->SetTitle(i == 3 ? "Local Occupancy" : (i ? "#Phi_{Cl} (sector)" : "First MC Pad Row"));
       e->GetYaxis()->SetTitle("First Pad Row");
       e->Draw();
@@ -2910,7 +2911,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     // Process track statistic histograms
     float tmpMax = 0.;
     for (int32_t k = 0; k < ConfigNumInputs; k++) { // TODO: Simplify this drawing, avoid copy&paste
-      TH1F* e = mTracks;
+      TH1F* e = mTrackPt;
       if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
       }
@@ -2919,10 +2920,10 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         tmpMax = e->GetMaximum();
       }
     }
-    mPTracks->cd();
-    mPTracks->SetLogx();
+    mPTrackPt->cd();
+    mPTrackPt->SetLogx();
     for (int32_t k = 0; k < ConfigNumInputs; k++) {
-      TH1F* e = mTracks;
+      TH1F* e = mTrackPt;
       if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
       }
@@ -2933,9 +2934,10 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       e->SetMinimum(tmpMax * -0.02);
       e->SetStats(kFALSE);
       e->SetLineWidth(1);
-      e->SetTitle("Number of Tracks vs #it{p}_{T}");
+      e->SetTitle(mConfig.plotsNoTitle ? "" : "Number of Tracks vs #it{p}_{T}");
       e->GetYaxis()->SetTitle("Number of Tracks");
       e->GetXaxis()->SetTitle("#it{p}_{T} (GeV/#it{c})");
+      e->GetXaxis()->SetTitleOffset(1.2);
       if (qcout) {
         qcout->Add(e);
       }
@@ -2943,14 +2945,14 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       e->SetLineColor(colorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k, mConfig.inputHistogramsOnly);
-      mLTracks->AddEntry(e, Form(mConfig.inputHistogramsOnly ? "%s" : "%sTrack #it{p}_{T}", fname), "l");
+      mLTrackPt->AddEntry(e, Form(mConfig.inputHistogramsOnly ? "%s" : "%sTrack #it{p}_{T}", fname), "l");
     }
-    mLTracks->Draw();
+    mLTrackPt->Draw();
     doPerfFigure(0.63, 0.7, 0.030);
-    mCTracks->cd();
-    mCTracks->Print(Form("%s/tracks.pdf", mConfig.plotsDir.c_str()));
+    mCTrackPt->cd();
+    mCTrackPt->Print(Form("%s/tracks.pdf", mConfig.plotsDir.c_str()));
     if (mConfig.writeFileExt != "") {
-      mCTracks->Print(Form("%s/tracks.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
+      mCTrackPt->Print(Form("%s/tracks.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
     }
 
     for (int32_t i = 0; i < 2; i++) {
@@ -2978,7 +2980,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         e->SetMinimum(tmpMax * -0.02);
         e->SetStats(kFALSE);
         e->SetLineWidth(1);
-        e->SetTitle(i ? "Track t_{0} resolution" : "Track t_{0} distribution");
+        e->SetTitle(mConfig.plotsNoTitle ? "" : (i ? "Track t_{0} resolution" : "Track t_{0} distribution"));
         e->GetYaxis()->SetTitle("a.u.");
         e->GetXaxis()->SetTitle(i ? "t_{0} - t_{0, mc}" : "t_{0}");
         if (qcout) {
@@ -3022,7 +3024,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         e->SetMinimum(tmpMax * -0.02);
         e->SetStats(kFALSE);
         e->SetLineWidth(1);
-        e->SetTitle(i ? "Number of Rows with attached Cluster" : "Number of Clusters");
+        e->SetTitle(mConfig.plotsNoTitle ? "" : (i ? "Number of Rows with attached Cluster" : "Number of Clusters"));
         e->GetYaxis()->SetTitle("a.u.");
         e->GetXaxis()->SetTitle(i ? "N_{Rows with Clusters}" : "N_{Clusters}");
         if (qcout) {
@@ -3061,7 +3063,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         mClRej[i]->Write();
       }
       mPClRej[i]->cd();
-      mClRej[i]->SetTitle(REJECTED_NAMES[i]);
+      mClRej[i]->SetTitle(mConfig.plotsNoTitle ? "" : REJECTED_NAMES[i]);
       mClRej[i]->SetOption("colz");
       mClRej[i]->Draw();
       mCClRej[i]->cd();
@@ -3098,7 +3100,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       delete proj2;
       e->SetMinimum(-0.02);
       e->SetMaximum(0.22);
-      e->SetTitle("Rejected Clusters");
+      e->SetTitle(mConfig.plotsNoTitle ? "" : "Rejected Clusters");
       e->GetXaxis()->SetTitle("Pad Row");
       e->GetYaxis()->SetTitle("Rejected Clusters (fraction)");
       e->Draw(k == 0 ? "" : "same");

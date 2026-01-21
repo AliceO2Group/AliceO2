@@ -290,10 +290,10 @@ class GPUQA
     double nUnaccessible = 0;
   } mClusterCounts;
 
-  TH1F* mTracks;
-  TCanvas* mCTracks;
-  TPad* mPTracks;
-  TLegend* mLTracks;
+  TH1F* mTrackPt;
+  TCanvas* mCTrackPt;
+  TPad* mPTrackPt;
+  TLegend* mLTrackPt;
 
   TH1F* mNCl[2];
   TCanvas* mCNCl[2];
