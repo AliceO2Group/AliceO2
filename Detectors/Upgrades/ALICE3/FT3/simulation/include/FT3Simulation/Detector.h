@@ -116,6 +116,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void buildFT3V3b();
   void buildFT3Scoping();
   void buildFT3NewVacuumVessel();
+  void buildFT3ScopingV3();
   void buildFT3FromFile(std::string);
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
