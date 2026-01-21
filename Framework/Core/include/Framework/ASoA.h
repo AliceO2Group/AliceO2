@@ -1294,6 +1294,9 @@ template <typename T>
 concept is_iterator = framework::base_of_template<TableIterator, T> || framework::specialization_of_template<TableIterator, T>;
 
 template <typename T>
+concept is_table_or_iterator = is_table<T> || is_iterator<T>;
+
+template <typename T>
 concept with_originals = requires {
   T::originals.size();
 };

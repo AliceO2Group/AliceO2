@@ -62,6 +62,9 @@ static constexpr bool is_enumeration_v<Enumeration<BEGIN, END, STEP>> = true;
 template <typename T>
 concept is_enumeration = is_enumeration_v<std::decay_t<T>>;
 
+template <typename T>
+concept is_table_iterator_or_enumeration = soa::is_table_or_iterator<T> || is_enumeration<T>;
+
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
 namespace
@@ -167,8 +170,8 @@ struct AnalysisDataProcessorBuilder {
     return true;
   }
   /// 1. enumeration (must be the only argument)
-  template <typename R, typename C, is_enumeration A>
-  static void inputsFromArgs(R (C::*)(A), const char* /*name*/, bool /*value*/, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>&) //, Cache&, Cache&)
+  template <typename C, is_enumeration A>
+  static void inputsFromArgs(void (C::*)(A), const char* /*name*/, bool /*value*/, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>&) //, Cache&, Cache&)
   {
     std::vector<ConfigParamSpec> inputMetadata;
     // FIXME: for the moment we do not support begin, end and step.
@@ -176,37 +179,37 @@ struct AnalysisDataProcessorBuilder {
   }
 
   /// 2. 1st argument is an iterator
-  template <typename R, typename C, soa::is_iterator A, soa::is_table... Args>
-  static void inputsFromArgs(R (C::*)(A, Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache& bk, Cache& bku)
+  template <typename C, soa::is_iterator A, soa::is_table... Args>
+  static void inputsFromArgs(void (C::*)(A, Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache& bk, Cache& bku)
     requires(std::is_lvalue_reference_v<A> && (std::is_lvalue_reference_v<Args> && ...))
   {
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(A, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(A, Args...)>();
     addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos);
   }
 
   /// 3. generic case
-  template <typename R, typename C, soa::is_table... Args>
-  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache&, Cache&)
+  template <typename C, soa::is_table... Args>
+  static void inputsFromArgs(void (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache&, Cache&)
     requires(std::is_lvalue_reference_v<Args> && ...)
   {
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Args...)>();
     addInputsAndExpressions<Args...>(hash, name, value, inputs, eInfos);
   }
 
   /// 1. enumeration (no grouping)
-  template <typename R, typename C, is_enumeration A>
-  static void cacheFromArgs(R (C::*)(A), bool, Cache&, Cache&)
+  template <typename C, is_enumeration A>
+  static void cacheFromArgs(void (C::*)(A), bool, Cache&, Cache&)
   {
   }
   /// 2. iterator (the only grouping case)
-  template <typename R, typename C, soa::is_iterator A, soa::is_table... Args>
-  static void cacheFromArgs(R (C::*)(A, Args...), bool value, Cache& bk, Cache& bku)
+  template <typename C, soa::is_iterator A, soa::is_table... Args>
+  static void cacheFromArgs(void (C::*)(A, Args...), bool value, Cache& bk, Cache& bku)
   {
     addGroupingCandidates<A, Args...>(bk, bku, value);
   }
   /// 3. generic case (no grouping)
-  template <typename R, typename C, soa::is_table A, soa::is_table... Args>
-  static void cacheFromArgs(R (C::*)(A, Args...), bool, Cache&, Cache&)
+  template <typename C, soa::is_table A, soa::is_table... Args>
+  static void cacheFromArgs(void (C::*)(A, Args...), bool, Cache&, Cache&)
   {
   }
 
@@ -281,31 +284,31 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
+  template <typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
+  static auto bindGroupingTable(InputRecord& record, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
     requires(!std::same_as<Grouping, void>)
   {
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
     return extract<std::decay_t<Grouping>, 0>(record, infos, hash);
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
+  template <typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
+  static auto bindAssociatedTables(InputRecord& record, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
     requires(!std::same_as<Grouping, void> && sizeof...(Args) > 0)
   {
     constexpr auto p = pack<Args...>{};
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
     return std::make_tuple(extract<std::decay_t<Args>, has_type_at_v<Args>(p) + 1>(record, infos, hash)...);
   }
 
-  template <typename... As>
+  template <soa::is_table... As>
   static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
   {
     (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
   }
 
-  template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices)
+  template <typename Task, is_table_iterator_or_enumeration Grouping, soa::is_table... Associated>
+  static void invokeProcess(Task& task, InputRecord& inputs, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices)
   {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
@@ -411,7 +414,7 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename C, typename T, typename G, typename... A>
+  template <typename C, typename T, is_table_iterator_or_enumeration G, soa::is_table... A>
   static void invokeProcessWithArgs(C& task, T processingFunction, G g, std::tuple<A...>& at)
   {
     std::invoke(processingFunction, task, g, std::get<A>(at)...);
