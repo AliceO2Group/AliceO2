@@ -67,12 +67,12 @@ concept is_enumeration = is_enumeration_v<std::decay_t<T>>;
 namespace
 {
 struct AnalysisDataProcessorBuilder {
-  template <soa::is_iterator G, typename... Args>
+  template <soa::is_iterator G, soa::is_table... Args>
   static void addGroupingCandidates(Cache& bk, Cache& bku, bool enabled)
   {
-    [&bk, &bku, enabled]<typename... As>(framework::pack<As...>) mutable {
+    []<soa::is_table... As>(framework::pack<As...>, Cache& bk, Cache& bku, bool enabled) {
       auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
-      ([&bk, &bku, &key, enabled]() mutable {
+      ([](Cache& bk, Cache& bku, bool enabled, std::string const& key) {
         if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<As>>()) {
           Entry e{soa::getLabelFromTypeForKey<std::decay_t<As>>(key), soa::getMatcherFromTypeForKey<std::decay_t<As>>(key), key, enabled};
           if constexpr (o2::soa::is_smallgroups<std::decay_t<As>>) {
@@ -81,9 +81,9 @@ struct AnalysisDataProcessorBuilder {
             framework::updatePairList(bk, e);
           }
         }
-      }(),
+      }(bk, bku, enabled, key),
        ...);
-    }(framework::pack<Args...>{});
+    }(framework::pack<Args...>{}, bk, bku, enabled);
   }
 
   template <soa::TableRef R>
