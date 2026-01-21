@@ -69,6 +69,7 @@ class PuseHeightDevice : public o2::framework::Task
     mPulseHeight->reset();
     mPulseHeight->process();
     pc.outputs().snapshot(Output{"TRD", "PULSEHEIGHT", 0}, mPulseHeight->getPHData());
+    pc.outputs().snapshot(Output{"TRD", "PULSEHEIGHTHD", 0}, mPulseHeight->getPHDataHD());
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       LOG(info) << "Run stop requested, finalizing";
       mRunStopRequested = true;
@@ -103,6 +104,7 @@ DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src, bool digitsFromReader)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "PULSEHEIGHT", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "PULSEHEIGHTHD", 0, Lifetime::Timeframe);
 
   bool isTPCavailable = false;
   if (GID::includesSource(GID::Source::ITSTPC, src)) {
