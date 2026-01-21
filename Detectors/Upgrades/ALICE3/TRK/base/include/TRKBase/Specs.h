@@ -34,11 +34,11 @@ namespace VD // TODO: add a primitive segmentation with more granularity wrt 1/4
 {
 namespace silicon
 {
-constexpr double thickness{30 * mu}; // thickness of the silicon (should be 10 um epitaxial layer + 20 um substrate)?
+constexpr double thickness{20 * mu}; // thickness of the silicon (should be 10 um epitaxial layer + 20 um substrate)?
 } // namespace silicon
 namespace metalstack
 {
-constexpr double thickness{0 * mu}; // thickness of the copper metal stack - for the moment it is not implemented
+constexpr double thickness{80 * mu}; // thickness of the copper metal stack - for the moment it is not implemented. PL: set to 80 um considering silicon as material
 } // namespace metalstack
 namespace petal
 {
