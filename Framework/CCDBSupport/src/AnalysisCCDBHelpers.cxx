@@ -67,39 +67,38 @@ void fillValidRoutes(CCDBFetcherHelper& helper, std::vector<o2::framework::Outpu
 }
 } // namespace
 
-AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
+AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& ctx)
 {
-  return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec, InitContext& ic) {
-    auto& dec = ic.services().get<DanglingEdgesContext>();
-    std::vector<std::shared_ptr<arrow::Schema>> schemas;
-    auto schemaMetadata = std::make_shared<arrow::KeyValueMetadata>();
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
+  std::vector<std::shared_ptr<arrow::Schema>> schemas;
+  auto schemaMetadata = std::make_shared<arrow::KeyValueMetadata>();
 
-    for (auto& input : dec.analysisCCDBInputs) {
-      std::vector<std::shared_ptr<arrow::Field>> fields;
-      schemaMetadata->Append("outputRoute", DataSpecUtils::describe(input));
-      schemaMetadata->Append("outputBinding", input.binding);
+  for (auto& input : ac.analysisCCDBInputs) {
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    schemaMetadata->Append("outputRoute", DataSpecUtils::describe(input));
+    schemaMetadata->Append("outputBinding", input.binding);
 
-      for (auto& m : input.metadata) {
-        // Save the list of input tables
-        if (m.name.starts_with("input:")) {
-          auto name = m.name.substr(6);
-          schemaMetadata->Append("sourceTable", name);
-          schemaMetadata->Append("sourceMatcher", DataSpecUtils::describe(std::get<ConcreteDataMatcher>(DataSpecUtils::fromMetadataString(m.defaultValue.get<std::string>()).matcher)));
-          continue;
-        }
-        // Ignore the non ccdb: entries
-        if (!m.name.starts_with("ccdb:")) {
-          continue;
-        }
-        // Create the schema of the output
-        auto metadata = std::make_shared<arrow::KeyValueMetadata>();
-        metadata->Append("url", m.defaultValue.asString());
-        auto columnName = m.name.substr(strlen("ccdb:"));
-        fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, metadata));
+    for (auto& m : input.metadata) {
+      // Save the list of input tables
+      if (m.name.starts_with("input:")) {
+        auto name = m.name.substr(6);
+        schemaMetadata->Append("sourceTable", name);
+        schemaMetadata->Append("sourceMatcher", DataSpecUtils::describe(std::get<ConcreteDataMatcher>(DataSpecUtils::fromMetadataString(m.defaultValue.get<std::string>()).matcher)));
+        continue;
       }
-      schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
+      // Ignore the non ccdb: entries
+      if (!m.name.starts_with("ccdb:")) {
+        continue;
+      }
+      // Create the schema of the output
+      auto metadata = std::make_shared<arrow::KeyValueMetadata>();
+      metadata->Append("url", m.defaultValue.asString());
+      auto columnName = m.name.substr(strlen("ccdb:"));
+      fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, metadata));
     }
-
+    schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
+  }
+  return adaptStateful([schemas](CallbackService& callbacks, ConfigParamRegistry const& options, DeviceSpec const& spec) {
     std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
     CCDBFetcherHelper::initialiseHelper(*helper, options);
     std::unordered_map<std::string, int> bindings;
@@ -130,11 +129,11 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         int outputRouteIndex = bindings.at(outRouteDesc);
         auto& spec = helper->routes[outputRouteIndex].matcher;
         std::vector<std::shared_ptr<arrow::BinaryViewBuilder>> builders;
-        for (auto const& _ : schema->fields()) {
+        for (auto& _ : schema->fields()) {
           builders.emplace_back(std::make_shared<arrow::BinaryViewBuilder>());
         }
 
-        for (auto ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
+        for (size_t ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
           std::shared_ptr<arrow::Array> chunk = timestampColumn->chunk(ci);
           auto const* timestamps = chunk->data()->GetValuesSafe<size_t>(1);
 

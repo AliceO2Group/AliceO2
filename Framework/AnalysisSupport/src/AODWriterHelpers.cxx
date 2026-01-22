@@ -62,13 +62,13 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
 
 AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
 {
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
   auto dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
   int compressionLevel = 505;
   if (ctx.options().hasOption("aod-writer-compression")) {
     compressionLevel = ctx.options().get<int>("aod-writer-compression");
   }
-  return AlgorithmSpec{[dod, compressionLevel](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    auto outputInputs = ic.services().get<DanglingEdgesContext>().outputsInputsAOD;
+  return AlgorithmSpec{[dod, outputInputs = ac.outputsInputsAOD, compressionLevel](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     LOGP(debug, "======== getGlobalAODSink::Init ==========");
 
     // find out if any table needs to be saved
@@ -241,13 +241,14 @@ AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
   };
 }
 
-AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& /*ctx*/)
+AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& ctx)
 {
-  return AlgorithmSpec{[](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    using namespace monitoring;
-    auto& dec = ic.services().get<DanglingEdgesContext>();
-    auto tskmap = dec.outTskMap;
-    auto objmap = dec.outObjHistMap;
+  using namespace monitoring;
+  auto& ac = ctx.services().get<DanglingEdgesContext>();
+  auto tskmap = ac.outTskMap;
+  auto objmap = ac.outObjHistMap;
+
+  return AlgorithmSpec{[objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
     auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
 
@@ -277,7 +278,7 @@ AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& /*ct
 
     callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
-      auto mergePart = [&inputObjects, &objmap, &tskmap](DataRef const& ref) {
+      auto mergePart = [&inputObjects, &objmap, &tskmap, &pc](DataRef const& ref) {
         O2_SIGNPOST_ID_GENERATE(hid, histogram_registry);
         O2_SIGNPOST_START(histogram_registry, hid, "mergePart", "Merging histogram");
         if (!ref.header) {
@@ -473,7 +474,7 @@ AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& /*ct
       };
       O2_SIGNPOST_ID_GENERATE(rid, histogram_registry);
       O2_SIGNPOST_START(histogram_registry, rid, "processParts", "Start merging %zu parts received together.", pc.inputs().getNofParts(0));
-      for (auto pi = 0U; pi < pc.inputs().getNofParts(0); ++pi) {
+      for (int pi = 0; pi < pc.inputs().getNofParts(0); ++pi) {
         mergePart(pc.inputs().get("x", pi));
       }
       O2_SIGNPOST_END(histogram_registry, rid, "processParts", "Done histograms in multipart message.");
