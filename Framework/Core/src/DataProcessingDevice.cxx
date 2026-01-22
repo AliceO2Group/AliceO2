@@ -1054,11 +1054,22 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   }
 
   auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> ForwardPolicy {
-    //ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_OLD_EARLY_FORWARD") ? ForwardPolicy::AtCompletionPolicySatisified : ForwardPolicy::AtInjection;
-    // Make the new policy optional until we handle some of the corner cases
-    // with custom policies which expect the early forward to happen only when
-    // all the data is available, like in the TPC case.
-    ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_NEW_EARLY_FORWARD") ? ForwardPolicy::AtInjection : ForwardPolicy::AtCompletionPolicySatisified;
+    ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_OLD_EARLY_FORWARD") ? ForwardPolicy::AtCompletionPolicySatisified : ForwardPolicy::AtInjection;
+    //  FIXME: try again with the new policy by default.
+    //
+    //  Make the new policy optional until we handle some of the corner cases
+    //  with custom policies which expect the early forward to happen only when
+    //  all the data is available, like in the TPC case.
+    //  ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_NEW_EARLY_FORWARD") ? ForwardPolicy::AtInjection : ForwardPolicy::AtCompletionPolicySatisified;
+    for (auto& forward : spec.forwards) {
+      if (DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{"TPC", "DIGITSMCTR"}) ||
+          DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}) ||
+          DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "DIGITS"}) ||
+          DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "CLUSTERNATIVE"})) {
+        defaultEarlyForwardPolicy = ForwardPolicy::AtCompletionPolicySatisified;
+        break;
+      }
+    }
 
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding
