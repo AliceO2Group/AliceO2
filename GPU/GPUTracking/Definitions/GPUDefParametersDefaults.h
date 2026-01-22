@@ -68,7 +68,7 @@
     #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512, 2
     #define GPUCA_LB_GPUTPCDecompressionKernels_step0attached 128, 2
     #define GPUCA_LB_GPUTPCDecompressionKernels_step1unattached 64, 2
-    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 64, 10
+    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 576, 2
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillIndexMap 512
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillFromDigits 512
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_findFragmentStart 512
@@ -133,7 +133,7 @@
     #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512, 2
     #define GPUCA_LB_GPUTPCDecompressionKernels_step0attached 128, 2
     #define GPUCA_LB_GPUTPCDecompressionKernels_step1unattached 64, 2
-    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 64, 2
+    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 576, 2
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillIndexMap 512
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillFromDigits 512
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_findFragmentStart 512
@@ -197,7 +197,7 @@
     #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512, 3
     #define GPUCA_LB_GPUTPCDecompressionKernels_step0attached 32, 1
     #define GPUCA_LB_GPUTPCDecompressionKernels_step1unattached 32, 1
-    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 64,8
+    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 576,2
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillIndexMap 448
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillFromDigits 448
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_findFragmentStart 448
@@ -447,7 +447,7 @@
     #define GPUCA_LB_GPUTPCStartHitsSorter 256
   #endif
   #ifndef GPUCA_LB_GPUTPCCFCheckPadBaseline
-    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 64
+    #define GPUCA_LB_GPUTPCCFCheckPadBaseline 576
   #endif
   #ifndef GPUCA_LB_GPUTPCCFChargeMapFiller_fillIndexMap
     #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillIndexMap 512

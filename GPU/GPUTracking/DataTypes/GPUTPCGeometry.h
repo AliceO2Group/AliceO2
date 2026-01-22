@@ -96,6 +96,7 @@ class GPUTPCGeometry // TODO: Make values constexpr
   GPUd() static constexpr int32_t EndIROC() { return 63; }
   GPUd() static constexpr int32_t EndOROC1() { return 97; }
   GPUd() static constexpr int32_t EndOROC2() { return 127; }
+  GPUd() static constexpr int32_t MaxNPadsPerRow() { return 138; }
 #else
   GPUd() static constexpr int32_t GetRegion(int32_t row) { return (row < 63 ? 0 : row < 63 + 64 ? 1 : 2); }
   GPUd() static constexpr int32_t GetRegionRows(int32_t region) { return 0; }  // dummy
@@ -104,6 +105,7 @@ class GPUTPCGeometry // TODO: Make values constexpr
   GPUd() static constexpr int32_t EndIROC() { return 63; }
   GPUd() static constexpr int32_t EndOROC1() { return 63 + 64; }
   GPUd() static constexpr int32_t EndOROC2() { return GPUCA_ROW_COUNT; }
+  GPUd() static constexpr int32_t MaxNPadsPerRow() { return 140; }
 #endif
 
   GPUd() static constexpr float TPCLength() { return 250.f - 0.275f; }
