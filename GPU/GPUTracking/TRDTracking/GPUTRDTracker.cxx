@@ -208,8 +208,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::PrepareTracking(GPUChainTracking* chainTrack
   }
   mNEvents++;
   
-  covTrklt3 = o2::math_utils::detail::SMatrixGPU<float,3>();
-  test = o2::math_utils::detail::SMatrixGPU<float,3>();
 }
 
 template <class TRDTRK, class PROP>
