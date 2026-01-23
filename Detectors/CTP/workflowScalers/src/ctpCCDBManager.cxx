@@ -204,12 +204,12 @@ int ctpCCDBManager::saveCtpCfg(uint32_t runNumber, long timeStart)
 }
 CTPConfiguration ctpCCDBManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
 {
-  
+
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
   std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = run;
-  if(timestamp == 0) {
+  if (timestamp == 0) {
     // Timestamp
     auto soreor = mgr.getRunDuration(std::stoi(run));
     timestamp = (soreor.second - soreor.first) / 2 + soreor.first;
@@ -257,7 +257,7 @@ CTPRunScalers ctpCCDBManager::getScalersFromCCDB(long timestamp, std::string run
   mgr.setURL(mCCDBHost);
   std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = run;
-  if(timestamp == 0) {
+  if (timestamp == 0) {
     // Timestamp
     auto soreor = mgr.getRunDuration(std::stoi(run));
     timestamp = (soreor.second - soreor.first) / 2 + soreor.first;
