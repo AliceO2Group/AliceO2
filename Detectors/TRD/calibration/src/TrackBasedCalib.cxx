@@ -269,7 +269,7 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
       // tracklet angle, corrected for pad tilt
       const PadPlane* pad = Geometry::instance()->getPadPlane(mTrackletsRaw[trkltId].getDetector());
       float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
-      float tiltCorrUp = tilt * trkWork.getTgl() * 3;
+      float tiltCorrUp = tilt * trkWork.getTgl() * Geometry::cdrHght();
       float padLength = pad->getRowSize(mTrackletsRaw[trkltId].getPadRow());
       if (!((trkWork.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(mTrackletsCalib[trkltId].getZ() - trkWork.getZ()) < padLength))) {
         tiltCorrUp = 0.f;

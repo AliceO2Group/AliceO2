@@ -37,7 +37,7 @@
 // This root macro reads in 'trdangreshistos.root' and
 // performs the calibration fits manually as in CalibratorVdExB.cxx
 // This can be used for checking if the calibration fits make sense.
-void manualCalibFit(int runNumber = 563336, bool usePreCorrFromCCDB = true)
+void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
 {
   //----------------------------------------------------
   // TTree and File
@@ -91,14 +91,14 @@ void manualCalibFit(int runNumber = 563336, bool usePreCorrFromCCDB = true)
     std::cout<<iDet<<"   "<<calObject->getVdrift(iDet)<<"   "<<calObject->getExB(iDet)<<"  ";
     if (calObject->isGoodExB(iDet)) counter++;
     if (iDet%6==5)std::cout<<std::endl;
-      mFitFunctor.vdPreCorr[iDet] = calObject->getVdriftDefaultAvg(iDet);
-      mFitFunctor.laPreCorr[iDet] = calObject->getExBDefaultAvg(iDet);
+      mFitFunctor.vdPreCorr[iDet] = calObject->getVdrift(iDet, true);
+      mFitFunctor.laPreCorr[iDet] = calObject->getExB(iDet, true);
     }
   }
   std::cout << counter << " good entries in the CCDB " << std::endl;
   mFitFunctor.mAnodePlane = 3.35; // don't really care as long as it's not zero, this parameter could  be removed
-  mFitFunctor.lowerBoundAngleFit = 85 * TMath::DegToRad();
-  mFitFunctor.upperBoundAngleFit = 105 * TMath::DegToRad();
+  mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
+  mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
   if (!usePreCorrFromCCDB) {
     mFitFunctor.vdPreCorr.fill(1.546);
     mFitFunctor.laPreCorr.fill(0.0);
@@ -128,6 +128,7 @@ void manualCalibFit(int runNumber = 563336, bool usePreCorrFromCCDB = true)
       if (nEntries > 0) { // skip entries which have no entries; ?
         // add to the respective profile for fitting later on
         mFitFunctor.profiles[iDet]->Fill(2 * iBin - 25.f, angleDiffSum / nEntries, nEntries);
+        if (iDet == 207) std::cout<<iBin<<"  "<<angleDiffSum<<"  "<<nEntries<<"  "<<angleDiffSum/nEntries<<"  "<<mFitFunctor.profiles[iDet]->GetBinEntries(iBin+1)<<"   "<<mFitFunctor.profiles[iDet]->GetBinEffectiveEntries(iBin+1)<<"  "<<mFitFunctor.profiles[iDet]->GetBinError(iBin+1)<<std::endl;
       }
     }
     printf("Det %d: nEntries=%d \n", iDet, nEntriesDetTotal[iDet]);
@@ -142,6 +143,7 @@ void manualCalibFit(int runNumber = 563336, bool usePreCorrFromCCDB = true)
   
   TH1F* hVd = new TH1F("hVd", "v drift", 150, 0.5, 2.);
   TH1F* hLa = new TH1F("hLa", "lorentz angle", 200, -25., 25.);
+  o2::trd::CalVdriftExB* calObjectOut = new o2::trd::CalVdriftExB();
   
   for (int iDet = 0; iDet < 540; ++iDet) {
     if (nEntriesDetTotal[iDet] < 75) continue;
@@ -166,31 +168,28 @@ void manualCalibFit(int runNumber = 563336, bool usePreCorrFromCCDB = true)
     auto fitResult = fitter.Result();
     laFitResults[iDet] = fitResult.Parameter(0);
     vdFitResults[iDet] = fitResult.Parameter(1);
-    printf("Det %d: la=%.3f +/- %.3f (precorr=:%.3f) \tvd=%.3f +/- %.3f (precorr=:%.3f) \t100*minValue=%f\n", iDet, laFitResults[iDet] * TMath::RadToDeg(), fitResult.LowerError(0)  * TMath::RadToDeg(), mFitFunctor.laPreCorr[iDet] * TMath::RadToDeg(), vdFitResults[iDet], fitResult.LowerError(1), mFitFunctor.vdPreCorr[iDet], 100*fitResult.MinFcnValue());
+    if (fitResult.MinFcnValue() > 0.03) continue;
+    printf("Det %d: la=%.3f \tvd=%.3f \t100*minValue=%f \tentries=%d\n", iDet, laFitResults[iDet] * TMath::RadToDeg(), vdFitResults[iDet], 100*fitResult.MinFcnValue(), nEntriesDetTotal[iDet]);
     hVd->Fill(vdFitResults[iDet]);
     hLa->Fill(laFitResults[iDet]* TMath::RadToDeg());
+    calObjectOut->setVdrift(iDet, vdFitResults[iDet]);
+    calObjectOut->setExB(iDet, laFitResults[iDet]);
   }
   printf("-------- Finished fits\n");
   
   std::cout<<"number of chambers with enough entries: "<<hVd->GetEntries()<<std::endl;;
   std::cout<<"vdrift mean: "<<hVd->GetMean()<<" sigma: "<<hVd->GetStdDev()<<std::endl;
   std::cout<<"lorentz angle mean: "<<hLa->GetMean()<<" sigma: "<<hLa->GetStdDev()<<std::endl;
-  
-  TCanvas* c = new TCanvas("c", "c", 1200, 700);
-  c->Divide(2,1);
-  c->cd(1);
-  hVd->SetLineColor(kBlue); hVd->SetLineWidth(2);
-  hVd->Draw();
-  c->cd(2);
-  hLa->SetLineColor(kBlue); hLa->SetLineWidth(2);
-  hLa->Draw();
-  c->SaveAs("VdExBValues.pdf");
-  
+   
 
   //----------------------------------------------------
   // Write
   //----------------------------------------------------
   std::unique_ptr<TFile> outFilePtr(TFile::Open("manualCalibFit.root", "RECREATE"));
+  hVd->Write();
+  hLa->Write();
+  outFilePtr->WriteObjectAny(calObjectOut, "o2::trd::CalVdriftExB", "calObject");
   for (auto& p : mFitFunctor.profiles)
     p->Write();
+  
 }

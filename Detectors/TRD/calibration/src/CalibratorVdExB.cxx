@@ -24,7 +24,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
-#include "DetectorsBase/Propagator.h"
+//#include "DetectorsBase/Propagator.h"
 #include <TFile.h>
 #include <TTree.h>
 
@@ -108,15 +108,16 @@ void CalibratorVdExB::initProcessing()
 
   // fit is done in region where ion tails are small, close to lorentz angle
   // we want an approximate value of the lorentz angle in order to define better fit boundaries
-  float bz = o2::base::Propagator::Instance()->getNominalBz();
+  // TODO: find a way to obtain the magnetic field even in standalone calibration
+  //float bz = o2::base::Propagator::Instance()->getNominalBz();
   // default angle with zero field is slightly shifted
   float lorentzAngleAvg = -1.f;
-  if (TMath::Abs(bz - 2) < 0.1f) { lorentzAngleAvg = 2.f;}
+  /*if (TMath::Abs(bz - 2) < 0.1f) { lorentzAngleAvg = 2.f;}
   if (TMath::Abs(bz + 2) < 0.1f) { lorentzAngleAvg = -4.f;}
   if (TMath::Abs(bz - 5) < 0.1f) { lorentzAngleAvg = 7.f;}
   if (TMath::Abs(bz + 5) < 0.1f) { lorentzAngleAvg = -9.5f;}
   
-  LOGP(info, "b field: {}  lorentz angle start: {}", bz, lorentzAngleAvg);
+  LOGP(info, "b field: {}  lorentz angle start: {}", bz, lorentzAngleAvg);*/
 
   mFitFunctor.lowerBoundAngleFit = (80 + lorentzAngleAvg) * TMath::DegToRad();
   mFitFunctor.upperBoundAngleFit = (100 + lorentzAngleAvg) * TMath::DegToRad();
@@ -197,7 +198,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     }
     // Check if we have the minimum amount of entries
     if (sumEntries < mMinEntriesChamber) {
-      LOGF(debug, "Chamber %d did not reach minimum amount of entries for refit", iDet);
+      LOGF(debug, "Chamber %d did not reach minimum amount of entries for refit: %d", iDet, sumEntries);
       continue;
     }
     float laPreCorrTemp = mFitFunctor.laPreCorr[iDet];
@@ -211,7 +212,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     mParamsStart[ParamIndex::VD] = 1.0;
     mFitter.FitFCN();
     auto fitResult = mFitter.Result();
-    if (fitResult.MinFcnValue() > 0.05) {
+    if (fitResult.MinFcnValue() > 0.03) {
       LOGF(debug, "Chamber %d fit did not converge properly, minimization value too high: %f", iDet, fitResult.MinFcnValue());
       // The fit did not work properly, so we keep previous values
       mFitFunctor.laPreCorr[iDet] = laPreCorrTemp;
@@ -220,7 +221,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     }
     laFitResults[iDet] = fitResult.Parameter(ParamIndex::LA);
     vdFitResults[iDet] = fitResult.Parameter(ParamIndex::VD);
-    LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
+    LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f, minimizer value=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg(), fitResult.MinFcnValue());
     // Update fit values for next fit
     mFitFunctor.laPreCorr[iDet] = laFitResults[iDet];
     mFitFunctor.vdPreCorr[iDet] = vdFitResults[iDet];

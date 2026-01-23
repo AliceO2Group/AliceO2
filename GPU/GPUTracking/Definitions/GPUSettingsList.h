@@ -184,6 +184,7 @@ AddOptionRTC(extraRoadZ, float, 10.f, "", 0, "Addition to search road around tra
 AddOptionRTC(trkltResRPhiIdeal, float, 1.f, "", 0, "Optimal tracklet rphi resolution in cm (in case phi of track = lorentz angle)")
 AddOptionRTC(maxChi2Red, float, 99.f, "", 0, "maximum chi2 per attached tracklet for TRD tracks TODO: currently effectively disabled, requires tuning")
 AddOptionRTC(applyDeflectionCut, uint8_t, 0, "", 0, "Set to 1 to enable tracklet selection based on deflection")
+AddOptionRTC(addDeflectionInChi2, uint8_t, 0, "", 0, "Set to 1 to add the deflection in the chi2 calculation for matching")
 AddOptionRTC(stopTrkAfterNMissLy, uint8_t, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(nTrackletsMin, uint8_t, 3, "", 0, "Tracks with less attached tracklets are discarded after the tracking")
 AddOptionRTC(matCorrType, uint8_t, 2, "", 0, "Material correction to use: 0 - none, 1 - TGeo, 2 - matLUT")

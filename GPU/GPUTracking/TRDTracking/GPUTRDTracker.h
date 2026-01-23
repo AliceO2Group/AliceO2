@@ -26,6 +26,7 @@
 #include "GPULogging.h"
 #include "GPUTRDInterfaces.h"
 
+
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <vector>
 #endif
@@ -117,6 +118,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() float GetAlphaOfSector(const int32_t sec) const;
   GPUd() float GetAngularPull(float dYtracklet, float snp) const;
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, float (&cov)[3]);
+  GPUd() bool InvertCov(float (&cov)[6]);
   GPUd() void FindChambersInRoad(const TRDTRK* t, const float roadY, const float roadZ, const int32_t iLayer, int32_t* det, const float zMax, const float alpha, const float zShiftTrk) const;
   GPUd() bool IsGeoFindable(const TRDTRK* t, const int32_t layer, const float alpha, const float zShiftTrk) const;
   GPUd() void InsertHypothesis(Hypothesis hypo, int32_t& nCurrHypothesis, int32_t idxOffset);

@@ -42,8 +42,14 @@ class GPUTRDRecoParam
   {
     recalcTrkltCov(tilt, snp, rowSize, cov.data());
   }
+  // covariance terms which use tracklet deflection
+  GPUd() void recalcTrkltCovDy(const float tilt, std::array<float, 6>& cov) const
+  {
+    recalcTrkltCovDy(tilt, cov.data());
+  }
 #endif
   GPUd() void recalcTrkltCov(const float tilt, const float snp, const float rowSize, float* cov) const;
+  GPUd() void recalcTrkltCovDy(const float tilt, float* cov) const;
 
   /// Get tracklet r-phi resolution for given phi angle
   /// Resolution depends on the track angle sin(phi) = snp and is approximated by the formula
@@ -52,8 +58,8 @@ class GPUTRDRecoParam
   /// \param phi angle of related track
   /// \return sigma_y^2 of tracklet
   GPUd() float getRPhiRes(float snp) const { return (mRPhiA2 + mRPhiC2 * (snp - mRPhiB) * (snp - mRPhiB)); }
-  GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mDyB) * (snp - mDyB); }                       // // a^2 + c^2 * (snp - b)^2
-  GPUd() float convertAngleToDy(float snp) const { return mAngleToDyA + mAngleToDyB * snp + mAngleToDyC * snp * snp; } // a + b*snp + c*snp^2 is more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
+  GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mDyB) * (snp - mDyB); } // // a^2 + c^2 * (snp - b)^2
+  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / sqrt(1 - snp * snp); } // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
 
   /// Get tracklet z correction coefficient for track-eta based corraction
   GPUd() float getZCorrCoeffNRC() const { return mZCorrCoefNRC; }
@@ -68,14 +74,12 @@ class GPUTRDRecoParam
   float mDyA2{1.225e-3f}; ///< parameterization for tracklet angular resolution
   float mDyB{0.f};        ///< parameterization for tracklet angular resolution
   float mDyC2{0.f};       ///< parameterization for tracklet angular resolution
-  // angle to Dy
-  float mAngleToDyA; // parameterization for conversion track angle -> tracklet deflection
-  float mAngleToDyB; // parameterization for conversion track angle -> tracklet deflection
-  float mAngleToDyC; // parameterization for conversion track angle -> tracklet deflection
+  // correlation coefficient between y residual and dy residual
+  float mCorrYDy{0.f};
 
   float mZCorrCoefNRC{1.4f}; ///< tracklet z-position depends linearly on track dip angle
 
-  ClassDefNV(GPUTRDRecoParam, 2);
+  ClassDefNV(GPUTRDRecoParam, 3);
 };
 
 } // namespace gpu
