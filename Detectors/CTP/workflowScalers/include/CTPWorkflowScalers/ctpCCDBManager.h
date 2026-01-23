@@ -31,8 +31,9 @@ class ctpCCDBManager
   int saveOrbitReset(long timeStamp);
   int saveCtpCfg(uint32_t runNumber, long timeStamp);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run, bool& ok);
-  static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
-  CTPRunScalers getScalersFromCCDB(long timestamp, std::string, bool& ok);
+  CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
+  CTPRunScalers getScalersFromCCDB(long timestamp, std::string run, bool& ok);
+  static CTPRunScalers getScalersFromCCDB(long timestamp, std::string, std::string path, bool& ok);
   static void setCCDBHost(std::string host) { mCCDBHost = host; };
   static void setQCDBHost(std::string host) { mQCDBHost = host; };
   void setCtpCfgDir(std::string& ctpcfgdir) { mCtpCfgDir = ctpcfgdir; };

@@ -34,3 +34,11 @@ o2_add_executable(
                   SOURCES src/ctp-ccdb-orbit.cxx
                   PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                   Boost::program_options)
+o2_add_executable(
+                  bk-write
+                  COMPONENT_NAME ctp
+                  SOURCES src/ctp-bk-write.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                  O2::CTPWorkflowScalers
+                  AliceO2::BookkeepingApi
+                  Boost::program_options)
