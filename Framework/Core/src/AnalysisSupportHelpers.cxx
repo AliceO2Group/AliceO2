@@ -98,7 +98,7 @@ std::shared_ptr<DataOutputDirector> AnalysisSupportHelpers::getDataOutputDirecto
     if (!keepString.empty()) {
       dod->reset();
       std::string d("dangling");
-      if (d.starts_with(keepString) == 0) {
+      if (keepString.starts_with(d)) {
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
