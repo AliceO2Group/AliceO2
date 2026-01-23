@@ -421,10 +421,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       // AODs are being injected on-the-fly, add error-handler reader
       aodReader.algorithm = AlgorithmSpec{
         adaptStateful(
-          [outputs = aodReader.outputs](DeviceSpec const&) {
+          [](DeviceSpec const& spec) {
             LOGP(warn, "Workflow with injected AODs has unsatisfied inputs:");
-            for (auto const& output : outputs) {
-              LOGP(warn, "  {}", DataSpecUtils::describe(output));
+            for (auto const& output : spec.outputs) {
+              LOGP(warn, "  {}", DataSpecUtils::describe(output.matcher));
             }
             LOGP(fatal, "Stopping.");
             // to ensure the output type for adaptStateful
