@@ -93,7 +93,7 @@ int main(int argc, char** argv)
   if (filename != "none") {
     std::ifstream file(filename);
     if (!file.is_open()) {
-      std::cout << "Cannot open file! Using only run:" << run << std::endl;
+      LOG(fatal) << "Cannot open file:" << filename << std::endl;
     } else {
       std::string line;
       while (std::getline(file, line)) {
