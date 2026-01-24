@@ -150,15 +150,15 @@ int main(int argc, char** argv)
           std::array<uint64_t, 7> cntsbk = ctpcnts.getIntegralForClass(i);
           std::string clsname = ctpcfg.getClassNameFromHWIndex(cntsbk[0]);
           try {
-            //mBKClient->ctpTriggerCounters()->createOrUpdateForRun(runNumber, clsname, ts, cntsbk[1], cntsbk[2], cntsbk[3], cntsbk[4], cntsbk[5], cntsbk[6]);
-            std::cout << runNumber << " clsname: " << cntsbk[0] << " " << clsname << "t:" << ts << "cnts:" << cntsbk[1] << " " << cntsbk[2] << " " << cntsbk[3] << " " << cntsbk[4] << " " << cntsbk[5] << " " << cntsbk[6] << std::endl;
+            mBKClient->ctpTriggerCounters()->createOrUpdateForRun(runNumber, clsname, ts, cntsbk[1], cntsbk[2], cntsbk[3], cntsbk[4], cntsbk[5], cntsbk[6]);
+            std::cout << runNumber << " clsname: " << cntsbk[0] << " " << clsname << " t:" << ts << " cnts:" << cntsbk[1] << " " << cntsbk[2] << " " << cntsbk[3] << " " << cntsbk[4] << " " << cntsbk[5] << " " << cntsbk[6] << std::endl;
             ;
 
           } catch (std::runtime_error& error) {
             std::cerr << "An error occurred: " << error.what() << std::endl;
             // return 1;
           }
-          LOG(info) << "Run BK scalers ok";
+          LOG(debug) << "Run BK scalers ok";
           i++;
         }
       }
