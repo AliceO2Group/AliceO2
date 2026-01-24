@@ -37,7 +37,9 @@
 #include <string>
 namespace bpo = boost::program_options;
 //
-
+// Test in the lab
+// o2-ctp-bk-write -r 37 -s 1 -c 1 --ccdb='http://acsl-ccdb.cern.ch:8083' -b 'acsl-aliecs.cern.ch:4001' -t 1753185071753
+//
 int main(int argc, char** argv)
 {
   const std::string testCCDB = "http://ccdb-test.cern.ch:8080";
@@ -88,16 +90,18 @@ int main(int argc, char** argv)
   }
   // read input file
   std::string filename = vm["input-file"].as<std::string>();
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    std::cout << "Cannot open file! Using only run:" << run << std::endl;
-  } else {
-    std::string line;
-    while (std::getline(file, line)) {
-      std::cout << line << "\n";
-      std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
-      // int run = std::stoi(tokens[0]);
-      runs.push_back(tokens[0]);
+  if(filename != "none") {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cout << "Cannot open file! Using only run:" << run << std::endl;
+    } else {
+        std::string line;
+        while (std::getline(file, line)) {
+        std::cout << line << "\n";
+        std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
+        // int run = std::stoi(tokens[0]);
+        runs.push_back(tokens[0]);
+        }
     }
   }
   bool cfg = vm["cfg"].as<bool>();
@@ -119,8 +123,6 @@ int main(int argc, char** argv)
     }
     o2::ctp::ctpCCDBManager::setCCDBHost(ccdbAddress);
     std::cout << "CCDB: " << vm["ccdb"].as<std::string>() << " " << ccdbAddress << std::endl;
-    // o2::ccdb::CcdbApi api;
-    // api.init(ccdbAddress.c_str());
     std::map<std::string, std::string> metadata;
     for (auto const& run : runs) {
       metadata["runNumber"] = run;
@@ -148,8 +150,8 @@ int main(int argc, char** argv)
           std::array<uint64_t, 7> cntsbk = ctpcnts.getIntegralForClass(i);
           std::string clsname = ctpcfg.getClassNameFromHWIndex(cntsbk[0]);
           try {
-            mBKClient->ctpTriggerCounters()->createOrUpdateForRun(runNumber, clsname, ts, cntsbk[1], cntsbk[2], cntsbk[3], cntsbk[4], cntsbk[5], cntsbk[6]);
-            std::cout << runNumber << " clsname: " << clsname << "t:" << ts << "cnts:" << cntsbk[1] << " " << cntsbk[2] << " " << cntsbk[3] << " " << cntsbk[4] << " " << cntsbk[5] << " " << cntsbk[6] << std::endl;
+            //mBKClient->ctpTriggerCounters()->createOrUpdateForRun(runNumber, clsname, ts, cntsbk[1], cntsbk[2], cntsbk[3], cntsbk[4], cntsbk[5], cntsbk[6]);
+            std::cout << runNumber << " clsname: " << cntsbk[0] << " " << clsname << "t:" << ts << "cnts:" << cntsbk[1] << " " << cntsbk[2] << " " << cntsbk[3] << " " << cntsbk[4] << " " << cntsbk[5] << " " << cntsbk[6] << std::endl;
             ;
 
           } catch (std::runtime_error& error) {
