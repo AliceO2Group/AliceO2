@@ -90,18 +90,18 @@ int main(int argc, char** argv)
   }
   // read input file
   std::string filename = vm["input-file"].as<std::string>();
-  if(filename != "none") {
+  if (filename != "none") {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cout << "Cannot open file! Using only run:" << run << std::endl;
+      std::cout << "Cannot open file! Using only run:" << run << std::endl;
     } else {
-        std::string line;
-        while (std::getline(file, line)) {
+      std::string line;
+      while (std::getline(file, line)) {
         std::cout << line << "\n";
         std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
         // int run = std::stoi(tokens[0]);
         runs.push_back(tokens[0]);
-        }
+      }
     }
   }
   bool cfg = vm["cfg"].as<bool>();
