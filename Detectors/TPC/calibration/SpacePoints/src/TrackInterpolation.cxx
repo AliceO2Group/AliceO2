@@ -633,10 +633,19 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.nClsTPC = trkTPC.getNClusterReferences();
   trackData.nClsITS = trkITS.getNumberOfClusters();
   trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getNtracklets() : 0;
+
+  double t0forTOF = 0.; // to be set if TOF is matched
+  float t0forTOFwithinBC = 0.f;
+  float t0forTOFres = 9999.f;
+
   if (gidTable[GTrackID::TOF].isIndexSet()) {
     const auto& tofMatch = mRecoCont->getTOFMatch(mGIDs[iSeed]);
-    trackData.deltaTOF = tofMatch.getSignal() - tofMatch.getFT0Best() - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
-    trackData.clAvailTOF = uint16_t(tofMatch.getFT0BestRes());
+    ULong64_t bclongtof = (tofMatch.getSignal() - 10000) * o2::tof::Geo::BC_TIME_INPS_INV;
+    t0forTOF = tofMatch.getFT0Best(); // setting t0 for TOF
+    t0forTOFwithinBC = t0forTOF - bclongtof * o2::tof::Geo::BC_TIME_INPS;
+    t0forTOFres = tofMatch.getFT0BestRes();
+    trackData.deltaTOF = tofMatch.getSignal() - t0forTOF - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
+    trackData.clAvailTOF = uint16_t(t0forTOFres);
   } else {
     trackData.clAvailTOF = 0;
   }
@@ -726,8 +735,8 @@ void TrackInterpolation::interpolateTrack(int iSeed)
           if (!gidTable[GTrackID::ITSTPC].isIndexSet()) {
             LOGP(fatal, "ITS-TPC seed index is not set for TOF track");
           }
-          float tdif = static_cast<float>(clTOF.getTime() - mRecoCont->getTPCITSTrack(gidTable[GTrackID::ITSTPC]).getTimeMUS().getTimeStamp() * 1e6);
-          mDetInfoRes.emplace_back().setTOF(tdif * 1e-6); // time in \mus wrt seeding ITS-TPC track
+          float tdif = static_cast<float>(clTOF.getTime() - t0forTOF); // time in \mus wrt interaction time0
+          mDetInfoRes.emplace_back().setTOF(tdif * 1e-6);
           trackData.nExtDetResid++;
         }
         break;
@@ -1013,8 +1022,12 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       trackData.clAvailTOF = 0;
       while (gidTableFull[GTrackID::TOF].isIndexSet() && !stopPropagation) {
         const auto& tofMatch = mRecoCont->getTOFMatch(gidFull);
-        trackData.deltaTOF = tofMatch.getSignal() - tofMatch.getFT0Best() - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
-        trackData.clAvailTOF = uint16_t(tofMatch.getFT0BestRes());
+        ULong64_t bclongtof = (tofMatch.getSignal() - 10000) * o2::tof::Geo::BC_TIME_INPS_INV;
+        double t0forTOF = tofMatch.getFT0Best(); // setting t0 for TOF
+        float t0forTOFwithinBC = t0forTOF - bclongtof * o2::tof::Geo::BC_TIME_INPS;
+        float t0forTOFres = tofMatch.getFT0BestRes();
+        trackData.deltaTOF = tofMatch.getSignal() - t0forTOF - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
+        trackData.clAvailTOF = uint16_t(t0forTOFres);
         const auto& clTOF = mRecoCont->getTOFClusters()[gidTableFull[GTrackID::TOF]];
         const float clTOFAlpha = o2::math_utils::sector2Angle(clTOF.getCount());
         float clTOFxyz[3] = {clTOF.getX(), clTOF.getY(), clTOF.getZ()};
@@ -1040,8 +1053,9 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           if (!gidTableFull[GTrackID::ITSTPC].isIndexSet()) {
             LOGP(fatal, "ITS-TPC seed index is not set for TOF track");
           }
-          float tdif = static_cast<float>(clTOF.getTime() - mRecoCont->getTPCITSTrack(gidTableFull[GTrackID::ITSTPC]).getTimeMUS().getTimeStamp() * 1e6);
-          mDetInfoRes.emplace_back().setTOF(tdif * 1e-6); // time in \mus wrt seeding ITS-TPC track
+
+          float tdif = static_cast<float>(clTOF.getTime() - t0forTOF); // time in \mus wrt interaction time0
+          mDetInfoRes.emplace_back().setTOF(tdif * 1e-6);              // time in \mus wrt seeding ITS-TPC track
           trackData.nExtDetResid++;
         }
         break;
