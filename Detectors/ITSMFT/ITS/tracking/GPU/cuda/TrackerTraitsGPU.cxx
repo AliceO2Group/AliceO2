@@ -322,29 +322,52 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       LOGP(debug, "No track seeds found, skipping track finding");
       continue;
     }
-    mTimeFrameGPU->createTrackITSExtDevice(trackSeeds);
     mTimeFrameGPU->loadTrackSeedsDevice(trackSeeds);
 
-    trackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),             // CellSeed*
-                     mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo**
-                     mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster**
-                     mTimeFrameGPU->getDeviceTrackITSExt(),            // o2::its::TrackITSExt*
-                     this->mTrkParams[iteration].LayerRadii,           // const std::vector<float>&
-                     this->mTrkParams[iteration].MinPt,                // const std::vector<float>&
-                     trackSeeds.size(),                                // const size_t nSeeds
-                     this->mBz,                                        // const float Bz
-                     startLevel,                                       // const int startLevel,
-                     this->mTrkParams[0].MaxChi2ClusterAttachment,     // float maxChi2ClusterAttachment
-                     this->mTrkParams[0].MaxChi2NDF,                   // float maxChi2NDF
-                     this->mTrkParams[0].RepeatRefitOut,
-                     this->mTrkParams[0].ReseedIfShorter,
-                     this->mTrkParams[0].ShiftRefToCluster,
-                     mTimeFrameGPU->getDevicePropagator(), // const o2::base::Propagator* propagator
-                     this->mTrkParams[0].CorrType,         // o2::base::PropagatorImpl<float>::MatCorrType
-                     conf.nBlocksTracksSeeds[iteration],
-                     conf.nThreadsTracksSeeds[iteration]);
-
-    mTimeFrameGPU->downloadTrackITSExtDevice(trackSeeds);
+    // Since TrackITSExt is an enourmous class it is better to first count how many
+    // successfull fits we do and only then allocate
+    countTrackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),
+                          mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
+                          mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
+                          mTimeFrameGPU->getDeviceTrackSeedsLUT(),
+                          this->mTrkParams[iteration].LayerRadii,
+                          this->mTrkParams[iteration].MinPt,
+                          trackSeeds.size(),
+                          this->mBz,
+                          startLevel,
+                          this->mTrkParams[0].MaxChi2ClusterAttachment,
+                          this->mTrkParams[0].MaxChi2NDF,
+                          this->mTrkParams[0].RepeatRefitOut,
+                          this->mTrkParams[0].ReseedIfShorter,
+                          this->mTrkParams[0].ShiftRefToCluster,
+                          mTimeFrameGPU->getDevicePropagator(),
+                          this->mTrkParams[0].CorrType,
+                          mTimeFrameGPU->getFrameworkAllocator(),
+                          conf.nBlocksTracksSeeds[iteration],
+                          conf.nThreadsTracksSeeds[iteration]);
+    mTimeFrameGPU->createTrackITSExtDevice(trackSeeds.size());
+    computeTrackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),
+                            mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
+                            mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
+                            mTimeFrameGPU->getDeviceTrackITSExt(),
+                            mTimeFrameGPU->getDeviceTrackSeedsLUT(),
+                            this->mTrkParams[iteration].LayerRadii,
+                            this->mTrkParams[iteration].MinPt,
+                            trackSeeds.size(),
+                            mTimeFrameGPU->getNTrackSeeds(),
+                            this->mBz,
+                            startLevel,
+                            this->mTrkParams[0].MaxChi2ClusterAttachment,
+                            this->mTrkParams[0].MaxChi2NDF,
+                            this->mTrkParams[0].RepeatRefitOut,
+                            this->mTrkParams[0].ReseedIfShorter,
+                            this->mTrkParams[0].ShiftRefToCluster,
+                            mTimeFrameGPU->getDevicePropagator(),
+                            this->mTrkParams[0].CorrType,
+                            mTimeFrameGPU->getFrameworkAllocator(),
+                            conf.nBlocksTracksSeeds[iteration],
+                            conf.nThreadsTracksSeeds[iteration]);
+    mTimeFrameGPU->downloadTrackITSExtDevice();
 
     auto& tracks = mTimeFrameGPU->getTrackITSExt();
 
