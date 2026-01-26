@@ -1327,5 +1327,9 @@ void TrackerTraits<nLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>
 }
 
 template class TrackerTraits<7>;
+// ALICE3 upgrade
+#ifdef ENABLE_UPGRADES
+template class TrackerTraits<11>;
+#endif
 
 } // namespace o2::its

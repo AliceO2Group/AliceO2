@@ -145,8 +145,13 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
   } catch (const std::bad_alloc& err) {
     handleException(err);
     return;
-  } catch (...) {
-    error("Uncaught exception, all bets are off...");
+  } catch (const std::exception& err) {
+    error(std::format("Uncaught exception, all bets are off... {}", err.what()));
+    // clear tracks explicitly since if not fatalising on exception this may contain partial output
+    for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
+      mTimeFrame->getTracks(iROF).clear();
+    }
+    return;
   }
 
   if (mTimeFrame->hasMCinformation()) {
@@ -357,5 +362,9 @@ void Tracker<nLayers>::printSummary() const
 }
 
 template class Tracker<7>;
+// ALICE3 upgrade
+#ifdef ENABLE_UPGRADES
+template class Tracker<11>;
+#endif
 
 } // namespace o2::its

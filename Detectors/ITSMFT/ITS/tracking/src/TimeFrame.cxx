@@ -667,5 +667,9 @@ void TimeFrame<nLayers>::wipe()
 }
 
 template class TimeFrame<7>;
+// ALICE3 upgrade
+#ifdef ENABLE_UPGRADES
+template class TimeFrame<11>;
+#endif
 
 } // namespace o2::its
