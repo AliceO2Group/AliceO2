@@ -357,7 +357,7 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
               break;
             }
 
-            if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer + iC], mTrkParams[0].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+            if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer + iC], mTrkParams[0].LayerxX0[iLayer + iC] * constants::Radl * constants::Rho, true)) {
               break;
             }
 
