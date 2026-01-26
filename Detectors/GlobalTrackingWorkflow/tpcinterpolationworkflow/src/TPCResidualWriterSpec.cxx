@@ -38,6 +38,7 @@ DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData, bool debugOutput
                                 BranchDefinition<std::vector<TrackData>>{InputSpec{"tracksUnfiltered", "GLO", "TPCINT_TRK", 0}, "tracksUnfiltered", ((writeUnfiltered && writeTrackData) ? 1 : 0)},
                                 BranchDefinition<std::vector<TPCClusterResiduals>>{InputSpec{"residualsUnfiltered", "GLO", "TPCINT_RES", 0}, "residualsUnfiltered", (writeUnfiltered ? 1 : 0)},
                                 BranchDefinition<std::vector<UnbinnedResid>>{InputSpec{"residuals", "GLO", "UNBINNEDRES"}, "residuals"},
+                                BranchDefinition<std::vector<DetInfoResid>>{InputSpec{"detInfo", "GLO", "DETINFORES"}, "detInfo"},
                                 BranchDefinition<std::vector<TrackDataCompact>>{InputSpec{"trackRefs", "GLO", "TRKREFS"}, "trackRefs"},
                                 BranchDefinition<std::vector<TrackData>>{InputSpec{"tracks", "GLO", "TRKDATA"}, "tracks", (writeTrackData ? 1 : 0)},
                                 BranchDefinition<std::vector<TrackDataExtended>>{InputSpec{"trackExt", "GLO", "TRKDATAEXT"}, "trackExt", (debugOutput ? 1 : 0)})();

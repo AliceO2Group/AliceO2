@@ -47,6 +47,11 @@ class TTree;
 namespace o2
 {
 
+namespace gpu
+{
+class GPUParam;
+}
+
 namespace tpc
 {
 class VDriftCorrFact;
@@ -148,12 +153,25 @@ struct DetInfoResid { // detector info associated with residual
 /// Structure for the information required to associate each residual with a given track type (ITS-TPC-TRD-TOF, etc)
 struct TrackDataCompact {
   TrackDataCompact() = default;
-  TrackDataCompact(uint32_t idx, uint8_t nRes, uint8_t source, uint8_t nextraRes = 0) : idxFirstResidual(idx), nResiduals(nRes), sourceId(source), nExtDetResid(nextraRes) {}
+  TrackDataCompact(uint32_t idx, std::array<uint8_t, 4> mlt, uint8_t nRes, uint8_t source, uint8_t nextraRes = 0) : idxFirstResidual(idx), multStack{mlt}, nResiduals(nRes), sourceId(source), nExtDetResid(nextraRes) {}
   uint32_t idxFirstResidual; ///< the index of the first residual from this track
+  std::array<uint8_t, 4> multStack{}; // multiplicity in the stack packed as asinh(x*0.05)/0.05
   uint8_t nResiduals;        ///< total number of TPC residuals associated to this track
   uint8_t nExtDetResid = 0;  ///< number of external detectors (wrt TPC) residuals stored, on top of clIdx.getEntries
   uint8_t sourceId;          ///< source ID obtained from the global track ID
-  ClassDefNV(TrackDataCompact, 2);
+
+  void setMultStack(float v, int stack)
+  {
+    uint32_t mltPacked = std::round(std::asinh(v * 0.05) / 0.05);
+    multStack[stack] = mltPacked < 0xff ? mltPacked : 0xff;
+  }
+  float getMultStack(int stack) const
+  {
+    return std::sinh(multStack[stack] * 0.05) / 0.05;
+  }
+  float getMultStackPacked(int stack) const { return multStack[stack]; }
+
+  ClassDefNV(TrackDataCompact, 3);
 };
 
 // TODO add to UnbinnedResid::sec flag if cluster was used or not
@@ -193,11 +211,22 @@ struct TrackData {
   short TRDTrkltSlope[6] = {};               ///< TRD tracklet slope 0x7fff / param::MaxTRDSlope
   uint8_t nExtDetResid = 0;                  ///< number of external detectors (to TPC) residuals stored, on top of clIdx.getEntries
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of TPC cluster residuals of this track
-
+  std::array<uint8_t, 4> multStack{};        // multiplicity in the stack packed as asinh(x*0.05)/0.05
   float getT0Error() const { return float(clAvailTOF); }
   bool isTOFAvail() const { return clAvailTOF != 0; }
 
-  ClassDefNV(TrackData, 9);
+  void setMultStack(float v, int stack)
+  {
+    uint32_t mltPacked = std::round(std::asinh(v * 0.05) / 0.05);
+    multStack[stack] = mltPacked < 0xff ? mltPacked : 0xff;
+  }
+  float getMultStack(int stack) const
+  {
+    return std::sinh(multStack[stack] * 0.05) / 0.05;
+  }
+  float getMultStackPacked(int stack) const { return multStack[stack]; }
+
+  ClassDefNV(TrackData, 10);
 };
 
 /// \class TrackInterpolation
@@ -312,6 +341,8 @@ class TrackInterpolation
   void diffToMA(const int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA) const;
 
   // -------------------------------------- settings --------------------------------------------------
+  void setNHBPerTF(int n) { mNHBPerTF = n; }
+
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
   /// Sets the flag if material correction should be applied when extrapolating the tracks
@@ -355,8 +386,14 @@ class TrackInterpolation
 
  private:
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
+  static constexpr int NSTACKS = 4;
+  static constexpr std::array<int, NSTACKS + 1> STACKROWS{0, 63, 97, 127, 152};
   // parameters + settings
   const SpacePointsCalibConfParam* mParams = nullptr;
+  std::shared_ptr<o2::gpu::GPUParam> mTPCParam = nullptr;
+  int mNHBPerTF = 32;
+  int mNTPCOccBinLength = 16;                                   ///< TPC occupancy bin length in TB
+  float mNTPCOccBinLengthInv = 1.f / 16;                        ///< its inverse
   float mTPCTimeBinMUS{.2f};                                    ///< TPC time bin duration in us
   float mTPCVDriftRef = -1.;                                    ///< TPC nominal drift speed in cm/microseconds
   float mTPCDriftTimeOffsetRef = 0.;                            ///< TPC nominal (e.g. at the start of run) drift time bias in cm/mus

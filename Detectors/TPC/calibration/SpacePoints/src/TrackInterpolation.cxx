@@ -33,6 +33,11 @@
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "Framework/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "GPUO2InterfaceUtils.h"
+#include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2InterfaceRefit.h"
+#include "GPUParam.h"
+#include "GPUParam.inc"
 #include <set>
 #include <algorithm>
 #include <random>
@@ -135,7 +140,7 @@ void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::da
 
   auto geom = o2::its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
-
+  mTPCParam = o2::gpu::GPUO2InterfaceUtils::getFullParamShared(0.f, mNHBPerTF);
   mInitDone = true;
   LOGP(info, "Done initializing TrackInterpolation. Configured track input: {}. Track input specifically for map: {}",
        GTrackID::getSourcesNames(mSourcesConfigured), mSingleSourcesConfigured ? "identical" : GTrackID::getSourcesNames(mSourcesConfiguredMap));
@@ -316,6 +321,10 @@ void TrackInterpolation::process()
   // set the input containers
   mTPCTracksClusIdx = mRecoCont->getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &mRecoCont->getTPCClusters();
+  int nbOccTOT = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(mNHBPerTF, mTPCParam.get());
+  o2::gpu::GPUO2InterfaceUtils::paramUseExternalOccupancyMap(mTPCParam.get(), mNHBPerTF, mRecoCont->occupancyMapTPC.data(), nbOccTOT);
+  mNTPCOccBinLength = mTPCParam->rec.tpc.occupancyMapTimeBins;
+  mNTPCOccBinLengthInv = 1.f / mNTPCOccBinLength;
   {
     if (!mITSDict) {
       LOG(error) << "No ITS dictionary available";
@@ -473,6 +482,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
 
   // store the TPC cluster positions in the cache, as well as dedx info
   std::array<std::pair<uint16_t, uint16_t>, constants::MAXGLOBALPADROW> mCacheDEDX{};
+  std::array<short, constants::MAXGLOBALPADROW> multBins{};
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
@@ -487,6 +497,10 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCache[row].clAngle = o2::math_utils::sector2Angle(sector);
     mCacheDEDX[row].first = clTPC.getQtot();
     mCacheDEDX[row].second = clTPC.getQmax();
+    int imb = int(clTPC.getTime() * mNTPCOccBinLengthInv);
+    if (imb < mTPCParam->occupancyMapSize) {
+      multBins[row] = 1 + std::max(0, imb);
+    }
   }
 
   // extrapolate seed through TPC and store track position at each pad row
@@ -678,6 +692,30 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
     trackData.clIdx.setEntries(nClValidated);
 
+    // store multiplicity info
+    for (int ist = 0; ist < NSTACKS; ist++) {
+      int mltBinMin = 0x7ffff, mltBinMax = -1, prevBin = -1;
+      for (int ir = STACKROWS[ist]; ir < STACKROWS[ist + 1]; ir++) {
+        if (multBins[ir] != prevBin && multBins[ir] > 0) { // there is a cluster different from previous one
+          prevBin = multBins[ir];
+          if (multBins[ir] > mltBinMax) {
+            mltBinMax = multBins[ir];
+          }
+          if (multBins[ir] < mltBinMin) {
+            mltBinMin = multBins[ir];
+          }
+        }
+      }
+      if (--mltBinMin >= 0) { // we were offsetting bin IDs by 1!
+        float avMlt = 0;
+        for (int ib = mltBinMin; ib < mltBinMax; ib++) {
+          avMlt += mTPCParam->occupancyMap[ib];
+        }
+        avMlt /= (mltBinMax - mltBinMin);
+        trackData.setMultStack(avMlt, ist);
+      }
+    }
+
     bool stopPropagation = !mExtDetResid;
     if (!stopPropagation) {
       // do we have TRD residuals to add?
@@ -798,7 +836,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
 
     mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
     mTrackData.push_back(std::move(trackData));
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
@@ -907,6 +945,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   unsigned short nMeasurements = 0;
   uint8_t clRowPrev = constants::MAXGLOBALPADROW; // used to identify and skip split clusters on the same pad row
   std::array<std::pair<uint16_t, uint16_t>, constants::MAXGLOBALPADROW> mCacheDEDX{};
+  std::array<short, constants::MAXGLOBALPADROW> multBins{};
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
@@ -942,6 +981,10 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     mCacheDEDX[row].first = cl.getQtot();
     mCacheDEDX[row].second = cl.getQmax();
     rowPrev = row;
+    int imb = int(cl.getTime() * mNTPCOccBinLengthInv);
+    if (imb < mTPCParam->occupancyMapSize) {
+      multBins[row] = 1 + std::max(0, imb);
+    }
     ++nMeasurements;
   }
 
@@ -985,6 +1028,30 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       }
     }
     trackData.clIdx.setEntries(nClValidated);
+
+    // store multiplicity info
+    for (int ist = 0; ist < NSTACKS; ist++) {
+      int mltBinMin = 0x7ffff, mltBinMax = -1, prevBin = -1;
+      for (int ir = STACKROWS[ist]; ir < STACKROWS[ist + 1]; ir++) {
+        if (multBins[ir] != prevBin && multBins[ir] > 0) { // there is a cluster
+          prevBin = multBins[ir];
+          if (multBins[ir] > mltBinMax) {
+            mltBinMax = multBins[ir];
+          }
+          if (multBins[ir] < mltBinMin) {
+            mltBinMin = multBins[ir];
+          }
+        }
+      }
+      if (--mltBinMin >= 0) { // we were offsetting bin IDs by 1!
+        float avMlt = 0;
+        for (int ib = mltBinMin; ib < mltBinMax; ib++) {
+          avMlt += mTPCParam->occupancyMap[ib];
+        }
+        avMlt /= (mltBinMax - mltBinMin);
+        trackData.setMultStack(avMlt, ist);
+      }
+    }
 
     bool stopPropagation = !mExtDetResid;
     if (!stopPropagation) {
@@ -1117,7 +1184,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     }
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
       (*trackDataExtended).nExtDetResid = trackData.nExtDetResid;
