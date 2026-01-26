@@ -46,14 +46,12 @@ void IndexBuilder::resetBuilders(std::vector<framework::IndexColumnBuilder>& bui
 std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<framework::IndexColumnBuilder>& builders, std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records, std::shared_ptr<arrow::Schema> const& schema, bool exclusive)
 {
   auto size = tables[0]->num_rows();
-  if (builders.empty()) {
+  if (O2_BUILTIN_UNLIKELY(builders.empty())) {
     builders = makeBuilders(std::move(tables), records);
   } else {
     resetBuilders(builders, std::move(tables));
   }
 
-  std::vector<bool> finds;
-  finds.resize(builders.size());
   for (int64_t counter = 0; counter < size; ++counter) {
     int64_t idx = -1;
     if (std::get<framework::SelfBuilder>(builders[0].builder).keyIndex == nullptr) {
@@ -61,29 +59,19 @@ std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<framework::I
     } else {
       idx = std::get<framework::SelfBuilder>(builders[0].builder).keyIndex->valueAt(counter);
     }
-    for (auto i = 0U; i < builders.size(); ++i) {
-      finds[i] = builders[i].find(idx);
-    }
-    if (exclusive) {
-      if (std::none_of(finds.begin(), finds.end(), [](bool const x) { return x == false; })) {
-        builders[0].fill(counter);
-        for (auto i = 1U; i < builders.size(); ++i) {
-          builders[i].fill(idx);
-        }
-      }
-    } else {
+
+    bool found = true;
+    std::ranges::for_each(builders, [&idx, &found](auto& builder) { found &= builder.find(idx); });
+
+    if (!exclusive || found) {
       builders[0].fill(counter);
-      for (auto i = 1U; i < builders.size(); ++i) {
-        builders[i].fill(idx);
-      }
+      std::ranges::for_each(builders.begin() + 1, builders.end(), [&idx](auto& builder) { builder.fill(idx); });
     }
   }
 
   std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
   arrays.reserve(builders.size());
-  for (auto& builder : builders) {
-    arrays.push_back(builder.result());
-  }
+  std::ranges::transform(builders, std::back_inserter(arrays), [](auto& builder) { return builder.result(); });
 
   return arrow::Table::Make(schema, arrays);
 }
@@ -142,9 +130,7 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const&
   }
 
   arrays.reserve(nColumns);
-  for (auto i = 0U; i < nColumns; ++i) {
-    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
-  }
+  std::ranges::transform(chunks, std::back_inserter(arrays), [](auto&& chunk) { return std::make_shared<arrow::ChunkedArray>(chunk); });
 
   return arrow::Table::Make(newSchema, arrays);
 }
@@ -188,9 +174,8 @@ std::string serializeIndexRecords(std::vector<o2::soa::IndexRecord>& irs)
 std::vector<std::shared_ptr<arrow::Table>> extractSources(ProcessingContext& pc, std::vector<ConcreteDataMatcher> const& matchers)
 {
   std::vector<std::shared_ptr<arrow::Table>> tables;
-  for (auto const& matcher : matchers) {
-    tables.emplace_back(pc.inputs().get<TableConsumer>(matcher)->asArrowTable());
-  }
+  tables.reserve(matchers.size());
+  std::ranges::transform(matchers, std::back_inserter(tables), [&pc](auto const& matcher) { return pc.inputs().get<TableConsumer>(matcher)->asArrowTable(); });
   return tables;
 }
 

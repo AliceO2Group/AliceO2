@@ -295,6 +295,25 @@ for STAGE in $STAGES; do
   # boolean flag indicating if workflow completed successfully at all
   RC=$?
   SUCCESS=0
+   # Check AOD production for ASYNC stage
+  if [[ "$STAGE" = "ASYNC" ]]; then
+    if [[ -f "AO2D.root" ]]; then
+      aod_size=`stat -c%s AO2D.root`
+      if [[ $aod_size -gt 0 ]]; then
+        echo "AO2D file produced: AO2D.root (size: ${aod_size} bytes)"
+        echo "aod_size_${STAGE},${TAG} value=${aod_size}" >> ${METRICFILE}
+      else
+        echo "ERROR: AO2D file (AO2D.root) exists but is empty"
+        echo "aod_size_${STAGE},${TAG} value=0" >> ${METRICFILE}
+        exit 1
+      fi
+    else
+      echo "ERROR: AO2D file (AO2D.root) was not produced in ASYNC stage"
+      echo "aod_size_${STAGE},${TAG} value=0" >> ${METRICFILE}
+      exit 1
+    fi
+  fi
+
   [[ -f "${logfile}_done" ]] && [[ "$RC" = 0 ]] && SUCCESS=1
   echo "success_${STAGE},${TAG} value=${SUCCESS}" >> ${METRICFILE}
 

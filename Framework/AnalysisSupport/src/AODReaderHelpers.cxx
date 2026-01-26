@@ -37,7 +37,7 @@ struct Buildable {
   std::vector<o2::soa::IndexRecord> records;
   std::shared_ptr<arrow::Schema> outputSchema;
 
-  Buildable(InputSpec const& spec)
+  explicit Buildable(InputSpec const& spec)
     : binding{spec.binding}
   {
     auto&& [origin_, description_, version_] = DataSpecUtils::asConcreteDataMatcher(spec);
@@ -58,9 +58,8 @@ struct Buildable {
     }
     outputSchema = std::make_shared<arrow::Schema>([](std::vector<o2::soa::IndexRecord> const& recs) {
                      std::vector<std::shared_ptr<arrow::Field>> fields;
-                     for (auto& r : recs) {
-                       fields.push_back(r.field());
-                     }
+                     fields.reserve(recs.size());
+                     std::ranges::transform(recs, std::back_inserter(fields), [](auto& r) { return r.field(); });
                      return fields;
                    }(records))
                      ->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{binding}}));
@@ -87,19 +86,12 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(ConfigContext const& /*ctx*
 {
   return AlgorithmSpec::InitCallback{[](InitContext& ic) {
     auto const& requested = ic.services().get<DanglingEdgesContext>().requestedIDXs;
-    std::vector<Buildable> buildables;
-    for (auto const& i : requested) {
-      buildables.emplace_back(i);
-    }
     std::vector<Builder> builders;
-    for (auto& b : buildables) {
-      builders.push_back(b.createBuilder());
-    }
+    builders.reserve(requested.size());
+    std::ranges::transform(requested, std::back_inserter(builders), [](auto const& i) { return Buildable{i}.createBuilder(); });
     return [builders](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
-      for (auto& builder : builders) {
-        outputs.adopt(Output{builder.origin, builder.description, builder.version}, builder.materialize(pc));
-      }
+      std::ranges::for_each(builders, [&pc, &outputs](auto& builder) { outputs.adopt(Output{builder.origin, builder.description, builder.version}, builder.materialize(pc)); });
     };
   }};
 }
@@ -119,7 +111,7 @@ struct Spawnable {
   header::DataDescription description;
   header::DataHeader::SubSpecificationType version;
 
-  Spawnable(InputSpec const& spec)
+  explicit Spawnable(InputSpec const& spec)
     : binding{spec.binding}
   {
     auto&& [origin_, description_, version_] = DataSpecUtils::asConcreteDataMatcher(spec);
@@ -144,16 +136,19 @@ struct Spawnable {
       iws.str(json);
       schemas.emplace_back(ArrowJSONHelpers::read(iws));
     }
-    for (auto const& i : spec.metadata | views::filter_string_params_starts_with("input:") | std::ranges::views::transform([](auto const& param) {
-                           return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
-                         })) {
-      matchers.emplace_back(std::get<ConcreteDataMatcher>(i.matcher));
-    }
+    std::ranges::transform(spec.metadata |
+                             views::filter_string_params_starts_with("input:") |
+                             std::ranges::views::transform(
+                               [](auto const& param) {
+                                 return DataSpecUtils::fromMetadataString(param.defaultValue.template get<std::string>());
+                               }),
+                           std::back_inserter(matchers), [](auto const& i) { return std::get<ConcreteDataMatcher>(i.matcher); });
 
     std::vector<std::shared_ptr<arrow::Field>> fields;
-    for (auto& s : schemas) {
-      std::copy(s->fields().begin(), s->fields().end(), std::back_inserter(fields));
-    }
+    std::ranges::for_each(schemas,
+                          [&fields](auto const& s) {
+                            std::ranges::copy(s->fields(), std::back_inserter(fields));
+                          });
 
     inputSchema = std::make_shared<arrow::Schema>(fields);
     expressions = expressions::materializeProjectors(projectors, inputSchema, outputSchema->fields());
@@ -194,20 +189,12 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(ConfigContext const& /*ctx*/)
 {
   return AlgorithmSpec::InitCallback{[](InitContext& ic) {
     auto const& requested = ic.services().get<DanglingEdgesContext>().spawnerInputs;
-    std::vector<Spawnable> spawnables;
-    for (auto const& i : requested) {
-      spawnables.emplace_back(i);
-    }
     std::vector<Spawner> spawners;
-    for (auto& s : spawnables) {
-      spawners.push_back(s.createMaker());
-    }
-
+    spawners.reserve(requested.size());
+    std::ranges::transform(requested, std::back_inserter(spawners), [](auto const& i) { return Spawnable{i}.createMaker(); });
     return [spawners](ProcessingContext& pc) mutable {
       auto outputs = pc.outputs();
-      for (auto& spawner : spawners) {
-        outputs.adopt(Output{spawner.origin, spawner.description, spawner.version}, spawner.materialize(pc));
-      }
+      std::ranges::for_each(spawners, [&pc, &outputs](auto& spawner) { outputs.adopt(Output{spawner.origin, spawner.description, spawner.version}, spawner.materialize(pc)); });
     };
   }};
 }

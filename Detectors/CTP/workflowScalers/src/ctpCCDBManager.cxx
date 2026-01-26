@@ -204,10 +204,16 @@ int ctpCCDBManager::saveCtpCfg(uint32_t runNumber, long timeStart)
 }
 CTPConfiguration ctpCCDBManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
 {
+
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
   std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = run;
+  if (timestamp == 0) {
+    // Timestamp
+    auto soreor = mgr.getRunDuration(std::stoi(run));
+    timestamp = (soreor.second - soreor.first) / 2 + soreor.first;
+  }
   auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
   if (ctpconfigdb == nullptr) {
     LOG(info) << "CTP config not in database, timestamp:" << timestamp;
@@ -236,6 +242,27 @@ CTPRunScalers ctpCCDBManager::getScalersFromCCDB(long timestamp, std::string run
   std::map<std::string, std::string> metadata; // can be empty
   metadata["runNumber"] = run;
   auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);
+  if (ctpscalers == nullptr) {
+    LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
+    ok = 0;
+  } else {
+    // ctpscalers->printStream(std::cout);
+    ok = 1;
+  }
+  return *ctpscalers;
+}
+CTPRunScalers ctpCCDBManager::getScalersFromCCDB(long timestamp, std::string run, std::string path, bool& ok)
+{
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL(mCCDBHost);
+  std::map<std::string, std::string> metadata; // can be empty
+  metadata["runNumber"] = run;
+  if (timestamp == 0) {
+    // Timestamp
+    auto soreor = mgr.getRunDuration(std::stoi(run));
+    timestamp = (soreor.second - soreor.first) / 2 + soreor.first;
+  }
+  auto ctpscalers = mgr.getSpecific<CTPRunScalers>(path, timestamp, metadata);
   if (ctpscalers == nullptr) {
     LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
     ok = 0;

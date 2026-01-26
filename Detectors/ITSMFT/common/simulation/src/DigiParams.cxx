@@ -26,12 +26,17 @@ DigiParams::DigiParams()
   setNSimSteps(mNSimSteps);
 }
 
-void DigiParams::setROFrameLength(float lNS)
+void DigiParams::setROFrameLength(float lNS, int layer)
 {
   // set ROFrame length in nanosecongs
-  mROFrameLength = lNS;
-  assert(mROFrameLength > 1.);
-  mROFrameLengthInv = 1. / mROFrameLength;
+  assert(lNS > 1.f);
+  if (layer < 0) {
+    mROFrameLength = lNS;
+    mROFrameLengthInv = 1.f / mROFrameLength;
+  } else {
+    mROFrameLayerLength.push_back(lNS);
+    mROFrameLayerLengthInv.push_back(1.f / lNS);
+  }
 }
 
 void DigiParams::setNSimSteps(int v)
@@ -58,17 +63,24 @@ void DigiParams::setChargeThreshold(int v, float frac2Account)
 //______________________________________________
 void DigiParams::print() const
 {
-  // print settings
-  printf("Alpide digitization params:\n");
-  printf("Continuous readout             : %s\n", mIsContinuous ? "ON" : "OFF");
-  printf("Readout Frame Length(ns)       : %f\n", mROFrameLength);
-  printf("Strobe delay (ns)              : %f\n", mStrobeDelay);
-  printf("Strobe length (ns)             : %f\n", mStrobeLength);
-  printf("Threshold (N electrons)        : %d\n", mChargeThreshold);
-  printf("Min N electrons to account     : %d\n", mMinChargeToAccount);
-  printf("Number of charge sharing steps : %d\n", mNSimSteps);
-  printf("ELoss to N electrons factor    : %e\n", mEnergyToNElectrons);
-  printf("Noise level per pixel          : %e\n", mNoisePerPixel);
-  printf("Charge time-response:\n");
+  LOGF(info, "Alpide digitization params:");
+  LOGF(info, "Continuous readout               : %s", mIsContinuous ? "ON" : "OFF");
+  if (withStaggering()) {
+    for (int i{0}; i < (int)mROFrameLayerLengthInBC.size(); ++i) {
+      LOGF(info, " Readout Frame Layer:%d Length(ns)[BC]      : %f [%d]", i, mROFrameLayerLength[i], mROFrameLayerLengthInBC[i]);
+      LOGF(info, "Strobe delay Layer %d (ns)                : %f", i, mStrobeDelay);
+      LOGF(info, "Strobe length Layer %d (ns)               : %f", i, mStrobeLength);
+    }
+  } else {
+    LOGF(info, "Readout Frame Length(ns)         : %f", mROFrameLength);
+    LOGF(info, "Strobe delay (ns)                : %f", mStrobeDelay);
+    LOGF(info, "Strobe length (ns)               : %f", mStrobeLength);
+  }
+  LOGF(info, "Threshold (N electrons)          : %d", mChargeThreshold);
+  LOGF(info, "Min N electrons to account       : %d", mMinChargeToAccount);
+  LOGF(info, "Number of charge sharing steps   : %d", mNSimSteps);
+  LOGF(info, "ELoss to N electrons factor      : %e", mEnergyToNElectrons);
+  LOGF(info, "Noise level per pixel            : %e", mNoisePerPixel);
+  LOGF(info, "Charge time-response:");
   mSignalShape.print();
 }

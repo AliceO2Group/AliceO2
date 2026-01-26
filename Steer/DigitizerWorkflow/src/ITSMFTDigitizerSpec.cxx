@@ -17,12 +17,13 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
 #include "Framework/CCDBParamSpec.h"
-#include "Steer/HitProcessingManager.h" // for DigitizationContext
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
 #include "DataFormatsITSMFT/TimeDeadMap.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
@@ -36,20 +37,25 @@
 #include <TChain.h>
 #include <TStopwatch.h>
 #include <string>
+#include <format>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-namespace o2
-{
-namespace itsmft
+namespace o2::itsmft
 {
 
 using namespace o2::base;
+template <int N>
 class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 {
  public:
+  static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
+  static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
+  static constexpr int NLayers{o2::itsmft::DPLAlpideParam<N>::getNLayers()};
+
   using BaseDPLDigitizer::init;
+
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDisableQED = ic.options().get<bool>("disable-qed");
@@ -60,121 +66,174 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     if (mFinished) {
       return;
     }
+
     mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
-    mID == o2::detectors::DetID::ITS ? updateTimeDependentParams<o2::detectors::DetID::ITS>(pc) : updateTimeDependentParams<o2::detectors::DetID::MFT>(pc);
-    std::string detStr = mID.getName();
+    const o2::InteractionRecord firstIR(0, mFirstOrbitTF);
+    updateTimeDependentParams(pc);
+
+    TStopwatch timer;
+    timer.Start();
+    LOG(info) << " CALLING ITS DIGITIZATION ";
+
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
-    context->initSimChains(mID, mSimChains);
+    context->initSimChains(ID, mSimChains);
     const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
     LOG(info) << "GOT " << timesview.size() << " COLLISSION TIMES";
-    LOG(info) << "SIMCHAINS " << mSimChains.size();
+    LOG(info) << "SIMCHAINS: " << mSimChains.size();
 
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
       return;
     }
-    TStopwatch timer;
-    timer.Start();
-    LOG(info) << " CALLING ITS DIGITIZATION ";
 
-    mDigitizer.setDigits(&mDigits);
-    mDigitizer.setROFRecords(&mROFRecords);
-    mDigitizer.setMCLabels(&mLabels);
+    uint64_t nDigits{0};
+    constexpr uint32_t nLayers = (DPLAlpideParam<N>::supportsStaggering()) ? NLayers : 1;
+    for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {
+      const int layer = (DPLAlpideParam<N>::supportsStaggering()) ? iLayer : -1;
+      mDigitizer.setDigits(&mDigits[iLayer]);
+      mDigitizer.setROFRecords(&mROFRecords[iLayer]);
+      mDigitizer.setMCLabels(&mLabels[iLayer]);
+      mDigitizer.resetROFrameBounds();
 
-    // digits are directly put into DPL owned resource
-    auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0});
+      // digits are directly put into DPL owned resource
+      auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{Origin, "DIGITS", iLayer});
 
-    auto accumulate = [this, &digitsAccum]() {
-      // accumulate result of single event processing, called after processing every event supplied
-      // AND after the final flushing via digitizer::fillOutputContainer
-      if (!mDigits.size()) {
-        return; // no digits were flushed, nothing to accumulate
-      }
-      auto ndigAcc = digitsAccum.size();
-      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
+      // rofs are accumulated first and the copied
+      const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer);
+      const int nROFsTF = nROFsPerOrbit * raw::HBFUtils::Instance().getNOrbitsPerTF();
+      mROFRecordsAccum[iLayer].reserve(nROFsTF);
 
-      // fix ROFrecords references on ROF entries
-      auto nROFRecsOld = mROFRecordsAccum.size();
+      auto accumulate = [this, &digitsAccum, &iLayer]() {
+        // accumulate result of single event processing on a specific layer, called after processing every event supplied
+        // AND after the final flushing via digitizer::fillOutputContainer
+        if (!mDigits[iLayer].size()) {
+          return; // no digits were flushed, nothing to accumulate
+        }
+        auto ndigAcc = digitsAccum.size();
+        std::copy(mDigits[iLayer].begin(), mDigits[iLayer].end(), std::back_inserter(digitsAccum));
 
-      for (int i = 0; i < mROFRecords.size(); i++) {
-        auto& rof = mROFRecords[i];
-        rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
-        rof.print();
+        // fix ROFrecords references on ROF entries
+        auto nROFRecsOld = mROFRecordsAccum[iLayer].size();
 
-        if (mFixMC2ROF < mMC2ROFRecordsAccum.size()) { // fix ROFRecord entry in MC2ROF records
-          for (int m2rid = mFixMC2ROF; m2rid < mMC2ROFRecordsAccum.size(); m2rid++) {
-            // need to register the ROFRecors entry for MC event starting from this entry
-            auto& mc2rof = mMC2ROFRecordsAccum[m2rid];
-            if (rof.getROFrame() == mc2rof.minROF) {
-              mFixMC2ROF++;
-              mc2rof.rofRecordID = nROFRecsOld + i;
-              mc2rof.print();
+        for (int i = 0; i < mROFRecords[iLayer].size(); i++) {
+          auto& rof = mROFRecords[iLayer][i];
+          rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
+          rof.print();
+
+          if (mFixMC2ROF[iLayer] < mMC2ROFRecordsAccum[iLayer].size()) { // fix ROFRecord entry in MC2ROF records
+            for (int m2rid = mFixMC2ROF[iLayer]; m2rid < mMC2ROFRecordsAccum[iLayer].size(); m2rid++) {
+              // need to register the ROFRecors entry for MC event starting from this entry
+              auto& mc2rof = mMC2ROFRecordsAccum[iLayer][m2rid];
+              if (rof.getROFrame() == mc2rof.minROF) {
+                mFixMC2ROF[iLayer]++;
+                mc2rof.rofRecordID = nROFRecsOld + i;
+                mc2rof.print();
+              }
             }
           }
         }
-      }
 
-      std::copy(mROFRecords.begin(), mROFRecords.end(), std::back_inserter(mROFRecordsAccum));
-      if (mWithMCTruth) {
-        mLabelsAccum.mergeAtBack(mLabels);
-      }
-      LOG(info) << "Added " << mDigits.size() << " digits ";
-      // clean containers from already accumulated stuff
-      mLabels.clear();
-      mDigits.clear();
-      mROFRecords.clear();
-    }; // and accumulate lambda
-
-    auto& eventParts = context->getEventParts(withQED);
-    int bcShift = mDigitizer.getParams().getROFrameBiasInBC();
-    // loop over all composite collisions given from context (aka loop over all the interaction records)
-    for (int collID = 0; collID < timesview.size(); ++collID) {
-      auto irt = timesview[collID];
-      if (irt.toLong() < bcShift) { // due to the ROF misalignment the collision would go to negative ROF ID, discard
-        continue;
-      }
-      irt -= bcShift; // account for the ROF start shift
-
-      mDigitizer.setEventTime(irt);
-      mDigitizer.resetEventROFrames(); // to estimate min/max ROF for this collID
-      // for each collision, loop over the constituents event and source IDs
-      // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
-
-        // get the hits for this event and this source
-        mHits.clear();
-        context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
-
-        if (mHits.size() > 0) {
-          LOG(debug) << "For collision " << collID << " eventID " << part.entryID
-                     << " found " << mHits.size() << " hits ";
-          mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
+        std::copy(mROFRecords[iLayer].begin(), mROFRecords[iLayer].end(), std::back_inserter(mROFRecordsAccum[iLayer]));
+        if (mWithMCTruth) {
+          mLabelsAccum[iLayer].mergeAtBack(mLabels[iLayer]);
         }
+        LOG(info) << "Added " << mDigits[iLayer].size() << " digits:" << iLayer;
+        // clean containers from already accumulated stuff
+        mLabels[iLayer].clear();
+        mDigits[iLayer].clear();
+        mROFRecords[iLayer].clear();
+      }; // and accumulate lambda
+
+      const auto& eventParts = context->getEventParts(withQED);
+      const int64_t bcShift = mDigitizer.getParams().getROFrameBiasInBC(layer); // this accounts the misalignment and the opt. imposed rof delay
+      // loop over all composite collisions given from context (aka loop over all the interaction records)
+      for (int collID = 0; collID < timesview.size(); ++collID) {
+        auto irt = timesview[collID];
+        if (irt.toLong() < bcShift) { // due to the ROF misalignment (+opt. delay) the collision would go to negative ROF ID, discard
+          continue;
+        }
+        irt -= bcShift; // account for the ROF start shift
+
+        mDigitizer.setEventTime(irt, layer);
+        mDigitizer.resetEventROFrames(); // to estimate min/max ROF for this collID
+        // for each collision, loop over the constituents event and source IDs
+        // (background signal merging is basically taking place here)
+        for (const auto& part : eventParts[collID]) {
+
+          // get the hits for this event and this source
+          mHits.clear();
+          context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[ID][0].c_str(), part.sourceID, part.entryID, &mHits);
+
+          if (mHits.size() > 0) {
+            LOG(debug) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+            mDigitizer.process(&mHits, part.entryID, part.sourceID, layer); // call actual digitization procedure
+          }
+        }
+        mMC2ROFRecordsAccum[iLayer].emplace_back(collID, -1, mDigitizer.getEventROFrameMin(), mDigitizer.getEventROFrameMax());
+        accumulate();
       }
-      mMC2ROFRecordsAccum.emplace_back(collID, -1, mDigitizer.getEventROFrameMin(), mDigitizer.getEventROFrameMax());
+      mDigitizer.fillOutputContainer(0xffffffff, layer);
       accumulate();
-    }
-    mDigitizer.fillOutputContainer();
-    accumulate();
+      nDigits += digitsAccum.size();
 
-    // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
-
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mROFRecordsAccum);
-    if (mWithMCTruth) {
-      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, mMC2ROFRecordsAccum);
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
-      mLabelsAccum.flatten_to(sharedlabels);
-      // free space of existing label containers
-      mLabels.clear_andfreememory();
-      mLabelsAccum.clear_andfreememory();
+      // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
+      // ensure that the rof output is continuous
+      if (nROFsTF != mROFRecordsAccum[iLayer].size()) {
+        // it can happen that in the digitization rofs without contributing hits are skipped
+        // however downstream consumers of the clusters cannot know apriori the time structure
+        // the cluster rofs do not account for the bias so it will start always at BC=0
+        std::vector<o2::itsmft::ROFRecord> expDigitRofVec(nROFsTF);
+        for (int iROF{0}; iROF < nROFsTF; ++iROF) {
+          auto& rof = expDigitRofVec[iROF];
+          int orb = iROF * DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer) / o2::constants::lhc::LHCMaxBunches + mFirstOrbitTF;
+          int bc = iROF * DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches;
+          o2::InteractionRecord ir(bc, orb);
+          rof.setBCData(ir);
+          rof.setROFrame(iROF);
+          rof.setNEntries(0);
+          rof.setFirstEntry(-1);
+        }
+        uint32_t prevEntry{0};
+        for (const auto& rof : mROFRecordsAccum[iLayer]) {
+          const auto& ir = rof.getBCData();
+          const auto irToFirst = ir - firstIR;
+          const int irROF = irToFirst.toLong() / DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer);
+          auto& expROF = expDigitRofVec[irROF];
+          expROF.setFirstEntry(rof.getFirstEntry());
+          expROF.setNEntries(rof.getNEntries());
+          if (expROF.getBCData() != rof.getBCData()) {
+            LOGP(fatal, "detected mismatch between expected ROF:{} and received ROF:{}", expROF.asString(), rof.asString());
+          }
+        }
+        int prevFirst{0};
+        for (auto& rof : expDigitRofVec) {
+          if (rof.getFirstEntry() < 0) {
+            rof.setFirstEntry(prevFirst);
+          }
+          prevFirst = rof.getFirstEntry();
+        }
+        pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, expDigitRofVec);
+      } else {
+        pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, mROFRecordsAccum[iLayer]);
+      }
+      if (mWithMCTruth) {
+        pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", iLayer}, mMC2ROFRecordsAccum[iLayer]);
+        auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{Origin, "DIGITSMCTR", iLayer});
+        mLabelsAccum[iLayer].flatten_to(sharedlabels);
+        // free space of existing label containers
+        mLabels[iLayer].clear_andfreememory();
+        mLabelsAccum[iLayer].clear_andfreememory();
+      }
     }
-    LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
+
+    LOG(info) << ID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
+    pc.outputs().snapshot(Output{Origin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";
+    LOG(info) << "Produced " << nDigits << " digits";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -184,18 +243,18 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
-    if (matcher == ConcreteDataMatcher(mOrigin, "NOISEMAP", 0)) {
-      LOG(info) << mID.getName() << " noise map updated";
+    if (matcher == ConcreteDataMatcher(Origin, "NOISEMAP", 0)) {
+      LOG(info) << ID.getName() << " noise map updated";
       mDigitizer.setNoiseMap((const o2::itsmft::NoiseMap*)obj);
       return;
     }
-    if (matcher == ConcreteDataMatcher(mOrigin, "DEADMAP", 0)) {
-      LOG(info) << mID.getName() << " static dead map updated";
+    if (matcher == ConcreteDataMatcher(Origin, "DEADMAP", 0)) {
+      LOG(info) << ID.getName() << " static dead map updated";
       mDeadMap = (o2::itsmft::NoiseMap*)obj;
       mDigitizer.setDeadChannelsMap(mDeadMap);
       return;
     }
-    if (matcher == ConcreteDataMatcher(mOrigin, "TimeDeadMap", 0)) {
+    if (matcher == ConcreteDataMatcher(Origin, "TimeDeadMap", 0)) {
       o2::itsmft::TimeDeadMap* timedeadmap = (o2::itsmft::TimeDeadMap*)obj;
       if (!timedeadmap->isDefault()) {
         timedeadmap->decodeMap(mFirstOrbitTF, *mDeadMap, true);
@@ -204,30 +263,25 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         }
         mTimeDeadMapUpdated = true;
         mDigitizer.setDeadChannelsMap(mDeadMap);
-        LOG(info) << mID.getName() << " time-dependent dead map updated";
+        LOG(info) << ID.getName() << " time-dependent dead map updated";
       } else {
-        LOG(info) << mID.getName() << " time-dependent dead map is default/empty";
+        LOG(info) << ID.getName() << " time-dependent dead map is default/empty";
       }
 
       return;
     }
-    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDEPARAM", 0)) {
-      LOG(info) << mID.getName() << " Alpide param updated";
-      if (mID == o2::detectors::DetID::ITS) {
-        const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-        par.printKeyValues();
-      } else {
-        const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-        par.printKeyValues();
-      }
+    if (matcher == ConcreteDataMatcher(Origin, "ALPIDEPARAM", 0)) {
+      LOG(info) << ID.getName() << " Alpide param updated";
+      const auto& par = o2::itsmft::DPLAlpideParam<N>::Instance();
+      par.printKeyValues();
       return;
     }
-    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDERESPVbb0", 0)) {
-      LOG(info) << mID.getName() << " loaded AlpideResponseData for Vbb=0V";
+    if (matcher == ConcreteDataMatcher(Origin, "ALPIDERESPVbb0", 0)) {
+      LOG(info) << ID.getName() << " loaded AlpideResponseData for Vbb=0V";
       mDigitizer.setAlpideResponse((o2::itsmft::AlpideSimResponse*)obj, 0);
     }
-    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDERESPVbbM3", 0)) {
-      LOG(info) << mID.getName() << " loaded AlpideResponseData for Vbb=-3V";
+    if (matcher == ConcreteDataMatcher(Origin, "ALPIDERESPVbbM3", 0)) {
+      LOG(info) << ID.getName() << " loaded AlpideResponseData for Vbb=-3V";
       mDigitizer.setAlpideResponse((o2::itsmft::AlpideSimResponse*)obj, 1);
     }
   }
@@ -235,20 +289,19 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
  protected:
   ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
 
-  template <int DETID>
   void updateTimeDependentParams(ProcessingContext& pc)
   {
-    std::string detstr(o2::detectors::DetID::getName(DETID));
+    std::string detstr(o2::detectors::DetID::getName(ID));
     pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_noise");
     pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_dead");
     // TODO: the code should run even if this object does not exist. Or: create default object
     pc.inputs().get<o2::itsmft::TimeDeadMap*>(detstr + "_time_dead");
-    pc.inputs().get<o2::itsmft::DPLAlpideParam<DETID>*>(detstr + "_alppar");
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<N>*>(detstr + "_alppar");
     pc.inputs().get<o2::itsmft::AlpideSimResponse*>(detstr + "_alpiderespvbb0");
     pc.inputs().get<o2::itsmft::AlpideSimResponse*>(detstr + "_alpiderespvbbm3");
 
-    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
-    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
+    auto& dopt = o2::itsmft::DPLDigitizerParam<N>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<N>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
     digipar.setROFrameBiasInBC(aopt.roFrameBiasInBC);
@@ -272,15 +325,29 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     digipar.setIBVbb(dopt.IBVbb);
     digipar.setOBVbb(dopt.OBVbb);
     digipar.setVbb(dopt.Vbb);
+    // staggering parameters
+    if constexpr (o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) {
+      const bool withStag = aopt.withStaggering();
+      for (int iLayer{0}; iLayer < o2::itsmft::DPLAlpideParam<N>::getNLayers(); ++iLayer) {
+        const int nLayer = (withStag) ? iLayer : -1;
+        auto frameNS = aopt.getROFLengthInBC(nLayer) * o2::constants::lhc::LHCBunchSpacingNS;
+        digipar.addROFrameLayerLengthInBC(aopt.getROFLengthInBC(nLayer));
+        // NOTE: the rof delay looks from the digitizer like an additional bias
+        digipar.addROFrameLayerBiasInBC(aopt.getROFBiasInBC(nLayer) + aopt.getROFDelayInBC(nLayer));
+        digipar.addStrobeDelay(aopt.strobeDelay);
+        digipar.addStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay);
+        digipar.setROFrameLength(aopt.getROFLengthInBC(nLayer) * o2::constants::lhc::LHCBunchSpacingNS, iLayer);
+      }
+    }
 
     mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
-    LOG(info) << mID.getName() << " simulated in "
+    LOG(info) << detstr << " simulated in "
               << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
               << " RO mode";
 
     // configure digitizer
     o2::itsmft::GeometryTGeo* geom = nullptr;
-    if (mID == o2::detectors::DetID::ITS) {
+    if constexpr (N == o2::detectors::DetID::ITS) {
       geom = o2::its::GeometryTGeo::Instance();
     } else {
       geom = o2::mft::GeometryTGeo::Instance();
@@ -294,81 +361,61 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   bool mFinished = false;
   bool mDisableQED = false;
   unsigned long mFirstOrbitTF = 0x0;
-  o2::detectors::DetID mID;
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   o2::itsmft::Digitizer mDigitizer;
-  std::vector<o2::itsmft::Digit> mDigits;
-  std::vector<o2::itsmft::ROFRecord> mROFRecords;
-  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum;
+  std::array<std::vector<o2::itsmft::Digit>, NLayers> mDigits;
+  std::array<std::vector<o2::itsmft::ROFRecord>, NLayers> mROFRecords;
+  std::array<std::vector<o2::itsmft::ROFRecord>, NLayers> mROFRecordsAccum;
   std::vector<o2::itsmft::Hit> mHits;
   std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
-  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
+  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, NLayers> mLabels;
+  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, NLayers> mLabelsAccum;
+  std::array<std::vector<o2::itsmft::MC2ROFRecord>, NLayers> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
   o2::itsmft::NoiseMap* mDeadMap = nullptr;
 
-  int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
+  std::array<int, NLayers> mFixMC2ROF{}; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
   bool mTimeDeadMapUpdated = false;
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
 
 //_______________________________________________
-class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
+class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask<o2::detectors::DetID::ITS>
 {
  public:
-  // FIXME: origin should be extractable from the DetID, the problem is 3d party header dependencies
-  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::ITS;
-  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginITS;
-  ITSDPLDigitizerTask(bool mctruth = true) : ITSMFTDPLDigitizerTask(mctruth)
-  {
-    mID = DETID;
-    mOrigin = DETOR;
-  }
+  ITSDPLDigitizerTask(bool mctruth = true) : ITSMFTDPLDigitizerTask<o2::detectors::DetID::ITS>(mctruth) {}
 };
-
-constexpr o2::detectors::DetID::ID ITSDPLDigitizerTask::DETID;
-constexpr o2::header::DataOrigin ITSDPLDigitizerTask::DETOR;
 
 //_______________________________________________
-class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
+class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask<o2::detectors::DetID::MFT>
 {
  public:
-  // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
-  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::MFT;
-  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginMFT;
-  MFTDPLDigitizerTask(bool mctruth) : ITSMFTDPLDigitizerTask(mctruth)
-  {
-    mID = DETID;
-    mOrigin = DETOR;
-  }
+  MFTDPLDigitizerTask(bool mctruth = true) : ITSMFTDPLDigitizerTask<o2::detectors::DetID::MFT>(mctruth) {}
 };
 
-constexpr o2::detectors::DetID::ID MFTDPLDigitizerTask::DETID;
-constexpr o2::header::DataOrigin MFTDPLDigitizerTask::DETOR;
-
+namespace
+{
+template <int N>
 std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(detOrig, "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back(detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
-  if (mctruth) {
-    outputs.emplace_back(detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back(detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  constexpr uint32_t nLayers = (DPLAlpideParam<N>::supportsStaggering()) ? DPLAlpideParam<N>::getNLayers() : 1;
+  for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {
+    outputs.emplace_back(detOrig, "DIGITS", iLayer, Lifetime::Timeframe);
+    outputs.emplace_back(detOrig, "DIGITSROF", iLayer, Lifetime::Timeframe);
+    if (mctruth) {
+      outputs.emplace_back(detOrig, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
+      outputs.emplace_back(detOrig, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
+    }
   }
   outputs.emplace_back(detOrig, "ROMode", 0, Lifetime::Timeframe);
   return outputs;
 }
+} // namespace
 
 DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
 {
-  std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::DETID);
-  auto detOrig = ITSDPLDigitizerTask::DETOR;
-  std::stringstream parHelper;
-  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
-            << "\n or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
+  std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::ID);
+  auto detOrig = ITSDPLDigitizerTask::Origin;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   inputs.emplace_back("ITS_noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap"));
@@ -377,19 +424,18 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
   inputs.emplace_back("ITS_alpiderespvbb0", "ITS", "ALPIDERESPVbb0", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbb0"));
   inputs.emplace_back("ITS_alpiderespvbbm3", "ITS", "ALPIDERESPVbbM3", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbbM3"));
-
-  return DataProcessorSpec{(detStr + "Digitizer").c_str(),
-                           inputs, makeOutChannels(detOrig, mctruth),
-                           AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
-                           Options{
+  return DataProcessorSpec{.name = detStr + "Digitizer",
+                           .inputs = inputs,
+                           .outputs = makeOutChannels<o2::detectors::DetID::ITS>(detOrig, mctruth),
+                           .algorithm = AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
+                           .options = Options{
                              {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 
 DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
 {
-  std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitizerTask::DETID);
-  auto detOrig = MFTDPLDigitizerTask::DETOR;
-  std::stringstream parHelper;
+  std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitizerTask::ID);
+  auto detOrig = MFTDPLDigitizerTask::Origin;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   inputs.emplace_back("MFT_noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap"));
@@ -398,15 +444,12 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("MFT_alppar", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam"));
   inputs.emplace_back("MFT_alpiderespvbb0", "MFT", "ALPIDERESPVbb0", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbb0"));
   inputs.emplace_back("MFT_alpiderespvbbm3", "MFT", "ALPIDERESPVbbM3", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbbM3"));
-  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
-            << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
-  return DataProcessorSpec{(detStr + "Digitizer").c_str(),
-                           inputs, makeOutChannels(detOrig, mctruth),
-                           AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>(mctruth)},
-                           Options{{"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
+  return DataProcessorSpec{.name = detStr + "Digitizer",
+                           .inputs = inputs,
+                           .outputs = makeOutChannels<o2::detectors::DetID::MFT>(detOrig, mctruth),
+                           .algorithm = AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>(mctruth)},
+                           .options = Options{{"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 
-} // end namespace itsmft
-} // end namespace o2
+} // namespace o2::itsmft
+  // end namespace o2

@@ -38,14 +38,17 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "DetectorsVertexing/PVertexer.h"
-
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
+// Attention: in case the residuals are checked with geometry different from the one used for initial reconstruction,
+// pass a --configKeyValues option for vertex refit as:
+// ;pvertexer.useMeanVertexConstraint=false;pvertexer.iniScale2=100;pvertexer.acceptableScale2=10.;
+// In any case, it is better to pass ;pvertexer.useMeanVertexConstraint=false;
+
 namespace o2::checkresid
 {
-
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
 using DataRequest = o2::globaltracking::DataRequest;
@@ -83,6 +86,7 @@ class CheckResidSpec : public Task
 
   o2::globaltracking::RecoContainer* mRecoData = nullptr;
   int mNThreads = 1;
+  bool mMeanVertexUpdated = false;
   float mITSROFrameLengthMUS = 0.f;
   o2::dataformats::MeanVertexObject mMeanVtx{};
   std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
@@ -131,6 +135,7 @@ void CheckResidSpec::updateTimeDependentParams(ProcessingContext& pc)
   // mTPCCorrMapsLoader.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
+    const auto& params = o2::checkresid::CheckResidConfig::Instance();
     initOnceDone = true;
     // Note: reading of the ITS AlpideParam needed for ITS timing is done by the RecoContainer
     auto grp = o2::base::GRPGeomHelper::instance().getGRPECS();
@@ -142,8 +147,12 @@ void CheckResidSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
     auto geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2G));
-    o2::conf::ConfigurableParam::updateFromString("pvertexer.useMeanVertexConstraint=false");
+    o2::conf::ConfigurableParam::updateFromString("pvertexer.useTimeInChi2=false;");
     mVertexer.init();
+  }
+  if (mMeanVertexUpdated) {
+    mMeanVertexUpdated = false;
+    mVertexer.initMeanVertexConstraint();
   }
   bool updateMaps = false;
   /*
@@ -200,6 +209,7 @@ void CheckResidSpec::process()
     }
     nvGood++;
     if (params.refitPV) {
+      LOGP(debug, "Refitting PV#{} of {} tracks", iv, pve.getNContributors());
       auto tStartPVF = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       bool res = refitPV(pve, iv);
       pvFitDuration += std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - tStartPVF;
@@ -315,6 +325,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
 
   resTrack.points.clear();
   if (!prop->propagateToDCA(pv, trFitOut, bz)) {
+    LOGP(debug, "Failed to propagateToDCA, {}", trFitOut.asString());
     return false;
   }
   float cosAlp, sinAlp;
@@ -418,7 +429,7 @@ bool CheckResidSpec::refitPV(o2::dataformats::PrimaryVertex& pv, int vid)
   std::vector<o2::track::TrackParCov> tracks;
   std::vector<bool> useTrack;
   std::vector<GTrackID> gidsITS;
-  int ntr = pv.getNContributors();
+  int ntr = pv.getNContributors(), ntrIni = ntr;
   tracks.reserve(ntr);
   useTrack.reserve(ntr);
   gidsITS.reserve(ntr);
@@ -447,20 +458,18 @@ bool CheckResidSpec::refitPV(o2::dataformats::PrimaryVertex& pv, int vid)
     ntr++;
   }
   if (ntr < params.minPVContributors || !mVertexer.prepareVertexRefit(tracks, pv)) {
+    LOGP(warn, "Abandon vertex refit: NcontribNew = {} vs NcontribOld = {}", ntr, ntrIni);
     return false;
   }
-  // readjust vertexZ
-  const auto& pool = mVertexer.getTracksPool();
-  float zUpd = 0;
-  for (const auto& t : pool) {
-    zUpd += t.z;
+  LOGP(debug, "Original vtx: Nc:{} {}, chi2={}", pv.getNContributors(), pv.asString(), pv.getChi2());
+  auto pvSave = pv;
+  pv = mVertexer.refitVertexFull(useTrack, pv);
+  LOGP(debug, "Refitted vtx: Nc:{} {}, chi2={}", ntr, pv.asString(), pv.getChi2());
+  if (pv.getChi2() < 0.f) {
+    LOGP(warn, "Failed to refit PV {}", pvSave.asString());
+    return false;
   }
-  if (pool.size()) {
-    pv.setZ(zUpd / pool.size());
-    mVertexer.prepareVertexRefit(tracks, pv);
-  }
-  pv = mVertexer.refitVertex(useTrack, pv);
-  return pv.getChi2() > 0.f;
+  return true;
 }
 
 bool CheckResidSpec::refitITStrack(o2::track::TrackParCov& track, GTrackID gid)
@@ -515,6 +524,7 @@ void CheckResidSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
     LOG(info) << "Imposing new MeanVertex: " << ((const o2::dataformats::MeanVertexObject*)obj)->asString();
     mMeanVtx = *(const o2::dataformats::MeanVertexObject*)obj;
+    mMeanVertexUpdated = true;
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {

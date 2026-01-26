@@ -26,10 +26,13 @@ struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
 
   bool pvcontribOnly = true;
   bool addPVAsCluster = true;
-  bool refitPV = true;
   bool useStableRef = true;
   bool doIBOB = true;
   bool doResid = true;
+
+  bool refitPV = true;
+  float refitPVMV = false;
+  float refitPVIniScale = 100.f;
 
   O2ParamDef(CheckResidConfig, "checkresid");
 };

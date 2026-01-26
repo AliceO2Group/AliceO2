@@ -113,7 +113,7 @@ class PVertexer
   bool prepareVertexRefit(const TR& tracks, const o2d::VertexBase& vtxSeed);
 
   PVertex refitVertex(const std::vector<bool> useTrack, const o2d::VertexBase& vtxSeed);
-
+  PVertex refitVertexFull(const std::vector<bool> useTrack, const o2d::VertexBase& vtxSeed);
   auto getNTZClusters() const { return mNTZClustersIni; }
   auto getTotTrials() const { return mTotTrials; }
   auto getMaxTrialsPerCluster() const { return mMaxTrialPerCluster; }
@@ -135,6 +135,7 @@ class PVertexer
   void setPoolDumpDirectory(const std::string& d) { mPoolDumpDirectory = d; }
 
   void printInpuTracksStatus(const VertexingInput& input) const;
+  void initMeanVertexConstraint();
 
  private:
   static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
@@ -152,7 +153,6 @@ class PVertexer
   FitStatus evalIterations(VertexSeed& vtxSeed, PVertex& vtx) const;
   TimeEst timeEstimate(const VertexingInput& input) const;
   float findZSeedHistoPeak() const;
-  void initMeanVertexConstraint();
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
   bool relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2);

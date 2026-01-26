@@ -49,6 +49,8 @@ class Digitizer : public TObject
 
  public:
   Digitizer() = default;
+  Digitizer(Digitizer&&) = delete;
+  Digitizer& operator=(Digitizer&&) = delete;
   ~Digitizer() override = default;
   Digitizer(const Digitizer&) = delete;
   Digitizer& operator=(const Digitizer&) = delete;
@@ -56,7 +58,7 @@ class Digitizer : public TObject
   void setDigits(std::vector<o2::itsmft::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
   void setROFRecords(std::vector<o2::itsmft::ROFRecord>* rec) { mROFRecords = rec; }
-  o2::itsmft::DigiParams& getParams() { return (o2::itsmft::DigiParams&)mParams; }
+  o2::itsmft::DigiParams& getParams() { return mParams; }
   const o2::itsmft::DigiParams& getParams() const { return mParams; }
   void setNoiseMap(const o2::itsmft::NoiseMap* mp) { mNoiseMap = mp; }
   void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
@@ -67,17 +69,17 @@ class Digitizer : public TObject
   auto getChipResponse(int chipID);
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<Hit>* hits, int evID, int srcID);
-  void setEventTime(const o2::InteractionTimeRecord& irt);
+  void process(const std::vector<Hit>* hits, int evID, int srcID, int layer = -1);
+  void setEventTime(const o2::InteractionTimeRecord& irt, int layer = -1);
   double getEndTimeOfROFMax() const
   {
     ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
-    return mParams.getROFrameLength() * (mROFrameMax + 1) + mParams.getTimeOffset();
+    return (mParams.getROFrameLength() * (double)(mROFrameMax + 1)) + mParams.getTimeOffset();
   }
 
   void setContinuous(bool v) { mParams.setContinuous(v); }
   bool isContinuous() const { return mParams.isContinuous(); }
-  void fillOutputContainer(uint32_t maxFrame = 0xffffffff);
+  void fillOutputContainer(uint32_t maxFrame = 0xffffffff, int layer = -1);
 
   void setDigiParams(const o2::itsmft::DigiParams& par) { mParams = par; }
   const o2::itsmft::DigiParams& getDigitParams() const { return mParams; }
@@ -92,11 +94,17 @@ class Digitizer : public TObject
     mEventROFrameMin = 0xffffffff;
     mEventROFrameMax = 0;
   }
+  void resetROFrameBounds()
+  {
+    mROFrameMin = 0;
+    mROFrameMax = 0;
+    mNewROFrame = 0;
+  }
 
  private:
-  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID);
+  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID, int lay);
   void registerDigits(ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl);
+                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int lay);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
   {
@@ -115,7 +123,7 @@ class Digitizer : public TObject
   o2::itsmft::DigiParams mParams;          ///< digitization parameters
   o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record
   o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
-  double mCollisionTimeWrtROF;
+  double mCollisionTimeWrtROF{};
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
   uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
   uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time

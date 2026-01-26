@@ -95,7 +95,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   Int_t getSensorIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
 
   /// get layer index (0:9) from the chip index
-  Int_t getLayer(Int_t index) const;
+  Int_t getLayer(Int_t index) const final;
 
   /// This routine computes the half, disk, ladder and sensor number
   /// given the sensor index number
@@ -122,7 +122,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   {
     return extractNumberOfDisks(half);
   }
-  /// Returns the number of halfs MFT
+  /// Returns the number of halves MFT
   Int_t getNumberOfHalfs()
   {
     return extractNumberOfHalves();
@@ -181,7 +181,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   Int_t extractVolumeCopy(const Char_t* name, const Char_t* prefix) const;
 
   /// Get the transformation matrix of the sensor [...]
-  /// for a given sensor 'index' by quering the TGeoManager
+  /// for a given sensor 'index' by querying the TGeoManager
   TGeoHMatrix* extractMatrixSensor(Int_t index) const;
 
   // Create matrix for transformation from sensor local frame to global one

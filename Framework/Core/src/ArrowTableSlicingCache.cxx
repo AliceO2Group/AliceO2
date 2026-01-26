@@ -210,7 +210,7 @@ std::pair<int, bool> ArrowTableSlicingCache::getCachePos(const Entry& bindingKey
 
 int ArrowTableSlicingCache::getCachePosSortedFor(Entry const& bindingKey) const
 {
-  auto locate = std::find(bindingsKeys.begin(), bindingsKeys.end(), bindingKey);
+  auto locate = std::ranges::find(bindingsKeys, bindingKey);
   if (locate != bindingsKeys.end()) {
     return std::distance(bindingsKeys.begin(), locate);
   }
@@ -219,7 +219,7 @@ int ArrowTableSlicingCache::getCachePosSortedFor(Entry const& bindingKey) const
 
 int ArrowTableSlicingCache::getCachePosUnsortedFor(Entry const& bindingKey) const
 {
-  auto locate_unsorted = std::find(bindingsKeysUnsorted.begin(), bindingsKeysUnsorted.end(), bindingKey);
+  auto locate_unsorted = std::ranges::find(bindingsKeysUnsorted, bindingKey);
   if (locate_unsorted != bindingsKeysUnsorted.end()) {
     return std::distance(bindingsKeysUnsorted.begin(), locate_unsorted);
   }
@@ -275,7 +275,7 @@ void ArrowTableSlicingCache::validateOrder(Entry const& bindingKey, const std::s
   }
   auto column = o2::framework::GetColumnByNameCI(input, key);
   auto array0 = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(0)->data());
-  int32_t prev = 0;
+  int32_t prev;
   int32_t cur = array0.Value(0);
   int32_t lastNeg = cur < 0 ? cur : 0;
   int32_t lastPos = cur < 0 ? -1 : cur;

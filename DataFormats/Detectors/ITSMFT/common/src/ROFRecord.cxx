@@ -9,20 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsITSMFT/ROFRecord.h"
 #include <iostream>
-#include "fmt/format.h"
+#include <format>
+
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "Framework/Logger.h"
 
 using namespace o2::itsmft;
 
 std::string ROFRecord::asString() const
 {
-  return fmt::format("ROF: {} | {} entries starting from {}", mROFrame, getNEntries(), getFirstEntry());
+  return std::format("ROF: {} | {} entries starting from {} | IR: {}", mROFrame, getNEntries(), getFirstEntry(), mBCData.asString());
 }
 
 void ROFRecord::print() const
 {
-  std::cout << this << "\n\t" << mBCData << std::endl;
+  LOG(info) << asString();
 }
 
 std::ostream& operator<<(std::ostream& stream, ROFRecord const& rec)
@@ -33,12 +35,12 @@ std::ostream& operator<<(std::ostream& stream, ROFRecord const& rec)
 
 std::string MC2ROFRecord::asString() const
 {
-  return fmt::format("MCEventID: {} ROFs: {}-{} Entry in ROFRecords: {}", eventRecordID, minROF, maxROF, rofRecordID);
+  return std::format("MCEventID: {} ROFs: {}-{} Entry in ROFRecords: {}", eventRecordID, minROF, maxROF, rofRecordID);
 }
 
 void MC2ROFRecord::print() const
 {
-  std::cout << this << std::endl;
+  LOG(info) << asString();
 }
 
 std::ostream& operator<<(std::ostream& stream, MC2ROFRecord const& rec)

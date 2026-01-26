@@ -176,7 +176,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   bool getChipId(int index, int& lay, int& hba, int& sta, int& ssta, int& mod, int& chip) const;
 
   /// Get chip layer, from 0
-  int getLayer(int index) const;
+  int getLayer(int index) const final;
 
   /// Get chip half barrel, from 0
   int getHalfBarrel(int index) const;
@@ -216,7 +216,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return getSymbolicName(getChipIndex(lay, hba, sta, det));
   }
 
-  /// Get the transformation matrix for a given chip (NOT A SENSOR!!!) 'index' by quering the TGeoManager
+  /// Get the transformation matrix for a given chip (NOT A SENSOR!!!) 'index' by querying the TGeoManager
   TGeoHMatrix* getMatrix(int index) const { return o2::base::GeometryManager::getMatrix(getDetID(), index); }
   TGeoHMatrix* getMatrix(int lay, int hba, int sta, int sens) const { return getMatrix(getChipIndex(lay, hba, sta, sens)); }
   bool getOriginalMatrix(int index, TGeoHMatrix& m) const
@@ -336,7 +336,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   TString getMatrixPath(int index) const;
 
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
-  /// for a given chip 'index' by quering the TGeoManager
+  /// for a given chip 'index' by querying the TGeoManager
   TGeoHMatrix* extractMatrixSensor(int index) const;
 
   // create matrix for transformation from sensor local frame to global one
@@ -407,7 +407,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   std::vector<int> mNumberOfChipsPerStave;      ///< number of chips per stave
   std::vector<int> mNumberOfChipsPerHalfBarrel; ///< number of chips per halfbarrel
   std::vector<int> mNumberOfChipsPerLayer;      ///< number of chips per stave
-  std::vector<int> mLastChipIndex;              ///< max ID of the detctor in the layer
+  std::vector<int> mLastChipIndex;              ///< max ID of the detector in the layer
   std::array<bool, MAXLAYERS> mIsLayerITS3;     ///< flag with the information of the ITS version (ITS2 or ITS3)
   std::array<char, MAXLAYERS> mLayerToWrapper;  ///< Layer to wrapper correspondence
 

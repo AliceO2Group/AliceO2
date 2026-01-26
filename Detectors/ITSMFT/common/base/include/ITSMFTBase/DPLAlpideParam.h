@@ -26,17 +26,44 @@ constexpr float DEFStrobeDelay = o2::constants::lhc::LHCBunchSpacingNS * 4; // ~
 
 template <int N>
 struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<N>> {
+  static constexpr int getNLayers()
+  {
+    return N == o2::detectors::DetID::ITS ? 7 : 10;
+  }
 
   static constexpr std::string_view getParamName()
   {
     return N == o2::detectors::DetID::ITS ? ParamName[0] : ParamName[1];
   }
-  int roFrameLengthInBC = DEFROFLengthBC();           ///< ROF length in BC for continuos mode
-  float roFrameLengthTrig = DEFROFLengthTrig();       ///< length of RO frame in ns for triggered mode
-  float strobeDelay = DEFStrobeDelay;                 ///< strobe start (in ns) wrt ROF start
-  float strobeLengthCont = -1.;                       ///< if < 0, full ROF length - delay
-  float strobeLengthTrig = 100.;                      ///< length of the strobe in ns (sig. over threshold checked in this window only)
-  int roFrameBiasInBC = DEFROFBiasInBC();             ///< bias of the start of ROF wrt orbit start: t_irof = (irof*roFrameLengthInBC + roFrameBiasInBC)*BClengthMUS
+
+  int roFrameLengthInBC = DEFROFLengthBC();      ///< ROF length in BC for continuous mode
+  float roFrameLengthTrig = DEFROFLengthTrig();  ///< length of RO frame in ns for triggered mode
+  float strobeDelay = DEFStrobeDelay;            ///< strobe start (in ns) wrt ROF start
+  float strobeLengthCont = -1.;                  ///< if < 0, full ROF length - delay
+  float strobeLengthTrig = 100.;                 ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  int roFrameBiasInBC = DEFROFBiasInBC();        ///< bias of the start of ROF wrt orbit start: t_irof = (irof*roFrameLengthInBC + roFrameBiasInBC)*BClengthMUS
+  int roFrameLayerLengthInBC[getNLayers()] = {}; ///< staggering ROF length in BC for continuous mode per layer
+  int roFrameLayerBiasInBC[getNLayers()] = {};   ///< staggering ROF bias in BC for continuous mode per layer
+  int roFrameLayerDelayInBC[getNLayers()] = {};  ///< staggering ROF delay in BC for continuous mode per layer
+
+  static constexpr bool supportsStaggering() noexcept { return (N == o2::detectors::DetID::ITS) ? false : false; }
+  // test if staggering is on
+  bool withStaggering() const noexcept
+  {
+    if constexpr (!supportsStaggering()) {
+      return false;
+    }
+    for (int i{0}; i < getNLayers(); ++i) {
+      if (roFrameLayerLengthInBC[i] != 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+  // get ROF length for any layer
+  int getROFLengthInBC(int layer) const noexcept { return (withStaggering()) ? roFrameLayerLengthInBC[layer] : roFrameLengthInBC; }
+  int getROFBiasInBC(int layer) const noexcept { return (withStaggering()) ? roFrameLayerBiasInBC[layer] : roFrameBiasInBC; }
+  int getROFDelayInBC(int layer) const noexcept { return (withStaggering()) ? roFrameLayerDelayInBC[layer] : 0; }
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLAlpideParam, getParamName().data());
@@ -46,7 +73,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
 
   static constexpr int DEFROFLengthBC()
   {
-    // default ROF length in BC for continuos mode
+    // default ROF length in BC for continuous mode
     // allowed values: 1,2,3,4,6,9,11,12,18,22,27,33,36
     return N == o2::detectors::DetID::ITS ? o2::constants::lhc::LHCMaxBunches / 4 : o2::constants::lhc::LHCMaxBunches / 18;
   }
