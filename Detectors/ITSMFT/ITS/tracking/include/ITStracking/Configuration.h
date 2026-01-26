@@ -68,7 +68,7 @@ struct TrackingParameters {
   float MaxChi2NDF = 30.f;
   int ReseedIfShorter = 6; // reseed for the final fit track with the length shorter than this
   std::vector<float> MinPt = {0.f, 0.f, 0.f, 0.f};
-  unsigned char StartLayerMask = 0x7F;
+  uint16_t StartLayerMask = 0x7F;
   bool RepeatRefitOut = true;    // repeat outward refit using inward refit as a seed
   bool ShiftRefToCluster = true; // TrackFit: after update shift the linearization reference to cluster
   bool FindShortTracks = false;
