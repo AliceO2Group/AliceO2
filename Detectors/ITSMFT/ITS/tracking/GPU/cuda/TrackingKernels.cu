@@ -399,6 +399,11 @@ GPUg() void __launch_bounds__(256, 1) computeLayerCellNeighboursKernel(
   const int maxCellNeighbours = 1e2)
 {
   for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells; iCurrentCellIndex += blockDim.x * gridDim.x) {
+    if constexpr (!initRun) {
+      if (neighboursIndexTable[iCurrentCellIndex] == neighboursIndexTable[iCurrentCellIndex + 1]) {
+        continue;
+      }
+    }
     const auto& currentCellSeed{cellSeedArray[layerIndex][iCurrentCellIndex]};
     const int nextLayerTrackletIndex{currentCellSeed.getSecondTrackletIndex()};
     const int nextLayerFirstCellIndex{cellsLUTs[layerIndex + 1][nextLayerTrackletIndex]};
@@ -464,8 +469,13 @@ GPUg() void __launch_bounds__(256, 1) computeLayerCellsKernel(
   const float cellDeltaTanLambdaSigma,
   const float nSigmaCut)
 {
-  constexpr float layerxX0[7] = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f}; // Hardcoded here for the moment.
+  constexpr float layerxX0[7] = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f}; // FIXME: Hardcoded here for the moment.
   for (int iCurrentTrackletIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackletIndex < nTrackletsCurrent; iCurrentTrackletIndex += blockDim.x * gridDim.x) {
+    if constexpr (!initRun) {
+      if (cellsLUTs[layer][iCurrentTrackletIndex] == cellsLUTs[layer][iCurrentTrackletIndex + 1]) {
+        continue;
+      }
+    }
     const Tracklet& currentTracklet = tracklets[layer][iCurrentTrackletIndex];
     const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
     const int nextLayerFirstTrackletIndex{trackletsLUT[layer + 1][nextLayerClusterIndex]};
@@ -526,10 +536,10 @@ GPUg() void __launch_bounds__(256, 1) computeLayerCellsKernel(
           new (cells + cellsLUTs[layer][iCurrentTrackletIndex] + foundCells) CellSeed<nLayers>{layer, clusId[0], clusId[1], clusId[2], iCurrentTrackletIndex, iNextTrackletIndex, track, chi2};
         }
         ++foundCells;
-        if constexpr (initRun) {
-          cellsLUTs[layer][iCurrentTrackletIndex] = foundCells;
-        }
       }
+    }
+    if constexpr (initRun) {
+      cellsLUTs[layer][iCurrentTrackletIndex] = foundCells;
     }
   }
 }
@@ -692,8 +702,13 @@ GPUg() void __launch_bounds__(256, 1) processNeighboursKernel(
   const o2::base::Propagator* propagator,
   const o2::base::PropagatorF::MatCorrType matCorrType)
 {
-  constexpr float layerxX0[7] = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f}; // Hardcoded here for the moment.
+  constexpr float layerxX0[7] = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f}; // FIXME: Hardcoded here for the moment.
   for (unsigned int iCurrentCell = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCell < nCurrentCells; iCurrentCell += blockDim.x * gridDim.x) {
+    if constexpr (!dryRun) {
+      if (foundSeedsTable[iCurrentCell] == foundSeedsTable[iCurrentCell + 1]) {
+        continue;
+      }
+    }
     int foundSeeds{0};
     const auto& currentCell{currentCellSeeds[iCurrentCell]};
     if (currentCell.getLevel() != level) {
