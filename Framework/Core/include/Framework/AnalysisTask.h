@@ -313,8 +313,10 @@ struct AnalysisDataProcessorBuilder {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
 
+    constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<Task>>() / 10;
+
     // set filtered tables for partitions with grouping
-    homogeneous_apply_refs([&groupingTable](auto& element) {
+    homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& element) {
       analysis_task_parsers::setPartition(element, groupingTable);
       analysis_task_parsers::bindInternalIndicesPartition(element, &groupingTable);
       return true;
@@ -323,7 +325,7 @@ struct AnalysisDataProcessorBuilder {
 
     if constexpr (sizeof...(Associated) == 0) {
       // single argument to process
-      homogeneous_apply_refs([&groupingTable](auto& element) {
+      homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& element) {
         analysis_task_parsers::bindExternalIndicesPartition(element, &groupingTable);
         analysis_task_parsers::setGroupedCombination(element, groupingTable);
         return true;
@@ -346,7 +348,7 @@ struct AnalysisDataProcessorBuilder {
       // pre-bind self indices
       std::apply(
         [&task](auto&... t) mutable {
-          (homogeneous_apply_refs(
+          (homogeneous_apply_refs_sized<numElements>(
              [&t](auto& p) {
                analysis_task_parsers::bindInternalIndicesPartition(p, &t);
                return true;
@@ -358,7 +360,7 @@ struct AnalysisDataProcessorBuilder {
 
       auto binder = [&task, &groupingTable, &associatedTables](auto& x) mutable {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
-        homogeneous_apply_refs([&x](auto& t) mutable {
+        homogeneous_apply_refs_sized<numElements>([&x](auto& t) mutable {
           analysis_task_parsers::setPartition(t, x);
           analysis_task_parsers::bindExternalIndicesPartition(t, &x);
           return true;
@@ -375,7 +377,7 @@ struct AnalysisDataProcessorBuilder {
         associatedTables);
 
       // GroupedCombinations bound separately, as they should be set once for all associated tables
-      homogeneous_apply_refs([&groupingTable, &associatedTables](auto& t) {
+      homogeneous_apply_refs_sized<numElements>([&groupingTable, &associatedTables](auto& t) {
         analysis_task_parsers::setGroupedCombination(t, groupingTable, associatedTables);
         return true;
       },
@@ -393,7 +395,7 @@ struct AnalysisDataProcessorBuilder {
             associatedSlices);
 
           // bind partitions and grouping table
-          homogeneous_apply_refs([&groupingTable](auto& x) {
+          homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& x) {
             analysis_task_parsers::bindExternalIndicesPartition(x, &groupingTable);
             return true;
           },
@@ -403,7 +405,7 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // bind partitions and grouping table
-        homogeneous_apply_refs([&groupingTable](auto& x) {
+        homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& x) {
           analysis_task_parsers::bindExternalIndicesPartition(x, &groupingTable);
           return true;
         },
@@ -522,16 +524,18 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ConfigParamSpec> options;
   std::vector<ExpressionInfo> expressionInfos;
 
+  constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<T>>() / 10;
+
   /// make sure options and configurables are set before expression infos are created
-  homogeneous_apply_refs([&options, &hash](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&options, &hash](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
   /// extract conditions and append them as inputs
-  homogeneous_apply_refs([&inputs](auto& element) { return analysis_task_parsers::appendCondition(inputs, element); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&inputs](auto& element) { return analysis_task_parsers::appendCondition(inputs, element); }, *task.get());
 
   /// parse process functions defined by corresponding configurables
   if constexpr (requires { &T::process; }) {
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos);
   }
-  homogeneous_apply_refs(
+  homogeneous_apply_refs_sized<numElements>(
     [name = name_str, &expressionInfos, &inputs](auto& x) mutable {
       // this pushes (argumentIndex, processHash, schemaPtr, nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
       return AnalysisDataProcessorBuilder::requestInputsFromArgs(x, name, inputs, expressionInfos);
@@ -540,7 +544,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   // request base tables for spawnable extended tables and indices to be built
   // this checks for duplications
-  homogeneous_apply_refs([&inputs](auto& element) {
+  homogeneous_apply_refs_sized<numElements>([&inputs](auto& element) {
     return analysis_task_parsers::requestInputs(inputs, element);
   },
                          *task.get());
@@ -550,25 +554,25 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     LOG(warn) << "Task " << name_str << " has no inputs";
   }
 
-  homogeneous_apply_refs([&outputs, &hash](auto& element) { return analysis_task_parsers::appendOutput(outputs, element, hash); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&outputs, &hash](auto& element) { return analysis_task_parsers::appendOutput(outputs, element, hash); }, *task.get());
 
   auto requiredServices = CommonServices::defaultServices();
   auto arrowServices = CommonServices::arrowServices();
   requiredServices.insert(requiredServices.end(), arrowServices.begin(), arrowServices.end());
-  homogeneous_apply_refs([&requiredServices](auto& element) { return analysis_task_parsers::addService(requiredServices, element); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&requiredServices](auto& element) { return analysis_task_parsers::addService(requiredServices, element); }, *task.get());
 
   auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos](InitContext& ic) mutable {
     Cache bindingsKeys;
     Cache bindingsKeysUnsorted;
     // add preslice declarations to slicing cache definition
-    homogeneous_apply_refs([&bindingsKeys, &bindingsKeysUnsorted](auto& element) { return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted); }, *task.get());
+    homogeneous_apply_refs_sized<numElements>([&bindingsKeys, &bindingsKeysUnsorted](auto& element) { return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted); }, *task.get());
 
-    homogeneous_apply_refs([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
-    homogeneous_apply_refs([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
+    homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
+    homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
 
     auto& callbacks = ic.services().get<CallbackService>();
     auto eoscb = [task](EndOfStreamContext& eosContext) {
-      homogeneous_apply_refs([&eosContext](auto& element) {
+      homogeneous_apply_refs_sized<numElements>([&eosContext](auto& element) {
           analysis_task_parsers::postRunService(eosContext, element);
           analysis_task_parsers::postRunOutput(eosContext, element);
           return true; },
@@ -584,11 +588,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     }
 
     /// update configurables in filters and partitions
-    homogeneous_apply_refs(
+    homogeneous_apply_refs_sized<numElements>(
       [&ic](auto& element) -> bool { return analysis_task_parsers::updatePlaceholders(ic, element); },
       *task.get());
     /// create expression trees for filters gandiva trees matched to schemas and store the pointers into expressionInfos
-    homogeneous_apply_refs([&expressionInfos](auto& element) {
+    homogeneous_apply_refs_sized<numElements>([&expressionInfos](auto& element) {
       return analysis_task_parsers::createExpressionTrees(expressionInfos, element);
     },
                            *task.get());
@@ -597,7 +601,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     if constexpr (requires { &T::process; }) {
       AnalysisDataProcessorBuilder::cacheFromArgs(&T::process, true, bindingsKeys, bindingsKeysUnsorted);
     }
-    homogeneous_apply_refs(
+    homogeneous_apply_refs_sized<numElements>(
       [&bindingsKeys, &bindingsKeysUnsorted](auto& x) {
         return AnalysisDataProcessorBuilder::requestCacheFromArgs(x, bindingsKeys, bindingsKeysUnsorted);
       },
@@ -608,21 +612,21 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
     return [task, expressionInfos](ProcessingContext& pc) mutable {
       // load the ccdb object from their cache
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::newDataframeCondition(pc.inputs(), element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::newDataframeCondition(pc.inputs(), element); }, *task.get());
       // reset partitions once per dataframe
-      homogeneous_apply_refs([](auto& element) { return analysis_task_parsers::newDataframePartition(element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([](auto& element) { return analysis_task_parsers::newDataframePartition(element); }, *task.get());
       // reset selections for the next dataframe
       std::ranges::for_each(expressionInfos, [](auto& info){ info.resetSelection = true; });
       // reset pre-slice for the next dataframe
       auto slices = pc.services().get<ArrowTableSlicingCache>();
-      homogeneous_apply_refs([&pc, &slices](auto& element) {
+      homogeneous_apply_refs_sized<numElements>([&pc, &slices](auto& element) {
         return analysis_task_parsers::updateSliceInfo(element, slices);
       },
                              *(task.get()));
       // initialize local caches
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::initializeCache(pc, element); }, *(task.get()));
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::initializeCache(pc, element); }, *(task.get()));
       // prepare outputs
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::prepareOutput(pc, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::prepareOutput(pc, element); }, *task.get());
       // execute run()
       if constexpr (requires { task->run(pc); }) {
         task->run(pc);
@@ -632,7 +636,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);
       }
       // execute optional process()
-      homogeneous_apply_refs(
+      homogeneous_apply_refs_sized<numElements>(
         [&pc, &expressionInfos, &task, &slices](auto& x) {
           if constexpr (is_process_configurable<decltype(x)>) {
             if (x.value == true) {
@@ -645,9 +649,9 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         },
         *task.get());
       // prepare delayed outputs
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::prepareDelayedOutput(pc, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::prepareDelayedOutput(pc, element); }, *task.get());
       // finalize outputs
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::finalizeOutput(pc, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::finalizeOutput(pc, element); }, *task.get());
     };
   }};
 
