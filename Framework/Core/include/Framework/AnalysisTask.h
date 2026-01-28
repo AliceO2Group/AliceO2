@@ -527,7 +527,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<T>>() / 10;
 
   /// make sure options and configurables are set before expression infos are created
-  homogeneous_apply_refs_sized<numElements>([&options, &hash](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&options](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
   /// extract conditions and append them as inputs
   homogeneous_apply_refs_sized<numElements>([&inputs](auto& element) { return analysis_task_parsers::appendCondition(inputs, element); }, *task.get());
 
@@ -619,7 +619,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       std::ranges::for_each(expressionInfos, [](auto& info) { info.resetSelection = true; });
       // reset pre-slice for the next dataframe
       auto slices = pc.services().get<ArrowTableSlicingCache>();
-      homogeneous_apply_refs_sized<numElements>([&pc, &slices](auto& element) {
+      homogeneous_apply_refs_sized<numElements>([&slices](auto& element) {
         return analysis_task_parsers::updateSliceInfo(element, slices);
       },
                                                 *(task.get()));

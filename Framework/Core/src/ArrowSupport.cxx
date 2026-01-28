@@ -685,33 +685,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         }
       }
 
-      // replace writer as some outputs may have become dangling and some are now consumed
-      auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);
+      WorkflowHelpers::injectAODWriter(workflow, ctx);
 
-      // create DataOutputDescriptor
-      std::shared_ptr<DataOutputDirector> dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
-
-      // select outputs of type AOD which need to be saved
-      // ATTENTION: if there are dangling outputs the getGlobalAODSink
-      // has to be created in any case!
-      dec.outputsInputsAOD.clear();
-
-      for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-        if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
-          auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-          if (!ds.empty() || isDangling[ii]) {
-            dec.outputsInputsAOD.emplace_back(outputsInputs[ii]);
-          }
-        }
-      }
-
-      // file sink for any AOD output
-      if (!dec.outputsInputsAOD.empty()) {
-        // add TFNumber and TFFilename as input to the writer
-        dec.outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
-        dec.outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
-        workflow.push_back(AnalysisSupportHelpers::getGlobalAODSink(ctx));
-      }
       // Move the dummy sink at the end, if needed
       for (size_t i = 0; i < workflow.size(); ++i) {
         if (workflow[i].name == "internal-dpl-injected-dummy-sink") {

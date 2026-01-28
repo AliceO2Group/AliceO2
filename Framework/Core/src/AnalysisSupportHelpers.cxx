@@ -98,7 +98,7 @@ std::shared_ptr<DataOutputDirector> AnalysisSupportHelpers::getDataOutputDirecto
     if (!keepString.empty()) {
       dod->reset();
       std::string d("dangling");
-      if (d.find(keepString) == 0) {
+      if (keepString.starts_with(d)) {
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
@@ -144,7 +144,7 @@ void AnalysisSupportHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> 
     sinks::append_to{publisher.outputs}; // append them to the publisher outputs
 
   std::vector<InputSpec> additionalInputs;
-  for (auto& input : requestedSpecials | views::filter_not_matching(providedSpecials)) {
+  for (auto const& input : requestedSpecials | views::filter_not_matching(providedSpecials)) {
     input.metadata |
       views::filter_string_params_with("input:") |
       views::params_to_input_specs() |

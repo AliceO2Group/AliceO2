@@ -420,10 +420,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       // AODs are being injected on-the-fly, add error-handler reader
       aodReader.algorithm = AlgorithmSpec{
         adaptStateful(
-          [outputs = aodReader.outputs](DeviceSpec const&) {
+          [](DeviceSpec const& spec) {
             LOGP(warn, "Workflow with injected AODs has unsatisfied inputs:");
-            for (auto const& output : outputs) {
-              LOGP(warn, "  {}", DataSpecUtils::describe(output));
+            for (auto const& output : spec.outputs) {
+              LOGP(warn, "  {}", DataSpecUtils::describe(output.matcher));
             }
             LOGP(fatal, "Stopping.");
             // to ensure the output type for adaptStateful
@@ -531,43 +531,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
   extraSpecs.clear();
 
-  /// Analyze all ouputs
-  auto [outputsInputsTmp, isDanglingTmp] = analyzeOutputs(workflow);
-  dec.isDangling = isDanglingTmp;
-  dec.outputsInputs = outputsInputsTmp;
-
-  // create DataOutputDescriptor
-  std::shared_ptr<DataOutputDirector> dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
-
-  // select outputs of type AOD which need to be saved
-  // ATTENTION: if there are dangling outputs the getGlobalAODSink
-  // has to be created in any case!
-  for (auto ii = 0u; ii < dec.outputsInputs.size(); ii++) {
-    if (DataSpecUtils::partialMatch(dec.outputsInputs[ii], extendedAODOrigins)) {
-      auto ds = dod->getDataOutputDescriptors(dec.outputsInputs[ii]);
-      if (ds.size() > 0 || dec.isDangling[ii]) {
-        dec.outputsInputsAOD.emplace_back(dec.outputsInputs[ii]);
-      }
-    }
-  }
-
-  // file sink for any AOD output
-  if (dec.outputsInputsAOD.size() > 0) {
-    // add TFNumber and TFFilename as input to the writer
-    dec.outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
-    dec.outputsInputsAOD.emplace_back(InputSpec{"tff", "TFF", "TFFilename"});
-    auto fileSink = AnalysisSupportHelpers::getGlobalAODSink(ctx);
-    extraSpecs.push_back(fileSink);
-
-    auto it = std::ranges::find_if(dec.outputsInputs, [](InputSpec& spec) -> bool {
-      return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFN"));
-    });
-    size_t ii = std::distance(dec.outputsInputs.begin(), it);
-    dec.isDangling[ii] = false;
-  }
-
-  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
-  extraSpecs.clear();
+  injectAODWriter(workflow, ctx);
 
   // Select dangling outputs which are not of type AOD
   std::vector<InputSpec> redirectedOutputsInputs;
@@ -701,6 +665,41 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
         break;
       }
     }
+  }
+}
+
+void WorkflowHelpers::injectAODWriter(WorkflowSpec& workflow, ConfigContext const& ctx)
+{
+  auto& dec = ctx.services().get<DanglingEdgesContext>();
+  /// Analyze all ouputs
+  std::tie(dec.outputsInputs, dec.isDangling) = analyzeOutputs(workflow);
+
+  // create DataOutputDescriptor
+  std::shared_ptr<DataOutputDirector> dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
+
+  // select outputs of type AOD which need to be saved
+  dec.outputsInputsAOD.clear();
+  for (auto ii = 0u; ii < dec.outputsInputs.size(); ii++) {
+    if (DataSpecUtils::partialMatch(dec.outputsInputs[ii], extendedAODOrigins)) {
+      auto ds = dod->getDataOutputDescriptors(dec.outputsInputs[ii]);
+      if (ds.size() > 0 || dec.isDangling[ii]) {
+        dec.outputsInputsAOD.emplace_back(dec.outputsInputs[ii]);
+      }
+    }
+  }
+
+  // file sink for any AOD output
+  if (dec.outputsInputsAOD.size() > 0) {
+    // add TFNumber and TFFilename as input to the writer
+    DataSpecUtils::updateInputList(dec.outputsInputsAOD, InputSpec{"tfn", "TFN", "TFNumber"});
+    DataSpecUtils::updateInputList(dec.outputsInputsAOD, InputSpec{"tff", "TFF", "TFFilename"});
+    auto fileSink = AnalysisSupportHelpers::getGlobalAODSink(ctx);
+    workflow.push_back(fileSink);
+
+    auto it = std::find_if(dec.outputsInputs.begin(), dec.outputsInputs.end(), [](InputSpec const& spec) -> bool {
+      return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFN"));
+    });
+    dec.isDangling[std::distance(dec.outputsInputs.begin(), it)] = false;
   }
 }
 

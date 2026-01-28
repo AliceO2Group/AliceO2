@@ -184,8 +184,10 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         // it can happen that in the digitization rofs without contributing hits are skipped
         // however downstream consumers of the clusters cannot know apriori the time structure
         // the cluster rofs do not account for the bias so it will start always at BC=0
-        std::vector<o2::itsmft::ROFRecord> expDigitRofVec(nROFsTF);
-        for (int iROF{0}; iROF < nROFsTF; ++iROF) {
+        // also have to account for spillage into next TF
+        const size_t nROFsLayer = std::max((size_t)nROFsTF, mROFRecordsAccum[iLayer].size());
+        std::vector<o2::itsmft::ROFRecord> expDigitRofVec(nROFsLayer);
+        for (int iROF{0}; iROF < nROFsLayer; ++iROF) {
           auto& rof = expDigitRofVec[iROF];
           int orb = iROF * DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer) / o2::constants::lhc::LHCMaxBunches + mFirstOrbitTF;
           int bc = iROF * DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches;
@@ -204,7 +206,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
           expROF.setFirstEntry(rof.getFirstEntry());
           expROF.setNEntries(rof.getNEntries());
           if (expROF.getBCData() != rof.getBCData()) {
-            LOGP(fatal, "detected mismatch between expected ROF:{} and received ROF:{}", expROF.asString(), rof.asString());
+            LOGP(fatal, "detected mismatch between expected {} and received {}", expROF.asString(), rof.asString());
           }
         }
         int prevFirst{0};
@@ -214,6 +216,9 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
           }
           prevFirst = rof.getFirstEntry();
         }
+        // if more rofs where accumulated than ROFs possible in the TF, cut them away
+        // by construction expDigitRofVec is at least nROFsTF long
+        expDigitRofVec.resize(nROFsTF);
         pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, expDigitRofVec);
       } else {
         pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, mROFRecordsAccum[iLayer]);
