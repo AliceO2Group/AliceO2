@@ -122,9 +122,9 @@ class Pdg(Enum):
     kJPsi = 443
     kLambdaB0 = 5122
     kLambdaCPlus = 4122
-    kLambdaCPlus2860 = 34122
-    kLambdaCPlus2880 = 44122
-    kLambdaCPlus2940 = 54122
+    kLambdaCPlus2860 = 24124
+    kLambdaCPlus2880 = 24126
+    kLambdaCPlus2940 = 4125
     kOmegaC0 = 4332
     kK0Star892 = 313
     kKPlusStar892 = 323
