@@ -45,9 +45,6 @@ if(HIP_AMDGPUTARGET AND HIP_AMDGPUTARGET STREQUAL "default")
 endif()
 
 function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterring by backend
-  set(TARGET_ARCH "")
-  set(CUDA_TARGET "")
-  set(HIP_TARGET "")
 
   if(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET MATCHES "86|89")
     set(CUDA_TARGET AMPERE)
@@ -80,8 +77,11 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
   elseif(backend STREQUAL "HIP") # HIP filter
     set(TARGET_ARCH "${HIP_TARGET}" PARENT_SCOPE)
     return()
-  else() # Return both
+  elseif(backend STREQUAL "ALL") # Return both
     set(TARGET_ARCH "${CUDA_TARGET},${HIP_TARGET}" PARENT_SCOPE)
+    return()
+  else()
+    message(FATAL_ERROR "Unknown backend provided: ${backend}")
   endif()
 endfunction()
 

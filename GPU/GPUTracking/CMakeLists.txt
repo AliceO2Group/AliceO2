@@ -108,7 +108,7 @@ set(SRCS_NO_H SectorTracker/GPUTPCTrackerDump.cxx
 
 set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
 file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
-include(cmake/generateGPUParamHeader.cmake)
+include(cmake/gpu_param_header_generator.cmake)
 set(GPU_DEFAULT_PARAMS_HEADER ${ON_THE_FLY_DIR}/GPUDefParametersDefaults.h)
 generate_gpu_param_header("AUTO" ${GPU_DEFAULT_PARAMS_HEADER}) # generate header with default GPU parameters, arch selected by CMake variables
 
