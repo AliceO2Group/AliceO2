@@ -1070,6 +1070,15 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
         break;
       }
     }
+    // Output proxies should wait for the completion policy before forwarding.
+    // Because they actually do not do anything, that's equivalent to
+    // forwarding after the processing.
+    for (auto& label : spec.labels) {
+      if (label.value == "output-proxy") {
+        defaultEarlyForwardPolicy = ForwardPolicy::AfterProcessing;
+        break;
+      }
+    }
 
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding

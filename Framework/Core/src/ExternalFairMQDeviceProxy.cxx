@@ -1045,6 +1045,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
   spec.options = {
     ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}},
   };
+  spec.labels.push_back(DataProcessorLabel{"output-proxy"});
 
   return spec;
 }
@@ -1180,6 +1181,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
   spec.options = {
     ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}},
   };
+  spec.labels.push_back(DataProcessorLabel{"output-proxy"});
 
   return spec;
 }
