@@ -39,7 +39,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "TRDBase/RecoParam.h"
+#include "GPUTRDRecoParam.h"
 #include "TRDBase/Geometry.h"
 
 class TTree;
@@ -441,7 +441,7 @@ class TrackInterpolation
   std::vector<o2::dataformats::GlobalTrackID> mGIDsSuccess;       ///< keep track of the GIDs which could be processed successfully
 
   // helpers
-  o2::trd::RecoParam mRecoParam;                      ///< parameters required for TRD refit
+  o2::gpu::GPUTRDRecoParam mRecoParam;                ///< parameters required for TRD refit
   o2::trd::Geometry* mGeoTRD;                         ///< TRD geometry instance (needed for tilted pad correction)
   std::unique_ptr<TPCFastTransform> mFastTransform{}; ///< TPC cluster transformation
   float mBz;                                          ///< required for helix approximation

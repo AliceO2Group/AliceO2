@@ -59,6 +59,7 @@ set(SRCS
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
     DataTypes/GPUTRDTrack.cxx
+    DataTypes/GPUTRDRecoParam.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
     TRDTracking/GPUTRDTrackerKernels.cxx
@@ -68,7 +69,7 @@ set(SRCS_DATATYPES DataTypes/GPUDataTypesConfig.cxx DataTypes/GPUConfigDump.cxx 
 
 set(HDRS_CINT_O2 Merger/GPUTPCGMTrackParam.h Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSectorTrack.h Merger/GPUTPCGMBorderTrack.h TRDTracking/GPUTRDInterfaces.h)
 set(HDRS_CINT_DATATYPES DataTypes/GPUTPCGMMergedTrackHit.h)
-set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypesIO.h DataTypes/GPUDataTypesConfig.h DataTypes/GPUDataTypesQA.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
+set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypesIO.h DataTypes/GPUDataTypesConfig.h DataTypes/GPUDataTypesQA.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDRecoParam.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx

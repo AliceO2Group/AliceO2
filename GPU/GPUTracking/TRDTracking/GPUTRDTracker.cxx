@@ -23,6 +23,7 @@
 #include "GPUCommonMath.h"
 #include "GPUCommonAlgorithm.h"
 #include "GPUConstantMem.h"
+#include "GPUTRDRecoParam.h"
 
 using namespace o2::gpu;
 
@@ -92,7 +93,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 }
 
 template <class TRDTRK, class PROP>
-GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mGenerateSpacePoints(false), mProcessPerTimeFrame(false), mNAngleHistogramBins(25), mAngleHistogramRange(50), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(0), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mTrackAttribs(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mMaxBackendThreads(100), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mMaxEta(0.84f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mTPCVdrift(2.58f), mTPCTDriftOffset(0.f), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
+GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mGenerateSpacePoints(false), mProcessPerTimeFrame(false), mNAngleHistogramBins(25), mAngleHistogramRange(50), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(0), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mTrackAttribs(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mMaxBackendThreads(100), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mGeo(nullptr), mRecoParam(nullptr), mDebugOutput(false), mMaxEta(0.84f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mTPCVdrift(2.58f), mTPCTDriftOffset(0.f), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -114,9 +115,8 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
   //--------------------------------------------------------------------
   // Initialise tracker
   //--------------------------------------------------------------------
-
+  mRecoParam = GetConstantMem()->calibObjects.trdRecoParam;
   UpdateGeometry();
-
   mDebug->ExpandVectors();
   mIsInitialized = true;
 }
@@ -131,42 +131,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::UpdateGeometry()
   if (!mGeo) {
     GPUFatal("TRD geometry must be provided externally");
   }
-  float Bz = Param().bzkG;
-  float resRPhiIdeal2 = Param().rec.trd.trkltResRPhiIdeal * Param().rec.trd.trkltResRPhiIdeal;
-  GPUInfo("Initializing with B-field: %f kG", Bz);
-  if (CAMath::Abs(CAMath::Abs(Bz) - 2) < 0.1f) {
-    // magnetic field +-0.2 T
-    if (Bz > 0) {
-      GPUInfo("Loading error parameterization for Bz = +2 kG");
-      mRPhiA2 = resRPhiIdeal2, mRPhiB = -1.43e-2f, mRPhiC2 = 4.55e-2f;
-      mDyA2 = 1.225e-3f, mDyB = -9.8e-3f, mDyC2 = 3.88e-2f;
-      mAngleToDyA = -0.1f, mAngleToDyB = 1.89f, mAngleToDyC = -0.4f;
-    } else {
-      GPUInfo("Loading error parameterization for Bz = -2 kG");
-      mRPhiA2 = resRPhiIdeal2, mRPhiB = 1.43e-2f, mRPhiC2 = 4.55e-2f;
-      mDyA2 = 1.225e-3f, mDyB = 9.8e-3f, mDyC2 = 3.88e-2f;
-      mAngleToDyA = 0.1f, mAngleToDyB = 1.89f, mAngleToDyC = 0.4f;
-    }
-  } else if (CAMath::Abs(CAMath::Abs(Bz) - 5) < 0.1f) {
-    // magnetic field +-0.5 T
-    if (Bz > 0) {
-      GPUInfo("Loading error parameterization for Bz = +5 kG");
-      mRPhiA2 = resRPhiIdeal2, mRPhiB = 0.125f, mRPhiC2 = 0.0961f;
-      mDyA2 = 1.681e-3f, mDyB = 0.15f, mDyC2 = 0.1849f;
-      mAngleToDyA = 0.13f, mAngleToDyB = 2.43f, mAngleToDyC = -0.58f;
-    } else {
-      GPUInfo("Loading error parameterization for Bz = -5 kG");
-      mRPhiA2 = resRPhiIdeal2, mRPhiB = -0.14f, mRPhiC2 = 0.1156f;
-      mDyA2 = 2.209e-3f, mDyB = -0.15f, mDyC2 = 0.2025f;
-      mAngleToDyA = -0.15f, mAngleToDyB = 2.34f, mAngleToDyC = 0.56f;
-    }
-  } else {
-    // magnetic field 0 T or another value which is not covered by the error parameterizations
-    // using default values instead
-    GPUWarning("No error parameterization available for Bz = %.2f kG. Keeping default value (sigma_y = const. = 1cm)", Bz);
-    mRPhiA2 = 1.f;
-  }
-
   // obtain average radius of TRD chambers
   float x0[kNLayers] = {300.2f, 312.8f, 325.4f, 338.0f, 350.6f, 363.2f}; // used as default value in case no transformation matrix can be obtained
   auto* matrix = mGeo->GetClusterMatrix(0);
@@ -967,7 +931,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::RecalcTrkltCov(const float tilt, cons
   //--------------------------------------------------------------------
   float t2 = tilt * tilt;      // tan^2 (tilt)
   float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
-  float sy2 = GetRPhiRes(snp);
+  float sy2 = mRecoParam->getRPhiRes(snp);
   float sz2 = rowSize * rowSize / 12.f;
   cov[0] = c2 * (sy2 + t2 * sz2);
   cov[1] = c2 * tilt * (sz2 - sy2);
@@ -977,8 +941,8 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::RecalcTrkltCov(const float tilt, cons
 template <class TRDTRK, class PROP>
 GPUd() float GPUTRDTracker_t<TRDTRK, PROP>::GetAngularPull(float dYtracklet, float snp) const
 {
-  float dYtrack = ConvertAngleToDy(snp);
-  float dYresolution = GetAngularResolution(snp);
+  float dYtrack = mRecoParam->convertAngleToDy(snp);
+  float dYresolution = mRecoParam->getDyRes(snp);
   if (dYresolution < 1e-6f) {
     return 999.f;
   }

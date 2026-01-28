@@ -18,7 +18,7 @@
 #define ALIGNABLEDETECTORTRD_H
 
 #include "Align/AlignableDetector.h"
-#include "TRDBase/RecoParam.h"
+#include "GPUTRDRecoParam.h"
 
 namespace o2
 {
@@ -64,7 +64,7 @@ class AlignableDetectorTRD final : public AlignableDetector
   int processPoints(GIndex gid, int npntCut, bool inv) final;
 
  protected:
-  o2::trd::RecoParam mRecoParam;    // parameters required for TRD reconstruction
+  o2::gpu::GPUTRDRecoParam mRecoParam; // parameters required for TRD reconstruction
   double mNonRCCorrDzDtgl = 0.;     // correction in Z for non-crossing tracklets
   double mCorrDVT = 0.;             // correction to Vdrift*t
   double mExtraErrRC[2] = {0., 0.}; // extra errors for RC tracklets

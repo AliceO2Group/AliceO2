@@ -73,6 +73,7 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
+#include "GPUTRDRecoParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonUtils/DebugStreamer.h"
 #include "GPUReconstructionConvert.h"
@@ -273,6 +274,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     if (mSpecConfig.readTRDtracklets) {
       mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>();
       mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+
+      mTRDRecoParam = std::make_unique<GPUTRDRecoParam>();
+      mConfig->configCalib.trdRecoParam = mTRDRecoParam.get();
     }
 
     mConfig->configProcessing.willProvideO2PropagatorLate = true;
@@ -1059,14 +1063,21 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
       }
       mMatLUTCreated = true;
     }
-    if (mSpecConfig.readTRDtracklets && !mTRDGeometryCreated) {
-      auto gm = o2::trd::Geometry::instance();
-      gm->createPadPlaneArray();
-      gm->createClusterMatrixArray();
-      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
-      newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
-      LOG(info) << "Loaded TRD geometry";
-      mTRDGeometryCreated = true;
+    if (mSpecConfig.readTRDtracklets) {
+      if (!mTRDGeometryCreated) {
+        auto gm = o2::trd::Geometry::instance();
+        gm->createPadPlaneArray();
+        gm->createClusterMatrixArray();
+        mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+        newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+        LOG(info) << "Loaded TRD geometry";
+        mTRDGeometryCreated = true;
+      }
+      if (!mTRDRecoParamCreated) {
+        mTRDRecoParam = std::make_unique<GPUTRDRecoParam>();
+        newCalibObjects.trdRecoParam = mConfig->configCalib.trdRecoParam = mTRDRecoParam.get();
+        mTRDRecoParamCreated = true;
+      }
     }
   }
   needCalibUpdate = fetchCalibsCCDBTPC(pc, newCalibObjects, oldCalibObjects) || needCalibUpdate;

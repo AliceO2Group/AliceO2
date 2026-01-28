@@ -13,6 +13,7 @@
 /// \brief Provides information required for TRD calibration which is based on the global tracking
 /// \author Ole Schmidt
 
+#include "GPUO2InterfaceConfiguration.h"
 #include "TRDCalibration/TrackBasedCalib.h"
 #include "TRDCalibration/CalibrationParams.h"
 #include "DataFormatsTRD/Constants.h"
@@ -35,7 +36,9 @@ void TrackBasedCalib::reset()
 void TrackBasedCalib::init()
 {
   bz = o2::base::Propagator::Instance()->getNominalBz();
-  mRecoParam.setBfield(bz);
+  o2::gpu::GPUO2InterfaceConfiguration config;
+  config.ReadConfigurableParam(config);
+  mRecoParam.init(bz, &config.configReconstruction);
 }
 
 void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)

@@ -85,6 +85,7 @@ struct TPCPadGainCalib;
 struct TPCZSLinkMapping;
 struct GPUSettingsO2;
 struct GPUSettingsProcessingNNclusterizer;
+class GPUTRDRecoParam;
 class GPUO2InterfaceQA;
 struct GPUTrackingInOutPointers;
 struct GPUTrackingInOutZS;
@@ -212,6 +213,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMapping;
   std::unique_ptr<o2::tpc::VDriftHelper> mTPCVDriftHelper;
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometry;
+  std::unique_ptr<GPUTRDRecoParam> mTRDRecoParam;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUSettingsO2> mConfParam;
   std::unique_ptr<TStopwatch> mTimer;
@@ -245,6 +247,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool mMatLUTCreated = false;
   bool mITSGeometryCreated = false;
   bool mTRDGeometryCreated = false;
+  bool mTRDRecoParamCreated = false;
   bool mPropagatorInstanceCreated = false;
   int32_t mTPCCutAtTimeBin = -1;
 };

@@ -57,7 +57,6 @@ struct GPUConstantMem {
 #ifdef GPUCA_HAS_ONNX
   GPUTPCNNClusterizer tpcNNClusterer[GPUCA_NSECTORS];
 #endif
-
   template <int32_t I>
   GPUd() auto& getTRDTracker();
 };

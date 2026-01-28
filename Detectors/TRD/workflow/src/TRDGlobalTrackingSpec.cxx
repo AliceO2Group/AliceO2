@@ -43,6 +43,7 @@
 // GPU header
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
+#include "GPUChainTrackingGetters.inc"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUSettings.h"
@@ -112,6 +113,8 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     config.ReadConfigurableParam(config);
     config.configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*o2::base::GRPGeomHelper::instance().getGRPMagField());
     config.configProcessing.o2PropagatorUseGPUField = false;
+    mRecoParam.init(o2::base::Propagator::Instance()->getNominalBz(), &config.configReconstruction);
+
     mRec->SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, &cfgRecoStep);
 
     mChainTracking = mRec->AddChain<GPUChainTracking>();
@@ -127,11 +130,10 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 
     mRec->RegisterGPUProcessor(mTracker, false);
     mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
+    mChainTracking->SetTRDRecoParam(&mRecoParam);
     if (mRec->Init()) {
       LOG(fatal) << "GPUReconstruction could not be initialized";
     }
-
-    mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
 
     mTracker->PrintSettings();
     LOG(info) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");

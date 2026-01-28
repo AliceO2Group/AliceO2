@@ -13,6 +13,7 @@
 /// \brief Check the performance of the TRD in global tracking
 /// \author Ole Schmidt
 
+#include "GPUO2InterfaceConfiguration.h"
 #include "TRDQC/Tracking.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -25,7 +26,9 @@ using namespace o2::trd::constants;
 
 void Tracking::init()
 {
-  mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
+  o2::gpu::GPUO2InterfaceConfiguration config;
+  config.ReadConfigurableParam(config);
+  mRecoParam.init(o2::base::Propagator::Instance()->getNominalBz(), &config.configReconstruction);
 }
 
 void Tracking::setInput(const o2::globaltracking::RecoContainer& input)

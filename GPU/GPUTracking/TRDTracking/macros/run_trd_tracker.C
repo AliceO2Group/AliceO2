@@ -24,6 +24,7 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDInterfaces.h"
 #include "GPUTRDGeometry.h"
+#include "GPUTRDRecoParam.h"
 
 // O2 header
 #include "CommonUtils/NameConf.h"
@@ -58,7 +59,7 @@ void run_trd_tracker(std::string path = "./",
   geo->createPadPlaneArray();
   geo->createClusterMatrixArray();
   const o2::trd::GeometryFlat geoFlat(*geo);
-
+  o2::gpu::GPUTRDRecoParam trdRecoParam;
   //-------- init GPU reconstruction --------//
   // different settings are defined in GPUSettingsList.h
   GPUSettingsGRP cfgGRP;                     // defaults should be ok
@@ -85,6 +86,7 @@ void run_trd_tracker(std::string path = "./",
 
   rec->RegisterGPUProcessor(tracker, false);
   chainTracking->SetTRDGeometry(&geoFlat);
+  chainTracking->SetTRDRecoParam(&trdRecoParam);
   if (rec->Init()) {
     printf("ERROR: GPUReconstruction not initialized\n");
   }
