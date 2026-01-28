@@ -11,7 +11,6 @@
 ///
 
 #include <cuda_runtime.h>
-#include <fmt/format.h>
 
 #include <unistd.h>
 #include <vector>
@@ -633,21 +632,37 @@ void TimeFrameGPU<nLayers>::unregisterHostMemory(const int maxLayers)
   checkedUnregisterArray(mPinnedROFramesClusters, mROFramesClustersDevice);
 }
 
+namespace detail
+{
+template <std::size_t I>
+constexpr uint64_t makeIterTag()
+{
+  static_assert(I < 10);
+  constexpr char tag[] = {'I', 'T', 'S', 'I', 'T', 'E', 'R', char('0' + I), '\0'};
+  return qStr2Tag(tag);
+}
+template <std::size_t... I>
+constexpr auto makeIterTags(std::index_sequence<I...>)
+{
+  return std::array<uint64_t, sizeof...(I)>{makeIterTag<I>()...};
+}
+// FIXME: we have to be careful that the MaxIter does not diverge from the 4 here!
+constexpr auto kIterTags = makeIterTags(std::make_index_sequence<4>{});
+} // namespace detail
+
 template <int nLayers>
 void TimeFrameGPU<nLayers>::pushMemoryStack(const int iteration)
 {
   // mark the beginning of memory marked with MEMORY_STACK that can be discarded
   // after doing one iteration
-  const auto name = fmt::format("ITSITER{}", iteration);
-  (this->mExternalAllocator)->pushTagOnStack(qStr2Tag(name.c_str()));
+  (this->mExternalAllocator)->pushTagOnStack(detail::kIterTags[iteration]);
 }
 
 template <int nLayers>
 void TimeFrameGPU<nLayers>::popMemoryStack(const int iteration)
 {
   // pop all memory on the stack from this iteration
-  const auto name = fmt::format("ITSITER{}", iteration);
-  (this->mExternalAllocator)->popTagOffStack(qStr2Tag(name.c_str()));
+  (this->mExternalAllocator)->popTagOffStack(detail::kIterTags[iteration]);
 }
 
 template <int nLayers>
