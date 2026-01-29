@@ -338,10 +338,10 @@
       "TURING":   [512, 1]
     },
     "GPUTPCCFCheckPadBaseline": {
-      "default":  64,
-      "MI100":    [64, 10],
-      "VEGA":     [64, 2],
-      "AMPERE":   [64, 8]
+      "default":  576,
+      "MI100":    [576, 2],
+      "VEGA":     [576, 2],
+      "AMPERE":   [576, 2]
     },
     "GPUTPCCFChargeMapFiller_fillIndexMap": {
       "default":  512,

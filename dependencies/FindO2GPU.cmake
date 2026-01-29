@@ -73,13 +73,21 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
 
   if(backend STREQUAL "CUDA") # CUDA filter
     set(TARGET_ARCH "${CUDA_TARGET}" PARENT_SCOPE)
-    return()
   elseif(backend STREQUAL "HIP") # HIP filter
     set(TARGET_ARCH "${HIP_TARGET}" PARENT_SCOPE)
-    return()
-  elseif(backend STREQUAL "ALL") # Return both
-    set(TARGET_ARCH "${CUDA_TARGET},${HIP_TARGET}" PARENT_SCOPE)
-    return()
+  elseif(backend STREQUAL "ALL") # Return enabled backends
+    set(_archs "")
+    if(CUDA_ENABLED)
+      list(APPEND _archs "${CUDA_TARGET}")
+    endif()
+    if(HIP_ENABLED)
+      list(APPEND _archs "${HIP_TARGET}")
+    endif()
+    if(OPENCL_ENABLED)
+      list(APPEND _archs "OPENCL")
+    endif()
+    list(JOIN _archs "," TARGET_ARCH)
+    set(TARGET_ARCH "${TARGET_ARCH}" PARENT_SCOPE)
   else()
     message(FATAL_ERROR "Unknown backend provided: ${backend}")
   endif()
@@ -87,7 +95,6 @@ endfunction()
 
 function(set_target_gpu_arch backend target)
   detect_gpu_arch("${backend}")
-  message(STATUS "Compiling for ${TARGET_ARCH}")
   target_compile_definitions(${target} PUBLIC GPUCA_GPUTYPE_${TARGET_ARCH})
 endfunction()
 
