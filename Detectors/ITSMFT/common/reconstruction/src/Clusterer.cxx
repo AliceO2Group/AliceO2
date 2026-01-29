@@ -30,11 +30,8 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 #ifdef _PERFORM_TIMING_
   mTimer.Start(kFALSE);
 #endif
-  if (nThreads < 1) {
-    nThreads = 1;
-  }
+  nThreads = std::max(nThreads, 1);
   auto autoDecode = reader.getDecodeNextAuto();
-  int rofcount{0};
   o2::InteractionRecord lastIR{};
   do {
     if (autoDecode) {
@@ -73,9 +70,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       }
       break; // just 1 ROF was asked to be processed
     }
-    if (nFired < nThreads) {
-      nThreads = nFired;
-    }
+    nThreads = std::min<int>(nFired, nThreads);
 #ifndef WITH_OPENMP
     nThreads = 1;
 #endif
@@ -173,7 +168,7 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
                                          const ConstMCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
 {
   if (stats.empty() || stats.back().firstChip + stats.back().nChips != chip) { // there is a jump, register new block
-    stats.emplace_back(ThreadStat{chip, 0, uint32_t(compClusPtr->size()), patternsPtr ? uint32_t(patternsPtr->size()) : 0, 0, 0});
+    stats.emplace_back(ThreadStat{.firstChip = chip, .nChips = 0, .firstClus = uint32_t(compClusPtr->size()), .firstPatt = patternsPtr ? uint32_t(patternsPtr->size()) : 0, .nClus = 0, .nPatt = 0});
   }
   for (int ic = 0; ic < nChips; ic++) {
     auto* curChipData = parent->mFiredChipsPtr[chip + ic];
@@ -476,22 +471,31 @@ void Clusterer::clear()
 }
 
 //__________________________________________________
-void Clusterer::print() const
+void Clusterer::print(bool showsTiming) const
 {
   // print settings
-  LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col seeking down to {} neighbour ROFs", mMaxBCSeparationToSquash, mMaxRowColDiffToMask, mSquashingDepth);
+  if (mSquashingLayerDepth.empty()) {
+    LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col seeking down to {} neighbour ROFs", mMaxBCSeparationToSquash, mMaxRowColDiffToMask, mSquashingDepth);
+  } else {
+    LOGP(info, "Clusterizer squashes overflow pixels <= {} in row/col", mMaxRowColDiffToMask);
+    for (size_t i{0}; i < mSquashingLayerDepth.size(); ++i) {
+      LOGP(info, "\tlay:{} separated by {} BC seeking down to {} neighbour ROFs", i, mMaxBCSeparationToSquashLayer[i], mSquashingLayerDepth[i]);
+    }
+  }
   LOGP(info, "Clusterizer masks overflow pixels separated by < {} BC and <= {} in row/col", mMaxBCSeparationToMask, mMaxRowColDiffToMask);
   LOGP(info, "Clusterizer does {} drop huge clusters", mDropHugeClusters ? "" : "not");
 
+  if (showsTiming) {
 #ifdef _PERFORM_TIMING_
-  auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
-  auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);
-  LOG(info) << "Inclusive clusterization timing (w/o disk IO): Cpu: " << tmr.CpuTime()
-            << " Real: " << tmr.RealTime() << " s in " << tmr.Counter() << " slots";
-  LOG(info) << "Threads output merging timing                : Cpu: " << tmrm.CpuTime()
-            << " Real: " << tmrm.RealTime() << " s in " << tmrm.Counter() << " slots";
+    auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
+    auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);
+    LOG(info) << "Inclusive clusterization timing (w/o disk IO): Cpu: " << tmr.CpuTime()
+              << " Real: " << tmr.RealTime() << " s in " << tmr.Counter() << " slots";
+    LOG(info) << "Threads output merging timing                : Cpu: " << tmrm.CpuTime()
+              << " Real: " << tmrm.RealTime() << " s in " << tmrm.Counter() << " slots";
 
 #endif
+  }
 }
 
 //__________________________________________________

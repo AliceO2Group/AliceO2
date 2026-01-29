@@ -12,8 +12,8 @@
 /// @file   RecoWorkflow.cxx
 
 #include "ITSWorkflow/RecoWorkflow.h"
-#include "ITSWorkflow/ClustererSpec.h"
-#include "ITSWorkflow/ClusterWriterSpec.h"
+#include "ITSMFTWorkflow/ClustererSpec.h"
+#include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
 #include "ITStracking/TrackingConfigParam.h"
@@ -43,10 +43,10 @@ framework::WorkflowSpec getWorkflow(bool useMC,
     specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, true, "itsdigits.root"));
   }
   if (!upstreamClusters) {
-    specs.emplace_back(o2::its::getClustererSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClustererSpec(useMC));
   }
   if (!disableRootOutput) {
-    specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC));
   }
   if ((trmode != TrackingMode::Off) && (TrackerParamConfig::Instance().trackingMode != TrackingMode::Off)) {
     if (useGPUWF) {

@@ -12,7 +12,7 @@
 #include "ITS3Workflow/RecoWorkflow.h"
 #include "ITS3Workflow/ClustererSpec.h"
 #include "ITS3Workflow/TrackerSpec.h"
-#include "ITSWorkflow/ClusterWriterSpec.h"
+#include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
 #include "ITS3Workflow/DigitReaderSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
@@ -40,7 +40,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, 
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC));
   }
 
   if (trmode != its::TrackingMode::Off) {

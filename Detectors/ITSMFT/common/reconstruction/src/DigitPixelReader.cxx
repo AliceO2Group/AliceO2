@@ -330,3 +330,14 @@ void DigitPixelReader::clear()
   mROFRecVec = gsl::span<const o2::itsmft::ROFRecord>();
   mMC2ROFRecVec = gsl::span<const o2::itsmft::MC2ROFRecord>();
 }
+
+//______________________________________________________________________________
+void DigitPixelReader::reset()
+{
+  clear();
+  mSquashedDigitsMask.clear();
+  mBookmarkNextROFs.clear();
+  mIdDig = 0;
+  mIdROF = 0;
+  mIdROFLast = 0;
+}
