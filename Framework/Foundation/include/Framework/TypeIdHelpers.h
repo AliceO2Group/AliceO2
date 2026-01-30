@@ -13,7 +13,6 @@
 #define O2_FRAMEWORK_TYPEIDHELPERS_H_
 
 #include <string_view>
-#include <sstream>
 #if __cplusplus >= 202002L
 #include <source_location>
 #endif
@@ -81,22 +80,6 @@ struct TypeIdHelpers {
 #endif
   }
 };
-
-/// Convert a CamelCase task struct name to snake-case task name
-inline static std::string type_to_task_name(std::string_view& camelCase)
-{
-  std::ostringstream str;
-  str << static_cast<char>(std::tolower(camelCase[0]));
-
-  for (auto it = camelCase.begin() + 1; it != camelCase.end(); ++it) {
-    if (std::isupper(*it) && *(it - 1) != '-') {
-      str << "-";
-    }
-    str << static_cast<char>(std::tolower(*it));
-  }
-
-  return str.str();
-}
 
 } // namespace o2::framework
 

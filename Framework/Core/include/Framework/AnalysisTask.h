@@ -36,6 +36,9 @@
 
 namespace o2::framework
 {
+/// Convert a CamelCase task struct name to snake-case task name
+std::string type_to_task_name(std::string_view const& camelCase);
+
 /// A more familiar task API for the DPL analysis framework.
 /// This allows you to define your own tasks as subclasses
 /// of o2::framework::AnalysisTask and to pass them in the specification
