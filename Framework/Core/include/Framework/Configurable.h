@@ -106,7 +106,7 @@ struct ProcessConfigurable : Configurable<bool, ConfigParamKind::kProcessFlag> {
       Configurable<bool, ConfigParamKind::kProcessFlag>(name_, std::forward<bool>(value_), help_)
   {
   }
-  void(T::*process)(As...);
+  void (T::*process)(As...);
 };
 
 template <typename T>
