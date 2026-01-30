@@ -638,7 +638,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       // execute optional process()
       homogeneous_apply_refs_sized<numElements>(
         [&pc, &expressionInfos, &task, &slices](auto& x) {
-          if constexpr (is_process_configurable<decltype(x)>) {
+          if constexpr (is_process_configurable<std::decay_t<decltype(x)>>) {
             if (x.value == true) {
               AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), x.process, expressionInfos, slices);
               return true;
