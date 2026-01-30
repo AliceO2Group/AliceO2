@@ -174,6 +174,7 @@ TEST_CASE("IdentificationConcepts")
   REQUIRE(is_configurable_axis<decltype(ca)>);
 
   REQUIRE(is_process_configurable<decltype(P::doprocess1)>);
+  REQUIRE(is_process_configurable<decltype((P::doprocess1))>);
 
   struct : ConfigurableGroup {
     Configurable<int> c{"", 1, ""};
