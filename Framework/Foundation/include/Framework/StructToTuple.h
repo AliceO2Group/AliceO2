@@ -174,9 +174,9 @@ consteval int nested_brace_constructible_size()
   return brace_constructible_size<type>() - nesting;
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 9)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -194,9 +194,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 8)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -214,9 +214,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 7)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -234,9 +234,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 6)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -254,9 +254,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 5)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -274,9 +274,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 4)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -294,9 +294,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 3)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -314,9 +314,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 2)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -334,9 +334,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 1)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -354,9 +354,9 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, typename L, class T, int D = nested_brace_constructible_size<B, T>() / 10>
   requires(D == 0)
-constexpr auto homogeneous_apply_refs(L l, T&& object)
+auto homogeneous_apply_refs(L l, T&& object)
 {
   constexpr int numElements = nested_brace_constructible_size<B, T>();
   // clang-format off
@@ -371,12 +371,6 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (1)
   else { return std::array<bool,0>(); }
   // clang-format on
-}
-
-template <int D, typename T, typename L>
-constexpr auto homogeneous_apply_refs_sized(L l, T&& object)
-{
-  return homogeneous_apply_refs<false, T, D, L>(l, object);
 }
 
 } // namespace o2::framework

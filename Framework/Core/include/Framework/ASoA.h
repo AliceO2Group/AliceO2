@@ -405,15 +405,15 @@ class Table;
 /// Type-checking index column binding
 struct Binding {
   void const* ptr = nullptr;
-  uint32_t hash = 0;
-  // std::span<TableRef const> refs;
+  size_t hash = 0;
+  std::span<TableRef const> refs;
 
   template <typename T>
   void bind(T const* table)
   {
     ptr = table;
     hash = o2::framework::TypeIdHelpers::uniqueId<T>();
-    // refs = std::span{T::originals};
+    refs = std::span{T::originals};
   }
 
   template <typename T>
@@ -1292,9 +1292,6 @@ struct ArrowHelpers {
 //! Helper to check if a type T is an iterator
 template <typename T>
 concept is_iterator = framework::base_of_template<TableIterator, T> || framework::specialization_of_template<TableIterator, T>;
-
-template <typename T>
-concept is_table_or_iterator = is_table<T> || is_iterator<T>;
 
 template <typename T>
 concept with_originals = requires {
@@ -2727,7 +2724,7 @@ consteval auto getIndexTargets()
       return !(*mColumnIterator).empty();                                                                \
     }                                                                                                    \
                                                                                                          \
-    template <soa::is_table T>                                                                           \
+    template <typename T>                                                                                \
     auto _Getter_##_as() const                                                                           \
     {                                                                                                    \
       if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
@@ -2737,15 +2734,10 @@ consteval auto getIndexTargets()
       if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
         o2::soa::dereferenceWithWrongType(#_Getter_, #_Table_);                                          \
       }                                                                                                  \
-      auto result = std::vector<typename T::unfiltered_iterator>();                                      \
-      result.reserve((*mColumnIterator).size());                                                         \
-      for (auto& i : *mColumnIterator) {                                                                 \
-        result.emplace_back(t->rawIteratorAt(i));                                                        \
-      }                                                                                                  \
-      return result;                                                                                     \
+      return getIterators<T>();                                                                          \
     }                                                                                                    \
                                                                                                          \
-    template <soa::is_filtered_table T>                                                                  \
+    template <typename T>                                                                                \
     auto filtered_##_Getter_##_as() const                                                                \
     {                                                                                                    \
       if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
@@ -2755,15 +2747,35 @@ consteval auto getIndexTargets()
       if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
         o2::soa::dereferenceWithWrongType(#_Getter_, #_Table_);                                          \
       }                                                                                                  \
-      auto result = std::vector<typename T::iterator>();                                                 \
-      result.reserve((*mColumnIterator).size());                                                         \
-      for (auto const& i : *mColumnIterator) {                                                           \
-        auto pos = t->isInSelectedRows(i);                                                               \
-        if (pos > 0) {                                                                                   \
-          result.emplace_back(t->iteratorAt(pos));                                                       \
-        }                                                                                                \
+      return getFilteredIterators<T>();                                                                  \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto getIterators() const                                                                            \
+    {                                                                                                    \
+      auto result = std::vector<typename T::unfiltered_iterator>();                                      \
+      for (auto& i : *mColumnIterator) {                                                                 \
+        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                           \
       }                                                                                                  \
       return result;                                                                                     \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    std::vector<typename T::iterator> getFilteredIterators() const                                       \
+    {                                                                                                    \
+      if constexpr (o2::soa::is_filtered_table<T>) {                                                     \
+        auto result = std::vector<typename T::iterator>();                                               \
+        for (auto const& i : *mColumnIterator) {                                                         \
+          auto pos = mBinding.get<T>()->isInSelectedRows(i);                                             \
+          if (pos > 0) {                                                                                 \
+            result.emplace_back(mBinding.get<T>()->iteratorAt(pos));                                     \
+          }                                                                                              \
+        }                                                                                                \
+        return result;                                                                                   \
+      } else {                                                                                           \
+        static_assert(o2::framework::always_static_assert_v<T>, "T is not a Filtered type");             \
+      }                                                                                                  \
+      return {};                                                                                         \
     }                                                                                                    \
                                                                                                          \
     auto _Getter_() const                                                                                \
@@ -3078,9 +3090,15 @@ consteval auto getIndexTargets()
       if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
         o2::soa::dereferenceWithWrongType(#_Getter_, "self");                                            \
       }                                                                                                  \
+      return getIterators<T>();                                                                          \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto getIterators() const                                                                            \
+    {                                                                                                    \
       auto result = std::vector<typename T::unfiltered_iterator>();                                      \
       for (auto& i : *mColumnIterator) {                                                                 \
-        result.push_back(t->rawIteratorAt(i));                                                           \
+        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                           \
       }                                                                                                  \
       return result;                                                                                     \
     }                                                                                                    \
