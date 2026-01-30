@@ -22,7 +22,6 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/GroupSlicer.h"
 #include "Framework/StructToTuple.h"
-#include "Framework/Traits.h"
 #include "Framework/TypeIdHelpers.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/AnalysisDataModel.h"
@@ -63,17 +62,20 @@ static constexpr bool is_enumeration_v<Enumeration<BEGIN, END, STEP>> = true;
 template <typename T>
 concept is_enumeration = is_enumeration_v<std::decay_t<T>>;
 
+template <typename T>
+concept is_table_iterator_or_enumeration = soa::is_table_or_iterator<T> || is_enumeration<T>;
+
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
 namespace
 {
 struct AnalysisDataProcessorBuilder {
-  template <soa::is_iterator G, typename... Args>
+  template <soa::is_iterator G, soa::is_table... Args>
   static void addGroupingCandidates(Cache& bk, Cache& bku, bool enabled)
   {
-    [&bk, &bku, enabled]<typename... As>(framework::pack<As...>) mutable {
+    []<soa::is_table... As>(framework::pack<As...>, Cache& bk, Cache& bku, bool enabled) {
       auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
-      ([&bk, &bku, &key, enabled]() mutable {
+      ([](Cache& bk, Cache& bku, bool enabled, std::string const& key) {
         if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<As>>()) {
           Entry e{soa::getLabelFromTypeForKey<std::decay_t<As>>(key), soa::getMatcherFromTypeForKey<std::decay_t<As>>(key), key, enabled};
           if constexpr (o2::soa::is_smallgroups<std::decay_t<As>>) {
@@ -82,9 +84,9 @@ struct AnalysisDataProcessorBuilder {
             framework::updatePairList(bk, e);
           }
         }
-      }(),
+      }(bk, bku, enabled, key),
        ...);
-    }(framework::pack<Args...>{});
+    }(framework::pack<Args...>{}, bk, bku, enabled);
   }
 
   template <soa::TableRef R>
@@ -168,8 +170,8 @@ struct AnalysisDataProcessorBuilder {
     return true;
   }
   /// 1. enumeration (must be the only argument)
-  template <typename R, typename C, is_enumeration A>
-  static void inputsFromArgs(R (C::*)(A), const char* /*name*/, bool /*value*/, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>&) //, Cache&, Cache&)
+  template <typename C, is_enumeration A>
+  static void inputsFromArgs(void (C::*)(A), const char* /*name*/, bool /*value*/, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>&) //, Cache&, Cache&)
   {
     std::vector<ConfigParamSpec> inputMetadata;
     // FIXME: for the moment we do not support begin, end and step.
@@ -177,37 +179,37 @@ struct AnalysisDataProcessorBuilder {
   }
 
   /// 2. 1st argument is an iterator
-  template <typename R, typename C, soa::is_iterator A, soa::is_table... Args>
-  static void inputsFromArgs(R (C::*)(A, Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache& bk, Cache& bku)
+  template <typename C, soa::is_iterator A, soa::is_table... Args>
+  static void inputsFromArgs(void (C::*)(A, Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache& bk, Cache& bku)
     requires(std::is_lvalue_reference_v<A> && (std::is_lvalue_reference_v<Args> && ...))
   {
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(A, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(A, Args...)>();
     addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos);
   }
 
   /// 3. generic case
-  template <typename R, typename C, soa::is_table... Args>
-  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache&, Cache&)
+  template <typename C, soa::is_table... Args>
+  static void inputsFromArgs(void (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos) //, Cache&, Cache&)
     requires(std::is_lvalue_reference_v<Args> && ...)
   {
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Args...)>();
     addInputsAndExpressions<Args...>(hash, name, value, inputs, eInfos);
   }
 
   /// 1. enumeration (no grouping)
-  template <typename R, typename C, is_enumeration A>
-  static void cacheFromArgs(R (C::*)(A), bool, Cache&, Cache&)
+  template <typename C, is_enumeration A>
+  static void cacheFromArgs(void (C::*)(A), bool, Cache&, Cache&)
   {
   }
   /// 2. iterator (the only grouping case)
-  template <typename R, typename C, soa::is_iterator A, soa::is_table... Args>
-  static void cacheFromArgs(R (C::*)(A, Args...), bool value, Cache& bk, Cache& bku)
+  template <typename C, soa::is_iterator A, soa::is_table... Args>
+  static void cacheFromArgs(void (C::*)(A, Args...), bool value, Cache& bk, Cache& bku)
   {
     addGroupingCandidates<A, Args...>(bk, bku, value);
   }
   /// 3. generic case (no grouping)
-  template <typename R, typename C, soa::is_table A, soa::is_table... Args>
-  static void cacheFromArgs(R (C::*)(A, Args...), bool, Cache&, Cache&)
+  template <typename C, soa::is_table A, soa::is_table... Args>
+  static void cacheFromArgs(void (C::*)(A, Args...), bool, Cache&, Cache&)
   {
   }
 
@@ -282,51 +284,53 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
+  template <typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
+  static auto bindGroupingTable(InputRecord& record, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
     requires(!std::same_as<Grouping, void>)
   {
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
     return extract<std::decay_t<Grouping>, 0>(record, infos, hash);
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
+  template <typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
+  static auto bindAssociatedTables(InputRecord& record, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
     requires(!std::same_as<Grouping, void> && sizeof...(Args) > 0)
   {
     constexpr auto p = pack<Args...>{};
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
     return std::make_tuple(extract<std::decay_t<Args>, has_type_at_v<Args>(p) + 1>(record, infos, hash)...);
   }
 
-  template <typename... As>
+  template <soa::is_table... As>
   static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
   {
     (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
   }
 
-  template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices)
+  template <typename Task, is_table_iterator_or_enumeration Grouping, soa::is_table... Associated>
+  static void invokeProcess(Task& task, InputRecord& inputs, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices)
   {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
 
+    constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<Task>>() / 10;
+
     // set filtered tables for partitions with grouping
-    homogeneous_apply_refs([&groupingTable](auto& element) {
+    homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& element) {
       analysis_task_parsers::setPartition(element, groupingTable);
       analysis_task_parsers::bindInternalIndicesPartition(element, &groupingTable);
       return true;
     },
-                           task);
+                                              task);
 
     if constexpr (sizeof...(Associated) == 0) {
       // single argument to process
-      homogeneous_apply_refs([&groupingTable](auto& element) {
+      homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& element) {
         analysis_task_parsers::bindExternalIndicesPartition(element, &groupingTable);
         analysis_task_parsers::setGroupedCombination(element, groupingTable);
         return true;
       },
-                             task);
+                                                task);
       if constexpr (soa::is_iterator<G>) {
         for (auto& element : groupingTable) {
           std::invoke(processingFunction, task, *element);
@@ -344,7 +348,7 @@ struct AnalysisDataProcessorBuilder {
       // pre-bind self indices
       std::apply(
         [&task](auto&... t) mutable {
-          (homogeneous_apply_refs(
+          (homogeneous_apply_refs_sized<numElements>(
              [&t](auto& p) {
                analysis_task_parsers::bindInternalIndicesPartition(p, &t);
                return true;
@@ -356,12 +360,12 @@ struct AnalysisDataProcessorBuilder {
 
       auto binder = [&task, &groupingTable, &associatedTables](auto& x) mutable {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
-        homogeneous_apply_refs([&x](auto& t) mutable {
+        homogeneous_apply_refs_sized<numElements>([&x](auto& t) mutable {
           analysis_task_parsers::setPartition(t, x);
           analysis_task_parsers::bindExternalIndicesPartition(t, &x);
           return true;
         },
-                               task);
+                                                  task);
       };
       groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
 
@@ -373,11 +377,11 @@ struct AnalysisDataProcessorBuilder {
         associatedTables);
 
       // GroupedCombinations bound separately, as they should be set once for all associated tables
-      homogeneous_apply_refs([&groupingTable, &associatedTables](auto& t) {
+      homogeneous_apply_refs_sized<numElements>([&groupingTable, &associatedTables](auto& t) {
         analysis_task_parsers::setGroupedCombination(t, groupingTable, associatedTables);
         return true;
       },
-                             task);
+                                                task);
       overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_iterator<std::decay_t<G>>) {
         auto slicer = GroupSlicer(groupingTable, associatedTables, slices);
@@ -391,28 +395,28 @@ struct AnalysisDataProcessorBuilder {
             associatedSlices);
 
           // bind partitions and grouping table
-          homogeneous_apply_refs([&groupingTable](auto& x) {
+          homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& x) {
             analysis_task_parsers::bindExternalIndicesPartition(x, &groupingTable);
             return true;
           },
-                                 task);
+                                                    task);
 
           invokeProcessWithArgs(task, processingFunction, slice.groupingElement(), associatedSlices);
         }
       } else {
         // bind partitions and grouping table
-        homogeneous_apply_refs([&groupingTable](auto& x) {
+        homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& x) {
           analysis_task_parsers::bindExternalIndicesPartition(x, &groupingTable);
           return true;
         },
-                               task);
+                                                  task);
 
         invokeProcessWithArgs(task, processingFunction, groupingTable, associatedTables);
       }
     }
   }
 
-  template <typename C, typename T, typename G, typename... A>
+  template <typename C, typename T, is_table_iterator_or_enumeration G, soa::is_table... A>
   static void invokeProcessWithArgs(C& task, T processingFunction, G g, std::tuple<A...>& at)
   {
     std::invoke(processingFunction, task, g, std::get<A>(at)...);
@@ -520,16 +524,18 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ConfigParamSpec> options;
   std::vector<ExpressionInfo> expressionInfos;
 
+  constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<T>>() / 10;
+
   /// make sure options and configurables are set before expression infos are created
-  homogeneous_apply_refs([&options](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&options](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());
   /// extract conditions and append them as inputs
-  homogeneous_apply_refs([&inputs](auto& element) { return analysis_task_parsers::appendCondition(inputs, element); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&inputs](auto& element) { return analysis_task_parsers::appendCondition(inputs, element); }, *task.get());
 
   /// parse process functions defined by corresponding configurables
   if constexpr (requires { &T::process; }) {
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos);
   }
-  homogeneous_apply_refs(
+  homogeneous_apply_refs_sized<numElements>(
     [name = name_str, &expressionInfos, &inputs](auto& x) mutable {
       // this pushes (argumentIndex, processHash, schemaPtr, nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
       return AnalysisDataProcessorBuilder::requestInputsFromArgs(x, name, inputs, expressionInfos);
@@ -538,39 +544,39 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   // request base tables for spawnable extended tables and indices to be built
   // this checks for duplications
-  homogeneous_apply_refs([&inputs](auto& element) {
+  homogeneous_apply_refs_sized<numElements>([&inputs](auto& element) {
     return analysis_task_parsers::requestInputs(inputs, element);
   },
-                         *task.get());
+                                            *task.get());
 
   // no static way to check if the task defines any processing, we can only make sure it subscribes to at least something
   if (inputs.empty() == true) {
     LOG(warn) << "Task " << name_str << " has no inputs";
   }
 
-  homogeneous_apply_refs([&outputs, &hash](auto& element) { return analysis_task_parsers::appendOutput(outputs, element, hash); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&outputs, &hash](auto& element) { return analysis_task_parsers::appendOutput(outputs, element, hash); }, *task.get());
 
   auto requiredServices = CommonServices::defaultServices();
   auto arrowServices = CommonServices::arrowServices();
   requiredServices.insert(requiredServices.end(), arrowServices.begin(), arrowServices.end());
-  homogeneous_apply_refs([&requiredServices](auto& element) { return analysis_task_parsers::addService(requiredServices, element); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&requiredServices](auto& element) { return analysis_task_parsers::addService(requiredServices, element); }, *task.get());
 
   auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos](InitContext& ic) mutable {
     Cache bindingsKeys;
     Cache bindingsKeysUnsorted;
     // add preslice declarations to slicing cache definition
-    homogeneous_apply_refs([&bindingsKeys, &bindingsKeysUnsorted](auto& element) { return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted); }, *task.get());
+    homogeneous_apply_refs_sized<numElements>([&bindingsKeys, &bindingsKeysUnsorted](auto& element) { return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted); }, *task.get());
 
-    homogeneous_apply_refs([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
-    homogeneous_apply_refs([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
+    homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
+    homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
 
     auto& callbacks = ic.services().get<CallbackService>();
     auto eoscb = [task](EndOfStreamContext& eosContext) {
-      homogeneous_apply_refs([&eosContext](auto& element) {
+      homogeneous_apply_refs_sized<numElements>([&eosContext](auto& element) {
           analysis_task_parsers::postRunService(eosContext, element);
           analysis_task_parsers::postRunOutput(eosContext, element);
           return true; },
-                             *task.get());
+                                                *task.get());
       eosContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
@@ -582,84 +588,75 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     }
 
     /// update configurables in filters and partitions
-    homogeneous_apply_refs(
+    homogeneous_apply_refs_sized<numElements>(
       [&ic](auto& element) -> bool { return analysis_task_parsers::updatePlaceholders(ic, element); },
       *task.get());
     /// create expression trees for filters gandiva trees matched to schemas and store the pointers into expressionInfos
-    homogeneous_apply_refs([&expressionInfos](auto& element) {
+    homogeneous_apply_refs_sized<numElements>([&expressionInfos](auto& element) {
       return analysis_task_parsers::createExpressionTrees(expressionInfos, element);
     },
-                           *task.get());
+                                              *task.get());
 
     /// parse process functions to enable requested grouping caches - note that at this state process configurables have their final values
     if constexpr (requires { &T::process; }) {
       AnalysisDataProcessorBuilder::cacheFromArgs(&T::process, true, bindingsKeys, bindingsKeysUnsorted);
     }
-    homogeneous_apply_refs(
-      [&bindingsKeys, &bindingsKeysUnsorted](auto& x) mutable {
+    homogeneous_apply_refs_sized<numElements>(
+      [&bindingsKeys, &bindingsKeysUnsorted](auto& x) {
         return AnalysisDataProcessorBuilder::requestCacheFromArgs(x, bindingsKeys, bindingsKeysUnsorted);
       },
       *task.get());
 
     ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
     ic.services().get<ArrowTableSlicingCacheDef>().setCachesUnsorted(std::move(bindingsKeysUnsorted));
-    // initialize global caches
-    homogeneous_apply_refs([&ic](auto& element) {
-      return analysis_task_parsers::preInitializeCache(ic, element);
-    },
-                           *(task.get()));
 
     return [task, expressionInfos](ProcessingContext& pc) mutable {
       // load the ccdb object from their cache
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::newDataframeCondition(pc.inputs(), element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::newDataframeCondition(pc.inputs(), element); }, *task.get());
       // reset partitions once per dataframe
-      homogeneous_apply_refs([](auto& element) { return analysis_task_parsers::newDataframePartition(element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([](auto& element) { return analysis_task_parsers::newDataframePartition(element); }, *task.get());
       // reset selections for the next dataframe
-      for (auto& info : expressionInfos) {
-        info.resetSelection = true;
-      }
+      std::ranges::for_each(expressionInfos, [](auto& info) { info.resetSelection = true; });
       // reset pre-slice for the next dataframe
       auto slices = pc.services().get<ArrowTableSlicingCache>();
-      homogeneous_apply_refs([&slices](auto& element) {
+      homogeneous_apply_refs_sized<numElements>([&slices](auto& element) {
         return analysis_task_parsers::updateSliceInfo(element, slices);
       },
-                             *(task.get()));
+                                                *(task.get()));
       // initialize local caches
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::initializeCache(pc, element); }, *(task.get()));
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::initializeCache(pc, element); }, *(task.get()));
       // prepare outputs
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::prepareOutput(pc, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::prepareOutput(pc, element); }, *task.get());
       // execute run()
       if constexpr (requires { task->run(pc); }) {
         task->run(pc);
       }
       // execute process()
-      if constexpr (requires { AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices); }) {
+      if constexpr (requires { &T::process; }) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);
       }
       // execute optional process()
-      homogeneous_apply_refs(
-        [&pc, &expressionInfos, &task, &slices](auto& x) mutable {
-          if constexpr (base_of_template<ProcessConfigurable, std::decay_t<decltype(x)>>) {
+      homogeneous_apply_refs_sized<numElements>(
+        [&pc, &expressionInfos, &task, &slices](auto& x) {
+          if constexpr (is_process_configurable<decltype(x)>) {
             if (x.value == true) {
               AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), x.process, expressionInfos, slices);
               return true;
             }
+            return false;
           }
           return false;
         },
         *task.get());
       // prepare delayed outputs
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::prepareDelayedOutput(pc, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::prepareDelayedOutput(pc, element); }, *task.get());
       // finalize outputs
-      homogeneous_apply_refs([&pc](auto& element) { return analysis_task_parsers::finalizeOutput(pc, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::finalizeOutput(pc, element); }, *task.get());
     };
   }};
 
   return {
     name,
-    // FIXME: For the moment we hardcode this. We could build
-    // this list from the list of methods actually implemented in the
-    // task itself.
     inputs,
     outputs,
     algo,
