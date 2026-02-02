@@ -34,18 +34,9 @@ std::string type_to_task_name(std::string_view const& camelCase)
     std::string_view pattern;
     std::string_view replacement;
   } abbreviations[] = {
-    {"-h-m-p-i-d", "-hmpid"},
     {"-e-m-c-a-l", "-emcal"},
-    {"-e-m-c", "-emc"},
-    {"-i-t-s", "-its"},
-    {"-t-p-c", "-tpc"},
-    {"-q-c-d", "-qcd"},
-    {"-t-o-f", "-tof"},
-    {"-t-r-d", "-trd"},
-    {"-f-v0", "-fv0"},
-    {"-q-a", "-qa"},
-    {"-b-c", "-bc"},
-    {"-q-c", "-qc"}};
+    {"-e-m-c", "-emc"}
+  };
 
   std::string consolidated;
   consolidated.reserve(result.size());
