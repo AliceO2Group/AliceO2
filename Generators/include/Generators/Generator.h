@@ -17,10 +17,6 @@
 #include "FairGenerator.h"
 #include "TParticle.h"
 #include "Generators/Trigger.h"
-#ifdef GENERATORS_WITH_TPCLOOPERS
-#include "Generators/TPCLoopers.h"
-#include "Generators/TPCLoopersParam.h"
-#endif
 #include <functional>
 #include <vector>
 #include <unordered_map>
@@ -37,6 +33,8 @@ namespace o2
 {
 namespace eventgen
 {
+
+class GenTPCLoopers; // Forward declaration
 
 /*****************************************************************/
 /*****************************************************************/
@@ -60,7 +58,7 @@ class Generator : public FairGenerator
   /** constructor **/
   Generator(const Char_t* name, const Char_t* title = "ALICEo2 Generator");
   /** destructor **/
-  ~Generator() override = default;
+  ~Generator() override;
 
   /** Initialize the generator if needed **/
   Bool_t Init() override;
@@ -169,9 +167,9 @@ class Generator : public FairGenerator
   // global static information about (upper limit of) number of events to be generated
   static unsigned int gTotalNEvents;
 
-#ifdef GENERATORS_WITH_TPCLOOPERS
   // Loopers generator instance
-  std::unique_ptr<o2::eventgen::GenTPCLoopers> mTPCLoopersGen = nullptr;
+  o2::eventgen::GenTPCLoopers* mTPCLoopersGen = nullptr;
+#ifdef GENERATORS_WITH_TPCLOOPERS
   bool initTPCLoopersGen();
 #endif
 
