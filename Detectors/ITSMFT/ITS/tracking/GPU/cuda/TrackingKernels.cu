@@ -39,7 +39,6 @@
 // O2 track model
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsBase/Propagator.h"
-#include "utils/strtag.h"
 using namespace o2::track;
 
 namespace o2::its
@@ -1107,19 +1106,11 @@ void processNeighboursHandler(const int startLayer,
                               const int nBlocks,
                               const int nThreads)
 {
-  constexpr uint64_t Tag = qStr2Tag("ITS_PNH1");
-
-  // allocators used
   auto allocInt = gpu::TypedAllocator<int>(alloc);
   auto allocCellSeed = gpu::TypedAllocator<CellSeed<nLayers>>(alloc);
-  // use sync_policy, this part cannot be run async but tell thrust to use the allocator
-  auto sync_policy = THRUST_NAMESPACE::par(gpu::TypedAllocator<char>(alloc));
-
-  // put initial computation on Tag1
-  alloc->pushTagOnStack(Tag);
-
-  // start processing of cells
   thrust::device_vector<int, gpu::TypedAllocator<int>> foundSeedsTable(nCells[startLayer] + 1, 0, allocInt);
+  auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(gpu::Stream::DefaultStream);
+
   gpu::processNeighboursKernel<true, nLayers><<<nBlocks, nThreads>>>(
     startLayer,
     startLevel,
@@ -1138,10 +1129,10 @@ void processNeighboursHandler(const int startLayer,
     maxChi2ClusterAttachment,
     propagator,
     matCorrType);
-  thrust::exclusive_scan(sync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), foundSeedsTable.begin());
-  auto foundSeeds{foundSeedsTable.back()};
-  thrust::device_vector<int, gpu::TypedAllocator<int>> updatedCellId(foundSeeds, 0, allocInt);
-  thrust::device_vector<CellSeed<nLayers>, gpu::TypedAllocator<CellSeed<nLayers>>> updatedCellSeed(foundSeeds, allocCellSeed);
+  thrust::exclusive_scan(nosync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), foundSeedsTable.begin());
+
+  thrust::device_vector<int, gpu::TypedAllocator<int>> updatedCellId(foundSeedsTable.back(), 0, allocInt);
+  thrust::device_vector<CellSeed<nLayers>, gpu::TypedAllocator<CellSeed<nLayers>>> updatedCellSeed(foundSeedsTable.back(), allocCellSeed);
   gpu::processNeighboursKernel<false, nLayers><<<nBlocks, nThreads>>>(
     startLayer,
     startLevel,
@@ -1160,41 +1151,20 @@ void processNeighboursHandler(const int startLayer,
     maxChi2ClusterAttachment,
     propagator,
     matCorrType);
+  GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
 
-  // now do inward steps until stop is reached
   int level = startLevel;
-
-  // Host buffers to break dependency
-  // FIXME: these should be on our memory resource!
-  std::vector<int> hostCellId;
-  std::vector<CellSeed<nLayers>> hostCellSeed;
-
-  // inward loop
+  thrust::device_vector<int, gpu::TypedAllocator<int>> lastCellId(allocInt);
+  thrust::device_vector<CellSeed<nLayers>, gpu::TypedAllocator<CellSeed<nLayers>>> lastCellSeed(allocCellSeed);
   for (int iLayer{startLayer - 1}; iLayer > 0 && level > 2; --iLayer) {
-    // copy current results to host
-    hostCellId.resize(updatedCellId.size());
-    hostCellSeed.resize(updatedCellSeed.size());
-    thrust::copy(updatedCellId.begin(), updatedCellId.end(), hostCellId.begin());
-    thrust::copy(updatedCellSeed.begin(), updatedCellSeed.end(), hostCellSeed.begin());
-
-    auto lastCellSeedSize{hostCellSeed.size()};
-    // but before we clear the memory, and immediately start a new block
-    alloc->popTagOffStack(Tag);
-    alloc->pushTagOnStack(Tag);
-
-    // based on the previous step's result create new LUT and zero it
-    thrust::device_vector<int, gpu::TypedAllocator<int>>(allocInt).swap(foundSeedsTable);
-    foundSeedsTable.resize(lastCellSeedSize + 1);
-    thrust::fill(sync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), 0);
-
-    // recreate lastCell vectors from host
-    thrust::device_vector<int, gpu::TypedAllocator<int>> lastCellId(hostCellId.begin(), hostCellId.end(), allocInt);
-    thrust::device_vector<CellSeed<nLayers>, gpu::TypedAllocator<CellSeed<nLayers>>> lastCellSeed(hostCellSeed.begin(), hostCellSeed.end(), allocCellSeed);
-    // also create new vectors on new block
+    lastCellSeed.swap(updatedCellSeed);
+    lastCellId.swap(updatedCellId);
     thrust::device_vector<CellSeed<nLayers>, gpu::TypedAllocator<CellSeed<nLayers>>>(allocCellSeed).swap(updatedCellSeed);
     thrust::device_vector<int, gpu::TypedAllocator<int>>(allocInt).swap(updatedCellId);
+    auto lastCellSeedSize{lastCellSeed.size()};
+    foundSeedsTable.resize(lastCellSeedSize + 1);
+    thrust::fill(nosync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), 0);
 
-    // start step
     gpu::processNeighboursKernel<true, nLayers><<<nBlocks, nThreads>>>(
       iLayer,
       --level,
@@ -1213,13 +1183,14 @@ void processNeighboursHandler(const int startLayer,
       maxChi2ClusterAttachment,
       propagator,
       matCorrType);
-    // how many new seeds where found
-    thrust::exclusive_scan(sync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), foundSeedsTable.begin());
-    foundSeeds = foundSeedsTable.back();
-    // do a resize, we don't need to set the memory now since we know that all of these are written to
-    // Note though this does not clear the memory...
+    thrust::exclusive_scan(nosync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), foundSeedsTable.begin());
+
+    auto foundSeeds{foundSeedsTable.back()};
     updatedCellId.resize(foundSeeds);
+    thrust::fill(nosync_policy, updatedCellId.begin(), updatedCellId.end(), 0);
     updatedCellSeed.resize(foundSeeds);
+    thrust::fill(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), CellSeed<nLayers>());
+
     gpu::processNeighboursKernel<false, nLayers><<<nBlocks, nThreads>>>(
       iLayer,
       level,
@@ -1239,15 +1210,12 @@ void processNeighboursHandler(const int startLayer,
       propagator,
       matCorrType);
   }
-
-  // final copy of result
-  const auto selector = gpu::seed_selector<nLayers>(1.e3, maxChi2NDF * ((startLevel + 2) * 2 - 5));
-  const auto count = thrust::count_if(sync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), selector);
-  thrust::device_vector<CellSeed<nLayers>, gpu::TypedAllocator<CellSeed<nLayers>>> outSeeds(count, allocCellSeed);
-  thrust::copy_if(sync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), outSeeds.begin(), selector);
-  seedsHost.reserve(seedsHost.size() + count);
-  thrust::copy(outSeeds.begin(), outSeeds.end(), std::back_inserter(seedsHost));
-  alloc->popTagOffStack(Tag);
+  GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
+  thrust::device_vector<CellSeed<nLayers>, gpu::TypedAllocator<CellSeed<nLayers>>> outSeeds(updatedCellSeed.size(), allocCellSeed);
+  auto end = thrust::copy_if(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), outSeeds.begin(), gpu::seed_selector<nLayers>(1.e3, maxChi2NDF * ((startLevel + 2) * 2 - 5)));
+  auto s{end - outSeeds.begin()};
+  seedsHost.reserve(seedsHost.size() + s);
+  thrust::copy(outSeeds.begin(), outSeeds.begin() + s, std::back_inserter(seedsHost));
 }
 
 template <int nLayers>
