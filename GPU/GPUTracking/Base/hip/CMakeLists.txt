@@ -178,7 +178,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     TARGETVARNAME targetName)
 
 #  o2_add_test(GPUsortHIP NAME test_GPUsortHIP
-#                  SOURCES test/testGPUsortHIP.hip
+#                  SOURCES test/testGPUsortHIP.hip.cxx
 #                  PUBLIC_LINK_LIBRARIES O2::GPUCommon hip::host hip::device hip::hipcub roc::rocthrust
 #                  COMPONENT_NAME GPU
 #                  LABELS gpu)
