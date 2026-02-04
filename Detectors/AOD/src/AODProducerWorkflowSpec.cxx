@@ -2645,6 +2645,12 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     if (tpcOrig.getdEdx().dEdxTotTPC == 0) {
       extraInfoHolder.flags |= o2::aod::track::TPCdEdxAlt;
     }
+    if (tpcOrig.hasASideClusters()) {
+      extraInfoHolder.flags |= o2::aod::track::TPCSideA;
+    }
+    if (tpcOrig.hasCSideClusters()) {
+      extraInfoHolder.flags |= o2::aod::track::TPCSideC;
+    }
     extraInfoHolder.tpcInnerParam = tpcOrig.getP() / tpcOrig.getAbsCharge();
     extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
     extraInfoHolder.tpcSignal = dEdx.dEdxTotTPC;
