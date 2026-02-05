@@ -32,9 +32,9 @@
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Cell.h"
 #include "DataFormatsITS/TrackITS.h"
-
 #include "ITStrackingGPU/TrackingKernels.h"
 #include "ITStrackingGPU/Utils.h"
+#include "utils/strtag.h"
 
 // O2 track model
 #include "ReconstructionDataFormats/Track.h"
@@ -1106,6 +1106,8 @@ void processNeighboursHandler(const int startLayer,
                               const int nBlocks,
                               const int nThreads)
 {
+  constexpr uint64_t Tag = qStr2Tag("ITS_PNH1");
+  alloc->pushTagOnStack(Tag);
   auto allocInt = gpu::TypedAllocator<int>(alloc);
   auto allocCellSeed = gpu::TypedAllocator<CellSeed<nLayers>>(alloc);
   thrust::device_vector<int, gpu::TypedAllocator<int>> foundSeedsTable(nCells[startLayer] + 1, 0, allocInt);
@@ -1216,6 +1218,7 @@ void processNeighboursHandler(const int startLayer,
   auto s{end - outSeeds.begin()};
   seedsHost.reserve(seedsHost.size() + s);
   thrust::copy(outSeeds.begin(), outSeeds.begin() + s, std::back_inserter(seedsHost));
+  alloc->popTagOffStack(Tag);
 }
 
 template <int nLayers>
