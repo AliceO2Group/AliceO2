@@ -237,7 +237,7 @@ class AODProducerWorkflowDPL : public Task
   bool mThinTracks{false};
   bool mPropTracks{false};
   bool mPropMuons{false};
-  float mTrackQCKeepGlobalTracks{true};
+  float mTrackQCKeepGlobalTracks{false};
   float mTrackQCFraction{0.00};
   int64_t mTrackQCNTrCut{4};
   float mTrackQCDCAxy{3.};
