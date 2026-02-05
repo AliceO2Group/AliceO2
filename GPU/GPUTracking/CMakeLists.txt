@@ -410,10 +410,9 @@ target_sources(${targetName}
                BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR})
 
 make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
-set(GPU_CONST_PARAM_ARCHITECTUES "AMPERE;TURING;VEGA;MI100")
 set(GPU_CONST_PARAM_FILES "")
 set(GPU_ARCH_PARAMS_HEADER ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/GPUDefParametersDefaults_OnTheFly.h)
-generate_gpu_param_header("${GPU_CONST_PARAM_ARCHITECTUES}" ${GPU_ARCH_PARAMS_HEADER})
+generate_gpu_param_header("ALL" ${GPU_ARCH_PARAMS_HEADER} "GPU_CONST_PARAM_ARCHITECTUES")
 foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
   set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
   add_custom_command(
