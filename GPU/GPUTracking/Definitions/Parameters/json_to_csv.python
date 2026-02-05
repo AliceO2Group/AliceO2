@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import sys, json, csv, string
+
+if len(sys.argv) != 3:
+    sys.exit("usage: json2csv.py input.json output.csv")
+
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit("invalid json")
+
+if set(data) != {"CORE", "LB", "PAR"}:
+    sys.exit("invalid categories")
+
+arches = []
+seen = set()
+for cat in data.values():
+    if not isinstance(cat, dict):
+        sys.exit("data not 2-dimensional")
+    for param in cat.values():
+        if not isinstance(param, dict):
+            sys.exit("data not 2-dimensional")
+        for a in param.keys():
+            if a not in seen:
+                seen.add(a)
+                arches.append(a)
+
+cols = 1 + len(arches)
+empty = [""] * cols
+
+with open(sys.argv[2], "w", newline="") as f:
+    w = csv.writer(f, lineterminator="\n")
+    w.writerow(["Architecture", *arches])
+    w.writerow(empty)
+    cats = list(data.items())
+    for ci, (cname, cat) in enumerate(cats):
+        w.writerow([f"{cname}:"] + [""] * (cols - 1))
+        for pname, param in cat.items():
+            row = [pname]
+            for a in arches:
+                v = param.get(a, "")
+                if isinstance(v, list):
+                  row.append(json.dumps(v))
+                elif isinstance(v, str) and not v == "":
+                   row.append('"' + v + '"')
+                else:
+                   row.append(v)
+            w.writerow(row)
+        if ci != len(cats) - 1:
+            w.writerow(empty)
