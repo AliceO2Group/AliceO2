@@ -285,8 +285,8 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
         }
 
         newSectorRow.resetMaxValues();
-        newSectorRow.updateMaxValues(-50.f, -50.f, -50.f);
-        newSectorRow.updateMaxValues(50.f, 50.f, 50.f);
+        newSectorRow.updateMaxValues(-100.f, -100.f, -100.f);
+        newSectorRow.updateMaxValues(100.f, 100.f, 100.f);
       }
     }
   }
