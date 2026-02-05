@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 10
+# FindO2GPU.cmake Version 11
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -173,9 +173,7 @@ if(ENABLE_CUDA)
       message(${FAILURE_SEVERITY} "CUDA was found but cannot be enabled")
       set(CMAKE_CUDA_COMPILER OFF)
     endif()
-    find_path(THRUST_INCLUDE_DIR thrust/version.h PATHS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
-	    PATH_SUFFIXES "" cccl
-	    NO_DEFAULT_PATH)
+    find_path(THRUST_INCLUDE_DIR thrust/version.h PATHS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} PATH_SUFFIXES "" cccl NO_DEFAULT_PATH)
     if(THRUST_INCLUDE_DIR STREQUAL "THRUST_INCLUDE_DIR-NOTFOUND")
       message(${FAILURE_SEVERITY} "CUDA found but thrust not available, looked under: ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
       set(CMAKE_CUDA_COMPILER OFF)
@@ -188,7 +186,7 @@ if(ENABLE_CUDA)
     endif()
   endif()
   if(NOT CMAKE_CUDA_ARCHITECTURES OR O2_GPU_CUDA_UPDATE_NATIVE_ARCHITECTURE)
-    if(NOT CMAKE_CUDA_ARCHITECTURES_NATIVE STREQUAL "")
+    if(NOT CMAKE_CUDA_ARCHITECTURES_NATIVE STREQUAL "" AND NOT CMAKE_CUDA_ARCHITECTURES_NATIVE MATCHES "No CUDA devices found")
       set(CMAKE_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES_NATIVE})
     else()
       set(CMAKE_CUDA_ARCHITECTURES ${CUDA_COMPUTETARGET_DEFAULT_MINIMAL})
