@@ -2,7 +2,6 @@
   "CORE": {
     "WARP_SIZE": {
       "default":      32,
-      "default_cpu":  1,
       "MI100":        64,
       "VEGA":         64,
       "TAHITI":       32,
