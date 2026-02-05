@@ -1,11 +1,17 @@
 {
   "CORE": {
     "WARP_SIZE": {
-      "default":  32,
-      "MI100":    64,
-      "VEGA":     64,
-      "AMPERE":   32,
-      "TURING":   32
+      "default":      32,
+      "default_cpu":  1,
+      "MI100":        64,
+      "VEGA":         64,
+      "TAHITI":       32,
+      "TESLA":        32,
+      "FERMI":        32,
+      "PASCAL":       32,
+      "KEPLER":       32,
+      "AMPERE":       32,
+      "TURING":       32
     },
     "THREAD_COUNT_DEFAULT": {
       "default":  256,
@@ -27,6 +33,11 @@
       "default":  256,
       "MI100":    [768, 8],
       "VEGA":     [512, 10],
+      "TAHITI":   [256, 2],
+      "TESLA":    [256, 1],
+      "FERMI":    [256, 2],
+      "PASCAL":   [1024, 2],
+      "KEPLER":   [512, 4],
       "AMPERE":   [256, 2],
       "TURING":   [256, 2]
     },
@@ -34,6 +45,11 @@
       "default":  256,
       "MI100":    [384, 5],
       "VEGA":     [192, 10],
+      "TAHITI":   [256, 3],
+      "TESLA":    [256, 1],
+      "FERMI":    [256, 3],
+      "PASCAL":   [512, 4],
+      "KEPLER":   [256, 3],
       "AMPERE":   [192, 3],
       "TURING":   [192, 3]
     },
@@ -41,6 +57,11 @@
       "default":  256,
       "MI100":    [192, 8],
       "VEGA":     [960, 8],
+      "TAHITI":   256,
+      "TESLA":    256,
+      "FERMI":    256,
+      "PASCAL":   512,
+      "KEPLER":   256,
       "AMPERE":   [640, 1],
       "TURING":   [640, 1]
     },
@@ -48,6 +69,11 @@
       "default":  256,
       "MI100":    [128, 5],
       "VEGA":     [384, 9],
+      "TAHITI":   256,
+      "TESLA":    256,
+      "FERMI":    256,
+      "PASCAL":   256,
+      "KEPLER":   256,
       "AMPERE":   512,
       "TURING":   512
     },
@@ -327,6 +353,11 @@
       "default":  256,
       "MI100":    [1024, 2],
       "VEGA":     [1024, 7],
+      "TAHITI":   256,
+      "TESLA":    256,
+      "PASCAL":   256,
+      "FERMI":    256,
+      "KEPLER":   256,
       "AMPERE":   512,
       "TURING":   512
     },
@@ -334,6 +365,11 @@
       "default":  256,
       "MI100":    [1024, 5],
       "VEGA":     [512, 7],
+      "TAHITI":   256,
+      "TESLA":    256,
+      "PASCAL":   256,
+      "FERMI":    256,
+      "KEPLER":   256,
       "AMPERE":   [512, 1],
       "TURING":   [512, 1]
     },
