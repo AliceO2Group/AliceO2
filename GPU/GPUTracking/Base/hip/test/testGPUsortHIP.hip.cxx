@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file testGPUsortHIP.hip.cxx
+/// \file testGPUsortHIP.hip
 /// \author Michael Lettrich
 
 #define GPUCA_GPUTYPE_VEGA
