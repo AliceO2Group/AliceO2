@@ -58,8 +58,8 @@ class CTFCoderBase
                             Decoder };
 
   CTFCoderBase() = delete;
-  CTFCoderBase(int n, DetID det, float memFactor = 1.f) : mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f) {}
-  CTFCoderBase(OpType op, int n, DetID det, float memFactor = 1.f) : mOpType(op), mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f) {}
+  CTFCoderBase(int n, DetID det, float memFactor = 1.f, const std::string& ctfdictOpt = "none") : mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f), mDictOpt{ctfdictOpt} {}
+  CTFCoderBase(OpType op, int n, DetID det, float memFactor = 1.f, const std::string& ctfdictOpt = "none") : mOpType(op), mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f), mDictOpt{ctfdictOpt} {}
   virtual ~CTFCoderBase() = default;
 
   virtual void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) = 0;
@@ -189,6 +189,7 @@ class CTFCoderBase
   std::vector<char> loadDictionaryFromTree(TTree* tree);
   std::vector<std::any> mCoders; // encoders/decoders
   DetID mDet;
+  std::string mDictOpt{};
   std::string mDictBinding{"ctfdict"};
   std::string mTrigOffsBinding{"trigoffset"};
   CTFDictHeader mExtHeader;                    // external dictionary header
@@ -325,13 +326,12 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
       }
     }
   }
-  auto dict = ic.options().get<std::string>("ctf-dict");
-  if (dict.empty() || dict == "ccdb") { // load from CCDB
+  if (mDictOpt.empty() || mDictOpt == "ccdb") { // load from CCDB
     mLoadDictFromCCDB = true;
   } else {
-    if (dict != "none") { // none means per-CTF dictionary will created on the fly
-      createCodersFromFile<CTF>(dict, mOpType);
-      LOGP(info, "Loaded {} from {}", mExtHeader.asString(), dict);
+    if (mDictOpt != "none") { // none means per-CTF dictionary will created on the fly
+      createCodersFromFile<CTF>(mDictOpt, mOpType);
+      LOGP(info, "Loaded {} from {}", mExtHeader.asString(), mDictOpt);
     } else {
       LOGP(info, "Internal per-TF CTF Dict will be created");
     }

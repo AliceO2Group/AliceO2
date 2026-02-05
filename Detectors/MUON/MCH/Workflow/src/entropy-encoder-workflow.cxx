@@ -27,11 +27,10 @@ namespace o2
 {
 namespace mch
 {
-
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool selIR);
+  EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt = "none");
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -44,7 +43,7 @@ class EntropyEncoderSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
-EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, ctfdictOpt), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -85,12 +84,15 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(const char* specName, bool selIR)
+DataProcessorSpec getEntropyEncoderSpec(const char* specName, bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("rofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "MCH", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionaryTree"));
+  }
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
@@ -99,14 +101,12 @@ DataProcessorSpec getEntropyEncoderSpec(const char* specName, bool selIR)
     inputs,
     Outputs{{"MCH", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "MCH", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR, ctfdictOpt)},
+    Options{{"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace mch
 } // namespace o2
 
@@ -118,6 +118,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    ConfigParamSpec{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
     ConfigParamSpec{"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
 
   std::swap(workflowOptions, options);
@@ -133,6 +134,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   bool selIR = cfgc.options().get<bool>("select-ir-frames");
-  wf.emplace_back(o2::mch::getEntropyEncoderSpec("mch-entropy-encoder", selIR));
+  wf.emplace_back(o2::mch::getEntropyEncoderSpec("mch-entropy-encoder", selIR, cfgc.options().get<std::string>("ctf-dict")));
   return wf;
 }

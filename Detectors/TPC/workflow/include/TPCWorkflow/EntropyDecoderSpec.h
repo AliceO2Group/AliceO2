@@ -28,7 +28,7 @@ namespace tpc
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
+  EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt = "none") : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, ctfdictOpt)
   {
     mTimer.Stop();
     mTimer.Reset();
@@ -47,7 +47,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec);
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec, const std::string& ctfdictOpt = "none");
 
 } // namespace tpc
 } // namespace o2

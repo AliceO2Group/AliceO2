@@ -38,10 +38,9 @@ namespace o2
 {
 namespace tpc
 {
-
 EntropyEncoderSpec::~EntropyEncoderSpec() = default;
 
-EntropyEncoderSpec::EntropyEncoderSpec(bool fromFile, bool selIR, std::shared_ptr<o2::base::GRPGeomRequest> pgg) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(bool fromFile, bool selIR, std::shared_ptr<o2::base::GRPGeomRequest> pgg, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, ctfdictOpt), mFromFile(fromFile), mSelIR(selIR)
 {
   if (mSelIR) {
     mGRPRequest = pgg;
@@ -305,13 +304,16 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
+DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
   inputs.emplace_back("trigger", "TPC", "TRIGGERWORDS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
+  }
 
   std::shared_ptr<o2::base::GRPGeomRequest> ggreq;
   if (selIR) {
@@ -324,9 +326,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
     inputs,
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "TPC", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile, selIR, ggreq)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile, selIR, ggreq, ctfdictOpt)},
+    Options{{"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"irframe-clusters-maxeta", VariantType::Float, 1.5f, {"Max eta for non-assigned clusters"}},
@@ -335,6 +336,5 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
             {"nThreads-tpc-encoder", VariantType::UInt32, 1u, {"number of threads to use for decoding"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace tpc
 } // namespace o2

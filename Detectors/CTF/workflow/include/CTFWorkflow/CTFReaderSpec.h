@@ -32,6 +32,7 @@ struct CTFReaderInp {
   std::string metricChannel{};
   std::string fileIRFrames{};
   std::string fileRunTimeSpans{};
+  std::string dictOpt{};
   std::vector<int> ctfIDs{};
   bool reverseCTFIDs{false};
   bool skipSkimmedOutTF = false;

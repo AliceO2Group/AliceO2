@@ -24,8 +24,7 @@ namespace o2
 {
 namespace ctp
 {
-
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, ctfdictOpt)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -90,7 +89,7 @@ void EntropyDecoderSpec::updateTimeDependentParams(framework::ProcessingContext&
   }
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec, const std::string& ctfdictOpt)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "CTP", "DIGITS", 0, Lifetime::Timeframe},
@@ -99,18 +98,19 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_CTP", "CTP", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_CTP", "CTP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict_CTP", "CTP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/CTFDictionaryTree"));
+  }
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
   inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", 1));
   return DataProcessorSpec{
     "ctp-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"ignore-ctpinputs-decoding-ctf", VariantType::Bool, false, {"Inputs alignment: false - CTF decoder - has to be compatible with reco: allowed options: 10,01,00"}},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity, ctfdictOpt)},
+    Options{{"ignore-ctpinputs-decoding-ctf", VariantType::Bool, false, {"Inputs alignment: false - CTF decoder - has to be compatible with reco: allowed options: 10,01,00"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace ctp
 } // namespace o2

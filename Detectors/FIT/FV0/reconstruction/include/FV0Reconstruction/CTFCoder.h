@@ -33,7 +33,7 @@ namespace fv0
 class CTFCoder final : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::FV0) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), 1.f, o2::detectors::DetID::FV0, ctfdictOpt) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode digits to buffer with CTF

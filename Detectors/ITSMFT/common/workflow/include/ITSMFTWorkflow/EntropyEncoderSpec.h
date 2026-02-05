@@ -30,7 +30,7 @@ namespace itsmft
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR);
+  EntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR, const std::string& ctfdictOpt = "none");
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -48,7 +48,7 @@ class EntropyEncoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR = false);
+framework::DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR = false, const std::string& ctfdictOpt = "none");
 
 } // namespace itsmft
 } // namespace o2

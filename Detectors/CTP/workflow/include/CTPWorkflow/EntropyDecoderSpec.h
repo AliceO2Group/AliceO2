@@ -28,7 +28,7 @@ namespace ctp
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(int verbosity);
+  EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt = "none");
   ~EntropyDecoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -42,7 +42,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec);
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec, const std::string& ctfdictOpt);
 
 } // namespace ctp
 } // namespace o2

@@ -35,7 +35,7 @@ namespace zdc
 class CTFCoder final : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::ZDC) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), 1.f, o2::detectors::DetID::ZDC, ctfdictOpt) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF

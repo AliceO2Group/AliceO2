@@ -24,7 +24,7 @@ namespace trd
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec);
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec, const std::string& ctfdictOpt = "none");
 
 } // namespace trd
 } // namespace o2

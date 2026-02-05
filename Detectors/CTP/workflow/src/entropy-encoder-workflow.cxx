@@ -23,6 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    ConfigParamSpec{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
     ConfigParamSpec{"no-lumi-input", VariantType::Bool, false, {"Lumi info not available"}},
     ConfigParamSpec{"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
 
@@ -38,6 +39,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::ctp::getEntropyEncoderSpec(cfgc.options().get<bool>("select-ir-frames"), cfgc.options().get<bool>("no-lumi-input")));
+  wf.emplace_back(o2::ctp::getEntropyEncoderSpec(cfgc.options().get<bool>("select-ir-frames"), cfgc.options().get<bool>("no-lumi-input"), cfgc.options().get<std::string>("ctf-dict")));
   return wf;
 }
