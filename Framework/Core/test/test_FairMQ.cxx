@@ -61,7 +61,7 @@ template <typename I, typename F>
 auto forEach(I begin, I end, F&& function)
 {
 
-  using span = gsl::span<const std::byte>;
+  using span = std::span<const std::byte>;
   using SPAN_SIZE_TYPE = span::size_type;
   using gsl::narrow_cast;
   for (auto it = begin; it != end; ++it) {

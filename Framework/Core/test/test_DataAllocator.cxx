@@ -235,7 +235,7 @@ DataProcessorSpec getSinkSpec()
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
     ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
     LOG(info) << "extracting span of o2::test::TriviallyCopyable from input1";
-    auto object1span = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input1");
+    auto object1span = pc.inputs().get<std::span<o2::test::TriviallyCopyable>>("input1");
     ASSERT_ERROR(object1span.size() == 1);
     ASSERT_ERROR(sizeof(typename decltype(object1span)::value_type) == sizeof(o2::test::TriviallyCopyable));
     // check the additional header on the stack
@@ -309,7 +309,7 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object11 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     LOG(info) << "extracting the original std::vector<o2::test::TriviallyCopyable> as span from input12";
-    auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
+    auto object12 = pc.inputs().get<std::span<o2::test::TriviallyCopyable>>("input12");
     ASSERT_ERROR(object12.size() == 2);
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
@@ -337,7 +337,7 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object16[0] == 10 && object16[1] == 20 && object16[2] == 30);
 
     LOG(info) << "extracting PMR vector";
-    auto pmrspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("inputPMR");
+    auto pmrspan = pc.inputs().get<std::span<o2::test::TriviallyCopyable>>("inputPMR");
     ASSERT_ERROR((pmrspan[0] == o2::test::TriviallyCopyable{1, 2, 3}));
     auto dataref = pc.inputs().get<DataRef>("inputPMR");
     auto header = DataRefUtils::getHeader<const o2::header::DataHeader*>(dataref);
@@ -417,8 +417,8 @@ DataProcessorSpec getSpectatorSinkSpec()
       }
     }
     ASSERT_ERROR(nPart == 3);
-    LOG(info) << "extracting the forwarded gsl::span<o2::test::TriviallyCopyable> as span from input12";
-    auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
+    LOG(info) << "extracting the forwarded std::span<o2::test::TriviallyCopyable> as span from input12";
+    auto object12 = pc.inputs().get<std::span<o2::test::TriviallyCopyable>>("input12");
     ASSERT_ERROR(object12.size() == 2);
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
