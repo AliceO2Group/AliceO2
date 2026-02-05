@@ -107,6 +107,23 @@ set(SRCS_NO_H SectorTracker/GPUTPCTrackerDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx
               Global/GPUChainTrackingIO.cxx)
 
+if(GPUCA_OVERRIDE_PARAMETER_FILE)
+    set(GPU_PARAM_JSON ${GPUCA_OVERRIDE_PARAMETER_FILE})
+else()
+    set(GPU_PARAM_JSON ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/GPUParameters.csv)
+endif()
+get_filename_component(GPU_PARAM_JSON_EXT ${GPU_PARAM_JSON} EXT)
+string(TOLOWER "${GPU_PARAM_JSON_EXT}" GPU_PARAM_JSON_EXT)
+if(GPU_PARAM_JSON_EXT STREQUAL .csv)
+    execute_process(
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/csv_to_json.sh "${GPU_PARAM_JSON}"
+        OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    message(STATUS "Converted ${GPU_PARAM_JSON} to ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json")
+    set(GPU_PARAM_JSON ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json)
+endif()
+
 set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
 file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
 include(cmake/gpu_param_header_generator.cmake)

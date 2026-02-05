@@ -73,7 +73,6 @@ function(generate_macros json_content output types arch_list arch_list_output)
 endfunction()
 
 function(generate_gpu_param_header GPU_ARCH OUT_HEADER)
-    set(GPU_PARAM_JSON ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/GPUParameters.json)
     set(TARGET_ARCH "UNKNOWN")
     if(GPU_ARCH STREQUAL "AUTO")
         detect_gpu_arch("ALL")

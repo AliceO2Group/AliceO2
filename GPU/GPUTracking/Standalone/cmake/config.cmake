@@ -41,3 +41,4 @@ set(CUDA_COMPUTETARGET "default")           # 86 89
 #set(GPUCA_CONFIG_COMPILER gcc)             # gcc / clang
 #set(GPUCA_CONFIG_WERROR 1)
 #add_definitions(-DGPUCA_GPU_DEBUG_PRINT)
+#set(GPUCA_OVERRIDE_PARAMETER_FILE "foo.csv")
