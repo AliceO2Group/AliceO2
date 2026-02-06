@@ -2,7 +2,13 @@
 
 [[ -z $1 ]] && { echo "Usage: csv_to_json.sh CSV_FILE"; exit 1; }
 
-awk -vFPAT='([^,]*)|(\"([^\"]|\"\")*\")' \
+DELIM=$'\xFF'
+sed -E \
+  ':loop
+   s/^(([^"]*"[^"]*")*[^"]*),/\1'$DELIM'/;
+   t loop' \
+  $1 | \
+awk -F$DELIM \
   'BEGIN {
      print "{"
    } {
@@ -42,5 +48,4 @@ awk -vFPAT='([^,]*)|(\"([^\"]|\"\")*\")' \
      if (paramprinted) print "\n    }"
      if (catprinted) print "  }"
      print "}"
-   }' \
-   $1
+   }'
