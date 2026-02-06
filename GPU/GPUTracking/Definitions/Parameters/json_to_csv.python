@@ -27,6 +27,7 @@ for cat in data.values():
 
 cols = 1 + len(arches)
 empty = [""] * cols
+arches = sorted(arches, key=lambda x: 0 if x.startswith("default") else 1)
 
 with open(sys.argv[2], "w", newline="") as f:
     w = csv.writer(f, lineterminator="\n")
