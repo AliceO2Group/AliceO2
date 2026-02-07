@@ -130,7 +130,8 @@ set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
 file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
 include(cmake/gpu_param_header_generator.cmake)
 set(GPU_DEFAULT_PARAMS_HEADER ${ON_THE_FLY_DIR}/GPUDefParametersDefaults.h)
-generate_gpu_param_header("AUTO" ${GPU_DEFAULT_PARAMS_HEADER}) # generate header with default GPU parameters, arch selected by CMake variables
+set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsDevice.h)
+generate_gpu_param_header("ALL" ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE} GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters, arch selected by CMake variables
 
 set(HDRS_INSTALL
     ${HDRS_CINT_O2}
@@ -161,6 +162,7 @@ set(HDRS_INSTALL
     Debug/GPUROOTDump.h
     Definitions/GPUDefConstantsAndSettings.h
     ${GPU_DEFAULT_PARAMS_HEADER}
+    ${GPU_DEFAULT_PARAMS_HEADER_DEVICE}
     Definitions/GPUDefParametersWrapper.h
     Definitions/GPUDefParametersConstants.h
     Definitions/GPUDef.h
@@ -449,20 +451,19 @@ if(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
     message(WARNING "GPU Tracking disabled on MacOS")
   else()
     make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
-    set(GPU_CONST_PARAM_FILES "")
-    set(GPU_ARCH_PARAMS_HEADER ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/GPUDefParametersDefaults_OnTheFly.h)
-    generate_gpu_param_header("ALL" ${GPU_ARCH_PARAMS_HEADER} "GPU_CONST_PARAM_ARCHITECTUES")
+    set(GPU_CONST_PARAM_FILES)
     foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
       set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
       add_custom_command(
         OUTPUT ${PARAMFILE}
         COMMAND bash -c
-                "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"${GPU_ARCH_PARAMS_HEADER}\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
+                "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"GPUDefParametersDefaults.h\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
                 | root -l -b > /dev/null
         VERBATIM
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch
         MAIN_DEPENDENCY Standalone/tools/dumpGPUDefParam.C
-        DEPENDS ${GPU_ARCH_PARAMS_HEADER}
+        DEPENDS ${GPU_DEFAULT_PARAMS_HEADER}
+                ${GPU_DEFAULT_PARAMS_HEADER_DEVICE}
                 ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h
                 ${ON_THE_FLY_DIR}/GPUDefParametersLoad.inc
         COMMENT "Generating GPU parameter set for architecture ${GPU_ARCH}")
