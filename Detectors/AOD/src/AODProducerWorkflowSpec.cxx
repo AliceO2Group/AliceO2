@@ -3349,7 +3349,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"hepmc-update", VariantType::String, "always", {"When to update HepMC Aux tables: always - force update, never - never update, all - if all keys are present, any - when any key is present (not valid yet)"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
       ConfigParamSpec{"thin-tracks", VariantType::Bool, false, {"Produce thinned track tables"}},
-      ConfigParamSpec{"trackqc-keepglobaltracks", VariantType::Bool, true, {"Always keep TrackQA for global tracks"}},
+      ConfigParamSpec{"trackqc-keepglobaltracks", VariantType::Bool, false, {"Always keep TrackQA for global tracks"}},
       ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.1), {"Fraction of tracks to QC"}},
       ConfigParamSpec{"trackqc-NTrCut", VariantType::Int64, 4L, {"Minimal length of the track - in amount of tracklets"}},
       ConfigParamSpec{"trackqc-tpc-dca", VariantType::Float, 3.f, {"Keep TPC standalone track with this DCAxy to the PV"}},
