@@ -37,6 +37,11 @@
 #include "SimConfig/GlobalProcessCutSimParam.h"
 #include "DetectorsBase/GeometryManagerParam.h"
 #include <TGeoParallelWorld.h>
+#include <TGeoVolume.h>
+#include <TBuffer3D.h>
+#include <TGeoTessellated.h>
+#include <DetectorsBase/O2Tessellated.h>
+#include <unordered_set>
 
 namespace o2
 {
@@ -209,8 +214,63 @@ bool O2MCApplicationBase::MisalignGeometry()
     gGeoManager->SetUseParallelWorldNav(true);
   }
 
+  // performs possible optimizations (shape replacements on the runtime geometry)
+  fixTGeoRuntimeShapes();
+
   // return original return value of misalignment procedure
   return true;
+}
+
+void O2MCApplicationBase::fixTGeoRuntimeShapes()
+{
+  // Replace TGeo shapes by other ones for performance or other reasons.
+  // Should only affect runtime of simulation.
+
+  // TODO: make this configurable via external JSON rules/macro
+
+  // Also delete original shapes for memory reasons
+
+  // We follow a visitor pattern on a geom hierarchy
+  // for now replace a TGeoTessellate by our own implementation
+  std::unordered_set<TGeoVolume*> volumes_visited;
+  std::unordered_set<TGeoShape*> old_shape_pointers;
+
+  std::function<void(TGeoNode*)> visit;
+  visit = [&](TGeoNode* node) -> void {
+    if (!node) {
+      return;
+    }
+    auto vol = node->GetVolume();
+    if (volumes_visited.find(vol) != volumes_visited.end()) {
+      return;
+    }
+    volumes_visited.insert(vol);
+
+    // transform the shape of this volume
+    auto shape = vol->GetShape();
+    if (shape->IsA() == TGeoTessellated::Class()) {
+      auto tsl = static_cast<TGeoTessellated*>(shape);
+
+      // make a new O2Tessellated until ROOT has proper support for navigation in TGeoTessellated
+      std::cout << "Converting to O2Tessellated for vol " << vol->GetName() << "\n";
+      auto replacement_shape = new o2::base::O2Tessellated(*tsl, false);
+      vol->SetShape(replacement_shape);
+      old_shape_pointers.insert(shape);
+    }
+    // other cases could come here
+
+    for (int i = 0; i < vol->GetNdaughters(); ++i) {
+      auto child_node = vol->GetNode(i);
+      visit(child_node);
+    }
+  };
+
+  visit(gGeoManager->GetTopNode());
+
+  for (auto ptr : old_shape_pointers) {
+    delete ptr;
+    ptr = nullptr;
+  }
 }
 
 void O2MCApplicationBase::finishEventCommon()

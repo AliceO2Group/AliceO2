@@ -42,4 +42,6 @@
 
 #pragma link C++ class o2::data::Stack + ;
 
+#pragma link C++ class o2::base::O2Tessellated - ;
+
 #endif
