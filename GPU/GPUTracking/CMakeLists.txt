@@ -107,32 +107,6 @@ set(SRCS_NO_H SectorTracker/GPUTPCTrackerDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx
               Global/GPUChainTrackingIO.cxx)
 
-if(GPUCA_OVERRIDE_PARAMETER_FILE)
-    set(GPU_PARAM_JSON ${GPUCA_OVERRIDE_PARAMETER_FILE})
-else()
-    set(GPU_PARAM_JSON ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/GPUParameters.csv)
-endif()
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GPU_PARAM_JSON}")
-
-get_filename_component(GPU_PARAM_JSON_EXT ${GPU_PARAM_JSON} EXT)
-string(TOLOWER "${GPU_PARAM_JSON_EXT}" GPU_PARAM_JSON_EXT)
-if(GPU_PARAM_JSON_EXT STREQUAL .csv)
-    execute_process(
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/csv_to_json.sh "${GPU_PARAM_JSON}"
-        OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    )
-    message(STATUS "Converted ${GPU_PARAM_JSON} to ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json")
-    set(GPU_PARAM_JSON ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json)
-endif()
-
-set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
-file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
-include(cmake/gpu_param_header_generator.cmake)
-set(GPU_DEFAULT_PARAMS_HEADER ${ON_THE_FLY_DIR}/GPUDefParametersDefaults.h)
-set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsDevice.h)
-generate_gpu_param_header("ALL" ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE} GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters, arch selected by CMake variables
-
 set(HDRS_INSTALL
     ${HDRS_CINT_O2}
     ${HDRS_CINT_DATATYPES}
@@ -161,8 +135,6 @@ set(HDRS_INSTALL
     DataTypes/GPUO2ExternalUser.h
     Debug/GPUROOTDump.h
     Definitions/GPUDefConstantsAndSettings.h
-    ${GPU_DEFAULT_PARAMS_HEADER}
-    ${GPU_DEFAULT_PARAMS_HEADER_DEVICE}
     Definitions/GPUDefParametersWrapper.h
     Definitions/GPUDefParametersConstants.h
     Definitions/GPUDef.h
@@ -258,6 +230,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       DataTypes/GPUO2ConfigurableParam.cxx)
 endif()
 
+set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
+file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
 set(TEMPLATE_HEADER_LIST Base/GPUReconstructionKernelList.template.h
                          Base/GPUReconstructionKernelIncludes.template.h
                          Base/GPUReconstructionIncludesDeviceAll.template.h
@@ -287,6 +261,31 @@ add_custom_command(
   COMMAND_EXPAND_LISTS
 )
 list(APPEND GENERATED_HEADERS_LIST ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h)
+
+if(GPUCA_OVERRIDE_PARAMETER_FILE)
+    set(GPU_PARAM_JSON ${GPUCA_OVERRIDE_PARAMETER_FILE})
+else()
+    set(GPU_PARAM_JSON ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/GPUParameters.csv)
+endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GPU_PARAM_JSON}")
+
+get_filename_component(GPU_PARAM_JSON_EXT ${GPU_PARAM_JSON} EXT)
+string(TOLOWER "${GPU_PARAM_JSON_EXT}" GPU_PARAM_JSON_EXT)
+if(GPU_PARAM_JSON_EXT STREQUAL .csv)
+    execute_process(
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/csv_to_json.sh "${GPU_PARAM_JSON}"
+        OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    message(STATUS "Converted ${GPU_PARAM_JSON} to ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json")
+    set(GPU_PARAM_JSON ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json)
+endif()
+
+include(cmake/gpu_param_header_generator.cmake)
+set(GPU_DEFAULT_PARAMS_HEADER ${ON_THE_FLY_DIR}/GPUDefParametersDefaults.h)
+set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsDevice.h)
+generate_gpu_param_header("ALL" ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE} GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters, arch selected by CMake variables
+list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE})
 
 set(HDRS_INSTALL ${HDRS_INSTALL} ${GENERATED_HEADERS_LIST})
 include(kernels.cmake)
