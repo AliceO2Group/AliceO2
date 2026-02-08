@@ -263,28 +263,39 @@ add_custom_command(
 list(APPEND GENERATED_HEADERS_LIST ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h)
 
 if(GPUCA_OVERRIDE_PARAMETER_FILE)
-    set(GPU_PARAM_JSON ${GPUCA_OVERRIDE_PARAMETER_FILE})
+  set(GPU_PARAM_JSON ${GPUCA_OVERRIDE_PARAMETER_FILE})
 else()
-    set(GPU_PARAM_JSON ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/GPUParameters.csv)
+  set(GPU_PARAM_JSON ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/GPUParameters.csv)
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GPU_PARAM_JSON}")
 
-get_filename_component(GPU_PARAM_JSON_EXT ${GPU_PARAM_JSON} EXT)
-string(TOLOWER "${GPU_PARAM_JSON_EXT}" GPU_PARAM_JSON_EXT)
-if(GPU_PARAM_JSON_EXT STREQUAL .csv)
-    execute_process(
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/csv_to_json.sh "${GPU_PARAM_JSON}"
-        OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+set(GPU_PARAM_JSON_FILES)
+set(GPU_PARAM_JSON_N_FILES 0)
+foreach(GPU_PARAM_JSON_FILE IN LISTS GPU_PARAM_JSON)
+  if(NOT EXISTS "${GPU_PARAM_JSON_FILE}")
+    message(FATAL_ERROR "Parameter file ${GPU_PARAM_JSON_FILE} does not exist")
+  endif()
+  get_filename_component(GPU_PARAM_JSON_EXT ${GPU_PARAM_JSON_FILE} EXT)
+  string(TOLOWER "${GPU_PARAM_JSON_EXT}" GPU_PARAM_JSON_EXT)
+  if(GPU_PARAM_JSON_EXT STREQUAL .csv)
+    get_filename_component(GPU_PARAM_JSON_NAME ${GPU_PARAM_JSON_FILE} NAME_WE)
+    set(CONVOUTFILE "GPUParameters_${GPU_PARAM_JSON_NAME}_${GPU_PARAM_JSON_N_FILES}.json")
+    execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/csv_to_json.sh "${GPU_PARAM_JSON_FILE}"
+                    OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/${CONVOUTFILE}
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
-    message(STATUS "Converted ${GPU_PARAM_JSON} to ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json")
-    set(GPU_PARAM_JSON ${CMAKE_CURRENT_BINARY_DIR}/gpu_parameters.json)
-endif()
+    message(STATUS "Converted ${GPU_PARAM_JSON_FILE} to ${CONVOUTFILE}")
+    list(APPEND GPU_PARAM_JSON_FILES ${CMAKE_CURRENT_BINARY_DIR}/${CONVOUTFILE})
+  else()
+    list(APPEND GPU_PARAM_JSON_FILES ${GPU_PARAM_JSON_FILE})
+  endif()
+  math(EXPR GPU_PARAM_JSON_N_FILES "${GPU_PARAM_JSON_N_FILES} + 1")
+endforeach()
 
 include(cmake/gpu_param_header_generator.cmake)
 set(GPU_DEFAULT_PARAMS_HEADER ${ON_THE_FLY_DIR}/GPUDefParametersDefaults.h)
 set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsDevice.h)
-generate_gpu_param_header("ALL" ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE} GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters, arch selected by CMake variables
+generate_gpu_param_header("${GPU_PARAM_JSON_FILES}" "ALL" "${GPU_DEFAULT_PARAMS_HEADER}" "${GPU_DEFAULT_PARAMS_HEADER_DEVICE}" GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters, arch selected by CMake variables
 list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE})
 
 set(HDRS_INSTALL ${HDRS_INSTALL} ${GENERATED_HEADERS_LIST})
