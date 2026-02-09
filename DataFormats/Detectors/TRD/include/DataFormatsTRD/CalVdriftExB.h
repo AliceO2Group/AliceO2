@@ -33,26 +33,33 @@ class CalVdriftExB
 
   void setVdrift(int iDet, float vd) { mVdrift[iDet] = vd; }
   void setExB(int iDet, float exb) { mExB[iDet] = exb; }
-  
-  float getVdrift(int iDet, bool defaultAvg = false) const {
+
+  float getVdrift(int iDet, bool defaultAvg = false) const
+  {
     // if defaultAvg = false, we take the value stored whatever it is
     // if defaultAvg = true and we have default value or bad value stored, we take the average on all chambers instead
-    if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet))) return mVdrift[iDet];
-    else return getAverageVdrift();
+    if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
+      return mVdrift[iDet];
+    else
+      return getAverageVdrift();
   }
-  float getExB(int iDet, bool defaultAvg = false) const {
-    if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet))) return mExB[iDet];
-    else return getAverageExB();   
+  float getExB(int iDet, bool defaultAvg = false) const
+  {
+    if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
+      return mExB[iDet];
+    else
+      return getAverageExB();
   }
-  
-  float getAverageVdrift() const {
+
+  float getAverageVdrift() const
+  {
     float averageVdrift = 0.;
     int ngood = 0;
-        
+
     for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
       if (isGoodExB(iDet) && isGoodVdrift(iDet)) {
         // Both values need to be correct to declare a chamber as well calibrated
-        ngood ++;
+        ngood++;
         averageVdrift += mVdrift[iDet];
       }
     }
@@ -64,14 +71,15 @@ class CalVdriftExB
     return averageVdrift;
   }
 
-  float getAverageExB() const {
+  float getAverageExB() const
+  {
     float averageExB = 0.;
     int ngood = 0;
-        
+
     for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
       if (isGoodExB(iDet) && isGoodVdrift(iDet)) {
         // Both values need to be correct to declare a chamber as well calibrated
-        ngood ++;
+        ngood++;
         averageExB += mExB[iDet];
       }
     }
@@ -83,7 +91,8 @@ class CalVdriftExB
     return averageExB;
   }
 
-  bool isGoodExB(int iDet) const {
+  bool isGoodExB(int iDet) const
+  {
     // check if value is well calibrated or not
     // default calibration if not enough entries
     // close to boundaries indicate a failed fit
@@ -91,10 +100,12 @@ class CalVdriftExB
         TMath::Abs(mExB[iDet] - constants::EXBMIN) > 0.01 &&
         TMath::Abs(mExB[iDet] - constants::EXBMAX) > 0.01)
       return true;
-    else return false;
+    else
+      return false;
   }
 
-  bool isGoodVdrift(int iDet) const {
+  bool isGoodVdrift(int iDet) const
+  {
     // check if value is well calibrated or not
     // default calibration if not enough entries
     // close to boundaries indicate a failed fit
@@ -102,7 +113,8 @@ class CalVdriftExB
         TMath::Abs(mVdrift[iDet] - constants::VDRIFTMIN) > 0.1 &&
         TMath::Abs(mVdrift[iDet] - constants::VDRIFTMAX) > 0.1)
       return true;
-    else return false;
+    else
+      return false;
   }
 
  private:

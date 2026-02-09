@@ -312,7 +312,6 @@ void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
       mTRDTransformer->setVdrift(iDet, ((const o2::trd::CalVdriftExB*)obj)->getVdrift(iDet, true));
       mTRDTransformer->setExB(iDet, ((const o2::trd::CalVdriftExB*)obj)->getExB(iDet, true));
     }
-    //mTRDTransformer->setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {

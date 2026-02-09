@@ -111,11 +111,19 @@ void CalibratorVdExB::initProcessing()
   float bz = o2::base::Propagator::Instance()->getNominalBz();
   // default angle with zero field is slightly shifted
   float lorentzAngleAvg = -1.f;
-  if (TMath::Abs(bz - 2) < 0.1f) { lorentzAngleAvg = 3.f;}
-  if (TMath::Abs(bz + 2) < 0.1f) { lorentzAngleAvg = -5.f;}
-  if (TMath::Abs(bz - 5) < 0.1f) { lorentzAngleAvg = 7.f;}
-  if (TMath::Abs(bz + 5) < 0.1f) { lorentzAngleAvg = -9.f;}
-  
+  if (TMath::Abs(bz - 2) < 0.1f) {
+    lorentzAngleAvg = 3.f;
+  }
+  if (TMath::Abs(bz + 2) < 0.1f) {
+    lorentzAngleAvg = -5.f;
+  }
+  if (TMath::Abs(bz - 5) < 0.1f) {
+    lorentzAngleAvg = 7.f;
+  }
+  if (TMath::Abs(bz + 5) < 0.1f) {
+    lorentzAngleAvg = -9.f;
+  }
+
   LOGP(info, "b field: {}  lorentz angle start: {}", bz, lorentzAngleAvg);
 
   mFitFunctor.lowerBoundAngleFit = (80 + lorentzAngleAvg) * TMath::DegToRad();

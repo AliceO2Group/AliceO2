@@ -60,10 +60,10 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
   mNEntriesPerBinSum.fill(0);
   tree->SetBranchAddress("mHistogramEntries[13500]", &mHistogramEntries);
   tree->SetBranchAddress("mNEntriesPerBin[13500]", &mNEntriesPerBin);
-  
-  // use precorr values from ccdb 
+
+  // use precorr values from ccdb
   // necessary when the angular residuals were calculated already using ccdb calibration (e.g. in a local run)
-  
+
   o2::trd::CalVdriftExB* calObject;
   if (usePreCorrFromCCDB) {
     auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
@@ -71,13 +71,12 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
     o2::ccdb::CcdbApi ccdb;
     ccdb.init("http://alice-ccdb.cern.ch");
     auto runDuration = ccdbmgr.getRunDuration(runNumber);
-  
+
     std::map<std::string, std::string> metadata;
     std::map<std::string, std::string> headers;
-  
+
     calObject = ccdb.retrieveFromTFileAny<o2::trd::CalVdriftExB>("TRD/Calib/CalVdriftExB", metadata, runDuration.first + 60000, &headers, "", "", "1689478811721");
   }
-  
 
   //----------------------------------------------------
   // Configure Fitter
@@ -88,7 +87,8 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
   for (int iDet = 0; iDet < 540; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), 25, -25.f, 25.f);
     if (usePreCorrFromCCDB) {
-      if (calObject->isGoodExB(iDet)) counter++;
+      if (calObject->isGoodExB(iDet))
+        counter++;
       mFitFunctor.vdPreCorr[iDet] = calObject->getVdrift(iDet, true);
       mFitFunctor.laPreCorr[iDet] = calObject->getExB(iDet, true);
     }
@@ -137,13 +137,14 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
   printf("-------- Started fits\n");
   std::array<float, 540> laFitResults{};
   std::array<float, 540> vdFitResults{};
-  
+
   TH1F* hVd = new TH1F("hVd", "v drift", 150, 0.5, 2.);
   TH1F* hLa = new TH1F("hLa", "lorentz angle", 200, -25., 25.);
   o2::trd::CalVdriftExB* calObjectOut = new o2::trd::CalVdriftExB();
-  
+
   for (int iDet = 0; iDet < 540; ++iDet) {
-    if (nEntriesDetTotal[iDet] < 75) continue;
+    if (nEntriesDetTotal[iDet] < 75)
+      continue;
     mFitFunctor.currDet = iDet;
     ROOT::Fit::Fitter fitter;
     double paramsStart[2];
@@ -165,19 +166,20 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
     auto fitResult = fitter.Result();
     laFitResults[iDet] = fitResult.Parameter(0);
     vdFitResults[iDet] = fitResult.Parameter(1);
-    if (fitResult.MinFcnValue() > 0.03) continue;
-    printf("Det %d: la=%.3f \tvd=%.3f \t100*minValue=%f \tentries=%d\n", iDet, laFitResults[iDet] * TMath::RadToDeg(), vdFitResults[iDet], 100*fitResult.MinFcnValue(), nEntriesDetTotal[iDet]);
+    if (fitResult.MinFcnValue() > 0.03)
+      continue;
+    printf("Det %d: la=%.3f \tvd=%.3f \t100*minValue=%f \tentries=%d\n", iDet, laFitResults[iDet] * TMath::RadToDeg(), vdFitResults[iDet], 100 * fitResult.MinFcnValue(), nEntriesDetTotal[iDet]);
     hVd->Fill(vdFitResults[iDet]);
-    hLa->Fill(laFitResults[iDet]* TMath::RadToDeg());
+    hLa->Fill(laFitResults[iDet] * TMath::RadToDeg());
     calObjectOut->setVdrift(iDet, vdFitResults[iDet]);
     calObjectOut->setExB(iDet, laFitResults[iDet]);
   }
   printf("-------- Finished fits\n");
-  
-  std::cout<<"number of chambers with enough entries: "<<hVd->GetEntries()<<std::endl;;
-  std::cout<<"vdrift mean: "<<hVd->GetMean()<<" sigma: "<<hVd->GetStdDev()<<std::endl;
-  std::cout<<"lorentz angle mean: "<<hLa->GetMean()<<" sigma: "<<hLa->GetStdDev()<<std::endl;
-   
+
+  std::cout << "number of chambers with enough entries: " << hVd->GetEntries() << std::endl;
+  ;
+  std::cout << "vdrift mean: " << hVd->GetMean() << " sigma: " << hVd->GetStdDev() << std::endl;
+  std::cout << "lorentz angle mean: " << hLa->GetMean() << " sigma: " << hLa->GetStdDev() << std::endl;
 
   //----------------------------------------------------
   // Write
@@ -188,5 +190,4 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
   outFilePtr->WriteObjectAny(calObjectOut, "o2::trd::CalVdriftExB", "calObject");
   for (auto& p : mFitFunctor.profiles)
     p->Write();
-  
 }

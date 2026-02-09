@@ -59,8 +59,8 @@ class GPUTRDRecoParam
   /// \param phi angle of related track
   /// \return sigma_y^2 of tracklet
   GPUd() float getRPhiRes(float snp) const { return (mRPhiA2 + mRPhiC2 * (snp - mRPhiB) * (snp - mRPhiB)); }
-  GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mDyB) * (snp - mDyB); } // // a^2 + c^2 * (snp - b)^2
-  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); } // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
+  GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mDyB) * (snp - mDyB); }                     // // a^2 + c^2 * (snp - b)^2
+  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }                 // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
   GPUd() float getCorrYDy(float snp) const { return mCorrYDyA + mCorrYDyC * (snp - mCorrYDyB) * (snp - mCorrYDyB); } // // a + c * (snp - b)^2
 
   /// Get tracklet z correction coefficient for track-eta based corraction

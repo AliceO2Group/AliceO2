@@ -30,13 +30,11 @@ class TrackletTransformer
 
   void init();
 
-  void setVdrift(int iDet, float vd) {mVdrift[iDet] = vd;}
-  void setExB(int iDet, float exb) {mExB[iDet] = exb;}
+  void setVdrift(int iDet, float vd) { mVdrift[iDet] = vd; }
+  void setExB(int iDet, float exb) { mExB[iDet] = exb; }
   void setApplyXOR() { mApplyXOR = true; }
   void setApplyShift(bool f) { mApplyShift = f; }
   bool isShiftApplied() const { return mApplyShift; }
-  
-  
 
   float calculateZ(int padrow, const PadPlane* padPlane) const;
 

@@ -40,8 +40,8 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 {
   double padWidth = padPlane->getWidthIPad();
 
-  //float vDrift = mCalVdriftExB->getVdrift(detector, true);
-  //float exb = mCalVdriftExB->getExB(detector, true);
+  // float vDrift = mCalVdriftExB->getVdrift(detector, true);
+  // float exb = mCalVdriftExB->getExB(detector, true);
   float vDrift = mVdrift[detector];
   float exb = mExB[detector];
 
@@ -57,7 +57,7 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 
   // assuming angle in Bailhache, fig. 4.17 would be positive in our calibration code
   double calibratedDy = rawDy - lorentzCorrection;
-  
+
   return calibratedDy;
 }
 
@@ -99,7 +99,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
     position = tracklet.getPositionBinSigned();
     slope = tracklet.getSlopeBinSigned();
   }
-  
+
   // calculate raw local chamber space point
   const auto padPlane = mGeo->getPadPlane(detector);
 

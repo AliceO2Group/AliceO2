@@ -64,7 +64,7 @@ void GPUTRDRecoParam::init(float bz, const GPUSettingsRec* rec)
   } else {
     LOGP(warning, "No error parameterization available for Bz= {}. Keeping default value (sigma_y = const. = 1cm)", bz);
   }
-  
+
   mDyA2 = 6e-3f;
   mDyC2 = 0.3f;
   mCorrYDyA = 0.27f;

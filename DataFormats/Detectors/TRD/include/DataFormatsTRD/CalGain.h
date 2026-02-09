@@ -33,22 +33,25 @@ class CalGain
 
   void setMPVdEdx(int iDet, float mpv) { mMPVdEdx[iDet] = mpv; }
 
-  float getMPVdEdx(int iDet, bool defaultAvg = false) const { 
+  float getMPVdEdx(int iDet, bool defaultAvg = false) const
+  {
     // if defaultAvg = false, we take the value stored whatever it is
     // if defaultAvg = true and we have default value or bad value stored, we take the average on all chambers instead
-    if (!defaultAvg || isGoodGain(iDet)) return mMPVdEdx[iDet];
-    else return getAverageGain();
+    if (!defaultAvg || isGoodGain(iDet))
+      return mMPVdEdx[iDet];
+    else
+      return getAverageGain();
   }
-  
-  
-  float getAverageGain() const {
+
+  float getAverageGain() const
+  {
     float averageGain = 0.;
     int ngood = 0;
-        
+
     for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
       if (isGoodGain(iDet)) {
         // The chamber has correct calibration
-        ngood ++;
+        ngood++;
         averageGain += mMPVdEdx[iDet];
       }
     }
@@ -59,10 +62,13 @@ class CalGain
     averageGain /= ngood;
     return averageGain;
   }
-  
-  bool isGoodGain(int iDet) const {
-    if (TMath::Abs(mMPVdEdx[iDet] - constants::MPVDEDXDEFAULT) > 1e-6) return true;
-    else return false; 
+
+  bool isGoodGain(int iDet) const
+  {
+    if (TMath::Abs(mMPVdEdx[iDet] - constants::MPVDEDXDEFAULT) > 1e-6)
+      return true;
+    else
+      return false;
   }
 
  private:

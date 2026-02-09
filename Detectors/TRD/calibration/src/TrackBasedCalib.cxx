@@ -190,8 +190,8 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
   for (const auto& trkIn : tracks) {
     if (trkIn.getNtracklets() < params.nTrackletsMin) {
       // with less than 3 tracklets the TRD-only refit not meaningful
-      if (trkIn.getNtracklets() < params.nTrackletsMinLoose || !((trkIn.getTrackletIndex(0) >= 0 && (trkIn.getTrackletIndex(NLAYER-1) >= 0 || trkIn.getTrackletIndex(NLAYER-2) >= 0))) || (trkIn.getTrackletIndex(1) >= 0 && trkIn.getTrackletIndex(NLAYER-1) >= 0)) {
-        // we check if we have enough lever arm, i.e. (first and last) or (second and last) or (first and before last) are present 
+      if (trkIn.getNtracklets() < params.nTrackletsMinLoose || !((trkIn.getTrackletIndex(0) >= 0 && (trkIn.getTrackletIndex(NLAYER - 1) >= 0 || trkIn.getTrackletIndex(NLAYER - 2) >= 0))) || (trkIn.getTrackletIndex(1) >= 0 && trkIn.getTrackletIndex(NLAYER - 1) >= 0)) {
+        // we check if we have enough lever arm, i.e. (first and last) or (second and last) or (first and before last) are present
         continue;
       }
     }
