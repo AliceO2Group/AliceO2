@@ -110,6 +110,9 @@ function(generate_gpu_param_header GPU_PARAM_JSON_FILES ARCH_LIST OUT_HEADER OUT
 
     string(APPEND TMP_HEADER_DEVICE "#if 0\n")
     foreach(ARCH IN LISTS ARCH_LIST)
+        if(do_all_architectures EQUAL -1 AND do_auto_architectures EQUAL -1 AND NOT generate_gpu_param_header_OUTPUT_TMP_${ARCH})
+            message(FATAL_ERROR "No parameters defined for architecture ${ARCH}")
+        endif()
         string(APPEND TMP_HEADER_DEVICE "\n#elif defined(GPUCA_GPUTYPE_${ARCH})\n")
         string(APPEND TMP_HEADER_DEVICE ${generate_gpu_param_header_OUTPUT_TMP_${ARCH}})
     endforeach()
@@ -129,5 +132,4 @@ function(generate_gpu_param_header GPU_PARAM_JSON_FILES ARCH_LIST OUT_HEADER OUT
     string(APPEND TMP_HEADER_DEVICE "\n#endif // GPUDEFPARAMETERSDEFAULTSDEVICE_H\n")
     file(GENERATE OUTPUT "${OUT_HEADER}" CONTENT "${TMP_HEADER}")
     file(GENERATE OUTPUT "${OUT_HEADER_DEVICE}" CONTENT "${TMP_HEADER_DEVICE}")
-    message(STATUS "Generated ${OUT_HEADER} and ${OUT_HEADER_DEVICE}")
 endfunction()

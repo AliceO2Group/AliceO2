@@ -30,6 +30,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
     target_link_libraries(${targetName} PUBLIC GPUTracking)
 endif()
 
+install(DIRECTORY ../tools DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU)
+install(DIRECTORY ../../Definitions/Parameters/ DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU/tools FILES_MATCHING REGEX "\\.(python|sh|cmake)")
 target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
 if(ROOT_FOUND)

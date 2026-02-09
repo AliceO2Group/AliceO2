@@ -292,10 +292,10 @@ foreach(GPU_PARAM_JSON_FILE IN LISTS GPU_PARAM_JSON)
   math(EXPR GPU_PARAM_JSON_N_FILES "${GPU_PARAM_JSON_N_FILES} + 1")
 endforeach()
 
-include(cmake/gpu_param_header_generator.cmake)
+include(Definitions/Parameters/gpu_param_header_generator.cmake)
 set(GPU_DEFAULT_PARAMS_HEADER ${ON_THE_FLY_DIR}/GPUDefParametersDefaults.h)
 set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsDevice.h)
-generate_gpu_param_header("${GPU_PARAM_JSON_FILES}" "ALL" "${GPU_DEFAULT_PARAMS_HEADER}" "${GPU_DEFAULT_PARAMS_HEADER_DEVICE}" GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters, arch selected by CMake variables
+generate_gpu_param_header("${GPU_PARAM_JSON_FILES}" "ALL" "${GPU_DEFAULT_PARAMS_HEADER}" "${GPU_DEFAULT_PARAMS_HEADER_DEVICE}" GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters for all architectures
 list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE})
 
 set(HDRS_INSTALL ${HDRS_INSTALL} ${GENERATED_HEADERS_LIST})
