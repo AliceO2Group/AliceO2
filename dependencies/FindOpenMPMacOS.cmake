@@ -13,18 +13,14 @@ find_library(OpenMP_LIBRARY
     NAMES omp libomp
     HINTS
         /opt/homebrew/opt/libomp/lib
-        /opt/homebrew/lib
         /usr/local/opt/libomp/lib
-        /usr/local/lib
 )
 
 find_path(OpenMP_INCLUDE_DIR
     NAMES omp.h
     HINTS
         /opt/homebrew/opt/libomp/include
-        /opt/homebrew/include
         /usr/local/opt/libomp/include
-        /usr/local/include
 )
 
 mark_as_advanced(OpenMP_LIBRARY OpenMP_INCLUDE_DIR)
