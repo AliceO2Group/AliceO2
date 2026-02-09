@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 11
+# FindO2GPU.cmake Version 13
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -65,7 +65,6 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
   else()
     set(CUDA_TARGET TESLA)
   endif()
-  message(STATUS "Using optimized CUDA settings for ${CUDA_TARGET} GPU (sm_${CUDA_FIRST_TARGET})")
 
   string(REGEX MATCH "^[ \t\r\n]*gfx[0-9]+" HIP_FIRST_TARGET "${HIP_AMDGPUTARGET}")
   string(STRIP "${HIP_FIRST_TARGET}" HIP_FIRST_TARGET)
@@ -87,12 +86,13 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
   else()
     set(HIP_TARGET VEGA)
   endif()
-  message(STATUS "Using optimized HIP settings for ${HIP_TARGET} GPU (gfx${HIP_FIRST_TARGET})")
 
   if(backend STREQUAL "CUDA") # CUDA filter
+    message(STATUS "Using optimized CUDA settings for ${CUDA_TARGET} GPU (sm_${CUDA_FIRST_TARGET})")
     set(TARGET_ARCH "${CUDA_TARGET}" PARENT_SCOPE)
   elseif(backend STREQUAL "HIP") # HIP filter
     set(TARGET_ARCH "${HIP_TARGET}" PARENT_SCOPE)
+    message(STATUS "Using optimized HIP settings for ${HIP_TARGET} GPU (gfx${HIP_FIRST_TARGET})")
   elseif(backend STREQUAL "ALL" OR backend STREQUAL "AUTO") # Return all / enabled backends
     set(TARGET_ARCH)
     if(CUDA_ENABLED OR backend STREQUAL "ALL")
@@ -194,8 +194,6 @@ if(ENABLE_CUDA)
     if(THRUST_INCLUDE_DIR STREQUAL "THRUST_INCLUDE_DIR-NOTFOUND")
       message(${FAILURE_SEVERITY} "CUDA found but thrust not available, looked under: ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
       set(CMAKE_CUDA_COMPILER OFF)
-    else()
-      message(STATUS "Thrust found in the path: ${THRUST_INCLUDE_DIR}")
     endif()
     if (NOT CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "12.8")
       message(${FAILURE_SEVERITY} "CUDA Version too old: ${CMAKE_CUDA_COMPILER_VERSION}, 12.8 required")
@@ -278,15 +276,14 @@ if(ENABLE_OPENCL)
      AND NOT LLVM_SPIRV STREQUAL "LLVM_SPIRV-NOTFOUND"
      AND OPENCL_COMPATIBLE_CLANG_FOUND)
     set(OPENCL_ENABLED_SPIRV ON)
-    message(STATUS "Using CLANG ${LLVM_CLANG} and ${LLVM_SPIRV} for SPIR-V compilation")
   endif ()
   if(OPENCL_COMPATIBLE_CLANG_FOUND AND
      (OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.2
      OR OPENCL_ENABLED_SPIRV))
     set(OPENCL_ENABLED ON)
-    message(STATUS "Found OpenCL 2 (${OpenCL_VERSION_STRING} SPIR-V ${OPENCL_ENABLED_SPIRV} with CLANG ${LLVM_PACKAGE_VERSION})")
+    message(STATUS "Found OpenCL ${OpenCL_VERSION_STRING} (SPIR-V ${OPENCL_ENABLED_SPIRV} ${LLVM_CLANG} ${LLVM_PACKAGE_VERSION} ${LLVM_SPIRV})")
   elseif(NOT ENABLE_OPENCL STREQUAL "AUTO")
-    message(FATAL_ERROR "OpenCL 2.x not available")
+    message(FATAL_ERROR "OpenCL >= 2.x not available")
   else()
     set(OPENCL_ENABLED OFF)
   endif()
@@ -347,7 +344,6 @@ if(ENABLE_HIP)
         set(CMAKE_HIP_HOST_COMPILER "$ENV{GCC_TOOLCHAIN_ROOT}/bin/gcc")
       endif()
       enable_language(HIP)
-      message(STATUS "HIP language enabled: ${CMAKE_HIP_COMPILER}")
     endif()
   elseif(NOT ENABLE_HIP STREQUAL "AUTO")
     message(FATAL_ERROR "HIP requested, but CMAKE_PREFIX_PATH env variable does not contain rocm folder!")
@@ -373,7 +369,7 @@ if(ENABLE_HIP)
     if(HIP_AMDGPUTARGET)
       set(CMAKE_HIP_ARCHITECTURES "${HIP_AMDGPUTARGET}")
     endif()
-    message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE} version ${hip_VERSION}, Architectures ${CMAKE_HIP_ARCHITECTURES})")
+    message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE} version ${hip_VERSION}, ${CMAKE_HIP_COMPILER}, Architectures ${CMAKE_HIP_ARCHITECTURES})")
   else()
     set(HIP_ENABLED OFF)
   endif()
