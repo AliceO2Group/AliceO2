@@ -151,6 +151,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   GPUd() float getPt() const { return CAMath::Abs(getQ2Pt()) > 0 ? CAMath::Abs(1.f / getQ2Pt()) : 99999.f; }
   GPUd() float getSigmaY2() const { return GetErr2Y(); }
   GPUd() float getSigmaZ2() const { return GetErr2Z(); }
+  GPUd() float getSigmaZY() const { return GetCov(1); }
 
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }

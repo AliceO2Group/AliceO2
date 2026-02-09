@@ -88,9 +88,7 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
   for (int iDet = 0; iDet < 540; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), 25, -25.f, 25.f);
     if (usePreCorrFromCCDB) {
-    std::cout<<iDet<<"   "<<calObject->getVdrift(iDet)<<"   "<<calObject->getExB(iDet)<<"  ";
-    if (calObject->isGoodExB(iDet)) counter++;
-    if (iDet%6==5)std::cout<<std::endl;
+      if (calObject->isGoodExB(iDet)) counter++;
       mFitFunctor.vdPreCorr[iDet] = calObject->getVdrift(iDet, true);
       mFitFunctor.laPreCorr[iDet] = calObject->getExB(iDet, true);
     }
@@ -128,7 +126,6 @@ void manualCalibFit(int runNumber = 563335, bool usePreCorrFromCCDB = false)
       if (nEntries > 0) { // skip entries which have no entries; ?
         // add to the respective profile for fitting later on
         mFitFunctor.profiles[iDet]->Fill(2 * iBin - 25.f, angleDiffSum / nEntries, nEntries);
-        if (iDet == 207) std::cout<<iBin<<"  "<<angleDiffSum<<"  "<<nEntries<<"  "<<angleDiffSum/nEntries<<"  "<<mFitFunctor.profiles[iDet]->GetBinEntries(iBin+1)<<"   "<<mFitFunctor.profiles[iDet]->GetBinEffectiveEntries(iBin+1)<<"  "<<mFitFunctor.profiles[iDet]->GetBinError(iBin+1)<<std::endl;
       }
     }
     printf("Det %d: nEntries=%d \n", iDet, nEntriesDetTotal[iDet]);

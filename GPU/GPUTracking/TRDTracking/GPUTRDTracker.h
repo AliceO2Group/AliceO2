@@ -175,12 +175,10 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUTRDSpacePoint* mSpacePoints; // array with tracklet coordinates in global tracking frame
   const GPUTRDGeometry* mGeo;     // TRD geometry
   const GPUTRDRecoParam* mRecoParam; // TRD RecoParam
-  /// ---- end error parametrization ----
   bool mDebugOutput;                                  // store debug output
   static constexpr const float sRadialOffset = -0.1f; // due to (possible) mis-calibration of t0 -> will become obsolete when tracklet conversion is done outside of the tracker
   float mMaxEta;                                      // TPC tracks with higher eta are ignored
   float mRoadZ;                                       // in z, a constant search road is used
-  float mZCorrCoefNRC;                                // tracklet z-position depends linearly on track dip angle
   float mTPCVdrift;                                   // TPC drift velocity used for shifting TPC tracks along Z
   float mTPCTDriftOffset;                             // TPC drift time additive offset
   GPUTRDTrackerDebug<TRDTRK>* mDebug;                 // debug output
