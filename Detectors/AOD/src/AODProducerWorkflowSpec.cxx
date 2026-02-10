@@ -499,7 +499,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 
           float weight = 0;
           static std::uniform_real_distribution<> distr(0., 1.);
-          bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator)) || (src != GIndex::TPC && mTrackQCKeepGlobalTracks);
+          bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator)) || ((src != GIndex::TPC ||  mGIDUsedBySVtx.find(trackIndex) != mGIDUsedBySVtx.end() || mGIDUsedByStr.find(trackIndex) != mGIDUsedByStr.end()) && mTrackQCKeepGlobalTracks);
           auto extraInfoHolder = processBarrelTrack(collisionID, collisionBC, trackIndex, data, bcsMap);
 
           if (writeQAData) {
