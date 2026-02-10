@@ -44,7 +44,7 @@ void GPUTRDRecoParam::init(float bz, const GPUSettingsRec* rec)
   } else {
     LOGP(warning, "No error parameterization available for Bz= {}. Keeping default value (sigma_y = const. = 1cm)", bz);
   }
-  
+
   mRPhiA2 = resRPhiIdeal2;
   mLorentzAngle = -0.02f + 0.13f * bz / 5.f;
 
@@ -67,5 +67,3 @@ void GPUTRDRecoParam::recalcTrkltCov(const float tilt, const float snp, const fl
   cov[1] = c2 * tilt * (sz2 - sy2);
   cov[2] = c2 * (t2 * sy2 + sz2);
 }
-
-
