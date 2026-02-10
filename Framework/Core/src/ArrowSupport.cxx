@@ -564,7 +564,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].defaulted() == false) {
                          config->maxTimeframes = std::stoll(dc.options["timeframes-rate-limit"].as<std::string>());
                        } else {
-                         config->maxTimeframes = readers * DefaultsHelpers::pipelineLength();
+                         config->maxTimeframes = readers * DefaultsHelpers::pipelineLength(dc);
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...

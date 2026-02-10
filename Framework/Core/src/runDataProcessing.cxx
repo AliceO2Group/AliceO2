@@ -817,7 +817,8 @@ void spawnDevice(uv_loop_t* loop,
     .sendInitialValue = true,
   });
 
-  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
+  unsigned int pipelineLength = DefaultsHelpers::pipelineLength(DeviceConfig{varmap});
+  for (size_t i = 0; i < pipelineLength; ++i) {
     allStates.back().registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("matcher_variables/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
@@ -826,7 +827,7 @@ void spawnDevice(uv_loop_t* loop,
     });
   }
 
-  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
+  for (size_t i = 0; i < pipelineLength; ++i) {
     allStates.back().registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("data_relayer/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + i),

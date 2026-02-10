@@ -65,7 +65,7 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   TimesliceIndex index{1, infos};
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   ServiceRegistry registry;
-  DataRelayer relayer(policy, inputs, index, {registry});
+  DataRelayer relayer(policy, inputs, index, {registry}, -1);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -118,7 +118,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   ServiceRegistry registry;
-  DataRelayer relayer(policy, inputs, index, {registry});
+  DataRelayer relayer(policy, inputs, index, {registry}, -1);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -177,7 +177,7 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   ServiceRegistry registry;
-  DataRelayer relayer(policy, inputs, index, {registry});
+  DataRelayer relayer(policy, inputs, index, {registry}, -1);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -254,7 +254,7 @@ static void BM_RelaySplitParts(benchmark::State& state)
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   ServiceRegistry registry;
-  DataRelayer relayer(policy, inputs, index, {registry});
+  DataRelayer relayer(policy, inputs, index, {registry}, -1);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -314,7 +314,7 @@ static void BM_RelayMultiplePayloads(benchmark::State& state)
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   ServiceRegistry registry;
-  DataRelayer relayer(policy, inputs, index, {registry});
+  DataRelayer relayer(policy, inputs, index, {registry}, -1);
   relayer.setPipelineLength(4);
 
   // DataHeader matching the one provided in the input

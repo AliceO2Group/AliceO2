@@ -11,6 +11,9 @@
 
 #include "Framework/DefaultsHelpers.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/DeviceConfig.h"
+#include <fairmq/ProgOptions.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
@@ -18,21 +21,33 @@
 namespace o2::framework
 {
 
-unsigned int DefaultsHelpers::pipelineLength()
+unsigned int DefaultsHelpers::pipelineLength(unsigned int minLength)
 {
   static bool override = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
   if (override) {
     static unsigned int retval = atoi(getenv("DPL_DEFAULT_PIPELINE_LENGTH"));
-    return retval;
+    return std::max(minLength, retval);
   }
   DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
   // just some reasonable numers
   // The number should really be tuned at runtime for each processor.
   if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::FST) {
-    return 512;
+    return std::max(minLength, 512u);
   } else {
-    return 64;
+    return std::max(minLength, 64u);
   }
+}
+
+unsigned int DefaultsHelpers::pipelineLength(const DeviceConfig& dc)
+{
+  static unsigned int minLength = dc.options.count("timeframes-rate-limit") ? std::max(0, atoi(dc.options["timeframes-rate-limit"].as<std::string>().c_str())) : 0;
+  return pipelineLength(minLength);
+}
+
+unsigned int DefaultsHelpers::pipelineLength(const fair::mq::ProgOptions& options)
+{
+  static unsigned int minLength = options.Count("timeframes-rate-limit") ? std::max(0, atoi(options.GetValue<std::string>("timeframes-rate-limit").c_str())) : 0;
+  return pipelineLength(minLength);
 }
 
 static DeploymentMode getDeploymentMode_internal()

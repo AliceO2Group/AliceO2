@@ -1483,7 +1483,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
   auto& infos = state.inputChannelInfos;
 
   if (context.balancingInputs) {
-    static int pipelineLength = DefaultsHelpers::pipelineLength();
+    static int pipelineLength = DefaultsHelpers::pipelineLength(*ref.get<RawDeviceService>().device()->fConfig);
     static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : std::max(8, std::min(pipelineLength - 48, pipelineLength / 2));
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;
@@ -2259,12 +2259,14 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     return false;
   }
 
-  auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
+  int pipelineLength = DefaultsHelpers::pipelineLength(*ref.get<RawDeviceService>().device()->fConfig);
+
+  auto postUpdateStats = [ref, pipelineLength](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
     auto& stats = ref.get<DataProcessingStats>();
     auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
     char relayerSlotState[1024];
-    int written = snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    int written = snprintf(relayerSlotState, 1024, "%d ", pipelineLength);
     char* buffer = relayerSlotState + written;
     for (size_t ai = 0; ai != record.size(); ai++) {
       buffer[ai] = record.isValid(ai) ? '3' : '0';
@@ -2291,11 +2293,11 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     count++;
   };
 
-  auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
+  auto preUpdateStats = [ref, pipelineLength](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
     auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
     char relayerSlotState[1024];
-    snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    snprintf(relayerSlotState, 1024, "%d ", pipelineLength);
     char* buffer = strchr(relayerSlotState, ' ') + 1;
     for (size_t ai = 0; ai != record.size(); ai++) {
       buffer[ai] = record.isValid(ai) ? '2' : '0';
