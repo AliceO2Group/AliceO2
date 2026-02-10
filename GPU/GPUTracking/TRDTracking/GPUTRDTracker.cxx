@@ -595,17 +595,17 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           float trkltCovTmp[3] = {0.f};
           if ((CAMath::Abs(deltaY) < roadY) && (CAMath::Abs(deltaZ) < roadZ)) { // TODO: check if this is still necessary after the cut before propagation of track
             // tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
-            mRecoParam->recalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(tracklets[trkltIdx].GetZbin()), trkltCovTmp);
+            RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(tracklets[trkltIdx].GetZbin()), trkltCovTmp);
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
             if (Param().rec.trd.addDeflectionInChi2 && (trkWork->getSnp() < 1.f - 1e-6f) && (trkWork->getSnp() > -1.f + 1e-6f)) {
               // we add the slope in the chi2 calculation
               float trkltCovTmpWithDy[6] = {trkltCovTmp[0], trkltCovTmp[1], trkltCovTmp[2], 0.f, 0.f, 0.f};
-              mRecoParam->recalcTrkltCovDy(tilt, trkWork->getSnp(), trkltCovTmpWithDy);
+              RecalcTrkltCovDy(tilt, trkWork->getSnp(), trkltCovTmpWithDy);
               trkltCovTmpWithDy[0] += trkWork->getSigmaY2();
               trkltCovTmpWithDy[1] += trkWork->getSigmaZY();
               trkltCovTmpWithDy[2] += trkWork->getSigmaZ2();
 
-              // For now, dy uncertainty also includes track uncertainty, so no need to add additional uncertainty
+              // For now, dy uncertainty parametrization also includes track uncertainty, so no need to add additional uncertainty
               if (InvertCov(trkltCovTmpWithDy)) {
                 float deltaDy = spacePoints[trkltIdx].getDy() + dyTiltCorr - mRecoParam->convertAngleToDy(trkWork->getSnp());
                 chi2 = deltaY * trkltCovTmpWithDy[0] * deltaY + 2 * deltaY * trkltCovTmpWithDy[1] * deltaZ + 2 * deltaY * trkltCovTmpWithDy[3] * deltaDy + deltaZ * trkltCovTmpWithDy[2] * deltaZ + 2 * deltaZ * trkltCovTmpWithDy[4] * deltaDy + deltaDy * trkltCovTmpWithDy[5] * deltaDy;
@@ -952,6 +952,18 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::RecalcTrkltCov(const float tilt, cons
   cov[0] = c2 * (sy2 + t2 * sz2);
   cov[1] = c2 * tilt * (sz2 - sy2);
   cov[2] = c2 * (t2 * sy2 + sz2);
+}
+
+template <class TRDTRK, class PROP>
+GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::RecalcTrkltCovDy(const float tilt, const float snp, float (&cov)[6])
+{
+  float t2 = tilt * tilt;      // tan^2 (tilt)
+  float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
+  float sy2 = mRecoParam->getRPhiRes(snp);
+  float sdy2 = mRecoParam->getDyRes(snp);
+  cov[3] = mRecoParam->getCorrYDy(snp) * CAMath::Sqrt(sdy2 * c2 * sy2);
+  cov[4] = -tilt * mRecoParam->getCorrYDy(snp) * CAMath::Sqrt(sdy2 * c2 * sy2);
+  cov[5] = sdy2;
 }
 
 template <class TRDTRK, class PROP>

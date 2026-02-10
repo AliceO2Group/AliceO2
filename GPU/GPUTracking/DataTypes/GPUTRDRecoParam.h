@@ -43,14 +43,8 @@ class GPUTRDRecoParam
   {
     recalcTrkltCov(tilt, snp, rowSize, cov.data());
   }
-  // covariance terms which use tracklet deflection
-  GPUd() void recalcTrkltCovDy(const float tilt, const float snp, std::array<float, 6>& cov) const
-  {
-    recalcTrkltCovDy(tilt, snp, cov.data());
-  }
 #endif
   GPUd() void recalcTrkltCov(const float tilt, const float snp, const float rowSize, float* cov) const;
-  GPUd() void recalcTrkltCovDy(const float tilt, const float snp, float* cov) const;
 
   /// Get tracklet r-phi resolution for given phi angle
   /// Resolution depends on the track angle sin(phi) = snp and is approximated by the formula
@@ -58,27 +52,25 @@ class GPUTRDRecoParam
   /// more details are given in http://cds.cern.ch/record/2724259 in section 5.3.3
   /// \param phi angle of related track
   /// \return sigma_y^2 of tracklet
-  GPUd() float getRPhiRes(float snp) const { return (mRPhiA2 + mRPhiC2 * (snp - mRPhiB) * (snp - mRPhiB)); }
-  GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mDyB) * (snp - mDyB); }                     // // a^2 + c^2 * (snp - b)^2
-  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }                 // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
-  GPUd() float getCorrYDy(float snp) const { return mCorrYDyA + mCorrYDyC * (snp - mCorrYDyB) * (snp - mCorrYDyB); } // // a + c * (snp - b)^2
+  GPUd() float getRPhiRes(float snp) const { return (mRPhiA2 + mRPhiC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle)); }
+  GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle); }            // a^2 + c^2 * (snp - b)^2
+  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }                          // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
+  GPUd() float getCorrYDy(float snp) const { return mCorrYDyA + mCorrYDyC * (snp - mLorentzAngle) * (snp - mLorentzAngle); }  // a + c * (snp - b)^2
 
   /// Get tracklet z correction coefficient for track-eta based corraction
   GPUd() float getZCorrCoeffNRC() const { return mZCorrCoefNRC; }
 
  private:
   // tracklet error parameterization depends on the magnetic field
+  float mLorentzAngle{0.f};
   // rphi
   float mRPhiA2{1.f}; ///< parameterization for tracklet position resolution
-  float mRPhiB{0.f};  ///< parameterization for tracklet position resolution
   float mRPhiC2{0.f}; ///< parameterization for tracklet position resolution
   // angle
   float mDyA2{1.225e-3f}; ///< parameterization for tracklet angular resolution
-  float mDyB{0.f};        ///< parameterization for tracklet angular resolution
   float mDyC2{0.f};       ///< parameterization for tracklet angular resolution
   // correlation coefficient between y residual and dy residual
   float mCorrYDyA{0.f};
-  float mCorrYDyB{0.f};
   float mCorrYDyC{0.f};
 
   float mZCorrCoefNRC{1.4f}; ///< tracklet z-position depends linearly on track dip angle

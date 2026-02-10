@@ -40,8 +40,6 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 {
   double padWidth = padPlane->getWidthIPad();
 
-  // float vDrift = mCalVdriftExB->getVdrift(detector, true);
-  // float exb = mCalVdriftExB->getExB(detector, true);
   float vDrift = mVdrift[detector];
   float exb = mExB[detector];
 
