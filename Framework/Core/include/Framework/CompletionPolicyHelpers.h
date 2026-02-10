@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -53,6 +53,12 @@ struct CompletionPolicyHelpers {
     return consumeWhenAny("consume-any", matcher);
   }
   static CompletionPolicy consumeWhenAny(std::string matchName);
+
+  // Consume all the data captured until the oldest possible timeframe
+  // in input indicates that nothing else can be added to this timeslice.
+  // Useful in case of wildcards which multiplex multiple subspecs on the
+  // same input.
+  static CompletionPolicy consumeWhenPastOldestPossibleTimeframe(const char* name, CompletionPolicy::Matcher matcher);
 
   /// When any of the parts of the record have been received, consume them.
   static CompletionPolicy consumeWhenAnyWithAllConditions(const char* name, CompletionPolicy::Matcher matcher);
