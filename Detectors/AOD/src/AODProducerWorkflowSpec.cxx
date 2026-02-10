@@ -363,10 +363,10 @@ void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACurs
 {
   tracksQACursor(
     trackQAInfoHolder.trackID,
-    truncateFloatFraction(trackQAInfoHolder.tpcTime0, mTPCTime0),
+    mTrackQCRetainOnlydEdx ? 0.0f : truncateFloatFraction(trackQAInfoHolder.tpcTime0, mTPCTime0),
     truncateFloatFraction(trackQAInfoHolder.tpcdEdxNorm, mTrackSignal),
-    trackQAInfoHolder.tpcdcaR,
-    trackQAInfoHolder.tpcdcaZ,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int16_t>::min() : trackQAInfoHolder.tpcdcaR,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int16_t>::min() : trackQAInfoHolder.tpcdcaZ,
     trackQAInfoHolder.tpcClusterByteMask,
     trackQAInfoHolder.tpcdEdxMax0R,
     trackQAInfoHolder.tpcdEdxMax1R,
@@ -376,18 +376,18 @@ void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACurs
     trackQAInfoHolder.tpcdEdxTot1R,
     trackQAInfoHolder.tpcdEdxTot2R,
     trackQAInfoHolder.tpcdEdxTot3R,
-    trackQAInfoHolder.dRefContY,
-    trackQAInfoHolder.dRefContZ,
-    trackQAInfoHolder.dRefContSnp,
-    trackQAInfoHolder.dRefContTgl,
-    trackQAInfoHolder.dRefContQ2Pt,
-    trackQAInfoHolder.dRefGloY,
-    trackQAInfoHolder.dRefGloZ,
-    trackQAInfoHolder.dRefGloSnp,
-    trackQAInfoHolder.dRefGloTgl,
-    trackQAInfoHolder.dRefGloQ2Pt,
-    trackQAInfoHolder.dTofdX,
-    trackQAInfoHolder.dTofdZ);
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContY,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContZ,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContSnp,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContTgl,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContQ2Pt,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloY,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloZ,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloSnp,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloTgl,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloQ2Pt,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dTofdX,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dTofdZ);
 }
 
 template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
@@ -1720,6 +1720,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     }
   }
   mTrackQCKeepGlobalTracks = ic.options().get<bool>("trackqc-keepglobaltracks");
+  mTrackQCRetainOnlydEdx = ic.options().get<bool>("trackqc-retainonlydedx");
   mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
   mTrackQCNTrCut = ic.options().get<int64_t>("trackqc-NTrCut");
   mTrackQCDCAxy = ic.options().get<float>("trackqc-tpc-dca");
@@ -3356,6 +3357,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
       ConfigParamSpec{"thin-tracks", VariantType::Bool, false, {"Produce thinned track tables"}},
       ConfigParamSpec{"trackqc-keepglobaltracks", VariantType::Bool, false, {"Always keep TrackQA for global tracks"}},
+      ConfigParamSpec{"trackqc-retainonlydedx", VariantType::Bool, false, {"Keep only dEdx information, zero out everything else"}},
       ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.1), {"Fraction of tracks to QC"}},
       ConfigParamSpec{"trackqc-NTrCut", VariantType::Int64, 4L, {"Minimal length of the track - in amount of tracklets"}},
       ConfigParamSpec{"trackqc-tpc-dca", VariantType::Float, 3.f, {"Keep TPC standalone track with this DCAxy to the PV"}},
