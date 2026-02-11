@@ -47,17 +47,7 @@ struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<
   int maxBCDiffToSquashBiasLayer[getNLayers()] = {}; ///< squash mask per layer
   int getMaxBCDiffToSquashBias(int layer) const noexcept
   {
-    bool stag{false};
-    for (int i{0}; i < getNLayers(); ++i) {
-      if (maxBCDiffToSquashBiasLayer[i] != 0) {
-        stag = true;
-        break;
-      }
-    }
-    if (stag) {
-      return maxBCDiffToSquashBiasLayer[layer];
-    }
-    return maxBCDiffToSquashBias;
+    return maxBCDiffToSquashBiasLayer[layer] ? maxBCDiffToSquashBiasLayer[layer] : maxBCDiffToSquashBias;
   }
 
   O2ParamDef(ClustererParam, getParamName().data());
