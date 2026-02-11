@@ -168,3 +168,16 @@ float CalibdEdxCorrection::getMeanEntries(const GEMstack stack, ChargeType charg
 
   return mean / (SECTORSPERSIDE * SIDES);
 }
+
+void CalibdEdxCorrection::setUnity()
+{
+  for (int i = 0; i < FitSize; ++i) {
+    for (int j = 0; j < ParamSize; ++j) {
+      mParams[i][j] = 0.f;
+    }
+    mParams[i][0] = 1.f; // constant term = 1
+    mChi2[i] = 0.f;
+    mEntries[i] = 0;
+  }
+  mDims = 0;
+}

@@ -115,6 +115,9 @@ class CalibdEdxCorrection
   /// Single fit parameters averaged over all sectors for a stack type
   float getMeanEntries(const GEMstack stack, ChargeType charge) const;
 
+  /// set all corrections to 1, used for default initialization and to reset corrections
+  void setUnity();
+
 #endif
 
  private:
