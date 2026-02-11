@@ -749,7 +749,7 @@ static TGeoVolume* buildPetalAssembly(int nPetals,
                 /*fullCylindricalRadialWalls=*/fullCylinders);
 
   addBarrelLayers(petalAsm, nPetals, petalID, rectangularL0, fullCylinders);
-  addDisks(petalAsm, nPetals, petalID, fullCylinders);
+  // addDisks(petalAsm, nPetals, petalID, fullCylinders); // disks removed according to the v3b layout
 
   addColdPlate(petalAsm, nPetals, petalID, /*fullCylinders=*/false);
   addIRISServiceModulesSegmented(petalAsm, nPetals);

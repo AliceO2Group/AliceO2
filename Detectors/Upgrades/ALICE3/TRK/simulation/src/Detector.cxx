@@ -261,12 +261,32 @@ void Detector::createGeometry()
   mServices.createServices(vTRK);
 
   // Build the VD using the petal builder
-  // Choose the VD design (here: IRIS4 by default).
-  // You can wire this to a parameter in TRKBaseParam if desired.
-  // Alternatives: createIRIS5Geometry(vTRK); createIRIS4aGeometry(vTRK);
+  // Choose the VD design based on TRKBaseParam.layoutVD
+  auto& trkPars = TRKBaseParam::Instance();
 
   o2::trk::clearVDSensorRegistry();
-  o2::trk::createIRISGeometryFullCyl(vTRK);
+
+  switch (trkPars.layoutVD) {
+    case kIRIS4:
+      LOG(info) << "Building VD with IRIS4 layout";
+      o2::trk::createIRIS4Geometry(vTRK);
+      break;
+    case kIRISFullCyl:
+      LOG(info) << "Building VD with IRIS fully cylindrical layout";
+      o2::trk::createIRISGeometryFullCyl(vTRK);
+      break;
+    case kIRIS5:
+      LOG(info) << "Building VD with IRIS5 layout";
+      o2::trk::createIRIS5Geometry(vTRK);
+      break;
+    case kIRIS4a:
+      LOG(info) << "Building VD with IRIS4a layout";
+      o2::trk::createIRIS4aGeometry(vTRK);
+      break;
+    default:
+      LOG(fatal) << "Unknown VD layout option: " << static_cast<int>(trkPars.layoutVD);
+      break;
+  }
 
   // Fill sensor names from registry right after geometry creation
   const auto& regs = o2::trk::vdSensorRegistry();
