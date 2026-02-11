@@ -11,7 +11,6 @@
 #ifndef O2_FRAMEWORK_COMPLETIONPOLICYHELPERS_H_
 #define O2_FRAMEWORK_COMPLETIONPOLICYHELPERS_H_
 
-#include "Framework/ChannelSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Headers/DataHeader.h"
 
