@@ -67,11 +67,11 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
   // Create one layer of ITS3 and attach it to the motherVolume.
   getMaterials();
   createLayerImpl();
-  mBuilt = true;
 
   if (motherVolume == nullptr) {
     return;
   }
+
   // Add it to motherVolume
   auto* trans = new TGeoTranslation(0, 0, -constants::segment::lengthSensitive / 2.);
   motherVolume->AddNode(mLayer, 0, trans);
@@ -122,8 +122,8 @@ void ITS3Layer::createTile()
   mTile->AddNode(mPixelArray, 0, phiRotPixelArray);
 
   // Biasing
-  double biasPhi1 = constants::pixelarray::width / mR * o2m::Rad2Deg + readoutPhi2;
-  double biasPhi2 = biasing::width / mR * o2m::Rad2Deg + biasPhi1;
+  double biasPhi1 = (constants::pixelarray::width / mR * o2m::Rad2Deg) + readoutPhi2;
+  double biasPhi2 = (biasing::width / mR * o2m::Rad2Deg) + biasPhi1;
   auto biasing = new TGeoTubeSeg(mRmin, mRmax, biasing::length / 2, biasPhi1, biasPhi2);
   auto biasingVol = new TGeoVolume(Form("biasing%d", mNLayer), biasing, mSilicon);
   biasingVol->SetLineColor(biasing::color);
@@ -131,9 +131,9 @@ void ITS3Layer::createTile()
   mTile->AddNode(biasingVol, 0);
 
   // Power Switches are on the side right side of the pixel array and biasing.
-  auto zMovePowerSwitches = new TGeoTranslation(0, 0, +powerswitches::length / 2. + constants::pixelarray::length / 2.);
+  auto zMovePowerSwitches = new TGeoTranslation(0, 0, (+powerswitches::length / 2.) + (constants::pixelarray::length / 2.));
   double powerPhi1 = readoutPhi2;
-  double powerPhi2 = powerswitches::width / mR * o2m::Rad2Deg + powerPhi1;
+  double powerPhi2 = (powerswitches::width / mR * o2m::Rad2Deg) + powerPhi1;
   auto powerSwitches = new TGeoTubeSeg(mRmin, mRmax, powerswitches::length / 2, powerPhi1, powerPhi2);
   auto powerSwitchesVol = new TGeoVolume(Form("powerswitches%d", mNLayer), powerSwitches, mSilicon);
   powerSwitchesVol->SetLineColor(powerswitches::color);
@@ -166,7 +166,7 @@ void ITS3Layer::createRSU()
   // Lower Left
   auto zMoveLL1 = new TGeoTranslation(0, 0, constants::tile::length);
   auto zMoveLL2 = new TGeoTranslation(0, 0, constants::tile::length * 2.);
-  auto zMoveLLDB = new TGeoTranslation(0, 0, -databackbone::length / 2. - constants::pixelarray::length / 2.);
+  auto zMoveLLDB = new TGeoTranslation(0, 0, (-databackbone::length / 2.) - (constants::pixelarray::length / 2.));
   // Lets attach the tiles to the QS.
   mRSU->AddNode(mTile, nCopyRSU++, nullptr);
   mRSU->AddNode(mTile, nCopyRSU++, zMoveLL1);
@@ -175,9 +175,9 @@ void ITS3Layer::createRSU()
 
   // Lower Right
   auto zMoveLR0 = new TGeoTranslation(0, 0, +length / 2.);
-  auto zMoveLR1 = new TGeoTranslation(0, 0, constants::tile::length + length / 2.);
-  auto zMoveLR2 = new TGeoTranslation(0, 0, constants::tile::length * 2. + length / 2.);
-  auto zMoveLRDB = new TGeoTranslation(0, 0, -databackbone::length / 2. + length / 2. - constants::pixelarray::length / 2.);
+  auto zMoveLR1 = new TGeoTranslation(0, 0, constants::tile::length + (length / 2.));
+  auto zMoveLR2 = new TGeoTranslation(0, 0, (constants::tile::length * 2.) + (length / 2.));
+  auto zMoveLRDB = new TGeoTranslation(0, 0, (-databackbone::length / 2.) + (length / 2.) - (constants::pixelarray::length / 2.));
   // Lets attach the tiles to the QS.
   mRSU->AddNode(mTile, nCopyRSU++, zMoveLR0);
   mRSU->AddNode(mTile, nCopyRSU++, zMoveLR1);
@@ -192,7 +192,7 @@ void ITS3Layer::createRSU()
   // Upper Left
   auto zMoveUL1 = new TGeoCombiTrans(0, 0, constants::tile::length, rot);
   auto zMoveUL2 = new TGeoCombiTrans(0, 0, constants::tile::length * 2., rot);
-  auto zMoveULDB = new TGeoCombiTrans(0, 0, -databackbone::length / 2. - constants::pixelarray::length / 2., rot);
+  auto zMoveULDB = new TGeoCombiTrans(0, 0, (-databackbone::length / 2.) - (constants::pixelarray::length / 2.), rot);
   // Lets attach the tiles to the QS.
   mRSU->AddNode(mTile, nCopyRSU++, rot);
   mRSU->AddNode(mTile, nCopyRSU++, zMoveUL1);
@@ -201,9 +201,9 @@ void ITS3Layer::createRSU()
 
   // Upper Right
   auto zMoveUR0 = new TGeoCombiTrans(0, 0, +length / 2., rot);
-  auto zMoveUR1 = new TGeoCombiTrans(0, 0, constants::tile::length + length / 2., rot);
-  auto zMoveUR2 = new TGeoCombiTrans(0, 0, constants::tile::length * 2. + length / 2., rot);
-  auto zMoveURDB = new TGeoCombiTrans(0, 0, -databackbone::length / 2. + length / 2. - constants::pixelarray::length / 2., rot);
+  auto zMoveUR1 = new TGeoCombiTrans(0, 0, constants::tile::length + (length / 2.), rot);
+  auto zMoveUR2 = new TGeoCombiTrans(0, 0, (constants::tile::length * 2.) + (length / 2.), rot);
+  auto zMoveURDB = new TGeoCombiTrans(0, 0, (-databackbone::length / 2.) + (length / 2.) - (constants::pixelarray::length / 2.), rot);
   // Lets attach the tiles to the QS.
   mRSU->AddNode(mTile, nCopyRSU++, zMoveUR0);
   mRSU->AddNode(mTile, nCopyRSU++, zMoveUR1);
@@ -225,9 +225,9 @@ void ITS3Layer::createSegment()
   mSegment = new TGeoVolumeAssembly(its3TGeo::getITS3SegmentPattern(mNLayer));
   mSegment->VisibleDaughters();
 
-  for (size_t i{0}; i < nRSUs; ++i) {
-    auto zMove = new TGeoTranslation(0, 0, +i * constants::rsu::length + constants::rsu::databackbone::length + constants::pixelarray::length / 2.);
-    mSegment->AddNode(mRSU, i, zMove);
+  for (unsigned int i{0}; i < nRSUs; ++i) {
+    auto zMove = new TGeoTranslation(0, 0, (i * constants::rsu::length) + constants::rsu::databackbone::length + (constants::pixelarray::length / 2.));
+    mSegment->AddNode(mRSU, (int)i, zMove);
   }
 
   // LEC
@@ -242,7 +242,7 @@ void ITS3Layer::createSegment()
   mSegment->AddNode(lecVol, 0, zMoveLEC);
 
   // REC; reuses lecPhi1,2
-  auto zMoveREC = new TGeoTranslation(0, 0, nRSUs * constants::rsu::length + rec::length / 2.);
+  auto zMoveREC = new TGeoTranslation(0, 0, (nRSUs * constants::rsu::length) + (rec::length / 2.));
   auto rec =
     new TGeoTubeSeg(mRmin, mRmax, rec::length / 2., lecPhi1, lecPhi2);
   auto recVol = new TGeoVolume(Form("rec%d", mNLayer), rec, mSilicon);
@@ -266,11 +266,11 @@ void ITS3Layer::createChip()
   auto phiOffset = constants::segment::width / mR * o2m::Rad2Deg;
   for (unsigned int i{0}; i < constants::nSegments[mNLayer]; ++i) {
     auto rot = new TGeoRotation(Form("its3PhiSegmentOffset_%d_%d", mNLayer, i), 0, 0, phiOffset * i);
-    mChip->AddNode(mSegment, i, rot);
+    mChip->AddNode(mSegment, (int)i, rot);
   }
 
   // Add metal stack positioned radially outward
-  auto zMoveMetal = new TGeoTranslation(0, 0, constants::metalstack::length / 2. - constants::segment::lec::length);
+  auto zMoveMetal = new TGeoTranslation(0, 0, (constants::metalstack::length / 2.) - constants::segment::lec::length);
   auto metal = new TGeoTubeSeg(mRmax, mRmax + constants::metalstack::thickness, constants::metalstack::length / 2., 0, constants::nSegments[mNLayer] * phiOffset);
   auto metalVol = new TGeoVolume(Form("metal%d", mNLayer), metal, mCopper);
   metalVol->SetLineColor(constants::metalstack::color);
@@ -296,7 +296,7 @@ void ITS3Layer::createCarbonForm()
     dRadius = constants::carbonfoam::thicknessOuterFoam; // TODO: lack of carbon foam radius for layer 2, use 0.7 cm as a temporary value
   }
   double phiSta = edgeBetwChipAndFoam / (0.5 * constants::radii[mNLayer + 1] + constants::radii[mNLayer]) * o2m::Rad2Deg;
-  double phiEnd = (constants::nSegments[mNLayer] * constants::segment::width) / constants::radii[mNLayer] * o2m::Rad2Deg - phiSta;
+  double phiEnd = ((constants::nSegments[mNLayer] * constants::segment::width) / constants::radii[mNLayer] * o2m::Rad2Deg) - phiSta;
   double phiLongeronsCover = longeronsWidth / (0.5 * constants::radii[mNLayer + 1] + constants::radii[mNLayer]) * o2m::Rad2Deg;
 
   // H-rings foam
@@ -308,35 +308,37 @@ void ITS3Layer::createCarbonForm()
   HringCVol->SetLineColor(color);
   auto HringAVol = new TGeoVolume(Form("hringA%d", mNLayer), HringAWithHoles, mCarbon);
   HringAVol->SetLineColor(color);
-  auto zMoveHringC = new TGeoTranslation(0, 0, -constants::segment::lec::length + HringLength / 2.);
-  auto zMoveHringA = new TGeoTranslation(0, 0, -constants::segment::lec::length + HringLength / 2. + constants::segment::length - HringLength);
+  auto zMoveHringC = new TGeoTranslation(0, 0, -constants::segment::lec::length + (HringLength / 2.));
+  auto zMoveHringA = new TGeoTranslation(0, 0, -constants::segment::lec::length + (HringLength / 2.) + constants::segment::length - HringLength);
 
   // Longerons are made by same material
+  // added separately to make navigation faster
   [[maybe_unused]] auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2., phiSta, phiSta + phiLongeronsCover);
   [[maybe_unused]] auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2., phiEnd - phiLongeronsCover, phiEnd);
-  TString nameLongerons = Form("longeronR%d + longeronL%d", mNLayer, mNLayer);
-  auto longerons = new TGeoCompositeShape(nameLongerons);
-  auto longeronsVol = new TGeoVolume(Form("longerons%d", mNLayer), longerons, mCarbon);
-  longeronsVol->SetLineColor(color);
-  auto zMoveLongerons = new TGeoTranslation(0, 0, -constants::segment::lec::length + constants::segment::length / 2.);
+  auto longeronRVol = new TGeoVolume(Form("longeronR%d", mNLayer), longeronR, mCarbon);
+  longeronRVol->SetLineColor(color);
+  auto longeronLVol = new TGeoVolume(Form("longeronL%d", mNLayer), longeronL, mCarbon);
+  longeronLVol->SetLineColor(color);
+  auto zMoveLongerons = new TGeoTranslation(0, 0, -constants::segment::lec::length + (constants::segment::length / 2.));
 
   mCarbonForm->AddNode(HringCVol, 0, zMoveHringC);
   mCarbonForm->AddNode(HringAVol, 0, zMoveHringA);
-  mCarbonForm->AddNode(longeronsVol, 0, zMoveLongerons);
+  mCarbonForm->AddNode(longeronRVol, 0, zMoveLongerons);
+  mCarbonForm->AddNode(longeronLVol, 0, zMoveLongerons);
   mCarbonForm->AddNode(mChip, 0);
 }
 
-TGeoCompositeShape* ITS3Layer::getHringShape(TGeoTubeSeg* Hring)
+TGeoCompositeShape* ITS3Layer::getHringShape(TGeoTubeSeg* Hring) const
 {
   // Function to dig holes in H-rings
   using namespace constants::carbonfoam;
   double stepPhiHoles = (Hring->GetPhi2() - Hring->GetPhi1()) / (nHoles[mNLayer]);
-  double phiHolesSta = Hring->GetPhi1() + stepPhiHoles / 2.;
+  double phiHolesSta = Hring->GetPhi1() + (stepPhiHoles / 2.);
   double radiusHring = 0.5 * (Hring->GetRmin() + Hring->GetRmax());
   TGeoCompositeShape* HringWithHoles = nullptr;
   TString nameAllHoles = "";
   for (int iHoles = 0; iHoles < nHoles[mNLayer]; iHoles++) {
-    double phiHole = phiHolesSta + stepPhiHoles * iHoles;
+    double phiHole = phiHolesSta + (stepPhiHoles * iHoles);
     TString nameHole = Form("hole_%d_%d", iHoles, mNLayer);
     [[maybe_unused]] auto hole = new TGeoTube(nameHole, 0, radiusHoles[mNLayer], 3 * Hring->GetDz());
     // move hole to the hring radius
@@ -376,9 +378,7 @@ void ITS3Layer::createLayerImpl()
 
 void ITS3Layer::buildPartial(TGeoVolume* motherVolume, TGeoMatrix* mat, BuildLevel level, bool createMaterials)
 {
-  if (!mBuilt) {
-    getMaterials(createMaterials);
-  }
+  getMaterials(createMaterials);
   switch (level) {
     case BuildLevel::kPixelArray:
       createPixelArray();
