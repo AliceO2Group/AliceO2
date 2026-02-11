@@ -13,7 +13,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Monitoring/Monitoring.h"
 #include "Framework/CommonDataProcessors.h"
-#include "SimulationDataFormat/MCTrack.h"
 #include "Steer/MCKinematicsReader.h"
 
 #include "Framework/runDataProcessing.h"
@@ -64,6 +63,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   spec.outputs.emplace_back("MC", "MCHEADER", 0, Lifetime::Timeframe);
   spec.outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
   spec.requiredServices.push_back(o2::framework::ArrowSupport::arrowBackendSpec());
-  spec.algorithm = CommonDataProcessors::wrapWithRateLimiting(spec.algorithm);
+  spec.algorithm = CommonDataProcessors::wrapWithTimesliceConsumption(spec.algorithm);
   return {spec};
 }
