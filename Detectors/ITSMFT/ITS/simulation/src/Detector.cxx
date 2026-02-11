@@ -61,6 +61,7 @@ using Segmentation = o2::itsmft::SegmentationAlpide;
 using namespace o2::its;
 
 #ifdef ENABLE_UPGRADES
+#include "ITS3Simulation/DescriptorInnerBarrelITS3.h"
 using namespace o2::its3;
 #endif
 
@@ -1117,11 +1118,15 @@ void Detector::addAlignableVolumes() const
   Int_t lastUID = 0;
   for (Int_t lr = 0; lr < mNumberLayers; lr++) {
     if (lr < mNumberInnerLayers) {
+#ifdef ENABLE_UPGRADES
       if (detName == "ITS") {
         ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
       } else {
         ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
       }
+#else
+      ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
+#endif  
     } else {
       addAlignableVolumesLayer(lr, path, lastUID);
     }
