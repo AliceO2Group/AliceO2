@@ -1126,7 +1126,7 @@ void Detector::addAlignableVolumes() const
       }
 #else
       ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
-#endif  
+#endif
     } else {
       addAlignableVolumesLayer(lr, path, lastUID);
     }
