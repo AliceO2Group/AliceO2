@@ -1106,7 +1106,7 @@ void Detector::addAlignableVolumes() const
 
   TString detName = GetName();
   TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
-  TString sname = GeometryTGeo::composeSymNameITS((detName == "IT3"));
+  TString sname = GeometryTGeo::composeSymNameITS();
 
   LOG(debug) << sname << " <-> " << path;
 
@@ -1119,13 +1119,13 @@ void Detector::addAlignableVolumes() const
     if (lr < mNumberInnerLayers) {
       if (detName == "ITS") {
         ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
+      } else {
+        ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
       }
     } else {
       addAlignableVolumesLayer(lr, path, lastUID);
     }
   }
-
-  return;
 }
 
 void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID) const
@@ -1148,8 +1148,6 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
   for (Int_t hb = start; hb < nhbarrel; hb++) {
     addAlignableVolumesHalfBarrel(lr, hb, path, lastUID);
   }
-
-  return;
 }
 
 void Detector::addAlignableVolumesHalfBarrel(Int_t lr, Int_t hb, TString& parent, Int_t& lastUID) const
@@ -1177,8 +1175,6 @@ void Detector::addAlignableVolumesHalfBarrel(Int_t lr, Int_t hb, TString& parent
   for (int st = 0; st < nstaves; st++) {
     addAlignableVolumesStave(lr, hb, st, path, lastUID);
   }
-
-  return;
 }
 
 void Detector::addAlignableVolumesStave(Int_t lr, Int_t hb, Int_t st, TString& parent, Int_t& lastUID) const
@@ -1205,8 +1201,6 @@ void Detector::addAlignableVolumesStave(Int_t lr, Int_t hb, Int_t st, TString& p
   for (Int_t sst = start; sst < nhstave; sst++) {
     addAlignableVolumesHalfStave(lr, hb, st, sst, path, lastUID);
   }
-
-  return;
 }
 
 void Detector::addAlignableVolumesHalfStave(Int_t lr, Int_t hb, Int_t st, Int_t hst, TString& parent, Int_t& lastUID) const
@@ -1236,8 +1230,6 @@ void Detector::addAlignableVolumesHalfStave(Int_t lr, Int_t hb, Int_t st, Int_t 
   for (Int_t md = start; md < nmodules; md++) {
     addAlignableVolumesModule(lr, hb, st, hst, md, path, lastUID);
   }
-
-  return;
 }
 
 void Detector::addAlignableVolumesModule(Int_t lr, Int_t hb, Int_t st, Int_t hst, Int_t md, TString& parent, Int_t& lastUID) const
@@ -1266,8 +1258,6 @@ void Detector::addAlignableVolumesModule(Int_t lr, Int_t hb, Int_t st, Int_t hst
   for (Int_t ic = 0; ic < nchips; ic++) {
     addAlignableVolumesChip(lr, hb, st, hst, md, ic, path, lastUID);
   }
-
-  return;
 }
 
 void Detector::addAlignableVolumesChip(Int_t lr, Int_t hb, Int_t st, Int_t hst, Int_t md, Int_t ch, TString& parent,
