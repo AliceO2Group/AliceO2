@@ -572,6 +572,9 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
 fi
 
 has_detector_gpu ITS && GPU_INPUT+=",its-clusters"
+if [[ $BEAMTYPE != "cosmic" && $SYNCMODE != 1 ]]; then
+  has_detector_gpu ITS && GPU_INPUT+=",its-mean-vertex"
+fi
 has_detector_gpu ITS && GPU_OUTPUT+=",its-tracks"
 
 # ---------------------------------------------------------------------------------------------------------------------
