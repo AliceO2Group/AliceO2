@@ -122,17 +122,12 @@ TGeoVolume* TRKLayer::createChip(std::string type)
     chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
 
     sensVol = createSensor("cylinder");
-    metalVol = createMetalStack("cylinder");
-
-    TGeoCombiTrans* transSens = new TGeoCombiTrans();
-    transSens->SetTranslation(0, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
     LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
-    chipVol->AddNode(sensVol, 1, transSens);
+    chipVol->AddNode(sensVol, 1, nullptr);
 
-    TGeoCombiTrans* transMetal = new TGeoCombiTrans();
-    transMetal->SetTranslation(0, mSensorThickness / 2, 0); // TO BE CHECKED !!!
+    metalVol = createMetalStack("cylinder");
     LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
-    chipVol->AddNode(metalVol, 1, transMetal);
+    chipVol->AddNode(metalVol, 1, nullptr);
 
     // deadVol = createDeadzone("cylinder");
   } else if (type == "flat") {
@@ -175,7 +170,9 @@ TGeoVolume* TRKLayer::createModule(std::string type)
   TGeoVolume* moduleVol;
 
   if (type == "cylinder") {
-    module = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
+    double moduleLength = constants::moduleMLOT::length * mNumberOfModules;
+
+    module = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, moduleLength / 2);
     moduleVol = new TGeoVolume(moduleName.c_str(), module, medSi);
 
     TGeoVolume* chipVol = createChip("cylinder");
@@ -229,8 +226,10 @@ TGeoVolume* TRKLayer::createHalfStave(std::string type)
   TGeoShape* halfStave;
   TGeoVolume* halfStaveVol;
 
+  double halfStaveLength = constants::moduleMLOT::length * mNumberOfModules;
+
   if (type == "cylinder") {
-    halfStave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mChipLength / 2);
+    halfStave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, halfStaveLength / 2);
     halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medSi);
 
     TGeoVolume* moduleVol = createModule("cylinder");
@@ -239,7 +238,6 @@ TGeoVolume* TRKLayer::createHalfStave(std::string type)
   } else if (type == "flat") {
     double moduleLength = constants::moduleMLOT::length;
     double halfStaveWidth = constants::OT::halfstave::width;
-    double halfStaveLength = constants::moduleMLOT::length * mNumberOfModules;
 
     halfStave = new TGeoBBox(halfStaveWidth / 2, mChipThickness / 2, halfStaveLength / 2);
     halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medSi);
@@ -271,8 +269,10 @@ TGeoVolume* TRKLayer::createStave(std::string type)
   TGeoShape* stave;
   TGeoVolume* staveVol;
 
+  double staveLength = constants::moduleMLOT::length * mNumberOfModules;
+
   if (type == "cylinder") {
-    stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
+    stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, staveLength / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
 
     TGeoVolume* moduleVol = createModule("cylinder");
@@ -281,7 +281,6 @@ TGeoVolume* TRKLayer::createStave(std::string type)
   } else if (type == "flat") {
     double moduleLength = constants::moduleMLOT::length;
     double staveWidth = constants::ML::width;
-    double staveLength = constants::moduleMLOT::length * mNumberOfModules;
 
     stave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, staveLength / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
@@ -304,7 +303,6 @@ TGeoVolume* TRKLayer::createStave(std::string type)
 
     double halfstaveWidth = constants::OT::halfstave::width;
     double staveWidth = constants::OT::width - overlap;
-    double staveLength = constants::moduleMLOT::length * mNumberOfModules;
 
     stave = new TGeoBBox(staveWidth / 2, mLogicalVolumeThickness / 2, staveLength / 2);
     staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
@@ -343,15 +341,16 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* layer;
   TGeoVolume* layerVol;
 
+  double layerLength = constants::moduleMLOT::length * mNumberOfModules;
+
   if (mLayout == eLayout::kCylinder) {
-    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
+    layer = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, layerLength / 2);
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     TGeoVolume* staveVol = createStave("cylinder");
     LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, 1, nullptr);
   } else if (mLayout == eLayout::kTurboStaves) {
-    double layerLength = constants::moduleMLOT::length * mNumberOfModules;
     double staveWidth = constants::ML::width; // Each stave has two modules (based on the LOI design)
 
     if (mInnerRadius > 25) {
@@ -390,7 +389,6 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   } else if (mLayout == kStaggered) {
     double overlapInStave = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut + 0.1; // 1.5mm outer-edge + 1mm deadzone + 1mm (true)overlap
 
-    double layerLength = constants::moduleMLOT::length * mNumberOfModules;
     double staveWidth = constants::OT::width - overlapInStave;
 
     layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, layerLength / 2);
