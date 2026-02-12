@@ -19,3 +19,13 @@ o2_add_test_root_macro(CheckDigits.C
                                              O2::DetectorsBase
                                              O2::Steer
                        LABELS trk COMPILE_ONLY)
+
+o2_add_test_root_macro(CheckTracksCA.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITS
+                                             O2::ITStracking
+                                             O2::SimulationDataFormat
+                                             O2::DetectorsBase
+                                             O2::TRKBase
+                                             O2::TRKSimulation
+                                             O2::Steer
+                       LABELS trk COMPILE_ONLY)

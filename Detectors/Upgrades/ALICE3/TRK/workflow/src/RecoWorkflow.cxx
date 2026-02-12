@@ -11,12 +11,16 @@
 
 #include "TRKWorkflow/RecoWorkflow.h"
 #include "TRKWorkflow/TrackerSpec.h"
+#include "TRKWorkflow/TrackWriterSpec.h"
 #include "Framework/CCDBParamSpec.h"
+
+#include <string>
 
 namespace o2::trk::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC,
+                                    const std::string& hitRecoConfig,
                                     bool upstreamDigits,
                                     bool upstreamClusters,
                                     bool disableRootOutput,
@@ -24,7 +28,12 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     o2::gpu::gpudatatypes::DeviceType dtype)
 {
   framework::WorkflowSpec specs;
-  specs.emplace_back(o2::trk::getTrackerSpec(useMC, dtype));
+  specs.emplace_back(o2::trk::getTrackerSpec(useMC, hitRecoConfig, dtype));
+
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::trk::getTrackWriterSpec(useMC));
+  }
+
   return specs;
 }
 
