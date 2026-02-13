@@ -12,9 +12,9 @@
 /// @file   RecoWorkflow.cxx
 
 #include <TTree.h>
+#include "ITSMFTWorkflow/ClustererSpec.h"
+#include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "MFTWorkflow/RecoWorkflow.h"
-#include "MFTWorkflow/ClustererSpec.h"
-#include "MFTWorkflow/ClusterWriterSpec.h"
 #include "MFTWorkflow/TrackerSpec.h"
 #include "MFTWorkflow/TrackWriterSpec.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
@@ -52,10 +52,10 @@ framework::WorkflowSpec getWorkflow(
     }
   }
   if (!upstreamClusters) {
-    specs.emplace_back(o2::mft::getClustererSpec(useMC));
+    specs.emplace_back(o2::itsmft::getMFTClustererSpec(useMC));
   }
   if (!disableRootOutput) {
-    specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
+    specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC));
   }
 
   if (runTracking) {

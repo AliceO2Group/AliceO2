@@ -26,7 +26,7 @@ namespace o2::its3
 {
 
 /// This class defines the geometry for the ITS3 IB layers.
-class ITS3Layer
+class ITS3Layer final
 {
   // The hierarchy will be the following:
   // ITS2          ->       ITS3
@@ -76,7 +76,6 @@ class ITS3Layer
   void buildPartial(TGeoVolume* motherVolume, TGeoMatrix* mat = nullptr, BuildLevel level = BuildLevel::kAll, bool createMaterials = false);
 
  private:
-  bool mBuilt{false};
   TGeoMedium* mSilicon{nullptr};
   TGeoMedium* mAir{nullptr};
   TGeoMedium* mCarbon{nullptr};
@@ -91,7 +90,7 @@ class ITS3Layer
   void createSegment();
   void createChip();
   void createCarbonForm();
-  TGeoCompositeShape* getHringShape(TGeoTubeSeg* Hring);
+  TGeoCompositeShape* getHringShape(TGeoTubeSeg* Hring) const;
   void createLayerImpl();
 
   uint8_t mNLayer{0}; // Layer number

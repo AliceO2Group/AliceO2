@@ -215,13 +215,15 @@ class Clusterer
   int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
   void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
 
-  int getMaxROFDepthToSquash() const { return mSquashingDepth; }
+  int getMaxROFDepthToSquash(int layer = -1) const { return (layer < 0) ? mSquashingDepth : mSquashingLayerDepth[layer]; }
   void setMaxROFDepthToSquash(int v) { mSquashingDepth = v; }
+  void addMaxROFDepthToSquash(int v) { mSquashingLayerDepth.push_back(v); }
 
-  int getMaxBCSeparationToSquash() const { return mMaxBCSeparationToSquash; }
+  int getMaxBCSeparationToSquash(int layer = -1) const { return (layer < 0) ? mMaxBCSeparationToSquash : mMaxBCSeparationToSquashLayer[layer]; }
   void setMaxBCSeparationToSquash(int n) { mMaxBCSeparationToSquash = n; }
+  void addMaxBCSeparationToSquash(int n) { mMaxBCSeparationToSquashLayer.push_back(n); }
 
-  void print() const;
+  void print(bool showTiming = true) const;
   void clear();
   void reset();
 
@@ -245,7 +247,7 @@ class Clusterer
   bool mContinuousReadout = true; ///< flag continuous readout
   bool mDropHugeClusters = false; ///< don't include clusters that would be split in more than one
 
-  ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
+  ///< mask continuously fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
   int mMaxRowColDiffToMask = 0; ///< provide their difference in col/row is <= than this
   int mNHugeClus = 0;           ///< number of encountered huge clusters
@@ -253,6 +255,8 @@ class Clusterer
   ///< Squashing options
   int mSquashingDepth = 0; ///< squashing is applied to next N rofs
   int mMaxBCSeparationToSquash = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
+  std::vector<int> mSquashingLayerDepth;
+  std::vector<int> mMaxBCSeparationToSquashLayer;
 
   std::vector<std::unique_ptr<ClustererThread>> mThreads; // buffers for threads
   std::vector<ChipPixelData> mChips;                      // currently processed ROF's chips data
@@ -288,7 +292,7 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
   uint16_t row = bbox.rowMin, col = bbox.colMin;
   if (pattID == CompCluster::InvalidPatternID || pattIdConverter.isGroup(pattID)) {
     if (pattID != CompCluster::InvalidPatternID) {
-      // For groupped topologies, the reference pixel is the COG pixel
+      // For grouped topologies, the reference pixel is the COG pixel
       float xCOG = 0., zCOG = 0.;
       ClusterPattern::getCOG(rowSpanW, colSpanW, patt.data(), xCOG, zCOG);
       row += round(xCOG);

@@ -29,16 +29,26 @@ template <int N>
 struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<N>> {
   static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS or DetID:: MFT are allowed");
 
+  static constexpr int getNLayers()
+  {
+    return N == o2::detectors::DetID::ITS ? 7 : 10;
+  }
+
   static constexpr std::string_view getParamName()
   {
     return N == o2::detectors::DetID::ITS ? ParamName[0] : ParamName[1];
   }
 
-  int maxRowColDiffToMask = DEFRowColDiffToMask(); ///< pixel may be masked as overflow if such a neighbour in prev frame was fired
-  int maxBCDiffToMaskBias = 10;                    ///< mask if 2 ROFs differ by <= StrobeLength + Bias BCs, use value <0 to disable masking
-  int maxBCDiffToSquashBias = -10;                 ///< squash if 2 ROFs differ by <= StrobeLength + Bias BCs, use value <0 to disable squashing
-  float maxSOTMUS = 8.;                            ///< max expected signal over threshold in \mus
-  bool dropHugeClusters = false;                   ///< option to drop huge clusters (mitigate beam background)
+  int maxRowColDiffToMask = DEFRowColDiffToMask();   ///< pixel may be masked as overflow if such a neighbour in prev frame was fired
+  int maxBCDiffToMaskBias = 10;                      ///< mask if 2 ROFs differ by <= StrobeLength + Bias BCs, use value <0 to disable masking
+  int maxBCDiffToSquashBias = -10;                   ///< squash if 2 ROFs differ by <= StrobeLength + Bias BCs, use value <0 to disable squashing
+  float maxSOTMUS = 8.;                              ///< max expected signal over threshold in \mus
+  bool dropHugeClusters = false;                     ///< option to drop huge clusters (mitigate beam background)
+  int maxBCDiffToSquashBiasLayer[getNLayers()] = {}; ///< squash mask per layer
+  int getMaxBCDiffToSquashBias(int layer) const noexcept
+  {
+    return maxBCDiffToSquashBiasLayer[layer] ? maxBCDiffToSquashBiasLayer[layer] : maxBCDiffToSquashBias;
+  }
 
   O2ParamDef(ClustererParam, getParamName().data());
 
@@ -46,7 +56,7 @@ struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<
   static constexpr int DEFRowColDiffToMask()
   {
     // default neighbourhood definition
-    return N == o2::detectors::DetID::ITS ? 1 : 1; // ITS and MFT will suppress also closest neigbours
+    return N == o2::detectors::DetID::ITS ? 1 : 1; // ITS and MFT will suppress also closest neighbours
   }
 
   static constexpr std::string_view ParamName[2] = {"ITSClustererParam", "MFTClustererParam"};

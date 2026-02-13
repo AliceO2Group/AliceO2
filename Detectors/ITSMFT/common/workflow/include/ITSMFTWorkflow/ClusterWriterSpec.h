@@ -11,21 +11,19 @@
 
 /// @file   ClusterWriterSpec.h
 
-#ifndef O2_ITS_CLUSTERWRITER
-#define O2_ITS_CLUSTERWRITER
+#ifndef O2_ITSMFT_CLUSTERWRITER
+#define O2_ITSMFT_CLUSTERWRITER
 
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2
-{
-namespace its
+namespace o2::itsmft
 {
 
-/// create a processor spec
-/// write ITS clusters to ROOT file
+template <int N>
 framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
+framework::DataProcessorSpec getITSClusterWriterSpec(bool useMC);
+framework::DataProcessorSpec getMFTClusterWriterSpec(bool useMC);
 
-} // namespace its
-} // namespace o2
+} // namespace o2::itsmft
 
 #endif /* O2_ITS_CLUSTERWRITER */

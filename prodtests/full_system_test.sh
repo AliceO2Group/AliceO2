@@ -40,6 +40,7 @@ export LC_ALL=C
 BEAMTYPE=${BEAMTYPE:-PbPb}
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF
+OrbitsBeforeTf=${OrbitsBeforeTf:-1}
 NCPUS=$(getNumberOfPhysicalCPUCores)
 echo "Found ${NCPUS} physical CPU cores"
 NJOBS=${NJOBS:-"${NCPUS}"}
@@ -159,7 +160,7 @@ taskwrapper collcontext.log o2-steer-colcontexttool \
   --extract-per-timeframe tf:o2sim \
   --with-vertices kCCDB \
   --maxCollsPerTF ${NEvents} \
-  --orbitsEarly 1 \
+  --orbitsEarly ${OrbitsBeforeTf} \
   --bcPatternFile ccdb \
   ${QEDSPEC}
 

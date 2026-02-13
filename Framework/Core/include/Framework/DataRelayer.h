@@ -102,7 +102,8 @@ class DataRelayer
   DataRelayer(CompletionPolicy const&,
               std::vector<InputRoute> const& routes,
               TimesliceIndex&,
-              ServiceRegistryRef);
+              ServiceRegistryRef,
+              int);
 
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new

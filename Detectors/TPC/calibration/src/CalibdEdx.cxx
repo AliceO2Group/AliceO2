@@ -351,7 +351,7 @@ auto ProjectBoostHistoXFastAllSectors(const Hist& hist, std::vector<int>& bin_in
 
       // access the bin content specified by bin_indices
       const float counts = hist.at(bin_indices);
-      float dEdx = hist.axis(ax::dEdx).value(i);
+      float dEdx = hist.axis(ax::dEdx).bin(i).center();
 
       // scale the dedx to the mean
       if (stackMean != nullptr) {
@@ -532,7 +532,7 @@ void CalibdEdx::fitHistGaus(TLinearFitter& fitter, CalibdEdxCorrection& corr, co
   LOGP(info, "Calibration fits took: {}", time.count());
 }
 
-void CalibdEdx::finalize(const bool useGausFits)
+void CalibdEdx::finalize(const bool useGausFits, const bool averageSectors)
 {
   const float entries = minStackEntries();
   mCalib.clear();
@@ -565,10 +565,15 @@ void CalibdEdx::finalize(const bool useGausFits)
     // get mean of each GEM stack
     CalibdEdxCorrection meanCorr{};
     meanCorr.setDims(0);
-    TLinearFitter meanFitter(0);
-    meanFitter.SetFormula("1");
-    // get the mean dEdx for each stack
-    fitHist(mHist, meanCorr, meanFitter, mFitCut, mFitLowCutFactor, mFitPasses);
+    if (averageSectors) {
+      // set mean dEdx per stack to unity
+      meanCorr.setUnity();
+    } else {
+      // get the mean dEdx for each stack
+      TLinearFitter meanFitter(0);
+      meanFitter.SetFormula("1");
+      fitHist(mHist, meanCorr, meanFitter, mFitCut, mFitLowCutFactor, mFitPasses, nullptr, mDebugOutputStreamer.get());
+    }
     if (!useGausFits) {
       // get higher dimension corrections with projected sectors
       fitHist(mHist, mCalib, fitter, mFitCut, mFitLowCutFactor, mFitPasses, &meanCorr, mDebugOutputStreamer.get());

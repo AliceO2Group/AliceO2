@@ -12,16 +12,24 @@
 #ifndef O2_FRAMEWORK_DEFAULTHELPERS_H_
 #define O2_FRAMEWORK_DEFAULTHELPERS_H_
 
+namespace fair::mq
+{
+class ProgOptions;
+}
+
 namespace o2::framework
 {
 enum struct DeploymentMode;
+struct DeviceConfig;
 
 struct DefaultsHelpers {
   static DeploymentMode deploymentMode();
   /// @true if running online
   static bool onlineDeploymentMode();
   /// get max number of timeslices in the queue
-  static unsigned int pipelineLength();
+  static unsigned int pipelineLength(unsigned int minLength);
+  static unsigned int pipelineLength(const fair::mq::ProgOptions& options);
+  static unsigned int pipelineLength(const DeviceConfig& dc);
 };
 } // namespace o2::framework
 

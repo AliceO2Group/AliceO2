@@ -18,7 +18,7 @@ set -x
 # PART b) ... apply vertex smearing on top of HepMC events and perform simple analysis
 NEV=$(grep EVENT slight.out | wc -l)
 
-o2-sim-dpl-eventgen -b --nevents ${NEV} --generator hepmc --confKeyValues \
+o2-sim-dpl-eventgen -b --nEvents ${NEV} --generator hepmc --configKeyValues \
                     "GeneratorFileOrCmd.fileNames=starlight.hepmc;Diamond.position[2]=0.1;Diamond.width[2]=0.05" |\
                     o2-sim-mctracks-to-aod -b | o2-analysis-mctracks-to-aod-simple-task -b
 
