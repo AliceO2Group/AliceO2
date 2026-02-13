@@ -420,6 +420,7 @@ bool GeneratorHybrid::importParticles()
   mMCEventHeader.clearInfo();
   if (mCocktailMode) {
     // in cocktail mode we need to merge the particles from the different generators
+    bool baseGen = true; // first generator of the cocktail is used as reference to update the event header information
     for (auto subIndex : subGenIndex) {
       LOG(info) << "Importing particles for task " << subIndex;
       auto subParticles = gens[subIndex]->getParticles();
@@ -441,8 +442,10 @@ bool GeneratorHybrid::importParticles()
       }
 
       mParticles.insert(mParticles.end(), subParticles.begin(), subParticles.end());
-      // fetch the event Header information from the underlying generator
-      gens[subIndex]->updateHeader(&mMCEventHeader);
+      if (baseGen) {
+        gens[subIndex]->updateHeader(&mMCEventHeader);
+        baseGen = false;
+      }
       mInputTaskQueue.push(subIndex);
       mTasksStarted++;
     }
@@ -481,7 +484,9 @@ bool GeneratorHybrid::importParticles()
 void GeneratorHybrid::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 {
   if (eventHeader) {
-    // we forward the original header information if any
+    // Forward the base class fields from FairMCEventHeader
+    static_cast<FairMCEventHeader&>(*eventHeader) = static_cast<FairMCEventHeader&>(mMCEventHeader);
+    // Copy the key-value store info
     eventHeader->copyInfoFrom(mMCEventHeader);
 
     // put additional information about
