@@ -144,8 +144,9 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   } else {
     mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(mData.NumberOfHits());
   }
-  mNMaxTracklets = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
-  mNMaxRowHits = mRec->MemoryScalers()->NTPCTrackletHits(mData.NumberOfHits());
+  bool lowField = CAMath::Abs(Param().bzkG) < 4;
+  mNMaxTracklets = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits(), lowField);
+  mNMaxRowHits = mRec->MemoryScalers()->NTPCTrackletHits(mData.NumberOfHits(), lowField);
   mNMaxTracks = mRec->MemoryScalers()->NTPCSectorTracks(mData.NumberOfHits());
   if (io.clustersNative) {
     uint32_t sectorOffset = mISector >= GPUCA_NSECTORS / 2 ? GPUCA_NSECTORS / 2 : 0;
