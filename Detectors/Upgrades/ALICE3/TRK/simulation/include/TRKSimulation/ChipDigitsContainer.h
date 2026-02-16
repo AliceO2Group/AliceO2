@@ -29,6 +29,12 @@ class ChipDigitsContainer : public o2::itsmft::ChipDigitsContainer
 
   using Segmentation = SegmentationChip;
 
+  /// Get global ordering key made of readout frame, column and row
+  static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)
+  {
+    return (static_cast<ULong64_t>(roframe) << (8 * sizeof(UInt_t))) + (static_cast<ULong64_t>(col) << (8 * sizeof(Short_t))) + row;
+  }
+
   ClassDefNV(ChipDigitsContainer, 1);
 };
 
