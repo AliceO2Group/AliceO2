@@ -795,8 +795,8 @@ void Detector::defineSensitiveVolumes()
           AddSensitiveVolume(v);
         } else { // OT disks
           for (int sensor_count = 0; sensor_count < MAX_SENSORS; ++sensor_count) {
-            std::string sensor_name_front = "FT3sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-            std::string sensor_name_back = "FT3sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+            std::string sensor_name_front = "FT3Sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+            std::string sensor_name_back = "FT3Sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
             v = geoManager->GetVolume(sensor_name_front.c_str());
             if (v) {
               AddSensitiveVolume(v);
