@@ -108,7 +108,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
   double carbonFiberThickness = 0.01;
 
-  double foamSpacingThickness = 0.5;
+  double foamSpacingThickness = 1.0;
 
   int dist_offset = 0;
 

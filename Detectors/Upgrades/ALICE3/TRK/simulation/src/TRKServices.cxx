@@ -320,26 +320,26 @@ void TRKServices::createMiddleServices(TGeoVolume* motherVolume)
   const float rMaxMiddleBarrelDisk = 35.f;
   const float zLengthMiddleBarrel = 64.2f;
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
-    TGeoTube* middleBarrelConnDiskSIO2 = new TGeoTube(Form("TRK_MIDBARCONN_DISK_SIO2sh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, siO2FiberThick);
-    TGeoTube* middleBarrelConnDiskPE = new TGeoTube(Form("TRK_MIDBARCONN_DISK_PEsh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, peFiberThick);
+    TGeoTube* middleBarrelConnDiskSIO2 = new TGeoTube(Form("TRK_MIDBARCONN_DISK_SIO2sh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, siO2FiberThick / 2.);
+    TGeoTube* middleBarrelConnDiskPE = new TGeoTube(Form("TRK_MIDBARCONN_DISK_PEsh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, peFiberThick / 2.);
     TGeoVolume* middleBarrelConnDiskSIO2Volume = new TGeoVolume(Form("TRK_MIDBARCONN_DISK_SIO2_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), middleBarrelConnDiskSIO2, medSiO2);
     TGeoVolume* middleBarrelConnDiskPEVolume = new TGeoVolume(Form("TRK_MIDBARCONN_DISK_PE_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), middleBarrelConnDiskPE, medPE);
     middleBarrelConnDiskSIO2Volume->SetLineColor(kGray);
     middleBarrelConnDiskPEVolume->SetLineColor(kGray);
     auto* rot = new TGeoRotation("", 0, 0, 180);
-    auto* combiTransSIO2 = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick / 2 + zLengthMiddleBarrel), rot);
-    auto* combiTransPE = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick / 2 + zLengthMiddleBarrel), rot);
+    auto* combiTransSIO2 = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick / 2. + zLengthMiddleBarrel), rot);
+    auto* combiTransPE = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick / 2. + zLengthMiddleBarrel), rot);
     motherVolume->AddNode(middleBarrelConnDiskSIO2Volume, 1, combiTransSIO2);
     motherVolume->AddNode(middleBarrelConnDiskPEVolume, 1, combiTransPE);
 
-    TGeoTube* middleBarrelConnDiskCu = new TGeoTube(Form("TRK_MIDBARCONN_DISK_CUsh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, cuPowerThick);
-    TGeoTube* middleBarrelConnDiskPEPower = new TGeoTube(Form("TRK_MIDBARCONN_DISK_PEsh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, pePowerThick);
+    TGeoTube* middleBarrelConnDiskCu = new TGeoTube(Form("TRK_MIDBARCONN_DISK_CUsh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, cuPowerThick / 2.);
+    TGeoTube* middleBarrelConnDiskPEPower = new TGeoTube(Form("TRK_MIDBARCONN_DISK_PEsh_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), rMinMiddleBarrelDisk, rMaxMiddleBarrelDisk, pePowerThick / 2.);
     TGeoVolume* middleBarrelConnDiskCuVolume = new TGeoVolume(Form("TRK_MIDBARCONN_DISK_CU_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), middleBarrelConnDiskCu, medCu);
     TGeoVolume* middleBarrelConnDiskPEPowerVolume = new TGeoVolume(Form("TRK_MIDBARCONN_DISK_PE_%s", orientation == Orientation::kASide ? "bwd" : "fwd"), middleBarrelConnDiskPEPower, medPE);
     middleBarrelConnDiskCuVolume->SetLineColor(kGray);
     middleBarrelConnDiskPEPowerVolume->SetLineColor(kGray);
-    auto* combiTransCu = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick / 2 + zLengthMiddleBarrel), rot);
-    auto* combiTransPEPower = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick / 2 + zLengthMiddleBarrel), rot);
+    auto* combiTransCu = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick / 2. + zLengthMiddleBarrel), rot);
+    auto* combiTransPEPower = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick / 2. + zLengthMiddleBarrel), rot);
     motherVolume->AddNode(middleBarrelConnDiskCuVolume, 1, combiTransCu);
     motherVolume->AddNode(middleBarrelConnDiskPEPowerVolume, 1, combiTransPEPower);
 
@@ -357,39 +357,39 @@ void TRKServices::createMiddleServices(TGeoVolume* motherVolume)
   float rMaxMiddleServicesBarFwd = 74.5f + siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick + h2oCoolingThick;
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
     // Create fibers: 3.07mm, 50% SiO2, 50% PE
-    TGeoTube* middleBarFwdFiberSIO2 = new TGeoTube("TRK_MIDBARFWD_FIBER_SIO2sh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, siO2FiberThick);
-    TGeoTube* middleBarFwdFiberPE = new TGeoTube("TRK_MIDBARFWD_FIBER_PEsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, peFiberThick);
+    TGeoTube* middleBarFwdFiberSIO2 = new TGeoTube("TRK_MIDBARFWD_FIBER_SIO2sh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, siO2FiberThick / 2.);
+    TGeoTube* middleBarFwdFiberPE = new TGeoTube("TRK_MIDBARFWD_FIBER_PEsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, peFiberThick / 2.);
     TGeoVolume* middleBarFwdFiberSIO2Volume = new TGeoVolume("TRK_MIDBARFWD_FIBER_SIO2", middleBarFwdFiberSIO2, medSiO2);
     TGeoVolume* middleBarFwdFiberPEVolume = new TGeoVolume("TRK_MIDBARFWD_FIBER_PE", middleBarFwdFiberPE, medPE);
     middleBarFwdFiberSIO2Volume->SetLineColor(kGray);
     middleBarFwdFiberPEVolume->SetLineColor(kGray);
     auto* rot = new TGeoRotation("", 0, 0, 180);
-    auto* combiTransSIO2 = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick / 2 + zLengthMiddleServices), rot);
-    auto* combiTransPE = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick / 2 + zLengthMiddleServices), rot);
+    auto* combiTransSIO2 = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick / 2. + zLengthMiddleServices), rot);
+    auto* combiTransPE = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick / 2. + zLengthMiddleServices), rot);
     motherVolume->AddNode(middleBarFwdFiberSIO2Volume, 1, combiTransSIO2);
     motherVolume->AddNode(middleBarFwdFiberPEVolume, 1, combiTransPE);
 
     // Create powerlines: 10.9mm, 9% Cu, 91% PE
-    TGeoTube* middleBarFwdPowerCu = new TGeoTube("TRK_MIDBARFWD_POWER_CUsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, cuPowerThick);
-    TGeoTube* middleBarFwdPowerPE = new TGeoTube("TRK_MIDBARFWD_POWER_PEsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, pePowerThick);
+    TGeoTube* middleBarFwdPowerCu = new TGeoTube("TRK_MIDBARFWD_POWER_CUsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, cuPowerThick / 2.);
+    TGeoTube* middleBarFwdPowerPE = new TGeoTube("TRK_MIDBARFWD_POWER_PEsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, pePowerThick / 2.);
     TGeoVolume* middleBarFwdPowerCuVolume = new TGeoVolume("TRK_MIDBARFWD_POWER_CU", middleBarFwdPowerCu, medCu);
     TGeoVolume* middleBarFwdPowerPEVolume = new TGeoVolume("TRK_MIDBARFWD_POWER_PE", middleBarFwdPowerPE, medPE);
     middleBarFwdPowerCuVolume->SetLineColor(kGray);
     middleBarFwdPowerPEVolume->SetLineColor(kGray);
-    auto* combiTransCu = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick / 2 + zLengthMiddleServices), rot);
-    auto* combiTransPEPower = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick / 2 + zLengthMiddleServices), rot);
+    auto* combiTransCu = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick / 2. + zLengthMiddleServices), rot);
+    auto* combiTransPEPower = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick / 2. + zLengthMiddleServices), rot);
     motherVolume->AddNode(middleBarFwdPowerCuVolume, 1, combiTransCu);
     motherVolume->AddNode(middleBarFwdPowerPEVolume, 1, combiTransPEPower);
 
     // Create cooling pipes: 4.74mm, 56% PU, 44% H2O
-    TGeoTube* middleBarFwdCoolingPU = new TGeoTube("TRK_MIDBARFWD_COOLING_PUsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, puCoolingThick);
-    TGeoTube* middleBarFwdCoolingH2O = new TGeoTube("TRK_MIDBARFWD_COOLING_H2Osh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, h2oCoolingThick);
+    TGeoTube* middleBarFwdCoolingPU = new TGeoTube("TRK_MIDBARFWD_COOLING_PUsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, puCoolingThick / 2.);
+    TGeoTube* middleBarFwdCoolingH2O = new TGeoTube("TRK_MIDBARFWD_COOLING_H2Osh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, h2oCoolingThick / 2.);
     TGeoVolume* middleBarFwdCoolingPUVolume = new TGeoVolume("TRK_MIDBARFWD_COOLING_PU", middleBarFwdCoolingPU, medPU);
     TGeoVolume* middleBarFwdCoolingH2OVolume = new TGeoVolume("TRK_MIDBARFWD_COOLING_H2O", middleBarFwdCoolingH2O, medH2O);
     middleBarFwdCoolingPUVolume->SetLineColor(kGray);
     middleBarFwdCoolingH2OVolume->SetLineColor(kGray);
-    auto* combiTransCoolingPU = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick / 2 + zLengthMiddleServices), rot);
-    auto* combiTransCoolingH2O = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick + h2oCoolingThick / 2 + zLengthMiddleServices), rot);
+    auto* combiTransCoolingPU = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick / 2. + zLengthMiddleServices), rot);
+    auto* combiTransCoolingH2O = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick + h2oCoolingThick / 2. + zLengthMiddleServices), rot);
     motherVolume->AddNode(middleBarFwdCoolingPUVolume, 1, combiTransCoolingPU);
     motherVolume->AddNode(middleBarFwdCoolingH2OVolume, 1, combiTransCoolingH2O);
   }

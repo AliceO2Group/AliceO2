@@ -535,12 +535,6 @@ void bindExternalIndicesPartition(P& partition, T*... tables)
 
 /// Cache handling
 template <typename T>
-bool preInitializeCache(InitContext&, T&)
-{
-  return false;
-}
-
-template <typename T>
 bool initializeCache(ProcessingContext&, T&)
 {
   return false;
