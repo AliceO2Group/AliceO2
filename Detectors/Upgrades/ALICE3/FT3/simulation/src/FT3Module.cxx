@@ -481,7 +481,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               if (sensor_width == 2.5) {
                 // silicon
-                std::string sensor_name = "FT3sensor_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+                std::string sensor_name = "FT3Sensor_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
                 sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, active_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
@@ -495,7 +495,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               } else {
 
-                std::string sensor_name = "FT3sensor_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+                std::string sensor_name = "FT3Sensor_front_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
                 sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
@@ -652,7 +652,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               if (sensor_width == 2.5) {
 
-                std::string sensor_name = "FT3sensor_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+                std::string sensor_name = "FT3Sensor_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
                 sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, active_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
@@ -666,7 +666,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
 
               } else {
                 // active (4.6 cm centered)
-                std::string sensor_name = "FT3sensor_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+                std::string sensor_name = "FT3Sensor_back_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
                 sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, active_width / 2, sensor_height / 2, silicon_thickness / 2);
                 sensor->SetLineColor(SiColor);
                 sensor->SetFillColorAlpha(SiColor, 0.4);
