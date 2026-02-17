@@ -20,8 +20,6 @@
 #include "IOTOFSimulation/Detector.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
 
-using o2::itsmft::Hit;
-
 namespace o2
 {
 namespace iotof
@@ -40,7 +38,9 @@ Detector::Detector(bool active)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   auto& iotofPars = IOTOFBaseParam::Instance();
-  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF, iotofPars.enableForwardTOF);
+  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF,
+               iotofPars.enableForwardTOF, iotofPars.enableBackwardTOF,
+               iotofPars.detectorPattern);
 }
 
 Detector::~Detector()
@@ -56,19 +56,54 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof)
+void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::string pattern)
 {
+
+  float radiusInnerTof = 19.f;
+  float radiusOuterTof = 85.f;
+  float lengthInnerTof = 124.f;
+  float lengthOuterTof = 680.f;
+  std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
+  float zForwardTof = 370.f;
+  if (pattern == "") {
+  } else if (pattern == "v3b") {
+    LOG(info) << "Configuring IOTOF layers with v3b pattern";
+    ftof = false;
+    btof = false;
+  } else if (pattern == "v3b1a") {
+    lengthOuterTof = 500.f;
+    zForwardTof = 270.f;
+    radiusRangeDiskTof = {30.f, 100.f};
+  } else if (pattern == "v3b1b") {
+    lengthOuterTof = 500.f;
+    zForwardTof = 200.f;
+    radiusRangeDiskTof = {20.f, 68.f};
+  } else if (pattern == "v3b2a") {
+    lengthOuterTof = 440.f;
+    zForwardTof = 270.f;
+    radiusRangeDiskTof = {30.f, 120.f};
+  } else if (pattern == "v3b2b") {
+    lengthOuterTof = 440.f;
+    zForwardTof = 200.f;
+    radiusRangeDiskTof = {20.f, 68.f};
+  } else if (pattern == "v3b3") {
+    lengthOuterTof = 580.f;
+    zForwardTof = 200.f;
+    radiusRangeDiskTof = {20.f, 68.f};
+  } else {
+    LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
+  }
   if (itof) {
-    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 0.f, 124.f, 0.f, 0.02f, true); // iTOF
+    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, true); // iTOF
   }
   if (otof) {
-    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 0.f, 680.f, 0.f, 0.02f, true); // oTOF
+    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, true); // oTOF
   }
   if (ftof) {
-    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 100.f, 0.f, 370.f, 0.02f, false); // fTOF
+    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, zForwardTof, 0.02f, false); // fTOF
   }
   if (btof) {
-    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 100.f, 0.f, -370.f, 0.02f, false); // bTOF
+    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, -zForwardTof, 0.02f, false); // bTOF
   }
 }
 
@@ -214,28 +249,28 @@ bool Detector::ProcessHits(FairVolume* vol)
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
-    status |= Hit::kTrackEntering;
+    status |= o2::itsmft::Hit::kTrackEntering;
   }
   if (fMC->IsTrackInside()) {
-    status |= Hit::kTrackInside;
+    status |= o2::itsmft::Hit::kTrackInside;
   }
   if (fMC->IsTrackExiting()) {
-    status |= Hit::kTrackExiting;
+    status |= o2::itsmft::Hit::kTrackExiting;
   }
   if (fMC->IsTrackOut()) {
-    status |= Hit::kTrackOut;
+    status |= o2::itsmft::Hit::kTrackOut;
   }
   if (fMC->IsTrackStop()) {
-    status |= Hit::kTrackStopped;
+    status |= o2::itsmft::Hit::kTrackStopped;
   }
   if (fMC->IsTrackAlive()) {
-    status |= Hit::kTrackAlive;
+    status |= o2::itsmft::Hit::kTrackAlive;
   }
 
   // track is entering or created in the volume
-  if ((status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted)) {
+  if ((status & o2::itsmft::Hit::kTrackEntering) || (status & o2::itsmft::Hit::kTrackInside && !mTrackData.mHitStarted)) {
     startHit = true;
-  } else if ((status & (Hit::kTrackExiting | Hit::kTrackOut | Hit::kTrackStopped))) {
+  } else if ((status & (o2::itsmft::Hit::kTrackExiting | o2::itsmft::Hit::kTrackOut | o2::itsmft::Hit::kTrackStopped))) {
     stopHit = true;
   }
 
@@ -264,9 +299,9 @@ bool Detector::ProcessHits(FairVolume* vol)
     fMC->CurrentVolOffID(3, halfstave);
     fMC->CurrentVolOffID(4, stave);
 
-    Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
-                    mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
-                    mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
+    o2::itsmft::Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+                                mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
+                                mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
 
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle

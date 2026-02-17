@@ -25,6 +25,7 @@ struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam>
   bool enableOuterTOF = true;
   bool enableForwardTOF = true;
   bool enableBackwardTOF = true;
+  std::string detectorPattern = "";
 
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };
