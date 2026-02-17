@@ -64,10 +64,12 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
       }
       int subDetID = gman->getSubDetID(hit.GetDetectorID());
       const int layer = startLayer[subDetID] + gman->getLayer(hit.GetDetectorID());
+      if (layer >= nLayers) {
+        continue;
+      }
       ++clusterCountPerLayer[layer];
       totalNHits++;
     }
-    trkHit->clear();
   }
 
   // Reserve memory for all layers
@@ -106,6 +108,9 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
       o2::math_utils::Point3D<float> gloXYZ;
       o2::math_utils::Point3D<float> trkXYZ;
       float r{0.f};
+      if (layer >= nLayers) {
+        continue;
+      }
       if (layer >= 3) {
         int chipID = hit.GetDetectorID();
         alpha = gman->getSensorRefAlphaMLOT(chipID);

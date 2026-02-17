@@ -10,11 +10,13 @@
 // or submit itself to any jurisdiction.
 
 #include <vector>
+#include <chrono>
 
 #include "DetectorsBase/GeometryManager.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Configuration.h"
 #include "Field/MagneticField.h"
+#include "Field/MagFieldParam.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
@@ -276,7 +278,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     itsTrackerTraits.adoptTimeFrame(static_cast<o2::its::TimeFrame<11>*>(&timeFrame));
     itsTracker.adoptTimeFrame(timeFrame);
     itsTrackerTraits.setBz(mHitRecoConfig["geometry"]["bz"].get<float>());
-    auto field = o2::field::MagneticField::createNominalField(std::round(mHitRecoConfig["geometry"]["bz"].get<float>()), true);
+    auto field = new field::MagneticField("ALICE3Mag", "ALICE 3 Magnetic Field", mHitRecoConfig["geometry"]["bz"].get<float>() / 5.f, 0.0, o2::field::MagFieldParam::k5kGUniform);
     TGeoGlobalMagField::Instance()->SetField(field);
     TGeoGlobalMagField::Instance()->Lock();
 
@@ -291,6 +293,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
     itsTrackerTraits.updateTrackingParameters(trackingParams);
 
+    const auto trackingLoopStart = std::chrono::steady_clock::now();
     for (size_t iter{0}; iter < trackingParams.size(); ++iter) {
       LOGP(info, "{}", trackingParams[iter].asString());
       timeFrame.initialise(iter, trackingParams[iter], 11, false);
@@ -304,6 +307,8 @@ void TrackerDPL::run(ProcessingContext& pc)
       LOGP(info, "Number of roads in iteration {}: {}", iter, timeFrame.getNumberOfTracks());
       itsTrackerTraits.extendTracks(iter);
     }
+    const auto trackingLoopElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - trackingLoopStart).count();
+    LOGP(info, "Tracking iterations block took {} ms", trackingLoopElapsedMs);
 
     itsTracker.computeTracksMClabels();
 
