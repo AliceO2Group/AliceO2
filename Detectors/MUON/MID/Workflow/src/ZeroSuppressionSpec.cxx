@@ -103,7 +103,7 @@ class ZeroSuppressionDeviceDPL
 
 framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC, std::string_view dataDesc)
 {
-  auto inputSpecs = specs::buildInputSpecs("mid_zs_in", dataDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_zs_in", dataDesc, useMC);
   auto outputSpecs = specs::buildStandardOutputSpecs("mid_zs_out", "DATA", useMC);
 
   return of::DataProcessorSpec{
