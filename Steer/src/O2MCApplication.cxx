@@ -42,6 +42,7 @@
 #include <TGeoTessellated.h>
 #include <DetectorsBase/O2Tessellated.h>
 #include <unordered_set>
+#include "SimConfig/G4Params.h"
 
 namespace o2
 {
@@ -223,6 +224,11 @@ bool O2MCApplicationBase::MisalignGeometry()
 
 void O2MCApplicationBase::fixTGeoRuntimeShapes()
 {
+  auto& g4Params = o2::conf::G4Params::Instance();
+  if (g4Params.navmode != o2::conf::EG4Nav::kTGeo) {
+    return;
+  }
+
   // Replace TGeo shapes by other ones for performance or other reasons.
   // Should only affect runtime of simulation.
 
