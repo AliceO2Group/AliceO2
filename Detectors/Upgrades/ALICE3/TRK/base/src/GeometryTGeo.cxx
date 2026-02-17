@@ -416,15 +416,15 @@ TString GeometryTGeo::getMatrixPath(int index) const
   // build the path
   if (subDetID == 0) { // VD
     if (disk >= 0) {
-      path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);             // PETAL_n
-      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk); // PETALCASEx_DISKy_1
-      // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
+      path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);                                               // PETAL_n
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk);                                   // PETALCASEx_DISKy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKSensorPattern(), disk); // PETALCASEx_DISKy_TRKSensory_1
     } else if (layer >= 0) {
       path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);               // PETAL_n
       path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer); // PETALCASEx_LAYERy_1
       // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKStavePattern(), layer);  // PETALCASEx_LAYERy_TRKStavey_1
-      // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
     }
   } else if (subDetID == 1) {                                               // MLOT
@@ -962,9 +962,9 @@ int GeometryTGeo::extractNumberOfChipsPerPetalVD() const
 
       for (int i = 0; i < subNodes->GetEntriesFast(); i++) {
         auto* subNode = dynamic_cast<TGeoNode*>(subNodes->At(i));
-        if (strstr(subNode->GetName(), getTRKSensorPattern()) != nullptr) {
+        if (strstr(subNode->GetName(), getTRKChipPattern()) != nullptr) {
           numberOfChips++;
-          LOGP(debug, "Found sensor in {}: {}", nodeName, subNode->GetName());
+          LOGP(debug, "Found chip in {}: {}", nodeName, subNode->GetName());
         }
       }
     }
