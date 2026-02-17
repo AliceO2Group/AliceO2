@@ -1248,6 +1248,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");
   dumpableMetrics.emplace_back("^total_wall_time_ms$");
+  dumpableMetrics.emplace_back("^ccdb-.*$");
   return dumpableMetrics;
 }
 

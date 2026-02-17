@@ -20,6 +20,8 @@
 #include "CommonUtils/NameConf.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/ServiceRegistryRef.h"
+#include "Framework/DataProcessingStats.h"
 #include <string>
 #include <chrono>
 #include <map>
@@ -340,6 +342,13 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp,
   }
   auto end = std::chrono::system_clock::now();
   mTimerMS += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  auto *ref = o2::framework::ServiceRegistryRef::globalDeviceRef();
+  if (ref && ref->active<framework::DataProcessingStats>()) {
+    auto& stats = ref->get<o2::framework::DataProcessingStats>();
+    stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_HIT, o2::framework::DataProcessingStats::Op::Set, (int64_t)mQueries - mFailures - mFetches});
+    stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_MISS, o2::framework::DataProcessingStats::Op::Set, (int64_t)mFetches});
+    stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_FAILURE, o2::framework::DataProcessingStats::Op::Set, (int64_t)mFailures});
+  }
   return ptr;
 }
 
@@ -391,4 +400,4 @@ class BasicCCDBManager : public CCDBManagerInstance
 
 } // namespace o2::ccdb
 
-#endif //O2_BASICCCDBMANAGER_H
+#endif // O2_BASICCCDBMANAGER_H
