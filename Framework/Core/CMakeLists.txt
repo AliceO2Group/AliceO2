@@ -125,6 +125,7 @@ o2_add_library(Framework
                        src/RootArrowFilesystem.cxx
                        src/SendingPolicy.cxx
                        src/ServiceRegistry.cxx
+                       src/ServiceRegistryRef.cxx
                        src/ServiceSpec.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx

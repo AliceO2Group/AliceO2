@@ -112,6 +112,8 @@ class ServiceRegistryRef
     mRegistry.unlock(mSalt);
   }
 
+  static ServiceRegistryRef *globalDeviceRef(ServiceRegistryRef *ref = nullptr);
+
  private:
   ServiceRegistry& mRegistry;
   ServiceRegistry::Salt mSalt;

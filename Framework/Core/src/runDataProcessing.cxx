@@ -1429,6 +1429,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
   ServiceRegistry serviceRegistry;
+  ServiceRegistryRef::globalDeviceRef(new ServiceRegistryRef{serviceRegistry, ServiceRegistry::globalDeviceSalt()});
 
   if ((driverConfig.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
     debugGUI = initDebugGUI();
