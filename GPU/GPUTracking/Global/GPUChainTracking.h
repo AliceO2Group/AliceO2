@@ -71,6 +71,7 @@ struct CfFragment;
 class GPUTPCClusterFinder;
 struct GPUSettingsProcessing;
 struct GPUSettingsRec;
+struct GPUTPCExtraADC;
 
 class GPUChainTracking : public GPUChain
 {
@@ -298,13 +299,15 @@ class GPUChainTracking : public GPUChain
   int32_t RunChainFinalize();
   void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
-  int32_t RunTPCClusterizer_prepare(bool restorePointers);
+  int32_t RunTPCClusterizer_prepare(bool restorePointers, const GPUTPCExtraADC& extraADCs);
 #ifndef GPUCA_RUN2
-  std::pair<uint32_t, uint32_t> RunTPCClusterizer_transferZS(int32_t iSector, const CfFragment& fragment, int32_t lane);
+  std::pair<uint32_t, uint32_t> RunTPCClusterizer_transferZS(int32_t iSector, const CfFragment& fragment, int32_t lane, const GPUTPCExtraADC& extraADCs);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int32_t stage, bool doGPU, int32_t lane);
   std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCount(uint32_t iSector, const CfFragment& fragment);
   std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCountUpdate(uint32_t iSector, const CfFragment& fragment);
   void TPCClusterizerEnsureZSOffsets(uint32_t iSector, const CfFragment& fragment);
+  void TPCClusterizerTransferExtraADC(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int lane, const GPUTPCExtraADC& extraADCs);
+  void TPCClusterizerCheckExtraADCZeros(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int lane, const GPUTPCExtraADC& extraADCs);
 #endif
   void RunTPCTrackingMerger_MergeBorderTracks(uint8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCTrackingMerger_Resolve(int8_t useOrigTrackParam, int8_t mergeAll, GPUReconstruction::krnlDeviceType deviceType);
