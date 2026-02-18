@@ -15,7 +15,6 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 #include "CfArray2D.h"
-#include "DataFormatsTPC/Digit.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "GPUSettings.h"
 

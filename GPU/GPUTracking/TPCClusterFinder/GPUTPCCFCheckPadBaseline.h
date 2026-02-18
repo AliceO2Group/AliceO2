@@ -15,6 +15,11 @@
 /// Kernel identifies noisy TPC pads by analyzing charge patterns over time.
 /// A pad is marked noisy if it exceeds thresholds for total or consecutive
 /// time bins with charge, unless the charge exceeds a saturation threshold.
+///
+/// Optionally detects Highly Ionising Particle (HIP) tails: when a saturated
+/// ADC value (1023) is found, the tail region on the triggering pad and its
+/// neighbors is zeroed in the charge map until charges drop below a
+/// configurable threshold.
 
 #ifndef O2_GPU_GPU_TPC_CF_CHECK_PAD_BASELINE_H
 #define O2_GPU_GPU_TPC_CF_CHECK_PAD_BASELINE_H
@@ -44,10 +49,54 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
     // Rounding up to a multiple of PadsPerCacheline ensures iThread / MaxNPadsPerRow < NumOfCachedTBs
     // for all threads, avoiding out-of-bounds access.
     MaxNPadsPerRow = CAMath::nextMultipleOf<PadsPerCacheline>(GPUTPCGeometry::MaxNPadsPerRow()),
+
+    MaxADC = 1023,
+
+    NThreads = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFCheckPadBaseline),
   };
 
-  struct GPUSharedMemory {
+  union HipTailRange {
+    struct {
+      int16_t start;
+      int16_t end;
+    };
+    // uint32_t asU32;
+
+    // Be careful with using default initialized values.
+    // Need default constructor, so can be placed in shared memory.
+    // Might be zero initialized, but invalid tail needs start = end = -1 instead.
+    GPUdDefault() HipTailRange() = default;
+    GPUdi() HipTailRange(int16_t st, int16_t e) : start(st), end(e) {}
+
+    GPUdi() bool HasValue() const { return start > -1; }
+    GPUdi() bool IsOpen() const { return start > -1 && end < 0; }
+
+    GPUdi() void SetOpen(int16_t st)
+    {
+      start = st;
+      end = -1;
+    }
+
+    GPUdi() int16_t Length() const { return end - start; }
+
+    GPUdi() void Reset() { start = end = -1; }
+  };
+
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, NThreads> {
     tpccf::Charge charges[NumOfCachedTBs][MaxNPadsPerRow];
+    HipTailRange tails[MaxNPadsPerRow];
+    uint8_t tailsClosedPad[MaxNPadsPerRow];
+    HipTailRange tailsClosed[MaxNPadsPerRow];
+  };
+
+  // Accumulated values from scanning cached charges in a pad
+  struct PadChargeAccu {
+    int32_t totalCharges = 0;
+    int32_t consecCharges = 0;
+    int32_t maxConsecCharges = 0;
+    tpccf::Charge maxCharge = 0;
+    int16_t HIPtb = -1;
+    HipTailRange activeHIPTail{-1, -1};
   };
 
   typedef GPUTPCClusterFinder processorType;
