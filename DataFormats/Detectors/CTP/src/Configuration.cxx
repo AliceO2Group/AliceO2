@@ -1231,12 +1231,12 @@ std::vector<int> CtpCfg::listOfUsedInputs()
 {
   std::cout << std::hex << "0x" << irInputs_1_24 << " " << irInputs_25_48 << std::dec << std::endl;
   std::vector<int> inputList;
-  for(int i = 0; i < 24; i++) {
+  for (int i = 0; i < 24; i++) {
     if ((1ul << i) & irInputs_1_24) {
       inputList.push_back(i);
     }
   }
-  for(int i = 0; i < 24; i++) {
+  for (int i = 0; i < 24; i++) {
     if ((1ul << i) & irInputs_25_48) {
       inputList.push_back(i + 24);
     }
