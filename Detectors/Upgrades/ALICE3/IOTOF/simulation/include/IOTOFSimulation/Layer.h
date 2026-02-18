@@ -14,6 +14,8 @@
 
 #include <TGeoManager.h>
 #include <Rtypes.h>
+#include <string>
+#include <vector>
 
 namespace o2
 {
@@ -23,7 +25,7 @@ class Layer
 {
  public:
   Layer() = default;
-  Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0, bool isBarrel = true);
+  Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0, int layout = kBarrel, int nSegments = 0);
   ~Layer() = default;
 
   auto getInnerRadius() const { return mInnerRadius; }
@@ -33,9 +35,14 @@ class Layer
   auto getx2X0() const { return mX2X0; }
   auto getChipThickness() const { return mChipThickness; }
   auto getName() const { return mLayerName; }
-  auto getIsBarrel() const { return mIsBarrel; }
+  auto getLayout() const { return mLayout; }
+  auto getSegments() const { return mSegments; }
+  static constexpr int kBarrel = 0;
+  static constexpr int kDisk = 1;
+  static constexpr int kBarrelSegmented = 2;
+  static constexpr int kDiskSegmented = 3;
 
-  virtual void createLayer(TGeoVolume* motherVolume){};
+  virtual void createLayer(TGeoVolume* motherVolume) {};
 
  protected:
   std::string mLayerName;
@@ -45,7 +52,9 @@ class Layer
   float mZOffset{0.f}; // Of use when fwd layers
   float mX2X0;
   float mChipThickness;
-  bool mIsBarrel{true};
+  int mLayout{kBarrel};
+  // To be used only in case of the segmented layout, to define the number of segments in phi (for barrel) or in r (for disk)
+  int mSegments{0};
 };
 
 class ITOFLayer : public Layer
@@ -53,6 +62,7 @@ class ITOFLayer : public Layer
  public:
   using Layer::Layer;
   virtual void createLayer(TGeoVolume* motherVolume) override;
+  static std::vector<std::string> mRegister;
 };
 
 class OTOFLayer : public Layer
@@ -60,6 +70,7 @@ class OTOFLayer : public Layer
  public:
   using Layer::Layer;
   virtual void createLayer(TGeoVolume* motherVolume) override;
+  static std::vector<std::string> mRegister;
 };
 
 class FTOFLayer : public Layer
