@@ -188,7 +188,7 @@ struct BinningPolicyBase {
     if constexpr (N == 2) {
       return getXBinsCount() * getYBinsCount();
     }
-    if constexpr (N == 2) {
+    if constexpr (N == 3) {
       return getXBinsCount() * getYBinsCount() * getZBinsCount();
     }
     return -1;
