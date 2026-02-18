@@ -158,7 +158,7 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   l.setStartValidity(starting);
   l.setEndValidity(stopping);
 
-  mInfoVector.emplace_back("TOF/Calib/LHCphase", clName, flName, md, starting, stopping);
+  mInfoVector.emplace_back(mPath.Data(), clName, flName, md, starting, stopping);
   mLHCphaseVector.emplace_back(l);
 
   slot.print();
