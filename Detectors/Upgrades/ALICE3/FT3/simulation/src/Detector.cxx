@@ -129,7 +129,8 @@ void Detector::buildFT3FromFile(std::string configFileName)
 //_________________________________________________________________________________________________
 void Detector::exportLayout()
 {
-  // Export FT3 Layout description to file. One line per disk
+  // Export FT3 Layout description to file.
+  // One line per disk:
   // z_layer r_in r_out Layerx2X0
 
   std::string configFileName = "FT3_layout.cfg";
