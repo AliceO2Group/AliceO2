@@ -243,7 +243,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       }
     }
     runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::resolve2>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), 0);
+    DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpInterpolatedHits, *mDebugFile);
     runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::resolveShared>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), 0);
+    DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpRebuiltTracks, *mDebugFile);
     runKernel<GPUTPCGMMergerTrackFit>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), mergerSortTracks ? 1 : 0, 1);
   }
   runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));
