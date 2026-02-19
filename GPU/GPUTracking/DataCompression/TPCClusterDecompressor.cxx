@@ -43,10 +43,10 @@ int32_t TPCClusterDecompressor::decompress(const CompressedClustersFlat* cluster
 int32_t TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param, bool deterministicRec)
 {
   if (clustersCompressed->nTracks && clustersCompressed->solenoidBz != -1e6f && clustersCompressed->solenoidBz != param.bzkG) {
-    throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
+    throw std::runtime_error("Configured solenoid Bz " + std::to_string(param.bzkG) + " does not match value used for track model encoding " + std::to_string(clustersCompressed->solenoidBz));
   }
   if (clustersCompressed->nTracks && clustersCompressed->maxTimeBin != -1e6 && clustersCompressed->maxTimeBin != param.continuousMaxTimeBin) {
-    throw std::runtime_error("Configured max time bin does not match value used for track model encoding");
+    throw std::runtime_error("Configured max time bin " + std::to_string(param.continuousMaxTimeBin) + " does not match value used for track model encoding " + std::to_string(clustersCompressed->maxTimeBin));
   }
   std::vector<ClusterNative> clusters[NSECTORS][GPUCA_ROW_COUNT];
   std::atomic_flag locks[NSECTORS][GPUCA_ROW_COUNT];
