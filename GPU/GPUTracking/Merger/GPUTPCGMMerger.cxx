@@ -1852,7 +1852,7 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
         if (CAMath::Abs(trk.GetParam().GetQPt() * Param().qptB5Scaler) <= Param().rec.tpc.rejectQPtB5 && !trk.MergedLooper() && trk.Leg() == 0) {
           weight |= attachProtect;
         }
-        mClusterAttachment[mClusters[trk.FirstClusterRef() + j].num] = weight;
+        CAMath::AtomicMax(&mClusterAttachment[mClusters[trk.FirstClusterRef() + j].num], weight);
         CAMath::AtomicAdd(&mSharedCount[mClusters[trk.FirstClusterRef() + j].num], 1u);
       }
       if (!trk.CCE() && !trk.MergedLooper()) {
