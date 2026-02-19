@@ -226,7 +226,7 @@ class GPUTPCGMMerger : public GPUProcessor
  private:
   GPUd() void MergeSectorsPrepareStep2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(uint32_t) * nB, bool useOrigTrackParam = false);
   template <int32_t I>
-  GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode = 0);
+  GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode = 0);
 
   GPUd() void MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, int32_t itr);
 
