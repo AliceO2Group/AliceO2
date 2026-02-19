@@ -150,6 +150,15 @@ void GPUTPCGMMerger::DumpTrackParam(std::ostream& out) const
   out << std::setprecision(ss);
 }
 
+void GPUTPCGMMerger::DumpRebuiltTracks(std::ostream& out) const
+{
+  out << "\nTPC Merger Rebuilt Tracks\n";
+  out << "  Cluster Attachment\n";
+  DumpTrackClusters(out, false, true);
+  out << "  Track Params\n";
+  DumpTrackParam(out);
+}
+
 void GPUTPCGMMerger::DumpMergeCE(std::ostream& out) const
 {
   DumpTrackLinks(out, true, " for CE merging");
@@ -250,6 +259,34 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
       if (j % 10 == 0) {
         out << "\n";
       }
+    }
+  }
+  out << "\n";
+}
+
+void GPUTPCGMMerger::DumpInterpolatedHits(std::ostream& out) const
+{
+  out << "\nTPC Merger Interpolated Hits\n";
+  for (uint32_t i = 0; i < mMemory->nMergedTracks; i++) {
+    const auto& trk = mMergedTracks[i];
+    if (trk.OK() && trk.GetParam().GetNDF() >= 0 && trk.NClusters()) {
+      out << "Track " << i << ":";
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
+        auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
+        if (candidates[0].id) {
+          out << "  Row " << j << ": ";
+          if (candidates[0].best) {
+            out << "  Best " << candidates[0].best << " - ";
+          }
+          for (uint32_t k = 0; k < Param().rec.tpc.rebuildTrackInFitClusterCandidates; k++) {
+            if (candidates[k].id) {
+              out << k << ": id " << candidates[k].id << " err " << candidates[k].error << " weight " << candidates[k].weight << " - ";
+            }
+          }
+          out << ";  ";
+        }
+      }
+      out << "\n";
     }
   }
   out << "\n";
