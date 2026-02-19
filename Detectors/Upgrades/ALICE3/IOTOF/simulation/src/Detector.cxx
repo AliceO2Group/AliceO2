@@ -66,9 +66,10 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
   float lengthOuterTof = 680.f;
   std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
   float zForwardTof = 370.f;
+  LOG(info) << "Configuring IOTOF layers with '" << pattern << "' pattern";
   if (pattern == "") {
+    LOG(info) << "Default pattern";
   } else if (pattern == "v3b") {
-    LOG(info) << "Configuring IOTOF layers with v3b pattern";
     ftof = false;
     btof = false;
   } else if (pattern == "v3b1a") {
@@ -96,13 +97,15 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
   }
   if (itof) {
     if (itofSegmented)
-      mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, ITOFLayer::kBarrelSegmented, 236); // iTOF
+      mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, ITOFLayer::kBarrelSegmented,
+                             24, 5.42, 80, 10); // iTOF
     else
       mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, ITOFLayer::kBarrel); // iTOF
   }
   if (otof) {
     if (otofSegmented)
-      mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, OTOFLayer::kBarrelSegmented, 124); // oTOF
+      mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, OTOFLayer::kBarrelSegmented,
+                             62, 9.74, 432, 5); // oTOF
     else
       mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, OTOFLayer::kBarrel); // oTOF
   }

@@ -25,7 +25,8 @@ class Layer
 {
  public:
   Layer() = default;
-  Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0, int layout = kBarrel, int nSegments = 0);
+  Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0,
+        int layout = kBarrel, int nSegments = 0, float segmentSize = 0.0, int nSensorsPerSegment = 0, double tiltAngle = 0.0);
   ~Layer() = default;
 
   auto getInnerRadius() const { return mInnerRadius; }
@@ -52,9 +53,11 @@ class Layer
   float mZOffset{0.f}; // Of use when fwd layers
   float mX2X0;
   float mChipThickness;
-  int mLayout{kBarrel};
+  int mLayout{kBarrel}; // Identifier of the type of layer layout (barrel, disk, barrel segmented, disk segmented)
   // To be used only in case of the segmented layout, to define the number of segments in phi (for barrel) or in r (for disk)
-  int mSegments{0};
+  std::pair<int, float> mSegments{0, 0.0f}; // Number  and size of segments in phi (for barrel) or in r (for disk) in case of segmented layout
+  int mSensorsPerSegment{0};                // Number of sensors along a segment
+  double mTiltAngle{0.0};                   // Tilt angle in degrees to be applied as a rotation around the local center of the segment
 };
 
 class ITOFLayer : public Layer

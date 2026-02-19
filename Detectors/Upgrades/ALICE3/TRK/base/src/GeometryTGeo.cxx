@@ -102,7 +102,6 @@ void GeometryTGeo::Build(int loadTrans)
   mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
 
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
-    std::cout << "Layer MLOT: " << i << std::endl;
     mNumberOfStaves[i] = extractNumberOfStavesMLOT(i);
     mNumberOfHalfStaves[i] = extractNumberOfHalfStavesMLOT(i);
     mNumberOfModules[i] = extractNumberOfModulesMLOT(i);
