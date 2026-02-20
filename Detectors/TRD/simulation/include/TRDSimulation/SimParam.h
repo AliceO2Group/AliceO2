@@ -66,6 +66,7 @@ class SimParam
   }
 
   // Getters
+  float getEffVdriftDefault() const { return mEffVdriftDefault; }
   float getGasGain() const { return mGasGain; }
   float getNoise() const { return mNoise; }
   float getChipGain() const { return mChipGain; }
@@ -135,7 +136,9 @@ class SimParam
   float mTRFhi{3.58f};                                               ///<  Higher boundary of the TRF and x-talk
   float mInvTRFwid{static_cast<float>(mTRFbin) / (mTRFhi - mTRFlo)}; ///<  Inverse of the bin width of the integrated TRF and x-talk
   float mGasGain{4000.f};                                            ///< Gas gain
-
+  
+  float mEffVdriftDefault{1.22f}; ///< The CCDB contains an effective drift velocity, and not the true drift velocity, so we anchor only the variations. This default parameter is the one reproducing data the best for run 568191.
+  
   ClassDefNV(SimParam, 2); // The TRD simulation parameters
 };
 

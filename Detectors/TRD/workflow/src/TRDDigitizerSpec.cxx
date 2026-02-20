@@ -15,6 +15,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "TChain.h"
@@ -69,6 +70,9 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
     simcal.getCCDBObjects(creationTime);
     mDigitizer.setCalibrations(&simcal);
+    pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb");
+    pc.inputs().get<o2::trd::CalGain*>("calgain");
+    pc.inputs().get<std::array<int, constants::MAXCHAMBER>*>("fedchamberstatus");
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -206,6 +210,28 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;
   }
+  
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
+      LOG(info) << "CalVdriftExB object has been updated";
+      mDigitizer.setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TRD", "CALGAIN", 0)) {
+      LOG(info) << "CalGain object has been updated";
+      mDigitizer.setCalGain((const o2::trd::CalGain*)obj);
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TRD", "FEDCHAMBERSTATUS", 0)) {
+      LOG(info) << "Fed chamber status has been updated";
+      std::array<int, constants::MAXCHAMBER>* fedStatus = (std::array<int, constants::MAXCHAMBER>*) obj;
+      for (int det = 0; det < constants::MAXCHAMBER; det++) {
+        mDigitizer.setFedChamberStatus(det, (*fedStatus)[det]);
+      }
+      return;
+    }
+  }
 
  private:
   Digitizer mDigitizer;
@@ -229,11 +255,17 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
     outputs.emplace_back("TRD", "LABELS", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("TRD", "ROMode", 0, Lifetime::Timeframe);
+  
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
+  inputs.emplace_back("calgain", "TRD", "CALGAIN", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalGain"));
+  inputs.emplace_back("fedchamberstatus", "TRD", "FEDCHAMBERSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/DCSDPsFedChamberStatus"));
 
   return DataProcessorSpec{
     "TRDDigitizer",
-    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-
+    //Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    inputs,
     outputs,
 
     AlgorithmSpec{adaptFromTask<TRDDPLDigitizerTask>()},

@@ -160,7 +160,9 @@ void Digitizer::process(std::vector<Hit> const& hits)
     auto& signalsMap = mSignalsMapCollection[det];
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
-    if (mCalib->getChamberStatus()->isNoData(det)) {
+    // In the chamber Fed status, 3 corresponds to good chamber
+    //if (mCalib->getChamberStatus()->isNoData(det)) {
+    if (getFedChamberStatus(det) != 3) {
       continue;
     }
     if (!mGeo->chamberInGeometry(det)) {
@@ -199,7 +201,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
 
   double padSignal[mNpad];
 
-  const double calExBDetValue = mCalib->getExB(det); // T * V/cm (check units)
+  const double calExBDetValue = mCalVdriftExB->getExB(det, true); // T * V/cm (check units)
   const PadPlane* padPlane = mGeo->getPadPlane(det);
   const int layer = mGeo->getLayer(det);
   const float rowEndROC = padPlane->getRowEndROC();
@@ -253,8 +255,11 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
       absDriftLength /= std::sqrt(1 / (1 + calExBDetValue * calExBDetValue));
     }
 
-    float driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity
-    float t0 = mCalib->getT0(det, colE, rowE);                // The T0 velocity
+    float driftVelocity = constants::VDRIFTDEFAULT; // The default drift velocity
+    if (TMath::Abs(mCalVdriftExB->getVdrift(det, true) - constants::VDRIFTDEFAULT) > 1e-6) {
+      driftVelocity = mCalVdriftExB->getVdrift(det, true) * constants::VDRIFTDEFAULT / mSimParam.getEffVdriftDefault(); // If they are available in the CCDB, we anchor the vdrift variations
+    }
+    float t0 = mCalib->getT0(det, colE, rowE);      // The T0 velocity
 
     // Loop over all created electrons
     const int nElectrons = std::fabs(qTotal);
@@ -277,7 +282,8 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
 
       // Apply E x B effects
       if (mSimParam.isExBOn()) {
-        locCd = locCd + calExBDetValue * driftLength;
+        // minus sign is necessary to be compatible with how Vdrift and ExB are calibrated
+        locCd = locCd - TMath::Tan(calExBDetValue) * driftLength;
       }
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locRd);
@@ -292,7 +298,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         continue;
       }
       const double colOffset = padPlane->getPadColOffset(colE, locCd + offsetTilt);
-      driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity for the updated col and row
+      //driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity for the updated col and row
       t0 = mCalib->getT0(det, colE, rowE);                // The T0 velocity for the updated col and row
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).
@@ -313,7 +319,8 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
       }
 
       // Apply the gas gain including fluctuations
-      const double signal = -(mSimParam.getGasGain()) * mLogRandomRings[thread].getNextValue();
+      double timeDepGainFactor = mCalGain->getMPVdEdx(det, true) / constants::MPVDEDXDEFAULT;
+      const double signal = -(mSimParam.getGasGain()) * timeDepGainFactor * mLogRandomRings[thread].getNextValue();
 
       // Apply the pad response
       if (mSimParam.prfOn()) {
@@ -424,10 +431,10 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
     int halfchamberside = (mcm > 3) ? 1 : 0; // 0=Aside, 1=Bside
 
     // Halfchambers that are switched off, masked by mCalib
-    if ((halfchamberside == 0 && mCalib->getChamberStatus()->isNoDataSideA(det)) ||
+    /*if ((halfchamberside == 0 && mCalib->getChamberStatus()->isNoDataSideA(det)) ||
         (halfchamberside == 1 && mCalib->getChamberStatus()->isNoDataSideB(det))) {
       continue;
-    }
+    }*/
 
     // Check whether pad is masked
     // Bridged pads are not considered yet!!!
