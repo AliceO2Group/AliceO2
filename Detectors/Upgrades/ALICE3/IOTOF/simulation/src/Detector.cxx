@@ -95,19 +95,19 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
   } else {
     LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
   }
-  if (itof) {
-    if (itofSegmented)
-      mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, ITOFLayer::kBarrelSegmented,
-                             24, 5.42, 80, 10); // iTOF
-    else
-      mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, ITOFLayer::kBarrel); // iTOF
+  if (itof) { // iTOF
+    mITOFLayer = itofSegmented ? ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
+                                           radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, ITOFLayer::kBarrelSegmented,
+                                           24, 5.42, 80, 10)
+                               : ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
+                                           radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, ITOFLayer::kBarrel);
   }
-  if (otof) {
-    if (otofSegmented)
-      mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, OTOFLayer::kBarrelSegmented,
-                             62, 9.74, 432, 5); // oTOF
-    else
-      mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, OTOFLayer::kBarrel); // oTOF
+  if (otof) { // oTOF
+    mOTOFLayer = otofSegmented ? OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
+                                           radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, OTOFLayer::kBarrelSegmented,
+                                           62, 9.74, 432, 5)
+                               : OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
+                                           radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, OTOFLayer::kBarrel);
   }
   if (ftof) {
     mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, zForwardTof, 0.02f, FTOFLayer::kDisk); // fTOF
