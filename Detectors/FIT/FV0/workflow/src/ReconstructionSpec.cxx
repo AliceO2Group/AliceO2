@@ -42,6 +42,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
   mRecPoints.clear();
+  mRecChData.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
   auto digch = pc.inputs().get<gsl::span<o2::fv0::ChannelData>>("digch");
   // RS: if we need to process MC truth, uncomment lines below
