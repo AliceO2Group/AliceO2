@@ -74,6 +74,13 @@ int32_t GPUReconstructionCUDA::genRTC(std::string& filename, uint32_t& nCompile)
     }
     fclose(fp);
   }
+  if constexpr (std::string_view("CUDA") == "HIP") { // Check if we are RTC-compiling for HIP
+    if (GetProcessingSettings().hipOverrideAMDEUSperCU > 0) {
+      mParDevice->par_AMD_EUS_PER_CU = GetProcessingSettings().hipOverrideAMDEUSperCU;
+    } else if (mParDevice->par_AMD_EUS_PER_CU <= 0) {
+      GPUFatal("AMD_EUS_PER_CU not set in the parameters provided for the AMD GPU, you can override this via --PROChipOverrideAMDEUSperCU [n]");
+    }
+  }
   const std::string launchBounds = o2::gpu::internal::GPUDefParametersExport(*mParDevice, true, mParDevice->par_AMD_EUS_PER_CU ? (mParDevice->par_AMD_EUS_PER_CU * mWarpSize) : 0) +
                                    "#define GPUCA_WARP_SIZE " + std::to_string(mWarpSize) + "\n";
   if (GetProcessingSettings().rtctech.printLaunchBounds || GetProcessingSettings().debugLevel >= 3) {

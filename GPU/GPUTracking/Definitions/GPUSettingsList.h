@@ -372,6 +372,7 @@ AddOption(tpcWriteClustersAfterRejection, bool, false, "", 0, "Apply TPC rejecti
 AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))")
 AddOption(oclCompileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code")
 AddOption(oclOverrideSourceBuildFlags, std::string, "", "", 0, "Override OCL build flags for compilation from source, put a space for empty options")
+AddOption(hipOverrideAMDEUSperCU, int32_t, -1, "", 0, "Override AMD_EUS_PER_CU setting")
 AddOption(printSettings, bool, false, "", 0, "Print all settings when initializing")
 AddOption(tpcFreeAllocatedMemoryAfterProcessing, bool, false, "", 0, "Clean all memory allocated by TPC when TPC processing done, only data written to external output resources will remain")
 AddOption(debugOnFailure, int32_t, 0, "", 0, "Dump raw data in case an error occured, bit 1 enables all dumps, otherwise bitmask for: 2 = signal, 3 = GPUErrorCode", def(1))
