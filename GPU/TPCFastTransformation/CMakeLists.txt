@@ -26,6 +26,7 @@ set(SRCS
     TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
     CorrectionMapsHelper.cxx
+    TPCFastTransformPOD.cxx
 )
 
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")

@@ -41,6 +41,8 @@ namespace gpu
 ///
 class TPCFastSpaceChargeCorrection : public FlatObject
 {
+  friend class TPCFastTransformPOD;
+
  public:
   // obsolete structure, declared here only for backward compatibility
   struct SliceInfo {

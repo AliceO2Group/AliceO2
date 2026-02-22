@@ -1,0 +1,245 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file  TPCFastTransformPOD.cxx
+/// \brief Implementation of POD correction map
+///
+/// \author  ruben.shahoayn@cern.ch
+
+/// \brief Implementation of POD correction map
+///
+/// \author  ruben.shahoayn@cern.ch
+
+#if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_STANDALONE)
+#include <TRandom.h>
+#endif
+#include "TPCFastTransformPOD.h"
+#include "GPUDebugStreamer.h"
+
+namespace o2
+{
+namespace gpu
+{
+
+#if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_STANDALONE)
+
+size_t TPCFastTransformPOD::estimateSize(const TPCFastSpaceChargeCorrection& origCorr)
+{
+  // estimate size of own buffer
+  const size_t selfSizeFix = sizeof(TPCFastTransformPOD);
+  size_t nextDynOffs = alignOffset(selfSizeFix);
+  nextDynOffs = alignOffset(nextDynOffs + origCorr.mNumberOfScenarios * sizeof(size_t)); // spline scenarios start here
+  // space for splines
+  for (int isc = 0; isc < origCorr.mNumberOfScenarios; isc++) {
+    const auto& spline = origCorr.mScenarioPtr[isc];
+    nextDynOffs = alignOffset(nextDynOffs + sizeof(spline));
+  }
+  // space for splines data
+  for (int is = 0; is < 3; is++) {
+    for (int sector = 0; sector < origCorr.mGeo.getNumberOfSectors(); sector++) {
+      for (int row = 0; row < NROWS; row++) {
+        const auto& spline = origCorr.getSpline(sector, row);
+        int nPar = spline.getNumberOfParameters();
+        if (is == 1) {
+          nPar = nPar / 3;
+        }
+        if (is == 2) {
+          nPar = nPar * 2 / 3;
+        }
+        nextDynOffs += nPar * sizeof(float);
+      }
+    }
+  }
+  nextDynOffs = alignOffset(nextDynOffs);
+  return nextDynOffs;
+}
+
+TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, const TPCFastSpaceChargeCorrection& origCorr)
+{
+  // instantiate object to already created buffer of the right size
+  assert(buffSize > sizeof(TPCFastTransformPOD));
+  auto& podMap = getNonConst(buff);
+  podMap.mApplyCorrection = true; // by default always apply corrections
+
+  // copy fixed size data --- start
+  podMap.mNumberOfScenarios = origCorr.mNumberOfScenarios;
+  std::memcpy(&podMap.mGeo, &origCorr.mGeo, sizeof(TPCFastTransformGeo)); // copy geometry (fixed size)
+  for (int sector = 0; sector < TPCFastTransformGeo::getNumberOfSectors(); sector++) {
+    for (int row = 0; row < NROWS; row++) {
+      podMap.mSectorRowInfos[NROWS * sector + row] = origCorr.getSectorRowInfo(sector, row);
+    }
+  }
+  podMap.mTimeStamp = origCorr.mTimeStamp;
+  //
+  // init data members coming from the TPCFastTrasform
+  podMap.mVdrift = 0.;
+  podMap.mT0 = 0.;
+  // copy fixed size data --- end
+
+  size_t nextDynOffs = alignOffset(sizeof(TPCFastTransformPOD));
+
+  // copy sector scenarios
+  podMap.mOffsScenariosOffsets = nextDynOffs; // spline scenarios offsets start here
+  LOGP(debug, "Set mOffsScenariosOffsets = {}", podMap.mOffsScenariosOffsets);
+  nextDynOffs = alignOffset(nextDynOffs + podMap.mNumberOfScenarios * sizeof(size_t)); // spline scenarios start here
+
+  // copy spline objects
+  size_t* scenOffs = reinterpret_cast<size_t*>(buff + podMap.mOffsScenariosOffsets);
+  for (int isc = 0; isc < origCorr.mNumberOfScenarios; isc++) {
+    scenOffs[isc] = nextDynOffs;
+    const auto& spline = origCorr.mScenarioPtr[isc];
+    if (buffSize < nextDynOffs + sizeof(spline)) {
+      throw std::runtime_error(fmt::format("attempt to copy {} bytes for spline for scenario {} to {}, overflowing the buffer of size {}", sizeof(spline), isc, nextDynOffs + sizeof(spline), buffSize));
+    }
+    std::memcpy(buff + scenOffs[isc], &spline, sizeof(spline));
+    nextDynOffs = alignOffset(nextDynOffs + sizeof(spline));
+    LOGP(debug, "Copy {} bytes for spline scenario {} (ptr:{}) to offsset {}", sizeof(spline), isc, (void*)&spline, scenOffs[isc]);
+  }
+
+  // copy splines data
+  for (int is = 0; is < 3; is++) {
+    float* data = reinterpret_cast<float*>(buff + nextDynOffs);
+    LOGP(debug, "splinID={} start offset {} -> {}", is, nextDynOffs, (void*)data);
+    for (int sector = 0; sector < origCorr.mGeo.getNumberOfSectors(); sector++) {
+      podMap.mSplineDataOffsets[sector][is] = nextDynOffs;
+      size_t rowDataOffs = 0;
+      for (int row = 0; row < NROWS; row++) {
+        const auto& spline = origCorr.getSpline(sector, row);
+        const float* dataOr = origCorr.getCorrectionData(sector, row, is);
+        int nPar = spline.getNumberOfParameters();
+        if (is == 1) {
+          nPar = nPar / 3;
+        }
+        if (is == 2) {
+          nPar = nPar * 2 / 3;
+        }
+        LOGP(debug, "Copying {} floats for spline{} of sector:{} row:{} to offset {}", nPar, is, sector, row, nextDynOffs);
+        size_t nbcopy = nPar * sizeof(float);
+        if (buffSize < nextDynOffs + nbcopy) {
+          throw std::runtime_error(fmt::format("attempt to copy {} bytes of data for spline{} of sector{}/row{} to {}, overflowing the buffer of size {}", nbcopy, is, sector, row, nextDynOffs, buffSize));
+        }
+        std::memcpy(data, dataOr, nbcopy);
+        podMap.getSectorRowInfo(sector, row).dataOffsetBytes[is] = rowDataOffs;
+        rowDataOffs += nbcopy;
+        data += nPar;
+        nextDynOffs += nbcopy;
+      }
+    }
+  }
+  podMap.mTotalSize = alignOffset(nextDynOffs);
+  if (buffSize != podMap.mTotalSize) {
+    throw std::runtime_error(fmt::format("Estimated buffer size {} differs from filled one {}", buffSize, podMap.mTotalSize));
+  }
+  return &getNonConst(buff);
+}
+
+TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, const TPCFastTransform& src)
+{
+  // instantiate objec to already created buffer of the right size
+  auto podMap = create(buff, buffSize, src.getCorrection());
+  // set data members of TPCFastTransform
+  podMap->mVdrift = src.getVDrift();
+  podMap->mT0 = src.getT0();
+  // copy fixed size data --- end
+  return podMap;
+}
+
+bool TPCFastTransformPOD::test(const TPCFastSpaceChargeCorrection& origCorr, int npoints) const
+{
+  if (npoints < 1) {
+    return false;
+  }
+  std::vector<unsigned char> sector, row;
+  std::vector<float> y, z;
+  std::vector<std::array<float, 3>> corr0, corr1;
+  std::vector<std::array<float, 2>> corrInv0, corrInv1;
+  std::vector<float> corrInvX0, corrInvX1;
+
+  sector.reserve(npoints);
+  row.reserve(npoints);
+  y.reserve(npoints);
+  z.reserve(npoints);
+  corr0.reserve(npoints);
+  corr1.reserve(npoints);
+  corrInv0.reserve(npoints);
+  corrInv1.reserve(npoints);
+  corrInvX0.reserve(npoints);
+  corrInvX1.reserve(npoints);
+
+  for (int i = 0; i < npoints; i++) {
+    sector.push_back(gRandom->Integer(NSECTORS));
+    row.push_back(gRandom->Integer(NROWS));
+    y.push_back(2 * (gRandom->Rndm() - 0.5) * mGeo.getRowInfo(row.back()).getYmax());
+    z.push_back((sector.back() < NSECTORS / 2 ? 1.f : -1.f) * gRandom->Rndm() * 240);
+  }
+  long origStart[3], origEnd[3], thisStart[3], thisEnd[3];
+  origStart[0] = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  for (int i = 0; i < npoints; i++) {
+    std::array<float, 3> val;
+    origCorr.getCorrectionLocal(sector[i], row[i], y[i], z[i], val[0], val[1], val[2]);
+    corr0.push_back(val);
+  }
+
+  origEnd[0] = origStart[1] = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  for (int i = 0; i < npoints; i++) {
+    std::array<float, 2> val;
+    origCorr.getCorrectionYZatRealYZ(sector[i], row[i], y[i], z[i], val[0], val[1]);
+    corrInv0.push_back(val);
+  }
+
+  origEnd[1] = origStart[2] = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  for (int i = 0; i < npoints; i++) {
+    corrInvX0.push_back(origCorr.getCorrectionXatRealYZ(sector[i], row[i], y[i], z[i]));
+  }
+  //
+  origEnd[2] = thisStart[0] = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  for (int i = 0; i < npoints; i++) {
+    std::array<float, 3> val;
+    this->getCorrectionLocal(sector[i], row[i], y[i], z[i], val[0], val[1], val[2]);
+    corr1.push_back(val);
+  }
+  thisEnd[0] = thisStart[1] = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  for (int i = 0; i < npoints; i++) {
+    std::array<float, 2> val;
+    this->getCorrectionYZatRealYZ(sector[i], row[i], y[i], z[i], val[0], val[1]);
+    corrInv1.push_back(val);
+  }
+
+  thisEnd[1] = thisStart[2] = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  for (int i = 0; i < npoints; i++) {
+    corrInvX1.push_back(this->getCorrectionXatRealYZ(sector[i], row[i], y[i], z[i]));
+  }
+  thisEnd[2] = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  //
+  size_t ndiff[3] = {};
+  for (int i = 0; i < npoints; i++) {
+    if (corr0[i][0] != corr1[i][0] || corr0[i][1] != corr1[i][1] || corr0[i][2] != corr1[i][2]) {
+      ndiff[0]++;
+    }
+    if (corrInv0[i][0] != corrInv1[i][0] || corrInv0[i][1] != corrInv1[i][1]) {
+      ndiff[1]++;
+    }
+    if (corrInvX0[i] != corrInvX1[i]) {
+      ndiff[2]++;
+    }
+  }
+  //
+  LOGP(info, " (ns per call)              original        this     Nmissmatch");
+  LOGP(info, "getCorrection               {:.3e}    {:.3e}   {}", double(origEnd[0] - origStart[0]) / npoints * 1000., double(thisEnd[0] - thisStart[0]) / npoints * 1000., ndiff[0]);
+  LOGP(info, "getCorrectionInvCorrectedX  {:.3e}    {:.3e}   {}", double(origEnd[1] - origStart[1]) / npoints * 1000., double(thisEnd[1] - thisStart[1]) / npoints * 1000., ndiff[1]);
+  LOGP(info, "getCorrectionInvUV          {:.3e}    {:.3e}   {}", double(origEnd[2] - origStart[2]) / npoints * 1000., double(thisEnd[2] - thisStart[2]) / npoints * 1000., ndiff[2]);
+  return ndiff[0] == 0 && ndiff[1] == 0 && ndiff[2] == 0;
+}
+
+#endif
+
+} // namespace gpu
+} // namespace o2
