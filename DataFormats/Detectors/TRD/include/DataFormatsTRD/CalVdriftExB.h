@@ -40,9 +40,9 @@ class CalVdriftExB
     // if defaultAvg = true and we have default value or bad value stored, we take the average on all chambers instead
     if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
       return mVdrift[iDet];
-    else 
-    {
-      if (TMath::Abs(mMeanVdrift + 999.) < 1e-6) mMeanVdrift = getAverageVdrift();
+    else {
+      if (TMath::Abs(mMeanVdrift + 999.) < 1e-6)
+        mMeanVdrift = getAverageVdrift();
       return mMeanVdrift;
     }
   }
@@ -50,9 +50,9 @@ class CalVdriftExB
   {
     if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
       return mExB[iDet];
-    else 
-    {
-      if (TMath::Abs(mMeanExB + 999.) < 1e-6) mMeanExB = getAverageExB();
+    else {
+      if (TMath::Abs(mMeanExB + 999.) < 1e-6)
+        mMeanExB = getAverageExB();
       return mMeanExB;
     }
   }
