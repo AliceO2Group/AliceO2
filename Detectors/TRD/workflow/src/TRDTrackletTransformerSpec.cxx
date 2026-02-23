@@ -141,11 +141,7 @@ void TRDTrackletTransformerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void
   }
   if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
     LOG(info) << "CalVdriftExB object has been updated";
-    for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
-      // set to average value if the calibration is not correct
-      mTransformer.setVdrift(iDet, ((const o2::trd::CalVdriftExB*)obj)->getVdrift(iDet, true));
-      mTransformer.setExB(iDet, ((const o2::trd::CalVdriftExB*)obj)->getExB(iDet, true));
-    }
+    mTransformer.setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
     return;
   }
 }

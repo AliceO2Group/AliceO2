@@ -40,8 +40,8 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 {
   double padWidth = padPlane->getWidthIPad();
 
-  float vDrift = mVdrift[detector];
-  float exb = mExB[detector];
+  float vDrift = mCalVdriftExB->getVdrift(detector);
+  float exb = mCalVdriftExB->getExB(detector);
 
   // dy = slope * nTimeBins * padWidth * GRANULARITYTRKLSLOPE;
   // nTimeBins should be number of timebins in drift region. 1 timebin is 100 nanosecond
@@ -125,7 +125,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
 double TrackletTransformer::getTimebin(int detector, double x) const
 {
   // calculate timebin from x position within chamber
-  float vDrift = mVdrift[detector];
+  float vDrift = mCalVdriftExB->getVdrift(detector);
   double t0 = 4.0; // time (in timebins) of start of drift region
 
   double timebin;

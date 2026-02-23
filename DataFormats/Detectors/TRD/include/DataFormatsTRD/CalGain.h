@@ -33,14 +33,17 @@ class CalGain
 
   void setMPVdEdx(int iDet, float mpv) { mMPVdEdx[iDet] = mpv; }
 
-  float getMPVdEdx(int iDet, bool defaultAvg = false) const
+  float getMPVdEdx(int iDet, bool defaultAvg = true) const
   {
     // if defaultAvg = false, we take the value stored whatever it is
     // if defaultAvg = true and we have default value or bad value stored, we take the average on all chambers instead
     if (!defaultAvg || isGoodGain(iDet))
       return mMPVdEdx[iDet];
-    else
-      return getAverageGain();
+    else 
+    {
+      if (TMath::Abs(mMeanGain + 999.) < 1e-6) mMeanGain = getAverageGain();
+      return mMeanGain;
+    }
   }
 
   float getAverageGain() const
@@ -73,6 +76,7 @@ class CalGain
 
  private:
   std::array<float, constants::MAXCHAMBER> mMPVdEdx{}; ///< Most probable value of dEdx distribution per TRD chamber
+  mutable float mMeanGain{-999.};                       ///! average gain, calculated only once
 
   ClassDefNV(CalGain, 2);
 };

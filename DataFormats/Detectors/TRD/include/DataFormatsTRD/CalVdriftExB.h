@@ -34,21 +34,27 @@ class CalVdriftExB
   void setVdrift(int iDet, float vd) { mVdrift[iDet] = vd; }
   void setExB(int iDet, float exb) { mExB[iDet] = exb; }
 
-  float getVdrift(int iDet, bool defaultAvg = false) const
+  float getVdrift(int iDet, bool defaultAvg = true) const
   {
     // if defaultAvg = false, we take the value stored whatever it is
     // if defaultAvg = true and we have default value or bad value stored, we take the average on all chambers instead
     if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
       return mVdrift[iDet];
-    else
-      return getAverageVdrift();
+    else 
+    {
+      if (TMath::Abs(mMeanVdrift + 999.) < 1e-6) mMeanVdrift = getAverageVdrift();
+      return mMeanVdrift;
+    }
   }
-  float getExB(int iDet, bool defaultAvg = false) const
+  float getExB(int iDet, bool defaultAvg = true) const
   {
     if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
       return mExB[iDet];
-    else
-      return getAverageExB();
+    else 
+    {
+      if (TMath::Abs(mMeanExB + 999.) < 1e-6) mMeanExB = getAverageExB();
+      return mMeanExB;
+    }
   }
 
   float getAverageVdrift() const
@@ -120,6 +126,8 @@ class CalVdriftExB
  private:
   std::array<float, constants::MAXCHAMBER> mVdrift{}; ///< calibrated drift velocity per TRD chamber
   std::array<float, constants::MAXCHAMBER> mExB{};    ///< calibrated Lorentz angle per TRD chamber
+  mutable float mMeanVdrift{-999.};                   ///! average drift velocity, calculated only once
+  mutable float mMeanExB{-999.};                      ///! average lorentz angle, calculated only once
 
   ClassDefNV(CalVdriftExB, 2);
 };
