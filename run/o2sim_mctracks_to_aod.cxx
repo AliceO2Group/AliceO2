@@ -94,9 +94,8 @@ struct MctracksToAod {
     // TODO: include BC simulation
     auto bcCounter = 0UL;
     size_t offset = 0;
+    LOG(debug) << "--- Loop over " << nParts << " parts ---";
     for (auto i = 0U; i < nParts; ++i) {
-      LOG(debug) << "--- Loop over " << nParts << " parts ---";
-
       auto record = mSampler.generateCollisionTime();
       auto header = pc.inputs().get<McHeader*>("mcheader", i);
       auto tracks = pc.inputs().get<McTracks>("mctracks", i);
