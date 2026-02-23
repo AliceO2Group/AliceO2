@@ -53,6 +53,7 @@
 // for TOF
 #include "TOFDigitizerSpec.h"
 #include "TOFWorkflowIO/TOFDigitWriterSpec.h"
+#include "TOFBase/CalibTOFapi.h"
 
 // for FT0
 #include "FT0DigitizerSpec.h"
@@ -202,6 +203,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (obsolete remap to use-ccdb-tof)"}});
+  workflowOptions.push_back(ConfigParamSpec{"tof-drm-bitmask", o2::framework::VariantType::Int, (int)o2::tof::CalibTOFapi::DRM_ORBIT_MISMATCH, {"bit mask of DRM critical errors"}});
 
   // option to use/not use CCDB for FT0
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, false, {"enable access to ccdb ft0 calibration objects"}});
@@ -677,10 +679,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
     auto timestamp = o2::raw::HBFUtils::Instance().startTime / 1000;
     detList.emplace_back(o2::detectors::DetID::TOF);
+    auto maskDRM = (uint32_t)configcontext.options().get<int>("tof-drm-bitmask");
     // connect the TOF digitization
     // printf("TOF Setting: use-ccdb = %d ---- ccdb url=%s  ----   timestamp=%ld\n", useCCDB, ccdb_url_tof.c_str(), timestamp);
 
-    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
+    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp, maskDRM));
     // add TOF digit writer
     writerSpecs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }

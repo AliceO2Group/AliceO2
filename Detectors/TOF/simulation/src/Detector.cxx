@@ -637,7 +637,6 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   // Define MRPC strip volume, called FSTR
   // Insert FSTR volume in FLTA/B/C volumes
   //
-  // ciao
   Float_t yFLT = ytof * 0.5 - Geo::MODULEWALLTHICKNESS;
 
   ///////////////// Detector itself //////////////////////
