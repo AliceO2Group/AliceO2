@@ -27,6 +27,7 @@
 #include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
 #include <cmath>
+#include <sstream>
 
 namespace o2
 {
@@ -420,6 +421,34 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
   auto pdfInfo = mEvent->pdf_info();
   auto hiInfo = mEvent->heavy_ion();
 
+  // Workaround for a bug in HepMC3 (3.3.1 on 23/02/2026): GenHeavyIon::from_string() for the "v0"
+  // format skips reading user_cent_estimate, but to_string() always writes it.
+  // This shifts all subsequent fields by one, causing a istringstream failure and and heavy_ion()
+  // to return null even when the attribute is present and well-formed.
+  // For now we use this manual parser in case the infos are available
+  if (!hiInfo) {
+    auto attStr = mEvent->attribute_as_string("GenHeavyIon");
+    if (!attStr.empty() && attStr[0] == 'v') {
+      std::istringstream is(attStr);
+      std::string version;
+      is >> version;
+      if (version == "v0") {
+        auto hi = std::make_shared<HepMC3::GenHeavyIon>();
+        double spectNeutrons, spectProtons, eccentricity, userCentEst;
+        is >> hi->Ncoll_hard >> hi->Npart_proj >> hi->Npart_targ >> hi->Ncoll >> spectNeutrons >> spectProtons                                                           // deprecated v0 fields
+          >> hi->N_Nwounded_collisions >> hi->Nwounded_N_collisions >> hi->Nwounded_Nwounded_collisions >> hi->impact_parameter >> hi->event_plane_angle >> eccentricity // deprecated v0 field
+          >> hi->sigma_inel_NN >> hi->centrality >> userCentEst                                                                                                          // GenHeavyIon::to_string always writes this, but GenHeavyIon::from_string skips it for v0 (HepMC3 bug to fix)
+          >> hi->Nspec_proj_n >> hi->Nspec_targ_n >> hi->Nspec_proj_p >> hi->Nspec_targ_p;
+        if (!is.fail()) {
+          LOG(debug) << "GenHeavyIon: using manual v0 parser (workaround for HepMC3 from_string bug)";
+          hiInfo = hi;
+        } else {
+          LOG(warn) << "GenHeavyIon: manual v0 parser also failed on: [" << attStr << "]";
+        }
+      }
+    }
+  }
+
   // Set default cross-section
   if (xSection) {
     eventHeader->putInfo<float>(Key::xSection, xSection->xsec());
@@ -457,8 +486,9 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 
   // Set heavy-ion information
   if (hiInfo) {
-    eventHeader->putInfo<int>(Key::impactParameter,
-                              hiInfo->impact_parameter);
+    eventHeader->SetB(hiInfo->impact_parameter); // sets the impact parameter to the FairMCEventHeader field for quick access in the AO2D
+    eventHeader->putInfo<float>(Key::impactParameter,
+                                hiInfo->impact_parameter);
     eventHeader->putInfo<int>(Key::nPart,
                               hiInfo->Npart_proj + hiInfo->Npart_targ);
     eventHeader->putInfo<int>(Key::nPartProjectile, hiInfo->Npart_proj);
@@ -471,11 +501,9 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
                               hiInfo->Nwounded_N_collisions);
     eventHeader->putInfo<int>(Key::nCollNWoundedNwounded,
                               hiInfo->Nwounded_Nwounded_collisions);
-    eventHeader->putInfo<int>(Key::planeAngle,
-                              hiInfo->event_plane_angle);
-    eventHeader->putInfo<int>(Key::sigmaInelNN,
-                              hiInfo->sigma_inel_NN);
-    eventHeader->putInfo<int>(Key::centrality, hiInfo->centrality);
+    eventHeader->putInfo<float>(Key::planeAngle, hiInfo->event_plane_angle);
+    eventHeader->putInfo<float>(Key::sigmaInelNN, hiInfo->sigma_inel_NN);
+    eventHeader->putInfo<float>(Key::centrality, hiInfo->centrality);
     eventHeader->putInfo<int>(Key::nSpecProjectileProton, hiInfo->Nspec_proj_p);
     eventHeader->putInfo<int>(Key::nSpecProjectileNeutron, hiInfo->Nspec_proj_n);
     eventHeader->putInfo<int>(Key::nSpecTargetProton, hiInfo->Nspec_targ_p);
