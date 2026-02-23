@@ -20,6 +20,7 @@
 #include <SimulationDataFormat/MCTrack.h>
 #include <Generators/PrimaryGenerator.h> // could be forward declaration
 #include <DetectorsBase/Stack.h>
+#include <MemoryResources/MemoryResources.h>
 
 namespace o2
 {
@@ -66,6 +67,7 @@ class GeneratorService
   std::pair<std::vector<MCTrack>, o2::dataformats::MCEventHeader> generateEvent();
 
   void generateEvent_MCTracks(std::vector<MCTrack>& tracks, o2::dataformats::MCEventHeader& header);
+  void generateEvent_MCTracks(o2::pmr::vector<MCTrack>& tracks, o2::dataformats::MCEventHeader& header);
   void generateEvent_TParticles(std::vector<TParticle>& tparts, o2::dataformats::MCEventHeader& header);
 
  private:
