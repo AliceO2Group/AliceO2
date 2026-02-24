@@ -26,7 +26,7 @@ class Layer
  public:
   Layer() = default;
   Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0,
-        int layout = kBarrel, int nSegments = 0, float segmentSize = 0.0, int nSensorsPerSegment = 0, double tiltAngle = 0.0);
+        int layout = kBarrel, int nStaves = 0, float staveSize = 0.0, double staveTiltAngle = 0.0, int modulesPerStave = 0);
   ~Layer() = default;
 
   auto getInnerRadius() const { return mInnerRadius; }
@@ -37,7 +37,7 @@ class Layer
   auto getChipThickness() const { return mChipThickness; }
   auto getName() const { return mLayerName; }
   auto getLayout() const { return mLayout; }
-  auto getSegments() const { return mSegments; }
+  auto getSegments() const { return mStaves; }
   static constexpr int kBarrel = 0;
   static constexpr int kDisk = 1;
   static constexpr int kBarrelSegmented = 2;
@@ -54,10 +54,10 @@ class Layer
   float mX2X0;
   float mChipThickness;
   int mLayout{kBarrel}; // Identifier of the type of layer layout (barrel, disk, barrel segmented, disk segmented)
-  // To be used only in case of the segmented layout, to define the number of segments in phi (for barrel) or in r (for disk)
-  std::pair<int, float> mSegments{0, 0.0f}; // Number  and size of segments in phi (for barrel) or in r (for disk) in case of segmented layout
-  int mSensorsPerSegment{0};                // Number of sensors along a segment
-  double mTiltAngle{0.0};                   // Tilt angle in degrees to be applied as a rotation around the local center of the segment
+  // To be used only in case of the segmented layout, to define the number of staves in phi (for barrel) or in r (for disk)
+  std::pair<int, float> mStaves{0, 0.0f}; // Number and size of staves in phi (for barrel) or in r (for disk) in case of segmented layout
+  int mModulesPerStave{0};                // Number of modules along a stave
+  double mTiltAngle{0.0};                 // Tilt angle in degrees to be applied as a rotation around the local center of the stave
 };
 
 class ITOFLayer : public Layer

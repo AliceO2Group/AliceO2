@@ -23,11 +23,15 @@ std::string GeometryTGeo::sIOTOFVolumeName = "IOTOFV";
 
 // Inner TOF
 std::string GeometryTGeo::sITOFLayerName = "ITOFLayer";
+std::string GeometryTGeo::sITOFStaveName = "ITOFStave";
+std::string GeometryTGeo::sITOFModuleName = "ITOFModule";
 std::string GeometryTGeo::sITOFChipName = "ITOFChip";
 std::string GeometryTGeo::sITOFSensorName = "ITOFSensor";
 
 // Outer TOF
 std::string GeometryTGeo::sOTOFLayerName = "OTOFLayer";
+std::string GeometryTGeo::sOTOFStaveName = "OTOFStave";
+std::string GeometryTGeo::sOTOFModuleName = "OTOFModule";
 std::string GeometryTGeo::sOTOFChipName = "OTOFChip";
 std::string GeometryTGeo::sOTOFSensorName = "OTOFSensor";
 

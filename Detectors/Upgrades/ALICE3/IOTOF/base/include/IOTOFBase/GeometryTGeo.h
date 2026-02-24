@@ -32,11 +32,15 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   // Inner TOF
   static const char* getITOFLayerPattern() { return sITOFLayerName.c_str(); }
+  static const char* getITOFStavePattern() { return sITOFStaveName.c_str(); }
+  static const char* getITOFModulePattern() { return sITOFModuleName.c_str(); }
   static const char* getITOFChipPattern() { return sITOFChipName.c_str(); }
   static const char* getITOFSensorPattern() { return sITOFSensorName.c_str(); }
 
   // Outer TOF
   static const char* getOTOFLayerPattern() { return sOTOFLayerName.c_str(); }
+  static const char* getOTOFStavePattern() { return sOTOFStaveName.c_str(); }
+  static const char* getOTOFModulePattern() { return sOTOFModuleName.c_str(); }
   static const char* getOTOFChipPattern() { return sOTOFChipName.c_str(); }
   static const char* getOTOFSensorPattern() { return sOTOFSensorName.c_str(); }
 
@@ -81,11 +85,15 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   // Inner TOF
   static std::string sITOFLayerName;
+  static std::string sITOFStaveName;
+  static std::string sITOFModuleName;
   static std::string sITOFChipName;
   static std::string sITOFSensorName;
 
   // Outer TOF
   static std::string sOTOFLayerName;
+  static std::string sOTOFStaveName;
+  static std::string sOTOFModuleName;
   static std::string sOTOFChipName;
   static std::string sOTOFSensorName;
 
