@@ -13,6 +13,8 @@ o2_add_library(TRKWorkflow
                TARGETVARNAME targetName
                SOURCES src/DigitReaderSpec.cxx
                        src/DigitWriterSpec.cxx
+                       src/ClustererSpec.cxx
+                       src/ClusterWriterSpec.cxx
                        src/TrackerSpec.cxx
                        src/TrackWriterSpec.cxx
                        src/RecoWorkflow.cxx
@@ -20,6 +22,7 @@ o2_add_library(TRKWorkflow
                                      O2::GPUWorkflow
                                      O2::SimConfig
                                      O2::DataFormatsITSMFT
+                                     O2::DataFormatsTRK
                                      O2::SimulationDataFormat
                                      O2::DPLUtils
                                      O2::TRKBase

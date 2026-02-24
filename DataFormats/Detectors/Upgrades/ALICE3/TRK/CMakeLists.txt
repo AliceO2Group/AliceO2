@@ -1,4 +1,4 @@
-# Copyright 2019-2025 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -9,5 +9,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(FD3)
-add_subdirectory(TRK)
+o2_add_library(DataFormatsTRK
+  SOURCES src/Cluster.cxx
+          src/ROFRecord.cxx
+  PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                        O2::DataFormatsITSMFT
+                        O2::SimulationDataFormat
+)
+
+o2_target_root_dictionary(DataFormatsTRK
+  HEADERS include/DataFormatsTRK/Cluster.h
+          include/DataFormatsTRK/ROFRecord.h
+  LINKDEF src/DataFormatsTRKLinkDef.h
+)

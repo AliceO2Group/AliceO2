@@ -396,9 +396,13 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, o
 
   inputs.emplace_back("dummy", "TRK", "DUMMY", 0, Lifetime::Timeframe);
 
-  // inputs.emplace_back("compClusters", "TRK", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  // inputs.emplace_back("patterns", "TRK", "PATTERNS", 0, Lifetime::Timeframe);
-  // inputs.emplace_back("ROframes", "TRK", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  constexpr bool expectClusterInputs = false;
+  if (expectClusterInputs) {
+    inputs.pop_back();
+    inputs.emplace_back("compClusters", "TRK", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("patterns", "TRK", "PATTERNS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("ROframes", "TRK", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  }
 
   // inputs.emplace_back("itscldict", "TRK", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   // inputs.emplace_back("itsalppar", "TRK", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));

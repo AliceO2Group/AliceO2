@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,13 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsTRK/ROFRecord.h"
+#include <sstream>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+ClassImp(o2::trk::ROFRecord);
+ClassImp(o2::trk::MC2ROFRecord);
 
-#pragma link C++ class o2::trk::TimeFrame < 11> + ;
-#pragma link C++ class o2::trk::Clusterer + ;
+namespace o2::trk
+{
 
-#endif
+std::string ROFRecord::asString() const
+{
+  std::ostringstream stream;
+  stream << "IR=" << mBCData.asString() << " ROFrame=" << mROFrame
+         << " first=" << mROFEntry.getFirstEntry() << " n=" << mROFEntry.getEntries();
+  return stream.str();
+}
+
+} // namespace o2::trk

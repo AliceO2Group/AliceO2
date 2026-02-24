@@ -12,12 +12,14 @@
 o2_add_library(TRKReconstruction
                TARGETVARNAME targetName
                SOURCES src/TimeFrame.cxx
+                       src/Clusterer.cxx
                PUBLIC_LINK_LIBRARIES
                        O2::ITStracking
                        O2::GPUCommon
                        Microsoft.GSL::GSL
                        O2::CommonConstants
                        O2::DataFormatsITSMFT
+                       O2::DataFormatsTRK
                        O2::SimulationDataFormat
                        O2::ITSBase
                        O2::ITSReconstruction
@@ -31,4 +33,5 @@ o2_add_library(TRKReconstruction
 
 o2_target_root_dictionary(TRKReconstruction
                           HEADERS include/TRKReconstruction/TimeFrame.h
+                                  include/TRKReconstruction/Clusterer.h
                           LINKDEF src/TRKReconstructionLinkDef.h)

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,13 +9,30 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef ALICEO2_DATAFORMATSTRK_CLUSTER_H
+#define ALICEO2_DATAFORMATSTRK_CLUSTER_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <Rtypes.h>
+#include <cstdint>
+#include <string>
 
-#pragma link C++ class o2::trk::TimeFrame < 11> + ;
-#pragma link C++ class o2::trk::Clusterer + ;
+namespace o2::trk
+{
+
+struct Cluster {
+  uint16_t chipID = 0;
+  uint16_t row = 0;
+  uint16_t col = 0;
+  uint16_t size = 1;
+  int16_t subDetID = -1;
+  int16_t layer = -1;
+  int16_t disk = -1;
+
+  std::string asString() const;
+
+  ClassDefNV(Cluster, 1);
+};
+
+} // namespace o2::trk
 
 #endif
