@@ -856,7 +856,6 @@ static void addInclinedWalls3FullCyl(TGeoVolume* petalAsm, double phi0_deg = kIn
   const double R1_out = R1 + h;
   const double R2_in = R2 - h;
 
-
   // Tangency radius choice
   const double Rtan = R0_out + wallDy + clearanceMargin;
   const double Reff_plus = Rtan + wallDy + clearanceMargin;
