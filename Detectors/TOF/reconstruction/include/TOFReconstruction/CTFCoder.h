@@ -34,7 +34,7 @@ namespace tof
 class CTFCoder final : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder(o2::ctf::CTFCoderBase::OpType op, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), 1.f, o2::detectors::DetID::TOF, ctfdictOpt) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::TOF, 1.f, ctfdictOpt) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode clusters to buffer with CTF

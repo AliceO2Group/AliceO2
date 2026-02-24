@@ -45,7 +45,7 @@ class CTFCoder final : public o2::ctf::CTFCoderBase
   using PMatrix = std::array<std::array<bool, ClusterPattern::MaxRowSpan + 2>, ClusterPattern::MaxColSpan + 2>;
   using RowColBuff = std::vector<PixelData>;
 
-  CTFCoder(o2::ctf::CTFCoderBase::OpType op, o2::detectors::DetID det, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), 1.f, det, ctfdictOpt) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op, o2::detectors::DetID det, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), det, 1.f, ctfdictOpt) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode clusters to buffer with CTF
