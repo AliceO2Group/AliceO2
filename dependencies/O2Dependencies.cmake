@@ -243,4 +243,25 @@ set_package_properties(absl PROPERTIES TYPE REQUIRED)
 find_package(Vtune)
 set_package_properties(Vtune PROPERTIES TYPE OPTIONAL)
 
+find_package(Eigen3 QUIET)
+if(NOT TARGET Eigen3::Eigen)
+    # The Eigen3 install only provides the header files, so 'mock' the cmake target
+    add_library(Eigen3::Eigen INTERFACE IMPORTED)
+    set_target_properties(Eigen3::Eigen PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${EIGEN3_ROOT}/include/eigen3"
+    )
+endif()
+
+find_package(GBL)
+set_package_properties(GBL PROPERTIES TYPE REQUIRED)
+if(GBL_FOUND AND NOT TARGET GBL::GBL)
+    # As of now, GBL does not provide a cmake target so create a compatibility wrapper
+    add_library(GBL::GBL INTERFACE IMPORTED)
+    target_include_directories(GBL::GBL INTERFACE ${GBL_INCLUDE_DIR})
+    target_link_libraries(GBL::GBL INTERFACE
+        ${GBL_LIBRARIES}
+        Eigen3::Eigen
+    )
+endif()
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
