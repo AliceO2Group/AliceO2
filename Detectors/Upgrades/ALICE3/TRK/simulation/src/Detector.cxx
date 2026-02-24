@@ -275,6 +275,10 @@ void Detector::createGeometry()
       LOG(info) << "Building VD with IRIS fully cylindrical layout";
       o2::trk::createIRISGeometryFullCyl(vTRK);
       break;
+    case kIRISFullCyl3InclinedWalls:
+      LOG(info) << "Building VD with IRIS fully cylindrical layout with 3 inclined walls";
+      o2::trk::createIRISGeometry3InclinedWalls(vTRK);
+      break;
     case kIRIS5:
       LOG(info) << "Building VD with IRIS5 layout";
       o2::trk::createIRIS5Geometry(vTRK);

@@ -34,6 +34,7 @@ enum eLayout {
 enum eVDLayout {
   kIRIS4 = 0,
   kIRISFullCyl,
+  kIRISFullCyl3InclinedWalls,
   kIRIS5,
   kIRIS4a,
 };

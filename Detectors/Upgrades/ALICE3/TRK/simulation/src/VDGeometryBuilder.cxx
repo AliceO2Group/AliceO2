@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "TRKSimulation/VDGeometryBuilder.h"
-
 #include <TGeoVolume.h>
 #include <TGeoMatrix.h>
 #include <TGeoTube.h>
@@ -19,13 +18,13 @@
 #include <TGeoCompositeShape.h>
 #include <TString.h>
 #include <DetectorsBase/MaterialManager.h>
-
 #include "TGeoManager.h"
-
 #include "Framework/Logger.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKSimulation/VDLayer.h"
 #include "TRKSimulation/VDSensorRegistry.h"
+#include <algorithm>
+#include <cmath>
 
 namespace o2::trk
 {
@@ -80,6 +79,9 @@ inline bool isSolidToCut(const TGeoVolume* v)
     return true;
   }
   if (TString(nm).BeginsWith("IRIS_Service_Pos_InVac")) {
+    return true;
+  }
+  if (TString(nm).BeginsWith("VD_InclinedWall")) {
     return true;
   }
   return false;
@@ -253,7 +255,16 @@ static constexpr double kPetalZ_cm = 70.0f;          // full wall height
 static constexpr double kWallThick_cm = 0.015f;      // 0.15 mm
 static constexpr double kInnerWallRadius_cm = 0.48f; // 4.8 mm (ALWAYS cylindrical)
 static constexpr double kOuterWallRadius_cm = 3.0f;  // 30 mm (can be changed)
-static constexpr double kEps_cm = 1.e-4f;
+static constexpr double kEps_cm = 2.5e-4f;
+
+// 3 inclined walls ("walls") specs for the full-cylinder option
+// Thickness in-plane (cm). This is the short half-dimension of the TGeoBBox in XY.
+static constexpr double kInclinedWallThick_cm = 0.04f; // 0.4 mm
+// Layer-shell thickness used for the gap boundaries in the inclined-wall construction (cm)
+static constexpr double kSiLayerThick_cm = 0.01f; // 0.1 mm
+// Base tangency angle (deg) for the first wall; the other 2 are +120/+240.
+// This matches the angle used in the ROOT sketch from our chat.
+static constexpr double kInclinedWallPhi0_deg = 27.799f;
 
 // Coldplate specs (cm)
 static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (outer radius)
@@ -806,6 +817,130 @@ static TGeoVolume* buildFullCylAssembly(int petalID, bool withDisks)
   return petalAsm;
 }
 
+// Add 3 inclined walls (straight walls) into a full-cylinder petal assembly.
+// The walls are implemented as TWO TGeoBBox segments per wall, living in the gaps:
+//   - segment 01: from tangency at Rtan to inner surface of L1
+//   - segment 12: from outer surface of L1 to inner surface of L2
+// The construction accounts for the finite wall thickness (kInclinedWallThick_cm).
+static void addInclinedWalls3FullCyl(TGeoVolume* petalAsm, double phi0_deg = kInclinedWallPhi0_deg)
+{
+  if (!petalAsm) {
+    LOGP(error, "addInclinedWalls3FullCyl: petalAsm is null");
+    return;
+  }
+
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  const TGeoMedium* med = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_ALUMINIUM5083");
+  if (!med) {
+    LOGP(warning, "addInclinedWalls3FullCyl: ALICE3_TRKSERVICES_ALUMINIUM5083 not found, walls not created.");
+    return;
+  }
+  // Geometry constants
+  constexpr double clearanceMargin = 0.010; // 100 microns from layer surfaces
+
+  // Geometry inputs (cm)
+  constexpr double R0 = rL0_cm;
+  constexpr double R1 = rL1_cm;
+  constexpr double R2 = rL2_cm;
+  constexpr double wallDy = 0.5 * kInclinedWallThick_cm;
+  constexpr double shellTh = kSiLayerThick_cm;
+  constexpr double h = 0.5 * shellTh;
+  constexpr double dz = 0.5 * kPetalZ_cm;
+  constexpr int nWalls = 3;
+  constexpr double dPhi = 360.0 / double(nWalls);
+  constexpr double eps = kEps_cm;
+
+  // Gap boundaries (shell surfaces)
+  const double R0_out = R0 + h;
+  const double R1_in = R1 - h;
+  const double R1_out = R1 + h;
+  const double R2_in = R2 - h;
+
+
+  // Tangency radius choice
+  const double Rtan = R0_out + wallDy + clearanceMargin;
+  const double Reff_plus = Rtan + wallDy + clearanceMargin;
+  const double Reff_minus = std::max(0.0, Rtan - wallDy - clearanceMargin);
+
+  // Lambda for clamped square root
+  auto sAt = [](double R, double Reff) -> double {
+    const double v = R * R - Reff * Reff;
+    return (v > 0.0) ? std::sqrt(v) : 0.0;
+  };
+
+  // Segment bounds (computed once outside loop)
+  const double sa01 = 0.0;
+  const double sb01 = sAt(R1_in, Reff_plus);
+  const double sa12 = sAt(R1_out, Reff_minus);
+  const double sb12 = sAt(R2_in, Reff_plus);
+
+  if (!(sb01 > sa01) || !(sb12 > sa12)) {
+    LOGP(error, "addInclinedWalls3FullCyl: invalid bounds. sa01={} sb01={} sa12={} sb12={}",
+         sa01, sb01, sa12, sb12);
+    return;
+  }
+
+  // Half-lengths and centers (computed once)
+  const double dx01 = 0.5 * (sb01 - sa01);
+  const double dx12 = 0.5 * (sb12 - sa12);
+  const double sc01 = 0.5 * (sa01 + sb01);
+  const double sc12 = 0.5 * (sa12 + sb12);
+
+  // Create shapes once, reuse for all walls
+  auto* sh01 = new TGeoBBox(dx01, wallDy, dz);
+  auto* sh12 = new TGeoBBox(dx12, wallDy, dz);
+  sh01->SetName("VD_InclinedWall01_sh");
+  sh12->SetName("VD_InclinedWall12_sh");
+
+  // Convert initial angle to radians once
+  const double phi0_rad = phi0_deg * TMath::DegToRad();
+
+  for (int i = 0; i < nWalls; ++i) {
+    // Compute angle for this wall
+    const double phi = phi0_rad + i * (dPhi * TMath::DegToRad());
+    const double cosPhi = std::cos(phi);
+    const double sinPhi = std::sin(phi);
+
+    // Tangency point on Rtan
+    const double xT = Rtan * cosPhi;
+    const double yT = Rtan * sinPhi;
+
+    // Tangent direction (perpendicular to radius): (-sin, cos)
+    const double ux = -sinPhi;
+    const double uy = cosPhi;
+
+    // Centers for both segments
+    const double cx01 = xT + sc01 * ux;
+    const double cy01 = yT + sc01 * uy;
+    const double cx12 = xT + sc12 * ux;
+    const double cy12 = yT + sc12 * uy;
+
+    // Rotation: tangent is perpendicular to radius, so angle = phi + 90°
+    const double alpha_deg = phi0_deg + i * dPhi + 90.0;
+    auto* rot = new TGeoRotation();
+    rot->RotateZ(alpha_deg);
+
+    // Create separate volumes for each wall
+    auto* v01 = new TGeoVolume(Form("VD_InclinedWall01_%d", i), sh01, med);
+    auto* v12 = new TGeoVolume(Form("VD_InclinedWall12_%d", i), sh12, med);
+    v01->SetLineColor(kOrange + 7);
+    v12->SetLineColor(kOrange + 7);
+    v01->SetTransparency(70);
+    v12->SetTransparency(70);
+
+    auto* T01 = new TGeoCombiTrans(cx01, cy01, 0.0, rot);
+    auto* T12 = new TGeoCombiTrans(cx12, cy12, 0.0, new TGeoRotation(*rot)); // Copy rotation
+
+    petalAsm->AddNode(v01, 1, T01);
+    petalAsm->AddNode(v12, 1, T12);
+
+    LOGP(debug, "Wall {}: 01 at ({:.3f}, {:.3f}), 12 at ({:.3f}, {:.3f}), angle={:.2f}°",
+         i, cx01, cy01, cx12, cy12, alpha_deg);
+  }
+
+  LOGP(info, "Added 3 inclined walls: Rtan={:.3f} cm, thickness={:.3f} cm", Rtan, kInclinedWallThick_cm);
+}
+
 // =================== Public entry points ===================
 
 void createIRIS4Geometry(TGeoVolume* motherVolume)
@@ -904,6 +1039,31 @@ void createIRISGeometryFullCyl(TGeoVolume* motherVolume)
   auto* petal = buildFullCylAssembly(petalID, /*withDisks=*/false);
   motherVolume->AddNode(petal, 1, nullptr);
 
+  buildPetalSolidsComposite(petal);
+  buildIrisCutoutFromPetalSolid(nPetals);
+}
+
+void createIRISGeometry3InclinedWalls(TGeoVolume* motherVolume)
+{
+  if (!motherVolume) {
+    LOGP(error, "createIRISGeometry3InclinedWalls: motherVolume is null");
+    return;
+  }
+
+  clearVDSensorRegistry();
+
+  constexpr int nPetals = 1;
+  constexpr int petalID = 0;
+
+  // Start from the same content as createIRISGeometryFullCyl
+  auto* petal = buildFullCylAssembly(petalID, /*withDisks=*/false);
+
+  // Add the 3 inclined walls into the same assembly
+  addInclinedWalls3FullCyl(petal, kInclinedWallPhi0_deg);
+
+  motherVolume->AddNode(petal, 1, nullptr);
+
+  // Same cutout pipeline as full-cyl
   buildPetalSolidsComposite(petal);
   buildIrisCutoutFromPetalSolid(nPetals);
 }
