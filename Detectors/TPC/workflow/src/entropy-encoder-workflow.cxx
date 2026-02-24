@@ -23,7 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    ConfigParamSpec{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+    ConfigParamSpec{"ctf-dict", VariantType::String, "none", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
     ConfigParamSpec{"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}},
     ConfigParamSpec{"inputFromFile", VariantType::Bool, false, {"Expect COMPCLUSTERS from file"}}};
 

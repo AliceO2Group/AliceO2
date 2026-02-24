@@ -314,6 +314,7 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
   if (ic.options().hasOption("irframe-shift")) {
     mIRFrameSelShift = (long)ic.options().get<int32_t>("irframe-shift");
   }
+  bool ansVersionProvided = false;
   if (ic.options().hasOption("ans-version")) {
     if (ic.options().isSet("ans-version")) {
       const std::string ansVersionString = ic.options().get<std::string>("ans-version");
@@ -323,6 +324,7 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
         if (mANSVersion == ANSVersionUnspecified) {
           throw std::invalid_argument(fmt::format("Invalid ANS Version {}", ansVersionString));
         }
+        ansVersionProvided = true;
       }
     }
   }
@@ -331,9 +333,12 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
   } else {
     if (mDictOpt != "none") { // none means per-CTF dictionary will created on the fly
       createCodersFromFile<CTF>(mDictOpt, mOpType);
-      LOGP(info, "Loaded {} from {}", mExtHeader.asString(), mDictOpt);
+      LOGP(info, "Loaded {} from {}, ANS Version {}", mExtHeader.asString(), mDictOpt, std::string(mANSVersion));
     } else {
-      LOGP(info, "Internal per-TF CTF Dict will be created");
+      if (!ansVersionProvided) {
+        mANSVersion = ANSVersion1;
+      }
+      LOGP(info, "Internal per-TF CTF Dict will be created, ANS Version {}", std::string(mANSVersion));
     }
     mLoadDictFromCCDB = false; // don't try to load from CCDB
   }
@@ -368,7 +373,7 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
       }
       createCoders(*dict, mOpType);
       mExtHeader = static_cast<const CTFDictHeader&>(CTF::get(dict->data())->getHeader());
-      LOGP(info, "Loaded {} from CCDB", mExtHeader.asString());
+      LOGP(info, "Loaded {} from CCDB, ANS Version {}", mExtHeader.asString(), std::string(mANSVersion));
     }
     mLoadDictFromCCDB = false; // we read the dictionary at most once!
   } else if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {
