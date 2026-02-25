@@ -265,6 +265,7 @@ static constexpr double kSiLayerThick_cm = 0.01f; // 0.1 mm
 // Base tangency angle (deg) for the first wall; the other 2 are +120/+240.
 // This matches the angle used in the ROOT sketch from our chat.
 static constexpr double kInclinedWallPhi0_deg = 27.799f;
+static constexpr double kInclinedWallRmax_cm = 4.75f; // 47.5 mm outer extension
 
 // Coldplate specs (cm)
 static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (outer radius)
@@ -835,67 +836,90 @@ static void addInclinedWalls3FullCyl(TGeoVolume* petalAsm, double phi0_deg = kIn
     LOGP(warning, "addInclinedWalls3FullCyl: ALICE3_TRKSERVICES_ALUMINIUM5083 not found, walls not created.");
     return;
   }
-  // Geometry constants
-  constexpr double clearanceMargin = 0.010; // 100 microns from layer surfaces
+
+  // Clearance margin from layer/coldplate surfaces (cm)
+  constexpr double clearanceMargin = 0.010; // 100 microns
 
   // Geometry inputs (cm)
   constexpr double R0 = rL0_cm;
   constexpr double R1 = rL1_cm;
   constexpr double R2 = rL2_cm;
-  constexpr double wallDy = 0.5 * kInclinedWallThick_cm;
-  constexpr double shellTh = kSiLayerThick_cm;
-  constexpr double h = 0.5 * shellTh;
-  constexpr double dz = 0.5 * kPetalZ_cm;
+  constexpr double Rmax = kInclinedWallRmax_cm;
+
+  const double wallDy = 0.5 * kInclinedWallThick_cm;
+  const double shellTh = kSiLayerThick_cm; // 0.1 mm shell thickness for bounds
+  const double h = 0.5 * shellTh;
+  const double dz = 0.5 * kLenZ_cm; // match barrel/coldplate length in full-cyl option
+
   constexpr int nWalls = 3;
   constexpr double dPhi = 360.0 / double(nWalls);
-  constexpr double eps = kEps_cm;
 
   // Gap boundaries (shell surfaces)
   const double R0_out = R0 + h;
   const double R1_in = R1 - h;
   const double R1_out = R1 + h;
   const double R2_in = R2 - h;
+  const double R2_out = R2 + h;
 
-  // Tangency radius choice
+  // Coldplate outer radius (tube segment is [kColdplateRadius_cm, kColdplateRadius_cm + kColdplateThickness_cm])
+  const double Rcold_out = kColdplateRadius_cm + kColdplateThickness_cm;
+
+  // Tangency radius choice (thickness-safe at s=0): need Rtan - wallDy >= R0_out
   const double Rtan = R0_out + wallDy + clearanceMargin;
+
+  // For finite-thickness box:
+  //   outermost edge uses Reff_plus, innermost edge uses Reff_minus
   const double Reff_plus = Rtan + wallDy + clearanceMargin;
   const double Reff_minus = std::max(0.0, Rtan - wallDy - clearanceMargin);
 
-  // Lambda for clamped square root
   auto sAt = [](double R, double Reff) -> double {
     const double v = R * R - Reff * Reff;
     return (v > 0.0) ? std::sqrt(v) : 0.0;
   };
 
-  // Segment bounds (computed once outside loop)
+  // Segment bounds in 's' (thickness-safe):
+  // 01: from tangency to L1 inner surface (outer edge <= R1_in)
   const double sa01 = 0.0;
   const double sb01 = sAt(R1_in, Reff_plus);
-  const double sa12 = sAt(R1_out, Reff_minus);
-  const double sb12 = sAt(R2_in, Reff_plus);
 
-  if (!(sb01 > sa01) || !(sb12 > sa12)) {
-    LOGP(error, "addInclinedWalls3FullCyl: invalid bounds. sa01={} sb01={} sa12={} sb12={}",
-         sa01, sb01, sa12, sb12);
+  // 12: from outside L1 to inside L2
+  const double sa12 = sAt(R1_out, Reff_minus); // inner edge >= R1_out
+  const double sb12 = sAt(R2_in, Reff_plus);   // outer edge <= R2_in
+
+  // 23: from outside coldplate (and outside L2) to Rmax
+  const double R23_start = std::max(R2_out, Rcold_out) + clearanceMargin;
+  const double sa23 = sAt(R23_start, Reff_minus); // inner edge >= start radius
+  const double sb23 = sAt(Rmax, Reff_plus);       // outer edge <= Rmax
+
+  if (!((sb01 > sa01) && (sb12 > sa12) && (sb23 > sa23))) {
+    LOGP(error,
+         "addInclinedWalls3FullCyl: invalid bounds. 01:[{},{}] 12:[{},{}] 23:[{},{}] "
+         "Rtan={} Reff-={} Reff+={} R23_start={}",
+         sa01, sb01, sa12, sb12, sa23, sb23,
+         Rtan, Reff_minus, Reff_plus, R23_start);
     return;
   }
 
-  // Half-lengths and centers (computed once)
+  // Half-lengths and center parameters (s-centers)
   const double dx01 = 0.5 * (sb01 - sa01);
   const double dx12 = 0.5 * (sb12 - sa12);
+  const double dx23 = 0.5 * (sb23 - sa23);
+
   const double sc01 = 0.5 * (sa01 + sb01);
   const double sc12 = 0.5 * (sa12 + sb12);
+  const double sc23 = 0.5 * (sa23 + sb23);
 
   // Create shapes once, reuse for all walls
   auto* sh01 = new TGeoBBox(dx01, wallDy, dz);
   auto* sh12 = new TGeoBBox(dx12, wallDy, dz);
+  auto* sh23 = new TGeoBBox(dx23, wallDy, dz);
   sh01->SetName("VD_InclinedWall01_sh");
   sh12->SetName("VD_InclinedWall12_sh");
+  sh23->SetName("VD_InclinedWall23_sh");
 
-  // Convert initial angle to radians once
   const double phi0_rad = phi0_deg * TMath::DegToRad();
 
   for (int i = 0; i < nWalls; ++i) {
-    // Compute angle for this wall
     const double phi = phi0_rad + i * (dPhi * TMath::DegToRad());
     const double cosPhi = std::cos(phi);
     const double sinPhi = std::sin(phi);
@@ -904,40 +928,46 @@ static void addInclinedWalls3FullCyl(TGeoVolume* petalAsm, double phi0_deg = kIn
     const double xT = Rtan * cosPhi;
     const double yT = Rtan * sinPhi;
 
-    // Tangent direction (perpendicular to radius): (-sin, cos)
+    // Tangent direction u = (-sin, cos)
     const double ux = -sinPhi;
     const double uy = cosPhi;
 
-    // Centers for both segments
+    // Centers (in XY)
     const double cx01 = xT + sc01 * ux;
     const double cy01 = yT + sc01 * uy;
     const double cx12 = xT + sc12 * ux;
     const double cy12 = yT + sc12 * uy;
+    const double cx23 = xT + sc23 * ux;
+    const double cy23 = yT + sc23 * uy;
 
-    // Rotation: tangent is perpendicular to radius, so angle = phi + 90°
+    // Rotation: local X along tangent => angle = phi + 90°
     const double alpha_deg = phi0_deg + i * dPhi + 90.0;
     auto* rot = new TGeoRotation();
     rot->RotateZ(alpha_deg);
 
-    // Create separate volumes for each wall
+    // Create volumes per wall (unique names)
     auto* v01 = new TGeoVolume(Form("VD_InclinedWall01_%d", i), sh01, med);
     auto* v12 = new TGeoVolume(Form("VD_InclinedWall12_%d", i), sh12, med);
+    auto* v23 = new TGeoVolume(Form("VD_InclinedWall23_%d", i), sh23, med);
     v01->SetLineColor(kOrange + 7);
     v12->SetLineColor(kOrange + 7);
+    v23->SetLineColor(kOrange + 7);
     v01->SetTransparency(70);
     v12->SetTransparency(70);
+    v23->SetTransparency(70);
 
     auto* T01 = new TGeoCombiTrans(cx01, cy01, 0.0, rot);
-    auto* T12 = new TGeoCombiTrans(cx12, cy12, 0.0, new TGeoRotation(*rot)); // Copy rotation
+    auto* T12 = new TGeoCombiTrans(cx12, cy12, 0.0, new TGeoRotation(*rot));
+    auto* T23 = new TGeoCombiTrans(cx23, cy23, 0.0, new TGeoRotation(*rot));
 
     petalAsm->AddNode(v01, 1, T01);
     petalAsm->AddNode(v12, 1, T12);
+    petalAsm->AddNode(v23, 1, T23);
 
-    LOGP(debug, "Wall {}: 01 at ({:.3f}, {:.3f}), 12 at ({:.3f}, {:.3f}), angle={:.2f}°",
-         i, cx01, cy01, cx12, cy12, alpha_deg);
+    LOGP(debug,
+         "InclinedWall {}: 01({:.3f},{:.3f}) 12({:.3f},{:.3f}) 23({:.3f},{:.3f}) angle={:.2f}°",
+         i, cx01, cy01, cx12, cy12, cx23, cy23, alpha_deg);
   }
-
-  LOGP(info, "Added 3 inclined walls: Rtan={:.3f} cm, thickness={:.3f} cm", Rtan, kInclinedWallThick_cm);
 }
 
 // =================== Public entry points ===================
