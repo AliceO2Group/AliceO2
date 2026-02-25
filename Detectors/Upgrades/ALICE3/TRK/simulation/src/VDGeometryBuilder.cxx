@@ -254,7 +254,7 @@ static const double diskZ_cm[6] = {-34.0f, -30.0f, -26.0f, 26.0f, 30.0f, 34.0f};
 static constexpr double kPetalZ_cm = 70.0f;          // full wall height
 static constexpr double kWallThick_cm = 0.015f;      // 0.15 mm
 static constexpr double kInnerWallRadius_cm = 0.48f; // 4.8 mm (ALWAYS cylindrical)
-static constexpr double kOuterWallRadius_cm = 3.0f;  // 30 mm (can be changed)
+static constexpr double kOuterWallRadius_cm = 4.8f;  // 48 mm (can be changed)
 static constexpr double kEps_cm = 2.5e-4f;
 
 // 3 inclined walls ("walls") specs for the full-cylinder option
