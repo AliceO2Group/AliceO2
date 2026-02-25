@@ -21,6 +21,8 @@
 #include "DataFormatsTRD/TrackTRD.h"
 #include "TRDBase/PadCalibrationsAliases.h"
 #include "DataFormatsTRD/NoiseCalibration.h"
+#include "DataFormatsTRD/CalGain.h"
+#include "DataFormatsTRD/Constants.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DetectorsBase/Propagator.h"
 #include "Framework/DataProcessorSpec.h"
@@ -253,6 +255,7 @@ class AODProducerWorkflowDPL : public Task
   float mMaxPropXiu{5.0f}; // max X_IU for which track is to be propagated if mPropTracks is true. (other option: o2::constants::geom::XTPCInnerRef + 0.1f)
 
   const o2::trd::LocalGainFactor* mTRDLocalGain; // TRD local gain factors from krypton calibration
+  const o2::trd::CalGain* mTRDGainCalib;         // TRD time-dependent gain calib at chamber level
   const o2::trd::NoiseStatusMCM* mTRDNoiseMap;   // TRD noise map
 
   std::unordered_set<GIndex> mGIDUsedBySVtx;
@@ -284,6 +287,7 @@ class AODProducerWorkflowDPL : public Task
   TStopwatch mTimer;
   bool mEMCselectLeading{false};
   uint64_t mEMCALTrgClassMask = 0;
+  size_t mCurrentTRDTrigID = 0; // current index of the TRD trigger record, to speed up search
 
   // unordered map connects global indices and table indices of barrel tracks
   std::unordered_map<GIndex, int> mGIDToTableID;

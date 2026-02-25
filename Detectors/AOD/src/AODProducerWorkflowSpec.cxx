@@ -433,7 +433,7 @@ void AODProducerWorkflowDPL::addToTRDsExtra(const o2::globaltracking::RecoContai
 
     auto tphi = trkC.getSnp() / std::sqrt((1.f - trkC.getSnp()) * (1.f + trkC.getSnp()));
     auto trackletLength = std::sqrt(1.f + tphi * tphi + trkC.getTgl() * trkC.getTgl());
-    float cor = mTRDLocalGain->getValue(tracklet.getHCID() / 2, tracklet.getPadCol(), tracklet.getPadRow()) * trackletLength;
+    float cor = mTRDLocalGain->getValue(tracklet.getHCID() / 2, tracklet.getPadCol(), tracklet.getPadRow()) * mTRDGainCalib->getMPVdEdx(tracklet.getDetector()) / o2::trd::constants::MPVDEDXDEFAULT * trackletLength;
     q0s[iLay] = tracklet.getQ0();
     q1s[iLay] = tracklet.getQ1();
     q2s[iLay] = tracklet.getQ2();
@@ -443,20 +443,66 @@ void AODProducerWorkflowDPL::addToTRDsExtra(const o2::globaltracking::RecoContai
     ttgls[iLay] = trkC.getTgl();
     tphis[iLay] = tphi;
 
-    // z-row merging
+    // z-row merging, we want to merge only with tracklets from the same trigger record
     if (trk.getIsCrossingNeighbor(iLay) && trk.getHasNeighbor()) {
-      for (const auto& trklt : trklets) {
-        if (tracklet.getTrackletWord() == trklt.getTrackletWord()) {
+      // find the trigger the tracklet belongs to
+      auto trigsTRD = recoData.getTRDTriggerRecords();
+      size_t trdSelID = -1;
+
+      const auto& trig = trigsTRD[mCurrentTRDTrigID];
+      bool foundTRDTrigger = false;
+      // first check current trigger
+      if (trkltId >= trig.getFirstTracklet() && trkltId < trig.getFirstTracklet() + trig.getNumberOfTracklets()) {
+        trdSelID = mCurrentTRDTrigID;
+        foundTRDTrigger = true;
+      }
+      else {
+        // then check next trigger
+        if (mCurrentTRDTrigID < trigsTRD.size() - 1) {
+          const auto& trig = trigsTRD[mCurrentTRDTrigID+1];
+          if (trkltId >= trig.getFirstTracklet() && trkltId < trig.getFirstTracklet() + trig.getNumberOfTracklets()) {
+            trdSelID = mCurrentTRDTrigID+1;
+            foundTRDTrigger = true;
+          }
+        }
+      }
+
+      size_t low = 0, up = trigsTRD.size() - 1; 
+
+      // otherwise binary search
+      while (low <= up && !foundTRDTrigger) {
+        trdSelID = low + std::floor( (up - low)/2 );
+        const auto& trig = trigsTRD[trdSelID];
+        if (trig.getFirstTracklet() > trkltId) {
+          up = trdSelID - 1;
+        } 
+        else {
+          if (trig.getFirstTracklet() + trig.getNumberOfTracklets() <= trkltId) {
+            low = trdSelID + 1;
+          }
+          else {
+            foundTRDTrigger = true;
+          }
+        }
+      }
+      //-------------------
+      mCurrentTRDTrigID = trdSelID;
+      const auto& trigSel = trigsTRD[trdSelID];
+
+      // loop on other tracklets from the same trigger record
+      for (const auto& trklt : trklets.subspan(trigSel.getFirstTracklet(), trigSel.getNumberOfTracklets())) {
+        if (tracklet.getTrackletWord() == trklt.getTrackletWord() || tracklet.getDetector() != trklt.getDetector()) {
           continue;
         }
         if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
-          cor = mTRDLocalGain->getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * trackletLength;
+          cor = mTRDLocalGain->getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * mTRDGainCalib->getMPVdEdx(tracklet.getDetector()) / o2::trd::constants::MPVDEDXDEFAULT * trackletLength;
           q0s[iLay] += trklt.getQ0();
           q1s[iLay] += trklt.getQ1();
           q2s[iLay] += trklt.getQ2();
           q0sCor[iLay] += (float)trklt.getQ0() / cor;
           q1sCor[iLay] += (float)trklt.getQ1() / cor;
           q2sCor[iLay] += (float)trklt.getQ2() / cor;
+
         }
       }
     }
@@ -2376,7 +2422,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       mGIDUsedByStr.emplace(sTrk.mITSRef, GIndex::ITS);
     }
   }
-
+  
+  mCurrentTRDTrigID = 0; // reinitialize index for TRD trigger record search
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
@@ -2385,6 +2432,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                               ambigTracksCursor, mftTracksCursor, mftTracksCovCursor, ambigMFTTracksCursor,
                               fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
 
+  mCurrentTRDTrigID = 0; // reinitialize index for TRD trigger record search
   // filling collisions and tracks into tables
   collisionID = 0;
   collisionsCursor.reserve(primVertices.size());
@@ -3097,6 +3145,7 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
     if (mEnableTRDextra) {
       mTRDLocalGain = pc.inputs().get<o2::trd::LocalGainFactor*>("trdlocalgainfactors").get();
       mTRDNoiseMap = pc.inputs().get<o2::trd::NoiseStatusMCM*>("trdnoisemap").get();
+      mTRDGainCalib = pc.inputs().get<o2::trd::CalGain*>("trdgaincalib").get(); // time dependent gain
     }
   }
   if (mPropTracks) {
@@ -3369,11 +3418,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<Collisions>::spec(),
     OutputForTable<Decay3Bodys>::spec(),
     OutputForTable<FDDs>::spec(),
-    OutputForTable<FDDsExtra>::spec(),
     OutputForTable<FT0s>::spec(),
-    OutputForTable<FT0sExtra>::spec(),
     OutputForTable<FV0As>::spec(),
-    OutputForTable<FV0AsExtra>::spec(),
     OutputForTable<StoredFwdTracks>::spec(),
     OutputForTable<StoredFwdTracksCov>::spec(),
     OutputForTable<StoredMFTTracks>::spec(),
@@ -3405,6 +3451,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     outputs.push_back(OutputForTable<TRDsExtra>::spec());
     dataRequest->inputs.emplace_back("trdlocalgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
     dataRequest->inputs.emplace_back("trdnoisemap", "TRD", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
+    dataRequest->inputs.emplace_back("trdgaincalib", "TRD", "CALGAIN", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalGain"));
   }
 
   if (useMC) {
