@@ -98,7 +98,7 @@ Note that the `trackingparams` field can contain multiple sets of parameters for
 First, generate simulation data:
 
 ```bash
-o2-sim-serial-run5 -n 200 -g pythia8hi -m TRK --configKeyValues "Diamond.width[0]=0.01;Diamond.width[1]=0.01;Diamond.width[2]=5;TRKBase.layoutML=kTurboStaves;TRKBase.layoutOL=kStaggered;"
+o2-sim-serial-run5 -n 200 -g pythia8hi -m TRK --configKeyValues "Diamond.width[0]=0.01;Diamond.width[1]=0.01;Diamond.width[2]=5;TRKBase.layoutML=kTurboStaves;TRKBase.layoutOT=kStaggered;"
 ```
 
 This produces, among other files:

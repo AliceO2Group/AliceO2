@@ -146,10 +146,10 @@ void Detector::buildTRKMiddleOuterLayers()
   mLayers[3].setLayout(trkPars.layoutML);
 
   // Outer tracker
-  mLayers[4].setLayout(trkPars.layoutOL);
-  mLayers[5].setLayout(trkPars.layoutOL);
-  mLayers[6].setLayout(trkPars.layoutOL);
-  mLayers[7].setLayout(trkPars.layoutOL);
+  mLayers[4].setLayout(trkPars.layoutOT);
+  mLayers[5].setLayout(trkPars.layoutOT);
+  mLayers[6].setLayout(trkPars.layoutOT);
+  mLayers[7].setLayout(trkPars.layoutOT);
 }
 
 void Detector::configFromFile(std::string fileName)

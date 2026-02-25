@@ -77,9 +77,9 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   mLayoutML = o2::trk::TRKBaseParam::Instance().getLayoutML();
-  mLayoutOL = o2::trk::TRKBaseParam::Instance().getLayoutOL();
+  mLayoutOT = o2::trk::TRKBaseParam::Instance().getLayoutOT();
 
-  LOG(debug) << "Layout ML: " << mLayoutML << ", Layout OL: " << mLayoutOL;
+  LOG(debug) << "Layout ML: " << mLayoutML << ", Layout OL: " << mLayoutOT;
 
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
   mNumberOfPetalsVD = extractNumberOfPetalsVD();
@@ -405,7 +405,7 @@ TString GeometryTGeo::getMatrixPath(int index) const
   // handling cylindrical configuration for ML and/or OT
   // needed bercause of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
   if (subDetID == 1) {
-    if ((layer < 4 && mLayoutML == eLayout::kCylinder) || (layer > 3 && mLayoutOL == eLayout::kCylinder)) {
+    if ((layer < 4 && mLayoutML == eLayout::kCylinder) || (layer > 3 && mLayoutOT == eLayout::kCylinder)) {
       stave = 1;
       mod = 1;
       chip = 1;
