@@ -455,32 +455,29 @@ void AODProducerWorkflowDPL::addToTRDsExtra(const o2::globaltracking::RecoContai
       if (trkltId >= trig.getFirstTracklet() && trkltId < trig.getFirstTracklet() + trig.getNumberOfTracklets()) {
         trdSelID = mCurrentTRDTrigID;
         foundTRDTrigger = true;
-      }
-      else {
+      } else {
         // then check next trigger
         if (mCurrentTRDTrigID < trigsTRD.size() - 1) {
-          const auto& trig = trigsTRD[mCurrentTRDTrigID+1];
+          const auto& trig = trigsTRD[mCurrentTRDTrigID + 1];
           if (trkltId >= trig.getFirstTracklet() && trkltId < trig.getFirstTracklet() + trig.getNumberOfTracklets()) {
-            trdSelID = mCurrentTRDTrigID+1;
+            trdSelID = mCurrentTRDTrigID + 1;
             foundTRDTrigger = true;
           }
         }
       }
 
-      size_t low = 0, up = trigsTRD.size() - 1; 
+      size_t low = 0, up = trigsTRD.size() - 1;
 
       // otherwise binary search
       while (low <= up && !foundTRDTrigger) {
-        trdSelID = low + std::floor( (up - low)/2 );
+        trdSelID = low + std::floor((up - low) / 2);
         const auto& trig = trigsTRD[trdSelID];
         if (trig.getFirstTracklet() > trkltId) {
           up = trdSelID - 1;
-        } 
-        else {
+        } else {
           if (trig.getFirstTracklet() + trig.getNumberOfTracklets() <= trkltId) {
             low = trdSelID + 1;
-          }
-          else {
+          } else {
             foundTRDTrigger = true;
           }
         }
@@ -502,7 +499,6 @@ void AODProducerWorkflowDPL::addToTRDsExtra(const o2::globaltracking::RecoContai
           q0sCor[iLay] += (float)trklt.getQ0() / cor;
           q1sCor[iLay] += (float)trklt.getQ1() / cor;
           q2sCor[iLay] += (float)trklt.getQ2() / cor;
-
         }
       }
     }
@@ -2422,7 +2418,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       mGIDUsedByStr.emplace(sTrk.mITSRef, GIndex::ITS);
     }
   }
-  
+
   mCurrentTRDTrigID = 0; // reinitialize index for TRD trigger record search
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
