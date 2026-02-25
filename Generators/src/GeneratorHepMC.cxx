@@ -501,7 +501,7 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
                               hiInfo->Nwounded_N_collisions);
     eventHeader->putInfo<int>(Key::nCollNWoundedNwounded,
                               hiInfo->Nwounded_Nwounded_collisions);
-    eventHeader->putInfo<float>(Key::planeAngle, hiInfo->event_plane_angle);
+    eventHeader->putInfo<double>(Key::planeAngle, hiInfo->event_plane_angle);
     eventHeader->putInfo<float>(Key::sigmaInelNN, hiInfo->sigma_inel_NN);
     eventHeader->putInfo<float>(Key::centrality, hiInfo->centrality);
     eventHeader->putInfo<int>(Key::nSpecProjectileProton, hiInfo->Nspec_proj_p);
