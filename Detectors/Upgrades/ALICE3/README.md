@@ -21,7 +21,7 @@ The specific modules for Run 5 are enabled by passing their their IDs to the `-m
 A list of the available DetIDs is reproted in the table below:
 
 | Detector ID | Detector description             |
-|-------------|----------------------------------|
+| ----------- | -------------------------------- |
 | `A3IP`      | Beam pipe                        |
 | `TRK`       | Barrel Tracker                   |
 | `TF3`       | Time Of Flight detectors         |
@@ -49,7 +49,7 @@ export ALICE3_MAGFIELD_MACRO=../ALICE3Field.C
 
 An exampling macro for a custom magnetic field is stored in `Detectors/Upgrades/macros/ALICE3Field.C`.
 
-### Run a simple simulation for run 5
+### Run a simple simulation for ALICE 3
 The simplest command to be run to test the simulation is working is:
 
 ```bash
@@ -61,6 +61,26 @@ To enable a specific set of modules, e.g. the beampipe and the TOFs one can spec
 ```bash
 o2-sim-run5 -n 10 -m A3IP TF3
 ```
+
+#### Specific detector setups
+
+
+
+Configurables for various sub-detectors are presented in the following Table:
+
+| Subsystem          | Available options                                       | Comments                                                         |
+| ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
+| `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./TRK/base/include/TRKBase/TRKBaseParam.h) |
+| `TRKBase.layoutML` | `kCylinder`, `kTurboStaves` (default), `kStaggered`     |                                                                  |
+| `TRKBase.layoutOT` | `kCylinder`, `kTurboStaves`, `kStaggered` (default)     |                                                                  |
+
+For example, a geometry with fully cylindrical tracker barrel (for all layers in VD, ML and OT) can be obtained by
+```bash
+o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
+  --configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutML=kCylinder;TRKBase.layoutOL=kCylinder"
+```
+
+
 ### Output of the simulation
 The simulation will produce a `o2sim_Hits<DetID>.root` file with a tree with the hits related to that detector.
 Currently, hits are produced for: `TRK`, `FT3`, and `TF3`.
