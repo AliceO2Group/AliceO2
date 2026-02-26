@@ -66,9 +66,10 @@ o2-sim-run5 -n 10 -m A3IP TF3
 
 Configurables for various sub-detectors are presented in the following Table:
 
-| Available options | Link to options                                                |
-| ----------------- | -------------------------------------------------------------- |
-| TKR               | [Link to TRK options](./TRK/README.md#specific-detector-setup) |
+| Available options | Link to options                                                  |
+| ----------------- | ---------------------------------------------------------------- |
+| TRK               | [Link to TRK options](./TRK/README.md#specific-detector-setup)   |
+| TOF               | [Link to TOF options](./IOTOF/README.md#specific-detector-setup) |
 
 ### Output of the simulation
 The simulation will produce a `o2sim_Hits<DetID>.root` file with a tree with the hits related to that detector.
