@@ -103,6 +103,9 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // Default CCDB server
   static std::string getCCDBServer();
 
+  // create name to dump config file
+  static std::string getConfigOutputFileName(const std::string& procName, const std::string& confName = "", bool json = true);
+
  protected:
   // helper method to build filenames
   static std::string buildFileName(const std::string_view prefix, const std::string_view delimiter, const std::string_view defPrefix, const std::string_view defName,

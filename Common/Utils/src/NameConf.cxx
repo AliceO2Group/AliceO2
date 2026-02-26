@@ -111,3 +111,12 @@ std::string NameConf::getCCDBServer()
 {
   return Instance().mCCDBServer;
 }
+
+std::string NameConf::getConfigOutputFileName(const std::string& procName, const std::string& confName, bool json)
+{
+  std::string nm = procName;
+  if (!confName.empty()) {
+    nm += '_' + confName;
+  }
+  return fmt::format("ConfigParam_{}.{}", nm, json ? "json" : "ini");
+}
