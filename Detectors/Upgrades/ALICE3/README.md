@@ -64,27 +64,14 @@ o2-sim-run5 -n 10 -m A3IP TF3
 
 #### Specific detector setups
 
-
-
 Configurables for various sub-detectors are presented in the following Table:
 
-| Subsystem          | Available options                                       | Comments                                                         |
-| ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./TRK/base/include/TRKBase/TRKBaseParam.h) |
-| `TRKBase.layoutML` | `kCylinder`, `kTurboStaves` (default), `kStaggered`     |                                                                  |
-| `TRKBase.layoutOT` | `kCylinder`, `kTurboStaves`, `kStaggered` (default)     |                                                                  |
-
-For example, a geometry with fully cylindrical tracker barrel (for all layers in VD, ML and OT) can be obtained by
-```bash
-o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
-  --configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutML=kCylinder;TRKBase.layoutOL=kCylinder"
-```
-
+| Available options | Link to options                                                |
+| ----------------- | -------------------------------------------------------------- |
+| TKR               | [Link to TRK options](./TRK/README.md#specific-detector-setup) |
 
 ### Output of the simulation
 The simulation will produce a `o2sim_Hits<DetID>.root` file with a tree with the hits related to that detector.
-Currently, hits are produced for: `TRK`, `FT3`, and `TF3`.
-More detectors will be included.
 
 ## Reconstruction
 WIP
