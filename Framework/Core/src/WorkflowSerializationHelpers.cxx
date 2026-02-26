@@ -29,6 +29,7 @@
 #include <memory>
 
 O2_DECLARE_DYNAMIC_LOG(workflow_importer);
+O2_DECLARE_DYNAMIC_LOG(post_workflow_importer);
 
 namespace o2::framework
 {
@@ -969,7 +970,18 @@ bool WorkflowSerializationHelpers::import(std::istream& s,
   WorkflowImporter importer{workflow, metadata, command};
   bool ok = reader.Parse(isw, importer);
   if (ok == false) {
-    throw std::runtime_error("Error while parsing serialised workflow");
+    if (s.eof()) {
+      throw std::runtime_error("Error while parsing serialised workflow");
+    }
+    // clean up possible leftovers at the end of the input stream, e.g. [DEBUG] message from destructors
+    O2_SIGNPOST_ID_GENERATE(sid, post_workflow_importer);
+    while (true) {
+      s.getline(buf, 1024, '\n');
+      if (s.eof()) {
+        break;
+      }
+      O2_SIGNPOST_EVENT_EMIT(post_workflow_importer, sid, "post import", "Following leftover line found in input stream after parsing workflow: %{public}s", buf);
+    }
   }
   return true;
 }
