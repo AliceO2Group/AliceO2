@@ -128,6 +128,17 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
        mVertexer.getNV0s(), calls[0] - fitCalls[0], mVertexer.getNCascades(), calls[1] - fitCalls[1], mVertexer.getN3Bodies(), calls[2] - fitCalls[2], mVertexer.getNStrangeTracks(),
        mTimer.CpuTime() - timeCPU0, mTimer.RealTime() - timeReal0);
   fitCalls = calls;
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, SVertexerParams::Instance().getName()), SVertexerParams::Instance().getName());
+      if (mEnableStrangenessTracking) {
+        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance().getName()), o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance().getName());
+      }
+    }
+  }
 }
 
 void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)

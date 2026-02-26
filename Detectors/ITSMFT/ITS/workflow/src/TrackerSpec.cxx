@@ -14,6 +14,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackingConfigParam.h"
@@ -60,6 +61,14 @@ void TrackerDPL::run(ProcessingContext& pc)
   mITSTrackingInterface.run(pc);
   mTimer.Stop();
   LOGP(info, "CPU Reconstruction time for this TF {:.2f} s (cpu), {:.2f} s (wall)", mTimer.CpuTime() - cput, mTimer.RealTime() - realt);
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::VertexerParamConfig::Instance().getName()), o2::its::VertexerParamConfig::Instance().getName());
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::TrackerParamConfig::Instance().getName()), o2::its::TrackerParamConfig::Instance().getName());
+    }
+  }
 }
 
 void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)

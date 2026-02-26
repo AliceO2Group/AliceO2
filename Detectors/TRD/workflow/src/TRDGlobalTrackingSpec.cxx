@@ -28,6 +28,7 @@
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "CommonConstants/GeomConstants.h"
@@ -551,6 +552,14 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC", ss}, matchLabelsTPC);
       pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss}, trdLabelsTPC);
+    }
+  }
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "GPU_rec_trd"), "GPU_rec_trd");
     }
   }
 

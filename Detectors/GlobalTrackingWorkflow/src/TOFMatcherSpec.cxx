@@ -22,6 +22,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 
@@ -227,6 +228,14 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_15", 0}, mMatcher.getMatchedTracksPair(15));
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_16", 0}, mMatcher.getMatchedTracksPair(16));
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_17", 0}, mMatcher.getMatchedTracksPair(17));
+  }
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, MatchTOFParams::Instance().getName()), MatchTOFParams::Instance().getName());
+    }
   }
 
   mTimer.Stop();

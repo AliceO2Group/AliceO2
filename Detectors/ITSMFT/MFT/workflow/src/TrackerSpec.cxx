@@ -24,6 +24,7 @@
 
 #include "TGeoGlobalMagField.h"
 
+#include "Framework/DeviceSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
@@ -329,6 +330,14 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0}, allTrackLabels);
     pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0}, mc2rofs);
+  }
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::mft::MFTTrackingParam::Instance().getName()), o2::mft::MFTTrackingParam::Instance().getName());
+    }
   }
 
   mTimer[SWTot].Stop();

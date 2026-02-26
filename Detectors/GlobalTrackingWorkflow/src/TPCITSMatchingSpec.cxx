@@ -130,6 +130,14 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
 
   mMatching.run(recoData, matchedTracks, ABTrackletRefs, ABTrackletClusterIDs, matchLabels, ABTrackletLabels, calib);
 
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, MatchTPCITSParams::Instance().getName()), MatchTPCITSParams::Instance().getName());
+    }
+  }
+
   mTimer.Stop();
 }
 

@@ -197,6 +197,14 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
        mVertexer.getTimeReAttach().CpuTime(), mVertexer.getTotTrials(), mVertexer.getNTZClusters(), mVertexer.getMaxTrialsPerCluster(),
        mVertexer.getLongestClusterTimeMS(), mVertexer.getLongestClusterMult(), mVertexer.getNIniFound(),
        mVertexer.getNKilledBCValid(), mVertexer.getNKilledIntCand(), mVertexer.getNKilledDebris(), mVertexer.getNKilledQuality(), mVertexer.getNKilledITSOnly());
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, PVertexerParams::Instance().getName()), PVertexerParams::Instance().getName());
+    }
+  }
 }
 
 void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
