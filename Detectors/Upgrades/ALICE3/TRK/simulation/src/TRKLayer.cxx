@@ -26,17 +26,15 @@ namespace o2
 namespace trk
 {
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, int numberOfModules, float layerX2X0)
-  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mNumberOfModules(numberOfModules), mX2X0(layerX2X0), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(constants::moduleMLOT::chip::passiveEdgeReadOut), mSensorThickness(constants::moduleMLOT::silicon::thickness), mHalfNumberOfChips(4)
+  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mNumberOfModules(numberOfModules), mX2X0(layerX2X0)
 {
-  float Si_X0 = 9.5f;
   mChipThickness = mX2X0 * Si_X0;
   LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, getZ(), mX2X0);
 }
 
 TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick)
-  : mLayerNumber(layerNumber), mLayout(kCylinder), mLayerName(layerName), mInnerRadius(rInn), mNumberOfModules(numberOfModules), mChipThickness(thick), mChipWidth(constants::moduleMLOT::chip::width), mChipLength(constants::moduleMLOT::chip::length), mDeadzoneWidth(constants::moduleMLOT::chip::passiveEdgeReadOut), mSensorThickness(constants::moduleMLOT::silicon::thickness), mHalfNumberOfChips(4)
+  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mNumberOfModules(numberOfModules), mChipThickness(thick)
 {
-  float Si_X0 = 9.5f;
   mOuterRadius = rInn + thick;
   mX2X0 = mChipThickness / Si_X0;
   LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, getZ(), mX2X0);
@@ -300,12 +298,9 @@ TGeoVolume* TRKLayer::createStave(std::string type)
   } else if (type == "staggered") {
     double overlap = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut + 0.1; // 1.5mm outer-edge + 1mm deadzone + 1mm (true)overlap
     double shift = overlap / 2;
-
     double halfstaveWidth = constants::OT::halfstave::width;
-    double staveWidth = constants::OT::width - overlap;
 
-    stave = new TGeoBBox(staveWidth / 2, mLogicalVolumeThickness / 2, staveLength / 2);
-    staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
+    staveVol = new TGeoVolumeAssembly(staveName.c_str());
 
     // Put the half staves in the correct position
     TGeoVolume* halfStaveVolLeft = createHalfStave("flat");
@@ -379,7 +374,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       // Put the staves in the correct position and orientation
       TGeoCombiTrans* trans = new TGeoCombiTrans();
       double theta = 360. * iStave / nStaves;
-      TGeoRotation* rot = new TGeoRotation("rot", theta - 90 + 3, 0, 0);
+      TGeoRotation* rot = new TGeoRotation("rot", theta - 90 + 4, 0, 0);
       trans->SetRotation(rot);
       trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
 
@@ -413,7 +408,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       // Put the staves in the correct position and orientation
       TGeoCombiTrans* trans = new TGeoCombiTrans();
       double theta = 360. * iStave / nStaves;
-      TGeoRotation* rot = new TGeoRotation("rot", theta - 90 + 3, 0, 0);
+      TGeoRotation* rot = new TGeoRotation("rot", theta - 90, 0, 0);
       trans->SetRotation(rot);
       trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
 
