@@ -404,7 +404,7 @@ void AODProducerWorkflowDPL::addToTRDsExtra(const o2::globaltracking::RecoContai
     return;
   }
   const auto& trk = recoData.getTrack<o2::trd::TrackTRD>(contributorsGID[GIndex::Source::TRD]);
-  o2::track::TrackPar trkC{contributorsGID[GIndex::Source::ITSTPC].isIndexSet() ?  recoData.getTPCITSTrack(contributorsGID[GIndex::Source::ITSTPC]).getParamOut() : recoData.getTPCTrack(contributorsGID[GIndex::Source::TPC]).getParamOut() };
+  o2::track::TrackPar trkC{contributorsGID[GIndex::Source::ITSTPC].isIndexSet() ? recoData.getTPCITSTrack(contributorsGID[GIndex::Source::ITSTPC]).getParamOut() : recoData.getTPCTrack(contributorsGID[GIndex::Source::TPC]).getParamOut()};
   const auto& trklets = recoData.getTRDTracklets();
   const auto& ctrklets = recoData.getTRDCalibratedTracklets();
   for (int iLay{0}; iLay < 6; ++iLay) {
