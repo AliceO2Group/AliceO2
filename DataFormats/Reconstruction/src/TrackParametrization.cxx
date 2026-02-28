@@ -314,14 +314,14 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const di
 
   // Do the final correcting step to the target plane (linear approximation)
   value_t x = vecLab[0], y = vecLab[1], z = vecLab[2];
-  if (gpu::CAMath::Abs(dx) > constants::math::Almost0) {
+  if (gpu::CAMath::Abs(x - xk) > constants::math::Almost0) {
     if (gpu::CAMath::Abs(vecLab[3]) < constants::math::Almost0) {
       return false;
     }
-    dx = xk - vecLab[0];
-    x += dx;
-    y += vecLab[4] / vecLab[3] * dx;
-    z += vecLab[5] / vecLab[3] * dx;
+    auto dxFin = xk - vecLab[0];
+    x += dxFin;
+    y += vecLab[4] / vecLab[3] * dxFin;
+    z += vecLab[5] / vecLab[3] * dxFin;
   }
 
   // Calculate the track parameters
