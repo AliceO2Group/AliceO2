@@ -849,7 +849,7 @@ static void addInclinedWalls3FullCyl(TGeoVolume* petalAsm, double phi0_deg = kIn
   const double wallDy = 0.5 * kInclinedWallThick_cm;
   const double shellTh = kSiLayerThick_cm; // 0.1 mm shell thickness for bounds
   const double h = 0.5 * shellTh;
-  const double dz = 0.5 * kLenZ_cm; // match barrel/coldplate length in full-cyl option
+  const double dz = 0.5 * kPetalZ_cm; // match barrel/coldplate length in full-cyl option
 
   constexpr int nWalls = 3;
   constexpr double dPhi = 360.0 / double(nWalls);
