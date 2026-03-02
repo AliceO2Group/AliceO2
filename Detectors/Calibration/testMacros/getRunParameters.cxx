@@ -53,6 +53,18 @@ void writeDurationToFile(long duration)
   fclose(fptr);
 }
 
+void writeSORToFile(long sor)
+{
+
+  FILE* fptr = fopen("SOR.txt", "w");
+  if (fptr == nullptr) {
+    LOGP(fatal, "ERROR: Could not open file to write SOR!");
+    return;
+  }
+  fprintf(fptr, "%ld", sor);
+  fclose(fptr);
+}
+
 void writeBFieldToFile(float b)
 {
 
@@ -165,6 +177,7 @@ int main(int argc, char* argv[])
       ir = -1.f;
       writeIRtoFile(ir);
       writeDurationToFile(run_O2duration);
+      writeSORToFile(tsSOR);
       return 0;
     }
   }
@@ -204,6 +217,7 @@ int main(int argc, char* argv[])
   }
   writeIRtoFile(ir);
   writeDurationToFile(duration);
+  writeSORToFile(tsSOR);
 
   return 0;
 }
