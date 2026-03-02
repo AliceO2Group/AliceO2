@@ -81,6 +81,10 @@ fi
 
 [[ "$FIRSTSAMPLEDORBIT" -lt "$RUNFIRSTORBIT" ]] && FIRSTSAMPLEDORBIT=$RUNFIRSTORBIT
 
+# get run start time
+taskwrapper run_params.log o2-calibration-get-run-parameters -r $RUNNUMBER
+runStartTime=`cat SOR.txt`
+
 # allow skipping
 JOBUTILS_SKIPDONE=ON
 # potentially enable memory monitoring (independent on whether DPL or not)
@@ -162,6 +166,7 @@ taskwrapper collcontext.log o2-steer-colcontexttool \
   --maxCollsPerTF ${NEvents} \
   --orbitsEarly ${OrbitsBeforeTf} \
   --bcPatternFile ccdb \
+  --timestamp ${runStartTime} \
   ${QEDSPEC}
 
 # Include collision system for TPC loopers generation
