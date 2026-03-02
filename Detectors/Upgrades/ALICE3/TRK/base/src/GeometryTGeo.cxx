@@ -127,9 +127,9 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   setSize(numberOfChipsTotal);
-  fillMatrixCache(loadTrans);
   defineMLOTSensors();
   fillTrackingFramesCacheMLOT();
+  fillMatrixCache(loadTrans);
 }
 
 //__________________________________________________________________________

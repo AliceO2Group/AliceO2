@@ -104,8 +104,21 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   bool isTrackingFrameCachedMLOT() const { return !mCacheRefXMLOT.empty(); }
   void fillTrackingFramesCacheMLOT();
 
-  float getSensorRefAlphaMLOT(int index) const { return mCacheRefAlphaMLOT[index]; }
-  float getSensorXMLOT(int index) const { return mCacheRefXMLOT[index]; }
+  float getSensorRefAlphaMLOT(int chipId) const
+  {
+    assert(getSubDetID(chipId) != 0 && "Called MLOT getter with VD chipId");
+    const int local = chipId - getNumberOfActivePartsVD();
+    assert(local >= 0 && local < (int)mCacheRefAlphaMLOT.size());
+    return mCacheRefAlphaMLOT[local];
+  }
+
+  float getSensorXMLOT(int chipId) const
+  {
+    assert(getSubDetID(chipId) != 0 && "Called MLOT getter with VD chipId");
+    const int local = chipId - getNumberOfActivePartsVD();
+    assert(local >= 0 && local < (int)mCacheRefXMLOT.size());
+    return mCacheRefXMLOT[local];
+  }
 
   // create matrix for tracking to local frame for MLOT
   TGeoHMatrix& createT2LMatrixMLOT(int);
