@@ -125,48 +125,56 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     size_t nROFs = clusROFVec.size();
     const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
     const int nROFsTF = nROFsPerOrbit * o2::base::GRPGeomHelper::getNHBFPerTF();
-    if (nROFsTF != clusROFVec.size()) {
-      // it can happen that in the digitization rofs without contributing hits are skipped
-      // however downstream consumers of the clusters cannot know apriori the time structure
-      // the cluster rofs do not account for the bias so it will start always at BC=0
-      // if we receive more cluster rofs then there supposed to be, do not throw away this data
-      // the clusterer should be blind to this!
-      const size_t nROFsLayer = std::max((size_t)nROFsTF, clusROFVec.size());
-      std::vector<o2::itsmft::ROFRecord> expClusRofVec(nROFsLayer);
-      for (int iROF{0}; iROF < nROFsLayer; ++iROF) {
-        auto& rof = expClusRofVec[iROF];
-        int orb = iROF * par.getROFLengthInBC(iLayer) / o2::constants::lhc::LHCMaxBunches + firstTForbit;
-        int bc = iROF * par.getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches;
-        o2::InteractionRecord ir(bc, orb);
-        rof.setBCData(ir);
-        rof.setROFrame(iROF);
-        rof.setNEntries(0);
-        rof.setFirstEntry(-1);
+    // It can happen that in the digitization rofs without contributing hits are skipped or there are stray ROFs
+    // We will preserve the clusters as they are but the stray ROFs will be removed (leaving their clusters unaddressed).
+    std::vector<o2::itsmft::ROFRecord> expClusRofVec(nROFsTF);
+    for (int iROF{0}; iROF < nROFsTF; ++iROF) {
+      auto& rof = expClusRofVec[iROF];
+      int orb = iROF * par.getROFLengthInBC(iLayer) / o2::constants::lhc::LHCMaxBunches + firstTForbit;
+      int bc = iROF * par.getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches;
+      o2::InteractionRecord ir(bc, orb);
+      rof.setBCData(ir);
+      rof.setROFrame(iROF);
+      rof.setNEntries(0);
+      rof.setFirstEntry(-1);
+    }
+    uint32_t prevEntry{0};
+    for (const auto& rof : clusROFVec) {
+      const auto& ir = rof.getBCData();
+      if (ir < firstIR) {
+        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}, layer:{}", ir.asString(), firstTForbit, iLayer);
+        continue;
       }
-      uint32_t prevEntry{0};
-      for (const auto& rof : clusROFVec) {
-        const auto& ir = rof.getBCData();
-        const auto irToFirst = ir - firstIR;
-        const int irROF = irToFirst.toLong() / par.getROFLengthInBC(iLayer);
-        auto& expROF = expClusRofVec[irROF];
+      const auto irToFirst = ir - firstIR;
+      const long irROF = irToFirst.toLong() / par.getROFLengthInBC(iLayer);
+      if (irROF >= nROFsTF) {
+        LOGP(warn, "Discard ROF {} exceding TF orbit range, layer:{}", ir.asString(), iLayer);
+        continue;
+      }
+      auto& expROF = expClusRofVec[irROF];
+      if (expROF.getNEntries() == 0) {
         expROF.setFirstEntry(rof.getFirstEntry());
         expROF.setNEntries(rof.getNEntries());
-        if (expROF.getBCData() != rof.getBCData()) {
-          LOGP(fatal, "detected mismatch between expected ROF:{} and received ROF:{}", expROF.asString(), rof.asString());
+      } else {
+        if (expROF.getNEntries() < rof.getNEntries()) {
+          LOGP(warn, "Repeating ROF {} with {} clusters, prefer to already processed instance with {} clusters", rof.asString(), rof.getNEntries(), expROF.getNEntries());
+          expROF.setFirstEntry(rof.getFirstEntry());
+          expROF.setNEntries(rof.getNEntries());
+        } else {
+          LOGP(warn, "Repeating ROF {} with {} clusters, discard preferring already processed instance with {} clusters", rof.asString(), rof.getNEntries(), expROF.getNEntries());
         }
       }
-      int prevFirst{0};
-      for (auto& rof : expClusRofVec) {
-        if (rof.getFirstEntry() < 0) {
-          rof.setFirstEntry(prevFirst);
-        }
-        prevFirst = rof.getFirstEntry();
-      }
-      nROFs = expClusRofVec.size();
-      pc.outputs().snapshot(Output{Origin, "CLUSTERSROF", iLayer}, expClusRofVec);
-    } else {
-      pc.outputs().snapshot(Output{Origin, "CLUSTERSROF", iLayer}, clusROFVec);
     }
+    int prevFirst{0};
+    for (auto& rof : expClusRofVec) {
+      if (rof.getFirstEntry() < 0) {
+        rof.setFirstEntry(prevFirst);
+      }
+      prevFirst = rof.getFirstEntry();
+    }
+    nROFs = expClusRofVec.size();
+    pc.outputs().snapshot(Output{Origin, "CLUSTERSROF", iLayer}, expClusRofVec);
+
     pc.outputs().snapshot(Output{Origin, "COMPCLUSTERS", iLayer}, clusCompVec);
     pc.outputs().snapshot(Output{Origin, "PATTERNS", iLayer}, clusPattVec);
 
