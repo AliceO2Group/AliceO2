@@ -41,8 +41,7 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   void popMemoryStack(const int);
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
-  void initialise(const int, const TrackingParameters&, const int, IndexTableUtilsN* utils = nullptr);
-  void initDeviceSAFitting();
+  void initialise(const int, const TrackingParameters&, const int);
   void loadIndexTableUtils(const int);
   void loadTrackingFrameInfoDevice(const int, const int);
   void createTrackingFrameInfoDeviceArray(const int);
@@ -59,8 +58,8 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   void createROFrameClustersDeviceArray(const int);
   void loadMultiplicityCutMask(const int);
   void loadVertices(const int);
-  void loadROFOverlapTable();
-  void loadROFVertexLookupTable();
+  void loadROFOverlapTable(const int);
+  void loadROFVertexLookupTable(const int);
   void updateROFVertexLookupTable(const int);
 
   ///
@@ -174,9 +173,9 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   gsl::span<CellSeedN*> getDeviceCells() { return mCellsDevice; }
 
   // Overridden getters
-  int getNumberOfTracklets() const final;
-  int getNumberOfCells() const final;
-  int getNumberOfNeighbours() const final;
+  size_t getNumberOfTracklets() const final;
+  size_t getNumberOfCells() const final;
+  size_t getNumberOfNeighbours() const final;
 
  private:
   void allocMemAsync(void**, size_t, Stream&, bool, int32_t = o2::gpu::GPUMemoryResource::MEMORY_GPU); // Abstract owned and unowned memory allocations on specific stream
@@ -275,19 +274,19 @@ inline std::vector<unsigned int> TimeFrameGPU<NLayers>::getClusterSizes()
 }
 
 template <int NLayers>
-inline int TimeFrameGPU<NLayers>::getNumberOfTracklets() const
+inline size_t TimeFrameGPU<NLayers>::getNumberOfTracklets() const
 {
   return std::accumulate(mNTracklets.begin(), mNTracklets.end(), 0);
 }
 
 template <int NLayers>
-inline int TimeFrameGPU<NLayers>::getNumberOfCells() const
+inline size_t TimeFrameGPU<NLayers>::getNumberOfCells() const
 {
   return std::accumulate(mNCells.begin(), mNCells.end(), 0);
 }
 
 template <int NLayers>
-inline int TimeFrameGPU<NLayers>::getNumberOfNeighbours() const
+inline size_t TimeFrameGPU<NLayers>::getNumberOfNeighbours() const
 {
   return std::accumulate(mNNeighbours.begin(), mNNeighbours.end(), 0);
 }

@@ -315,16 +315,14 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     digipar.setVbb(dopt.Vbb);
     // staggering parameters
     if constexpr (o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) {
-      const bool withStag = aopt.withStaggering();
       for (int iLayer{0}; iLayer < o2::itsmft::DPLAlpideParam<N>::getNLayers(); ++iLayer) {
-        const int nLayer = (withStag) ? iLayer : -1;
-        auto frameNS = aopt.getROFLengthInBC(nLayer) * o2::constants::lhc::LHCBunchSpacingNS;
-        digipar.addROFrameLayerLengthInBC(aopt.getROFLengthInBC(nLayer));
+        auto frameNS = aopt.getROFLengthInBC(iLayer) * o2::constants::lhc::LHCBunchSpacingNS;
+        digipar.addROFrameLayerLengthInBC(aopt.getROFLengthInBC(iLayer));
         // NOTE: the rof delay looks from the digitizer like an additional bias
-        digipar.addROFrameLayerBiasInBC(aopt.getROFBiasInBC(nLayer) + aopt.getROFDelayInBC(nLayer));
+        digipar.addROFrameLayerBiasInBC(aopt.getROFBiasInBC(iLayer) + aopt.getROFDelayInBC(iLayer));
         digipar.addStrobeDelay(aopt.strobeDelay);
         digipar.addStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay);
-        digipar.setROFrameLength(aopt.getROFLengthInBC(nLayer) * o2::constants::lhc::LHCBunchSpacingNS, iLayer);
+        digipar.setROFrameLength(aopt.getROFLengthInBC(iLayer) * o2::constants::lhc::LHCBunchSpacingNS, iLayer);
       }
     }
 

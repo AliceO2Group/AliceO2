@@ -41,7 +41,9 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
   LogFunc evalLog = [](const std::string&) {};
 
   if (mTimeFrame->hasMCinformation() && mVertParams[0].useTruthSeeding) {
-    return evaluateTask(&Vertexer::addTruthSeeds, StateNames[mCurState = TruthSeeding], 0, evalLog);
+    float t = evaluateTask(&Vertexer::addTruthSeeds, StateNames[mCurState = TruthSeeding], 0, evalLog);
+    sortVertices();
+    return t;
   }
 
   TrackingParameters trkPars;

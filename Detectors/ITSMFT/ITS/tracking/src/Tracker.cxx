@@ -14,16 +14,11 @@
 ///
 
 #include "ITStracking/Tracker.h"
-
 #include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
-#include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackingConfigParam.h"
 
-#include "ReconstructionDataFormats/Track.h"
 #include <cassert>
 #include <format>
 #include <cstdlib>
@@ -84,11 +79,11 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       if (iteration == 3 && mTrkParams[0].DoUPCIteration) {
         mTimeFrame->swapMasks();
       }
-      double timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
-      int nTracklets{0}, nCells{0}, nNeighbours{0}, nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
+      float timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
+      size_t nTracklets{0}, nCells{0}, nNeighbours{0};
+      int nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
       iVertex = std::min(maxNvertices, 0);
       logger(std::format("==== ITS {} Tracking iteration {} summary ====", mTraits->getName(), iteration));
-
       total += evaluateTask(&Tracker::initialiseTimeFrame, StateNames[mCurState = TFInit], iteration, logger, iteration);
       do {
         timeTracklets += evaluateTask(&Tracker::computeTracklets, StateNames[mCurState = Trackleting], iteration, evalLog, iteration, iVertex);

@@ -84,7 +84,7 @@ GPUhdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float ph
   // Nothing to do
 }
 
-GPUhdi() unsigned char Tracklet::operator<(const Tracklet& t) const
+GPUhdi() unsigned char Tracklet::operator<(const Tracklet & t) const
 {
   if (isEmpty()) {
     return false;

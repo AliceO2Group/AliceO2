@@ -180,10 +180,10 @@ struct TimeFrame {
   auto& getTracksLabel() { return mTracksLabel; }
   auto& getLinesLabel(const int rofId) { return mLinesLabels[rofId]; }
 
-  int getNumberOfClusters() const;
-  virtual int getNumberOfCells() const;
-  virtual int getNumberOfTracklets() const;
-  virtual int getNumberOfNeighbours() const;
+  size_t getNumberOfClusters() const;
+  virtual size_t getNumberOfCells() const;
+  virtual size_t getNumberOfTracklets() const;
+  virtual size_t getNumberOfNeighbours() const;
   size_t getNumberOfTracks() const;
   size_t getNumberOfUsedClusters() const;
 
@@ -236,7 +236,7 @@ struct TimeFrame {
 
   // Propagator
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};
 
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
@@ -524,9 +524,9 @@ inline int TimeFrame<NLayers>::getTotalClusters() const
 }
 
 template <int NLayers>
-inline int TimeFrame<NLayers>::getNumberOfClusters() const
+inline size_t TimeFrame<NLayers>::getNumberOfClusters() const
 {
-  int nClusters = 0;
+  size_t nClusters{0};
   for (const auto& layer : mClusters) {
     nClusters += layer.size();
   }
@@ -534,9 +534,9 @@ inline int TimeFrame<NLayers>::getNumberOfClusters() const
 }
 
 template <int NLayers>
-inline int TimeFrame<NLayers>::getNumberOfCells() const
+inline size_t TimeFrame<NLayers>::getNumberOfCells() const
 {
-  int nCells = 0;
+  size_t nCells{0};
   for (const auto& layer : mCells) {
     nCells += layer.size();
   }
@@ -544,9 +544,9 @@ inline int TimeFrame<NLayers>::getNumberOfCells() const
 }
 
 template <int NLayers>
-inline int TimeFrame<NLayers>::getNumberOfTracklets() const
+inline size_t TimeFrame<NLayers>::getNumberOfTracklets() const
 {
-  int nTracklets = 0;
+  size_t nTracklets{0};
   for (const auto& layer : mTracklets) {
     nTracklets += layer.size();
   }
@@ -554,13 +554,13 @@ inline int TimeFrame<NLayers>::getNumberOfTracklets() const
 }
 
 template <int NLayers>
-inline int TimeFrame<NLayers>::getNumberOfNeighbours() const
+inline size_t TimeFrame<NLayers>::getNumberOfNeighbours() const
 {
-  int n{0};
+  size_t neigh{0};
   for (const auto& l : mCellsNeighbours) {
-    n += l.size();
+    neigh += l.size();
   }
-  return n;
+  return neigh;
 }
 
 template <int NLayers>

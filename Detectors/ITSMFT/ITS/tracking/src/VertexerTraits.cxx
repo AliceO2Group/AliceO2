@@ -481,17 +481,23 @@ void VertexerTraits<NLayers>::addTruthSeedingVertices()
     if (!ir.isDummy()) { // do we need this, is this for diffractive events?
       const auto& eve = mcReader.getMCEventHeader(iSrc, iEve);
       auto bc = (ir - raw::HBFUtils::Instance().getFirstSampledTFIR()).toLong() - roFrameBiasInBC;
+      if (bc < 0) { // event happened before TF
+        continue;
+      }
       Vertex vert;
       vert.getTimeStamp().setTimeStamp(bc);
       vert.getTimeStamp().setTimeStampError(roFrameLengthInBC / 2);
       // set minimum to 1 sometimes for diffractive events there is nothing acceptance
-      vert.setNContributors(std::max(1L, std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
-                                       return trk.isPrimary() && trk.GetPt() > 0.05 && std::abs(trk.GetEta()) < 1.1;
-                                     })));
+      // vert.setNContributors(std::max(1L, std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
+      //                                  return trk.isPrimary() && trk.GetPt() > 0.05 && std::abs(trk.GetEta()) < 1.1;
+      //                                })));
+      vert.setNContributors(1);
       vert.setXYZ((float)eve.GetX(), (float)eve.GetY(), (float)eve.GetZ());
       vert.setChi2(1); // not used as constraint
-      constexpr float cov = 25e-8;
-      vert.setCov(cov, cov, cov, cov, cov, cov);
+      constexpr float cov = 25e-4;
+      vert.setSigmaX(cov);
+      vert.setSigmaY(cov);
+      vert.setSigmaZ(cov);
       mTimeFrame->addPrimaryVertex(vert);
       o2::MCCompLabel mcLbl(o2::MCCompLabel::maxTrackID(), iEve, iSrc, false);
       VertexLabel lbl(mcLbl, 1.0);

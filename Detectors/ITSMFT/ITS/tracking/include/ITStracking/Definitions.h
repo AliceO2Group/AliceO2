@@ -39,26 +39,19 @@ using maybe_const = typename std::conditional<IsConst, const T, T>::type;
 // Time estimates are given in BC
 // error needs to cover maximum 1 orbit
 // this is an inclusive symmetric time error [t0-tE, t0+tE]
-struct TimeEstBC : public o2::dataformats::TimeStampWithError<uint32_t, uint16_t> {
-  using Base = o2::dataformats::TimeStampWithError<uint32_t, uint16_t>;
+using TimeStampType = uint32_t;
+using TimeStampErrorType = uint16_t;
+class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, TimeStampErrorType>
+{
+ public:
+  using Base = o2::dataformats::TimeStampWithError<TimeStampType, TimeStampErrorType>;
   GPUhdDefault() TimeEstBC() = default;
-  GPUhdi() TimeEstBC(uint32_t t, uint16_t e) : Base(t, e) {}
+  GPUhdi() TimeEstBC(TimeStampType t, TimeStampErrorType e) : Base(t, e) {}
 
   // check if timestamps overlap within their interval
   GPUhdi() bool isCompatible(const TimeEstBC& o) const noexcept
   {
     return !(upper() < o.lower() || o.upper() < lower());
-  }
-
-  // add the other timestmap to this one
-  // this assumes already that both overlap
-  GPUhdi() void add(const TimeEstBC& o) noexcept
-  {
-    const uint32_t lo = o2::gpu::CAMath::Max(lower(), o.lower());
-    const uint32_t hi = o2::gpu::CAMath::Min(upper(), o.upper());
-    const uint32_t half = (hi - lo) / 2u;
-    this->setTimeStamp(lo + half);
-    this->setTimeStampError(static_cast<uint16_t>(half));
   }
 
   GPUhdi() TimeEstBC& operator+=(const TimeEstBC& o) noexcept
@@ -74,21 +67,34 @@ struct TimeEstBC : public o2::dataformats::TimeStampWithError<uint32_t, uint16_t
     return res;
   }
 
-  GPUhdi() uint32_t lower() const noexcept
+ private:
+  // add the other timestmap to this one
+  // this assumes already that both overlap
+  GPUhdi() void add(const TimeEstBC& o) noexcept
   {
-    uint32_t t = this->getTimeStamp();
-    uint32_t e = this->getTimeStampError();
-    return (t > e) ? (t - e) : 0u;
+    const TimeStampType lo = o2::gpu::CAMath::Max(lower(), o.lower());
+    const TimeStampType hi = o2::gpu::CAMath::Min(upper(), o.upper());
+    const TimeStampType half = (hi - lo) / 2u;
+    this->setTimeStamp(lo + half);
+    this->setTimeStampError(static_cast<TimeStampErrorType>(half));
   }
-  GPUhdi() uint32_t upper() const noexcept
+
+  GPUhdi() TimeStampType upper() const noexcept
   {
-    uint32_t t = this->getTimeStamp();
-    uint32_t e = this->getTimeStampError();
-    constexpr uint32_t max = std::numeric_limits<uint32_t>::max();
+    TimeStampType t = this->getTimeStamp();
+    TimeStampType e = this->getTimeStampError();
+    constexpr TimeStampType max = std::numeric_limits<TimeStampType>::max();
     return (t > (max - e)) ? max : t + e;
   }
 
-  ClassDef(TimeEstBC, 1);
+  GPUhdi() TimeStampType lower() const noexcept
+  {
+    TimeStampType t = this->getTimeStamp();
+    TimeStampType e = this->getTimeStampError();
+    return (t > e) ? (t - e) : 0u;
+  }
+
+  ClassDefNV(TimeEstBC, 1);
 };
 using Vertex = o2::dataformats::Vertex<TimeEstBC>;
 using VertexLabel = std::pair<o2::MCCompLabel, float>;

@@ -265,9 +265,6 @@ void TimeFrameGPU<NLayers>::loadVertices(const int iteration)
 {
   if (!iteration) {
     GPUTimer timer("loading seeding vertices");
-    // GPULog("gpu-transfer: loading {} ROframes vertices, for {:.2f} MB.", this->mROFramesPV.size(), this->mROFramesPV.size() * sizeof(int) / constants::MB);
-    // allocMem(reinterpret_cast<void**>(&mROFramesPVDevice), this->mROFramesPV.size() * sizeof(int), this->hasFrameworkAllocator());
-    // GPUChkErrS(cudaMemcpy(mROFramesPVDevice, this->mROFramesPV.data(), this->mROFramesPV.size() * sizeof(int), cudaMemcpyHostToDevice));
     GPULog("gpu-transfer: loading {} seeding vertices, for {:.2f} MB.", this->mPrimaryVertices.size(), this->mPrimaryVertices.size() * sizeof(Vertex) / constants::MB);
     allocMem(reinterpret_cast<void**>(&mPrimaryVerticesDevice), this->mPrimaryVertices.size() * sizeof(Vertex), this->hasFrameworkAllocator());
     GPUChkErrS(cudaMemcpy(mPrimaryVerticesDevice, this->mPrimaryVertices.data(), this->mPrimaryVertices.size() * sizeof(Vertex), cudaMemcpyHostToDevice));
@@ -275,47 +272,51 @@ void TimeFrameGPU<NLayers>::loadVertices(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadROFOverlapTable()
+void TimeFrameGPU<NLayers>::loadROFOverlapTable(const int iteration)
 {
-  GPUTimer timer("initialising device view of ROFOverlapTable");
-  const auto& hostTable = this->getROFOverlapTable();
-  const auto& hostView = this->getROFOverlapTableView();
-  using TableEntry = ROFOverlapTable<NLayers>::TableEntry;
-  using TableIndex = ROFOverlapTable<NLayers>::TableIndex;
-  using LayerTiming = o2::its::LayerTiming;
-  TableEntry* d_flatTable{nullptr};
-  TableIndex* d_indices{nullptr};
-  LayerTiming* d_layers{nullptr};
-  size_t flatTableSize = hostTable.getFlatTableSize();
-  allocMem(reinterpret_cast<void**>(&d_flatTable), flatTableSize * sizeof(TableEntry), this->hasFrameworkAllocator());
-  GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatTable, flatTableSize * sizeof(TableEntry), cudaMemcpyHostToDevice));
-  allocMem(reinterpret_cast<void**>(&d_indices), hostTable.getIndicesSize() * sizeof(TableIndex), this->hasFrameworkAllocator());
-  GPUChkErrS(cudaMemcpy(d_indices, hostView.mIndices, hostTable.getIndicesSize() * sizeof(TableIndex), cudaMemcpyHostToDevice));
-  allocMem(reinterpret_cast<void**>(&d_layers), NLayers * sizeof(LayerTiming), this->hasFrameworkAllocator());
-  GPUChkErrS(cudaMemcpy(d_layers, hostView.mLayers, NLayers * sizeof(LayerTiming), cudaMemcpyHostToDevice));
-  mDeviceROFOverlapTableView = hostTable.getDeviceView(d_flatTable, d_indices, d_layers);
+  if (!iteration) {
+    GPUTimer timer("initialising device view of ROFOverlapTable");
+    const auto& hostTable = this->getROFOverlapTable();
+    const auto& hostView = this->getROFOverlapTableView();
+    using TableEntry = ROFOverlapTable<NLayers>::TableEntry;
+    using TableIndex = ROFOverlapTable<NLayers>::TableIndex;
+    using LayerTiming = o2::its::LayerTiming;
+    TableEntry* d_flatTable{nullptr};
+    TableIndex* d_indices{nullptr};
+    LayerTiming* d_layers{nullptr};
+    size_t flatTableSize = hostTable.getFlatTableSize();
+    allocMem(reinterpret_cast<void**>(&d_flatTable), flatTableSize * sizeof(TableEntry), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatTable, flatTableSize * sizeof(TableEntry), cudaMemcpyHostToDevice));
+    allocMem(reinterpret_cast<void**>(&d_indices), hostTable.getIndicesSize() * sizeof(TableIndex), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(d_indices, hostView.mIndices, hostTable.getIndicesSize() * sizeof(TableIndex), cudaMemcpyHostToDevice));
+    allocMem(reinterpret_cast<void**>(&d_layers), NLayers * sizeof(LayerTiming), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(d_layers, hostView.mLayers, NLayers * sizeof(LayerTiming), cudaMemcpyHostToDevice));
+    mDeviceROFOverlapTableView = hostTable.getDeviceView(d_flatTable, d_indices, d_layers);
+  }
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadROFVertexLookupTable()
+void TimeFrameGPU<NLayers>::loadROFVertexLookupTable(const int iteration)
 {
-  GPUTimer timer("initialising device view of ROFVertexLookupTable");
-  const auto& hostTable = this->getROFVertexLookupTable();
-  const auto& hostView = this->getROFVertexLookupTableView();
-  using TableEntry = ROFVertexLookupTable<NLayers>::TableEntry;
-  using TableIndex = ROFVertexLookupTable<NLayers>::TableIndex;
-  using LayerTiming = o2::its::LayerTiming;
-  TableEntry* d_flatTable{nullptr};
-  TableIndex* d_indices{nullptr};
-  LayerTiming* d_layers{nullptr};
-  size_t flatTableSize = hostTable.getFlatTableSize();
-  allocMem(reinterpret_cast<void**>(&d_flatTable), flatTableSize * sizeof(TableEntry), this->hasFrameworkAllocator());
-  GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatTable, flatTableSize * sizeof(TableEntry), cudaMemcpyHostToDevice));
-  allocMem(reinterpret_cast<void**>(&d_indices), hostTable.getIndicesSize() * sizeof(TableIndex), this->hasFrameworkAllocator());
-  GPUChkErrS(cudaMemcpy(d_indices, hostView.mIndices, hostTable.getIndicesSize() * sizeof(TableIndex), cudaMemcpyHostToDevice));
-  allocMem(reinterpret_cast<void**>(&d_layers), NLayers * sizeof(LayerTiming), this->hasFrameworkAllocator());
-  GPUChkErrS(cudaMemcpy(d_layers, hostView.mLayers, NLayers * sizeof(LayerTiming), cudaMemcpyHostToDevice));
-  mDeviceROFVertexLookupTableView = hostTable.getDeviceView(d_flatTable, d_indices, d_layers);
+  if (!iteration) {
+    GPUTimer timer("initialising device view of ROFVertexLookupTable");
+    const auto& hostTable = this->getROFVertexLookupTable();
+    const auto& hostView = this->getROFVertexLookupTableView();
+    using TableEntry = ROFVertexLookupTable<NLayers>::TableEntry;
+    using TableIndex = ROFVertexLookupTable<NLayers>::TableIndex;
+    using LayerTiming = o2::its::LayerTiming;
+    TableEntry* d_flatTable{nullptr};
+    TableIndex* d_indices{nullptr};
+    LayerTiming* d_layers{nullptr};
+    size_t flatTableSize = hostTable.getFlatTableSize();
+    allocMem(reinterpret_cast<void**>(&d_flatTable), flatTableSize * sizeof(TableEntry), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatTable, flatTableSize * sizeof(TableEntry), cudaMemcpyHostToDevice));
+    allocMem(reinterpret_cast<void**>(&d_indices), hostTable.getIndicesSize() * sizeof(TableIndex), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(d_indices, hostView.mIndices, hostTable.getIndicesSize() * sizeof(TableIndex), cudaMemcpyHostToDevice));
+    allocMem(reinterpret_cast<void**>(&d_layers), NLayers * sizeof(LayerTiming), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(d_layers, hostView.mLayers, NLayers * sizeof(LayerTiming), cudaMemcpyHostToDevice));
+    mDeviceROFVertexLookupTableView = hostTable.getDeviceView(d_flatTable, d_indices, d_layers);
+  }
 }
 
 template <int NLayers>
@@ -373,6 +374,7 @@ void TimeFrameGPU<NLayers>::createTrackletsBuffers(const int layer)
   mGpuStreams[layer].sync(); // ensure number of tracklets is correct
   GPULog("gpu-transfer: creating tracklets buffer for {} elements on layer {}, for {:.2f} MB.", mNTracklets[layer], layer, mNTracklets[layer] * sizeof(Tracklet) / constants::MB);
   allocMemAsync(reinterpret_cast<void**>(&mTrackletsDevice[layer]), mNTracklets[layer] * sizeof(Tracklet), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPUChkErrS(cudaMemsetAsync(mTrackletsDevice[layer], 0, mNTracklets[layer] * sizeof(Tracklet), mGpuStreams[layer].get()));
   GPUChkErrS(cudaMemcpyAsync(&mTrackletsDeviceArray[layer], &mTrackletsDevice[layer], sizeof(Tracklet*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
 }
 
@@ -468,6 +470,7 @@ void TimeFrameGPU<NLayers>::createCellsBuffers(const int layer)
   mGpuStreams[layer].sync(); // ensure number of cells is correct
   GPULog("gpu-transfer: creating cell buffer for {} elements on layer {}, for {:.2f} MB.", mNCells[layer], layer, mNCells[layer] * sizeof(CellSeedN) / constants::MB);
   allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[layer]), mNCells[layer] * sizeof(CellSeedN), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPUChkErrS(cudaMemsetAsync(mCellsDevice[layer], 0, mNCells[layer] * sizeof(CellSeedN), mGpuStreams[layer].get()));
   GPUChkErrS(cudaMemcpyAsync(&mCellsDeviceArray[layer], &mCellsDevice[layer], sizeof(CellSeedN*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
 }
 
@@ -637,11 +640,10 @@ void TimeFrameGPU<NLayers>::popMemoryStack(const int iteration)
 template <int NLayers>
 void TimeFrameGPU<NLayers>::initialise(const int iteration,
                                        const TrackingParameters& trkParam,
-                                       const int maxLayers,
-                                       IndexTableUtilsN* utils)
+                                       const int maxLayers)
 {
   mGpuStreams.resize(NLayers);
-  o2::its::TimeFrame<NLayers>::initialise(iteration, trkParam, maxLayers);
+  o2::its::TimeFrame<NLayers>::initialise(iteration, trkParam, maxLayers, false);
 }
 
 template <int NLayers>

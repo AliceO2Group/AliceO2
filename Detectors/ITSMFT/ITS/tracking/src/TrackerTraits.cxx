@@ -254,7 +254,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
       });
     }
   });
-} // namespace o2::its
+}
 
 template <int NLayers>
 void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
