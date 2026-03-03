@@ -35,6 +35,8 @@ class FT0EventsPerBcProcessor final : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    mSaveToFile = ic.options().get<bool>("save-to-file");
+
     if (ic.options().hasOption("slot-len-sec")) {
       mSlotLenSec = ic.options().get<uint32_t>("slot-len-sec");
     }
@@ -73,6 +75,10 @@ class FT0EventsPerBcProcessor final : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    if (tinfo.globalRunNumberChanged || mRunNoFromDH < 1) { // new run is starting
+      mRunNoFromDH = tinfo.runNumber;
+    }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
@@ -107,6 +113,18 @@ class FT0EventsPerBcProcessor final : public o2::framework::Task
                 << " bytes, valid for " << info->getStartValidityTimestamp() << " : " << info->getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EventsPerBc", idx}, *image.get());
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EventsPerBc", idx}, *info.get());
+      if (mSaveToFile) {
+        std::string fnout = fmt::format("ft0eventsPerBC_run_{}_{}_{}.root", mRunNoFromDH, info->getStartValidityTimestamp(), info->getEndValidityTimestamp());
+        try {
+          TFile flout(fnout.c_str(), "recreate");
+          flout.WriteObjectAny(&payload, "o2::ft0::EventsPerBc", o2::ccdb::CcdbApi::CCDBOBJECT_ENTRY);
+          LOGP(info, R"(Saved to file, can upload as: o2-ccdb-upload -f {} --starttimestamp {} --endtimestamp {} -k "ccdb_object" --path {} -m "runNumber={};AdjustableEOV=true;")",
+               fnout, info->getStartValidityTimestamp(), info->getEndValidityTimestamp(), info->getPath(), mRunNoFromDH);
+          flout.Close();
+        } catch (const std::exception& ex) {
+          LOGP(error, "failed to store object to file {}, error: {}", fnout, ex.what());
+        }
+      }
     }
 
     if (tvxHists.size()) {
@@ -118,6 +136,8 @@ class FT0EventsPerBcProcessor final : public o2::framework::Task
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::unique_ptr<o2::ft0::EventsPerBcCalibrator> mCalibrator;
   bool mOneObjectPerRun;
+  bool mSaveToFile = false;
+  int mRunNoFromDH = 0;
   uint32_t mSlotLenSec;
   uint32_t mMinNumberOfEntries;
   int32_t mMinAmplitudeSideA;

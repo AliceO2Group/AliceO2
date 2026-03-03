@@ -35,6 +35,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
     outputs,
     AlgorithmSpec(adaptFromTask<FT0EventsPerBcProcessor>(ccdbRequest)),
     Options{
+      {"save-to-file", VariantType::Bool, false, {"Save calibration object to local file"}},
       {"slot-len-sec", VariantType::UInt32, 3600u, {"Duration of each slot in seconds"}},
       {"one-object-per-run", VariantType::Bool, false, {"If set, workflow creates only one calibration object per run"}},
       {"min-entries-number", VariantType::UInt32, 5000u, {"Minimum number of entries required for a slot to be valid"}},
