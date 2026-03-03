@@ -363,7 +363,7 @@ if [[ ${O2_GPU_RTC:-$EPNSYNCMODE} == 1 ]] && [[ ( ${ALICE_O2_FST:-0} == 1 && ${F
   [[ ${EPN_NODE_MI100:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtctech.overrideArchitecture=--offload-arch=gfx908;"
 fi
 
-( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
+( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecificationOut 1 "
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
 [[ -n ${MFTMCH_NCANDIDATES_OPT:-} ]] && MFTMCHConf+="${MFTMCH_NCANDIDATES_OPT}"
 
@@ -568,7 +568,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
   has_detector CTP && ! has_detector_from_global_reader CTP && add_W o2-ctp-reco-workflow "$DISABLE_ROOT_OUTPUT $CTP_CONFIG --ntf-to-average 1 --pipeline $(get_N ctp-raw-decoder CTP RAW 1)"
   has_detector PHS && ! has_detector_from_global_reader PHS && ! has_detector_flp_processing PHS && add_W o2-phos-reco-workflow "--input-type raw --output-type cells $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N PHOSRawToCellConverterSpec PHS REST 1) $DISABLE_MC"
   has_detector CPV && ! has_detector_from_global_reader CPV && add_W o2-cpv-reco-workflow "--input-type $CPV_INPUT --output-type clusters $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N CPVRawToDigitConverterSpec CPV REST 1),$(get_N CPVClusterizerSpec CPV REST 1) $DISABLE_MC"
-  has_detector EMC && ! has_detector_from_global_reader EMC && ! has_detector_flp_processing EMC && add_W o2-emcal-reco-workflow "--input-type raw --output-type cells ${RAW_EMC_SUBSPEC:-} $EMCRAW2C_CONFIG $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N EMCALRawToCellConverterSpec EMC REST 1 EMCREC)"
+  has_detector EMC && ! has_detector_from_global_reader EMC && ! has_detector_flp_processing EMC && add_W o2-emcal-reco-workflow "--input-type raw --output-type cells ${RAW_EMC_SUBSPEC:-} $EMCRAW2C_CONFIG --disable-root-output $DISABLE_MC --pipeline $(get_N EMCALRawToCellConverterSpec EMC REST 1 EMCREC)"
 fi
 
 has_detector_gpu ITS && GPU_INPUT+=",its-clusters"
