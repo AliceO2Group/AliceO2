@@ -165,12 +165,12 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
         }
       }
     }
-    int prevFirst{0};
+    int prevLast{0};
     for (auto& rof : expClusRofVec) {
       if (rof.getFirstEntry() < 0) {
-        rof.setFirstEntry(prevFirst);
+        rof.setFirstEntry(prevLast);
       }
-      prevFirst = rof.getFirstEntry();
+      prevLast = rof.getFirstEntry() + rof.getNEntries();
     }
     nROFs = expClusRofVec.size();
     pc.outputs().snapshot(Output{Origin, "CLUSTERSROF", iLayer}, expClusRofVec);
