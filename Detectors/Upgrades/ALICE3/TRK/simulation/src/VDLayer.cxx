@@ -28,7 +28,7 @@ namespace o2
 namespace trk
 {
 
-  // Helper function for floating point comparison
+// Helper function for floating point comparison
 inline bool isFullCircle(double phiSpanDeg, double epsilon = 0.005)
 {
   return (std::fabs(phiSpanDeg - 360.0) < epsilon);
