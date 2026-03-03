@@ -37,7 +37,6 @@ using CompClusType = std::vector<o2::itsmft::CompClusterExt>;
 using PatternsType = std::vector<unsigned char>;
 using ROFrameRType = std::vector<o2::itsmft::ROFRecord>;
 using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
 using namespace o2::header;
 
 template <int N>
@@ -91,11 +90,6 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
                                                                getName},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", ConcreteDataTypeMatcher{Origin, "CLUSTERSMCTR"}},
                                                              (detName + "ClusterMCTruth").c_str(), "cluster-label-branch",
-                                                             (useMC ? NLayers : 0),
-                                                             getIndex,
-                                                             getName},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", ConcreteDataTypeMatcher{Origin, "CLUSTERSMC2ROF"}},
-                                                             (detName + "ClustersMC2ROF").c_str(), "cluster-mc2rof-branch",
                                                              (useMC ? NLayers : 0),
                                                              getIndex,
                                                              getName})();

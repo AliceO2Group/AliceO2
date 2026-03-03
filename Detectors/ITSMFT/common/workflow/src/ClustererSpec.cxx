@@ -53,7 +53,6 @@ void ClustererDPL<N>::init(InitContext& ic)
     mFilter.emplace_back("ROframe", Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mUseMC) {
       mFilter.emplace_back("labels", Origin, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
-      mFilter.emplace_back("MC2ROframes", Origin, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
 }
@@ -67,7 +66,6 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
   std::array<gsl::span<const o2::itsmft::Digit>, NLayers> digits;
   std::array<gsl::span<const o2::itsmft::ROFRecord>, NLayers> rofs;
   std::array<gsl::span<const char>, NLayers> labelsbuffer;
-  std::array<gsl::span<const o2::itsmft::MC2ROFRecord>, NLayers> mc2rofs;
   for (const DataRef& ref : InputRecordWalker{pc.inputs(), mFilter}) {
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{Origin, "DIGITS"}})) {
@@ -78,9 +76,6 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     }
     if (DataRefUtils::match(ref, {"labels", ConcreteDataTypeMatcher{Origin, "DIGITSMCTR"}})) {
       labelsbuffer[dh->subSpecification] = pc.inputs().get<gsl::span<char>>(ref);
-    }
-    if (DataRefUtils::match(ref, {"MC2ROframes", ConcreteDataTypeMatcher{Origin, "DIGITSMC2ROF"}})) {
-      mc2rofs[dh->subSpecification] = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>(ref);
     }
   }
 
@@ -106,7 +101,6 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     reader.setDigits(digits[iLayer]);
     reader.setROFRecords(rofs[iLayer]);
     if (mUseMC) {
-      reader.setMC2ROFRecords(mc2rofs[iLayer]);
       LOG(info) << mDetName << "Clusterer:" << layer << " pulled " << labels.getNElements() << " labels ";
       reader.setDigitsMCTruth(labels.getIndexedSize() > 0 ? &labels : nullptr);
     }
@@ -182,16 +176,9 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
 
     if (mUseMC) {
       pc.outputs().snapshot(Output{Origin, "CLUSTERSMCTR", iLayer}, *clusterLabels); // at the moment requires snapshot
-      std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs[iLayer].size());
-      for (int i = mc2rofs[iLayer].size(); i--;) {
-        clusterMC2ROframes[i] = mc2rofs[iLayer][i]; // Simply, replicate it from digits ?
-      }
-      pc.outputs().snapshot(Output{Origin, "CLUSTERSMC2ROF", iLayer}, clusterMC2ROframes);
     }
     reader.reset();
 
-    // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
-    // -> consider recalculationg maxROF
     sw.Stop();
     LOG(info) << mDetName << "Clusterer:" << layer << " pushed " << clusCompVec.size() << " clusters, in " << nROFs << " RO frames in " << sw.RealTime() << " s";
   }
@@ -285,7 +272,6 @@ DataProcessorSpec getClustererSpec(bool useMC)
     inputs.emplace_back("ROframes", Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (useMC) {
       inputs.emplace_back("labels", Origin, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
-      inputs.emplace_back("MC2ROframes", Origin, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   inputs.emplace_back("cldict", Origin, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(Origin.as<std::string>() + "/Calib/ClusterDictionary"));
@@ -306,7 +292,6 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs.emplace_back(Origin, "CLUSTERSROF", iLayer, Lifetime::Timeframe);
     if (useMC) {
       outputs.emplace_back(Origin, "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
-      outputs.emplace_back(Origin, "CLUSTERSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   return DataProcessorSpec{

@@ -43,12 +43,10 @@ void TrackReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << "Pushing " << mTracks.size() << " track in " << mROFRec.size() << " ROFs at entry " << ent;
-  pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0}, mROFRec);
+  LOG(info) << "Pushing " << mTracks.size() << " track at entry " << ent;
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0}, mClusInd);
   pc.outputs().snapshot(Output{"ITS", "VERTICES", 0}, mVertices);
-  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0}, mVerticesROFRec);
   if (mUseMC) {
     pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0}, mMCTruth);
     pc.outputs().snapshot(Output{mOrigin, "VERTICESMCTR", 0}, mMCVertTruth);
@@ -69,19 +67,12 @@ void TrackReader::connectTree(const std::string& filename)
   assert(mTree);
   assert(mTree->GetBranch(mROFBranchName.c_str()));
 
-  mTree->SetBranchAddress(mROFBranchName.c_str(), &mROFRecInp);
   mTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
   mTree->SetBranchAddress(mClusIdxBranchName.c_str(), &mClusIndInp);
   if (!mTree->GetBranch(mVertexBranchName.c_str())) {
     LOG(warning) << "No " << mVertexBranchName << " branch in " << mTrackTreeName << " -> vertices will be empty";
   } else {
     mTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesInp);
-  }
-  if (!mTree->GetBranch(mVertexROFBranchName.c_str())) {
-    LOG(warning) << "No " << mVertexROFBranchName << " branch in " << mTrackTreeName
-                 << " -> vertices ROFrecords will be empty";
-  } else {
-    mTree->SetBranchAddress(mVertexROFBranchName.c_str(), &mVerticesROFRecInp);
   }
   if (mUseMC) {
     if (mTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
@@ -96,11 +87,9 @@ void TrackReader::connectTree(const std::string& filename)
 DataProcessorSpec getITSTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
   if (useMC) {
     outputSpec.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputSpec.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);

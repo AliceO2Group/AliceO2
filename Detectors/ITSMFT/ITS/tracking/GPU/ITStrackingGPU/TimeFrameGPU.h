@@ -24,11 +24,13 @@
 namespace o2::its::gpu
 {
 
-template <int nLayers = 7>
-class TimeFrameGPU final : public TimeFrame<nLayers>
+template <int NLayers = 7>
+class TimeFrameGPU final : public TimeFrame<NLayers>
 {
-  using typename TimeFrame<nLayers>::CellSeedN;
-  using typename TimeFrame<nLayers>::IndexTableUtilsN;
+  using typename TimeFrame<NLayers>::CellSeedN;
+  using typename TimeFrame<NLayers>::IndexTableUtilsN;
+  using typename TimeFrame<NLayers>::ROFOverlapTableN;
+  using typename TimeFrame<NLayers>::ROFVertexLookupTableN;
 
  public:
   TimeFrameGPU() = default;
@@ -39,25 +41,27 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   void popMemoryStack(const int);
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
-  void initialise(const int, const TrackingParameters&, const int, IndexTableUtilsN* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
-  void initDevice(IndexTableUtilsN*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
+  void initialise(const int, const TrackingParameters&, const int, IndexTableUtilsN* utils = nullptr);
   void initDeviceSAFitting();
   void loadIndexTableUtils(const int);
   void loadTrackingFrameInfoDevice(const int, const int);
   void createTrackingFrameInfoDeviceArray(const int);
   void loadUnsortedClustersDevice(const int, const int);
-  void createUnsortedClustersDeviceArray(const int, const int = nLayers);
+  void createUnsortedClustersDeviceArray(const int, const int = NLayers);
   void loadClustersDevice(const int, const int);
-  void createClustersDeviceArray(const int, const int = nLayers);
+  void createClustersDeviceArray(const int, const int = NLayers);
   void loadClustersIndexTables(const int, const int);
   void createClustersIndexTablesArray(const int);
   void createUsedClustersDevice(const int, const int);
-  void createUsedClustersDeviceArray(const int, const int = nLayers);
+  void createUsedClustersDeviceArray(const int, const int = NLayers);
   void loadUsedClustersDevice();
   void loadROFrameClustersDevice(const int, const int);
   void createROFrameClustersDeviceArray(const int);
   void loadMultiplicityCutMask(const int);
   void loadVertices(const int);
+  void loadROFOverlapTable();
+  void loadROFVertexLookupTable();
+  void updateROFVertexLookupTable(const int);
 
   ///
   void createTrackletsLUTDevice(const int, const int);
@@ -68,7 +72,6 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   void loadCellsLUTDevice();
   void loadTrackSeedsDevice();
   void loadTrackSeedsChi2Device();
-  void loadRoadsDevice();
   void loadTrackSeedsDevice(bounded_vector<CellSeedN>&);
   void createTrackletsBuffers(const int);
   void createTrackletsBuffersArray(const int);
@@ -87,12 +90,6 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   void downloadCellsDevice();
   void downloadCellsLUTDevice();
 
-  /// Vertexer
-  void createVtxTrackletsLUTDevice(const int32_t);
-  void createVtxTrackletsBuffers(const int32_t);
-  void createVtxLinesLUTDevice(const int32_t);
-  void createVtxLinesBuffer(const int32_t);
-
   /// synchronization
   auto& getStream(const size_t stream) { return mGpuStreams[stream]; }
   auto& getStreams() { return mGpuStreams; }
@@ -100,7 +97,7 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   void syncStreams(const bool = true);
   void waitEvent(const int, const int);
   void recordEvent(const int);
-  void recordEvents(const int = 0, const int = nLayers);
+  void recordEvents(const int = 0, const int = NLayers);
 
   /// cleanup
   virtual void wipe() final;
@@ -110,6 +107,8 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   virtual const char* getName() const noexcept { return "GPU"; }
   int getNClustersInRofSpan(const int, const int, const int) const;
   IndexTableUtilsN* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
+  const auto getDeviceROFOverlapTableView() { return mDeviceROFOverlapTableView; }
+  const auto getDeviceROFVertexLookupTableView() { return mDeviceROFVertexLookupTableView; }
   int* getDeviceROFramesClusters(const int layer) { return mROFramesClustersDevice[layer]; }
   auto& getTrackITSExt() { return mTrackITSExt; }
   Vertex* getDeviceVertices() { return mPrimaryVerticesDevice; }
@@ -118,12 +117,11 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   const o2::base::Propagator* getChainPropagator();
 
   // Hybrid
-  Road<nLayers - 2>* getDeviceRoads() { return mRoadsDevice; }
   TrackITSExt* getDeviceTrackITSExt() { return mTrackITSExtDevice; }
   int* getDeviceNeighboursLUT(const int layer) { return mNeighboursLUTDevice[layer]; }
   gsl::span<int*> getDeviceNeighboursLUTs() { return mNeighboursLUTDevice; }
   gpuPair<int, int>* getDeviceNeighbourPairs(const int layer) { return mNeighbourPairsDevice[layer]; }
-  std::array<int*, nLayers - 2>& getDeviceNeighboursAll() { return mNeighboursDevice; }
+  std::array<int*, NLayers - 2>& getDeviceNeighboursAll() { return mNeighboursDevice; }
   int* getDeviceNeighbours(const int layer) { return mNeighboursDevice[layer]; }
   int** getDeviceNeighboursArray() { return mNeighboursDevice.data(); }
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
@@ -163,10 +161,10 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
   void setDevicePropagator(const o2::base::PropagatorImpl<float>* p) final { this->mPropagatorDevice = p; }
 
   // Host-specific getters
-  gsl::span<int, nLayers - 1> getNTracklets() { return mNTracklets; }
-  gsl::span<int, nLayers - 2> getNCells() { return mNCells; }
+  gsl::span<int, NLayers - 1> getNTracklets() { return mNTracklets; }
+  gsl::span<int, NLayers - 2> getNCells() { return mNCells; }
   auto& getArrayNCells() { return mNCells; }
-  gsl::span<int, nLayers - 3> getNNeighbours() { return mNNeighbours; }
+  gsl::span<int, NLayers - 3> getNNeighbours() { return mNNeighbours; }
   auto& getArrayNNeighbours() { return mNNeighbours; }
 
   // Host-available device getters
@@ -183,56 +181,57 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
  private:
   void allocMemAsync(void**, size_t, Stream&, bool, int32_t = o2::gpu::GPUMemoryResource::MEMORY_GPU); // Abstract owned and unowned memory allocations on specific stream
   void allocMem(void**, size_t, bool, int32_t = o2::gpu::GPUMemoryResource::MEMORY_GPU);               // Abstract owned and unowned memory allocations on default stream
-  TimeFrameGPUParameters mGpuParams;
 
   // Host-available device buffer sizes
-  std::array<int, nLayers - 1> mNTracklets;
-  std::array<int, nLayers - 2> mNCells;
-  std::array<int, nLayers - 3> mNNeighbours;
+  std::array<int, NLayers - 1> mNTracklets;
+  std::array<int, NLayers - 2> mNCells;
+  std::array<int, NLayers - 3> mNNeighbours;
 
   // Device pointers
   IndexTableUtilsN* mIndexTableUtilsDevice;
+  // device navigation views
+  ROFOverlapTableN::View mDeviceROFOverlapTableView;
+  ROFVertexLookupTableN::View mDeviceROFVertexLookupTableView;
 
   // Hybrid pref
   uint8_t* mMultMaskDevice;
   Vertex* mPrimaryVerticesDevice;
   int* mROFramesPVDevice;
-  std::array<Cluster*, nLayers> mClustersDevice;
-  std::array<Cluster*, nLayers> mUnsortedClustersDevice;
-  std::array<int*, nLayers> mClustersIndexTablesDevice;
-  std::array<unsigned char*, nLayers> mUsedClustersDevice;
-  std::array<int*, nLayers> mROFramesClustersDevice;
+  std::array<Cluster*, NLayers> mClustersDevice;
+  std::array<Cluster*, NLayers> mUnsortedClustersDevice;
+  std::array<int*, NLayers> mClustersIndexTablesDevice;
+  std::array<unsigned char*, NLayers> mUsedClustersDevice;
+  std::array<int*, NLayers> mROFramesClustersDevice;
   const Cluster** mClustersDeviceArray;
   const Cluster** mUnsortedClustersDeviceArray;
   const int** mClustersIndexTablesDeviceArray;
   uint8_t** mUsedClustersDeviceArray;
   const int** mROFramesClustersDeviceArray;
-  std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
-  std::array<int*, nLayers - 1> mTrackletsLUTDevice;
-  std::array<int*, nLayers - 2> mCellsLUTDevice;
-  std::array<int*, nLayers - 3> mNeighboursLUTDevice;
+  std::array<Tracklet*, NLayers - 1> mTrackletsDevice;
+  std::array<int*, NLayers - 1> mTrackletsLUTDevice;
+  std::array<int*, NLayers - 2> mCellsLUTDevice;
+  std::array<int*, NLayers - 3> mNeighboursLUTDevice;
 
   Tracklet** mTrackletsDeviceArray{nullptr};
   int** mCellsLUTDeviceArray{nullptr};
   int** mNeighboursCellDeviceArray{nullptr};
   int** mNeighboursCellLUTDeviceArray{nullptr};
   int** mTrackletsLUTDeviceArray{nullptr};
-  std::array<CellSeedN*, nLayers - 2> mCellsDevice;
+  std::array<CellSeedN*, NLayers - 2> mCellsDevice;
   CellSeedN** mCellsDeviceArray;
-  std::array<int*, nLayers - 3> mNeighboursIndexTablesDevice;
+  std::array<int*, NLayers - 3> mNeighboursIndexTablesDevice;
   CellSeedN* mTrackSeedsDevice{nullptr};
   int* mTrackSeedsLUTDevice{nullptr};
   unsigned int mNTracks{0};
-  std::array<o2::track::TrackParCovF*, nLayers - 2> mCellSeedsDevice;
+  std::array<o2::track::TrackParCovF*, NLayers - 2> mCellSeedsDevice;
   o2::track::TrackParCovF** mCellSeedsDeviceArray;
-  std::array<float*, nLayers - 2> mCellSeedsChi2Device;
+  std::array<float*, NLayers - 2> mCellSeedsChi2Device;
   float** mCellSeedsChi2DeviceArray;
 
-  Road<nLayers - 2>* mRoadsDevice;
   TrackITSExt* mTrackITSExtDevice;
-  std::array<gpuPair<int, int>*, nLayers - 2> mNeighbourPairsDevice;
-  std::array<int*, nLayers - 2> mNeighboursDevice;
-  std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
+  std::array<gpuPair<int, int>*, NLayers - 2> mNeighbourPairsDevice;
+  std::array<int*, NLayers - 2> mNeighboursDevice;
+  std::array<TrackingFrameInfo*, NLayers> mTrackingFrameInfoDevice;
   const TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
 
   /// Vertexer
@@ -249,25 +248,25 @@ class TimeFrameGPU final : public TimeFrame<nLayers>
 
   // State
   Streams mGpuStreams;
-  std::bitset<nLayers + 1> mPinnedUnsortedClusters{0};
-  std::bitset<nLayers + 1> mPinnedClusters{0};
-  std::bitset<nLayers + 1> mPinnedClustersIndexTables{0};
-  std::bitset<nLayers + 1> mPinnedUsedClusters{0};
-  std::bitset<nLayers + 1> mPinnedROFramesClusters{0};
-  std::bitset<nLayers + 1> mPinnedTrackingFrameInfo{0};
+  std::bitset<NLayers + 1> mPinnedUnsortedClusters{0};
+  std::bitset<NLayers + 1> mPinnedClusters{0};
+  std::bitset<NLayers + 1> mPinnedClustersIndexTables{0};
+  std::bitset<NLayers + 1> mPinnedUsedClusters{0};
+  std::bitset<NLayers + 1> mPinnedROFramesClusters{0};
+  std::bitset<NLayers + 1> mPinnedTrackingFrameInfo{0};
 
   // Temporary buffer for storing output tracks from GPU tracking
   bounded_vector<TrackITSExt> mTrackITSExt;
 };
 
-template <int nLayers>
-inline int TimeFrameGPU<nLayers>::getNClustersInRofSpan(const int rofIdstart, const int rofSpanSize, const int layerId) const
+template <int NLayers>
+inline int TimeFrameGPU<NLayers>::getNClustersInRofSpan(const int rofIdstart, const int rofSpanSize, const int layerId) const
 {
   return static_cast<int>(this->mROFramesClusters[layerId][(rofIdstart + rofSpanSize) < this->mROFramesClusters.size() ? rofIdstart + rofSpanSize : this->mROFramesClusters.size() - 1] - this->mROFramesClusters[layerId][rofIdstart]);
 }
 
-template <int nLayers>
-inline std::vector<unsigned int> TimeFrameGPU<nLayers>::getClusterSizes()
+template <int NLayers>
+inline std::vector<unsigned int> TimeFrameGPU<NLayers>::getClusterSizes()
 {
   std::vector<unsigned int> sizes(this->mUnsortedClusters.size());
   std::transform(this->mUnsortedClusters.begin(), this->mUnsortedClusters.end(), sizes.begin(),
@@ -275,20 +274,20 @@ inline std::vector<unsigned int> TimeFrameGPU<nLayers>::getClusterSizes()
   return sizes;
 }
 
-template <int nLayers>
-inline int TimeFrameGPU<nLayers>::getNumberOfTracklets() const
+template <int NLayers>
+inline int TimeFrameGPU<NLayers>::getNumberOfTracklets() const
 {
   return std::accumulate(mNTracklets.begin(), mNTracklets.end(), 0);
 }
 
-template <int nLayers>
-inline int TimeFrameGPU<nLayers>::getNumberOfCells() const
+template <int NLayers>
+inline int TimeFrameGPU<NLayers>::getNumberOfCells() const
 {
   return std::accumulate(mNCells.begin(), mNCells.end(), 0);
 }
 
-template <int nLayers>
-inline int TimeFrameGPU<nLayers>::getNumberOfNeighbours() const
+template <int NLayers>
+inline int TimeFrameGPU<NLayers>::getNumberOfNeighbours() const
 {
   return std::accumulate(mNNeighbours.begin(), mNNeighbours.end(), 0);
 }

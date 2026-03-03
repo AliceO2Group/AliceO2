@@ -28,8 +28,13 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 {
   mTimeFrameGPU->initialise(iteration, this->mTrkParams[iteration], nLayers);
+  // TODO these tables can be put in const memory
+  mTimeFrameGPU->loadROFOverlapTable();
+  mTimeFrameGPU->loadROFVertexLookupTable();
   // on default stream
   mTimeFrameGPU->loadVertices(iteration);
+  // once the tables are in const memory just update the vertex one
+  // mTimeFrameGPU->updateROFVertexLookupTable(iteration);
   mTimeFrameGPU->loadIndexTableUtils(iteration);
   mTimeFrameGPU->loadMultiplicityCutMask(iteration);
   // pinned on host
@@ -56,12 +61,9 @@ void TrackerTraitsGPU<nLayers>::adoptTimeFrame(TimeFrame<nLayers>* tf)
 }
 
 template <int nLayers>
-void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int iROFslice, int iVertex)
+void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int iVertex)
 {
   const auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
-
-  int startROF{0};
-  int endROF{mTimeFrameGPU->getNrof()};
 
   // start by queuing loading needed of two last layers
   for (int iLayer{nLayers}; iLayer-- > nLayers - 2;) {
@@ -85,14 +87,11 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
     countTrackletsInROFsHandler<nLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
                                          mTimeFrameGPU->getDeviceMultCutMask(),
                                          iLayer,
-                                         startROF,
-                                         endROF,
-                                         mTimeFrameGPU->getNrof(),
-                                         this->mTrkParams[iteration].DeltaROF,
+                                         mTimeFrameGPU->getDeviceROFOverlapTableView(),
+                                         mTimeFrameGPU->getDeviceROFVertexLookupTableView(),
                                          iVertex,
                                          mTimeFrameGPU->getDeviceVertices(),
                                          mTimeFrameGPU->getDeviceROFramesPV(),
-                                         mTimeFrameGPU->getPrimaryVerticesNum(),
                                          mTimeFrameGPU->getDeviceArrayClusters(),
                                          mTimeFrameGPU->getClusterSizes(),
                                          mTimeFrameGPU->getDeviceROFrameClusters(),
@@ -120,14 +119,11 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int i
     computeTrackletsInROFsHandler<nLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
                                            mTimeFrameGPU->getDeviceMultCutMask(),
                                            iLayer,
-                                           startROF,
-                                           endROF,
-                                           mTimeFrameGPU->getNrof(),
-                                           this->mTrkParams[iteration].DeltaROF,
+                                           mTimeFrameGPU->getDeviceROFOverlapTableView(),
+                                           mTimeFrameGPU->getDeviceROFVertexLookupTableView(),
                                            iVertex,
                                            mTimeFrameGPU->getDeviceVertices(),
                                            mTimeFrameGPU->getDeviceROFramesPV(),
-                                           mTimeFrameGPU->getPrimaryVerticesNum(),
                                            mTimeFrameGPU->getDeviceArrayClusters(),
                                            mTimeFrameGPU->getClusterSizes(),
                                            mTimeFrameGPU->getDeviceROFrameClusters(),
@@ -193,7 +189,6 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
                                nullptr,
                                mTimeFrameGPU->getDeviceArrayCellsLUT(),
                                mTimeFrameGPU->getDeviceCellLUTs()[iLayer],
-                               this->mTrkParams[iteration].DeltaROF,
                                this->mBz,
                                this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
@@ -216,7 +211,6 @@ void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
                                  mTimeFrameGPU->getDeviceCells()[iLayer],
                                  mTimeFrameGPU->getDeviceArrayCellsLUT(),
                                  mTimeFrameGPU->getDeviceCellLUTs()[iLayer],
-                                 this->mTrkParams[iteration].DeltaROF,
                                  this->mBz,
                                  this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                  this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
@@ -247,8 +241,7 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
                                         mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
                                         mTimeFrameGPU->getDeviceNeighboursIndexTables(iLayer),
                                         (const Tracklet**)mTimeFrameGPU->getDeviceArrayTracklets(),
-                                        this->mTrkParams[0].DeltaROF,
-                                        this->mTrkParams[0].MaxChi2ClusterAttachment,
+                                        this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                         this->mBz,
                                         iLayer,
                                         currentLayerCellsNum,
@@ -268,8 +261,7 @@ void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration)
                                           mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
                                           mTimeFrameGPU->getDeviceNeighboursIndexTables(iLayer),
                                           (const Tracklet**)mTimeFrameGPU->getDeviceArrayTracklets(),
-                                          this->mTrkParams[0].DeltaROF,
-                                          this->mTrkParams[0].MaxChi2ClusterAttachment,
+                                          this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                           this->mBz,
                                           iLayer,
                                           currentLayerCellsNum,
@@ -389,29 +381,28 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
         continue;
       }
 
-      std::array<int, 3> rofs{INT_MAX, INT_MAX, INT_MAX};
+      bool firstCls{true};
+      TimeEstBC ts;
       for (int iLayer{0}; iLayer < this->mTrkParams[0].NLayers; ++iLayer) {
         if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
           continue;
         }
         mTimeFrameGPU->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
         int currentROF = mTimeFrameGPU->getClusterROF(iLayer, track.getClusterIndex(iLayer));
-        for (int iR{0}; iR < 3; ++iR) {
-          if (rofs[iR] == INT_MAX) {
-            rofs[iR] = currentROF;
+        auto rofTS = mTimeFrameGPU->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(currentROF, true);
+        if (firstCls) {
+          ts = rofTS;
+        } else {
+          if (!ts.isCompatible(rofTS)) {
+            LOGP(fatal, "TS {}+/-{} are incompatible with {}+/-{}, this should not happen!", rofTS.getTimeStamp(), rofTS.getTimeStampError(), ts.getTimeStamp(), ts.getTimeStampError());
           }
-          if (rofs[iR] == currentROF) {
-            break;
-          }
+          ts += rofTS;
         }
       }
-      if (rofs[2] != INT_MAX) {
-        continue;
-      }
-      if (rofs[1] != INT_MAX) {
-        track.setNextROFbit();
-      }
-      mTimeFrameGPU->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
+      track.getTimeStamp() = ts;
+      track.setUserField(0);
+      track.getParamOut().setUserField(0);
+      mTimeFrameGPU->getTracks().emplace_back(track);
     }
     mTimeFrameGPU->loadUsedClustersDevice();
   }

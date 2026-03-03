@@ -16,13 +16,9 @@ if(HIP_ENABLED)
   # add_compile_definitions(ITS_MEASURE_GPU_TIME)
   # add_compile_definitions(ITS_GPU_LOG)
   o2_add_hipified_library(ITStrackingHIP
-                 SOURCES ../cuda/ClusterLinesGPU.cu
-                         ../cuda/TimeFrameGPU.cu
+                 SOURCES ../cuda/TimeFrameGPU.cu
                          ../cuda/TrackerTraitsGPU.cxx
-                         ../cuda/TracerGPU.cu
                          ../cuda/TrackingKernels.cu
-                         ../cuda/VertexingKernels.cu
-                         ../cuda/VertexerTraitsGPU.cxx
                  PUBLIC_INCLUDE_DIRECTORIES ../
                  PUBLIC_LINK_LIBRARIES O2::ITStracking
                                        O2::GPUTracking

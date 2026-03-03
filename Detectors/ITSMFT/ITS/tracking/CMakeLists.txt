@@ -22,7 +22,7 @@ o2_add_library(ITStracking
                        src/ClusterLines.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
-                       src/Smoother.cxx
+                       src/Definitions.cxx
                PUBLIC_LINK_LIBRARIES
                        O2::GPUCommon
                        Microsoft.GSL::GSL
@@ -50,6 +50,7 @@ o2_target_root_dictionary(ITStracking
                           HEADERS include/ITStracking/ClusterLines.h
                                   include/ITStracking/Tracklet.h
                                   include/ITStracking/Cluster.h
+                                  include/ITStracking/Definitions.h
                                   include/ITStracking/TrackingConfigParam.h
                           LINKDEF src/TrackingLinkDef.h)
 

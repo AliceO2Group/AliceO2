@@ -13,7 +13,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
 #include "Framework/CCDBParamSpec.h"
@@ -26,7 +25,6 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
-#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Digitizer.h"
@@ -37,7 +35,6 @@
 #include <TChain.h>
 #include <TStopwatch.h>
 #include <string>
-#include <format>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -121,18 +118,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
           auto& rof = mROFRecords[iLayer][i];
           rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
           rof.print();
-
-          if (mFixMC2ROF[iLayer] < mMC2ROFRecordsAccum[iLayer].size()) { // fix ROFRecord entry in MC2ROF records
-            for (int m2rid = mFixMC2ROF[iLayer]; m2rid < mMC2ROFRecordsAccum[iLayer].size(); m2rid++) {
-              // need to register the ROFRecors entry for MC event starting from this entry
-              auto& mc2rof = mMC2ROFRecordsAccum[iLayer][m2rid];
-              if (rof.getROFrame() == mc2rof.minROF) {
-                mFixMC2ROF[iLayer]++;
-                mc2rof.rofRecordID = nROFRecsOld + i;
-                mc2rof.print();
-              }
-            }
-          }
         }
 
         std::copy(mROFRecords[iLayer].begin(), mROFRecords[iLayer].end(), std::back_inserter(mROFRecordsAccum[iLayer]));
@@ -171,7 +156,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
             mDigitizer.process(&mHits, part.entryID, part.sourceID, layer); // call actual digitization procedure
           }
         }
-        mMC2ROFRecordsAccum[iLayer].emplace_back(collID, -1, mDigitizer.getEventROFrameMin(), mDigitizer.getEventROFrameMax());
         accumulate();
       }
       mDigitizer.fillOutputContainer(0xffffffff, layer);
@@ -224,7 +208,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, mROFRecordsAccum[iLayer]);
       }
       if (mWithMCTruth) {
-        pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", iLayer}, mMC2ROFRecordsAccum[iLayer]);
         auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{Origin, "DIGITSMCTR", iLayer});
         mLabelsAccum[iLayer].flatten_to(sharedlabels);
         // free space of existing label containers
@@ -374,11 +357,9 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
   std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, NLayers> mLabels;
   std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, NLayers> mLabelsAccum;
-  std::array<std::vector<o2::itsmft::MC2ROFRecord>, NLayers> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
   o2::itsmft::NoiseMap* mDeadMap = nullptr;
 
-  std::array<int, NLayers> mFixMC2ROF{}; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
   bool mTimeDeadMapUpdated = false;
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
@@ -408,7 +389,6 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
     outputs.emplace_back(detOrig, "DIGITS", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(detOrig, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mctruth) {
-      outputs.emplace_back(detOrig, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
       outputs.emplace_back(detOrig, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
     }
   }
@@ -457,4 +437,4 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
 }
 
 } // namespace o2::itsmft
-  // end namespace o2
+// end namespace o2

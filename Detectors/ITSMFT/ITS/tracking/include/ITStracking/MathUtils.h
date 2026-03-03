@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -44,19 +44,17 @@ GPUhdi() constexpr float getNormalizedPhi(float phi)
 GPUhdi() float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3)
 {
   // in case the triangle is degenerate we return infinite curvature.
-  const float d = (x2 - x1) * (y3 - y2) - (x3 - x2) * (y2 - y1);
-  if (o2::gpu::CAMath::Abs(d) < o2::its::constants::Tolerance) {
-    return 0.f;
+  const float area = ((x2 - x1) * (y3 - y1)) - ((x3 - x1) * (y2 - y1));
+  if (o2::gpu::CAMath::Abs(area) < constants::Tolerance) {
+    return o2::constants::math::Almost0;
   }
-  const float a =
-    0.5f * ((y3 - y2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1) - (y2 - y1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2));
-  const float b =
-    0.5f * ((x2 - x1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2) - (x3 - x2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1));
-  const float den = o2::gpu::CAMath::Hypot(d * x1 - a, d * y1 - b);
-  if (den < o2::its::constants::Tolerance) {
-    return 0.f;
-  }
-  return -d / den;
+  const float dx1 = x2 - x1, dy1 = y2 - y1;
+  const float dx2 = x3 - x2, dy2 = y3 - y2;
+  const float dx3 = x1 - x3, dy3 = y1 - y3;
+  const float d1 = o2::gpu::CAMath::Sqrt((dx1 * dx1) + (dy1 * dy1));
+  const float d2 = o2::gpu::CAMath::Sqrt((dx2 * dx2) + (dy2 * dy2));
+  const float d3 = o2::gpu::CAMath::Sqrt((dx3 * dx3) + (dy3 * dy3));
+  return -2.f * area / (d1 * d2 * d3);
 }
 
 GPUhdi() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3)
@@ -78,7 +76,7 @@ GPUhdi() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, f
 
 GPUhdi() float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)
 {
-  // in case the points vertically align we go to pos/neg inifinity.
+  // in case the points vertically align we go to pos/neg infinity.
   const float d = o2::gpu::CAMath::Hypot(x1 - x2, y1 - y2);
   if (o2::gpu::CAMath::Abs(d) < o2::its::constants::Tolerance) {
     return ((z1 > z2) ? -1.f : 1.f) * o2::constants::math::VeryBig;
@@ -91,9 +89,14 @@ GPUhdi() float smallestAngleDifference(float a, float b)
   return o2::gpu::CAMath::Remainderf(b - a, o2::constants::math::TwoPI);
 }
 
-GPUhdi() float Sq(float v)
+GPUhdi() constexpr float Sq(float v)
 {
   return v * v;
+}
+
+GPUhdi() constexpr float SqDiff(float x, float y)
+{
+  return Sq(x - y);
 }
 
 GPUhdi() float MSangle(float mass, float p, float xX0)

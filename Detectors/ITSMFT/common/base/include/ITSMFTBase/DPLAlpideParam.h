@@ -46,7 +46,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   int roFrameLayerBiasInBC[getNLayers()] = {};   ///< staggering ROF bias in BC for continuous mode per layer
   int roFrameLayerDelayInBC[getNLayers()] = {};  ///< staggering ROF delay in BC for continuous mode per layer
 
-  static constexpr bool supportsStaggering() noexcept { return (N == o2::detectors::DetID::ITS) ? false : false; }
+  static constexpr bool supportsStaggering() noexcept { return (N == o2::detectors::DetID::ITS) ? true : false; }
   // test if staggering is on
   bool withStaggering() const noexcept
   {
@@ -54,16 +54,16 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
       return false;
     }
     for (int i{0}; i < getNLayers(); ++i) {
-      if (roFrameLayerLengthInBC[i] != 0) {
+      if (roFrameLayerLengthInBC[i] != 0 || roFrameLayerBiasInBC[0] != 0 || roFrameLayerDelayInBC[0] != 0) {
         return true;
       }
     }
     return false;
   }
   // get ROF length for any layer
-  int getROFLengthInBC(int layer) const noexcept { return (withStaggering()) ? roFrameLayerLengthInBC[layer] : roFrameLengthInBC; }
-  int getROFBiasInBC(int layer) const noexcept { return (withStaggering()) ? roFrameLayerBiasInBC[layer] : roFrameBiasInBC; }
-  int getROFDelayInBC(int layer) const noexcept { return (withStaggering()) ? roFrameLayerDelayInBC[layer] : 0; }
+  int getROFLengthInBC(int layer) const noexcept { return roFrameLayerLengthInBC[layer] ? roFrameLayerLengthInBC[layer] : roFrameLengthInBC; }
+  int getROFBiasInBC(int layer) const noexcept { return roFrameLayerBiasInBC[layer] ? roFrameLayerBiasInBC[layer] : roFrameBiasInBC; }
+  int getROFDelayInBC(int layer) const noexcept { return roFrameLayerDelayInBC[layer] ? roFrameLayerDelayInBC[layer] : 0; }
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLAlpideParam, getParamName().data());

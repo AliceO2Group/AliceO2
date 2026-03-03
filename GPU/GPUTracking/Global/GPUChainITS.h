@@ -19,9 +19,6 @@
 namespace o2::its
 {
 struct Cluster;
-template <uint8_t N>
-class Road;
-class Cell;
 struct TrackingFrameInfo;
 class TrackITSExt;
 class GPUFrameworkExternalAllocator;
@@ -40,9 +37,9 @@ class GPUChainITS final : public GPUChain
   int32_t Finalize() override;
   int32_t RunChain() override;
 
-  void RegisterPermanentMemoryAndProcessors() final {};
-  void RegisterGPUProcessors() final {};
-  void MemorySize(size_t&, size_t&) final {};
+  void RegisterPermanentMemoryAndProcessors() final{};
+  void RegisterGPUProcessors() final{};
+  void MemorySize(size_t&, size_t&) final{};
 
   o2::its::TrackerTraits<7>* GetITSTrackerTraits();
   o2::its::VertexerTraits<7>* GetITSVertexerTraits();

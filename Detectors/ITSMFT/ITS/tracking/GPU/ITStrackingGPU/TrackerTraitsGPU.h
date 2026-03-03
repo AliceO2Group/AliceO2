@@ -31,13 +31,10 @@ class TrackerTraitsGPU final : public TrackerTraits<nLayers>
   void adoptTimeFrame(TimeFrame<nLayers>* tf) final;
   void initialiseTimeFrame(const int iteration) final;
 
-  void computeLayerTracklets(const int iteration, int, int) final;
+  void computeLayerTracklets(const int iteration, int) final;
   void computeLayerCells(const int iteration) final;
   void findCellsNeighbours(const int iteration) final;
   void findRoads(const int iteration) final;
-
-  bool supportsExtendTracks() const noexcept final { return false; }
-  bool supportsFindShortPrimaries() const noexcept final { return false; }
 
   void setBz(float) final;
 

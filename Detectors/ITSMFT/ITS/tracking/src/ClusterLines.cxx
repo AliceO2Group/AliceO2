@@ -13,9 +13,7 @@
 #include <algorithm>
 #include "ITStracking/ClusterLines.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
@@ -83,8 +81,8 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
                            const bool weight)
 
 {
-  updateROFPoll(firstLine);
-  updateROFPoll(secondLine);
+  mTime = firstLine.mTime;
+  mTime += secondLine.mTime;
 
   mLabels.push_back(firstLabel);
   if (secondLabel > 0) {
@@ -178,11 +176,11 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   // RMS2
   mRMS2 = Line::getDCAComponents(firstLine, mVertex);
   const std::array<float, 6> tmpRMS2Line2 = Line::getDCAComponents(secondLine, mVertex);
-  std::transform(mRMS2.begin(), mRMS2.end(), tmpRMS2Line2.begin(), mRMS2.begin(), [&](const float a, const float b) { return a + (b - a) / mLabels.size(); });
+  std::transform(mRMS2.begin(), mRMS2.end(), tmpRMS2Line2.begin(), mRMS2.begin(), [&](const float a, const float b) { return a + (b - a) / getSize(); });
 
   // AvgDistance2
   mAvgDistance2 = std::move(Line::getDistanceFromPoint(firstLine, mVertex) * Line::getDistanceFromPoint(firstLine, mVertex));
-  mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / mLabels.size();
+  mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / getSize();
 }
 
 ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
@@ -190,8 +188,8 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
 
   std::array<float, 3> covarianceFirst{1., 1., 1.};
   std::array<float, 3> covarianceSecond{1., 1., 1.};
-  updateROFPoll(firstLine);
-  updateROFPoll(secondLine);
+  mTime = firstLine.mTime;
+  mTime += secondLine.mTime;
   // for (int i{0}; i < 6; ++i) {
   //   mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
   // }
@@ -274,10 +272,10 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
   computeClusterCentroid();
 }
 
-void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weight)
+void ClusterLines::add(const int lineLabel, const Line& line, const bool weight)
 {
   mLabels.push_back(lineLabel);
-  updateROFPoll(line);
+  mTime += line.mTime;
   std::array<float, 3> covariance{1., 1., 1.};
 
   // for (int i{0}; i < 6; ++i) {
@@ -319,7 +317,7 @@ void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weigh
                  determinant;
 
   computeClusterCentroid();
-  mAvgDistance2 += (Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex) - mAvgDistance2) / mLabels.size();
+  mAvgDistance2 += (Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex) - mAvgDistance2) / getSize();
 }
 
 void ClusterLines::computeClusterCentroid()
@@ -347,48 +345,28 @@ void ClusterLines::computeClusterCentroid()
                determinant;
 }
 
-bool ClusterLines::operator==(const ClusterLines& rhs) const
+bool ClusterLines::operator==(const ClusterLines& rhs) const noexcept
 {
-  bool retval{true};
   for (auto i{0}; i < 6; ++i) {
-    retval &= this->mRMS2[i] == rhs.mRMS2[i];
+    if (this->mRMS2[i] != rhs.mRMS2[i]) {
+      return false;
+    }
   }
   for (auto i{0}; i < 3; ++i) {
-    retval &= this->mVertex[i] == rhs.mVertex[i];
+    if (this->mVertex[i] != rhs.mVertex[i]) {
+      return false;
+    }
   }
   if (this->mLabels.size() != rhs.mLabels.size()) {
-    retval = false;
+    return false;
   } else {
     for (size_t i{0}; i < this->mLabels.size(); ++i) {
-      retval &= this->mLabels[i] == rhs.mLabels[i];
+      if (this->mLabels[i] != rhs.mLabels[i]) {
+        return false;
+      }
     }
   }
-  return retval && this->mAvgDistance2 == rhs.mAvgDistance2;
+  return this->mAvgDistance2 == rhs.mAvgDistance2;
 }
 
-GPUhdi() void ClusterLines::updateROFPoll(const Line& line)
-{
-  // option 1: Boyer-Moore voting for rof label
-  if (mROFWeight == 0) {
-    mROF = line.getMinROF();
-    mROFWeight = 1;
-  } else {
-    if (mROF == line.getMinROF()) {
-      mROFWeight++;
-    } else {
-      mROFWeight--;
-    }
-  }
-
-  // option 2
-  // if (mROF == -1) {
-  //   mROF = line.getMinROF();
-  // } else {
-  //   if (line.getMinROF() < mROF) {
-  //     mROF = line.getMinROF();
-  //   }
-  // }
-}
-
-} // namespace its
-} // namespace o2
+} // namespace o2::its

@@ -56,7 +56,6 @@ class ClusterReader : public Task
   std::array<std::vector<o2::itsmft::CompClusterExt>*, NLayers> mClusterCompArray;
   std::array<std::vector<unsigned char>*, NLayers> mPatternsArray;
   std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, NLayers> mClusterMCTruth;
-  std::array<std::vector<o2::itsmft::MC2ROFRecord>*, NLayers> mClusMC2ROFs;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
@@ -73,7 +72,6 @@ class ClusterReader : public Task
   std::string mClusterPattBranchName = "ClusterPatt";
   std::string mClusterCompBranchName = "ClusterComp";
   std::string mClustMCTruthBranchName = "ClusterMCTruth";
-  std::string mClustMC2ROFBranchName = "ClustersMC2ROF";
 };
 
 class ITSClusterReader : public ClusterReader<o2::detectors::DetID::ITS>

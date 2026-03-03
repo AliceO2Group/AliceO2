@@ -59,7 +59,6 @@ class DigitReader : public Task
   std::array<std::vector<o2::itsmft::Digit>*, NLayers> mDigits;
   std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
   std::array<std::vector<o2::itsmft::ROFRecord>*, NLayers> mDigROFRec;
-  std::array<std::vector<o2::itsmft::MC2ROFRecord>*, NLayers> mDigMC2ROFs;
   std::array<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>, NLayers> mConstLabels;
   std::array<o2::dataformats::IOMCTruthContainerView*, NLayers> mPLabels;
 
@@ -81,7 +80,6 @@ class DigitReader : public Task
   std::string mCalibBranchName = "Calib";
 
   std::string mDigitMCTruthBranchName = "DigitMCTruth";
-  std::string mDigitMC2ROFBranchName = "DigitMC2ROF";
 };
 
 class ITSDigitReader : public DigitReader<o2::detectors::DetID::ITS>

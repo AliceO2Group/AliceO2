@@ -24,7 +24,6 @@
 
 using namespace o2::framework;
 using LabelsType = std::vector<o2::MCCompLabel>;
-using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
 
 namespace o2
 {
@@ -56,13 +55,6 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                                    "MFTTrackClusIdx"},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", "MFT", "TRACKSMCTR", 0},
                                                              "MFTTrackMCTruth",
-                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                             ""},
-                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "MFT", "MFTTrackROF", 0},
-                                                                                     "MFTTracksROF",
-                                                                                     logger},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "MFT", "TRACKSMC2ROF", 0},
-                                                             "MFTTracksMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();
 }

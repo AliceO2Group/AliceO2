@@ -81,6 +81,7 @@ class ITSTrackingInterface
   virtual void loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                        gsl::span<const itsmft::CompClusterExt> clusters,
                        gsl::span<const unsigned char>::iterator& pattIt,
+                       int layer,
                        const dataformats::MCTruthContainer<MCCompLabel>* mcLabels);
 
  private:
@@ -88,6 +89,7 @@ class ITSTrackingInterface
   bool mRunVertexer = true;
   bool mCosmicsProcessing = false;
   int mUseTriggers = 0;
+  std::vector<o2::framework::InputSpec> mFilter;
   TrackingMode::Type mMode = TrackingMode::Unset;
   bool mOverrideBeamEstimation = false;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;

@@ -71,8 +71,8 @@ struct TrackingFrameInfo final {
   float zCoordinate{-999.f};
   float xTrackingFrame{-999.f};
   float alphaTrackingFrame{-999.f};
-  std::array<float, 2> positionTrackingFrame = {constants::UnusedIndex, constants::UnusedIndex};
-  std::array<float, 3> covarianceTrackingFrame = {999., 999., 999.};
+  std::array<float, 2> positionTrackingFrame = {-999.f, -999.f};
+  std::array<float, 3> covarianceTrackingFrame = {-999.f, -999.f, -999.f};
 
   ClassDefNV(TrackingFrameInfo, 1);
 };

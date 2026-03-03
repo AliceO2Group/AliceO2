@@ -16,15 +16,17 @@
 #include <vector>
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonLogger.h"
 
 namespace o2::its
 {
 struct Line final {
   GPUhdDefault() Line() = default;
-  GPUhd() Line(const Line&);
+  GPUhdDefault() Line(const Line&) = default;
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
 
@@ -36,11 +38,12 @@ struct Line final {
   static bool areParallel(const Line&, const Line&, const float precision = constants::Tolerance);
   GPUhd() unsigned char isEmpty() const { return (originPoint[0] == 0.f && originPoint[1] == 0.f && originPoint[2] == 0.f) &&
                                                  (cosinesDirector[0] == 0.f && cosinesDirector[1] == 0.f && cosinesDirector[2] == 0.f); }
-  GPUhdi() auto getDeltaROF() const { return rof[1] - rof[0]; }
-  GPUhd() void print() const;
   bool operator==(const Line&) const;
   bool operator!=(const Line&) const;
-  short getMinROF() const { return rof[0] < rof[1] ? rof[0] : rof[1]; }
+  GPUh() void print() const
+  {
+    LOGP(info, "TRKLT: x={} y={} z={} dx={} dy={} dz={} ts:{}+/-{}", originPoint[0], originPoint[1], originPoint[2], cosinesDirector[0], cosinesDirector[1], cosinesDirector[2], mTime.getTimeStamp(), mTime.getTimeStampError());
+  }
 
   float originPoint[3] = {0, 0, 0};
   float cosinesDirector[3] = {0, 0, 0};
@@ -52,24 +55,10 @@ struct Line final {
   //    3 --> 1,1
   //    4 --> 1,2
   //    5 --> 2,2
-  short rof[2] = {constants::UnusedIndex, constants::UnusedIndex};
+  TimeEstBC mTime;
 
   ClassDefNV(Line, 1);
 };
-
-GPUhdi() Line::Line(const Line& other)
-{
-  for (int i{0}; i < 3; ++i) {
-    originPoint[i] = other.originPoint[i];
-    cosinesDirector[i] = other.cosinesDirector[i];
-  }
-  // for (int i{0}; i < 6; ++i) {
-  //   weightMatrix[i] = other.weightMatrix[i];
-  // }
-  for (int i{0}; i < 2; ++i) {
-    rof[i] = other.rof[i];
-  }
-}
 
 GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
 {
@@ -86,8 +75,7 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   cosinesDirector[1] *= inverseNorm;
   cosinesDirector[2] *= inverseNorm;
 
-  rof[0] = tracklet.rof[0];
-  rof[1] = tracklet.rof[1];
+  mTime = tracklet.mTime;
 }
 
 // static functions:
@@ -170,12 +158,6 @@ inline bool Line::operator!=(const Line& rhs) const
   return !(*this == rhs);
 }
 
-GPUhdi() void Line::print() const
-{
-  printf("Line: originPoint = (%f, %f, %f), cosinesDirector = (%f, %f, %f), rofs = (%hd, %hd)\n",
-         originPoint[0], originPoint[1], originPoint[2], cosinesDirector[0], cosinesDirector[1], cosinesDirector[2], rof[0], rof[1]);
-}
-
 class ClusterLines final
 {
  public:
@@ -183,31 +165,25 @@ class ClusterLines final
   ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
                const bool weight = false);
   ClusterLines(const Line& firstLine, const Line& secondLine);
-  void add(const int& lineLabel, const Line& line, const bool& weight = false);
+  void add(const int lineLabel, const Line& line, const bool weight = false);
   void computeClusterCentroid();
-  void updateROFPoll(const Line&);
-  inline std::vector<int>& getLabels()
-  {
-    return mLabels;
-  }
-  inline int getSize() const { return mLabels.size(); }
-  inline short getROF() const { return mROF; }
   inline std::array<float, 3> getVertex() const { return mVertex; }
   inline std::array<float, 6> getRMS2() const { return mRMS2; }
   inline float getAvgDistance2() const { return mAvgDistance2; }
-
-  bool operator==(const ClusterLines&) const;
+  inline auto getSize() const noexcept { return mLabels.size(); }
+  auto& getLabels() noexcept { return mLabels; }
+  const auto& getTimeStamp() const noexcept { return mTime; }
+  bool operator==(const ClusterLines& rhs) const noexcept;
 
  protected:
-  std::array<double, 6> mAMatrix;             // AX=B
-  std::array<double, 3> mBMatrix;             // AX=B
-  std::vector<int> mLabels;                   // labels
-  std::array<float, 9> mWeightMatrix = {0.f}; // weight matrix
-  std::array<float, 3> mVertex = {0.f};       // cluster centroid position
-  std::array<float, 6> mRMS2 = {0.f};         // symmetric matrix: diagonal is RMS2
-  float mAvgDistance2 = 0.f;                  // substitute for chi2
-  int mROFWeight = 0;                         // rof weight for voting
-  short mROF = constants::UnusedIndex;        // rof
+  std::array<float, 6> mAMatrix = {}; // AX=B
+  std::array<float, 3> mBMatrix = {}; // AX=B
+  // std::array<float, 9> mWeightMatrix = {}; // weight matrix
+  std::array<float, 3> mVertex = {}; // cluster centroid position
+  std::array<float, 6> mRMS2 = {};   // symmetric matrix: diagonal is RMS2
+  float mAvgDistance2 = 0.f;         // substitute for chi2
+  TimeEstBC mTime;                   // time stamp
+  std::vector<int> mLabels;          // contributing labels
 };
 
 } // namespace o2::its

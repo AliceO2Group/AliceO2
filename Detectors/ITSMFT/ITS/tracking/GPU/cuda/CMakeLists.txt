@@ -17,13 +17,9 @@ if(CUDA_ENABLED)
     # add_compile_definitions(ITS_MEASURE_GPU_TIME)
     # add_compile_definitions(ITS_GPU_LOG)
     o2_add_library(ITStrackingCUDA
-                   SOURCES ClusterLinesGPU.cu
-                           TrackerTraitsGPU.cxx
+                   SOURCES TrackerTraitsGPU.cxx
                            TimeFrameGPU.cu
-                           TracerGPU.cu
                            TrackingKernels.cu
-                           VertexingKernels.cu
-                           VertexerTraitsGPU.cxx
                    PUBLIC_INCLUDE_DIRECTORIES ../
                    PUBLIC_LINK_LIBRARIES O2::ITStracking
                                          O2::SimConfig

@@ -42,8 +42,6 @@ class TrackReader : public o2::framework::Task
  protected:
   void connectTree(const std::string& filename);
 
-  std::vector<o2::itsmft::ROFRecord> mROFRec, *mROFRecInp = &mROFRec;
-  std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecInp = &mVerticesROFRec;
   std::vector<o2::its::TrackITS> mTracks, *mTracksInp = &mTracks;
   std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
   std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
@@ -58,11 +56,9 @@ class TrackReader : public o2::framework::Task
   std::unique_ptr<TTree> mTree;
   std::string mInputFileName = "";
   std::string mTrackTreeName = "o2sim";
-  std::string mROFBranchName = "ITSTracksROF";
   std::string mTrackBranchName = "ITSTrack";
   std::string mClusIdxBranchName = "ITSTrackClusIdx";
   std::string mVertexBranchName = "Vertices";
-  std::string mVertexROFBranchName = "VerticesROF";
   std::string mTrackMCTruthBranchName = "ITSTrackMCTruth";
   std::string mTrackMCVertTruthBranchName = "ITSVertexMCTruth";
 };

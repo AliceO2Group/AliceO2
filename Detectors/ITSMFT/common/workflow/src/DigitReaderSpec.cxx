@@ -48,14 +48,12 @@ DigitReader<N>::DigitReader(bool useMC, bool useCalib, bool triggerOut) : mUseMC
   mCalibBranchName = mDetName + mCalibBranchName;
 
   mDigitMCTruthBranchName = mDetName + mDigitMCTruthBranchName;
-  mDigitMC2ROFBranchName = mDetName + mDigitMC2ROFBranchName;
 
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
 
   for (uint32_t i = 0; i < NLayers; ++i) {
     mDigits[i] = nullptr;
     mDigROFRec[i] = nullptr;
-    mDigMC2ROFs[i] = nullptr;
     mPLabels[i] = nullptr;
   }
 }
@@ -112,7 +110,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
         mPLabels[iLayer]->copyandflatten(sharedlabels);
         delete mPLabels[iLayer];
         mPLabels[iLayer] = nullptr;
-        pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", iLayer}, *mDigMC2ROFs[iLayer]);
       }
     }
     if (mUseCalib) {
@@ -131,7 +128,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
     std::vector<o2::itsmft::Digit> digitsSel;
     std::vector<o2::itsmft::GBTCalibData> calibSel;
     std::vector<o2::itsmft::ROFRecord> digROFRecSel;
-    std::vector<o2::itsmft::MC2ROFRecord> digMC2ROFsSel;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> digitLabelsSel;
 
     if (irFrames.size()) { // we assume the IRFrames are in the increasing order
@@ -181,26 +177,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
             }
           }
         }
-        if (mUseMC) {
-          digMC2ROFsSel = *mDigMC2ROFs[0];
-          for (auto& mc2rof : digMC2ROFsSel) {
-            if (mc2rof.rofRecordID < 0) {
-              continue; // did not contribute even to the original data
-            }
-            unsigned int mn = 0xffff, mx = 0;
-            for (int ir = mc2rof.minROF; ir <= mc2rof.maxROF; ir++) {
-              if (rofOld2New[ir] >= 0) { // used
-                mx = rofOld2New[ir];
-                if (mn > mx) {
-                  mn = mx;
-                }
-              }
-            }
-            mc2rof.rofRecordID = mn == 0xffff ? -1 : int(mn);
-            mc2rof.minROF = mn;
-            mc2rof.maxROF = mx;
-          }
-        }
         if (mDigROFRec[0]->back().getBCData() + mROFLengthInBC - 1 < irMax) { // need to check the next entry
           ent++;
           continue;
@@ -220,7 +196,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
     if (mUseMC) {
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{Origin, "DIGITSMCTR", 0});
       digitLabelsSel.flatten_to(sharedlabels);
-      pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", 0}, digMC2ROFsSel);
     }
 
     if (!irFrames.size() || irFrames.back().isLast()) {
@@ -242,10 +217,9 @@ void DigitReader<N>::connectTree(const std::string& filename)
     setBranchAddress(mDigitROFBranchName, mDigROFRec[iLayer], iLayer);
     setBranchAddress(mDigitBranchName, mDigits[iLayer], iLayer);
     if (mUseMC) {
-      if (!mTree->GetBranch(getBranchName(mDigitMC2ROFBranchName, iLayer).c_str()) || !mTree->GetBranch(getBranchName(mDigitMCTruthBranchName, iLayer).c_str())) {
+      if (!mTree->GetBranch(getBranchName(mDigitMCTruthBranchName, iLayer).c_str())) {
         throw std::runtime_error("MC data requested but not found in the tree");
       }
-      setBranchAddress(mDigitMC2ROFBranchName, mDigMC2ROFs[iLayer], iLayer);
       if (!mPLabels[iLayer]) {
         setBranchAddress(mDigitMCTruthBranchName, mPLabels[iLayer], iLayer);
       }
@@ -291,7 +265,6 @@ std::vector<OutputSpec> makeOutChannels(bool mctruth, bool useCalib)
     outputs.emplace_back(Origin, "DIGITS", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mctruth) {
-      outputs.emplace_back(Origin, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
       outputs.emplace_back(Origin, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
     }
   }

@@ -41,7 +41,6 @@ ClusterReader<N>::ClusterReader(bool useMC, bool usePatterns, bool triggerOut) :
   mClusterCompArray.fill(nullptr);
   mPatternsArray.fill(nullptr);
   mClusterMCTruth.fill(nullptr);
-  mClusMC2ROFs.fill(nullptr);
 }
 
 template <int N>
@@ -68,7 +67,6 @@ void ClusterReader<N>::run(ProcessingContext& pc)
     }
     if (mUseMC) {
       pc.outputs().snapshot(Output{Origin, "CLUSTERSMCTR", iLayer}, *mClusterMCTruth[iLayer]);
-      pc.outputs().snapshot(Output{Origin, "CLUSTERSMC2ROF", iLayer}, *mClusMC2ROFs[iLayer]);
     }
   }
   if (mTriggerOut) {
@@ -97,10 +95,8 @@ void ClusterReader<N>::connectTree(const std::string& filename)
       setBranchAddress(mClusterPattBranchName, mPatternsArray[iLayer], iLayer);
     }
     if (mUseMC) {
-      if (mTree->GetBranch(getBranchName(mClustMCTruthBranchName, iLayer).c_str()) &&
-          mTree->GetBranch(getBranchName(mClustMC2ROFBranchName, iLayer).c_str())) {
+      if (mTree->GetBranch(getBranchName(mClustMCTruthBranchName, iLayer).c_str())) {
         setBranchAddress(mClustMCTruthBranchName, mClusterMCTruth[iLayer], iLayer);
-        setBranchAddress(mClustMC2ROFBranchName, mClusMC2ROFs[iLayer], iLayer);
       } else {
         LOG(info) << "MC-truth is missing";
         mUseMC = false;
@@ -143,7 +139,6 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
     }
     if (mctruth) {
       outputs.emplace_back(detOrig, "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
-      outputs.emplace_back(detOrig, "CLUSTERSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   if (triggerOut) {

@@ -251,8 +251,6 @@ struct GPUTrackingInOutPointers {
   const o2::MCCompLabel* itsTrackMC = nullptr;
   uint32_t nItsTracks = 0;
   const int32_t* itsTrackClusIdx = nullptr;
-  const o2::itsmft::ROFRecord* itsTrackROF = nullptr;
-  uint32_t nItsTrackROF = 0;
 
   // TPC-ITS
   const o2::dataformats::TrackTPCITS* tracksTPCITSO2 = nullptr;
