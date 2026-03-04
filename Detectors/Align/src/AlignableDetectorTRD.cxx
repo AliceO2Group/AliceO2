@@ -178,9 +178,7 @@ int AlignableDetectorTRD::processPoints(GIndex gid, int npntCut, bool inv)
   auto propagator = o2::base::Propagator::Instance(); // float version!
   static bool firstCall = true;
   if (firstCall) {
-    o2::gpu::GPUO2InterfaceConfiguration config;
-    config.ReadConfigurableParam(config);
-    mRecoParam.init(propagator->getNominalBz(), &config.configReconstruction);
+    mRecoParam.init(propagator->getNominalBz());
     firstCall = false;
   }
   const auto* transformer = mController->getTRDTransformer();

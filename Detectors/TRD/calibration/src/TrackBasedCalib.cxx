@@ -36,9 +36,7 @@ void TrackBasedCalib::reset()
 void TrackBasedCalib::init()
 {
   bz = o2::base::Propagator::Instance()->getNominalBz();
-  o2::gpu::GPUO2InterfaceConfiguration config;
-  config.ReadConfigurableParam(config);
-  mRecoParam.init(bz, &config.configReconstruction);
+  mRecoParam.init(bz);
 }
 
 void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)

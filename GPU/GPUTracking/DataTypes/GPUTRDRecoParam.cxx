@@ -13,6 +13,7 @@
 /// \brief Error parameterizations and helper functions for TRD reconstruction
 /// \author Ole Schmidt
 
+#include "GPUO2InterfaceConfiguration.inc"
 #include "GPUSettings.h"
 #include "GPUTRDRecoParam.h"
 #include "GPUCommonLogger.h"
@@ -23,7 +24,16 @@ using namespace o2::gpu;
 // error parameterizations taken from http://cds.cern.ch/record/2724259 Appendix A
 void GPUTRDRecoParam::init(float bz, const GPUSettingsRec* rec)
 {
-  float resRPhiIdeal2 = rec ? rec->trd.trkltResRPhiIdeal * rec->trd.trkltResRPhiIdeal : 1.6e-3f;
+  float resRPhiIdeal2 = 1.6e-3f;
+  if (rec) {
+    resRPhiIdeal2 = rec->trd.trkltResRPhiIdeal * rec->trd.trkltResRPhiIdeal;
+  }
+#ifndef GPUCA_STANDALONE
+  else {
+    const auto& rtrd = GPU_GET_CONFIG(GPUSettingsRecTRD);
+    resRPhiIdeal2 = rtrd.trkltResRPhiIdeal * rtrd.trkltResRPhiIdeal;
+  }
+#endif
 
   if (CAMath::Abs(CAMath::Abs(bz) - 2) < 0.1) {
     if (bz > 0) {

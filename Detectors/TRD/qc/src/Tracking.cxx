@@ -26,9 +26,7 @@ using namespace o2::trd::constants;
 
 void Tracking::init()
 {
-  o2::gpu::GPUO2InterfaceConfiguration config;
-  config.ReadConfigurableParam(config);
-  mRecoParam.init(o2::base::Propagator::Instance()->getNominalBz(), &config.configReconstruction);
+  mRecoParam.init(o2::base::Propagator::Instance()->getNominalBz());
 }
 
 void Tracking::setInput(const o2::globaltracking::RecoContainer& input)
