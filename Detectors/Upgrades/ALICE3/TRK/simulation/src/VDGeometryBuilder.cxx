@@ -84,6 +84,9 @@ inline bool isSolidToCut(const TGeoVolume* v)
   if (TString(nm).BeginsWith("VD_InclinedWall")) {
     return true;
   }
+  if (TString(nm).Contains("_ZCap")) {
+    return true;
+  }
   return false;
 }
 
@@ -252,10 +255,11 @@ static const double diskZ_cm[6] = {-34.0f, -30.0f, -26.0f, 26.0f, 30.0f, 34.0f};
 
 // Petal walls specifications (cm)
 static constexpr double kPetalZ_cm = 70.0f;          // full wall height
-static constexpr double kWallThick_cm = 0.015f;      // 0.15 mm
+static constexpr double kWallThick_cm = 0.02f;       // 0.2 mm
 static constexpr double kInnerWallRadius_cm = 0.48f; // 4.8 mm (ALWAYS cylindrical)
 static constexpr double kOuterWallRadius_cm = 4.8f;  // 48 mm (can be changed)
 static constexpr double kEps_cm = 2.5e-4f;
+static constexpr double kEps_100um = 0.01f; // 100 microns in cm
 
 // 3 inclined walls ("walls") specs for the full-cylinder option
 // Thickness in-plane (cm). This is the short half-dimension of the TGeoBBox in XY.
@@ -604,8 +608,8 @@ static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals)
 
   // --- Vacuum vessel window around z∈[-L/2, +L/2] with wall thickness on +Z side
   //     Keep these in sync with TRKServices::createVacuumCompositeShape()
-  constexpr double vacuumVesselLength = 76.0;             // cm
-  constexpr double vacuumVesselThickness = 0.08;          // cm (0.8 mm)
+  constexpr double vacuumVesselLength = kPetalZ_cm;       // cm
+  constexpr double vacuumVesselThickness = kWallThick_cm; // cm (0.2 mm)
   const double halfVess = 0.5 * vacuumVesselLength;       // 38.0 cm
   const double gapStart = halfVess;                       // 38.00
   const double gapEnd = halfVess + vacuumVesselThickness; // 38.08
@@ -783,8 +787,8 @@ static TGeoVolume* buildFullCylAssembly(int petalID, bool withDisks)
 
   // --- Z end-cap walls to close the petal in Z ---
   {
-    const double zMin = -0.5 * kLenZ_cm;
-    const double zMax = +0.5 * kLenZ_cm;
+    const double zMin = -0.5 * kPetalZ_cm - 2 * kWallThick_cm;
+    const double zMax = +0.5 * kPetalZ_cm + 2 * kWallThick_cm;
     const double rIn = kInnerWallRadius_cm;
     const double rOut = kOuterWallRadius_cm + kWallThick_cm;
 
