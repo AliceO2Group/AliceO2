@@ -119,9 +119,6 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
   if (global.gpuDisplayfilterMacro != "") {
     obj.configDisplay.filterMacros.emplace_back(global.gpuDisplayfilterMacro);
   }
-  if (obj.configReconstruction.tpc.trackReferenceX == 1000.f) {
-    obj.configReconstruction.tpc.trackReferenceX = 83.f;
-  }
   obj.configDeviceBackend.deviceType = gpudatatypes::GetDeviceType(global.deviceType.c_str());
   obj.configDeviceBackend.forceDeviceType = global.forceDeviceType;
   return global;

@@ -281,6 +281,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 
     mConfig->configProcessing.willProvideO2PropagatorLate = true;
     mConfig->configProcessing.o2PropagatorUseGPUField = true;
+    if (mConfig->configReconstruction.tpc.trackReferenceX == 1000.f) {
+      mConfig->configReconstruction.tpc.trackReferenceX = 83.f;
+    }
 
     if (mConfParam->printSettings && (mConfParam->printSettings > 1 || ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {
       mConfig->configProcessing.printSettings = true;

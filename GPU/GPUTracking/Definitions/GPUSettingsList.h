@@ -66,7 +66,7 @@ AddOptionRTC(sysClusErrorC12Box, float, 1.1e-05f, "", 0, "Systematic cluster for
 AddOptionRTC(minNClustersTrackSeed, int32_t, -1, "", 0, "required min number of clusters on the track after track following (before merging)")
 AddOptionRTC(minNClustersFinalTrack, int32_t, -1, "", 0, "required min number of clusters on the final track")
 AddOptionRTC(searchWindowDZDR, float, 2.5f, "", 0, "Use DZDR window for seeding instead of neighboursSearchArea")
-AddOptionRTC(trackReferenceX, float, 1000.f, "", 0, "Transport all tracks to this X after tracking (disabled if > 500, auto = 1000)")
+AddOptionRTC(trackReferenceX, float, 1000.f, "", 0, "Transport all tracks to this X after tracking (disabled if > 500)")
 AddOptionRTC(zsThreshold, float, 2.0f, "", 0, "Zero-Suppression threshold")
 AddOptionRTC(tubeProtectSigma2, float, 4.f * 4.f, "", 0, "Max sigma2 to mark adjacent cluster for protection")
 AddOptionRTC(tubeProtectMaxSize2, float, 2.f * 2.f, "", 0, "Square of max tube size (if smaller than tubeProtectChi2)")
