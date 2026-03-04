@@ -39,6 +39,11 @@ enum eVDLayout {
   kIRIS4a,
 };
 
+enum eSrvLayout {
+  kPeacockv1 = 0,
+  kLOISymm,
+};
+
 struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   std::string configFile = "";
   float serviceTubeX0 = 0.02f; // X0 Al2O3
@@ -49,10 +54,12 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   eLayout layoutML = kTurboStaves; // Type of segmentation for the middle layers
   eLayout layoutOT = kStaggered;   // Type of segmentation for the outer layers
   eVDLayout layoutVD = kIRIS4;     // VD detector layout design
+  eSrvLayout layoutSRV = kPeacockv1; // Layout of services
 
   eLayout getLayoutML() const { return layoutML; }
   eLayout getLayoutOT() const { return layoutOT; }
   eVDLayout getLayoutVD() const { return layoutVD; }
+  eSrvLayout getLayoutSRV() const { return layoutSRV; }
 
   O2ParamDef(TRKBaseParam, "TRKBase");
 };

@@ -17,6 +17,7 @@ Configurables for various sub-detectors are presented in the following Table:
 | `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./base/include/TRKBase/TRKBaseParam.h) |
 | `TRKBase.layoutML` | `kCylinder`, `kTurboStaves` (default), `kStaggered`     |                                                                  |
 | `TRKBase.layoutOT` | `kCylinder`, `kTurboStaves`, `kStaggered` (default)     |                                                                  |
+| `TRKBase.layoutSRV` | `kPeacockv1` (default), `kLOISymm` | `kLOISymm` produces radially symmetric service volumes, as used in the LoI |
 
 For example, a geometry with fully cylindrical tracker barrel (for all layers in VD, ML and OT) can be obtained by
 ```bash
