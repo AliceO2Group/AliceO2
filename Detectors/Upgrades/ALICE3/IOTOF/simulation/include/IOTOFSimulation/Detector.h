@@ -60,7 +60,7 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
-  void configLayers(bool itof = true, bool otof = true, bool ftof = true, bool btof = true, std::string pattern = "", bool itofSegmented = false, bool otofSegmented = false);
+  void configLayers(bool itof = true, bool otof = true, bool ftof = true, bool btof = true, std::string pattern = "", bool itofSegmented = false, bool otofSegmented = false, const float x2x0 = 0.02f);
 
   void configServices();
   void createMaterials();

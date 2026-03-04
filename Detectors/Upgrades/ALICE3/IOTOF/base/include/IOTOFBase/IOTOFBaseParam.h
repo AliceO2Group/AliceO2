@@ -21,13 +21,14 @@ namespace iotof
 {
 
 struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam> {
-  bool enableInnerTOF = true;
-  bool enableOuterTOF = true;
-  bool enableForwardTOF = true;
-  bool enableBackwardTOF = true;
-  std::string detectorPattern = "";
-  bool segmentedInnerTOF = false; // If the inner TOF layer is segmented
-  bool segmentedOuterTOF = false; // If the outer TOF layer is segmented
+  bool enableInnerTOF = true;       // Enable Inner TOF layer
+  bool enableOuterTOF = true;       // Enable Outer TOF layer
+  bool enableForwardTOF = true;     // Enable Forward TOF layer
+  bool enableBackwardTOF = true;    // Enable Backward TOF layer
+  std::string detectorPattern = ""; // Layouts of the detector
+  bool segmentedInnerTOF = false;   // If the inner TOF layer is segmented
+  bool segmentedOuterTOF = false;   // If the outer TOF layer is segmented
+  float x2x0 = 0.02f;               // thickness expressed in radiation length, for all layers for the moment
 
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };

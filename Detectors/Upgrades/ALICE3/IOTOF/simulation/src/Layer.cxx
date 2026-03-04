@@ -40,7 +40,7 @@ Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float
     mModulesPerStave(modulesPerStave),
     mTiltAngle(staveTiltAngle)
 {
-  float Si_X0 = 9.5f;
+  const float Si_X0 = 9.5f;
   mChipThickness = mX2X0 * Si_X0;
   std::string name = "";
   switch (layout) {
