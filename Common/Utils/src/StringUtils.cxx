@@ -17,6 +17,7 @@
 #include <fmt/format.h>
 #endif
 #include <unistd.h>
+#include <cstring>
 
 using namespace o2::utils;
 
