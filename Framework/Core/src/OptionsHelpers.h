@@ -13,7 +13,7 @@
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/program_options/variables_map.hpp>
-#include <iosfwd>
+#include <sstream>
 
 namespace boost::program_options
 {
