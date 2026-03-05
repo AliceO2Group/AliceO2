@@ -14,42 +14,26 @@
 std::function<void(const double*, double*)> field()
 {
   return [](const double* x, double* b) {
-    double Rc;
-    double R1;
-    double R2;
-    double B1;
-    double B2;
-    const double beamStart = 500.;    //[cm]
-    const double tokGauss = 1. / 0.1; // conversion from Tesla to kGauss
+    const double Rc = 185.;                                  //[cm]
+    const double R1 = 220.;                                  //[cm]
+    const double R2 = 290.;                                  //[cm]
+    const double B1 = 2.;                                    //[T]
+    const double B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
+    const double beamStart = 370.;                           //[cm]
+    const double tokGauss = 1. / 0.1;                        // conversion from Tesla to kGauss
 
-    bool isMagAbs = true;
+    const bool isMagAbs = true;
 
-    // ***********************
-    // LAYOUT 1
-    // ***********************
-
-    // RADIUS
-    Rc = 185.; //[cm]
-    R1 = 220.; //[cm]
-    R2 = 290.; //[cm]
-
-    // To set the B2
-    B1 = 2.;                                    //[T]
-    B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
-
-    if ((abs(x[2]) <= beamStart) && (sqrt(x[0] * x[0] + x[1] * x[1]) < Rc)) {
+    const double r = sqrt(x[0] * x[0] + x[1] * x[1]);
+    if ((abs(x[2]) <= beamStart) && (r < Rc)) { // We are inside of the central region
       b[0] = 0.;
       b[1] = 0.;
       b[2] = B1 * tokGauss;
-    } else if ((abs(x[2]) <= beamStart) &&
-               (sqrt(x[0] * x[0] + x[1] * x[1]) >= Rc &&
-                sqrt(x[0] * x[0] + x[1] * x[1]) < R1)) {
+    } else if ((abs(x[2]) <= beamStart) && (r >= Rc && r < R1)) { // We are in the transition region
       b[0] = 0.;
       b[1] = 0.;
       b[2] = 0.;
-    } else if ((abs(x[2]) <= beamStart) &&
-               (sqrt(x[0] * x[0] + x[1] * x[1]) >= R1 &&
-                sqrt(x[0] * x[0] + x[1] * x[1]) < R2)) {
+    } else if ((abs(x[2]) <= beamStart) && (r >= R1 && r < R2)) { // We are within the magnet
       b[0] = 0.;
       b[1] = 0.;
       if (isMagAbs) {
@@ -57,7 +41,7 @@ std::function<void(const double*, double*)> field()
       } else {
         b[2] = 0.;
       }
-    } else {
+    } else { // We are outside of the magnet
       b[0] = 0.;
       b[1] = 0.;
       b[2] = 0.;
@@ -65,7 +49,7 @@ std::function<void(const double*, double*)> field()
   };
 }
 
-void ALICE3Field()
+void ALICE3V3Magnet()
 {
   auto fieldFunc = field();
   // RZ plane visualization
