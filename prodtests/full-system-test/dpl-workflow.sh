@@ -332,7 +332,9 @@ done
 ! has_detector CTP && [[ ${CTPLUMY_DISABLED:-} != 1 ]] && TPC_CORR_OPT+=" --disable-ctp-lumi-request"
 }
 
-parse_TPC_CORR_SCALING $TPC_CORR_SCALING
+if has_detector TPC; then
+  parse_TPC_CORR_SCALING $TPC_CORR_SCALING
+fi
 
 if [[ $GPUTYPE != "CPU" && $(ulimit -e) -ge 25 && ${O2_GPU_WORKFLOW_NICE:-} == 1 ]]; then
   GPU_CONFIG_SELF+=" --child-driver 'nice -n -5'"
