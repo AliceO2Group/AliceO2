@@ -60,9 +60,11 @@ class SecondaryVertexingSpec : public Task
  public:
   SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, GTrackID::mask_t src, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool enableCCDBParams, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mSrc(src), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mEnableCCDBParams(enableCCDBParams), mUseMC(useMC)
   {
-    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
+    if (mSrc[GTrackID::TPC]) {
+      mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+      mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+      mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
+    }
   }
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
