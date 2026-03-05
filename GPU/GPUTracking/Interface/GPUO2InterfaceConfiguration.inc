@@ -30,7 +30,7 @@
 
 #define GPU_GET_CONFIG(configName) []() -> decltype(auto) {                            \
   static_assert(!std::is_same_v<o2::gpu::configName, o2::gpu::GPUSettingsProcessing>); \
-  return o2::gpu::GPUCA_M_CAT(GPUConfigurableParam, configName)::Instance();           \
+  return o2::gpu::internal::GPUCA_M_CAT(GPUConfigurableParam, configName)::Instance(); \
 }()
 #endif
 

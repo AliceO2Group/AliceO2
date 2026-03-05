@@ -13,6 +13,7 @@
 /// \brief Workflow for time based dE/dx calibration.
 /// \author Thiago Badaró <thiago.saramela@usp.br>
 
+#include "GPUO2InterfaceConfiguration.inc"
 #include "TPCWorkflow/CalibratordEdxSpec.h"
 
 #include <vector>
@@ -29,7 +30,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
-#include "GPUO2ConfigurableParam.h"
 #include "TPCCalibration/CalibratordEdx.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -86,8 +86,9 @@ class CalibratordEdxDevice : public Task
     mCalibrator->setTrackDebug(trackDebug);
     mCalibrator->setMakeGaussianFits(makeGaussianFits);
 
-    mCustomdEdxFileName = o2::gpu::GPUConfigurableParamGPUSettingsO2::Instance().dEdxCorrFile;
-    mDisableTimeGain = o2::gpu::GPUConfigurableParamGPUSettingsO2::Instance().dEdxDisableResidualGain;
+    const auto& gpuConfig = GPU_GET_CONFIG(GPUSettingsO2);
+    mCustomdEdxFileName = gpuConfig.dEdxCorrFile;
+    mDisableTimeGain = gpuConfig.dEdxDisableResidualGain;
 
     if (mDisableTimeGain) {
       LOGP(info, "TimeGain correction was disabled via GPU_global.dEdxDisableResidualGain=1");
