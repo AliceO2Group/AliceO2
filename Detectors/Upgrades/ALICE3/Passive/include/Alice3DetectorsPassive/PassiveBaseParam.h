@@ -31,14 +31,16 @@ enum MagnetLayout : int {
 
 enum DetLayout : int {
   StandardRadius = 0,
-  ReducedRadius = 1
+  ReducedRadius = 1,
+  Version2 = 2 // Specs from engineering note 2026-05-06
 };
 
 struct Alice3PassiveBaseParam : public o2::conf::ConfigurableParamHelper<Alice3PassiveBaseParam> {
   // Geometry Builder parameters
 
-  int mLayout = MagnetLayout::AluminiumStabilizer;
-  int mDetLayout = DetLayout::StandardRadius;
+  MagnetLayout mLayout = MagnetLayout::AluminiumStabilizer; // Magnet layout: Aluminium or Copper stabilizer
+  // DetLayout mDetLayout = DetLayout::StandardRadius;         // Detector layout: Standard or Reduced radius
+  DetLayout mDetLayout = o2::passive::DetLayout::Version2;         // Detector layout: Standard or Reduced radius
 
   O2ParamDef(Alice3PassiveBaseParam, "Alice3PassiveBase");
 };

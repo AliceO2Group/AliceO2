@@ -107,6 +107,8 @@ void Alice3Magnet::ConstructGeometry()
   // Passive Base configuration parameters
   auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
 
+  const bool isVersion2 = (passiveBaseParam.mDetLayout == o2::passive::DetLayout::Version2);
+
   switch (passiveBaseParam.mDetLayout) {
     case o2::passive::DetLayout::StandardRadius:
       // Defined in the header file
@@ -122,6 +124,19 @@ void Alice3Magnet::ConstructGeometry()
       mOuterWrapThickness = 3.f;     // cm
       mZLength = 800.f;              // cm
       break;
+    case o2::passive::DetLayout::Version2:
+      // Engineering note 2026-05-06 baseline stack (radial):
+      // inner wall 3 mm + winding pack 48 mm + support cylinder 20 mm + MLI 2 mm + outer wall 3 mm.
+      mInnerWrapInnerRadius = 125.f;                                        // cm
+      mInnerWrapThickness = 0.3f;                                           // cm
+      mCoilInnerRadius = mInnerWrapInnerRadius + mInnerWrapThickness;       // cm
+      mCoilThickness = 4.8f;                                                // cm
+      mRestMaterialRadius = mCoilInnerRadius + mCoilThickness;              // cm
+      mRestMaterialThickness = 2.2f;                                        // cm
+      mOuterWrapInnerRadius = mRestMaterialRadius + mRestMaterialThickness; // cm
+      mOuterWrapThickness = 0.3f;                                           // cm
+      mZLength = 800.f;                                                     // cm
+      break;
     default:
       LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
       break;
@@ -133,6 +148,10 @@ void Alice3Magnet::ConstructGeometry()
       // Handled in the header file
       break;
     case o2::passive::MagnetLayout::CopperStabilizer:
+      if (isVersion2) {
+        LOG(warn) << "Alice 3 magnet: CopperStabilizer override ignored for Version2 (engineering-note stack)";
+        break;
+      }
       doCopperStabilizer = true;
       mRestMaterialThickness -= 3.3; // cm Remove the Aluminium stabiliser
       mRestMaterialThickness += 2.2; // cm Add the Copper stabiliser

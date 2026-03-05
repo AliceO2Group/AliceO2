@@ -154,6 +154,7 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(17, -500, 236, 274);
       break;
     case o2::passive::DetLayout::ReducedRadius:
+    case o2::passive::DetLayout::Version2:
       absorings->DefineSection(0, 500, 201, 239);
       absorings->DefineSection(1, 400, 201, 239);
       absorings->DefineSection(2, 400, 197.5, 242.5);
