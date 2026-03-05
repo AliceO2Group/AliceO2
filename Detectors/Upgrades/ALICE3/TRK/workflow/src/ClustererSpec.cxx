@@ -23,6 +23,9 @@ namespace o2::trk
 void ClustererDPL::init(o2::framework::InitContext& ic)
 {
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
+#ifdef O2_WITH_ACTS
+  mUseACTS = ic.options().get<bool>("useACTS");
+#endif
 }
 
 void ClustererDPL::run(o2::framework::ProcessingContext& pc)
@@ -48,15 +51,30 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
   }
   o2::base::GeometryManager::loadGeometry("o2sim_geometry.root", false, true);
 
-  mClusterer.process(digits,
-                     rofs,
-                     clusters,
-                     patterns,
-                     clusterROFs,
-                     mUseMC ? &labels : nullptr,
-                     clusterLabels.get(),
-                     mc2rofs,
-                     mUseMC ? &clusterMC2ROFs : nullptr);
+#ifdef O2_WITH_ACTS
+  if (mUseACTS) {
+    mClustererACTS.process(digits,
+                           rofs,
+                           clusters,
+                           patterns,
+                           clusterROFs,
+                           mUseMC ? &labels : nullptr,
+                           clusterLabels.get(),
+                           mc2rofs,
+                           mUseMC ? &clusterMC2ROFs : nullptr);
+  } else
+#endif
+  {
+    mClusterer.process(digits,
+                       rofs,
+                       clusters,
+                       patterns,
+                       clusterROFs,
+                       mUseMC ? &labels : nullptr,
+                       clusterLabels.get(),
+                       mc2rofs,
+                       mUseMC ? &clusterMC2ROFs : nullptr);
+  }
 
   pc.outputs().snapshot(o2::framework::Output{"TRK", "COMPCLUSTERS", 0}, clusters);
   pc.outputs().snapshot(o2::framework::Output{"TRK", "PATTERNS", 0}, patterns);
