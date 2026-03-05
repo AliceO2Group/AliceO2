@@ -16,7 +16,6 @@
 
 #include "FT3Simulation/FT3Layer.h"
 #include "FT3Base/GeometryTGeo.h"
-#include "FT3Simulation/Detector.h"
 
 #include <fairlogger/Logger.h> // for LOG
 
@@ -55,19 +54,28 @@ TGeoMedium* FT3Layer::waterMed = nullptr;
 TGeoMaterial* FT3Layer::foamMat = nullptr;
 TGeoMedium* FT3Layer::medFoam = nullptr;
 
-FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0)
+FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0, bool partOfMiddleLayers)
 {
   // Creates a simple parametrized EndCap layer covering the given
   // pseudorapidity range at the z layer position
   mDirection = layerDirection;
   mLayerNumber = layerNumber;
+  mIsMiddleLayer = partOfMiddleLayers;
   mLayerName = layerName;
   mZ = layerDirection ? std::abs(z) : -std::abs(z);
   mx2X0 = Layerx2X0;
   mInnerRadius = rIn;
   mOuterRadius = rOut;
-  auto Si_X0 = 9.5;
+  const double Si_X0 = 9.5;
   mChipThickness = Layerx2X0 * Si_X0;
+
+  // Sanity checks
+  if (std::isnan(mZ)) {
+    LOG(fatal) << "FT3 Layer " << mLayerNumber << " has z = NaN, which is not a valid number.";
+  }
+  if (mZ < 0.001 && mZ > -0.001) {
+    LOG(fatal) << "FT3 Layer " << mLayerNumber << " has z = " << mZ << " cm, which is very close to 0.";
+  }
 
   LOG(info) << "Creating FT3 Layer " << mLayerNumber << " ; direction " << mDirection;
   LOG(info) << "   Using silicon X0 = " << Si_X0 << " to emulate layer radiation length.";
@@ -110,8 +118,8 @@ void FT3Layer::createSeparationLayer_waterCooling(TGeoVolume* motherVolume, cons
 
   FT3Layer::initialize_mat();
 
-  double carbonFiberThickness = 0.01;
-  double foamSpacingThickness = 0.5;
+  const double carbonFiberThickness = 0.01; // cm
+  const double foamSpacingThickness = 0.5;  // cm
 
   TGeoTube* carbonFiberLayer = new TGeoTube(mInnerRadius, mOuterRadius, carbonFiberThickness / 2);
 
@@ -122,15 +130,15 @@ void FT3Layer::createSeparationLayer_waterCooling(TGeoVolume* motherVolume, cons
   carbonFiberLayerVol1->SetLineColor(kGray + 2);
   carbonFiberLayerVol2->SetLineColor(kGray + 2);
 
-  double zSeparation = foamSpacingThickness / 2.0 + carbonFiberThickness / 2.0;
+  const double zSeparation = foamSpacingThickness / 2.0 + carbonFiberThickness / 2.0;
 
   motherVolume->AddNode(carbonFiberLayerVol1, 1, new TGeoTranslation(0, 0, mZ - zSeparation));
   motherVolume->AddNode(carbonFiberLayerVol2, 1, new TGeoTranslation(0, 0, mZ + zSeparation));
 
-  double pipeOuterRadius = 0.20;
-  double kaptonThickness = 0.0025;
-  double pipeInnerRadius = pipeOuterRadius - kaptonThickness;
-  double pipeMaxLength = mOuterRadius * 2.0;
+  const double pipeOuterRadius = 0.20;
+  const double kaptonThickness = 0.0025;
+  const double pipeInnerRadius = pipeOuterRadius - kaptonThickness;
+  const double pipeMaxLength = mOuterRadius * 2.0;
 
   int name_it = 0;
 
@@ -199,8 +207,8 @@ void FT3Layer::createSeparationLayer(TGeoVolume* motherVolume, const std::string
 
   FT3Layer::initialize_mat();
 
-  double carbonFiberThickness = 0.01;
-  double foamSpacingThickness = 1.0;
+  constexpr double carbonFiberThickness = 0.01; // cm
+  constexpr double foamSpacingThickness = 1.0;  // cm
 
   TGeoTube* carbonFiberLayer = new TGeoTube(mInnerRadius, mOuterRadius, carbonFiberThickness / 2);
   TGeoTube* foamLayer = new TGeoTube(mInnerRadius, mOuterRadius, foamSpacingThickness / 2);
@@ -215,16 +223,19 @@ void FT3Layer::createSeparationLayer(TGeoVolume* motherVolume, const std::string
   foamLayerVol->SetFillColorAlpha(kBlack, 1.0);
   carbonFiberLayerVol2->SetLineColor(kGray + 2);
 
-  double zSeparation = foamSpacingThickness / 2.0 + carbonFiberThickness / 2.0;
+  const double zSeparation = foamSpacingThickness / 2.0 + carbonFiberThickness / 2.0;
 
-  motherVolume->AddNode(carbonFiberLayerVol1, 1, new TGeoTranslation(0, 0, mZ - zSeparation));
-  motherVolume->AddNode(foamLayerVol, 1, new TGeoTranslation(0, 0, mZ));
-  motherVolume->AddNode(carbonFiberLayerVol2, 1, new TGeoTranslation(0, 0, mZ + zSeparation));
+  motherVolume->AddNode(carbonFiberLayerVol1, 1, new TGeoTranslation(0, 0, 0 - zSeparation));
+  motherVolume->AddNode(foamLayerVol, 1, new TGeoTranslation(0, 0, 0));
+  motherVolume->AddNode(carbonFiberLayerVol2, 1, new TGeoTranslation(0, 0, 0 + zSeparation));
 }
 
 void FT3Layer::createLayer(TGeoVolume* motherVolume)
 {
-  if (mLayerNumber >= 0 && mLayerNumber < 3) {
+  if (mLayerNumber < 0) {
+    LOG(fatal) << "Invalid layer number " << mLayerNumber << " for FT3 layer.";
+  }
+  if (mIsMiddleLayer) { // ML disks
 
     std::string chipName = o2::ft3::GeometryTGeo::getFT3ChipPattern() + std::to_string(mLayerNumber),
                 sensName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), mDirection, mLayerNumber);
@@ -255,7 +266,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
 
-  } else if (mLayerNumber >= 3) {
+  } else { // OT disks
 
     FT3Module module;
 
@@ -264,11 +275,23 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     std::string backLayerName = o2::ft3::GeometryTGeo::getFT3LayerPattern() + std::to_string(mDirection) + std::to_string(mLayerNumber) + "_Back";
     std::string separationLayerName = "FT3SeparationLayer" + std::to_string(mDirection) + std::to_string(mLayerNumber);
 
+    TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
+    TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, 10 * mChipThickness / 2);
+    TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+    layerVol->SetLineColor(kYellow + 2);
+
     // createSeparationLayer_waterCooling(motherVolume, separationLayerName);
-    createSeparationLayer(motherVolume, separationLayerName);
+    createSeparationLayer(layerVol, separationLayerName);
 
     // create disk faces
-    module.createModule(mZ, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", motherVolume);
-    module.createModule(mZ, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "back", "rectangular", motherVolume);
+    module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", layerVol);
+    module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "back", "rectangular", layerVol);
+
+    // Finally put everything in the mother volume
+    auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);
+    auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ, FwdDiskRotation);
+
+    LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
+    motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
   }
 }

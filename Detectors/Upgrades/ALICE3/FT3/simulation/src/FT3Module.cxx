@@ -199,7 +199,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
     bottom_y_pos_value = 3.5;
     bottom_y_neg_value = -3.5;
   } else {
-    std::cout << "Different config - to determine offsets needed." << std::endl;
+    LOG(warning) << "Different config - to determine offsets needed for " << "Rin = " << Rin << " ; sensor_height = " << sensor_height << " ; sensor_width = " << sensor_width << " layer " << layerNumber;
     x_condition_min = -Rin;
     x_condition_max = Rin;
     adjust_bottom_y_pos = false;

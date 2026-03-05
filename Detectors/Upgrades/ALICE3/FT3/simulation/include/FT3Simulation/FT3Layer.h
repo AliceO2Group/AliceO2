@@ -36,7 +36,7 @@ class FT3Layer : public TObject
   FT3Layer() = default;
 
   // Sample layer constructor
-  FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0);
+  FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0, bool partOfMiddleLayers);
 
   /// Copy constructor
   FT3Layer(const FT3Layer&) = default;
@@ -51,6 +51,7 @@ class FT3Layer : public TObject
   auto getInnerRadius() const { return mInnerRadius; }
   auto getOuterRadius() const { return mOuterRadius; }
   auto getDirection() const { return mDirection; }
+  bool getIsInMiddleLayer() const { return mIsMiddleLayer; }
   auto getZ() const { return mZ; }
   auto getx2X0() const { return mx2X0; }
 
@@ -77,14 +78,15 @@ class FT3Layer : public TObject
   static TGeoMedium* medFoam;
 
  private:
-  Int_t mLayerNumber = -1; ///< Current layer number
-  Int_t mDirection;        ///< Layer direction 0=Forward 1 = Backward
-  std::string mLayerName;  ///< Current layer name
-  Double_t mInnerRadius;   ///< Inner radius of this layer
-  Double_t mOuterRadius;   ///< Outer radius of this layer
-  Double_t mZ;             ///< Z position of the layer
-  Double_t mChipThickness; ///< Chip thickness
-  Double_t mx2X0;          ///< Layer material budget x/X0
+  Int_t mLayerNumber = -1;    ///< Current layer number
+  Int_t mDirection;           ///< Layer direction 0=Forward 1 = Backward
+  bool mIsMiddleLayer = true; ///< Wether this layer is part of the middle layers
+  std::string mLayerName;     ///< Current layer name
+  Double_t mInnerRadius;      ///< Inner radius of this layer
+  Double_t mOuterRadius;      ///< Outer radius of this layer
+  Double_t mZ;                ///< Z position of the layer
+  Double_t mChipThickness;    ///< Chip thickness
+  Double_t mx2X0;             ///< Layer material budget x/X0
 
   ClassDefOverride(FT3Layer, 0); // ALICE 3 EndCaps geometry
 };

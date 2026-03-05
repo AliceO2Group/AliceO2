@@ -101,9 +101,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* composeSymNameSensor(Int_t d, Int_t lr);
 
  protected:
-  static constexpr int MAXLAYERS = 15; ///< max number of active layers
-
-  Int_t mNumberOfLayers;               ///< number of layers
   static std::string sInnerVolumeName; ///< Mother inner volume name
   static std::string sVolumeName;      ///< Mother volume name
   static std::string sLayerName;       ///< Layer name
