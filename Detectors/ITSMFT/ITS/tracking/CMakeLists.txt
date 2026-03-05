@@ -22,7 +22,6 @@ o2_add_library(ITStracking
                        src/ClusterLines.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
-                       src/Definitions.cxx
                PUBLIC_LINK_LIBRARIES
                        O2::GPUCommon
                        Microsoft.GSL::GSL

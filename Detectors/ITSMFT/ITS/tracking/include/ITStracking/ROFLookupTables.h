@@ -20,7 +20,8 @@
 
 #include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "ITStracking/Definitions.h"
+#include "DataFormatsITS/TimeEstBC.h"
+#include "DataFormatsITS/Vertex.h"
 #include "GPUCommonLogger.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"

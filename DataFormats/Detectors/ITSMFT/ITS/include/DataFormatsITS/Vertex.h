@@ -9,5 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITStracking/Definitions.h"
-ClassImp(o2::its::TimeEstBC);
+#ifndef O2_TRACKINGITS_VERTEX_H_
+#define O2_TRACKINGITS_VERTEX_H_
+
+#include "ReconstructionDataFormats/Vertex.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsITS/TimeEstBC.h"
+
+namespace o2::its
+{
+using Vertex = o2::dataformats::Vertex<o2::its::TimeEstBC>;
+using VertexLabel = std::pair<o2::MCCompLabel, float>;
+} // namespace o2::its
+
+#endif

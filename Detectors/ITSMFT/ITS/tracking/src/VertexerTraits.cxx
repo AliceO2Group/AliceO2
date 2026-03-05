@@ -12,7 +12,6 @@
 
 #include <memory>
 #include <ranges>
-#include <map>
 #include <algorithm>
 
 #include <oneapi/tbb/blocked_range.h>
@@ -22,6 +21,7 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "Steer/MCKinematicsReader.h"
@@ -104,17 +104,14 @@ static void trackletSelectionKernelHost(
   bounded_vector<Line>& lines,
   const gsl::span<const o2::MCCompLabel>& trackletLabels,
   bounded_vector<o2::MCCompLabel>& linesLabels,
-  const short targetRofId0,
-  const short targetRofId2,
-  bool safeWrites = false,
+  const TimeEstBC& targetRofTime0,
+  const TimeEstBC& targetRofTime2,
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
-  const int maxTracklets = static_cast<int>(1e2))
+  const int maxTracklets = 100)
 {
-  LOGP(info, "cls0:{} cls1:{} foundTracklets01:{} foundTracklets12:{} usedTracklets:{}", clusters0.size(), clusters1.size(), foundTracklets01.size(), foundTracklets12.size(), usedTracklets.size());
   int offset01{0}, offset12{0};
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clusters1.size(); ++iCurrentLayerClusterIndex) {
-    LOGP(info, "icl:{} offset01:{} offset12:{}", iCurrentLayerClusterIndex, offset01, offset12);
     int validTracklets{0};
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
@@ -122,28 +119,19 @@ static void trackletSelectionKernelHost(
           continue;
         }
 
-        LOGP(info, "trk01:{}/{} trk12:{}/{}", iTracklet01, tracklets01.size(), iTracklet12, tracklets12.size());
         const auto& tracklet01{tracklets01[iTracklet01]};
         const auto& tracklet12{tracklets12[iTracklet12]};
-        tracklet01.print();
-        tracklet12.print();
-
-        if (!tracklet01.getTimeStamp().isCompatible(tracklet12.getTimeStamp())) {
+        if (!tracklet01.getTimeStamp().isCompatible(targetRofTime0) ||
+            !tracklet12.getTimeStamp().isCompatible(targetRofTime2) ||
+            !tracklet01.getTimeStamp().isCompatible(tracklet12.getTimeStamp())) {
           continue;
         }
-
-        LOGP(info, "\t-> overlap");
 
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklet01.tanLambda - tracklet12.tanLambda)};
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(math_utils::smallestAngleDifference(tracklet01.phi, tracklet12.phi))};
         if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
-          if (safeWrites) {
-            __atomic_store_n(&usedClusters0[tracklet01.firstClusterIndex], 1, __ATOMIC_RELAXED);
-            __atomic_store_n(&usedClusters2[tracklet12.secondClusterIndex], 1, __ATOMIC_RELAXED);
-          } else {
-            usedClusters0[tracklet01.firstClusterIndex] = 1;
-            usedClusters2[tracklet12.secondClusterIndex] = 1;
-          }
+          usedClusters0[tracklet01.firstClusterIndex] = 1;
+          usedClusters2[tracklet12.secondClusterIndex] = 1;
           usedTracklets[iTracklet01] = true;
           lines.emplace_back(tracklet01, clusters0.data(), clusters1.data());
           if (!trackletLabels.empty()) {
@@ -295,24 +283,18 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
           if (mTimeFrame->getFoundTracklets(pivotRofId, 0).empty()) {
             continue;
           }
-          LOGP(info, "rof:{} trklts:{}", pivotRofId, mTimeFrame->getFoundTracklets(pivotRofId, 0).size());
           mTimeFrame->getLines(pivotRofId).reserve(mTimeFrame->getNTrackletsCluster(pivotRofId, 0).size());
           bounded_vector<bool> usedTracklets(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), false, mMemoryPool.get());
 
-          // needed only if multi-threaded using deltaRof and only at the overlap edges of the ranges
-          bool safeWrite = mTaskArena->max_concurrency() > 1;
-
           const auto& rofRange01 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 0, pivotRofId);
           const auto& rofRange12 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 2, pivotRofId);
-          LOGP(info, "01: {} -> {}", rofRange01.getFirstEntry(), rofRange01.getEntriesBound());
-          LOGP(info, "12: {} -> {}", rofRange12.getFirstEntry(), rofRange12.getEntriesBound());
           for (short targetRofId0 = rofRange01.getFirstEntry(); targetRofId0 < rofRange01.getEntriesBound(); ++targetRofId0) {
+            const auto targetRofTime0 = mTimeFrame->getROFOverlapTableView().getLayer(0).getROFTimeBounds(targetRofId0);
             for (short targetRofId2 = rofRange12.getFirstEntry(); targetRofId2 < rofRange12.getEntriesBound(); ++targetRofId2) {
-              LOGP(info, "tar01: {} tar12:{}", targetRofId0, targetRofId2);
+              const auto targetRofTime2 = mTimeFrame->getROFOverlapTableView().getLayer(2).getROFTimeBounds(targetRofId2);
               if (!(mTimeFrame->getROFOverlapTableView().doROFsOverlap(0, targetRofId0, 2, targetRofId2))) {
                 continue;
               }
-              LOGP(info, "\t`-> overlap");
               trackletSelectionKernelHost(
                 mTimeFrame->getClustersOnLayer(targetRofId0, 0),
                 mTimeFrame->getClustersOnLayer(pivotRofId, 1),
@@ -326,9 +308,8 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
                 mTimeFrame->getLines(pivotRofId),
                 mTimeFrame->getLabelsFoundTracklets(pivotRofId, 0),
                 mTimeFrame->getLinesLabel(pivotRofId),
-                targetRofId0,
-                targetRofId2,
-                safeWrite,
+                targetRofTime0,
+                targetRofTime2,
                 mVrtParams[iteration].tanLambdaCut,
                 mVrtParams[iteration].phiCut);
             }
@@ -488,10 +469,9 @@ void VertexerTraits<NLayers>::addTruthSeedingVertices()
       vert.getTimeStamp().setTimeStamp(bc);
       vert.getTimeStamp().setTimeStampError(roFrameLengthInBC / 2);
       // set minimum to 1 sometimes for diffractive events there is nothing acceptance
-      // vert.setNContributors(std::max(1L, std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
-      //                                  return trk.isPrimary() && trk.GetPt() > 0.05 && std::abs(trk.GetEta()) < 1.1;
-      //                                })));
-      vert.setNContributors(1);
+      vert.setNContributors(std::max(1L, std::ranges::count_if(mcReader.getTracks(iSrc, iEve), [](const auto& trk) {
+                                       return trk.isPrimary() && trk.GetPt() > 0.05 && std::abs(trk.GetEta()) < 1.1;
+                                     })));
       vert.setXYZ((float)eve.GetX(), (float)eve.GetY(), (float)eve.GetZ());
       vert.setChi2(1); // not used as constraint
       constexpr float cov = 25e-4;

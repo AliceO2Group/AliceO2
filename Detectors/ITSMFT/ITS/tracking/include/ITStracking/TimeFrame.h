@@ -21,6 +21,7 @@
 #include <gsl/gsl>
 
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITS/Vertex.h"
 
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
@@ -36,7 +37,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "ReconstructionDataFormats/Vertex.h"
 #include "DetectorsBase/Propagator.h"
 
 namespace o2

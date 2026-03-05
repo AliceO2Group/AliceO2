@@ -20,11 +20,10 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
-#include "ITStracking/Definitions.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITS/Vertex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
 {

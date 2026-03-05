@@ -17,7 +17,7 @@
 #define TRACKINGITSU_INCLUDE_CACELL_H_
 
 #include "ITStracking/Constants.h"
-#include "ITStracking/Definitions.h"
+#include "DataFormatsITS/TimeEstBC.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "GPUCommonDef.h"
 

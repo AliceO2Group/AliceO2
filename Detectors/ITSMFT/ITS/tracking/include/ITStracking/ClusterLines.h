@@ -20,6 +20,7 @@
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonDef.h"
 #include "GPUCommonLogger.h"
 
 namespace o2::its

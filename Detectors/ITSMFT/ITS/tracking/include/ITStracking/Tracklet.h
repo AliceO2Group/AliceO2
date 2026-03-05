@@ -17,7 +17,7 @@
 #define TRACKINGITS_INCLUDE_TRACKLET_H_
 
 #include "ITStracking/Constants.h"
-#include "ITStracking/Definitions.h"
+#include "DataFormatsITS/TimeEstBC.h"
 #include "ITStracking/Cluster.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"

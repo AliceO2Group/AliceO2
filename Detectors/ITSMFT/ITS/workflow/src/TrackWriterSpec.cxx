@@ -19,7 +19,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "ITStracking/Definitions.h"
+#include "DataFormatsITS/Vertex.h"
 
 using namespace o2::framework;
 

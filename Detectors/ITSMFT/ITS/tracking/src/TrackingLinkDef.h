@@ -27,12 +27,6 @@
 #pragma link C++ class o2::its::TrackingFrameInfo + ;
 #pragma link C++ class std::vector < o2::its::TrackingFrameInfo> + ;
 
-#pragma link C++ class o2::its::TimeEstBC + ;
-#pragma link C++ class std::vector < o2::its::TimeEstBC> + ;
-
-#pragma link C++ class o2::dataformats::Vertex < o2::its::TimeEstBC> + ;
-#pragma link C++ class std::vector < o2::dataformats::Vertex < o2::its::TimeEstBC>> + ;
-
 #pragma link C++ class o2::its::Line + ;
 #pragma link C++ class std::vector < o2::its::Line> + ;
 
