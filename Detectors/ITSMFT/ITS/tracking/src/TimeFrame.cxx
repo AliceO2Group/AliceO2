@@ -357,14 +357,12 @@ void TimeFrame<NLayers>::setMemoryPool(std::shared_ptr<BoundedMemoryResource> po
 {
   mMemoryPool = pool;
 
-  auto initVector = [&]<typename T>(bounded_vector<T> & vec, bool useExternal = false)
-  {
+  auto initVector = [&]<typename T>(bounded_vector<T>& vec, bool useExternal = false) {
     std::pmr::memory_resource* mr = (useExternal) ? mExtMemoryPool.get() : mMemoryPool.get();
     deepVectorClear(vec, mr);
   };
 
-  auto initContainers = [&]<typename Container>(Container & container, bool useExternal = false)
-  {
+  auto initContainers = [&]<typename Container>(Container& container, bool useExternal = false) {
     for (auto& v : container) {
       initVector(v, useExternal);
     }
