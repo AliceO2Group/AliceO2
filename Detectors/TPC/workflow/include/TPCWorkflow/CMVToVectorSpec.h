@@ -28,4 +28,4 @@ o2::framework::DataProcessorSpec getCMVToVectorSpec(const std::string inputSpec,
 
 } // end namespace o2::tpc
 
-#endif //TPC_CMVToVectorSpec_H_
+#endif // TPC_CMVToVectorSpec_H_
