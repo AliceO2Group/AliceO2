@@ -93,7 +93,7 @@ class CMVToVectorDevice : public o2::framework::Task
     // open files if necessary
     if ((mWriteDebug || mWriteDebugOnError) && !mDebugStream) {
       const auto debugFileName = fmt::format(fmt::runtime(mDebugStreamFileName), fmt::arg("run", runNumber));
-      LOGP(info, "creating debug stream {}", debugFileName);
+      LOGP(info, "Creating debug stream {}", debugFileName);
       mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>(debugFileName.data(), "recreate");
     }
 
@@ -103,7 +103,7 @@ class CMVToVectorDevice : public o2::framework::Task
         rawType = "cmv.raw";
       }
       const auto rawFileName = fmt::format(fmt::runtime(mRawOutputFileName), fmt::arg("run", runNumber), fmt::arg("raw_type", rawType));
-      LOGP(info, "creating raw debug file {}", rawFileName);
+      LOGP(info, "Creating raw debug file {}", rawFileName);
       mRawOutputFile.open(rawFileName, std::ios::binary);
     }
 
@@ -118,6 +118,7 @@ class CMVToVectorDevice : public o2::framework::Task
       tfCounter = dh->tfCounter;
       const auto subSpecification = dh->subSpecification;
       auto payloadSize = DataRefUtils::getPayloadSize(ref);
+      // LOGP(info, "Processing TF {}, subSpecification {}, payloadSize {}", tfCounter, subSpecification, payloadSize);
 
       // ---| data loop |---
       const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
@@ -150,10 +151,14 @@ class CMVToVectorDevice : public o2::framework::Task
           const uint32_t cruID = rdh_utils::getCRU(feeId);
           const auto detField = RDHUtils::getDetectorField(*rdhPtr);
 
+          // LOGP(info, "Detected CMV packet: CRU {}, link {}, feeId {}", cruID, link, feeId);
+
           if ((detField != (decltype(detField))RawDataType::CMV) || (link != rdh_utils::CMVLinkID)) {
+            // LOGP(debug, "Skipping packet: detField {}, (expected RawDataType {}), link {}, (expected CMVLinkID {})", detField, (decltype(detField))RawDataType::CMV, link, rdh_utils::CMVLinkID);
             continue;
           }
-          LOGP(debug, "CMV Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/-/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, link);
+
+          LOGP(debug, "Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6}, cruID {:3}, link {:2}", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, link);
 
           if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
             LOGP(error, "CMV CRU {:3} not configured in CRUs, skipping", cruID);
@@ -163,7 +168,10 @@ class CMVToVectorDevice : public o2::framework::Task
           auto& cmvVec = mCMVvectors[cruID];
           auto& infoVec = mCMVInfos[cruID];
 
-          assert(size == sizeof(cmv::Container));
+          if (size != sizeof(cmv::Container)) {
+            LOGP(error, "CMV packet size mismatch: got {} bytes, expected {} bytes (sizeof cmv::Container). Skipping package.", size, sizeof(cmv::Container));
+            return;
+          }
           auto data = it.data();
           auto& cmvs = *((cmv::Container*)(data));
           const uint32_t orbit = cmvs.header.heartbeatOrbit;
@@ -174,6 +182,7 @@ class CMVToVectorDevice : public o2::framework::Task
           cmvVec.reserve(cmvVec.size() + cmv::NTimeBins);
           for (uint32_t tb = 0; tb < cmv::NTimeBins; ++tb) {
             cmvVec.push_back(cmvs.getCMVFloat(tb));
+            // LOGP(info, "Appended CMV {} for timebin {}, CRU {}, orbit {}, bc {}", cmvs.getCMVFloat(tb), tb, cruID, orbit, bc);
           }
         }
       } catch (const std::exception& e) {
@@ -263,23 +272,21 @@ class CMVToVectorDevice : public o2::framework::Task
     bool matches(uint32_t orbit, int16_t bc) const { return ((heartbeatOrbit == orbit) && (heartbeatBC == bc)); }
   };
 
-  int mRawDataType{0};                                                                          ///< type of raw data to dump in case of errors
-  bool mWriteDebug{false};                                                                      ///< write a debug output
-  bool mWriteDebugOnError{false};                                                               ///< write a debug output in case of errors
-  bool mWriteRawDataOnError{false};                                                             ///< write raw data in case of errors
-  std::vector<uint32_t> mCRUs;                                                                  ///< CRUs expected for this device
-  std::unordered_map<uint32_t, std::vector<float>> mCMVvectors;                                 ///< decoded CMVs per cru over all CMV packets in the TF
-  std::unordered_map<uint32_t, std::vector<CMVInfo>> mCMVInfos;                                 ///< CMV packet information within the TF
-  std::string mDebugStreamFileName;                                                             ///< name of the debug stream output file
-  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream;                                ///< debug output streamer
-  std::ofstream mRawOutputFile;                                                                 ///< raw output file
-  std::string mRawOutputFileName;                                                               ///< name of the raw output file
+  int mRawDataType{0};                                           ///< type of raw data to dump in case of errors
+  bool mWriteDebug{false};                                       ///< write a debug output
+  bool mWriteDebugOnError{false};                                ///< write a debug output in case of errors
+  bool mWriteRawDataOnError{false};                              ///< write raw data in case of errors
+  std::vector<uint32_t> mCRUs;                                   ///< CRUs expected for this device
+  std::unordered_map<uint32_t, std::vector<float>> mCMVvectors;  ///< decoded CMVs per cru over all CMV packets in the TF
+  std::unordered_map<uint32_t, std::vector<CMVInfo>> mCMVInfos;  ///< CMV packet information within the TF
+  std::string mDebugStreamFileName;                              ///< name of the debug stream output file
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream; ///< debug output streamer
+  std::ofstream mRawOutputFile;                                  ///< raw output file
+  std::string mRawOutputFileName;                                ///< name of the raw output file
 
   //____________________________________________________________________________
   bool snapshotCMVs(DataAllocator& output, uint32_t tfCounter)
   {
-    LOGP(debug, "snapshotCMVs");
-
     bool hasErrors = false;
 
     // send data per CRU with its own orbit/BC vector
@@ -288,11 +295,11 @@ class CMVToVectorDevice : public o2::framework::Task
       const auto& infVec = mCMVInfos[cru];
 
       if (infVec.size() != 4) {
-        LOGP(warning, "CMV CRU {:3}: expected 4 packets per TF, got {}", cru, infVec.size());
+        LOGP(warning, "CRU {:3}: expected 4 packets per TF, got {}", cru, infVec.size());
         hasErrors = true;
       }
       if (cmvVec.size() != cmv::NTimeBins * infVec.size()) {
-        LOGP(warning, "CMV CRU {:3}: vector size {} does not match expected {}", cru, cmvVec.size(), cmv::NTimeBins * infVec.size());
+        LOGP(warning, "CRU {:3}: vector size {} does not match expected {}", cru, cmvVec.size(), cmv::NTimeBins * infVec.size());
         hasErrors = true;
       }
 
@@ -336,17 +343,16 @@ class CMVToVectorDevice : public o2::framework::Task
       if (mCMVInfos.find(cru) == mCMVInfos.end()) {
         continue;
       }
-    
+
       auto& infos = mCMVInfos[cru];
       auto& cmvVec = mCMVvectors[cru];
-    
+
       stream << "cru=" << cru
              << "tfCounter=" << tfCounter
              << "nCMVs=" << cmvVec.size()
              << "cmvs=" << cmvVec
              << "\n";
     }
-    
   }
 
   void writeRawData(InputRecord& inputs)

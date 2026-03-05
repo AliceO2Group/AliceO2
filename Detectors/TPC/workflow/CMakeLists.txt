@@ -289,8 +289,6 @@ o2_add_executable(pressure-temperature
                   SOURCES src/tpc-pressure-temperature.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-add_subdirectory(readers)
-
 o2_add_executable(cmv-to-vector
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-cmv-to-vector.cxx
@@ -310,3 +308,5 @@ o2_add_executable(cmv-to-vector
 #                 COMPONENT_NAME tpc
 #                 SOURCES src/tpc-cmv-producer.cxx
 #                 PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+add_subdirectory(readers)
