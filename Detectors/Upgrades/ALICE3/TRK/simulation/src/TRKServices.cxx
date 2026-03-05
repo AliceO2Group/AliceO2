@@ -828,7 +828,7 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
   const int OTDisknPower = 3 * 34;
   float siO2FiberAreaD = OTDisknFiber * mFiberArea * mFiberComposition[0];
   float peFiberAreaD = OTDisknFiber * mFiberArea * mFiberComposition[1];
-  
+
   float puCoolingAreaD = 0;
   float h2oCoolingAreaD = 0;
   float cuPowerAreaD = OTDisknPower * mPowerBundleArea * mPowerBundleComposition[0];
@@ -839,7 +839,7 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
   const int OTBarrelnPower = 306;
   float siO2FiberAreaB = OTBarrelnFiber * mFiberArea * mFiberComposition[0];
   float peFiberAreaB = OTBarrelnFiber * mFiberArea * mFiberComposition[1];
-  
+
   float puCoolingAreaB = 0;
   float h2oCoolingAreaB = 0;
   float cuPowerAreaB = OTBarrelnPower * mPowerBundleArea * mPowerBundleComposition[0];
