@@ -770,16 +770,18 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
 
       double rCur = rMinMiddleServicesFwd;
       double dR = siO2FiberAreaD / (3.14 * rCur);
-      if (orientation == Orientation::kASide)
+      if (orientation == Orientation::kASide) {
         dR += siO2FiberAreaB / (3.14 * rCur);
+      }
       TGeoTubeSeg* middleFwdFiberSIO2 = new TGeoTubeSeg(Form("TRK_MIDFWD_FIBER_SIO2sh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthMiddleServicesFwd / 2, -45, 45);
       TGeoVolume* middleFwdFiberSIO2Volume = new TGeoVolume(Form("TRK_MIDFWD_FIBER_SIO2_%s%d", orLabel.c_str(), iSide), middleFwdFiberSIO2, medSiO2);
       middleFwdFiberSIO2Volume->SetLineColor(kGray);
 
       rCur += dR;
       dR = peFiberAreaD / (3.14 * rCur);
-      if (orientation == Orientation::kASide)
+      if (orientation == Orientation::kASide) {
         dR += peFiberAreaB / (3.14 * rCur);
+      }
       TGeoTubeSeg* middleFwdFiberPE = new TGeoTubeSeg(Form("TRK_MIDFWD_FIBER_PEsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthMiddleServicesFwd / 2, -45, 45);
       TGeoVolume* middleFwdFiberPEVolume = new TGeoVolume(Form("TRK_MIDFWD_FIBER_PE_%s%d", orLabel.c_str(), iSide), middleFwdFiberPE, medPE);
       middleFwdFiberPEVolume->SetLineColor(kGray);
@@ -792,16 +794,18 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
       // Create powerlines
       rCur += dR;
       dR = cuPowerAreaD / (3.14 * rCur);
-      if (orientation == Orientation::kASide)
+      if (orientation == Orientation::kASide) {
         dR += cuPowerAreaB / (3.14 * rCur);
+      }
       TGeoTubeSeg* middleFwdPowerCu = new TGeoTubeSeg(Form("TRK_MIDFWD_POWER_CUsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthMiddleServicesFwd / 2, -45, 45);
       TGeoVolume* middleFwdPowerCuVolume = new TGeoVolume(Form("TRK_MIDFWD_POWER_CU_%s%d", orLabel.c_str(), iSide), middleFwdPowerCu, medCu);
       middleFwdPowerCuVolume->SetLineColor(kGray);
 
       rCur += dR;
       dR = pePowerAreaD / (3.14 * rCur);
-      if (orientation == Orientation::kASide)
+      if (orientation == Orientation::kASide) {
         dR += pePowerAreaB / (3.14 * rCur);
+      }
       TGeoTubeSeg* middleFwdPowerPE = new TGeoTubeSeg(Form("TRK_MIDFWD_POWER_PEsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthMiddleServicesFwd / 2, -45, 45);
       TGeoVolume* middleFwdPowerPEVolume = new TGeoVolume(Form("TRK_MIDFWD_POWER_PE_%s%d", orLabel.c_str(), iSide), middleFwdPowerPE, medPE);
       middleFwdPowerPEVolume->SetLineColor(kGray);
