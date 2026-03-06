@@ -6,7 +6,8 @@ These are a few notes related to the inclusion of external (CAD-described) detec
 
 In principle, such integration is now possible and requires the following steps:
 
-1. The CAD geometry needs to be exported to STEP format and must contain only the final geometry (no artificial eta-cut elements). Ideally, the geometry should be fully hierarchical with proper solid reuse. The solids should retain their proper surface representation for detailed analysis.
+1. The CAD geometry needs to be exported to STEP format and must contain only the final geometry (no artificial eta-cut elements). Ideally, the geometry should be fully hierarchical with proper solid reuse. The solids should retain their proper surface representation for detailed analysis. Materials can be treated by providing a CSV file that map STEP part names to a material name. The conversion code will do it's best to find a corresponding material definition from a G4 NIST database JSON file (which can be expanded by users with custom definitions).
+
 
 2. A tool `O2-CADtoTGeo.py` is provided to convert the STEP geometry into TGeo format. The tool is part of AliceO2 and is based on Python bindings (OCC) for OpenCascade. The tool can be used as follows:
 
@@ -17,7 +18,14 @@ In principle, such integration is now possible and requires the following steps:
 
     This will create a ROOT macro file `geom.C` containing the geometry description in ROOT format, as well as several binary files describing the TGeo solids. The `geom.C` file can either be used directly in ROOT to inspect the geometry or be provided to ALICE-O2 for inclusion in the geometry.
 
-3. Introduction of materials/media in the file `geom.C`. Currently, the file `geom.C` needs to be patched or edited to properly include `TGeoMaterial`/`TGeoMedium` definitions and connect them to the relevant `TGeoVolume` objects. At present, every solid has the same dummy material attached, which is not realistic. It may be a good idea to create a new file `geom_withMaterials.C`, which differs from `geom.C` by the addition of these material definitions.
+    When materials are included the conversion process looks like this
+    ```bash
+    python O2-CADtoTGeo.py STEP_FILE --output-folder my_detector -o geom.C --mesh \
+                           --mesh-prec 0.2                                        \
+                           --materials-csv MATERIALS.csv                          \ --g4-nist-json ../g4_nist_database/G4_NIST_DB.json 
+    ```
+
+3. Inspection of the created geom.C file and possible manual editing/fixing of the code, in particular materials and medium objects.
 
 4. Once the conversion is complete, the module can be inserted into the O2 geometry via the `ExternalModule` class. To do so, follow this pattern in `build_geometry.C`:
 
