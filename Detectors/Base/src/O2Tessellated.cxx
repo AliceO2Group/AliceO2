@@ -1359,8 +1359,8 @@ Double_t O2Tessellated::Safety(const Double_t* point, Bool_t in) const
 
     if (d2 < mCachedSafety * mCachedSafety) {
       // we moved less than known safety
-      mCachedSafety - std::sqrt(d2);
       cached_counter++;
+      return mCachedSafety - std::sqrt(d2);
     }
   }
 
