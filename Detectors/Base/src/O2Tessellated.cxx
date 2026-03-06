@@ -1349,8 +1349,30 @@ Double_t O2Tessellated::Safety(const Double_t* point, Bool_t in) const
   // we could use some caching here (in future) since queries to the solid will likely
   // be made with some locality
 
+  if (in) {
+    call_counter++;
+    // distance to last known evaluation
+    const auto xd = float(point[0]) - mLast_x;
+    const auto yd = float(point[1]) - mLast_y;
+    const auto zd = float(point[2]) - mLast_z;
+    const auto d2 = xd * xd + yd * yd + zd * zd;
+
+    if (d2 < mCachedSafety * mCachedSafety) {
+      // we moved less than known safety
+      mCachedSafety - std::sqrt(d2);
+      cached_counter++;
+    }
+  }
+
   // fall-back to precise safety kernel
-  return SafetyKernel<false>(point, in);
+  const auto safety = SafetyKernel<false>(point, in);
+  if (in) {
+    mLast_x = point[0];
+    mLast_y = point[1];
+    mLast_z = point[2];
+    mCachedSafety = safety;
+  }
+  return safety;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
