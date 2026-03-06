@@ -66,7 +66,7 @@ AddOptionRTC(sysClusErrorC12Box, float, 1.1e-05f, "", 0, "Systematic cluster for
 AddOptionRTC(minNClustersTrackSeed, int32_t, -1, "", 0, "required min number of clusters on the track after track following (before merging)")
 AddOptionRTC(minNClustersFinalTrack, int32_t, -1, "", 0, "required min number of clusters on the final track")
 AddOptionRTC(searchWindowDZDR, float, 2.5f, "", 0, "Use DZDR window for seeding instead of neighboursSearchArea")
-AddOptionRTC(trackReferenceX, float, 1000.f, "", 0, "Transport all tracks to this X after tracking (disabled if > 500, auto = 1000)")
+AddOptionRTC(trackReferenceX, float, 1000.f, "", 0, "Transport all tracks to this X after tracking (disabled if > 500)")
 AddOptionRTC(zsThreshold, float, 2.0f, "", 0, "Zero-Suppression threshold")
 AddOptionRTC(tubeProtectSigma2, float, 4.f * 4.f, "", 0, "Max sigma2 to mark adjacent cluster for protection")
 AddOptionRTC(tubeProtectMaxSize2, float, 2.f * 2.f, "", 0, "Square of max tube size (if smaller than tubeProtectChi2)")
@@ -184,6 +184,7 @@ AddOptionRTC(extraRoadZ, float, 10.f, "", 0, "Addition to search road around tra
 AddOptionRTC(trkltResRPhiIdeal, float, 1.f, "", 0, "Optimal tracklet rphi resolution in cm (in case phi of track = lorentz angle)")
 AddOptionRTC(maxChi2Red, float, 99.f, "", 0, "maximum chi2 per attached tracklet for TRD tracks TODO: currently effectively disabled, requires tuning")
 AddOptionRTC(applyDeflectionCut, uint8_t, 0, "", 0, "Set to 1 to enable tracklet selection based on deflection")
+AddOptionRTC(addDeflectionInChi2, uint8_t, 0, "", 0, "Set to 1 to add the deflection in the chi2 calculation for matching")
 AddOptionRTC(stopTrkAfterNMissLy, uint8_t, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(nTrackletsMin, uint8_t, 3, "", 0, "Tracks with less attached tracklets are discarded after the tracking")
 AddOptionRTC(matCorrType, uint8_t, 2, "", 0, "Material correction to use: 0 - none, 1 - TGeo, 2 - matLUT")
@@ -372,6 +373,7 @@ AddOption(tpcWriteClustersAfterRejection, bool, false, "", 0, "Apply TPC rejecti
 AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))")
 AddOption(oclCompileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code")
 AddOption(oclOverrideSourceBuildFlags, std::string, "", "", 0, "Override OCL build flags for compilation from source, put a space for empty options")
+AddOption(hipOverrideAMDEUSperCU, int32_t, -1, "", 0, "Override AMD_EUS_PER_CU setting")
 AddOption(printSettings, bool, false, "", 0, "Print all settings when initializing")
 AddOption(tpcFreeAllocatedMemoryAfterProcessing, bool, false, "", 0, "Clean all memory allocated by TPC when TPC processing done, only data written to external output resources will remain")
 AddOption(debugOnFailure, int32_t, 0, "", 0, "Dump raw data in case an error occured, bit 1 enables all dumps, otherwise bitmask for: 2 = signal, 3 = GPUErrorCode", def(1))
@@ -624,7 +626,7 @@ AddSubConfig(GPUSettingsEG, EG)
 EndConfig()
 #endif // BeginConfig
 
-//Settings for the O2 workfllow
+//Settings for the O2 workflow
 #if !defined(QCONFIG_PARSER_CXX) && (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE))
 BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings", global)
 AddOption(solenoidBzNominalGPU, float, -1e6f, "", 0, "Field strength of solenoid Bz in kGaus")

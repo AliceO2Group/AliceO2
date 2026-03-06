@@ -33,7 +33,6 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DataFormatsPHOS/EventHandler.h"
 #include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
@@ -45,6 +44,9 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -363,10 +365,10 @@ void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACurs
 {
   tracksQACursor(
     trackQAInfoHolder.trackID,
-    truncateFloatFraction(trackQAInfoHolder.tpcTime0, mTPCTime0),
+    mTrackQCRetainOnlydEdx ? 0.0f : truncateFloatFraction(trackQAInfoHolder.tpcTime0, mTPCTime0),
     truncateFloatFraction(trackQAInfoHolder.tpcdEdxNorm, mTrackSignal),
-    trackQAInfoHolder.tpcdcaR,
-    trackQAInfoHolder.tpcdcaZ,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int16_t>::min() : trackQAInfoHolder.tpcdcaR,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int16_t>::min() : trackQAInfoHolder.tpcdcaZ,
     trackQAInfoHolder.tpcClusterByteMask,
     trackQAInfoHolder.tpcdEdxMax0R,
     trackQAInfoHolder.tpcdEdxMax1R,
@@ -376,18 +378,133 @@ void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACurs
     trackQAInfoHolder.tpcdEdxTot1R,
     trackQAInfoHolder.tpcdEdxTot2R,
     trackQAInfoHolder.tpcdEdxTot3R,
-    trackQAInfoHolder.dRefContY,
-    trackQAInfoHolder.dRefContZ,
-    trackQAInfoHolder.dRefContSnp,
-    trackQAInfoHolder.dRefContTgl,
-    trackQAInfoHolder.dRefContQ2Pt,
-    trackQAInfoHolder.dRefGloY,
-    trackQAInfoHolder.dRefGloZ,
-    trackQAInfoHolder.dRefGloSnp,
-    trackQAInfoHolder.dRefGloTgl,
-    trackQAInfoHolder.dRefGloQ2Pt,
-    trackQAInfoHolder.dTofdX,
-    trackQAInfoHolder.dTofdZ);
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContY,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContZ,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContSnp,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContTgl,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefContQ2Pt,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloY,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloZ,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloSnp,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloTgl,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dRefGloQ2Pt,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dTofdX,
+    mTrackQCRetainOnlydEdx ? std::numeric_limits<int8_t>::min() : trackQAInfoHolder.dTofdZ);
+}
+
+template <typename TRDsExtraCursorType>
+void AODProducerWorkflowDPL::addToTRDsExtra(const o2::globaltracking::RecoContainer& recoData, TRDsExtraCursorType& trdExtraCursor, const GIndex& trkIdx, int trkTableIdx)
+{
+  int q0s[6] = {-1}, q1s[6] = {-1}, q2s[6] = {-1};
+  float q0sCor[6] = {-1}, q1sCor[6] = {-1}, q2sCor[6] = {-1};
+  float ttgls[6] = {-999}, tphis[6] = {-999};
+
+  auto contributorsGID = recoData.getSingleDetectorRefs(trkIdx);
+  if (!contributorsGID[GIndex::Source::TRD].isIndexSet()) { // should be redunant
+    return;
+  }
+  const auto& trk = recoData.getTrack<o2::trd::TrackTRD>(contributorsGID[GIndex::Source::TRD]);
+  o2::track::TrackPar trkC{contributorsGID[GIndex::Source::ITSTPC].isIndexSet() ? recoData.getTPCITSTrack(contributorsGID[GIndex::Source::ITSTPC]).getParamOut() : recoData.getTPCTrack(contributorsGID[GIndex::Source::TPC]).getParamOut()};
+  const auto& trklets = recoData.getTRDTracklets();
+  const auto& ctrklets = recoData.getTRDCalibratedTracklets();
+  for (int iLay{0}; iLay < 6; ++iLay) {
+    q0s[iLay] = q1s[iLay] = q2s[iLay] = -1;
+    q0sCor[iLay] = q1sCor[iLay] = q2sCor[iLay] = -1;
+    tphis[iLay] = ttgls[iLay] = -999;
+    auto trkltId = trk.getTrackletIndex(iLay);
+    if (trkltId < 0) {
+      continue;
+    }
+    const auto& tracklet = trklets[trkltId];
+    if (mTRDNoiseMap->isTrackletFromNoisyMCM(tracklet)) {
+      continue;
+    }
+    // we need to propagate into TRD local system
+    int trkltDet = tracklet.getDetector();
+    int trkltSec = trkltDet / 30;
+    if (trkltSec != o2::math_utils::angle2Sector(trkC.getAlpha())) {
+      if (!trkC.rotate(o2::math_utils::sector2Angle(trkltSec))) {
+        break;
+      }
+    }
+    if (!o2::base::Propagator::Instance()->PropagateToXBxByBz(trkC, ctrklets[trkltId].getX(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, mMatCorr)) {
+      break;
+    }
+
+    auto tphi = trkC.getSnp() / std::sqrt((1.f - trkC.getSnp()) * (1.f + trkC.getSnp()));
+    auto trackletLength = std::sqrt(1.f + tphi * tphi + trkC.getTgl() * trkC.getTgl());
+    float cor = mTRDLocalGain->getValue(tracklet.getHCID() / 2, tracklet.getPadCol(), tracklet.getPadRow()) * mTRDGainCalib->getMPVdEdx(tracklet.getDetector()) / o2::trd::constants::MPVDEDXDEFAULT * trackletLength;
+    q0s[iLay] = tracklet.getQ0();
+    q1s[iLay] = tracklet.getQ1();
+    q2s[iLay] = tracklet.getQ2();
+    q0sCor[iLay] = (float)tracklet.getQ0() / cor;
+    q1sCor[iLay] = (float)tracklet.getQ1() / cor;
+    q2sCor[iLay] = (float)tracklet.getQ2() / cor;
+    ttgls[iLay] = trkC.getTgl();
+    tphis[iLay] = tphi;
+
+    // z-row merging, we want to merge only with tracklets from the same trigger record
+    if (trk.getIsCrossingNeighbor(iLay) && trk.getHasNeighbor()) {
+      // find the trigger the tracklet belongs to
+      auto trigsTRD = recoData.getTRDTriggerRecords();
+      size_t trdSelID = -1;
+
+      const auto& trig = trigsTRD[mCurrentTRDTrigID];
+      bool foundTRDTrigger = false;
+      // first check current trigger
+      if (trkltId >= trig.getFirstTracklet() && trkltId < trig.getFirstTracklet() + trig.getNumberOfTracklets()) {
+        trdSelID = mCurrentTRDTrigID;
+        foundTRDTrigger = true;
+      } else {
+        // then check next trigger
+        if (mCurrentTRDTrigID < trigsTRD.size() - 1) {
+          const auto& trig = trigsTRD[mCurrentTRDTrigID + 1];
+          if (trkltId >= trig.getFirstTracklet() && trkltId < trig.getFirstTracklet() + trig.getNumberOfTracklets()) {
+            trdSelID = mCurrentTRDTrigID + 1;
+            foundTRDTrigger = true;
+          }
+        }
+      }
+
+      size_t low = 0, up = trigsTRD.size() - 1;
+
+      // otherwise binary search
+      while (low <= up && !foundTRDTrigger) {
+        trdSelID = low + std::floor((up - low) / 2);
+        const auto& trig = trigsTRD[trdSelID];
+        if (trig.getFirstTracklet() > trkltId) {
+          up = trdSelID - 1;
+        } else {
+          if (trig.getFirstTracklet() + trig.getNumberOfTracklets() <= trkltId) {
+            low = trdSelID + 1;
+          } else {
+            foundTRDTrigger = true;
+          }
+        }
+      }
+      //-------------------
+      mCurrentTRDTrigID = trdSelID;
+      const auto& trigSel = trigsTRD[trdSelID];
+
+      // loop on other tracklets from the same trigger record
+      for (const auto& trklt : trklets.subspan(trigSel.getFirstTracklet(), trigSel.getNumberOfTracklets())) {
+        if (tracklet.getTrackletWord() == trklt.getTrackletWord() || tracklet.getDetector() != trklt.getDetector()) {
+          continue;
+        }
+        if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
+          cor = mTRDLocalGain->getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * mTRDGainCalib->getMPVdEdx(tracklet.getDetector()) / o2::trd::constants::MPVDEDXDEFAULT * trackletLength;
+          q0s[iLay] += trklt.getQ0();
+          q1s[iLay] += trklt.getQ1();
+          q2s[iLay] += trklt.getQ2();
+          q0sCor[iLay] += (float)trklt.getQ0() / cor;
+          q1sCor[iLay] += (float)trklt.getQ1() / cor;
+          q2sCor[iLay] += (float)trklt.getQ2() / cor;
+        }
+      }
+    }
+  }
+
+  trdExtraCursor(trkTableIdx, q0s, q1s, q2s, q0sCor, q1sCor, q2sCor, ttgls, tphis);
 }
 
 template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
@@ -430,8 +547,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
     ambigMFTTracksCursor(mTableTrMFTID, bcSlice);
   }
 }
-
-template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
+template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename TRDsExtraCursor, typename AmbigTracksCursorType,
           typename MFTTracksCursorType, typename MFTTracksCovCursorType, typename AmbigMFTTracksCursorType,
           typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename FwdTrkClsCursorType>
 void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
@@ -443,6 +559,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          TracksCovCursorType& tracksCovCursor,
                                                          TracksExtraCursorType& tracksExtraCursor,
                                                          TracksQACursorType& tracksQACursor,
+                                                         TRDsExtraCursor& trdsExtraCursor,
                                                          AmbigTracksCursorType& ambigTracksCursor,
                                                          MFTTracksCursorType& mftTracksCursor,
                                                          MFTTracksCovCursorType& mftTracksCovCursor,
@@ -499,7 +616,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 
           float weight = 0;
           static std::uniform_real_distribution<> distr(0., 1.);
-          bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator));
+          bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator)) || ((src != GIndex::TPC || mGIDUsedBySVtx.find(trackIndex) != mGIDUsedBySVtx.end() || mGIDUsedByStr.find(trackIndex) != mGIDUsedByStr.end()) && mTrackQCKeepGlobalTracks);
           auto extraInfoHolder = processBarrelTrack(collisionID, collisionBC, trackIndex, data, bcsMap);
 
           if (writeQAData) {
@@ -553,7 +670,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             addToTracksTable(tracksCursor, tracksCovCursor, trOrig, collisionID, aod::track::TrackIU);
           }
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
-
+          if (mEnableTRDextra && trackIndex.includesDet(GIndex::Source::TRD)) {
+            addToTRDsExtra(data, trdsExtraCursor, trackIndex, mTableTrID);
+          }
           //  collecting table indices of barrel tracks for V0s table
           if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
             ambigTracksCursor(mTableTrID, extraInfoHolder.bcSlice);
@@ -1719,6 +1838,8 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
       LOGP(warn, "Specified non-default empty streamer mask!");
     }
   }
+  mTrackQCKeepGlobalTracks = ic.options().get<bool>("trackqc-keepglobaltracks");
+  mTrackQCRetainOnlydEdx = ic.options().get<bool>("trackqc-retainonlydedx");
   mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
   mTrackQCNTrCut = ic.options().get<int64_t>("trackqc-NTrCut");
   mTrackQCDCAxy = ic.options().get<float>("trackqc-tpc-dca");
@@ -1931,6 +2052,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsTRGTableCursor = createTableCursor<o2::aod::CaloTriggers>(pc);
   auto cpvClustersCursor = createTableCursor<o2::aod::CPVClusters>(pc);
   auto originCursor = createTableCursor<o2::aod::Origins>(pc);
+
+  /// Extra tables
+  o2::framework::Produces<o2::aod::TRDsExtra> trdExtraCursor;
+  if (mEnableTRDextra) {
+    trdExtraCursor = createTableCursor<o2::aod::TRDsExtra>(pc);
+  }
 
   // Declare MC cursors type without adding the output for a table
   o2::framework::Produces<o2::aod::McCollisionLabels> mcColLabelsCursor;
@@ -2292,14 +2419,16 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
   }
 
+  mCurrentTRDTrigID = 0; // reinitialize index for TRD trigger record search
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
   // fixme: interaction time is undefined for unassigned tracks (?)
-  fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor,
+  fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor, trdExtraCursor,
                               ambigTracksCursor, mftTracksCursor, mftTracksCovCursor, ambigMFTTracksCursor,
                               fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
 
+  mCurrentTRDTrigID = 0; // reinitialize index for TRD trigger record search
   // filling collisions and tracks into tables
   collisionID = 0;
   collisionsCursor.reserve(primVertices.size());
@@ -2338,7 +2467,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
-    fillTrackTablesPerCollision(collisionID, globalBC, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor, ambigTracksCursor,
+    fillTrackTablesPerCollision(collisionID, globalBC, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor, trdExtraCursor, ambigTracksCursor,
                                 mftTracksCursor, mftTracksCovCursor, ambigMFTTracksCursor,
                                 fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
     collisionID++;
@@ -2644,6 +2773,12 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     const auto& dEdx = tpcOrig.getdEdx().dEdxTotTPC > 0 ? tpcOrig.getdEdx() : tpcOrig.getdEdxAlt();
     if (tpcOrig.getdEdx().dEdxTotTPC == 0) {
       extraInfoHolder.flags |= o2::aod::track::TPCdEdxAlt;
+    }
+    if (tpcOrig.hasASideClusters()) {
+      extraInfoHolder.flags |= o2::aod::track::TPCSideA;
+    }
+    if (tpcOrig.hasCSideClusters()) {
+      extraInfoHolder.flags |= o2::aod::track::TPCSideC;
     }
     extraInfoHolder.tpcInnerParam = tpcOrig.getP() / tpcOrig.getAbsCharge();
     extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
@@ -3003,6 +3138,11 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
     mFieldON = std::abs(o2::base::Propagator::Instance()->getNominalBz()) > 0.01;
 
     pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
+    if (mEnableTRDextra) {
+      mTRDLocalGain = pc.inputs().get<o2::trd::LocalGainFactor*>("trdlocalgainfactors").get();
+      mTRDNoiseMap = pc.inputs().get<o2::trd::NoiseStatusMCM*>("trdnoisemap").get();
+      mTRDGainCalib = pc.inputs().get<o2::trd::CalGain*>("trdgaincalib").get(); // time dependent gain
+    }
   }
   if (mPropTracks) {
     pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
@@ -3214,7 +3354,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& /*ec*/)
   mStreamer.reset();
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableStrangenessTracking, bool useMC, bool CTPConfigPerRun, bool enableFITextra)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableStrangenessTracking, bool useMC, bool CTPConfigPerRun, bool enableFITextra, bool enableTRDextra)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", CTPConfigPerRun));
@@ -3305,6 +3445,13 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputSpec{"TFF", "TFFilename"},
     OutputSpec{"AMD", "AODMetadataKeys"},
     OutputSpec{"AMD", "AODMetadataVals"}};
+  /// Extra tables
+  if (enableTRDextra) {
+    outputs.push_back(OutputForTable<TRDsExtra>::spec());
+    dataRequest->inputs.emplace_back("trdlocalgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
+    dataRequest->inputs.emplace_back("trdnoisemap", "TRD", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
+    dataRequest->inputs.emplace_back("trdgaincalib", "TRD", "CALGAIN", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalGain"));
+  }
 
   if (useMC) {
     outputs.insert(outputs.end(),
@@ -3328,7 +3475,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, ggRequest, enableSV, useMC, enableFITextra)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, ggRequest, enableSV, useMC, enableFITextra, enableTRDextra)},
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
@@ -3348,6 +3495,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"hepmc-update", VariantType::String, "always", {"When to update HepMC Aux tables: always - force update, never - never update, all - if all keys are present, any - when any key is present (not valid yet)"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
       ConfigParamSpec{"thin-tracks", VariantType::Bool, false, {"Produce thinned track tables"}},
+      ConfigParamSpec{"trackqc-keepglobaltracks", VariantType::Bool, false, {"Always keep TrackQA for global tracks"}},
+      ConfigParamSpec{"trackqc-retainonlydedx", VariantType::Bool, false, {"Keep only dEdx information, zero out everything else"}},
       ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.1), {"Fraction of tracks to QC"}},
       ConfigParamSpec{"trackqc-NTrCut", VariantType::Int64, 4L, {"Minimal length of the track - in amount of tracklets"}},
       ConfigParamSpec{"trackqc-tpc-dca", VariantType::Float, 3.f, {"Keep TPC standalone track with this DCAxy to the PV"}},

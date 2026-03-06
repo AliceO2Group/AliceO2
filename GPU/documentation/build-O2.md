@@ -37,7 +37,7 @@ Advantages:
 - One can see enabled GPU features / versions / architectures in the version string of `gpu-system`.
 
 Disadvantages:
-- Need system `CMake` >= `3.26` for the detsction at aliBuild level.
+- Need system `CMake` >= `3.26` for the detection at aliBuild level.
 - `FindO2GPU.cmake` is duplicated in O2 and alidist and must be kept in sync. But at least this is checked and gives an error otherwise.
 - Running cmake during the system check takes around 5 sec for every aliBuild command involving O2 or ONNX.
 

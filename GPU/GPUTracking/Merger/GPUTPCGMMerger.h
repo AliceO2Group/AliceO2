@@ -199,6 +199,8 @@ class GPUTPCGMMerger : public GPUProcessor
   void DumpRefit(std::ostream& out) const;
   void DumpFinal(std::ostream& out) const;
   void DumpLoopers(std::ostream& out) const;
+  void DumpTrackParam(std::ostream& out) const;
+  void DumpTrackClusters(std::ostream& out, bool non0StateOnly = false, bool noNDF0 = false) const;
 
   template <int32_t mergeType>
   void MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, int32_t mergeMode, float weight, float frac) const;
@@ -224,7 +226,7 @@ class GPUTPCGMMerger : public GPUProcessor
  private:
   GPUd() void MergeSectorsPrepareStep2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(uint32_t) * nB, bool useOrigTrackParam = false);
   template <int32_t I>
-  GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode = 0);
+  GPUd() void MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode = 0);
 
   GPUd() void MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, int32_t itr);
 

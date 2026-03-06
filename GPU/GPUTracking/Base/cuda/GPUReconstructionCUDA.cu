@@ -189,7 +189,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
         bestDeviceSpeed = deviceSpeed;
       } else {
         if (GetProcessingSettings().debugLevel >= 2 && GetProcessingSettings().deviceNum < 0) {
-          GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
+          GPUInfo("Skipping: Speed %f <= %f\n", deviceSpeed, bestDeviceSpeed);
         }
       }
     }

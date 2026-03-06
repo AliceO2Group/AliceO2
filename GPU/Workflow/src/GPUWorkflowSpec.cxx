@@ -73,6 +73,7 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
+#include "GPUTRDRecoParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonUtils/DebugStreamer.h"
 #include "GPUReconstructionConvert.h"
@@ -273,10 +274,16 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     if (mSpecConfig.readTRDtracklets) {
       mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>();
       mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+
+      mTRDRecoParam = std::make_unique<GPUTRDRecoParam>();
+      mConfig->configCalib.trdRecoParam = mTRDRecoParam.get();
     }
 
     mConfig->configProcessing.willProvideO2PropagatorLate = true;
     mConfig->configProcessing.o2PropagatorUseGPUField = true;
+    if (mConfig->configReconstruction.tpc.trackReferenceX == 1000.f) {
+      mConfig->configReconstruction.tpc.trackReferenceX = 83.f;
+    }
 
     if (mConfParam->printSettings && (mConfParam->printSettings > 1 || ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {
       mConfig->configProcessing.printSettings = true;
@@ -509,6 +516,13 @@ int32_t GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTr
 
     if (retVal == 0 && mSpecConfig.runITSTracking) {
       retVal = runITSTracking(*pc);
+    }
+    static bool first = true;
+    if (first) {
+      first = false;
+      if (pc->services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
+        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc->services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
+      }
     }
   }
 
@@ -1059,14 +1073,21 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
       }
       mMatLUTCreated = true;
     }
-    if (mSpecConfig.readTRDtracklets && !mTRDGeometryCreated) {
-      auto gm = o2::trd::Geometry::instance();
-      gm->createPadPlaneArray();
-      gm->createClusterMatrixArray();
-      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
-      newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
-      LOG(info) << "Loaded TRD geometry";
-      mTRDGeometryCreated = true;
+    if (mSpecConfig.readTRDtracklets) {
+      if (!mTRDGeometryCreated) {
+        auto gm = o2::trd::Geometry::instance();
+        gm->createPadPlaneArray();
+        gm->createClusterMatrixArray();
+        mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+        newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+        LOG(info) << "Loaded TRD geometry";
+        mTRDGeometryCreated = true;
+      }
+      if (!mTRDRecoParamCreated) {
+        mTRDRecoParam = std::make_unique<GPUTRDRecoParam>();
+        newCalibObjects.trdRecoParam = mConfig->configCalib.trdRecoParam = mTRDRecoParam.get();
+        mTRDRecoParamCreated = true;
+      }
     }
   }
   needCalibUpdate = fetchCalibsCCDBTPC(pc, newCalibObjects, oldCalibObjects) || needCalibUpdate;

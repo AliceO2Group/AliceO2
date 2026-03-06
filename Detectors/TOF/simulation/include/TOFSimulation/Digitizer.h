@@ -148,7 +148,10 @@ class Digitizer : public WindowFiller
   float mTotLastHit[10];
   Int_t mXLastShift[10];
   Int_t mZLastShift[10];
-  ClassDefNV(Digitizer, 1);
+
+  float mIsCrateRDHerr[Geo::kNCrate];
+
+  ClassDefNV(Digitizer, 2);
 };
 } // namespace tof
 } // namespace o2

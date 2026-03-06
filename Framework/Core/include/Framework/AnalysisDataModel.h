@@ -404,6 +404,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF, //! Flag to check if track has a TOF 
                            [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TOF; });
 DECLARE_SOA_DYNAMIC_COLUMN(IsPVContributor, isPVContributor, //! Run 3: Has this track contributed to the collision vertex fit
                            [](uint8_t flags) -> bool { return (flags & o2::aod::track::PVContributor) == o2::aod::track::PVContributor; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideA, hasTPCSideA, //! Run 3: Has this track TPC clusters from side A?
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::track::TPCSideA) == o2::aod::track::TPCSideA; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideAOnly, hasTPCSideAOnly, //! Run 3: Has this track TPC clusters from side A only?
+                           [](uint8_t flags) -> bool { return (flags & (o2::aod::track::TPCSideA | o2::aod::track::TPCSideC)) == o2::aod::track::TPCSideA; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideC, hasTPCSideC, //! Run 3: Has this track TPC clusters from side C?
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::track::TPCSideC) == o2::aod::track::TPCSideC; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideCOnly, hasTPCSideCOnly, //! Run 3: Has this track TPC clusters from side C only?
+                           [](uint8_t flags) -> bool { return (flags & (o2::aod::track::TPCSideA | o2::aod::track::TPCSideC)) == o2::aod::track::TPCSideC; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCBothSides, hasTPCBothSides, //! Run 3: Has this track TPC clusters from both side A and C?
+                           [](uint8_t flags) -> bool { return (flags & (o2::aod::track::TPCSideA | o2::aod::track::TPCSideC)) == (o2::aod::track::TPCSideA || o2::aod::track::TPCSideC); });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
@@ -460,13 +470,13 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fract
                              return (float)tpcNClsShared / (float)tpcNClsFound;
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TRDHasNeighbor, trdPattern, //! Flag to check if at least one tracklet of a TRD Track has a neighboring tracklet
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasNeighbor, trdHasNeighbor, //! Flag to check if at least one tracklet of a TRD Track has a neighboring tracklet
                            [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasNeighbor; });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TRDHasCrossing, trdPattern, //! Flag to check if at least one tracklet of a TRD Track crossed a padrow
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasCrossing, trdHasCrossing, //! Flag to check if at least one tracklet of a TRD Track crossed a padrow
                            [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasCrossing; });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TRDNLayers, trdPattern, //! Number of TRD tracklets in a Track
+DECLARE_SOA_DYNAMIC_COLUMN(TRDNTracklets, trdNTracklets, //! Number of TRD tracklets in a Track
                            [](uint8_t trdPattern) -> std::size_t { return std::bitset<6>(trdPattern).count(); });
 } // namespace track
 
@@ -579,6 +589,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                       track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
                        track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "TRACKEXTRA", 1, // On disk version of TracksExtra, version 1
@@ -608,6 +619,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "TRACKEXTRA", 2, // On disk version of TracksExtra, version 2
@@ -638,6 +650,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "T
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "EXTRACKEXTRA", 0, //! Additional track information (clusters, PID, etc.)
@@ -1599,6 +1612,26 @@ DECLARE_SOA_TABLE(FDDsExtra, "AOD", "FDDEXTRA", //! FDDsExtra table
                   o2::soa::Index<>, fdd::BCId,
                   fdd::TimeFDDA, fdd::TimeFDDC);
 using FDDExtra = FDDsExtra::iterator;
+
+namespace trd
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);                         //! Track index
+DECLARE_SOA_COLUMN(TRDQ0s, trdQ0s, int[6]);                     //! Q0 charge (un-corrected)
+DECLARE_SOA_COLUMN(TRDQ1s, trdQ1s, int[6]);                     //! Q1 charge (un-corrected)
+DECLARE_SOA_COLUMN(TRDQ2s, trdQ2s, int[6]);                     //! Q2 charge (un-corrected)
+DECLARE_SOA_COLUMN(TRDQ0sCorrected, trdQ0sCorrected, float[6]); //! Q0 charge (corrected)
+DECLARE_SOA_COLUMN(TRDQ1sCorrected, trdQ1sCorrected, float[6]); //! Q1 charge (corrected)
+DECLARE_SOA_COLUMN(TRDQ2sCorrected, trdQ2sCorrected, float[6]); //! Q2 charge (corrected)
+DECLARE_SOA_COLUMN(TRDTgls, trdTgls, float[6]);                 //! Local tracklet TgL
+DECLARE_SOA_COLUMN(TRDPhis, trdPhis, float[6]);                 //! Local tracklet phi
+} // namespace trd
+
+DECLARE_SOA_TABLE(TRDsExtra, "AOD", "TRDEXTRA", //! TRDExtra table
+                  o2::soa::Index<>, trd::TrackId,
+                  trd::TRDQ0s, trd::TRDQ1s, trd::TRDQ2s,
+                  trd::TRDQ0sCorrected, trd::TRDQ1sCorrected, trd::TRDQ2sCorrected,
+                  trd::TRDTgls, trd::TRDPhis);
+using TRDExtra = TRDsExtra::iterator;
 
 namespace v0
 {

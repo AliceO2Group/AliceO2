@@ -29,7 +29,7 @@ namespace mid
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool selIR);
+  EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt = "none");
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -43,7 +43,7 @@ class EntropyEncoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec(bool selIR = false);
+framework::DataProcessorSpec getEntropyEncoderSpec(bool selIR = false, const std::string& ctfdictOpt = "none");
 
 } // namespace mid
 } // namespace o2

@@ -26,6 +26,7 @@
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
+#include "GPUO2InterfaceConfiguration.h"
 #include <TMath.h>
 #include <TGeoManager.h>
 
@@ -175,10 +176,10 @@ int AlignableDetectorTRD::processPoints(GIndex gid, int npntCut, bool inv)
     return -1;
   }
   auto propagator = o2::base::Propagator::Instance(); // float version!
-  static float prevBz = -99999.;
-  if (prevBz != propagator->getNominalBz()) {
-    prevBz = propagator->getNominalBz();
-    mRecoParam.setBfield(prevBz);
+  static bool firstCall = true;
+  if (firstCall) {
+    mRecoParam.init(propagator->getNominalBz());
+    firstCall = false;
   }
   const auto* transformer = mController->getTRDTransformer();
   auto algTrack = mController->getAlgTrack();

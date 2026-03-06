@@ -414,11 +414,13 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
     .name = "datarelayer",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
+      int pipelineLength = DefaultsHelpers::pipelineLength(options);
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
                                            spec.inputs,
                                            services.get<TimesliceIndex>(),
-                                           services)};
+                                           services,
+                                           pipelineLength)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -1149,6 +1151,30 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
                    .minPublishInterval = 0,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-hit",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_HIT),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-miss",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_MISS),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-failure",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_FAILURE),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true}};
 

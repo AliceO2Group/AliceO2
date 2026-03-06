@@ -29,6 +29,7 @@
 #include "GPUDefMacros.h"
 #include <vector>
 
+// clang-format off
 #define BeginNamespace(name) \
   namespace name             \
   {
@@ -42,12 +43,17 @@
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {GPUCA_M_STRIP(default)};
 #define AddSubConfig(name, instance)
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix)                                           \
+  namespace internal                                                                                                                   \
+  {                                                                                                                                    \
   struct GPUCA_M_CAT(GPUConfigurableParam, name) : public o2::conf::ConfigurableParamHelper<GPUCA_M_CAT(GPUConfigurableParam, name)> { \
     O2ParamDef(GPUCA_M_CAT(GPUConfigurableParam, name), GPUCA_M_STR(GPUCA_M_CAT(GPU_, o2prefix))) public:
-#define BeginHiddenConfig(name, instance) struct GPUCA_M_CAT(GPUConfigurableParam, name) {
+#define BeginHiddenConfig(name, instance) \
+  namespace internal                      \
+  {                                       \
+  struct GPUCA_M_CAT(GPUConfigurableParam, name) {
 #define EndConfig() \
-  }                 \
-  ;
+  };                \
+  } // namespace internal
 #define AddCustomCPP(...) __VA_ARGS__
 #define AddHelp(...)
 #define AddShortcut(...)
@@ -71,5 +77,6 @@
 #undef AddCustomCPP
 #undef AddHelp
 #undef AddShortcut
+// clang-format on
 
 #endif

@@ -34,6 +34,7 @@
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUTRDTrackletLabels.h"
+#include "GPUTRDRecoParam.h"
 #include "display/GPUDisplayInterface.h"
 #include "GPUQA.h"
 #include "GPULogging.h"
@@ -435,6 +436,9 @@ void GPUChainTracking::UpdateGPUCalibObjects(int32_t stream, const GPUCalibObjec
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.trdGeometry, (const void*)processors()->calibObjects.trdGeometry, sizeof(*processors()->calibObjects.trdGeometry));
     mFlatObjectsShadow.mCalibObjects.trdGeometry->clearInternalBufferPtr();
   }
+  if (processors()->calibObjects.trdRecoParam && (ptrMask == nullptr || ptrMask->trdRecoParam)) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.trdRecoParam, (const void*)processors()->calibObjects.trdRecoParam, sizeof(*processors()->calibObjects.trdRecoParam));
+  }
   if (processors()->calibObjects.tpcPadGain && (ptrMask == nullptr || ptrMask->tpcPadGain)) {
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.tpcPadGain, (const void*)processors()->calibObjects.tpcPadGain, sizeof(*processors()->calibObjects.tpcPadGain));
   }
@@ -536,6 +540,9 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->processors()->calibObjects.trdGeometry) {
     computePointerWithAlignment(mem, mCalibObjects.trdGeometry, 1);
   }
+  if (mChainTracking->processors()->calibObjects.trdRecoParam) {
+    computePointerWithAlignment(mem, mCalibObjects.trdRecoParam, 1);
+  }
   computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
   if (!mChainTracking->processors()->calibObjects.o2Propagator) {
     mCalibObjects.o2Propagator = nullptr; // Always reserve memory for o2::Propagator, since it may be propagatred only during run() not during init().
@@ -600,6 +607,12 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& g
 {
   mTRDGeometryU = std::move(geo);
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
+}
+
+void GPUChainTracking::SetTRDRecoParam(std::unique_ptr<GPUTRDRecoParam>&& par)
+{
+  mTRDRecoParamU = std::move(par);
+  processors()->calibObjects.trdRecoParam = mTRDRecoParamU.get();
 }
 
 int32_t GPUChainTracking::DoQueuedUpdates(int32_t stream, bool updateSlave)

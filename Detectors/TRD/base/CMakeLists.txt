@@ -16,7 +16,6 @@ o2_add_library(TRDBase
                        src/GeometryFlat.cxx
                        src/PadResponse.cxx
                        src/FeeParam.cxx
-                       src/RecoParam.cxx
                        src/ChamberStatus.cxx
                        src/Calibrations.cxx
                        src/CalOnlineGainTables.cxx
@@ -38,7 +37,6 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/GeometryFlat.h
                                   include/TRDBase/PadResponse.h
                                   include/TRDBase/FeeParam.h
-                                  include/TRDBase/RecoParam.h
                                   include/TRDBase/Calibrations.h
                                   include/TRDBase/PadParameters.h
                                   include/TRDBase/PadCalibrations.h

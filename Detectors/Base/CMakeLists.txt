@@ -29,6 +29,8 @@ o2_add_library(DetectorsBase
                        src/Stack.cxx
                        src/VMCSeederService.cxx
                        src/GlobalParams.cxx
+                       src/O2Tessellated.cxx
+                       src/TGeoGeometryUtils.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -46,6 +48,7 @@ o2_add_library(DetectorsBase
                                      O2::GPUDataTypes
                                      MC::VMC
                                      TBB::tbb
+                                     ROOT::Gdml
                              )
 
 o2_target_root_dictionary(DetectorsBase
@@ -62,7 +65,9 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/Aligner.h
                                   include/DetectorsBase/Stack.h
                                   include/DetectorsBase/SimFieldUtils.h
-                                  include/DetectorsBase/GlobalParams.h)
+                                  include/DetectorsBase/GlobalParams.h
+                                  include/DetectorsBase/O2Tessellated.h
+                                  )
 
 if(BUILD_SIMULATION)
   if (NOT APPLE)

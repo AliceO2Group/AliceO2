@@ -27,7 +27,7 @@ using RP = o2::fv0::RecPoints;
 
 RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
                          gsl::span<const o2::fv0::ChannelData> inChData,
-                         gsl::span<o2::fv0::ChannelDataFloat> outChData)
+                         std::vector<o2::fv0::ChannelDataFloat>& outChData)
 {
   LOG(debug) << "Running reconstruction on new event";
 
@@ -44,22 +44,27 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
     LOG(debug) << "  channel " << ich << " / " << nch;
+    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(inChData[ich].ChId)) {
+      LOG(debug) << "Channel " << ich << " is dead - discarding data";
+      continue;
+    }
     int offsetChannel = getOffset(int(inChData[ich].ChId));
-    outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].ChId,
-                                               (inChData[ich].CFDTime - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
-                                               (float)inChData[ich].QTCAmpl,
-                                               inChData[ich].ChainQTC};
+    outChData.emplace_back(o2::fv0::ChannelDataFloat{inChData[ich].ChId,
+                                                     (inChData[ich].CFDTime - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
+                                                     (float)inChData[ich].QTCAmpl,
+                                                     inChData[ich].ChainQTC});
+    const auto& currentOutCh = outChData.back();
 
     // Conditions for reconstructing collision time (3 variants: first, average-relaxed and average-tight)
-    if (outChData[ich].charge > FV0DigParam::Instance().chargeThrForMeanTime) {
-      sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), outChData[ich].time);
+    if (currentOutCh.charge > FV0DigParam::Instance().chargeThrForMeanTime) {
+      sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), currentOutCh.time);
       if (inChData[ich].areAllFlagsGood()) {
-        if (std::abs(outChData[ich].time) < FV0DigParam::Instance().mTimeThresholdForReco) {
-          sideAtimeAvg += outChData[ich].time;
+        if (std::abs(currentOutCh.time) < FV0DigParam::Instance().mTimeThresholdForReco) {
+          sideAtimeAvg += currentOutCh.time;
           ndigitsA++;
         }
-        if (outChData[ich].charge > FV0DigParam::Instance().mAmpThresholdForReco && std::abs(outChData[ich].time) < FV0DigParam::Instance().mTimeThresholdForReco) {
-          sideAtimeAvgSelected += outChData[ich].time;
+        if (currentOutCh.charge > FV0DigParam::Instance().mAmpThresholdForReco && std::abs(currentOutCh.time) < FV0DigParam::Instance().mTimeThresholdForReco) {
+          sideAtimeAvgSelected += currentOutCh.time;
           ndigitsASelected++;
         }
       }

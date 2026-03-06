@@ -27,11 +27,10 @@ namespace o2
 {
 namespace trd
 {
-
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool selIR);
+  EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt = "none");
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -44,7 +43,7 @@ class EntropyEncoderSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
-EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, ctfdictOpt), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -92,13 +91,16 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(bool selIR)
+DataProcessorSpec getEntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("triggers", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracklets", "TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "TRD", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionaryTree"));
+  }
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
@@ -107,14 +109,12 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
     inputs,
     Outputs{{"TRD", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "TRD", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR, ctfdictOpt)},
+    Options{{"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"bogus-trigger-check", VariantType::Int, 10, {"max bogus triggers to report, all if < 0"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace trd
 } // namespace o2

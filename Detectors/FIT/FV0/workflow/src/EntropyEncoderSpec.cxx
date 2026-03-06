@@ -25,8 +25,7 @@ namespace o2
 {
 namespace fv0
 {
-
-EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, ctfdictOpt), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -71,12 +70,15 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(bool selIR)
+DataProcessorSpec getEntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "FV0", "DIGITSBC", 0, Lifetime::Timeframe);
   inputs.emplace_back("channels", "FV0", "DIGITSCH", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "FV0", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FV0/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict", "FV0", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FV0/Calib/CTFDictionaryTree"));
+  }
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
@@ -85,13 +87,11 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
     inputs,
     Outputs{{"FV0", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "FV0", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR, ctfdictOpt)},
+    Options{{"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace fv0
 } // namespace o2

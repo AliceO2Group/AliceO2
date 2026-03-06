@@ -20,6 +20,7 @@
 #include "GPUTPCTrack.h"
 #include "GPUTPCHitId.h"
 #include "GPUTRDTrackletWord.h"
+#include "GPUTRDRecoParam.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCMCInfo.h"
 #include "GPUTRDTrack.h"
@@ -337,6 +338,11 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
+  if (processors()->calibObjects.trdRecoParam != nullptr) {
+    f = dir;
+    f += "trdrecoparam.dump";
+    DumpStructToFile(processors()->calibObjects.trdRecoParam, f.c_str());
+  }
 }
 
 void GPUChainTracking::ReadSettings(const char* dir)
@@ -382,4 +388,8 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "trdgeometry.dump";
   mTRDGeometryU = ReadStructFromFile<o2::trd::GeometryFlat>(f.c_str());
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
+  f = dir;
+  f += "trdrecoparam.dump";
+  mTRDRecoParamU = ReadStructFromFile<GPUTRDRecoParam>(f.c_str());
+  processors()->calibObjects.trdRecoParam = mTRDRecoParamU.get();
 }

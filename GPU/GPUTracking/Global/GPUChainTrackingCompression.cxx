@@ -273,10 +273,10 @@ int32_t GPUChainTracking::RunTPCDecompression()
     CompressedClusters& inputGPUShadow = DecompressorShadow.mInputGPU;
 
     if (cmprClsHost.nTracks && cmprClsHost.solenoidBz != -1e6f && cmprClsHost.solenoidBz != param().bzkG) {
-      throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
+      throw std::runtime_error("Configured solenoid Bz " + std::to_string(param().bzkG) + " does not match value used for track model encoding " + std::to_string(cmprClsHost.solenoidBz));
     }
     if (cmprClsHost.nTracks && cmprClsHost.maxTimeBin != -1e6 && cmprClsHost.maxTimeBin != param().continuousMaxTimeBin) {
-      throw std::runtime_error("Configured max time bin does not match value used for track model encoding");
+      throw std::runtime_error("Configured max time bin " + std::to_string(param().continuousMaxTimeBin) + " does not match value used for track model encoding " + std::to_string(cmprClsHost.maxTimeBin));
     }
 
     int32_t inputStream = 0;

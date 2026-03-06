@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   GPUO2Interface tracker;
 
   float solenoidBz = -5.00668; // B-field
-  float refX = 1000.;          // transport tracks to this x after tracking, >500 for disabling
+  float refX = 83.;            // transport tracks to this x after tracking, >500 for disabling
   bool continuous = false;     // time frame data v.s. triggered events
 
   GPUO2InterfaceConfiguration config;

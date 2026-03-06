@@ -14,6 +14,8 @@
 
 #include <TGeoManager.h>
 #include <Rtypes.h>
+#include <string>
+#include <vector>
 
 namespace o2
 {
@@ -23,7 +25,8 @@ class Layer
 {
  public:
   Layer() = default;
-  Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0, bool isBarrel = true);
+  Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0,
+        int layout = kBarrel, int nStaves = 0, float staveSize = 0.0, double staveTiltAngle = 0.0, int modulesPerStave = 0);
   ~Layer() = default;
 
   auto getInnerRadius() const { return mInnerRadius; }
@@ -33,9 +36,14 @@ class Layer
   auto getx2X0() const { return mX2X0; }
   auto getChipThickness() const { return mChipThickness; }
   auto getName() const { return mLayerName; }
-  auto getIsBarrel() const { return mIsBarrel; }
+  auto getLayout() const { return mLayout; }
+  auto getSegments() const { return mStaves; }
+  static constexpr int kBarrel = 0;
+  static constexpr int kDisk = 1;
+  static constexpr int kBarrelSegmented = 2;
+  static constexpr int kDiskSegmented = 3;
 
-  virtual void createLayer(TGeoVolume* motherVolume){};
+  virtual void createLayer(TGeoVolume* motherVolume) {};
 
  protected:
   std::string mLayerName;
@@ -45,7 +53,11 @@ class Layer
   float mZOffset{0.f}; // Of use when fwd layers
   float mX2X0;
   float mChipThickness;
-  bool mIsBarrel{true};
+  int mLayout{kBarrel}; // Identifier of the type of layer layout (barrel, disk, barrel segmented, disk segmented)
+  // To be used only in case of the segmented layout, to define the number of staves in phi (for barrel) or in r (for disk)
+  std::pair<int, float> mStaves{0, 0.0f}; // Number and size of staves in phi (for barrel) or in r (for disk) in case of segmented layout
+  int mModulesPerStave{0};                // Number of modules along a stave
+  double mTiltAngle{0.0};                 // Tilt angle in degrees to be applied as a rotation around the local center of the stave
 };
 
 class ITOFLayer : public Layer
@@ -53,6 +65,7 @@ class ITOFLayer : public Layer
  public:
   using Layer::Layer;
   virtual void createLayer(TGeoVolume* motherVolume) override;
+  static std::vector<std::string> mRegister;
 };
 
 class OTOFLayer : public Layer
@@ -60,6 +73,7 @@ class OTOFLayer : public Layer
  public:
   using Layer::Layer;
   virtual void createLayer(TGeoVolume* motherVolume) override;
+  static std::vector<std::string> mRegister;
 };
 
 class FTOFLayer : public Layer

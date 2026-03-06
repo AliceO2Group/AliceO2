@@ -290,14 +290,8 @@ bool GeometryTGeo::getChipId(int index, int& lay, int& hba, int& sta, int& hsta,
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameITS(bool isITS3)
+const char* GeometryTGeo::composeSymNameITS()
 {
-  if (isITS3) {
-#ifdef ENABLE_UPGRADES
-    return o2::detectors::DetID(o2::detectors::DetID::IT3).getName();
-#endif
-  }
-
   return o2::detectors::DetID(o2::detectors::DetID::ITS).getName();
 }
 

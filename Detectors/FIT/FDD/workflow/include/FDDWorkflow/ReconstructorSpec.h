@@ -18,6 +18,8 @@
 #include "Framework/Task.h"
 #include "FDDReconstruction/Reconstructor.h"
 #include "DataFormatsFDD/RecPoint.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
+#include "Framework/ConcreteDataMatcher.h"
 
 using namespace o2::framework;
 
@@ -29,21 +31,25 @@ namespace fdd
 class FDDReconstructorDPL : public Task
 {
  public:
-  FDDReconstructorDPL(bool useMC) : mUseMC(useMC) {}
+  FDDReconstructorDPL(bool useMC, bool useDeadChannelMap) : mUseMC(useMC), mUseDeadChannelMap(useDeadChannelMap) {}
   ~FDDReconstructorDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   bool mUseMC = true;
+  bool mUseDeadChannelMap = true;
+  bool mUpdateDeadChannelMap = true;
   std::vector<o2::fdd::RecPoint> mRecPoints;
   std::vector<o2::fdd::ChannelDataFloat> mRecChData;
+  o2::fit::DeadChannelMap const* mDeadChannelMap;
   o2::fdd::Reconstructor mReco;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getFDDReconstructorSpec(bool useMC = true);
+framework::DataProcessorSpec getFDDReconstructorSpec(bool useMC = true, bool useDeadChannelMap = true);
 
 } // namespace fdd
 } // namespace o2

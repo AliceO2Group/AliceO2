@@ -34,14 +34,102 @@ class CalVdriftExB
   void setVdrift(int iDet, float vd) { mVdrift[iDet] = vd; }
   void setExB(int iDet, float exb) { mExB[iDet] = exb; }
 
-  float getVdrift(int iDet) const { return mVdrift[iDet]; }
-  float getExB(int iDet) const { return mExB[iDet]; }
+  float getVdrift(int iDet, bool defaultAvg = true) const
+  {
+    // if defaultAvg = false, we take the value stored whatever it is
+    // if defaultAvg = true and we have default value or bad value stored, we take the average on all chambers instead
+    if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
+      return mVdrift[iDet];
+    else {
+      if (TMath::Abs(mMeanVdrift + 999.) < 1e-6)
+        mMeanVdrift = getAverageVdrift();
+      return mMeanVdrift;
+    }
+  }
+  float getExB(int iDet, bool defaultAvg = true) const
+  {
+    if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
+      return mExB[iDet];
+    else {
+      if (TMath::Abs(mMeanExB + 999.) < 1e-6)
+        mMeanExB = getAverageExB();
+      return mMeanExB;
+    }
+  }
+
+  float getAverageVdrift() const
+  {
+    float averageVdrift = 0.;
+    int ngood = 0;
+
+    for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
+      if (isGoodExB(iDet) && isGoodVdrift(iDet)) {
+        // Both values need to be correct to declare a chamber as well calibrated
+        ngood++;
+        averageVdrift += mVdrift[iDet];
+      }
+    }
+    if (ngood == 0) {
+      // we should make sure it never happens
+      return constants::VDRIFTDEFAULT;
+    }
+    averageVdrift /= ngood;
+    return averageVdrift;
+  }
+
+  float getAverageExB() const
+  {
+    float averageExB = 0.;
+    int ngood = 0;
+
+    for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
+      if (isGoodExB(iDet) && isGoodVdrift(iDet)) {
+        // Both values need to be correct to declare a chamber as well calibrated
+        ngood++;
+        averageExB += mExB[iDet];
+      }
+    }
+    if (ngood == 0) {
+      // we should make sure it never happens
+      return constants::EXBDEFAULT;
+    }
+    averageExB /= ngood;
+    return averageExB;
+  }
+
+  bool isGoodExB(int iDet) const
+  {
+    // check if value is well calibrated or not
+    // default calibration if not enough entries
+    // close to boundaries indicate a failed fit
+    if (TMath::Abs(mExB[iDet] - constants::EXBDEFAULT) > 1e-6 &&
+        TMath::Abs(mExB[iDet] - constants::EXBMIN) > 0.01 &&
+        TMath::Abs(mExB[iDet] - constants::EXBMAX) > 0.01)
+      return true;
+    else
+      return false;
+  }
+
+  bool isGoodVdrift(int iDet) const
+  {
+    // check if value is well calibrated or not
+    // default calibration if not enough entries
+    // close to boundaries indicate a failed fit
+    if (TMath::Abs(mVdrift[iDet] - constants::VDRIFTDEFAULT) > 1e-6 &&
+        TMath::Abs(mVdrift[iDet] - constants::VDRIFTMIN) > 0.1 &&
+        TMath::Abs(mVdrift[iDet] - constants::VDRIFTMAX) > 0.1)
+      return true;
+    else
+      return false;
+  }
 
  private:
   std::array<float, constants::MAXCHAMBER> mVdrift{}; ///< calibrated drift velocity per TRD chamber
   std::array<float, constants::MAXCHAMBER> mExB{};    ///< calibrated Lorentz angle per TRD chamber
+  mutable float mMeanVdrift{-999.};                   ///! average drift velocity, calculated only once
+  mutable float mMeanExB{-999.};                      ///! average lorentz angle, calculated only once
 
-  ClassDefNV(CalVdriftExB, 1);
+  ClassDefNV(CalVdriftExB, 2);
 };
 
 } // namespace trd

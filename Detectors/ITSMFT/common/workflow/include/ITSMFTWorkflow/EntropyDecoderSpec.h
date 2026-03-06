@@ -32,7 +32,7 @@ namespace itsmft
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits = false);
+  EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits = false, const std::string& ctfdictOpt = "none");
   ~EntropyDecoderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -60,7 +60,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec);
+framework::DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt);
 
 } // namespace itsmft
 } // namespace o2

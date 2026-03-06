@@ -27,15 +27,15 @@ For 'o2-calibration-trd-workflow --vDriftAndExB' there are also the following ke
 
 *Hint: You can get information on the meaning of the parameters by running `o2-calibration-trd-workflow --vDriftAndExB -b --help full`*
 
-If you want to run the calibration from a local file with residuals, trdangreshistos.root, you can run:
+If you want to run the calibration from a local file with residuals, trdcaliboutput.root, you can run:
 
-    o2-calibration-trd-workflow --vDriftAndExB -b --enable-root-input --calib-vdexb-calibration '--tf-per-slot 1' --configKeyValues "TRDCalibParams.minEntriesChamber=100;TRDCalibParams.minEntriesTotal=50000"
+    o2-calibration-trd-workflow --vDriftAndExB -b --enable-root-input --calib-vdexb-calibration '--tf-per-slot 1' --configKeyValues "TRDCalibParams.minEntriesChamber=100;TRDCalibParams.minEntriesTotal=50000" --trd-calib-infile trdcaliboutput.root
 
 Additionally it is possible to perform the calibrations fit manually per chamber if you have TPC-TRD or ITS-TPC-TRD tracks, you can run:
 
     o2-trd-global-tracking -b --enable-trackbased-calib
 
-This produces `trdangreshistos.root` which holds the residuals of the angles and differences.
+This produces `trdcaliboutput.root` which holds the residuals of the angles and differences.
 Then run the macro `Detectors/TRD/calibration/macros/manualCalibFit.C`.
 This produces a file of similar name with the fitted data and prints out the fit results.
 This is equivalent to running:

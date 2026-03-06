@@ -44,6 +44,7 @@ void ReconstructionDPL::init(InitContext& ic)
   LOG(info) << "FT0 param mMinRMS: " << CalibParam::Instance().mMinRMS;
   LOG(info) << "FT0 param mMaxSigma: " << CalibParam::Instance().mMaxSigma;
   LOG(info) << "FT0 param mMaxDiffMean: " << CalibParam::Instance().mMaxDiffMean;
+  LOG(info) << "FT0 dead channel map will be applied " << mUseDeadChannelMap;
 }
 
 void ReconstructionDPL::run(ProcessingContext& pc)
@@ -69,6 +70,12 @@ void ReconstructionDPL::run(ProcessingContext& pc)
     mReco.SetSlewingCalibObject(slewingCalibObject.get());
   }
 
+  if (mUseDeadChannelMap && mUpdateDeadChannelMap) {
+    LOG(debug) << "Applying dead channel map";
+    auto deadChannelMap = pc.inputs().get<o2::fit::DeadChannelMap*>("deadChannelMap");
+    mReco.SetDeadChannelMap(deadChannelMap.get());
+  }
+
   mRecPoints.reserve(digits.size());
   mRecChData.reserve(channels.size());
   mReco.processTF(digits, channels, mRecPoints, mRecChData);
@@ -91,6 +98,11 @@ void ReconstructionDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     mUseSlewingCalib = false; // upload only once, slewing should be stable during the run
     return;
   }
+  if (matcher == ConcreteDataMatcher("FT0", "DeadChannelMap", 0)) {
+    LOG(debug) << "New DeadChannelMap is uploaded";
+    mUpdateDeadChannelMap = false;
+    return;
+  }
 }
 
 void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
@@ -99,12 +111,13 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, bool useTimeOffsetCalib, bool useSlewingCalib)
+DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, bool useTimeOffsetCalib, bool useSlewingCalib, bool useDeadChannelMap)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
   inputSpec.emplace_back("digits", o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
+
   if (useMC) {
     LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
@@ -121,6 +134,11 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, 
                            ccdbParamSpec("FT0/Calib/SlewingCoef"));
   }
 
+  if (useDeadChannelMap) {
+    LOG(info) << "Dead channel map will be applied during reconstruction";
+    inputSpec.emplace_back("deadChannelMap", o2::header::gDataOriginFT0, "DeadChannelMap", 0, Lifetime::Condition, ccdbParamSpec("FT0/Calib/DeadChannelMap"));
+  }
+
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
 
@@ -128,7 +146,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, 
     "ft0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath, useTimeOffsetCalib, useSlewingCalib)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath, useTimeOffsetCalib, useSlewingCalib, useDeadChannelMap)},
     Options{}};
 }
 

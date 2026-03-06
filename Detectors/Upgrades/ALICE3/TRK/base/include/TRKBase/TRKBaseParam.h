@@ -31,6 +31,14 @@ enum eLayout {
   kStaggered,
 };
 
+enum eVDLayout {
+  kIRIS4 = 0,
+  kIRISFullCyl,
+  kIRISFullCyl3InclinedWalls,
+  kIRIS5,
+  kIRIS4a,
+};
+
 struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   std::string configFile = "";
   float serviceTubeX0 = 0.02f; // X0 Al2O3
@@ -39,10 +47,12 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   eOverallGeom overallGeom = kDefaultRadii; // Overall geometry option, to be used in Detector::buildTRKMiddleOuterLayers
 
   eLayout layoutML = kTurboStaves; // Type of segmentation for the middle layers
-  eLayout layoutOL = kStaggered;   // Type of segmentation for the outer layers
+  eLayout layoutOT = kStaggered;   // Type of segmentation for the outer layers
+  eVDLayout layoutVD = kIRIS4;     // VD detector layout design
 
   eLayout getLayoutML() const { return layoutML; }
-  eLayout getLayoutOL() const { return layoutOL; }
+  eLayout getLayoutOT() const { return layoutOT; }
+  eVDLayout getLayoutVD() const { return layoutVD; }
 
   O2ParamDef(TRKBaseParam, "TRKBase");
 };

@@ -27,9 +27,8 @@ namespace o2
 {
 namespace itsmft
 {
-
-EntropyEncoderSpec::EntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR)
-  : mOrigin(orig), mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR, const std::string& ctfdictOpt)
+  : mOrigin(orig), mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT, ctfdictOpt), mSelIR(selIR)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
   mTimer.Stop();
@@ -112,7 +111,7 @@ void EntropyEncoderSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR)
+DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -123,19 +122,20 @@ DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR)
     inputs.emplace_back("cldict", orig, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
     inputs.emplace_back("alppar", orig, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", orig.as<std::string>())));
   }
-  inputs.emplace_back("ctfdict", orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionaryTree", orig.as<std::string>())));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict", orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionaryTree", orig.as<std::string>())));
+  }
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
     inputs,
     Outputs{{orig, "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, orig, "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(orig, selIR)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(orig, selIR, ctfdictOpt)},
+    Options{{"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace itsmft
 } // namespace o2

@@ -35,5 +35,5 @@ if(CUDA_ENABLED)
 
     set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
-    set_target_cuda_arch(${targetName})
+    set_target_gpu_arch("CUDA" ${targetName})
 endif()

@@ -10,26 +10,50 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FT0Calibration
-        SOURCES
-        src/FT0TimeOffsetSlotContainer.cxx
-        PUBLIC_LINK_LIBRARIES
-         O2::DataFormatsFT0
-         O2::CommonDataFormat
-         O2::DetectorsCalibration
-           )
-       o2_target_root_dictionary(FT0Calibration
-        HEADERS
-        include/FT0Calibration/FT0TimeOffsetSlotContainer.h
-        )
-      o2_add_executable(ft0-time-offset-calib
-        COMPONENT_NAME calibration
-        SOURCES workflow/FT0TimeOffsetCalibration-Workflow.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::FT0Calibration O2::FITCalibration
-        )
-      o2_add_executable(ft0-time-spectra-processor
-        COMPONENT_NAME calibration
-        SOURCES workflow/FT0TimeSpectraProcessor-Workflow.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::FT0Calibration
-        )
+  SOURCES
+    src/FT0TimeOffsetSlotContainer.cxx
+    src/EventsPerBcCalibrator.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::DetectorsCalibration
+    O2::Framework
+    O2::CommonUtils
+    Microsoft.GSL::GSL
+    O2::DataFormatsFT0
+    O2::CommonDataFormat
+    O2::Steer
+    O2::CCDB
+    ROOT::Minuit
+    ROOT::Hist
+  )
+
+o2_target_root_dictionary(FT0Calibration
+  HEADERS
+    include/FT0Calibration/FT0TimeOffsetSlotContainer.h
+    include/FT0Calibration/EventsPerBcCalibrator.h
+  )
+
+o2_add_executable(ft0-time-offset-calib
+  COMPONENT_NAME calibration
+  SOURCES
+    workflow/FT0TimeOffsetCalibration-Workflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::FT0Calibration O2::FITCalibration
+  )
+
+o2_add_executable(ft0-time-spectra-processor
+  COMPONENT_NAME calibration
+  SOURCES
+    workflow/FT0TimeSpectraProcessor-Workflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::FT0Calibration
+  )
+
+o2_add_executable(ft0-events-per-bc-processor
+  COMPONENT_NAME calibration
+  SOURCES
+    workflow/FT0EventsPerBcProcessor-Workflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::FT0Calibration
+    O2::Framework
+    O2::CCDB
+)

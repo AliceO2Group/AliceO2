@@ -29,7 +29,7 @@ using namespace o2::gpu;
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
 #define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)
 #define AddSubConfig(name, instance)
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) O2ParamImpl(GPUCA_M_CAT(GPUConfigurableParam, name))
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) O2ParamImpl(internal::GPUCA_M_CAT(GPUConfigurableParam, name))
 #define BeginHiddenConfig(...)
 #define EndConfig()
 #define AddCustomCPP(...)
@@ -73,7 +73,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) \
   name instance;                                                                             \
   {                                                                                          \
-    const auto& src = GPUCA_M_CAT(GPUConfigurableParam, name)::Instance();                   \
+    const auto& src = internal::GPUCA_M_CAT(GPUConfigurableParam, name)::Instance();         \
     name& dst = instance;
 #define BeginHiddenConfig(name, instance) {
 #define EndConfig() }
@@ -118,9 +118,6 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
   }
   if (global.gpuDisplayfilterMacro != "") {
     obj.configDisplay.filterMacros.emplace_back(global.gpuDisplayfilterMacro);
-  }
-  if (obj.configReconstruction.tpc.trackReferenceX == 1000.f) {
-    obj.configReconstruction.tpc.trackReferenceX = 83.f;
   }
   obj.configDeviceBackend.deviceType = gpudatatypes::GetDeviceType(global.deviceType.c_str());
   obj.configDeviceBackend.forceDeviceType = global.forceDeviceType;

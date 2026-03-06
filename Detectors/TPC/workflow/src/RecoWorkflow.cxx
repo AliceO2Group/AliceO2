@@ -101,7 +101,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
-                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int deadMapSources, bool useMCTimeGain)
+                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, const std::string& ctfdictOpt, bool selIR, bool filteredInp, int deadMapSources, bool useMCTimeGain)
 {
   InputType inputType;
   try {
@@ -507,7 +507,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // selected by output type 'encoded-clusters'
   if (runClusterEncoder) {
-    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runGPUReco && inputType != InputType::CompClustersFlatForEncode, selIR));
+    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runGPUReco && inputType != InputType::CompClustersFlatForEncode, selIR, ctfdictOpt));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////

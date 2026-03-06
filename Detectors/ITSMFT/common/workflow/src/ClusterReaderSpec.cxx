@@ -12,15 +12,16 @@
 /// @file   ClusterReaderSpec.cxx
 
 #include <vector>
+#include <cassert>
 
-#include "TTree.h"
+#include <TTree.h>
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
-#include <cassert>
 #include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
@@ -31,45 +32,48 @@ namespace o2
 namespace itsmft
 {
 
-ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool usePatterns, bool triggerOut)
+template <int N>
+ClusterReader<N>::ClusterReader(bool useMC, bool usePatterns, bool triggerOut) : mUseMC(useMC), mUsePatterns(usePatterns), mTriggerOut(triggerOut), mDetName(Origin.as<std::string>()), mDetNameLC(mDetName)
 {
-  assert(id == o2::detectors::DetID::ITS || id == o2::detectors::DetID::MFT);
-  mDetNameLC = mDetName = id.getName();
-  mUseMC = useMC;
-  mUsePatterns = usePatterns;
-  mTriggerOut = triggerOut;
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
+
+  mClusROFRec.fill(nullptr);
+  mClusterCompArray.fill(nullptr);
+  mPatternsArray.fill(nullptr);
+  mClusterMCTruth.fill(nullptr);
+  mClusMC2ROFs.fill(nullptr);
 }
 
-void ClusterReader::init(InitContext& ic)
+template <int N>
+void ClusterReader<N>::init(InitContext& ic)
 {
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                             ic.options().get<std::string>((mDetNameLC + "-cluster-infile").c_str()));
   connectTree(mFileName);
 }
 
-void ClusterReader::run(ProcessingContext& pc)
+template <int N>
+void ClusterReader<N>::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
-            << mClusterCompArray.size() << " compact clusters at entry " << ent;
 
-  // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
-  // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{mOrigin, "CLUSTERSROF", 0}, mClusROFRec);
-  pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0}, mClusterCompArray);
-  if (mUsePatterns) {
-    pc.outputs().snapshot(Output{mOrigin, "PATTERNS", 0}, mPatternsArray);
-  }
-  if (mUseMC) {
-    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0}, mClusterMCTruth);
-    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMC2ROF", 0}, mClusMC2ROFs);
+  for (uint32_t iLayer = 0; iLayer < NLayers; ++iLayer) {
+    LOG(info) << mDetName << "ClusterReader:" << iLayer << " pushes " << mClusROFRec[iLayer]->size() << " ROFRecords, " << mClusterCompArray[iLayer]->size() << " compact clusters at entry " << ent;
+    pc.outputs().snapshot(Output{Origin, "CLUSTERSROF", iLayer}, *mClusROFRec[iLayer]);
+    pc.outputs().snapshot(Output{Origin, "COMPCLUSTERS", iLayer}, *mClusterCompArray[iLayer]);
+    if (mUsePatterns) {
+      pc.outputs().snapshot(Output{Origin, "PATTERNS", iLayer}, *mPatternsArray[iLayer]);
+    }
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{Origin, "CLUSTERSMCTR", iLayer}, *mClusterMCTruth[iLayer]);
+      pc.outputs().snapshot(Output{Origin, "CLUSTERSMC2ROF", iLayer}, *mClusMC2ROFs[iLayer]);
+    }
   }
   if (mTriggerOut) {
     std::vector<o2::itsmft::PhysTrigger> dummyTrig;
-    pc.outputs().snapshot(Output{mOrigin, "PHYSTRIG", 0}, dummyTrig);
+    pc.outputs().snapshot(Output{Origin, "PHYSTRIG", 0}, dummyTrig);
   }
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -77,7 +81,8 @@ void ClusterReader::run(ProcessingContext& pc)
   }
 }
 
-void ClusterReader::connectTree(const std::string& filename)
+template <int N>
+void ClusterReader<N>::connectTree(const std::string& filename)
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
@@ -85,70 +90,89 @@ void ClusterReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get(mClusTreeName.c_str()));
   assert(mTree);
 
-  mTree->SetBranchAddress((mDetName + mClusROFBranchName).c_str(), &mClusROFRecPtr);
-  mTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayPtr);
-  if (mUsePatterns) {
-    mTree->SetBranchAddress((mDetName + mClusterPattBranchName).c_str(), &mPatternsArrayPtr);
-  }
-  if (mUseMC) {
-    if (mTree->GetBranch((mDetName + mClustMCTruthBranchName).c_str()) &&
-        mTree->GetBranch((mDetName + mClustMC2ROFBranchName).c_str())) {
-      mTree->SetBranchAddress((mDetName + mClustMCTruthBranchName).c_str(), &mClusterMCTruthPtr);
-      mTree->SetBranchAddress((mDetName + mClustMC2ROFBranchName).c_str(), &mClusMC2ROFsPtr);
-    } else {
-      LOG(info) << "MC-truth is missing";
-      mUseMC = false;
+  for (uint32_t iLayer = 0; iLayer < NLayers; ++iLayer) {
+    setBranchAddress(mClusROFBranchName, mClusROFRec[iLayer], iLayer);
+    setBranchAddress(mClusterCompBranchName, mClusterCompArray[iLayer], iLayer);
+    if (mUsePatterns) {
+      setBranchAddress(mClusterPattBranchName, mPatternsArray[iLayer], iLayer);
+    }
+    if (mUseMC) {
+      if (mTree->GetBranch(getBranchName(mClustMCTruthBranchName, iLayer).c_str()) &&
+          mTree->GetBranch(getBranchName(mClustMC2ROFBranchName, iLayer).c_str())) {
+        setBranchAddress(mClustMCTruthBranchName, mClusterMCTruth[iLayer], iLayer);
+        setBranchAddress(mClustMC2ROFBranchName, mClusMC2ROFs[iLayer], iLayer);
+      } else {
+        LOG(info) << "MC-truth is missing";
+        mUseMC = false;
+      }
     }
   }
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool usePatterns, bool triggerOut)
+template <int N>
+std::string ClusterReader<N>::getBranchName(const std::string& base, int index) const
 {
-  std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  if (usePatterns) {
-    outputSpec.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
+  if constexpr (o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) {
+    return mDetName + base + "_" + std::to_string(index);
   }
-  if (useMC) {
-    outputSpec.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+  return mDetName + base;
+}
+
+template <int N>
+template <typename Ptr>
+void ClusterReader<N>::setBranchAddress(const std::string& base, Ptr& addr, int layer)
+{
+  const auto name = getBranchName(base, layer);
+  if (Int_t ret = mTree->SetBranchAddress(name.c_str(), &addr); ret != 0) {
+    LOGP(fatal, "failed to set branch address for {} ret={}", name, ret);
+  }
+}
+
+namespace
+{
+template <int N>
+std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth, bool usePatterns, bool triggerOut)
+{
+  std::vector<OutputSpec> outputs;
+  for (uint32_t iLayer = 0; iLayer < ((o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1); ++iLayer) {
+    outputs.emplace_back(detOrig, "CLUSTERSROF", iLayer, Lifetime::Timeframe);
+    outputs.emplace_back(detOrig, "COMPCLUSTERS", iLayer, Lifetime::Timeframe);
+    if (usePatterns) {
+      outputs.emplace_back(detOrig, "PATTERNS", iLayer, Lifetime::Timeframe);
+    }
+    if (mctruth) {
+      outputs.emplace_back(detOrig, "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
+      outputs.emplace_back(detOrig, "CLUSTERSMC2ROF", iLayer, Lifetime::Timeframe);
+    }
   }
   if (triggerOut) {
-    outputSpec.emplace_back("ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
+    outputs.emplace_back(detOrig, "PHYSTRIG", 0, Lifetime::Timeframe);
   }
+  return outputs;
+}
+} // namespace
+
+DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool usePatterns, bool triggerOut)
+{
   return DataProcessorSpec{
-    "its-cluster-reader",
-    Inputs{},
-    outputSpec,
-    AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, usePatterns, triggerOut)},
-    Options{
+    .name = "its-cluster-reader",
+    .inputs = Inputs{},
+    .outputs = makeOutChannels<o2::detectors::DetID::ITS>("ITS", useMC, usePatterns, triggerOut),
+    .algorithm = AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, usePatterns, triggerOut)},
+    .options = Options{
       {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool usePatterns, bool triggerOut)
 {
-  std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  if (usePatterns) {
-    outputSpec.emplace_back("MFT", "PATTERNS", 0, Lifetime::Timeframe);
-  }
-  if (useMC) {
-    outputSpec.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
-  }
-  if (triggerOut) {
-    outputSpec.emplace_back("MFT", "PHYSTRIG", 0, Lifetime::Timeframe);
-  }
   return DataProcessorSpec{
-    "mft-cluster-reader",
-    Inputs{},
-    outputSpec,
-    AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, usePatterns, triggerOut)},
-    Options{
+    .name = "mft-cluster-reader",
+    .inputs = Inputs{},
+    .outputs = makeOutChannels<o2::detectors::DetID::MFT>("MFT", useMC, usePatterns, triggerOut),
+    .algorithm = AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, usePatterns, triggerOut)},
+    .options = Options{
       {"mft-cluster-infile", VariantType::String, "mftclusters.root", {"Name of the input cluster file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }

@@ -85,6 +85,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     int caClusterer = 0,                                 //
                                     int zsOnTheFly = 0,
                                     bool askDISTSTF = true,
+                                    const std::string& ctfdictOpt = "none",
                                     bool selIR = false,
                                     bool filteredInp = false,
                                     int deadMapSources = -1,

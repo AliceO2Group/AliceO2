@@ -28,9 +28,8 @@ namespace o2
 {
 namespace itsmft
 {
-
-EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits)
-  : mOrigin(orig), mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT), mGetDigits(getDigits)
+EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, const std::string& ctfdictOpt)
+  : mOrigin(orig), mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT, ctfdictOpt), mGetDigits(getDigits)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
   mDetPrefix = orig == o2::header::gDataOriginITS ? "_ITS" : "_MFT";
@@ -119,7 +118,7 @@ void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
   }
 }
 
-DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec)
+DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
 {
   std::vector<OutputSpec> outputs;
   // this is a special dummy input which makes sense only in sync workflows
@@ -141,20 +140,19 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
   inputs.emplace_back(std::string("ctf") + nm, orig, "CTFDATA", sspec, Lifetime::Timeframe);
   inputs.emplace_back(std::string("noise") + nm, orig, "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", orig.as<std::string>())));
   inputs.emplace_back(std::string("cldict") + nm, orig, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
-  inputs.emplace_back(std::string("ctfdict") + nm, orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionaryTree", orig.as<std::string>())));
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back(std::string("ctfdict") + nm, orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionaryTree", orig.as<std::string>())));
+  }
   inputs.emplace_back(std::string("trigoffset"), "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     EntropyDecoderSpec::getName(orig),
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, verbosity, getDigits)},
-    Options{
-      {"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-      {"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
-      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
-      {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, verbosity, getDigits, ctfdictOpt)},
+    Options{{"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
+            {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace itsmft
 } // namespace o2

@@ -13,6 +13,7 @@
 /// \brief Provides information required for TRD calibration which is based on the global tracking
 /// \author Ole Schmidt
 
+#include "GPUO2InterfaceConfiguration.h"
 #include "TRDCalibration/TrackBasedCalib.h"
 #include "TRDCalibration/CalibrationParams.h"
 #include "DataFormatsTRD/Constants.h"
@@ -35,7 +36,7 @@ void TrackBasedCalib::reset()
 void TrackBasedCalib::init()
 {
   bz = o2::base::Propagator::Instance()->getNominalBz();
-  mRecoParam.setBfield(bz);
+  mRecoParam.init(bz);
 }
 
 void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)
@@ -187,7 +188,10 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
   for (const auto& trkIn : tracks) {
     if (trkIn.getNtracklets() < params.nTrackletsMin) {
       // with less than 3 tracklets the TRD-only refit not meaningful
-      continue;
+      if (trkIn.getNtracklets() < params.nTrackletsMinLoose || !((trkIn.getTrackletIndex(0) >= 0 && (trkIn.getTrackletIndex(NLAYER - 1) >= 0 || trkIn.getTrackletIndex(NLAYER - 2) >= 0))) || (trkIn.getTrackletIndex(1) >= 0 && trkIn.getTrackletIndex(NLAYER - 1) >= 0)) {
+        // we check if we have enough lever arm, i.e. (first and last) or (second and last) or (first and before last) are present
+        continue;
+      }
     }
     auto trkWork = trkIn; // input is const, so we need to create a copy
     bool trackFailed = false;
@@ -259,9 +263,20 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
       }
 
       float trkAngle = o2::math_utils::asin(trkWork.getSnp()) * TMath::RadToDeg();
-      float trkltAngle = o2::math_utils::atan(mTrackletsCalib[trkWork.getTrackletIndex(iLayer)].getDy() / Geometry::cdrHght()) * TMath::RadToDeg();
+      int trkltId = trkWork.getTrackletIndex(iLayer);
+      // tracklet angle, corrected for pad tilt
+      const PadPlane* pad = Geometry::instance()->getPadPlane(mTrackletsRaw[trkltId].getDetector());
+      float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
+      float tiltCorrUp = tilt * trkWork.getTgl() * Geometry::cdrHght();
+      float padLength = pad->getRowSize(mTrackletsRaw[trkltId].getPadRow());
+      if (!((trkWork.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(mTrackletsCalib[trkltId].getZ() - trkWork.getZ()) < padLength))) {
+        tiltCorrUp = 0.f;
+      }
+      // use uncalibrated dy because online calibration does not work otherwise
+      float trkltDy = mTrackletsRaw[trkltId].getUncalibratedDy(30.f / o2::trd::constants::VDRIFTDEFAULT) + tiltCorrUp;
+      float trkltAngle = o2::math_utils::atan(trkltDy / Geometry::cdrHght()) * TMath::RadToDeg();
       float angleDeviation = trkltAngle - trkAngle;
-      if (mAngResHistos.addEntry(angleDeviation, trkAngle, mTrackletsRaw[trkWork.getTrackletIndex(iLayer)].getDetector())) {
+      if (mAngResHistos.addEntry(angleDeviation, trkAngle, mTrackletsRaw[trkltId].getDetector())) {
         // track impact angle out of histogram range
         continue;
       }

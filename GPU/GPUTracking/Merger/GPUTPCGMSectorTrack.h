@@ -54,6 +54,7 @@ class GPUTPCGMSectorTrack
   GPUd() float SecPhi() const { return mParam.mSecPhi; }
   GPUd() float DzDs() const { return mParam.mDzDs; }
   GPUd() float QPt() const { return mParam.mQPt; }
+  GPUd() const auto& Param() const { return mParam; }
   GPUd() float TOffset() const { return mTOffset; }
 
   GPUd() int32_t LocalTrackId() const { return mLocalTrackId; }
@@ -75,7 +76,7 @@ class GPUTPCGMSectorTrack
   GPUd() void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sectorTr, float alpha, int32_t sector);
   GPUd() void SetParam2(const GPUTPCGMTrackParam& trk);
   GPUd() void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sectorTr, float alpha, int32_t sector);
-  GPUd() void UseParam2() { mParam = mParam2; }
+  GPUd() void UseParam2() { mParam = mParam2; } // TODO: Clean this up!
   GPUd() void SetX2(float v) { mParam2.mX = v; }
   GPUd() float X2() const { return mParam2.mX; }
 

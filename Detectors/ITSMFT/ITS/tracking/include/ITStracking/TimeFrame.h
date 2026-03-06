@@ -299,7 +299,7 @@ struct TimeFrame {
   virtual bool isGPU() const noexcept { return false; }
   virtual const char* getName() const noexcept { return "CPU"; }
 
- private:
+ protected:
   void prepareClusters(const TrackingParameters& trkParam, const int maxLayers = nLayers);
   float mBz = 5.;
   unsigned int mNTotalLowPtVertices = 0;

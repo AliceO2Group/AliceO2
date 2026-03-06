@@ -59,6 +59,7 @@ set(SRCS
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
     DataTypes/GPUTRDTrack.cxx
+    DataTypes/GPUTRDRecoParam.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
     TRDTracking/GPUTRDTrackerKernels.cxx
@@ -68,7 +69,7 @@ set(SRCS_DATATYPES DataTypes/GPUDataTypesConfig.cxx DataTypes/GPUConfigDump.cxx 
 
 set(HDRS_CINT_O2 Merger/GPUTPCGMTrackParam.h Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSectorTrack.h Merger/GPUTPCGMBorderTrack.h TRDTracking/GPUTRDInterfaces.h)
 set(HDRS_CINT_DATATYPES DataTypes/GPUTPCGMMergedTrackHit.h)
-set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypesIO.h DataTypes/GPUDataTypesConfig.h DataTypes/GPUDataTypesQA.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
+set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypesIO.h DataTypes/GPUDataTypesConfig.h DataTypes/GPUDataTypesQA.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDRecoParam.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx
@@ -136,7 +137,6 @@ set(HDRS_INSTALL
     Definitions/GPUDefConstantsAndSettings.h
     Definitions/GPUDefParametersWrapper.h
     Definitions/GPUDefParametersConstants.h
-    Definitions/GPUDefParametersDefaults.h
     Definitions/GPUDef.h
     Definitions/GPUDefMacros.h
     Definitions/GPULogging.h
@@ -230,6 +230,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       DataTypes/GPUO2ConfigurableParam.cxx)
 endif()
 
+set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
+file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
 set(TEMPLATE_HEADER_LIST Base/GPUReconstructionKernelList.template.h
                          Base/GPUReconstructionKernelIncludes.template.h
                          Base/GPUReconstructionIncludesDeviceAll.template.h
@@ -238,8 +240,6 @@ set(TEMPLATE_HEADER_LIST Base/GPUReconstructionKernelList.template.h
                          Definitions/GPUDefParametersLoad.template.inc)
 set(GENERATED_HEADERS_LIST "")
 
-set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
-file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
 foreach(TEMPLATE_FILE ${TEMPLATE_HEADER_LIST})
   get_filename_component(OUTPUT_FILE_NAME ${TEMPLATE_FILE} NAME)
   string(REPLACE ".template" "" OUTPUT_FILE_NAME ${OUTPUT_FILE_NAME})
@@ -261,6 +261,43 @@ add_custom_command(
   COMMAND_EXPAND_LISTS
 )
 list(APPEND GENERATED_HEADERS_LIST ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h)
+
+if(GPUCA_OVERRIDE_PARAMETER_FILE)
+  set(GPU_PARAM_JSON ${GPUCA_OVERRIDE_PARAMETER_FILE})
+else()
+  set(GPU_PARAM_JSON ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/GPUParameters.csv)
+endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GPU_PARAM_JSON}")
+
+set(GPU_PARAM_JSON_FILES)
+set(GPU_PARAM_JSON_N_FILES 0)
+foreach(GPU_PARAM_JSON_FILE IN LISTS GPU_PARAM_JSON)
+  if(NOT EXISTS "${GPU_PARAM_JSON_FILE}")
+    message(FATAL_ERROR "Parameter file ${GPU_PARAM_JSON_FILE} does not exist")
+  endif()
+  get_filename_component(GPU_PARAM_JSON_EXT ${GPU_PARAM_JSON_FILE} EXT)
+  string(TOLOWER "${GPU_PARAM_JSON_EXT}" GPU_PARAM_JSON_EXT)
+  if(GPU_PARAM_JSON_EXT STREQUAL .csv)
+    get_filename_component(GPU_PARAM_JSON_NAME ${GPU_PARAM_JSON_FILE} NAME_WE)
+    set(CONVOUTFILE "GPUParameters_${GPU_PARAM_JSON_NAME}_${GPU_PARAM_JSON_N_FILES}.json")
+    execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Definitions/Parameters/csv_to_json.sh "${GPU_PARAM_JSON_FILE}"
+                    OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/${CONVOUTFILE}
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                    COMMAND_ERROR_IS_FATAL ANY
+    )
+    message(STATUS "Converted ${GPU_PARAM_JSON_FILE} to ${CONVOUTFILE}")
+    list(APPEND GPU_PARAM_JSON_FILES ${CMAKE_CURRENT_BINARY_DIR}/${CONVOUTFILE})
+  else()
+    list(APPEND GPU_PARAM_JSON_FILES ${GPU_PARAM_JSON_FILE})
+  endif()
+  math(EXPR GPU_PARAM_JSON_N_FILES "${GPU_PARAM_JSON_N_FILES} + 1")
+endforeach()
+
+include(Definitions/Parameters/gpu_param_header_generator.cmake)
+set(GPU_DEFAULT_PARAMS_HEADER ${ON_THE_FLY_DIR}/GPUDefParametersDefaults.h)
+set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsDevice.h)
+generate_gpu_param_header("${GPU_PARAM_JSON_FILES}" "ALL" "${GPU_DEFAULT_PARAMS_HEADER}" "${GPU_DEFAULT_PARAMS_HEADER_DEVICE}" GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters for all architectures
+list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE})
 
 set(HDRS_INSTALL ${HDRS_INSTALL} ${GENERATED_HEADERS_LIST})
 include(kernels.cmake)
@@ -285,6 +322,7 @@ set(HDRS_CINT_DATATYPES ${HDRS_CINT_DATATYPES} ${HDRS_TMP})
 unset(HDRS_TMP)
 
 set(INCDIRS
+    ${ON_THE_FLY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/Definitions
     ${CMAKE_CURRENT_SOURCE_DIR}/DataTypes
@@ -301,14 +339,14 @@ set(INCDIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/Refit
     ${CMAKE_CURRENT_SOURCE_DIR}/Debug
     ${CMAKE_CURRENT_SOURCE_DIR}/DataCompression
-    ${CMAKE_CURRENT_SOURCE_DIR}/TPCClusterFinder
-    ${ON_THE_FLY_DIR})
+    ${CMAKE_CURRENT_SOURCE_DIR}/TPCClusterFinder)
 
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(GPUDataTypes
                  TARGETVARNAME targetName
                  PUBLIC_INCLUDE_DIRECTORIES .
+                                            ${ON_THE_FLY_DIR}
                                             Definitions
                                             DataTypes
                  PUBLIC_LINK_LIBRARIES O2::GPUUtils
@@ -403,30 +441,6 @@ target_sources(${targetName}
                FILES ${GENERATED_HEADERS_LIST}
                BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR})
 
-make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
-set(GPU_CONST_PARAM_ARCHITECTUES AMPERE TURING VEGA MI100)
-set(GPU_CONST_PARAM_FILES "")
-foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
-  set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
-  add_custom_command(
-    OUTPUT ${PARAMFILE}
-    COMMAND bash -c
-            "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"GPUDefParametersDefaults.h\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
-            | root -l -b > /dev/null
-    VERBATIM
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch
-    MAIN_DEPENDENCY Standalone/tools/dumpGPUDefParam.C
-    DEPENDS Definitions/GPUDefParametersDefaults.h
-            ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h
-            ${ON_THE_FLY_DIR}/GPUDefParametersLoad.inc
-    COMMENT "Generating GPU parameter set for architecture ${GPU_ARCH}")
-  LIST(APPEND GPU_CONST_PARAM_FILES ${PARAMFILE})
-endforeach()
-
-add_custom_target(${MODULE}_GPU_CONST_PARAM_ARCHS ALL DEPENDS ${GPU_CONST_PARAM_FILES})
-install(FILES ${GPU_CONST_PARAM_FILES} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU/arch_param)
-
-
 # Add compile definitions and libraries depending on available optional dependencies
 if(GPUCA_QA)
   message(STATUS "Building GPU QA")
@@ -447,6 +461,28 @@ if(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
   if(CMAKE_SYSTEM_NAME MATCHES Darwin)
     message(WARNING "GPU Tracking disabled on MacOS")
   else()
+    make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
+    set(GPU_CONST_PARAM_FILES)
+    foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
+      set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
+      add_custom_command(
+        OUTPUT ${PARAMFILE}
+        COMMAND bash -c
+                "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"GPUDefParametersDefaults.h\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
+                | root -l -b > /dev/null
+        VERBATIM
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch
+        MAIN_DEPENDENCY Standalone/tools/dumpGPUDefParam.C
+        DEPENDS ${GPU_DEFAULT_PARAMS_HEADER}
+                ${GPU_DEFAULT_PARAMS_HEADER_DEVICE}
+                ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h
+                ${ON_THE_FLY_DIR}/GPUDefParametersLoad.inc
+        COMMENT "Generating GPU parameter set for architecture ${GPU_ARCH}")
+      LIST(APPEND GPU_CONST_PARAM_FILES ${PARAMFILE})
+    endforeach()
+    add_custom_target(${MODULE}_GPU_CONST_PARAM_ARCHS ALL DEPENDS ${GPU_CONST_PARAM_FILES})
+    install(FILES ${GPU_CONST_PARAM_FILES} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU/arch_param)
+
     if(CUDA_ENABLED)
       add_subdirectory(Base/cuda)
     endif()

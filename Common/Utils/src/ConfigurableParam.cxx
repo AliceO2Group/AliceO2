@@ -192,6 +192,19 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 
 // -----------------------------------------------------------------
 
+void ConfigurableParam::write(std::string const& filename, std::string const& keyOnly)
+{
+  if (o2::utils::Str::endsWith(filename, ".ini")) {
+    writeINI(filename, keyOnly);
+  } else if (o2::utils::Str::endsWith(filename, ".json")) {
+    writeJSON(filename, keyOnly);
+  } else {
+    throw std::invalid_argument(fmt::format("ConfigurabeParam output file name {} extension is neither .json nor .ini", filename));
+  }
+}
+
+// -----------------------------------------------------------------
+
 void ConfigurableParam::writeINI(std::string const& filename, std::string const& keyOnly)
 {
   if (sOutputDir == "/dev/null") {
@@ -203,7 +216,10 @@ void ConfigurableParam::writeINI(std::string const& filename, std::string const&
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;
-      kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
+      auto keys = o2::utils::Str::tokenize(keyOnly, " ,;", true, true);
+      for (const auto& k : keys) {
+        kTree.add_child(k, sPtree->get_child(k));
+      }
       boost::property_tree::write_ini(outfilename, kTree);
     } catch (const boost::property_tree::ptree_bad_path& err) {
       LOG(fatal) << "non-existing key " << keyOnly << " provided to writeINI";
@@ -284,7 +300,10 @@ void ConfigurableParam::writeJSON(std::string const& filename, std::string const
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;
-      kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
+      auto keys = o2::utils::Str::tokenize(keyOnly, " ,;", true, true);
+      for (const auto& k : keys) {
+        kTree.add_child(k, sPtree->get_child(k));
+      }
       boost::property_tree::write_json(outfilename, kTree);
     } catch (const boost::property_tree::ptree_bad_path& err) {
       LOG(fatal) << "non-existing key " << keyOnly << " provided to writeJSON";

@@ -27,6 +27,10 @@
 #include "TGrid.h"
 #include "CCDB/BasicCCDBManager.h"
 #include <filesystem>
+#ifdef GENERATORS_WITH_TPCLOOPERS
+#include "Generators/TPCLoopers.h"
+#include "Generators/TPCLoopersParam.h"
+#endif
 
 namespace o2
 {
@@ -90,6 +94,19 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
     }
   } else {
     LOG(info) << "Loopers fast generator turned OFF with veto flag.";
+  }
+#endif
+}
+
+/*****************************************************************/
+
+Generator::~Generator()
+{
+  /** destructor **/
+#ifdef GENERATORS_WITH_TPCLOOPERS
+  if (mTPCLoopersGen) {
+    delete mTPCLoopersGen;
+    mTPCLoopersGen = nullptr;
   }
 #endif
 }
@@ -171,7 +188,7 @@ bool Generator::initTPCLoopersGen()
   nclxrate = isAlien[2] || isCCDB[2] ? local_names[2] : nclxrate;
   try {
     // Create the TPC loopers generator with the provided parameters
-    mTPCLoopersGen = std::make_unique<o2::eventgen::GenTPCLoopers>(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
+    mTPCLoopersGen = new o2::eventgen::GenTPCLoopers(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
     const auto& intrate = loopersParam.intrate;
     // Configure the generator with flat gas loopers defined per orbit with clusters/track info
     // If intrate is negative (default), automatic IR from collisioncontext.root will be used
@@ -188,7 +205,9 @@ bool Generator::initTPCLoopersGen()
     LOG(info) << "TPC Loopers generator initialized successfully";
   } catch (const std::exception& e) {
     LOG(error) << "Failed to initialize TPC Loopers generator: " << e.what();
-    mTPCLoopersGen.reset();
+    delete mTPCLoopersGen;
+    mTPCLoopersGen = nullptr;
+    return kFALSE;
   }
   return kTRUE;
 }

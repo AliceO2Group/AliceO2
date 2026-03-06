@@ -25,6 +25,7 @@ namespace o2::trk
 // and then places/rotates the petal once into the mother volume.
 
 void createIRISGeometryFullCyl(TGeoVolume* motherVolume);          // Full-cylinder IRIS geometry (no petals, no gaps, no side walls)
+void createIRISGeometry3InclinedWalls(TGeoVolume* motherVolume);   // Full-cylinder IRIS geometry with 3 inclined walls
 void createIRISGeometryFullCylwithDisks(TGeoVolume* motherVolume); // Full-cylinder IRIS geometry (no petals, no gaps, no side walls) incl. disks
 void createIRIS4Geometry(TGeoVolume* motherVolume);                // 4 petals, cylindrical L0
 void createIRIS4aGeometry(TGeoVolume* motherVolume);               // 3 petals, cylindrical L0

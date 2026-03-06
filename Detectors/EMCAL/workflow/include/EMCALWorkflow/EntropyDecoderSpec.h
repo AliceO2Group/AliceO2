@@ -28,7 +28,7 @@ namespace emcal
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(int verbosity, unsigned int sspecOut);
+  EntropyDecoderSpec(int verbosity, unsigned int sspecOut, const std::string& ctfdictOpt = "none");
   ~EntropyDecoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -42,7 +42,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, unsigned int sspecOut = 0);
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, unsigned int sspecOut = 0, const std::string& ctfdictOpt = "none");
 
 } // namespace emcal
 } // namespace o2

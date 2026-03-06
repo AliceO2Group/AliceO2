@@ -27,6 +27,13 @@ namespace o2
 {
 namespace trk
 {
+
+// Helper function for floating point comparison
+inline bool isFullCircle(double phiSpanDeg, double epsilon = 0.005)
+{
+  return (std::fabs(phiSpanDeg - 360.0) < epsilon);
+}
+
 // Base layer constructor
 VDLayer::VDLayer(int layerNumber, const std::string& layerName, double layerX2X0)
   : mLayerNumber(layerNumber), mLayerName(layerName), mX2X0(layerX2X0), mModuleWidth(4.54)
@@ -88,8 +95,13 @@ TGeoVolume* VDCylindricalLayer::createSensor() const
   const double rIn = mRadius;
   const double rOut = mRadius + mSensorThickness;
   const double halfZ = 0.5 * mLengthSensZ;
-  const double halfPhi = 0.5 * mPhiSpanDeg; // degrees
-  auto* shape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  TGeoShape* shape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    shape = new TGeoTube(rIn, rOut, halfZ);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg; // degrees
+    shape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  }
   auto* vol = new TGeoVolume(sensName.c_str(), shape, medSi);
   vol->SetLineColor(kYellow);
   vol->SetTransparency(30);
@@ -138,10 +150,15 @@ TGeoVolume* VDDiskLayer::createSensor() const
   }
   std::string sensName = Form("%s_%s%d", this->mLayerName.c_str(), GeometryTGeo::getTRKSensorPattern(), this->mLayerNumber);
   const double halfThickness = 0.5 * mSensorThickness; // active sensor thickness along Z
-  const double halfPhi = 0.5 * mPhiSpanDeg;            // degrees
 
   // Same geometry as the layer (identical radii + phi span + thickness)
-  auto* shape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  TGeoShape* shape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    shape = new TGeoTube(mRMin, mRMax, halfThickness);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg; // degrees
+    shape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  }
 
   auto* sensVol = new TGeoVolume(sensName.c_str(), shape, medSi);
   sensVol->SetLineColor(kYellow);
@@ -177,9 +194,14 @@ TGeoVolume* VDCylindricalLayer::createMetalStack() const
   const double rIn = mRadius + mSensorThickness;
   const double rOut = mRadius + mChipThickness;
   const double halfZ = 0.5 * mLengthSensZ;
-  const double halfPhi = 0.5 * mPhiSpanDeg;
 
-  auto* shape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  TGeoShape* shape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    shape = new TGeoTube(rIn, rOut, halfZ);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg;
+    shape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  }
   auto* vol = new TGeoVolume(name.c_str(), shape, medSi);
   vol->SetLineColor(kGray);
   vol->SetTransparency(30);
@@ -244,9 +266,14 @@ TGeoVolume* VDDiskLayer::createMetalStack() const
                           GeometryTGeo::getTRKMetalStackPattern(), mLayerNumber);
 
   const double halfThickness = 0.5 * metalT;
-  const double halfPhi = 0.5 * mPhiSpanDeg;
 
-  auto* shape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  TGeoShape* shape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    shape = new TGeoTube(mRMin, mRMax, halfThickness);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg;
+    shape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  }
   auto* vol = new TGeoVolume(name.c_str(), shape, medSi);
   vol->SetLineColor(kGray);
   vol->SetTransparency(30);
@@ -275,9 +302,14 @@ TGeoVolume* VDCylindricalLayer::createChip() const
   const double rIn = mRadius;
   const double rOut = mRadius + mChipThickness;
   const double halfZ = 0.5 * mLengthSensZ;
-  const double halfPhi = 0.5 * mPhiSpanDeg;
 
-  auto* chipShape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  TGeoShape* chipShape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    chipShape = new TGeoTube(rIn, rOut, halfZ);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg;
+    chipShape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  }
   auto* chipVol = new TGeoVolume(chipName.c_str(), chipShape, medSi);
 
   // sensor
@@ -361,9 +393,14 @@ TGeoVolume* VDDiskLayer::createChip() const
                               GeometryTGeo::getTRKChipPattern(), mLayerNumber);
 
   const double halfThickness = 0.5 * mChipThickness;
-  const double halfPhi = 0.5 * mPhiSpanDeg;
 
-  auto* chipShape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  TGeoShape* chipShape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    chipShape = new TGeoTube(mRMin, mRMax, halfThickness);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg;
+    chipShape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  }
   auto* chipVol = new TGeoVolume(chipName.c_str(), chipShape, medSi);
   chipVol->SetLineColor(kYellow);
   chipVol->SetTransparency(30);
@@ -417,9 +454,14 @@ void VDCylindricalLayer::createLayer(TGeoVolume* motherVolume, TGeoMatrix* combi
   const double rIn = mRadius;
   const double rOut = mRadius + mChipThickness;
   const double halfZ = 0.5 * mLengthZ;
-  const double halfPhi = 0.5 * mPhiSpanDeg; // degrees
 
-  auto* layerShape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  TGeoShape* layerShape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    layerShape = new TGeoTube(rIn, rOut, halfZ);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg; // degrees
+    layerShape = new TGeoTubeSeg(rIn, rOut, halfZ, -halfPhi, +halfPhi);
+  }
   auto* layerVol = new TGeoVolume(mLayerName.c_str(), layerShape, medAir);
   layerVol->SetLineColor(kYellow);
   layerVol->SetTransparency(30);
@@ -523,10 +565,15 @@ void VDDiskLayer::createLayer(TGeoVolume* motherVolume, TGeoMatrix* combiTrans) 
 
   // For disks the thickness is along Z and equals mChipThickness
   const double halfThickness = 0.5 * mChipThickness;
-  const double halfPhi = 0.5 * mPhiSpanDeg;
 
   // AIR container (layer)
-  auto* layerShape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  TGeoShape* layerShape;
+  if (isFullCircle(mPhiSpanDeg)) {
+    layerShape = new TGeoTube(mRMin, mRMax, halfThickness);
+  } else {
+    const double halfPhi = 0.5 * mPhiSpanDeg;
+    layerShape = new TGeoTubeSeg(mRMin, mRMax, halfThickness, -halfPhi, +halfPhi);
+  }
   auto* layerVol = new TGeoVolume(mLayerName.c_str(), layerShape, medAir);
   layerVol->SetLineColor(kYellow);
   layerVol->SetTransparency(30);

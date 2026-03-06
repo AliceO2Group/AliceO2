@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,6 +11,7 @@
 
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Framework/InputSpan.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/CompilerBuiltins.h"
@@ -259,6 +260,32 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyZeroCount(const char* na
       }
     }
     return CompletionPolicy::CompletionOp::Wait;
+  };
+  return CompletionPolicy{name, matcher, callback, false};
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenPastOldestPossibleTimeframe(const char* name, CompletionPolicy::Matcher matcher)
+{
+  auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
+    size_t currentTimeslice = -1;
+    for (auto& input : inputs) {
+      if (input.header == nullptr) {
+        continue;
+      }
+      o2::framework::DataProcessingHeader const* dph = o2::header::get<o2::framework::DataProcessingHeader*>(input.header);
+      if (dph && !TimingInfo::timesliceIsTimer(dph->startTime)) {
+        currentTimeslice = dph->startTime;
+        break;
+      }
+    }
+
+    auto& timesliceIndex = ref.get<TimesliceIndex>();
+    auto oldestPossibleTimeslice = timesliceIndex.getOldestPossibleInput().timeslice.value;
+
+    if (currentTimeslice >= oldestPossibleTimeslice) {
+      return CompletionPolicy::CompletionOp::Retry;
+    }
+    return CompletionPolicy::CompletionOp::Consume;
   };
   return CompletionPolicy{name, matcher, callback, false};
 }

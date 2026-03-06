@@ -40,6 +40,7 @@ export LC_ALL=C
 BEAMTYPE=${BEAMTYPE:-PbPb}
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF
+OrbitsBeforeTf=${OrbitsBeforeTf:-1}
 NCPUS=$(getNumberOfPhysicalCPUCores)
 echo "Found ${NCPUS} physical CPU cores"
 NJOBS=${NJOBS:-"${NCPUS}"}
@@ -159,7 +160,7 @@ taskwrapper collcontext.log o2-steer-colcontexttool \
   --extract-per-timeframe tf:o2sim \
   --with-vertices kCCDB \
   --maxCollsPerTF ${NEvents} \
-  --orbitsEarly 1 \
+  --orbitsEarly ${OrbitsBeforeTf} \
   --bcPatternFile ccdb \
   ${QEDSPEC}
 
@@ -167,6 +168,13 @@ taskwrapper collcontext.log o2-steer-colcontexttool \
 SIMOPTKEY+="GenTPCLoopers.colsys=${BEAMTYPE};"
 
 taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --vertexMode kCollContext --seed $O2SIMSEED -n $NEvents --configKeyValues "\"$SIMOPTKEY\"" -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER} -o o2sim --fromCollContext collisioncontext.root:o2sim
+# Test MCTracks to AO2D conversion tool
+taskwrapper kine2aod.log "o2-sim-kine-publisher -b --kineFileName o2sim --aggregate-timeframe $NEvents | o2-sim-mctracks-to-aod -b --aod-writer-keep dangling | o2-analysis-mctracks-to-aod-simple-task -b"
+if [[ ! -s AnalysisResults_trees.root ]] || [[ ! -s AnalysisResults.root ]]; then
+  echo "Error: AnalysisResults_trees.root (AO2D from Kine file) or AnalysisResults.root (simple analysis task output) missing or empty"
+  exit 1
+fi
+
 if [[ $DO_EMBEDDING == 1 ]]; then
   taskwrapper embed.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} -j $NJOBS --run ${RUNNUMBER} -n $NEvents -g pythia8pp -e ${FST_MC_ENGINE} -o sig --configKeyValues ${FST_EMBEDDING_CONFIG} --embedIntoFile o2sim_MCHeader.root
 fi

@@ -51,6 +51,8 @@ enum TrackFlags : uint32_t {
   OrphanTrack = 0x4,         // Track has no association with any collision vertex
   TrackTimeAsym = 0x8,       // track with an asymmetric time range
   TPCdEdxAlt = 0x10,         // TPCSignal and tpcNClsFindableMinusPID correspond for alternative dEdx since the nominal was 0
+  TPCSideA = 0x20,           // TPC track has A-side clusters (if any)
+  TPCSideC = 0x40,           // TPC track has C-side clusters (if any)
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 enum TrackFlagsRun2Enum {

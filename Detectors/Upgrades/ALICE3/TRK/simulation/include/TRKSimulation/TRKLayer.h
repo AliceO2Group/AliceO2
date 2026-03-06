@@ -51,21 +51,26 @@ class TRKLayer
 
  private:
   // TGeo objects outside logical volumes can cause errors. Only used in case of kStaggered and kTurboStaves layouts
-  static constexpr float mLogicalVolumeThickness = 1;
+  static constexpr float mLogicalVolumeThickness = 1.3;
 
+  // User defined parameters for the layer, to be set in the constructor
   int mLayerNumber;
-  eLayout mLayout;
   std::string mLayerName;
   float mInnerRadius;
   float mOuterRadius;
   int mNumberOfModules;
   float mX2X0;
-  float mChipWidth;
-  float mChipLength;
   float mChipThickness;
-  float mDeadzoneWidth;
-  float mSensorThickness;
-  int mHalfNumberOfChips;
+
+  // Fixed parameters for the layer, to be set based on the specifications of the chip and module
+  eLayout mLayout = kCylinder;
+  float mChipWidth = constants::moduleMLOT::chip::width;
+  float mChipLength = constants::moduleMLOT::chip::length;
+  float mDeadzoneWidth = constants::moduleMLOT::chip::passiveEdgeReadOut;
+  float mSensorThickness = constants::moduleMLOT::silicon::thickness;
+  int mHalfNumberOfChips = 4;
+
+  static constexpr float Si_X0 = 9.5f;
 
   ClassDef(TRKLayer, 2);
 };

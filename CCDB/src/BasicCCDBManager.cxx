@@ -13,6 +13,8 @@
 // Created by Sandro Wenzel on 2019-08-14.
 //
 #include "CCDB/BasicCCDBManager.h"
+#include "Framework/ServiceRegistryRef.h"
+#include "Framework/DataProcessingStats.h"
 #include <boost/lexical_cast.hpp>
 #include <fairlogger/Logger.h>
 #include <string>

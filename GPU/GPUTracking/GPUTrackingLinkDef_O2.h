@@ -27,6 +27,7 @@
 #pragma link C++ struct o2::gpu::GPUTPCGMSectorTrack::sectorTrackParam + ;
 #pragma link C++ class o2::gpu::trackInterface < o2::gpu::GPUTPCGMTrackParam> + ;
 #pragma link C++ class o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::gpu::GPUTPCGMTrackParam>> + ;
+#pragma link C++ class o2::gpu::GPUTRDRecoParam + ;
 #pragma link C++ class o2::gpu::gputpcgmmergertypes::GPUTPCOuterParam + ;
 #pragma link C++ class o2::gpu::gputpcgmmergertypes::InterpolationErrorHit + ;
 

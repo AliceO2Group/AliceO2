@@ -72,6 +72,7 @@ class Tracker
   bool isMatLUT() const { return mTraits->isMatLUT(); }
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
   void printSummary() const;
+  void computeTracksMClabels();
 
  private:
   void initialiseTimeFrame(int iteration) { mTraits->initialiseTimeFrame(iteration); }
@@ -84,7 +85,6 @@ class Tracker
 
   // MC interaction
   void computeRoadsMClabels();
-  void computeTracksMClabels();
   void rectifyClusterIndices();
 
   template <typename... T, typename... F>

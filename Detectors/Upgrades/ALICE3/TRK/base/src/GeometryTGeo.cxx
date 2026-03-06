@@ -77,9 +77,9 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   mLayoutML = o2::trk::TRKBaseParam::Instance().getLayoutML();
-  mLayoutOL = o2::trk::TRKBaseParam::Instance().getLayoutOL();
+  mLayoutOT = o2::trk::TRKBaseParam::Instance().getLayoutOT();
 
-  LOG(debug) << "Layout ML: " << mLayoutML << ", Layout OL: " << mLayoutOL;
+  LOG(debug) << "Layout ML: " << mLayoutML << ", Layout OL: " << mLayoutOT;
 
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
   mNumberOfPetalsVD = extractNumberOfPetalsVD();
@@ -102,7 +102,6 @@ void GeometryTGeo::Build(int loadTrans)
   mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
 
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
-    std::cout << "Layer MLOT: " << i << std::endl;
     mNumberOfStaves[i] = extractNumberOfStavesMLOT(i);
     mNumberOfHalfStaves[i] = extractNumberOfHalfStavesMLOT(i);
     mNumberOfModules[i] = extractNumberOfModulesMLOT(i);
@@ -128,9 +127,9 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   setSize(numberOfChipsTotal);
-  fillMatrixCache(loadTrans);
   defineMLOTSensors();
   fillTrackingFramesCacheMLOT();
+  fillMatrixCache(loadTrans);
 }
 
 //__________________________________________________________________________
@@ -406,7 +405,7 @@ TString GeometryTGeo::getMatrixPath(int index) const
   // handling cylindrical configuration for ML and/or OT
   // needed bercause of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
   if (subDetID == 1) {
-    if ((layer < 4 && mLayoutML == eLayout::kCylinder) || (layer > 3 && mLayoutOL == eLayout::kCylinder)) {
+    if ((layer < 4 && mLayoutML == eLayout::kCylinder) || (layer > 3 && mLayoutOT == eLayout::kCylinder)) {
       stave = 1;
       mod = 1;
       chip = 1;
@@ -416,15 +415,15 @@ TString GeometryTGeo::getMatrixPath(int index) const
   // build the path
   if (subDetID == 0) { // VD
     if (disk >= 0) {
-      path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);             // PETAL_n
-      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk); // PETALCASEx_DISKy_1
-      // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
+      path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);                                               // PETAL_n
+      path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk);                                   // PETALCASEx_DISKy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKChipPattern(), disk);   // PETALCASEx_DISKy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalDiskPattern(), disk, getTRKSensorPattern(), disk); // PETALCASEx_DISKy_TRKSensory_1
     } else if (layer >= 0) {
       path += Form("%s_%d_%d/", getTRKPetalAssemblyPattern(), petalcase, petalcase + 1);               // PETAL_n
       path += Form("%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer); // PETALCASEx_LAYERy_1
       // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKStavePattern(), layer);  // PETALCASEx_LAYERy_TRKStavey_1
-      // path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
+      path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
     }
   } else if (subDetID == 1) {                                               // MLOT
@@ -962,9 +961,9 @@ int GeometryTGeo::extractNumberOfChipsPerPetalVD() const
 
       for (int i = 0; i < subNodes->GetEntriesFast(); i++) {
         auto* subNode = dynamic_cast<TGeoNode*>(subNodes->At(i));
-        if (strstr(subNode->GetName(), getTRKSensorPattern()) != nullptr) {
+        if (strstr(subNode->GetName(), getTRKChipPattern()) != nullptr) {
           numberOfChips++;
-          LOGP(debug, "Found sensor in {}: {}", nodeName, subNode->GetName());
+          LOGP(debug, "Found chip in {}: {}", nodeName, subNode->GetName());
         }
       }
     }

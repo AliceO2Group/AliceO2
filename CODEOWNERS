@@ -43,7 +43,7 @@
 /DataFormats/Detectors/TRD                     @f3sch @bazinski @wille10
 /DataFormats/Detectors/Upgrades                @mconcas
 /DataFormats/Detectors/Upgrades/ITS3           @fgrosa @arossi81
-/DataFormats/Detectors/ZDC                     @coppedis
+/DataFormats/Detectors/ZDC                     @coppedis @cortesep
 
 #/DataFormats/Headers
 #/DataFormats/Legacy
@@ -75,7 +75,7 @@
 /Detectors/Upgrades                @mconcas
 /Detectors/Upgrades/ALICE3         @mconcas @njacazio
 /Detectors/Upgrades/ITS3           @fgrosa @arossi81 @mconcas @f3sch
-/Detectors/ZDC                     @coppedis
+/Detectors/ZDC                     @coppedis @cortesep
 /Detectors/CTF                     @shahor02
 /Detectors/Raw                     @shahor02
 /Detectors/StrangenessTracking     @mconcas @mpuccio @fmazzasc

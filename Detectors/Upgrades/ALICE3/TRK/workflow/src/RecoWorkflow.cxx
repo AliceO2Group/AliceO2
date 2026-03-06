@@ -10,13 +10,20 @@
 // or submit itself to any jurisdiction.
 
 #include "TRKWorkflow/RecoWorkflow.h"
+#include "TRKWorkflow/ClustererSpec.h"
+#include "TRKWorkflow/ClusterWriterSpec.h"
+#include "TRKWorkflow/DigitReaderSpec.h"
 #include "TRKWorkflow/TrackerSpec.h"
+#include "TRKWorkflow/TrackWriterSpec.h"
 #include "Framework/CCDBParamSpec.h"
+
+#include <string>
 
 namespace o2::trk::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC,
+                                    const std::string& hitRecoConfig,
                                     bool upstreamDigits,
                                     bool upstreamClusters,
                                     bool disableRootOutput,
@@ -24,7 +31,26 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     o2::gpu::gpudatatypes::DeviceType dtype)
 {
   framework::WorkflowSpec specs;
-  specs.emplace_back(o2::trk::getTrackerSpec(useMC, dtype));
+
+  if (!(upstreamDigits || upstreamClusters)) {
+    specs.emplace_back(o2::trk::getTRKDigitReaderSpec(useMC, false, "trkdigits.root"));
+  }
+  if (!upstreamClusters) {
+    specs.emplace_back(o2::trk::getClustererSpec(useMC));
+  }
+
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::trk::getClusterWriterSpec(useMC));
+  }
+
+  if (!hitRecoConfig.empty()) {
+    LOGP(info, "Using hit reco config from file {}", hitRecoConfig);
+    specs.emplace_back(o2::trk::getTrackerSpec(useMC, hitRecoConfig, dtype));
+    if (!disableRootOutput) {
+      specs.emplace_back(o2::trk::getTrackWriterSpec(useMC));
+    }
+  }
+
   return specs;
 }
 

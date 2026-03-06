@@ -528,8 +528,9 @@ void ClusterFactory<InputType>::evalNExMax(gsl::span<const int> inputsIndices, A
 
     // loop over all other cells in cluster
     for (size_t j = 0; j < n; j++) {
-      if (i == j)
+      if (i == j) {
         continue;
+      }
 
       // adjacent cell is any cell with adjacent phi or eta index
       if (std::abs(rows[i] - rows[j]) <= 1 &&

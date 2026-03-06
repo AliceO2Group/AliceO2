@@ -28,6 +28,7 @@
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "CommonConstants/GeomConstants.h"
@@ -43,6 +44,7 @@
 // GPU header
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
+#include "GPUChainTrackingGetters.inc"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUSettings.h"
@@ -112,6 +114,8 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     config.ReadConfigurableParam(config);
     config.configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*o2::base::GRPGeomHelper::instance().getGRPMagField());
     config.configProcessing.o2PropagatorUseGPUField = false;
+    mRecoParam.init(o2::base::Propagator::Instance()->getNominalBz(), &config.configReconstruction);
+
     mRec->SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, &cfgRecoStep);
 
     mChainTracking = mRec->AddChain<GPUChainTracking>();
@@ -127,11 +131,10 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 
     mRec->RegisterGPUProcessor(mTracker, false);
     mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
+    mChainTracking->SetTRDRecoParam(&mRecoParam);
     if (mRec->Init()) {
       LOG(fatal) << "GPUReconstruction could not be initialized";
     }
-
-    mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
 
     mTracker->PrintSettings();
     LOG(info) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");
@@ -291,7 +294,6 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   mTPCClusterIdxStruct = &inputTracks.inputsTPCclusters->clusterIndex;
   mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, o2::base::Propagator::Instance()->getNominalBz(), inputTracks.getTPCTracksClusterRefs().data(), 0, inputTracks.clusterShMapTPC.data(), inputTracks.occupancyMapTPC.data(), inputTracks.occupancyMapTPC.size(), nullptr, o2::base::Propagator::Instance());
-  mTPCRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
   auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks, mUseMC);
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(mChainTracking->mIOPtrs, inputTracks, mUseMC, nullptr, GTrackID::getSourcesMask("TRD"), mTrkMask, GTrackID::mask_t{GTrackID::MASK_NONE});
   mTrackletsRaw = inputTracks.getTRDTracklets();
@@ -549,6 +551,14 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC", ss}, matchLabelsTPC);
       pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss}, trdLabelsTPC);
+    }
+  }
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "GPU_rec_trd"), "GPU_rec_trd");
     }
   }
 

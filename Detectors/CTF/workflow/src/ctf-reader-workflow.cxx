@@ -52,6 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"ctf-input", VariantType::String, "none", {"comma-separated list CTF input files"}});
+  options.push_back(ConfigParamSpec{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}});
   options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::ALL}, {"comma-separated list of detectors to accept. Overrides skipDet"}});
   options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma-separate list of detectors to skip"}});
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 0, {"loop N times (infinite for N<0)"}});
@@ -132,6 +133,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.fileRunTimeSpans = configcontext.options().get<std::string>("run-time-span-file");
   ctfInput.skipSkimmedOutTF = configcontext.options().get<bool>("skip-skimmed-out-tf");
   ctfInput.invertIRFramesSelection = configcontext.options().get<bool>("invert-irframe-selection");
+  ctfInput.dictOpt = configcontext.options().get<std::string>("ctf-dict");
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");
 
   int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
@@ -181,52 +183,52 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // add decoders for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
-    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec));
+    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::MFT]) {
-    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec));
+    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::TPC]) {
-    addSpecs(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::TRD]) {
-    addSpecs(o2::trd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::trd::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::TOF]) {
-    addSpecs(o2::tof::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::tof::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::FT0]) {
-    addSpecs(o2::ft0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::ft0::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::FV0]) {
-    addSpecs(o2::fv0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::fv0::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::FDD]) {
-    addSpecs(o2::fdd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::fdd::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::MID]) {
-    addSpecs(o2::mid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::mid::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::MCH]) {
-    addSpecs(o2::mch::getEntropyDecoderSpec(verbosity, "mch-entropy-decoder", ctfInput.subspec));
+    addSpecs(o2::mch::getEntropyDecoderSpec(verbosity, "mch-entropy-decoder", ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::EMC]) {
-    addSpecs(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.decSSpecEMC));
+    addSpecs(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.decSSpecEMC, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::PHS]) {
-    addSpecs(o2::phos::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::phos::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::CPV]) {
-    addSpecs(o2::cpv::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::cpv::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::ZDC]) {
-    addSpecs(o2::zdc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::zdc::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::HMP]) {
-    addSpecs(o2::hmpid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::hmpid::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::CTP]) {
-    addSpecs(o2::ctp::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::ctp::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));
   }
 
   bool combine = configcontext.options().get<bool>("combine-devices");

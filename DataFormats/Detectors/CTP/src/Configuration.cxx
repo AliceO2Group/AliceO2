@@ -1227,7 +1227,22 @@ int CtpCfg::readAndSave(std::string& path)
   }
   return 0;
 }
-
+std::vector<int> CtpCfg::listOfUsedInputs()
+{
+  std::cout << std::hex << "0x" << irInputs_1_24 << " " << irInputs_25_48 << std::dec << std::endl;
+  std::vector<int> inputList;
+  for (int i = 0; i < 24; i++) {
+    if ((1ul << i) & irInputs_1_24) {
+      inputList.push_back(i);
+    }
+  }
+  for (int i = 0; i < 24; i++) {
+    if ((1ul << i) & irInputs_25_48) {
+      inputList.push_back(i + 24);
+    }
+  }
+  return inputList;
+}
 std::ostream& o2::ctp::operator<<(std::ostream& in, const o2::ctp::CTPConfiguration& conf)
 {
   conf.printStream(in);

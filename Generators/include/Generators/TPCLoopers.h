@@ -16,14 +16,12 @@
 
 #ifdef GENERATORS_WITH_TPCLOOPERS
 #include <onnxruntime_cxx_api.h>
-#endif
 #include <vector>
 #include <rapidjson/document.h>
 #include "TRandom3.h"
 #include <SimulationDataFormat/DigitizationContext.h>
 #include "TParticle.h"
 
-#ifdef GENERATORS_WITH_TPCLOOPERS
 // Static Ort::Env instance for multiple onnx model loading
 extern Ort::Env global_env;
 

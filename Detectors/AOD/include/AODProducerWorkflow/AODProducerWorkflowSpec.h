@@ -19,6 +19,10 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "TRDBase/PadCalibrationsAliases.h"
+#include "DataFormatsTRD/NoiseCalibration.h"
+#include "DataFormatsTRD/CalGain.h"
+#include "DataFormatsTRD/Constants.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DetectorsBase/Propagator.h"
 #include "Framework/DataProcessorSpec.h"
@@ -215,7 +219,7 @@ enum struct AODProducerStreamerFlags : uint8_t {
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, bool useMC = true, bool enableFITextra = false) : mUseMC(useMC), mEnableSV(enableSV), mEnableFITextra(enableFITextra), mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, bool useMC = true, bool enableFITextra = false, bool enableTRDextra = false) : mUseMC(useMC), mEnableSV(enableSV), mEnableFITextra(enableFITextra), mEnableTRDextra(enableTRDextra), mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -237,6 +241,8 @@ class AODProducerWorkflowDPL : public Task
   bool mThinTracks{false};
   bool mPropTracks{false};
   bool mPropMuons{false};
+  float mTrackQCKeepGlobalTracks{false};
+  float mTrackQCRetainOnlydEdx{false};
   float mTrackQCFraction{0.00};
   int64_t mTrackQCNTrCut{4};
   float mTrackQCDCAxy{3.};
@@ -247,6 +253,10 @@ class AODProducerWorkflowDPL : public Task
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMaxPropXiu{5.0f}; // max X_IU for which track is to be propagated if mPropTracks is true. (other option: o2::constants::geom::XTPCInnerRef + 0.1f)
+
+  const o2::trd::LocalGainFactor* mTRDLocalGain; // TRD local gain factors from krypton calibration
+  const o2::trd::CalGain* mTRDGainCalib;         // TRD time-dependent gain calib at chamber level
+  const o2::trd::NoiseStatusMCM* mTRDNoiseMap;   // TRD noise map
 
   std::unordered_set<GIndex> mGIDUsedBySVtx;
   std::unordered_set<GIndex> mGIDUsedByStr;
@@ -259,6 +269,7 @@ class AODProducerWorkflowDPL : public Task
   bool mUseSigFiltMC = false; // enable signal filtering for MC with embedding
   bool mEnableSV = true; // enable secondary vertices
   bool mEnableFITextra = false;
+  bool mEnableTRDextra = false;
   bool mFieldON = false;
   const float cSpeed = 0.029979246f; // speed of light in TOF units
 
@@ -276,6 +287,7 @@ class AODProducerWorkflowDPL : public Task
   TStopwatch mTimer;
   bool mEMCselectLeading{false};
   uint64_t mEMCALTrgClassMask = 0;
+  size_t mCurrentTRDTrigID = 0; // current index of the TRD trigger record, to speed up search
 
   // unordered map connects global indices and table indices of barrel tracks
   std::unordered_map<GIndex, int> mGIDToTableID;
@@ -523,6 +535,9 @@ class AODProducerWorkflowDPL : public Task
   template <typename TracksQACursorType>
   void addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAInfoHolder);
 
+  template <typename TRDsExtraCursorType>
+  void addToTRDsExtra(const o2::globaltracking::RecoContainer& recoData, TRDsExtraCursorType& trdExtraCursor, const GIndex& trkIdx, int trkTableIdx);
+
   template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,
@@ -542,7 +557,7 @@ class AODProducerWorkflowDPL : public Task
   // helper for track tables
   // * fills tables collision by collision
   // * interaction time is for TOF information
-  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
+  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename TRDsExtraCursorType, typename AmbigTracksCursorType,
             typename MFTTracksCursorType, typename MFTTracksCovCursorType, typename AmbigMFTTracksCursorType,
             typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename FwdTrkClsCursorType>
   void fillTrackTablesPerCollision(int collisionID,
@@ -554,6 +569,7 @@ class AODProducerWorkflowDPL : public Task
                                    TracksCovCursorType& tracksCovCursor,
                                    TracksExtraCursorType& tracksExtraCursor,
                                    TracksQACursorType& tracksQACursor,
+                                   TRDsExtraCursorType& trdsExtraCursor,
                                    AmbigTracksCursorType& ambigTracksCursor,
                                    MFTTracksCursorType& mftTracksCursor,
                                    MFTTracksCovCursorType& mftTracksCovCursor,
@@ -678,7 +694,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableST, bool useMC, bool CTPConfigPerRun, bool enableFITextra);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableST, bool useMC, bool CTPConfigPerRun, bool enableFITextra, bool enableTRDextra);
 
 // helper interface for calo cells to "befriend" emcal and phos cells
 class CellHelper

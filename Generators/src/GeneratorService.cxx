@@ -61,6 +61,18 @@ void GeneratorService::generateEvent_MCTracks(std::vector<MCTrack>& tracks, o2::
   }
 }
 
+void GeneratorService::generateEvent_MCTracks(o2::pmr::vector<MCTrack>& tracks, o2::dataformats::MCEventHeader& header)
+{
+  mPrimGen.SetEvent(&header);
+  mStack.Reset();
+  mPrimGen.GenerateEvent(&mStack); // this is the usual FairROOT interface going via stack
+
+  tracks.reserve(mStack.getPrimaries().size());
+  for (auto& tparticle : mStack.getPrimaries()) {
+    tracks.emplace_back(tparticle);
+  }
+}
+
 std::pair<std::vector<o2::MCTrack>, o2::dataformats::MCEventHeader> GeneratorService::generateEvent()
 {
   std::vector<o2::MCTrack> tracks;

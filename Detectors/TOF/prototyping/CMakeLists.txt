@@ -32,6 +32,16 @@ o2_add_test_root_macro(findLabels.C
                                              O2::TOFBase
                        LABELS tof)
 
+o2_add_test_root_macro(makeDRMobj_tof.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
+                                             O2::TOFBase
+                       LABELS tof)
+
+o2_add_test_root_macro(checkDRMobj_tof.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
+                                             O2::TOFBase
+                       LABELS tof)
+
 o2_add_test_root_macro(findTOFclusterFromLabel.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
                                              O2::SimulationDataFormat
@@ -59,3 +69,8 @@ o2_add_test_root_macro(macroEvTime.C
                        PUBLIC_LINK_LIBRARIES O2::TOFBase
                                              O2::TOFReconstruction
                        LABELS tof)
+
+install(
+  FILES makeDRMobj_tof.C
+  checkDRMobj_tof.C
+  DESTINATION share/macro/)

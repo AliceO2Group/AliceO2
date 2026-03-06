@@ -45,7 +45,7 @@ class VDriftHelper;
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool fromFile, bool selIR = false, std::shared_ptr<o2::base::GRPGeomRequest> pgg = std::shared_ptr<o2::base::GRPGeomRequest>());
+  EntropyEncoderSpec(bool fromFile, bool selIR = false, std::shared_ptr<o2::base::GRPGeomRequest> pgg = std::shared_ptr<o2::base::GRPGeomRequest>(), const std::string& ctfdictOpt = "none");
   ~EntropyEncoderSpec() override;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -71,7 +71,7 @@ class EntropyEncoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR = false);
+framework::DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR = false, const std::string& ctfdictOpt = "none");
 
 } // end namespace tpc
 } // end namespace o2

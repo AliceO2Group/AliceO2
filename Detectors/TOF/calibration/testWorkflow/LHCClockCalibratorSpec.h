@@ -53,7 +53,10 @@ class LHCClockCalibDevice : public o2::framework::Task
     int nb = std::max(500, ic.options().get<int>("nbins"));
     auto slotL = ic.options().get<uint32_t>("tf-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
+    std::string path = ic.options().get<std::string>("output-path");
+
     mCalibrator = std::make_unique<o2::tof::LHCClockCalibrator>(minEnt, nb);
+    mCalibrator->setPath(path.data());
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
 
@@ -216,6 +219,7 @@ DataProcessorSpec getLHCClockCalibDeviceSpec(bool useCCDB)
     AlgorithmSpec{adaptFromTask<device>(ccdbRequest, useCCDB)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
+      {"output-path", VariantType::String, "TOF/Calib/LHCphaseSync", {"path to ccdb output"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
       {"nbins", VariantType::Int, 4000, {"number of bins for "}}}};

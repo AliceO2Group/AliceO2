@@ -37,6 +37,7 @@
 #include "Framework/DataProcessingStates.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/RawDeviceService.h"
 
 #include "Headers/DataHeaderHelpers.h"
 #include "Framework/Formatters.h"
@@ -48,6 +49,7 @@
 #include <fairmq/Channel.h>
 #include <functional>
 #include <fairmq/shmem/Message.h>
+#include <fairmq/Device.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <span>
@@ -70,7 +72,8 @@ constexpr int INVALID_INPUT = -1;
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          TimesliceIndex& index,
-                         ServiceRegistryRef services)
+                         ServiceRegistryRef services,
+                         int pipelineLength)
   : mContext{services},
     mTimesliceIndex{index},
     mCompletionPolicy{policy},
@@ -81,7 +84,17 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    static int pipelineLength = DefaultsHelpers::pipelineLength();
+    if (pipelineLength == -1) {
+      auto getPipelineLengthHelper = [&services]() {
+        try {
+          return DefaultsHelpers::pipelineLength(*services.get<RawDeviceService>().device()->fConfig);
+        } catch (...) {
+          return DefaultsHelpers::pipelineLength(0);
+        }
+      };
+      static int detectedPipelineLength = getPipelineLengthHelper();
+      pipelineLength = detectedPipelineLength;
+    }
     setPipelineLength(pipelineLength);
   } else {
     policy.configureRelayer(*this);

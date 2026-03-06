@@ -56,4 +56,6 @@
 #pragma link C++ class std::pair < std::vector < double>, std::vector < double>> + ;
 #pragma link C++ class o2::ft0::SlewingCoef + ;
 
+#pragma link C++ class o2::ft0::EventsPerBc + ;
+
 #endif

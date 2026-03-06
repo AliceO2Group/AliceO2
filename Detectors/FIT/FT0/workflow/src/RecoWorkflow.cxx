@@ -22,13 +22,13 @@ namespace o2
 namespace ft0
 {
 
-framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool useTimeOffsetCalib, bool useSlewingCalib, bool disableRootInp, bool disableRootOut)
+framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool useTimeOffsetCalib, bool useSlewingCalib, bool disableRootInp, bool disableRootOut, bool useDeadChannelMap)
 {
   framework::WorkflowSpec specs;
   if (!disableRootInp) {
     specs.emplace_back(o2::ft0::getDigitReaderSpec(useMC));
   }
-  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC, ccdbpath, useTimeOffsetCalib, useSlewingCalib));
+  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC, ccdbpath, useTimeOffsetCalib, useSlewingCalib, useDeadChannelMap));
   if (!disableRootOut) {
     specs.emplace_back(o2::ft0::getRecPointWriterSpec(useMC));
   }

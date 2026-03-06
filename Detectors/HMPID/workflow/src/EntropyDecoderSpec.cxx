@@ -26,11 +26,10 @@ namespace o2
 {
 namespace hmpid
 {
-
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(int verbosity);
+  EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt = "none");
   ~EntropyDecoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -42,7 +41,7 @@ class EntropyDecoderSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, ctfdictOpt)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -91,7 +90,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec, const std::string& ctfdictOpt)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "HMP", "INTRECORDS", 0, Lifetime::Timeframe},
@@ -100,17 +99,18 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_HMP", "HMP", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_HMP", "HMP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("HMP/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict_HMP", "HMP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("HMP/Calib/CTFDictionaryTree"));
+  }
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "hmpid-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity, ctfdictOpt)},
+    Options{{"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace hmpid
 } // namespace o2

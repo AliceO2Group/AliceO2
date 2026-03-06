@@ -314,7 +314,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* getITS3PixelArrayPattern(int layer) { return Form("%s%d", getITS3PixelArrayPatternRaw(), layer); };
 
   /// sym name of the layer
-  static const char* composeSymNameITS(bool isITS3 = false);
+  static const char* composeSymNameITS();
   /// sym name of the layer
   static const char* composeSymNameLayer(int lr, bool isITS3 = false);
 

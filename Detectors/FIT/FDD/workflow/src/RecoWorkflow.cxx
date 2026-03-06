@@ -22,14 +22,14 @@ namespace o2
 namespace fdd
 {
 
-framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut)
+framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut, bool useDeadChannelMap)
 {
   framework::WorkflowSpec specs;
 
   if (!disableRootInp) {
     specs.emplace_back(o2::fdd::getFDDDigitReaderSpec(useMC));
   }
-  specs.emplace_back(o2::fdd::getFDDReconstructorSpec(useMC));
+  specs.emplace_back(o2::fdd::getFDDReconstructorSpec(useMC, useDeadChannelMap));
   if (!disableRootOut) {
     specs.emplace_back(o2::fdd::getFDDRecPointWriterSpec(useMC));
   }

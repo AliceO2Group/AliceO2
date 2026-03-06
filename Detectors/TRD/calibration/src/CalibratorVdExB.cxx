@@ -24,6 +24,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
+#include "DetectorsBase/Propagator.h"
 #include <TFile.h>
 #include <TTree.h>
 
@@ -105,17 +106,37 @@ void CalibratorVdExB::initProcessing()
     return;
   }
 
-  mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
-  mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
+  // fit is done in region where ion tails are small, close to lorentz angle
+  // we want an approximate value of the lorentz angle in order to define better fit boundaries, coinciding with profile bin edges
+  float bz = o2::base::Propagator::Instance()->getNominalBz();
+  // default angle with zero field is slightly shifted
+  float lorentzAngleAvg = -1.f;
+  if (TMath::Abs(bz - 2) < 0.1f) {
+    lorentzAngleAvg = 3.f;
+  }
+  if (TMath::Abs(bz + 2) < 0.1f) {
+    lorentzAngleAvg = -5.f;
+  }
+  if (TMath::Abs(bz - 5) < 0.1f) {
+    lorentzAngleAvg = 7.f;
+  }
+  if (TMath::Abs(bz + 5) < 0.1f) {
+    lorentzAngleAvg = -9.f;
+  }
+
+  LOGP(info, "b field: {}  lorentz angle start: {}", bz, lorentzAngleAvg);
+
+  mFitFunctor.lowerBoundAngleFit = (80 + lorentzAngleAvg) * TMath::DegToRad();
+  mFitFunctor.upperBoundAngleFit = (100 + lorentzAngleAvg) * TMath::DegToRad();
   mFitFunctor.mAnodePlane = GeometryBase::camHght() / (2.f * 100.f);
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), NBINSANGLEDIFF, -MAXIMPACTANGLE, MAXIMPACTANGLE);
   }
 
   mFitter.SetFCN<FitFunctor>(2, mFitFunctor, mParamsStart);
-  mFitter.Config().ParSettings(ParamIndex::LA).SetLimits(-0.7, 0.7);
+  mFitter.Config().ParSettings(ParamIndex::LA).SetLimits(constants::EXBMIN, constants::EXBMAX);
   mFitter.Config().ParSettings(ParamIndex::LA).SetStepSize(.01);
-  mFitter.Config().ParSettings(ParamIndex::VD).SetLimits(0.01, 3.);
+  mFitter.Config().ParSettings(ParamIndex::VD).SetLimits(constants::VDRIFTMIN, constants::VDRIFTMAX);
   mFitter.Config().ParSettings(ParamIndex::VD).SetStepSize(.01);
   ROOT::Math::MinimizerOptions opt;
   opt.SetMinimizerType("Minuit2");
@@ -184,17 +205,30 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     }
     // Check if we have the minimum amount of entries
     if (sumEntries < mMinEntriesChamber) {
-      LOGF(debug, "Chamber %d did not reach minimum amount of entries for refit", iDet);
+      LOGF(debug, "Chamber %d did not reach minimum amount of entries for refit: %d", iDet, sumEntries);
       continue;
     }
+    float laPreCorrTemp = mFitFunctor.laPreCorr[iDet];
+    float vdPreCorrTemp = mFitFunctor.vdPreCorr[iDet];
+    // Here we start from uncalibrated values, otherwise online calibration does not work properly
+    mFitFunctor.laPreCorr[iDet] = EXBDEFAULT;
+    mFitFunctor.vdPreCorr[iDet] = VDRIFTDEFAULT;
+
     // Reset Start Parameter
     mParamsStart[ParamIndex::LA] = 0.0;
     mParamsStart[ParamIndex::VD] = 1.0;
     mFitter.FitFCN();
     auto fitResult = mFitter.Result();
+    if (fitResult.MinFcnValue() > 0.03) {
+      LOGF(debug, "Chamber %d fit did not converge properly, minimization value too high: %f", iDet, fitResult.MinFcnValue());
+      // The fit did not work properly, so we keep previous values
+      mFitFunctor.laPreCorr[iDet] = laPreCorrTemp;
+      mFitFunctor.vdPreCorr[iDet] = vdPreCorrTemp;
+      continue;
+    }
     laFitResults[iDet] = fitResult.Parameter(ParamIndex::LA);
     vdFitResults[iDet] = fitResult.Parameter(ParamIndex::VD);
-    LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
+    LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f, minimizer value=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg(), fitResult.MinFcnValue());
     // Update fit values for next fit
     mFitFunctor.laPreCorr[iDet] = laFitResults[iDet];
     mFitFunctor.vdPreCorr[iDet] = vdFitResults[iDet];
@@ -222,7 +256,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> metadata; // TODO: do we want to store any meta data?
   long startValidity = slot.getStartTimeMS() - 10 * o2::ccdb::CcdbObjectInfo::SECOND;
-  mInfoVector.emplace_back("TRD/Calib/CalVdriftExB", clName, flName, metadata, startValidity, startValidity + o2::ccdb::CcdbObjectInfo::HOUR);
+  mInfoVector.emplace_back("TRD/Calib/CalVdriftExB", clName, flName, metadata, startValidity, startValidity + 1 * o2::ccdb::CcdbObjectInfo::HOUR);
   mObjectVector.push_back(calObject);
 }
 

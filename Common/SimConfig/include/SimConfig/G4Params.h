@@ -33,12 +33,21 @@ enum class EG4Physics {
   kUSER = 8                           /* allows to give own string combination */
 };
 
+// enumerating possible geometry navigation modes
+// (understanding that geometry description is always done with TGeo)
+enum class EG4Nav {
+  kTGeo = 0, /* navigate with TGeo */
+  kG4 = 1    /* navigate with G4 native geometry */
+};
+
 // parameters to influence the G4 engine
 struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   EG4Physics physicsmode = EG4Physics::kFTFP_BERT_EMV_optical; // default physics mode with which to configure G4
 
   std::string configMacroFile = ""; // a user provided g4Config.in file (otherwise standard one fill be taken)
   std::string userPhysicsList = ""; // possibility to directly give physics list as string
+
+  EG4Nav navmode = EG4Nav::kTGeo; // geometry navigation mode (default TGeo)
 
   std::string const& getPhysicsConfigString() const;
 

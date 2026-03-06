@@ -128,7 +128,7 @@ void Detector::buildTRKMiddleOuterLayers()
       LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
       mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
       mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 10, 100.e-3);
-      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 19.f, 10, 100.e-3);
+      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
       mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
       mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
       mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
@@ -146,10 +146,10 @@ void Detector::buildTRKMiddleOuterLayers()
   mLayers[3].setLayout(trkPars.layoutML);
 
   // Outer tracker
-  mLayers[4].setLayout(trkPars.layoutOL);
-  mLayers[5].setLayout(trkPars.layoutOL);
-  mLayers[6].setLayout(trkPars.layoutOL);
-  mLayers[7].setLayout(trkPars.layoutOL);
+  mLayers[4].setLayout(trkPars.layoutOT);
+  mLayers[5].setLayout(trkPars.layoutOT);
+  mLayers[6].setLayout(trkPars.layoutOT);
+  mLayers[7].setLayout(trkPars.layoutOT);
 }
 
 void Detector::configFromFile(std::string fileName)
@@ -261,12 +261,36 @@ void Detector::createGeometry()
   mServices.createServices(vTRK);
 
   // Build the VD using the petal builder
-  // Choose the VD design (here: IRIS4 by default).
-  // You can wire this to a parameter in TRKBaseParam if desired.
-  // Alternatives: createIRIS5Geometry(vTRK); createIRIS4aGeometry(vTRK);
+  // Choose the VD design based on TRKBaseParam.layoutVD
+  auto& trkPars = TRKBaseParam::Instance();
 
   o2::trk::clearVDSensorRegistry();
-  o2::trk::createIRISGeometryFullCyl(vTRK);
+
+  switch (trkPars.layoutVD) {
+    case kIRIS4:
+      LOG(info) << "Building VD with IRIS4 layout";
+      o2::trk::createIRIS4Geometry(vTRK);
+      break;
+    case kIRISFullCyl:
+      LOG(info) << "Building VD with IRIS fully cylindrical layout";
+      o2::trk::createIRISGeometryFullCyl(vTRK);
+      break;
+    case kIRISFullCyl3InclinedWalls:
+      LOG(info) << "Building VD with IRIS fully cylindrical layout with 3 inclined walls";
+      o2::trk::createIRISGeometry3InclinedWalls(vTRK);
+      break;
+    case kIRIS5:
+      LOG(info) << "Building VD with IRIS5 layout";
+      o2::trk::createIRIS5Geometry(vTRK);
+      break;
+    case kIRIS4a:
+      LOG(info) << "Building VD with IRIS4a layout";
+      o2::trk::createIRIS4aGeometry(vTRK);
+      break;
+    default:
+      LOG(fatal) << "Unknown VD layout option: " << static_cast<int>(trkPars.layoutVD);
+      break;
+  }
 
   // Fill sensor names from registry right after geometry creation
   const auto& regs = o2::trk::vdSensorRegistry();

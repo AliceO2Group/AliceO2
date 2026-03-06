@@ -126,7 +126,7 @@ void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::da
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
 
   mBz = o2::base::Propagator::Instance()->getNominalBz();
-  mRecoParam.setBfield(mBz);
+  mRecoParam.init(mBz);
   mGeoTRD = o2::trd::Geometry::instance();
   mParams = &SpacePointsCalibConfParam::Instance();
 

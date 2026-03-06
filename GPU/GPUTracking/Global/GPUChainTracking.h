@@ -59,6 +59,7 @@ class GPUDisplayInterface;
 class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
+class GPUTRDRecoParam;
 class TPCFastTransform;
 class GPUTrackingInputProvider;
 struct GPUChainTrackingFinalContext;
@@ -178,13 +179,16 @@ class GPUChainTracking : public GPUChain
   const o2::tpc::CalibdEdxContainer* GetdEdxCalibContainer() const;
   const o2::base::MatLayerCylSet* GetMatLUT() const;
   const GPUTRDGeometry* GetTRDGeometry() const;
+  const GPUTRDRecoParam* GetTRDRecoParam() const;
   const o2::base::Propagator* GetO2Propagator() const;
   const o2::base::Propagator* GetDeviceO2Propagator();
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
+  void SetTRDRecoParam(std::unique_ptr<GPUTRDRecoParam>&& par);
   void SetMatLUT(const o2::base::MatLayerCylSet* lut);
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo);
+  void SetTRDRecoParam(const GPUTRDRecoParam* par);
   void SetO2Propagator(const o2::base::Propagator* prop);
   void SetCalibObjects(const GPUCalibObjectsConst& obj);
   void SetCalibObjects(const GPUCalibObjects& obj);
@@ -267,6 +271,7 @@ class GPUChainTracking : public GPUChain
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerU; // TPC dEdx calibration container
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                // Material Lookup Table
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;              // TRD Geometry
+  std::unique_ptr<GPUTRDRecoParam> mTRDRecoParamU;                   // TRD RecoParam
 
   // Ptrs to internal buffers
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess, mClusterNativeAccessReduced;

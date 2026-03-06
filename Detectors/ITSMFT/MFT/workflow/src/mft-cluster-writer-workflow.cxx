@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MFTWorkflow/ClusterWriterSpec.h"
+#include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 
@@ -34,6 +34,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   WorkflowSpec specs;
-  specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
+  specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC));
   return specs;
 }
