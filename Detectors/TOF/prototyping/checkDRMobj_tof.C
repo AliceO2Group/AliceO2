@@ -12,6 +12,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TFile.h"
 #include "TH2F.h"
+#include "TCanvas.h"
 #include "TOFBase/CalibTOFapi.h"
 #endif
 
