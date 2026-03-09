@@ -66,6 +66,7 @@ void Digitizer::init()
   float thicknessMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT; // 0.01 cm = 100 um --- based on geometry currently present
 
   LOG(info) << "Using response name: " << mRespName;
+  mSimRespOrientation = false;
 
   if (mRespName == "APTS") { // default
     mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
@@ -73,6 +74,7 @@ void Digitizer::init()
     mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add ~10 um (= max depth) to match the APTS response.
     mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
     mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
+    mSimRespOrientation = true; /// APTS response function is flipped along x wrt the ones of ALPIDE and ALICE3
   } else if (mRespName == "ALICE3") {
     mSimRespVDScaleX = o2::trk::constants::alice3resp::pitchX / o2::trk::SegmentationChip::PitchRowVD;
     mSimRespVDScaleZ = o2::trk::constants::alice3resp::pitchZ / o2::trk::SegmentationChip::PitchColVD;
@@ -84,7 +86,6 @@ void Digitizer::init()
   }
 
   mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
-  mSimRespOrientation = false;
 
   // importing the parameters from DPLDigitizerParam.h
   auto& dOptTRK = DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
@@ -116,11 +117,11 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 {
   // digitize single event, the time must have been set beforehand
 
-  LOG(debug) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
-             << ") hits of entry " << evID << " from source " << srcID
-             << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
-             << " cont.mode: " << isContinuous()
-             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
+  LOG(info) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
+            << ") hits of event " << evID << " from source " << srcID
+            << " at time " << mEventTime.getTimeNS() << " ROFrame = " << mNewROFrame
+            << " cont.mode: " << isContinuous()
+            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
   std::cout << "Printing segmentation info: " << std::endl;
   SegmentationChip::Print();
@@ -154,7 +155,7 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 //_______________________________________________________________________
 void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
 {
-  LOG(info) << "Setting event time ";
+  LOG(info) << "Setting event time to " << irt.getTimeNS() << " ns after orbit 0 bc 0";
   // assign event time in ns
   mEventTime = irt;
   if (!mParams.isContinuous()) {
@@ -279,7 +280,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
     return;
   }
   float timeInROF = hit.GetTime() * sec2ns;
-  LOG(debug) << "timeInROF: " << timeInROF;
+  LOG(debug) << "Hit time: " << timeInROF << " ns";
   if (timeInROF > 20e3) {
     const int maxWarn = 10;
     static int warnNo = 0;
@@ -292,7 +293,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
   if (isContinuous()) {
     timeInROF += mCollisionTimeWrtROF;
   }
-  if (timeInROF < 0) {
+  if (mIsBeforeFirstRO && timeInROF < 0) {
     // disregard this hit because it comes from an event byefore readout starts and it does not effect this RO
     LOG(debug) << "Ignoring hit with timeInROF = " << timeInROF;
     return;
@@ -468,7 +469,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
         if (colDest < 0 || colDest >= colSpan) {
           continue;
         }
-        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, !flipCol);
+        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, flipCol);
       }
     }
   }
@@ -501,7 +502,6 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
       if (mDeadChanMap && mDeadChanMap->isNoisy(chipID, rowIS, colIS)) {
         continue;
       }
-
       registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
     }
   }
@@ -517,7 +517,7 @@ void Digitizer::registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFr
   LOG(debug) << "Registering digits for chip " << chip.getChipIndex() << " at ROFrame " << roFrame
              << " row " << row << " col " << col << " nEle " << nEle << " label " << lbl;
   float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
-  for (int i = 0; i < nROF; i++) {
+  for (int i = 0; i < nROF; i++) {                   // loop on all the ROFs occupied by the same signal to calculate the charge accumulated in that ROF
     uint32_t roFr = roFrame + i;
     int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength());
     tStrobe += mParams.getROFrameLength(); // for the next ROF
@@ -536,8 +536,9 @@ void Digitizer::registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFr
     o2::itsmft::PreDigit* pd = chip.findDigit(key);
     if (!pd) {
       chip.addDigit(key, roFr, row, col, nEleROF, lbl);
-      LOG(debug) << "Added digit " << key << "  " << roFr << "  " << row << "  " << col << "  " << nEleROF;
+      LOG(debug) << "Added digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
     } else { // there is already a digit at this slot, account as PreDigitExtra contribution
+      LOG(debug) << "Added to pre-digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
       pd->charge += nEleROF;
       if (pd->labelRef.label == lbl) { // don't store the same label twice
         continue;
