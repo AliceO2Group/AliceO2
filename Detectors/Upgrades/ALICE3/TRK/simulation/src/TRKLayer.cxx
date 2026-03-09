@@ -137,17 +137,17 @@ TGeoVolume* TRKLayer::createChip(std::string type)
     metalVol = createMetalStack("flat");
 
     TGeoCombiTrans* transSens = new TGeoCombiTrans();
-    transSens->SetTranslation(-mDeadzoneWidth / 2, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
+    transSens->SetTranslation(-mDeadzoneWidth / 2, (mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
     LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
     chipVol->AddNode(sensVol, 1, transSens);
 
     TGeoCombiTrans* transDead = new TGeoCombiTrans();
-    transDead->SetTranslation((mChipWidth - mDeadzoneWidth) / 2, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
+    transDead->SetTranslation((mChipWidth - mDeadzoneWidth) / 2, (mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
     LOGP(debug, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
     chipVol->AddNode(deadVol, 1, transDead);
 
     TGeoCombiTrans* transMetal = new TGeoCombiTrans();
-    transMetal->SetTranslation(0, mSensorThickness / 2, 0); // TO BE CHECKED !!!
+    transMetal->SetTranslation(0, -(mSensorThickness) / 2, 0); // TO BE CHECKED !!!
     LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
     chipVol->AddNode(metalVol, 1, transMetal);
   } else {
@@ -374,7 +374,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       // Put the staves in the correct position and orientation
       TGeoCombiTrans* trans = new TGeoCombiTrans();
       double theta = 360. * iStave / nStaves;
-      TGeoRotation* rot = new TGeoRotation("rot", theta - 90 + 4, 0, 0);
+      TGeoRotation* rot = new TGeoRotation("rot", theta + 90 + 4, 0, 0);
       trans->SetRotation(rot);
       trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
 
@@ -408,7 +408,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       // Put the staves in the correct position and orientation
       TGeoCombiTrans* trans = new TGeoCombiTrans();
       double theta = 360. * iStave / nStaves;
-      TGeoRotation* rot = new TGeoRotation("rot", theta - 90, 0, 0);
+      TGeoRotation* rot = new TGeoRotation("rot", theta + 90, 0, 0);
       trans->SetRotation(rot);
       trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
 
