@@ -13,7 +13,7 @@
 #define AliceO2_TPC_RDHUtils_H
 
 #include "DetectorsRaw/RDHUtils.h"
-//#include "Headers/RAWDataHeader.h"
+// #include "Headers/RAWDataHeader.h"
 
 namespace o2
 {
@@ -28,6 +28,7 @@ static constexpr FEEIDType UserLogicLinkID = 15; ///< virtual link ID for ZS dat
 static constexpr FEEIDType IDCLinkID = 20;       ///< Identifier for integrated digital currents
 static constexpr FEEIDType ILBZSLinkID = 21;     ///< Identifier for improved link-based ZS
 static constexpr FEEIDType DLBZSLinkID = 22;     ///< Identifier for dense link-based ZS
+static constexpr FEEIDType CMVLinkID = 23;       ///< Identifier for common mode values
 static constexpr FEEIDType SACLinkID = 25;       ///< Identifier for sampled analog currents
 
 /// compose feeid from cru, endpoint and link
