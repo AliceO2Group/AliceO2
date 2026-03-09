@@ -49,7 +49,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    // LOGP(info, "Processing CMVs for TF {} for CRUs {} to {}", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back());
+    LOGP(info, "Processing CMVs for TF {} for CRUs {} to {}", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back());
 
     ++mCountTFsForBuffer;
 
@@ -63,7 +63,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
     if (mCountTFsForBuffer >= mNTFsBuffer) {
       mCountTFsForBuffer = 0;
       for (const auto cru : mCRUs) {
-        // LOGP(info, "Sending CMVs of size {} for TF {}", mCMVs[cru].size(), processing_helpers::getCurrentTF(pc));
+        LOGP(info, "Sending CMVs of size {} for TF {}", mCMVs[cru].size(), processing_helpers::getCurrentTF(pc));
         sendOutput(pc.outputs(), cru);
       }
     }

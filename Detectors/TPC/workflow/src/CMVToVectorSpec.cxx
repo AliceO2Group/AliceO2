@@ -118,7 +118,7 @@ class CMVToVectorDevice : public o2::framework::Task
       tfCounter = dh->tfCounter;
       const auto subSpecification = dh->subSpecification;
       auto payloadSize = DataRefUtils::getPayloadSize(ref);
-      // LOGP(info, "Processing TF {}, subSpecification {}, payloadSize {}", tfCounter, subSpecification, payloadSize);
+      LOGP(info, "Processing TF {}, subSpecification {}, payloadSize {}", tfCounter, subSpecification, payloadSize);
 
       // ---| data loop |---
       const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
@@ -151,10 +151,10 @@ class CMVToVectorDevice : public o2::framework::Task
           const uint32_t cruID = rdh_utils::getCRU(feeId);
           const auto detField = RDHUtils::getDetectorField(*rdhPtr);
 
-          // LOGP(info, "Detected CMV packet: CRU {}, link {}, feeId {}", cruID, link, feeId);
+          LOGP(info, "Detected CMV packet: CRU {}, link {}, feeId {}", cruID, link, feeId);
 
           if ((detField != (decltype(detField))RawDataType::CMV) || (link != rdh_utils::CMVLinkID)) {
-            // LOGP(debug, "Skipping packet: detField {}, (expected RawDataType {}), link {}, (expected CMVLinkID {})", detField, (decltype(detField))RawDataType::CMV, link, rdh_utils::CMVLinkID);
+            LOGP(debug, "Skipping packet: detField {}, (expected RawDataType {}), link {}, (expected CMVLinkID {})", detField, (decltype(detField))RawDataType::CMV, link, rdh_utils::CMVLinkID);
             continue;
           }
 
@@ -179,10 +179,10 @@ class CMVToVectorDevice : public o2::framework::Task
 
           // record packet meta and append its CMV vector (3564 TB)
           infoVec.emplace_back(orbit, bc);
-          cmvVec.reserve(cmvVec.size() + cmv::NTimeBins);
-          for (uint32_t tb = 0; tb < cmv::NTimeBins; ++tb) {
+          cmvVec.reserve(cmvVec.size() + cmv::NTimeBinsPerPacket);
+          for (uint32_t tb = 0; tb < cmv::NTimeBinsPerPacket; ++tb) {
             cmvVec.push_back(cmvs.getCMVFloat(tb));
-            // LOGP(info, "Appended CMV {} for timebin {}, CRU {}, orbit {}, bc {}", cmvs.getCMVFloat(tb), tb, cruID, orbit, bc);
+            LOGP(info, "Appended CMV {} for timebin {}, CRU {}, orbit {}, bc {}", cmvs.getCMVFloat(tb), tb, cruID, orbit, bc);
           }
         }
       } catch (const std::exception& e) {
@@ -298,8 +298,8 @@ class CMVToVectorDevice : public o2::framework::Task
         LOGP(warning, "CRU {:3}: expected 4 packets per TF, got {}", cru, infVec.size());
         hasErrors = true;
       }
-      if (cmvVec.size() != cmv::NTimeBins * infVec.size()) {
-        LOGP(warning, "CRU {:3}: vector size {} does not match expected {}", cru, cmvVec.size(), cmv::NTimeBins * infVec.size());
+      if (cmvVec.size() != cmv::NTimeBinsPerPacket * infVec.size()) {
+        LOGP(warning, "CRU {:3}: vector size {} does not match expected {}", cru, cmvVec.size(), cmv::NTimeBinsPerPacket * infVec.size());
         hasErrors = true;
       }
 

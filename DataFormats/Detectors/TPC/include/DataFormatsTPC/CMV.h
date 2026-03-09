@@ -25,9 +25,11 @@
 namespace o2::tpc::cmv
 {
 
-static constexpr uint32_t NTimeBins = 3564;                                 ///< number of time bins (spans 8 orbits)
-static constexpr uint32_t SignificantBits = 2;                              ///< number of bits used for floating point precision
-static constexpr float FloatConversion = 1.f / float(1 << SignificantBits); ///< conversion factor from integer representation to float
+static constexpr uint32_t NTimeBinsPerPacket = 3564;                                 ///< number of time bins (covering 8 heartbeats)
+static constexpr uint32_t NPacketsPerTFPerCRU = 4;                                   ///< 4 packets per timeframe
+static constexpr uint32_t NTimeBinsPerTF = NTimeBinsPerPacket * NPacketsPerTFPerCRU; ///< maximum number of timebins per timeframe (14256)
+static constexpr uint32_t SignificantBits = 2;                                       ///< number of bits used for floating point precision
+static constexpr float FloatConversion = 1.f / float(1 << SignificantBits);          ///< conversion factor from integer representation to float
 
 /// Header definition of the CMVs
 struct Header {
@@ -96,10 +98,10 @@ struct Data {
   }
 };
 
-/// CMV full data container: one packet carries NTimeBins time bins
+/// CMV full data container: one packet carries NTimeBinsPerPacket
 struct Container {
-  Header header;        ///< CMV data header
-  Data data[NTimeBins]; ///< data values for given number of time bins
+  Header header;                 ///< CMV data header
+  Data data[NTimeBinsPerPacket]; ///< data values
 
   // Header and data accessors
   const Header& getHeader() const { return header; }

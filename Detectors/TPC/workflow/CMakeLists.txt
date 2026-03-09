@@ -304,9 +304,9 @@ o2_add_executable(cmv-distribute
                   SOURCES src/tpc-distribute-cmv.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-# o2_add_executable(cmv-producer
-#                 COMPONENT_NAME tpc
-#                 SOURCES src/tpc-cmv-producer.cxx
-#                 PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+o2_add_executable(cmv-factorize
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-factorize-cmv.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 add_subdirectory(readers)
