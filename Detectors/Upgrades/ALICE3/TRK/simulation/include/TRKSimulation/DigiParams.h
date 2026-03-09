@@ -110,8 +110,8 @@ class DigiParams
   float mStrobeLength = 0;               ///< length of the strobe in ns (sig. over threshold checked in this window only)
   double mTimeOffset = -2 * infTime;     ///< time offset (in seconds!) to calculate ROFrame from hit time
   int mROFrameBiasInBC = 0;              ///< misalignment of the ROF start in BC
-  int mChargeThreshold = 1;              ///< charge threshold in Nelectrons
-  int mMinChargeToAccount = 1;           ///< minimum charge contribution to account
+  int mChargeThreshold = 75;             ///< charge threshold in Nelectrons
+  int mMinChargeToAccount = 7;           ///< minimum charge contribution to account
   int mNSimSteps = 475;                  ///< number of steps in response simulation
   float mNSimStepsInv = 1. / mNSimSteps; ///< its inverse
 
