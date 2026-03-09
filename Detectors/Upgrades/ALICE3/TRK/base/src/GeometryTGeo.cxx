@@ -76,10 +76,9 @@ void GeometryTGeo::Build(int loadTrans)
     LOGP(fatal, "Geometry is not loaded");
   }
 
-  mLayoutML = o2::trk::TRKBaseParam::Instance().getLayoutML();
-  mLayoutOT = o2::trk::TRKBaseParam::Instance().getLayoutOT();
+  mLayoutMLOT = o2::trk::TRKBaseParam::Instance().getLayoutMLOT();
 
-  LOG(debug) << "Layout ML: " << mLayoutML << ", Layout OL: " << mLayoutOT;
+  LOG(debug) << "Overall layout ML and OT: " << mLayoutMLOT;
 
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
   mNumberOfPetalsVD = extractNumberOfPetalsVD();
@@ -403,9 +402,9 @@ TString GeometryTGeo::getMatrixPath(int index) const
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
 
   // handling cylindrical configuration for ML and/or OT
-  // needed bercause of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
+  // needed because of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
   if (subDetID == 1) {
-    if ((layer < 4 && mLayoutML == eLayout::kCylinder) || (layer > 3 && mLayoutOT == eLayout::kCylinder)) {
+    if ((layer < 4 && mLayoutMLOT == eMLOTLayout::kCylindrical) || (layer > 3 && mLayoutMLOT == MLOTLayout::kCylindrical)) {
       stave = 1;
       mod = 1;
       chip = 1;

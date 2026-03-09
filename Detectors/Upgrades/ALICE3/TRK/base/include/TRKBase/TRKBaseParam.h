@@ -19,24 +19,17 @@ namespace o2
 {
 namespace trk
 {
-
-enum eOverallGeom {
-  kDefaultRadii = 0, // After Upgrade Days March 2024
-  kModRadii,
-};
-
-enum eLayout {
-  kCylinder = 0,
-  kTurboStaves,
-  kStaggered,
-};
-
 enum eVDLayout {
   kIRIS4 = 0,
   kIRISFullCyl,
   kIRISFullCyl3InclinedWalls,
   kIRIS5,
   kIRIS4a,
+};
+
+enum eMLOTLayout {
+  kCylindrical = 0,
+  kSegmented,
 };
 
 enum eSrvLayout {
@@ -49,16 +42,12 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   float serviceTubeX0 = 0.02f; // X0 Al2O3
   Bool_t irisOpen = false;
 
-  eOverallGeom overallGeom = kDefaultRadii; // Overall geometry option, to be used in Detector::buildTRKMiddleOuterLayers
+  eVDLayout layoutVD = kIRIS4;         // VD detector layout design
+  eMLOTLayout layoutMLOT = kSegmented; // ML and OT detector layout design
+  eSrvLayout layoutSRV = kPeacockv1;   // Layout of services
 
-  eLayout layoutML = kTurboStaves; // Type of segmentation for the middle layers
-  eLayout layoutOT = kStaggered;   // Type of segmentation for the outer layers
-  eVDLayout layoutVD = kIRIS4;     // VD detector layout design
-  eSrvLayout layoutSRV = kPeacockv1; // Layout of services
-
-  eLayout getLayoutML() const { return layoutML; }
-  eLayout getLayoutOT() const { return layoutOT; }
   eVDLayout getLayoutVD() const { return layoutVD; }
+  eMLOTLayout getLayoutMLOT() const { return layoutMLOT; }
   eSrvLayout getLayoutSRV() const { return layoutSRV; }
 
   O2ParamDef(TRKBaseParam, "TRKBase");

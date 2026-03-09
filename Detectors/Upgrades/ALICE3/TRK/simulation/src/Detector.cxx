@@ -54,7 +54,7 @@ Detector::Detector(bool active)
   if (trkPars.configFile != "") {
     configFromFile(trkPars.configFile);
   } else {
-    buildTRKMiddleOuterLayers();
+    configMLOT();
     configToFile();
     configServices();
   }
@@ -78,78 +78,40 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configDefault()
-{
-
-  // Build TRK detector according to the scoping document
-
-  mLayers.clear();
-
-  LOGP(warning, "Loading Scoping Document configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 3.78f, 10, 100.e-3);
-  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 7.f, 10, 100.e-3);
-  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
-  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
-  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
-  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
-  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
-  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
-}
-
-void Detector::buildTRKMiddleOuterLayers()
+void Detector::configMLOT()
 {
   auto& trkPars = TRKBaseParam::Instance();
 
   mLayers.clear();
 
-  switch (trkPars.overallGeom) {
-    case kDefaultRadii:
-      // Build the TRK detector according to changes proposed during
-      // https://indico.cern.ch/event/1407704/
-      // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
-      // L3 -> 7 cm, L4 -> 9 cm, L5 -> 12 cm, L6 -> 20 cm
+  const std::vector<float> rInn{7.f, 9.f, 12.f, 20.f, 30.f, 45.f, 60.f, 80.f};
+  const float thick = 100.e-3;
 
-      LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 9 cm, L5 at 12 cm, L6 at 20 cm");
-      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
-      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
-      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 9.f, 10, 100.e-3);
-      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
-      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
-      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
-      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
-      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
-      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+  switch (trkPars.layoutMLOT) {
+    case kCylindrical:
+      const std::vector<float> length{128.35f, 128.35f, 128.35f, 128.35f, 128.35f, 256.7f, 256.7f, 256.7f};
+      LOGP(warning, "Loading cylindrical configuration for ALICE3 TRK");
+      for (int i{0}; i < 8; ++i) {
+        std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(i, name, rInn[i], length[i], thick));
+      }
       break;
-    case kModRadii:
-      LOGP(warning, "Loading \"Alternative\" configuration for ALICE3 TRK");
-      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 11 cm, L5 at 15 cm, L6 at 19 cm");
-      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
-      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
-      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
-      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 10, 100.e-3);
-      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
-      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
-      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
-      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
-      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+    case kSegmented:
+      const std::vector<int> nMods{10, 10, 10, 10, 10, 20, 20, 20};
+      LOGP(warning, "Loading segmented configuration for ALICE3 TRK");
+      for (int i{0}; i < 8; ++i) {
+        std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
+        if (i < 4) {
+          mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInn[i], nMods[i], thick));
+        } else {
+          mLayers.push_back(std::make_unique<TRKOTLayer>(i, name, rInn[i], nMods[i], thick));
+        }
+      }
       break;
     default:
-      LOGP(fatal, "Unknown option {} for buildTRKMiddleOuterLayers", static_cast<int>(trkPars.overallGeom));
+      LOGP(fatal, "Unknown option {} for configMLOT", static_cast<int>(trkPars.layoutMLOT));
       break;
   }
-
-  // Middle layers
-  mLayers[0].setLayout(trkPars.layoutML);
-  mLayers[1].setLayout(trkPars.layoutML);
-  mLayers[2].setLayout(trkPars.layoutML);
-  mLayers[3].setLayout(trkPars.layoutML);
-
-  // Outer tracker
-  mLayers[4].setLayout(trkPars.layoutOT);
-  mLayers[5].setLayout(trkPars.layoutOT);
-  mLayers[6].setLayout(trkPars.layoutOT);
-  mLayers[7].setLayout(trkPars.layoutOT);
 }
 
 void Detector::configFromFile(std::string fileName)
@@ -159,6 +121,8 @@ void Detector::configFromFile(std::string fileName)
   if (!confFile.good()) {
     LOGP(fatal, "File {} not found, aborting.", fileName);
   }
+
+  auto& trkPars = TRKBaseParam::Instance();
 
   mLayers.clear();
 
@@ -178,7 +142,26 @@ void Detector::configFromFile(std::string fileName)
     while (getline(ss, substr, '\t')) {
       tmpBuff.push_back(std::stof(substr));
     }
-    mLayers.emplace_back(layerCount, GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount), tmpBuff[0], tmpBuff[1], tmpBuff[2]);
+
+    std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount);
+    switch (trkPars.layoutMLOT) {
+      case kCylindrical:
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, tmpBuff[0], tmpBuff[1], tmpBuff[2]));
+        break;
+      case kSegmented: {
+        int nMods = static_cast<int>(tmpBuff[1]);
+        if (layerCount < 4) {
+          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2]));
+        } else {
+          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2]));
+        }
+        break;
+      }
+      default:
+        LOGP(fatal, "Unknown option {} for configMLOT", static_cast<int>(trkPars.layoutMLOT));
+        break;
+    }
+
     ++layerCount;
   }
 }

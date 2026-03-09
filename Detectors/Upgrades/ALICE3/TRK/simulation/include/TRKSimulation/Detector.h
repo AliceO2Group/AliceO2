@@ -66,8 +66,7 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
-  void configDefault();
-  void buildTRKMiddleOuterLayers();
+  void configMLOT();
   void configFromFile(std::string fileName = "alice3_TRK_layout.txt");
   void configToFile(std::string fileName = "alice3_TRK_layout.txt");
 
@@ -89,7 +88,7 @@ class Detector : public o2::base::DetImpl<Detector>
   } mTrackData;                     //! transient data
   GeometryTGeo* mGeometryTGeo;      //!
   std::vector<o2::trk::Hit>* mHits; // ITSMFT ones for the moment
-  std::vector<TRKLayer> mLayers;
+  std::vector<std::unique_ptr<TRKCylindricalLayer>> mLayers;
   TRKServices mServices; // Houses the services of the TRK, but not the Iris tracker
 
   std::vector<std::string> mFirstOrLastLayers; // Names of the first or last layers
