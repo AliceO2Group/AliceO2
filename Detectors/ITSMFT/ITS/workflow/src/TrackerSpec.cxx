@@ -102,7 +102,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, Tracking
   inputs.emplace_back("itscldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   inputs.emplace_back("itsalppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                        // orbitResetTime
-                                                              true,                                                                         // GRPECS=true
+                                                              false,                                                                        // GRPECS=false
                                                               false,                                                                        // GRPLHCIF
                                                               true,                                                                         // GRPMagField
                                                               true,                                                                         // askMatLUT

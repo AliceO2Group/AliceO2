@@ -210,7 +210,7 @@ void ClustererDPL<N>::updateTimeDependentParams(ProcessingContext& pc)
     pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<N>*>("alppar");
     pc.inputs().get<o2::itsmft::ClustererParam<N>*>("cluspar");
-    mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(N));
+    mClusterer->setContinuousReadOut(true);
     // settings for the fired pixel overflow masking
     const auto& alpParams = o2::itsmft::DPLAlpideParam<N>::Instance();
     const auto& clParams = o2::itsmft::ClustererParam<N>::Instance();
@@ -292,7 +292,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
   inputs.emplace_back("cluspar", Origin, "CLUSPARAM", 0, Lifetime::Condition, ccdbParamSpec(Origin.as<std::string>() + "/Config/ClustererParam"));
   inputs.emplace_back("alppar", Origin, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(Origin.as<std::string>() + "/Config/AlpideParam"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
-                                                              true,                           // GRPECS=true
+                                                              false,                          // GRPECS=false
                                                               false,                          // GRPLHCIF
                                                               false,                          // GRPMagField
                                                               false,                          // askMatLUT

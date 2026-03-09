@@ -125,9 +125,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   std::uint32_t roFrame = 0;
 
-  bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(info) << "ITSTracker RO: continuous=" << continuous;
-
   if (mOverrideBeamEstimation) {
     mTimeFrame->setBeamPosition(mMeanVertex->getX(),
                                 mMeanVertex->getY(),
