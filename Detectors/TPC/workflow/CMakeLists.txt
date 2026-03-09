@@ -299,10 +299,10 @@ o2_add_executable(cmv-flp
                   SOURCES src/tpc-flp-cmv.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-# o2_add_executable(cmv-distribute
-#                   COMPONENT_NAME tpc
-#                   SOURCES src/tpc-distribute-cmv.cxx
-#                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+o2_add_executable(cmv-distribute
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-distribute-cmv.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 # o2_add_executable(cmv-producer
 #                 COMPONENT_NAME tpc
