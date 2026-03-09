@@ -84,6 +84,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         if (m.name.starts_with("input:")) {
           auto name = m.name.substr(6);
           schemaMetadata->Append("sourceTable", name);
+          schemaMetadata->Append("sourceMatcher", DataSpecUtils::describe(std::get<ConcreteDataMatcher>(DataSpecUtils::fromMetadataString(m.defaultValue.get<std::string>()).matcher)));
           continue;
         }
         // Ignore the non ccdb: entries
