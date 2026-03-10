@@ -144,7 +144,11 @@ class GeneratorFromEventPool : public o2::eventgen::Generator
 
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override
   {
+    // Copy current vertex position from the event header
+    const double xyz[3] = {eventHeader->GetX(), eventHeader->GetY(), eventHeader->GetZ()};
     mO2KineGenerator->updateHeader(eventHeader);
+    // Event pool uses vertex position from current simulation, only extKinO2 takes the one from the file instead
+    eventHeader->SetVertex(xyz[0], xyz[1], xyz[2]);
   }
 
   // determine the collection of available files
