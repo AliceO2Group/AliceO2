@@ -22,12 +22,16 @@ namespace o2
 {
 namespace trk
 {
+enum class MatBudgetParamMode {
+  Thickness,
+  X2X0
+};
+
 class TRKCylindricalLayer
 {
  public:
   TRKCylindricalLayer() = default;
-  TRKCylindricalLayer(int layerNumber, std::string layerName, float rInn, float length, float layerX2X0);
-  TRKCylindricalLayer(int layerNumber, std::string layerName, float rInn, float length, float thick);
+  TRKCylindricalLayer(int layerNumber, std::string layerName, float rInn, float length, float thickOrX2X0, MatBudgetParamMode mode);
   virtual ~TRKCylindricalLayer() = default;
 
   auto getInnerRadius() const { return mInnerRadius; }
@@ -64,8 +68,7 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
 {
  public:
   TRKSegmentedLayer() = default;
-  TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float layerX2X0);
-  TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick);
+  TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
   ~TRKSegmentedLayer() override = default;
 
   TGeoVolume* createSensor() override;
@@ -73,10 +76,10 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
   TGeoVolume* createMetalStack() override;
   TGeoVolume* createChip();
   TGeoVolume* createModule();
-  TGeoVolume* createStave() = 0;
+  virtual TGeoVolume* createStave() = 0;
   void createLayer(TGeoVolume* motherVolume) override = 0;
 
- private:
+ protected:
   int mNumberOfModules;
 
   // Fixed parameters for the layer, to be set based on the specifications of the chip and module
@@ -90,15 +93,14 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
   // TGeo objects outside logical volumes can cause errors
   static constexpr float sLogicalVolumeThickness = 1.3;
 
-  ClassDef(TRKSegmentedLayer, 0);
+  ClassDefOverride(TRKSegmentedLayer, 0);
 };
 
 class TRKMLLayer : public TRKSegmentedLayer
 {
  public:
   TRKMLLayer() = default;
-  TRKMLLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float layerX2X0);
-  TRKMLLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick);
+  TRKMLLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
   ~TRKMLLayer() override = default;
 
   TGeoVolume* createStave() override;
@@ -107,15 +109,14 @@ class TRKMLLayer : public TRKSegmentedLayer
  private:
   static constexpr double sStaveWidth = constants::ML::width;
 
-  ClassDef(TRKMLLayer, 0);
+  ClassDefOverride(TRKMLLayer, 0);
 };
 
 class TRKOTLayer : public TRKSegmentedLayer
 {
  public:
   TRKOTLayer() = default;
-  TRKOTLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float layerX2X0);
-  TRKOTLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick);
+  TRKOTLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
   ~TRKOTLayer() override = default;
 
   TGeoVolume* createStave() override;
@@ -127,7 +128,7 @@ class TRKOTLayer : public TRKSegmentedLayer
   static constexpr double sInStaveOverlap = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut + 0.1; // 1.5mm outer-edge + 1mm deadzone + 1mm (true) overlap
   static constexpr double sStaveWidth = constants::OT::width - sInStaveOverlap;
 
-  ClassDef(TRKOTLayer, 0)
+  ClassDefOverride(TRKOTLayer, 0)
 };
 
 } // namespace trk

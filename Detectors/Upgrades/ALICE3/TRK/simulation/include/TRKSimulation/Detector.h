@@ -32,6 +32,7 @@ class Detector : public o2::base::DetImpl<Detector>
  public:
   Detector(bool active);
   Detector();
+  Detector(const Detector& other);
   ~Detector();
 
   // Factory method
@@ -87,7 +88,7 @@ class Detector : public o2::base::DetImpl<Detector>
     double mEnergyLoss;             // energy loss
   } mTrackData;                     //! transient data
   GeometryTGeo* mGeometryTGeo;      //!
-  std::vector<o2::trk::Hit>* mHits; // ITSMFT ones for the moment
+  std::vector<o2::trk::Hit>* mHits; // Derived from ITSMFT
   std::vector<std::unique_ptr<TRKCylindricalLayer>> mLayers;
   TRKServices mServices; // Houses the services of the TRK, but not the Iris tracker
 

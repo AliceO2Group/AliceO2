@@ -20,25 +20,24 @@
 #include <TGeoVolume.h>
 
 #include <TMath.h>
-#include "TRKLayer_copy.h"
 
 namespace o2
 {
 namespace trk
 {
-TRKCylindricalLayer::TRKCylindricalLayer(int layerNumber, std::string layerName, float rInn, float length, float layerX2X0)
-  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mLength(length), mX2X0(layerX2X0)
+TRKCylindricalLayer::TRKCylindricalLayer(int layerNumber, std::string layerName, float rInn, float length, float thickOrX2X0, MatBudgetParamMode mode)
+  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mLength(length)
 {
-  sChipThickness = mX2X0 * Si_X0;
-  mOuterRadius = rInn + sChipThickness;
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
-}
+  if (mode == MatBudgetParamMode::Thickness) {
+    mChipThickness = thickOrX2X0;
+    mX2X0 = thickOrX2X0 / Si_X0;
+    mOuterRadius = rInn + thickOrX2X0;
+  } else if (mode == MatBudgetParamMode::X2X0) {
+    mX2X0 = thickOrX2X0;
+    mChipThickness = thickOrX2X0 * Si_X0;
+    mOuterRadius = rInn + thickOrX2X0 * Si_X0;
+  }
 
-TRKCylindricalLayer::TRKCylindricalLayer(int layerNumber, std::string layerName, float rInn, float length, float thick)
-  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mLength(length), sChipThickness(thick)
-{
-  mOuterRadius = rInn + thick;
-  mX2X0 = thick / Si_X0;
   LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
 }
 
@@ -57,7 +56,7 @@ TGeoVolume* TRKCylindricalLayer::createMetalStack()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string metalName = GeometryTGeo::getTRKMetalStackPattern() + std::to_string(mLayerNumber);
-  TGeoShape* metalStack metalStack = new TGeoTube(mInnerRadius + sSensorThickness, mInnerRadius + sChipThickness, mLength / 2);
+  TGeoShape* metalStack = new TGeoTube(mInnerRadius + sSensorThickness, mInnerRadius + mChipThickness, mLength / 2);
   TGeoVolume* metalVol = new TGeoVolume(metalName.c_str(), metalStack, medSi);
   metalVol->SetLineColor(kGray);
 
@@ -67,16 +66,16 @@ TGeoVolume* TRKCylindricalLayer::createMetalStack()
 void TRKCylindricalLayer::createLayer(TGeoVolume* motherVolume)
 {
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
-  TGeoTube* layer = new TGeoTube(mInnerRadius, mInnerRadius + sChipThickness, mLength / 2);
+  TGeoTube* layer = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mLength / 2);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kYellow);
 
   TGeoVolume* sensVol = createSensor();
-  LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+  LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), layerVol->GetName());
   layerVol->AddNode(sensVol, 1, nullptr);
 
   TGeoVolume* metalVol = createMetalStack();
-  LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
+  LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), layerVol->GetName());
   layerVol->AddNode(metalVol, 1, nullptr);
 
   LOGP(debug, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
@@ -85,20 +84,9 @@ void TRKCylindricalLayer::createLayer(TGeoVolume* motherVolume)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TRKSegmentedLayer::TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float layerX2X0)
-  : TRKCylindricalLayer(layerNumber, layerName, rInn, numberOfModules * sModuleLength, layerX2X0), mNumberOfModules(numberOfModules)
+TRKSegmentedLayer::TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
+  : TRKCylindricalLayer(layerNumber, layerName, rInn, numberOfModules * sModuleLength, thickOrX2X0, mode), mNumberOfModules(numberOfModules)
 {
-  sChipThickness = mX2X0 * Si_X0;
-  mOuterRadius = rInn + sChipThickness;
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
-}
-
-TRKSegmentedLayer::TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick)
-  : TRKCylindricalLayer(layerNumber, layerName, rInn, numberOfModules * sModuleLength, thick), mNumberOfModules(numberOfModules)
-{
-  mOuterRadius = rInn + thick;
-  mX2X0 = thick / Si_X0;
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
 }
 
 TGeoVolume* TRKSegmentedLayer::createSensor()
@@ -127,7 +115,7 @@ TGeoVolume* TRKSegmentedLayer::createMetalStack()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string metalName = GeometryTGeo::getTRKMetalStackPattern() + std::to_string(mLayerNumber);
-  TGeoShape* metalStack = new TGeoBBox(sChipWidth / 2, (sChipThickness - sSensorThickness) / 2, sChipLength / 2);
+  TGeoShape* metalStack = new TGeoBBox(sChipWidth / 2, (mChipThickness - sSensorThickness) / 2, sChipLength / 2);
   TGeoVolume* metalVol = new TGeoVolume(metalName.c_str(), metalStack, medSi);
   metalVol->SetLineColor(kGray);
 
@@ -138,19 +126,19 @@ TGeoVolume* TRKSegmentedLayer::createChip()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string chipName = GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber);
-  TGeoShape* chip = new TGeoBBox(sChipWidth / 2, sChipThickness / 2, sChipLength / 2);
+  TGeoShape* chip = new TGeoBBox(sChipWidth / 2, mChipThickness / 2, sChipLength / 2);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   chipVol->SetLineColor(kYellow);
 
   TGeoVolume* sensVol = createSensor();
   TGeoCombiTrans* transSens = new TGeoCombiTrans();
-  transSens->SetTranslation(-sDeadzoneWidth / 2, -(sChipThickness - sSensorThickness) / 2, 0);
+  transSens->SetTranslation(-sDeadzoneWidth / 2, -(mChipThickness - sSensorThickness) / 2, 0);
   LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, transSens);
 
   TGeoVolume* deadVol = createDeadzone();
   TGeoCombiTrans* transDead = new TGeoCombiTrans();
-  transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, -(sChipThickness - sSensorThickness) / 2, 0);
+  transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, -(mChipThickness - sSensorThickness) / 2, 0);
   LOGP(debug, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
   chipVol->AddNode(deadVol, 1, transDead);
 
@@ -167,11 +155,11 @@ TGeoVolume* TRKSegmentedLayer::createModule()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string moduleName = GeometryTGeo::getTRKModulePattern() + std::to_string(mLayerNumber);
-  TGeoShape* module = new TGeoBBox(sModuleWidth / 2, sChipThickness / 2, sModuleLength / 2);
+  TGeoShape* module = new TGeoBBox(sModuleWidth / 2, mChipThickness / 2, sModuleLength / 2);
   TGeoVolume* moduleVol = new TGeoVolume(moduleName.c_str(), module, medSi);
   moduleVol->SetLineColor(kYellow);
 
-  for (int iChip = 0; iChip < mHalfNumberOfChips; iChip++) {
+  for (int iChip = 0; iChip < sHalfNumberOfChips; iChip++) {
     TGeoVolume* chipVolLeft = createChip();
     double xLeft = -sModuleWidth / 2 + constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::width / 2;
     double zLeft = -sModuleLength / 2 + constants::moduleMLOT::gaps::outerEdgeShortSide + iChip * (constants::moduleMLOT::chip::length + constants::moduleMLOT::gaps::interChips) + constants::moduleMLOT::chip::length / 2;
@@ -197,23 +185,16 @@ TGeoVolume* TRKSegmentedLayer::createModule()
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float layerX2X0)
-  : TRKSegmentedLayer(layerNumber, layerName, rInn, numberOfModules, layerX2X0)
+TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
+  : TRKSegmentedLayer(layerNumber, layerName, rInn, numberOfModules, thickOrX2X0, mode)
 {
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
-}
-
-TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick)
-  : TRKSegmentedLayer(layerNumber, layerName, rInn, numberOfModules, thick)
-{
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
 }
 
 TGeoVolume* TRKMLLayer::createStave()
 {
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
   std::string staveName = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber);
-  TGeoShape* stave = new TGeoBBox(sStaveWidth / 2, sChipThickness / 2, mLength / 2);
+  TGeoShape* stave = new TGeoBBox(sStaveWidth / 2, mChipThickness / 2, mLength / 2);
   TGeoVolume* staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
   staveVol->SetLineColor(kYellow);
 
@@ -266,28 +247,21 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TRKOTLayer::TRKOTLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float layerX2X0)
-  : TRKSegmentedLayer(layerNumber, layerName, rInn, numberOfModules, layerX2X0)
+TRKOTLayer::TRKOTLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
+  : TRKSegmentedLayer(layerNumber, layerName, rInn, numberOfModules, thickOrX2X0, mode)
 {
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
-}
-
-TRKOTLayer::TRKOTLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick)
-  : TRKSegmentedLayer(layerNumber, layerName, rInn, numberOfModules, thick)
-{
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
 }
 
 TGeoVolume* TRKOTLayer::createHalfStave()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string halfStaveName = GeometryTGeo::getTRKHalfStavePattern() + std::to_string(mLayerNumber);
-  TGeoShape* halfStave = new TGeoBBox(sHalfStaveWidth / 2, sChipThickness / 2, mLength / 2);
+  TGeoShape* halfStave = new TGeoBBox(sHalfStaveWidth / 2, mChipThickness / 2, mLength / 2);
   TGeoVolume* halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medSi);
   halfStaveVol->SetLineColor(kYellow);
 
   for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
-    TGeoVolume* moduleVol = createModule("flat");
+    TGeoVolume* moduleVol = createModule();
     double zPos = -0.5 * mNumberOfModules * sModuleLength + (iModule + 0.5) * sModuleLength;
     TGeoCombiTrans* trans = new TGeoCombiTrans();
     trans->SetTranslation(0, 0, zPos);
@@ -311,7 +285,7 @@ TGeoVolume* TRKOTLayer::createStave()
 
   TGeoVolume* halfStaveVolRight = createHalfStave();
   TGeoCombiTrans* transRight = new TGeoCombiTrans();
-  transRight->SetTranslation(sHalfStaveWidth / 2 - shift, 0.2, 0);
+  transRight->SetTranslation((sHalfStaveWidth - sInStaveOverlap) / 2, 0.2, 0);
   LOGP(debug, "Inserting {} in {} ", halfStaveVolRight->GetName(), staveVol->GetName());
   staveVol->AddNode(halfStaveVolRight, 1, transRight);
 

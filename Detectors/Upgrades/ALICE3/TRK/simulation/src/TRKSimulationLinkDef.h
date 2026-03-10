@@ -18,7 +18,10 @@
 #pragma link C++ class o2::trk::Hit + ;
 #pragma link C++ class std::vector < o2::trk::Hit> + ;
 
-#pragma link C++ class o2::trk::TRKLayer + ;
+#pragma link C++ class o2::trk::TRKCylindricalLayer + ;
+#pragma link C++ class o2::trk::TRKSegmentedLayer + ;
+#pragma link C++ class o2::trk::TRKMLLayer + ;
+#pragma link C++ class o2::trk::TRKOTLayer + ;
 #pragma link C++ class o2::trk::VDLayer + ;
 #pragma link C++ class o2::trk::TRKServices + ;
 #pragma link C++ class o2::trk::Detector + ;

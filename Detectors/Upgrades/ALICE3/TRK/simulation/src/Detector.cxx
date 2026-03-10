@@ -61,8 +61,15 @@ Detector::Detector(bool active)
 
   LOGP(info, "Summary of TRK configuration:");
   for (auto& layer : mLayers) {
-    LOGP(info, "Layer: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", layer.getNumber(), layer.getName(), layer.getInnerRadius(), layer.getZ(), layer.getChipThickness());
+    LOGP(info, "Layer: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", layer->getNumber(), layer->getName(), layer->getInnerRadius(), layer->getZ(), layer->getChipThickness());
   }
+}
+
+Detector::Detector(const Detector& other)
+  : o2::base::DetImpl<Detector>(other),
+    mTrackData(),
+    mHits(o2::utils::createSimVector<o2::trk::Hit>())
+{
 }
 
 Detector::~Detector()
@@ -88,26 +95,28 @@ void Detector::configMLOT()
   const float thick = 100.e-3;
 
   switch (trkPars.layoutMLOT) {
-    case kCylindrical:
+    case kCylindrical: {
       const std::vector<float> length{128.35f, 128.35f, 128.35f, 128.35f, 128.35f, 256.7f, 256.7f, 256.7f};
       LOGP(warning, "Loading cylindrical configuration for ALICE3 TRK");
       for (int i{0}; i < 8; ++i) {
         std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
-        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(i, name, rInn[i], length[i], thick));
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(i, name, rInn[i], length[i], thick, MatBudgetParamMode::Thickness));
       }
       break;
-    case kSegmented:
+    }
+    case kSegmented: {
       const std::vector<int> nMods{10, 10, 10, 10, 10, 20, 20, 20};
       LOGP(warning, "Loading segmented configuration for ALICE3 TRK");
       for (int i{0}; i < 8; ++i) {
         std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
         if (i < 4) {
-          mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInn[i], nMods[i], thick));
+          mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInn[i], nMods[i], thick, MatBudgetParamMode::Thickness));
         } else {
-          mLayers.push_back(std::make_unique<TRKOTLayer>(i, name, rInn[i], nMods[i], thick));
+          mLayers.push_back(std::make_unique<TRKOTLayer>(i, name, rInn[i], nMods[i], thick, MatBudgetParamMode::Thickness));
         }
       }
       break;
+    }
     default:
       LOGP(fatal, "Unknown option {} for configMLOT", static_cast<int>(trkPars.layoutMLOT));
       break;
@@ -146,14 +155,14 @@ void Detector::configFromFile(std::string fileName)
     std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount);
     switch (trkPars.layoutMLOT) {
       case kCylindrical:
-        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, tmpBuff[0], tmpBuff[1], tmpBuff[2]));
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, tmpBuff[0], tmpBuff[1], tmpBuff[2], MatBudgetParamMode::Thickness));
         break;
       case kSegmented: {
         int nMods = static_cast<int>(tmpBuff[1]);
         if (layerCount < 4) {
-          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2]));
+          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2], MatBudgetParamMode::Thickness));
         } else {
-          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2]));
+          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2], MatBudgetParamMode::Thickness));
         }
         break;
       }
@@ -171,8 +180,8 @@ void Detector::configToFile(std::string fileName)
   LOGP(info, "Exporting TRK Detector layout to {}", fileName);
   std::ofstream conFile(fileName.c_str(), std::ios::out);
   conFile << "/// TRK configuration file: inn_radius  z_length  lay_thickness" << std::endl;
-  for (auto layer : mLayers) {
-    conFile << layer.getInnerRadius() << "\t" << layer.getZ() << "\t" << layer.getChipThickness() << std::endl;
+  for (const auto& layer : mLayers) {
+    conFile << layer->getInnerRadius() << "\t" << layer->getZ() << "\t" << layer->getChipThickness() << std::endl;
   }
 }
 
@@ -237,7 +246,7 @@ void Detector::createGeometry()
   vTRK->SetTitle(vstrng);
 
   for (auto& layer : mLayers) {
-    layer.createLayer(vTRK);
+    layer->createLayer(vTRK);
   }
 
   // Add service for inner tracker
