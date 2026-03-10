@@ -17,7 +17,6 @@
 #define TPC_CMVToVectorSpec_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include <string_view>
 
 namespace o2::tpc
 {

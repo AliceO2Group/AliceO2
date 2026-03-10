@@ -63,7 +63,8 @@ struct CMVContainer {
 
   /// Write the container as a TTree inside a TFile on disk
   /// \param filename  path to the output ROOT file
-  void writeToFile(const std::string& filename) const;
+  /// \param tree  tree of the container
+  void writeToFile(const std::string& filename, const std::unique_ptr<TTree>& tree) const;
 
   /// Restore a CMVContainer from a TTree previously written by toTTree()
   static CMVContainer fromTTree(TTree* tree, int entry = 0);

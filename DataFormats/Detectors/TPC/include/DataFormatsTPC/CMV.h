@@ -20,7 +20,7 @@
 #ifndef ALICEO2_DATAFORMATSTPC_CMV_H
 #define ALICEO2_DATAFORMATSTPC_CMV_H
 
-#include <bitset>
+#include <cstdint>
 
 namespace o2::tpc::cmv
 {

@@ -75,10 +75,11 @@ std::unique_ptr<TTree> CMVContainer::toTTree() const
     throw std::runtime_error("CMVContainer::toTTree() called on empty container");
   }
 
-  auto tree = std::make_unique<TTree>("CMVTree", "TPC common mode values");
+  auto tree = std::make_unique<TTree>("ccdb_object", "ccdb_object");
   tree->SetAutoSave(0);
+  tree->SetDirectory(nullptr);
 
-  // Point branches directly at the vector data — single Fill() call writes all rows
+  // Point branches directly at the vector data
   float* pCmv = const_cast<float*>(cmvValues.data());
   uint32_t* pCru = const_cast<uint32_t*>(cru.data());
   uint32_t* pTimebin = const_cast<uint32_t*>(timebin.data());
@@ -93,13 +94,12 @@ std::unique_ptr<TTree> CMVContainer::toTTree() const
   return tree;
 }
 
-void CMVContainer::writeToFile(const std::string& filename) const
+void CMVContainer::writeToFile(const std::string& filename, const std::unique_ptr<TTree>& tree) const
 {
   TFile f(filename.c_str(), "RECREATE");
   if (f.IsZombie()) {
     throw std::runtime_error(fmt::format("CMVContainer::writeToFile: cannot open '{}'", filename));
   }
-  auto tree = toTTree();
   tree->Write();
   f.Close();
 }

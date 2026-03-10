@@ -15,7 +15,6 @@
 
 #include "Algorithm/RangeTokenizer.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/ControlService.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"

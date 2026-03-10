@@ -13,7 +13,6 @@
 /// @author Tuba Gündem, tuba.gundem@cern.ch
 /// @brief  Processor to convert CMVs to a vector in a CRU
 
-#include <iterator>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -21,15 +20,12 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
-#include <cassert>
-#include <cmath>
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
 #include "TFile.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Task.h"
-#include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
@@ -40,23 +36,15 @@
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "CommonUtils/NameConf.h"
-#include "DataFormatsTPC/Constants.h"
-#include "CommonConstants/LHCConstants.h"
-#include "CCDB/BasicCCDBManager.h"
 
-#include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/CMV.h"
 #include "DataFormatsTPC/RawDataTypes.h"
-#include "TPCBase/Utils.h"
 #include "TPCBase/RDHUtils.h"
 #include "TPCBase/Mapper.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 
 using namespace o2::framework;
-using o2::constants::lhc::LHCMaxBunches;
 using o2::header::gDataOriginTPC;
-using o2::tpc::constants::LHCBCPERTIMEBIN;
 using RDHUtils = o2::raw::RDHUtils;
 using RawDataType = o2::tpc::raw_data_types::Type;
 

@@ -20,8 +20,6 @@
 #include <chrono>
 #include <fmt/format.h>
 
-#include "TMemFile.h"
-
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
@@ -198,7 +196,7 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
     mTimestampStart = mUsePreciseTimestamp
                         ? (mTFInfo.first + (tinfo.firstTForbit - nOrbitsOffset) * o2::constants::lhc::LHCOrbitMUS * 0.001)
                         : tinfo.creation;
-    LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}, nOrbitsOffset: {}",
+    LOGP(info, "Setting timestamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}, nOrbitsOffset: {}",
          mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, mTFInfo.second, relTF, nOrbitsOffset);
   }
 
@@ -219,37 +217,26 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
     const long offsetCCDB = mOffsetCCDB ? o2::ccdb::CcdbObjectInfo::HOUR : 0;
     const long timeStampEnd = offsetCCDB + mTimestampStart +
                               mNOrbitsCMV * mTimeFrames * mNTFsBuffer * o2::constants::lhc::LHCOrbitMUS * 0.001;
-    LOGP(info, "Setting time stamp range from {} to {} for writing to CCDB with an offset of {}",
+    LOGP(info, "Setting timestamp range from {} to {} for writing to CCDB with an offset of {}",
          mTimestampStart, timeStampEnd, offsetCCDB);
-
-    // Write local ROOT file for debugging
-    if (mDumpCMVs) {
-      const std::string fname = fmt::format("CMV_lane{:02}_TS{}.root", mLaneId, mTimestampStart);
-      try {
-        mContainer.writeToFile(fname);
-        LOGP(info, "CMV debug file written to {}", fname);
-      } catch (const std::exception& e) {
-        LOGP(error, "Failed to write CMV debug file: {}", e.what());
-      }
-    }
 
     if (mSendCCDB && timeStampEnd > mTimestampStart) {
       auto start = timer::now();
 
-      // Build a TMemFile containing the TTree, hand it to CcdbApi for serialisation
-      TMemFile memFile("CMV.root", "RECREATE");
-      try {
-        auto tree = mContainer.toTTree();
-        memFile.cd();
-        tree->Write();
-      } catch (const std::exception& e) {
-        LOGP(error, "CMVContainer::toTTree() failed: {}", e.what());
-        reset();
-        return;
-      }
-      memFile.Write();
+      auto tree = mContainer.toTTree();
 
-      o2::ccdb::CcdbObjectInfo ccdbInfo(
+      // Write local ROOT file for debugging
+      if (mDumpCMVs) {
+        const std::string fname = fmt::format("CMV_lane{:02}_timestamp{}.root", mLaneId, mTimestampStart);
+        try {
+          mContainer.writeToFile(fname, tree);
+          LOGP(info, "CMV debug file written to {}", fname);
+        } catch (const std::exception& e) {
+          LOGP(error, "Failed to write CMV debug file: {}", e.what());
+        }
+      }
+
+      o2::ccdb::CcdbObjectInfo ccdbInfoCMV(
         "TPC/Calib/CMV",
         "TTree",
         "CMV.root",
@@ -257,19 +244,18 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
         mTimestampStart,
         timeStampEnd);
 
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&memFile, &ccdbInfo);
+      auto image = o2::ccdb::CcdbApi::createObjectImage((tree.get()), &ccdbInfoCMV);
       LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {}",
-           ccdbInfo.getPath(), ccdbInfo.getFileName(), image->size(),
-           ccdbInfo.getStartValidityTimestamp(), ccdbInfo.getEndValidityTimestamp());
+           ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(),
+           ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
 
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBCMV(), 0}, *image);
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBCMV(), 0}, ccdbInfo);
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBCMV(), 0}, ccdbInfoCMV);
 
       auto stop = timer::now();
       std::chrono::duration<float> elapsed = stop - start;
       LOGP(info, "CMV CCDB serialisation time: {:.3f} s", elapsed.count());
     }
-
     reset();
   }
 
