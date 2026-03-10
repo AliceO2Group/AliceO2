@@ -404,7 +404,7 @@ TString GeometryTGeo::getMatrixPath(int index) const
   // handling cylindrical configuration for ML and/or OT
   // needed because of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
   if (subDetID == 1) {
-    if ((layer < 4 && mLayoutMLOT == eMLOTLayout::kCylindrical) || (layer > 3 && mLayoutMLOT == MLOTLayout::kCylindrical)) {
+    if ((layer < 4 && mLayoutMLOT == eMLOTLayout::kCylindrical) || (layer > 3 && mLayoutMLOT == eMLOTLayout::kCylindrical)) {
       stave = 1;
       mod = 1;
       chip = 1;
