@@ -126,7 +126,7 @@ CMVContainer CMVContainer::fromTTree(TTree* tree, int entry)
   tree->SetBranchAddress("tf", bTf.data());
 
   tree->GetEntry(entry);
-  
+
   c.cmvValues = std::move(bCmv);
   c.cru = std::move(bCru);
   c.timebin = std::move(bTimebin);
