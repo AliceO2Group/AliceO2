@@ -132,19 +132,22 @@ TGeoVolume* TRKSegmentedLayer::createChip()
 
   TGeoVolume* sensVol = createSensor();
   TGeoCombiTrans* transSens = new TGeoCombiTrans();
-  transSens->SetTranslation(-sDeadzoneWidth / 2, -(mChipThickness - sSensorThickness) / 2, 0);
+  // transSens->SetTranslation(-sDeadzoneWidth / 2, -(mChipThickness - sSensorThickness) / 2, 0);
+  transSens->SetTranslation(-sDeadzoneWidth / 2, (mChipThickness - sSensorThickness) / 2, 0);
   LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, transSens);
 
   TGeoVolume* deadVol = createDeadzone();
   TGeoCombiTrans* transDead = new TGeoCombiTrans();
-  transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, -(mChipThickness - sSensorThickness) / 2, 0);
+  // transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, -(mChipThickness - sSensorThickness) / 2, 0);
+  transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, (mChipThickness - sSensorThickness) / 2, 0);
   LOGP(debug, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
   chipVol->AddNode(deadVol, 1, transDead);
 
   TGeoVolume* metalVol = createMetalStack();
   TGeoCombiTrans* transMetal = new TGeoCombiTrans();
-  transMetal->SetTranslation(0, sSensorThickness / 2, 0);
+  // transMetal->SetTranslation(0, sSensorThickness / 2, 0);
+  transMetal->SetTranslation(0, -sSensorThickness / 2, 0);
   LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
   chipVol->AddNode(metalVol, 1, transMetal);
 
@@ -234,7 +237,8 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
     TGeoVolume* staveVol = createStave();
     TGeoCombiTrans* trans = new TGeoCombiTrans();
     double theta = 360. * iStave / nStaves;
-    TGeoRotation* rot = new TGeoRotation("rot", theta - 90 + 4, 0, 0);
+    // TGeoRotation* rot = new TGeoRotation("rot", theta - 90 + 4, 0, 0);
+    TGeoRotation* rot = new TGeoRotation("rot", theta + 90 + 4, 0, 0);
     trans->SetRotation(rot);
     trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
     LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
@@ -316,7 +320,8 @@ void TRKOTLayer::createLayer(TGeoVolume* motherVolume)
     TGeoVolume* staveVol = createStave();
     TGeoCombiTrans* trans = new TGeoCombiTrans();
     double theta = 360. * iStave / nStaves;
-    TGeoRotation* rot = new TGeoRotation("rot", theta - 90, 0, 0);
+    // TGeoRotation* rot = new TGeoRotation("rot", theta - 90, 0, 0);
+    TGeoRotation* rot = new TGeoRotation("rot", theta + 90, 0, 0);
     trans->SetRotation(rot);
     trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
     LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
