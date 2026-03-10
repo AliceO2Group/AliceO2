@@ -165,6 +165,8 @@ class TrackParametrization
   GPUd() value_t getTgl() const;
   GPUhd() value_t getQ2Pt() const;
   GPUd() value_t getCharge2Pt() const;
+  GPUd() value_t getR2() const;
+  GPUd() value_t getR() const;
   GPUd() int getAbsCharge() const;
   GPUd() PID getPID() const;
   GPUd() void setPID(const PID pid, bool passCharge = false);
@@ -376,6 +378,20 @@ template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getCharge2Pt() const -> value_t
 {
   return mAbsCharge ? mP[kQ2Pt] : 0.f;
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUdi() auto TrackParametrization<value_T>::getR2() const -> value_t
+{
+  return mX * mX + mP[kY] * mP[kY];
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUdi() auto TrackParametrization<value_T>::getR() const -> value_t
+{
+  return gpu::CAMath::Sqrt(getR2());
 }
 
 //____________________________________________________________
