@@ -142,3 +142,9 @@ uint32_t GPUO2InterfaceUtils::getTpcMaxTimeBinFromNHbf(uint32_t nHbf)
 {
   return (nHbf * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
 }
+
+float GPUO2InterfaceUtils::getNominalGPUBzFromCurrent(float l3curr)
+{
+  float al3curr = CAMath::Abs(l3curr);
+  return (CAMath::Abs(al3curr - 12000) < CAMath::Abs(al3curr - 30000) ? (2.04487f / 12000.f) : (5.00668f / 30000.f)) * l3curr;
+}
