@@ -22,7 +22,7 @@
 BOOST_AUTO_TEST_CASE(layertiming_basic)
 {
   o2::its::ROFOverlapTable<1> table;
-  table.defineLayer(0, 10, 594, 100, 50);
+  table.defineLayer(0, 10, 594, 100, 0, 50);
   const auto& layer = table.getLayer(0);
 
   // test ROF time calculations
@@ -40,9 +40,9 @@ BOOST_AUTO_TEST_CASE(layertiming_basic)
 BOOST_AUTO_TEST_CASE(layertiming_base)
 {
   o2::its::ROFOverlapTable<3> table;
-  table.defineLayer(0, 10, 500, 0, 0);
-  table.defineLayer(1, 12, 600, 50, 0);
-  table.defineLayer(2, 8, 400, 100, 0);
+  table.defineLayer(0, 10, 500, 0, 0, 0);
+  table.defineLayer(1, 12, 600, 50, 0, 0);
+  table.defineLayer(2, 8, 400, 100, 0, 0);
   const auto& layer1 = table.getLayer(1);
   BOOST_CHECK_EQUAL(layer1.mNROFsTF, 12);
   BOOST_CHECK_EQUAL(layer1.mROFLength, 600);
@@ -53,8 +53,8 @@ BOOST_AUTO_TEST_CASE(rofoverlap_basic)
 {
   // define 2 layers with the same definitions (no staggering)
   o2::its::ROFOverlapTable<2> table;
-  table.defineLayer(0, 12, 594, 0, 0);
-  table.defineLayer(1, 12, 594, 0, 0);
+  table.defineLayer(0, 12, 594, 0, 0, 0);
+  table.defineLayer(1, 12, 594, 0, 0, 0);
   table.init();
   const auto view = table.getView();
   // each rof in layer 0 should be compatible with its layer 1 equivalent
@@ -69,8 +69,8 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered)
 {
   // test staggered layers with ROF delay
   o2::its::ROFOverlapTable<2> table;
-  table.defineLayer(0, 10, 500, 0, 0);
-  table.defineLayer(1, 10, 500, 250, 0); // 250 BC delay
+  table.defineLayer(0, 10, 500, 0, 0, 0);
+  table.defineLayer(1, 10, 500, 250, 0, 0); // 250 BC delay
   table.init();
   const auto view = table.getView();
 
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_pp)
   const uint32_t rofDelay{rofLen / rofBins};
   o2::its::ROFOverlapTable<3> table;
   for (uint32_t lay{0}; lay < 3; ++lay) {
-    table.defineLayer(lay, 6, rofLen, lay * rofDelay, 0);
+    table.defineLayer(lay, 6, rofLen, lay * rofDelay, 0, 0);
   }
   table.init();
   const auto view = table.getView();
@@ -104,9 +104,9 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_alllayers)
 {
   // test staggered layers with ROF delay
   o2::its::ROFOverlapTable<3> table;
-  table.defineLayer(0, 2, 3, 0, 0);
-  table.defineLayer(1, 3, 2, 0, 0);
-  table.defineLayer(2, 6, 1, 0, 0);
+  table.defineLayer(0, 2, 3, 0, 0, 0);
+  table.defineLayer(1, 3, 2, 0, 0, 0);
+  table.defineLayer(2, 6, 1, 0, 0, 0);
   table.init();
   const auto view = table.getView();
   // verify overlap range
@@ -226,9 +226,9 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_alllayers_delay_delta)
 {
   // test staggered layers with ROF delay
   o2::its::ROFOverlapTable<3> table;
-  table.defineLayer(0, 2, 3, 0, 0);
-  table.defineLayer(1, 3, 2, 1, 0);
-  table.defineLayer(2, 6, 1, 0, 1);
+  table.defineLayer(0, 2, 3, 0, 0, 0);
+  table.defineLayer(1, 3, 2, 1, 0, 0);
+  table.defineLayer(2, 6, 1, 0, 0, 1);
   table.init();
   const auto view = table.getView();
 
@@ -349,8 +349,8 @@ BOOST_AUTO_TEST_CASE(rofoverlap_with_delta)
 {
   // test with ROF delta for compatibility window
   o2::its::ROFOverlapTable<2> table;
-  table.defineLayer(0, 8, 600, 0, 100); // +/- 100 BC delta
-  table.defineLayer(1, 8, 600, 0, 100);
+  table.defineLayer(0, 8, 600, 0, 0, 100); // +/- 100 BC delta
+  table.defineLayer(1, 8, 600, 0, 0, 100);
   table.init();
   const auto view = table.getView();
 
@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE(rofoverlap_same_layer)
 {
   // test same layer compatibility
   o2::its::ROFOverlapTable<1> table;
-  table.defineLayer(0, 10, 500, 0, 0);
+  table.defineLayer(0, 10, 500, 0, 0, 0);
   table.init();
   const auto view = table.getView();
 
@@ -383,10 +383,10 @@ BOOST_AUTO_TEST_CASE(rofoverlap_same_layer)
 BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_basic)
 {
   o2::its::ROFOverlapTable<4> table;
-  table.defineLayer(0, 4, 100, 0, 0);
-  table.defineLayer(1, 4, 100, 0, 0);
-  table.defineLayer(2, 8, 50, 0, 0);
-  table.defineLayer(3, 7, 50, 50, 0);
+  table.defineLayer(0, 4, 100, 0, 0, 0);
+  table.defineLayer(1, 4, 100, 0, 0, 0);
+  table.defineLayer(2, 8, 50, 0, 0, 0);
+  table.defineLayer(3, 7, 50, 50, 0, 0);
   table.init();
   const auto& view = table.getView();
 
@@ -410,10 +410,10 @@ BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_basic)
 BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_complex)
 {
   o2::its::ROFOverlapTable<4> table;
-  table.defineLayer(0, 4, 100, 0, 0);
-  table.defineLayer(1, 4, 100, 0, 10);
-  table.defineLayer(2, 8, 50, 0, 0);
-  table.defineLayer(3, 7, 50, 50, 10);
+  table.defineLayer(0, 4, 100, 0, 0, 0);
+  table.defineLayer(1, 4, 100, 0, 0, 10);
+  table.defineLayer(2, 8, 50, 0, 0, 0);
+  table.defineLayer(3, 7, 50, 50, 0, 10);
   table.init();
   const auto& view = table.getView();
 
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_complex)
 BOOST_AUTO_TEST_CASE(rofvertex_basic)
 {
   o2::its::ROFVertexLookupTable<1> table;
-  table.defineLayer(0, 6, 594, 0, 0);
+  table.defineLayer(0, 6, 594, 0, 0, 0);
   table.init();
   std::vector<o2::its::Vertex> vertices;
   o2::its::Vertex vert0;
@@ -456,8 +456,8 @@ BOOST_AUTO_TEST_CASE(rofvertex_basic)
 BOOST_AUTO_TEST_CASE(rofvertex_init_with_vertices)
 {
   o2::its::ROFVertexLookupTable<2> table;
-  table.defineLayer(0, 10, 500, 0, 0);
-  table.defineLayer(1, 10, 500, 0, 0);
+  table.defineLayer(0, 10, 500, 0, 0, 0);
+  table.defineLayer(1, 10, 500, 0, 0, 0);
 
   // create vertices at different timestamps
   std::vector<o2::its::Vertex> vertices;
@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_CASE(rofvertex_init_with_vertices)
 BOOST_AUTO_TEST_CASE(rofvertex_max_vertices)
 {
   o2::its::ROFVertexLookupTable<1> table;
-  table.defineLayer(0, 3, 1000, 0, 500);
+  table.defineLayer(0, 3, 1000, 0, 0, 500);
 
   std::vector<o2::its::Vertex> vertices;
   for (int i = 0; i < 10; ++i) {
@@ -499,10 +499,10 @@ BOOST_AUTO_TEST_CASE(rofvertex_max_vertices)
 BOOST_AUTO_TEST_CASE(rofvertex_vertex_more)
 {
   o2::its::ROFVertexLookupTable<4> table;
-  table.defineLayer(0, 4, 100, 0, 0);
-  table.defineLayer(1, 4, 100, 0, 10);
-  table.defineLayer(2, 8, 50, 0, 0);
-  table.defineLayer(3, 7, 50, 50, 10);
+  table.defineLayer(0, 4, 100, 0, 0, 0);
+  table.defineLayer(1, 4, 100, 0, 0, 10);
+  table.defineLayer(2, 8, 50, 0, 0, 0);
+  table.defineLayer(3, 7, 50, 50, 0, 10);
   table.init();
 
   std::vector<o2::its::Vertex> vertices;
@@ -632,10 +632,10 @@ BOOST_AUTO_TEST_CASE(rofvertex_vertex_more)
 BOOST_AUTO_TEST_CASE(rofvertex_exact_compatibility)
 {
   o2::its::ROFVertexLookupTable<4> table;
-  table.defineLayer(0, 4, 100, 0, 0);
-  table.defineLayer(1, 4, 100, 0, 10);
-  table.defineLayer(2, 8, 50, 0, 0);
-  table.defineLayer(3, 7, 50, 50, 10);
+  table.defineLayer(0, 4, 100, 0, 0, 0);
+  table.defineLayer(1, 4, 100, 0, 0, 10);
+  table.defineLayer(2, 8, 50, 0, 0, 0);
+  table.defineLayer(3, 7, 50, 50, 0, 10);
   table.init();
 
   // sorted by lower bound (timestamp - error)

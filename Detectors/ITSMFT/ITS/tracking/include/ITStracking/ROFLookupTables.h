@@ -15,6 +15,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <format>
+#include <string>
 #include <numeric>
 #include <vector>
 
@@ -34,15 +36,16 @@ struct LayerTiming {
   using BCType = uint32_t;
   BCType mNROFsTF{0};       // number of ROFs per timeframe
   BCType mROFLength{0};     // ROF length in BC
-  BCType mROFDelay{0};      // delay of ROFs wrt LHC orbit
-  BCType mROFAddTimeErr{0}; // additionally imposed uncertainty on ROF time
+  BCType mROFDelay{0};      // delay of ROFs wrt start of first orbit in TF in BC
+  BCType mROFBias{0};       // bias wrt to the LHC clock in BC
+  BCType mROFAddTimeErr{0}; // additionally imposed uncertainty on ROF time in BC
 
   // return start of ROF in BC
   // this does not account for the opt. error!
   GPUhdi() BCType getROFStartInBC(BCType rofId) const noexcept
   {
     assert(rofId < mNROFsTF && rofId >= 0);
-    return (mROFLength * rofId) + mROFDelay;
+    return (mROFLength * rofId) + mROFDelay + mROFBias;
   }
 
   // return end of ROF in BCs
@@ -54,7 +57,6 @@ struct LayerTiming {
   }
 
   // return (clamped) time-interval of rof
-  // the time-stamp here is symmetrical e.g. [t0-e, t0+e]
   GPUhdi() TimeEstBC getROFTimeBounds(BCType rofId, bool withError = false) const noexcept
   {
     if (withError) {
@@ -66,13 +68,13 @@ struct LayerTiming {
       return {BCType(start) + half, static_cast<uint16_t>(half)};
     }
     const BCType start = getROFStartInBC(rofId);
-    const BCType half = (getROFEndInBC(rofId) - start) / BCType(2);
+    const BCType half = mROFLength / BCType(2);
     return {start + half, static_cast<uint16_t>(half)};
   }
 
   GPUh() std::string asString() const
   {
-    return std::format("NROFsPerTF {:4} ROFLength {:4} ({:4} per Orbit) ROFDelay {:4} ROFAddTimeErr {:4}", mNROFsTF, mROFLength, (o2::constants::lhc::LHCMaxBunches / mROFLength), mROFDelay, mROFAddTimeErr);
+    return std::format("NROFsPerTF {:4} ROFLength {:4} ({:4} per Orbit) ROFDelay {:4} ROFBias {:4} ROFAddTimeErr {:4}", mNROFsTF, mROFLength, (o2::constants::lhc::LHCMaxBunches / mROFLength), mROFDelay, mROFBias, mROFAddTimeErr);
   }
 
   GPUh() void print() const
@@ -92,10 +94,10 @@ class LayerTimingBase
   using T = LayerTiming::BCType;
   GPUdDefault() LayerTimingBase() = default;
 
-  GPUh() void defineLayer(int32_t layer, T nROFsTF, T rofLength, T rofDelay, T rofTE)
+  GPUh() void defineLayer(int32_t layer, T nROFsTF, T rofLength, T rofDelay, T rofBias, T rofTE)
   {
     assert(layer >= 0 && layer < NLayers);
-    mLayers[layer] = {nROFsTF, rofLength, rofDelay, rofTE};
+    mLayers[layer] = {nROFsTF, rofLength, rofDelay, rofBias, rofTE};
   }
 
   GPUh() void defineLayer(int32_t layer, const LayerTiming& timing)
@@ -307,8 +309,8 @@ class ROFOverlapTable : public LayerTimingBase<NLayers>
       int64_t fromStart = o2::gpu::CAMath::Max((int64_t)layerFrom.getROFStartInBC(iROF) - (int64_t)layerFrom.mROFAddTimeErr, int64_t(0));
       int64_t fromEnd = (int64_t)layerFrom.getROFEndInBC(iROF) + layerFrom.mROFAddTimeErr;
 
-      int32_t firstROFTo = o2::gpu::CAMath::Max(0, (int32_t)((fromStart - (int64_t)layerTo.mROFDelay) / (int64_t)layerTo.mROFLength));
-      int32_t lastROFTo = (int32_t)((fromEnd - (int64_t)layerTo.mROFDelay - 1) / (int64_t)layerTo.mROFLength);
+      int32_t firstROFTo = o2::gpu::CAMath::Max(0, (int32_t)((fromStart - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias) / (int64_t)layerTo.mROFLength));
+      int32_t lastROFTo = (int32_t)((fromEnd - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias - 1) / (int64_t)layerTo.mROFLength);
       firstROFTo = o2::gpu::CAMath::Max(0, firstROFTo);
       lastROFTo = o2::gpu::CAMath::Min((int32_t)layerTo.mNROFsTF - 1, lastROFTo);
 

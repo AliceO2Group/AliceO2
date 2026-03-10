@@ -97,7 +97,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     const auto& trackParams = mTracker->getParameters();
     for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
       const unsigned int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
-      const LayerTiming timing{.mNROFsTF = (nROFsPerOrbit * nOrbitsPerTF), .mROFLength = (uint32_t)par.getROFLengthInBC(iLayer), .mROFDelay = (uint32_t)par.getROFDelayInBC(iLayer), .mROFAddTimeErr = trackParams[0].AddTimeError[iLayer]};
+      const LayerTiming timing{.mNROFsTF = (nROFsPerOrbit * nOrbitsPerTF), .mROFLength = (uint32_t)par.getROFLengthInBC(iLayer), .mROFDelay = (uint32_t)par.getROFDelayInBC(iLayer), .mROFBias = (uint32_t)par.getROFBiasInBC(iLayer), .mROFAddTimeErr = trackParams[0].AddTimeError[iLayer]};
       rofTable.defineLayer(iLayer, timing);
       vtxTable.defineLayer(iLayer, timing);
     }
