@@ -53,8 +53,9 @@ class GPUO2InterfaceUtils
   template <class T>
   static float getNominalGPUBz(T& src)
   {
-    return (5.00668f / 30000.f) * src.getL3Current();
+    return getNominalGPUBzFromCurrent(src.getL3Current());
   }
+  static float getNominalGPUBzFromCurrent(float l3curr);
   static std::unique_ptr<GPUParam> getFullParam(float solenoidBz, uint32_t nHbfPerTf = 0, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration = nullptr, std::unique_ptr<GPUSettingsO2>* pO2Settings = nullptr, bool* autoMaxTimeBin = nullptr);
   static std::shared_ptr<GPUParam> getFullParamShared(float solenoidBz, uint32_t nHbfPerTf = 0, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration = nullptr, std::unique_ptr<GPUSettingsO2>* pO2Settings = nullptr, bool* autoMaxTimeBin = nullptr); // Return owning pointer
   static void paramUseExternalOccupancyMap(GPUParam* param, uint32_t nHbfPerTf, const uint32_t* occupancymap, int32_t occupancyMapSize);
