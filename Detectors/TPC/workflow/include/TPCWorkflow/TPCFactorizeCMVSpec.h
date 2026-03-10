@@ -155,7 +155,7 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOGP(info, "End of stream – flushing CMV container ({} entries, lane {})", mContainer.size(), mLaneId);
+    LOGP(info, "End of stream, flushing CMV container ({} entries, lane {})", mContainer.size(), mLaneId);
     mContainer.nTFs = static_cast<uint32_t>(mTimeFrames);
     mContainer.nCRUs = static_cast<uint32_t>(mCRUs.size());
     sendOutput(ec.outputs());
