@@ -1753,3 +1753,17 @@ void ChipMappingMFT::print() const
            ChipMappingData[iChip].chipOnRU);
   }
 }
+
+//_____________________________________________________________________________
+std::vector<uint16_t> ChipMappingMFT::getLayer2FEEIDs(int lr)
+{
+  std::vector<uint16_t> feeIDs;
+  for (int ilr = (lr >= 0 ? lr : 0); ilr < (lr >= 0 ? lr + 1 : NLayers); ++ilr) {
+    for (int iz = 0; iz < NZonesPerLayer; ++iz) {
+      for (int lnk = 0; lnk < NLinks; ++lnk) {
+        feeIDs.push_back(composeFEEId(ilr, iz, lnk));
+      }
+    }
+  }
+  return feeIDs;
+}

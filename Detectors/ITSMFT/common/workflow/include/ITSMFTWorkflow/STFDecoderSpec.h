@@ -16,12 +16,14 @@
 #ifndef O2_ITSMFT_STFDECODER_
 #define O2_ITSMFT_STFDECODER_
 
+#include <memory>
+#include <string>
+#include <array>
 #include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include <memory>
-#include <string>
-#include <string_view>
+#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
@@ -55,6 +57,9 @@ struct STFDecoderInp {
 template <class Mapping>
 class STFDecoder : public Task
 {
+  using AlpideParam = DPLAlpideParam<Mapping::getDetID()>;
+  static constexpr int NLayers{AlpideParam::supportsStaggering() ? AlpideParam::getNLayers() : 1};
+
  public:
   STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::base::GRPGeomRequest> gr);
   STFDecoder() = default;
@@ -70,6 +75,8 @@ class STFDecoder : public Task
   void finalize();
   void reset();
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
+  void ensureContinuousROF(const std::vector<ROFRecord>& in, std::vector<ROFRecord>& out, int lr, int nROFsTF, const char* name);
+
   TStopwatch mTimer;
   bool mDoClusters = false;
   bool mDoPatterns = false;
@@ -87,18 +94,20 @@ class STFDecoder : public Task
   int mVerbosity = 0;
   long mROFErrRepIntervalMS = 0;
   size_t mTFCounter = 0;
-  size_t mEstNDig = 0;
-  size_t mEstNClus = 0;
-  size_t mEstNClusPatt = 0;
-  size_t mEstNCalib = 0;
-  size_t mEstNROF = 0;
+  uint32_t mFirstTFOrbit = 0;
+  o2::InteractionRecord mFirstIR;
+  std::array<size_t, NLayers> mEstNDig{0};
+  std::array<size_t, NLayers> mEstNClus{0};
+  std::array<size_t, NLayers> mEstNClusPatt{0};
+  std::array<size_t, NLayers> mEstNCalib{0};
   size_t mMaxRawDumpsSize = 0;
   size_t mRawDumpedSize = 0;
   std::string mInputSpec;
   std::string mSelfName;
-  std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
+  std::array<std::unique_ptr<RawPixelDecoder<Mapping>>, NLayers> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  std::array<std::vector<InputSpec>, NLayers> mRawFilter;
 };
 
 using STFDecoderITS = STFDecoder<ChipMappingITS>;

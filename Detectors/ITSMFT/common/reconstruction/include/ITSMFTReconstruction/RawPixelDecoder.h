@@ -17,6 +17,7 @@
 #include <array>
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
+#include "Framework/InputSpec.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "DetectorsRaw/HBFUtils.h"
@@ -56,7 +57,7 @@ class RawPixelDecoder final : public PixelReader
   bool getNextChipData(ChipPixelData& chipData) final;
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;
   void ensureChipOrdering() {}
-  void startNewTF(o2::framework::InputRecord& inputs);
+  void startNewTF(o2::framework::InputRecord& inputs, const std::vector<o2::framework::InputSpec>& filter);
   void collectROFCableData(int iru);
   int decodeNextTrigger() final;
 
@@ -138,7 +139,7 @@ class RawPixelDecoder final : public PixelReader
   void reset();
 
  private:
-  void setupLinks(o2::framework::InputRecord& inputs);
+  void setupLinks(o2::framework::InputRecord& inputsm, const std::vector<o2::framework::InputSpec>& filter);
   int getRUEntrySW(int ruSW) const { return mRUEntry[ruSW]; }
   RUDecodeData* getRUDecode(int ruSW) { return &mRUDecodeVec[mRUEntry[ruSW]]; }
   GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
