@@ -20,7 +20,6 @@
 #include <TGeoVolume.h>
 
 #include <TMath.h>
-#include "TRKLayer_copy.h"
 
 namespace o2
 {
