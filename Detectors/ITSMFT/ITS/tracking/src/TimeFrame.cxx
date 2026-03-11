@@ -128,6 +128,8 @@ void TimeFrame<NLayers>::loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> 
 
   if (mcLabels != nullptr) {
     mClusterLabels[layer] = mcLabels;
+  } else {
+    mClusterLabels[layer] = nullptr;
   }
 }
 

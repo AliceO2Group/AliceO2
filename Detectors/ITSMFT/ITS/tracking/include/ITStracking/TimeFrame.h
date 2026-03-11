@@ -248,7 +248,7 @@ struct TimeFrame {
   std::array<bounded_vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfo;
   std::array<bounded_vector<int>, NLayers> mClusterExternalIndices;
   std::array<bounded_vector<int>, NLayers> mROFramesClusters;
-  std::array<const dataformats::MCTruthContainer<MCCompLabel>*, NLayers> mClusterLabels;
+  std::array<const dataformats::MCTruthContainer<MCCompLabel>*, NLayers> mClusterLabels{nullptr};
   std::array<bounded_vector<int>, 2> mNTrackletsPerCluster;
   std::array<bounded_vector<int>, 2> mNTrackletsPerClusterSum;
   std::array<bounded_vector<int>, NLayers> mNClustersPerROF;
