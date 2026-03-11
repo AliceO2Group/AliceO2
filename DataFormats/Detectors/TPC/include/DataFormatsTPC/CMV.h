@@ -15,12 +15,14 @@
 
 /// The data is sent by the CRU as 256+16 bit words. The CMV data layout is as follows:
 /// - 256-bit Header: [version:8][packetID:8][errorCode:8][magicWord:8][heartbeatOrbit:32][heartbeatBC:16][padding:176]
-/// - 16-bit CMV value: [CMV:16]
+/// - 16-bit CMV value: [sign:1][I8F7:15] where bit 15 is the sign (1=positive, 0=negative) and the lower 15 bits are a fixed point I8F7 value (8 integer bits, 7 fractional bits)
+///   Float conversion: sign ? (value & 0x7FFF) / 128.0 : -(value & 0x7FFF) / 128.0
 
 #ifndef ALICEO2_DATAFORMATSTPC_CMV_H
 #define ALICEO2_DATAFORMATSTPC_CMV_H
 
 #include <cstdint>
+#include <cmath>
 
 namespace o2::tpc::cmv
 {
@@ -28,8 +30,6 @@ namespace o2::tpc::cmv
 static constexpr uint32_t NTimeBinsPerPacket = 3564;                                 ///< number of time bins (covering 8 heartbeats)
 static constexpr uint32_t NPacketsPerTFPerCRU = 4;                                   ///< 4 packets per timeframe
 static constexpr uint32_t NTimeBinsPerTF = NTimeBinsPerPacket * NPacketsPerTFPerCRU; ///< maximum number of timebins per timeframe (14256)
-static constexpr uint32_t SignificantBits = 2;                                       ///< number of bits used for floating point precision
-static constexpr float FloatConversion = 1.f / float(1 << SignificantBits);          ///< conversion factor from integer representation to float
 
 /// Header definition of the CMVs
 struct Header {
@@ -83,18 +83,25 @@ struct Header {
 
 /// CMV single data container
 struct Data {
-  uint16_t CMV{0}; ///< 16bit ADC value
+  uint16_t CMV{0}; ///< 16-bit signed fixed point value: bit 15 = sign (1=positive, 0=negative), bits 14-0 = I8F7 magnitude
 
-  // Raw integer accessors
-  uint16_t getCMV() const { return CMV; }
-  void setCMV(uint16_t value) { CMV = value; }
+  uint16_t getCMV() const { return CMV; }      ///< raw 16-bit integer representation
+  void setCMV(uint16_t value) { CMV = value; } ///< set raw 16-bit integer representation
 
-  // Float helpers using SignificantBits for fixed-point conversion
-  float getCMVFloat() const { return static_cast<float>(CMV) * FloatConversion; }
+  // Decode to float: sign-magnitude with 7 fractional bits, range ±255.992
+  float getCMVFloat() const
+  {
+    const bool positive = (CMV >> 15) & 1;          // bit 15: sign (1=positive, 0=negative)
+    const float magnitude = (CMV & 0x7FFF) / 128.f; // lower 15 bits, shift right by 7 (divide by 2^7)
+    return positive ? magnitude : -magnitude;
+  }
+
+  // Encode from float: clamps magnitude to 15 bits, range ±255.992
   void setCMVFloat(float value)
   {
-    // round to nearest representable fixed-point value
-    setCMV(uint32_t((value + 0.5f * FloatConversion) / FloatConversion));
+    const bool positive = (value >= 0.f);
+    const uint16_t magnitude = static_cast<uint16_t>(std::abs(value) * 128.f + 0.5f) & 0x7FFF;
+    CMV = (positive ? 0x8000 : 0x0000) | magnitude;
   }
 };
 
@@ -110,7 +117,7 @@ struct Container {
   const Data* getData() const { return data; }
   Data* getData() { return data; }
 
-  // Per-time-bin CMV accessors
+  // Per timebin CMV accessors
   uint16_t getCMV(uint32_t timeBin) const { return data[timeBin].getCMV(); }
   void setCMV(uint32_t timeBin, uint16_t value) { data[timeBin].setCMV(value); }
 

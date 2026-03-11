@@ -25,7 +25,6 @@
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCWorkflow/TPCFLPCMVSpec.h"
-#include "TPCBase/CRU.h"
 #include "MemoryResources/MemoryResources.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -37,27 +36,6 @@ using namespace o2::tpc;
 
 namespace o2::tpc
 {
-
-inline std::vector<Side> getCMVSides(const std::vector<uint32_t>& crus)
-{
-  bool hasA = false, hasC = false;
-  for (const auto cru : crus) {
-    const Side side = CRU(cru).side();
-    if (side == Side::A) {
-      hasA = true;
-    } else {
-      hasC = true;
-    }
-  }
-  std::vector<Side> sides;
-  if (hasA) {
-    sides.emplace_back(Side::A);
-  }
-  if (hasC) {
-    sides.emplace_back(Side::C);
-  }
-  return sides;
-}
 
 class TPCDistributeCMVSpec : public o2::framework::Task
 {
@@ -84,11 +62,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       }
     }
 
-    const auto sides = getCMVSides(mCRUs);
-    for (auto side : sides) {
-      const std::string name = (side == Side::A) ? "cmvsgroupa" : "cmvsgroupc";
-      mFilter.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(side)}, Lifetime::Sporadic});
-    }
+    mFilter.emplace_back(InputSpec{"cmvsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup()}, Lifetime::Sporadic});
   };
 
   void init(o2::framework::InitContext& ic) final
@@ -364,11 +338,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool sendPrecisetimeStamp = false, const int nTFsBuffer = 1)
 {
   std::vector<InputSpec> inputSpecs;
-  const auto sides = getCMVSides(crus);
-  for (auto side : sides) {
-    const std::string name = (side == Side::A) ? "cmvsgroupa" : "cmvsgroupc";
-    inputSpecs.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(side)}, Lifetime::Sporadic});
-  }
+  inputSpecs.emplace_back(InputSpec{"cmvsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup()}, Lifetime::Sporadic});
 
   std::vector<OutputSpec> outputSpecs;
   outputSpecs.reserve(outlanes);

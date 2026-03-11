@@ -90,9 +90,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
-  static constexpr header::DataDescription getDataDescriptionCMVGroup(const Side side) { return (side == Side::A) ? getDataDescriptionCMVGroupA() : getDataDescriptionCMVGroupC(); }
-  static constexpr header::DataDescription getDataDescriptionCMVGroupA() { return header::DataDescription{"CMVGROUPA"}; }
-  static constexpr header::DataDescription getDataDescriptionCMVGroupC() { return header::DataDescription{"CMVGROUPC"}; }
+  static constexpr header::DataDescription getDataDescriptionCMVGroup() { return header::DataDescription{"CMVGROUP"}; }
 
  private:
   const int mLane{};                                                ///< lane number of processor
@@ -106,7 +104,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
   void sendOutput(DataAllocator& output, const uint32_t cru)
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
-    output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionCMVGroup(CRU(cru).side()), subSpec}, std::move(mCMVs[cru]));
+    output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionCMVGroup(), subSpec}, std::move(mCMVs[cru]));
   }
 };
 
@@ -120,8 +118,7 @@ DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::vector<uint32_t>&
   for (const auto& cru : crus) {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
     inputSpecs.emplace_back(InputSpec{"cmvs", gDataOriginTPC, "CMVVECTOR", subSpec, Lifetime::Timeframe});
-    const Side side = CRU(cru).side();
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(side), subSpec}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(), subSpec}, Lifetime::Sporadic);
   }
 
   const auto id = fmt::format("tpc-flp-cmv-{:02}", ilane);
