@@ -211,12 +211,13 @@ void Tracker<NLayers>::sortTracks()
   bounded_vector<size_t> indices(trks.size(), mMemoryPool.get());
   std::iota(indices.begin(), indices.end(), 0);
   std::sort(indices.begin(), indices.end(), [&trks](size_t i, size_t j) {
+    // provide tracks sorted by lower-bound
     const auto& a = trks[i];
     const auto& b = trks[j];
-    const auto at = a.getTimeStamp();
-    const auto bt = b.getTimeStamp();
-    if (at.getTimeStamp() != bt.getTimeStamp()) { // sort first in time
-      return at.getTimeStamp() < bt.getTimeStamp();
+    const auto aLower = a.getTimeStamp().getTimeStamp() - a.getTimeStamp().getTimeStampError();
+    const auto bLower = b.getTimeStamp().getTimeStamp() - b.getTimeStamp().getTimeStampError();
+    if (aLower != bLower) {
+      return aLower < bLower;
     }
     return a.isBetter(b, 1e9); // then sort tracks in quality
   });
