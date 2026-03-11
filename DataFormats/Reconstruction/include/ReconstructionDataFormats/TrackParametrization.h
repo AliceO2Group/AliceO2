@@ -66,6 +66,9 @@ class DCA;
 
 namespace track
 {
+
+class TrackParFwd; // fwd declaration for conversion method
+
 // aliases for track elements
 enum ParLabels : int { kY,
                        kZ,
@@ -252,6 +255,7 @@ class TrackParametrization
   GPUd() void printParam() const;
   GPUd() void printParamHexadecimal();
 #ifndef GPUCA_ALIGPUCODE
+  void toFwdTrackPar(TrackParFwd& t) const;
   std::string asString() const;
   std::string asStringHexadecimal();
   size_t hash() const { return hash(getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt()); }

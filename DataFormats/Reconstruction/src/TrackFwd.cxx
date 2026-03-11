@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/TrackFwd.h"
+#include "ReconstructionDataFormats/TrackParametrization.h"
+#include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "Math/MatrixFunctions.h"
 #include <GPUCommonLogger.h>
 
@@ -41,7 +43,7 @@ void TrackParFwd::propagateParamToZlinear(double zEnd)
   auto dZ = (zEnd - getZ());
   auto phi0 = getPhi();
   auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
-  auto invtanl0 = 1.0 / getTanl();
+  auto invtanl0 = 1.0 / getTgl();
   auto n = dZ * invtanl0;
   mParameters(0) += n * cosphi0;
   mParameters(1) += n * sinphi0;
@@ -571,6 +573,80 @@ void TrackParCovFwd::propagateToDCAhelix(double zField, const std::array<double,
   LOG(debug) << "Failed to converge after " << iter << " iterations for vertex X=" << p[0] << ", Y=" << p[1] << ", Z = " << p[2];
   return;
 }
+
+template <typename T>
+void TrackParFwd::toBarrelTrackPar(TrackParametrization<T>& t) const
+{
+  // we select the barrel frame with alpha = phi, then by construction the snp is 0
+  auto alpha = getPhi();
+  auto csa = TMath::Cos(alpha), sna = TMath::Sin(alpha);
+  t.setAlpha(alpha);
+  t.setX(csa * getX() + sna * getY());
+  t.setY(-sna * getX() + csa * getY());
+  t.setZ(getZ());
+  t.setSnp(0);
+  t.setTgl(getTanl());
+  t.setQ2Pt(getInvQPt());
+}
+
+template <typename T>
+void TrackParCovFwd::toBarrelTrackParCov(TrackParametrizationWithError<T>& t) const
+{
+  // We select the barrel frame with alpha = phi, then by construction the snp is 0
+  auto alpha = getPhi();
+  auto csa = TMath::Cos(alpha), sna = TMath::Sin(alpha);
+  t.setAlpha(alpha);
+  t.setX(csa * getX() + sna * getY());
+  t.setY(-sna * getX() + csa * getY());
+  t.setZ(getZ());
+  t.setSnp(0);
+  t.setTgl(getTgl());
+  t.setQ2Pt(getInvQPt());
+  /*
+    The standard Jacobian d{barrel_param} / d{fwd_param} should be augmented by the "forward" uncertainty
+    in X_barrel translated to uncertainty in Z, i.e:
+    A fwd param variation delta_x, delta_y leads to barrel frame coordinate variaion
+    delta_xb =  csa delta_x + sna delta_y
+    delta_yb = -sna delta_x + csa delta_y
+    with dx_b/dz = csp/tgL = 1/tgL, dy_b/dz = snp/tgL = 0  (for phi 0 in the tracking frame) the variation of delta_xb would require
+    a shift in delta_zb = -tgL delta_xb to stat at the same X.
+    So, for alpha=phi (-> snp=0) choice the full Jacobian fwd->barrel is:
+    / -sna       csa      0 0 0  \
+    | -tgL*csa  -tgL*sna  0 0 0  |
+    |  0          0       1 0 0  |
+    |  0          0       0 1 0  |
+    \  0          0       0 0 1 /
+  */
+  const T a1 = -sna;
+  const T a2 = csa;
+  const T b1 = -getTgl() * csa;
+  const T b2 = -getTgl() * sna;
+  const T cphi = 1;
+  const auto& C = getCovariances();
+  typename TrackParametrizationWithError<T>::covMat_t covBarrel = {
+    T(a1 * a1 * C(0, 0) + 2 * a1 * a2 * C(0, 1) + a2 * a2 * C(1, 1)),         // kSigY2
+    T(a1 * b1 * C(0, 0) + (a1 * b2 + a2 * b1) * C(0, 1) + a2 * b2 * C(1, 1)), // kSigZY
+    T(b1 * b1 * C(0, 0) + 2 * b1 * b2 * C(0, 1) + b2 * b2 * C(1, 1)),         // kSigZ2
+    T(csa * (a1 * C(0, 2) + a2 * C(1, 2))),                                   // kSigSnpY
+    T(csa * (b1 * C(0, 2) + b2 * C(1, 2))),                                   // kSigSnpZ
+    T(csa * csa * C(2, 2)),                                                   // kSigSnp2
+    T(a1 * C(0, 3) + a2 * C(1, 3)),                                           // kSigTglY
+    T(b1 * C(0, 3) + b2 * C(1, 3)),                                           // kSigTglZ
+    T(csa * C(2, 3)),                                                         // kSigTglSnp
+    T(C(3, 3)),                                                               // kSigTgl2
+    T(a1 * C(0, 4) + a2 * C(1, 4)),                                           // kSigQ2PtY
+    T(b1 * C(0, 4) + b2 * C(1, 4)),                                           // kSigQ2PtZ
+    T(csa * C(2, 4)),                                                         // kSigQ2PtSnp
+    T(C(3, 4)),                                                               // kSigQ2PtTgl
+    T(C(4, 4))                                                                // kSigQ2Pt2
+  };
+  t.setCov(covBarrel);
+}
+
+template void TrackParFwd::toBarrelTrackPar<float>(TrackParametrization<float>&) const;
+template void TrackParFwd::toBarrelTrackPar<double>(TrackParametrization<double>&) const;
+template void TrackParCovFwd::toBarrelTrackParCov<float>(TrackParametrizationWithError<float>&) const;
+template void TrackParCovFwd::toBarrelTrackParCov<double>(TrackParametrizationWithError<double>&) const;
 
 } // namespace track
 } // namespace o2

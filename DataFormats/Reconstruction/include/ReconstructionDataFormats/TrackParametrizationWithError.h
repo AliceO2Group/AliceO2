@@ -25,6 +25,8 @@ namespace o2
 namespace track
 {
 
+class TrackParCovFwd; // fwd declaration for conversion method
+
 template <typename value_T = float>
 class TrackParametrizationWithError : public TrackParametrization<value_T>
 { // track+error parameterization
@@ -82,6 +84,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() void print() const;
   GPUd() void printHexadecimal();
 #ifndef GPUCA_ALIGPUCODE
+  bool toFwdTrackParCov(TrackParCovFwd& t) const;
   std::string asString() const;
   std::string asStringHexadecimal();
 #endif
