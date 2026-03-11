@@ -125,7 +125,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     for (int iROF{0}; iROF < nROFsTF; ++iROF) {
       auto& rof = expClusRofVec[iROF];
       int orb = iROF * par.getROFLengthInBC(iLayer) / o2::constants::lhc::LHCMaxBunches + firstTForbit;
-      int bc = iROF * par.getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches;
+      int bc = iROF * par.getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches + par.getROFDelayInBC(iLayer);
       o2::InteractionRecord ir(bc, orb);
       rof.setBCData(ir);
       rof.setROFrame(iROF);
