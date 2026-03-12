@@ -791,6 +791,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
         int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
         auto rofTS = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(currentROF, true);
         if (firstCls) {
+          firstCls = false;
           ts = rofTS;
         } else {
           if (!ts.isCompatible(rofTS)) {
