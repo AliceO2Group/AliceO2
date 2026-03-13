@@ -517,13 +517,6 @@ int32_t GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTr
     if (retVal == 0 && mSpecConfig.runITSTracking) {
       retVal = runITSTracking(*pc);
     }
-    static bool first = true;
-    if (first) {
-      first = false;
-      if (pc && pc->services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
-        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc->services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
-      }
-    }
   }
 
   if (!mSpecConfig.enableDoublePipeline) { // TODO: Why is this needed for double-pipeline?
@@ -819,6 +812,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       mNTFDumps++;
     }
   }
+  if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
+    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
+  }
+
   std::unique_ptr<GPUTrackingInOutPointers> ptrsDump;
   if (mConfParam->dumpBadTFMode == 2) {
     ptrsDump.reset(new GPUTrackingInOutPointers);

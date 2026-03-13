@@ -26,6 +26,7 @@
 
 #ifndef GPUCA_ALIGPUCODE
 #include <fmt/printf.h>
+#include "ReconstructionDataFormats/TrackFwd.h"
 #endif
 
 using namespace o2::gpu;
@@ -984,6 +985,21 @@ GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<valu
   dim2_t dca;
   return ttmp.propagateParamToDCA({xmv, ymv, zmv}, b, &dca) ? dca[1] : -9999.;
 }
+
+#ifndef GPUCA_ALIGPUCODE
+//______________________________________________
+template <typename value_T>
+void TrackParametrization<value_T>::toFwdTrackPar(TrackParFwd& t) const
+{
+  auto p = getXYZGlo();
+  t.setZ(p.Z());
+  t.setX(p.X());
+  t.setY(p.Y());
+  t.setPhi(getPhi());
+  t.setTanl(getTgl());
+  t.setInvQPt(getQ2Pt());
+}
+#endif
 
 namespace o2::track
 {
