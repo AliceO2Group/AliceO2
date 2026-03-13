@@ -13,9 +13,12 @@
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/VariantHelpers.h"
-#include <arrow/compute/api_aggregate.h>
+#include <arrow/util/config.h>
+#if (ARROW_VERSION_MAJOR > 20)
 #include <arrow/compute/initialize.h>
+#endif
 #include <arrow/compute/kernel.h>
+#include <arrow/compute/api_aggregate.h>
 #include <arrow/status.h>
 #include <arrow/table.h>
 #include <arrow/util/key_value_metadata.h>
@@ -228,10 +231,14 @@ std::shared_ptr<arrow::ChunkedArray> SliceBuilder::result() const
 
 arrow::Status SliceBuilder::SliceBuilder::preSlice()
 {
+#if (ARROW_VERSION_MAJOR > 20)
   auto status = arrow::compute::Initialize();
   if (!status.ok()) {
     throw framework::runtime_error_f("Cannot initialize arrow compute: %s", status.ToString().c_str());
   }
+#else
+  arrow::Status status;
+#endif
   arrow::Datum value_counts;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(value_counts, arrow::compute::CallFunction("value_counts", {mSource}, &options));
@@ -297,10 +304,14 @@ std::shared_ptr<arrow::ChunkedArray> ArrayBuilder::result() const
 
 arrow::Status ArrayBuilder::preFind()
 {
+#if (ARROW_VERSION_MAJOR > 20)
   auto status = arrow::compute::Initialize();
   if (!status.ok()) {
     throw framework::runtime_error_f("Cannot initialize arrow compute: %s", status.ToString().c_str());
   }
+#else
+  arrow::Status status;
+#endif
   arrow::Datum max;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(max, arrow::compute::CallFunction("max", {mSource}, &options));
