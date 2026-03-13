@@ -204,6 +204,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     // Run seeding vertexer
     if (!compClusters.empty()) {
       vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+      // FIXME: this is a temporary stop-gap measure until we figure the rest out
+      const auto& vtx = mTimeFrame->getPrimaryVertices();
+      vertices.insert(vertices.begin(), vtx.begin(), vtx.end());
     }
   }
   // const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
