@@ -25,8 +25,9 @@ using namespace o2::trk;
 
 // Data formats for ACTS interface
 struct Cell2D {
-  Cell2D(int rowv, int colv) : row(rowv), col(colv) {}
+  Cell2D(int rowv, int colv, uint32_t digIdx = 0) : row(rowv), col(colv), digitIdx(digIdx) {}
   int row, col;
+  uint32_t digitIdx;  ///< Index of the original digit (for MC label retrieval)
   Acts::Ccl::Label label{Acts::Ccl::NO_LABEL};
 };
 
@@ -222,7 +223,7 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
       cells.reserve(chipN);
       for (int i = chipFirst; i < chipFirst + chipN; ++i) {
         const auto& digit = digits[mSortIdx[i]];
-        cells.emplace_back(digit.getRow(), digit.getColumn());
+        cells.emplace_back(digit.getRow(), digit.getColumn(), mSortIdx[i]);
       }
 
       LOG(debug) << "Clustering with ACTS on chip " << chipID << " " << cells.size() << " digits";
@@ -303,6 +304,23 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
               const int nBytes = (tileRowSpan * tileColSpan + 7) / 8;
               patterns.insert(patterns.end(), patt.begin(), patt.begin() + nBytes);
 
+              // Handle MC labels for this tile
+              if (clusterLabels && digitLabels) {
+                const auto clsIdx = static_cast<uint32_t>(clusters.size());
+                for (const auto& cell : actsCluster.cells) {
+                  uint16_t r = static_cast<uint16_t>(cell.row);
+                  uint16_t c = static_cast<uint16_t>(cell.col);
+                  if (r >= tileRowMin && r <= tileRowMax && c >= tileColMin && c <= tileColMax) {
+                    if (cell.digitIdx < digitLabels->getIndexedSize()) {
+                      const auto& lbls = digitLabels->getLabels(cell.digitIdx);
+                      for (const auto& lbl : lbls) {
+                        clusterLabels->addElement(clsIdx, lbl);
+                      }
+                    }
+                  }
+                }
+              }
+
               // Create O2 cluster for this tile
               o2::trk::Cluster cluster;
               cluster.chipID = chipID;
@@ -330,6 +348,19 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
           patterns.emplace_back(static_cast<unsigned char>(colSpan));
           const int nBytes = (rowSpan * colSpan + 7) / 8;
           patterns.insert(patterns.end(), patt.begin(), patt.begin() + nBytes);
+
+          // Handle MC labels
+          if (clusterLabels && digitLabels) {
+            const auto clsIdx = static_cast<uint32_t>(clusters.size());
+            for (const auto& cell : actsCluster.cells) {
+              if (cell.digitIdx < digitLabels->getIndexedSize()) {
+                const auto& lbls = digitLabels->getLabels(cell.digitIdx);
+                for (const auto& lbl : lbls) {
+                  clusterLabels->addElement(clsIdx, lbl);
+                }
+              }
+            }
+          }
 
           // Create O2 cluster
           o2::trk::Cluster cluster;
