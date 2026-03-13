@@ -107,7 +107,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sLayerName;       ///< Layer name
   static std::string sChipName;        ///< Chip name
   static std::string sSensorName; ///< Sensor name
-  static std::string sPassiveName;      ///< Passive material name
+  static std::string sPassiveName; ///< Passive material name
 
  private:
   static std::unique_ptr<o2::ft3::GeometryTGeo> sInstance; ///< singletone instance
