@@ -18,6 +18,7 @@ o2_add_library(TRKReconstruction
                SOURCES src/TimeFrame.cxx
                        src/Clusterer.cxx
                        $<$<BOOL:${Acts_FOUND}>:src/ClustererACTS.cxx>
+                       $<$<BOOL:${Acts_FOUND}>:src/TrackerACTS.cxx>
                PUBLIC_LINK_LIBRARIES
                        O2::ITStracking
                        O2::GPUCommon
@@ -45,7 +46,8 @@ set(dictHeaders include/TRKReconstruction/TimeFrame.h
                 include/TRKReconstruction/Clusterer.h)
 
 if(Acts_FOUND)
-  list(APPEND dictHeaders include/TRKReconstruction/ClustererACTS.h)
+  list(APPEND dictHeaders include/TRKReconstruction/ClustererACTS.h
+                          include/TRKReconstruction/TrackerACTS.h)
 endif()
 
 o2_target_root_dictionary(TRKReconstruction
