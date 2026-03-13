@@ -14,9 +14,11 @@
 
 #include "TRKReconstruction/ClustererACTS.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "DataFormatsITSMFT/ClusterPattern.h"
 #include <Acts/Clusterization/Clusterization.hpp>
 
 #include <algorithm>
+#include <array>
 #include <numeric>
 
 using namespace o2::trk;
@@ -176,29 +178,6 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
       continue;
     }
 
-    // template <typename CellCollection, typename ClusterCollection,
-    //           std::size_t GridDim = 2,
-    //           typename Connect = DefaultConnect<typename CellCollection::value_type, GridDim>>
-    //           requires(GridDim == 1 || GridDim == 2)
-    //  void createClusters(Acts::Ccl::ClusteringData& data,
-    //                      CellCollection& cells,
-    //                      ClusterCollection& clusters,
-    //                      Connect&& connect = Connect());
-    using Cell = Cell2D;
-    using CellCollection = std::vector<Cell>;
-    using Cluster = Cluster2D;
-    using ClusterCollection = std::vector<Cluster>;
-    CellCollection cells;
-    Acts::Ccl::ClusteringData data;
-    ClusterCollection collection;
-
-    Acts::Ccl::createClusters<CellCollection, ClusterCollection, 2>(data,
-                                                                    cells,
-                                                                    collection,
-                                                                    Acts::Ccl::DefaultConnect<Cell, 2>(false));
-
-    LOG(debug) << "Clustering with ACTS, found " << collection.size() << " clusters in ROF " << iROF;
-
     // Sort digit indices within this ROF by (chipID, col, row) so we can process
     // chip by chip, column by column -- the same ordering the ALPIDE scanner expects.
     mSortIdx.resize(nEntries);
@@ -215,6 +194,17 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
       return da.getRow() < db.getRow();
     });
 
+    // Type aliases for ACTS clustering
+    using Cell = Cell2D;
+    using CellCollection = std::vector<Cell>;
+    using Cluster = Cluster2D;
+    using ClusterCollection = std::vector<Cluster>;
+    static constexpr int GridDim = 2; ///< Dimensionality of the clustering grid (2D for pixel detectors)
+
+    CellCollection cells;            // Input collection of cells (pixels) to be clustered
+    Acts::Ccl::ClusteringData data;  // Internal data structure used by ACTS clustering algorithm
+    ClusterCollection clsCollection; // Output collection of clusters found by the algorithm
+
     // Process one chip at a time
     int sliceStart = 0;
     while (sliceStart < nEntries) {
@@ -225,9 +215,139 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
       }
       const int chipN = sliceStart - chipFirst;
 
-      mThread->processChip(digits, chipFirst, chipN, &clusters, &patterns, digitLabels, clusterLabels, geom);
-    }
+      // Fill cells from digits for this chip
+      cells.clear();
+      data.clear();
+      clsCollection.clear();
+      cells.reserve(chipN);
+      for (int i = chipFirst; i < chipFirst + chipN; ++i) {
+        const auto& digit = digits[mSortIdx[i]];
+        cells.emplace_back(digit.getRow(), digit.getColumn());
+      }
 
+      LOG(debug) << "Clustering with ACTS on chip " << chipID << " " << cells.size() << " digits";
+      Acts::Ccl::createClusters<CellCollection, ClusterCollection, GridDim>(data,
+                                                                            cells,
+                                                                            clsCollection,
+                                                                            Acts::Ccl::DefaultConnect<Cell, GridDim>(false));
+
+      LOG(debug) << "    found " << clsCollection.size() << " clusters";
+
+      // Convert ACTS clusters to O2 clusters
+      for (const auto& actsCluster : clsCollection) {
+        if (actsCluster.cells.empty()) {
+          continue;
+        }
+
+        // Calculate bounding box
+        uint16_t rowMin = static_cast<uint16_t>(actsCluster.cells[0].row);
+        uint16_t rowMax = rowMin;
+        uint16_t colMin = static_cast<uint16_t>(actsCluster.cells[0].col);
+        uint16_t colMax = colMin;
+
+        for (const auto& cell : actsCluster.cells) {
+          rowMin = std::min(rowMin, static_cast<uint16_t>(cell.row));
+          rowMax = std::max(rowMax, static_cast<uint16_t>(cell.row));
+          colMin = std::min(colMin, static_cast<uint16_t>(cell.col));
+          colMax = std::max(colMax, static_cast<uint16_t>(cell.col));
+        }
+
+        const uint16_t rowSpan = rowMax - rowMin + 1;
+        const uint16_t colSpan = colMax - colMin + 1;
+
+        // Check if cluster needs splitting (too large for pattern encoding)
+        const bool isHuge = rowSpan > o2::itsmft::ClusterPattern::MaxRowSpan ||
+                            colSpan > o2::itsmft::ClusterPattern::MaxColSpan;
+
+        if (isHuge) {
+          // Split huge cluster into MaxRowSpan x MaxColSpan tiles
+          LOG(warning) << "Splitting huge TRK cluster: chipID " << chipID
+                       << ", rows " << rowMin << ":" << rowMax
+                       << " cols " << colMin << ":" << colMax;
+
+          for (uint16_t tileColMin = colMin; tileColMin <= colMax;
+               tileColMin = static_cast<uint16_t>(tileColMin + o2::itsmft::ClusterPattern::MaxColSpan)) {
+            uint16_t tileColMax = std::min(colMax, static_cast<uint16_t>(tileColMin + o2::itsmft::ClusterPattern::MaxColSpan - 1));
+
+            for (uint16_t tileRowMin = rowMin; tileRowMin <= rowMax;
+                 tileRowMin = static_cast<uint16_t>(tileRowMin + o2::itsmft::ClusterPattern::MaxRowSpan)) {
+              uint16_t tileRowMax = std::min(rowMax, static_cast<uint16_t>(tileRowMin + o2::itsmft::ClusterPattern::MaxRowSpan - 1));
+
+              // Collect cells in this tile
+              std::vector<std::pair<uint16_t, uint16_t>> tileCells;
+              for (const auto& cell : actsCluster.cells) {
+                uint16_t r = static_cast<uint16_t>(cell.row);
+                uint16_t c = static_cast<uint16_t>(cell.col);
+                if (r >= tileRowMin && r <= tileRowMax && c >= tileColMin && c <= tileColMax) {
+                  tileCells.emplace_back(r, c);
+                }
+              }
+
+              if (tileCells.empty()) {
+                continue;
+              }
+
+              uint16_t tileRowSpan = tileRowMax - tileRowMin + 1;
+              uint16_t tileColSpan = tileColMax - tileColMin + 1;
+
+              // Encode pattern for this tile
+              std::array<unsigned char, o2::itsmft::ClusterPattern::MaxPatternBytes> patt{};
+              for (const auto& [r, c] : tileCells) {
+                uint32_t ir = r - tileRowMin;
+                uint32_t ic = c - tileColMin;
+                int nbit = ir * tileColSpan + ic;
+                patt[nbit >> 3] |= (0x1 << (7 - (nbit % 8)));
+              }
+              patterns.emplace_back(static_cast<unsigned char>(tileRowSpan));
+              patterns.emplace_back(static_cast<unsigned char>(tileColSpan));
+              const int nBytes = (tileRowSpan * tileColSpan + 7) / 8;
+              patterns.insert(patterns.end(), patt.begin(), patt.begin() + nBytes);
+
+              // Create O2 cluster for this tile
+              o2::trk::Cluster cluster;
+              cluster.chipID = chipID;
+              cluster.row = tileRowMin;
+              cluster.col = tileColMin;
+              cluster.size = static_cast<uint16_t>(tileCells.size());
+              if (geom) {
+                cluster.subDetID = static_cast<int16_t>(geom->getSubDetID(chipID));
+                cluster.layer = static_cast<int16_t>(geom->getLayer(chipID));
+                cluster.disk = static_cast<int16_t>(geom->getDisk(chipID));
+              }
+              clusters.emplace_back(cluster);
+            }
+          }
+        } else {
+          // Normal cluster - encode directly
+          std::array<unsigned char, o2::itsmft::ClusterPattern::MaxPatternBytes> patt{};
+          for (const auto& cell : actsCluster.cells) {
+            uint32_t ir = static_cast<uint32_t>(cell.row - rowMin);
+            uint32_t ic = static_cast<uint32_t>(cell.col - colMin);
+            int nbit = ir * colSpan + ic;
+            patt[nbit >> 3] |= (0x1 << (7 - (nbit % 8)));
+          }
+          patterns.emplace_back(static_cast<unsigned char>(rowSpan));
+          patterns.emplace_back(static_cast<unsigned char>(colSpan));
+          const int nBytes = (rowSpan * colSpan + 7) / 8;
+          patterns.insert(patterns.end(), patt.begin(), patt.begin() + nBytes);
+
+          // Create O2 cluster
+          o2::trk::Cluster cluster;
+          cluster.chipID = chipID;
+          cluster.row = rowMin;
+          cluster.col = colMin;
+          cluster.size = static_cast<uint16_t>(actsCluster.cells.size());
+          if (geom) {
+            cluster.subDetID = static_cast<int16_t>(geom->getSubDetID(chipID));
+            cluster.layer = static_cast<int16_t>(geom->getLayer(chipID));
+            cluster.disk = static_cast<int16_t>(geom->getDisk(chipID));
+          }
+          clusters.emplace_back(cluster);
+        }
+      }
+
+      LOG(debug) << "    clusterization of chip " << chipID << " completed!";
+    }
     clusterROFs.emplace_back(inROF.getBCData(), inROF.getROFrame(),
                              outFirst, static_cast<int>(clusters.size()) - outFirst);
   }

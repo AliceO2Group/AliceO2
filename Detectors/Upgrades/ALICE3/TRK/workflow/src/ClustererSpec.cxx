@@ -53,6 +53,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
 
 #ifdef O2_WITH_ACTS
   if (mUseACTS) {
+    LOG(info) << "Running TRKClusterer with ACTS";
     mClustererACTS.process(digits,
                            rofs,
                            clusters,
@@ -65,6 +66,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
   } else
 #endif
   {
+    LOG(info) << "Running TRKClusterer";
     mClusterer.process(digits,
                        rofs,
                        clusters,
