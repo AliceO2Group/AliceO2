@@ -111,7 +111,12 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::trk::ClustererDPL>(useMC)},
-    o2::framework::Options{{"nthreads", o2::framework::VariantType::Int, 1, {"Number of clustering threads"}}}};
+    o2::framework::Options{{"nthreads", o2::framework::VariantType::Int, 1, {"Number of clustering threads"}}
+#ifdef O2_WITH_ACTS
+                           ,
+                           {"useACTS", o2::framework::VariantType::Bool, false, {"Use ACTS for clustering"}}
+#endif
+    }};
 }
 
 } // namespace o2::trk

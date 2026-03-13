@@ -287,14 +287,15 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
+      const double staveSizeX = mStaves.second;                                                                                                          // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                             // cm
+      const double staveSizeZ = mZLength;                                                                                                                // cm
+      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY); // we increase the size of the layer to account for the tilt of the staves
+      TGeoTube* layer = new TGeoTube(mInnerRadius - deltaForTilt, mOuterRadius + deltaForTilt, mZLength / 2);
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
       // Now we create the volume for a single stave
-      const double staveSizeX = mStaves.second;              // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius; // cm
-      const double staveSizeZ = mZLength;                    // cm
       TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
       TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
       setStaveStyle(staveVol);

@@ -21,6 +21,7 @@
 
 using namespace o2::trk;
 
+// Data formats for ACTS interface
 struct Cell2D {
   Cell2D(int rowv, int colv) : row(rowv), col(colv) {}
   int row, col;
@@ -195,6 +196,8 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
                                                                     cells,
                                                                     collection,
                                                                     Acts::Ccl::DefaultConnect<Cell, 2>(false));
+
+    LOG(debug) << "Clustering with ACTS, found " << collection.size() << " clusters in ROF " << iROF;
 
     // Sort digit indices within this ROF by (chipID, col, row) so we can process
     // chip by chip, column by column -- the same ordering the ALPIDE scanner expects.
