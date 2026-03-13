@@ -178,6 +178,7 @@ o2_add_library(Framework
                                      RapidJSON::RapidJSON
                                      Arrow::arrow_shared
                                      ArrowDataset::arrow_dataset_shared
+                                     ArrowCompute::arrow_compute_shared
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
                                      Gandiva::gandiva_shared
