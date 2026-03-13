@@ -95,6 +95,52 @@ auto matchCollectedToPairs(const std::vector<TObject*>& targetObjects, const std
   return matchedObjects;
 }
 
+// calls the default Merge methods of TObjects
+Long64_t mergeDefault(TObject* const target, TObject* const other)
+{
+  Long64_t errorCode = 0;
+
+  TObjArray otherCollection;
+  otherCollection.SetOwner(false);
+  otherCollection.Add(other);
+
+  if (target->InheritsFrom(TH1::Class())) {
+    // this includes TH1, TH2, TH3
+    auto targetTH1 = reinterpret_cast<TH1*>(target);
+    if (targetTH1->TestBit(TH1::kIsAverage)) {
+      // Merge() does not support averages, we have to use Add()
+      // this will break if collection.size != 1
+      if (auto otherTH1 = dynamic_cast<TH1*>(otherCollection.First())) {
+        errorCode = targetTH1->Add(otherTH1);
+      }
+    } else {
+      // Add() does not support histograms with labels, thus we resort to Merge() by default
+      errorCode = targetTH1->Merge(&otherCollection);
+    }
+  } else if (target->InheritsFrom(THnBase::Class())) {
+    // this includes THn and THnSparse
+    errorCode = reinterpret_cast<THnBase*>(target)->Merge(&otherCollection);
+  } else if (target->InheritsFrom(TTree::Class())) {
+    auto targetTree = reinterpret_cast<TTree*>(target);
+    auto otherTree = reinterpret_cast<TTree*>(other);
+    auto targetTreeSize = estimateTreeSize(targetTree);
+    auto otherTreeSize = estimateTreeSize(otherTree);
+    if (auto totalSize = targetTreeSize + otherTreeSize; totalSize > 100000000) {
+      LOG(warn) << "The tree '" << targetTree->GetName() << "' would be larger than 100MB (" << totalSize << "B) after merging, skipping to let the system survive";
+      errorCode = 0;
+    } else {
+      errorCode = targetTree->Merge(&otherCollection);
+    }
+  } else if (target->InheritsFrom(TGraph::Class())) {
+    errorCode = reinterpret_cast<TGraph*>(target)->Merge(&otherCollection);
+  } else if (target->InheritsFrom(TEfficiency::Class())) {
+    errorCode = reinterpret_cast<TEfficiency*>(target)->Merge(&otherCollection);
+  } else {
+    LOG(warn) << "Object '" + std::string(target->GetName()) + "' with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types, skipping";
+  }
+  return errorCode;
+}
+
 void merge(TObject* const target, TObject* const other)
 {
   if (target == nullptr) {
@@ -158,48 +204,23 @@ void merge(TObject* const target, TObject* const other)
     }
 
   } else {
-    Long64_t errorCode = 0;
-    TObjArray otherCollection;
-    otherCollection.SetOwner(false);
-    otherCollection.Add(other);
+    Long64_t errorCode = mergeDefault(target, other);
 
-    if (target->InheritsFrom(TH1::Class())) {
-      // this includes TH1, TH2, TH3
-      auto targetTH1 = reinterpret_cast<TH1*>(target);
-      if (targetTH1->TestBit(TH1::kIsAverage)) {
-        // Merge() does not support averages, we have to use Add()
-        // this will break if collection.size != 1
-        if (auto otherTH1 = dynamic_cast<TH1*>(otherCollection.First())) {
-          errorCode = targetTH1->Add(otherTH1);
-        }
-      } else {
-        // Add() does not support histograms with labels, thus we resort to Merge() by default
-        errorCode = targetTH1->Merge(&otherCollection);
-      }
-    } else if (target->InheritsFrom(THnBase::Class())) {
-      // this includes THn and THnSparse
-      errorCode = reinterpret_cast<THnBase*>(target)->Merge(&otherCollection);
-    } else if (target->InheritsFrom(TTree::Class())) {
-      auto targetTree = reinterpret_cast<TTree*>(target);
-      auto otherTree = reinterpret_cast<TTree*>(other);
-      auto targetTreeSize = estimateTreeSize(targetTree);
-      auto otherTreeSize = estimateTreeSize(otherTree);
-      if (auto totalSize = targetTreeSize + otherTreeSize; totalSize > 100000000) {
-        LOG(warn) << "The tree '" << targetTree->GetName() << "' would be larger than 100MB (" << totalSize << "B) after merging, skipping to let the system survive";
-        errorCode = 0;
-      } else {
-        errorCode = targetTree->Merge(&otherCollection);
-      }
-    } else if (target->InheritsFrom(TGraph::Class())) {
-      errorCode = reinterpret_cast<TGraph*>(target)->Merge(&otherCollection);
-    } else if (target->InheritsFrom(TEfficiency::Class())) {
-      errorCode = reinterpret_cast<TEfficiency*>(target)->Merge(&otherCollection);
-    } else {
-      LOG(warn) << "Object '" + std::string(target->GetName()) + "' with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types, skipping";
-    }
     if (errorCode == -1) {
       LOG(error) << "Failed to merge the input object '" + std::string(other->GetName()) + "' of type '" + std::string(other->ClassName()) //
                       + " and the target object '" + std::string(target->GetName()) + "' of type '" + std::string(target->ClassName()) + "'";
+
+      // we retry with debug options enabled in ROOT in hopes to get some logs explaining the issue
+      gDebug = true;
+      errorCode = mergeDefault(target, other);
+      gDebug = false;
+      if (errorCode == -1) {
+        LOG(error) << "Merging '" + std::string(other->GetName()) + "' and '" + std::string(target->GetName()) //
+                        + "' failed again after a retry for debugging purposes. See ROOT warnings for details.";
+      } else {
+        LOG(warn) << "Merging '" + std::string(other->GetName()) + "' and '" + std::string(target->GetName()) //
+                       + "' succeeded after retrying for debugging purposes.";
+      }
     }
   }
 }
