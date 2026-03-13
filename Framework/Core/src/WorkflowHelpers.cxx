@@ -411,13 +411,17 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // add the reader
   if (aodReader.outputs.empty() == false) {
-    auto mctracks2aod = std::ranges::find_if(workflow, [](auto const& x) { return x.name == "mctracks-to-aod"; });
-    if (mctracks2aod == workflow.end()) {
+    auto tfnsource = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) {
+      return std::ranges::any_of(spec.outputs, [](OutputSpec const& output) {
+        return DataSpecUtils::match(output, "TFN", "TFNumber", 0);
+      });
+    });
+    if (tfnsource == workflow.end()) {
       // add normal reader
       aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
       aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     } else {
-      // AODs are being injected on-the-fly, add error-handler reader
+      // AODs are being injected the tfnsource is the entry point, add error-handler reader
       aodReader.algorithm = AlgorithmSpec{
         adaptStateful(
           [](DeviceSpec const& spec) {
@@ -698,6 +702,11 @@ void WorkflowHelpers::injectAODWriter(WorkflowSpec& workflow, ConfigContext cons
 
     auto it = std::find_if(dec.outputsInputs.begin(), dec.outputsInputs.end(), [](InputSpec const& spec) -> bool {
       return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFN"));
+    });
+    dec.isDangling[std::distance(dec.outputsInputs.begin(), it)] = false;
+
+    it = std::find_if(dec.outputsInputs.begin(), dec.outputsInputs.end(), [](InputSpec const& spec) -> bool {
+      return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFF"));
     });
     dec.isDangling[std::distance(dec.outputsInputs.begin(), it)] = false;
   }
