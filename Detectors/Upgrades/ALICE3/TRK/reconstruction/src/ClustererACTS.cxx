@@ -27,7 +27,7 @@ using namespace o2::trk;
 struct Cell2D {
   Cell2D(int rowv, int colv, uint32_t digIdx = 0) : row(rowv), col(colv), digitIdx(digIdx) {}
   int row, col;
-  uint32_t digitIdx;  ///< Index of the original digit (for MC label retrieval)
+  uint32_t digitIdx; ///< Index of the original digit (for MC label retrieval)
   Acts::Ccl::Label label{Acts::Ccl::NO_LABEL};
 };
 
