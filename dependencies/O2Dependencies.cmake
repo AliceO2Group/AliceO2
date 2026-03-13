@@ -92,7 +92,34 @@ if(NOT TARGET ArrowAcero::arrow_acero_shared)
   )
 endif()
 
-if (NOT TARGET Gandiva::gandiva_shared)
+if(NOT TARGET ArrowCompute::arrow_compute_shared)
+  # ArrowCompute::arrow_compute_shared is linked for no reason to parquet
+  # so we cannot use it because we do not want to build parquet itself.
+  # For that reason at the moment we need to do the lookup by hand.
+  get_target_property(ARROW_SHARED_LOCATION Arrow::arrow_shared LOCATION)
+  get_filename_component(ARROW_SHARED_DIR ${ARROW_SHARED_LOCATION} DIRECTORY)
+
+  find_library(ARROW_COMPUTE_SHARED arrow_compute
+      PATHS ${ARROW_SHARED_DIR}
+      NO_DEFAULT_PATH
+  )
+
+  if(ARROW_COMPUTE_SHARED)
+    message(STATUS
+	    "Found arrow_compute_shared library at: ${ARROW_COMPUTE_SHARED}")
+  else()
+    message(FATAL_ERROR
+            "arrow_compute_shared library not found in ${ARROW_SHARED_DIR}")
+  endif()
+
+  # Step 3: Create a target for ArrowCompute::arrow_compute_shared
+  add_library(ArrowCompute::arrow_compute_shared SHARED IMPORTED)
+  set_target_properties(ArrowCompute::arrow_compute_shared PROPERTIES
+      IMPORTED_LOCATION ${ARROW_COMPUTE_SHARED}
+  )
+endif()
+
+if(NOT TARGET Gandiva::gandiva_shared)
   add_library(Gandiva::gandiva_shared ALIAS gandiva_shared)
 endif()
 
