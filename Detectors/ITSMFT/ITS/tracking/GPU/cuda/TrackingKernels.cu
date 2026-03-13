@@ -146,7 +146,7 @@ GPUdii() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
     const float dx = x3 - x1;
     const float dy = y3 - y1;
     snp = sign * dy / o2::gpu::CAMath::Hypot(dx, dy);
-    q2pt = sign / track::kMostProbablePt;
+    q2pt = 1.f / track::kMostProbablePt;
     q2pt2 = 1.f;
   } else {
     const float crv = math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
