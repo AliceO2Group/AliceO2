@@ -57,12 +57,10 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   return fileNameHolder;
 }
 
-DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring, int allowedParentLevel, std::string parentFileReplacement)
+DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, DataInputDirectorContext& context)
   : mAlienSupport(alienSupport),
-    mMonitoring(monitoring),
-    mAllowedParentLevel(allowedParentLevel),
-    mParentFileReplacement(std::move(parentFileReplacement)),
-    mLevel(level)
+    mLevel(level),
+    mContext(context)
 {
   std::vector<char const*> capabilitiesSpecs = {
     "O2Framework:RNTupleObjectReadingCapability",
@@ -157,13 +155,13 @@ bool DataInputDescriptor::setFile(int counter, std::string_view origin)
 
   // get the parent file map if exists
   mParentFileMap = (TMap*)rootFS->GetFile()->Get("parentFiles"); // folder name (DF_XXX) --> parent file (absolute path)
-  if (mParentFileMap && !mParentFileReplacement.empty()) {
-    auto pos = mParentFileReplacement.find(';');
+  if (mParentFileMap && !mContext.parentFileReplacement.empty()) {
+    auto pos = mContext.parentFileReplacement.find(';');
     if (pos == std::string::npos) {
-      throw std::runtime_error(fmt::format("Invalid syntax in aod-parent-base-path-replacement: \"{}\"", mParentFileReplacement.c_str()));
+      throw std::runtime_error(fmt::format("Invalid syntax in aod-parent-base-path-replacement: \"{}\"", mContext.parentFileReplacement.c_str()));
     }
-    auto from = mParentFileReplacement.substr(0, pos);
-    auto to = mParentFileReplacement.substr(pos + 1);
+    auto from = mContext.parentFileReplacement.substr(0, pos);
+    auto to = mContext.parentFileReplacement.substr(pos + 1);
 
     auto it = mParentFileMap->MakeIterator();
     while (auto obj = it->Next()) {
@@ -280,13 +278,13 @@ DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF, 
     }
   }
 
-  if (mLevel == mAllowedParentLevel) {
-    throw std::runtime_error(fmt::format(R"(while looking for tree "{}", the parent file was requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", treename.c_str(), mLevel, mAllowedParentLevel, folderName.c_str(),
+  if (mLevel == mContext.allowedParentLevel) {
+    throw std::runtime_error(fmt::format(R"(while looking for tree "{}", the parent file was requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", treename.c_str(), mLevel, mContext.allowedParentLevel, folderName.c_str(),
                                          rootFS->GetFile()->GetName()));
   }
 
   LOGP(info, "Opening parent file {} for DF {}", parentFileName->GetString().Data(), folderName.c_str());
-  mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mMonitoring, mAllowedParentLevel, mParentFileReplacement);
+  mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mContext);
   mParentFile->mdefaultFilenamesPtr = new std::vector<FileNameHolder*>;
   mParentFile->mdefaultFilenamesPtr->emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
   mParentFile->fillInputfiles();
@@ -316,7 +314,7 @@ void DataInputDescriptor::printFileOpening()
     monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
   }
 #endif
-  mMonitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-open-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+  mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-open-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
   LOGP(info, "Opening file: {}", monitoringInfo);
 }
 
@@ -337,7 +335,7 @@ void DataInputDescriptor::printFileStatistics()
     monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
   }
 #endif
-  mMonitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-read-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+  mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-read-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
   LOGP(info, "Read info: {}", monitoringInfo);
 }
 
@@ -524,27 +522,15 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   return true;
 }
 
-DataInputDirector::DataInputDirector()
+DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, DataInputDirectorContext&& context)
+  : mContext{context}
 {
-  createDefaultDataInputDescriptor();
-}
-
-DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring, int allowedParentLevel, std::string parentFileReplacement) : mMonitoring(monitoring), mAllowedParentLevel(allowedParentLevel), mParentFileReplacement(std::move(parentFileReplacement))
-{
-  if (inputFile.size() && inputFile[0] == '@') {
-    inputFile.erase(0, 1);
-    setInputfilesFile(inputFile);
+  if (inputFiles.size() == 1 && !inputFiles[0].empty() && inputFiles[0][0] == '@') {
+    setInputfilesFile(inputFiles.back().substr(1, -1));
   } else {
-    mdefaultInputFiles.emplace_back(makeFileNameHolder(inputFile));
-  }
-
-  createDefaultDataInputDescriptor();
-}
-
-DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring, int allowedParentLevel, std::string parentFileReplacement) : mMonitoring(monitoring), mAllowedParentLevel(allowedParentLevel), mParentFileReplacement(std::move(parentFileReplacement))
-{
-  for (auto inputFile : inputFiles) {
-    mdefaultInputFiles.emplace_back(makeFileNameHolder(inputFile));
+    for (auto inputFile : inputFiles) {
+      mdefaultInputFiles.emplace_back(makeFileNameHolder(inputFile));
+    }
   }
 
   createDefaultDataInputDescriptor();
@@ -576,7 +562,7 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   if (mdefaultDataInputDescriptor) {
     delete mdefaultDataInputDescriptor;
   }
-  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mAllowedParentLevel, mParentFileReplacement);
+  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport, 0, mContext);
 
   mdefaultDataInputDescriptor->setInputfilesFile(minputfilesFile);
   mdefaultDataInputDescriptor->setFilenamesRegex(mFilenameRegex);
@@ -700,7 +686,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         return false;
       }
       // create a new dataInputDescriptor
-      auto didesc = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mAllowedParentLevel, mParentFileReplacement);
+      auto didesc = new DataInputDescriptor(mAlienSupport, 0, mContext);
       didesc->setDefaultInputfiles(&mdefaultInputFiles);
 
       itemName = "table";
