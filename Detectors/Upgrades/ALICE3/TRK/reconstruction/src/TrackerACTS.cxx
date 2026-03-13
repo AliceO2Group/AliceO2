@@ -13,7 +13,7 @@
 /// \brief
 ///
 
-#include "ITStracking/Tracker.h"
+#include "TRKReconstruction/TrackerACTS.h"
 
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/Cell.h"
@@ -35,18 +35,18 @@ namespace o2::trk
 using o2::its::constants::GB;
 
 template <int nLayers>
-Tracker<nLayers>::Tracker(TrackerTraits<nLayers>* traits) : mTraits(traits)
+TrackerACTS<nLayers>::TrackerACTS(o2::its::TrackerTraits<nLayers>* traits) : mTraits(traits)
 {
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
   if (traits->isGPU()) {
-    ITSGpuTrackingParamConfig::Instance().maybeOverride();
-    ITSGpuTrackingParamConfig::Instance().printKeyValues(true, true);
+    o2::its::ITSGpuTrackingParamConfig::Instance().maybeOverride();
+    o2::its::ITSGpuTrackingParamConfig::Instance().printKeyValues(true, true);
   }
 }
 
 template <int nLayers>
-void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& error)
+void TrackerACTS<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& error)
 {
   LogFunc evalLog = [](const std::string&) {};
 
@@ -91,10 +91,10 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       iVertex = std::min(maxNvertices, 0);
       logger(std::format("==== ITS {} Tracking iteration {} summary ====", mTraits->getName(), iteration));
 
-      total += evaluateTask(&Tracker::initialiseTimeFrame, StateNames[mCurState = TFInit], iteration, logger, iteration);
+      total += evaluateTask(&TrackerACTS::initialiseTimeFrame, StateNames[mCurState = TFInit], iteration, logger, iteration);
       do {
         for (iROFs = 0; iROFs < nROFsIterations; ++iROFs) {
-          timeTracklets += evaluateTask(&Tracker::computeTracklets, StateNames[mCurState = Trackleting], iteration, evalLog, iteration, iROFs, iVertex);
+          timeTracklets += evaluateTask(&TrackerACTS::computeTracklets, StateNames[mCurState = Trackleting], iteration, evalLog, iteration, iROFs, iVertex);
           nTracklets += mTraits->getTFNumberOfTracklets();
           float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / float(mTraits->getTFNumberOfClusters()) : 0.f;
           if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
@@ -102,7 +102,7 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
                               trackletsPerCluster, iteration, iROFs, iROFs + mTrkParams[iteration].nROFsPerIterations, mTrkParams[iteration].TrackletsPerClusterLimit));
             break;
           }
-          timeCells += evaluateTask(&Tracker::computeCells, StateNames[mCurState = Celling], iteration, evalLog, iteration);
+          timeCells += evaluateTask(&TrackerACTS::computeCells, StateNames[mCurState = Celling], iteration, evalLog, iteration);
           nCells += mTraits->getTFNumberOfCells();
           float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / float(mTraits->getTFNumberOfClusters()) : 0.f;
           if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
@@ -110,9 +110,9 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
                               cellsPerCluster, iteration, iROFs, iROFs + mTrkParams[iteration].nROFsPerIterations, mTrkParams[iteration].CellsPerClusterLimit));
             break;
           }
-          timeNeighbours += evaluateTask(&Tracker::findCellsNeighbours, StateNames[mCurState = Neighbouring], iteration, evalLog, iteration);
+          timeNeighbours += evaluateTask(&TrackerACTS::findCellsNeighbours, StateNames[mCurState = Neighbouring], iteration, evalLog, iteration);
           nNeighbours += mTimeFrame->getNumberOfNeighbours();
-          timeRoads += evaluateTask(&Tracker::findRoads, StateNames[mCurState = Roading], iteration, evalLog, iteration);
+          timeRoads += evaluateTask(&TrackerACTS::findRoads, StateNames[mCurState = Roading], iteration, evalLog, iteration);
         }
       } while (++iVertex < maxNvertices);
       logger(std::format(" - Tracklet finding: {} tracklets found in {:.2f} ms", nTracklets, timeTracklets));
@@ -122,7 +122,7 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       total += timeTracklets + timeCells + timeNeighbours + timeRoads;
       if (mTraits->supportsExtendTracks() && mTrkParams[iteration].UseTrackFollower) {
         int nExtendedTracks{-mTimeFrame->mNExtendedTracks}, nExtendedClusters{-mTimeFrame->mNExtendedUsedClusters};
-        auto timeExtending = evaluateTask(&Tracker::extendTracks, "Extending tracks", iteration, evalLog, iteration);
+        auto timeExtending = evaluateTask(&TrackerACTS::extendTracks, "Extending tracks", iteration, evalLog, iteration);
         total += timeExtending;
         logger(std::format(" - Extending Tracks: {} extended tracks using {} clusters found in {:.2f} ms", nExtendedTracks + mTimeFrame->mNExtendedTracks, nExtendedClusters + mTimeFrame->mNExtendedUsedClusters, timeExtending));
       }
@@ -132,14 +132,14 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
     }
     if (mTraits->supportsFindShortPrimaries() && mTrkParams[0].FindShortTracks) {
       auto nTracksB = mTimeFrame->getNumberOfTracks();
-      total += evaluateTask(&Tracker::findShortPrimaries, "Short primaries finding", 0, logger);
+      total += evaluateTask(&TrackerACTS::findShortPrimaries, "Short primaries finding", 0, logger);
       auto nTracksA = mTimeFrame->getNumberOfTracks();
       logger(std::format("  `-> found {} additional tracks", nTracksA - nTracksB));
     }
-    if constexpr (constants::DoTimeBenchmarks) {
+    if constexpr (o2::its::constants::DoTimeBenchmarks) {
       logger(std::format("=== TimeFrame {} processing completed in: {:.2f} ms using {} thread(s) ===", mTimeFrameCounter, total, mTraits->getNThreads()));
     }
-  } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
+  } catch (const o2::its::BoundedMemoryResource::MemoryLimitExceeded& err) {
     handleException(err);
     return;
   } catch (const std::bad_alloc& err) {
@@ -168,7 +168,7 @@ void Tracker<nLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
 }
 
 template <int nLayers>
-void Tracker<nLayers>::computeRoadsMClabels()
+void TrackerACTS<nLayers>::computeRoadsMClabels()
 {
   /// Moore's Voting Algorithm
   if (!mTimeFrame->hasMCinformation()) {
@@ -189,7 +189,7 @@ void Tracker<nLayers>::computeRoadsMClabels()
     for (int iCell{0}; iCell < mTrkParams[0].CellsPerRoad(); ++iCell) {
       const int currentCellIndex{currentRoad[iCell]};
 
-      if (currentCellIndex == constants::UnusedIndex) {
+      if (currentCellIndex == o2::its::constants::UnusedIndex) {
         if (isFirstRoadCell) {
           continue;
         } else {
@@ -273,7 +273,7 @@ void Tracker<nLayers>::computeRoadsMClabels()
 }
 
 template <int nLayers>
-void Tracker<nLayers>::computeTracksMClabels()
+void TrackerACTS<nLayers>::computeTracksMClabels()
 {
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {
@@ -282,7 +282,7 @@ void Tracker<nLayers>::computeTracksMClabels()
 
       for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);
-        if (index == constants::UnusedIndex) {
+        if (index == o2::its::constants::UnusedIndex) {
           continue;
         }
         auto labels = mTimeFrame->getClusterLabels(iCluster, index);
@@ -312,7 +312,7 @@ void Tracker<nLayers>::computeTracksMClabels()
       // set fake clusters pattern
       for (int ic{TrackITSExt::MaxClusters}; ic--;) {
         auto clid = track.getClusterIndex(ic);
-        if (clid != constants::UnusedIndex) {
+        if (clid != o2::its::constants::UnusedIndex) {
           auto labelsSpan = mTimeFrame->getClusterLabels(ic, clid);
           for (const auto& currentLabel : labelsSpan) {
             if (currentLabel == maxOccurrencesValue) {
@@ -332,13 +332,13 @@ void Tracker<nLayers>::computeTracksMClabels()
 }
 
 template <int nLayers>
-void Tracker<nLayers>::rectifyClusterIndices()
+void TrackerACTS<nLayers>::rectifyClusterIndices()
 {
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {
       for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);
-        if (index != constants::UnusedIndex) {
+        if (index != o2::its::constants::UnusedIndex) {
           track.setExternalClusterIndex(iCluster, mTimeFrame->getClusterExternalIndex(iCluster, index));
         }
       }
@@ -347,24 +347,24 @@ void Tracker<nLayers>::rectifyClusterIndices()
 }
 
 template <int nLayers>
-void Tracker<nLayers>::adoptTimeFrame(TimeFrame<nLayers>& tf)
+void TrackerACTS<nLayers>::adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
 }
 
 template <int nLayers>
-void Tracker<nLayers>::printSummary() const
+void TrackerACTS<nLayers>::printSummary() const
 {
   auto avgTF = mTotalTime * 1.e-3 / ((mTimeFrameCounter > 0) ? (double)mTimeFrameCounter : -1.0);
   auto avgTFwithDropped = mTotalTime * 1.e-3 / (((mTimeFrameCounter + mNumberOfDroppedTFs) > 0) ? (double)(mTimeFrameCounter + mNumberOfDroppedTFs) : -1.0);
-  LOGP(info, "Tracker summary: Processed {} TFs (dropped {}) in TOT={:.2f} s, AVG/TF={:.2f} ({:.2f}) s", mTimeFrameCounter, mNumberOfDroppedTFs, mTotalTime * 1.e-3, avgTF, avgTFwithDropped);
+  LOGP(info, "TrackerACTS summary: Processed {} TFs (dropped {}) in TOT={:.2f} s, AVG/TF={:.2f} ({:.2f}) s", mTimeFrameCounter, mNumberOfDroppedTFs, mTotalTime * 1.e-3, avgTF, avgTFwithDropped);
 }
 
-template class Tracker<7>;
+template class TrackerACTS<7>;
 // ALICE3 upgrade
 #ifdef ENABLE_UPGRADES
-template class Tracker<11>;
+template class TrackerACTS<11>;
 #endif
 
 } // namespace o2::trk

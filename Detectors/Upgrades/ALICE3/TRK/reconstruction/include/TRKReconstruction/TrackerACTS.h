@@ -48,26 +48,26 @@ namespace gpu
 {
 class GPUChainITS;
 }
-namespace its
+namespace trk
 {
 
 template <int nLayers>
-class Tracker
+class TrackerACTS
 {
   using LogFunc = std::function<void(const std::string& s)>;
 
  public:
-  Tracker(TrackerTraits<nLayers>* traits);
+  TrackerACTS(o2::its::TrackerTraits<nLayers>* traits);
 
-  void adoptTimeFrame(TimeFrame<nLayers>& tf);
+  void adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf);
 
   void clustersToTracks(
     const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; },
     const LogFunc& = [](const std::string& s) { std::cerr << s << '\n'; });
 
-  void setParameters(const std::vector<TrackingParameters>& p) { mTrkParams = p; }
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
-  std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
+  void setParameters(const std::vector<o2::its::TrackingParameters>& p) { mTrkParams = p; }
+  void setMemoryPool(std::shared_ptr<o2::its::BoundedMemoryResource> pool) { mMemoryPool = pool; }
+  std::vector<o2::its::TrackingParameters>& getParameters() { return mTrkParams; }
   void setBz(float bz) { mTraits->setBz(bz); }
   bool isMatLUT() const { return mTraits->isMatLUT(); }
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
@@ -88,18 +88,18 @@ class Tracker
   void rectifyClusterIndices();
 
   template <typename... T, typename... F>
-  float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args);
+  float evaluateTask(void (TrackerACTS::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args);
 
-  TrackerTraits<nLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
-  TimeFrame<nLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
+  o2::its::TrackerTraits<nLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
+  o2::its::TimeFrame<nLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
-  std::vector<TrackingParameters> mTrkParams;
+  std::vector<o2::its::TrackingParameters> mTrkParams;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
   unsigned int mNumberOfDroppedTFs{0};
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0};
-  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<o2::its::BoundedMemoryResource> mMemoryPool;
 
   enum State {
     TFInit = 0,
@@ -115,11 +115,11 @@ class Tracker
 
 template <int nLayers>
 template <typename... T, typename... F>
-float Tracker<nLayers>::evaluateTask(void (Tracker<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
+float TrackerACTS<nLayers>::evaluateTask(void (TrackerACTS<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
 {
   float diff{0.f};
 
-  if constexpr (constants::DoTimeBenchmarks) {
+  if constexpr (o2::its::constants::DoTimeBenchmarks) {
     auto start = std::chrono::high_resolution_clock::now();
     (this->*task)(std::forward<F>(args)...);
     auto end = std::chrono::high_resolution_clock::now();
@@ -152,7 +152,7 @@ float Tracker<nLayers>::evaluateTask(void (Tracker<nLayers>::*task)(T...), std::
   return diff;
 }
 
-} // namespace its
+} // namespace trk
 } // namespace o2
 
 #endif /* ALICE3_INCLUDE_TRACKER_H_ */
