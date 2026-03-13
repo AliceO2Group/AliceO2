@@ -99,14 +99,14 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
   if (itof) { // iTOF
     mITOFLayer = itofSegmented ? ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
                                            radiusInnerTof, 0.f, lengthInnerTof, 0.f, x2x0, ITOFLayer::kBarrelSegmented,
-                                           24, 5.42, 10.0, 10)
+                                           24, 5.42, 3.0, 10)
                                : ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
                                            radiusInnerTof, 0.f, lengthInnerTof, 0.f, x2x0, ITOFLayer::kBarrel);
   }
   if (otof) { // oTOF
     mOTOFLayer = otofSegmented ? OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
                                            radiusOuterTof, 0.f, lengthOuterTof, 0.f, x2x0, OTOFLayer::kBarrelSegmented,
-                                           62, 9.74, 5.0, 54)
+                                           62, 9.74, 3.0, 54)
                                : OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
                                            radiusOuterTof, 0.f, lengthOuterTof, 0.f, x2x0, OTOFLayer::kBarrel);
   }

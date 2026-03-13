@@ -86,6 +86,7 @@ class FT3Layer : public TObject
   Double_t mOuterRadius;      ///< Outer radius of this layer
   Double_t mZ;                ///< Z position of the layer
   Double_t mChipThickness;    ///< Chip thickness
+  Double_t mSensorThickness;  ///< Sensor thickness
   Double_t mx2X0;             ///< Layer material budget x/X0
 
   ClassDefOverride(FT3Layer, 0); // ALICE 3 EndCaps geometry

@@ -356,21 +356,7 @@ Detector::Detector(bool active)
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
-
-  // FT3 Base configuration parameters
-  auto& ft3BaseParam = FT3BaseParam::Instance();
-
-  switch (ft3BaseParam.geoModel) {
-    case Default:
-      buildFT3ScopingV3(); // v3 Dec 25
-      break;
-    case Telescope:
-      buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)
-      break;
-    default:
-      LOG(fatal) << "Invalid Geometry.\n";
-      break;
-  }
+  buildFT3ScopingV3(); // v3 Dec 25
 }
 
 //_________________________________________________________________________________________________
