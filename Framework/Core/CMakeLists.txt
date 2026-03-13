@@ -8,7 +8,6 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
-
 o2_add_library(Framework
                SOURCES src/AnalysisHelpers.cxx
                        src/AlgorithmSpec.cxx
@@ -178,7 +177,7 @@ o2_add_library(Framework
                                      RapidJSON::RapidJSON
                                      Arrow::arrow_shared
                                      ArrowDataset::arrow_dataset_shared
-                                     ArrowCompute::arrow_compute_shared
+                                     $<$<TARGET_EXISTS:ArrowCompute::arrow_compute_shared>:ArrowCompute::arrow_compute_shared>
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
                                      Gandiva::gandiva_shared
