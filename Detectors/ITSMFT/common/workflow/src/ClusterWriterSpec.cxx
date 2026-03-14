@@ -18,7 +18,7 @@
 #include <format>
 
 #include "Framework/ConcreteDataMatcher.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"

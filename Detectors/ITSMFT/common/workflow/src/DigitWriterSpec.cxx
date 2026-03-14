@@ -14,7 +14,7 @@
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataRef.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"

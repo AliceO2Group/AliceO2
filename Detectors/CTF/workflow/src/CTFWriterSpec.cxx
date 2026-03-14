@@ -29,6 +29,7 @@
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "CommonUtils/StringUtils.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsTRD/CTF.h"
@@ -105,6 +106,8 @@ class CTFWriterSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final { finalize(); }
   void stop() final { finalize(); }
   bool isPresent(DetID id) const { return mDets[id]; }
+
+  static std::string getBinding(const std::string& name, int spec) { return fmt::format("{}_{}", name, spec); }
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
@@ -301,71 +304,84 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
 {
   static bool warnedEmpty = false;
   size_t sz = 0;
-  if (!isPresent(det) || !pc.inputs().isValid(det.getName())) {
+
+  if (!isPresent(det) || !pc.inputs().isValid(getBinding(det.getName(), 0))) {
     mSizeReport += fmt::format(" {}:N/A", det.getName());
     return sz;
   }
-  auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
-  const o2::ctf::BufferType* bdata = ctfBuffer.data();
-  if (bdata) {
-    if (warnedEmpty) {
-      throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
-    }
-    const auto ctfImage = C::getImage(bdata);
-    ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "), mVerbosity);
-    if (mWriteCTF && !mRejectCurrentTF) {
-      sz = ctfImage.appendToTree(*tree, det.getName());
-      header.detectors.set(det);
-    } else {
-      sz = ctfBuffer.size();
-    }
-    if (mCreateDict) {
-      if (mFreqsAccumulation[det].empty()) {
-        mFreqsAccumulation[det].resize(C::getNBlocks());
-        mFreqsMetaData[det].resize(C::getNBlocks());
+
+  uint32_t nLayers = 1;
+  if (det == DetID::ITS) {
+    const auto& par = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+    nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+  } else if (det == DetID::MFT) {
+    const auto& par = o2::itsmft::DPLAlpideParam<DetID::MFT>::Instance();
+    nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+  }
+  for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
+    auto binding = getBinding(det.getName(), iLayer);
+    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(binding);
+    const o2::ctf::BufferType* bdata = ctfBuffer.data();
+    if (bdata) {
+      if (warnedEmpty) {
+        throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
       }
-      if (!mHeaders[det]) { // store 1st header
-        mHeaders[det] = ctfImage.cloneHeader();
-        auto& hb = *static_cast<o2::ctf::CTFDictHeader*>(mHeaders[det].get());
-        hb.det = det;
+      const auto ctfImage = C::getImage(bdata);
+      ctfImage.print(o2::utils::Str::concat_string(binding, ": "), mVerbosity);
+      if (mWriteCTF && !mRejectCurrentTF) {
+        sz += ctfImage.appendToTree(*tree, nLayers > 1 ? binding : det.getName());
+        header.detectors.set(det);
+      } else {
+        sz += ctfBuffer.size();
       }
-      for (int ib = 0; ib < C::getNBlocks(); ib++) {
-        if (!mIsSaturatedFrequencyTable[det][ib]) {
-          const auto& bl = ctfImage.getBlock(ib);
-          if (bl.getNDict()) {
-            auto freq = mFreqsAccumulation[det][ib];
-            auto& mdSave = mFreqsMetaData[det][ib];
-            const auto& md = ctfImage.getMetadata(ib);
-            if ([&, this]() {
-                  try {
-                    freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
-                  } catch (const std::overflow_error& e) {
-                    LOGP(warning, "unable to add frequency table for {}, block {} due to overflow", det.getName(), ib);
-                    mIsSaturatedFrequencyTable[det][ib] = true;
-                    return false;
-                  }
-                  return true;
-                }()) {
-              auto newProbBits = static_cast<uint8_t>(o2::rans::compat::computeRenormingPrecision(countNUsedAlphabetSymbols(freq)));
-              auto histogramView = o2::rans::trim(o2::rans::makeHistogramView(freq));
-              mdSave = ctf::detail::makeMetadataRansDict(newProbBits,
-                                                         static_cast<int32_t>(histogramView.getMin()),
-                                                         static_cast<int32_t>(histogramView.getMax()),
-                                                         static_cast<int32_t>(histogramView.size()),
-                                                         md.opt);
-              mFreqsAccumulation[det][ib] = std::move(freq);
+      if (mCreateDict) { // RSTODO
+        if (mFreqsAccumulation[det].empty()) {
+          mFreqsAccumulation[det].resize(C::getNBlocks());
+          mFreqsMetaData[det].resize(C::getNBlocks());
+        }
+        if (!mHeaders[det]) { // store 1st header
+          mHeaders[det] = ctfImage.cloneHeader();
+          auto& hb = *static_cast<o2::ctf::CTFDictHeader*>(mHeaders[det].get());
+          hb.det = det;
+        }
+        for (int ib = 0; ib < C::getNBlocks(); ib++) {
+          if (!mIsSaturatedFrequencyTable[det][ib]) {
+            const auto& bl = ctfImage.getBlock(ib);
+            if (bl.getNDict()) {
+              auto freq = mFreqsAccumulation[det][ib];
+              auto& mdSave = mFreqsMetaData[det][ib];
+              const auto& md = ctfImage.getMetadata(ib);
+              if ([&, this]() {
+                    try {
+                      freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
+                    } catch (const std::overflow_error& e) {
+                      LOGP(warning, "unable to add frequency table for {}, block {} due to overflow", det.getName(), ib);
+                      mIsSaturatedFrequencyTable[det][ib] = true;
+                      return false;
+                    }
+                    return true;
+                  }()) {
+                auto newProbBits = static_cast<uint8_t>(o2::rans::compat::computeRenormingPrecision(countNUsedAlphabetSymbols(freq)));
+                auto histogramView = o2::rans::trim(o2::rans::makeHistogramView(freq));
+                mdSave = ctf::detail::makeMetadataRansDict(newProbBits,
+                                                           static_cast<int32_t>(histogramView.getMin()),
+                                                           static_cast<int32_t>(histogramView.getMax()),
+                                                           static_cast<int32_t>(histogramView.size()),
+                                                           md.opt);
+                mFreqsAccumulation[det][ib] = std::move(freq);
+              }
             }
           }
         }
       }
-    }
-  } else {
-    if (!warnedEmpty) {
-      if (mNCTF) {
-        throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
+    } else {
+      if (!warnedEmpty) {
+        if (mNCTF) {
+          throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
+        }
+        LOGP(important, "Empty CTF provided for {}, skipping and will not report anymore", det.getName());
+        warnedEmpty = true;
       }
-      LOGP(important, "Empty CTF provided for {}, skipping and will not report anymore", det.getName());
-      warnedEmpty = true;
     }
   }
   mSizeReport += fmt::format(" {}:{}", det.getName(), fmt::group_digits(sz));
@@ -417,10 +433,21 @@ size_t CTFWriterSpec::estimateCTFSize(ProcessingContext& pc)
   size_t s = 0;
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     DetID det(id);
-    if (!isPresent(det) || !pc.inputs().isValid(det.getName())) {
-      continue;
+    uint32_t nLayers = 1;
+    if (det == DetID::ITS) {
+      const auto& par = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+      nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+    } else if (det == DetID::MFT) {
+      const auto& par = o2::itsmft::DPLAlpideParam<DetID::MFT>::Instance();
+      nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
     }
-    s += pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName()).size();
+    for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
+      auto binding = getBinding(det.getName(), iLayer);
+      if (!isPresent(det) || !pc.inputs().isValid(binding)) {
+        continue;
+      }
+      s += pc.inputs().get<gsl::span<o2::ctf::BufferType>>(binding).size();
+    }
   }
   return s;
 }
@@ -794,7 +821,18 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
   LOG(debug) << "Detectors list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
-      inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
+      uint32_t nLayers = 1;
+      DetID det{id};
+      if (det == DetID::ITS) {
+        const auto& par = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+        nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+      } else if (det == DetID::MFT) {
+        const auto& par = o2::itsmft::DPLAlpideParam<DetID::MFT>::Instance();
+        nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+      }
+      for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
+        inputs.emplace_back(CTFWriterSpec::getBinding(det.getName(), iLayer), det.getDataOrigin(), "CTFDATA", iLayer, Lifetime::Timeframe);
+      }
       LOG(debug) << "Det " << DetID::getName(id) << " added";
     }
   }

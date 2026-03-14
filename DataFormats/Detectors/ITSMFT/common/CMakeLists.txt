@@ -20,13 +20,17 @@ o2_add_library(DataFormatsITSMFT
                        src/TopologyDictionary.cxx
                        src/TimeDeadMap.cxx
                        src/CTF.cxx
+                       src/DPLAlpideParam.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
+                       O2::DetectorsCommonDataFormats
                        O2::ReconstructionDataFormats
+                       O2::CommonUtils
                        Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(DataFormatsITSMFT
                           HEADERS include/DataFormatsITSMFT/ROFRecord.h
                                   include/DataFormatsITSMFT/Digit.h
+                                  include/DataFormatsITSMFT/DPLAlpideParam.h
                                   include/DataFormatsITSMFT/GBTCalibData.h
                                   include/DataFormatsITSMFT/NoiseMap.h
                                   include/DataFormatsITSMFT/TimeDeadMap.h

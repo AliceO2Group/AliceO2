@@ -35,6 +35,7 @@
 #include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "Headers/STFHeader.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsTRD/CTF.h"
@@ -185,6 +186,50 @@ void CTFReaderSpec::init(InitContext& ic)
   if (!mInput.fileRunTimeSpans.empty()) {
     loadRunTimeSpans(mInput.fileRunTimeSpans);
     mIFRamesOut = true;
+  }
+}
+
+///_______________________________________
+template <>
+void CTFReaderSpec::processDetector<o2::itsmft::CTF>(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const
+{
+  if (mInput.detMask[det]) {
+    std::string lbl = det.getName();
+    int nLayers = 1;
+    if (det == DetID::ITS) {
+      const auto& par = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+      nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+    } else if (det == DetID::MFT) {
+      const auto& par = o2::itsmft::DPLAlpideParam<DetID::MFT>::Instance();
+      nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+    } else {
+      LOGP(fatal, "This specialization is define only for ITS and MFT detectors, {} provided", det.getName());
+    }
+    for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+      auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl, mInput.subspec * 100 + iLayer}, ctfHeader.detectors[det] ? sizeof(o2::itsmft::CTF) : 0);
+      if (ctfHeader.detectors[det]) {
+        auto brName = nLayers == 1 ? lbl : fmt::format("{}_{}", lbl, iLayer);
+        o2::itsmft::CTF::readFromTree(bufVec, *(mCTFTree.get()), brName, mCurrTreeEntry);
+      } else if (!mInput.allowMissingDetectors) {
+        throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
+      }
+    }
+  }
+}
+
+///_______________________________________
+template <typename C>
+void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const
+{
+  if (mInput.detMask[det]) {
+    const auto lbl = det.getName();
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl, mInput.subspec}, ctfHeader.detectors[det] ? sizeof(C) : 0);
+    if (ctfHeader.detectors[det]) {
+      C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
+    } else if (!mInput.allowMissingDetectors) {
+      throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
+    }
+    //    setMessageHeader(pc, ctfHeader, lbl);
   }
 }
 
@@ -563,22 +608,6 @@ void CTFReaderSpec::setMessageHeader(ProcessingContext& pc, const CTFHeader& ctf
 }
 
 ///_______________________________________
-template <typename C>
-void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const
-{
-  if (mInput.detMask[det]) {
-    const auto lbl = det.getName();
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl, mInput.subspec}, ctfHeader.detectors[det] ? sizeof(C) : 0);
-    if (ctfHeader.detectors[det]) {
-      C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
-    } else if (!mInput.allowMissingDetectors) {
-      throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
-    }
-    //    setMessageHeader(pc, ctfHeader, lbl);
-  }
-}
-
-///_______________________________________
 void CTFReaderSpec::tryToFixCTFHeader(CTFHeader& ctfHeader) const
 {
   // HACK: fix CTFHeader for the pilot beam runs, where the TF creation time was not recorded
@@ -636,7 +665,21 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (inp.detMask[id]) {
       DetID det(id);
-      outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec, Lifetime::Timeframe);
+      if (det == DetID::ITS) {
+        const auto& par = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+        uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+        for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
+          outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec * 100 + iLayer, Lifetime::Timeframe);
+        }
+      } else if (det == DetID::MFT) {
+        const auto& par = o2::itsmft::DPLAlpideParam<DetID::MFT>::Instance();
+        uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+        for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
+          outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec * 100 + iLayer, Lifetime::Timeframe);
+        }
+      } else {
+        outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec, Lifetime::Timeframe);
+      }
     }
   }
   if (!inp.fileIRFrames.empty() || !inp.fileRunTimeSpans.empty()) {

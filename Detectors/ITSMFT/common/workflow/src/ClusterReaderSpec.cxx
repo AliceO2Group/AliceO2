@@ -20,7 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
 #include "CommonUtils/NameConf.h"
 

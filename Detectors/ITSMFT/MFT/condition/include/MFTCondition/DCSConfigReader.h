@@ -14,7 +14,7 @@
 
 #include "Rtypes.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "MFTCondition/DCSConfigInfo.h"
 #include "MFTCondition/DCSConfigUtils.h"
 #include <gsl/span>

@@ -16,7 +16,7 @@
 
 #include "TFile.h"
 #include "TTree.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
 #include "DataFormatsITSMFT/ROFRecord.h"

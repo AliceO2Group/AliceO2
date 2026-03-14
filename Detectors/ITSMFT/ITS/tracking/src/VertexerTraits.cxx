@@ -25,7 +25,7 @@
 #include "ITStracking/Tracklet.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "Steer/MCKinematicsReader.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 
 namespace o2::its

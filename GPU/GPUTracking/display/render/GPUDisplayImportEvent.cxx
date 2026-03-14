@@ -31,7 +31,7 @@
 #include "TOFBase/Geo.h"
 #include "ITSBase/GeometryTGeo.h"
 #ifdef GPUCA_O2_LIB
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #endif
 
 #include <oneapi/tbb.h>

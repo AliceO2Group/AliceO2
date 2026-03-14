@@ -64,7 +64,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 */
 
 using namespace o2::framework;

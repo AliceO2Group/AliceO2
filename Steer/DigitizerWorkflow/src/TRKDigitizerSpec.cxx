@@ -27,7 +27,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "TRKSimulation/Digitizer.h"
 #include "TRKSimulation/DPLDigitizerParam.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/TRKBaseParam.h"
 

@@ -3475,7 +3475,7 @@
               "edges": [
                 {
                   "node": {
-                    "path": "Detectors/ITSMFT/common/base/include/ITSMFTBase/DPLAlpideParam.h"
+                    "path": "Detectors/ITSMFT/common/base/include/DataFormatsITSMFT/DPLAlpideParam.h"
                   }
                 }
               ]

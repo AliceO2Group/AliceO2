@@ -40,7 +40,7 @@
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/Task.h"
 #include "Framework/CCDBParamSpec.h"

@@ -29,7 +29,7 @@
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/StringUtils.h"

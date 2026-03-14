@@ -22,7 +22,7 @@
 #include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"

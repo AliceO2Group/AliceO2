@@ -183,10 +183,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // add decoders for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
-    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    addSpecs(o2::itsmft::getITSEntropyDecoderSpec(verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::MFT]) {
-    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    addSpecs(o2::itsmft::getMFTEntropyDecoderSpec(verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::TPC]) {
     addSpecs(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));

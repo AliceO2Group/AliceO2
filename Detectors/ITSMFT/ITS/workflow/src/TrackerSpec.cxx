@@ -15,7 +15,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/DeviceSpec.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackingConfigParam.h"
