@@ -42,6 +42,9 @@ using namespace o2::gpu;
 class TPCFastSpaceChargeCorrectionHelper
 {
  public:
+  using SectorScales = std::array<double, TPCFastTransformGeo::getNumberOfSectors()>;
+
+ public:
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor
@@ -115,15 +118,32 @@ class TPCFastSpaceChargeCorrectionHelper
   /// initialise inverse transformation from linear combination of several input corrections
   void initInverse(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn);
 
-  /// merge several corrections
+  /// weighted add of several corrections
   /// \param mainCorrection main correction
   /// \param scale scaling factor for the main correction
   /// \param additionalCorrections vector of pairs of additional corrections and their scaling factors
-  /// \param prn printout flag
   /// \return main correction merged with additional corrections
+  void addCorrections(
+    o2::gpu::TPCFastSpaceChargeCorrection& mainCorrection, double scale,
+    const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, double>>& additionalCorrections);
+
+  /// weighted add of several corrections with sector-dependent scaling factors
+  /// \param mainCorrection main correction
+  /// \param scale scaling factor for the main correction
+  /// \param additionalCorrections vector of pairs of additional corrections and their sector-dependent scaling factors
+  /// \return main correction merged with additional corrections
+  void addCorrections(
+    o2::gpu::TPCFastSpaceChargeCorrection& mainCorrection, SectorScales scale,
+    const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, SectorScales>>& additionalCorrections);
+
+  /// merge of two corrections sector-wise
+  /// \param destinationCorrection main correction to which the source correction will be added
+  /// \param sourceCorrection correction to be added to the main correction
+  /// \param sectors vector of sector indices for which the correction will be added
+  /// \return main correction merged with the source correction
   void mergeCorrections(
-    o2::gpu::TPCFastSpaceChargeCorrection& mainCorrection, float scale,
-    const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>>& additionalCorrections, bool prn);
+    o2::gpu::TPCFastSpaceChargeCorrection& destinationCorrection, const o2::gpu::TPCFastSpaceChargeCorrection& sourceCorrection,
+    const std::vector<int>& sectors);
 
   /// how far the voxel mean is allowed to be outside of the voxel (1.1 means 10%)
   void setVoxelMeanValidityRange(double range)
