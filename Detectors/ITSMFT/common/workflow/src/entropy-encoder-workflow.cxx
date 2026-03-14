@@ -43,7 +43,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (cfgc.options().get<bool>("runmft")) {
     wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("MFT", selIR, cfgc.options().get<std::string>("ctf-dict")));
   } else {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS", selIR));
+    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS", selIR, cfgc.options().get<std::string>("ctf-dict")));
   }
   return wf;
 }
