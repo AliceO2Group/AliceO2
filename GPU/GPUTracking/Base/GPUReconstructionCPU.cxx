@@ -35,6 +35,8 @@
 
 #include <atomic>
 #include <ctime>
+#include <iomanip>
+#include <iostream>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -212,6 +214,38 @@ int32_t GPUReconstructionCPU::ExitDevice()
   return 0;
 }
 
+namespace {
+  void write_header(std::ostream& stream) {
+    stream << "type,count,name,kernel (us),cpu (us),cpu/total,total (us),GB/s,bytes,bytes/call\n";
+  }
+
+  struct Row {
+    std::string type = "";
+    std::string name = "";
+    double kernel_time = -1.0;
+    double cpu_time = -1.0;
+    double total_time = -1.0;
+    size_t memSize = 0;
+    uint32_t count = 0;
+
+    void write(std::ostream& stream, uint32_t statNEvents) {
+      double scale = 1000000.0 / statNEvents;
+      stream << type << ",";
+      if (count != 0) stream << count;
+      stream << "," << name << "," << uint32_t(kernel_time * scale) << ",";
+      if (cpu_time != -1.0) stream << uint32_t(cpu_time * scale);
+      stream << ",";
+      if (cpu_time != -1.0 && total_time != -1.0) stream << uint32_t(cpu_time / total_time *100) / 100.0;
+      stream << ",";
+      if (total_time != -1.0) stream << uint32_t(total_time * scale);
+      stream << ",";
+      if (memSize != 0 && count != 0) stream << uint32_t(memSize / kernel_time * 1e-6) * 1e-3 << "," << memSize / statNEvents << "," << memSize / statNEvents / count;
+      else stream << ",,";
+      stream << std::endl;
+    }
+  };
+}
+
 int32_t GPUReconstructionCPU::RunChains()
 {
   mMemoryScalers->temporaryFactor = 1.;
@@ -264,6 +298,16 @@ int32_t GPUReconstructionCPU::RunChains()
   double kernelTotal = 0;
   std::vector<double> kernelStepTimes(gpudatatypes::N_RECO_STEPS, 0.);
 
+  std::ofstream benchmarkCSV;
+  if (!GetProcessingSettings().timingCSV.empty()) {
+    benchmarkCSV.open(GetProcessingSettings().timingCSV, std::ios::out | std::ios::app);
+    if (!benchmarkCSV.is_open()) {
+      GPUError("Could not open timing CSV file '%s' for writing", GetProcessingSettings().timingCSV.c_str());
+    } else if (mNEventsProcessed == 1) {
+      write_header(benchmarkCSV);
+    }
+  }
+
   if (GetProcessingSettings().debugLevel >= 1) {
     for (uint32_t i = 0; i < mTimers.size(); i++) {
       double time = 0;
@@ -285,9 +329,16 @@ int32_t GPUReconstructionCPU::RunChains()
         kernelStepTimes[stepNum] += time;
       }
       char bandwidth[256] = "";
+      Row task_row;
+      task_row.type = 'K';
+      task_row.name = mTimers[i]->name.c_str();
+      task_row.kernel_time = time;
+      task_row.count = mTimers[i]->count;
       if (mTimers[i]->memSize && mStatNEvents && time != 0.) {
+        task_row.memSize = mTimers[i]->memSize;
         snprintf(bandwidth, 256, " (%8.3f GB/s - %'14zu bytes - %'14zu per call)", mTimers[i]->memSize / time * 1e-9, mTimers[i]->memSize / mStatNEvents, mTimers[i]->memSize / mStatNEvents / mTimers[i]->count);
       }
+      if (benchmarkCSV.is_open()) task_row.write(benchmarkCSV, mStatNEvents);
       printf("Execution Time: Task (%c %8ux): %50s Time: %'10.0f us%s\n", type == 0 ? 'K' : 'C', mTimers[i]->count, mTimers[i]->name.c_str(), time * 1000000 / mStatNEvents, bandwidth);
       if (GetProcessingSettings().resetTimers) {
         mTimers[i]->count = 0;
@@ -298,14 +349,34 @@ int32_t GPUReconstructionCPU::RunChains()
   if (GetProcessingSettings().recoTaskTiming) {
     for (int32_t i = 0; i < gpudatatypes::N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0. || mTimersRecoSteps[i].timerTotal.GetElapsedTime() != 0.) {
+        Row reco_step_row;
+        reco_step_row.name = std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (Tasks)";
+        reco_step_row.kernel_time = kernelStepTimes[i];
+        reco_step_row.cpu_time = mTimersRecoSteps[i].timerCPU;
+        reco_step_row.total_time = mTimersRecoSteps[i].timerTotal.GetElapsedTime();
+        if (benchmarkCSV.is_open()) reco_step_row.write(benchmarkCSV, mStatNEvents);
         printf("Execution Time: Step              : %11s %38s Time: %'10.0f us %64s ( Total Time : %'14.0f us, CPU Time : %'14.0f us, %'7.2fx )\n", "Tasks",
                gpudatatypes::RECO_STEP_NAMES[i], kernelStepTimes[i] * 1000000 / mStatNEvents, "", mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU / mTimersRecoSteps[i].timerTotal.GetElapsedTime());
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
+        Row reco_step_row;
+        reco_step_row.type = 'D';
+        reco_step_row.name = std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to GPU)";
+        reco_step_row.kernel_time = mTimersRecoSteps[i].timerToGPU.GetElapsedTime();
+        reco_step_row.memSize = mTimersRecoSteps[i].bytesToGPU;
+        reco_step_row.count = mTimersRecoSteps[i].countToGPU;
+        if (benchmarkCSV.is_open()) reco_step_row.write(benchmarkCSV, mStatNEvents);
         printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", gpudatatypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents,
                mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToGPU / mStatNEvents, mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].countToGPU);
       }
       if (mTimersRecoSteps[i].bytesToHost) {
+        Row reco_step_row;
+        reco_step_row.type = 'D';
+        reco_step_row.name = std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to Host)";
+        reco_step_row.kernel_time = mTimersRecoSteps[i].timerToHost.GetElapsedTime();
+        reco_step_row.memSize = mTimersRecoSteps[i].bytesToHost;
+        reco_step_row.count = mTimersRecoSteps[i].countToHost;
+        if (benchmarkCSV.is_open()) reco_step_row.write(benchmarkCSV, mStatNEvents);
         printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", gpudatatypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents,
                mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToHost / mStatNEvents, mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].countToHost);
       }
@@ -321,13 +392,23 @@ int32_t GPUReconstructionCPU::RunChains()
     }
     for (int32_t i = 0; i < gpudatatypes::N_GENERAL_STEPS; i++) {
       if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
+        Row general_step_row;
+        general_step_row.name = gpudatatypes::GENERAL_STEP_NAMES[i];
+        general_step_row.kernel_time = mTimersGeneralSteps[i].GetElapsedTime();
+        if (benchmarkCSV.is_open()) general_step_row.write(benchmarkCSV, mStatNEvents);
         printf("Execution Time: General Step      : %50s Time: %'10.0f us\n", gpudatatypes::GENERAL_STEP_NAMES[i], mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents);
       }
     }
+    Row wall_row;
+    wall_row.name = "Wall";
     if (GetProcessingSettings().debugLevel >= 1) {
+      wall_row.kernel_time = kernelTotal;
       mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
       printf("Execution Time: Total   : %50s Time: %'10.0f us%s\n", "Total Kernel", mStatKernelTime, nEventReport.c_str());
     }
+    wall_row.cpu_time = mStatCPUTime;
+    wall_row.total_time = mStatWallTime * mStatNEvents / 1000000;
+    if (benchmarkCSV.is_open()) wall_row.write(benchmarkCSV, mStatNEvents);
     printf("Execution Time: Total   : %50s Time: %'10.0f us ( CPU Time : %'10.0f us, %7.2fx ) %s\n", "Total Wall", mStatWallTime, mStatCPUTime * 1000000 / mStatNEvents, mStatCPUTime / mTimerTotal.GetElapsedTime(), nEventReport.c_str());
   } else if (GetProcessingSettings().debugLevel >= 0) {
     GPUInfo("Total Wall Time: %10.0f us%s", mStatWallTime, nEventReport.c_str());
