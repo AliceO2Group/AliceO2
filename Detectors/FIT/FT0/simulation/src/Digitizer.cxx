@@ -42,17 +42,17 @@ namespace o2::ft0
 template <typename Float>
 Float signalForm_i(Float x)
 {
-float p0, p1, p2, p3, p4, p5, p6, p7;
-p0  =   1.30853; 
-p1  =  0.516807;
-p2  =   3.36714;
-p3  =  -1.01206;
-p4  =   1.42832;
-p5  =    1.1589;
-p6  =   1.22019;
-p7  =  0.426818;
+  float p0, p1, p2, p3, p4, p5, p6, p7;
+  p0 = 1.30853;
+  p1 = 0.516807;
+  p2 = 3.36714;
+  p3 = -1.01206;
+  p4 = 1.42832;
+  p5 = 1.1589;
+  p6 = 1.22019;
+  p7 = 0.426818;
 
-   Double_t val = 0;
+  Double_t val = 0;
 
   if (x > p3) {
     Double_t x1 = x - p3;
@@ -72,52 +72,52 @@ p7  =  0.426818;
 // integrated signal shape function
 inline float signalForm_integral(float x)
 {
-float p0, p1, p2, p3, p4, p5, p6, p7;
-p0  =   1.30853; 
-p1  =  0.516807;
-p2  =   3.36714;
-p3  =  -1.01206;
-p4  =   1.42832;
-p5  =    1.1589;
-p6  =   1.22019;
-p7  =  0.426818;
+  float p0, p1, p2, p3, p4, p5, p6, p7;
+  p0 = 1.30853;
+  p1 = 0.516807;
+  p2 = 3.36714;
+  p3 = -1.01206;
+  p4 = 1.42832;
+  p5 = 1.1589;
+  p6 = 1.22019;
+  p7 = 0.426818;
   Double_t val = 0;
 
   if (x > p3) {
     Double_t x1 = x - p3;
     Double_t z1 = (log(x1) - p0) / (sqrt(2) * p1);
-    val += p2 * 0.5 * (1 + TMath::Erf(z1));  // norm1 * CDF1
+    val += p2 * 0.5 * (1 + TMath::Erf(z1)); // norm1 * CDF1
   }
 
   if (x > p7) {
     Double_t x2 = x - p7;
     Double_t z2 = (log(x2) - p4) / (sqrt(2) * p5);
-    val += p6 * 0.5 * (1 + TMath::Erf(z2));  // norm2 * CDF2
+    val += p6 * 0.5 * (1 + TMath::Erf(z2)); // norm2 * CDF2
   }
 
   return val;
 };
-	/*
+/*
 // signal shape function
 template <typename Float>
 Float signalForm_i(Float x)
 {
-  using namespace std;
-  Float const a = -0.45458;
-  Float const b = -0.83344945;
-  return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
+using namespace std;
+Float const a = -0.45458;
+Float const b = -0.83344945;
+return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
 };
 
 // integrated signal shape function
 inline float signalForm_integral(float x)
 {
-  using namespace std;
-  double const a = -0.45458;
-  double const b = -0.83344945;
-  if (x < 0) {
-    x = 0;
-  }
-  return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
+using namespace std;
+double const a = -0.45458;
+double const b = -0.83344945;
+if (x < 0) {
+  x = 0;
+}
+return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
 };
 */
 // SIMD version of the integrated signal shape function
@@ -316,63 +316,63 @@ void Digitizer::storeBC(BCCache& bc,
   if (bc.hits.empty()) {
     return;
   }
-// Initialize mapping channelID -> PM hash and PM side (A/C) using FT0 LUT
-static bool pmLutInitialized = false;
-static std::array<uint8_t, o2::ft0::Constants::sNCHANNELS_PM> mChID2PMhash{};
-static std::map<uint8_t, bool> mMapPMhash2isAside; // hashed PM -> is A side
+  // Initialize mapping channelID -> PM hash and PM side (A/C) using FT0 LUT
+  static bool pmLutInitialized = false;
+  static std::array<uint8_t, o2::ft0::Constants::sNCHANNELS_PM> mChID2PMhash{};
+  static std::map<uint8_t, bool> mMapPMhash2isAside; // hashed PM -> is A side
 
-if (!pmLutInitialized) {
-  std::map<std::string, uint8_t> mapFEE2hash; // module name -> hashed PM id
-  uint8_t tcmHash = 0;
+  if (!pmLutInitialized) {
+    std::map<std::string, uint8_t> mapFEE2hash; // module name -> hashed PM id
+    uint8_t tcmHash = 0;
 
-  const auto& lut = o2::ft0::SingleLUT::Instance().getVecMetadataFEE();
-  auto lutSorted = lut;
-  std::sort(lutSorted.begin(), lutSorted.end(),
-            [](const auto& first, const auto& second) { return first.mModuleName < second.mModuleName; });
+    const auto& lut = o2::ft0::SingleLUT::Instance().getVecMetadataFEE();
+    auto lutSorted = lut;
+    std::sort(lutSorted.begin(), lutSorted.end(),
+              [](const auto& first, const auto& second) { return first.mModuleName < second.mModuleName; });
 
-  uint8_t binPos = 0;
-  for (const auto& lutEntry : lutSorted) {
-    const auto& moduleName = lutEntry.mModuleName;
-    const auto& moduleType = lutEntry.mModuleType;
-    const auto& strChID = lutEntry.mChannelID;
+    uint8_t binPos = 0;
+    for (const auto& lutEntry : lutSorted) {
+      const auto& moduleName = lutEntry.mModuleName;
+      const auto& moduleType = lutEntry.mModuleType;
+      const auto& strChID = lutEntry.mChannelID;
 
-    auto [it, inserted] = mapFEE2hash.insert({moduleName, binPos});
-    if (inserted) {
-      if (moduleName.find("PMA") != std::string::npos) {
-        mMapPMhash2isAside.insert({binPos, true});
-      } else if (moduleName.find("PMC") != std::string::npos) {
-        mMapPMhash2isAside.insert({binPos, false});
+      auto [it, inserted] = mapFEE2hash.insert({moduleName, binPos});
+      if (inserted) {
+        if (moduleName.find("PMA") != std::string::npos) {
+          mMapPMhash2isAside.insert({binPos, true});
+        } else if (moduleName.find("PMC") != std::string::npos) {
+          mMapPMhash2isAside.insert({binPos, false});
+        }
+        ++binPos;
       }
-      ++binPos;
+
+      if (std::regex_match(strChID, std::regex("^[0-9]{1,3}$"))) {
+        int chID = std::stoi(strChID);
+        if (chID < o2::ft0::Constants::sNCHANNELS_PM) {
+          mChID2PMhash[chID] = mapFEE2hash[moduleName];
+        } else {
+          LOG(fatal) << "Incorrect LUT entry: chID " << strChID << " | " << moduleName;
+        }
+      } else if (moduleType != "TCM") {
+        LOG(fatal) << "Non-TCM module w/o numerical chID: chID " << strChID << " | " << moduleName;
+      } else { // TCM
+        tcmHash = mapFEE2hash[moduleName];
+      }
     }
 
-    if (std::regex_match(strChID, std::regex("^[0-9]{1,3}$"))) {
-      int chID = std::stoi(strChID);
-      if (chID < o2::ft0::Constants::sNCHANNELS_PM) {
-        mChID2PMhash[chID] = mapFEE2hash[moduleName];
-      } else {
-        LOG(fatal) << "Incorrect LUT entry: chID " << strChID << " | " << moduleName;
-      }
-    } else if (moduleType != "TCM") {
-      LOG(fatal) << "Non-TCM module w/o numerical chID: chID " << strChID << " | " << moduleName;
-    } else { // TCM
-      tcmHash = mapFEE2hash[moduleName];
-    }
+    pmLutInitialized = true;
   }
-
-  pmLutInitialized = true;
-}
 
   int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
   int summ_ampl_A = 0, summ_ampl_C = 0;
   int sum_A_ampl = 0, sum_C_ampl = 0;
   int nPMTs = mGeometry.NCellsA * 4 + mGeometry.NCellsC * 4;
   std::vector<int> sum_ampl_ipmt(nPMTs, 0);
-// Per-PM summed charge (like in digits2trgFT0)
-std::map<uint8_t, int> mapPMhash2sumAmpl;
-for (const auto& entry : mMapPMhash2isAside) {
-  mapPMhash2sumAmpl.insert({entry.first, 0});
-}
+  // Per-PM summed charge (like in digits2trgFT0)
+  std::map<uint8_t, int> mapPMhash2sumAmpl;
+  for (const auto& entry : mMapPMhash2isAside) {
+    mapPMhash2sumAmpl.insert({entry.first, 0});
+  }
 
   int vertex_time;
   const auto& params = FT0DigParam::Instance();
@@ -447,42 +447,41 @@ for (const auto& entry : mMapPMhash2isAside) {
       mean_time_C += smeared_time;
     }
   }
-  
+
   for (size_t i = 0; i < sum_ampl_ipmt.size(); i++) {
-	    sum_ampl_ipmt[i] = sum_ampl_ipmt[i] >> 3;   
-            if (i < 4 * mGeometry.NCellsA) {
-		sum_A_ampl += sum_ampl_ipmt[i]; 
-	    } else {
-		sum_C_ampl += sum_ampl_ipmt[i]; 
-	    }
+    sum_ampl_ipmt[i] = sum_ampl_ipmt[i] >> 3;
+    if (i < 4 * mGeometry.NCellsA) {
+      sum_A_ampl += sum_ampl_ipmt[i];
+    } else {
+      sum_C_ampl += sum_ampl_ipmt[i];
+    }
   }
-  
+
   // Sum over PMs (using per-PM map) for debug/monitoring
   int sum_PM_ampl_debug = 0;
   int sum_PM_ampl_A_debug = 0;
   int sum_PM_ampl_C_debug = 0;
   for (const auto& entry : mapPMhash2sumAmpl) {
-     int pmAmpl = (entry.second >> 3);
-     sum_PM_ampl_debug += pmAmpl;
-     auto itSide = mMapPMhash2isAside.find(entry.first);
-     if (itSide != mMapPMhash2isAside.end()) {
-       if (itSide->second) {
-         sum_PM_ampl_A_debug += pmAmpl;
-       } else {
-         sum_PM_ampl_C_debug += pmAmpl;
-       }
-     }
+    int pmAmpl = (entry.second >> 3);
+    sum_PM_ampl_debug += pmAmpl;
+    auto itSide = mMapPMhash2isAside.find(entry.first);
+    if (itSide != mMapPMhash2isAside.end()) {
+      if (itSide->second) {
+        sum_PM_ampl_A_debug += pmAmpl;
+      } else {
+        sum_PM_ampl_C_debug += pmAmpl;
+      }
+    }
   }
-LOG(debug) << "Sum PM amplitude (LUT-based): total=" << sum_PM_ampl_debug
-           << " A-side=" << sum_PM_ampl_A_debug
-           << " C-side=" << sum_PM_ampl_C_debug;
-
+  LOG(debug) << "Sum PM amplitude (LUT-based): total=" << sum_PM_ampl_debug
+             << " A-side=" << sum_PM_ampl_A_debug
+             << " C-side=" << sum_PM_ampl_C_debug;
 
   Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
   is_A = n_hit_A > 0;
   is_C = n_hit_C > 0;
-  is_Central = sum_PM_ampl_A_debug + sum_PM_ampl_C_debug >= 2*params.mtrg_central_trh;
-  is_SemiCentral = sum_PM_ampl_A_debug + sum_PM_ampl_C_debug >= 2*params.mtrg_semicentral_trh && !is_Central;
+  is_Central = sum_PM_ampl_A_debug + sum_PM_ampl_C_debug >= 2 * params.mtrg_central_trh;
+  is_SemiCentral = sum_PM_ampl_A_debug + sum_PM_ampl_C_debug >= 2 * params.mtrg_semicentral_trh && !is_Central;
   uint32_t amplA = is_A ? summ_ampl_A * 0.125 : -5000; // sum amplitude A side / 8 (hardware)
   uint32_t amplC = is_C ? summ_ampl_C * 0.125 : -5000; // sum amplitude C side / 8 (hardware)
   int timeA = is_A ? mean_time_A / n_hit_A : -5000;    // average time A side
