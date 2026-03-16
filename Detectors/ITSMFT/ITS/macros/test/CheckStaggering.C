@@ -13,9 +13,11 @@
 #include <cmath>
 #include <vector>
 #include <filesystem>
-#include <vector>
+#include <algorithm>
+#include <random>
 
 #include <TGeoManager.h>
+#include <TRandom.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TF1.h>
@@ -30,16 +32,6 @@
 #include <TLine.h>
 #include <TLorentzVector.h>
 #include <TPaveText.h>
-#include <RooRealVar.h>
-#include <RooDataHist.h>
-#include <RooGaussian.h>
-#include <RooAddPdf.h>
-#include "RooVoigtian.h"
-#include <RooChebychev.h>
-#include <RooPlot.h>
-#include <RooFitResult.h>
-#include <RooHist.h>
-#include <RooFit.h>
 
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -56,7 +48,6 @@
 #include "DetectorsVertexing/SVertexHypothesis.h"
 #include "DCAFitter/DCAFitterN.h"
 #endif
-using namespace RooFit;
 
 constexpr const char* tracFile = "o2trac_its.root";
 constexpr const char* clsFile = "o2clus_its.root";
@@ -69,8 +60,6 @@ struct PairCandidate {
 };
 
 std::vector<std::filesystem::path> findDirs(const std::string&);
-void fitK0(TH1D*, int);
-void fitPhiMeson(TH1D*, int);
 
 void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
 {
@@ -82,6 +71,9 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
     return;
   }
   if (max > 0 && (int)dirs.size() > max) {
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(dirs.begin(), dirs.end(), g);
     dirs.resize(max);
     LOGP(info, "restricting to {} dirs", max);
   }
@@ -111,11 +103,12 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
   auto hTrkTSE = new TH1D("hTrkTSE", "assigned time errors; tE (BC)", 198, -0.5, 198 - 0.5);
 
   // K0 && Phi-Meson
-  const float mMinITSPt{0.3};
+  const float mMinITSPt{0.15};
   //
   const int phiMinNCls{7};
-  const float phiMaxDCAR2MVTX{0.1}; // max distance to mean vtx
-  auto hPhiMeson = new TH1D("hPhiMeson", "#phi meson;mass (GeV/c^{2})", 100, 0.96, 1.1);
+  const float phiMaxDCAR2MVTX{0.05}; // max distance to mean vtx
+  auto hPhiMeson = new TH1D("hPhiMeson", "#phi meson;mass (GeV/c^{2})", 200, 0.96, 1.1);
+  auto hPhiMesonBkg = new TH1D("hPhiMesonBkg", "#phi meson background;mass (GeV/c^{2})", 200, 0.96, 1.1);
 
   const int mK0MinNCls{7};
   const float mK0minCosPAXYMeanVertex = 0.98;
@@ -133,7 +126,7 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
   k0Ft.setMinRelChi2Change(0.9);
   k0Ft.setMaxChi2(5);
   k0Ft.setUseAbsDCA(true);
-  auto hK0 = new TH1D("hK0Meson", "K0;mass (GeV/c^{2})", 100, 0.4, 0.6);
+  auto hK0 = new TH1D("hK0", "K0;mass (GeV/c^{2})", 100, 0.4, 0.6);
   o2::vertexing::SVertexHypothesis k0Hyp;
   const float k0Par[] = {0., 20, 0., 5.0, 0.0, 1.09004e-03, 2.62291e-04, 8.93179e-03, 2.83121};
   k0Hyp.set(o2::track::PID::K0, o2::track::PID::Pion, o2::track::PID::Pion, k0Par, bz);
@@ -160,18 +153,34 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
   std::vector<o2::its::TrackITS> trkArr, *trkArrPtr{&trkArr};
   std::vector<o2::its::Vertex> vtxArr, *vtxArrPtr{&vtxArr};
   std::array<std::vector<o2::itsmft::CompClusterExt>*, 7> clsArr{nullptr};
-  for (const auto& d : dirs) {
-    LOGP(info, "Entering {}", d.c_str());
+  for (size_t iDir{0}; iDir < dirs.size(); ++iDir) {
+    int progress = static_cast<int>((iDir + 1) * 100 / dirs.size());
+    printf("\rProgress: [");
+    int barWidth = 50;
+    int pos = barWidth * progress / 100;
+    for (int j = 0; j < barWidth; ++j) {
+      if (j < pos)
+        printf("=");
+      else if (j == pos)
+        printf(">");
+      else
+        printf(" ");
+    }
+    printf("] %d%%", progress);
+    fflush(stdout);
+
+    const auto& d = dirs[iDir];
+    LOGP(debug, "\nEntering {}", d.c_str());
     auto fTrks = TFile::Open((d / tracFile).c_str());
     auto fCls = TFile::Open((d / clsFile).c_str());
     if (!fTrks || !fCls || fTrks->IsZombie() || fCls->IsZombie()) {
-      LOGP(error, "Could not open files");
+      LOGP(error, "\nCould not open files");
       continue;
     }
     auto tTrks = fTrks->Get<TTree>("o2sim");
     auto tCls = fCls->Get<TTree>("o2sim");
     if (!tTrks || !tCls) {
-      LOGP(error, "Could not retrieve trees");
+      LOGP(error, "\nCould not retrieve trees");
       continue;
     }
 
@@ -189,7 +198,7 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
       for (int i{0}; i < 7; ++i) {
         ncls += clsArr[i]->size();
       }
-      LOGP(info, "\tTF:{:03} {} trks {} vtx {} cls", iTF, trkArr.size(), vtxArr.size(), ncls);
+      LOGP(debug, "\n\tTF:{:03} {} trks {} vtx {} cls", iTF, trkArr.size(), vtxArr.size(), ncls);
 
       // for each TF built pool of positive and negaitve tracks
       std::vector<const o2::its::TrackITS*> posPool, negPool;
@@ -248,8 +257,19 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
                 p1.SetXYZM(pP[0], pP[1], pP[2], posPhi.getPID().getMass());
                 p2.SetXYZM(pN[0], pN[1], pN[2], negPhi.getPID().getMass());
                 TLorentzVector mother = p1 + p2;
-                double mass = mother.M();
-                hPhiMeson->Fill(mass);
+                hPhiMeson->Fill(mother.M());
+                // rotate on daughter track to estimate background
+                for (int i{0}; i < 10; ++i) {
+                  double theta = gRandom->Uniform(165.f, 195.f) * TMath::DegToRad();
+                  double pxN = pN[0] * cos(theta) - pN[1] * sin(theta);
+                  double pyN = pN[0] * sin(theta) + pN[1] * cos(theta);
+                  double pxP = pP[0] * cos(-theta) - pP[1] * sin(-theta);
+                  double pyP = pP[0] * sin(-theta) + pP[1] * cos(-theta);
+                  p1.SetXYZM(pxP, pyP, pP[2], posPhi.getPID().getMass());
+                  p2.SetXYZM(pxN, pyN, pN[2], negPhi.getPID().getMass());
+                  mother = p1 + p2;
+                  hPhiMesonBkg->Fill(mother.M());
+                }
               }
             }
           }
@@ -359,8 +379,26 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
     return lastLine;
   };
 
-  fitK0(hK0, runNumber);
-  fitPhiMeson(hPhiMeson, runNumber);
+  {
+    TFile out(Form("check_%d.root", runNumber), "RECREATE");
+    out.WriteTObject(hNTrkCls);
+    for (int i{0}; i < 5; ++i) {
+      out.WriteTObject(hTrkTS[i]);
+    }
+    out.WriteTObject(hTrkTSE);
+    out.WriteTObject(hPhiMeson);
+    out.WriteTObject(hPhiMesonBkg);
+    out.WriteTObject(hK0);
+    out.WriteTObject(hVtxXY);
+    out.WriteTObject(hVtxZ);
+    out.WriteTObject(hVtxNCont);
+    out.WriteTObject(hVtxZNCont);
+    out.WriteTObject(hVtxTS);
+    out.WriteTObject(hVtxCls);
+  }
+
+  // fitK0(hK0, runNumber);
+  // fitPhiMeson(hPhiMeson, runNumber);
   {
     auto c = new TCanvas();
     hNTrkCls->Draw();
@@ -484,203 +522,4 @@ std::vector<std::filesystem::path> findDirs(const std::string& roots)
     }
   }
   return result;
-}
-
-void fitK0(TH1D* h, int runNumber)
-{
-  RooRealVar mass("mass", "K^{0} mass (GeV/c^{2})", 0.46, 0.54);
-  RooDataHist data("data", "data", RooArgList(mass), Import(*h));
-  RooRealVar mean("mean", "mean", 0.4976, 0.490, 0.503);
-  RooRealVar sigma1("sigma1", "core sigma", 0.003, 0.0005, 0.02);
-  RooRealVar sigma2("sigma2", "tail sigma", 0.006, 0.001, 0.03);
-  RooGaussian gauss1("gauss1", "gauss1", mass, mean, sigma1);
-  RooGaussian gauss2("gauss2", "gauss2", mass, mean, sigma2);
-  RooRealVar frac2("frac2", "fraction in second gaussian", 0.15, 0.0, 1.0);
-  RooAddPdf signal("signal", "signal PDF", RooArgList(gauss1, gauss2), RooArgList(frac2));
-  RooRealVar c1("c1", "cheby coeff1", 0.0, -5.0, 5.0);
-  RooChebychev bkg("bkg", "background", mass, RooArgList(c1));
-  double totalIntegral = h->Integral();
-  RooRealVar nsig("nsig", "signal yield", totalIntegral * 0.4, 0., totalIntegral * 10.0);
-  RooRealVar nbkg("nbkg", "background yield", totalIntegral * 0.6, 0., totalIntegral * 10.0);
-  RooAddPdf model("model", "sig + bkg", RooArgList(signal, bkg), RooArgList(nsig, nbkg));
-  RooFitResult* fitRes = model.fitTo(data,
-                                     Extended(true),
-                                     Save(true),
-                                     Strategy(1),
-                                     Hesse(true),
-                                     Minos(false),
-                                     PrintLevel(-1));
-
-  TCanvas* c = new TCanvas("c", "K0 fit", 800, 800);
-  c->cd();
-  TPad* pad1 = new TPad("pad1", "pad1", 0, 0.30, 1, 1.0);
-  TPad* pad2 = new TPad("pad2", "pad2", 0, 0.0, 1, 0.30);
-  pad1->SetBottomMargin(0.0);
-  pad2->SetTopMargin(0.0);
-  pad2->SetBottomMargin(0.30);
-  pad1->Draw();
-  pad2->Draw();
-
-  pad1->cd();
-  RooPlot* frame = mass.frame(Title("K^{0}_{S} mass fit"));
-  data.plotOn(frame, Name("data"));
-  model.plotOn(frame, Name("model"));
-  // draw background component
-  model.plotOn(frame, Components("bkg"), LineStyle(kDashed), LineColor(kRed), Name("bkg"));
-  // draw total signal component
-  model.plotOn(frame, Components("signal"), LineStyle(kDashed), LineColor(kBlue), Name("signal"));
-  frame->GetYaxis()->SetTitle("Events / bin");
-  frame->GetXaxis()->SetLabelSize(0.05);
-  frame->GetXaxis()->SetTitleSize(0.06);
-  frame->GetYaxis()->SetTitleSize(0.05);
-  frame->Draw();
-
-  TLegend leg(0.60, 0.65, 0.88, 0.88);
-  leg.SetBorderSize(0);
-  leg.AddEntry((TObject*)0, Form("mean = %.3f #pm %.3f GeV/c^{2}", mean.getVal(), mean.getError()), "");
-  leg.AddEntry((TObject*)0, Form("sigma_{1} = %.3f #pm %.3f GeV/c^{2}", sigma1.getVal(), sigma1.getError()), "");
-  leg.AddEntry((TObject*)0, Form("sigma_{2} = %.3f #pm %.3f GeV/c^{2}", sigma2.getVal(), sigma2.getError()), "");
-  leg.AddEntry((TObject*)0, Form("signal yield = %.0f #pm %.0f", nsig.getVal(), nsig.getError()), "");
-  leg.Draw();
-
-  int npar = fitRes->floatParsFinal().getSize();
-  double chi2ndf = frame->chiSquare(npar);
-  TPaveText* pt = new TPaveText(0.15, 0.75, 0.45, 0.88, "NDC");
-  pt->SetFillStyle(0);
-  pt->SetBorderSize(0);
-  pt->AddText(Form("#chi^{2}/ndf = %.3g", chi2ndf));
-  pt->Draw();
-
-  pad2->cd();
-  RooPlot* frame_pull = mass.frame(Title("Pull (data - fit) / uncertainty"));
-  RooHist* hpull = frame->pullHist();
-  frame_pull->addPlotable(hpull, "P");
-  frame_pull->GetXaxis()->SetTitle("mass (GeV/c^{2})");
-  frame_pull->GetXaxis()->SetTitleSize(0.12);
-  frame_pull->GetXaxis()->SetLabelSize(0.10);
-  frame_pull->GetYaxis()->SetLabelSize(0.10);
-  frame_pull->GetYaxis()->SetTitleSize(0.12);
-  frame_pull->Draw();
-  frame_pull->GetYaxis()->SetRangeUser(-5, 5);
-  TLine l(frame_pull->GetXaxis()->GetXmin(), 0, frame_pull->GetXaxis()->GetXmax(), 0);
-  l.SetLineStyle(kDashed);
-  l.Draw();
-  c->SaveAs(Form("k0_%d.pdf", runNumber));
-}
-
-void fitPhiMeson(TH1D* h, int runNumber)
-{
-  double hxmin = h->GetXaxis()->GetXmin();
-  double hxmax = h->GetXaxis()->GetXmax();
-  int nbins = h->GetNbinsX();
-  double sig_low = 1.015;
-  double sig_high = 1.025;
-  TH1D* h_sb = (TH1D*)h->Clone(Form("%s_sidebands", h->GetName()));
-  for (int ib = 1; ib <= nbins; ++ib) {
-    double x = h_sb->GetBinCenter(ib);
-    if (x > sig_low && x < sig_high) {
-      h_sb->SetBinContent(ib, 0.0);
-      h_sb->SetBinError(ib, 0.0);
-    }
-  }
-  RooRealVar mass("mass", "m_{K^{+}K^{-}} (GeV/c^{2})", hxmin, hxmax);
-  RooDataHist data("data", "data", RooArgList(mass), Import(*h));
-  RooDataHist data_sb("data_sb", "sideband data", RooArgList(mass), Import(*h_sb));
-  RooRealVar mean("mean", "phi mass", 1.019, 1.015, 1.025);
-  RooRealVar gamma("gamma", "natural width (GeV)", 0.00426);
-  gamma.setConstant(true);
-  RooRealVar sigma("sigma", "detector resolution (GeV)", 0.001, 0.0002, 0.01);
-  RooVoigtian signal("signal", "Voigtian(signal)", mass, mean, gamma, sigma);
-  RooRealVar c1("c1", "cheby coeff1", 0.0, -5.0, 5.0);
-  RooRealVar c2("c2", "cheby coeff2", 0.0, -5.0, 5.0);
-  RooChebychev bkg("bkg", "background", mass, RooArgList(c1, c2));
-  RooFitResult* fbkg = bkg.fitTo(data_sb,
-                                 Range(hmin, hxmax),
-                                 Save(true),
-                                 Verbose(false),
-                                 PrintLevel(-1));
-
-  if (!fbkg) {
-    LOGP(error, "Warning: background sideband fit failed to return RooFitResult.");
-  }
-  double totalIntegral = h->Integral();
-  RooRealVar nsig("nsig", "signal yield", totalIntegral * 0.05, 0., totalIntegral * 10.0); // small initial guess
-  RooRealVar nbkg("nbkg", "background yield", totalIntegral * 0.95, 0., totalIntegral * 10.0);
-  RooAddPdf model("model", "sig + bkg", RooArgList(signal, bkg), RooArgList(nsig, nbkg));
-  RooFitResult* fitRes = model.fitTo(data,
-                                     Extended(true),
-                                     Save(true),
-                                     Strategy(1),
-                                     Hesse(true),
-                                     Minos(false),
-                                     Verbose(true),
-                                     PrintLevel(-1));
-
-  if (!fitRes) {
-    LOGP(error, "fitPhiMeson: fitTo returned null RooFitResult.");
-  }
-  TCanvas* c = new TCanvas("c_phi", "Phi mass fit", 800, 800);
-  c->cd();
-  TPad* pad1 = new TPad("pad1", "pad1", 0, 0.30, 1, 1.0);
-  TPad* pad2 = new TPad("pad2", "pad2", 0, 0.0, 1, 0.30);
-  pad1->SetBottomMargin(0.0);
-  pad2->SetTopMargin(0.0);
-  pad2->SetBottomMargin(0.30);
-  pad1->Draw();
-  pad2->Draw();
-  pad1->cd();
-
-  RooPlot* frame = mass.frame(Title("Phi (#phi) meson fit"));
-  frame->GetXaxis()->SetTitle("m_{K^{+}K^{-}} (GeV/c^{2})");
-  frame->GetYaxis()->SetTitle("Events / bin");
-  data.plotOn(frame, Binning(nbins), Name("data"));
-  model.plotOn(frame, Name("model"));
-  model.plotOn(frame, Components("bkg"), LineStyle(kDashed), LineColor(kRed), Name("bkg"));
-  model.plotOn(frame, Components("signal"), LineStyle(kSolid), LineColor(kBlue), Name("signal"));
-  frame->Draw();
-
-  TLegend leg(0.55, 0.60, 0.88, 0.88);
-  leg.SetBorderSize(0);
-  leg.SetFillStyle(0);
-  leg.AddEntry("data", "Data", "lep");
-  leg.AddEntry("model", "Total fit", "l");
-  leg.AddEntry("signal", "Signal (Voigtian)", "l");
-  leg.AddEntry("bkg", "Background (Chebychev)", "l");
-  leg.Draw();
-
-  TPaveText* pv = new TPaveText(0.15, 0.60, 0.45, 0.88, "NDC");
-  pv->SetFillStyle(0);
-  pv->SetBorderSize(0);
-
-  pv->AddText(Form("m = %.6g #pm %.6g GeV", mean.getVal(), mean.getError()));
-  pv->AddText(Form("#sigma_{res} = %.6g #pm %.6g GeV", sigma.getVal(), sigma.getError()));
-  pv->AddText(Form("width (fixed) = %.6g GeV", gamma.getVal()));
-  pv->AddText(Form("Signal yield = %.1f #pm %.1f", nsig.getVal(), nsig.getError()));
-  pv->AddText(Form("Background yield = %.1f #pm %.1f", nbkg.getVal(), nbkg.getError()));
-  pv->Draw();
-
-  // chi^2 / ndf (approx via RooPlot::chiSquare)
-  int nfloat = fitRes ? fitRes->floatParsFinal().getSize() : 0;
-  double chi2ndf = frame->chiSquare(nfloat);
-  TPaveText* pv2 = new TPaveText(0.15, 0.52, 0.45, 0.58, "NDC");
-  pv2->SetFillStyle(0);
-  pv2->SetBorderSize(0);
-  pv2->AddText(Form("#chi^{2}/ndf = %.3g", chi2ndf));
-  pv2->Draw();
-  pad2->cd();
-  RooPlot* frame_pull = mass.frame(Title("Pull (data-fit)/#sigma"));
-  RooHist* hpull = frame->pullHist(); // pulls computed from frame
-  frame_pull->addPlotable(hpull, "P");
-  frame_pull->GetXaxis()->SetTitle("m_{K^{+}K^{-}} (GeV/c^{2})");
-  frame_pull->GetXaxis()->SetTitleSize(0.12);
-  frame_pull->GetXaxis()->SetLabelSize(0.10);
-  frame_pull->GetYaxis()->SetLabelSize(0.10);
-  frame_pull->GetYaxis()->SetTitleSize(0.12);
-  frame_pull->Draw();
-  double xmin = frame_pull->GetXaxis()->GetXmin();
-  double xmax = frame_pull->GetXaxis()->GetXmax();
-  TLine l(xmin, 0.0, xmax, 0.0);
-  l.SetLineStyle(kDashed);
-  l.Draw();
-  c->SaveAs(Form("phi_%d.pdf", runNumber));
 }
