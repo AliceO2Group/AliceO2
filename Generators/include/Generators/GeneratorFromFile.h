@@ -89,6 +89,7 @@ class GeneratorFromO2Kine : public o2::eventgen::Generator
   void setContinueMode(bool val) { mContinueMode = val; };
   /** methods that can be overridden **/
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
+  const o2::dataformats::MCEventHeader* getOrigMCEventHeader() const { return mOrigMCEventHeader.get(); }
 
  private:
   TFile* mEventFile = nullptr;     //! the file containing the persistent events
@@ -138,7 +139,17 @@ class GeneratorFromEventPool : public o2::eventgen::Generator
     auto import_good = mO2KineGenerator->importParticles();
     // transfer the particles (could be avoided)
     mParticles = mO2KineGenerator->getParticles();
-
+    auto original_header = mO2KineGenerator->getOrigMCEventHeader();
+    // Workaround to fix vertex shifted particles from event pools (valid for builds released before 14 March 2026)
+    if (original_header) {
+      double vertex[3] = {original_header->GetX(), original_header->GetY(), original_header->GetZ()};
+      if (vertex[0] != 0. || vertex[1] != 0. || vertex[2] != 0.) {
+        LOG(debug) << "Subtracting shifted vertex from EventPool: (" << vertex[0] << ", " << vertex[1] << ", " << vertex[2] << ")";
+        for (auto& p : mParticles) {
+          p.SetProductionVertex(p.Vx() - vertex[0], p.Vy() - vertex[1], p.Vz() - vertex[2], p.T());
+        }
+      }
+    }
     return import_good;
   }
 
