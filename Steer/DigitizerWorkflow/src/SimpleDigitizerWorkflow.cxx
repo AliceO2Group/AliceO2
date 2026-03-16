@@ -37,6 +37,7 @@
 #include "TPCSimulation/GEMAmplification.h"
 
 // for ITSMFT
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "ITSMFTDigitizerSpec.h"
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 
@@ -225,6 +226,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to propagate CTP Lumi scaler counts (if >=0) into the CTP digits
   workflowOptions.push_back(ConfigParamSpec{"store-ctp-lumi", VariantType::Float, -1.f, {"store CTP lumi scaler in CTP digits (if >= 0)"}});
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(workflowOptions);
 }
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
@@ -637,10 +639,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the ITS part
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
     // connect the ITS digitization
-    digitizerSpecs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth, doStag));
     // connect ITS digit writer
-    writerSpecs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth, doStag));
   }
 
 #ifdef ENABLE_UPGRADES
@@ -666,10 +669,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
     detList.emplace_back(o2::detectors::DetID::MFT);
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
     // connect the MFT digitization
-    digitizerSpecs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth, doStag));
     // connect MFT digit writer
-    writerSpecs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth, doStag));
   }
 
   // the TOF part

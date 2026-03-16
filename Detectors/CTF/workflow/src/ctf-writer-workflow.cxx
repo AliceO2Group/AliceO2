@@ -20,6 +20,7 @@
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -35,6 +36,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"ctf-writer-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
   options.push_back(ConfigParamSpec{"report-data-size-interval", VariantType::Int, 200, {"report sizes per detector for every N-th timeframe"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -51,7 +53,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   DetID::mask_t dets = 0;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  std::string outType{}; // RS FIXME once global/local options clash is solved, --output-type will become device option
+  o2::ctf::CTFWriterInp inp;
   if (!configcontext.helpOnCommandLine()) {
     dets.set(); // by default read all
     auto mskOnly = DetID::getMask(configcontext.options().get<std::string>("onlyDet"));
@@ -64,10 +66,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (dets.none()) {
       throw std::invalid_argument("Invalid workflow: no detectors found");
     }
-    outType = configcontext.options().get<std::string>("output-type");
+    inp.detMask = dets;
+    inp.outType = configcontext.options().get<std::string>("output-type");
   }
-  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, outType,
-                                               configcontext.options().get<int>("ctf-writer-verbosity"),
-                                               configcontext.options().get<int>("report-data-size-interval"))};
+  inp.verbosity = configcontext.options().get<int>("ctf-writer-verbosity");
+  inp.reportInterval = configcontext.options().get<int>("report-data-size-interval");
+  inp.doITSStaggering = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
+  inp.doMFTStaggering = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
+
+  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(inp)};
   return std::move(specs);
 }

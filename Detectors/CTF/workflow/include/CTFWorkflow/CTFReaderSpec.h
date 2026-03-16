@@ -50,6 +50,8 @@ struct CTFReaderInp {
   int tfRateLimit = -999;
   size_t minSHM = 0;
   bool shuffle{false};
+  bool doITSStaggering = false;
+  bool doMFTStaggering = false;
 };
 
 /// create a processor spec

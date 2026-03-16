@@ -52,15 +52,18 @@ void GPURecoWorkflowSpec::initFunctionITS(o2::framework::InitContext& ic)
 #ifdef ENABLE_UPGRADES
   if (mSpecConfig.isITS3) {
     mITSTrackingInterface = std::make_unique<o2::its3::ITS3TrackingInterface>(mSpecConfig.processMC,
+                                                                              mSpecConfig.itsStaggered,
                                                                               mSpecConfig.itsTriggerType,
                                                                               mSpecConfig.itsOverrBeamEst);
   } else {
     mITSTrackingInterface = std::make_unique<o2::its::ITSTrackingInterface>(mSpecConfig.processMC,
+                                                                            mSpecConfig.itsStaggered,
                                                                             mSpecConfig.itsTriggerType,
                                                                             mSpecConfig.itsOverrBeamEst);
   }
 #else
   mITSTrackingInterface = std::make_unique<o2::its::ITSTrackingInterface>(mSpecConfig.processMC,
+                                                                          mSpecConfig.itsStaggered,
                                                                           mSpecConfig.itsTriggerType,
                                                                           mSpecConfig.itsOverrBeamEst);
 #endif

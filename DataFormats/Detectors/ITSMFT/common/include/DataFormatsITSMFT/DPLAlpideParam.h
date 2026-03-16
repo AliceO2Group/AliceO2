@@ -46,8 +46,6 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   int roFrameLayerBiasInBC[getNLayers()] = {};   ///< staggering ROF bias in BC for continuous mode per layer
   int roFrameLayerDelayInBC[getNLayers()] = {};  ///< staggering ROF delay in BC for continuous mode per layer
 
-  static constexpr bool supportsStaggering() noexcept { return (N == o2::detectors::DetID::ITS) ? true : false; }
-
   // get ROF length for any layer
   int getROFLengthInBC(int layer) const noexcept { return roFrameLayerLengthInBC[layer] ? roFrameLayerLengthInBC[layer] : roFrameLengthInBC; }
   int getROFBiasInBC(int layer) const noexcept { return roFrameLayerBiasInBC[layer] ? roFrameLayerBiasInBC[layer] : roFrameBiasInBC; }

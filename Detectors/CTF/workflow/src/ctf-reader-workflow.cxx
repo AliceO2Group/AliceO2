@@ -25,6 +25,7 @@
 
 // Specific detectors specs
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 #include "TRDWorkflow/EntropyDecoderSpec.h"
 #include "HMPIDWorkflow/EntropyDecoderSpec.h"
@@ -80,6 +81,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
   options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
   options.push_back(ConfigParamSpec{"combine-devices", VariantType::Bool, false, {"combine multiple DPL devices (entropy decoders)"}});
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -147,6 +149,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!ctfInput.fileIRFrames.empty() && !ctfInput.fileRunTimeSpans.empty()) {
     LOGP(fatal, "One cannot provide --ir-frames-files and --run-time-span-file options simultaneously");
   }
+  ctfInput.doITSStaggering = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
+  ctfInput.doMFTStaggering = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
 
@@ -183,10 +187,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // add decoders for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
-    addSpecs(o2::itsmft::getITSEntropyDecoderSpec(verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
+    addSpecs(o2::itsmft::getITSEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::MFT]) {
-    addSpecs(o2::itsmft::getMFTEntropyDecoderSpec(verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
+    addSpecs(o2::itsmft::getMFTEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::TPC]) {
     addSpecs(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));

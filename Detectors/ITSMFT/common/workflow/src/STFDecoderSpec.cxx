@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -17,7 +17,6 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
@@ -28,7 +27,6 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
-#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -47,11 +45,18 @@ using namespace o2::framework;
 ///_______________________________________
 template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::base::GRPGeomRequest> gr)
-  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting), mVerifyDecoder(inp.verifyDecoder), mInputSpec(inp.inputSpec), mGGCCDBRequest(gr)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mDoStaggering(inp.doStaggering), mAllowReporting(inp.allowReporting), mVerifyDecoder(inp.verifyDecoder), mInputSpec(inp.inputSpec), mGGCCDBRequest(gr)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
   mTimer.Reset();
+  if (mDoStaggering) {
+    mLayers = Mapping::NLayers;
+    mEstNDig.resize(mLayers, 0);
+    mEstNClus.resize(mLayers, 0);
+    mEstNClusPatt.resize(mLayers, 0);
+    mEstNCalib.resize(mLayers, 0);
+  }
 }
 
 ///_______________________________________
@@ -67,11 +72,11 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     header::DataDescription dataDesc;
     dataOrig.runtimeInit(v1[0].c_str());
     dataDesc.runtimeInit(v2[0].c_str());
-    for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
-      mDecoder[iLayer] = std::make_unique<RawPixelDecoder<Mapping>>();
-      mDecoder[iLayer]->setUserDataOrigin(dataOrig);
-      mDecoder[iLayer]->setUserDataDescription(dataDesc);
-      mDecoder[iLayer]->init(); // is this no-op?
+    for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
+      auto& dec = mDecoder.emplace_back(std::make_unique<RawPixelDecoder<Mapping>>());
+      dec->setUserDataOrigin(dataOrig);
+      dec->setUserDataDescription(dataDesc);
+      dec->init(); // is this no-op?
     }
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder creation: " << e.what();
@@ -104,7 +109,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && (!dumpDir.empty() && !o2::utils::Str::pathIsDirectory(dumpDir))) {
       throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
     }
-    for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+    for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
       mDecoder[iLayer]->setNThreads(mNThreads);
       mDecoder[iLayer]->setAlwaysParseTrigger(ic.options().get<bool>("always-parse-trigger"));
       mDecoder[iLayer]->setAllowEmptyROFs(ic.options().get<bool>("allow-empty-rofs"));
@@ -127,15 +132,16 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mClusterer->setNChips(Mapping::getNChips());
   }
 
-  if (AlpideParam::supportsStaggering()) {
+  if (mDoStaggering) {
     Mapping map;
-    for (uint32_t iLayer{0}; iLayer < NLayers; ++iLayer) {
+    for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
+      auto& filter = mRawFilter.emplace_back();
       for (const auto feeID : map.getLayer2FEEIDs(iLayer)) {
-        mRawFilter[iLayer].emplace_back("filter", ConcreteDataMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData, (o2::header::DataHeader::SubSpecificationType)feeID});
+        filter.emplace_back("filter", ConcreteDataMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData, (o2::header::DataHeader::SubSpecificationType)feeID});
       }
     }
   } else {
-    mRawFilter[0] = {InputSpec{"filter", ConcreteDataTypeMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData}}};
+    mRawFilter.push_back({InputSpec{"filter", ConcreteDataTypeMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData}}});
   }
 }
 
@@ -150,7 +156,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
   if (firstCall) {
     firstCall = false;
-    for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+    for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
       mDecoder[iLayer]->setInstanceID(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
       mDecoder[iLayer]->setNInstances(pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices);
       mDecoder[iLayer]->setVerbosity(mDecoder[iLayer]->getInstanceID() == 0 ? mVerbosity : (mUnmutExtraLanes ? mVerbosity : -1));
@@ -163,8 +169,6 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   mTimer.Start(false);
   auto orig = Mapping::getOrigin();
 
-  // possibly reuse memory for each layer
-
   // these are accumulated from each layer
   auto& chipStatus = pc.outputs().make<std::vector<char>>(Output{orig, "CHIPSSTATUS", 0}, (size_t)Mapping::getNChips());
   auto& linkErrors = pc.outputs().make<std::vector<GBTLinkDecodingStat>>(Output{orig, "LinkErrors", 0});
@@ -172,12 +176,11 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   auto& errMessages = pc.outputs().make<std::vector<ErrorMessage>>(Output{orig, "ErrorInfo", 0});
   auto& physTriggers = pc.outputs().make<std::vector<PhysTrigger>>(Output{orig, "PHYSTRIG", 0});
 
-  // for (uint32_t iLayer{0}; iLayer < NLayers; ++iLayer) {
-  for (uint32_t iLayer{0}; iLayer < NLayers; ++iLayer) { // FIXME:
+  for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
     const auto& par = AlpideParam::Instance();
     const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
     const int nROFsTF = nROFsPerOrbit * o2::base::GRPGeomHelper::getNHBFPerTF();
-    int nLayer = AlpideParam::supportsStaggering() ? iLayer : -1;
+    int nLayer = mDoStaggering ? iLayer : -1;
     std::vector<o2::itsmft::CompClusterExt> clusCompVec;
     std::vector<o2::itsmft::ROFRecord> clusROFVec;
     std::vector<unsigned char> clusPattVec;
@@ -309,7 +312,7 @@ void STFDecoder<Mapping>::finalize()
   LOGF(info, "%s statistics:", mSelfName);
   LOGF(info, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
        mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
-  for (int iLayer{0}; iLayer < NLayers && mAllowReporting; ++iLayer) {
+  for (int iLayer{0}; iLayer < mLayers && mAllowReporting; ++iLayer) {
     if (mDecoder[iLayer]) {
       LOG(info) << "Report for decoder of layer " << iLayer;
       mDecoder[iLayer]->printReport();
@@ -353,8 +356,8 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
         nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
       }
       mClusterer->setMaxROFDepthToSquash(clParams.maxBCDiffToSquashBias > 0 ? nROFsToSquash : 0);
-      if constexpr (AlpideParam::supportsStaggering()) {
-        for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+      if (mDoStaggering) {
+        for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
           mClusterer->addMaxBCSeparationToSquash(alpParams.getROFLengthInBC(iLayer) + clParams.getMaxBCDiffToSquashBias(iLayer));
           mClusterer->addMaxROFDepthToSquash((clParams.getMaxBCDiffToSquashBias(iLayer) > 0) ? 2 + int(clParams.maxSOTMUS / (alpParams.getROFLengthInBC(iLayer) * o2::constants::lhc::LHCBunchSpacingMUS)) : 0);
         }
@@ -402,7 +405,7 @@ void STFDecoder<Mapping>::reset()
   mFinalizeDone = false;
   mTFCounter = 0;
   mTimer.Reset();
-  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+  for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
     if (mDecoder[iLayer]) {
       mDecoder[iLayer]->reset();
     }
@@ -473,9 +476,9 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   std::vector<OutputSpec> outputs;
   auto inputs = o2::framework::select(inp.inputSpec.c_str());
   uint32_t nLayers = 1;
-  if (inp.origin == o2::header::gDataOriginITS && DPLAlpideParam<o2::detectors::DetID::ITS>::supportsStaggering()) {
+  if (inp.origin == o2::header::gDataOriginITS && inp.doStaggering) {
     nLayers = DPLAlpideParam<o2::detectors::DetID::ITS>::getNLayers();
-  } else if (inp.origin == o2::header::gDataOriginMFT && DPLAlpideParam<o2::detectors::DetID::MFT>::supportsStaggering()) {
+  } else if (inp.origin == o2::header::gDataOriginMFT && inp.doStaggering) {
     nLayers = DPLAlpideParam<o2::detectors::DetID::MFT>::getNLayers();
   }
   for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {

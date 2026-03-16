@@ -49,7 +49,7 @@ class CTFCoder final : public o2::ctf::CTFCoderBase
   using PMatrix = std::array<std::array<bool, ClusterPattern::MaxRowSpan + 2>, ClusterPattern::MaxColSpan + 2>;
   using RowColBuff = std::vector<PixelData>;
 
-  CTFCoder(o2::ctf::CTFCoderBase::OpType op, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), ID, 1.f, ctfdictOpt) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op, bool doStag, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), ID, 1.f, ctfdictOpt), mDoStaggering(doStag) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode clusters to buffer with CTF
@@ -85,6 +85,8 @@ class CTFCoder final : public o2::ctf::CTFCoderBase
 
   void appendToTree(TTree& tree, CTF& ec, int id = -1);
   void readFromTree(TTree& tree, int entry, int id, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
+
+  bool mDoStaggering{false};
 };
 
 /// entropy-encode clusters to buffer with CTF
@@ -95,7 +97,7 @@ o2::ctf::CTFIOSize CTFCoder<N>::encode(VEC& buff, const gsl::span<const ROFRecor
 {
   using MD = o2::ctf::Metadata::OptStore;
   const auto& par = DPLAlpideParam<N>::Instance();
-  int strobeLength = par.supportsStaggering() ? par.roFrameLayerLengthInBC[layer] : par.roFrameLengthInBC;
+  int strobeLength = mDoStaggering ? par.roFrameLayerLengthInBC[layer] : par.roFrameLengthInBC;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
     MD::EENCODE_OR_PACK, // BLCfirstChipROF
@@ -111,8 +113,8 @@ o2::ctf::CTFIOSize CTFCoder<N>::encode(VEC& buff, const gsl::span<const ROFRecor
   };
   CompressedClusters compCl;
   compress(compCl, rofRecVec, cclusVec, pattVec, clPattLookup, strobeLength);
-  compCl.header.maxStreams = par.supportsStaggering() ? par.getNLayers() : 1;
-  compCl.header.streamID = par.supportsStaggering() ? layer : 0;
+  compCl.header.maxStreams = mDoStaggering ? par.getNLayers() : 1;
+  compCl.header.streamID = mDoStaggering ? layer : 0;
   // book output size with some margin
   auto szIni = estimateCompressedSize(compCl);
   buff.resize(szIni);
@@ -152,9 +154,9 @@ o2::ctf::CTFIOSize CTFCoder<N>::decode(const CTF::base& ec, VROF& rofRecVec, VCL
   o2::ctf::CTFIOSize iosize;
   auto compCl = decodeCompressedClusters(ec, iosize);
   const auto& par = DPLAlpideParam<N>::Instance();
-  uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+  uint32_t nLayers = mDoStaggering ? par.getNLayers() : 1;
   if (compCl.header.maxStreams != nLayers) {
-    throw std::runtime_error(fmt::format("header maxStreams={} is not the same as NStreams={} in {}staggered mode", compCl.header.maxStreams, nLayers, par.supportsStaggering() ? "" : "non-"));
+    throw std::runtime_error(fmt::format("header maxStreams={} is not the same as NStreams={} in {}staggered mode", compCl.header.maxStreams, nLayers, mDoStaggering ? "" : "non-"));
   }
   decompress(compCl, rofRecVec, cclusVec, pattVec, noiseMap, clPattLookup);
   iosize.rawIn = rofRecVec.size() * sizeof(ROFRecord) + cclusVec.size() * sizeof(CompClusterExt) + pattVec.size() * sizeof(unsigned char);

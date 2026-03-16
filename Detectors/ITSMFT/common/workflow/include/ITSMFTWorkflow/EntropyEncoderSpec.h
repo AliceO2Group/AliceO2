@@ -32,7 +32,7 @@ class EntropyEncoderSpec : public o2::framework::Task
 {
 
  public:
-  EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt = "none");
+  EntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt = "none");
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -48,12 +48,13 @@ class EntropyEncoderSpec : public o2::framework::Task
   o2::itsmft::CTFCoder<N> mCTFCoder;
   LookUp mPattIdConverter;
   bool mSelIR = false;
+  bool mDoStaggering = false;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getITSEntropyEncoderSpec(bool selIR = false, const std::string& ctfdictOpt = "none");
-framework::DataProcessorSpec getMFTEntropyEncoderSpec(bool selIR = false, const std::string& ctfdictOpt = "none");
+framework::DataProcessorSpec getITSEntropyEncoderSpec(bool doStag = false, bool selIR = false, const std::string& ctfdictOpt = "none");
+framework::DataProcessorSpec getMFTEntropyEncoderSpec(bool doStag = false, bool selIR = false, const std::string& ctfdictOpt = "none");
 
 } // namespace itsmft
 } // namespace o2

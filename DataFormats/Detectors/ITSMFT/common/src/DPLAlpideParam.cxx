@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,13 +11,10 @@
 
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 
-namespace o2
-{
-namespace itsmft
+namespace o2::itsmft
 {
 // this makes sure that the constructor of the parameters is statically called
 // so that these params are part of the parameter database
 static auto& sAlpideParamITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
 static auto& sAlpideParamMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-} // namespace itsmft
-} // namespace o2
+} // namespace o2::itsmft

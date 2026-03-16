@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSMFTWorkflow/ClusterWriterSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 
@@ -25,15 +26,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(
     ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  o2::itsmft::DPLAlpideParamInitializer::addMFTConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
-#include "Framework/Logger.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
   WorkflowSpec specs;
-  specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC));
+  specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC, doStag));
   return specs;
 }

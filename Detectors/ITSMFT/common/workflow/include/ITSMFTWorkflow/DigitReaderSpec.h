@@ -14,8 +14,11 @@
 #ifndef O2_ITSMFT_DIGITREADER
 #define O2_ITSMFT_DIGITREADER
 
-#include "TFile.h"
-#include "TTree.h"
+#include <vector>
+
+#include <TFile.h>
+#include <TTree.h>
+
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
@@ -41,11 +44,9 @@ class DigitReader : public Task
  public:
   static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
   static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
-  static constexpr int NLayers{o2::itsmft::DPLAlpideParam<N>::getNLayers()};
-  static constexpr int RLayers = o2::itsmft::DPLAlpideParam<N>::supportsStaggering() ? NLayers : 1;
 
   DigitReader() = delete;
-  DigitReader(bool useMC, bool useCalib, bool triggerOut);
+  DigitReader(bool useMC, bool doStag, bool useCalib, bool triggerOut);
   ~DigitReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -56,21 +57,23 @@ class DigitReader : public Task
   void setBranchAddress(const std::string& base, Ptr& addr, int layer = -1);
   std::string getBranchName(const std::string& base, int index);
 
-  std::array<std::vector<o2::itsmft::Digit>*, NLayers> mDigits;
+  std::vector<std::vector<o2::itsmft::Digit>*> mDigits{nullptr};
   std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
-  std::array<std::vector<o2::itsmft::ROFRecord>*, NLayers> mDigROFRec;
-  std::array<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>, NLayers> mConstLabels;
-  std::array<o2::dataformats::IOMCTruthContainerView*, NLayers> mPLabels;
+  std::vector<std::vector<o2::itsmft::ROFRecord>*> mDigROFRec{nullptr};
+  std::vector<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>> mConstLabels{};
+  std::vector<o2::dataformats::IOMCTruthContainerView*> mPLabels{nullptr};
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
-  bool mUseMC = true;        // use MC truth
-  bool mUseCalib = true;     // send calib data
-  bool mTriggerOut = true;   // send dummy triggers vector
-  bool mUseIRFrames = false; // selected IRFrames modes
+  bool mUseMC = true;         // use MC truth
+  bool mDoStaggering = false; // read staggered data
+  bool mUseCalib = true;      // send calib data
+  bool mTriggerOut = true;    // send dummy triggers vector
+  bool mUseIRFrames = false;  // selected IRFrames modes
   int mROFBiasInBC = 0;
   int mROFLengthInBC = 0;
   int mNRUs = 0;
+  int mLayers = 1;
   std::string mDetName;
   std::string mDetNameLC;
   std::string mFileName;
@@ -85,21 +88,21 @@ class DigitReader : public Task
 class ITSDigitReader : public DigitReader<o2::detectors::DetID::ITS>
 {
  public:
-  ITSDigitReader(bool useMC = true, bool useCalib = false, bool useTriggers = true)
-    : DigitReader<o2::detectors::DetID::ITS>(useMC, useCalib, useTriggers) {}
+  ITSDigitReader(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true)
+    : DigitReader<o2::detectors::DetID::ITS>(useMC, doStag, useCalib, useTriggers) {}
 };
 
 class MFTDigitReader : public DigitReader<o2::detectors::DetID::MFT>
 {
  public:
-  MFTDigitReader(bool useMC = true, bool useCalib = false, bool useTriggers = true)
-    : DigitReader<o2::detectors::DetID::MFT>(useMC, useCalib, useTriggers) {}
+  MFTDigitReader(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true)
+    : DigitReader<o2::detectors::DetID::MFT>(useMC, doStag, useCalib, useTriggers) {}
 };
 
 /// create a processor spec
 /// read ITS/MFT Digit data from a root file
-framework::DataProcessorSpec getITSDigitReaderSpec(bool useMC = true, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_itsdigits.root");
-framework::DataProcessorSpec getMFTDigitReaderSpec(bool useMC = true, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_mftdigits.root");
+framework::DataProcessorSpec getITSDigitReaderSpec(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_itsdigits.root");
+framework::DataProcessorSpec getMFTDigitReaderSpec(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_mftdigits.root");
 
 } // namespace itsmft
 } // namespace o2

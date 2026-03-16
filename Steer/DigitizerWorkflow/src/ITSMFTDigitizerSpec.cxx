@@ -49,13 +49,20 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
  public:
   static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
   static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
-  static constexpr int NLayers{o2::itsmft::DPLAlpideParam<N>::getNLayers()};
 
   using BaseDPLDigitizer::init;
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDisableQED = ic.options().get<bool>("disable-qed");
+    if (mDoStaggering) {
+      mLayers = DPLAlpideParam<N>::getNLayers();
+    }
+    mDigits.resize(mLayers);
+    mROFRecords.resize(mLayers);
+    mROFRecordsAccum.resize(mLayers);
+    mLabels.resize(mLayers);
+    mLabelsAccum.resize(mLayers);
   }
 
   void run(framework::ProcessingContext& pc)
@@ -86,9 +93,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     }
 
     uint64_t nDigits{0};
-    constexpr uint32_t nLayers = (DPLAlpideParam<N>::supportsStaggering()) ? NLayers : 1;
-    for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {
-      const int layer = (DPLAlpideParam<N>::supportsStaggering()) ? iLayer : -1;
+    for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
+      const int layer = (mDoStaggering) ? iLayer : -1;
       mDigitizer.setDigits(&mDigits[iLayer]);
       mDigitizer.setROFRecords(&mROFRecords[iLayer]);
       mDigitizer.setMCLabels(&mLabels[iLayer]);
@@ -275,7 +281,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   }
 
  protected:
-  ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
+  ITSMFTDPLDigitizerTask(bool mctruth = true, bool doStag = false) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth), mDoStaggering(doStag) {}
 
   void updateTimeDependentParams(ProcessingContext& pc)
   {
@@ -314,7 +320,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     digipar.setOBVbb(dopt.OBVbb);
     digipar.setVbb(dopt.Vbb);
     // staggering parameters
-    if constexpr (o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) {
+    if (mDoStaggering) {
       for (int iLayer{0}; iLayer < o2::itsmft::DPLAlpideParam<N>::getNLayers(); ++iLayer) {
         auto frameNS = aopt.getROFLengthInBC(iLayer) * o2::constants::lhc::LHCBunchSpacingNS;
         digipar.addROFrameLayerLengthInBC(aopt.getROFLengthInBC(iLayer));
@@ -344,17 +350,19 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   }
 
   bool mWithMCTruth = true;
+  bool mDoStaggering = false;
   bool mFinished = false;
   bool mDisableQED = false;
+  int mLayers = 1;
   unsigned long mFirstOrbitTF = 0x0;
   o2::itsmft::Digitizer mDigitizer;
-  std::array<std::vector<o2::itsmft::Digit>, NLayers> mDigits;
-  std::array<std::vector<o2::itsmft::ROFRecord>, NLayers> mROFRecords;
-  std::array<std::vector<o2::itsmft::ROFRecord>, NLayers> mROFRecordsAccum;
+  std::vector<std::vector<o2::itsmft::Digit>> mDigits;
+  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecords;
+  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecordsAccum;
   std::vector<o2::itsmft::Hit> mHits;
   std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
-  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, NLayers> mLabels;
-  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, NLayers> mLabelsAccum;
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels;
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabelsAccum;
   std::vector<TChain*> mSimChains;
   o2::itsmft::NoiseMap* mDeadMap = nullptr;
 
@@ -366,23 +374,23 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask<o2::detectors::DetID::ITS>
 {
  public:
-  ITSDPLDigitizerTask(bool mctruth = true) : ITSMFTDPLDigitizerTask<o2::detectors::DetID::ITS>(mctruth) {}
+  ITSDPLDigitizerTask(bool mctruth = true, bool doStag = false) : ITSMFTDPLDigitizerTask<o2::detectors::DetID::ITS>(mctruth, doStag) {}
 };
 
 //_______________________________________________
 class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask<o2::detectors::DetID::MFT>
 {
  public:
-  MFTDPLDigitizerTask(bool mctruth = true) : ITSMFTDPLDigitizerTask<o2::detectors::DetID::MFT>(mctruth) {}
+  MFTDPLDigitizerTask(bool mctruth = true, bool doStag = false) : ITSMFTDPLDigitizerTask<o2::detectors::DetID::MFT>(mctruth, doStag) {}
 };
 
 namespace
 {
 template <int N>
-std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
+std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth, bool doStag)
 {
   std::vector<OutputSpec> outputs;
-  constexpr uint32_t nLayers = (DPLAlpideParam<N>::supportsStaggering()) ? DPLAlpideParam<N>::getNLayers() : 1;
+  uint32_t nLayers = doStag ? DPLAlpideParam<N>::getNLayers() : 1;
   for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {
     outputs.emplace_back(detOrig, "DIGITS", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(detOrig, "DIGITSROF", iLayer, Lifetime::Timeframe);
@@ -395,7 +403,7 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
 }
 } // namespace
 
-DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
+DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth, bool doStag)
 {
   std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::ID);
   auto detOrig = ITSDPLDigitizerTask::Origin;
@@ -409,13 +417,13 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("ITS_alpiderespvbbm3", "ITS", "ALPIDERESPVbbM3", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbbM3"));
   return DataProcessorSpec{.name = detStr + "Digitizer",
                            .inputs = inputs,
-                           .outputs = makeOutChannels<o2::detectors::DetID::ITS>(detOrig, mctruth),
-                           .algorithm = AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
+                           .outputs = makeOutChannels<o2::detectors::DetID::ITS>(detOrig, mctruth, doStag),
+                           .algorithm = AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth, doStag)},
                            .options = Options{
                              {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 
-DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
+DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth, bool doStag)
 {
   std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitizerTask::ID);
   auto detOrig = MFTDPLDigitizerTask::Origin;
@@ -429,8 +437,8 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("MFT_alpiderespvbbm3", "MFT", "ALPIDERESPVbbM3", 0, Lifetime::Condition, ccdbParamSpec("ITSMFT/Calib/ALPIDEResponseVbbM3"));
   return DataProcessorSpec{.name = detStr + "Digitizer",
                            .inputs = inputs,
-                           .outputs = makeOutChannels<o2::detectors::DetID::MFT>(detOrig, mctruth),
-                           .algorithm = AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>(mctruth)},
+                           .outputs = makeOutChannels<o2::detectors::DetID::MFT>(detOrig, mctruth, doStag),
+                           .algorithm = AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>(mctruth, doStag)},
                            .options = Options{{"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 

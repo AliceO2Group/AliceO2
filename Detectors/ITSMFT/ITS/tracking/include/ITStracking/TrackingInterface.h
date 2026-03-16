@@ -43,9 +43,11 @@ class ITSTrackingInterface
 
  public:
   ITSTrackingInterface(bool isMC,
+                       bool doStag,
                        int trgType,
                        const bool overrBeamEst)
     : mIsMC{isMC},
+      mDoStaggering(doStag),
       mUseTriggers{trgType},
       mOverrideBeamEstimation{overrBeamEst} {}
 
@@ -86,6 +88,7 @@ class ITSTrackingInterface
 
  private:
   bool mIsMC = false;
+  bool mDoStaggering = false;
   bool mRunVertexer = true;
   bool mCosmicsProcessing = false;
   int mUseTriggers = 0;

@@ -42,6 +42,7 @@ class TrackerDPL : public framework::Task
  public:
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
              bool isMC,
+             bool doStag,
              int trgType,
              const TrackingMode::Type trMode = TrackingMode::Unset,
              const bool overrBeamEst = false,
@@ -63,7 +64,7 @@ class TrackerDPL : public framework::Task
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, TrackingMode::Type trMode, const bool overrBeamEst = false, o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int useTrig, TrackingMode::Type trMode, const bool overrBeamEst = false, o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
 
 } // namespace o2::its
 

@@ -38,6 +38,14 @@ namespace o2::itsmft
 {
 
 template <int N>
+ClustererDPL<N>::ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool doStag) : mGGCCDBRequest(gr), mUseMC(useMC), mDoStaggering(doStag)
+{
+  if (mDoStaggering) {
+    mLayers = DPLAlpideParam<N>::getNLayers();
+  }
+}
+
+template <int N>
 void ClustererDPL<N>::init(InitContext& ic)
 {
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
@@ -48,7 +56,7 @@ void ClustererDPL<N>::init(InitContext& ic)
   mDetName = Origin.as<std::string>();
 
   // prepare data filter
-  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+  for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
     mFilter.emplace_back("digits", Origin, "DIGITS", iLayer, Lifetime::Timeframe);
     mFilter.emplace_back("ROframe", Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mUseMC) {
@@ -63,9 +71,9 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
 
   // filter input and compose
-  std::array<gsl::span<const o2::itsmft::Digit>, NLayers> digits;
-  std::array<gsl::span<const o2::itsmft::ROFRecord>, NLayers> rofs;
-  std::array<gsl::span<const char>, NLayers> labelsbuffer;
+  std::vector<gsl::span<const o2::itsmft::Digit>> digits(mLayers);
+  std::vector<gsl::span<const o2::itsmft::ROFRecord>> rofs(mLayers);
+  std::vector<gsl::span<const char>> labelsbuffer(mLayers);
   for (const DataRef& ref : InputRecordWalker{pc.inputs(), mFilter}) {
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{Origin, "DIGITS"}})) {
@@ -88,8 +96,8 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
   uint64_t nClusters{0};
   TStopwatch sw;
   o2::itsmft::DigitPixelReader reader;
-  for (uint32_t iLayer{0}; iLayer < NLayers; ++iLayer) {
-    int layer = (DPLAlpideParam<N>::supportsStaggering()) ? iLayer : -1;
+  for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
+    int layer = (mDoStaggering) ? iLayer : -1;
     sw.Start();
     LOG(info) << mDetName << "Clusterer:" << layer << " pulled " << digits[iLayer].size() << " digits, in " << rofs[iLayer].size() << " RO frames";
 
@@ -217,9 +225,9 @@ void ClustererDPL<N>::updateTimeDependentParams(ProcessingContext& pc)
       nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
     }
     mClusterer->setMaxROFDepthToSquash(nROFsToSquash);
-    if constexpr (DPLAlpideParam<N>::supportsStaggering()) {
+    if (mDoStaggering) {
       if (mClusterer->isContinuousReadOut()) {
-        for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+        for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
           mClusterer->addMaxBCSeparationToSquash(alpParams.getROFLengthInBC(iLayer) + clParams.getMaxBCDiffToSquashBias(iLayer));
           mClusterer->addMaxROFDepthToSquash((clParams.getMaxBCDiffToSquashBias(iLayer) > 0) ? 2 + int(clParams.maxSOTMUS / (alpParams.getROFLengthInBC(iLayer) * o2::constants::lhc::LHCBunchSpacingMUS)) : 0);
         }
@@ -262,11 +270,11 @@ void ClustererDPL<N>::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 namespace
 {
 template <int N>
-DataProcessorSpec getClustererSpec(bool useMC)
+DataProcessorSpec getClustererSpec(bool useMC, bool doStag)
 {
   constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   std::vector<InputSpec> inputs;
-  constexpr uint32_t nLayers = (DPLAlpideParam<N>::supportsStaggering()) ? DPLAlpideParam<N>::getNLayers() : 1;
+  uint32_t nLayers = doStag ? DPLAlpideParam<N>::getNLayers() : 1;
   for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {
     inputs.emplace_back("digits", Origin, "DIGITS", iLayer, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
@@ -298,21 +306,21 @@ DataProcessorSpec getClustererSpec(bool useMC)
     .name = (N == o2::detectors::DetID::ITS) ? "its-clusterer" : "mft-clusterer",
     .inputs = inputs,
     .outputs = outputs,
-    .algorithm = AlgorithmSpec{adaptFromTask<ClustererDPL<N>>(ggRequest, useMC)},
+    .algorithm = AlgorithmSpec{adaptFromTask<ClustererDPL<N>>(ggRequest, useMC, doStag)},
     .options = Options{
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
 }
 } // namespace
 
-framework::DataProcessorSpec getITSClustererSpec(bool useMC)
+framework::DataProcessorSpec getITSClustererSpec(bool useMC, bool doStag)
 {
-  return getClustererSpec<o2::detectors::DetID::ITS>(useMC);
+  return getClustererSpec<o2::detectors::DetID::ITS>(useMC, doStag);
 }
 
-framework::DataProcessorSpec getMFTClustererSpec(bool useMC)
+framework::DataProcessorSpec getMFTClustererSpec(bool useMC, bool doStag)
 {
-  return getClustererSpec<o2::detectors::DetID::MFT>(useMC);
+  return getClustererSpec<o2::detectors::DetID::MFT>(useMC, doStag);
 }
 
 } // namespace o2::itsmft

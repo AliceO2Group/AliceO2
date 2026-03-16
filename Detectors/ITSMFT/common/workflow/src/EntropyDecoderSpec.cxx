@@ -37,8 +37,8 @@ std::string EntropyDecoderSpec<N>::getBinding(const std::string& name, int spec)
 }
 
 template <int N>
-EntropyDecoderSpec<N>::EntropyDecoderSpec(int verbosity, bool getDigits, const std::string& ctfdictOpt)
-  : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, ctfdictOpt), mGetDigits(getDigits)
+EntropyDecoderSpec<N>::EntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, const std::string& ctfdictOpt)
+  : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, doStag, ctfdictOpt), mDoStaggering(doStag), mGetDigits(getDigits)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -66,8 +66,7 @@ void EntropyDecoderSpec<N>::run(ProcessingContext& pc)
   size_t ndigcl = 0, nrofs = 0;
   updateTimeDependentParams(pc);
   std::string nm = ID.getName();
-  const auto& par = DPLAlpideParam<N>::Instance();
-  uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+  uint32_t nLayers = mDoStaggering ? DPLAlpideParam<N>::getNLayers() : 1;
   for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
     auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(getBinding(nm + "CTF", iLayer));
     // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
@@ -75,7 +74,7 @@ void EntropyDecoderSpec<N>::run(ProcessingContext& pc)
     const auto& ctf = o2::itsmft::CTF::getImage(buff.data());
     if (ctf.getHeader().maxStreams != nLayers) {
       LOGP(fatal, "Number of streams {} in the CTF header is not equal to NLayers {} from AlpideParam in {}staggered mode",
-           ctf.getHeader().maxStreams, nLayers, par.supportsStaggering() ? "" : "non-");
+           ctf.getHeader().maxStreams, nLayers, mDoStaggering ? "" : "non-");
     }
     // this produces weird memory problems in unrelated devices, to be understood
     // auto& trigs = pc.outputs().make<std::vector<o2::itsmft::PhysTrigger>>(OutputRef{"phystrig"}); // dummy output
@@ -99,7 +98,7 @@ void EntropyDecoderSpec<N>::run(ProcessingContext& pc)
   pc.outputs().snapshot({nm + "ctfrep", 0}, iosize);
   mTimer.Stop();
   LOGP(info, "Decoded {} {} in {} ROFs of {} streams ({}) in {}staggerd mode in {} s", ndigcl, mGetDigits ? "digits" : "clusters",
-       nrofs, nLayers, iosize.asString(), par.supportsStaggering() ? "" : "non-", mTimer.CpuTime() - cput);
+       nrofs, nLayers, iosize.asString(), mDoStaggering ? "" : "non-", mTimer.CpuTime() - cput);
 }
 
 template <int N>
@@ -148,12 +147,11 @@ void EntropyDecoderSpec<N>::finaliseCCDB(o2::framework::ConcreteDataMatcher& mat
 }
 
 template <int N>
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
 {
   constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
-  const auto& par = DPLAlpideParam<N>::Instance();
-  uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+  uint32_t nLayers = doStag ? DPLAlpideParam<N>::getNLayers() : 1;
 
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
@@ -186,20 +184,20 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, bool getDigits, unsigned 
     Origin == o2::header::gDataOriginITS ? "its-entropy-decoder" : "mft-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec<N>>(verbosity, getDigits, ctfdictOpt)},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec<N>>(verbosity, doStag, getDigits, ctfdictOpt)},
     Options{{"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
             {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
-framework::DataProcessorSpec getITSEntropyDecoderSpec(int verbosity, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
+framework::DataProcessorSpec getITSEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
 {
-  return getEntropyDecoderSpec<o2::detectors::DetID::ITS>(verbosity, getDigits, sspec, ctfdictOpt);
+  return getEntropyDecoderSpec<o2::detectors::DetID::ITS>(verbosity, doStag, getDigits, sspec, ctfdictOpt);
 }
 
-framework::DataProcessorSpec getMFTEntropyDecoderSpec(int verbosity, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
+framework::DataProcessorSpec getMFTEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
 {
-  return getEntropyDecoderSpec<o2::detectors::DetID::MFT>(verbosity, getDigits, sspec, ctfdictOpt);
+  return getEntropyDecoderSpec<o2::detectors::DetID::MFT>(verbosity, doStag, getDigits, sspec, ctfdictOpt);
 }
 
 } // namespace itsmft

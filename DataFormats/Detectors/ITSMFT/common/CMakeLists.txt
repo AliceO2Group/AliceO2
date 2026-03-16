@@ -1,4 +1,4 @@
-# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -21,6 +21,7 @@ o2_add_library(DataFormatsITSMFT
                        src/TimeDeadMap.cxx
                        src/CTF.cxx
                        src/DPLAlpideParam.cxx
+                       src/DPLAlpideParamInitializer.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                        O2::DetectorsCommonDataFormats
                        O2::ReconstructionDataFormats

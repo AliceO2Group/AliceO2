@@ -35,9 +35,10 @@ std::string EntropyEncoderSpec<N>::getBinding(const std::string& name, int spec)
 }
 
 template <int N>
-EntropyEncoderSpec<N>::EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
-  : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, ctfdictOpt),
-    mSelIR(selIR)
+EntropyEncoderSpec<N>::EntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
+  : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, doStag, ctfdictOpt),
+    mSelIR(selIR),
+    mDoStaggering(doStag)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -59,8 +60,7 @@ void EntropyEncoderSpec<N>::run(ProcessingContext& pc)
   mTimer.Start(false);
   updateTimeDependentParams(pc);
 
-  const auto& par = DPLAlpideParam<N>::Instance();
-  uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+  uint32_t nLayers = mDoStaggering ? DPLAlpideParam<N>::getNLayers() : 1;
 
   if (mSelIR) {
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
@@ -121,12 +121,12 @@ void EntropyEncoderSpec<N>::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj
 }
 
 template <int N>
-DataProcessorSpec getEntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
+DataProcessorSpec getEntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
 {
   constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
   const auto& par = DPLAlpideParam<N>::Instance();
-  uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+  uint32_t nLayers = doStag ? DPLAlpideParam<N>::getNLayers() : 1;
 
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
@@ -150,21 +150,21 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR, const std::string& ctfdictOp
     Origin == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec<N>>(selIR, ctfdictOpt)},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec<N>>(doStag, selIR, ctfdictOpt)},
     Options{{"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
-framework::DataProcessorSpec getITSEntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
+framework::DataProcessorSpec getITSEntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
 {
-  return getEntropyEncoderSpec<o2::detectors::DetID::ITS>(selIR, ctfdictOpt);
+  return getEntropyEncoderSpec<o2::detectors::DetID::ITS>(doStag, selIR, ctfdictOpt);
 }
 
-framework::DataProcessorSpec getMFTEntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
+framework::DataProcessorSpec getMFTEntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
 {
-  return getEntropyEncoderSpec<o2::detectors::DetID::MFT>(selIR, ctfdictOpt);
+  return getEntropyEncoderSpec<o2::detectors::DetID::MFT>(doStag, selIR, ctfdictOpt);
 }
 
 } // namespace itsmft

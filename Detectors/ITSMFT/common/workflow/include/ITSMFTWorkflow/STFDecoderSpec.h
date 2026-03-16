@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -18,7 +18,7 @@
 
 #include <memory>
 #include <string>
-#include <array>
+#include <vector>
 #include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -46,6 +46,7 @@ struct STFDecoderInp {
   bool doDigits = false;
   bool doCalib = false;
   bool doSquashing = false;
+  bool doStaggering = false;
   bool askSTFDist = true;
   bool allowReporting = true;
   bool verifyDecoder = false;
@@ -58,7 +59,6 @@ template <class Mapping>
 class STFDecoder : public Task
 {
   using AlpideParam = DPLAlpideParam<Mapping::getDetID()>;
-  static constexpr int NLayers{AlpideParam::supportsStaggering() ? AlpideParam::getNLayers() : 1};
 
  public:
   STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::base::GRPGeomRequest> gr);
@@ -82,6 +82,7 @@ class STFDecoder : public Task
   bool mDoPatterns = false;
   bool mDoDigits = false;
   bool mDoCalibData = false;
+  bool mDoStaggering = false;
   bool mUnmutExtraLanes = false;
   bool mFinalizeDone = false;
   bool mAllowReporting = true;
@@ -92,22 +93,23 @@ class STFDecoder : public Task
   int mDumpOnError = 0;
   int mNThreads = 1;
   int mVerbosity = 0;
+  int mLayers = 1;
   long mROFErrRepIntervalMS = 0;
   size_t mTFCounter = 0;
   uint32_t mFirstTFOrbit = 0;
   o2::InteractionRecord mFirstIR;
-  std::array<size_t, NLayers> mEstNDig{0};
-  std::array<size_t, NLayers> mEstNClus{0};
-  std::array<size_t, NLayers> mEstNClusPatt{0};
-  std::array<size_t, NLayers> mEstNCalib{0};
+  std::vector<size_t> mEstNDig{0};
+  std::vector<size_t> mEstNClus{0};
+  std::vector<size_t> mEstNClusPatt{0};
+  std::vector<size_t> mEstNCalib{0};
   size_t mMaxRawDumpsSize = 0;
   size_t mRawDumpedSize = 0;
   std::string mInputSpec;
   std::string mSelfName;
-  std::array<std::unique_ptr<RawPixelDecoder<Mapping>>, NLayers> mDecoder;
+  std::vector<std::unique_ptr<RawPixelDecoder<Mapping>>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
-  std::array<std::vector<InputSpec>, NLayers> mRawFilter;
+  std::vector<std::vector<InputSpec>> mRawFilter;
 };
 
 using STFDecoderITS = STFDecoder<ChipMappingITS>;

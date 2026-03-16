@@ -136,6 +136,21 @@ struct ROFOverlapTableView {
     return mLayers[layer];
   }
 
+  GPUh() const LayerTiming& getClockLayer() const noexcept
+  {
+    // we take the fastest layer as clock
+    int fastest = 0;
+    uint32_t shortestROF{std::numeric_limits<uint32_t>::max()};
+    for (int iL{0}; iL < NLayers; ++iL) {
+      const auto& layer = getLayer(iL);
+      if (layer.mROFLength < shortestROF) {
+        fastest = iL;
+        shortestROF = layer.mROFLength;
+      }
+    }
+    return mLayers[fastest];
+  }
+
   GPUhdi() const TableEntry& getOverlap(int32_t from, int32_t to, size_t rofIdx) const noexcept
   {
     assert(from < NLayers && to < NLayers);

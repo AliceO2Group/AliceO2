@@ -73,7 +73,7 @@ void ITSTrackingInterface::initialise()
   mTracker->setNThreads(trackConf.nThreads, mTaskArena);
 
   // prepare data filter
-  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
     mFilter.emplace_back("compClusters", "ITS", "COMPCLUSTERS", iLayer, Lifetime::Timeframe);
     mFilter.emplace_back("patterns", "ITS", "PATTERNS", iLayer, Lifetime::Timeframe);
     mFilter.emplace_back("ROframe", "ITS", "CLUSTERSROF", iLayer, Lifetime::Timeframe);
@@ -128,7 +128,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
     LOGP(info, "ITSTracker:{} pulled {} clusters, {} RO frames", iLayer, compClusters[iLayer].size(), rofsinput[iLayer].size());
     if (compClusters[iLayer].empty()) {
       LOGP(warn, " -> received no processable data on layer {}", iLayer);
@@ -161,6 +161,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0});
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0});
+  auto& allTrackROFs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0});
 
   // MC
@@ -299,6 +300,13 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
     std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
     // Some conversions that needs to be moved in the tracker internals
+    // also we create the track to clock ROF association here
+    // the clock ROF is just the fastest ROF (the number of ROFs does not necessarily reflect the actual ROFs due to
+    // possible delay of other layers)
+    // tracks are guaranteed to be sorted here by their lower edge
+    const auto& clockROF = mTimeFrame->getROFOverlapTableView().getClockLayer();
+    // TODO:
+
     for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
       auto& trc{tracks[iTrk]};
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
@@ -315,7 +323,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       allTracks.emplace_back(trc);
     }
   }
-  LOGP(info, "ITSTracker pushed {} tracks and {} vertices", allTracks.size(), vertices.size());
+  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices", allTracks.size(), allTrackROFs.size(), vertices.size());
   if (mIsMC) {
     LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
     LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());

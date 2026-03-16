@@ -197,11 +197,9 @@ void CTFReaderSpec::processDetector<o2::itsmft::CTF>(DetID det, const CTFHeader&
     std::string lbl = det.getName();
     int nLayers = 1;
     if (det == DetID::ITS) {
-      const auto& par = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
-      nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+      nLayers = mInput.doITSStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
     } else if (det == DetID::MFT) {
-      const auto& par = o2::itsmft::DPLAlpideParam<DetID::MFT>::Instance();
-      nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+      nLayers = mInput.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::MFT>::getNLayers() : 1;
     } else {
       LOGP(fatal, "This specialization is define only for ITS and MFT detectors, {} provided", det.getName());
     }
@@ -666,14 +664,12 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
     if (inp.detMask[id]) {
       DetID det(id);
       if (det == DetID::ITS) {
-        const auto& par = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
-        uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+        uint32_t nLayers = inp.doITSStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
         for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
           outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec * 100 + iLayer, Lifetime::Timeframe);
         }
       } else if (det == DetID::MFT) {
-        const auto& par = o2::itsmft::DPLAlpideParam<DetID::MFT>::Instance();
-        uint32_t nLayers = par.supportsStaggering() ? par.getNLayers() : 1;
+        uint32_t nLayers = inp.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::MFT>::getNLayers() : 1;
         for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
           outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec * 100 + iLayer, Lifetime::Timeframe);
         }

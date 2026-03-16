@@ -27,12 +27,13 @@ namespace its
 {
 TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        bool isMC,
+                       bool doStag,
                        int trgType,
                        const TrackingMode::Type trMode,
                        const bool overrBeamEst,
                        o2::gpu::gpudatatypes::DeviceType dType) : mGGCCDBRequest(gr),
                                                                   mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
-                                                                  mITSTrackingInterface{isMC, trgType, overrBeamEst}
+                                                                  mITSTrackingInterface{isMC, doStag, trgType, overrBeamEst}
 {
   mITSTrackingInterface.setTrackingMode(trMode);
 }
@@ -88,11 +89,11 @@ void TrackerDPL::end()
   LOGF(info, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType)
 {
-  using Param = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>;
+  const int mLayers = doStag ? o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::getNLayers() : 1;
   std::vector<InputSpec> inputs;
-  for (int iLayer = 0; iLayer < Param::getNLayers(); ++iLayer) {
+  for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
     inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", iLayer, Lifetime::Timeframe);
     inputs.emplace_back("patterns", "ITS", "PATTERNS", iLayer, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", iLayer, Lifetime::Timeframe);
@@ -125,6 +126,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, Tracking
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
   if (useMC) {
@@ -139,6 +141,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, Tracking
     .outputs = outputs,
     .algorithm = AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest,
                                                          useMC,
+                                                         doStag,
                                                          trgType,
                                                          trMode,
                                                          overrBeamEst,
