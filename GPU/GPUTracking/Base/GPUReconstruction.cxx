@@ -309,8 +309,8 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings->clusterizerZSSanityCheck = mProcessingSettings->mergerSanityCheck = mProcessingSettings->outputSanityCheck = true;
   }
 
+  static_cast<GPUSettingsProcessingScaling&>(*mMemoryScalers) = GetProcessingSettings().scaling;
   mMemoryScalers->scalingFactor = GetProcessingSettings().memoryScalingFactor;
-  mMemoryScalers->conservative = GetProcessingSettings().conservativeMemoryEstimate;
   mMemoryScalers->returnMaxVal = GetProcessingSettings().forceMaxMemScalers != 0;
   if (GetProcessingSettings().forceMaxMemScalers > 1) {
     mMemoryScalers->rescaleMaxMem(GetProcessingSettings().forceMaxMemScalers);
