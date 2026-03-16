@@ -542,18 +542,30 @@ void Detector::Print(FairVolume* vol, int volume, int subDetID, int layer, int s
   int currentVol(0);
   LOG(info) << "Current volume name: " << fMC->CurrentVolName() << " and ID " << fMC->CurrentVolID(currentVol);
   LOG(info) << "volume: " << volume << "/" << mNumberOfVolumes - 1;
-  LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  chip: " << chip;
-  LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  module: " << mod;
-  if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) { // staggered geometry
-    LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  halfstave: " << halfstave;
-    LOG(info) << "off volume name 4  " << fMC->CurrentVolOffName(4) << "  stave: " << stave;
-    LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
-  } else if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) { // turbo geometry
-    LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  stave: " << stave;
-    LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+
+  auto& trkPars = TRKBaseParam::Instance();
+
+  if (subDetID == 1) { // MLOT
+    if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kCylindrical) {
+      LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  chip: " << chip;
+      LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  Chip ID: " << chipID;
+    } else {
+      LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  chip: " << chip;
+      LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  module: " << mod;
+      if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) { // staggered geometry
+        LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  halfstave: " << halfstave;
+        LOG(info) << "off volume name 4  " << fMC->CurrentVolOffName(4) << "  stave: " << stave;
+        LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+      } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) { // turbo geometry
+        LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  stave: " << stave;
+        LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+      }
+    }
   } else {
+    // VD
     LOG(info) << "SubDetector ID: " << subDetID << "  Chip ID: " << chipID;
   }
+
   LOG(info);
 }
 
