@@ -286,10 +286,17 @@ find_package(GBL)
 set_package_properties(GBL PROPERTIES TYPE REQUIRED)
 if(GBL_FOUND AND NOT TARGET GBL::GBL)
     # As of now, GBL does not provide a cmake target so create a compatibility wrapper
+    # also GBL_LIBRARIES contains raw linker flags to ROOT we need to filter out
+    set(GBL_LIBRARIES_FILTERED "")
+    foreach(_lib IN LISTS GBL_LIBRARIES)
+     if(NOT _lib MATCHES "^-[lL]")
+      list(APPEND GBL_LIBRARIES_FILTERED "${_lib}")
+     endif()
+    endforeach()
     add_library(GBL::GBL INTERFACE IMPORTED)
     target_include_directories(GBL::GBL INTERFACE ${GBL_INCLUDE_DIR})
     target_link_libraries(GBL::GBL INTERFACE
-        ${GBL_LIBRARIES}
+        ${GBL_LIBRARIES_FILTERED}
         Eigen3::Eigen
     )
 endif()
