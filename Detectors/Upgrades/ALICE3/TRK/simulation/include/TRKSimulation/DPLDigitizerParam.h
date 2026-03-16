@@ -54,7 +54,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
  private:
   static constexpr float DEFNoisePerPixel()
   {
-    return N == o2::detectors::DetID::TRK ? 1e-8 : 1e-8; // ITS/MFT values here!!
+    return N == o2::detectors::DetID::TRK ? 1e-7 : 1e-8; // ITS/MFT values here!!
   }
 
   static constexpr std::string_view ParamName[2] = {"TRKDigitizerParam", "FT3DigitizerParam"};
