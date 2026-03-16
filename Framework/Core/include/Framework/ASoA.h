@@ -2052,8 +2052,8 @@ class Table
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mEnd{table->num_rows()},
-      mOffset(offset)
+      mOffset(offset),
+      mEnd{table->num_rows()}
   {
     if (mTable->num_rows() == 0) {
       for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {

@@ -134,7 +134,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     auto maxRate = options.get<float>("aod-max-io-rate");
 
     // create a DataInputDirector
-    auto didir = std::make_shared<DataInputDirector>(filename, &monitoring, parentAccessLevel, parentFileReplacement);
+    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, DataInputDirectorContext{&monitoring, parentAccessLevel, parentFileReplacement});
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {

@@ -37,7 +37,14 @@ struct FileNameHolder {
   std::vector<uint64_t> listOfTimeFrameNumbers;
   std::vector<bool> alreadyRead;
 };
+
 FileNameHolder* makeFileNameHolder(std::string fileName);
+
+struct DataInputDirectorContext {
+  o2::monitoring::Monitoring* monitoring = nullptr;
+  int allowedParentLevel = 0;
+  std::string parentFileReplacement = "";
+};
 
 class DataInputDescriptor
 {
@@ -50,7 +57,7 @@ class DataInputDescriptor
   std::string treename = "";
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
-  DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring = nullptr, int allowedParentLevel = 0, std::string parentFileReplacement = "");
+  DataInputDescriptor(bool alienSupport, int level, DataInputDirectorContext& context);
 
   void printOut();
 
@@ -93,16 +100,13 @@ class DataInputDescriptor
   std::string* minputfilesFilePtr = nullptr;
   std::string mFilenameRegex = "";
   std::string* mFilenameRegexPtr = nullptr;
-  int mAllowedParentLevel = 0;
-  std::string mParentFileReplacement;
   std::vector<FileNameHolder*> mfilenames;
   std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
   std::shared_ptr<arrow::fs::FileSystem> mCurrentFilesystem;
   int mCurrentFileID = -1;
   bool mAlienSupport = false;
 
-  o2::monitoring::Monitoring* mMonitoring = nullptr;
-
+  DataInputDirectorContext& mContext;
   TMap* mParentFileMap = nullptr;
   DataInputDescriptor* mParentFile = nullptr;
   int mLevel = 0; // level of parent files
@@ -120,9 +124,7 @@ class DataInputDirector
   /// and the related input files
 
  public:
-  DataInputDirector();
-  DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring = nullptr, int allowedParentLevel = 0, std::string parentFileReplacement = "");
-  DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring = nullptr, int allowedParentLevel = 0, std::string parentFileReplacement = "");
+  DataInputDirector(std::vector<std::string> inputFiles, DataInputDirectorContext&& context);
   ~DataInputDirector();
 
   void reset();
@@ -149,17 +151,14 @@ class DataInputDirector
   uint64_t getTotalSizeUncompressed();
 
  private:
+  DataInputDirectorContext mContext;
   std::string minputfilesFile;
   std::string* const minputfilesFilePtr = &minputfilesFile;
   std::string mFilenameRegex;
-  int mAllowedParentLevel = 0;
-  std::string mParentFileReplacement;
   std::string* const mFilenameRegexPtr = &mFilenameRegex;
   DataInputDescriptor* mdefaultDataInputDescriptor = nullptr;
   std::vector<FileNameHolder*> mdefaultInputFiles;
   std::vector<DataInputDescriptor*> mdataInputDescriptors;
-
-  o2::monitoring::Monitoring* mMonitoring = nullptr;
 
   bool mDebugMode = false;
   bool mAlienSupport = false;

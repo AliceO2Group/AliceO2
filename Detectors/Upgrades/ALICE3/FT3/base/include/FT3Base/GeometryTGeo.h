@@ -94,6 +94,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* getFT3LayerPattern() { return sLayerName.c_str(); }
   static const char* getFT3ChipPattern() { return sChipName.c_str(); }
   static const char* getFT3SensorPattern() { return sSensorName.c_str(); }
+  static const char* getFT3PassivePattern() { return sPassiveName.c_str(); }
 
   static const char* composeSymNameFT3(Int_t d) { return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::FT3).getName(), d); }
   static const char* composeSymNameLayer(Int_t d, Int_t lr);
@@ -105,8 +106,8 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sVolumeName;      ///< Mother volume name
   static std::string sLayerName;       ///< Layer name
   static std::string sChipName;        ///< Chip name
-
   static std::string sSensorName; ///< Sensor name
+  static std::string sPassiveName; ///< Passive material name
 
  private:
   static std::unique_ptr<o2::ft3::GeometryTGeo> sInstance; ///< singletone instance
