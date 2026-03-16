@@ -433,11 +433,11 @@ int32_t GPUReconstruction::InitPhaseAfterDevice()
   return 0;
 }
 
-void GPUReconstruction::WriteConstantParams()
+void GPUReconstruction::WriteConstantParams(int32_t stream)
 {
   if (IsGPU()) {
     const auto threadContext = GetThreadContext();
-    WriteToConstantMemory(ptrDiff(&processors()->param, processors()), &param(), sizeof(param()), -1);
+    WriteToConstantMemory(ptrDiff(&processors()->param, processors()), &param(), sizeof(param()), stream);
   }
 }
 

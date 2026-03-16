@@ -260,7 +260,7 @@ class GPUReconstruction
   virtual int32_t InitDevice() = 0;
   int32_t InitPhasePermanentMemory();
   int32_t InitPhaseAfterDevice();
-  void WriteConstantParams();
+  void WriteConstantParams(int32_t stream = -1);
   virtual int32_t ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, gpu_reconstruction_kernels::deviceEvent* ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();

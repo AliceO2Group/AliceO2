@@ -124,6 +124,7 @@ class GPUChain
   inline void TransferMemoryResourceLinkToGPU(RecoStep step, int16_t res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
   inline void TransferMemoryResourceLinkToHost(RecoStep step, int16_t res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
   // Todo: retrieve step from proc, move kernelClass->GetStep to retrieve it from GetProcessor
+  inline void WriteConstantParams(int32_t stream = -1) { mRec->WriteConstantParams(stream); }
   inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
   inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
   inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1)

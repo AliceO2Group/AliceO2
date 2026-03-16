@@ -52,7 +52,7 @@ template <>
 void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<uint64_t[]>* outBuffer, uint32_t* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, int32_t version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
 {
   GPUParam param;
-  param.SetDefaults(5.00668, false);
+  param.SetDefaults(5.00668);
   o2::gpu::GPUReconstructionConvert::RunZSEncoder(in, outBuffer, outSizes, raw, ir, param, version, verify, threshold, padding, digitsFilter);
 }
 template <>
