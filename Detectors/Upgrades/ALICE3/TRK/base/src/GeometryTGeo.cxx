@@ -101,10 +101,17 @@ void GeometryTGeo::Build(int loadTrans)
   mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
 
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
-    mNumberOfStaves[i] = extractNumberOfStavesMLOT(i);
-    mNumberOfHalfStaves[i] = extractNumberOfHalfStavesMLOT(i);
-    mNumberOfModules[i] = extractNumberOfModulesMLOT(i);
-    mNumberOfChips[i] = extractNumberOfChipsMLOT(i);
+    if (mLayoutMLOT == eMLOTLayout::kCylindrical) {
+      mNumberOfStaves[i] = 1;
+      mNumberOfHalfStaves[i] = 1;
+      mNumberOfModules[i] = 1;
+      mNumberOfChips[i] = 1;
+    } else {
+      mNumberOfStaves[i] = extractNumberOfStavesMLOT(i);
+      mNumberOfHalfStaves[i] = extractNumberOfHalfStavesMLOT(i);
+      mNumberOfModules[i] = extractNumberOfModulesMLOT(i);
+      mNumberOfChips[i] = extractNumberOfChipsMLOT(i);
+    }
   }
 
   int numberOfChipsTotal = 0;
@@ -398,18 +405,7 @@ TString GeometryTGeo::getMatrixPath(int index) const
 
   // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
 
-  // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
-
-  // handling cylindrical configuration for ML and/or OT
-  // needed because of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
-  if (subDetID == 1) {
-    if ((layer < 4 && mLayoutMLOT == eMLOTLayout::kCylindrical) || (layer > 3 && mLayoutMLOT == eMLOTLayout::kCylindrical)) {
-      stave = 1;
-      mod = 1;
-      chip = 1;
-    }
-  }
 
   // build the path
   if (subDetID == 0) { // VD
@@ -425,15 +421,19 @@ TString GeometryTGeo::getMatrixPath(int index) const
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
     }
-  } else if (subDetID == 1) {                                               // MLOT
-    path += Form("%s%d_1/", getTRKLayerPattern(), layer);                   // TRKLayerx_1
-    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);           // TRKStavex_y
-    if (mNumberOfHalfStaves[layer] == 2) {                                  // staggered geometry
-      path += Form("%s%d_%d/", getTRKHalfStavePattern(), layer, halfstave); // TRKHalfStavex_y
+  } else if (subDetID == 1) {                             // MLOT
+    path += Form("%s%d_1/", getTRKLayerPattern(), layer); // TRKLayerx_1
+    if (mLayoutMLOT == eMLOTLayout::kCylindrical) {
+      path += Form("%s%d_1/", getTRKSensorPattern(), layer); // TRKSensorx_1
+    } else {
+      path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);           // TRKStavex_y
+      if (mNumberOfHalfStaves[layer] == 2) {                                  // staggered geometry
+        path += Form("%s%d_%d/", getTRKHalfStavePattern(), layer, halfstave); // TRKHalfStavex_y
+      }
+      path += Form("%s%d_%d/", getTRKModulePattern(), layer, mod); // TRKModulx_y
+      path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
+      path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
     }
-    path += Form("%s%d_%d/", getTRKModulePattern(), layer, mod); // TRKModulx_y
-    path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
-    path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
   }
   return path;
 }

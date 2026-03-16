@@ -475,18 +475,38 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
+
     // Retrieve the indices with the volume path
     int stave(0), halfstave(0), mod(0), chip(0);
+
+    auto& trkPars = TRKBaseParam::Instance();
+
     if (subDetID == 1) {
-      fMC->CurrentVolOffID(1, chip);
-      fMC->CurrentVolOffID(2, mod);
-      if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
-        fMC->CurrentVolOffID(3, halfstave);
-        fMC->CurrentVolOffID(4, stave);
-      } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
-        fMC->CurrentVolOffID(3, stave);
+      /*if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kCylindrical) {
+        fMC->CurrentVolOffID(1, chip);
       } else {
-        LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+        fMC->CurrentVolOffID(1, chip);
+        fMC->CurrentVolOffID(2, mod);
+        if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
+          fMC->CurrentVolOffID(3, halfstave);
+          fMC->CurrentVolOffID(4, stave);
+        } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
+          fMC->CurrentVolOffID(3, stave);
+        } else {
+          LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+        }
+      }*/
+      if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kSegmented) {
+        fMC->CurrentVolOffID(1, chip);
+        fMC->CurrentVolOffID(2, mod);
+        if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
+          fMC->CurrentVolOffID(3, halfstave);
+          fMC->CurrentVolOffID(4, stave);
+        } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
+          fMC->CurrentVolOffID(3, stave);
+        } else {
+          LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+        }
       }
     } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 
