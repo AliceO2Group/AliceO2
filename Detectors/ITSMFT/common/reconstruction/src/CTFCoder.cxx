@@ -14,10 +14,10 @@
 /// \brief class for entropy encoding/decoding of ITS/MFT compressmed clusters data
 
 #include "ITSMFTReconstruction/CTFCoder.h"
-#include "CommonUtils/StringUtils.h"
 #include <TTree.h>
 
-using namespace o2::itsmft;
+namespace o2::itsmft
+{
 
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)
@@ -265,3 +265,4 @@ CompressedClusters CTFCoder<N>::decodeCompressedClusters(const CTF::base& ec, o2
 
 template class CTFCoder<o2::detectors::DetID::ITS>;
 template class CTFCoder<o2::detectors::DetID::MFT>;
+} // namespace o2::itsmft
