@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_ITSMFTDPLBASEPARAM_H_
-#define ALICEO2_ITSMFTDPLBASEPARAM_H_
+#ifndef ALICEO2_ITSMFTALPIDEPARAM_H_
+#define ALICEO2_ITSMFTALPIDEPARAM_H_
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"

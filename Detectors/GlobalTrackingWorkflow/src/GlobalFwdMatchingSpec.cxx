@@ -20,7 +20,7 @@
 #include "Framework/CCDBParamSpec.h"
 #include "CommonUtils/StringUtils.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/Cluster.h"

@@ -23,7 +23,7 @@
 #include "DataFormatsITSMFT/PhysTrigger.h"
 
 #include "ITStracking/TrackingConfigParam.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonDataFormat/IRFrame.h"

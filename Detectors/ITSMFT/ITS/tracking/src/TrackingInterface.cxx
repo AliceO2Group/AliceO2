@@ -13,7 +13,7 @@
 
 #include <oneapi/tbb/task_arena.h>
 
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 
 #include "ITSReconstruction/FastMultEstConfig.h"

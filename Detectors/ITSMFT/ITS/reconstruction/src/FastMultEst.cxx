@@ -14,7 +14,7 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "ITSReconstruction/FastMultEst.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "Framework/Logger.h"
 #include <ctime>
 #include <cstring>

@@ -41,9 +41,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   bool selIR = cfgc.options().get<bool>("select-ir-frames");
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("MFT", selIR, cfgc.options().get<std::string>("ctf-dict")));
+    wf.emplace_back(o2::itsmft::getMFTEntropyEncoderSpec(selIR, cfgc.options().get<std::string>("ctf-dict")));
   } else {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS", selIR, cfgc.options().get<std::string>("ctf-dict")));
+    wf.emplace_back(o2::itsmft::getITSEntropyEncoderSpec(selIR, cfgc.options().get<std::string>("ctf-dict")));
   }
   return wf;
 }
