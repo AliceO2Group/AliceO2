@@ -482,20 +482,6 @@ bool Detector::ProcessHits(FairVolume* vol)
     auto& trkPars = TRKBaseParam::Instance();
 
     if (subDetID == 1) {
-      /*if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kCylindrical) {
-        fMC->CurrentVolOffID(1, chip);
-      } else {
-        fMC->CurrentVolOffID(1, chip);
-        fMC->CurrentVolOffID(2, mod);
-        if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
-          fMC->CurrentVolOffID(3, halfstave);
-          fMC->CurrentVolOffID(4, stave);
-        } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
-          fMC->CurrentVolOffID(3, stave);
-        } else {
-          LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
-        }
-      }*/
       if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kSegmented) {
         fMC->CurrentVolOffID(1, chip);
         fMC->CurrentVolOffID(2, mod);
