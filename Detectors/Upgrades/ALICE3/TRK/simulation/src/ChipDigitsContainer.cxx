@@ -29,7 +29,7 @@ void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trk::
   int maxCols = 0;
 
   // TODO: set different noise and threshold for VD and MLOT
-  if (subDetID == 0) { // VD
+  if (subDetID == 0) {                                   // VD
     maxRows = constants::VD::petal::layer::nRows[layer]; // TODO: get the layer from the geometry
     maxCols = constants::VD::petal::layer::nCols;
     mean = params->getNoisePerPixel() * maxRows * maxCols;
