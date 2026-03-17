@@ -23,6 +23,9 @@ namespace o2::trk
 void ClustererDPL::init(o2::framework::InitContext& ic)
 {
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
+#ifdef O2_WITH_ACTS
+  mUseACTS = ic.options().get<bool>("useACTS");
+#endif
 }
 
 void ClustererDPL::run(o2::framework::ProcessingContext& pc)
@@ -48,15 +51,32 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
   }
   o2::base::GeometryManager::loadGeometry("o2sim_geometry.root", false, true);
 
-  mClusterer.process(digits,
-                     rofs,
-                     clusters,
-                     patterns,
-                     clusterROFs,
-                     mUseMC ? &labels : nullptr,
-                     clusterLabels.get(),
-                     mc2rofs,
-                     mUseMC ? &clusterMC2ROFs : nullptr);
+#ifdef O2_WITH_ACTS
+  if (mUseACTS) {
+    LOG(info) << "Running TRKClusterer with ACTS";
+    mClustererACTS.process(digits,
+                           rofs,
+                           clusters,
+                           patterns,
+                           clusterROFs,
+                           mUseMC ? &labels : nullptr,
+                           clusterLabels.get(),
+                           mc2rofs,
+                           mUseMC ? &clusterMC2ROFs : nullptr);
+  } else
+#endif
+  {
+    LOG(info) << "Running TRKClusterer";
+    mClusterer.process(digits,
+                       rofs,
+                       clusters,
+                       patterns,
+                       clusterROFs,
+                       mUseMC ? &labels : nullptr,
+                       clusterLabels.get(),
+                       mc2rofs,
+                       mUseMC ? &clusterMC2ROFs : nullptr);
+  }
 
   pc.outputs().snapshot(o2::framework::Output{"TRK", "COMPCLUSTERS", 0}, clusters);
   pc.outputs().snapshot(o2::framework::Output{"TRK", "PATTERNS", 0}, patterns);
@@ -93,7 +113,12 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::trk::ClustererDPL>(useMC)},
-    o2::framework::Options{{"nthreads", o2::framework::VariantType::Int, 1, {"Number of clustering threads"}}}};
+    o2::framework::Options{{"nthreads", o2::framework::VariantType::Int, 1, {"Number of clustering threads"}}
+#ifdef O2_WITH_ACTS
+                           ,
+                           {"useACTS", o2::framework::VariantType::Bool, false, {"Use ACTS for clustering"}}
+#endif
+    }};
 }
 
 } // namespace o2::trk
