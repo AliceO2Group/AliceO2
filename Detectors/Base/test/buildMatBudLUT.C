@@ -29,7 +29,7 @@ o2::base::MatLayerCylSet mbLUT;
 
 bool testMBLUT(const std::string& lutFile = "matbud.root");
 
-bool buildMatBudLUT(int nTst = 30, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomNamePrefix = "o2sim", const std::string& opts = "");
+bool buildMatBudLUT(int nTst = 60, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomName = "o2sim_geometry-aligned.root");
 
 struct LrData {
   float rMin = 0.f;
@@ -306,14 +306,17 @@ void configLayers()
   zBin = 10.;
   rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
   lrData.emplace_back(LrData(lrData.back().rMax, 56.5, zSpanH, zBin, rphiBin));
+
+  //------------------------------------
+  zBin = 1.;
   rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
   lrData.emplace_back(LrData(lrData.back().rMax, 60.5, zSpanH, zBin, rphiBin));
   rphiBin = lrData.back().rMax * TMath::Pi() * 2 / 18;
   lrData.emplace_back(LrData(lrData.back().rMax, 61.5, zSpanH, zBin, rphiBin));
 
   zSpanH = 150.f;
-  drStep = 3.5;
-  zBin = 15.;
+  drStep = 2;
+  zBin = 1.;
   do {
     auto rmean = lrData.back().rMax + drStep / 2;
     rphiBin = rmean * TMath::Pi() * 2 / (NSect * 2);
@@ -321,8 +324,8 @@ void configLayers()
   } while (lrData.back().rMax < 68.5 - kToler);
 
   zSpanH = 250.f;
-  zBin = 25.;
-  rphiBin = 5;
+  zBin = 1.;
+  rphiBin = 2.5;
   {
     auto rmean = (lrData.back().rMax + 76) / 2.;
     rphiBin = rmean * TMath::Pi() * 2 / (NSect * 2);
