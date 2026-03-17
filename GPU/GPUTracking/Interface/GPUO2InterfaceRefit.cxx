@@ -129,7 +129,7 @@ GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const Co
 
 void GPUO2InterfaceRefit::updateCalib(const CorrectionMapsHelper* trans, float bzNominalGPU)
 {
-  mParam->UpdateBzOnly(bzNominalGPU, false);
+  mParam->UpdateBzOnly(bzNominalGPU);
   mRefit->SetFastTransformHelper(trans);
 }
 

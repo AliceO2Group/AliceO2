@@ -225,6 +225,17 @@ int32_t GPUChainTracking::RunTPCDecompression()
     GPUFatal("tpcApplyCFCutsAtDecoding, tpcApplyClusterFilterOnCPU and tpcCutTimeBin currently require tpcUseOldCPUDecoding");
   }
 
+  CompressedClusters cmprClsHost = *mIOPtrs.tpcCompressedClusters;
+  const bool useTemporaryBz = cmprClsHost.nTracks && cmprClsHost.solenoidBz != -1e6f && cmprClsHost.solenoidBz != param().bzkG && !GetProcessingSettings().doublePipeline;
+  std::unique_ptr<GPUParam> tmpParam;
+  int32_t inputStream = 0;
+
+  if (useTemporaryBz) {
+    tmpParam = std::make_unique<GPUParam>(param());
+    SynchronizeGPU();
+    param().UpdateBzOnly(cmprClsHost.solenoidBz, mRec->GetGRPSettings().constBz);
+    WriteConstantParams(inputStream);
+  }
   if (GetProcessingSettings().tpcUseOldCPUDecoding) {
     const bool runFiltering = needFullFiltering || runTimeBinCutFiltering;
     const auto& threadContext = GetThreadContext();
@@ -268,7 +279,6 @@ int32_t GPUChainTracking::RunTPCDecompression()
     GPUTPCDecompression& Decompressor = processors()->tpcDecompressor;
     GPUTPCDecompression& DecompressorShadow = doGPU ? processorsShadow()->tpcDecompressor : Decompressor;
     const auto& threadContext = GetThreadContext();
-    CompressedClusters cmprClsHost = *mIOPtrs.tpcCompressedClusters;
     CompressedClusters& inputGPU = Decompressor.mInputGPU;
     CompressedClusters& inputGPUShadow = DecompressorShadow.mInputGPU;
 
@@ -279,7 +289,6 @@ int32_t GPUChainTracking::RunTPCDecompression()
       throw std::runtime_error("Configured max time bin " + std::to_string(param().continuousMaxTimeBin) + " does not match value used for track model encoding " + std::to_string(cmprClsHost.maxTimeBin));
     }
 
-    int32_t inputStream = 0;
     int32_t unattachedStream = mRec->NStreams() - 1;
     inputGPU = cmprClsHost;
     SetupGPUProcessor(&Decompressor, true);
@@ -436,6 +445,12 @@ int32_t GPUChainTracking::RunTPCDecompression()
       SynchronizeStream(unattachedStream);
     }
     mRec->PopNonPersistentMemory(RecoStep::TPCDecompression, qStr2Tag("TPCDCMPR"));
+  }
+  if (useTemporaryBz) {
+    SynchronizeGPU();
+    param() = *tmpParam;
+    tmpParam.reset();
+    WriteConstantParams();
   }
   DoDebugDump(GPUChainTrackingDebugFlags::TPCDecompressedClusters, &GPUChainTracking::DumpClusters, *mDebugFile, mIOPtrs.clustersNative);
   return 0;
