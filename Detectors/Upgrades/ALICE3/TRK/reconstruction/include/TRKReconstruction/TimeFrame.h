@@ -33,7 +33,6 @@ namespace o2
 {
 namespace trk
 {
-class Hit;
 class GeometryTGeo;
 
 /// TRK TimeFrame class that extends ITS TimeFrame functionality
