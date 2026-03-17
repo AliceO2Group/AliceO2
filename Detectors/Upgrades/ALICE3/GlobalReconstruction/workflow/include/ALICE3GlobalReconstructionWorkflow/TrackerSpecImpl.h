@@ -22,6 +22,9 @@
 #include "Field/MagneticField.h"
 #include "Framework/ControlService.h"
 #include "ITStracking/Tracker.h"
+#ifdef O2_WITH_ACTS
+#include "ALICE3GlobalReconstruction/TrackerACTS.h"
+#endif
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -114,33 +117,50 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
     nRofs = timeFrame.loadROFrameData(layerROFs, layerClusters, layerPatterns, mIsMC ? &layerLabels : nullptr, yPlaneMLOT);
     timeFrame.addTruthSeedingVertices();
   }
-
   const auto trackingLoopStart = std::chrono::steady_clock::now();
-  for (size_t iter{0}; iter < mTrackingParams.size(); ++iter) {
-    LOGP(info, "{}", mTrackingParams[iter].asString());
-    trackerTraits.initialiseTimeFrame(iter);
-    trackerTraits.computeLayerTracklets(iter, -1);
-    LOGP(info, "Number of tracklets in iteration {}: {}", iter, timeFrame.getNumberOfTracklets());
-    trackerTraits.computeLayerCells(iter);
-    LOGP(info, "Number of cells in iteration {}: {}", iter, timeFrame.getNumberOfCells());
-    trackerTraits.findCellsNeighbours(iter);
-    LOGP(info, "Number of cell neighbours in iteration {}: {}", iter, timeFrame.getNumberOfNeighbours());
-    trackerTraits.findRoads(iter);
-    LOGP(info, "Number of roads in iteration {}: {}", iter, timeFrame.getNumberOfTracks());
+#ifdef O2_WITH_ACTS
+  if (mUseACTS) {
+    LOG(info) << "Running ACTS tracking";
+    o2::trk::TrackerACTS<11> actsTracker;
+    actsTracker.adoptTimeFrame(timeFrame);
+    actsTracker.adoptSensorIDs(timeFrame.getClusterSensorIDs());
+
+    const auto& config = mHitRecoConfig.empty() ? mClusterRecoConfig : mHitRecoConfig;
+    // The input magnetic field is in kG; ACTS TrackerACTS expects Tesla.
+    actsTracker.setBz(config["geometry"]["bz"].get<float>() * 0.1f);
+    actsTracker.clustersToTracks(); // This will run the full tracking chain: space point building, seeding, and track finding.
+    actsTracker.printSummary();
+  } else
+#endif
+  {
+    for (size_t iter{0}; iter < mTrackingParams.size(); ++iter) {
+      LOGP(info, "{}", mTrackingParams[iter].asString());
+      trackerTraits.initialiseTimeFrame(iter);
+      trackerTraits.computeLayerTracklets(iter, -1);
+      LOGP(info, "Number of tracklets in iteration {}: {}", iter, timeFrame.getNumberOfTracklets());
+      trackerTraits.computeLayerCells(iter);
+      LOGP(info, "Number of cells in iteration {}: {}", iter, timeFrame.getNumberOfCells());
+      trackerTraits.findCellsNeighbours(iter);
+      LOGP(info, "Number of cell neighbours in iteration {}: {}", iter, timeFrame.getNumberOfNeighbours());
+      trackerTraits.findRoads(iter);
+      LOGP(info, "Number of roads in iteration {}: {}", iter, timeFrame.getNumberOfTracks());
+    }
+    if (mIsMC) {
+      itsTracker.computeTracksMClabels();
+    }
   }
   const auto trackingLoopElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - trackingLoopStart).count();
   LOGP(info, "Tracking iterations block took {} ms", trackingLoopElapsedMs);
 
-  if (mIsMC) {
-    itsTracker.computeTracksMClabels();
-  }
-
   const auto& tracks = timeFrame.getTracks();
   const auto& labels = timeFrame.getTracksLabel();
+  if (mIsMC && tracks.size() != labels.size()) {
+    LOGP(fatal, "TRK: {} reconstructed tracks but {} MC labels", tracks.size(), labels.size());
+  }
   std::vector<o2::its::TrackITS> allTracks(tracks.begin(), tracks.end());
   std::vector<o2::MCCompLabel> allLabels;
 
-  int totalTracks = allTracks.size();
+  const int totalTracks = allTracks.size();
   int goodTracks = 0;
   int fakeTracks = 0;
 

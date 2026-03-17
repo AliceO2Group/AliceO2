@@ -19,12 +19,24 @@
 #ifndef ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
 #define ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
 
-#include "Acts/Definitions/Units.hpp"
-#include "Framework/Logger.h"
+#include <Acts/Definitions/Units.hpp>
+#include <chrono>
+#include <cmath>
+#include <iomanip>
+#include <string_view>
+#include <Framework/Logger.h>
+#include <array>
+#include <vector>
+#include <unordered_set>
+#include "DataFormatsITS/TrackITS.h"
+#include <ITStracking/TimeFrame.h>
+#include <TH2F.h>
 
-#include "ITStracking/TimeFrame.h"
-#include "TH2F.h"
-
+namespace Acts
+{
+class Surface;
+class BoundTrackParameters;
+}
 namespace o2::trk
 {
 
@@ -62,6 +74,8 @@ struct SpacePoint {
   int layer{-1};
   int clusterId{-1};
   int rof{-1};
+  int sensorId{-1};
+  const Acts::Surface* surface{nullptr};
 
   // Derived quantities
   float r() const { return std::hypot(x, y); }
@@ -98,6 +112,10 @@ class TrackerACTS
 
   /// Adopt a TimeFrame for processing
   void adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf);
+  void adoptSensorIDs(const std::array<std::vector<int>, nLayers>& sensorIDs)
+  {
+    mSensorIDs = &sensorIDs;
+  }
 
   /// Main tracking entry point: convert clusters to tracks
   void clustersToTracks();
@@ -125,13 +143,14 @@ class TrackerACTS
   /// Create seeds (triplets) from space points using ACTS SeedFinder
   void createSeeds();
 
-  /// Estimate track parameters from a seed using ACTS
-  bool estimateTrackParams(const SeedACTS& seed, o2::its::TrackITSExt& track) const;
-
   /// Run track finding from seeds
   void findTracks();
 
-  /// Assign MC labels to tracks
+  /// Convert fitted ACTS states to a TrackITSExt and publish it in the TimeFrame.
+  bool acceptTrack(const Acts::BoundTrackParameters& inner,
+                   const Acts::BoundTrackParameters& outer,
+                   const SeedACTS& seed, float chi2);
+  /// Assign one MC label per accepted track, after all ROFs have been processed.
   void computeTracksMClabels();
 
   /// Helper: time a task
@@ -150,12 +169,17 @@ class TrackerACTS
 
   // Seeds
   std::vector<SeedACTS> mSeeds;
+  // Avoid accepting seeds which reuse a cluster already assigned to a track.
+  std::unordered_set<uint64_t> mAcceptedClusters;
+  // Layer-local indices in mUnsortedClusters, in the same order as getTracks().
+  // Keep them separate from the external indices stored in TrackITSExt.
+  std::vector<std::array<int, nLayers>> mAcceptedTrackClusterIndices;
 
   // Tracking state
   float mBz{0.5f}; ///< Magnetic field in Tesla
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0.};
-
+  const std::array<std::vector<int>, nLayers>* mSensorIDs = nullptr;
   // Tracking states for logging
   enum State {
     SpacePointBuilding = 0,

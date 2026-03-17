@@ -18,26 +18,169 @@
 
 #include "ALICE3GlobalReconstruction/TrackerACTS.h"
 
-#include <Acts/EventData/Seed.hpp>
+#include "ACTSInterface/TrackingGeometryManager.h"
+#include "MathUtils/Utils.h"
+#include "TRKBase/GeometryTGeo.h"
+
+#include <Acts/Definitions/Direction.hpp>
+#include <Acts/Definitions/TrackParametrization.hpp>
+#include <Acts/EventData/BoundTrackParameters.hpp>
+#include <Acts/EventData/ParticleHypothesis.hpp>
+#include <Acts/EventData/SeedContainer.hpp>
+#include <Acts/EventData/SourceLink.hpp>
 #include <Acts/EventData/SpacePointContainer.hpp>
-#include <Acts/Seeding/BinnedGroup.hpp>
-#include <Acts/Seeding/SeedFilter.hpp>
-#include <Acts/Seeding/SeedFilterConfig.hpp>
-#include <Acts/Seeding/SeedFinder.hpp>
-#include <Acts/Seeding/SeedFinderConfig.hpp>
-#include <Acts/Seeding/detail/CylindricalSpacePointGrid.hpp>
+#include <Acts/EventData/TrackContainer.hpp>
+#include <Acts/EventData/VectorMultiTrajectory.hpp>
+#include <Acts/EventData/VectorTrackContainer.hpp>
+#include <Acts/MagneticField/ConstantBField.hpp>
+#include <Acts/MagneticField/MagneticFieldContext.hpp>
+#include <Acts/Propagator/DirectNavigator.hpp>
+#include <Acts/Propagator/EigenStepper.hpp>
+#include <Acts/Propagator/Propagator.hpp>
+#include <Acts/Seeding/BroadTripletSeedFilter.hpp>
+#include <Acts/Seeding/CylindricalSpacePointGrid.hpp>
+#include <Acts/Seeding/DoubletSeedFinder.hpp>
+#include <Acts/Seeding/EstimateTrackParamsFromSeed.hpp>
+#include <Acts/Seeding/TripletSeedFinder.hpp>
+#include <Acts/Seeding/TripletSeeder.hpp>
+#include <Acts/Surfaces/Surface.hpp>
+#include <Acts/TrackFitting/GainMatrixSmoother.hpp>
+#include <Acts/TrackFitting/GainMatrixUpdater.hpp>
+#include <Acts/TrackFitting/KalmanFitter.hpp>
+#include <Acts/Utilities/CalibrationContext.hpp>
 #include <Acts/Utilities/GridBinFinder.hpp>
-#include <Acts/Utilities/RangeXD.hpp>
+
+#include "ACTSInterface/TrackingGeometryManager.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <memory>
+#include <span>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace o2::trk
 {
 
+namespace
+{
+// Convert ACTS surface-bound parameters to the O2 tracking frame
+// (x, alpha; y, z, sin(phi-alpha), tan(lambda), q/pT).
+// The covariance is transformed by a numerical Jacobian evaluated at the
+// fitted state. Position units are converted from ACTS mm to O2 cm.
+bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
+                            const Acts::GeometryContext& gctx,
+                            o2::track::TrackParCov& output)
+{
+  const auto& state = actsTrack.parameters();
+  if (!state.allFinite() || !actsTrack.covariance().has_value() ||
+      !actsTrack.covariance()->allFinite()) {
+    return false;
+  }
+
+  const auto position = actsTrack.position(gctx);
+  if (!position.allFinite()) {
+    return false;
+  }
+  const double alpha = std::atan2(position.y(), position.x());
+  const double ca = std::cos(alpha);
+  const double sa = std::sin(alpha);
+
+  auto toO2 = [&](const Acts::BoundVector& p, Eigen::Matrix<double, 5, 1>& dest) -> bool {
+    const double theta = p[Acts::eBoundTheta];
+    const double sinTheta = std::sin(theta);
+    if (!std::isfinite(sinTheta) || sinTheta <= 1.e-6) {
+      return false;
+    }
+    const auto direction = Acts::makeDirectionFromPhiTheta(p[Acts::eBoundPhi], theta);
+    const Acts::Vector2 local = p.head<2>();
+    const auto xyz = actsTrack.referenceSurface().localToGlobal(gctx, local, direction);
+    if (!xyz.allFinite()) {
+      return false;
+    }
+
+    const double snp = std::sin(p[Acts::eBoundPhi] - alpha);
+    if (!std::isfinite(snp) || std::abs(snp) >= 0.999999) {
+      return false;
+    }
+
+    dest << (-xyz.x() * sa + xyz.y() * ca) / Acts::UnitConstants::cm,
+      xyz.z() / Acts::UnitConstants::cm,
+      snp,
+      std::cos(theta) / sinTheta,
+      p[Acts::eBoundQOverP] * Acts::UnitConstants::GeV / sinTheta;
+    return dest.allFinite();
+  };
+
+  Eigen::Matrix<double, 5, 1> pars;
+  if (!toO2(state, pars)) {
+    return false;
+  }
+
+  const double x = (position.x() * ca + position.y() * sa) / Acts::UnitConstants::cm;
+  if (!std::isfinite(x)) {
+    return false;
+  }
+
+  Eigen::Matrix<double, 5, Acts::eBoundSize> jacobian;
+  jacobian.setZero();
+  for (int i = 0; i < Acts::eBoundSize; ++i) {
+    if (i == Acts::eBoundTime) {
+      continue; // O2 TrackParCov has no time coordinate
+    }
+    const double step = (i == Acts::eBoundLoc0 || i == Acts::eBoundLoc1)
+                          ? 1.e-3 * Acts::UnitConstants::mm
+                        : (i == Acts::eBoundQOverP)
+                          ? std::max(std::abs(state[i]) * 1.e-4, 1.e-6 / Acts::UnitConstants::GeV)
+                          : 1.e-5;
+    Acts::BoundVector plus = state;
+    Acts::BoundVector minus = state;
+    plus[i] += step;
+    minus[i] -= step;
+    Eigen::Matrix<double, 5, 1> fPlus, fMinus;
+    if (!toO2(plus, fPlus) || !toO2(minus, fMinus)) {
+      return false;
+    }
+    jacobian.col(i) = (fPlus - fMinus) / (2. * step);
+  }
+
+  const Eigen::Matrix<double, 5, 5> covariance =
+    jacobian * (*actsTrack.covariance()) * jacobian.transpose();
+  if (!covariance.allFinite()) {
+    return false;
+  }
+
+  o2::track::TrackParCov::params_t o2Params{};
+  o2::track::TrackParCov::covMat_t o2Cov{};
+  for (int i = 0; i < 5; ++i) {
+    if (!(covariance(i, i) > 0.) || !std::isfinite(pars[i])) {
+      return false;
+    }
+    o2Params[i] = static_cast<float>(pars[i]);
+    for (int j = 0; j <= i; ++j) {
+      o2Cov[o2::track::CovarMap[i][j]] =
+        static_cast<float>(0.5 * (covariance(i, j) + covariance(j, i)));
+    }
+  }
+  const int charge = state[Acts::eBoundQOverP] >= 0. ? 1 : -1;
+  output = o2::track::TrackParCov{static_cast<float>(x), static_cast<float>(alpha),
+                                  o2Params, o2Cov, charge, o2::track::PID::Pion};
+  return output.isValid();
+}
+} // namespace
 template <int nLayers>
 TrackerACTS<nLayers>::TrackerACTS()
 {
   // Initialize space points storage per layer
   mSpacePointsPerLayer.resize(nLayers);
   mHistSpacePoints = new TH2F("hSpacePoints", "Space points; x (cm); y (cm)", 200, -100, 100, 200, -100, 100);
+
+  // Initialize ACTS Tracking geometry
 }
 
 template <int nLayers>
@@ -54,19 +197,48 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
     layerSPs.clear();
   }
 
-  // Get clusters from the TimeFrame and convert to space points
+  if (!mSensorIDs) {
+    LOG(error) << "Cannot build ACTS space points: Sensor IDs not adopted";
+    return;
+  }
+
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+
+  trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+
+  const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
+    return std::string(trkGeometry->getMatrixPath(sensorID).Data());
+  });
+
+  int nMapped = 0;
+  int nMissing = 0;
+
   for (int layer = 0; layer < nLayers; ++layer) {
-    // For now we take unsorted clusters, as soon as the cluster trackin is in place we can piggy back on it and switch to the clusters
-    auto clusters = mTimeFrame->getUnsortedClusters()[layer];
-    // Resize the clusters to the first 100 clusters for testing
-    // clusters = clusters.subspan(0, std::min<size_t>(clusters.size(), 100));
-    LOG(debug) << "ACTSTracker: got " << clusters.size() << " clusters";
+    const auto clusters = mTimeFrame->getUnsortedClustersOnLayer(rof, layer);
+    const int firstCluster = mTimeFrame->getSortedStartIndex(rof, layer);
+
+    LOG(debug) << "ACTSTracker: got " << clusters.size() << " clusters on layer " << layer;
 
     for (size_t iCluster = 0; iCluster < clusters.size(); ++iCluster) {
       const auto& cluster = clusters[iCluster];
+      const int clusterIndex = firstCluster + static_cast<int>(iCluster);
+
+      if (static_cast<size_t>(clusterIndex) >= (*mSensorIDs)[layer].size()) {
+        LOG(error) << "Missing sensor ID for layer " << layer << " cluster " << clusterIndex;
+        ++nMissing;
+        continue;
+      }
+
+      const int sensorID = (*mSensorIDs)[layer][clusterIndex];
+      const auto* surface = surfaceIndex.getSurface(sensorID);
+      if (!surface) {
+        LOG(error) << "No ACTS surface for sensor " << sensorID << " on layer " << layer;
+        ++nMissing;
+        continue;
+      }
 
       SpacePoint sp;
-      // Check that these are in global coordinates
       sp.x = cluster.xCoordinate * Acts::UnitConstants::cm;
       sp.y = cluster.yCoordinate * Acts::UnitConstants::cm;
       sp.z = cluster.zCoordinate * Acts::UnitConstants::cm;
@@ -74,181 +246,606 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
       if (mHistSpacePoints) {
         mHistSpacePoints->Fill(sp.x / Acts::UnitConstants::cm, sp.y / Acts::UnitConstants::cm);
       }
-      sp.layer = layer;
-      sp.clusterId = static_cast<int>(iCluster);
-      sp.rof = rof;
 
-      // Position uncertainties (could be refined based on cluster properties)
-      sp.varianceR = 0.01f; // ~100 um resolution squared
+      sp.layer = layer;
+      sp.clusterId = clusterIndex;
+      sp.rof = rof;
+      sp.sensorId = sensorID;
+      sp.surface = surface;
+      sp.varianceR = 0.01f;
       sp.varianceZ = 0.01f;
 
       mSpacePoints.push_back(sp);
+      ++nMapped;
     }
   }
 
-  // Build per-layer pointers for seeding
   for (auto& sp : mSpacePoints) {
     if (sp.layer >= 0 && sp.layer < nLayers) {
       mSpacePointsPerLayer[sp.layer].push_back(&sp);
     }
   }
+
+  LOG(info) << "ACTS surface mapping: " << nMapped << " clusters mapped, " << nMissing << " clusters missing";
 }
 
 template <int nLayers>
 void TrackerACTS<nLayers>::createSeeds()
 {
-  if (mSpacePoints.empty()) {
-    LOGF(info, "No space points available for seeding");
-    return;
-  }
   mSeeds.clear();
+  if (mSpacePoints.empty()) {
+    LOG(info) << "No space points available for seeding";
+    return;
+  }
 
-  // Backend adaptor that exposes mSpacePoints to Acts::SpacePointContainer
-  struct SpacePointBackend {
-    using ValueType = SpacePoint;
-    explicit SpacePointBackend(const std::vector<SpacePoint>& sps) : m_sps{&sps} {}
-    std::size_t size_impl() const { return m_sps->size(); }
-    float x_impl(std::size_t i) const { return (*m_sps)[i].x; }
-    float y_impl(std::size_t i) const { return (*m_sps)[i].y; }
-    float z_impl(std::size_t i) const { return (*m_sps)[i].z; }
-    float varianceR_impl(std::size_t i) const { return (*m_sps)[i].varianceR; }
-    float varianceZ_impl(std::size_t i) const { return (*m_sps)[i].varianceZ; }
-    const SpacePoint& get_impl(std::size_t i) const { return (*m_sps)[i]; }
-    std::any component_impl(Acts::HashedString /*key*/, std::size_t /*i*/) const
-    {
-      LOG(fatal) << "No additional components available for space points";
-      throw std::runtime_error("SpacePointBackend: no strip component available");
-    }
-    const std::vector<SpacePoint>* m_sps;
-  };
-
-  // Wrap mSpacePoints in an Acts space-point container
-  SpacePointBackend backend{mSpacePoints};
-
-  // Configure the ACTS space point container
-  Acts::SpacePointContainerConfig spContainerConfig;
-  Acts::SpacePointContainerOptions spContainerOpts;
-  spContainerOpts.beamPos = {0.f, 0.f};
-  Acts::SpacePointContainer<SpacePointBackend, Acts::detail::RefHolder> spContainer{spContainerConfig, spContainerOpts, backend};
-
-  // Configure the ACTS seed finder
-  const unsigned int maxSeeds = static_cast<unsigned int>(mConfig.maxSeedsPerMiddleSP);
-  Acts::SeedFilterConfig filterConfig;
-  filterConfig.maxSeedsPerSpM = maxSeeds;
-
-  // ACTS requires minPt / bFieldInZ >= rMax / 2 (minHelixRadius >= rMax/2).
-  // Cap rMax so that the constraint is satisfied for the configured minPt and field.
   const float bFieldInZ = mBz * Acts::UnitConstants::T;
-  const float safeRMax = 1.8f * mConfig.minPt / bFieldInZ; // 10% margin below the hard limit
 
-  using SPProxy = typename Acts::SpacePointContainer<SpacePointBackend, Acts::detail::RefHolder>::SpacePointProxyType;
-  Acts::SeedFinderConfig<SPProxy> finderConfig;
-  finderConfig.rMin = 0.f;
-  finderConfig.rMax = 100.f * Acts::UnitConstants::cm;
-  finderConfig.zMin = mConfig.zMin;
-  finderConfig.zMax = mConfig.zMax;
-  finderConfig.deltaRMin = std::min(mConfig.deltaRMinBottom, mConfig.deltaRMinTop);
-  finderConfig.deltaRMax = std::max(mConfig.deltaRMaxBottom, mConfig.deltaRMaxTop);
-  finderConfig.deltaRMinBottomSP = mConfig.deltaRMinBottom;
-  finderConfig.deltaRMaxBottomSP = mConfig.deltaRMaxBottom;
-  finderConfig.deltaRMinTopSP = mConfig.deltaRMinTop;
-  finderConfig.deltaRMaxTopSP = mConfig.deltaRMaxTop;
-  finderConfig.collisionRegionMin = mConfig.collisionRegionMin;
-  finderConfig.collisionRegionMax = mConfig.collisionRegionMax;
-  finderConfig.cotThetaMax = mConfig.cotThetaMax;
-  finderConfig.minPt = mConfig.minPt;
-  finderConfig.impactMax = mConfig.maxImpactParameter;
-  finderConfig.maxSeedsPerSpM = maxSeeds;
-  finderConfig.sigmaScattering = 5.f;
-  finderConfig.radLengthPerSeed = 0.05f;
-  finderConfig.seedFilter = std::make_shared<Acts::SeedFilter<SPProxy>>(filterConfig);
-  finderConfig = finderConfig.calculateDerivedQuantities();
-  Acts::SeedFinder<SPProxy, Acts::CylindricalSpacePointGrid<SPProxy>> seedFinder{finderConfig,
-                                                                                 Acts::getDefaultLogger("Finder", Acts::Logging::Level::VERBOSE)};
+  Acts::CylindricalSpacePointGrid::Config gridConfig;
+  gridConfig.minPt = mConfig.minPt;
+  gridConfig.rMin = 0.f;
+  gridConfig.rMax = 100.f * Acts::UnitConstants::cm;
+  gridConfig.zMin = mConfig.zMin;
+  gridConfig.zMax = mConfig.zMax;
+  gridConfig.deltaRMax = std::max(mConfig.deltaRMaxBottom, mConfig.deltaRMaxTop);
+  gridConfig.cotThetaMax = mConfig.cotThetaMax;
+  gridConfig.impactMax = mConfig.maxImpactParameter;
+  gridConfig.bFieldInZ = bFieldInZ;
+  gridConfig.bottomBinFinder = Acts::GridBinFinder<3ul>{1, std::vector<std::pair<int, int>>{}, 0};
+  gridConfig.topBinFinder = Acts::GridBinFinder<3ul>{1, std::vector<std::pair<int, int>>{}, 0};
 
-  // Configure and create the cylindrical space-point grid
-  Acts::CylindricalSpacePointGridConfig gridConfig;
-  gridConfig.minPt = finderConfig.minPt;
-  gridConfig.rMin = finderConfig.rMin;
-  gridConfig.rMax = finderConfig.rMax;
-  gridConfig.zMin = finderConfig.zMin;
-  gridConfig.zMax = finderConfig.zMax;
-  gridConfig.deltaRMax = finderConfig.deltaRMax;
-  gridConfig.cotThetaMax = finderConfig.cotThetaMax;
-  gridConfig.impactMax = finderConfig.impactMax;
-
-  Acts::CylindricalSpacePointGridOptions gridOpts;
-  gridOpts.bFieldInZ = bFieldInZ;
-
-  Acts::SeedFinderOptions finderOpts;
-  finderOpts.beamPos = spContainerOpts.beamPos;
-  finderOpts.bFieldInZ = gridOpts.bFieldInZ;
-  try {
-    finderOpts = finderOpts.calculateDerivedQuantities(finderConfig);
-  } catch (const std::exception& e) {
-    LOG(fatal) << "Error in seed finder configuration: " << e.what();
-    return;
+  Acts::CylindricalSpacePointGrid grid{gridConfig};
+  for (Acts::SpacePointIndex i = 0; i < mSpacePoints.size(); ++i) {
+    const auto& sp = mSpacePoints[i];
+    grid.insert(i, sp.phi(), sp.z, sp.r());
   }
 
-  Acts::CylindricalSpacePointGrid<SPProxy> grid = Acts::CylindricalSpacePointGridCreator::createGrid<SPProxy>(gridConfig, gridOpts);
-  try {
-    Acts::CylindricalSpacePointGridCreator::fillGrid(finderConfig, finderOpts, grid,
-                                                     spContainer.begin(), spContainer.end());
-  } catch (const std::exception& e) {
-    LOG(fatal) << "Error during grid creation/filling: " << e.what();
-    return;
+  // The doublet finder expects each bin to be sorted in increasing radius.
+  for (size_t i = 0; i < grid.numberOfBins(); ++i) {
+    auto& bin = grid.at(i);
+    std::sort(bin.begin(), bin.end(), [this](Acts::SpacePointIndex a, Acts::SpacePointIndex b) {
+      return mSpacePoints[a].r() < mSpacePoints[b].r();
+    });
   }
-  LOG(debug) << "Grid created with " << grid.dimensions();
 
-  // Build the binned group and iterate over triplet combinations
-  Acts::GridBinFinder<3ul> bottomBinFinder{1, std::vector<std::pair<int, int>>{}, 0};
-  Acts::GridBinFinder<3ul> topBinFinder{1, std::vector<std::pair<int, int>>{}, 0};
-  Acts::CylindricalBinnedGroup<SPProxy> spGroup{std::move(grid), bottomBinFinder, topBinFinder};
+  // ACTS 47 uses a non-templated, column-based space-point container.
+  Acts::SpacePointContainer spacePoints{
+    Acts::SpacePointColumns::CopiedFromIndex |
+    Acts::SpacePointColumns::PackedXY |
+    Acts::SpacePointColumns::PackedZR |
+    Acts::SpacePointColumns::VarianceR |
+    Acts::SpacePointColumns::VarianceZ};
+  spacePoints.reserve(grid.numberOfSpacePoints());
 
-  std::vector<std::vector<Acts::Seed<SPProxy>>> seedsPerGroup;
-  typename Acts::SeedFinder<SPProxy, Acts::CylindricalSpacePointGrid<SPProxy>>::SeedingState seedingState;
-  seedingState.spacePointMutableData.resize(spContainer.size());
-  const Acts::Range1D<float> rMiddleSPRange;
-  for (auto [bottom, middle, top] : spGroup) {
-    auto& v = seedsPerGroup.emplace_back();
-    try {
-      seedFinder.createSeedsForGroup(finderOpts, seedingState, spGroup.grid(), v, bottom, middle, top, rMiddleSPRange);
-    } catch (const std::exception& e) {
-      LOG(fatal) << "Error during seed finding for a group: " << e.what();
-      return;
+  std::vector<Acts::SpacePointIndexRange> gridRanges;
+  gridRanges.reserve(grid.numberOfBins());
+  for (size_t i = 0; i < grid.numberOfBins(); ++i) {
+    const auto first = static_cast<Acts::SpacePointIndex>(spacePoints.size());
+    for (Acts::SpacePointIndex spIndex : grid.at(i)) {
+      const auto& sp = mSpacePoints[spIndex];
+      auto proxy = spacePoints.createSpacePoint();
+      proxy.copiedFromIndex() = spIndex;
+      proxy.xy() = std::array<float, 2>{sp.x, sp.y};
+      proxy.zr() = std::array<float, 2>{sp.z, sp.r()};
+      proxy.varianceR() = sp.varianceR;
+      proxy.varianceZ() = sp.varianceZ;
     }
+    const auto last = static_cast<Acts::SpacePointIndex>(spacePoints.size());
+    gridRanges.emplace_back(first, last);
   }
-  LOG(debug) << "Seed finding completed, found " << seedsPerGroup.size() << " groups with seeds";
 
-  // Convert Acts seeds to the internal SeedACTS representation
-  for (const auto& groupSeeds : seedsPerGroup) {
-    for (const auto& actsSeed : groupSeeds) {
-      SeedACTS seed;
-      seed.bottom = &actsSeed.sp()[0]->externalSpacePoint();
-      seed.middle = &actsSeed.sp()[1]->externalSpacePoint();
-      seed.top = &actsSeed.sp()[2]->externalSpacePoint();
-      seed.quality = actsSeed.seedQuality();
-      mSeeds.push_back(seed);
+  Acts::DoubletSeedFinder::Config bottomConfig;
+  bottomConfig.spacePointsSortedByRadius = true;
+  bottomConfig.candidateDirection = Acts::Direction::Backward();
+  bottomConfig.deltaRMin = mConfig.deltaRMinBottom;
+  bottomConfig.deltaRMax = mConfig.deltaRMaxBottom;
+  bottomConfig.collisionRegionMin = mConfig.collisionRegionMin;
+  bottomConfig.collisionRegionMax = mConfig.collisionRegionMax;
+  bottomConfig.cotThetaMax = mConfig.cotThetaMax;
+  bottomConfig.impactMax = mConfig.maxImpactParameter;
+  bottomConfig.minPt = mConfig.minPt;
+  auto bottomFinder = Acts::DoubletSeedFinder::create(
+    Acts::DoubletSeedFinder::DerivedConfig{bottomConfig, bFieldInZ});
+
+  Acts::DoubletSeedFinder::Config topConfig = bottomConfig;
+  topConfig.candidateDirection = Acts::Direction::Forward();
+  topConfig.deltaRMin = mConfig.deltaRMinTop;
+  topConfig.deltaRMax = mConfig.deltaRMaxTop;
+  auto topFinder = Acts::DoubletSeedFinder::create(
+    Acts::DoubletSeedFinder::DerivedConfig{topConfig, bFieldInZ});
+
+  Acts::TripletSeedFinder::Config tripletConfig;
+  tripletConfig.minPt = mConfig.minPt;
+  tripletConfig.impactMax = mConfig.maxImpactParameter;
+  tripletConfig.sigmaScattering = 5.f;
+  tripletConfig.radLengthPerSeed = 0.05f;
+  auto tripletFinder = Acts::TripletSeedFinder::create(
+    Acts::TripletSeedFinder::DerivedConfig{tripletConfig, bFieldInZ});
+
+  Acts::BroadTripletSeedFilter::Config filterConfig;
+  filterConfig.maxSeedsPerSpM = static_cast<unsigned int>(mConfig.maxSeedsPerMiddleSP);
+  filterConfig.deltaRMin = std::min(mConfig.deltaRMinBottom, mConfig.deltaRMinTop);
+  Acts::BroadTripletSeedFilter::State filterState;
+  Acts::BroadTripletSeedFilter::Cache filterCache;
+  Acts::BroadTripletSeedFilter filter{filterConfig, filterState, filterCache, Acts::getDummyLogger()};
+
+  Acts::TripletSeeder seeder;
+  Acts::TripletSeeder::Cache seedingCache;
+  Acts::SeedContainer seeds;
+  seeds.assignSpacePointContainer(spacePoints);
+
+  std::vector<Acts::SpacePointContainer::ConstRange> bottomRanges;
+  std::vector<Acts::SpacePointContainer::ConstRange> topRanges;
+  for (const auto [bottom, middle, top] : grid.binnedGroup()) {
+    bottomRanges.clear();
+    for (const auto bin : bottom) {
+      bottomRanges.push_back(spacePoints.range(gridRanges.at(bin)).asConst());
     }
+    topRanges.clear();
+    for (const auto bin : top) {
+      topRanges.push_back(spacePoints.range(gridRanges.at(bin)).asConst());
+    }
+    auto middleRange = spacePoints.range(gridRanges.at(middle)).asConst();
+    if (middleRange.empty()) {
+      continue;
+    }
+
+    seeder.createSeedsFromGroups(seedingCache, *bottomFinder, *topFinder,
+                                 *tripletFinder, filter, spacePoints,
+                                 bottomRanges, middleRange, topRanges,
+                                 {gridConfig.rMin, gridConfig.rMax}, seeds);
+  }
+
+  // Restore the existing SeedACTS representation using original SP indices.
+  mSeeds.reserve(seeds.size());
+  for (const auto seed : seeds) {
+    const auto indices = seed.spacePointIndices();
+    SeedACTS output;
+    output.bottom = &mSpacePoints[spacePoints.at(indices[0]).copiedFromIndex()];
+    output.middle = &mSpacePoints[spacePoints.at(indices[1]).copiedFromIndex()];
+    output.top = &mSpacePoints[spacePoints.at(indices[2]).copiedFromIndex()];
+    output.quality = seed.quality();
+    mSeeds.push_back(output);
   }
 
   LOGF(info, "Created %zu seeds from %zu space points", mSeeds.size(), mSpacePoints.size());
 }
 
 template <int nLayers>
-bool TrackerACTS<nLayers>::estimateTrackParams(const SeedACTS& seed, o2::its::TrackITSExt& track) const
+void TrackerACTS<nLayers>::findTracks()
 {
-  return true;
+  if (mSeeds.empty()) {
+    return;
+  }
+
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  const auto& geometryContext = actsGeometryManager.getNominalContext();
+
+  Acts::MagneticFieldContext magneticFieldContext;
+  Acts::CalibrationContext calibrationContext;
+
+  // Initial implementation with a constant magnetic field
+  auto magneticField = std::make_shared<Acts::ConstantBField>(
+    Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+
+  using Propagator = Acts::Propagator<Acts::EigenStepper<>, Acts::DirectNavigator>;
+  using Trajectory = Acts::VectorMultiTrajectory;
+  using TrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer, Trajectory>;
+
+  Propagator propagator{
+    Acts::EigenStepper<>{magneticField},
+    Acts::DirectNavigator{}};
+
+  Acts::KalmanFitter<Propagator, Trajectory> fitter{std::move(propagator)};
+
+  struct HitMeasurement {
+    const Acts::Surface* surface{nullptr};
+    Acts::Vector2 local = Acts::Vector2::Zero();
+    Acts::SquareMatrix<2> covariance = Acts::SquareMatrix<2>::Zero();
+  };
+
+  struct HitSourceLink {
+    const HitMeasurement* hit{nullptr};
+  };
+
+  struct SurfaceAccessor {
+    const Acts::Surface* getSurface(const Acts::SourceLink& sourceLink) const
+    {
+      return sourceLink.get<HitSourceLink>().hit->surface;
+    }
+  };
+
+  struct MeasurementCalibrator {
+    void calibrate(const Acts::GeometryContext&,
+                   const Acts::CalibrationContext&,
+                   const Acts::SourceLink& sourceLink,
+                   Trajectory::TrackStateProxy trackState) const
+    {
+      const auto& hit = *sourceLink.get<HitSourceLink>().hit;
+
+      trackState.setUncalibratedSourceLink(Acts::SourceLink{sourceLink});
+      trackState.allocateCalibrated(2);
+      trackState.calibrated<2>() = hit.local;
+      trackState.calibratedCovariance<2>() = hit.covariance;
+
+      trackState.setProjectorSubspaceIndices(std::array<std::uint8_t, 2>{static_cast<std::uint8_t>(Acts::eBoundLoc0),
+                                                                         static_cast<std::uint8_t>(Acts::eBoundLoc1)});
+    }
+  };
+
+  SurfaceAccessor surfaceAccessor;
+  MeasurementCalibrator calibrator;
+  Acts::GainMatrixUpdater updater;
+  Acts::GainMatrixSmoother smoother;
+
+  Acts::KalmanFitterExtensions<Trajectory> extensions;
+  extensions.surfaceAccessor.connect<&SurfaceAccessor::getSurface>(&surfaceAccessor);
+  extensions.calibrator.connect<&MeasurementCalibrator::calibrate>(&calibrator);
+  extensions.updater.connect<&Acts::GainMatrixUpdater::operator()<Trajectory>>(&updater);
+  extensions.smoother.connect<&Acts::GainMatrixSmoother::operator()<Trajectory>>(&smoother);
+
+  Acts::PropagatorPlainOptions propagatorOptions{geometryContext, magneticFieldContext};
+
+  Acts::KalmanFitterOptions<Trajectory> fitterOptions{geometryContext,
+                                                      magneticFieldContext,
+                                                      calibrationContext,
+                                                      extensions,
+                                                      propagatorOptions,
+                                                      nullptr,
+                                                      false,
+                                                      false};
+
+  // Mutable TrackContainer uses reference-holder backends, not rvalue shared_ptrs.
+  Acts::VectorTrackContainer trackBackend;
+  Trajectory trajectoryBackend;
+  TrackContainer tracks{trackBackend, trajectoryBackend};
+
+  struct FittedCandidate {
+    Acts::BoundTrackParameters inner;
+    Acts::BoundTrackParameters outer;
+    SeedACTS seed;
+    float chi2;
+  };
+  std::vector<FittedCandidate> candidates;
+  int nFitted = 0;
+  int nFailed = 0;
+  int nInvalid = 0;
+
+  for (const auto& seed : mSeeds) {
+    const std::array<const SpacePoint*, 3> spacePoints{
+      seed.bottom, seed.middle, seed.top};
+
+    if (!spacePoints[0] || !spacePoints[1] || !spacePoints[2]) {
+      ++nInvalid;
+      continue;
+    }
+
+    if (!spacePoints[0]->surface || !spacePoints[1]->surface ||
+        !spacePoints[2]->surface) {
+      ++nInvalid;
+      continue;
+    }
+
+    // The direct fitter expects at most one measurement per surface.
+    if (spacePoints[0]->surface == spacePoints[1]->surface ||
+        spacePoints[0]->surface == spacePoints[2]->surface ||
+        spacePoints[1]->surface == spacePoints[2]->surface) {
+      ++nInvalid;
+      continue;
+    }
+
+    Acts::Vector3 pos0{spacePoints[0]->x, spacePoints[0]->y, spacePoints[0]->z};
+    Acts::Vector3 pos1{spacePoints[1]->x, spacePoints[1]->y, spacePoints[1]->z};
+    Acts::Vector3 pos2{spacePoints[2]->x, spacePoints[2]->y, spacePoints[2]->z};
+
+    Acts::FreeVector freeParams;
+    try {
+      freeParams = Acts::estimateTrackParamsFromSeed(
+        pos0, 0., pos1, pos2,
+        Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+    } catch (const std::exception& e) {
+      LOG(debug) << "ACTS seed parameter estimation failed: " << e.what();
+      ++nInvalid;
+      continue;
+    }
+
+    const double qOverP = freeParams[Acts::eFreeQOverP];
+    if (!std::isfinite(qOverP) || std::abs(qOverP) < 1.e-12) {
+      ++nInvalid;
+      continue;
+    }
+
+    Acts::Vector3 direction{
+      freeParams[Acts::eFreeDir0],
+      freeParams[Acts::eFreeDir1],
+      freeParams[Acts::eFreeDir2]};
+
+    if (!direction.allFinite() || direction.norm() < 1.e-12) {
+      ++nInvalid;
+      continue;
+    }
+    direction.normalize();
+
+    std::array<HitMeasurement, 3> measurements;
+    std::vector<Acts::SourceLink> sourceLinks;
+    std::vector<const Acts::Surface*> surfaces;
+    sourceLinks.reserve(3);
+    surfaces.reserve(3);
+
+    bool validMeasurements = true;
+    for (int i = 0; i < 3; ++i) {
+      const auto* sp = spacePoints[i];
+      const auto* surface = sp->surface;
+      Acts::Vector3 position{sp->x, sp->y, sp->z};
+
+      auto localResult = surface->globalToLocal(
+        geometryContext, position, direction,
+        1. * Acts::UnitConstants::mm);
+
+      if (!localResult.ok()) {
+        validMeasurements = false;
+        break;
+      }
+
+      auto& measurement = measurements[i];
+      measurement.surface = surface;
+      measurement.local = localResult.value();
+
+      const double sigma = 100. * Acts::UnitConstants::um;
+      measurement.covariance.setZero();
+      measurement.covariance(0, 0) = sigma * sigma;
+      measurement.covariance(1, 1) = sigma * sigma;
+
+      sourceLinks.emplace_back(HitSourceLink{&measurement});
+      surfaces.push_back(surface);
+    }
+
+    if (!validMeasurements) {
+      ++nInvalid;
+      continue;
+    }
+
+    Acts::Vector4 position4;
+    position4 << pos0.x(), pos0.y(), pos0.z(), 0.;
+
+    Acts::BoundMatrix covariance = Acts::BoundMatrix::Zero();
+    covariance(Acts::eBoundLoc0, Acts::eBoundLoc0) =
+      std::pow(1. * Acts::UnitConstants::mm, 2);
+    covariance(Acts::eBoundLoc1, Acts::eBoundLoc1) =
+      std::pow(1. * Acts::UnitConstants::mm, 2);
+    covariance(Acts::eBoundPhi, Acts::eBoundPhi) = 0.1 * 0.1;
+    covariance(Acts::eBoundTheta, Acts::eBoundTheta) = 0.1 * 0.1;
+    covariance(Acts::eBoundQOverP, Acts::eBoundQOverP) =
+      std::pow(0.5 * qOverP, 2);
+    covariance(Acts::eBoundTime, Acts::eBoundTime) =
+      std::pow(1. * Acts::UnitConstants::ns, 2);
+
+    auto initialParameters = Acts::BoundTrackParameters::createCurvilinear(
+      position4, direction, qOverP, covariance,
+      Acts::ParticleHypothesis::pion());
+
+    auto result = fitter.fit(
+      sourceLinks.begin(), sourceLinks.end(), initialParameters,
+      fitterOptions, surfaces, tracks);
+
+    if (!result.ok()) {
+      LOG(debug) << "ACTS Kalman fit failed: " << result.error().message();
+      ++nFailed;
+      continue;
+    }
+
+    const auto track = result.value();
+    if (track.nMeasurements() < 3) {
+      ++nFailed;
+      continue;
+    }
+
+    const auto innerState = track.innermostTrackState();
+    if (!innerState.has_value()) {
+      ++nFailed;
+      continue;
+    }
+    const auto outerState = track.outermostTrackState();
+    if (!innerState->hasSmoothed() || !outerState.hasSmoothed() ||
+        !std::isfinite(track.chi2()) || track.chi2() < 0.f) {
+      ++nFailed;
+      continue;
+    }
+
+    // Explicitly use the smoothed fit, rather than the original seed estimate.
+    typename Trajectory::ConstTrackStateProxy innerProxy{*innerState};
+    typename Trajectory::ConstTrackStateProxy outerProxy{outerState};
+    candidates.push_back({track.createParametersFromState(innerProxy),
+                          track.createParametersFromState(outerProxy),
+                          seed, static_cast<float>(track.chi2())});
+    ++nFitted;
+    LOG(debug) << "ACTS fitted seed: "
+               << "nMeasurements=" << track.nMeasurements()
+               << " chi2=" << track.chi2()
+               << " nDoF=" << track.nDoF();
+  }
+
+  // Accept lower-chi2 candidates first: multiple seeds can share clusters.
+  std::sort(candidates.begin(), candidates.end(), [](const auto& a, const auto& b) {
+    return a.chi2 < b.chi2;
+  });
+  int nAccepted = 0;
+  for (const auto& candidate : candidates) {
+    nAccepted += acceptTrack(candidate.inner, candidate.outer, candidate.seed, candidate.chi2);
+  }
+  LOG(info) << "ACTS fitting: " << nFitted << " fitted, "
+            << nAccepted << " accepted, " << nFailed << " failed, "
+            << nInvalid << " invalid from " << mSeeds.size() << " seeds";
 }
 
 template <int nLayers>
-void TrackerACTS<nLayers>::findTracks()
+bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
+                                       const Acts::BoundTrackParameters& outer,
+                                       const SeedACTS& seed, float chi2)
 {
+  if (!mTimeFrame || !std::isfinite(chi2) || chi2 < 0.f) {
+    return false;
+  }
+
+  const std::array<const SpacePoint*, 3> hits{seed.bottom, seed.middle, seed.top};
+  std::array<int, o2::its::TrackITSExt::MaxClusters> clusterIndices;
+  clusterIndices.fill(-1);
+  std::array<int, nLayers> internalIndices;
+  internalIndices.fill(-1);
+  uint32_t pattern = 0;
+  std::array<uint64_t, 3> keys{};
+
+  for (int i = 0; i < 3; ++i) {
+    const auto* hit = hits[i];
+    if (!hit || hit->layer < 0 || hit->layer >= nLayers || hit->clusterId < 0 ||
+        hit->rof < 0 || hit->rof >= mTimeFrame->getNrof(hit->layer)) {
+      return false;
+    }
+    const uint32_t mask = 1u << hit->layer;
+    if (pattern & mask) { // the TrackITSExt index array has one slot per layer
+      return false;
+    }
+    pattern |= mask;
+    keys[i] = (uint64_t(static_cast<uint32_t>(hit->layer)) << 32) |
+              static_cast<uint32_t>(hit->clusterId);
+    if (mAcceptedClusters.contains(keys[i])) {
+      return false;
+    }
+    // Keep the internal index for later MC lookup; publish the external one.
+    internalIndices[hit->layer] = hit->clusterId;
+    clusterIndices[hit->layer] = mTimeFrame->getClusterExternalIndex(hit->layer, hit->clusterId);
+    if (clusterIndices[hit->layer] < 0) {
+      return false;
+    }
+  }
+
+  o2::track::TrackParCov innerO2, outerO2;
+  const auto& gctx = o2::acts::TrackingGeometryManager::instance().getNominalContext();
+  if (!convertTrackParameters(inner, gctx, innerO2) || !convertTrackParameters(outer, gctx, outerO2)) {
+    return false;
+  }
+
+  // Intersect the ROF timing intervals exactly as in ITS track acceptance.
+  const auto& timing = mTimeFrame->getROFOverlapTableView();
+  auto nominal = timing.getLayer(hits[0]->layer).getROFTimeBounds(hits[0]->rof);
+  auto expanded = timing.getLayer(hits[0]->layer).getROFTimeBounds(hits[0]->rof, true);
+  bool nominalCompatible = true;
+  for (int i = 1; i < 3; ++i) {
+    const auto other = timing.getLayer(hits[i]->layer).getROFTimeBounds(hits[i]->rof);
+    const auto otherExpanded = timing.getLayer(hits[i]->layer).getROFTimeBounds(hits[i]->rof, true);
+    if (nominalCompatible) {
+      if (nominal.isCompatible(other)) {
+        nominal += other;
+      } else {
+        nominalCompatible = false;
+      }
+    }
+    if (!expanded.isCompatible(otherExpanded)) {
+      return false;
+    }
+    expanded += otherExpanded;
+  }
+
+  o2::its::TrackITSExt o2Track{std::move(innerO2), static_cast<short>(hits.size()), chi2, std::move(outerO2), clusterIndices};
+  o2Track.setPattern(pattern);
+  o2Track.getTimeStamp() = (nominalCompatible ? nominal : expanded).makeSymmetrical();
+  const float maxHalfROF = timing.getClockLayer().mROFLength * 0.5f;
+  if (o2Track.getTimeStamp().getTimeStampError() > maxHalfROF) {
+    o2Track.getTimeStamp().setTimeStampError(maxHalfROF);
+  }
+
+  // Labels are computed once, after all ROFs, from the internal indices.
+  mTimeFrame->getTracks().emplace_back(std::move(o2Track));
+  mAcceptedTrackClusterIndices.push_back(internalIndices);
+  for (const auto key : keys) {
+    mAcceptedClusters.insert(key);
+  }
+  return true;
 }
 
 template <int nLayers>
 void TrackerACTS<nLayers>::computeTracksMClabels()
 {
+  if (!mTimeFrame || !mTimeFrame->hasMCinformation()) {
+    return;
+  }
+
+  auto& tracks = mTimeFrame->getTracks();
+  auto& labels = mTimeFrame->getTracksLabel();
+
+  if (tracks.size() != mAcceptedTrackClusterIndices.size()) {
+    LOGP(fatal, "ACTS MC labeling: {} tracks but {} internal cluster reference sets",
+         tracks.size(), mAcceptedTrackClusterIndices.size());
+    return;
+  }
+
+  // There must be exactly one label for each accepted track, in track order.
+  labels.clear();
+  labels.reserve(tracks.size());
+
+  struct LabelCount {
+    o2::MCCompLabel label;
+    int count;
+    int lastHit;
+  };
+
+  for (size_t iTrack = 0; iTrack < tracks.size(); ++iTrack) {
+    auto& track = tracks[iTrack];
+    const auto& indices = mAcceptedTrackClusterIndices[iTrack];
+    std::vector<LabelCount> counts;
+    int nHits = 0;
+
+    for (int layer = 0; layer < nLayers; ++layer) {
+      if (indices[layer] < 0) {
+        continue;
+      }
+      ++nHits;
+      for (const auto& candidate : mTimeFrame->getClusterLabels(layer, indices[layer])) {
+        if (!candidate.isValid()) {
+          continue;
+        }
+
+        auto it = std::find_if(counts.begin(), counts.end(), [&candidate](const auto& entry) {
+          return entry.label == candidate;
+        });
+        if (it == counts.end()) {
+          counts.push_back({candidate, 1, nHits});
+        } else if (it->lastHit != nHits) {
+          // Count a given truth label at most once per attached cluster.
+          ++it->count;
+          it->lastHit = nHits;
+        }
+      }
+    }
+    o2::MCCompLabel winner;
+    uint32_t pattern = track.getPattern() & 0x0000ffffu;
+    if (counts.empty()) {
+      winner.setFakeFlag();
+    } else {
+      const auto best = std::max_element(counts.begin(), counts.end(), [](const auto& a, const auto& b) {
+        return a.count < b.count;
+      });
+      winner = best->label;
+      if (best->count != nHits) {
+        winner.setFakeFlag();
+      }
+      // Preserve the standard TrackITS pattern convention: bits [16, 31]
+      // indicate clusters compatible with the representative MC label.
+      for (int layer = 0; layer < nLayers; ++layer) {
+        if (indices[layer] < 0) {
+          continue;
+        }
+        for (const auto& candidate : mTimeFrame->getClusterLabels(layer, indices[layer])) {
+          if (candidate.isValid() && candidate == best->label) {
+            pattern |= (1u << (16 + layer));
+            break;
+          }
+        }
+      }
+    }
+    track.setPattern(pattern);
+    labels.emplace_back(winner);
+  }
+  LOGP(info, "ACTS MC labeling: {} tracks, {} labels", tracks.size(), labels.size());
 }
 
 template <int nLayers>
@@ -260,35 +857,42 @@ void TrackerACTS<nLayers>::clustersToTracks()
   }
 
   double totalTime = 0.;
+  mAcceptedClusters.clear();
+  mAcceptedTrackClusterIndices.clear();
   LOG(info) << "==== TRK ACTS Tracking ====";
-  LOG(info) << "Processing " << mTimeFrame->getNrof() << " ROFs with B = " << mBz << " T";
 
-  // Process each ROF
-  for (int iROF = 0; iROF < mTimeFrame->getNrof(); ++iROF) {
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  const auto& trackingGeometry = actsGeometryManager.get();
+  (void)trackingGeometry;
+
+  auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+  trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+  const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
+    return std::string(trkGeometry->getMatrixPath(sensorID).Data());
+  });
+
+  LOG(info) << "ACTS tracking geometry initialized with " << surfaceIndex.size()
+            << " mapped sensors on " << surfaceIndex.getNSurfaces() << " surfaces";
+
+  for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
     LOG(info) << "Processing ROF " << iROF;
-    // Build space points
+
     mCurState = SpacePointBuilding;
-    totalTime += evaluateTask([this, iROF]() { buildSpacePoints(iROF); },
-                              StateNames[mCurState]);
+    totalTime += evaluateTask([this, iROF]() { buildSpacePoints(iROF); }, StateNames[mCurState]);
 
-    // Run seeding
     mCurState = Seeding;
-    totalTime += evaluateTask([this]() { createSeeds(); },
-                              StateNames[mCurState]);
+    totalTime += evaluateTask([this]() { createSeeds(); }, StateNames[mCurState]);
 
-    // Find tracks
     mCurState = TrackFinding;
-    totalTime += evaluateTask([this]() { findTracks(); },
-                              StateNames[mCurState]);
+    totalTime += evaluateTask([this]() { findTracks(); }, StateNames[mCurState]);
   }
 
-  // MC labeling
+  // Run MC labeling once, after every accepted track has been published.
   if (mTimeFrame->hasMCinformation()) {
     computeTracksMClabels();
   }
 
   LOG(info) << "=== TimeFrame " << mTimeFrameCounter << " completed in: " << totalTime << " ms ===";
-
   ++mTimeFrameCounter;
   mTotalTime += totalTime;
 }
@@ -297,8 +901,7 @@ template <int nLayers>
 void TrackerACTS<nLayers>::printSummary() const
 {
   float avgTF = mTimeFrameCounter > 0 ? static_cast<float>(mTotalTime) / mTimeFrameCounter : 0.f;
-  LOGP(info, "TrackerACTS summary: Processed {} TFs in TOT={:.2f} ms, AVG/TF={:.2f} ms",
-       mTimeFrameCounter, mTotalTime, avgTF);
+  LOGP(info, "TrackerACTS summary: Processed {} TFs in TOT={:.2f} ms, AVG/TF={:.2f} ms", mTimeFrameCounter, mTotalTime, avgTF);
 }
 
 // Explicit template instantiations
