@@ -243,7 +243,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
           // since we are sending on the bare channel, also the EOS message needs to be created.
           DataHeader dhEOS;
           dhEOS.dataOrigin = "DPL";
-          dhEOS.dataDescription = "EOS";
+          dhEOS.dataDescription = o2::header::gDataDescriptionEos;
           dhEOS.subSpecification = 0;
           dhEOS.payloadSize = 0;
           dhEOS.payloadSerializationMethod = o2::header::gSerializationMethodNone;
