@@ -56,17 +56,18 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   // ── Chip response (for hit-segment propagation to charge-collection plane) ──
   // Fetches the same AlpideSimResponse from CCDB as the digitizer (IT3/Calib/APTSResponse)
   // and computes Y-intersection planes with the same formulas from Digitizer::init()
-  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbMgr.setURL(ccdbUrl);
-  if (ccdbTimestamp > 0) {
-    ccdbMgr.setTimestamp(ccdbTimestamp);
-  }
-  auto* alpResp = ccdbMgr.get<o2::itsmft::AlpideSimResponse>("IT3/Calib/APTSResponse");
-  if (!alpResp) {
-    LOGP(fatal, "Cannot retrieve AlpideSimResponse from CCDB at {}", ccdbUrl);
-    return;
-  }
-  const float depthMax = alpResp->getDepthMax();
+  // auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+  // ccdbMgr.setURL(ccdbUrl);
+  // if (ccdbTimestamp > 0) {
+  //   ccdbMgr.setTimestamp(ccdbTimestamp);
+  // }
+  // auto* alpResp = ccdbMgr.get<o2::itsmft::AlpideSimResponse>("IT3/Calib/APTSResponse");
+  // if (!alpResp) {
+  //   LOGP(fatal, "Cannot retrieve AlpideSimResponse from CCDB at {}", ccdbUrl);
+  //   return;
+  // }
+  // const float depthMax = alpResp->getDepthMax();
+  const float depthMax = 500;
 
   // ── Y-plane shifts: why VD and ML/OT need different values ────────────────
   //
@@ -154,6 +155,7 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
   bool hasMC = (clusTree->GetBranch("TRKClusterMCTruth") != nullptr);
+  // hasMC = false;
   if (hasMC) {
     clusTree->SetBranchAddress("TRKClusterMCTruth", &clusLabArr);
     clusTree->SetBranchAddress("TRKClustersMC2ROF", &mc2rofVecP);
