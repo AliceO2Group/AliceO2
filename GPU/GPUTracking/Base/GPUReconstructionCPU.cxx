@@ -39,7 +39,6 @@
 #include <format>
 #include <string>
 
-
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -216,14 +215,17 @@ int32_t GPUReconstructionCPU::ExitDevice()
   return 0;
 }
 
-namespace {
-void writeHeaderMarkdown(std::ostream& stream) {
-  stream <<  "|   |  count | name                                      |  gpu (us) |  cpu (us) | cpu/tot |  tot (us) |      GB/s |         bytes |    bytes/call |\n";
-  stream <<  "|---|--------|-------------------------------------------|-----------|-----------|---------|-----------|-----------|---------------|---------------|\n";
+namespace
+{
+void writeHeaderMarkdown(std::ostream& stream)
+{
+  stream << "|   |  count | name                                      |  gpu (us) |  cpu (us) | cpu/tot |  tot (us) |      GB/s |         bytes |    bytes/call |\n";
+  stream << "|---|--------|-------------------------------------------|-----------|-----------|---------|-----------|-----------|---------------|---------------|\n";
 }
 
-void writeHeaderCSV(std::ostream& stream) {
-  stream <<  "type,count,name,gpu (us),cpu (us),cpu/total,total (us),GB/s,bytes,bytes/call\n";
+void writeHeaderCSV(std::ostream& stream)
+{
+  stream << "type,count,name,gpu (us),cpu (us),cpu/total,total (us),GB/s,bytes,bytes/call\n";
 }
 
 struct Row {
@@ -236,44 +238,65 @@ struct Row {
   uint32_t memSize = 0;
   uint32_t statNEvents;
 
-  void writeMarkdown(std::ostream& stream) {
+  void writeMarkdown(std::ostream& stream)
+  {
     double scale = 1000000.0 / statNEvents;
     stream << "| " << type << " | ";
-    if (count != 0) stream << std::format("{:6} |", count);
-    else stream << "       |";
+    if (count != 0)
+      stream << std::format("{:6} |", count);
+    else
+      stream << "       |";
     stream << std::format(" {:42}|", name);
-    if (gpu_time != -1.0) stream << std::format("{:10.0f} |", gpu_time * scale);
-    else stream << "           |";
-    if (cpu_time != -1.0) stream << std::format("{:10.0f} |", cpu_time * scale);
-    else stream << "           |";
-    if (cpu_time != -1.0 && total_time != -1.0) stream << std::format("{:8.2f} |", cpu_time / total_time);
-    else stream << "         |";
-    if (total_time != -1.0) stream << std::format("{:10.0f} |", total_time * scale);
-    else stream << "           |";
-    if (memSize != 0 && count != 0) stream << std::format("{:10.3f} |{:14} |{:14} |", memSize / gpu_time * 1e-9, memSize / statNEvents, memSize / statNEvents / count);
-    else stream << "           |               |               |";
+    if (gpu_time != -1.0)
+      stream << std::format("{:10.0f} |", gpu_time * scale);
+    else
+      stream << "           |";
+    if (cpu_time != -1.0)
+      stream << std::format("{:10.0f} |", cpu_time * scale);
+    else
+      stream << "           |";
+    if (cpu_time != -1.0 && total_time != -1.0)
+      stream << std::format("{:8.2f} |", cpu_time / total_time);
+    else
+      stream << "         |";
+    if (total_time != -1.0)
+      stream << std::format("{:10.0f} |", total_time * scale);
+    else
+      stream << "           |";
+    if (memSize != 0 && count != 0)
+      stream << std::format("{:10.3f} |{:14} |{:14} |", memSize / gpu_time * 1e-9, memSize / statNEvents, memSize / statNEvents / count);
+    else
+      stream << "           |               |               |";
     stream << std::endl;
   }
 
-  void writeCSV(std::ostream& stream) {
+  void writeCSV(std::ostream& stream)
+  {
     double scale = 1000000.0 / statNEvents;
     stream << type << ",";
-    if (count != 0) stream << count;
+    if (count != 0)
+      stream << count;
     stream << "," << name << ",";
-    if (gpu_time != -1.0) stream << std::format("{:.0f}", gpu_time * scale);
+    if (gpu_time != -1.0)
+      stream << std::format("{:.0f}", gpu_time * scale);
     stream << ",";
-    if (cpu_time != -1.0) stream << std::format("{:.0f}", cpu_time * scale);
+    if (cpu_time != -1.0)
+      stream << std::format("{:.0f}", cpu_time * scale);
     stream << ",";
-    if (cpu_time != -1.0 && total_time != -1.0) stream << std::format("{:.2f}", cpu_time / total_time);
+    if (cpu_time != -1.0 && total_time != -1.0)
+      stream << std::format("{:.2f}", cpu_time / total_time);
     stream << ",";
-    if (total_time != -1.0) stream << std::format("{:.0f}", total_time * scale);
+    if (total_time != -1.0)
+      stream << std::format("{:.0f}", total_time * scale);
     stream << ",";
-    if (memSize != 0 && count != 0) stream << std::format("{:.3f},{},{}", memSize / gpu_time * 1e-9, memSize / statNEvents, memSize / statNEvents / count);
-    else stream << ",,";
+    if (memSize != 0 && count != 0)
+      stream << std::format("{:.3f},{},{}", memSize / gpu_time * 1e-9, memSize / statNEvents, memSize / statNEvents / count);
+    else
+      stream << ",,";
     stream << std::endl;
   }
 };
-}
+} // namespace
 
 int32_t GPUReconstructionCPU::RunChains()
 {
