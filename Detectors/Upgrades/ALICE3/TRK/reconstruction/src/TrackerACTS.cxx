@@ -280,7 +280,7 @@ void TrackerACTS<nLayers>::computeTracksMClabels()
       std::vector<std::pair<MCCompLabel, size_t>> occurrences;
       occurrences.clear();
 
-      for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+      for (int iCluster = 0; iCluster < o2::its::TrackITSExt::MaxClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);
         if (index == o2::its::constants::UnusedIndex) {
           continue;
@@ -310,7 +310,7 @@ void TrackerACTS<nLayers>::computeTracksMClabels()
       auto maxOccurrencesValue = occurrences[0].first;
       uint32_t pattern = track.getPattern();
       // set fake clusters pattern
-      for (int ic{TrackITSExt::MaxClusters}; ic--;) {
+      for (int ic{o2::its::TrackITSExt::MaxClusters}; ic--;) {
         auto clid = track.getClusterIndex(ic);
         if (clid != o2::its::constants::UnusedIndex) {
           auto labelsSpan = mTimeFrame->getClusterLabels(ic, clid);
@@ -336,7 +336,7 @@ void TrackerACTS<nLayers>::rectifyClusterIndices()
 {
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {
-      for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+      for (int iCluster = 0; iCluster < o2::its::TrackITSExt::MaxClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);
         if (index != o2::its::constants::UnusedIndex) {
           track.setExternalClusterIndex(iCluster, mTimeFrame->getClusterExternalIndex(iCluster, index));
