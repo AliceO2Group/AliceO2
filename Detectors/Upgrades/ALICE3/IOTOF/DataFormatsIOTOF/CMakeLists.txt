@@ -9,7 +9,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(DataFormatsIOTOF)
-add_subdirectory(macros)
+o2_add_library(DataFormatsIOTOF
+               SOURCES src/Digit.cxx
+            #    SOURCES src/MCLabel.cxx
+            #    SOURCES src/Cluster.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT)
+
+o2_target_root_dictionary(DataFormatsIOTOF
+                          HEADERS include/DataFormatsIOTOF/Digit.h
+                        #   HEADERS include/DataFormatsIOTOF/MCLabel.h
+                        #   HEADERS include/DataFormatsIOTOF/Cluster.h
+                          )
