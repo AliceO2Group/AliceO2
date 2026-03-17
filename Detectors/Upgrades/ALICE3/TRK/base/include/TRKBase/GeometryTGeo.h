@@ -106,17 +106,23 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   float getSensorRefAlphaMLOT(int chipId) const
   {
-    assert(getSubDetID(chipId) != 0 && "Called MLOT getter with VD chipId");
+    if (getSubDetID(chipId) == 0) {
+      LOG(error) << "getSensorRefAlphaMLOT(): VD layers are not supported yet! chipID = " << chipId
+                 << "please provide chipId for ML/OT! ";
+      return std::numeric_limits<float>::quiet_NaN();
+    }
     const int local = chipId - getNumberOfActivePartsVD();
-    assert(local >= 0 && local < (int)mCacheRefAlphaMLOT.size());
     return mCacheRefAlphaMLOT[local];
   }
 
   float getSensorXMLOT(int chipId) const
   {
-    assert(getSubDetID(chipId) != 0 && "Called MLOT getter with VD chipId");
+    if (getSubDetID(chipId) == 0) {
+      LOG(error) << "getSensorXMLOT(): VD layers are not supported yet! chipID = " << chipId
+                 << "please provide chipId for ML/OT! ";
+      return std::numeric_limits<float>::quiet_NaN();
+    }
     const int local = chipId - getNumberOfActivePartsVD();
-    assert(local >= 0 && local < (int)mCacheRefXMLOT.size());
     return mCacheRefXMLOT[local];
   }
 
