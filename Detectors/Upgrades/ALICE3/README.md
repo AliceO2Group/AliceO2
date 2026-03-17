@@ -69,7 +69,22 @@ Configurables for various sub-detectors are presented in the following Table:
 | Available options | Link to options                                                  |
 | ----------------- | ---------------------------------------------------------------- |
 | TRK               | [Link to TRK options](./TRK/README.md#specific-detector-setup)   |
+| FT3               | [Link to FT3 options](./FT3/README.md#specific-detector-setup)   |
 | TOF               | [Link to TOF options](./IOTOF/README.md#specific-detector-setup) |
+
+Example O2 command to create a geometry with **segmented layers for TRK (expect for VD), FT3 and TOF:**
+
+```bash
+o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
+--configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kSegmented;FT3Base.layoutFT3=kSegmented;IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true"
+```
+
+Example O2 command to create a geometry with **simple (non-segmented) layers for TRK, FT3 and TOF**:
+
+```bash
+o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
+--configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kCylindrical;FT3Base.layoutFT3=kTrapezoidal;IOTOFBase.segmentedInnerTOF=false;IOTOFBase.segmentedOuterTOF=false"
+```
 
 ### Output of the simulation
 The simulation will produce a `o2sim_Hits<DetID>.root` file with a tree with the hits related to that detector.
