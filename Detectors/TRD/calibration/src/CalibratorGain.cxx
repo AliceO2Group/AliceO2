@@ -89,7 +89,7 @@ void CalibratorGain::retrievePrev(o2::framework::ProcessingContext& pc)
   std::string msg = "Default Object";
   // We check if the object we got is the default one by comparing it to the defaults.
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-    if (dataCalGain->getMPVdEdx(iDet) != constants::MPVDEDXDEFAULT) {
+    if (dataCalGain->getMPVdEdx(iDet, false) != constants::MPVDEDXDEFAULT) {
       msg = "Previous Object";
       break;
     }
@@ -98,7 +98,7 @@ void CalibratorGain::retrievePrev(o2::framework::ProcessingContext& pc)
 
   // Here we set each entry regardless if it is the default or not.
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-    mFitResults[iDet] = dataCalGain->getMPVdEdx(iDet);
+    mFitResults[iDet] = dataCalGain->getMPVdEdx(iDet, false);
   }
 }
 
