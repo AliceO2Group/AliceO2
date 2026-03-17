@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <algorithm>
 #include <memory>
 
 #include <oneapi/tbb/task_arena.h>
@@ -129,9 +130,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   }
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
-    LOGP(info, "ITSTracker:{} pulled {} clusters, {} RO frames", iLayer, compClusters[iLayer].size(), rofsinput[iLayer].size());
+    LOGP(info, "ITSTracker{} pulled {} clusters, {} RO frames", ((mDoStaggering) ? std::format(":{}", iLayer) : ""), compClusters[iLayer].size(), rofsinput[iLayer].size());
     if (compClusters[iLayer].empty()) {
-      LOGP(warn, " -> received no processable data on layer {}", iLayer);
+      LOGP(warn, " -> received no processable data{}", (mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
     }
     if (mIsMC) {
       LOG(info) << " -> " << labels[iLayer]->getIndexedSize() << " MC label objects";
@@ -186,9 +187,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
 
-  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
     gsl::span<const unsigned char>::iterator pattIt = patterns[iLayer].begin();
-    loadROF(rofsinput[iLayer], compClusters[iLayer], pattIt, iLayer, labels[iLayer]);
+    loadROF(rofsinput[iLayer], compClusters[iLayer], pattIt, ((mDoStaggering) ? iLayer : -1), labels[iLayer]);
   }
 
   auto logger = [&](const std::string& s) { LOG(info) << s; };
@@ -299,30 +300,46 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     auto& tracks = mTimeFrame->getTracks();
     allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
     std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
-    // Some conversions that needs to be moved in the tracker internals
-    // also we create the track to clock ROF association here
-    // the clock ROF is just the fastest ROF (the number of ROFs does not necessarily reflect the actual ROFs due to
-    // possible delay of other layers)
-    // tracks are guaranteed to be sorted here by their lower edge
-    const auto& clockROF = mTimeFrame->getROFOverlapTableView().getClockLayer();
-    // TODO:
 
+    // create the track to clock ROF association here
+    // the clock ROF is just the fastest ROF
+    // the number of ROFs does not necessarily reflect the actual ROFs
+    // due to possible delay of other layers, however it is guaranteed to be >=0
+    // tracks are guaranteed to be sorted here by their lower edge
+    // NOTE: we are not setting the BCData of these ROFs (should we?)
+    const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
+    int highestROF{0};
+    for (const auto& trc : tracks) {
+      highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp().lower()));
+    }
+    allTrackROFs.resize(highestROF);
+
+    // Some conversions that needs to be moved in the tracker internals
+    std::vector<int> rofEntries(highestROF + 1, 0);
     for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
       auto& trc{tracks[iTrk]};
-      trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+      trc.setFirstClusterEntry((int)allClusIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters(), nclf = 0;
       for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
         auto clid = trc.getClusterIndex(ic);
         if (clid >= 0) {
-          trc.setClusterSize(ic, mTimeFrame->getClusterSize(ic, clid));
+          trc.setClusterSize(ic, mTimeFrame->getClusterSize((mDoStaggering) ? ic : 0, clid));
           allClusIdx.push_back(clid);
           nclf++;
         }
       }
       assert(ncl == nclf);
       allTracks.emplace_back(trc);
+      auto rof = clockLayer.getROF(trc.getTimeStamp().lower());
+      ++rofEntries[rof];
+    }
+    std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+    for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
+      allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
+      allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
     }
   }
+
   LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices", allTracks.size(), allTrackROFs.size(), vertices.size());
   if (mIsMC) {
     LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());

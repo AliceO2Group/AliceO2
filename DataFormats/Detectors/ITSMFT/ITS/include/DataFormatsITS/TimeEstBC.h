@@ -52,18 +52,6 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
     return res;
   }
 
- private:
-  // add the other timestmap to this one
-  // this assumes already that both overlap
-  GPUhdi() void add(const TimeEstBC& o) noexcept
-  {
-    const TimeStampType lo = o2::gpu::CAMath::Max(lower(), o.lower());
-    const TimeStampType hi = o2::gpu::CAMath::Min(upper(), o.upper());
-    const TimeStampType half = (hi - lo) / 2u;
-    this->setTimeStamp(lo + half);
-    this->setTimeStampError(static_cast<TimeStampErrorType>(half));
-  }
-
   GPUhdi() TimeStampType upper() const noexcept
   {
     TimeStampType t = this->getTimeStamp();
@@ -77,6 +65,18 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
     TimeStampType t = this->getTimeStamp();
     TimeStampType e = this->getTimeStampError();
     return (t > e) ? (t - e) : 0u;
+  }
+
+ private:
+  // add the other timestmap to this one
+  // this assumes already that both overlap
+  GPUhdi() void add(const TimeEstBC& o) noexcept
+  {
+    const TimeStampType lo = o2::gpu::CAMath::Max(lower(), o.lower());
+    const TimeStampType hi = o2::gpu::CAMath::Min(upper(), o.upper());
+    const TimeStampType half = (hi - lo) / 2u;
+    this->setTimeStamp(lo + half);
+    this->setTimeStampError(static_cast<TimeStampErrorType>(half));
   }
 
   ClassDefNV(TimeEstBC, 1);

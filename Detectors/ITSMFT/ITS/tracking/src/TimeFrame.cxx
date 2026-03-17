@@ -73,7 +73,7 @@ void TimeFrame<NLayers>::loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> 
 
   // check for missing/empty/unset rofs
   // the code requires consistent monotonically increasing input without gaps
-  const auto& timing = mROFOverlapTableView.getLayer(layer);
+  const auto& timing = mROFOverlapTableView.getLayer(layer >= 0 ? layer : 0);
   if (timing.mNROFsTF != rofs.size()) {
     LOGP(fatal, "Received inconsistent number of rofs on layer:{} expected:{} received:{}", layer, timing.mNROFsTF, rofs.size());
   }
@@ -103,23 +103,30 @@ void TimeFrame<NLayers>::loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> 
         locXYZ = dict->getClusterCoordinates(c, patt, false);
         clusterSize = patt.getNPixels();
       }
-      mClusterSize[layer][clusterId] = std::clamp(clusterSize, 0u, 255u);
+      mClusterSize[layer >= 0 ? layer : 0][clusterId] = std::clamp(clusterSize, 0u, 255u);
       auto sensorID = c.getSensorID();
       // Inverse transformation to the local --> tracking
       auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
       // Transformation to the local --> global
       auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
-      addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
+      addTrackingFrameInfoToLayer(lay, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
                                   std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
                                   std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
       /// Rotate to the global frame
-      addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), mUnsortedClusters[layer].size());
-      addClusterExternalIndexToLayer(layer, clusterId);
+      addClusterToLayer(lay, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), mUnsortedClusters[lay].size());
+      addClusterExternalIndexToLayer(lay, clusterId);
     }
-    mROFramesClusters[layer][iRof + 1] = mUnsortedClusters[layer].size(); // effectively calculating an exclusive sum
+    // effectively calculating an exclusive sum
+    if (layer >= 0) {
+      mROFramesClusters[layer][iRof + 1] = mUnsortedClusters[layer].size();
+    } else {
+      for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
+        mROFramesClusters[iL][iRof + 1] = mUnsortedClusters[iL].size();
+      }
+    }
   }
 
-  if (layer == 1) {
+  if (layer == 1 || layer == -1) {
     for (auto i = 0; i < mNTrackletsPerCluster.size(); ++i) {
       mNTrackletsPerCluster[i].resize(mUnsortedClusters[1].size());
       mNTrackletsPerClusterSum[i].resize(mUnsortedClusters[1].size() + 1);
@@ -127,28 +134,51 @@ void TimeFrame<NLayers>::loadROFrameData(gsl::span<const o2::itsmft::ROFRecord> 
   }
 
   if (mcLabels != nullptr) {
-    mClusterLabels[layer] = mcLabels;
+    mClusterLabels[layer >= 0 ? layer : 0] = mcLabels;
   } else {
-    mClusterLabels[layer] = nullptr;
+    mClusterLabels[layer >= 0 ? layer : 0] = nullptr;
   }
 }
 
 template <int NLayers>
 void TimeFrame<NLayers>::resetROFrameData(int layer)
 {
-  deepVectorClear(mUnsortedClusters[layer], getMaybeFrameworkHostResource());
-  deepVectorClear(mTrackingFrameInfo[layer], getMaybeFrameworkHostResource());
-  deepVectorClear(mClusterExternalIndices[layer], mMemoryPool.get());
-  clearResizeBoundedVector(mROFramesClusters[layer], mROFOverlapTableView.getLayer(layer).mNROFsTF + 1, getMaybeFrameworkHostResource());
+  if (layer >= 0) {
+    deepVectorClear(mUnsortedClusters[layer], getMaybeFrameworkHostResource());
+    deepVectorClear(mTrackingFrameInfo[layer], getMaybeFrameworkHostResource());
+    deepVectorClear(mClusterExternalIndices[layer], mMemoryPool.get());
+    clearResizeBoundedVector(mROFramesClusters[layer], mROFOverlapTableView.getLayer(layer).mNROFsTF + 1, getMaybeFrameworkHostResource());
+  } else {
+    for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+      deepVectorClear(mUnsortedClusters[iLayer], getMaybeFrameworkHostResource());
+      deepVectorClear(mTrackingFrameInfo[iLayer], getMaybeFrameworkHostResource());
+      deepVectorClear(mClusterExternalIndices[iLayer], mMemoryPool.get());
+      clearResizeBoundedVector(mROFramesClusters[iLayer], mROFOverlapTableView.getLayer(iLayer).mNROFsTF + 1, getMaybeFrameworkHostResource());
+    }
+  }
 }
 
 template <int NLayers>
 void TimeFrame<NLayers>::prepareROFrameData(gsl::span<const itsmft::CompClusterExt> clusters, int layer)
 {
-  mUnsortedClusters[layer].reserve(clusters.size());
-  mTrackingFrameInfo[layer].reserve(clusters.size());
-  mClusterExternalIndices[layer].reserve(clusters.size());
-  clearResizeBoundedVector(mClusterSize[layer], clusters.size(), mMemoryPool.get());
+  if (layer >= 0) {
+    mUnsortedClusters[layer].reserve(clusters.size());
+    mTrackingFrameInfo[layer].reserve(clusters.size());
+    mClusterExternalIndices[layer].reserve(clusters.size());
+    clearResizeBoundedVector(mClusterSize[layer], clusters.size(), mMemoryPool.get());
+  } else {
+    auto* geom = GeometryTGeo::Instance();
+    clearResizeBoundedVector(mClusterSize[0], clusters.size(), mMemoryPool.get());
+    std::array<size_t, NLayers> clusterCountPerLayer{0};
+    for (const auto& cls : clusters) {
+      ++clusterCountPerLayer[geom->getLayer(cls.getChipID())];
+    }
+    for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+      mUnsortedClusters[iLayer].reserve(clusterCountPerLayer[iLayer]);
+      mTrackingFrameInfo[iLayer].reserve(clusterCountPerLayer[iLayer]);
+      mClusterExternalIndices[iLayer].reserve(clusterCountPerLayer[iLayer]);
+    }
+  }
 }
 
 template <int NLayers>

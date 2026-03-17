@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -15,21 +15,14 @@
 #include <cassert>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "CommonUtils/StringUtils.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::its;
 
-namespace o2
+namespace o2::its
 {
-namespace its
-{
-
-TrackReader::TrackReader(bool useMC)
-{
-  mUseMC = useMC;
-}
 
 void TrackReader::init(InitContext& ic)
 {
@@ -44,6 +37,7 @@ void TrackReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mTracks.size() << " track at entry " << ent;
+  pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0}, mROFRec);
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0}, mClusInd);
   pc.outputs().snapshot(Output{"ITS", "VERTICES", 0}, mVertices);
@@ -67,6 +61,7 @@ void TrackReader::connectTree(const std::string& filename)
   assert(mTree);
   assert(mTree->GetBranch(mROFBranchName.c_str()));
 
+  mTree->SetBranchAddress(mROFBranchName.c_str(), &mROFRecInp);
   mTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
   mTree->SetBranchAddress(mClusIdxBranchName.c_str(), &mClusIndInp);
   if (!mTree->GetBranch(mVertexBranchName.c_str())) {
@@ -87,6 +82,7 @@ void TrackReader::connectTree(const std::string& filename)
 DataProcessorSpec getITSTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
+  outputSpec.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
@@ -96,14 +92,13 @@ DataProcessorSpec getITSTrackReaderSpec(bool useMC)
   }
 
   return DataProcessorSpec{
-    "its-track-reader",
-    Inputs{},
-    outputSpec,
-    AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
-    Options{
+    .name = "its-track-reader",
+    .inputs = Inputs{},
+    .outputs = outputSpec,
+    .algorithm = AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
+    .options = Options{
       {"its-tracks-infile", VariantType::String, "o2trac_its.root", {"Name of the input track file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-} // namespace its
-} // namespace o2
+} // namespace o2::its

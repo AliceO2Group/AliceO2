@@ -17,7 +17,6 @@
 #include <limits>
 #include <format>
 #include <string>
-#include <numeric>
 #include <vector>
 
 #include "CommonConstants/LHCConstants.h"
@@ -33,7 +32,7 @@ namespace o2::its
 
 // Layer timing definition
 struct LayerTiming {
-  using BCType = uint32_t;
+  using BCType = TimeStampType;
   BCType mNROFsTF{0};       // number of ROFs per timeframe
   BCType mROFLength{0};     // ROF length in BC
   BCType mROFDelay{0};      // delay of ROFs wrt start of first orbit in TF in BC
@@ -69,7 +68,14 @@ struct LayerTiming {
     }
     const BCType start = getROFStartInBC(rofId);
     const BCType half = mROFLength / BCType(2);
-    return {start + half, static_cast<uint16_t>(half)};
+    return {start + half, static_cast<TimeStampErrorType>(half)};
+  }
+
+  // return which ROF this BC belongs to
+  GPUhi() BCType getROF(BCType bc) const noexcept
+  {
+    BCType rof = (bc - mROFDelay - mROFBias) / mROFLength;
+    return rof >= 0 ? rof : 0;
   }
 
   GPUh() std::string asString() const
@@ -136,7 +142,7 @@ struct ROFOverlapTableView {
     return mLayers[layer];
   }
 
-  GPUh() const LayerTiming& getClockLayer() const noexcept
+  GPUh() int getClock() const noexcept
   {
     // we take the fastest layer as clock
     int fastest = 0;
@@ -145,10 +151,14 @@ struct ROFOverlapTableView {
       const auto& layer = getLayer(iL);
       if (layer.mROFLength < shortestROF) {
         fastest = iL;
-        shortestROF = layer.mROFLength;
       }
     }
-    return mLayers[fastest];
+    return fastest;
+  }
+
+  GPUh() const LayerTiming& getClockLayer() const noexcept
+  {
+    return mLayers[getClock()];
   }
 
   GPUhdi() const TableEntry& getOverlap(int32_t from, int32_t to, size_t rofIdx) const noexcept
@@ -246,7 +256,7 @@ struct ROFOverlapTableView {
     for (int32_t i = 0; i < NLayers; ++i) {
       for (int32_t j = 0; j < NLayers; ++j) {
         if (i != j) {
-          const size_t linearIdx = i * NLayers + j;
+          const size_t linearIdx = (i * NLayers) + j;
           const auto& idx = mIndices[linearIdx];
           totalEntries += idx.getEntries();
           flatTableSize += idx.getEntries();
@@ -580,8 +590,9 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
       while (firstVertex < lastVertex) {
         int64_t vUpper = (int64_t)vertices[firstVertex].getTimeStamp().getTimeStamp() +
                          (int64_t)vertices[firstVertex].getTimeStamp().getTimeStampError();
-        if (vUpper > rofLower)
+        if (vUpper > rofLower) {
           break;
+        }
         ++firstVertex;
       }
       size_t count = (lastVertex > firstVertex) ? (lastVertex - firstVertex) : 0;
@@ -601,8 +612,9 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
     while (firstVertex < lastVertex) {
       int64_t vUpper = (int64_t)vertices[firstVertex].getTimeStamp().getTimeStamp() +
                        (int64_t)vertices[firstVertex].getTimeStamp().getTimeStampError();
-      if (vUpper > rofLower)
+      if (vUpper > rofLower) {
         break;
+      }
       ++firstVertex;
     }
     size_t count = (lastVertex > firstVertex) ? (lastVertex - firstVertex) : 0;

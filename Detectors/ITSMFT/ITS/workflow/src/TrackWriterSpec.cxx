@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -38,7 +38,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
 {
   // Spectators for logging
   // this is only to restore the original behavior
-  auto tracksSize = std::make_shared<int>(0);
+  auto tracksSize = std::make_shared<size_t>(0);
   auto tracksSizeGetter = [tracksSize](std::vector<o2::its::TrackITS> const& tracks) {
     *tracksSize = tracks.size();
   };
@@ -55,6 +55,9 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                                    "ITSTrackClusIdx"},
                                 BranchDefinition<std::vector<Vertex>>{InputSpec{"vertices", "ITS", "VERTICES", 0},
                                                                       "Vertices"},
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "ITS", "ITSTrackROF", 0},
+                                                                                     "ITSTracksROF",
+                                                                                     logger},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", "ITS", "TRACKSMCTR", 0},
                                                              "ITSTrackMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled

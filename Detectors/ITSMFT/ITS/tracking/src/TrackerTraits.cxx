@@ -278,16 +278,15 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
       int foundCells{0};
       for (int iNextTracklet{nextLayerFirstTrackletIndex}; iNextTracklet < nextLayerLastTrackletIndex; ++iNextTracklet) {
         const Tracklet& nextTracklet{mTimeFrame->getTracklets()[iLayer + 1][iNextTracklet]};
-        const auto& nextLbl = mTimeFrame->getTrackletsLabel(iLayer + 1)[iNextTracklet];
         if (mTimeFrame->getTracklets()[iLayer + 1][iNextTracklet].firstClusterIndex != nextLayerClusterIndex) {
           break;
         }
         if (!currentTracklet.getTimeStamp().isCompatible(nextTracklet.getTimeStamp())) {
           continue;
         }
-        const float deltaTanLambda{std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
 
-        if (deltaTanLambda / mTrkParams[iteration].CellDeltaTanLambdaSigma < mTrkParams[iteration].NSigmaCut) {
+        const float deltaTanLambdaSigma = std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda) / mTrkParams[iteration].CellDeltaTanLambdaSigma;
+        if (deltaTanLambdaSigma < mTrkParams[iteration].NSigmaCut) {
 
           /// Track seed preparation. Clusters are numbered progressively from the innermost going outward.
           const int clusId[3]{

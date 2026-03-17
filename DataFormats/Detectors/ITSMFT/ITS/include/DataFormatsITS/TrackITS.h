@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -21,7 +21,7 @@
 #include "GPUCommonDef.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "CommonDataFormat/TimeStamp.h"
+#include "DataFormatsITS/TimeEstBC.h"
 
 namespace o2
 {
@@ -41,7 +41,6 @@ class TrackITS : public o2::track::TrackParCov
 
   using Cluster = o2::itsmft::Cluster;
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
-  using Timestamp = o2::dataformats::TimeStampWithError<uint32_t, uint16_t>;
 
  public:
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
@@ -160,7 +159,7 @@ class TrackITS : public o2::track::TrackParCov
   float mChi2 = 0.;                 ///< Chi2 for this track
   uint32_t mPattern = 0;            ///< layers pattern
   uint32_t mClusterSizes = 0u;      ///< 4bit packed cluster sizes
-  Timestamp mTime;                  ///< track time stamp with error in BC since start of TF, symmetrical
+  TimeEstBC mTime;                  ///< track time stamp with error in BC since start of TF, symmetrical
 
   ClassDefNV(TrackITS, 7);
 };
