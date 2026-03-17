@@ -80,10 +80,10 @@ struct GPUParam_t {
 struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> {
 
 #ifndef GPUCA_GPUCODE
-  void SetDefaults(float solenoidBz, bool assumeConstantBz);
+  void SetDefaults(float solenoidBz, bool assumeConstantBz = false);
   void SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r = nullptr, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
   void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr, const GPUSettingsRecDynamic* d = nullptr);
-  void UpdateBzOnly(float newSolenoidBz, bool assumeConstantBz);
+  void UpdateBzOnly(float newSolenoidBz, bool assumeConstantBz = false);
   void UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam);
 #endif
 
