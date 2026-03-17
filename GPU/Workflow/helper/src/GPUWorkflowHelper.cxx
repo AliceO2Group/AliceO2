@@ -55,11 +55,14 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   }
   if (maskTrk[GID::ITS] && ioPtr.nItsTracks == 0) {
     const auto& ITSTracksArray = recoCont.getITSTracks();
-    if (!ITSTracksArray.empty()) {
+    const auto& ITSTrackROFRec = recoCont.getITSTracksROFRecords();
+    if (ITSTracksArray.size() && ITSTrackROFRec.size()) {
       const auto& ITSTrackClusIdx = recoCont.getITSTracksClusterRefs();
       ioPtr.nItsTracks = ITSTracksArray.size();
       ioPtr.itsTracks = ITSTracksArray.data();
       ioPtr.itsTrackClusIdx = ITSTrackClusIdx.data();
+      ioPtr.nItsTrackROF = ITSTrackROFRec.size();
+      ioPtr.itsTrackROF = ITSTrackROFRec.data();
       if (useMC) {
         const auto& ITSTrkLabels = recoCont.getITSTracksMCLabels();
         ioPtr.itsTrackMC = ITSTrkLabels.data();

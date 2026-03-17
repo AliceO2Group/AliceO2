@@ -164,6 +164,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0});
   auto& allTrackROFs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0}); // TODO fill this!
 
   // MC
   static pmr::vector<o2::MCCompLabel> dummyMCLabTracks, dummyMCLabVerts;

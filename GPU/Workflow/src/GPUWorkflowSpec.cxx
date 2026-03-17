@@ -1229,7 +1229,7 @@ Inputs GPURecoWorkflowSpec::inputs()
   }
 
   if (mSpecConfig.runITSTracking) {
-    for (unsigned int iLay{0}; iLay < 7; ++iLay) {
+    for (unsigned int iLay{0}; iLay < (mSpecConfig.itsStaggered ? 7 : 0); ++iLay) {
       inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", iLay, Lifetime::Timeframe);
       inputs.emplace_back("patterns", "ITS", "PATTERNS", iLay, Lifetime::Timeframe);
       inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", iLay, Lifetime::Timeframe);
@@ -1380,7 +1380,9 @@ Outputs GPURecoWorkflowSpec::outputs()
   if (mSpecConfig.runITSTracking) {
     outputSpecs.emplace_back(gDataOriginITS, "TRACKS", 0, Lifetime::Timeframe);
     outputSpecs.emplace_back(gDataOriginITS, "TRACKCLSID", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "ITSTrackROF", 0, Lifetime::Timeframe);
     outputSpecs.emplace_back(gDataOriginITS, "VERTICES", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "VERTICESROF", 0, Lifetime::Timeframe);
     outputSpecs.emplace_back(gDataOriginITS, "IRFRAMES", 0, Lifetime::Timeframe);
 
     if (mSpecConfig.processMC) {

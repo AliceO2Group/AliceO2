@@ -41,6 +41,7 @@ void TrackReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0}, mClusInd);
   pc.outputs().snapshot(Output{"ITS", "VERTICES", 0}, mVertices);
+  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0}, mVerticesROFRec);
   if (mUseMC) {
     pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0}, mMCTruth);
     pc.outputs().snapshot(Output{mOrigin, "VERTICESMCTR", 0}, mMCVertTruth);
@@ -86,6 +87,7 @@ DataProcessorSpec getITSTrackReaderSpec(bool useMC)
   outputSpec.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
   if (useMC) {
     outputSpec.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputSpec.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);

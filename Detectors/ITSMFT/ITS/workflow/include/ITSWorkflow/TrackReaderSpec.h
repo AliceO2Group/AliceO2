@@ -43,6 +43,7 @@ class TrackReader final : public o2::framework::Task
   std::vector<o2::itsmft::ROFRecord> mROFRec, *mROFRecInp = &mROFRec;
   std::vector<o2::its::TrackITS> mTracks, *mTracksInp = &mTracks;
   std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
+  std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecInp = &mVerticesROFRec;
   std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
   std::vector<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
   std::vector<o2::MCCompLabel> mMCVertTruth, *mMCVTruthInp = &mMCTruth;
@@ -59,6 +60,7 @@ class TrackReader final : public o2::framework::Task
   std::string mTrackBranchName = "ITSTrack";
   std::string mClusIdxBranchName = "ITSTrackClusIdx";
   std::string mVertexBranchName = "Vertices";
+  std::string mVertexROFBranchName = "VerticesROF";
   std::string mTrackMCTruthBranchName = "ITSTrackMCTruth";
   std::string mTrackMCVertTruthBranchName = "ITSVertexMCTruth";
 };
