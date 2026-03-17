@@ -608,8 +608,8 @@ static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals)
 
   // --- Vacuum vessel window around z∈[-L/2, +L/2] with wall thickness on +Z side
   //     Keep these in sync with TRKServices::createVacuumCompositeShape()
-  constexpr double vacuumVesselLength = kPetalZ_cm;       // cm
-  constexpr double vacuumVesselThickness = kWallThick_cm; // cm (0.2 mm)
+  constexpr double vacuumVesselLength = 76.0;             // cm
+  constexpr double vacuumVesselThickness = 0.08;          // cm (0.8 mm)
   const double halfVess = 0.5 * vacuumVesselLength;       // 38.0 cm
   const double gapStart = halfVess;                       // 38.00
   const double gapEnd = halfVess + vacuumVesselThickness; // 38.08
