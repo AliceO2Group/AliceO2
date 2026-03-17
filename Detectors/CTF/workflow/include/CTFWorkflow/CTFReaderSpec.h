@@ -27,6 +27,7 @@ struct CTFReaderInp {
   std::string inpdata{};
   o2::detectors::DetID::mask_t detMask = o2::detectors::DetID::FullMask;
   std::string copyCmd{};
+  std::string copyDir{};
   std::string tffileRegex{};
   std::string remoteRegex{};
   std::string metricChannel{};

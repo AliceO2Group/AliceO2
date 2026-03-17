@@ -29,6 +29,7 @@ struct TFReaderInp {
   std::string detListNonRawOnly{};
   std::string rawChannelConfig{};
   std::string copyCmd{};
+  std::string copyDir{};
   std::string tffileRegex{};
   std::string remoteRegex{};
   std::string metricChannel{};
