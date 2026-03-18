@@ -99,7 +99,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
   for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
     int layer = (mDoStaggering) ? iLayer : -1;
     sw.Start();
-    LOG(info) << mDetName << "Clusterer:" << layer << " pulled " << digits[iLayer].size() << " digits, in " << rofs[iLayer].size() << " RO frames";
+    LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(":{}", layer) : "") << " pulled " << digits[iLayer].size() << " digits, in " << rofs[iLayer].size() << " RO frames";
 
     mClusterer->setMaxROFDepthToSquash(mClusterer->getMaxROFDepthToSquash(layer));
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelsbuffer[iLayer]);
@@ -109,7 +109,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     reader.setDigits(digits[iLayer]);
     reader.setROFRecords(rofs[iLayer]);
     if (mUseMC) {
-      LOG(info) << mDetName << "Clusterer:" << layer << " pulled " << labels.getNElements() << " labels ";
+      LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(":{}", layer) : "") << " pulled " << labels.getNElements() << " labels ";
       reader.setDigitsMCTruth(labels.getIndexedSize() > 0 ? &labels : nullptr);
     }
     reader.init();
@@ -144,13 +144,13 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     for (const auto& rof : clusROFVec) {
       const auto& ir = rof.getBCData();
       if (ir < firstIR) {
-        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}, layer:{}", ir.asString(), firstTForbit, iLayer);
+        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}{}", ir.asString(), firstTForbit, ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
         continue;
       }
       const auto irToFirst = ir - firstIR;
       const long irROF = irToFirst.toLong() / par.getROFLengthInBC(iLayer);
       if (irROF >= nROFsTF) {
-        LOGP(warn, "Discard ROF {} exceding TF orbit range, layer:{}", ir.asString(), iLayer);
+        LOGP(warn, "Discard ROF {} exceding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
         continue;
       }
       auto& expROF = expClusRofVec[irROF];
@@ -159,11 +159,11 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
         expROF.setNEntries(rof.getNEntries());
       } else {
         if (expROF.getNEntries() < rof.getNEntries()) {
-          LOGP(warn, "Repeating ROF {} with {} clusters, prefer to already processed instance with {} clusters", rof.asString(), rof.getNEntries(), expROF.getNEntries());
+          LOGP(warn, "Repeating ROF {} with {} clusters, prefer to already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
           expROF.setFirstEntry(rof.getFirstEntry());
           expROF.setNEntries(rof.getNEntries());
         } else {
-          LOGP(warn, "Repeating ROF {} with {} clusters, discard preferring already processed instance with {} clusters", rof.asString(), rof.getNEntries(), expROF.getNEntries());
+          LOGP(warn, "Repeating ROF {} with {} clusters, discard preferring already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
         }
       }
     }
