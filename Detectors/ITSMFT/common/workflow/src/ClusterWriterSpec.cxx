@@ -69,27 +69,39 @@ DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag)
   };
   auto detNameLC = detName;
   std::transform(detNameLC.begin(), detNameLC.end(), detNameLC.begin(), [](unsigned char c) { return std::tolower(c); });
+  std::vector<InputSpec> vecInpSpecClus, vecInpSpecPatt, vecInpSpecROF, vecInpSpecLbl;
+  vecInpSpecClus.reserve(nLayers);
+  vecInpSpecPatt.reserve(nLayers);
+  vecInpSpecROF.reserve(nLayers);
+  vecInpSpecLbl.reserve(nLayers);
+  for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    vecInpSpecClus.emplace_back(getName("compclus", iLayer), Origin, "COMPCLUSTERS", iLayer);
+    vecInpSpecPatt.emplace_back(getName("patterns", iLayer), Origin, "PATTERNS", iLayer);
+    vecInpSpecROF.emplace_back(getName("ROframes", iLayer), Origin, "CLUSTERSROF", iLayer);
+    vecInpSpecLbl.emplace_back(getName("labels", iLayer), Origin, "CLUSTERSMCTR", iLayer);
+  }
+
   return MakeRootTreeWriterSpec(std::format("{}-cluster-writer", detNameLC).c_str(),
                                 (o2::detectors::DetID::ITS == N) ? "o2clus_its.root" : "mftclusters.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = std::format("Tree with {} clusters", detName)},
-                                BranchDefinition<CompClusType>{InputSpec{"compclus", ConcreteDataTypeMatcher{Origin, "COMPCLUSTERS"}},
+                                BranchDefinition<CompClusType>{vecInpSpecClus,
                                                                (detName + "ClusterComp").c_str(), "compact-cluster-branch",
                                                                nLayers,
                                                                compClustersSizeGetter,
                                                                getIndex,
                                                                getName},
-                                BranchDefinition<PatternsType>{InputSpec{"patterns", ConcreteDataTypeMatcher{Origin, "PATTERNS"}},
+                                BranchDefinition<PatternsType>{vecInpSpecPatt,
                                                                (detName + "ClusterPatt").c_str(), "cluster-pattern-branch",
                                                                nLayers,
                                                                getIndex,
                                                                getName},
-                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", ConcreteDataTypeMatcher{Origin, "CLUSTERSROF"}},
+                                BranchDefinition<ROFrameRType>{vecInpSpecROF,
                                                                (detName + "ClustersROF").c_str(), "cluster-rof-branch",
                                                                nLayers,
                                                                logger,
                                                                getIndex,
                                                                getName},
-                                BranchDefinition<LabelsType>{InputSpec{"labels", ConcreteDataTypeMatcher{Origin, "CLUSTERSMCTR"}},
+                                BranchDefinition<LabelsType>{vecInpSpecLbl,
                                                              (detName + "ClusterMCTruth").c_str(), "cluster-label-branch",
                                                              (useMC ? nLayers : 0),
                                                              getIndex,
