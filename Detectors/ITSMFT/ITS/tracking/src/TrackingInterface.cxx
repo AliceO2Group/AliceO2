@@ -310,38 +310,56 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     // NOTE: we are not setting the BCData of these ROFs (should we?)
     const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
     int highestROF{0};
-    for (const auto& trc : tracks) {
-      highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp().lower()));
-    }
-    allTrackROFs.resize(highestROF);
-
-    // Some conversions that needs to be moved in the tracker internals
-    std::vector<int> rofEntries(highestROF + 1, 0);
-    for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-      auto& trc{tracks[iTrk]};
-      trc.setFirstClusterEntry((int)allClusIdx.size()); // before adding tracks, create final cluster indices
-      int ncl = trc.getNumberOfClusters(), nclf = 0;
-      for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-        auto clid = trc.getClusterIndex(ic);
-        if (clid >= 0) {
-          trc.setClusterSize(ic, mTimeFrame->getClusterSize((mDoStaggering) ? ic : 0, clid));
-          allClusIdx.push_back(clid);
-          nclf++;
-        }
+    {
+      for (const auto& trc : tracks) {
+        highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp().lower()));
       }
-      assert(ncl == nclf);
-      allTracks.emplace_back(trc);
-      auto rof = clockLayer.getROF(trc.getTimeStamp().lower());
-      ++rofEntries[rof];
+      allTrackROFs.resize(highestROF);
+      std::vector<int> rofEntries(highestROF + 1, 0);
+      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+        auto& trc{tracks[iTrk]};
+        trc.setFirstClusterEntry((int)allClusIdx.size()); // before adding tracks, create final cluster indices
+        int ncl = trc.getNumberOfClusters(), nclf = 0;
+        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+          auto clid = trc.getClusterIndex(ic);
+          if (clid >= 0) {
+            trc.setClusterSize(ic, mTimeFrame->getClusterSize((mDoStaggering) ? ic : 0, clid));
+            allClusIdx.push_back(clid);
+            nclf++;
+          }
+        }
+        assert(ncl == nclf);
+        allTracks.emplace_back(trc);
+        auto rof = clockLayer.getROF(trc.getTimeStamp().lower());
+        ++rofEntries[rof];
+      }
+      std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+      for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
+        allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
+        allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+      }
     }
-    std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
-    for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
-      allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
-      allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+    { // same thing for vertices rofs
+      highestROF = 0;
+      for (const auto& vtx : vertices) {
+        highestROF = std::max(highestROF, (int)clockLayer.getROF(vtx.getTimeStamp().lower()));
+      }
+      vertROFvec.resize(highestROF);
+      std::vector<int> rofEntries(highestROF + 1, 0);
+      for (const auto& vtx : vertices) {
+        auto rof = clockLayer.getROF(vtx.getTimeStamp().lower());
+        ++rofEntries[rof];
+      }
+      std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+
+      for (size_t iROF{0}; iROF < vertROFvec.size(); ++iROF) {
+        vertROFvec[iROF].setFirstEntry(rofEntries[iROF]);
+        vertROFvec[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+      }
     }
   }
 
-  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices", allTracks.size(), allTrackROFs.size(), vertices.size());
+  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices in {} rofs", allTracks.size(), allTrackROFs.size(), vertices.size(), vertROFvec.size());
   if (mIsMC) {
     LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
     LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
