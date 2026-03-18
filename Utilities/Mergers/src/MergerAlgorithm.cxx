@@ -111,7 +111,7 @@ Long64_t mergeDefault(TObject* const target, TObject* const other)
       // Merge() does not support averages, we have to use Add()
       // this will break if collection.size != 1
       if (auto otherTH1 = dynamic_cast<TH1*>(otherCollection.First())) {
-        errorCode = targetTH1->Add(otherTH1);
+        errorCode = targetTH1->Add(otherTH1) == kFALSE ? -1 : 0;
       }
     } else {
       // Add() does not support histograms with labels, thus we resort to Merge() by default
