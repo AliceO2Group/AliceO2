@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 13
+# FindO2GPU.cmake Version 14
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -66,7 +66,7 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
     set(CUDA_TARGET TESLA)
   endif()
 
-  string(REGEX MATCH "^[ \t\r\n]*gfx[0-9]+" HIP_FIRST_TARGET "${HIP_AMDGPUTARGET}")
+  string(REGEX MATCH "^[ \t\r\n]*gfx[0-9a-fA-F]+" HIP_FIRST_TARGET "${HIP_AMDGPUTARGET}")
   string(STRIP "${HIP_FIRST_TARGET}" HIP_FIRST_TARGET)
   string(REGEX REPLACE "^gfx" "" HIP_FIRST_TARGET "${HIP_FIRST_TARGET}")
   if(NOT HIP_FIRST_TARGET)
