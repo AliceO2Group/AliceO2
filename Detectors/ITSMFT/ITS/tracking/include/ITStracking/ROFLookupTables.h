@@ -15,9 +15,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <format>
 #include <string>
 #include <vector>
+#ifndef GPUCA_GPUCODE
+#include <format>
+#endif
 
 #include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -78,6 +80,7 @@ struct LayerTiming {
     return rof >= 0 ? rof : 0;
   }
 
+#ifndef GPUCA_GPUCODE
   GPUh() std::string asString() const
   {
     return std::format("NROFsPerTF {:4} ROFLength {:4} ({:4} per Orbit) ROFDelay {:4} ROFBias {:4} ROFAddTimeErr {:4}", mNROFsTF, mROFLength, (o2::constants::lhc::LHCMaxBunches / mROFLength), mROFDelay, mROFBias, mROFAddTimeErr);
@@ -87,6 +90,7 @@ struct LayerTiming {
   {
     LOG(info) << asString();
   }
+#endif
 };
 
 // Base class for lookup to define layers
@@ -98,7 +102,7 @@ class LayerTimingBase
 
  public:
   using T = LayerTiming::BCType;
-  GPUdDefault() LayerTimingBase() = default;
+  GPUh() LayerTimingBase() = default;
 
   GPUh() void defineLayer(int32_t layer, T nROFsTF, T rofLength, T rofDelay, T rofBias, T rofTE)
   {
@@ -120,6 +124,7 @@ class LayerTimingBase
 
   GPUhdi() constexpr int32_t getEntries() noexcept { return NLayers; }
 
+#ifndef GPUCA_GPUCODE
   GPUh() void print() const
   {
     LOGP(info, "Imposed time structure:");
@@ -127,6 +132,7 @@ class LayerTimingBase
       LOGP(info, "\tLayer:{} {}", iL, mLayers[iL].asString());
     }
   }
+#endif
 };
 
 // GPU friendly view of the table below
@@ -209,6 +215,7 @@ struct ROFOverlapTableView {
     return t0 + t1;
   }
 
+#ifndef GPUCA_GPUCODE
   /// Print functions
   GPUh() void printAll() const
   {
@@ -275,6 +282,7 @@ struct ROFOverlapTableView {
     LOGF(info, "Total view size: %u bytes", totalBytes);
     LOGF(info, "------------------------------------------------------------");
   }
+#endif
 };
 
 // Precalculated lookup table to find overlapping ROFs in another layer given a ROF index in the current layer
@@ -287,7 +295,7 @@ class ROFOverlapTable : public LayerTimingBase<NLayers>
   using TableIndex = dataformats::RangeReference<T, T>;
 
   using View = ROFOverlapTableView<NLayers, TableEntry, TableIndex>;
-  GPUdDefault() ROFOverlapTable() = default;
+  GPUh() ROFOverlapTable() = default;
 
   GPUh() void init()
   {
@@ -437,6 +445,7 @@ struct ROFVertexLookupTableView {
     return vUpper >= rofLower && vLower < rofUpper;
   }
 
+#ifndef GPUCA_GPUCODE
   GPUh() void printAll() const
   {
     for (int32_t i = 0; i < NLayers; ++i) {
@@ -488,6 +497,7 @@ struct ROFVertexLookupTableView {
     LOGF(info, "Total view size: %u bytes", totalBytes);
     LOGF(info, "------------------------------------------------------------");
   }
+#endif
 };
 
 // Precalculated lookup table to find vertices compatible with ROFs
@@ -506,7 +516,7 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
 
   using View = ROFVertexLookupTableView<NLayers, TableEntry, TableIndex>;
 
-  GPUdDefault() ROFVertexLookupTable() = default;
+  GPUh() ROFVertexLookupTable() = default;
 
   GPUh() size_t getFlatTableSize() const noexcept { return mFlatTable.size(); }
   static GPUh() constexpr size_t getIndicesSize() { return NLayers; }
