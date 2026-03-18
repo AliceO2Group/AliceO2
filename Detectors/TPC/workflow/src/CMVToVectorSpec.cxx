@@ -106,7 +106,7 @@ class CMVToVectorDevice : public o2::framework::Task
       tfCounter = dh->tfCounter;
       const auto subSpecification = dh->subSpecification;
       auto payloadSize = DataRefUtils::getPayloadSize(ref);
-      LOGP(info, "Processing TF {}, subSpecification {}, payloadSize {}", tfCounter, subSpecification, payloadSize);
+      LOGP(debug, "Processing TF {}, subSpecification {}, payloadSize {}", tfCounter, subSpecification, payloadSize);
 
       // ---| data loop |---
       const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
@@ -139,7 +139,7 @@ class CMVToVectorDevice : public o2::framework::Task
           const uint32_t cruID = rdh_utils::getCRU(feeId);
           const auto detField = RDHUtils::getDetectorField(*rdhPtr);
 
-          LOGP(info, "Detected CMV packet: CRU {}, link {}, feeId {}", cruID, link, feeId);
+          LOGP(debug, "Detected CMV packet: CRU {}, link {}, feeId {}", cruID, link, feeId);
 
           if ((detField != (decltype(detField))RawDataType::CMV) || (link != rdh_utils::CMVLinkID)) {
             LOGP(debug, "Skipping packet: detField {}, (expected RawDataType {}), link {}, (expected CMVLinkID {})", detField, (decltype(detField))RawDataType::CMV, link, rdh_utils::CMVLinkID);

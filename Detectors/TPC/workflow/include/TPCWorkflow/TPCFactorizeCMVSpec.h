@@ -60,14 +60,13 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
       mUsePreciseTimestamp{usePreciseTimestamp},
       mNTFsBuffer{nTFsBuffer}
   {
-    mContainer.reserve(mTimeFrames, static_cast<uint32_t>(mCRUs.size()));
+    // Pre-allocate
+    mInterval.reserve(mTimeFrames, static_cast<uint32_t>(mCRUs.size()));
   }
 
   void init(o2::framework::InitContext& ic) final
   {
-    mNOrbitsCMV = ic.options().get<int>("orbits-CMVs");
     mDumpCMVs = ic.options().get<bool>("dump-cmvs");
-    mOffsetCCDB = ic.options().get<bool>("add-offset-for-CCDB-timestamp");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -82,14 +81,15 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
 
     // Record the absolute first TF of this aggregation interval
     const auto currTF = processing_helpers::getCurrentTF(pc);
+
     if (mTFFirst == -1 && pc.inputs().isValid("firstTF")) {
       mTFFirst = pc.inputs().get<long>("firstTF");
-      mContainer.firstTF = mTFFirst;
+      mInterval.firstTF = mTFFirst;
     }
     if (mTFFirst == -1) {
       mTFFirst = currTF;
-      mContainer.firstTF = mTFFirst;
-      LOGP(warning, "firstTF not Found! Found valid inputs {}. Setting {} as first TF", pc.inputs().countValidInputs(), mTFFirst);
+      mInterval.firstTF = mTFFirst;
+      LOGP(warning, "firstTF not found! Setting {} as first TF", mTFFirst);
     }
 
     // Set data taking context only once
@@ -115,6 +115,20 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
       return;
     }
 
+    // Apply orbit/BC info for any relTF whose CMVORBITINFO message has arrived
+    for (auto& ref : InputRecordWalker(pc.inputs(), mOrbitFilter)) {
+      auto const* hdr = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      const uint32_t orbitRelTF = static_cast<uint32_t>(hdr->subSpecification);
+      if (orbitRelTF < mTimeFrames) {
+        auto& tfData = mInterval.mCMVPerTF[orbitRelTF];
+        if (tfData.firstOrbit == 0 && tfData.firstBC == 0) {
+          const auto orbitBC = pc.inputs().get<uint64_t>(ref);
+          tfData.firstOrbit = static_cast<int64_t>(orbitBC >> 32);
+          tfData.firstBC = static_cast<int64_t>(orbitBC & 0xFFFFu);
+        }
+      }
+    }
+
     // Consume all incoming CMV vectors for this TF
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       auto const* hdr = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -132,19 +146,13 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
         LOGP(warning, "CRU {}: got {} CMV values, expected {} (4 packets × {})",
              cru, cmvVec.size(), cmv::NTimeBinsPerTF, cmv::NTimeBinsPerPacket);
       }
-
-      // Store one entry per timebin into the container
-      const uint32_t tfCounter = static_cast<uint32_t>(currTF);
-      for (uint32_t tb = 0; tb < static_cast<uint32_t>(cmvVec.size()); ++tb) {
-        mContainer.addEntry(cmvVec[tb], cru, tb, tfCounter);
-      }
+      mInterval.mCMVPerTF[relTF].mDataPerTF[cru].assign(cmvVec.begin(), cmvVec.end());
       ++mProcessedCRUs;
     }
 
     // Once all CRUs × all TFs have been received, write out
     if (mProcessedCRUs == mCRUs.size() * mTimeFrames) {
-      mContainer.nTFs = static_cast<uint32_t>(mTimeFrames);
-      mContainer.nCRUs = static_cast<uint32_t>(mCRUs.size());
+      mInterval.lastTF = currTF;
       LOGP(info, "ProcessedTFs: {}  currTF: {}  relTF: {}  OrbitResetTime: {}  orbits per TF: {}",
            mProcessedCRUs / mCRUs.size(), currTF, relTF, mTFInfo.first, mTFInfo.second);
       sendOutput(pc.outputs());
@@ -153,9 +161,7 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOGP(info, "End of stream, flushing CMV container ({} entries, lane {})", mContainer.size(), mLaneId);
-    mContainer.nTFs = static_cast<uint32_t>(mTimeFrames);
-    mContainer.nCRUs = static_cast<uint32_t>(mCRUs.size());
+    LOGP(info, "End of stream, flushing CMV interval ({} TFs, lane {})", mInterval.size(), mLaneId);
     sendOutput(ec.outputs());
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
@@ -169,15 +175,13 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
   const bool mSendCCDB{false};
   const bool mUsePreciseTimestamp{false};
   const int mNTFsBuffer{1};
-  int mNOrbitsCMV{12};   ///< orbits per CMV integration window (for CCDB timestamp range)
   bool mDumpCMVs{false}; ///< write a local ROOT debug file
-  bool mOffsetCCDB{false};
   long mTFFirst{-1};
   long mTimestampStart{0};
   unsigned int mProcessedCRUs{0}; ///< total CRU entries received in this interval
   uint64_t mRun{0};
   dataformats::Pair<long, int> mTFInfo{};
-  CMVContainer mContainer{};
+  CMVPerInterval mInterval{};
   o2::framework::DataTakingContext mDataTakingContext{};
   bool mSetDataTakingCont{true};
   const std::vector<InputSpec> mFilter{
@@ -185,7 +189,12 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
      ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMV(mLaneId)},
      Lifetime::Sporadic}};
 
-  /// Determine the CCDB start timestamp from orbit-reset time or framework creation time (depending on mUsePreciseTimestamp).
+  /// Filter for per-TF orbit/BC info from the distribute device
+  const std::vector<InputSpec> mOrbitFilter{
+    {"orbitinfo",
+     ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMVOrbitInfo(mLaneId)},
+     Lifetime::Sporadic}};
+
   void setTimestampCCDB(const long relTF, o2::framework::ProcessingContext& pc)
   {
     if (mUsePreciseTimestamp && !mTFInfo.second) {
@@ -200,70 +209,87 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
          mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, mTFInfo.second, relTF, nOrbitsOffset);
   }
 
-  /// Serialise mContainer into a TMemFile and push to CCDB, then reset state.
   void sendOutput(DataAllocator& output)
   {
     using timer = std::chrono::high_resolution_clock;
 
-    if (mContainer.empty()) {
-      LOGP(warning, "CMV container is empty at sendOutput (lane {}), skipping", mLaneId);
+    if (mInterval.empty()) {
+      LOGP(warning, "CMV interval is empty at sendOutput (lane {}), skipping", mLaneId);
       reset();
       return;
     }
 
-    LOGP(info, "{}", mContainer.summary());
-
-    // Compute CCDB validity window
-    const long offsetCCDB = mOffsetCCDB ? o2::ccdb::CcdbObjectInfo::HOUR : 0;
-    const long timeStampEnd = offsetCCDB + mTimestampStart +
-                              mNOrbitsCMV * mTimeFrames * mNTFsBuffer * o2::constants::lhc::LHCOrbitMUS * 0.001;
-    LOGP(info, "Setting timestamp range from {} to {} for writing to CCDB with an offset of {}",
-         mTimestampStart, timeStampEnd, offsetCCDB);
-
-    if (mSendCCDB && timeStampEnd > mTimestampStart) {
-      auto start = timer::now();
-
-      auto tree = mContainer.toTTree();
-
-      // Write local ROOT file for debugging
-      if (mDumpCMVs) {
-        const std::string fname = fmt::format("CMV_lane{:02}_timestamp{}.root", mLaneId, mTimestampStart);
-        try {
-          mContainer.writeToFile(fname, tree);
-          LOGP(info, "CMV debug file written to {}", fname);
-        } catch (const std::exception& e) {
-          LOGP(error, "Failed to write CMV debug file: {}", e.what());
-        }
-      }
-
-      o2::ccdb::CcdbObjectInfo ccdbInfoCMV(
-        "TPC/Calib/CMV",
-        "TTree",
-        "CMV.root",
-        /*metadata=*/{},
-        mTimestampStart,
-        timeStampEnd);
-
-      auto image = o2::ccdb::CcdbApi::createObjectImage((tree.get()), &ccdbInfoCMV);
-      LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {}",
-           ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(),
-           ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
-
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBCMV(), 0}, *image);
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBCMV(), 0}, ccdbInfoCMV);
-
-      auto stop = timer::now();
-      std::chrono::duration<float> elapsed = stop - start;
-      LOGP(info, "CMV CCDB serialisation time: {:.3f} s", elapsed.count());
+    // Check if any CRU actually wrote data into this interval
+    const bool hasData = std::any_of(mInterval.mCMVPerTF.begin(), mInterval.mCMVPerTF.end(),
+    [](const CMVPerTF& tf) {
+      return std::any_of(tf.mDataPerTF.begin(), tf.mDataPerTF.end(),
+                        [](const std::vector<float>& v) { return !v.empty(); });
+    });
+    if (!hasData) {
+      LOGP(warning, "CMV interval has no data at sendOutput (lane {}), skipping", mLaneId);
+      reset();
+      return;
     }
+
+    LOGP(info, "{}", mInterval.summary());
+    auto start = timer::now();
+    auto tree = mInterval.toTTree();
+
+    // Write local ROOT file for debugging
+    if (mDumpCMVs) {
+      const std::string fname = fmt::format("CMV_lane{:02}_timestamp{}.root", mLaneId, mTimestampStart);
+      try {
+        mInterval.writeToFile(fname, tree);
+        LOGP(info, "CMV debug file written to {}", fname);
+      } catch (const std::exception& e) {
+        LOGP(error, "Failed to write CMV debug file: {}", e.what());
+      }
+    }
+
+    if (!mSendCCDB) {
+      LOGP(warning, "CCDB output disabled, skipping upload!");
+      return;
+    }
+
+    const int nHBFPerTF = o2::base::GRPGeomHelper::instance().getNHBFPerTF();
+    const long timeStampEnd = mTimestampStart + static_cast<long>(mTimeFrames * mNTFsBuffer * nHBFPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+
+    if (timeStampEnd <= mTimestampStart) {
+      LOGP(warning, "Invalid CCDB timestamp range start:{} end:{}, skipping upload!",
+           mTimestampStart, timeStampEnd);
+      return;
+    }
+
+    LOGP(info, "CCDB timestamp range start:{} end:{}", mTimestampStart, timeStampEnd);
+      
+    o2::ccdb::CcdbObjectInfo ccdbInfoCMV(
+      "TPC/Calib/CMV",
+      "TTree",
+      "CMV.root",
+      {},
+      mTimestampStart,
+      timeStampEnd);
+
+    auto image = o2::ccdb::CcdbApi::createObjectImage((tree.get()), &ccdbInfoCMV);
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {}",
+          ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(),
+          ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
+
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBCMV(), 0}, *image);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBCMV(), 0}, ccdbInfoCMV);
+
+    auto stop = timer::now();
+    std::chrono::duration<float> elapsed = stop - start;
+    LOGP(info, "CMV CCDB serialisation time: {:.3f} s", elapsed.count());
+
     reset();
   }
 
   /// Reset all per-interval state
   void reset()
   {
-    mContainer.clear();
-    mContainer.reserve(mTimeFrames, static_cast<uint32_t>(mCRUs.size()));
+    mInterval.clear();
+    mInterval.reserve(mTimeFrames, static_cast<uint32_t>(mCRUs.size()));
     mTimestampStart = 0;
     mTFFirst = -1;
     mProcessedCRUs = 0;
@@ -293,10 +319,17 @@ inline DataProcessorSpec getTPCFactorizeCMVSpec(
   }
 
   std::vector<InputSpec> inputSpecs;
+  // CMV float vectors from the distribute device, one per CRU per TF
   inputSpecs.emplace_back(InputSpec{
     "cmvagg",
     ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMV(lane)},
     Lifetime::Sporadic});
+  // Per-TF orbit/BC info from the distribute device (subSpecification == relTF)
+  inputSpecs.emplace_back(InputSpec{
+    "orbitinfo",
+    ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMVOrbitInfo(lane)},
+    Lifetime::Sporadic});
+  // First TF of the current aggregation interval
   inputSpecs.emplace_back(InputSpec{
     "firstTF",
     gDataOriginTPC,
@@ -319,9 +352,7 @@ inline DataProcessorSpec getTPCFactorizeCMVSpec(
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCFactorizeCMVDevice>(lane, crus, timeframes, sendCCDB, usePreciseTimestamp, nTFsBuffer)},
     Options{
-      {"orbits-CMVs", VariantType::Int, 12, {"Number of orbits over which the CMVs are integrated"}},
-      {"dump-cmvs", VariantType::Bool, false, {"Dump CMVs to a local ROOT file for debugging"}},
-      {"add-offset-for-CCDB-timestamp", VariantType::Bool, false, {"Add an offset of 1 hour for the validity range of the CCDB objects"}}}};
+      {"dump-cmvs", VariantType::Bool, false, {"Dump CMVs to a local ROOT file for debugging"}}}};
 
   spec.rank = lane;
   return spec;

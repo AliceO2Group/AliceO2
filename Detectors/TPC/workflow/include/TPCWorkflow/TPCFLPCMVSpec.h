@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file TPCFLPIDCSpec.h
+/// @file TPCFLPCMVSpec.h
 /// @author Tuba Gündem, tuba.gundem@cern.ch
 /// @brief TPC device for processing CMVs on FLPs
 
@@ -17,6 +17,7 @@
 #define O2_TPCFLPIDCSPEC_H
 
 #include <vector>
+#include <unordered_map>
 #include <fmt/format.h>
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -49,9 +50,23 @@ class TPCFLPCMVDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    LOGP(info, "Processing CMVs for TF {} for CRUs {} to {}", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back());
+    LOGP(debug, "Processing CMVs for TF {} for CRUs {} to {}", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back());
 
     ++mCountTFsForBuffer;
+
+    // Capture heartbeatOrbit / heartbeatBC from the first TF in the buffer
+    if (mCountTFsForBuffer == 1) {
+      for (auto& ref : InputRecordWalker(pc.inputs(), mOrbitFilter)) {
+        auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+        const uint32_t cru = hdr->subSpecification >> 7;
+        if (mFirstOrbitBC.find(cru) == mFirstOrbitBC.end()) {
+          auto orbitVec = pc.inputs().get<std::vector<uint64_t>>(ref);
+          if (!orbitVec.empty()) {
+            mFirstOrbitBC[cru] = orbitVec[0]; // packed: orbit<<32 | bc
+          }
+        }
+      }
+    }
 
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -63,9 +78,10 @@ class TPCFLPCMVDevice : public o2::framework::Task
     if (mCountTFsForBuffer >= mNTFsBuffer) {
       mCountTFsForBuffer = 0;
       for (const auto cru : mCRUs) {
-        LOGP(info, "Sending CMVs of size {} for TF {}", mCMVs[cru].size(), processing_helpers::getCurrentTF(pc));
+        LOGP(debug, "Sending CMVs of size {} for TF {}", mCMVs[cru].size(), processing_helpers::getCurrentTF(pc));
         sendOutput(pc.outputs(), cru);
       }
+      mFirstOrbitBC.clear();
     }
 
     if (mDumpCMVs) {
@@ -92,6 +108,9 @@ class TPCFLPCMVDevice : public o2::framework::Task
 
   static constexpr header::DataDescription getDataDescriptionCMVGroup() { return header::DataDescription{"CMVGROUP"}; }
 
+  /// Data description for the packed (orbit<<32|bc) scalar forwarded alongside each CRU's CMVGROUP.
+  static constexpr header::DataDescription getDataDescriptionCMVOrbitInfo() { return header::DataDescription{"CMVORBITINFO"}; }
+
  private:
   const int mLane{};                                                ///< lane number of processor
   const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
@@ -99,11 +118,24 @@ class TPCFLPCMVDevice : public o2::framework::Task
   bool mDumpCMVs{};                                                 ///< dump CMVs to file for debugging
   int mCountTFsForBuffer{0};                                        ///< counts TFs to track when to send output
   std::unordered_map<unsigned int, o2::pmr::vector<float>> mCMVs{}; ///< buffered CMV vectors per CRU
+  std::unordered_map<uint32_t, uint64_t> mFirstOrbitBC{};           ///< first packed orbit/BC per CRU for the current buffer window
+
+  /// Filter for CMV float vectors (one CMVVECTOR message per CRU per TF)
   const std::vector<InputSpec> mFilter = {{"cmvs", ConcreteDataTypeMatcher{gDataOriginTPC, "CMVVECTOR"}, Lifetime::Timeframe}};
+  /// Filter for CMV packet timing info (one CMVORBITS message per CRU per TF, sent by CMVToVectorSpec)
+  const std::vector<InputSpec> mOrbitFilter = {{"cmvorbits", ConcreteDataTypeMatcher{gDataOriginTPC, "CMVORBITS"}, Lifetime::Timeframe}};
 
   void sendOutput(DataAllocator& output, const uint32_t cru)
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
+
+    // Forward the first-TF orbit/BC for this CRU (0 if unavailable for any reason)
+    uint64_t orbitBC = 0;
+    if (auto it = mFirstOrbitBC.find(cru); it != mFirstOrbitBC.end()) {
+      orbitBC = it->second;
+    }
+    output.snapshot(Output{gDataOriginTPC, getDataDescriptionCMVOrbitInfo(), subSpec}, orbitBC);
+
     output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionCMVGroup(), subSpec}, std::move(mCMVs[cru]));
   }
 };
@@ -117,8 +149,14 @@ DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::vector<uint32_t>&
 
   for (const auto& cru : crus) {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
+
+    // Inputs from CMVToVectorSpec
     inputSpecs.emplace_back(InputSpec{"cmvs", gDataOriginTPC, "CMVVECTOR", subSpec, Lifetime::Timeframe});
+    inputSpecs.emplace_back(InputSpec{"cmvorbits", gDataOriginTPC, "CMVORBITS", subSpec, Lifetime::Timeframe});
+
+    // Outputs to TPCDistributeCMVSpec
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(), subSpec}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo(), subSpec}, Lifetime::Sporadic);
   }
 
   const auto id = fmt::format("tpc-flp-cmv-{:02}", ilane);

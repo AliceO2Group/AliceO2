@@ -28,10 +28,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
-    {"lanes", VariantType::Int, defaultlanes, {"Number of parallel processing lanes (crus are split per device)."}},
-    {"time-lanes", VariantType::Int, 1, {"Number of parallel processing lanes (timeframes are split per device)."}},
+    {"lanes", VariantType::Int, defaultlanes, {"Number of parallel processing lanes (crus are split per device)"}},
+    {"time-lanes", VariantType::Int, 1, {"Number of parallel processing lanes (timeframes are split per device)"}},
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}},
-    {"n-TFs-buffer", VariantType::Int, 1, {"Buffer n-TFs before sending output."}},
+    {"n-TFs-buffer", VariantType::Int, 1, {"Buffer n-TFs before sending output"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);

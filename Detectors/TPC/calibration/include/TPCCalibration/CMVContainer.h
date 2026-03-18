@@ -11,7 +11,7 @@
 
 /// @file   CMVContainer.h
 /// @author Tuba Gündem, tuba.gundem@cern.ch
-/// @brief  Struct for storing CMVs to the CCDB
+/// @brief  Structs for storing CMVs to the CCDB
 
 #ifndef ALICEO2_TPC_CMVCONTAINER_H_
 #define ALICEO2_TPC_CMVCONTAINER_H_
@@ -19,57 +19,67 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <stdexcept>
+#include <fmt/format.h>
 
 #include "TTree.h"
+#include "DataFormatsTPC/CMV.h"
 
 namespace o2::tpc
 {
 
-/// CMVContainer: accumulator for one aggregation interval
-struct CMVContainer {
+/// CMV data for one TF across all CRUs
+struct CMVPerTF {
+  int64_t firstOrbit{0}; ///< First orbit of this TF, from heartbeatOrbit of the first CMV packet
+  int64_t firstBC{0};    ///< First bunch crossing of this TF, from heartbeatBC of the first CMV packet
 
-  uint32_t nTFs{0};  ///< number of TFs accumulated
-  uint32_t nCRUs{0}; ///< number of contributing CRUs
-  long firstTF{0};   ///< first TF counter in this aggregation interval
+  /// CMV float values indexed as [CRU ID][time bin]
+  std::vector<std::vector<float>> mDataPerTF;
 
-  std::vector<float> cmvValues{};  ///< CMV float values
-  std::vector<uint32_t> cru{};     ///< CRU indices
-  std::vector<uint32_t> timebin{}; ///< absolute timebins within the TF
-  std::vector<uint32_t> tf{};      ///< TF counters
+  /// Return the CMV value for a given CRU and time bin within this TF
+  float getCMV(const int cru, const int timeBin) const
+  {
+    if (cru < 0 || static_cast<std::size_t>(cru) >= mDataPerTF.size()) {
+      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: cru {} out of range [0, {})", cru, mDataPerTF.size()));
+    }
+    if (timeBin < 0 || static_cast<uint32_t>(timeBin) >= cmv::NTimeBinsPerTF) {
+      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: timeBin {} out of range [0, {})", timeBin, cmv::NTimeBinsPerTF));
+    }
+    return mDataPerTF[cru][timeBin];
+  }
 
-  /// Pre-allocate storage for the expected number of entries: expectedTFs × expectedCRUs × NTimeBinsPerTF
-  void reserve(uint32_t expectedTFs, uint32_t expectedCRUs);
+  ClassDefNV(CMVPerTF, 1)
+};
 
-  /// Append one (cmv, cru, timebin, tf) tuple
-  void addEntry(float cmvVal, uint32_t cruID, uint32_t tb, uint32_t tfCounter);
+/// Container holding CMVs for one aggregation interval
+struct CMVPerInterval {
+  int64_t firstTF{0}; ///< First TF counter seen in this interval
+  int64_t lastTF{0};  ///< Last TF counter seen in this interval
 
-  /// Append one full CRU packet (NTimeBinsPerPacket consecutive timebins)
-  /// \param packet    pointer to NTimeBinsPerPacket floats
-  /// \param cruID     CRU index
-  /// \param tbOffset  absolute timebin of the first sample in this packet
-  /// \param tfCounter TF counter
-  void addPacket(const float* packet, uint32_t cruID, uint32_t tbOffset, uint32_t tfCounter);
+  /// CMV data, one CMVPerTF entry per TF, indexed by relative TF [0, nTimeFrames)
+  std::vector<CMVPerTF> mCMVPerTF;
 
-  std::size_t size() const;
-  bool empty() const;
+  /// Pre-allocate nTFs TF slots; each slot gets mDataPerTF resized to nCRUs entries
+  void reserve(uint32_t nTFs, uint32_t nCRUs);
+
+  std::size_t size() const { return mCMVPerTF.size(); }
+  bool empty() const { return mCMVPerTF.empty(); }
 
   /// Clear all data and reset counters
   void clear();
 
   std::string summary() const;
 
-  /// Build an in-memory TTree with one branch per field and one entry per tuple
+  /// Serialise into a TTree with a single branch holding the whole CMVPerInterval object
   std::unique_ptr<TTree> toTTree() const;
 
-  /// Write the container as a TTree inside a TFile on disk
-  /// \param filename  path to the output ROOT file
-  /// \param tree  tree of the container
+  /// Write the TTree to a ROOT file
   void writeToFile(const std::string& filename, const std::unique_ptr<TTree>& tree) const;
 
-  /// Restore a CMVContainer from a TTree previously written by toTTree()
-  static CMVContainer fromTTree(TTree* tree, int entry = 0);
+  /// Restore a CMVPerInterval from a TTree previously written by toTTree()
+  static CMVPerInterval fromTTree(TTree* tree, int entry = 0);
 
-  ClassDefNV(CMVContainer, 1)
+  ClassDefNV(CMVPerInterval, 1)
 };
 
 } // namespace o2::tpc

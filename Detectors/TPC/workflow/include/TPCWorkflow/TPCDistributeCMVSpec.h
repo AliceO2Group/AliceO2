@@ -41,12 +41,24 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 {
  public:
   TPCDistributeCMVSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const int nTFsBuffer, const unsigned int outlanes, const int firstTF, std::shared_ptr<o2::base::GRPGeomRequest> req)
-    : mCRUs{crus}, mTimeFrames{timeframes}, mNTFsBuffer{nTFsBuffer}, mOutLanes{outlanes}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mCCDBRequest(req), mSendCCDBOutputOrbitReset(outlanes), mSendCCDBOutputGRPECS(outlanes)
+    : mCRUs{crus},
+      mTimeFrames{timeframes},
+      mNTFsBuffer{nTFsBuffer},
+      mOutLanes{outlanes},
+      mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}},
+      mTFStart{{firstTF, firstTF + timeframes}},
+      mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}},
+      mCCDBRequest(req),
+      mSendCCDBOutputOrbitReset(outlanes),
+      mSendCCDBOutputGRPECS(outlanes),
+      mOrbitInfoForwarded{{std::vector<bool>(timeframes, false), std::vector<bool>(timeframes, false)}}
   {
-    // pre calculate data description for output
+    // pre-calculate data descriptions for output
     mDataDescrOut.reserve(mOutLanes);
+    mOrbitDescrOut.reserve(mOutLanes);
     for (unsigned int i = 0; i < mOutLanes; ++i) {
       mDataDescrOut.emplace_back(getDataDescriptionCMV(i));
+      mOrbitDescrOut.emplace_back(getDataDescriptionCMVOrbitInfo(i));
     }
 
     // sort vector for binary_search
@@ -63,6 +75,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     }
 
     mFilter.emplace_back(InputSpec{"cmvsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup()}, Lifetime::Sporadic});
+    mOrbitFilter.emplace_back(InputSpec{"cmvorbit", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo()}, Lifetime::Sporadic});
   };
 
   void init(o2::framework::InitContext& ic) final
@@ -163,6 +176,24 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionCMVOrbitReset(), header::DataHeader::SubSpecificationType{currentOutLane}}, dataformats::Pair<long, int>{o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS(), o2::base::GRPGeomHelper::instance().getNHBFPerTF()});
     }
 
+    // Forward orbit/BC info once per relTF per output lane.
+    // All CRUs within a TF carry identical timing, so the first one is sufficient.
+    if (!mOrbitInfoForwarded[currentBuffer][relTF]) {
+      for (auto& ref : InputRecordWalker(pc.inputs(), mOrbitFilter)) {
+        auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+        const unsigned int cru = hdr->subSpecification >> 7;
+        if (std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
+          const auto orbitBC = pc.inputs().get<uint64_t>(ref);
+          pc.outputs().snapshot(
+            Output{gDataOriginTPC, mOrbitDescrOut[currentOutLane],
+                   header::DataHeader::SubSpecificationType{relTF}},
+            orbitBC);
+          mOrbitInfoForwarded[currentBuffer][relTF] = true;
+          break; // one per relTF is enough
+        }
+      }
+    }
+
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
@@ -205,10 +236,19 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final { ec.services().get<ControlService>().readyToQuit(QuitRequest::Me); }
 
-  /// return data description for aggregated CMVs for given lane
+  /// Return data description for aggregated CMVs for a given lane
   static header::DataDescription getDataDescriptionCMV(const unsigned int lane)
   {
     const std::string name = fmt::format("CMVAGG{}", lane).data();
+    header::DataDescription description;
+    description.runtimeInit(name.substr(0, 16).c_str());
+    return description;
+  }
+
+  /// return data description for orbit/BC info for a given output lane
+  static header::DataDescription getDataDescriptionCMVOrbitInfo(const unsigned int lane)
+  {
+    const std::string name = fmt::format("CMVORB{}", lane);
     header::DataDescription description;
     description.runtimeInit(name.substr(0, 16).c_str());
     return description;
@@ -239,7 +279,10 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   long mProcessedTotalData{0};                                                         ///< used to check for dropeed TF data
   int mCheckEveryNData{1};                                                             ///< factor after which to check for missing data (in case data missing -> send dummy data)
   std::vector<InputSpec> mFilter{};                                                    ///< filter for looping over input data
+  std::vector<InputSpec> mOrbitFilter{};                                               ///< filter for CMVORBITINFO from FLP
   std::vector<header::DataDescription> mDataDescrOut{};
+  std::vector<header::DataDescription> mOrbitDescrOut{};  ///< per-lane orbit info data descriptions
+  std::array<std::vector<bool>, 2> mOrbitInfoForwarded{}; ///< tracks whether orbit/BC has been forwarded per (buffer, relTF)
 
   void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru, o2::pmr::vector<float> cmvs)
   {
@@ -263,6 +306,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     mProcessedTFs[currentBuffer] = 0; // reset processed TFs for next aggregation interval
     std::fill(mProcessedCRU[currentBuffer].begin(), mProcessedCRU[currentBuffer].end(), 0);
+    std::fill(mOrbitInfoForwarded[currentBuffer].begin(), mOrbitInfoForwarded[currentBuffer].end(), false);
 
     // set integration range for next integration interval
     mTFStart[mBuffer] = mTFEnd[!mBuffer] + 1;
@@ -311,6 +355,15 @@ class TPCDistributeCMVSpec : public o2::framework::Task
             sendOutput(pc, outLane, it.first, pmr::vector<float>());
           }
         }
+
+        // send a zero orbit/BC placeholder so the factorize slot is not left uninitialised
+        if (!mOrbitInfoForwarded[currentBuffer][iTF]) {
+          pc.outputs().snapshot(
+            Output{gDataOriginTPC, mOrbitDescrOut[outLane],
+                   header::DataHeader::SubSpecificationType{static_cast<uint32_t>(iTF)}},
+            uint64_t{0});
+          mOrbitInfoForwarded[currentBuffer][iTF] = true;
+        }
       }
     }
   }
@@ -339,12 +392,14 @@ DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uin
 {
   std::vector<InputSpec> inputSpecs;
   inputSpecs.emplace_back(InputSpec{"cmvsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup()}, Lifetime::Sporadic});
+  inputSpecs.emplace_back(InputSpec{"cmvorbit", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo()}, Lifetime::Sporadic});
 
   std::vector<OutputSpec> outputSpecs;
-  outputSpecs.reserve(outlanes);
+  outputSpecs.reserve(outlanes * 3); // CMV + firstTF + orbitInfo per lane
   for (unsigned int lane = 0; lane < outlanes; ++lane) {
     outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMV(lane)}, Lifetime::Sporadic);
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMVFirstTF(), header::DataHeader::SubSpecificationType{lane}}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMVOrbitInfo(lane)}, Lifetime::Sporadic);
   }
 
   bool fetchCCDB = false;
