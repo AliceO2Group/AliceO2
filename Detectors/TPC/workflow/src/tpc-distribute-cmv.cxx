@@ -38,9 +38,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"firstTF", VariantType::Int, -1, {"First time frame index. (if set to -1 the first TF will be automatically detected. Values < -1 are setting an offset for skipping the first TFs)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"lanes", VariantType::Int, 1, {"Number of lanes of this device (CRUs are split per lane)"}},
-    {"send-precise-timestamp", VariantType::Bool, false, {"Send precise timestamp which can be used for writing to CCDB"}},
-    {"n-TFs-buffer", VariantType::Int, 1, {"Buffer which was defined in the TPCFLPCMVSpec."}},
-    {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}}};
+    {"use-precise-timestamp", VariantType::Bool, false, {"Use precise timestamp which can be used for writing to CCDB"}},
+    {"enable-CCDB-output", VariantType::Bool, false, {"Send output to the CCDB populator"}},
+    {"n-TFs-buffer", VariantType::Int, 1, {"Buffer which was defined in the TPCFLPCMVSpec."}}};
   std::swap(workflowOptions, options);
 }
 
@@ -57,10 +57,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));
   const auto nCRUs = tpcCRUs.size();
   auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
-  const auto outlanes = static_cast<unsigned int>(config.options().get<int>("output-lanes"));
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("lanes"));
   const auto firstTF = static_cast<unsigned int>(config.options().get<int>("firstTF"));
-  const bool sendPrecisetimeStamp = config.options().get<bool>("send-precise-timestamp");
+  const bool usePreciseTimestamp = config.options().get<bool>("use-precise-timestamp");
+  const bool sendCCDB = config.options().get<bool>("enable-CCDB-output");
   int nTFsBuffer = config.options().get<int>("n-TFs-buffer");
   if (nTFsBuffer <= 0) {
     nTFsBuffer = 1;
@@ -77,7 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(getTPCDistributeCMVSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, sendPrecisetimeStamp, nTFsBuffer));
+    workflow.emplace_back(getTPCDistributeCMVSpec(ilane, rangeCRUs, timeframes, firstTF, sendCCDB, usePreciseTimestamp, nTFsBuffer));
   }
 
   return workflow;

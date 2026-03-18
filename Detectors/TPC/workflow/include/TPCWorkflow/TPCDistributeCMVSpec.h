@@ -17,11 +17,14 @@
 #define O2_TPCDISTRIBUTECMVSPEC_H
 
 #include <vector>
+#include <chrono>
+#include <fmt/format.h>
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataTakingContext.h"
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCWorkflow/TPCFLPCMVSpec.h"
@@ -29,6 +32,11 @@
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonDataFormat/Pair.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/CcdbObjectInfo.h"
+#include "DetectorsCalibration/Utils.h"
+#include "TPCCalibration/CMVContainer.h"
+#include "DataFormatsTPC/CMV.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -40,27 +48,20 @@ namespace o2::tpc
 class TPCDistributeCMVSpec : public o2::framework::Task
 {
  public:
-  TPCDistributeCMVSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const int nTFsBuffer, const unsigned int outlanes, const int firstTF, std::shared_ptr<o2::base::GRPGeomRequest> req)
+  TPCDistributeCMVSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const int nTFsBuffer, const int firstTF, const bool sendCCDB, const bool usePreciseTimestamp, std::shared_ptr<o2::base::GRPGeomRequest> req)
     : mCRUs{crus},
       mTimeFrames{timeframes},
       mNTFsBuffer{nTFsBuffer},
-      mOutLanes{outlanes},
       mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}},
       mTFStart{{firstTF, firstTF + timeframes}},
       mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}},
       mCCDBRequest(req),
-      mSendCCDBOutputOrbitReset(outlanes),
-      mSendCCDBOutputGRPECS(outlanes),
+      mSendCCDB{sendCCDB},
+      mUsePreciseTimestamp{usePreciseTimestamp},
+      mSendCCDBOutputOrbitReset(1),
+      mSendCCDBOutputGRPECS(1),
       mOrbitInfoForwarded{{std::vector<bool>(timeframes, false), std::vector<bool>(timeframes, false)}}
   {
-    // pre-calculate data descriptions for output
-    mDataDescrOut.reserve(mOutLanes);
-    mOrbitDescrOut.reserve(mOutLanes);
-    for (unsigned int i = 0; i < mOutLanes; ++i) {
-      mDataDescrOut.emplace_back(getDataDescriptionCMV(i));
-      mOrbitDescrOut.emplace_back(getDataDescriptionCMVOrbitInfo(i));
-    }
-
     // sort vector for binary_search
     std::sort(mCRUs.begin(), mCRUs.end());
 
@@ -76,6 +77,9 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     mFilter.emplace_back(InputSpec{"cmvsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup()}, Lifetime::Sporadic});
     mOrbitFilter.emplace_back(InputSpec{"cmvorbit", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo()}, Lifetime::Sporadic});
+
+    // Pre-allocate CMVPerInterval storage
+    mInterval.reserve(mTimeFrames, static_cast<uint32_t>(mCRUs.size()));
   };
 
   void init(o2::framework::InitContext& ic) final
@@ -91,6 +95,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       }
       mNTFsDataDrop = mCheckEveryNData;
     }
+    mDumpCMVs = ic.options().get<bool>("dump-cmvs");
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
@@ -112,7 +117,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    // send orbit reset and orbits per TF only once
+    // capture orbit-reset info once for precise CCDB timestamp calculation
     if (mCCDBRequest->askTime) {
       const bool grpecsValid = pc.inputs().isValid("grpecs");
       const bool orbitResetValid = pc.inputs().isValid("orbitReset");
@@ -124,6 +129,12 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       }
       if (pc.inputs().countValidInputs() == (grpecsValid + orbitResetValid)) {
         return;
+      }
+      // Update mTFInfo from GRPGeomHelper whenever orbit-reset or GRPECS objects are fresh
+      if (mSendCCDBOutputOrbitReset[0] && mSendCCDBOutputGRPECS[0]) {
+        mSendCCDBOutputOrbitReset[0] = false;
+        mSendCCDBOutputGRPECS[0] = false;
+        mTFInfo = dataformats::Pair<long, int>{o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS(), o2::base::GRPGeomHelper::instance().getNHBFPerTF()};
       }
     }
 
@@ -147,16 +158,15 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       return;
     }
 
-    const unsigned int currentOutLane = getOutLane(tf);
     const unsigned int relTF = (tf - mTFStart[currentBuffer]) / mNTFsBuffer;
-    LOGP(info, "Current TF: {}, relative TF: {}, current buffer: {}, current output lane: {}, mTFStart: {}", tf, relTF, currentBuffer, currentOutLane, mTFStart[currentBuffer]);
+    LOGP(info, "Current TF: {}, relative TF: {}, current buffer: {}, mTFStart: {}", tf, relTF, currentBuffer, mTFStart[currentBuffer]);
 
     if (relTF >= mProcessedCRU[currentBuffer].size()) {
       LOGP(warning, "Skipping tf {}: relative tf {} is larger than size of buffer: {}", tf, relTF, mProcessedCRU[currentBuffer].size());
 
       // check number of processed CRUs for previous TFs. If CRUs are missing for them, they are probably lost/not received
       mProcessedTotalData = mCheckEveryNData;
-      checkIntervalsForMissingData(pc, currentBuffer, relTF, currentOutLane, tf);
+      checkIntervalsForMissingData(pc, currentBuffer, relTF, tf);
       return;
     }
 
@@ -164,19 +174,17 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       return;
     }
 
-    // send start info only once
-    if (mSendOutputStartInfo[currentBuffer]) {
-      mSendOutputStartInfo[currentBuffer] = false;
-      pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionCMVFirstTF(), header::DataHeader::SubSpecificationType{currentOutLane}}, mTFStart[currentBuffer]);
+    // Record the absolute first TF of this aggregation interval
+    if (mInterval.firstTF == 0) {
+      mInterval.firstTF = mTFStart[currentBuffer];
     }
 
-    if (mSendCCDBOutputOrbitReset[currentOutLane] && mSendCCDBOutputGRPECS[currentOutLane]) {
-      mSendCCDBOutputOrbitReset[currentOutLane] = false;
-      mSendCCDBOutputGRPECS[currentOutLane] = false;
-      pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionCMVOrbitReset(), header::DataHeader::SubSpecificationType{currentOutLane}}, dataformats::Pair<long, int>{o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS(), o2::base::GRPGeomHelper::instance().getNHBFPerTF()});
+    // Set CCDB start timestamp once at the start of each aggregation interval
+    if (mTimestampStart == 0) {
+      setTimestampCCDB(relTF, pc);
     }
 
-    // Forward orbit/BC info once per relTF per output lane.
+    // Capture orbit/BC info into the interval once per relTF.
     // All CRUs within a TF carry identical timing, so the first one is sufficient.
     if (!mOrbitInfoForwarded[currentBuffer][relTF]) {
       for (auto& ref : InputRecordWalker(pc.inputs(), mOrbitFilter)) {
@@ -184,10 +192,11 @@ class TPCDistributeCMVSpec : public o2::framework::Task
         const unsigned int cru = hdr->subSpecification >> 7;
         if (std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
           const auto orbitBC = pc.inputs().get<uint64_t>(ref);
-          pc.outputs().snapshot(
-            Output{gDataOriginTPC, mOrbitDescrOut[currentOutLane],
-                   header::DataHeader::SubSpecificationType{relTF}},
-            orbitBC);
+          auto& tfData = mInterval.mCMVPerTF[relTF];
+          if (tfData.firstOrbit == 0 && tfData.firstBC == 0) {
+            tfData.firstOrbit = static_cast<int64_t>(orbitBC >> 32);
+            tfData.firstBC = static_cast<int64_t>(orbitBC & 0xFFFFu);
+          }
           mOrbitInfoForwarded[currentBuffer][relTF] = true;
           break; // one per relTF is enough
         }
@@ -214,15 +223,16 @@ class TPCDistributeCMVSpec : public o2::framework::Task
         mProcessedCRUs[currentBuffer][relTF][cru] = true;
       }
 
-      // sending CMVs
-      sendOutput(pc, currentOutLane, cru, pc.inputs().get<pmr::vector<float>>(ref));
+      // accumulate CMVs into the interval
+      auto cmvVec = pc.inputs().get<pmr::vector<float>>(ref);
+      mInterval.mCMVPerTF[relTF].mDataPerTF[cru].assign(cmvVec.begin(), cmvVec.end());
     }
 
     LOGP(info, "Number of received CRUs for current TF: {} Needed a total number of processed CRUs of: {} Current TF: {}", mProcessedCRU[currentBuffer][relTF], mCRUs.size(), tf);
 
     // check for missing data if specified
     if (mNTFsDataDrop > 0) {
-      checkIntervalsForMissingData(pc, currentBuffer, relTF, currentOutLane, tf);
+      checkIntervalsForMissingData(pc, currentBuffer, relTF, tf);
     }
 
     if (mProcessedCRU[currentBuffer][relTF] == mCRUs.size()) {
@@ -230,11 +240,20 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     }
 
     if (mProcessedTFs[currentBuffer] == mTimeFrames) {
-      finishInterval(pc, currentOutLane, currentBuffer, tf);
+      mInterval.lastTF = tf;
+      sendOutput(pc.outputs(), tf);
+      finishInterval(pc, currentBuffer, tf);
     }
   }
 
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final { ec.services().get<ControlService>().readyToQuit(QuitRequest::Me); }
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  {
+    LOGP(info, "End of stream, flushing CMV interval ({} TFs)", mInterval.size());
+    sendOutput(ec.outputs(), 0);
+    ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
+
+  static constexpr header::DataDescription getDataDescriptionCCDBCMV() { return header::DataDescription{"TPC_CMV"}; }
 
   /// Return data description for aggregated CMVs for a given lane
   static header::DataDescription getDataDescriptionCMV(const unsigned int lane)
@@ -261,18 +280,21 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   std::vector<uint32_t> mCRUs{};                                                       ///< CRUs to process in this instance
   const unsigned int mTimeFrames{};                                                    ///< number of TFs per aggregation interval
   const int mNTFsBuffer{1};                                                            ///< number of TFs for which the CMVs will be buffered
-  const unsigned int mOutLanes{};                                                      ///< number of output lanes
   std::array<unsigned int, 2> mProcessedTFs{{0, 0}};                                   ///< number of processed time frames to keep track of when the writing to CCDB will be done
   std::array<std::vector<unsigned int>, 2> mProcessedCRU{};                            ///< counter of received data from CRUs per TF to merge incoming data from FLPs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
   std::array<std::vector<std::unordered_map<unsigned int, bool>>, 2> mProcessedCRUs{}; ///< to keep track of the already processed CRUs ([buffer][relTF][CRU])
   std::array<long, 2> mTFStart{};                                                      ///< storing of first TF for buffer interval
   std::array<long, 2> mTFEnd{};                                                        ///< storing of last TF for buffer interval
-  std::array<bool, 2> mSendOutputStartInfo{true, true};                                ///< flag for sending the info for the start of the aggregation interval
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                              ///< info for CCDB request
   std::vector<bool> mSendCCDBOutputOrbitReset{};                                       ///< flag for received orbit reset time from CCDB
   std::vector<bool> mSendCCDBOutputGRPECS{};                                           ///< flag for received orbit GRPECS from CCDB
-  unsigned int mCurrentOutLane{0};                                                     ///< index for keeping track of the current output lane
   bool mBuffer{false};                                                                 ///< buffer index
+  const bool mSendCCDB{false};                                                         ///< send output to CCDB populator
+  const bool mUsePreciseTimestamp{false};                                              ///< use precise timestamp from orbit-reset info
+  bool mDumpCMVs{false};                                                               ///< write a local ROOT debug file
+  long mTimestampStart{0};                                                             ///< CCDB validity start timestamp
+  dataformats::Pair<long, int> mTFInfo{};                                              ///< orbit-reset time and NHBFPerTF for precise timestamp
+  CMVPerInterval mInterval{};                                                          ///< accumulated CMV data for the current aggregation interval
   int mNFactorTFs{0};                                                                  ///< Number of TFs to skip for sending oldest TF
   int mNTFsDataDrop{0};                                                                ///< delay for the check if TFs are missing in TF units
   std::array<int, 2> mStartNTFsDataDrop{0};                                            ///< first relative TF to check
@@ -280,17 +302,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   int mCheckEveryNData{1};                                                             ///< factor after which to check for missing data (in case data missing -> send dummy data)
   std::vector<InputSpec> mFilter{};                                                    ///< filter for looping over input data
   std::vector<InputSpec> mOrbitFilter{};                                               ///< filter for CMVORBITINFO from FLP
-  std::vector<header::DataDescription> mDataDescrOut{};
-  std::vector<header::DataDescription> mOrbitDescrOut{};  ///< per-lane orbit info data descriptions
-  std::array<std::vector<bool>, 2> mOrbitInfoForwarded{}; ///< tracks whether orbit/BC has been forwarded per (buffer, relTF)
-
-  void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru, o2::pmr::vector<float> cmvs)
-  {
-    pc.outputs().adoptContainer(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, std::move(cmvs));
-  }
-
-  /// returns the output lane to which the data will be send
-  unsigned int getOutLane(const uint32_t tf) const { return (tf > mTFEnd[mBuffer]) ? (mCurrentOutLane + 1) % mOutLanes : mCurrentOutLane; }
+  std::array<std::vector<bool>, 2> mOrbitInfoForwarded{};                              ///< tracks whether orbit/BC has been captured per (buffer, relTF)
 
   /// returns real number of TFs taking buffer size into account
   unsigned int getNRealTFs() const { return mNTFsBuffer * mTimeFrames; }
@@ -314,12 +326,9 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     // switch buffer
     mBuffer = !mBuffer;
-
-    // set output lane
-    mCurrentOutLane = ++mCurrentOutLane % mOutLanes;
   }
 
-  void checkIntervalsForMissingData(o2::framework::ProcessingContext& pc, const bool currentBuffer, const long relTF, const unsigned int currentOutLane, const uint32_t tf)
+  void checkIntervalsForMissingData(o2::framework::ProcessingContext& pc, const bool currentBuffer, const long relTF, const uint32_t tf)
   {
     if (!(mProcessedTotalData++ % mCheckEveryNData)) {
       LOGP(info, "Checking for dropped packages...");
@@ -327,89 +336,169 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       // if last buffer has smaller time range check the whole last buffer
       if ((mTFStart[currentBuffer] > mTFStart[!currentBuffer]) && (relTF > mNTFsDataDrop)) {
         LOGP(warning, "Checking last buffer from {} to {}", mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size());
-        const unsigned int lastLane = (currentOutLane == 0) ? (mOutLanes - 1) : (currentOutLane - 1);
-        checkMissingData(pc, !currentBuffer, mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size(), lastLane);
+        checkMissingData(pc, !currentBuffer, mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size());
         LOGP(info, "All empty TFs for TF {} for current buffer filled with dummy and sent. Clearing buffer", tf);
-        finishInterval(pc, lastLane, !currentBuffer, tf);
+        mInterval.lastTF = tf;
+        sendOutput(pc.outputs(), tf);
+        finishInterval(pc, !currentBuffer, tf);
       }
 
       const int tfEndCheck = std::clamp(static_cast<int>(relTF) - mNTFsDataDrop, 0, static_cast<int>(mProcessedCRU[currentBuffer].size()));
       LOGP(info, "Checking current buffer from {} to {}", mStartNTFsDataDrop[currentBuffer], tfEndCheck);
-      checkMissingData(pc, currentBuffer, mStartNTFsDataDrop[currentBuffer], tfEndCheck, currentOutLane);
+      checkMissingData(pc, currentBuffer, mStartNTFsDataDrop[currentBuffer], tfEndCheck);
       mStartNTFsDataDrop[currentBuffer] = tfEndCheck;
     }
   }
 
-  void checkMissingData(o2::framework::ProcessingContext& pc, const bool currentBuffer, const int startTF, const int endTF, const unsigned int outLane)
+  void checkMissingData(o2::framework::ProcessingContext& pc, const bool currentBuffer, const int startTF, const int endTF)
   {
     for (int iTF = startTF; iTF < endTF; ++iTF) {
       if (mProcessedCRU[currentBuffer][iTF] != mCRUs.size()) {
-        LOGP(warning, "CRUs for lane {}  rel. TF: {}  curr TF {} are missing! Processed {} CRUs out of {}", outLane, iTF, mTFStart[currentBuffer] + iTF, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
+        LOGP(warning, "CRUs for rel. TF: {}  curr TF {} are missing! Processed {} CRUs out of {}", iTF, mTFStart[currentBuffer] + iTF, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
         ++mProcessedTFs[currentBuffer];
         mProcessedCRU[currentBuffer][iTF] = mCRUs.size();
 
-        // find missing CRUs
+        // find missing CRUs and leave their interval slots empty (zero-filled)
         for (auto& it : mProcessedCRUs[currentBuffer][iTF]) {
           if (!it.second) {
             it.second = true;
-            sendOutput(pc, outLane, it.first, pmr::vector<float>());
           }
         }
 
-        // send a zero orbit/BC placeholder so the factorize slot is not left uninitialised
-        if (!mOrbitInfoForwarded[currentBuffer][iTF]) {
-          pc.outputs().snapshot(
-            Output{gDataOriginTPC, mOrbitDescrOut[outLane],
-                   header::DataHeader::SubSpecificationType{static_cast<uint32_t>(iTF)}},
-            uint64_t{0});
-          mOrbitInfoForwarded[currentBuffer][iTF] = true;
-        }
+        // leave orbit/BC as zero placeholder for missing TFs
+        mOrbitInfoForwarded[currentBuffer][iTF] = true;
       }
     }
   }
 
-  void finishInterval(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const bool buffer, const uint32_t tf)
+  void finishInterval(o2::framework::ProcessingContext& pc, const bool buffer, const uint32_t tf)
   {
     if (mNFactorTFs > 0) {
       mNFactorTFs = 0;
       // ToDo: Find better fix
-      for (unsigned int ilane = 0; ilane < mOutLanes; ++ilane) {
-        auto& deviceProxy = pc.services().get<FairMQDeviceProxy>();
-        auto& state = deviceProxy.getOutputChannelState({static_cast<int>(ilane)});
-        size_t oldest = std::numeric_limits<size_t>::max() - 1; // just set to really large value
-        state.oldestForChannel = {oldest};
-      }
+      auto& deviceProxy = pc.services().get<FairMQDeviceProxy>();
+      auto& state = deviceProxy.getOutputChannelState({0});
+      size_t oldest = std::numeric_limits<size_t>::max() - 1; // just set to really large value
+      state.oldestForChannel = {oldest};
     }
 
     LOGP(info, "All TFs {} for current buffer received. Clearing buffer", tf);
     clearBuffer(buffer);
     mStartNTFsDataDrop[buffer] = 0;
-    mSendOutputStartInfo[buffer] = true;
+
+    // Reset per-interval state for the next aggregation interval
+    mInterval.clear();
+    mInterval.reserve(mTimeFrames, static_cast<uint32_t>(mCRUs.size()));
+    mTimestampStart = 0;
+    LOGP(info, "Everything cleared. Waiting for new data to arrive.");
+  }
+
+  void setTimestampCCDB(const long relTF, o2::framework::ProcessingContext& pc)
+  {
+    if (mUsePreciseTimestamp && !mTFInfo.second) {
+      return;
+    }
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    const auto nOrbitsOffset = (relTF * mNTFsBuffer + (mNTFsBuffer - 1)) * mTFInfo.second;
+    mTimestampStart = mUsePreciseTimestamp
+                        ? (mTFInfo.first + (tinfo.firstTForbit - nOrbitsOffset) * o2::constants::lhc::LHCOrbitMUS * 0.001)
+                        : tinfo.creation;
+    LOGP(info, "Setting timestamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}, nOrbitsOffset: {}",
+         mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, mTFInfo.second, relTF, nOrbitsOffset);
+  }
+
+  void sendOutput(DataAllocator& output, const uint32_t tf)
+  {
+    using timer = std::chrono::high_resolution_clock;
+
+    if (mInterval.empty()) {
+      LOGP(warning, "CMV interval is empty at sendOutput, skipping");
+      return;
+    }
+
+    // Check if any CRU actually wrote data into this interval
+    const bool hasData = std::any_of(mInterval.mCMVPerTF.begin(), mInterval.mCMVPerTF.end(),
+                                     [](const CMVPerTF& tfd) {
+                                       return std::any_of(tfd.mDataPerTF.begin(), tfd.mDataPerTF.end(),
+                                                          [](const std::vector<float>& v) { return !v.empty(); });
+                                     });
+    if (!hasData) {
+      LOGP(warning, "CMV interval has no data at sendOutput, skipping");
+      return;
+    }
+
+    LOGP(info, "{}", mInterval.summary());
+    auto start = timer::now();
+    auto tree = mInterval.toTTree();
+
+    // Write local ROOT file for debugging
+    if (mDumpCMVs) {
+      const std::string fname = fmt::format("CMV_timestamp{}.root", mTimestampStart);
+      try {
+        mInterval.writeToFile(fname, tree);
+        LOGP(info, "CMV debug file written to {}", fname);
+      } catch (const std::exception& e) {
+        LOGP(error, "Failed to write CMV debug file: {}", e.what());
+      }
+    }
+
+    if (!mSendCCDB) {
+      LOGP(warning, "CCDB output disabled, skipping upload!");
+      return;
+    }
+
+    const int nHBFPerTF = o2::base::GRPGeomHelper::instance().getNHBFPerTF();
+    const long timeStampEnd = mTimestampStart + static_cast<long>(mTimeFrames * mNTFsBuffer * nHBFPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+
+    if (timeStampEnd <= mTimestampStart) {
+      LOGP(warning, "Invalid CCDB timestamp range start:{} end:{}, skipping upload!",
+           mTimestampStart, timeStampEnd);
+      return;
+    }
+
+    LOGP(info, "CCDB timestamp range start:{} end:{}", mTimestampStart, timeStampEnd);
+
+    o2::ccdb::CcdbObjectInfo ccdbInfoCMV(
+      "TPC/Calib/CMV",
+      "TTree",
+      "CMV.root",
+      {},
+      mTimestampStart,
+      timeStampEnd);
+
+    auto image = o2::ccdb::CcdbApi::createObjectImage((tree.get()), &ccdbInfoCMV);
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {}",
+         ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(),
+         ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
+
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBCMV(), 0}, *image);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBCMV(), 0}, ccdbInfoCMV);
+
+    auto stop = timer::now();
+    std::chrono::duration<float> elapsed = stop - start;
+    LOGP(info, "CMV CCDB serialisation time: {:.3f} s", elapsed.count());
   }
 };
 
-DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool sendPrecisetimeStamp = false, const int nTFsBuffer = 1)
+DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const int firstTF, const bool sendCCDB = false, const bool usePreciseTimestamp = false, const int nTFsBuffer = 1)
 {
   std::vector<InputSpec> inputSpecs;
   inputSpecs.emplace_back(InputSpec{"cmvsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup()}, Lifetime::Sporadic});
   inputSpecs.emplace_back(InputSpec{"cmvorbit", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo()}, Lifetime::Sporadic});
 
   std::vector<OutputSpec> outputSpecs;
-  outputSpecs.reserve(outlanes * 3); // CMV + firstTF + orbitInfo per lane
-  for (unsigned int lane = 0; lane < outlanes; ++lane) {
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMV(lane)}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMVFirstTF(), header::DataHeader::SubSpecificationType{lane}}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMVOrbitInfo(lane)}, Lifetime::Sporadic);
+  if (sendCCDB) {
+    outputSpecs.emplace_back(
+      ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload,
+                              TPCDistributeCMVSpec::getDataDescriptionCCDBCMV()},
+      Lifetime::Sporadic);
+    outputSpecs.emplace_back(
+      ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper,
+                              TPCDistributeCMVSpec::getDataDescriptionCCDBCMV()},
+      Lifetime::Sporadic);
   }
 
-  bool fetchCCDB = false;
-  if (sendPrecisetimeStamp && (ilane == 0)) {
-    fetchCCDB = true;
-    for (unsigned int lane = 0; lane < outlanes; ++lane) {
-      outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCDistributeCMVSpec::getDataDescriptionCMVOrbitReset(), header::DataHeader::SubSpecificationType{lane}}, Lifetime::Sporadic);
-    }
-  }
-
+  const bool fetchCCDB = usePreciseTimestamp;
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(fetchCCDB,                      // orbitResetTime
                                                                 fetchCCDB,                      // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -424,10 +513,11 @@ DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uin
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCDistributeCMVSpec>(crus, timeframes, nTFsBuffer, outlanes, firstTF, ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<TPCDistributeCMVSpec>(crus, timeframes, nTFsBuffer, firstTF, sendCCDB, usePreciseTimestamp, ccdbRequest)},
     Options{{"drop-data-after-nTFs", VariantType::Int, 0, {"Number of TFs after which to drop the data."}},
             {"check-data-every-n", VariantType::Int, 0, {"Number of run function called after which to check for missing data (-1 for no checking, 0 for default checking)."}},
-            {"nFactorTFs", VariantType::Int, 1000, {"Number of TFs to skip for sending oldest TF."}}}}; // end DataProcessorSpec
+            {"nFactorTFs", VariantType::Int, 1000, {"Number of TFs to skip for sending oldest TF."}},
+            {"dump-cmvs", VariantType::Bool, false, {"Dump CMVs to a local ROOT file for debugging"}}}}; // end DataProcessorSpec
   spec.rank = ilane;
   return spec;
 }
