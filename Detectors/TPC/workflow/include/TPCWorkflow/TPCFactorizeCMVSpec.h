@@ -221,10 +221,10 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
 
     // Check if any CRU actually wrote data into this interval
     const bool hasData = std::any_of(mInterval.mCMVPerTF.begin(), mInterval.mCMVPerTF.end(),
-    [](const CMVPerTF& tf) {
-      return std::any_of(tf.mDataPerTF.begin(), tf.mDataPerTF.end(),
-                        [](const std::vector<float>& v) { return !v.empty(); });
-    });
+                                     [](const CMVPerTF& tf) {
+                                       return std::any_of(tf.mDataPerTF.begin(), tf.mDataPerTF.end(),
+                                                          [](const std::vector<float>& v) { return !v.empty(); });
+                                     });
     if (!hasData) {
       LOGP(warning, "CMV interval has no data at sendOutput (lane {}), skipping", mLaneId);
       reset();
@@ -261,7 +261,7 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
     }
 
     LOGP(info, "CCDB timestamp range start:{} end:{}", mTimestampStart, timeStampEnd);
-      
+
     o2::ccdb::CcdbObjectInfo ccdbInfoCMV(
       "TPC/Calib/CMV",
       "TTree",
@@ -272,8 +272,8 @@ class TPCFactorizeCMVDevice : public o2::framework::Task
 
     auto image = o2::ccdb::CcdbApi::createObjectImage((tree.get()), &ccdbInfoCMV);
     LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {}",
-          ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(),
-          ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
+         ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(),
+         ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
 
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBCMV(), 0}, *image);
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBCMV(), 0}, ccdbInfoCMV);
