@@ -122,4 +122,9 @@ o2_add_test_root_macro(CheckDROF.C
 o2_add_test_root_macro(CheckStaggering.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsITS
                                              O2::DataFormatsITSMFT
-                       LABELS its)
+                                             O2::ITSMFTReconstruction
+                                             O2::DCAFitter
+                                             O2::CCDB
+                                             O2::DetectorsVertexing
+                                             O2::ReconstructionDataFormats
+                       LABELS its COMPILE_ONLY)

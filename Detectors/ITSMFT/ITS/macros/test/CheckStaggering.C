@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -44,7 +44,6 @@
 #include "DataFormatsParameters/GRPMagField.h"
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "ReconstructionDataFormats/Vertex.h"
-#include "Framework/Logger.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
 #include "DCAFitter/DCAFitterN.h"
 #endif
@@ -65,9 +64,9 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
 {
   gStyle->SetOptStat(0);
   auto dirs = findDirs(dir);
-  LOGP(info, "Will iterate over {} input dirs", dirs.size());
+  printf("Will iterate over %zu input dirs", dirs.size());
   if (dirs.empty()) {
-    LOGP(error, "No input found");
+    printf("No input found");
     return;
   }
   if (max > 0 && (int)dirs.size() > max) {
@@ -75,7 +74,7 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
     std::mt19937 g(rd());
     std::shuffle(dirs.begin(), dirs.end(), g);
     dirs.resize(max);
-    LOGP(info, "restricting to {} dirs", max);
+    printf("restricting to %ddirs", max);
   }
 
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
@@ -83,7 +82,7 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
   auto runDuration = ccdbmgr.getRunDuration(runNumber);
   auto tRun = runDuration.first + (runDuration.second - runDuration.first) / 2; // time stamp for the middle of the run duration
   ccdbmgr.setTimestamp(tRun);
-  LOGP(info, "Run {} has TS {}", runNumber, tRun);
+  printf("Run %d has TS %lld", runNumber, tRun);
   auto geoAligned = ccdbmgr.get<TGeoManager>("GLO/Config/GeometryAligned");
   auto magField = ccdbmgr.get<o2::parameters::GRPMagField>("GLO/Config/GRPMagField");
   auto grpLHC = ccdbmgr.get<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF");
@@ -170,17 +169,14 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
     fflush(stdout);
 
     const auto& d = dirs[iDir];
-    LOGP(debug, "\nEntering {}", d.c_str());
     auto fTrks = TFile::Open((d / tracFile).c_str());
     auto fCls = TFile::Open((d / clsFile).c_str());
     if (!fTrks || !fCls || fTrks->IsZombie() || fCls->IsZombie()) {
-      LOGP(error, "\nCould not open files");
       continue;
     }
     auto tTrks = fTrks->Get<TTree>("o2sim");
     auto tCls = fCls->Get<TTree>("o2sim");
     if (!tTrks || !tCls) {
-      LOGP(error, "\nCould not retrieve trees");
       continue;
     }
 
@@ -198,7 +194,6 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
       for (int i{0}; i < 7; ++i) {
         ncls += clsArr[i]->size();
       }
-      LOGP(debug, "\n\tTF:{:03} {} trks {} vtx {} cls", iTF, trkArr.size(), vtxArr.size(), ncls);
 
       // for each TF built pool of positive and negaitve tracks
       std::vector<const o2::its::TrackITS*> posPool, negPool;
