@@ -108,23 +108,34 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool doStag, bool dec, bool c
     }
     return base;
   };
+
+  std::vector<InputSpec> vecInpSpecDig, vecInpSpecROF, vecInpSpecLbl;
+  vecInpSpecDig.reserve(mLayers);
+  vecInpSpecROF.reserve(mLayers);
+  vecInpSpecLbl.reserve(mLayers);
+  for (int iLayer = 0; iLayer < mLayers; iLayer++) {
+    vecInpSpecDig.emplace_back(getName(detStr + "digits", iLayer), Origin, "DIGITS", iLayer);
+    vecInpSpecROF.emplace_back(getName(detStr + "digitsROF", iLayer), Origin, "DIGITSROF", iLayer);
+    vecInpSpecLbl.emplace_back(getName(detStr + "_digitsMCTR", iLayer), Origin, "DIGITSMCTR", iLayer);
+  }
+
   return MakeRootTreeWriterSpec((detStr + "DigitWriter" + (dec ? "_dec" : "")).c_str(),
                                 (detStrL + "digits.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = detStr + " Digits tree"},
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                BranchDefinition<std::vector<itsmft::Digit>>{InputSpec{detStr + "digits", ConcreteDataTypeMatcher{Origin, "DIGITS"}},
+                                BranchDefinition<std::vector<itsmft::Digit>>{vecInpSpecDig,
                                                                              detStr + "Digit", "digit-branch",
                                                                              mLayers,
                                                                              digitSizeGetter,
                                                                              getIndex,
                                                                              getName},
-                                BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{detStr + "digitsROF", ConcreteDataTypeMatcher{Origin, "DIGITSROF"}},
+                                BranchDefinition<std::vector<itsmft::ROFRecord>>{vecInpSpecROF,
                                                                                  detStr + "DigitROF", "digit-rof-branch",
                                                                                  mLayers,
                                                                                  rofSizeGetter,
                                                                                  getIndex,
                                                                                  getName},
-                                BranchDefinition<std::vector<char>>{InputSpec{detStr + "_digitsMCTR", ConcreteDataTypeMatcher{Origin, "DIGITSMCTR"}},
+                                BranchDefinition<std::vector<char>>{vecInpSpecLbl,
                                                                     detStr + "DigitMCTruth", "digit-mctruth-branch",
                                                                     (mctruth ? mLayers : 0),
                                                                     fillLabels,
