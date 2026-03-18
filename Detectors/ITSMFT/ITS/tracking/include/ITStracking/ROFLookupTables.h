@@ -342,8 +342,8 @@ class ROFOverlapTable : public LayerTimingBase<NLayers>
       int64_t fromStart = o2::gpu::CAMath::Max((int64_t)layerFrom.getROFStartInBC(iROF) - (int64_t)layerFrom.mROFAddTimeErr, int64_t(0));
       int64_t fromEnd = (int64_t)layerFrom.getROFEndInBC(iROF) + layerFrom.mROFAddTimeErr;
 
-      int32_t firstROFTo = o2::gpu::CAMath::Max(0, (int32_t)((fromStart - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias) / (int64_t)layerTo.mROFLength));
-      int32_t lastROFTo = (int32_t)((fromEnd - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias - 1) / (int64_t)layerTo.mROFLength);
+      int32_t firstROFTo = o2::gpu::CAMath::Max(0, (int32_t)((fromStart - (int64_t)layerTo.mROFAddTimeErr - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias) / (int64_t)layerTo.mROFLength));
+      int32_t lastROFTo = (int32_t)((fromEnd + (int64_t)layerTo.mROFAddTimeErr - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias - 1) / (int64_t)layerTo.mROFLength);
       firstROFTo = o2::gpu::CAMath::Max(0, firstROFTo);
       lastROFTo = o2::gpu::CAMath::Min((int32_t)layerTo.mNROFsTF - 1, lastROFTo);
 

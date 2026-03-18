@@ -240,7 +240,7 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_alllayers_delay_delta)
   }
   { // from 0 to 2 rof=0
     const auto& range = view.getOverlap(0, 2, 0);
-    BOOST_CHECK_EQUAL(range.getEntries(), 3);
+    BOOST_CHECK_EQUAL(range.getEntries(), 4);
     BOOST_CHECK_EQUAL(range.getFirstEntry(), 0);
   }
   { // from 0 to 1 rof=1
@@ -250,13 +250,13 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_alllayers_delay_delta)
   }
   { // from 0 to 2 rof=1
     const auto& range = view.getOverlap(0, 2, 1);
-    BOOST_CHECK_EQUAL(range.getEntries(), 3);
-    BOOST_CHECK_EQUAL(range.getFirstEntry(), 3);
+    BOOST_CHECK_EQUAL(range.getEntries(), 4);
+    BOOST_CHECK_EQUAL(range.getFirstEntry(), 2);
   }
   { // from 1 to 2 rof=0
     const auto& range = view.getOverlap(1, 2, 0);
-    BOOST_CHECK_EQUAL(range.getEntries(), 2);
-    BOOST_CHECK_EQUAL(range.getFirstEntry(), 1);
+    BOOST_CHECK_EQUAL(range.getEntries(), 4);
+    BOOST_CHECK_EQUAL(range.getFirstEntry(), 0);
   }
   { // from 1 to 0 rof=0
     const auto& range = view.getOverlap(1, 0, 0);
@@ -265,8 +265,8 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_alllayers_delay_delta)
   }
   { // from 1 to 2 rof=1
     const auto& range = view.getOverlap(1, 2, 1);
-    BOOST_CHECK_EQUAL(range.getEntries(), 2);
-    BOOST_CHECK_EQUAL(range.getFirstEntry(), 3);
+    BOOST_CHECK_EQUAL(range.getEntries(), 4);
+    BOOST_CHECK_EQUAL(range.getFirstEntry(), 2);
   }
   { // from 1 to 0 rof=1
     const auto& range = view.getOverlap(1, 0, 1);
@@ -275,8 +275,8 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_alllayers_delay_delta)
   }
   { // from 1 to 2 rof=2
     const auto& range = view.getOverlap(1, 2, 2);
-    BOOST_CHECK_EQUAL(range.getEntries(), 1);
-    BOOST_CHECK_EQUAL(range.getFirstEntry(), 5);
+    BOOST_CHECK_EQUAL(range.getEntries(), 2);
+    BOOST_CHECK_EQUAL(range.getFirstEntry(), 4);
   }
   { // from 1 to 0 rof=2
     const auto& range = view.getOverlap(1, 0, 2);
@@ -416,6 +416,7 @@ BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_complex)
   table.defineLayer(3, 7, 50, 50, 0, 10);
   table.init();
   const auto& view = table.getView();
+  view.printMapping(0, 1);
 
   const auto t010 = view.getTimeStamp(0, 3, 1, 3);
   BOOST_CHECK_EQUAL(t010.getTimeStamp(), 350);
