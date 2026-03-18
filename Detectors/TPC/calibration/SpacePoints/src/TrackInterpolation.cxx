@@ -820,7 +820,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
           float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
           auto dy = yv - trkWorkITS.getY();
           auto dz = zv - trkWorkITS.getZ();
-          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && abs(xv) < param::MaxVtxX) {
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && std::abs(xv) < param::MaxVtxX) {
             short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
             mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
             if (!gidTable[GTrackID::ITSTPC].isIndexSet()) {
@@ -1168,7 +1168,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
           auto dy = yv - trkWorkITS.getY();
           auto dz = zv - trkWorkITS.getZ();
-          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && abs(xv) < param::MaxVtxX) {
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && std::abs(xv) < param::MaxVtxX) {
             short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
             mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
             if (!gidTableFull[GTrackID::ITSTPC].isIndexSet()) {
