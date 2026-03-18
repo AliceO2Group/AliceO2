@@ -157,8 +157,9 @@ class CMVToVectorDevice : public o2::framework::Task
           auto& infoVec = mCMVInfos[cruID];
 
           if (size != sizeof(cmv::Container)) {
-            LOGP(error, "CMV packet size mismatch: got {} bytes, expected {} bytes (sizeof cmv::Container). Skipping package.", size, sizeof(cmv::Container));
-            return;
+            // LOGP(error, "CMV packet size mismatch: got {} bytes, expected {} bytes (sizeof cmv::Container). Skipping package.", size, sizeof(cmv::Container));
+            hasErrors = true;
+            continue;
           }
           auto data = it.data();
           auto& cmvs = *((cmv::Container*)(data));
@@ -283,11 +284,11 @@ class CMVToVectorDevice : public o2::framework::Task
       const auto& infVec = mCMVInfos[cru];
 
       if (infVec.size() != 4) {
-        LOGP(warning, "CRU {:3}: expected 4 packets per TF, got {}", cru, infVec.size());
+        // LOGP(error, "CRU {:3}: expected 4 packets per TF, got {}", cru, infVec.size());
         hasErrors = true;
       }
       if (cmvVec.size() != cmv::NTimeBinsPerPacket * infVec.size()) {
-        LOGP(warning, "CRU {:3}: vector size {} does not match expected {}", cru, cmvVec.size(), cmv::NTimeBinsPerPacket * infVec.size());
+        // LOGP(error, "CRU {:3}: vector size {} does not match expected {}", cru, cmvVec.size(), cmv::NTimeBinsPerPacket * infVec.size());
         hasErrors = true;
       }
 
