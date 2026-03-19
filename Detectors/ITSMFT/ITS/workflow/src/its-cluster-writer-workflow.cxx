@@ -30,7 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       o2::framework::VariantType::Bool,
       false,
       {"disable MC propagation even if available"}});
-  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(workflowOptions);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
