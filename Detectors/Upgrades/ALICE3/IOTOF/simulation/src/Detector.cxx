@@ -101,7 +101,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     const double staveTiltAngle = itofSegmented ? 10.0 : 0.0; // degrees
     const int modulesPerStave = itofSegmented ? 10 : 0;       // number of modules per stave in segmented case
     mITOFLayer = ITOFLayer(name,
-                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, ITOFLayer::kBarrelSegmented,
+                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrel,
                            nStaves, staveWidth, staveTiltAngle, modulesPerStave);
   }
   if (otof) { // oTOF
@@ -111,7 +111,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     const double staveTiltAngle = otofSegmented ? 5.0 : 0.0; // degrees
     const int modulesPerStave = otofSegmented ? 54 : 0;      // number of modules per stave in segmented case
     mOTOFLayer = OTOFLayer(name,
-                           dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, OTOFLayer::kBarrelSegmented,
+                           dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, otofSegmented ? OTOFLayer::kBarrelSegmented : OTOFLayer::kBarrel,
                            nStaves, staveWidth, staveTiltAngle, modulesPerStave);
   }
   if (ftof) {
