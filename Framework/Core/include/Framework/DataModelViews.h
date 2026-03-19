@@ -206,15 +206,10 @@ struct get_num_payloads {
 
 struct MessageSet;
 
-struct MessageStore {
-  std::span<MessageSet> sets;
-  size_t inputsPerSlot = 0;
-};
-
 struct inputs_for_slot {
   TimesliceSlot slot;
   template <typename R>
-    requires requires(R r) { std::ranges::random_access_range<decltype(r.sets)>; }
+    requires requires(R r) { requires std::ranges::random_access_range<decltype(r.sets)>; }
   friend std::span<o2::framework::MessageSet> operator|(R&& r, inputs_for_slot self)
   {
     return std::span(r.sets[self.slot.index * r.inputsPerSlot]);

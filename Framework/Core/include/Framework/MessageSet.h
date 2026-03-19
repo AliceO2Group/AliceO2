@@ -12,13 +12,13 @@
 #define FRAMEWORK_MESSAGESET_H
 
 #include "Framework/PartRef.h"
+#include <fairmq/Message.h>
+#include "Framework/DataModelViews.h"
 #include <memory>
 #include <vector>
 #include <cassert>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A set of inflight messages.
@@ -83,21 +83,21 @@ struct MessageSet {
   }
 
   /// get number of in-flight O2 messages
-  size_t size() const
+  [[nodiscard]] size_t size() const
   {
-    return messageMap.size();
+    return messages | count_parts{};
   }
 
   /// get number of header-payload pairs
-  size_t getNumberOfPairs() const
+  [[nodiscard]] size_t getNumberOfPairs() const
   {
-    return pairMap.size();
+    return messages | count_payloads{};
   }
 
   /// get number of payloads for an in-flight message
-  size_t getNumberOfPayloads(size_t mi) const
+  [[nodiscard]] size_t getNumberOfPayloads(size_t mi) const
   {
-    return messageMap[mi].size;
+    return messages | get_num_payloads{mi};
   }
 
   /// clear the set
@@ -179,6 +179,6 @@ struct MessageSet {
   }
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
+
 #endif // FRAMEWORK_MESSAGESET_H
