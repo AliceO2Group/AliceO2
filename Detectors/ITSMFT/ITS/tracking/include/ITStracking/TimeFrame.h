@@ -150,7 +150,7 @@ struct TimeFrame {
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
   gsl::span<const MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const { return getClusterLabels(layerId, cl.clusterId); }
-  gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const { return mClusterLabels[layerId]->getLabels(mClusterExternalIndices[layerId][clId]); }
+  gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const { return mClusterLabels[((mIsStaggered) ? layerId : 0)]->getLabels(mClusterExternalIndices[layerId][clId]); }
   int getClusterExternalIndex(int layerId, const int clId) const { return mClusterExternalIndices[layerId][clId]; }
   int getClusterSize(int layer, int clusterId) const { return mClusterSize[layer][clusterId]; }
   void setClusterSize(int layer, bounded_vector<uint8_t>& v) { mClusterSize[layer] = std::move(v); }
@@ -193,6 +193,9 @@ struct TimeFrame {
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory() const;
   void printArtefactsMemory() const;
+
+  /// staggering
+  void setIsStaggered(bool b) noexcept { mIsStaggered = b; }
 
   /// ROF cuts
   int getROFCutClusterMult() const { return mCutClusterMult; };
@@ -315,6 +318,8 @@ struct TimeFrame {
   ROFOverlapTableN::View mROFOverlapTableView;
   ROFVertexLookupTableN mROFVertexLookupTable;
   ROFVertexLookupTableN::View mROFVertexLookupTableView;
+
+  bool mIsStaggered{false};
 
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
 };

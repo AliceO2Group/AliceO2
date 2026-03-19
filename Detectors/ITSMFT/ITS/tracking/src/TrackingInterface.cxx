@@ -72,6 +72,7 @@ void ITSTrackingInterface::initialise()
   }
   mVertexer->setNThreads(vertConf.nThreads, mTaskArena);
   mTracker->setNThreads(trackConf.nThreads, mTaskArena);
+  mTimeFrame->setIsStaggered(mDoStaggering);
 
   // prepare data filter
   for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
