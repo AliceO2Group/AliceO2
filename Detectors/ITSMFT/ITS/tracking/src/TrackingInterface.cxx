@@ -86,6 +86,7 @@ void ITSTrackingInterface::initialise()
 
 void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 {
+  const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   if (static bool doneOnce{false}; !doneOnce) {
     doneOnce = true;
 
@@ -94,7 +95,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     const int nOrbitsPerTF = o2::base::GRPGeomHelper::getNHBFPerTF();
     TimeFrameN::ROFOverlapTableN rofTable;
     TimeFrameN::ROFVertexLookupTableN vtxTable;
-    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     const auto& trackParams = mTracker->getParameters();
     for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
       const unsigned int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
@@ -307,14 +307,38 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     // the number of ROFs does not necessarily reflect the actual ROFs
     // due to possible delay of other layers, however it is guaranteed to be >=0
     // tracks are guaranteed to be sorted here by their lower edge
-    // NOTE: we are not setting the BCData of these ROFs (should we?)
+    const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
+    const auto& clock = mTimeFrame->getROFOverlapTableView().getClock();
     const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
+    auto setBCData = [&](auto& rofs) {
+      for (size_t iROF{0}; iROF < rofs.size(); ++iROF) { // set BC data
+        auto& rof = rofs[iROF];
+        int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + firstTForbit;
+        int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
+        o2::InteractionRecord ir(bc, orb);
+        rof.setBCData(ir);
+        rof.setROFrame(iROF);
+        rof.setNEntries(0);
+        rof.setFirstEntry(-1);
+      }
+    };
     int highestROF{0};
     {
       for (const auto& trc : tracks) {
         highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp().lower()));
       }
       allTrackROFs.resize(highestROF);
+      setBCData(allTrackROFs);
+      for (int iROF{0}; iROF < highestROF; ++iROF) { // set BC data
+        auto& rof = allTrackROFs[iROF];
+        int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + firstTForbit;
+        int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
+        o2::InteractionRecord ir(bc, orb);
+        rof.setBCData(ir);
+        rof.setROFrame(iROF);
+        rof.setNEntries(0);
+        rof.setFirstEntry(-1);
+      }
       std::vector<int> rofEntries(highestROF + 1, 0);
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
@@ -345,6 +369,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         highestROF = std::max(highestROF, (int)clockLayer.getROF(vtx.getTimeStamp().lower()));
       }
       vertROFvec.resize(highestROF);
+      setBCData(vertROFvec);
       std::vector<int> rofEntries(highestROF + 1, 0);
       for (const auto& vtx : vertices) {
         auto rof = clockLayer.getROF(vtx.getTimeStamp().lower());
