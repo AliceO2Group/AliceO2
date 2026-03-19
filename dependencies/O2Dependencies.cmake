@@ -288,10 +288,15 @@ if(GBL_FOUND AND NOT TARGET GBL::GBL)
     # As of now, GBL does not provide a cmake target so create a compatibility wrapper
     # also GBL_LIBRARIES contains raw linker flags to ROOT we need to filter out
     set(GBL_LIBRARIES_FILTERED "")
+    set(GBL_LINK_OPTIONS "")
     foreach(_lib IN LISTS GBL_LIBRARIES)
-     if(NOT _lib MATCHES "^-[lL]")
-      list(APPEND GBL_LIBRARIES_FILTERED "${_lib}")
-     endif()
+        if(_lib MATCHES "^-[lL]")
+            continue()
+        elseif(_lib MATCHES "^-")
+            list(APPEND GBL_LINK_OPTIONS "${_lib}")
+        else()
+            list(APPEND GBL_LIBRARIES_FILTERED "${_lib}")
+        endif()
     endforeach()
     add_library(GBL::GBL INTERFACE IMPORTED)
     target_include_directories(GBL::GBL INTERFACE ${GBL_INCLUDE_DIR})
@@ -299,6 +304,7 @@ if(GBL_FOUND AND NOT TARGET GBL::GBL)
         ${GBL_LIBRARIES_FILTERED}
         Eigen3::Eigen
     )
+    target_link_options(GBL::GBL INTERFACE ${GBL_LINK_OPTIONS})
 endif()
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
