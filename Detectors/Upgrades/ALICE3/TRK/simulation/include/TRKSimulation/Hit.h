@@ -19,7 +19,11 @@
 
 namespace o2::trk
 {
-using Hit = o2::itsmft::Hit; // For now we rely on the same Hit class as ITSMFT, but we can extend it with TRK-specific information if needed in the future
+class Hit : public o2::itsmft::Hit
+{
+ public:
+  using o2::itsmft::Hit::Hit; // Inherit constructors
+};
 } // namespace o2::trk
 
 #endif
