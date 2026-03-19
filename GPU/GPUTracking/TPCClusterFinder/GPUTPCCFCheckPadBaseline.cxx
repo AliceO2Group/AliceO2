@@ -159,7 +159,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
     const Charge ql = iTimeLoad < lastTB && iPadOffset < rowinfo.nPads ? chargeMap[pos].unpack() : 0;
     smem.charges[iTimeOffset][iPadOffset] = ql;
 
-    const bool hasHIPTrigger = hipFilterOn && work_group_any(ql >= MaxADC);
+    const bool hasHIPTrigger = hipFilterOn && work_group_any(ql >= Charge(MaxADC));
 
     acc.HIPtb = -1;
 
