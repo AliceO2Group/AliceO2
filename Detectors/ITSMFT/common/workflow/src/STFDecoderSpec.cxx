@@ -135,13 +135,12 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   if (mDoStaggering) {
     Mapping map;
     for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
-      auto& filter = mRawFilter.emplace_back();
+      std::vector<o2::framework::InputSpec> filter;
       for (const auto feeID : map.getLayer2FEEIDs(iLayer)) {
         filter.emplace_back("filter", ConcreteDataMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData, (o2::header::DataHeader::SubSpecificationType)feeID});
       }
+      mDecoder[iLayer]->setInputFilter(filter);
     }
-  } else {
-    mRawFilter.push_back({InputSpec{"filter", ConcreteDataTypeMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData}}});
   }
 }
 
@@ -201,9 +200,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
 
     try {
-      mDecoder[iLayer]->startNewTF(pc.inputs(), mRawFilter[iLayer]);
-
+      mDecoder[iLayer]->startNewTF(pc.inputs());
       mDecoder[iLayer]->setDecodeNextAuto(false);
+
       o2::InteractionRecord lastIR{};
       int nTriggersProcessed = mDecoder[iLayer]->getNROFsProcessed();
       static long lastErrReportTS = 0;
@@ -268,7 +267,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         pc.outputs().snapshot(Output{orig, "GBTCALIB", iLayer}, calVec);
         mEstNCalib[iLayer] = std::max(mEstNCalib[iLayer], size_t(calVec.size() * 1.2));
       }
-      LOG(debug) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs on layer " << nLayer;
+      LOG(debug) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs" << ((mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
     }
 
     if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
@@ -279,7 +278,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       pc.outputs().snapshot(Output{orig, "CLUSTERSROF", iLayer}, expClusRofVec);
       mEstNClus[iLayer] = std::max(mEstNClus[iLayer], size_t(clusCompVec.size() * 1.2));
       mEstNClusPatt[iLayer] = std::max(mEstNClusPatt[iLayer], size_t(clusPattVec.size() * 1.2));
-      LOG(info) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << expClusRofVec.size() << " ROFs on layer " << nLayer;
+      LOG(info) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << expClusRofVec.size() << " ROFs" << ((mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
     }
 
     mDecoder[iLayer]->collectDecodingErrors(linkErrors, decErrors, errMessages);

@@ -109,7 +109,6 @@ class STFDecoder : public Task
   std::vector<std::unique_ptr<RawPixelDecoder<Mapping>>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
-  std::vector<std::vector<InputSpec>> mRawFilter;
 };
 
 using STFDecoderITS = STFDecoder<ChipMappingITS>;

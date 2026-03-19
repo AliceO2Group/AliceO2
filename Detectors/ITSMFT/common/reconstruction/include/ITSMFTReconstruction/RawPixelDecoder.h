@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -14,6 +14,7 @@
 #ifndef ALICEO2_ITSMFT_RAWPIXELDECODER_H_
 #define ALICEO2_ITSMFT_RAWPIXELDECODER_H_
 
+#include <unordered_map>
 #include <array>
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
@@ -30,7 +31,6 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/GBTWord.h"
-#include <unordered_map>
 
 namespace o2
 {
@@ -57,7 +57,7 @@ class RawPixelDecoder final : public PixelReader
   bool getNextChipData(ChipPixelData& chipData) final;
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;
   void ensureChipOrdering() {}
-  void startNewTF(o2::framework::InputRecord& inputs, const std::vector<o2::framework::InputSpec>& filter);
+  void startNewTF(o2::framework::InputRecord& inputs);
   void collectROFCableData(int iru);
   int decodeNextTrigger() final;
 
@@ -91,6 +91,9 @@ class RawPixelDecoder final : public PixelReader
 
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
+
+  void setInputFilter(std::vector<o2::framework::InputSpec> filter) { mInputFilter = std::move(filter); }
+  const auto& getInputFilter() const noexcept { return mInputFilter; }
 
   void setAlwaysParseTrigger(bool v) { mAlwaysParseTrigger = v; }
   bool getAlwaysParseTrigger() const { return mAlwaysParseTrigger; }
@@ -139,7 +142,7 @@ class RawPixelDecoder final : public PixelReader
   void reset();
 
  private:
-  void setupLinks(o2::framework::InputRecord& inputsm, const std::vector<o2::framework::InputSpec>& filter);
+  void setupLinks(o2::framework::InputRecord& inputsm);
   int getRUEntrySW(int ruSW) const { return mRUEntry[ruSW]; }
   RUDecodeData* getRUDecode(int ruSW) { return &mRUDecodeVec[mRUEntry[ruSW]]; }
   GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
@@ -147,6 +150,7 @@ class RawPixelDecoder final : public PixelReader
 
   static constexpr uint16_t NORUDECODED = 0xffff; // this must be > than max N RUs
 
+  std::vector<o2::framework::InputSpec> mInputFilter;                                 //  input spec filter
   std::vector<GBTLink> mGBTLinks;                                                     // active links pool
   std::unordered_map<uint32_t, LinkEntry> mSubsSpec2LinkID;                           // link subspec to link entry in the pool mapping
   std::vector<RUDecodeData> mRUDecodeVec;                                             // set of active RUs

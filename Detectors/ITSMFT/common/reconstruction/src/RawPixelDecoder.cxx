@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -40,7 +40,8 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mTimerDecode.Stop();
   mTimerFetchData.Stop();
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "Decoder");
-  DPLRawParser<>::setCheckIncompleteHBF(false); // Disable incomplete HBF checking, see ErrPacketCounterJump check in GBTLink.cxx
+  DPLRawParser<>::setCheckIncompleteHBF(false);                                                                             // Disable incomplete HBF checking, see ErrPacketCounterJump check in GBTLink.cxx
+  mInputFilter = {InputSpec{"filter", ConcreteDataTypeMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData}}}; // by default take all raw data
 }
 
 ///______________________________________________________________
@@ -102,8 +103,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     }
 
 #ifdef WITH_OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ \
-                                                                            : mNChipsFiredROF, mNPixelsFiredROF)
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ : mNChipsFiredROF, mNPixelsFiredROF)
 #endif
     for (int iru = 0; iru < nru; iru++) {
       auto& ru = mRUDecodeVec[iru];
@@ -136,7 +136,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
 ///______________________________________________________________
 /// prepare for new TF
 template <class Mapping>
-void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs, const std::vector<InputSpec>& filter)
+void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
 {
   mTimerTFStart.Start(false);
   for (auto& link : mGBTLinks) {
@@ -149,7 +149,7 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs, const std::vector
     ru.linkHBFToDump.clear();
     ru.nLinksDone = 0;
   }
-  setupLinks(inputs, filter);
+  setupLinks(inputs);
   mNLinksDone = 0;
   mExtTriggers.clear();
   mTimerTFStart.Stop();
@@ -226,7 +226,7 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
 ///______________________________________________________________
 /// Setup links checking the very RDH of every input
 template <class Mapping>
-void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs, const std::vector<InputSpec>& filter)
+void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 {
   constexpr uint32_t ROF_RAMP_FLAG = 0x1 << 4;
   constexpr uint32_t LINK_RECOVERY_FLAG = 0x1 << 5;
@@ -235,6 +235,14 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs, const std::vector
   auto nLinks = mGBTLinks.size();
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
   auto datadesc = (mUserDataDescription == o2::header::gDataDescriptionInvalid) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
+  if (mUserDataDescription != o2::header::gDataDescriptionInvalid) { // overwrite data filter origin&descriptions with user defined ones if possible
+    for (auto& filt : mInputFilter) {
+      if (std::holds_alternative<o2::framework::ConcreteDataMatcher>(filt.matcher)) {
+        std::get<o2::framework::ConcreteDataMatcher>(filt.matcher).origin = origin;
+        std::get<o2::framework::ConcreteDataMatcher>(filt.matcher).description = datadesc;
+      }
+    }
+  }
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
@@ -257,7 +265,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs, const std::vector
     contDeadBeef = 0; // if good data, reset the counter
   }
   mROFRampUpStage = false;
-  DPLRawParser parser(inputs, filter, o2::conf::VerbosityConfig::Instance().rawParserSeverity);
+  DPLRawParser parser(inputs, mInputFilter, o2::conf::VerbosityConfig::Instance().rawParserSeverity);
   parser.setMaxFailureMessages(o2::conf::VerbosityConfig::Instance().maxWarnRawParser);
   static size_t cntParserFailures = 0;
   parser.setExtFailureCounter(&cntParserFailures);
