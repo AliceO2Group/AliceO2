@@ -1229,7 +1229,7 @@ Inputs GPURecoWorkflowSpec::inputs()
   }
 
   if (mSpecConfig.runITSTracking) {
-    for (unsigned int iLay{0}; iLay < (mSpecConfig.itsStaggered ? 7 : 0); ++iLay) {
+    for (unsigned int iLay{0}; iLay < (mSpecConfig.itsStaggered ? 7 : 1); ++iLay) {
       inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", iLay, Lifetime::Timeframe);
       inputs.emplace_back("patterns", "ITS", "PATTERNS", iLay, Lifetime::Timeframe);
       inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", iLay, Lifetime::Timeframe);
