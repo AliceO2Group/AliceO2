@@ -77,7 +77,11 @@ struct LayerTiming {
   GPUhi() BCType getROF(BCType bc) const noexcept
   {
     BCType rof = (bc - mROFDelay - mROFBias) / mROFLength;
-    return rof >= 0 ? rof : 0;
+    const BCType offset = mROFDelay + mROFBias;
+    if (bc <= offset) {
+      return 0;
+    }
+    return (bc - offset) / mROFLength;
   }
 
 #ifndef GPUCA_GPUCODE
@@ -102,7 +106,7 @@ class LayerTimingBase
 
  public:
   using T = LayerTiming::BCType;
-  GPUh() LayerTimingBase() = default;
+  LayerTimingBase() = default;
 
   GPUh() void defineLayer(int32_t layer, T nROFsTF, T rofLength, T rofDelay, T rofBias, T rofTE)
   {
@@ -295,7 +299,7 @@ class ROFOverlapTable : public LayerTimingBase<NLayers>
   using TableIndex = dataformats::RangeReference<T, T>;
 
   using View = ROFOverlapTableView<NLayers, TableEntry, TableIndex>;
-  GPUh() ROFOverlapTable() = default;
+  ROFOverlapTable() = default;
 
   GPUh() void init()
   {
@@ -516,7 +520,7 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
 
   using View = ROFVertexLookupTableView<NLayers, TableEntry, TableIndex>;
 
-  GPUh() ROFVertexLookupTable() = default;
+  ROFVertexLookupTable() = default;
 
   GPUh() size_t getFlatTableSize() const noexcept { return mFlatTable.size(); }
   static GPUh() constexpr size_t getIndicesSize() { return NLayers; }
