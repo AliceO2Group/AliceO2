@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -84,7 +84,7 @@ GPUhdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float ph
   // Nothing to do
 }
 
-GPUhdi() unsigned char Tracklet::operator<(const Tracklet & t) const
+GPUhdi() unsigned char Tracklet::operator<(const Tracklet& t) const
 {
   if (isEmpty()) {
     return false;
