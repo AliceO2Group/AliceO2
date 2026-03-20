@@ -358,14 +358,14 @@ template <TableRef R>
 constexpr auto tableRef2InputSpec()
 {
   std::vector<framework::ConfigParamSpec> metadata;
-  auto m = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), m.begin(), m.end());
-  auto ccdbMetadata = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
-  auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), p.begin(), p.end());
-  auto idx = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), idx.begin(), idx.end());
+  auto sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), sources.begin(), sources.end());
+  auto ccdbURLs = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), ccdbURLs.begin(), ccdbURLs.end());
+  auto expressions = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), expressions.begin(), expressions.end());
+  auto indices = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), indices.begin(), indices.end());
   if constexpr (!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     metadata.emplace_back(framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()), {"\"\""}});
   }
@@ -382,11 +382,22 @@ constexpr auto tableRef2InputSpec()
 template <TableRef R>
 constexpr auto tableRef2OutputSpec()
 {
+  std::vector<framework::ConfigParamSpec> metadata;
+  using md = typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata;
+  if constexpr (soa::with_ccdb_urls<md>) {
+    metadata.emplace_back("ccdb:", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
+  } else if constexpr (soa::with_expression_pack<md>) {
+    metadata.emplace_back("projectors", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
+  } else if constexpr (soa::with_index_pack<md>) {
+    metadata.emplace_back("index-records", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
+  }
   return framework::OutputSpec{
     framework::OutputLabel{o2::aod::label<R>()},
     o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
-    R.version};
+    R.version,
+    framework::Lifetime::Timeframe,
+    metadata};
 }
 
 template <TableRef R>
@@ -504,14 +515,14 @@ struct OutputForTable {
   using table_t = decltype(typeWithRef<T>());
   using metadata = aod::MetadataTrait<o2::aod::Hash<table_t::ref.desc_hash>>::metadata;
 
-  static OutputSpec const spec()
+  static constexpr auto spec()
   {
-    return OutputSpec{OutputLabel{aod::label<table_t::ref>()}, o2::aod::origin<table_t::ref>(), o2::aod::description(o2::aod::signature<table_t::ref>()), table_t::ref.version};
+    return soa::tableRef2OutputSpec<table_t::ref>();
   }
 
-  static OutputRef ref()
+  static constexpr auto ref()
   {
-    return OutputRef{aod::label<table_t::ref>(), table_t::ref.version};
+    return soa::tableRef2OutputRef<table_t::ref>();
   }
 };
 

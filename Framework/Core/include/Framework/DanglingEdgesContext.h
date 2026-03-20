@@ -33,15 +33,24 @@ struct OutputObjectInfo {
 // been requested and for which we will need to inject
 // some source device.
 struct DanglingEdgesContext {
+  // generic AOD tables
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
+  // extension tables
   std::vector<InputSpec> requestedDYNs;
   std::vector<OutputSpec> providedDYNs;
+  // index tables
   std::vector<InputSpec> requestedIDXs;
+  std::vector<OutputSpec> providedIDXs;
+  // ccdb tables
   std::vector<OutputSpec> providedTIMs;
   std::vector<InputSpec> requestedTIMs;
+  // output objects
   std::vector<OutputSpec> providedOutputObjHist;
+  // inputs for the extension spawner
   std::vector<InputSpec> spawnerInputs;
+  // inputs for the index builder
+  std::vector<InputSpec> builderInputs;
 
   // These are the timestamped tables which are required to
   // inject the the CCDB objecs.

@@ -14,8 +14,31 @@
 #include "Framework/DataSpecUtils.h"
 #include <ranges>
 
+namespace o2::framework::checks
+{
+static auto has_params_with_name(std::string&& name)
+{
+  return [name](ConfigParamSpec const& p) { return p.name.compare(name) == 0; };
+}
+
+static auto has_params_with_name_starting(std::string&& name)
+{
+  return [name](ConfigParamSpec const& p) { return p.name.starts_with(name); };
+}
+} // namespace o2::framework::checks
+
 namespace o2::framework::views
 {
+static auto filter_with_params_by_name(std::string&& name)
+{
+  return std::views::filter([name = std::move(name)](auto const& spec) mutable { return std::ranges::any_of(spec.metadata, checks::has_params_with_name(std::move(name))); });
+}
+
+static auto filter_with_params_by_name_starting(std::string&& name)
+{
+  return std::views::filter([name = std::move(name)](auto const& spec) mutable { return std::ranges::any_of(spec.metadata, checks::has_params_with_name_starting(std::move(name))); });
+}
+
 static auto partial_match_filter(auto what)
 {
   return std::views::filter([what](auto const& t) -> bool { return DataSpecUtils::partialMatch(t, what); });

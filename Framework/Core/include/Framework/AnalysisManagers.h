@@ -183,20 +183,20 @@ bool newDataframeCondition(InputRecord& record, C& conditionGroup)
 
 /// Outputs handling
 template <typename T>
-bool appendOutput(std::vector<OutputSpec>&, T&, uint32_t)
+constexpr bool appendOutput(std::vector<OutputSpec>&, T&, uint32_t)
 {
   return false;
 }
 
 template <is_produces T>
-bool appendOutput(std::vector<OutputSpec>& outputs, T&, uint32_t)
+constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T&, uint32_t)
 {
-  outputs.emplace_back(OutputForTable<typename T::persistent_table_t>::spec());
+  outputs.emplace_back(soa::tableRef2OutputSpec<T::persistent_table_t::ref>());
   return true;
 }
 
 template <is_produces_group T>
-bool appendOutput(std::vector<OutputSpec>& outputs, T& producesGroup, uint32_t hash)
+constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T& producesGroup, uint32_t hash)
 {
   homogeneous_apply_refs<true>([&outputs, hash](auto& produces) { return appendOutput(outputs, produces, hash); }, producesGroup);
   return true;
@@ -261,7 +261,7 @@ bool prepareOutput(ProcessingContext&, T&)
 template <is_produces T>
 bool prepareOutput(ProcessingContext& context, T& produces)
 {
-  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(OutputForTable<typename T::persistent_table_t>::ref())));
+  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(soa::tableRef2OutputRef<T::persistent_table_t::ref>())));
   return true;
 }
 
