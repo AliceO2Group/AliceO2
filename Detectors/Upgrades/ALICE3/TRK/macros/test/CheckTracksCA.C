@@ -417,7 +417,7 @@ void CheckTracksCA(std::string trackfile = "o2trac_trk.root",
       }
 
     } // end loop over reco tracks
-  }   // end loop over RoFs
+  } // end loop over RoFs
 
   // inclusive efficiencies for Good tracks
   float effForAllGood = counterAll > 0 ? 100.f * foundAllGood.size() / counterAll : 0.f;
