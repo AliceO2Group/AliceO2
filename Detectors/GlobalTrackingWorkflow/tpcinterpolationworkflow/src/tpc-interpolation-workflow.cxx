@@ -19,6 +19,7 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "TPCInterpolationWorkflow/TPCInterpolationSpec.h"
 #include "TPCInterpolationWorkflow/TPCResidualWriterSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -44,6 +45,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"debug-output", VariantType::Bool, false, {"Dump extended tracking information for debugging"}},
     {"skip-ext-det-residuals", VariantType::Bool, false, {"Do not produce residuals for external detectors"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }

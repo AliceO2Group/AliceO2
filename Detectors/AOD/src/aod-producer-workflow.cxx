@@ -18,6 +18,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -43,6 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}},
     {"ctpconfig-run-independent", o2::framework::VariantType::Bool, false, {"Use CTP config w/o runNumber tag"}}};
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
