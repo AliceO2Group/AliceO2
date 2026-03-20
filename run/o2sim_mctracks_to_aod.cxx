@@ -70,7 +70,7 @@ struct MctracksToAod {
   /** Run the conversion */
   void run(o2::framework::ProcessingContext& pc)
   {
-    LOG(detail) << "=== Running extended MC AOD exporter ===";
+    LOG(debug) << "=== Running extended MC AOD exporter ===";
     using namespace o2::aodmchelpers;
     using McHeader = o2::dataformats::MCEventHeader;
     using McTrack = o2::MCTrack;
@@ -94,13 +94,13 @@ struct MctracksToAod {
     // TODO: include BC simulation
     auto bcCounter = 0UL;
     size_t offset = 0;
-    LOG(detail) << "--- Loop over " << nParts << " parts ---";
+    LOG(debug) << "--- Loop over " << nParts << " parts ---";
     for (auto i = 0U; i < nParts; ++i) {
       auto record = mSampler.generateCollisionTime();
       auto header = pc.inputs().get<McHeader*>("mcheader", i);
       auto tracks = pc.inputs().get<McTracks>("mctracks", i);
 
-      LOG(detail) << "Updating collision table";
+      LOG(debug) << "Updating collision table";
       auto genID = updateMCCollisions(mCollisions.cursor,
                                       bcCounter,
                                       record.timeInBCNS * 1.e-3,
@@ -108,12 +108,12 @@ struct MctracksToAod {
                                       0,
                                       i);
 
-      LOG(detail) << "Updating HepMC tables";
+      LOG(debug) << "Updating HepMC tables";
       updateHepMCXSection(mXSections.cursor, bcCounter, genID, *header);
       updateHepMCPdfInfo(mPdfInfos.cursor, bcCounter, genID, *header);
       updateHepMCHeavyIon(mHeavyIons.cursor, bcCounter, genID, *header);
 
-      LOG(detail) << "Updating particles table";
+      LOG(debug) << "Updating particles table";
       TrackToIndex preselect;
       offset = updateParticles(mParticles.cursor,
                                bcCounter,
@@ -123,7 +123,7 @@ struct MctracksToAod {
                                (bool)filt,
                                false);
 
-      LOG(detail) << "Increment BC counter";
+      LOG(debug) << "Increment BC counter";
       bcCounter++;
     }
 

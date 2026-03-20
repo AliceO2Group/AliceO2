@@ -40,8 +40,7 @@ struct O2simKinePublisher {
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto batch = std::min((int)aggregate, nEvents - eventCounter);
-    for (auto i = 0; i < batch; ++i) {
+    for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
       auto mcevent = mcKinReader->getMCEventHeader(0, eventCounter);
       auto mctracks = mcKinReader->getTracks(0, eventCounter);
       pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcevent);
