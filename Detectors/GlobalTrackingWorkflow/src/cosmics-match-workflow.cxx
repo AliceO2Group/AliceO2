@@ -32,6 +32,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -52,6 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);

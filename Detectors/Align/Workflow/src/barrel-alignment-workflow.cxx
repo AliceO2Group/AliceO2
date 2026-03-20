@@ -27,6 +27,7 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
@@ -59,6 +60,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-cosmic", VariantType::Bool, false, {"enable cosmic tracks)"}},
     {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints, 4 - print mpParams/Constraints, 8 - relabel pede results"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);

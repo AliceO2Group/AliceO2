@@ -37,6 +37,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include <EventVisualisationBase/DirectoryLoader.h>
 #include "DataFormatsMCH/Cluster.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include <unistd.h>
 
 using std::chrono::duration_cast;
@@ -78,7 +79,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings, e.g. EveConfParam content..."}},
     {"skipOnEmptyInput", VariantType::Bool, false, {"don't run the ED when no input is provided"}},
   };
-
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }

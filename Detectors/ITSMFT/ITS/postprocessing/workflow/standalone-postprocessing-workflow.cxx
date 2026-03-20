@@ -16,6 +16,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 // Include studies hereafter
 #include "ITSStudies/ImpactParameter.h"
@@ -54,6 +55,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"track-extension-study", VariantType::Bool, false, {"Perform the track extension study"}},
     {"efficiency-study", VariantType::Bool, false, {"Perform the efficiency study"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   // o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
   std::swap(workflowOptions, options);
 }
@@ -135,8 +137,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     LOGP(info, "No study selected, dryrunning");
   }
 
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
-  // write the configuration used for the studies workflow
+  // o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+  //  write the configuration used for the studies workflow
   o2::conf::ConfigurableParam::writeINI("o2_its_standalone_configuration.ini");
 
   return std::move(specs);

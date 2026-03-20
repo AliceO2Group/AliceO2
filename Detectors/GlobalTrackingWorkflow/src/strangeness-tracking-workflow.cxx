@@ -21,6 +21,7 @@
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
@@ -46,6 +47,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC"}},
     {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }

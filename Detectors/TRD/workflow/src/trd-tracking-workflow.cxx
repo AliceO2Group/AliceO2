@@ -26,6 +26,7 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -62,6 +63,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-ft0-pileup-tagging", VariantType::Bool, false, {"Do not request FT0 for pile-up determination"}},
     {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
