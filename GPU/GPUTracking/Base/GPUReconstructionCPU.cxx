@@ -215,6 +215,7 @@ int32_t GPUReconstructionCPU::ExitDevice()
   return 0;
 }
 
+<<<<<<< Updated upstream
 namespace
 {
 void writeHeaderMarkdown(std::ostream& stream)
@@ -298,6 +299,8 @@ struct Row {
 };
 } // namespace
 
+=======
+>>>>>>> Stashed changes
 int32_t GPUReconstructionCPU::RunChains()
 {
   mMemoryScalers->temporaryFactor = 1.;
@@ -342,7 +345,6 @@ int32_t GPUReconstructionCPU::RunChains()
     PrintMemoryOverview();
   }
 
-  mStatWallTime = mTimerTotal.GetElapsedTime();
   std::string nEventReport;
   if (GetProcessingSettings().debugLevel >= 0 && mStatNEvents > 1) {
     nEventReport += "   (avergage of " + std::to_string(mStatNEvents) + " runs)";
@@ -350,18 +352,10 @@ int32_t GPUReconstructionCPU::RunChains()
   double kernelTotal = 0;
   std::vector<double> kernelStepTimes(gpudatatypes::N_RECO_STEPS, 0.);
 
-  std::ofstream benchmarkCSV;
-  if (!GetProcessingSettings().timingCSV.empty()) {
-    benchmarkCSV.open(GetProcessingSettings().timingCSV, std::ios::out | std::ios::app);
-    if (!benchmarkCSV.is_open()) {
-      GPUError("Could not open timing CSV file '%s' for writing", GetProcessingSettings().timingCSV.c_str());
-    } else if (mNEventsProcessed == 1) {
-      writeHeaderCSV(benchmarkCSV);
-    }
-  }
+  debugWriter writer(GetProcessingSettings().debugCSV, GetProcessingSettings().debugMarkdown, mStatNEvents);
 
   if (GetProcessingSettings().debugLevel >= 1) {
-    writeHeaderMarkdown(std::cout);
+    writer.header();
     for (uint32_t i = 0; i < mTimers.size(); i++) {
       double time = 0;
       if (mTimers[i] == nullptr) {
@@ -381,19 +375,7 @@ int32_t GPUReconstructionCPU::RunChains()
         int32_t stepNum = getRecoStepNum(mTimers[i]->step);
         kernelStepTimes[stepNum] += time;
       }
-      Row task_row;
-      task_row.type = 'K';
-      task_row.name = mTimers[i]->name.c_str();
-      task_row.gpu_time = time;
-      task_row.count = mTimers[i]->count;
-      task_row.statNEvents = mStatNEvents;
-      if (mTimers[i]->memSize && mStatNEvents && time != 0.) {
-        task_row.memSize = mTimers[i]->memSize;
-      }
-      if (benchmarkCSV.is_open()) {
-        task_row.writeCSV(benchmarkCSV);
-      }
-      task_row.writeMarkdown(std::cout);
+      writer.row('K', mTimers[i]->count, mTimers[i]->name.c_str(), time, -1.0, -1.0, mTimers[i]->memSize);
       if (GetProcessingSettings().resetTimers) {
         mTimers[i]->count = 0;
         mTimers[i]->memSize = 0;
@@ -403,42 +385,13 @@ int32_t GPUReconstructionCPU::RunChains()
   if (GetProcessingSettings().recoTaskTiming) {
     for (int32_t i = 0; i < gpudatatypes::N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0. || mTimersRecoSteps[i].timerTotal.GetElapsedTime() != 0.) {
-        Row reco_step_row;
-        reco_step_row.name = std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (Tasks)";
-        reco_step_row.gpu_time = kernelStepTimes[i];
-        reco_step_row.cpu_time = mTimersRecoSteps[i].timerCPU;
-        reco_step_row.total_time = mTimersRecoSteps[i].timerTotal.GetElapsedTime();
-        reco_step_row.statNEvents = mStatNEvents;
-        if (benchmarkCSV.is_open()) {
-          reco_step_row.writeCSV(benchmarkCSV);
-        }
-        reco_step_row.writeMarkdown(std::cout);
+        writer.row(' ', 0, std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (Tasks)", kernelStepTimes[i], mTimersRecoSteps[i].timerCPU, mTimersRecoSteps[i].timerTotal.GetElapsedTime(), 0);
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
-        Row reco_step_row;
-        reco_step_row.type = 'D';
-        reco_step_row.name = std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to GPU)";
-        reco_step_row.gpu_time = mTimersRecoSteps[i].timerToGPU.GetElapsedTime();
-        reco_step_row.memSize = mTimersRecoSteps[i].bytesToGPU;
-        reco_step_row.count = mTimersRecoSteps[i].countToGPU;
-        reco_step_row.statNEvents = mStatNEvents;
-        if (benchmarkCSV.is_open()) {
-          reco_step_row.writeCSV(benchmarkCSV);
-        }
-        reco_step_row.writeMarkdown(std::cout);
+        writer.row('D', mTimersRecoSteps[i].countToGPU, std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to GPU)", mTimersRecoSteps[i].timerToGPU.GetElapsedTime(), -1.0, -1.0, mTimersRecoSteps[i].bytesToGPU);
       }
       if (mTimersRecoSteps[i].bytesToHost) {
-        Row reco_step_row;
-        reco_step_row.type = 'D';
-        reco_step_row.name = std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to Host)";
-        reco_step_row.gpu_time = mTimersRecoSteps[i].timerToHost.GetElapsedTime();
-        reco_step_row.memSize = mTimersRecoSteps[i].bytesToHost;
-        reco_step_row.count = mTimersRecoSteps[i].countToHost;
-        reco_step_row.statNEvents = mStatNEvents;
-        if (benchmarkCSV.is_open()) {
-          reco_step_row.writeCSV(benchmarkCSV);
-        }
-        reco_step_row.writeMarkdown(std::cout);
+        writer.row('D', mTimersRecoSteps[i].countToHost, std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to Host)", mTimersRecoSteps[i].timerToHost.GetElapsedTime(), -1.0, -1.0, mTimersRecoSteps[i].bytesToHost);
       }
       if (GetProcessingSettings().resetTimers) {
         mTimersRecoSteps[i].bytesToGPU = mTimersRecoSteps[i].bytesToHost = 0;
@@ -452,30 +405,13 @@ int32_t GPUReconstructionCPU::RunChains()
     }
     for (int32_t i = 0; i < gpudatatypes::N_GENERAL_STEPS; i++) {
       if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
-        Row general_step_row;
-        general_step_row.name = gpudatatypes::GENERAL_STEP_NAMES[i];
-        general_step_row.gpu_time = mTimersGeneralSteps[i].GetElapsedTime();
-        general_step_row.statNEvents = mStatNEvents;
-        if (benchmarkCSV.is_open()) {
-          general_step_row.writeCSV(benchmarkCSV);
-        }
-        general_step_row.writeMarkdown(std::cout);
+        writer.row(' ', 0, gpudatatypes::GENERAL_STEP_NAMES[i], mTimersGeneralSteps[i].GetElapsedTime(), -1.0, -1.0, 0);
       }
     }
-    Row wall_row;
-    wall_row.name = "Wall";
-    if (GetProcessingSettings().debugLevel >= 1) {
-      wall_row.gpu_time = kernelTotal;
-    }
-    wall_row.cpu_time = mStatCPUTime;
-    wall_row.total_time = mStatWallTime;
-    wall_row.statNEvents = mStatNEvents;
-    if (benchmarkCSV.is_open()) {
-      wall_row.writeCSV(benchmarkCSV);
-    }
-    wall_row.writeMarkdown(std::cout);
+    double gpu_time = GetProcessingSettings().debugLevel >= 1 ? kernelTotal : -1.0;
+    writer.row(' ', 0, "Wall", gpu_time, mStatCPUTime, mTimerTotal.GetElapsedTime(), 0, nEventReport);
   } else if (GetProcessingSettings().debugLevel >= 0) {
-    GPUInfo("Total Wall Time: %10.0f us%s", mStatWallTime * 1000000 / mStatNEvents, nEventReport.c_str());
+    GPUInfo("Total Wall Time: %10.0f us%s", mTimerTotal.GetElapsedTime() * 1000000 / mStatNEvents, nEventReport.c_str());
   }
   if (GetProcessingSettings().resetTimers) {
     mStatNEvents = 0;
