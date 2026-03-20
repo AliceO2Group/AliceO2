@@ -50,7 +50,6 @@ O2_DECLARE_DYNAMIC_LOG(rate_limiting);
 
 namespace o2::framework
 {
-
 class EndOfStreamContext;
 class ProcessingContext;
 
@@ -578,45 +577,80 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        } },
     .adjustTopology = [](WorkflowSpecNode& node, ConfigContext const& ctx) {
       auto& workflow = node.specs;
-      auto spawner = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-spawner"); });
-      auto analysisCCDB = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-ccdb"); });
-      auto builder = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-index-builder"); });
-      auto writer = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-writer"); });
       auto& dec = ctx.services().get<DanglingEdgesContext>();
       dec.requestedAODs.clear();
       dec.requestedDYNs.clear();
-      dec.providedDYNs.clear();
-      dec.providedTIMs.clear();
-      dec.requestedTIMs.clear();
 
       auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
       auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
 
+      auto builder = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-index-builder"); });
       if (builder != workflow.end()) {
         // collect currently requested IDXs
         dec.requestedIDXs.clear();
+        dec.providedIDXs.clear();
         for (auto& d : workflow | views::exclude_by_name(builder->name)) {
           d.inputs |
-            views::partial_match_filter(header::DataOrigin{"IDX"}) |
+            views::filter_with_params_by_name("index-records") |
             sinks::update_input_list{dec.requestedIDXs};
+          d.outputs |
+            views::filter_with_params_by_name("index-records") |
+            sinks::update_output_list{dec.providedIDXs};
         }
+        std::ranges::sort(dec.requestedIDXs, inputSpecLessThan);
+        std::ranges::sort(dec.providedIDXs, outputSpecLessThan);
+        dec.builderInputs.clear();
+        dec.requestedIDXs |
+          views::filter_not_matching(dec.providedIDXs) |
+          sinks::append_to{dec.builderInputs};
         // recreate inputs and outputs
         builder->inputs.clear();
         builder->outputs.clear();
-
-        // load real AlgorithmSpec before deployment
-        builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx);
-        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.requestedIDXs, dec.requestedAODs, dec.requestedDYNs, *builder);
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.builderInputs, dec.requestedAODs, dec.requestedDYNs, *builder);
+        if (!builder->inputs.empty()) {
+          // load real AlgorithmSpec before deployment
+          builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx);
+        }
       }
 
+      auto analysisCCDB = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-ccdb"); });
+      if (analysisCCDB != workflow.end()) {
+        dec.requestedTIMs.clear();
+        dec.providedTIMs.clear();
+        for (auto& d : workflow | views::exclude_by_name(analysisCCDB->name)) {
+          d.inputs |
+            views::filter_with_params_by_name_starting("ccdb:") |
+            sinks::update_input_list{dec.requestedTIMs};
+          d.outputs |
+            views::filter_with_params_by_name_starting("ccdb:") |
+            sinks::append_to{dec.providedTIMs};
+        }
+        std::ranges::sort(dec.requestedTIMs, inputSpecLessThan);
+        std::ranges::sort(dec.providedTIMs, outputSpecLessThan);
+        // Use ranges::to<std::vector<>> in C++23...
+        dec.analysisCCDBInputs.clear();
+        dec.requestedTIMs |
+          views::filter_not_matching(dec.providedTIMs) |
+          sinks::append_to{dec.analysisCCDBInputs};
+
+        // recreate inputs and outputs
+        analysisCCDB->outputs.clear();
+        analysisCCDB->inputs.clear();
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.analysisCCDBInputs, dec.requestedAODs, dec.requestedDYNs, *analysisCCDB);
+        // load real AlgorithmSpec before deployment
+        analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
+      }
+
+      auto spawner = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-spawner"); });
       if (spawner != workflow.end()) {
+        dec.providedDYNs.clear();
         // collect currently requested DYNs
         for (auto& d : workflow | views::exclude_by_name(spawner->name)) {
           d.inputs |
-            views::partial_match_filter(header::DataOrigin{"DYN"}) |
+            views::filter_with_params_by_name("projectors") |
             sinks::update_input_list{dec.requestedDYNs};
           d.outputs |
-            views::partial_match_filter(header::DataOrigin{"DYN"}) |
+            views::filter_with_params_by_name("projectors") |
             sinks::append_to{dec.providedDYNs};
         }
         std::ranges::sort(dec.requestedDYNs, inputSpecLessThan);
@@ -628,32 +662,14 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // recreate inputs and outputs
         spawner->outputs.clear();
         spawner->inputs.clear();
-
-        // load real AlgorithmSpec before deployment
-        spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
         AnalysisSupportHelpers::addMissingOutputsToSpawner({}, dec.spawnerInputs, dec.requestedAODs, *spawner);
-      }
-
-      if (analysisCCDB != workflow.end()) {
-        for (auto& d : workflow | views::exclude_by_name(analysisCCDB->name)) {
-          d.inputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::update_input_list{dec.requestedTIMs};
-          d.outputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::append_to{dec.providedTIMs};
+        if (!spawner->inputs.empty()) {
+          // load real AlgorithmSpec before deployment
+          spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
         }
-        std::ranges::sort(dec.requestedTIMs, inputSpecLessThan);
-        std::ranges::sort(dec.providedTIMs, outputSpecLessThan);
-        // Use ranges::to<std::vector<>> in C++23...
-        dec.analysisCCDBInputs.clear();
-        dec.requestedTIMs | views::filter_not_matching(dec.providedTIMs) | sinks::append_to{dec.analysisCCDBInputs};
-
-        // recreate inputs and outputs
-        analysisCCDB->outputs.clear();
-        analysisCCDB->inputs.clear();
-        // load real AlgorithmSpec before deployment
-        // FIXME how can I make the lookup depend on DYN tables as well??
-        analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
-        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.analysisCCDBInputs, dec.requestedAODs, dec.requestedDYNs, *analysisCCDB);
       }
 
+      auto writer = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-writer"); });
       if (writer != workflow.end()) {
         workflow.erase(writer);
       }

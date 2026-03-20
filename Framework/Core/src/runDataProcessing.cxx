@@ -1685,15 +1685,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               continue;
             }
             // ignore devices with no metadata in inputs
-            auto hasMetadata = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+            auto hasMetadata = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
               return spec.metadata.empty() == false;
             });
             if (!hasMetadata) {
               continue;
             }
             // ignore devices with no control options
-            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
-              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
+            auto hasControls = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
+              return std::ranges::any_of(spec.metadata, [](ConfigParamSpec const& param) {
                 return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
               });
             });
