@@ -265,9 +265,9 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
       auto xyzLocE = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
       auto xyzLocS = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
 
-// Hit local reference: Both VD and MLOT use response-plane interpolation (in flat local frame).
+      // Hit local reference: Both VD and MLOT use response-plane interpolation (in flat local frame).
       // For VD, transform curved → flat first, then interpolate.
-      o2::math_utils::Vector3D<float> locH; /// Hit reference (at response plane)
+      o2::math_utils::Vector3D<float> locH;  /// Hit reference (at response plane)
       o2::math_utils::Vector3D<float> locHS; /// Hit, start pos
       locHS.SetCoordinates(xyzLocS.X(), xyzLocS.Y(), xyzLocS.Z());
       o2::math_utils::Vector3D<float> locHE; /// Hit, end pos
