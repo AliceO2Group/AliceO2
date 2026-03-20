@@ -272,8 +272,8 @@ static constexpr double kInclinedWallPhi0_deg = 27.799f;
 static constexpr double kInclinedWallRmax_cm = 4.75f; // 47.5 mm outer extension
 
 // Coldplate specs (cm)
-static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (outer radius)
-static constexpr double kColdplateThickness_cm = 0.15f; // 1.5 mm
+static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (inner radius)
+static constexpr double kColdplateThickness_cm = 0.02f; // 1.5 mm
 static constexpr double kColdplateZ_cm = 50.0f;         // full length
 
 // ========== φ-span helpers (gap/arc → degrees) ==========

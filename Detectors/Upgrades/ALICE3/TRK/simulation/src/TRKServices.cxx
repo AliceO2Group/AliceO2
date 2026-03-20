@@ -108,7 +108,7 @@ void TRKServices::createMaterials()
   matmgr.Material("ALICE3_TRKSERVICES", 73, "BERYLLIUM", 9.01, 4., 1.848, 35.3, 36.7);                                                 // Beryllium - Candidate for IRIS vacuum vessel
   matmgr.Mixture("ALICE3_TRKSERVICES", 74, "ALUMINIUM5083", aAl5083, zAl5083, dAl5083, 9, wAl5083);                                    // AL5083 - Candidate for IRIS vacuum vessel
   matmgr.Mixture("ALICE3_TRKSERVICES", 75, "ALUMINIUMBERYLLIUMMETAL", aAlBeMet, zAlBeMet, dAlBeMet, 2, wAlBeMet);                      // Aluminium-Beryllium metal - Candidate for IRIS vacuum vessel
-  matmgr.Material("ALICE3_TRKSERVICES", 76, "CARBONFIBERM55J6K", 12.0107, 6, 1.92, 999, 999);                                          // Carbon Fiber M55J
+  matmgr.Material("ALICE3_TRKSERVICES", 76, "CARBONFIBERM55J6K", 12.0107, 6, 1.92, 22.4, 999);                                          // Carbon Fiber M55J
   matmgr.Mixture("ALICE3_PIPE", 77, "VACUUM", aAir, zAir, dAir1, 4, wAir);
 
   matmgr.Medium("ALICE3_TRKSERVICES", 1, "CERAMIC", 66, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                  // Ceramic for cold plate
