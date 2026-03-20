@@ -76,7 +76,6 @@ struct LayerTiming {
   // return which ROF this BC belongs to
   GPUhi() BCType getROF(BCType bc) const noexcept
   {
-    BCType rof = (bc - mROFDelay - mROFBias) / mROFLength;
     const BCType offset = mROFDelay + mROFBias;
     if (bc <= offset) {
       return 0;
