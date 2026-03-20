@@ -209,7 +209,7 @@ inline T getSensorID(T detID)
 template <typename T = int>
 inline bool isDetITS3(T detID)
 {
-  return detID < static_cast<T>(nChips);
+  return detID < static_cast<T>(nChips) && detID >= 0;
 }
 
 } // namespace detID

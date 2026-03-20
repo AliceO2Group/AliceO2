@@ -31,7 +31,6 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITS3Base/ITS3Params.h"
-#include "ITS3Align/MisalignmentManager.h"
 
 #include <TChain.h>
 #include <TStopwatch.h>
@@ -78,11 +77,6 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
       return;
     }
     updateTimeDependentParams(pc);
-
-    if (ITS3Params::Instance().applyMisalignmentHits) {
-      LOGP(info, "Applying misalignment to ITS3 Hits");
-      o2::its3::align::MisalignmentManager::misalignHits();
-    }
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");

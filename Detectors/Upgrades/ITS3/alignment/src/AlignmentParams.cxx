@@ -9,17 +9,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITS3_TRACKING_STUDY_H
-#define O2_ITS3_TRACKING_STUDY_H
-
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/DataProcessorSpec.h"
-
-namespace o2::its3::study
-{
-
-o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, bool withPV);
-
-} // namespace o2::its3::study
-
-#endif
+#include "ITS3Align/AlignmentParams.h"
+O2ParamImpl(o2::its3::align::AlignmentParams);

@@ -14,12 +14,19 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
-#include "ITStracking/TimeFrame.h"
 #include "ITStracking/IOUtils.h"
 #include "ITS3Base/SegmentationMosaix.h"
 #include "ITS3Base/SpecsV2.h"
 
-namespace o2::its3::ioutils
+namespace o2
+{
+namespace its
+{
+template <int>
+class TimeFrame;
+}
+
+namespace its3::ioutils
 {
 constexpr float DefClusErrorRow = o2::its3::SegmentationMosaix::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::its3::SegmentationMosaix::PitchCol * 0.5;
@@ -77,5 +84,5 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
                         gsl::span<const unsigned char>::iterator& pattIt,
                         const o2::its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
-
-} // namespace o2::its3::ioutils
+} // namespace its3::ioutils
+} // namespace o2

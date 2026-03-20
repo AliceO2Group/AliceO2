@@ -16,3 +16,11 @@ o2_add_test_root_macro(PlotDCA.C
 o2_add_test_root_macro(PlotPulls.C
                        PUBLIC_LINK_LIBRARIES O2::ITS3TrackingStudy
                        LABELS its COMPILE_ONLY)
+
+o2_add_test_root_macro(PlotResiduals.C
+                       PUBLIC_LINK_LIBRARIES O2::ITS3TrackingStudy
+                       LABELS its COMPILE_ONLY)
+
+o2_add_test_root_macro(PlotMisalignment.C
+                       PUBLIC_LINK_LIBRARIES O2::ITS3TrackingStudy
+                       LABELS its COMPILE_ONLY)

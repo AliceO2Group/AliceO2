@@ -9,17 +9,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITS3_TRACKING_STUDY_H
-#define O2_ITS3_TRACKING_STUDY_H
+#ifndef O2_ITS3_ALIGNMENT_H
+#define O2_ITS3_ALIGNMENT_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/DataProcessorSpec.h"
+#include "CommonUtils/EnumFlags.h"
 
-namespace o2::its3::study
+namespace o2::its3::align
 {
 
-o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, bool withPV);
+enum class OutputOpt : uint8_t {
+  VerboseGBL = 0,
+  MilleData,
+  MilleSteer,
+  MilleRes,
+  Debug,
+};
+using OutputEnum = utils::EnumFlags<OutputOpt>;
 
-} // namespace o2::its3::study
+o2::framework::DataProcessorSpec getAlignmentSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, bool withPV, bool withITS3, OutputEnum out);
+} // namespace o2::its3::align
 
 #endif

@@ -39,6 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of track sources to use"}},
     {"cluster-sources", VariantType::String, "ITS,TRD,TOF", {"comma-separated list of cluster sources to use"}},
+    {"without-pv", VariantType::Bool, false, {"do not use the PV as an additional fit point"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -58,14 +59,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto usePV = !configcontext.options().get<bool>("without-pv");
 
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
-  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+  if (usePV) {
+    o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+  }
 
-  specs.emplace_back(o2::its3::study::getTrackingStudySpec(srcTrc, srcCls, useMC));
+  specs.emplace_back(o2::its3::study::getTrackingStudySpec(srcTrc, srcCls, useMC, usePV));
 
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 

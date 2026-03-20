@@ -9,17 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITS3_TRACKING_STUDY_H
-#define O2_ITS3_TRACKING_STUDY_H
+#include <string>
+#include <format>
 
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/DataProcessorSpec.h"
+#include "ITS3Align/AlignmentTypes.h"
+ClassImp(o2::its3::align::Point);
+ClassImp(o2::its3::align::FrameInfoExt);
+ClassImp(o2::its3::align::FitInfo);
+ClassImp(o2::its3::align::Track);
 
-namespace o2::its3::study
+std::string o2::its3::align::FrameInfoExt::asString() const
 {
-
-o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, bool withPV);
-
-} // namespace o2::its3::study
-
-#endif
+  return std::format("Sensor={} Layer={} X={} Alpha={}\n\tMEAS: y={} z={}", sens, lr, x, alpha, positionTrackingFrame[0], positionTrackingFrame[1]);
+}

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -10,18 +10,13 @@
 // or submit itself to any jurisdiction.
 
 #include "ITS3Reconstruction/IOUtils.h"
-#include "ITStracking/IOUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/BoundedAllocator.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITS3Base/SpecsV2.h"
 #include "ITStracking/TrackingConfigParam.h"
-#include "Framework/Logger.h"
-
-#include <limits>
 
 namespace o2::its3::ioutils
 {
@@ -45,16 +40,19 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
   }
 
   for (auto& c : clusters) {
-    float sigmaY2, sigmaZ2, sigmaYZ = 0;
+    float sigmaY2 = NAN, sigmaZ2 = NAN;
     auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
     const auto detID = c.getSensorID();
+    // NOTE: this is not consistent with the TRK definition below!
+    // There we put the alpha for everything cluster to its phi
+    // here we extract it from the middle of the tile
     auto& cl3d = output.emplace_back(detID, geom->getMatrixT2L(detID) ^ locXYZ); // local --> tracking
     if (applyMisalignment) {
-      auto lrID = geom->getLayer(detID);
+      const auto lrID = geom->getLayer(detID);
       sigmaY2 += conf.sysErrY2[lrID];
       sigmaZ2 += conf.sysErrZ2[lrID];
     }
-    cl3d.setErrors(sigmaY2, sigmaZ2, sigmaYZ);
+    cl3d.setErrors(sigmaY2, sigmaZ2, 0.f);
   }
 }
 
@@ -76,26 +74,36 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
   for (size_t iRof{0}; iRof < rofs.size(); ++iRof) {
     const auto& rof = rofs[iRof];
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
-      auto& c = clusters[clusterId];
-      auto sensorID = c.getSensorID();
-      auto layer = geom->getLayer(sensorID);
+      const auto& c = clusters[clusterId];
+      const auto sensorID = c.getSensorID();
+      const auto layer = geom->getLayer(sensorID);
 
       float sigmaY2{0}, sigmaZ2{0}, sigmaYZ{0};
       uint8_t clusterSize{0};
-      auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2, clusterSize);
+      const auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2, clusterSize);
       clusterSizeVec.push_back(clusterSize);
 
       // Transformation to the local --> global
-      auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
+      const auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
       // Inverse transformation to the local --> tracking
-      o2::math_utils::Point3D<float> trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+      const o2::math_utils::Point3D<float> trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
 
       // Tracking alpha angle
+      // We want that each cluster rotates its tracking frame to the clusters phi
+      // that way the track linearization around the measurement is less biases to the arc
+      // this means automatically that the measurement on the arc is at 0 for the curved layers
       float alpha = geom->getSensorRefAlpha(sensorID);
+      float x = trkXYZ.x(), y = trkXYZ.y();
+      if (constants::detID::isDetITS3(sensorID)) {
+        y = 0.f;
+        x = std::hypot(gloXYZ.x(), gloXYZ.y());
+        alpha = std::atan2(gloXYZ.y(), gloXYZ.x());
+      }
+      math_utils::detail::bringToPMPi(alpha); // alpha is defined on -Pi,Pi
 
-      tf->addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), alpha,
-                                      std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
+      tf->addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), x, alpha,
+                                      std::array<float, 2>{y, trkXYZ.z()},
                                       std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
 
       /// Rotate to the global frame
@@ -103,7 +111,7 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
       tf->addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < tf->getUnsortedClusters().size(); ++iL) {
-      tf->mROFramesClusters[iL][iRof + 1] = tf->getUnsortedClusters()[iL].size();
+      tf->mROFramesClusters[iL][iRof + 1] = (int)tf->getUnsortedClusters()[iL].size();
     }
   }
 
