@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -101,8 +101,8 @@ class MFTDigitReader : public DigitReader<o2::detectors::DetID::MFT>
 
 /// create a processor spec
 /// read ITS/MFT Digit data from a root file
-framework::DataProcessorSpec getITSDigitReaderSpec(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_itsdigits.root");
-framework::DataProcessorSpec getMFTDigitReaderSpec(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_mftdigits.root");
+framework::DataProcessorSpec getITSDigitReaderSpec(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true, std::string defname = "itsdigits.root");
+framework::DataProcessorSpec getMFTDigitReaderSpec(bool useMC = true, bool doStag = false, bool useCalib = false, bool useTriggers = true, std::string defname = "mftdigits.root");
 
 } // namespace itsmft
 } // namespace o2

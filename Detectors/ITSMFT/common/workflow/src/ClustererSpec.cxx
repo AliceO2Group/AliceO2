@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -12,6 +12,7 @@
 /// @file   ClustererSpec.cxx
 
 #include <vector>
+#include <format>
 
 #include "ITSMFTWorkflow/ClustererSpec.h"
 #include "Framework/ControlService.h"
@@ -188,7 +189,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     reader.reset();
 
     sw.Stop();
-    LOG(info) << mDetName << "Clusterer:" << layer << " pushed " << clusCompVec.size() << " clusters, in " << nROFs << " RO frames in " << sw.RealTime() << " s";
+    LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(": {}", iLayer) : "") << " pushed " << clusCompVec.size() << " clusters, in " << nROFs << " RO frames in " << sw.RealTime() << " s";
   }
 
   LOG(info) << mDetName << "Clusterer produced " << nClusters << " clusters";

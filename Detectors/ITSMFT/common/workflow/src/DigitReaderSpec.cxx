@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -13,8 +13,9 @@
 
 #include <string>
 #include <vector>
+#include <format>
 
-#include "TTree.h"
+#include <TTree.h>
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -103,7 +104,7 @@ void DigitReader<N>::run(ProcessingContext& pc)
     assert(ent < mTree->GetEntries()); // this should not happen
     mTree->GetEntry(ent);
     for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
-      LOG(info) << mDetName << "DigitReader:" << iLayer << " pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, " << mDigits[iLayer]->size() << " digits at entry " << ent;
+      LOG(info) << mDetName << "DigitReader" << ((mDoStaggering) ? std::format(": {}", iLayer) : "") << " pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, " << mDigits[iLayer]->size() << " digits at entry " << ent;
       pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, *mDigROFRec[iLayer]);
       pc.outputs().snapshot(Output{Origin, "DIGITS", iLayer}, *mDigits[iLayer]);
       if (mUseMC) {
@@ -283,7 +284,7 @@ DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool doStag, bool useCalib, 
     .name = "its-digit-reader",
     .inputs = Inputs{},
     .outputs = makeOutChannels<o2::detectors::DetID::ITS>(useMC, doStag, useCalib),
-    .algorithm = AlgorithmSpec{adaptFromTask<ITSDigitReader>(useMC, useCalib)},
+    .algorithm = AlgorithmSpec{adaptFromTask<ITSDigitReader>(useMC, doStag, useCalib, useTriggers)},
     .options = Options{
       {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
@@ -295,7 +296,7 @@ DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool doStag, bool useCalib, 
     .name = "mft-digit-reader",
     .inputs = Inputs{},
     .outputs = makeOutChannels<o2::detectors::DetID::MFT>(useMC, doStag, useCalib),
-    .algorithm = AlgorithmSpec{adaptFromTask<MFTDigitReader>(useMC, useCalib)},
+    .algorithm = AlgorithmSpec{adaptFromTask<MFTDigitReader>(useMC, doStag, useCalib, useTriggers)},
     .options = Options{
       {"mft-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
