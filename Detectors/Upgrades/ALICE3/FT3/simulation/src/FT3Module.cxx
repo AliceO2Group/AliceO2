@@ -217,7 +217,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
     adjust_bottom_y_pos = false;
     adjust_bottom_y_neg = false;
   }
-  
+
   offset_Rin_lower = Rin - Rin_offset;
   offset_Rin_upper = Rout + Rout_offset;
 
@@ -247,7 +247,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
     if (Rin == 20) { // v3 paving, rough attempt
       float overlap = 0.3;
       // NB: these are left edges
-      float X_start = - 2.0 - 13.5 * (sensor_width - overlap);
+      float X_start = -2.0 - 13.5 * (sensor_width - overlap);
       float X_start_pos = 2.0 - 0.5 * (sensor_width - overlap);
       if (face == "back") {
         X_start += (sensor_width - overlap);
@@ -263,8 +263,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
         justSkipped1.push_back(1);
         X_start_pos += 2 * (sensor_width - overlap);
       }
-    }
-    else {
+    } else {
       // filling for sensors with 2x width, each row skipped
       if (face == "front") {
         X_positions = {-63.4, -54.2, -45, -35.8, -26.6, -17.4, -8.2, 1., 10.2, 19.4, 28.6, 37.8, 47., 56.2, 65.4};
