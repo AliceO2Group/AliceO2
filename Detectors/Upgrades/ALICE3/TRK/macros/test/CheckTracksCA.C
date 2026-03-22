@@ -465,7 +465,7 @@ void CheckTracksCA(std::string trackfile = "o2trac_trk.root",
     hSigmaVsPt = dynamic_cast<TH1D*>(fitSlices.At(2)->Clone("hSigmaVsPt"));
     if (hSigmaVsPt) {
       hSigmaVsPt->SetTitle("#sigma(p_{T} resolution) vs p_{T}; p_{T}^{MC} [GeV/c]; #sigma");
-      hSigmaVsPt->GetXaxis()->SetRangeUser(0.5., *maxpT);
+      hSigmaVsPt->GetXaxis()->SetRangeUser(0.5, *maxpT);
     }
   }
 
