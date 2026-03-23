@@ -231,6 +231,7 @@ int32_t GPUReconstructionCPU::RunChains()
     GPUInfo("Allocated memory when starting processing %34s", "");
     PrintMemoryOverview();
   }
+
   mTimerTotal.Start();
   const std::clock_t cpuTimerStart = std::clock();
   int32_t retVal = 0;
@@ -257,6 +258,7 @@ int32_t GPUReconstructionCPU::RunChains()
     PrintMemoryOverview();
   }
 
+  mStatWallTime = (mTimerTotal.GetElapsedTime() * 1000000. / mStatNEvents);
   std::string nEventReport;
   if (GetProcessingSettings().debugLevel >= 0 && mStatNEvents > 1) {
     nEventReport += "   (avergage of " + std::to_string(mStatNEvents) + " runs)";
@@ -323,7 +325,7 @@ int32_t GPUReconstructionCPU::RunChains()
     double gpu_time = GetProcessingSettings().debugLevel >= 1 ? kernelTotal : -1.0;
     writer.row(' ', 0, "Wall", gpu_time, mStatCPUTime, mTimerTotal.GetElapsedTime(), 0, nEventReport);
   } else if (GetProcessingSettings().debugLevel >= 0) {
-    GPUInfo("Total Wall Time: %10.0f us%s", mTimerTotal.GetElapsedTime() * 1000000 / mStatNEvents, nEventReport.c_str());
+    GPUInfo("Total Wall Time: %10.0f us%s", mStatWallTime, nEventReport.c_str());
   }
   if (GetProcessingSettings().resetTimers) {
     mStatNEvents = 0;
