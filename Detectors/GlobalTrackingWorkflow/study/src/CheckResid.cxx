@@ -44,7 +44,7 @@
 
 // Attention: in case the residuals are checked with geometry different from the one used for initial reconstruction,
 // pass a --configKeyValues option for vertex refit as:
-// ;pvertexer.useMeanVertexConstraint=false;pvertexer.iniScale2=100;pvertexer.acceptableScale2=10.;
+// ;pvertexer.useMeanVertexConstraint=false;pvertexer.meanVertexExtraErrSelection=0.2;pvertexer.iniScale2=100;pvertexer.acceptableScale2=10.;
 // In any case, it is better to pass ;pvertexer.useMeanVertexConstraint=false;
 
 namespace o2::checkresid
@@ -152,6 +152,7 @@ void CheckResidSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
   if (mMeanVertexUpdated) {
     mMeanVertexUpdated = false;
+    mVertexer.setMeanVertex(&mMeanVtx);
     mVertexer.initMeanVertexConstraint();
   }
   bool updateMaps = false;
