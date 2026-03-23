@@ -82,12 +82,6 @@ struct MessageSet {
     return *this;
   }
 
-  /// get number of in-flight O2 messages
-  [[nodiscard]] size_t size() const
-  {
-    return messages | count_parts{};
-  }
-
   /// get number of header-payload pairs
   [[nodiscard]] size_t getNumberOfPairs() const
   {

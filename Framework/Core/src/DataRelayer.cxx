@@ -184,11 +184,11 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       // We check that no data is already there for the given cell
       // it is enough to check the first element
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
-      if (part.size() > 0 && part.header(0) != nullptr) {
+      if (!part.messages.empty() && part.header(0) != nullptr) {
         headerPresent++;
         continue;
       }
-      if (part.size() > 0 && part.payload(0) != nullptr) {
+      if (!part.messages.empty() && part.payload(0) != nullptr) {
         payloadPresent++;
         continue;
       }
@@ -213,7 +213,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       auto partial = getPartialRecord(ti);
       // TODO: get the data ref from message model
       auto getter = [&partial](size_t idx, size_t part) {
-        if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
+        if (!partial[idx].messages.empty() && partial[idx].header(part).get()) {
           auto header = partial[idx].header(part).get();
           auto payload = partial[idx].payload(part).get();
           return DataRef{nullptr,
@@ -224,7 +224,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         return DataRef{};
       };
       auto nPartsGetter = [&partial](size_t idx) {
-        return partial[idx].size();
+        return partial[idx].messages | count_parts{};
       };
       auto refCountGetter = [&partial](size_t idx) -> int {
         auto& header = static_cast<const fair::mq::shmem::Message&>(*partial[idx].header(0));
@@ -327,7 +327,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (element.size() != 0) {
+      if (!element.messages.empty()) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
           didDrop = true;
           auto& state = mContext.get<DeviceState>();
@@ -353,7 +353,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
           continue;
         }
         auto& element = mCache[si * mInputs.size() + mi];
-        if (element.size() == 0) {
+        if (element.messages.empty()) {
           auto& state = mContext.get<DeviceState>();
           if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
             if (state.allowedProcessing == DeviceState::CalibrationOnly) {
@@ -411,11 +411,11 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
         cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
         // TODO: in the original implementation of the cache, there have been only two messages per entry,
         // check if the 2 above corresponds to the number of messages.
-        if (cache[cacheId].size() > 0) {
+        if (!cache[cacheId].messages.empty()) {
           dropped[ai] = std::move(cache[cacheId]);
         }
       }
-      bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return m.size(); });
+      bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return !m.messages.empty(); });
       if (anyDropped) {
         O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
         O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu with timeslice %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
@@ -786,7 +786,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto partial = getPartialRecord(li);
     // TODO: get the data ref from message model
     auto getter = [&partial](size_t idx, size_t part) {
-      if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
+      if (!partial[idx].messages.empty() && partial[idx].header(part).get()) {
         auto header = partial[idx].header(part).get();
         auto payload = partial[idx].payload(part).get();
         return DataRef{nullptr,
@@ -797,7 +797,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       return DataRef{};
     };
     auto nPartsGetter = [&partial](size_t idx) {
-      return partial[idx].size();
+      return partial[idx].messages | count_parts{};
     };
     auto refCountGetter = [&partial](size_t idx) -> int {
       auto& header = static_cast<const fair::mq::shmem::Message&>(*partial[idx].header(0));
@@ -897,7 +897,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
     cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
-    if (cache[cacheId].size() > 0) {
+    if (!cache[cacheId].messages.empty()) {
       messages[arg] = std::move(cache[cacheId]);
     }
     index.markAsInvalid(s);
@@ -951,7 +951,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
     cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
-    for (size_t pi = 0; pi < cache[cacheId].size(); pi++) {
+    for (size_t pi = 0; pi < (cache[cacheId].messages | count_parts{}); pi++) {
       auto& header = cache[cacheId].header(pi);
       auto&& newHeader = header->GetTransport()->CreateMessage();
       newHeader->Copy(*header);

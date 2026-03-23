@@ -92,7 +92,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRoute")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -143,7 +143,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteNoConsume")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, true);
@@ -198,7 +198,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteAtEOS")
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, sih});
   REQUIRE(o2::header::get<SourceInfoHeader*>(header->GetData()));
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -256,7 +256,7 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteWithOldestPossible")
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, dih});
   REQUIRE(o2::header::get<DomainInfoHeader*>(header->GetData()));
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -321,7 +321,7 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutes")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -384,7 +384,7 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesExternals")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -455,12 +455,12 @@ TEST_CASE("ForwardInputsMultiMessageMultipleRoutes")
   auto header1 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh1, dph});
   MessageSet messageSet1;
   messageSet1.add(PartRef{std::move(header1), std::move(payload1)});
-  REQUIRE(messageSet1.size() == 1);
+  REQUIRE((messageSet1.messages | count_parts{}) == 1);
 
   auto header2 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph});
   MessageSet messageSet2;
   messageSet2.add(PartRef{std::move(header2), std::move(payload2)});
-  REQUIRE(messageSet2.size() == 1);
+  REQUIRE((messageSet2.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet1));
   currentSetOfInputs.emplace_back(std::move(messageSet2));
   REQUIRE(currentSetOfInputs.size() == 2);
@@ -525,7 +525,7 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesOnlyOneMatches")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -607,7 +607,7 @@ TEST_CASE("ForwardInputsSplitPayload")
   PartRef part{std::move(header2), transport->CreateMessage()};
   messageSet.add(std::move(part));
 
-  REQUIRE(messageSet.size() == 2);
+  REQUIRE((messageSet.messages | count_parts{}) == 2);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -727,7 +727,7 @@ TEST_CASE("ForwardInputEOSSingleRoute")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -772,7 +772,7 @@ TEST_CASE("ForwardInputOldestPossibleSingleRoute")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dih});
   messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
