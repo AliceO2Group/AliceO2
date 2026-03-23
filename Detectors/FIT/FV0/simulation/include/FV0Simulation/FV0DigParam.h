@@ -69,6 +69,11 @@ struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
   uint8_t defaultChainQtc = 0x48;     // only 2 flags are set by default in simulation: kIsCFDinADCgate and kIsEventInTVDC
   float mAmpThresholdForReco = 24;    // only channels with amplitude higher will participate in calibration and collision time
   short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
+  int NchannelsLevel = 8;             // trigger Nchannels paramter
+  float InnerRingsChargeLevel = 0;    // InnerRingsChargeLevel, Tclu
+  float OuterRingsChargeLevel = 0;    //TcluOuterRingsChargeLevel, Tclu
+  float ChargeLevel = 10;             //ChargeLevel, Tclu
+
 
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };

@@ -238,6 +238,8 @@ void Digitizer::storeBC(const BCCache& bc,
   int8_t nTotFiredCells = 0;
   int8_t nTrgFiredCells = 0; // number of fired cells, that follow additional trigger conditions (time gate)
   int totalChargeAllRing = 0;
+  int totalChargeInnerRing = 0;
+  int totalChargeOuterRing = 0;
   int32_t avgTime = 0;
   double nSignalInner = 0;
   double nSignalOuter = 0;
@@ -285,8 +287,10 @@ void Digitizer::storeBC(const BCCache& bc,
       avgTime += iCfdZero;
       if (iPmt < 24) {
         nSignalInner++;
+        totalChargeInnerRing += iTotalCharge;
       } else {
         nSignalOuter++;
+        totalChargeOuterRing += iTotalCharge;
       }
     }
   }
@@ -301,12 +305,12 @@ void Digitizer::storeBC(const BCCache& bc,
     avgTime = o2::fit::Triggers::DEFAULT_TIME;
   }
   ///Triggers for FV0
-  bool isA, isAIn, isAOut, isCen, isSCen;
+  bool isA, isNchannels, isAIn, isAOut, isTotalCharge;
   isA = nTrgFiredCells > 0;
-  isAIn = nSignalInner > 0;  // ring 1,2 and 3
-  isAOut = nSignalOuter > 0; // ring 4 and 5
-  isCen = totalChargeAllRing > FV0DigParam::Instance().adcChargeCenThr;
-  isSCen = totalChargeAllRing > FV0DigParam::Instance().adcChargeSCenThr;
+  isNchannels = nTrgFiredCells > FV0DigParam::Instance().NchannelsLevel;
+  isAIn = nSignalInner > FV0DigParam::Instance().;NchannelsLevel  // ring 1,2 and 3
+  isAOut = nSignalOuter > FV0DigParam::Instance().NchannelsLevel; // ring 4 and 5
+  isTotalCharge = 0.125*totalChargeAllRing > 2*FV0DigParam::Instance().ChargeLevel;
 
   Triggers triggers;
   const int unusedCharge = o2::fit::Triggers::DEFAULT_AMP;
@@ -314,10 +318,10 @@ void Digitizer::storeBC(const BCCache& bc,
   const int unusedZero = o2::fit::Triggers::DEFAULT_ZERO;
   const bool unusedBitsInSim = false; // bits related to laser and data validity
   const bool bitDataIsValid = true;
-  triggers.setTriggers(isA, isAIn, isAOut, isCen, isSCen, nTrgFiredCells, (int8_t)unusedZero,
+  triggers.setTriggers(isA, isAIn, isAOut, isTotalCharge, isNchannels, nTrgFiredCells, (int8_t)unusedZero,
                        (int32_t)(0.125 * totalChargeAllRing), (int32_t)unusedCharge, (int16_t)avgTime, (int16_t)unusedTime, unusedBitsInSim, unusedBitsInSim, bitDataIsValid);
   digitsBC.emplace_back(first, nTotFiredCells, bc, triggers, mEventId - 1);
-  digitsTrig.emplace_back(bc, isA, isAIn, isAOut, isCen, isSCen);
+  digitsTrig.emplace_back(bc, isA, isAIn, isAOut, isTotalCharge, isNChannels);
   for (auto const& lbl : bc.labels) {
     labels.addElement(nBC, lbl);
   }
