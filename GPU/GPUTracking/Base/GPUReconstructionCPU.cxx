@@ -35,8 +35,6 @@
 
 #include <atomic>
 #include <ctime>
-#include <iostream>
-#include <format>
 #include <string>
 
 #ifndef _WIN32
