@@ -79,8 +79,8 @@ namespace chip
 {
 constexpr double width{25 * mm};                                              // width of the chip
 constexpr double length{32 * mm};                                             // length of the chip
-constexpr double pitchX{50 * mu};                                             // pitch of the row
-constexpr double pitchZ{50 * mu};                                             // pitch of the column
+constexpr double pitchX{20 * mu};                                             // pitch of the row
+constexpr double pitchZ{20 * mu};                                             // pitch of the column
 constexpr double totalThickness{silicon::thickness + metalstack::thickness};  // total thickness of the chip
 static constexpr double passiveEdgeReadOut{1.5 * mm};                         // width of the readout edge -> dead zone
 constexpr int nRows{static_cast<int>((width - passiveEdgeReadOut) / pitchX)}; // number of rows in the chip
@@ -138,7 +138,6 @@ constexpr double pitchZ{10.0 * mu};
 constexpr double responseYShift{5 * mu}; /// center of the epitaxial layer
 constexpr double thickness{20 * mu};
 } // namespace alice3resp
-
 } // namespace o2::trk::constants
 
 #endif
