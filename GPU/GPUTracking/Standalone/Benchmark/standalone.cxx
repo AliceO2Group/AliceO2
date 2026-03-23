@@ -627,7 +627,7 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
     if (configStandalone.runs > 1) {
       printf("Run %d (thread %d)\n", iteration + 1, threadId);
     }
-    if (configStandalone.runsInit > 0 && configStandalone.debugCSV.empty()) {
+    if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
       recUse->SetResetTimers(iRun < configStandalone.runsInit);
     }
     if (configStandalone.outputcontrolmem) {
@@ -687,7 +687,7 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
         chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
       }
       chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
-      if (configStandalone.runsInit > 0 && configStandalone.debugCSV.empty()) {
+      if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
         recAsync->SetResetTimers(iRun < configStandalone.runsInit);
       }
       tmpRetVal = recAsync->RunChains();
