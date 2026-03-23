@@ -391,20 +391,20 @@ BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_basic)
   const auto& view = table.getView();
 
   const auto t01 = view.getTimeStamp(0, 3, 1, 3);
-  BOOST_CHECK_EQUAL(t01.getTimeStamp(), 350);
-  BOOST_CHECK_EQUAL(t01.getTimeStampError(), 50);
+  BOOST_CHECK_EQUAL(t01.getTimeStamp(), 300);
+  BOOST_CHECK_EQUAL(t01.getTimeStampError(), 100);
 
   const auto t02 = view.getTimeStamp(0, 1, 2, 3);
-  BOOST_CHECK_EQUAL(t02.getTimeStamp(), 175);
-  BOOST_CHECK_EQUAL(t02.getTimeStampError(), 25);
+  BOOST_CHECK_EQUAL(t02.getTimeStamp(), 150);
+  BOOST_CHECK_EQUAL(t02.getTimeStampError(), 50);
 
   const auto t03 = view.getTimeStamp(0, 0, 3, 0);
-  BOOST_CHECK_EQUAL(t03.getTimeStamp(), 75);
-  BOOST_CHECK_EQUAL(t03.getTimeStampError(), 25);
+  BOOST_CHECK_EQUAL(t03.getTimeStamp(), 50);
+  BOOST_CHECK_EQUAL(t03.getTimeStampError(), 50);
 
   const auto t23 = view.getTimeStamp(2, 2, 3, 1);
-  BOOST_CHECK_EQUAL(t23.getTimeStamp(), 125);
-  BOOST_CHECK_EQUAL(t23.getTimeStampError(), 25);
+  BOOST_CHECK_EQUAL(t23.getTimeStamp(), 100);
+  BOOST_CHECK_EQUAL(t23.getTimeStampError(), 50);
 }
 
 BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_complex)
@@ -419,20 +419,20 @@ BOOST_AUTO_TEST_CASE(rofoverlap_timestamp_complex)
   view.printMapping(0, 1);
 
   const auto t010 = view.getTimeStamp(0, 3, 1, 3);
-  BOOST_CHECK_EQUAL(t010.getTimeStamp(), 350);
-  BOOST_CHECK_EQUAL(t010.getTimeStampError(), 50);
+  BOOST_CHECK_EQUAL(t010.getTimeStamp(), 300);
+  BOOST_CHECK_EQUAL(t010.getTimeStampError(), 100);
 
   const auto t011 = view.getTimeStamp(0, 2, 1, 3);
-  BOOST_CHECK_EQUAL(t011.getTimeStamp(), 295);
-  BOOST_CHECK_EQUAL(t011.getTimeStampError(), 5);
+  BOOST_CHECK_EQUAL(t011.getTimeStamp(), 290);
+  BOOST_CHECK_EQUAL(t011.getTimeStampError(), 10);
 
   const auto t02 = view.getTimeStamp(0, 1, 2, 3);
-  BOOST_CHECK_EQUAL(t02.getTimeStamp(), 175);
-  BOOST_CHECK_EQUAL(t02.getTimeStampError(), 25);
+  BOOST_CHECK_EQUAL(t02.getTimeStamp(), 150);
+  BOOST_CHECK_EQUAL(t02.getTimeStampError(), 50);
 
   const auto t03 = view.getTimeStamp(0, 0, 3, 0);
-  BOOST_CHECK_EQUAL(t03.getTimeStamp(), 70);
-  BOOST_CHECK_EQUAL(t03.getTimeStampError(), 30);
+  BOOST_CHECK_EQUAL(t03.getTimeStamp(), 40);
+  BOOST_CHECK_EQUAL(t03.getTimeStampError(), 60);
 }
 
 // ROFVertexLookupTable
@@ -538,13 +538,13 @@ BOOST_AUTO_TEST_CASE(rofvertex_vertex_more)
   table.update(vertices.data(), vertices.size());
   const auto& view = table.getView();
 
-  const auto& v0 = vertices[0]; // 100+-60
-  const auto& v1 = vertices[1]; // 100+-10
-  const auto& v2 = vertices[2]; // 100+-0
+  const auto& v0 = vertices[0]; // 100+60
+  const auto& v1 = vertices[1]; // 100+10
+  const auto& v2 = vertices[2]; // 100+0
 
   // check for v0
   // layer 0
-  BOOST_CHECK(view.isVertexCompatible(0, 0, v0));
+  BOOST_CHECK(!view.isVertexCompatible(0, 0, v0));
   BOOST_CHECK(view.isVertexCompatible(0, 1, v0));
   BOOST_CHECK(!view.isVertexCompatible(0, 2, v0));
   BOOST_CHECK(!view.isVertexCompatible(0, 3, v0));
@@ -554,8 +554,8 @@ BOOST_AUTO_TEST_CASE(rofvertex_vertex_more)
   BOOST_CHECK(!view.isVertexCompatible(1, 2, v0));
   BOOST_CHECK(!view.isVertexCompatible(1, 3, v0));
   // layer 2
-  BOOST_CHECK(view.isVertexCompatible(2, 0, v0));
-  BOOST_CHECK(view.isVertexCompatible(2, 1, v0));
+  BOOST_CHECK(!view.isVertexCompatible(2, 0, v0));
+  BOOST_CHECK(!view.isVertexCompatible(2, 1, v0));
   BOOST_CHECK(view.isVertexCompatible(2, 2, v0));
   BOOST_CHECK(view.isVertexCompatible(2, 3, v0));
   BOOST_CHECK(!view.isVertexCompatible(2, 4, v0));
@@ -573,7 +573,7 @@ BOOST_AUTO_TEST_CASE(rofvertex_vertex_more)
 
   // check for v1
   // layer 0
-  BOOST_CHECK(view.isVertexCompatible(0, 0, v1));
+  BOOST_CHECK(!view.isVertexCompatible(0, 0, v1));
   BOOST_CHECK(view.isVertexCompatible(0, 1, v1));
   BOOST_CHECK(!view.isVertexCompatible(0, 2, v1));
   BOOST_CHECK(!view.isVertexCompatible(0, 3, v1));
@@ -584,7 +584,7 @@ BOOST_AUTO_TEST_CASE(rofvertex_vertex_more)
   BOOST_CHECK(!view.isVertexCompatible(1, 3, v1));
   // layer 2
   BOOST_CHECK(!view.isVertexCompatible(2, 0, v1));
-  BOOST_CHECK(view.isVertexCompatible(2, 1, v1));
+  BOOST_CHECK(!view.isVertexCompatible(2, 1, v1));
   BOOST_CHECK(view.isVertexCompatible(2, 2, v1));
   BOOST_CHECK(!view.isVertexCompatible(2, 3, v1));
   BOOST_CHECK(!view.isVertexCompatible(2, 4, v1));
@@ -639,9 +639,9 @@ BOOST_AUTO_TEST_CASE(rofvertex_exact_compatibility)
   table.defineLayer(3, 7, 50, 50, 0, 10);
   table.init();
 
-  // sorted by lower bound (timestamp - error)
+  // sorted by lower bound timestamp
   std::vector<o2::its::Vertex> vertices;
-  { // idx 0: [40, 160] — wide span
+  { // idx 0: [40, 160] - wide span
     auto& v = vertices.emplace_back();
     v.getTimeStamp().setTimeStamp(100);
     v.getTimeStamp().setTimeStampError(60);
@@ -651,7 +651,7 @@ BOOST_AUTO_TEST_CASE(rofvertex_exact_compatibility)
     v.getTimeStamp().setTimeStamp(100);
     v.getTimeStamp().setTimeStampError(10);
   }
-  { // idx 2: [100, 100] — zero width, false-positive prone
+  { // idx 2: [100, 100] - zero width, false-positive prone
     auto& v = vertices.emplace_back();
     v.getTimeStamp().setTimeStamp(100);
     v.getTimeStamp().setTimeStampError(0);
@@ -661,11 +661,11 @@ BOOST_AUTO_TEST_CASE(rofvertex_exact_compatibility)
   const auto& view = table.getView();
 
   // Layer 0 ROF 0: [0, 100)
-  BOOST_CHECK(view.isVertexCompatible(0, 0, vertices[0]));
-  BOOST_CHECK(view.isVertexCompatible(0, 0, vertices[1]));
+  BOOST_CHECK(!view.isVertexCompatible(0, 0, vertices[0]));
+  BOOST_CHECK(!view.isVertexCompatible(0, 0, vertices[1]));
   BOOST_CHECK(!view.isVertexCompatible(0, 0, vertices[2]));
 
-  // Layer 0 ROF 1: [100, 200) — range includes idx 2 as false positive
+  // Layer 0 ROF 1: [100, 200) - range includes idx 2 as false positive
   {
     const auto& range = view.getVertices(0, 1);
     BOOST_CHECK_EQUAL(range.getEntries(), 3); // superset
@@ -684,25 +684,25 @@ BOOST_AUTO_TEST_CASE(rofvertex_exact_compatibility)
   BOOST_CHECK(!view.isVertexCompatible(0, 2, vertices[1]));
   BOOST_CHECK(!view.isVertexCompatible(0, 2, vertices[2]));
 
-  // Layer 2 ROF 0: [0, 50) — only idx 0
-  BOOST_CHECK(view.isVertexCompatible(2, 0, vertices[0]));
+  // Layer 2 ROF 0: [0, 50) - only idx 0
+  BOOST_CHECK(!view.isVertexCompatible(2, 0, vertices[0]));
   BOOST_CHECK(!view.isVertexCompatible(2, 0, vertices[1]));
 
-  // Layer 2 ROF 1: [50, 100) — idx 0 and 1
-  BOOST_CHECK(view.isVertexCompatible(2, 1, vertices[0]));
-  BOOST_CHECK(view.isVertexCompatible(2, 1, vertices[1]));
+  // Layer 2 ROF 1: [50, 100) - idx 0 and 1
+  BOOST_CHECK(!view.isVertexCompatible(2, 1, vertices[0]));
+  BOOST_CHECK(!view.isVertexCompatible(2, 1, vertices[1]));
   BOOST_CHECK(!view.isVertexCompatible(2, 1, vertices[2]));
 
-  // Layer 2 ROF 3: [150, 200) — only idx 0
+  // Layer 2 ROF 3: [150, 200) - only idx 0
   BOOST_CHECK(view.isVertexCompatible(2, 3, vertices[0]));
   BOOST_CHECK(!view.isVertexCompatible(2, 3, vertices[1]));
 
-  // Layer 3 ROF 0: [40, 110) — all three genuine
+  // Layer 3 ROF 0: [40, 110) - all three genuine
   BOOST_CHECK(view.isVertexCompatible(3, 0, vertices[0]));
   BOOST_CHECK(view.isVertexCompatible(3, 0, vertices[1]));
   BOOST_CHECK(view.isVertexCompatible(3, 0, vertices[2]));
 
-  // Layer 3 ROF 2: [140, 210) — only idx 0
+  // Layer 3 ROF 2: [140, 210) - only idx 0
   BOOST_CHECK(view.isVertexCompatible(3, 2, vertices[0]));
   BOOST_CHECK(!view.isVertexCompatible(3, 2, vertices[1]));
   BOOST_CHECK(!view.isVertexCompatible(3, 2, vertices[2]));

@@ -22,6 +22,7 @@
 
 namespace o2::its
 {
+// NOTE: this uses the internal asymmetrical time reprenstation!
 using Vertex = o2::dataformats::Vertex<o2::its::TimeEstBC>;
 using VertexLabel = std::pair<o2::MCCompLabel, float>;
 } // namespace o2::its

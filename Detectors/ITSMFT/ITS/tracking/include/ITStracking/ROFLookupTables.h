@@ -19,13 +19,13 @@
 #include <vector>
 #ifndef GPUCA_GPUCODE
 #include <format>
-#endif
 
+#include "Framework/Logger.h"
+#endif
 #include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsITS/TimeEstBC.h"
 #include "DataFormatsITS/Vertex.h"
-#include "GPUCommonLogger.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
 
@@ -65,18 +65,26 @@ struct LayerTiming {
       int64_t end = getROFEndInBC(rofId);
       start = o2::gpu::CAMath::Max(start - mROFAddTimeErr, int64_t(0));
       end += mROFAddTimeErr;
-      const BCType half = (end - start + 1u) / 2u;
-      return {BCType(start) + half, static_cast<uint16_t>(half)};
+      return {static_cast<BCType>(start), static_cast<TimeStampErrorType>(end - start)};
     }
-    const BCType start = getROFStartInBC(rofId);
-    const BCType half = mROFLength / BCType(2);
-    return {start + half, static_cast<TimeStampErrorType>(half)};
+    return {getROFStartInBC(rofId), static_cast<TimeStampErrorType>(mROFLength)};
   }
 
   // return which ROF this BC belongs to
   GPUhi() BCType getROF(BCType bc) const noexcept
   {
     const BCType offset = mROFDelay + mROFBias;
+    if (bc <= offset) {
+      return 0;
+    }
+    return (bc - offset) / mROFLength;
+  }
+
+  // return which ROF this timestamp belongs by its lower edge
+  GPUhi() BCType getROF(TimeStamp ts) const noexcept
+  {
+    const BCType offset = mROFDelay + mROFBias;
+    const BCType bc = (ts.getTimeStamp() < ts.getTimeStampError()) ? BCType(0) : static_cast<BCType>(o2::gpu::CAMath::Floor(ts.getTimeStamp() - ts.getTimeStampError()));
     if (bc <= offset) {
       return 0;
     }
@@ -278,7 +286,7 @@ struct ROFOverlapTableView {
       mLayers[i].print();
     }
 
-    const uint32_t totalBytes = (flatTableSize * sizeof(TableEntry)) + (NLayers * NLayers * sizeof(TableIndex));
+    const uint32_t totalBytes = (flatTableSize * sizeof(TableEntry)) + (static_cast<unsigned long>(NLayers * NLayers) * sizeof(TableIndex));
     LOGF(info, "------------------------------------------------------------");
     LOGF(info, "Total overlap table size: %u entries", totalEntries);
     LOGF(info, "Flat table size: %zu entries", flatTableSize);
@@ -332,7 +340,7 @@ class ROFOverlapTable : public LayerTimingBase<NLayers>
   }
 
   GPUh() size_t getFlatTableSize() const noexcept { return mFlatTable.size(); }
-  static GPUh() constexpr size_t getIndicesSize() { return NLayers * NLayers; }
+  static GPUh() constexpr size_t getIndicesSize() { return static_cast<size_t>(NLayers * NLayers); }
 
  private:
   GPUh() void buildMapping(int32_t from, int32_t to, std::vector<TableEntry>& table)
@@ -346,7 +354,7 @@ class ROFOverlapTable : public LayerTimingBase<NLayers>
       int64_t fromEnd = (int64_t)layerFrom.getROFEndInBC(iROF) + layerFrom.mROFAddTimeErr;
 
       int32_t firstROFTo = o2::gpu::CAMath::Max(0, (int32_t)((fromStart - (int64_t)layerTo.mROFAddTimeErr - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias) / (int64_t)layerTo.mROFLength));
-      int32_t lastROFTo = (int32_t)((fromEnd + (int64_t)layerTo.mROFAddTimeErr - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias - 1) / (int64_t)layerTo.mROFLength);
+      auto lastROFTo = (int32_t)((fromEnd + (int64_t)layerTo.mROFAddTimeErr - (int64_t)layerTo.mROFDelay - (int64_t)layerTo.mROFBias - 1) / (int64_t)layerTo.mROFLength);
       firstROFTo = o2::gpu::CAMath::Max(0, firstROFTo);
       lastROFTo = o2::gpu::CAMath::Min((int32_t)layerTo.mNROFsTF - 1, lastROFTo);
 
@@ -443,8 +451,8 @@ struct ROFVertexLookupTableView {
     const auto& layerDef = mLayers[layer];
     int64_t rofLower = o2::gpu::CAMath::Max((int64_t)layerDef.getROFStartInBC(rofIdx) - (int64_t)layerDef.mROFAddTimeErr, int64_t(0));
     int64_t rofUpper = (int64_t)layerDef.getROFEndInBC(rofIdx) + layerDef.mROFAddTimeErr;
-    int64_t vLower = (int64_t)vertex.getTimeStamp().getTimeStamp() - (int64_t)vertex.getTimeStamp().getTimeStampError();
-    int64_t vUpper = (int64_t)vertex.getTimeStamp().getTimeStamp() + (int64_t)vertex.getTimeStamp().getTimeStampError();
+    auto vLower = (int64_t)vertex.getTimeStamp().lower();
+    auto vUpper = (int64_t)vertex.getTimeStamp().upper();
     return vUpper >= rofLower && vLower < rofUpper;
   }
 
@@ -601,8 +609,7 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
       size_t lastVertex = binarySearchFirst(vertices, nVertices, vertexSearchStart, rofUpper);
       size_t firstVertex = vertexSearchStart;
       while (firstVertex < lastVertex) {
-        int64_t vUpper = (int64_t)vertices[firstVertex].getTimeStamp().getTimeStamp() +
-                         (int64_t)vertices[firstVertex].getTimeStamp().getTimeStampError();
+        auto vUpper = (int64_t)vertices[firstVertex].getTimeStamp().upper();
         if (vUpper > rofLower) {
           break;
         }

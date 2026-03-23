@@ -23,35 +23,42 @@ namespace o2::its
 {
 // Time estimates are given in BC
 // error needs to cover maximum 1 orbit
-// this is an symmetric time error [t0-tE, t0+tE)
 using TimeStampType = uint32_t;
 using TimeStampErrorType = uint16_t;
+// this is an symmetric time error [t0-tE, t0+tE]
+using TimeStamp = o2::dataformats::TimeStampWithError<float, float>;
+// this is an asymmetric time interval [t0, t0+tE] used for internal calculations
 class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, TimeStampErrorType>
 {
- public:
   using Base = o2::dataformats::TimeStampWithError<TimeStampType, TimeStampErrorType>;
+
+ public:
   GPUhdDefault() TimeEstBC() = default;
   GPUhdi() TimeEstBC(TimeStampType t, TimeStampErrorType e) : Base(t, e) {}
-
+  // convert to symmetric center+-half representation
+  GPUhdi() its::TimeStamp makeSymmetrical() const noexcept
+  {
+    const auto start = static_cast<float>(this->getTimeStamp());
+    const float half = (float)this->getTimeStampError() / 2.f;
+    return {start + half, half};
+  }
   // check if timestamps overlap within their interval
   GPUhdi() bool isCompatible(const TimeEstBC& o) const noexcept
   {
-    return !(upper() <= o.lower() || o.upper() <= lower());
+    return this->upper() > o.lower() && o.upper() > this->lower();
   }
-
   GPUhdi() TimeEstBC& operator+=(const TimeEstBC& o) noexcept
   {
     add(o);
     return *this;
   }
-
   GPUhdi() TimeEstBC operator+(const TimeEstBC& o) const noexcept
   {
     TimeEstBC res = *this;
     res += o;
     return res;
   }
-
+  // upper bound of interval t0+tE
   GPUhdi() TimeStampType upper() const noexcept
   {
     TimeStampType t = this->getTimeStamp();
@@ -59,28 +66,26 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
     constexpr TimeStampType max = std::numeric_limits<TimeStampType>::max();
     return (t > (max - e)) ? max : t + e;
   }
-
+  // lower bound of interval t0
   GPUhdi() TimeStampType lower() const noexcept
   {
-    TimeStampType t = this->getTimeStamp();
-    TimeStampType e = this->getTimeStampError();
-    return (t > e) ? (t - e) : 0u;
+    return this->getTimeStamp();
   }
 
  private:
-  // add the other timestmap to this one
+  // intersect with the other timestamp
   // this assumes already that both overlap
   GPUhdi() void add(const TimeEstBC& o) noexcept
   {
-    const TimeStampType lo = o2::gpu::CAMath::Max(lower(), o.lower());
-    const TimeStampType hi = o2::gpu::CAMath::Min(upper(), o.upper());
-    const TimeStampType half = (hi - lo) / 2u;
-    this->setTimeStamp(lo + half);
-    this->setTimeStampError(static_cast<TimeStampErrorType>(half));
+    const TimeStampType lo = o2::gpu::CAMath::Max(this->lower(), o.lower());
+    const TimeStampType hi = o2::gpu::CAMath::Min(this->upper(), o.upper());
+    this->setTimeStamp(lo);
+    this->setTimeStampError(static_cast<TimeStampErrorType>(hi - lo));
   }
 
   ClassDefNV(TimeEstBC, 1);
 };
+
 } // namespace o2::its
 
 #endif

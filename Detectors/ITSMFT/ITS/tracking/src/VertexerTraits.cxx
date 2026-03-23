@@ -288,9 +288,9 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
 
           const auto& rofRange01 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 0, pivotRofId);
           const auto& rofRange12 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 2, pivotRofId);
-          for (short targetRofId0 = rofRange01.getFirstEntry(); targetRofId0 < rofRange01.getEntriesBound(); ++targetRofId0) {
+          for (uint32_t targetRofId0 = rofRange01.getFirstEntry(); targetRofId0 < rofRange01.getEntriesBound(); ++targetRofId0) {
             const auto targetRofTime0 = mTimeFrame->getROFOverlapTableView().getLayer(0).getROFTimeBounds(targetRofId0);
-            for (short targetRofId2 = rofRange12.getFirstEntry(); targetRofId2 < rofRange12.getEntriesBound(); ++targetRofId2) {
+            for (uint32_t targetRofId2 = rofRange12.getFirstEntry(); targetRofId2 < rofRange12.getEntriesBound(); ++targetRofId2) {
               const auto targetRofTime2 = mTimeFrame->getROFOverlapTableView().getLayer(2).getROFTimeBounds(targetRofId2);
               if (!(mTimeFrame->getROFOverlapTableView().doROFsOverlap(0, targetRofId0, 2, targetRofId2))) {
                 continue;
@@ -332,32 +332,39 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
   for (int rofId{0}; rofId < mTimeFrame->getNrof(1); ++rofId) {
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
     bounded_vector<bool> usedTracklets(numTracklets, false, mMemoryPool.get());
-    for (int line1{0}; line1 < numTracklets; ++line1) {
-      if (usedTracklets[line1]) {
+    for (int iLine1{0}; iLine1 < numTracklets; ++iLine1) {
+      if (usedTracklets[iLine1]) {
         continue;
       }
-      for (int line2{line1 + 1}; line2 < numTracklets; ++line2) {
-        if (usedTracklets[line2]) {
+      const auto& line1 = mTimeFrame->getLines(rofId)[iLine1];
+      for (int iLine2{iLine1 + 1}; iLine2 < numTracklets; ++iLine2) {
+        if (usedTracklets[iLine2]) {
           continue;
         }
-        auto dca{Line::getDCA(mTimeFrame->getLines(rofId)[line1], mTimeFrame->getLines(rofId)[line2])};
+        const auto& line2 = mTimeFrame->getLines(rofId)[iLine2];
+        if (!line1.mTime.isCompatible(line2.mTime)) {
+          continue;
+        }
+        auto dca{Line::getDCA(line1, line2)};
         if (dca < mVrtParams[iteration].pairCut) {
-          mTimeFrame->getTrackletClusters(rofId).emplace_back(line1, mTimeFrame->getLines(rofId)[line1], line2, mTimeFrame->getLines(rofId)[line2]);
-          std::array<float, 3> tmpVertex{mTimeFrame->getTrackletClusters(rofId).back().getVertex()};
-          if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
+          mTimeFrame->getTrackletClusters(rofId).emplace_back(iLine1, line1, iLine2, line2);
+          if (mTimeFrame->getTrackletClusters(rofId).back().getR2() > 4.f) {
             mTimeFrame->getTrackletClusters(rofId).pop_back();
             break;
           }
-          usedTracklets[line1] = true;
-          usedTracklets[line2] = true;
-          for (int tracklet3{0}; tracklet3 < numTracklets; ++tracklet3) {
-            if (usedTracklets[tracklet3]) {
+          usedTracklets[iLine1] = true;
+          usedTracklets[iLine2] = true;
+          for (int iLine3{0}; iLine3 < numTracklets; ++iLine3) {
+            if (usedTracklets[iLine3]) {
               continue;
             }
-            if (Line::getDistanceFromPoint(mTimeFrame->getLines(rofId)[tracklet3], tmpVertex) < mVrtParams[iteration].pairCut) {
-              mTimeFrame->getTrackletClusters(rofId).back().add(tracklet3, mTimeFrame->getLines(rofId)[tracklet3]);
-              usedTracklets[tracklet3] = true;
-              tmpVertex = mTimeFrame->getTrackletClusters(rofId).back().getVertex();
+            const auto& line3 = mTimeFrame->getLines(rofId)[iLine3];
+            if (!line3.mTime.isCompatible(mTimeFrame->getTrackletClusters(rofId).back().getTimeStamp())) {
+              continue;
+            }
+            if (Line::getDistanceFromPoint(line3, mTimeFrame->getTrackletClusters(rofId).back().getVertex()) < mVrtParams[iteration].pairCut) {
+              mTimeFrame->getTrackletClusters(rofId).back().add(iLine3, line3);
+              usedTracklets[iLine3] = true;
             }
           }
           break;
@@ -384,19 +391,21 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
       std::array<float, 3> vertex1{mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex()};
       std::array<float, 3> vertex2{};
       for (int iCluster2{iCluster1 + 1}; iCluster2 < noClustersVec[rofId]; ++iCluster2) {
-        vertex2 = mTimeFrame->getTrackletClusters(rofId)[iCluster2].getVertex();
-        if (o2::gpu::GPUCommonMath::Abs(vertex1[2] - vertex2[2]) < mVrtParams[iteration].clusterCut) {
-          float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
-                         (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
-                         (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
-          if (distance < mVrtParams[iteration].pairCut * mVrtParams[iteration].pairCut) {
-            for (auto label : mTimeFrame->getTrackletClusters(rofId)[iCluster2].getLabels()) {
-              mTimeFrame->getTrackletClusters(rofId)[iCluster1].add(label, mTimeFrame->getLines(rofId)[label]);
-              vertex1 = mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex();
+        if (mTimeFrame->getTrackletClusters(rofId)[iCluster1].getTimeStamp().isCompatible(mTimeFrame->getTrackletClusters(rofId)[iCluster2].getTimeStamp())) {
+          vertex2 = mTimeFrame->getTrackletClusters(rofId)[iCluster2].getVertex();
+          if (o2::gpu::GPUCommonMath::Abs(vertex1[2] - vertex2[2]) < mVrtParams[iteration].clusterCut) {
+            float distance{((vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0])) +
+                           ((vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1])) +
+                           ((vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2]))};
+            if (distance < mVrtParams[iteration].pairCut * mVrtParams[iteration].pairCut) {
+              for (auto label : mTimeFrame->getTrackletClusters(rofId)[iCluster2].getLabels()) {
+                mTimeFrame->getTrackletClusters(rofId)[iCluster1].add(label, mTimeFrame->getLines(rofId)[label]);
+                vertex1 = mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex();
+              }
+              mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
+              --iCluster2;
+              --noClustersVec[rofId];
             }
-            mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
-            --iCluster2;
-            --noClustersVec[rofId];
           }
         }
       }

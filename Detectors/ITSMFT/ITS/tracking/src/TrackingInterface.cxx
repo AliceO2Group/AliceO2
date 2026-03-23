@@ -303,43 +303,42 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
     std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
 
-    // create the track to clock ROF association here
-    // the clock ROF is just the fastest ROF
-    // the number of ROFs does not necessarily reflect the actual ROFs
-    // due to possible delay of other layers, however it is guaranteed to be >=0
-    // tracks are guaranteed to be sorted here by their lower edge
-    const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
-    const auto& clock = mTimeFrame->getROFOverlapTableView().getClock();
-    const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
-    auto setBCData = [&](auto& rofs) {
-      for (size_t iROF{0}; iROF < rofs.size(); ++iROF) { // set BC data
-        auto& rof = rofs[iROF];
-        int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + firstTForbit;
-        int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
-        o2::InteractionRecord ir(bc, orb);
-        rof.setBCData(ir);
-        rof.setROFrame(iROF);
-        rof.setNEntries(0);
-        rof.setFirstEntry(-1);
-      }
-    };
-    int highestROF{0};
     {
+      // create the track to clock ROF association here
+      // the clock ROF is just the fastest ROF
+      // the number of ROFs does not necessarily reflect the actual ROFs
+      // due to possible delay of other layers, however it is guaranteed to be >=0
+      // tracks are guaranteed to be sorted here by their lower edge
+      const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
+      const auto& clock = mTimeFrame->getROFOverlapTableView().getClock();
+      const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
+      auto setBCData = [&](auto& rofs) {
+        for (size_t iROF{0}; iROF < rofs.size(); ++iROF) { // set BC data
+          auto& rof = rofs[iROF];
+          int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + firstTForbit;
+          int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
+          o2::InteractionRecord ir(bc, orb);
+          rof.setBCData(ir);
+          rof.setROFrame(iROF);
+          rof.setNEntries(0);
+          rof.setFirstEntry(-1);
+        }
+      };
+      // we pick whatever is the largest possible number of rofs since there might be tracks/vertices which are beyond
+      // the clock layer
+      int highestROF{0};
       for (const auto& trc : tracks) {
-        highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp().lower()));
+        highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp()));
       }
+      for (const auto& vtx : vertices) {
+        highestROF = std::max(highestROF, (int)clockLayer.getROF(vtx.getTimeStamp().lower()));
+      }
+      highestROF = std::max(highestROF, (int)clockLayer.mNROFsTF);
       allTrackROFs.resize(highestROF);
+      vertROFvec.resize(highestROF);
       setBCData(allTrackROFs);
-      for (int iROF{0}; iROF < highestROF; ++iROF) { // set BC data
-        auto& rof = allTrackROFs[iROF];
-        int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + firstTForbit;
-        int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
-        o2::InteractionRecord ir(bc, orb);
-        rof.setBCData(ir);
-        rof.setROFrame(iROF);
-        rof.setNEntries(0);
-        rof.setFirstEntry(-1);
-      }
+      setBCData(vertROFvec);
+
       std::vector<int> rofEntries(highestROF + 1, 0);
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
@@ -355,7 +354,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         }
         assert(ncl == nclf);
         allTracks.emplace_back(trc);
-        auto rof = clockLayer.getROF(trc.getTimeStamp().lower());
+        auto rof = clockLayer.getROF(trc.getTimeStamp());
         ++rofEntries[rof];
       }
       std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
@@ -363,21 +362,13 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
         allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
       }
-    }
-    { // same thing for vertices rofs
-      highestROF = 0;
-      for (const auto& vtx : vertices) {
-        highestROF = std::max(highestROF, (int)clockLayer.getROF(vtx.getTimeStamp().lower()));
-      }
-      vertROFvec.resize(highestROF);
-      setBCData(vertROFvec);
-      std::vector<int> rofEntries(highestROF + 1, 0);
+      // same thing for vertices rofs
+      std::fill(rofEntries.begin(), rofEntries.end(), 0);
       for (const auto& vtx : vertices) {
         auto rof = clockLayer.getROF(vtx.getTimeStamp().lower());
         ++rofEntries[rof];
       }
       std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
-
       for (size_t iROF{0}; iROF < vertROFvec.size(); ++iROF) {
         vertROFvec[iROF].setFirstEntry(rofEntries[iROF]);
         vertROFvec[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
@@ -385,7 +376,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
 
-  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices in {} rofs", allTracks.size(), allTrackROFs.size(), vertices.size(), vertROFvec.size());
+  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices ", allTracks.size(), allTrackROFs.size(), vertices.size());
   if (mIsMC) {
     LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
     LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());

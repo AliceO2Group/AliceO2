@@ -48,20 +48,12 @@ struct Line final {
 
   float originPoint[3] = {0, 0, 0};
   float cosinesDirector[3] = {0, 0, 0};
-  // float weightMatrix[6] = {1., 0., 0., 1., 0., 1.};
-  // weightMatrix is a symmetric matrix internally stored as
-  //    0 --> row = 0, col = 0
-  //    1 --> 0,1
-  //    2 --> 0,2
-  //    3 --> 1,1
-  //    4 --> 1,2
-  //    5 --> 2,2
   TimeEstBC mTime;
 
   ClassDefNV(Line, 1);
 };
 
-GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
+GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters) : mTime(tracklet.mTime)
 {
   originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
   originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
@@ -75,8 +67,6 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   cosinesDirector[0] *= inverseNorm;
   cosinesDirector[1] *= inverseNorm;
   cosinesDirector[2] *= inverseNorm;
-
-  mTime = tracklet.mTime;
 }
 
 // static functions:
@@ -140,9 +130,9 @@ GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], flo
   destArray[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
   destArray[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
   destArray[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
-  destArray[1] = o2::gpu::CAMath::Sqrt(destArray[0] * destArray[0] + destArray[3] * destArray[3]);
-  destArray[2] = o2::gpu::CAMath::Sqrt(destArray[0] * destArray[0] + destArray[5] * destArray[5]);
-  destArray[4] = o2::gpu::CAMath::Sqrt(destArray[3] * destArray[3] + destArray[5] * destArray[5]);
+  destArray[1] = o2::gpu::CAMath::Hypot(destArray[0], destArray[3]);
+  destArray[2] = o2::gpu::CAMath::Hypot(destArray[0], destArray[5]);
+  destArray[4] = o2::gpu::CAMath::Hypot(destArray[3], destArray[5]);
 }
 
 inline bool Line::operator==(const Line& rhs) const
@@ -163,28 +153,27 @@ class ClusterLines final
 {
  public:
   ClusterLines() = default;
-  ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
-               const bool weight = false);
-  ClusterLines(const Line& firstLine, const Line& secondLine);
-  void add(const int lineLabel, const Line& line, const bool weight = false);
+  ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine);
+  void add(const int lineLabel, const Line& line);
   void computeClusterCentroid();
-  inline std::array<float, 3> getVertex() const { return mVertex; }
-  inline std::array<float, 6> getRMS2() const { return mRMS2; }
-  inline float getAvgDistance2() const { return mAvgDistance2; }
-  inline auto getSize() const noexcept { return mLabels.size(); }
+  auto const& getVertex() const { return mVertex; }
+  std::array<float, 6> getRMS2() const { return mRMS2; }
+  float getAvgDistance2() const { return mAvgDistance2; }
+  auto getSize() const noexcept { return mLabels.size(); }
   auto& getLabels() noexcept { return mLabels; }
   const auto& getTimeStamp() const noexcept { return mTime; }
   bool operator==(const ClusterLines& rhs) const noexcept;
+  float getR2() const noexcept { return (mVertex[0] * mVertex[0]) + (mVertex[1] * mVertex[1]); }
+  float getR() const noexcept { return std::sqrt(getR2()); }
 
  protected:
   std::array<float, 6> mAMatrix = {}; // AX=B
   std::array<float, 3> mBMatrix = {}; // AX=B
-  // std::array<float, 9> mWeightMatrix = {}; // weight matrix
-  std::array<float, 3> mVertex = {}; // cluster centroid position
-  std::array<float, 6> mRMS2 = {};   // symmetric matrix: diagonal is RMS2
-  float mAvgDistance2 = 0.f;         // substitute for chi2
-  TimeEstBC mTime;                   // time stamp
-  std::vector<int> mLabels;          // contributing labels
+  std::array<float, 3> mVertex = {};  // cluster centroid position
+  std::array<float, 6> mRMS2 = {};    // symmetric matrix: diagonal is RMS2
+  float mAvgDistance2 = 0.f;          // substitute for chi2
+  TimeEstBC mTime;                    // time stamp
+  std::vector<int> mLabels;           // contributing labels
 };
 
 } // namespace o2::its

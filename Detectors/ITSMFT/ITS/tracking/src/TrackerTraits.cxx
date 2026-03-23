@@ -799,7 +799,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
           ts += rofTS;
         }
       }
-      track.getTimeStamp() = ts;
+      track.getTimeStamp() = ts.makeSymmetrical();
       track.setUserField(0);
       track.getParamOut().setUserField(0);
       mTimeFrame->getTracks().emplace_back(track);

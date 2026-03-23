@@ -101,8 +101,8 @@ void Vertexer<NLayers>::sortVertices()
   std::sort(indices.begin(), indices.end(), [&pvs](size_t i, size_t j) {
     const auto& a = pvs[i].getTimeStamp();
     const auto& b = pvs[j].getTimeStamp();
-    const auto aLower = a.getTimeStamp() - a.getTimeStampError();
-    const auto bLower = b.getTimeStamp() - b.getTimeStampError();
+    const auto aLower = a.lower();
+    const auto bLower = b.lower();
     if (aLower != bLower) {
       return aLower < bLower;
     }

@@ -159,7 +159,7 @@ class TrackITS : public o2::track::TrackParCov
   float mChi2 = 0.;                 ///< Chi2 for this track
   uint32_t mPattern = 0;            ///< layers pattern
   uint32_t mClusterSizes = 0u;      ///< 4bit packed cluster sizes
-  TimeEstBC mTime;                  ///< track time stamp with error in BC since start of TF, symmetrical
+  TimeStamp mTime;                  ///< track time stamp with error in BC since start of TF, symmetrical
 
   ClassDefNV(TrackITS, 7);
 };
