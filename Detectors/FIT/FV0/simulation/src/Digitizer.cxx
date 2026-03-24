@@ -38,8 +38,8 @@ void Digitizer::clear()
 void Digitizer::init()
 {
   LOG(info) << "init";
-  mNBins = FV0DigParam::Instance().waveformNbins;      //Will be computed using detector set-up from CDB
-  mBinSize = FV0DigParam::Instance().waveformBinWidth; //Will be set-up from CDB
+  mNBins = FV0DigParam::Instance().waveformNbins;                                  // Will be computed using detector set-up from CDB
+  mBinSize = FV0DigParam::Instance().waveformBinWidth;                             // Will be set-up from CDB
   mNTimeBinsPerBC = std::lround(o2::constants::lhc::LHCBunchSpacingNS / mBinSize); // 1920 bins/BC
 
   for (Int_t detID = 0; detID < Constants::nFv0Channels; detID++) {
@@ -149,8 +149,8 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
 
       createPulse(mipFraction, hit.GetTrackID(), hitTime, hit.GetPos().R(), cachedIR, nCachedIR, detId);
 
-    } //while loop
-  }   //hitloop
+    } // while loop
+  } // hitloop
 }
 
 void Digitizer::createPulse(float mipFraction, int parID, const double hitTime, const float hitR,
@@ -200,7 +200,7 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime, 
     }
     added[ir] = true;
   }
-  ///Add MC labels to BCs for those contributed to the PMT signal
+  /// Add MC labels to BCs for those contributed to the PMT signal
   for (int ir = 0; ir < nCachedIR; ir++) {
     if (added[ir]) {
       auto bcCache = getBCCache(cachedIR[ir]);
@@ -304,13 +304,13 @@ void Digitizer::storeBC(const BCCache& bc,
   } else {
     avgTime = o2::fit::Triggers::DEFAULT_TIME;
   }
-  ///Triggers for FV0
+  /// Triggers for FV0
   bool isA, isNchannels, isAIn, isAOut, isTotalCharge;
   isA = nTrgFiredCells > 0;
   isNchannels = nTrgFiredCells > FV0DigParam::Instance().NchannelsLevel;
-  isAIn = nSignalInner > FV0DigParam::Instance().;NchannelsLevel  // ring 1,2 and 3
+  isAIn = nSignalInner > FV0DigParam::Instance().NchannelsLevel;  // ring 1,2 and 3
   isAOut = nSignalOuter > FV0DigParam::Instance().NchannelsLevel; // ring 4 and 5
-  isTotalCharge = 0.125*totalChargeAllRing > 2*FV0DigParam::Instance().ChargeLevel;
+  isTotalCharge = 0.125 * totalChargeAllRing > 2 * FV0DigParam::Instance().ChargeLevel;
 
   Triggers triggers;
   const int unusedCharge = o2::fit::Triggers::DEFAULT_AMP;
@@ -321,7 +321,7 @@ void Digitizer::storeBC(const BCCache& bc,
   triggers.setTriggers(isA, isAIn, isAOut, isTotalCharge, isNchannels, nTrgFiredCells, (int8_t)unusedZero,
                        (int32_t)(0.125 * totalChargeAllRing), (int32_t)unusedCharge, (int16_t)avgTime, (int16_t)unusedTime, unusedBitsInSim, unusedBitsInSim, bitDataIsValid);
   digitsBC.emplace_back(first, nTotFiredCells, bc, triggers, mEventId - 1);
-  digitsTrig.emplace_back(bc, isA, isAIn, isAOut, isTotalCharge, isNChannels);
+  digitsTrig.emplace_back(bc, isA, isAIn, isAOut, isTotalCharge, isNchannels);
   for (auto const& lbl : bc.labels) {
     labels.addElement(nBC, lbl);
   }
@@ -346,8 +346,8 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot) const
 //---------------------------------------------------------------------------
 Float_t Digitizer::IntegrateCharge(const ChannelDigitF& pulse) const
 {
-  int const chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : (FV0DigParam::Instance().avgCfdTimeForMip - 6.0) / mBinSize;                //Charge integration offset (cfd mean time - 6 ns)
-  int const chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : (FV0DigParam::Instance().avgCfdTimeForMip + 14.0) / mBinSize; //Charge integration offset (cfd mean time + 14 ns)
+  int const chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : (FV0DigParam::Instance().avgCfdTimeForMip - 6.0) / mBinSize;                // Charge integration offset (cfd mean time - 6 ns)
+  int const chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : (FV0DigParam::Instance().avgCfdTimeForMip + 14.0) / mBinSize; // Charge integration offset (cfd mean time + 14 ns)
   if (chargeIntMin < 0 || chargeIntMin > mNTimeBinsPerBC || chargeIntMax > mNTimeBinsPerBC) {
     LOG(fatal) << "invalid indicess: chargeInMin=" << chargeIntMin << " chargeIntMax=" << chargeIntMax;
   }
@@ -404,7 +404,7 @@ float Digitizer::getDistFromCellCenter(UInt_t cellId, double hitx, double hity)
   double a = -(y0 - pCell->y) / (x0 - pCell->x);
   double b = 1;
   double c = -(y0 - a * x0);
-  //Return the distance from hit to this line
+  // Return the distance from hit to this line
   return (a * hitx + b * hity + c) / TMath::Sqrt(a * a + b * b);
 }
 
