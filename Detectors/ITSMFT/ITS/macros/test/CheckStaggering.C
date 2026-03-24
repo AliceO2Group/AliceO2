@@ -95,7 +95,7 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
   const float bz = prop->getNominalBz();
 
   auto hNTrkCls = new TH1D("hNTrkCls", "Number of cluster per track;nCls;entries", 4, 3.5, 7.5);
-  std::array<TH1*, 5> hTrkTS;
+  std::array<TH1*, 5> hTrkTS{nullptr};
   for (int i{0}; i < 5; ++i) {
     hTrkTS[i] = new TH1D(Form("hTrkTS_%d", i), Form("track time t0 (%s);t0 (BC)", i == 0 ? "all" : Form("NCls=%d", 3 + i)), o2::constants::lhc::LHCMaxBunches, 0, o2::constants::lhc::LHCMaxBunches);
   }
@@ -158,12 +158,13 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
     int barWidth = 50;
     int pos = barWidth * progress / 100;
     for (int j = 0; j < barWidth; ++j) {
-      if (j < pos)
+      if (j < pos) {
         printf("=");
-      else if (j == pos)
+      } else if (j == pos) {
         printf(">");
-      else
+      } else {
         printf(" ");
+      }
     }
     printf("] %d%%", progress);
     fflush(stdout);
@@ -200,8 +201,8 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
 
       for (const auto& trk : trkArr) {
         hNTrkCls->Fill(trk.getNClusters());
-        hTrkTS[0]->Fill(trk.getTimeStamp().getTimeStamp() % o2::constants::lhc::LHCMaxBunches);
-        hTrkTS[trk.getNClusters() - 3]->Fill(trk.getTimeStamp().getTimeStamp() % o2::constants::lhc::LHCMaxBunches);
+        hTrkTS[0]->Fill(std::fmod(trk.getTimeStamp().getTimeStamp(), o2::constants::lhc::LHCMaxBunches));
+        hTrkTS[trk.getNClusters() - 3]->Fill(std::fmod(trk.getTimeStamp().getTimeStamp(), o2::constants::lhc::LHCMaxBunches));
         hTrkTSE->Fill(trk.getTimeStamp().getTimeStampError());
 
         if (trk.getPt() > mMinITSPt) {
@@ -226,14 +227,11 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
       std::vector<PairCandidate> k0Cands;
       for (int iPos{0}; iPos < (int)posPool.size(); ++iPos) {
         const auto pos = posPool[iPos];
-        auto posTS = o2::its::TimeEstBC(pos->getTimeStamp().getTimeStamp(), pos->getTimeStamp().getTimeStampError());
         for (int iNeg{0}; iNeg < (int)negPool.size(); ++iNeg) {
           const auto neg = negPool[iNeg];
-          auto negTS = o2::its::TimeEstBC(neg->getTimeStamp().getTimeStamp(), neg->getTimeStamp().getTimeStampError());
-          if (!posTS.isCompatible(negTS)) {
+          bool overlap = std::abs(pos->getTimeStamp().getTimeStamp() - neg->getTimeStamp().getTimeStamp()) <= (pos->getTimeStamp().getTimeStampError() + neg->getTimeStamp().getTimeStampError());
+          if (!overlap) {
             continue;
-            // } else if (posTS.getTimeStamp() + posTS.getTimeStampError() < negTS.getTimeStamp() - negTS.getTimeStampError()) {
-            //   break;
           }
 
           // phi-meson
@@ -314,7 +312,10 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
               bool candFound = false;
               for (const auto& vtx : vtxArr) {
                 if (vtx.getNContributors() > minVtxWeight) {
-                  if (posTS.isCompatible(vtx.getTimeStamp()) && negTS.isCompatible(vtx.getTimeStamp())) {
+                  const auto vtxT = vtx.getTimeStamp().makeSymmetrical();
+                  bool overlapPos = std::abs(pos->getTimeStamp().getTimeStamp() - vtxT.getTimeStamp()) <= (pos->getTimeStamp().getTimeStampError() + vtxT.getTimeStampError());
+                  bool overlapNeg = std::abs(neg->getTimeStamp().getTimeStamp() - vtxT.getTimeStamp()) <= (neg->getTimeStamp().getTimeStampError() + vtxT.getTimeStampError());
+                  if (overlapPos && overlapNeg) {
                     float dx = v0XYZ[0] - vtx.getX(), dy = v0XYZ[1] - vtx.getY(), dz = v0XYZ[2] - vtx.getZ(), prodXYZv0 = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
                     float cosPA = prodXYZv0 / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
                     if (cosPA > bestCosPA) {
