@@ -348,7 +348,8 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
         auto dca{Line::getDCA(line1, line2)};
         if (dca < mVrtParams[iteration].pairCut) {
           mTimeFrame->getTrackletClusters(rofId).emplace_back(iLine1, line1, iLine2, line2);
-          if (mTimeFrame->getTrackletClusters(rofId).back().getR2() > 4.f) {
+          if (!mTimeFrame->getTrackletClusters(rofId).back().isValid() ||
+              mTimeFrame->getTrackletClusters(rofId).back().getR2() > 4.f) {
             mTimeFrame->getTrackletClusters(rofId).pop_back();
             break;
           }
@@ -368,17 +369,6 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
             }
           }
           break;
-        }
-      }
-    }
-    if (mVrtParams[iteration].allowSingleContribClusters) {
-      auto beamLine = Line{{mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), -50.f}, {mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), 50.f}}; // use beam position as contributor
-      for (size_t iLine{0}; iLine < numTracklets; ++iLine) {
-        if (!usedTracklets[iLine]) {
-          auto dca = Line::getDCA(mTimeFrame->getLines(rofId)[iLine], beamLine);
-          if (dca < mVrtParams[iteration].pairCut) {
-            mTimeFrame->getTrackletClusters(rofId).emplace_back(iLine, mTimeFrame->getLines(rofId)[iLine], -1, beamLine); // beamline must be passed as second line argument
-          }
         }
       }
     }
@@ -430,9 +420,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
 
       if (beamDistance2 < nsigmaCut && o2::gpu::GPUCommonMath::Abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams[iteration].maxZPositionAllowed) {
         atLeastOneFound = true;
-        Vertex vertex{o2::math_utils::Point3D<float>(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
-                                                     mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
-                                                     mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]),
+        Vertex vertex{mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex().data(),
                       mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),          // Symm matrix. Diagonal: RMS2 components,
                                                                                            // off-diagonal: square mean of projections on planes.
                       (ushort)mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),  // Contributors

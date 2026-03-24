@@ -22,10 +22,9 @@ namespace o2::its
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
   bool saveTimeBenchmarks = false; // dump metrics on file
 
-  int nIterations = 1;                     // Number of vertexing passes to perform.
-  int vertPerRofThreshold = 0;             // Maximum number of vertices per ROF to trigger second a iteration.
-  bool allowSingleContribClusters = false; // attempt to find vertices in case of a single tracklet found.
-  int deltaRof = 0;                        // Number of ROFs to be considered for the vertexing.
+  int nIterations = 1;         // Number of vertexing passes to perform.
+  int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a iteration.
+  int deltaRof = 0;            // Number of ROFs to be considered for the vertexing.
 
   // geometrical cuts for tracklet selection
   float zCut = 0.002f;

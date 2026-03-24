@@ -679,7 +679,7 @@ BOOST_AUTO_TEST_CASE(rofvertex_exact_compatibility)
     // BOOST_CHECK_EQUAL(exactCount, 2); // idx 2 filtered out
   }
 
-  // Layer 0 ROF 2: [200, 300) — nothing overlaps
+  // Layer 0 ROF 2: [200, 300) - nothing overlaps
   BOOST_CHECK(!view.isVertexCompatible(0, 2, vertices[0]));
   BOOST_CHECK(!view.isVertexCompatible(0, 2, vertices[1]));
   BOOST_CHECK(!view.isVertexCompatible(0, 2, vertices[2]));

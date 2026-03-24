@@ -261,7 +261,6 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.DropTFUponFailure = vc.dropTFUponFailure;
     p.nIterations = vc.nIterations;
     p.deltaRof = vc.deltaRof;
-    p.allowSingleContribClusters = vc.allowSingleContribClusters;
     p.trackletSigma = vc.trackletSigma;
     p.maxZPositionAllowed = vc.maxZPositionAllowed;
     p.clusterContributorsCut = vc.clusterContributorsCut;
