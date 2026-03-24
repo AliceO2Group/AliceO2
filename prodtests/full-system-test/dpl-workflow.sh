@@ -161,7 +161,6 @@ else
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
   elif [[ $BEAMTYPE == "PbPb" ]]; then
     ITS_CONFIG_KEY+="ITSVertexerParam.lowMultBeamDistCut=0;"
-    ! has_detectors_gpu TPC ITS && ITS_CONFIG_KEY+="ITSCATrackerParam.nROFsPerIterations=12;"
   fi
 
   if [[ $IS_SIMULATED_DATA == 0 && $CTFINPUT == 1 ]]; then # Enable fixes to the MCH readout mapping for async processing of real data
