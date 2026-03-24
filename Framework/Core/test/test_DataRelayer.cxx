@@ -798,11 +798,11 @@ TEST_CASE("DataRelayer")
     // one message set containing number of added sequences of messages
     REQUIRE((messageSet[0].messages | count_parts{}) == sequenceSize.size());
     size_t counter = 0;
-    for (auto seqid = 0; seqid < sequenceSize.size(); ++seqid) {
+    for (size_t seqid = 0; seqid < sequenceSize.size(); ++seqid) {
       REQUIRE(messageSet[0].getNumberOfPayloads(seqid) == sequenceSize[seqid]);
-      for (auto pi = 0; pi < messageSet[0].getNumberOfPayloads(seqid); ++pi) {
-        REQUIRE(messageSet[0].payload(seqid, pi));
-        auto const* data = messageSet[0].payload(seqid, pi)->GetData();
+      for (size_t pi = 0; pi < messageSet[0].getNumberOfPayloads(seqid); ++pi) {
+        REQUIRE((messageSet[0].messages | get_payload{seqid, pi}));
+        auto const* data = (messageSet[0].messages | get_payload{seqid, pi})->GetData();
         REQUIRE(*(reinterpret_cast<size_t const*>(data)) == counter);
         ++counter;
       }

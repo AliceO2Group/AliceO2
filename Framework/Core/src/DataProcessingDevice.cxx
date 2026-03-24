@@ -2153,7 +2153,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       return currentSetOfInputs[i].getNumberOfPairs();
     };
     auto refCountGetter = [&currentSetOfInputs](size_t idx) -> int {
-      auto& header = static_cast<const fair::mq::shmem::Message&>(*currentSetOfInputs[idx].header(0));
+      auto& header = static_cast<const fair::mq::shmem::Message&>(*(currentSetOfInputs[idx].messages | get_header{0}));
       return header.GetRefCount();
     };
     return InputSpan{getter, nofPartsGetter, refCountGetter, currentSetOfInputs.size()};

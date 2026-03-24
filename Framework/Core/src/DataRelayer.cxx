@@ -184,11 +184,11 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       // We check that no data is already there for the given cell
       // it is enough to check the first element
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
-      if (!part.messages.empty() && part.header(0) != nullptr) {
+      if (!part.messages.empty() && (part.messages | get_header{0}) != nullptr) {
         headerPresent++;
         continue;
       }
-      if (!part.messages.empty() && part.payload(0) != nullptr) {
+      if (!part.messages.empty() && (part.messages | get_payload{0, 0}) != nullptr) {
         payloadPresent++;
         continue;
       }
@@ -227,7 +227,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         return partial[idx].messages | count_parts{};
       };
       auto refCountGetter = [&partial](size_t idx) -> int {
-        auto& header = static_cast<const fair::mq::shmem::Message&>(*partial[idx].header(0));
+        auto& header = static_cast<const fair::mq::shmem::Message&>(*(partial[idx].messages | get_header{0}));
         return header.GetRefCount();
       };
       InputSpan span{getter, nPartsGetter, refCountGetter, static_cast<size_t>(partial.size())};
@@ -246,8 +246,8 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
-      assert(part.header(0) != nullptr);
-      assert(part.payload(0) != nullptr);
+      assert((part.messages | get_header{0}) != nullptr);
+      assert((part.messages | get_payload{0, 0}) != nullptr);
     }
   }
   LOGP(debug, "DataRelayer::processDanglingInputs headerPresent:{}, payloadPresent:{}, noCheckers:{}, badSlot:{}, checkerDenied:{}",
@@ -800,7 +800,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       return partial[idx].messages | count_parts{};
     };
     auto refCountGetter = [&partial](size_t idx) -> int {
-      auto& header = static_cast<const fair::mq::shmem::Message&>(*partial[idx].header(0));
+      auto& header = static_cast<const fair::mq::shmem::Message&>(*(partial[idx].messages | get_header{0}));
       return header.GetRefCount();
     };
     InputSpan span{getter, nPartsGetter, refCountGetter, static_cast<size_t>(partial.size())};

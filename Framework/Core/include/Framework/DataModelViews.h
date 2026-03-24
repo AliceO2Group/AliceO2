@@ -153,7 +153,7 @@ struct get_header {
   // ends the pipeline, returns the number of parts
   template <typename R>
     requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
-  friend fair::mq::MessagePtr& operator|(R&& r, get_header self)
+  friend auto& operator|(R&& r, get_header self)
   {
     return r[(r | get_dataref_indices{self.id, 0}).headerIdx];
   }
@@ -165,7 +165,7 @@ struct get_payload {
   // ends the pipeline, returns the number of parts
   template <typename R>
     requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
-  friend fair::mq::MessagePtr& operator|(R&& r, get_payload self)
+  friend auto& operator|(R&& r, get_payload self)
   {
     return r[(r | get_dataref_indices{self.part, self.subPart}).payloadIdx];
   }
