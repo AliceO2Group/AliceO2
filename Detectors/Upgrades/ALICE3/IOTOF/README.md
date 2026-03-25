@@ -23,7 +23,7 @@ Configurables for various sub-detectors are presented in the following Table:
 | `IOTOFBase.segmentedInnerTOF` | `false` (default), `true`                                        | Use segmented geometry for inner TOF           |
 | `IOTOFBase.segmentedOuterTOF` | `false` (default), `true`                                        | Use segmented geometry for outer TOF           |
 | `IOTOFBase.detectorPattern`   | ` ` (default), `v3b`, `v3b1a`, `v3b1b`, `v3b2a`, `v3b2b`, `v3b3` | Optional layout pattern                        |
-| `IOTOFBase.x2x0`              | `0.02` (default)                                                 | Chip thickness in fractions of the rad. lenght |
+| `IOTOFBase.x2x0`              | `0.000527` (default)                                             | Chip thickness in fractions of the rad. lenght |
 
 
 For example, a geometry with fully cylindrical tracker barrel (for all layers in VD, ML and OT) can be obtained by
