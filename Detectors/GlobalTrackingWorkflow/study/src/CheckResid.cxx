@@ -318,6 +318,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
   auto inv2d = [](float s00, float s11, float s01) -> std::array<float, 3> {
     auto det = s00 * s11 - s01 * s01;
     if (det < 1e-16) {
+      LOGP(error, "Singular det {}, input: {} {} {}", det, s00, s11, s01);
       return {0.f, 0.f, 0.f};
     }
     det = 1.f / det;
@@ -329,11 +330,11 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
     LOGP(debug, "Failed to propagateToDCA, {}", trFitOut.asString());
     return false;
   }
-  float cosAlp, sinAlp;
-  pvAlpha = trFitOut.getAlpha();
-  o2::math_utils::sincos(trFitOut.getAlpha(), sinAlp, cosAlp); // vertex position rotated to track frame
   o2::BaseCluster<float> bcPV;
   if (params.addPVAsCluster) {
+    float cosAlp, sinAlp;
+    pvAlpha = trFitOut.getAlpha();
+    o2::math_utils::sincos(trFitOut.getAlpha(), sinAlp, cosAlp); // vertex position rotated to track frame
     bcPV.setXYZ(pv.getX() * cosAlp + pv.getY() * sinAlp, -pv.getX() * sinAlp + pv.getY() * cosAlp, pv.getZ());
     bcPV.setSigmaY2(0.5 * (pv.getSigmaX2() + pv.getSigmaY2()));
     bcPV.setSigmaZ2(pv.getSigmaZ2());
@@ -400,7 +401,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
         auto wInw = inv2d(tInw.getSigmaY2(), tInw.getSigmaZ2(), tInw.getSigmaZY());
         auto wOut = inv2d(tOut.getSigmaY2(), tOut.getSigmaZ2(), tOut.getSigmaZY());
         if (wInw[0] == 0.f || wOut[0] == 0.f) {
-          return -1;
+          return false;
         }
         std::array<float, 3> wTot = {wInw[0] + wOut[0], wInw[1] + wOut[1], wInw[2] + wOut[2]};
         auto cTot = inv2d(wTot[0], wTot[1], wTot[2]);
@@ -481,6 +482,8 @@ bool CheckResidSpec::refitITStrack(o2::track::TrackParCov& track, GTrackID gid)
   const auto& params = CheckResidConfig::Instance();
   auto pid = track.getPID();
   track = trkITS.getParamOut();
+  track.resetCovariance();
+  track.setCov(track.getQ2Pt() * track.getQ2Pt() * track.getCov()[14], 14);
   track.setPID(pid);
   auto nCl = trkITS.getNumberOfClusters();
   auto geom = o2::its::GeometryTGeo::Instance();
