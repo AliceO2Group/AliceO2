@@ -20,7 +20,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include <DataFormatsITSMFT/PhysTrigger.h>
-#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITStracking/FastMultEstConfig.h"
 #include <gsl/span>
 #include <array>
 

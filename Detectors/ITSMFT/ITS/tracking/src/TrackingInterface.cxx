@@ -17,8 +17,8 @@
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 
-#include "ITSReconstruction/FastMultEstConfig.h"
-#include "ITSReconstruction/FastMultEst.h"
+#include "ITStracking/FastMultEstConfig.h"
+#include "ITStracking/FastMultEst.h"
 
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/TrackingInterface.h"
