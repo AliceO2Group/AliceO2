@@ -43,6 +43,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
     return sInstance.get();
   };
   static const char* getTRKVolPattern() { return sVolumeName.c_str(); }
+  static const char* getTRKServiceVolPattern() { return sServiceVolName.c_str(); }
   static const char* getTRKLayerPattern() { return sLayerName.c_str(); }
   static const char* getTRKPetalAssemblyPattern() { return sPetalAssemblyName.c_str(); }
   static const char* getTRKPetalPattern() { return sPetalName.c_str(); }
@@ -198,6 +199,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static constexpr int MAXLAYERS = 20; ///< max number of active layers
 
   static std::string sVolumeName;
+  static std::string sServiceVolName;
   static std::string sLayerName;
   static std::string sPetalAssemblyName;
   static std::string sPetalName;
