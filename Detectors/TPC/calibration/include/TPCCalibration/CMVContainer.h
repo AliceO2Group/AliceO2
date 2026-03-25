@@ -16,70 +16,57 @@
 #ifndef ALICEO2_TPC_CMVCONTAINER_H_
 #define ALICEO2_TPC_CMVCONTAINER_H_
 
-#include <vector>
 #include <string>
 #include <memory>
 #include <stdexcept>
 #include <fmt/format.h>
 
 #include "TTree.h"
+#include "TPCBase/CRU.h"
 #include "DataFormatsTPC/CMV.h"
 
 namespace o2::tpc
 {
 
 /// CMV data for one TF across all CRUs
+/// Raw 16-bit CMV values are stored in a flat C array indexed as [cru * NTimeBinsPerTF + timeBin]
+/// CRU::MaxCRU and cmv::NTimeBinsPerTF are compile-time constants, so no dynamic allocation is needed
+/// Each TTree entry corresponds to one CMVPerTF object (one TF)
 struct CMVPerTF {
-  int64_t firstOrbit{0}; ///< First orbit of this TF, from heartbeatOrbit of the first CMV packet
-  int64_t firstBC{0};    ///< First bunch crossing of this TF, from heartbeatBC of the first CMV packet
+  uint32_t firstOrbit{0}; ///< First orbit of this TF, from heartbeatOrbit of the first CMV packet
+  uint16_t firstBC{0};    ///< First bunch crossing of this TF, from heartbeatBC of the first CMV packet
 
-  /// CMV float values indexed as [CRU ID][time bin]
-  std::vector<std::vector<float>> mDataPerTF;
+  // Raw 16-bit CMV values, flat array indexed as [cru * NTimeBinsPerTF + timeBin]
+  uint16_t mDataPerTF[CRU::MaxCRU * cmv::NTimeBinsPerTF]{};
 
-  /// Return the CMV value for a given CRU and time bin within this TF
-  float getCMV(const int cru, const int timeBin) const
+  /// Return the raw 16-bit CMV value for a given CRU and timebin within this TF
+  uint16_t getCMV(const int cru, const int timeBin) const
   {
-    if (cru < 0 || static_cast<std::size_t>(cru) >= mDataPerTF.size()) {
-      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: cru {} out of range [0, {})", cru, mDataPerTF.size()));
+    if (cru < 0 || cru >= static_cast<int>(CRU::MaxCRU)) {
+      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: cru {} out of range [0, {})", cru, static_cast<int>(CRU::MaxCRU)));
     }
     if (timeBin < 0 || static_cast<uint32_t>(timeBin) >= cmv::NTimeBinsPerTF) {
-      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: timeBin {} out of range [0, {})", timeBin, cmv::NTimeBinsPerTF));
+      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: timeBin {} out of range [0, {})", timeBin, static_cast<int>(cmv::NTimeBinsPerTF)));
     }
-    return mDataPerTF[cru][timeBin];
+    return mDataPerTF[cru * cmv::NTimeBinsPerTF + timeBin];
   }
 
-  ClassDefNV(CMVPerTF, 1)
-};
+  /// Return the float CMV value for a given CRU and timebin within this TF
+  float getCMVFloat(const int cru, const int timeBin) const
+  {
+    auto cmv = getCMV(cru, timeBin);
+    const bool positive = (cmv >> 15) & 1;          // bit 15: sign (1=positive, 0=negative)
+    const float magnitude = (cmv & 0x7FFF) / 128.f; // lower 15 bits, shift right by 7 (divide by 2^7)
+    return positive ? magnitude : -magnitude;
+  }
 
-/// Container holding CMVs for one aggregation interval
-struct CMVPerInterval {
-  int64_t firstTF{0}; ///< First TF counter seen in this interval
-  int64_t lastTF{0};  ///< Last TF counter seen in this interval
-
-  /// CMV data, one CMVPerTF entry per TF, indexed by relative TF [0, nTimeFrames)
-  std::vector<CMVPerTF> mCMVPerTF;
-
-  /// Pre-allocate nTFs TF slots; each slot gets mDataPerTF resized to nCRUs entries
-  void reserve(uint32_t nTFs, uint32_t nCRUs);
-
-  std::size_t size() const { return mCMVPerTF.size(); }
-  bool empty() const { return mCMVPerTF.empty(); }
-
-  /// Clear all data and reset counters
-  void clear();
-
-  std::string summary() const;
-
-  /// Serialise into a TTree with a single branch holding the whole CMVPerInterval object
+  /// Serialise into a TTree; each Fill() call appends one entry (one TF)
   std::unique_ptr<TTree> toTTree() const;
 
   /// Write the TTree to a ROOT file
   void writeToFile(const std::string& filename, const std::unique_ptr<TTree>& tree) const;
 
-  /// Restore a CMVPerInterval from a TTree previously written by toTTree()
-  static CMVPerInterval fromTTree(TTree* tree, int entry = 0);
-
-  ClassDefNV(CMVPerInterval, 1)
+  ClassDefNV(CMVPerTF, 8)
 };
 
 } // namespace o2::tpc

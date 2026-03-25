@@ -71,7 +71,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int cru = tpcCRUHeader->subSpecification >> 7;
-      auto vecCMVs = pc.inputs().get<o2::pmr::vector<float>>(ref);
+      auto vecCMVs = pc.inputs().get<o2::pmr::vector<uint16_t>>(ref);
       mCMVs[cru].insert(mCMVs[cru].end(), vecCMVs.begin(), vecCMVs.end());
     }
 
@@ -89,7 +89,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
       for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
         auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         const int cru = tpcCRUHeader->subSpecification >> 7;
-        auto vec = pc.inputs().get<std::vector<float>>(ref);
+        auto vec = pc.inputs().get<std::vector<uint16_t>>(ref);
         fOut.WriteObject(&vec, fmt::format("CRU_{}", cru).data());
       }
     }
@@ -112,13 +112,13 @@ class TPCFLPCMVDevice : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionCMVOrbitInfo() { return header::DataDescription{"CMVORBITINFO"}; }
 
  private:
-  const int mLane{};                                                ///< lane number of processor
-  const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
-  int mNTFsBuffer{1};                                               ///< number of TFs to buffer before sending
-  bool mDumpCMVs{};                                                 ///< dump CMVs to file for debugging
-  int mCountTFsForBuffer{0};                                        ///< counts TFs to track when to send output
-  std::unordered_map<unsigned int, o2::pmr::vector<float>> mCMVs{}; ///< buffered CMV vectors per CRU
-  std::unordered_map<uint32_t, uint64_t> mFirstOrbitBC{};           ///< first packed orbit/BC per CRU for the current buffer window
+  const int mLane{};                                                   ///< lane number of processor
+  const std::vector<uint32_t> mCRUs{};                                 ///< CRUs to process in this instance
+  int mNTFsBuffer{1};                                                  ///< number of TFs to buffer before sending
+  bool mDumpCMVs{};                                                    ///< dump CMVs to file for debugging
+  int mCountTFsForBuffer{0};                                           ///< counts TFs to track when to send output
+  std::unordered_map<unsigned int, o2::pmr::vector<uint16_t>> mCMVs{}; ///< buffered raw 16-bit CMV values per CRU
+  std::unordered_map<uint32_t, uint64_t> mFirstOrbitBC{};              ///< first packed orbit/BC per CRU for the current buffer window
 
   /// Filter for CMV float vectors (one CMVVECTOR message per CRU per TF)
   const std::vector<InputSpec> mFilter = {{"cmvs", ConcreteDataTypeMatcher{gDataOriginTPC, "CMVVECTOR"}, Lifetime::Timeframe}};

@@ -125,8 +125,5 @@
 #pragma link C++ class o2::tpc::PressureTemperatureHelper + ;
 
 #pragma link C++ class o2::tpc::CMVPerTF + ;
-#pragma link C++ class o2::tpc::CMVPerInterval + ;
-#pragma link C++ class std::vector < o2::tpc::CMVPerTF> + ;
-#pragma link C++ class std::vector < std::vector < float>> + ;
 
 #endif

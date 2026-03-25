@@ -170,8 +170,8 @@ class CMVToVectorDevice : public o2::framework::Task
           infoVec.emplace_back(orbit, bc);
           cmvVec.reserve(cmvVec.size() + cmv::NTimeBinsPerPacket);
           for (uint32_t tb = 0; tb < cmv::NTimeBinsPerPacket; ++tb) {
-            cmvVec.push_back(cmvs.getCMVFloat(tb));
-            // LOGP(debug, "Appended CMV {} for timebin {}, CRU {}, orbit {}, bc {}", cmvs.getCMVFloat(tb), tb, cruID, orbit, bc);
+            cmvVec.push_back(cmvs.getCMV(tb));
+            // LOGP(debug, "Appended CMV {} for timebin {}, CRU {}, orbit {}, bc {}", cmvs.getCMV(tb), tb, cruID, orbit, bc);
           }
         }
       } catch (const std::exception& e) {
@@ -261,17 +261,17 @@ class CMVToVectorDevice : public o2::framework::Task
     bool matches(uint32_t orbit, int16_t bc) const { return ((heartbeatOrbit == orbit) && (heartbeatBC == bc)); }
   };
 
-  int mRawDataType{0};                                           ///< type of raw data to dump in case of errors
-  bool mWriteDebug{false};                                       ///< write a debug output
-  bool mWriteDebugOnError{false};                                ///< write a debug output in case of errors
-  bool mWriteRawDataOnError{false};                              ///< write raw data in case of errors
-  std::vector<uint32_t> mCRUs;                                   ///< CRUs expected for this device
-  std::unordered_map<uint32_t, std::vector<float>> mCMVvectors;  ///< decoded CMVs per cru over all CMV packets in the TF
-  std::unordered_map<uint32_t, std::vector<CMVInfo>> mCMVInfos;  ///< CMV packet information within the TF
-  std::string mDebugStreamFileName;                              ///< name of the debug stream output file
-  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream; ///< debug output streamer
-  std::ofstream mRawOutputFile;                                  ///< raw output file
-  std::string mRawOutputFileName;                                ///< name of the raw output file
+  int mRawDataType{0};                                             ///< type of raw data to dump in case of errors
+  bool mWriteDebug{false};                                         ///< write a debug output
+  bool mWriteDebugOnError{false};                                  ///< write a debug output in case of errors
+  bool mWriteRawDataOnError{false};                                ///< write raw data in case of errors
+  std::vector<uint32_t> mCRUs;                                     ///< CRUs expected for this device
+  std::unordered_map<uint32_t, std::vector<uint16_t>> mCMVvectors; ///< raw 16-bit CMV values per cru over all CMV packets in the TF
+  std::unordered_map<uint32_t, std::vector<CMVInfo>> mCMVInfos;    ///< CMV packet information within the TF
+  std::string mDebugStreamFileName;                                ///< name of the debug stream output file
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream;   ///< debug output streamer
+  std::ofstream mRawOutputFile;                                    ///< raw output file
+  std::string mRawOutputFileName;                                  ///< name of the raw output file
 
   //____________________________________________________________________________
   bool snapshotCMVs(DataAllocator& output, uint32_t tfCounter)
