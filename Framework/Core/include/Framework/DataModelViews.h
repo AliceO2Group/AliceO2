@@ -70,7 +70,7 @@ struct count_parts {
         count += 1;
         mi += header->splitPayloadParts + 1;
       } else {
-        count += header->splitPayloadParts;
+        count += header->splitPayloadParts ? header->splitPayloadParts : 1;
         mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
       }
     }
@@ -104,11 +104,11 @@ struct get_pair {
         }
         mi += header->splitPayloadParts + 1;
       } else {
-        count += header->splitPayloadParts ? header->splitPayloadParts : 1;
-        if (self.pairId < count) {
-          return {mi, mi + 2 * diff + 1};
+        if (self.pairId == count) {
+          return {mi, mi + 1};
         }
-        mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
+        count += 1;
+        mi += 2;
       }
     }
     throw std::runtime_error("Payload not found");
@@ -138,10 +138,10 @@ struct get_dataref_indices {
         mi += header->splitPayloadParts + 1;
       } else {
         if (self.part == count) {
-          return {mi, mi + 2 * self.subPart + 1};
+          return {mi, mi + self.subPart + 1};
         }
         count += 1;
-        mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
+        mi += 2;
       }
     }
     throw std::runtime_error("Payload not found");
@@ -172,32 +172,41 @@ struct get_payload {
 };
 
 struct get_num_payloads {
-  size_t id;
-  // ends the pipeline, returns the number of parts
+  size_t n;
+  // ends the pipeline, returns the number of payloads which are associated
+  // to the multipart n-th sequence of messages found in the range
   template <typename R>
     requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
   friend size_t operator|(R&& r, get_num_payloads self)
   {
     size_t count = 0;
     size_t mi = 0;
+    // Un
     while (mi < r.size()) {
       auto* header = o2::header::get<o2::header::DataHeader*>(r[mi]->GetData());
       if (!header) {
         throw std::runtime_error("Not a DataHeader");
       }
-      if (self.id == count) {
-        if (header->splitPayloadParts > 1 && (header->splitPayloadIndex == header->splitPayloadParts)) {
-          return header->splitPayloadParts;
-        } else {
-          return 1;
-        }
-      }
       if (header->splitPayloadParts > 1 && (header->splitPayloadIndex == header->splitPayloadParts)) {
+        // This is the case for the new multi payload messages where the number of parts
+        // is as many as the splitPayloadParts number.
+        if (self.n == count) {
+          return header->splitPayloadParts;
+        }
+        // For multipayload we skip all the parts and their associated header
         count += 1;
         mi += header->splitPayloadParts + 1;
       } else {
-        count += 1;
-        mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
+        // This is the case of a multipart (header, payload), (header, payload), ...
+        // sequence where we know how many pairs are there.
+        // When splitPayloadParts == 0, it means it is a non-multipart (header, payload)
+        // pair. Each pair has exactly 1 payload.
+        auto pairs = header->splitPayloadParts ? header->splitPayloadParts : 1;
+        if (self.n < count + pairs) {
+          return 1;
+        }
+        count += pairs;
+        mi += 2 * pairs;
       }
     }
     return 0;
