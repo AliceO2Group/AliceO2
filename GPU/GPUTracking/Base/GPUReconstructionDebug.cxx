@@ -13,6 +13,7 @@
 /// \author David Rohr
 
 #include "GPUReconstruction.h"
+#include "GPUReconstructionCPU.h"
 #include "GPULogging.h"
 #include "GPUSettings.h"
 
@@ -189,14 +190,14 @@ bool GPUReconstruction::triggerDebugDump()
   return false;
 }
 
-GPUReconstruction::debugWriter::debugWriter(std::string filenameCSV, bool markdown, uint32_t statNEvents) : mMarkdown{markdown}, mStatNEvents{statNEvents}
+GPUReconstructionCPU::debugWriter::debugWriter(std::string filenameCSV, bool markdown, uint32_t statNEvents) : mMarkdown{markdown}, mStatNEvents{statNEvents}
 {
   if (!filenameCSV.empty()) {
     streamCSV.open(filenameCSV, std::ios::out | std::ios::app);
   }
 }
 
-void GPUReconstruction::debugWriter::header()
+void GPUReconstructionCPU::debugWriter::header()
 {
   if (streamCSV.is_open() && !streamCSV.tellp()) {
     streamCSV << "type,count,name,gpu (us),cpu (us),cpu/total,total (us),GB/s,bytes,bytes/call\n";
@@ -208,7 +209,7 @@ void GPUReconstruction::debugWriter::header()
   }
 }
 
-void GPUReconstruction::debugWriter::row(char type, uint32_t count, std::string name, double gpu_time, double cpu_time, double total_time, std::size_t memSize, std::string nEventReport)
+void GPUReconstructionCPU::debugWriter::row(char type, uint32_t count, std::string name, double gpu_time, double cpu_time, double total_time, std::size_t memSize, std::string nEventReport)
 {
   double scale = 1000000.0 / mStatNEvents;
 
