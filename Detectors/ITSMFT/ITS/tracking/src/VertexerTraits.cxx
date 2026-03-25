@@ -42,7 +42,9 @@ static void trackleterKernelHost(
   gsl::span<int> foundTracklets,
   const IndexTableUtils<NLayers>& utils,
   const TimeEstBC& timErr,
-  gsl::span<int> rofFoundTrackletsOffsets, // we want to change those, to keep track of the offset in deltaRof>0
+  gsl::span<int> rofFoundTrackletsOffsets,
+  const int globalOffsetNextLayer = 0,
+  const int globalOffsetCurrentLayer = 0,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
   const int PhiBins{utils.getNphiBins()};
@@ -72,9 +74,9 @@ static void trackleterKernelHost(
             if (storedTracklets < maxTrackletsPerCluster) {
               if constexpr (!EvalRun) {
                 if constexpr (Mode == TrackletMode::Layer0Layer1) {
-                  tracklets[rofFoundTrackletsOffsets[iCurrentLayerClusterIndex] + storedTracklets] = Tracklet{iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster, timErr};
+                  tracklets[rofFoundTrackletsOffsets[iCurrentLayerClusterIndex] + storedTracklets] = Tracklet{globalOffsetNextLayer + iNextLayerClusterIndex, globalOffsetCurrentLayer + iCurrentLayerClusterIndex, nextCluster, currentCluster, timErr};
                 } else {
-                  tracklets[rofFoundTrackletsOffsets[iCurrentLayerClusterIndex] + storedTracklets] = Tracklet{iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster, timErr};
+                  tracklets[rofFoundTrackletsOffsets[iCurrentLayerClusterIndex] + storedTracklets] = Tracklet{globalOffsetCurrentLayer + iCurrentLayerClusterIndex, globalOffsetNextLayer + iNextLayerClusterIndex, currentCluster, nextCluster, timErr};
                 }
               }
               ++storedTracklets;
@@ -92,10 +94,10 @@ static void trackleterKernelHost(
 }
 
 static void trackletSelectionKernelHost(
-  const gsl::span<const Cluster> clusters0, // 0
-  const gsl::span<const Cluster> clusters1, // 1
-  gsl::span<unsigned char> usedClusters0,   // Layer 0
-  gsl::span<unsigned char> usedClusters2,   // Layer 2
+  const Cluster* clusters0,               // global layer 0 clusters
+  const Cluster* clusters1,               // global layer 1 clusters
+  gsl::span<unsigned char> usedClusters0, // global layer 0 used clusters
+  gsl::span<unsigned char> usedClusters2, // global layer 2 used clusters
   const gsl::span<const Tracklet>& tracklets01,
   const gsl::span<const Tracklet>& tracklets12,
   bounded_vector<bool>& usedTracklets,
@@ -104,14 +106,13 @@ static void trackletSelectionKernelHost(
   bounded_vector<Line>& lines,
   const gsl::span<const o2::MCCompLabel>& trackletLabels,
   bounded_vector<o2::MCCompLabel>& linesLabels,
-  const TimeEstBC& targetRofTime0,
-  const TimeEstBC& targetRofTime2,
+  const int nLayer1Clusters,
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
   const int maxTracklets = 100)
 {
   int offset01{0}, offset12{0};
-  for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clusters1.size(); ++iCurrentLayerClusterIndex) {
+  for (int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < nLayer1Clusters; ++iCurrentLayerClusterIndex) {
     int validTracklets{0};
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
@@ -121,9 +122,7 @@ static void trackletSelectionKernelHost(
 
         const auto& tracklet01{tracklets01[iTracklet01]};
         const auto& tracklet12{tracklets12[iTracklet12]};
-        if (!tracklet01.getTimeStamp().isCompatible(targetRofTime0) ||
-            !tracklet12.getTimeStamp().isCompatible(targetRofTime2) ||
-            !tracklet01.getTimeStamp().isCompatible(tracklet12.getTimeStamp())) {
+        if (!tracklet01.getTimeStamp().isCompatible(tracklet12.getTimeStamp())) {
           continue;
         }
 
@@ -133,7 +132,7 @@ static void trackletSelectionKernelHost(
           usedClusters0[tracklet01.firstClusterIndex] = 1;
           usedClusters2[tracklet12.secondClusterIndex] = 1;
           usedTracklets[iTracklet01] = true;
-          lines.emplace_back(tracklet01, clusters0.data(), clusters1.data());
+          lines.emplace_back(tracklet01, clusters0, clusters1);
           if (!trackletLabels.empty()) {
             linesLabels.emplace_back(trackletLabels[iTracklet01]);
           }
@@ -176,8 +175,7 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
           mTimeFrame->getNTrackletsCluster(pivotRofId, 0), // Span of the number of tracklets per each cluster in pivot rof
           mIndexTableUtils,
           timeErr,
-          gsl::span<int>(), // Offset in the tracklet buffer
-          mVrtParams[iteration].maxTrackletsPerCluster);
+          gsl::span<int>()); // Offset in the tracklet buffer
       }
       const auto& rofRange12 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 2, pivotRofId);
       for (auto targetRofId = rofRange12.getFirstEntry(); targetRofId < rofRange12.getEntriesBound(); ++targetRofId) {
@@ -192,8 +190,7 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
           mTimeFrame->getNTrackletsCluster(pivotRofId, 1), // Span of the number of tracklets per each cluster in pivot rof
           mIndexTableUtils,
           timeErr,
-          gsl::span<int>(), // Offset in the tracklet buffer
-          mVrtParams[iteration].maxTrackletsPerCluster);
+          gsl::span<int>()); // Offset in the tracklet buffer
       }
       mTimeFrame->getNTrackletsROF(pivotRofId, 0) = std::accumulate(mTimeFrame->getNTrackletsCluster(pivotRofId, 0).begin(), mTimeFrame->getNTrackletsCluster(pivotRofId, 0).end(), 0);
       mTimeFrame->getNTrackletsROF(pivotRofId, 1) = std::accumulate(mTimeFrame->getNTrackletsCluster(pivotRofId, 1).begin(), mTimeFrame->getNTrackletsCluster(pivotRofId, 1).end(), 0);
@@ -209,6 +206,7 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
     }
 
     tbb::parallel_for(0, mTimeFrame->getNrof(1), [&](const short pivotRofId) {
+      const int globalOffsetPivot = mTimeFrame->getSortedStartIndex(pivotRofId, 1);
       const auto& rofRange01 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 0, pivotRofId);
       for (auto targetRofId = rofRange01.getFirstEntry(); targetRofId < rofRange01.getEntriesBound(); ++targetRofId) {
         const auto timeErr = mTimeFrame->getROFOverlapTableView().getTimeStamp(0, targetRofId, 1, pivotRofId);
@@ -223,6 +221,8 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
           mIndexTableUtils,
           timeErr,
           mTimeFrame->getExclusiveNTrackletsCluster(pivotRofId, 0),
+          mTimeFrame->getSortedStartIndex(targetRofId, 0),
+          globalOffsetPivot,
           mVrtParams[iteration].maxTrackletsPerCluster);
       }
       const auto& rofRange12 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 2, pivotRofId);
@@ -239,6 +239,8 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
           mIndexTableUtils,
           timeErr,
           mTimeFrame->getExclusiveNTrackletsCluster(pivotRofId, 1),
+          mTimeFrame->getSortedStartIndex(targetRofId, 2),
+          globalOffsetPivot,
           mVrtParams[iteration].maxTrackletsPerCluster);
       }
     });
@@ -249,11 +251,8 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
     for (const auto& trk : mTimeFrame->getTracklets()[0]) {
       o2::MCCompLabel label;
       if (!trk.isEmpty()) {
-        // FIXME: !!!!!!!
-        // int sortedId0{mTimeFrame->getSortedIndex(trk.rof[0], 0, trk.firstClusterIndex)};
-        // int sortedId1{mTimeFrame->getSortedIndex(trk.rof[1], 1, trk.secondClusterIndex)};
-        int sortedId0{0};
-        int sortedId1{0};
+        int sortedId0{trk.firstClusterIndex};
+        int sortedId1{trk.secondClusterIndex};
         for (const auto& lab0 : mTimeFrame->getClusterLabels(0, mTimeFrame->getClusters()[0][sortedId0].clusterId)) {
           for (const auto& lab1 : mTimeFrame->getClusterLabels(1, mTimeFrame->getClusters()[1][sortedId1].clusterId)) {
             if (lab0 == lab1 && lab0.isValid()) {
@@ -285,35 +284,22 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
           }
           mTimeFrame->getLines(pivotRofId).reserve(mTimeFrame->getNTrackletsCluster(pivotRofId, 0).size());
           bounded_vector<bool> usedTracklets(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), false, mMemoryPool.get());
-
-          const auto& rofRange01 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 0, pivotRofId);
-          const auto& rofRange12 = mTimeFrame->getROFOverlapTableView().getOverlap(1, 2, pivotRofId);
-          for (uint32_t targetRofId0 = rofRange01.getFirstEntry(); targetRofId0 < rofRange01.getEntriesBound(); ++targetRofId0) {
-            const auto targetRofTime0 = mTimeFrame->getROFOverlapTableView().getLayer(0).getROFTimeBounds(targetRofId0);
-            for (uint32_t targetRofId2 = rofRange12.getFirstEntry(); targetRofId2 < rofRange12.getEntriesBound(); ++targetRofId2) {
-              const auto targetRofTime2 = mTimeFrame->getROFOverlapTableView().getLayer(2).getROFTimeBounds(targetRofId2);
-              if (!(mTimeFrame->getROFOverlapTableView().doROFsOverlap(0, targetRofId0, 2, targetRofId2))) {
-                continue;
-              }
-              trackletSelectionKernelHost(
-                mTimeFrame->getClustersOnLayer(targetRofId0, 0),
-                mTimeFrame->getClustersOnLayer(pivotRofId, 1),
-                mTimeFrame->getUsedClustersROF(targetRofId0, 0),
-                mTimeFrame->getUsedClustersROF(targetRofId2, 2),
-                mTimeFrame->getFoundTracklets(pivotRofId, 0),
-                mTimeFrame->getFoundTracklets(pivotRofId, 1),
-                usedTracklets,
-                mTimeFrame->getNTrackletsCluster(pivotRofId, 0),
-                mTimeFrame->getNTrackletsCluster(pivotRofId, 1),
-                mTimeFrame->getLines(pivotRofId),
-                mTimeFrame->getLabelsFoundTracklets(pivotRofId, 0),
-                mTimeFrame->getLinesLabel(pivotRofId),
-                targetRofTime0,
-                targetRofTime2,
-                mVrtParams[iteration].tanLambdaCut,
-                mVrtParams[iteration].phiCut);
-            }
-          }
+          trackletSelectionKernelHost(
+            mTimeFrame->getClusters()[0].data(),
+            mTimeFrame->getClusters()[1].data(),
+            mTimeFrame->getUsedClusters(0),
+            mTimeFrame->getUsedClusters(2),
+            mTimeFrame->getFoundTracklets(pivotRofId, 0),
+            mTimeFrame->getFoundTracklets(pivotRofId, 1),
+            usedTracklets,
+            mTimeFrame->getNTrackletsCluster(pivotRofId, 0),
+            mTimeFrame->getNTrackletsCluster(pivotRofId, 1),
+            mTimeFrame->getLines(pivotRofId),
+            mTimeFrame->getLabelsFoundTracklets(pivotRofId, 0),
+            mTimeFrame->getLinesLabel(pivotRofId),
+            static_cast<int>(mTimeFrame->getClustersOnLayer(pivotRofId, 1).size()),
+            mVrtParams[iteration].tanLambdaCut,
+            mVrtParams[iteration].phiCut);
           totalLines.local() += mTimeFrame->getLines(pivotRofId).size();
         }
       });
