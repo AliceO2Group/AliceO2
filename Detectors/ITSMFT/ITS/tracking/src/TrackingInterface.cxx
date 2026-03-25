@@ -88,26 +88,6 @@ void ITSTrackingInterface::initialise()
 void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 {
   const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  if (static bool doneOnce{false}; !doneOnce) {
-    doneOnce = true;
-
-    // prepare rof lookup table(s)
-    // has to be done here to ensure we get the right number of HB per TF
-    const int nOrbitsPerTF = o2::base::GRPGeomHelper::getNHBFPerTF();
-    TimeFrameN::ROFOverlapTableN rofTable;
-    TimeFrameN::ROFVertexLookupTableN vtxTable;
-    const auto& trackParams = mTracker->getParameters();
-    for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
-      const unsigned int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
-      const LayerTiming timing{.mNROFsTF = (nROFsPerOrbit * nOrbitsPerTF), .mROFLength = (uint32_t)par.getROFLengthInBC(iLayer), .mROFDelay = (uint32_t)par.getROFDelayInBC(iLayer), .mROFBias = (uint32_t)par.getROFBiasInBC(iLayer), .mROFAddTimeErr = trackParams[0].AddTimeError[iLayer]};
-      rofTable.defineLayer(iLayer, timing);
-      vtxTable.defineLayer(iLayer, timing);
-    }
-    rofTable.init();
-    mTimeFrame->setROFOverlapTable(rofTable);
-    vtxTable.init();
-    mTimeFrame->setROFVertexLookupTable(vtxTable);
-  }
 
   // filter input and compose
   std::array<gsl::span<const itsmft::CompClusterExt>, NLayers> compClusters;
@@ -129,7 +109,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       labels[dh->subSpecification] = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>(ref).release();
     }
   }
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+
   for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
     LOGP(info, "ITSTracker{} pulled {} clusters, {} RO frames", ((mDoStaggering) ? std::format(":{}", iLayer) : ""), compClusters[iLayer].size(), rofsinput[iLayer].size());
     if (compClusters[iLayer].empty()) {
@@ -159,7 +139,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0});
 
   irFrames.reserve(rofsinput.size());
-  int nBCPerTF = alpParams.roFrameLengthInBC;
 
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0});
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0});
@@ -417,6 +396,23 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
         LOGP(info, "recoIter#{} : {}", it, par.asString());
       }
     }
+
+    // prepare rof lookup table(s)
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    const int nOrbitsPerTF = o2::base::GRPGeomHelper::getNHBFPerTF();
+    TimeFrameN::ROFOverlapTableN rofTable;
+    TimeFrameN::ROFVertexLookupTableN vtxTable;
+    const auto& trackParams = mTracker->getParameters();
+    for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+      const unsigned int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
+      const LayerTiming timing{.mNROFsTF = (nROFsPerOrbit * nOrbitsPerTF), .mROFLength = (uint32_t)par.getROFLengthInBC(iLayer), .mROFDelay = (uint32_t)par.getROFDelayInBC(iLayer), .mROFBias = (uint32_t)par.getROFBiasInBC(iLayer), .mROFAddTimeErr = trackParams[0].AddTimeError[iLayer]};
+      rofTable.defineLayer(iLayer, timing);
+      vtxTable.defineLayer(iLayer, timing);
+    }
+    rofTable.init();
+    mTimeFrame->setROFOverlapTable(rofTable);
+    vtxTable.init();
+    mTimeFrame->setROFVertexLookupTable(vtxTable);
   }
 }
 
