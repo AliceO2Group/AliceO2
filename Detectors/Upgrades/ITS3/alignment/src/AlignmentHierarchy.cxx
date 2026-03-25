@@ -13,10 +13,9 @@
 #include <fstream>
 #include <sstream>
 #include <fnmatch.h>
-
+#include <cmath>
 #include <TGeoManager.h>
 #include <TGeoPhysicalNode.h>
-#include <math.h>
 #include <nlohmann/json.hpp>
 
 #include "ITS3Align/AlignmentHierarchy.h"
