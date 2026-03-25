@@ -155,11 +155,13 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                                                                                                          // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                             // cm
-      const double staveSizeZ = mZLength;                                                                                                                // cm
-      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY); // we increase the size of the layer to account for the tilt of the staves
-      TGeoTube* layer = new TGeoTube(mInnerRadius - deltaForTilt, mOuterRadius + deltaForTilt, mZLength / 2);
+      const double staveSizeX = mStaves.second;                                                                                                                    // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                                       // cm
+      const double staveSizeZ = mZLength;                                                                                                                          // cm
+      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);           // we increase the size of the layer to account for the tilt of the staves
+      const double radiusMax = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadius * 2. * deltaForTilt); // we increase the outer radius to account for the tilt of the staves
+      const double radiusMin = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY - avgRadius * 2. * deltaForTilt); // we decrease the inner radius to account for the tilt of the staves
+      TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2);
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
@@ -287,11 +289,13 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                                                                                                          // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                             // cm
-      const double staveSizeZ = mZLength;                                                                                                                // cm
-      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY); // we increase the size of the layer to account for the tilt of the staves
-      TGeoTube* layer = new TGeoTube(mInnerRadius - deltaForTilt, mOuterRadius + deltaForTilt, mZLength / 2);
+      const double staveSizeX = mStaves.second;                                                                                                                    // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                                       // cm
+      const double staveSizeZ = mZLength;                                                                                                                          // cm
+      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);           // we increase the size of the layer to account for the tilt of the staves
+      const double radiusMax = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadius * 2. * deltaForTilt); // we increase the outer radius to account for the tilt of the staves
+      const double radiusMin = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY - avgRadius * 2. * deltaForTilt); // we decrease the inner radius to account for the tilt of the staves
+      TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2);
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
