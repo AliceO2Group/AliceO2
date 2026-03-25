@@ -26,6 +26,7 @@ std::unique_ptr<o2::trk::GeometryTGeo> GeometryTGeo::sInstance;
 
 // Names
 std::string GeometryTGeo::sVolumeName = "TRKV";
+std::string GeometryTGeo::sServiceVolName = "TRKService";
 std::string GeometryTGeo::sLayerName = "TRKLayer";
 std::string GeometryTGeo::sPetalAssemblyName = "PETAL";
 std::string GeometryTGeo::sPetalName = "PETALCASE";
