@@ -143,6 +143,9 @@ set_package_properties(fmt PROPERTIES TYPE REQUIRED)
 find_package(nlohmann_json)
 set_package_properties(nlohmann_json PROPERTIES TYPE REQUIRED)
 
+find_package(Acts)
+set_package_properties(Acts PROPERTIES TYPE OPTIONAL)
+
 find_package(Boost 1.70
              COMPONENTS container
                         thread
