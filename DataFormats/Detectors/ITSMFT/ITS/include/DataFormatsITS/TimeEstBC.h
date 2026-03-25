@@ -35,6 +35,7 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
  public:
   GPUhdDefault() TimeEstBC() = default;
   GPUhdi() TimeEstBC(TimeStampType t, TimeStampErrorType e) : Base(t, e) {}
+
   // convert to symmetric center+-half representation
   GPUhdi() its::TimeStamp makeSymmetrical() const noexcept
   {
@@ -42,22 +43,32 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
     const float half = (float)this->getTimeStampError() / 2.f;
     return {start + half, half};
   }
+
   // check if timestamps overlap within their interval
   GPUhdi() bool isCompatible(const TimeEstBC& o) const noexcept
   {
     return this->upper() > o.lower() && o.upper() > this->lower();
   }
+
+  // check if this time interval is fully contained within o
+  GPUhdi() bool isContainedIn(const TimeEstBC& o) const noexcept
+  {
+    return this->lower() >= o.lower() && this->upper() <= o.upper();
+  }
+
   GPUhdi() TimeEstBC& operator+=(const TimeEstBC& o) noexcept
   {
     add(o);
     return *this;
   }
+
   GPUhdi() TimeEstBC operator+(const TimeEstBC& o) const noexcept
   {
     TimeEstBC res = *this;
     res += o;
     return res;
   }
+
   // upper bound of interval t0+tE
   GPUhdi() TimeStampType upper() const noexcept
   {
@@ -66,6 +77,7 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
     constexpr TimeStampType max = std::numeric_limits<TimeStampType>::max();
     return (t > (max - e)) ? max : t + e;
   }
+
   // lower bound of interval t0
   GPUhdi() TimeStampType lower() const noexcept
   {
