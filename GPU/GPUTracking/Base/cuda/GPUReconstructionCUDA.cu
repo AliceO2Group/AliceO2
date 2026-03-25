@@ -94,15 +94,13 @@ GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsDeviceBackend&
 void GPUReconstructionCUDA::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits<7>>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits<7>>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame<7>>* timeFrame)
 {
   if (trackerTraits) {
-    trackerTraits->reset(new o2::its::TrackerTraitsGPU);
+    trackerTraits->reset(new o2::its::TrackerTraitsGPU<7>);
   }
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraits<7>);
-    // TODO gpu-code to be implemented then remove line above and uncomment line below
-    // vertexerTraits->reset(new o2::its::VertexerTraitsGPU<7>);
   }
   if (timeFrame) {
-    timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
+    timeFrame->reset(new o2::its::gpu::TimeFrameGPU<7>);
   }
 }
 

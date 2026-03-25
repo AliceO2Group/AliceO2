@@ -19,7 +19,6 @@ o2_add_library(ITStracking
                        src/Tracker.cxx
                        src/TrackerTraits.cxx
                        src/TrackingConfigParam.cxx
-                       src/ClusterLines.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
                PUBLIC_LINK_LIBRARIES

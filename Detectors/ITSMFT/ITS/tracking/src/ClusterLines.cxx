@@ -71,6 +71,12 @@ Line::SMatrix3f Line::getDCAComponents(const Line& line, const std::array<float,
   return m;
 }
 
+bool Line::isEmpty() const noexcept
+{
+  return ROOT::Math::Dot(originPoint, originPoint) == 0.f &&
+         ROOT::Math::Dot(cosinesDirector, cosinesDirector) == 0.f;
+}
+
 // Accumulate the weighted normal equation contributions (A matrix and B vector)
 // from a single line into the running sums. The covariance is assumed to be
 // diagonal and uniform ({1,1,1}) so the weights simplify accordingly.

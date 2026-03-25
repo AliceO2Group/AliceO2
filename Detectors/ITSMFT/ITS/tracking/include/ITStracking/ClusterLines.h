@@ -16,15 +16,16 @@
 #include <vector>
 #include <Math/SMatrix.h>
 #include <Math/SVector.h>
-#include "Framework/Logger.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Tracklet.h"
+#include "GPUCommonRtypes.h"
 
 namespace o2::its
 {
 
 struct Line final {
+#if !defined(__HIPCC__) && !defined(__CUDACC__) // hide the class completely for gpu-cc
   using SVector3f = ROOT::Math::SVector<float, 3>;
   using SMatrix3f = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepSym<float, 3>>;
 
@@ -34,23 +35,20 @@ struct Line final {
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   static SMatrix3f getDCAComponents(const Line& line, const std::array<float, 3>& point);
   static float getDCA(const Line&, const Line&, const float precision = constants::Tolerance);
-  bool isEmpty() const { return ROOT::Math::Dot(originPoint, originPoint) == 0.f &&
-                                ROOT::Math::Dot(cosinesDirector, cosinesDirector) == 0.f; }
+  bool isEmpty() const noexcept;
   bool operator==(const Line&) const = default;
-  void print() const
-  {
-    LOGP(info, "TRKLT: x={} y={} z={} dx={} dy={} dz={} ts:{}+/-{}", originPoint(0), originPoint(1), originPoint(2), cosinesDirector(0), cosinesDirector(1), cosinesDirector(2), mTime.getTimeStamp(), mTime.getTimeStampError());
-  }
 
   SVector3f originPoint;
   SVector3f cosinesDirector;
   TimeEstBC mTime;
 
   ClassDefNV(Line, 1);
+#endif
 };
 
 class ClusterLines final
 {
+#if !defined(__HIPCC__) && !defined(__CUDACC__) // hide the class completely for gpu-cc
   using SMatrix3 = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>;
   using SMatrix3f = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepSym<float, 3>>;
   using SVector3 = ROOT::Math::SVector<double, 3>;
@@ -81,6 +79,9 @@ class ClusterLines final
   bool mIsValid = false;             // true if linear system was solved successfully
   TimeEstBC mTime;                   // time stamp
   std::vector<int> mLabels;          // contributing labels
+
+  ClassDefNV(ClusterLines, 1);
+#endif
 };
 
 } // namespace o2::its

@@ -19,6 +19,7 @@ if(CUDA_ENABLED)
                            TrackingKernels.cu
                    PUBLIC_INCLUDE_DIRECTORIES ../
                    PUBLIC_LINK_LIBRARIES O2::ITStracking
+                                         O2::MathUtils
                                          O2::SimConfig
                                          O2::SimulationDataFormat
                                          O2::ReconstructionDataFormats
@@ -29,10 +30,11 @@ if(CUDA_ENABLED)
     set_target_gpu_arch("CUDA" ${targetName})
     # Enable relocatable device code (needed for separable compilation + debugging)
     set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-    # target_compile_options(${targetName} PRIVATE
+    target_compile_options(${targetName} PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:-diag-error=20014>
     #     $<$<COMPILE_LANGUAGE:CUDA>:-G;-O0;-Xptxas=-O0>
     #     $<$<COMPILE_LANGUAGE:CXX>:-O0;-g>
-    # )
+    )
     # target_compile_definitions(${targetName} PRIVATE ITS_MEASURE_GPU_TIME ITS_GPU_LOG)
     target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
 endif()

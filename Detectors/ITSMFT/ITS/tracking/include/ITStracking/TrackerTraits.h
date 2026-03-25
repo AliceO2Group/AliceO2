@@ -38,7 +38,7 @@ namespace its
 {
 class TrackITSExt;
 
-template <int NLayers = 7>
+template <int NLayers>
 class TrackerTraits
 {
  public:

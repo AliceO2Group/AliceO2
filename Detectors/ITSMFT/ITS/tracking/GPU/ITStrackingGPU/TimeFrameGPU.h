@@ -24,7 +24,7 @@
 namespace o2::its::gpu
 {
 
-template <int NLayers = 7>
+template <int NLayers>
 class TimeFrameGPU final : public TimeFrame<NLayers>
 {
   using typename TimeFrame<NLayers>::CellSeedN;
@@ -34,7 +34,7 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
 
  public:
   TimeFrameGPU() = default;
-  ~TimeFrameGPU() = default;
+  ~TimeFrameGPU() final = default;
 
   /// Most relevant operations
   void pushMemoryStack(const int);
@@ -104,7 +104,6 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   /// interface
   virtual bool isGPU() const noexcept final { return true; }
   virtual const char* getName() const noexcept { return "GPU"; }
-  int getNClustersInRofSpan(const int, const int, const int) const;
   IndexTableUtilsN* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
   const auto getDeviceROFOverlapTableView() { return mDeviceROFOverlapTableView; }
   const auto getDeviceROFVertexLookupTableView() { return mDeviceROFVertexLookupTableView; }
@@ -143,19 +142,6 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
   int* getDeviceNeighboursIndexTables(const int layer) { return mNeighboursIndexTablesDevice[layer]; }
   uint8_t* getDeviceMultCutMask() { return mMultMaskDevice; }
-
-  // Vertexer
-  auto& getDeviceNTrackletsPerROF() const noexcept { return mNTrackletsPerROFDevice; }
-  auto& getDeviceNTrackletsPerCluster() const noexcept { return mNTrackletsPerClusterDevice; }
-  auto& getDeviceNTrackletsPerClusterSum() const noexcept { return mNTrackletsPerClusterSumDevice; }
-  int32_t** getDeviceArrayNTrackletsPerROF() const noexcept { return mNTrackletsPerROFDeviceArray; }
-  int32_t** getDeviceArrayNTrackletsPerCluster() const noexcept { return mNTrackletsPerClusterDeviceArray; }
-  int32_t** getDeviceArrayNTrackletsPerClusterSum() const noexcept { return mNTrackletsPerClusterSumDeviceArray; }
-  uint8_t* getDeviceUsedTracklets() const noexcept { return mUsedTrackletsDevice; }
-  int32_t* getDeviceNLinesPerCluster() const noexcept { return mNLinesPerClusterDevice; }
-  int32_t* getDeviceNLinesPerClusterSum() const noexcept { return mNLinesPerClusterSumDevice; }
-  Line* getDeviceLines() const noexcept { return mLinesDevice; }
-  gsl::span<int*> getDeviceTrackletsPerROFs() { return mNTrackletsPerROFDevice; }
 
   void setDevicePropagator(const o2::base::PropagatorImpl<float>* p) final { this->mPropagatorDevice = p; }
 
@@ -233,18 +219,6 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   std::array<TrackingFrameInfo*, NLayers> mTrackingFrameInfoDevice;
   const TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
 
-  /// Vertexer
-  std::array<int32_t*, 2> mNTrackletsPerROFDevice;
-  std::array<int32_t*, 2> mNTrackletsPerClusterDevice;
-  std::array<int32_t*, 2> mNTrackletsPerClusterSumDevice;
-  uint8_t* mUsedTrackletsDevice;
-  int32_t* mNLinesPerClusterDevice;
-  int32_t* mNLinesPerClusterSumDevice;
-  int32_t** mNTrackletsPerROFDeviceArray;
-  int32_t** mNTrackletsPerClusterDeviceArray;
-  int32_t** mNTrackletsPerClusterSumDeviceArray;
-  Line* mLinesDevice;
-
   // State
   Streams mGpuStreams;
   std::bitset<NLayers + 1> mPinnedUnsortedClusters{0};
@@ -257,12 +231,6 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   // Temporary buffer for storing output tracks from GPU tracking
   bounded_vector<TrackITSExt> mTrackITSExt;
 };
-
-template <int NLayers>
-inline int TimeFrameGPU<NLayers>::getNClustersInRofSpan(const int rofIdstart, const int rofSpanSize, const int layerId) const
-{
-  return static_cast<int>(this->mROFramesClusters[layerId][(rofIdstart + rofSpanSize) < this->mROFramesClusters.size() ? rofIdstart + rofSpanSize : this->mROFramesClusters.size() - 1] - this->mROFramesClusters[layerId][rofIdstart]);
-}
 
 template <int NLayers>
 inline std::vector<unsigned int> TimeFrameGPU<NLayers>::getClusterSizes()
