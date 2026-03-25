@@ -45,7 +45,7 @@ namespace o2
 {
 namespace mft
 {
-//#define _TIMING_
+// #define _TIMING_
 
 void TrackerDPL::init(InitContext& ic)
 {
@@ -319,7 +319,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   }
 
-  LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
+  LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks in " << nROFs << " rofs";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0}, allTrackLabels);

@@ -43,7 +43,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
     *tracksSize = tracks.size();
   };
   auto logger = [tracksSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
-    LOG(debug) << "MFTTrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
+    LOG(info) << "MFTTrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
   };
   return MakeRootTreeWriterSpec("mft-track-writer",
                                 "mfttracks.root",
@@ -53,6 +53,9 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                                                  tracksSizeGetter},
                                 BranchDefinition<std::vector<int>>{InputSpec{"trackClIdx", "MFT", "TRACKCLSID", 0},
                                                                    "MFTTrackClusIdx"},
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "MFT", "MFTTrackROF", 0},
+                                                                                     "MFTTracksROF",
+                                                                                     logger},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", "MFT", "TRACKSMCTR", 0},
                                                              "MFTTrackMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
