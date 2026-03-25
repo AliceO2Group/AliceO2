@@ -127,18 +127,21 @@ void TRKServices::createMaterials()
 
 void TRKServices::createServices(TGeoVolume* motherVolume)
 {
+
+  TGeoVolumeAssembly* vol = new TGeoVolumeAssembly(GeometryTGeo::getTRKServiceVolPattern());
+  motherVolume->AddNode(vol, 2, new TGeoTranslation(0, 0., 0));
   createMaterials();
   createVacuumCompositeShape();
   auto& trkPars = TRKBaseParam::Instance();
   if (trkPars.getLayoutSRV() == kLOISymm) {
     LOGP(info, "TRK services: LoI version");
-    createMiddleServices(motherVolume);
-    createOuterDisksServices(motherVolume);
-    createOuterBarrelServices(motherVolume);
+    createMiddleServices(vol);
+    createOuterDisksServices(vol);
+    createOuterBarrelServices(vol);
   } else {
     LOGP(info, "TRK services: Peacock layout");
-    createMLServicesPeacock(motherVolume);
-    createOTServicesPeacock(motherVolume);
+    createMLServicesPeacock(vol);
+    createOTServicesPeacock(vol);
   }
 }
 
