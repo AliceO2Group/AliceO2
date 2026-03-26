@@ -250,6 +250,14 @@ TEST_CASE("GetHeaderPayloadOperators")
   auto& pl1 = msgSet.messages | get_payload{1, 0};
   REQUIRE(pl1.get() != nullptr);
   REQUIRE(pl1->GetSize() == 200);
+
+  // Validate pipe operators match old API
+  for (size_t i = 0; i < 2; ++i) {
+    REQUIRE(&(msgSet.messages | get_header{i}) == &msgSet.header(i));
+    REQUIRE(&(msgSet.messages | get_payload{i, 0}) == &msgSet.payload(i, 0));
+  }
+  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
+  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
 }
 
 TEST_CASE("GetHeaderPayloadMultiPayload")
