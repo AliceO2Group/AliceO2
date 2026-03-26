@@ -19,7 +19,7 @@
 #include <map>
 #include <TColor.h>
 
-namespace FT3ModuleConstants
+namespace o2::ft3::ModuleConstants
 {
   /* CURRENT STATUS:
    * 25x32mm sensors, 2mm inactive on one side

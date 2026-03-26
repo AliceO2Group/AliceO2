@@ -308,7 +308,7 @@ void FT3Module::addSingleSensorVolume(
 
 void FT3Module::create_layout_scopingV3(double mZ, int layerNumber, int direction,
                                         double Rin, double Rout, double overlap,
-                                        const std::string& layout_type, TGeoVolume* motherVolume)
+                                        TGeoVolume* motherVolume)
 {
   LOG(info) << "FT3Module: create_layout_scopingV3 - Layer "
             << layerNumber << ", Direction " << direction;
@@ -1096,10 +1096,9 @@ void FT3Module::createModule(double mZ, int layerNumber, int direction, double R
 
 void FT3Module::createModule_scopingV3(double mZ, int layerNumber, int direction,
                                        double Rin, double Rout, double overlap,
-                                       const std::string& layout_type,
                                        TGeoVolume* motherVolume) {
   LOG(debug) << "FT3Module: createModule_scopingV3 - Layer " << layerNumber
              << ", Direction " << direction;
-  create_layout_scopingV3(mZ, layerNumber, direction, Rin, Rout, overlap, layout_type, motherVolume);
+  create_layout_scopingV3(mZ, layerNumber, direction, Rin, Rout, overlap, motherVolume);
   LOG(debug) << "FT3Module: done createModule_scopingV3";
 }

@@ -25,7 +25,7 @@
 using PositionType = std::pair<double, unsigned>;
 using PositionTypes = std::vector<PositionType>;
 using PosNegPositionTypes = std::pair<PositionTypes, PositionTypes>;
-namespace Constants = FT3ModuleConstants;
+namespace Constants = o2::ft3::ModuleConstants;
 
 class FT3Module
 {
@@ -52,8 +52,7 @@ class FT3Module
 
   void createModule_scopingV3(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap,
-    const std::string& layout_type, TGeoVolume* motherVolume);
+    double Rout, double overlap, TGeoVolume* motherVolume);
 
  private:
   static void create_layout(
@@ -63,8 +62,7 @@ class FT3Module
 
   void create_layout_scopingV3(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap,
-    const std::string& layout_type, TGeoVolume* motherVolume);
+    double Rout, double overlap, TGeoVolume* motherVolume);
 
   // Helper functions
   void fill_stave(PosNegPositionTypes& y_positions, double Rout,

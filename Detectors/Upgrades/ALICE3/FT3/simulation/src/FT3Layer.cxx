@@ -381,7 +381,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
 
     LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
-  } else if (ft3Params.layoutFT3 == kSegmented) {
+  } else if (ft3Params.layoutFT3 == kSegmented || ft3Params.layoutFT3 == kSegmentedMarch26) {
     FT3Module module;
 
     // layer structure
@@ -398,9 +398,15 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     createSeparationLayer(layerVol, separationLayerName);
 
     // create disk faces
-    module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", layerVol);
-    module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "back", "rectangular", layerVol);
-
+    if (ft3Params.layoutFT3 == kSegmented) {
+      module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", layerVol);
+      module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "back", "rectangular", layerVol);
+    } else if (ft3Params.layoutFT3 == kSegmentedMarch26) {
+      module.createModule_scopingV3(0, mLayerNumber, mDirection, mInnerRadius,
+                                    mOuterRadius, 0., layerVol);
+      module.createModule_scopingV3(0, mLayerNumber, mDirection, mInnerRadius,
+                                    mOuterRadius, 0., layerVol);
+    }
     // Finally put everything in the mother volume
     auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);
     auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ, FwdDiskRotation);
