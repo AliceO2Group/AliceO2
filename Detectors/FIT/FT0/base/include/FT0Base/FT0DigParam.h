@@ -31,8 +31,8 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mAmpRecordUp = 15;           // to [ns]
   float hitTimeOffsetA = 0;          ///< hit time offset on the A side [ns]
   float hitTimeOffsetC = 0;          ///< hit time offset on the C side [ns]
-  int mtrg_central_trh = 1433.;      // Tclu
-  int mtrg_semicentral_trh = 35.;    // Tclu units = TCM charge level unit = 16 ADCunits
+  int mtrg_central_trh = 1433.;      // Tclu units
+  int mtrg_semicentral_trh = 35.;    // Tclu units
 
   float mMip_in_V = 7;       // MIP to mV
   float mPe_in_mip = 0.004;  // invserse Np.e. in MIP 1./250.
@@ -47,8 +47,8 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mAmpThresholdForReco = 5;     // only channels with amplitude higher will participate in calibration and collision time: 0.3 MIP
   short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
-  float mMV_2_Nchannels = 2.2857143;          // amplitude channel 7 mV ->16channels
-  float mMV_2_NchannelsInverse = 0.437499997; // inverse amplitude channel 7 mV ->16channels
+  float mMV_2_Nchannels = 2.;          // amplitude channel 7 mV ->14channels
+  float mMV_2_NchannelsInverse = 0.5; // inverse amplitude channel 7 mV ->14channels (nowhere used)
 
   O2ParamDef(FT0DigParam, "FT0DigParam");
 };
