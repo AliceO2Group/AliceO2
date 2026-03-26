@@ -38,11 +38,6 @@ struct MessageSet {
   };
   // linear storage of messages
   std::vector<fair::mq::MessagePtr> messages;
-  // message map describes O2 messages consisting of a header message and
-  // payload message(s), index describes position in the linear storage
-  std::vector<Index> messageMap;
-  // pair map describes all messages in one sequence of header-payload pairs and
-  // where in the message index the associated header and payload can be found
   struct PairMapping {
     PairMapping(size_t partId, size_t payloadId) : partIndex(partId), payloadIndex(payloadId) {}
     // O2 message where the pair is located in
@@ -52,19 +47,19 @@ struct MessageSet {
   };
 
   MessageSet()
-    : messages(), messageMap()
+    : messages()
   {
   }
 
   template <typename F>
   MessageSet(F getter, size_t size)
-    : messages(), messageMap()
+    : messages()
   {
     add(std::forward<F>(getter), size);
   }
 
   MessageSet(MessageSet&& other)
-    : messages(std::move(other.messages)), messageMap(std::move(other.messageMap))
+    : messages(std::move(other.messages))
   {
     other.clear();
   }
@@ -75,7 +70,6 @@ struct MessageSet {
       return *this;
     }
     messages = std::move(other.messages);
-    messageMap = std::move(other.messageMap);
     other.clear();
     return *this;
   }
@@ -96,7 +90,6 @@ struct MessageSet {
   void clear()
   {
     messages.clear();
-    messageMap.clear();
   }
 
   // this is more or less legacy
@@ -113,7 +106,6 @@ struct MessageSet {
   // add  content of the part ref
   void add(PartRef&& ref)
   {
-    messageMap.emplace_back(messages.size(), 1);
     messages.emplace_back(std::move(ref.header));
     messages.emplace_back(std::move(ref.payload));
   }
@@ -122,7 +114,6 @@ struct MessageSet {
   template <typename F>
   void add(F getter, size_t size)
   {
-    messageMap.emplace_back(messages.size(), size - 1);
     for (size_t i = 0; i < size; ++i) {
       messages.emplace_back(std::move(getter(i)));
     }
