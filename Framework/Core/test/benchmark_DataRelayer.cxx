@@ -14,6 +14,7 @@
 #include "Headers/Stack.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
+#include "Framework/DataModelViews.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataProcessingStates.h"
 #include "Framework/DataProcessingStats.h"
@@ -138,8 +139,8 @@ static void BM_RelaySingleSlot(benchmark::State& state)
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     assert(result.size() == 1);
-    assert((result.at(0).messages | count_parts{}) == 1);
-    inflightMessages = std::move(result[0].messages);
+    assert((result.at(0) | count_parts{}) == 1);
+    inflightMessages = std::move(result[0]);
   }
 }
 
@@ -194,8 +195,8 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     assert(result.size() == 1);
-    assert((result.at(0).messages | count_parts{}) == 1);
-    inflightMessages = std::move(result[0].messages);
+    assert((result.at(0) | count_parts{}) == 1);
+    inflightMessages = std::move(result[0]);
   }
 }
 
@@ -268,11 +269,11 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     assert(result.size() == 2);
-    assert((result.at(0).messages | count_parts{}) == 1);
-    assert((result.at(1).messages | count_parts{}) == 1);
-    inflightMessages = std::move(result[0].messages);
-    inflightMessages.emplace_back(std::move(result[1].messages[0]));
-    inflightMessages.emplace_back(std::move(result[1].messages[1]));
+    assert((result.at(0) | count_parts{}) == 1);
+    assert((result.at(1) | count_parts{}) == 1);
+    inflightMessages = std::move(result[0]);
+    inflightMessages.emplace_back(std::move(result[1][0]));
+    inflightMessages.emplace_back(std::move(result[1][1]));
   }
 }
 
@@ -332,7 +333,7 @@ static void BM_RelaySplitParts(benchmark::State& state)
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
-    inflightMessages = std::move(relayer.consumeAllInputsForTimeslice(ready[0].slot)[0].messages);
+    inflightMessages = std::move(relayer.consumeAllInputsForTimeslice(ready[0].slot)[0]);
   }
 }
 
@@ -386,7 +387,7 @@ static void BM_RelayMultiplePayloads(benchmark::State& state)
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
-    inflightMessages = std::move(relayer.consumeAllInputsForTimeslice(ready[0].slot)[0].messages);
+    inflightMessages = std::move(relayer.consumeAllInputsForTimeslice(ready[0].slot)[0]);
   }
 }
 

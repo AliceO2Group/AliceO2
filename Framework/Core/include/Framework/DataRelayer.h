@@ -16,7 +16,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/MessageSet.h"
+#include <fairmq/Message.h>
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Tracing.h"
 #include "Framework/TimesliceSlot.h"
@@ -113,7 +113,7 @@ class DataRelayer
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
                                       ServiceRegistryRef context, bool createNew);
 
-  using OnDropCallback = std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo info)>;
+  using OnDropCallback = std::function<void(TimesliceSlot, std::vector<std::vector<fair::mq::MessagePtr>>&, TimesliceIndex::OldestOutputInfo info)>;
 
   // Callback for when some messages are about to be owned by the the DataRelayer
   using OnInsertionCallback = std::function<void(ServiceRegistryRef&, std::span<fair::mq::MessagePtr>&)>;
@@ -156,8 +156,8 @@ class DataRelayer
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
-  std::vector<MessageSet> consumeAllInputsForTimeslice(TimesliceSlot id);
-  std::vector<MessageSet> consumeExistingInputsForTimeslice(TimesliceSlot id);
+  std::vector<std::vector<fair::mq::MessagePtr>> consumeAllInputsForTimeslice(TimesliceSlot id);
+  std::vector<std::vector<fair::mq::MessagePtr>> consumeExistingInputsForTimeslice(TimesliceSlot id);
 
   /// Returns how many timeslices we can handle in parallel
   [[nodiscard]] size_t getParallelTimeslices() const;
@@ -203,7 +203,7 @@ class DataRelayer
   /// Notice that we store them as a NxM sized vector, where
   /// N is the maximum number of inflight timeslices, while
   /// M is the number of inputs which are requested.
-  std::vector<MessageSet> mCache;
+  std::vector<std::vector<fair::mq::MessagePtr>> mCache;
 
   /// This is the index which maps a given timestamp to the associated
   /// cacheline.

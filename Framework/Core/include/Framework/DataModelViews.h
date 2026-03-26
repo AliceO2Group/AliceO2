@@ -16,7 +16,9 @@
 #include "DomainInfoHeader.h"
 #include "SourceInfoHeader.h"
 #include "Headers/DataHeader.h"
+#include "Framework/TimesliceSlot.h"
 #include <ranges>
+#include <span>
 
 namespace o2::framework
 {
@@ -213,13 +215,11 @@ struct get_num_payloads {
   }
 };
 
-struct MessageSet;
-
 struct inputs_for_slot {
   TimesliceSlot slot;
   template <typename R>
     requires requires(R r) { requires std::ranges::random_access_range<decltype(r.sets)>; }
-  friend std::span<o2::framework::MessageSet> operator|(R&& r, inputs_for_slot self)
+  friend auto operator|(R&& r, inputs_for_slot self)
   {
     return std::span(r.sets[self.slot.index * r.inputsPerSlot]);
   }
@@ -231,7 +231,7 @@ struct messages_for_input {
     requires std::ranges::random_access_range<R>
   friend std::span<fair::mq::MessagePtr> operator|(R&& r, messages_for_input self)
   {
-    return r[self.inputIdx].messages;
+    return std::span(r[self.inputIdx]);
   }
 };
 
