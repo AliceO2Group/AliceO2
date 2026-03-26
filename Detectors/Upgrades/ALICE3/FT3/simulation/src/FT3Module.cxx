@@ -24,6 +24,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <utility>
 
 TGeoMaterial* FT3Module::siliconMat = nullptr;
 TGeoMedium* FT3Module::siliconMed = nullptr;
@@ -80,6 +81,358 @@ void FT3Module::initialize_materials()
 double calculate_y_circle(double x, double radius)
 {
   return (x * x < radius * radius) ? std::sqrt(radius * radius - x * x) : 0;
+}
+
+/*
+ * This function is a helper function which will pad out the stave with sensors
+ * until there is no more space available.
+ * 
+ * Arguments:
+ * y_positions: a pair of vectors, where each vector contains pairs of
+ *              y position and stack height for the positive and negative y positions respectively.
+ *              This argument will be appended with the new sensor positions and stack heights.
+ * Rout: the outer radius of the layer
+ * Rin: the inner radius of the layer
+ * x_left: the x position of the left edge of the sensor to be placed
+ * kSensorStack: the number of sensors to be stacked on top of each other
+ * tolerance: the tolerance to be subtracted from the maximum y position to avoid
+ *            placing sensors too close to the edge. If this is negative, it effectively
+ *            means that you can place sensors beyond the nominal disc edge
+ * y_start: the y positions to start placing sensors,
+ *          for positive and negative y respectively
+ */
+void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rout,
+                           double Rin, double x_left,
+                           unsigned kSensorStack, double tolerance,
+                           std::pair<double, double> y_start={0, 0})
+{
+  // start with upper half of the stave, then mirror to the bottom half
+  double x_right = x_left + Constants::sensor2x1_width;
+  double y_top = y_start.first;
+  // either start at given start position, or at the top of the last placed sensors
+  if (!y_positions.first.empty()) {
+    y_top = y_positions.first.back().first
+          + Constants::sensor2x1_height * y_positions.first.back().second
+          + Constants::sensor2x1_gap;
+  }
+  // add the height of kSensorStack sensors + the gaps in between them
+  double sensorTileHeight = Constants::sensor2x1_height * kSensorStack
+                          + Constants::sensor2x1_gap * (kSensorStack - 1);
+
+  double max_y_abs;
+  // y_max(x_left) > y_max(x_right) means that the top of the sensor
+  // will hit the outer radius at x_right first
+  if (x_left > -Constants::single_sensor_width) {
+    // tolerance already in maximum y position
+    max_y_abs = calculate_y_circle(x_right, Rout) - tolerance;
+  } else {
+    max_y_abs = calculate_y_circle(x_left, Rout) - tolerance;
+  }
+  unsigned n_sensors_placed = y_positions.first.size() + y_positions.second.size();
+  LOG(info) << "\tFT3Module: Filling stave at x = " << (x_left + Constants::sensor2x1_width / 2)
+            << " with sensors of height " << sensorTileHeight
+            << ". Starting positive y position: " << y_top
+            << ", maximum positive y position: " << max_y_abs
+            << ", with initially " << n_sensors_placed << " sensors already placed.";
+
+  while ( (y_top + sensorTileHeight) <= max_y_abs ) {
+    y_positions.first.emplace_back(y_top, kSensorStack);
+    LOG(info) << "\t\t\tFT3Module: Placed sensor at y = " << y_top;
+    y_top += sensorTileHeight + Constants::sensor2x1_gap;
+  }
+
+  // now we do the same for the negative y positions
+  // they do not have to be exactly mirrored, hence done separately
+  double y_bottom = y_start.second;
+  if (!y_positions.second.empty()) {
+    // subtract instead to move further down
+    y_bottom = y_positions.second.back().first
+             - Constants::sensor2x1_height * y_positions.second.back().second
+             - Constants::sensor2x1_gap;
+  }
+
+  LOG(info) << "\tFT3Module: Starting negative y position: " << y_bottom
+            << ", minimum negative y position: " << -max_y_abs;
+  while ( (y_bottom - sensorTileHeight) >= -max_y_abs ) {
+    y_positions.second.emplace_back(y_bottom, kSensorStack);
+    LOG(info) << "\t\t\tFT3Module: Placed sensor at y = " << y_bottom;
+    y_bottom -= (sensorTileHeight + Constants::sensor2x1_gap);
+  }
+  unsigned sensors_placed_after = y_positions.first.size() + y_positions.second.size();
+  LOG(info) << "\tFT3Module: Done filling stave. Now have "
+            << sensors_placed_after << " sensors in total.";
+}
+
+/*
+ * Generic helper function that adds a box at the given position with
+ * the given dimensions to the given mother volume, with the given color and name.
+ */
+
+void FT3Module::addDetectorVolume(
+  TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* sensor_count,
+  double x_mid, double y_mid, double z_mid,
+  double x_half_length, double y_half_length, double z_half_length)
+{
+  TGeoManager* geoManager = gGeoManager;
+  TGeoVolume* volume = geoManager->MakeBox(volumeName.c_str(), siliconMed, x_half_length,
+                                           y_half_length, z_half_length);
+  volume->SetLineColor(color);
+  volume->SetFillColorAlpha(color, 0.4);
+  motherVolume->AddNode(
+    volume,
+    1,
+    new TGeoTranslation(  // midpoint of box to add
+      x_mid,
+      y_mid,
+      z_mid
+    )  // TGeoTranslation
+  );  // addNode
+}
+
+/*
+ * This function adds a glue volume between two element layers,
+ * immediately for a whole 2x1 layout, under both the active and inactive region.
+ */
+void FT3Module::add2x1GlueVolume(
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+  std::string side_str, double x_mid, double y_mid, double z_mid,
+  std::string element_glued_to)
+{
+  std::string glue_name = "FT3glue_" + element_glued_to + "_" + side_str + "_"
+                        + std::to_string(layerNumber) + "_" + std::to_string(direction)
+                        + "_" + std::to_string(*sensor_count);
+  addDetectorVolume(
+    motherVolume, glue_name, Constants::glueColor, sensor_count,
+    x_mid, y_mid, z_mid,
+    Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::epoxyThickness / 2
+  );
+}
+
+/*
+ * This function adds a copper volume onto which the silicon sensor is glued.
+ * As with the glue, this is a whole 2x1 layout volume.
+ */
+void FT3Module::add2x1CopperVolume(
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+  std::string side_str, double x_mid, double y_mid, double z_mid)
+{
+  std::string copper_name = "FT3Copper_" + side_str + "_" + std::to_string(layerNumber) + "_"
+                          + std::to_string(direction) + "_" + std::to_string(*sensor_count);
+  addDetectorVolume(
+    motherVolume, copper_name, Constants::CuColor, sensor_count,
+    x_mid, y_mid, z_mid,
+    Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::copperThickness / 2
+  );
+}
+
+/*
+ * This function adds a kapton volume behind the copper, which represents the ???
+ * As with copper and glue, this is a whole 2x1 layout volume.
+ */
+void FT3Module::add2x1KaptonVolume(
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+  std::string side_str, double x_mid, double y_mid, double z_mid)
+{
+  std::string kapton_name = "FT3Kapton_" + side_str + "_" + std::to_string(layerNumber) + "_"
+                          + std::to_string(direction) + "_" + std::to_string(*sensor_count);
+  addDetectorVolume(
+    motherVolume, kapton_name, Constants::kaptonColor, sensor_count,
+    x_mid, y_mid, z_mid,
+    Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::kaptonThickness / 2
+  );
+}
+
+// TODO FOR TOMORROW 25/03: swap front and back for backward eta region, so that front faces the interaction region.
+
+/*
+ * This function adds a single sensor (currently 2.5x3.2mm) to the given mother volume
+ * at the given (x,y,z) position of the module.
+ * 
+ * Because the sensor has an inactive region of 0.2mm on one side, we also add a
+ * separate volume for the inactive region, which will be either on the left or
+ * or right dependent on the if the sensor is on the left or right in a 2x1 layout.
+ * See FT3Module.h for more details on the layout.
+ * 
+ * Arguments:
+ * motherVolume: the volume to which the sensor volume will be added
+ * layerNumber: the layer number of the sensor, used for naming
+ * direction: the direction of the sensor (forward or backward eta), used for naming
+ * x_mid: the x position of the center of the sensor volume
+ * y_mid: the y position of the center of the sensor volume
+ * z_mid: the z position of the center of the sensor volume
+ * side_str: string indicating whether the sensor is on the front or back
+ * isLeft: whether the sensor is on the left or right in the 2x1 layout
+ */
+void FT3Module::addSingleSensorVolume(
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+  double active_x_mid, double y_mid, double z_mid, std::string side_str, bool isLeft)
+{
+  TGeoVolume* sensor;
+  TGeoManager* geoManager = gGeoManager;
+  // ACTIVE AREA
+  std::string sensor_name = "FT3Sensor_" + side_str + "_" + std::to_string(layerNumber) + "_"
+                          + std::to_string(direction) + "_" + std::to_string(*sensor_count);
+  sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, Constants::active_width / 2,
+                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
+  sensor->SetLineColor(Constants::SiColor);
+  sensor->SetFillColorAlpha(Constants::SiColor, 0.4);
+  motherVolume->AddNode(
+    sensor,
+    *sensor_count++,
+    new TGeoTranslation(  // midpoint of box to add
+      active_x_mid,
+      y_mid,
+      z_mid
+    )  // TGeoTranslation
+  );  // addNode
+  // INACTIVE STRIP ON LEFT OR RIGHT
+  double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
+                                 : (active_x_mid + Constants::active_width / 2 + Constants::inactive_width / 2);
+  std::string sensor_inactive_left_name =
+    "FT3Sensor_InactiveLeft_" + side_str + "_" + std::to_string(layerNumber) + "_"
+    + std::to_string(direction) + "_" + std::to_string(*sensor_count);
+  sensor = geoManager->MakeBox(sensor_inactive_left_name.c_str(), siliconMed, Constants::inactive_width / 2,
+                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
+  sensor->SetLineColor(Constants::SiInactiveColor);
+  sensor->SetFillColorAlpha(Constants::SiInactiveColor, 0.4);
+  motherVolume->AddNode(
+    sensor,
+    *sensor_count++,
+    new TGeoTranslation(  // midpoint of box to add
+      inactive_x_mid,
+      y_mid,
+      z_mid
+    )  // TGeoTranslation
+  );  // addNode
+}
+
+void FT3Module::create_layout_scopingV3(double mZ, int layerNumber, int direction,
+                                        double Rin, double Rout, double overlap,
+                                        const std::string& layout_type, TGeoVolume* motherVolume)
+{
+  LOG(info) << "FT3Module: create_layout_scopingV3 - Layer "
+            << layerNumber << ", Direction " << direction;
+
+  FT3Module::initialize_materials();
+
+  // initialise all y_positions, vector over all staves
+  std::vector<PosNegPositionTypes> y_positionsPosNeg;
+  // Fill all staves
+  for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {
+    y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
+
+    double y_midpoint = 0.;
+    const int staveID = Constants::staveIdxToID(i_stave);
+    auto y_midpoint_it = Constants::staveID_to_y_midpoint.find(staveID);
+    if ( y_midpoint_it != Constants::staveID_to_y_midpoint.end() ) { // there is a defined midpoint for this stave
+      y_midpoint = y_midpoint_it->second;  // avoid double map lookup
+      double y_start_pos = y_midpoint - Constants::y_lengths[i_stave] / 2;
+      // currently we have the same positions on positive and negative x
+      // place the first sensor tile, assume it fits
+      y_positionsPosNeg.back().first.emplace_back(y_start_pos, Constants::kSensorsPerStack);  // positive
+      y_positionsPosNeg.back().second.emplace_back(-y_start_pos, Constants::kSensorsPerStack);  // negative
+    } else {
+      // midpoint is zero, i.e., the start point for x>0 & y>0 is y=0
+      // while y_start for x>0, y<0 is -Constants::sensor2x1_gap
+      y_positionsPosNeg.back().first.emplace_back(0, Constants::kSensorsPerStack);  // positive
+      y_positionsPosNeg.back().second.emplace_back(-Constants::sensor2x1_gap, Constants::kSensorsPerStack);  // negative
+    }
+    double x_left = Constants::x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
+    // fill_stave(y_positionsPosNeg, Rout, Rin, x_left, Constants::kSensorsPerStack, -3);
+    LOG(info) << "FT3Module: Filling Stave " << staveID << " (x = " << Constants::x_midpoints[i_stave]
+              << ") with sensors. Starting y positions: "
+              << y_positionsPosNeg.back().first.front().first << " (positive), "
+              << y_positionsPosNeg.back().second.front().first << " (negative).";
+    fill_stave(y_positionsPosNeg.back(), Rout, Rin, x_left, 1, -1);  // easiest: just do with 2x1 for now
+  }
+
+  unsigned sensor_count = 0;
+  for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {
+    double x_mid = Constants::x_midpoints[i_stave];
+    LOG(info) << "FT3Module: Adding sensor volumes for Stave " << Constants::staveIdxToID(i_stave)
+              << " (x = " << x_mid << ") with " << y_positionsPosNeg[i_stave].first.size() << " positive and "
+              << y_positionsPosNeg[i_stave].second.size() << " negative sensor positions.";
+    for (unsigned i_y_pos = 0; i_y_pos < y_positionsPosNeg[i_stave].first.size(); i_y_pos++) {
+      for (unsigned i_y_sign = 0; i_y_sign < 2; i_y_sign++) {
+        // TODO: Make this loop over all sensors in a stack, don't just assume one sensor per stack
+        TGeoVolume* sensor;
+        // place sensors at positive and negative y
+        const auto& positions = (i_y_sign == 0) ? y_positionsPosNeg[i_stave].first 
+                                                : y_positionsPosNeg[i_stave].second;
+        double y_mid = positions[i_y_pos].first + Constants::sensor2x1_height / 2;
+
+        // get which side we are on
+        bool isFront = Constants::staveOnFront[i_stave];
+        
+        /* 
+        * we build the volume from the outside in, starting with the silicon,
+        * then glue & materials towards the stave. Depending on whether it's front or back,
+        * the distance from the center will be mirrored so that we get the following:
+        * 
+        * Front (ordered in z, assuming the forward direction is to the right):
+        * | SILICON SENSOR | GLUE | COPPER | KAPTON | GLUE | STAVE | SUPPORT STRUCTURE |
+        * 
+        * Back (ordered in z, assuming the forward direction is to the right):
+        * | SUPPORT STRUCTURE | STAVE | GLUE | KAPTON | COPPER | GLUE | SILICON SENSOR |
+        * 
+        * Note that we do not place stave and support structure material here, that is
+        * assumed to have been placed by the Layer creation.
+        */
+        double z_offset_centre_to_stave = Constants::foamSpacingThickness / 2.0 + Constants::carbonFiberThickness;
+        double z_offset_stave_to_silicon = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness
+                                        + Constants::epoxyThickness + Constants::siliconThickness / 2;
+        double z_offset_stave_to_glue_Si = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness
+                                        + Constants::epoxyThickness / 2;
+        double z_offset_stave_to_copper = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness / 2;
+        double z_offset_stave_to_kapton = Constants::epoxyThickness + Constants::kaptonThickness / 2;
+        double z_offset_stave_to_glue_Cu = Constants::epoxyThickness / 2;
+
+        // for the front, we have to subtract the z offsets since we are going in
+        // negative z direction, while it's opposite for the back
+        int z_offset_multiplier = isFront ? -1 : 1;
+        std::string side_str = isFront ? "front" : "back";
+        // ------------ (1) Silicon sensor ------------
+        // left single sensor of the 2x1
+        double z_mid = (z_offset_centre_to_stave + z_offset_stave_to_silicon) * z_offset_multiplier;
+        addSingleSensorVolume(
+          motherVolume, layerNumber, direction, &sensor_count,
+          x_mid - Constants::active_width / 2, y_mid, z_mid, side_str, true
+        );
+        // right single sensor of the 2x1
+        addSingleSensorVolume(
+          motherVolume, layerNumber, direction, &sensor_count,
+          x_mid + Constants::active_width / 2, y_mid, z_mid, side_str, false
+        );
+
+        // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
+        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_glue_Si) * z_offset_multiplier;
+        add2x1GlueVolume(
+          motherVolume, layerNumber, direction, &sensor_count,
+          side_str, x_mid, y_mid, z_mid, "SiCu"
+        );
+        // ------------ (3) Copper layer (FPC) ------------
+        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_copper) * z_offset_multiplier;
+        add2x1CopperVolume(
+          motherVolume, layerNumber, direction, &sensor_count,
+          side_str, x_mid, y_mid, z_mid
+        );
+        // ------------ (4) Kapton layer (FPC) ------------
+        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_kapton) * z_offset_multiplier;
+        add2x1KaptonVolume(
+          motherVolume, layerNumber, direction, &sensor_count,
+          side_str, x_mid, y_mid, z_mid
+        );
+        // ------------ (5) Epoxy glue layer between stave and FPC copper ------------
+        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_glue_Cu) * z_offset_multiplier;
+        add2x1GlueVolume(
+          motherVolume, layerNumber, direction, &sensor_count,
+          side_str, x_mid, y_mid, z_mid, "StaveKapton"
+        );
+      }  // for i_y_sign (writing of positive or negative y positions)
+    }  // i_y_pos
+  }  // i_stave
+  
+
 }
 
 void FT3Module::create_layout(double mZ, int layerNumber, int direction, double Rin, double Rout, double overlap, const std::string& face, const std::string& layout_type, TGeoVolume* motherVolume)
@@ -739,4 +1092,14 @@ void FT3Module::createModule(double mZ, int layerNumber, int direction, double R
   LOG(debug) << "FT3Module: createModule - Layer " << layerNumber << ", Direction " << direction << ", Face " << face;
   create_layout(mZ, layerNumber, direction, Rin, Rout, overlap, face, layout_type, motherVolume);
   LOG(debug) << "FT3Module: done createModule";
+}
+
+void FT3Module::createModule_scopingV3(double mZ, int layerNumber, int direction,
+                                       double Rin, double Rout, double overlap,
+                                       const std::string& layout_type,
+                                       TGeoVolume* motherVolume) {
+  LOG(debug) << "FT3Module: createModule_scopingV3 - Layer " << layerNumber
+             << ", Direction " << direction;
+  create_layout_scopingV3(mZ, layerNumber, direction, Rin, Rout, overlap, layout_type, motherVolume);
+  LOG(debug) << "FT3Module: done createModule_scopingV3";
 }

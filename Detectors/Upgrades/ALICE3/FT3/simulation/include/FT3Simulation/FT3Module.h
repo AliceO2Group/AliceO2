@@ -17,6 +17,15 @@
 
 #include <TGeoVolume.h>
 #include <string>
+#include <vector>
+
+#include "FT3Simulation/FT3ModuleConstants.h"
+
+// define types for y positions, second element is the stack height
+using PositionType = std::pair<double, unsigned>;
+using PositionTypes = std::vector<PositionType>;
+using PosNegPositionTypes = std::pair<PositionTypes, PositionTypes>;
+namespace Constants = FT3ModuleConstants;
 
 class FT3Module
 {
@@ -36,10 +45,53 @@ class FT3Module
 
   const char* mDetName;
 
-  static void createModule(double mZ, int layerNumber, int direction, double Rin, double Rout, double overlap, const std::string& face, const std::string& layout_type, TGeoVolume* motherVolume);
+  static void createModule(
+    double mZ, int layerNumber, int direction, double Rin,
+    double Rout, double overlap, const std::string& face,
+    const std::string& layout_type, TGeoVolume* motherVolume);
+
+  void createModule_scopingV3(
+    double mZ, int layerNumber, int direction, double Rin,
+    double Rout, double overlap,
+    const std::string& layout_type, TGeoVolume* motherVolume);
 
  private:
-  static void create_layout(double mZ, int layerNumber, int direction, double Rin, double Rout, double overlap, const std::string& face, const std::string& layout_type, TGeoVolume* motherVolume);
+  static void create_layout(
+    double mZ, int layerNumber, int direction, double Rin,
+    double Rout, double overlap, const std::string& face,
+    const std::string& layout_type, TGeoVolume* motherVolume);
+
+  void create_layout_scopingV3(
+    double mZ, int layerNumber, int direction, double Rin,
+    double Rout, double overlap,
+    const std::string& layout_type, TGeoVolume* motherVolume);
+
+  // Helper functions
+  void fill_stave(PosNegPositionTypes& y_positions, double Rout,
+                  double Rin, double x_left,
+                  unsigned kSensorStack, double tolerance,
+                  std::pair<double, double> y_start);
+  void addDetectorVolume(
+    TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* sensor_count,
+    double x_mid, double y_mid, double z_mid,
+    double x_half_length, double y_half_length, double z_half_length);
+  
+  void add2x1GlueVolume(
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    std::string side_str, double x_mid, double y_mid, double z_mid,
+    std::string element_glued_to);
+  
+  void add2x1CopperVolume(
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    std::string side_str, double x_mid, double y_mid, double z_mid);
+  
+  void add2x1KaptonVolume(
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    std::string side_str, double x_mid, double y_mid, double z_mid);
+
+  void addSingleSensorVolume(
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    double active_x_mid, double y_mid, double z_mid, std::string side_str, bool isLeft);
 };
 
 #endif // FT3MODULE_H
