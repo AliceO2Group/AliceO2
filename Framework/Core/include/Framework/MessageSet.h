@@ -51,7 +51,7 @@ struct MessageSet {
   MessageSet(MessageSet&& other)
     : messages(std::move(other.messages))
   {
-    other.clear();
+    other.messages.clear();
   }
 
   MessageSet& operator=(MessageSet&& other)
@@ -60,15 +60,10 @@ struct MessageSet {
       return *this;
     }
     messages = std::move(other.messages);
-    other.clear();
+    other.messages.clear();
     return *this;
   }
 
-  /// clear the set
-  void clear()
-  {
-    messages.clear();
-  }
 };
 
 } // namespace o2::framework

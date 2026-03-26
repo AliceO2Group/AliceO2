@@ -2213,7 +2213,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         continue;
       }
       // This will hopefully delete the message.
-      currentSetOfInputs[ii].clear();
+      currentSetOfInputs[ii].messages.clear();
     }
   };
 

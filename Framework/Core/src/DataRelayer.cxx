@@ -431,7 +431,7 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
     // will be ignored.
     assert(numInputTypes * slot.index < cache.size());
     for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      cache[ai].clear();
+      cache[ai].messages.clear();
       cachedStateMetrics[ai] = CacheEntryStatus::EMPTY;
     }
   };
@@ -914,7 +914,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       assert(std::accumulate(cache[ai].messages.begin(), cache[ai].messages.end(), true, [](bool result, auto const& element) { return result && element.get() == nullptr; }));
-      cache[ai].clear();
+      cache[ai].messages.clear();
     }
     index.markAsInvalid(s);
   };
@@ -978,7 +978,7 @@ void DataRelayer::clear()
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
 
   for (auto& cache : mCache) {
-    cache.clear();
+    cache.messages.clear();
   }
   for (size_t s = 0; s < mTimesliceIndex.size(); ++s) {
     mTimesliceIndex.markAsInvalid(TimesliceSlot{s});
