@@ -18,8 +18,8 @@
 
 #include <string>
 #include <memory>
-#include <stdexcept>
-#include <fmt/format.h>
+#include <vector>
+#include <cstdint>
 
 #include "TTree.h"
 #include "TPCBase/CRU.h"
@@ -27,6 +27,31 @@
 
 namespace o2::tpc
 {
+
+struct CMVPerTF; // forward declaration
+
+/// Delta+zigzag+varint compressed CMV data for one TF across all CRUs
+/// Produced by CMVPerTF::compress(), restored with decompress()
+/// Each TTree entry corresponds to one CMVPerTFCompressed object (one TF)
+struct CMVPerTFCompressed {
+  uint32_t firstOrbit{0}; ///< First orbit of this TF (copied from CMVPerTF)
+  uint16_t firstBC{0};    ///< First bunch crossing of this TF (copied from CMVPerTF)
+
+  /// Delta+zigzag+varint encoded CMV values
+  /// Layout: CRU-major, time-minor; delta is reset to zero at each CRU boundary
+  std::vector<uint8_t> mCompressedData;
+
+  /// Restore a CMVPerTF from this compressed object into *cmv (must not be null)
+  void decompress(CMVPerTF* cmv) const;
+
+ private:
+  static uint16_t signedToCmv(int32_t val);                               ///< Signed integer -> sign-magnitude uint16_t
+  static int32_t zigzagDecode(uint32_t value);                            ///< Zigzag decode
+  static uint32_t decodeVarint(const uint8_t*& data, const uint8_t* end); ///< Varint decode
+
+ public:
+  ClassDefNV(CMVPerTFCompressed, 1)
+};
 
 /// CMV data for one TF across all CRUs
 /// Raw 16-bit CMV values are stored in a flat C array indexed as [cru * NTimeBinsPerTF + timeBin]
@@ -40,33 +65,27 @@ struct CMVPerTF {
   uint16_t mDataPerTF[CRU::MaxCRU * cmv::NTimeBinsPerTF]{};
 
   /// Return the raw 16-bit CMV value for a given CRU and timebin within this TF
-  uint16_t getCMV(const int cru, const int timeBin) const
-  {
-    if (cru < 0 || cru >= static_cast<int>(CRU::MaxCRU)) {
-      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: cru {} out of range [0, {})", cru, static_cast<int>(CRU::MaxCRU)));
-    }
-    if (timeBin < 0 || static_cast<uint32_t>(timeBin) >= cmv::NTimeBinsPerTF) {
-      throw std::out_of_range(fmt::format("CMVPerTF::getCMV: timeBin {} out of range [0, {})", timeBin, static_cast<int>(cmv::NTimeBinsPerTF)));
-    }
-    return mDataPerTF[cru * cmv::NTimeBinsPerTF + timeBin];
-  }
+  uint16_t getCMV(const int cru, const int timeBin) const;
 
   /// Return the float CMV value for a given CRU and timebin within this TF
-  float getCMVFloat(const int cru, const int timeBin) const
-  {
-    auto cmv = getCMV(cru, timeBin);
-    const bool positive = (cmv >> 15) & 1;          // bit 15: sign (1=positive, 0=negative)
-    const float magnitude = (cmv & 0x7FFF) / 128.f; // lower 15 bits, shift right by 7 (divide by 2^7)
-    return positive ? magnitude : -magnitude;
-  }
+  float getCMVFloat(const int cru, const int timeBin) const;
+
+  /// Compress this object into a CMVPerTFCompressed using delta+zigzag+varint encoding
+  CMVPerTFCompressed compress() const;
 
   /// Serialise into a TTree; each Fill() call appends one entry (one TF)
   std::unique_ptr<TTree> toTTree() const;
 
   /// Write the TTree to a ROOT file
-  void writeToFile(const std::string& filename, const std::unique_ptr<TTree>& tree) const;
+  static void writeToFile(const std::string& filename, const std::unique_ptr<TTree>& tree);
 
-  ClassDefNV(CMVPerTF, 8)
+ private:
+  static int32_t cmvToSigned(uint16_t raw);                                ///< Sign-magnitude uint16_t → signed integer
+  static uint32_t zigzagEncode(int32_t value);                             ///< Zigzag encode
+  static void encodeVarintInto(uint32_t value, std::vector<uint8_t>& out); ///< Varint encode
+
+ public:
+  ClassDefNV(CMVPerTF, 1)
 };
 
 } // namespace o2::tpc

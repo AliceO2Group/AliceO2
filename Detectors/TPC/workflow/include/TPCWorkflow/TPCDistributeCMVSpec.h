@@ -80,7 +80,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     mFilter.emplace_back(InputSpec{"cmvsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup()}, Lifetime::Sporadic});
     mOrbitFilter.emplace_back(InputSpec{"cmvorbit", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo()}, Lifetime::Sporadic});
 
-    // Pre-allocate the accumulator TTree for the current aggregation interval
+    // pre-allocate the accumulator TTree for the current aggregation interval
     initIntervalTree();
   };
 
@@ -132,7 +132,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       if (pc.inputs().countValidInputs() == (grpecsValid + orbitResetValid)) {
         return;
       }
-      // Update mTFInfo from GRPGeomHelper whenever orbit-reset or GRPECS objects are fresh
+      // update mTFInfo from GRPGeomHelper whenever orbit-reset or GRPECS objects are fresh
       if (mSendCCDBOutputOrbitReset[0] && mSendCCDBOutputGRPECS[0]) {
         mSendCCDBOutputOrbitReset[0] = false;
         mSendCCDBOutputGRPECS[0] = false;
@@ -177,18 +177,18 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       return;
     }
 
-    // Record the absolute first TF of this aggregation interval
+    // record the absolute first TF of this aggregation interval
     if (mIntervalTFCount == 0) {
       mIntervalFirstTF = tf;
     }
 
-    // Set CCDB start timestamp once at the start of each aggregation interval
+    // set CCDB start timestamp once at the start of each aggregation interval
     if (mTimestampStart == 0) {
       setTimestampCCDB(relTF, pc);
     }
 
-    // Capture orbit/BC info into the interval once per relTF.
-    // All CRUs within a TF carry identical timing, so the first one is sufficient.
+    // capture orbit/BC info into the interval once per relTF.
+    // all CRUs within a TF carry identical timing, so the first one is sufficient.
     if (!mOrbitInfoForwarded[currentBuffer][relTF]) {
       for (auto& ref : InputRecordWalker(pc.inputs(), mOrbitFilter)) {
         auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -242,7 +242,8 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     if (mProcessedCRU[currentBuffer][relTF] == mCRUs.size()) {
       ++mProcessedTFs[currentBuffer];
-      // Fill one TTree entry for this completed TF, then reset the staging object
+      // compress the completed TF and fill one TTree entry, then reset the staging object
+      mCurrentCompressedTF = mCurrentTF.compress();
       mIntervalTree->Fill();
       ++mIntervalTFCount;
       mCurrentTF = CMVPerTF{};
@@ -257,7 +258,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOGP(info, "End of stream, flushing CMV interval ({} TFs)", mIntervalTFCount);
-    // Correct mTFEnd for the partial last interval so the CCDB validity end timestamp reflects the actual last TF, not the expected interval end
+    // correct mTFEnd for the partial last interval so the CCDB validity end timestamp reflects the actual last TF, not the expected interval end
     mTFEnd[mBuffer] = mLastSeenTF;
     sendOutput(ec.outputs(), mLastSeenTF);
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -274,7 +275,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     return description;
   }
 
-  /// return data description for orbit/BC info for a given output lane
+  /// Return data description for orbit/BC info for a given output lane
   static header::DataDescription getDataDescriptionCMVOrbitInfo(const unsigned int lane)
   {
     const std::string name = fmt::format("CMVORB{}", lane);
@@ -304,8 +305,9 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   bool mDumpCMVs{false};                                                               ///< write a local ROOT debug file
   long mTimestampStart{0};                                                             ///< CCDB validity start timestamp
   dataformats::Pair<long, int> mTFInfo{};                                              ///< orbit-reset time and NHBFPerTF for precise timestamp
-  std::unique_ptr<TTree> mIntervalTree{};                                              ///< TTree accumulating one CMVPerTF entry per completed TF in the current interval
-  CMVPerTF mCurrentTF{};                                                               ///< staging object filled per CRU before being committed to mIntervalTree
+  std::unique_ptr<TTree> mIntervalTree{};                                              ///< TTree accumulating one CMVPerTFCompressed entry per completed TF in the current interval
+  CMVPerTF mCurrentTF{};                                                               ///< staging object filled per CRU before compression
+  CMVPerTFCompressed mCurrentCompressedTF{};                                           ///< compressed staging object written into mIntervalTree
   long mIntervalFirstTF{0};                                                            ///< absolute TF counter of the first TF in the current aggregation interval
   unsigned int mIntervalTFCount{0};                                                    ///< number of TTree entries filled for the current aggregation interval
   int mNFactorTFs{0};                                                                  ///< Number of TFs to skip for sending oldest TF
@@ -318,16 +320,16 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   std::array<std::vector<bool>, 2> mOrbitInfoForwarded{};                              ///< tracks whether orbit/BC has been captured per (buffer, relTF)
   uint32_t mLastSeenTF{0};                                                             ///< last TF counter seen in run(), used to set lastTF in endOfStream flush
 
-  /// returns real number of TFs taking buffer size into account
+  /// Returns real number of TFs taking buffer size into account
   unsigned int getNRealTFs() const { return mNTFsBuffer * mTimeFrames; }
 
-  /// Create a fresh in-memory TTree for the next aggregation interval, with mCurrentTF as the fill source
+  /// Create a fresh in-memory TTree for the next aggregation interval, with mCurrentCompressedTF as the fill source
   void initIntervalTree()
   {
     mIntervalTree = std::make_unique<TTree>("ccdb_object", "ccdb_object");
     mIntervalTree->SetAutoSave(0);
     mIntervalTree->SetDirectory(nullptr);
-    mIntervalTree->Branch("CMVPerTF", &mCurrentTF);
+    mIntervalTree->Branch("CMVPerTFCompressed", &mCurrentCompressedTF);
   }
 
   void clearBuffer(const bool currentBuffer)
@@ -408,7 +410,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     clearBuffer(buffer);
     mStartNTFsDataDrop[buffer] = 0;
 
-    // Reset per-interval state for the next aggregation interval
+    // reset per-interval state for the next aggregation interval
     initIntervalTree();
     mIntervalFirstTF = 0;
     mIntervalTFCount = 0;
@@ -440,7 +442,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       return;
     }
 
-    // Attach interval metadata to the TTree (stored once per tree)
+    // attach interval metadata to the TTree (stored once per tree)
     mIntervalTree->GetUserInfo()->Clear();
     mIntervalTree->GetUserInfo()->Add(new TParameter<long>("firstTF", mIntervalFirstTF));
     mIntervalTree->GetUserInfo()->Add(new TParameter<long>("lastTF", mLastSeenTF));
@@ -448,7 +450,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     LOGP(info, "CMVPerTF TTree: {} entries, firstTF={}, lastTF={}", mIntervalTFCount, mIntervalFirstTF, mLastSeenTF);
     auto start = timer::now();
 
-    // Write local ROOT file for debugging
+    // write local ROOT file for debugging
     if (mDumpCMVs) {
       const std::string fname = fmt::format("CMV_timestamp{}.root", mTimestampStart);
       try {
@@ -465,7 +467,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     }
 
     const int nHBFPerTF = o2::base::GRPGeomHelper::instance().getNHBFPerTF();
-    // Use the actual number of TFs in this interval (mIntervalTFCount) rather than mTimeFrames, so the CCDB validity end is correct for partial last intervals
+    // use the actual number of TFs in this interval (mIntervalTFCount) rather than mTimeFrames, so the CCDB validity end is correct for partial last intervals
     const long timeStampEnd = mTimestampStart + static_cast<long>(mIntervalTFCount * mNTFsBuffer * nHBFPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-3);
 
     if (timeStampEnd <= mTimestampStart) {
@@ -485,7 +487,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       timeStampEnd);
 
     auto image = o2::ccdb::CcdbApi::createObjectImage((mIntervalTree.get()), &ccdbInfoCMV);
-    // Trim TMemFile zero-padding: GetSize() is block-rounded (1024 bytes), GetEND() is the actual file end.
+    // trim TMemFile zero-padding: GetSize() is block-rounded, GetEND() is the actual file end
     {
       TMemFile mf("trim", image->data(), static_cast<Long64_t>(image->size()), "READ");
       image->resize(static_cast<size_t>(mf.GetEND()));
