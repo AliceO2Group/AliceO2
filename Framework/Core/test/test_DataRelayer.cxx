@@ -738,7 +738,7 @@ TEST_CASE("DataRelayer")
     // payloads
     REQUIRE(messageSet.size() == 1);
     REQUIRE((messageSet[0].messages | count_parts{}) == nSplitParts);
-    REQUIRE(messageSet[0].getNumberOfPayloads(0) == 1);
+    REQUIRE((messageSet[0].messages | get_num_payloads{0}) == 1);
   }
 
   SECTION("SplitPayloadSequence")
@@ -803,8 +803,8 @@ TEST_CASE("DataRelayer")
     REQUIRE((messageSet[0].messages | count_parts{}) == sequenceSize.size());
     size_t counter = 0;
     for (size_t seqid = 0; seqid < sequenceSize.size(); ++seqid) {
-      REQUIRE(messageSet[0].getNumberOfPayloads(seqid) == sequenceSize[seqid]);
-      for (size_t pi = 0; pi < messageSet[0].getNumberOfPayloads(seqid); ++pi) {
+      REQUIRE((messageSet[0].messages | get_num_payloads{seqid}) == sequenceSize[seqid]);
+      for (size_t pi = 0; pi < (messageSet[0].messages | get_num_payloads{seqid}); ++pi) {
         REQUIRE((messageSet[0].messages | get_payload{seqid, pi}));
         auto const* data = (messageSet[0].messages | get_payload{seqid, pi})->GetData();
         REQUIRE(*(reinterpret_cast<size_t const*>(data)) == counter);
