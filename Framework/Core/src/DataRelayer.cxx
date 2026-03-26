@@ -213,9 +213,9 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       auto partial = getPartialRecord(ti);
       // TODO: get the data ref from message model
       auto getter = [&partial](size_t idx, size_t part) {
-        if (!partial[idx].messages.empty() && partial[idx].header(part).get()) {
-          auto header = partial[idx].header(part).get();
-          auto payload = partial[idx].payload(part).get();
+        if (!partial[idx].messages.empty() && (partial[idx].messages | get_header{part}).get()) {
+          auto header = (partial[idx].messages | get_header{part}).get();
+          auto payload = (partial[idx].messages | get_payload{part, 0}).get();
           return DataRef{nullptr,
                          reinterpret_cast<const char*>(header->GetData()),
                          reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
@@ -786,9 +786,9 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto partial = getPartialRecord(li);
     // TODO: get the data ref from message model
     auto getter = [&partial](size_t idx, size_t part) {
-      if (!partial[idx].messages.empty() && partial[idx].header(part).get()) {
-        auto header = partial[idx].header(part).get();
-        auto payload = partial[idx].payload(part).get();
+      if (!partial[idx].messages.empty() && (partial[idx].messages | get_header{part}).get()) {
+        auto header = (partial[idx].messages | get_header{part}).get();
+        auto payload = (partial[idx].messages | get_payload{part, 0}).get();
         return DataRef{nullptr,
                        reinterpret_cast<const char*>(header->GetData()),
                        reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
@@ -952,10 +952,10 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
     for (size_t pi = 0; pi < (cache[cacheId].messages | count_parts{}); pi++) {
-      auto& header = cache[cacheId].header(pi);
+      auto& header = cache[cacheId].messages | get_header{pi};
       auto&& newHeader = header->GetTransport()->CreateMessage();
       newHeader->Copy(*header);
-      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].payload(pi))});
+      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].messages | get_payload{pi, 0})});
     }
   };
 
