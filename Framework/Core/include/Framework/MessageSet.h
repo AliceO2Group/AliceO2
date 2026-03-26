@@ -136,17 +136,6 @@ struct MessageSet {
     }
   }
 
-  fair::mq::MessagePtr const& associatedHeader(size_t pos) const
-  {
-    return messages[messageMap[pairMap[pos].partIndex].position];
-  }
-
-  fair::mq::MessagePtr const& associatedPayload(size_t pos) const
-  {
-    auto partIndex = pairMap[pos].partIndex;
-    auto payloadIndex = pairMap[pos].payloadIndex;
-    return messages[messageMap[partIndex].position + payloadIndex + 1];
-  }
 };
 
 } // namespace o2::framework
