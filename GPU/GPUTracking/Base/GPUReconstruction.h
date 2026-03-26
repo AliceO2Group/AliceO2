@@ -18,7 +18,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <fstream>
 #include <string>
 #include <memory>
 #include <iosfwd>
