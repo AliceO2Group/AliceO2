@@ -13,6 +13,7 @@
 /// \brief Implementation of the FT3Module class
 
 #include "FT3Simulation/FT3Module.h"
+#include "FT3Base/FT3BaseParam.h"
 #include <TGeoManager.h>
 #include <TGeoMaterial.h>
 #include <TGeoMedium.h>
@@ -102,8 +103,7 @@ double calculate_y_circle(double x, double radius)
  *          for positive and negative y respectively
  */
 void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rout,
-                           double Rin, double x_left,
-                           unsigned kSensorStack, double tolerance,
+                           double x_left, unsigned kSensorStack, double tolerance,
                            std::pair<double, double> y_start={0, 0})
 {
   // start with upper half of the stave, then mirror to the bottom half
@@ -314,6 +314,7 @@ void FT3Module::create_layout_scopingV3(double mZ, int layerNumber, int directio
             << layerNumber << ", Direction " << direction;
 
   FT3Module::initialize_materials();
+  auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
 
   // initialise all y_positions, vector over all staves
   std::vector<PosNegPositionTypes> y_positionsPosNeg;
@@ -322,28 +323,41 @@ void FT3Module::create_layout_scopingV3(double mZ, int layerNumber, int directio
     y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
 
     double y_midpoint = 0.;
+    // default positive and negative starting points has a gap around x-axis
+    std::pair<double, double> y_start{0., Constants::sensor2x1_gap};
     const int staveID = Constants::staveIdxToID(i_stave);
     auto y_midpoint_it = Constants::staveID_to_y_midpoint.find(staveID);
-    if ( y_midpoint_it != Constants::staveID_to_y_midpoint.end() ) { // there is a defined midpoint for this stave
+    if ( y_midpoint_it != Constants::staveID_to_y_midpoint.end() ) {
+      // there is a defined midpoint for this stave, use this for starting points
       y_midpoint = y_midpoint_it->second;  // avoid double map lookup
       double y_start_pos = y_midpoint - Constants::y_lengths[i_stave] / 2;
-      // currently we have the same positions on positive and negative x
-      // place the first sensor tile, assume it fits
-      y_positionsPosNeg.back().first.emplace_back(y_start_pos, Constants::kSensorsPerStack);  // positive
-      y_positionsPosNeg.back().second.emplace_back(-y_start_pos, Constants::kSensorsPerStack);  // negative
-    } else {
-      // midpoint is zero, i.e., the start point for x>0 & y>0 is y=0
-      // while y_start for x>0, y<0 is -Constants::sensor2x1_gap
-      y_positionsPosNeg.back().first.emplace_back(0, Constants::kSensorsPerStack);  // positive
-      y_positionsPosNeg.back().second.emplace_back(-Constants::sensor2x1_gap, Constants::kSensorsPerStack);  // negative
     }
+
     double x_left = Constants::x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
-    // fill_stave(y_positionsPosNeg, Rout, Rin, x_left, Constants::kSensorsPerStack, -3);
-    LOG(info) << "FT3Module: Filling Stave " << staveID << " (x = " << Constants::x_midpoints[i_stave]
-              << ") with sensors. Starting y positions: "
-              << y_positionsPosNeg.back().first.front().first << " (positive), "
-              << y_positionsPosNeg.back().second.front().first << " (negative).";
-    fill_stave(y_positionsPosNeg.back(), Rout, Rin, x_left, 1, -1);  // easiest: just do with 2x1 for now
+    double x_right = x_left + Constants::sensor2x1_width;
+    double tolerance = -Constants::sensor_stack_height;  // allow one sensor placement beyond
+    // cut staves on nominal inner radius if specified
+    if (ft3Params.cutStavesOnNominalRadius) {
+      double min_y_at_x;
+      if (x_left * x_right < 0) {
+        // stave crosses y-axis, so we start at y=Rin
+        min_y_at_x = Rin;
+      } else if (x_left > 0) {
+        // stave is on the right side, so minimum y is at x_left
+        min_y_at_x = calculate_y_circle(x_left, Rin);
+      } else {
+        // stave is on the left side, so minimum y is at x_right
+        min_y_at_x = calculate_y_circle(x_right, Rin);
+      }
+      y_start = {min_y_at_x, -min_y_at_x};
+      tolerance = 0.; // no tolerance in case of cutting at nominal radius
+    }
+    // fill_stave(y_positionsPosNeg, Rout, x_left, Constants::kSensorsPerStack, -3);
+    LOG(info) << "FT3Module: Filling Stave " << staveID << " (x = "
+              << Constants::x_midpoints[i_stave] << ") with sensors. Starting y positions: "
+              << y_start.first << " (positive), " << y_start.second << " (negative).";
+    fill_stave(y_positionsPosNeg.back(), Rout, x_left, Constants::kSensorsPerStack,
+               tolerance, y_start);
   }
 
   unsigned sensor_count = 0;

@@ -52,6 +52,9 @@ namespace o2::ft3::ModuleConstants
   const double sensor2x1_width = 2 * single_sensor_width;
   const double sensor2x1_active_width = 2 * active_width;
   const double sensor2x1_height = single_sensor_height;
+  const unsigned kSensorsPerStack = 1;
+  const double sensor_stack_height = kSensorsPerStack * sensor2x1_height +
+                                    (kSensorsPerStack - 1) * sensor2x1_gap;
 
   const double carbonFiberThickness = 0.01;
   const double foamSpacingThickness = 1.0;
@@ -66,6 +69,7 @@ namespace o2::ft3::ModuleConstants
   // First define midpoints of staves that would overlap with inner disc
   // EXCEPTION: Assumed mirrored around x-axis
   // map from Stave ID (1-indexed from other documents) to midpoint
+  // Do NOT add any zero midpoints, this is taken off separately
   const std::map<int, double> staveID_to_y_midpoint = {
     {-2, 39.0},
     {-1, 41.4},
@@ -100,8 +104,6 @@ namespace o2::ft3::ModuleConstants
     bool isRight = staveIdx >= nStavesOneSide;
     return staveIdx - nStavesOneSide + isRight;
   }
-
-  const unsigned kSensorsPerStack = 1;
 
   // material properties
   const double siliconThickness = 0.01;
