@@ -211,7 +211,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
           const int MaxErrLog = 2;
           static int errLocCount = 0;
           if (errLocCount++ < MaxErrLog) {
-            LOGP(warn, "Impossible ROF IR {}, previous was {}, TF 1st IR was {}, discarding in decoding", mDecoder[iLayer]->getInteractionRecord().asString(), lastIR.asString(), mFirstIR.asString());
+            LOGP(warn, "Impossible ROF IR {}{}, previous was {}, TF 1st IR was {}, discarding in decoding", mDecoder[iLayer]->getInteractionRecord().asString(), ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""), lastIR.asString(), mFirstIR.asString());
           }
           nTriggersProcessed = 0x7fffffff; // to account for a problem with event
           continue;
@@ -233,7 +233,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       if ((nROFsTF != nTriggersProcessed) && mROFErrRepIntervalMS > 0 && mTFCounter > 1 && nTriggersProcessed > 0) {
         long currTS = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
         if (currTS - lastErrReportTS > mROFErrRepIntervalMS) {
-          LOGP(critical, "Inconsistent number of ROF per TF:{} for layer {}. From parameters: {} from readout (muting further reporting for {} ms)", nLayer, nROFsTF, nTriggersProcessed, mROFErrRepIntervalMS);
+          LOGP(critical, "Inconsistent number of ROF per TF {}{} from parameters. Received {} from readout (muting further reporting for {} ms)", nROFsTF, ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""), nTriggersProcessed, mROFErrRepIntervalMS);
           lastErrReportTS = currTS;
         }
       }
@@ -254,13 +254,13 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       static size_t nErr = 0;
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnRawParser;
       if (++nErr < maxWarn) {
-        LOGP(alarm, "EXCEPTION {} in raw decoder, abandoning TF decoding {}", e.what(), nErr == maxWarn ? "(will mute further warnings)" : "");
+        LOGP(alarm, "EXCEPTION {} in raw decoder{}, abandoning TF decoding {}", e.what(), ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""), nErr == maxWarn ? "(will mute further warnings)" : "");
       }
     }
     if (mDoDigits) {
       pc.outputs().snapshot(Output{orig, "DIGITS", iLayer}, digVec);
       std::vector<o2::itsmft::ROFRecord> expDigRofVec(nROFsTF);
-      ensureContinuousROF(digROFVec, expDigRofVec, iLayer, nROFsTF, "Digits");
+      ensureContinuousROF(digROFVec, expDigRofVec, iLayer, nROFsTF, "digits");
       pc.outputs().snapshot(Output{orig, "DIGITSROF", iLayer}, digROFVec);
       mEstNDig[iLayer] = std::max(mEstNDig[iLayer], size_t(digVec.size() * 1.2));
       if (mDoCalibData) {
@@ -272,7 +272,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
     if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
       std::vector<o2::itsmft::ROFRecord> expClusRofVec(nROFsTF);
-      ensureContinuousROF(clusROFVec, expClusRofVec, iLayer, nROFsTF, "Clusters");
+      ensureContinuousROF(clusROFVec, expClusRofVec, iLayer, nROFsTF, "clusters");
       pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", iLayer}, clusCompVec);
       pc.outputs().snapshot(Output{orig, "PATTERNS", iLayer}, clusPattVec);
       pc.outputs().snapshot(Output{orig, "CLUSTERSROF", iLayer}, expClusRofVec);
@@ -437,13 +437,18 @@ void STFDecoder<Mapping>::ensureContinuousROF(const std::vector<ROFRecord>& rofV
   for (const auto& rof : rofVec) {
     const auto& ir = rof.getBCData();
     if (ir < mFirstIR) {
-      LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}{}", ir.asString(), mFirstTFOrbit, ((mDoStaggering) ? std::format(", layer {}", lr) : ""));
+      LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}{}", ir.asString(), mFirstTFOrbit, ((mDoStaggering) ? std::format(" on layer {}", lr) : ""));
       continue;
     }
-    const auto irToFirst = ir - mFirstIR;
+    auto irToFirst = ir - mFirstIR;
+    if (irToFirst.toLong() - par.getROFDelayInBC(lr) < 0) {
+      LOGP(warn, "Discard ROF {} preceding TF 1st orbit {} due to imposed ROF delay{}", ir.asString(), mFirstTFOrbit, ((mDoStaggering) ? std::format(" on layer {}", lr) : ""));
+      continue;
+    }
+    irToFirst -= par.getROFDelayInBC(lr);
     const long irROF = irToFirst.toLong() / par.getROFLengthInBC(lr);
     if (irROF >= nROFsTF) {
-      LOGP(warn, "Discard ROF {} exceding TF orbit range, layer:{}", ir.asString(), ((mDoStaggering) ? std::format(", layer {}", lr) : ""));
+      LOGP(warn, "Discard ROF {} exceding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(" on layer {}", lr) : ""));
       continue;
     }
     auto& expROF = expROFVec[irROF];
@@ -452,11 +457,11 @@ void STFDecoder<Mapping>::ensureContinuousROF(const std::vector<ROFRecord>& rofV
       expROF.setNEntries(rof.getNEntries());
     } else {
       if (expROF.getNEntries() < rof.getNEntries()) {
-        LOGP(warn, "Repeating {} with {}, prefer to already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(", layer {}", lr) : ""));
+        LOGP(warn, "Repeating {} with {} {}, prefer to already processed instance with {} {}{}", rof.asString(), rof.getNEntries(), name, expROF.getNEntries(), name, ((mDoStaggering) ? std::format(" on layer {}", lr) : ""));
         expROF.setFirstEntry(rof.getFirstEntry());
         expROF.setNEntries(rof.getNEntries());
       } else {
-        LOGP(warn, "Repeating {} with {}, discard preferring already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(", layer {}", lr) : ""));
+        LOGP(warn, "Repeating {} with {} {}, discard preferring already processed instance with {} {}{}", rof.asString(), rof.getNEntries(), name, expROF.getNEntries(), name, ((mDoStaggering) ? std::format(" on layer {}", lr) : ""));
       }
     }
   }

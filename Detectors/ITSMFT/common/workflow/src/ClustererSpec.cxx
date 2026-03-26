@@ -145,13 +145,18 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     for (const auto& rof : clusROFVec) {
       const auto& ir = rof.getBCData();
       if (ir < firstIR) {
-        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}{}", ir.asString(), firstTForbit, ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
+        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}{}", ir.asString(), firstTForbit, ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
         continue;
       }
-      const auto irToFirst = ir - firstIR;
+      auto irToFirst = ir - firstIR;
+      if (irToFirst.toLong() - par.getROFDelayInBC(iLayer) < 0) {
+        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {} due to imposed ROF delay{}", ir.asString(), firstTForbit, ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""));
+        continue;
+      }
+      irToFirst -= par.getROFDelayInBC(iLayer);
       const long irROF = irToFirst.toLong() / par.getROFLengthInBC(iLayer);
       if (irROF >= nROFsTF) {
-        LOGP(warn, "Discard ROF {} exceding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
+        LOGP(warn, "Discard ROF {} exceding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
         continue;
       }
       auto& expROF = expClusRofVec[irROF];
@@ -160,11 +165,11 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
         expROF.setNEntries(rof.getNEntries());
       } else {
         if (expROF.getNEntries() < rof.getNEntries()) {
-          LOGP(warn, "Repeating ROF {} with {} clusters, prefer to already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
+          LOGP(warn, "Repeating {} with {} clusters, prefer to already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
           expROF.setFirstEntry(rof.getFirstEntry());
           expROF.setNEntries(rof.getNEntries());
         } else {
-          LOGP(warn, "Repeating ROF {} with {} clusters, discard preferring already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(", layer {}", layer) : ""));
+          LOGP(warn, "Repeating {} with {} clusters, discard preferring already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
         }
       }
     }
