@@ -45,12 +45,8 @@ TEST_CASE("MessageSet")
   REQUIRE((msgSet.messages | get_pair{0}).headerIdx == 0);
   REQUIRE((msgSet.messages | get_pair{0}).payloadIdx == 1);
   CHECK_THROWS((msgSet.messages | get_pair{1}));
-  // Validate pipe operators match old API
-  REQUIRE(&(msgSet.messages | get_header{0}) == &msgSet.header(0));
-  REQUIRE(&(msgSet.messages | get_payload{0, 0}) == &msgSet.payload(0));
-  REQUIRE((msgSet.messages | get_num_payloads{0}) == msgSet.messageMap[0].size);
-  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
-  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
+  REQUIRE((msgSet.messages | get_num_payloads{0}) == 1);
+  REQUIRE((msgSet.messages | count_parts{}) == 1);
 }
 
 TEST_CASE("MessageSetWithFunction")
@@ -76,11 +72,8 @@ TEST_CASE("MessageSetWithFunction")
   REQUIRE((msgSet.messages | get_pair{0}).headerIdx == 0);
   REQUIRE((msgSet.messages | get_pair{0}).payloadIdx == 1);
   CHECK_THROWS((msgSet.messages | get_pair{1}));
-  REQUIRE(&(msgSet.messages | get_header{0}) == &msgSet.header(0));
-  REQUIRE(&(msgSet.messages | get_payload{0, 0}) == &msgSet.payload(0));
-  REQUIRE((msgSet.messages | get_num_payloads{0}) == msgSet.messageMap[0].size);
-  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
-  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
+  REQUIRE((msgSet.messages | get_num_payloads{0}) == 1);
+  REQUIRE((msgSet.messages | count_parts{}) == 1);
 }
 
 TEST_CASE("MessageSetWithMultipart")
@@ -112,13 +105,8 @@ TEST_CASE("MessageSetWithMultipart")
   REQUIRE((msgSet.messages | get_pair{1}).headerIdx == 0);
   REQUIRE((msgSet.messages | get_pair{1}).payloadIdx == 2);
   CHECK_THROWS((msgSet.messages | get_pair{2}));
-  // Validate pipe operators match old API for multi-payload
-  REQUIRE(&(msgSet.messages | get_header{0}) == &msgSet.header(0));
-  REQUIRE(&(msgSet.messages | get_payload{0, 0}) == &msgSet.payload(0, 0));
-  REQUIRE(&(msgSet.messages | get_payload{0, 1}) == &msgSet.payload(0, 1));
-  REQUIRE((msgSet.messages | get_num_payloads{0}) == msgSet.messageMap[0].size);
-  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
-  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
+  REQUIRE((msgSet.messages | get_num_payloads{0}) == 2);
+  REQUIRE((msgSet.messages | count_parts{}) == 1);
 }
 
 TEST_CASE("MessageSetAddPartRef")
@@ -190,18 +178,11 @@ TEST_CASE("MessageSetAddMultiple")
   REQUIRE((msgSet.messages | get_pair{2}).payloadIdx == 5);
   REQUIRE((msgSet.messages | get_pair{3}).headerIdx == 4);
   REQUIRE((msgSet.messages | get_pair{3}).payloadIdx == 6);
-  // Validate pipe operators match old API for mixed modes
-  for (size_t i = 0; i < 3; ++i) {
-    REQUIRE(&(msgSet.messages | get_header{i}) == &msgSet.header(i));
-    REQUIRE(&(msgSet.messages | get_payload{i, 0}) == &msgSet.payload(i, 0));
-  }
-  // Part 2 has a second payload (multi-payload with splitPayloadParts=2, splitPayloadIndex=2)
-  REQUIRE(&(msgSet.messages | get_payload{2, 1}) == &msgSet.payload(2, 1));
-  for (size_t i = 0; i < 3; ++i) {
-    REQUIRE((msgSet.messages | get_num_payloads{i}) == msgSet.messageMap[i].size);
-  }
-  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
-  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
+  REQUIRE((msgSet.messages | get_num_payloads{0}) == 1);
+  REQUIRE((msgSet.messages | get_num_payloads{1}) == 1);
+  REQUIRE((msgSet.messages | get_num_payloads{2}) == 2);
+  REQUIRE((msgSet.messages | count_parts{}) == 3);
+  REQUIRE((msgSet.messages | count_payloads{}) == 4);
 }
 
 TEST_CASE("GetHeaderPayloadOperators")
@@ -251,13 +232,8 @@ TEST_CASE("GetHeaderPayloadOperators")
   REQUIRE(pl1.get() != nullptr);
   REQUIRE(pl1->GetSize() == 200);
 
-  // Validate pipe operators match old API
-  for (size_t i = 0; i < 2; ++i) {
-    REQUIRE(&(msgSet.messages | get_header{i}) == &msgSet.header(i));
-    REQUIRE(&(msgSet.messages | get_payload{i, 0}) == &msgSet.payload(i, 0));
-  }
-  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
-  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
+  REQUIRE((msgSet.messages | count_parts{}) == 2);
+  REQUIRE((msgSet.messages | count_payloads{}) == 2);
 }
 
 TEST_CASE("GetHeaderPayloadMultiPayload")
@@ -343,18 +319,10 @@ TEST_CASE("GetHeaderPayloadMultiPayload")
   // get_num_payloads for part 1 should be 3
   REQUIRE((msgSet.messages | get_num_payloads{1}) == 3);
 
-  // Validate pipe operators match old API for multi-payload (header, pl, pl, pl)
-  REQUIRE(&(msgSet.messages | get_header{0}) == &msgSet.header(0));
-  REQUIRE(&(msgSet.messages | get_header{1}) == &msgSet.header(1));
-  REQUIRE(&(msgSet.messages | get_payload{0, 0}) == &msgSet.payload(0, 0));
-  REQUIRE(&(msgSet.messages | get_payload{1, 0}) == &msgSet.payload(1, 0));
-  REQUIRE(&(msgSet.messages | get_payload{1, 1}) == &msgSet.payload(1, 1));
-  REQUIRE(&(msgSet.messages | get_payload{1, 2}) == &msgSet.payload(1, 2));
-  for (size_t i = 0; i < 2; ++i) {
-    REQUIRE((msgSet.messages | get_num_payloads{i}) == msgSet.messageMap[i].size);
-  }
-  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
-  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
+  REQUIRE((msgSet.messages | get_num_payloads{0}) == 1);
+  REQUIRE((msgSet.messages | get_num_payloads{1}) == 3);
+  REQUIRE((msgSet.messages | count_parts{}) == 2);
+  REQUIRE((msgSet.messages | count_payloads{}) == 4);
 }
 
 TEST_CASE("TraditionalSplitParts")
@@ -418,14 +386,8 @@ TEST_CASE("TraditionalSplitParts")
 
   // get_num_payloads: each traditional split pair has 1 payload
   for (size_t i = 0; i < 3; ++i) {
-    REQUIRE((msgSet.messages | get_num_payloads{i}) == msgSet.messageMap[i].size);
+    REQUIRE((msgSet.messages | get_num_payloads{i}) == 1);
   }
-
-  // Validate pipe operators match old MessageSet::header()/payload() API
-  for (size_t i = 0; i < 3; ++i) {
-    REQUIRE(&(msgSet.messages | get_header{i}) == &msgSet.header(i));
-    REQUIRE(&(msgSet.messages | get_payload{i, 0}) == &msgSet.payload(i));
-  }
-  REQUIRE((msgSet.messages | count_parts{}) == msgSet.messageMap.size());
-  REQUIRE((msgSet.messages | count_payloads{}) == msgSet.pairMap.size());
+  REQUIRE((msgSet.messages | count_parts{}) == 3);
+  REQUIRE((msgSet.messages | count_payloads{}) == 3);
 }
