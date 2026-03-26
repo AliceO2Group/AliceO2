@@ -47,7 +47,7 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mAmpThresholdForReco = 5;     // only channels with amplitude higher will participate in calibration and collision time: 0.3 MIP
   short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
-  float mMV_2_Nchannels = 2.;          // amplitude channel 7 mV ->14channels
+  float mMV_2_Nchannels = 2.;         // amplitude channel 7 mV ->14channels
   float mMV_2_NchannelsInverse = 0.5; // inverse amplitude channel 7 mV ->14channels (nowhere used)
 
   O2ParamDef(FT0DigParam, "FT0DigParam");
