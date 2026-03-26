@@ -74,12 +74,6 @@ struct MessageSet {
     return *this;
   }
 
-  /// get number of header-payload pairs
-  [[nodiscard]] size_t getNumberOfPairs() const
-  {
-    return messages | count_payloads{};
-  }
-
   /// get number of payloads for an in-flight message
   [[nodiscard]] size_t getNumberOfPayloads(size_t mi) const
   {
