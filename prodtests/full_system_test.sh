@@ -29,7 +29,7 @@ fi
 
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
-#     (look inside the jobutils.sh file for documentation)
+#     (look inside the jobutils2.sh file for documentation)
 # --> utilities to query CPU count
 . ${O2_ROOT}/share/scripts/jobutils2.sh
 
