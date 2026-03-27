@@ -23,15 +23,9 @@ void o2::base::TFIDInfoHelper::fillTFIDInfo(ProcessingContext& pc, o2::dataforma
 {
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   static int errCount = 0;
-  if (tinfo.firstTForbit == -1U || tinfo.creation == -1) {
-    if (errCount++ < 5) {
-      LOGP(warn, "Ignoring dummy input with orbit {} and creation time {} in fillTFIDInfo", tinfo.firstTForbit, tinfo.creation);
-    }
-    return;
+  ti.fill(tinfo.firstTForbit, tinfo.tfCounter, tinfo.runNumber, tinfo.timeslice, tinfo.creation);
+  if (ti.discard && errCount++ < 5) {
+    LOGP(warn, "Bad input with orbit {}, TFcounter {} and creation time {} in fillTFIDInfo", tinfo.firstTForbit, tinfo.tfCounter, tinfo.creation);
   }
-  ti.firstTForbit = tinfo.firstTForbit;
-  ti.tfCounter = tinfo.tfCounter;
-  ti.runNumber = tinfo.runNumber;
-  ti.startTime = tinfo.timeslice;
-  ti.creation = tinfo.creation;
+  return;
 }
