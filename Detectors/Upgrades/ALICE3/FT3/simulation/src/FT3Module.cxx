@@ -366,84 +366,88 @@ void FT3Module::create_layout_scopingV3(double mZ, int layerNumber, int directio
               << y_positionsPosNeg[i_stave].second.size() << " negative sensor positions.";
     for (unsigned i_y_pos = 0; i_y_pos < y_positionsPosNeg[i_stave].first.size(); i_y_pos++) {
       for (unsigned i_y_sign = 0; i_y_sign < 2; i_y_sign++) {
-        // TODO: Make this loop over all sensors in a stack, don't just assume one sensor per stack
-        TGeoVolume* sensor;
         // place sensors at positive and negative y
         const auto& positions = (i_y_sign == 0) ? y_positionsPosNeg[i_stave].first 
                                                 : y_positionsPosNeg[i_stave].second;
-        double y_mid = positions[i_y_pos].first + Constants::sensor2x1_height / 2;
+        for (unsigned i_sens = 0; i_sens < positions[i_y_pos].second; i_sens++) {
+          TGeoVolume* sensor;
+          double y_mid =  // y = y_start + (height + gap of one sensor) * sensor index
+            positions[i_y_pos].first +
+            (Constants::sensor2x1_height + Constants::sensor2x1_gap) * i_sens +
+            Constants::sensor2x1_height / 2;  // and add half height to get the middle of the sensor
 
-        // get which side we are on: if backward discs we mirror from front so it's the same
-        // layout from the frame of the particle, regardless which direction
-        bool isFront;
-        if (!direction)  // direction = 0 is forward
-          isFront = Constants::staveOnFront[i_stave];
-        else
-          isFront = !(Constants::staveOnFront[i_stave]);
-        /* 
-        * we build the volume from the outside in, starting with the silicon,
-        * then glue & materials towards the stave. Depending on whether it's front or back,
-        * the distance from the center will be mirrored so that we get the following:
-        * 
-        * Front (ordered in z, assuming the forward direction is to the right):
-        * | SILICON SENSOR | GLUE | COPPER | KAPTON | GLUE | STAVE | SUPPORT STRUCTURE |
-        * 
-        * Back (ordered in z, assuming the forward direction is to the right):
-        * | SUPPORT STRUCTURE | STAVE | GLUE | KAPTON | COPPER | GLUE | SILICON SENSOR |
-        * 
-        * Note that we do not place stave and support structure material here, that is
-        * assumed to have been placed by the Layer creation.
-        */
-        double z_offset_centre_to_stave = Constants::foamSpacingThickness / 2.0 + Constants::carbonFiberThickness;
-        double z_offset_stave_to_silicon = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness
-                                        + Constants::epoxyThickness + Constants::siliconThickness / 2;
-        double z_offset_stave_to_glue_Si = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness
-                                        + Constants::epoxyThickness / 2;
-        double z_offset_stave_to_copper = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness / 2;
-        double z_offset_stave_to_kapton = Constants::epoxyThickness + Constants::kaptonThickness / 2;
-        double z_offset_stave_to_glue_Cu = Constants::epoxyThickness / 2;
+          // get which side we are on: if backward discs we mirror from front so it's the same
+          // layout from the frame of the particle, regardless which direction
+          bool isFront;
+          if (!direction)  // direction = 0 is forward
+            isFront = Constants::staveOnFront[i_stave];
+          else
+            isFront = !(Constants::staveOnFront[i_stave]);
+          /* 
+          * we build the volume from the outside in, starting with the silicon,
+          * then glue & materials towards the stave. Depending on whether it's front or back,
+          * the distance from the center will be mirrored so that we get the following:
+          * 
+          * Front (ordered in z, assuming the forward direction is to the right):
+          * | SILICON SENSOR | GLUE | COPPER | KAPTON | GLUE | STAVE | SUPPORT STRUCTURE |
+          * 
+          * Back (ordered in z, assuming the forward direction is to the right):
+          * | SUPPORT STRUCTURE | STAVE | GLUE | KAPTON | COPPER | GLUE | SILICON SENSOR |
+          * 
+          * Note that we do not place stave and support structure material here, that is
+          * assumed to have been placed by the Layer creation.
+          */
+          double z_offset_centre_to_stave = Constants::foamSpacingThickness / 2.0 + Constants::carbonFiberThickness;
+          double z_offset_stave_to_silicon = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness
+                                          + Constants::epoxyThickness + Constants::siliconThickness / 2;
+          double z_offset_stave_to_glue_Si = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness
+                                          + Constants::epoxyThickness / 2;
+          double z_offset_stave_to_copper = Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness / 2;
+          double z_offset_stave_to_kapton = Constants::epoxyThickness + Constants::kaptonThickness / 2;
+          double z_offset_stave_to_glue_Cu = Constants::epoxyThickness / 2;
 
-        // for the front, we have to subtract the z offsets since we are going in
-        // negative z direction, while it's opposite for the back
-        int z_offset_multiplier = isFront ? -1 : 1;
-        std::string side_str = isFront ? "front" : "back";
-        // ------------ (1) Silicon sensor ------------
-        // left single sensor of the 2x1
-        double z_mid = (z_offset_centre_to_stave + z_offset_stave_to_silicon) * z_offset_multiplier;
-        addSingleSensorVolume(
-          motherVolume, layerNumber, direction, &sensor_count,
-          x_mid - Constants::active_width / 2, y_mid, z_mid, side_str, true
-        );
-        // right single sensor of the 2x1
-        addSingleSensorVolume(
-          motherVolume, layerNumber, direction, &sensor_count,
-          x_mid + Constants::active_width / 2, y_mid, z_mid, side_str, false
-        );
+          // for the front, we have to subtract the z offsets since we are going in
+          // negative z direction, while it's opposite for the back
+          int z_offset_multiplier = isFront ? -1 : 1;
+          std::string side_str = isFront ? "front" : "back";
+          // ------------ (1) Silicon sensor ------------
+          // left single sensor of the 2x1
+          double z_mid = (z_offset_centre_to_stave + z_offset_stave_to_silicon) * z_offset_multiplier;
+          addSingleSensorVolume(
+            motherVolume, layerNumber, direction, &sensor_count,
+            x_mid - Constants::active_width / 2, y_mid, z_mid, side_str, true
+          );
+          // right single sensor of the 2x1
+          addSingleSensorVolume(
+            motherVolume, layerNumber, direction, &sensor_count,
+            x_mid + Constants::active_width / 2, y_mid, z_mid, side_str, false
+          );
 
-        // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
-        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_glue_Si) * z_offset_multiplier;
-        add2x1GlueVolume(
-          motherVolume, layerNumber, direction, &sensor_count,
-          side_str, x_mid, y_mid, z_mid, "SiCu"
-        );
-        // ------------ (3) Copper layer (FPC) ------------
-        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_copper) * z_offset_multiplier;
-        add2x1CopperVolume(
-          motherVolume, layerNumber, direction, &sensor_count,
-          side_str, x_mid, y_mid, z_mid
-        );
-        // ------------ (4) Kapton layer (FPC) ------------
-        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_kapton) * z_offset_multiplier;
-        add2x1KaptonVolume(
-          motherVolume, layerNumber, direction, &sensor_count,
-          side_str, x_mid, y_mid, z_mid
-        );
-        // ------------ (5) Epoxy glue layer between stave and FPC copper ------------
-        z_mid = (z_offset_centre_to_stave + z_offset_stave_to_glue_Cu) * z_offset_multiplier;
-        add2x1GlueVolume(
-          motherVolume, layerNumber, direction, &sensor_count,
-          side_str, x_mid, y_mid, z_mid, "StaveKapton"
-        );
+          // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
+          z_mid = (z_offset_centre_to_stave + z_offset_stave_to_glue_Si) * z_offset_multiplier;
+          add2x1GlueVolume(
+            motherVolume, layerNumber, direction, &sensor_count,
+            side_str, x_mid, y_mid, z_mid, "SiCu"
+          );
+          // ------------ (3) Copper layer (FPC) ------------
+          z_mid = (z_offset_centre_to_stave + z_offset_stave_to_copper) * z_offset_multiplier;
+          add2x1CopperVolume(
+            motherVolume, layerNumber, direction, &sensor_count,
+            side_str, x_mid, y_mid, z_mid
+          );
+          // ------------ (4) Kapton layer (FPC) ------------
+          z_mid = (z_offset_centre_to_stave + z_offset_stave_to_kapton) * z_offset_multiplier;
+          add2x1KaptonVolume(
+            motherVolume, layerNumber, direction, &sensor_count,
+            side_str, x_mid, y_mid, z_mid
+          );
+          // ------------ (5) Epoxy glue layer between stave and FPC copper ------------
+          z_mid = (z_offset_centre_to_stave + z_offset_stave_to_glue_Cu) * z_offset_multiplier;
+          add2x1GlueVolume(
+            motherVolume, layerNumber, direction, &sensor_count,
+            side_str, x_mid, y_mid, z_mid, "StaveKapton"
+          );
+        }  // sensors in stack
       }  // for i_y_sign (writing of positive or negative y positions)
     }  // i_y_pos
   }  // i_stave
