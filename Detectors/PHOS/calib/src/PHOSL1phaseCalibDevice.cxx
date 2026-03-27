@@ -30,7 +30,7 @@ void PHOSL1phaseCalibDevice::init(o2::framework::InitContext& ic)
 
 void PHOSL1phaseCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
-
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   auto crTime = pc.services().get<o2::framework::TimingInfo>().creation;
   if (mRunStartTime == 0 || crTime < mRunStartTime) {
