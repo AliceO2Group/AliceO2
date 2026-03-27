@@ -124,7 +124,6 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
   } else if (sensor_height == 19.2 && sensor_width == 5) {
     x_offset = 0.7;
     y_offset = 9;
-
   } else {
     x_offset = sensor_width / 2;
     y_offset = sensor_height / 2;
@@ -146,14 +145,12 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
   if (Rin == 7 && sensor_height == 9.6 && sensor_width == 5) {
     x_condition_min = -Rin - 2;
     x_condition_max = Rin;
+    dist_offset = 2;
     adjust_bottom_y_pos = true;
     adjust_bottom_y_neg = true;
     x_adjust_bottom_y_pos = 3.5;
     bottom_y_pos_value = 3.5;
     bottom_y_neg_value = -3.5;
-
-    dist_offset = 2;
-
   } else if (Rin == 5 && sensor_height == 9.6 && sensor_width == 5) {
     x_condition_min = -Rin - 6;
     x_condition_max = Rin;
@@ -201,6 +198,15 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
     x_adjust_bottom_y_pos = 5.5;
     bottom_y_pos_value = 3.5;
     bottom_y_neg_value = -3.5;
+  } else if (Rin == 10 && sensor_height == 9.6 && sensor_width == 5.0) {
+    x_condition_min = -Rin - 4;
+    x_condition_max = Rin;
+    dist_offset = 2;
+    adjust_bottom_y_pos = true;
+    adjust_bottom_y_neg = true;
+    x_adjust_bottom_y_pos = 3.5;
+    bottom_y_pos_value = 3.5;
+    bottom_y_neg_value = -3.5;
   } else if (Rin == 20 && sensor_height == 9.6 && sensor_width == 5.0) {
     x_condition_min = -Rin - 4;
     x_condition_max = Rin;
@@ -244,7 +250,7 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
       justSkipped1 = {0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0};
     }
   } else {
-    if (Rin == 20) { // v3 paving, rough attempt
+    if (Rin == 10 || Rin == 20) { // v3 paving, rough attempt
       float overlap = 0.3;
       // NB: these are left edges
       float X_start = -2.0 - 13.5 * (sensor_width - overlap);
