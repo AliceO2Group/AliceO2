@@ -20,6 +20,7 @@
 #include "ITStracking/FastMultEstConfig.h"
 #include "ITStracking/FastMultEst.h"
 
+#include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/TrackingInterface.h"
 
@@ -176,12 +177,13 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto logger = [&](const std::string& s) { LOG(info) << s; };
   auto fatalLogger = [&](const std::string& s) { LOG(fatal) << s; };
   auto errorLogger = [&](const std::string& s) { LOG(error) << s; };
+  const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
   FastMultEst multEst; // mult estimator
-  std::vector<uint8_t> processingMask, processUPCMask;
-  // int cutVertexMult{0}, cutUPCVertex{0}, cutRandomMult = int(trackROFvec.size()) - multEst.selectROFs(trackROFvec, compClusters, physTriggers, processingMask);
-  // processUPCMask.resize(processingMask.size(), false);
-  // mTimeFrame->setMultiplicityCutMask(processingMask);
+  o2::its::ROFMaskTable<NLayers> processingMask{mTimeFrame->getROFOverlapTable()}, processUPCMask{mTimeFrame->getROFOverlapTable()};
+  multEst.selectROFs(rofsinput, compClusters, physTriggers, firstTForbit, mDoStaggering, mTimeFrame->getROFOverlapTableView(), processingMask);
+  mTimeFrame->setMultiplicityCutMask(processingMask);
+  logger(processingMask.asString());
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
     // Run seeding vertexer
@@ -192,63 +194,43 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       vertices.insert(vertices.begin(), vtx.begin(), vtx.end());
     }
   }
-  // const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  // gsl::span<const VertexLabel> vMCRecInfo;
-  // gsl::span<const MCCompLabel> vMCContLabels;
-  // for (auto iRof{0}; iRof < trackROFspan.size(); ++iRof) {
-  //   bounded_vector<Vertex> vtxVecLoc;
-  //   auto& vtxROF = vertROFvec.emplace_back(trackROFspan[iRof]);
-  //   vtxROF.setFirstEntry(vertices.size());
-  //   if (mRunVertexer) {
-  //     auto vtxSpan = mTimeFrame->getPrimaryVertices(iRof);
-  //     if (mIsMC) {
-  //       vMCRecInfo = mTimeFrame->getPrimaryVerticesMCRecInfo(iRof);
-  //     }
-  //     if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
-  //       if (!vtxSpan.empty()) {
-  //         if (vtxSpan[0].isFlagSet(Vertex::UPCMode) == 1) { // at least one vertex in this ROF and it is from second vertex iteration
-  //           LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
-  //           processUPCMask[iRof] = true;
-  //           cutUPCVertex++;
-  //           vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
-  //         } else { // in all cases except if as standard mode vertex was found, the ROF was processed with UPC settings
-  //           vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
-  //         }
-  //       } else {
-  //         vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
-  //       }
-  //     } else {
-  //       vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
-  //     }
-  //     vtxROF.setNEntries(vtxSpan.size());
-  //     bool selROF = vtxSpan.empty();
-  //     for (int iV{0}, iVC{0}; iV < vtxSpan.size(); ++iV) {
-  //       const auto& v = vtxSpan[iV];
-  //       if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
-  //         iVC += v.getNContributors();
-  //         continue; // skip vertex of unwanted multiplicity
-  //       }
-  //       selROF = true;
-  //       vertices.push_back(v);
-  //       if (mIsMC && !VertexerParamConfig::Instance().useTruthSeeding) {
-  //         allVerticesLabels.push_back(vMCRecInfo[iV].first);
-  //         allVerticesPurities.push_back(vMCRecInfo[iV].second);
-  //       }
-  //       iVC += v.getNContributors();
-  //     }
-  //     if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-  //       LOGP(info, "ROF {} rejected by the vertex multiplicity selection [{},{}]", iRof, multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
-  //       processingMask[iRof] = selROF;
-  //       cutVertexMult++;
-  //     }
-  //   }
-  // }
+  multEst.selectROFsWithVertices(vertices, mTimeFrame->getROFOverlapTableView(), processingMask);
+
+  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  gsl::span<const VertexLabel> vMCRecInfo;
+  gsl::span<const MCCompLabel> vMCContLabels;
+  const int clockLayerId{mDoStaggering ? mTimeFrame->getROFOverlapTableView().getClock() : 0};
+  auto clockROFspan = rofsinput[clockLayerId];
+  auto clockTiming = mTimeFrame->getROFOverlapTableView().getClockLayer();
+  for (auto iRof{0}; iRof < clockROFspan.size(); ++iRof) {
+    bounded_vector<Vertex> vtxVecLoc;
+    auto& vtxROF = vertROFvec.emplace_back(clockROFspan[iRof]);
+    vtxROF.setFirstEntry(vertices.size());
+
+    if (mRunVertexer) {
+      auto vtxSpan = mTimeFrame->getPrimaryVertices(clockLayerId, iRof);
+      if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
+        if (!vtxSpan.empty()) {
+          if (vtxSpan[0].isFlagSet(Vertex::UPCMode) == 1) { // at least one vertex in this ROF and it is from second vertex iteration
+            LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
+            processUPCMask.selectROF({clockTiming.getROFStartInBC(iRof), clockTiming.getROFEndInBC(iRof)});
+              vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
+          } else { // in all cases except if as standard mode vertex was found, the ROF was processed with UPC settings
+            vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
+          }
+        } else {
+          vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
+        }
+      } else {
+        vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
+      }
+      vtxROF.setNEntries(vtxSpan.size());
+    }
+  }
   if (mRunVertexer && !compClusters.empty()) {
     LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found",
                              vertexerElapsedTime,
                              mTimeFrame->getPrimaryVerticesNum());
-    // FIXME
-    // LOG(info) << fmt::format(" - FastMultEst: rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
   }
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
@@ -274,10 +256,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
     }
 
-    // FIXME
-    // if (processingMask[iROF]) {
-    //   irFrames.emplace_back(tracksROF.getBCData(), tracksROF.getBCData() + nBCPerTF - 1).info = tracks.size();
-    // }
     auto& tracks = mTimeFrame->getTracks();
     allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
     std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
@@ -340,6 +318,10 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
         allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
         allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+        if (processingMask.isROFEnabled(clockLayerId, iROF)) {
+          auto& irFrame = irFrames.emplace_back(allTrackROFs[iROF].getBCData(), allTrackROFs[iROF].getBCData() + clockLayer.mROFLength - 1);
+          irFrame.info = allTrackROFs[iROF].getNEntries();
+        }
       }
       // same thing for vertices rofs
       std::fill(rofEntries.begin(), rofEntries.end(), 0);

@@ -683,6 +683,167 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
   std::vector<TableEntry> mFlatTable;
 };
 
+// GPU-friendly view of the ROF mask table
+template <int32_t NLayers>
+struct ROFMaskTableView {
+  const uint8_t* mFlatMask{nullptr};
+  const int32_t* mLayerROFOffsets{nullptr}; // size NLayers+1
+
+  GPUhdi() bool isROFEnabled(int32_t layer, int32_t rofId) const noexcept
+  {
+    assert(layer >= 0 && layer < NLayers);
+    return mFlatMask[mLayerROFOffsets[layer] + rofId] != 0;
+  }
+
+#ifndef GPUCA_GPUCODE
+  GPUh() void printAll() const
+  {
+    for (int32_t i = 0; i < NLayers; ++i) {
+      printLayer(i);
+    }
+  }
+
+  GPUh() void printLayer(int32_t layer) const
+  {
+    constexpr int w_rof = 10;
+    constexpr int w_active = 10;
+    int32_t nROFs = mLayerROFOffsets[layer + 1] - mLayerROFOffsets[layer];
+    LOGF(info, "Mask table: Layer %d", layer);
+    LOGF(info, "%*s | %*s", w_rof, "ROF", w_active, "Enabled");
+    LOGF(info, "%.*s-+-%.*s", w_rof, "----------", w_active, "----------");
+    for (int32_t i = 0; i < nROFs; ++i) {
+      LOGF(info, "%*d | %*d", w_rof, i, w_active, (int)isROFEnabled(layer, i));
+    }
+  }
+#endif
+};
+
+// Per-ROF per-layer boolean mask (uint8_t for GPU compatibility).
+template <int32_t NLayers>
+class ROFMaskTable : public LayerTimingBase<NLayers>
+{
+ public:
+  using BCRange = dataformats::RangeReference<LayerTiming::BCType, LayerTiming::BCType>;
+  using View = ROFMaskTableView<NLayers>;
+
+  GPUdDefault() ROFMaskTable() = default;
+  GPUh() explicit ROFMaskTable(const LayerTimingBase<NLayers>& timingBase) : LayerTimingBase<NLayers>(timingBase) { init(); }
+
+  GPUh() void init()
+  {
+    int32_t totalROFs = 0;
+    for (int32_t layer{0}; layer < NLayers; ++layer) {
+      mLayerROFOffsets[layer] = totalROFs;
+      totalROFs += this->getLayer(layer).mNROFsTF;
+    }
+    mLayerROFOffsets[NLayers] = totalROFs; // sentinel
+    mFlatMask.resize(totalROFs, 1);
+  }
+
+  GPUh() size_t getFlatMaskSize() const noexcept { return mFlatMask.size(); }
+
+  GPUh() bool isROFEnabled(int32_t layer, int32_t rofId) const noexcept { return mFlatMask[mLayerROFOffsets[layer] + rofId] != 0; }
+
+  GPUh() void setROFEnabled(int32_t layer, int32_t rofId, uint8_t state = 1) noexcept
+  {
+    assert(layer >= 0 && layer < NLayers);
+    assert(rofId >= 0 && rofId < mLayerROFOffsets[layer + 1] - mLayerROFOffsets[layer]);
+    mFlatMask[mLayerROFOffsets[layer] + rofId] = state;
+  }
+
+  GPUh() void setROFsEnabled(int32_t layer, int32_t firstRof, int32_t nRofs, uint8_t state = 1) noexcept
+  {
+    assert(layer >= 0 && layer < NLayers);
+    assert(firstRof >= 0);
+    assert(firstRof + nRofs <= mLayerROFOffsets[layer + 1] - mLayerROFOffsets[layer]);
+    std::memset(mFlatMask.data() + mLayerROFOffsets[layer] + firstRof, state, nRofs);
+  }
+
+  // Enable all ROFs in all layers that are time-compatible with the given BC range
+  GPUh() void selectROF(const BCRange& t)
+  {
+    const int32_t bcStart = t.getFirstEntry();
+    const int32_t bcEnd = t.getEntriesBound();
+    for (int32_t layer{0}; layer < NLayers; ++layer) {
+      const auto& lay = this->getLayer(layer);
+      const int32_t offset = mLayerROFOffsets[layer];
+      for (int32_t rofId{0}; rofId < lay.mNROFsTF; ++rofId) {
+        if (static_cast<int32_t>(lay.getROFStartInBC(rofId)) < bcEnd &&
+            static_cast<int32_t>(lay.getROFEndInBC(rofId)) > bcStart) {
+          mFlatMask[offset + rofId] = 1;
+        }
+      }
+    }
+  }
+
+  // Reset mask to 0, then enable all ROFs compatible with any of the given BC ranges
+  GPUh() void selectROFs(const std::vector<BCRange>& ts)
+  {
+    resetMask();
+    for (const auto& t : ts) {
+      selectROF(t);
+    }
+  }
+
+  GPUh() void resetMask(uint8_t s = 0)
+  {
+    std::memset(mFlatMask.data(), s, mFlatMask.size());
+  }
+
+  GPUh() void invertMask()
+  {
+    std::ranges::transform(mFlatMask, mFlatMask.begin(), [](uint8_t x) { return 1 - x; });
+  }
+
+  GPUh() void swap(ROFMaskTable& other) noexcept
+  {
+    std::swap(mFlatMask, other.mFlatMask);
+    std::swap(mLayerROFOffsets, other.mLayerROFOffsets);
+  }
+
+  GPUh() View getView() const
+  {
+    View view;
+    view.mFlatMask = mFlatMask.data();
+    view.mLayerROFOffsets = mLayerROFOffsets;
+    return view;
+  }
+
+  GPUh() View getDeviceView(const uint8_t* deviceFlatMaskPtr, const int32_t* deviceOffsetPtr) const
+  {
+    View view;
+    view.mFlatMask = deviceFlatMaskPtr;
+    view.mLayerROFOffsets = deviceOffsetPtr;
+    return view;
+  }
+#ifndef GPUCA_GPUCODE
+  GPUh() std::string asString() const
+  {
+    std::string mask_str;
+    for (int32_t i = 0; i < NLayers; ++i) {
+      int32_t nROFs = mLayerROFOffsets[i + 1] - mLayerROFOffsets[i];
+      int32_t enabledROFs = 0;
+      for (int32_t j = 0; j < nROFs; ++j) {
+        if (isROFEnabled(i, j)) {
+          ++enabledROFs;
+        }
+      }
+      mask_str += std::format("Layer {} ROFs enabled: {}/{} | ", i, enabledROFs, nROFs);
+    }
+    return mask_str;
+  }
+
+  GPUh() void print() const
+  {
+    LOG(info) << asString();
+  }
+#endif
+
+ private:
+  int32_t mLayerROFOffsets[NLayers + 1]{}; // NLayers entries + 1 sentinel
+  std::vector<uint8_t> mFlatMask;
+};
+
 } // namespace o2::its
 
 #endif

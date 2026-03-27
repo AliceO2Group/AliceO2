@@ -17,10 +17,12 @@
 #define ALICEO2_ITS_FASTMULTEST_
 
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "DataFormatsITS/Vertex.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include <DataFormatsITSMFT/PhysTrigger.h>
+#include "DataFormatsITSMFT/PhysTrigger.h"
 #include "ITStracking/FastMultEstConfig.h"
+#include "ITStracking/ROFLookupTables.h"
 #include <gsl/span>
 #include <array>
 
@@ -32,32 +34,56 @@ namespace its
 struct FastMultEst {
 
   static constexpr int NLayers = o2::itsmft::ChipMappingITS::NLayers;
+  using ROFOverlapTableN = ROFOverlapTable<NLayers>;
+  using ROFMaskTableN = ROFMaskTable<NLayers>;
 
-  float mult = 0.;                         /// estimated signal clusters multipliciy at reference (1st?) layer
-  float noisePerChip = 0.;                 /// estimated or imposed noise per chip
-  float cov[3] = {0.};                     /// covariance matrix of estimation
-  float chi2 = 0.;                         /// chi2
-  int nLayersUsed = 0;                     /// number of layers actually used
+  float mult = 0.;                         /// estimated signal clusters multiplicity on the selected multiplicity layer
+  float noisePerChip = 0.;                 /// imposed noise per chip (when enabled by configuration)
+  float cov[3] = {0.};                     /// retained for compatibility; set to zero in single-layer mode
+  float chi2 = 0.;                         /// retained for compatibility; set to zero in single-layer mode
+  int nLayersUsed = 0;                     /// number of layers used by estimator (0/1 in single-layer mode)
   uint32_t lastRandomSeed = 0;             /// state of the gRandom before
-
-  std::array<int, NLayers> nClPerLayer{0}; // measured N Cl per layer selectROFs
   FastMultEst();
 
   static uint32_t getCurrentRandomSeed();
-  int selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, const gsl::span<const o2::itsmft::CompClusterExt> clus,
-                 const gsl::span<const o2::itsmft::PhysTrigger> trig, std::vector<uint8_t>& sel);
-
-  void fillNClPerLayer(const gsl::span<const o2::itsmft::CompClusterExt>& clusters);
-  float process(const std::array<int, NLayers> ncl)
+  int selectROFs(const std::array<gsl::span<const o2::itsmft::ROFRecord>, NLayers>& rofs,
+                 const std::array<gsl::span<const o2::itsmft::CompClusterExt>, NLayers>& clus,
+                 const gsl::span<const o2::itsmft::PhysTrigger> trig,
+                 uint32_t firstTForbit,
+                 bool doStaggering,
+                 const ROFOverlapTableN::View& overlapView,
+                 ROFMaskTableN& sel);
+  void selectROFsWithVertices(const auto& vertices, const ROFOverlapTableN::View& overlapView, ROFMaskTableN& sel)
   {
-    return FastMultEstConfig::Instance().imposeNoisePerChip > 0 ? processNoiseImposed(ncl) : processNoiseFree(ncl);
+    const auto& multEstConf = FastMultEstConfig::Instance();
+    if (!multEstConf.isVtxMultCutRequested()) {
+      return;
+    }
+
+    for (const auto& vertex : vertices) {
+      if (!multEstConf.isPassingVtxMultCut(vertex.getNContributors())) {
+        const auto& timestamp{vertex.getTimeStamp()};
+        for (int layer = 0; layer < NLayers; ++layer) {
+          uint32_t startROF = sel.getLayer(layer).getROF(timestamp.lower());
+          uint32_t endROF = sel.getLayer(layer).getROF(timestamp.upper());
+          for (uint32_t rof = startROF; rof <= endROF; ++rof) {
+            sel.setROFsEnabled(layer, rof, 0);
+          }
+        }
+      }
+    }
   }
-  float processNoiseFree(const std::array<int, NLayers> ncl);
-  float processNoiseImposed(const std::array<int, NLayers> ncl);
+
+  int countClustersOnLayer(const gsl::span<const o2::itsmft::CompClusterExt>& clusters) const;
+  float process(int nClusters)
+  {
+    return FastMultEstConfig::Instance().imposeNoisePerChip > 0 ? processNoiseImposed(nClusters) : processNoiseFree(nClusters);
+  }
+  float processNoiseFree(int nClusters);
+  float processNoiseImposed(int nClusters);
   float process(const gsl::span<const o2::itsmft::CompClusterExt>& clusters)
   {
-    fillNClPerLayer(clusters);
-    return process(nClPerLayer);
+    return process(countClustersOnLayer(clusters));
   }
   static bool sSeedSet;
 

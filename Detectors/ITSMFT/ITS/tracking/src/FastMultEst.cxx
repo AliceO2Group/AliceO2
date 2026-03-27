@@ -14,13 +14,75 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "ITStracking/FastMultEst.h"
-#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "Framework/Logger.h"
 #include <ctime>
 #include <cstring>
+#include <algorithm>
 #include <TRandom.h>
 
 using namespace o2::its;
+
+namespace
+{
+
+// Convert trigger IR to ROF index on a given layer using LayerTiming
+int findROFForIR(const o2::InteractionRecord& ir,
+                 const o2::InteractionRecord& tfStartIR,
+                 const LayerTiming& layerTiming)
+{
+  // Convert IR to BC-from-TF-start, which is the time base expected by LayerTiming.
+  const int64_t bcFromTFStart = ir.differenceInBC(tfStartIR);
+  if (bcFromTFStart < 0) {
+    return -1;
+  }
+  return layerTiming.getROF(static_cast<LayerTiming::BCType>(bcFromTFStart));
+}
+
+template <int NLayers>
+void enableCompatibleROFs(int baseLayer,
+                          int baseRof,
+                          const typename o2::its::ROFOverlapTable<NLayers>::View& overlapView,
+                          o2::its::ROFMaskTable<NLayers>& sel)
+{
+  sel.setROFEnabled(baseLayer, baseRof);
+  for (int layer = 0; layer < NLayers; ++layer) {
+    if (layer == baseLayer) {
+      continue;
+    }
+    const auto& overlap = overlapView.getOverlap(baseLayer, layer, baseRof);
+    if (overlap.getEntries() > 0) {
+      sel.setROFsEnabled(layer, overlap.getFirstEntry(), overlap.getEntries());
+    }
+  }
+}
+
+template <int NLayers>
+std::vector<int> buildMultiplicityCounts(const std::array<gsl::span<const o2::itsmft::ROFRecord>, NLayers>& rofs,
+                                         const std::array<gsl::span<const o2::itsmft::CompClusterExt>, NLayers>& clus,
+                                         bool doStaggering,
+                                         int multLayer)
+{
+  std::vector<int> multCounts;
+  if (doStaggering) {
+    multCounts.resize(rofs[multLayer].size());
+    for (size_t iRof = 0; iRof < rofs[multLayer].size(); ++iRof) {
+      multCounts[iRof] = rofs[multLayer][iRof].getNEntries();
+    }
+    return multCounts;
+  }
+
+  static const o2::itsmft::ChipMappingITS chipMapping;
+  multCounts.resize(rofs[0].size(), 0);
+  for (size_t iRof = 0; iRof < rofs[0].size(); ++iRof) {
+    for (const auto& cluster : rofs[0][iRof].getROFData(clus[0])) {
+      if (chipMapping.getLayer(cluster.getSensorID()) == multLayer) {
+        ++multCounts[iRof];
+      }
+    }
+  }
+  return multCounts;
+}
+} // namespace
 
 bool FastMultEst::sSeedSet = false;
 
@@ -38,152 +100,152 @@ FastMultEst::FastMultEst()
 }
 
 ///______________________________________________________
-/// find multiplicity for given set of clusters
-void FastMultEst::fillNClPerLayer(const gsl::span<const o2::itsmft::CompClusterExt>& clusters)
+/// count clusters on the configured multiplicity layer
+int FastMultEst::countClustersOnLayer(const gsl::span<const o2::itsmft::CompClusterExt>& clusters) const
 {
-  int lr = FastMultEst::NLayers - 1, nchAcc = o2::itsmft::ChipMappingITS::getNChips() - o2::itsmft::ChipMappingITS::getNChipsPerLr(lr);
-  std::memset(&nClPerLayer[0], 0, sizeof(int) * FastMultEst::NLayers);
+  const int targetLayer = std::clamp(FastMultEstConfig::Instance().cutMultClusLayer, 0, NLayers - 1);
+  int count = 0;
+  int lr = FastMultEst::NLayers - 1;
+  int nchAcc = o2::itsmft::ChipMappingITS::getNChips() - o2::itsmft::ChipMappingITS::getNChipsPerLr(lr);
   for (int i = clusters.size(); i--;) { // profit from clusters being ordered in chip increasing order
     while (clusters[i].getSensorID() < nchAcc) {
       assert(lr >= 0);
       nchAcc -= o2::itsmft::ChipMappingITS::getNChipsPerLr(--lr);
     }
-    nClPerLayer[lr]++;
+    if (lr == targetLayer) {
+      ++count;
+    }
   }
+  return count;
 }
 
 ///______________________________________________________
 /// find multiplicity for given number of clusters per layer
-float FastMultEst::processNoiseFree(const std::array<int, NLayers> ncl)
+float FastMultEst::processNoiseFree(int nClusters)
 {
-  // we assume that on the used layers the observed number of clusters is defined by the
-  // the noise ~ nu * Nchips and contribution from the signal tracks Ntr*mAccCorr
+  // Single-layer regime: estimate multiplicity from one configured layer only.
   const auto& conf = FastMultEstConfig::Instance();
-
-  float mat[3] = {0}, b[2] = {0};
-  nLayersUsed = 0;
-  for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
-    if (ncl[il] > 0) {
-      int nch = o2::itsmft::ChipMappingITS::getNChipsPerLr(il);
-      float err2i = 1. / ncl[il];
-      float m2n = nch * err2i;
-      mat[0] += err2i * conf.accCorr[il] * conf.accCorr[il];
-      mat[2] += nch * m2n;
-      mat[1] += conf.accCorr[il] * m2n; // non-diagonal element
-      b[0] += conf.accCorr[il];
-      b[1] += nch;
-      nLayersUsed++;
-    }
+  const int layer = std::clamp(conf.cutMultClusLayer, 0, NLayers - 1);
+  const float acc = conf.accCorr[layer];
+  nLayersUsed = nClusters > 0 ? 1 : 0;
+  noisePerChip = 0.f;
+  chi2 = 0.f;
+  cov[0] = cov[1] = cov[2] = 0.f;
+  if (nLayersUsed == 0 || acc <= 0.f) {
+    mult = -1.f;
+    return -1.f;
   }
-  mult = noisePerChip = chi2 = -1;
-  float det = mat[0] * mat[2] - mat[1] * mat[1];
-  if (nLayersUsed < 2 || std::abs(det) < 1e-15) {
-    return -1;
-  }
-  float detI = 1. / det;
-  mult = detI * (b[0] * mat[2] - b[1] * mat[1]);
-  noisePerChip = detI * (b[1] * mat[0] - b[0] * mat[1]);
-  cov[0] = mat[2] * detI;
-  cov[2] = mat[0] * detI;
-  cov[1] = -mat[1] * detI;
-  chi2 = 0.;
-  for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
-    if (ncl[il] > 0) {
-      int nch = o2::itsmft::ChipMappingITS::getNChipsPerLr(il);
-      float diff = mult * conf.accCorr[il] + nch * noisePerChip - ncl[il];
-      chi2 += diff * diff / ncl[il];
-    }
-  }
-  chi2 = nLayersUsed > 2 ? chi2 / (nLayersUsed - 2) : 0.;
+  mult = nClusters / acc;
   return mult > 0 ? mult : 0;
 }
 
 ///______________________________________________________
 /// find multiplicity for given number of clusters per layer with mean noise imposed
-float FastMultEst::processNoiseImposed(const std::array<int, NLayers> ncl)
+float FastMultEst::processNoiseImposed(int nClusters)
 {
-  // we assume that on the used layers the observed number of clusters is defined by the
-  // the noise ~ nu * Nchips and contribution from the signal tracks Ntr*conf.accCorr
-  //
+  // Single-layer regime with imposed noise subtraction.
   const auto& conf = FastMultEstConfig::Instance();
-  float accSum = 0., accWSum = 0., noiseSum = 0.;
-  nLayersUsed = 0;
-  for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
-    if (ncl[il] > 0) {
-      float err = 1. / ncl[il];
-      accSum += conf.accCorr[il];
-      accWSum += conf.accCorr[il] * conf.accCorr[il] * err;
-      noiseSum += o2::itsmft::ChipMappingITS::getNChipsPerLr(il) * conf.accCorr[il] * err;
-      nLayersUsed++;
-    }
+  const int layer = std::clamp(conf.cutMultClusLayer, 0, NLayers - 1);
+  const float acc = conf.accCorr[layer];
+  const float nch = static_cast<float>(o2::itsmft::ChipMappingITS::getNChipsPerLr(layer));
+  nLayersUsed = nClusters > 0 ? 1 : 0;
+  chi2 = 0.f;
+  cov[0] = cov[1] = cov[2] = 0.f;
+  if (nLayersUsed == 0 || acc <= 0.f) {
+    mult = -1.f;
+    return -1.f;
   }
-  mult = 0;
-  if (nLayersUsed) {
-    mult = (accSum - noisePerChip * noiseSum) / accWSum;
-  }
+  mult = (nClusters - noisePerChip * nch) / acc;
   return mult;
 }
 
-int FastMultEst::selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, const gsl::span<const o2::itsmft::CompClusterExt> clus,
-                            const gsl::span<const o2::itsmft::PhysTrigger> trig, std::vector<uint8_t>& sel)
+int FastMultEst::selectROFs(const std::array<gsl::span<const o2::itsmft::ROFRecord>, NLayers>& rofs,
+                            const std::array<gsl::span<const o2::itsmft::CompClusterExt>, NLayers>& clus,
+                            const gsl::span<const o2::itsmft::PhysTrigger> trig,
+                            uint32_t firstTForbit,
+                            bool doStaggering,
+                            const ROFOverlapTableN::View& overlapView,
+                            ROFMaskTableN& sel)
 {
-  int nrof = rofs.size(), nsel = 0;
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  sel.clear();
-  sel.resize(nrof, true); // by default select all
+  const int selectionLayer = overlapView.getClock();
+  int multLayer = std::clamp(multEstConf.cutMultClusLayer, 0, NLayers - 1);
+  if (doStaggering && rofs[multLayer].empty()) {
+    LOGP(warning, "FastMultEst multiplicity layer {} has no ROFs, falling back to selection layer {}", multLayer, selectionLayer);
+    multLayer = selectionLayer;
+  }
+
+  const auto multCounts = buildMultiplicityCounts<NLayers>(rofs, clus, doStaggering, multLayer);
+  const int selectionRofCount = doStaggering ? static_cast<int>(rofs[selectionLayer].size()) : static_cast<int>(rofs[0].size());
+
+  sel.resetMask();
   lastRandomSeed = gRandom->GetSeed();
-  if (multEstConf.isMultCutRequested()) {
-    for (uint32_t irof = 0; irof < nrof; irof++) {
-      nsel += sel[irof] = multEstConf.isPassingMultCut(process(rofs[irof].getROFData(clus)));
+  const o2::InteractionRecord tfStartIR{0, firstTForbit};
+
+  if (!trig.empty()) {
+    const auto& selectionLayerTiming = overlapView.getLayer(selectionLayer);
+    const auto& multLayerTiming = overlapView.getLayer(multLayer);
+
+    for (const auto& trigger : trig) {
+      const int selectionRof = findROFForIR(trigger.ir, tfStartIR, selectionLayerTiming);
+      if (selectionRof < 0) {
+        continue;
+      }
+      if (multEstConf.cutRandomFraction > 0.f && gRandom->Rndm() < multEstConf.cutRandomFraction) {
+        continue;
+      }
+      if (multEstConf.isMultCutRequested()) {
+        const int triggerMultRof = doStaggering ? findROFForIR(trigger.ir, tfStartIR, multLayerTiming) : selectionRof;
+        if (triggerMultRof < 0 || triggerMultRof >= static_cast<int>(multCounts.size())) {
+          continue;
+        }
+        if (!multEstConf.isPassingMultCut(process(multCounts[triggerMultRof]))) {
+          continue;
+        }
+      }
+      enableCompatibleROFs<NLayers>(selectionLayer, selectionRof, overlapView, sel);
     }
   } else {
-    nsel = nrof;
-  }
-  using IdNT = std::pair<int, int>;
-  if (multEstConf.cutRandomFraction > 0.) {
-    int ntrig = trig.size(), currTrig = 0;
-    if (multEstConf.preferTriggered) {
-      const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-      std::vector<IdNT> nTrigROF;
-      nTrigROF.reserve(nrof);
-      for (uint32_t irof = 0; irof < nrof; irof++) {
-        if (sel[irof]) {
-          if (nsel && gRandom->Rndm() < multEstConf.cutRandomFraction) {
-            nsel--;
+    LOGP(warning, "FastMultEst received no physics/TRD triggers, falling back to ROF-driven filtering on layer {}", selectionLayer);
+    for (int selectionRof = 0; selectionRof < selectionRofCount; ++selectionRof) {
+      if (multEstConf.isMultCutRequested()) {
+        bool passes = false;
+        if (!doStaggering || selectionLayer == multLayer) {
+          if (selectionRof < static_cast<int>(multCounts.size())) {
+            passes = multEstConf.isPassingMultCut(process(multCounts[selectionRof]));
           }
-          auto irROF = rofs[irof].getBCData();
-          while (currTrig < ntrig && trig[currTrig].ir < irROF) { // triggers are sorted, jump to 1st one not less than current ROF
-            currTrig++;
-          }
-          auto& trof = nTrigROF.emplace_back(irof, 0);
-          irROF += alpParams.roFrameLengthInBC;
-          while (currTrig < ntrig && trig[currTrig].ir < irROF) {
-            trof.second++;
-            currTrig++;
+        } else {
+          const auto& overlap = overlapView.getOverlap(selectionLayer, multLayer, selectionRof);
+          for (int rof = overlap.getFirstEntry(); rof < overlap.getEntriesBound(); ++rof) {
+            if (rof < static_cast<int>(multCounts.size())) {
+              if (multEstConf.isPassingMultCut(process(multCounts[rof]))) {
+                passes = true;
+                break;
+              }
+            }
           }
         }
-      }
-      if (nsel > 0) {
-        sort(nTrigROF.begin(), nTrigROF.end(), [](const IdNT& a, const IdNT& b) { return a.second > b.second; }); // order in number of triggers
-        auto last = nTrigROF.begin() + nsel;
-        sort(nTrigROF.begin(), last, [](const IdNT& a, const IdNT& b) { return a.first < b.first; }); // order in ROF ID first nsel ROFs
-      }
-      for (int i = nsel; i < int(nTrigROF.size()); i++) { // reject ROFs in the tail
-        sel[nTrigROF[i].first] = false;
-      }
-    } else { // dummy random rejection
-      for (int irof = 0; irof < nrof; irof++) {
-        if (sel[irof]) {
-          float sr = gRandom->Rndm();
-          if (gRandom->Rndm() < multEstConf.cutRandomFraction) {
-            sel[irof] = false;
-            nsel--;
-          }
+        if (!passes) {
+          continue;
         }
       }
+      if (multEstConf.cutRandomFraction > 0.f && gRandom->Rndm() < multEstConf.cutRandomFraction) {
+        continue;
+      }
+      enableCompatibleROFs<NLayers>(selectionLayer, selectionRof, overlapView, sel);
     }
   }
-  LOGP(debug, "NSel = {} of {} rofs Seeds: before {} after {}", nsel, nrof, lastRandomSeed, gRandom->GetSeed());
+
+  int nsel = 0;
+  for (int irof = 0; irof < selectionRofCount; ++irof) {
+    nsel += sel.isROFEnabled(selectionLayer, irof);
+  }
+
+  if (!trig.empty() && multEstConf.preferTriggered) {
+    LOGP(debug, "FastMultEst preferTriggered is ignored in trigger-driven mask mode");
+  }
+
+  LOGP(debug, "NSel = {} of {} rofs on layer {} Seeds: before {} after {}", nsel, selectionRofCount, selectionLayer, lastRandomSeed, gRandom->GetSeed());
 
   return nsel;
 }

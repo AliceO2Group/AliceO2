@@ -34,6 +34,7 @@ struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstC
   float imposeNoisePerChip = 1.e-9 * 1024 * 512; // assumed noise, free parameter if<0
 
   // cuts to reject to low or too high mult events
+  int cutMultClusLayer = NLayers - 1;   /// layer used for cluster multiplicity selection (by default the outermost one)
   float cutMultClusLow = 0;   /// reject ROF with estimated cluster mult. below this value (no cut if <0)
   float cutMultClusHigh = -1; /// reject ROF with estimated cluster mult. above this value (no cut if <0)
   float cutMultVtxLow = -1;   /// reject seed vertex if its multiplicity below this value (no cut if <0)

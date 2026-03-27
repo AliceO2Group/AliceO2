@@ -24,11 +24,12 @@
 #include "CommonConstants/MathConstants.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonMath.h"
+#include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
-#include "ITStracking/TrackerTraits.h"
-#include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/ROFLookupTables.h"
+#include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Tracklet.h"
 #include "ReconstructionDataFormats/Track.h"
 
@@ -59,10 +60,9 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
 
   mTaskArena->execute([&] {
     auto forTracklets = [&](auto Tag, int iLayer, int pivotROF, int base, int& offset) -> int {
-      // FIXME
-      // if (!mTimeFrame->mMultiplicityCutMask[pivotROF]) {
-      //   return 0;
-      // }
+      if (!mTimeFrame->mMultiplicityCutMask.isROFEnabled(iLayer, pivotROF)) {
+        return 0;
+      }
       gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : mTimeFrame->getPrimaryVertices(iLayer, pivotROF);
       if (primaryVertices.empty()) {
         return 0;
@@ -121,10 +121,9 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
           }
 
           for (int targetROF = rofOverlap.getFirstEntry(); targetROF < rofOverlap.getEntriesBound(); ++targetROF) {
-            // FIXME
-            // if (!mTimeFrame->mMultiplicityCutMask[targetROF]) {
-            //   continue;
-            // }
+            if (!mTimeFrame->mMultiplicityCutMask.isROFEnabled(iLayer + 1, targetROF)) {
+              continue;
+            }
             auto layer1 = mTimeFrame->getClustersOnLayer(targetROF, iLayer + 1);
             if (layer1.empty()) {
               continue;
