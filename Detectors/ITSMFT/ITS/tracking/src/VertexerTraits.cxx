@@ -370,7 +370,7 @@ void VertexerTraits<nLayers>::computeVertices(const int iteration)
           std::array<float, 3> tmpVertex{mTimeFrame->getTrackletClusters(rofId).back().getVertex()};
           if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
             mTimeFrame->getTrackletClusters(rofId).pop_back();
-            break;
+            continue;
           }
           usedTracklets[line1] = true;
           usedTracklets[line2] = true;
