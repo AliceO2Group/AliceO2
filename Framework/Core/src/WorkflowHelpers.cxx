@@ -234,8 +234,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   ctx.services().registerService(ServiceRegistryHelpers::handleForService<DanglingEdgesContext>(new DanglingEdgesContext));
   auto& dec = ctx.services().get<DanglingEdgesContext>();
 
-  std::vector<OutputSpec> DYNs;
-
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
 
@@ -369,9 +367,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           hasCCDBURLs = true;
           break;
         }
-      }
-      if (DataSpecUtils::partialMatch(output, header::DataOrigin{"DYN"})) {
-        DYNs.emplace_back(output);
       }
       if (hasProjectors) {
         dec.providedDYNs.emplace_back(output);
@@ -592,7 +587,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       continue;
     }
     // AODs are skipped in any case.
-    if (DataSpecUtils::partialMatch(dec.outputsInputs[ii], extendedAODOrigins)) {
+    if (DataSpecUtils::partialMatch(dec.outputsInputs[ii], AODOrigins)) {
       continue;
     }
     redirectedOutputsInputs.emplace_back(dec.outputsInputs[ii]);
@@ -727,7 +722,7 @@ void WorkflowHelpers::injectAODWriter(WorkflowSpec& workflow, ConfigContext cons
   // select outputs of type AOD which need to be saved
   dec.outputsInputsAOD.clear();
   for (auto ii = 0u; ii < dec.outputsInputs.size(); ii++) {
-    if (DataSpecUtils::partialMatch(dec.outputsInputs[ii], extendedAODOrigins)) {
+    if (DataSpecUtils::partialMatch(dec.outputsInputs[ii], AODOrigins)) {
       auto ds = dod->getDataOutputDescriptors(dec.outputsInputs[ii]);
       if (ds.size() > 0 || dec.isDangling[ii]) {
         dec.outputsInputsAOD.emplace_back(dec.outputsInputs[ii]);
@@ -855,10 +850,8 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
       if (forwards.empty()) {
         errorDueToMissingOutputFor(consumer, input);
       }
-      availableOutputsInfo.erase(std::remove_if(availableOutputsInfo.begin(), availableOutputsInfo.end(), [](auto& info) { return info.enabled == false; }), availableOutputsInfo.end());
-      for (auto& forward : forwards) {
-        availableOutputsInfo.push_back(forward);
-      }
+      availableOutputsInfo.erase(std::remove_if(availableOutputsInfo.begin(), availableOutputsInfo.end(), [](auto const& info) { return info.enabled == false; }), availableOutputsInfo.end());
+      std::ranges::copy(forwards, std::back_inserter(availableOutputsInfo));
     }
     O2_SIGNPOST_END(workflow_helpers, sid, "input matching", "");
   }
@@ -937,14 +930,14 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
     return WorkflowParsingState::Empty;
   }
   std::set<std::string> validNames;
-  std::vector<OutputSpec> availableOutputs;
-  std::vector<InputSpec> requiredInputs;
+  // std::vector<OutputSpec> availableOutputs;
+  // std::vector<InputSpec> requiredInputs;
 
   // An index many to one index to go from a given input to the
   // associated spec
-  std::map<size_t, size_t> inputToSpec;
+  // std::map<size_t, size_t> inputToSpec;
   // A one to one index to go from a given output to the Spec emitting it
-  std::map<size_t, size_t> outputToSpec;
+  // std::map<size_t, size_t> outputToSpec;
 
   std::ostringstream ss;
 
@@ -1125,14 +1118,14 @@ void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
   // Get the input lifetime and the output lifetime.
   // Output lifetime must be Timeframe if the input lifetime is Timeframe.
   bool hasErrors = false;
-  for (auto& edge : edges) {
+  for (auto const& edge : edges) {
     DataProcessorSpec const& producer = workflow[edge.producer];
     DataProcessorSpec const& consumer = workflow[edge.consumer];
     DataProcessorPoliciesInfo const& producerPolicies = policies[edge.producer];
     DataProcessorPoliciesInfo const& consumerPolicies = policies[edge.consumer];
     OutputSpec const& output = outputs[edge.outputGlobalIndex];
     InputSpec const& input = consumer.inputs[edge.consumerInputIndex];
-    for (auto& validator : defaultValidators) {
+    for (auto const& validator : defaultValidators) {
       hasErrors |= !validator(errors, producer, output, producerPolicies, consumer, input, consumerPolicies);
     }
   }

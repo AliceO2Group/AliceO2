@@ -21,11 +21,11 @@
 namespace o2::framework
 {
 static constexpr std::array<header::DataOrigin, 4> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"EMB"}};
-static constexpr std::array<header::DataOrigin, 6> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}, header::DataOrigin{"AMD"}, header::DataOrigin{"EMB"}};
-static constexpr std::array<header::DataOrigin, 4> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}};
+// static constexpr std::array<header::DataOrigin, 6> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"EMB"}};
+// static constexpr std::array<header::DataOrigin, 4> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"EMB"}};
 
 class DataOutputDirector;
-class ConfigContext;
+struct ConfigContext;
 
 // Helper class to be moved in the AnalysisSupport plugin at some point
 struct AnalysisSupportHelpers {

@@ -25,8 +25,6 @@ using namespace o2::framework::expressions;
 namespace o2::aod
 {
 O2ORIGIN("EMB");
-template <is_aod_hash T>
-using BCsFrom = BCs_001From<T>;
 using TracksPlus = soa::Join<StoredTracksIU, StoredTracksExtra>;
 template <is_aod_hash T>
 using TracksPlusFrom = soa::Join<StoredTracksIUFrom<T>, StoredTracksExtra_002From<T>>;
@@ -34,9 +32,9 @@ using TracksPlusFrom = soa::Join<StoredTracksIUFrom<T>, StoredTracksExtra_002Fro
 
 struct TestEmbeddingSubscription {
   void process(aod::BCs const& bcs, aod::BCsFrom<aod::Hash<"EMB"_h>> const& bcse,
-               aod::TracksPlus const& tracks, aod::TracksPlusFrom<aod::Hash<"EMB"_h>> const& trackse)
+               aod::TracksIU const& tracks, aod::TracksIUFrom<aod::Hash<"EMB"_h>> const& trackse)
   {
-    LOGP(info, "BCs from run {} and {}", bcs.begin().runNumber(), bcse.begin().runNumber());
+    LOGP(info, "BCs from run {} ({}) and {} ({})", bcs.begin().runNumber(), bcs.size(), bcse.begin().runNumber(), bcse.size());
     LOGP(info, "Joined tracks: {} and {}", tracks.size(), trackse.size());
   }
 };

@@ -21,7 +21,6 @@
 #include "Framework/TableConsumer.h"
 #include "Framework/DataOutputDirector.h"
 #include "Framework/TableTreeHelpers.h"
-#include "Framework/Monitoring.h"
 #include "Framework/Signpost.h"
 
 #include <Monitoring/Monitoring.h>
@@ -32,8 +31,6 @@
 #include <TMap.h>
 #include <TObjString.h>
 #include <arrow/table.h>
-#include <chrono>
-#include <ios>
 
 O2_DECLARE_DYNAMIC_LOG(histogram_registry);
 
@@ -157,7 +154,7 @@ AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
         }
 
         // skip non-AOD refs
-        if (!DataSpecUtils::partialMatch(*ref.spec, writableAODOrigins)) {
+        if (!DataSpecUtils::partialMatch(*ref.spec, AODOrigins)) {
           continue;
         }
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;

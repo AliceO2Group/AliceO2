@@ -51,6 +51,8 @@ DECLARE_SOA_TABLE(BCFlags, "AOD", "BCFLAG", //! flag for tagging UPCs, joinable 
                   bc::Flags);
 
 using BCs = BCs_001; // current version
+template <aod::is_origin_hash O>
+using BCsFrom = BCs_001From<O>;
 using BC = BCs::iterator;
 
 namespace timestamp
@@ -66,7 +68,7 @@ using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
 
 namespace soa
 {
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::BCs, aod::Timestamps>;
+extern template struct Join<aod::BCs, aod::Timestamps>;
 }
 namespace aod
 {
@@ -514,11 +516,11 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        track::Sign<track::Signed1Pt>,
                        o2::soa::Marker<2>);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksIU, StoredTracksIU, "EXTRACK_IU", 0, //! Track parameters at inner most update (e.g. ITS) as it comes from the tracking
-                           aod::track::Pt,
-                           aod::track::P,
-                           aod::track::Eta,
-                           aod::track::Phi);
+DECLARE_SOA_EXTENDED_TABLE_NG(TracksIU, StoredTracksIU, "EXTRACK_IU", 0, //! Track parameters at inner most update (e.g. ITS) as it comes from the tracking
+                              aod::track::Pt,
+                              aod::track::P,
+                              aod::track::Eta,
+                              aod::track::Phi);
 
 DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table at collision vertex
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
@@ -680,9 +682,9 @@ using Run2TrackExtra = Run2TrackExtras::iterator;
 } // namespace aod
 namespace soa
 {
-extern template struct soa::JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Tracks, aod::TracksExtra>;
-extern template struct soa::JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Tracks, aod::TracksCov, aod::TracksExtra>;
-extern template struct soa::JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::TracksExtension, aod::StoredTracks>;
+extern template struct soa::Join<aod::Tracks, aod::TracksExtra>;
+extern template struct soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
+extern template struct soa::Join<aod::TracksExtension, aod::StoredTracks>;
 } // namespace soa
 namespace aod
 {
@@ -926,6 +928,8 @@ using MFTTracks = MFTTracks_001;
 using StoredMFTTracks = StoredMFTTracks_001;
 
 using MFTTrack = MFTTracks::iterator;
+template <aod::is_origin_hash O>
+using MFTTracksFrom = MFTTracks_001From<O>;
 
 namespace fwdtrack // Index to MFTtrack column must be defined after table definition.
 {
@@ -1005,7 +1009,7 @@ using MFTTrackCovFwd = MFTTracksCov::iterator;
 } // namespace aod
 namespace soa
 {
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::FwdTracks, aod::FwdTracksCov>;
+extern template struct Join<aod::FwdTracks, aod::FwdTracksCov>;
 }
 namespace aod
 {
@@ -2026,6 +2030,8 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "EXMCPARTICLE
 using StoredMcParticles = StoredMcParticles_001;
 using McParticles = McParticles_001;
 using McParticle = McParticles::iterator;
+template <aod::is_origin_hash O>
+using McParticlesFrom = McParticles_001From<O>;
 } // namespace aod
 namespace soa
 {
@@ -2191,11 +2197,11 @@ DECLARE_SOA_INDEX_COLUMN(FDD, fdd);                    //!
 // First entry: Collision
 #define INDEX_LIST_RUN2 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run2MatchedExclusive, BCs, "MA_RN2_EX", INDEX_LIST_RUN2); //!
-DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MA_RN2_SP", INDEX_LIST_RUN2);              //!
+DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs_001, "MA_RN2_SP", INDEX_LIST_RUN2);          //!
 
 #define INDEX_LIST_RUN3 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FDDId
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedExclusive, BCs, "MA_RN3_EX", INDEX_LIST_RUN3); //!
-DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MA_RN3_SP", INDEX_LIST_RUN3);              //!
+DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs_001, "MA_RN3_SP", INDEX_LIST_RUN3);          //!
 
 // First entry: BC
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusive, BCs, "MA_BCCOL_EX", //!
@@ -2225,8 +2231,8 @@ DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::McTrackLabels);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions, aod::McCollisionLabels);
 // Joins with collisions (only for sparse ones)
 // NOTE: index table needs to be always last argument
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Collisions, aod::Run2MatchedSparse>;
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Collisions, aod::Run3MatchedSparse>;
+extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
+extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 } // namespace soa
 namespace aod
 {

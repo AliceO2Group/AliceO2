@@ -79,6 +79,7 @@ auto makeEmptyTable(const char* name)
 }
 
 template <soa::TableRef R>
+  requires(soa::not_void<typename aod::MetadataTrait<aod::Hash<R.desc_hash>>::metadata>)
 auto makeEmptyTable()
 {
   auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(typename aod::MetadataTrait<aod::Hash<R.desc_hash>>::metadata::persistent_columns_t{}));
@@ -93,6 +94,7 @@ auto makeEmptyTable(const char* name, framework::pack<Cs...> p)
 }
 
 template <aod::is_aod_hash D>
+  requires(soa::not_void<typename aod::MetadataTrait<D>::metadata>)
 auto makeEmptyTable(const char* name)
 {
   auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(typename aod::MetadataTrait<D>::metadata::persistent_columns_t{}));
@@ -216,6 +218,26 @@ inline constexpr auto getSourceSchemas()
   }.template operator()<T::sources.size(), T::sources>();
 }
 
+template <soa::with_sources_generator T, aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>
+inline constexpr auto getSources()
+{
+  return []<size_t N, std::array<soa::TableRef, N> refs>() {
+    return []<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{soa::tableRef2ConfigParamSpec<refs[Is]>()...};
+    }(std::make_index_sequence<N>());
+  }.template operator()<T::N, T::template generateSources<O>()>();
+}
+
+template <soa::with_sources_generator T, aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>
+inline constexpr auto getSourceSchemas()
+{
+  return []<size_t N, std::array<soa::TableRef, N> refs>() {
+    return []<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{soa::tableRef2Schema<refs[Is]>()...};
+    }(std::make_index_sequence<N>());
+  }.template operator()<T::N, T::template generateSources<O>()>();
+}
+
 template <soa::with_ccdb_urls T>
 inline constexpr auto getCCDBUrls()
 {
@@ -257,7 +279,7 @@ inline constexpr auto getIndexMapping()
   using indices = T::index_pack_t;
   using Key = T::Key;
   [&idx]<size_t... Is>(std::index_sequence<Is...>) mutable {
-    constexpr auto refs = T::sources;
+    constexpr auto refs = T::generateSources();
     ([&idx]<TableRef ref, typename C>() mutable {
       constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
       if constexpr (pos == -1) {
@@ -270,6 +292,26 @@ inline constexpr auto getIndexMapping()
   }(std::make_index_sequence<framework::pack_size(indices{})>());
   ;
   return idx;
+}
+
+template <soa::with_sources_generator T, aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>
+constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  std::vector<framework::ConfigParamSpec> inputMetadata;
+
+  auto inputSources = getSources<T, O>();
+  std::sort(inputSources.begin(), inputSources.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
+  auto last = std::unique(inputSources.begin(), inputSources.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
+  inputSources.erase(last, inputSources.end());
+  inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+
+  auto inputSchemas = getSourceSchemas<T, O>();
+  std::sort(inputSchemas.begin(), inputSchemas.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
+  last = std::unique(inputSchemas.begin(), inputSchemas.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
+  inputSchemas.erase(last, inputSchemas.end());
+  inputMetadata.insert(inputMetadata.end(), inputSchemas.begin(), inputSchemas.end());
+
+  return inputMetadata;
 }
 
 template <soa::with_sources T>
@@ -293,7 +335,7 @@ constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 }
 
 template <typename T>
-  requires(!soa::with_sources<T>)
+  requires(!(soa::with_sources<T> || soa::with_sources_generator<T>))
 constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
@@ -358,7 +400,12 @@ template <TableRef R>
 constexpr auto tableRef2InputSpec()
 {
   std::vector<framework::ConfigParamSpec> metadata;
-  auto sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  std::vector<framework::ConfigParamSpec> sources;
+  if constexpr (soa::with_sources<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
+    sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  } else if constexpr (soa::with_sources_generator<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
+    sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata, o2::aod::Hash<R.origin_hash>>();
+  }
   metadata.insert(metadata.end(), sources.begin(), sources.end());
   auto ccdbURLs = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), ccdbURLs.begin(), ccdbURLs.end());
@@ -555,7 +602,7 @@ concept is_produces_group = std::derived_from<T, ProducesGroup>;
 template <soa::is_metadata M, soa::TableRef Ref>
 struct TableTransform {
   using metadata = M;
-  constexpr static auto sources = M::sources;
+  constexpr static auto sources = M::template generateSources<o2::aod::Hash<Ref.origin_hash>>();
 
   template <soa::TableRef R>
   static auto base_spec()
@@ -589,23 +636,23 @@ struct TableTransform {
 /// This helper struct allows you to declare extended tables which should be
 /// created by the task (as opposed to those pre-defined by data model)
 template <typename T>
-concept is_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>> && soa::has_extension<typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata>;
+concept is_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
 
 template <typename T>
-concept is_dynamically_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>> && soa::has_configurable_extension<typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata>;
+concept is_dynamically_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_configurable_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
 
 template <is_spawnable T>
 constexpr auto transformBase()
 {
-  using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata;
-  return TableTransform<metadata, metadata::extension_table_t::ref>{};
+  using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata;
+  return TableTransform<metadata, metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>::ref>{};
 }
 
 template <is_spawnable T>
 struct Spawns : decltype(transformBase<T>()) {
   using spawnable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
-  using extension_t = typename metadata::extension_table_t;
+  using extension_t = typename metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>;
   using expression_pack_t = typename metadata::expression_pack_t;
   static constexpr size_t N = framework::pack_size(expression_pack_t{});
 
@@ -655,7 +702,7 @@ struct Defines : decltype(transformBase<T>()) {
   static constexpr bool delayed = DELAYED;
   using spawnable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
-  using extension_t = typename metadata::extension_table_t;
+  using extension_t = typename metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>;
   using placeholders_pack_t = typename metadata::placeholders_pack_t;
   static constexpr size_t N = framework::pack_size(placeholders_pack_t{});
 
