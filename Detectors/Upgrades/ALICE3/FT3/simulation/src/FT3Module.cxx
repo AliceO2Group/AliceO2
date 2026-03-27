@@ -242,8 +242,6 @@ void FT3Module::add2x1KaptonVolume(
   );
 }
 
-// TODO FOR TOMORROW 25/03: swap front and back for backward eta region, so that front faces the interaction region.
-
 /*
  * This function adds a single sensor (currently 2.5x3.2mm) to the given mother volume
  * at the given (x,y,z) position of the module.
@@ -375,9 +373,13 @@ void FT3Module::create_layout_scopingV3(double mZ, int layerNumber, int directio
                                                 : y_positionsPosNeg[i_stave].second;
         double y_mid = positions[i_y_pos].first + Constants::sensor2x1_height / 2;
 
-        // get which side we are on
-        bool isFront = Constants::staveOnFront[i_stave];
-        
+        // get which side we are on: if backward discs we mirror from front so it's the same
+        // layout from the frame of the particle, regardless which direction
+        bool isFront;
+        if (!direction)  // direction = 0 is forward
+          isFront = Constants::staveOnFront[i_stave];
+        else
+          isFront = !(Constants::staveOnFront[i_stave]);
         /* 
         * we build the volume from the outside in, starting with the silicon,
         * then glue & materials towards the stave. Depending on whether it's front or back,
