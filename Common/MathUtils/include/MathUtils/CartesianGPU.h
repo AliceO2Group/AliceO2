@@ -16,6 +16,7 @@
 #define ALICEO2_CARTESIANGPU_H
 
 #include "GPUCommonDef.h"
+#include "GPUCommonTypeTraits.h"
 
 namespace o2::math_utils
 {
@@ -43,6 +44,9 @@ struct GPUPoint3D : public GPUPoint2D<T, I> {
   GPUd() float R() const { return o2::gpu::CAMath::Sqrt(GPUPoint2D<T, I>::xx * GPUPoint2D<T, I>::xx + GPUPoint2D<T, I>::yy * GPUPoint2D<T, I>::yy + zz * zz); }
   GPUd() void SetZ(float v) { zz = v; }
   T zz;
+#if (!defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__)) && !defined(GPUCA_GPUCODE_COMPILEKERNELS)
+  static_assert(std::is_trivially_copyable_v<GPUPoint3D>);
+#endif
 };
 } // namespace detail
 

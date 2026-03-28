@@ -285,24 +285,6 @@ GPUdi() SMatrix<T, D1, D1, MatRepSym<T, D1>> Similarity(const SMatrix<T, D1, D2,
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Df_t& t);
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Dd_t& t);
 
-namespace std
-{
-
-/// Defining Point3D explicitly as trivially copyable
-///
-/// std::is_trivially_copyable<ROOT::Math::Cartesian3D<T>> fails because the class
-/// implements a copy constructor, although it does not much more than the default copy
-/// constructor. We need Point3D to fulfill the condition in order to make types
-/// inheriting from it or using it as member can be safely detected as messageable.
-///
-/// We believe that Point3D is messageable and explicitly specialize the type trait.
-/// There is a unit test for checking trivial copy
-/// This is a workaround, we will also make suggestions to fix the cause in ROOT itself
-/// TODO: delete once it is fixed in ROOT
-template <typename T>
-struct is_trivially_copyable<o2::math_utils::Point3D<T>> : std::true_type {
-};
-} // namespace std
 #endif // Disable for GPU
 
 #endif
