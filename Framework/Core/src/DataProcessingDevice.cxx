@@ -1377,6 +1377,7 @@ void DataProcessingDevice::Run()
         std::atomic<size_t> numberOfUnscheduledSinceLastScheduled = 0;
         std::atomic<size_t> numberOfUnscheduled = 0;
         std::atomic<size_t> numberOfScheduled = 0;
+        std::atomic<size_t> nextWarnAt = 1;
       };
       static SchedulingStats schedulingStats;
       O2_SIGNPOST_ID_GENERATE(sid, scheduling);
@@ -1387,6 +1388,7 @@ void DataProcessingDevice::Run()
         schedulingStats.lastScheduled = uv_now(state.loop);
         schedulingStats.numberOfScheduled++;
         schedulingStats.numberOfUnscheduledSinceLastScheduled = 0;
+        schedulingStats.nextWarnAt = 1;
         O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run", "Enough resources to schedule computation on stream %d", streamRef.index);
         if (dplEnableMultithreding) [[unlikely]] {
           stream.task = &handle;
@@ -1396,12 +1398,12 @@ void DataProcessingDevice::Run()
           run_completion(&handle, 0);
         }
       } else {
-        if (schedulingStats.numberOfUnscheduledSinceLastScheduled > 100 ||
-            (uv_now(state.loop) - schedulingStats.lastScheduled) > 30000) {
+        if (schedulingStats.numberOfUnscheduledSinceLastScheduled >= schedulingStats.nextWarnAt) {
           O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
                                       "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu. Data is not lost and it will be scheduled again.",
                                       schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
                                       schedulingStats.lastScheduled.load());
+          schedulingStats.nextWarnAt = schedulingStats.nextWarnAt * 2;
         } else {
           O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
                                  "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu. Data is not lost and it will be scheduled again.",
