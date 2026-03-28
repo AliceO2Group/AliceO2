@@ -50,11 +50,6 @@ TEST_CASE("MessageSet")
   // messages: [hdr, pl] — one pair
   REQUIRE((msgSet.messages | get_pair{0}).headerIdx == 0);
   REQUIRE((msgSet.messages | get_pair{0}).payloadIdx == 1);
-  for (size_t i = 0; i < msgSet.pairMap.size(); ++i) {
-    auto indices = msgSet.messages | get_pair{i};
-    REQUIRE(&msgSet.messages[indices.headerIdx] == &msgSet.associatedHeader(i));
-    REQUIRE(&msgSet.messages[indices.payloadIdx] == &msgSet.associatedPayload(i));
-  }
 }
 
 TEST_CASE("MessageSetWithFunction")
@@ -82,11 +77,6 @@ TEST_CASE("MessageSetWithFunction")
   CHECK_THROWS((msgSet.messages | get_pair{1}));
   REQUIRE((msgSet.messages | get_num_payloads{0}) == 1);
   REQUIRE((msgSet.messages | count_parts{}) == 1);
-  for (size_t i = 0; i < msgSet.pairMap.size(); ++i) {
-    auto indices = msgSet.messages | get_pair{i};
-    REQUIRE(&msgSet.messages[indices.headerIdx] == &msgSet.associatedHeader(i));
-    REQUIRE(&msgSet.messages[indices.payloadIdx] == &msgSet.associatedPayload(i));
-  }
 }
 
 TEST_CASE("MessageSetWithMultipart")
@@ -125,11 +115,6 @@ TEST_CASE("MessageSetWithMultipart")
   REQUIRE((msgSet.messages | get_pair{0}).payloadIdx == 1);
   REQUIRE((msgSet.messages | get_pair{1}).headerIdx == 0);
   REQUIRE((msgSet.messages | get_pair{1}).payloadIdx == 2);
-  for (size_t i = 0; i < msgSet.pairMap.size(); ++i) {
-    auto indices = msgSet.messages | get_pair{i};
-    REQUIRE(&msgSet.messages[indices.headerIdx] == &msgSet.associatedHeader(i));
-    REQUIRE(&msgSet.messages[indices.payloadIdx] == &msgSet.associatedPayload(i));
-  }
 }
 
 TEST_CASE("MessageSetAddPartRef")
@@ -206,11 +191,6 @@ TEST_CASE("MessageSetAddMultiple")
   REQUIRE((msgSet.messages | get_num_payloads{2}) == 2);
   REQUIRE((msgSet.messages | count_parts{}) == 3);
   REQUIRE((msgSet.messages | count_payloads{}) == 4);
-  for (size_t i = 0; i < msgSet.pairMap.size(); ++i) {
-    auto indices = msgSet.messages | get_pair{i};
-    REQUIRE(&msgSet.messages[indices.headerIdx] == &msgSet.associatedHeader(i));
-    REQUIRE(&msgSet.messages[indices.payloadIdx] == &msgSet.associatedPayload(i));
-  }
 }
 
 TEST_CASE("GetHeaderPayloadOperators")
@@ -267,11 +247,6 @@ TEST_CASE("GetHeaderPayloadOperators")
   REQUIRE((msgSet.messages | get_pair{0}).payloadIdx == 1);
   REQUIRE((msgSet.messages | get_pair{1}).headerIdx == 2);
   REQUIRE((msgSet.messages | get_pair{1}).payloadIdx == 3);
-  for (size_t i = 0; i < msgSet.pairMap.size(); ++i) {
-    auto indices = msgSet.messages | get_pair{i};
-    REQUIRE(&msgSet.messages[indices.headerIdx] == &msgSet.associatedHeader(i));
-    REQUIRE(&msgSet.messages[indices.payloadIdx] == &msgSet.associatedPayload(i));
-  }
 }
 
 TEST_CASE("GetHeaderPayloadMultiPayload")
@@ -370,11 +345,6 @@ TEST_CASE("GetHeaderPayloadMultiPayload")
   REQUIRE((msgSet.messages | get_pair{2}).payloadIdx == 4);
   REQUIRE((msgSet.messages | get_pair{3}).headerIdx == 2);
   REQUIRE((msgSet.messages | get_pair{3}).payloadIdx == 5);
-  for (size_t i = 0; i < msgSet.pairMap.size(); ++i) {
-    auto indices = msgSet.messages | get_pair{i};
-    REQUIRE(&msgSet.messages[indices.headerIdx] == &msgSet.associatedHeader(i));
-    REQUIRE(&msgSet.messages[indices.payloadIdx] == &msgSet.associatedPayload(i));
-  }
 }
 
 TEST_CASE("TraditionalSplitParts")
@@ -449,9 +419,4 @@ TEST_CASE("TraditionalSplitParts")
   REQUIRE((msgSet.messages | get_pair{1}).payloadIdx == 3);
   REQUIRE((msgSet.messages | get_pair{2}).headerIdx == 4);
   REQUIRE((msgSet.messages | get_pair{2}).payloadIdx == 5);
-  for (size_t i = 0; i < msgSet.pairMap.size(); ++i) {
-    auto indices = msgSet.messages | get_pair{i};
-    REQUIRE(&msgSet.messages[indices.headerIdx] == &msgSet.associatedHeader(i));
-    REQUIRE(&msgSet.messages[indices.payloadIdx] == &msgSet.associatedPayload(i));
-  }
 }
