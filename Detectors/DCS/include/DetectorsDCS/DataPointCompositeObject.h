@@ -28,9 +28,7 @@
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DeliveryType.h"
 
-namespace o2
-{
-namespace dcs
+namespace o2::dcs
 {
 /**
      * DataPointCompositeObject is a composition of a DataPointIdentifier and a
@@ -291,26 +289,6 @@ struct DataPointCompositeObject final {
 template <typename T>
 T getValue(const DataPointCompositeObject& dpcom);
 
-} // namespace dcs
-
-/// Defining DataPointCompositeObject explicitly as messageable
-namespace framework
-{
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::dcs::DataPointCompositeObject> : std::true_type {
-};
-} // namespace framework
-
-} // namespace o2
-
-/// Defining DataPointCompositeObject explicitly as copiable
-namespace std
-{
-template <>
-struct is_trivially_copyable<o2::dcs::DataPointCompositeObject> : std::true_type {
-};
-} // namespace std
+} // namespace o2::dcs
 
 #endif /* O2_DCS_DATAPOINT_COMPOSITE_OBJECT_H */

@@ -31,9 +31,7 @@
 #include "DetectorsDCS/GenericFunctions.h"
 #include "DetectorsDCS/DeliveryType.h"
 
-namespace o2
-{
-namespace dcs
+namespace o2::dcs
 {
 /**
      * DataPointIdentifier object is responsible for storing the alias and type
@@ -208,19 +206,7 @@ struct DPIDHash {
     return dpid.hash_code();
   }
 };
-} // namespace dcs
-
-/// Defining DataPointIdentifier explicitly as messageable
-namespace framework
-{
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::dcs::DataPointIdentifier> : std::true_type {
-};
-} // namespace framework
-
-} // namespace o2
+} // namespace o2::dcs
 
 // specailized std::hash
 namespace std
@@ -232,11 +218,6 @@ struct hash<o2::dcs::DataPointIdentifier> {
     return std::hash<uint64_t>{}(dpid.hash_code());
   }
 };
-
-template <>
-struct is_trivially_copyable<o2::dcs::DataPointIdentifier> : std::true_type {
-};
-
 } // namespace std
 
 #endif /* O2_DCS_DATAPOINT_IDENTIFIER_H */
