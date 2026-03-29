@@ -41,19 +41,14 @@ namespace dcs
      */
 class DataPointIdentifier final
 {
-  const uint64_t pt1;
-  const uint64_t pt2;
-  const uint64_t pt3;
-  const uint64_t pt4;
-  const uint64_t pt5;
-  const uint64_t pt6;
-  const uint64_t pt7;
-  const uint64_t pt8; // Contains the last 6 chars of alias and the type.
-
-  DataPointIdentifier(
-    const uint64_t pt1, const uint64_t pt2, const uint64_t pt3,
-    const uint64_t pt4, const uint64_t pt5, const uint64_t pt6,
-    const uint64_t pt7, const uint64_t pt8) noexcept : pt1(pt1), pt2(pt2), pt3(pt3), pt4(pt4), pt5(pt5), pt6(pt6), pt7(pt7), pt8(pt8) {}
+  uint64_t pt1;
+  uint64_t pt2;
+  uint64_t pt3;
+  uint64_t pt4;
+  uint64_t pt5;
+  uint64_t pt6;
+  uint64_t pt7;
+  uint64_t pt8; // Contains the last 6 chars of alias and the type.
 
  public:
   /**
@@ -87,13 +82,7 @@ class DataPointIdentifier final
    */
   DataPointIdentifier(const DataPointIdentifier& src) noexcept = default;
 
-  DataPointIdentifier& operator=(const DataPointIdentifier& src) noexcept
-  {
-    if (&src != this) {
-      memcpy(this, &src, sizeof(DataPointIdentifier));
-    }
-    return *this;
-  }
+  DataPointIdentifier& operator=(const DataPointIdentifier& src) noexcept = default;
 
   /**
          * This stati procedure fills the given DataPointIdentifier object with

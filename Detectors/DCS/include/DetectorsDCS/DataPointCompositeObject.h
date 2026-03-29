@@ -47,7 +47,7 @@ struct DataPointCompositeObject final {
          *
          * @see ADAPRO::ADAPOS::DataPointIdentifier
          */
-  const DataPointIdentifier id;
+  DataPointIdentifier id;
 
   /**
          * The DataPointValue object, which occupies the last 64 bytes of the
@@ -85,13 +85,7 @@ struct DataPointCompositeObject final {
          */
   DataPointCompositeObject(const DataPointCompositeObject& src) noexcept = default;
 
-  DataPointCompositeObject& operator=(const DataPointCompositeObject& src) noexcept
-  {
-    if (&src != this) {
-      memcpy(this, &src, sizeof(DataPointCompositeObject));
-    }
-    return *this;
-  }
+  DataPointCompositeObject& operator=(const DataPointCompositeObject& src) noexcept = default;
 
   /**
          * Bit-by bit equality comparison of DataPointCompositeObjects.
