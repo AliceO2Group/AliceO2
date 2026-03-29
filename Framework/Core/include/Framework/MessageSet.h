@@ -43,7 +43,9 @@ struct MessageSet {
   MessageSet(F getter, size_t size)
     : messages()
   {
-    add(std::forward<F>(getter), size);
+    for (size_t i = 0; i < size; ++i) {
+      messages.emplace_back(std::move(getter(i)));
+    }
   }
 
   MessageSet(MessageSet&& other)
@@ -67,34 +69,6 @@ struct MessageSet {
   {
     messages.clear();
   }
-
-  // this is more or less legacy
-  // PartRef has been earlier used to store fixed header-payload pairs
-  // reset the set and store content of the part ref
-  void reset(PartRef&& ref)
-  {
-    clear();
-    add(std::move(ref));
-  }
-
-  // this is more or less legacy
-  // PartRef has been earlier used to store fixed header-payload pairs
-  // add  content of the part ref
-  void add(PartRef&& ref)
-  {
-    messages.emplace_back(std::move(ref.header));
-    messages.emplace_back(std::move(ref.payload));
-  }
-
-  /// add an O2 message
-  template <typename F>
-  void add(F getter, size_t size)
-  {
-    for (size_t i = 0; i < size; ++i) {
-      messages.emplace_back(std::move(getter(i)));
-    }
-  }
-
 };
 
 } // namespace o2::framework

@@ -91,7 +91,8 @@ TEST_CASE("ForwardInputsSingleMessageSingleRoute")
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -142,7 +143,8 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteNoConsume")
   REQUIRE(payload.get() == nullptr);
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -197,7 +199,8 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteAtEOS")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, sih});
   REQUIRE(o2::header::get<SourceInfoHeader*>(header->GetData()));
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -255,7 +258,8 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteWithOldestPossible")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, dih});
   REQUIRE(o2::header::get<DomainInfoHeader*>(header->GetData()));
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -320,7 +324,8 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutes")
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -383,7 +388,8 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesExternals")
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -454,12 +460,14 @@ TEST_CASE("ForwardInputsMultiMessageMultipleRoutes")
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header1 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh1, dph});
   MessageSet messageSet1;
-  messageSet1.add(PartRef{std::move(header1), std::move(payload1)});
+  messageSet1.messages.emplace_back(std::move(header1));
+  messageSet1.messages.emplace_back(std::move(payload1));
   REQUIRE((messageSet1.messages | count_parts{}) == 1);
 
   auto header2 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph});
   MessageSet messageSet2;
-  messageSet2.add(PartRef{std::move(header2), std::move(payload2)});
+  messageSet2.messages.emplace_back(std::move(header2));
+  messageSet2.messages.emplace_back(std::move(payload2));
   REQUIRE((messageSet2.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet1));
   currentSetOfInputs.emplace_back(std::move(messageSet2));
@@ -524,7 +532,8 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesOnlyOneMatches")
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -602,10 +611,13 @@ TEST_CASE("ForwardInputsSplitPayload")
   auto fillMessages = [&messages](size_t t) -> fair::mq::MessagePtr {
     return std::move(messages[t]);
   };
-  messageSet.add(fillMessages, 3);
+  for (size_t i = 0; i < 3; ++i) {
+    messageSet.messages.emplace_back(fillMessages(i));
+  }
   auto header2 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph});
   PartRef part{std::move(header2), transport->CreateMessage()};
-  messageSet.add(std::move(part));
+  messageSet.messages.emplace_back(std::move(part.header));
+  messageSet.messages.emplace_back(std::move(part.payload));
 
   REQUIRE((messageSet.messages | count_parts{}) == 2);
   currentSetOfInputs.emplace_back(std::move(messageSet));
@@ -726,7 +738,8 @@ TEST_CASE("ForwardInputEOSSingleRoute")
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
@@ -771,7 +784,8 @@ TEST_CASE("ForwardInputOldestPossibleSingleRoute")
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dih});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
+  messageSet.messages.emplace_back(std::move(header));
+  messageSet.messages.emplace_back(std::move(payload));
   REQUIRE((messageSet.messages | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 

@@ -242,7 +242,9 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       assert(expirator.handler);
       PartRef newRef;
       expirator.handler(services, newRef, variables);
-      part.reset(std::move(newRef));
+      part.messages.clear();
+      part.messages.emplace_back(std::move(newRef.header));
+      part.messages.emplace_back(std::move(newRef.payload));
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
@@ -536,7 +538,9 @@ DataRelayer::RelayChoice
       auto span = std::span<fair::mq::MessagePtr>(messages + mi, messages + mi + nPayloads + 1);
       // Notice this will split [(header, payload), (header, payload)] multiparts
       // in N different subParts for the message spec.
-      target.add([&span](size_t i) -> fair::mq::MessagePtr& { return span[i]; }, nPayloads + 1);
+      for (size_t i = 0; i < nPayloads + 1; ++i) {
+        target.messages.emplace_back(std::move(span[i]));
+      }
       mi += nPayloads;
       saved += nPayloads;
     }
@@ -955,7 +959,8 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
       auto& header = cache[cacheId].messages | get_header{pi};
       auto&& newHeader = header->GetTransport()->CreateMessage();
       newHeader->Copy(*header);
-      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].messages | get_payload{pi, 0})});
+      messages[arg].messages.emplace_back(std::move(newHeader));
+      messages[arg].messages.emplace_back(std::move(cache[cacheId].messages | get_payload{pi, 0}));
     }
   };
 
