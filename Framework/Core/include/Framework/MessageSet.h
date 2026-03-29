@@ -50,22 +50,21 @@ struct MessageSet {
     // payload index within the O2 message
     size_t payloadIndex = 0;
   };
-  std::vector<PairMapping> pairMap;
 
   MessageSet()
-    : messages(), messageMap(), pairMap()
+    : messages(), messageMap()
   {
   }
 
   template <typename F>
   MessageSet(F getter, size_t size)
-    : messages(), messageMap(), pairMap()
+    : messages(), messageMap()
   {
     add(std::forward<F>(getter), size);
   }
 
   MessageSet(MessageSet&& other)
-    : messages(std::move(other.messages)), messageMap(std::move(other.messageMap)), pairMap(std::move(other.pairMap))
+    : messages(std::move(other.messages)), messageMap(std::move(other.messageMap))
   {
     other.clear();
   }
@@ -77,7 +76,6 @@ struct MessageSet {
     }
     messages = std::move(other.messages);
     messageMap = std::move(other.messageMap);
-    pairMap = std::move(other.pairMap);
     other.clear();
     return *this;
   }
@@ -99,7 +97,6 @@ struct MessageSet {
   {
     messages.clear();
     messageMap.clear();
-    pairMap.clear();
   }
 
   // this is more or less legacy
@@ -116,7 +113,6 @@ struct MessageSet {
   // add  content of the part ref
   void add(PartRef&& ref)
   {
-    pairMap.emplace_back(messageMap.size(), 0);
     messageMap.emplace_back(messages.size(), 1);
     messages.emplace_back(std::move(ref.header));
     messages.emplace_back(std::move(ref.payload));
@@ -126,12 +122,8 @@ struct MessageSet {
   template <typename F>
   void add(F getter, size_t size)
   {
-    auto partid = messageMap.size();
     messageMap.emplace_back(messages.size(), size - 1);
     for (size_t i = 0; i < size; ++i) {
-      if (i > 0) {
-        pairMap.emplace_back(partid, i - 1);
-      }
       messages.emplace_back(std::move(getter(i)));
     }
   }
