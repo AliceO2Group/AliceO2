@@ -203,7 +203,8 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
 
-      auto [y, z] = geo.convPadDriftLengthToLocal(0, row, pad, 0.);
+      float y, z;
+      geo.convPadDriftLengthToLocal(0, row, pad, 0., y, z);
 
       const double dx = x - c.X();
       const double dy = y - (-c.Y()); // diferent sign convention for Y coordinate in the map

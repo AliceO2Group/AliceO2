@@ -334,16 +334,9 @@ class Spline2DSpec<DataT, YdimT, 0>
     const DataT* A = Parameters + (nu * iv + iu) * nYdim4; // values { {Y1,Y2,Y3}, {Y1,Y2,Y3}'v, {Y1,Y2,Y3}'u, {Y1,Y2,Y3}''vu } at {u0, v0}
     const DataT* B = A + nYdim4 * nu;                      // values { ... } at {u0, v1}
 
-    auto val1 = mGridX1.template getSderivativesOverParsAtU<DataT>(knotU, u);
-    auto val2 = mGridX2.template getSderivativesOverParsAtU<DataT>(knotV, v);
-    const auto& dSl = val1[0];
-    const auto& dDl = val1[1];
-    const auto& dSr = val1[2];
-    const auto& dDr = val1[3];
-    const auto& dSd = val2[0];
-    const auto& dDd = val2[1];
-    const auto& dSu = val2[2];
-    const auto& dDu = val2[3];
+    DataT dSl, dDl, dSr, dDr, dSd, dDd, dSu, dDu;
+    mGridX1.template getSderivativesOverParsAtU<DataT>(knotU, u, dSl, dDl, dSr, dDr);
+    mGridX2.template getSderivativesOverParsAtU<DataT>(knotV, v, dSd, dDd, dSu, dDu);
 
     // when nYdim == 1:
     // S = dSl * (dSd * A[0] + dDd * A[1]) + dDl * (dSd * A[2] + dDd * A[3]) +
@@ -398,8 +391,10 @@ class Spline2DSpec<DataT, YdimT, 0>
     const DataT* A = Parameters + (nu * iv + iu) * nYdim4; // values { {Y1,Y2,Y3}, {Y1,Y2,Y3}'v, {Y1,Y2,Y3}'u, {Y1,Y2,Y3}''vu } at {u0, v0}
     const DataT* B = A + nYdim4 * nu;                      // values { ... } at {u0, v1}
 
-    auto [dSdSl, dSdDl, dSdSr, dSdDr, dRdSl, dRdDl, dRdSr, dRdDr] = mGridX1.template getSDderivativesOverParsAtU<DataT>(knotU, u);
-    auto [dSdSd, dSdDd, dSdSu, dSdDu, dQdSd, dQdDd, dQdSu, dQdDu] = mGridX2.template getSDderivativesOverParsAtU<DataT>(knotV, v);
+    DataT dSdSl, dSdDl, dSdSr, dSdDr, dRdSl, dRdDl, dRdSr, dRdDr;
+    mGridX1.template getSDderivativesOverParsAtU<DataT>(knotU, u, dSdSl, dSdDl, dSdSr, dSdDr, dRdSl, dRdDl, dRdSr, dRdDr);
+    DataT dSdSd, dSdDd, dSdSu, dSdDu, dQdSd, dQdDd, dQdSu, dQdDu;
+    mGridX2.template getSDderivativesOverParsAtU<DataT>(knotV, v, dSdSd, dSdDd, dSdSu, dSdDu, dQdSd, dQdDd, dQdSu, dQdDu);
 
     // when nYdim == 1:
 

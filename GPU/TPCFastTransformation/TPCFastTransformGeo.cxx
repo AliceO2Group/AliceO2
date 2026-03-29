@@ -145,8 +145,10 @@ int32_t TPCFastTransformGeo::test(int32_t sector, int32_t row, float ly, float l
     error = -3;
   }
 
-  auto [pad, length] = convLocalToPadDriftLength(sector, 10, ly, lz);
-  auto [ly2, lz2] = convPadDriftLengthToLocal(sector, 10, pad, length);
+  float pad, length;
+  convLocalToPadDriftLength(sector, 10, ly, lz, pad, length);
+  float ly2, lz2;
+  convPadDriftLengthToLocal(sector, 10, pad, length, ly2, lz2);
 
   if (fabs(ly2 - ly) + fabs(lz2 - lz) > 1.e-6) {
     LOG(info) << "Error local <-> UV: y " << ly << " dy " << ly2 - ly << " z " << lz << " dz " << lz2 - lz;

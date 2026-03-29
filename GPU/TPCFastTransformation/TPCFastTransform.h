@@ -349,17 +349,13 @@ class TPCFastTransform : public FlatObject
 GPUdi() void TPCFastTransform::convPadTimeToLocal(int32_t sector, int32_t row, float pad, float time, float& y, float& z, float vertexTime) const
 {
   float l = (time - mT0 - vertexTime) * mVdrift; // drift length [cm]
-  const auto localval = getGeometry().convPadDriftLengthToLocal(sector, row, pad, l);
-  y = localval[0];
-  z = localval[1];
+  getGeometry().convPadDriftLengthToLocal(sector, row, pad, l, y, z);
 }
 
 GPUdi() void TPCFastTransform::convPadTimeToLocalInTimeFrame(int32_t sector, int32_t row, float pad, float time, float& y, float& z, float maxTimeBin) const
 {
   float l = getGeometry().getTPCzLength() + (time - mT0 - maxTimeBin) * mVdrift; // drift length [cm]
-  const auto localval = getGeometry().convPadDriftLengthToLocal(sector, row, pad, l);
-  y = localval[0];
-  z = localval[1];
+  getGeometry().convPadDriftLengthToLocal(sector, row, pad, l, y, z);
 }
 
 // ----------------------------------------------------------------------
@@ -391,16 +387,16 @@ GPUdi() float TPCFastTransform::convDriftLengthToTime(float driftLength, float v
 
 GPUdi() void TPCFastTransform::convLocalToPadTime(int32_t sector, int32_t row, float y, float z, float& pad, float& time, float vertexTime) const
 {
-  const auto padLength = getGeometry().convLocalToPadDriftLength(sector, row, y, z);
-  pad = padLength[0];
-  time = convDriftLengthToTime(padLength[1], vertexTime);
+  float l;
+  getGeometry().convLocalToPadDriftLength(sector, row, y, z, pad, l);
+  time = convDriftLengthToTime(l, vertexTime);
 }
 
 GPUdi() void TPCFastTransform::convLocalToPadTimeInTimeFrame(int32_t sector, int32_t row, float y, float z, float& pad, float& time, float maxTimeBin) const
 {
-  const auto padLength = getGeometry().convLocalToPadDriftLength(sector, row, y, z);
-  pad = padLength[0];
-  time = convDriftLengthToTime(padLength[1], maxTimeBin);
+  float l;
+  getGeometry().convLocalToPadDriftLength(sector, row, y, z, pad, l);
+  time = convDriftLengthToTime(l, maxTimeBin);
 }
 
 // ----------------------------------------------------------------------
@@ -426,28 +422,28 @@ GPUdi() void TPCFastTransform::TransformLocal(int32_t sector, int32_t row, float
     } else
 #endif // GPUCA_GPUCODE
     {
-      const auto corrLocal = mCorrection.getCorrectionLocal(sector, row, y, z);
-      dx = corrLocal[0];
-      dy = corrLocal[1];
-      dz = corrLocal[2];
+      mCorrection.getCorrectionLocal(sector, row, y, z, dx, dy, dz);
       if (ref) {
         if ((scale > 0.f) && (scaleMode == 0)) { // scaling was requested
-          auto val = ref->mCorrection.getCorrectionLocal(sector, row, y, z);
-          dx = (dx - val[0]) * scale + val[0];
-          dy = (dy - val[1]) * scale + val[1];
-          dz = (dz - val[2]) * scale + val[2];
+          float dx1, dy1, dz1;
+          ref->mCorrection.getCorrectionLocal(sector, row, y, z, dx1, dy1, dz1);
+          dx = (dx - dx1) * scale + dx1;
+          dy = (dy - dy1) * scale + dy1;
+          dz = (dz - dz1) * scale + dz1;
         } else if ((scale != 0.f) && ((scaleMode == 1) || (scaleMode == 2))) {
-          auto val = ref->mCorrection.getCorrectionLocal(sector, row, y, z);
-          dx = val[0] * scale + dx;
-          dy = val[1] * scale + dy;
-          dz = val[2] * scale + dz;
+          float dx1, dy1, dz1;
+          ref->mCorrection.getCorrectionLocal(sector, row, y, z, dx1, dy1, dz1);
+          dx = dx1 * scale + dx;
+          dy = dy1 * scale + dy;
+          dz = dz1 * scale + dz;
         }
       }
       if (ref2 && (scale2 != 0)) {
-        auto val = ref2->mCorrection.getCorrectionLocal(sector, row, y, z);
-        dx = val[0] * scale2 + dx;
-        dy = val[1] * scale2 + dy;
-        dz = val[2] * scale2 + dz;
+        float dx1, dy1, dz1;
+        ref2->mCorrection.getCorrectionLocal(sector, row, y, z, dx1, dy1, dz1);
+        dx = dx1 * scale2 + dx;
+        dy = dy1 * scale2 + dy;
+        dz = dz1 * scale2 + dz;
       }
     }
   }
@@ -478,21 +474,16 @@ GPUdi() void TPCFastTransform::TransformLocal(int32_t sector, int32_t row, float
 
     float dxRef = 0.f, dyRef = 0.f, dzRef = 0.f;
     if (ref) {
-      const auto corr = ref->mCorrection.getCorrectionLocal(sector, row, y, z);
-      dxRef = corr[0];
-      dyRef = corr[1];
-      dzRef = corr[2];
+      ref->mCorrection.getCorrectionLocal(sector, row, y, z, dxRef, dyRef, dzRef);
     }
 
     float dxRef2 = 0.f, dyRef2 = 0.f, dzRef2 = 0.f;
     if (ref2) {
-      const auto corr = ref2->mCorrection.getCorrectionLocal(sector, row, y, z);
-      dxRef2 = corr[0];
-      dyRef2 = corr[1];
-      dzRef2 = corr[2];
+      ref2->mCorrection.getCorrectionLocal(sector, row, y, z, dxRef2, dyRef2, dzRef2);
     }
 
-    auto [dxOrig, dyOrig, dzOrig] = mCorrection.getCorrectionLocal(sector, row, y, z);
+    float dxOrig, dyOrig, dzOrig;
+    mCorrection.getCorrectionLocal(sector, row, y, z, dxOrig, dyOrig, dzOrig);
 
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
                                                                                        // corrections in x, u, v
@@ -617,9 +608,7 @@ GPUdi() void TPCFastTransform::TransformIdeal(int32_t sector, int32_t row, float
 
   x = getGeometry().getRowInfo(row).x;
   float driftLength = (time - mT0 - vertexTime) * mVdrift; // drift length cm
-  const auto localval = getGeometry().convPadDriftLengthToLocal(sector, row, pad, driftLength);
-  y = localval[0];
-  z = localval[1];
+  getGeometry().convPadDriftLengthToLocal(sector, row, pad, driftLength, y, z);
 }
 
 GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int32_t sector, float time, float maxTimeBin) const
@@ -726,24 +715,25 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int32_t sector, int
   float dz = 0;
 
   if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
-    const auto corrYZ = mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ);
-    dy = corrYZ[0];
-    dz = corrYZ[1];
+    mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ, dy, dz);
 
     if (ref) { // scaling was requested
       if (scaleMode == 0 && scale > 0.f) {
-        const auto val = ref->mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ);
-        dy = (dy - val[0]) * scale + val[0];
-        dz = (dz - val[1]) * scale + val[1];
+        float dy1, dz1;
+        ref->mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ, dy1, dz1);
+        dy = (dy - dy1) * scale + dy1;
+        dz = (dz - dz1) * scale + dz1;
       } else if ((scale != 0) && ((scaleMode == 1) || (scaleMode == 2))) {
-        const auto val = ref->mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ);
-        dy = val[0] * scale + dy;
-        dz = val[1] * scale + dz;
+        float dy1, dz1;
+        ref->mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ, dy1, dz1);
+        dy = dy1 * scale + dy;
+        dz = dz1 * scale + dz;
       }
       if (ref2 && (scale2 != 0)) {
-        const auto val = ref2->mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ);
-        dy = val[0] * scale2 + dy;
-        dz = val[1] * scale2 + dz;
+        float dy1, dz1;
+        ref2->mCorrection.getCorrectionYZatRealYZ(sector, row, realY, realZ, dy1, dz1);
+        dy = dy1 * scale2 + dy;
+        dz = dz1 * scale2 + dz;
       }
     }
   }

@@ -731,7 +731,8 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
       MaxValue maxDrow[3];
       for (double y = y0; y < y1; y += stepY) {
         for (double z = z0; z < z1; z += stepZ) {
-          auto [dx, dy, dz] = getCorrectionLocal(sector, row, y, z);
+          float dx, dy, dz;
+          getCorrectionLocal(sector, row, y, z, dx, dy, dz);
           double realX = x + dx;
           double realY = y + dy;
           double realZ = z + dz;
@@ -745,7 +746,8 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
             continue;
           }
           float dxr = getCorrectionXatRealYZ(sector, row, realY, realZ);
-          auto [dyr, dzr] = getCorrectionYZatRealYZ(sector, row, realY, realZ);
+          float dyr, dzr;
+          getCorrectionYZatRealYZ(sector, row, realY, realZ, dyr, dzr);
           double d[3] = {dxr - dx, dyr - dy, dzr - dz};
           for (int32_t i = 0; i < 3; i++) {
             maxDrow[i].update(d[i], sector, row);

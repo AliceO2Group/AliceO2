@@ -493,12 +493,14 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
           auto [zMin, zMax] = geo.getZrange(iSector);
 
           for (int32_t iu = 0; iu < gridY.getNumberOfKnots(); iu++) {
-            auto [y, z] = corr.convGridToLocal(iSector, iRow, gridY.getKnot(iu).getU(), 0.);
+            float y, z;
+            corr.convGridToLocal(iSector, iRow, gridY.getKnot(iu).getU(), 0., y, z);
             knots[0].push_back(y);
             points[0].push_back(y);
           }
           for (int32_t iv = 0; iv < gridZ.getNumberOfKnots(); iv++) {
-            auto [y, z] = corr.convGridToLocal(iSector, iRow, 0., gridZ.getKnot(iv).getU());
+            float y, z;
+            corr.convGridToLocal(iSector, iRow, 0., gridZ.getKnot(iv).getU(), y, z);
             knots[1].push_back(z);
             points[1].push_back(z);
           }

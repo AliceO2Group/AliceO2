@@ -314,11 +314,9 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
     const auto nYdim = nYdimTmp.get();
 
-    auto val = getSderivativesOverParsAtU<T>(knotL, u);
-    const auto& dSdSl = val[0];
-    const auto& dSdDl = val[1];
-    const auto& dSdSr = val[2];
-    const auto& dSdDr = val[3];
+    T dSdSl, dSdDl, dSdSr, dSdDr;
+    getSderivativesOverParsAtU<T>(knotL, u, dSdSl, dSdDl, dSdSr, dSdDr);
+
     for (int32_t dim = 0; dim < nYdim; ++dim) {
       S[dim] = dSdSr * Sr[dim] + dSdSl * Sl[dim] + dSdDl * Dl[dim] + dSdDr * Dr[dim];
     }
@@ -346,7 +344,7 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
   }
 
   template <typename T>
-  GPUd() std::array<T, 4> getSderivativesOverParsAtU(const Knot& knotL, DataT u) const
+  GPUd() void getSderivativesOverParsAtU(const Knot& knotL, DataT u, T& dSdSl, T& dSdDl, T& dSdSr, T& dSdDr) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
     /// over the spline parameters Sl(eft), Sr(ight) and the slopes Dl, Dr
@@ -363,16 +361,15 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     T vm1 = v - T(1.);
     T a = u * vm1;
     T v2 = v * v;
-    T dSdSr = v2 * (T(3.) - v - v);
-    T dSdSl = T(1.) - dSdSr;
-    T dSdDl = vm1 * a;
-    T dSdDr = v * a;
+    dSdSr = v2 * (T(3.) - v - v);
+    dSdSl = T(1.) - dSdSr;
+    dSdDl = vm1 * a;
+    dSdDr = v * a;
     // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
-    return {dSdSl, dSdDl, dSdSr, dSdDr};
   }
 
   template <typename T>
-  GPUd() std::array<T, 8> getSDderivativesOverParsAtU(const Knot& knotL, DataT u) const
+  GPUd() void getSDderivativesOverParsAtU(const Knot& knotL, DataT u, T& dSdSl, T& dSdDl, T& dSdSr, T& dSdDr, T& dDdSl, T& dDdDl, T& dDdSr, T& dDdDr) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
     /// over the spline values Sl, Sr and the slopes Dl, Dr
@@ -389,19 +386,18 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     T vm1 = v - T(1.);
     T a = u * vm1;
     T v2 = v * v;
-    T dSdSr = v2 * (T(3.) - v - v);
-    T dSdSl = T(1.) - dSdSr;
-    T dSdDl = vm1 * a;
-    T dSdDr = v * a;
+    dSdSr = v2 * (T(3.) - v - v);
+    dSdSl = T(1.) - dSdSr;
+    dSdDl = vm1 * a;
+    dSdDr = v * a;
 
     T dv = T(knotL.Li);
-    T dDdSr = 6. * v * (T(1.) - v) * dv;
-    T dDdSl = -dDdSr;
-    T dDdDl = vm1 * (v + v + vm1);
-    T dDdDr = v * (v + vm1 + vm1);
+    dDdSr = 6. * v * (T(1.) - v) * dv;
+    dDdSl = -dDdSr;
+    dDdDl = vm1 * (v + v + vm1);
+    dDdDr = v * (v + vm1 + vm1);
     // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
     // D(u) = dS(u)/du = dDdSl * Sl + dDdSr * Sr + dDdDl * Dl + dDdDr * Dr;
-    return {dSdSl, dSdDl, dSdSr, dSdDr, dDdSl, dDdDl, dDdSr, dDdDr};
   }
 
   using TBase::convXtoU;

@@ -159,7 +159,8 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
           for (int i = 0; i < nDataPoints; ++i) {
             o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p = data[i];
             // not corrected grid coordinates
-            auto [gu, gv, scale] = correction.convLocalToGrid(sector, row, p.mY, p.mZ);
+            float gu, gv, scale;
+            correction.convLocalToGrid(sector, row, p.mY, p.mZ, gu, gv, scale);
             if (scale - 1.f > 1.e-6) { // point is outside the grid
               continue;
             }
@@ -300,7 +301,8 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
           double dpad = info.maxPad / (6. * (nKnotsY - 1));
           for (double pad = 0; pad < info.maxPad + .5 * dpad; pad += dpad) {
             for (double l = 0.; l < mGeo.getTPCzLength() + .5 * dl; l += dl) {
-              auto [y, z] = mGeo.convPadDriftLengthToLocal(iSector, iRow, pad, l);
+              float y, z;
+              mGeo.convPadDriftLengthToLocal(iSector, iRow, pad, l, y, z);
               double dx, dy, dz;
               correctionLocal(iSector, iRow, y, z, dx, dy, dz);
               mCorrectionMap.addCorrectionPoint(iSector, iRow,
@@ -360,7 +362,8 @@ void TPCFastSpaceChargeCorrectionHelper::testGeometry(const TPCFastTransformGeo&
     for (int pad = 0; pad < nPads; pad++) {
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
-      auto [y, z] = geo.convPadDriftLengthToLocal(0, row, pad, 0.);
+      float y, z;
+      geo.convPadDriftLengthToLocal(0, row, pad, 0., y, z);
       const double dx = x - c.X();
       const double dy = y - (-c.Y()); // diferent sign convention for Y coordinate in the map
 
@@ -974,18 +977,20 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
 
         for (int iu = 0; iu < gridU.size(); iu++) {
           for (int iv = 0; iv < gridV.size(); iv++) {
-
-            auto [y, z] = correction.convGridToLocal(sector, row, gridU[iu], gridV[iv]);
+            float y, z;
+            correction.convGridToLocal(sector, row, gridU[iu], gridV[iv], y, z);
             double dx = 0, dy = 0, dz = 0;
 
             // add corrections
             for (int i = 0; i < corrections.size(); ++i) {
-              auto [dxTmp, dyTmp, dzTmp] = corrections[i]->getCorrectionLocal(sector, row, y, z);
+              float dxTmp, dyTmp, dzTmp;
+              corrections[i]->getCorrectionLocal(sector, row, y, z, dxTmp, dyTmp, dzTmp);
               dx += dxTmp * scaling[i];
               dy += dyTmp * scaling[i];
               dz += dzTmp * scaling[i];
             }
-            auto [gridU, gridV, scale] = correction.convRealLocalToGrid(sector, row, y + dy, z + dz);
+            float gridU, gridV, scale;
+            correction.convRealLocalToGrid(sector, row, y + dy, z + dz, gridU, gridV, scale);
             dataPointGridU.push_back(gridU);
             dataPointGridV.push_back(gridV);
             dataPointF.push_back(scale * dx);
@@ -1111,9 +1116,11 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
               float P[nKnotPar3d];
 
               { // direct correction
-                auto [y, z] = mainCorrection.convGridToLocal(sector, row, u, v);
+                float y, z;
+                mainCorrection.convGridToLocal(sector, row, u, v, y, z);
                 // return values: u, v, scaling factor
-                auto [lu, lv, ls] = corr.convLocalToGrid(sector, row, y, z);
+                float lu, lv, ls;
+                corr.convLocalToGrid(sector, row, y, z, lu, lv, ls);
                 ls *= scale;
                 double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * ls * scaleU * scaleV};
                 const auto& spl = corr.getSpline(sector, row);
@@ -1125,9 +1132,11 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
                 }
               }
 
-              auto [y, z] = mainCorrection.convGridToRealLocal(sector, row, u, v);
+              float y, z;
+              mainCorrection.convGridToRealLocal(sector, row, u, v, y, z);
               // return values: u, v, scaling factor
-              auto [lu, lv, ls] = corr.convRealLocalToGrid(sector, row, y, z);
+              float lu, lv, ls;
+              corr.convRealLocalToGrid(sector, row, y, z, lu, lv, ls);
               ls *= scale;
               double parscale[4] = {ls, ls * scaleRealU, ls * scaleRealV, ls * ls * scaleRealU * scaleRealV};
 
