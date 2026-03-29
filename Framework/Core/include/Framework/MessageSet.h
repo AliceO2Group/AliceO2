@@ -74,12 +74,6 @@ struct MessageSet {
     return *this;
   }
 
-  /// get number of payloads for an in-flight message
-  [[nodiscard]] size_t getNumberOfPayloads(size_t mi) const
-  {
-    return messages | get_num_payloads{mi};
-  }
-
   /// clear the set
   void clear()
   {
