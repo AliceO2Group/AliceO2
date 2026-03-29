@@ -31,20 +31,8 @@ namespace o2::framework
 /// O2 message model. For this purpose, also the pair index is filled and can
 /// be used to access header and payload associated with a pair
 struct MessageSet {
-  struct Index {
-    Index(size_t p, size_t s) : position(p), size(s) {}
-    size_t position = 0;
-    size_t size = 0;
-  };
   // linear storage of messages
   std::vector<fair::mq::MessagePtr> messages;
-  struct PairMapping {
-    PairMapping(size_t partId, size_t payloadId) : partIndex(partId), payloadIndex(payloadId) {}
-    // O2 message where the pair is located in
-    size_t partIndex = 0;
-    // payload index within the O2 message
-    size_t payloadIndex = 0;
-  };
 
   MessageSet()
     : messages()
