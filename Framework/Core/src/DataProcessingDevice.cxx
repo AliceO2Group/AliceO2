@@ -2133,7 +2133,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       currentSetOfInputs = relayer.consumeExistingInputsForTimeslice(slot);
     }
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
-      if (currentSetOfInputs[i].getNumberOfPairs() > partindex) {
+      if ((currentSetOfInputs[i].messages | count_payloads{}) > partindex) {
         const char* headerptr = nullptr;
         const char* payloadptr = nullptr;
         size_t payloadSize = 0;
@@ -2153,7 +2153,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       return DataRef{};
     };
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
-      return currentSetOfInputs[i].getNumberOfPairs();
+      return (currentSetOfInputs[i].messages | count_payloads{});
     };
     auto refCountGetter = [&currentSetOfInputs](size_t idx) -> int {
       auto& header = static_cast<const fair::mq::shmem::Message&>(*(currentSetOfInputs[idx].messages | get_header{0}));
