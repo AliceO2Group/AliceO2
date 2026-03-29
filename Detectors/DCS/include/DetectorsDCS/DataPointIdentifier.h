@@ -85,7 +85,7 @@ class DataPointIdentifier final
   /**
    * A copy constructor for DataPointIdentifier.
    */
-  DataPointIdentifier(const DataPointIdentifier& src) noexcept : DataPointIdentifier(src.pt1, src.pt2, src.pt3, src.pt4, src.pt5, src.pt6, src.pt7, src.pt8) {}
+  DataPointIdentifier(const DataPointIdentifier& src) noexcept = default;
 
   DataPointIdentifier& operator=(const DataPointIdentifier& src) noexcept
   {

@@ -83,7 +83,7 @@ struct DataPointCompositeObject final {
   /**
          * Copy constructor
          */
-  DataPointCompositeObject(const DataPointCompositeObject& src) noexcept : DataPointCompositeObject(src.id, src.data) {}
+  DataPointCompositeObject(const DataPointCompositeObject& src) noexcept = default;
 
   DataPointCompositeObject& operator=(const DataPointCompositeObject& src) noexcept
   {
