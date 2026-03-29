@@ -16,6 +16,7 @@
 #include "MemoryResources/MemoryResources.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
+#include "Framework/DataModelViews.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DataProcessingStates.h"
 #include "Framework/DriverConfig.h"
@@ -119,7 +120,7 @@ TEST_CASE("DataRelayer")
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
     REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0).messages | count_parts{}) == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
   }
 
   //
@@ -169,7 +170,7 @@ TEST_CASE("DataRelayer")
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
     REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0).messages | count_parts{}) == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -249,8 +250,8 @@ TEST_CASE("DataRelayer")
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // two MessageSets, each with one PartRef
     REQUIRE(result.size() == 2);
-    REQUIRE((result.at(0).messages | count_parts{}) == 1);
-    REQUIRE((result.at(1).messages | count_parts{}) == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result.at(1) | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -737,8 +738,8 @@ TEST_CASE("DataRelayer")
     // we have one input route and thus one message set containing pairs for all
     // payloads
     REQUIRE(messageSet.size() == 1);
-    REQUIRE((messageSet[0].messages | count_parts{}) == nSplitParts);
-    REQUIRE((messageSet[0].messages | get_num_payloads{0}) == 1);
+    REQUIRE((messageSet[0] | count_parts{}) == nSplitParts);
+    REQUIRE((messageSet[0] | get_num_payloads{0}) == 1);
   }
 
   SECTION("SplitPayloadSequence")
@@ -800,13 +801,13 @@ TEST_CASE("DataRelayer")
     // we have one input route
     REQUIRE(messageSet.size() == 1);
     // one message set containing number of added sequences of messages
-    REQUIRE((messageSet[0].messages | count_parts{}) == sequenceSize.size());
+    REQUIRE((messageSet[0] | count_parts{}) == sequenceSize.size());
     size_t counter = 0;
     for (size_t seqid = 0; seqid < sequenceSize.size(); ++seqid) {
-      REQUIRE((messageSet[0].messages | get_num_payloads{seqid}) == sequenceSize[seqid]);
-      for (size_t pi = 0; pi < (messageSet[0].messages | get_num_payloads{seqid}); ++pi) {
-        REQUIRE((messageSet[0].messages | get_payload{seqid, pi}));
-        auto const* data = (messageSet[0].messages | get_payload{seqid, pi})->GetData();
+      REQUIRE((messageSet[0] | get_num_payloads{seqid}) == sequenceSize[seqid]);
+      for (size_t pi = 0; pi < (messageSet[0] | get_num_payloads{seqid}); ++pi) {
+        REQUIRE((messageSet[0] | get_payload{seqid, pi}));
+        auto const* data = (messageSet[0] | get_payload{seqid, pi})->GetData();
         REQUIRE(*(reinterpret_cast<size_t const*>(data)) == counter);
         ++counter;
       }
@@ -891,7 +892,7 @@ TEST_CASE("DataRelayer")
 
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0).messages | count_parts{}) == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
   }
 
   SECTION("ProcessDanglingInputsSkipsWhenDataPresent")
