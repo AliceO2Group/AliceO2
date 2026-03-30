@@ -308,8 +308,10 @@ void Digitizer::storeBC(const BCCache& bc,
   bool isA, isNchannels, isAIn, isAOut, isTotalCharge;
   isA = nTrgFiredCells > 0;
   isNchannels = nTrgFiredCells > FV0DigParam::Instance().NchannelsLevel;
-  isAIn = nSignalInner > FV0DigParam::Instance().NchannelsLevel;  // ring 1,2 and 3
-  isAOut = nSignalOuter > FV0DigParam::Instance().NchannelsLevel; // ring 4 and 5
+  //isAIn = nSignalInner > FV0DigParam::Instance().NchannelsLevel;  // ring 1,2 and 3
+  isAIn = 0.125*totalChargeInnerRing > 2*FV0DigParam::Instance().InnerChargeLevel;  // ring 1,2 and 3
+  //isAOut = nSignalOuter > FV0DigParam::Instance().NchannelsLevel; // ring 4 and 5
+  isAOut = 0.125*totalChargeOuterRing > 2*FV0DigParam::Instance().OuterChargeLevel; // ring 4 and 5
   isTotalCharge = 0.125 * totalChargeAllRing > 2 * FV0DigParam::Instance().ChargeLevel;
 
   Triggers triggers;
