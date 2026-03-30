@@ -310,12 +310,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
                        static auto totalTimeframesReadMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-timeframes-read");
                        static auto totalTimeframesConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-timeframes-consumed");
-                       static auto totalTimeframesInFlyMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-timeframes-in-fly");
+                       static auto totalTimeframesInFlightMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-timeframes-in-flight");
 
                        static auto totalTimeslicesStartedMetric = createUint64DriverMetric("total-timeslices-started");
                        static auto totalTimeslicesExpiredMetric = createUint64DriverMetric("total-timeslices-expired");
                        static auto totalTimeslicesDoneMetric = createUint64DriverMetric("total-timeslices-done");
-                       static auto totalTimeslicesInFlyMetric = createIntDriverMetric("total-timeslices-in-fly");
+                       static auto totalTimeslicesInFlightMetric = createIntDriverMetric("total-timeslices-in-flight");
 
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "arrow-bytes-delta");
                        static auto changedCountMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "changed-metrics-count");
@@ -457,11 +457,11 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
                          totalTimeframesReadMetric(driverMetrics, totalTimeframesRead, timestamp);
                          totalTimeframesConsumedMetric(driverMetrics, totalTimeframesConsumed, timestamp);
-                         totalTimeframesInFlyMetric(driverMetrics, (int)(totalTimeframesRead - totalTimeframesConsumed), timestamp);
+                         totalTimeframesInFlightMetric(driverMetrics, (int)(totalTimeframesRead - totalTimeframesConsumed), timestamp);
                          totalTimeslicesStartedMetric(driverMetrics, totalTimeslicesStarted, timestamp);
                          totalTimeslicesExpiredMetric(driverMetrics, totalTimeslicesExpired, timestamp);
                          totalTimeslicesDoneMetric(driverMetrics, totalTimeslicesDone, timestamp);
-                         totalTimeslicesInFlyMetric(driverMetrics, (int)(totalTimeslicesStarted - totalTimeslicesDone), timestamp);
+                         totalTimeslicesInFlightMetric(driverMetrics, (int)(totalTimeslicesStarted - totalTimeslicesDone), timestamp);
                          totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesExpired - totalBytesDestroyed, timestamp);
                        } else {
                          unchangedCount++;

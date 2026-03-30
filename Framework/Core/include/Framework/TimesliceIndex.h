@@ -126,7 +126,7 @@ class TimesliceIndex
 
   /// Find the lowest value for the timeslices in this instance.
   /// This is the minimum between all the per channel oldest possible timeslices
-  /// and the oldest possible timeslice in-fly which is still dirty.
+  /// and the oldest possible timeslice in flight which is still dirty.
   [[nodiscard]] OldestInputInfo getOldestPossibleInput() const;
   [[nodiscard]] OldestOutputInfo getOldestPossibleOutput() const;
   OldestOutputInfo updateOldestPossibleOutput(bool rewinded);
