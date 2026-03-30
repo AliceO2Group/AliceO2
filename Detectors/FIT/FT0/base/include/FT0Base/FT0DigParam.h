@@ -32,7 +32,7 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float hitTimeOffsetA = 0;          ///< hit time offset on the A side [ns]
   float hitTimeOffsetC = 0;          ///< hit time offset on the C side [ns]
   int mtrg_central_trh = 40;         // Tclu units (40 for pp and 1433 for PbPb in Run3)
-  int mtrg_semicentral_trh = 20;    // Tclu units (20 for pp and 35 for PbPb in Run3)
+  int mtrg_semicentral_trh = 20;     // Tclu units (20 for pp and 35 for PbPb in Run3)
 
   float mMip_in_V = 7;       // MIP to mV
   float mPe_in_mip = 0.004;  // invserse Np.e. in MIP 1./250.
