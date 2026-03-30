@@ -13,4 +13,3 @@
 /// \brief Implementation of the Hit class
 
 #include "TRKSimulation/Hit.h"
-
