@@ -12,8 +12,6 @@
 #include <iostream>
 #include <array>
 #include <ranges>
-#endif
-
 
 R__LOAD_LIBRARY(libO2CommonUtils)
 R__LOAD_LIBRARY(libO2CCDB)
@@ -26,6 +24,8 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 #include "Framework/Logger.h"
 #include "CommonConstants/LHCConstants.h"
 
+#endif
+
 void saveToCSV(const std::vector<o2::fit::EntryFEE>& lut, string_view path);
 void saveToRoot(std::shared_ptr<std::vector<o2::fit::EntryFEE>> lut, string_view path);
 
@@ -35,8 +35,8 @@ void fetchLUT(const std::string ccdbUrl, const std::string detector, long timest
   ccdbApi.init(ccdbUrl);
   const std::string ccdbPath = detector + "/Config/LookupTable";
   std::map<std::string, std::string> metadata;
-  
-  if(timestamp == -1){
+
+  if (timestamp == -1) {
     timestamp = o2::ccdb::getCurrentTimestamp();
   }
 
@@ -50,21 +50,20 @@ void fetchLUT(const std::string ccdbUrl, const std::string detector, long timest
   }
 
   std::cout << detector << " lookup table: " << std::endl;
-  for(const auto& entry: (*lut)) {
+  for (const auto& entry : (*lut)) {
     std::cout << entry << std::endl;
   }
 
-  if(fileName.empty()) {
+  if (fileName.empty()) {
     return;
   }
 
-  if(asCsv) {
+  if (asCsv) {
     saveToCSV(*lut, fileName);
   } else {
     saveToRoot(lut, fileName);
   }
 }
-
 
 void saveToCSV(const std::vector<o2::fit::EntryFEE>& lut, string_view path)
 {
@@ -95,7 +94,7 @@ void saveToCSV(const std::vector<o2::fit::EntryFEE>& lut, string_view path)
 void saveToRoot(std::shared_ptr<std::vector<o2::fit::EntryFEE>> lut, string_view path)
 {
   TFile file(path.data(), "RECREATE");
-  if(file.IsOpen() ==  false) {
+  if (file.IsOpen() == false) {
     LOGP(fatal, "Failed to open file {}", path.data());
   }
 
