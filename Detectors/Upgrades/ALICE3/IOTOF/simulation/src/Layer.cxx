@@ -187,13 +187,10 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setModuleStyle(moduleVol);
 
       // Now we create the volume of the chip, which is the same for all modules
-      const int chipsPerModuleX = 2;                           // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 2;                           // we assume that each module is divided in 2 chips along the z direction
-      const double chipSizeX = moduleSizeX / chipsPerModuleX;  // cm
-      const double chipSizeY = moduleSizeY - mSensorThickness; // cm
-      if (chipSizeY <= 0) {
-        LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is too large for module size " << moduleSizeY << " cm, it leaves no space for the chip";
-      }
+      const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
+      const int chipsPerModuleZ = 2;                          // we assume that each module is divided in 2 chips along the z direction
+      const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
+      const double chipSizeY = moduleSizeY;                   // cm
       const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
       TGeoBBox* chip = new TGeoBBox(chipSizeX * 0.5, chipSizeY * 0.5, chipSizeZ * 0.5);
       TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medSi);
