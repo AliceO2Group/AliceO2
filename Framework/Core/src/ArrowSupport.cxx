@@ -703,7 +703,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           });
           if (tfnsource == workflow.end()) { // add normal reader algorithm only if no on-the-fly generator is injected
             reader->algorithm = CommonDataProcessors::wrapWithTimesliceConsumption(PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader", ctx));
-          } // otherwise the algorithm was set in injectServiceDevices
+          } // otherwise the algorithm was already set in injectServiceDevices
         }
       }
 
