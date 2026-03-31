@@ -28,7 +28,8 @@ struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam>
   std::string detectorPattern = ""; // Layouts of the detector
   bool segmentedInnerTOF = false;   // If the inner TOF layer is segmented
   bool segmentedOuterTOF = false;   // If the outer TOF layer is segmented
-  float x2x0 = 0.000527f;           // thickness expressed in radiation length, for all layers for the moment
+  float x2x0 = 0.02f;               // thickness expressed in radiation length, for all layers for the moment
+  float sensorThickness = 0.0050f;  // thickness of the sensor in cm, for all layers for the moment, the default is set to 50 microns
 
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };
