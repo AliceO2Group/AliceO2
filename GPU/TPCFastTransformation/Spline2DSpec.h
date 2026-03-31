@@ -659,7 +659,7 @@ class Spline2DSpec<DataT, 1, 3>
   /// Simplified interface for 1D: return the interpolated value
   GPUd() DataT interpolate(DataT x1, DataT x2) const
   {
-    DataT S = 0.;
+    DataT S = 0;
     TBase::interpolate(x1, x2, &S);
     return S;
   }

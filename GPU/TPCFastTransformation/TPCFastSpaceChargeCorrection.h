@@ -65,7 +65,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
       this->zScale = zScale_;
       this->zOut = zOut_;
       // no scaling when the distance to the readout is too small
-      this->splineScalingWithZ = fabs(zReadout_ - zOut_) > 1. ? 1. / (zReadout_ - zOut_) : 0.;
+      this->splineScalingWithZ = fabs(zReadout_ - zOut_) > 1.f ? 1.f / (zReadout_ - zOut_) : 0.f;
     }
 
     float getY0() const { return y0; }

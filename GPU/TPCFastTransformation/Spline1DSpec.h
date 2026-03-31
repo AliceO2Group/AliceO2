@@ -392,7 +392,7 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
     dSdDr = v * a;
 
     T dv = T(knotL.Li);
-    dDdSr = 6. * v * (T(1.) - v) * dv;
+    dDdSr = T(6.) * v * (T(1.) - v) * dv;
     dDdSl = -dDdSr;
     dDdDl = vm1 * (v + v + vm1);
     dDdDr = v * (v + vm1 + vm1);
@@ -567,7 +567,7 @@ class Spline1DSpec<DataT, 1, 3>
   /// Simplified interface for 1D: return the interpolated value
   GPUd() DataT interpolate(DataT x) const
   {
-    DataT S = 0.;
+    DataT S = 0;
     TBase::interpolate(x, &S);
     return S;
   }
