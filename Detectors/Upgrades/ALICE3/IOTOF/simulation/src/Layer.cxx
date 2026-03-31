@@ -334,7 +334,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       const int sensorsPerChipX = 2;                          // we assume that each chip is divided in 2 sensors along the x direction
       const int sensorsPerChipZ = 2;                          // we assume that each chip is divided in 2 sensors along the z direction
       const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
-      const double sensorSizeY = chipSizeY;                   // cm
+      const double sensorSizeY = mSensorThickness;            // cm
       const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm
       TGeoBBox* sensor = new TGeoBBox(sensorSizeX * 0.5, sensorSizeY * 0.5, sensorSizeZ * 0.5);
       TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
