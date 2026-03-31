@@ -93,6 +93,19 @@ float CMVPerTF::getCMVFloat(const int cru, const int timeBin) const
   return positive ? magnitude : -magnitude;
 }
 
+void CMVPerTF::zeroSmallValues(float threshold)
+{
+  if (threshold <= 0.f) {
+    return;
+  }
+  for (uint32_t i = 0; i < static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF; ++i) {
+    const float mag = (mDataPerTF[i] & 0x7FFF) / 128.f;
+    if (mag < threshold) {
+      mDataPerTF[i] = 0;
+    }
+  }
+}
+
 CMVPerTFCompressed CMVPerTF::compress() const
 {
   CMVPerTFCompressed out;

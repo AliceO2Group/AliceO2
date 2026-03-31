@@ -155,6 +155,10 @@ o2_add_test_root_macro(macro/prepareITFiles.C
                        COMPILE_ONLY
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
                        LABELS tpc)
+o2_add_test_root_macro(macro/drawCMV.C
+                       COMPILE_ONLY
+                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration O2::TPCBase
+                       LABELS tpc)
 
 o2_add_test(IDCFourierTransform
             COMPONENT_NAME calibration

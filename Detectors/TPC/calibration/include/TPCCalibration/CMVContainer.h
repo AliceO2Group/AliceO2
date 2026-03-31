@@ -56,7 +56,6 @@ struct CMVPerTFCompressed {
 /// CMV data for one TF across all CRUs
 /// Raw 16-bit CMV values are stored in a flat C array indexed as [cru * NTimeBinsPerTF + timeBin]
 /// CRU::MaxCRU and cmv::NTimeBinsPerTF are compile-time constants, so no dynamic allocation is needed
-/// Each TTree entry corresponds to one CMVPerTF object (one TF)
 struct CMVPerTF {
   uint32_t firstOrbit{0}; ///< First orbit of this TF, from heartbeatOrbit of the first CMV packet
   uint16_t firstBC{0};    ///< First bunch crossing of this TF, from heartbeatBC of the first CMV packet
@@ -69,6 +68,10 @@ struct CMVPerTF {
 
   /// Return the float CMV value for a given CRU and timebin within this TF
   float getCMVFloat(const int cru, const int timeBin) const;
+
+  /// Zero out raw CMV values whose float magnitude is below threshold (default 1.0 ADC)
+  /// This converts the sign-magnitude raw value to 0x0000 for all entries with |float value| < threshold
+  void zeroSmallValues(float threshold = 1.0f);
 
   /// Compress this object into a CMVPerTFCompressed using delta+zigzag+varint encoding
   CMVPerTFCompressed compress() const;

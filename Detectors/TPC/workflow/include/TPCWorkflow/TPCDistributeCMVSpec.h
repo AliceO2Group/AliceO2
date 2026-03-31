@@ -98,6 +98,10 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       mNTFsDataDrop = mCheckEveryNData;
     }
     mDumpCMVs = ic.options().get<bool>("dump-cmvs");
+    mUseCompression = ic.options().get<bool>("use-compression");
+    mZeroThreshold = ic.options().get<float>("cmv-zero-threshold");
+    // re-initialise the interval tree now that mUseCompression is known (constructor used the default)
+    initIntervalTree();
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
@@ -242,8 +246,18 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     if (mProcessedCRU[currentBuffer][relTF] == mCRUs.size()) {
       ++mProcessedTFs[currentBuffer];
-      // compress the completed TF and fill one TTree entry, then reset the staging object
-      mCurrentCompressedTF = mCurrentTF.compress();
+      // zero out small values before storing (helps ROOT zlib for raw path; benign for compressed path)
+      if (mIntervalTFCount == 0) {
+        if (mZeroThreshold > 0.f) {
+          LOGP(info, "Zeroing CMV values with |value| < {:.3f} ADC counts before storing", mZeroThreshold);
+        } else {
+          LOGP(info, "cmv-zero-threshold <= 0, skipping zeroing of small CMV values");
+        }
+      }
+      mCurrentTF.zeroSmallValues(mZeroThreshold);
+      if (mUseCompression) {
+        mCurrentCompressedTF = mCurrentTF.compress();
+      }
       mIntervalTree->Fill();
       ++mIntervalTFCount;
       mCurrentTF = CMVPerTF{};
@@ -300,9 +314,11 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   std::vector<bool> mSendCCDBOutputOrbitReset{};                                       ///< flag for received orbit reset time from CCDB
   std::vector<bool> mSendCCDBOutputGRPECS{};                                           ///< flag for received orbit GRPECS from CCDB
   bool mBuffer{false};                                                                 ///< buffer index
-  const bool mSendCCDB{false};                                                         ///< send output to CCDB populator
-  const bool mUsePreciseTimestamp{false};                                              ///< use precise timestamp from orbit-reset info
+  bool mSendCCDB{false};                                                               ///< send output to CCDB populator
+  bool mUsePreciseTimestamp{false};                                                    ///< use precise timestamp from orbit-reset info
   bool mDumpCMVs{false};                                                               ///< write a local ROOT debug file
+  bool mUseCompression{false};                                                         ///< use delta+zigzag+varint compression when storing in TTree; if false, store raw CMVPerTF
+  float mZeroThreshold{1.0f};                                                          ///< zero out CMV values with |float value| < threshold before storing
   long mTimestampStart{0};                                                             ///< CCDB validity start timestamp
   dataformats::Pair<long, int> mTFInfo{};                                              ///< orbit-reset time and NHBFPerTF for precise timestamp
   std::unique_ptr<TTree> mIntervalTree{};                                              ///< TTree accumulating one CMVPerTFCompressed entry per completed TF in the current interval
@@ -323,13 +339,18 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   /// Returns real number of TFs taking buffer size into account
   unsigned int getNRealTFs() const { return mNTFsBuffer * mTimeFrames; }
 
-  /// Create a fresh in-memory TTree for the next aggregation interval, with mCurrentCompressedTF as the fill source
+  /// Create a fresh in-memory TTree for the next aggregation interval.
+  /// Branches on CMVPerTFCompressed (delta+zigzag+varint) or CMVPerTF (raw) depending on mUseCompression.
   void initIntervalTree()
   {
     mIntervalTree = std::make_unique<TTree>("ccdb_object", "ccdb_object");
     mIntervalTree->SetAutoSave(0);
     mIntervalTree->SetDirectory(nullptr);
-    mIntervalTree->Branch("CMVPerTFCompressed", &mCurrentCompressedTF);
+    if (mUseCompression) {
+      mIntervalTree->Branch("CMVPerTFCompressed", &mCurrentCompressedTF);
+    } else {
+      mIntervalTree->Branch("CMVPerTF", &mCurrentTF);
+    }
   }
 
   void clearBuffer(const bool currentBuffer)
@@ -543,7 +564,9 @@ DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uin
     Options{{"drop-data-after-nTFs", VariantType::Int, 0, {"Number of TFs after which to drop the data."}},
             {"check-data-every-n", VariantType::Int, 0, {"Number of run function called after which to check for missing data (-1 for no checking, 0 for default checking)."}},
             {"nFactorTFs", VariantType::Int, 1000, {"Number of TFs to skip for sending oldest TF."}},
-            {"dump-cmvs", VariantType::Bool, false, {"Dump CMVs to a local ROOT file for debugging"}}}}; // end DataProcessorSpec
+            {"dump-cmvs", VariantType::Bool, false, {"Dump CMVs to a local ROOT file for debugging"}},
+            {"use-compression", VariantType::Bool, false, {"Use delta+zigzag+varint compression when storing CMVs in TTree (false = store raw CMVPerTF, relies on ROOT built-in zlib)"}},
+            {"cmv-zero-threshold", VariantType::Float, 1.0f, {"Zero out CMV values with |value| < threshold (ADC counts) before storing; 0 disables zeroing"}}}}; // end DataProcessorSpec
   spec.rank = ilane;
   return spec;
 }

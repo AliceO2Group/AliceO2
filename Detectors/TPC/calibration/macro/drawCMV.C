@@ -76,22 +76,44 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
   constexpr int nTimeBins = cmv::NTimeBinsPerTF;
 
   TH2F* h2d = new TH2F("hCMVvsTimeBin", ";Timebin (200 ns);Common Mode Values (ADC)",
-                       nTimeBins / 16, 0, nTimeBins,
-                       110, -100, 10);
+                       100, 0, nTimeBins,
+                       110, -100.5, 9.5);
   h2d->SetStats(0);
 
-  // branch setup
-  o2::tpc::CMVPerTFCompressed* tfEntry = nullptr;
-  tree->SetBranchAddress("CMVPerTFCompressed", &tfEntry);
+  // auto-detect branch format: compressed (delta+zigzag+varint) or raw CMVPerTF
+  const bool isCompressed = (tree->GetBranch("CMVPerTFCompressed") != nullptr);
+  const bool isRaw = (tree->GetBranch("CMVPerTF") != nullptr);
+  if (!isCompressed && !isRaw) {
+    fmt::print("ERROR: neither 'CMVPerTFCompressed' nor 'CMVPerTF' branch found\n");
+    return arrCanvases;
+  }
+  fmt::print("Branch format: {}\n", isCompressed ? "CMVPerTFCompressed (delta+zigzag+varint)" : "CMVPerTF (raw)");
 
-  // allocate once outside the loop to avoid repeated zero-initialisation of the large array
-  auto* tf = new CMVPerTF();
+  // branch setup
+  o2::tpc::CMVPerTFCompressed* tfCompressed = nullptr;
+  o2::tpc::CMVPerTF* tfRaw = nullptr;
+  // staging object for decompression (only used in compressed path)
+  CMVPerTF* tfDecoded = isCompressed ? new CMVPerTF() : nullptr;
+
+  if (isCompressed) {
+    tree->SetBranchAddress("CMVPerTFCompressed", &tfCompressed);
+  } else {
+    tree->SetBranchAddress("CMVPerTF", &tfRaw);
+  }
 
   long firstOrbit = -1;
 
   for (int i = 0; i < nEntries; ++i) {
     tree->GetEntry(i);
-    tfEntry->decompress(tf);
+
+    // resolve to a unified pointer regardless of storage format
+    const CMVPerTF* tf = nullptr;
+    if (isCompressed) {
+      tfCompressed->decompress(tfDecoded);
+      tf = tfDecoded;
+    } else {
+      tf = tfRaw;
+    }
 
     if (i == 0) {
       firstOrbit = tf->firstOrbit;
@@ -104,9 +126,9 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
     }
   }
 
-  delete tf;
+  delete tfDecoded;
   tree->ResetBranchAddresses();
-  delete tfEntry;
+  delete tfCompressed;
 
   fmt::print("firstOrbit: {}\n", firstOrbit);
 

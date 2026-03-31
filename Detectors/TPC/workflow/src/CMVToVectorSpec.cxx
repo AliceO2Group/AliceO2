@@ -427,7 +427,7 @@ o2::framework::DataProcessorSpec getCMVToVectorSpec(const std::string inputSpec,
       {"write-raw-data-on-error", VariantType::Bool, false, {"dump raw data in case errors occurred"}},
       {"raw-file-name", VariantType::String, "/tmp/cmv_debug.{run}.{raw_type}", {"name of the raw output file"}},
       {"raw-data-type", VariantType::Int, 0, {"Which raw data to dump: 0-full TPC with DH, 1-full TPC with DH skip empty, 2-full TPC no DH, 3-full TPC no DH skip empty, 4-IDC raw only 5-CMV raw only"}},
-      {"check-incomplete-hbf", VariantType::Bool, false, {"false: don't chck; true: check and report"}},
+      {"check-incomplete-hbf", VariantType::Bool, false, {"false: don't check; true: check and report"}},
     } // end Options
   }; // end DataProcessorSpec
 }
