@@ -19,6 +19,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{"tof-dia-run-number", o2::framework::VariantType::Int, -1, {"run number"}});
+  workflowOptions.push_back(ConfigParamSpec{"tof-dia-min-rowin", o2::framework::VariantType::Int, 100000, {"min number of TOF Readout Windows, def=100k (3 s)"}});
 }
 
 // ------------------------------------------------------------------
@@ -29,6 +30,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   auto runnumber = configcontext.options().get<int>("tof-dia-run-number");
-  specs.emplace_back(getTOFDiagnosticCalibDeviceSpec(runnumber));
+  auto rowinMin = configcontext.options().get<int>("tof-dia-min-rowin");
+  specs.emplace_back(getTOFDiagnosticCalibDeviceSpec(runnumber, rowinMin));
   return specs;
 }
