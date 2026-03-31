@@ -26,7 +26,7 @@ class Layer
  public:
   Layer() = default;
   Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0,
-        int layout = kBarrel, int nStaves = 0, float staveSize = 0.0, double staveTiltAngle = 0.0, int modulesPerStave = 0);
+        int layout = kBarrel, int nStaves = 0, float staveSize = 0.0, double staveTiltAngle = 0.0, int modulesPerStave = 0, float sensorThickness = 0.0f);
   ~Layer() = default;
 
   auto getInnerRadius() const { return mInnerRadius; }
@@ -52,8 +52,9 @@ class Layer
   float mZLength;
   float mZOffset{0.f}; // Of use when fwd layers
   float mX2X0;
-  float mChipThickness;
-  int mLayout{kBarrel}; // Identifier of the type of layer layout (barrel, disk, barrel segmented, disk segmented)
+  float mChipThickness;   // Thickness of the chip in cm, derived from mX2X0 and the radiation length of silicon
+  float mSensorThickness; // Thickness of the sensor in cm, to be subtracted from the chip thickness to get the total module thickness
+  int mLayout{kBarrel};   // Identifier of the type of layer layout (barrel, disk, barrel segmented, disk segmented)
   // To be used only in case of the segmented layout, to define the number of staves in phi (for barrel) or in r (for disk)
   std::pair<int, float> mStaves{0, 0.0f}; // Number and size of staves in phi (for barrel) or in r (for disk) in case of segmented layout
   int mModulesPerStave{0};                // Number of modules along a stave
