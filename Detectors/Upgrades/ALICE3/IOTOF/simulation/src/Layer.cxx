@@ -28,19 +28,20 @@ namespace o2
 namespace iotof
 {
 Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0,
-             int layout, int nStaves, float staveSize, double staveTiltAngle, int modulesPerStave)
+             int layout, int nStaves, float staveSize, double staveTiltAngle, int modulesPerStave, float sensorThickness)
   : mLayerName(layerName),
     mInnerRadius(rInn),
     mOuterRadius(rOut),
     mZLength(zLength),
     mZOffset(zOffset),
+    mSensorThickness(sensorThickness),
     mX2X0(layerX2X0),
     mLayout(layout),
     mStaves(nStaves, staveSize),
     mModulesPerStave(modulesPerStave),
     mTiltAngle(staveTiltAngle)
 {
-  const float Si_X0 = 9.5f;
+  const float Si_X0 = 9.5f; // cm, radiation length of silicon
   mChipThickness = mX2X0 * Si_X0;
   std::string name = "";
   switch (layout) {
@@ -75,6 +76,12 @@ Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float
   }
   if ((mTiltAngle < 0.0 || mTiltAngle > 90.0) && (layout == kBarrelSegmented || layout == kDiskSegmented)) {
     LOG(fatal) << "Invalid configuration: tilt angle " << mTiltAngle << " is too large, it must be between 0 and 90 degrees";
+  }
+  if (mSensorThickness < 0.0f || mSensorThickness > mChipThickness) {
+    LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is out of range (0, " << mChipThickness << ") cm";
+  }
+  if (sensorThickness > 0.0f && (layout == kBarrel || layout == kDisk)) {
+    LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is set for non-segmented layout, it should be 0";
   }
 
   LOGP(info, "TOF: Creating {} layer: rInner: {} (cm) rOuter: {} (cm) zLength: {} (cm) zOffset: {} x2X0: {}", name.c_str(), mInnerRadius, mOuterRadius, mZLength, mZOffset, mX2X0);
@@ -180,10 +187,13 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setModuleStyle(moduleVol);
 
       // Now we create the volume of the chip, which is the same for all modules
-      const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 2;                          // we assume that each module is divided in 2 chips along the z direction
-      const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
-      const double chipSizeY = moduleSizeY;                   // cm
+      const int chipsPerModuleX = 2;                           // we assume that each module is divided in 2 chips along the x direction
+      const int chipsPerModuleZ = 2;                           // we assume that each module is divided in 2 chips along the z direction
+      const double chipSizeX = moduleSizeX / chipsPerModuleX;  // cm
+      const double chipSizeY = moduleSizeY - mSensorThickness; // cm
+      if (chipSizeY <= 0) {
+        LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is too large for module size " << moduleSizeY << " cm, it leaves no space for the chip";
+      }
       const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
       TGeoBBox* chip = new TGeoBBox(chipSizeX * 0.5, chipSizeY * 0.5, chipSizeZ * 0.5);
       TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medSi);
@@ -193,7 +203,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       const int sensorsPerChipX = 2;                          // we assume that each chip is divided in 2 sensors along the x direction
       const int sensorsPerChipZ = 2;                          // we assume that each chip is divided in 2 sensors along the z direction
       const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
-      const double sensorSizeY = chipSizeY;                   // cm
+      const double sensorSizeY = mSensorThickness;            // cm
       const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm
       TGeoBBox* sensor = new TGeoBBox(sensorSizeX * 0.5, sensorSizeY * 0.5, sensorSizeZ * 0.5);
       TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
