@@ -58,7 +58,7 @@ void Detector::ConstructGeometry()
 }
 
 void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::string pattern, bool itofSegmented, bool otofSegmented,
-                            const float x2x0)
+                            const float x2x0, const float sensorThickness)
 {
 
   const std::pair<float, float> dInnerTof = {21.f, 129.f}; // Radius and length
@@ -102,7 +102,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     const int modulesPerStave = itofSegmented ? 10 : 0;      // number of modules per stave in segmented case
     mITOFLayer = ITOFLayer(name,
                            dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrel,
-                           nStaves, staveWidth, staveTiltAngle, modulesPerStave);
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, itofSegmented ? sensorThickness : 0.0f);
   }
   if (otof) { // oTOF
     const std::string name = GeometryTGeo::getOTOFLayerPattern();
@@ -112,7 +112,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     const int modulesPerStave = otofSegmented ? 54 : 0;      // number of modules per stave in segmented case
     mOTOFLayer = OTOFLayer(name,
                            dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, otofSegmented ? OTOFLayer::kBarrelSegmented : OTOFLayer::kBarrel,
-                           nStaves, staveWidth, staveTiltAngle, modulesPerStave);
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, otofSegmented ? sensorThickness : 0.0f);
   }
   if (ftof) {
     const std::string name = GeometryTGeo::getFTOFLayerPattern();
