@@ -68,6 +68,7 @@
 #include "Framework/DefaultsHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
+#include "StatusWebSocketHandler.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 #include "ArrowSupport.h"
@@ -891,6 +892,7 @@ void processChildrenOutput(uv_loop_t* loop,
         info.history[info.historyPos] = token;
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
+        info.logSeq++;
         fmt::print("[{}:{}]: {}\n", info.pid, spec.id, token);
       }
       // We keep track of the maximum log error a
@@ -1541,6 +1543,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_async_init(loop, serverContext.asyncLogProcessing, [](uv_async_t* handle) {
     auto* context = (DriverServerContext*)handle->data;
     processChildrenOutput(context->loop, *context->driver, *context->infos, *context->specs, *context->controls);
+    for (auto* statusHandler : context->statusHandlers) {
+      for (size_t di = 0; di < context->infos->size(); ++di) {
+        statusHandler->sendNewLogs(di);
+      }
+    }
   });
 
   while (true) {

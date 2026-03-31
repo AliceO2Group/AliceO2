@@ -158,6 +158,7 @@ o2_add_library(Framework
                        src/StepTHn.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
+                       src/StatusWebSocketHandler.cxx
                        src/TimerParamSpec.cxx
                        test/TestClasses.cxx
                TARGETVARNAME targetName
