@@ -215,55 +215,67 @@ void GPUReconstructionCPU::debugWriter::row(char type, uint32_t count, std::stri
 
   if (streamCSV.is_open()) {
     streamCSV << type << ",";
-    if (count != 0)
+    if (count != 0) {
       streamCSV << count;
+    }
     streamCSV << "," << name << ",";
-    if (gpu_time != -1.0)
+    if (gpu_time != -1.0) {
       streamCSV << std::format("{:.0f}", gpu_time * scale);
+    }
     streamCSV << ",";
-    if (cpu_time != -1.0)
+    if (cpu_time != -1.0) {
       streamCSV << std::format("{:.0f}", cpu_time * scale);
+    }
     streamCSV << ",";
-    if (cpu_time != -1.0 && total_time != -1.0)
+    if (cpu_time != -1.0 && total_time != -1.0) {
       streamCSV << std::format("{:.2f}", cpu_time / total_time);
+    }
     streamCSV << ",";
-    if (total_time != -1.0)
+    if (total_time != -1.0) {
       streamCSV << std::format("{:.0f}", total_time * scale);
+    }
     streamCSV << ",";
-    if (memSize != 0 && count != 0)
+    if (memSize != 0 && count != 0) {
       streamCSV << std::format("{:.3f},{},{}", memSize / gpu_time * 1e-9, memSize / mStatNEvents, memSize / mStatNEvents / count);
-    else
+    } else {
       streamCSV << ",,";
+    }
     streamCSV << std::endl;
   }
 
   if (mMarkdown) {
     std::cout << "| " << type << " | ";
-    if (count != 0)
+    if (count != 0) {
       std::cout << std::format("{:6} |", count);
-    else
+    } else {
       std::cout << "       |";
+    }
     std::cout << std::format(" {:42}|", name);
-    if (gpu_time != -1.0)
+    if (gpu_time != -1.0) {
       std::cout << std::format("{:10.0f} |", gpu_time * scale);
-    else
+    } else {
       std::cout << "           |";
-    if (cpu_time != -1.0)
+    }
+    if (cpu_time != -1.0) {
       std::cout << std::format("{:10.0f} |", cpu_time * scale);
-    else
+    } else {
       std::cout << "           |";
-    if (cpu_time != -1.0 && total_time != -1.0)
+    }
+    if (cpu_time != -1.0 && total_time != -1.0) {
       std::cout << std::format("{:8.2f} |", cpu_time / total_time);
-    else
+    } else {
       std::cout << "         |";
-    if (total_time != -1.0)
+    }
+    if (total_time != -1.0) {
       std::cout << std::format("{:10.0f} |", total_time * scale);
-    else
+    } else {
       std::cout << "           |";
-    if (memSize != 0 && count != 0)
+    }
+    if (memSize != 0 && count != 0) {
       std::cout << std::format("{:10.3f} |{:14} |{:14} |", memSize / gpu_time * 1e-9, memSize / mStatNEvents, memSize / mStatNEvents / count);
-    else
+    } else {
       std::cout << "           |               |               |";
+    }
     std::cout << std::endl;
   } else {
     if (name.substr(0, 3) == "GPU") {
