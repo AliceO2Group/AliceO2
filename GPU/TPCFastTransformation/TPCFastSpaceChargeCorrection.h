@@ -73,13 +73,13 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     float getZ0() const { return z0; }
     float getZscale() const { return zScale; }
 
-    GPUd() float getSpineScaleForZ(float z) const
+    GPUdi() float getSpineScaleForZ(float z) const
     {
       return 1.f - GPUCommonMath::Clamp((z - zOut) * splineScalingWithZ, 0.f, 1.f);
     }
 
     /// convert local y, z to internal grid coordinates u,v, and spline scale
-    GPUd() void convLocalToGridUntruncated(float y, float z, float& u, float& v, float& s) const
+    GPUdi() void convLocalToGridUntruncated(float y, float z, float& u, float& v, float& s) const
     {
       u = (y - y0) * yScale;
       v = (z - z0) * zScale;
@@ -87,7 +87,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     }
 
     /// convert internal grid coordinates u,v to local y, z
-    GPUd() void convGridToLocal(float gridU, float gridV, float& y, float& z) const
+    GPUdi() void convGridToLocal(float gridU, float gridV, float& y, float& z) const
     {
       y = y0 + gridU / yScale;
       z = z0 + gridV / zScale;
@@ -215,7 +215,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() void setNoCorrection();
 
   /// Sets the time stamp of the current calibaration
-  GPUd() void setTimeStamp(int64_t v) { mTimeStamp = v; }
+  GPUdi() void setTimeStamp(int64_t v) { mTimeStamp = v; }
 
   /// Gives const pointer to a spline
   GPUd() const SplineType& getSpline(int32_t sector, int32_t row) const;
@@ -287,7 +287,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() bool isRealLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const;
 
   /// TPC geometry information
-  GPUd() const TPCFastTransformGeo& getGeometry() const
+  GPUdi() const TPCFastTransformGeo& getGeometry() const
   {
     return mGeo;
   }
@@ -296,13 +296,13 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   int64_t getTimeStamp() const { return mTimeStamp; }
 
   /// Gives TPC sector & row info
-  GPUd() const SectorRowInfo& getSectorRowInfo(int32_t sector, int32_t row) const
+  GPUdi() const SectorRowInfo& getSectorRowInfo(int32_t sector, int32_t row) const
   {
     return mSectorRowInfos[mGeo.getMaxNumberOfRows() * sector + row];
   }
 
   /// Gives TPC sector & row info
-  GPUd() SectorRowInfo& getSectorRowInfo(int32_t sector, int32_t row)
+  GPUdi() SectorRowInfo& getSectorRowInfo(int32_t sector, int32_t row)
   {
     return mSectorRowInfos[mGeo.getMaxNumberOfRows() * sector + row];
   }

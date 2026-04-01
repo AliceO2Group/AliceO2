@@ -53,7 +53,7 @@ struct TPCSlowSpaceChargeCorrection {
   ~TPCSlowSpaceChargeCorrection() = default;
 
   /// setting dummy corrections for GPU
-  GPUd() void getCorrections(const float gx, const float gy, const float gz, const int32_t sector, float& gdxC, float& gdyC, float& gdzC) const
+  GPUdi() void getCorrections(const float gx, const float gy, const float gz, const int32_t sector, float& gdxC, float& gdyC, float& gdzC) const
   {
     gdxC = 0;
     gdyC = 0;
@@ -172,7 +172,7 @@ class TPCFastTransform : public FlatObject
   void setTimeStamp(int64_t v) { mTimeStamp = v; }
 
   /// Gives a reference for external initialization of TPC corrections
-  GPUd() const TPCFastSpaceChargeCorrection& getCorrection() const { return mCorrection; }
+  GPUdi() const TPCFastSpaceChargeCorrection& getCorrection() const { return mCorrection; }
 
   /// Gives a reference for external initialization of TPC corrections
   TPCFastSpaceChargeCorrection& getCorrection() { return mCorrection; }
@@ -230,37 +230,37 @@ class TPCFastTransform : public FlatObject
   /// _______________  Utilities  _______________________________________________
 
   /// TPC geometry information
-  GPUd() const TPCFastTransformGeo& getGeometry() const { return mCorrection.getGeometry(); }
+  GPUdi() const TPCFastTransformGeo& getGeometry() const { return mCorrection.getGeometry(); }
 
   /// Gives the time stamp of the current calibaration parameters
-  GPUd() int64_t getTimeStamp() const { return mTimeStamp; }
+  GPUdi() int64_t getTimeStamp() const { return mTimeStamp; }
 
   /// Return mVDrift in cm / time bin
-  GPUd() float getVDrift() const { return mVdrift; }
+  GPUdi() float getVDrift() const { return mVdrift; }
 
   /// Return T0 in time bin units
-  GPUd() float getT0() const { return mT0; }
+  GPUdi() float getT0() const { return mT0; }
 
   /// Return map lumi
-  GPUd() float getLumi() const { return mLumi; }
+  GPUdi() float getLumi() const { return mLumi; }
 
-  GPUd() float isLumiSet() const { return mLumi != DEFLUMI; }
+  GPUdi() float isLumiSet() const { return mLumi != DEFLUMI; }
 
   /// Return map lumi error
-  GPUd() float getLumiError() const { return mLumiError; }
+  GPUdi() float getLumiError() const { return mLumiError; }
 
   /// Return map lumi
   GPUd() float getIDC() const;
 
-  GPUd() bool isIDCSet() const { return mIDC != DEFIDC; }
+  GPUdi() bool isIDCSet() const { return mIDC != DEFIDC; }
 
   /// Return map lumi error
-  GPUd() float getIDCError() const { return mIDCError; }
+  GPUdi() float getIDCError() const { return mIDCError; }
 
-  GPUd() float getCTP2IDCFallBackThreshold() const { return mCTP2IDCFallBackThreshold; }
+  GPUdi() float getCTP2IDCFallBackThreshold() const { return mCTP2IDCFallBackThreshold; }
 
   /// Return map user defined lumi scale factor
-  GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
+  GPUdi() float getLumiScaleFactor() const { return mLumiScaleFactor; }
 
   /// maximal possible drift time of the active area
   GPUd() float getMaxDriftTime(int32_t sector, int32_t row, float pad) const;

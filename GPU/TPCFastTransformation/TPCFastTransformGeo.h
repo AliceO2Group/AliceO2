@@ -53,10 +53,10 @@ class TPCFastTransformGeo
     float yMin{0.f};     ///< min. y coordinate
 
     /// get Y min
-    GPUd() float getYmin() const { return yMin; }
+    GPUdi() float getYmin() const { return yMin; }
 
     /// get Y max
-    GPUd() float getYmax() const { return -yMin; }
+    GPUdi() float getYmax() const { return -yMin; }
 
     /// get Y range
 #ifndef GPUCA_GPUCODE_DEVICE
@@ -64,7 +64,7 @@ class TPCFastTransformGeo
 #endif
 
     /// get width in Y
-    GPUd() float getYwidth() const { return -2.f * yMin; }
+    GPUdi() float getYwidth() const { return -2.f * yMin; }
 
     ClassDefNV(RowInfo, 2);
   };
@@ -110,16 +110,16 @@ class TPCFastTransformGeo
   /// _______________  Getters _________________________________
 
   /// Gives number of TPC sectors
-  GPUd() static constexpr int32_t getNumberOfSectors() { return NumberOfSectors; }
+  GPUdi() static constexpr int32_t getNumberOfSectors() { return NumberOfSectors; }
 
   /// Gives number of TPC sectors on the A side
-  GPUd() static constexpr int32_t getNumberOfSectorsA() { return NumberOfSectorsA; }
+  GPUdi() static constexpr int32_t getNumberOfSectorsA() { return NumberOfSectorsA; }
 
   /// Gives number of TPC rows
-  GPUd() int32_t getNumberOfRows() const { return mNumberOfRows; }
+  GPUdi() int32_t getNumberOfRows() const { return mNumberOfRows; }
 
   /// Gives number of TPC rows
-  GPUd() static constexpr int getMaxNumberOfRows() { return MaxNumberOfRows; }
+  GPUdi() static constexpr int getMaxNumberOfRows() { return MaxNumberOfRows; }
 
   /// Gives sector info
   GPUd() const SectorInfo& getSectorInfo(int32_t sector) const;
@@ -128,7 +128,7 @@ class TPCFastTransformGeo
   GPUd() const RowInfo& getRowInfo(int32_t row) const;
 
   /// Gives Z length of the TPC, one Z side
-  GPUd() float getTPCzLength() const { return mTPCzLength; }
+  GPUdi() float getTPCzLength() const { return mTPCzLength; }
 
   /// Gives Z range for the corresponding TPC side
 #ifndef GPUCA_GPUCODE_DEVICE
