@@ -80,22 +80,31 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
                        110, -100.5, 9.5);
   h2d->SetStats(0);
 
-  // auto-detect branch format: compressed (delta+zigzag+varint) or raw CMVPerTF
+  // auto-detect branch format: sparse, huffman, compressed (delta+zigzag+varint), or raw CMVPerTF
+  const bool isSparse = (tree->GetBranch("CMVPerTFSparse") != nullptr);
+  const bool isHuffman = (tree->GetBranch("CMVPerTFHuffman") != nullptr);
   const bool isCompressed = (tree->GetBranch("CMVPerTFCompressed") != nullptr);
   const bool isRaw = (tree->GetBranch("CMVPerTF") != nullptr);
-  if (!isCompressed && !isRaw) {
-    fmt::print("ERROR: neither 'CMVPerTFCompressed' nor 'CMVPerTF' branch found\n");
+  if (!isSparse && !isHuffman && !isCompressed && !isRaw) {
+    fmt::print("ERROR: no recognised branch found (expected CMVPerTFSparse, CMVPerTFHuffman, CMVPerTFCompressed, or CMVPerTF)\n");
     return arrCanvases;
   }
-  fmt::print("Branch format: {}\n", isCompressed ? "CMVPerTFCompressed (delta+zigzag+varint)" : "CMVPerTF (raw)");
+  const std::string branchFormat = isSparse ? "CMVPerTFSparse (sparse)" : (isHuffman ? "CMVPerTFHuffman (delta+zigzag+Huffman)" : (isCompressed ? "CMVPerTFCompressed (delta+zigzag+varint)" : "CMVPerTF (raw)"));
+  fmt::print("Branch format: {}\n", branchFormat);
 
-  // branch setup
+  // branch setup — only one pointer is active depending on the detected format
+  o2::tpc::CMVPerTFSparse* tfSparse = nullptr;
+  o2::tpc::CMVPerTFHuffman* tfHuffman = nullptr;
   o2::tpc::CMVPerTFCompressed* tfCompressed = nullptr;
   o2::tpc::CMVPerTF* tfRaw = nullptr;
-  // staging object for decompression (only used in compressed path)
-  CMVPerTF* tfDecoded = isCompressed ? new CMVPerTF() : nullptr;
+  // staging object for decompression
+  CMVPerTF* tfDecoded = (isSparse || isHuffman || isCompressed) ? new CMVPerTF() : nullptr;
 
-  if (isCompressed) {
+  if (isSparse) {
+    tree->SetBranchAddress("CMVPerTFSparse", &tfSparse);
+  } else if (isHuffman) {
+    tree->SetBranchAddress("CMVPerTFHuffman", &tfHuffman);
+  } else if (isCompressed) {
     tree->SetBranchAddress("CMVPerTFCompressed", &tfCompressed);
   } else {
     tree->SetBranchAddress("CMVPerTF", &tfRaw);
@@ -108,7 +117,13 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
 
     // resolve to a unified pointer regardless of storage format
     const CMVPerTF* tf = nullptr;
-    if (isCompressed) {
+    if (isSparse) {
+      tfSparse->decompress(tfDecoded);
+      tf = tfDecoded;
+    } else if (isHuffman) {
+      tfHuffman->decompress(tfDecoded);
+      tf = tfDecoded;
+    } else if (isCompressed) {
       tfCompressed->decompress(tfDecoded);
       tf = tfDecoded;
     } else {
@@ -128,6 +143,8 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
 
   delete tfDecoded;
   tree->ResetBranchAddresses();
+  delete tfSparse;
+  delete tfHuffman;
   delete tfCompressed;
 
   fmt::print("firstOrbit: {}\n", firstOrbit);
