@@ -41,6 +41,17 @@ struct WSDPLHandler;
 ///   {"cmd":"unsubscribe_logs","device":"<name>"}
 ///     → driver stops pushing log lines for the device
 ///
+///   {"cmd":"enable_signpost","device":"<name>","streams":["device","completion",...]}
+///     → enable the named signpost log streams for a device (or the driver if device=="")
+///     → known streams: "device","completion","monitoring_service","data_processor_context","stream_context"
+///
+///   {"cmd":"disable_signpost","device":"<name>","streams":["device","completion",...]}
+///     → disable the named signpost log streams for a device
+///
+///   {"cmd":"list_signposts"}
+///     → driver replies with {"type":"signposts_list","streams":["device","completion",...]}
+///     → lists the known stream names
+///
 /// Protocol (driver → client):
 ///   {"type":"snapshot","devices":[{"name","pid","active","streamingState","deviceState"},...]}
 ///     → sent once on connect; contains no metrics or logs
@@ -84,6 +95,8 @@ struct StatusWebSocketHandler : public WebSocketHandler {
   void handleUnsubscribe(std::string_view deviceName, std::string_view metricsJson);
   void handleSubscribeLogs(std::string_view deviceName);
   void handleUnsubscribeLogs(std::string_view deviceName);
+  void handleEnableSignpost(std::string_view deviceName, std::string_view streamsArr);
+  void handleDisableSignpost(std::string_view deviceName, std::string_view streamsArr);
   size_t findDeviceIndex(std::string_view name) const;
 
   DriverServerContext& mContext;

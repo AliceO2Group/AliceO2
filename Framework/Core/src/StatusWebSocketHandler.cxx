@@ -12,11 +12,15 @@
 #include "StatusWebSocketHandler.h"
 #include "DPLWebSocket.h"
 #include "DriverServerContext.h"
+#include "Framework/DeviceControl.h"
+#include "Framework/DeviceController.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceState.h"
 #include "Framework/DeviceStateEnums.h"
 #include "Framework/LogParsingHelpers.h"
+#include "Framework/Signpost.h"
 #include <algorithm>
 #include <cstdio>
 #include <string>
@@ -250,6 +254,10 @@ void StatusWebSocketHandler::frame(char const* data, size_t s)
     handleSubscribeLogs(deviceName);
   } else if (cmd == "unsubscribe_logs") {
     handleUnsubscribeLogs(deviceName);
+  } else if (cmd == "enable_signpost") {
+    handleEnableSignpost(deviceName, extractArrayField(msg, "streams"));
+  } else if (cmd == "disable_signpost") {
+    handleDisableSignpost(deviceName, extractArrayField(msg, "streams"));
   }
 }
 
@@ -431,6 +439,69 @@ size_t StatusWebSocketHandler::findDeviceIndex(std::string_view name) const
     }
   }
   return SIZE_MAX;
+}
+
+void StatusWebSocketHandler::handleEnableSignpost(std::string_view deviceName, std::string_view streamsArr)
+{
+  if (streamsArr.empty()) {
+    return;
+  }
+  if (deviceName.empty()) {
+    // Driver process — toggle in-process via o2_walk_logs.
+    forEachStringInArray(streamsArr, [](std::string_view streamName) {
+      std::string target(streamName);
+      o2_walk_logs([](char const* name, void* l, void* context) -> bool {
+        auto* log = static_cast<_o2_log_t*>(l);
+        if (static_cast<std::string*>(context)->compare(name) == 0) {
+          _o2_log_set_stacktrace(log, log->defaultStacktrace);
+          return false;
+        }
+        return true;
+      }, &target);
+    });
+  } else {
+    size_t di = findDeviceIndex(deviceName);
+    if (di == SIZE_MAX || di >= mContext.controls->size() || !(*mContext.controls)[di].controller) {
+      return;
+    }
+    auto* controller = (*mContext.controls)[di].controller;
+    forEachStringInArray(streamsArr, [controller](std::string_view name) {
+      std::string cmd = "/signpost:enable ";
+      cmd += name;
+      controller->write(cmd.c_str(), cmd.size());
+    });
+  }
+}
+
+void StatusWebSocketHandler::handleDisableSignpost(std::string_view deviceName, std::string_view streamsArr)
+{
+  if (streamsArr.empty()) {
+    return;
+  }
+  if (deviceName.empty()) {
+    forEachStringInArray(streamsArr, [](std::string_view streamName) {
+      std::string target(streamName);
+      o2_walk_logs([](char const* name, void* l, void* context) -> bool {
+        auto* log = static_cast<_o2_log_t*>(l);
+        if (static_cast<std::string*>(context)->compare(name) == 0) {
+          _o2_log_set_stacktrace(log, 0);
+          return false;
+        }
+        return true;
+      }, &target);
+    });
+  } else {
+    size_t di = findDeviceIndex(deviceName);
+    if (di == SIZE_MAX || di >= mContext.controls->size() || !(*mContext.controls)[di].controller) {
+      return;
+    }
+    auto* controller = (*mContext.controls)[di].controller;
+    forEachStringInArray(streamsArr, [controller](std::string_view name) {
+      std::string cmd = "/signpost:disable ";
+      cmd += name;
+      controller->write(cmd.c_str(), cmd.size());
+    });
+  }
 }
 
 void StatusWebSocketHandler::handleSubscribeLogs(std::string_view deviceName)

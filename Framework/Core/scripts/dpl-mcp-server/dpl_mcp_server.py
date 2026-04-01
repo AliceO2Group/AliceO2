@@ -238,6 +238,37 @@ async def get_logs(max_lines: int = 100) -> str:
 
 
 @mcp.tool()
+async def enable_signpost(device: str, streams: list[str]) -> str:
+    """Enable one or more signpost log streams for a DPL device.
+
+    Signpost streams produce detailed trace output visible in the device logs.
+    Use get_logs() after subscribing to see the output.
+
+    Known stream names (full form): ch.cern.aliceo2.device,
+    ch.cern.aliceo2.completion, ch.cern.aliceo2.monitoring_service,
+    ch.cern.aliceo2.data_processor_context, ch.cern.aliceo2.stream_context.
+
+    Args:
+        device: Device name as shown by list_devices, or "" for the driver.
+        streams: List of full signpost log names to enable.
+    """
+    await _send({"cmd": "enable_signpost", "device": device, "streams": streams})
+    return f"Enabled {len(streams)} signpost stream(s) for '{device or 'driver'}': {', '.join(streams)}"
+
+
+@mcp.tool()
+async def disable_signpost(device: str, streams: list[str]) -> str:
+    """Disable one or more signpost log streams for a DPL device.
+
+    Args:
+        device: Device name as shown by list_devices, or "" for the driver.
+        streams: List of full signpost log names to disable.
+    """
+    await _send({"cmd": "disable_signpost", "device": device, "streams": streams})
+    return f"Disabled {len(streams)} signpost stream(s) for '{device or 'driver'}': {', '.join(streams)}"
+
+
+@mcp.tool()
 async def get_updates(max_updates: int = 50) -> str:
     """Drain and return buffered metric update frames received since the last call.
 
