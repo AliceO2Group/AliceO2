@@ -35,6 +35,7 @@
 #include <memory>
 #include <type_traits>
 #include <concepts>
+#include <span>
 
 #include <fairmq/FwdDecls.h>
 
@@ -43,6 +44,12 @@ namespace o2::framework
 
 // Wrapper class to get CCDB metadata
 struct CCDBMetadataExtractor {
+};
+
+/// Tag type to retrieve the raw binary payload of a CCDB entry without ROOT
+/// deserialization. The returned span is valid for the duration of the
+/// processing callback. Use as: inputs.get<CCDBBlob>("binding")
+struct CCDBBlob {
 };
 
 struct InputSpec;
@@ -520,6 +527,18 @@ class InputRecord
     cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
     oldId.value = id.value;
     return cache.idToMetadata[id];
+  }
+
+  template <typename T = DataRef, typename R>
+  std::span<const char> get(R binding, int part = 0) const
+    requires std::same_as<T, CCDBBlob>
+  {
+    auto ref = getRef(binding, part);
+    auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
+    if (header->payloadSerializationMethod != header::gSerializationMethodCCDB) {
+      throw runtime_error("Attempt to extract CCDBBlob from a non-CCDB-serialized message");
+    }
+    return DataRefUtils::getCCDBPayloadBlob(ref);
   }
 
   template <typename T>
