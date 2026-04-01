@@ -23,6 +23,7 @@
 
 #include <gsl/gsl>
 
+#include <span>
 #include <type_traits>
 #include <typeinfo>
 
@@ -184,6 +185,10 @@ struct DataRefUtils {
   // Decode a CCDB object using the CcdbApi.
   static void* decodeCCDB(DataRef const& ref, std::type_info const& info);
   static std::map<std::string, std::string> extractCCDBHeaders(DataRef const& ref);
+  /// Return a span over the raw CCDB payload bytes, stripping the flattened HTTP
+  /// headers footer that CCDBFetcherHelper appends. Use this when the CCDB entry is
+  /// a binary blob rather than a ROOT-serialised object.
+  static std::span<const char> getCCDBPayloadBlob(DataRef const& ref);
 
   static o2::header::DataHeader::PayloadSizeType getPayloadSize(const DataRef& ref)
   {

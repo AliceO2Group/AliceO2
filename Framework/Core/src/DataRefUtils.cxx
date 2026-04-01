@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <span>
 #include <typeinfo>
 #include <cstring>
 #include "Framework/DataRefUtils.h"
@@ -146,6 +147,21 @@ std::map<std::string, std::string> DataRefUtils::extractCCDBHeaders(DataRef cons
     }
   }
   return res;
+}
+
+std::span<const char> DataRefUtils::getCCDBPayloadBlob(DataRef const& ref)
+{
+  auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
+  const char* buff = ref.payload;
+  size_t payloadSize = dh->payloadSize;
+  constexpr char FlatHeaderAnnot[] = "$HEADER$";
+  constexpr size_t Offset = sizeof(int) + sizeof(FlatHeaderAnnot);
+  int headerSize = 0;
+  if (payloadSize >= Offset &&
+      !std::strncmp(buff + payloadSize - sizeof(FlatHeaderAnnot), FlatHeaderAnnot, sizeof(FlatHeaderAnnot))) {
+    headerSize = *reinterpret_cast<const int*>(buff + payloadSize - Offset);
+  }
+  return {buff, payloadSize - headerSize};
 }
 
 } // namespace o2::framework
