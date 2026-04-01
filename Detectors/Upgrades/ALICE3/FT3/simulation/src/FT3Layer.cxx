@@ -237,7 +237,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
   LOG(info) << "FT3: ft3Params.layoutFT3 = " << ft3Params.layoutFT3;
 
   // ### options for ML and OT disk layout
-  if (ft3Params.layoutFT3 == kTrapezoidal || (mIsMiddleLayer && ft3Params.layoutFT3 == kSegmented)) {
+  if (ft3Params.layoutFT3 == kTrapezoidal /*|| (mIsMiddleLayer && ft3Params.layoutFT3 == kSegmented)*/) {
     // trapezoidal ML+OT disks
     // (disks with TGeoTubes doesn'n work properly in ACTS, due to polar coordinates on TGeoTube sides)
 

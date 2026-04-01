@@ -202,8 +202,8 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
     x_condition_min = -Rin - 4;
     x_condition_max = Rin;
     dist_offset = 2;
-    adjust_bottom_y_pos = true;
-    adjust_bottom_y_neg = true;
+    adjust_bottom_y_pos = false;
+    adjust_bottom_y_neg = false;
     x_adjust_bottom_y_pos = 3.5;
     bottom_y_pos_value = 3.5;
     bottom_y_neg_value = -3.5;

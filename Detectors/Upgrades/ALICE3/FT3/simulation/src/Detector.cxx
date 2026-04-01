@@ -631,7 +631,7 @@ void Detector::defineSensitiveVolumes()
       LOG(info) << "Adding FT3 Sensitive Volume for direction " << direction << " layer " << iLayer << "/" << getNumberOfLayers();
       volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
       int iSens = 0;
-      if (mLayers[direction][iLayer].getIsInMiddleLayer()) { // ML disks
+      /*if (mLayers[direction][iLayer].getIsInMiddleLayer()) { // ML disks
         const std::string sensorName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer);
         v = geoManager->GetVolume(sensorName.c_str());
         if (!v) {
@@ -640,22 +640,22 @@ void Detector::defineSensitiveVolumes()
         }
         AddSensitiveVolume(v);
         iSens++;
-      } else { // OT disks
-        for (int sensor_count = 0; sensor_count < MAX_SENSORS; ++sensor_count) {
-          std::string sensor_name_front = "FT3Sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-          std::string sensor_name_back = "FT3Sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-          v = geoManager->GetVolume(sensor_name_front.c_str());
-          if (v) {
-            AddSensitiveVolume(v);
-            iSens++;
-          }
-          v = geoManager->GetVolume(sensor_name_back.c_str());
-          if (v) {
-            AddSensitiveVolume(v);
-            iSens++;
-          }
+      } else { // OT disks*/
+      for (int sensor_count = 0; sensor_count < MAX_SENSORS; ++sensor_count) {
+        std::string sensor_name_front = "FT3Sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+        std::string sensor_name_back = "FT3Sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
+        v = geoManager->GetVolume(sensor_name_front.c_str());
+        if (v) {
+          AddSensitiveVolume(v);
+          iSens++;
+        }
+        v = geoManager->GetVolume(sensor_name_back.c_str());
+        if (v) {
+          AddSensitiveVolume(v);
+          iSens++;
         }
       }
+      //}
       LOG(info) << iSens << " sensitive volumes added";
     }
   }
