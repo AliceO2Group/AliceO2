@@ -339,7 +339,7 @@ void writeVariant(std::ostream& o, Variant const& v)
     rapidjson::Writer<rapidjson::OStreamWrapper> w(osw);
 
     auto writeArray = [&](auto* values, size_t size) {
-      using T = std::remove_pointer_t<decltype(values)>;
+      using T = std::remove_cv_t<std::remove_pointer_t<decltype(values)>>;
       w.StartArray();
       for (auto i = 0u; i < size; ++i) {
         if constexpr (std::is_same_v<int, T>) {
