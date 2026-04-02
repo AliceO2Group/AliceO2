@@ -120,6 +120,28 @@ int main(int argc, char* argv[])
   TMap* parentFiles = nullptr;
   int totalMergedDFs = 0;
   int mergedDFs = 0;
+
+  // Write all accumulated trees to outputDir, update stats, and clean up state.
+  auto flushTrees = [&](bool resetState) {
+    if (!outputDir) {
+      return;
+    }
+    for (auto const& tree : trees) {
+      outputDir->cd();
+      tree.second->Write();
+      sizeCompressed[tree.first] += tree.second->GetZipBytes();
+      sizeUncompressed[tree.first] += tree.second->GetTotBytes();
+      delete tree.second;
+    }
+    if (resetState) {
+      outputDir = nullptr;
+      trees.clear();
+      offsets.clear();
+      mergedDFs = 0;
+      currentDirSize = 0;
+    }
+  };
+
   while (in.good() && exitCode == 0) {
     in >> line;
 
@@ -195,17 +217,7 @@ int main(int argc, char* argv[])
         if (verbosity > 0) {
           printf("Folder name changed: closing folder %s.\n", outputDir->GetName());
         }
-        for (auto const& tree : trees) {
-          outputDir->cd();
-          tree.second->Write();
-          sizeCompressed[tree.first] += tree.second->GetZipBytes();
-          sizeUncompressed[tree.first] += tree.second->GetTotBytes();
-          delete tree.second;
-        }
-        outputDir = nullptr;
-        trees.clear();
-        offsets.clear();
-        mergedDFs = 0;
+        flushTrees(true);
       }
 
       if (verbosity > 0) {
@@ -422,21 +434,7 @@ int main(int argc, char* argv[])
         if (verbosity > 0) {
           printf("Maximum size reached: %ld. Closing folder %s.\n", currentDirSize, dfName);
         }
-        for (auto const& tree : trees) {
-          // printf("Writing %s\n", tree.first.c_str());
-          outputDir->cd();
-          tree.second->Write();
-
-          // stats
-          sizeCompressed[tree.first] += tree.second->GetZipBytes();
-          sizeUncompressed[tree.first] += tree.second->GetTotBytes();
-
-          delete tree.second;
-        }
-        outputDir = nullptr;
-        trees.clear();
-        offsets.clear();
-        mergedDFs = 0;
+        flushTrees(true);
       }
     }
     inputFile->Close();
@@ -447,16 +445,7 @@ int main(int argc, char* argv[])
     parentFiles->Write("parentFiles", TObject::kSingleKey);
   }
 
-  for (auto const& tree : trees) {
-    outputDir->cd();
-    tree.second->Write();
-
-    // stats
-    sizeCompressed[tree.first] += tree.second->GetZipBytes();
-    sizeUncompressed[tree.first] += tree.second->GetTotBytes();
-
-    delete tree.second;
-  }
+  flushTrees(false);
 
   outputFile->Write();
   outputFile->Close();
