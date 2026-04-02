@@ -111,10 +111,13 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
 
+  bool hasClusters = false;
   for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
-    LOGP(info, "ITSTracker{} pulled {} clusters, {} RO frames", ((mDoStaggering) ? std::format(":{}", iLayer) : ""), compClusters[iLayer].size(), rofsinput[iLayer].size());
+    LOGP(info, "ITSTracker{} pulled {} clusters, {} RO frames", ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""), compClusters[iLayer].size(), rofsinput[iLayer].size());
     if (compClusters[iLayer].empty()) {
       LOGP(warn, " -> received no processable data{}", (mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
+    } else {
+      hasClusters = true;
     }
     if (mIsMC) {
       LOG(info) << " -> " << labels[iLayer]->getIndexedSize() << " MC label objects";
@@ -129,7 +132,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     for (const auto& trig : trdTriggers) {
       if (trig.getBCData() >= ir && trig.getNumberOfTracklets()) {
         ir = trig.getBCData();
-        fromTRD.emplace_back(o2::itsmft::PhysTrigger{ir, 0});
+        fromTRD.emplace_back(o2::itsmft::PhysTrigger{.ir = ir, .data = 0});
       }
     }
     physTriggers = gsl::span<const o2::itsmft::PhysTrigger>(fromTRD.data(), fromTRD.size());
@@ -137,9 +140,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
   }
 
+  const int clockLayerId{mDoStaggering ? mTimeFrame->getROFOverlapTableView().getClock() : 0};
   auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0});
-
-  irFrames.reserve(rofsinput.size());
+  irFrames.reserve(rofsinput[clockLayerId].size());
 
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0});
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0});
@@ -153,11 +156,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto& allTrackLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "TRACKSMCTR", 0}) : dummyMCLabTracks;
   auto& allVerticesLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTR", 0}) : dummyMCLabVerts;
   auto& allVerticesPurities = mIsMC ? pc.outputs().make<std::vector<float>>(Output{"ITS", "VERTICESMCPUR", 0}) : dummyMCPurVerts;
-
-  std::uint32_t roFrame = 0;
-
-  bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(info) << "ITSTracker RO: continuous=" << continuous;
 
   if (mOverrideBeamEstimation) {
     mTimeFrame->setBeamPosition(mMeanVertex->getX(),
@@ -177,35 +175,40 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto logger = [&](const std::string& s) { LOG(info) << s; };
   auto fatalLogger = [&](const std::string& s) { LOG(fatal) << s; };
   auto errorLogger = [&](const std::string& s) { LOG(error) << s; };
-  const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
   FastMultEst multEst; // mult estimator
-  o2::its::ROFMaskTable<NLayers> processingMask{mTimeFrame->getROFOverlapTable()}, processUPCMask{mTimeFrame->getROFOverlapTable()};
-  multEst.selectROFs(rofsinput, compClusters, physTriggers, firstTForbit, mDoStaggering, mTimeFrame->getROFOverlapTableView(), processingMask);
-  mTimeFrame->setMultiplicityCutMask(processingMask);
-  logger(processingMask.asString());
+  const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
+  o2::its::ROFMaskTable<NLayers> processMultiplictyMask{mTimeFrame->getROFOverlapTable()}, processUPCMask{mTimeFrame->getROFOverlapTable()};
+  multEst.selectROFs(rofsinput, compClusters, physTriggers, firstTForbit, mDoStaggering, mTimeFrame->getROFOverlapTableView(), processMultiplictyMask);
+  mTimeFrame->setMultiplicityCutMask(processMultiplictyMask);
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
+    mTimeFrame->getROFMaskView().print(iLayer);
+  }
+
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
     // Run seeding vertexer
-    if (!compClusters.empty()) {
-      vertexerElapsedTime = mVertexer->clustersToVertices(logger);
-      // FIXME: this is a temporary stop-gap measure until we figure the rest out
-      const auto& vtx = mTimeFrame->getPrimaryVertices();
-      vertices.insert(vertices.begin(), vtx.begin(), vtx.end());
+    vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+    // FIXME: this is a temporary stop-gap measure until we figure the rest out
+    const auto& vtx = mTimeFrame->getPrimaryVertices();
+    vertices.insert(vertices.begin(), vtx.begin(), vtx.end());
+    if (mIsMC) {
+      allVerticesLabels.reserve(vertices.size());
+      allVerticesPurities.reserve(vertices.size());
+      for (const auto& lbl : mTimeFrame->getPrimaryVerticesLabels()) {
+        allVerticesLabels.push_back(lbl.first);
+        allVerticesPurities.push_back(lbl.second);
+      }
     }
   }
-  multEst.selectROFsWithVertices(vertices, mTimeFrame->getROFOverlapTableView(), processingMask);
+  multEst.selectROFsWithVertices(vertices, mTimeFrame->getROFOverlapTableView(), processMultiplictyMask);
 
-  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  gsl::span<const VertexLabel> vMCRecInfo;
-  gsl::span<const MCCompLabel> vMCContLabels;
-  const int clockLayerId{mDoStaggering ? mTimeFrame->getROFOverlapTableView().getClock() : 0};
   auto clockROFspan = rofsinput[clockLayerId];
   auto clockTiming = mTimeFrame->getROFOverlapTableView().getClockLayer();
   for (auto iRof{0}; iRof < clockROFspan.size(); ++iRof) {
     bounded_vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(clockROFspan[iRof]);
-    vtxROF.setFirstEntry(vertices.size());
+    vtxROF.setFirstEntry((int)vertices.size());
 
     if (mRunVertexer) {
       auto vtxSpan = mTimeFrame->getPrimaryVertices(clockLayerId, iRof);
@@ -224,22 +227,25 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       } else {
         vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
       }
-      vtxROF.setNEntries(vtxSpan.size());
+      vtxROF.setNEntries((int)vtxSpan.size());
     }
   }
-  if (mRunVertexer && !compClusters.empty()) {
+
+  if (mRunVertexer && hasClusters) {
     LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found",
                              vertexerElapsedTime,
                              mTimeFrame->getPrimaryVerticesNum());
   }
+
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   } else {
     LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   }
-  if (!compClusters.empty()) {
-    mTimeFrame->setMultiplicityCutMask(processingMask);
-    mTimeFrame->setROFMask(processUPCMask);
+
+  if (hasClusters) {
+    mTimeFrame->setMultiplicityCutMask(processMultiplictyMask);
+    mTimeFrame->setUPCCutMask(processUPCMask);
     // Run CA tracker
     if (mMode == o2::its::TrackingMode::Async && o2::its::TrackerParamConfig::Instance().fataliseUponFailure) {
       mTracker->clustersToTracks(logger, fatalLogger);
@@ -247,6 +253,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       mTracker->clustersToTracks(logger, errorLogger);
     }
   }
+
   size_t totTracks{mTimeFrame->getNumberOfTracks()}, totClusIDs{mTimeFrame->getNumberOfUsedClusters()};
   if (totTracks) {
     allTracks.reserve(totTracks);
@@ -259,7 +266,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     auto& tracks = mTimeFrame->getTracks();
     allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
     std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
-
     {
       // create the track to clock ROF association here
       // the clock ROF is just the fastest ROF
@@ -296,6 +302,8 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       setBCData(allTrackROFs);
       setBCData(vertROFvec);
 
+      mTimeFrame->useMultiplictyMask(); // use multiplicty selection for IR frames
+
       std::vector<int> rofEntries(highestROF + 1, 0);
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
@@ -318,7 +326,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
         allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
         allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
-        if (processingMask.isROFEnabled(clockLayerId, iROF)) {
+        if (mTimeFrame->getROFMaskView().isROFEnabled(clockLayerId, (int)iROF)) {
           auto& irFrame = irFrames.emplace_back(allTrackROFs[iROF].getBCData(), allTrackROFs[iROF].getBCData() + clockLayer.mROFLength - 1);
           irFrame.info = allTrackROFs[iROF].getNEntries();
         }
@@ -337,7 +345,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
 
-  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices ", allTracks.size(), allTrackROFs.size(), vertices.size());
+  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices {}", allTracks.size(), allTrackROFs.size(), vertices.size(), ((mDoStaggering) ? "in staggered-readout mode" : "in normal mode"));
   if (mIsMC) {
     LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
     LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
@@ -365,8 +373,9 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
     initialise();
 
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // print settings only for the 1st pipeling
-      o2::its::VertexerParamConfig::Instance().printKeyValues();
-      o2::its::TrackerParamConfig::Instance().printKeyValues();
+      o2::its::FastMultEstConfig::Instance().printKeyValues(true, true);
+      o2::its::VertexerParamConfig::Instance().printKeyValues(true, true);
+      o2::its::TrackerParamConfig::Instance().printKeyValues(true, true);
       const auto& vtxParams = mVertexer->getParameters();
       for (size_t it = 0; it < vtxParams.size(); it++) {
         const auto& par = vtxParams[it];

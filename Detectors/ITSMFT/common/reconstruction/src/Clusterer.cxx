@@ -479,7 +479,7 @@ void Clusterer::print(bool showsTiming) const
   } else {
     LOGP(info, "Clusterizer squashes overflow pixels <= {} in row/col", mMaxRowColDiffToMask);
     for (size_t i{0}; i < mSquashingLayerDepth.size(); ++i) {
-      LOGP(info, "\tlay:{} separated by {} BC seeking down to {} neighbour ROFs", i, mMaxBCSeparationToSquashLayer[i], mSquashingLayerDepth[i]);
+      LOGP(info, "\tClusterizer on layer {} separated by {} BC seeking down to {} neighbour ROFs", i, mMaxBCSeparationToSquashLayer[i], mSquashingLayerDepth[i]);
     }
   }
   LOGP(info, "Clusterizer masks overflow pixels separated by < {} BC and <= {} in row/col", mMaxBCSeparationToMask, mMaxRowColDiffToMask);

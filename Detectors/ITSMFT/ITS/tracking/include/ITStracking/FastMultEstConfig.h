@@ -20,9 +20,7 @@
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstConfig> {
   static constexpr int NLayers = o2::itsmft::ChipMappingITS::NLayers;
@@ -52,7 +50,6 @@ struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstC
   O2ParamDef(FastMultEstConfig, "fastMultConfig");
 };
 
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 
 #endif

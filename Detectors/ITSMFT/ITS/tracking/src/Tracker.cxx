@@ -77,7 +77,7 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
     for (iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
       mMemoryPool->setMaxMemory(mTrkParams[iteration].MaxMemory);
       if (iteration == 3 && mTrkParams[0].DoUPCIteration) {
-        mTimeFrame->swapMasks();
+        mTimeFrame->useUPCMask();
       }
       float timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
       size_t nTracklets{0}, nCells{0}, nNeighbours{0};

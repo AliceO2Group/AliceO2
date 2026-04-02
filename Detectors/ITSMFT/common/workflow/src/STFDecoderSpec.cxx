@@ -88,7 +88,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mApplyNoiseMap = !ic.options().get<bool>("ignore-noise-map");
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   try {
-    float fr = ic.options().get<float>("rof-lenght-error-freq");
+    float fr = ic.options().get<float>("rof-length-error-freq");
     mROFErrRepIntervalMS = fr <= 0. ? -1 : long(fr * 1e3);
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
@@ -448,7 +448,7 @@ void STFDecoder<Mapping>::ensureContinuousROF(const std::vector<ROFRecord>& rofV
     irToFirst -= par.getROFDelayInBC(lr);
     const long irROF = irToFirst.toLong() / par.getROFLengthInBC(lr);
     if (irROF >= nROFsTF) {
-      LOGP(warn, "Discard ROF {} exceding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(" on layer {}", lr) : ""));
+      LOGP(warn, "Discard ROF {} exceeding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(" on layer {}", lr) : ""));
       continue;
     }
     auto& expROF = expROFVec[irROF];
@@ -530,11 +530,11 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
                                                               true); // query only once all objects except mag.field
 
   return DataProcessorSpec{
-    inp.deviceName,
-    inputs,
-    outputs,
-    inp.origin == o2::header::gDataOriginITS ? AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(inp, ggRequest)} : AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(inp, ggRequest)},
-    Options{
+    .name = inp.deviceName,
+    .inputs = inputs,
+    .outputs = outputs,
+    .algorithm = inp.origin == o2::header::gDataOriginITS ? AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(inp, ggRequest)} : AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(inp, ggRequest)},
+    .options = Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data, 3: raw data dump) of 1st lane"}},
       {"always-parse-trigger", VariantType::Bool, false, {"parse trigger word even if flags continuation of old trigger"}},
@@ -545,7 +545,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
       {"accept-rof-rampup-data", VariantType::Bool, false, {"do not discard data during ROF ramp up"}},
-      {"rof-lenght-error-freq", VariantType::Float, 60.f, {"do not report ROF lenght error more frequently than this value, disable if negative"}},
+      {"rof-length-error-freq", VariantType::Float, 60.f, {"do not report ROF length error more frequently than this value, disable if negative"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
 

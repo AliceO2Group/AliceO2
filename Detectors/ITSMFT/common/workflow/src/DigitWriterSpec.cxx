@@ -88,7 +88,7 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool doStag, bool dec, bool c
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     auto layer = static_cast<size_t>(dh->subSpecification);
-    LOG(info) << detStr << ": WRITING " << labels.getNElements() << " LABELS " << (doStag ? std::format("FOR LAYER {}", layer) : "") << " WITH " << (*digitSizes)[layer] << " DIGITS IN " << (*rofSizes)[layer] << " ROFS";
+    LOG(info) << detStr << ": WRITING " << labels.getNElements() << " LABELS" << (doStag ? std::format(" FOR LAYER {}", layer) : "") << " WITH " << (*digitSizes)[layer] << " DIGITS IN " << (*rofSizes)[layer] << " ROFS";
 
     o2::dataformats::IOMCTruthContainerView outputcontainer;
     auto ptr = &outputcontainer;

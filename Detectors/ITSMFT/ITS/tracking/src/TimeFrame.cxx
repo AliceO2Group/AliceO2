@@ -191,7 +191,7 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
   bounded_vector<int> lutPerBin(numBins, 0, mMemoryPool.get());
   for (int iLayer{0}, stopLayer = std::min(trkParam.NLayers, maxLayers); iLayer < stopLayer; ++iLayer) {
     for (int rof{0}; rof < getNrof(iLayer); ++rof) {
-      if (!mMultiplicityCutMask.isROFEnabled(iLayer, rof)) {
+      if (!mROFMaskView.isROFEnabled(iLayer, rof)) {
         continue;
       }
       const auto& unsortedClusters{getUnsortedClustersOnLayer(rof, iLayer)};
@@ -373,7 +373,7 @@ void TimeFrame<NLayers>::computeTrackletsPerROFScans()
 {
   for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
     for (unsigned int iRof{0}; iRof < getNrof(1); ++iRof) {
-      if (mMultiplicityCutMask.isROFEnabled(iLayer, iRof)) {
+      if (mROFMaskView.isROFEnabled(1, iRof)) {
         mTotalTracklets[iLayer] += mNTrackletsPerROF[iLayer][iRof];
       }
     }

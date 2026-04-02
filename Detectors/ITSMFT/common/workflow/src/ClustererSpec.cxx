@@ -100,7 +100,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
   for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
     int layer = (mDoStaggering) ? iLayer : -1;
     sw.Start();
-    LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(":{}", layer) : "") << " pulled " << digits[iLayer].size() << " digits, in " << rofs[iLayer].size() << " RO frames";
+    LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(" on layer {}", layer) : "") << " pulled " << digits[iLayer].size() << " digits, in " << rofs[iLayer].size() << " RO frames";
 
     mClusterer->setMaxROFDepthToSquash(mClusterer->getMaxROFDepthToSquash(layer));
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelsbuffer[iLayer]);
@@ -110,7 +110,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     reader.setDigits(digits[iLayer]);
     reader.setROFRecords(rofs[iLayer]);
     if (mUseMC) {
-      LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(":{}", layer) : "") << " pulled " << labels.getNElements() << " labels ";
+      LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(" on layer {}", layer) : "") << " pulled " << labels.getNElements() << " labels ";
       reader.setDigitsMCTruth(labels.getIndexedSize() > 0 ? &labels : nullptr);
     }
     reader.init();
@@ -156,7 +156,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
       irToFirst -= par.getROFDelayInBC(iLayer);
       const long irROF = irToFirst.toLong() / par.getROFLengthInBC(iLayer);
       if (irROF >= nROFsTF) {
-        LOGP(warn, "Discard ROF {} exceding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
+        LOGP(warn, "Discard ROF {} exceeding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
         continue;
       }
       auto& expROF = expClusRofVec[irROF];

@@ -54,7 +54,7 @@ DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag)
   auto logger = [detName, compClusterSizes, doStag](std::vector<o2::itsmft::ROFRecord> const& rofs, DataRef const& ref) {
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     const auto i = dh->subSpecification;
-    LOG(info) << detName << "ClusterWriter" << ((doStag) ? std::format(":{}", i) : "")
+    LOG(info) << detName << "ClusterWriter" << ((doStag) ? std::format(" on layer {}", i) : "")
               << " pulled " << (*compClusterSizes)[i] << " clusters, in " << rofs.size() << " RO frames";
   };
   auto getIndex = [](DataRef const& ref) -> size_t {

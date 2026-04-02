@@ -17,11 +17,13 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <ranges>
+
 #ifndef GPUCA_GPUCODE
 #include <format>
-
 #include "Framework/Logger.h"
 #endif
+
 #include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsITS/TimeEstBC.h"
@@ -159,15 +161,19 @@ struct ROFOverlapTableView {
     return mLayers[layer];
   }
 
-  GPUh() int getClock() const noexcept
+  GPUh() int32_t getClock() const noexcept
   {
     // we take the fastest layer as clock
-    int fastest = 0;
-    uint32_t shortestROF{std::numeric_limits<uint32_t>::max()};
-    for (int iL{0}; iL < NLayers; ++iL) {
+    int32_t fastest = 0;
+    uint32_t maxNROFs{0};
+    for (int32_t iL{0}; iL < NLayers; ++iL) {
       const auto& layer = getLayer(iL);
-      if (layer.mROFLength < shortestROF) {
+      // by definition the fastest layer has the most ROFs
+      // this also solves the problem of a delay large than ROFLength
+      // if mNROFsTF is correct
+      if (layer.mNROFsTF > maxNROFs) {
         fastest = iL;
+        maxNROFs = layer.mNROFsTF;
       }
     }
     return fastest;
@@ -524,7 +530,6 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
   using BCType = LayerTiming::BCType;
   using TableEntry = dataformats::RangeReference<T, T>;
   using TableIndex = dataformats::RangeReference<T, T>;
-
   using View = ROFVertexLookupTableView<NLayers, TableEntry, TableIndex>;
 
   ROFVertexLookupTable() = default;
@@ -684,15 +689,15 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
 };
 
 // GPU-friendly view of the ROF mask table
-template <int32_t NLayers>
+template <int32_t NLayers, typename TableEntry, typename TableIndex>
 struct ROFMaskTableView {
-  const uint8_t* mFlatMask{nullptr};
-  const int32_t* mLayerROFOffsets{nullptr}; // size NLayers+1
+  const TableEntry* mFlatMask{nullptr};
+  const TableIndex* mLayerROFOffsets{nullptr}; // size NLayers+1
 
   GPUhdi() bool isROFEnabled(int32_t layer, int32_t rofId) const noexcept
   {
     assert(layer >= 0 && layer < NLayers);
-    return mFlatMask[mLayerROFOffsets[layer] + rofId] != 0;
+    return mFlatMask[mLayerROFOffsets[layer] + rofId] != 0u;
   }
 
 #ifndef GPUCA_GPUCODE
@@ -715,6 +720,23 @@ struct ROFMaskTableView {
       LOGF(info, "%*d | %*d", w_rof, i, w_active, (int)isROFEnabled(layer, i));
     }
   }
+
+  GPUh() std::string asString(int32_t layer) const
+  {
+    int32_t nROFs = mLayerROFOffsets[layer + 1] - mLayerROFOffsets[layer];
+    int32_t enabledROFs = 0;
+    for (int32_t j = 0; j < nROFs; ++j) {
+      if (isROFEnabled(layer, j)) {
+        ++enabledROFs;
+      }
+    }
+    return std::format("ROFMask on Layer {} ROFs enabled: {}/{}", layer, enabledROFs, nROFs);
+  }
+
+  GPUh() void print(int32_t layer) const
+  {
+    LOG(info) << asString(layer);
+  }
 #endif
 };
 
@@ -723,10 +745,13 @@ template <int32_t NLayers>
 class ROFMaskTable : public LayerTimingBase<NLayers>
 {
  public:
-  using BCRange = dataformats::RangeReference<LayerTiming::BCType, LayerTiming::BCType>;
-  using View = ROFMaskTableView<NLayers>;
+  using T = LayerTimingBase<NLayers>::T;
+  using BCRange = dataformats::RangeReference<T, T>;
+  using TableIndex = uint32_t;
+  using TableEntry = uint8_t;
+  using View = ROFMaskTableView<NLayers, TableEntry, TableIndex>;
 
-  GPUdDefault() ROFMaskTable() = default;
+  ROFMaskTable() = default;
   GPUh() explicit ROFMaskTable(const LayerTimingBase<NLayers>& timingBase) : LayerTimingBase<NLayers>(timingBase) { init(); }
 
   GPUh() void init()
@@ -737,12 +762,10 @@ class ROFMaskTable : public LayerTimingBase<NLayers>
       totalROFs += this->getLayer(layer).mNROFsTF;
     }
     mLayerROFOffsets[NLayers] = totalROFs; // sentinel
-    mFlatMask.resize(totalROFs, 1);
+    mFlatMask.resize(totalROFs, 0u);
   }
 
   GPUh() size_t getFlatMaskSize() const noexcept { return mFlatMask.size(); }
-
-  GPUh() bool isROFEnabled(int32_t layer, int32_t rofId) const noexcept { return mFlatMask[mLayerROFOffsets[layer] + rofId] != 0; }
 
   GPUh() void setROFEnabled(int32_t layer, int32_t rofId, uint8_t state = 1) noexcept
   {
@@ -770,7 +793,7 @@ class ROFMaskTable : public LayerTimingBase<NLayers>
       for (int32_t rofId{0}; rofId < lay.mNROFsTF; ++rofId) {
         if (static_cast<int32_t>(lay.getROFStartInBC(rofId)) < bcEnd &&
             static_cast<int32_t>(lay.getROFEndInBC(rofId)) > bcStart) {
-          mFlatMask[offset + rofId] = 1;
+          mFlatMask[offset + rofId] = 1u;
         }
       }
     }
@@ -785,7 +808,7 @@ class ROFMaskTable : public LayerTimingBase<NLayers>
     }
   }
 
-  GPUh() void resetMask(uint8_t s = 0)
+  GPUh() void resetMask(uint8_t s = 0u)
   {
     std::memset(mFlatMask.data(), s, mFlatMask.size());
   }
@@ -809,39 +832,17 @@ class ROFMaskTable : public LayerTimingBase<NLayers>
     return view;
   }
 
-  GPUh() View getDeviceView(const uint8_t* deviceFlatMaskPtr, const int32_t* deviceOffsetPtr) const
+  GPUh() View getDeviceView(const TableEntry* deviceFlatMaskPtr, const TableIndex* deviceOffsetPtr) const
   {
     View view;
     view.mFlatMask = deviceFlatMaskPtr;
     view.mLayerROFOffsets = deviceOffsetPtr;
     return view;
   }
-#ifndef GPUCA_GPUCODE
-  GPUh() std::string asString() const
-  {
-    std::string mask_str;
-    for (int32_t i = 0; i < NLayers; ++i) {
-      int32_t nROFs = mLayerROFOffsets[i + 1] - mLayerROFOffsets[i];
-      int32_t enabledROFs = 0;
-      for (int32_t j = 0; j < nROFs; ++j) {
-        if (isROFEnabled(i, j)) {
-          ++enabledROFs;
-        }
-      }
-      mask_str += std::format("Layer {} ROFs enabled: {}/{} | ", i, enabledROFs, nROFs);
-    }
-    return mask_str;
-  }
-
-  GPUh() void print() const
-  {
-    LOG(info) << asString();
-  }
-#endif
 
  private:
-  int32_t mLayerROFOffsets[NLayers + 1]{}; // NLayers entries + 1 sentinel
-  std::vector<uint8_t> mFlatMask;
+  TableIndex mLayerROFOffsets[NLayers + 1] = {0};
+  std::vector<TableEntry> mFlatMask;
 };
 
 } // namespace o2::its

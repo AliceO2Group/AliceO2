@@ -61,7 +61,7 @@ void ClusterReader<N>::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
 
   for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
-    LOG(info) << mDetName << "ClusterReader" << (mDoStaggering ? std::format(":{}", iLayer) : "") << " pushes " << mClusROFRec[iLayer]->size() << " ROFRecords, " << mClusterCompArray[iLayer]->size() << " compact clusters at entry " << ent;
+    LOG(info) << mDetName << "ClusterReader" << (mDoStaggering ? std::format(" on layer {}", iLayer) : "") << " pushes " << mClusROFRec[iLayer]->size() << " ROFRecords, " << mClusterCompArray[iLayer]->size() << " compact clusters at entry " << ent;
     pc.outputs().snapshot(Output{Origin, "CLUSTERSROF", iLayer}, *mClusROFRec[iLayer]);
     pc.outputs().snapshot(Output{Origin, "COMPCLUSTERS", iLayer}, *mClusterCompArray[iLayer]);
     if (mUsePatterns) {

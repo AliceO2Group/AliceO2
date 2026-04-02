@@ -26,9 +26,7 @@
 #include <gsl/span>
 #include <array>
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 
 struct FastMultEst {
@@ -53,7 +51,7 @@ struct FastMultEst {
                  bool doStaggering,
                  const ROFOverlapTableN::View& overlapView,
                  ROFMaskTableN& sel);
-  void selectROFsWithVertices(const auto& vertices, const ROFOverlapTableN::View& overlapView, ROFMaskTableN& sel)
+  void selectROFsWithVertices(const auto& vertices, const ROFOverlapTableN::View& overlapView, ROFMaskTableN& sel) const
   {
     const auto& multEstConf = FastMultEstConfig::Instance();
     if (!multEstConf.isVtxMultCutRequested()) {
@@ -90,7 +88,6 @@ struct FastMultEst {
   ClassDefNV(FastMultEst, 1);
 };
 
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 
 #endif

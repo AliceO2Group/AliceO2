@@ -36,7 +36,7 @@ void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
   // once the tables are in persistent memory just update the vertex one
   // mTimeFrameGPU->updateROFVertexLookupTable(iteration);
   mTimeFrameGPU->loadIndexTableUtils(iteration);
-  mTimeFrameGPU->loadMultiplicityCutMask(iteration);
+  mTimeFrameGPU->loadROFCutMask(iteration);
   // pinned on host
   mTimeFrameGPU->createUsedClustersDeviceArray(iteration);
   mTimeFrameGPU->createClustersDeviceArray(iteration);

@@ -63,6 +63,7 @@ BOOST_AUTO_TEST_CASE(rofmask_construct_from_timing)
   BOOST_CHECK_EQUAL(view.mLayerROFOffsets[1], 3);
   BOOST_CHECK_EQUAL(view.mLayerROFOffsets[2], 7);
 
+  // by default all rofs are disabled
   for (int rof{0}; rof < 3; ++rof) {
     BOOST_CHECK(!view.isROFEnabled(0, rof));
   }

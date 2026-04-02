@@ -57,7 +57,7 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   void loadUsedClustersDevice();
   void loadROFrameClustersDevice(const int, const int);
   void createROFrameClustersDeviceArray(const int);
-  void loadMultiplicityCutMask(const int);
+  void loadROFCutMask(const int);
   void loadVertices(const int);
   void loadROFOverlapTable(const int);
   void loadROFVertexLookupTable(const int);
@@ -181,8 +181,6 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   ROFMaskTableN::View mDeviceROFMaskTableView;
 
   // Hybrid pref
-  uint8_t* mMultMaskDevice;
-  int32_t* mMultMaskOffsetsDevice;
   Vertex* mPrimaryVerticesDevice;
   int* mROFramesPVDevice;
   std::array<Cluster*, NLayers> mClustersDevice;

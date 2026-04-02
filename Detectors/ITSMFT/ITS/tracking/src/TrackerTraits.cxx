@@ -60,7 +60,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
 
   mTaskArena->execute([&] {
     auto forTracklets = [&](auto Tag, int iLayer, int pivotROF, int base, int& offset) -> int {
-      if (!mTimeFrame->mMultiplicityCutMask.isROFEnabled(iLayer, pivotROF)) {
+      if (!mTimeFrame->getROFMaskView().isROFEnabled(iLayer, pivotROF)) {
         return 0;
       }
       gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : mTimeFrame->getPrimaryVertices(iLayer, pivotROF);
@@ -121,7 +121,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
           }
 
           for (int targetROF = rofOverlap.getFirstEntry(); targetROF < rofOverlap.getEntriesBound(); ++targetROF) {
-            if (!mTimeFrame->mMultiplicityCutMask.isROFEnabled(iLayer + 1, targetROF)) {
+            if (!mTimeFrame->getROFMaskView().isROFEnabled(iLayer + 1, targetROF)) {
               continue;
             }
             auto layer1 = mTimeFrame->getClustersOnLayer(targetROF, iLayer + 1);

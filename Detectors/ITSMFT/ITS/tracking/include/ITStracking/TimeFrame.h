@@ -62,7 +62,7 @@ template <int>
 class TimeFrameGPU;
 }
 
-template <int NLayers = 7>
+template <int NLayers>
 struct TimeFrame {
   using IndexTableUtilsN = IndexTableUtils<NLayers>;
   using ROFOverlapTableN = ROFOverlapTable<NLayers>;
@@ -135,19 +135,36 @@ struct TimeFrame {
   const auto& getIndexTableUtils() const { return mIndexTableUtils; }
   const auto& getROFOverlapTable() const { return mROFOverlapTable; }
   const auto& getROFOverlapTableView() const { return mROFOverlapTableView; }
-  void setROFOverlapTable(ROFOverlapTableN& table)
+  void setROFOverlapTable(ROFOverlapTableN table)
   {
     mROFOverlapTable = std::move(table);
     mROFOverlapTableView = mROFOverlapTable.getView();
   }
   const auto& getROFVertexLookupTable() const { return mROFVertexLookupTable; }
   const auto& getROFVertexLookupTableView() const { return mROFVertexLookupTableView; }
-  void setROFVertexLookupTable(ROFVertexLookupTableN& table)
+  void setROFVertexLookupTable(ROFVertexLookupTableN table)
   {
     mROFVertexLookupTable = std::move(table);
     mROFVertexLookupTableView = mROFVertexLookupTable.getView();
   }
   void updateROFVertexLookupTable() { mROFVertexLookupTable.update(mPrimaryVertices.data(), mPrimaryVertices.size()); }
+  void setMultiplicityCutMask(ROFMaskTableN cutMask)
+  {
+    mMultiplicityCutMask = std::move(cutMask);
+    mROFMaskView = mROFMask->getView();
+  }
+  void useMultiplictyMask() noexcept
+  {
+    mROFMask = &mMultiplicityCutMask;
+    mROFMaskView = mROFMask->getView();
+  }
+  void setUPCCutMask(ROFMaskTableN cutMask) { mUPCCutMask = std::move(cutMask); }
+  void useUPCMask() noexcept
+  {
+    mROFMask = &mUPCCutMask;
+    mROFMaskView = mROFMask->getView();
+  }
+  const auto& getROFMaskView() const { return mROFMaskView; }
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
   gsl::span<const MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const { return getClusterLabels(layerId, cl.clusterId); }
@@ -198,11 +215,6 @@ struct TimeFrame {
   /// staggering
   void setIsStaggered(bool b) noexcept { mIsStaggered = b; }
 
-  /// ROF cuts
-  int getROFCutClusterMult() const { return mCutClusterMult; };
-  int getROFCutVertexMult() const { return mCutVertexMult; };
-  int getROFCutAllMult() const { return mCutClusterMult + mCutVertexMult; }
-
   // Vertexer
   void computeTrackletsPerROFScans();
   void computeTracletsPerClusterScans();
@@ -220,10 +232,6 @@ struct TimeFrame {
   int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
   // \Vertexer
-
-  void setMultiplicityCutMask(const ROFMaskTableN& cutMask) { mMultiplicityCutMask = cutMask; }
-  void setROFMask(const ROFMaskTableN& rofMask) { mROFMask = rofMask; }
-  void swapMasks() { mMultiplicityCutMask.swap(mROFMask); }
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
 
@@ -267,7 +275,6 @@ struct TimeFrame {
   bounded_vector<MCCompLabel> mTracksLabel;
   std::vector<bounded_vector<int>> mCellsNeighbours;
   std::vector<bounded_vector<int>> mCellsLookupTable;
-  ROFMaskTableN mMultiplicityCutMask;
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
 
@@ -291,15 +298,11 @@ struct TimeFrame {
   bounded_vector<float> mPositionResolution;
   std::array<bounded_vector<uint8_t>, NLayers> mClusterSize;
 
-  ROFMaskTableN mROFMask;
   bounded_vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<bounded_vector<MCCompLabel>> mTrackletLabels;
   std::vector<bounded_vector<MCCompLabel>> mCellLabels;
   std::vector<bounded_vector<int>> mCellsNeighboursLUT;
   bounded_vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
-
-  int mCutClusterMult{-999};
-  int mCutVertexMult{-999};
 
   // Vertexer
   bounded_vector<Vertex> mPrimaryVertices;
@@ -319,6 +322,10 @@ struct TimeFrame {
   ROFOverlapTableN::View mROFOverlapTableView;
   ROFVertexLookupTableN mROFVertexLookupTable;
   ROFVertexLookupTableN::View mROFVertexLookupTableView;
+  ROFMaskTableN mMultiplicityCutMask;
+  ROFMaskTableN mUPCCutMask;
+  ROFMaskTableN* mROFMask = &mMultiplicityCutMask;
+  ROFMaskTableN::View mROFMaskView;
 
   bool mIsStaggered{false};
 

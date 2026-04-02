@@ -36,7 +36,7 @@ class ExternalAllocator;
 
 template <int NLayers = 7>
 void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
-                                 const typename ROFMaskTable<NLayers>::View& multMask,
+                                 const typename ROFMaskTable<NLayers>::View& rofMask,
                                  const int layer,
                                  const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
                                  const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,
@@ -66,7 +66,7 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
 
 template <int NLayers = 7>
 void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
-                                   const typename ROFMaskTable<NLayers>::View& multMask,
+                                   const typename ROFMaskTable<NLayers>::View& rofMask,
                                    const int layer,
                                    const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
                                    const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,

@@ -171,7 +171,7 @@ int FastMultEst::selectROFs(const std::array<gsl::span<const o2::itsmft::ROFReco
   const int selectionLayer = overlapView.getClock();
   int multLayer = std::clamp(multEstConf.cutMultClusLayer, 0, NLayers - 1);
   if (doStaggering && rofs[multLayer].empty()) {
-    LOGP(warning, "FastMultEst multiplicity layer {} has no ROFs, falling back to selection layer {}", multLayer, selectionLayer);
+    LOGP(info, "FastMultEst multiplicity layer {} has no ROFs, falling back to selection layer {}", multLayer, selectionLayer);
     multLayer = selectionLayer;
   }
 
@@ -206,7 +206,7 @@ int FastMultEst::selectROFs(const std::array<gsl::span<const o2::itsmft::ROFReco
       enableCompatibleROFs<NLayers>(selectionLayer, selectionRof, overlapView, sel);
     }
   } else {
-    LOGP(warning, "FastMultEst received no physics/TRD triggers, falling back to ROF-driven filtering on layer {}", selectionLayer);
+    LOGP(info, "FastMultEst received no physics/TRD triggers, falling back to ROF-driven filtering on layer {}", selectionLayer);
     for (int selectionRof = 0; selectionRof < selectionRofCount; ++selectionRof) {
       if (multEstConf.isMultCutRequested()) {
         bool passes = false;
@@ -236,9 +236,10 @@ int FastMultEst::selectROFs(const std::array<gsl::span<const o2::itsmft::ROFReco
     }
   }
 
+  const auto selView = sel.getView();
   int nsel = 0;
   for (int irof = 0; irof < selectionRofCount; ++irof) {
-    nsel += sel.isROFEnabled(selectionLayer, irof);
+    nsel += selView.isROFEnabled(selectionLayer, irof);
   }
 
   if (!trig.empty() && multEstConf.preferTriggered) {

@@ -130,7 +130,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         if (mWithMCTruth) {
           mLabelsAccum[iLayer].mergeAtBack(mLabels[iLayer]);
         }
-        LOG(info) << "Added " << mDigits[iLayer].size() << " digits:" << iLayer;
+        LOG(info) << "Added " << mDigits[iLayer].size() << " digits" << ((mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
         // clean containers from already accumulated stuff
         mLabels[iLayer].clear();
         mDigits[iLayer].clear();
@@ -180,7 +180,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         for (int iROF{0}; iROF < nROFsLayer; ++iROF) {
           auto& rof = expDigitRofVec[iROF];
           int orb = iROF * DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer) / o2::constants::lhc::LHCMaxBunches + mFirstOrbitTF;
-          int bc = iROF * DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches;
+          int bc = iROF * DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches + DPLAlpideParam<N>::Instance().getROFDelayInBC(iLayer);
           o2::InteractionRecord ir(bc, orb);
           rof.setBCData(ir);
           rof.setROFrame(iROF);
@@ -190,7 +190,16 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         uint32_t prevEntry{0};
         for (const auto& rof : mROFRecordsAccum[iLayer]) {
           const auto& ir = rof.getBCData();
-          const auto irToFirst = ir - firstIR;
+          if (ir < firstIR) {
+            LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}{}", ir.asString(), mFirstOrbitTF, ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""));
+            continue;
+          }
+          auto irToFirst = ir - firstIR;
+          if (irToFirst.toLong() - DPLAlpideParam<N>::Instance().getROFDelayInBC(iLayer) < 0) {
+            LOGP(warn, "Discard ROF {} preceding TF 1st orbit {} due to imposed ROF delay{}", ir.asString(), mFirstOrbitTF, ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""));
+            continue;
+          }
+          irToFirst -= DPLAlpideParam<N>::Instance().getROFDelayInBC(iLayer);
           const int irROF = irToFirst.toLong() / DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer);
           auto& expROF = expDigitRofVec[irROF];
           expROF.setFirstEntry(rof.getFirstEntry());
