@@ -100,12 +100,22 @@ struct get_pair {
       }
       size_t diff = self.pairId - count;
       if (header->splitPayloadParts > 1 && header->splitPayloadIndex == header->splitPayloadParts) {
+        // New style: one header followed by splitPayloadParts contiguous payloads.
         count += header->splitPayloadParts;
         if (self.pairId < count) {
           return {mi, mi + 1 + diff};
         }
         mi += header->splitPayloadParts + 1;
+      } else if (header->splitPayloadParts > 1 && header->splitPayloadIndex != header->splitPayloadParts) {
+        // Old style multi-part: splitPayloadParts [header, payload] pairs.
+        // We are at the first pair of the block; jump directly.
+        if (diff < header->splitPayloadParts) {
+          return {mi + 2 * diff, mi + 2 * diff + 1};
+        }
+        count += header->splitPayloadParts;
+        mi += 2 * header->splitPayloadParts;
       } else {
+        // Single [header, payload] pair (splitPayloadParts == 0).
         if (self.pairId == count) {
           return {mi, mi + 1};
         }
