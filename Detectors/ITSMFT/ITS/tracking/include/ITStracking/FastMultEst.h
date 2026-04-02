@@ -37,12 +37,12 @@ struct FastMultEst {
   using ROFOverlapTableN = ROFOverlapTable<NLayers>;
   using ROFMaskTableN = ROFMaskTable<NLayers>;
 
-  float mult = 0.;                         /// estimated signal clusters multiplicity on the selected multiplicity layer
-  float noisePerChip = 0.;                 /// imposed noise per chip (when enabled by configuration)
-  float cov[3] = {0.};                     /// retained for compatibility; set to zero in single-layer mode
-  float chi2 = 0.;                         /// retained for compatibility; set to zero in single-layer mode
-  int nLayersUsed = 0;                     /// number of layers used by estimator (0/1 in single-layer mode)
-  uint32_t lastRandomSeed = 0;             /// state of the gRandom before
+  float mult = 0.;             /// estimated signal clusters multiplicity on the selected multiplicity layer
+  float noisePerChip = 0.;     /// imposed noise per chip (when enabled by configuration)
+  float cov[3] = {0.};         /// retained for compatibility; set to zero in single-layer mode
+  float chi2 = 0.;             /// retained for compatibility; set to zero in single-layer mode
+  int nLayersUsed = 0;         /// number of layers used by estimator (0/1 in single-layer mode)
+  uint32_t lastRandomSeed = 0; /// state of the gRandom before
   FastMultEst();
 
   static uint32_t getCurrentRandomSeed();

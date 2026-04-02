@@ -536,7 +536,7 @@ GPUg() void __launch_bounds__(256, 1) computeLayerCellsKernel(
 template <bool initRun, int NLayers>
 GPUg() void __launch_bounds__(256, 1) computeLayerTrackletsMultiROFKernel(
   const IndexTableUtils<NLayers>* utils,
-  const uint8_t* multMask,
+  const typename ROFMaskTable<NLayers>::View multMask,
   const int layerIndex,
   const typename ROFOverlapTable<NLayers>::View rofOverlaps,
   const typename ROFVertexLookupTable<NLayers>::View vertexLUT,
@@ -565,6 +565,10 @@ GPUg() void __launch_bounds__(256, 1) computeLayerTrackletsMultiROFKernel(
   const int totalROFs0 = rofOverlaps.getLayer(layerIndex).mNROFsTF;
   const int totalROFs1 = rofOverlaps.getLayer(layerIndex + 1).mNROFsTF;
   for (unsigned int pivotROF{blockIdx.x}; pivotROF < totalROFs0; pivotROF += gridDim.x) {
+    if (!multMask.isROFEnabled(layerIndex, pivotROF)) {
+      continue;
+    }
+
     const auto& pvs = vertexLUT.getVertices(layerIndex, pivotROF);
     auto primaryVertices = gpuSpan<const Vertex>(&vertices[pvs.getFirstEntry()], pvs.getEntries());
     if (primaryVertices.empty()) {
@@ -782,7 +786,7 @@ GPUg() void __launch_bounds__(256, 1) processNeighboursKernel(
 
 template <int NLayers>
 void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
-                                 const uint8_t* multMask,
+                                 const typename ROFMaskTable<NLayers>::View& multMask,
                                  const int layer,
                                  const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
                                  const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,
@@ -840,7 +844,7 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
 
 template <int NLayers>
 void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
-                                   const uint8_t* multMask,
+                                   const typename ROFMaskTable<NLayers>::View& multMask,
                                    const int layer,
                                    const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
                                    const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,
@@ -1300,7 +1304,7 @@ void computeTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
 
 /// Explicit instantiation of ITS2 handlers
 template void countTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
-                                             const uint8_t* multMask,
+                                             const ROFMaskTable<7>::View& multMask,
                                              const int layer,
                                              const ROFOverlapTable<7>::View& rofOverlaps,
                                              const ROFVertexLookupTable<7>::View& vertexLUT,
@@ -1329,7 +1333,7 @@ template void countTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                              gpu::Streams& streams);
 
 template void computeTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
-                                               const uint8_t* multMask,
+                                               const ROFMaskTable<7>::View& multMask,
                                                const int layer,
                                                const ROFOverlapTable<7>::View& rofOverlaps,
                                                const ROFVertexLookupTable<7>::View& vertexLUT,

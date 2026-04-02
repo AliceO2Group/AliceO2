@@ -143,7 +143,6 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
   float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
   int* getDeviceNeighboursIndexTables(const int layer) { return mNeighboursIndexTablesDevice[layer]; }
-  uint8_t* getDeviceMultCutMask() { return mMultMaskDevice; }
 
   void setDevicePropagator(const o2::base::PropagatorImpl<float>* p) final { this->mPropagatorDevice = p; }
 

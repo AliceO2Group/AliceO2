@@ -214,7 +214,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
           if (vtxSpan[0].isFlagSet(Vertex::UPCMode) == 1) { // at least one vertex in this ROF and it is from second vertex iteration
             LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
             processUPCMask.selectROF({clockTiming.getROFStartInBC(iRof), clockTiming.getROFEndInBC(iRof)});
-              vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
+            vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
           } else { // in all cases except if as standard mode vertex was found, the ROF was processed with UPC settings
             vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
           }
