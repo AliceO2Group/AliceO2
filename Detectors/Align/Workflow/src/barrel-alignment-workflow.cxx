@@ -27,6 +27,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
@@ -60,7 +61,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints, 4 - print mpParams/Constraints, 8 - relabel pede results"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -103,7 +104,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (dets[DetID::TPC]) {
     loadTPCClusters = loadTPCTracks = true;
   }
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   if (!postprocess) { // this part is needed only if the data should be read
     if (GID::includesDet(DetID::ITS, src)) {
       src |= GID::getSourceMask(GID::ITS);

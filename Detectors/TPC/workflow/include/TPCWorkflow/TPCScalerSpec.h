@@ -20,7 +20,7 @@ namespace o2
 namespace tpc
 {
 
-o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
+o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape, const o2::tpc::CorrectionMapsGloOpts& sclOpts);
 
 } // end namespace tpc
 } // end namespace o2

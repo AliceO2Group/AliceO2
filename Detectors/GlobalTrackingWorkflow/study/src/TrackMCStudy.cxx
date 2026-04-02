@@ -17,7 +17,6 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITStracking/IOUtils.h"
 #include "DetectorsBase/Propagator.h"
@@ -57,6 +56,7 @@
 #include "GPUParam.h"
 #include "GPUParam.inc"
 #include "MathUtils/fit.h"
+#include "TPCFastTransformPOD.h"
 #include <TRandom.h>
 #include <map>
 #include <unordered_map>
@@ -112,21 +112,21 @@ class TrackMCStudy final : public Task
   const std::vector<o2::MCTrack>* mCurrMCTracks = nullptr;
   TVector3 mCurrMCVertex;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
-  std::vector<float> mTBinClOcc; ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
-  std::vector<float> mTBinClOccHist; //< original occupancy
-  std::vector<long> mIntBC;      ///< interaction global BC wrt TF start
-  std::vector<float> mTPCOcc;    ///< TPC occupancy for this interaction time
-  std::vector<int> mITSOcc;      //< N ITS clusters in the ROF containing collision
+  std::vector<float> mTBinClOcc;                            ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
+  std::vector<float> mTBinClOccHist;                        //< original occupancy
+  std::vector<long> mIntBC;                                 ///< interaction global BC wrt TF start
+  std::vector<float> mTPCOcc;                               ///< TPC occupancy for this interaction time
+  std::vector<int> mITSOcc;                                 //< N ITS clusters in the ROF containing collision
   std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
 
-  bool mCheckSV = false;         //< check SV binding (apart from prongs availability)
-  bool mRecProcStage = false;    //< flag that the MC particle was added only at the stage of reco tracks processing
-  int mNTPCOccBinLength = 0;     ///< TPC occ. histo bin length in TBs
+  bool mCheckSV = false;      //< check SV binding (apart from prongs availability)
+  bool mRecProcStage = false; //< flag that the MC particle was added only at the stage of reco tracks processing
+  int mNTPCOccBinLength = 0;  ///< TPC occ. histo bin length in TBs
   float mNTPCOccBinLengthInv = -1.f;
   int mVerbose = 0;
   float mITSTimeBiasMUS = 0.f;
@@ -196,12 +196,8 @@ void TrackMCStudy::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
-  bool updateMaps = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
-  }
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -243,8 +239,8 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   auto prop = o2::base::Propagator::Instance();
   int nv = vtxRefs.size();
-  float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth;                                                         // VDrift expressed in cm/TimeBin
-  float itsBias = 0.5 * mITSROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingMUS;       // ITS time is supplied in \mus as beginning of ROF
+  float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth;                                                   // VDrift expressed in cm/TimeBin
+  float itsBias = 0.5 * mITSROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingMUS; // ITS time is supplied in \mus as beginning of ROF
 
   prepareITSData(recoData);
   loadTPCOccMap(recoData);
@@ -854,7 +850,7 @@ void TrackMCStudy::fillMCClusterInfo(const o2::globaltracking::RecoContainer& re
               continue;
             }
             float xc, yc, zc;
-            mTPCCorrMapsLoader.Transform(sector, row, clus.getPad(), clus.getTime(), xc, yc, zc, mctr.bcInTF / 8.); // nominal time of the track
+            mTPCCorrMaps->Transform(sector, row, clus.getPad(), clus.getTime(), xc, yc, zc, mctr.bcInTF / 8.); // nominal time of the track
 
             const auto& entTRefIDs = entTRefIDsIt->second;
             // find bracketing TRef params
@@ -1066,7 +1062,7 @@ bool TrackMCStudy::processMCParticle(int src, int ev, int trid)
           break;
         }
       }
-      if (decay >= 0) {                                                                      // check if decay and kinematics is acceptable
+      if (decay >= 0) { // check if decay and kinematics is acceptable
         auto& decayPool = mDecaysMaps[decay];
         int idd0 = mcPart.getFirstDaughterTrackId(), idd1 = mcPart.getLastDaughterTrackId(); // we want only charged and trackable daughters
         int dtStart = mDecProdLblPool.size(), dtEnd = -1;
@@ -1244,7 +1240,7 @@ void TrackMCStudy::loadTPCOccMap(const o2::globaltracking::RecoContainer& recoDa
   auto NHBPerTF = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
   const auto& TPCOccMap = recoData.occupancyMapTPC;
   auto prop = o2::base::Propagator::Instance();
-  auto TPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&recoData.inputsTPCclusters->clusterIndex, &mTPCCorrMapsLoader, prop->getNominalBz(),
+  auto TPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&recoData.inputsTPCclusters->clusterIndex, mTPCCorrMaps, prop->getNominalBz(),
                                                                     recoData.getTPCTracksClusterRefs().data(), 0, recoData.clusterShMapTPC.data(), TPCOccMap.data(), TPCOccMap.size(), nullptr, prop);
   mNTPCOccBinLength = TPCRefitter->getParam()->rec.tpc.occupancyMapTimeBins;
   mTBinClOcc.clear();
@@ -1370,7 +1366,7 @@ DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask
     dataRequest->requestSecondaryVertices(useMC);
   }
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
                                                               true,                              // GRPLHCIF

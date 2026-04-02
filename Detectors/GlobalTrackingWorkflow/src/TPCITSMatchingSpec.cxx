@@ -50,7 +50,7 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 
 #ifdef ENABLE_UPGRADES
 #include "ITS3Reconstruction/TopologyDictionary.h"
@@ -83,7 +83,7 @@ class TPCITSMatchingDPL : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{};
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   bool mUseFT0 = false;
   bool mCalibMode = false;
@@ -184,7 +184,10 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
+  float lumiCTP = pc.inputs().get<float>("lumiCTP");
+
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -218,13 +221,8 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
       LOGP(fatal, "USEMatCorrTGeo cannot work w/o  full geometry request in the GRPGeomHelper");
     }
   }
-  // we may have other params which need to be queried regularly
-  bool updateMaps = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
+
+  mMatching.setTPCCorrMaps(mTPCCorrMaps, lumiCTP);
 
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC VDrift: corrFact {} wrt refVDrift {} and DriftTimeOffset correction {} wrt {} from source {}",
@@ -292,8 +290,8 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}};
 
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
-
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+  dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "itstpc-track-matcher",
     dataRequest->inputs,

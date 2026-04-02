@@ -31,8 +31,8 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -54,7 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -85,7 +85,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2match-cosmics-workflow_configuration.ini");
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 

@@ -14,7 +14,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -64,7 +64,7 @@ class TPCTrackStudySpec final : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
   bool mUseMC{false}; ///< MC flag
   bool mUseGPUModel{false};
   float mXRef = 0.;
@@ -133,17 +133,12 @@ void TPCTrackStudySpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // none at the moment
-  }
-  // we may have other params which need to be queried regularly
-  bool updateMaps = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
   }
 }
 
@@ -170,7 +165,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   }
   if (mTPCTracksArray.size()) {
     LOGP(info, "Found {} TPC tracks", mTPCTracksArray.size());
-    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
   }
   float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
   float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
@@ -179,7 +174,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 
   auto dumpClusters = [this] {
     static int tf = 0;
-    const auto* corrMap = this->mTPCCorrMapsLoader.getCorrMap();
+    const auto* corrMap = this->mTPCCorrMaps;
     for (int sector = 0; sector < 36; sector++) {
       float alp = ((sector % 18) * 20 + 10) * TMath::DegToRad();
       float sn = TMath::Sin(alp), cs = TMath::Cos(alp);
@@ -256,7 +251,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         clSector.push_back(sector);
         clRow.push_back(row);
         float x, y, z;
-        mTPCCorrMapsLoader.Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
+        mTPCCorrMaps->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
         clX.push_back(x);
         clY.push_back(y);
         clZ.push_back(z);
@@ -425,7 +420,7 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tpc-track-study",

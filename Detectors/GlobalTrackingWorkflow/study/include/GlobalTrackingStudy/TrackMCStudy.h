@@ -15,7 +15,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 
 namespace o2::trackstudy
 {

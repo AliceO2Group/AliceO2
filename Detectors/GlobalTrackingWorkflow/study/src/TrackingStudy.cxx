@@ -42,7 +42,6 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "GPUO2InterfaceRefit.h"
 #include "GPUO2ExternalUser.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.h"
@@ -50,6 +49,7 @@
 #include "GPUTPCGeometry.h"
 #include "Steer/MCKinematicsReader.h"
 #include "MathUtils/fit.h"
+#include "TPCFastTransformPOD.h"
 #include <TF1.h>
 
 namespace o2::trackstudy
@@ -86,11 +86,11 @@ class TrackingStudySpec final : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
   bool mUseMC{false}; ///< MC flag
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutVtx;
-  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;                 ///< TPC refitter used for TPC tracks refit during the reconstruction
   std::vector<float> mMltHistTB, mTBinClOccAft, mTBinClOccBef, mTBinClOccWgh; ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting/preceding from the TB = i*mNTPCOccBinLength
   std::unique_ptr<TF1> mOccWghFun;
   float mITSROFrameLengthMUS = 0.f;
@@ -154,7 +154,7 @@ void TrackingStudySpec::run(ProcessingContext& pc)
   recoData.collectData(pc, *mDataRequest.get()); // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
   updateTimeDependentParams(pc);                 // Make sure this is called after recoData.collectData, which may load some conditions
   if (recoData.inputsTPCclusters) {
-    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&recoData.inputsTPCclusters->clusterIndex, &mTPCCorrMapsLoader, o2::base::Propagator::Instance()->getNominalBz(),
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&recoData.inputsTPCclusters->clusterIndex, mTPCCorrMaps, o2::base::Propagator::Instance()->getNominalBz(),
                                                                   recoData.getTPCTracksClusterRefs().data(), 0, recoData.clusterShMapTPC.data(), recoData.occupancyMapTPC.data(),
                                                                   recoData.occupancyMapTPC.size(), nullptr, o2::base::Propagator::Instance());
     mNTPCOccBinLength = mTPCRefitter->getParam()->rec.tpc.occupancyMapTimeBins;
@@ -203,7 +203,8 @@ void TrackingStudySpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -220,11 +221,6 @@ void TrackingStudySpec::updateTimeDependentParams(ProcessingContext& pc)
     auto& elParam = o2::tpc::ParameterElectronics::Instance();
     mTPCTBinMUS = elParam.ZbinWidth; // TPC bin in microseconds
     mTPCTBinMUSInv = 1. / mTPCTBinMUS;
-  }
-  bool updateMaps = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
   }
 }
 
@@ -279,9 +275,9 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       if (trExt.padFromEdge > npads / 2) {
         trExt.padFromEdge = npads - 1 - trExt.padFromEdge;
       }
-      this->mTPCCorrMapsLoader.Transform(clSect, clRow, clus.getPad(), clus.getTime(), trExt.innerTPCPos0[0], trExt.innerTPCPos0[1], trExt.innerTPCPos0[2], trc.getTime0()); // nominal time of the track
+      this->mTPCCorrMaps->Transform(clSect, clRow, clus.getPad(), clus.getTime(), trExt.innerTPCPos0[0], trExt.innerTPCPos0[1], trExt.innerTPCPos0[2], trc.getTime0()); // nominal time of the track
       if (timestampTB > -1e8) {
-        this->mTPCCorrMapsLoader.Transform(clSect, clRow, clus.getPad(), clus.getTime(), trExt.innerTPCPos[0], trExt.innerTPCPos[1], trExt.innerTPCPos[2], timestampTB); // time assigned from the global track track
+        this->mTPCCorrMaps->Transform(clSect, clRow, clus.getPad(), clus.getTime(), trExt.innerTPCPos[0], trExt.innerTPCPos[1], trExt.innerTPCPos[2], timestampTB); // time assigned from the global track track
       } else {
         trExt.innerTPCPos = trExt.innerTPCPos0;
       }
@@ -761,7 +757,7 @@ DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     {"min-x-prop", VariantType::Float, 100.f, {"track should be propagated to this X at least"}},
   };
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "track-study",

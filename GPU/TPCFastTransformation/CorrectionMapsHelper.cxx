@@ -10,45 +10,51 @@
 // or submit itself to any jurisdiction.
 
 #include "CorrectionMapsHelper.h"
-#include "Framework/ConfigParamRegistry.h"
+#include "GPUCommonLogger.h"
+
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-void CorrectionMapsHelper::setCorrMap(const TPCFastTransformPOD* m)
+//________________________________________________________
+void CorrectionMapsHelper::clear()
 {
-  // non-owning: just store the pointer, clear any previously owned buffer
-#if !defined(GPUCA_GPUCODE_DEVICE)
-  mCorrMapBuffer.clear();
-#endif
-  mCorrMap = m;
+  mLumiCTPAvailable = false;
+  mCorrMap = nullptr;
+  mCorrMapRef = nullptr;
+  mCorrMapMShape.reset();
+  mUpdatedFlags = 0;
+  mInstLumiCTP = 0.f;
+  mInstLumi = 0.f;
+  mMeanLumi = 0.f;
+  mMeanLumiRef = 0.f;
 }
 
-void CorrectionMapsHelper::setCorrMap(std::vector<char>&& buffer)
+void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& m)
 {
-  mCorrMapBuffer = std::move(buffer);
-  mCorrMap = &TPCFastTransformPOD::get(mCorrMapBuffer.data());
+  setUpdatedMapMShape();
+  mCorrMapMShape = std::move(m);
 }
 
-CorrectionMapsLoaderGloOpts CorrectionMapsHelper::parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts)
+void CorrectionMapsHelper::updateLumiScale(bool report)
 {
-  CorrectionMapsLoaderGloOpts tpcopt;
-  auto lumiTypeVal = opts.get<int>("lumi-type");
-  if (lumiTypeVal < -1 || lumiTypeVal > 2) {
-    LOGP(fatal, "Invalid lumi-type value: {}", lumiTypeVal);
+  if (!canUseCorrections()) {
+    mLumiScale = -1.f;
+  } else if ((mLumiScaleMode == LumiScaleMode::DerivativeMap) || (mLumiScaleMode == LumiScaleMode::DerivativeMapMC)) {
+    mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
+    LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
+  } else {
+    mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
   }
-  tpcopt.lumiType = static_cast<LumiScaleType>(lumiTypeVal);
+  setUpdatedLumi();
+  if (report) {
+    reportScaling();
+  }
+}
 
-  auto lumiModeVal = opts.get<int>("corrmap-lumi-mode");
-  if (lumiModeVal < -1 || lumiModeVal > 2) {
-    LOGP(fatal, "Invalid corrmap-lumi-mode value: {}", lumiModeVal);
-  }
-  tpcopt.lumiMode = static_cast<LumiScaleMode>(lumiModeVal);
-
-  tpcopt.enableMShapeCorrection = opts.get<bool>("enable-M-shape-correction");
-  tpcopt.requestCTPLumi = !opts.get<bool>("disable-ctp-lumi-request");
-  tpcopt.checkCTPIDCconsistency = !opts.get<bool>("disable-lumi-type-consistency-check");
-  if (!tpcopt.requestCTPLumi && tpcopt.lumiType == LumiScaleType::CTPLumi) {
-    LOGP(fatal, "Scaling with CTP Lumi is requested but this input is disabled");
-  }
-  return tpcopt;
+//________________________________________________________
+void CorrectionMapsHelper::reportScaling()
+{
+  LOGP(info, "Map scaling update: LumiScaleType={} instLumi(CTP)={} instLumi(scaling)={} meanLumiRef={}, meanLumi={} -> LumiScale={} lumiScaleMode={}, M-Shape map valid: {}, M-Shape default: {}",
+       mLumiScaleType == LumiScaleType::NoScaling ? "NoScaling" : (mLumiScaleType == LumiScaleType::CTPLumi ? "LumiCTP" : "TPCScaler"), getInstLumiCTP(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(),
+       mLumiScaleMode == LumiScaleMode::Linear ? "Linear" : "Derivative", (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
 }

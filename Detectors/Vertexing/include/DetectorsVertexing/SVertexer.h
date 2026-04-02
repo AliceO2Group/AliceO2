@@ -35,7 +35,6 @@
 #include <numeric>
 #include <algorithm>
 #include "GPUO2InterfaceRefit.h"
-#include "TPCFastTransform.h"
 #include "DataFormatsTPC/PIDResponse.h"
 
 namespace o2
@@ -46,7 +45,7 @@ class VDriftCorrFact;
 }
 namespace gpu
 {
-class CorrectionMapsHelper;
+class TPCFastTransformPOD;
 }
 
 namespace vertexing
@@ -143,7 +142,7 @@ class SVertexer
     mMUS2TPCBin = 1.f / (nbc * o2::constants::lhc::LHCBunchSpacingMUS);
   }
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
-  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
+  void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
   void setStrangenessTracker(o2::strangeness_tracking::StrangenessTracker* tracker) { mStrTracker = tracker; }
   o2::strangeness_tracking::StrangenessTracker* getStrangenessTracker() { return mStrTracker; }
 
@@ -175,7 +174,7 @@ class SVertexer
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
   gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
   gsl::span<const unsigned int> mTPCRefitterOccMap;                   ///< externally set TPC clusters occupancy map
-  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps = nullptr;
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
   o2::strangeness_tracking::StrangenessTracker* mStrTracker = nullptr;
   gsl::span<const PVertex> mPVertices;

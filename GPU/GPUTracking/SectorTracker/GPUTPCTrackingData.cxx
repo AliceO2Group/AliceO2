@@ -100,7 +100,7 @@ void* GPUTPCTrackingData::SetPointersRows(void* mem)
 GPUd() void GPUTPCTrackingData::GetMaxNBins(GPUconstantref() const GPUConstantMem* mem, GPUTPCRow* GPUrestrict() row, int32_t& maxY, int32_t& maxZ)
 {
   maxY = row->mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
-  maxZ = (mem->param.continuousMaxTimeBin > 0 ? (mem->calibObjects.fastTransformHelper->getCorrMap()->convTimeToZinTimeFrame(0, 0, mem->param.continuousMaxTimeBin)) : GPUTPCGeometry::TPCLength()) + 50;
+  maxZ = (mem->param.continuousMaxTimeBin > 0 ? (mem->calibObjects.fastTransform->convTimeToZinTimeFrame(0, 0, mem->param.continuousMaxTimeBin)) : GPUTPCGeometry::TPCLength()) + 50;
   maxZ = maxZ / GPUCA_MIN_BIN_SIZE + 1;
 }
 

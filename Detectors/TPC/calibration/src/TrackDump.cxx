@@ -24,8 +24,6 @@ using namespace o2::tpc;
 using namespace o2::tpc::constants;
 namespace fs = std::filesystem;
 
-o2::gpu::CorrectionMapsHelper o2::tpc::TrackDump::ClusterNativeAdd::sCorrHelper{};
-
 void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAccess const& clusterIndex, const gsl::span<const o2::tpc::TPCClRefElem> clRefs, const gsl::span<const o2::MCCompLabel> mcLabels)
 {
   if (!mTreeDump && outputFileName.size()) {
@@ -197,8 +195,8 @@ float TrackDump::ClusterNativeAdd::gy() const
 float TrackDump::ClusterNativeAdd::lxc(float vertexTime) const
 {
   float x{0.f}, y{0.f}, z{0.f};
-  if (sCorrHelper.getCorrMap()) {
-    sCorrHelper.Transform(sector, padrow, getPad(), getTime(), x, y, z, vertexTime);
+  if (corrMap) {
+    corrMap->Transform(sector, padrow, getPad(), getTime(), x, y, z, vertexTime);
   }
   return x;
 }
@@ -206,8 +204,8 @@ float TrackDump::ClusterNativeAdd::lxc(float vertexTime) const
 float TrackDump::ClusterNativeAdd::lyc(float vertexTime) const
 {
   float x{0.f}, y{0.f}, z{0.f};
-  if (sCorrHelper.getCorrMap()) {
-    sCorrHelper.Transform(sector, padrow, getPad(), getTime(), x, y, z, vertexTime);
+  if (corrMap) {
+    corrMap->Transform(sector, padrow, getPad(), getTime(), x, y, z, vertexTime);
   }
   return y;
 }
@@ -229,8 +227,8 @@ float TrackDump::ClusterNativeAdd::gyc(float vertexTime) const
 float TrackDump::ClusterNativeAdd::zc(float vertexTime) const
 {
   float x{0.f}, y{0.f}, z{0.f};
-  if (sCorrHelper.getCorrMap()) {
-    sCorrHelper.Transform(sector, padrow, getPad(), getTime(), x, y, z, vertexTime);
+  if (corrMap) {
+    corrMap->Transform(sector, padrow, getPad(), getTime(), x, y, z, vertexTime);
   }
   return z;
 }
@@ -240,5 +238,6 @@ void TrackDump::ClusterNativeAdd::loadCorrMaps(std::string_view corrMapFile, std
   auto fastTransformTmp = gpu::TPCFastTransform::loadFromFile(corrMapFile.data());
   std::vector<char> buffer;
   gpu::TPCFastTransformPOD::create(buffer, *fastTransformTmp);
-  sCorrHelper.setCorrMap(std::move(buffer));
+  corrMapBuffer = std::move(buffer);
+  corrMap = &gpu::TPCFastTransformPOD::get(corrMapBuffer.data());
 }

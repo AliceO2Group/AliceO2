@@ -34,8 +34,8 @@
 #include "GPUDebugStreamer.h"
 #include "GPUTPCClusterOccupancyMap.h"
 #include "GPUTrackingRefit.h"
-#include "CorrectionMapsHelper.h"
 #include "GPUConstantMem.h"
+#include "TPCFastTransformPOD.h"
 
 using namespace o2::gpu;
 using namespace gputpcgmmergertypes;
@@ -355,7 +355,7 @@ std::vector<float> GPUTPCGMMerger::StreamerUncorrectedZY(int32_t iSector, int32_
 {
   std::vector<float> retVal(2);
 #ifdef DEBUG_STREAMER
-  GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(iSector, iRow, track.GetY(), track.GetZ(), retVal[0], retVal[1]);
+  GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(iSector, iRow, track.GetY(), track.GetZ(), retVal[0], retVal[1]);
 #endif
   return retVal;
 }

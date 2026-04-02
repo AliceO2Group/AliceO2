@@ -255,9 +255,10 @@ void MatchTOF::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 }
 
 //______________________________________________
-void MatchTOF::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+void MatchTOF::setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph, float lumi)
 {
-  mTPCCorrMapsHelper = maph;
+  mTPCCorrMaps = maph;
+  mCTPLumi = lumi;
 }
 
 //______________________________________________
@@ -2085,7 +2086,7 @@ void MatchTOF::updateTimeDependentParams()
   mMaxInvPt = std::abs(mBz) > 0.1 ? 1. / (std::abs(mBz) * 0.05) : 999.;
 
   const auto& trackTune = TrackTuneParams::Instance();
-  float scale = mTPCCorrMapsHelper->getInstLumiCTP();
+  float scale = mCTPLumi;
   if (scale < 0.f) {
     LOGP(warning, "Negative scale factor for TPC covariance correction, setting it to zero");
     scale = 0.f;
@@ -2167,7 +2168,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
 void MatchTOF::checkRefitter()
 {
   if (mTPCClusterIdxStruct) {
-    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz,
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, mBz,
                                                                   mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(),
                                                                   mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
   }

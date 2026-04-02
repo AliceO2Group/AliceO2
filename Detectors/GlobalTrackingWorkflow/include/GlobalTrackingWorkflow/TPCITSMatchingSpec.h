@@ -20,10 +20,6 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace tpc
-{
-struct CorrectionMapsLoaderGloOpts;
-}
 namespace globaltracking
 {
 /// create a processor spec

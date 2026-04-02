@@ -24,7 +24,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 
 // from Tracks
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -71,7 +71,7 @@ class TOFMatcherSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps = nullptr;
   bool mUseMC = true;
   bool mUseFIT = false;
   bool mDoTPCRefit = false;
@@ -100,7 +100,9 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
+  float lumiCTP = pc.inputs().get<float>("lumiCTP");
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     const auto bcs = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling().getFilledBCs();
@@ -110,12 +112,8 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     // put here init-once stuff
   }
-  // we may have other params which need to be queried regularly
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-  }
-  mMatcher.setTPCCorrMaps(&mTPCCorrMapsLoader);
-    if (mTPCVDriftHelper.isUpdated()) {
+  mMatcher.setTPCCorrMaps(mTPCCorrMaps, lumiCTP);
+  if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
          mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
@@ -258,7 +256,8 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+  dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
   std::vector<OutputSpec> outputs;
   if (GID::includesSource(GID::TPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe);

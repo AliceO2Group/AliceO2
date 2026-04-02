@@ -48,14 +48,13 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
-#include "TPCFastTransform.h"
 #include "GPUO2InterfaceRefit.h"
 #include "GPUTPCGeometry.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
 #include "MemoryResources/MemoryResources.h"
 #endif
@@ -434,7 +433,7 @@ class MatchTPCITS
     mVDriftCalibOn = v;
   }
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
-  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
+  void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph, float lumi);
 
   ///< print settings
   void print() const;
@@ -641,7 +640,8 @@ class MatchTPCITS
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
   bool mVDriftCalibOn = false;    ///< flag to produce VDrift calibration data
   o2::tpc::VDriftCorrFact mTPCDrift{};
-  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps = nullptr;
+  float mLumiCTP{-1};
 
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
 

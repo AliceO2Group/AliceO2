@@ -24,7 +24,7 @@
 #include "TRDWorkflow/TRDGlobalTrackingQCSpec.h"
 #include "TRDWorkflow/TRDPulseHeightSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
 #include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
@@ -64,7 +64,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -88,7 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto gain = configcontext.options().get<bool>("enable-gain-calib");
   auto pulseHeight = configcontext.options().get<bool>("enable-ph");
   auto digitsSpec = configcontext.options().get<int>("trd-digits-spec");
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   bool rootInput = !configcontext.options().get<bool>("disable-root-input");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {

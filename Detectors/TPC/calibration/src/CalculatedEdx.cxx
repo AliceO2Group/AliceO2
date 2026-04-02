@@ -34,7 +34,8 @@ CalculatedEdx::CalculatedEdx()
 {
   std::vector<char> buffer;
   gpu::TPCFastTransformPOD::create(buffer, *TPCFastTransformHelperO2::instance()->create(0));
-  mTPCCorrMapsHelper.setCorrMap(std::move(buffer));
+  mTPCCorrMapBuffer = std::move(buffer);
+  mTPCCorrMap = &gpu::TPCFastTransformPOD::get(mTPCCorrMapBuffer.data());
 }
 
 void CalculatedEdx::setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex, std::vector<o2::tpc::TrackTPC>* vTPCTracksArrayInp)
@@ -51,7 +52,7 @@ void CalculatedEdx::setRefit(const unsigned int nHbfPerTf)
   mTPCRefitterOccMap.resize(sizeOcc);
   std::fill(mTPCRefitterOccMap.begin(), mTPCRefitterOccMap.end(), 0);
   o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), nHbfPerTf);
-  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), nHbfPerTf, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
+  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMap, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), nHbfPerTf, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
 }
 
 void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method, std::array<std::vector<float>, 5>& chargeTotROC, std::array<std::vector<float>, 5>& chargeMaxROC)

@@ -90,7 +90,11 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
+  float lumiCTP = pc.inputs().get<float>("lumiCTP");
+
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -147,13 +151,9 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
       mBase->setLocalGainFactors(pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").get());
     }
   }
-  bool updateCalib = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateCalib = true;
-  }
+
   const auto& trackTune = TrackTuneParams::Instance();
-  float scale = mTPCCorrMapsLoader.getInstLumiCTP();
+  float scale = lumiCTP;
   if (scale < 0.f) {
     scale = 0.f;
   }
@@ -172,7 +172,6 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     mTracker->SetTPCVdrift(mTPCVdrift);
     mTracker->SetTPCTDriftOffset(mTPCTDriftOffset);
     mTPCVDriftHelper.acknowledgeUpdate();
-    updateCalib = true;
   }
 }
 
@@ -285,7 +284,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mChainTracking->ClearIOPointers();
 
   mTPCClusterIdxStruct = &inputTracks.inputsTPCclusters->clusterIndex;
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, o2::base::Propagator::Instance()->getNominalBz(), inputTracks.getTPCTracksClusterRefs().data(), 0, inputTracks.clusterShMapTPC.data(), inputTracks.occupancyMapTPC.data(), inputTracks.occupancyMapTPC.size(), nullptr, o2::base::Propagator::Instance());
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, o2::base::Propagator::Instance()->getNominalBz(), inputTracks.getTPCTracksClusterRefs().data(), 0, inputTracks.clusterShMapTPC.data(), inputTracks.occupancyMapTPC.data(), inputTracks.occupancyMapTPC.size(), nullptr, o2::base::Propagator::Instance());
   auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks, mUseMC);
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(mChainTracking->mIOPtrs, inputTracks, mUseMC, nullptr, GTrackID::getSourcesMask("TRD"), mTrkMask, GTrackID::mask_t{GTrackID::MASK_NONE});
   mTrackletsRaw = inputTracks.getTRDTracklets();
@@ -891,7 +890,9 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   Options opts;
-  o2::tpc::CorrectionMapsLoader::requestInputs(inputs, opts);
+
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+  dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
 
   // Request PID policy data
   if (withPID) {

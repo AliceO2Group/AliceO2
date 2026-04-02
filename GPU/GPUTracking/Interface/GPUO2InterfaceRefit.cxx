@@ -19,7 +19,7 @@
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTrackingRefit.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUTPCClusterOccupancyMap.h"
 
 using namespace o2::gpu;
@@ -96,7 +96,7 @@ size_t GPUO2InterfaceRefit::fillOccupancyMapGetSize(uint32_t nHbfPerTf, const GP
   }
 }
 
-GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bzNominalGPU, const TPCClRefElem* trackRef, uint32_t nHbfPerTf, const uint8_t* sharedmap, const uint32_t* occupancymap, int32_t occupancyMapSize, const std::vector<TrackTPC>* trks, o2::base::Propagator* p)
+GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const TPCFastTransformPOD* trans, float bzNominalGPU, const TPCClRefElem* trackRef, uint32_t nHbfPerTf, const uint8_t* sharedmap, const uint32_t* occupancymap, int32_t occupancyMapSize, const std::vector<TrackTPC>* trks, o2::base::Propagator* p)
 {
   mParam = GPUO2InterfaceUtils::getFullParam(bzNominalGPU, nHbfPerTf);
   size_t expectedOccMapSize = nHbfPerTf ? fillOccupancyMapGetSize(nHbfPerTf, mParam.get()) : 0;
@@ -124,13 +124,13 @@ GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const Co
   mRefit->SetPropagator(p);
   mRefit->SetClusterNative(cl);
   mRefit->SetTrackHitReferences(trackRef);
-  mRefit->SetFastTransformHelper(trans);
+  mRefit->SetFastTransform(trans);
 }
 
-void GPUO2InterfaceRefit::updateCalib(const CorrectionMapsHelper* trans, float bzNominalGPU)
+void GPUO2InterfaceRefit::updateCalib(const TPCFastTransformPOD* trans, float bzNominalGPU)
 {
   mParam->UpdateBzOnly(bzNominalGPU);
-  mRefit->SetFastTransformHelper(trans);
+  mRefit->SetFastTransform(trans);
 }
 
 int32_t GPUO2InterfaceRefit::RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, outward, resetCov); }

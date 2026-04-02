@@ -22,10 +22,9 @@
 #include "DataFormatsTPC/dEdxInfo.h"
 #include "GPUO2InterfaceRefit.h"
 #include "CalibdEdxContainer.h"
-#include "CorrectionMapsHelper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCCalibration/CorrectdEdxDistortions.h"
-
+#include "TPCFastTransformPOD.h"
 #include <vector>
 
 namespace o2::tpc
@@ -225,10 +224,11 @@ class CalculatedEdx
   unsigned int getOccupancy(const o2::tpc::ClusterNative& cl) const;
 
  private:
-  std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed
-  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};    ///< input vector with TPC tracks cluster indicies
-  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};    ///< needed to access clusternative with tpctracks
-  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;              ///< cluster correction maps helper
+  std::vector<TrackTPC>* mTracks{nullptr};                    ///< vector containing the tpc tracks which will be processed
+  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr}; ///< input vector with TPC tracks cluster indicies
+  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr}; ///< needed to access clusternative with tpctracks
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMap{nullptr};   ///< cluster correction maps helper
+  std::vector<char> mTPCCorrMapBuffer;
   std::vector<unsigned char> mTPCRefitterShMap;                  ///< externally set TPC clusters sharing map
   std::vector<unsigned int> mTPCRefitterOccMap;                  ///< externally set TPC clusters occupancy map
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction

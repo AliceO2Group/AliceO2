@@ -155,10 +155,13 @@ class GPURecoWorkflowSpec : public o2::framework::Task
  private:
   struct calibObjectStruct {
     std::vector<char> mUpdatedTransformBuffer;
-    std::unique_ptr<TPCFastTransformPOD> mFastTransform;
-    std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
+    const TPCFastTransformPOD* mFastTransform{nullptr};
     std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
     std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;
+    float mInstLumiCTP{-1};
+    // #if !defined(GPUCA_GPUCODE_DEVICE)
+    std::vector<char> mCorrMapBuffer;
+    // #endif
   };
 
   /// initialize TPC options from command line

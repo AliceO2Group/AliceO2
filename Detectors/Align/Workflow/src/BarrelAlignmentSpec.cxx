@@ -36,7 +36,7 @@
 #include "TRDBase/TrackletTransformer.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUO2ExternalUser.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUParam.h"
@@ -117,7 +117,8 @@ class BarrelAlignmentSpec : public Task
   std::unique_ptr<o2::gpu::GPUParam> mTPCParam;
 
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{};
 
   //
   TStopwatch mTimer;
@@ -264,13 +265,10 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
 
     mTPCVDriftHelper.extractCCDBInputs(pc);
-    mTPCCorrMapsLoader.extractCCDBInputs(pc);
-    bool updateMaps = false;
-    if (mTPCCorrMapsLoader.isUpdated()) {
-      mTPCCorrMapsLoader.acknowledgeUpdate();
-      updateMaps = true;
-    }
-    // mController->setTPCCorrMaps(&mTPCCorrMapsLoader);
+
+    auto const& raw = pc.inputs().get<const char*>("corrMap");
+    mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
+    mController->setTPCCorrMaps(mTPCCorrMaps);
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
            mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -278,7 +276,6 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
            mTPCVDriftHelper.getSourceName());
       mController->setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
       mTPCVDriftHelper.acknowledgeUpdate();
-      updateMaps = true;
     }
   }
 }
@@ -385,7 +382,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     }
     if (src[DetID::TPC] && !skipDetClusters[DetID::TPC]) {
       o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-      o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+      dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
       loadTPCCalib = true;
     }
   }

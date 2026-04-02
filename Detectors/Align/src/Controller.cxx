@@ -1882,9 +1882,9 @@ void Controller::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 }
 
 //______________________________________________
-void Controller::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+void Controller::setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph)
 {
-  mTPCCorrMapsHelper = maph;
+  mTPCCorrMaps = maph;
 }
 
 } // namespace align

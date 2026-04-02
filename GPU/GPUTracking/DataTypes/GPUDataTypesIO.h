@@ -126,7 +126,6 @@ struct ConstPtr {
 template <template <typename T> class S>
 struct GPUCalibObjectsTemplate { // use only pointers on PODs or flat objects here
   typename S<TPCFastTransformPOD>::type* fastTransform = nullptr;
-  typename S<CorrectionMapsHelper>::type* fastTransformHelper = nullptr;
   typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;

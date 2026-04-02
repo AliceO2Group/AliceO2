@@ -26,7 +26,7 @@
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "Framework/CCDBParamSpec.h"
 #include "TPCBaseRecSim/CDBInterface.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "GPUO2InterfaceUtils.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -181,13 +181,10 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       LOGP(info, "fetching residual gain map");
       pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcresidualgainmap");
     }
-    mTPCCorrMapsLoader.extractCCDBInputs(pc);
-    bool updateMaps = false;
-    if (mTPCCorrMapsLoader.isUpdated()) {
-      mTPCCorrMapsLoader.acknowledgeUpdate();
-      updateMaps = true;
-    }
-    mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsLoader);
+
+    auto const& raw = pc.inputs().get<const char*>("corrMap");
+    mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
+    mPadGainTracks.setTPCCorrMaps(mTPCCorrMaps);
     mPadGainTracks.setMembers(&tracks, &clRefs, clusters->clusterIndex, recoData.clusterShMapTPC, recoData.occupancyMapTPC);
     mPadGainTracks.processTracks(mMaxTracksPerTF);
     ++mProcessedTFs;
@@ -203,20 +200,20 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   }
 
  private:
-  const uint32_t mPublishAfter{0};                        ///< number of TFs after which to dump the calibration
-  const bool mDebug{false};                               ///< create debug output
-  const bool mUseLastExtractedMapAsReference{false};      ///< using the last extracted gain map as the reference map which will be applied
-  bool mDisablePolynomialsCCDB{false};                    ///< do not load the polynomials from the CCDB
+  const uint32_t mPublishAfter{0};                               ///< number of TFs after which to dump the calibration
+  const bool mDebug{false};                                      ///< create debug output
+  const bool mUseLastExtractedMapAsReference{false};             ///< using the last extracted gain map as the reference map which will be applied
+  bool mDisablePolynomialsCCDB{false};                           ///< do not load the polynomials from the CCDB
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< reco container data request
-  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///< for accessing the b-field
-  uint32_t mProcessedTFs{0};                              ///< counter to keep track of the processed TFs
-  uint32_t mTFCounter{0};                                 ///< counter to keep track of the TFs
-  CalibPadGainTracks mPadGainTracks{false};               ///< class for creating the pad-by-pad gain map
-  bool mUsingDefaultGainMapForFirstIter{true};            ///< using no reference gain map for the first iteration
-  unsigned int mUseEveryNthTF{1};                         ///< process every Nth TF only
-  unsigned int mFirstTFSend{1};                           ///< first TF for which the data will be send (initialized randomly)
-  int mMaxTracksPerTF{-1};                                ///< max number of tracks processed per TF
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;        ///< for accessing the b-field
+  uint32_t mProcessedTFs{0};                                     ///< counter to keep track of the processed TFs
+  uint32_t mTFCounter{0};                                        ///< counter to keep track of the TFs
+  CalibPadGainTracks mPadGainTracks{false};                      ///< class for creating the pad-by-pad gain map
+  bool mUsingDefaultGainMapForFirstIter{true};                   ///< using no reference gain map for the first iteration
+  unsigned int mUseEveryNthTF{1};                                ///< process every Nth TF only
+  unsigned int mFirstTFSend{1};                                  ///< first TF for which the data will be send (initialized randomly)
+  int mMaxTracksPerTF{-1};                                       ///< max number of tracks processed per TF
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
 
   void sendOutput(DataAllocator& output)
   {
@@ -270,7 +267,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     {"useEveryNthTF", VariantType::Int, 10, {"Using only a fraction of the data: 1: Use every TF, 10: Use only every tenth TF."}},
     {"maxTracksPerTF", VariantType::Int, 10000, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
   };
-  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                                 false,                          // GRPECS=true

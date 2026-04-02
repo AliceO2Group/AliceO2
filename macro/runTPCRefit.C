@@ -17,7 +17,6 @@
 
 #include "TROOT.h"
 
-#include "CorrectionMapsHelper.h"
 #include "GPUO2InterfaceRefit.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -30,6 +29,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/NameConf.h"
+#include "TPCFastTransformPOD.h"
 #else
 #pragma cling load("libO2TPCReconstruction")
 #pragma cling load("libO2DataFormatsTPC")
@@ -51,8 +51,9 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
   Propagator::initFieldFromGRP(NameConf::getGRPFileName());
   const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
   float bz = 5.00668f * grp->getL3Current() / 30000.;
-  o2::gpu::CorrectionMapsHelper transHelper;
-  transHelper.setCorrMap(TPCFastTransformHelperO2::instance()->create(0));
+  std::vector<char> buffer;
+  o2::gpu::TPCFastTransformPOD::create(buffer, *TPCFastTransformHelperO2::instance()->create(0));
+  const TPCFastTransformPOD corrMap = o2::gpu::TPCFastTransformPOD::get(buffer.data());
   auto* prop = Propagator::Instance();
 
   ClusterNativeAccess clusterIndex;
@@ -87,7 +88,7 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
       std::cout << "Error reading clusters (code " << retVal << ")\n";
       return 1;
     }
-    GPUO2InterfaceRefit refit(&clusterIndex, &transHelper, bz, trackHitRefs->data(), 0, nullptr, nullptr, -1, tracks, prop);
+    GPUO2InterfaceRefit refit(&clusterIndex, corrMap, bz, trackHitRefs->data(), 0, nullptr, nullptr, -1, tracks, prop);
     //refit.setGPUTrackFitInProjections(false); // Enable full 3D fit without assuming y and Z are uncorrelated
     for (unsigned int i = 0; i < tracks->size(); i++) {
       TrackTPC trk = (*tracks)[i];

@@ -22,7 +22,6 @@
 #include "TPCBase/CalDet.h"
 #include "TPCCalibration/CalibPadGainTracksBase.h"
 #include "CalibdEdxTrackTopologyPol.h"
-#include "TPCFastTransform.h"
 
 #include <vector>
 #include <gsl/span>
@@ -36,8 +35,8 @@ namespace o2
 namespace gpu
 {
 class GPUO2InterfaceRefit;
-class CorrectionMapsHelper;
-}
+class TPCFastTransformPOD;
+} // namespace gpu
 
 namespace tpc
 {
@@ -214,7 +213,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
   /// set cluster correction maps helper
-  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
+  void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
 
  private:
   gsl::span<const TrackTPC>* mTracks{nullptr};                                        ///<! vector containing the tpc tracks which will be processed. Cant be const due to the propagate function
@@ -239,7 +238,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   bool mPropagateTrack{false};                                                        ///< propagating the track instead of performing a refit
   bool mDoNotNormCharge{false};                                                       ///< do not normalize the cluster charge to the dE/dx
   ChargeType mChargeType{ChargeType::Max};                                            ///< charge type which is used for calculating the dE/dx and filling the pad-by-pad histograms
-  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;                        ///< cluster corrections map helper
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps = nullptr;                         ///< cluster corrections map helper
   std::vector<std::vector<float>> mDEdxBuffer{};                                      ///<! memory for dE/dx
   std::vector<std::tuple<unsigned char, unsigned char, unsigned char, float>> mClTrk; ///<! memory for cluster informations
   std::vector<float> mDedxTmp{};                                                      ///<! memory for dE/dx calculation

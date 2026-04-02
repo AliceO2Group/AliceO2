@@ -31,10 +31,9 @@
 #include "DetectorsBase/GlobalParams.h"
 #include "TStopwatch.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceSpec.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 
@@ -70,7 +69,7 @@ class SecondaryVertexingSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
   GTrackID::mask_t mSrc{};
   bool mEnableCCDBParams = false;
   bool mEnableCascades = false;
@@ -180,7 +179,8 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   if (mSrc[GTrackID::TPC]) {
     mTPCVDriftHelper.extractCCDBInputs(pc);
-    mTPCCorrMapsLoader.extractCCDBInputs(pc);
+    auto const& raw = pc.inputs().get<const char*>("corrMap");
+    mTPCCorrMaps = &gpu::TPCFastTransformPOD::get(raw);
   }
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -210,12 +210,7 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
   // we may have other params which need to be queried regularly
   if (mSrc[GTrackID::TPC]) {
-    bool updateMaps = false;
-    if (mTPCCorrMapsLoader.isUpdated()) {
-      mTPCCorrMapsLoader.acknowledgeUpdate();
-      updateMaps = true;
-    }
-    mVertexer.setTPCCorrMaps(&mTPCCorrMapsLoader);
+    mVertexer.setTPCCorrMaps(mTPCCorrMaps);
 
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
@@ -281,7 +276,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   }
   if (src[GTrackID::TPC]) {
     o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-    o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+    dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("GLO", "V0S_IDX", 0, Lifetime::Timeframe);     // found V0s indices
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);         // found V0s

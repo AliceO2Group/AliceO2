@@ -15,11 +15,6 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2::tpc
-{
-struct CorrectionMapsLoaderGloOpts;
-}
-
 namespace o2::trackstudy
 {
 /// create a processor spec

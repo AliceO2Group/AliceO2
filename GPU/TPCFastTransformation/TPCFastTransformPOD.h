@@ -255,9 +255,10 @@ class TPCFastTransformPOD
   static size_t estimateSize(const TPCFastSpaceChargeCorrection& origCorr);
   static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastTransform& src);
   static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastSpaceChargeCorrection& src);
-  static TPCFastTransformPOD& getNonConst(char* head) { return *reinterpret_cast<TPCFastTransformPOD*>(head); }
+  GPUd() static TPCFastTransformPOD& getNonConst(char* head) { return *reinterpret_cast<TPCFastTransformPOD*>(head); }
 #endif
 
+  ///< get address to which the offset in bytes must be added to arrive to particular dynamic part
   GPUd() const char* getThis() const { return reinterpret_cast<const char*>(this); }
 
   ///< return offset of the spline object start (equivalent of mScenarioPtr in the TPCFastSpaceChargeCorrection)
@@ -316,7 +317,7 @@ GPUdi() void TPCFastTransformPOD::getCorrectionLocal(int32_t sector, int32_t row
   const char* g2buf = getGridX2FlatBuffer(spline, isc);
 
   float dxyz[3];
-  spline.interpolateAtUZeroCopy(g1buf, g2buf, splineData, val[0], val[1], dxyz);
+  spline.interpolateAtUZeroCopy(g1buf, g2buf, splineData, u, v, dxyz);
 
   if (CAMath::Abs(dxyz[0]) > 100.f || CAMath::Abs(dxyz[1]) > 100.f || CAMath::Abs(dxyz[2]) > 100.f) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
@@ -819,7 +820,6 @@ GPUdi() void TPCFastTransformPOD::InverseTransformYZtoX(int32_t sector, int32_t 
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoX").data()
                                                                                        << "sector=" << sector
                                                                                        << "row=" << row
-                                                                                       << "scale=" << scale
                                                                                        << "y=" << realY
                                                                                        << "z=" << realZ
                                                                                        << "x=" << realX
@@ -887,7 +887,6 @@ GPUdi() void TPCFastTransformPOD::InverseTransformYZtoNominalYZ(int32_t sector, 
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
                                                                                        << "sector=" << sector
                                                                                        << "row=" << row
-                                                                                       << "scale=" << scale
                                                                                        << "real y=" << realY
                                                                                        << "real z=" << realZ
                                                                                        << "measured y=" << measuredY
@@ -959,24 +958,20 @@ GPUdi() void TPCFastTransformPOD::InverseTransformXYZtoNominalXYZ_new(int32_t se
 GPUdi() void TPCFastTransformPOD::convPadTimeToLocal(int32_t sector, int32_t row, float pad, float time, float& y, float& z, float vertexTime) const
 {
   float l = (time - mT0 - vertexTime) * mVdrift;
-  const auto localval = getGeometry().convPadDriftLengthToLocal(sector, row, pad, l);
-  y = localval[0];
-  z = localval[1];
+  getGeometry().convPadDriftLengthToLocal(sector, row, pad, l, y, z);
 }
 
 GPUdi() void TPCFastTransformPOD::convPadTimeToLocalInTimeFrame(int32_t sector, int32_t row, float pad, float time, float& y, float& z, float maxTimeBin) const
 {
   float l = getGeometry().getTPCzLength() + (time - mT0 - maxTimeBin) * mVdrift;
-  const auto localval = getGeometry().convPadDriftLengthToLocal(sector, row, pad, l);
-  y = localval[0];
-  z = localval[1];
+  getGeometry().convPadDriftLengthToLocal(sector, row, pad, l, y, z);
 }
 
 GPUdi() void TPCFastTransformPOD::convLocalToPadTimeInTimeFrame(int32_t sector, int32_t row, float y, float z, float& pad, float& time, float maxTimeBin) const
 {
-  const auto padLength = getGeometry().convLocalToPadDriftLength(sector, row, y, z);
-  pad = padLength[0];
-  time = convDriftLengthToTime(padLength[1], maxTimeBin);
+  float length = 0;
+  getGeometry().convLocalToPadDriftLength(sector, row, y, z, pad, length);
+  time = convDriftLengthToTime(length, maxTimeBin);
 }
 
 GPUdi() float TPCFastTransformPOD::convDriftLengthToTime(float driftLength, float vertexTime) const

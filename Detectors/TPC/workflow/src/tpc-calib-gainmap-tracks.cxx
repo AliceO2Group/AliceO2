@@ -20,7 +20,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "TPCWorkflow/TPCCalibPadGainTracksSpec.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
 
 using namespace o2::framework;
@@ -44,7 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"polynomialsFile", VariantType::String, "", {"file containing the polynomials for the track topology correction"}},
     {"disablePolynomialsCCDB", VariantType::Bool, false, {"Do not load the polynomials from the CCDB"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   std::swap(workflowOptions, options);
 }
 
@@ -63,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const bool useLastExtractedMapAsReference = config.options().get<bool>("useLastExtractedMapAsReference");
   const std::string polynomialsFile = config.options().get<std::string>("polynomialsFile");
   const auto disablePolynomialsCCDB = config.options().get<bool>("disablePolynomialsCCDB");
-  const auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(config.options());
+  const auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(config.options());
   WorkflowSpec workflow;
   workflow.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
   workflow.emplace_back(o2::tpc::getTPCCalibPadGainTracksSpec(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB));

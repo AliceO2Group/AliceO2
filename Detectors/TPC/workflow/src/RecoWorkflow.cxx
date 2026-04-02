@@ -100,7 +100,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"tpc-triggers", OutputType::TPCTriggers}};
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
-                                    const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
+                                    const o2::tpc::CorrectionMapsGloOpts& sclOpts, bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
                                     int caClusterer, int zsOnTheFly, bool askDISTSTF, const std::string& ctfdictOpt, bool selIR, bool filteredInp, int deadMapSources, bool useMCTimeGain)
 {
   InputType inputType;

@@ -205,9 +205,10 @@ void MatchTPCITS::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 }
 
 //______________________________________________
-void MatchTPCITS::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+void MatchTPCITS::setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph, float lumi)
 {
-  mTPCCorrMapsHelper = maph;
+  mTPCCorrMaps = maph;
+  mLumiCTP = lumi;
 }
 
 //______________________________________________
@@ -286,7 +287,7 @@ void MatchTPCITS::updateTimeDependentParams()
   mTPCmeanX0Inv = matbd.meanX2X0 / matbd.length;
 
   const auto& trackTune = TrackTuneParams::Instance();
-  float scale = mTPCCorrMapsHelper->getInstLumiCTP();
+  float scale = mLumiCTP;
   if (scale < 0.f) {
     LOGP(warning, "Negative scale factor for TPC covariance correction, setting it to zero");
     scale = 0.f;
@@ -505,7 +506,7 @@ bool MatchTPCITS::prepareTPCData()
     mTPCSectIndexCache[sec].reserve(100 + 1.2 * ntrW / o2::constants::math::NSectors);
   }
 
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, mBz, mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
   mNTPCOccBinLength = mTPCRefitter->getParam()->rec.tpc.occupancyMapTimeBins;
   mTBinClOcc.clear();
   if (mNTPCOccBinLength > 1 && mTPCRefitterOccMap.size()) {

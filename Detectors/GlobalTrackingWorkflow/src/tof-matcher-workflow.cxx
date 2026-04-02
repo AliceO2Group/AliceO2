@@ -32,7 +32,7 @@
 #include "Steer/MCKinematicsReader.h"
 #include "TSystem.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
 
 using namespace o2::framework;
@@ -70,7 +70,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"write-matchable", o2::framework::VariantType::Bool, false, {"write all matchable pairs in a file (o2matchable_tof.root)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -97,7 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto diagnostic = configcontext.options().get<bool>("enable-dia");
   auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
   auto writeMatchable = configcontext.options().get<bool>("write-matchable");
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   bool writematching = 0;
   bool writecalib = 0;
   bool refitTPCTOF = configcontext.options().get<bool>("refit-tpc-tof");

@@ -180,7 +180,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
       while (mParam->par.continuousTracking && trdTriggerRecord < (int32_t)mIOPtrs->nTRDTriggerRecords - 1 && mIOPtrs->trdTrackletIdxFirst[trdTriggerRecord + 1] <= i) {
         trdTriggerRecord++; // This requires to go through the data in order I believe
         float trdTime = mIOPtrs->trdTriggerTimes[trdTriggerRecord] * 1e3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
-        trdZoffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, trdTime, mParam->continuousMaxTimeBin));
+        trdZoffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, trdTime, mParam->continuousMaxTimeBin));
       }
       const auto& sp = mIOPtrs->trdSpacePoints[i];
       int32_t iSec = trdGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
@@ -218,7 +218,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
       float ZOffset = 0;
       if (mParam->par.continuousTracking) {
         float tofTime = mIOPtrs->tofClusters[i].getTime() * 1e-3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
-        ZOffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, tofTime, mParam->continuousMaxTimeBin));
+        ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, tofTime, mParam->continuousMaxTimeBin));
         ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
       }
       if (fabsf(ptr->z) > maxClusterZ) {
@@ -249,7 +249,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
       if (mParam->par.continuousTracking) {
         o2::InteractionRecord startIR = o2::InteractionRecord(0, mIOPtrs->settingsTF && mIOPtrs->settingsTF->hasTfStartOrbit ? mIOPtrs->settingsTF->tfStartOrbit : 0);
         float itsROFtime = mIOPtrs->itsClusterROF[j].getBCData().differenceInBC(startIR) / (float)o2::tpc::constants::LHCBCPERTIMEBIN;
-        ZOffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, itsROFtime + itsROFhalfLen, mParam->continuousMaxTimeBin));
+        ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, itsROFtime + itsROFhalfLen, mParam->continuousMaxTimeBin));
       }
       if (i != mIOPtrs->itsClusterROF[j].getFirstEntry()) {
         throw std::runtime_error("Inconsistent ITS data, number of clusters does not match ROF content");

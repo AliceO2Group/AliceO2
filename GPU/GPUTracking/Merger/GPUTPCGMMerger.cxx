@@ -564,7 +564,7 @@ GPUd() int32_t GPUTPCGMMerger::RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack
   trk.SinPhi() = inTrack->Param().GetSinPhi();
   trk.DzDs() = inTrack->Param().GetDzDs();
   trk.QPt() = inTrack->Param().GetQPt();
-  trk.TOffset() = Param().par.continuousTracking ? GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, inTrack->Param().GetZOffset(), Param().continuousMaxTimeBin) : 0;
+  trk.TOffset() = Param().par.continuousTracking ? GetConstantMem()->calibObjects.fastTransform->convZOffsetToVertexTime(sector, inTrack->Param().GetZOffset(), Param().continuousMaxTimeBin) : 0;
   const auto tmp = sectorTrack.ClusterTN() > sectorTrack.ClusterT0() ? std::array<float, 2>{sectorTrack.ClusterTN(), sectorTrack.ClusterT0()} : std::array<float, 2>{sectorTrack.ClusterT0(), sectorTrack.ClusterTN()};
   trk.ShiftZ(this, sector, tmp[0], tmp[1], inTrack->Param().GetX()); // We do not store the inner / outer cluster X, so we just use the track X instead
   sectorTrack.SetX2(0.f);
@@ -587,7 +587,7 @@ GPUd() int32_t GPUTPCGMMerger::RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack
       row = ic.RowIndex();
       const ClusterNative& cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[GetConstantMem()->ioPtrs.clustersNative->clusterOffset[sector][0] + clusterIndex];
       flags = cl.getFlags();
-      GetConstantMem()->calibObjects.fastTransformHelper->Transform(sector, row, cl.getPad(), cl.getTime(), x, y, z, trk.TOffset());
+      GetConstantMem()->calibObjects.fastTransform->Transform(sector, row, cl.getPad(), cl.getTime(), x, y, z, trk.TOffset());
       if (prop.PropagateToXAlpha(x, alpha, way == 0)) {
         return way == 0;
       }
@@ -1413,11 +1413,11 @@ GPUd() void GPUTPCGMMerger::MergeCE(int32_t nBlocks, int32_t nThreads, int32_t i
                                               cls[mClusters[trk[1]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].num].getTime(),
                                               &mClusters[trk[0]->FirstClusterRef()], &mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1],
                                               &mClusters[trk[1]->FirstClusterRef()], &mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1], clsmax);
-        const float offset = CAMath::Max(tmax - mConstantMem->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(clsmax->sector, clsmax->row, cls[clsmax->num].getPad()), 0.f);
-        trk[1]->Param().Z() += mConstantMem->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trk[1]->CSide() * NSECTORS / 2, trk[1]->Param().TOffset() - offset);
+        const float offset = CAMath::Max(tmax - mConstantMem->calibObjects.fastTransform->getMaxDriftTime(clsmax->sector, clsmax->row, cls[clsmax->num].getPad()), 0.f);
+        trk[1]->Param().Z() += mConstantMem->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(trk[1]->CSide() * NSECTORS / 2, trk[1]->Param().TOffset() - offset);
         trk[1]->Param().TOffset() = offset;
         if (celooper) {
-          trk[0]->Param().Z() += mConstantMem->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trk[0]->CSide() * NSECTORS / 2, trk[0]->Param().TOffset() - offset);
+          trk[0]->Param().Z() += mConstantMem->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(trk[0]->CSide() * NSECTORS / 2, trk[0]->Param().TOffset() - offset);
           trk[0]->Param().TOffset() = offset;
         }
       }
@@ -1948,7 +1948,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersInit(int32_t nBlocks, int32_t nThreads, 
     const float qptabs = CAMath::Abs(p.GetQPt());
     if (trk.OK() && trk.NClusters() && trk.Leg() == 0 && qptabs * Param().qptB5Scaler > 5.f && qptabs * Param().qptB5Scaler <= lowPtThresh) {
       const int32_t sector = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].sector;
-      const float refz = p.GetZ() + (Param().par.continuousTracking ? GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, p.GetTOffset(), Param().continuousMaxTimeBin) : 0) + (trk.CSide() ? -100 : 100);
+      const float refz = p.GetZ() + (Param().par.continuousTracking ? GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(sector, p.GetTOffset(), Param().continuousMaxTimeBin) : 0) + (trk.CSide() ? -100 : 100);
       float sinA, cosA;
       CAMath::SinCos(trk.GetAlpha(), sinA, cosA);
       float gx = cosA * p.GetX() - sinA * p.GetY();

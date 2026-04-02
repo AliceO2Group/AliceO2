@@ -19,7 +19,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
@@ -46,7 +46,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation, never use it"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -63,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!useMC) {
     throw std::runtime_error("MC cannot be disabled for this workflow");
   }
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS,TPC");
 

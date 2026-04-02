@@ -19,7 +19,6 @@
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/PIDResponse.h"
 #include "TPCFastTransformPOD.h"
-#include "CorrectionMapsHelper.h"
 #include "GPUGetConstexpr.h"
 
 #ifndef GPUCA_GPUCODE
@@ -238,8 +237,8 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
       } else {
         // estimate max/min time increments which still keep track in the physical limits of the TPC
         const float tmin = CAMath::Min(t1, t2);
-        const float maxDriftTime = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
-        const float clusterT0 = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getT0();
+        const float maxDriftTime = merger.GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
+        const float clusterT0 = merger.GetConstantMem()->calibObjects.fastTransform->getT0();
         const float tmax = CAMath::Min(tmin + maxDriftTime, CAMath::Max(t1, t2));
         float delta = 0.f;
         if (time0 + maxDriftTime < tmax) {
@@ -250,7 +249,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
         }
         if (delta != 0.f) {
           time0 += delta;
-          const float deltaZ = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(sector2, delta);
+          const float deltaZ = merger.GetConstantMem()->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(sector2, delta);
           oTrack.setZ(oTrack.getZ() + deltaZ);
         }
         tFwd = tmin - clusterT0 - time0;

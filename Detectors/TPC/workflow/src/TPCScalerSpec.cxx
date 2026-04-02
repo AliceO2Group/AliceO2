@@ -27,7 +27,7 @@
 #include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "TPCCalibration/CorrectionMapsLoaderFull.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TPCCalibration/VDriftHelper.h"
 
 using namespace o2::framework;
@@ -40,7 +40,7 @@ namespace tpc
 class TPCScalerSpec : public Task
 {
  public:
-  TPCScalerSpec(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool enableIDCs, bool enableMShape) : mCCDBRequest(req), mEnableIDCs(enableIDCs), mEnableMShape(enableMShape), mGlobOpts(sclOpts)
+  TPCScalerSpec(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::tpc::CorrectionMapsGloOpts& sclOpts, bool enableIDCs, bool enableMShape) : mCCDBRequest(req), mEnableIDCs(enableIDCs), mEnableMShape(enableMShape), mGlobOpts(sclOpts)
   {
     mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
     mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
@@ -271,7 +271,7 @@ class TPCScalerSpec : public Task
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;     ///< info for CCDB request
   const bool mEnableIDCs{true};                               ///< enable IDCs
   const bool mEnableMShape{false};                            ///< enable v shape scalers
-  const o2::tpc::CorrectionMapsLoaderGloOpts mGlobOpts;       ///< global options for the correction map loader, needed to decide which maps to load from CCDB
+  const o2::tpc::CorrectionMapsGloOpts mGlobOpts;             ///< global options for the correction map loader, needed to decide which maps to load from CCDB
   bool mEnableWeights{false};                                 ///< use weights for TPC scalers
   TPCScalerWeights mScalerWeights{};                          ///< scaler weights
   float mIonDriftTimeMS{-1};                                  ///< ion drift time
@@ -282,7 +282,7 @@ class TPCScalerSpec : public Task
   int mKnotsYMshape{4};                                       ///< number of knots used for the spline object for M-Shape distortions
   int mKnotsZMshape{4};                                       ///< number of knots used for the spline object for M-Shape distortions
   std::unique_ptr<o2::utils::TreeStreamRedirector> mStreamer; ///< streamer
-  o2::tpc::CorrectionMapsLoaderFull mTPCCorrMapsLoader{};
+  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
   o2::tpc::VDriftHelper mTPCVDriftHelper{}; ///< helper for v-drift
 
   void overWriteIntegrationTime()
@@ -299,7 +299,7 @@ class TPCScalerSpec : public Task
   }
 };
 
-o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape, const o2::tpc::CorrectionMapsGloOpts& sclOpts)
 {
   std::vector<InputSpec> inputs;
   if (enableIDCs) {
@@ -324,7 +324,7 @@ o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMS
   outputs.emplace_back(o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-  o2::tpc::CorrectionMapsLoaderFull::requestCCDBInputs(inputs, sclOpts);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, sclOpts);
 
   return DataProcessorSpec{
     "tpc-scaler",

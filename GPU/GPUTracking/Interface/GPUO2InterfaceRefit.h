@@ -50,7 +50,7 @@ namespace o2::gpu
 {
 class GPUParam;
 class GPUTrackingRefit;
-class CorrectionMapsHelper;
+class TPCFastTransformPOD;
 class GPUO2InterfaceRefit
 {
  public:
@@ -60,7 +60,7 @@ class GPUO2InterfaceRefit
   // - o2::base::Propagator (p) in case RefitTrackAsTrackParCov is to be used
   // - In case the --configKeyValues defining GPUParam settings require an occupancy map for TPC error estimation, the map must either be provided as occupancymap, or nHbfPerTf must be set non-zero
 
-  GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU, const o2::tpc::TPCClRefElem* trackRef, uint32_t nHbfPerTf = 0, const uint8_t* sharedmap = nullptr, const uint32_t* occupancymap = nullptr, int32_t occupancyMapSize = -1, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
+  GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const o2::gpu::TPCFastTransformPOD* trans, float bzNominalGPU, const o2::tpc::TPCClRefElem* trackRef, uint32_t nHbfPerTf = 0, const uint8_t* sharedmap = nullptr, const uint32_t* occupancymap = nullptr, int32_t occupancyMapSize = -1, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
   ~GPUO2InterfaceRefit();
 
   int32_t RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
@@ -69,7 +69,7 @@ class GPUO2InterfaceRefit
   int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v);
-  void updateCalib(const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU);
+  void updateCalib(const o2::gpu::TPCFastTransformPOD* trans, float bzNominalGPU);
   auto getParam() const { return mParam.get(); }
 
   // To create shared cluster maps and occupancy maps.

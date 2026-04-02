@@ -36,7 +36,6 @@
 #include "TPCReconstruction/TPCTrackingDigitsPreCheck.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
-#include "TPCFastTransform.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -58,8 +57,6 @@
 #include "TPCBase/Utils.h"
 #include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "CorrectionMapsHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TPCCalibration/IDCContainer.h"
 #include "TPCBaseRecSim/DeadChannelMapCreator.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
@@ -106,11 +103,11 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
 
   mCalibObjects.mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
-  mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
 
   std::vector<char> buffer;
   gpu::TPCFastTransformPOD::create(buffer, *o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
-  mCalibObjects.mFastTransformHelper->setCorrMap(std::move(buffer));
+  mCalibObjects.mCorrMapBuffer = std::move(buffer);
+  mCalibObjects.mFastTransform = &TPCFastTransformPOD::get(mCalibObjects.mCorrMapBuffer.data());
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
@@ -347,29 +344,25 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
 
       if (mSpecConfig.outputTracks) {
         mTPCVDriftHelper->extractCCDBInputs(pc);
-        mCalibObjects.mFastTransformHelper->extractCCDBInputs(pc);
-      }
-      if (mCalibObjects.mFastTransformHelper->isUpdated()) {
-          // New map arrived from TPCScalerSpec — VDrift already baked in, just swap it
-          const auto& vd = mTPCVDriftHelper->getVDriftObject();
-          LOGP(info, "Updating new TPC fast transform map, VDrift factor {} wrt reference {} and TDrift offset {} wrt reference {} from source {}",
-              vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper->getSourceName());
+        mCalibObjects.mInstLumiCTP = pc.inputs().get<float>("lumiCTP");
 
-          oldCalibObjects.mFastTransformHelper = std::move(mCalibObjects.mFastTransformHelper);
-          mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader);
-          // copy buffer as-is — no updateCalibration, VDrift already embedded
-          std::vector<char> buf(oldCalibObjects.mFastTransformHelper->getCorrMap()->size());
-          std::memcpy(buf.data(), oldCalibObjects.mFastTransformHelper->getCorrMap(), buf.size());
-          mCalibObjects.mFastTransformHelper->setCorrMap(std::move(buf));
-          mCalibObjects.mFastTransformHelper->acknowledgeUpdate();
-          newCalibObjects.fastTransform = mCalibObjects.mFastTransformHelper->getCorrMap();
-          newCalibObjects.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
-          mustUpdate = true;
+        // get the raw buffer and reinterpret as TPCFastTransformPOD
+        oldCalibObjects.mFastTransform = mCalibObjects.mFastTransform;            // save OLD pointer ✓
+        oldCalibObjects.mCorrMapBuffer = std::move(mCalibObjects.mCorrMapBuffer); // OLD buffer alive ✓
+
+        auto const& raw = pc.inputs().get<const char*>("corrMap");
+        const auto* newMap = &gpu::TPCFastTransformPOD::get(raw); // NEW map from DPL
+        std::vector<char> buffer(newMap->size());
+        std::memcpy(buffer.data(), newMap, buffer.size()); // copy NEW map ✓
+        mCalibObjects.mCorrMapBuffer = std::move(buffer);
+        mCalibObjects.mFastTransform = &TPCFastTransformPOD::get(mCalibObjects.mCorrMapBuffer.data());
+        newCalibObjects.fastTransform = mCalibObjects.mFastTransform;
+        mustUpdate = true;
       }
       if (mTPCVDriftHelper->isUpdated()) {
-          // VDrift updated but no new map — just acknowledge, map already has correct VDrift
-          LOGP(info, "VDrift updated (factor {} wrt reference {} from source {}) but map already up to date", mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
-          mTPCVDriftHelper->acknowledgeUpdate();
+        // VDrift updated but no new map — just acknowledge, map already has correct VDrift
+        LOGP(info, "VDrift updated (factor {} wrt reference {} from source {}) but map already up to date", mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
+        mTPCVDriftHelper->acknowledgeUpdate();
       }
     }
 
@@ -416,7 +409,7 @@ void GPURecoWorkflowSpec::doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* b
       throw std::runtime_error("Buffer does not match span");
     }
     o2::tpc::TrackTPC* tpcTracks = reinterpret_cast<o2::tpc::TrackTPC*>(buffout);
-    float scale = mCalibObjects.mFastTransformHelper->getInstLumiCTP();
+    float scale = mCalibObjects.mInstLumiCTP;
     if (scale < 0.f) {
       LOGP(warning, "Negative scale factor for TPC covariance correction, setting it to zero");
       scale = 0.f;

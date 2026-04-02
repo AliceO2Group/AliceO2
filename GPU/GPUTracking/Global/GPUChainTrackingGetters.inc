@@ -20,7 +20,7 @@
 
 namespace o2::gpu
 {
-inline const CorrectionMapsHelper* GPUChainTracking::GetTPCTransformHelper() const { return processors()->calibObjects.fastTransformHelper; }
+inline const TPCFastTransformPOD* GPUChainTracking::GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
 inline const TPCPadGainCalib* GPUChainTracking::GetTPCPadGainCalib() const { return processors()->calibObjects.tpcPadGain; }
 inline const TPCZSLinkMapping* GPUChainTracking::GetTPCZSLinkMapping() const { return processors()->calibObjects.tpcZSLinkMapping; }
 inline const o2::tpc::CalibdEdxContainer* GPUChainTracking::GetdEdxCalibContainer() const { return processors()->calibObjects.dEdxCalibContainer; }

@@ -21,7 +21,7 @@
 #include "GPUTPCGMPropagator.h"
 #include "GPUConstantMem.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "GPUParam.inc"
@@ -286,7 +286,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
           z *= charge;
         }
         if (clusters == 0) {
-          mPfastTransformHelper->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tOffset);
+          mPfastTransform->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tOffset);
           CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int32_t)sector, x, y, z, (int32_t)nextState));
           currentRow = row;
           currentSector = sector;
@@ -297,7 +297,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
           invCharge = (1.f / cl->qMax);
         } else {
           float xx, yy, zz;
-          mPfastTransformHelper->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
+          mPfastTransform->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
           CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int32_t)sector, xx, yy, zz, (int32_t)nextState));
           x += xx * cl->qTot;
           y += yy * cl->qTot;
@@ -432,7 +432,7 @@ void GPUTrackingRefit::SetPtrsFromGPUConstantMem(const GPUConstantMem* v, GPUPar
   mPclusterState = v->ioPtrs.mergedTrackHitStates;
   mPclusterNative = v->ioPtrs.clustersNative;
   mPtrackHits = v->ioPtrs.mergedTrackHits;
-  mPfastTransformHelper = v->calibObjects.fastTransformHelper;
+  mPfastTransform = v->calibObjects.fastTransform;
   mPmatLUT = v->calibObjects.matLUT;
   mPparam = p ? p : &v->param;
 }

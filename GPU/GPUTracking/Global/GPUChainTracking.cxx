@@ -51,7 +51,6 @@
 #include "CalibdEdxContainer.h"
 
 #include "TPCFastTransformPOD.h"
-#include "CorrectionMapsHelper.h"
 
 #include "utils/linux_helpers.h"
 #include "utils/strtag.h"
@@ -396,10 +395,6 @@ void GPUChainTracking::UpdateGPUCalibObjects(int32_t stream, const GPUCalibObjec
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransform, (const void*)processors()->calibObjects.fastTransform, processors()->calibObjects.fastTransform->size());
   }
 
-  if (processors()->calibObjects.fastTransformHelper && (ptrMask == nullptr || ptrMask->fastTransformHelper)) {
-    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransformHelper, (const void*)processors()->calibObjects.fastTransformHelper, sizeof(*processors()->calibObjects.fastTransformHelper));
-    mFlatObjectsShadow.mCalibObjects.fastTransformHelper->setCorrMap(mFlatObjectsShadow.mCalibObjects.fastTransform);
-  }
   if (processors()->calibObjects.dEdxCalibContainer && (ptrMask == nullptr || ptrMask->dEdxCalibContainer)) {
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer, (const void*)processors()->calibObjects.dEdxCalibContainer, sizeof(*processors()->calibObjects.dEdxCalibContainer));
     memcpy((void*)mFlatObjectsShadow.mdEdxSplinesBuffer, (const void*)processors()->calibObjects.dEdxCalibContainer->getFlatBufferPtr(), processors()->calibObjects.dEdxCalibContainer->getFlatBufferSize());
@@ -490,9 +485,6 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
     computePointerWithAlignment(mem, podBuf, mChainTracking->processors()->calibObjects.fastTransform->size()); // raw bytes
     mCalibObjects.fastTransform = reinterpret_cast<TPCFastTransformPOD*>(podBuf);
   }
-  if (mChainTracking->processors()->calibObjects.fastTransformHelper) {
-    computePointerWithAlignment(mem, mCalibObjects.fastTransformHelper, 1);
-  }
   if ((char*)mem - fastTransformBase < mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize) {
     mem = fastTransformBase + mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize; // TODO: Fixme and do proper dynamic allocation
   }
@@ -565,12 +557,10 @@ void GPUChainTracking::AllocateIOMemory()
   AllocateIOMemoryHelper(mIOPtrs.nTRDTriggerRecords, mIOPtrs.trdTrackletIdxFirst, mIOMem.trdTrackletIdxFirst);
 }
 
-void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransformPOD>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper)
+void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransformPOD>&& tpcFastTransform)
 {
   mTPCFastTransformU = std::move(tpcFastTransform);
-  mTPCFastTransformHelperU = std::move(tpcTransformHelper);
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
-  processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get();
 }
 
 void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)

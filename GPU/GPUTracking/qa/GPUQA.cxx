@@ -50,7 +50,6 @@
 #include "GPUTPCClusterRejection.h"
 #include "GPUTPCConvertImpl.h"
 #include "TPCFastTransformPOD.h"
-#include "CorrectionMapsHelper.h"
 #include "GPUROOTDump.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -1062,8 +1061,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             if (revLabel == -1) {
               comp = true;
             } else {
-              float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSECTORS / 2, trks[i].GetParam().GetTOffset());
-              float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSECTORS / 2, trks[revLabel].GetParam().GetTOffset());
+              float shift1 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSECTORS / 2, trks[i].GetParam().GetTOffset());
+              float shift2 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSECTORS / 2, trks[revLabel].GetParam().GetTOffset());
               comp = fabsf(trks[i].GetParam().GetZ() + shift1) < fabsf(trks[revLabel].GetParam().GetZ() + shift2);
             }
             if (revLabel == -1 || !trks[revLabel].OK() || (trks[i].OK() && comp)) {
@@ -1125,7 +1124,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             if (lowestPadRow[i] < 10 && lowestRow > lowestPadRow[i] + 3) {
               const auto& cl = clNative->clustersLinear[lowestCl.num];
               float x, y, z;
-              mTracking->GetTPCTransformHelper()->Transform(lowestCl.sector, lowestCl.row, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTOffset());
+              mTracking->GetTPCTransform()->Transform(lowestCl.sector, lowestCl.row, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTOffset());
               float phi = CAMath::ATan2(y, x);
               mPadRow[2]->Fill(phi, lowestRow, 1.f);
               if (CAMath::Abs(phi) < 0.15) {
@@ -1440,7 +1439,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (!mParam->continuousMaxTimeBin) {
             return param.GetZ() - mc1.z;
           }
-          float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTOffset() - mc1.t0);
+          float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTOffset() - mc1.t0);
           return param.GetZ() + shift - mc1.z;
         };
 
@@ -1792,13 +1791,13 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (mClNative && mTracking && mTracking->GetTPCTransformHelper()) {
+    if (mClNative && mTracking && mTracking->GetTPCTransform()) {
       for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
         for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
           for (uint32_t k = 0; k < mClNative->nClusters[i][j]; k++) {
             const auto& cl = mClNative->clusters[i][j][k];
             float x, y, z;
-            GPUTPCConvertImpl::convert(*mTracking->GetTPCTransformHelper()->getCorrMap(), mTracking->GetParam(), i, j, cl.getPad(), cl.getTime(), x, y, z);
+            GPUTPCConvertImpl::convert(*mTracking->GetTPCTransform(), mTracking->GetParam(), i, j, cl.getPad(), cl.getTime(), x, y, z);
             mTracking->GetParam().Sector2Global(i, x, y, z, &x, &y, &z);
             mClXY->Fill(x, y);
           }
@@ -1926,7 +1925,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (attach & gputpcgmmergertypes::attachFlagMask) {
             uint32_t track = attach & gputpcgmmergertypes::attachTrackMask;
             const auto& trk = mTracking->mIOPtrs.mergedTracks[track];
-            mTracking->GetTPCTransformHelper()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTOffset());
+            mTracking->GetTPCTransform()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTOffset());
             mTracking->GetParam().Sector2Global(i, x, y, z, &x, &y, &z);
           }
           uint32_t extState = mTracking->mIOPtrs.mergedTrackHitStates ? mTracking->mIOPtrs.mergedTrackHitStates[clid] : 0;

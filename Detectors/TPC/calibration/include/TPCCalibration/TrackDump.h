@@ -24,7 +24,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsTPC/Constants.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 
 /// \file TrackDump.h
 /// \author Jens Wiechula (Jens.Wiechula@ikf.uni-frankfurt.de)
@@ -77,14 +77,15 @@ class TrackDump
     float gyc(float vertexTime = 0) const;
     float zc(float vertexTime = 0) const;
 
-    static gpu::CorrectionMapsHelper sCorrHelper;
+    inline static std::vector<char> corrMapBuffer;                      // buffer for owning the correction map in case of update during runtime
+    inline static const o2::gpu::TPCFastTransformPOD* corrMap{nullptr}; // local copy of the correction map for quick access to the transform functions
     static void loadCorrMaps(std::string_view corrMapFile, std::string_view corrMapFileRef = "");
     ClassDefNV(ClusterNativeAdd, 1);
   };
 
   struct TrackInfo : public TrackTPC {
     TrackInfo() = default;
-    TrackInfo(const TrackTPC& track) : TrackTPC(track){};
+    TrackInfo(const TrackTPC& track) : TrackTPC(track) {};
     TrackInfo(const TrackInfo&) = default;
     ~TrackInfo() = default;
 

@@ -11,50 +11,16 @@
 
 /// \file CorrectionMapsHelper.h
 /// \brief Helper class to access correction maps
-/// \author ruben.shahoian@cern.ch
+/// \author ruben.shahoian@cern.ch matthias.kleiner@cern.ch
 
 #ifndef TPC_CORRECTION_MAPS_HELPER_H_
 #define TPC_CORRECTION_MAPS_HELPER_H_
 
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <vector>
-#endif
-#include "GPUCommonDef.h"
-#include "TPCFastTransformPOD.h"
+#include "TPCFastTransform.h"
+#include "CorrectionMapsTypes.h"
 
 namespace o2
 {
-
-namespace framework
-{
-class ConfigParamRegistry;
-} // namespace framework
-
-namespace tpc
-{
-enum class LumiScaleType : int32_t {
-  Unset = -1, ///< init value
-  NoScaling = 0, ///< no scaling, use map as is
-  CTPLumi = 1, ///< use CTP luminosity for scaling
-  TPCScaler = 2 ///< use TPC scaler for scaling
-};
-
-enum class LumiScaleMode : int32_t {
-    Unset = -1, ///< init value
-    Linear = 0, ///< map(lumi) = (mean_map - referenceMap) * lumiScale + referenceMap
-    DerivativeMap = 1, ///< map(lumi) = mean_map + lumiScale * (derivativeMap) where derivativeMap = (mean_map_A - mean_map_B)
-    DerivativeMapMC = 2  ///< same DerivativeMap, but for MC
-};
-
-struct CorrectionMapsLoaderGloOpts {
-  LumiScaleType lumiType = LumiScaleType::Unset; ///< what estimator to used for corrections scaling: 0: no scaling, 1: CTP, 2: IDC
-  LumiScaleMode lumiMode = LumiScaleMode::Unset; ///< what corrections method to use: 0: classical scaling, 1: Using of the derivative map, 2: Using of the derivative map for MC
-  bool enableMShapeCorrection = false;
-  bool requestCTPLumi = true; ///< request CTP Lumi regardless of what is used for corrections scaling
-  bool checkCTPIDCconsistency = true; ///< check the selected CTP or IDC scaling source being consistent with mean scaler of the map
-};
-}
-
 namespace gpu
 {
 
@@ -64,55 +30,129 @@ class CorrectionMapsHelper
   CorrectionMapsHelper() = default;
   ~CorrectionMapsHelper() { clear(); }
   CorrectionMapsHelper(const CorrectionMapsHelper&) = delete;
-  static tpc::CorrectionMapsLoaderGloOpts parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts);
-  void setUpdatedMap() { mUpdated = true; }
-  void clear()
+  void updateLumiScale(bool report = false);
+  void clear();
+
+  const o2::gpu::TPCFastTransform* getCorrMap() const { return mCorrMap; }
+  const o2::gpu::TPCFastTransform* getCorrMapRef() const { return mCorrMapRef; }
+  const o2::gpu::TPCFastTransform* getCorrMapMShape() const { return mCorrMapMShape.get(); }
+
+  void setCorrMap(o2::gpu::TPCFastTransform* m) { mCorrMap = m; }
+  void setCorrMapRef(o2::gpu::TPCFastTransform* m) { mCorrMapRef = m; }
+  void setCorrMapMShape(std::unique_ptr<o2::gpu::TPCFastTransform>&& m);
+
+  void reportScaling();
+  void setInstLumiCTP(float v)
   {
-    mCorrMap = nullptr;
-#if !defined(GPUCA_GPUCODE_DEVICE)
-    mCorrMapBuffer.clear();
-#endif
+    if (v != mInstLumiCTP) {
+      mInstLumiCTP = v;
+    }
   }
 
-  GPUd() void Transform(int32_t slice, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const
+  void setInstLumi(float v, bool report = false)
   {
-    mCorrMap->Transform(slice, row, pad, time, x, y, z, vertexTime);
+    if (v != mInstLumi) {
+      mInstLumi = v;
+      updateLumiScale(report);
+    }
   }
 
-  GPUd() void TransformXYZ(int32_t slice, int32_t row, float& x, float& y, float& z) const
+  void setMeanLumi(float v, bool report = false)
   {
-    mCorrMap->TransformXYZ(slice, row, x, y, z);
+    if (v != mMeanLumi) {
+      mMeanLumi = v;
+      updateLumiScale(report);
+    }
   }
 
-  GPUd() void InverseTransformYZtoX(int32_t slice, int32_t row, float y, float z, float& x) const
+  void setMeanLumiRef(float v, bool report = false)
   {
-    mCorrMap->InverseTransformYZtoX(slice, row, y, z, x);
+    if (v != mMeanLumiRef) {
+      mMeanLumiRef = v;
+      updateLumiScale(report);
+    }
   }
 
-  GPUd() void InverseTransformYZtoNominalYZ(int32_t slice, int32_t row, float y, float z, float& ny, float& nz) const
+  void setLumiScaleMode(tpc::LumiScaleMode v)
   {
-    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz);
+    if (v != mLumiScaleMode) {
+      mLumiScaleMode = v;
+      updateLumiScale(false);
+    }
   }
 
-  GPUd() const o2::gpu::TPCFastTransformPOD* getCorrMap() const { return mCorrMap; }
+  void setCheckCTPIDCConsistency(bool v) { mCheckCTPIDCConsistency = v; }
+  bool getCheckCTPIDCConsistency() const { return mCheckCTPIDCConsistency; }
 
   float getInstLumiCTP() const { return mInstLumiCTP; }
+  float getInstLumi() const { return mInstLumi; }
+  float getMeanLumi() const { return mMeanLumi; }
+  float getMeanLumiRef() const { return mMeanLumiRef; }
 
-  bool isUpdated() const { return mUpdated; }
-  void acknowledgeUpdate() { mUpdated = false; }
-  void setCorrMap(const o2::gpu::TPCFastTransformPOD* m); // always non-owning
-#if !defined(GPUCA_GPUCODE_DEVICE)
-  void setCorrMap(std::vector<char>&& buffer); // owning
-#endif
+  float getLumiScale() const { return mLumiScale; }
+  tpc::LumiScaleMode getLumiScaleMode() const { return mLumiScaleMode; }
+
+  bool isUpdated() const { return mUpdatedFlags != 0; }
+  bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) != 0; }
+  bool isUpdatedMapRef() const { return (mUpdatedFlags & UpdateFlags::MapRefBit) != 0; }
+  bool isUpdatedMapMShape() const { return (mUpdatedFlags & UpdateFlags::MapMShapeBit) != 0; }
+  bool isUpdatedLumi() const { return (mUpdatedFlags & UpdateFlags::LumiBit) != 0; }
+  void setUpdatedMap() { mUpdatedFlags |= UpdateFlags::MapBit; }
+  void setUpdatedMapRef() { mUpdatedFlags |= UpdateFlags::MapRefBit; }
+  void setUpdatedMapMShape() { mUpdatedFlags |= UpdateFlags::MapMShapeBit; }
+  void setUpdatedLumi() { mUpdatedFlags |= UpdateFlags::LumiBit; }
+  void acknowledgeUpdate() { mUpdatedFlags = 0; }
+  void setLumiCTPAvailable(bool v) { mLumiCTPAvailable = v; }
+  bool getLumiCTPAvailable() const { return mLumiCTPAvailable; }
+  void setLumiScaleType(tpc::LumiScaleType v) { mLumiScaleType = v; }
+  tpc::LumiScaleType getLumiScaleType() const { return mLumiScaleType; }
+  void enableMShapeCorrection(bool v) { mEnableMShape = v; }
+  bool getUseMShapeCorrection() const { return mEnableMShape; }
+  bool canUseCorrections() const { return mMeanLumi >= 0.; }
+  void setMeanLumiOverride(float f) { mMeanLumiOverride = f; }
+  void setMeanLumiRefOverride(float f) { mMeanLumiRefOverride = f; }
+  float getMeanLumiOverride() const { return mMeanLumiOverride; }
+  float getMeanLumiRefOverride() const { return mMeanLumiRefOverride; }
+
+  void setInstCTPLumiOverride(float f) { mInstCTPLumiOverride = f; }
+  float getInstCTPLumiOverride() const { return mInstCTPLumiOverride; }
+
+  int32_t getUpdateFlags() const { return mUpdatedFlags; }
+
+  /// return returns if the correction map for the M-shape correction is a dummy spline object
+  bool isCorrMapMShapeDummy() const
+  {
+    if (mCorrMapMShape) {
+      // just check for the first spline the number of knots which are 4 in case of default spline object
+      return mCorrMapMShape->getCorrection().getSpline(0, 0).getNumberOfKnots() == 4;
+    }
+    return true;
+  }
 
  protected:
-  bool mUpdated = false;                                 // flag indicating whether the map was updated
-  float mInstLumiCTP{-1.f};                              // current CTP luminosity - used for track covariance tuning in downstream devices
-  const o2::gpu::TPCFastTransformPOD* mCorrMap{nullptr}; // current transform
-#if !defined(GPUCA_GPUCODE_DEVICE)
-  std::vector<char> mCorrMapBuffer;
-#endif
-  ClassDefNV(CorrectionMapsHelper, 1);
+  enum UpdateFlags { MapBit = 0x1,
+                     MapRefBit = 0x2,
+                     LumiBit = 0x4,
+                     MapMShapeBit = 0x10 };
+  bool mLumiCTPAvailable = false; // is CTP Lumi available
+  // these 2 are global options, must be set by the workflow global options
+  tpc::LumiScaleType mLumiScaleType = tpc::LumiScaleType::Unset; // use CTP Lumi (1) or TPCScaler (2) for the correction scaling, 0 - no scaling
+  tpc::LumiScaleMode mLumiScaleMode = tpc::LumiScaleMode::Unset; // scaling-mode of the correction maps: 0 = linear scaling, 1 = using the derivative map, 2 = using the derivative map for MC (i.e. only apply the scaled derivative on top of the reference map)
+  int32_t mUpdatedFlags = 0;
+  float mInstLumiCTP = 0.;                                            // instanteneous luminosity from CTP (a.u)
+  float mInstLumi = 0.;                                               // instanteneous luminosity (a.u) used for TPC corrections scaling
+  float mMeanLumi = 0.;                                               // mean luminosity of the map (a.u) used for TPC corrections scaling
+  float mMeanLumiRef = 0.;                                            // mean luminosity of the ref map (a.u) used for TPC corrections scaling reference
+  float mLumiScale = 0.;                                              // precalculated mInstLumi/mMeanLumi
+  float mMeanLumiOverride = -1.f;                                     // optional value to override mean lumi
+  float mMeanLumiRefOverride = -1.f;                                  // optional value to override ref mean lumi
+  float mInstCTPLumiOverride = -1.f;                                  // optional value to override inst lumi from CTP
+  bool mEnableMShape = false;                                         ///< use v shape correction
+  bool mCheckCTPIDCConsistency{true};                                 // check of selected CTP or IDC scaling source being consistent with the map
+  o2::gpu::TPCFastTransform* mCorrMap{nullptr};                       // current transform
+  o2::gpu::TPCFastTransform* mCorrMapRef{nullptr};                    // reference transform
+  std::unique_ptr<o2::gpu::TPCFastTransform> mCorrMapMShape{nullptr}; // correction map for M-shape distortions on A-side
+  ClassDefNV(CorrectionMapsHelper, 6);
 };
 
 } // namespace gpu

@@ -15,7 +15,6 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
-// #include "TPCCalibration/CorrectionMapsLoader.h"
 
 namespace o2::checkresid
 {

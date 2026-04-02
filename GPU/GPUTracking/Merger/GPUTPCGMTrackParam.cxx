@@ -29,7 +29,6 @@
 #include "GPUO2DataTypes.h"
 #include "GPUConstantMem.h"
 #include "TPCFastTransformPOD.h"
-#include "CorrectionMapsHelper.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUParam.inc"
@@ -128,7 +127,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
       float xx, yy, zz;
       {
         const ClusterNative& GPUrestrict() cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
-        merger->GetConstantMem()->calibObjects.fastTransformHelper->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);
+        merger->GetConstantMem()->calibObjects.fastTransform->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);
       }
       // clang-format off
       CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f (Missed %d)\n", ihit, maxN, (int32_t)clusters[ihit].row, clAlpha, (int32_t)clusters[ihit].sector, xx, yy, zz, nMissed));
@@ -444,7 +443,7 @@ GPUd() int32_t GPUTPCGMTrackParam::MergeDoubleRowClusters(int32_t& ihit, int32_t
       const ClusterNative& GPUrestrict() cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
       float clamp = cl.qTot;
       float clx, cly, clz;
-      merger->GetConstantMem()->calibObjects.fastTransformHelper->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), clx, cly, clz, mTOffset);
+      merger->GetConstantMem()->calibObjects.fastTransform->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), clx, cly, clz, mTOffset);
       float dy = cly - projY;
       float dz = clz - projZ;
       if (noReject == 0 && (dy * dy > maxDistY || dz * dz > maxDistZ)) {
@@ -480,7 +479,7 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
 {
   float Y, Z;
   float X = 0;
-  Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoX(sector, iRow, mP[0], mP[1], X);
+  Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(sector, iRow, mP[0], mP[1], X);
   if (prop.GetPropagatedYZ(X, Y, Z)) {
     Y = mP[0];
     Z = mP[1];
@@ -502,7 +501,7 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
     return -1e6f;
   }
 
-  const float zOffset = param.par.continuousTracking ? Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0; // TODO: do some validatiomns for the transform conv functions...
+  const float zOffset = param.par.continuousTracking ? Merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0; // TODO: do some validatiomns for the transform conv functions...
   const float y0 = row.Grid().YMin();
   const float stepY = row.HstepY();
   const float z0 = row.Grid().ZMin() - zOffset; // We can use our own ZOffset, since this is only used temporarily anyway
@@ -510,7 +509,7 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
   int32_t bin, ny, nz;
 
   float uncorrectedY, uncorrectedZ;
-  Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(sector, iRow, Y, Z, uncorrectedY, uncorrectedZ);
+  Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(sector, iRow, Y, Z, uncorrectedY, uncorrectedZ);
   if (CAMath::Abs(uncorrectedY) > row.getTPCMaxY()) {
     return uncorrectedY;
   }
@@ -522,7 +521,7 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
   const float tubeMinSize2 = protect ? param.rec.tpc.tubeProtectMinSize2 : 0.f;
   float tubeSigma2 = protect ? param.rec.tpc.tubeProtectSigma2 : param.rec.tpc.tubeRemoveSigma2;
   uint32_t pad = CAMath::Float2UIntRn(GPUTPCGeometry::LinearY2Pad(sector, iRow, uncorrectedY));
-  float time = Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->InverseTransformInTimeFrame(sector, uncorrectedZ + (param.par.continuousTracking ? Merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0), param.continuousMaxTimeBin); // TODO: Simplify this call in TPCFastTransform
+  float time = Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformInTimeFrame(sector, uncorrectedZ + (param.par.continuousTracking ? Merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0), param.continuousMaxTimeBin); // TODO: Simplify this call in TPCFastTransform
   if (iRow < param.rec.tpc.tubeExtraProtectMinRow ||
       pad < param.rec.tpc.tubeExtraProtectEdgePads || pad >= (uint32_t)(GPUTPCGeometry::NPads(iRow) - param.rec.tpc.tubeExtraProtectEdgePads) ||
       param.GetUnscaledMult(time) / GPUTPCGeometry::Row2X(iRow) > param.rec.tpc.tubeExtraProtectMinOccupancy) {
@@ -598,7 +597,7 @@ GPUd() bool GPUTPCGMTrackParam::AttachClustersPropagate(const GPUTPCGMMerger* GP
     }
     if (dodEdx && iRow + step == toRow) {
       float yUncorrected, zUncorrected;
-      Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(sector, iRow, mP[0], mP[1], yUncorrected, zUncorrected);
+      Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(sector, iRow, mP[0], mP[1], yUncorrected, zUncorrected);
       uint32_t pad = CAMath::Float2UIntRn(GPUTPCGeometry::LinearY2Pad(sector, iRow, yUncorrected));
       if (pad >= GPUTPCGeometry::NPads(iRow) || (Merger->GetConstantMem()->calibObjects.dEdxCalibContainer && Merger->GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(sector, iRow, pad))) {
         dodEdx = false;
@@ -846,14 +845,14 @@ GPUd() float GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merg
   if (!beamlineReached) {
     float refZ = ((sector < GPUCA_NSECTORS / 2) ? merger->Param().rec.tpc.defaultZOffsetOverR : -merger->Param().rec.tpc.defaultZOffsetOverR) * clx;
     float basez;
-    merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->TransformIdealZ(sector, cltmax, basez, mTOffset);
+    merger->GetConstantMem()->calibObjects.fastTransform->TransformIdealZ(sector, cltmax, basez, mTOffset);
     deltaZ = basez - refZ;
   }
   {
-    float deltaT = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaZtoDeltaTimeInTimeFrame(sector, deltaZ);
+    float deltaT = merger->GetConstantMem()->calibObjects.fastTransform->convDeltaZtoDeltaTimeInTimeFrame(sector, deltaZ);
     mTOffset += deltaT;
-    const float maxT = cltmin - merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getT0();
-    const float minT = cltmax - merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(sector);
+    const float maxT = cltmin - merger->GetConstantMem()->calibObjects.fastTransform->getT0();
+    const float minT = cltmax - merger->GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(sector);
     // printf("T Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, minT, maxT, mTOffset);
     deltaT = 0.f;
     if (mTOffset < minT) {
@@ -863,7 +862,7 @@ GPUd() float GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merg
       deltaT = maxT - mTOffset;
     }
     if (deltaT != 0.f) {
-      deltaZ += merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(sector, deltaT);
+      deltaZ += merger->GetConstantMem()->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(sector, deltaT);
       // printf("Moving clusters to TPC Range: QPt %f, New mTOffset %f, t1 %f, t2 %f, Shift %f in Z: %f to %f --> %f to %f in T\n", mP[4], mTOffset + deltaT, tz1, tz2, deltaZ, tz2 - mTOffset, tz1 - mTOffset, tz2 - mTOffset - deltaT, tz1 - mTOffset - deltaT);
       mTOffset += deltaT;
     }

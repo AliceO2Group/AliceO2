@@ -20,10 +20,6 @@
 
 namespace o2
 {
-namespace tpc
-{
-struct CorrectionMapsLoaderGloOpts;
-}
 
 namespace vertexing
 {

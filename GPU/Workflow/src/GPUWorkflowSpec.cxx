@@ -39,7 +39,6 @@
 #include "TPCReconstruction/TPCTrackingDigitsPreCheck.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
-#include "TPCFastTransform.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -63,8 +62,6 @@
 #include "TPCBase/Utils.h"
 #include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "CorrectionMapsHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TPCBaseRecSim/DeadChannelMapCreator.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -253,8 +250,8 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     // initialize TPC calib objects
     initFunctionTPCCalib(ic);
 
-    mConfig->configCalib.fastTransform = mCalibObjects.mFastTransformHelper->getCorrMap();
-    mConfig->configCalib.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
+    mConfig->configCalib.fastTransform = mCalibObjects.mFastTransform;
+    // mConfig->configCalib.buffer = mCalibObjects.mBuffer; // TODO WRONG
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
     }
@@ -1184,8 +1181,8 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-    Options optsDummy;
-    mCalibObjects.mFastTransformHelper->requestInputs(inputs, optsDummy); // option filled here is lost
+    inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+    inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});

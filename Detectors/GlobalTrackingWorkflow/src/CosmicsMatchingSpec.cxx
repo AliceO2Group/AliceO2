@@ -47,7 +47,7 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -74,7 +74,7 @@ class CosmicsMatchingSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mCorrMap{nullptr};
   o2::globaltracking::MatchCosmics mMatching; // matching engine
   bool mUseMC = true;
   TStopwatch mTimer;
@@ -109,7 +109,8 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mCorrMap = &gpu::TPCFastTransformPOD::get(raw);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -126,10 +127,7 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
     mMatching.init();
   }
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-  }
-  mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
+  mMatching.setTPCCorrMaps(mCorrMap);
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -188,7 +186,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestInputs(dataRequest->inputs, opts);
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "cosmics-matcher",

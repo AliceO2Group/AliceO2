@@ -25,7 +25,6 @@
 #include "CommonUtils/NameConf.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TOFBase/Geo.h"
-#include "TPCFastTransform.h"
 #include "TRDBase/Geometry.h"
 #include "EMCALCalib/CellRecalibrator.h"
 #include "EMCALWorkflow/CalibLoader.h"

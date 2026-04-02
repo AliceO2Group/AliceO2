@@ -24,7 +24,6 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
-#include "CorrectionMapsHelper.h"
 #include "TPCFastTransformPOD.h"
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceUtils.h"
@@ -77,11 +76,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   auto fastTransformTmp = TPCFastTransformHelperO2::instance()->create(0);
   std::vector<char> fastTransformBuf;
   TPCFastTransformPOD::create(fastTransformBuf, *fastTransformTmp);
+  config.configCalib.fastTransform = &TPCFastTransformPOD::get(fastTransformBuf.data());
 
-  std::unique_ptr<CorrectionMapsHelper> fastTransformHelper(new CorrectionMapsHelper());
-  fastTransformHelper->setCorrMap(std::move(fastTransformBuf));
-  config.configCalib.fastTransform = fastTransformHelper->getCorrMap();
-  config.configCalib.fastTransformHelper = fastTransformHelper.get();
   auto dEdxCalibContainer = GPUO2InterfaceUtils::getCalibdEdxContainerDefault();
   config.configCalib.dEdxCalibContainer = dEdxCalibContainer.get();
   std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2InterfaceUtils::getPadGainCalibDefault();

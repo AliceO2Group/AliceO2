@@ -46,7 +46,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
 endif()
 
 string(REPLACE ".cxx" ".h" HDRS_CINT_O2 "${SRCS}")
-set(HDRS_CINT_O2 ${HDRS_CINT_O2} SplineUtil.h devtools/RegularSpline1D.h)
+set(HDRS_CINT_O2 ${HDRS_CINT_O2} SplineUtil.h devtools/RegularSpline1D.h CorrectionMapsTypes.h)
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   o2_add_library(${MODULE}

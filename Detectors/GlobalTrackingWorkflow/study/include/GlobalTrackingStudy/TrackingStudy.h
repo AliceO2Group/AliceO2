@@ -18,7 +18,6 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "MathUtils/detail/Bracket.h"
 #include "DataFormatsTPC/ClusterNative.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 
 namespace o2::trackstudy
 {

@@ -24,8 +24,7 @@
 #include "display/GPUDisplayInterface.h"
 #include "genEvents.h"
 
-#include "TPCFastTransform.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUSettings.h"
 #include "GPUConstantMem.h"
@@ -336,8 +335,8 @@ int32_t SetupReconstruction()
       printf("Continuous mode forced\n");
       configStandalone.cont = true;
     }
-    if (chainTracking->GetTPCTransformHelper()) {
-      grp.grpContinuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransformHelper()->getCorrMap()->getVDrift();
+    if (chainTracking->GetTPCTransform()) {
+      grp.grpContinuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
     }
   }
   if (configStandalone.setMaxTimeBin != -2) {

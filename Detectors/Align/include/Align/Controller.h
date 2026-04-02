@@ -30,7 +30,7 @@
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 
 #include "Align/Millepede2Record.h"
 #include "Align/ResidualsController.h"
@@ -272,8 +272,8 @@ class Controller final : public TObject
   bool getAllowAfterburnerTracks() const { return mAllowAfterburnerTracks; }
 
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
-  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
-  o2::gpu::CorrectionMapsHelper* getTPCCorrMaps() { return mTPCCorrMapsHelper; }
+  void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
+  const o2::gpu::TPCFastTransformPOD* getTPCCorrMaps() { return mTPCCorrMaps; }
   const o2::tpc::VDriftCorrFact& getTPCVDrift() const { return mTPCDrift; }
 
   int getInstanceID() const { return mInstanceID; }
@@ -359,7 +359,7 @@ class Controller final : public TObject
   bool mUseRecoOCDB = true; // flag to preload reco-time calib objects
 
   o2::tpc::VDriftCorrFact mTPCDrift{};
-  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps = nullptr;
 
   //
   static const int sSkipLayers[kNLrSkip];          // detector layers for which we don't need module matrices

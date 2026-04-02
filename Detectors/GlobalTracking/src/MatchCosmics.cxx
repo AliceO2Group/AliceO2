@@ -32,7 +32,7 @@
 #include "CommonConstants/GeomConstants.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include <algorithm>
 #include <numeric>
 
@@ -93,7 +93,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> tpcRefitter;
   if (data.inputsTPCclusters) {
     tpcRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&data.inputsTPCclusters->clusterIndex,
-                                                                 mTPCCorrMapsHelper, mBz,
+                                                                 mTPCCorrMaps, mBz,
                                                                  tpcClusRefs.data(), 0, tpcClusShMap.data(),
                                                                  tpcClusOccMap.data(), tpcClusOccMap.size(), nullptr, o2::base::Propagator::Instance());
   }
@@ -597,9 +597,9 @@ void MatchCosmics::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 }
 
 //______________________________________________
-void MatchCosmics::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+void MatchCosmics::setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph)
 {
-  mTPCCorrMapsHelper = maph;
+  mTPCCorrMaps = maph;
 }
 
 #endif

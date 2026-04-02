@@ -22,7 +22,7 @@
 #include "GPUTPCTracklet.h"
 #include "GPUTPCTrackletConstructor.h"
 #include "GPUTPCExtrapolationTracking.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include "CalibdEdxContainer.h"
 #include "GPUParam.inc"
 #include "GPUCommonMath.h"
@@ -135,13 +135,13 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
         if (tracker.Param().par.continuousTracking) {
           tParam.ConstrainZ(z, tracker.ISector(), z0, r.mLastZ);
         }
-        tracker.GetConstantMem()->calibObjects.fastTransformHelper->TransformXYZ(tracker.ISector(), iRow, x, y, z);
+        tracker.GetConstantMem()->calibObjects.fastTransform->TransformXYZ(tracker.ISector(), iRow, x, y, z);
       }
       if (iRow == r.mStartRow) {
         if (tracker.Param().par.continuousTracking) {
           float refZ = ((z > 0) ? tracker.Param().rec.tpc.defaultZOffsetOverR : -tracker.Param().rec.tpc.defaultZOffsetOverR) * x;
           float zTmp = refZ;
-          tracker.GetConstantMem()->calibObjects.fastTransformHelper->TransformXYZ(tracker.ISector(), iRow, x, y, zTmp);
+          tracker.GetConstantMem()->calibObjects.fastTransform->TransformXYZ(tracker.ISector(), iRow, x, y, zTmp);
           z += zTmp - refZ; // Add zCorrection (=zTmp - refZ) to z, such that zOffset is set such, that transformed (z - zOffset) becomes refZ
           tParam.SetZOffset(z - refZ);
           tParam.SetZ(refZ);
@@ -267,7 +267,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
         if (tracker.Param().par.continuousTracking) {
           tParam.ConstrainZ(tmpZ, tracker.ISector(), z0, r.mLastZ);
         }
-        tracker.GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoX(tracker.ISector(), iRow, tmpY, tmpZ, x);
+        tracker.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(tracker.ISector(), iRow, tmpY, tmpZ, x);
       }
 
       CADEBUG(printf("%14s: SEA TRACK ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int32_t i = 0; i < 5; i++) { printf(" %8.3f", tParam.Par()[i]); } printf(" -"); for (int32_t i = 0; i < 15; i++) { printf(" %8.3f", tParam.Cov()[i]); } printf("\n"));
@@ -288,7 +288,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
 
         GPUglobalref() const cahit2* hits = tracker.HitData(row);
         GPUglobalref() const calink* firsthit = tracker.FirstHitInBin(row);
-        tracker.GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(tracker.ISector(), iRow, yUncorrected, zUncorrected, yUncorrected, zUncorrected);
+        tracker.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(tracker.ISector(), iRow, yUncorrected, zUncorrected, yUncorrected, zUncorrected);
 
         if (tracker.Param().rec.tpc.rejectEdgeClustersInSeeding && tracker.Param().rejectEdgeClusterByY(yUncorrected, iRow, CAMath::Sqrt(tParam.Err2Y()))) {
           rowHit = CALINK_INVAL;
@@ -452,7 +452,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() GPUTPCT
           } else if (tracker.ISector() < GPUCA_NSECTORS / 2 ? (tmpZ > GPUTPCGeometry::TPCLength()) : (tmpZ < -GPUTPCGeometry::TPCLength())) {
             tmpZ = tracker.ISector() < GPUCA_NSECTORS / 2 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
           }
-          tracker.GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoX(tracker.ISector(), iRow, tmpY, tmpZ, x);
+          tracker.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(tracker.ISector(), iRow, tmpY, tmpZ, x);
         } else {
           r.mGo = 0;
           continue;

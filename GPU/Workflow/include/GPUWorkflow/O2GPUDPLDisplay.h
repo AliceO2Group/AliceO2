@@ -32,16 +32,12 @@ namespace o2::itsmft
 {
 class TopologyDictionary;
 }
-namespace o2::tpc
-{
-class CorrectionMapsLoader;
-}
 
 namespace o2::gpu
 {
 class GPUO2InterfaceDisplay;
 struct GPUO2InterfaceConfiguration;
-class TPCFastTransform;
+class TPCFastTransformPOD;
 struct GPUSettingsTF;
 struct GPUSettingsO2;
 
@@ -63,12 +59,13 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   bool mGRPGeomUpdated = false;
   bool mAutoContinuousMaxTimeBin = false;
   bool mGeometryCreated = false;
+  std::vector<char> mBufferFastTransform;
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUSettingsO2> mConfParam;
-  std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
+  const o2::gpu::TPCFastTransformPOD* mFastTransform = nullptr;
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;

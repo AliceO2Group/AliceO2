@@ -544,17 +544,9 @@ class Spline2DSpec<DataT, YdimT, 0>
 
     // getSderivativesOverParsAtU() is pure math on the Knot struct fields {u, Li}.
     // It does NOT touch mFlatBufferPtr, so it is safe on the zero-copy path.
-    auto val1 = mGridX1.template getSderivativesOverParsAtU<DataT>(knotU, u);
-    auto val2 = mGridX2.template getSderivativesOverParsAtU<DataT>(knotV, v);
-
-    const auto& dSl = val1[0];
-    const auto& dDl = val1[1];
-    const auto& dSr = val1[2];
-    const auto& dDr = val1[3];
-    const auto& dSd = val2[0];
-    const auto& dDd = val2[1];
-    const auto& dSu = val2[2];
-    const auto& dDu = val2[3];
+    DataT dSl, dDl, dSr, dDr, dSd, dDd, dSu, dDu;
+    mGridX1.template getSderivativesOverParsAtU<DataT>(knotU, u, dSl, dDl, dSr, dDr);
+    mGridX2.template getSderivativesOverParsAtU<DataT>(knotV, v, dSd, dDd, dSu, dDu);
 
     DataT a[8] = {dSl * dSd, dSl * dDd, dDl * dSd, dDl * dDd,
                   dSr * dSd, dSr * dDd, dDr * dSd, dDr * dDd};

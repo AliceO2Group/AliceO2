@@ -45,7 +45,6 @@
 #include "CalibdEdxContainer.h"
 
 #include "TPCFastTransformPOD.h"
-#include "CorrectionMapsHelper.h"
 
 using namespace o2::gpu;
 
@@ -298,11 +297,6 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpctransform.dump";
     DumpStructToFile(processors()->calibObjects.fastTransform, f.c_str());
   }
-  if (processors()->calibObjects.fastTransformHelper != nullptr) {
-    f = dir;
-    f += "tpctransformhelper.dump";
-    DumpStructToFile(processors()->calibObjects.fastTransformHelper, f.c_str());
-  }
   if (processors()->calibObjects.tpcPadGain != nullptr) {
     f = dir;
     f += "tpcpadgaincalib.dump";
@@ -342,12 +336,6 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "tpctransform.dump";
   mTPCFastTransformU = ReadStructFromFile<TPCFastTransformPOD>(f.c_str());
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
-  f = dir;
-  f += "tpctransformhelper.dump";
-  mTPCFastTransformHelperU = ReadStructFromFile<CorrectionMapsHelper>(f.c_str());
-  if ((processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get())) {
-    mTPCFastTransformHelperU->setCorrMap(mTPCFastTransformU.get());
-  }
   f = dir;
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());

@@ -19,11 +19,6 @@
 #include "MathUtils/detail/Bracket.h"
 #include "DataFormatsTPC/ClusterNative.h"
 
-namespace o2::tpc
-{
-struct CorrectionMapsLoaderGloOpts;
-}
-
 namespace o2::trackstudy
 {
 /// create a processor spec
