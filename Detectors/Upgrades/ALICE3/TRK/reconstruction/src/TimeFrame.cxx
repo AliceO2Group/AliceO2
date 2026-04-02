@@ -213,7 +213,7 @@ void TimeFrame<NLayers>::getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs
       iRof++;
     }
   }
-  this->mMultiplicityCutMask.resize(nRofs, true); /// all ROFs are valid with MC primary vertices.
+  this->mMultiplicityCutMask.resetMask(1u); /// all ROFs are valid with MC primary vertices.
 
   // Update the vertex lookup table with the newly added vertices
   this->updateROFVertexLookupTable();

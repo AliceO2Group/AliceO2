@@ -191,10 +191,9 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
   bounded_vector<int> lutPerBin(numBins, 0, mMemoryPool.get());
   for (int iLayer{0}, stopLayer = std::min(trkParam.NLayers, maxLayers); iLayer < stopLayer; ++iLayer) {
     for (int rof{0}; rof < getNrof(iLayer); ++rof) {
-      // FIXME
-      // if (!iLayer && !mMultiplicityCutMask[rof]) {
-      //   continue;
-      // }
+      if (!mMultiplicityCutMask.isROFEnabled(iLayer, rof)) {
+        continue;
+      }
       const auto& unsortedClusters{getUnsortedClustersOnLayer(rof, iLayer)};
       const int clustersNum{static_cast<int>(unsortedClusters.size())};
       auto* tableBase = mIndexTables[iLayer].data() + rof * stride;
@@ -374,10 +373,9 @@ void TimeFrame<NLayers>::computeTrackletsPerROFScans()
 {
   for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
     for (unsigned int iRof{0}; iRof < getNrof(1); ++iRof) {
-      // FIXME?
-      // if (mMultiplicityCutMask[iRof]) {
-      mTotalTracklets[iLayer] += mNTrackletsPerROF[iLayer][iRof];
-      // }
+      if (mMultiplicityCutMask.isROFEnabled(iLayer, iRof)) {
+        mTotalTracklets[iLayer] += mNTrackletsPerROF[iLayer][iRof];
+      }
     }
     std::exclusive_scan(mNTrackletsPerROF[iLayer].begin(), mNTrackletsPerROF[iLayer].end(), mNTrackletsPerROF[iLayer].begin(), 0);
     std::exclusive_scan(mNTrackletsPerCluster[iLayer].begin(), mNTrackletsPerCluster[iLayer].end(), mNTrackletsPerClusterSum[iLayer].begin(), 0);

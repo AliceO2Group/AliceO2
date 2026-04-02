@@ -252,11 +252,18 @@ void TimeFrameGPU<NLayers>::loadMultiplicityCutMask(const int iteration)
 {
   if (!iteration || iteration == 3) { // we need to re-load the swapped mult-mask in upc iteration
     GPUTimer timer("loading multiplicity cut mask");
-    GPULog("gpu-transfer: iteration {} loading multiplicity cut mask with {} elements, for {:.2f} MB.", iteration, this->mMultiplicityCutMask.size(), this->mMultiplicityCutMask.size() * sizeof(uint8_t) / constants::MB);
-    if (!iteration) { // only allocate on first call
-      allocMem(reinterpret_cast<void**>(&mMultMaskDevice), this->mMultiplicityCutMask.size() * sizeof(uint8_t), this->hasFrameworkAllocator());
+    const auto& hostTable = this->mMultiplicityCutMask;
+    const auto hostView = hostTable.getView();
+    GPULog("gpu-transfer: iteration {} loading multiplicity cut mask with {} elements, for {:.2f} MB.",
+           iteration, hostTable.getFlatMaskSize(), hostTable.getFlatMaskSize() * sizeof(uint8_t) / constants::MB);
+    if (!iteration) { // only allocate on first call; offsets are stable across iterations
+      allocMem(reinterpret_cast<void**>(&mMultMaskDevice), hostTable.getFlatMaskSize() * sizeof(uint8_t), this->hasFrameworkAllocator());
+      allocMem(reinterpret_cast<void**>(&mMultMaskOffsetsDevice), NLayers * sizeof(int32_t), this->hasFrameworkAllocator());
+      GPUChkErrS(cudaMemcpy(mMultMaskOffsetsDevice, hostView.mLayerROFOffsets, NLayers * sizeof(int32_t), cudaMemcpyHostToDevice));
     }
-    GPUChkErrS(cudaMemcpy(mMultMaskDevice, this->mMultiplicityCutMask.data(), this->mMultiplicityCutMask.size() * sizeof(uint8_t), cudaMemcpyHostToDevice));
+    // Re-copy the flat mask on every qualifying iteration (e.g. after swapMasks() for UPC)
+    GPUChkErrS(cudaMemcpy(mMultMaskDevice, hostView.mFlatMask, hostTable.getFlatMaskSize() * sizeof(uint8_t), cudaMemcpyHostToDevice));
+    mDeviceROFMaskTableView = hostTable.getDeviceView(mMultMaskDevice, mMultMaskOffsetsDevice);
   }
 }
 

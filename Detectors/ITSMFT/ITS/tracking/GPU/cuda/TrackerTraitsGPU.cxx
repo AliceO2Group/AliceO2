@@ -85,7 +85,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
     mTimeFrameGPU->createTrackletsLUTDevice(iteration, iLayer);
     mTimeFrameGPU->waitEvent(iLayer, iLayer + 1); // wait stream until all data is available
     countTrackletsInROFsHandler<NLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
-                                         mTimeFrameGPU->getDeviceMultCutMask(),
+                                         mTimeFrameGPU->getDeviceROFMaskTableView(),
                                          iLayer,
                                          mTimeFrameGPU->getDeviceROFOverlapTableView(),
                                          mTimeFrameGPU->getDeviceROFVertexLookupTableView(),
@@ -117,7 +117,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
       continue;
     }
     computeTrackletsInROFsHandler<NLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
-                                           mTimeFrameGPU->getDeviceMultCutMask(),
+                                           mTimeFrameGPU->getDeviceROFMaskTableView(),
                                            iLayer,
                                            mTimeFrameGPU->getDeviceROFOverlapTableView(),
                                            mTimeFrameGPU->getDeviceROFVertexLookupTableView(),

@@ -34,13 +34,14 @@ struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstC
   float imposeNoisePerChip = 1.e-9 * 1024 * 512; // assumed noise, free parameter if<0
 
   // cuts to reject to low or too high mult events
-  float cutMultClusLow = 0;   /// reject ROF with estimated cluster mult. below this value (no cut if <0)
-  float cutMultClusHigh = -1; /// reject ROF with estimated cluster mult. above this value (no cut if <0)
-  float cutMultVtxLow = -1;   /// reject seed vertex if its multiplicity below this value (no cut if <0)
-  float cutMultVtxHigh = -1;  /// reject seed vertex if its multiplicity above this value (no cut if <0)
-  float cutRandomFraction = -1.; /// apply random cut rejecting requested fraction
-  int randomSeed = 0;            /// 0 - do not seet seed, >0 : set as is, <0 : use current time
-  bool preferTriggered = true;   /// prefer ROFs with highest number of physics triggers
+  int cutMultClusLayer = NLayers - 1; /// layer used for cluster multiplicity selection (by default the outermost one)
+  float cutMultClusLow = 0;           /// reject ROF with estimated cluster mult. below this value (no cut if <0)
+  float cutMultClusHigh = -1;         /// reject ROF with estimated cluster mult. above this value (no cut if <0)
+  float cutMultVtxLow = -1;           /// reject seed vertex if its multiplicity below this value (no cut if <0)
+  float cutMultVtxHigh = -1;          /// reject seed vertex if its multiplicity above this value (no cut if <0)
+  float cutRandomFraction = -1.;      /// apply random cut rejecting requested fraction
+  int randomSeed = 0;                 /// 0 - do not seet seed, >0 : set as is, <0 : use current time
+  bool preferTriggered = true;        /// prefer ROFs with highest number of physics triggers
 
   bool isMultCutRequested() const { return cutMultClusLow >= 0.f && cutMultClusHigh > 0.f; };
   bool isVtxMultCutRequested() const { return cutMultVtxLow >= 0.f && cutMultVtxHigh > 0.f; };

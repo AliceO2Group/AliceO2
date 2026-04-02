@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITStracking/FastMultEstConfig.h"
 #include "TRandom.h"
 
 O2ParamImpl(o2::its::FastMultEstConfig);

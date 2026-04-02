@@ -11,8 +11,6 @@
 
 o2_add_library(ITSReconstruction
         SOURCES src/RecoGeomHelper.cxx
-                src/FastMultEstConfig.cxx
-                src/FastMultEst.cxx
         PUBLIC_LINK_LIBRARIES O2::ITSBase
                               O2::ITSMFTReconstruction
                               O2::DataFormatsITS
@@ -20,6 +18,4 @@ o2_add_library(ITSReconstruction
 
 o2_target_root_dictionary(
   ITSReconstruction
-  HEADERS include/ITSReconstruction/RecoGeomHelper.h
-          include/ITSReconstruction/FastMultEst.h
-          include/ITSReconstruction/FastMultEstConfig.h)
+        HEADERS include/ITSReconstruction/RecoGeomHelper.h)

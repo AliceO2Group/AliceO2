@@ -48,6 +48,40 @@ BOOST_AUTO_TEST_CASE(layertiming_base)
   BOOST_CHECK_EQUAL(layer1.mROFLength, 600);
 }
 
+BOOST_AUTO_TEST_CASE(rofmask_construct_from_timing)
+{
+  o2::its::ROFOverlapTable<2> timing;
+  timing.defineLayer(0, 3, 100, 0, 0, 0);
+  timing.defineLayer(1, 4, 50, 25, 0, 0);
+
+  o2::its::ROFMaskTable<2> mask{timing};
+  const auto view = mask.getView();
+
+  BOOST_REQUIRE(view.mFlatMask != nullptr);
+  BOOST_REQUIRE(view.mLayerROFOffsets != nullptr);
+  BOOST_CHECK_EQUAL(view.mLayerROFOffsets[0], 0);
+  BOOST_CHECK_EQUAL(view.mLayerROFOffsets[1], 3);
+  BOOST_CHECK_EQUAL(view.mLayerROFOffsets[2], 7);
+
+  for (int rof{0}; rof < 3; ++rof) {
+    BOOST_CHECK(!view.isROFEnabled(0, rof));
+  }
+  for (int rof{0}; rof < 4; ++rof) {
+    BOOST_CHECK(!view.isROFEnabled(1, rof));
+  }
+
+  mask.selectROF({110, 20});
+
+  BOOST_CHECK(!view.isROFEnabled(0, 0));
+  BOOST_CHECK(view.isROFEnabled(0, 1));
+  BOOST_CHECK(!view.isROFEnabled(0, 2));
+
+  BOOST_CHECK(!view.isROFEnabled(1, 0));
+  BOOST_CHECK(view.isROFEnabled(1, 1));
+  BOOST_CHECK(view.isROFEnabled(1, 2));
+  BOOST_CHECK(!view.isROFEnabled(1, 3));
+}
+
 // ROFOverlapTable
 BOOST_AUTO_TEST_CASE(rofoverlap_basic)
 {

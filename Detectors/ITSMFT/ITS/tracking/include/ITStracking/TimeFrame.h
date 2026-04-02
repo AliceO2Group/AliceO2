@@ -67,6 +67,7 @@ struct TimeFrame {
   using IndexTableUtilsN = IndexTableUtils<NLayers>;
   using ROFOverlapTableN = ROFOverlapTable<NLayers>;
   using ROFVertexLookupTableN = ROFVertexLookupTable<NLayers>;
+  using ROFMaskTableN = ROFMaskTable<NLayers>;
   using CellSeedN = CellSeed<NLayers>;
   friend class gpu::TimeFrameGPU<NLayers>;
 
@@ -220,8 +221,8 @@ struct TimeFrame {
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
   // \Vertexer
 
-  void setMultiplicityCutMask(const std::vector<uint8_t>& cutMask) { mMultiplicityCutMask = cutMask; }
-  void setROFMask(const std::vector<uint8_t>& rofMask) { mROFMask = rofMask; }
+  void setMultiplicityCutMask(const ROFMaskTableN& cutMask) { mMultiplicityCutMask = cutMask; }
+  void setROFMask(const ROFMaskTableN& rofMask) { mROFMask = rofMask; }
   void swapMasks() { mMultiplicityCutMask.swap(mROFMask); }
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
@@ -266,7 +267,7 @@ struct TimeFrame {
   bounded_vector<MCCompLabel> mTracksLabel;
   std::vector<bounded_vector<int>> mCellsNeighbours;
   std::vector<bounded_vector<int>> mCellsLookupTable;
-  std::vector<uint8_t> mMultiplicityCutMask;
+  ROFMaskTableN mMultiplicityCutMask;
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
 
@@ -290,7 +291,7 @@ struct TimeFrame {
   bounded_vector<float> mPositionResolution;
   std::array<bounded_vector<uint8_t>, NLayers> mClusterSize;
 
-  std::vector<uint8_t> mROFMask;
+  ROFMaskTableN mROFMask;
   bounded_vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<bounded_vector<MCCompLabel>> mTrackletLabels;
   std::vector<bounded_vector<MCCompLabel>> mCellLabels;
