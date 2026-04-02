@@ -9,18 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <FairVolume.h>
-
-#include <TVirtualMC.h>
-#include <TVirtualMCStack.h>
-#include <TGeoVolume.h>
+#include "TRKSimulation/Detector.h"
 
 #include "DetectorsBase/Stack.h"
-#include "TRKSimulation/Hit.h"
-#include "TRKSimulation/Detector.h"
+
 #include "TRKBase/TRKBaseParam.h"
+#include "TRKSimulation/Hit.h"
 #include "TRKSimulation/VDGeometryBuilder.h"
 #include "TRKSimulation/VDSensorRegistry.h"
+#include <TGeoVolume.h>
+#include <TVirtualMC.h>
+#include <TVirtualMCStack.h>
+
+#include <FairVolume.h>
 
 #include <string>
 #include <type_traits>
@@ -105,14 +106,21 @@ void Detector::configMLOT()
       break;
     }
     case kSegmented: {
+      const std::vector<float> tiltAngles{11.2f, 11.9f, 11.4f, 0.f, 0.f, 0.f, 0.f, 0.f};
+      // const std::vector<float> tiltAngles{10.f, 16.1f, 19.2f, 0.f, 0.f, 0.f, 0.f, 0.f};
+      const std::vector<int> nStaves{10, 14, 18, 26, 38, 32, 42, 56};
+      // const std::vector<int> nStaves{10, 16, 22, 26, 38, 32, 42, 56};
       const std::vector<int> nMods{10, 10, 10, 10, 10, 20, 20, 20};
+
+      const std::vector<float> stagOffsets{0.f, 0.f, 0.f, 1.17f, 0.89f};
+
       LOGP(warning, "Loading segmented configuration for ALICE3 TRK");
       for (int i{0}; i < 8; ++i) {
         std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
-        if (i < 4) {
-          mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInn[i], nMods[i], thick, MatBudgetParamMode::Thickness));
+        if (i < 5) {
+          mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInn[i], stagOffsets[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
         } else {
-          mLayers.push_back(std::make_unique<TRKOTLayer>(i, name, rInn[i], nMods[i], thick, MatBudgetParamMode::Thickness));
+          mLayers.push_back(std::make_unique<TRKOTLayer>(i, name, rInn[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
         }
       }
       break;
@@ -153,16 +161,66 @@ void Detector::configFromFile(std::string fileName)
     }
 
     std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount);
+
     switch (trkPars.layoutMLOT) {
-      case kCylindrical:
-        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, tmpBuff[0], tmpBuff[1], tmpBuff[2], MatBudgetParamMode::Thickness));
+      case kCylindrical: {
+        // Cylindrical requires at least 3 parameters
+        if (tmpBuff.size() < 3) {
+          LOGP(fatal, "Invalid configuration for cylindrical layer {}: insufficient parameters.", layerCount);
+        }
+
+        // Default mode is Thickness
+        MatBudgetParamMode mode = MatBudgetParamMode::Thickness;
+        if (tmpBuff.size() >= 4) {
+          mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[3]));
+        }
+
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, tmpBuff[0], tmpBuff[1], tmpBuff[2], mode));
         break;
+      }
       case kSegmented: {
-        int nMods = static_cast<int>(tmpBuff[1]);
-        if (layerCount < 4) {
-          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2], MatBudgetParamMode::Thickness));
+        // Expected column mapping in the text file (separated by \t):
+        // tmpBuff[0] = rInn
+        // tmpBuff[1] = thick
+        // tmpBuff[2] = tiltAngle
+        // tmpBuff[3] = nStaves
+        // tmpBuff[4] = nMods
+        // tmpBuff[5] = stagOffset (required ONLY for ML)
+        // tmpBuff[6] = matBudgetMode (optional, default = Thickness)
+
+        // Base parameters for all segmented layers (at least 5 needed)
+        if (tmpBuff.size() < 5) {
+          LOGP(fatal, "Invalid configuration for segmented layer {}: missing base parameters.", layerCount);
+        }
+
+        float rInn = tmpBuff[0];
+        float thick = tmpBuff[1];
+        float tiltAngle = tmpBuff[2];
+        int nStaves = static_cast<int>(tmpBuff[3]);
+        int nMods = static_cast<int>(tmpBuff[4]);
+
+        // Default mode is Thickness
+        MatBudgetParamMode mode = MatBudgetParamMode::Thickness;
+
+        if (layerCount < 5) {
+          // ML layers (0 to 4) require stagOffset (index 5)
+          if (tmpBuff.size() < 6) {
+            LOGP(fatal, "Invalid configuration for ML layer {}: stagOffset is missing.", layerCount);
+          }
+          float stagOffset = tmpBuff[5];
+
+          if (tmpBuff.size() >= 7) {
+            mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[6]));
+          }
+
+          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, rInn, stagOffset, tiltAngle, nStaves, nMods, thick, mode));
         } else {
-          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, tmpBuff[0], nMods, tmpBuff[2], MatBudgetParamMode::Thickness));
+          // OT layers (5+) do NOT have stagOffset. The optional mode is at index 5.
+          if (tmpBuff.size() >= 6) {
+            mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[5]));
+          }
+
+          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, rInn, tiltAngle, nStaves, nMods, thick, mode));
         }
         break;
       }

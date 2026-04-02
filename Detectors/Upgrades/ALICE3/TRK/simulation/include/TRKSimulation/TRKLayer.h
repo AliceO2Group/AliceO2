@@ -12,11 +12,14 @@
 #ifndef ALICEO2_TRK_LAYER_H
 #define ALICEO2_TRK_LAYER_H
 
+#include "TRKBase/Specs.h"
+#include "TRKBase/TRKBaseParam.h"
 #include <TGeoManager.h>
+
 #include <Rtypes.h>
 
-#include "TRKBase/TRKBaseParam.h"
-#include "TRKBase/Specs.h"
+#include <string>
+#include <utility>
 
 namespace o2
 {
@@ -68,7 +71,7 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
 {
  public:
   TRKSegmentedLayer() = default;
-  TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
+  TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
   ~TRKSegmentedLayer() override = default;
 
   TGeoVolume* createSensor() override;
@@ -80,7 +83,10 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
   void createLayer(TGeoVolume* motherVolume) override = 0;
 
  protected:
+  float mTiltAngle;
+
   int mNumberOfModules;
+  int mNumberOfStaves;
 
   // Fixed parameters for the layer, to be set based on the specifications of the chip and module
   static constexpr double sChipWidth = constants::moduleMLOT::chip::width;
@@ -93,6 +99,12 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
   // TGeo objects outside logical volumes can cause errors
   static constexpr float sLogicalVolumeThickness = 1.3;
 
+  // For the segmented layers, because of tilting and staggering the bounding radii can be different
+  // from the inner radius and inner radius + thickness.
+  // This function calculates the bounding radii based on the geometry of the stave and the tilt angle,
+  // to ensure that the layer volume is large enough to contain all the staves without overlaps.
+  virtual std::pair<float, float> getBoundingRadii(double staveWidth) const;
+
   ClassDefOverride(TRKSegmentedLayer, 0);
 };
 
@@ -100,14 +112,19 @@ class TRKMLLayer : public TRKSegmentedLayer
 {
  public:
   TRKMLLayer() = default;
-  TRKMLLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
+  TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
   ~TRKMLLayer() override = default;
 
   TGeoVolume* createStave() override;
   void createLayer(TGeoVolume* motherVolume) override;
 
  private:
+  float mStaggerOffset;
+
   static constexpr double sStaveWidth = constants::ML::width;
+
+  // Override to account for the staggering offset present in specific ML layers
+  std::pair<float, float> getBoundingRadii(double staveWidth) const override;
 
   ClassDefOverride(TRKMLLayer, 0);
 };
@@ -116,7 +133,7 @@ class TRKOTLayer : public TRKSegmentedLayer
 {
  public:
   TRKOTLayer() = default;
-  TRKOTLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
+  TRKOTLayer(int layerNumber, std::string layerName, float rInn, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
   ~TRKOTLayer() override = default;
 
   TGeoVolume* createStave() override;
