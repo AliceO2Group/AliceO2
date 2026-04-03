@@ -11,12 +11,10 @@
 
 #include <vector>
 #include <cmath>
-#include <fstream>
 
 #include <TStopwatch.h>
 #include <TF1.h>
 #include <Eigen/Dense>
-#include <nlohmann/json.hpp>
 
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -38,6 +36,7 @@
 #include "ITS3Reconstruction/IOUtils.h"
 #include "ITS3TrackingStudy/ITS3TrackingStudyParam.h"
 #include "ITS3TrackingStudy/ParticleInfoExt.h"
+#include "ITS3Align/MisalignmentUtils.h"
 #include "ITS3Align/TrackFit.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -47,7 +46,6 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "Steer/MCKinematicsReader.h"
-#include "MathUtils/LegendrePols.h"
 #include "Framework/Logger.h"
 
 namespace o2::its3::study
@@ -153,7 +151,7 @@ class TrackingStudySpec : public Task
   o2::steer::MCKinematicsReader mMCReader;                // reader of MC information
   const o2::its3::TopologyDictionary* mITSDict = nullptr; // cluster patterns dictionary
   o2::globaltracking::RecoContainer mRecoData;
-  std::array<o2::math_utils::Legendre2DPolynominal, 6> mDeformations; // one per sensorID (0-5)
+  align::MisalignmentModel mMisalignment;
 };
 
 void TrackingStudySpec::init(InitContext& ic)
@@ -186,26 +184,9 @@ void TrackingStudySpec::updateTimeDependentParams(ProcessingContext& pc)
     o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2G));
     mParams = &ITS3TrackingStudyParam::Instance();
     if (mParams->doMisalignment) {
-      TMatrixD null(1, 1);
-      null(0, 0) = 0;
-      for (int i = 0; i < 6; ++i) {
-        mDeformations[i] = o2::math_utils::Legendre2DPolynominal(null);
-      }
+      mMisalignment = {};
       if (!mParams->misAlgJson.empty()) {
-        using json = nlohmann::json;
-        std::ifstream f(mParams->misAlgJson);
-        auto data = json::parse(f);
-        for (const auto& item : data) {
-          int id = item["id"].get<int>();
-          auto v = item["matrix"].get<std::vector<std::vector<double>>>();
-          TMatrixD m(v.size(), v[v.size() - 1].size());
-          for (size_t r{0}; r < v.size(); ++r) {
-            for (size_t c{0}; c < v[r].size(); ++c) {
-              m(r, c) = v[r][c];
-            }
-          }
-          mDeformations[id] = o2::math_utils::Legendre2DPolynominal(m);
-        }
+        mMisalignment = align::loadMisalignmentModel(mParams->misAlgJson);
       }
     }
   }
@@ -984,17 +965,6 @@ void TrackingStudySpec::doMisalignmentStudy()
 
   int goodRefit{0}, notPassedSel{0}, fitFail{0}, fitFailMis{0};
 
-  // compute normalized (u,v) in [-1,1] from global position
-  auto computeUV = [](float gloX, float gloY, float gloZ, int sensorID, float radius) -> std::pair<double, double> {
-    const bool isTop = sensorID % 2 == 0;
-    const double phi = o2::math_utils::to02Pi(std::atan2(gloY, gloX));
-    const double phiBorder1 = o2::math_utils::to02Pi(((isTop ? 0. : 1.) * TMath::Pi()) + std::asin(constants::equatorialGap / 2. / radius));
-    const double phiBorder2 = o2::math_utils::to02Pi(((isTop ? 1. : 2.) * TMath::Pi()) - std::asin(constants::equatorialGap / 2. / radius));
-    const double u = (((phi - phiBorder1) * 2.) / (phiBorder2 - phiBorder1)) - 1.;
-    const double v = ((2. * gloZ + constants::segment::lengthSensitive) / constants::segment::lengthSensitive) - 1.;
-    return {u, v};
-  };
-
   float chi2{0};
   auto writeTree = [&](const char* treeName,
                        const std::array<const TrackingCluster*, 8>& clArr,
@@ -1102,8 +1072,8 @@ void TrackingStudySpec::doMisalignmentStudy()
     }
     writeTree("idealRes", clArr, extrapOut, extrapInw, lbl);
 
-    // Propagate MC truth to each cluster's (alpha, x) to get true track direction,
-    // then compute dy = dydx*h(u,v), dz = dzdx*h(u,v) - first Newton step.
+    // Propagate MC truth to each cluster's (alpha, x) to get true track direction.
+    // The shared misalignment evaluators then provide the tracking-frame dy/dz shift.
     const auto mcTrk = mMCReader.getTrack(lbl);
     if (!mcTrk) {
       continue;
@@ -1132,14 +1102,7 @@ void TrackingStudySpec::doMisalignmentStudy()
       }
       const int sensorID = constants::detID::getSensorID(sens);
       const int layerID = constants::detID::getDetID2Layer(sens);
-
-      // compute h(u,v) at this cluster
-      const float r = orig.getX();
-      const float gloX = r * std::cos(orig.alpha);
-      const float gloY = r * std::sin(orig.alpha);
-      const float gloZ = orig.getZ();
-      auto [u, v] = computeUV(gloX, gloY, gloZ, sensorID, constants::radii[layerID]);
-      const double h = mDeformations[sensorID](u, v);
+      const auto& sensorMis = mMisalignment[sensorID];
 
       // propagate MC track to cluster's tracking frame to get true slopes
       auto mcAtCl = mcPar;
@@ -1147,28 +1110,31 @@ void TrackingStudySpec::doMisalignmentStudy()
         clArrMis[1 + iLay] = nullptr; // can't compute slopes -> drop cluster
         continue;
       }
-      const float snp = mcAtCl.getSnp();
-      const float tgl = mcAtCl.getTgl();
-      const float csci = 1.f / std::sqrt(1.f - (snp * snp));
-      const float dydx = snp * csci;
-      const float dzdx = tgl * csci;
-      const float dy = dydx * static_cast<float>(h);
-      const float dz = dzdx * static_cast<float>(h);
+      const align::MisalignmentFrame misFrame{
+        .sensorID = sensorID,
+        .layerID = layerID,
+        .x = orig.getX(),
+        .alpha = orig.alpha,
+        .z = orig.getZ()};
+      const auto slopes = align::computeTrackSlopes(mcAtCl.getSnp(), mcAtCl.getTgl());
 
-      // check if shifted position is still within sensor acceptance
-      const float newGloY = (r * std::sin(orig.alpha)) + (dy * std::cos(orig.alpha));
-      const float newGloX = (r * std::cos(orig.alpha)) - (dy * std::sin(orig.alpha));
-      const float newGloZ = gloZ + dz;
-      auto [uNew, vNew] = computeUV(newGloX, newGloY, newGloZ, sensorID, constants::radii[layerID]);
-      if (std::abs(uNew) > 1. || std::abs(vNew) > 1.) {
-        clArrMis[1 + iLay] = nullptr; // shifted outside acceptance
-        continue;
+      align::MisalignmentShift totalShift;
+      if (sensorMis.hasLegendre) {
+        const auto shift = align::evaluateLegendreShift(sensorMis, misFrame, slopes);
+        if (!shift.accepted) {
+          clArrMis[1 + iLay] = nullptr; // shifted outside acceptance
+          continue;
+        }
+        totalShift += shift;
+      }
+      if (sensorMis.hasInextensional) {
+        totalShift += align::evaluateInextensionalShift(sensorMis, misFrame, slopes);
       }
 
       // create shifted copy: keep x=r (nominal), shift y and z
       misClArr[iLay] = orig;
-      misClArr[iLay].setY(orig.getY() + dy);
-      misClArr[iLay].setZ(orig.getZ() + dz);
+      misClArr[iLay].setY(orig.getY() + totalShift.dy);
+      misClArr[iLay].setZ(orig.getZ() + totalShift.dz);
       misClArr[iLay].setSigmaY2(orig.getSigmaY2() + (mParams->misAlgExtCY[sensorID] * mParams->misAlgExtCY[sensorID]));
       misClArr[iLay].setSigmaZ2(orig.getSigmaZ2() + (mParams->misAlgExtCZ[sensorID] * mParams->misAlgExtCZ[sensorID]));
       clArrMis[1 + iLay] = &misClArr[iLay];

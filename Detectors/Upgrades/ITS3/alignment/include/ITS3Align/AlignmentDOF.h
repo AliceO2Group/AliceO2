@@ -12,10 +12,28 @@
 #ifndef O2_ITS3_ALIGNMENT_DOF_H
 #define O2_ITS3_ALIGNMENT_DOF_H
 
+#include <algorithm>
 #include <cstdint>
 #include <format>
-#include <algorithm>
+#include <stdexcept>
+#include <string>
 #include <vector>
+
+#include <Eigen/Dense>
+
+struct DerivativeContext {
+  int sensorID{-1};
+  int layerID{-1};
+  double measX{0.};
+  double measAlpha{0.};
+  double measZ{0.};
+  double trkY{0.};
+  double trkZ{0.};
+  double snp{0.};
+  double tgl{0.};
+  double dydx{0.};
+  double dzdx{0.};
+};
 
 // Generic set of DOF
 class DOFSet
@@ -30,6 +48,7 @@ class DOFSet
   virtual Type type() const = 0;
   int nDOFs() const { return static_cast<int>(mFree.size()); }
   virtual std::string dofName(int idx) const = 0;
+  virtual void fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const = 0;
   bool isFree(int idx) const { return mFree[idx]; }
   void setFree(int idx, bool f) { mFree[idx] = f; }
   void setAllFree(bool f) { std::fill(mFree.begin(), mFree.end(), f); }
@@ -73,6 +92,7 @@ class RigidBodyDOFSet final : public DOFSet
   }
   Type type() const override { return Type::RigidBody; }
   std::string dofName(int idx) const override { return RigidBodyDOFNames[idx]; }
+  void fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const override;
   uint8_t mask() const
   {
     uint8_t m = 0;
@@ -100,6 +120,7 @@ class LegendreDOFSet final : public DOFSet
     int j = idx - (i * (i + 1) / 2);
     return std::format("L({},{})", i, j);
   }
+  void fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const override;
 
  private:
   int mOrder;
@@ -146,6 +167,7 @@ class InextensionalDOFSet final : public DOFSet
     static constexpr const char* subNames[] = {"a", "b", "c", "d"};
     return std::format("{}_{}", subNames[sub], n);
   }
+  void fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const override;
 
  private:
   int mMaxOrder;

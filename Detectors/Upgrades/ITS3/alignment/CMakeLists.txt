@@ -13,6 +13,9 @@
 o2_add_library(ITS3Align
                TARGETVARNAME targetName
                SOURCES src/AlignmentHierarchy.cxx
+                       src/AlignmentDOF.cxx
+                       src/AlignmentMath.cxx
+                       src/MisalignmentUtils.cxx
                        src/AlignmentSensors.cxx
                        src/AlignmentParams.cxx
                        src/AlignmentTypes.cxx

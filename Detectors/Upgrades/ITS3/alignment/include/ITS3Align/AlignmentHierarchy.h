@@ -33,24 +33,6 @@ namespace o2::its3::align
 using Matrix36 = Eigen::Matrix<double, 3, 6>;
 using Matrix66 = Eigen::Matrix<double, 6, 6>;
 
-// return the rigid body derivatives
-// trk has be at in the measurment frame
-auto getRigidBodyDerivatives(const auto& trk)
-{
-  // calculate slopes
-  const double tgl = trk.getTgl(), snp = trk.getSnp();
-  const double csp = 1. / sqrt(1. + (tgl * tgl));
-  const double u = trk.getY(), v = trk.getZ();
-  const double uP = snp * csp, vP = tgl * csp;
-  Matrix36 der;
-  der.setZero();
-  // columns: Tt,  Tu,  Tv,  Rt,    Ru,   Rv
-  //          (X)  (Y)  (Z)  (RX)   (RY)  (RZ)
-  der << uP, -1., 0., v, v * uP, -u * uP,
-    vP, 0., -1., -u, v * vP, -u * vP;
-  return der;
-}
-
 class HierarchyConstraint
 {
  public:
