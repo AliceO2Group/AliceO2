@@ -13,6 +13,8 @@
 #include "DPLWebSocket.h"
 #include "DriverServerContext.h"
 #include "Framework/DeviceControl.h"
+#include <csignal>
+#include <unistd.h>
 #include "Framework/DeviceController.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
@@ -254,6 +256,8 @@ void StatusWebSocketHandler::frame(char const* data, size_t s)
     handleSubscribeLogs(deviceName);
   } else if (cmd == "unsubscribe_logs") {
     handleUnsubscribeLogs(deviceName);
+  } else if (cmd == "start_devices") {
+    handleStartDevices();
   } else if (cmd == "enable_signpost") {
     handleEnableSignpost(deviceName, extractArrayField(msg, "streams"));
   } else if (cmd == "disable_signpost") {
@@ -439,6 +443,15 @@ size_t StatusWebSocketHandler::findDeviceIndex(std::string_view name) const
     }
   }
   return SIZE_MAX;
+}
+
+void StatusWebSocketHandler::handleStartDevices()
+{
+  for (auto const& info : *mContext.infos) {
+    if (info.active) {
+      kill(info.pid, SIGCONT);
+    }
+  }
 }
 
 void StatusWebSocketHandler::handleEnableSignpost(std::string_view deviceName, std::string_view streamsArr)

@@ -95,6 +95,7 @@ struct StatusWebSocketHandler : public WebSocketHandler {
   void handleUnsubscribe(std::string_view deviceName, std::string_view metricsJson);
   void handleSubscribeLogs(std::string_view deviceName);
   void handleUnsubscribeLogs(std::string_view deviceName);
+  void handleStartDevices();
   void handleEnableSignpost(std::string_view deviceName, std::string_view streamsArr);
   void handleDisableSignpost(std::string_view deviceName, std::string_view streamsArr);
   size_t findDeviceIndex(std::string_view name) const;
