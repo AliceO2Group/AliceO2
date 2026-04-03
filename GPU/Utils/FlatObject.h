@@ -253,10 +253,10 @@ class FlatObject
   void destroy();
 
   /// Gives size of the flat buffer
-  size_t getFlatBufferSize() const { return mFlatBufferSize; }
+  GPUdi() size_t getFlatBufferSize() const { return mFlatBufferSize; }
 
   /// Gives pointer to the flat buffer
-  const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
+  GPUdi() const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
 
   /// Tells if the object is constructed
   bool isConstructed() const { return (mConstructionMask & (uint32_t)ConstructionState::Constructed); }
@@ -274,7 +274,7 @@ class FlatObject
 
  public:
   /// Increases given size to achieve required alignment
-  static size_t alignSize(size_t sizeBytes, size_t alignmentBytes)
+  static constexpr size_t alignSize(size_t sizeBytes, size_t alignmentBytes)
   {
     auto res = sizeBytes % alignmentBytes;
     return res ? sizeBytes + (alignmentBytes - res) : sizeBytes;

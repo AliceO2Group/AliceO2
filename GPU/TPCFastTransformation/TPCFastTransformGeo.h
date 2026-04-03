@@ -86,7 +86,7 @@ class TPCFastTransformGeo
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
   /// Gives minimal alignment in bytes required for an object of the class
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  inline static constexpr size_t getClassAlignmentBytes() { return 8; }
 
   /// _______________  Construction interface  ________________________
 
@@ -110,16 +110,16 @@ class TPCFastTransformGeo
   /// _______________  Getters _________________________________
 
   /// Gives number of TPC sectors
-  GPUdi() static constexpr int32_t getNumberOfSectors() { return NumberOfSectors; }
+  inline static constexpr int32_t getNumberOfSectors() { return NumberOfSectors; }
 
   /// Gives number of TPC sectors on the A side
-  GPUdi() static constexpr int32_t getNumberOfSectorsA() { return NumberOfSectorsA; }
+  inline static constexpr int32_t getNumberOfSectorsA() { return NumberOfSectorsA; }
 
   /// Gives number of TPC rows
   GPUdi() int32_t getNumberOfRows() const { return mNumberOfRows; }
 
   /// Gives number of TPC rows
-  GPUdi() static constexpr int getMaxNumberOfRows() { return MaxNumberOfRows; }
+  inline static constexpr int getMaxNumberOfRows() { return MaxNumberOfRows; }
 
   /// Gives sector info
   GPUd() const SectorInfo& getSectorInfo(int32_t sector) const;
