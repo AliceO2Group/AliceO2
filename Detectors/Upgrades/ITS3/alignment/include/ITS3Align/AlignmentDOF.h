@@ -21,8 +21,11 @@
 class DOFSet
 {
  public:
-  enum class Type : uint8_t { RigidBody,
-                              Legendre };
+  enum class Type : uint8_t {
+    RigidBody,
+    Legendre,
+    Inextensional
+  };
   virtual ~DOFSet() = default;
   virtual Type type() const = 0;
   int nDOFs() const { return static_cast<int>(mFree.size()); }
@@ -100,6 +103,52 @@ class LegendreDOFSet final : public DOFSet
 
  private:
   int mOrder;
+};
+
+// In-extensional deformation DOFs for cylindrical half-shells
+// Fourier modes n=2..N: 4 params each (a_n, b_n, c_n, d_n)
+// Plus 2 non-periodic modes (alpha, beta) for the half-cylinder open edges
+// Total: 4*(N-1) + 2
+class InextensionalDOFSet final : public DOFSet
+{
+ public:
+  explicit InextensionalDOFSet(int maxOrder) : DOFSet((4 * (maxOrder - 1)) + 2), mMaxOrder(maxOrder)
+  {
+    if (maxOrder < 2) {
+      // the rest is eq. to rigid body
+      throw std::invalid_argument("InextensionalDOFSet requires maxOrder >= 2");
+    }
+  }
+  Type type() const override { return Type::Inextensional; }
+  int maxOrder() const { return mMaxOrder; }
+
+  // number of periodic DOFs (before alpha, beta)
+  int nPeriodic() const { return 4 * (mMaxOrder - 1); }
+
+  // flat index layout: [a_2, b_2, c_2, d_2, a_3, b_3, c_3, d_3, ..., alpha, beta]
+  // index of first DOF for mode n
+  static int modeOffset(int n) { return 4 * (n - 2); }
+
+  // indices of the non-periodic modes
+  int alphaIdx() const { return nPeriodic(); }
+  int betaIdx() const { return nPeriodic() + 1; }
+
+  std::string dofName(int idx) const override
+  {
+    if (idx == alphaIdx()) {
+      return "alpha";
+    }
+    if (idx == betaIdx()) {
+      return "beta";
+    }
+    int n = (idx / 4) + 2;
+    int sub = idx % 4;
+    static constexpr const char* subNames[] = {"a", "b", "c", "d"};
+    return std::format("{}_{}", subNames[sub], n);
+  }
+
+ private:
+  int mMaxOrder;
 };
 
 #endif

@@ -38,9 +38,10 @@ struct AlignmentParams : public o2::conf::ConfigurableParamHelper<AlignmentParam
   float extraClsErrZ[6] = {0};
 
   // misalignment simulation
-  bool doMisalignmentLeg = false; // simulate Legendre deformation on ITS3 layers
-  bool doMisalignmentRB = false;  // simulate rigid body misalignment on ITS3 layers
-  std::string misAlgJson;         // JSON file with deformation and/or rigid body params
+  bool doMisalignmentLeg = false;  // simulate Legendre deformation on ITS3 layers
+  bool doMisalignmentRB = false;   // simulate rigid body misalignment on ITS3 layers
+  bool doMisalignmentInex = false; // simulate in-extensional deformation on ITS3 layers
+  std::string misAlgJson;          // JSON file with deformation and/or rigid body params
 
   // DOF configuration (JSON file defining which volumes have which DOFs)
   std::string dofConfigJson; // if empty, no DOFs are configured

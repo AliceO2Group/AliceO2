@@ -27,4 +27,38 @@ dofSet.json:
       "calib": { "type": "legendre", "order": 1, "fix": [0, 2] }
     }
   ]
-}```
+}
+```
+
+
+## In-existensional modes
+```json
+{
+  "defaults": { "rigidBody": "fixed" },
+  "rules": [
+    {
+      "match": "ITS3Layer1/ITS3CarbonForm0",
+      "calib": {
+        "type": "inextensional",
+        "order": 2,
+        "free": ["a_2", "b_2", "c_2", "d_2", "alpha", "beta"]
+      }
+    }
+  ]
+}
+```
+
+```json
+[
+  {
+    "id": 2,
+    "inextensional": {
+      "modes": {
+        "2": [0.0008, -0.0005, 0.0006, -0.0007]
+      },
+      "alpha": 0.0004,
+      "beta": -0.0003
+    }
+  }
+]
+```

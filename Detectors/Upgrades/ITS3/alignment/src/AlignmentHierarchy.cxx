@@ -178,21 +178,23 @@ void AlignableVolume::writeParameters(std::ostream& os) const
   if (isRoot()) {
     os << "Parameter\n";
   }
-  if (mRigidBody) {
-    for (int iDOF = 0; iDOF < mRigidBody->nDOFs(); ++iDOF) {
-      os << std::format("{:<10} {:>+15g} {:>+15g} ! {} {} ",
-                        mLabel.raw(iDOF), 0.0, (mRigidBody->isFree(iDOF) ? 0.0 : -1.0),
-                        (mRigidBody->isFree(iDOF) ? 'V' : 'F'), mRigidBody->dofName(iDOF))
-         << mSymName << '\n';
+  if (!mIsPseudo) {
+    if (mRigidBody) {
+      for (int iDOF = 0; iDOF < mRigidBody->nDOFs(); ++iDOF) {
+        os << std::format("{:<10} {:>+15g} {:>+15g} ! {} {} ",
+                          mLabel.raw(iDOF), 0.0, (mRigidBody->isFree(iDOF) ? 0.0 : -1.0),
+                          (mRigidBody->isFree(iDOF) ? 'V' : 'F'), mRigidBody->dofName(iDOF))
+           << mSymName << '\n';
+      }
     }
-  }
-  if (mCalib) {
-    auto calibLbl = mLabel.asCalib();
-    for (int iDOF = 0; iDOF < mCalib->nDOFs(); ++iDOF) {
-      os << std::format("{:<10} {:>+15g} {:>+15g} ! {} {} ",
-                        calibLbl.raw(iDOF), 0.0, (mCalib->isFree(iDOF) ? 0.0 : -1.0),
-                        (mCalib->isFree(iDOF) ? 'V' : 'F'), mCalib->dofName(iDOF))
-         << mSymName << '\n';
+    if (mCalib) {
+      auto calibLbl = mLabel.asCalib();
+      for (int iDOF = 0; iDOF < mCalib->nDOFs(); ++iDOF) {
+        os << std::format("{:<10} {:>+15g} {:>+15g} ! {} {:<5} ",
+                          calibLbl.raw(iDOF), 0.0, (mCalib->isFree(iDOF) ? 0.0 : -1.0),
+                          (mCalib->isFree(iDOF) ? 'V' : 'F'), mCalib->dofName(iDOF))
+           << mSymName << '\n';
+      }
     }
   }
   for (const auto& c : mChildren) {
@@ -266,6 +268,9 @@ void applyDOFConfig(AlignableVolume* root, const std::string& jsonPath)
   }
 
   root->traverse([&](AlignableVolume* vol) {
+    if (vol->isPseudo()) {
+      return;
+    }
     const std::string& sym = vol->getSymName();
     for (const auto& rule : rules) {
       const auto pattern = rule["match"].get<std::string>();
@@ -357,6 +362,41 @@ void applyDOFConfig(AlignableVolume* root, const std::string& jsonPath)
             }
           }
           vol->setCalib(std::move(dofSet));
+        } else if (calType == "inextensional") {
+          int maxOrder = cal.value("order", 2);
+          auto dofSet = std::make_unique<InextensionalDOFSet>(maxOrder);
+          bool fixed = cal.value("fixed", false);
+          if (fixed) {
+            dofSet->setAllFree(false);
+          }
+          if (cal.contains("free")) {
+            dofSet->setAllFree(false);
+            for (const auto& item : cal["free"]) {
+              if (item.is_number_integer()) {
+                dofSet->setFree(item.get<int>(), true);
+              } else if (item.is_string()) {
+                for (int k = 0; k < dofSet->nDOFs(); ++k) {
+                  if (dofSet->dofName(k) == item.get<std::string>()) {
+                    dofSet->setFree(k, true);
+                  }
+                }
+              }
+            }
+          }
+          if (cal.contains("fix")) {
+            for (const auto& item : cal["fix"]) {
+              if (item.is_number_integer()) {
+                dofSet->setFree(item.get<int>(), false);
+              } else if (item.is_string()) {
+                for (int k = 0; k < dofSet->nDOFs(); ++k) {
+                  if (dofSet->dofName(k) == item.get<std::string>()) {
+                    dofSet->setFree(k, false);
+                  }
+                }
+              }
+            }
+          }
+          vol->setCalib(std::move(dofSet));
         }
       }
     }
@@ -398,6 +438,12 @@ void writeMillepedeResults(AlignableVolume* root, const std::string& milleResPat
   // indexed by sensorID
   std::map<int, std::vector<double>> injRB;
   std::map<int, std::vector<std::vector<double>>> injMatrix;
+  struct InjInex {
+    std::map<int, std::array<double, 4>> modes;
+    double alpha{0.};
+    double beta{0.};
+  };
+  std::map<int, InjInex> injInex;
   if (!injectedJsonPath.empty()) {
     std::ifstream injFile(injectedJsonPath);
     if (injFile.is_open()) {
@@ -409,6 +455,22 @@ void writeMillepedeResults(AlignableVolume* root, const std::string& milleResPat
         }
         if (item.contains("matrix")) {
           injMatrix[id] = item["matrix"].get<std::vector<std::vector<double>>>();
+        }
+        if (item.contains("inextensional")) {
+          InjInex ii;
+          const auto& inex = item["inextensional"];
+          if (inex.contains("modes")) {
+            for (auto& [key, val] : inex["modes"].items()) {
+              ii.modes[std::stoi(key)] = val.get<std::array<double, 4>>();
+            }
+          }
+          if (inex.contains("alpha")) {
+            ii.alpha = inex["alpha"].get<double>();
+          }
+          if (inex.contains("beta")) {
+            ii.beta = inex["beta"].get<double>();
+          }
+          injInex[id] = ii;
         }
       }
       LOGP(info, "Loaded injected misalignment for {} sensors", injData.size());
@@ -468,6 +530,43 @@ void writeMillepedeResults(AlignableVolume* root, const std::string& milleResPat
         matrix.push_back(row);
       }
       entry["matrix"] = matrix;
+    } else if (cal && cal->nFreeDOFs() && cal->type() == DOFSet::Type::Inextensional) {
+      write = true;
+      auto* inexSet = static_cast<const InextensionalDOFSet*>(cal);
+      int maxN = inexSet->maxOrder();
+      auto calibLbl = vol->getLabel().asCalib();
+      const auto& inj = injInex.contains(id) ? injInex[id] : InjInex{};
+
+      json inexEntry;
+      json modesObj = json::object();
+      for (int n = 2; n <= maxN; ++n) {
+        int off = InextensionalDOFSet::modeOffset(n);
+        std::array<double, 4> injCoeffs = {0., 0., 0., 0.};
+        if (inj.modes.contains(n)) {
+          injCoeffs = inj.modes.at(n);
+        }
+        json modeArr = json::array();
+        for (int k = 0; k < 4; ++k) {
+          uint32_t raw = calibLbl.raw(off + k);
+          auto it = labelToValue.find(raw);
+          double fitted = it != labelToValue.end() ? it->second : 0.0;
+          modeArr.push_back(fitted - injCoeffs[k]);
+        }
+        modesObj[std::to_string(n)] = modeArr;
+      }
+      inexEntry["modes"] = modesObj;
+
+      // alpha
+      uint32_t rawAlpha = calibLbl.raw(inexSet->alphaIdx());
+      auto itA = labelToValue.find(rawAlpha);
+      inexEntry["alpha"] = (itA != labelToValue.end() ? itA->second : 0.0) - inj.alpha;
+
+      // beta
+      uint32_t rawBeta = calibLbl.raw(inexSet->betaIdx());
+      auto itB = labelToValue.find(rawBeta);
+      inexEntry["beta"] = (itB != labelToValue.end() ? itB->second : 0.0) - inj.beta;
+
+      entry["inextensional"] = inexEntry;
     }
     if (write) {
       output.push_back(entry);

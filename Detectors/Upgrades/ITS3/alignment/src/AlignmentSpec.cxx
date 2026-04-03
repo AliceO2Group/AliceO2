@@ -154,6 +154,14 @@ class AlignmentSpec final : public Task
   const AlignmentParams* mParams{nullptr};
   std::array<o2::math_utils::Legendre2DPolynominal, 6> mDeformations; // one per sensorID (0-5)
   std::array<Eigen::Matrix<double, 6, 1>, 6> mRigidBodyParams;        // (dx,dy,dz,rx,ry,rz) in LOC per sensorID
+
+  // in-extensional deformation parameters per sensorID
+  struct InexParams {
+    std::map<int, std::array<double, 4>> modes; // n -> (a_n, b_n, c_n, d_n)
+    double alpha{0.};
+    double beta{0.};
+  };
+  std::array<InexParams, 6> mInexParams;
 };
 
 void AlignmentSpec::init(InitContext& ic)
@@ -375,7 +383,7 @@ void AlignmentSpec::process()
             }
           }
 
-          // 3) calibration derivatives (e.g. Legendre for ITS3 sensors, apply directly on the whole sensor, not on inidividual tiles)
+          // 3) calibration derivatives (apply directly on the whole sensor, not on individual tiles)
           if (calibSet && calibSet->type() == DOFSet::Type::Legendre) {
             const auto* legSet = static_cast<const LegendreDOFSet*>(calibSet);
             const int N = legSet->order();
@@ -408,6 +416,64 @@ void AlignmentSpec::process()
                 ++legIdx;
               }
             }
+          } else if (calibSet && calibSet->type() == DOFSet::Type::Inextensional) {
+            const auto* inexSet = static_cast<const InextensionalDOFSet*>(calibSet);
+            const int N = inexSet->maxOrder();
+            const int layerID = constants::detID::getDetID2Layer(frame.sens);
+
+            const double r = constants::radii[layerID];
+            const double phi = std::atan2(r * std::sin(frame.alpha), r * std::cos(frame.alpha));
+            const double z = frame.positionTrackingFrame[1];
+
+            const double snp = wTrk.getSnp();
+            const double tgl = wTrk.getTgl();
+            const double csci = 1. / std::sqrt(1. - (snp * snp));
+            const double yp = snp * csci;
+            const double zp = tgl * csci;
+
+            const int calColStart = nColRB;
+            // periodic modes n=2..N: dr/da_n, dr/db_n, dr/dc_n, dr/dd_n (A.56-A.59)
+            for (int n = 2; n <= N; ++n) {
+              const double sn = std::sin(n * phi);
+              const double cn = std::cos(n * phi);
+              const double n2 = static_cast<double>(n * n);
+              const int off = calColStart + InextensionalDOFSet::modeOffset(n);
+
+              // dr/da_n (A.56): dy = -z/r*(n*sin(n*phi) + y'*n^2*cos(n*phi)), dz = -cos(n*phi) - z'*z/r*n^2*cos(n*phi)
+              gLabels.push_back(sensorVol->getLabel().asCalib().rawGBL(InextensionalDOFSet::modeOffset(n) + 0));
+              gDer(0, off + 0) = -(z / r) * (n * sn + yp * n2 * cn);
+              gDer(1, off + 0) = -cn - zp * (z / r) * n2 * cn;
+
+              // dr/db_n (A.57): dy = z/r*(n*cos(n*phi) - y'*n^2*sin(n*phi)), dz = -sin(n*phi)*(1 + z'*z/r*n^2)
+              gLabels.push_back(sensorVol->getLabel().asCalib().rawGBL(InextensionalDOFSet::modeOffset(n) + 1));
+              gDer(0, off + 1) = (z / r) * (n * cn - yp * n2 * sn);
+              gDer(1, off + 1) = -sn * (1. + zp * (z / r) * n2);
+
+              // dr/dc_n (A.58): dy = -cos(n*phi) + y'*n*sin(n*phi), dz = z'*n*sin(n*phi)
+              gLabels.push_back(sensorVol->getLabel().asCalib().rawGBL(InextensionalDOFSet::modeOffset(n) + 2));
+              gDer(0, off + 2) = -cn + yp * n * sn;
+              gDer(1, off + 2) = zp * n * sn;
+
+              // dr/dd_n (A.59): dy = -sin(n*phi) - y'*n*cos(n*phi), dz = -z'*n*cos(n*phi)
+              gLabels.push_back(sensorVol->getLabel().asCalib().rawGBL(InextensionalDOFSet::modeOffset(n) + 3));
+              gDer(0, off + 3) = -sn - yp * n * cn;
+              gDer(1, off + 3) = -zp * n * cn;
+            }
+
+            // non-periodic modes: alpha (A.63) and beta (A.64)
+            const int alphaOff = calColStart + inexSet->alphaIdx();
+            const int betaOff = calColStart + inexSet->betaIdx();
+
+            // dr/dalpha (A.63): dy = z/r, dz = -phi (note: M_phi = 0, M_z = phi, M_r = 0 -> dr/dalpha = (-M_z + y'*M_r, -M_z + z'*M_r, 0) ... re-derive)
+            // from (A.63): dr/dalpha = (z/r, -phi, 0) directly as residual derivatives
+            gLabels.push_back(sensorVol->getLabel().asCalib().rawGBL(inexSet->alphaIdx()));
+            gDer(0, alphaOff) = z / r;
+            gDer(1, alphaOff) = -phi;
+
+            // dr/dbeta (A.64): dy = -phi - y', dz = -z'
+            gLabels.push_back(sensorVol->getLabel().asCalib().rawGBL(inexSet->betaIdx()));
+            gDer(0, betaOff) = -phi - yp;
+            gDer(1, betaOff) = -zp;
           }
           point.addGlobals(gLabels, gDer);
         }
@@ -514,12 +580,13 @@ void AlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
 
     buildHierarchy();
 
-    if (mParams->doMisalignmentLeg || mParams->doMisalignmentRB) {
+    if (mParams->doMisalignmentLeg || mParams->doMisalignmentRB || mParams->doMisalignmentInex) {
       TMatrixD null(1, 1);
       null(0, 0) = 0;
       for (int i = 0; i < 6; ++i) {
         mDeformations[i] = o2::math_utils::Legendre2DPolynominal(null);
         mRigidBodyParams[i].setZero();
+        mInexParams[i] = {};
       }
       if (!mParams->misAlgJson.empty()) {
         using json = nlohmann::json;
@@ -541,6 +608,22 @@ void AlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
             auto rb = item["rigidBody"].get<std::vector<double>>();
             for (int k = 0; k < 6 && k < (int)rb.size(); ++k) {
               mRigidBodyParams[id](k) = rb[k];
+            }
+          }
+          if (mParams->doMisalignmentInex && item.contains("inextensional")) {
+            const auto& inex = item["inextensional"];
+            if (inex.contains("modes")) {
+              for (auto& [key, val] : inex["modes"].items()) {
+                int n = std::stoi(key);
+                auto coeffs = val.get<std::array<double, 4>>();
+                mInexParams[id].modes[n] = coeffs;
+              }
+            }
+            if (inex.contains("alpha")) {
+              mInexParams[id].alpha = inex["alpha"].get<double>();
+            }
+            if (inex.contains("beta")) {
+              mInexParams[id].beta = inex["beta"].get<double>();
             }
           }
         }
@@ -927,6 +1010,66 @@ bool AlignmentSpec::applyMisalignment(Eigen::Vector2d& res, const FrameInfoExt& 
     Eigen::Vector3d shift = der * mRigidBodyParams[sensorID];
     res[0] += shift[0]; // dy
     res[1] += shift[1]; // dz
+  }
+
+  // --- In-extensional deformation ---
+  // displacement field u(phi,z) = (u_phi, u_z, u_r) from (A.33-A.35)
+  // residual shift follows (A.55):
+  //   dy = -u_phi + y' * u_r,  dz = -u_z + z' * u_r
+  if (mParams->doMisalignmentInex) {
+    const double r = constants::radii[layerID];
+    const double phi = std::atan2(r * std::sin(frame.alpha), r * std::cos(frame.alpha));
+    const double z = frame.positionTrackingFrame[1];
+    const auto& ip = mInexParams[sensorID];
+    const double snp = wTrk.getSnp();
+    const double tgl = wTrk.getTgl();
+    const double csci = 1. / std::sqrt(1. - (snp * snp));
+    const double yp = snp * csci;
+    const double zp = tgl * csci;
+
+    double uz = 0., uphi = 0., ur = 0.;
+
+    // periodic modes from (A.33-A.35):
+    //   u_z = f(phi),  u_phi = -(z/r)*f'(phi) + g(phi),  u_r = (z/r)*f''(phi) - g'(phi)
+    for (const auto& [n, coeffs] : ip.modes) {
+      const double a_n = coeffs[0], b_n = coeffs[1], c_n = coeffs[2], d_n = coeffs[3];
+      const double sn = std::sin(n * phi);
+      const double cn = std::cos(n * phi);
+      const int n2 = n * n;
+      // f(phi) and derivatives
+      const double fn = a_n * cn + b_n * sn;
+      const double fpn = -n * a_n * sn + n * b_n * cn;
+      const double fppn = -n2 * a_n * cn - n2 * b_n * sn;
+      // g(phi) and derivative
+      const double gn = c_n * cn + d_n * sn;
+      const double gpn = -n * c_n * sn + n * d_n * cn;
+
+      uz += fn;
+      uphi += -(z / r) * fpn + gn;
+      ur += (z / r) * fppn - gpn;
+    }
+
+    // non-periodic: f(phi) = alpha*phi, g(phi) = beta*phi
+    // f' = alpha, f'' = 0, g' = beta
+    uz += ip.alpha * phi;
+    uphi += -(z / r) * ip.alpha + ip.beta * phi;
+    ur += -ip.beta; // (z/r)*0 - beta
+
+    const double dy_inex = -uphi + yp * ur;
+    const double dz_inex = -uz + zp * ur;
+    res[0] += dy_inex;
+    res[1] += dz_inex;
+  }
+
+  if (mOutOpt[OutputOpt::MisRes]) {
+    (*mDBGOut) << "mis"
+               << "dy=" << res[0]
+               << "dz=" << res[1]
+               << "sens=" << sensorID
+               << "lay=" << layerID
+               << "z=" << frame.positionTrackingFrame[1]
+               << "phi=" << frame.alpha
+               << "\n";
   }
 
   return true;

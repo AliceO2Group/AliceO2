@@ -24,6 +24,7 @@ enum class OutputOpt : uint8_t {
   MilleData,
   MilleSteer,
   MilleRes,
+  MisRes,
   Debug,
 };
 using OutputEnum = utils::EnumFlags<OutputOpt>;
