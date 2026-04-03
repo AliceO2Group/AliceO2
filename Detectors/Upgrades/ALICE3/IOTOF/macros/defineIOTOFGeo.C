@@ -8,16 +8,15 @@
 #include <algorithm>
 #include <cmath>
 
-void defineIOTOFGeo(const double rAvg = 21,           // cm, average radius of the layer (used for stave size calculations)
-                    const int nStaves = 24,           // Number of staves
-                    const double staveWidth = 5.42,   // cm, Stave width (arc length at avg radius at 0 degrees)
+void defineIOTOFGeo(const double rAvg = 21,              // cm, average radius of the layer (used for stave size calculations)
+                    const int nStaves = 24,              // Number of staves
+                    const double staveWidth = 5.42,      // cm, Stave width (arc length at avg radius at 0 degrees)
                     const double staveHeightX2X0 = 0.02, // Stave height (radial at 0 degrees)
-                    const double staveTilt = 10       // Stave tilt angle in degrees
+                    const double staveTilt = 10          // Stave tilt angle in degrees
 )
 {
   const double Si_X0 = 9.5f; // cm, radiation length of silicon
   const double staveHeight = staveHeightX2X0 * Si_X0;
-
 
   // 1. Define inner and outer radii for the disk.
   //    The radius corresponds to the distance of the center of the stave to the origin
@@ -45,7 +44,7 @@ void defineIOTOFGeo(const double rAvg = 21,           // cm, average radius of t
   const double vCorners[4] = {-W / 2.0, -W / 2.0, W / 2.0, W / 2.0};
   for (int i = 0; i < 4; ++i) {
     const double dist = std::hypot(uCorners[i] - u0, vCorners[i] - v0);
-    if (dist > rOutscribed){
+    if (dist > rOutscribed) {
       rOutscribed = dist;
     }
   }
