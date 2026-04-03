@@ -228,7 +228,7 @@ class CalculatedEdx
   std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr}; ///< input vector with TPC tracks cluster indicies
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr}; ///< needed to access clusternative with tpctracks
   const o2::gpu::TPCFastTransformPOD* mTPCCorrMap{nullptr};   ///< cluster correction maps helper
-  std::vector<char> mTPCCorrMapBuffer;
+  o2::gpu::aligned_unique_buffer_ptr<o2::gpu::TPCFastTransformPOD> mTPCCorrMapBuffer;
   std::vector<unsigned char> mTPCRefitterShMap;                  ///< externally set TPC clusters sharing map
   std::vector<unsigned int> mTPCRefitterOccMap;                  ///< externally set TPC clusters occupancy map
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction

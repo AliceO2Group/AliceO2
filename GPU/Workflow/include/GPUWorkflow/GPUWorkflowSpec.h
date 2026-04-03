@@ -22,6 +22,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InitContext.h"
 #include "Framework/CompletionPolicy.h"
+#include "GPUCommonAlignedAlloc.h"
 #include "Algorithm/Parser.h"
 #include <string>
 #include <array>
@@ -155,13 +156,10 @@ class GPURecoWorkflowSpec : public o2::framework::Task
  private:
   struct calibObjectStruct {
     std::vector<char> mUpdatedTransformBuffer;
-    const TPCFastTransformPOD* mFastTransform{nullptr};
     std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
     std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;
     float mInstLumiCTP{-1};
-    // #if !defined(GPUCA_GPUCODE_DEVICE)
-    std::vector<char> mCorrMapBuffer;
-    // #endif
+    aligned_unique_buffer_ptr<TPCFastTransformPOD> mFastTransformBuffer;
   };
 
   /// initialize TPC options from command line

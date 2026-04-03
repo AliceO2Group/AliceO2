@@ -32,6 +32,7 @@
 #include "GPUOutputControl.h"
 #include "GPUParam.h"
 #include "GPUConstantMem.h"
+#include "GPUCommonAlignedAlloc.h"
 #include "GPUDef.h"
 
 namespace o2::its
@@ -381,15 +382,13 @@ class GPUReconstruction
     GPUProcessor* proc = nullptr;
     std::vector<uint16_t> res;
   };
-  struct alignedDeleter {
-    void operator()(void* ptr) { ::operator delete[](ptr, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)); };
-  };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
   std::vector<std::tuple<void*, void*, size_t, size_t, uint64_t>> mNonPersistentMemoryStack; // hostPoolAddress, devicePoolAddress, individualAllocationCount, directIndividualAllocationCound, tag
   std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
-  std::vector<std::unique_ptr<char[], alignedDeleter>> mNonPersistentIndividualDirectAllocations;
-  std::vector<std::unique_ptr<char[], alignedDeleter>> mDirectMemoryChunks;
-  std::vector<std::unique_ptr<char[], alignedDeleter>> mVolatileChunks;
+  using alignedDefaultBufferDeleter = alignedDeleter<char, GPUCA_BUFFER_ALIGNMENT>;
+  std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mNonPersistentIndividualDirectAllocations;
+  std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mDirectMemoryChunks;
+  std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mVolatileChunks;
   std::atomic_flag mMemoryMutex = ATOMIC_FLAG_INIT;
 
   std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;

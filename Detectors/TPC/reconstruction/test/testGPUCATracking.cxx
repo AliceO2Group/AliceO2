@@ -74,9 +74,9 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configWorkflow.outputs.set(gpudatatypes::InOutType::TPCMergedTracks);
 
   auto fastTransformTmp = TPCFastTransformHelperO2::instance()->create(0);
-  std::vector<char> fastTransformBuf;
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> fastTransformBuf;
   TPCFastTransformPOD::create(fastTransformBuf, *fastTransformTmp);
-  config.configCalib.fastTransform = &TPCFastTransformPOD::get(fastTransformBuf.data());
+  config.configCalib.fastTransform = fastTransformBuf.get();
 
   auto dEdxCalibContainer = GPUO2InterfaceUtils::getCalibdEdxContainerDefault();
   config.configCalib.dEdxCalibContainer = dEdxCalibContainer.get();

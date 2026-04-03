@@ -51,9 +51,9 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
   Propagator::initFieldFromGRP(NameConf::getGRPFileName());
   const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
   float bz = 5.00668f * grp->getL3Current() / 30000.;
-  std::vector<char> buffer;
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> buffer;
   o2::gpu::TPCFastTransformPOD::create(buffer, *TPCFastTransformHelperO2::instance()->create(0));
-  const TPCFastTransformPOD corrMap = o2::gpu::TPCFastTransformPOD::get(buffer.data());
+  const TPCFastTransformPOD* corrMap = buffer.get();
   auto* prop = Propagator::Instance();
 
   ClusterNativeAccess clusterIndex;

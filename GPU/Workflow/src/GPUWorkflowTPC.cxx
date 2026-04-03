@@ -104,10 +104,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mCalibObjects.mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
 
-  std::vector<char> buffer;
-  gpu::TPCFastTransformPOD::create(buffer, *o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
-  mCalibObjects.mCorrMapBuffer = std::move(buffer);
-  mCalibObjects.mFastTransform = &TPCFastTransformPOD::get(mCalibObjects.mCorrMapBuffer.data());
+  gpu::TPCFastTransformPOD::create(mCalibObjects.mFastTransformBuffer, *o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
@@ -347,16 +344,13 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
         mCalibObjects.mInstLumiCTP = pc.inputs().get<float>("lumiCTP");
 
         // get the raw buffer and reinterpret as TPCFastTransformPOD
-        oldCalibObjects.mFastTransform = mCalibObjects.mFastTransform;            // save OLD pointer ✓
-        oldCalibObjects.mCorrMapBuffer = std::move(mCalibObjects.mCorrMapBuffer); // OLD buffer alive ✓
-
+        oldCalibObjects.mFastTransformBuffer = std::move(mCalibObjects.mFastTransformBuffer); // OLD buffer alive ✓
         auto const& raw = pc.inputs().get<const char*>("corrMap");
         const auto* newMap = &gpu::TPCFastTransformPOD::get(raw); // NEW map from DPL
-        std::vector<char> buffer(newMap->size());
-        std::memcpy(buffer.data(), newMap, buffer.size()); // copy NEW map ✓
-        mCalibObjects.mCorrMapBuffer = std::move(buffer);
-        mCalibObjects.mFastTransform = &TPCFastTransformPOD::get(mCalibObjects.mCorrMapBuffer.data());
-        newCalibObjects.fastTransform = mCalibObjects.mFastTransform;
+        aligned_unique_buffer_ptr<TPCFastTransformPOD> buffer(newMap->size());
+        std::memcpy(buffer.get(), newMap, newMap->size()); // copy NEW map ✓
+        mCalibObjects.mFastTransformBuffer = std::move(buffer);
+        newCalibObjects.fastTransform = mCalibObjects.mFastTransformBuffer.get();
         mustUpdate = true;
       }
       if (mTPCVDriftHelper->isUpdated()) {

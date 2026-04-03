@@ -25,7 +25,33 @@ namespace o2
 namespace gpu
 {
 
-#if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+
+/// Create POD transform from old flat-buffer one. Provided vector will serve as a buffer
+TPCFastTransformPOD* TPCFastTransformPOD::create(aligned_unique_buffer_ptr<TPCFastTransformPOD>& destVector, const TPCFastTransform& src)
+{
+  size_t size = estimateSize(src);
+  destVector.alloc(size); // allocate exact size
+  LOGP(debug, "OrigCorrSize:{} SelfSize: {} Estimated POS size: {}", src.getCorrection().getFlatBufferSize(), sizeof(TPCFastTransformPOD), size);
+  auto res = create(destVector.getraw(), size, src);
+  res->setTimeStamp(src.getTimeStamp());
+  res->setVDrift(src.getVDrift());
+  res->setT0(src.getT0());
+  res->setLumi(src.getLumi());
+  if (src.isIDCSet()) {
+    res->setIDC(src.getIDC());
+  }
+  return res;
+}
+
+TPCFastTransformPOD* TPCFastTransformPOD::create(aligned_unique_buffer_ptr<TPCFastTransformPOD>& destVector, const TPCFastSpaceChargeCorrection& origCorr)
+{
+  // create filling only part corresponding to TPCFastSpaceChargeCorrection. Data members coming from TPCFastTransform (e.g. VDrift, T0..) are not set
+  size_t size = estimateSize(origCorr);
+  destVector.alloc(size);
+  LOGP(debug, "OrigCorrSize:{} SelfSize: {} Estimated POS size: {}", origCorr.getFlatBufferSize(), sizeof(TPCFastTransformPOD), size);
+  return create(destVector.getraw(), size, origCorr);
+}
 
 size_t TPCFastTransformPOD::estimateSize(const TPCFastSpaceChargeCorrection& origCorr)
 {

@@ -19,6 +19,11 @@
 
 #include "GPUCommonRtypes.h"
 #include "TPCFastTransform.h"
+#ifndef GPUCA_GPUCODE
+#include <memory>
+#include <cstdlib>
+#include "GPUCommonAlignedAlloc.h"
+#endif
 
 /*
 Binary buffer should be cast to TPCFastTransformPOD class using static TPCFastTransformPOD& t = get(buffer); method,
@@ -209,19 +214,22 @@ class TPCFastTransformPOD
 
 #if !defined(GPUCA_GPUCODE)
   /// Create POD transform from old flat-buffer one. Provided vector will serve as a buffer
-  template <typename V>
-  static TPCFastTransformPOD* create(V& destVector, const TPCFastTransform& src);
+  static TPCFastTransformPOD* create(aligned_unique_buffer_ptr<TPCFastTransformPOD>& destVector, const TPCFastTransform& src);
 
   /// create filling only part corresponding to TPCFastSpaceChargeCorrection. Data members coming from TPCFastTransform (e.g. VDrift, T0..) are not set
-  template <typename V>
-  static TPCFastTransformPOD* create(V& destVector, const TPCFastSpaceChargeCorrection& src);
+  static TPCFastTransformPOD* create(aligned_unique_buffer_ptr<TPCFastTransformPOD>& destVector, const TPCFastSpaceChargeCorrection& src);
 
-  static TPCFastTransformPOD* create(std::vector<char>& buf, const TPCFastTransformPOD& src)
+  static TPCFastTransformPOD* create(aligned_unique_buffer_ptr<TPCFastTransformPOD>& destVector, const TPCFastTransformPOD& src)
   {
-    buf.resize(src.size());
-    std::memcpy(buf.data(), &src, src.size());
-    return reinterpret_cast<TPCFastTransformPOD*>(buf.data());
+    destVector.alloc(src.size());
+    std::memcpy(destVector.get(), &src, src.size());
+    return destVector.get();
   }
+
+  static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastTransform& src);
+  static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastSpaceChargeCorrection& src);
+  static size_t estimateSize(const TPCFastTransform& src) { return estimateSize(src.getCorrection()); }
+  static size_t estimateSize(const TPCFastSpaceChargeCorrection& origCorr);
 
   bool test(const TPCFastTransform& src, int32_t npoints = 100000) const { return test(src.getCorrection(), npoints); }
   bool test(const TPCFastSpaceChargeCorrection& origCorr, int32_t npoints = 100000) const;
@@ -244,10 +252,6 @@ class TPCFastTransformPOD
     auto res = offs % AlignmentBytes;
     return res ? offs + (AlignmentBytes - res) : offs;
   }
-  static size_t estimateSize(const TPCFastTransform& src) { return estimateSize(src.getCorrection()); }
-  static size_t estimateSize(const TPCFastSpaceChargeCorrection& origCorr);
-  static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastTransform& src);
-  static TPCFastTransformPOD* create(char* buff, size_t buffSize, const TPCFastSpaceChargeCorrection& src);
   GPUd() static TPCFastTransformPOD& getNonConst(char* head) { return *reinterpret_cast<TPCFastTransformPOD*>(head); }
 #endif
 
@@ -420,39 +424,6 @@ GPUdi() bool TPCFastTransformPOD::isRealLocalInsideGrid(int32_t sector, int32_t 
   }
   return true;
 }
-
-#if !defined(GPUCA_GPUCODE)
-/// Create POD transform from old flat-buffer one. Provided vector will serve as a buffer
-template <typename V>
-TPCFastTransformPOD* TPCFastTransformPOD::create(V& destVector, const TPCFastTransform& src)
-{
-  const auto& origCorr = src.getCorrection();
-  size_t estSize = estimateSize(src);
-  destVector.resize(estSize); // allocate exact size
-  LOGP(debug, "OrigCorrSize:{} SelfSize: {} Estimated POS size: {}", src.getCorrection().getFlatBufferSize(), sizeof(TPCFastTransformPOD), estSize);
-  char* base = destVector.data();
-  auto res = create(destVector.data(), destVector.size(), src);
-  res->setTimeStamp(src.getTimeStamp());
-  res->setVDrift(src.getVDrift());
-  res->setT0(src.getT0());
-  res->setLumi(src.getLumi());
-  if (src.isIDCSet()) {
-    res->setIDC(src.getIDC());
-  }
-  return res;
-}
-
-template <typename V>
-TPCFastTransformPOD* TPCFastTransformPOD::create(V& destVector, const TPCFastSpaceChargeCorrection& origCorr)
-{
-  // create filling only part corresponding to TPCFastSpaceChargeCorrection. Data members coming from TPCFastTransform (e.g. VDrift, T0..) are not set
-  size_t estSize = estimateSize(origCorr);
-  destVector.resize(estSize); // allocate exact size
-  LOGP(debug, "OrigCorrSize:{} SelfSize: {} Estimated POS size: {}", origCorr.getFlatBufferSize(), sizeof(TPCFastTransformPOD), estSize);
-  char* base = destVector.data();
-  return create(destVector.data(), destVector.size(), origCorr);
-}
-#endif
 
 GPUdi() void TPCFastTransformPOD::TransformLocal(int32_t sector, int32_t row, float& x, float& y, float& z) const
 {

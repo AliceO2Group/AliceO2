@@ -65,10 +65,10 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   mConfig->configGRP.solenoidBzNominalGPU = 0;
   mConfParam.reset(new GPUSettingsO2(mConfig->ReadConfigurableParam()));
 
-  std::vector<char> buffer;
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> buffer;
   gpu::TPCFastTransformPOD::create(buffer, *TPCFastTransformHelperO2::instance()->create(0));
   mBufferFastTransform = std::move(buffer);
-  mFastTransform = &TPCFastTransformPOD::get(mBufferFastTransform.data());
+  mFastTransform = mBufferFastTransform.get();
   mConfig->configCalib.fastTransform = mFastTransform;
 
   mTrdGeo.reset(new o2::trd::GeometryFlat());

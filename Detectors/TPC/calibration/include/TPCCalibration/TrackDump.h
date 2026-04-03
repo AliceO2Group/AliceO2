@@ -77,8 +77,8 @@ class TrackDump
     float gyc(float vertexTime = 0) const;
     float zc(float vertexTime = 0) const;
 
-    inline static std::vector<char> corrMapBuffer;                      // buffer for owning the correction map in case of update during runtime
-    inline static const o2::gpu::TPCFastTransformPOD* corrMap{nullptr}; // local copy of the correction map for quick access to the transform functions
+    inline static o2::gpu::aligned_unique_buffer_ptr<o2::gpu::TPCFastTransformPOD> corrMapBuffer; // buffer for owning the correction map in case of update during runtime
+    inline static const o2::gpu::TPCFastTransformPOD* corrMap{nullptr};                           // local copy of the correction map for quick access to the transform functions
     static void loadCorrMaps(std::string_view corrMapFile, std::string_view corrMapFileRef = "");
     ClassDefNV(ClusterNativeAdd, 1);
   };

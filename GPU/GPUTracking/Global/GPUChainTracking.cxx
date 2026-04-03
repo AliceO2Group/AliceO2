@@ -557,10 +557,10 @@ void GPUChainTracking::AllocateIOMemory()
   AllocateIOMemoryHelper(mIOPtrs.nTRDTriggerRecords, mIOPtrs.trdTrackletIdxFirst, mIOMem.trdTrackletIdxFirst);
 }
 
-void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransformPOD>&& tpcFastTransform)
+void GPUChainTracking::SetTPCFastTransform(aligned_unique_buffer_ptr<TPCFastTransformPOD>&& tpcFastTransform)
 {
   mTPCFastTransformU = std::move(tpcFastTransform);
-  processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
+  processors()->calibObjects.fastTransform = (TPCFastTransformPOD*)mTPCFastTransformU.get();
 }
 
 void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)

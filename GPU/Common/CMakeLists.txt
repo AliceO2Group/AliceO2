@@ -13,6 +13,7 @@ set(MODULE GPUCommon)
 
 set(HDRS_INSTALL
     GPUCommonAlgorithm.h
+    GPUCommonAlignedAlloc.h
     GPUCommonDef.h
     GPUCommonDefAPI.h
     GPUCommonHelpers.h

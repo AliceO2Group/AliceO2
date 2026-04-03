@@ -32,10 +32,10 @@ using namespace o2::tpc;
 
 CalculatedEdx::CalculatedEdx()
 {
-  std::vector<char> buffer;
+  gpu::aligned_unique_buffer_ptr<gpu::TPCFastTransformPOD> buffer;
   gpu::TPCFastTransformPOD::create(buffer, *TPCFastTransformHelperO2::instance()->create(0));
   mTPCCorrMapBuffer = std::move(buffer);
-  mTPCCorrMap = &gpu::TPCFastTransformPOD::get(mTPCCorrMapBuffer.data());
+  mTPCCorrMap = mTPCCorrMapBuffer.get();
 }
 
 void CalculatedEdx::setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex, std::vector<o2::tpc::TrackTPC>* vTPCTracksArrayInp)

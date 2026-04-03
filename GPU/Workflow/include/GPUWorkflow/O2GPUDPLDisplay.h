@@ -12,6 +12,7 @@
 #ifndef O2_GPU_DPL_DISPLAY_H
 #define O2_GPU_DPL_DISPLAY_H
 
+#include "GPUCommonAlignedAlloc.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/Task.h"
 #include <memory>
@@ -59,7 +60,7 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   bool mGRPGeomUpdated = false;
   bool mAutoContinuousMaxTimeBin = false;
   bool mGeometryCreated = false;
-  std::vector<char> mBufferFastTransform;
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> mBufferFastTransform;
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;

@@ -236,8 +236,8 @@ float TrackDump::ClusterNativeAdd::zc(float vertexTime) const
 void TrackDump::ClusterNativeAdd::loadCorrMaps(std::string_view corrMapFile, std::string_view corrMapFileRef)
 {
   auto fastTransformTmp = gpu::TPCFastTransform::loadFromFile(corrMapFile.data());
-  std::vector<char> buffer;
+  o2::gpu::aligned_unique_buffer_ptr<o2::gpu::TPCFastTransformPOD> buffer;
   gpu::TPCFastTransformPOD::create(buffer, *fastTransformTmp);
   corrMapBuffer = std::move(buffer);
-  corrMap = &gpu::TPCFastTransformPOD::get(corrMapBuffer.data());
+  corrMap = corrMapBuffer.get();
 }

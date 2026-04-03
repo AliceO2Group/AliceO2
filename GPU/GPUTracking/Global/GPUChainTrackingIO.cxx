@@ -335,7 +335,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f = dir;
   f += "tpctransform.dump";
   mTPCFastTransformU = ReadStructFromFile<TPCFastTransformPOD>(f.c_str());
-  processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
+  processors()->calibObjects.fastTransform = (TPCFastTransformPOD*)mTPCFastTransformU.get();
   f = dir;
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());
