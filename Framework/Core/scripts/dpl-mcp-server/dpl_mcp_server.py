@@ -238,6 +238,16 @@ async def get_logs(max_lines: int = 100) -> str:
 
 
 @mcp.tool()
+async def start_devices() -> str:
+    """Resume all stopped DPL devices (send SIGCONT).
+
+    Use this when the workflow was started with -s (all devices paused).
+    """
+    await _send({"cmd": "start_devices"})
+    return "Sent SIGCONT to all active devices."
+
+
+@mcp.tool()
 async def enable_signpost(device: str, streams: list[str]) -> str:
     """Enable one or more signpost log streams for a DPL device.
 
