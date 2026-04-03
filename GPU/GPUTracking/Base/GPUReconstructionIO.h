@@ -208,6 +208,57 @@ inline int32_t GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   return 0;
 }
 
+template <class T>
+inline void GPUReconstruction::DumpDynamicStructToFile(const T* obj, size_t dynamicSize, const char* file)
+{
+  FILE* fp = fopen(file, "w+b");
+  if (fp == nullptr) {
+    return;
+  }
+  size_t size = sizeof(*obj);
+  fwrite(&size, sizeof(size), 1, fp);
+  fwrite(&dynamicSize, sizeof(dynamicSize), 1, fp);
+  fwrite(obj, 1, dynamicSize, fp);
+  fclose(fp);
+}
+
+template <class T, auto F>
+inline aligned_unique_buffer_ptr<T> GPUReconstruction::ReadDynamicStructFromFile(const char* file)
+{
+  FILE* fp = fopen(file, "rb");
+  if (fp == nullptr) {
+    return nullptr;
+  }
+  size_t size, dynsize, r, r2;
+  r = fread(&size, sizeof(size), 1, fp);
+  r2 = fread(&dynsize, sizeof(dynsize), 1, fp);
+  if (r == 0 || r2 == 0 || size != sizeof(T) || dynsize < size) {
+    fclose(fp);
+    GPUError("ERROR reading %s, invalid size: %ld (%ld buffer size, %ld object size expected)", file, (int64_t)size, (int64_t)dynsize, (int64_t)sizeof(T));
+    throw std::runtime_error("invalid size");
+  }
+  std::unique_ptr<T> tmp = std::make_unique<T>();
+  r = fread(tmp.get(), sizeof(T), 1, fp);
+  if (r == 0) {
+    fclose(fp);
+    GPUError("ERROR reading %s", file, (int64_t)size, (int64_t)sizeof(T));
+    throw std::runtime_error("read error");
+  }
+  if ((tmp.get()->*F)() != dynsize) {
+    fclose(fp);
+    GPUError("ERROR: invalid size: %ld (%ld expected)", file, (int64_t)dynsize, (int64_t)(tmp.get()->*F)());
+    throw std::runtime_error("invalid size");
+  }
+  aligned_unique_buffer_ptr<T> newObj(dynsize);
+  memcpy(newObj.get(), tmp.get(), sizeof(T));
+  r = fread(newObj.getraw() + sizeof(T), 1, dynsize - sizeof(T), fp);
+  fclose(fp);
+  if (GetProcessingSettings().debugLevel >= 2) {
+    GPUInfo("Read %ld bytes from %s", (int64_t)r, file);
+  }
+  return newObj;
+}
+
 } // namespace o2::gpu
 
 #endif

@@ -295,7 +295,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (processors()->calibObjects.fastTransform != nullptr) {
     f = dir;
     f += "tpctransform.dump";
-    DumpStructToFile(processors()->calibObjects.fastTransform, f.c_str());
+    DumpDynamicStructToFile(processors()->calibObjects.fastTransform, processors()->calibObjects.fastTransform->size(), f.c_str());
   }
   if (processors()->calibObjects.tpcPadGain != nullptr) {
     f = dir;
@@ -334,8 +334,8 @@ void GPUChainTracking::ReadSettings(const char* dir)
   std::string f;
   f = dir;
   f += "tpctransform.dump";
-  mTPCFastTransformU = ReadStructFromFile<TPCFastTransformPOD>(f.c_str());
-  processors()->calibObjects.fastTransform = (TPCFastTransformPOD*)mTPCFastTransformU.get();
+  mTPCFastTransformU = ReadDynamicStructFromFile<TPCFastTransformPOD, &TPCFastTransformPOD::size>(f.c_str());
+  processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
   f = dir;
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());

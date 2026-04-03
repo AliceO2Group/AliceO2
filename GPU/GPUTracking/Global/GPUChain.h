@@ -176,6 +176,16 @@ class GPUChain
   {
     mRec->ReadStructFromFile<T>(file, obj);
   }
+  template <class T>
+  void DumpDynamicStructToFile(const T* obj, size_t dynamicSize, const char* file)
+  {
+    mRec->DumpDynamicStructToFile<T>(obj, dynamicSize, file);
+  }
+  template <class T, auto F>
+  aligned_unique_buffer_ptr<T> ReadDynamicStructFromFile(const char* file)
+  {
+    return mRec->ReadDynamicStructFromFile<T, F>(file);
+  }
 
   template <class S, int32_t I = 0, typename... Args>
     requires(sizeof(S) >= 0) // Yields better incomplete type errors than calling runKernelCallInterface directly
