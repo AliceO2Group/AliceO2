@@ -98,13 +98,13 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       mNTFsDataDrop = mCheckEveryNData;
     }
     mDumpCMVs = ic.options().get<bool>("dump-cmvs");
-    mUseCompression = ic.options().get<bool>("use-compression");
+    mUseCompressionVarint = ic.options().get<bool>("use-compression-varint");
     mUseSparse = ic.options().get<bool>("use-sparse");
-    mUseHuffman = ic.options().get<bool>("use-huffman");
-    mDynamicPrecisionSteps = static_cast<uint16_t>(ic.options().get<int>("cmv-precision-steps"));
+    mUseCompressionHuffman = ic.options().get<bool>("use-compression-huffman");
+    mRoundIntegersThreshold = static_cast<uint16_t>(ic.options().get<int>("cmv-round-integers-threshold"));
     mZeroThreshold = ic.options().get<float>("cmv-zero-threshold");
-    LOGP(info, "CMV compression settings: use-compression={}, use-sparse={}, use-huffman={}, cmv-precision-steps={}, cmv-zero-threshold={}",
-         mUseCompression, mUseSparse, mUseHuffman, mDynamicPrecisionSteps, mZeroThreshold);
+    LOGP(info, "CMV compression settings: use-compression-varint={}, use-sparse={}, use-compression-huffman={}, cmv-round-integers-threshold={}, cmv-zero-threshold={}",
+         mUseCompressionVarint, mUseSparse, mUseCompressionHuffman, mRoundIntegersThreshold, mZeroThreshold);
     // re-initialise the interval tree now that compression options are known (constructor used the defaults)
     initIntervalTree();
   }
@@ -251,16 +251,20 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     if (mProcessedCRU[currentBuffer][relTF] == mCRUs.size()) {
       ++mProcessedTFs[currentBuffer];
+      mCurrentTF.roundToIntegers(mRoundIntegersThreshold);
       if (mZeroThreshold > 0.f) {
         mCurrentTF.zeroSmallValues(mZeroThreshold);
       }
-      mCurrentTF.applyDynamicPrecision(mDynamicPrecisionSteps);
-      if (mUseSparse) {
+      if (mUseSparse && mUseCompressionHuffman) {
+        mCurrentCombinedTF = mCurrentTF.compressCombined(2);
+      } else if (mUseSparse && mUseCompressionVarint) {
+        mCurrentCombinedTF = mCurrentTF.compressCombined(1);
+      } else if (mUseSparse) {
         mCurrentSparseTF = mCurrentTF.compressSparse();
-      } else if (mUseHuffman) {
+      } else if (mUseCompressionHuffman) {
         mCurrentHuffmanTF = mCurrentTF.compressHuffman();
-      } else if (mUseCompression) {
-        mCurrentCompressedTF = mCurrentTF.compress();
+      } else if (mUseCompressionVarint) {
+        mCurrentVarintTF = mCurrentTF.compressVarint();
       }
       mIntervalTree->Fill();
       ++mIntervalTFCount;
@@ -321,18 +325,19 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   bool mSendCCDB{false};                                                               ///< send output to CCDB populator
   bool mUsePreciseTimestamp{false};                                                    ///< use precise timestamp from orbit-reset info
   bool mDumpCMVs{false};                                                               ///< write a local ROOT debug file
-  bool mUseCompression{false};                                                         ///< use delta+zigzag+varint compression when storing in TTree; if false, store raw CMVPerTF
-  bool mUseSparse{false};                                                              ///< use sparse encoding (only non-zero time bins); takes priority over mUseCompression and mUseHuffman
-  bool mUseHuffman{false};                                                             ///< use delta+zigzag+canonical-Huffman encoding; priority between sparse and varint compression
-  uint16_t mDynamicPrecisionSteps{0};                                                  ///< dynamic precision: subtract 1 ADC step from bins [1,N]; 0 = disabled
+  bool mUseCompressionVarint{false};                                                   ///< use delta+zigzag+varint compression (all values, no sparse skip); combined with mUseSparse → SparseV2 mode 1
+  bool mUseSparse{false};                                                              ///< sparse encoding; alone = raw uint16 values; combined with varint/Huffman flag → SparseV2
+  bool mUseCompressionHuffman{false};                                                  ///< Huffman encoding; combined with mUseSparse → SparseV2 mode 2
+  uint16_t mRoundIntegersThreshold{0};                                                 ///< round values to nearest integer ADC for |v| <= N ADC; 0 = disabled
   float mZeroThreshold{0.f};                                                           ///< zero out CMV values whose float magnitude is below this threshold; 0 = disabled
   long mTimestampStart{0};                                                             ///< CCDB validity start timestamp
   dataformats::Pair<long, int> mTFInfo{};                                              ///< orbit-reset time and NHBFPerTF for precise timestamp
   std::unique_ptr<TTree> mIntervalTree{};                                              ///< TTree accumulating one entry per completed TF in the current interval
   CMVPerTF mCurrentTF{};                                                               ///< staging object filled per CRU before compression
-  CMVPerTFCompressed mCurrentCompressedTF{};                                           ///< compressed staging object written into mIntervalTree (mUseCompression)
-  CMVPerTFSparse mCurrentSparseTF{};                                                   ///< sparse staging object written into mIntervalTree (mUseSparse)
-  CMVPerTFHuffman mCurrentHuffmanTF{};                                                 ///< Huffman staging object written into mIntervalTree (mUseHuffman)
+  CMVPerTFVarint mCurrentVarintTF{};                                                   ///< staging object for mUseCompressionVarint
+  CMVPerTFSparse mCurrentSparseTF{};                                                   ///< staging object for mUseSparse
+  CMVPerTFHuffman mCurrentHuffmanTF{};                                                 ///< staging object for mUseCompressionHuffman
+  CMVPerTFCombined mCurrentCombinedTF{};                                               ///< staging object for sparse+varint or sparse+huffman
   long mIntervalFirstTF{0};                                                            ///< absolute TF counter of the first TF in the current aggregation interval
   unsigned int mIntervalTFCount{0};                                                    ///< number of TTree entries filled for the current aggregation interval
   int mNFactorTFs{0};                                                                  ///< Number of TFs to skip for sending oldest TF
@@ -349,18 +354,20 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   unsigned int getNRealTFs() const { return mNTFsBuffer * mTimeFrames; }
 
   /// Create a fresh in-memory TTree for the next aggregation interval.
-  /// Branch type: CMVPerTFSparse (sparse) > CMVPerTFCompressed (delta+zigzag+varint) > CMVPerTF (raw).
+  /// Priority: sparse+huffman > sparse+varint > sparse > huffman > varint > raw.
   void initIntervalTree()
   {
     mIntervalTree = std::make_unique<TTree>("ccdb_object", "ccdb_object");
     mIntervalTree->SetAutoSave(0);
     mIntervalTree->SetDirectory(nullptr);
-    if (mUseSparse) {
+    if (mUseSparse && (mUseCompressionHuffman || mUseCompressionVarint)) {
+      mIntervalTree->Branch("CMVPerTFCombined", &mCurrentCombinedTF);
+    } else if (mUseSparse) {
       mIntervalTree->Branch("CMVPerTFSparse", &mCurrentSparseTF);
-    } else if (mUseHuffman) {
+    } else if (mUseCompressionHuffman) {
       mIntervalTree->Branch("CMVPerTFHuffman", &mCurrentHuffmanTF);
-    } else if (mUseCompression) {
-      mIntervalTree->Branch("CMVPerTFCompressed", &mCurrentCompressedTF);
+    } else if (mUseCompressionVarint) {
+      mIntervalTree->Branch("CMVPerTFVarint", &mCurrentVarintTF);
     } else {
       mIntervalTree->Branch("CMVPerTF", &mCurrentTF);
     }
@@ -578,11 +585,12 @@ DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uin
             {"check-data-every-n", VariantType::Int, 0, {"Number of run function called after which to check for missing data (-1 for no checking, 0 for default checking)"}},
             {"nFactorTFs", VariantType::Int, 1000, {"Number of TFs to skip for sending oldest TF"}},
             {"dump-cmvs", VariantType::Bool, false, {"Dump CMVs to a local ROOT file for debugging"}},
-            {"use-compression", VariantType::Bool, false, {"Use delta+zigzag+varint compression when storing CMVs in TTree (false = store raw CMVPerTF, relies on ROOT built-in zlib)"}},
-            {"use-sparse", VariantType::Bool, false, {"Use sparse encoding: store only non-zero time bins per CRU (takes priority over --use-compression and --use-huffman)"}},
-            {"use-huffman", VariantType::Bool, false, {"Use delta+zigzag+canonical-Huffman encoding (priority: sparse > huffman > compression > raw)"}},
-            {"cmv-precision-steps", VariantType::Int, 0, {"Dynamic precision: for integer ADC bins B in [1,N] subtract 1 step (bin 1->0, bin 2->1, ..., bin N->N-1); values above N kept at full precision; 0 disables"}},
-            {"cmv-zero-threshold", VariantType::Float, 0.f, {"Zero out CMV values whose float magnitude is below this threshold before compression; 0 disables"}}}}; // end DataProcessorSpec
+            {"use-compression-varint", VariantType::Bool, false, {"Delta+zigzag+varint compression (all values). Combined with --use-sparse: sparse positions + varint-encoded exact CMV values"}},
+            {"use-sparse", VariantType::Bool, false, {"Sparse encoding (skip zero time bins). Alone: raw uint16 values. With --use-compression-varint: varint exact values. With --use-compression-huffman: Huffman exact values"}},
+            {"use-compression-huffman", VariantType::Bool, false, {"Huffman encoding. Combined with --use-sparse: sparse positions + Huffman-encoded exact CMV values"}},
+            {"cmv-round-integers-threshold", VariantType::Int, 0, {"Round values to nearest integer ADC for |v| <= N ADC before compression; 0 disables"}},
+            {"cmv-zero-threshold", VariantType::Float, 0.f, {"Zero out CMV values whose float magnitude is below this threshold after optional integer rounding and before compression; 0 disables"}}}}; // end DataProcessorSpec
+
   spec.rank = ilane;
   return spec;
 }

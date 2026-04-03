@@ -125,8 +125,9 @@
 #pragma link C++ class o2::tpc::PressureTemperatureHelper + ;
 
 #pragma link C++ class o2::tpc::CMVPerTF + ;
-#pragma link C++ class o2::tpc::CMVPerTFCompressed + ;
+#pragma link C++ class o2::tpc::CMVPerTFVarint + ;
 #pragma link C++ class o2::tpc::CMVPerTFSparse + ;
 #pragma link C++ class o2::tpc::CMVPerTFHuffman + ;
+#pragma link C++ class o2::tpc::CMVPerTFCombined + ;
 
 #endif

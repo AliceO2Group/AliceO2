@@ -78,34 +78,42 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
   TH2F* h2d = new TH2F("hCMVvsTimeBin", ";Timebin (200 ns);Common Mode Values (ADC)",
                        100, 0, nTimeBins,
                        110, -100.5, 9.5);
-  h2d->SetStats(0);
+  h2d->SetStats(1);
 
-  // auto-detect branch format: sparse, huffman, compressed (delta+zigzag+varint), or raw CMVPerTF
+  // auto-detect branch format
+  const bool isCombined = (tree->GetBranch("CMVPerTFCombined") != nullptr);
   const bool isSparse = (tree->GetBranch("CMVPerTFSparse") != nullptr);
   const bool isHuffman = (tree->GetBranch("CMVPerTFHuffman") != nullptr);
-  const bool isCompressed = (tree->GetBranch("CMVPerTFCompressed") != nullptr);
+  const bool isVarint = (tree->GetBranch("CMVPerTFVarint") != nullptr);
   const bool isRaw = (tree->GetBranch("CMVPerTF") != nullptr);
-  if (!isSparse && !isHuffman && !isCompressed && !isRaw) {
-    fmt::print("ERROR: no recognised branch found (expected CMVPerTFSparse, CMVPerTFHuffman, CMVPerTFCompressed, or CMVPerTF)\n");
+  if (!isCombined && !isSparse && !isHuffman && !isVarint && !isRaw) {
+    fmt::print("ERROR: no recognised branch found (expected CMVPerTFCombined, CMVPerTFSparse, CMVPerTFHuffman, CMVPerTFVarint, or CMVPerTF)\n");
     return arrCanvases;
   }
-  const std::string branchFormat = isSparse ? "CMVPerTFSparse (sparse)" : (isHuffman ? "CMVPerTFHuffman (delta+zigzag+Huffman)" : (isCompressed ? "CMVPerTFCompressed (delta+zigzag+varint)" : "CMVPerTF (raw)"));
+  const std::string branchFormat =
+    isCombined ? "CMVPerTFCombined (sparse + compressed exact values)" : isSparse  ? "CMVPerTFSparse (sparse)"
+                                                                       : isHuffman ? "CMVPerTFHuffman (delta+zigzag+Huffman)"
+                                                                       : isVarint  ? "CMVPerTFVarint (delta+zigzag+varint)"
+                                                                                   : "CMVPerTF (raw)";
   fmt::print("Branch format: {}\n", branchFormat);
 
   // branch setup — only one pointer is active depending on the detected format
+  o2::tpc::CMVPerTFCombined* tfCombined = nullptr;
   o2::tpc::CMVPerTFSparse* tfSparse = nullptr;
   o2::tpc::CMVPerTFHuffman* tfHuffman = nullptr;
-  o2::tpc::CMVPerTFCompressed* tfCompressed = nullptr;
+  o2::tpc::CMVPerTFVarint* tfVarint = nullptr;
   o2::tpc::CMVPerTF* tfRaw = nullptr;
   // staging object for decompression
-  CMVPerTF* tfDecoded = (isSparse || isHuffman || isCompressed) ? new CMVPerTF() : nullptr;
+  CMVPerTF* tfDecoded = (isCombined || isSparse || isHuffman || isVarint) ? new CMVPerTF() : nullptr;
 
-  if (isSparse) {
+  if (isCombined) {
+    tree->SetBranchAddress("CMVPerTFCombined", &tfCombined);
+  } else if (isSparse) {
     tree->SetBranchAddress("CMVPerTFSparse", &tfSparse);
   } else if (isHuffman) {
     tree->SetBranchAddress("CMVPerTFHuffman", &tfHuffman);
-  } else if (isCompressed) {
-    tree->SetBranchAddress("CMVPerTFCompressed", &tfCompressed);
+  } else if (isVarint) {
+    tree->SetBranchAddress("CMVPerTFVarint", &tfVarint);
   } else {
     tree->SetBranchAddress("CMVPerTF", &tfRaw);
   }
@@ -117,14 +125,17 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
 
     // resolve to a unified pointer regardless of storage format
     const CMVPerTF* tf = nullptr;
-    if (isSparse) {
+    if (isCombined) {
+      tfCombined->decompress(tfDecoded);
+      tf = tfDecoded;
+    } else if (isSparse) {
       tfSparse->decompress(tfDecoded);
       tf = tfDecoded;
     } else if (isHuffman) {
       tfHuffman->decompress(tfDecoded);
       tf = tfDecoded;
-    } else if (isCompressed) {
-      tfCompressed->decompress(tfDecoded);
+    } else if (isVarint) {
+      tfVarint->decompress(tfDecoded);
       tf = tfDecoded;
     } else {
       tf = tfRaw;
@@ -137,15 +148,17 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
     for (int cru = 0; cru < nCRUs; ++cru) {
       for (int tb = 0; tb < nTimeBins; ++tb) {
         h2d->Fill(tb, tf->getCMVFloat(cru, tb));
+        // fmt::print("cru: {}, tb: {}, cmv: {}\n", cru, tb, tf->getCMVFloat(cru, tb));
       }
     }
   }
 
   delete tfDecoded;
   tree->ResetBranchAddresses();
+  delete tfCombined;
   delete tfSparse;
   delete tfHuffman;
-  delete tfCompressed;
+  delete tfVarint;
 
   fmt::print("firstOrbit: {}\n", firstOrbit);
 

@@ -17,7 +17,6 @@
 #include <cmath>
 #include <algorithm>
 #include <map>
-#include <queue>
 #include <fmt/format.h>
 
 #include "TFile.h"
@@ -28,6 +27,8 @@
 
 namespace o2::tpc
 {
+
+// ===== Private helpers =====
 
 int32_t CMVPerTF::cmvToSigned(uint16_t raw)
 {
@@ -49,18 +50,18 @@ void CMVPerTF::encodeVarintInto(uint32_t value, std::vector<uint8_t>& out)
   out.push_back(static_cast<uint8_t>(value));
 }
 
-uint16_t CMVPerTFCompressed::signedToCmv(int32_t val)
+uint16_t CMVPerTFVarint::signedToCmv(int32_t val)
 {
   const uint16_t mag = static_cast<uint16_t>(std::abs(val)) & 0x7FFF;
   return static_cast<uint16_t>((val >= 0 ? 0x8000u : 0u) | mag);
 }
 
-int32_t CMVPerTFCompressed::zigzagDecode(uint32_t value)
+int32_t CMVPerTFVarint::zigzagDecode(uint32_t value)
 {
   return static_cast<int32_t>((value >> 1) ^ -(value & 1));
 }
 
-uint32_t CMVPerTFCompressed::decodeVarint(const uint8_t*& data, const uint8_t* end)
+uint32_t CMVPerTFVarint::decodeVarint(const uint8_t*& data, const uint8_t* end)
 {
   uint32_t value = 0;
   int shift = 0;
@@ -70,111 +71,33 @@ uint32_t CMVPerTFCompressed::decodeVarint(const uint8_t*& data, const uint8_t* e
     ++data;
   }
   if (data >= end) {
-    throw std::runtime_error("CMVPerTFCompressed::decompress: unexpected end of compressed data");
+    throw std::runtime_error("CMVPerTFVarint::decompress: unexpected end of compressed data");
   }
   value |= static_cast<uint32_t>(*data) << shift;
   ++data;
   return value;
 }
 
-uint16_t CMVPerTF::getCMV(const int cru, const int timeBin) const
+// ===== Shared Huffman helpers (file-local) =====
+
+namespace
 {
-  if (cru < 0 || cru >= static_cast<int>(CRU::MaxCRU)) {
-    throw std::out_of_range(fmt::format("CMVPerTF::getCMV: cru {} out of range [0, {})", cru, static_cast<int>(CRU::MaxCRU)));
-  }
-  if (timeBin < 0 || static_cast<uint32_t>(timeBin) >= cmv::NTimeBinsPerTF) {
-    throw std::out_of_range(fmt::format("CMVPerTF::getCMV: timeBin {} out of range [0, {})", timeBin, static_cast<int>(cmv::NTimeBinsPerTF)));
-  }
-  return mDataPerTF[cru * cmv::NTimeBinsPerTF + timeBin];
-}
 
-float CMVPerTF::getCMVFloat(const int cru, const int timeBin) const
+/// Build and serialise a canonical Huffman table + bitstream over `symbols` into `buf`.
+/// Format (same as CMVPerTFHuffman::mHuffmanData):
+///   4 bytes LE uint32_t : numSymbols
+///   numSymbols × 5 bytes: symbol (4 bytes LE) + code length (1 byte)
+///   8 bytes LE uint64_t : totalBits
+///   ceil(totalBits/8) bytes: MSB-first bitstream
+void huffmanEncode(const std::vector<uint32_t>& symbols, std::vector<uint8_t>& buf)
 {
-  const uint16_t raw = getCMV(cru, timeBin);
-  const bool positive = (raw >> 15) & 1;          // bit 15: sign (1=positive, 0=negative)
-  const float magnitude = (raw & 0x7FFF) / 128.f; // lower 15 bits, shift right by 7 (divide by 2^7)
-  return positive ? magnitude : -magnitude;
-}
-
-void CMVPerTF::zeroSmallValues(float threshold)
-{
-  if (threshold <= 0.f) {
-    return;
-  }
-  for (uint32_t i = 0; i < static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF; ++i) {
-    const float mag = (mDataPerTF[i] & 0x7FFF) / 128.f;
-    if (mag < threshold) {
-      mDataPerTF[i] = 0;
-    }
-  }
-}
-
-void CMVPerTF::applyDynamicPrecision(uint16_t steps)
-{
-  if (steps == 0) {
-    return;
-  }
-  for (uint32_t i = 0; i < static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF; ++i) {
-    const uint16_t raw = mDataPerTF[i];
-    if (raw == 0) {
-      continue;
-    }
-    const uint16_t rounded = static_cast<uint16_t>(((raw & 0x7FFFu) + 64u) >> 7); // round(|float value|) to nearest integer
-    if (rounded > steps) {
-      continue; // above range: keep full precision
-    }
-    // rounded <= steps: store as nearest integer
-    // rounded=0 (|v| < 0.5 ADC): store as exact zero
-    // rounded>0: store sign * rounded
-    mDataPerTF[i] = (rounded == 0) ? 0 : static_cast<uint16_t>((raw & 0x8000u) | (rounded << 7));
-  }
-}
-
-CMVPerTFCompressed CMVPerTF::compress() const
-{
-  CMVPerTFCompressed out;
-  out.firstOrbit = firstOrbit;
-  out.firstBC = firstBC;
-  out.mCompressedData.reserve(static_cast<size_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF);
-
-  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
-    int32_t prev = 0;
-    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
-      const int32_t val = cmvToSigned(mDataPerTF[cru * cmv::NTimeBinsPerTF + tb]);
-      const int32_t delta = val - prev;
-      prev = val;
-      encodeVarintInto(zigzagEncode(delta), out.mCompressedData);
-    }
-  }
-  return out;
-}
-
-CMVPerTFHuffman CMVPerTF::compressHuffman() const
-{
-  CMVPerTFHuffman out;
-  out.firstOrbit = firstOrbit;
-  out.firstBC = firstBC;
-
-  // Step 1: compute zigzag-encoded deltas
-  const uint32_t total = static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF;
-  std::vector<uint32_t> zigzags;
-  zigzags.reserve(total);
-  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
-    int32_t prev = 0;
-    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
-      const int32_t val = cmvToSigned(mDataPerTF[cru * cmv::NTimeBinsPerTF + tb]);
-      zigzags.push_back(zigzagEncode(val - prev));
-      prev = val;
-    }
-  }
-
-  // Step 2: count symbol frequencies
+  // Frequency count
   std::map<uint32_t, uint64_t> freq;
-  for (const uint32_t z : zigzags) {
+  for (const uint32_t z : symbols) {
     ++freq[z];
   }
 
-  // Step 3: build Huffman tree using index-based min-heap
+  // Build tree using index-based min-heap
   struct HNode {
     uint64_t freq{0};
     uint32_t sym{0};
@@ -187,7 +110,6 @@ CMVPerTFHuffman CMVPerTF::compressHuffman() const
     nodes.push_back({f, sym, -1, -1, true});
   }
 
-  // min-heap comparator: by frequency, then by symbol for determinism
   auto cmp = [&](int a, int b) {
     return nodes[a].freq != nodes[b].freq ? nodes[a].freq > nodes[b].freq : nodes[a].sym > nodes[b].sym;
   };
@@ -210,17 +132,17 @@ CMVPerTFHuffman CMVPerTF::compressHuffman() const
     std::push_heap(heap.begin(), heap.end(), cmp);
   }
 
-  // Step 4: assign code lengths via iterative DFS
+  // Assign code lengths via iterative DFS
   std::map<uint32_t, uint8_t> codeLens;
   {
     const int root = heap[0];
-    std::vector<std::pair<int, int>> stack; // (node_idx, depth)
+    std::vector<std::pair<int, int>> stack;
     stack.push_back({root, 0});
     while (!stack.empty()) {
       auto [idx, depth] = stack.back();
       stack.pop_back();
       if (nodes[idx].isLeaf) {
-        codeLens[nodes[idx].sym] = static_cast<uint8_t>(depth == 0 ? 1 : depth); // single-symbol edge case
+        codeLens[nodes[idx].sym] = static_cast<uint8_t>(depth == 0 ? 1 : depth);
       } else {
         stack.push_back({nodes[idx].left, depth + 1});
         stack.push_back({nodes[idx].right, depth + 1});
@@ -228,7 +150,7 @@ CMVPerTFHuffman CMVPerTF::compressHuffman() const
     }
   }
 
-  // Step 5: sort by (codeLen ASC, symbol ASC) for canonical assignment
+  // Sort by (codeLen ASC, symbol ASC) for canonical assignment
   struct SymLen {
     uint32_t sym;
     uint8_t len;
@@ -243,7 +165,7 @@ CMVPerTFHuffman CMVPerTF::compressHuffman() const
   });
 
   // Assign canonical codes
-  std::map<uint32_t, std::pair<uint32_t, uint8_t>> codeTable; // sym -> (code, len)
+  std::map<uint32_t, std::pair<uint32_t, uint8_t>> codeTable;
   {
     uint32_t code = 0;
     uint8_t prevLen = 0;
@@ -256,34 +178,30 @@ CMVPerTFHuffman CMVPerTF::compressHuffman() const
     }
   }
 
-  // Step 6: serialise table header into mHuffmanData
-  auto& buf = out.mHuffmanData;
-  buf.reserve(4 + symLens.size() * 5 + 8 + (zigzags.size() / 8 + 1));
-
+  // Serialise table header
+  buf.reserve(buf.size() + 4 + symLens.size() * 5 + 8 + (symbols.size() / 8 + 1));
   const uint32_t numSym = static_cast<uint32_t>(symLens.size());
-  buf.push_back(static_cast<uint8_t>(numSym & 0xFF));
-  buf.push_back(static_cast<uint8_t>((numSym >> 8) & 0xFF));
-  buf.push_back(static_cast<uint8_t>((numSym >> 16) & 0xFF));
-  buf.push_back(static_cast<uint8_t>((numSym >> 24) & 0xFF));
+  for (int i = 0; i < 4; ++i) {
+    buf.push_back(static_cast<uint8_t>((numSym >> (8 * i)) & 0xFF));
+  }
   for (const auto& sl : symLens) {
-    buf.push_back(static_cast<uint8_t>(sl.sym & 0xFF));
-    buf.push_back(static_cast<uint8_t>((sl.sym >> 8) & 0xFF));
-    buf.push_back(static_cast<uint8_t>((sl.sym >> 16) & 0xFF));
-    buf.push_back(static_cast<uint8_t>((sl.sym >> 24) & 0xFF));
+    for (int i = 0; i < 4; ++i) {
+      buf.push_back(static_cast<uint8_t>((sl.sym >> (8 * i)) & 0xFF));
+    }
     buf.push_back(sl.len);
   }
 
-  // Placeholder for totalBits (8 bytes), filled in after encoding
+  // Placeholder for totalBits
   const size_t totalBitsOffset = buf.size();
   for (int i = 0; i < 8; ++i) {
     buf.push_back(0);
   }
 
-  // Step 7: encode bitstream (MSB-first within each byte)
+  // Encode bitstream (MSB-first)
   uint64_t totalBits = 0;
   uint8_t curByte = 0;
   int bitsInByte = 0;
-  for (const uint32_t z : zigzags) {
+  for (const uint32_t z : symbols) {
     const auto& [code, len] = codeTable.at(z);
     for (int b = static_cast<int>(len) - 1; b >= 0; --b) {
       curByte = static_cast<uint8_t>(curByte | (((code >> b) & 1u) << (7 - bitsInByte)));
@@ -300,73 +218,20 @@ CMVPerTFHuffman CMVPerTF::compressHuffman() const
     buf.push_back(curByte);
   }
 
-  // Step 8: backfill totalBits
+  // Backfill totalBits
   for (int i = 0; i < 8; ++i) {
     buf[totalBitsOffset + i] = static_cast<uint8_t>((totalBits >> (8 * i)) & 0xFF);
   }
-
-  return out;
 }
 
-CMVPerTFSparse CMVPerTF::compressSparse() const
+/// Decode `N` symbols from a canonical Huffman payload at [ptr, end).
+/// `ptr` must point to the start of the Huffman table header (numSymbols field).
+/// After return, `ptr` is advanced past the bitstream.
+std::vector<uint32_t> huffmanDecode(const uint8_t*& ptr, const uint8_t* end, uint32_t N)
 {
-  CMVPerTFSparse out;
-  out.firstOrbit = firstOrbit;
-  out.firstBC = firstBC;
-
-  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
-    // count non-zero entries for this CRU
-    uint32_t count = 0;
-    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
-      if (mDataPerTF[cru * cmv::NTimeBinsPerTF + tb] != 0) {
-        ++count;
-      }
-    }
-    encodeVarintInto(count, out.mSparseData);
-
-    uint32_t prevTB = 0;
-    bool first = true;
-    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
-      const uint16_t val = mDataPerTF[cru * cmv::NTimeBinsPerTF + tb];
-      if (val == 0) {
-        continue;
-      }
-      // first entry: store absolute timeBin; subsequent: store tb - prevTB
-      const uint32_t delta = first ? tb : (tb - prevTB);
-      encodeVarintInto(delta, out.mSparseData);
-      out.mSparseData.push_back(static_cast<uint8_t>(val & 0xFF));
-      out.mSparseData.push_back(static_cast<uint8_t>(val >> 8));
-      prevTB = tb;
-      first = false;
-    }
-  }
-  return out;
-}
-
-void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
-{
-  if (!cmv) {
-    throw std::invalid_argument("CMVPerTFHuffman::decompress: cmv pointer is null");
-  }
-  cmv->firstOrbit = firstOrbit;
-  cmv->firstBC = firstBC;
-  std::fill(std::begin(cmv->mDataPerTF), std::end(cmv->mDataPerTF), uint16_t(0));
-
-  // Local helpers
-  auto zigzagDecode = [](uint32_t value) -> int32_t {
-    return static_cast<int32_t>((value >> 1) ^ -(value & 1));
-  };
-  auto signedToCmv = [](int32_t val) -> uint16_t {
-    const uint16_t mag = static_cast<uint16_t>(std::abs(val)) & 0x7FFF;
-    return static_cast<uint16_t>((val >= 0 ? 0x8000u : 0u) | mag);
-  };
-
-  const uint8_t* ptr = mHuffmanData.data();
-  const uint8_t* end = ptr + mHuffmanData.size();
-
   auto readU32 = [&]() -> uint32_t {
     if (ptr + 4 > end) {
-      throw std::runtime_error("CMVPerTFHuffman::decompress: unexpected end reading uint32");
+      throw std::runtime_error("huffmanDecode: unexpected end reading uint32");
     }
     const uint32_t v = static_cast<uint32_t>(ptr[0]) | (static_cast<uint32_t>(ptr[1]) << 8) |
                        (static_cast<uint32_t>(ptr[2]) << 16) | (static_cast<uint32_t>(ptr[3]) << 24);
@@ -374,7 +239,6 @@ void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
     return v;
   };
 
-  // Read symbol table
   const uint32_t numSym = readU32();
   struct SymLen {
     uint32_t sym;
@@ -384,15 +248,13 @@ void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
   for (uint32_t i = 0; i < numSym; ++i) {
     symLens[i].sym = readU32();
     if (ptr >= end) {
-      throw std::runtime_error("CMVPerTFHuffman::decompress: unexpected end reading code length");
+      throw std::runtime_error("huffmanDecode: unexpected end reading code length");
     }
     symLens[i].len = *ptr++;
   }
-  // symLens is in canonical order (sorted by len ASC, sym ASC at compress time)
 
-  // Reconstruct firstCode[len] and symsByLen[len] for canonical Huffman decode
-  std::map<uint8_t, uint32_t> firstCode;              // len -> first canonical code at that length
-  std::map<uint8_t, std::vector<uint32_t>> symsByLen; // len -> symbols in canonical order
+  std::map<uint8_t, uint32_t> firstCode;
+  std::map<uint8_t, std::vector<uint32_t>> symsByLen;
   {
     uint32_t code = 0;
     uint8_t prevLen = 0;
@@ -408,9 +270,8 @@ void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
     }
   }
 
-  // Read totalBits
   if (ptr + 8 > end) {
-    throw std::runtime_error("CMVPerTFHuffman::decompress: unexpected end reading totalBits");
+    throw std::runtime_error("huffmanDecode: unexpected end reading totalBits");
   }
   uint64_t totalBits = 0;
   for (int i = 0; i < 8; ++i) {
@@ -418,17 +279,18 @@ void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
   }
   ptr += 8;
 
-  // Decode bitstream
-  const uint8_t* bsPtr = ptr;
+  const uint8_t minLen = symLens.empty() ? 1 : symLens.front().len;
+  const uint8_t maxLen = symLens.empty() ? 1 : symLens.back().len;
+  uint64_t bitsRead = 0;
   uint8_t curByte = 0;
-  int bitPos = -1; // MSB=7 down to LSB=0; -1 triggers fresh byte load
+  int bitPos = -1;
 
   auto nextBit = [&]() -> int {
     if (bitPos < 0) {
-      if (bsPtr >= end) {
-        throw std::runtime_error("CMVPerTFHuffman::decompress: unexpected end of bitstream");
+      if (ptr >= end) {
+        throw std::runtime_error("huffmanDecode: unexpected end of bitstream");
       }
-      curByte = *bsPtr++;
+      curByte = *ptr++;
       bitPos = 7;
     }
     const int bit = (curByte >> bitPos) & 1;
@@ -436,21 +298,14 @@ void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
     return bit;
   };
 
-  const uint8_t minLen = symLens.empty() ? 1 : symLens.front().len;
-  const uint8_t maxLen = symLens.empty() ? 1 : symLens.back().len;
-  const uint32_t totalSymbols = static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF;
-  uint64_t bitsRead = 0;
-
-  // Decode all symbols into a flat array, then reconstruct mDataPerTF with delta decoding
-  std::vector<uint32_t> zigzags;
-  zigzags.reserve(totalSymbols);
-
-  while (zigzags.size() < totalSymbols) {
+  std::vector<uint32_t> out;
+  out.reserve(N);
+  while (out.size() < N) {
     uint32_t accum = 0;
     bool found = false;
     for (uint8_t curLen = 1; curLen <= maxLen; ++curLen) {
       if (bitsRead >= totalBits) {
-        throw std::runtime_error("CMVPerTFHuffman::decompress: bitstream exhausted before all symbols decoded");
+        throw std::runtime_error("huffmanDecode: bitstream exhausted before all symbols decoded");
       }
       accum = (accum << 1) | static_cast<uint32_t>(nextBit());
       ++bitsRead;
@@ -465,30 +320,21 @@ void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
         const uint32_t idx = accum - fcIt->second;
         const auto& sv = symsByLen.at(curLen);
         if (idx < sv.size()) {
-          zigzags.push_back(sv[idx]);
+          out.push_back(sv[idx]);
           found = true;
           break;
         }
       }
     }
     if (!found) {
-      throw std::runtime_error("CMVPerTFHuffman::decompress: invalid Huffman code in bitstream");
+      throw std::runtime_error("huffmanDecode: invalid Huffman code in bitstream");
     }
   }
-
-  // Reconstruct mDataPerTF from zigzag-encoded deltas
-  uint32_t s = 0;
-  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
-    int32_t prev = 0;
-    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb, ++s) {
-      const int32_t val = prev + zigzagDecode(zigzags[s]);
-      prev = val;
-      cmv->mDataPerTF[cru * cmv::NTimeBinsPerTF + tb] = signedToCmv(val);
-    }
-  }
+  return out;
 }
 
-uint32_t CMVPerTFSparse::decodeVarint(const uint8_t*& data, const uint8_t* end)
+/// Varint decode (file-local, matches CMVPerTFSparse::decodeVarint logic)
+uint32_t decodeVarintLocal(const uint8_t*& data, const uint8_t* end)
 {
   uint32_t value = 0;
   int shift = 0;
@@ -498,11 +344,248 @@ uint32_t CMVPerTFSparse::decodeVarint(const uint8_t*& data, const uint8_t* end)
     ++data;
   }
   if (data >= end) {
-    throw std::runtime_error("CMVPerTFSparse::decompress: unexpected end of sparse data");
+    throw std::runtime_error("CMVPerTFCombined::decompress: unexpected end of varint data");
   }
   value |= static_cast<uint32_t>(*data) << shift;
   ++data;
   return value;
+}
+
+} // anonymous namespace
+
+// ===== CMVPerTF public methods =====
+
+uint16_t CMVPerTF::getCMV(const int cru, const int timeBin) const
+{
+  if (cru < 0 || cru >= static_cast<int>(CRU::MaxCRU)) {
+    throw std::out_of_range(fmt::format("CMVPerTF::getCMV: cru {} out of range [0, {})", cru, static_cast<int>(CRU::MaxCRU)));
+  }
+  if (timeBin < 0 || static_cast<uint32_t>(timeBin) >= cmv::NTimeBinsPerTF) {
+    throw std::out_of_range(fmt::format("CMVPerTF::getCMV: timeBin {} out of range [0, {})", timeBin, static_cast<int>(cmv::NTimeBinsPerTF)));
+  }
+  return mDataPerTF[cru * cmv::NTimeBinsPerTF + timeBin];
+}
+
+float CMVPerTF::getCMVFloat(const int cru, const int timeBin) const
+{
+  const uint16_t raw = getCMV(cru, timeBin);
+  const uint16_t mag = raw & 0x7FFF;
+  if (mag == 0) {
+    return 0.0f; // 0x0000 and 0x8000 both represent zero; return +0 to avoid -0 display
+  }
+  const bool positive = (raw >> 15) & 1; // bit 15: sign (1=positive, 0=negative)
+  return positive ? mag / 128.f : -mag / 128.f;
+}
+
+void CMVPerTF::zeroSmallValues(float threshold)
+{
+  if (threshold <= 0.f) {
+    return;
+  }
+  for (uint32_t i = 0; i < static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF; ++i) {
+    const float mag = (mDataPerTF[i] & 0x7FFF) / 128.f;
+    if (mag < threshold) {
+      mDataPerTF[i] = 0;
+    }
+  }
+}
+
+void CMVPerTF::roundToIntegers(uint16_t threshold)
+{
+  if (threshold == 0) {
+    return;
+  }
+  for (uint32_t i = 0; i < static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF; ++i) {
+    const uint16_t raw = mDataPerTF[i];
+    if (raw == 0) {
+      continue;
+    }
+    const uint16_t rounded = static_cast<uint16_t>(((raw & 0x7FFFu) + 64u) >> 7); // round(|float value|) to nearest integer
+    if (rounded > threshold) {
+      continue; // above range: keep full precision
+    }
+    // rounded <= threshold: store as nearest integer
+    // rounded=0 (|v| < 0.5 ADC): store as exact zero
+    // rounded>0: store sign * rounded
+    mDataPerTF[i] = (rounded == 0) ? 0 : static_cast<uint16_t>((raw & 0x8000u) | (rounded << 7));
+  }
+}
+
+// ===== Compression =====
+
+CMVPerTFVarint CMVPerTF::compressVarint() const
+{
+  CMVPerTFVarint out;
+  out.firstOrbit = firstOrbit;
+  out.firstBC = firstBC;
+  out.mCompressedData.reserve(static_cast<size_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF);
+
+  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
+    int32_t prev = 0;
+    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
+      const int32_t val = cmvToSigned(mDataPerTF[cru * cmv::NTimeBinsPerTF + tb]);
+      const int32_t delta = val - prev;
+      prev = val;
+      encodeVarintInto(zigzagEncode(delta), out.mCompressedData);
+    }
+  }
+  return out;
+}
+
+CMVPerTFSparse CMVPerTF::compressSparse() const
+{
+  CMVPerTFSparse out;
+  out.firstOrbit = firstOrbit;
+  out.firstBC = firstBC;
+
+  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
+    // Single pass: collect non-zero entries for this CRU.
+    struct Entry {
+      uint32_t tb;
+      uint16_t val;
+    };
+    std::vector<Entry> entries;
+    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
+      const uint16_t val = mDataPerTF[cru * cmv::NTimeBinsPerTF + tb];
+      if (val == 0) {
+        continue;
+      }
+      entries.push_back({tb, val});
+    }
+
+    encodeVarintInto(static_cast<uint32_t>(entries.size()), out.mSparseData);
+    uint32_t prevTB = 0;
+    bool first = true;
+    for (const auto& e : entries) {
+      encodeVarintInto(first ? e.tb : (e.tb - prevTB), out.mSparseData);
+      out.mSparseData.push_back(static_cast<uint8_t>(e.val & 0xFF));
+      out.mSparseData.push_back(static_cast<uint8_t>(e.val >> 8));
+      prevTB = e.tb;
+      first = false;
+    }
+  }
+  return out;
+}
+
+CMVPerTFHuffman CMVPerTF::compressHuffman() const
+{
+  CMVPerTFHuffman out;
+  out.firstOrbit = firstOrbit;
+  out.firstBC = firstBC;
+
+  // Compute zigzag-encoded deltas over all values (CRU-major, time-minor)
+  const uint32_t total = static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF;
+  std::vector<uint32_t> zigzags;
+  zigzags.reserve(total);
+  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
+    int32_t prev = 0;
+    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
+      const int32_t val = cmvToSigned(mDataPerTF[cru * cmv::NTimeBinsPerTF + tb]);
+      zigzags.push_back(zigzagEncode(val - prev));
+      prev = val;
+    }
+  }
+
+  huffmanEncode(zigzags, out.mHuffmanData);
+  return out;
+}
+
+CMVPerTFCombined CMVPerTF::compressCombined(uint8_t valueMode) const
+{
+  CMVPerTFCombined out;
+  out.firstOrbit = firstOrbit;
+  out.firstBC = firstBC;
+  out.mValueMode = valueMode;
+
+  // --- Position stream + value collection ---
+  // Single pass per CRU: collect (timeBin, value) for all surviving non-zero entries.
+  std::vector<uint8_t> posStream;
+  std::vector<uint16_t> rawValues; // exact values to encode, CRU-major order
+
+  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
+    struct Entry {
+      uint32_t tb;
+      uint16_t val;
+    };
+    std::vector<Entry> entries;
+    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
+      const uint16_t val = mDataPerTF[cru * cmv::NTimeBinsPerTF + tb];
+      if (val == 0) {
+        continue;
+      }
+      entries.push_back({tb, val});
+    }
+
+    encodeVarintInto(static_cast<uint32_t>(entries.size()), posStream);
+    uint32_t prevTB = 0;
+    bool first = true;
+    for (const auto& e : entries) {
+      encodeVarintInto(first ? e.tb : (e.tb - prevTB), posStream);
+      rawValues.push_back(e.val);
+      prevTB = e.tb;
+      first = false;
+    }
+  }
+
+  // --- Value stream ---
+  std::vector<uint8_t> valStream;
+
+  if (valueMode == 0) {
+    // Mode 0: raw uint16_t LE
+    for (const uint16_t v : rawValues) {
+      valStream.push_back(static_cast<uint8_t>(v & 0xFF));
+      valStream.push_back(static_cast<uint8_t>(v >> 8));
+    }
+  } else {
+    // Modes 1 and 2: exact signed CMV values encoded as zigzag integers
+    std::vector<uint32_t> zigzags;
+    zigzags.reserve(rawValues.size());
+    for (const uint16_t v : rawValues) {
+      zigzags.push_back(zigzagEncode(cmvToSigned(v)));
+    }
+
+    if (valueMode == 1) {
+      for (const uint32_t z : zigzags) {
+        encodeVarintInto(z, valStream);
+      }
+    } else {
+      // Mode 2: canonical Huffman over zigzag(signed level index)
+      huffmanEncode(zigzags, valStream);
+    }
+  }
+
+  // --- Assemble mData: [4 bytes posStreamSize][posStream][valStream] ---
+  const uint32_t posStreamSize = static_cast<uint32_t>(posStream.size());
+  out.mData.reserve(4 + posStream.size() + valStream.size());
+  for (int i = 0; i < 4; ++i) {
+    out.mData.push_back(static_cast<uint8_t>((posStreamSize >> (8 * i)) & 0xFF));
+  }
+  out.mData.insert(out.mData.end(), posStream.begin(), posStream.end());
+  out.mData.insert(out.mData.end(), valStream.begin(), valStream.end());
+
+  return out;
+}
+
+// ===== Decompression =====
+
+void CMVPerTFVarint::decompress(CMVPerTF* cmv) const
+{
+  if (!cmv) {
+    throw std::invalid_argument("CMVPerTFVarint::decompress: cmv pointer is null");
+  }
+  cmv->firstOrbit = firstOrbit;
+  cmv->firstBC = firstBC;
+  const uint8_t* ptr = mCompressedData.data();
+  const uint8_t* end = ptr + mCompressedData.size();
+
+  for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
+    int32_t prev = 0;
+    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
+      const int32_t val = prev + zigzagDecode(decodeVarint(ptr, end));
+      prev = val;
+      cmv->mDataPerTF[cru * cmv::NTimeBinsPerTF + tb] = signedToCmv(val);
+    }
+  }
 }
 
 void CMVPerTFSparse::decompress(CMVPerTF* cmv) const
@@ -535,25 +618,141 @@ void CMVPerTFSparse::decompress(CMVPerTF* cmv) const
   }
 }
 
-void CMVPerTFCompressed::decompress(CMVPerTF* cmv) const
+void CMVPerTFHuffman::decompress(CMVPerTF* cmv) const
 {
   if (!cmv) {
-    throw std::invalid_argument("CMVPerTFCompressed::decompress: cmv pointer is null");
+    throw std::invalid_argument("CMVPerTFHuffman::decompress: cmv pointer is null");
   }
   cmv->firstOrbit = firstOrbit;
   cmv->firstBC = firstBC;
-  const uint8_t* ptr = mCompressedData.data();
-  const uint8_t* end = ptr + mCompressedData.size();
+  std::fill(std::begin(cmv->mDataPerTF), std::end(cmv->mDataPerTF), uint16_t(0));
 
+  const uint8_t* ptr = mHuffmanData.data();
+  const uint8_t* end = ptr + mHuffmanData.size();
+
+  const uint32_t total = static_cast<uint32_t>(CRU::MaxCRU) * cmv::NTimeBinsPerTF;
+  const std::vector<uint32_t> zigzags = huffmanDecode(ptr, end, total);
+
+  // Reconstruct mDataPerTF from zigzag-encoded deltas
+  auto zigzagDecode = [](uint32_t value) -> int32_t {
+    return static_cast<int32_t>((value >> 1) ^ -(value & 1));
+  };
+  auto signedToCmv = [](int32_t val) -> uint16_t {
+    const uint16_t mag = static_cast<uint16_t>(std::abs(val)) & 0x7FFF;
+    return static_cast<uint16_t>((val >= 0 ? 0x8000u : 0u) | mag);
+  };
+
+  uint32_t s = 0;
   for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
     int32_t prev = 0;
-    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb) {
-      const int32_t val = prev + zigzagDecode(decodeVarint(ptr, end));
+    for (uint32_t tb = 0; tb < cmv::NTimeBinsPerTF; ++tb, ++s) {
+      const int32_t val = prev + zigzagDecode(zigzags[s]);
       prev = val;
       cmv->mDataPerTF[cru * cmv::NTimeBinsPerTF + tb] = signedToCmv(val);
     }
   }
 }
+
+void CMVPerTFCombined::decompress(CMVPerTF* cmv) const
+{
+  if (!cmv) {
+    throw std::invalid_argument("CMVPerTFCombined::decompress: cmv pointer is null");
+  }
+  cmv->firstOrbit = firstOrbit;
+  cmv->firstBC = firstBC;
+  std::fill(std::begin(cmv->mDataPerTF), std::end(cmv->mDataPerTF), uint16_t(0));
+
+  const uint8_t* ptr = mData.data();
+  const uint8_t* end = ptr + mData.size();
+
+  if (ptr + 4 > end) {
+    throw std::runtime_error("CMVPerTFCombined::decompress: truncated header");
+  }
+  const uint32_t posStreamSize = static_cast<uint32_t>(ptr[0]) | (static_cast<uint32_t>(ptr[1]) << 8) |
+                                 (static_cast<uint32_t>(ptr[2]) << 16) | (static_cast<uint32_t>(ptr[3]) << 24);
+  ptr += 4;
+
+  const uint8_t* posEnd = ptr + posStreamSize;
+  if (posEnd > end) {
+    throw std::runtime_error("CMVPerTFCombined::decompress: posStream overflows payload");
+  }
+
+  // Collect non-zero positions per CRU
+  std::vector<std::pair<int, uint32_t>> positions; // (cru, timeBin) for each non-zero entry
+  {
+    const uint8_t* p = ptr;
+    for (int cru = 0; cru < static_cast<int>(CRU::MaxCRU); ++cru) {
+      const uint32_t count = decodeVarintLocal(p, posEnd);
+      uint32_t tb = 0;
+      bool first = true;
+      for (uint32_t i = 0; i < count; ++i) {
+        const uint32_t delta = decodeVarintLocal(p, posEnd);
+        tb = first ? delta : (tb + delta);
+        first = false;
+        positions.emplace_back(cru, tb);
+      }
+    }
+  }
+  ptr = posEnd;
+
+  const uint32_t nValues = static_cast<uint32_t>(positions.size());
+  auto zigzagDecodeLocal = [](uint32_t z) -> int32_t {
+    return static_cast<int32_t>((z >> 1) ^ -(z & 1));
+  };
+  auto signedToCmvLocal = [](int32_t val) -> uint16_t {
+    const uint16_t mag = static_cast<uint16_t>(std::abs(val)) & 0x7FFF;
+    return static_cast<uint16_t>((val >= 0 ? 0x8000u : 0u) | mag);
+  };
+
+  if (mValueMode == 0) {
+    // Mode 0: raw uint16_t LE
+    for (uint32_t i = 0; i < nValues; ++i) {
+      if (ptr + 2 > end) {
+        throw std::runtime_error("CMVPerTFCombined::decompress: unexpected end in mode-0 value stream");
+      }
+      const uint16_t val = static_cast<uint16_t>(ptr[0]) | (static_cast<uint16_t>(ptr[1]) << 8);
+      ptr += 2;
+      cmv->mDataPerTF[positions[i].first * cmv::NTimeBinsPerTF + positions[i].second] = val;
+    }
+  } else if (mValueMode == 1) {
+    // Mode 1: varint(zigzag(signed CMV))
+    for (uint32_t i = 0; i < nValues; ++i) {
+      const uint32_t z = decodeVarintLocal(ptr, end);
+      const int32_t signedValue = zigzagDecodeLocal(z);
+      cmv->mDataPerTF[positions[i].first * cmv::NTimeBinsPerTF + positions[i].second] =
+        signedToCmvLocal(signedValue);
+    }
+  } else if (mValueMode == 2) {
+    // Mode 2: Huffman(zigzag(signed CMV))
+    const std::vector<uint32_t> zigzags = huffmanDecode(ptr, end, nValues);
+    for (uint32_t i = 0; i < nValues; ++i) {
+      const int32_t signedValue = zigzagDecodeLocal(zigzags[i]);
+      cmv->mDataPerTF[positions[i].first * cmv::NTimeBinsPerTF + positions[i].second] =
+        signedToCmvLocal(signedValue);
+    }
+  } else {
+    throw std::runtime_error(fmt::format("CMVPerTFCombined::decompress: unsupported value mode {}", mValueMode));
+  }
+}
+
+uint32_t CMVPerTFSparse::decodeVarint(const uint8_t*& data, const uint8_t* end)
+{
+  uint32_t value = 0;
+  int shift = 0;
+  while (data < end && (*data & 0x80)) {
+    value |= static_cast<uint32_t>(*data & 0x7F) << shift;
+    shift += 7;
+    ++data;
+  }
+  if (data >= end) {
+    throw std::runtime_error("CMVPerTFSparse::decompress: unexpected end of sparse data");
+  }
+  value |= static_cast<uint32_t>(*data) << shift;
+  ++data;
+  return value;
+}
+
+// ===== TTree I/O =====
 
 std::unique_ptr<TTree> CMVPerTF::toTTree() const
 {

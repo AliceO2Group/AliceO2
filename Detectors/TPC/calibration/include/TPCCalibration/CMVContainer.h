@@ -28,14 +28,15 @@
 namespace o2::tpc
 {
 
-struct CMVPerTF;        // forward declaration
-struct CMVPerTFSparse;  // forward declaration
-struct CMVPerTFHuffman; // forward declaration
+struct CMVPerTF;         // forward declaration
+struct CMVPerTFSparse;   // forward declaration
+struct CMVPerTFHuffman;  // forward declaration
+struct CMVPerTFCombined; // forward declaration
 
 /// Delta+zigzag+varint compressed CMV data for one TF across all CRUs
-/// Produced by CMVPerTF::compress(), restored with decompress()
-/// Each TTree entry corresponds to one CMVPerTFCompressed object (one TF)
-struct CMVPerTFCompressed {
+/// Produced by CMVPerTF::compressVarint(), restored with decompress()
+/// Each TTree entry corresponds to one CMVPerTFVarint object (one TF)
+struct CMVPerTFVarint {
   uint32_t firstOrbit{0}; ///< First orbit of this TF (copied from CMVPerTF)
   uint16_t firstBC{0};    ///< First bunch crossing of this TF (copied from CMVPerTF)
 
@@ -52,7 +53,7 @@ struct CMVPerTFCompressed {
   static uint32_t decodeVarint(const uint8_t*& data, const uint8_t* end); ///< Varint decode
 
  public:
-  ClassDefNV(CMVPerTFCompressed, 1)
+  ClassDefNV(CMVPerTFVarint, 1)
 };
 
 /// Sparse-encoded CMV data for one TF across all CRUs
@@ -105,6 +106,35 @@ struct CMVPerTFHuffman {
   ClassDefNV(CMVPerTFHuffman, 1)
 };
 
+/// Hybrid sparse+compressed-value encoding for one TF across all CRUs
+///
+/// Non-zero positions are stored as sparse varint deltas (same as CMVPerTFSparse).
+/// The remaining non-zero values are encoded according to mValueMode:
+///
+///   Mode 0  raw uint16_t     — identical value encoding to CMVPerTFSparse
+///   Mode 1  varint signed    — zigzag+varint of the exact signed CMV value
+///   Mode 2  Huffman signed   — canonical Huffman over the same zigzag-encoded exact values
+///
+/// Binary layout of mData:
+///   4 bytes LE  posStreamSize
+///   [posStream] for each CRU: varint(N), N×varint(tb_delta)
+///   [valStream]
+///     mode 0: N_total × uint16_t LE
+///     mode 1: N_total × varint(zigzag(cmvToSigned(raw)))
+///     mode 2: [canonical Huffman table] + [8-byte totalBits] + [bitstream]
+struct CMVPerTFCombined {
+  uint32_t firstOrbit{0}; ///< First orbit of this TF
+  uint16_t firstBC{0};    ///< First bunch crossing of this TF
+  uint8_t mValueMode{0};  ///< 0 = raw uint16, 1 = varint signed CMV, 2 = Huffman signed CMV
+
+  std::vector<uint8_t> mData; ///< Encoded payload
+
+  /// Restore a CMVPerTF from this object into *cmv (must not be null)
+  void decompress(CMVPerTF* cmv) const;
+
+  ClassDefNV(CMVPerTFCombined, 1)
+};
+
 /// CMV data for one TF across all CRUs
 /// Raw 16-bit CMV values are stored in a flat C array indexed as [cru * NTimeBinsPerTF + timeBin]
 /// CRU::MaxCRU and cmv::NTimeBinsPerTF are compile-time constants, so no dynamic allocation is needed
@@ -125,22 +155,29 @@ struct CMVPerTF {
   /// This converts the sign-magnitude raw value to 0x0000 for all entries with |float value| < threshold
   void zeroSmallValues(float threshold = 1.0f);
 
-  /// Apply dynamic precision reduction: round values to the nearest integer ADC for all values whose rounded magnitude is <= steps
-  /// Example: steps=3
+  /// Round values to the nearest integer ADC for all values whose rounded magnitude is <= threshold
+  /// Example: threshold=3
   ///   |v| <  0.5 ADC  -> 0
   ///   |v| in [0.5, 1.5) ADC  -> 1.0 ADC
   ///   |v| in [1.5, 2.5) ADC  -> 2.0 ADC
   ///   |v| in [2.5, 3.5) ADC  -> 3.0 ADC
   ///   |v| >= 3.5 ADC         -> unchanged (full precision)
   ///
-  /// steps=0 dynamic precision is not applied
-  void applyDynamicPrecision(uint16_t steps);
+  /// threshold=0 rounding is not applied
+  void roundToIntegers(uint16_t threshold);
 
-  /// Compress this object into a CMVPerTFCompressed using delta+zigzag+varint encoding
-  CMVPerTFCompressed compress() const;
+  /// Compress this object into a CMVPerTFVarint using delta+zigzag+varint encoding
+  CMVPerTFVarint compressVarint() const;
 
   /// Compress this object into a CMVPerTFSparse storing only non-zero timebins
   CMVPerTFSparse compressSparse() const;
+
+  /// Hybrid sparse+compressed-value compression
+  /// Positions encoded as sparse varint deltas; values encoded according to valueMode:
+  ///   0 = raw uint16_t  (same as compressSparse, no additional gain)
+  ///   1 = varint signed CMV value
+  ///   2 = Huffman signed CMV value
+  CMVPerTFCombined compressCombined(uint8_t valueMode = 0) const;
 
   /// Compress this object using delta+zigzag+canonical-Huffman encoding
   CMVPerTFHuffman compressHuffman() const;
