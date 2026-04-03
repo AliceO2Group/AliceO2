@@ -58,6 +58,9 @@ class TrackerDPL : public framework::Task
   std::shared_ptr<tbb::task_arena> mTaskArena;
   nlohmann::json mHitRecoConfig;
   TStopwatch mTimer;
+#ifdef O2_WITH_ACTS
+  bool mUseACTS = false;
+#endif
 };
 
 framework::DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, gpu::gpudatatypes::DeviceType dType = gpu::gpudatatypes::DeviceType::CPU);

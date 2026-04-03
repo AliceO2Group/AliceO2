@@ -32,11 +32,9 @@ class ClustererDPL : public o2::framework::Task
  private:
   bool mUseMC = true;
   int mNThreads = 1;
-#ifdef O2_WITH_ACTS
-  bool mUseACTS = false;
-#endif
   o2::trk::Clusterer mClusterer;
 #ifdef O2_WITH_ACTS
+  bool mUseACTS = false;
   o2::trk::ClustererACTS mClustererACTS;
 #endif
 };

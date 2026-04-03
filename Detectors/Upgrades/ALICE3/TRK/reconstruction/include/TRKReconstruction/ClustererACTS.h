@@ -9,8 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
 /// \file ClustererACTS.h
 /// \brief Definition of the TRK cluster finder
+/// \author Nicolò Jacazio, Università del Piemonte Orientale (IT)
+/// \since 2026-03-01
+///
 
 #ifndef ALICEO2_TRK_CLUSTERERACTS_H
 #define ALICEO2_TRK_CLUSTERERACTS_H

@@ -9,8 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
 /// \file ClustererACTS.cxx
 /// \brief Implementation of the TRK cluster finder with the ACTS
+/// \author Nicolò Jacazio, Università del Piemonte Orientale (IT)
+/// \since 2026-03-01
+///
 
 #include "TRKReconstruction/ClustererACTS.h"
 #include "TRKBase/GeometryTGeo.h"
