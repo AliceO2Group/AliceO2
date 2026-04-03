@@ -60,11 +60,8 @@ class TPCFastTransformPOD
   /// _______________ high level methods a la TPCFastTransform  _______________________
   ///
   // Methods taking extra reference transform are legacy compound transforms used to scale corrections.
-  GPUd() void Transform(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransformPOD* ref = nullptr, const TPCFastTransformPOD* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
-  GPUd() void TransformXYZ(int32_t sector, int32_t row, float& x, float& y, float& z, const TPCFastTransformPOD* ref = nullptr, const TPCFastTransformPOD* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
-
-  GPUd() void Transform_new(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
-  GPUd() void TransformXYZ_new(int32_t sector, int32_t row, float& x, float& y, float& z) const;
+  GPUd() void Transform(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
+  GPUd() void TransformXYZ(int32_t sector, int32_t row, float& x, float& y, float& z) const;
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
@@ -75,16 +72,13 @@ class TPCFastTransformPOD
   GPUd() float InverseTransformInTimeFrame(int32_t sector, float z, float maxTimeBin) const;
 
   /// Inverse transformation: Transformed Y and Z -> transformed X
-  GPUd() void InverseTransformYZtoX(int32_t sector, int32_t row, float y, float z, float& x, const TPCFastTransformPOD* ref = nullptr, const TPCFastTransformPOD* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
-  GPUd() void InverseTransformYZtoX_new(int32_t sector, int32_t row, float y, float z, float& x) const;
+  GPUd() void InverseTransformYZtoX(int32_t sector, int32_t row, float y, float z, float& x) const;
 
   /// Inverse transformation: Transformed Y and Z -> Y and Z, transformed w/o space charge correction
-  GPUd() void InverseTransformYZtoNominalYZ(int32_t sector, int32_t row, float y, float z, float& ny, float& nz, const TPCFastTransformPOD* ref = nullptr, const TPCFastTransformPOD* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
-  GPUd() void InverseTransformYZtoNominalYZ_new(int32_t sector, int32_t row, float y, float z, float& ny, float& nz) const;
+  GPUd() void InverseTransformYZtoNominalYZ(int32_t sector, int32_t row, float y, float z, float& ny, float& nz) const;
 
   /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
-  GPUd() void InverseTransformXYZtoNominalXYZ(int32_t sector, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransformPOD* ref = nullptr, const TPCFastTransformPOD* ref2 = nullptr, float scale = 0.f, float scale2 = 0.f, int32_t scaleMode = 0) const;
-  GPUd() void InverseTransformXYZtoNominalXYZ_new(int32_t sector, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz) const;
+  GPUd() void InverseTransformXYZtoNominalXYZ(int32_t sector, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz) const;
 
   /// Ideal transformation with Vdrift only - without calibration
   GPUd() void TransformIdeal(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
@@ -190,7 +184,6 @@ class TPCFastTransformPOD
   GPUd() void getCorrectionYZatRealYZ(int32_t sector, int32_t row, float realY, float realZ, float& measuredY, float& measuredZ) const;
 
   /// transformation in the sector local frame
-  GPUd() void TransformLocal(int32_t sector, int32_t row, float& x, float& y, float& z, const TPCFastTransformPOD* ref, const TPCFastTransformPOD* ref2, float scale, float scale2, int32_t scaleMode) const;
   GPUd() void TransformLocal(int32_t sector, int32_t row, float& x, float& y, float& z) const;
 
   /// _______________  Utilities  _______________________________________________
@@ -461,125 +454,6 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(V& destVector, const TPCFastSpa
 }
 #endif
 
-GPUdi() void TPCFastTransformPOD::TransformLocal(int32_t sector, int32_t row, float& x, float& y, float& z, const TPCFastTransformPOD* ref, const TPCFastTransformPOD* ref2, float scale, float scale2, int32_t scaleMode) const
-{
-  GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
-
-  if (!mApplyCorrection) {
-    return;
-  }
-
-  float dx = 0.f, dy = 0.f, dz = 0.f;
-
-  if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
-    getCorrectionLocal(sector, row, y, z, dx, dy, dz);
-    if (ref) {
-      if ((scale > 0.f) && (scaleMode == 0)) { // scaling was requested
-        float val[3];
-        ref->getCorrectionLocal(sector, row, y, z, val[0], val[1], val[2]);
-        dx = (dx - val[0]) * scale + val[0];
-        dy = (dy - val[1]) * scale + val[1];
-        dz = (dz - val[2]) * scale + val[2];
-      } else if ((scale != 0.f) && ((scaleMode == 1) || (scaleMode == 2))) {
-        float val[3];
-        ref->getCorrectionLocal(sector, row, y, z, val[0], val[1], val[2]);
-        dx = val[0] * scale + dx;
-        dy = val[1] * scale + dy;
-        dz = val[2] * scale + dz;
-      }
-    }
-    if (ref2 && (scale2 != 0)) {
-      float val[3];
-      ref2->getCorrectionLocal(sector, row, y, z, val[0], val[1], val[2]);
-      dx = val[0] * scale2 + dx;
-      dy = val[1] * scale2 + dy;
-      dz = val[2] * scale2 + dz;
-    }
-  }
-
-  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    float lx = x, ly = y, lz = z;
-
-    float gx, gy, gz;
-    getGeometry().convLocalToGlobal(sector, lx, ly, lz, gx, gy, gz);
-
-    float lxT = lx + dx;
-    float lyT = ly + dy;
-    float lzT = lz + dz;
-
-    float invYZtoXScaled;
-    InverseTransformYZtoX(sector, row, lyT, lzT, invYZtoXScaled, ref, ref2, scale, scale2, scaleMode);
-
-    float invYZtoX;
-    InverseTransformYZtoX(sector, row, lyT, lzT, invYZtoX);
-
-    float YZtoNominalY;
-    float YZtoNominalZ;
-    InverseTransformYZtoNominalYZ(sector, row, lyT, lzT, YZtoNominalY, YZtoNominalZ);
-
-    float YZtoNominalYScaled;
-    float YZtoNominalZScaled;
-    InverseTransformYZtoNominalYZ(sector, row, lyT, lzT, YZtoNominalYScaled, YZtoNominalZScaled, ref, ref2, scale, scale2, scaleMode);
-
-    float dxRef = 0.f, dyRef = 0.f, dzRef = 0.f;
-    if (ref) {
-      ref->getCorrectionLocal(sector, row, y, z, dxRef, dyRef, dzRef);
-    }
-
-    float dxRef2 = 0.f, dyRef2 = 0.f, dzRef2 = 0.f;
-    if (ref2) {
-      ref2->getCorrectionLocal(sector, row, y, z, dxRef2, dyRef2, dzRef2);
-    }
-
-    float dxOrig, dyOrig, dzOrig;
-    getCorrectionLocal(sector, row, y, z, dyOrig, dyOrig, dzOrig);
-
-    o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
-                                                                                       // corrections in x, u, v
-                                                                                       << "dxOrig=" << dxOrig
-                                                                                       << "dyOrig=" << dyOrig
-                                                                                       << "dzOrig=" << dzOrig
-                                                                                       << "dxRef=" << dxRef
-                                                                                       << "dyRef=" << dyRef
-                                                                                       << "dzRef=" << dzRef
-                                                                                       << "dxRef2=" << dxRef2
-                                                                                       << "dyRef2=" << dyRef2
-                                                                                       << "dzRef2=" << dzRef2
-                                                                                       << "dx=" << dx
-                                                                                       << "dy=" << dy
-                                                                                       << "dz=" << dz
-                                                                                       << "row=" << row
-                                                                                       << "sector=" << sector
-                                                                                       << "scale=" << scale
-                                                                                       << "scale2=" << scale2
-                                                                                       // original local coordinates
-                                                                                       << "ly=" << ly
-                                                                                       << "lz=" << lz
-                                                                                       << "lx=" << lx
-                                                                                       // corrected local coordinated
-                                                                                       << "lxT=" << lxT
-                                                                                       << "lyT=" << lyT
-                                                                                       << "lzT=" << lzT
-                                                                                       // global uncorrected coordinates
-                                                                                       << "gx=" << gx
-                                                                                       << "gy=" << gy
-                                                                                       << "gz=" << gz
-                                                                                       // some transformations which are applied
-                                                                                       << "invYZtoX=" << invYZtoX
-                                                                                       << "invYZtoXScaled=" << invYZtoXScaled
-                                                                                       << "YZtoNominalY=" << YZtoNominalY
-                                                                                       << "YZtoNominalYScaled=" << YZtoNominalYScaled
-                                                                                       << "YZtoNominalZ=" << YZtoNominalZ
-                                                                                       << "YZtoNominalZScaled=" << YZtoNominalZScaled
-                                                                                       << "scaleMode=" << scaleMode
-                                                                                       << "\n";
-  })
-
-  x += dx;
-  y += dy;
-  z += dz;
-}
-
 GPUdi() void TPCFastTransformPOD::TransformLocal(int32_t sector, int32_t row, float& x, float& y, float& z) const
 {
   if (!mApplyCorrection) {
@@ -596,11 +470,11 @@ GPUdi() void TPCFastTransformPOD::TransformLocal(int32_t sector, int32_t row, fl
     float lyT = ly + dy;
     float lzT = lz + dz;
     float invYZtoX;
-    InverseTransformYZtoX_new(sector, row, lyT, lzT, invYZtoX);
+    InverseTransformYZtoX(sector, row, lyT, lzT, invYZtoX);
 
     float YZtoNominalY;
     float YZtoNominalZ;
-    InverseTransformYZtoNominalYZ_new(sector, row, lyT, lzT, YZtoNominalY, YZtoNominalZ);
+    InverseTransformYZtoNominalYZ(sector, row, lyT, lzT, YZtoNominalY, YZtoNominalZ);
 
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
                                                                                        // corrections in x, u, v
@@ -633,7 +507,7 @@ GPUdi() void TPCFastTransformPOD::TransformLocal(int32_t sector, int32_t row, fl
   z += dz;
 }
 
-GPUdi() void TPCFastTransformPOD::Transform(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransformPOD* ref, const TPCFastTransformPOD* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransformPOD::Transform(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
 {
   /// _______________ The main method: cluster transformation _______________________
   ///
@@ -642,34 +516,12 @@ GPUdi() void TPCFastTransformPOD::Transform(int32_t sector, int32_t row, float p
   ///
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-
-  x = rowInfo.x;
-  convPadTimeToLocal(sector, row, pad, time, y, z, vertexTime);
-  TransformLocal(sector, row, x, y, z, ref, ref2, scale, scale2, scaleMode);
-}
-
-GPUdi() void TPCFastTransformPOD::Transform_new(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
-{
-  /// _______________ The main method: cluster transformation _______________________
-  ///
-  /// Transforms raw TPC coordinates to local XYZ withing a sector
-  /// taking calibration into account.
-  ///
-
-  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-
   x = rowInfo.x;
   convPadTimeToLocal(sector, row, pad, time, y, z, vertexTime);
   TransformLocal(sector, row, x, y, z);
 }
 
-GPUdi() void TPCFastTransformPOD::TransformXYZ(int32_t sector, int32_t row, float& x, float& y, float& z, const TPCFastTransformPOD* ref, const TPCFastTransformPOD* ref2, float scale, float scale2, int32_t scaleMode) const
-{
-
-  TransformLocal(sector, row, x, y, z, ref, ref2, scale, scale2, scaleMode);
-}
-
-GPUdi() void TPCFastTransformPOD::TransformXYZ_new(int32_t sector, int32_t row, float& x, float& y, float& z) const
+GPUdi() void TPCFastTransformPOD::TransformXYZ(int32_t sector, int32_t row, float& x, float& y, float& z) const
 {
 
   TransformLocal(sector, row, x, y, z);
@@ -790,49 +642,10 @@ GPUdi() float TPCFastTransformPOD::getMaxDriftTime(int32_t sector) const
   return convDriftLengthToTime(getGeometry().getTPCzLength(), 0.f);
 }
 
-GPUdi() void TPCFastTransformPOD::InverseTransformYZtoX(int32_t sector, int32_t row, float realY, float realZ, float& realX, const TPCFastTransformPOD* ref, const TPCFastTransformPOD* ref2, float scale, float scale2, int32_t scaleMode) const
-{
-  GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
-  /// Transformation y,z -> x
-
-  float dx = 0.f;
-
-  if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
-    dx = getCorrectionXatRealYZ(sector, row, realY, realZ);
-    if (ref) { // scaling was requested
-      if (scaleMode == 0 && scale > 0.f) {
-        float dxref = ref->getCorrectionXatRealYZ(sector, row, realY, realZ);
-        dx = (dx - dxref) * scale + dxref;
-      } else if ((scale != 0) && ((scaleMode == 1) || (scaleMode == 2))) {
-        float dxref = ref->getCorrectionXatRealYZ(sector, row, realY, realZ);
-        dx = dxref * scale + dx;
-      }
-    }
-    if (ref2 && (scale2 != 0)) {
-      float dxref = ref2->getCorrectionXatRealYZ(sector, row, realY, realZ);
-      dx = dxref * scale2 + dx;
-    }
-  }
-
-  realX = getGeometry().getRowInfo(row).x + dx;
-
-  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoX").data()
-                                                                                       << "sector=" << sector
-                                                                                       << "row=" << row
-                                                                                       << "y=" << realY
-                                                                                       << "z=" << realZ
-                                                                                       << "x=" << realX
-                                                                                       << "\n";
-  })
-}
-
-GPUdi() void TPCFastTransformPOD::InverseTransformYZtoX_new(int32_t sector, int32_t row, float realY, float realZ, float& realX) const
+GPUdi() void TPCFastTransformPOD::InverseTransformYZtoX(int32_t sector, int32_t row, float realY, float realZ, float& realX) const
 {
   /// Transformation y,z -> x
-
   float dx = 0.f;
-
   dx = getCorrectionXatRealYZ(sector, row, realY, realZ);
   realX = getGeometry().getRowInfo(row).x + dx;
 
@@ -847,39 +660,11 @@ GPUdi() void TPCFastTransformPOD::InverseTransformYZtoX_new(int32_t sector, int3
   })
 }
 
-GPUdi() void TPCFastTransformPOD::InverseTransformYZtoNominalYZ(int32_t sector, int32_t row, float realY, float realZ, float& measuredY, float& measuredZ, const TPCFastTransformPOD* ref, const TPCFastTransformPOD* ref2, float scale, float scale2, int32_t scaleMode) const
+GPUdi() void TPCFastTransformPOD::InverseTransformYZtoNominalYZ(int32_t sector, int32_t row, float realY, float realZ, float& measuredY, float& measuredZ) const
 {
   /// Transformation real y,z -> measured y,z
-
-  GPUCA_RTC_SPECIAL_CODE(ref2 = nullptr; scale2 = 0.f;);
-
-  float dy = 0;
-  float dz = 0;
-
-  if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
-    getCorrectionYZatRealYZ(sector, row, realY, realZ, dy, dz);
-
-    if (ref) { // scaling was requested
-      if (scaleMode == 0 && scale > 0.f) {
-        float val[2];
-        ref->getCorrectionYZatRealYZ(sector, row, realY, realZ, val[0], val[1]);
-        dy = (dy - val[0]) * scale + val[0];
-        dz = (dz - val[1]) * scale + val[1];
-      } else if ((scale != 0) && ((scaleMode == 1) || (scaleMode == 2))) {
-        float val[2];
-        ref->getCorrectionYZatRealYZ(sector, row, realY, realZ, val[0], val[1]);
-        dy = val[0] * scale + dy;
-        dz = val[1] * scale + dz;
-      }
-      if (ref2 && (scale2 != 0)) {
-        float val[2];
-        ref2->getCorrectionYZatRealYZ(sector, row, realY, realZ, val[0], val[1]);
-        dy = val[0] * scale2 + dy;
-        dz = val[1] * scale2 + dz;
-      }
-    }
-  }
-
+  float dy, dz;
+  getCorrectionYZatRealYZ(sector, row, realY, realZ, dy, dz);
   measuredY = realY - dy;
   measuredZ = realZ - dz;
 
@@ -893,66 +678,6 @@ GPUdi() void TPCFastTransformPOD::InverseTransformYZtoNominalYZ(int32_t sector, 
                                                                                        << "measured z=" << measuredZ
                                                                                        << "\n";
   })
-}
-
-GPUdi() void TPCFastTransformPOD::InverseTransformYZtoNominalYZ_new(int32_t sector, int32_t row, float realY, float realZ, float& measuredY, float& measuredZ) const
-{
-  /// Transformation real y,z -> measured y,z
-  float corrY, corrZ;
-  getCorrectionYZatRealYZ(sector, row, realY, realZ, corrY, corrZ);
-  measuredY = realY - corrY;
-  measuredZ = realZ - corrZ;
-
-  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
-                                                                                       << "sector=" << sector
-                                                                                       << "row=" << row
-                                                                                       << "real y=" << realY
-                                                                                       << "real z=" << realZ
-                                                                                       << "measured y=" << measuredY
-                                                                                       << "measured z=" << measuredZ
-                                                                                       << "\n";
-  })
-}
-
-GPUdi() void TPCFastTransformPOD::InverseTransformXYZtoNominalXYZ(int32_t sector, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransformPOD* ref, const TPCFastTransformPOD* ref2, float scale, float scale2, int32_t scaleMode) const
-{
-  /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
-  int32_t row2 = row + 1;
-  if (row2 >= getGeometry().getNumberOfRows()) {
-    row2 = row - 1;
-  }
-  float nx1, ny1, nz1; // nominal coordinates for row
-  float nx2, ny2, nz2; // nominal coordinates for row2
-  nx1 = getGeometry().getRowInfo(row).x;
-  nx2 = getGeometry().getRowInfo(row2).x;
-  InverseTransformYZtoNominalYZ(sector, row, y, z, ny1, nz1, ref, ref2, scale, scale2, scaleMode);
-  InverseTransformYZtoNominalYZ(sector, row2, y, z, ny2, nz2, ref, ref2, scale, scale2, scaleMode);
-  float c1 = (nx2 - nx) / (nx2 - nx1);
-  float c2 = (nx - nx1) / (nx2 - nx1);
-  nx = x;
-  ny = (ny1 * c1 + ny2 * c2);
-  nz = (nz1 * c1 + nz2 * c2);
-}
-
-GPUdi() void TPCFastTransformPOD::InverseTransformXYZtoNominalXYZ_new(int32_t sector, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz) const
-{
-  /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
-  int32_t row2 = row + 1;
-  if (row2 >= getGeometry().getNumberOfRows()) {
-    row2 = row - 1;
-  }
-  float nx1, ny1, nz1; // nominal coordinates for row
-  float nx2, ny2, nz2; // nominal coordinates for row2
-  nx1 = getGeometry().getRowInfo(row).x;
-  nx2 = getGeometry().getRowInfo(row2).x;
-  InverseTransformYZtoNominalYZ_new(sector, row, y, z, ny1, nz1);
-  InverseTransformYZtoNominalYZ_new(sector, row2, y, z, ny2, nz2);
-  float c1 = (nx2 - nx) / (nx2 - nx1);
-  float c2 = (nx - nx1) / (nx2 - nx1);
-  nx = x;
-  ny = (ny1 * c1 + ny2 * c2);
-  nz = (nz1 * c1 + nz2 * c2);
 }
 
 GPUdi() void TPCFastTransformPOD::convPadTimeToLocal(int32_t sector, int32_t row, float pad, float time, float& y, float& z, float vertexTime) const
@@ -997,12 +722,34 @@ GPUdi() float TPCFastTransformPOD::convVertexTimeToZOffset(int32_t sector, float
   }
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE // Functions not needed during GPU processing
 GPUdi() void TPCFastTransformPOD::setCalibration1(int64_t timeStamp, float t0, float vDrift)
 {
   mTimeStamp = timeStamp;
   mT0 = t0;
   mVdrift = vDrift;
 }
+
+GPUdi() void TPCFastTransformPOD::InverseTransformXYZtoNominalXYZ(int32_t sector, int32_t row, float x, float y, float z, float& nx, float& ny, float& nz) const
+{
+  /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
+  int32_t row2 = row + 1;
+  if (row2 >= getGeometry().getNumberOfRows()) {
+    row2 = row - 1;
+  }
+  float nx1, ny1, nz1; // nominal coordinates for row
+  float nx2, ny2, nz2; // nominal coordinates for row2
+  nx1 = getGeometry().getRowInfo(row).x;
+  nx2 = getGeometry().getRowInfo(row2).x;
+  InverseTransformYZtoNominalYZ(sector, row, y, z, ny1, nz1);
+  InverseTransformYZtoNominalYZ(sector, row2, y, z, ny2, nz2);
+  float c1 = (nx2 - nx) / (nx2 - nx1);
+  float c2 = (nx - nx1) / (nx2 - nx1);
+  nx = x;
+  ny = (ny1 * c1 + ny2 * c2);
+  nz = (nz1 * c1 + nz2 * c2);
+}
+#endif // GPUCA_GPUCODE_DEVICE
 
 } // namespace gpu
 } // namespace o2
