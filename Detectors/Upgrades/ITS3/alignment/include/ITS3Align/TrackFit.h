@@ -76,10 +76,12 @@ o2::track::TrackParametrizationWithError<T> interpolateTrackParCov(
   };
   Mat55 cA = unpack(tA.getCov());
   Mat55 cB = unpack(tB.getCov());
-  Mat55 wA = cA.inverse();
-  Mat55 wB = cB.inverse();
+  Eigen::LLT<Mat55> lltA(cA), lltB(cB);
+  Mat55 wA = lltA.solve(Mat55::Identity());
+  Mat55 wB = lltB.solve(Mat55::Identity());
   Mat55 wTot = wA + wB;
-  Mat55 cTot = wTot.inverse();
+  Eigen::LLT<Mat55> lltTot(wTot);
+  Mat55 cTot = lltTot.solve(Mat55::Identity());
   Mat51 pA, pB;
   for (int i = 0; i < 5; ++i) {
     pA(i) = tA.getParam(i);
