@@ -57,7 +57,7 @@ std::string TrackingParameters::asString() const
 
 std::string VertexingParameters::asString() const
 {
-  std::string str = std::format("NZb:{} NPhB:{} DRof:{} ClsCont:{} MaxTrkltCls:{} ZCut:{} PhCut:{}", ZBins, PhiBins, deltaRof, clusterContributorsCut, maxTrackletsPerCluster, zCut, phiCut);
+  std::string str = std::format("NZb:{} NPhB:{} ClsCont:{} MaxTrkltCls:{} ZCut:{} PhCut:{}", ZBins, PhiBins, clusterContributorsCut, maxTrackletsPerCluster, zCut, phiCut);
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);
   }
@@ -244,7 +244,6 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
-    vertParams[1].deltaRof = 0;
   } else if (mode == TrackingMode::Sync) {
     vertParams.resize(1);
   } else if (mode == TrackingMode::Cosmics) {
@@ -260,7 +259,6 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.MaxMemory = vc.maxMemory;
     p.DropTFUponFailure = vc.dropTFUponFailure;
     p.nIterations = vc.nIterations;
-    p.deltaRof = vc.deltaRof;
     p.trackletSigma = vc.trackletSigma;
     p.maxZPositionAllowed = vc.maxZPositionAllowed;
     p.clusterContributorsCut = vc.clusterContributorsCut;
