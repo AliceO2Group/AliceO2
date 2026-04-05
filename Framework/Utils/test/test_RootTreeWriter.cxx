@@ -224,10 +224,14 @@ TEST_CASE("test_RootTreeWriter")
     {InputSpec{"input8", "TST", "SRLZDVEC"}, 7, "input8", 0},  //
   };
 
-  auto getter = [&store](size_t i) -> DataRef {
-    return DataRef{nullptr, static_cast<char const*>(store[2 * i]->GetData()), static_cast<char const*>(store[2 * i + 1]->GetData())};
-  };
-  InputSpan span{getter, store.size() / 2};
+  InputSpan span{
+    [](size_t) -> size_t { return 1; },
+    nullptr,
+    [&store](size_t i, DataRefIndices idx) -> DataRef {
+      return DataRef{nullptr, static_cast<char const*>(store[2 * i + idx.headerIdx]->GetData()), static_cast<char const*>(store[2 * i + idx.payloadIdx]->GetData())};
+    },
+    [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
+    store.size() / 2};
   ServiceRegistry registry;
   InputRecord inputs{
     schema,

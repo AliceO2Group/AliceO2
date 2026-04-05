@@ -12,6 +12,7 @@
 #define FRAMEWORK_DATAREF_H
 
 #include <cstddef> // for size_t
+#include <compare>
 
 namespace o2
 {
@@ -27,6 +28,15 @@ struct DataRef {
   const char* header = nullptr;
   const char* payload = nullptr;
   size_t payloadSize = 0;
+};
+
+/// Raw indices into the message vector for one (header, payload) pair.
+/// Kept in a lightweight header so InputSpan can use it without pulling in FairMQ.
+struct DataRefIndices {
+  size_t headerIdx;
+  size_t payloadIdx;
+  bool operator==(const DataRefIndices&) const = default;
+  auto operator<=>(const DataRefIndices&) const = default;
 };
 
 } // namespace framework

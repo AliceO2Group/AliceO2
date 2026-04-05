@@ -122,7 +122,7 @@ void Dispatcher::run(ProcessingContext& ctx)
 
   for (auto inputIt = ctx.inputs().begin(); inputIt != ctx.inputs().end(); inputIt++) {
 
-    const DataRef& firstPart = inputIt.getByPos(0);
+    const DataRef& firstPart = *inputIt;
     if (firstPart.header == nullptr) {
       continue;
     }

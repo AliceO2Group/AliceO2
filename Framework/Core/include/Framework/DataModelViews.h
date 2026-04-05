@@ -16,6 +16,7 @@
 #include "DomainInfoHeader.h"
 #include "SourceInfoHeader.h"
 #include "Headers/DataHeader.h"
+#include "Framework/DataRef.h"
 #include "Framework/TimesliceSlot.h"
 #include <ranges>
 #include <span>
@@ -80,10 +81,7 @@ struct count_parts {
   }
 };
 
-struct DataRefIndices {
-  size_t headerIdx;
-  size_t payloadIdx;
-};
+// DataRefIndices is defined in Framework/DataRef.h
 
 struct get_pair {
   size_t pairId;

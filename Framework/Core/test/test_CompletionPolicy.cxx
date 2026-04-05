@@ -55,7 +55,12 @@ TEST_CASE("TestCompletionPolicy_callback")
   std::vector<CompletionPolicy> policies{
     {"test", matcher, callback}};
   CompletionPolicy::InputSetElement ref{nullptr, reinterpret_cast<const char*>(stack.data()), nullptr};
-  InputSpan const& inputs{[&ref](size_t) { return ref; }, 1};
+  InputSpan const inputs{
+    [](size_t) -> size_t { return 1; },
+    nullptr,
+    [&ref](size_t, DataRefIndices) -> DataRef { return ref; },
+    [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
+    1};
   std::vector<InputSpec> specs;
   ServiceRegistryRef servicesRef{services};
   for (auto& policy : policies) {

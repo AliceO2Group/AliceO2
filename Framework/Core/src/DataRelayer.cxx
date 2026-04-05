@@ -212,18 +212,6 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       };
 
       auto partial = getPartialRecord(ti);
-      // TODO: get the data ref from message model
-      auto getter = [&partial](size_t idx, size_t part) {
-        if (!partial[idx].empty() && (partial[idx] | get_header{part}).get()) {
-          auto header = (partial[idx] | get_header{part}).get();
-          auto payload = (partial[idx] | get_payload{part, 0}).get();
-          return DataRef{nullptr,
-                         reinterpret_cast<const char*>(header->GetData()),
-                         reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
-                         payload ? payload->GetSize() : 0};
-        }
-        return DataRef{};
-      };
       auto nPartsGetter = [&partial](size_t idx) {
         return partial[idx] | count_parts{};
       };
@@ -231,7 +219,24 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         auto& header = static_cast<const fair::mq::shmem::Message&>(*(partial[idx] | get_header{0}));
         return header.GetRefCount();
       };
-      InputSpan span{getter, nPartsGetter, refCountGetter, static_cast<size_t>(partial.size())};
+      auto indicesGetter = [&partial](size_t idx, DataRefIndices indices) -> DataRef {
+        if (!partial[idx].empty()) {
+          auto const& headerMsg = partial[idx][indices.headerIdx];
+          auto const& payloadMsg = partial[idx][indices.payloadIdx];
+          if (headerMsg) {
+            return DataRef{nullptr,
+                           reinterpret_cast<const char*>(headerMsg->GetData()),
+                           payloadMsg ? reinterpret_cast<char const*>(payloadMsg->GetData()) : nullptr,
+                           payloadMsg ? payloadMsg->GetSize() : 0};
+          }
+        }
+        return DataRef{};
+      };
+      auto nextIndicesGetter = [&partial](size_t idx, DataRefIndices current) -> DataRefIndices {
+        auto next = partial[idx] | get_next_pair{current};
+        return next.headerIdx < partial[idx].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
+      };
+      InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, static_cast<size_t>(partial.size())};
       // Setup the input span
 
       if (expirator.checker(services, timestamp.value, span) == false) {
@@ -789,18 +794,6 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
     }
     auto partial = getPartialRecord(li);
-    // TODO: get the data ref from message model
-    auto getter = [&partial](size_t idx, size_t part) {
-      if (!partial[idx].empty() && (partial[idx] | get_header{part}).get()) {
-        auto header = (partial[idx] | get_header{part}).get();
-        auto payload = (partial[idx] | get_payload{part, 0}).get();
-        return DataRef{nullptr,
-                       reinterpret_cast<const char*>(header->GetData()),
-                       reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
-                       payload ? payload->GetSize() : 0};
-      }
-      return DataRef{};
-    };
     auto nPartsGetter = [&partial](size_t idx) {
       return partial[idx] | count_parts{};
     };
@@ -808,7 +801,24 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       auto& header = static_cast<const fair::mq::shmem::Message&>(*(partial[idx] | get_header{0}));
       return header.GetRefCount();
     };
-    InputSpan span{getter, nPartsGetter, refCountGetter, static_cast<size_t>(partial.size())};
+    auto indicesGetter = [&partial](size_t idx, DataRefIndices indices) -> DataRef {
+      if (!partial[idx].empty()) {
+        auto const& headerMsg = partial[idx][indices.headerIdx];
+        auto const& payloadMsg = partial[idx][indices.payloadIdx];
+        if (headerMsg) {
+          return DataRef{nullptr,
+                         reinterpret_cast<const char*>(headerMsg->GetData()),
+                         payloadMsg ? reinterpret_cast<char const*>(payloadMsg->GetData()) : nullptr,
+                         payloadMsg ? payloadMsg->GetSize() : 0};
+        }
+      }
+      return DataRef{};
+    };
+    auto nextIndicesGetter = [&partial](size_t idx, DataRefIndices current) -> DataRefIndices {
+      auto next = partial[idx] | get_next_pair{current};
+      return next.headerIdx < partial[idx].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
+    };
+    InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, static_cast<size_t>(partial.size())};
     CompletionPolicy::CompletionOp action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
 
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
