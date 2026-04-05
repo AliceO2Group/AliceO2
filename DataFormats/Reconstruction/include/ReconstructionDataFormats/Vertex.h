@@ -152,7 +152,10 @@ class Vertex : public VertexBase
   std::string asString() const;
 #endif
 
-  GPUd() ushort getNContributors() const { return mNContributors; }
+  GPUd() ushort getNContributors() const
+  {
+    return mNContributors;
+  }
   GPUd() void setNContributors(ushort v) { mNContributors = v; }
   GPUd() void addContributor() { mNContributors++; }
 
@@ -184,12 +187,26 @@ namespace detail
 {
 template <typename T>
 concept Streamable = requires(std::ostream& os, const T& a) {
-  { os << a } -> std::same_as<std::ostream&>;
+  {
+    os << a
+  }
+  -> std::same_as<std::ostream&>;
 };
 
 template <typename T>
 concept HasFormattableTimeStamp = requires(const T& t) {
-  { fmt::format("{}", t.getTimeStamp()) } -> std::convertible_to<std::string>;
+  {
+    fmt::format("{}", t.getTimeStamp())
+  }
+  -> std::convertible_to<std::string>;
+};
+
+template <typename T>
+concept HasFormattableTimeStampWithError = requires(const T& t) {
+  {
+    fmt::format("{}+-{}", t.getTimeStamp(), t.getTimeStampError())
+  }
+  -> std::convertible_to<std::string>;
 };
 } // namespace detail
 
@@ -201,6 +218,8 @@ inline std::string Vertex<Stamp>::asString() const
       std::ostringstream oss;
       oss << mTimeStamp;
       return oss.str();
+    } else if constexpr (detail::HasFormattableTimeStampWithError<Stamp>) {
+      return fmt::format("{}+-{}", mTimeStamp.getTimeStamp(), mTimeStamp.getTimeStampError());
     } else if constexpr (detail::HasFormattableTimeStamp<Stamp>) {
       return fmt::format("{}", mTimeStamp.getTimeStamp());
     } else {
