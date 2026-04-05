@@ -108,6 +108,8 @@ struct TimeFrame {
 
   float getBeamX() const { return mBeamPos[0]; }
   float getBeamY() const { return mBeamPos[1]; }
+  std::array<float, 2>& getBeamXY() { return mBeamPos; }
+
   auto& getMinRs() { return mMinR; }
   auto& getMaxRs() { return mMaxR; }
   float getMinR(int layer) const { return mMinR[layer]; }
@@ -230,7 +232,6 @@ struct TimeFrame {
   gsl::span<int> getExclusiveNTrackletsCluster(int rofId, int combId);
   uint32_t getTotalTrackletsTF(const int iLayer) { return mTotalTracklets[iLayer]; }
   int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
-  std::array<float, 2>& getBeamXY() { return mBeamPos; }
   // \Vertexer
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }

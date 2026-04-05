@@ -31,12 +31,15 @@ struct Line final {
 
   Line() = default;
   Line(const Tracklet&, const Cluster*, const Cluster*);
+  bool operator==(const Line&) const = default;
 
+  static float getDistance2FromPoint(const Line& line, const std::array<float, 3>& point);
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   static SMatrix3f getDCAComponents(const Line& line, const std::array<float, 3>& point);
+  static float getDCA2(const Line&, const Line&, const float precision = constants::Tolerance);
   static float getDCA(const Line&, const Line&, const float precision = constants::Tolerance);
   bool isEmpty() const noexcept;
-  bool operator==(const Line&) const = default;
+  void print() const;
 
   SVector3f originPoint;
   SVector3f cosinesDirector;

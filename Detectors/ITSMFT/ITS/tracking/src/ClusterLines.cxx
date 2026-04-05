@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
+#include "Framework/Logger.h"
 #include "ITStracking/ClusterLines.h"
 
 namespace o2::its
@@ -27,16 +28,21 @@ Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster
   cosinesDirector /= std::sqrt(ROOT::Math::Dot(cosinesDirector, cosinesDirector));
 }
 
-float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
+float Line::getDistance2FromPoint(const Line& line, const std::array<float, 3>& point)
 {
   const SVector3f p(point.data(), 3);
   const SVector3f delta = p - line.originPoint;
   const float proj = ROOT::Math::Dot(delta, line.cosinesDirector);
   const SVector3f residual = delta - proj * line.cosinesDirector;
-  return std::sqrt(ROOT::Math::Dot(residual, residual));
+  return ROOT::Math::Dot(residual, residual);
 }
 
-float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
+float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
+{
+  return std::sqrt(getDistance2FromPoint(line, point));
+}
+
+float Line::getDCA2(const Line& firstLine, const Line& secondLine, const float precision)
 {
   const SVector3f n = ROOT::Math::Cross(firstLine.cosinesDirector, secondLine.cosinesDirector);
   const float norm2 = ROOT::Math::Dot(n, n);
@@ -46,11 +52,17 @@ float Line::getDCA(const Line& firstLine, const Line& secondLine, const float pr
     const SVector3f d = secondLine.originPoint - firstLine.originPoint;
     const float proj = ROOT::Math::Dot(d, firstLine.cosinesDirector);
     const SVector3f residual = d - proj * firstLine.cosinesDirector;
-    return std::sqrt(ROOT::Math::Dot(residual, residual));
+    return ROOT::Math::Dot(residual, residual);
   }
 
   const SVector3f delta = secondLine.originPoint - firstLine.originPoint;
-  return std::abs(ROOT::Math::Dot(delta, n)) / std::sqrt(norm2);
+  const float numerator = ROOT::Math::Dot(delta, n);
+  return (numerator * numerator) / norm2;
+}
+
+float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
+{
+  return std::sqrt(getDCA2(firstLine, secondLine, precision));
 }
 
 Line::SMatrix3f Line::getDCAComponents(const Line& line, const std::array<float, 3>& point)
@@ -75,6 +87,14 @@ bool Line::isEmpty() const noexcept
 {
   return ROOT::Math::Dot(originPoint, originPoint) == 0.f &&
          ROOT::Math::Dot(cosinesDirector, cosinesDirector) == 0.f;
+}
+
+void Line::print() const
+{
+  LOGP(info, "\tLine: originPoint = ({}, {}, {}), cosinesDirector = ({}, {}, {}) ts={}+-{}",
+       originPoint(0), originPoint(1), originPoint(2),
+       cosinesDirector(0), cosinesDirector(1), cosinesDirector(2),
+       mTime.getTimeStamp(), mTime.getTimeStampError());
 }
 
 // Accumulate the weighted normal equation contributions (A matrix and B vector)
@@ -124,8 +144,8 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   mRMS2 += (tmpRMS2 - mRMS2) * (1.f / static_cast<float>(getSize()));
 
   // AvgDistance2
-  mAvgDistance2 = Line::getDistanceFromPoint(firstLine, mVertex) * Line::getDistanceFromPoint(firstLine, mVertex);
-  mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / (float)getSize();
+  mAvgDistance2 = Line::getDistance2FromPoint(firstLine, mVertex);
+  mAvgDistance2 += (Line::getDistance2FromPoint(secondLine, mVertex) - mAvgDistance2) / (float)getSize();
 }
 
 void ClusterLines::add(const int lineLabel, const Line& line)
@@ -135,7 +155,7 @@ void ClusterLines::add(const int lineLabel, const Line& line)
 
   accumulate(line);
   computeClusterCentroid();
-  mAvgDistance2 += (Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex) - mAvgDistance2) / (float)getSize();
+  mAvgDistance2 += (Line::getDistance2FromPoint(line, mVertex) - mAvgDistance2) / (float)getSize();
 }
 
 void ClusterLines::computeClusterCentroid()

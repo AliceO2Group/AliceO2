@@ -981,7 +981,6 @@ void TrackerTraits<NLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>
     LOGP(info, "Setting tracker with {} threads.", n);
   } else {
     mTaskArena = arena;
-    LOGP(info, "Attaching tracker to calling thread's arena");
   }
 #endif
 }
