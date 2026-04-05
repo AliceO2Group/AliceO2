@@ -41,8 +41,10 @@ struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstC
   int randomSeed = 0;                 /// 0 - do not seet seed, >0 : set as is, <0 : use current time
   bool preferTriggered = true;        /// prefer ROFs with highest number of physics triggers
 
-  bool isMultCutRequested() const { return cutMultClusLow >= 0.f && cutMultClusHigh > 0.f; };
-  bool isVtxMultCutRequested() const { return cutMultVtxLow >= 0.f && cutMultVtxHigh > 0.f; };
+  bool isMultCutRequested() const noexcept { return cutMultClusLow >= 0.f && cutMultClusHigh > 0.f; };
+  bool isVtxMultCutRequested() const noexcept { return cutMultVtxLow >= 0.f && cutMultVtxHigh > 0.f; };
+  bool isRandCutRequested() const noexcept { return cutRandomFraction >= 0.; }
+  bool isRequested() const noexcept { return isMultCutRequested() || isVtxMultCutRequested() || isRandCutRequested(); }
   bool isPassingRandomRejection() const;
   bool isPassingMultCut(float mult) const { return mult >= cutMultClusLow && (mult <= cutMultClusHigh || cutMultClusHigh <= 0.f); }
   bool isPassingVtxMultCut(int mult) const { return mult >= cutMultVtxLow && (mult <= cutMultVtxHigh || cutMultVtxHigh <= 0.f); }

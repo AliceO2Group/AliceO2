@@ -23,7 +23,6 @@
 #include <format>
 #include <cstdlib>
 #include <string>
-#include <climits>
 
 namespace o2::its
 {
@@ -67,7 +66,7 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       mMemoryPool->print();
       mTimeFrame->wipe();
       ++mNumberOfDroppedTFs;
-      error("...Dropping Timeframe...");
+      error(std::format("...Dropping TimeSlice {} (out of {} dropped {})...", mTimeSlice, mTimeFrameCounter, mNumberOfDroppedTFs));
     } else {
       throw err;
     }
@@ -104,7 +103,7 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       }
     }
     if constexpr (constants::DoTimeBenchmarks) {
-      logger(std::format("=== TimeFrame {} processing completed in: {:.2f} ms using {} thread(s) ===", mTimeFrameCounter, total, mTraits->getNThreads()));
+      logger(std::format("=== TimeSlice {} processing completed in: {:.2f} ms using {} thread(s) ===", mTimeSlice, total, mTraits->getNThreads()));
     }
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
     handleException(err);

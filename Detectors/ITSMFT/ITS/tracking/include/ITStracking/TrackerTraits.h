@@ -60,7 +60,6 @@ class TrackerTraits
 
   virtual void setBz(float bz);
   float getBz() const { return mBz; }
-  bool isMatLUT() const;
   virtual const char* getName() const noexcept { return "CPU"; }
   virtual bool isGPU() const noexcept { return false; }
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) noexcept { mMemoryPool = pool; }

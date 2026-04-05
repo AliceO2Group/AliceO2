@@ -62,7 +62,7 @@ class Tracker
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
   std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
   void setBz(float bz) { mTraits->setBz(bz); }
-  bool isMatLUT() const { return mTraits->isMatLUT(); }
+  void setTimeSlice(size_t slice) noexcept { mTimeSlice = slice; }
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
   void printSummary() const;
   void computeTracksMClabels();
@@ -86,6 +86,7 @@ class Tracker
   std::vector<TrackingParameters> mTrkParams;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
+  size_t mTimeSlice{0}; // current timeslice
   unsigned int mNumberOfDroppedTFs{0};
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0};

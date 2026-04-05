@@ -971,12 +971,6 @@ void TrackerTraits<NLayers>::setBz(float bz)
 }
 
 template <int NLayers>
-bool TrackerTraits<NLayers>::isMatLUT() const
-{
-  return o2::base::Propagator::Instance()->getMatLUT() && (mTrkParams[0].CorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
-}
-
-template <int NLayers>
 void TrackerTraits<NLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena)
 {
 #if defined(OPTIMISATION_OUTPUT)

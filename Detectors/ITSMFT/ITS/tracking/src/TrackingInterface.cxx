@@ -124,10 +124,11 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
 
+  const auto& tfInfo = pc.services().get<o2::framework::TimingInfo>();
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
   std::vector<o2::itsmft::PhysTrigger> fromTRD;
   if (mUseTriggers == 2) { // use TRD triggers
-    o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
+    o2::InteractionRecord ir{0, tfInfo.firstTForbit};
     auto trdTriggers = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("phystrig");
     for (const auto& trig : trdTriggers) {
       if (trig.getBCData() >= ir && trig.getNumberOfTracklets()) {
@@ -166,6 +167,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   }
 
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
+  mTracker->setTimeSlice(tfInfo.timeslice);
 
   for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
     gsl::span<const unsigned char>::iterator pattIt = patterns[iLayer].begin();
@@ -177,9 +179,8 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto errorLogger = [&](const std::string& s) { LOG(error) << s; };
 
   FastMultEst multEst; // mult estimator
-  const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
   o2::its::ROFMaskTable<NLayers> processMultiplictyMask{mTimeFrame->getROFOverlapTable()}, processUPCMask{mTimeFrame->getROFOverlapTable()};
-  multEst.selectROFs(rofsinput, compClusters, physTriggers, firstTForbit, mDoStaggering, mTimeFrame->getROFOverlapTableView(), processMultiplictyMask);
+  multEst.selectROFs(rofsinput, compClusters, physTriggers, tfInfo.firstTForbit, mDoStaggering, mTimeFrame->getROFOverlapTableView(), processMultiplictyMask);
   mTimeFrame->setMultiplicityCutMask(processMultiplictyMask);
   for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
     mTimeFrame->getROFMaskView().print(iLayer);
@@ -272,13 +273,12 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       // the number of ROFs does not necessarily reflect the actual ROFs
       // due to possible delay of other layers, however it is guaranteed to be >=0
       // tracks are guaranteed to be sorted here by their lower edge
-      const auto firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
       const auto& clock = mTimeFrame->getROFOverlapTableView().getClock();
       const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
       auto setBCData = [&](auto& rofs) {
         for (size_t iROF{0}; iROF < rofs.size(); ++iROF) { // set BC data
           auto& rof = rofs[iROF];
-          int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + firstTForbit;
+          int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + tfInfo.firstTForbit;
           int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
           o2::InteractionRecord ir(bc, orb);
           rof.setBCData(ir);
@@ -373,15 +373,23 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
     initialise();
 
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // print settings only for the 1st pipeling
-      o2::its::FastMultEstConfig::Instance().printKeyValues(true, true);
-      o2::its::VertexerParamConfig::Instance().printKeyValues(true, true);
-      o2::its::TrackerParamConfig::Instance().printKeyValues(true, true);
+      // print all used settings
+      if (o2::its::FastMultEstConfig::Instance().isRequested()) {
+        o2::its::FastMultEstConfig::Instance().printKeyValues(true, true);
+      }
       const auto& vtxParams = mVertexer->getParameters();
+      if (!vtxParams.empty()) {
+        o2::its::VertexerParamConfig::Instance().printKeyValues(true, true);
+      }
+      const auto& trParams = mTracker->getParameters();
+      if (!trParams.empty()) {
+        o2::its::TrackerParamConfig::Instance().printKeyValues(true, true);
+      }
+      // quick summary
       for (size_t it = 0; it < vtxParams.size(); it++) {
         const auto& par = vtxParams[it];
         LOGP(info, "vtxIter#{} : {}", it, par.asString());
       }
-      const auto& trParams = mTracker->getParameters();
       for (size_t it = 0; it < trParams.size(); it++) {
         const auto& par = trParams[it];
         LOGP(info, "recoIter#{} : {}", it, par.asString());
@@ -396,7 +404,12 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
     const auto& trackParams = mTracker->getParameters();
     for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
       const unsigned int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
-      const LayerTiming timing{.mNROFsTF = (nROFsPerOrbit * nOrbitsPerTF), .mROFLength = (uint32_t)par.getROFLengthInBC(iLayer), .mROFDelay = (uint32_t)par.getROFDelayInBC(iLayer), .mROFBias = (uint32_t)par.getROFBiasInBC(iLayer), .mROFAddTimeErr = (trackParams.empty() ? 0 : trackParams[0].AddTimeError[iLayer])};
+      const LayerTiming timing{
+        .mNROFsTF = (nROFsPerOrbit * nOrbitsPerTF),
+        .mROFLength = (uint32_t)par.getROFLengthInBC(iLayer),
+        .mROFDelay = (uint32_t)par.getROFDelayInBC(iLayer),
+        .mROFBias = (uint32_t)par.getROFBiasInBC(iLayer),
+        .mROFAddTimeErr = (trackParams.empty() ? o2::its::TrackerParamConfig::Instance().addTimeError[iLayer] : trackParams[0].AddTimeError[iLayer])};
       rofTable.defineLayer(iLayer, timing);
       vtxTable.defineLayer(iLayer, timing);
     }
