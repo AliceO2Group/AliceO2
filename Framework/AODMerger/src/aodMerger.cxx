@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
   long maxDirSize = 100000000;
   bool skipNonExistingFiles = false;
   bool skipParentFilesList = false;
+  bool mergeByName = false;
   int verbosity = 2;
   int exitCode = 0; // 0: success, >0: failure
   int compression = 505;
@@ -50,6 +51,7 @@ int main(int argc, char* argv[])
     {"skip-non-existing-files", no_argument, nullptr, 3},
     {"skip-parent-files-list", no_argument, nullptr, 4},
     {"compression", required_argument, nullptr, 5},
+    {"merge-by-name", no_argument, nullptr, 6},
     {"verbosity", required_argument, nullptr, 'v'},
     {"help", no_argument, nullptr, 'h'},
     {nullptr, 0, nullptr, 0}};
@@ -70,6 +72,8 @@ int main(int argc, char* argv[])
       skipParentFilesList = true;
     } else if (c == 5) {
       compression = atoi(optarg);
+    } else if (c == 6) {
+      mergeByName = true;
     } else if (c == 'v') {
       verbosity = atoi(optarg);
     } else if (c == 'h') {
@@ -80,6 +84,7 @@ int main(int argc, char* argv[])
       printf("  --skip-non-existing-files    Flag to allow skipping of non-existing files in the input list.\n");
       printf("  --skip-parent-files-list     Flag to allow skipping the merging of the parent files list.\n");
       printf("  --compression <root compression id>  Compression algorithm / level to use (default: %d)\n", compression);
+      printf("  --merge-by-name              Only merge TTrees from folders with the same name.\n");
       printf("  --verbosity <flag>           Verbosity of output (default: %d).\n", verbosity);
       return -1;
     } else {
@@ -93,6 +98,9 @@ int main(int argc, char* argv[])
   printf("  Maximal folder size (uncompressed): %ld\n", maxDirSize);
   if (skipNonExistingFiles) {
     printf("  WARNING: Skipping non-existing files.\n");
+  }
+  if (mergeByName) {
+    printf("  Merging only folders with the same name.\n");
   }
 
   std::map<std::string, TTree*> trees;
@@ -112,6 +120,28 @@ int main(int argc, char* argv[])
   TMap* parentFiles = nullptr;
   int totalMergedDFs = 0;
   int mergedDFs = 0;
+
+  // Write all accumulated trees to outputDir, update stats, and clean up state.
+  auto flushTrees = [&](bool resetState) {
+    if (!outputDir) {
+      return;
+    }
+    for (auto const& tree : trees) {
+      outputDir->cd();
+      tree.second->Write();
+      sizeCompressed[tree.first] += tree.second->GetZipBytes();
+      sizeUncompressed[tree.first] += tree.second->GetTotBytes();
+      delete tree.second;
+    }
+    if (resetState) {
+      outputDir = nullptr;
+      trees.clear();
+      offsets.clear();
+      mergedDFs = 0;
+      currentDirSize = 0;
+    }
+  };
+
   while (in.good() && exitCode == 0) {
     in >> line;
 
@@ -181,6 +211,14 @@ int main(int argc, char* argv[])
       }
 
       auto dfName = ((TObjString*)key1)->GetString().Data();
+
+      // If merge-by-name is active, flush accumulated trees when the folder name changes
+      if (mergeByName && outputDir && std::string(outputDir->GetName()) != std::string(dfName)) {
+        if (verbosity > 0) {
+          printf("Folder name changed: closing folder %s.\n", outputDir->GetName());
+        }
+        flushTrees(true);
+      }
 
       if (verbosity > 0) {
         printf("  Processing folder %s\n", dfName);
@@ -396,21 +434,7 @@ int main(int argc, char* argv[])
         if (verbosity > 0) {
           printf("Maximum size reached: %ld. Closing folder %s.\n", currentDirSize, dfName);
         }
-        for (auto const& tree : trees) {
-          // printf("Writing %s\n", tree.first.c_str());
-          outputDir->cd();
-          tree.second->Write();
-
-          // stats
-          sizeCompressed[tree.first] += tree.second->GetZipBytes();
-          sizeUncompressed[tree.first] += tree.second->GetTotBytes();
-
-          delete tree.second;
-        }
-        outputDir = nullptr;
-        trees.clear();
-        offsets.clear();
-        mergedDFs = 0;
+        flushTrees(true);
       }
     }
     inputFile->Close();
@@ -421,16 +445,7 @@ int main(int argc, char* argv[])
     parentFiles->Write("parentFiles", TObject::kSingleKey);
   }
 
-  for (auto const& tree : trees) {
-    outputDir->cd();
-    tree.second->Write();
-
-    // stats
-    sizeCompressed[tree.first] += tree.second->GetZipBytes();
-    sizeUncompressed[tree.first] += tree.second->GetTotBytes();
-
-    delete tree.second;
-  }
+  flushTrees(false);
 
   outputFile->Write();
   outputFile->Close();

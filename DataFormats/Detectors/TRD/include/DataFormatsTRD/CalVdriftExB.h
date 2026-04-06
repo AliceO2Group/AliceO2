@@ -41,7 +41,7 @@ class CalVdriftExB
     if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
       return mVdrift[iDet];
     else {
-      if (TMath::Abs(mMeanVdrift + 999.) < 1e-6)
+      if (std::fabs(mMeanVdrift + 999.) < 1e-6)
         mMeanVdrift = getAverageVdrift();
       return mMeanVdrift;
     }
@@ -51,7 +51,7 @@ class CalVdriftExB
     if (!defaultAvg || (isGoodExB(iDet) && isGoodVdrift(iDet)))
       return mExB[iDet];
     else {
-      if (TMath::Abs(mMeanExB + 999.) < 1e-6)
+      if (std::fabs(mMeanExB + 999.) < 1e-6)
         mMeanExB = getAverageExB();
       return mMeanExB;
     }
@@ -102,9 +102,9 @@ class CalVdriftExB
     // check if value is well calibrated or not
     // default calibration if not enough entries
     // close to boundaries indicate a failed fit
-    if (TMath::Abs(mExB[iDet] - constants::EXBDEFAULT) > 1e-6 &&
-        TMath::Abs(mExB[iDet] - constants::EXBMIN) > 0.01 &&
-        TMath::Abs(mExB[iDet] - constants::EXBMAX) > 0.01)
+    if (std::fabs(mExB[iDet] - constants::EXBDEFAULT) > 1e-6 &&
+        std::fabs(mExB[iDet] - constants::EXBMIN) > 0.01 &&
+        std::fabs(mExB[iDet] - constants::EXBMAX) > 0.01)
       return true;
     else
       return false;
@@ -115,9 +115,9 @@ class CalVdriftExB
     // check if value is well calibrated or not
     // default calibration if not enough entries
     // close to boundaries indicate a failed fit
-    if (TMath::Abs(mVdrift[iDet] - constants::VDRIFTDEFAULT) > 1e-6 &&
-        TMath::Abs(mVdrift[iDet] - constants::VDRIFTMIN) > 0.1 &&
-        TMath::Abs(mVdrift[iDet] - constants::VDRIFTMAX) > 0.1)
+    if (std::fabs(mVdrift[iDet] - constants::VDRIFTDEFAULT) > 1e-6 &&
+        std::fabs(mVdrift[iDet] - constants::VDRIFTMIN) > 0.1 &&
+        std::fabs(mVdrift[iDet] - constants::VDRIFTMAX) > 0.1)
       return true;
     else
       return false;

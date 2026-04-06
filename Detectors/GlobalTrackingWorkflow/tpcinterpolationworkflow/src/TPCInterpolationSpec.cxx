@@ -206,7 +206,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
     AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, srcTrk, srcTrkMap, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid)},
     Options{
       {"matCorrType", VariantType::Int, 2, {"material correction type (definition in Propagator.h)"}},
-      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
+      {"sec-per-slot", VariantType::UInt32, 300u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
       {"process-seeds", VariantType::Bool, false, {"do not remove duplicates, e.g. for ITS-TPC-TRD track also process its seeding ITS-TPC part"}}}};
 }
 

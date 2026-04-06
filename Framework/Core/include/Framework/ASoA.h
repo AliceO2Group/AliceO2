@@ -1176,12 +1176,6 @@ struct TableIterator : IP, C... {
     return *this;
   }
 
-  template <typename... CL, typename TA>
-  void doSetCurrentIndex(framework::pack<CL...>, TA* current)
-  {
-    (CL::setCurrent(current), ...);
-  }
-
   template <typename CL>
   auto getCurrent() const
   {
@@ -1202,7 +1196,18 @@ struct TableIterator : IP, C... {
   template <typename... TA>
   void bindExternalIndices(TA*... current)
   {
-    (doSetCurrentIndex(external_index_columns_t{}, current), ...);
+    ([this]<soa::is_index_column... CCs>(TA* cur, framework::pack<CCs...>) {
+      (CCs::setCurrent(cur), ...);
+    }(current, external_index_columns_t{}),
+     ...);
+  }
+
+  template <typename TA>
+  void bindExternalIndex(TA* current)
+  {
+    [this]<soa::is_index_column... CCs>(TA* cur, framework::pack<CCs...>) {
+      (CCs::setCurrent(cur), ...);
+    }(current, external_index_columns_t{});
   }
 
   template <typename... Cs>
@@ -1812,6 +1817,12 @@ consteval auto computeOriginals()
   return o2::soa::mergeOriginals<Ts...>();
 }
 
+template <size_t N, std::array<TableRef, N> refs>
+consteval auto commonOrigin()
+{
+  return (refs | std::ranges::views::filter([](TableRef const& r) { return (!(r.origin_hash == "DYN"_h || r.origin_hash == "IDX"_h)); })).front().origin_hash;
+}
+
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
 template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typename... Ts>
@@ -1823,7 +1834,10 @@ class Table
   using table_t = self_t;
 
   static constexpr const auto originals = computeOriginals<ref, Ts...>();
-  static constexpr const auto originalLabels = []<size_t N, std::array<TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) { return std::array<const char*, N>{o2::aod::label<refs[Is]>()...}; }.template operator()<originals.size(), originals>(std::make_index_sequence<originals.size()>());
+  static constexpr const auto originalLabels = []<size_t N, std::array<TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) {
+    return std::array<const char*, N>{o2::aod::label<refs[Is]>()...};
+  }.template operator()<originals.size(), originals>(std::make_index_sequence<originals.size()>());
+  static constexpr const uint32_t binding_origin = commonOrigin<originals.size(), originals>();
 
   template <size_t N, std::array<TableRef, N> bindings>
     requires(ref.origin_hash == "CONC"_h)
@@ -1836,10 +1850,10 @@ class Table
     requires(ref.origin_hash == "JOIN"_h)
   static consteval auto isIndexTargetOf()
   {
-    return std::find_if(self_t::originals.begin(), self_t::originals.end(),
-                        [](TableRef const& r) {
-                          return std::find(bindings.begin(), bindings.end(), r) != bindings.end();
-                        }) != self_t::originals.end();
+    return std::ranges::find_if(self_t::originals,
+                                [](TableRef const& r) {
+                                  return std::ranges::find(bindings, r) != bindings.end();
+                                }) != self_t::originals.end();
   }
 
   template <size_t N, std::array<TableRef, N> bindings>
@@ -2179,7 +2193,18 @@ class Table
   template <typename... TA>
   void bindExternalIndices(TA*... current)
   {
-    mBegin.bindExternalIndices(current...);
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        mBegin.bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
+
+  template <typename TA>
+  void bindExternalIndex(TA* current)
+  {
+    mBegin.bindExternalIndex(current); // unchecked binding for the derived tables
   }
 
   template <typename I>
@@ -3395,6 +3420,18 @@ struct JoinFull : Table<o2::aod::Hash<"JOIN"_h>, D, o2::aod::Hash<"JOIN"_h>, Ts.
   }
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
+  static constexpr const uint32_t binding_origin = base::binding_origin;
+
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        this->bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
 
   using self_t = JoinFull<D, Ts...>;
   using table_t = base;
@@ -3524,6 +3561,18 @@ class FilteredBase : public T
   using self_t = FilteredBase<T>;
   using table_t = typename T::table_t;
   using T::originals;
+  static constexpr const uint32_t binding_origin = T::binding_origin;
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        this->bindExternalIndex(cur);
+        mFilteredBegin.bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
   using columns_t = typename T::columns_t;
   using persistent_columns_t = typename T::persistent_columns_t;
   using external_index_columns_t = typename T::external_index_columns_t;
@@ -3645,13 +3694,6 @@ class FilteredBase : public T
 
   /// Bind the columns which refer to other tables
   /// to the associated tables.
-  template <typename... TA>
-  void bindExternalIndices(TA*... current)
-  {
-    table_t::bindExternalIndices(current...);
-    mFilteredBegin.bindExternalIndices(current...);
-  }
-
   void bindExternalIndicesRaw(std::vector<o2::soa::Binding>&& ptrs)
   {
     mFilteredBegin.bindExternalIndicesRaw(std::forward<std::vector<o2::soa::Binding>>(ptrs));
@@ -4133,6 +4175,19 @@ struct IndexTable : Table<L, D, O> {
   using indexing_t = Key;
   using first_t = typename H::binding_t;
   using rest_t = framework::pack<typename Ts::binding_t...>;
+
+  static constexpr const uint32_t binding_origin = Key::binding_origin;
+
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        this->bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
 
   IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : base_t{table, offset}

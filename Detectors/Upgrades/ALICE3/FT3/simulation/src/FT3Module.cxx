@@ -140,6 +140,9 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
   double bottom_y_pos_value = 0;
   double bottom_y_neg_value = 0;
 
+  double Rin_offset = (sensor_height == 19.2) ? 1 : 0;
+  double Rout_offset = (sensor_height == 19.2) ? 1 : 0;
+
   if (Rin == 7 && sensor_height == 9.6 && sensor_width == 5) {
     x_condition_min = -Rin - 2;
     x_condition_max = Rin;
@@ -198,16 +201,22 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
     x_adjust_bottom_y_pos = 5.5;
     bottom_y_pos_value = 3.5;
     bottom_y_neg_value = -3.5;
+  } else if (Rin == 20 && sensor_height == 9.6 && sensor_width == 5.0) {
+    x_condition_min = -Rin - 4;
+    x_condition_max = Rin;
+    dist_offset = 2;
+    adjust_bottom_y_pos = false;
+    adjust_bottom_y_neg = false;
+    x_adjust_bottom_y_pos = 3.5;
+    bottom_y_pos_value = 3.5;
+    bottom_y_neg_value = -3.5;
   } else {
     LOG(warning) << "Different config - to determine offsets needed for " << "Rin = " << Rin << " ; sensor_height = " << sensor_height << " ; sensor_width = " << sensor_width << " layer " << layerNumber;
-    x_condition_min = -Rin;
+    x_condition_min = -Rin - sensor_width;
     x_condition_max = Rin;
     adjust_bottom_y_pos = false;
     adjust_bottom_y_neg = false;
   }
-
-  double Rin_offset = (sensor_height == 19.2) ? 1 : 0;
-  double Rout_offset = (sensor_height == 19.2) ? 1 : 0;
 
   offset_Rin_lower = Rin - Rin_offset;
   offset_Rin_upper = Rout + Rout_offset;
@@ -235,13 +244,34 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
       justSkipped1 = {0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0};
     }
   } else {
-    // filling for sensors with 2x width, each row skipped
-    if (face == "front") {
-      X_positions = {-63.4, -54.2, -45, -35.8, -26.6, -17.4, -8.2, 1., 10.2, 19.4, 28.6, 37.8, 47., 56.2, 65.4};
-      justSkipped1 = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-    } else if (face == "back") {
-      X_positions = {-58.8, -49.6, -40.4, -31.2, -22, -12.8, -3.6, 5.6, 14.8, 24, 33.2, 42.4, 51.6, 60.8};
-      justSkipped1 = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    if (Rin == 20) { // v3 paving, rough attempt
+      float overlap = 0.3;
+      // NB: these are left edges
+      float X_start = -2.0 - 13.5 * (sensor_width - overlap);
+      float X_start_pos = 2.0 - 0.5 * (sensor_width - overlap);
+      if (face == "back") {
+        X_start += (sensor_width - overlap);
+        X_start_pos += (sensor_width - overlap);
+      }
+      while (X_start < -2) {
+        X_positions.push_back(X_start);
+        justSkipped1.push_back(1);
+        X_start += 2 * (sensor_width - overlap);
+      }
+      while (X_start_pos < Rout + x_offset - sensor_width) {
+        X_positions.push_back(X_start_pos);
+        justSkipped1.push_back(1);
+        X_start_pos += 2 * (sensor_width - overlap);
+      }
+    } else {
+      // filling for sensors with 2x width, each row skipped
+      if (face == "front") {
+        X_positions = {-63.4, -54.2, -45, -35.8, -26.6, -17.4, -8.2, 1., 10.2, 19.4, 28.6, 37.8, 47., 56.2, 65.4};
+        justSkipped1 = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+      } else if (face == "back") {
+        X_positions = {-58.8, -49.6, -40.4, -31.2, -22, -12.8, -3.6, 5.6, 14.8, 24, 33.2, 42.4, 51.6, 60.8};
+        justSkipped1 = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+      }
     }
   }
 

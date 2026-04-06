@@ -28,9 +28,7 @@
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DeliveryType.h"
 
-namespace o2
-{
-namespace dcs
+namespace o2::dcs
 {
 /**
      * DataPointCompositeObject is a composition of a DataPointIdentifier and a
@@ -47,7 +45,7 @@ struct DataPointCompositeObject final {
          *
          * @see ADAPRO::ADAPOS::DataPointIdentifier
          */
-  const DataPointIdentifier id;
+  DataPointIdentifier id;
 
   /**
          * The DataPointValue object, which occupies the last 64 bytes of the
@@ -83,15 +81,9 @@ struct DataPointCompositeObject final {
   /**
          * Copy constructor
          */
-  DataPointCompositeObject(const DataPointCompositeObject& src) noexcept : DataPointCompositeObject(src.id, src.data) {}
+  DataPointCompositeObject(const DataPointCompositeObject& src) noexcept = default;
 
-  DataPointCompositeObject& operator=(const DataPointCompositeObject& src) noexcept
-  {
-    if (&src != this) {
-      memcpy(this, &src, sizeof(DataPointCompositeObject));
-    }
-    return *this;
-  }
+  DataPointCompositeObject& operator=(const DataPointCompositeObject& src) noexcept = default;
 
   /**
          * Bit-by bit equality comparison of DataPointCompositeObjects.
@@ -297,26 +289,6 @@ struct DataPointCompositeObject final {
 template <typename T>
 T getValue(const DataPointCompositeObject& dpcom);
 
-} // namespace dcs
-
-/// Defining DataPointCompositeObject explicitly as messageable
-namespace framework
-{
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::dcs::DataPointCompositeObject> : std::true_type {
-};
-} // namespace framework
-
-} // namespace o2
-
-/// Defining DataPointCompositeObject explicitly as copiable
-namespace std
-{
-template <>
-struct is_trivially_copyable<o2::dcs::DataPointCompositeObject> : std::true_type {
-};
-} // namespace std
+} // namespace o2::dcs
 
 #endif /* O2_DCS_DATAPOINT_COMPOSITE_OBJECT_H */

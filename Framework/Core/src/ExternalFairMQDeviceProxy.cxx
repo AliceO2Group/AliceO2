@@ -1005,7 +1005,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         }
         DataHeader dh;
         dh.dataOrigin = "DPL";
-        dh.dataDescription = "EOS";
+        dh.dataDescription = o2::header::gDataDescriptionEos;
         dh.subSpecification = 0;
         dh.payloadSize = 0;
         dh.runNumber = runNumber;
@@ -1137,7 +1137,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         }
         DataHeader dh;
         dh.dataOrigin = "DPL";
-        dh.dataDescription = "EOS";
+        dh.dataDescription = o2::header::gDataDescriptionEos;
         dh.subSpecification = 0;
         dh.payloadSize = 0;
         dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;

@@ -31,6 +31,8 @@
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "ITSMFTSimulation/AlpideSimResponse.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include "DataFormatsITSMFT/ROFRecord.h"
 
@@ -98,6 +100,15 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
   SegmentationChip seg;
   // seg.Print();
 
+  // MLOT response plane: y = halfThickness - depthMax.
+  float depthMax = (float)o2::trk::constants::apts::thickness; // fallback (no CCDB)
+  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbMgr.setURL("http://alice-ccdb.cern.ch");
+  if (auto* alpResp = ccdbMgr.get<o2::itsmft::AlpideSimResponse>("IT3/Calib/APTSResponse")) {
+    depthMax = alpResp->getDepthMax();
+  }
+  const float yPlaneMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT / 2.f - depthMax;
+  const float yPlaneVD = -o2::trk::SegmentationChip::SiliconThicknessVD; // VD reference plane in local flat y
   // Hits
   TFile* hitFile = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)hitFile->Get("o2sim");
@@ -254,23 +265,40 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
       auto xyzLocE = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
       auto xyzLocS = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
 
-      o2::math_utils::Vector3D<float> locH; /// Hit, average between start and end pos
-      locH.SetCoordinates(0.5f * (xyzLocE.X() + xyzLocS.X()), 0.5f * (xyzLocE.Y() + xyzLocS.Y()), 0.5f * (xyzLocE.Z() + xyzLocS.Z()));
+      // Hit local reference: Both VD and MLOT use response-plane interpolation (in flat local frame).
+      // For VD, transform curved → flat first, then interpolate.
+      o2::math_utils::Vector3D<float> locH;  /// Hit reference (at response plane)
       o2::math_utils::Vector3D<float> locHS; /// Hit, start pos
       locHS.SetCoordinates(xyzLocS.X(), xyzLocS.Y(), xyzLocS.Z());
       o2::math_utils::Vector3D<float> locHE; /// Hit, end pos
       locHE.SetCoordinates(xyzLocE.X(), xyzLocE.Y(), xyzLocE.Z());
       o2::math_utils::Vector3D<float> locHF;
 
+      if (subDetID == 0) {
+        // VD: Interpolate to VD reference plane in flat frame; apply same r to X and Z
+        auto flatSta = seg.curvedToFlat(layer, locHS.X(), locHS.Y());
+        auto flatEnd = seg.curvedToFlat(layer, locHE.X(), locHE.Y());
+        float x0 = flatSta.X(), y0 = flatSta.Y(), z0 = locHS.Z();
+        float dltx = flatEnd.X() - x0, dlty = flatEnd.Y() - y0, dltz = locHE.Z() - z0;
+        float r = (std::abs(dlty) > 1e-9f) ? (yPlaneVD - y0) / dlty : 0.5f;
+        locH.SetCoordinates(x0 + r * dltx, yPlaneVD, z0 + r * dltz);
+      } else {
+        // MLOT: Interpolate to response plane
+        float x0 = locHS.X(), y0 = locHS.Y(), z0 = locHS.Z();
+        float dltx = locHE.X() - x0, dlty = locHE.Y() - y0, dltz = locHE.Z() - z0;
+        float r = (std::abs(dlty) > 1e-9f) ? (yPlaneMLOT - y0) / dlty : 0.5f;
+        locH.SetCoordinates(x0 + r * dltx, yPlaneMLOT, z0 + r * dltz);
+      }
+
       int row = 0, col = 0;
       float xlc = 0., zlc = 0.;
 
       if (subDetID == 0) {
         Float_t x_flat = 0.f, y_flat = 0.f;
-        o2::math_utils::Vector2D<float> xyFlatH = seg.curvedToFlat(layer, locH.X(), locH.Y());
+        // locH is already in flat frame from interpolation above; convert digit to flat for comparison
         o2::math_utils::Vector2D<float> xyFlatD = seg.curvedToFlat(layer, locD.X(), locD.Y());
         locDF.SetCoordinates(xyFlatD.X(), xyFlatD.Y(), locD.Z());
-        locHF.SetCoordinates(xyFlatH.X(), xyFlatH.Y(), locH.Z());
+        locHF.SetCoordinates(locH.X(), locH.Y(), locH.Z()); // locH already in flat frame
         seg.localToDetector(locHF.X(), locHF.Z(), row, col, subDetID, layer, disk);
       }
 

@@ -215,7 +215,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
       if (chip.isDisabled()) {
         continue;
       }
-      // chip.addNoise(mROFrameMin, mROFrameMin, &mParams);  /// TODO: add noise
+      chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mGeometry->getSubDetID(chip.getChipIndex()), mGeometry->getLayer(chip.getChipIndex())); /// TODO: add noise
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
         continue;

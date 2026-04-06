@@ -145,6 +145,7 @@ uint32_t GPUO2InterfaceUtils::getTpcMaxTimeBinFromNHbf(uint32_t nHbf)
 
 float GPUO2InterfaceUtils::getNominalGPUBzFromCurrent(float l3curr)
 {
+  // Field for the current below 77A is treated as 0.
   float al3curr = CAMath::Abs(l3curr);
-  return (CAMath::Abs(al3curr - 12000) < CAMath::Abs(al3curr - 30000) ? (2.04487f / 12000.f) : (5.00668f / 30000.f)) * l3curr;
+  return al3curr <= 77 ? 0 : ((CAMath::Abs(al3curr - 12000) < CAMath::Abs(al3curr - 30000) ? (2.04487f / 12000.f) : (5.00668f / 30000.f)) * l3curr);
 }

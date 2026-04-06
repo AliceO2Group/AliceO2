@@ -272,8 +272,8 @@ static constexpr double kInclinedWallPhi0_deg = 27.799f;
 static constexpr double kInclinedWallRmax_cm = 4.75f; // 47.5 mm outer extension
 
 // Coldplate specs (cm)
-static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (outer radius)
-static constexpr double kColdplateThickness_cm = 0.15f; // 1.5 mm
+static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (inner radius)
+static constexpr double kColdplateThickness_cm = 0.02f; // 1.5 mm
 static constexpr double kColdplateZ_cm = 50.0f;         // full length
 
 // ========== φ-span helpers (gap/arc → degrees) ==========
@@ -608,8 +608,8 @@ static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals)
 
   // --- Vacuum vessel window around z∈[-L/2, +L/2] with wall thickness on +Z side
   //     Keep these in sync with TRKServices::createVacuumCompositeShape()
-  constexpr double vacuumVesselLength = kPetalZ_cm;       // cm
-  constexpr double vacuumVesselThickness = kWallThick_cm; // cm (0.2 mm)
+  constexpr double vacuumVesselLength = 76.0;             // cm
+  constexpr double vacuumVesselThickness = 0.08;          // cm (0.8 mm)
   const double halfVess = 0.5 * vacuumVesselLength;       // 38.0 cm
   const double gapStart = halfVess;                       // 38.00
   const double gapEnd = halfVess + vacuumVesselThickness; // 38.08

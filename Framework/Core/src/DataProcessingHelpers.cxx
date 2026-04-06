@@ -393,14 +393,14 @@ void DataProcessingHelpers::cleanForwardedMessages(std::span<fair::mq::MessagePt
 }
 
 auto DataProcessingHelpers::routeForwardedMessageSet(FairMQDeviceProxy& proxy,
-                                                     std::vector<MessageSet>& currentSetOfInputs,
+                                                     std::vector<std::vector<fair::mq::MessagePtr>>& currentSetOfInputs,
                                                      const bool copyByDefault, bool consume) -> std::vector<fair::mq::Parts>
 {
   // we collect all messages per forward in a map and send them together
   std::vector<fair::mq::Parts> forwardedParts(proxy.getNumForwardChannels());
 
   for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
-    auto span = std::span<fair::mq::MessagePtr>(currentSetOfInputs[ii].messages);
+    auto span = std::span<fair::mq::MessagePtr>(currentSetOfInputs[ii]);
     routeForwardedMessages(proxy, span, forwardedParts, copyByDefault, consume);
   }
   return forwardedParts;

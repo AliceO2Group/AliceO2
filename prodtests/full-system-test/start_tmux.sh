@@ -12,14 +12,7 @@ if [[ "${FST_RUN_WITHOUT_CHECKS:-0}" != "1" ]]; then
     exit 1
   fi
 
-  # 2. Abort if FMQ shared-memory files exist in /dev/shm
-  if compgen -G "/dev/shm/fmq*" > /dev/null; then
-    echo "ERROR: Found existing /dev/shm/fmq* files." >&2
-    echo "Please clean them manually before running the FST." >&2
-    exit 1
-  fi
-
-  # 3. MI100 check: detect MI100 GPU but EPN_NODE_MI100 not set or set to 0
+  # 2. MI100 check: detect MI100 GPU but EPN_NODE_MI100 not set or set to 0
   if lspci | grep -qi "MI100"; then
     if [[ -z "${EPN_NODE_MI100:-}" || "${EPN_NODE_MI100}" == "0" ]]; then
       echo "ERROR: MI100 GPU detected on this node, but EPN_NODE_MI100 is not set to 1." >&2

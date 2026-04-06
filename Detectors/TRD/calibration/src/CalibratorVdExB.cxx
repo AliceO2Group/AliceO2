@@ -166,8 +166,8 @@ void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
   std::string msg = "Default Object";
   // We check if the object we got is the default one by comparing it to the defaults.
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-    if (dataCalVdriftExB->getVdrift(iDet) != VDRIFTDEFAULT ||
-        dataCalVdriftExB->getExB(iDet) != EXBDEFAULT) {
+    if (dataCalVdriftExB->getVdrift(iDet, false) != VDRIFTDEFAULT ||
+        dataCalVdriftExB->getExB(iDet, false) != EXBDEFAULT) {
       msg = "Previous Object";
       break;
     }
@@ -176,8 +176,8 @@ void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
 
   // Here we set each entry regardless if it is the default or not.
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-    mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
-    mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
+    mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet, false);
+    mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet, false);
   }
 }
 

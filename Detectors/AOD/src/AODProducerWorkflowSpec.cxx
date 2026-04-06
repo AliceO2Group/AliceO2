@@ -1818,6 +1818,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mAnchorProd = ic.options().get<std::string>("anchor-prod");
   mUser = ic.options().get<std::string>("created-by");
   mRecoPass = ic.options().get<std::string>("reco-pass");
+  mAODParent = ic.options().get<std::string>("aod-parent");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -2615,7 +2616,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0}, mMetaDataVals);
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0}, tfNumber);
-  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, "");
+  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, mAODParent);
 
   mTimer.Stop();
 }
@@ -3485,6 +3486,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},
       ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
+      ConfigParamSpec{"aod-parent", VariantType::String, "", {"Parent AOD file name (if any)"}},
       ConfigParamSpec{"created-by", VariantType::String, "", {"Who created this AO2D"}},
       ConfigParamSpec{"nthreads", VariantType::Int, std::max(1, int(std::thread::hardware_concurrency() / 2)), {"Number of threads"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},

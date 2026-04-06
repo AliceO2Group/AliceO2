@@ -146,7 +146,7 @@ class TFileFileSystem : public VirtualRootFileSystemBase
  public:
   arrow::Result<arrow::fs::FileInfo> GetFileInfo(const std::string& path) override;
 
-  TFileFileSystem(TDirectoryFile* f, size_t readahead, RootObjectReadingFactory&);
+  TFileFileSystem(TDirectoryFile* f, size_t readahead, RootObjectReadingFactory&, bool ownsFile = true);
 
   ~TFileFileSystem() override;
 
@@ -172,6 +172,7 @@ class TFileFileSystem : public VirtualRootFileSystemBase
  private:
   TDirectoryFile* mFile;
   RootObjectReadingFactory& mObjectFactory;
+  bool mOwnsFile = true;
 };
 
 class TBufferFileFS : public VirtualRootFileSystemBase

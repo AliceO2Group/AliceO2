@@ -120,3 +120,36 @@ TEST_CASE("TestVerifyWildcard")
   // also check if the conversion to ConcreteDataMatcher is working at import
   // REQUIRE(std::get_if<ConcreteDataTypeMatcher>(&w1[0].inputs[0].matcher) != nullptr);;
 }
+
+TEST_CASE("TestInputOutputSpecMetadata")
+{
+  WorkflowSpec wso{
+    DataProcessorSpec{
+      .name = "S1",
+      .outputs = {OutputSpec{OutputLabel{"o1"}, o2::header::DataOrigin{"TST"}, "OUTPUT1", 0, Lifetime::Timeframe, {{"param1", VariantType::Bool, true, ConfigParamSpec::HelpString{"\"\""}}, {"param2", VariantType::Bool, true, ConfigParamSpec::HelpString{"\"\""}}}},
+                  OutputSpec{OutputLabel{"o2"}, o2::header::DataOrigin{"TST"}, "OUTPUT2"}}}};
+
+  std::vector<DataProcessorInfo> dataProcessorInfoOut{
+    {.name = "S1", .executable = "test_Framework_test_SerializationWorkflow"},
+  };
+
+  CommandInfo commandInfoOut{"o2-dpl-workflow -b"};
+
+  std::vector<DataProcessorInfo> dataProcessorInfoIn{};
+  CommandInfo commandInfoIn;
+
+  std::ostringstream firstDump;
+  WorkflowSerializationHelpers::dump(firstDump, wso, dataProcessorInfoOut, commandInfoOut);
+  std::istringstream is;
+  is.str(firstDump.str());
+
+  WorkflowSpec wsi;
+  WorkflowSerializationHelpers::import(is, wsi, dataProcessorInfoIn, commandInfoIn);
+
+  REQUIRE(wsi[0].outputs[0].metadata.size() == 2);
+  REQUIRE(wsi[0].outputs[1].metadata.size() == 0);
+  REQUIRE(wso[0].outputs[0].metadata.size() == wsi[0].outputs[0].metadata.size());
+  REQUIRE(wso[0].outputs[1].metadata.size() == wsi[0].outputs[1].metadata.size());
+  REQUIRE(wso[0].outputs[0].metadata[0] == wsi[0].outputs[0].metadata[0]);
+  REQUIRE(wso[0].outputs[0].metadata[1] == wsi[0].outputs[0].metadata[1]);
+}

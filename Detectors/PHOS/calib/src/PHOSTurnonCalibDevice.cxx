@@ -49,7 +49,7 @@ void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto cellTR = pc.inputs().get<gsl::span<TriggerRecord>>("cellTriggerRecords");
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
-
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
   LOG(detail) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";
 
   mCalibrator->process(tfcounter, cells, cellTR, clusters, cluTR);

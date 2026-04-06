@@ -15,3 +15,50 @@ using namespace o2::trk;
 
 ChipDigitsContainer::ChipDigitsContainer(UShort_t idx)
   : o2::itsmft::ChipDigitsContainer(idx) {}
+
+//______________________________________________________________________
+void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trk::DigiParams* params, int subDetID, int layer)
+{
+  UInt_t row = 0;
+  UInt_t col = 0;
+  Int_t nhits = 0;
+  constexpr float ns2sec = 1e-9;
+  float mean = 0.f;
+  int nel = 0;
+  int maxRows = 0;
+  int maxCols = 0;
+
+  // TODO: set different noise and threshold for VD and MLOT
+  if (subDetID == 0) {                                   // VD
+    maxRows = constants::VD::petal::layer::nRows[layer]; // TODO: get the layer from the geometry
+    maxCols = constants::VD::petal::layer::nCols;
+    mean = params->getNoisePerPixel() * maxRows * maxCols;
+    nel = static_cast<int>(params->getChargeThreshold() * 1.1);
+  } else { // ML/OT
+    maxRows = constants::moduleMLOT::chip::nRows;
+    maxCols = constants::moduleMLOT::chip::nCols;
+    mean = params->getNoisePerPixel() * maxRows * maxCols;
+    nel = static_cast<int>(params->getChargeThreshold() * 1.1);
+  }
+
+  LOG(debug) << "Adding noise for chip " << mChipIndex << " with mean " << mean << " and charge " << nel;
+
+  for (UInt_t rof = rofMin; rof <= rofMax; rof++) {
+    nhits = gRandom->Poisson(mean);
+    for (Int_t i = 0; i < nhits; ++i) {
+      row = gRandom->Integer(maxRows);
+      col = gRandom->Integer(maxCols);
+      LOG(debug) << "Generated noise hit at ROF " << rof << ", row " << row << ", col " << col;
+      if (mNoiseMap && mNoiseMap->isNoisy(mChipIndex, row, col)) {
+        continue;
+      }
+      if (mDeadChanMap && mDeadChanMap->isNoisy(mChipIndex, row, col)) {
+        continue;
+      }
+      auto key = getOrderingKey(rof, row, col);
+      if (!findDigit(key)) {
+        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true));
+      }
+    }
+  }
+}

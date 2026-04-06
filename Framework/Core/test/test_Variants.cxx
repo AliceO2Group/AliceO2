@@ -327,14 +327,16 @@ TEST_CASE("VariantJSONConversionsTest")
 
   std::vector<std::string> vstrings{"myoption_one", "myoption_two"};
   Variant vvstr(vstrings);
+  REQUIRE(vvstr.size() == 2);
   std::stringstream osal;
-  VariantJSONHelpers::write(osal, vvstr);
+  osal << vvstr;
 
   std::stringstream isal;
   isal.str(osal.str());
   auto vvstra = VariantJSONHelpers::read<VariantType::ArrayString>(isal);
 
-  for (auto i = 0U; i < vvstra.size(); ++i) {
+  REQUIRE(vvstr.size() == vvstra.size());
+  for (auto i = 0U; i < vstrings.size(); ++i) {
     REQUIRE(vstrings[i] == vvstra.get<std::string*>()[i]);
   }
 }

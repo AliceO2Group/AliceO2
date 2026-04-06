@@ -18,6 +18,7 @@
 #include "DriverServerContext.h"
 #include "DriverClientContext.h"
 #include "ControlWebSocketHandler.h"
+#include "StatusWebSocketHandler.h"
 #include "HTTPParser.h"
 #include <algorithm>
 #include <atomic>
@@ -193,9 +194,10 @@ void WSDPLHandler::method(std::string_view const& s)
 
 void WSDPLHandler::target(std::string_view const& s)
 {
-  if (s != "/") {
+  if (s != "/" && s != "/status") {
     throw WSError{404, "Unknown"};
   }
+  mTarget = s;
 }
 
 void populateHeader(std::map<std::string, std::string>& headers, std::string_view const& k, std::string_view const& v)
@@ -294,6 +296,12 @@ void WSDPLHandler::endHeaders()
         break;
       }
     }
+  } else if (mTarget == "/status" && mServerContext->isDriver) {
+    LOGP(info, "Status client connected ({} total)", mServerContext->statusHandlers.size() + 1);
+    auto* statusHandler = new StatusWebSocketHandler(*mServerContext, this);
+    mServerContext->statusHandlers.push_back(statusHandler);
+    mHandler = std::unique_ptr<WebSocketHandler>(statusHandler);
+    mHandler->headers(mHeaders);
   } else {
     if ((mServerContext->isDriver && getenv("DPL_DRIVER_REMOTE_GUI")) || ((mServerContext->isDriver == false) && getenv("DPL_DEVICE_REMOTE_GUI"))) {
       LOG(info) << "Connection not bound to a PID";

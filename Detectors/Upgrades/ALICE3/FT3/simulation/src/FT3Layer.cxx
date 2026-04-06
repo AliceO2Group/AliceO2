@@ -390,7 +390,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     std::string separationLayerName = "FT3SeparationLayer" + std::to_string(mDirection) + std::to_string(mLayerNumber);
 
     TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
-    TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, 12 * mChipThickness / 2); // additional "thickness factor" is to avoid sub-volumes crossing the mother layer
+    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 1.5); // Add a little additional room in radius; Try with 1.5 cm thickness
     TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
     layerVol->SetLineColor(kYellow + 2);
 

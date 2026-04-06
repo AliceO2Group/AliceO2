@@ -61,6 +61,9 @@ struct DeviceInfo {
   std::string lastError;
   /// An unterminated string which is not ready to be printed yet
   std::string unprinted;
+  /// Total number of log lines ever stored in history (monotonically increasing).
+  /// Used by status clients to track which lines they have already sent.
+  size_t logSeq = 0;
   /// Whether the device is active (running) or not.
   bool active;
   /// Whether the device is ready to quit.

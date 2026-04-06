@@ -158,23 +158,19 @@ template <DigitzationMode MODE>
 inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode,
                                          float& pedestal, float& noise, float tot)
 {
-  float signal = ADCcounts;
   pedestal = getPedestal(sector, globalPadInSector);
-  float pedestalCRU = getPedestalCRU(sector, globalPadInSector);
   noise = getNoise(sector, globalPadInSector);
+
+  const float signal = ADCcounts;
+  const float pedestalCRU = getPedestalCRU(sector, globalPadInSector);
+  const float fullSignal = signal - commonMode + noise + pedestal + (tot > 0 ? 80 : 0); // TODO: improve to also add tail
+
   switch (MODE) {
     case DigitzationMode::FullMode: {
-      signal -= commonMode;
-      signal += noise;
-      signal += pedestal;
-      return getADCSaturation(signal);
+      return getADCSaturation(fullSignal);
       break;
     }
     case DigitzationMode::ZeroSuppression: {
-      signal -= commonMode;
-      signal += noise;
-      signal += pedestal;
-      signal += (tot > 0) ? 80 : 0; // TODO: improve to also add tail
       const float signalSubtractPedestal = getADCSaturation(signal) - pedestalCRU;
       const float zeroSuppression = getZeroSuppression(sector, globalPadInSector);
       if (signalSubtractPedestal < zeroSuppression) {
@@ -184,10 +180,10 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       break;
     }
     case DigitzationMode::ZeroSuppressionCMCorr: {
-      signal += noise;
-      signal += pedestal;
-      signal += (tot > 0) ? 80 : 0; // TODO: improve to also add tail
-      const float signalSubtractPedestal = getADCSaturation(signal) - pedestalCRU;
+      // TODO: this is not really a common mode correction, since the common mode is simply not treated.
+      // Instead, the full common mode algorithm should be implemented and used
+      const float signalNoCM = signal + noise + pedestal + (tot > 0 ? 80 : 0); // TODO: improve to also add tail
+      const float signalSubtractPedestal = getADCSaturation(signalNoCM) - pedestalCRU;
       const float zeroSuppression = getZeroSuppression(sector, globalPadInSector);
       if (signalSubtractPedestal < zeroSuppression) {
         return 0.f;
@@ -196,18 +192,12 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       break;
     }
     case DigitzationMode::SubtractPedestal: {
-      signal -= commonMode;
-      signal += noise;
-      signal += pedestal;
-      const float signalSubtractPedestal = getADCSaturation(signal) - pedestalCRU;
+      const float signalSubtractPedestal = getADCSaturation(fullSignal) - pedestalCRU;
       return signalSubtractPedestal;
       break;
     }
     case DigitzationMode::NoSaturation: {
-      signal -= commonMode;
-      signal += noise;
-      signal += pedestal;
-      return signal;
+      return fullSignal;
       break;
     }
     case DigitzationMode::PropagateADC: {

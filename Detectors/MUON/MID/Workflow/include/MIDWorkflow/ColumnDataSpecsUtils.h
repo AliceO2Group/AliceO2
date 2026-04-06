@@ -42,21 +42,28 @@ namespace mid
 namespace specs
 {
 
-/// Returns the input specs for MID Column Data and corresponding ROFs and labels
+/// Returns the input specs for MID Column Data and corresponding ROFs and labels for EventType Standard
 /// \param dataBind Data binding name
 /// \param dataDesc Input data description
 /// \param useMC Builds output specs for labels
 /// \return Vector of input specs
-std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC);
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC);
 
-/// Returns the input specs for MID Column Data and corresponding ROFs and labels
+/// Returns the input specs for MID Column Data and corresponding ROFs and labels for EventType Standard
 /// \param dataBind Data binding name
 /// \param dataDesc Input data description
 /// \param rofDesc Input ROF record description
 /// \param labelsDesc Input MC labels description
 /// \param useMC Builds output specs for labels
 /// \return Vector of input specs
-std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc, std::string_view labelsDesc, bool useMC);
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc, std::string_view labelsDesc, bool useMC);
+
+/// Returns the input specs for MID Column Data and corresponding ROFs and labels for all three EventTypes
+/// \param dataBind Data binding name
+/// \param dataDesc Input data description
+/// \param rofDesc Input ROF record description
+/// \return Vector of input specs
+std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc);
 
 /// Returns the output specs for the different event types
 /// \param bind Binding name
@@ -71,22 +78,14 @@ std::vector<framework::OutputSpec> buildOutputSpecs(std::string_view bind, std::
 /// \return Vector of Output specs
 std::vector<framework::OutputSpec> buildStandardOutputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC);
 
-/// Returns the inputs for the different event types
+/// Returns the input matching a specific binding
 /// \param pc Processing context
 /// \param bind Binding name
 /// \return Array of spans
 template <typename T>
-std::array<gsl::span<const T>, NEvTypes> getInput(framework::ProcessingContext& pc, std::string_view bind)
+gsl::span<const T> getInput(framework::ProcessingContext& pc, std::string_view bind, int subSpec = -1)
 {
-  std::array<gsl::span<const T>, 3> data;
-  for (auto const& inputRef : framework::InputRecordWalker(pc.inputs())) {
-    auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-    auto subSpecIdx = static_cast<size_t>(dh->subSpecification);
-    if (framework::DataRefUtils::match(inputRef, bind.data())) {
-      data[subSpecIdx] = pc.inputs().get<gsl::span<T>>(inputRef);
-    }
-  }
-  return data;
+  return pc.inputs().get<gsl::span<T>>(fmt::format("{}{}", bind.data(), subSpec >= 0 ? fmt::format("_{}", subSpec) : ""));
 }
 
 /// Gets the outputs
@@ -94,7 +93,7 @@ std::array<gsl::span<const T>, NEvTypes> getInput(framework::ProcessingContext& 
 /// \return vector of outputs
 std::vector<framework::Output> buildOutputs(std::vector<framework::OutputSpec> outputSpecs);
 
-/// Returns the array of Column Data
+/// Returns the array of Column Data for all three EventTypes
 /// \param pc Processing context
 /// \param dataBind Data binding name
 /// \return Array of Column Data spans
@@ -107,7 +106,7 @@ std::array<gsl::span<const ColumnData>, NEvTypes> getData(framework::ProcessingC
 /// \return Span of ColumnData
 gsl::span<const ColumnData> getData(framework::ProcessingContext& pc, std::string_view dataBind, EventType eventType);
 
-/// Returns the array of ROF records
+/// Returns the array of ROF records for all three EventTypes
 /// \param pc Processing context
 /// \param dataBind Data binding name
 /// \return Array of ROF Records spans
@@ -124,7 +123,7 @@ gsl::span<const ROFRecord> getRofs(framework::ProcessingContext& pc, std::string
 /// \param pc Processing context
 /// \param dataBind Data binding name
 /// \return Pointer to MC labels
-std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind);
+std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind, EventType eventType = EventType::Standard);
 
 } // namespace specs
 } // namespace mid

@@ -314,7 +314,9 @@ void DataInputDescriptor::printFileOpening()
     monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
   }
 #endif
-  mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-open-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+  if (mContext.monitoring) {
+    mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-open-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+  }
   LOGP(info, "Opening file: {}", monitoringInfo);
 }
 
@@ -335,7 +337,9 @@ void DataInputDescriptor::printFileStatistics()
     monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
   }
 #endif
-  mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-read-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+  if (mContext.monitoring) {
+    mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-read-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+  }
   LOGP(info, "Read info: {}", monitoringInfo);
 }
 

@@ -58,7 +58,7 @@ void Detector::ConstructGeometry()
 }
 
 void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::string pattern, bool itofSegmented, bool otofSegmented,
-                            const float x2x0)
+                            const float x2x0, const float sensorThickness)
 {
 
   const std::pair<float, float> dInnerTof = {21.f, 129.f}; // Radius and length
@@ -101,18 +101,18 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     const double staveTiltAngle = itofSegmented ? 3.0 : 0.0; // degrees
     const int modulesPerStave = itofSegmented ? 10 : 0;      // number of modules per stave in segmented case
     mITOFLayer = ITOFLayer(name,
-                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, ITOFLayer::kBarrelSegmented,
-                           nStaves, staveWidth, staveTiltAngle, modulesPerStave);
+                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrel,
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, itofSegmented ? sensorThickness : 0.0f);
   }
   if (otof) { // oTOF
     const std::string name = GeometryTGeo::getOTOFLayerPattern();
     const int nStaves = otofSegmented ? 62 : 0;              // number of staves in segmented case
     const double staveWidth = otofSegmented ? 9.74 : 0.0;    // cm
-    const double staveTiltAngle = otofSegmented ? 3.0 : 0.0; // degrees
+    const double staveTiltAngle = otofSegmented ? 5.0 : 0.0; // degrees
     const int modulesPerStave = otofSegmented ? 54 : 0;      // number of modules per stave in segmented case
     mOTOFLayer = OTOFLayer(name,
-                           dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, OTOFLayer::kBarrelSegmented,
-                           nStaves, staveWidth, staveTiltAngle, modulesPerStave);
+                           dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, otofSegmented ? OTOFLayer::kBarrelSegmented : OTOFLayer::kBarrel,
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, otofSegmented ? sensorThickness : 0.0f);
   }
   if (ftof) {
     const std::string name = GeometryTGeo::getFTOFLayerPattern();

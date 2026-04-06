@@ -505,7 +505,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
     // Load the CCDB backend from the plugin
     ccdbBackend.algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "CCDBFetcherPlugin", ctx);
-    extraSpecs.push_back(ccdbBackend);
+    extraSpecs.push_back(timePipeline(ccdbBackend, ctx.options().get<int64_t>("ccdb-fetchers")));
   } else if (requiresDISTSUBTIMEFRAME && enumCandidate != -1) {
     // add DSTF/ccdb source to the enumeration-driven source explicitly if it is required in the workflow
     DataSpecUtils::updateOutputList(workflow[enumCandidate].outputs, OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});

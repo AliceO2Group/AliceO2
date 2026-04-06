@@ -283,6 +283,7 @@ class AODProducerWorkflowDPL : public Task
   TString mAnchorPass{""};
   TString mAnchorProd{""};
   TString mRecoPass{""};
+  std::string mAODParent{""}; // link to possible parent AOD file (MC embedding,...)
   TString mUser{"aliprod"}; // who created this AOD (aliprod, alidaq, individual users)
   TStopwatch mTimer;
   bool mEMCselectLeading{false};

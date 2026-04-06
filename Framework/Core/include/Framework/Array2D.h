@@ -166,26 +166,26 @@ class LabeledArray : public LabelMap
   using element_t = T;
 
   LabeledArray()
-    : values{},
-      LabelMap{}
+    : LabelMap{},
+      values{}
   {
   }
 
   LabeledArray(T const* data, uint32_t rows_, uint32_t cols_, std::vector<std::string> labels_rows_ = {}, std::vector<std::string> labels_cols_ = {})
-    : values{data, rows_, cols_},
-      LabelMap{rows_, cols_, labels_rows_, labels_cols_}
+    : LabelMap{rows_, cols_, labels_rows_, labels_cols_},
+      values{data, rows_, cols_}
   {
   }
 
   LabeledArray(T const* data, uint32_t size, std::vector<std::string> labels_ = {})
-    : values{data, 1, size},
-      LabelMap{size, labels_}
+    : LabelMap{size, labels_},
+      values{data, 1, size}
   {
   }
 
   LabeledArray(Array2D<T> const& data, std::vector<std::string> labels_rows_ = {}, std::vector<std::string> labels_cols_ = {})
-    : values{data},
-      LabelMap{data.rows, data.cols, labels_rows_, labels_cols_}
+    : LabelMap{data.rows, data.cols, labels_rows_, labels_cols_},
+      values{data}
   {
   }
 

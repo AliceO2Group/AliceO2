@@ -31,8 +31,8 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mAmpRecordUp = 15;           // to [ns]
   float hitTimeOffsetA = 0;          ///< hit time offset on the A side [ns]
   float hitTimeOffsetC = 0;          ///< hit time offset on the C side [ns]
-  int mtrg_central_trh = 600.;       // channels
-  int mtrg_semicentral_trh = 300.;   // channels
+  int mtrg_central_trh = 40;         // Tclu units (40 for pp and 1433 for PbPb in Run3)
+  int mtrg_semicentral_trh = 20;     // Tclu units (20 for pp and 35 for PbPb in Run3)
 
   float mMip_in_V = 7;       // MIP to mV
   float mPe_in_mip = 0.004;  // invserse Np.e. in MIP 1./250.
@@ -43,11 +43,12 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mNoiseVar = 0.1;              // noise level
   float mNoisePeriod = 1 / 0.9;       // GHz low frequency noise period;
   short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
+  short mTime_trg_vertex_gate = 100;  // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
   float mAmpThresholdForReco = 5;     // only channels with amplitude higher will participate in calibration and collision time: 0.3 MIP
   short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
-  float mMV_2_Nchannels = 2.2857143;          // amplitude channel 7 mV ->16channels
-  float mMV_2_NchannelsInverse = 0.437499997; // inverse amplitude channel 7 mV ->16channels
+  float mMV_2_Nchannels = 2.;         // amplitude channel 7 mV ->14channels
+  float mMV_2_NchannelsInverse = 0.5; // inverse amplitude channel 7 mV ->14channels (nowhere used)
 
   O2ParamDef(FT0DigParam, "FT0DigParam");
 };

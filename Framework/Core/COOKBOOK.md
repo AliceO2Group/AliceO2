@@ -549,3 +549,43 @@ Streams can be explicitly enabled or disabled in code using the `O2_SIGNPOST_ENA
 If a process is already running and you wish to enable one or more of its signposts logs, you can do so using the `o2-log` utility, passing the address of the log to enable and the PID of the running process. E.g. `o2-log -p <PID> -a <hook address of the signpost>`.
 
 Finally, on macOS, you can also use Instruments to visualise your Signpost, just like any other macOS application. In order to do so you need to enable the "Signpost" instrument, making sure you add `ch.cern.aliceo2.completion` to the list of loggers to watch.
+
+## Improving lldb experience
+
+You can make lldb understand some of the O2 types by having the following
+in your `~/.lldbinit` (or `$PWD/.lldbinit`):
+
+```lldb
+command script import Framework/Core/scripts/lldb_o2_formatters.py
+```
+
+
+Before:
+
+```gdb
+(o2::framework::ConfigParamSpec &) 0x0000000774871e20: {
+  name = "timeframes-rate-limit-ipcid"
+  type = String
+  defaultValue = {
+    mStore = (__data = "\xa0\xae\x80t\a")
+    mType = String
+    mSize = 1
+  }
+  help = (str = "Suffix for IPC channel for metric-feedback, -1 = disable")
+  kind = kGeneric
+}
+```
+
+After:
+
+```gdb
+(o2::framework::ConfigParamSpec &) 0x00000007cac75e20: {
+  name = "timeframes-rate-limit-ipcid"
+  type = String
+  defaultValue = {
+    value = 0x00000007cac0eea0 "-1"
+  }
+  help = (str = "Suffix for IPC channel for metric-feedback, -1 = disable")
+  kind = kGeneric
+}
+```

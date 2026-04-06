@@ -19,10 +19,6 @@ name: Clean PR checks
       # Warning: the check_* keys are magic and must consist of the string
       # "check_" followed by the applicable check name exactly. The
       # "description" field is only the human-readable label for the input.
-      'check_build/AliceO2/O2/o2/macOS':
-        description: build/AliceO2/O2/o2/macOS
-        type: boolean
-        default: true
       'check_build/AliceO2/O2/o2/macOS-arm':
         description: build/AliceO2/O2/o2/macOS-arm
         type: boolean
@@ -31,8 +27,8 @@ name: Clean PR checks
         description: build/O2/fullCI
         type: boolean
         default: true
-      'check_build/O2/o2-dataflow-cs8':
-        description: build/O2/o2-dataflow-cs8
+      'check_build/O2/o2-dataflow-slc9':
+        description: build/O2/o2-dataflow-slc9
         type: boolean
         default: true
       'check_build/O2/o2/aarch64':

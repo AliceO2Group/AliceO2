@@ -15,6 +15,9 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "TRKReconstruction/Clusterer.h"
+#ifdef O2_WITH_ACTS
+#include "TRKReconstruction/ClustererACTS.h"
+#endif
 
 namespace o2::trk
 {
@@ -29,7 +32,13 @@ class ClustererDPL : public o2::framework::Task
  private:
   bool mUseMC = true;
   int mNThreads = 1;
+#ifdef O2_WITH_ACTS
+  bool mUseACTS = false;
+#endif
   o2::trk::Clusterer mClusterer;
+#ifdef O2_WITH_ACTS
+  o2::trk::ClustererACTS mClustererACTS;
+#endif
 };
 
 o2::framework::DataProcessorSpec getClustererSpec(bool useMC);
