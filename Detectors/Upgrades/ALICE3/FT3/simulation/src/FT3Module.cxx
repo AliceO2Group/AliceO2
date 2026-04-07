@@ -138,15 +138,9 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rout,
     max_y_abs = calculate_y_circle(x_left, Rout) - tolerance;
   }
   unsigned n_sensors_placed = y_positions.first.size() + y_positions.second.size();
-  LOG(info) << "\tFT3Module: Filling stave at x = " << (x_left + Constants::sensor2x1_width / 2)
-            << " with sensors of height " << sensorTileHeight
-            << ". Starting positive y position: " << y_top
-            << ", maximum positive y position: " << max_y_abs
-            << ", with initially " << n_sensors_placed << " sensors already placed.";
 
   while ( (y_top + sensorTileHeight) <= max_y_abs ) {
     y_positions.first.emplace_back(y_top, kSensorStack);
-    LOG(info) << "\t\t\tFT3Module: Placed sensor at y = " << y_top;
     y_top += sensorTileHeight + Constants::sensor2x1_gap;
   }
 
@@ -160,16 +154,11 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rout,
              - Constants::sensor2x1_gap;
   }
 
-  LOG(info) << "\tFT3Module: Starting negative y position: " << y_bottom
-            << ", minimum negative y position: " << -max_y_abs;
   while ( (y_bottom - sensorTileHeight) >= -max_y_abs ) {
     y_positions.second.emplace_back(y_bottom, kSensorStack);
-    LOG(info) << "\t\t\tFT3Module: Placed sensor at y = " << y_bottom;
     y_bottom -= (sensorTileHeight + Constants::sensor2x1_gap);
   }
   unsigned sensors_placed_after = y_positions.first.size() + y_positions.second.size();
-  LOG(info) << "\tFT3Module: Done filling stave. Now have "
-            << sensors_placed_after << " sensors in total.";
 }
 
 /*
@@ -184,11 +173,6 @@ void FT3Module::addStaveVolume(
   // Set some constants for readability
   double d = Constants::effectiveCarbonThickness_Stave;
   double H = Constants::staveTriangleHeight;
-  LOG(info) << "\tFT3Module: Adding stave volume " << volumeName
-            << " with count " << *volume_count
-            << " at (x_mid,y_mid,z_stave_shift_abs) = (" << x_mid << ", "
-            << y_mid << ", " << z_stave_shift_abs << "), as well as length "
-            << staveLength << " and triangle height " << H;
   /* 
    * Inner and outer vertices of the stave cross section triangle
    * all vertices are at y_mid, we simply extend the triangle into y dir.
@@ -255,16 +239,6 @@ void FT3Module::addStaveVolume(
     staveShape,
     carbonFiberMed
   );
-  if (*volume_count == 0 && direction == 1) {
-    LOG(info) << "Outer triangle vertices (x, z): "
-               << "(" << xv_outer[0] << ", " << zv_outer[0] << "), "
-               << "(" << xv_outer[1] << ", " << zv_outer[1] << "), "
-               << "(" << xv_outer[2] << ", " << zv_outer[2] << ")";
-    LOG(info) << "Inner triangle vertices (x, z): "
-               << "(" << xv_inner[0] << ", " << zv_inner[0] << "), "
-               << "(" << xv_inner[1] << ", " << zv_inner[1] << "), "
-               << "(" << xv_inner[2] << ", " << zv_inner[2] << ")";
-  }
   TGeoRotation* rot = new TGeoRotation();
   rot->RotateX(-90);  // lift from xy plane into xz plane  
   /* 
@@ -281,11 +255,6 @@ void FT3Module::addStaveVolume(
                         *volume_count,
                         combiTrans);
   (*volume_count)++;
-  // print:
-  TGeoNode* node = motherVolume->GetNode(motherVolume->GetNdaughters() - 1);                                                                                                                                                                                                            
-  const Double_t* translation = node->GetMatrix()->GetTranslation();                                               
-  LOG(info) << "\t\tStave node position: (" << translation[0] << ", "
-             << translation[1] << ", " << translation[2] << ")";  
 }
 
 /*
@@ -435,7 +404,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
                                         double Rin, double Rout, double overlap,
                                         TGeoVolume* motherVolume)
 {
-  LOG(info) << "FT3Module: create_layout_staveGeo - Layer "
+  LOG(debug) << "FT3Module: create_layout_staveGeo - Layer "
             << layerNumber << ", Direction " << direction;
 
   FT3Module::initialize_materials();
@@ -533,10 +502,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
       y_start = {min_y_at_x, -min_y_at_x};
       tolerance = 0.; // no tolerance in case of cutting at nominal radius
     }
-    // fill_stave(y_positionsPosNeg, Rout, x_left, Constants::kSensorsPerStack, -3);
-    LOG(info) << "FT3Module: Filling Stave " << staveID << " (x = "
-              << Constants::x_midpoints[i_stave] << ") with sensors. Starting y positions: "
-              << y_start.first << " (positive), " << y_start.second << " (negative).";
     fill_stave(y_positionsPosNeg.back(), Rout, x_left, Constants::kSensorsPerStack,
                tolerance, y_start);
   }
@@ -544,9 +509,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {
     double x_mid = Constants::x_midpoints[i_stave];
     int staveID = Constants::staveIdxToID(i_stave);
-    LOG(info) << "FT3Module: Adding sensor volumes for Stave " << staveID
-              << " (x = " << x_mid << ") with " << y_positionsPosNeg[i_stave].first.size() << " positive and "
-              << y_positionsPosNeg[i_stave].second.size() << " negative sensor positions.";
     /*
      * Declare an offset multiplier for the z offsets, used for distinguishing
      * sensors facing either forward or backward.
