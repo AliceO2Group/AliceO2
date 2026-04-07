@@ -20,6 +20,7 @@
 #include "GPUDefConstantsAndSettings.h"
 #include "GPUDefParametersWrapper.h"
 #include "GPUCommonRtypes.h"
+#include "GPUTPCGeometry.h"
 
 // Macros for masking ptrs in OpenCL kernel calls as uint64_t (The API only allows us to pass buffer objects)
 #ifdef __OPENCL__
@@ -37,21 +38,21 @@
 #define GPUCA_EVDUMP_FILE "event"
 
 #ifdef GPUCA_GPUCODE
-  #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() vartype& __restrict__ varname = varshared;
-  #define CA_SHARED_STORAGE(storage) storage
-  #define CA_SHARED_CACHE(target, src, size) \
+  #define GPUCA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() vartype& __restrict__ varname = varshared;
+  #define GPUCA_SHARED_STORAGE(storage) storage
+  #define GPUCA_SHARED_CACHE(target, src, size) \
     static_assert((size) % sizeof(int32_t) == 0, "Invalid shared cache size"); \
     for (uint32_t i_shared_cache = get_local_id(0); i_shared_cache < (size) / sizeof(int32_t); i_shared_cache += get_local_size(0)) { \
       reinterpret_cast<GPUsharedref() int32_t*>(target)[i_shared_cache] = reinterpret_cast<GPUglobalref() const int32_t*>(src)[i_shared_cache]; \
     }
-  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) \
-    CA_SHARED_CACHE(target, src, size) \
+  #define GPUCA_SHARED_CACHE_REF(target, src, size, reftype, ref) \
+    GPUCA_SHARED_CACHE(target, src, size) \
     GPUsharedref() const reftype* __restrict__ ref = (target)
 #else
-  #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUglobalref() vartype & __restrict__ varname = varglobal;
-  #define CA_SHARED_STORAGE(storage)
-  #define CA_SHARED_CACHE(target, src, size)
-  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() const reftype* __restrict__ ref = src
+  #define GPUCA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUglobalref() vartype & __restrict__ varname = varglobal;
+  #define GPUCA_SHARED_STORAGE(storage)
+  #define GPUCA_SHARED_CACHE(target, src, size)
+  #define GPUCA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() const reftype* __restrict__ ref = src
 #endif
 
 #endif //GPUTPCDEF_H

@@ -137,12 +137,12 @@ void GPUDisplay::DrawGLScene_updateEventData()
 
   mMaxClusterZ = tbb::parallel_reduce(tbb::blocked_range<int32_t>(0, NSECTORS, 1), float(0.f), [&](const tbb::blocked_range<int32_t>& r, float maxClusterZ) {
     for (int32_t iSector = r.begin(); iSector < r.end(); iSector++) {
-      int32_t row = 0;
+      uint32_t row = 0;
       uint32_t nCls = mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSector] : 0;
       for (uint32_t i = 0; i < nCls; i++) {
         int32_t cid;
         cid = mIOPtrs->clustersNative->clusterOffset[iSector][0] + i;
-        while (row < GPUCA_NROWS - 1 && mIOPtrs->clustersNative->clusterOffset[iSector][row + 1] <= (uint32_t)cid) {
+        while (row < GPUTPCGeometry::NROWS - 1 && mIOPtrs->clustersNative->clusterOffset[iSector][row + 1] <= (uint32_t)cid) {
           row++;
         }
         if (cid >= mNMaxClusters) {

@@ -36,7 +36,7 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
     int32_t mNThreadsTotal; // total n threads
     int32_t mNTracklets;    // n of tracklets
     int32_t mReserved;      // for alignment reasons
-    static_assert(GPUCA_NROWS >= GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE);
+    static_assert(GPUTPCGeometry::NROWS >= GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE);
     GPUTPCHitId mHits[GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletSelector)];
   };
 

@@ -311,7 +311,7 @@ int32_t GPUDisplayBackendOpenGL::InitBackendA()
     GPUError("Unsupported OpenGL runtime %d.%d < %d.%d", glVersion[0], glVersion[1], GPUDisplayFrontend::GL_MIN_VERSION_MAJOR, GPUDisplayFrontend::GL_MIN_VERSION_MINOR);
     return (1);
   }
-  mVBOId.resize(GPUCA_NSECTORS);
+  mVBOId.resize(GPUTPCGeometry::NSECTORS);
   CHKERR(glCreateBuffers(mVBOId.size(), mVBOId.data()));
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0]));
   CHKERR(glGenBuffers(1, &mIndirectId));
@@ -453,7 +453,7 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
 {
   // TODO: Check if this can be parallelized
   if (mDisplay->useMultiVBO()) {
-    for (int32_t i = 0; i < GPUCA_NSECTORS; i++) {
+    for (uint32_t i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
       CHKERR(glNamedBufferData(mVBOId[i], mDisplay->vertexBuffer()[i].size() * sizeof(mDisplay->vertexBuffer()[i][0]), mDisplay->vertexBuffer()[i].data(), GL_STATIC_DRAW));
     }
   } else {

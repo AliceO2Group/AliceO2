@@ -77,7 +77,7 @@ void GPUChainTracking::DumpData(const char* filename, const GPUTrackingInOutPoin
   DumpData(fp, ioPtrs->rawClusters, ioPtrs->nRawClusters, InOutPointerType::RAW_CLUSTERS);
   if (ioPtrs->clustersNative) {
     if (DumpData(fp, &ioPtrs->clustersNative->clustersLinear, &ioPtrs->clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE)) {
-      fwrite(&ioPtrs->clustersNative->nClusters[0][0], sizeof(ioPtrs->clustersNative->nClusters[0][0]), NSECTORS * GPUCA_NROWS, fp);
+      fwrite(&ioPtrs->clustersNative->nClusters[0][0], sizeof(ioPtrs->clustersNative->nClusters[0][0]), NSECTORS * GPUTPCGeometry::NROWS, fp);
       if (ioPtrs->clustersNative->clustersMCTruth) {
         const auto& buffer = ioPtrs->clustersNative->clustersMCTruth->getBuffer();
         std::pair<const char*, size_t> tmp = {buffer.data(), buffer.size()};
@@ -188,7 +188,7 @@ int32_t GPUChainTracking::ReadData(const char* filename)
   int32_t nClustersTotal = 0;
   mIOMem.clusterNativeAccess.reset(new ClusterNativeAccess);
   if (ReadData<ClusterNative>(fp, &mIOMem.clusterNativeAccess->clustersLinear, &mIOMem.clusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
-    r = fread(&mIOMem.clusterNativeAccess->nClusters[0][0], sizeof(mIOMem.clusterNativeAccess->nClusters[0][0]), NSECTORS * GPUCA_NROWS, fp);
+    r = fread(&mIOMem.clusterNativeAccess->nClusters[0][0], sizeof(mIOMem.clusterNativeAccess->nClusters[0][0]), NSECTORS * GPUTPCGeometry::NROWS, fp);
     mIOMem.clusterNativeAccess->setOffsetPtrs();
     mIOPtrs.clustersNative = mIOMem.clusterNativeAccess.get();
     std::pair<const char*, size_t> tmp = {nullptr, 0};

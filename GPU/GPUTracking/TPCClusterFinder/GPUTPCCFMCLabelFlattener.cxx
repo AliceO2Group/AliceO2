@@ -32,7 +32,7 @@ void GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(
   cls.mPlabelsHeaderGlobalOffset = headerOffset;
   cls.mPlabelsDataGlobalOffset = dataOffset;
 
-  for (Row row = 0; row < GPUCA_NROWS; row++) {
+  for (Row row = 0; row < GPUTPCGeometry::NROWS; row++) {
     headerOffset += cls.mPclusterInRow[row];
     dataOffset += cls.mPlabelsInRow[row];
   }

@@ -49,7 +49,7 @@ class GPUTPCDecompression : public GPUProcessor
 #endif
 
  protected:
-  constexpr static uint32_t NSECTORS = GPUCA_NSECTORS;
+  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
   o2::tpc::CompressedClusters mInputGPU;
 
   uint32_t mMaxNativeClustersPerBuffer;

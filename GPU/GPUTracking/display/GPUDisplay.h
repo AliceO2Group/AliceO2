@@ -19,7 +19,7 @@
 #include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayInterface.h"
 #include "GPUSettings.h"
-#include "GPUDefConstantsAndSettings.h"
+#include "GPUTPCGeometry.h"
 
 #include <array>
 #include <mutex>
@@ -83,7 +83,7 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
 
  private:
-  static constexpr int32_t NSECTORS = GPUCA_NSECTORS;
+  static constexpr int32_t NSECTORS = GPUTPCGeometry::NSECTORS;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
 
   static constexpr const int32_t N_POINTS_TYPE = 15;

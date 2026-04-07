@@ -33,8 +33,8 @@ GPUTPCClusterFilter::GPUTPCClusterFilter(const o2::tpc::ClusterNativeAccess& clu
       called = true;
     }
 
-    for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {
-      for (uint32_t iRow = 0; iRow < GPUCA_NROWS; iRow++) {
+    for (uint32_t iSector = 0; iSector < GPUTPCGeometry::NSECTORS; iSector++) {
+      for (uint32_t iRow = 0; iRow < GPUTPCGeometry::NROWS; iRow++) {
         const uint32_t globalStack = getGlobalStack(iSector, iRow);
         mClusterStats[globalStack].resize(MaxTimeBin);
 

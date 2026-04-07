@@ -81,14 +81,14 @@ struct TPCPadGainCalib {
 
   GPUdi() void setMinCorrectionFactor(const float minCorrectionFactor)
   {
-    for (int32_t sector = 0; sector < GPUCA_NSECTORS; sector++) {
+    for (uint32_t sector = 0; sector < GPUTPCGeometry::NSECTORS; sector++) {
       mGainCorrection[sector].mMinCorrectionFactor = minCorrectionFactor;
     }
   }
 
   GPUdi() void setMaxCorrectionFactor(const float maxCorrectionFactor)
   {
-    for (int32_t sector = 0; sector < GPUCA_NSECTORS; sector++) {
+    for (uint32_t sector = 0; sector < GPUTPCGeometry::NSECTORS; sector++) {
       mGainCorrection[sector].mMaxCorrectionFactor = maxCorrectionFactor;
     }
   }
@@ -153,8 +153,8 @@ struct TPCPadGainCalib {
     }
   };
 
-  uint16_t mPadOffsetPerRow[GPUCA_NROWS];
-  SectorPadGainCorrection<uint16_t> mGainCorrection[GPUCA_NSECTORS];
+  uint16_t mPadOffsetPerRow[GPUTPCGeometry::NROWS];
+  SectorPadGainCorrection<uint16_t> mGainCorrection[GPUTPCGeometry::NSECTORS];
 };
 
 } // namespace o2::gpu

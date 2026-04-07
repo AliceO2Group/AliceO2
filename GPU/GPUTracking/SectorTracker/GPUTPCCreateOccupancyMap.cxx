@@ -23,12 +23,12 @@ GPUdii() void GPUTPCCreateOccupancyMap::Thread<GPUTPCCreateOccupancyMap::fill>(i
   const GPUTrackingInOutPointers& GPUrestrict() ioPtrs = processors.ioPtrs;
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = ioPtrs.clustersNative;
   GPUParam& GPUrestrict() param = processors.param;
-  const int32_t iSectorRow = iBlock * nThreads + iThread;
-  if (iSectorRow >= GPUCA_NROWS * GPUCA_NSECTORS) {
+  const uint32_t iSectorRow = iBlock * nThreads + iThread;
+  if (iSectorRow >= GPUTPCGeometry::NROWS * GPUTPCGeometry::NSECTORS) {
     return;
   }
-  const uint32_t iSector = iSectorRow / GPUCA_NROWS;
-  const uint32_t iRow = iSectorRow % GPUCA_NROWS;
+  const uint32_t iSector = iSectorRow / GPUTPCGeometry::NROWS;
+  const uint32_t iRow = iSectorRow % GPUTPCGeometry::NROWS;
   for (uint32_t i = 0; i < clusters->nClusters[iSector][iRow]; i++) {
     const uint32_t bin = clusters->clusters[iSector][iRow][i].getTime() / param.rec.tpc.occupancyMapTimeBins;
     map[bin].bin[iSector][iRow]++;
@@ -47,7 +47,7 @@ GPUdii() void GPUTPCCreateOccupancyMap::Thread<GPUTPCCreateOccupancyMap::fold>(i
   int32_t binmax = CAMath::Min<int32_t>(GPUTPCClusterOccupancyMapBin::getNBins(param), bin + param.rec.tpc.occupancyMapTimeBinsAverage + 1);
   uint32_t sum = 0;
   for (int32_t i = binmin; i < binmax; i++) {
-    for (int32_t iSectorRow = 0; iSectorRow < GPUCA_NSECTORS * GPUCA_NROWS; iSectorRow++) {
+    for (uint32_t iSectorRow = 0; iSectorRow < GPUTPCGeometry::NSECTORS * GPUTPCGeometry::NROWS; iSectorRow++) {
       sum += (&map[i].bin[0][0])[iSectorRow];
     }
   }

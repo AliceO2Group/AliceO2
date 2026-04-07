@@ -37,7 +37,7 @@ class GPUdEdx
   GPUd() void fillSubThreshold(int32_t padRow);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
-  static constexpr size_t MAX_NCL = GPUCA_NROWS;
+  static constexpr size_t MAX_NCL = GPUTPCGeometry::NROWS;
 
  private:
   GPUd() float GetSortTruncMean(GPUCA_PAR_DEDX_STORAGE_TYPE_A* array, int32_t count, int32_t trunclow, int32_t trunchigh);
@@ -105,8 +105,8 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int32_t padRow, uint
     return;
   }
   float snp2 = trackSnp * trackSnp;
-  if (snp2 > GPUCA_MAX_SIN_PHI_LOW) {
-    snp2 = GPUCA_MAX_SIN_PHI_LOW;
+  if (snp2 > constants::MAX_SIN_PHI_LOW) {
+    snp2 = constants::MAX_SIN_PHI_LOW;
   }
 
   // setting maximum for snp for which the calibration object was created

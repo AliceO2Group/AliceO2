@@ -249,7 +249,7 @@ HighResTimer& GPUReconstructionProcessing::getTimer(const char* name, int32_t nu
   static int32_t id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int32_t max = std::max<int32_t>({mMaxHostThreads, GPUCA_MAX_STREAMS});
+    int32_t max = std::max<int32_t>({mMaxHostThreads, constants::GPU_MAX_STREAMS});
     timer = insertTimer(id, name, J, max, 1, RecoStep::NoRecoStep);
   }
   if (num == -1) {

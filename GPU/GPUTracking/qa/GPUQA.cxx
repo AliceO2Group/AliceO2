@@ -526,10 +526,10 @@ int32_t GPUQA::InitQACreateHistograms()
       createHist(mClusters[i], name, name, AXIS_BINS[4], binsPt.get());
     }
 
-    createHist(mPadRow[0], "padrow0", "padrow0", GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
-    createHist(mPadRow[1], "padrow1", "padrow1", 100.f, -0.2f, 0.2f, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
-    createHist(mPadRow[2], "padrow2", "padrow2", 100.f, -0.2f, 0.2f, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
-    createHist(mPadRow[3], "padrow3", "padrow3", 100.f, 0, 300000, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[0], "padrow0", "padrow0", GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS, GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[1], "padrow1", "padrow1", 100.f, -0.2f, 0.2f, GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[2], "padrow2", "padrow2", 100.f, -0.2f, 0.2f, GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[3], "padrow3", "padrow3", 100.f, 0, 300000, GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS);
   }
 
   if (mQATasks & taskTrackStatistics) {
@@ -540,18 +540,18 @@ int32_t GPUQA::InitQACreateHistograms()
     }
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
     createHist(mTrackPt, "tracks_pt", "tracks_pt", AXIS_BINS[4], binsPt.get());
-    const uint32_t maxTime = (mTracking && mTracking->GetParam().continuousMaxTimeBin > 0) ? mTracking->GetParam().continuousMaxTimeBin : TPC_MAX_TIME_BIN_TRIGGERED;
+    const uint32_t maxTime = (mTracking && mTracking->GetParam().continuousMaxTimeBin > 0) ? mTracking->GetParam().continuousMaxTimeBin : constants::TPC_MAX_TIME_BIN_TRIGGERED;
     createHist(mT0[0], "tracks_t0", "tracks_t0", (maxTime + 1) / 10, 0, maxTime);
     createHist(mT0[1], "tracks_t0_res", "tracks_t0_res", 1000, -100, 100);
     createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250); // TODO: Pass name only once
   }
   if (mQATasks & taskClusterRejection) {
-    const int padCount = GPUTPCGeometry::NPads(GPUCA_NROWS - 1);
+    const int padCount = GPUTPCGeometry::NPads(GPUTPCGeometry::NROWS - 1);
     for (int32_t i = 0; i < 3; i++) {
       snprintf(name, 2048, "clrej_%d", i);
-      createHist(mClRej[i], name, name, 2 * padCount, -padCount / 2 + 0.5f, padCount / 2 - 0.5f, GPUCA_NROWS, 0, GPUCA_NROWS - 1);
+      createHist(mClRej[i], name, name, 2 * padCount, -padCount / 2 + 0.5f, padCount / 2 - 0.5f, GPUTPCGeometry::NROWS, 0, GPUTPCGeometry::NROWS - 1);
     }
-    createHist(mClRejP, "clrejp", "clrejp", GPUCA_NROWS, 0, GPUCA_NROWS - 1);
+    createHist(mClRejP, "clrejp", "clrejp", GPUTPCGeometry::NROWS, 0, GPUTPCGeometry::NROWS - 1);
   }
 
   if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
@@ -1101,8 +1101,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       }
       if (mTracking->mIOPtrs.nMergedTracks && clNative) {
         std::fill(lowestPadRow.begin(), lowestPadRow.end(), 255);
-        for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {
-          for (uint32_t iRow = 0; iRow < GPUCA_NROWS; iRow++) {
+        for (uint32_t iSector = 0; iSector < GPUTPCGeometry::NSECTORS; iSector++) {
+          for (uint32_t iRow = 0; iRow < GPUTPCGeometry::NROWS; iRow++) {
             for (uint32_t iCl = 0; iCl < clNative->nClusters[iSector][iRow]; iCl++) {
               int32_t i = clNative->clusterOffset[iSector][iRow] + iCl;
               for (int32_t j = 0; j < GetMCLabelNID(i); j++) {
@@ -1793,7 +1793,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
     if (mClNative && mTracking && mTracking->GetTPCTransform()) {
       for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
-        for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+        for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
           for (uint32_t k = 0; k < mClNative->nClusters[i][j]; k++) {
             const auto& cl = mClNative->clusters[i][j][k];
             float x, y, z;
@@ -1825,8 +1825,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
   uint32_t nCl = clNative ? clNative->nClustersTotal : mTracking->GetProcessors()->tpcMerger.NMaxClusters();
   mClusterCounts.nTotal += nCl;
   if (mQATasks & (taskClusterCounts | taskClusterRejection)) {
-    for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {
-      for (uint32_t iRow = 0; iRow < GPUCA_NROWS; iRow++) {
+    for (uint32_t iSector = 0; iSector < GPUTPCGeometry::NSECTORS; iSector++) {
+      for (uint32_t iRow = 0; iRow < GPUTPCGeometry::NROWS; iRow++) {
         for (uint32_t iCl = 0; iCl < clNative->nClusters[iSector][iRow]; iCl++) {
           uint32_t i = clNative->clusterOffset[iSector][iRow] + iCl;
           int32_t attach = mTracking->mIOPtrs.mergedTrackHitAttachment[i];
@@ -1917,7 +1917,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
     uint32_t clid = 0;
     for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         for (uint32_t k = 0; k < mClNative->nClusters[i][j]; k++) {
           const auto& cl = mClNative->clusters[i][j][k];
           uint32_t attach = mTracking->mIOPtrs.mergedTrackHitAttachment[clid];

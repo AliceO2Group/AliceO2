@@ -54,13 +54,13 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
   uint32_t offset = 0;
   for (uint32_t i = 0; i < NSECTORS; i++) {
     uint32_t nClSector = 0;
-    for (int32_t j = 0; j < GPUCA_NROWS; j++) {
+    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
       nClSector += native->nClusters[i][j];
     }
     nClusters[i] = nClSector;
     clusters[i].reset(new GPUTPCClusterData[nClSector]);
     nClSector = 0;
-    for (int32_t j = 0; j < GPUCA_NROWS; j++) {
+    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
       for (uint32_t k = 0; k < native->nClusters[i][j]; k++) {
         const auto& clin = native->clusters[i][j][k];
         float x = 0, y = 0, z = 0;
@@ -98,7 +98,7 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
   native.clustersLinear = nativeBuffer.get();
   native.setOffsetPtrs();
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
       native.nClusters[i][j] = 0;
     }
     for (uint32_t j = 0; j < nRawClusters[i]; j++) {
@@ -119,7 +119,7 @@ int32_t GPUReconstructionConvert::GetMaxTimeBin(const ClusterNativeAccess& nativ
 {
   float retVal = 0;
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
       for (uint32_t k = 0; k < native.nClusters[i][j]; k++) {
         if (native.clusters[i][j][k].getTime() > retVal) {
           retVal = native.clusters[i][j][k].getTime();
@@ -193,7 +193,7 @@ struct zsEncoder {
   const o2::InteractionRecord* ir = nullptr;
   const GPUParam* param = nullptr;
   bool padding = false;
-  int32_t lastEndpoint = -2, lastTime = -1, lastRow = GPUCA_NROWS;
+  int32_t lastEndpoint = -2, lastTime = -1, lastRow = GPUTPCGeometry::NROWS;
   int32_t endpoint = 0, outputEndpoint = 0;
   int64_t hbf = -1, nexthbf = 0;
   zsPage* page = nullptr;
@@ -364,7 +364,7 @@ uint32_t zsEncoderRow::encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, ui
     curTBHdr = reinterpret_cast<TPCZSTBHDR*>(pagePtr);
     curTBHdr->rowMask |= (endpoint & 1) << 15;
     nRowsInTB = 0;
-    lastRow = GPUCA_NROWS;
+    lastRow = GPUTPCGeometry::NROWS;
   }
   if (tmpBuffer[k].getRow() != lastRow) {
     curTBHdr->rowMask |= 1 << (tmpBuffer[k].getRow() - endpointStart);

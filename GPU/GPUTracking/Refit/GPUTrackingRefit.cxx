@@ -87,7 +87,7 @@ template <>
 GPUd() void GPUTrackingRefit::initProp<GPUgeneric() GPUTPCGMPropagator>(GPUTPCGMPropagator& prop) // FIXME: GPUgeneric() needed to make the clang spirv output link correctly
 {
   prop.SetMaterialTPC();
-  prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+  prop.SetMaxSinPhi(constants::MAX_SIN_PHI);
   prop.SetSeedingErrors(false);
   prop.SetFitInProjections(mPparam->rec.fitInProjections != 0);
   prop.SetPropagateBzOnly(false);
@@ -357,7 +357,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
         IgnoreErrors(trk.getSnp());
         return -1;
       }
-      if (!prop->PropagateToXBxByBz(trk, x, GPUCA_MAX_SIN_PHI_LOW)) {
+      if (!prop->PropagateToXBxByBz(trk, x, constants::MAX_SIN_PHI_LOW)) {
         IgnoreErrors(trk.getSnp());
         return -2;
       }

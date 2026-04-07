@@ -25,12 +25,12 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int32_t nBlocks, int32_t nThreads
 {
   // Sorts the Start Hits by Row Index
   if (iThread == 0) {
-    const int32_t tmpNRows = GPUCA_NROWS - 6;
-    const int32_t nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
-    const int32_t nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
-    int32_t startOffset2 = 0;
+    const uint32_t tmpNRows = GPUTPCGeometry::NROWS - 6;
+    const uint32_t nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
+    const uint32_t nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
+    uint32_t startOffset2 = 0;
     GPUCA_UNROLL(, U())
-    for (int32_t ir = 1; ir < GPUCA_NROWS - 5; ir++) {
+    for (uint32_t ir = 1; ir < GPUTPCGeometry::NROWS - 5; ir++) {
       if (ir < nStartRow) {
         startOffset2 += tracker.mRowStartHitCountOffset[ir];
       }
@@ -43,9 +43,9 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int32_t nBlocks, int32_t nThreads
 
   int32_t startOffset = s.mStartOffset;
 #ifdef __HIPCC__ // TODO: Fixme
-  for (int32_t ir = -1; ++ir < s.mNRows;) {
+  for (int32_t ir = -1; ++ir < (int32_t)s.mNRows;) {
 #else
-  for (int32_t ir = 0; ir < s.mNRows; ir++) {
+  for (uint32_t ir = 0; ir < s.mNRows; ir++) {
 #endif
     GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
     GPUglobalref() GPUTPCHitId* const GPUrestrict() tmpStartHits = tracker.mTrackletTmpStartHits + (s.mStartRow + ir) * tracker.mNMaxRowStartHits;

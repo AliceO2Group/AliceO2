@@ -27,10 +27,10 @@ namespace o2::gpu
 
 struct GPUTPCCFChainContext {
   struct FragmentData {
-    uint32_t nDigits[GPUCA_NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
-    uint32_t nPages[GPUCA_NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
-    std::vector<uint16_t> pageDigits[GPUCA_NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
-    GPUTPCClusterFinder::MinMaxCN minMaxCN[GPUCA_NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
+    uint32_t nDigits[GPUTPCGeometry::NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
+    uint32_t nPages[GPUTPCGeometry::NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
+    std::vector<uint16_t> pageDigits[GPUTPCGeometry::NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
+    GPUTPCClusterFinder::MinMaxCN minMaxCN[GPUTPCGeometry::NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
   };
 
   struct PtrSave {
@@ -43,21 +43,21 @@ struct GPUTPCCFChainContext {
   std::vector<FragmentData> fragmentData;
   uint32_t nPagesTotal;
   uint32_t nPagesFragmentMax;
-  uint32_t nPagesSector[GPUCA_NSECTORS];
-  uint32_t nDigitsEndpointMax[GPUCA_NSECTORS];
+  uint32_t nPagesSector[GPUTPCGeometry::NSECTORS];
+  uint32_t nDigitsEndpointMax[GPUTPCGeometry::NSECTORS];
   uint32_t tpcMaxTimeBin;
   bool abandonTimeframe;
   uint32_t nFragments;
   CfFragment fragmentFirst;
-  std::pair<uint32_t, uint32_t> nextPos[GPUCA_NSECTORS];
-  PtrSave ptrSave[GPUCA_NSECTORS];
+  std::pair<uint32_t, uint32_t> nextPos[GPUTPCGeometry::NSECTORS];
+  PtrSave ptrSave[GPUTPCGeometry::NSECTORS];
   const o2::tpc::ClusterNativeAccess* ptrClusterNativeSave;
 
   void prepare(bool tpcZS, const CfFragment& fragmentMax)
   {
     abandonTimeframe = false;
     nPagesTotal = nPagesFragmentMax = 0;
-    for (uint32_t i = 0; i < GPUCA_NSECTORS; i++) {
+    for (uint32_t i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
       nPagesSector[i] = 0;
       nDigitsEndpointMax[i] = 0;
     }
@@ -70,7 +70,7 @@ struct GPUTPCCFChainContext {
       }
 
       for (uint32_t i = 0; i < nFragments; i++) {
-        for (uint32_t j = 0; j < GPUCA_NSECTORS; j++) {
+        for (uint32_t j = 0; j < GPUTPCGeometry::NSECTORS; j++) {
           for (uint32_t k = 0; k < GPUTrackingInOutZS::NENDPOINTS; k++) {
             fragmentData[i].nDigits[j][k] = fragmentData[i].nPages[j][k] = 0;
             fragmentData[i].pageDigits[j][k].clear();

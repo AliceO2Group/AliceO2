@@ -63,7 +63,7 @@ class GPUTPCGMMerger : public GPUProcessor
   ~GPUTPCGMMerger() = default;
   GPUTPCGMMerger(const GPUTPCGMMerger&) = delete;
   const GPUTPCGMMerger& operator=(const GPUTPCGMMerger&) const = delete;
-  static constexpr const int32_t NSECTORS = GPUCA_NSECTORS; //* N sectors
+  static constexpr const int32_t NSECTORS = GPUTPCGeometry::NSECTORS; //* N sectors
 
   struct memory {
     GPUAtomic(uint32_t) nRetryRefit;

@@ -158,7 +158,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 
     const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     const auto firstIR = o2::InteractionRecord(0, tinfo.firstTForbit);
-    const float totalT = std::max(mFastTransform->getMaxDriftTime(0), mFastTransform->getMaxDriftTime(GPUCA_NSECTORS / 2));
+    const float totalT = std::max(mFastTransform->getMaxDriftTime(0), mFastTransform->getMaxDriftTime(GPUTPCGeometry::NSECTORS / 2));
 
     unsigned int offset = 0, lasti = 0;
     const unsigned int maxTime = (mParam->continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
@@ -205,23 +205,23 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       }
     }
     offset = 0;
-    unsigned int offsets[GPUCA_NSECTORS][GPUCA_NROWS];
-    for (unsigned int i = 0; i < GPUCA_NSECTORS; i++) {
-      for (unsigned int j = 0; j < GPUCA_NROWS; j++) {
-        if (i * GPUCA_NROWS + j >= clusters.nSliceRows) {
+    unsigned int offsets[GPUTPCGeometry::NSECTORS][GPUTPCGeometry::NROWS];
+    for (unsigned int i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
+      for (unsigned int j = 0; j < GPUTPCGeometry::NROWS; j++) {
+        if (i * GPUTPCGeometry::NROWS + j >= clusters.nSliceRows) {
           break;
         }
         offsets[i][j] = offset;
-        offset += (i * GPUCA_NROWS + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUCA_NROWS + j];
+        offset += (i * GPUTPCGeometry::NROWS + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j];
       }
     }
 
 #ifdef WITH_OPENMP
-#pragma omp parallel for num_threads(mNThreads) schedule(static, (GPUCA_NSECTORS + mNThreads - 1) / mNThreads) // Static round-robin scheduling with one chunk per thread to ensure correct order of the final vector
+#pragma omp parallel for num_threads(mNThreads) schedule(static, (GPUTPCGeometry::NSECTORS + mNThreads - 1) / mNThreads) // Static round-robin scheduling with one chunk per thread to ensure correct order of the final vector
 #endif
     for (unsigned int ii = 0; ii < clusters.nSliceRows; ii++) {
-      unsigned int i = ii / GPUCA_NROWS;
-      unsigned int j = ii % GPUCA_NROWS;
+      unsigned int i = ii / GPUTPCGeometry::NROWS;
+      unsigned int j = ii % GPUTPCGeometry::NROWS;
       o2::tpc::ClusterNative preCl;
 #ifdef WITH_OPENMP
       int myThread = omp_get_thread_num();
@@ -240,7 +240,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
         const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
         if (reject) {
           rejectHits[k] = true;
-          clustersFiltered.nSliceRowClusters[i * GPUCA_NROWS + j]--;
+          clustersFiltered.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j]--;
           static std::atomic_flag lock = ATOMIC_FLAG_INIT;
           while (lock.test_and_set(std::memory_order_acquire)) {
           }
@@ -253,7 +253,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
           preCl = cl;
         }
       };
-      unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_NROWS + j];
+      unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j];
       o2::gpu::TPCClusterDecompressionCore::decompressHits(clusters, offsets[i][j], end, checker);
     }
     tmpBuffer[0].first.reserve(clustersFiltered.nUnattachedClusters);

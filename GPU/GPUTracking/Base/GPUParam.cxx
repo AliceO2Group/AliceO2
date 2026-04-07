@@ -91,16 +91,16 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
   constexpr float plusZmax = 249.778;
   constexpr float minusZmin = -249.645;
   constexpr float minusZmax = -0.0799937;
-  for (int32_t i = 0; i < GPUCA_NSECTORS; i++) {
-    const bool zPlus = (i < GPUCA_NSECTORS / 2);
+  for (uint32_t i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
+    const bool zPlus = (i < GPUTPCGeometry::NSECTORS / 2);
     SectorParam[i].ZMin = zPlus ? plusZmin : minusZmin;
     SectorParam[i].ZMax = zPlus ? plusZmax : minusZmax;
     int32_t tmp = i;
-    if (tmp >= GPUCA_NSECTORS / 2) {
-      tmp -= GPUCA_NSECTORS / 2;
+    if (tmp >= (int32_t)GPUTPCGeometry::NSECTORS / 2) {
+      tmp -= GPUTPCGeometry::NSECTORS / 2;
     }
-    if (tmp >= GPUCA_NSECTORS / 4) {
-      tmp -= GPUCA_NSECTORS / 2;
+    if (tmp >= (int32_t)GPUTPCGeometry::NSECTORS / 4) {
+      tmp -= GPUTPCGeometry::NSECTORS / 2;
     }
     SectorParam[i].Alpha = 0.174533f + dAlpha * tmp;
     SectorParam[i].CosAlpha = CAMath::Cos(SectorParam[i].Alpha);

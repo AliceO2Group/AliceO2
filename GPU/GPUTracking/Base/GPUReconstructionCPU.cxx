@@ -189,7 +189,7 @@ int32_t GPUReconstructionCPU::InitDevice()
       if (mDeviceMemorySize > mHostMemorySize) {
         mHostMemorySize = mDeviceMemorySize;
       }
-      mHostMemoryBase = ::operator new(mHostMemorySize, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
+      mHostMemoryBase = ::operator new(mHostMemorySize, std::align_val_t(constants::GPU_BUFFER_ALIGNMENT));
     }
     mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
@@ -205,7 +205,7 @@ int32_t GPUReconstructionCPU::ExitDevice()
 {
   if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mMaster == nullptr) {
-      ::operator delete(mHostMemoryBase, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
+      ::operator delete(mHostMemoryBase, std::align_val_t(constants::GPU_BUFFER_ALIGNMENT));
     }
     mHostMemoryPool = mHostMemoryBase = mHostMemoryPoolEnd = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;

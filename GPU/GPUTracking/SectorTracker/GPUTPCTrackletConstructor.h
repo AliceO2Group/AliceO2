@@ -46,24 +46,24 @@ class GPUTPCTrackletConstructor : public GPUKernelTemplate
 
    protected:
     // WARNING: This data is copied element by element in CopyTrackletTempData. Changes to members of this class must be reflected in CopyTrackletTempData!!!
-    int32_t mISH;         // track index
-    int32_t mFirstRow;    // first row index
-    int32_t mLastRow;     // last row index
-    int32_t mStartRow;    // row index of first hit in seed
-    int32_t mEndRow;      // row index of last hit in seed
+    uint32_t mISH;        // track index
+    uint32_t mFirstRow;   // first row index
+    uint32_t mLastRow;    // last row index
+    uint32_t mStartRow;   // row index of first hit in seed
+    uint32_t mEndRow;     // row index of last hit in seed
     calink mCurrIH;       // indef of the current hit
     int8_t mGo;           // do fit/searching flag
-    int32_t mStage;       // reco stage
-    int32_t mNHits;       // n track hits
-    int32_t mNHitsEndRow; // n hits at end row
-    int32_t mNMissed;     // n missed hits during search
+    uint8_t mStage;       // reco stage
+    uint32_t mNHits;      // n track hits
+    uint32_t mNHitsEndRow; // n hits at end row
+    uint32_t mNMissed;     // n missed hits during search
     float mLastY;         // Y of the last fitted cluster
     float mLastZ;         // Z of the last fitted cluster
   };
 
   struct GPUSharedMemory {
-    CA_SHARED_STORAGE(GPUTPCRow mRows[GPUCA_NROWS]);     // rows
-    int32_t mNStartHits;                                 // Total number of start hits
+    GPUCA_SHARED_STORAGE(GPUTPCRow mRows[GPUTPCGeometry::NROWS]); // rows
+    uint32_t mNStartHits;                                      // Total number of start hits
 
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
     int32_t fMaxSync; // temporary shared variable during profile creation

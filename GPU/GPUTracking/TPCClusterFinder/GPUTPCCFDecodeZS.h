@@ -32,7 +32,7 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory /*: public GPUKernelTemplate::GPUSharedMemoryScan64<int32_t, GPUCA_WARP_SIZE>*/ {
-    CA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
+    GPUCA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
     uint32_t RowClusterOffset[o2::tpc::TPCZSHDR::TPC_MAX_ZS_ROW_IN_ENDPOINT];
     uint32_t nRowsRegion;
     uint32_t regionStartRow;
@@ -137,7 +137,7 @@ class GPUTPCCFDecodeZSLink : public GPUTPCCFDecodeZSLinkBase
   static inline constexpr uint32_t DECODE_MASK = (1 << DECODE_BITS) - 1;
 
   struct GPUSharedMemory : GPUKernelTemplate::GPUSharedMemoryWarpScan64<uint8_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSLink)> {
-    // CA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
+    // GPUCA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
   };
 
   template <int32_t iKernel = defaultKernel, typename... Args>
@@ -162,7 +162,7 @@ class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
   static inline constexpr int32_t MaxNLinksPerTimebin = 16;
 
   struct GPUSharedMemory : GPUKernelTemplate::GPUSharedMemoryWarpScan64<uint8_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSDenseLink)> {
-    // CA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
+    // GPUCA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
     uint16_t samplesPerLinkEnd[MaxNLinksPerTimebin]; // Offset from end of TB link header to first sample not in this link
     uint8_t linkIds[MaxNLinksPerTimebin];
     uint8_t rawFECChannels[MaxNLinksPerTimebin * 80];

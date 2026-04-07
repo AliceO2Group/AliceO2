@@ -32,9 +32,9 @@ class GPUTPCStartHitsSorter : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory {
-    int32_t mStartRow;    // start row index
-    int32_t mNRows;       // number of rows to process
-    int32_t mStartOffset; // start offset for hits sorted by this block
+    uint32_t mStartRow;    // start row index
+    uint32_t mNRows;       // number of rows to process
+    uint32_t mStartOffset; // start offset for hits sorted by this block
   };
 
   typedef GPUconstantref() GPUTPCTracker processorType;

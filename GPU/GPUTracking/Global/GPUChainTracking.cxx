@@ -162,8 +162,8 @@ void GPUChainTracking::RegisterGPUProcessors()
 
 void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 {
-  gpuMem = GPUCA_MEMORY_SIZE;
-  pageLockedHostMem = GPUCA_HOST_MEMORY_SIZE;
+  gpuMem = constants::GPU_DEFAULT_MEMORY_SIZE;
+  pageLockedHostMem = constants::GPU_DEFAULT_HOST_MEMORY_SIZE;
 }
 
 bool GPUChainTracking::ValidateSteps()

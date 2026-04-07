@@ -76,7 +76,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
     if (nCl == 0) {
       continue;
     }
-    if (nCl + 2 < GPUCA_TPC_MIN_HITS_B5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
+    if (nCl + 2 < merger.Param().tpcMinHitsB5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
       continue;
     }
     if (merger.Param().rec.tpc.minNClustersFinalTrack != -1 && nCl < (uint32_t)merger.Param().rec.tpc.minNClustersFinalTrack) {

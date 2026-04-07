@@ -64,7 +64,7 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
   static int32_t GetNBlocks(bool isGPU)
   {
     const int32_t nBlocks = TPC_CLUSTERER_STRIDED_PAD_COUNT / PadsPerCacheline;
-    return isGPU ? GPUCA_NROWS : nBlocks;
+    return isGPU ? GPUTPCGeometry::NROWS : nBlocks;
   }
 
   template <int32_t iKernel = defaultKernel>

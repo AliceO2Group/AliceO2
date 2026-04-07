@@ -68,10 +68,10 @@ size_t GPUMemorySizeScalers::getValue(size_t maxVal, size_t val)
   return returnMaxVal ? maxVal : (std::min<size_t>(maxVal, offset + val) * (doFuzzing == 0 ? scalingFactor : getScalingFactor()) * temporaryFactor);
 }
 
-size_t GPUMemorySizeScalers::NTPCPeaks(size_t tpcDigits, bool perSector) { return getValue(perSector ? tpcMaxPeaks : (GPUCA_NSECTORS * tpcMaxPeaks), hitOffset + tpcDigits * tpcPeaksPerDigit); }
+size_t GPUMemorySizeScalers::NTPCPeaks(size_t tpcDigits, bool perSector) { return getValue(perSector ? tpcMaxPeaks : (GPUTPCGeometry::NSECTORS * tpcMaxPeaks), hitOffset + tpcDigits * tpcPeaksPerDigit); }
 size_t GPUMemorySizeScalers::NTPCClusters(size_t tpcDigits, bool perSector) { return getValue(perSector ? tpcMaxSectorClusters : tpcMaxClusters, (conservativeMemoryEstimate ? 1.0 : tpcClustersPerPeak) * NTPCPeaks(tpcDigits, perSector)); }
 size_t GPUMemorySizeScalers::NTPCStartHits(size_t tpcHits) { return getValue(tpcMaxStartHits, tpcHits * tpcStartHitsPerHit); }
-size_t GPUMemorySizeScalers::NTPCRowStartHits(size_t tpcHits) { return getValue(tpcMaxRowStartHits, std::max<size_t>(NTPCStartHits(tpcHits) * (tpcHits < 30000000 ? 20 : 12) / GPUCA_NROWS, tpcMinRowStartHits)); }
+size_t GPUMemorySizeScalers::NTPCRowStartHits(size_t tpcHits) { return getValue(tpcMaxRowStartHits, std::max<size_t>(NTPCStartHits(tpcHits) * (tpcHits < 30000000 ? 20 : 12) / GPUTPCGeometry::NROWS, tpcMinRowStartHits)); }
 size_t GPUMemorySizeScalers::NTPCTracklets(size_t tpcHits, bool lowField) { return getValue(tpcMaxTracklets, NTPCStartHits(tpcHits) * (lowField ? tpcTrackletsPerStartHitLowField : tpcTrackletsPerStartHit)); }
 size_t GPUMemorySizeScalers::NTPCTrackletHits(size_t tpcHits, bool lowField) { return getValue(tpcMaxTrackletHits, hitOffset + tpcHits * (lowField ? tpcTrackletHitsPerHitLowField : tpcTrackletHitsPerHit)); }
 size_t GPUMemorySizeScalers::NTPCSectorTracks(size_t tpcHits) { return getValue(tpcMaxSectorTracks, tpcHits * tpcSectorTracksPerHit); }

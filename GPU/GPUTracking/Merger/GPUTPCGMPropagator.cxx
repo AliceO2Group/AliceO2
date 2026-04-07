@@ -348,7 +348,7 @@ GPUd() int32_t GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTra
   float d4 = p[4] - mT0.QPt();
 
   float newSinPhi = ey1 + d2 + j24 * d4;
-  if (mT->NDF() >= 15 && CAMath::Abs(newSinPhi) > GPUCA_MAX_SIN_PHI) {
+  if (mT->NDF() >= 15 && CAMath::Abs(newSinPhi) > constants::MAX_SIN_PHI) {
     return -4;
   }
 
@@ -523,7 +523,7 @@ GPUd() int32_t GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict()
   float ex = mT0.CosPhi();
   float ey = mT0.SinPhi();
   float ey1 = ey - k * dx;
-  if (CAMath::Abs(ey1) > GPUCA_MAX_SIN_PHI) {
+  if (CAMath::Abs(ey1) > constants::MAX_SIN_PHI) {
     return 1;
   }
   float ss = ey + ey1;
@@ -550,12 +550,12 @@ GPUd() int32_t GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict()
   return 0;
 }
 
-GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int32_t iRow, int16_t clusterState, int8_t sector, float time, float avgCharge, float charge) const
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int32_t iRow, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge) const
 {
   GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), mT->GetY(), iRow, clusterState, sector, time, avgCharge, charge, mSeedingErrors);
 }
 
-GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float trackX, float trackY, int32_t iRow, int16_t clusterState, int8_t sector, float time, float avgCharge, float charge, bool seedingErrors)
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float trackX, float trackY, int32_t iRow, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge, bool seedingErrors)
 {
 #ifdef GPUCA_RUN2
   if (seedingErrors) {
@@ -566,15 +566,15 @@ GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUre
     param.GetClusterErrors2(sector, iRow, posZ, snp, tgl, time, avgCharge, charge, err2Y, err2Z);
   }
   param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
-  float statErr2 = param.GetSystematicClusterErrorIFC2(trackX, trackY, posZ, sector >= (GPUCA_NSECTORS / 2));
-  if (sector >= GPUCA_NSECTORS / 2 + 1 && sector <= GPUCA_NSECTORS / 2 + 2) {
+  float statErr2 = param.GetSystematicClusterErrorIFC2(trackX, trackY, posZ, sector >= (GPUTPCGeometry::NSECTORS / 2));
+  if (sector >= GPUTPCGeometry::NSECTORS / 2 + 1 && sector <= GPUTPCGeometry::NSECTORS / 2 + 2) {
     statErr2 += param.GetSystematicClusterErrorC122(trackX, trackY, sector);
   }
   err2Y += statErr2;
   err2Z += statErr2;
 }
 
-GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, int8_t sector, float time, float avgCharge, float charge) const
+GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int32_t iRow, const GPUParam& GPUrestrict() param, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge) const
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgCharge, charge);

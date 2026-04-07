@@ -30,7 +30,7 @@ namespace o2::gpu
 struct GPUReconstructionCUDAInternals {
   std::vector<std::unique_ptr<CUmodule>> kernelModules;     // module for RTC compilation
   std::vector<std::unique_ptr<CUfunction>> kernelFunctions; // vector of ptrs to RTC kernels
-  cudaStream_t Streams[GPUCA_MAX_STREAMS];                  // Pointer to array of CUDA Streams
+  cudaStream_t Streams[constants::GPU_MAX_STREAMS];         // Pointer to array of CUDA Streams
 
   static void getArgPtrs(const void** pArgs) {}
   template <typename T, typename... Args>

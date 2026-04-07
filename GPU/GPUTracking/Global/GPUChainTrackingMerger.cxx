@@ -126,7 +126,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   if (GetProcessingSettings().deterministicGPUReconstruction) {
     runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, NSECTORS);
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks>({{GPUCA_NSECTORS, -WarpSize(), 0, deviceType}}, 0);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks>({{GPUTPCGeometry::NSECTORS, -WarpSize(), 0, deviceType}}, 0);
   }
   for (uint32_t i = 0; i < NSECTORS; i++) {
     runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, NSECTORS + i);
@@ -134,7 +134,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, 2 * NSECTORS);
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks>({{GPUCA_NSECTORS, -WarpSize(), 0, deviceType}}, 1);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks>({{GPUTPCGeometry::NSECTORS, -WarpSize(), 0, deviceType}}, 1);
   }
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingSectorTracks, doGPU, Merger, &GPUTPCGMMerger::DumpSectorTracks, *mDebugFile);
 
@@ -253,7 +253,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     auto* waitEvent = &mEvents->single;
     if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1 || mFractionalQAEnabled) {
       if (!(GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1)) {
-        size_t size = mRec->Res(Merger.MemoryResOutput()).Size() + GPUCA_MEMALIGN;
+        size_t size = mRec->Res(Merger.MemoryResOutput()).Size() + constants::GPU_MEMALIGN;
         void* buffer = GetQA()->AllocateScratchBuffer(size);
         void* bufferEnd = Merger.SetPointersOutput(buffer);
         if ((size_t)((char*)bufferEnd - (char*)buffer) > size) {

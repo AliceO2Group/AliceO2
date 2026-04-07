@@ -44,9 +44,6 @@ GPUTPCTracker::~GPUTPCTracker() = default;
 void GPUTPCTracker::SetSector(int32_t iSector) { mISector = iSector; }
 void GPUTPCTracker::InitializeProcessor()
 {
-  if (mISector < 0) {
-    throw std::runtime_error("Sector not set");
-  }
   InitializeRows(&Param());
   SetupCommonMemory();
 }
@@ -63,8 +60,8 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
     mem = SetPointersTracklets(mem);
   }
   if (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking) {
-    computePointerWithAlignment(mem, mTrackletTmpStartHits, GPUCA_NROWS * mNMaxRowStartHits);
-    computePointerWithAlignment(mem, mRowStartHitCountOffset, GPUCA_NROWS);
+    computePointerWithAlignment(mem, mTrackletTmpStartHits, GPUTPCGeometry::NROWS * mNMaxRowStartHits);
+    computePointerWithAlignment(mem, mRowStartHitCountOffset, GPUTPCGeometry::NROWS);
   }
   return mem;
 }
@@ -135,12 +132,12 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   }
   if (io.clustersNative) {
     uint32_t maxRowHits = 0;
-    for (uint32_t i = 0; i < GPUCA_NROWS; i++) {
+    for (uint32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
       if (io.clustersNative->nClusters[mISector][i] > maxRowHits) {
         maxRowHits = io.clustersNative->nClusters[mISector][i];
       }
     }
-    mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(maxRowHits * GPUCA_NROWS);
+    mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(maxRowHits * GPUTPCGeometry::NROWS);
   } else {
     mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(mData.NumberOfHits());
   }
@@ -149,9 +146,9 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxRowHits = mRec->MemoryScalers()->NTPCTrackletHits(mData.NumberOfHits(), lowField);
   mNMaxTracks = mRec->MemoryScalers()->NTPCSectorTracks(mData.NumberOfHits());
   if (io.clustersNative) {
-    uint32_t sectorOffset = mISector >= GPUCA_NSECTORS / 2 ? GPUCA_NSECTORS / 2 : 0;
-    uint32_t nextSector = (mISector + 1) % (GPUCA_NSECTORS / 2) + sectorOffset;
-    uint32_t prevSector = (mISector + GPUCA_NSECTORS - 1) % (GPUCA_NSECTORS / 2) + sectorOffset;
+    uint32_t sectorOffset = mISector >= GPUTPCGeometry::NSECTORS / 2 ? GPUTPCGeometry::NSECTORS / 2 : 0;
+    uint32_t nextSector = (mISector + 1) % (GPUTPCGeometry::NSECTORS / 2) + sectorOffset;
+    uint32_t prevSector = (mISector + GPUTPCGeometry::NSECTORS - 1) % (GPUTPCGeometry::NSECTORS / 2) + sectorOffset;
     uint32_t nExtrapolationTracks = mRec->MemoryScalers()->NTPCSectorTracks((io.clustersNative->nClustersSector[nextSector] + io.clustersNative->nClustersSector[prevSector]) / 2) / 2;
     if (nExtrapolationTracks > mNMaxTracks) {
       mNMaxTracks = nExtrapolationTracks;
@@ -160,8 +157,8 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxTrackHits = mRec->MemoryScalers()->NTPCSectorTrackHits(mData.NumberOfHits(), mRec->GetProcessingSettings().tpcInputWithClusterRejection);
 
   if (mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking).par_SORT_STARTHITS) {
-    if (mNMaxStartHits > mNMaxRowStartHits * GPUCA_NROWS) {
-      mNMaxStartHits = mNMaxRowStartHits * GPUCA_NROWS;
+    if (mNMaxStartHits > mNMaxRowStartHits * GPUTPCGeometry::NROWS) {
+      mNMaxStartHits = mNMaxRowStartHits * GPUTPCGeometry::NROWS;
     }
   }
   mData.SetMaxData();
@@ -171,7 +168,7 @@ void GPUTPCTracker::UpdateMaxData()
 {
   mNMaxTracklets = mCommonMem->nStartHits;
   mNMaxTracks = mNMaxTracklets * 2 + 50;
-  mNMaxRowHits = mNMaxTracklets * GPUCA_NROWS;
+  mNMaxRowHits = mNMaxTracklets * GPUTPCGeometry::NROWS;
 }
 
 void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }

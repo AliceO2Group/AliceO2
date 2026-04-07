@@ -319,7 +319,7 @@ void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track) con
     GPUTPCGMPropagator prop;
     prop.SetMaterialTPC();
     prop.SetPolynomialField(&Param().polynomialField);
-    prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+    prop.SetMaxSinPhi(constants::MAX_SIN_PHI);
     prop.SetPropagateBzOnly(false);
     prop.SetMatLUT(Param().rec.useMatLUT ? GetConstantMem()->calibObjects.matLUT : nullptr);
     prop.SetTrack(&trk.Param(), trk.GetAlpha());

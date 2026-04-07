@@ -491,7 +491,7 @@ int32_t GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
     mCFContext.reset(new GPUTPCCFChainContext);
   }
   const int16_t maxFragmentLen = GetProcessingSettings().overrideClusterizerFragmentLen;
-  const uint32_t maxAllowedTimebin = param().par.continuousTracking ? std::max<int32_t>(param().continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
+  const uint32_t maxAllowedTimebin = param().par.continuousTracking ? std::max<int32_t>(param().continuousMaxTimeBin, maxFragmentLen) : constants::TPC_MAX_TIME_BIN_TRIGGERED;
   mCFContext->tpcMaxTimeBin = maxAllowedTimebin;
   const CfFragment fragmentMax{(tpccf::TPCTime)mCFContext->tpcMaxTimeBin + 1, maxFragmentLen};
   mCFContext->prepare(mIOPtrs.tpcZS, fragmentMax);
@@ -722,7 +722,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       }
     });
     const int16_t maxFragmentLen = GetProcessingSettings().overrideClusterizerFragmentLen;
-    const uint32_t maxAllowedTimebin = param().par.continuousTracking ? std::max<int32_t>(param().continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
+    const uint32_t maxAllowedTimebin = param().par.continuousTracking ? std::max<int32_t>(param().continuousMaxTimeBin, maxFragmentLen) : constants::TPC_MAX_TIME_BIN_TRIGGERED;
     for (int32_t sector = 0; sector < NSECTORS; sector++) {
       GPUTPCNNClusterizer& clustererNN = processors()->tpcNNClusterer[sector];
       GPUTPCNNClusterizer& clustererNNShadow = doGPU ? processorsShadow()->tpcNNClusterer[sector] : clustererNN;
@@ -815,7 +815,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   for (uint32_t iSectorBase = 0; iSectorBase < NSECTORS; iSectorBase += GetProcessingSettings().nTPCClustererLanes) {
     std::vector<bool> laneHasData(GetProcessingSettings().nTPCClustererLanes, false);
-    static_assert(NSECTORS <= GPUCA_MAX_STREAMS, "Stream events must be able to hold all sectors");
+    static_assert(NSECTORS <= constants::GPU_MAX_STREAMS, "Stream events must be able to hold all sectors");
     const int32_t maxLane = std::min<int32_t>(GetProcessingSettings().nTPCClustererLanes, NSECTORS - iSectorBase);
     for (CfFragment fragment = mCFContext->fragmentFirst; !fragment.isEnd(); fragment = fragment.next()) {
       if (GetProcessingSettings().debugLevel >= 3) {
@@ -1012,7 +1012,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             waitEvent = &mEvents->stream[lane];
             transferRunning[lane] = 2;
           }
-          runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, waitEvent}}, clustererShadow.mPclusterInRow, GPUCA_NROWS * sizeof(*clustererShadow.mPclusterInRow));
+          runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, waitEvent}}, clustererShadow.mPclusterInRow, GPUTPCGeometry::NROWS * sizeof(*clustererShadow.mPclusterInRow));
         }
 
         if (clusterer.mPmemory->counters.nClusters == 0) {
@@ -1193,9 +1193,9 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       if (laneHasData[lane]) {
         anyLaneHasData = true;
         if (buildNativeGPU && GetProcessingSettings().tpccfGatherKernel) {
-          runKernel<GPUTPCCFGather>({GetGridBlk(GPUCA_NROWS, mRec->NStreams() - 1), {iSector}}, &mInputsShadow->mPclusterNativeBuffer[nClsTotal]);
+          runKernel<GPUTPCCFGather>({GetGridBlk(GPUTPCGeometry::NROWS, mRec->NStreams() - 1), {iSector}}, &mInputsShadow->mPclusterNativeBuffer[nClsTotal]);
         }
-        for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+        for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
           if (nClsTotal + clusterer.mPclusterInRow[j] > mInputsHost->mNClusterNative) {
             clusterer.raiseError(GPUErrors::ERROR_CF_GLOBAL_CLUSTER_OVERFLOW, iSector * 1000 + j, nClsTotal + clusterer.mPclusterInRow[j], mInputsHost->mNClusterNative);
             continue;
@@ -1222,9 +1222,9 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         continue;
       }
 
-      runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::setRowOffsets>({GetGrid(GPUCA_NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}});
+      runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::setRowOffsets>({GetGrid(GPUTPCGeometry::NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}});
       GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(clusterer, mcLinearLabels);
-      runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>({GetGrid(GPUCA_NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}}, &mcLinearLabels);
+      runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>({GetGrid(GPUTPCGeometry::NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}}, &mcLinearLabels);
       clusterer.clearMCMemory();
       assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
     }
@@ -1375,7 +1375,7 @@ void GPUChainTracking::SortClusters(bool buildNativeGPU, bool propagateMCLabels,
     std::iota(clsOrder.begin(), clsOrder.end(), 0);
     std::vector<ClusterNative> tmpClusters;
     for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         const uint32_t offset = clusterAccess->clusterOffset[i][j];
         std::sort(&clsOrder[offset], &clsOrder[offset + clusterAccess->nClusters[i][j]], [&clusters](const uint32_t a, const uint32_t b) {
           return clusters[a] < clusters[b];
@@ -1415,7 +1415,7 @@ void GPUChainTracking::SortClusters(bool buildNativeGPU, bool propagateMCLabels,
     clusterAccess->clustersMCTruth = labelBuffer.second;
   } else {
     for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         std::sort(&clusters[clusterAccess->clusterOffset[i][j]], &clusters[clusterAccess->clusterOffset[i][j] + clusterAccess->nClusters[i][j]]);
       }
     }

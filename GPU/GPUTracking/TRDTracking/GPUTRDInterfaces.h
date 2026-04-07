@@ -187,7 +187,7 @@ class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
   {
     this->SetMaterialTPC();
     this->SetPolynomialField(pField);
-    this->SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+    this->SetMaxSinPhi(constants::MAX_SIN_PHI);
     this->SetFitInProjections(0);
     this->SelectFieldRegion(GPUTPCGMPropagator::TRD);
   };

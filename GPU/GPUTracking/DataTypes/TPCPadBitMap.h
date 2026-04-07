@@ -101,8 +101,8 @@ struct TPCPadBitMap {
     T mDeadChannelMap[NWORDS];
   };
 
-  uint16_t mPadOffsetPerRow[GPUCA_NROWS];
-  SectorBitMap mBitMap[GPUCA_NSECTORS];
+  uint16_t mPadOffsetPerRow[GPUTPCGeometry::NROWS];
+  SectorBitMap mBitMap[GPUTPCGeometry::NSECTORS];
 };
 
 } // namespace o2::gpu

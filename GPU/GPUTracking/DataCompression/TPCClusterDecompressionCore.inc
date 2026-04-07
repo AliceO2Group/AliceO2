@@ -48,7 +48,7 @@ class TPCClusterDecompressionCore
     return clusterVector.back();
   }
 
-  GPUhi() static auto decompressTrackStore(const CompressedClusters& clustersCompressed, const uint32_t offset, uint32_t slice, uint32_t row, uint32_t pad, uint32_t time, std::vector<ClusterNative> (&clusters)[GPUCA_NSECTORS][GPUCA_NROWS], std::atomic_flag (&locks)[GPUCA_NSECTORS][GPUCA_NROWS])
+  GPUhi() static auto decompressTrackStore(const CompressedClusters& clustersCompressed, const uint32_t offset, uint32_t slice, uint32_t row, uint32_t pad, uint32_t time, std::vector<ClusterNative> (&clusters)[GPUTPCGeometry::NSECTORS][GPUTPCGeometry::NROWS], std::atomic_flag (&locks)[GPUTPCGeometry::NSECTORS][GPUTPCGeometry::NROWS])
   {
     std::vector<ClusterNative>& clusterVector = clusters[slice][row];
     auto& lock = locks[slice][row];
@@ -62,14 +62,14 @@ class TPCClusterDecompressionCore
 
   GPUdi() static ClusterNative decompressTrackStore(const CompressedClusters& cmprClusters, const uint32_t clusterOffset, uint32_t slice, uint32_t row, uint32_t pad, uint32_t time, GPUTPCDecompression& decompressor)
   {
-    uint32_t tmpBufferIndex = slice * (GPUCA_NROWS * decompressor.mMaxNativeClustersPerBuffer) + row * decompressor.mMaxNativeClustersPerBuffer;
-    uint32_t currentClusterIndex = CAMath::AtomicAdd(decompressor.mNativeClustersIndex + (slice * GPUCA_NROWS + row), 1u);
+    uint32_t tmpBufferIndex = slice * (GPUTPCGeometry::NROWS * decompressor.mMaxNativeClustersPerBuffer) + row * decompressor.mMaxNativeClustersPerBuffer;
+    uint32_t currentClusterIndex = CAMath::AtomicAdd(decompressor.mNativeClustersIndex + (slice * GPUTPCGeometry::NROWS + row), 1u);
     const ClusterNative c(time, cmprClusters.flagsA[clusterOffset], pad, cmprClusters.sigmaTimeA[clusterOffset], cmprClusters.sigmaPadA[clusterOffset], cmprClusters.qMaxA[clusterOffset], cmprClusters.qTotA[clusterOffset]);
     if (currentClusterIndex < decompressor.mMaxNativeClustersPerBuffer) {
       decompressor.mTmpNativeClusters[tmpBufferIndex + currentClusterIndex] = c;
     } else {
       decompressor.raiseError(GPUErrors::ERROR_DECOMPRESSION_ATTACHED_CLUSTER_OVERFLOW, slice * 1000 + row, currentClusterIndex, decompressor.mMaxNativeClustersPerBuffer);
-      CAMath::AtomicExch(decompressor.mNativeClustersIndex + (slice * GPUCA_NROWS + row), decompressor.mMaxNativeClustersPerBuffer);
+      CAMath::AtomicExch(decompressor.mNativeClustersIndex + (slice * GPUTPCGeometry::NROWS + row), decompressor.mMaxNativeClustersPerBuffer);
     }
     return c;
   }
@@ -87,18 +87,18 @@ class TPCClusterDecompressionCore
       uint32_t pad = 0, time = 0;
       if (clusterIndex != 0) {
         uint8_t tmpSlice = cmprClusters.sliceLegDiffA[clusterOffset - trackIndex - 1];
-        bool changeLeg = (tmpSlice >= GPUCA_NSECTORS);
+        bool changeLeg = (tmpSlice >= GPUTPCGeometry::NSECTORS);
         if (changeLeg) {
-          tmpSlice -= GPUCA_NSECTORS;
+          tmpSlice -= GPUTPCGeometry::NSECTORS;
         }
         if (cmprClusters.nComppressionModes & GPUSettings::CompressionDifferences) {
           slice += tmpSlice;
-          if (slice >= GPUCA_NSECTORS) {
-            slice -= GPUCA_NSECTORS;
+          if (slice >= GPUTPCGeometry::NSECTORS) {
+            slice -= GPUTPCGeometry::NSECTORS;
           }
           row += cmprClusters.rowDiffA[clusterOffset - trackIndex - 1];
-          if (row >= GPUCA_NROWS) {
-            row -= GPUCA_NROWS;
+          if (row >= GPUTPCGeometry::NROWS) {
+            row -= GPUTPCGeometry::NROWS;
           }
         } else {
           slice = tmpSlice;
@@ -115,7 +115,7 @@ class TPCClusterDecompressionCore
           timeTmp |= 0xFF000000;
         }
         time = timeTmp + ClusterNative::packTime(CAMath::Max(0.f, geo.LinearZ2Time(slice, track.Z() + zOffset)));
-        float tmpPad = CAMath::Max(0.f, CAMath::Min((float)geo.NPads(GPUCA_NROWS - 1), track.LinearY2Pad(slice, track.Y(), geo.PadWidth(row), geo.NPads(row))));
+        float tmpPad = CAMath::Max(0.f, CAMath::Min((float)geo.NPads(GPUTPCGeometry::NROWS - 1), track.LinearY2Pad(slice, track.Y(), geo.PadWidth(row), geo.NPads(row))));
         pad = cmprClusters.padResA[clusterOffset - trackIndex - 1] + ClusterNative::packPad(tmpPad);
         time = time & 0xFFFFFF;
         pad = (uint16_t)pad;

@@ -401,7 +401,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float
     cosPhi = cP * cosAlpha + sP * sinAlpha;
     sinPhi = -cP * sinAlpha + sP * cosAlpha;
 
-    if (CAMath::Abs(sinPhi) > GPUCA_MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2f) {
+    if (CAMath::Abs(sinPhi) > constants::MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2f) {
       return 0;
     }
 

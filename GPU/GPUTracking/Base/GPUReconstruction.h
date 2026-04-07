@@ -82,7 +82,7 @@ class GPUReconstruction
   GPUReconstruction& operator=(const GPUReconstruction&) = delete;
 
   // General definitions
-  constexpr static uint32_t NSECTORS = GPUCA_NSECTORS;
+  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
 
   using GeometryType = gpudatatypes::GeometryType;
   using DeviceType = gpudatatypes::DeviceType;
@@ -389,7 +389,7 @@ class GPUReconstruction
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
   std::vector<std::tuple<void*, void*, size_t, size_t, uint64_t>> mNonPersistentMemoryStack; // hostPoolAddress, devicePoolAddress, individualAllocationCount, directIndividualAllocationCound, tag
   std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
-  using alignedDefaultBufferDeleter = alignedDeleter<char, GPUCA_BUFFER_ALIGNMENT>;
+  using alignedDefaultBufferDeleter = alignedDeleter<char, constants::GPU_BUFFER_ALIGNMENT>;
   std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mNonPersistentIndividualDirectAllocations;
   std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mDirectMemoryChunks;
   std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mVolatileChunks;

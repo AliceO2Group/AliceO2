@@ -40,13 +40,13 @@ namespace o2::gpu
 {
 struct GPUConstantMem {
   GPUParam param;
-  GPUTPCTracker tpcTrackers[GPUCA_NSECTORS];
+  GPUTPCTracker tpcTrackers[GPUTPCGeometry::NSECTORS];
   GPUTPCCompression tpcCompressor;
   GPUTPCDecompression tpcDecompressor;
   GPUTPCGMMerger tpcMerger;
   GPUTRDTrackerGPU trdTrackerGPU;
   GPUTRDTracker trdTrackerO2;
-  GPUTPCClusterFinder tpcClusterer[GPUCA_NSECTORS];
+  GPUTPCClusterFinder tpcClusterer[GPUTPCGeometry::NSECTORS];
   GPUTrackingRefitProcessor trackingRefit;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
@@ -55,7 +55,7 @@ struct GPUConstantMem {
   GPUKernelDebugOutput debugOutput;
 #endif
 #ifdef GPUCA_HAS_ONNX
-  GPUTPCNNClusterizer tpcNNClusterer[GPUCA_NSECTORS];
+  GPUTPCNNClusterizer tpcNNClusterer[GPUTPCGeometry::NSECTORS];
 #endif
   template <int32_t I>
   GPUd() auto& getTRDTracker();

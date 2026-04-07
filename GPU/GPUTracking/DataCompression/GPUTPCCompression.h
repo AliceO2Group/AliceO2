@@ -69,7 +69,7 @@ class GPUTPCCompression : public GPUProcessor
     uint32_t nStoredUnattachedClusters = 0;
   };
 
-  constexpr static uint32_t NSECTORS = GPUCA_NSECTORS;
+  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
 
   o2::tpc::CompressedClustersPtrs mPtrs;
   o2::tpc::CompressedClusters* mOutput = nullptr;

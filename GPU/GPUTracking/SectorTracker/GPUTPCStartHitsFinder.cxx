@@ -25,16 +25,12 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nThr
   if (iThread == 0) {
     s.mIRow = iBlock + 1;
     s.mNRowStartHits = 0;
-    if (s.mIRow <= GPUCA_NROWS - 4) {
-      s.mNHits = tracker.mData.mRows[s.mIRow].mNHits;
-    } else {
-      s.mNHits = -1;
-    }
+    s.mNHits = tracker.mData.mRows[s.mIRow].mNHits;
   }
   GPUbarrier();
   GPUglobalref() const GPUTPCRow& GPUrestrict() row = tracker.mData.mRows[s.mIRow];
   GPUglobalref() const GPUTPCRow& GPUrestrict() rowUp = tracker.mData.mRows[s.mIRow + 2];
-  for (int32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
+  for (uint32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
     int64_t lHitNumberOffset = row.mHitNumberOffset;
     uint32_t linkUpData = tracker.mData.mLinkUpData[lHitNumberOffset + ih];
 

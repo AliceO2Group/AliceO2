@@ -217,7 +217,7 @@ class GPUChainTracking : public GPUChain
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
     deviceEvent sector[NSECTORS];
-    deviceEvent stream[GPUCA_MAX_STREAMS];
+    deviceEvent stream[constants::GPU_MAX_STREAMS];
     deviceEvent init;
     deviceEvent single;
   };
@@ -229,7 +229,7 @@ class GPUChainTracking : public GPUChain
     RecoStep step;
   };
 
-  GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits = GPUCA_MAX_CLUSTERS, uint32_t maxTRDTracklets = GPUCA_MAX_TRD_TRACKLETS);
+  GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits = constants::GPU_MEM_MAX_TPC_CLUSTERS, uint32_t maxTRDTracklets = constants::GPU_MEM_MAX_TRD_TRACKLETS);
 
   int32_t ExtrapolationTracking(uint32_t iSector, bool blocking);
 

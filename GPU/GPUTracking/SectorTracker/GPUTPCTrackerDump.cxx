@@ -30,12 +30,12 @@ void GPUTPCTracker::DumpTrackingData(std::ostream& out)
 {
   // Dump Sector Input Data to File
   out << "\nSector Data (Sector" << mISector << "):" << std::endl;
-  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
+  for (uint32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
     if (Row(i).NHits() == 0) {
       continue;
     }
     out << "Row: " << i << std::endl;
-    for (int32_t j = 0; j < Row(i).NHits(); j++) {
+    for (uint32_t j = 0; j < Row(i).NHits(); j++) {
       if (j && j % 16 == 0) {
         out << std::endl;
       }
@@ -49,12 +49,12 @@ void GPUTPCTracker::DumpLinks(std::ostream& out, int32_t phase)
 {
   // Dump Links (after Neighbours Finder / Cleaner) to file
   out << "\nHit Links (Phase " << phase << ", Sector" << mISector << "):" << std::endl;
-  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
+  for (uint32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
     if (Row(i).NHits() == 0) {
       continue;
     }
     out << "Row: " << i << std::endl;
-    for (int32_t j = 0; j < Row(i).NHits(); j++) {
+    for (uint32_t j = 0; j < Row(i).NHits(); j++) {
       if (j && j % 32 == 0) {
         out << std::endl;
       }
@@ -68,12 +68,12 @@ void GPUTPCTracker::DumpHitWeights(std::ostream& out)
 {
   // dump hit weights to file
   out << "\nHit Weights(Sector" << mISector << "):" << std::endl;
-  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
+  for (uint32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
     if (Row(i).NHits() == 0) {
       continue;
     }
     out << "Row: " << i << ":" << std::endl;
-    for (int32_t j = 0; j < Row(i).NHits(); j++) {
+    for (uint32_t j = 0; j < Row(i).NHits(); j++) {
       if (j && j % 32 == 0) {
         out << std::endl;
       }
@@ -145,15 +145,15 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     const int32_t j = Ids[jj];
     const auto& tracklet = Tracklets()[j];
     out << "Tracklet " << std::setw(4) << jj << " (Rows: " << Tracklets()[j].FirstRow() << " - " << tracklet.LastRow() << ", Weight " << Tracklets()[j].HitWeight() << ") ";
-    if (tracklet.LastRow() > tracklet.FirstRow() && (tracklet.FirstRow() >= GPUCA_NROWS || tracklet.LastRow() >= GPUCA_NROWS)) {
+    if (tracklet.LastRow() > tracklet.FirstRow() && (tracklet.FirstRow() >= GPUTPCGeometry::NROWS || tracklet.LastRow() >= GPUTPCGeometry::NROWS)) {
       GPUError("Error: Tracklet %d First %d Last %d", j, tracklet.FirstRow(), tracklet.LastRow());
       out << " (Error: Tracklet " << j << " First " << tracklet.FirstRow() << " Last " << tracklet.LastRow() << ") ";
-      for (int32_t i = 0; i < GPUCA_NROWS; i++) {
+      for (uint32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
         // if (tracklet.RowHit(i) != CALINK_INVAL)
         out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
     } else if (tracklet.LastRow() >= tracklet.FirstRow()) {
-      for (int32_t i = tracklet.FirstRow(); i <= tracklet.LastRow(); i++) {
+      for (uint32_t i = tracklet.FirstRow(); i <= tracklet.LastRow(); i++) {
         out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
     }

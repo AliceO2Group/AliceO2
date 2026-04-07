@@ -26,45 +26,41 @@ GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int32_t /*nBlocks*/, int32_t nT
 
   if (iThread == 0) {
     s.mIRow = iBlock + 2;
-    if (s.mIRow <= GPUCA_NROWS - 3) {
-      s.mIRowUp = s.mIRow + 2;
-      s.mIRowDn = s.mIRow - 2;
-      s.mNHits = tracker.Row(s.mIRow).NHits();
-    }
+    s.mIRowUp = s.mIRow + 2;
+    s.mIRowDn = s.mIRow - 2;
+    s.mNHits = tracker.Row(s.mIRow).NHits();
   }
   GPUbarrier();
 
-  if (s.mIRow <= GPUCA_NROWS - 3) {
 #ifdef GPUCA_GPUCODE
-    int32_t Up = s.mIRowUp;
-    int32_t Dn = s.mIRowDn;
-    GPUglobalref() const GPUTPCRow& GPUrestrict() row = tracker.Row(s.mIRow);
-    GPUglobalref() const GPUTPCRow& GPUrestrict() rowUp = tracker.Row(Up);
-    GPUglobalref() const GPUTPCRow& GPUrestrict() rowDn = tracker.Row(Dn);
+  int32_t Up = s.mIRowUp;
+  int32_t Dn = s.mIRowDn;
+  GPUglobalref() const GPUTPCRow& GPUrestrict() row = tracker.Row(s.mIRow);
+  GPUglobalref() const GPUTPCRow& GPUrestrict() rowUp = tracker.Row(Up);
+  GPUglobalref() const GPUTPCRow& GPUrestrict() rowDn = tracker.Row(Dn);
 #else
-    const GPUTPCRow& GPUrestrict() row = tracker.Row(s.mIRow);
-    const GPUTPCRow& GPUrestrict() rowUp = tracker.Row(s.mIRowUp);
-    const GPUTPCRow& GPUrestrict() rowDn = tracker.Row(s.mIRowDn);
+  const GPUTPCRow& GPUrestrict() row = tracker.Row(s.mIRow);
+  const GPUTPCRow& GPUrestrict() rowUp = tracker.Row(s.mIRowUp);
+  const GPUTPCRow& GPUrestrict() rowDn = tracker.Row(s.mIRowDn);
 #endif
 
-    // - look at up link, if it's valid but the down link in the row above doesn't link to us remove
-    //   the link
-    // - look at down link, if it's valid but the up link in the row below doesn't link to us remove
-    //   the link
-    for (int32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
-      calink up = tracker.HitLinkUpData(row, ih);
-      if (up != CALINK_INVAL) {
-        calink upDn = tracker.HitLinkDownData(rowUp, up);
-        if ((upDn != (calink)ih)) {
-          tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
-        }
+  // - look at up link, if it's valid but the down link in the row above doesn't link to us remove
+  //   the link
+  // - look at down link, if it's valid but the up link in the row below doesn't link to us remove
+  //   the link
+  for (uint32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
+    calink up = tracker.HitLinkUpData(row, ih);
+    if (up != CALINK_INVAL) {
+      calink upDn = tracker.HitLinkDownData(rowUp, up);
+      if ((upDn != (calink)ih)) {
+        tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
       }
-      calink dn = tracker.HitLinkDownData(row, ih);
-      if (dn != CALINK_INVAL) {
-        calink dnUp = tracker.HitLinkUpData(rowDn, dn);
-        if (dnUp != (calink)ih) {
-          tracker.SetHitLinkDownData(row, ih, CALINK_INVAL);
-        }
+    }
+    calink dn = tracker.HitLinkDownData(row, ih);
+    if (dn != CALINK_INVAL) {
+      calink dnUp = tracker.HitLinkUpData(rowDn, dn);
+      if (dnUp != (calink)ih) {
+        tracker.SetHitLinkDownData(row, ih, CALINK_INVAL);
       }
     }
   }

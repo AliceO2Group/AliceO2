@@ -100,15 +100,15 @@ class GPUTPCCompressionTrackModel
   GPUd() void getClusterErrors2(int32_t iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
   GPUd() void resetCovariance();
 
-  GPUd() float LinearPad2Y(int32_t sector, float pad, float padWidth, uint8_t npads) const
+  GPUd() float LinearPad2Y(uint32_t sector, float pad, float padWidth, uint8_t npads) const
   {
     const float u = (pad - 0.5f * npads) * padWidth;
-    return (sector >= GPUCA_NSECTORS / 2) ? -u : u;
+    return (sector >= GPUTPCGeometry::NSECTORS / 2) ? -u : u;
   }
 
-  GPUd() float LinearY2Pad(int32_t sector, float y, float padWidth, uint8_t npads) const
+  GPUd() float LinearY2Pad(uint32_t sector, float y, float padWidth, uint8_t npads) const
   {
-    const float u = (sector >= GPUCA_NSECTORS / 2) ? -y : y;
+    const float u = (sector >= GPUTPCGeometry::NSECTORS / 2) ? -y : y;
     return u / padWidth + 0.5f * npads;
   }
 

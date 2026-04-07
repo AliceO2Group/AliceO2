@@ -35,10 +35,10 @@ using namespace o2::gpu;
 void GPUTPCTrackingData::InitializeRows(const GPUParam& p)
 {
   // initialisation of rows
-  for (int32_t i = 0; i < GPUCA_NROWS + 1; i++) {
+  for (uint32_t i = 0; i < GPUTPCGeometry::NROWS + 1; i++) {
     new (&mRows[i]) GPUTPCRow;
   }
-  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
+  for (uint32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
     mRows[i].mX = GPUTPCGeometry::Row2X(i);
     mRows[i].mMaxY = CAMath::Tan(p.dAlpha / 2.f) * mRows[i].mX;
   }
@@ -52,9 +52,9 @@ void GPUTPCTrackingData::SetClusterData(int32_t nClusters, int32_t clusterIdOffs
 
 void GPUTPCTrackingData::SetMaxData()
 {
-  int32_t hitMemCount = GPUCA_NROWS * GPUCA_ROWALIGNMENT + mNumberOfHits;
+  int32_t hitMemCount = GPUTPCGeometry::NROWS * constants::GPU_ROWALIGNMENT + mNumberOfHits;
   const uint32_t kVectorAlignment = 256;
-  mNumberOfHitsPlusAlign = GPUProcessor::nextMultipleOf<(kVectorAlignment > GPUCA_ROWALIGNMENT ? kVectorAlignment : GPUCA_ROWALIGNMENT) / sizeof(int32_t)>(hitMemCount);
+  mNumberOfHitsPlusAlign = GPUProcessor::nextMultipleOf<(kVectorAlignment > constants::GPU_ROWALIGNMENT ? kVectorAlignment : constants::GPU_ROWALIGNMENT) / sizeof(int32_t)>(hitMemCount);
 }
 
 void* GPUTPCTrackingData::SetPointersLinks(void* mem)
@@ -72,7 +72,7 @@ void* GPUTPCTrackingData::SetPointersWeights(void* mem)
 
 void* GPUTPCTrackingData::SetPointersScratch(void* mem, bool idsOnGPU)
 {
-  const int32_t firstHitInBinSize = GetGridSize(mNumberOfHits, GPUCA_NROWS) + GPUCA_NROWS * GPUCA_ROWALIGNMENT / sizeof(int32_t);
+  const int32_t firstHitInBinSize = GetGridSize(mNumberOfHits, GPUTPCGeometry::NROWS) + GPUTPCGeometry::NROWS * constants::GPU_ROWALIGNMENT / sizeof(int32_t);
   GPUProcessor::computePointerWithAlignment(mem, mHitData, mNumberOfHitsPlusAlign);
   GPUProcessor::computePointerWithAlignment(mem, mFirstHitInBin, firstHitInBinSize);
   if (idsOnGPU) {
@@ -91,7 +91,7 @@ void* GPUTPCTrackingData::SetPointersClusterIds(void* mem, bool idsOnGPU)
 
 void* GPUTPCTrackingData::SetPointersRows(void* mem)
 {
-  GPUProcessor::computePointerWithAlignment(mem, mRows, GPUCA_NROWS + 1);
+  GPUProcessor::computePointerWithAlignment(mem, mRows, GPUTPCGeometry::NROWS + 1);
   return mem;
 }
 
@@ -99,9 +99,9 @@ void* GPUTPCTrackingData::SetPointersRows(void* mem)
 
 GPUd() void GPUTPCTrackingData::GetMaxNBins(GPUconstantref() const GPUConstantMem* mem, GPUTPCRow* GPUrestrict() row, int32_t& maxY, int32_t& maxZ)
 {
-  maxY = row->mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
+  maxY = row->mMaxY * 2.f / constants::GRID_MIN_BIN_SIZE + 1;
   maxZ = (mem->param.continuousMaxTimeBin > 0 ? (mem->calibObjects.fastTransform->convTimeToZinTimeFrame(0, 0, mem->param.continuousMaxTimeBin)) : GPUTPCGeometry::TPCLength()) + 50;
-  maxZ = maxZ / GPUCA_MIN_BIN_SIZE + 1;
+  maxZ = maxZ / constants::GRID_MIN_BIN_SIZE + 1;
 }
 
 GPUd() uint32_t GPUTPCTrackingData::GetGridSize(uint32_t nHits, uint32_t nRows)
@@ -118,8 +118,8 @@ GPUdi() void GPUTPCTrackingData::CreateGrid(GPUconstantref() const GPUConstantMe
     dz = GPUTPCGeometry::TPCLength();
   }
   const float norm = CAMath::InvSqrt(row->mNHits / tfFactor);
-  float sy = CAMath::Min(CAMath::Max((yMax - yMin) * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
-  float sz = CAMath::Min(CAMath::Max(dz * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
+  float sy = CAMath::Min(CAMath::Max((yMax - yMin) * norm, constants::GRID_MIN_BIN_SIZE), constants::GRID_MAX_BIN_SIZE);
+  float sz = CAMath::Min(CAMath::Max(dz * norm, constants::GRID_MIN_BIN_SIZE), constants::GRID_MAX_BIN_SIZE);
   int32_t maxy, maxz;
   GetMaxNBins(mem, row, maxy, maxz);
   int32_t ny = CAMath::Max(1, CAMath::Min<int32_t>(maxy, (yMax - yMin) / sy + 1));
@@ -173,7 +173,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
   static_assert(sizeof(*binMemory) <= sizeof(*mHitWeights), "Cannot reuse memory");
 #endif
 
-  for (int32_t rowIndex = iBlock; rowIndex < GPUCA_NROWS; rowIndex += nBlocks) {
+  for (uint32_t rowIndex = iBlock; rowIndex < GPUTPCGeometry::NROWS; rowIndex += nBlocks) {
     float yMin = 1.e6f;
     float yMax = -1.e6f;
     float zMin = 1.e6f;
@@ -184,7 +184,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
     constexpr const uint32_t maxN = 1u << (sizeof(calink) < 3 ? (sizeof(calink) * 8) : 24);
     GPUTPCRow& row = mRows[rowIndex];
     if (iThread == 0) {
-      row.mFirstHitInBinOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(GetGridSize(RowOffset, rowIndex) + rowIndex * GPUCA_ROWALIGNMENT / sizeof(int32_t));
+      row.mFirstHitInBinOffset = CAMath::nextMultipleOf<constants::GPU_ROWALIGNMENT / sizeof(calink)>(GetGridSize(RowOffset, rowIndex) + rowIndex * constants::GPU_ROWALIGNMENT / sizeof(int32_t));
     }
     if (NumberOfClusters >= maxN) {
       if (iThread == 0) {
@@ -218,7 +218,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
 
     if (iThread == 0) {
       row.mNHits = NumberOfClusters;
-      row.mHitNumberOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(RowOffset + rowIndex * GPUCA_ROWALIGNMENT / sizeof(calink));
+      row.mHitNumberOffset = CAMath::nextMultipleOf<constants::GPU_ROWALIGNMENT / sizeof(calink)>(RowOffset + rowIndex * constants::GPU_ROWALIGNMENT / sizeof(calink));
     }
 
 #ifdef GPUCA_HAVE_ATOMIC_MINMAX_FLOAT
@@ -276,7 +276,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
       c[bin] = 0; // initialize to 0
     }
     GPUbarrier();
-    for (int32_t hitIndex = iThread; hitIndex < row.mNHits; hitIndex += nThreads) {
+    for (uint32_t hitIndex = iThread; hitIndex < row.mNHits; hitIndex += nThreads) {
       const int32_t globalHitIndex = RowOffset + hitIndex;
       const calink bin = row.mGrid.GetBin(YZData[globalHitIndex].x, YZData[globalHitIndex].y);
 
@@ -317,7 +317,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
 
     GPUbarrier();
 
-    for (int32_t hitIndex = iThread; hitIndex < row.mNHits; hitIndex += nThreads) {
+    for (uint32_t hitIndex = iThread; hitIndex < row.mNHits; hitIndex += nThreads) {
       const calink bin = bins[hitIndex];
       const calink ind = CAMath::AtomicAdd(&c[bin], (calink)-1) - 1; // generate an index for this hit that is >= c[bin] and < c[bin + 1]
       const int32_t globalBinsortedIndex = row.mHitNumberOffset + ind;

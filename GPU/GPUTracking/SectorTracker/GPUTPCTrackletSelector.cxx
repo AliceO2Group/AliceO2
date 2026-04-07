@@ -33,7 +33,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
   }
   GPUbarrier();
 
-  GPUTPCHitId trackHits[GPUCA_NROWS - GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE];
+  GPUTPCHitId trackHits[GPUTPCGeometry::NROWS - GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE];
   const float maxSharedFrac = tracker.Param().rec.tpc.trackletMaxSharedFraction;
 
   for (int32_t itr = s.mItr0 + iThread; itr < s.mNTracklets; itr += s.mNThreadsTotal) {
@@ -51,7 +51,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
     uint32_t gap = 0;
     uint32_t nShared = 0;
     uint32_t nHits = 0;
-    const uint32_t minHits = tracker.Param().rec.tpc.minNClustersTrackSeed == -1 ? GPUCA_TPC_MIN_HITS_B5(tracklet.Param().QPt() * tracker.Param().qptB5Scaler) : tracker.Param().rec.tpc.minNClustersTrackSeed;
+    const uint32_t minHits = tracker.Param().rec.tpc.minNClustersTrackSeed == -1 ? tracker.Param().tpcMinHitsB5(tracklet.Param().QPt() * tracker.Param().qptB5Scaler) : tracker.Param().rec.tpc.minNClustersTrackSeed;
     const uint32_t sharingMinNorm = minHits * tracker.Param().rec.tpc.trackletMinSharedNormFactor;
     const float maxSharedNorm = maxSharedFrac * sharingMinNorm;
 
