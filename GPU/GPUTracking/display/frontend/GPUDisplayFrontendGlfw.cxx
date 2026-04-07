@@ -31,13 +31,7 @@ extern "C" int32_t gl3wInit();
 #include <unistd.h>
 
 #ifdef GPUCA_O2_LIB
-#if __has_include("../src/imgui.h")
-#include "../src/imgui.h"
-#include "../src/imgui_impl_glfw_gl3.h"
-#else
-#include "DebugGUI/imgui.h"
-#include "DebugGUI/imgui_impl_glfw_gl3.h"
-#endif
+#include <DebugGUI/imgui.h>
 #include <DebugGUI/DebugGUI.h>
 #endif
 
@@ -270,9 +264,6 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
-#ifdef GPUCA_O2_LIB
-    mUseIMGui = true;
-#endif
   }
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, DISPLAY_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
@@ -303,56 +294,26 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     return (-1);
   }
 
-#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W)
-  if (mUseIMGui && gl3wInit()) {
-    fprintf(stderr, "Error initializing gl3w (2)\n");
-    return (-1); // Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
-  }
-#endif
-
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    mCanDrawText = 2;
-    if (drawTextFontSize() == 0) {
-      drawTextFontSize() = 12;
-    }
-  }
-#endif
-
   if (InitDisplay()) {
     fprintf(stderr, "Error in GLFW display initialization\n");
     return (1);
   }
 
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    ImGui_ImplGlfwGL3_Init(mWindow, false);
-    while (o2::framework::pollGUI(mWindow, DisplayLoop)) {
+  while (!glfwWindowShouldClose(mWindow)) {
+    HandleSendKey();
+    if (DrawGLScene()) {
+      fprintf(stderr, "Error drawing GL scene\n");
+      return (1);
     }
-  } else
-#endif
-  {
-    while (!glfwWindowShouldClose(mWindow)) {
-      HandleSendKey();
-      if (DrawGLScene()) {
-        fprintf(stderr, "Error drawing GL scene\n");
-        return (1);
-      }
-      if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-        glfwSwapBuffers(mWindow);
-      }
-      glfwPollEvents();
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      glfwSwapBuffers(mWindow);
     }
+    glfwPollEvents();
   }
 
   ExitDisplay();
   mDisplayControl = 2;
   pthread_mutex_lock(&mSemLockExit);
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    ImGui_ImplGlfwGL3_Shutdown();
-  }
-#endif
   glfwDestroyWindow(mWindow);
   glfwTerminate();
   mGlfwRunning = false;
