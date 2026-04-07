@@ -18,6 +18,7 @@
 #include <vector>
 #include <map>
 #include <TColor.h>
+#include <TMath.h>
 
 namespace o2::ft3::ModuleConstants
 {
@@ -56,6 +57,7 @@ namespace o2::ft3::ModuleConstants
   const double sensor_stack_height = kSensorsPerStack * sensor2x1_height +
                                     (kSensorsPerStack - 1) * sensor2x1_gap;
 
+  // OLD VERSION: RECTANGULAR STAVES
   const double carbonFiberThickness = 0.01;
   const double foamSpacingThickness = 1.0;
 
@@ -89,7 +91,10 @@ namespace o2::ft3::ModuleConstants
     2.25, 6.75, 11.25, 15.75, 20.25, 24.75, 29.25, 33.75,  // R
     38.25, 42.75, 47.25, 51.75, 56.25, 60.75, 65.25  // R
   };
+  const double x_midpoint_spacing = 4.5; // assume constant for now
   // which side of the disc do we place the stave?
+  // used for kSegmentedMarch26 for front/back face, and for
+  // kSegmentedStave for staggering staves in z (see z_offsetStave)
   // accessed via stave index, NOT stave ID
   const std::vector<bool> staveOnFront =
   {
@@ -100,7 +105,7 @@ namespace o2::ft3::ModuleConstants
   // small helper function to get 1-indexed stave ID, counting from the middle outwards,
   // with negative IDs on the left and positive IDs on the right
   inline const int staveIdxToID(int staveIdx) {
-    unsigned nStavesOneSide = staveOnFront.size() / 2;
+    unsigned nStavesOneSide = y_lengths.size() / 2;
     bool isRight = staveIdx >= nStavesOneSide;
     return staveIdx - nStavesOneSide + isRight;
   }
@@ -111,11 +116,32 @@ namespace o2::ft3::ModuleConstants
   const double kaptonThickness = 0.03;
   const double epoxyThickness = 0.0012;
 
+  const double effectiveCarbonThickness_Stave = 0.02;  // foam + shell
+  const double staveOpeningAngle = 60 * TMath::DegToRad();
+  const double sinTheta = TMath::Sin(staveOpeningAngle / 2);
+  const double alpha = TMath::Pi() / 2 - staveOpeningAngle / 2;  // bottom angles
+  const double staveSensorGap = 0.1; // 2mm padding on each side when sensor is glued
+  const double staveTriangleHeight = (sensor2x1_width + 2 * staveSensorGap) / 2.0
+                                   / tan(staveOpeningAngle / 2.0);
+  /* 
+   * Now describe the offset of every other stave in z to avoid overlaps
+   * ______      ______
+   * \    /______\    / | <-- z_offsetStave
+   *  \  / \    / \  /
+   *   \/   \  /   \/
+   *         \/
+   */
+  // If midpoint spacing becomes non constant, this becomes a function
+  // TODO: add some tolerance to avoid overlaps?
+  const double z_offsetStave =
+    staveTriangleHeight * (2 - x_midpoint_spacing / ( sensor2x1_width / 2 + staveSensorGap ) );
+
   const int SiColor = kGreen;
   const int SiInactiveColor = kRed;
   const int glueColor = kBlue;
-  const int CuColor = kBlack;
+  const int CuColor = kOrange;
   const int kaptonColor = kYellow;
+  const int carbonColor = kBlack;
 }
 
 #endif // FT3MODULECONSTANTS_H
