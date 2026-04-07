@@ -650,7 +650,7 @@ EndConfig()
 #endif // BeginConfig
 
 //Settings for the O2 workflow
-#if !defined(QCONFIG_PARSER_CXX) && (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE))
+#if !defined(QCONFIG_PARSER_CXX) && !defined(GPUCA_STANDALONE)
 BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings", global)
 AddOption(solenoidBzNominalGPU, float, -1e6f, "", 0, "Field strength of solenoid Bz in kGaus")
 AddOption(constBz, bool, false, "", 0, "force constant Bz for tests")
@@ -696,7 +696,7 @@ AddOption(zsOnTheFlyDigitsFilter, bool, false, "", 0, "Run on the fly digits fil
 AddOption(dumpBadTFs, int32_t, 0, "", 0, "Number of bad timeframes (with decoding / processing) errors to decode at max")
 AddOption(dumpBadTFMode, int32_t, 0, "", 0, "Type of dump to create: 0 = raw-reader compatible raw file, 1 = buffer-wise dump, 2 = standalone-benchmark compatible dump")
 EndConfig()
-#endif // GPUCA_O2_LIB
+#endif // !GPUCA_STANDALONE
 #endif // !GPUCA_GPUCODE_DEVICE
 
 // Derrived parameters used in GPUParam

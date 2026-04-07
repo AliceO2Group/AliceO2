@@ -30,7 +30,7 @@
   #error Invalid Compile Definitions, need to build for either O2 or Standalone!
 #endif
 
-#define GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(QPTB5) (CAMath::Abs(QPTB5) > 10 ? 10 : (CAMath::Abs(QPTB5) > 5 ? 15 : 29)) // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
+#define GPUCA_TPC_MIN_HITS_B5(QPTB5) (CAMath::Abs(QPTB5) > 10 ? 10 : (CAMath::Abs(QPTB5) > 5 ? 15 : 29)) // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
 
 #define GPUCA_MERGER_MAX_TRACK_CLUSTERS 1024          // Maximum number of clusters a track may have after merging
 
@@ -46,21 +46,21 @@
 
 #define TPC_MAX_TIME_BIN_TRIGGERED 600
 
-#if defined(GPUCA_NSECTORS) || defined(GPUCA_ROW_COUNT)
-  #error GPUCA_NSECTORS or GPUCA_ROW_COUNT already defined, do not include GPUTPCGeometry.h before!
+#if defined(GPUCA_NSECTORS) || defined(GPUCA_NROWS)
+  #error GPUCA_NSECTORS or GPUCA_NROWS already defined, do not include GPUTPCGeometry.h before!
 #endif
-#if defined(GPUCA_TPC_GEOMETRY_O2) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
+#if !defined(GPUCA_RUN2) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
   //Use definitions from the O2 headers if available for nicer code and type safety
   #include "DataFormatsTPC/Constants.h"
   #define GPUCA_NSECTORS o2::tpc::constants::MAXSECTOR
-  #define GPUCA_ROW_COUNT o2::tpc::constants::MAXGLOBALPADROW
+  #define GPUCA_NROWS o2::tpc::constants::MAXGLOBALPADROW
 #else
   //Define it manually, if O2 headers not available, ROOT5, and OpenCL 1.2, which do not know C++11.
   #define GPUCA_NSECTORS 36
-  #ifdef GPUCA_TPC_GEOMETRY_O2
-    #define GPUCA_ROW_COUNT 152
+  #ifndef GPUCA_RUN2
+    #define GPUCA_NROWS 152
   #else
-    #define GPUCA_ROW_COUNT 159
+    #define GPUCA_NROWS 159
   #endif
 #endif
 

@@ -48,9 +48,9 @@ int32_t TPCClusterDecompressor::decompress(const CompressedClusters* clustersCom
   if (clustersCompressed->nTracks && clustersCompressed->maxTimeBin != -1e6 && clustersCompressed->maxTimeBin != param.continuousMaxTimeBin) {
     throw std::runtime_error("Configured max time bin " + std::to_string(param.continuousMaxTimeBin) + " does not match value used for track model encoding " + std::to_string(clustersCompressed->maxTimeBin));
   }
-  std::vector<ClusterNative> clusters[NSECTORS][GPUCA_ROW_COUNT];
-  std::atomic_flag locks[NSECTORS][GPUCA_ROW_COUNT];
-  for (uint32_t i = 0; i < NSECTORS * GPUCA_ROW_COUNT; i++) {
+  std::vector<ClusterNative> clusters[NSECTORS][GPUCA_NROWS];
+  std::atomic_flag locks[NSECTORS][GPUCA_NROWS];
+  for (uint32_t i = 0; i < NSECTORS * GPUCA_NROWS; i++) {
     (&locks[0][0])[i].clear();
   }
   const uint32_t maxTime = param.continuousMaxTimeBin > 0 ? ((param.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1) : TPC_MAX_TIME_BIN_TRIGGERED;
@@ -69,14 +69,14 @@ int32_t TPCClusterDecompressor::decompress(const CompressedClusters* clustersCom
   });
   size_t nTotalClusters = clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters;
   ClusterNative* clusterBuffer = allocator(nTotalClusters);
-  uint32_t offsets[NSECTORS][GPUCA_ROW_COUNT];
+  uint32_t offsets[NSECTORS][GPUCA_NROWS];
   uint32_t offset = 0;
   uint32_t decodedAttachedClusters = 0;
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
-      clustersNative.nClusters[i][j] = clusters[i][j].size() + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
+    for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
+      clustersNative.nClusters[i][j] = clusters[i][j].size() + ((i * GPUCA_NROWS + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_NROWS + j]);
       offsets[i][j] = offset;
-      offset += (i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      offset += (i * GPUCA_NROWS + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_NROWS + j];
       decodedAttachedClusters += clusters[i][j].size();
     }
   }
@@ -86,13 +86,13 @@ int32_t TPCClusterDecompressor::decompress(const CompressedClusters* clustersCom
   clustersNative.clustersLinear = clusterBuffer;
   clustersNative.setOffsetPtrs();
   tbb::parallel_for<uint32_t>(0, NSECTORS, [&](auto i) {
-    for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+    for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
       ClusterNative* buffer = &clusterBuffer[clustersNative.clusterOffset[i][j]];
       if (clusters[i][j].size()) {
         memcpy((void*)buffer, (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
       }
       ClusterNative* clout = buffer + clusters[i][j].size();
-      uint32_t end = offsets[i][j] + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
+      uint32_t end = offsets[i][j] + ((i * GPUCA_NROWS + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_NROWS + j]);
       TPCClusterDecompressionCore::decompressHits(*clustersCompressed, offsets[i][j], end, clout);
       if (param.rec.tpc.clustersEdgeFixDistance > 0.f) {
         constexpr GPUTPCGeometry geo;

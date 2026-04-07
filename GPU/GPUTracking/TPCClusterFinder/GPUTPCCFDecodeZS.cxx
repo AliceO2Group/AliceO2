@@ -435,7 +435,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
 
 GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorType& clusterer, int32_t cru, int32_t rawFECChannel, int32_t fecInPartition)
 {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   // Ported from tpc::Mapper (Not available on GPU...)
   constexpr GPUTPCGeometry geo;
 
@@ -466,7 +466,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
   const uint32_t sector = clusterer.mISector;
   CfChargePos* positions = clusterer.mPpositions;
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
-  if (padAndRow.getRow() >= GPUCA_ROW_COUNT) {
+  if (padAndRow.getRow() >= GPUCA_NROWS) {
     positions[positionOffset] = INVALID_CHARGE_POS;
     clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_ROW, clusterer.mISector * 1000 + padAndRow.getRow());
     return;

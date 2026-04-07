@@ -30,7 +30,7 @@ void GPUTPCTracker::DumpTrackingData(std::ostream& out)
 {
   // Dump Sector Input Data to File
   out << "\nSector Data (Sector" << mISector << "):" << std::endl;
-  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
     if (Row(i).NHits() == 0) {
       continue;
     }
@@ -49,7 +49,7 @@ void GPUTPCTracker::DumpLinks(std::ostream& out, int32_t phase)
 {
   // Dump Links (after Neighbours Finder / Cleaner) to file
   out << "\nHit Links (Phase " << phase << ", Sector" << mISector << "):" << std::endl;
-  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
     if (Row(i).NHits() == 0) {
       continue;
     }
@@ -68,7 +68,7 @@ void GPUTPCTracker::DumpHitWeights(std::ostream& out)
 {
   // dump hit weights to file
   out << "\nHit Weights(Sector" << mISector << "):" << std::endl;
-  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
     if (Row(i).NHits() == 0) {
       continue;
     }
@@ -145,10 +145,10 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     const int32_t j = Ids[jj];
     const auto& tracklet = Tracklets()[j];
     out << "Tracklet " << std::setw(4) << jj << " (Rows: " << Tracklets()[j].FirstRow() << " - " << tracklet.LastRow() << ", Weight " << Tracklets()[j].HitWeight() << ") ";
-    if (tracklet.LastRow() > tracklet.FirstRow() && (tracklet.FirstRow() >= GPUCA_ROW_COUNT || tracklet.LastRow() >= GPUCA_ROW_COUNT)) {
+    if (tracklet.LastRow() > tracklet.FirstRow() && (tracklet.FirstRow() >= GPUCA_NROWS || tracklet.LastRow() >= GPUCA_NROWS)) {
       GPUError("Error: Tracklet %d First %d Last %d", j, tracklet.FirstRow(), tracklet.LastRow());
       out << " (Error: Tracklet " << j << " First " << tracklet.FirstRow() << " Last " << tracklet.LastRow() << ") ";
-      for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+      for (int32_t i = 0; i < GPUCA_NROWS; i++) {
         // if (tracklet.RowHit(i) != CALINK_INVAL)
         out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }

@@ -87,7 +87,7 @@ float o2::tpc::CorrectdEdxDistortions::getCorrection(const float time, unsigned 
   const float ly = mTPCGeometry.LinearPad2Y(sector, padrow, pad);
 
   // get correction at "pad + 0.5*padlength" pos1 and dont extrapolate/interpolate across GEM gaps
-  const int row1 = ((padrow == mTPCGeometry.EndIROC() - 1) || (padrow == mTPCGeometry.EndOROC1() - 1) || (padrow == mTPCGeometry.EndOROC2() - 1)) ? padrow : std::clamp(padrow + 1, 0, GPUCA_ROW_COUNT - 1);
+  const int row1 = ((padrow == mTPCGeometry.EndIROC() - 1) || (padrow == mTPCGeometry.EndOROC1() - 1) || (padrow == mTPCGeometry.EndOROC2() - 1)) ? padrow : std::clamp(padrow + 1, 0, GPUCA_NROWS - 1);
 
   float lxT_1 = 0;
   float lyT_1 = 0;
@@ -101,7 +101,7 @@ float o2::tpc::CorrectdEdxDistortions::getCorrection(const float time, unsigned 
   const float r_1_f = std::sqrt(lxT_1 * lxT_1 + lyT_1 * lyT_1);
 
   // get correction at "pad - 0.5*padlength" pos0 and dont extrapolate/interpolate across GEM gaps
-  const int row0 = ((padrow == mTPCGeometry.EndIROC()) || (padrow == mTPCGeometry.EndOROC1()) || (padrow == mTPCGeometry.EndOROC2())) ? padrow : std::clamp(padrow - 1, 0, GPUCA_ROW_COUNT - 1);
+  const int row0 = ((padrow == mTPCGeometry.EndIROC()) || (padrow == mTPCGeometry.EndOROC1()) || (padrow == mTPCGeometry.EndOROC2())) ? padrow : std::clamp(padrow - 1, 0, GPUCA_NROWS - 1);
 
   // check if previous pad row has enough pads
   const unsigned char pad0 = std::clamp(static_cast<int>(pad), 0, mTPCGeometry.NPads(row0) - 1);

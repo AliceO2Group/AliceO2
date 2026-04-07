@@ -38,7 +38,7 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
   occupancyMapSize = 0;
   occupancyTotal = 0;
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   const float kErrorsY[4] = {0.06, 0.24, 0.12, 0.1};
   const float kErrorsZ[4] = {0.06, 0.24, 0.15, 0.1};
 
@@ -161,7 +161,7 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
 
 void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam)
 {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   for (int32_t yz = 0; yz < 2; yz++) {
     const float* param = yz ? zErrorParam : yErrorParam;
     for (int32_t rowType = 0; rowType < 4; rowType++) {

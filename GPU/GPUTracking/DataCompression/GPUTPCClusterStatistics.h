@@ -54,14 +54,14 @@ class GPUTPCClusterStatistics
   std::vector<int32_t> mPqTotA = std::vector<int32_t>(P_MAX_QTOT, 0);
   std::vector<int32_t> mPqMaxA = std::vector<int32_t>(P_MAX_QMAX, 0);
   std::vector<int32_t> mPflagsA = std::vector<int32_t>(P_MAX_FLAGS, 0);
-  std::vector<int32_t> mProwDiffA = std::vector<int32_t>(GPUCA_ROW_COUNT, 0);
+  std::vector<int32_t> mProwDiffA = std::vector<int32_t>(GPUCA_NROWS, 0);
   std::vector<int32_t> mPsectorLegDiffA = std::vector<int32_t>(GPUCA_NSECTORS * 2, 0);
   std::vector<int32_t> mPpadResA = std::vector<int32_t>(P_MAX_PAD, 0);
   std::vector<int32_t> mPtimeResA = std::vector<int32_t>(P_MAX_TIME, 0);
   std::vector<int32_t> mPsigmaPadA = std::vector<int32_t>(P_MAX_SIGMA, 0);
   std::vector<int32_t> mPsigmaTimeA = std::vector<int32_t>(P_MAX_SIGMA, 0);
   std::vector<int32_t> mPqPtA = std::vector<int32_t>(P_MAX_QPT, 0);
-  std::vector<int32_t> mProwA = std::vector<int32_t>(GPUCA_ROW_COUNT, 0);
+  std::vector<int32_t> mProwA = std::vector<int32_t>(GPUCA_NROWS, 0);
   std::vector<int32_t> mPsectorA = std::vector<int32_t>(GPUCA_NSECTORS, 0);
   std::vector<int32_t> mPtimeA = std::vector<int32_t>(P_MAX_TIME, 0);
   std::vector<int32_t> mPpadA = std::vector<int32_t>(P_MAX_PAD, 0);
@@ -78,7 +78,7 @@ class GPUTPCClusterStatistics
   std::vector<int32_t> mPsigmaA = std::vector<int32_t>(P_MAX_SIGMA * P_MAX_SIGMA, 0);
   std::vector<int32_t> mPQU = std::vector<int32_t>(P_MAX_QMAX * P_MAX_QTOT, 0);
   std::vector<int32_t> mPQA = std::vector<int32_t>(P_MAX_QMAX * P_MAX_QTOT, 0);
-  std::vector<int32_t> mProwSectorA = std::vector<int32_t>(GPUCA_ROW_COUNT * GPUCA_NSECTORS * 2, 0);
+  std::vector<int32_t> mProwSectorA = std::vector<int32_t>(GPUCA_NROWS * GPUCA_NSECTORS * 2, 0);
 
   double mEntropy = 0;
   double mHuffman = 0;

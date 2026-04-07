@@ -207,7 +207,7 @@ int64_t GPUTPCGMMerger::GetTrackLabelA(const S& trk) const
 template <class S>
 int64_t GPUTPCGMMerger::GetTrackLabel(const S& trk) const
 {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   if (GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth) {
     return GetTrackLabelA<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>, S>(trk);
   } else
@@ -1333,7 +1333,7 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
 
 GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSectorTrack* track, const GPUTPCGMMergedTrackHit& cls, int32_t itr)
 {
-  if (Param().rec.tpc.mergerCERowLimit > 0 && CAMath::Abs(track->QPt()) * Param().qptB5Scaler < 0.3f && (cls.row < Param().rec.tpc.mergerCERowLimit || cls.row >= GPUCA_ROW_COUNT - Param().rec.tpc.mergerCERowLimit)) {
+  if (Param().rec.tpc.mergerCERowLimit > 0 && CAMath::Abs(track->QPt()) * Param().qptB5Scaler < 0.3f && (cls.row < Param().rec.tpc.mergerCERowLimit || cls.row >= GPUCA_NROWS - Param().rec.tpc.mergerCERowLimit)) {
     return;
   }
 
@@ -1668,7 +1668,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
         }
         nHits += nTrackHits;
       }
-      if (nHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(trbase->QPt() * Param().qptB5Scaler)) {
+      if (nHits < GPUCA_TPC_MIN_HITS_B5(trbase->QPt() * Param().qptB5Scaler)) {
         break;
       }
 

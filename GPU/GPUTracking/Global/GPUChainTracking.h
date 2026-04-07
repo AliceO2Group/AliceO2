@@ -299,7 +299,7 @@ class GPUChainTracking : public GPUChain
   void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
   int32_t RunTPCClusterizer_prepare(bool restorePointers);
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   std::pair<uint32_t, uint32_t> RunTPCClusterizer_transferZS(int32_t iSector, const CfFragment& fragment, int32_t lane);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int32_t stage, bool doGPU, int32_t lane);
   std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCount(uint32_t iSector, const CfFragment& fragment);

@@ -55,7 +55,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "GPUSettings.h"
 #include "GPUDefMacros.h"
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 #include "DetectorsRaw/HBFUtils.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Constants.h"
@@ -204,7 +204,7 @@ int32_t GPUQA::initColors()
 static constexpr Color_t defaultColorNums[COLORCOUNT] = {kRed, kBlue, kGreen, kMagenta, kOrange, kAzure, kBlack, kYellow, kGray, kTeal, kSpring, kPink};
 
 #define TRACK_EXPECTED_REFERENCE_X_DEFAULT 81
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 static inline int32_t GPUQA_O2_ConvertFakeLabel(int32_t label) { return label >= 0x7FFFFFFE ? -1 : label; }
 inline uint32_t GPUQA::GetNMCCollissions() const { return mMCInfosCol.size(); }
 inline uint32_t GPUQA::GetNMCTracks(int32_t iCol) const { return mMCInfosCol[iCol].num; }
@@ -526,10 +526,10 @@ int32_t GPUQA::InitQACreateHistograms()
       createHist(mClusters[i], name, name, AXIS_BINS[4], binsPt.get());
     }
 
-    createHist(mPadRow[0], "padrow0", "padrow0", GPUCA_ROW_COUNT - PADROW_CHECK_MINCLS, 0, GPUCA_ROW_COUNT - 1 - PADROW_CHECK_MINCLS, GPUCA_ROW_COUNT - PADROW_CHECK_MINCLS, 0, GPUCA_ROW_COUNT - 1 - PADROW_CHECK_MINCLS);
-    createHist(mPadRow[1], "padrow1", "padrow1", 100.f, -0.2f, 0.2f, GPUCA_ROW_COUNT - PADROW_CHECK_MINCLS, 0, GPUCA_ROW_COUNT - 1 - PADROW_CHECK_MINCLS);
-    createHist(mPadRow[2], "padrow2", "padrow2", 100.f, -0.2f, 0.2f, GPUCA_ROW_COUNT - PADROW_CHECK_MINCLS, 0, GPUCA_ROW_COUNT - 1 - PADROW_CHECK_MINCLS);
-    createHist(mPadRow[3], "padrow3", "padrow3", 100.f, 0, 300000, GPUCA_ROW_COUNT - PADROW_CHECK_MINCLS, 0, GPUCA_ROW_COUNT - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[0], "padrow0", "padrow0", GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[1], "padrow1", "padrow1", 100.f, -0.2f, 0.2f, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[2], "padrow2", "padrow2", 100.f, -0.2f, 0.2f, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
+    createHist(mPadRow[3], "padrow3", "padrow3", 100.f, 0, 300000, GPUCA_NROWS - PADROW_CHECK_MINCLS, 0, GPUCA_NROWS - 1 - PADROW_CHECK_MINCLS);
   }
 
   if (mQATasks & taskTrackStatistics) {
@@ -546,12 +546,12 @@ int32_t GPUQA::InitQACreateHistograms()
     createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250); // TODO: Pass name only once
   }
   if (mQATasks & taskClusterRejection) {
-    const int padCount = GPUTPCGeometry::NPads(GPUCA_ROW_COUNT - 1);
+    const int padCount = GPUTPCGeometry::NPads(GPUCA_NROWS - 1);
     for (int32_t i = 0; i < 3; i++) {
       snprintf(name, 2048, "clrej_%d", i);
-      createHist(mClRej[i], name, name, 2 * padCount, -padCount / 2 + 0.5f, padCount / 2 - 0.5f, GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
+      createHist(mClRej[i], name, name, 2 * padCount, -padCount / 2 + 0.5f, padCount / 2 - 0.5f, GPUCA_NROWS, 0, GPUCA_NROWS - 1);
     }
-    createHist(mClRejP, "clrejp", "clrejp", GPUCA_ROW_COUNT, 0, GPUCA_ROW_COUNT - 1);
+    createHist(mClRejP, "clrejp", "clrejp", GPUCA_NROWS, 0, GPUCA_NROWS - 1);
   }
 
   if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
@@ -677,7 +677,7 @@ void GPUQA::CopyO2MCtoIOPtr(GPUTrackingInOutPointers* ptr)
 
 void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
 {
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
   if (!mO2MCDataLoaded) {
     HighResTimer timer(mTracking && mTracking->GetProcessingSettings().debugLevel);
     if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
@@ -836,7 +836,7 @@ int32_t GPUQA::InitQA(int32_t tasks)
     mkdir(mConfig.plotsDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
   if (!mConfig.noMC) {
     InitO2MCData(mTracking ? &mTracking->mIOPtrs : nullptr);
   }
@@ -896,7 +896,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
   }
   mClNative = clNative;
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   uint32_t nSimEvents = GetNMCCollissions();
   if (mTrackMCLabelsReverse.size() < nSimEvents) {
     mTrackMCLabelsReverse.resize(nSimEvents);
@@ -915,7 +915,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
   // Initialize Arrays
   uint32_t nReconstructedTracks = 0;
   if (tracksExternal) {
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
     nReconstructedTracks = tracksExternal->size();
 #endif
   } else {
@@ -951,7 +951,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
   if (mcAvail) { // Assign Track MC Labels
     if (tracksExternal) {
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
       for (uint32_t i = 0; i < tracksExternal->size(); i++) {
         mTrackMCLabels[i] = (*tracksExtMC)[i];
       }
@@ -1050,7 +1050,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         if (mMCTrackMin == -1 || (label.getTrackID() >= mMCTrackMin && label.getTrackID() < mMCTrackMax)) {
           int32_t& revLabel = GetMCTrackObj(mTrackMCLabelsReverse, label);
           if (tracksExternal) {
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
             if (revLabel == -1 || fabsf((*tracksExternal)[i].getZ()) < fabsf((*tracksExternal)[revLabel].getZ())) {
               revLabel = i;
             }
@@ -1102,7 +1102,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       if (mTracking->mIOPtrs.nMergedTracks && clNative) {
         std::fill(lowestPadRow.begin(), lowestPadRow.end(), 255);
         for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {
-          for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+          for (uint32_t iRow = 0; iRow < GPUCA_NROWS; iRow++) {
             for (uint32_t iCl = 0; iCl < clNative->nClusters[iSector][iRow]; iCl++) {
               int32_t i = clNative->clusterOffset[iSector][iRow] + iCl;
               for (int32_t j = 0; j < GetMCLabelNID(i); j++) {
@@ -1392,7 +1392,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         float alpha = 0.f;
         int32_t side;
         if (tracksExternal) {
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
           for (int32_t k = 0; k < 5; k++) {
             param.Par()[k] = (*tracksExternal)[i].getParams()[k];
           }
@@ -1793,7 +1793,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
     if (mClNative && mTracking && mTracking->GetTPCTransform()) {
       for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
-        for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+        for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
           for (uint32_t k = 0; k < mClNative->nClusters[i][j]; k++) {
             const auto& cl = mClNative->clusters[i][j][k];
             float x, y, z;
@@ -1826,7 +1826,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
   mClusterCounts.nTotal += nCl;
   if (mQATasks & (taskClusterCounts | taskClusterRejection)) {
     for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {
-      for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+      for (uint32_t iRow = 0; iRow < GPUCA_NROWS; iRow++) {
         for (uint32_t iCl = 0; iCl < clNative->nClusters[iSector][iRow]; iCl++) {
           uint32_t i = clNative->clusterOffset[iSector][iRow] + iCl;
           int32_t attach = mTracking->mIOPtrs.mergedTrackHitAttachment[i];
@@ -1917,7 +1917,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
     uint32_t clid = 0;
     for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+      for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
         for (uint32_t k = 0; k < mClNative->nClusters[i][j]; k++) {
           const auto& cl = mClNative->clusters[i][j][k];
           uint32_t attach = mTracking->mIOPtrs.mergedTrackHitAttachment[clid];

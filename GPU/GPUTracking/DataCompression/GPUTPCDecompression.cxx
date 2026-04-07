@@ -40,7 +40,7 @@ void GPUTPCDecompression::SetPointersCompressedClusters(void*& mem, T& c, uint32
   computePointerWithAlignment(mem, c.timeDiffU, nClU);
   computePointerWithAlignment(mem, c.sigmaPadU, nClU);
   computePointerWithAlignment(mem, c.sigmaTimeU, nClU);
-  computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_ROW_COUNT * NSECTORS);
+  computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_NROWS * NSECTORS);
 
   uint32_t nClAreduced = reducedClA ? nClA - nTr : nClA;
 
@@ -68,19 +68,19 @@ void GPUTPCDecompression::SetPointersCompressedClusters(void*& mem, T& c, uint32
 
 void* GPUTPCDecompression::SetPointersTmpNativeBuffersGPU(void* mem)
 {
-  computePointerWithAlignment(mem, mTmpNativeClusters, NSECTORS * GPUCA_ROW_COUNT * mMaxNativeClustersPerBuffer);
+  computePointerWithAlignment(mem, mTmpNativeClusters, NSECTORS * GPUCA_NROWS * mMaxNativeClustersPerBuffer);
   return mem;
 }
 
 void* GPUTPCDecompression::SetPointersTmpNativeBuffersOutput(void* mem)
 {
-  computePointerWithAlignment(mem, mNativeClustersIndex, NSECTORS * GPUCA_ROW_COUNT);
+  computePointerWithAlignment(mem, mNativeClustersIndex, NSECTORS * GPUCA_NROWS);
   return mem;
 }
 
 void* GPUTPCDecompression::SetPointersTmpNativeBuffersInput(void* mem)
 {
-  computePointerWithAlignment(mem, mUnattachedClustersOffsets, NSECTORS * GPUCA_ROW_COUNT);
+  computePointerWithAlignment(mem, mUnattachedClustersOffsets, NSECTORS * GPUCA_NROWS);
   computePointerWithAlignment(mem, mAttachedClustersOffsets, mInputGPU.nTracks);
   return mem;
 }
@@ -99,7 +99,7 @@ void* GPUTPCDecompression::SetPointersInputClusterNativeAccess(void* mem)
 
 void* GPUTPCDecompression::SetPointersNClusterPerSectorRow(void* mem)
 {
-  computePointerWithAlignment(mem, mNClusterPerSectorRow, NSECTORS * GPUCA_ROW_COUNT);
+  computePointerWithAlignment(mem, mNClusterPerSectorRow, NSECTORS * GPUCA_NROWS);
   return mem;
 }
 

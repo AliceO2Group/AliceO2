@@ -131,7 +131,7 @@ int32_t GPUChainTracking::ForwardTPCDigits()
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
     throw std::runtime_error("Cannot forward TPC digits with Clusterizer on GPU");
   }
-  std::vector<ClusterNative> tmp[NSECTORS][GPUCA_ROW_COUNT];
+  std::vector<ClusterNative> tmp[NSECTORS][GPUCA_NROWS];
   uint32_t nTotal = 0;
   const float zsThreshold = param().rec.tpc.zsThreshold;
   for (int32_t i = 0; i < NSECTORS; i++) {
@@ -153,7 +153,7 @@ int32_t GPUChainTracking::ForwardTPCDigits()
   nTotal = 0;
   mClusterNativeAccess->clustersLinear = mIOMem.clustersNative.get();
   for (int32_t i = 0; i < NSECTORS; i++) {
-    for (int32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+    for (int32_t j = 0; j < GPUCA_NROWS; j++) {
       mClusterNativeAccess->nClusters[i][j] = tmp[i][j].size();
       memcpy(&mIOMem.clustersNative[nTotal], tmp[i][j].data(), tmp[i][j].size() * sizeof(*mClusterNativeAccess->clustersLinear));
       nTotal += tmp[i][j].size();

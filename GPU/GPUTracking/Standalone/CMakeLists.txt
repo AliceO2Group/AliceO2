@@ -204,8 +204,8 @@ target_link_libraries(standalone_support PUBLIC#
 target_link_libraries(GPUTracking PUBLIC standalone_support)
 target_link_libraries(TPCFastTransformation PUBLIC standalone_support)
 
-if(GPUCA_CONFIG_O2)
-  target_compile_definitions(GPUTracking PRIVATE GPUCA_TPC_GEOMETRY_O2)
+if(NOT GPUCA_CONFIG_O2)
+  target_compile_definitions(GPUTracking PRIVATE GPUCA_RUN2)
 endif()
 
 if(GPUCA_CONFIG_FMT)

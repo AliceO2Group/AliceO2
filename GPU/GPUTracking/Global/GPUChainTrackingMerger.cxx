@@ -283,7 +283,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mRec->ReturnVolatileDeviceMemory();
   mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERGE"));
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   if (GetProcessingSettings().createO2Output) {
     if (mTPCSectorScratchOnStack) {
       mRec->PopNonPersistentMemory(RecoStep::TPCSectorTracking, qStr2Tag("TPCSLCD1")); // Return the sector data memory early

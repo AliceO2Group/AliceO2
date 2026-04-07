@@ -117,7 +117,7 @@ class TPCFastTransform : public FlatObject
   }
 
 /// Destructor
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(GPUCA_O2_LIB)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   ~TPCFastTransform()
   {
     delete mCorrectionSlow;

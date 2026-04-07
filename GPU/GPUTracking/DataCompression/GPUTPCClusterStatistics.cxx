@@ -117,7 +117,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   std::vector<o2::tpc::ClusterNative> tmpClusters;
   if (param.rec.tpc.rejectionStrategy == GPUSettings::RejectionNone) { // verification does not make sense if we reject clusters during compression
     for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+      for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
         if (clustersNative->nClusters[i][j] != clustersNativeDecoded.nClusters[i][j]) {
           GPUError("Number of clusters mismatch sector %u row %u: expected %d v.s. decoded %d", i, j, clustersNative->nClusters[i][j], clustersNativeDecoded.nClusters[i][j]);
           decodingErrors++;
@@ -181,7 +181,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   FillStatisticCombined(mPsigmaU, clustersCompressed->sigmaPadU, clustersCompressed->sigmaTimeU, clustersCompressed->nUnattachedClusters, P_MAX_SIGMA);
   FillStatisticCombined(mPQA, clustersCompressed->qMaxA, clustersCompressed->qTotA, clustersCompressed->nAttachedClusters, P_MAX_QMAX);
   FillStatisticCombined(mPQU, clustersCompressed->qMaxU, clustersCompressed->qTotU, clustersCompressed->nUnattachedClusters, P_MAX_QMAX);
-  FillStatisticCombined(mProwSectorA, clustersCompressed->rowDiffA, clustersCompressed->sliceLegDiffA, clustersCompressed->nAttachedClustersReduced, GPUCA_ROW_COUNT);
+  FillStatisticCombined(mProwSectorA, clustersCompressed->rowDiffA, clustersCompressed->sliceLegDiffA, clustersCompressed->nAttachedClustersReduced, GPUCA_NROWS);
   mNTotalClusters += clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters;
 }
 

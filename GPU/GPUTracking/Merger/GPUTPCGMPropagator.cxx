@@ -557,7 +557,7 @@ GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUre
 
 GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float trackX, float trackY, int32_t iRow, int16_t clusterState, int8_t sector, float time, float avgCharge, float charge, bool seedingErrors)
 {
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
   if (seedingErrors) {
     param.GetClusterErrorsSeeding2(sector, iRow, posZ, snp, tgl, time, err2Y, err2Z);
   } else

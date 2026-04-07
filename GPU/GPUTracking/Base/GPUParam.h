@@ -68,7 +68,7 @@ struct GPUParam_t {
   GPUParamSector SectorParam[GPUCA_NSECTORS];
 
  protected:
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   float ParamErrors[2][4][4]; // cluster error parameterization used during seeding and fit
 #else
   float ParamErrorsSeeding0[2][3][4]; // cluster error parameterization used during seeding

@@ -42,7 +42,7 @@
 #include "utils/strtag.h"
 #include "utils/stdspinlock.h"
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 #include "GPUO2InterfaceConfiguration.h"
 #endif
 
@@ -1249,15 +1249,15 @@ int32_t GPUReconstruction::ReadSettings(const char* dir)
 
 void GPUReconstruction::SetSettings(float solenoidBzNominalGPU, const GPURecoStepConfiguration* workflow)
 {
-#ifdef GPUCA_O2_LIB
+#ifdef GPUCA_STANDALONE
+  GPUSettingsGRP grp;
+  grp.solenoidBzNominalGPU = solenoidBzNominalGPU;
+  SetSettings(&grp, nullptr, nullptr, workflow);
+#else
   GPUO2InterfaceConfiguration config;
   config.ReadConfigurableParam(config);
   config.configGRP.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
-#else
-  GPUSettingsGRP grp;
-  grp.solenoidBzNominalGPU = solenoidBzNominalGPU;
-  SetSettings(&grp, nullptr, nullptr, workflow);
 #endif
 }
 

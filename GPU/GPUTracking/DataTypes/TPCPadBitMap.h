@@ -101,7 +101,7 @@ struct TPCPadBitMap {
     T mDeadChannelMap[NWORDS];
   };
 
-  uint16_t mPadOffsetPerRow[GPUCA_ROW_COUNT];
+  uint16_t mPadOffsetPerRow[GPUCA_NROWS];
   SectorBitMap mBitMap[GPUCA_NSECTORS];
 };
 

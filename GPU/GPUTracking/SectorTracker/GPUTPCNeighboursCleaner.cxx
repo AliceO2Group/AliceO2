@@ -26,7 +26,7 @@ GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int32_t /*nBlocks*/, int32_t nT
 
   if (iThread == 0) {
     s.mIRow = iBlock + 2;
-    if (s.mIRow <= GPUCA_ROW_COUNT - 3) {
+    if (s.mIRow <= GPUCA_NROWS - 3) {
       s.mIRowUp = s.mIRow + 2;
       s.mIRowDn = s.mIRow - 2;
       s.mNHits = tracker.Row(s.mIRow).NHits();
@@ -34,7 +34,7 @@ GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int32_t /*nBlocks*/, int32_t nT
   }
   GPUbarrier();
 
-  if (s.mIRow <= GPUCA_ROW_COUNT - 3) {
+  if (s.mIRow <= GPUCA_NROWS - 3) {
 #ifdef GPUCA_GPUCODE
     int32_t Up = s.mIRowUp;
     int32_t Dn = s.mIRowDn;

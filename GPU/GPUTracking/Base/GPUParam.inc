@@ -39,7 +39,7 @@ GPUdi() void GPUParam::Global2Sector(int32_t iSector, float X, float Y, float Z,
   *z = Z;
 }
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 
 GPUdi() void GPUParam::GetClusterErrorsSeeding2(uint8_t sector, int32_t iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
 {
@@ -121,7 +121,7 @@ GPUdi() float GPUParam::GetSystematicClusterErrorC122(float x, float y, uint8_t 
   return errC12 * errC12;
 }
 
-#else // GPUCA_TPC_GEOMETRY_O2
+#else // !GPUCA_RUN2
 
 GPUdi() float GPUParam::GetClusterErrorSeeding(int32_t yz, int32_t type, float zDiff, float angle2, float scaledMult) const
 {
@@ -169,7 +169,7 @@ GPUdi() float GPUParam::GetSystematicClusterErrorC122(float trackX, float trackY
   return 0;
 }
 
-#endif // !GPUCA_TPC_GEOMETRY_O2
+#endif // GPUCA_RUN2
 
 GPUdi() void GPUParam::GetClusterErrors2(uint8_t sector, int32_t iRow, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const
 {

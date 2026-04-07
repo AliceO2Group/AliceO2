@@ -17,10 +17,6 @@
 #include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 
-#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
-extern "C" int32_t gl3wInit();
-#endif
-
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
@@ -30,7 +26,7 @@ extern "C" int32_t gl3wInit();
 #include <cstring>
 #include <unistd.h>
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 #include <DebugGUI/imgui.h>
 #include <DebugGUI/DebugGUI.h>
 #endif
@@ -233,7 +229,7 @@ void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, do
 
 void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) { me->ResizeScene(width, height); }
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 void GPUDisplayFrontendGlfw::DisplayLoop()
 {
   ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -336,16 +332,6 @@ void GPUDisplayFrontendGlfw::DisplayExit()
 
 void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    if (fromBotton) {
-      y = ImGui::GetWindowHeight() - y;
-    }
-    y -= 20;
-    ImGui::SetCursorPos(ImVec2(x, y));
-    ImGui::TextColored(ImVec4(r, g, b, a), "%s", s);
-  }
-#endif
 }
 
 void GPUDisplayFrontendGlfw::SwitchFullscreen(bool set)
@@ -375,10 +361,10 @@ void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
 
 bool GPUDisplayFrontendGlfw::EnableSendKey()
 {
-#ifdef GPUCA_O2_LIB
-  return false;
-#else
+#ifdef GPUCA_STANDALONE
   return true;
+#else
+  return false;
 #endif
 }
 

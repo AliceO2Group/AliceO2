@@ -21,7 +21,7 @@
 #pragma link C++ class o2::gpu::trackInterface < o2::track::TrackParCov> + ;
 #pragma link C++ class o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::track::TrackParCov>> + ;
 #pragma link C++ class std::vector < o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::track::TrackParCov>>> + ;
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsO2 + ;
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsRec + ;
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsRecTPC + ;

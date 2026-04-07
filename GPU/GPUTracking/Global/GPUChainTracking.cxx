@@ -193,7 +193,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Invalid Inputs for track merging, TPC Clusters required");
     return false;
   }
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
   if (GetRecoSteps() & gpudatatypes::RecoStep::TPCClusterFinding) {
     GPUError("Can not run TPC GPU Cluster Finding with Run 2 Data");
     return false;

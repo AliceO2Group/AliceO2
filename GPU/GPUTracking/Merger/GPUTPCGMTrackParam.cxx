@@ -344,7 +344,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
     o2::utils::DebugStreamer::instance()->getStreamer("debug_accept_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_accept_track").data() << "iTrk=" << iTrk << "outerParam=" << track.OuterParam() << "track=" << this << "ihitStart=" << ihitStart << "\n";
   })
 
-  if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(mP[4] * param.qptB5Scaler) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
+  if (!(N + NTolerated >= GPUCA_TPC_MIN_HITS_B5(mP[4] * param.qptB5Scaler) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
     return false; // TODO: NTolerated should never become that large, check what is going wrong!
   }
   if (param.rec.tpc.minNClustersFinalTrack != -1 && N + NTolerated < param.rec.tpc.minNClustersFinalTrack) {
@@ -624,7 +624,7 @@ GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterPar
 
 GPUdic(0, 1) void GPUTPCGMTrackParam::StoreLoopPropagation(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha)
 {
-  if (iRow == 0 || iRow == GPUCA_ROW_COUNT - 1) {
+  if (iRow == 0 || iRow == GPUCA_NROWS - 1) {
     return;
   }
   if (CAMath::Abs(mP[2]) >= GPUCA_MAX_SIN_PHI) { // TODO: How can we avoid this?
@@ -700,7 +700,7 @@ GPUdi() void GPUTPCGMTrackParam::AttachClustersLooperFollow(const GPUTPCGMMerger
       if (CAMath::Abs(mP[2]) > 0.7f) {
         return;
       }
-      if (up ? (-mP[0] * lrFactor > GPUTPCGeometry::Row2X(GPUCA_ROW_COUNT - 1)) : (-mP[0] * lrFactor < GPUTPCGeometry::Row2X(0))) {
+      if (up ? (-mP[0] * lrFactor > GPUTPCGeometry::Row2X(GPUCA_NROWS - 1)) : (-mP[0] * lrFactor < GPUTPCGeometry::Row2X(0))) {
         return;
       }
       if (!((up ? (-mP[0] * lrFactor >= toX) : (-mP[0] * lrFactor <= toX)) || (right ^ (mP[2] > 0)))) {
@@ -712,7 +712,7 @@ GPUdi() void GPUTPCGMTrackParam::AttachClustersLooperFollow(const GPUTPCGMMerger
         return;
       }
       CADEBUG(printf("\tPropagated to y = %f: X %f Z %f SinPhi %f\n", mX, mP[0], mP[1], mP[2]));
-      for (int32_t j = 0; j < GPUCA_ROW_COUNT; j++) { // TODO: Avoid iterating over all rows
+      for (int32_t j = 0; j < GPUCA_NROWS; j++) { // TODO: Avoid iterating over all rows
         float rowX = GPUTPCGeometry::Row2X(j);
         if (CAMath::Abs(rowX - (-mP[0] * lrFactor)) < 1.5f) {
           CADEBUG(printf("\t\tAttempt row %d (X %f Y %f Z %f)\n", j, rowX, mX * lrFactor, mP[1]));
@@ -788,7 +788,7 @@ GPUdi() void GPUTPCGMTrackParam::AttachClustersLooper(const GPUTPCGMMerger* GPUr
     float paramX = mP[2] > 0 ? -Y : Y;
     int32_t step = outwards ? 1 : -1;
     int32_t found = 0;
-    for (int32_t j = iRow; j >= 0 && j < GPUCA_ROW_COUNT && found < 3; j += step) {
+    for (int32_t j = iRow; j >= 0 && j < GPUCA_NROWS && found < 3; j += step) {
       float rowX = mX + GPUTPCGeometry::Row2X(j) - myRowX;
       if (CAMath::Abs(rowX - paramX) < 1.5f) {
         // printf("Attempt row %d at y %f\n", j, X);

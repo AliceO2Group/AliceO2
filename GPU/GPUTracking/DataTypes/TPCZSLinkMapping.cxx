@@ -22,7 +22,7 @@ using namespace o2::gpu;
 
 TPCZSLinkMapping::TPCZSLinkMapping(o2::tpc::Mapper& mapper)
 {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   const auto& fecToGlobalPad = mapper.getMapFECIDGlobalPad();
   assert(fecToGlobalPad.size() == TPC_FEC_IDS_IN_SECTOR);
 

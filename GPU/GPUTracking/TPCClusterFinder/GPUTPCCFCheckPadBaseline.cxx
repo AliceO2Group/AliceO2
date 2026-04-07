@@ -43,7 +43,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThread
 GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
 #ifdef GPUCA_GPUCODE
-  if (iBlock >= GPUCA_ROW_COUNT) {
+  if (iBlock >= GPUCA_NROWS) {
     return;
   }
 

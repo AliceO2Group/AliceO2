@@ -22,7 +22,7 @@ namespace o2::gpu
 {
 struct GPUParam;
 struct GPUTPCClusterOccupancyMapBin {
-  uint16_t bin[GPUCA_NSECTORS][GPUCA_ROW_COUNT];
+  uint16_t bin[GPUCA_NSECTORS][GPUCA_NROWS];
 
   GPUd() static uint32_t getNBins(const GPUParam& param);
   GPUd() static uint32_t getTotalSize(const GPUParam& param);

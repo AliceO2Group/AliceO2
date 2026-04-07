@@ -63,8 +63,8 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
     mem = SetPointersTracklets(mem);
   }
   if (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking) {
-    computePointerWithAlignment(mem, mTrackletTmpStartHits, GPUCA_ROW_COUNT * mNMaxRowStartHits);
-    computePointerWithAlignment(mem, mRowStartHitCountOffset, GPUCA_ROW_COUNT);
+    computePointerWithAlignment(mem, mTrackletTmpStartHits, GPUCA_NROWS * mNMaxRowStartHits);
+    computePointerWithAlignment(mem, mRowStartHitCountOffset, GPUCA_NROWS);
   }
   return mem;
 }
@@ -135,12 +135,12 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   }
   if (io.clustersNative) {
     uint32_t maxRowHits = 0;
-    for (uint32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+    for (uint32_t i = 0; i < GPUCA_NROWS; i++) {
       if (io.clustersNative->nClusters[mISector][i] > maxRowHits) {
         maxRowHits = io.clustersNative->nClusters[mISector][i];
       }
     }
-    mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(maxRowHits * GPUCA_ROW_COUNT);
+    mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(maxRowHits * GPUCA_NROWS);
   } else {
     mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(mData.NumberOfHits());
   }
@@ -160,8 +160,8 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxTrackHits = mRec->MemoryScalers()->NTPCSectorTrackHits(mData.NumberOfHits(), mRec->GetProcessingSettings().tpcInputWithClusterRejection);
 
   if (mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking).par_SORT_STARTHITS) {
-    if (mNMaxStartHits > mNMaxRowStartHits * GPUCA_ROW_COUNT) {
-      mNMaxStartHits = mNMaxRowStartHits * GPUCA_ROW_COUNT;
+    if (mNMaxStartHits > mNMaxRowStartHits * GPUCA_NROWS) {
+      mNMaxStartHits = mNMaxRowStartHits * GPUCA_NROWS;
     }
   }
   mData.SetMaxData();
@@ -171,7 +171,7 @@ void GPUTPCTracker::UpdateMaxData()
 {
   mNMaxTracklets = mCommonMem->nStartHits;
   mNMaxTracks = mNMaxTracklets * 2 + 50;
-  mNMaxRowHits = mNMaxTracklets * GPUCA_ROW_COUNT;
+  mNMaxRowHits = mNMaxTracklets * GPUCA_NROWS;
 }
 
 void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }

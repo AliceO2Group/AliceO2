@@ -73,7 +73,7 @@ void* GPUTPCClusterFinder::SetPointersZS(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 {
-  computePointerWithAlignment(mem, mPclusterInRow, GPUCA_ROW_COUNT);
+  computePointerWithAlignment(mem, mPclusterInRow, GPUCA_NROWS);
   return mem;
 }
 
@@ -91,7 +91,7 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
   computePointerWithAlignment(mem, mPpeakMap, TPCMapMemoryLayout<decltype(*mPpeakMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
-  computePointerWithAlignment(mem, mPclusterByRow, GPUCA_ROW_COUNT * mNMaxClusterPerRow);
+  computePointerWithAlignment(mem, mPclusterByRow, GPUCA_NROWS * mNMaxClusterPerRow);
   if ((mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPscanBuf, mBufSize * mNBufs);
   }
@@ -166,8 +166,8 @@ void GPUTPCClusterFinder::PrepareMC()
 
   clearMCMemory();
   mPindexMap = new uint32_t[TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen)];
-  mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUCA_ROW_COUNT];
-  mPlabelsInRow = new uint32_t[GPUCA_ROW_COUNT];
+  mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUCA_NROWS];
+  mPlabelsInRow = new uint32_t[GPUCA_NROWS];
 }
 
 void GPUTPCClusterFinder::clearMCMemory()

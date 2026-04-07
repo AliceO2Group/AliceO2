@@ -92,10 +92,10 @@ class GPUReconstruction
   using InOutTypeField = gpudatatypes::InOutTypeField;
 
   static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
-#ifdef GPUCA_TPC_GEOMETRY_O2
-  static constexpr GeometryType geometryType = GeometryType::O2;
-#else
+#ifdef GPUCA_RUN2
   static constexpr GeometryType geometryType = GeometryType::ALIROOT;
+#else
+  static constexpr GeometryType geometryType = GeometryType::O2;
 #endif
 
   static DeviceType GetDeviceType(const char* type);

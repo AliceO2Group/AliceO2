@@ -141,7 +141,7 @@ void GPUChainTracking::PrintMemoryStatistics()
 {
   std::map<std::string, GPUChainTrackingMemUsage> usageMap;
   for (int32_t i = 0; i < NSECTORS; i++) {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
     if (processors()->tpcClusterer[i].mPmemory) {
       addToMap("TPC Clusterer Sector Peaks", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nPeaks, processors()->tpcClusterer[i].mNMaxPeaks);
       addToMap("TPC Clusterer Sector Clusters", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nClusters, processors()->tpcClusterer[i].mNMaxClusters);
@@ -164,7 +164,7 @@ void GPUChainTracking::PrintMemoryStatistics()
     addToMap("TPC O2 ClusRefs", usageMap, processors()->tpcMerger.NOutputClusRefsTPCO2(), processors()->tpcMerger.NOutputClusRefsTPCO2());
   }
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   if (processors()->tpcCompressor.mOutput) {
     addToMap("TPC ComprCache HitsAttached", usageMap, processors()->tpcCompressor.mOutput->nAttachedClusters, processors()->tpcCompressor.mMaxTrackClusters);
     addToMap("TPC ComprCache HitsUnattached", usageMap, processors()->tpcCompressor.mOutput->nUnattachedClusters, processors()->tpcCompressor.mMaxClustersInCache);
@@ -282,7 +282,7 @@ void GPUChainTracking::OutputSanityCheck()
       uint8_t sector, row;
       uint32_t cl;
       trk.getClusterReference(mIOPtrs.outputClusRefsTPCO2, j, sector, row, cl);
-      if (sector >= GPUCA_NSECTORS || row >= GPUCA_ROW_COUNT) {
+      if (sector >= GPUCA_NSECTORS || row >= GPUCA_NROWS) {
         if (nErrors++ < 1000) {
           GPUError("Invalid sector / row %d / %d", (int32_t)sector, (int32_t)row);
           continue;
@@ -311,7 +311,7 @@ void GPUChainTracking::RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* cluster
   for (int32_t iPhase = 0; iPhase < 2; iPhase++) {
     uint32_t countTotal = 0;
     for (uint32_t iSector = 0; iSector < GPUCA_NSECTORS; iSector++) {
-      for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+      for (uint32_t iRow = 0; iRow < GPUCA_NROWS; iRow++) {
         uint32_t count = 0;
         for (uint32_t k = 0; k < clusters->nClusters[iSector][iRow]; k++) {
           o2::tpc::ClusterNative cl = clusters->clusters[iSector][iRow][k];
@@ -349,7 +349,7 @@ void GPUChainTracking::DumpClusters(std::ostream& out, const o2::tpc::ClusterNat
   out << "\nTPC Clusters:\n";
   for (uint32_t iSec = 0; iSec < GPUCA_NSECTORS; iSec++) {
     out << "TPCClusters - Sector " << iSec << "\n";
-    for (uint32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+    for (uint32_t i = 0; i < GPUCA_NROWS; i++) {
       out << "  Row: " << i << ": " << clusters->nClusters[iSec][i] << " clusters:\n";
       for (uint32_t j = 0; j < clusters->nClusters[iSec][i]; j++) {
         const auto& cl = clusters->clusters[iSec][i][j];

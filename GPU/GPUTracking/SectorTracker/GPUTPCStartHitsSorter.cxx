@@ -25,12 +25,12 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int32_t nBlocks, int32_t nThreads
 {
   // Sorts the Start Hits by Row Index
   if (iThread == 0) {
-    const int32_t tmpNRows = GPUCA_ROW_COUNT - 6;
+    const int32_t tmpNRows = GPUCA_NROWS - 6;
     const int32_t nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
     const int32_t nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
     int32_t startOffset2 = 0;
     GPUCA_UNROLL(, U())
-    for (int32_t ir = 1; ir < GPUCA_ROW_COUNT - 5; ir++) {
+    for (int32_t ir = 1; ir < GPUCA_NROWS - 5; ir++) {
       if (ir < nStartRow) {
         startOffset2 += tracker.mRowStartHitCountOffset[ir];
       }

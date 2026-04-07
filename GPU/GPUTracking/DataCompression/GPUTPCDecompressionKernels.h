@@ -39,7 +39,7 @@ class GPUTPCDecompressionKernels : public GPUKernelTemplate
 
   GPUd() static uint32_t computeLinearTmpBufferIndex(uint32_t sector, uint32_t row, uint32_t maxClustersPerBuffer)
   {
-    return sector * (GPUCA_ROW_COUNT * maxClustersPerBuffer) + row * maxClustersPerBuffer;
+    return sector * (GPUCA_NROWS * maxClustersPerBuffer) + row * maxClustersPerBuffer;
   }
 
   template <typename T>

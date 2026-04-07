@@ -27,7 +27,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
 #ifdef GPUCA_GPUCODE
   for (uint32_t i = iThread; i < sizeof(GPUTPCRow) / sizeof(int32_t); i += nThreads) {
     reinterpret_cast<GPUsharedref() int32_t*>(&s.mRow)[i] = reinterpret_cast<GPUglobalref() int32_t*>(&tracker.TrackingDataRows()[iBlock])[i];
-    if (iBlock >= 2 && iBlock < GPUCA_ROW_COUNT - 2) {
+    if (iBlock >= 2 && iBlock < GPUCA_NROWS - 2) {
       reinterpret_cast<GPUsharedref() int32_t*>(&s.mRowUp)[i] = reinterpret_cast<GPUglobalref() int32_t*>(&tracker.TrackingDataRows()[iBlock + 2])[i];
       reinterpret_cast<GPUsharedref() int32_t*>(&s.mRowDown)[i] = reinterpret_cast<GPUglobalref() int32_t*>(&tracker.TrackingDataRows()[iBlock - 2])[i];
     }
@@ -46,9 +46,9 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     s.mIRow = iBlock;
     s.mIRowUp = iBlock + 2;
     s.mIRowDn = iBlock - 2;
-    if (s.mIRow < GPUCA_ROW_COUNT) {
+    if (s.mIRow < GPUCA_NROWS) {
       s.mNHits = row.mNHits;
-      if ((s.mIRow >= 2) && (s.mIRow <= GPUCA_ROW_COUNT - 3)) {
+      if ((s.mIRow >= 2) && (s.mIRow <= GPUCA_NROWS - 3)) {
         // the axis perpendicular to the rows
         const float xDn = rowDn.mX;
         const float x = row.mX;
@@ -66,7 +66,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
 
   // local copies
 
-  if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2) || (rowUp.mNHits <= 0) || (rowDn.mNHits <= 0)) {
+  if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_NROWS - 2) || (rowUp.mNHits <= 0) || (rowDn.mNHits <= 0)) {
     const int32_t lHitNumberOffset = row.mHitNumberOffset;
     for (int32_t ih = iThread; ih < s.mNHits; ih += nThreads) {
       tracker.mData.mLinkUpData[lHitNumberOffset + ih] = CALINK_INVAL;

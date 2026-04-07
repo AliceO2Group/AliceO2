@@ -20,7 +20,7 @@
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
 #define CHARGEMAP_TILING_LAYOUT
 
-#define SCRATCH_PAD_SEARCH_N 8
+#define SCRATCH_PAD_SEARCH_N 8 // TODO: Change all this to constexpr where possible, like in GPUDefParametersConstants.h
 #define SCRATCH_PAD_COUNT_N 16
 #if defined(GPUCA_GPUCODE)
 #define SCRATCH_PAD_BUILD_N 8
@@ -42,7 +42,7 @@
 #define TPC_CLUSTERER_ROW_STRIDE (TPC_CLUSTERER_ROW_PAD_CAPACITY + GPUCF_PADDING_PAD)
 // Number of pads in a sector as stored internally by the clusterizer.
 // This includes fake pads for constant strides between rows
-#define TPC_CLUSTERER_STRIDED_PAD_COUNT (GPUCA_ROW_COUNT * TPC_CLUSTERER_ROW_STRIDE + GPUCF_PADDING_PAD)
+#define TPC_CLUSTERER_STRIDED_PAD_COUNT (GPUCA_NROWS * TPC_CLUSTERER_ROW_STRIDE + GPUCF_PADDING_PAD)
 // Real of number of pads in a sector
 #define TPC_REAL_PADS_IN_SECTOR 14560
 #define TPC_FEC_IDS_IN_SECTOR 23296

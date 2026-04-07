@@ -26,7 +26,7 @@ class GPUTPCExtrapolationTracking : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory {
-    CA_SHARED_STORAGE(GPUTPCRow mRows[GPUCA_ROW_COUNT]);
+    CA_SHARED_STORAGE(GPUTPCRow mRows[GPUCA_NROWS]);
   };
 
   typedef GPUconstantref() GPUTPCTracker processorType;

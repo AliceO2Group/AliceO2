@@ -67,7 +67,7 @@ GPUd() int32_t GPUTPCExtrapolationTracking::PerformExtrapolationTrackingRun(GPUT
     tParam.SetCov(2, err2Z);
   }
 
-  calink rowHits[GPUCA_ROW_COUNT];
+  calink rowHits[GPUCA_NROWS];
   int32_t nHits = GPUTPCTrackletConstructor::GPUTPCTrackletConstructorExtrapolationTracking(tracker, smem, tParam, rowIndex, direction, 0, rowHits);
   if (nHits >= tracker.Param().rec.tpc.extrapolationTrackingMinHits) {
     // GPUInfo("%d hits found", nHits);
@@ -140,7 +140,7 @@ GPUd() void GPUTPCExtrapolationTracking::PerformExtrapolationTracking(int32_t nB
 
     {
       const int32_t tmpHit = tracker.Tracks()[i].FirstHitID() + tracker.Tracks()[i].NHits() - 1;
-      if (tracker.TrackHits()[tmpHit].RowIndex() < GPUCA_ROW_COUNT - tracker.Param().rec.tpc.extrapolationTrackingMinRows && tracker.TrackHits()[tmpHit].RowIndex() >= GPUCA_ROW_COUNT - tracker.Param().rec.tpc.extrapolationTrackingRowRange) {
+      if (tracker.TrackHits()[tmpHit].RowIndex() < GPUCA_NROWS - tracker.Param().rec.tpc.extrapolationTrackingMinRows && tracker.TrackHits()[tmpHit].RowIndex() >= GPUCA_NROWS - tracker.Param().rec.tpc.extrapolationTrackingRowRange) {
         int32_t rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
         const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
         float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
@@ -160,7 +160,7 @@ GPUd() void GPUTPCExtrapolationTracking::PerformExtrapolationTracking(int32_t nB
 template <>
 GPUdii() void GPUTPCExtrapolationTracking::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
 {
-  CA_SHARED_CACHE(&smem.mRows[0], tracker.TrackingDataRows(), GPUCA_ROW_COUNT * sizeof(GPUTPCRow));
+  CA_SHARED_CACHE(&smem.mRows[0], tracker.TrackingDataRows(), GPUCA_NROWS * sizeof(GPUTPCRow));
   GPUbarrier();
 
   if (tracker.NHitsTotal() == 0) {

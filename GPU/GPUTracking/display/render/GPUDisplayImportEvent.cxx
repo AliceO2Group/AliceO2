@@ -30,7 +30,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "TOFBase/Geo.h"
 #include "ITSBase/GeometryTGeo.h"
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #endif
 
@@ -142,7 +142,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
       for (uint32_t i = 0; i < nCls; i++) {
         int32_t cid;
         cid = mIOPtrs->clustersNative->clusterOffset[iSector][0] + i;
-        while (row < GPUCA_ROW_COUNT - 1 && mIOPtrs->clustersNative->clusterOffset[iSector][row + 1] <= (uint32_t)cid) {
+        while (row < GPUCA_NROWS - 1 && mIOPtrs->clustersNative->clusterOffset[iSector][row + 1] <= (uint32_t)cid) {
           row++;
         }
         if (cid >= mNMaxClusters) {
@@ -237,7 +237,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
 
   if (mCurrentClustersITS) {
     float itsROFhalfLen = 0;
-#ifdef GPUCA_O2_LIB // Not available in standalone benchmark
+#ifndef GPUCA_STANDALONE // Not available in standalone benchmark
     if (mParam->par.continuousTracking) {
       const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
       itsROFhalfLen = alpParams.roFrameLengthInBC / (float)o2::tpc::constants::LHCBCPERTIMEBIN / 2;

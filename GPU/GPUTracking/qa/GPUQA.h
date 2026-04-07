@@ -68,7 +68,7 @@ class GPUQA
 #include <cmath>
 #include <vector>
 #include <memory>
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 #include <gsl/span>
 #endif
 
@@ -102,7 +102,7 @@ class GPUQA
   GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr, const GPUParam* param = nullptr);
   ~GPUQA();
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   using mcLabels_t = gsl::span<const o2::MCCompLabel>;
   using mcLabel_t = o2::MCCompLabel;
   using mcLabelI_t = mcLabel_t;
@@ -176,7 +176,7 @@ class GPUQA
   T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int32_t k, int32_t nNewInput);
 
   using mcInfo_t = GPUTPCMCInfo;
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   mcLabels_t GetMCLabel(uint32_t i);
   mcLabel_t GetMCLabel(uint32_t i, uint32_t j);
 #else
@@ -234,7 +234,7 @@ class GPUQA
   //-------------------------
 
   std::vector<mcLabelI_t> mTrackMCLabels;
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   std::vector<std::vector<int32_t>> mTrackMCLabelsReverse;
   std::vector<std::vector<int32_t>> mRecTracks;
   std::vector<std::vector<int32_t>> mFakeTracks;

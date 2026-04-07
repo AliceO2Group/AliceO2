@@ -113,7 +113,7 @@ GPUd() bool GPUTPCGMSectorTrack::FilterErrors(const GPUTPCGMMerger* merger, int3
 
   {
     merger->Param().GetClusterErrors2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, mParam.mC0, mParam.mC2); // TODO: provide correct time and row
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
     float C0a, C2a;
     merger->Param().GetClusterErrorsSeeding2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);
     if (C0a > mParam.mC0) {
@@ -173,7 +173,7 @@ GPUd() bool GPUTPCGMSectorTrack::FilterErrors(const GPUTPCGMMerger* merger, int3
       float ex1i = 1.f / ex1;
       {
         merger->Param().GetClusterErrors2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Provide correct time / row
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
         float C0a, C2a;
         merger->Param().GetClusterErrorsSeeding2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);
         if (C0a > err2Y) {

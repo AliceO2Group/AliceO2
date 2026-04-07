@@ -25,7 +25,7 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nThr
   if (iThread == 0) {
     s.mIRow = iBlock + 1;
     s.mNRowStartHits = 0;
-    if (s.mIRow <= GPUCA_ROW_COUNT - 4) {
+    if (s.mIRow <= GPUCA_NROWS - 4) {
       s.mNHits = tracker.mData.mRows[s.mIRow].mNHits;
     } else {
       s.mNHits = -1;

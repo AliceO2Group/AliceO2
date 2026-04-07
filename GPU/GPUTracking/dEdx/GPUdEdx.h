@@ -37,7 +37,7 @@ class GPUdEdx
   GPUd() void fillSubThreshold(int32_t padRow);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
-  static constexpr size_t MAX_NCL = GPUCA_ROW_COUNT;
+  static constexpr size_t MAX_NCL = GPUCA_NROWS;
 
  private:
   GPUd() float GetSortTruncMean(GPUCA_PAR_DEDX_STORAGE_TYPE_A* array, int32_t count, int32_t trunclow, int32_t trunchigh);

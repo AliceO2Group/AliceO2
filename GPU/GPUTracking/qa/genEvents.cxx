@@ -219,7 +219,7 @@ int32_t genEvents::GenerateEvent(const GPUParam& param, const char* filename)
       // exit(0);
     }
 
-    for (int32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+    for (int32_t iRow = 0; iRow < GPUCA_NROWS; iRow++) {
       // if( iRow>=50 ) break; //SG!!!
       float xRow = GPUTPCGeometry::Row2X(iRow);
       // transport to row

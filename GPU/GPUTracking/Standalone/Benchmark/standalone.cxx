@@ -153,7 +153,7 @@ int32_t ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
 #error Why was configStandalone.rec.tpc.mergerReadFromTrackerDirectly = 0 needed?
   configStandalone.proc.inKernelParallel = false;
   configStandalone.proc.createO2Output = 0;
@@ -522,7 +522,7 @@ int32_t ReadEvent(int32_t n)
   if (r) {
     return r;
   }
-#if defined(GPUCA_TPC_GEOMETRY_O2) && defined(GPUCA_BUILD_QA) && !defined(GPUCA_O2_LIB)
+#if !defined(GPUCA_RUN2) && defined(GPUCA_BUILD_QA) && defined(GPUCA_STANDALONE)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     chainTracking->GetQA()->UpdateChain(chainTracking);

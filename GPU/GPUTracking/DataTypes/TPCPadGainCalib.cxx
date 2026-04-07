@@ -23,7 +23,7 @@ TPCPadGainCalib::TPCPadGainCalib()
 {
   constexpr GPUTPCGeometry geo{};
   int32_t offset = 0;
-  for (int32_t r = 0; r < GPUCA_ROW_COUNT; r++) {
+  for (int32_t r = 0; r < GPUCA_NROWS; r++) {
     mPadOffsetPerRow[r] = offset;
     offset += geo.NPads(r);
   }

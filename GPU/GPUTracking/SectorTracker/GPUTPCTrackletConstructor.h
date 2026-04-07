@@ -62,7 +62,7 @@ class GPUTPCTrackletConstructor : public GPUKernelTemplate
   };
 
   struct GPUSharedMemory {
-    CA_SHARED_STORAGE(GPUTPCRow mRows[GPUCA_ROW_COUNT]); // rows
+    CA_SHARED_STORAGE(GPUTPCRow mRows[GPUCA_NROWS]);     // rows
     int32_t mNStartHits;                                 // Total number of start hits
 
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE

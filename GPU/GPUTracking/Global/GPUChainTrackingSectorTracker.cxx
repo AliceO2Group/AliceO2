@@ -126,7 +126,7 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
     uint32_t* ptr = doGPU ? mInputsShadow->mTPCClusterOccupancyMap : mInputsHost->mTPCClusterOccupancyMap;
     auto* ptrTmp = (GPUTPCClusterOccupancyMapBin*)mRec->AllocateVolatileMemory(GPUTPCClusterOccupancyMapBin::getTotalSize(param()), doGPU);
     runKernel<GPUMemClean16>(GetGridAutoStep(streamInitAndOccMap, RecoStep::TPCSectorTracking), ptrTmp, GPUTPCClusterOccupancyMapBin::getTotalSize(param()));
-    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fill>(GetGridBlk(GPUCA_NSECTORS * GPUCA_ROW_COUNT, streamInitAndOccMap), ptrTmp);
+    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fill>(GetGridBlk(GPUCA_NSECTORS * GPUCA_NROWS, streamInitAndOccMap), ptrTmp);
     runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fold>(GetGridBlk(mInputsHost->mTPCClusterOccupancyMapSize, streamInitAndOccMap), ptrTmp, ptr + 2);
     mRec->ReturnVolatileMemory();
     mInputsHost->mTPCClusterOccupancyMap[1] = param().rec.tpc.occupancyMapTimeBins * 0x10000 + param().rec.tpc.occupancyMapTimeBinsAverage;
@@ -154,10 +154,10 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
       GPUInfo("Creating Sector Data (Sector %d)", iSector);
     }
     TransferMemoryResourcesToGPU(RecoStep::TPCSectorTracking, &trk, useStream);
-    runKernel<GPUTPCCreateTrackingData>({doGPU ? GetGridBlk(GPUCA_ROW_COUNT, useStream) : GetGridAuto(0), {iSector}, {nullptr, streamInit[useStream] ? nullptr : &mEvents->init}}); // TODO: Check why GetGridAuto(0) is much fast on CPU
+    runKernel<GPUTPCCreateTrackingData>({doGPU ? GetGridBlk(GPUCA_NROWS, useStream) : GetGridAuto(0), {iSector}, {nullptr, streamInit[useStream] ? nullptr : &mEvents->init}}); // TODO: Check why GetGridAuto(0) is much fast on CPU
     streamInit[useStream] = true;
     if (GetProcessingSettings().deterministicGPUReconstruction) {
-      runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::hitData>({GetGridBlk(GPUCA_ROW_COUNT, useStream), {iSector}});
+      runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::hitData>({GetGridBlk(GPUCA_NROWS, useStream), {iSector}});
     }
     if (!doGPU && trk.CheckEmptySector() && GetProcessingSettings().debugLevel == 0) {
       return;
@@ -176,7 +176,7 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
     }
 
     runKernel<GPUMemClean16>(GetGridAutoStep(useStream, RecoStep::TPCSectorTracking), trkShadow.Data().HitWeights(), trkShadow.Data().NumberOfHitsPlusAlign() * sizeof(*trkShadow.Data().HitWeights()));
-    runKernel<GPUTPCNeighboursFinder>({GetGridBlk(GPUCA_ROW_COUNT, useStream), {iSector}, {nullptr, streamInit[useStream] ? nullptr : &mEvents->init}});
+    runKernel<GPUTPCNeighboursFinder>({GetGridBlk(GPUCA_NROWS, useStream), {iSector}, {nullptr, streamInit[useStream] ? nullptr : &mEvents->init}});
     streamInit[useStream] = true;
 
     if (GetProcessingSettings().keepDisplayMemory) {
@@ -187,10 +187,10 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
       }
     }
 
-    runKernel<GPUTPCNeighboursCleaner>({GetGridBlk(GPUCA_ROW_COUNT - 2, useStream), {iSector}});
+    runKernel<GPUTPCNeighboursCleaner>({GetGridBlk(GPUCA_NROWS - 2, useStream), {iSector}});
     DoDebugAndDump(RecoStep::TPCSectorTracking, GPUChainTrackingDebugFlags::TPCLinks, trk, &GPUTPCTracker::DumpLinks, *mDebugFile, 1);
 
-    runKernel<GPUTPCStartHitsFinder>({GetGridBlk(GPUCA_ROW_COUNT - 6, useStream), {iSector}});
+    runKernel<GPUTPCStartHitsFinder>({GetGridBlk(GPUCA_NROWS - 6, useStream), {iSector}});
     if (mRec->getGPUParameters(doGPU).par_SORT_STARTHITS) {
       runKernel<GPUTPCStartHitsSorter>({GetGridAuto(useStream), {iSector}});
     }

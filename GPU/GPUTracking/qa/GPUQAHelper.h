@@ -128,7 +128,7 @@ struct GPUTPCTrkLbl_ret {
   GPUTPCTrkLbl_ret() = default;
   template <class T>
   GPUTPCTrkLbl_ret(T){};
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   GPUTPCTrkLbl_ret(const MCCompLabel& a) : id(a.getTrackEventSourceID()) {};
 #endif
 #ifdef GPUCA_STANDALONE

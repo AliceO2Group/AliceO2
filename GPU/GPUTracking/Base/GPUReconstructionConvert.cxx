@@ -12,7 +12,7 @@
 /// \file GPUReconstructionConvert.cxx
 /// \author David Rohr
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 #include "DetectorsRaw/RawFileWriter.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Digit.h"
@@ -54,13 +54,13 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
   uint32_t offset = 0;
   for (uint32_t i = 0; i < NSECTORS; i++) {
     uint32_t nClSector = 0;
-    for (int32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+    for (int32_t j = 0; j < GPUCA_NROWS; j++) {
       nClSector += native->nClusters[i][j];
     }
     nClusters[i] = nClSector;
     clusters[i].reset(new GPUTPCClusterData[nClSector]);
     nClSector = 0;
-    for (int32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+    for (int32_t j = 0; j < GPUCA_NROWS; j++) {
       for (uint32_t k = 0; k < native->nClusters[i][j]; k++) {
         const auto& clin = native->clusters[i][j][k];
         float x = 0, y = 0, z = 0;
@@ -98,7 +98,7 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
   native.clustersLinear = nativeBuffer.get();
   native.setOffsetPtrs();
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+    for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
       native.nClusters[i][j] = 0;
     }
     for (uint32_t j = 0; j < nRawClusters[i]; j++) {
@@ -119,7 +119,7 @@ int32_t GPUReconstructionConvert::GetMaxTimeBin(const ClusterNativeAccess& nativ
 {
   float retVal = 0;
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+    for (uint32_t j = 0; j < GPUCA_NROWS; j++) {
       for (uint32_t k = 0; k < native.nClusters[i][j]; k++) {
         if (native.clusters[i][j][k].getTime() > retVal) {
           retVal = native.clusters[i][j][k].getTime();
@@ -174,7 +174,7 @@ int32_t GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutZS& zspage
 
 // ------------------------------------------------- TPC ZS -------------------------------------------------
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 namespace o2::gpu
 {
 namespace // anonymous
@@ -193,7 +193,7 @@ struct zsEncoder {
   const o2::InteractionRecord* ir = nullptr;
   const GPUParam* param = nullptr;
   bool padding = false;
-  int32_t lastEndpoint = -2, lastTime = -1, lastRow = GPUCA_ROW_COUNT;
+  int32_t lastEndpoint = -2, lastTime = -1, lastRow = GPUCA_NROWS;
   int32_t endpoint = 0, outputEndpoint = 0;
   int64_t hbf = -1, nexthbf = 0;
   zsPage* page = nullptr;
@@ -244,11 +244,11 @@ inline void zsEncoder::ZSstreamOut(uint16_t* bufIn, uint32_t& lenIn, uint8_t* bu
 
 static inline auto ZSEncoderGetDigits(const GPUTrackingInOutDigits& in, int32_t i) { return in.tpcDigits[i]; }
 static inline auto ZSEncoderGetNDigits(const GPUTrackingInOutDigits& in, int32_t i) { return in.nTPCDigits[i]; }
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
 static inline auto ZSEncoderGetDigits(const DigitArray& in, int32_t i) { return in[i].data(); }
 static inline auto ZSEncoderGetNDigits(const DigitArray& in, int32_t i) { return in[i].size(); }
-#endif // GPUCA_O2_LIB
+#endif
 
 // ------------------------------------------------- TPC ZS Original Row-based ZS -------------------------------------------------
 
@@ -364,7 +364,7 @@ uint32_t zsEncoderRow::encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, ui
     curTBHdr = reinterpret_cast<TPCZSTBHDR*>(pagePtr);
     curTBHdr->rowMask |= (endpoint & 1) << 15;
     nRowsInTB = 0;
-    lastRow = GPUCA_ROW_COUNT;
+    lastRow = GPUCA_NROWS;
   }
   if (tmpBuffer[k].getRow() != lastRow) {
     curTBHdr->rowMask |= 1 << (tmpBuffer[k].getRow() - endpointStart);
@@ -460,7 +460,7 @@ void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const z
 
 // ------------------------------------------------- TPC ZS Link Based ZS -------------------------------------------------
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 struct zsEncoderLinkBased : public zsEncoder {
   TPCZSHDRV2* hdr = nullptr;
   TPCZSHDRV2 hdrBuffer;
@@ -1045,7 +1045,7 @@ void zsEncoderDenseLinkBased::amendPageErrorMessage(std::ostringstream& oss, con
   oss << "Meta header of page: " << dumpBuffer << "\n";
 }
 
-#endif // GPUCA_O2_LIB
+#endif // !GPUCA_STANDALONE
 
 // ------------------------------------------------- TPC ZS Main Encoder -------------------------------------------------
 
@@ -1095,7 +1095,7 @@ inline uint32_t zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2
 {
   uint32_t totalPages = 0;
   zsPage singleBuffer;
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
   int32_t maxhbf = 0;
   int32_t minhbf = o2::constants::lhc::LHCMaxBunches;
 #endif
@@ -1178,7 +1178,7 @@ inline uint32_t zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2
         }
         size_t size = !std::is_same_v<T, struct zsEncoderDenseLinkBased> && (padding || lastEndpoint == -1 || hbf == nexthbf) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (uint8_t*)page);
         size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord128>(size);
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
         if (raw) {
           raw->addData(rawfeeid, rawcru, 0, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
           maxhbf = std::max<int32_t>(maxhbf, hbf);
@@ -1257,7 +1257,7 @@ inline uint32_t zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2
     k += nEncoded;
   }
   if (raw) {
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
     if (iSector == 0) {
       for (int32_t i = minhbf; i <= maxhbf; i++) {
         raw->addData(46208, 360, rdh_utils::SACLinkID, 0, *ir + i * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)&singleBuffer, (char*)&singleBuffer), true, 0, 4);
@@ -1310,7 +1310,7 @@ size_t zsEncoderRun<T>::compare(std::vector<zsPage>* buffer, std::vector<o2::tpc
 
 } // anonymous namespace
 } // namespace o2::gpu
-#endif // GPUCA_TPC_GEOMETRY_O2
+#endif // !GPUCA_RUN2
 
 template <class S>
 void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<uint64_t[]>* outBuffer, uint32_t* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, int32_t version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
@@ -1320,7 +1320,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<uint64_
   if (((outBuffer == nullptr) ^ (outSizes == nullptr)) || ((raw != nullptr) && (ir == nullptr)) || !((outBuffer == nullptr) ^ (raw == nullptr)) || (raw && verify)) {
     throw std::runtime_error("Invalid parameters");
   }
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   std::vector<zsPage> buffer[NSECTORS][GPUTrackingInOutZS::NENDPOINTS];
   struct tmpReductionResult {
     uint32_t totalPages = 0;
@@ -1365,7 +1365,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<uint64_
         zsEncoderRun<zsEncoderRow> enc{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}};
         runZS(enc);
       } else if (version >= ZSVersion::ZSVersionLinkBasedWithMeta && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
         if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
           zsEncoderRun<zsEncoderImprovedLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
           runZS(enc);
@@ -1410,7 +1410,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<uint64_
 }
 
 template void GPUReconstructionConvert::RunZSEncoder<GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<uint64_t[]>*, uint32_t*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, int32_t, bool, float, bool, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter);
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 template void GPUReconstructionConvert::RunZSEncoder<DigitArray>(const DigitArray&, std::unique_ptr<uint64_t[]>*, uint32_t*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, int32_t, bool, float, bool, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter);
 #endif
 
@@ -1454,7 +1454,7 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* bu
   }
 }
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 namespace o2::gpu::internal
 {
 template <class T>

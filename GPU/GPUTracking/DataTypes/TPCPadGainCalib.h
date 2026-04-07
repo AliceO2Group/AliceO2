@@ -153,7 +153,7 @@ struct TPCPadGainCalib {
     }
   };
 
-  uint16_t mPadOffsetPerRow[GPUCA_ROW_COUNT];
+  uint16_t mPadOffsetPerRow[GPUCA_NROWS];
   SectorPadGainCorrection<uint16_t> mGainCorrection[GPUCA_NSECTORS];
 };
 

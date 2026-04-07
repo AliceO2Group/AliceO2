@@ -56,8 +56,8 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int32_t /*nBlocks*/, int32_
 {
   // reconstruction of tracklets, tracklet store step
   const uint32_t nHits = r.mLastRow + 1 - r.mFirstRow;
-  if (nHits == 0 || r.mNHits == 0 || (r.mNHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
-    CADEBUG(printf("    Rejected: nHits %d QPt %f MinHits %d MaxQPt %f CheckCov %d\n", r.mNHits, tParam.QPt(), GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().qptB5Scaler), tracker.Param().rec.maxTrackQPtB5, (int32_t)CheckCov(tParam)));
+  if (nHits == 0 || r.mNHits == 0 || (r.mNHits < GPUCA_TPC_MIN_HITS_B5(tParam.QPt() * tracker.Param().qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
+    CADEBUG(printf("    Rejected: nHits %d QPt %f MinHits %d MaxQPt %f CheckCov %d\n", r.mNHits, tParam.QPt(), GPUCA_TPC_MIN_HITS_B5(tParam.QPt() * tracker.Param().qptB5Scaler), tracker.Param().rec.maxTrackQPtB5, (int32_t)CheckCov(tParam)));
     return;
   }
 
@@ -404,9 +404,9 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
 
 GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() GPUTPCTracker& GPUrestrict() tracker, GPUsharedref() GPUTPCTrackletConstructor::GPUSharedMemory& s, GPUTPCThreadMemory& GPUrestrict() r)
 {
-  int32_t iRow = 0, iRowEnd = GPUCA_ROW_COUNT;
+  int32_t iRow = 0, iRowEnd = GPUCA_NROWS;
   GPUTPCTrackParam tParam;
-  calink rowHits[GPUCA_ROW_COUNT];
+  calink rowHits[GPUCA_NROWS];
   if (r.mGo) {
     GPUTPCHitId id = tracker.TrackletStartHits()[r.mISH];
 
@@ -482,7 +482,7 @@ GPUdii() void GPUTPCTrackletConstructor::Thread(int32_t nBlocks, int32_t nThread
   if (get_local_id(0) == 0) {
     sMem.mNStartHits = *tracker.NStartHits();
   }
-  CA_SHARED_CACHE(&sMem.mRows[0], tracker.TrackingDataRows(), GPUCA_ROW_COUNT * sizeof(GPUTPCRow));
+  CA_SHARED_CACHE(&sMem.mRows[0], tracker.TrackingDataRows(), GPUCA_NROWS * sizeof(GPUTPCRow));
   GPUbarrier();
 
   GPUTPCThreadMemory rMem;
@@ -500,7 +500,7 @@ GPUd() int32_t GPUTPCTrackletConstructor::GPUTPCTrackletConstructorExtrapolation
   rMem.mStage = 3;
   rMem.mNHits = rMem.mNMissed = 0;
   rMem.mGo = 1;
-  while (rMem.mGo && row >= 0 && row < GPUCA_ROW_COUNT) {
+  while (rMem.mGo && row >= 0 && row < GPUCA_NROWS) {
     UpdateTracklet(1, 1, 0, 0, sMem, rMem, tracker, tParam, row, rowHits[row], nullptr);
     row += increment;
   }

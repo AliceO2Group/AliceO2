@@ -138,7 +138,7 @@ void GPUDisplay::DrawClusters(int32_t iSector)
   [[maybe_unused]] const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
   for (int32_t cidInSector = 0; cidInSector < nClustersInSector; cidInSector++) {
     const int32_t cid = GET_CID(iSector, cidInSector);
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
     if (checkClusterCollision) {
       const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
       col = labels.size() ? mQA->GetMCLabelCol(labels[0]) : 0;
@@ -212,10 +212,10 @@ GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int32_t 
   }
   size_t startCount = mVertexBufferStart[iSector].size();
   size_t startCountInner = mVertexBuffer[iSector].size();
-  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
     const GPUTPCRow& row = tracker.Data().Row(i);
 
-    if (i < GPUCA_ROW_COUNT - 2) {
+    if (i < GPUCA_NROWS - 2) {
       const GPUTPCRow& rowUp = tracker.Data().Row(i + 2);
       for (int32_t j = 0; j < row.NHits(); j++) {
         if (tracker.Data().HitLinkUpData(row, j) != CALINK_INVAL) {
@@ -590,7 +590,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           float charge = mc.charge > 0 ? 1.f : -1.f;
 
           x = mclocal[0];
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
           trkParam.Set(mclocal[0], mclocal[1], mc.z, mclocal[2], mclocal[3], mc.pZ, -charge); // TODO: DR: unclear to me why we need -charge here
           if (mParam->par.continuousTracking) {
             ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, mc.t0, mParam->continuousMaxTimeBin)) * (mc.z < 0 ? -1 : 1);
@@ -677,7 +677,7 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
   int32_t iSector = tracker.ISector();
   size_t startCount = mVertexBufferStart[iSector].size();
   size_t startCountInner = mVertexBuffer[iSector].size();
-  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
     const GPUTPCRow& row = tracker.Data().Row(i);
     for (int32_t j = 0; j <= (signed)row.Grid().Ny(); j++) {
       float z1 = row.Grid().ZMin();
@@ -863,7 +863,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       } // clang-format off
     }, tbb::simple_partitioner()); // clang-format on
     if (mConfig.showTPCTracksFromO2Format) {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
       uint32_t col = 0;
       tbb::parallel_for<uint32_t>(0, mIOPtrs->nOutputTracksTPCO2, [&](auto i) {
         uint8_t sector, row;
@@ -891,7 +891,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         uint32_t col = 0;
         if (mQA) {
           const auto& label = mQA->GetMCTrackLabel(i);
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
           col = mQA->GetMCLabelCol(label);
 #else
           while (label.isValid() && col < mOverlayTFClusters.size() && mOverlayTFClusters[col][NSECTORS] < label.track) {

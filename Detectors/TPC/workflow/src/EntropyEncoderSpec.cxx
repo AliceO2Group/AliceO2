@@ -205,14 +205,14 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       }
     }
     offset = 0;
-    unsigned int offsets[GPUCA_NSECTORS][GPUCA_ROW_COUNT];
+    unsigned int offsets[GPUCA_NSECTORS][GPUCA_NROWS];
     for (unsigned int i = 0; i < GPUCA_NSECTORS; i++) {
-      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-        if (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) {
+      for (unsigned int j = 0; j < GPUCA_NROWS; j++) {
+        if (i * GPUCA_NROWS + j >= clusters.nSliceRows) {
           break;
         }
         offsets[i][j] = offset;
-        offset += (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+        offset += (i * GPUCA_NROWS + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUCA_NROWS + j];
       }
     }
 
@@ -220,8 +220,8 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 #pragma omp parallel for num_threads(mNThreads) schedule(static, (GPUCA_NSECTORS + mNThreads - 1) / mNThreads) // Static round-robin scheduling with one chunk per thread to ensure correct order of the final vector
 #endif
     for (unsigned int ii = 0; ii < clusters.nSliceRows; ii++) {
-      unsigned int i = ii / GPUCA_ROW_COUNT;
-      unsigned int j = ii % GPUCA_ROW_COUNT;
+      unsigned int i = ii / GPUCA_NROWS;
+      unsigned int j = ii % GPUCA_NROWS;
       o2::tpc::ClusterNative preCl;
 #ifdef WITH_OPENMP
       int myThread = omp_get_thread_num();
@@ -240,7 +240,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
         const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
         if (reject) {
           rejectHits[k] = true;
-          clustersFiltered.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]--;
+          clustersFiltered.nSliceRowClusters[i * GPUCA_NROWS + j]--;
           static std::atomic_flag lock = ATOMIC_FLAG_INIT;
           while (lock.test_and_set(std::memory_order_acquire)) {
           }
@@ -253,7 +253,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
           preCl = cl;
         }
       };
-      unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_NROWS + j];
       o2::gpu::TPCClusterDecompressionCore::decompressHits(clusters, offsets[i][j], end, checker);
     }
     tmpBuffer[0].first.reserve(clustersFiltered.nUnattachedClusters);

@@ -35,10 +35,10 @@ using namespace o2::gpu;
 void GPUTPCTrackingData::InitializeRows(const GPUParam& p)
 {
   // initialisation of rows
-  for (int32_t i = 0; i < GPUCA_ROW_COUNT + 1; i++) {
+  for (int32_t i = 0; i < GPUCA_NROWS + 1; i++) {
     new (&mRows[i]) GPUTPCRow;
   }
-  for (int32_t i = 0; i < GPUCA_ROW_COUNT; i++) {
+  for (int32_t i = 0; i < GPUCA_NROWS; i++) {
     mRows[i].mX = GPUTPCGeometry::Row2X(i);
     mRows[i].mMaxY = CAMath::Tan(p.dAlpha / 2.f) * mRows[i].mX;
   }
@@ -52,7 +52,7 @@ void GPUTPCTrackingData::SetClusterData(int32_t nClusters, int32_t clusterIdOffs
 
 void GPUTPCTrackingData::SetMaxData()
 {
-  int32_t hitMemCount = GPUCA_ROW_COUNT * GPUCA_ROWALIGNMENT + mNumberOfHits;
+  int32_t hitMemCount = GPUCA_NROWS * GPUCA_ROWALIGNMENT + mNumberOfHits;
   const uint32_t kVectorAlignment = 256;
   mNumberOfHitsPlusAlign = GPUProcessor::nextMultipleOf<(kVectorAlignment > GPUCA_ROWALIGNMENT ? kVectorAlignment : GPUCA_ROWALIGNMENT) / sizeof(int32_t)>(hitMemCount);
 }
@@ -72,7 +72,7 @@ void* GPUTPCTrackingData::SetPointersWeights(void* mem)
 
 void* GPUTPCTrackingData::SetPointersScratch(void* mem, bool idsOnGPU)
 {
-  const int32_t firstHitInBinSize = GetGridSize(mNumberOfHits, GPUCA_ROW_COUNT) + GPUCA_ROW_COUNT * GPUCA_ROWALIGNMENT / sizeof(int32_t);
+  const int32_t firstHitInBinSize = GetGridSize(mNumberOfHits, GPUCA_NROWS) + GPUCA_NROWS * GPUCA_ROWALIGNMENT / sizeof(int32_t);
   GPUProcessor::computePointerWithAlignment(mem, mHitData, mNumberOfHitsPlusAlign);
   GPUProcessor::computePointerWithAlignment(mem, mFirstHitInBin, firstHitInBinSize);
   if (idsOnGPU) {
@@ -91,7 +91,7 @@ void* GPUTPCTrackingData::SetPointersClusterIds(void* mem, bool idsOnGPU)
 
 void* GPUTPCTrackingData::SetPointersRows(void* mem)
 {
-  GPUProcessor::computePointerWithAlignment(mem, mRows, GPUCA_ROW_COUNT + 1);
+  GPUProcessor::computePointerWithAlignment(mem, mRows, GPUCA_NROWS + 1);
   return mem;
 }
 
@@ -173,7 +173,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
   static_assert(sizeof(*binMemory) <= sizeof(*mHitWeights), "Cannot reuse memory");
 #endif
 
-  for (int32_t rowIndex = iBlock; rowIndex < GPUCA_ROW_COUNT; rowIndex += nBlocks) {
+  for (int32_t rowIndex = iBlock; rowIndex < GPUCA_NROWS; rowIndex += nBlocks) {
     float yMin = 1.e6f;
     float yMax = -1.e6f;
     float zMin = 1.e6f;
