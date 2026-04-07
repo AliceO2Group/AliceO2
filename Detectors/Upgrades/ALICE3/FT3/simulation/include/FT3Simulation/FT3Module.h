@@ -42,6 +42,8 @@ class FT3Module
   static TGeoMedium* epoxyMed;
   static TGeoMaterial* AluminumMat;
   static TGeoMedium* AluminumMed;
+  static TGeoMaterial* carbonFiberMat;
+  static TGeoMedium* carbonFiberMed;
 
   const char* mDetName;
 
@@ -52,7 +54,8 @@ class FT3Module
 
   void createModule_scopingV3(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap, TGeoVolume* motherVolume);
+    double Rout, double overlap, TGeoVolume* motherVolume,
+    bool useStaves);
 
  private:
   static void create_layout(
@@ -62,32 +65,37 @@ class FT3Module
 
   void create_layout_scopingV3(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap, TGeoVolume* motherVolume);
+    double Rout, double overlap, TGeoVolume* motherVolume,
+    bool useStaves);
 
   // Helper functions
   void fill_stave(PosNegPositionTypes& y_positions, double Rout,
                   double x_left, unsigned kSensorStack, double tolerance,
                   std::pair<double, double> y_start);
+  void addStaveVolume(
+    TGeoVolume* motherVolume, std::string volumeName, int direction,
+    unsigned* volume_count, double staveLength,
+    double x_mid, double y_mid, double z_stave_shift_abs);
   void addDetectorVolume(
-    TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* sensor_count,
+    TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* volume_count,
     double x_mid, double y_mid, double z_mid,
     double x_half_length, double y_half_length, double z_half_length);
   
   void add2x1GlueVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
     std::string side_str, double x_mid, double y_mid, double z_mid,
     std::string element_glued_to);
   
   void add2x1CopperVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
     std::string side_str, double x_mid, double y_mid, double z_mid);
   
   void add2x1KaptonVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
     std::string side_str, double x_mid, double y_mid, double z_mid);
 
   void addSingleSensorVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* sensor_count,
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
     double active_x_mid, double y_mid, double z_mid, std::string side_str, bool isLeft);
 };
 
