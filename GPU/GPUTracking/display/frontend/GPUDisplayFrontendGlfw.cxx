@@ -17,10 +17,6 @@
 #include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 
-#ifdef GPUCA_O2_LIB
-#undef GPUCA_O2_LIB
-#endif
-
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
 extern "C" int32_t gl3wInit();
 #endif
