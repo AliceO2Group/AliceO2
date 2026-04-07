@@ -52,10 +52,9 @@ class FT3Module
     double Rout, double overlap, const std::string& face,
     const std::string& layout_type, TGeoVolume* motherVolume);
 
-  void createModule_scopingV3(
+  void createModule_staveGeo(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap, TGeoVolume* motherVolume,
-    bool useStaves);
+    double Rout, double overlap, TGeoVolume* motherVolume);
 
  private:
   static void create_layout(
@@ -63,10 +62,9 @@ class FT3Module
     double Rout, double overlap, const std::string& face,
     const std::string& layout_type, TGeoVolume* motherVolume);
 
-  void create_layout_scopingV3(
+  void create_layout_staveGeo(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap, TGeoVolume* motherVolume,
-    bool useStaves);
+    double Rout, double overlap, TGeoVolume* motherVolume);
 
   // Helper functions
   void fill_stave(PosNegPositionTypes& y_positions, double Rout,
@@ -83,20 +81,20 @@ class FT3Module
   
   void add2x1GlueVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    std::string side_str, double x_mid, double y_mid, double z_mid,
+    double x_mid, double y_mid, double z_mid,
     std::string element_glued_to);
   
   void add2x1CopperVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    std::string side_str, double x_mid, double y_mid, double z_mid);
+    double x_mid, double y_mid, double z_mid);
   
   void add2x1KaptonVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    std::string side_str, double x_mid, double y_mid, double z_mid);
+    double x_mid, double y_mid, double z_mid);
 
   void addSingleSensorVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    double active_x_mid, double y_mid, double z_mid, std::string side_str, bool isLeft);
+    double active_x_mid, double y_mid, double z_mid, bool isLeft);
 };
 
 #endif // FT3MODULE_H

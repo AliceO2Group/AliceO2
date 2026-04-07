@@ -405,8 +405,8 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
       module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", layerVol);
       module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "back", "rectangular", layerVol);
     } else if (ft3Params.layoutFT3 == kSegmentedStave) {
-      module.createModule_scopingV3(0., mLayerNumber, mDirection, mInnerRadius,
-                                    mOuterRadius, 0., layerVol);
+      module.createModule_staveGeo(0., mLayerNumber, mDirection, mInnerRadius,
+                                   mOuterRadius, 0., layerVol);
     }
     // Finally put everything in the mother volume
     auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);

@@ -56,27 +56,23 @@ namespace o2::ft3::ModuleConstants
   const unsigned kSensorsPerStack = 1;
   const double sensor_stack_height = kSensorsPerStack * sensor2x1_height +
                                     (kSensorsPerStack - 1) * sensor2x1_gap;
-
-  // OLD VERSION: RECTANGULAR STAVES
-  const double carbonFiberThickness = 0.01;
-  const double foamSpacingThickness = 1.0;
-
   /* 
    * Constants for staves are written for both positive
    * and negative x even though they are just mirrored now,
    * because there might be design changes in the future
    * that require a non-mirrored layout, making it easier to
    * change here if so required, even though it looks uglier now.
-   */ 
-  // First define midpoints of staves that would overlap with inner disc
-  // EXCEPTION: Assumed mirrored around x-axis
+   * 
+   * The second element in the mapping pair is whether the stave
+   * with a certain ID should be mirrored around the x-axis.
+   */
   // map from Stave ID (1-indexed from other documents) to midpoint
   // Do NOT add any zero midpoints, this is taken off separately
-  const std::map<int, double> staveID_to_y_midpoint = {
-    {-2, 39.0},
-    {-1, 41.4},
-    {1, 41.4},
-    {2, 39.0}
+  const std::map<int, std::pair<double, bool>> staveID_to_y_midpoint = {
+    {-2, {39.0, true}},
+    {-1, {41.4, true}},
+    {1, {41.4, true}},
+    {2, {39.0, true}}
   };
   // lengths of staves, their midpoint, and their face
   const std::vector<double> y_lengths = {
