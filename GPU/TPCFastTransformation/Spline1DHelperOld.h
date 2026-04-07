@@ -69,31 +69,31 @@ class Spline1DHelperOld
   void bandGauss(double A[], double b[], int32_t n);
 
   /// Create best-fit spline parameters for a given input function F
-  void approximateDataPoints(Spline1DContainer<DataT>& spline,
+  void approximateDataPoints(Spline1DContainerBase<DataT, FlatObject>& spline,
                              double xMin, double xMax,
                              double x[], double f[], int32_t nDataPoints);
 
   /// Create best-fit spline parameters for a given input function F
-  void approximateFunction(Spline1DContainer<DataT>& spline,
+  void approximateFunction(Spline1DContainerBase<DataT, FlatObject>& spline,
                            double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
                            int32_t nAuxiliaryDataPoints = 4);
 
   /// Create best-fit spline parameters gradually for a given input function F
-  void approximateFunctionGradually(Spline1DContainer<DataT>& spline,
+  void approximateFunctionGradually(Spline1DContainerBase<DataT, FlatObject>& spline,
                                     double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
                                     int32_t nAuxiliaryDataPoints = 4);
 
   /// Create classic spline parameters for a given input function F
-  void approximateFunctionClassic(Spline1DContainer<DataT>& spline,
+  void approximateFunctionClassic(Spline1DContainerBase<DataT, FlatObject>& spline,
                                   double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F);
 
   /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
   /// precompute everything needed for the construction
-  int32_t setSpline(const Spline1DContainer<DataT>& spline, int32_t nFdimensions, int32_t nAuxiliaryDataPoints);
+  int32_t setSpline(const Spline1DContainerBase<DataT, FlatObject>& spline, int32_t nFdimensions, int32_t nAuxiliaryDataPoints);
 
   /// precompute everything needed for the construction
-  int32_t setSpline(const Spline1DContainer<DataT>& spline, int32_t nFdimensions, double xMin, double xMax, double vx[], int32_t nDataPoints);
+  int32_t setSpline(const Spline1DContainerBase<DataT, FlatObject>& spline, int32_t nFdimensions, double xMin, double xMax, double vx[], int32_t nDataPoints);
 
   /// approximate std::function, output in Fparameters
   void approximateFunction(DataT* Fparameters, double xMin, double xMax, std::function<void(double x, double f[])> F) const;

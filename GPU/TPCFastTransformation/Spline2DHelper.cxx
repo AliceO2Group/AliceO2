@@ -230,7 +230,7 @@ void Spline2DHelper<DataT>::approximateFunction(
 
 template <typename DataT>
 void Spline2DHelper<DataT>::approximateFunctionViaDataPoints(
-  Spline2DContainer<DataT>& spline,
+  Spline2DContainerBase<DataT, FlatObject>& spline,
   double x1Min, double x1Max, double x2Min, double x2Max,
   std::function<void(double x1, double x2, double f[/*spline.getYdimensions()*/])> F,
   int32_t nAuxiliaryDataPointsU1, int32_t nAuxiliaryDataPointsU2)
@@ -262,7 +262,7 @@ void Spline2DHelper<DataT>::approximateFunctionViaDataPoints(
 }
 
 template <typename DataT>
-void Spline2DHelper<DataT>::setGrid(Spline2DContainer<DataT>& spline, double x1Min, double x1Max, double x2Min, double x2Max)
+void Spline2DHelper<DataT>::setGrid(Spline2DContainerBase<DataT, FlatObject>& spline, double x1Min, double x1Max, double x2Min, double x2Max)
 {
   mFdimensions = spline.getYdimensions();
   spline.setXrange(x1Min, x1Max, x2Min, x2Max);
@@ -326,7 +326,7 @@ void Spline2DHelper<DataT>::getScoefficients(int32_t iu, int32_t iv, double u, d
 
 template <typename DataT>
 void Spline2DHelper<DataT>::approximateDataPoints(
-  Spline2DContainer<DataT>& spline, DataT* splineParameters, double x1Min, double x1Max, double x2Min, double x2Max,
+  Spline2DContainerBase<DataT, FlatObject>& spline, DataT* splineParameters, double x1Min, double x1Max, double x2Min, double x2Max,
   const double dataPointX1[], const double dataPointX2[], const double dataPointF[/*getNumberOfDataPoints() x nFdim*/],
   const double dataPointWeight[], int32_t nDataPoints)
 {

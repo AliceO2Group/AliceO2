@@ -59,10 +59,10 @@ size_t TPCFastTransformPOD::estimateSize(const TPCFastSpaceChargeCorrection& ori
   size_t nextDynOffs = alignOffset(selfSizeFix);
   nextDynOffs = alignOffset(nextDynOffs + origCorr.mNumberOfScenarios * sizeof(size_t)); // spline scenarios start here
   nextDynOffs = alignOffset(nextDynOffs + origCorr.mNumberOfScenarios * sizeof(size_t)); // flatBufOffs array
-  // space for splines
+  // space for splines (use sizeof(SplineType) = slim size, not the origCorr spline size)
   for (int isc = 0; isc < origCorr.mNumberOfScenarios; isc++) {
     const auto& spline = origCorr.mScenarioPtr[isc];
-    nextDynOffs = alignOffset(nextDynOffs + sizeof(spline));
+    nextDynOffs = alignOffset(nextDynOffs + sizeof(SplineType));
     nextDynOffs = alignOffset(nextDynOffs + spline.getFlatBufferSize());
   }
   // space for splines data
@@ -150,22 +150,22 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
   for (int isc = 0; isc < origCorr.mNumberOfScenarios; isc++) {
     scenOffs[isc] = nextDynOffs;
     const auto& spline = origCorr.mScenarioPtr[isc];
-    if (buffSize < nextDynOffs + sizeof(spline)) {
-      throw std::runtime_error(fmt::format("attempt to copy {} bytes for spline for scenario {} to {}, overflowing the buffer of size {}", sizeof(spline), isc, nextDynOffs + sizeof(spline), buffSize));
+    if (buffSize < nextDynOffs + sizeof(SplineType)) {
+      throw std::runtime_error(fmt::format("attempt to write {} bytes for slim spline for scenario {} to {}, overflowing the buffer of size {}", sizeof(SplineType), isc, nextDynOffs + sizeof(SplineType), buffSize));
     }
 
-    // copy spline object
-    std::memcpy(buff + scenOffs[isc], &spline, sizeof(spline));
-    nextDynOffs = alignOffset(nextDynOffs + sizeof(spline));
-    LOGP(debug, "Copy {} bytes for spline scenario {} (ptr:{}) to offsset {}", sizeof(spline), isc, (void*)&spline, scenOffs[isc]);
+    // Placement-new a slim (NoFlatObject) spline and populate its schema from the source
+    auto* slimSpline = new (buff + scenOffs[isc]) SplineType();
+    slimSpline->importFrom(spline);
+    nextDynOffs = alignOffset(nextDynOffs + sizeof(SplineType));
+    LOGP(debug, "Write {} bytes for slim spline scenario {} to offset {}", sizeof(SplineType), isc, scenOffs[isc]);
 
-    // copy spline flat buffer
-    flatBufOffs[isc] = nextDynOffs; // store flat buffer offset
+    // copy spline flat buffer (layout identical regardless of FlatBase)
+    flatBufOffs[isc] = nextDynOffs;
     std::memcpy(buff + nextDynOffs, spline.getFlatBufferPtr(), spline.getFlatBufferSize());
 
-    // fix up internal pointer
-    auto* splineInBuf = reinterpret_cast<SplineType*>(buff + scenOffs[isc]);
-    splineInBuf->setActualBufferAddress(buff + nextDynOffs);
+    // fix up internal pointers (mParameters, mGridX1.mKnots, mGridX2.mKnots)
+    slimSpline->setActualBufferAddress(buff + nextDynOffs);
 
     nextDynOffs = alignOffset(nextDynOffs + spline.getFlatBufferSize());
   }

@@ -55,10 +55,10 @@ class TPCFastTransformPOD
   using GridInfo = TPCFastSpaceChargeCorrection::GridInfo;
   using SectorRowInfo = TPCFastSpaceChargeCorrection::SectorRowInfo;
 
-  using SplineTypeXYZ = TPCFastSpaceChargeCorrection::SplineTypeXYZ;
-  using SplineTypeInvX = TPCFastSpaceChargeCorrection::SplineTypeInvX;
-  using SplineTypeInvYZ = TPCFastSpaceChargeCorrection::SplineTypeInvYZ;
-  using SplineType = TPCFastSpaceChargeCorrection::SplineType;
+  using SplineTypeXYZ = TPCFastSpaceChargeCorrection::SlimSplineTypeXYZ;
+  using SplineTypeInvX = TPCFastSpaceChargeCorrection::SlimSplineTypeInvX;
+  using SplineTypeInvYZ = TPCFastSpaceChargeCorrection::SlimSplineTypeInvYZ;
+  using SplineType = TPCFastSpaceChargeCorrection::SlimSplineType;
 
   /// convert prefilled buffer to TPCFastTransformPOD
   GPUd() static const TPCFastTransformPOD& get(const char* head) { return *reinterpret_cast<const TPCFastTransformPOD*>(head); }

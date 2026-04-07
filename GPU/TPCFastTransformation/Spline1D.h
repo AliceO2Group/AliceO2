@@ -134,12 +134,14 @@ namespace gpu
 ///    YdimT = 0 : the number of Y dimensions will be set in the runtime
 ///    YdimT < 0 : the number of Y dimensions will be set in the runtime, and it will not exceed abs(YdimT)
 ///
-template <typename DataT, int32_t YdimT = 0>
-class Spline1D
-  : public Spline1DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT)>
+/// Common implementation (no ClassDefNV — ROOT dictionary is in the FlatObject specialization below)
+template <typename DataT, int32_t YdimT, class FlatBase>
+class Spline1DBase
+  : public Spline1DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT), FlatBase>
 {
-  typedef Spline1DContainer<DataT> TVeryBase;
-  typedef Spline1DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT)> TBase;
+ protected:
+  typedef Spline1DContainerBase<DataT, FlatBase> TVeryBase;
+  typedef Spline1DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT), FlatBase> TBase;
 
  public:
   typedef typename TVeryBase::SafetyLevel SafetyLevel;
@@ -148,32 +150,54 @@ class Spline1D
 #if !defined(GPUCA_GPUCODE)
   using TBase::TBase; // inherit constructors
 
-  /// Assignment operator
-  Spline1D() = default;
-  Spline1D(const Spline1D& v) : TBase(v)
+  Spline1DBase() = default;
+  Spline1DBase(const Spline1DBase& v) : TBase(v)
   {
-    TVeryBase::cloneFromObject(v, nullptr);
+    static_cast<TVeryBase*>(this)->cloneFromObject(v, nullptr);
   }
-  Spline1D& operator=(const Spline1D& v)
+  Spline1DBase& operator=(const Spline1DBase& v)
   {
-    TVeryBase::cloneFromObject(v, nullptr);
+    static_cast<TVeryBase*>(this)->cloneFromObject(v, nullptr);
     return *this;
   }
 #else
-  /// Disable constructors for the GPU implementation
-  Spline1D() = delete;
-  Spline1D(const Spline1D&) = delete;
+  Spline1DBase() = delete;
+  Spline1DBase(const Spline1DBase&) = delete;
 #endif
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-  /// read a class object from the file
-  static Spline1D* readFromFile(TFile& inpf, const char* name)
+  static Spline1DBase* readFromFile(TFile& inpf, const char* name)
   {
-    return (Spline1D*)TVeryBase::readFromFile(inpf, name);
+    return (Spline1DBase*)TVeryBase::readFromFile(inpf, name);
   }
 #endif
+};
 
+/// Forward declaration — specializations below select ClassDefNV based on FlatBase
+template <typename DataT, int32_t YdimT = 0, class FlatBase = FlatObject>
+class Spline1D;
+
+/// FlatObject specialization — carries ClassDefNV for ROOT I/O
+template <typename DataT, int32_t YdimT>
+class Spline1D<DataT, YdimT, FlatObject> : public Spline1DBase<DataT, YdimT, FlatObject>
+{
+ public:
+  using Spline1DBase<DataT, YdimT, FlatObject>::Spline1DBase;
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  static Spline1D* readFromFile(TFile& inpf, const char* name)
+  {
+    return (Spline1D*)Spline1DContainerBase<DataT, FlatObject>::readFromFile(inpf, name);
+  }
+#endif
   ClassDefNV(Spline1D, 0);
+};
+
+/// NoFlatObject specialization — no ROOT ClassDef overhead
+template <typename DataT, int32_t YdimT>
+class Spline1D<DataT, YdimT, NoFlatObject> : public Spline1DBase<DataT, YdimT, NoFlatObject>
+{
+ public:
+  using Spline1DBase<DataT, YdimT, NoFlatObject>::Spline1DBase;
 };
 
 } // namespace gpu

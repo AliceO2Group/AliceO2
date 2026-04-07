@@ -158,6 +158,12 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   typedef SplineTypeXYZ SplineType;
 
+  /// Slim variants (NoFlatObject base) for use in TPCFastTransformPOD
+  using SlimSplineTypeXYZ = Spline2D<float, 3, NoFlatObject>;
+  using SlimSplineTypeInvX = Spline2D<float, 1, NoFlatObject>;
+  using SlimSplineTypeInvYZ = Spline2D<float, 2, NoFlatObject>;
+  using SlimSplineType = SlimSplineTypeXYZ;
+
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor: creates an empty uninitialized object

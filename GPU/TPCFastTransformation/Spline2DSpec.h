@@ -21,6 +21,9 @@
 #include "FlatObject.h"
 #include "GPUCommonDef.h"
 #include "SplineUtil.h"
+#if !defined(GPUCA_GPUCODE)
+#include <type_traits>
+#endif
 
 #if !defined(__CLING__) && !defined(G__ROOT) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
 #include <Vc/Vc>
@@ -35,7 +38,7 @@ namespace gpu
 {
 
 /// ==================================================================================================
-/// The class Spline2DContainer is a base Spline2D class.
+/// The class Spline2DContainerBase is a base Spline2D class.
 /// It contains all the class members and those methods which only depends on the DataT data type.
 /// It also contains all non-inlined methods with the implementation in SplineSpec.cxx file.
 ///
@@ -43,8 +46,8 @@ namespace gpu
 /// For other possible data types one has to add the corresponding instantiation line
 /// at the end of the Spline2DSpec.cxx file
 ///
-template <typename DataT>
-class Spline2DContainer : public FlatObject
+template <typename DataT, class FlatBase = FlatObject>
+class Spline2DContainerBase : public FlatBase
 {
  public:
   typedef typename Spline1D<DataT>::SafetyLevel SafetyLevel;
@@ -58,13 +61,13 @@ class Spline2DContainer : public FlatObject
   /// _____________  C++ constructors / destructors __________________________
 
   /// Default constructor
-  Spline2DContainer() = default;
+  Spline2DContainerBase() = default;
 
   /// Disable all other constructors
-  Spline2DContainer(const Spline2DContainer&) = delete;
+  Spline2DContainerBase(const Spline2DContainerBase&) = delete;
 
   /// Destructor
-  ~Spline2DContainer() = default;
+  ~Spline2DContainerBase() = default;
 
   /// _______________  Construction interface  ________________________
 
@@ -86,7 +89,7 @@ class Spline2DContainer : public FlatObject
   int32_t writeToFile(TFile& outf, const char* name);
 
   /// read a class object from the file
-  static Spline2DContainer* readFromFile(TFile& inpf, const char* name);
+  static Spline2DContainerBase* readFromFile(TFile& inpf, const char* name);
 #endif
 
   /// _______________  Getters   ________________________
@@ -107,13 +110,13 @@ class Spline2DContainer : public FlatObject
   GPUd() int32_t getNumberOfKnots() const { return mGridX1.getNumberOfKnots() * mGridX2.getNumberOfKnots(); }
 
   /// Get 1-D grid for the X1 coordinate
-  GPUd() const Spline1D<DataT>& getGridX1() const { return mGridX1; }
+  GPUd() const Spline1D<DataT, 0, FlatBase>& getGridX1() const { return mGridX1; }
 
   /// Get 1-D grid for the X2 coordinate
-  GPUd() const Spline1D<DataT>& getGridX2() const { return mGridX2; }
+  GPUd() const Spline1D<DataT, 0, FlatBase>& getGridX2() const { return mGridX2; }
 
   /// Get 1-D grid for X1 or X2 coordinate
-  GPUd() const Spline1D<DataT>& getGrid(int32_t ix) const { return (ix == 0) ? mGridX1 : mGridX2; }
+  GPUd() const Spline1D<DataT, 0, FlatBase>& getGrid(int32_t ix) const { return (ix == 0) ? mGridX1 : mGridX2; }
 
   /// Get (u1,u2) of i-th knot
   GPUd() void getKnotU(int32_t iKnot, int32_t& u1, int32_t& u2) const
@@ -137,10 +140,10 @@ class Spline2DContainer : public FlatObject
   /// _______________  Technical stuff  ________________________
 
   /// Get offset of GridX1 flat data in the flat buffer
-  GPUd() size_t getGridX1Offset() const { return mGridX1.getFlatBufferPtr() - mFlatBufferPtr; }
+  GPUd() size_t getGridX1Offset() const { return mGridX1.getFlatBufferPtr() - this->mFlatBufferPtr; }
 
   /// Get offset of GridX2 flat data in the flat buffer
-  GPUd() size_t getGridX2Offset() const { return mGridX2.getFlatBufferPtr() - mFlatBufferPtr; }
+  GPUd() size_t getGridX2Offset() const { return mGridX2.getFlatBufferPtr() - this->mFlatBufferPtr; }
 
   /// Set X range
   GPUd() void setXrange(DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max)
@@ -166,15 +169,20 @@ class Spline2DContainer : public FlatObject
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
-  using FlatObject::getBufferAlignmentBytes;
-  using FlatObject::getClassAlignmentBytes;
+  using FlatBase::getBufferAlignmentBytes;
+  using FlatBase::getClassAlignmentBytes;
 
 #if !defined(GPUCA_GPUCODE)
-  void cloneFromObject(const Spline2DContainer& obj, char* newFlatBufferPtr);
+  void cloneFromObject(const Spline2DContainerBase& obj, char* newFlatBufferPtr);
   void moveBufferTo(char* newBufferPtr);
+
+  /// Copy schema fields (ydim, grid dimensions) from a spline with a different FlatBase.
+  /// Used by TPCFastTransformPOD::create() to populate NoFlatObject-based splines.
+  template <class OtherFlatBase>
+  void importFrom(const Spline2DContainerBase<DataT, OtherFlatBase>& src);
 #endif
 
-  using FlatObject::releaseInternalBuffer;
+  using FlatBase::releaseInternalBuffer;
 
   void destroy();
   void setActualBufferAddress(char* actualFlatBufferPtr);
@@ -191,12 +199,31 @@ class Spline2DContainer : public FlatObject
 
   /// _____________  Data members  ____________
 
-  int32_t mYdim = 0;            ///< dimentionality of F
-  Spline1D<DataT> mGridX1;      ///< grid for U axis
-  Spline1D<DataT> mGridX2;      ///< grid for V axis
+  int32_t mYdim = 0;                      ///< dimentionality of F
+  Spline1D<DataT, 0, FlatBase> mGridX1;   ///< grid for U axis
+  Spline1D<DataT, 0, FlatBase> mGridX2;   ///< grid for V axis
   DataT* mParameters = nullptr; //! (transient!!) F-dependent parameters of the spline
+};
 
-  ClassDefNV(Spline2DContainer, 1);
+template <typename DataT, typename FlatBase = FlatObject>
+class Spline2DContainer; // forward declaration
+
+template <typename DataT>
+class Spline2DContainer<DataT, FlatObject> : public Spline2DContainerBase<DataT, FlatObject>
+{
+public:
+    using Base = Spline2DContainerBase<DataT, FlatObject>;
+    using Base::Base;
+
+    ClassDefNV(Spline2DContainer, 1);
+};
+
+template <typename DataT>
+class Spline2DContainer<DataT, NoFlatObject> : public Spline2DContainerBase<DataT, NoFlatObject>
+{
+public:
+    using Base = Spline2DContainerBase<DataT, NoFlatObject>;
+    using Base::Base;
 };
 
 /// ==================================================================================================
@@ -217,18 +244,18 @@ class Spline2DContainer : public FlatObject
 ///  2 - nYdim<0: nYdim must be set during runtime
 ///  3 - specialization where nYdim==1 (a small add-on on top of the other specs)
 ///
-template <typename DataT, int32_t YdimT, int32_t SpecT>
+template <typename DataT, int32_t YdimT, int32_t SpecT, class FlatBase = FlatObject>
 class Spline2DSpec;
 
 /// ==================================================================================================
 /// Specialization 0 declares common methods for all other Spline2D specializations.
 /// Implementations of the methods may depend on the YdimT value.
 ///
-template <typename DataT, int32_t YdimT>
-class Spline2DSpec<DataT, YdimT, 0>
-  : public Spline2DContainer<DataT>
+template <typename DataT, int32_t YdimT, class FlatBase>
+class Spline2DSpec<DataT, YdimT, 0, FlatBase>
+  : public Spline2DContainerBase<DataT, FlatBase>
 {
-  typedef Spline2DContainer<DataT> TBase;
+  typedef Spline2DContainerBase<DataT, FlatBase> TBase;
 
  public:
   typedef typename TBase::SafetyLevel SafetyLevel;
@@ -533,11 +560,11 @@ class Spline2DSpec<DataT, YdimT, 0>
     // Use buffer-aware accessors instead of mGridX1.getLeftKnotIndexForU() and
     // mGridX1.getKnot(). Both of the standard versions dereference mFlatBufferPtr
     // (via mUtoKnotMap and the knot array), which is stale after cross-process copy.
-    int32_t iu = mGridX1.template getLeftKnotIndexForUFromBuffer<SafeT>(gridX1FlatBuf, u);
-    int32_t iv = mGridX2.template getLeftKnotIndexForUFromBuffer<SafeT>(gridX2FlatBuf, v);
+    int32_t iu = mGridX1.getLeftKnotIndexForUFromBuffer(gridX1FlatBuf, u);
+    int32_t iv = mGridX2.getLeftKnotIndexForUFromBuffer(gridX2FlatBuf, v);
 
-    const typename TBase::Knot& knotU = mGridX1.template getKnotFromBuffer<SafetyLevel::kNotSafe>(gridX1FlatBuf, iu);
-    const typename TBase::Knot& knotV = mGridX2.template getKnotFromBuffer<SafetyLevel::kNotSafe>(gridX2FlatBuf, iv);
+    const auto& knotU = mGridX1.template getKnotFromBuffer<decltype(mGridX1)::kNotSafe>(gridX1FlatBuf, iu);
+    const auto& knotV = mGridX2.template getKnotFromBuffer<decltype(mGridX2)::kNotSafe>(gridX2FlatBuf, iv);
 
     const DataT* A = Parameters + (nu * iv + iu) * nYdim4;
     const DataT* B = A + nYdim4 * nu;
@@ -573,19 +600,19 @@ class Spline2DSpec<DataT, YdimT, 0>
 /// Specialization 1: YdimT>0 where the number of Y dimensions is taken from template parameters
 /// at the compile time
 ///
-template <typename DataT, int32_t YdimT>
-class Spline2DSpec<DataT, YdimT, 1>
-  : public Spline2DSpec<DataT, YdimT, 0>
+template <typename DataT, int32_t YdimT, class FlatBase>
+class Spline2DSpec<DataT, YdimT, 1, FlatBase>
+  : public Spline2DSpec<DataT, YdimT, 0, FlatBase>
 {
-  typedef Spline2DContainer<DataT> TVeryBase;
-  typedef Spline2DSpec<DataT, YdimT, 0> TBase;
+  typedef Spline2DContainerBase<DataT, FlatBase> TVeryBase;
+  typedef Spline2DSpec<DataT, YdimT, 0, FlatBase> TBase;
 
  public:
   typedef typename TVeryBase::SafetyLevel SafetyLevel;
 
 #if !defined(GPUCA_GPUCODE)
-  /// Default constructor
-  Spline2DSpec() : Spline2DSpec(2, 2) {}
+  /// Default constructor — skips recreate for NoFlatObject (no owned buffer)
+  Spline2DSpec() : TBase() { if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) { recreate(2, 2); } }
 
   /// Constructor for a regular spline
   Spline2DSpec(int32_t nKnotsX1, int32_t nKnotsX2) : TBase()
@@ -679,19 +706,19 @@ class Spline2DSpec<DataT, YdimT, 1>
 /// Specialization 2 (YdimT<=0) where the numbaer of Y dimensions
 /// must be set in the runtime via a constructor parameter
 ///
-template <typename DataT, int32_t YdimT>
-class Spline2DSpec<DataT, YdimT, 2>
-  : public Spline2DSpec<DataT, YdimT, 0>
+template <typename DataT, int32_t YdimT, class FlatBase>
+class Spline2DSpec<DataT, YdimT, 2, FlatBase>
+  : public Spline2DSpec<DataT, YdimT, 0, FlatBase>
 {
-  typedef Spline2DContainer<DataT> TVeryBase;
-  typedef Spline2DSpec<DataT, YdimT, 0> TBase;
+  typedef Spline2DContainerBase<DataT, FlatBase> TVeryBase;
+  typedef Spline2DSpec<DataT, YdimT, 0, FlatBase> TBase;
 
  public:
   typedef typename TVeryBase::SafetyLevel SafetyLevel;
 
 #if !defined(GPUCA_GPUCODE)
-  /// Default constructor
-  Spline2DSpec() : Spline2DSpec(0, 2, 2) {}
+  /// Default constructor — skips recreate for NoFlatObject (no owned buffer)
+  Spline2DSpec() : TBase() { if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) { TBase::recreate(0, 2, 2); } }
 
   /// Constructor for a regular spline
   Spline2DSpec(int32_t nYdim, int32_t nKnotsX1, int32_t nKnotsX2) : TBase()
@@ -735,11 +762,11 @@ class Spline2DSpec<DataT, YdimT, 2>
 /// ==================================================================================================
 /// Specialization 3, where the number of Y dimensions is 1.
 ///
-template <typename DataT>
-class Spline2DSpec<DataT, 1, 3>
-  : public Spline2DSpec<DataT, 1, SplineUtil::getSpec(999)>
+template <typename DataT, class FlatBase>
+class Spline2DSpec<DataT, 1, 3, FlatBase>
+  : public Spline2DSpec<DataT, 1, SplineUtil::getSpec(999), FlatBase>
 {
-  typedef Spline2DSpec<DataT, 1, SplineUtil::getSpec(999)> TBase;
+  typedef Spline2DSpec<DataT, 1, SplineUtil::getSpec(999), FlatBase> TBase;
 
  public:
   using TBase::TBase; // inherit constructors

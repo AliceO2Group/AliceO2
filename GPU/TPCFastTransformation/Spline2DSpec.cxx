@@ -30,7 +30,7 @@
 #include "TFile.h"
 #include "GPUCommonMath.h"
 
-templateClassImp(o2::gpu::Spline2DContainer);
+templateClassImp(o2::gpu::Spline2DContainerBase);
 templateClassImp(o2::gpu::Spline2DSpec);
 
 #endif
@@ -38,51 +38,49 @@ templateClassImp(o2::gpu::Spline2DSpec);
 using namespace std;
 using namespace o2::gpu;
 
-template <typename DataT>
-void Spline2DContainer<DataT>::destroy()
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::destroy()
 {
   /// See FlatObject for description
   mGridX1.destroy();
   mGridX2.destroy();
   mYdim = 0;
   mParameters = nullptr;
-  FlatObject::destroy();
+  FlatBase::destroy();
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::setActualBufferAddress(char* actualFlatBufferPtr)
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
 
-  FlatObject::setActualBufferAddress(actualFlatBufferPtr);
+  FlatBase::setActualBufferAddress(actualFlatBufferPtr);
 
-  const size_t u2Offset = alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
+  const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
   int32_t parametersOffset = u2Offset;
-  // int32_t bufferSize = parametersOffset;
   mParameters = nullptr;
 
-  parametersOffset = alignSize(u2Offset + mGridX2.getFlatBufferSize(), getParameterAlignmentBytes());
-  // bufferSize = parametersOffset + getSizeOfParameters();
-  mParameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
+  parametersOffset = this->alignSize(u2Offset + mGridX2.getFlatBufferSize(), getParameterAlignmentBytes());
+  mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
 
-  mGridX1.setActualBufferAddress(mFlatBufferPtr);
-  mGridX2.setActualBufferAddress(mFlatBufferPtr + u2Offset);
+  mGridX1.setActualBufferAddress(this->mFlatBufferPtr);
+  mGridX2.setActualBufferAddress(this->mFlatBufferPtr + u2Offset);
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::setFutureBufferAddress(char* futureFlatBufferPtr)
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
-  char* bufferU = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridX1.getFlatBufferPtr());
-  char* bufferV = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridX2.getFlatBufferPtr());
+  char* bufferU = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mGridX1.getFlatBufferPtr());
+  char* bufferV = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mGridX2.getFlatBufferPtr());
   mGridX1.setFutureBufferAddress(bufferU);
   mGridX2.setFutureBufferAddress(bufferV);
-  mParameters = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mParameters);
-  FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
+  mParameters = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mParameters);
+  FlatBase::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::print() const
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::print() const
 {
   printf(" Irregular Spline 2D: \n");
   printf(" grid U1: \n");
@@ -91,93 +89,106 @@ void Spline2DContainer<DataT>::print() const
   mGridX2.print();
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::cloneFromObject(const Spline2DContainer<DataT>& obj, char* newFlatBufferPtr)
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::cloneFromObject(const Spline2DContainerBase<DataT, FlatBase>& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
 
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
 
-  FlatObject::cloneFromObject(obj, newFlatBufferPtr);
+  FlatBase::cloneFromObject(obj, newFlatBufferPtr);
 
   mYdim = obj.mYdim;
-  char* bufferU = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridX1.getFlatBufferPtr());
-  char* bufferV = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridX2.getFlatBufferPtr());
+  char* bufferU = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mGridX1.getFlatBufferPtr());
+  char* bufferV = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mGridX2.getFlatBufferPtr());
 
   mGridX1.cloneFromObject(obj.mGridX1, bufferU);
   mGridX2.cloneFromObject(obj.mGridX2, bufferV);
-  mParameters = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mParameters);
+  mParameters = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mParameters);
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::moveBufferTo(char* newFlatBufferPtr)
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
-  char* oldFlatBufferPtr = mFlatBufferPtr;
-  FlatObject::moveBufferTo(newFlatBufferPtr);
-  char* currFlatBufferPtr = mFlatBufferPtr;
-  mFlatBufferPtr = oldFlatBufferPtr;
+  char* oldFlatBufferPtr = this->mFlatBufferPtr;
+  FlatBase::moveBufferTo(newFlatBufferPtr);
+  char* currFlatBufferPtr = this->mFlatBufferPtr;
+  this->mFlatBufferPtr = oldFlatBufferPtr;
   setActualBufferAddress(currFlatBufferPtr);
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::recreate(
+template <typename DataT, class FlatBase>
+template <class OtherFlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::importFrom(const Spline2DContainerBase<DataT, OtherFlatBase>& src)
+{
+  /// Copy schema fields from a spline with a different FlatBase (e.g. FlatObject -> NoFlatObject).
+  /// Grid pointers (mKnots, mUtoKnotMap) and mParameters are left null; call setActualBufferAddress() afterward.
+  mYdim = src.getYdimensions();
+  this->mFlatBufferSize = src.getFlatBufferSize();
+  mGridX1.importFrom(src.getGridX1());
+  mGridX2.importFrom(src.getGridX2());
+  mParameters = nullptr;
+}
+
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::recreate(
   int32_t nYdim,
   int32_t numberOfKnotsU1, const int32_t knotsU1[], int32_t numberOfKnotsU2, const int32_t knotsU2[])
 {
   /// Constructor for an irregular spline
 
   mYdim = nYdim;
-  FlatObject::startConstruction();
+  FlatBase::startConstruction();
 
   mGridX1.recreate(0, numberOfKnotsU1, knotsU1);
   mGridX2.recreate(0, numberOfKnotsU2, knotsU2);
 
-  const size_t u2Offset = alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
+  const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
   int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
   int32_t bufferSize = parametersOffset;
   mParameters = nullptr;
 
-  parametersOffset = alignSize(bufferSize, getParameterAlignmentBytes());
+  parametersOffset = this->alignSize(bufferSize, getParameterAlignmentBytes());
   bufferSize = parametersOffset + getSizeOfParameters();
 
-  FlatObject::finishConstruction(bufferSize);
+  FlatBase::finishConstruction(bufferSize);
 
-  mGridX1.moveBufferTo(mFlatBufferPtr);
-  mGridX2.moveBufferTo(mFlatBufferPtr + u2Offset);
+  mGridX1.moveBufferTo(this->mFlatBufferPtr);
+  mGridX2.moveBufferTo(this->mFlatBufferPtr + u2Offset);
 
-  mParameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
+  mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
   for (int32_t i = 0; i < getNumberOfParameters(); i++) {
     mParameters[i] = 0;
   }
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::recreate(int32_t nYdim,
-                                        int32_t numberOfKnotsU1, int32_t numberOfKnotsU2)
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim,
+                                                  int32_t numberOfKnotsU1, int32_t numberOfKnotsU2)
 {
   /// Constructor for a regular spline
 
   mYdim = nYdim;
-  FlatObject::startConstruction();
+  FlatBase::startConstruction();
 
   mGridX1.recreate(0, numberOfKnotsU1);
   mGridX2.recreate(0, numberOfKnotsU2);
 
-  const size_t u2Offset = alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
+  const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
   int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
   int32_t bufferSize = parametersOffset;
   mParameters = nullptr;
 
-  parametersOffset = alignSize(bufferSize, getParameterAlignmentBytes());
+  parametersOffset = this->alignSize(bufferSize, getParameterAlignmentBytes());
   bufferSize = parametersOffset + getSizeOfParameters();
 
-  FlatObject::finishConstruction(bufferSize);
+  FlatBase::finishConstruction(bufferSize);
 
-  mGridX1.moveBufferTo(mFlatBufferPtr);
-  mGridX2.moveBufferTo(mFlatBufferPtr + u2Offset);
+  mGridX1.moveBufferTo(this->mFlatBufferPtr);
+  mGridX2.moveBufferTo(this->mFlatBufferPtr + u2Offset);
 
-  mParameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
+  mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
   for (int32_t i = 0; i < getNumberOfParameters(); i++) {
     mParameters[i] = 0;
   }
@@ -185,8 +196,8 @@ void Spline2DContainer<DataT>::recreate(int32_t nYdim,
 
 #if !defined(GPUCA_STANDALONE) // code invisible in the standalone compilation
 
-template <typename DataT>
-void Spline2DContainer<DataT>::approximateFunction(
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::approximateFunction(
   double x1Min, double x1Max, double x2Min, double x2Max,
   std::function<void(double x1, double x2, double f[])> F,
   int32_t nAuxiliaryDataPointsX1, int32_t nAuxiliaryDataPointsX2)
@@ -196,8 +207,8 @@ void Spline2DContainer<DataT>::approximateFunction(
   helper.approximateFunction(*reinterpret_cast<Spline2D<DataT>*>(this), x1Min, x1Max, x2Min, x2Max, F, nAuxiliaryDataPointsX1, nAuxiliaryDataPointsX2);
 }
 
-template <typename DataT>
-void Spline2DContainer<DataT>::approximateFunctionViaDataPoints(
+template <typename DataT, class FlatBase>
+void Spline2DContainerBase<DataT, FlatBase>::approximateFunctionViaDataPoints(
   double x1Min, double x1Max, double x2Min, double x2Max,
   std::function<void(double x1, double x2, double f[])> F,
   int32_t nAuxiliaryDataPointsX1, int32_t nAuxiliaryDataPointsX2)
@@ -207,28 +218,42 @@ void Spline2DContainer<DataT>::approximateFunctionViaDataPoints(
   helper.approximateFunctionViaDataPoints(*reinterpret_cast<Spline2D<DataT>*>(this), x1Min, x1Max, x2Min, x2Max, F, nAuxiliaryDataPointsX1, nAuxiliaryDataPointsX2);
 }
 
-template <typename DataT>
-int32_t Spline2DContainer<DataT>::writeToFile(TFile& outf, const char* name)
+template <typename DataT, class FlatBase>
+int32_t Spline2DContainerBase<DataT, FlatBase>::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
-  return FlatObject::writeToFile(*this, outf, name);
+  if constexpr (std::is_same_v<FlatBase, FlatObject>) {
+    return FlatObject::writeToFile(*this, outf, name);
+  } else {
+    return -1;
+  }
 }
 
-template <typename DataT>
-Spline2DContainer<DataT>* Spline2DContainer<DataT>::readFromFile(
-  TFile& inpf, const char* name)
+template <typename DataT, class FlatBase>
+Spline2DContainerBase<DataT, FlatBase>* Spline2DContainerBase<DataT, FlatBase>::readFromFile(TFile& inpf, const char* name)
 {
   /// read a class object from the file
-  return FlatObject::readFromFile<Spline2DContainer<DataT>>(inpf, name);
+  if constexpr (std::is_same_v<FlatBase, FlatObject>) {
+    return FlatObject::readFromFile<Spline2DContainerBase<DataT, FlatBase>>(inpf, name);
+  } else {
+    return nullptr;
+  }
 }
 
-template <typename DataT>
-int32_t Spline2DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
+template <typename DataT, class FlatBase>
+int32_t Spline2DContainerBase<DataT, FlatBase>::test(const bool draw, const bool drawDataPoints)
 {
   return Spline2DHelper<DataT>::test(draw, drawDataPoints);
 }
 
 #endif // !GPUCA_STANDALONE
 
-template class o2::gpu::Spline2DContainer<float>;
-template class o2::gpu::Spline2DContainer<double>;
+template class o2::gpu::Spline2DContainerBase<float>;
+template class o2::gpu::Spline2DContainerBase<double>;
+
+// Explicit instantiations for NoFlatObject (used by TPCFastTransformPOD)
+template class o2::gpu::Spline2DContainerBase<float, o2::gpu::NoFlatObject>;
+template class o2::gpu::Spline2DContainerBase<double, o2::gpu::NoFlatObject>;
+// importFrom instantiation for the FlatObject -> NoFlatObject conversion used in create()
+template void o2::gpu::Spline2DContainerBase<float, o2::gpu::NoFlatObject>::importFrom<o2::gpu::FlatObject>(const o2::gpu::Spline2DContainerBase<float, o2::gpu::FlatObject>&);
+template void o2::gpu::Spline2DContainerBase<double, o2::gpu::NoFlatObject>::importFrom<o2::gpu::FlatObject>(const o2::gpu::Spline2DContainerBase<double, o2::gpu::FlatObject>&);

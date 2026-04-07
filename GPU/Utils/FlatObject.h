@@ -327,6 +327,45 @@ class FlatObject
   ClassDefNV(FlatObject, 1);
 };
 
+/// ==================================================================================================
+/// NoFlatObject: minimal drop-in base for use in POD / read-only contexts (e.g. TPCFastTransformPOD).
+/// Provides only the data and methods that are genuinely needed at runtime.
+/// No construction lifecycle, no owned buffer, no ROOT ClassDef.
+/// Use as the FlatBase template parameter: Spline2D<float, 3, NoFlatObject>
+class NoFlatObject
+{
+ public:
+  int32_t mFlatBufferSize = 0;
+  char* mFlatBufferPtr = nullptr;
+
+  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+
+  GPUdi() const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
+  GPUdi() size_t getFlatBufferSize() const { return mFlatBufferSize; }
+  GPUdi() void setActualBufferAddress(char* ptr) { mFlatBufferPtr = ptr; }
+  GPUdi() void setFutureBufferAddress(char* ptr) { mFlatBufferPtr = ptr; }
+
+  // No-ops for lifecycle methods (never called in POD context, but needed for compilation)
+  void startConstruction() {}
+  void finishConstruction(int32_t sz) { mFlatBufferSize = sz; }
+  void cloneFromObject(const NoFlatObject& o, char* p) { mFlatBufferSize = o.mFlatBufferSize; mFlatBufferPtr = p; }
+  void moveBufferTo(char*) {}
+  void destroy() {}
+  char* releaseInternalBuffer() { char* p = mFlatBufferPtr; mFlatBufferPtr = nullptr; return p; }
+
+  template <class T>
+  GPUdi() static T* relocatePointer(const char* oldBase, char* newBase, const T* ptr)
+  {
+    return (ptr != nullptr) ? reinterpret_cast<T*>(newBase + (reinterpret_cast<const char*>(ptr) - oldBase)) : nullptr;
+  }
+  static constexpr size_t alignSize(size_t sizeBytes, size_t alignmentBytes)
+  {
+    auto res = sizeBytes % alignmentBytes;
+    return res ? sizeBytes + (alignmentBytes - res) : sizeBytes;
+  }
+};
+
 /// ========================================================================================================
 ///
 ///       Inline implementations of methods

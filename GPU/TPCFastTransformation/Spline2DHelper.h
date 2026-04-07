@@ -58,28 +58,28 @@ class Spline2DHelper
 
   /// Create best-fit spline parameters for a given input function F
   void approximateFunction(
-    Spline2DContainer<DataT>& spline,
+    Spline2DContainerBase<DataT, FlatObject>& spline,
     double x1Min, double x1Max, double x2Min, double x2Max,
     std::function<void(double x1, double x2, double f[/*spline.getYdimensions()*/])> F,
     int32_t nAuxiliaryDataPointsU1 = 4, int32_t nAuxiliaryDataPointsU2 = 4);
 
   // A wrapper around approximateDataPoints()
   void approximateFunctionViaDataPoints(
-    Spline2DContainer<DataT>& spline,
+    Spline2DContainerBase<DataT, FlatObject>& spline,
     double x1Min, double x1Max, double x2Min, double x2Max,
     std::function<void(double x1, double x2, double f[/*spline.getYdimensions()*/])> F,
     int32_t nAuxiliaryDataPointsU1 = 4, int32_t nAuxiliaryDataPointsU2 = 4);
 
   /// Create best-fit spline parameters for a given set of data points
   void approximateDataPoints(
-    Spline2DContainer<DataT>& spline, DataT* splineParameters, double x1Min, double x1Max, double x2Min, double x2Max,
+    Spline2DContainerBase<DataT, FlatObject>& spline, DataT* splineParameters, double x1Min, double x1Max, double x2Min, double x2Max,
     const double dataPointX1[/*nDataPoints*/], const double dataPointX2[/*nDataPoints*/],
     const double dataPointF[/*nDataPoints x spline.getYdimensions*/], const double dataPointWeight[/*nDataPoints*/], int32_t nDataPoints);
 
   /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
   /// precompute everything needed for the construction
-  int32_t setSpline(const Spline2DContainer<DataT>& spline, int32_t nAuxiliaryPointsU1, int32_t nAuxiliaryPointsU2);
+  int32_t setSpline(const Spline2DContainerBase<DataT, FlatObject>& spline, int32_t nAuxiliaryPointsU1, int32_t nAuxiliaryPointsU2);
 
   /// approximate std::function, output in Fparameters
   void approximateFunction(
@@ -116,7 +116,7 @@ class Spline2DHelper
 #endif
 
  private:
-  void setGrid(Spline2DContainer<DataT>& spline, double x1Min, double x1Max, double x2Min, double x2Max);
+  void setGrid(Spline2DContainerBase<DataT, FlatObject>& spline, double x1Min, double x1Max, double x2Min, double x2Max);
   void getScoefficients(int32_t iu, int32_t iv, double u, double v,
                         double c[16], int32_t indices[16]);
 
@@ -135,7 +135,7 @@ class Spline2DHelper
 
 template <typename DataT>
 void Spline2DHelper<DataT>::approximateFunction(
-  Spline2DContainer<DataT>& spline,
+  Spline2DContainerBase<DataT, FlatObject>& spline,
   double x1Min, double x1Max, double x2Min, double x2Max,
   std::function<void(double x1, double x2, double f[/*spline.getYdimensions()*/])> F,
   int32_t nAuxiliaryDataPointsU1, int32_t nAuxiliaryDataPointsU2)
@@ -148,7 +148,7 @@ void Spline2DHelper<DataT>::approximateFunction(
 
 template <typename DataT>
 int32_t Spline2DHelper<DataT>::setSpline(
-  const Spline2DContainer<DataT>& spline, int32_t nAuxiliaryPointsU, int32_t nAuxiliaryPointsV)
+  const Spline2DContainerBase<DataT, FlatObject>& spline, int32_t nAuxiliaryPointsU, int32_t nAuxiliaryPointsV)
 {
   // Prepare creation of 2D irregular spline
   // The should be at least one (better, two) Auxiliary measurements on each segnment between two knots and at least 2*nKnots measurements in total
