@@ -397,9 +397,10 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
     layerVol->SetLineColor(kYellow + 2);
 
-    // createSeparationLayer_waterCooling(motherVolume, separationLayerName);
-    createSeparationLayer(layerVol, separationLayerName);
-
+    if (ft3Params.layoutFT3 == kSegmented) {
+      // createSeparationLayer_waterCooling(motherVolume, separationLayerName);
+      createSeparationLayer(layerVol, separationLayerName);
+    }
     // create disk faces
     if (ft3Params.layoutFT3 == kSegmented) {
       module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", layerVol);
