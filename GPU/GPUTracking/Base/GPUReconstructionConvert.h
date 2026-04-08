@@ -19,6 +19,7 @@
 #include <functional>
 #include <vector>
 #include "GPUDef.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2
 {
@@ -48,7 +49,7 @@ struct GPUTrackingInOutZS;
 class GPUReconstructionConvert
 {
  public:
-  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
+  constexpr static uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static void ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, uint32_t* nClusters, const TPCFastTransformPOD* transform, int32_t continuousMaxTimeBin = 0);
   static void ConvertRun2RawToNative(o2::tpc::ClusterNativeAccess& native, std::unique_ptr<o2::tpc::ClusterNative[]>& nativeBuffer, const AliHLTTPCRawCluster** rawClusters, uint32_t* nRawClusters);
   template <class S>

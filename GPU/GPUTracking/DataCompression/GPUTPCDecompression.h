@@ -21,6 +21,7 @@
 #include "GPUParam.h"
 #include "GPUO2DataTypes.h"
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "GPUTPCGeometry.h"
 
 namespace o2::gpu
 {

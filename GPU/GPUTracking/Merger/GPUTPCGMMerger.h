@@ -24,6 +24,7 @@
 #include "GPUProcessor.h"
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUGeneralKernels.h"
+#include "GPUTPCGeometry.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <cmath>

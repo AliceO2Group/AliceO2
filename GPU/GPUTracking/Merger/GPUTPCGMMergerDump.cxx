@@ -259,8 +259,8 @@ template <int32_t mergeType>
 inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, int32_t mergeMode, float weight, float frac) const
 {
 #ifdef DEBUG_STREAMER
-  std::vector<int32_t> hits1(152), hits2(152);
-  for (int32_t i = 0; i < 152; i++) {
+  std::vector<int32_t> hits1(GPUTPCGeometry::NROWS), hits2(GPUTPCGeometry::NROWS);
+  for (int32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
     hits1[i] = hits2[i] = -1;
   }
   const GPUTPCTracker& tracker1 = GetConstantMem()->tpcTrackers[sector1];

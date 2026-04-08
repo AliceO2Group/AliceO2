@@ -13,6 +13,7 @@
 /// \author David Rohr
 
 #include "GPUMemorySizeScalers.h"
+#include "GPUTPCGeometry.h"
 #include "GPULogging.h"
 
 #include <random>

@@ -19,7 +19,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
-
+#include "DataFormatsTPC/Constants.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
 #include "GPUCommonRtypes.h"
@@ -178,9 +178,9 @@ class TPCFastTransformGeo
  private:
   /// _______________  Data members  _______________________________________________
 
-  static constexpr int32_t NumberOfSectors = 36;                   ///< Number of TPC sectors ( sector = inner + outer sector )
-  static constexpr int32_t NumberOfSectorsA = NumberOfSectors / 2; ///< Number of TPC sectors side A
-  static constexpr int32_t MaxNumberOfRows = 160;                  ///< Max Number of TPC rows in a sector
+  static constexpr int32_t NumberOfSectors = o2::tpc::constants::MAXSECTOR; ///< Number of TPC sectors ( sector = inner + outer sector )
+  static constexpr int32_t NumberOfSectorsA = NumberOfSectors / 2;          ///< Number of TPC sectors side A
+  static constexpr int32_t MaxNumberOfRows = 160;                           ///< Max Number of TPC rows in a sector - MUST NOT CHANGE THIS due to on-disk format of stored maps
 
   /// _______________  Construction control  _______________________________________________
 

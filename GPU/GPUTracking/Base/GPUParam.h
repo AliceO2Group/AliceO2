@@ -20,7 +20,7 @@
 #include "GPUDef.h"
 #include "GPUSettings.h"
 #include "GPUTPCGMPolynomialField.h"
-#include "GPUTPCGeometry.h"
+#include "DataFormatsTPC/Constants.h"
 
 #if !defined(GPUCA_GPUCODE)
 namespace o2::base
@@ -66,7 +66,7 @@ struct GPUParam_t {
   uint32_t occupancyTotal;                 // Total occupancy in the TPC (nCl / nHbf)
   uint32_t occupancyMapSize;               // Size of occupancy map
 
-  GPUParamSector SectorParam[GPUTPCGeometry::NSECTORS];
+  GPUParamSector SectorParam[o2::tpc::constants::MAXSECTOR];
 
  protected:
 #ifndef GPUCA_RUN2
@@ -91,11 +91,11 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   GPUd() constexpr uint32_t tpcMinHitsB5(float qPtB5) const { return CAMath::Abs(qPtB5) > 10 ? 10 : (CAMath::Abs(qPtB5) > 5 ? 15 : 29); } // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
   GPUd() constexpr float Alpha(int32_t iSector) const
   {
-    if (iSector >= (int32_t)GPUTPCGeometry::NSECTORS / 2) {
-      iSector -= GPUTPCGeometry::NSECTORS / 2;
+    if (iSector >= (int32_t)o2::tpc::constants::MAXSECTOR / 2) {
+      iSector -= o2::tpc::constants::MAXSECTOR / 2;
     }
-    if (iSector >= (int32_t)GPUTPCGeometry::NSECTORS / 4) {
-      iSector -= GPUTPCGeometry::NSECTORS / 2;
+    if (iSector >= (int32_t)o2::tpc::constants::MAXSECTOR / 4) {
+      iSector -= o2::tpc::constants::MAXSECTOR / 2;
     }
     return 0.174533f + dAlpha * iSector;
   }

@@ -536,7 +536,7 @@ int32_t GPUQA::InitQACreateHistograms()
     // Create Tracks Histograms
     for (int32_t i = 0; i < 2; i++) {
       snprintf(name, 2048, i ? "nrows_with_cluster" : "nclusters");
-      createHist(mNCl[i], name, name, 160, 0, 159);
+      createHist(mNCl[i], name, name, GPUTPCGeometry::NROWS + 1, 0, GPUTPCGeometry::NROWS);
     }
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
     createHist(mTrackPt, "tracks_pt", "tracks_pt", AXIS_BINS[4], binsPt.get());

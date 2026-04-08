@@ -35,6 +35,7 @@
 
 #include "GPUDisplay.h"
 #include "GPULogging.h"
+#include "GPUTPCGeometry.h"
 #include <string>
 
 using namespace o2::gpu;

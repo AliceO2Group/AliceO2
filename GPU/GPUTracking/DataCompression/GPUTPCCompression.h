@@ -20,6 +20,7 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "GPUTPCGeometry.h"
 
 namespace o2::gpu
 {

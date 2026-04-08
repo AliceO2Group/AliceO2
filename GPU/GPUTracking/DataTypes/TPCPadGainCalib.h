@@ -17,6 +17,7 @@
 
 #include "clusterFinderDefs.h"
 #include "GPUCommonMath.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2::tpc
 {
@@ -81,14 +82,14 @@ struct TPCPadGainCalib {
 
   GPUdi() void setMinCorrectionFactor(const float minCorrectionFactor)
   {
-    for (uint32_t sector = 0; sector < GPUTPCGeometry::NSECTORS; sector++) {
+    for (uint32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
       mGainCorrection[sector].mMinCorrectionFactor = minCorrectionFactor;
     }
   }
 
   GPUdi() void setMaxCorrectionFactor(const float maxCorrectionFactor)
   {
-    for (uint32_t sector = 0; sector < GPUTPCGeometry::NSECTORS; sector++) {
+    for (uint32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
       mGainCorrection[sector].mMaxCorrectionFactor = maxCorrectionFactor;
     }
   }
@@ -153,8 +154,8 @@ struct TPCPadGainCalib {
     }
   };
 
-  uint16_t mPadOffsetPerRow[GPUTPCGeometry::NROWS];
-  SectorPadGainCorrection<uint16_t> mGainCorrection[GPUTPCGeometry::NSECTORS];
+  uint16_t mPadOffsetPerRow[o2::tpc::constants::MAXGLOBALPADROW];
+  SectorPadGainCorrection<uint16_t> mGainCorrection[o2::tpc::constants::MAXSECTOR];
 };
 
 } // namespace o2::gpu

@@ -20,6 +20,7 @@
 // #define GPUCA_COMPRESSION_TRACK_MODEL_SECTORTRACKER
 
 #include "GPUDef.h"
+#include "DataFormatsTPC/Constants.h"
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
 #include "GPUTPCGMPropagator.h"
@@ -103,12 +104,12 @@ class GPUTPCCompressionTrackModel
   GPUd() float LinearPad2Y(uint32_t sector, float pad, float padWidth, uint8_t npads) const
   {
     const float u = (pad - 0.5f * npads) * padWidth;
-    return (sector >= GPUTPCGeometry::NSECTORS / 2) ? -u : u;
+    return (sector >= o2::tpc::constants::MAXSECTOR / 2) ? -u : u;
   }
 
   GPUd() float LinearY2Pad(uint32_t sector, float y, float padWidth, uint8_t npads) const
   {
-    const float u = (sector >= GPUTPCGeometry::NSECTORS / 2) ? -y : y;
+    const float u = (sector >= o2::tpc::constants::MAXSECTOR / 2) ? -y : y;
     return u / padWidth + 0.5f * npads;
   }
 

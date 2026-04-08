@@ -23,6 +23,7 @@
 #include <cstddef>
 #endif
 #include "GPUTRDDef.h"
+#include "DataFormatsTPC/Constants.h"
 
 struct AliHLTTPCClusterMCLabel;
 struct AliHLTTPCRawCluster;
@@ -109,11 +110,6 @@ struct GPUTRDTrackletLabels;
 struct GPUTPCDigitsMCInput;
 struct GPUSettingsTF;
 
-namespace gpudatatypes
-{
-static constexpr uint32_t NSECTORS = 36;
-} // namespace gpudatatypes
-
 template <class T>
 struct DefaultPtr {
   typedef T type;
@@ -141,7 +137,7 @@ typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 mu
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
 
 struct GPUTrackingInOutZS {
-  static constexpr uint32_t NSECTORS = gpudatatypes::NSECTORS;
+  static constexpr uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr uint32_t NENDPOINTS = 20;
   struct GPUTrackingInOutZSSector {
     const void* const* zsPtr[NENDPOINTS];
@@ -159,7 +155,7 @@ struct GPUTrackingInOutZS {
 };
 
 struct GPUTrackingInOutDigits {
-  static constexpr uint32_t NSECTORS = gpudatatypes::NSECTORS;
+  static constexpr uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   const o2::tpc::Digit* tpcDigits[NSECTORS] = {nullptr};
   size_t nTPCDigits[NSECTORS] = {0};
   const GPUTPCDigitsMCInput* tpcDigitsMC = nullptr;
@@ -169,7 +165,7 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
 
   // TPC
-  static constexpr uint32_t NSECTORS = gpudatatypes::NSECTORS;
+  static constexpr uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   const GPUTrackingInOutZS* tpcZS = nullptr;
   const GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSECTORS] = {nullptr};

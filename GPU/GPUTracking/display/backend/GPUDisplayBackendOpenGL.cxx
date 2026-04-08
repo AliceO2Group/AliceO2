@@ -29,6 +29,7 @@
 #include "GPUDisplay.h"
 #include "GPULogging.h"
 #include "GPUParam.h"
+#include "GPUTPCGeometry.h"
 
 #define OPENGL_EMULATE_MULTI_DRAW 0
 

@@ -17,6 +17,7 @@
 
 #include "clusterFinderDefs.h"
 #include "GPUCommonMath.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2::tpc
 {
@@ -101,8 +102,8 @@ struct TPCPadBitMap {
     T mDeadChannelMap[NWORDS];
   };
 
-  uint16_t mPadOffsetPerRow[GPUTPCGeometry::NROWS];
-  SectorBitMap mBitMap[GPUTPCGeometry::NSECTORS];
+  uint16_t mPadOffsetPerRow[o2::tpc::constants::MAXGLOBALPADROW];
+  SectorBitMap mBitMap[o2::tpc::constants::MAXSECTOR];
 };
 
 } // namespace o2::gpu

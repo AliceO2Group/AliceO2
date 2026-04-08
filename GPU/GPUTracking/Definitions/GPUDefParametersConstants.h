@@ -32,7 +32,7 @@
 namespace o2::gpu::constants
 {
 static constexpr size_t GPU_MAX_THREADS = 1024;
-static constexpr size_t GPU_MAX_STREAMS = 36;
+static constexpr size_t GPU_MAX_STREAMS = o2::tpc::constants::MAXSECTOR;
 
 static constexpr size_t GPU_ROWALIGNMENT =  16;      // Align of Row Hits and Grid
 static constexpr size_t GPU_BUFFER_ALIGNMENT =  64;  // Alignment of buffers obtained from SetPointers

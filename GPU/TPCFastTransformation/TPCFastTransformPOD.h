@@ -19,6 +19,7 @@
 
 #include "GPUCommonRtypes.h"
 #include "TPCFastTransform.h"
+#include "DataFormatsTPC/Constants.h"
 #ifndef GPUCA_GPUCODE
 #include <memory>
 #include <cstdlib>
@@ -240,8 +241,8 @@ class TPCFastTransformPOD
 
   GPUd() float convDriftLengthToTime(float driftLength, float vertexTime) const;
 
-  static constexpr int NROWS = 152;
-  static constexpr int NSECTORS = TPCFastTransformGeo::getNumberOfSectors();
+  static constexpr int NROWS = o2::tpc::constants::MAXGLOBALPADROW;
+  static constexpr int NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr int NSplineIDs = 3; ///< number of spline data sets for each sector/row
 
  private:

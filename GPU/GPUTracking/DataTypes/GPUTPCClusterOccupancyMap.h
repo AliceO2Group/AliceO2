@@ -16,13 +16,13 @@
 #define GPUTPCCLUSTEROCCUPANCYMAP_H
 
 #include "GPUCommonDef.h"
-#include "GPUTPCGeometry.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2::gpu
 {
 struct GPUParam;
 struct GPUTPCClusterOccupancyMapBin {
-  uint16_t bin[GPUTPCGeometry::NSECTORS][GPUTPCGeometry::NROWS];
+  uint16_t bin[o2::tpc::constants::MAXSECTOR][o2::tpc::constants::MAXGLOBALPADROW];
 
   GPUd() static uint32_t getNBins(const GPUParam& param);
   GPUd() static uint32_t getTotalSize(const GPUParam& param);
