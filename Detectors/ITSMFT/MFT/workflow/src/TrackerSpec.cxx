@@ -255,7 +255,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
-        *rof++;
+        rof++;
         roFrameId++;
       }
     }
@@ -313,7 +313,7 @@ void TrackerDPL::run(ProcessingContext& pc)
         copyTracks(tracksL, allTracksMFT, allClusIdx);
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
-        *rof++;
+        rof++;
         roFrameId++;
       }
     }
