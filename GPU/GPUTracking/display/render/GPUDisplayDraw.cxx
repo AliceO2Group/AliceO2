@@ -571,10 +571,11 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
           if (mc.pid < 0) {
             break;
           }
+#ifndef GPUCA_RUN2
           if (mc.t0 == -100.f) {
             break;
           }
-
+#endif
           alphaOrg = mParam->Alpha(iSector);
           float c = cosf(alphaOrg);
           float s = sinf(alphaOrg);

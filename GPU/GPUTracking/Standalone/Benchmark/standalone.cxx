@@ -154,7 +154,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   }
 #endif
 #ifdef GPUCA_RUN2
-#error Why was configStandalone.rec.tpc.mergerReadFromTrackerDirectly = 0 needed?
+#warning Why was configStandalone.rec.tpc.mergerReadFromTrackerDirectly = 0 needed?
   configStandalone.proc.inKernelParallel = false;
   configStandalone.proc.createO2Output = 0;
   if (configStandalone.rundEdx == -1) {

@@ -204,7 +204,7 @@ int32_t GPUQA::initColors()
 static constexpr Color_t defaultColorNums[COLORCOUNT] = {kRed, kBlue, kGreen, kMagenta, kOrange, kAzure, kBlack, kYellow, kGray, kTeal, kSpring, kPink};
 
 #define TRACK_EXPECTED_REFERENCE_X_DEFAULT 81
-#ifndef GPUCA_RUN2
+#ifndef GPUCA_RUN2 // Run 3 implementation
 static inline int32_t GPUQA_O2_ConvertFakeLabel(int32_t label) { return label >= 0x7FFFFFFE ? -1 : label; }
 inline uint32_t GPUQA::GetNMCCollissions() const { return mMCInfosCol.size(); }
 inline uint32_t GPUQA::GetNMCTracks(int32_t iCol) const { return mMCInfosCol[iCol].num; }
@@ -229,7 +229,7 @@ uint32_t GPUQA::GetMCLabelCol(const mcLabel_t& label) const { return !label.isVa
 GPUQA::mcLabelI_t GPUQA::GetMCTrackLabel(uint32_t trackId) const { return trackId >= mTrackMCLabels.size() ? MCCompLabel() : mTrackMCLabels[trackId]; }
 bool GPUQA::CompareIgnoreFake(const mcLabelI_t& l1, const mcLabelI_t& l2) { return l1.compare(l2) >= 0; }
 #define TRACK_EXPECTED_REFERENCE_X 78
-#else
+#else // Run 2 implementation
 inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID) {}
 inline bool GPUQA::mcLabelI_t::operator==(const GPUQA::mcLabel_t& l) { return AbsLabelID(track) == l.fMCID; }
 inline uint32_t GPUQA::GetNMCCollissions() const { return 1; }
@@ -247,7 +247,6 @@ inline int32_t GPUQA::GetMCLabelID(uint32_t i, uint32_t j) { return mTracking->m
 inline int32_t GPUQA::GetMCLabelID(const mcLabels_t& label, uint32_t j) { return label.fClusterID[j].fMCID; }
 inline int32_t GPUQA::GetMCLabelID(const mcLabel_t& label) { return label.fMCID; }
 inline uint32_t GPUQA::GetMCLabelCol(uint32_t i, uint32_t j) { return 0; }
-
 inline const auto& GPUQA::GetClusterLabels() { return mTracking->mIOPtrs.mcLabelsTPC; }
 inline float GPUQA::GetMCLabelWeight(uint32_t i, uint32_t j) { return mTracking->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight; }
 inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, uint32_t j) { return label.fClusterID[j].fWeight; }
@@ -257,7 +256,7 @@ inline int32_t GPUQA::AbsLabelID(int32_t id) { return id >= 0 ? id : (-id - 2); 
 inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && GetNMCLabels() && GetNMCTracks(0); }
 uint32_t GPUQA::GetMCLabelCol(const mcLabel_t& label) const { return 0; }
 GPUQA::mcLabelI_t GPUQA::GetMCTrackLabel(uint32_t trackId) const { return trackId >= mTrackMCLabels.size() ? mcLabelI_t() : mTrackMCLabels[trackId]; }
-bool GPUQA::CompareIgnoreFake(const mcLabelI_t& l1, const mcLabelI_t& l2) { return AbsLabelID(l1) == AbsLabelID(l2); }
+bool GPUQA::CompareIgnoreFake(const mcLabelI_t& l1, const mcLabelI_t& l2) { return AbsLabelID(l1.track) == AbsLabelID(l2.track); }
 #define TRACK_EXPECTED_REFERENCE_X TRACK_EXPECTED_REFERENCE_X_DEFAULT
 #endif
 template <class T>
@@ -1367,9 +1366,11 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         if (mc1.pid < 0) {
           continue;
         }
+#ifndef GPUCA_RUN2
         if (mc1.t0 == -100.f) {
           continue;
         }
+#endif
         if (mConfig.filterCharge && mc1.charge * mConfig.filterCharge < 0) {
           continue;
         }
@@ -1439,7 +1440,12 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (!mParam->continuousMaxTimeBin) {
             return param.GetZ() - mc1.z;
           }
-          float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTOffset() - mc1.t0);
+          float shift = 0;
+#ifndef GPUCA_RUN2
+          if (side != 2) {
+            shift = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSECTORS / 2, param.GetTOffset() - mc1.t0);
+          }
+#endif
           return param.GetZ() + shift - mc1.z;
         };
 
@@ -1784,12 +1790,14 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         mNCl[1]->Fill(nClCorrected);
       }
       mT0[0]->Fill(track.GetParam().GetTOffset());
+#ifndef GPUCA_RUN2
       if (mTrackMCLabels.size() && !mTrackMCLabels[i].isFake() && !track.MergedLooper() && !track.CCE()) {
         const auto& info = GetMCTrack(mTrackMCLabels[i]);
         if (info.t0 != -100.f) {
           mT0[1]->Fill(track.GetParam().GetTOffset() - info.t0);
         }
       }
+#endif
     }
     if (mClNative && mTracking && mTracking->GetTPCTransform()) {
       for (uint32_t i = 0; i < GPUChainTracking::NSECTORS; i++) {
