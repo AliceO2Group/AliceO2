@@ -103,8 +103,10 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     mUseCompressionHuffman = ic.options().get<bool>("use-compression-huffman");
     mRoundIntegersThreshold = static_cast<uint16_t>(ic.options().get<int>("cmv-round-integers-threshold"));
     mZeroThreshold = ic.options().get<float>("cmv-zero-threshold");
-    LOGP(info, "CMV compression settings: use-compression-varint={}, use-sparse={}, use-compression-huffman={}, cmv-round-integers-threshold={}, cmv-zero-threshold={}",
-         mUseCompressionVarint, mUseSparse, mUseCompressionHuffman, mRoundIntegersThreshold, mZeroThreshold);
+    mDynamicPrecisionMean = ic.options().get<float>("cmv-dynamic-precision-mean");
+    mDynamicPrecisionSigma = ic.options().get<float>("cmv-dynamic-precision-sigma");
+    LOGP(info, "CMV compression settings: use-compression-varint={}, use-sparse={}, use-compression-huffman={}, cmv-round-integers-threshold={}, cmv-zero-threshold={}, cmv-dynamic-precision-mean={}, cmv-dynamic-precision-sigma={}",
+         mUseCompressionVarint, mUseSparse, mUseCompressionHuffman, mRoundIntegersThreshold, mZeroThreshold, mDynamicPrecisionMean, mDynamicPrecisionSigma);
     // re-initialise the interval tree now that compression options are known (constructor used the defaults)
     initIntervalTree();
   }
@@ -255,7 +257,10 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       if (mZeroThreshold > 0.f) {
         mCurrentTF.zeroSmallValues(mZeroThreshold);
       }
-      if (mUseSparse && mUseCompressionHuffman) {
+      if (mUseSparse && mDynamicPrecisionSigma > 0.f) {
+        const uint8_t quantizedMode = mUseCompressionHuffman ? 2 : (mUseCompressionVarint ? 1 : 0);
+        mCurrentQuantizedTF = mCurrentTF.compressQuantized(quantizedMode, mDynamicPrecisionMean, mDynamicPrecisionSigma);
+      } else if (mUseSparse && mUseCompressionHuffman) {
         mCurrentCombinedTF = mCurrentTF.compressCombined(2);
       } else if (mUseSparse && mUseCompressionVarint) {
         mCurrentCombinedTF = mCurrentTF.compressCombined(1);
@@ -330,6 +335,8 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   bool mUseCompressionHuffman{false};                                                  ///< Huffman encoding; combined with mUseSparse → SparseV2 mode 2
   uint16_t mRoundIntegersThreshold{0};                                                 ///< round values to nearest integer ADC for |v| <= N ADC; 0 = disabled
   float mZeroThreshold{0.f};                                                           ///< zero out CMV values whose float magnitude is below this threshold; 0 = disabled
+  float mDynamicPrecisionMean{1.f};                                                    ///< Gaussian centre in |CMV| ADC where the strongest fractional-bit trimming is applied
+  float mDynamicPrecisionSigma{0.f};                                                   ///< Gaussian width in ADC for the fractional-bit trimming; 0 disables
   long mTimestampStart{0};                                                             ///< CCDB validity start timestamp
   dataformats::Pair<long, int> mTFInfo{};                                              ///< orbit-reset time and NHBFPerTF for precise timestamp
   std::unique_ptr<TTree> mIntervalTree{};                                              ///< TTree accumulating one entry per completed TF in the current interval
@@ -338,6 +345,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   CMVPerTFSparse mCurrentSparseTF{};                                                   ///< staging object for mUseSparse
   CMVPerTFHuffman mCurrentHuffmanTF{};                                                 ///< staging object for mUseCompressionHuffman
   CMVPerTFCombined mCurrentCombinedTF{};                                               ///< staging object for sparse+varint or sparse+huffman
+  CMVPerTFQuantized mCurrentQuantizedTF{};                                             ///< staging object for dedicated sparse+quantized+huffman mode
   long mIntervalFirstTF{0};                                                            ///< absolute TF counter of the first TF in the current aggregation interval
   unsigned int mIntervalTFCount{0};                                                    ///< number of TTree entries filled for the current aggregation interval
   int mNFactorTFs{0};                                                                  ///< Number of TFs to skip for sending oldest TF
@@ -360,7 +368,9 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     mIntervalTree = std::make_unique<TTree>("ccdb_object", "ccdb_object");
     mIntervalTree->SetAutoSave(0);
     mIntervalTree->SetDirectory(nullptr);
-    if (mUseSparse && (mUseCompressionHuffman || mUseCompressionVarint)) {
+    if (mUseSparse && mDynamicPrecisionSigma > 0.f) {
+      mIntervalTree->Branch("CMVPerTFQuantized", &mCurrentQuantizedTF);
+    } else if (mUseSparse && (mUseCompressionHuffman || mUseCompressionVarint)) {
       mIntervalTree->Branch("CMVPerTFCombined", &mCurrentCombinedTF);
     } else if (mUseSparse) {
       mIntervalTree->Branch("CMVPerTFSparse", &mCurrentSparseTF);
@@ -589,7 +599,9 @@ DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uin
             {"use-sparse", VariantType::Bool, false, {"Sparse encoding (skip zero time bins). Alone: raw uint16 values. With --use-compression-varint: varint exact values. With --use-compression-huffman: Huffman exact values"}},
             {"use-compression-huffman", VariantType::Bool, false, {"Huffman encoding. Combined with --use-sparse: sparse positions + Huffman-encoded exact CMV values"}},
             {"cmv-round-integers-threshold", VariantType::Int, 0, {"Round values to nearest integer ADC for |v| <= N ADC before compression; 0 disables"}},
-            {"cmv-zero-threshold", VariantType::Float, 0.f, {"Zero out CMV values whose float magnitude is below this threshold after optional integer rounding and before compression; 0 disables"}}}}; // end DataProcessorSpec
+            {"cmv-zero-threshold", VariantType::Float, 0.f, {"Zero out CMV values whose float magnitude is below this threshold after optional integer rounding and before compression; 0 disables"}},
+            {"cmv-dynamic-precision-mean", VariantType::Float, 1.f, {"Gaussian centre in |CMV| ADC where the strongest fractional bit trimming is applied"}},
+            {"cmv-dynamic-precision-sigma", VariantType::Float, 0.f, {"Gaussian width in ADC for smooth CMV fractional bit trimming; 0 disables"}}}}; // end DataProcessorSpec
 
   spec.rank = ilane;
   return spec;

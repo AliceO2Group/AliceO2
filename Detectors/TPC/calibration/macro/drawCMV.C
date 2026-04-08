@@ -11,12 +11,14 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <string>
+#include <vector>
 #include <string_view>
 #include <fmt/format.h>
 
 #include "TFile.h"
 #include "TParameter.h"
 #include "TTree.h"
+#include "TH1F.h"
 #include "TH2F.h"
 #include "TCanvas.h"
 
@@ -79,34 +81,44 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
                        100, 0, nTimeBins,
                        110, -100.5, 9.5);
   h2d->SetStats(1);
+  TH1F* h1d = new TH1F("hCMV", ";Common Mode Values (ADC);Counts",
+                       1100, -100.5, 9.5);
+  h1d->SetStats(1);
 
   // auto-detect branch format
+  const bool isQuantized = (tree->GetBranch("CMVPerTFQuantized") != nullptr);
   const bool isCombined = (tree->GetBranch("CMVPerTFCombined") != nullptr);
   const bool isSparse = (tree->GetBranch("CMVPerTFSparse") != nullptr);
   const bool isHuffman = (tree->GetBranch("CMVPerTFHuffman") != nullptr);
   const bool isVarint = (tree->GetBranch("CMVPerTFVarint") != nullptr);
   const bool isRaw = (tree->GetBranch("CMVPerTF") != nullptr);
-  if (!isCombined && !isSparse && !isHuffman && !isVarint && !isRaw) {
-    fmt::print("ERROR: no recognised branch found (expected CMVPerTFCombined, CMVPerTFSparse, CMVPerTFHuffman, CMVPerTFVarint, or CMVPerTF)\n");
+  if (!isQuantized && !isCombined && !isSparse && !isHuffman && !isVarint && !isRaw) {
+    fmt::print("ERROR: no recognised branch found (expected CMVPerTFQuantized, CMVPerTFCombined, CMVPerTFSparse, CMVPerTFHuffman, CMVPerTFVarint, or CMVPerTF)\n");
     return arrCanvases;
   }
   const std::string branchFormat =
-    isCombined ? "CMVPerTFCombined (sparse + compressed exact values)" : isSparse  ? "CMVPerTFSparse (sparse)"
-                                                                       : isHuffman ? "CMVPerTFHuffman (delta+zigzag+Huffman)"
-                                                                       : isVarint  ? "CMVPerTFVarint (delta+zigzag+varint)"
-                                                                                   : "CMVPerTF (raw)";
+    isQuantized  ? "CMVPerTFQuantized (sparse + quantized float symbols)"
+    : isCombined ? "CMVPerTFCombined (sparse + compressed exact values)"
+    : isSparse   ? "CMVPerTFSparse (sparse)"
+    : isHuffman  ? "CMVPerTFHuffman (delta+zigzag+Huffman)"
+    : isVarint   ? "CMVPerTFVarint (delta+zigzag+varint)"
+                 : "CMVPerTF (raw)";
   fmt::print("Branch format: {}\n", branchFormat);
 
   // branch setup — only one pointer is active depending on the detected format
+  o2::tpc::CMVPerTFQuantized* tfQuantized = nullptr;
   o2::tpc::CMVPerTFCombined* tfCombined = nullptr;
   o2::tpc::CMVPerTFSparse* tfSparse = nullptr;
   o2::tpc::CMVPerTFHuffman* tfHuffman = nullptr;
   o2::tpc::CMVPerTFVarint* tfVarint = nullptr;
   o2::tpc::CMVPerTF* tfRaw = nullptr;
   // staging object for decompression
-  CMVPerTF* tfDecoded = (isCombined || isSparse || isHuffman || isVarint) ? new CMVPerTF() : nullptr;
+  CMVPerTF* tfDecoded = (isCombined || isSparse || isHuffman || isVarint || isQuantized) ? new CMVPerTF() : nullptr;
+  std::vector<float> tfDecodedFloats;
 
-  if (isCombined) {
+  if (isQuantized) {
+    tree->SetBranchAddress("CMVPerTFQuantized", &tfQuantized);
+  } else if (isCombined) {
     tree->SetBranchAddress("CMVPerTFCombined", &tfCombined);
   } else if (isSparse) {
     tree->SetBranchAddress("CMVPerTFSparse", &tfSparse);
@@ -125,7 +137,11 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
 
     // resolve to a unified pointer regardless of storage format
     const CMVPerTF* tf = nullptr;
-    if (isCombined) {
+    if (isQuantized) {
+      tfQuantized->decompress(tfDecoded);
+      tfQuantized->decompressToFloatBuffer(tfDecodedFloats);
+      tf = tfDecoded;
+    } else if (isCombined) {
       tfCombined->decompress(tfDecoded);
       tf = tfDecoded;
     } else if (isSparse) {
@@ -147,14 +163,17 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
 
     for (int cru = 0; cru < nCRUs; ++cru) {
       for (int tb = 0; tb < nTimeBins; ++tb) {
-        h2d->Fill(tb, tf->getCMVFloat(cru, tb));
-        // fmt::print("cru: {}, tb: {}, cmv: {}\n", cru, tb, tf->getCMVFloat(cru, tb));
+        const float cmvValue = isQuantized ? tfDecodedFloats[cru * nTimeBins + tb] : tf->getCMVFloat(cru, tb);
+        h2d->Fill(tb, cmvValue);
+        h1d->Fill(cmvValue);
+        fmt::print("cru: {}, tb: {}, cmv: {}\n", cru, tb, cmvValue);
       }
     }
   }
 
   delete tfDecoded;
   tree->ResetBranchAddresses();
+  delete tfQuantized;
   delete tfCombined;
   delete tfSparse;
   delete tfHuffman;
@@ -168,6 +187,12 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
   h2d->Draw("colz");
 
   arrCanvases->Add(c);
+
+  auto* c1 = new TCanvas("cCMVDistribution", "");
+  c1->SetLogy();
+  h1d->Draw();
+
+  arrCanvases->Add(c1);
 
   if (outDir.size()) {
     utils::saveCanvases(*arrCanvases, outDir, "png,pdf", "CMVCanvases.root");

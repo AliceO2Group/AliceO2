@@ -28,10 +28,11 @@
 namespace o2::tpc
 {
 
-struct CMVPerTF;         // forward declaration
-struct CMVPerTFSparse;   // forward declaration
-struct CMVPerTFHuffman;  // forward declaration
-struct CMVPerTFCombined; // forward declaration
+struct CMVPerTF;          // forward declaration
+struct CMVPerTFSparse;    // forward declaration
+struct CMVPerTFHuffman;   // forward declaration
+struct CMVPerTFCombined;  // forward declaration
+struct CMVPerTFQuantized; // forward declaration
 
 /// Delta+zigzag+varint compressed CMV data for one TF across all CRUs
 /// Produced by CMVPerTF::compressVarint(), restored with decompress()
@@ -108,7 +109,7 @@ struct CMVPerTFHuffman {
 
 /// Hybrid sparse+compressed-value encoding for one TF across all CRUs
 ///
-/// Non-zero positions are stored as sparse varint deltas (same as CMVPerTFSparse).
+/// Non-zero positions are stored as sparse varint deltas (same as CMVPerTFSparse)
 /// The remaining non-zero values are encoded according to mValueMode:
 ///
 ///   Mode 0  raw uint16_t     — identical value encoding to CMVPerTFSparse
@@ -133,6 +134,31 @@ struct CMVPerTFCombined {
   void decompress(CMVPerTF* cmv) const;
 
   ClassDefNV(CMVPerTFCombined, 1)
+};
+
+/// Sparse positions + quantized-value symbols for one TF across all CRUs
+///
+/// Non-zero positions are stored as sparse varint deltas.
+/// The corresponding values are encoded as quantized signed symbols:
+///   Mode 0  raw symbols      — 4-byte LE uint32 per symbol
+///   Mode 1  varint symbols   — varint(symbol)
+///   Mode 2  Huffman symbols  — canonical Huffman over symbol stream
+/// Quantized symbols represent decimal-style values below the internally derived full-precision cutoff
+/// and exact raw signed I8F7 values above it.
+struct CMVPerTFQuantized {
+  uint32_t firstOrbit{0}; ///< First orbit of this TF
+  uint16_t firstBC{0};    ///< First bunch crossing of this TF
+  uint8_t mValueMode{0};  ///< 0 = raw symbols, 1 = varint symbols, 2 = Huffman symbols
+
+  std::vector<uint8_t> mData; ///< Encoded payload
+
+  /// Restore nearest raw-I8F7 values into *cmv (must not be null)
+  void decompress(CMVPerTF* cmv) const;
+
+  /// Restore exact quantized float values into `values`, sized to CRU::MaxCRU * cmv::NTimeBinsPerTF
+  void decompressToFloatBuffer(std::vector<float>& values) const;
+
+  ClassDefNV(CMVPerTFQuantized, 1)
 };
 
 /// CMV data for one TF across all CRUs
@@ -166,11 +192,23 @@ struct CMVPerTF {
   /// threshold=0 rounding is not applied
   void roundToIntegers(uint16_t threshold);
 
+  /// Quantise |v| with a Gaussian-CDF recovery profile:
+  /// coarse decimal-style precision below and around mean, then a smooth return to the
+  /// full native I8F7 precision as the magnitude increases with width sigma
+  void trimGaussianPrecision(float mean, float sigma);
+
   /// Compress this object into a CMVPerTFVarint using delta+zigzag+varint encoding
   CMVPerTFVarint compressVarint() const;
 
   /// Compress this object into a CMVPerTFSparse storing only non-zero timebins
   CMVPerTFSparse compressSparse() const;
+
+  /// Dedicated sparse + quantized-value compression
+  /// valueMode:
+  ///   0 = raw symbol stream
+  ///   1 = varint symbol stream
+  ///   2 = Huffman symbol stream
+  CMVPerTFQuantized compressQuantized(uint8_t valueMode = 0, float quantizationMean = 1.f, float quantizationSigma = 0.f) const;
 
   /// Hybrid sparse+compressed-value compression
   /// Positions encoded as sparse varint deltas; values encoded according to valueMode:
@@ -189,9 +227,10 @@ struct CMVPerTF {
   static void writeToFile(const std::string& filename, const std::unique_ptr<TTree>& tree);
 
  private:
-  static int32_t cmvToSigned(uint16_t raw);                                ///< Sign-magnitude uint16_t → signed integer
-  static uint32_t zigzagEncode(int32_t value);                             ///< Zigzag encode
-  static void encodeVarintInto(uint32_t value, std::vector<uint8_t>& out); ///< Varint encode
+  static int32_t cmvToSigned(uint16_t raw);                                                              ///< Sign-magnitude uint16_t → signed integer
+  static uint16_t quantizeBelowThreshold(uint16_t raw, float quantizationMean, float quantizationSigma); ///< Quantise sub-threshold values with a Gaussian-shaped recovery to full precision
+  static uint32_t zigzagEncode(int32_t value);                                                           ///< Zigzag encode
+  static void encodeVarintInto(uint32_t value, std::vector<uint8_t>& out);                               ///< Varint encode
 
  public:
   ClassDefNV(CMVPerTF, 1)

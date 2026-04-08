@@ -129,5 +129,6 @@
 #pragma link C++ class o2::tpc::CMVPerTFSparse + ;
 #pragma link C++ class o2::tpc::CMVPerTFHuffman + ;
 #pragma link C++ class o2::tpc::CMVPerTFCombined + ;
+#pragma link C++ class o2::tpc::CMVPerTFQuantized + ;
 
 #endif
