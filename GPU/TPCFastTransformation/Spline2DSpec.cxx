@@ -46,76 +46,85 @@ void Spline2DContainerBase<DataT, FlatBase>::destroy()
   mGridX2.destroy();
   mYdim = 0;
   mParameters = nullptr;
-  FlatBase::destroy();
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    FlatBase::destroy();
+  }
 }
 
 template <typename DataT, class FlatBase>
 void Spline2DContainerBase<DataT, FlatBase>::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    FlatBase::setActualBufferAddress(actualFlatBufferPtr);
 
-  FlatBase::setActualBufferAddress(actualFlatBufferPtr);
+    const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
+    mParameters = nullptr;
 
-  const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
-  int32_t parametersOffset = u2Offset;
-  mParameters = nullptr;
+    const int32_t parametersOffset = this->alignSize(u2Offset + mGridX2.getFlatBufferSize(), getParameterAlignmentBytes());
+    mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
 
-  parametersOffset = this->alignSize(u2Offset + mGridX2.getFlatBufferSize(), getParameterAlignmentBytes());
-  mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
-
-  mGridX1.setActualBufferAddress(this->mFlatBufferPtr);
-  mGridX2.setActualBufferAddress(this->mFlatBufferPtr + u2Offset);
+    mGridX1.setActualBufferAddress(this->mFlatBufferPtr);
+    mGridX2.setActualBufferAddress(this->mFlatBufferPtr + u2Offset);
+  }
 }
 
 template <typename DataT, class FlatBase>
 void Spline2DContainerBase<DataT, FlatBase>::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
-  char* bufferU = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mGridX1.getFlatBufferPtr());
-  char* bufferV = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mGridX2.getFlatBufferPtr());
-  mGridX1.setFutureBufferAddress(bufferU);
-  mGridX2.setFutureBufferAddress(bufferV);
-  mParameters = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mParameters);
-  FlatBase::setFutureBufferAddress(futureFlatBufferPtr);
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    char* bufferU = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mGridX1.getFlatBufferPtr());
+    char* bufferV = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mGridX2.getFlatBufferPtr());
+    mGridX1.setFutureBufferAddress(bufferU);
+    mGridX2.setFutureBufferAddress(bufferV);
+    mParameters = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mParameters);
+    FlatBase::setFutureBufferAddress(futureFlatBufferPtr);
+  }
 }
 
 template <typename DataT, class FlatBase>
 void Spline2DContainerBase<DataT, FlatBase>::print() const
 {
-  printf(" Irregular Spline 2D: \n");
-  printf(" grid U1: \n");
-  mGridX1.print();
-  printf(" grid U2: \n");
-  mGridX2.print();
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    printf(" Irregular Spline 2D: \n");
+    printf(" grid U1: \n");
+    mGridX1.print();
+    printf(" grid U2: \n");
+    mGridX2.print();
+  }
 }
 
 template <typename DataT, class FlatBase>
 void Spline2DContainerBase<DataT, FlatBase>::cloneFromObject(const Spline2DContainerBase<DataT, FlatBase>& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
 
-  const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
+    FlatBase::cloneFromObject(obj, newFlatBufferPtr);
 
-  FlatBase::cloneFromObject(obj, newFlatBufferPtr);
+    mYdim = obj.mYdim;
+    char* bufferU = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mGridX1.getFlatBufferPtr());
+    char* bufferV = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mGridX2.getFlatBufferPtr());
 
-  mYdim = obj.mYdim;
-  char* bufferU = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mGridX1.getFlatBufferPtr());
-  char* bufferV = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mGridX2.getFlatBufferPtr());
-
-  mGridX1.cloneFromObject(obj.mGridX1, bufferU);
-  mGridX2.cloneFromObject(obj.mGridX2, bufferV);
-  mParameters = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mParameters);
+    mGridX1.cloneFromObject(obj.mGridX1, bufferU);
+    mGridX2.cloneFromObject(obj.mGridX2, bufferV);
+    mParameters = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mParameters);
+  }
 }
 
 template <typename DataT, class FlatBase>
 void Spline2DContainerBase<DataT, FlatBase>::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
-  char* oldFlatBufferPtr = this->mFlatBufferPtr;
-  FlatBase::moveBufferTo(newFlatBufferPtr);
-  char* currFlatBufferPtr = this->mFlatBufferPtr;
-  this->mFlatBufferPtr = oldFlatBufferPtr;
-  setActualBufferAddress(currFlatBufferPtr);
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    char* oldFlatBufferPtr = this->mFlatBufferPtr;
+    FlatBase::moveBufferTo(newFlatBufferPtr);
+    char* currFlatBufferPtr = this->mFlatBufferPtr;
+    this->mFlatBufferPtr = oldFlatBufferPtr;
+    setActualBufferAddress(currFlatBufferPtr);
+  }
 }
 
 template <typename DataT, class FlatBase>
@@ -136,61 +145,63 @@ void Spline2DContainerBase<DataT, FlatBase>::recreate(
   int32_t nYdim,
   int32_t numberOfKnotsU1, const int32_t knotsU1[], int32_t numberOfKnotsU2, const int32_t knotsU2[])
 {
-  /// Constructor for an irregular spline
+  /// Constructor for an irregular spline — only valid for FlatObject.
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    mYdim = nYdim;
+    FlatBase::startConstruction();
 
-  mYdim = nYdim;
-  FlatBase::startConstruction();
+    mGridX1.recreate(0, numberOfKnotsU1, knotsU1);
+    mGridX2.recreate(0, numberOfKnotsU2, knotsU2);
 
-  mGridX1.recreate(0, numberOfKnotsU1, knotsU1);
-  mGridX2.recreate(0, numberOfKnotsU2, knotsU2);
+    const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
+    int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
+    int32_t bufferSize = parametersOffset;
+    mParameters = nullptr;
 
-  const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
-  int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
-  int32_t bufferSize = parametersOffset;
-  mParameters = nullptr;
+    parametersOffset = this->alignSize(bufferSize, getParameterAlignmentBytes());
+    bufferSize = parametersOffset + getSizeOfParameters();
 
-  parametersOffset = this->alignSize(bufferSize, getParameterAlignmentBytes());
-  bufferSize = parametersOffset + getSizeOfParameters();
+    FlatBase::finishConstruction(bufferSize);
 
-  FlatBase::finishConstruction(bufferSize);
+    mGridX1.moveBufferTo(this->mFlatBufferPtr);
+    mGridX2.moveBufferTo(this->mFlatBufferPtr + u2Offset);
 
-  mGridX1.moveBufferTo(this->mFlatBufferPtr);
-  mGridX2.moveBufferTo(this->mFlatBufferPtr + u2Offset);
-
-  mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
-  for (int32_t i = 0; i < getNumberOfParameters(); i++) {
-    mParameters[i] = 0;
+    mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
+    for (int32_t i = 0; i < getNumberOfParameters(); i++) {
+      mParameters[i] = 0;
+    }
   }
 }
 
 template <typename DataT, class FlatBase>
 void Spline2DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim,
-                                                  int32_t numberOfKnotsU1, int32_t numberOfKnotsU2)
+                                                      int32_t numberOfKnotsU1, int32_t numberOfKnotsU2)
 {
-  /// Constructor for a regular spline
+  /// Constructor for a regular spline — only valid for FlatObject.
+  if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+    mYdim = nYdim;
+    FlatBase::startConstruction();
 
-  mYdim = nYdim;
-  FlatBase::startConstruction();
+    mGridX1.recreate(0, numberOfKnotsU1);
+    mGridX2.recreate(0, numberOfKnotsU2);
 
-  mGridX1.recreate(0, numberOfKnotsU1);
-  mGridX2.recreate(0, numberOfKnotsU2);
+    const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
+    int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
+    int32_t bufferSize = parametersOffset;
+    mParameters = nullptr;
 
-  const size_t u2Offset = this->alignSize(mGridX1.getFlatBufferSize(), mGridX2.getBufferAlignmentBytes());
-  int32_t parametersOffset = u2Offset + mGridX2.getFlatBufferSize();
-  int32_t bufferSize = parametersOffset;
-  mParameters = nullptr;
+    parametersOffset = this->alignSize(bufferSize, getParameterAlignmentBytes());
+    bufferSize = parametersOffset + getSizeOfParameters();
 
-  parametersOffset = this->alignSize(bufferSize, getParameterAlignmentBytes());
-  bufferSize = parametersOffset + getSizeOfParameters();
+    FlatBase::finishConstruction(bufferSize);
 
-  FlatBase::finishConstruction(bufferSize);
+    mGridX1.moveBufferTo(this->mFlatBufferPtr);
+    mGridX2.moveBufferTo(this->mFlatBufferPtr + u2Offset);
 
-  mGridX1.moveBufferTo(this->mFlatBufferPtr);
-  mGridX2.moveBufferTo(this->mFlatBufferPtr + u2Offset);
-
-  mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
-  for (int32_t i = 0; i < getNumberOfParameters(); i++) {
-    mParameters[i] = 0;
+    mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
+    for (int32_t i = 0; i < getNumberOfParameters(); i++) {
+      mParameters[i] = 0;
+    }
   }
 }
 

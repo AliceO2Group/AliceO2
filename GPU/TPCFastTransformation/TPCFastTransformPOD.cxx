@@ -214,6 +214,11 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
   // set data members of TPCFastTransform
   podMap->mVdrift = src.getVDrift();
   podMap->mT0 = src.getT0();
+  podMap->mLumi = src.getLumi();
+  if (src.isIDCSet()) {
+    podMap->mIDC = src.getIDC();
+  }
+  podMap->mTimeStamp = src.getTimeStamp();
   // copy fixed size data --- end
   return podMap;
 }

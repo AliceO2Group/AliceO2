@@ -24,14 +24,13 @@
 #include "TFile.h"
 #include "GPUCommonMath.h"
 templateClassImp(o2::gpu::Spline1DContainer);
-templateClassImp(o2::gpu::Spline1DSpec);
 #endif
 
 using namespace std;
 using namespace o2::gpu;
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim, int32_t numberOfKnots)
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::recreate(int32_t nYdim, int32_t numberOfKnots)
 {
   /// Constructor for a regular spline
   /// \param numberOfKnots     Number of knots
@@ -47,8 +46,8 @@ void Spline1DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim, int32_t num
   recreate(nYdim, numberOfKnots, knots.data());
 }
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim, int32_t numberOfKnots, const int32_t inputKnots[])
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::recreate(int32_t nYdim, int32_t numberOfKnots, const int32_t inputKnots[])
 {
   /// Main constructor for an irregular spline
   ///
@@ -59,10 +58,9 @@ void Spline1DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim, int32_t num
   /// \param numberOfKnots     Number of knots in knots[] array
   /// \param knots             Array of relative knot positions (integer values)
   ///
+  FlatObject::startConstruction();
 
-  FlatBase::startConstruction();
-
-  mYdim = (nYdim >= 0) ? nYdim : 0;
+  this->mYdim = (nYdim >= 0) ? nYdim : 0;
 
   std::vector<int32_t> knotU;
 
@@ -86,45 +84,45 @@ void Spline1DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim, int32_t num
     }
   }
 
-  mNumberOfKnots = knotU.size();
-  mUmax = knotU.back();
-  mXmin = 0.;
-  mXtoUscale = 1.;
+  this->mNumberOfKnots = knotU.size();
+  this->mUmax = knotU.back();
+  this->mXmin = 0.;
+  this->mXtoUscale = 1.;
 
-  const int32_t uToKnotMapOffset = mNumberOfKnots * sizeof(Knot);
-  int32_t parametersOffset = uToKnotMapOffset + (mUmax + 1) * sizeof(int32_t);
+  const int32_t uToKnotMapOffset = this->mNumberOfKnots * sizeof(Knot<DataT>);
+  int32_t parametersOffset = uToKnotMapOffset + (this->mUmax + 1) * sizeof(int32_t);
   int32_t bufferSize = parametersOffset;
-  if (mYdim > 0) {
-    parametersOffset = this->alignSize(bufferSize, getParameterAlignmentBytes());
-    bufferSize = parametersOffset + getSizeOfParameters();
+  if (this->mYdim > 0) {
+    parametersOffset = this->alignSize(bufferSize, this->getParameterAlignmentBytes());
+    bufferSize = parametersOffset + this->getSizeOfParameters();
   }
 
-  FlatBase::finishConstruction(bufferSize);
+  FlatObject::finishConstruction(bufferSize);
 
-  mUtoKnotMap = reinterpret_cast<int32_t*>(this->mFlatBufferPtr + uToKnotMapOffset);
-  mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
+  this->mUtoKnotMap = reinterpret_cast<int32_t*>(this->mFlatBufferPtr + uToKnotMapOffset);
+  this->mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
 
-  for (int32_t i = 0; i < getNumberOfParameters(); i++) {
-    mParameters[i] = 0;
+  for (int32_t i = 0; i < this->getNumberOfParameters(); i++) {
+    this->mParameters[i] = 0;
   }
 
-  Knot* s = getKnots();
+  Knot<DataT>* s = getKnots();
 
-  for (int32_t i = 0; i < mNumberOfKnots; i++) {
+  for (int32_t i = 0; i < this->mNumberOfKnots; i++) {
     s[i].u = knotU[i];
   }
 
-  for (int32_t i = 0; i < mNumberOfKnots - 1; i++) {
+  for (int32_t i = 0; i < this->mNumberOfKnots - 1; i++) {
     s[i].Li = 1. / (s[i + 1].u - s[i].u); // do division in double
   }
 
-  s[mNumberOfKnots - 1].Li = 0.; // the value will not be used, we define it for consistency
+  s[this->mNumberOfKnots - 1].Li = 0.; // the value will not be used, we define it for consistency
 
   // Set up the map (integer U) -> (knot index)
 
   int32_t* map = getUtoKnotMap();
 
-  const int32_t iKnotMax = mNumberOfKnots - 2;
+  const int32_t iKnotMax = this->mNumberOfKnots - 2;
 
   //
   // With iKnotMax=nKnots-2 we map the U==Umax coordinate to the last [nKnots-2, nKnots-1] segment.
@@ -132,7 +130,7 @@ void Spline1DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim, int32_t num
   // Any U from [0,Umax] is mapped to some knot_i such, that the next knot_i+1 always exist
   //
 
-  for (int32_t u = 0, iKnot = 0; u <= mUmax; u++) {
+  for (int32_t u = 0, iKnot = 0; u <= this->mUmax; u++) {
     if ((knotU[iKnot + 1] == u) && (iKnot < iKnotMax)) {
       iKnot = iKnot + 1;
     }
@@ -140,15 +138,15 @@ void Spline1DContainerBase<DataT, FlatBase>::recreate(int32_t nYdim, int32_t num
   }
 }
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::print() const
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::print() const
 {
   printf(" Spline 1D: \n");
-  printf("  mNumberOfKnots = %d \n", mNumberOfKnots);
-  printf("  mUmax = %d\n", mUmax);
-  printf("  mUtoKnotMap = %p \n", (void*)mUtoKnotMap);
+  printf("  mNumberOfKnots = %d \n", this->mNumberOfKnots);
+  printf("  mUmax = %d\n", this->mUmax);
+  printf("  mUtoKnotMap = %p \n", (void*)this->mUtoKnotMap);
   printf("  knots: ");
-  for (int32_t i = 0; i < mNumberOfKnots; i++) {
+  for (int32_t i = 0; i < this->mNumberOfKnots; i++) {
     printf("%d ", (int32_t)getKnot(i).u);
   }
   printf("\n");
@@ -156,132 +154,117 @@ void Spline1DContainerBase<DataT, FlatBase>::print() const
 
 #if !defined(GPUCA_STANDALONE)
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::approximateFunction(
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::approximateFunction(
   double xMin, double xMax,
   std::function<void(double x, double f[])> F,
   int32_t nAxiliaryDataPoints)
 {
   /// approximate a function F with this spline
-  if constexpr (std::is_same_v<FlatBase, FlatObject>) {
-    Spline1DHelper<DataT> helper;
-    helper.approximateFunction(*this, xMin, xMax, F, nAxiliaryDataPoints);
-  }
+  Spline1DHelper<DataT> helper;
+  helper.approximateFunction(*this, xMin, xMax, F, nAxiliaryDataPoints);
 }
 
-template <class DataT, class FlatBase>
-int32_t Spline1DContainerBase<DataT, FlatBase>::writeToFile(TFile& outf, const char* name)
+template <class DataT>
+int32_t Spline1DContainer<DataT, FlatObject>::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
-  if constexpr (std::is_same_v<FlatBase, FlatObject>) {
-    return FlatObject::writeToFile(*this, outf, name);
-  } else {
-    return -1;
-  }
+  return FlatObject::writeToFile(*this, outf, name);
 }
 
-template <class DataT, class FlatBase>
-Spline1DContainerBase<DataT, FlatBase>* Spline1DContainerBase<DataT, FlatBase>::readFromFile(TFile& inpf, const char* name)
+template <class DataT>
+Spline1DContainer<DataT, FlatObject>* Spline1DContainer<DataT, FlatObject>::readFromFile(TFile& inpf, const char* name)
 {
   /// read a class object from the file
-  if constexpr (std::is_same_v<FlatBase, FlatObject>) {
-    return FlatObject::readFromFile<Spline1DContainerBase<DataT, FlatBase>>(inpf, name);
-  } else {
-    return nullptr;
-  }
+  return FlatObject::readFromFile<Spline1DContainer<DataT, FlatObject>>(inpf, name);
+}
+
+template <class DataT>
+int32_t Spline1DContainer<DataT, FlatObject>::test(const bool draw, const bool drawDataPoints)
+{
+  return Spline1DHelper<DataT>::test(draw, drawDataPoints);
 }
 
 #endif
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::cloneFromObject(const Spline1DContainerBase<DataT, FlatBase>& obj, char* newFlatBufferPtr)
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::cloneFromObject(const Spline1DContainer<DataT, FlatObject>& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
-
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
-  FlatBase::cloneFromObject(obj, newFlatBufferPtr);
-  mYdim = obj.mYdim;
-  mNumberOfKnots = obj.mNumberOfKnots;
-  mUmax = obj.mUmax;
-  mXmin = obj.mXmin;
-  mXtoUscale = obj.mXtoUscale;
-  mUtoKnotMap = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mUtoKnotMap);
-  mParameters = FlatBase::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mParameters);
+  FlatObject::cloneFromObject(obj, newFlatBufferPtr);
+  this->mYdim = obj.mYdim;
+  this->mNumberOfKnots = obj.mNumberOfKnots;
+  this->mUmax = obj.mUmax;
+  this->mXmin = obj.mXmin;
+  this->mXtoUscale = obj.mXtoUscale;
+  this->mUtoKnotMap = FlatObject::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mUtoKnotMap);
+  this->mParameters = FlatObject::relocatePointer(oldFlatBufferPtr, this->mFlatBufferPtr, obj.mParameters);
 }
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::moveBufferTo(char* newFlatBufferPtr)
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
   char* oldFlatBufferPtr = this->mFlatBufferPtr;
-  FlatBase::moveBufferTo(newFlatBufferPtr);
+  FlatObject::moveBufferTo(newFlatBufferPtr);
   char* currFlatBufferPtr = this->mFlatBufferPtr;
   this->mFlatBufferPtr = oldFlatBufferPtr;
   setActualBufferAddress(currFlatBufferPtr);
 }
 
-template <class DataT, class FlatBase>
+template <class DataT>
 template <class OtherFlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::importFrom(const Spline1DContainerBase<DataT, OtherFlatBase>& src)
+void Spline1DContainer<DataT, FlatObject>::importFrom(const Spline1DContainerBase<DataT, OtherFlatBase>& src)
 {
   /// Copy schema fields from a spline with a different FlatBase (e.g. FlatObject -> NoFlatObject).
   /// Pointers (mUtoKnotMap, mParameters) are set to nullptr; call setActualBufferAddress() afterward.
-  mYdim = src.getYdimensions();
-  mNumberOfKnots = src.getNumberOfKnots();
-  mUmax = src.getUmax();
-  mXmin = src.getXmin();
-  mXtoUscale = src.getXtoUscale();
+  this->mYdim = src.getYdimensions();
+  this->mNumberOfKnots = src.getNumberOfKnots();
+  this->mUmax = src.getUmax();
+  this->mXmin = src.getXmin();
+  this->mXtoUscale = src.getXtoUscale();
   this->mFlatBufferSize = src.getFlatBufferSize();
-  mUtoKnotMap = nullptr;
-  mParameters = nullptr;
+  this->mUtoKnotMap = nullptr;
+  this->mParameters = nullptr;
 }
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::destroy()
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::destroy()
 {
-  /// See FlatObject for description
-  mNumberOfKnots = 0;
-  mUmax = 0;
-  mYdim = 0;
-  mXmin = 0.;
-  mXtoUscale = 1.;
-  mUtoKnotMap = nullptr;
-  mParameters = nullptr;
-  FlatBase::destroy();
+  this->mNumberOfKnots = 0;
+  this->mUmax = 0;
+  this->mYdim = 0;
+  this->mXmin = 0.;
+  this->mXtoUscale = 1.;
+  this->mUtoKnotMap = nullptr;
+  this->mParameters = nullptr;
+  FlatObject::destroy();
 }
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::setActualBufferAddress(char* actualFlatBufferPtr)
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
+  FlatObject::setActualBufferAddress(actualFlatBufferPtr);
 
-  FlatBase::setActualBufferAddress(actualFlatBufferPtr);
-
-  const int32_t uToKnotMapOffset = mNumberOfKnots * sizeof(Knot);
-  mUtoKnotMap = reinterpret_cast<int32_t*>(this->mFlatBufferPtr + uToKnotMapOffset);
-  int32_t parametersOffset = uToKnotMapOffset + (mUmax + 1) * sizeof(int32_t);
-  if (mYdim > 0) {
-    parametersOffset = this->alignSize(parametersOffset, getParameterAlignmentBytes());
+  const int32_t uToKnotMapOffset = this->mNumberOfKnots * sizeof(Knot<DataT>);
+  this->mUtoKnotMap = reinterpret_cast<int32_t*>(this->mFlatBufferPtr + uToKnotMapOffset);
+  int32_t parametersOffset = uToKnotMapOffset + (this->mUmax + 1) * sizeof(int32_t);
+  if (this->mYdim > 0) {
+    parametersOffset = this->alignSize(parametersOffset, this->getParameterAlignmentBytes());
   }
   mParameters = reinterpret_cast<DataT*>(this->mFlatBufferPtr + parametersOffset);
 }
 
-template <class DataT, class FlatBase>
-void Spline1DContainerBase<DataT, FlatBase>::setFutureBufferAddress(char* futureFlatBufferPtr)
+template <class DataT>
+void Spline1DContainer<DataT, FlatObject>::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
-  mUtoKnotMap = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mUtoKnotMap);
-  mParameters = FlatBase::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, mParameters);
-  FlatBase::setFutureBufferAddress(futureFlatBufferPtr);
+  this->mUtoKnotMap = FlatObject::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, this->mUtoKnotMap);
+  this->mParameters = FlatObject::relocatePointer(this->mFlatBufferPtr, futureFlatBufferPtr, this->mParameters);
+  FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
-
-#if !defined(GPUCA_STANDALONE)
-template <class DataT, class FlatBase>
-int32_t Spline1DContainerBase<DataT, FlatBase>::test(const bool draw, const bool drawDataPoints)
-{
-  return Spline1DHelper<DataT>::test(draw, drawDataPoints);
-}
-#endif // GPUCA_STANDALONE
 
 template class o2::gpu::Spline1DContainerBase<float>;
 template class o2::gpu::Spline1DContainerBase<double>;
@@ -296,5 +279,7 @@ template class o2::gpu::Spline1DContainerBase<double, o2::gpu::NoFlatObject>;
 template class o2::gpu::Spline1DContainer<float, o2::gpu::NoFlatObject>;
 template class o2::gpu::Spline1DContainer<double, o2::gpu::NoFlatObject>;
 // importFrom instantiation for the FlatObject -> NoFlatObject conversion used in create()
-template void o2::gpu::Spline1DContainerBase<float, o2::gpu::NoFlatObject>::importFrom<o2::gpu::FlatObject>(const o2::gpu::Spline1DContainerBase<float, o2::gpu::FlatObject>&);
-template void o2::gpu::Spline1DContainerBase<double, o2::gpu::NoFlatObject>::importFrom<o2::gpu::FlatObject>(const o2::gpu::Spline1DContainerBase<double, o2::gpu::FlatObject>&);
+template void o2::gpu::Spline1DContainer<float, o2::gpu::NoFlatObject>::importFrom<o2::gpu::FlatObject>(const o2::gpu::Spline1DContainerBase<float, o2::gpu::FlatObject>&);
+template void o2::gpu::Spline1DContainer<double, o2::gpu::NoFlatObject>::importFrom<o2::gpu::FlatObject>(const o2::gpu::Spline1DContainerBase<double, o2::gpu::FlatObject>&);
+// importFrom for FlatObject container (FlatObject -> FlatObject, e.g. when using as a copy tool)
+template void o2::gpu::Spline1DContainer<float, o2::gpu::FlatObject>::importFrom<o2::gpu::FlatObject>(const o2::gpu::Spline1DContainerBase<float, o2::gpu::FlatObject>&);

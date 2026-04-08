@@ -288,8 +288,8 @@ template <typename DataT>
 void Spline2DHelper<DataT>::getScoefficients(int32_t iu, int32_t iv, double u, double v,
                                              double coeff[16], int32_t indices[16])
 {
-  const typename Spline1D<double>::Knot& knotU = fGridU.getKnot(iu);
-  const typename Spline1D<double>::Knot& knotV = fGridV.getKnot(iv);
+  const Knot<double>& knotU = fGridU.getKnot(iu);
+  const Knot<double>& knotV = fGridV.getKnot(iv);
   int32_t nu = fGridU.getNumberOfKnots();
 
   // indices of parameters that are involved in spline calculation, 1D case

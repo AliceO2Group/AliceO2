@@ -47,8 +47,7 @@ template <typename DataT>
 class SplineContainer : public FlatObject
 {
  public:
-  typedef typename Spline1D<DataT>::SafetyLevel SafetyLevel;
-  typedef typename Spline1D<DataT>::Knot Knot;
+  using KnotType = Knot<DataT>;
 
   /// _____________  Version control __________________________
 
@@ -261,8 +260,7 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
   typedef SplineContainer<DataT> TBase;
 
  public:
-  typedef typename TBase::SafetyLevel SafetyLevel;
-  typedef typename TBase::Knot Knot;
+  using KnotType = Knot<DataT>;
 
   /// _______________  Interpolation math   ________________________
 
@@ -341,10 +339,10 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
         } // end for j (every parametertype)
       } // end for i (every knot)
 
-      const typename Spline1D<DataT>::Knot& knotL = mGrid[d].getKnot(indices[d]);
+      const typename Spline1D<DataT>::KnotType& knotL = mGrid[d].getKnot(indices[d]);
       DataT coordinate = u[d];
-      typedef Spline1DSpec<DataT, 0, 0> TGridX;
-      const TGridX& gridX = *((const TGridX*)&(mGrid[d]));
+      using GridXBase = Spline1DSpec<DataT, 0, 0>;
+      const GridXBase& gridX = *((const GridXBase*)&(mGrid[d]));
       gridX.interpolateAtU(nInterpolations, knotL, S0, D0, S1, D1, coordinate, iParameters);
       nInterpolations /= 4;
       nKnots /= 2;
@@ -376,8 +374,6 @@ class SplineSpec<DataT, XdimT, YdimT, 1>
   typedef SplineSpec<DataT, XdimT, YdimT, 0> TBase;
 
  public:
-  typedef typename TVeryBase::SafetyLevel SafetyLevel;
-
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor
   SplineSpec() : SplineSpec(nullptr) {}
@@ -447,8 +443,6 @@ class SplineSpec<DataT, XdimT, YdimT, 2>
   typedef SplineSpec<DataT, XdimT, YdimT, 0> TBase;
 
  public:
-  typedef typename TVeryBase::SafetyLevel SafetyLevel;
-
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor
   SplineSpec() : SplineSpec((XdimT > 0 ? XdimT : 0), (YdimT > 0 ? YdimT : 0), nullptr) {}

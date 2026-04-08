@@ -81,8 +81,7 @@ class Spline
   typedef SplineSpec<DataT, XdimT, YdimT, SplineUtil::getSpec(XdimT, YdimT)> TBase;
 
  public:
-  typedef typename TVeryBase::SafetyLevel SafetyLevel;
-  typedef typename TVeryBase::Knot Knot;
+  using KnotType = Knot<DataT>;
 
 #if !defined(GPUCA_GPUCODE)
   using TBase::TBase; // inherit constructors

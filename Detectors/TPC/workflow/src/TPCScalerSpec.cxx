@@ -220,7 +220,7 @@ class TPCScalerSpec : public Task
     Output corrMapOutput{header::gDataOriginTPC, "TPCCORRMAP", 0};
     auto outputBuffer = o2::pmr::vector<char>(pc.outputs().getMemoryResource(corrMapOutput));
     outputBuffer.resize(TPCFastTransformPOD::estimateSize(finalMap.getCorrection()));
-    auto* pod = TPCFastTransformPOD::create(outputBuffer.data(), outputBuffer.size(), finalMap.getCorrection());
+    auto* pod = TPCFastTransformPOD::create(outputBuffer.data(), outputBuffer.size(), finalMap);
     const auto& vd = mTPCVDriftHelper.getVDriftObject();
     o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*pod, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
     pc.outputs().adoptContainer(corrMapOutput, std::move(outputBuffer));

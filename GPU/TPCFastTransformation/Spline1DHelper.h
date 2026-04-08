@@ -52,25 +52,25 @@ class Spline1DHelper
   /// _______________  Main functionality  ________________________
 
   /// Create best-fit spline parameters for a set of data points
-  void approximateDataPoints(Spline1DContainerBase<DataT, FlatObject>& spline,
+  void approximateDataPoints(Spline1DContainer<DataT, FlatObject>& spline,
                              double xMin, double xMax,
                              const double vx[], const double vf[], int32_t nDataPoints);
 
   /// Create best-fit spline parameters for a function F
   void approximateFunction(
-    Spline1DContainerBase<DataT, FlatObject>& spline, double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
+    Spline1DContainer<DataT, FlatObject>& spline, double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
     int32_t nAuxiliaryDataPoints = 4);
 
   /// Approximate only derivatives assuming the spline values at knozts are already set
-  void approximateDerivatives(Spline1DContainerBase<DataT, FlatObject>& spline,
+  void approximateDerivatives(Spline1DContainer<DataT, FlatObject>& spline,
                               const double vx[], const double vf[], int32_t nDataPoints);
 
   void approximateFunctionGradually(
-    Spline1DContainerBase<DataT, FlatObject>& spline, double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
+    Spline1DContainer<DataT, FlatObject>& spline, double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
     int32_t nAuxiliaryDataPoints);
 
   /// Create classic spline parameters for a given input function F
-  void approximateFunctionClassic(Spline1DContainerBase<DataT, FlatObject>& spline,
+  void approximateFunctionClassic(Spline1DContainer<DataT, FlatObject>& spline,
                                   double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F);
 
   /// _______________  Utilities   ________________________
@@ -79,21 +79,21 @@ class Spline1DHelper
 
   /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
   /// over the spline values Sl, Sr and the slopes Dl, Dr
-  static void getScoefficients(const typename Spline1D<double>::Knot& knotL, double u,
+  static void getScoefficients(const typename Spline1D<double>::KnotType& knotL, double u,
                                double& cSl, double& cDl, double& cSr, double& cDr);
 
-  static void getDScoefficients(const typename Spline1D<double>::Knot& knotL, double u,
+  static void getDScoefficients(const typename Spline1D<double>::KnotType& knotL, double u,
                                 double& cSl, double& cDl, double& cSr, double& cDr);
 
-  static void getDDScoefficients(const typename Spline1D<double>::Knot& knotL, double u,
+  static void getDDScoefficients(const typename Spline1D<double>::KnotType& knotL, double u,
                                  double& cSl, double& cDl, double& cSr, double& cDr);
 
-  static void getDDScoefficientsLeft(const typename Spline1D<double>::Knot& knotL,
+  static void getDDScoefficientsLeft(const typename Spline1D<double>::KnotType& knotL,
                                      double& cSl, double& cDl, double& cSr, double& cDr);
 
-  static void getDDScoefficientsRight(const typename Spline1D<double>::Knot& knotL,
+  static void getDDScoefficientsRight(const typename Spline1D<double>::KnotType& knotL,
                                       double& cSl, double& cDl, double& cSr, double& cDr);
-  static void getDDDScoefficients(const typename Spline1D<double>::Knot& knotL,
+  static void getDDDScoefficients(const typename Spline1D<double>::KnotType& knotL,
                                   double& cSl, double& cDl, double& cSr, double& cDr);
 
   ///  Gives error string
@@ -110,9 +110,9 @@ class Spline1DHelper
 
   std::string mError = ""; ///< error string
 
-  void setSpline(const Spline1DContainerBase<DataT, FlatObject>& spline);
+  void setSpline(const Spline1DContainer<DataT, FlatObject>& spline);
 
-  void makeDataPoints(Spline1DContainerBase<DataT, FlatObject>& spline, double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
+  void makeDataPoints(Spline1DContainer<DataT, FlatObject>& spline, double xMin, double xMax, std::function<void(double x, double f[/*spline.getFdimensions()*/])> F,
                       int32_t nAuxiliaryDataPoints, std::vector<double>& vx, std::vector<double>& vf);
 
   /// helpers for the construction of 1D spline

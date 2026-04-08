@@ -76,19 +76,16 @@ class Spline2DBase
   : public Spline2DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT), FlatBase>
 {
  protected:
-  typedef Spline2DContainerBase<DataT, FlatBase> TVeryBase;
-  typedef Spline2DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT), FlatBase> TBase;
+  using Container = Spline2DContainerBase<DataT, FlatBase>;
+  using ParentSpec = Spline2DSpec<DataT, YdimT, SplineUtil::getSpec(YdimT), FlatBase>;
 
  public:
-  typedef typename TVeryBase::SafetyLevel SafetyLevel;
-  typedef typename TVeryBase::Knot Knot;
-
 #if !defined(GPUCA_GPUCODE)
-  using TBase::TBase; // inherit constructors
+  using ParentSpec::ParentSpec; // inherit constructors
 
   Spline2DBase& operator=(const Spline2DBase& v)
   {
-    static_cast<TVeryBase*>(this)->cloneFromObject(v, nullptr);
+    static_cast<Container*>(this)->cloneFromObject(v, nullptr);
     return *this;
   }
 #else
@@ -99,7 +96,7 @@ class Spline2DBase
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   static Spline2DBase* readFromFile(TFile& inpf, const char* name)
   {
-    return (Spline2DBase*)TVeryBase::readFromFile(inpf, name);
+    return (Spline2DBase*)Container::readFromFile(inpf, name);
   }
 #endif
 };

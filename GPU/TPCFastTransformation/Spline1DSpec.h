@@ -33,6 +33,20 @@ namespace o2
 namespace gpu
 {
 
+/// The struct Knot represents the i-th knot and the segment [knot_i, knot_i+1]
+///
+template <typename DataT>
+struct Knot {
+  DataT u;  ///< u coordinate of the knot i (an integer number in float format)
+  DataT Li; ///< inverse length of the [knot_i, knot_{i+1}] segment ( == 1./ a (small) integer )
+  /// Get u as an integer
+  GPUd() int32_t getU() const { return (int32_t)(u + 0.1f); }
+};
+
+/// Named enumeration for the safety level used by some methods
+enum SafetyLevel { kNotSafe,
+                   kSafe };
+
 /// ==================================================================================================
 /// The class Spline1DContainerBase is a base class of Spline1D.
 /// It contains all the class members and those methods which only depends on the DataT data type.
@@ -46,19 +60,6 @@ template <typename DataT, class FlatBase = FlatObject>
 class Spline1DContainerBase : public FlatBase
 {
  public:
-  /// Named enumeration for the safety level used by some methods
-  enum SafetyLevel { kNotSafe,
-                     kSafe };
-
-  /// The struct Knot represents the i-th knot and the segment [knot_i, knot_i+1]
-  ///
-  struct Knot {
-    DataT u;  ///< u coordinate of the knot i (an integer number in float format)
-    DataT Li; ///< inverse length of the [knot_i, knot_{i+1}] segment ( == 1./ a (small) integer )
-    /// Get u as an integer
-    GPUd() int32_t getU() const { return (int32_t)(u + 0.1f); }
-  };
-
   /// _____________  Version control __________________________
 
   /// Version control
@@ -74,25 +75,6 @@ class Spline1DContainerBase : public FlatBase
 
   /// Destructor
   ~Spline1DContainerBase() = default;
-
-  /// _______________  Construction interface  ________________________
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-  /// approximate a function F with this spline
-  void approximateFunction(double xMin, double xMax,
-                           std::function<void(double x, double f[/*mYdim*/])> F,
-                           int32_t nAuxiliaryDataPoints = 4);
-#endif
-
-  /// _______________  IO   ________________________
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-  /// write a class object to the file
-  int32_t writeToFile(TFile& outf, const char* name);
-
-  /// read a class object from the file
-  static Spline1DContainerBase* readFromFile(TFile& inpf, const char* name);
-#endif
 
   /// _______________  Getters   ________________________
 
@@ -118,70 +100,7 @@ class Spline1DContainerBase : public FlatBase
   /// Get a number of knots
   GPUd() int32_t getNumberOfKnots() const { return mNumberOfKnots; }
 
-  /// Get the array of knots
-  GPUd() const Knot* getKnots() const { return reinterpret_cast<const Knot*>(this->mFlatBufferPtr); }
-
-  /// Get i-th knot
-  template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() const Knot& getKnot(int32_t i) const
-  {
-    if (SafeT == SafetyLevel::kSafe) {
-      i = (i < 0) ? 0 : (i >= mNumberOfKnots ? mNumberOfKnots - 1 : i);
-    }
-    return getKnots()[i];
-  }
-
-  /// Get index of an associated knot for a given U coordinate. Performs a boundary check.
-  template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() int32_t getLeftKnotIndexForU(DataT u) const;
-
-  /// Get spline parameters
-  GPUd() DataT* getParameters() { return mParameters; }
-
-  /// Get spline parameters const
-  GPUd() const DataT* getParameters() const { return mParameters; }
-
   /// _______________  Technical stuff  ________________________
-
-  /// Get a map (integer U -> corresponding knot index)
-  GPUd() const int32_t* getUtoKnotMap() const { return mUtoKnotMap; }
-
-  /// Get the knot array from an explicit flat buffer pointer.
-  /// Use this instead of getKnots() when the object was copied across process
-  /// boundaries and mFlatBufferPtr has not been fixed up (zero-copy path).
-  GPUd() const Knot* getKnotsFromBuffer(const char* flatBuf) const
-  {
-    return reinterpret_cast<const Knot*>(flatBuf);
-  }
-
-  /// Get i-th knot from an explicit flat buffer pointer.
-  /// Use this instead of getKnot() on the zero-copy path.
-  template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() const Knot& getKnotFromBuffer(const char* flatBuf, int32_t i) const
-  {
-    if (SafeT == SafetyLevel::kSafe) {
-      i = (i < 0) ? 0 : (i >= mNumberOfKnots ? mNumberOfKnots - 1 : i);
-    }
-    return getKnotsFromBuffer(flatBuf)[i];
-  }
-
-  /// Get the U->knot-index map from an explicit flat buffer pointer.
-  GPUd() const int32_t* getUtoKnotMapFromBuffer(const char* flatBuf) const
-  {
-    return reinterpret_cast<const int32_t*>(flatBuf + mNumberOfKnots * sizeof(Knot));
-  }
-
-  /// Map a U coordinate to its left knot index, using an explicit flat buffer pointer.
-  /// Use this instead of getLeftKnotIndexForU() on the zero-copy path.
-  template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() int32_t getLeftKnotIndexForUFromBuffer(const char* flatBuf, DataT u) const
-  {
-    int32_t iu = u < 0 ? 0 : (u > (float)mUmax ? mUmax : (int32_t)u);
-    if (SafeT == SafetyLevel::kSafe) {
-      iu = (iu < 0) ? 0 : (iu > mUmax ? mUmax : iu);
-    }
-    return getUtoKnotMapFromBuffer(flatBuf)[iu];
-  }
 
   /// Convert X coordinate to U
   GPUd() DataT convXtoU(DataT x) const { return (x - mXmin) * mXtoUscale; }
@@ -201,66 +120,17 @@ class Spline1DContainerBase : public FlatBase
   /// Set X range
   GPUd() void setXrange(DataT xMin, DataT xMax);
 
-  /// Print method
-  void print() const;
-
   ///  _______________  Expert tools  _______________
 
   /// Number of parameters for given Y dimensions
   GPUd() int32_t calcNumberOfParameters(int32_t nYdim) const { return (2 * nYdim) * getNumberOfKnots(); }
 
-  ///_______________  Test tools  _______________
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
-  /// Test the class functionality
-  static int32_t test(const bool draw = 0, const bool drawDataPoints = 1);
-#endif
-
-  /// _____________  FlatObject functionality, see FlatObject class for description  ____________
-
-  using FlatBase::getBufferAlignmentBytes;
-  using FlatBase::getClassAlignmentBytes;
-
-#if !defined(GPUCA_GPUCODE)
-  void cloneFromObject(const Spline1DContainerBase& obj, char* newFlatBufferPtr);
-  void moveBufferTo(char* newBufferPtr);
-
-  /// Copy schema fields from a spline with a different FlatBase (e.g. FlatObject -> NoFlatObject).
-  /// Pointer members (mUtoKnotMap, mParameters) are set to nullptr; call setActualBufferAddress() afterward.
-  template <class OtherFlatBase>
-  void importFrom(const Spline1DContainerBase<DataT, OtherFlatBase>& src);
-#endif
-
-  using FlatBase::releaseInternalBuffer;
-
-  void destroy();
-  void setActualBufferAddress(char* actualFlatBufferPtr);
-  void setFutureBufferAddress(char* futureFlatBufferPtr);
-
- protected:
-  /// Non-const accessor to the knots array
-  Knot* getKnots() { return reinterpret_cast<Knot*>(this->mFlatBufferPtr); }
-
-  /// Non-const accessor to U->knots map
-  int32_t* getUtoKnotMap() { return mUtoKnotMap; }
-
-#if !defined(GPUCA_GPUCODE)
-  /// Constructor for a regular spline
-  void recreate(int32_t nYdim, int32_t numberOfKnots);
-
-  /// Constructor for an irregular spline
-  void recreate(int32_t nYdim, int32_t numberOfKnots, const int32_t knotU[]);
-#endif
-
   /// _____________  Data members  ____________
-
-  int32_t mYdim = 0;              ///< dimentionality of F
-  int32_t mNumberOfKnots = 0;     ///< n knots on the grid
-  int32_t mUmax = 0;              ///< U of the last knot
-  DataT mXmin = 0;                ///< X of the first knot
-  DataT mXtoUscale = 0;           ///< a scaling factor to convert X to U
-  int32_t* mUtoKnotMap = nullptr; //! (transient!!) pointer to (integer U -> knot index) map inside the mFlatBufferPtr array
-  DataT* mParameters = nullptr;   //! (transient!!) pointer to F-dependent parameters inside the mFlatBufferPtr array
+  int32_t mYdim = 0;          ///< dimentionality of F
+  int32_t mNumberOfKnots = 0; ///< n knots on the grid
+  int32_t mUmax = 0;          ///< U of the last knot
+  DataT mXmin = 0;            ///< X of the first knot
+  DataT mXtoUscale = 0;       ///< a scaling factor to convert X to U
 };
 
 template <typename DataT, typename FlatBase = FlatObject>
@@ -269,30 +139,157 @@ class Spline1DContainer; // forward declaration
 template <typename DataT>
 class Spline1DContainer<DataT, FlatObject> : public Spline1DContainerBase<DataT, FlatObject>
 {
-public:
-    using Base = Spline1DContainerBase<DataT, FlatObject>;
-    using Base::Base;
+ public:
+  /// Get a map (integer U -> corresponding knot index)
+  GPUd() const int32_t* getUtoKnotMap() const { return mUtoKnotMap; }
 
-    ClassDefNV(Spline1DContainer, 1);
+  /// Get the array of knots
+  GPUd() const Knot<DataT>* getKnots() const { return reinterpret_cast<const Knot<DataT>*>(this->mFlatBufferPtr); }
+
+  /// Get i-th knot
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() const Knot<DataT>& getKnot(int32_t i) const
+  {
+    if (SafeT == SafetyLevel::kSafe) {
+      i = (i < 0) ? 0 : (i >= this->getNumberOfKnots() ? this->getNumberOfKnots() - 1 : i);
+    }
+    return getKnots()[i];
+  }
+
+  /// Get index of an associated knot for a given U coordinate. Performs a boundary check.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() int32_t getLeftKnotIndexForU(DataT u) const;
+
+  /// Get spline parameters
+  GPUd() DataT* getParameters() { return mParameters; }
+
+  /// Get spline parameters const
+  GPUd() const DataT* getParameters() const { return mParameters; }
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  /// approximate a function F with this spline
+  void approximateFunction(double xMin, double xMax, std::function<void(double x, double f[])> F, int32_t nAuxiliaryDataPoints = 4);
+
+  /// write a class object to the file
+  int32_t writeToFile(TFile& outf, const char* name);
+
+  /// read a class object from the file
+  static Spline1DContainer* readFromFile(TFile& inpf, const char* name);
+
+  /// Test the class functionality
+  static int32_t test(const bool draw = 0, const bool drawDataPoints = 1);
+#endif
+
+  /// Print method
+  void print() const;
+
+#if !defined(GPUCA_GPUCODE)
+  void cloneFromObject(const Spline1DContainer& obj, char* newFlatBufferPtr);
+  void moveBufferTo(char* newBufferPtr);
+
+  /// Copy schema fields from a spline with a different FlatBase.
+  /// mUtoKnotMap and mParameters are set to nullptr; call setActualBufferAddress() afterward.
+  template <class OtherFlatBase>
+  void importFrom(const Spline1DContainerBase<DataT, OtherFlatBase>& src);
+#endif
+
+  void destroy();
+  void setActualBufferAddress(char* actualFlatBufferPtr);
+  void setFutureBufferAddress(char* futureFlatBufferPtr);
+
+ protected:
+#if !defined(GPUCA_GPUCODE)
+  void recreate(int32_t nYdim, int32_t numberOfKnots);
+  void recreate(int32_t nYdim, int32_t numberOfKnots, const int32_t knotU[]);
+#endif
+
+  /// Non-const accessor to U->knots map
+  int32_t* getUtoKnotMap() { return mUtoKnotMap; }
+
+  /// Non-const accessor to the knots array
+  Knot<DataT>* getKnots() { return reinterpret_cast<Knot<DataT>*>(this->mFlatBufferPtr); }
+
+  int32_t* mUtoKnotMap = nullptr; //! (transient!!) pointer to (integer U -> knot index) map inside the mFlatBufferPtr array
+  DataT* mParameters = nullptr;   //! (transient!!) pointer to F-dependent parameters inside the mFlatBufferPtr array
+
+  ClassDefNV(Spline1DContainer, 1);
 };
 
 template <typename DataT>
 class Spline1DContainer<DataT, NoFlatObject> : public Spline1DContainerBase<DataT, NoFlatObject>
 {
-public:
-    using Base = Spline1DContainerBase<DataT, NoFlatObject>;
-    using Base::Base;
+ public:
+  /// Get the U->knot-index map from an explicit flat buffer pointer.
+  GPUd() const int32_t* getUtoKnotMapFromBuffer(const char* flatBuf) const
+  {
+    return reinterpret_cast<const int32_t*>(flatBuf + this->getNumberOfKnots() * sizeof(Knot<DataT>));
+  }
+
+  /// Map a U coordinate to its left knot index, using an explicit flat buffer pointer.
+  /// Use this instead of getLeftKnotIndexForU() on the zero-copy path.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() int32_t getLeftKnotIndexForUFromBuffer(const char* flatBuf, DataT u) const
+  {
+    int32_t iu = u < 0 ? 0 : (u > (float)this->mUmax ? this->mUmax : (int32_t)u);
+    if (SafeT == SafetyLevel::kSafe) {
+      iu = (iu < 0) ? 0 : (iu > this->mUmax ? this->mUmax : iu);
+    }
+    return getUtoKnotMapFromBuffer(flatBuf)[iu];
+  }
+
+  /// Get the knot array from an explicit flat buffer pointer.
+  /// Use this instead of getKnots() when the object was copied across process
+  /// boundaries and mFlatBufferPtr has not been fixed up (zero-copy path).
+  GPUd() const Knot<DataT>* getKnotsFromBuffer(const char* flatBuf) const { return reinterpret_cast<const Knot<DataT>*>(flatBuf); }
+
+  /// Get i-th knot from an explicit flat buffer pointer.
+  /// Use this instead of getKnot() on the zero-copy path.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() const Knot<DataT>& getKnotFromBuffer(const char* flatBuf, int32_t i) const
+  {
+    if (SafeT == SafetyLevel::kSafe) {
+      i = (i < 0) ? 0 : (i >= this->getNumberOfKnots() ? this->getNumberOfKnots() - 1 : i);
+    }
+    return getKnotsFromBuffer(flatBuf)[i];
+  }
+
+  // Lifecycle no-ops: NoFlatObject splines have no owned buffer.
+  void destroy()
+  {
+    this->mNumberOfKnots = 0;
+    this->mUmax = 0;
+    this->mYdim = 0;
+    this->mXmin = 0.;
+    this->mXtoUscale = 1.;
+    this->mFlatBufferSize = 0;
+  }
+  GPUdi() void setActualBufferAddress(char*) {}
+  GPUdi() void setFutureBufferAddress(char*) {}
+
+#if !defined(GPUCA_GPUCODE)
+  /// Copy schema fields from a spline with a different FlatBase (no pointer members to copy).
+  template <class OtherFlatBase>
+  void importFrom(const Spline1DContainerBase<DataT, OtherFlatBase>& src)
+  {
+    this->mYdim = src.getYdimensions();
+    this->mNumberOfKnots = src.getNumberOfKnots();
+    this->mUmax = src.getUmax();
+    this->mXmin = src.getXmin();
+    this->mXtoUscale = src.getXtoUscale();
+    this->mFlatBufferSize = src.getFlatBufferSize();
+  }
+#endif
 };
 
-template <typename DataT, class FlatBase>
-template <typename Spline1DContainerBase<DataT, FlatBase>::SafetyLevel SafeT>
-GPUdi() int32_t Spline1DContainerBase<DataT, FlatBase>::getLeftKnotIndexForU(DataT u) const
+template <typename DataT>
+template <SafetyLevel SafeT>
+GPUdi() int32_t Spline1DContainer<DataT, FlatObject>::getLeftKnotIndexForU(DataT u) const
 {
   /// Get i: u is in [knot_i, knot_{i+1}) segment
   /// when u is otside of [0, mUmax], return a corresponding edge segment
-  int32_t iu = u < 0 ? 0 : (u > (float)mUmax ? mUmax : (int32_t)u);
+  int32_t iu = u < 0 ? 0 : (u > (float)this->mUmax ? this->mUmax : (int32_t)u);
   if (SafeT == SafetyLevel::kSafe) {
-    iu = (iu < 0) ? 0 : (iu > mUmax ? mUmax : iu);
+    iu = (iu < 0) ? 0 : (iu > this->mUmax ? this->mUmax : iu);
   }
   return getUtoKnotMap()[iu];
 }
@@ -305,7 +302,7 @@ GPUdi() void Spline1DContainerBase<DataT, FlatBase>::setXrange(DataT xMin, DataT
   if (l < 1.e-8) {
     l = 1.e-8;
   }
-  mXtoUscale = mUmax / l;
+  mXtoUscale = this->mUmax / l;
 }
 
 /// ==================================================================================================
@@ -336,39 +333,41 @@ class Spline1DSpec;
 /// Implementations of the methods may depend on the YdimT value.
 ///
 template <typename DataT, int32_t YdimT, class FlatBase>
-class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<DataT, FlatBase>
+class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainer<DataT, FlatBase>
 {
-  typedef Spline1DContainerBase<DataT, FlatBase> TBase;
+  using Container = Spline1DContainer<DataT, FlatBase>;
 
  public:
-  typedef typename TBase::SafetyLevel SafetyLevel;
-  typedef typename TBase::Knot Knot;
+  using KnotType = Knot<DataT>;
 
   /// _______________  Interpolation math   ________________________
 
-  /// Get interpolated value S(x)
+  /// Get interpolated value S(x)  [FlatObject path only]
   GPUd() void interpolate(DataT x, GPUgeneric() DataT S[/*mYdim*/]) const
   {
-    interpolateAtU<SafetyLevel::kSafe>(mYdim, mParameters, convXtoU(x), S);
+    if constexpr (std::is_same_v<FlatBase, FlatObject>) {
+      interpolateAtU<SafetyLevel::kSafe>(this->mYdim, this->mParameters, this->convXtoU(x), S);
+    }
   }
 
   /// Get interpolated value for an nYdim-dimensional S(u) using spline parameters Parameters.
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() void interpolateAtU(int32_t inpYdim, GPUgeneric() const DataT Parameters[],
-                             DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
+  GPUd() void interpolateAtU(int32_t inpYdim, GPUgeneric() const DataT Parameters[], DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
   {
-    const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
-    const auto nYdim = nYdimTmp.get();
-    int32_t iknot = TBase::template getLeftKnotIndexForU<SafeT>(u);
-    const DataT* d = Parameters + (2 * nYdim) * iknot;
-    interpolateAtU(nYdim, getKnots()[iknot], &(d[0]), &(d[nYdim]), &(d[2 * nYdim]), &(d[3 * nYdim]), u, S);
+    if constexpr (std::is_same_v<FlatBase, FlatObject>) {
+      const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
+      const auto nYdim = nYdimTmp.get();
+      int32_t iknot = this->template getLeftKnotIndexForU<SafeT>(u);
+      const DataT* d = Parameters + (2 * nYdim) * iknot;
+      interpolateAtU(nYdim, this->getKnots()[iknot], &(d[0]), &(d[nYdim]), &(d[2 * nYdim]), &(d[3 * nYdim]), u, S);
+    }
   }
 
   /// The main mathematical utility.
   /// Get interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
   /// using the spline values Sl, Sr and the slopes Dl, Dr
   template <typename T>
-  GPUd() void interpolateAtU(int32_t inpYdim, const Knot& knotL,
+  GPUd() void interpolateAtU(int32_t inpYdim, const KnotType& knotL,
                              GPUgeneric() const T Sl[/*mYdim*/], GPUgeneric() const T Dl[/*mYdim*/],
                              GPUgeneric() const T Sr[/*mYdim*/], GPUgeneric() const T Dr[/*mYdim*/],
                              DataT u, GPUgeneric() T S[/*mYdim*/]) const
@@ -389,8 +388,8 @@ class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<Dat
     if (u < (DataT)0) {
       u = (DataT)0;
     }
-    if (u > (DataT)TBase::getUmax()) {
-      u = (DataT)TBase::getUmax();
+    if (u > (DataT)ParentSpec::getUmax()) {
+      u = (DataT)ParentSpec::getUmax();
     }
 
     T uu = T(u - knotL.u);
@@ -406,7 +405,7 @@ class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<Dat
   }
 
   template <typename T>
-  GPUd() void getSderivativesOverParsAtU(const Knot& knotL, DataT u, T& dSdSl, T& dSdDl, T& dSdSr, T& dSdDr) const
+  GPUd() void getSderivativesOverParsAtU(const KnotType& knotL, DataT u, T& dSdSl, T& dSdDl, T& dSdSr, T& dSdDr) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
     /// over the spline parameters Sl(eft), Sr(ight) and the slopes Dl, Dr
@@ -414,8 +413,8 @@ class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<Dat
     if (u < (DataT)0) {
       u = (DataT)0;
     }
-    if (u > (DataT)TBase::getUmax()) {
-      u = (DataT)TBase::getUmax();
+    if (u > (DataT)Container::getUmax()) {
+      u = (DataT)Container::getUmax();
     }
 
     u = u - knotL.u;
@@ -431,7 +430,7 @@ class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<Dat
   }
 
   template <typename T>
-  GPUd() void getSDderivativesOverParsAtU(const Knot& knotL, DataT u, T& dSdSl, T& dSdDl, T& dSdSr, T& dSdDr, T& dDdSl, T& dDdDl, T& dDdSr, T& dDdDr) const
+  GPUd() void getSDderivativesOverParsAtU(const KnotType& knotL, DataT u, T& dSdSl, T& dSdDl, T& dSdSr, T& dSdDr, T& dDdSl, T& dDdDl, T& dDdSr, T& dDdDr) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
     /// over the spline values Sl, Sr and the slopes Dl, Dr
@@ -439,8 +438,8 @@ class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<Dat
     if (u < (DataT)0) {
       u = (DataT)0;
     }
-    if (u > (DataT)TBase::getUmax()) {
-      u = (DataT)TBase::getUmax();
+    if (u > (DataT)Container::getUmax()) {
+      u = (DataT)Container::getUmax();
     }
 
     u = u - knotL.u;
@@ -461,17 +460,6 @@ class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<Dat
     // S(u) = dSdSl * Sl + dSdSr * Sr + dSdDl * Dl + dSdDr * Dr;
     // D(u) = dS(u)/du = dDdSl * Sl + dDdSr * Sr + dDdDl * Dl + dDdDr * Dr;
   }
-
-  using TBase::convXtoU;
-  using TBase::getKnot;
-  using TBase::getKnots;
-  using TBase::getNumberOfKnots;
-
- protected:
-  using TBase::mParameters;
-  using TBase::mYdim;
-  using TBase::TBase; // inherit constructors and hide them
-  ClassDefNV(Spline1DSpec, 0);
 };
 
 /// ==================================================================================================
@@ -479,43 +467,34 @@ class Spline1DSpec<DataT, YdimT, 0, FlatBase> : public Spline1DContainerBase<Dat
 /// at the compile time
 ///
 template <typename DataT, int32_t YdimT, class FlatBase>
-class Spline1DSpec<DataT, YdimT, 1, FlatBase>
-  : public Spline1DSpec<DataT, YdimT, 0, FlatBase>
+class Spline1DSpec<DataT, YdimT, 1, FlatBase> : public Spline1DSpec<DataT, YdimT, 0, FlatBase>
 {
-  typedef Spline1DContainerBase<DataT, FlatBase> TVeryBase;
-  typedef Spline1DSpec<DataT, YdimT, 0, FlatBase> TBase;
+  using ParentSpec = Spline1DSpec<DataT, YdimT, 0, FlatBase>;
 
  public:
-  typedef typename TVeryBase::SafetyLevel SafetyLevel;
-
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor — skips recreate for NoFlatObject (no owned buffer)
-  Spline1DSpec() : TBase() { if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) { recreate(2); } }
+  Spline1DSpec() : ParentSpec()
+  {
+    if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+      recreate(2);
+    }
+  }
 
   /// Constructor for a regular spline
-  Spline1DSpec(int32_t numberOfKnots) : TBase()
-  {
-    recreate(numberOfKnots);
-  }
+  Spline1DSpec(int32_t numberOfKnots) : ParentSpec() { recreate(numberOfKnots); }
+
   /// Constructor for an irregular spline
-  Spline1DSpec(int32_t numberOfKnots, const int32_t knotU[])
-    : TBase()
-  {
-    recreate(numberOfKnots, knotU);
-  }
+  Spline1DSpec(int32_t numberOfKnots, const int32_t knotU[]) : ParentSpec() { recreate(numberOfKnots, knotU); }
+
   /// Copy constructor
-  Spline1DSpec(const Spline1DSpec& v) : TBase()
-  {
-    TBase::cloneFromObject(v, nullptr);
-  }
+  Spline1DSpec(const Spline1DSpec& v) : ParentSpec() { ParentSpec::cloneFromObject(v, nullptr); }
+
   /// Constructor for a regular spline
-  void recreate(int32_t numberOfKnots) { TBase::recreate(YdimT, numberOfKnots); }
+  void recreate(int32_t numberOfKnots) { ParentSpec::recreate(YdimT, numberOfKnots); }
 
   /// Constructor for an irregular spline
-  void recreate(int32_t numberOfKnots, const int32_t knotU[])
-  {
-    TBase::recreate(YdimT, numberOfKnots, knotU);
-  }
+  void recreate(int32_t numberOfKnots, const int32_t knotU[]) { ParentSpec::recreate(YdimT, numberOfKnots, knotU); }
 #endif
 
   /// Get number of Y dimensions
@@ -529,40 +508,30 @@ class Spline1DSpec<DataT, YdimT, 1, FlatBase>
   }
 
   /// Number of parameters
-  GPUd() int32_t getNumberOfParameters() const { return (2 * YdimT) * getNumberOfKnots(); }
+  GPUd() int32_t getNumberOfParameters() const { return (2 * YdimT) * this->getNumberOfKnots(); }
 
   /// Size of the parameter array in bytes
-  GPUd() size_t getSizeOfParameters() const { return (sizeof(DataT) * 2 * YdimT) * getNumberOfKnots(); }
+  GPUd() size_t getSizeOfParameters() const { return (sizeof(DataT) * 2 * YdimT) * this->getNumberOfKnots(); }
 
   ///  _______  Expert tools: interpolation with given nYdim and external Parameters _______
 
   /// Get interpolated value for an YdimT-dimensional S(u) using spline parameters Parameters.
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() void interpolateAtU(GPUgeneric() const DataT Parameters[],
-                             DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
+  GPUd() void interpolateAtU(GPUgeneric() const DataT Parameters[], DataT u, GPUgeneric() DataT S[/*nYdim*/]) const
   {
-    TBase::template interpolateAtU<SafeT>(YdimT, Parameters, u, S);
+    ParentSpec::template interpolateAtU<SafeT>(YdimT, Parameters, u, S);
   }
 
   /// Get interpolated value for an YdimT-dimensional S(u) at the segment [knotL, next knotR]
   /// using the spline values Sl, Sr and the slopes Dl, Dr
   template <typename T>
-  GPUd() void interpolateAtU(const typename TBase::Knot& knotL,
+  GPUd() void interpolateAtU(const typename ParentSpec::KnotType& knotL,
                              GPUgeneric() const T Sl[/*mYdim*/], GPUgeneric() const T Dl[/*mYdim*/],
                              GPUgeneric() const T Sr[/*mYdim*/], GPUgeneric() const T Dr[/*mYdim*/],
                              DataT u, GPUgeneric() T S[/*mYdim*/]) const
   {
-    TBase::interpolateAtU(YdimT, knotL, Sl, Dl, Sr, Dr, u, S);
+    ParentSpec::interpolateAtU(YdimT, knotL, Sl, Dl, Sr, Dr, u, S);
   }
-
-  using TBase::getNumberOfKnots;
-
-  /// _______________  Suppress some parent class methods   ________________________
- private:
-#if !defined(GPUCA_GPUCODE)
-  using TBase::recreate;
-#endif
-  using TBase::interpolateAtU;
 };
 
 /// ==================================================================================================
@@ -570,67 +539,61 @@ class Spline1DSpec<DataT, YdimT, 1, FlatBase>
 /// must be set in the runtime via a constructor parameter
 ///
 template <typename DataT, int32_t YdimT, class FlatBase>
-class Spline1DSpec<DataT, YdimT, 2, FlatBase>
-  : public Spline1DSpec<DataT, YdimT, 0, FlatBase>
+class Spline1DSpec<DataT, YdimT, 2, FlatBase> : public Spline1DSpec<DataT, YdimT, 0, FlatBase>
 {
-  typedef Spline1DContainerBase<DataT, FlatBase> TVeryBase;
-  typedef Spline1DSpec<DataT, YdimT, 0, FlatBase> TBase;
+  using ParentSpec = Spline1DSpec<DataT, YdimT, 0, FlatBase>;
+  using Container = Spline1DContainer<DataT, FlatBase>;
 
  public:
-  typedef typename TVeryBase::SafetyLevel SafetyLevel;
-
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor — skips recreate for NoFlatObject (no owned buffer)
-  Spline1DSpec() : TBase() { if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) { TBase::recreate(0, 2); } }
+  Spline1DSpec() : ParentSpec()
+  {
+    if constexpr (!std::is_same_v<FlatBase, NoFlatObject>) {
+      ParentSpec::recreate(0, 2);
+    }
+  }
 
   /// Constructor for a regular spline
-  Spline1DSpec(int32_t nYdim, int32_t numberOfKnots) : TBase()
+  Spline1DSpec(int32_t nYdim, int32_t numberOfKnots) : ParentSpec()
   {
-    TBase::recreate(nYdim, numberOfKnots);
+    ParentSpec::recreate(nYdim, numberOfKnots);
   }
+
   /// Constructor for an irregular spline
-  Spline1DSpec(int32_t nYdim, int32_t numberOfKnots, const int32_t knotU[]) : TBase()
+  Spline1DSpec(int32_t nYdim, int32_t numberOfKnots, const int32_t knotU[]) : ParentSpec()
   {
-    TBase::recreate(nYdim, numberOfKnots, knotU);
+    ParentSpec::recreate(nYdim, numberOfKnots, knotU);
   }
+
   /// Copy constructor
-  Spline1DSpec(const Spline1DSpec& v) : TBase()
+  Spline1DSpec(const Spline1DSpec& v) : ParentSpec()
   {
-    TVeryBase::cloneFromObject(v, nullptr);
+    Container::cloneFromObject(v, nullptr);
   }
+
   /// Constructor for a regular spline
-  void recreate(int32_t nYdim, int32_t numberOfKnots) { TBase::recreate(nYdim, numberOfKnots); }
+  void recreate(int32_t nYdim, int32_t numberOfKnots) { ParentSpec::recreate(nYdim, numberOfKnots); }
 
   /// Constructor for an irregular spline
-  void recreate(int32_t nYdim, int32_t numberOfKnots, const int32_t knotU[])
-  {
-    TBase::recreate(nYdim, numberOfKnots, knotU);
-  }
+  void recreate(int32_t nYdim, int32_t numberOfKnots, const int32_t knotU[]) { ParentSpec::recreate(nYdim, numberOfKnots, knotU); }
 #endif
-
-  ///  _______  Expert tools: interpolation with given nYdim and external Parameters _______
-
-  using TBase::interpolateAtU;
-  ClassDefNV(Spline1DSpec, 0);
 };
 
 /// ==================================================================================================
 /// Specialization 3, where the number of Y dimensions is 1.
 ///
 template <typename DataT, class FlatBase>
-class Spline1DSpec<DataT, 1, 3, FlatBase>
-  : public Spline1DSpec<DataT, 1, SplineUtil::getSpec(999), FlatBase>
+class Spline1DSpec<DataT, 1, 3, FlatBase> : public Spline1DSpec<DataT, 1, SplineUtil::getSpec(999), FlatBase>
 {
-  typedef Spline1DSpec<DataT, 1, SplineUtil::getSpec(999), FlatBase> TBase;
+  using ParentSpec = Spline1DSpec<DataT, 1, SplineUtil::getSpec(999), FlatBase>;
 
  public:
-  using TBase::TBase; // inherit constructors
-
   /// Simplified interface for 1D: return the interpolated value
   GPUd() DataT interpolate(DataT x) const
   {
     DataT S = 0;
-    TBase::interpolate(x, &S);
+    ParentSpec::interpolate(x, &S);
     return S;
   }
 };
