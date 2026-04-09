@@ -92,8 +92,8 @@ class DigiParams
 
   bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
-  const o2::trk::ChipSimResponse* getAlpSimResponse() const { return mAlpSimResponse.get(); }
-  void setAlpSimResponse(const o2::itsmft::AlpideSimResponse*);
+  const o2::trk::ChipSimResponse* getResponse() const { return mResponse.get(); }
+  void setResponse(const o2::itsmft::AlpideSimResponse*);
 
   const SignalShape& getSignalShape() const { return mSignalShape; }
   SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
@@ -123,7 +123,7 @@ class DigiParams
 
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 
-  std::unique_ptr<o2::trk::ChipSimResponse> mAlpSimResponse; //!< pointer on external response
+  std::unique_ptr<o2::trk::ChipSimResponse> mResponse; //!< pointer on external response
 
   // auxiliary precalculated parameters
   float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns

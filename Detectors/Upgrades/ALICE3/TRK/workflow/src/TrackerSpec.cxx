@@ -427,7 +427,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, o
   }
 
   // inputs.emplace_back("itscldict", "TRK", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
-  // inputs.emplace_back("itsalppar", "TRK", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  // inputs.emplace_back("TRK_almiraparam", "TRK", "ALMIRAPARAM", 0, Lifetime::Condition, ccdbParamSpec("TRK/Config/AlmiraParam"));
 
   // outputs.emplace_back("TRK", "TRACKCLSID", 0, Lifetime::Timeframe);
   // outputs.emplace_back("TRK", "TRKTrackROF", 0, Lifetime::Timeframe);

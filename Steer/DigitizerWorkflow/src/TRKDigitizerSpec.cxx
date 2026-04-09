@@ -27,7 +27,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "TRKSimulation/Digitizer.h"
 #include "TRKSimulation/DPLDigitizerParam.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "TRKBase/AlmiraParam.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/TRKBaseParam.h"
 
@@ -208,7 +208,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     if (!file) {
       LOG(fatal) << "Cannot open response file " << mLocalRespFile;
     }
-    mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)file->Get("response1"));
+    mDigitizer.getParams().setResponse((const o2::itsmft::AlpideSimResponse*)file->Get("response1"));
   }
 
   void updateTimeDependentParams(ProcessingContext& pc)
@@ -225,21 +225,15 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       mDigitizer.setGeometry(geom);
 
       const auto& dopt = o2::trk::DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
-      pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("ITS_alppar");
-      const auto& aopt = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-      digipar.setContinuous(dopt.continuous);
+      // pc.inputs().get<o2::trk::AlmiraParam*>("TRK_almiraparam");
+      const auto& aopt = o2::trk::AlmiraParam::Instance();
+      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+      digipar.setContinuous(true);
       digipar.setROFrameBiasInBC(aopt.roFrameBiasInBC);
-      if (dopt.continuous) {
-        auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
-        digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
-        digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
-        digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
-        digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
-      } else {
-        digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
-        digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
-        digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
-      }
+      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
+      digipar.setROFrameLength(frameNS); // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);
+      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay);
       // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
       digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
       digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -247,10 +241,8 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       digipar.setTimeOffset(dopt.timeOffset);
       digipar.setNSimSteps(dopt.nSimSteps);
 
-      mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
-      LOG(info) << mID.getName() << " simulated in "
-                << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
-                << " RO mode";
+      mROMode = o2::parameters::GRPObject::CONTINUOUS;
+      LOG(info) << mID.getName() << " simulated in CONTINUOUS RO mode";
 
       // if (oTRKParams::Instance().useDeadChannelMap) {
       //   pc.inputs().get<o2::itsmft::NoiseMap*>("TRK_dead"); // trigger final ccdb update
@@ -265,9 +257,9 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
-    if (matcher == ConcreteDataMatcher(detectors::DetID::ITS, "ALPIDEPARAM", 0)) {
-      LOG(info) << mID.getName() << " Alpide param updated";
-      const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    if (matcher == ConcreteDataMatcher(mOrigin, "ALMIRAPARAM", 0)) {
+      LOG(info) << mID.getName() << " Almira param updated";
+      const auto& par = o2::trk::AlmiraParam::Instance();
       par.printKeyValues();
       return;
     }
@@ -280,7 +272,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       LOG(info) << mID.getName() << " loaded APTSResponseData";
       if (mLocalRespFile.empty()) {
         LOG(info) << "Using CCDB/APTS response file";
-        mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)obj);
+        mDigitizer.getParams().setResponse((const o2::itsmft::AlpideSimResponse*)obj);
         mDigitizer.setResponseName("APTS");
       } else {
         LOG(info) << "Response function will be loaded from local file: " << mLocalRespFile;
@@ -318,7 +310,7 @@ DataProcessorSpec getTRKDigitizerSpec(int channel, bool mctruth)
   auto detOrig = o2::header::gDataOriginTRK;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  // inputs.emplace_back("TRK_almiraparam", "TRK", "ALMIRAPARAM", 0, Lifetime::Condition, ccdbParamSpec("TRK/Config/AlmiraParam"));
   // if (oTRKParams::Instance().useDeadChannelMap) {
   //   inputs.emplace_back("TRK_dead", "TRK", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("TRK/Calib/DeadMap"));
   // }

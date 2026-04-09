@@ -72,7 +72,7 @@ void DigiParams::print() const
   mSignalShape.print();
 }
 
-void DigiParams::setAlpSimResponse(const o2::itsmft::AlpideSimResponse* resp)
+void DigiParams::setResponse(const o2::itsmft::AlpideSimResponse* resp)
 {
   LOG(debug) << "Response function data path: " << resp->getDataPath();
   LOG(debug) << "Response function info: ";
@@ -80,5 +80,5 @@ void DigiParams::setAlpSimResponse(const o2::itsmft::AlpideSimResponse* resp)
   if (!resp) {
     LOGP(fatal, "cannot set response function from null");
   }
-  mAlpSimResponse = std::make_unique<o2::trk::ChipSimResponse>(resp);
+  mResponse = std::make_unique<o2::trk::ChipSimResponse>(resp);
 }

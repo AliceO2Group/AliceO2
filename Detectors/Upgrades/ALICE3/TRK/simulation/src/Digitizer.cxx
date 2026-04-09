@@ -50,7 +50,7 @@ void Digitizer::init()
   }
 
   // setting the correct response function (for the moment, for both VD and MLOT the same response function is used)
-  mChipSimResp = mParams.getAlpSimResponse();
+  mChipSimResp = mParams.getResponse();
   mChipSimRespVD = mChipSimResp;   /// for the moment considering the same response
   mChipSimRespMLOT = mChipSimResp; /// for the moment considering the same response
 
