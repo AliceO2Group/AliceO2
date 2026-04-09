@@ -23,8 +23,6 @@
 #include <TStopwatch.h>
 #endif
 
-#ifndef GPUCA_ALIGPUCODE // this part is invisible on GPU version
-
 o2::base::MatLayerCylSet mbLUT;
 
 bool testMBLUT(const std::string& lutFile = "matbud.root");
@@ -399,5 +397,3 @@ void configLayers()
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 500);
 }
-
-#endif //!_COMPILED_ON_GPU_

@@ -105,6 +105,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
 
   gpu::TPCFastTransformPOD::create(mCalibObjects.mFastTransformBuffer, *o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  mConfig->configCalib.fastTransform = mCalibObjects.mFastTransformBuffer.get();
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");

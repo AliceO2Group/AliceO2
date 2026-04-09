@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string_view>
 
+#ifndef GPUCA_STANDALONE
 // o2 includes
 #include "Framework/Logger.h"
 #include "DataFormatsTPC/Defs.h"
@@ -21,6 +22,7 @@
 
 // root includes
 #include "TFile.h"
+#endif
 
 using namespace o2::tpc;
 
@@ -36,6 +38,8 @@ void CalibdEdxCorrection::clear()
   }
   mDims = -1;
 }
+
+#ifndef GPUCA_STANDALONE
 
 void CalibdEdxCorrection::writeToFile(std::string_view fileName, std::string_view objName) const
 {
@@ -181,3 +185,5 @@ void CalibdEdxCorrection::setUnity()
   }
   mDims = 0;
 }
+
+#endif // GPUCA_STANDALONE

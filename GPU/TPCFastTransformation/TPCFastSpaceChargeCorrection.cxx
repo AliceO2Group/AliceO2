@@ -17,12 +17,11 @@
 #include "TPCFastSpaceChargeCorrection.h"
 #include "GPUCommonLogger.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <sstream>
 #include "Spline2DHelper.h"
-#endif
 
 using namespace o2::gpu;
 
@@ -48,10 +47,8 @@ TPCFastSpaceChargeCorrection::~TPCFastSpaceChargeCorrection()
 
 void TPCFastSpaceChargeCorrection::releaseConstructionMemory()
 {
-// release temporary arrays
-#if !defined(GPUCA_GPUCODE)
+  // release temporary arrays
   delete[] mConstructionScenarios;
-#endif
   mConstructionScenarios = nullptr;
 }
 
@@ -474,8 +471,6 @@ void TPCFastSpaceChargeCorrection::print() const
   }
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-
 void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& geo, int32_t numberOfSplineScenarios)
 {
   /// Starts the construction procedure, reserves temporary memory
@@ -489,9 +484,7 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
 
   releaseConstructionMemory();
 
-#if !defined(GPUCA_GPUCODE)
   mConstructionScenarios = new SplineType[mNumberOfScenarios];
-#endif
 
   assert(mConstructionScenarios != nullptr);
 
@@ -558,7 +551,7 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
 
   for (int32_t i = 0; i < mGeo.getNumberOfSectors(); i++) {
     for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
-      SectorRowInfo& row = getSectorRowInfo(i, j);
+      [[maybe_unused]] SectorRowInfo& row = getSectorRowInfo(i, j);
       assert(row.splineScenarioID >= 0);
       assert(row.splineScenarioID < mNumberOfScenarios);
     }
@@ -782,5 +775,3 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
 
   return maxD.V;
 }
-
-#endif // GPUCA_GPUCODE

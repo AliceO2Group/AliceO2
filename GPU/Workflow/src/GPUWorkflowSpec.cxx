@@ -250,7 +250,6 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     // initialize TPC calib objects
     initFunctionTPCCalib(ic);
 
-    mConfig->configCalib.fastTransform = mCalibObjects.mFastTransformBuffer.get();
     // mConfig->configCalib.buffer = mCalibObjects.mBuffer; // TODO WRONG
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");

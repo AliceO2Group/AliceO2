@@ -83,7 +83,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   GPUd() void print() const;
   GPUd() void printHexadecimal();
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
   bool toFwdTrackParCov(TrackParCovFwd& t) const;
   std::string asString() const;
   std::string asStringHexadecimal();

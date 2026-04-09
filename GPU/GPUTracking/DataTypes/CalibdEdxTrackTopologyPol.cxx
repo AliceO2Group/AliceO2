@@ -104,8 +104,6 @@ void CalibdEdxTrackTopologyPol::setFutureBufferAddress(char* futureFlatBufferPtr
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-#if !defined(GPUCA_STANDALONE)
-
 void CalibdEdxTrackTopologyPol::construct()
 {
   FlatObject::startConstruction();
@@ -155,30 +153,6 @@ void CalibdEdxTrackTopologyPol::setDefaultPolynomials()
   construct();
 }
 
-void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
-{
-  CalibdEdxTrackTopologyPolContainer cont;
-  cont.mCalibPols.reserve(FFits);
-
-  for (const auto& par : mCalibPolsqTot) {
-    cont.mCalibPols.emplace_back(par.getContainer());
-  }
-
-  for (const auto& par : mCalibPolsqMax) {
-    cont.mCalibPols.emplace_back(par.getContainer());
-  }
-
-  for (const auto par : mScalingFactorsqTot) {
-    cont.mScalingFactorsqTot.emplace_back(par);
-  }
-
-  for (const auto par : mScalingFactorsqMax) {
-    cont.mScalingFactorsqMax.emplace_back(par);
-  }
-
-  outf.WriteObject(&cont, name);
-}
-
 void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPolContainer& container)
 {
   if (2 * FFits != container.mCalibPols.size()) {
@@ -207,6 +181,39 @@ void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPol
   construct();
 }
 
+std::string CalibdEdxTrackTopologyPol::getPolyName(const int32_t region, const ChargeType charge)
+{
+  const std::string typeName[2] = {"qMax", "qTot"};
+  const std::string polname = fmt::format("polynomial_{}_region{}", typeName[charge], region).data();
+  return polname;
+}
+
+#ifndef GPUCA_STANDALONE
+
+void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
+{
+  CalibdEdxTrackTopologyPolContainer cont;
+  cont.mCalibPols.reserve(FFits);
+
+  for (const auto& par : mCalibPolsqTot) {
+    cont.mCalibPols.emplace_back(par.getContainer());
+  }
+
+  for (const auto& par : mCalibPolsqMax) {
+    cont.mCalibPols.emplace_back(par.getContainer());
+  }
+
+  for (const auto par : mScalingFactorsqTot) {
+    cont.mScalingFactorsqTot.emplace_back(par);
+  }
+
+  for (const auto par : mScalingFactorsqMax) {
+    cont.mScalingFactorsqMax.emplace_back(par);
+  }
+
+  outf.WriteObject(&cont, name);
+}
+
 void CalibdEdxTrackTopologyPol::loadFromFile(const char* fileName, const char* name)
 {
   TFile inpf(fileName, "READ");
@@ -231,11 +238,4 @@ void CalibdEdxTrackTopologyPol::setPolynomialsFromFile(TFile& inpf)
   construct();
 }
 
-std::string CalibdEdxTrackTopologyPol::getPolyName(const int32_t region, const ChargeType charge)
-{
-  const std::string typeName[2] = {"qMax", "qTot"};
-  const std::string polname = fmt::format("polynomial_{}_region{}", typeName[charge], region).data();
-  return polname;
-}
-
-#endif
+#endif // GPUCA_STANDALONE

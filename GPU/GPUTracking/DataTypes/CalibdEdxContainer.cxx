@@ -12,18 +12,18 @@
 /// \file  CalibdEdxContainer.cxx
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
-#if !defined(GPUCA_STANDALONE)
+#ifndef GPUCA_STANDALONE
 #include "TFile.h"
 #include "TPCBase/CalDet.h"
-#include "Framework/Logger.h"
-#include "clusterFinderDefs.h"
 #endif
+
+#include "GPUCommonLogger.h"
+#include "clusterFinderDefs.h"
 #include "CalibdEdxContainer.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 void CalibdEdxContainer::cloneFromObject(const CalibdEdxContainer& obj, char* newFlatBufferPtr)
 {
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
@@ -49,7 +49,6 @@ void CalibdEdxContainer::subobjectCloneFromObject(Type*& obj, const Type* objOld
   memset((void*)obj, 0, sizeof(*obj));
   obj->cloneFromObject(*objOld, mFlatBufferPtr + sizeOfCalibdEdxTrackTopologyObj<Type>());
 }
-#endif
 
 void CalibdEdxContainer::moveBufferTo(char* newFlatBufferPtr)
 {
@@ -120,8 +119,6 @@ void CalibdEdxContainer::setFutureBufferAddress(Type*& obj, char* futureFlatBuff
   obj = FlatObject::relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, obj);
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-
 float CalibdEdxContainer::getMinZeroSupresssionThreshold() const
 {
   if (mCalibTrackTopologyPol) {
@@ -144,16 +141,6 @@ float CalibdEdxContainer::getMaxZeroSupresssionThreshold() const
   }
 }
 
-void CalibdEdxContainer::loadPolTopologyCorrectionFromFile(std::string_view fileName)
-{
-  loadTopologyCorrectionFromFile(fileName, mCalibTrackTopologyPol);
-}
-
-void CalibdEdxContainer::loadSplineTopologyCorrectionFromFile(std::string_view fileName)
-{
-  loadTopologyCorrectionFromFile(fileName, mCalibTrackTopologySpline);
-}
-
 void CalibdEdxContainer::setPolTopologyCorrection(const CalibdEdxTrackTopologyPol& calibTrackTopology)
 {
   setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
@@ -173,6 +160,45 @@ void CalibdEdxContainer::setSplineTopologyCorrection(const CalibdEdxTrackTopolog
   setTopologyCorrection(calibTrackTopology, mCalibTrackTopologySpline);
   mCalibTrackTopologyPol = nullptr;
 }
+
+void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
+{
+  const float defaultVal = getMinZeroSupresssionThreshold() + (getMaxZeroSupresssionThreshold() - getMinZeroSupresssionThreshold()) / 2;
+  mThresholdMap.setMinCorrectionFactor(defaultVal - 0.1f);
+  mThresholdMap.setMaxCorrectionFactor(defaultVal + 0.1f);
+  for (int32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; ++sector) {
+    for (uint16_t globPad = 0; globPad < TPC_REAL_PADS_IN_SECTOR; ++globPad) {
+      mThresholdMap.setGainCorrection(sector, globPad, defaultVal);
+    }
+  }
+}
+
+template <class Type>
+void CalibdEdxContainer::setTopologyCorrection(const Type& calibTrackTopologyTmp, Type*& obj)
+{
+  FlatObject::startConstruction();
+
+  // get size of the flat buffer of the splines
+  const std::size_t flatbufferSize = calibTrackTopologyTmp.getFlatBufferSize();
+
+  // size of the dEdx container without taking flat buffer into account
+  const std::size_t objSize = sizeOfCalibdEdxTrackTopologyObj<Type>();
+
+  // create mFlatBuffer with correct size
+  const std::size_t totalSize = flatbufferSize + objSize;
+  FlatObject::finishConstruction(totalSize);
+
+  // setting member of CalibdEdxTrackTopologyPol to correct buffer address
+  obj = reinterpret_cast<Type*>(mFlatBufferPtr);
+
+  // deep copy of CalibdEdxTrackTopologyPol to buffer without moving the flat buffer to correct address
+  obj->cloneFromObject(calibTrackTopologyTmp, nullptr);
+
+  // seting the buffer of the splines to current buffer
+  obj->moveBufferTo(objSize + mFlatBufferPtr);
+}
+
+#ifndef GPUCA_STANDALONE
 
 void CalibdEdxContainer::loadZeroSupresssionThresholdFromFile(std::string_view fileName, std::string_view objName, const float minCorrectionFactor, const float maxCorrectionFactor)
 {
@@ -219,7 +245,7 @@ CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thres
             for (int32_t padCl = padStart; padCl <= padEnd; ++padCl) {
               const int32_t globalPad = Mapper::getGlobalPadNumber(rowCl, padCl, region);
               // skip for current cluster position as the charge there is not effected from the thresold
-              if (padCl == pad && rowCl == lrow) {
+              if (padCl == (int32_t)pad && rowCl == lrow) {
                 continue;
               }
 
@@ -259,16 +285,14 @@ void CalibdEdxContainer::setGainMapResidual(const CalDet<float>& gainMapResidual
   mGainMapResidual = gainMapResTmp;
 }
 
-void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
+void CalibdEdxContainer::loadPolTopologyCorrectionFromFile(std::string_view fileName)
 {
-  const float defaultVal = getMinZeroSupresssionThreshold() + (getMaxZeroSupresssionThreshold() - getMinZeroSupresssionThreshold()) / 2;
-  mThresholdMap.setMinCorrectionFactor(defaultVal - 0.1f);
-  mThresholdMap.setMaxCorrectionFactor(defaultVal + 0.1f);
-  for (int32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; ++sector) {
-    for (uint16_t globPad = 0; globPad < TPC_REAL_PADS_IN_SECTOR; ++globPad) {
-      mThresholdMap.setGainCorrection(sector, globPad, defaultVal);
-    }
-  }
+  loadTopologyCorrectionFromFile(fileName, mCalibTrackTopologyPol);
+}
+
+void CalibdEdxContainer::loadSplineTopologyCorrectionFromFile(std::string_view fileName)
+{
+  loadTopologyCorrectionFromFile(fileName, mCalibTrackTopologySpline);
 }
 
 template <class Type>
@@ -279,29 +303,4 @@ void CalibdEdxContainer::loadTopologyCorrectionFromFile(std::string_view fileNam
   setTopologyCorrection(calibTrackTopologyTmp, obj);
 }
 
-template <class Type>
-void CalibdEdxContainer::setTopologyCorrection(const Type& calibTrackTopologyTmp, Type*& obj)
-{
-  FlatObject::startConstruction();
-
-  // get size of the flat buffer of the splines
-  const std::size_t flatbufferSize = calibTrackTopologyTmp.getFlatBufferSize();
-
-  // size of the dEdx container without taking flat buffer into account
-  const std::size_t objSize = sizeOfCalibdEdxTrackTopologyObj<Type>();
-
-  // create mFlatBuffer with correct size
-  const std::size_t totalSize = flatbufferSize + objSize;
-  FlatObject::finishConstruction(totalSize);
-
-  // setting member of CalibdEdxTrackTopologyPol to correct buffer address
-  obj = reinterpret_cast<Type*>(mFlatBufferPtr);
-
-  // deep copy of CalibdEdxTrackTopologyPol to buffer without moving the flat buffer to correct address
-  obj->cloneFromObject(calibTrackTopologyTmp, nullptr);
-
-  // seting the buffer of the splines to current buffer
-  obj->moveBufferTo(objSize + mFlatBufferPtr);
-}
-
-#endif
+#endif // GPUCA_STANDALONE

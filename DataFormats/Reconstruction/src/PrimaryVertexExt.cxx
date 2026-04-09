@@ -18,8 +18,6 @@ namespace o2
 {
 namespace dataformats
 {
-
-#ifndef GPUCA_ALIGPUCODE
 using GTrackID = o2::dataformats::GlobalTrackID;
 
 std::string PrimaryVertexExt::asString() const
@@ -44,8 +42,6 @@ void PrimaryVertexExt::print() const
 {
   std::cout << *this << std::endl;
 }
-
-#endif
 
 } // namespace dataformats
 } // namespace o2

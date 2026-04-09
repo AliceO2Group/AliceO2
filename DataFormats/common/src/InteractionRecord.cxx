@@ -15,8 +15,6 @@
 namespace o2
 {
 
-#ifndef GPUCA_ALIGPUCODE
-
 std::string InteractionRecord::asString() const
 {
   return isDummy() ? std::string{"NotSet"} : fmt::format("BCid: {:4d} Orbit: {:6d}", bc, orbit);
@@ -48,7 +46,5 @@ void InteractionTimeRecord::print() const
 {
   std::cout << (*this) << std::endl;
 }
-
-#endif
 
 } // namespace o2

@@ -42,14 +42,12 @@ class CalibdEdxCorrection
   static constexpr int FitSize = 288; ///< Number of fitted corrections
   static constexpr int ParamSize = 8; ///< Number of params per fit
 
-#if !defined(GPUCA_ALIGPUCODE)
+#if !defined(GPUCA_GPUCODE)
   CalibdEdxCorrection()
   {
     clear();
   }
   CalibdEdxCorrection(std::string_view fileName) { loadFromFile(fileName); }
-#else
-  CalibdEdxCorrection() = default;
 #endif
   ~CalibdEdxCorrection() = default;
 

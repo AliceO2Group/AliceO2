@@ -146,6 +146,7 @@ add_library(standalone_support SHARED
             ${O2_DIR}/Common/Field/src/MagFieldFast.cxx
             ${O2_DIR}/Common/Utils/src/StringUtils.cxx
             ${O2_DIR}/DataFormats/Detectors/TPC/src/CompressedClusters.cxx
+            ${O2_DIR}/DataFormats/Detectors/TPC/src/CalibdEdxCorrection.cxx
             ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrization.cxx
             ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
             ${O2_DIR}/DataFormats/Reconstruction/src/Vertex.cxx

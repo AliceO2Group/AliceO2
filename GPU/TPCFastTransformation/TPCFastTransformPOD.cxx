@@ -19,13 +19,12 @@
 #endif
 #include "TPCFastTransformPOD.h"
 #include "GPUDebugStreamer.h"
+#include "GPUCommonLogger.h"
 
 namespace o2
 {
 namespace gpu
 {
-
-#if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 
 /// Create POD transform from old flat-buffer one. Provided vector will serve as a buffer
 TPCFastTransformPOD* TPCFastTransformPOD::create(aligned_unique_buffer_ptr<TPCFastTransformPOD>& destVector, const TPCFastTransform& src)
@@ -218,6 +217,8 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
   // copy fixed size data --- end
   return podMap;
 }
+
+#ifndef GPUCA_STANDALONE
 
 bool TPCFastTransformPOD::test(const TPCFastSpaceChargeCorrection& origCorr, int npoints) const
 {

@@ -17,7 +17,7 @@
 #include <cmath>
 
 #include "TPCBase/Mapper.h"
-#include "Framework/Logger.h"
+#include "GPUCommonLogger.h"
 
 namespace o2
 {

@@ -170,10 +170,15 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param n number of vertices: defines number of fits per dimension: nFits = n - 1. n should be at least 2 to perform one fit
   void init(const float min[/* Dim */], const float max[/* Dim */], const uint32_t n[/* Dim */]);
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  /// setting default polynomials which just returns 1
+  void setDefault();
+
+#ifndef GPUCA_GPUCODE
   /// Setting directly the parameters of the polynomials
   void setParams(const float params[/* getNParameters() */]) { std::copy(params, params + getNParameters(), mParams); }
+#endif
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// perform the polynomial fits on the grid
   /// \param func function which returns for every input x on the defined grid the true value
   /// \param nAuxiliaryPoints number of points which will be used for the fits (should be at least 2)
@@ -196,9 +201,6 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param name name of the output object
   void writeToFile(TFile& outf, const char* name) const;
 
-  /// setting default polynomials which just returns 1
-  void setDefault();
-
   /// dump the polynomials to tree for visualisation
   /// \param nSamplingPoints number of sampling points per dimension
   /// \param outName name of the output file
@@ -206,16 +208,19 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param recreateFile create new output file or update the output file
   void dumpToTree(const uint32_t nSamplingPoints[/* Dim */], const char* outName = "debug.root", const char* treeName = "tree", const bool recreateFile = true) const;
 
+#endif // !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#ifndef GPUCA_GPUCODE
+
+  /// set the parameters from NDPiecewisePolynomialContainer
+  /// \param container container for the parameters
+  void setFromContainer(const NDPiecewisePolynomialContainer& container);
+
   /// \return returns total number of polynomial fits
   uint32_t getNPolynomials() const;
 
   /// converts the class to a container which can be written to a root file
   NDPiecewisePolynomialContainer getContainer() const { return NDPiecewisePolynomialContainer{Dim, Degree, getNParameters(), mParams, InteractionOnly, mMin, mMax, mN}; }
-
-  /// set the parameters from NDPiecewisePolynomialContainer
-  /// \param container container for the parameters
-  void setFromContainer(const NDPiecewisePolynomialContainer& container);
-#endif // !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#endif
 
   /// \return returns the total number of stored parameters
   uint32_t getNParameters() const { return getNPolynomials() * MultivariatePolynomialParametersHelper::getNParameters<Degree, Dim, InteractionOnly>(); }
@@ -283,6 +288,7 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param xCords buffer for x-coordinates
   /// \param response buffer for y-coordinates
   void fitInnerGrid(const std::function<double(const double x[/* Dim */])>& func, const uint32_t nAuxiliaryPoints[/* Dim */], const int32_t currentIndex[/* Dim */], TLinearFitter& fitter, std::vector<double>& xCords, std::vector<double>& response);
+#endif
 
   /// heler function to loop over all dimensions
   void checkPos(const uint32_t iMax[/* Dim */], int32_t pos[/* Dim */]) const;
@@ -296,7 +302,6 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param ix index
   /// \param dim dimension
   double getVertexPosition(const uint32_t ix, const int32_t dim) const { return ix / static_cast<double>(mInvSpacing[dim]) + mMin[dim]; }
-#endif // !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 #if !defined(GPUCA_GPUCODE)
   /// \return returns the size of the parameters
@@ -313,7 +318,7 @@ class NDPiecewisePolynomials : public FlatObject
 //============================ inline implementations =============================
 //=================================================================================
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE)
 template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFromContainer(const NDPiecewisePolynomialContainer& container)
 {
@@ -340,7 +345,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setDefault()
   const auto nPols = getNPolynomials();
   std::vector<float> params(nParamsPerPol);
   params.front() = 1;
-  for (auto i = 0; i < nPols; ++i) {
+  for (unsigned int i = 0; i < nPols; ++i) {
     std::copy(params.begin(), params.end(), &mParams[i * nParamsPerPol]);
   }
 }

@@ -17,7 +17,7 @@
 #define ALICEO2_BRACKET_H
 
 #include <GPUCommonRtypes.h>
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <string>
 #include <sstream>
 #endif
@@ -76,7 +76,7 @@ class Bracket
   Relation isOutside(T t, T tErr) const;
   Relation isOutside(T t) const;
 
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
   std::string asString() const;
 #endif
 
@@ -247,7 +247,7 @@ inline typename Bracket<T>::Relation Bracket<T>::isOutside(T t) const
   return t < mMin ? Below : (t > mMax ? Above : Inside);
 }
 
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 template <typename T>
 std::string Bracket<T>::asString() const
 {

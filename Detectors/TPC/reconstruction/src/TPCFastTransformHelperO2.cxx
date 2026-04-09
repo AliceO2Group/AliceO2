@@ -14,8 +14,10 @@
 
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
+#ifndef GPUCA_STANDALONE
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
+#endif
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
@@ -61,13 +63,15 @@ void TPCFastTransformHelperO2::init()
 
   mGeo.finishConstruction();
 
+#ifndef GPUCA_STANDALONE
   // check if calculated pad geometry is consistent with the map
   testGeometry(mGeo);
+#endif
 
   mIsInitialized = 1;
 }
 
-std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeStamp, const TPCFastSpaceChargeCorrection& correction)
+std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(int64_t TimeStamp, const TPCFastSpaceChargeCorrection& correction)
 {
   /// initializes TPCFastTransform object
 
@@ -99,10 +103,10 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
   updateCalibration(fastTransform, TimeStamp);
 
-  return std::move(fastTransformPtr);
+  return fastTransformPtr;
 }
 
-std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeStamp)
+std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(int64_t TimeStamp)
 {
   /// initializes TPCFastTransform object
 
@@ -119,7 +123,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 }
 
 template <typename T>
-int TPCFastTransformHelperO2::updateCalibrationImpl(T& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
+int TPCFastTransformHelperO2::updateCalibrationImpl(T& fastTransform, int64_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
 {
   // Update the calibration with the new time stamp
   LOGP(debug, "Updating calibration: timestamp:{} vdriftFactor:{} vdriftRef:{}", TimeStamp, vDriftFactor, vDriftRef);
@@ -133,7 +137,6 @@ int TPCFastTransformHelperO2::updateCalibrationImpl(T& fastTransform, Long_t Tim
 
   // search for the calibration database ...
 
-  auto& gasParam = ParameterGas::Instance();
   auto& elParam = ParameterElectronics::Instance();
   // start the initialization
 
@@ -155,6 +158,7 @@ int TPCFastTransformHelperO2::updateCalibrationImpl(T& fastTransform, Long_t Tim
   return 0;
 }
 
+#ifndef GPUCA_STANDALONE
 void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) const
 {
   const Mapper& mapper = Mapper::instance();
@@ -210,9 +214,10 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
                << " max Dx " << maxDx << " max Dy " << maxDy << std::endl;
   }
 }
+#endif
 
-template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransform&, Long_t, float, float, float);
-template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransformPOD&, Long_t, float, float, float);
+template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransform&, int64_t, float, float, float);
+template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransformPOD&, int64_t, float, float, float);
 
 } // namespace tpc
 } // namespace o2

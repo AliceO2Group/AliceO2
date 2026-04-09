@@ -20,7 +20,7 @@
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
 #include "DataFormatsTPC/Defs.h"
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <string_view>
 #endif
 
@@ -127,7 +127,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param region region of the scaling factor
   GPUd() float getScalingFactorqMax(const int32_t region) const { return mScalingFactorsqMax[region]; };
 
-#if !defined(GPUCA_GPUCODE)
+#ifndef GPUCA_GPUCODE
   /// \return returns polynomial for qTot
   /// \param region region of the TPC
   const auto& getPolyqTot(const int32_t region) const { return mCalibPolsqTot[region]; }
@@ -136,7 +136,6 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param region region of the TPC
   const auto& getPolyqMax(const int32_t region) const { return mCalibPolsqMax[region]; }
 
-#ifndef GPUCA_STANDALONE
   /// set the the scaling factors for the polynomials for qTot
   /// \param factor scaling factor
   /// \param region region of the scaling factor
@@ -172,16 +171,13 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
 
   /// setting a default topology correction which just returns 1
   void setDefaultPolynomials();
-#endif
 
   /// \return returns the name of the polynomial object which can be read in with the setPolynomialsFromFile() function
   /// \param region region of the TPC
   /// \param charge correction for maximum or total charge
   static std::string getPolyName(const int32_t region, const ChargeType charge);
-#endif
 
-/// ========== FlatObject functionality, see FlatObject class for description  =================
-#if !defined(GPUCA_GPUCODE)
+  /// ========== FlatObject functionality, see FlatObject class for description  =================
   /// cloning a container object (use newFlatBufferPtr=nullptr for simple copy)
   void cloneFromObject(const CalibdEdxTrackTopologyPol& obj, char* newFlatBufferPtr);
 
