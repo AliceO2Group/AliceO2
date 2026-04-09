@@ -22,7 +22,8 @@
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCFastTransform.h"
-#include <fairlogger/Logger.h>
+#include "GPUTPCGeometry.h"
+#include <GPUCommonLogger.h>
 
 using namespace o2::gpu;
 
@@ -47,32 +48,15 @@ void TPCFastTransformHelperO2::init()
 {
   // initialize geometry
 
-  const Mapper& mapper = Mapper::instance();
+  const GPUTPCGeometry geo;
 
-  const int nRows = mapper.getNumberOfRows();
+  const int nRows = geo.NROWS;
 
   mGeo.startConstruction(nRows);
+  mGeo.setTPCzLength(geo.TPCLength());
 
-  auto& detParam = ParameterDetector::Instance();
-  mGeo.setTPCzLength(detParam.TPClength);
-
-  for (int iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
-    Sector sector = 0;
-    int regionNumber = 0;
-    while (iRow >= mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
-      regionNumber++;
-    }
-
-    const PadRegionInfo& region = mapper.getPadRegionInfo(regionNumber);
-
-    int nPads = mapper.getNumberOfPadsInRowSector(iRow);
-    float padWidth = region.getPadWidth();
-
-    const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(iRow, nPads / 2));
-    const PadCentre& padCentre = mapper.padCentre(pad);
-    float xRow = padCentre.X();
-
-    mGeo.setTPCrow(iRow, xRow, nPads, padWidth);
+  for (int iRow = 0; iRow < nRows; iRow++) {
+    mGeo.setTPCrow(iRow, geo.Row2X(iRow), geo.NPads(iRow), geo.PadWidth(iRow));
   }
 
   mGeo.finishConstruction();
