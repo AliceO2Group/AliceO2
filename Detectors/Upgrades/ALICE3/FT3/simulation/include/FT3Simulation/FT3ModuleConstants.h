@@ -46,6 +46,7 @@ namespace o2::ft3::ModuleConstants
   const double single_sensor_height = 3.2;
   const double inactive_width = 0.2;
   const double sensor2x1_gap = 0.02;
+  const double stackGap = sensor2x1_gap;  // gap between 2xN module stacks
 
   const double active_width = single_sensor_width - inactive_width;
   const double active_height = single_sensor_height;
@@ -53,9 +54,11 @@ namespace o2::ft3::ModuleConstants
   const double sensor2x1_width = 2 * single_sensor_width;
   const double sensor2x1_active_width = 2 * active_width;
   const double sensor2x1_height = single_sensor_height;
-  const unsigned kSensorsPerStack = 1;
-  const double sensor_stack_height = kSensorsPerStack * sensor2x1_height +
-                                    (kSensorsPerStack - 1) * sensor2x1_gap;
+  const std::vector<unsigned> kSensorsPerStack = {4,2,1};
+  inline const double getStackHeight(unsigned nSensorsPerStack) {
+    return nSensorsPerStack * sensor2x1_height +
+          (nSensorsPerStack - 1) * sensor2x1_gap;
+  }
   /* 
    * Constants for staves are written for both positive
    * and negative x even though they are just mirrored now,

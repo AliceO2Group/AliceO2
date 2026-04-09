@@ -93,6 +93,44 @@ double calculate_y_circle(double x, double radius)
   return (x * x < radius * radius) ? std::sqrt(radius * radius - x * x) : 0;
 }
 
+std::pair<double, double> calculate_y_range(
+  double x_left, double x_right, double Rin, double Rout)
+{
+  double max_y_abs;
+  double min_y_abs;
+  /* 
+   * Have 5 cases:
+   * (1) Stave wholly on the left of inner radius
+   * (2) Stave wholly on the left, but within inner radius
+   * (3) Stave crosses the middle x=0
+   * (4) Stave wholly on the right, but within inner radius
+   * (5) Stave wholly on the right of inner radius
+   */
+  if (x_right < -Rin) {
+    // Stave is completely on the left of inner radius
+    min_y_abs = 0;
+    max_y_abs = calculate_y_circle(x_left, Rout);
+  } else if (x_left < -Constants::sensor2x1_width) {
+    // Stave is completely on the left, but within inner radius
+    min_y_abs = calculate_y_circle(x_right, Rin);
+    max_y_abs = calculate_y_circle(x_left, Rout);
+  } else if (x_left < 0) {
+    // Stave crosses the middle x=0
+    min_y_abs = Rin;
+    // x_right should be > 0, but might have FLP issues, so do abs nonetheless
+    max_y_abs = calculate_y_circle(std::max(std::abs(x_left), std::abs(x_right)), Rout);
+  } else if (x_left < Rin) {
+    // Stave is completely on the right, but within inner radius
+    min_y_abs = calculate_y_circle(x_left, Rin);
+    max_y_abs = calculate_y_circle(x_right, Rout);
+  } else {
+    // Stave is completely on the right of inner radius
+    min_y_abs = 0.;
+    max_y_abs = calculate_y_circle(x_right, Rout);
+  }
+  return {min_y_abs, max_y_abs};
+}
+
 /*
  * This function is a helper function which will pad out the stave with sensors
  * until there is no more space available.
@@ -111,54 +149,60 @@ double calculate_y_circle(double x, double radius)
  * y_start: the y positions to start placing sensors,
  *          for positive and negative y respectively
  */
-void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rout,
-                           double x_left, unsigned kSensorStack, double tolerance,
-                           std::pair<double, double> y_start={0, 0})
+void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
+                           double x_left, unsigned kSensorStack, double tolerance_inner,
+                           double tolerance_outer, PositionRangeType y_ranges)
 {
   // start with upper half of the stave, then mirror to the bottom half
   double x_right = x_left + Constants::sensor2x1_width;
-  double y_top = y_start.first;
-  // either start at given start position, or at the top of the last placed sensors
-  if (!y_positions.first.empty()) {
-    y_top = y_positions.first.back().first
-          + Constants::sensor2x1_height * y_positions.first.back().second
-          + Constants::sensor2x1_gap;
-  }
   // add the height of kSensorStack sensors + the gaps in between them
-  double sensorTileHeight = Constants::sensor2x1_height * kSensorStack
-                          + Constants::sensor2x1_gap * (kSensorStack - 1);
+  double sensorStackHeight = Constants::getStackHeight(kSensorStack);
+  double sensorAbsStackYShift = sensorStackHeight + Constants::stackGap;
 
-  double max_y_abs;
-  // y_max(x_left) > y_max(x_right) means that the top of the sensor
-  // will hit the outer radius at x_right first
-  if (x_left > -Constants::single_sensor_width) {
-    // tolerance already in maximum y position
-    max_y_abs = calculate_y_circle(x_right, Rout) - tolerance;
+  std::pair<double, double> absAllowedYRange =
+    calculate_y_range(x_left, x_right, Rin, Rout);
+  
+  // shift allowed range by tolerance. Note that this sum can be negative, but
+  // that is not a problem, it just means that we can always place sensors over the edge
+  absAllowedYRange.first += tolerance_inner;
+  absAllowedYRange.second -= tolerance_outer;
+  // in case a big tolerance is given, cut on the given range instead
+  double max_sensor_y_abs = std::min(absAllowedYRange.second, y_ranges.first.second);
+
+  double y_top; // top half of the xy grid
+  // either start at given value (adjusted for tolerance), or at last placed sensors
+  if (!y_positions.first.empty()) { // sensors already placed
+    y_top = y_positions.first.back().first + sensorAbsStackYShift;
+  } else if (y_ranges.first.first < absAllowedYRange.first) {
+    // given starting y is lower than the minimum allowed y, start at the latter.
+    y_top = absAllowedYRange.first;
   } else {
-    max_y_abs = calculate_y_circle(x_left, Rout) - tolerance;
+    // given starting y is acceptable, start there
+    y_top = y_ranges.first.first;
   }
-  unsigned n_sensors_placed = y_positions.first.size() + y_positions.second.size();
-
-  while ( (y_top + sensorTileHeight) <= max_y_abs ) {
+  while ( (y_top + sensorStackHeight) <= max_sensor_y_abs ) {
     y_positions.first.emplace_back(y_top, kSensorStack);
-    y_top += sensorTileHeight + Constants::sensor2x1_gap;
+    y_top += sensorAbsStackYShift;
   }
 
   // now we do the same for the negative y positions
   // they do not have to be exactly mirrored, hence done separately
-  double y_bottom = y_start.second;
+  double y_bottom;
   if (!y_positions.second.empty()) {
     // subtract instead to move further down
-    y_bottom = y_positions.second.back().first
-             - Constants::sensor2x1_height * y_positions.second.back().second
-             - Constants::sensor2x1_gap;
+    y_bottom = y_positions.second.back().first - sensorAbsStackYShift;
+  } else if (y_ranges.second.first > -absAllowedYRange.first) {
+    // given starting y is closer to x-axis than max allowed y, start at the latter.
+    y_bottom = -absAllowedYRange.first;
+  } else {
+    // given starting y is acceptable, start there
+    y_bottom = y_ranges.second.first;
   }
-
-  while ( (y_bottom - sensorTileHeight) >= -max_y_abs ) {
+  // fill in the sensors on negative y
+  while ( (y_bottom - sensorStackHeight) >= -max_sensor_y_abs ) {
     y_positions.second.emplace_back(y_bottom, kSensorStack);
-    y_bottom -= (sensorTileHeight + Constants::sensor2x1_gap);
+    y_bottom -= sensorAbsStackYShift;
   }
-  unsigned sensors_placed_after = y_positions.first.size() + y_positions.second.size();
 }
 
 /*
@@ -167,7 +211,8 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rout,
  */
 void FT3Module::addStaveVolume(
     TGeoVolume* motherVolume, std::string volumeName, int direction,
-    unsigned* volume_count, double staveLength,
+    unsigned* volume_count, double staveLength, double tolerance_inner,
+    double tolerance_outer, double Rin, double Rout,
     double x_mid, double y_mid, double z_stave_shift_abs)
 {
   // Set some constants for readability
@@ -215,20 +260,48 @@ void FT3Module::addStaveVolume(
   zv_inner[2] = zv_inner[1];
   xv_inner[2] = -xv_inner[1];
 
-  // create the extruded volumes from z=0 (later y=0 after rotation) to stave length
-  // and not from midpoint - staveLength/2 to midpoint + staveLength/2,
-  // translate after rotation
+  /* 
+   * create the extruded volumes from z=0 (later y=0 after rotation) to stave length
+   * and not from midpoint - staveLength/2 to midpoint + staveLength/2, translate later
+   *
+   * Note also that we first need to check if the length is allowed given the inner
+   * and outer radius of the layer.
+   */
+  double x_left = x_mid - Constants::single_sensor_width;
+  double x_right = x_mid + Constants::single_sensor_width;
+  std::pair<double, double> absAllowedYRange =
+    calculate_y_range(x_left, x_right, Rin, Rout);
+
+  // shift allowed range by tolerance. Note that this sum can be negative, but
+  // that is not a problem, it just means that we can always place staves over the edge
+  absAllowedYRange.first += tolerance_inner;
+  absAllowedYRange.second -= tolerance_outer;
+  
+  double maxStaveLength = absAllowedYRange.second - absAllowedYRange.first;
+  double staveLengthToUse = std::min(staveLength, maxStaveLength);
+  if (staveLengthToUse <= 0) {
+    LOG(warning) << "Stave " << volumeName << " has non-positive length after applying "
+                 << "tolerance, skipping stave. Max allowed length: " << maxStaveLength
+                 << " tolerance inner: " << tolerance_inner
+                 << " tolerance outer: " << tolerance_outer;
+    return;
+  }
+  double staveLengthDiff = staveLength - staveLengthToUse;
+  if (staveLengthDiff > 0) { // had to cut it, hence y_mid must move too
+    y_mid = absAllowedYRange.first + staveLengthToUse / 2;
+  }
+
   TGeoXtru* staveFull = new TGeoXtru(2);
   staveFull->SetName(( volumeName + "_Xtru_outer").c_str());
   staveFull->DefinePolygon(3, xv_outer, zv_outer);
   staveFull->DefineSection(0, 0);
-  staveFull->DefineSection(1, staveLength);
+  staveFull->DefineSection(1, staveLengthToUse);
 
   TGeoXtru* staveInner = new TGeoXtru(2);
   staveInner->SetName(( volumeName + "_Xtru_inner").c_str());
   staveInner->DefinePolygon(3, xv_inner, zv_inner);
   staveInner->DefineSection(0, 0);
-  staveInner->DefineSection(1, staveLength);
+  staveInner->DefineSection(1, staveLengthToUse);
 
   TGeoCompositeShape* staveShape = new TGeoCompositeShape(
     (volumeName + "_shape").c_str(),
@@ -250,7 +323,7 @@ void FT3Module::addStaveVolume(
    */
   double z_shift = (direction == 1) ? z_stave_shift_abs : -z_stave_shift_abs;
   TGeoCombiTrans* combiTrans =
-    new TGeoCombiTrans(x_mid, y_mid - staveLength / 2, z_shift, rot);
+    new TGeoCombiTrans(x_mid, y_mid - staveLengthToUse / 2, z_shift, rot);
   motherVolume->AddNode(staveVolume,
                         *volume_count,
                         combiTrans);
@@ -452,14 +525,27 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     double y_midpoint = 0.;
     bool mirrorStaveAroundX = false;
     // default positive and negative starting points has a gap around x-axis
-    std::pair<double, double> y_start{0., -Constants::sensor2x1_gap};
+    PositionRangeType y_ranges = {{0, Constants::y_lengths[i_stave]},
+                                  {-Constants::stackGap, -Constants::y_lengths[i_stave]}};
     auto y_midpoint_it = Constants::staveID_to_y_midpoint.find(staveID);
     if ( y_midpoint_it != Constants::staveID_to_y_midpoint.end() ) {
       // there is a defined midpoint for this stave, use this for starting points
       y_midpoint = y_midpoint_it->second.first;  // avoid double map lookup
       mirrorStaveAroundX = y_midpoint_it->second.second;
-      double y_start_pos = y_midpoint - Constants::y_lengths[i_stave] / 2;
-      y_start = {y_start_pos, -y_start_pos};
+      double y_diff_abs = Constants::y_lengths[i_stave] / 2;
+      y_ranges.first = {y_midpoint - y_diff_abs, y_midpoint + y_diff_abs};
+      y_ranges.second = {-y_midpoint + y_diff_abs, -y_midpoint - y_diff_abs};
+    }
+
+    // Define tolerances for cutting staves and placing sensors
+    double tolerance_inner = -1000;  // large negative number to allow given numbers
+    double tolerance_outer = -1000;
+    // cut staves on nominal inner radius if specified
+    if (ft3Params.cutStavesOnNominalRadius_inner) {
+      tolerance_inner = 0.;
+    }
+    if (ft3Params.cutStavesOnNominalRadius_outer) {
+      tolerance_outer = 0.;
     }
 
     // Get whether the stave is shifted backward or not
@@ -470,40 +556,44 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
         "_" + std::to_string(direction);
     addStaveVolume(
       motherVolume, stave_volume_name, direction, &volume_count,
-      Constants::y_lengths[i_stave], Constants::x_midpoints[i_stave],
+      Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
+      Rin, Rout, Constants::x_midpoints[i_stave],
       y_midpoint, mZ + z_stave_shift_abs
     );
-    if (y_midpoint > Rin) {
-      // stave midpoint is beyond nominal inner radius,
-      // so we can reasonably expect to mirror sensors around the x-axis
+    /*
+     * There are three cases in which we want to mirror the stave around the x-axis,
+     * which correspond to the stave not going fully from + to - Rout in y.
+     * 
+     * (1) The inner tolerance is 0 (or positive)
+     *    a) AND either x_left or x_right lies within the inner radius
+     * (2) The inner tolerance is large (allow stave placement as wished)
+     *    a) AND the given stave midpoint is above the inner radius
+     */
+    double x_left = Constants::x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
+    double x_right = x_left + Constants::sensor2x1_width;
+    bool mirrorStaveAroundXAxis = false;
+    if (tolerance_inner >= 0) {
+      double x_innermost = std::min(std::abs(x_left), std::abs(x_right));
+      mirrorStaveAroundXAxis = (x_innermost < Rin);
+    } else {  // Have negative tolerance, so can place staves as wished
+       mirrorStaveAroundXAxis = (y_midpoint > Rin);
+    }
+    // Now create the mirrored stave
+    if (mirrorStaveAroundXAxis) {
       addStaveVolume(
         motherVolume, stave_volume_name + "_mirrored", direction, &volume_count,
-        Constants::y_lengths[i_stave], Constants::x_midpoints[i_stave],
+        Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
+        Rin, Rout, Constants::x_midpoints[i_stave],
         -y_midpoint, mZ + z_stave_shift_abs
       );
     }
 
-    double x_left = Constants::x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
-    double x_right = x_left + Constants::sensor2x1_width;
-    double tolerance = -Constants::sensor_stack_height;  // allow one sensor placement beyond
-    // cut staves on nominal inner radius if specified
-    if (ft3Params.cutStavesOnNominalRadius) {
-      double min_y_at_x;
-      if (x_left * x_right < 0) {
-        // stave crosses y-axis, so we start at y=Rin
-        min_y_at_x = Rin;
-      } else if (x_left > 0) {
-        // stave is on the right side, so minimum y is at x_left
-        min_y_at_x = calculate_y_circle(x_left, Rin);
-      } else {
-        // stave is on the left side, so minimum y is at x_right
-        min_y_at_x = calculate_y_circle(x_right, Rin);
-      }
-      y_start = {min_y_at_x, -min_y_at_x};
-      tolerance = 0.; // no tolerance in case of cutting at nominal radius
+    // now add the sensor positions on the stave
+    for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
+      fill_stave(y_positionsPosNeg.back(), Rin, Rout, x_left,
+                 Constants::kSensorsPerStack[i_kSens], tolerance_inner,
+                 tolerance_outer, y_ranges);
     }
-    fill_stave(y_positionsPosNeg.back(), Rout, x_left, Constants::kSensorsPerStack,
-               tolerance, y_start);
   }
 
   for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {

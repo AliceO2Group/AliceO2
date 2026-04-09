@@ -25,6 +25,8 @@
 using PositionType = std::pair<double, unsigned>;
 using PositionTypes = std::vector<PositionType>;
 using PosNegPositionTypes = std::pair<PositionTypes, PositionTypes>;
+// define type of the y position range: First pair is (min, max) for positive y
+using PositionRangeType = std::pair<std::pair<double, double>, std::pair<double, double>>;
 namespace Constants = o2::ft3::ModuleConstants;
 
 class FT3Module
@@ -67,12 +69,13 @@ class FT3Module
     double Rout, double overlap, TGeoVolume* motherVolume);
 
   // Helper functions
-  void fill_stave(PosNegPositionTypes& y_positions, double Rout,
-                  double x_left, unsigned kSensorStack, double tolerance,
-                  std::pair<double, double> y_start);
+  void fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
+                  double x_left, unsigned kSensorStack, double tolerance_inner,
+                  double tolerance_outer, PositionRangeType y_range);
   void addStaveVolume(
     TGeoVolume* motherVolume, std::string volumeName, int direction,
-    unsigned* volume_count, double staveLength,
+    unsigned* volume_count, double staveLength, double tolerance_inner,
+    double tolerance_outer, double Rin, double Rout,
     double x_mid, double y_mid, double z_stave_shift_abs);
   void addDetectorVolume(
     TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* volume_count,
