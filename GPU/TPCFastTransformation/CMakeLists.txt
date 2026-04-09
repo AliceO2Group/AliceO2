@@ -123,6 +123,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(${MODULE} SHARED ${SRCS})
   set(targetName ${MODULE})
   target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  install(TARGETS TPCFastTransformation)
 endif()
 
 install(FILES ${HDRS_CINT_O2} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)

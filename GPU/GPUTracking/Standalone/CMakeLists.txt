@@ -159,6 +159,9 @@ add_library(standalone_support SHARED
             ${O2_DIR}/Detectors/Base/src/Ray.cxx
             ${O2_DIR}/Detectors/Base/src/Propagator.cxx)
 
+add_library(standalone_support2 SHARED
+            ${O2_DIR}/Detectors/TPC/reconstruction/src/TPCFastTransformHelperO2.cxx)
+
 target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 target_include_directories(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>)
 
@@ -196,14 +199,19 @@ target_include_directories(standalone_support PUBLIC
                            ${O2_DIR}/Detectors/TRD/base/include
                            ${O2_DIR}/Detectors/TRD/base/src
                            ${O2_DIR}/Framework/Foundation/3rdparty/include)
+target_include_directories(standalone_support2 PUBLIC
+                           ${O2_DIR}/Detectors/TPC/reconstruction/include)
 
-target_link_libraries(standalone_support PUBLIC#
+
+target_link_libraries(standalone_support PUBLIC
                       dl
                       pthread
                       Microsoft.GSL::GSL)
 
 target_link_libraries(GPUTracking PUBLIC standalone_support)
 target_link_libraries(TPCFastTransformation PUBLIC standalone_support)
+
+target_link_libraries(standalone_support2 PUBLIC GPUTracking TPCFastTransformation standalone_support)
 
 if(NOT GPUCA_CONFIG_O2)
   target_compile_definitions(GPUTracking PRIVATE GPUCA_RUN2)
@@ -243,7 +251,7 @@ if (GPUCA_BUILD_DEBUG_SANITIZE AND CMAKE_CXX_COMPILER MATCHES "clang\\+\\+")
 endif()
 
 # Installation
-install(TARGETS ca TPCFastTransformation standalone_support)
+install(TARGETS standalone_support standalone_support2)
 install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${O2_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")

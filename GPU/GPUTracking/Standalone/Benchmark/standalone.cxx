@@ -24,13 +24,19 @@
 #include "display/GPUDisplayInterface.h"
 #include "genEvents.h"
 
-#include "TPCFastTransformPOD.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUSettings.h"
 #include "GPUConstantMem.h"
 
 #include "GPUO2DataTypes.h"
 #include "GPUChainITS.h"
+
+// For creating default objects
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "CalibdEdxContainer.h"
+#include "TPCFastTransformPOD.h"
+#include "GPUTRDRecoParam.h"
+#include "TPCZSLinkMapping.h"
 
 #include "DataFormatsTPC/CompressedClusters.h"
 
@@ -284,6 +290,31 @@ int32_t ReadConfiguration(int argc, char** argv)
   }
 
   return (0);
+}
+
+void CreateTrivialCalibObjects()
+{
+  GPUCalibObjectsConst calib;
+
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> tmpFastTransformBuffer;
+  TPCFastTransformPOD::create(tmpFastTransformBuffer, *o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  calib.fastTransform = tmpFastTransformBuffer.get();
+  auto tmpTRDGeometry = std::make_unique<o2::trd::GeometryFlat>();
+  calib.trdGeometry = tmpTRDGeometry.get();
+  auto tmpTRDRecoParam = std::make_unique<GPUTRDRecoParam>();
+  calib.trdRecoParam = tmpTRDRecoParam.get();
+  auto tmpdEdxCalibContainer = std::make_unique<o2::tpc::CalibdEdxContainer>();
+  tmpdEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+  tmpdEdxCalibContainer->setDefaultPolTopologyCorrection();
+  calib.dEdxCalibContainer = tmpdEdxCalibContainer.get();
+  auto tmpTPCPadGainCalib = std::make_unique<TPCPadGainCalib>();
+  calib.tpcPadGain = tmpTPCPadGainCalib.get();
+  auto tmpTPCZSLinkMapping = std::make_unique<TPCZSLinkMapping>();
+  calib.tpcZSLinkMapping = tmpTPCZSLinkMapping.get();
+
+  chainTracking->SetCalibObjects(calib);
+  rec->DumpSettings("./");
+  printf("Wrote trivial calibration objects to current folder\n");
 }
 
 int32_t SetupReconstruction()
@@ -768,6 +799,11 @@ int32_t main(int argc, char** argv)
     if (configStandalone.testSyncAsync) {
       chainITSAsync = recAsync->AddChain<GPUChainITS>();
     }
+  }
+
+  if (configStandalone.recreateTrivialCalibObjects) {
+    CreateTrivialCalibObjects();
+    return 0;
   }
 
   if (SetupReconstruction()) {

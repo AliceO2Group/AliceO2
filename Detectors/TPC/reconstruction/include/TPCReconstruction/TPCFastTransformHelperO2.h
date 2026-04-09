@@ -69,7 +69,6 @@ class TPCFastTransformHelperO2
   {
     return updateCalibrationImpl(fastTransform, TimeStamp, vDriftFactor, vDriftRef, driftTimeOffset);
   }
-
   /// _______________  Utilities   ________________________
 
   const TPCFastTransformGeo& getGeometry() { return mGeo; }
