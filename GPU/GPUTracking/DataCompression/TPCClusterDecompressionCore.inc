@@ -107,7 +107,7 @@ class TPCClusterDecompressionCore
         if (changeLeg && track.Mirror()) {
           break;
         }
-        if (track.Propagate(geo.Row2X(row), param.SectorParam[slice].Alpha)) {
+        if (track.Propagate(geo.Row2X(row), GPUTPCGeometry::SectorAlpha(slice))) {
           break;
         }
         uint32_t timeTmp = cmprClusters.timeResA[clusterOffset - trackIndex - 1];
@@ -142,7 +142,7 @@ class TPCClusterDecompressionCore
       float z = geo.LinearTime2Z(slice, cluster.getTime());
       if (clusterIndex == 0) {
         zOffset = z;
-        track.Init(geo.Row2X(row), y, z - zOffset, param.SectorParam[slice].Alpha, cmprClusters.qPtA[trackIndex], param);
+        track.Init(geo.Row2X(row), y, z - zOffset, GPUTPCGeometry::SectorAlpha(slice), cmprClusters.qPtA[trackIndex], param);
       }
       if (clusterIndex + 1 < cmprClusters.nTrackClusters[trackIndex] && track.Filter(y, z - zOffset, row)) {
         break;

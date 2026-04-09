@@ -23,34 +23,10 @@
 
 namespace o2::gpu
 {
-
 ///
-/// The TPCFastTransformGeoPOD class contains TPC geometry needed for the TPCFastTransform
+/// The TPCFastTransformGeoPOD class contains TPC geometry needed for the TPCFastTransformPOD
 ///
 struct TPCFastTransformGeoPOD {
-  /// The struct contains necessary info for TPC sector
-  struct SectorInfo {
-    float sinAlpha{0.f}; ///< sin of the angle between the local x and the global x
-    float cosAlpha{0.f}; ///< cos of the angle between the local x and the global x
-  };
-
-  /// The struct contains necessary info about TPC padrow
-  struct RowInfo {
-    float x{0.f};        ///< nominal X coordinate of the padrow [cm]
-    int32_t maxPad{0};   ///< maximal pad number = n pads - 1
-    float padWidth{0.f}; ///< width of pads [cm]
-    float yMin{0.f};     ///< min. y coordinate
-
-    /// get Y min
-    GPUdi() float getYmin() const { return yMin; }
-
-    /// get Y max
-    GPUdi() float getYmax() const { return -yMin; }
-
-    /// get width in Y
-    GPUdi() float getYwidth() const { return -2.f * yMin; }
-  };
-
   /// Gives number of TPC sectors
   inline static constexpr int32_t getNumberOfSectors() { return GPUTPCGeometry::NSECTORS; }
 
@@ -58,157 +34,91 @@ struct TPCFastTransformGeoPOD {
   inline static constexpr int32_t getNumberOfSectorsA() { return GPUTPCGeometry::NSECTORS / 2; }
 
   /// Gives number of TPC rows
-  GPUdi() int32_t getNumberOfRows() const { return GPUTPCGeometry::NROWS; }
+  inline static constexpr int32_t getNumberOfRows() { return GPUTPCGeometry::NROWS; }
 
   /// Gives sector info
-  GPUd() const SectorInfo& getSectorInfo(uint32_t sector) const;
+  inline static constexpr float getSectorSin(uint32_t sector) { return GPUTPCGeometry::SectorSin(sector); }
+  inline static constexpr float getSectorCos(uint32_t sector) { return GPUTPCGeometry::SectorCos(sector); }
 
   /// Gives TPC row info
-  GPUd() float getRowInfoX(uint32_t row) const { return GPUTPCGeometry::Row2X(row); }
-  GPUd() int32_t getRowInfoMaxPad(uint32_t row) const { return GPUTPCGeometry::NPads(row) - 1; }
-  GPUd() float getRowInfoPadWidth(uint32_t row) const { return GPUTPCGeometry::PadWidth(row); }
+  inline static constexpr float getRowInfoX(uint32_t row) { return GPUTPCGeometry::Row2X(row); }
+  inline static constexpr int32_t getRowInfoMaxPad(uint32_t row) { return GPUTPCGeometry::NPads(row) - 1; }
+  inline static constexpr float getRowInfoPadWidth(uint32_t row) { return GPUTPCGeometry::PadWidth(row); }
 
   /// Gives Z length of the TPC, one Z side
-  GPUdi() float getTPCzLength() const { return GPUTPCGeometry::TPCLength(); }
+  inline static constexpr float getTPCzLength() { return GPUTPCGeometry::TPCLength(); }
 
   /// Gives Z range for the corresponding TPC side
-  GPUd() float getZmin(uint32_t sector) const;
-  GPUd() float getZmax(uint32_t sector) const;
-  GPUd() float getZreadout(uint32_t sector) const;
+  inline static constexpr float getZmin(uint32_t sector) { return sector < getNumberOfSectorsA() ? 0.f : -getTPCzLength(); }
+  inline static constexpr float getZmax(uint32_t sector) { return sector < getNumberOfSectorsA() ? getTPCzLength() : 0.f; }
+  inline static constexpr float getZreadout(uint32_t sector) { return sector < getNumberOfSectorsA() ? getTPCzLength() : -getTPCzLength(); }
 
   /// _______________  Conversion of coordinate systems __________
 
   /// convert Local -> Global c.s.
-  GPUd() void convLocalToGlobal(uint32_t sector, float lx, float ly, float lz, float& gx, float& gy, float& gz) const;
+  inline static constexpr void convLocalToGlobal(uint32_t sector, float lx, float ly, float lz, float& gx, float& gy, float& gz)
+  {
+    const float sinAlpha = getSectorSin(sector);
+    const float cosAlpha = getSectorCos(sector);
+    gx = lx * cosAlpha - ly * sinAlpha;
+    gy = lx * sinAlpha + ly * cosAlpha;
+    gz = lz;
+  }
 
   /// convert Global->Local c.s.
-  GPUd() void convGlobalToLocal(uint32_t sector, float gx, float gy, float gz, float& lx, float& ly, float& lz) const;
+  inline static constexpr void convGlobalToLocal(uint32_t sector, float gx, float gy, float gz, float& lx, float& ly, float& lz)
+  {
+    const float sinAlpha = getSectorSin(sector);
+    const float cosAlpha = getSectorCos(sector);
+    lx = gx * cosAlpha + gy * sinAlpha;
+    ly = -gx * sinAlpha + gy * cosAlpha;
+    lz = gz;
+  }
 
   /// convert Pad, DriftLength -> Local c.s.
-  GPUd() void convPadDriftLengthToLocal(uint32_t sector, uint32_t row, float pad, float driftLength, float& y, float& z) const;
+  inline static constexpr void convPadDriftLengthToLocal(uint32_t sector, uint32_t row, float pad, float driftLength, float& y, float& z)
+  {
+    const float maxPad = getRowInfoMaxPad(row);
+    const float padWidth = getRowInfoPadWidth(row);
+    const float u = (pad - 0.5f * maxPad) * padWidth;
+    if (sector < getNumberOfSectorsA()) { // TPC side A
+      y = u;
+      z = getTPCzLength() - driftLength;
+    } else {                             // TPC side C
+      y = -u;                            // pads are mirrorred on C-side
+      z = driftLength - getTPCzLength(); // drift direction is mirrored on C-side
+    }
+  }
 
   /// convert DriftLength -> Local c.s.
-  GPUd() float convDriftLengthToZ1(uint32_t sector, float driftLength) const;
+  inline static constexpr float convDriftLengthToZ1(uint32_t sector, float driftLength)
+  {
+    return (sector < getNumberOfSectorsA()) ? (getTPCzLength() - driftLength) : (driftLength - getTPCzLength());
+  }
 
   /// convert Z to DriftLength
-  GPUd() float convZtoDriftLength1(uint32_t sector, float z) const;
+  inline static constexpr float convZtoDriftLength1(uint32_t sector, float z)
+  {
+    return (sector < getNumberOfSectorsA()) ? (getTPCzLength() - z) : (z + getTPCzLength());
+  }
 
   /// convert Local c.s. -> Pad, DriftLength
-  GPUd() void convLocalToPadDriftLength(uint32_t sector, uint32_t row, float y, float z, float& pad, float& l) const;
-
- private:
-  /// _______________  Data members  _______________________________________________
-
-  uint32_t mConstructionMask = 0;
-
-  /// _______________  Geometry  _______________________________________________
-
-  int32_t mNumberOfRows = 0; ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
-  float mTPCzLength = 0.f;   ///< Z length of one TPC side (A or C)
-
-  SectorInfo mSectorInfos[GPUTPCGeometry::NSECTORS + 1]; ///< array of sector information [fixed size]
-  RowInfo mRowInfos[160 + 1];                            ///< array of row information [fixed size]
+  inline static constexpr void convLocalToPadDriftLength(uint32_t sector, uint32_t row, float y, float z, float& pad, float& l)
+  {
+    /// convert Local c.s. -> Pad, DriftLength
+    float u = 0;
+    if (sector < getNumberOfSectorsA()) { // TPC side A
+      u = y;
+      l = getTPCzLength() - z;
+    } else {                   // TPC side C
+      u = -y;                  // pads are mirrorred on C-side
+      l = z + getTPCzLength(); // drift direction is mirrored on C-side
+    }
+    const float maxPad = getRowInfoMaxPad(row);
+    const float padWidth = getRowInfoPadWidth(row);
+    pad = u / padWidth + 0.5f * maxPad;
+  }
 };
-
-// =======================================================================
-//              Inline implementations of some methods
-// =======================================================================
-
-GPUdi() const TPCFastTransformGeoPOD::SectorInfo& TPCFastTransformGeoPOD::getSectorInfo(uint32_t sector) const
-{
-  return mSectorInfos[sector];
-}
-
-GPUdi() void TPCFastTransformGeoPOD::convLocalToGlobal(uint32_t sector, float lx, float ly, float lz, float& gx, float& gy, float& gz) const
-{
-  /// convert Local -> Global c.s.
-  const SectorInfo& sectorInfo = getSectorInfo(sector);
-  gx = lx * sectorInfo.cosAlpha - ly * sectorInfo.sinAlpha;
-  gy = lx * sectorInfo.sinAlpha + ly * sectorInfo.cosAlpha;
-  gz = lz;
-}
-
-GPUdi() void TPCFastTransformGeoPOD::convGlobalToLocal(uint32_t sector, float gx, float gy, float gz, float& lx, float& ly, float& lz) const
-{
-  /// convert Global -> Local c.s.
-  const SectorInfo& sectorInfo = getSectorInfo(sector);
-  lx = gx * sectorInfo.cosAlpha + gy * sectorInfo.sinAlpha;
-  ly = -gx * sectorInfo.sinAlpha + gy * sectorInfo.cosAlpha;
-  lz = gz;
-}
-
-GPUdi() void TPCFastTransformGeoPOD::convPadDriftLengthToLocal(uint32_t sector, uint32_t row, float pad, float driftLength, float& y, float& z) const
-{
-  /// convert Pad, DriftLength -> Local c.s.
-  const float maxPad = getRowInfoMaxPad(row);
-  const float padWidth = getRowInfoPadWidth(row);
-  const float u = (pad - 0.5f * maxPad) * padWidth;
-  if (sector < getNumberOfSectorsA()) { // TPC side A
-    y = u;
-    z = getTPCzLength() - driftLength;
-  } else {                             // TPC side C
-    y = -u;                            // pads are mirrorred on C-side
-    z = driftLength - getTPCzLength(); // drift direction is mirrored on C-side
-  }
-}
-
-GPUdi() float TPCFastTransformGeoPOD::convDriftLengthToZ1(uint32_t sector, float driftLength) const
-{
-  /// convert DriftLength -> Local c.s.
-  return (sector < getNumberOfSectorsA()) ? (getTPCzLength() - driftLength) : (driftLength - getTPCzLength());
-}
-
-GPUdi() float TPCFastTransformGeoPOD::convZtoDriftLength1(uint32_t sector, float z) const
-{
-  /// convert Z to DriftLength
-  return (sector < getNumberOfSectorsA()) ? (getTPCzLength() - z) : (z + getTPCzLength());
-}
-
-GPUdi() float TPCFastTransformGeoPOD::getZmin(uint32_t sector) const
-{
-  /// z min for the sector
-  if (sector < getNumberOfSectorsA()) { // TPC side A
-    return 0.f;
-  } else { // TPC side C
-    return -getTPCzLength();
-  }
-}
-
-GPUdi() float TPCFastTransformGeoPOD::getZmax(uint32_t sector) const
-{
-  /// z max for the sector
-  if (sector < getNumberOfSectorsA()) { // TPC side A
-    return getTPCzLength();
-  } else { // TPC side C
-    return 0.f;
-  }
-}
-
-GPUdi() float TPCFastTransformGeoPOD::getZreadout(uint32_t sector) const
-{
-  /// z readout for the sector
-  if (sector < getNumberOfSectorsA()) { // TPC side A
-    return getTPCzLength();
-  } else { // TPC side C
-    return -getTPCzLength();
-  }
-}
-
-GPUdi() void TPCFastTransformGeoPOD::convLocalToPadDriftLength(uint32_t sector, uint32_t row, float y, float z, float& pad, float& l) const
-{
-  /// convert Local c.s. -> Pad, DriftLength
-  float u;
-  if (sector < getNumberOfSectorsA()) { // TPC side A
-    u = y;
-    l = getTPCzLength() - z;
-  } else {                   // TPC side C
-    u = -y;                  // pads are mirrorred on C-side
-    l = z + getTPCzLength(); // drift direction is mirrored on C-side
-  }
-  const float maxPad = getRowInfoMaxPad(row);
-  const float padWidth = getRowInfoPadWidth(row);
-  pad = u / padWidth + 0.5f * maxPad;
-}
 
 } // namespace o2::gpu
 

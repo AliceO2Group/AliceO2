@@ -37,13 +37,6 @@ struct GPUSettingsRec;
 struct GPUSettingsGTP;
 struct GPURecoStepConfiguration;
 
-struct GPUParamSector {
-  float Alpha;              // sector angle
-  float CosAlpha, SinAlpha; // sign and cosine of the sector angle
-  float AngleMin, AngleMax; // minimal and maximal angle
-  float ZMin, ZMax;         // sector Z range
-};
-
 namespace internal
 {
 template <class T, class S>
@@ -66,8 +59,6 @@ struct GPUParam_t {
   uint32_t occupancyTotal;                 // Total occupancy in the TPC (nCl / nHbf)
   uint32_t occupancyMapSize;               // Size of occupancy map
 
-  GPUParamSector SectorParam[o2::tpc::constants::MAXSECTOR];
-
  protected:
 #ifndef GPUCA_RUN2
   float ParamErrors[2][4][4]; // cluster error parameterization used during seeding and fit
@@ -89,7 +80,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
 #endif
 
   GPUd() constexpr uint32_t tpcMinHitsB5(float qPtB5) const { return CAMath::Abs(qPtB5) > 10 ? 10 : (CAMath::Abs(qPtB5) > 5 ? 15 : 29); } // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
-  GPUd() constexpr float Alpha(int32_t iSector) const
+  GPUd() constexpr float Alpha(int32_t iSector) const                                                                                     // TODO: Check if this is faster, or the lookup from GPUTPCGeometry
   {
     if (iSector >= (int32_t)o2::tpc::constants::MAXSECTOR / 2) {
       iSector -= o2::tpc::constants::MAXSECTOR / 2;

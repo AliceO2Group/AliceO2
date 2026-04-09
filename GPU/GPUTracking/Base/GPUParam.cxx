@@ -87,28 +87,6 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
   UpdateBzOnly(solenoidBz, assumeConstantBz);
   par.dodEdx = 0;
 
-  constexpr float plusZmin = 0.0529937;
-  constexpr float plusZmax = 249.778;
-  constexpr float minusZmin = -249.645;
-  constexpr float minusZmax = -0.0799937;
-  for (uint32_t i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
-    const bool zPlus = (i < GPUTPCGeometry::NSECTORS / 2);
-    SectorParam[i].ZMin = zPlus ? plusZmin : minusZmin;
-    SectorParam[i].ZMax = zPlus ? plusZmax : minusZmax;
-    int32_t tmp = i;
-    if (tmp >= (int32_t)GPUTPCGeometry::NSECTORS / 2) {
-      tmp -= GPUTPCGeometry::NSECTORS / 2;
-    }
-    if (tmp >= (int32_t)GPUTPCGeometry::NSECTORS / 4) {
-      tmp -= GPUTPCGeometry::NSECTORS / 2;
-    }
-    SectorParam[i].Alpha = 0.174533f + dAlpha * tmp;
-    SectorParam[i].CosAlpha = CAMath::Cos(SectorParam[i].Alpha);
-    SectorParam[i].SinAlpha = CAMath::Sin(SectorParam[i].Alpha);
-    SectorParam[i].AngleMin = SectorParam[i].Alpha - dAlpha / 2.f;
-    SectorParam[i].AngleMax = SectorParam[i].Alpha + dAlpha / 2.f;
-  }
-
   par.continuousTracking = false;
   continuousMaxTimeBin = 0;
   tpcCutTimeBin = 0;

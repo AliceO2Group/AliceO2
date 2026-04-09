@@ -83,7 +83,20 @@ GPUconstexpr() float mPadWidth[NREGIONS] = {.4f, .6f, .6f};
 
 constexpr float TPC_LENGTH = 250.f - 0.275f;
 constexpr float FACTOR_T2Z = 250.f / 1024.f; // Used in compression, must remain constant at 250cm, 1024 time bins!
-#endif // clang-format on
+#endif
+
+GPUconstexpr() float mSectorAngle[o2::tpc::constants::MAXSECTOR][2] = {{0x1.63a1a8p-3f, 0x1.f838b8p-1f}, {0x1p-1f, 0x1.bb67aep-1f}, {0x1.8836fap-1f, 0x1.491b76p-1f}, {0x1.e11f64p-1f, 0x1.5e3a88p-2f}, {0x1p+0f, 0x1.1a6264p-54f}, {0x1.e11f64p-1f, -0x1.5e3a88p-2f},
+                                                                       {0x1.8836fap-1f, -0x1.491b76p-1f}, {0x1p-1f, -0x1.bb67aep-1f}, {0x1.63a1a8p-3f, -0x1.f838b8p-1f}, {-0x1.63a1a8p-3f, -0x1.f838b8p-1f}, {-0x1p-1f, -0x1.bb67aep-1f}, {-0x1.8836fap-1f, -0x1.491b76p-1f},
+                                                                       {-0x1.e11f64p-1f, -0x1.5e3a88p-2f}, {-0x1p+0f, -0x1.a79394p-53f}, {-0x1.e11f64p-1f, 0x1.5e3a88p-2f}, {-0x1.8836fap-1f, 0x1.491b76p-1f}, {-0x1p-1f, 0x1.bb67aep-1f}, {-0x1.63a1a8p-3f, 0x1.f838b8p-1f},
+                                                                       {0x1.63a1a8p-3f, 0x1.f838b8p-1f}, {0x1p-1f, 0x1.bb67aep-1f}, {0x1.8836fap-1f, 0x1.491b76p-1f}, {0x1.e11f64p-1f, 0x1.5e3a88p-2f}, {0x1p+0f, 0x1.60fafcp-52f}, {0x1.e11f64p-1f, -0x1.5e3a88p-2f},
+                                                                       {0x1.8836fap-1f, -0x1.491b76p-1f}, {0x1p-1f, -0x1.bb67aep-1f}, {0x1.63a1a8p-3f, -0x1.f838b8p-1f}, {-0x1.63a1a8p-3f, -0x1.f838b8p-1f}, {-0x1p-1f, -0x1.bb67aep-1f}, {-0x1.8836fap-1f, -0x1.491b76p-1f},
+                                                                       {-0x1.e11f64p-1f, -0x1.5e3a88p-2f}, {-0x1p+0f, -0x1.ee2c2ep-52f}, {-0x1.e11f64p-1f, 0x1.5e3a88p-2f}, {-0x1.8836fap-1f, 0x1.491b76p-1f}, {-0x1p-1f, 0x1.bb67aep-1f}, {-0x1.63a1a8p-3f, 0x1.f838b8p-1f}};
+
+GPUconstexpr() float mSectorAlpha[o2::tpc::constants::MAXSECTOR] = {0x1.65718ep-3f, 0x1.0c152ap-1f, 0x1.becdf2p-1f, 0x1.38c35cp+0f, 0x1.921fcp+0f, 0x1.eb7c24p+0f, 0x1.226c44p+1f, 0x1.4f1a76p+1f, 0x1.7bc8a6p+1f,
+                                                                    -0x1.7bc8a6p+1f, -0x1.4f1a76p+1f, -0x1.226c44p+1f, -0x1.eb7c24p+0f, -0x1.921fcp+0f, -0x1.38c35cp+0f, -0x1.becdf2p-1f, -0x1.0c152ap-1f, -0x1.65718ep-3f,
+                                                                    0x1.65718ep-3f, 0x1.0c152ap-1f, 0x1.becdf2p-1f, 0x1.38c35cp+0f, 0x1.921fcp+0f, 0x1.eb7c24p+0f, 0x1.226c44p+1f, 0x1.4f1a76p+1f, 0x1.7bc8a6p+1f,
+                                                                    -0x1.7bc8a6p+1f, -0x1.4f1a76p+1f, -0x1.226c44p+1f, -0x1.eb7c24p+0f, -0x1.921fcp+0f, -0x1.38c35cp+0f, -0x1.becdf2p-1f, -0x1.0c152ap-1f, -0x1.65718ep-3f};
+// clang-format on
 } // namespace gputpcgeometry_internal
 
 class GPUTPCGeometry
@@ -119,13 +132,16 @@ class GPUTPCGeometry
   GPUd() static constexpr float PadWidth(int32_t row) { return (gputpcgeometry_internal::mPadWidth[GetRegion(row)]); }
 #endif
 
+  GPUd() static constexpr float Row2X(uint32_t row) { return (gputpcgeometry_internal::mX[row]); }
   GPUd() static constexpr float NRegions() { return gputpcgeometry_internal::NREGIONS; }
   GPUd() static constexpr float TPCLength() { return gputpcgeometry_internal::TPC_LENGTH; }
-  GPUd() static constexpr float Row2X(int32_t row) { return (gputpcgeometry_internal::mX[row]); }
-  GPUd() static constexpr float PadHeight(int32_t row) { return (gputpcgeometry_internal::mPadHeight[GetRegion(row)]); }
-  GPUd() static constexpr float PadHeightByRegion(int32_t region) { return (gputpcgeometry_internal::mPadHeight[region]); }
-  GPUd() static constexpr float PadWidthByRegion(int32_t region) { return (gputpcgeometry_internal::mPadWidth[region]); }
-  GPUd() static constexpr uint8_t NPads(int32_t row) { return gputpcgeometry_internal::mNPads[row]; }
+  GPUd() static constexpr float PadHeight(uint32_t row) { return (gputpcgeometry_internal::mPadHeight[GetRegion(row)]); }
+  GPUd() static constexpr float PadHeightByRegion(uint32_t region) { return (gputpcgeometry_internal::mPadHeight[region]); }
+  GPUd() static constexpr float PadWidthByRegion(uint32_t region) { return (gputpcgeometry_internal::mPadWidth[region]); }
+  GPUd() static constexpr uint8_t NPads(uint32_t row) { return gputpcgeometry_internal::mNPads[row]; }
+  GPUd() static constexpr float SectorSin(uint32_t sector) { return gputpcgeometry_internal::mSectorAngle[sector][0]; }
+  GPUd() static constexpr float SectorCos(uint32_t sector) { return gputpcgeometry_internal::mSectorAngle[sector][1]; }
+  GPUd() static constexpr float SectorAlpha(uint32_t sector) { return gputpcgeometry_internal::mSectorAlpha[sector]; }
 
   GPUd() static constexpr float LinearPad2Y(uint32_t sector, uint32_t row, float pad)
   {

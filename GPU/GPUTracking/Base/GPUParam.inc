@@ -26,16 +26,16 @@ namespace o2::gpu
 GPUdi() void GPUParam::Sector2Global(int32_t iSector, float x, float y, float z, float* X, float* Y, float* Z) const
 {
   // conversion of coordinates sector->global
-  *X = x * SectorParam[iSector].CosAlpha - y * SectorParam[iSector].SinAlpha;
-  *Y = y * SectorParam[iSector].CosAlpha + x * SectorParam[iSector].SinAlpha;
+  *X = x * GPUTPCGeometry::SectorCos(iSector) - y * GPUTPCGeometry::SectorSin(iSector);
+  *Y = y * GPUTPCGeometry::SectorCos(iSector) + x * GPUTPCGeometry::SectorSin(iSector);
   *Z = z;
 }
 
 GPUdi() void GPUParam::Global2Sector(int32_t iSector, float X, float Y, float Z, float* x, float* y, float* z) const
 {
   // conversion of coordinates global->sector
-  *x = X * SectorParam[iSector].CosAlpha + Y * SectorParam[iSector].SinAlpha;
-  *y = Y * SectorParam[iSector].CosAlpha - X * SectorParam[iSector].SinAlpha;
+  *x = X * GPUTPCGeometry::SectorCos(iSector) + Y * GPUTPCGeometry::SectorSin(iSector);
+  *y = Y * GPUTPCGeometry::SectorCos(iSector) - X * GPUTPCGeometry::SectorSin(iSector);
   *z = Z;
 }
 

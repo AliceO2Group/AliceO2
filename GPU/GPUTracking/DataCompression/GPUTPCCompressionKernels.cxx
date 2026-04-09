@@ -76,7 +76,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
         if ((hit.sector < GPUTPCGeometry::NSECTORS) ^ (lastSector < GPUTPCGeometry::NSECTORS)) {
           break;
         }
-        if (track.Propagate(geo.Row2X(hit.row), param.SectorParam[hit.sector].Alpha)) {
+        if (track.Propagate(geo.Row2X(hit.row), GPUTPCGeometry::SectorAlpha(hit.sector))) {
           break;
         }
       }
@@ -87,7 +87,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if (nClustersStored == 1) {
         uint8_t qpt = fabs(trk.GetParam().GetQPt()) < 20.f ? (trk.GetParam().GetQPt() * (127.f / 20.f) + 127.5f) : (trk.GetParam().GetQPt() > 0 ? 254 : 0);
         zOffset = z;
-        track.Init(x, y, z - zOffset, param.SectorParam[hit.sector].Alpha, qpt, param);
+        track.Init(x, y, z - zOffset, GPUTPCGeometry::SectorAlpha(hit.sector), qpt, param);
 
         myTrack = CAMath::AtomicAdd(&compressor.mMemory->nStoredTracks, 1u);
         compressor.mAttachedClusterFirstIndex[myTrack] = trk.FirstClusterRef();

@@ -120,8 +120,6 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
 
   // copy fixed size data --- start
   podMap.mNumberOfScenarios = origCorr.mNumberOfScenarios;
-  std::memcpy((void*)&podMap.mGeo, (const void*)&origCorr.mGeo, sizeof(TPCFastTransformGeo)); // copy geometry (fixed size)
-  static_assert(sizeof(podMap.mGeo) == sizeof(origCorr.mGeo));
   for (int sector = 0; sector < TPCFastTransformGeo::getNumberOfSectors(); sector++) {
     for (int row = 0; row < NROWS; row++) {
       podMap.mSectorRowInfos[NROWS * sector + row] = origCorr.getSectorRowInfo(sector, row);
