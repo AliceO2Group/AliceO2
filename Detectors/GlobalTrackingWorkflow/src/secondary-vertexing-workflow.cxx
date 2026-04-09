@@ -94,9 +94,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (src[GID::TPC]) {
     srcClus |= GID::getSourceMask(GID::TPC);
-  }
-  if (sclOpt.requestCTPLumi) {
-    src = src | GID::getSourcesMask("CTP");
+    if (sclOpt.requestCTPLumi) {
+      src = src | GID::getSourcesMask("CTP");
+    }
   }
   WorkflowSpec specs;
   if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
