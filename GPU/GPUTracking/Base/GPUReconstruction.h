@@ -302,9 +302,7 @@ class GPUReconstruction
   template <class T>
   void DumpDynamicStructToFile(const T* obj, size_t dynamicSize, const char* file);
   template <class T>
-  std::unique_ptr<T> ReadStructFromFile(const char* file);
-  template <class T>
-  int32_t ReadStructFromFile(const char* file, T* obj);
+  std::unique_ptr<T> ReadStructFromFile(const char* file, T* obj = nullptr, bool* errorOnMissing = nullptr, bool allowSmaller = false);
   template <class T, auto F>
   aligned_unique_buffer_ptr<T> ReadDynamicStructFromFile(const char* file);
 

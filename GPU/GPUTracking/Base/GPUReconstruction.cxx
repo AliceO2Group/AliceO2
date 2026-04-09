@@ -1237,7 +1237,9 @@ int32_t GPUReconstruction::ReadSettings(const char* dir)
   f = dir;
   f += "settings.dump";
   new (mGRPSettings.get()) GPUSettingsGRP;
-  if (ReadStructFromFile(f.c_str(), mGRPSettings.get())) {
+  bool error;
+  ReadStructFromFile(f.c_str(), mGRPSettings.get(), &error, true);
+  if (error) {
     return 1;
   }
   param().UpdateSettings(mGRPSettings.get());

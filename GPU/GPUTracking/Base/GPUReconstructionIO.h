@@ -41,7 +41,7 @@ inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std
     retVal = u.get();
     if (GetProcessingSettings().registerStandaloneInputMemory) {
       if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
-        GPUError("Error registering memory for GPU: %p - %ld bytes\n", (void*)u.get(), (int64_t)(n * sizeof(T)));
+        GPUError("Error registering memory for GPU: %p - %zu bytes\n", (void*)u.get(), n * sizeof(T));
         throw std::bad_alloc();
       }
     }
@@ -69,7 +69,7 @@ inline uint32_t GPUReconstruction::DumpData(FILE* fp, const T* const* entries, c
     }
   }
   if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Dumped %ld %s", (int64_t)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Dumped %zu %s", numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -103,7 +103,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
   }
   (void)r;
   if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Read %ld %s", (int64_t)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Read %zu %s", numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -133,7 +133,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(size, sizeof(size[0]), 2, fp);
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
-    GPUError("ERROR reading %s, invalid size: %ld (%ld expected)", file, (int64_t)size[0], (int64_t)sizeof(T));
+    GPUError("ERROR reading %s, invalid size: %zu (%zu expected)", file, size[0], sizeof(T));
     throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> retVal(new T);
@@ -143,7 +143,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
   if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Read %ld bytes from %s", (int64_t)r, file);
+    GPUInfo("Read %zu bytes from %s", r, file);
   }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
@@ -165,47 +165,40 @@ inline void GPUReconstruction::DumpStructToFile(const T* obj, const char* file)
 }
 
 template <class T>
-inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file)
+inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file, T* obj, bool* errorOnMissing, bool allowSmaller)
 {
   FILE* fp = fopen(file, "rb");
   if (fp == nullptr) {
+    if (errorOnMissing) {
+      *errorOnMissing = true;
+    }
     return nullptr;
   }
   size_t size, r;
   r = fread(&size, sizeof(size), 1, fp);
-  if (r == 0 || size != sizeof(T)) {
+  if (r == 0 || (!allowSmaller && size != sizeof(T))) {
     fclose(fp);
-    GPUError("ERROR reading %s, invalid size: %ld (%ld expected)", file, (int64_t)size, (int64_t)sizeof(T));
+    GPUError("ERROR reading %s, invalid size: %zu (%zu expected)", file, size, sizeof(T));
     throw std::runtime_error("invalid size");
   }
-  std::unique_ptr<T> newObj(new T);
-  r = fread(newObj.get(), 1, size, fp);
-  fclose(fp);
-  if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Read %ld bytes from %s", (int64_t)r, file);
-  }
-  return newObj;
-}
-
-template <class T>
-inline int32_t GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
-{
-  FILE* fp = fopen(file, "rb");
-  if (fp == nullptr) {
-    return 1;
-  }
-  size_t size, r;
-  r = fread(&size, sizeof(size), 1, fp);
-  if (r == 0) {
-    fclose(fp);
-    return 1;
+  std::unique_ptr<T> retVal(nullptr);
+  if (obj == nullptr) {
+    retVal = std::make_unique<T>();
+    obj = retVal.get();
   }
   r = fread(obj, 1, size, fp);
   fclose(fp);
-  if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Read %ld bytes from %s", (int64_t)r, file);
+  if (r != size) {
+    GPUError("ERROR reading %s, read %zu (%zu expected)", file, r, size);
+    throw std::runtime_error("invalid size");
   }
-  return 0;
+  if (GetProcessingSettings().debugLevel >= 2) {
+    GPUInfo("Read %zu bytes from %s", r, file);
+  }
+  if (errorOnMissing) {
+    *errorOnMissing = false;
+  }
+  return retVal;
 }
 
 template <class T>
@@ -234,27 +227,31 @@ inline aligned_unique_buffer_ptr<T> GPUReconstruction::ReadDynamicStructFromFile
   r2 = fread(&dynsize, sizeof(dynsize), 1, fp);
   if (r == 0 || r2 == 0 || size != sizeof(T) || dynsize < size) {
     fclose(fp);
-    GPUError("ERROR reading %s, invalid size: %ld (%ld buffer size, %ld object size expected)", file, (int64_t)size, (int64_t)dynsize, (int64_t)sizeof(T));
+    GPUError("ERROR reading %s, invalid size: %zu (%zu buffer size, %zu object size expected)", file, size, dynsize, sizeof(T));
     throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> tmp = std::make_unique<T>();
   r = fread(tmp.get(), sizeof(T), 1, fp);
   if (r == 0) {
     fclose(fp);
-    GPUError("ERROR reading %s", file, (int64_t)size, (int64_t)sizeof(T));
+    GPUError("ERROR reading %s %zu (%zu expected)", file, size, sizeof(T));
     throw std::runtime_error("read error");
   }
   if ((tmp.get()->*F)() != dynsize) {
     fclose(fp);
-    GPUError("ERROR: invalid size: %ld (%ld expected)", file, (int64_t)dynsize, (int64_t)(tmp.get()->*F)());
+    GPUError("ERROR in %s: invalid size: %zu (%zu expected)", file, dynsize, (tmp.get()->*F)());
     throw std::runtime_error("invalid size");
   }
   aligned_unique_buffer_ptr<T> newObj(dynsize);
   memcpy(newObj.get(), tmp.get(), sizeof(T));
   r = fread(newObj.getraw() + sizeof(T), 1, dynsize - sizeof(T), fp);
   fclose(fp);
+  if (r != dynsize - sizeof(T)) {
+    GPUError("ERROR in %s: File Read error in %s: %zu (%zu expected)", file, r, dynsize);
+    throw std::runtime_error("invalid size");
+  }
   if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Read %ld bytes from %s", (int64_t)r, file);
+    GPUInfo("Read %zu bytes from %s", r + dynsize, file);
   }
   return newObj;
 }
