@@ -25,6 +25,7 @@ namespace o2::gpu
 namespace gputpcgeometry_internal
 {
 #ifndef GPUCA_RUN2 // clang-format off
+constexpr uint32_t NREGIONS = 10;
 GPUconstexpr() float mX[o2::tpc::constants::MAXGLOBALPADROW] = {85.225f, 85.975f, 86.725f, 87.475f, 88.225f, 88.975f, 89.725f, 90.475f, 91.225f, 91.975f, 92.725f, 93.475f, 94.225f, 94.975f, 95.725f, 96.475f, 97.225f, 97.975f, 98.725f, 99.475f, 100.225f, 100.975f,
                                         101.725f, 102.475f, 103.225f, 103.975f, 104.725f, 105.475f, 106.225f, 106.975f, 107.725f, 108.475f, 109.225f, 109.975f, 110.725f, 111.475f, 112.225f, 112.975f, 113.725f, 114.475f, 115.225f, 115.975f, 116.725f, 117.475f,
                                         118.225f, 118.975f, 119.725f, 120.475f, 121.225f, 121.975f, 122.725f, 123.475f, 124.225f, 124.975f, 125.725f, 126.475f, 127.225f, 127.975f, 128.725f, 129.475f, 130.225f, 130.975f, 131.725f, 135.2f, 136.2f, 137.2f,
@@ -40,18 +41,20 @@ GPUconstexpr() uint8_t mNPads[o2::tpc::constants::MAXGLOBALPADROW] = {66, 66, 66
 
 GPUconstexpr() uint8_t mRegion[o2::tpc::constants::MAXGLOBALPADROW] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
                                                4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9};
-GPUconstexpr() uint8_t mRegionRows[10] = {17, 15, 16, 15, 18, 16, 16, 14, 13, 12};
-GPUconstexpr() uint8_t mRegionStart[10] = {0, 17, 32, 48, 63, 81, 97, 113, 127, 140};
+GPUconstexpr() uint8_t mRegionRows[NREGIONS] = {17, 15, 16, 15, 18, 16, 16, 14, 13, 12};
+GPUconstexpr() uint8_t mRegionStart[NREGIONS] = {0, 17, 32, 48, 63, 81, 97, 113, 127, 140};
 
-GPUconstexpr() uint8_t mSampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
-GPUconstexpr() uint8_t mChannelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
+GPUconstexpr() uint8_t mSampaMapping[NREGIONS] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
+GPUconstexpr() uint8_t mChannelOffset[NREGIONS] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
 GPUconstexpr() uint8_t mSectorFECOffset[5] = {0, 15, 15 + 18, 15 + 18 + 18, 15 + 18 + 18 + 20};
 
-GPUconstexpr() float mPadHeight[10] = {.75f, .75f, .75f, .75f, 1.f, 1.f, 1.2f, 1.2f, 1.5f, 1.5f};
-GPUconstexpr() float mPadWidth[10] = {.416f, .420f, .420f, .436f, .6f, .6f, .608f, .588f, .604f, .607f};
+GPUconstexpr() float mPadHeight[NREGIONS] = {.75f, .75f, .75f, .75f, 1.f, 1.f, 1.2f, 1.2f, 1.5f, 1.5f};
+GPUconstexpr() float mPadWidth[NREGIONS] = {.416f, .420f, .420f, .436f, .6f, .6f, .608f, .588f, .604f, .607f};
 
+constexpr float TPC_LENGTH = 250.f;
 constexpr float FACTOR_T2Z = 250.f / 512.f; // Used in compression, must remain constant at 250cm, 512 time bins!
 #else
+constexpr uint32_t NREGIONS = 3;
 GPUconstexpr() float mX[o2::tpc::constants::MAXGLOBALPADROW] = {85.195f, 85.945f, 86.695f, 87.445f, 88.195f, 88.945f, 89.695f, 90.445f, 91.195f, 91.945f, 92.695f, 93.445f, 94.195f, 94.945f, 95.695f, 96.445f, 97.195f, 97.945f, 98.695f, 99.445f, 100.195f, 100.945f, 101.695f,
                                         102.445f, 103.195f, 103.945f, 104.695f, 105.445f, 106.195f, 106.945f, 107.695f, 108.445f, 109.195f, 109.945f, 110.695f, 111.445f, 112.195f, 112.945f, 113.695f, 114.445f, 115.195f, 115.945f, 116.695f, 117.445f, 118.195f, 118.945f,
                                         119.695f, 120.445f, 121.195f, 121.945f, 122.695f, 123.445f, 124.195f, 124.945f, 125.695f, 126.445f, 127.195f, 127.945f, 128.695f, 129.445f, 130.195f, 130.945f, 131.695f, 135.180f, 136.180f, 137.180f, 138.180f, 139.180f, 140.180f,
@@ -65,9 +68,10 @@ GPUconstexpr() uint8_t mNPads[o2::tpc::constants::MAXGLOBALPADROW] = {68, 68, 68
                                               84, 86, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 96, 98, 98, 98, 100, 100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106, 106, 106, 108,
                                               108, 108, 110, 110, 110, 110, 112, 112, 114, 114, 114, 116, 116, 118, 118, 120, 120, 122, 122, 122, 124, 124, 126, 126, 128, 128, 130, 130, 130, 132, 132, 134, 134, 136, 136, 138, 138, 138, 140};
 
-GPUconstexpr() float mPadHeight[3] = {.75f, 1.f, 1.5f};
-GPUconstexpr() float mPadWidth[3] = {.4f, .6f, .6f};
+GPUconstexpr() float mPadHeight[NREGIONS] = {.75f, 1.f, 1.5f};
+GPUconstexpr() float mPadWidth[NREGIONS] = {.4f, .6f, .6f};
 
+constexpr float TPC_LENGTH = 250.f - 0.275f;
 constexpr float FACTOR_T2Z = 250.f / 1024.f; // Used in compression, must remain constant at 250cm, 1024 time bins!
 #endif // clang-format on
 } // namespace gputpcgeometry_internal
@@ -103,11 +107,13 @@ class GPUTPCGeometry
   GPUd() static constexpr int32_t MaxNPadsPerRow() { return 140; }
 #endif
 
-  GPUd() static constexpr float TPCLength() { return 250.f - 0.275f; }
+  GPUd() static constexpr float NRegions() { return gputpcgeometry_internal::NREGIONS; }
+  GPUd() static constexpr float TPCLength() { return gputpcgeometry_internal::TPC_LENGTH; }
   GPUd() static constexpr float Row2X(int32_t row) { return (gputpcgeometry_internal::mX[row]); }
   GPUd() static constexpr float PadHeight(int32_t row) { return (gputpcgeometry_internal::mPadHeight[GetRegion(row)]); }
   GPUd() static constexpr float PadHeightByRegion(int32_t region) { return (gputpcgeometry_internal::mPadHeight[region]); }
   GPUd() static constexpr float PadWidth(int32_t row) { return (gputpcgeometry_internal::mPadWidth[GetRegion(row)]); }
+  GPUd() static constexpr float PadWidthByRegion(int32_t region) { return (gputpcgeometry_internal::mPadWidth[region]); }
   GPUd() static constexpr uint8_t NPads(int32_t row) { return gputpcgeometry_internal::mNPads[row]; }
 
   GPUd() static constexpr float LinearPad2Y(uint32_t sector, uint32_t row, float pad)
