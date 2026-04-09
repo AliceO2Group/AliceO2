@@ -524,17 +524,18 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
 
     double y_midpoint = 0.;
     bool mirrorStaveAroundX = false;
-    // default positive and negative starting points has a gap around x-axis
-    PositionRangeType y_ranges = {{0, Constants::y_lengths[i_stave]},
-                                  {-Constants::stackGap, -Constants::y_lengths[i_stave]}};
+    // default positive and negative starting points has a gap around x-axis for symmetry
+    double stave_half_length = Constants::y_lengths[i_stave] / 2;
+    PositionRangeType y_ranges =
+      {{Constants::stackGap / 2, stave_half_length},
+       {-Constants::stackGap / 2, -stave_half_length}};
     auto y_midpoint_it = Constants::staveID_to_y_midpoint.find(staveID);
     if ( y_midpoint_it != Constants::staveID_to_y_midpoint.end() ) {
       // there is a defined midpoint for this stave, use this for starting points
       y_midpoint = y_midpoint_it->second.first;  // avoid double map lookup
       mirrorStaveAroundX = y_midpoint_it->second.second;
-      double y_diff_abs = Constants::y_lengths[i_stave] / 2;
-      y_ranges.first = {y_midpoint - y_diff_abs, y_midpoint + y_diff_abs};
-      y_ranges.second = {-y_midpoint + y_diff_abs, -y_midpoint - y_diff_abs};
+      y_ranges.first = {y_midpoint - stave_half_length, y_midpoint + stave_half_length};
+      y_ranges.second = {-y_midpoint + stave_half_length, -y_midpoint - stave_half_length};
     }
 
     // Define tolerances for cutting staves and placing sensors
