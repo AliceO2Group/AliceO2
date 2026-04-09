@@ -59,7 +59,7 @@ namespace globaltracking
 class TOFMatcherSpec : public Task
 {
  public:
-  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useFIT, bool tpcRefit, bool strict, bool pushMatchable, int lanes = 1) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict), mPushMatchable(pushMatchable), mNlanes(lanes) {}
+  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useFIT, bool tpcRefit, bool strict, bool pushMatchable, int lanes = 1, bool requestCTPLumi = false) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict), mPushMatchable(pushMatchable), mNlanes(lanes), mRequestCTPLumi(requestCTPLumi) {}
   ~TOFMatcherSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -79,6 +79,7 @@ class TOFMatcherSpec : public Task
   bool mPushMatchable = false;
   float mExtraTolTRD = 0.;
   int mNlanes = 1;
+  bool mRequestCTPLumi = false;
   MatchTOF mMatcher; ///< Cluster finder
   TStopwatch mTimer;
 };
@@ -102,7 +103,7 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
   mTPCVDriftHelper.extractCCDBInputs(pc);
   auto const& raw = pc.inputs().get<const char*>("corrMap");
   mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
-  float lumiCTP = pc.inputs().get<float>("lumiCTP");
+  float lumiCTP = mRequestCTPLumi ? pc.inputs().get<float>("lumiCTP") : 0;
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     const auto bcs = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling().getFilledBCs();
@@ -230,7 +231,7 @@ void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd, bool pushMatchable, int nlanes)
+DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd, bool pushMatchable, bool requestCTPLumi, int nlanes)
 {
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   Options opts;
@@ -257,7 +258,9 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
-  dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+  if (requestCTPLumi) {
+    dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+  }
   std::vector<OutputSpec> outputs;
   if (GID::includesSource(GID::TPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe);
@@ -311,7 +314,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     "tof-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, useMC, useFIT, tpcRefit, strict, pushMatchable, nlanes)},
+    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, useMC, useFIT, tpcRefit, strict, pushMatchable, nlanes, requestCTPLumi)},
     opts};
 }
 

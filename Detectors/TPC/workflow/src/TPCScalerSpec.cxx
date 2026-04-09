@@ -171,10 +171,12 @@ class TPCScalerSpec : public Task
     // check for Maps update
     mTPCCorrMapsLoader.extractCCDBInputs(pc, tpcScaler);
 
-    const float lumiCTP = mTPCCorrMapsLoader.getInstLumiCTP();
-    // if CTP lumi was notrequest - defualt of 0 is published, otherwise the value is scaled with the provided factor
-    LOGP(info, "Publishing CTP Lumi: {} for timestamp: {}, firstTFOrbit: {}", lumiCTP, timestamp, firstTFOrbit);
-    pc.outputs().snapshot(Output{header::gDataOriginCTP, "LUMICTP"}, lumiCTP);
+    if (mGlobOpts.requestCTPLumi) {
+      const float lumiCTP = mTPCCorrMapsLoader.getInstLumiCTP();
+      // if CTP lumi was notrequest - defualt of 0 is published, otherwise the value is scaled with the provided factor
+      LOGP(info, "Publishing CTP Lumi: {} for timestamp: {}, firstTFOrbit: {}", lumiCTP, timestamp, firstTFOrbit);
+      pc.outputs().snapshot(Output{header::gDataOriginCTP, "LUMICTP"}, lumiCTP);
+    }
 
     buildMap(pc);
   }
@@ -323,7 +325,9 @@ o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMS
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+  if (sclOpts.requestCTPLumi) {
+    outputs.emplace_back(o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+  }
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, sclOpts);
 

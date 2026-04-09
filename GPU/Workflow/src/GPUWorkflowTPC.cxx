@@ -342,7 +342,8 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
 
       if (mSpecConfig.outputTracks) {
         mTPCVDriftHelper->extractCCDBInputs(pc);
-        mCalibObjects.mInstLumiCTP = pc.inputs().get<float>("lumiCTP");
+        float lumiCTP = (mSpecConfig.enableCTPLumi) ? pc.inputs().get<float>("lumiCTP") : 0;
+        mCalibObjects.mInstLumiCTP = lumiCTP;
 
         // get the raw buffer and reinterpret as TPCFastTransformPOD
         oldCalibObjects.mFastTransformBuffer = std::move(mCalibObjects.mFastTransformBuffer); // OLD buffer alive ✓

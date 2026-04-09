@@ -23,7 +23,7 @@ namespace o2
 namespace globaltracking
 {
 /// create a processor spec
-framework::DataProcessorSpec getTPCITSMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useGeom, bool useMC);
+framework::DataProcessorSpec getTPCITSMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useGeom, bool useMC, bool requestCTPLumi);
 
 } // namespace globaltracking
 } // namespace o2

@@ -93,7 +93,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 
   auto const& raw = pc.inputs().get<const char*>("corrMap");
   mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
-  float lumiCTP = pc.inputs().get<float>("lumiCTP");
+  float lumiCTP = mRequestCTPLumi ? pc.inputs().get<float>("lumiCTP") : 0;
 
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
@@ -853,7 +853,7 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy, bool requestCTPLumi)
 {
   std::vector<OutputSpec> outputs;
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
@@ -892,7 +892,10 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
   Options opts;
 
   dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
-  dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+
+  if (requestCTPLumi) {
+    dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+  }
 
   // Request PID policy data
   if (withPID) {
@@ -955,7 +958,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict, requestCTPLumi)},
     opts};
 }
 

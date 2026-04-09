@@ -52,7 +52,7 @@ class TRDGlobalTracking : public o2::framework::Task
 {
  public:
   TRDGlobalTracking(bool useMC, bool withPID, PIDPolicy policy, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr,
-                    o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict) : mUseMC(useMC), mWithPID(withPID), mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict), mPolicy(policy) {}
+                    o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool requestCTPLumi) : mUseMC(useMC), mWithPID(withPID), mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict), mPolicy(policy), mRequestCTPLumi(requestCTPLumi) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
@@ -105,11 +105,12 @@ class TRDGlobalTracking : public o2::framework::Task
   std::array<float, 5> mCovDiagOuter{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
   // PID
   PIDPolicy mPolicy{PIDPolicy::DEFAULT}; ///< Model to load an evaluate
+  bool mRequestCTPLumi{false};           ///< whether to request CTP lumi
   std::unique_ptr<PIDBase> mBase;        ///< PID engine
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/, bool requestCTPLumi);
 
 } // namespace trd
 } // namespace o2

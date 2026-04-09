@@ -106,6 +106,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
   struct Config {
     int32_t itsTriggerType = 0;
+    bool enableCTPLumi = false;
     int32_t enableDoublePipeline = 0;
     int32_t tpcDeadMapSources = -1;
     bool tpcUseMCTimeGain = false; // use time gain calibration for MC (true) or from data (false)
